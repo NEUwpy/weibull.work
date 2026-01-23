@@ -119,7 +119,7 @@ export default function RootLayout({
                
                <div className="flex flex-col items-end leading-tight hidden sm:flex">
                   <div className="text-sm text-slate-400 font-mono font-bold">
-                     v3.0
+                     v4.0
                   </div>
                   <div className="text-[10px] text-slate-300 font-bold tracking-wider uppercase">
                      by wpyneu
