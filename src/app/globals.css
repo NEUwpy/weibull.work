@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* KaTeX 渲染优化：使用 Sticky 定位解决滚动遮挡问题 */
+.katex-display {
+  max-width: 100%;
+  overflow-x: auto; /* 允许整体滚动 */
+  overflow-y: hidden;
+  margin: 1.5em 0;
+  padding: 0.5em 0;
+  text-align: center;
+  position: relative;
+}
+
+/* 这里的 .katex-html 是包含公式和 Tag 的直接父容器 */
+.katex-display > .katex > .katex-html {
+  display: table; /* 使用 table 布局或者 block 都可以，关键是宽度 */
+  width: 100%;
+  table-layout: fixed; /* 只有 table-layout: fixed 才能让 sticky 在某些 context 下工作更稳 */
+}
+
+/* 核心修复：让公式号 (Tag) 吸附在右侧 */
+.katex-display .tag {
+  position: sticky !important;
+  right: 0;
+  float: right; /* KaTeX 默认是 float，保留它 */
+  z-index: 10;
+  background: inherit; /* 或者给个背景色防止文字重叠 */
+  padding-left: 1em;
+}
+
+/* Ensure images in prose are contained and centered */
+.prose img {
+  max-width: 33.33%;
+  height: auto;
+  border-radius: 0.75rem;
+  display: block;
+  margin: 2rem auto 1.5rem auto;
+}
+
+/* Ensure all paragraphs are left-aligned by default */
+.prose p {
+  text-align: left;
+}
+
+/* Figure captions: centered + bold (must come after default p rule) */
+.prose p.figure-caption {
+  text-align: center !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Table captions: centered + bold (must come after default p rule) */
+.prose p.table-caption {
+  text-align: center !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}

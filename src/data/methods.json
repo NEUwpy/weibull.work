@@ -1,0 +1,229 @@
+[
+  {
+    "id": "max_adequacy",
+    "name": "极大化适配法",
+    "shortName": "MaxAdq",
+    "description": "通过最大化似然函数或乘积间距来估计参数。适用于大样本，具有渐近无偏性。",
+    "formula": "ln L = n lnβ+(β-1)∑ln(ti-γ)-nβlnη-∑((ti-γ)/η)^β",
+    "children": [
+      {
+        "id": "mle",
+        "name": "极大似然估计 (MLE)",
+        "shortName": "MLE",
+        "referenceSlug": "isssr-2023-review",
+        "description": "最常用的方法，解似然方程组。当 β<1 时无界。",
+        "formula": "max ln L(t1,...,tn;β,η,γ)"
+      },
+      {
+        "id": "mmle",
+        "name": "修正极大似然 (MMLE)",
+        "shortName": "MMLE",
+        "description": "Cohen & Whitten 提出，用于修正 MLE 在小样本下的偏差。",
+        "formula": "ln(n/(n+1)) = (t(0)-γ)/η)^β"
+      },
+      {
+        "id": "mps",
+        "name": "最大乘积间距 (MPS)",
+        "shortName": "MPS",
+        "description": "通过最大化分布函数的几何平均间距来估计，比 MLE 更鲁棒。",
+        "formula": "S = 1/m ∑ ln [F(t(i)) - F(t(i-1))]]"
+      },
+      {
+        "id": "wmle",
+        "name": "加权极大似然 (WMLE)",
+        "shortName": "WMLE",
+        "description": "引入权重以减少小样本偏差。",
+        "formula": "β̂ = arg min { W1/β + ... }"
+      }
+    ]
+  },
+  {
+    "id": "min_adequacy",
+    "name": "极小化适配法",
+    "shortName": "MinAdq",
+    "description": "通过最小化经验分布与理论分布之间的差异（如最小二乘）来估计参数。",
+    "formula": "min ∑ [F(ti) - F̂i]^2",
+    "children": [
+      {
+        "id": "lse",
+        "name": "最小二乘估计 (LSE)",
+        "shortName": "LSE",
+        "description": "最小化 CDF 的残差平方和适用于完全样本和删失样本。",
+        "formula": "arg min ∑ (F(ti)-F̂i)^2"
+      },
+      {
+        "id": "wlse",
+        "name": "加权最小二乘 (WLSE)",
+        "shortName": "WLSE",
+        "description": "为不同数据点赋予不同权重的 LSE。",
+        "formula": "∑ wi (Fi - F̂i)^2"
+      },
+      {
+        "id": "mde",
+        "name": "最小差异估计 (MDE)",
+        "shortName": "MDE",
+        "description": "最小化估计尺度参数的标准差。",
+        "formula": "arg min std((ti-γ)/((-ln(1-Fi))^(1/β)))"
+      },
+      {
+        "id": "eiv",
+        "name": "变量误差法 (EIV)",
+        "shortName": "EIV",
+        "description": "考虑变量本身的误差，最小化失效时间点的残差。",
+        "formula": "∑ (ti - t(i))^2"
+      }
+    ]
+  },
+  {
+    "id": "lre_group",
+    "name": "线性回归法",
+    "shortName": "LRE",
+    "description": "最简单易用的工程方法（即秩回归）。将威布尔公式线性化后求解。",
+    "formula": "ln(-ln(1-F)) = β ln(t-γ) - β ln η",
+    "children": [
+      {
+        "id": "lre",
+        "name": "线性回归 (LRE)",
+        "shortName": "LRE",
+        "description": "通过最大化相关系数 R 来寻找最佳 γ，进而求出 β 和 η。",
+        "formula": "γ̂ = arg max R(γ)"
+      },
+      {
+        "id": "blre",
+        "name": "双线性回归 (BLRE)",
+        "shortName": "BLRE",
+        "description": "高精度回归方法，但迭代中可能产生无效负值。",
+        "formula": "yi = a + b xi + εi"
+      }
+    ]
+  },
+  {
+    "id": "moments",
+    "name": "矩方法",
+    "shortName": "Moments",
+    "description": "基于样本矩等于总体矩的思想。计算简单，但小样本精度较低。",
+    "formula": "E[tk] = ∫ tk f(t) dt",
+    "children": [
+      {
+        "id": "mm",
+        "name": "矩估计 (MM)",
+        "shortName": "MM",
+        "description": "利用均值、方差和偏度方程求解参数。",
+        "formula": "S^2 = η^2 [Γ(1+2/β) - Γ^2(1+1/β)]"
+      },
+      {
+        "id": "pwm",
+        "name": "概率加权矩 (PWM)",
+        "shortName": "PWM",
+        "description": "Greenwood 提出，无需复杂迭代，对离群点不敏感。",
+        "formula": "M1,0,k = 1/n ∑ xi (1 - pi)^k"
+      },
+      {
+        "id": "lm",
+        "name": "L-矩 (L-Moment)",
+        "shortName": "LM",
+        "description": "使用顺序统计量的线性组合，比传统矩更稳健。",
+        "formula": "λr = lr"
+      },
+      {
+        "id": "tlm",
+        "name": "TL-矩 (TL-Moment)",
+        "shortName": "TLM",
+        "description": "修剪 L-矩，对极端值更鲁棒。",
+        "formula": "μ'r = 1/r ∑ (-1)^k Crk E(X...))"
+      }
+    ]
+  },
+  {
+    "id": "grey",
+    "name": "灰色估计法",
+    "shortName": "Grey",
+    "description": "基于灰色系统理论 GM(1,1) 模型。适合小样本，计算速度快。",
+    "formula": "tt = c exp(-axt) + b",
+    "children": [
+      {
+        "id": "gm11",
+        "name": "灰色模型 GM(1,1)",
+        "shortName": "GM(1,1)",
+        "description": "通过微分方程模型拟合时间响应序列。",
+        "formula": "di(x)/dx + ai(x) = u"
+      }
+    ]
+  },
+  {
+    "id": "construct_stat",
+    "name": "构造统计量法",
+    "shortName": "ConstStat",
+    "description": "构造独立于某些参数（如 η, β）的统计量来简化估计。",
+    "formula": "T(X) ⊥ θ",
+    "children": [
+      {
+        "id": "mve",
+        "name": "最小方差无偏估计",
+        "shortName": "MVE",
+        "description": "利用顺序统计量构造线性无偏估计。",
+        "formula": "TjMVE"
+      },
+      {
+        "id": "lsf",
+        "name": "位置尺度无关极大似然",
+        "shortName": "LSF",
+        "description": "使用独立于 γ 和 η 的构造统计量。",
+        "formula": "LSF-MLE"
+      }
+    ]
+  },
+  {
+    "id": "bayesian",
+    "name": "贝叶斯方法",
+    "shortName": "Bayes",
+    "description": "结合先验分布与样本信息（后验分布）。解决 MLE 无解问题。",
+    "formula": "π(θ|t) = f(t|θ)π(θ) / ∫ f(t|θ)π(θ)dθ",
+    "children": [
+      {
+        "id": "gibbs",
+        "name": "Gibbs 采样",
+        "shortName": "Gibbs",
+        "description": "通过马尔可夫链蒙特卡洛 (MCMC) 方法从后验分布抽样。",
+        "formula": "p(θi | θ-i, D)"
+      },
+      {
+        "id": "map",
+        "name": "最大后验估计 (MAP)",
+        "shortName": "MAP",
+        "description": "寻找后验分布最大值的参数点。",
+        "formula": "arg max π(θ|t)"
+      }
+    ]
+  },
+  {
+    "id": "ai",
+    "name": "人工智能方法",
+    "shortName": "AI",
+    "description": "利用机器学习算法进行非线性拟合和参数搜索。",
+    "formula": "f(x) = ∑ wi φi(x)",
+    "children": [
+      {
+        "id": "pso",
+        "name": "粒子群优化 (PSO)",
+        "shortName": "PSO",
+        "description": "模拟鸟群觅食行为搜索最优参数。",
+        "formula": "vi^k+1 = w vi^k + c1 r1 (pbest - xi)"
+      },
+      {
+        "id": "svr",
+        "name": "支持向量回归 (SVR)",
+        "shortName": "SVR",
+        "description": "利用核函数进行小样本回归预测。",
+        "formula": "min 1/2||w||^2 + C ∑ ξi"
+      },
+      {
+        "id": "ann",
+        "name": "人工神经网络 (ANN)",
+        "shortName": "ANN",
+        "description": "训练神经网络直接映射样本特征到参数。",
+        "formula": "y = σ(Wx + b)"
+      }
+    ]
+  }
+]
