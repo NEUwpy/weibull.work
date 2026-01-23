@@ -4,7 +4,7 @@ import React from 'react'
 import './globals.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calculator, Library, Database } from 'lucide-react'
+import { Calculator, Library, Database, Settings2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function RootLayout({
@@ -15,6 +15,7 @@ export default function RootLayout({
   const pathname = usePathname()
   const isLibrary = pathname.startsWith('/library')
   const isCases = pathname.startsWith('/cases')
+  const isMethods = pathname.startsWith('/methods')
 
   let title = 'Weibull Calculator'
   let subtitle = '威布尔计算器'
@@ -31,6 +32,11 @@ export default function RootLayout({
     subtitle = '案例数据库'
     Icon = Database
     themeColor = 'bg-indigo-600 shadow-indigo-200'
+  } else if (isMethods) {
+    title = 'Parameter Estimation Methods'
+    subtitle = '参数估计方法'
+    Icon = Settings2
+    themeColor = 'bg-amber-600 shadow-amber-200'
   }
 
   return (
@@ -58,15 +64,15 @@ export default function RootLayout({
             </div>
 
             {/* Right: Navigation Switcher */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-8">
                {/* Segmented Control */}
                <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
                   <Link
                     href="/"
                     className={cn(
                       "px-5 py-2 rounded-lg text-base font-bold flex items-center gap-2 transition-all whitespace-nowrap",
-                      !isLibrary && !isCases
-                        ? "bg-white text-blue-600 shadow-sm ring-1 ring-black/5" 
+                      !isLibrary && !isCases && !isMethods
+                        ? "bg-white text-blue-600 shadow-sm ring-1 ring-black/5"
                         : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                     )}
                   >
@@ -74,11 +80,23 @@ export default function RootLayout({
                     威布尔计算器
                   </Link>
                   <Link
+                    href="/methods"
+                    className={cn(
+                      "px-5 py-2 rounded-lg text-base font-bold flex items-center gap-2 transition-all whitespace-nowrap",
+                      isMethods
+                        ? "bg-white text-amber-600 shadow-sm ring-1 ring-black/5"
+                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                    )}
+                  >
+                    <Settings2 size={18} />
+                    参数估计方法
+                  </Link>
+                  <Link
                     href="/cases"
                     className={cn(
                       "px-5 py-2 rounded-lg text-base font-bold flex items-center gap-2 transition-all whitespace-nowrap",
                       isCases
-                        ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5" 
+                        ? "bg-white text-indigo-600 shadow-sm ring-1 ring-black/5"
                         : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                     )}
                   >
@@ -89,8 +107,8 @@ export default function RootLayout({
                     href="/library"
                     className={cn(
                       "px-5 py-2 rounded-lg text-base font-bold flex items-center gap-2 transition-all whitespace-nowrap",
-                      isLibrary 
-                        ? "bg-white text-emerald-600 shadow-sm ring-1 ring-black/5" 
+                      isLibrary
+                        ? "bg-white text-emerald-600 shadow-sm ring-1 ring-black/5"
                         : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                     )}
                   >

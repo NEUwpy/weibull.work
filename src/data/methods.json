@@ -8,7 +8,7 @@
     "children": [
       {
         "id": "mle",
-        "name": "极大似然估计 (MLE)",
+        "name": "极大似然估计",
         "shortName": "MLE",
         "referenceSlug": "isssr-2023-review",
         "description": "最常用的方法，解似然方程组。当 β<1 时无界。",
@@ -16,21 +16,21 @@
       },
       {
         "id": "mmle",
-        "name": "修正极大似然 (MMLE)",
+        "name": "修正极大似然",
         "shortName": "MMLE",
         "description": "Cohen & Whitten 提出，用于修正 MLE 在小样本下的偏差。",
         "formula": "ln(n/(n+1)) = (t(0)-γ)/η)^β"
       },
       {
         "id": "mps",
-        "name": "最大乘积间距 (MPS)",
+        "name": "最大乘积间距",
         "shortName": "MPS",
         "description": "通过最大化分布函数的几何平均间距来估计，比 MLE 更鲁棒。",
         "formula": "S = 1/m ∑ ln [F(t(i)) - F(t(i-1))]]"
       },
       {
         "id": "wmle",
-        "name": "加权极大似然 (WMLE)",
+        "name": "加权极大似然",
         "shortName": "WMLE",
         "description": "引入权重以减少小样本偏差。",
         "formula": "β̂ = arg min { W1/β + ... }"
@@ -46,28 +46,28 @@
     "children": [
       {
         "id": "lse",
-        "name": "最小二乘估计 (LSE)",
+        "name": "最小二乘估计",
         "shortName": "LSE",
         "description": "最小化 CDF 的残差平方和适用于完全样本和删失样本。",
         "formula": "arg min ∑ (F(ti)-F̂i)^2"
       },
       {
         "id": "wlse",
-        "name": "加权最小二乘 (WLSE)",
+        "name": "加权最小二乘",
         "shortName": "WLSE",
         "description": "为不同数据点赋予不同权重的 LSE。",
         "formula": "∑ wi (Fi - F̂i)^2"
       },
       {
         "id": "mde",
-        "name": "最小差异估计 (MDE)",
+        "name": "最小差异估计",
         "shortName": "MDE",
         "description": "最小化估计尺度参数的标准差。",
         "formula": "arg min std((ti-γ)/((-ln(1-Fi))^(1/β)))"
       },
       {
         "id": "eiv",
-        "name": "变量误差法 (EIV)",
+        "name": "变量误差法",
         "shortName": "EIV",
         "description": "考虑变量本身的误差，最小化失效时间点的残差。",
         "formula": "∑ (ti - t(i))^2"
@@ -83,14 +83,14 @@
     "children": [
       {
         "id": "lre",
-        "name": "线性回归 (LRE)",
+        "name": "线性回归",
         "shortName": "LRE",
         "description": "通过最大化相关系数 R 来寻找最佳 γ，进而求出 β 和 η。",
         "formula": "γ̂ = arg max R(γ)"
       },
       {
         "id": "blre",
-        "name": "双线性回归 (BLRE)",
+        "name": "双线性回归",
         "shortName": "BLRE",
         "description": "高精度回归方法，但迭代中可能产生无效负值。",
         "formula": "yi = a + b xi + εi"
@@ -106,28 +106,28 @@
     "children": [
       {
         "id": "mm",
-        "name": "矩估计 (MM)",
+        "name": "矩估计",
         "shortName": "MM",
         "description": "利用均值、方差和偏度方程求解参数。",
         "formula": "S^2 = η^2 [Γ(1+2/β) - Γ^2(1+1/β)]"
       },
       {
         "id": "pwm",
-        "name": "概率加权矩 (PWM)",
+        "name": "概率加权矩",
         "shortName": "PWM",
         "description": "Greenwood 提出，无需复杂迭代，对离群点不敏感。",
         "formula": "M1,0,k = 1/n ∑ xi (1 - pi)^k"
       },
       {
         "id": "lm",
-        "name": "L-矩 (L-Moment)",
+        "name": "L-矩",
         "shortName": "LM",
         "description": "使用顺序统计量的线性组合，比传统矩更稳健。",
         "formula": "λr = lr"
       },
       {
         "id": "tlm",
-        "name": "TL-矩 (TL-Moment)",
+        "name": "TL-矩",
         "shortName": "TLM",
         "description": "修剪 L-矩，对极端值更鲁棒。",
         "formula": "μ'r = 1/r ∑ (-1)^k Crk E(X...))"
@@ -189,7 +189,7 @@
       },
       {
         "id": "map",
-        "name": "最大后验估计 (MAP)",
+        "name": "最大后验估计",
         "shortName": "MAP",
         "description": "寻找后验分布最大值的参数点。",
         "formula": "arg max π(θ|t)"
@@ -205,21 +205,21 @@
     "children": [
       {
         "id": "pso",
-        "name": "粒子群优化 (PSO)",
+        "name": "粒子群优化",
         "shortName": "PSO",
         "description": "模拟鸟群觅食行为搜索最优参数。",
         "formula": "vi^k+1 = w vi^k + c1 r1 (pbest - xi)"
       },
       {
         "id": "svr",
-        "name": "支持向量回归 (SVR)",
+        "name": "支持向量回归",
         "shortName": "SVR",
         "description": "利用核函数进行小样本回归预测。",
         "formula": "min 1/2||w||^2 + C ∑ ξi"
       },
       {
         "id": "ann",
-        "name": "人工神经网络 (ANN)",
+        "name": "人工神经网络",
         "shortName": "ANN",
         "description": "训练神经网络直接映射样本特征到参数。",
         "formula": "y = σ(Wx + b)"
