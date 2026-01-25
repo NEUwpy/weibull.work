@@ -8,6 +8,8 @@ import remarkMath from 'remark-math'
 import rehypeSlug from 'rehype-slug'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
+import { visit } from 'unist-util-visit'
+import type { Root, Element, Parent } from 'hast'
 import Link from 'next/link'
 import { ArrowLeft, User, Calendar, List, MapPin, Book, Languages } from 'lucide-react'
 import katex from 'katex'
@@ -17,6 +19,75 @@ import { cn } from '@/lib/utils'
 // -------------------------------------------------------------------------
 // REFACTOR: Moving heavy logic to a shared processing function
 // -------------------------------------------------------------------------
+
+// Custom rehype plugin to style captions (after KaTeX has processed formulas)
+function rehypeStyleCaptions() {
+  return (tree: Root) => {
+    visit(tree, 'element', (node: any, index: number | undefined, parent: any) => {
+      if (!parent || index === undefined) return
+
+      // Helper to add class to node
+      const addClass = (element: any, className: string) => {
+        if (!element.properties) element.properties = {}
+        const existing = element.properties.className
+        if (Array.isArray(existing)) {
+          element.properties.className = [...existing, className]
+        } else if (typeof existing === 'string') {
+          element.properties.className = existing + ' ' + className
+        } else {
+          element.properties.className = className
+        }
+      }
+
+      // Style table captions: paragraph before a table
+      if (node.tagName === 'p' && index < parent.children.length - 1) {
+        let nextIdx = index + 1
+        while (nextIdx < parent.children.length) {
+          const nextSibling = parent.children[nextIdx]
+          if (nextSibling.type === 'element') {
+            if (nextSibling.tagName === 'table') {
+              addClass(node, 'table-caption')
+            }
+            break
+          }
+          nextIdx++
+        }
+      }
+
+      // Style image captions: paragraph after an image
+      if (node.tagName === 'p' && index > 0) {
+        let checkIdx = index - 1
+        while (checkIdx >= 0) {
+          const sibling = parent.children[checkIdx]
+          if (sibling.type === 'element') {
+            if (sibling.tagName === 'img') {
+              addClass(node, 'figure-caption')
+              break
+            }
+            if (sibling.tagName !== 'p') {
+              break
+            }
+          }
+          checkIdx--
+        }
+      }
+
+      // Also check if this paragraph contains an image (image and text on same line)
+      if (node.tagName === 'p' && node.children) {
+        const hasImg = node.children.some((child: any) => child.type === 'element' && child.tagName === 'img')
+        if (hasImg) {
+          // This paragraph contains an image, check if there's text after it
+          const hasTextAfterImg = node.children.some((child: any) =>
+            child.type === 'text' && child.value && child.value.trim().length > 0
+          )
+          if (hasTextAfterImg) {
+            addClass(node, 'figure-caption')
+          }
+        }
+      }
+    })
+  }
+}
 
 interface ProcessedContent {
   frontmatter: any
@@ -133,47 +204,8 @@ function processContent(rawMarkdown: string): ProcessedContent {
        return `<sup><a href="#ref-${content}"${idAttr} class="no-underline text-blue-600 hover:underline">${match}</a></sup>`
     })
 
-  // 3. Fix Image URLs and mark image captions
-  // After an image, mark the next paragraph if it's short (likely a caption)
-  const imageProcessedBody = normalizedBody.replace(/(!\[.*?\]\(.*?\))\n+([^\n]+)\n*/g, (match: string, imageMd: string, nextLine: string) => {
-    const encodedPath = imageMd.replace(/(!\[.*?\])\((.*?)\)/g, (_match: string, alt: string, path: string) => {
-      return `${alt}(${path.replace(/ /g, '%20')})`
-    })
-    // Check if the next line looks like a caption (short text)
-    let trimmedLine = nextLine.trim()
-    const isLikelyCaption = trimmedLine.length > 0 && trimmedLine.length < 200
-
-    if (isLikelyCaption) {
-      // Convert markdown bold **text** to HTML <strong>text</strong>
-      trimmedLine = trimmedLine.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      return `${encodedPath}\n\n<p class="figure-caption">${trimmedLine}</p>\n\n`
-    }
-    return `${encodedPath}\n\n${nextLine}\n`
-  })
-
-  // 4. Mark table captions (short paragraph before/after a table)
-  const tableProcessedBody = imageProcessedBody.replace(
-    /([^\n]{5,200})\n\n(\|[^\n]+\|[^\n]*\n(?:\|[-:\s|]+\|[^\n]*\n)?(?:[^\n]*\|[^\n]*\n)+)/g,
-    (match: string, captionLine: string, tableMd: string) => {
-      let trimmedCaption = captionLine.trim()
-
-      // Skip if it's a markdown heading (starts with #)
-      if (trimmedCaption.startsWith('#')) {
-        return match
-      }
-
-      // Don't mark if it looks like a regular paragraph (contains period, very long, etc.)
-      if (trimmedCaption.includes('。') || trimmedCaption.includes('.') || trimmedCaption.length > 150) {
-        return match
-      }
-      // Convert markdown bold **text** to HTML <strong>text</strong>
-      trimmedCaption = trimmedCaption.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      return `<p class="table-caption">${trimmedCaption}</p>\n\n${tableMd}`
-    }
-  )
-
-  // Handle remaining images that weren't followed by captions
-  const finalBody = tableProcessedBody.replace(/(!\[.*?\])\((.*?)\)/g, (match: string, alt: string, path: string) => {
+  // 3. Fix Image URLs only - captions are handled by rehype plugin
+  const finalBody = normalizedBody.replace(/(!\[.*?\])\((.*?)\)/g, (match: string, alt: string, path: string) => {
     const encodedPath = path.replace(/ /g, '%20')
     return `${alt}(${encodedPath})`
   })
@@ -353,7 +385,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         <div className="flex-1 min-w-0">
           <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
             <article className="prose prose-slate prose-base max-w-none prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:tracking-tight prose-headings:text-slate-900 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-slate-600 prose-p:leading-7 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-strong:font-bold prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded prose-pre:bg-slate-900 prose-pre:shadow-lg prose-pre:rounded-2xl prose-img:rounded-lg prose-img:max-w-[33%] prose-img:mx-auto prose-img:my-6">
-              <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeRaw, rehypeSlug, rehypeKatex]}>
+              <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeRaw, rehypeSlug, rehypeKatex, rehypeStyleCaptions]}>
                 {body}
               </Markdown>
             </article>
