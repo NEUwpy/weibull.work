@@ -17,23 +17,31 @@ import { cn } from '@/lib/utils'
 // REFACTOR: Moving heavy logic to a shared processing function
 // -------------------------------------------------------------------------
 
-function processContent(rawMarkdown: string) {
+interface ProcessedContent {
+  frontmatter: any
+  body: string
+  referenceTitle: string
+  referenceList: string[]
+}
+
+function processContent(rawMarkdown: string): ProcessedContent {
   const { data, content } = matter(rawMarkdown)
 
-  // 1. Split content into Main Body and References
-  // Match any level of header (#, ##, ###) followed by 参考文献 or References
+  // 1. Split content at 参考文献/References
   const refSplitRegex = /(#+\s*(?:参考文献|References))/i
-  const splitMatch = content.match(refSplitRegex)
+  const refMatch = content.match(refSplitRegex)
 
   let mainBody = content
   let referenceTitle = '参考文献'
   let referenceList: string[] = []
 
-  if (splitMatch && splitMatch.index !== undefined) {
-    mainBody = content.substring(0, splitMatch.index)
-    referenceTitle = splitMatch[1].replace(/#+\s*/, '')
+  if (refMatch && refMatch.index !== undefined) {
+    // Main body is everything before the reference title
+    mainBody = content.substring(0, refMatch.index)
+    referenceTitle = refMatch[1].replace(/#+\s*/, '')
 
-    const rawRefs = content.substring(splitMatch.index + splitMatch[0].length)
+    // References are everything after the reference title
+    const rawRefs = content.substring(refMatch.index + refMatch[0].length)
     const refLines = rawRefs.split(/\r?\n/)
     let currentRef = ''
 
@@ -41,11 +49,24 @@ function processContent(rawMarkdown: string) {
       const trimmed = line.trim()
       if (!trimmed) return
 
+      // Check if it's a chapter heading (## or more # signs)
+      if (/^##+\s/.test(trimmed)) {
+        // It's a chapter heading, save current reference and skip this line
+        if (currentRef) {
+          referenceList.push(currentRef)
+          currentRef = ''
+        }
+        // Also add the chapter heading as a reference list item (for display)
+        referenceList.push(trimmed)
+        return
+      }
+
       // Match [1], 1., (1), etc.
       if (/^(\[\d+\]|\d+\.|\(\d+\))/.test(trimmed)) {
         if (currentRef) referenceList.push(currentRef)
         currentRef = trimmed
       } else {
+        // If we have a current reference and this line looks like content, append it
         if (currentRef) currentRef += ' ' + trimmed
       }
     })
@@ -53,19 +74,68 @@ function processContent(rawMarkdown: string) {
   }
 
   // 2. Preprocess Main Body (Math & Citations)
+  // Track first occurrence of each citation number
+  const firstOccurrences = new Set<string>()
+
   const normalizedBody = mainBody
     .replace(/\$\$(.*?)\$\$/g, (match, body) => {
       if (body.includes('\\') || body.length > 20) return `\n$$\n${body.trim()}\n$$\n`
       return match
     })
-    .replace(/(\[[1-9][0-9]*(?:,-?[1-9][0-9]*)*\])/g, (match) => {
-       return `<sup><a href="#ref-${match.replace(/[[\]]/g, '')}" class="no-underline text-blue-600 hover:underline">${match}</a></sup>`
+    .replace(/(\[[1-9][0-9]*(?:[,-][1-9][0-9]*)*\])/g, (match) => {
+       const content = match.replace(/[[\]]/g, '')
+
+       // Check if it's a range citation like [7-8] or [1-3,5]
+       if (content.includes('-') || content.includes(',')) {
+         // Expand range citations into individual links
+         const refs: string[] = []
+         const parts = content.split(',')
+
+         for (const part of parts) {
+           if (part.includes('-')) {
+             // It's a range like [7-8]
+             const [start, end] = part.split('-').map(Number)
+             for (let i = start; i <= end; i++) {
+               refs.push(i.toString())
+             }
+           } else {
+             // It's a single number
+             refs.push(part)
+           }
+         }
+
+         // Create links for each reference
+         // For the first reference in the range, add id if it's the first occurrence
+         const links = refs.map((r, idx) => {
+           const isFirst = !firstOccurrences.has(r)
+           if (isFirst) {
+             firstOccurrences.add(r)
+           }
+
+           // Only add id to the first reference of this citation
+           const idAttr = (idx === 0 && isFirst) ? ` id="cite-${r}"` : ''
+           const className = 'no-underline text-blue-600 hover:underline'
+
+           return `<a href="#ref-${r}"${idAttr} class="${className}">[${r}]</a>`
+         }).join('-')
+
+         return `<sup>${links}</sup>`
+       }
+
+       // Single citation like [7]
+       const isFirst = !firstOccurrences.has(content)
+       if (isFirst) {
+         firstOccurrences.add(content)
+       }
+       const idAttr = isFirst ? ` id="cite-${content}"` : ''
+
+       return `<sup><a href="#ref-${content}"${idAttr} class="no-underline text-blue-600 hover:underline">${match}</a></sup>`
     })
 
   // 3. Fix Image URLs and mark image captions
   // After an image, mark the next paragraph if it's short (likely a caption)
-  const imageProcessedBody = normalizedBody.replace(/(!\[.*?\]\(.*?\))\n+([^\n]+)\n*/g, (match, imageMd, nextLine) => {
-    const encodedPath = imageMd.replace(/(!\[.*?\])\((.*?)\)/g, (match, alt, path) => {
+  const imageProcessedBody = normalizedBody.replace(/(!\[.*?\]\(.*?\))\n+([^\n]+)\n*/g, (match: string, imageMd: string, nextLine: string) => {
+    const encodedPath = imageMd.replace(/(!\[.*?\])\((.*?)\)/g, (_match: string, alt: string, path: string) => {
       return `${alt}(${path.replace(/ /g, '%20')})`
     })
     // Check if the next line looks like a caption (short text)
@@ -83,8 +153,14 @@ function processContent(rawMarkdown: string) {
   // 4. Mark table captions (short paragraph before/after a table)
   const tableProcessedBody = imageProcessedBody.replace(
     /([^\n]{5,200})\n\n(\|[^\n]+\|[^\n]*\n(?:\|[-:\s|]+\|[^\n]*\n)?(?:[^\n]*\|[^\n]*\n)+)/g,
-    (match, captionLine, tableMd) => {
+    (match: string, captionLine: string, tableMd: string) => {
       let trimmedCaption = captionLine.trim()
+
+      // Skip if it's a markdown heading (starts with #)
+      if (trimmedCaption.startsWith('#')) {
+        return match
+      }
+
       // Don't mark if it looks like a regular paragraph (contains period, very long, etc.)
       if (trimmedCaption.includes('。') || trimmedCaption.includes('.') || trimmedCaption.length > 150) {
         return match
@@ -96,7 +172,7 @@ function processContent(rawMarkdown: string) {
   )
 
   // Handle remaining images that weren't followed by captions
-  const finalBody = tableProcessedBody.replace(/(!\[.*?\])\((.*?)\)/g, (match, alt, path) => {
+  const finalBody = tableProcessedBody.replace(/(!\[.*?\])\((.*?)\)/g, (match: string, alt: string, path: string) => {
     const encodedPath = path.replace(/ /g, '%20')
     return `${alt}(${encodedPath})`
   })
@@ -144,10 +220,10 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
       setLoading(true)
       const trans = await fetchFile(slug, '翻译')
       const orig = await fetchFile(slug, '原文')
-      
+
       // Only show toggle if BOTH files are found
       setHasOriginal(!!trans && !!orig)
-      
+
       if (version === '翻译' && trans) {
         setFileContent(trans)
       } else if (version === '原文' && orig) {
@@ -165,7 +241,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
   const { frontmatter, body, referenceTitle, referenceList } = processContent(fileContent)
   const rawToc = extractHeadings(body)
-  
+
   // Normalize TOC levels: Shift so the top-most heading starts at level 1
   const minLevel = rawToc.length > 0 ? Math.min(...rawToc.map(h => h.level)) : 1
   const toc = rawToc.map(h => ({ ...h, renderLevel: h.level - minLevel + 1 }))
@@ -175,7 +251,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
       {/* Top Banner */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-10">
-           
+
            <div className="flex flex-col gap-6">
              <div className="flex justify-between items-start">
                 <div className="flex flex-wrap gap-2">
@@ -183,17 +259,17 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                     <span key={tag} className="flex items-center h-8 px-3 rounded-lg bg-blue-100 text-blue-700 text-sm font-bold uppercase tracking-wider border border-blue-200/50">#{tag}</span>
                   ))}
                 </div>
-                
+
                 {/* VERSION TOGGLE - Only if both exist */}
                 {hasOriginal && (
                   <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 h-8">
-                    <button 
+                    <button
                       onClick={() => setVersion('翻译')}
                       className={cn("px-5 h-full rounded-lg text-sm font-black transition-all flex items-center justify-center", version === '翻译' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
                     >
                       中文
                     </button>
-                    <button 
+                    <button
                       onClick={() => setVersion('原文')}
                       className={cn("px-5 h-full rounded-lg text-sm font-black transition-all flex items-center justify-center", version === '原文' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
                     >
@@ -202,7 +278,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                   </div>
                 )}
              </div>
-             
+
              <div>
                <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-2">{frontmatter.title}</h1>
                {frontmatter.title_en && <h2 className="text-xl md:text-2xl font-bold text-slate-400 leading-tight">{frontmatter.title_en}</h2>}
@@ -264,17 +340,24 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 <h2 className="text-2xl font-black text-slate-900 mb-6">{referenceTitle}</h2>
                 <div className="space-y-4">
                   {referenceList.map((refItem, idx) => {
-                    // Try to extract ID in format [1], 1., or (1)
-                    // Improved regex to catch [1], [ 1 ], 1., (1)
+                    // Check if it's a chapter heading (starts with ##)
+                    if (/^##+\s/.test(refItem)) {
+                      // It's a chapter heading, render as a heading
+                      return (
+                        <h3 key={idx} className="text-lg font-bold text-slate-900 mt-6 mb-2">{refItem}</h3>
+                      )
+                    }
+
+                    // It's a reference item, try to extract ID in format [1], 1., or (1)
                     const refIdMatch = refItem.match(/^(\[\s*\d+\s*\]|\d+\.|\(\d+\))/)
                     const refId = refIdMatch ? refIdMatch[1].replace(/[\[\]().\s]/g, '') : idx + 1
-                    
+
                     // Strip the ID from the content
                     const refContent = refItem.replace(/^(\[\s*\d+\s*\]|\d+\.|\(\d+\))\s*/, '')
-                    
+
                     return (
                       <div key={idx} id={`ref-${refId}`} className="flex gap-4 text-sm text-slate-600 leading-relaxed group scroll-mt-32">
-                        <span className="font-bold text-slate-400 select-none shrink-0 group-hover:text-blue-500 transition-colors">[{refId}]</span>
+                        <a href={`#cite-${refId}`} className="font-bold text-slate-400 select-none shrink-0 group-hover:text-blue-500 hover:underline transition-colors no-underline">[{refId}]</a>
                         <div>{refContent}</div>
                       </div>
                     )
