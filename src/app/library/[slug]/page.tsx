@@ -10,6 +10,7 @@ import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import Link from 'next/link'
 import { ArrowLeft, User, Calendar, List, MapPin, Book, Languages } from 'lucide-react'
+import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import { cn } from '@/lib/utils'
 
@@ -197,6 +198,29 @@ function extractHeadings(markdown: string) {
   return headings
 }
 
+// Helper to render text with inline math for TOC
+function renderTextWithMath(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = []
+  let lastIndex = 0
+  const mathRegex = /\$([^$]+)\$/g
+  let match
+
+  while ((match = mathRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index))
+    }
+    const mathHtml = katex.renderToString(match[1], { throwOnError: false, displayMode: false })
+    parts.push(<span key={`math-${match.index}`} dangerouslySetInnerHTML={{ __html: mathHtml }} />)
+    lastIndex = match.index + match[0].length
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex))
+  }
+
+  return parts.length > 0 ? parts : text
+}
+
 // -------------------------------------------------------------------------
 // API Simulation (Since we are in a client component now)
 // -------------------------------------------------------------------------
@@ -314,7 +338,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                                border-transparent
                              `}
                            >
-                             {item.text}
+                             {renderTextWithMath(item.text)}
                            </a>
                          ))}
                          {referenceList.length > 0 && (
