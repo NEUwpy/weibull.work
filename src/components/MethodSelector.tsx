@@ -2,26 +2,10 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
-import { X, BookOpen, ChevronRight, Info, Edit, CheckCircle, Plus, GripVertical, Settings2, Sigma } from 'lucide-react'
-import 'katex/dist/katex.min.css'
-import katex from 'katex'
+import { X, BookOpen, ChevronRight, Edit, CheckCircle, Plus, GripVertical, Settings2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
-
-// Simple KaTeX Wrapper with Scroll support
-const LatexRenderer = ({ math, block = false }: { math: string, block?: boolean }) => {
-  try {
-    const html = katex.renderToString(math, {
-      throwOnError: false,
-      displayMode: block,
-      trust: true,
-      strict: false
-    })
-    return <div className="max-w-full overflow-x-auto py-2 px-1 scrollbar-hide" dangerouslySetInnerHTML={{ __html: html }} />
-  } catch (e) {
-    return <span className="text-red-500 font-mono text-xs">Latex Error</span>
-  }
-}
+import { MethodDetailContent } from '@/components/MethodDetailContent'
 
 interface MethodSelectorProps {
   isOpen: boolean
@@ -98,7 +82,7 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
 
   const handleEdit = () => {
     if (activeMethodId) {
-      router.push(`/methods/${activeMethodId}/edit`)
+      router.push(`/methods/${activeMethodId}`)
     }
   }
 
@@ -270,48 +254,13 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                             <div className="text-sm font-bold text-blue-500 font-mono tracking-wider">{activeMethod.shortName}</div>
                          </div>
 
-                         <div className="p-8 space-y-8">
-                            {/* Formula Section */}
-                            <div className="space-y-3">
-                               <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-wider">
-                                  <Sigma size={16} className="text-blue-500" />
-                                  核心公式 (Formula)
-                               </div>
-                               <div className="bg-slate-900 rounded-2xl p-6 shadow-inner overflow-x-auto border border-slate-800">
-                                 <div className="text-white">
-                                    <LatexRenderer math={activeMethod.formula} block />
-                                 </div>
-                               </div>
-                            </div>
-
-                            {/* Description Section */}
-                            <div className="space-y-3">
-                               <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-wider">
-                                  <Info size={16} className="text-blue-500" />
-                                  算法描述 (Description)
-                               </div>
-                               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-slate-600 leading-relaxed text-sm">
-                                 {activeMethod.description}
-                               </div>
-                            </div>
+                         <div className="p-8">
+                            <MethodDetailContent method={activeMethod} />
                          </div>
                        </div>
 
                        {/* Footer Actions */}
                        <div className="p-6 border-t border-slate-100 bg-white/80 backdrop-blur-md flex items-center gap-4 z-20">
-                          {activeMethod.referenceSlug && (
-                            <button
-                              onClick={() => {
-                                router.push(`/library/${activeMethod.referenceSlug}`);
-                                onClose();
-                              }}
-                              className="flex-1 h-12 bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 font-bold rounded-xl transition-all flex items-center justify-center gap-2 group"
-                            >
-                               <BookOpen size={18} />
-                               查看文献原文
-                            </button>
-                          )}
-                          
                           <button
                             onClick={handleEdit}
                             className="flex-1 h-12 bg-white border border-slate-200 hover:border-blue-300 hover:shadow-lg text-slate-600 font-bold rounded-xl transition-all flex items-center justify-center gap-2 group"

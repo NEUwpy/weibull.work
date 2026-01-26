@@ -2,10 +2,27 @@ import React from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
-import { ArrowLeft, BookOpen, Sigma, Info, Code, PlayCircle, ExternalLink } from 'lucide-react'
+import { ArrowLeft, BookOpen, Code, PlayCircle, ExternalLink, Info, Sigma } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { MethodDetailContent } from '@/components/MethodDetailContent'
+import methodPapersData from '@/data/method-papers.json'
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
+
+// KaTeX Renderer Component
+const LatexRenderer = ({ math, block = false }: { math: string, block?: boolean }) => {
+  try {
+    const html = katex.renderToString(math, {
+      throwOnError: false,
+      displayMode: block,
+      trust: true,
+      strict: false
+    })
+    return <div className={cn("overflow-x-auto", block ? "py-2" : "inline")} dangerouslySetInnerHTML={{ __html: html }} />
+  } catch (e) {
+    return <span className="text-red-500 font-mono text-xs">LaTeX Error</span>
+  }
+}
 
 // Find a method by ID (flatten the tree)
 function findMethodById(methodId: string): { category: MethodNode; method?: MethodNode } | null {
@@ -23,21 +40,6 @@ function findMethodById(methodId: string): { category: MethodNode; method?: Meth
     }
   }
   return null
-}
-
-// KaTeX Renderer Component
-const LatexRenderer = ({ math, block = false }: { math: string, block?: boolean }) => {
-  try {
-    const html = katex.renderToString(math, {
-      throwOnError: false,
-      displayMode: block,
-      trust: true,
-      strict: false
-    })
-    return <div className={cn("overflow-x-auto", block ? "py-2" : "inline")} dangerouslySetInnerHTML={{ __html: html }} />
-  } catch (e) {
-    return <span className="text-red-500 font-mono text-xs">LaTeX Error</span>
-  }
 }
 
 interface MethodDetailPageProps {
@@ -76,8 +78,21 @@ function CategoryOverview({ category }: { category: MethodNode }) {
           <ArrowLeft size={18} />
           返回方法总览
         </Link>
+        <div className="flex items-center gap-3 mb-3">
+          <span className="px-3 py-1 bg-amber-600 text-white text-xs font-bold rounded-full">
+            {category.shortName}
+          </span>
+        </div>
         <h1 className="text-3xl font-black text-slate-900 mb-2">{category.name}</h1>
-        <p className="text-slate-500">{category.shortName} — {category.description}</p>
+      </div>
+
+      {/* Description Card */}
+      <div className="mb-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Info className="text-amber-500" size={18} />
+          <span className="font-bold text-slate-900">类别概述</span>
+        </div>
+        <p className="text-slate-600 leading-relaxed">{category.description}</p>
       </div>
 
       {/* Formula */}
@@ -118,6 +133,9 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 
 // Method Detail Component
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
+  // Get papers that cite this method
+  const relatedPapers = (methodPapersData as any)[method.id] || []
+
   return (
     <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
       {/* Header */}
@@ -140,43 +158,26 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           <p className="text-slate-500">{method.shortName}</p>
         </div>
 
-        {/* Link to Library */}
-        <Link
-          href="/library/181-004"
-          className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 font-bold rounded-xl transition-all"
-        >
-          <BookOpen size={18} />
-          查看相关文献
-          <ExternalLink size={14} />
-        </Link>
+        {/* Link to Library - only if there are related papers */}
+        {relatedPapers.length > 0 && (
+          <Link
+            href={`/library/${relatedPapers[0]}`}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 font-bold rounded-xl transition-all"
+          >
+            <BookOpen size={18} />
+            查看相关文献
+            <ExternalLink size={14} />
+          </Link>
+        )}
       </div>
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content (2/3) */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Formula Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Sigma className="text-amber-500" size={18} />
-              <span className="font-bold text-slate-900">核心公式</span>
-            </div>
-            <div className="p-6 bg-slate-900">
-              <div className="text-white overflow-x-auto">
-                <LatexRenderer math={method.formula} block />
-              </div>
-            </div>
-          </div>
-
-          {/* Description Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Info className="text-amber-500" size={18} />
-              <span className="font-bold text-slate-900">方法描述</span>
-            </div>
-            <div className="p-6">
-              <p className="text-slate-600 leading-relaxed">{method.description}</p>
-            </div>
+          {/* Core Method Content (Shared Component) */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <MethodDetailContent method={method} category={{ shortName: category.shortName, name: category.name }} />
           </div>
 
           {/* Algorithm Flow - Placeholder for future expansion */}
@@ -247,6 +248,24 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               </Link>
             </div>
           </div>
+
+          {/* Related Papers */}
+          {relatedPapers.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h3 className="font-bold text-slate-900 mb-4">相关文献</h3>
+              <div className="space-y-2">
+                {relatedPapers.map((paperSlug: string) => (
+                  <Link
+                    key={paperSlug}
+                    href={`/library/${paperSlug}`}
+                    className="block px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg text-sm transition-all"
+                  >
+                    {paperSlug}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>

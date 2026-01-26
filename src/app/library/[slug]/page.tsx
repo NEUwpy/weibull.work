@@ -15,6 +15,7 @@ import { ArrowLeft, User, Calendar, List, MapPin, Book, Languages } from 'lucide
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import { cn } from '@/lib/utils'
+import referencesData from '@/data/references.json'
 
 // -------------------------------------------------------------------------
 // REFACTOR: Moving heavy logic to a shared processing function
@@ -411,10 +412,21 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                     // Strip the ID from the content
                     const refContent = refItem.replace(/^(\[\s*\d+\s*\]|\d+\.|\(\d+\))\s*/, '')
 
+                    // Check if this reference has a linked article
+                    const currentPaperRefs = (referencesData as any)[slug] || {}
+                    const targetSlug = currentPaperRefs[refId]
+                    const hasLink = targetSlug && typeof targetSlug === 'string'
+
                     return (
                       <div key={idx} id={`ref-${refId}`} className="flex gap-4 text-sm text-slate-600 leading-relaxed group scroll-mt-32">
                         <a href={`#cite-${refId}`} className="font-bold text-slate-400 select-none shrink-0 group-hover:text-blue-500 hover:underline transition-colors no-underline">[{refId}]</a>
-                        <div>{refContent}</div>
+                        {hasLink ? (
+                          <Link href={`/library/${targetSlug}`} className="text-blue-600 hover:underline">
+                            {refContent}
+                          </Link>
+                        ) : (
+                          <div>{refContent}</div>
+                        )}
                       </div>
                     )
                   })}

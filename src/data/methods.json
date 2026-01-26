@@ -3,8 +3,8 @@
     "id": "max_adequacy",
     "name": "极大化适配法",
     "shortName": "MaxAdq",
-    "description": "通过最大化似然函数或乘积间距来估计参数。适用于大样本，具有渐近无偏性。",
-    "formula": "ln L = n lnβ+(β-1)∑ln(ti-γ)-nβlnη-∑((ti-γ)/η)^β",
+    "description": "通过最大化似然函数或乘积间距来估计参数。适用于大样本，具有渐近无偏性。包括极大似然估计(MLE)、修正极大似然(MMLE)、最大乘积间距(MPS)、加权极大似然(WMLE)等方法。MLE在大样本下表现最优，WMLE在小样本下偏差更小。",
+    "formula": "\\ln L = n \\ln\\beta + (\\beta-1)\\sum_{i=1}^{n}\\ln(t_i-\\gamma) - n\\beta\\ln\\eta - \\sum_{i=1}^{n}\\left(\\frac{t_i-\\gamma}{\\eta}\\right)^\\beta",
     "children": [
       {
         "id": "mle",
@@ -41,8 +41,8 @@
     "id": "min_adequacy",
     "name": "极小化适配法",
     "shortName": "MinAdq",
-    "description": "通过最小化经验分布与理论分布之间的差异（如最小二乘）来估计参数。",
-    "formula": "min ∑ [F(ti) - F̂i]^2",
+    "description": "通过最小化经验分布与理论分布之间的差异（如最小二乘）来估计参数。包括最小二乘估计(LSE)、加权最小二乘(WLSE)、最小差异估计(MDE)、变量误差法(EIV)等。LSE和WLSE既适用于完全样本也适用于截尾样本；MDE在小样本下精度优于MLE和LSE；EIV考虑变量本身误差，但小样本精度较低。",
+    "formula": "\\min \\sum_{i=1}^{n} \\left[F(t_i) - \\hat{F}_i\\right]^2",
     "children": [
       {
         "id": "lse",
@@ -78,8 +78,8 @@
     "id": "lre_group",
     "name": "线性回归法",
     "shortName": "LRE",
-    "description": "最简单易用的工程方法（即秩回归）。将威布尔公式线性化后求解。",
-    "formula": "ln(-ln(1-F)) = β ln(t-γ) - β ln η",
+    "description": "最简单易用的工程方法（即秩回归）。将威布尔公式线性化后求解，通过最大化相关系数R来寻找最佳位置参数γ。包括线性回归(LRE)和双线性回归(BLRE)。LRE既适用于完全样本也适用于截尾样本，在小样本下表现优于其他最小化方法，具有满足工程要求的精度。BLRE精度相对更高，但迭代中可能产生无效负值。",
+    "formula": "\\ln(-\\ln(1-F)) = \\beta \\ln(t-\\gamma) - \\beta \\ln \\eta",
     "children": [
       {
         "id": "lre",
@@ -101,8 +101,8 @@
     "id": "moments",
     "name": "矩方法",
     "shortName": "Moments",
-    "description": "基于样本矩等于总体矩的思想。计算简单，但小样本精度较低。",
-    "formula": "E[tk] = ∫ tk f(t) dt",
+    "description": "基于样本矩等于总体矩的思想。计算简单，但小样本精度较低。包括矩估计(MM)、概率加权矩(PWM)、L-矩(LM)、TL-矩(TLM)。MM和MMM仅适用于完全样本，小样本精度较低；PWM无需复杂迭代，对离群点不敏感，但仅适用于完全样本；LM计算不太复杂，仅需较少常数和迭代过程；TLM比LM更鲁棒，可应用于无穷大分布，但仅适用于完全样本。",
+    "formula": "E[t^k] = \\int_0^\\infty t^k f(t) dt",
     "children": [
       {
         "id": "mm",
@@ -138,8 +138,8 @@
     "id": "grey",
     "name": "灰色估计法",
     "shortName": "Grey",
-    "description": "基于灰色系统理论 GM(1,1) 模型。适合小样本，计算速度快。",
-    "formula": "tt = c exp(-axt) + b",
+    "description": "基于灰色系统理论 GM(1,1) 模型。适合小样本，计算速度快，迭代次数少。通过微分方程模型拟合时间响应序列来估计参数。在小样本情况下可以具有较高的估计精度，但对数据和参数估计更敏感，不够稳定。灰色估计方法仅适用于完整样本，不适用于截尾数据。",
+    "formula": "t = c e^{-a x} + b \\quad \\text{其中} \\quad \\frac{di(x)}{dx} + a i(x) = u",
     "children": [
       {
         "id": "gm11",
@@ -154,8 +154,8 @@
     "id": "construct_stat",
     "name": "构造统计量法",
     "shortName": "ConstStat",
-    "description": "构造独立于某些参数（如 η, β）的统计量来简化估计。",
-    "formula": "T(X) ⊥ θ",
+    "description": "构造独立于某些参数（如 η, β）的统计量来简化估计。用于估计单个参数，需结合其他方法来估计所有三个参数。包括最小方差无偏估计(MVE)和位置尺度无关极大似然(LSF)。MVE使用顺序统计量构造线性无偏估计，在n=5时优于其他方法；LSF使用独立于γ和η的构造统计量绕过无界似然问题。",
+    "formula": "T(X) \\perp \\theta \\quad \\text{(统计量独立于某些参数)}",
     "children": [
       {
         "id": "mve",
@@ -177,8 +177,8 @@
     "id": "bayesian",
     "name": "贝叶斯方法",
     "shortName": "Bayes",
-    "description": "结合先验分布与样本信息（后验分布）。解决 MLE 无解问题。",
-    "formula": "π(θ|t) = f(t|θ)π(θ) / ∫ f(t|θ)π(θ)dθ",
+    "description": "结合先验分布与样本信息（后验分布）来估计参数。解决 MLE 无解问题（如γ为负值时）。包括 Gibbs 采样和最大后验估计(MAP)。贝叶斯方法可以解决小样本问题，既适用于完整样本也适用于截尾样本。由于三参数威布尔分布没有对应的共轭分布，后验分布的积分计算需要使用采样方法（如Gibbs采样、Metropolis算法）。",
+    "formula": "\\pi(\\theta|t) = \\frac{f(t|\\theta)\\pi(\\theta)}{\\int f(t|\\theta)\\pi(\\theta)d\\theta}",
     "children": [
       {
         "id": "gibbs",
@@ -200,8 +200,8 @@
     "id": "ai",
     "name": "人工智能方法",
     "shortName": "AI",
-    "description": "利用机器学习算法进行非线性拟合和参数搜索。",
-    "formula": "f(x) = ∑ wi φi(x)",
+    "description": "利用机器学习算法进行非线性拟合和参数搜索。包括粒子群优化(PSO)、支持向量回归(SVR)、人工神经网络(ANN)等。PSO模拟鸟群觅食行为搜索最优参数，已广泛用于MLE求解；SVR利用核函数进行小样本回归预测，特别适用于小样本情况；ANN训练神经网络直接映射样本特征到参数，融合了矩法概念，在大样本情况下表现更好。",
+    "formula": "f(x) = \\sum_{i=1}^{n} w_i \\phi_i(x) \\quad \\text{(通用形式)}",
     "children": [
       {
         "id": "pso",
