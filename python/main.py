@@ -80,9 +80,9 @@ async def calculate(req: CalculationRequest):
         "gm11": GreyGM11,
         
         # Constructing Stats
-        "construct_stat": LRE, # Fallback
-        "mve": LRE,
-        "lsf": LRE,
+        "construct_stat": WMLE, # Fallback
+        "mve": WMLE,
+        "lsf": WMLE,
         
         # Bayesian
         "bayesian": Bayesian,
@@ -90,16 +90,16 @@ async def calculate(req: CalculationRequest):
         "map": Bayesian,
         
         # AI / Other
-        "ai": LRE, # Fallback
-        "pso": LRE,
-        "svr": LRE,
-        "ann": LRE,
+        "ai": WMLE, # Fallback
+        "pso": WMLE,
+        "svr": WMLE,
+        "ann": WMLE,
         
-        "default": LRE
+        "default": WMLE
     }
 
     selected_method_id = req.method.lower()
-    AlgorithmClass = method_map.get(selected_method_id, LRE)
+    AlgorithmClass = method_map.get(selected_method_id, WMLE) # Default to WMLE if ID unknown
 
     try:
         # Instantiate and run
@@ -113,21 +113,37 @@ async def calculate(req: CalculationRequest):
             "rSquared": float(res[3]),
             "method": selected_method_id
         }
-    except Exception as e:
-        # Global fallback to LRE if specific algo fails
+    except NotImplementedError:
+        # Specific handler for placeholders -> Fallback to WMLE
         try:
-            print(f"Algorithm {selected_method_id} failed: {e}. Falling back to LRE.")
-            fallback_instance = LRE(data)
+            print(f"Algorithm {selected_method_id} not implemented. Fallback to WMLE.")
+            fallback_instance = WMLE(data)
             res = fallback_instance.run()
             return {
                 "beta": float(res[0]),
                 "eta": float(res[1]),
                 "gamma": float(res[2]),
                 "rSquared": float(res[3]),
-                "method": "fallback_lre"
+                "method": f"{selected_method_id}_fallback_wmle"
+            }
+        except Exception as e:
+             raise HTTPException(status_code=500, detail=f"Fallback WMLE failed: {str(e)}")
+
+    except Exception as e:
+        # Global catch-all -> Fallback to WMLE
+        try:
+            print(f"Algorithm {selected_method_id} failed: {e}. Fallback to WMLE.")
+            fallback_instance = WMLE(data)
+            res = fallback_instance.run()
+            return {
+                "beta": float(res[0]),
+                "eta": float(res[1]),
+                "gamma": float(res[2]),
+                "rSquared": float(res[3]),
+                "method": f"{selected_method_id}_fallback_wmle"
             }
         except Exception as fallback_error:
-            raise HTTPException(status_code=500, detail=f"Calculation failed: {str(e)} -> Fallback failed: {str(fallback_error)}")
+            raise HTTPException(status_code=500, detail=f"Calculation failed: {str(e)} -> Fallback WMLE failed: {str(fallback_error)}")
 
 if __name__ == "__main__":
     import uvicorn

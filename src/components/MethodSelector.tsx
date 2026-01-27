@@ -74,7 +74,7 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
   }
 
   const handleConfirm = () => {
-    if (activeMethodId) {
+    if (activeMethodId && activeMethod?.hasDetail) {
       onSelect(activeMethodId)
       onClose()
     }
@@ -181,38 +181,49 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                      onReorder={handleReorder}
                      className="space-y-3 pb-6"
                    >
-                     {selectedCategory.children?.map(method => (
-                       <Reorder.Item key={method.id} value={method}>
-                         <div
-                           onClick={() => setActiveMethodId(method.id)}
-                           className={cn(
-                             "w-full text-left p-4 border rounded-2xl shadow-sm transition-all group flex items-start gap-3 cursor-pointer relative bg-white",
-                             activeMethodId === method.id
-                              ? "border-blue-500 ring-1 ring-blue-500 shadow-md z-10"
-                              : "border-slate-200 hover:border-blue-300 hover:shadow-md"
-                           )}
-                         >
-                           {/* Drag Handle */}
-                           <div className="text-slate-300 cursor-grab active:cursor-grabbing hover:text-slate-400 mt-1">
-                             <GripVertical size={14} />
-                           </div>
+                     {selectedCategory.children?.map(method => {
+                       const isImplemented = method.hasDetail === true
+                       return (
+                         <Reorder.Item key={method.id} value={method}>
+                           <div
+                             onClick={() => setActiveMethodId(method.id)}
+                             className={cn(
+                               "w-full text-left p-4 border rounded-2xl shadow-sm transition-all group flex items-start gap-3 cursor-pointer relative",
+                               isImplemented ? "bg-white" : "bg-slate-50 opacity-60",
+                               activeMethodId === method.id
+                                ? "border-blue-500 ring-1 ring-blue-500 shadow-md z-10"
+                                : "border-slate-200 hover:border-blue-300 hover:shadow-md"
+                             )}
+                           >
+                             {/* Drag Handle */}
+                             <div className="text-slate-300 cursor-grab active:cursor-grabbing hover:text-slate-400 mt-1">
+                               <GripVertical size={14} />
+                             </div>
 
-                           <div className="flex-1 min-w-0">
-                             <div className="flex justify-between items-start">
-                               <span className={cn(
-                                 "font-bold text-sm truncate pr-2 transition-colors",
-                                 activeMethodId === method.id ? "text-blue-700" : "text-slate-700"
-                               )}>{method.name}</span>
-                               {activeMethodId === method.id && <CheckCircle size={16} className="text-blue-600 shrink-0" />}
-                             </div>
-                             <div className="text-[10px] text-slate-400 font-mono mt-1 flex items-center gap-2">
-                               <span className="bg-slate-100 px-1.5 rounded">{method.shortName}</span>
-                               <span className="truncate opacity-70">{method.id}</span>
+                             <div className="flex-1 min-w-0">
+                               <div className="flex justify-between items-start gap-2">
+                                 <span className={cn(
+                                   "font-bold text-sm truncate pr-2 transition-colors",
+                                   activeMethodId === method.id ? "text-blue-700" : "text-slate-700"
+                                 )}>{method.name}</span>
+                                 <div className="flex items-center gap-1 shrink-0">
+                                   {!isImplemented && (
+                                     <span className="text-[9px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded font-bold">
+                                       开发中
+                                     </span>
+                                   )}
+                                   {activeMethodId === method.id && <CheckCircle size={16} className="text-blue-600" />}
+                                 </div>
+                               </div>
+                               <div className="text-[10px] text-slate-400 font-mono mt-1 flex items-center gap-2">
+                                 <span className="bg-slate-100 px-1.5 rounded">{method.shortName}</span>
+                                 <span className="truncate opacity-70">{method.id}</span>
+                               </div>
                              </div>
                            </div>
-                         </div>
-                       </Reorder.Item>
-                     ))}
+                         </Reorder.Item>
+                       )
+                     })}
                    </Reorder.Group>
 
                    {/* Add Method Button (At the end) */}
@@ -280,10 +291,10 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
 
                           <button
                             onClick={handleConfirm}
-                            disabled={!activeMethodId}
+                            disabled={!activeMethodId || !activeMethod?.hasDetail}
                             className={cn(
                               "flex-[2] h-12 font-bold rounded-xl transition-all flex items-center justify-center gap-2",
-                              activeMethodId
+                              activeMethodId && activeMethod?.hasDetail
                                 ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:translate-y-[-1px] active:translate-y-[1px] cursor-pointer"
                                 : "bg-slate-100 text-slate-300 cursor-not-allowed"
                             )}
