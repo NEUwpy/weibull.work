@@ -2,10 +2,9 @@ import React from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
-import { ArrowLeft, BookOpen, Code, PlayCircle, ExternalLink, Info, Sigma } from 'lucide-react'
+import { ArrowLeft, Code, ExternalLink, Info, Sigma, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MethodDetailContent } from '@/components/MethodDetailContent'
-import methodPapersData from '@/data/method-papers.json'
+import { AlgorithmDetail } from '@/components/AlgorithmDetail'
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 
@@ -133,139 +132,52 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 
 // Method Detail Component
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
-  // Get papers that cite this method
-  const relatedPapers = (methodPapersData as any)[method.id] || []
-
   return (
     <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <Link
-            href="/methods"
-            className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold mb-4"
-          >
-            <ArrowLeft size={18} />
-            返回方法总览
-          </Link>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="px-3 py-1 bg-amber-600 text-white text-xs font-bold rounded-full">
-              {category.shortName}
-            </span>
-            <span className="text-sm font-mono text-slate-400">{method.id}</span>
+      <div className="mb-8">
+        <Link
+          href="/methods"
+          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold mb-6"
+        >
+          <ArrowLeft size={18} />
+          返回方法总览
+        </Link>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black text-slate-900">{method.name}</h1>
+            <span className="text-lg font-mono text-slate-400">{method.shortName.toUpperCase()}</span>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 mb-1">{method.name}</h1>
-          <p className="text-slate-500">{method.shortName}</p>
-        </div>
 
-        {/* Link to Library - only if there are related papers */}
-        {relatedPapers.length > 0 && (
+          {/* Calculator Application Link */}
           <Link
-            href={`/library/${relatedPapers[0]}`}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 font-bold rounded-xl transition-all"
+            href={`/?method=${method.id}`}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl transition-all"
           >
-            <BookOpen size={18} />
-            查看相关文献
+            <Sigma size={18} />
+            在计算器中应用
             <ExternalLink size={14} />
           </Link>
-        )}
+        </div>
       </div>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content (2/3) */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Core Method Content (Shared Component) */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-            <MethodDetailContent method={method} category={{ shortName: category.shortName, name: category.name }} />
-          </div>
+      {/* Full-width Content */}
+      <div className="space-y-8">
+        {/* Algorithm Documentation (from MD file) - includes all content */}
+        {'slug' in method && method.hasDetail && method.slug && (
+          <AlgorithmDetail slug={method.slug} />
+        )}
 
-          {/* Algorithm Flow - Placeholder for future expansion */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-              <PlayCircle className="text-amber-500" size={18} />
-              <span className="font-bold text-slate-900">算法流程</span>
-              <span className="ml-auto text-xs text-slate-400">待完善</span>
-            </div>
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Code size={24} className="text-slate-300" />
-              </div>
-              <p className="text-slate-400">该方法的详细算法流程正在开发中...</p>
-              <p className="text-sm text-slate-300 mt-2">请稍后回来查看完整内容</p>
-            </div>
+        {/* Process Variables - Placeholder for future expansion */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+            <Code className="text-amber-500" size={18} />
+            <span className="font-bold text-slate-900">过程量可视化</span>
+            <span className="ml-auto text-xs text-slate-400">待完善</span>
           </div>
-
-          {/* Process Variables - Placeholder for future expansion */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Code className="text-amber-500" size={18} />
-              <span className="font-bold text-slate-900">过程量可视化</span>
-              <span className="ml-auto text-xs text-slate-400">待完善</span>
-            </div>
-            <div className="p-8 text-center">
-              <p className="text-slate-400">该方法的中间过程量展示正在开发中...</p>
-            </div>
+          <div className="p-8 text-center">
+            <p className="text-slate-400">该方法的中间过程量展示正在开发中...</p>
           </div>
-        </div>
-
-        {/* Sidebar (1/3) */}
-        <div className="space-y-6">
-          {/* Quick Info */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h3 className="font-bold text-slate-900 mb-4">快速信息</h3>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-slate-500">方法ID</dt>
-                <dd className="font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded">{method.id}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">所属类别</dt>
-                <dd className="font-medium text-slate-700">{category.shortName}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">缩写</dt>
-                <dd className="font-mono text-slate-700">{method.shortName}</dd>
-              </div>
-            </dl>
-          </div>
-
-          {/* Actions */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h3 className="font-bold text-slate-900 mb-4">快捷操作</h3>
-            <div className="space-y-3">
-              <Link
-                href={`/?method=${method.id}`}
-                className="block w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center transition-all"
-              >
-                在计算器中使用
-              </Link>
-              <Link
-                href={`/methods/${method.id}/edit`}
-                className="block w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-center transition-all"
-              >
-                编辑方法配置
-              </Link>
-            </div>
-          </div>
-
-          {/* Related Papers */}
-          {relatedPapers.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-900 mb-4">相关文献</h3>
-              <div className="space-y-2">
-                {relatedPapers.map((paperSlug: string) => (
-                  <Link
-                    key={paperSlug}
-                    href={`/library/${paperSlug}`}
-                    className="block px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg text-sm transition-all"
-                  >
-                    {paperSlug}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </section>

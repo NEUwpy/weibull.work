@@ -10,7 +10,6 @@
         "id": "mle",
         "name": "极大似然估计",
         "shortName": "MLE",
-        "referenceSlug": "isssr-2023-review",
         "description": "最常用的方法，解似然方程组。当 β<1 时无界。",
         "formula": "max ln L(t1,...,tn;β,η,γ)"
       },
@@ -32,8 +31,10 @@
         "id": "wmle",
         "name": "加权极大似然",
         "shortName": "WMLE",
-        "description": "引入权重以减少小样本偏差。",
-        "formula": "β̂ = arg min { W1/β + ... }"
+        "slug": "wmle",
+        "hasDetail": true,
+        "description": "引入权重以减少小样本偏差。基于 182-088 文献实现，偏差减少约 7 倍。",
+        "formula": "\\{\\hat{\\gamma}, \\hat{\\alpha}\\}_W = \\arg \\min \\left[ \\left(\\frac{W_2}{\\gamma} + ... \\right)^2 + \\left(... - W_3\\right)^2 \\right]"
       }
     ]
   },

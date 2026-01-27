@@ -6,7 +6,8 @@ export type MethodNode = {
   shortName: string
   description: string
   formula: string
-  referenceSlug?: string
+  slug?: string
+  hasDetail?: boolean
   children?: MethodNode[]
 }
 
