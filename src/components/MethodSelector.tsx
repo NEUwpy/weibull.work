@@ -263,15 +263,30 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                        <div className="p-6 border-t border-slate-100 bg-white/80 backdrop-blur-md flex items-center gap-4 z-20">
                           <button
                             onClick={handleEdit}
-                            className="flex-1 h-12 bg-white border border-slate-200 hover:border-blue-300 hover:shadow-lg text-slate-600 font-bold rounded-xl transition-all flex items-center justify-center gap-2 group"
+                            disabled={!activeMethodId}
+                            className={cn(
+                              "flex-1 h-12 border font-bold rounded-xl transition-all flex items-center justify-center gap-2 group",
+                              activeMethodId
+                                ? "bg-white border-slate-200 hover:border-blue-300 hover:shadow-lg text-slate-600"
+                                : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
+                            )}
                           >
-                             <Edit size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                             <Edit size={18} className={cn(
+                               "transition-colors",
+                               activeMethodId ? "text-slate-400 group-hover:text-blue-500" : "text-slate-300"
+                             )} />
                              编辑详情
                           </button>
-                          
+
                           <button
                             onClick={handleConfirm}
-                            className="flex-[2] h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:translate-y-[-1px] active:translate-y-[1px] transition-all flex items-center justify-center gap-2"
+                            disabled={!activeMethodId}
+                            className={cn(
+                              "flex-[2] h-12 font-bold rounded-xl transition-all flex items-center justify-center gap-2",
+                              activeMethodId
+                                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:translate-y-[-1px] active:translate-y-[1px] cursor-pointer"
+                                : "bg-slate-100 text-slate-300 cursor-not-allowed"
+                            )}
                           >
                              <CheckCircle size={18} />
                              确定选择

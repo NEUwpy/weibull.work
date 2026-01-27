@@ -17,6 +17,7 @@ from methods.mm import MM
 from methods.pwm import PWM
 from methods.grey_gm11 import GreyGM11
 from methods.bayesian import Bayesian
+from methods.wmle import WMLE
 
 app = FastAPI()
 
@@ -54,7 +55,7 @@ async def calculate(req: CalculationRequest):
         "mle": MLE,
         "mmle": MLE, # Fallback/Alias
         "mps": MPS,
-        "wmle": MLE, # Fallback
+        "wmle": WMLE,  # Weighted MLE
         
         # Minimizing Adequacy
         "lse": LSE,

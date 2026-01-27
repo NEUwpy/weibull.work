@@ -34,12 +34,13 @@ import {
   CartesianGrid, 
   Tooltip, 
 } from 'recharts'
-import { 
-  DataPoint, 
-  WeibullResult, 
-  generatePDFPoints, 
-  generateCDFPoints 
+import {
+  DataPoint,
+  WeibullResult,
+  generatePDFPoints,
+  generateCDFPoints
 } from '@/lib/weibull'
+import { getMethodInfo } from '@/lib/methods'
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
 
@@ -68,15 +69,6 @@ interface AnalysisCardProps {
   onParamsUpdate?: (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => void
   onCalculate?: () => Promise<void>
   onDelete?: () => void
-}
-
-const METHOD_NAMES: Record<string, { name: string, short: string }> = {
-  'mle': { name: '极大似然估计', short: 'MLE' },
-  'rr': { name: '秩回归', short: 'RR' },
-  'rrx': { name: 'X轴秩回归', short: 'RRX' },
-  'rry': { name: 'Y轴秩回归', short: 'RRY' },
-  'lre': { name: '线性回归估计', short: 'LRE' },
-  'default': { name: '极大似然估计', short: 'MLE' }
 }
 
 export default function AnalysisCard({
@@ -110,7 +102,7 @@ export default function AnalysisCard({
 
   const menuRef = useRef<HTMLDivElement>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
-  const methodInfo = METHOD_NAMES[methodId || 'default'] || METHOD_NAMES['default']
+  const methodInfo = getMethodInfo(methodId)
 
   useEffect(() => {
     if (data) {
