@@ -6,7 +6,7 @@ category: "极大化适配法"
 
 # 核心信息
 formula: "\\{\\hat{\\gamma}, \\hat{\\alpha}\\}_W = \\arg \\min_{\\gamma, \\alpha} \\left[ \\left( \\frac{W_2}{\\gamma} + \\frac{1}{n}\\sum_{i=1}^{n}\\log(x_i - \\alpha) - \\frac{\\sum_{i=1}^{n}\\log(x_i - \\alpha)(x_i - \\alpha)^{\\gamma}}{\\sum_{i=1}^{n}(x_i - \\alpha)^{\\gamma}} \\right)^2 + \\left( \\frac{1}{n}\\sum_{i=1}^{n}\\frac{1}{x_i - \\alpha} \\times \\frac{\\sum_{i=1}^{n}(x_i - \\alpha)^{\\gamma}}{\\sum_{i=1}^{n}(x_i - \\alpha)^{\\gamma-1}} - W_3 \\right)^2 \\right]"
-description: "引入权重以减少小样本偏差，偏差减少约 7 倍。"
+description: "加权极大似然估计（Weighted Maximum Likelihood Estimation, WMLE）是对传统极大似然估计（MLE）的改进方法。MLE 在小样本情况下会产生显著偏差，WMLE 通过引入三个权重（W₁、W₂、W₃）来修正这种偏差。"
 
 # 变量说明
 variables:

@@ -10,15 +10,14 @@ export default function MethodsPage() {
       {/* Method Categories - Horizontal Cards */}
       <div className="space-y-4">
         {INITIAL_METHOD_TREE.map((category, index) => (
-          <Link
-            key={category.id}
-            href={`/methods/${category.id}`}
-            className="block group"
-          >
+          <div key={category.id} className="block group">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-amber-300 transition-all overflow-hidden">
               <div className="flex h-[140px]">
-                {/* Left: Category Info (40%) */}
-                <div className="w-[40%] min-w-[320px] flex bg-gradient-to-br from-amber-50 to-white border-r border-slate-100">
+                {/* Left: Category Info (40%) - Clickable */}
+                <Link
+                  href={`/methods/${category.id}`}
+                  className="w-[40%] min-w-[320px] flex bg-gradient-to-br from-amber-50 to-white border-r border-slate-100 hover:bg-amber-100/50 transition-colors"
+                >
                   {/* Left Section: Icon + ShortName + Name (40%) */}
                   <div className="w-[40%] p-5 pr-4 pl-[60px] flex flex-col justify-center shrink-0">
                     <div className="flex items-center gap-2 mb-3">
@@ -46,15 +45,16 @@ export default function MethodsPage() {
                       {category.description}
                     </div>
                   </div>
-                </div>
+                </Link>
 
-                {/* Right: Methods List (60%) - Horizontal Scroll */}
+                {/* Right: Methods List (60%) - Individual Links */}
                 <div className="flex-1 p-6">
                   <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide h-full">
                     {category.children && category.children.length > 0 ? (
                       category.children.map((method) => (
-                        <div
+                        <Link
                           key={method.id}
+                          href={`/methods/${method.id}`}
                           className="flex-none group/method"
                         >
                           <div className="px-7 py-4 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-xl transition-all cursor-pointer">
@@ -67,7 +67,7 @@ export default function MethodsPage() {
                               {method.name}
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       ))
                     ) : (
                       <div className="text-sm text-slate-400 italic">
@@ -81,7 +81,7 @@ export default function MethodsPage() {
                 </div>
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </section>
