@@ -12,7 +12,6 @@ import {
 } from '@/lib/weibull'
 import MethodSelector from '@/components/MethodSelector'
 import DataEditor from '@/components/DataEditor'
-import { CASE_LIBRARY } from '@/lib/cases'
 
 const CHART_COLORS = [
   '#3b82f6', // Blue-500
@@ -56,43 +55,55 @@ function CalculatorContent() {
   useEffect(() => {
     if (cards.length > 0) return // Already initialized
 
-    const caseId = searchParams.get('caseId')
-    let initialData: DataPoint[]
-    let initialResult: WeibullResult | undefined
-    
-    if (caseId) {
-      const selectedCase = CASE_LIBRARY.find(c => c.id === caseId)
-      if (selectedCase) {
-        const lines = selectedCase.dataRaw.split('\n').filter(l => l.trim())
-        initialData = lines.map((line, idx) => {
-          const parts = line.trim().split(/\s+/)
-          return { id: idx, value: parseFloat(parts[0]), status: parts[1] === 'S' ? 'S' : 'F' }
-        })
-        const points = calculateMedianRanks(initialData, 0)
-        initialResult = calculateWeibullParameters(points, 0)
-      } else {
+    const init = async () => {
+      const caseId = searchParams.get('caseId')
+      let initialData: DataPoint[] = []
+      let initialResult: WeibullResult | undefined = undefined
+      let selectedCaseIdFound = 'mle'
+
+      if (caseId) {
+        try {
+          const res = await fetch('/api/cases')
+          const allCases = await res.json()
+          const selectedCase = allCases.find((c: any) => c.id === caseId)
+          
+          if (selectedCase) {
+            const dataRaw = selectedCase.data_raw || selectedCase.dataRaw || ''
+            const lines = dataRaw.split('\n').filter((l: string) => l.trim())
+            initialData = lines.map((line: string, idx: number) => {
+              const parts = line.trim().split(/\s+/)
+              return { id: idx, value: parseFloat(parts[0]), status: parts[1] === 'S' ? 'S' : 'F' }
+            })
+            const points = calculateMedianRanks(initialData, 0)
+            initialResult = calculateWeibullParameters(points, 0)
+          }
+        } catch (err) {
+          console.error('Failed to load case:', err)
+        }
+      }
+
+      // Fallback if no case found or error
+      if (initialData.length === 0) {
         initialData = generateRandomData(20, 2.5, 100, 0)
         const points = calculateMedianRanks(initialData, 0)
         initialResult = calculateWeibullParameters(points, 0)
       }
-    } else {
-      initialData = generateRandomData(20, 2.5, 100, 0)
-      const points = calculateMedianRanks(initialData, 0)
-      initialResult = calculateWeibullParameters(points, 0)
+
+      setCards([
+        {
+          id: '1', 
+          type: 'chart',
+          data: initialData,
+          result: initialResult,
+          color: CHART_COLORS[0],
+          fitMode: 'fit',
+          is3P: false,
+          methodId: 'mle'
+        }
+      ])
     }
 
-    setCards([
-      {
-        id: '1', 
-        type: 'chart',
-        data: initialData,
-        result: initialResult,
-        color: CHART_COLORS[0],
-        fitMode: 'fit',
-        is3P: false,
-        methodId: 'mle'
-      }
-    ])
+    init()
   }, [searchParams, cards.length])
 
   // Handle adding new cards

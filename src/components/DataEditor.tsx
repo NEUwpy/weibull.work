@@ -14,7 +14,8 @@ interface DataEditorProps {
 }
 
 export default function DataEditor({ isOpen, initialData, onClose, onSave }: DataEditorProps) {
-  const [cases, setCases] = useState<CaseItem[]>(CASE_LIBRARY)
+  const [cases, setCases] = useState<CaseItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null)
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null)
   
@@ -26,7 +27,25 @@ export default function DataEditor({ isOpen, initialData, onClose, onSave }: Dat
   // Initialize: if initialData is provided, maybe highlight a "Custom" case or just ready to add new
   useEffect(() => {
     if (isOpen) {
-      // Reset logic if needed
+      setIsLoading(true)
+      fetch('/api/cases')
+        .then(res => res.json())
+        .then(data => {
+          const mappedData = data.map((c: any) => {
+             // Simple mapping for DataEditor, detailed desc not critical here
+             return {
+                ...c,
+                name: c.title || c.name,
+                dataRaw: c.data_raw || c.dataRaw
+             }
+          })
+          setCases(mappedData)
+          setIsLoading(false)
+        })
+        .catch(err => {
+          console.error(err)
+          setIsLoading(false)
+        })
     }
   }, [isOpen])
 

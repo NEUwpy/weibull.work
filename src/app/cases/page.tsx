@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -18,18 +18,60 @@ import { cn } from '@/lib/utils'
 
 export default function CasesPage() {
   const router = useRouter()
+  const [allCases, setAllCases] = useState<CaseItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [industryFilter, setIndustryFilter] = useState<string>('全部行业')
   const [typeFilter, setTypeFilter] = useState<string>('全部类型')
 
+  // Load data
+  useEffect(() => {
+    fetch('/api/cases')
+      .then(res => res.json())
+      .then(data => {
+        // Map new MD fields to legacy UI fields if necessary
+        const mappedData = data.map((c: any) => {
+          // Extract description from content: strip markdown headings/bold/etc roughly
+          let desc = c.description || c.content || ''
+          desc = desc.replace(/^#+\s+/gm, '') // Remove headings
+                     .replace(/\*\*/g, '')      // Remove bold
+                     .replace(/\n/g, ' ')       // Flatten newlines
+                     .trim()
+          
+          if (desc.length > 100) {
+            desc = desc.slice(0, 100) + '...'
+          }
+
+          return {
+            ...c,
+            name: c.title || c.name,
+            dataRaw: c.data_raw || c.dataRaw,
+            description: desc
+          }
+        })
+        setAllCases(mappedData)
+        setIsLoading(false)
+      })
+      .catch(err => {
+        console.error(err)
+        setIsLoading(false)
+      })
+  }, [])
+
   // Derived filters
-  const industries = ['全部行业', ...Array.from(new Set(CASE_LIBRARY.map(c => c.industry)))]
-  const types = ['全部类型', ...Array.from(new Set(CASE_LIBRARY.map(c => c.type)))]
+  const industries = useMemo(() => 
+    ['全部行业', ...Array.from(new Set(allCases.map(c => c.industry)))],
+    [allCases]
+  )
+  const types = useMemo(() => 
+    ['全部类型', ...Array.from(new Set(allCases.map(c => c.type)))],
+    [allCases]
+  )
 
   // Filter Logic
   const filteredCases = useMemo(() => {
-    return CASE_LIBRARY.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    return allCases.filter(item => {
+      const matchesSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             (item.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                             item.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
       const matchesIndustry = industryFilter === '全部行业' || item.industry === industryFilter
@@ -37,7 +79,7 @@ export default function CasesPage() {
       
       return matchesSearch && matchesIndustry && matchesType
     })
-  }, [searchTerm, industryFilter, typeFilter])
+  }, [allCases, searchTerm, industryFilter, typeFilter])
 
   // Handle "Analyze" - Send data to calculator via URL or LocalStorage
   // For simplicity in this static demo, we will just navigate to Home. 

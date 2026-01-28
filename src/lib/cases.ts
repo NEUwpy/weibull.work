@@ -1,18 +1,27 @@
-import casesData from '@/data/cases.json'
+// This file now acts as a type definition and bridge for the new MD-based case system.
+// Client components should fetch cases from /api/cases
 
 export type CaseItem = {
   id: string
-  name: string
+  title: string      // Previously 'name'
+  name?: string       // For backward compatibility
   industry: string
   type: string
   size: string
-  description?: string
-  dataRaw: string
-  related_paper_slug?: string
   tags: string[]
-  created_at?: string
+  data_raw: string    // Previously 'dataRaw'
+  dataRaw?: string    // For backward compatibility
+  created_at: string
+  description?: string // Map from content
+  content?: string
+  related_paper_slug?: string
+  parameters?: {
+    beta?: number
+    eta?: number
+    gamma?: number
+  }
 }
 
-// Ensure type safety by casting the imported JSON
-// In a real app, you might want to use Zod to validate the JSON structure at runtime.
-export const CASE_LIBRARY: CaseItem[] = casesData as CaseItem[]
+// Fallback empty array for synchronous imports
+// In client components, use the API instead.
+export const CASE_LIBRARY: CaseItem[] = []
