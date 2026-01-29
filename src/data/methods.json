@@ -44,7 +44,7 @@
     "id": "min_adequacy",
     "name": "极小化适配法",
     "shortName": "MinAdq",
-    "description": "通过最小化经验分布与理论分布的差异来估计参数。MDE小样本精度优，EIV考虑变量误差。",
+    "description": "通过最小化经验分布与理论分布的差异来估计参数。MDM小样本精度优，EIV考虑变量误差。",
     "formula": "\\min \\sum_{i=1}^{n} \\left[F(t_i) - \\hat{F}_i\\right]^2",
     "children": [
       {
@@ -62,11 +62,13 @@
         "formula": "∑ wi (Fi - F̂i)^2"
       },
       {
-        "id": "mde",
-        "name": "最小差异估计",
-        "shortName": "MDE",
-        "description": "最小化估计尺度参数的标准差。",
-        "formula": "arg min std((ti-γ)/((-ln(1-Fi))^(1/β)))"
+        "id": "mdm",
+        "name": "最小偏差法",
+        "shortName": "MDM",
+        "slug": "mdm",
+        "hasDetail": true,
+        "description": "基于统计最小差异原理，通过伪估计量寻找使样本尺度参数差异最小的参数组合。MDM小样本精度优，稳健性强。",
+        "formula": "\\min_{\\beta, \\gamma} \\sigma \\left( \\frac{t_i - \\gamma}{[-\\ln(1-F_i)]^{1/\\beta}} \\right)"
       },
       {
         "id": "eiv",

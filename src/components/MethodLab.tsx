@@ -5,12 +5,15 @@ import { useSearchParams } from 'next/navigation'
 import { Microscope, PlayCircle, AlertCircle } from 'lucide-react'
 import MLEVisualizer from '@/components/visualizers/MLEVisualizer'
 import WMLEVisualizer from '@/components/visualizers/WMLEVisualizer'
+import MDMVisualizer from '@/components/visualizers/MDMVisualizer'
+import { WeibullResult, calculateMedianRanks } from '@/lib/weibull'
 
 interface MethodLabProps {
   methodId: string
+  onCalculationComplete?: (result: WeibullResult) => void
 }
 
-export default function MethodLab({ methodId }: MethodLabProps) {
+export default function MethodLab({ methodId, onCalculationComplete }: MethodLabProps) {
   const searchParams = useSearchParams()
   const [data, setData] = useState<number[]>([])
   const [traceResult, setTraceResult] = useState<any>(null)
@@ -58,6 +61,20 @@ export default function MethodLab({ methodId }: MethodLabProps) {
 
         const result = await response.json()
         setTraceResult(result)
+
+        if (onCalculationComplete) {
+           // Reconstruct DataPoints to calculate ranks for the chart
+           const dataPoints = data.map((v, i) => ({ id: i, value: v, status: 'F' as const }))
+           const points = calculateMedianRanks(dataPoints, result.gamma)
+           
+           onCalculationComplete({
+             beta: result.beta,
+             eta: result.eta,
+             gamma: result.gamma,
+             rSquared: result.rSquared,
+             points: points
+           })
+        }
       } catch (err: any) {
         setError(err.message)
       } finally {
@@ -105,9 +122,12 @@ export default function MethodLab({ methodId }: MethodLabProps) {
             {methodId.toLowerCase() === 'wmle' && (
               <WMLEVisualizer traceData={traceResult.trace_data} />
             )}
+            {methodId.toLowerCase() === 'mdm' && (
+              <MDMVisualizer traceData={traceResult.trace_data} />
+            )}
             
             {/* Fallback for others */}
-            {!['mle', 'wmle'].includes(methodId.toLowerCase()) && (
+            {!['mle', 'wmle', 'mdm'].includes(methodId.toLowerCase()) && (
               <div className="text-center py-12 text-slate-400">
                 此算法暂未适配可视化组件。
               </div>

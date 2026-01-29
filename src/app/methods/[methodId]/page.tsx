@@ -9,6 +9,8 @@ import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText } 
 import { cn } from '@/lib/utils'
 import { AlgorithmDetail } from '@/components/AlgorithmDetail'
 import MethodLab from '@/components/MethodLab'
+import AnalysisCard from '@/components/AnalysisCard'
+import { DataPoint, WeibullResult } from '@/lib/weibull'
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 
@@ -104,11 +106,21 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<'doc' | 'lab'>('doc')
+  const [analysisData, setAnalysisData] = useState<DataPoint[]>([])
+  const [analysisResult, setAnalysisResult] = useState<WeibullResult | undefined>(undefined)
   
-  // Auto-switch to lab if data is present
+  // Auto-switch to lab if data is present and parse data
   useEffect(() => {
-    if (searchParams.get('data')) {
+    const dataParam = searchParams.get('data')
+    if (dataParam) {
       setActiveTab('lab')
+      try {
+        const parsed = dataParam.split(',').map(Number).filter(n => !isNaN(n))
+        const points: DataPoint[] = parsed.map((v, i) => ({ id: i, value: v, status: 'F' }))
+        setAnalysisData(points)
+      } catch(e) {
+        console.error("Failed to parse data", e)
+      }
     }
   }, [searchParams])
 
@@ -176,9 +188,34 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
              )}
           </div>
         ) : (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+             {/* Analysis Card Preview */}
+             {analysisData.length > 0 && (
+                <div className="opacity-90 hover:opacity-100 transition-opacity">
+                   <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider ml-1">当前案例概览</div>
+                   <AnalysisCard 
+                     id="preview"
+                     index={0}
+                     data={analysisData}
+                     result={analysisResult}
+                     methodId={method.id}
+                     color="#4f46e5" // Indigo-600
+                     fitMode="fit"
+                     is3P={analysisResult ? analysisResult.gamma !== 0 : false}
+                     availableLayers={[]}
+                     onAdd={() => {}} // Read-only
+                     onDelete={() => {}} // Read-only
+                     onDataChange={() => {}} // Read-only
+                     onParamsUpdate={() => {}} // Read-only
+                   />
+                </div>
+             )}
+          
              {/* Pass data implicitly via URL search params handled inside MethodLab */}
-             <MethodLab methodId={method.id} />
+             <MethodLab 
+               methodId={method.id} 
+               onCalculationComplete={(res) => setAnalysisResult(res)}
+             />
           </div>
         )}
       </div>
