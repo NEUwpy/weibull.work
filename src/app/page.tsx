@@ -51,6 +51,16 @@ function CalculatorContent() {
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
   const [activeCardId, setActiveCardId] = useState<string | null>(null)
 
+  // Global render count to detect infinite loops
+  const renderCountRef = React.useRef(0)
+  renderCountRef.current += 1
+  if (renderCountRef.current % 50 === 0) {
+    console.warn('[page.tsx] Render count:', renderCountRef.current)
+  }
+  if (renderCountRef.current > 200) {
+    console.error('[page.tsx] INFINITE LOOP DETECTED!')
+  }
+
   // Initialize cards from URL or default
   useEffect(() => {
     if (cards.length > 0) return // Already initialized
@@ -66,7 +76,7 @@ function CalculatorContent() {
           const res = await fetch('/api/cases')
           const allCases = await res.json()
           const selectedCase = allCases.find((c: any) => c.id === caseId)
-          
+
           if (selectedCase) {
             const dataRaw = selectedCase.data_raw || selectedCase.dataRaw || ''
             const lines = dataRaw.split('\n').filter((l: string) => l.trim())
@@ -91,7 +101,7 @@ function CalculatorContent() {
 
       setCards([
         {
-          id: '1', 
+          id: '1',
           type: 'chart',
           data: initialData,
           result: initialResult,
@@ -104,7 +114,9 @@ function CalculatorContent() {
     }
 
     init()
-  }, [searchParams, cards.length])
+    // Only run on mount - remove searchParams from deps to avoid infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Handle adding new cards
   const handleAddCard = (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string) => {
@@ -184,13 +196,19 @@ function CalculatorContent() {
   }
 
   const handleMethodSelect = (methodId: string) => {
+    console.log('[handleMethodSelect] methodId:', methodId, 'activeCardId:', activeCardId)
     if (activeCardId) {
-      setCards(prev => prev.map(card => {
-        if (card.id === activeCardId) {
-          return { ...card, methodId }
-        }
-        return card
-      }))
+      setCards(prev => {
+        const updated = prev.map(card => {
+          if (card.id === activeCardId) {
+            console.log('[handleMethodSelect] updating card:', card.id, 'old methodId:', card.methodId, 'new methodId:', methodId)
+            return { ...card, methodId }
+          }
+          return card
+        })
+        console.log('[handleMethodSelect] cards updated:', updated.length)
+        return updated
+      })
     }
     setIsMethodSelectorOpen(false)
   }
