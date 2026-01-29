@@ -11,19 +11,47 @@ import 'katex/dist/katex.min.css'
 import { cn } from '@/lib/utils'
 import { MethodNode } from '@/lib/methods'
 
-// KaTeX Renderer Component
+// KaTeX Renderer Component with timeout protection
 const LatexRenderer = ({ math, block = false }: { math: string, block?: boolean }) => {
-  try {
-    const html = katex.renderToString(math, {
-      throwOnError: false,
-      displayMode: block,
-      trust: true,
-      strict: false
-    })
-    return <div className={cn("overflow-x-auto", block ? "py-2" : "inline")} dangerouslySetInnerHTML={{ __html: html }} />
-  } catch (e) {
-    return <span className="text-red-500 font-mono text-xs">LaTeX Error</span>
+  const [renderedHtml, setRenderedHtml] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<boolean>(false)
+
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+
+    try {
+      timeoutId = setTimeout(() => {
+        setError(true)
+        console.error('[LatexRenderer] Timeout rendering formula:', math.substring(0, 50) + '...')
+      }, 5000) // 5 second timeout
+
+      const html = katex.renderToString(math, {
+        throwOnError: false,
+        displayMode: block,
+        trust: true,
+        strict: false
+      })
+
+      clearTimeout(timeoutId)
+      setRenderedHtml(html)
+    } catch (e) {
+      clearTimeout(timeoutId)
+      setError(true)
+      console.error('[LatexRenderer] Error rendering formula:', e)
+    }
+
+    return () => clearTimeout(timeoutId)
+  }, [math, block])
+
+  if (error) {
+    return <span className="text-amber-500 font-mono text-xs break-all">{math}</span>
   }
+
+  if (!renderedHtml) {
+    return <span className="text-slate-300 font-mono text-xs">Loading formula...</span>
+  }
+
+  return <div className={cn("overflow-x-auto", block ? "py-2" : "inline")} dangerouslySetInnerHTML={{ __html: renderedHtml }} />
 }
 
 interface MethodDetailContentProps {
@@ -44,7 +72,17 @@ export function MethodDetailContent({ method, category }: MethodDetailContentPro
   const [frontmatter, setFrontmatter] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
+  // Track render count to detect infinite loops
+  const renderCount = React.useRef(0)
+  renderCount.current += 1
+  if (renderCount.current > 50) {
+    console.error('[MethodDetailContent] INFINITE RENDER LOOP! Count:', renderCount.current)
+  }
+
   useEffect(() => {
+    console.log('[MethodDetailContent] Starting load for:', method.slug, 'render #:', renderCount.current)
+    let cancelled = false
+
     async function loadAlgorithmDoc() {
       // Check if method has a detailed MD file
       if (!method.slug) {
@@ -53,22 +91,37 @@ export function MethodDetailContent({ method, category }: MethodDetailContentPro
       }
 
       try {
+        console.log('[MethodDetailContent] Fetching:', method.slug)
         const response = await fetch(`/api/algorithms?slug=${method.slug}`)
-        if (!response.ok) {
+        console.log('[MethodDetailContent] Response received:', response.status)
+        if (!response.ok || cancelled) {
           setLoading(false)
           return
         }
         const text = await response.text()
+        console.log('[MethodDetailContent] Parsing frontmatter, text length:', text.length)
         const { data, content: mdContent } = matter(text)
-        setFrontmatter(data)
-        setMdContent(mdContent)
+        console.log('[MethodDetailContent] Frontmatter parsed, setting state')
+        if (!cancelled) {
+          setFrontmatter(data)
+          setMdContent(mdContent)
+          console.log('[MethodDetailContent] State updated')
+        }
       } catch (err) {
         console.error('Failed to load algorithm doc:', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
     loadAlgorithmDoc()
+
+    // Cleanup function to cancel async operations
+    return () => {
+      console.log('[MethodDetailContent] Cleanup for:', method.slug)
+      cancelled = true
+    }
   }, [method.slug])
 
   // If MD content exists, show full documentation

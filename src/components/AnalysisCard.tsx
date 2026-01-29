@@ -103,8 +103,42 @@ export default function AnalysisCard({
 
   const menuRef = useRef<HTMLDivElement>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
-  const methodInfo = getMethodInfo(methodId)
+  // Use useMemo to prevent object reference changes on every render
+  const methodInfo = React.useMemo(() => getMethodInfo(methodId), [methodId])
   const router = useRouter()
+  const renderCountRef = useRef(0)
+
+  // Detect infinite loops - track WHY we're re-rendering
+  const prevRenderProps = useRef<{ methodId?: string; data?: DataPoint[]; result?: WeibullResult; is3P?: boolean }>({})
+
+  useEffect(() => {
+    renderCountRef.current += 1
+    const current = { methodId, dataLength: data?.length, hasResult: !!result, is3P }
+    const prev = prevRenderProps.current
+
+    // Only log when something actually changes (reduce noise)
+    const changes: string[] = []
+    if (prev.methodId !== methodId) changes.push(`methodId: ${prev.methodId} → ${methodId}`)
+    if (prev.dataLength !== data?.length) changes.push(`dataLength: ${prev.dataLength} → ${data?.length}`)
+    if (prev.hasResult !== current.hasResult) changes.push(`hasResult: ${prev.hasResult} → ${current.hasResult}`)
+    if (prev.is3P !== is3P) changes.push(`is3P: ${prev.is3P} → ${is3P}`)
+
+    if (changes.length > 0 || renderCountRef.current % 50 === 0) {
+      console.log(`[AnalysisCard] Render #${renderCountRef.current}`, changes.length > 0 ? changes.join(', ') : '(no changes)')
+    }
+
+    if (renderCountRef.current > 100) {
+      console.error('[AnalysisCard] INFINITE LOOP! Last 100 renders had no prop changes')
+    }
+
+    prevRenderProps.current = current
+  })
+
+  // Debug log when methodId changes
+  useEffect(() => {
+    console.log('[AnalysisCard] methodId changed:', methodId, 'method:', methodInfo?.name, 'renderCount:', renderCountRef.current)
+    renderCountRef.current = 0 // Reset on methodId change
+  }, [methodId])
 
   useEffect(() => {
     if (data) {

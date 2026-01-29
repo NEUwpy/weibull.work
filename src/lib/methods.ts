@@ -39,8 +39,11 @@ export function getMethodInfo(methodId: string | undefined): { name: string, sho
   }
   const info = methodMap[methodId]
   if (info) {
-    return { name: info.name, short: info.shortName }
+    const result = { name: info.name, short: info.shortName }
+    // Removed verbose logging to prevent blocking
+    return result
   }
   // Fallback to showing ID
+  console.warn('[getMethodInfo] methodId not found:', methodId)
   return { name: methodId.toUpperCase(), short: methodId.toUpperCase() }
 }

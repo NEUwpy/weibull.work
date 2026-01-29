@@ -17,14 +17,63 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
   const router = useRouter()
   // Global tree state to allow persistent reordering
   const [methodTree, setMethodTree] = useState<MethodNode[]>(INITIAL_METHOD_TREE)
-  
+
   // Selection state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(INITIAL_METHOD_TREE[0].id)
   const [activeMethodId, setActiveMethodId] = useState<string | null>(null)
-  
-  // Find current objects based on IDs
-  const selectedCategory = methodTree.find(c => c.id === selectedCategoryId) || methodTree[0]
-  const activeMethod = selectedCategory.children?.find(m => m.id === activeMethodId)
+  const [isClosing, setIsClosing] = useState(false)
+
+  // Track mount/unmount
+  React.useEffect(() => {
+    console.log('[MethodSelector] MOUNTED')
+    return () => {
+      console.log('[MethodSelector] UNMOUNTING - cleanup starting...')
+    }
+  }, [])
+
+  // Reset isClosing when dialog opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setIsClosing(false)
+    }
+  }, [isOpen])
+
+  // Find current objects based on IDs - memoized to prevent unnecessary recalculations
+  const selectedCategory = React.useMemo(
+    () => methodTree.find(c => c.id === selectedCategoryId) || methodTree[0],
+    [methodTree, selectedCategoryId]
+  )
+  // CRITICAL FIX: Only depend on activeMethodId to prevent infinite loops with AnimatePresence
+  const activeMethod = React.useMemo(
+    () => {
+      const children = selectedCategory.children
+      if (!children) return undefined
+      // Find by iterating instead of using .find() to avoid dependency on children array reference
+      for (let i = 0; i < children.length; i++) {
+        if (children[i].id === activeMethodId) return children[i]
+      }
+      return undefined
+    },
+    [activeMethodId] // Only depend on the ID, not the children array
+  )
+
+  // Log when selectedCategory actually changes
+  const prevCategoryIdRef = React.useRef<string>(selectedCategoryId)
+  React.useEffect(() => {
+    if (prevCategoryIdRef.current !== selectedCategoryId) {
+      console.log('[MethodSelector] selectedCategoryId changed:', prevCategoryIdRef.current, '→', selectedCategoryId, 'category:', selectedCategory.name)
+      prevCategoryIdRef.current = selectedCategoryId
+    }
+  }, [selectedCategoryId, selectedCategory.name])
+
+  // Log when activeMethod changes
+  const prevActiveMethodIdRef = React.useRef<string | null>(activeMethodId)
+  React.useEffect(() => {
+    if (prevActiveMethodIdRef.current !== activeMethodId) {
+      console.log('[MethodSelector] activeMethodId changed:', prevActiveMethodIdRef.current, '→', activeMethodId, 'activeMethod:', activeMethod?.name || 'none')
+      prevActiveMethodIdRef.current = activeMethodId
+    }
+  }, [activeMethodId, activeMethod?.name])
 
   // Handle reordering of methods within a category
   const handleReorder = (newOrder: MethodNode[]) => {
@@ -74,9 +123,13 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
   }
 
   const handleConfirm = () => {
+    console.log('[MethodSelector] handleConfirm called', { activeMethodId, activeMethod, hasDetail: activeMethod?.hasDetail })
     if (activeMethodId && activeMethod?.hasDetail) {
+      setIsClosing(true) // Prevent further rendering of heavy content
       onSelect(activeMethodId)
       onClose()
+    } else {
+      console.error('[MethodSelector] Confirm failed - invalid state', { activeMethodId, activeMethod })
     }
   }
 
@@ -86,16 +139,19 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
     }
   }
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
+  return isOpen ? (
+    <>
+      {/* Backdrop */}
+      <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.3 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => {
+              console.log('[MethodSelector] Backdrop clicked, setting isClosing=true')
+              setIsClosing(true) // Stop rendering heavy content immediately
+              onClose()
+              console.log('[MethodSelector] onClose returned')
+            }}
             className="fixed inset-0 bg-black z-[140] backdrop-blur-sm"
           />
 
@@ -120,8 +176,11 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                   <span className="text-xs text-slate-500 font-medium tracking-wide mt-1">Method Taxonomy & Configuration</span>
                 </div>
               </div>
-              <button 
-                onClick={onClose}
+              <button
+                onClick={() => {
+                  setIsClosing(true)
+                  onClose()
+                }}
                 className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
               >
                 <X size={24} />
@@ -140,7 +199,12 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                   {methodTree.map(cat => (
                     <button
                       key={cat.id}
-                      onClick={() => { setSelectedCategoryId(cat.id); setActiveMethodId(null); }}
+                      onClick={() => {
+                        console.log('[MethodSelector] Category button clicked:', cat.id, cat.name)
+                        setSelectedCategoryId(cat.id)
+                        setActiveMethodId(null)
+                        console.log('[MethodSelector] States updated, selectedCategoryId:', cat.id, 'activeMethodId: null')
+                      }}
                       className={cn(
                         "w-full text-left px-4 py-3 rounded-xl transition-all duration-200 flex items-center justify-between group border relative overflow-hidden",
                         selectedCategoryId === cat.id 
@@ -186,7 +250,10 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                        return (
                          <Reorder.Item key={method.id} value={method}>
                            <div
-                             onClick={() => setActiveMethodId(method.id)}
+                             onClick={() => {
+                               console.log('[MethodSelector] Method clicked:', method.id, method.name, 'hasDetail:', method.hasDetail)
+                               setActiveMethodId(method.id)
+                             }}
                              className={cn(
                                "w-full text-left p-4 border rounded-2xl shadow-sm transition-all group flex items-start gap-3 cursor-pointer relative",
                                isImplemented ? "bg-white" : "bg-slate-50 opacity-60",
@@ -241,8 +308,8 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
 
               {/* Layer 3: Details Panel (Remaining) */}
               <div className="flex-1 bg-white p-0 flex flex-col relative overflow-hidden">
-                 <AnimatePresence mode="wait">
-                   {activeMethod ? (
+                 {/* Removed AnimatePresence to prevent blocking */}
+                 {activeMethod ? (
                      <motion.div
                        key={activeMethod.id}
                        initial={{ opacity: 0, x: 20 }}
@@ -266,7 +333,13 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                          </div>
 
                          <div className="p-8">
-                            <MethodDetailContent method={activeMethod} />
+                            {/* Don't render MethodDetailContent if closing to prevent blocking */}
+                            {!isClosing && <MethodDetailContent method={activeMethod} />}
+                            {isClosing && (
+                              <div className="text-center py-12 text-slate-400">
+                                正在选择算法...
+                              </div>
+                            )}
                          </div>
                        </div>
 
@@ -314,15 +387,12 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                         <p className="text-sm opacity-50 mt-1">点击左侧列表查看详细信息</p>
                      </div>
                    )}
-                 </AnimatePresence>
               </div>
 
             </div>
           </motion.div>
         </>
-      )}
-    </AnimatePresence>
-  )
+    ) : null
 }
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
