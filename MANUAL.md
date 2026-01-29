@@ -1,75 +1,77 @@
 # 威布尔分析平台 (Weibull Analysis Platform) - 开发者手册
 
-> **文档状态**: 2026-01-27 更新 (v0.3.0 Hybrid)
+> **文档状态**: 2026-01-29 更新 (v0.5.0 NumPy 2.0 Ready)
 > **适用对象**: 维护本项目的开发者或 AI 助手。
 
 ---
 
 ## 1. 项目概况 (Overview)
 本平台采用 **Next.js + Python** 的混合架构。
-- **Frontend**: Next.js 负责 UI、路由、静态内容渲染和简单的线性回归预览。
-- **Backend**: Python (FastAPI) 负责执行高级统计计算（如 WMLE, 贝叶斯估计等）。
+- **Frontend**: Next.js 负责 UI、路由、静态内容渲染。
+- **Backend**: Python (FastAPI) 负责执行高级统计计算。
 
 ---
 
-## 2. 核心架构 (Architecture)
+## 2. 核心交互模式：计算器 vs 实验室
 
-### 2.1 计算流程
-1. 用户在前端选择算法（如 "WMLE"）。
-2. Next.js 通过 API (`/api/calculate`) 将数据发送给 Python 服务。
-3. Python 服务 (`python/main.py`) 根据 `method_id` 路由到具体的算法模块。
-4. 如果该算法尚未实现（抛出 `NotImplementedError`），系统自动降级使用 **WMLE (加权极大似然估计)** 作为通用计算内核。
+平台采用 **“分离模式 (Split Mode)”** 来平衡工程实用性与科研探索性：
 
-### 2.2 目录结构
+1.  **计算器 (Calculator) - 首页**
+    - **定位**: 端到端的工程工具。
+    - **输入**: 数据样本。
+    - **输出**: 最终参数结果 ($\beta, \eta, \gamma, R^2$)。
+    - **接口**: 调用 `/calculate`，默认模式 (不返回过程量)。
+
+2.  **方法详情页 (Method Lab) - `/methods/[id]`**
+    - **定位**: 算法显微镜与科研教学。
+    - **双模式切换**:
+        - **原理文档 (Doc)**: 展示 Markdown 格式的算法原理、公式和参考文献。
+        - **计算过程 (Lab)**: 接收样本数据，展示算法内部运作细节（如迭代收敛曲线、权重变化）。
+    - **接口**: 调用 `/calculate`，带 `trace=true` 参数。
+
+---
+
+## 3. 核心架构 (Architecture)
+
+### 3.1 目录结构
 ```
 C:\Web\Weibull\
 ├── src\
-│   ├── data\methods.json       # 算法元数据（定义菜单、公式）
-│   └── content\algorithms\     # 法详细文档 (Markdown)
+│   ├── app\methods\[id]\       # 方法详情页 (包含 MethodLab 组件)
+│   ├── content\cases\          # 案例库 (Markdown)
+│   └── components\visualizers\ # 针对不同算法的专用可视化组件 (Recharts)
 └── python\
-    ├── main.py                 # FastAPI 网关，负责路由分发和异常处理
-    ├── base.py                 # WeibullBase 基类 (提供数学工具)
-    └── methods\
-        ├── _template.py        # 开发新算法的通用模板
-        ├── wmle.py             # 核心算法 (也作为默认后备)
-        ├── lre.py              # 基础算法 (线性回归)
-        └── [mle.py, etc...]    # 其他算法 (未实现时指向 WMLE)
+    ├── main.py                 # FastAPI 网关
+    ├── base.py                 # 基类 (提供 Trace 记录器，兼容 NumPy 2.0)
+    └── methods\                # 算法实现
+        ├── wmle.py             # 支持 Trace 的高级算法
+        └── mle.py              # 支持 Trace 的基础算法
 ```
+
+### 3.2 过程量 (Trace) 协议
+后端算法通过 `self.log_step()` 记录关键步骤。
+- **NumPy 兼容性**: `base.py` 已针对 NumPy 2.0 进行了类型检查修复，移除了 `np.float_` 等过时别名。
 
 ---
 
-## 3. 如何添加新算法 (Adding New Methods)
+## 4. 智能文献检索 (Literature Research Agent)
 
-### 步骤 1: 注册元数据 (Frontend)
-编辑 `src/data/methods.json`，添加算法 ID、名称和公式。这会让算法出现在左侧菜单中。
+采用 **“三叉戟扫描 (Trident Scanning)”** 策略，确保检索的全面性：
 
-### 步骤 2: 实现后端逻辑 (Backend)
-1. 复制模板: `cp python/methods/_template.py python/methods/your_method.py`
-2. 实现逻辑: 继承 `WeibullBase` 并重写 `run()` 方法。
-3. 注册路由: 在 `python/main.py` 的 `method_map` 中添加映射：
-   ```python
-   from methods.your_method import YourMethod
-   # ...
-   "your_method_id": YourMethod,
-   ```
-
-> **注意**: 如果您只在前端注册了 ID 但未在 Python 中实现，请确保 `main.py` 将其映射到 `WMLE` 或一个抛出 `NotImplementedError` 的类，系统会自动理后备逻辑。
+1.  **宏观 (表头推理)**: 根据 Frontmatter 的 `title/summary` 推理文献类型（如综述必读）。
+2.  **中观 (目录扫描)**: 使用 `grep` 提取所有 Markdown 标题，锁定隐性章节。
+3.  **微观 (关键词联想)**: AI 自动脑补高辨识度术语（如 "Unbounded"），全文检索“隐形”知识点。
 
 ---
 
-## 4. 运行服务 (Running)
+## 5. 已知问题与修复记录
 
-开发模式下需要同时运行两个终端：
+- **[Fixed] NumPy 2.0 Crash**:
+  - 现象：`AttributeError: module 'numpy' has no attribute 'float_'`
+  - 原因：NumPy 2.0 移除了 `np.float_` 等标量别名。
+  - 修复：在 `python/base.py` 中移除了对这些别名的引用，改用标准 `float/int` 类型转换。
 
-**Terminal 1 (Frontend):**
-```bash
-npm run dev
-```
-
-**Terminal 2 (Backend):**
-```bash
-cd python
-# 确保安装了依赖: pip install -r requirements.txt
-python main.py
-```
-*Python 服务默认运行在 http://localhost:8001*
+- **[Fixed] MLE 文档加载失败**:
+  - 现象：YAML 解析错误。
+  - 原因：LaTeX 公式中的反斜杠未转义。
+  - 修复：使用单引号包裹公式字符串。

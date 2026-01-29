@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Settings2, 
@@ -103,6 +104,7 @@ export default function AnalysisCard({
   const menuRef = useRef<HTMLDivElement>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
   const methodInfo = getMethodInfo(methodId)
+  const router = useRouter()
 
   useEffect(() => {
     if (data) {
@@ -277,7 +279,7 @@ export default function AnalysisCard({
               <span className="text-base font-black uppercase tracking-wider">方法</span>
             </div>
             {/* 内容栏 */}
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-3 gap-3">
               {methodId ? (
                  <div className="flex flex-col items-center gap-2">
                    <div className="font-black text-slate-700 text-sm sm:text-base leading-tight break-words max-w-full">
@@ -289,6 +291,22 @@ export default function AnalysisCard({
                  </div>
               ) : (
                 <div className="w-full border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs py-8">选择</div>
+              )}
+              
+              {/* Process Button */}
+              {methodId && data && data.length > 0 && (
+                 <button 
+                   onClick={(e) => {
+                     e.stopPropagation(); // Prevent opening method selector
+                     if (!methodId || !data) return;
+                     const dataStr = data.map(d => d.value).join(',');
+                     router.push(`/methods/${methodId}?data=${dataStr}`);
+                   }}
+                   className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold transition-all opacity-0 group-hover/col:opacity-100"
+                 >
+                   <ArrowRight size={12} />
+                   过程详解
+                 </button>
               )}
             </div>
           </div>

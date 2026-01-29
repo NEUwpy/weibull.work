@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any
 import sys
 import os
 
@@ -32,6 +32,7 @@ app.add_middleware(
 class CalculationRequest(BaseModel):
     method: str
     data: List[float]
+    trace: Optional[bool] = False # New field
     params: Optional[dict] = {}
 
 class CalculationResponse(BaseModel):
@@ -40,6 +41,7 @@ class CalculationResponse(BaseModel):
     gamma: float
     rSquared: float 
     method: str
+    trace_data: Optional[List[dict]] = None # New field
 
 @app.post("/calculate", response_model=CalculationResponse)
 async def calculate(req: CalculationRequest):
@@ -49,98 +51,72 @@ async def calculate(req: CalculationRequest):
     data = req.data
     
     # Map method IDs to Algorithm Classes
-    # For aliases, we map to the same class
     method_map = {
-        # Maximizing Adequacy
-        "mle": MLE,
-        "mmle": MLE, # Fallback/Alias
-        "mps": MPS,
-        "wmle": WMLE,  # Weighted MLE
-        
-        # Minimizing Adequacy
-        "lse": LSE,
-        "wlse": LSE, # Fallback
-        "mde": MDE,
-        "eiv": LSE, # Fallback
-        
-        # Linear Regression
-        "lre": LRE,
-        "rrx": LRE,
-        "rry": LRE, 
-        "blre": LRE, # Fallback
-        
-        # Moments
-        "mm": MM,
-        "pwm": PWM,
-        "lm": PWM, # Fallback
-        "tlm": PWM, # Fallback
-        
-        # Grey
-        "grey": GreyGM11,
-        "gm11": GreyGM11,
-        
-        # Constructing Stats
-        "construct_stat": WMLE, # Fallback
-        "mve": WMLE,
-        "lsf": WMLE,
-        
-        # Bayesian
-        "bayesian": Bayesian,
-        "gibbs": Bayesian,
-        "map": Bayesian,
-        
-        # AI / Other
-        "ai": WMLE, # Fallback
-        "pso": WMLE,
-        "svr": WMLE,
-        "ann": WMLE,
-        
+        "mle": MLE, "mmle": MLE, "mps": MPS, "wmle": WMLE,
+        "lse": LSE, "wlse": LSE, "mde": MDE, "eiv": LSE,
+        "lre": LRE, "rrx": LRE, "rry": LRE, "blre": LRE,
+        "mm": MM, "pwm": PWM, "lm": PWM, "tlm": PWM,
+        "grey": GreyGM11, "gm11": GreyGM11,
+        "construct_stat": WMLE, "mve": WMLE, "lsf": WMLE,
+        "bayesian": Bayesian, "gibbs": Bayesian, "map": Bayesian,
+        "ai": WMLE, "pso": WMLE, "svr": WMLE, "ann": WMLE,
         "default": WMLE
     }
 
     selected_method_id = req.method.lower()
-    AlgorithmClass = method_map.get(selected_method_id, WMLE) # Default to WMLE if ID unknown
+    AlgorithmClass = method_map.get(selected_method_id, WMLE)
 
     try:
-        # Instantiate and run
+        # Instantiate
         algo_instance = AlgorithmClass(data)
-        res = algo_instance.run()
+        
+        # Run with optional trace
+        # Only pass 'trace' if the run method accepts it (we implemented it for Base, but check to be safe or just pass kwargs)
+        # For now, we manually updated MLE and WMLE. Others inherit Base but don't use 'trace' in run yet.
+        # We can inspect the method signature or just try/except
+        try:
+            res = algo_instance.run(trace=req.trace)
+        except TypeError:
+             # Fallback for methods that don't support trace arg yet
+             res = algo_instance.run()
         
         return {
             "beta": float(res[0]),
             "eta": float(res[1]),
             "gamma": float(res[2]),
             "rSquared": float(res[3]),
-            "method": selected_method_id
+            "method": selected_method_id,
+            "trace_data": algo_instance.trace_data if req.trace else None
         }
+
     except NotImplementedError:
-        # Specific handler for placeholders -> Fallback to WMLE
         try:
             print(f"Algorithm {selected_method_id} not implemented. Fallback to WMLE.")
             fallback_instance = WMLE(data)
-            res = fallback_instance.run()
+            res = fallback_instance.run(trace=req.trace) # WMLE supports trace
             return {
                 "beta": float(res[0]),
                 "eta": float(res[1]),
                 "gamma": float(res[2]),
                 "rSquared": float(res[3]),
-                "method": f"{selected_method_id}_fallback_wmle"
+                "method": f"{selected_method_id}_fallback_wmle",
+                "trace_data": fallback_instance.trace_data if req.trace else None
             }
         except Exception as e:
              raise HTTPException(status_code=500, detail=f"Fallback WMLE failed: {str(e)}")
 
     except Exception as e:
-        # Global catch-all -> Fallback to WMLE
         try:
             print(f"Algorithm {selected_method_id} failed: {e}. Fallback to WMLE.")
             fallback_instance = WMLE(data)
-            res = fallback_instance.run()
+            res = fallback_instance.run(trace=req.trace)
             return {
                 "beta": float(res[0]),
                 "eta": float(res[1]),
                 "gamma": float(res[2]),
                 "rSquared": float(res[3]),
-                "method": f"{selected_method_id}_fallback_wmle"
+                "method": f"{selected_method_id}_fallback_wmle",
+                "trace_data": fallback_instance.trace_data if req.trace else None
             }
         except Exception as fallback_error:
             raise HTTPException(status_code=500, detail=f"Calculation failed: {str(e)} -> Fallback WMLE failed: {str(fallback_error)}")

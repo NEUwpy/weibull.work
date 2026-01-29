@@ -8,6 +8,29 @@ class WeibullBase:
         """
         self.data = np.array(sorted([x for x in data if x > 0]))
         self.n = len(self.data)
+        self.trace_data = [] # Store process data for visualization
+
+    def log_step(self, step_info: dict):
+        """Helper: Log a step for visualization"""
+        # Add iteration number automatically if not present
+        if "step" not in step_info:
+            step_info["step"] = len(self.trace_data) + 1
+        
+        # Convert numpy types to native python types for JSON serialization
+        clean_info = {}
+        for k, v in step_info.items():
+            if isinstance(v, (np.intc, np.intp, np.int8,
+                np.int16, np.int32, np.int64, np.uint8,
+                np.uint16, np.uint32, np.uint64)):
+                clean_info[k] = int(v)
+            elif isinstance(v, (np.float16, np.float32, np.float64)):
+                clean_info[k] = float(v)
+            elif isinstance(v, (np.ndarray,)):
+                clean_info[k] = v.tolist()
+            else:
+                clean_info[k] = v
+                
+        self.trace_data.append(clean_info)
 
     def _median_ranks(self):
         """Helper: Calculate Median Ranks"""
