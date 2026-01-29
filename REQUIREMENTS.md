@@ -1,7 +1,7 @@
 # 项目开发计划与需求 (Project Roadmap & Requirements)
 
-> **文档更新时间**: 2026-01-27
-> **当前状态**: 核心功能已上线，算法文档系统已建立 (Algorithm Documentation System Established)
+> **文档更新时间**: 2026-01-29
+> **当前状态**: 核心功能已上线，MDM (最小偏差法) 算法及可视化已实装，文档系统持续完善中。
 
 本文档记录了 Weibull 分析平台的后续开发计划、功能需求变更及待办事项。
 
@@ -19,9 +19,10 @@
 - [x] **方法详情页**: 全宽布局，支持公式、描述、变量说明、流程图、适用场景、相关文献
 - [x] **算法文档系统**: 基于 Markdown + Frontmatter 的标准化文档架构
   - MD 模板 (`src/content/algorithms/_template.md`)
-  - 示例文档 (`src/content/algorithms/wmle.md`)
+  - 已完成文档: `mle.md`, `wmle.md`, `mdm.md` (新增)
   - Python 模板 (`python/_template.py`)
-  - Python 实现 (`python/wmle.py`)
+  - Python 实现: `mle`, `wmle`, `mdm`, `lre`, `lse` 等
+- [x] **MDM 专属可视化**: 实现了最小偏差法的梯度寻优过程可视化 (`MDMVisualizer`)
 - [x] **Mermaid 流程图**: 支持横向流程图自动渲染
 - [x] **内容与代码分离**: 所有页面内容从 MD frontmatter 读取，无硬编码
 - [x] **导航优化**: 类别区域进入类概述，细分方法直接进入详情页

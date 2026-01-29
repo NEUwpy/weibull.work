@@ -12,12 +12,12 @@ from methods.mle import MLE
 from methods.lre import LRE
 from methods.lse import LSE
 from methods.mps import MPS
-from methods.mde import MDE
 from methods.mm import MM
 from methods.pwm import PWM
 from methods.grey_gm11 import GreyGM11
 from methods.bayesian import Bayesian
 from methods.wmle import WMLE
+from methods.mdm import MDM
 
 app = FastAPI()
 
@@ -32,7 +32,7 @@ app.add_middleware(
 class CalculationRequest(BaseModel):
     method: str
     data: List[float]
-    trace: Optional[bool] = False # New field
+    trace: Optional[bool] = False 
     params: Optional[dict] = {}
 
 class CalculationResponse(BaseModel):
@@ -41,7 +41,7 @@ class CalculationResponse(BaseModel):
     gamma: float
     rSquared: float 
     method: str
-    trace_data: Optional[List[dict]] = None # New field
+    trace_data: Optional[Any] = None 
 
 @app.post("/calculate", response_model=CalculationResponse)
 async def calculate(req: CalculationRequest):
@@ -53,13 +53,14 @@ async def calculate(req: CalculationRequest):
     # Map method IDs to Algorithm Classes
     method_map = {
         "mle": MLE, "mmle": MLE, "mps": MPS, "wmle": WMLE,
-        "lse": LSE, "wlse": LSE, "mde": MDE, "eiv": LSE,
+        "lse": LSE, "wlse": LSE, "mde": MDM, "eiv": LSE, # MDE aliased to MDM
         "lre": LRE, "rrx": LRE, "rry": LRE, "blre": LRE,
         "mm": MM, "pwm": PWM, "lm": PWM, "tlm": PWM,
         "grey": GreyGM11, "gm11": GreyGM11,
         "construct_stat": WMLE, "mve": WMLE, "lsf": WMLE,
         "bayesian": Bayesian, "gibbs": Bayesian, "map": Bayesian,
         "ai": WMLE, "pso": WMLE, "svr": WMLE, "ann": WMLE,
+        "mdm": MDM,
         "default": WMLE
     }
 
