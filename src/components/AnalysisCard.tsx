@@ -26,15 +26,16 @@ import {
   AreaChart as AreaChartIcon,
   FilePlus2
 } from 'lucide-react'
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
 } from 'recharts'
+import { ZoomIn } from 'lucide-react'
 import {
   DataPoint,
   WeibullResult,
@@ -97,6 +98,7 @@ export default function AnalysisCard({
   const [selectedOverlayIds, setSelectedOverlayIds] = useState<string[]>([])
   const [isCalculating, setIsCalculating] = useState(false)
   const [chartMode, setChartMode] = useState<'pdf' | 'cdf'>('pdf')
+  const [xAxisRange, setXAxisRange] = useState<{ min: number; max: number; isAuto: boolean }>({ min: 0, max: 0, isAuto: true })
   
   const [sampleText, setSampleText] = useState("")
   const [simN, setSimN] = useState(20)
@@ -163,16 +165,30 @@ export default function AnalysisCard({
 
   const chartData = useMemo(() => {
     if (!result) return []
-    const minT = result.gamma
-    // Fixed range based on parameters only, ensuring the curve is stable even if data changes
-    const maxT = result.gamma + result.eta * 2.5
-    
+
+    // Calculate default range
+    const defaultMinT = result.gamma
+    const defaultMaxT = result.gamma + result.eta * 2.5
+
+    // Use auto range or custom range
+    const minT = xAxisRange.isAuto ? defaultMinT : xAxisRange.min
+    const maxT = xAxisRange.isAuto ? defaultMaxT : xAxisRange.max
+
     if (chartMode === 'pdf') {
       return generatePDFPoints(result.beta, result.eta, result.gamma, minT, maxT, 100)
     } else {
       return generateCDFPoints(result.beta, result.eta, result.gamma, minT, maxT, 100)
     }
-  }, [result, chartMode])
+  }, [result, chartMode, xAxisRange])
+
+  // Update default range when result changes
+  useEffect(() => {
+    if (result) {
+      const defaultMinT = result.gamma
+      const defaultMaxT = result.gamma + result.eta * 2.5
+      setXAxisRange({ min: defaultMinT, max: defaultMaxT, isAuto: true })
+    }
+  }, [result?.beta, result?.eta, result?.gamma])
 
   const overlayCurves = useMemo(() => {
     return selectedOverlayIds.map(overlayId => {
@@ -442,9 +458,32 @@ export default function AnalysisCard({
                                     </div>
           
                                     <div className="flex items-center gap-2">
-          
+
+                                      {/* X-axis Range Slider */}
+                                      {result && (
+                                        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+                                          <button
+                                            onClick={() => setXAxisRange(prev => ({ ...prev, isAuto: true }))}
+                                            className={cn(
+                                              "text-[12px] font-black px-1.5 py-0.5 rounded transition-all",
+                                              xAxisRange.isAuto ? "bg-blue-100 text-blue-600" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                                            )}
+                                          >
+                                            自动
+                                          </button>
+                                          <DualSlider
+                                            min={result.gamma}
+                                            max={result.gamma + result.eta * 3}
+                                            valueMin={xAxisRange.isAuto ? result.gamma : xAxisRange.min}
+                                            valueMax={xAxisRange.isAuto ? result.gamma + result.eta * 2.5 : xAxisRange.max}
+                                            onChange={(min, max) => setXAxisRange({ min, max, isAuto: false })}
+                                            width={100}
+                                          />
+                                        </div>
+                                      )}
+
                                       <div className="flex bg-slate-100 p-0.5 rounded-full border border-slate-200 h-8">
-          
+
                                         <button onClick={() => setChartMode('pdf')} className={cn("px-3 h-full rounded-full text-sm font-black transition-all flex items-center", chartMode === 'pdf' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-500")}>PDF</button>
           
                                         <button onClick={() => setChartMode('cdf')} className={cn("px-3 h-full rounded-full text-sm font-black transition-all flex items-center", chartMode === 'cdf' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-500")}>CDF</button>
@@ -653,6 +692,145 @@ function StepperInput({ value, onChange, step = 1, readOnly, color, decimals = 0
           >
             <div className="w-1.5 h-[2px] bg-current rounded-full" />
           </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Dual Range Slider Component with Pan
+function DualSlider({
+  min,
+  max,
+  valueMin,
+  valueMax,
+  onChange,
+  width = 100
+}: {
+  min: number
+  max: number
+  valueMin: number
+  valueMax: number
+  onChange: (min: number, max: number) => void
+  width?: number
+}) {
+  const sliderRef = useRef<HTMLDivElement>(null)
+  const [isDraggingMin, setIsDraggingMin] = useState(false)
+  const [isDraggingMax, setIsDraggingMax] = useState(false)
+  const [isPanning, setIsPanning] = useState(false)
+  const [panStartX, setPanStartX] = useState(0)
+  const [panStartMin, setPanStartMin] = useState(0)
+  const [panStartMax, setPanStartMax] = useState(0)
+
+  const range = max - min
+  const minPercent = ((valueMin - min) / range) * 100
+  const maxPercent = ((valueMax - min) / range) * 100
+  const span = valueMax - valueMin
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!sliderRef.current) return
+    const rect = sliderRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percent = Math.max(0, Math.min(100, (x / rect.width) * 100))
+    const newValue = min + (percent / 100) * range
+
+    if (isDraggingMin) {
+      onChange(Math.min(newValue, valueMax - range * 0.05), valueMax)
+    } else if (isDraggingMax) {
+      onChange(valueMin, Math.max(newValue, valueMin + range * 0.05))
+    } else if (isPanning) {
+      const deltaX = e.clientX - panStartX
+      const deltaPercent = (deltaX / rect.width) * 100
+      const deltaValue = (deltaPercent / 100) * range
+
+      let newMin = panStartMin + deltaValue
+      let newMax = panStartMax + deltaValue
+
+      // Clamp to bounds
+      if (newMin < min) {
+        newMin = min
+        newMax = min + span
+      }
+      if (newMax > max) {
+        newMax = max
+        newMin = max - span
+      }
+
+      onChange(newMin, newMax)
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDraggingMin(false)
+    setIsDraggingMax(false)
+    setIsPanning(false)
+  }
+
+  const handleTrackMouseDown = (e: React.MouseEvent) => {
+    // Only pan if clicking on the selected range area
+    const rect = sliderRef.current!.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const clickPercent = (x / rect.width) * 100
+    const clickValue = min + (clickPercent / 100) * range
+
+    // Check if click is within the selected range
+    if (clickValue >= valueMin && clickValue <= valueMax) {
+      setIsPanning(true)
+      setPanStartX(e.clientX)
+      setPanStartMin(valueMin)
+      setPanStartMax(valueMax)
+      e.stopPropagation()
+    }
+  }
+
+  useEffect(() => {
+    if (isDraggingMin || isDraggingMax || isPanning) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDraggingMin, isDraggingMax, isPanning, valueMin, valueMax, panStartX, panStartMin, panStartMax])
+
+  return (
+    <div
+      ref={sliderRef}
+      className="relative h-5 bg-slate-200 rounded"
+      style={{ width }}
+    >
+      {/* Track - draggable for panning */}
+      <div
+        className={cn(
+          "absolute h-full rounded transition-colors",
+          isPanning ? "bg-blue-500 cursor-grabbing" : "bg-blue-400 cursor-grab"
+        )}
+        style={{ left: `${minPercent}%`, width: `${maxPercent - minPercent}%` }}
+        onMouseDown={handleTrackMouseDown}
+      />
+      {/* Left Handle */}
+      <div
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 rounded-full cursor-ew-resize shadow-sm z-10",
+          isDraggingMin ? "border-blue-600 scale-125" : "border-blue-400 hover:scale-110"
+        )}
+        style={{ left: `${minPercent}%`, marginLeft: '-6px' }}
+        onMouseDown={(e) => { e.stopPropagation(); setIsDraggingMin(true) }}
+      />
+      {/* Right Handle */}
+      <div
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 rounded-full cursor-ew-resize shadow-sm z-10",
+          isDraggingMax ? "border-blue-600 scale-125" : "border-blue-400 hover:scale-110"
+        )}
+        style={{ left: `${maxPercent}%`, marginLeft: '-6px' }}
+        onMouseDown={(e) => { e.stopPropagation(); setIsDraggingMax(true) }}
+      />
+      {/* Tooltip */}
+      {(isDraggingMin || isDraggingMax || isPanning) && (
+        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-slate-800 text-white px-1.5 py-0.5 rounded whitespace-nowrap z-20">
+          {valueMin.toFixed(0)} - {valueMax.toFixed(0)}
         </div>
       )}
     </div>
