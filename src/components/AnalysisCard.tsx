@@ -111,7 +111,7 @@ export default function AnalysisCard({
   const renderCountRef = useRef(0)
 
   // Detect infinite loops - track WHY we're re-rendering
-  const prevRenderProps = useRef<{ methodId?: string; data?: DataPoint[]; result?: WeibullResult; is3P?: boolean }>({})
+  const prevRenderProps = useRef<{ methodId?: string; dataLength?: number; hasResult?: boolean; is3P?: boolean }>({})
 
   useEffect(() => {
     renderCountRef.current += 1
@@ -345,7 +345,7 @@ export default function AnalysisCard({
               
               {/* Process Button */}
               {methodId && data && data.length > 0 && (
-                 <button 
+                 <button
                    onClick={(e) => {
                      e.stopPropagation(); // Prevent opening method selector
                      if (!methodId || !data) return;
@@ -552,6 +552,30 @@ export default function AnalysisCard({
                  </div>
                )}
              </div>
+
+             {/* Result Analysis Button - Float below chart area */}
+             {result && methodId && (
+                <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-2 opacity-0 group-hover/chart:opacity-100 transition-opacity pointer-events-none">
+                   <button
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       if (!methodId || !result) return;
+                       // Pass true parameters and estimated parameters
+                       const params = new URLSearchParams({
+                         method: methodId,
+                         trueBeta: result.beta.toString(),
+                         trueEta: result.eta.toString(),
+                         trueGamma: result.gamma.toString(),
+                       });
+                       router.push(`/methods/${methodId}/analysis?${params.toString()}`);
+                     }}
+                     className="pointer-events-auto flex items-center gap-1 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-[12px] font-bold transition-all"
+                   >
+                     <BarChart3 size={12} />
+                     结果分析
+                   </button>
+                </div>
+             )}
           </div>
         </div>
       </div>

@@ -5,11 +5,12 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
-import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AlgorithmDetail } from '@/components/AlgorithmDetail'
 import MethodLab from '@/components/MethodLab'
 import AnalysisCard from '@/components/AnalysisCard'
+import ResultAnalysisLab from '@/components/ResultAnalysisLab'
 import { DataPoint, WeibullResult } from '@/lib/weibull'
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
@@ -105,7 +106,7 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'doc' | 'lab'>('doc')
+  const [activeTab, setActiveTab] = useState<'doc' | 'lab' | 'analysis'>('doc')
   const [analysisData, setAnalysisData] = useState<DataPoint[]>([])
   const [analysisResult, setAnalysisResult] = useState<WeibullResult | undefined>(undefined)
   
@@ -140,7 +141,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           <div className="flex items-center gap-4">
              {/* Mode Toggle */}
              <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200">
-                <button 
+                <button
                   onClick={() => setActiveTab('doc')}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
@@ -150,7 +151,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                   <FileText size={16} />
                   原理文档
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveTab('lab')}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
@@ -159,6 +160,16 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 >
                   <Microscope size={16} />
                   计算过程
+                </button>
+                <button
+                  onClick={() => setActiveTab('analysis')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    activeTab === 'analysis' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <BarChart3 size={16} />
+                  结果分析
                 </button>
              </div>
 
@@ -187,13 +198,13 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                </div>
              )}
           </div>
-        ) : (
+        ) : activeTab === 'lab' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
              {/* Analysis Card Preview */}
              {analysisData.length > 0 && (
                 <div className="opacity-90 hover:opacity-100 transition-opacity">
                    <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider ml-1">当前案例概览</div>
-                   <AnalysisCard 
+                   <AnalysisCard
                      id="preview"
                      index={0}
                      data={analysisData}
@@ -210,11 +221,21 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                    />
                 </div>
              )}
-          
+
              {/* Pass data implicitly via URL search params handled inside MethodLab */}
-             <MethodLab 
-               methodId={method.id} 
+             <MethodLab
+               methodId={method.id}
                onCalculationComplete={(res) => setAnalysisResult(res)}
+             />
+          </div>
+        ) : (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+             {/* Result Analysis Tab */}
+             <ResultAnalysisLab
+               methodId={method.id}
+               trueBeta={2}
+               trueEta={1000}
+               trueGamma={1000}
              />
           </div>
         )}

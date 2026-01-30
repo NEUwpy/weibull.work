@@ -74,8 +74,8 @@ export default function DataEditor({ isOpen, initialData, onClose, onSave }: Dat
 
   const handleEditClick = (c: CaseItem) => {
     setEditingCaseId(c.id)
-    setEditName(c.name)
-    setEditText(c.dataRaw)
+    setEditName(c.name || c.title || '')
+    setEditText(c.dataRaw || c.data_raw || '')
     setParseError(null)
     // Also select it
     setSelectedCaseId(c.id)
@@ -107,7 +107,9 @@ export default function DataEditor({ isOpen, initialData, onClose, onSave }: Dat
     const newId = `new_${Date.now()}`
     const newCase: CaseItem = {
       id: newId,
+      title: '新案例数据',
       name: '新案例数据',
+      data_raw: '',
       dataRaw: '',
       description: '请点击编辑输入数据',
       industry: '其他',
@@ -139,7 +141,7 @@ export default function DataEditor({ isOpen, initialData, onClose, onSave }: Dat
         textToParse = editText
     } else {
         const c = cases.find(c => c.id === activeId)
-        if (c) textToParse = c.dataRaw
+        if (c) textToParse = c.dataRaw || c.data_raw || ''
     }
 
     const { data, error } = parseData(textToParse)
@@ -222,7 +224,7 @@ export default function DataEditor({ isOpen, initialData, onClose, onSave }: Dat
                            </div>
                            <div>
                               <h3 className="font-bold text-slate-800">{item.name}</h3>
-                              <p className="text-xs text-slate-400">{item.dataRaw.split('\n').filter(l=>l.trim()).length} 个数据点</p>
+                              <p className="text-xs text-slate-400">{(item.dataRaw || item.data_raw || '').split('\n').filter(l=>l.trim()).length} 个数据点</p>
                            </div>
                         </div>
                         

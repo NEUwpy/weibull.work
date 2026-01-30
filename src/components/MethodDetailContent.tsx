@@ -17,7 +17,7 @@ const LatexRenderer = ({ math, block = false }: { math: string, block?: boolean 
   const [error, setError] = React.useState<boolean>(false)
 
   React.useEffect(() => {
-    let timeoutId: NodeJS.Timeout
+    let timeoutId: NodeJS.Timeout | undefined
 
     try {
       timeoutId = setTimeout(() => {
@@ -35,12 +35,14 @@ const LatexRenderer = ({ math, block = false }: { math: string, block?: boolean 
       clearTimeout(timeoutId)
       setRenderedHtml(html)
     } catch (e) {
-      clearTimeout(timeoutId)
+      if (timeoutId) clearTimeout(timeoutId)
       setError(true)
       console.error('[LatexRenderer] Error rendering formula:', e)
     }
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+    }
   }, [math, block])
 
   if (error) {

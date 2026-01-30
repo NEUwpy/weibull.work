@@ -170,7 +170,7 @@ export default function CasesPage() {
                       {item.size}
                     </span>
                     <div className="text-[10px] text-slate-400 mt-1 pl-1">
-                       {item.dataRaw.split('\n').length} Points
+                       {item.dataRaw?.split('\n').length ?? 0} Points
                     </div>
                   </td>
                   <td className="px-6 py-4">
