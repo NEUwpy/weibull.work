@@ -254,6 +254,7 @@ export default function ResultAnalysisLab({
     } else {
       // Multi sample size mode
       const allMultiStats: MultiSampleStats[] = []
+      const firstSampleResults: SimulationResult[] = [] // For histogram display
 
       for (const sampleSize of sampleSizes) {
         const betaEstimates: number[] = []
@@ -269,6 +270,21 @@ export default function ResultAnalysisLab({
           betaEstimates.push(estimated.beta)
           etaEstimates.push(estimated.eta)
           gammaEstimates.push(estimated.gamma)
+
+          // Save first sample size results for histogram
+          if (sampleSize === sampleSizes[0]) {
+            const betaError = estimated.beta - trueBeta
+            const etaError = estimated.eta - trueEta
+            const gammaError = estimated.gamma - trueGamma
+            firstSampleResults.push({
+              beta: estimated.beta,
+              eta: estimated.eta,
+              gamma: estimated.gamma,
+              betaError,
+              etaError,
+              gammaError
+            })
+          }
         }
 
         const calcStats = (estimates: number[], trueVal: number) => {
@@ -295,6 +311,24 @@ export default function ResultAnalysisLab({
 
         setMultiStats([...allMultiStats])
       }
+
+      // Set results and stats for first sample size (for histogram display)
+      setResults(firstSampleResults)
+      const firstStats = allMultiStats[0]
+      setStats({
+        betaMean: firstStats.betaMean,
+        betaStd: firstStats.betaStd,
+        betaBias: firstStats.betaMean - trueBeta,
+        betaMse: firstStats.betaMse,
+        etaMean: firstStats.etaMean,
+        etaStd: firstStats.etaStd,
+        etaBias: firstStats.etaMean - trueEta,
+        etaMse: firstStats.etaMse,
+        gammaMean: firstStats.gammaMean,
+        gammaStd: firstStats.gammaStd,
+        gammaBias: firstStats.gammaMean - trueGamma,
+        gammaMse: firstStats.gammaMse,
+      })
     }
 
     setCurrentProgress({ completed: totalSimulations, total: totalSimulations })
@@ -509,6 +543,9 @@ export default function ResultAnalysisLab({
                       <th className="text-center py-2 px-3 font-black text-indigo-500">η̂ 均值</th>
                       <th className="text-center py-2 px-3 font-black text-indigo-500">η̂ 标准差</th>
                       <th className="text-center py-2 px-3 font-black text-indigo-500">η̂ MSE</th>
+                      <th className="text-center py-2 px-3 font-black text-purple-500">γ̂ 均值</th>
+                      <th className="text-center py-2 px-3 font-black text-purple-500">γ̂ 标准差</th>
+                      <th className="text-center py-2 px-3 font-black text-purple-500">γ̂ MSE</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -521,6 +558,9 @@ export default function ResultAnalysisLab({
                         <td className="py-2 px-3 text-right font-mono text-indigo-600">{s.etaMean.toFixed(2)}</td>
                         <td className="py-2 px-3 text-right font-mono text-amber-600">{s.etaStd.toFixed(2)}</td>
                         <td className="py-2 px-3 text-right font-mono text-red-600">{s.etaMse.toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right font-mono text-purple-600">{s.gammaMean.toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right font-mono text-amber-600">{s.gammaStd.toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right font-mono text-red-600">{s.gammaMse.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -529,13 +569,16 @@ export default function ResultAnalysisLab({
             )}
           </div>
 
-          {/* Chart 1: Histogram (single sample size mode) */}
-          {stats && results.length > 0 && sampleSizeMode === 'single' && (
+          {/* Chart 1: Histogram */}
+          {stats && results.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className="text-blue-600" size={20} />
                 <h3 className="font-bold text-slate-900">图1: 参数分布直方图</h3>
-                <span className="text-xs text-slate-500 ml-auto">n={singleSampleSize}, {numSimulations}次重复</span>
+                <span className="text-xs text-slate-500 ml-auto">
+                  n={sampleSizeMode === 'single' ? singleSampleSize : sampleSizeMin}, {numSimulations}次重复
+                  {sampleSizeMode === 'range' && ' (显示第一个样本量)'}
+                </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -596,7 +639,7 @@ export default function ResultAnalysisLab({
             </div>
           )}
 
-          {/* Chart 2: Box Plot (multi sample size mode) */}
+          {/* Chart 2: Standard Deviation vs Sample Size (multi sample size mode) */}
           {multiStats.length > 0 && sampleSizeMode === 'range' && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -614,6 +657,7 @@ export default function ResultAnalysisLab({
                     <Legend />
                     <Line type="monotone" dataKey="betaStd" stroke="#3b82f6" name="β̂ 标准差" strokeWidth={2} dot={{ r: 4 }} />
                     <Line type="monotone" dataKey="etaStd" stroke="#6366f1" name="η̂ 标准差" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="gammaStd" stroke="#a855f7" name="γ̂ 标准差" strokeWidth={2} dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -638,6 +682,7 @@ export default function ResultAnalysisLab({
                     <Legend />
                     <Line type="monotone" dataKey="betaMse" stroke="#3b82f6" name="β̂ MSE" strokeWidth={2} dot={{ r: 4 }} />
                     <Line type="monotone" dataKey="etaMse" stroke="#6366f1" name="η̂ MSE" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="gammaMse" stroke="#a855f7" name="γ̂ MSE" strokeWidth={2} dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
