@@ -26,11 +26,12 @@ export type PlotPoint = {
  * Analysis Result
  */
 export type WeibullResult = {
-  beta: number // Shape parameter (slope)
-  eta: number  // Scale parameter (characteristic life)
+  beta: number | null // Shape parameter (slope)
+  eta: number | null  // Scale parameter (characteristic life)
   gamma: number // Location parameter
-  rSquared: number // Coefficient of determination
+  rSquared: number | null // Coefficient of determination
   points: PlotPoint[] // The calculated points for plotting
+  converged?: boolean | string // Whether the calculation converged, or "unbounded" for Smith (1985) problem
 }
 
 /**

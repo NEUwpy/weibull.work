@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
 import sys
 import os
 
@@ -32,16 +32,17 @@ app.add_middleware(
 class CalculationRequest(BaseModel):
     method: str
     data: List[float]
-    trace: Optional[bool] = False 
+    trace: Optional[bool] = False
     params: Optional[dict] = {}
 
 class CalculationResponse(BaseModel):
-    beta: float
-    eta: float
-    gamma: float
-    rSquared: float 
+    beta: Optional[float]
+    eta: Optional[float]
+    gamma: Optional[float]
+    rSquared: Optional[float]
     method: str
-    trace_data: Optional[Any] = None 
+    converged: Union[bool, str] = True  # Support both boolean and "unbounded" string
+    trace_data: Optional[Any] = None
 
 @app.post("/calculate", response_model=CalculationResponse)
 async def calculate(req: CalculationRequest):
@@ -49,7 +50,7 @@ async def calculate(req: CalculationRequest):
         raise HTTPException(status_code=400, detail="Insufficient data points")
 
     data = req.data
-    
+
     # Map method IDs to Algorithm Classes
     method_map = {
         "mle": MLE, "mmle": MLE, "mps": MPS, "wmle": WMLE,
@@ -70,23 +71,33 @@ async def calculate(req: CalculationRequest):
     try:
         # Instantiate
         algo_instance = AlgorithmClass(data)
-        
+
         # Run with optional trace
-        # Only pass 'trace' if the run method accepts it (we implemented it for Base, but check to be safe or just pass kwargs)
-        # For now, we manually updated MLE and WMLE. Others inherit Base but don't use 'trace' in run yet.
-        # We can inspect the method signature or just try/except
         try:
             res = algo_instance.run(trace=req.trace)
         except TypeError:
              # Fallback for methods that don't support trace arg yet
              res = algo_instance.run()
-        
+
+        # Handle both 4-element (old) and 5-element (new with converged) return
+        if len(res) >= 5:
+            converged = res[4]
+        else:
+            converged = True
+
+        # Convert converged: keep string values like "unbounded", convert others to bool
+        if isinstance(converged, str):
+            converged_value = converged  # Keep "unbounded" as-is
+        else:
+            converged_value = bool(converged)  # Convert True/False/None to bool
+
         return {
-            "beta": float(res[0]),
-            "eta": float(res[1]),
-            "gamma": float(res[2]),
-            "rSquared": float(res[3]),
+            "beta": float(res[0]) if res[0] is not None else None,
+            "eta": float(res[1]) if res[1] is not None else None,
+            "gamma": float(res[2]) if res[2] is not None else None,
+            "rSquared": float(res[3]) if res[3] is not None else None,
             "method": selected_method_id,
+            "converged": converged_value,
             "trace_data": algo_instance.trace_data if req.trace else None
         }
 
@@ -95,12 +106,24 @@ async def calculate(req: CalculationRequest):
             print(f"Algorithm {selected_method_id} not implemented. Fallback to WMLE.")
             fallback_instance = WMLE(data)
             res = fallback_instance.run(trace=req.trace) # WMLE supports trace
+
+            if len(res) >= 5:
+                fallback_converged = res[4]
+            else:
+                fallback_converged = True
+
+            if isinstance(fallback_converged, str):
+                fallback_converged_value = fallback_converged
+            else:
+                fallback_converged_value = bool(fallback_converged)
+
             return {
-                "beta": float(res[0]),
-                "eta": float(res[1]),
-                "gamma": float(res[2]),
-                "rSquared": float(res[3]),
+                "beta": float(res[0]) if res[0] is not None else None,
+                "eta": float(res[1]) if res[1] is not None else None,
+                "gamma": float(res[2]) if res[2] is not None else None,
+                "rSquared": float(res[3]) if res[3] is not None else None,
                 "method": f"{selected_method_id}_fallback_wmle",
+                "converged": fallback_converged_value,
                 "trace_data": fallback_instance.trace_data if req.trace else None
             }
         except Exception as e:
@@ -111,12 +134,24 @@ async def calculate(req: CalculationRequest):
             print(f"Algorithm {selected_method_id} failed: {e}. Fallback to WMLE.")
             fallback_instance = WMLE(data)
             res = fallback_instance.run(trace=req.trace)
+
+            if len(res) >= 5:
+                fallback_converged = res[4]
+            else:
+                fallback_converged = True
+
+            if isinstance(fallback_converged, str):
+                fallback_converged_value = fallback_converged
+            else:
+                fallback_converged_value = bool(fallback_converged)
+
             return {
-                "beta": float(res[0]),
-                "eta": float(res[1]),
-                "gamma": float(res[2]),
-                "rSquared": float(res[3]),
+                "beta": float(res[0]) if res[0] is not None else None,
+                "eta": float(res[1]) if res[1] is not None else None,
+                "gamma": float(res[2]) if res[2] is not None else None,
+                "rSquared": float(res[3]) if res[3] is not None else None,
                 "method": f"{selected_method_id}_fallback_wmle",
+                "converged": fallback_converged_value,
                 "trace_data": fallback_instance.trace_data if req.trace else None
             }
         except Exception as fallback_error:

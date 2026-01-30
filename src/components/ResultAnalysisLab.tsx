@@ -90,6 +90,11 @@ export default function ResultAnalysisLab({
       // Estimate parameters using RRX (simplified - should use actual method)
       const estimated = estimateParameters(sample, is3P)
 
+      // Skip if estimation failed to converge
+      if (estimated.beta === null || estimated.eta === null) {
+        continue
+      }
+
       // Calculate errors
       const betaError = estimated.beta - trueBeta
       const etaError = estimated.eta - trueEta

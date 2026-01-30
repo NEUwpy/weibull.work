@@ -40,7 +40,8 @@ import {
   DataPoint,
   WeibullResult,
   generatePDFPoints,
-  generateCDFPoints
+  generateCDFPoints,
+  calculateMedianRanks
 } from '@/lib/weibull'
 import { getMethodInfo } from '@/lib/methods'
 
@@ -66,31 +67,33 @@ interface AnalysisCardProps {
   onAdd: (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string, currentData?: DataPoint[]) => void
   onMethodClick?: () => void
   onToggle3P?: () => void
-  onDataClick?: () => void 
-  onDataChange?: (newData: DataPoint[]) => void 
+  onDataClick?: () => void
+  onDataChange?: (newData: DataPoint[]) => void
   onParamsUpdate?: (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => void
   onCalculate?: () => Promise<void>
   onDelete?: () => void
+  hideCalculationProcessButton?: boolean
 }
 
 export default function AnalysisCard({
-  id, 
-  index, 
-  data, 
-  result, 
-  methodId, 
-  color, 
+  id,
+  index,
+  data,
+  result,
+  methodId,
+  color,
   fitMode,
   is3P,
-  availableLayers, 
-  onAdd, 
-  onMethodClick, 
+  availableLayers,
+  onAdd,
+  onMethodClick,
   onToggle3P,
   onDataClick,
   onDataChange,
   onParamsUpdate,
   onCalculate,
-  onDelete
+  onDelete,
+  hideCalculationProcessButton
 }: AnalysisCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false)
@@ -164,7 +167,7 @@ export default function AnalysisCard({
   }, [])
 
   const chartData = useMemo(() => {
-    if (!result) return []
+    if (!result || result.beta === null || result.eta === null) return []
 
     // Calculate default range
     const defaultMinT = result.gamma
@@ -183,7 +186,7 @@ export default function AnalysisCard({
 
   // Update default range when result changes
   useEffect(() => {
-    if (result) {
+    if (result && result.beta !== null && result.eta !== null) {
       const defaultMinT = result.gamma
       const defaultMaxT = result.gamma + result.eta * 2.5
       setXAxisRange({ min: defaultMinT, max: defaultMaxT, isAuto: true })
@@ -193,15 +196,19 @@ export default function AnalysisCard({
   const overlayCurves = useMemo(() => {
     return selectedOverlayIds.map(overlayId => {
       const layer = availableLayers.find(l => l.id === overlayId)
-      if (!layer) return null
+      if (!layer || !layer.result || layer.result.beta === null || layer.result.eta === null) return null
       const res = layer.result
-      const minT = res.gamma
-      const maxT = Math.max(res.eta * 2.5, ...(data?.map(d => d.value) || [])) * 1.2
-      
-      const points = chartMode === 'pdf' 
-        ? generatePDFPoints(res.beta, res.eta, res.gamma, minT, maxT, 100)
-        : generateCDFPoints(res.beta, res.eta, res.gamma, minT, maxT, 100)
-        
+      // Non-null assertion is safe here because we checked above
+      const beta = res.beta!
+      const eta = res.eta!
+      const gamma = res.gamma
+      const minT = gamma
+      const maxT = Math.max(eta * 2.5, ...(data?.map(d => d.value) || [])) * 1.2
+
+      const points = chartMode === 'pdf'
+        ? generatePDFPoints(beta, eta, gamma, minT, maxT, 100)
+        : generateCDFPoints(beta, eta, gamma, minT, maxT, 100)
+
       return { id: layer.id, name: layer.name, color: layer.color, points }
     }).filter(Boolean)
   }, [selectedOverlayIds, availableLayers, chartMode, data])
@@ -229,13 +236,30 @@ export default function AnalysisCard({
   }
 
   const handleGenerateSample = () => {
-    if (!result || !onDataChange) return
+    if (!result || !onDataChange || result.beta === null || result.eta === null) return
+    const beta = result.beta
+    const eta = result.eta
+    const gamma = result.gamma
     const newSample: DataPoint[] = Array.from({ length: simN }, (_, i) => {
       const u = Math.random()
-      const t = result.gamma + result.eta * Math.pow(-Math.log(u), 1 / result.beta)
+      const t = gamma + eta * Math.pow(-Math.log(u), 1 / beta)
       return { id: i, value: t, status: 'F' }
     })
     onDataChange(newSample)
+  }
+
+  const handleResetToDefault = () => {
+    const defaultBeta = 2
+    const defaultEta = 1000
+    const defaultGamma = 1000
+    const newPoints = data ? calculateMedianRanks(data, defaultGamma) : []
+    onParamsUpdate?.({
+      beta: defaultBeta,
+      eta: defaultEta,
+      gamma: defaultGamma,
+      points: newPoints,
+      converged: true
+    }, 'manual')
   }
 
   const handleEstimation = async (e: React.MouseEvent) => {
@@ -341,7 +365,7 @@ export default function AnalysisCard({
               )}
             </div>
             {/* 底栏 - 计算过程按钮 */}
-            {methodId && data && data.length > 0 && (
+            {!hideCalculationProcessButton && methodId && data && data.length > 0 && (
                <div className="h-12 flex items-end justify-center px-4 opacity-0 group-hover/col:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {
@@ -414,14 +438,44 @@ export default function AnalysisCard({
                                   <div className="flex-1 p-4 flex flex-col overflow-y-auto">
                                     {result ? (
                                       <div className="space-y-3">
-                                        <ParamInput label="β 形状" value={result.beta} onChange={(v) => handleParamChange('beta', v)} readOnly={false} color="text-indigo-600" decimals={3} />
-                                        <ParamInput label="η 尺度" value={result.eta} onChange={(v) => handleParamChange('eta', v)} readOnly={false} color="text-indigo-600" decimals={3} />
-                                        <ParamInput label="γ 位置" value={result.gamma} onChange={(v) => handleParamChange('gamma', v)} readOnly={!is3P} color={is3P ? "text-blue-600" : "text-slate-300"} decimals={3} />
-                                        
-                                        {/* N (Sample Count) moved here */}
+                                        <ParamInput label="β 形状" value={result.beta} onChange={(v) => handleParamChange('beta', v)} readOnly={result.converged === false || result.converged === 'unbounded'} color={result.converged === false || result.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
+                                        <ParamInput label="η 尺度" value={result.eta} onChange={(v) => handleParamChange('eta', v)} readOnly={result.converged === false || result.converged === 'unbounded'} color={result.converged === false || result.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
+                                        <ParamInput label="γ 位置" value={result.gamma} onChange={(v) => handleParamChange('gamma', v)} readOnly={!is3P || result.converged === false || result.converged === 'unbounded'} color={(!is3P || result.converged === false || result.converged === 'unbounded') ? "text-slate-300" : "text-blue-600"} decimals={3} />
                                         <div className="pt-2 border-t border-slate-100 mt-2">
-                                           <ParamInput label="N 样本数" value={simN} onChange={(v) => setSimN(parseInt(v) || 0)} readOnly={false} color="text-slate-500" step={1} decimals={0} />
+                                          <ParamInput label="N 样本数" value={simN} onChange={(v) => setSimN(parseInt(v) || 0)} readOnly={result.converged === false || result.converged === 'unbounded'} color={result.converged === false || result.converged === 'unbounded' ? "text-slate-400" : "text-slate-500"} step={1} decimals={0} />
                                         </div>
+                                        {result.converged === 'unbounded' && (
+                                          <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <div className="flex items-center gap-2 text-xs">
+                                                <span className="font-black text-orange-600">⚠️ 无解</span>
+                                                <span className="text-orange-700">Smith (1985) 无界问题</span>
+                                              </div>
+                                              <button
+                                                onClick={handleResetToDefault}
+                                                className="px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-black rounded transition-colors"
+                                              >
+                                                确定
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {result.converged === false && (
+                                          <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <div className="flex items-center gap-2 text-xs">
+                                                <span className="font-black text-orange-600">⚠️ 未收敛</span>
+                                                <span className="text-orange-700">Hessian 矩阵非负定</span>
+                                              </div>
+                                              <button
+                                                onClick={handleResetToDefault}
+                                                className="px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-black rounded transition-colors"
+                                              >
+                                                确定
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     ) : (
                                       <div className="flex-1 flex items-center justify-center text-xs text-slate-300">无参数</div>
@@ -458,7 +512,7 @@ export default function AnalysisCard({
                                     <div className="flex items-center gap-2">
 
                                       {/* X-axis Range Slider */}
-                                      {result && (
+                                      {result && result.eta !== null && (
                                         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
                                           <button
                                             onClick={() => setXAxisRange(prev => ({ ...prev, isAuto: true }))}
@@ -552,20 +606,19 @@ export default function AnalysisCard({
              </div>
 
              {/* 底栏 - Result Analysis Button */}
-             {result && methodId && (
+             {result && result.beta !== null && result.eta !== null && methodId && (
                 <div className="h-12 flex items-end justify-center px-4 opacity-0 group-hover/chart:opacity-100 transition-opacity">
                    <button
                      onClick={(e) => {
                        e.stopPropagation();
-                       if (!methodId || !result) return;
+                       if (!methodId || !result || result.beta === null || result.eta === null) return;
                        // Pass true parameters and estimated parameters
                        const params = new URLSearchParams({
-                         method: methodId,
                          trueBeta: result.beta.toString(),
                          trueEta: result.eta.toString(),
                          trueGamma: result.gamma.toString(),
                        });
-                       router.push(`/methods/${methodId}/analysis?${params.toString()}`);
+                       router.push(`/methods/${methodId}?${params.toString()}`);
                      }}
                      className="flex-1 h-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm"
                    >
@@ -581,7 +634,7 @@ export default function AnalysisCard({
   )
 }
 
-function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decimals = 2 }: { label: string, value: number, onChange: (v: string) => void, readOnly: boolean, color: string, step?: number, decimals?: number }) {
+function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decimals = 2 }: { label: string, value: number | null, onChange: (v: string) => void, readOnly: boolean, color: string, step?: number, decimals?: number }) {
   // Define available magnitudes based on decimal precision
   const allSteps = [10, 1, 0.1, 0.01, 0.001]
   const availableSteps = allSteps.filter(s => {
@@ -602,18 +655,30 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
     setCurrentStep(availableSteps[nextIndex])
   }
 
+  // Show placeholder for null values (not converged)
+  if (value === null) {
+    return (
+      <div className="flex items-center justify-center gap-2 text-sm h-8">
+        <span className={cn("font-black w-20 shrink-0 truncate text-left", color)}>{label}</span>
+        <div className="w-28 h-8 flex items-center justify-center text-slate-300 text-sm font-mono">
+          --
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center justify-center gap-2 text-sm h-8">
       <span className={cn("font-black w-20 shrink-0 truncate text-left", color)}>{label}</span>
-      
+
       {/* Step Toggle Badge - More professional look */}
-      <button 
+      <button
         onClick={cycleStep}
         disabled={readOnly}
         className={cn(
           "min-w-[42px] px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black border transition-all active:scale-90 shadow-sm",
-          readOnly 
-            ? "bg-slate-50 border-slate-100 text-slate-300" 
+          readOnly
+            ? "bg-slate-50 border-slate-100 text-slate-300"
             : "bg-white border-blue-200 text-blue-600 hover:border-blue-400 hover:bg-blue-50"
         )}
         title="点击切换步进位数"
@@ -623,10 +688,10 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
       </button>
 
       <div className="w-28 shrink-0">
-        <StepperInput 
-          value={value} 
-          onChange={(v) => onChange(v.toString())} 
-          step={currentStep} 
+        <StepperInput
+          value={value}
+          onChange={(v) => onChange(v.toString())}
+          step={currentStep}
           readOnly={readOnly}
           color={color}
           decimals={decimals}

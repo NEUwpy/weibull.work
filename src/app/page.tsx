@@ -258,13 +258,16 @@ function CalculatorContent() {
         const baseResult = card.result || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
         const newResult = { ...baseResult, ...updates }
         let newPoints = card.result?.points || []
-        if (updates.gamma !== undefined && card.data) {
+        // Only recalculate points if gamma changed AND points not already provided in updates
+        if (updates.gamma !== undefined && !updates.points && card.data) {
            newPoints = calculateMedianRanks(card.data, updates.gamma)
+        } else if (updates.points !== undefined) {
+          newPoints = updates.points
         }
-        return { 
-          ...card, 
+        return {
+          ...card,
           result: { ...newResult, points: newPoints },
-          fitMode: mode || card.fitMode 
+          fitMode: mode || card.fitMode
         }
       }
       return card
@@ -291,13 +294,31 @@ function CalculatorContent() {
       }
 
       const res = await response.json()
-      const newPoints = calculateMedianRanks(card.data, res.gamma)
+
+      // Check convergence (including unbounded)
+      if (res.converged === false || res.converged === 'unbounded') {
+        // Return result with actual values (0) but marked as not converged
+        const newPoints = calculateMedianRanks(card.data, res.gamma || 0)
+        const newResult: WeibullResult = {
+          beta: res.beta,
+          eta: res.eta,
+          gamma: res.gamma || 0,
+          rSquared: res.rSquared,
+          points: newPoints,
+          converged: res.converged  // Keep 'unbounded' or false
+        }
+        setCards(prev => prev.map(c => c.id === cardId ? { ...c, result: newResult, fitMode: 'fit' } : c))
+        return
+      }
+
+      const newPoints = calculateMedianRanks(card.data, res.gamma || 0)
       const newResult: WeibullResult = {
         beta: res.beta,
         eta: res.eta,
-        gamma: res.gamma,
+        gamma: res.gamma || 0,
         rSquared: res.rSquared,
-        points: newPoints
+        points: newPoints,
+        converged: true
       }
 
       setCards(prev => prev.map(c => c.id === cardId ? { ...c, result: newResult, fitMode: 'fit' } : c))

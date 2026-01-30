@@ -8,10 +8,13 @@ import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
 import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AlgorithmDetail } from '@/components/AlgorithmDetail'
-import MethodLab from '@/components/MethodLab'
 import AnalysisCard from '@/components/AnalysisCard'
 import ResultAnalysisLab from '@/components/ResultAnalysisLab'
-import { DataPoint, WeibullResult } from '@/lib/weibull'
+import DataEditor from '@/components/DataEditor'
+import MLEVisualizer from '@/components/visualizers/MLEVisualizer'
+import WMLEVisualizer from '@/components/visualizers/WMLEVisualizer'
+import MDMVisualizer from '@/components/visualizers/MDMVisualizer'
+import { DataPoint, WeibullResult, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 
@@ -107,9 +110,49 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<'doc' | 'lab' | 'analysis'>('doc')
+
+  // Result Analysis Card State (similar to Lab)
   const [analysisData, setAnalysisData] = useState<DataPoint[]>([])
   const [analysisResult, setAnalysisResult] = useState<WeibullResult | undefined>(undefined)
-  
+  const [analysisFitMode, setAnalysisFitMode] = useState<'fit' | 'manual'>('manual')
+  const [analysisIs3P, setAnalysisIs3P] = useState(false)
+  const [isAnalysisDataEditorOpen, setIsAnalysisDataEditorOpen] = useState(false)
+
+  // Calculator Lab State
+  const [labData, setLabData] = useState<DataPoint[]>([])
+  const [labResult, setLabResult] = useState<WeibullResult | undefined>(undefined)
+  const [labFitMode, setLabFitMode] = useState<'fit' | 'manual'>('fit')
+  const [labIs3P, setLabIs3P] = useState(false)
+  const [traceData, setTraceData] = useState<any>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
+  const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
+
+  // Read trueBeta, trueEta, trueGamma from URL params and initialize analysis card
+  useEffect(() => {
+    const betaParam = searchParams.get('trueBeta')
+    const etaParam = searchParams.get('trueEta')
+    const gammaParam = searchParams.get('trueGamma')
+
+    if (betaParam && etaParam && gammaParam) {
+      const beta = parseFloat(betaParam)
+      const eta = parseFloat(etaParam)
+      const gamma = parseFloat(gammaParam)
+
+      // Initialize analysis result with parameters from URL
+      setAnalysisResult({
+        beta,
+        eta,
+        gamma,
+        rSquared: null,
+        points: [],
+        converged: true
+      })
+      setAnalysisFitMode('manual')
+      setAnalysisIs3P(gamma !== 0)
+      setActiveTab('analysis') // Auto-switch to analysis tab
+    }
+  }, [searchParams])
+
   // Auto-switch to lab if data is present and parse data
   useEffect(() => {
     const dataParam = searchParams.get('data')
@@ -118,29 +161,270 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       try {
         const parsed = dataParam.split(',').map(Number).filter(n => !isNaN(n))
         const points: DataPoint[] = parsed.map((v, i) => ({ id: i, value: v, status: 'F' }))
-        setAnalysisData(points)
+        setLabData(points)
+        // Auto-calculate with initial data
+        const calculatedPoints = calculateMedianRanks(points, 0)
+        const result = calculateWeibullParameters(calculatedPoints, 0)
+        setLabResult(result)
       } catch(e) {
         console.error("Failed to parse data", e)
       }
     }
   }, [searchParams])
 
-  return (
-    <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
-      {/* Header */}
-      <div className="mb-8">
-        <Link href="/methods" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold mb-6">
-          <ArrowLeft size={18} /> 返回方法总览
-        </Link>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-black text-slate-900">{method.name}</h1>
-            <span className="text-lg font-mono text-slate-400">{method.shortName.toUpperCase()}</span>
-          </div>
+  // Calculator Lab Handlers
+  const handleLabDataClick = () => {
+    setIsDataEditorOpen(true)
+  }
 
-          <div className="flex items-center gap-4">
-             {/* Mode Toggle */}
-             <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200">
+  const handleLabDataSave = (newData: DataPoint[]) => {
+    const currentGamma = labResult?.gamma || 0
+    const points = calculateMedianRanks(newData, currentGamma)
+    const result = calculateWeibullParameters(points, currentGamma)
+    setLabData(newData)
+    setLabResult(result)
+    setLabFitMode('fit')
+    setIsDataEditorOpen(false)
+  }
+
+  const handleLabDataChange = (newData: DataPoint[]) => {
+    const currentGamma = labResult?.gamma || 0
+    const points = calculateMedianRanks(newData, currentGamma)
+    setLabData(newData)
+    setLabResult(prev => prev ? { ...prev, points } : undefined)
+    setLabFitMode('fit')
+  }
+
+  const handleLabParamsUpdate = (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
+    const baseResult = labResult || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
+    const newResult = { ...baseResult, ...updates }
+    let newPoints = labResult?.points || []
+    // Only recalculate points if gamma changed AND points not already provided in updates
+    if (updates.gamma !== undefined && !updates.points && labData) {
+      newPoints = calculateMedianRanks(labData, updates.gamma)
+    } else if (updates.points !== undefined) {
+      newPoints = updates.points
+    }
+    setLabResult({ ...newResult, points: newPoints })
+    if (mode) setLabFitMode(mode)
+  }
+
+  const handleLabCalculate = async () => {
+    if (!labData || labData.length === 0) return
+
+    setIsCalculating(true)
+    try {
+      const response = await fetch('http://localhost:8001/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: method.id,
+          data: labData.filter(d => d.status === 'F').map(d => d.value),
+          trace: true // Request process trace
+        })
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.detail || '计算失败')
+      }
+
+      const res = await response.json()
+
+      // Check convergence
+      if (res.converged === false) {
+        // Return result with actual values (0) but marked as not converged
+        const newPoints = calculateMedianRanks(labData, res.gamma || 0)
+        const newResult: WeibullResult = {
+          beta: res.beta,
+          eta: res.eta,
+          gamma: res.gamma || 0,
+          rSquared: res.rSquared,
+          points: newPoints,
+          converged: false
+        }
+        setLabResult(newResult)
+        setLabFitMode('fit')
+
+        // Store trace data for visualization even when not converged
+        if (res.trace_data) {
+          setTraceData(res.trace_data)
+        }
+
+        setIsCalculating(false)
+        return
+      }
+
+      const newPoints = calculateMedianRanks(labData, res.gamma || 0)
+      const newResult: WeibullResult = {
+        beta: res.beta,
+        eta: res.eta,
+        gamma: res.gamma || 0,
+        rSquared: res.rSquared,
+        points: newPoints,
+        converged: true
+      }
+      setLabResult(newResult)
+      setLabFitMode('fit')
+
+      // Store trace data for visualization
+      if (res.trace_data) {
+        setTraceData(res.trace_data)
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert(`后端计算错误: ${err.message}\n请确保 Python main.py 已在 8001 端口运行。`)
+    } finally {
+      setIsCalculating(false)
+    }
+  }
+
+  const handleLabToggle3P = () => {
+    const nextIs3P = !labIs3P
+    let updates: Partial<WeibullResult> = {}
+    let newPoints = labResult?.points || []
+
+    if (!nextIs3P) {
+      updates = { gamma: 0 }
+      if (labData) {
+        newPoints = calculateMedianRanks(labData, 0)
+      }
+    }
+    setLabResult(prev => prev ? { ...prev, ...updates, points: newPoints } : undefined)
+    setLabIs3P(nextIs3P)
+  }
+
+  // Result Analysis Card Handlers
+  const handleAnalysisDataClick = () => {
+    setIsAnalysisDataEditorOpen(true)
+  }
+
+  const handleAnalysisDataSave = (newData: DataPoint[]) => {
+    const currentGamma = analysisResult?.gamma || 0
+    const points = calculateMedianRanks(newData, currentGamma)
+    const result = calculateWeibullParameters(points, currentGamma)
+    setAnalysisData(newData)
+    setAnalysisResult(result)
+    setAnalysisFitMode('fit')
+    setIsAnalysisDataEditorOpen(false)
+  }
+
+  const handleAnalysisDataChange = (newData: DataPoint[]) => {
+    const currentGamma = analysisResult?.gamma || 0
+    const points = calculateMedianRanks(newData, currentGamma)
+    setAnalysisData(newData)
+    setAnalysisResult(prev => prev ? { ...prev, points } : undefined)
+    setAnalysisFitMode('fit')
+  }
+
+  const handleAnalysisParamsUpdate = (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
+    const baseResult = analysisResult || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
+    const newResult = { ...baseResult, ...updates }
+    let newPoints = analysisResult?.points || []
+    if (updates.gamma !== undefined && !updates.points && analysisData) {
+      newPoints = calculateMedianRanks(analysisData, updates.gamma)
+    } else if (updates.points !== undefined) {
+      newPoints = updates.points
+    }
+    setAnalysisResult({ ...newResult, points: newPoints })
+    if (mode) setAnalysisFitMode(mode)
+  }
+
+  const handleAnalysisCalculate = async () => {
+    if (!analysisData || analysisData.length === 0) return
+
+    setIsCalculating(true)
+    try {
+      const response = await fetch('http://localhost:8001/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: method.id,
+          data: analysisData.filter(d => d.status === 'F').map(d => d.value),
+          trace: false
+        })
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.detail || '计算失败')
+      }
+
+      const res = await response.json()
+      const newPoints = calculateMedianRanks(analysisData, res.gamma || 0)
+      const newResult: WeibullResult = {
+        beta: res.beta,
+        eta: res.eta,
+        gamma: res.gamma || 0,
+        rSquared: res.rSquared,
+        points: newPoints,
+        converged: res.converged
+      }
+      setAnalysisResult(newResult)
+      setAnalysisFitMode('fit')
+    } catch (err: any) {
+      console.error(err)
+      alert(`后端计算错误: ${err.message}\n请确保 Python main.py 已在 8001 端口运行。`)
+    } finally {
+      setIsCalculating(false)
+    }
+  }
+
+  const handleAnalysisToggle3P = () => {
+    const nextIs3P = !analysisIs3P
+    let updates: Partial<WeibullResult> = {}
+    let newPoints = analysisResult?.points || []
+
+    if (!nextIs3P) {
+      updates = { gamma: 0 }
+      if (analysisData) {
+        newPoints = calculateMedianRanks(analysisData, 0)
+      }
+    }
+    setAnalysisResult(prev => prev ? { ...prev, ...updates, points: newPoints } : undefined)
+    setAnalysisIs3P(nextIs3P)
+  }
+
+  // Auto-run calculation when data is present from URL
+  useEffect(() => {
+    const dataParam = searchParams.get('data')
+    if (dataParam && labData.length > 0 && !traceData) {
+      handleLabCalculate()
+    }
+    // Only run once when data is first loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <>
+      <DataEditor
+        isOpen={isDataEditorOpen}
+        initialData={labData}
+        onClose={() => setIsDataEditorOpen(false)}
+        onSave={handleLabDataSave}
+      />
+      <DataEditor
+        isOpen={isAnalysisDataEditorOpen}
+        initialData={analysisData}
+        onClose={() => setIsAnalysisDataEditorOpen(false)}
+        onSave={handleAnalysisDataSave}
+      />
+
+      <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
+        {/* Header */}
+        <div className="mb-8">
+          <Link href="/methods" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold mb-6">
+            <ArrowLeft size={18} /> 返回方法总览
+          </Link>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-slate-900">{method.name}</h1>
+              <span className="text-lg font-mono text-slate-400">{method.shortName.toUpperCase()}</span>
+            </div>
+
+            <div className="flex items-center gap-4">
+               {/* Mode Toggle */}
+               <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200">
                 <button
                   onClick={() => setActiveTab('doc')}
                   className={cn(
@@ -200,46 +484,126 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           </div>
         ) : activeTab === 'lab' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-             {/* Analysis Card Preview */}
-             {analysisData.length > 0 && (
-                <div className="opacity-90 hover:opacity-100 transition-opacity">
-                   <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider ml-1">当前案例概览</div>
-                   <AnalysisCard
-                     id="preview"
-                     index={0}
-                     data={analysisData}
-                     result={analysisResult}
-                     methodId={method.id}
-                     color="#4f46e5" // Indigo-600
-                     fitMode="fit"
-                     is3P={analysisResult ? analysisResult.gamma !== 0 : false}
-                     availableLayers={[]}
-                     onAdd={() => {}} // Read-only
-                     onDelete={() => {}} // Read-only
-                     onDataChange={() => {}} // Read-only
-                     onParamsUpdate={() => {}} // Read-only
-                   />
+             {/* Calculator Lab - Full Featured Analysis Card */}
+             <AnalysisCard
+               id="lab"
+               index={0}
+               data={labData}
+               result={labResult}
+               methodId={method.id}
+               color="#4f46e5" // Indigo-600
+               fitMode={labFitMode}
+               is3P={labIs3P}
+               availableLayers={[]}
+               onAdd={() => {}}
+               onDelete={() => {}}
+               onDataChange={handleLabDataChange}
+               onParamsUpdate={handleLabParamsUpdate}
+               onToggle3P={handleLabToggle3P}
+               onCalculate={handleLabCalculate}
+               onMethodClick={undefined}
+               onDataClick={handleLabDataClick}
+               hideCalculationProcessButton={true}
+             />
+
+             {/* Calculation Process Visualization */}
+             {traceData && (
+                <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Microscope className="text-indigo-500" size={20} />
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">计算过程</h3>
+                  </div>
+
+                  {/* Stats Bar */}
+                  {labResult && labResult.converged !== false && (
+                    <div className="grid grid-cols-4 gap-4 mb-8">
+                       <StatBox label="估计 β" value={labResult.beta !== null ? labResult.beta.toFixed(4) : '--'} />
+                       <StatBox label="估计 η" value={labResult.eta !== null ? labResult.eta.toFixed(2) : '--'} />
+                       <StatBox label="估计 γ" value={labResult.gamma.toFixed(2)} />
+                       <StatBox label="R²" value={labResult.rSquared !== null ? labResult.rSquared.toFixed(4) : '--'} />
+                    </div>
+                  )}
+
+                  {/* Visualizers */}
+                  {method.id.toLowerCase() === 'mle' && (
+                    <MLEVisualizer traceData={traceData} />
+                  )}
+                  {method.id.toLowerCase() === 'wmle' && (
+                    <WMLEVisualizer traceData={traceData} />
+                  )}
+                  {method.id.toLowerCase() === 'mdm' && (
+                    <MDMVisualizer traceData={traceData} />
+                  )}
+
+                  {/* Fallback for others */}
+                  {!['mle', 'wmle', 'mdm'].includes(method.id.toLowerCase()) && (
+                    <div className="text-center py-12 text-slate-400">
+                      此算法暂未适配可视化组件。
+                    </div>
+                  )}
                 </div>
              )}
 
-             {/* Pass data implicitly via URL search params handled inside MethodLab */}
-             <MethodLab
-               methodId={method.id}
-               onCalculationComplete={(res) => setAnalysisResult(res)}
-             />
+             {/* Loading State */}
+             {isCalculating && (
+                <div className="bg-slate-50 rounded-3xl p-12 border border-slate-200 flex flex-col items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
+                  <p className="text-slate-600 font-bold">正在运行计算...</p>
+                </div>
+             )}
           </div>
         ) : (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-             {/* Result Analysis Tab */}
-             <ResultAnalysisLab
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+             {/* Result Analysis Tab - Analysis Card */}
+             <AnalysisCard
+               id="analysis"
+               index={0}
+               data={analysisData}
+               result={analysisResult}
                methodId={method.id}
-               trueBeta={2}
-               trueEta={1000}
-               trueGamma={1000}
+               color="#10b981" // Emerald-500
+               fitMode={analysisFitMode}
+               is3P={analysisIs3P}
+               availableLayers={[]}
+               onAdd={() => {}}
+               onDelete={() => {}}
+               onDataChange={handleAnalysisDataChange}
+               onParamsUpdate={handleAnalysisParamsUpdate}
+               onToggle3P={handleAnalysisToggle3P}
+               onCalculate={handleAnalysisCalculate}
+               onMethodClick={undefined}
+               onDataClick={handleAnalysisDataClick}
+               hideCalculationProcessButton={true}
              />
+
+             {/* Monte Carlo Simulation */}
+             {analysisResult && analysisResult.beta !== null && analysisResult.eta !== null && (
+               <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+                 <div className="flex items-center gap-2 mb-6">
+                   <BarChart3 className="text-emerald-500" size={20} />
+                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">蒙特卡洛模拟</h3>
+                 </div>
+                 <ResultAnalysisLab
+                   methodId={method.id}
+                   trueBeta={analysisResult.beta}
+                   trueEta={analysisResult.eta}
+                   trueGamma={analysisResult.gamma}
+                 />
+               </div>
+             )}
           </div>
         )}
       </div>
     </section>
+    </>
+  )
+}
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="text-xs font-bold text-slate-400 uppercase">{label}</div>
+      <div className="text-lg font-black text-slate-800 mt-1">{value}</div>
+    </div>
   )
 }
