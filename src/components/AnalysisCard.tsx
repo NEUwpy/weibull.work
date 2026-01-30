@@ -513,7 +513,7 @@ export default function AnalysisCard({
                 </div>
              </div>
              {/* 内容栏 */}
-             <div className="flex-1 p-4">
+             <div className="flex-1 px-4 pt-4 pb-2">
                {result ? (
                  <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
