@@ -319,17 +319,14 @@ export default function AnalysisCard({
         <div className="flex h-full divide-x divide-slate-100 relative z-10 bg-white pt-2 pb-2">
           
           {/* Column 1: 方法栏 */}
-          <div
-            className="w-[12.5%] bg-slate-50/30 flex flex-col group/col cursor-pointer hover:bg-blue-50/30 transition-colors h-full"
-            onClick={onMethodClick}
-          >
+          <div className="w-[12.5%] bg-slate-50/30 flex flex-col group/col cursor-pointer hover:bg-blue-50/30 transition-colors h-full" onClick={onMethodClick}>
             {/* 标题栏 */}
             <div className="h-12 flex items-center gap-2 px-3 text-slate-500 border-b border-slate-100/50">
               <Settings2 size={16} className="text-blue-600" />
               <span className="text-base font-black uppercase tracking-wider">方法</span>
             </div>
             {/* 内容栏 */}
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-3 gap-3">
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
               {methodId ? (
                  <div className="flex flex-col items-center gap-2">
                    <div className="font-black text-slate-700 text-sm sm:text-base leading-tight break-words max-w-full">
@@ -342,23 +339,24 @@ export default function AnalysisCard({
               ) : (
                 <div className="w-full border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs py-8">选择</div>
               )}
-              
-              {/* Process Button */}
-              {methodId && data && data.length > 0 && (
-                 <button
-                   onClick={(e) => {
-                     e.stopPropagation(); // Prevent opening method selector
-                     if (!methodId || !data) return;
-                     const dataStr = data.map(d => d.value).join(',');
-                     router.push(`/methods/${methodId}?data=${dataStr}`);
-                   }}
-                   className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold transition-all opacity-0 group-hover/col:opacity-100"
-                 >
-                   <ArrowRight size={12} />
-                   过程详解
-                 </button>
-              )}
             </div>
+            {/* 底栏 - 计算过程按钮 */}
+            {methodId && data && data.length > 0 && (
+               <div className="h-12 flex items-end justify-center px-4 opacity-0 group-hover/col:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!methodId || !data) return;
+                      const dataStr = data.map(d => d.value).join(',');
+                      router.push(`/methods/${methodId}?data=${dataStr}`);
+                    }}
+                    className="flex-1 h-full bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm"
+                  >
+                    <ArrowRight size={14} />
+                    计算过程
+                  </button>
+               </div>
+            )}
           </div>
 
           {/* Column 2: 样本 */}
@@ -553,9 +551,9 @@ export default function AnalysisCard({
                )}
              </div>
 
-             {/* Result Analysis Button - Float below chart area */}
+             {/* 底栏 - Result Analysis Button */}
              {result && methodId && (
-                <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-2 opacity-0 group-hover/chart:opacity-100 transition-opacity pointer-events-none">
+                <div className="h-12 flex items-end justify-center px-4 opacity-0 group-hover/chart:opacity-100 transition-opacity">
                    <button
                      onClick={(e) => {
                        e.stopPropagation();
@@ -569,9 +567,9 @@ export default function AnalysisCard({
                        });
                        router.push(`/methods/${methodId}/analysis?${params.toString()}`);
                      }}
-                     className="pointer-events-auto flex items-center gap-1 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-[12px] font-bold transition-all"
+                     className="flex-1 h-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm"
                    >
-                     <BarChart3 size={12} />
+                     <BarChart3 size={14} />
                      结果分析
                    </button>
                 </div>
