@@ -18,7 +18,11 @@
   - 基于 Markdown + Frontmatter 的标准化文档架构
   - 支持 Mermaid 流程图、LaTeX 公式、变量说明表格
   - 适用场景、相关文献一键查看
-- **数据源**: `src/content/algorithms/*.md` (MD 文件驱动) + `src/data/methods.json`
+  - **程序流程可视化**: *[New]* 三栏布局展示算法执行过程，包含Python代码、数学公式、变量说明
+- **数据源**:
+  - `src/content/algorithms/*.md` (MD 文件驱动)
+  - `src/data/methods.json`
+  - `src/data/method_flows/*.json` (流程数据)
 
 ### 3. 案例数据库 (Case Database)
 - **功能**: 标准失效数据的存储与检索。
@@ -42,6 +46,13 @@
 3. 在 `src/data/methods.json` 中添加 `slug` 和 `hasDetail: true`。
 4. （可选）在 `python/` 目录下创建对应的 Python 实现文件。
 *详细规范请查阅: [`REQUIREMENTS.md`](REQUIREMENTS.md)*
+
+### 添加算法流程数据 (程序流程可视化)
+1. 复制 `src/data/method_flows/_template.md` 作为参考模板。
+2. 创建 `{methodId}.json` 文件，包含完整的Python代码和步骤分解。
+3. 每个步骤包含：名称、描述、代码行号、输入/输出变量、数学公式、示例值。
+4. JSON 文件会被 `VariableFlowViewer` 组件自动解析，生成三栏透明化视图。
+*详细规范请查阅: [`src/data/method_flows/_template.md`](src/data/method_flows/_template.md)*
 
 ### 添加案例数据
 1. 打开 `src/data/cases.json`。

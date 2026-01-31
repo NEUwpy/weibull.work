@@ -1,7 +1,7 @@
 # 项目开发计划与需求 (Project Roadmap & Requirements)
 
-> **文档更新时间**: 2026-01-29
-> **当前状态**: 核心功能已上线，MDM (最小偏差法) 算法及可视化已实装，文档系统持续完善中。
+> **文档更新时间**: 2026-01-31
+> **当前状态**: 核心功能已上线，算法透明化视图（程序流程可视化）v6.2 已发布，MDM (最小偏差法) 算法及可视化已实装，文档系统持续完善中。
 
 本文档记录了 Weibull 分析平台的后续开发计划、功能需求变更及待办事项。
 
@@ -22,6 +22,13 @@
   - 已完成文档: `mle.md`, `wmle.md`, `mdm.md` (新增)
   - Python 模板 (`python/_template.py`)
   - Python 实现: `mle`, `wmle`, `mdm`, `lre`, `lse` 等
+- [x] **程序流程可视化**: *[New]* 算法透明化视图，三栏布局展示执行过程
+  - 左栏：计算流程步骤导航
+  - 中栏：Python 代码高亮显示，当前步骤代码自动定位
+  - 右栏：步骤详情，包含公式、输入/输出变量（数学|代码双栏展示）
+  - 支持 LaTeX 公式渲染、变量说明、示例值显示
+  - 流程数据模板: `src/data/method_flows/_template.md`
+  - 已完成流程: `mle.json`, `wmle.json`, `mdm.json`
 - [x] **MDM 专属可视化**: 实现了最小偏差法的梯度寻优过程可视化 (`MDMVisualizer`)
 - [x] **Mermaid 流程图**: 支持横向流程图自动渲染
 - [x] **内容与代码分离**: 所有页面内容从 MD frontmatter 读取，无硬编码
@@ -46,6 +53,9 @@
 ## 2. 待办事项 (Next Steps)
 
 ### 2.1 算法文档完善 (Priority)
+- [x] **流程数据模板**: 创建 `src/data/method_flows/_template.md` 规范文档
+- [x] **已完成流程数据**: `mle.json`, `wmle.json`, `mdm.json` (包含完整Python代码和步骤分解)
+- [ ] **逐步创建流程数据**: 为其余 20+ 算法创建流程数据文件
 - [ ] **逐步创建文档**: 为所有 25+ 算法创建 MD 文档，按照 `_template.md` 和 `wmle.md` 模式
 - [ ] **Python 实现**: 为所有算法创建 Python 实现文件
 - [ ] **流程图绘制**: 为每个算法绘制 Mermaid 流程图
@@ -149,6 +159,51 @@ def estimate(data: List[float], **kwargs) -> Dict[str, Any]:
   "formula": "LaTeX公式"
 }
 ```
+
+**创建流程数据文件** (`src/data/method_flows/{slug}.json`):
+```json
+{
+  "methodId": "方法ID",
+  "methodName": "方法全名",
+  "description": "算法目的描述",
+  "code": [
+    "# 完整的Python代码，按行分割",
+    "import numpy as np",
+    "",
+    "# ========== 第1步：步骤名称 ==========",
+    "code_line_1",
+    "code_line_2"
+  ],
+  "steps": [
+    {
+      "id": 1,
+      "name": "步骤名称",
+      "description": "步骤描述",
+      "codeLines": [12, 13],
+      "inputs": [
+        {
+          "symbol": "变量符号",
+          "math": "数学含义 (LaTeX)",
+          "code": "代码含义",
+          "value": "示例值 (可选)"
+        }
+      ],
+      "formula": {
+        "expression": "LaTeX公式",
+        "symbols": [
+          { "symbol": "符号", "meaning": "符号解释" }
+        ],
+        "explanation": "公式说明"
+      },
+      "outputs": [...],
+      "otherVariables": [],
+      "isLoop": false,
+      "loopCount": "循环次数说明 (可选)"
+    }
+  ]
+}
+```
+*详细规范请查阅: `src/data/method_flows/_template.md`*
 
 ### 3.2 添加新文献
 
