@@ -2,31 +2,38 @@
 
 import React, { useState, useEffect } from 'react'
 import katex from 'katex'
-import { ChevronLeft, ChevronRight, SkipBack, GitBranch, FileCode, Database, Code, Info } from 'lucide-react'
+import { ChevronLeft, ChevronRight, SkipBack, GitBranch, FileCode, Database, Code, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ========================================
 // 类型定义
 // ========================================
 
-export interface VariableChange {
-  name: string              // 变量名
-  value: string | number    // 变量值
-  type: 'input' | 'output' | 'intermediate' | 'final'
-  highlighted?: boolean     // 是否高亮显示
+interface Variable {
+  symbol: string
+  math: string
+  code: string
+  value?: string | number
+}
+
+interface Formula {
+  expression: string
+  symbols: Array<{
+    symbol: string
+    meaning: string
+  }>
+  explanation: string
 }
 
 interface FlowStep {
   id: number
   name: string
   description: string
-  formula: string
-  detailFormula?: string
-  inputs: Record<string, string>
-  outputs: Record<string, string>
-  codeLines: number[]       // 对应的代码行号（从0开始）
-  variables: VariableChange[]
-  note?: string
+  codeLines: number[]
+  inputs: Variable[]
+  formula: Formula
+  outputs: Variable[]
+  otherVariables: Variable[]
   isLoop?: boolean
   loopCount?: string
 }
@@ -35,7 +42,7 @@ interface MethodFlow {
   methodId: string
   methodName: string
   description: string
-  code: string[]            // 完整代码（按行分割）
+  code: string[]
   steps: FlowStep[]
 }
 
@@ -311,91 +318,130 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
             </div>
           </div>
           <div className="p-4 space-y-4">
-            {/* Step Description */}
-            <div>
+            {/* 1. Step Description */}
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
               <h4 className="text-sm font-bold text-slate-900 mb-2">{currentStep.name}</h4>
               <p className="text-sm text-slate-600 leading-relaxed">{currentStep.description}</p>
             </div>
 
-            {/* Formula */}
-            <div className="bg-slate-900 rounded-xl p-3 overflow-x-auto">
-              <LatexRenderer math={currentStep.formula} block />
-            </div>
-
-            {currentStep.detailFormula && (
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 overflow-x-auto">
-                <div className="text-xs font-bold text-slate-500 mb-1">详细公式</div>
-                <LatexRenderer math={currentStep.detailFormula} block />
+            {/* 2. Inputs */}
+            {currentStep.inputs.length > 0 && (
+              <div>
+                <h5 className="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
+                  <ArrowRight size={12} />
+                  输入
+                </h5>
+                <div className="space-y-2">
+                  {currentStep.inputs.map((input, index) => (
+                    <div key={index} className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <code className="font-bold text-sm text-blue-800">{input.symbol}</code>
+                        {input.value !== undefined && (
+                          <span className="font-mono text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
+                            {typeof input.value === 'number'
+                              ? (Number.isInteger(input.value) ? input.value : input.value.toFixed(4))
+                              : input.value}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-700 mb-1">{input.math}</div>
+                      <div className="text-xs text-blue-600 font-mono bg-blue-100 px-2 py-1 rounded">{input.code}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Variables */}
+            {/* 3. Formula */}
             <div>
-              <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">变量状态</h5>
-              <div className="space-y-2">
-                {currentStep.variables.map((variable, index) => {
-                  const typeColors = {
-                    input: 'bg-blue-50 border-blue-200 text-blue-700',
-                    output: 'bg-green-50 border-green-200 text-green-700',
-                    intermediate: 'bg-amber-50 border-amber-200 text-amber-700',
-                    final: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-                  }
+              <h5 className="text-xs font-bold text-purple-600 uppercase mb-2 flex items-center gap-1">
+                <ArrowRight size={12} />
+                公式
+              </h5>
+              <div className="bg-slate-900 rounded-xl p-3 overflow-x-auto mb-2">
+                <LatexRenderer math={currentStep.formula.expression} block />
+              </div>
 
-                  return (
-                    <div
-                      key={variable.name}
-                      className={cn(
-                        "p-2 rounded-lg border text-sm",
-                        typeColors[variable.type],
-                        variable.highlighted && "ring-2 ring-emerald-500"
-                      )}
-                    >
+              {/* Symbols Explanation */}
+              {currentStep.formula.symbols.length > 0 && (
+                <div className="bg-purple-50 rounded-lg p-2 border border-purple-200 mb-2">
+                  <div className="text-xs font-bold text-purple-700 mb-1">符号说明</div>
+                  <div className="space-y-1">
+                    {currentStep.formula.symbols.map((sym, index) => (
+                      <div key={index} className="flex items-start gap-2 text-xs">
+                        <code className="font-mono bg-purple-200 text-purple-800 px-1 rounded whitespace-nowrap">
+                          {sym.symbol}
+                        </code>
+                        <span className="text-slate-700">{sym.meaning}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Formula Explanation */}
+              <div className="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                <div className="text-xs text-slate-600">{currentStep.formula.explanation}</div>
+              </div>
+            </div>
+
+            {/* 4. Outputs */}
+            {currentStep.outputs.length > 0 && (
+              <div>
+                <h5 className="text-xs font-bold text-green-600 uppercase mb-2 flex items-center gap-1">
+                  <ArrowRight size={12} />
+                  输出
+                </h5>
+                <div className="space-y-2">
+                  {currentStep.outputs.map((output, index) => (
+                    <div key={index} className="bg-green-50 rounded-lg p-3 border border-green-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <code className="font-bold text-sm text-green-800">{output.symbol}</code>
+                        {output.value !== undefined && (
+                          <span className="font-mono text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded">
+                            {typeof output.value === 'number'
+                              ? (Number.isInteger(output.value) ? output.value : output.value.toFixed(4))
+                              : output.value}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-700 mb-1">{output.math}</div>
+                      <div className="text-xs text-green-600 font-mono bg-green-100 px-2 py-1 rounded">{output.code}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 5. Other Variables (按需显示) */}
+            {currentStep.otherVariables.length > 0 && (
+              <div>
+                <h5 className="text-xs font-bold text-amber-600 uppercase mb-2 flex items-center gap-1">
+                  <ArrowRight size={12} />
+                  其它变量
+                </h5>
+                <div className="space-y-2">
+                  {currentStep.otherVariables.map((variable, index) => (
+                    <div key={index} className="bg-amber-50 rounded-lg p-2 border border-amber-200">
                       <div className="flex items-center justify-between">
-                        <code className="font-bold text-xs">{variable.name}</code>
-                        <span className="font-mono text-xs">
-                          {typeof variable.value === 'number'
-                            ? (Number.isInteger(variable.value) ? variable.value : variable.value.toFixed(4))
-                            : variable.value}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <code className="font-bold text-xs text-amber-800">{variable.symbol}</code>
+                          <div className="text-xs text-slate-600 mt-0.5">{variable.math}</div>
+                          <div className="text-xs text-amber-600 font-mono bg-amber-100 px-1.5 py-0.5 rounded mt-1">
+                            {variable.code}
+                          </div>
+                        </div>
+                        {variable.value !== undefined && (
+                          <span className="ml-2 font-mono text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded whitespace-nowrap">
+                            {typeof variable.value === 'number'
+                              ? (Number.isInteger(variable.value) ? variable.value : variable.value.toFixed(4))
+                              : variable.value}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Input/Output Reference */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
-                <div className="text-xs font-bold text-blue-700 mb-1">输入变量</div>
-                <div className="space-y-1">
-                  {Object.entries(currentStep.inputs).map(([key, value]) => (
-                    <div key={key} className="flex items-start gap-1">
-                      <code className="text-xs bg-blue-200 text-blue-800 px-1 rounded">{key}</code>
-                    </div>
                   ))}
                 </div>
-              </div>
-              <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                <div className="text-xs font-bold text-green-700 mb-1">输出变量</div>
-                <div className="space-y-1">
-                  {Object.entries(currentStep.outputs).map(([key, value]) => (
-                    <div key={key} className="flex items-start gap-1">
-                      <code className="text-xs bg-green-200 text-green-800 px-1 rounded">{key}</code>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Note */}
-            {currentStep.note && (
-              <div className="bg-purple-50 rounded-xl p-3 border border-purple-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <Info size={14} className="text-purple-600" />
-                  <span className="text-xs font-bold text-purple-900">说明</span>
-                </div>
-                <p className="text-xs text-slate-700">{currentStep.note}</p>
               </div>
             )}
           </div>

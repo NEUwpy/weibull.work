@@ -85,195 +85,397 @@
       "id": 1,
       "name": "数据预处理",
       "description": "对原始样本进行排序，去除无效值，获取样本数量",
-      "formula": "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
-      "inputs": {
-        "data": "原始失效时间样本"
-      },
-      "outputs": {
-        "arr": "排序后的失效时间数组",
-        "n": "样本数量"
-      },
       "codeLines": [12, 13],
-      "variables": [
-        { "name": "arr", "value": "[25.3, 47.8, 73.2, 89.5, 112.4]", "type": "intermediate" },
-        { "name": "n", "value": 5, "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "data",
+          "math": "原始失效时间样本 \\{t_1, t_2, ..., t_n\\}",
+          "code": "data: List[float] - 输入的原始失效时间数据",
+          "value": "[25.3, 47.8, 73.2, 89.5, 112.4]"
+        }
       ],
-      "note": "确保所有失效时间大于0，按升序排列"
+      "formula": {
+        "expression": "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
+        "symbols": [
+          { "symbol": "t_{(i)}", "meaning": "第i小的失效时间（顺序统计量）" },
+          { "symbol": "n", "meaning": "样本数量" }
+        ],
+        "explanation": "将失效时间从小到大排序，确保后续计算的正确性"
+      },
+      "outputs": [
+        {
+          "symbol": "arr",
+          "math": "排序后的数组 [t_{(1)}, t_{(2)}, ..., t_{(n)}]",
+          "code": "arr: np.ndarray - 排序后的失效时间数组",
+          "value": "[25.3, 47.8, 73.2, 89.5, 112.4]"
+        },
+        {
+          "symbol": "n",
+          "math": "样本数量",
+          "code": "n: int - 样本个数",
+          "value": 5
+        }
+      ],
+      "otherVariables": []
     },
     {
       "id": 2,
       "name": "计算中位秩",
       "description": "使用 Bernard 公式计算经验累积概率，为线性回归初值准备数据",
-      "formula": "F(t_i) = \\frac{i - 0.3}{n + 0.4}",
-      "detailFormula": " Bernard's 中位秩公式，无偏估计",
-      "inputs": {
-        "i": "样本序号 (1, 2, ..., n)",
-        "n": "样本数量"
-      },
-      "outputs": {
-        "F": "中位秩数组 (经验累积概率)"
-      },
       "codeLines": [17],
-      "variables": [
-        { "name": "F", "value": "[0.130, 0.313, 0.500, 0.688, 0.875]", "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "i",
+          "math": "样本序号 (1, 2, ..., n)",
+          "code": "np.arange(1, n+1) - 样本序号数组"
+        },
+        {
+          "symbol": "n",
+          "math": "样本数量",
+          "code": "n: int - 从上一步获得",
+          "value": 5
+        }
       ],
-      "note": "中位秩表示第i个失效时间对应的累积失效概率的估计值"
+      "formula": {
+        "expression": "F(t_i) = \\frac{i - 0.3}{n + 0.4}",
+        "symbols": [
+          { "symbol": "F(t_i)", "meaning": "第i个样本的经验累积概率（中位秩）" },
+          { "symbol": "i", "meaning": "样本的排序序号，从1到n" },
+          { "symbol": "n", "meaning": "样本总数" },
+          { "symbol": "0.3, 0.4", "meaning": "Bernard公式的修正常数，提供无偏估计" }
+        ],
+        "explanation": "Bernard的中位秩公式是计算经验累积概率的常用方法，0.3和0.4是修正常数，使得估计在小样本下更准确"
+      },
+      "outputs": [
+        {
+          "symbol": "F",
+          "math": "中位秩数组 [F_1, F_2, ..., F_n]",
+          "code": "F: np.ndarray - 经验累积概率数组",
+          "value": "[0.130, 0.313, 0.500, 0.688, 0.875]"
+        }
+      ],
+      "otherVariables": []
     },
     {
       "id": 3,
       "name": "线性变换",
       "description": "对数据进行对数线性化变换，将威布尔分布转换为线性形式",
-      "formula": "Y = \\ln(-\\ln(1-F)), \\quad X = \\ln(t)",
-      "detailFormula": "由 F(t) = 1 - \\exp(-(t/\\eta)^\\beta) 推导可得",
-      "inputs": {
-        "F": "中位秩数组",
-        "arr": "失效时间数组"
-      },
-      "outputs": {
-        "x": "对数化的失效时间",
-        "y": "变换后的响应变量"
-      },
       "codeLines": [21, 22],
-      "variables": [
-        { "name": "x", "value": "[3.231, 3.867, 4.293, 4.495, 4.723]", "type": "intermediate" },
-        { "name": "y", "value": "[0.139, 0.377, 0.693, 1.158, 2.079]", "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "F",
+          "math": "中位秩数组",
+          "code": "F: np.ndarray - 从上一步获得",
+          "value": "[0.130, 0.313, 0.500, 0.688, 0.875]"
+        },
+        {
+          "symbol": "arr",
+          "math": "失效时间数组",
+          "code": "arr: np.ndarray - 从第1步获得",
+          "value": "[25.3, 47.8, 73.2, 89.5, 112.4]"
+        }
       ],
-      "note": "线性化后，Y与X呈线性关系：Y = β·X - β·ln(η)"
+      "formula": {
+        "expression": "Y = \\ln(-\\ln(1-F)), \\quad X = \\ln(t)",
+        "symbols": [
+          { "symbol": "F", "meaning": "经验累积概率，取值范围(0,1)" },
+          { "symbol": "t", "meaning": "失效时间" },
+          { "symbol": "Y", "meaning": "变换后的响应变量，与X呈线性关系" },
+          { "symbol": "X", "meaning": "对数化的失效时间" }
+        ],
+        "explanation": "由威布尔分布函数 F(t)=1-exp(-(t/η)^β) 推导可得，经双对数变换后呈线性关系：Y = β·X - β·ln(η)"
+      },
+      "outputs": [
+        {
+          "symbol": "x",
+          "math": "\\ln(t) - 对数化的失效时间",
+          "code": "x: np.ndarray - 用于线性回归的自变量",
+          "value": "[3.231, 3.867, 4.293, 4.495, 4.723]"
+        },
+        {
+          "symbol": "y",
+          "math": "\\ln(-\\ln(1-F)) - 变换后的响应变量",
+          "code": "y: np.ndarray - 用于线性回归的因变量",
+          "value": "[0.139, 0.377, 0.693, 1.158, 2.079]"
+        }
+      ],
+      "otherVariables": []
     },
     {
       "id": 4,
       "name": "线性回归求初值",
       "description": "通过对数变换后的线性回归获得参数的初始估计，为数值优化提供起点",
-      "formula": "\\beta_0 = \\text{slope}, \\quad \\eta_0 = e^{-\\text{intercept}/\\text{slope}}",
-      "inputs": {
-        "x": "对数化的失效时间",
-        "y": "变换后的响应变量"
-      },
-      "outputs": {
-        "β₀": "初始形状参数（斜率）",
-        "η₀": "初始尺度参数",
-        "γ₀": "初始位置参数（设为0）"
-      },
       "codeLines": [26, 27, 28, 29],
-      "variables": [
-        { "name": "slope", "value": 0.8234, "type": "intermediate" },
-        { "name": "intercept", "value": -2.4856, "type": "intermediate" },
-        { "name": "beta_init", "value": 0.8234, "type": "intermediate" },
-        { "name": "eta_init", "value": 95.28, "type": "intermediate" },
-        { "name": "gamma_init", "value": 0.0, "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "x",
+          "math": "对数化的失效时间",
+          "code": "x: np.ndarray - 从上一步获得"
+        },
+        {
+          "symbol": "y",
+          "math": "变换后的响应变量",
+          "code": "y: np.ndarray - 从上一步获得"
+        }
       ],
-      "note": "线性回归初值能显著提高数值优化的收敛速度和稳定性"
+      "formula": {
+        "expression": "\\beta_0 = \\text{slope}, \\quad \\eta_0 = e^{-\\text{intercept}/\\text{slope}}",
+        "symbols": [
+          { "symbol": "slope", "meaning": "线性回归的斜率，作为β的初始值" },
+          { "symbol": "intercept", "meaning": "线性回归的截距" },
+          { "symbol": "β₀", "meaning": "形状参数的初始估计" },
+          { "symbol": "η₀", "meaning": "尺度参数的初始估计，由截距和斜率计算" }
+        ],
+        "explanation": "线性回归 Y = slope·X + intercept，对比威布尔线性形式 Y = β·X - β·ln(η)，可得 β₀=slope, η₀=exp(-intercept/slope)"
+      },
+      "outputs": [
+        {
+          "symbol": "β₀",
+          "math": "初始形状参数",
+          "code": "beta_init: float - 形状参数初始值",
+          "value": 0.8234
+        },
+        {
+          "symbol": "η₀",
+          "math": "初始尺度参数",
+          "code": "eta_init: float - 尺度参数初始值",
+          "value": 95.28
+        },
+        {
+          "symbol": "γ₀",
+          "math": "初始位置参数（设为0）",
+          "code": "gamma_init: float - 位置参数初始值，两参数情况下为0",
+          "value": 0.0
+        }
+      ],
+      "otherVariables": [
+        {
+          "symbol": "slope",
+          "math": "线性回归斜率",
+          "code": "slope: float - 中间变量",
+          "value": 0.8234
+        },
+        {
+          "symbol": "intercept",
+          "math": "线性回归截距",
+          "code": "intercept: float - 中间变量",
+          "value": -2.4856
+        }
+      ]
     },
     {
       "id": 5,
       "name": "定义对数似然函数",
       "description": "构造三参数威布尔分布的对数似然函数（取负值用于最小化）",
-      "formula": "\\ell(\\beta,\\eta,\\gamma) = n\\ln\\beta - n\\ln\\eta + (\\beta-1)\\sum\\ln z_i - \\sum z_i^{\\beta}",
-      "detailFormula": "其中 z_i = \\frac{t_i - \\gamma}{\\eta}, \\quad t_i > \\gamma",
-      "inputs": {
-        "params": "参数向量 [β, η, γ]",
-        "arr": "排序后的失效时间",
-        "n": "样本数量"
-      },
-      "outputs": {
-        "负对数似然": "目标函数值（越小=似然越大）"
-      },
       "codeLines": [33, 35, 36, 37, 40, 42, 45, 46, 47, 48],
-      "variables": [
-        { "name": "params", "value": "[β, η, γ]", "type": "input" },
-        { "name": "β", "value": "> 0.01", "type": "input" },
-        { "name": "η", "value": "> 0.01", "type": "input" },
-        { "name": "γ", "value": "≥ 0", "type": "input" }
+      "inputs": [
+        {
+          "symbol": "params",
+          "math": "参数向量 [β, η, γ]",
+          "code": "params: List[float] - 优化算法传入的参数候选值"
+        }
       ],
-      "note": "优化算法最小化负对数似然等价于最大化对数似然"
+      "formula": {
+        "expression": "\\ell(\\beta,\\eta,\\gamma) = n\\ln\\beta - n\\ln\\eta + (\\beta-1)\\sum\\ln z_i - \\sum z_i^{\\beta}",
+        "symbols": [
+          { "symbol": "ℓ", "meaning": "对数似然函数值，越大越好" },
+          { "symbol": "n", "meaning": "样本数量" },
+          { "symbol": "β, η, γ", "meaning": "威布尔分布的三个参数" },
+          { "symbol": "z_i", "meaning": "标准化变量，z_i = (t_i-γ)/η" }
+        ],
+        "explanation": "这是三参数威布尔分布的对数似然函数。优化算法最小化负对数似然等价于最大化对数似然。前三项来自概率密度函数的对数，最后一项是Jacobs行列式"
+      },
+      "outputs": [
+        {
+          "symbol": "neg_log_lik",
+          "math": "-ℓ(β,η,γ) 负对数似然",
+          "code": "return: float - 目标函数值，优化算法最小化此值"
+        }
+      ],
+      "otherVariables": [
+        {
+          "symbol": "arr",
+          "math": "全局变量 - 失效时间数组",
+          "code": "arr: np.ndarray - 从第1步获得，在此函数中访问"
+        },
+        {
+          "symbol": "n",
+          "math": "全局变量 - 样本数量",
+          "code": "n: int - 从第1步获得，在此函数中访问"
+        }
+      ]
     },
     {
       "id": 6,
       "name": "定义约束条件",
       "description": "设置参数的物理约束，确保估计值有意义",
-      "formula": "\\beta > 0.01, \\quad \\eta > 0.01, \\quad \\gamma \\geq 0, \\quad \\gamma < t_{(1)}",
-      "inputs": {
-        "β": "形状参数候选值",
-        "η": "尺度参数候选值",
-        "γ": "位置参数候选值",
-        "arr[0]": "最小失效时间"
-      },
-      "outputs": {
-        "约束检查结果": "违反约束时返回1e10惩罚值"
-      },
       "codeLines": [35, 36, 37, 40, 42],
-      "variables": [
-        { "name": "约束β>0.01", "value": "✓", "type": "intermediate" },
-        { "name": "约束η>0.01", "value": "✓", "type": "intermediate" },
-        { "name": "约束γ≥0", "value": "✓", "type": "intermediate" },
-        { "name": "约束γ<t₍₁₎", "value": "✓", "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "β, η, γ",
+          "math": "参数候选值",
+          "code": "从params解包获得"
+        },
+        {
+          "symbol": "t₍₁₎",
+          "math": "最小失效时间",
+          "code": "arr[0]: float - 全局变量的第一个元素"
+        }
       ],
-      "note": "物理约束确保参数在合理范围内，位置参数必须小于最小失效时间"
+      "formula": {
+        "expression": "\\beta > 0.01, \\quad \\eta > 0.01, \\quad \\gamma \\geq 0, \\quad \\gamma < t_{(1)}",
+        "symbols": [
+          { "symbol": "β > 0.01", "meaning": "形状参数必须大于0，设置0.01下限避免数值问题" },
+          { "symbol": "η > 0.01", "meaning": "尺度参数必须大于0，设置0.01下限避免数值问题" },
+          { "symbol": "γ ≥ 0", "meaning": "位置参数不能为负，表示失效时间的起点" },
+          { "symbol": "γ < t₍₁₎", "meaning": "位置参数必须小于最小失效时间，否则所有观测值都会被"减掉"" }
+        ],
+        "explanation": "这些约束确保参数在物理上有意义。违反约束时返回一个极大的惩罚值(1e10)，使优化算法避开这些区域"
+      },
+      "outputs": [
+        {
+          "symbol": "约束检查结果",
+          "math": "满足约束继续计算，违反则返回惩罚值",
+          "code": "return 1e10 - 惩罚值，使优化算法避开违反约束的参数组合"
+        }
+      ],
+      "otherVariables": []
     },
     {
       "id": 7,
       "name": "计算标准化变量",
       "description": "计算标准化后的数据 z，用于似然函数计算",
-      "formula": "z_i = \\frac{t_i - \\gamma}{\\eta}",
-      "inputs": {
-        "arr": "失效时间数组",
-        "γ": "位置参数",
-        "η": "尺度参数"
-      },
-      "outputs": {
-        "z": "标准化变量数组"
-      },
       "codeLines": [40, 45],
-      "variables": [
-        { "name": "z", "value": "[0.266, 0.502, 0.769, 0.941, 1.182]", "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "arr",
+          "math": "失效时间数组（全局）",
+          "code": "arr: np.ndarray - 全局变量"
+        },
+        {
+          "symbol": "γ",
+          "math": "位置参数",
+          "code": "gamma: float - 当前候选值"
+        },
+        {
+          "symbol": "η",
+          "math": "尺度参数",
+          "code": "eta: float - 当前候选值"
+        }
       ],
-      "note": "z值必须都大于0，否则对数似然无定义"
+      "formula": {
+        "expression": "z_i = \\frac{t_i - \\gamma}{\\eta}",
+        "symbols": [
+          { "symbol": "z_i", "meaning": "第i个观测值的标准化变量" },
+          { "symbol": "t_i", "meaning": "第i个失效时间" },
+          { "symbol": "γ", "meaning": "位置参数，平移观测值的起点" },
+          { "symbol": "η", "meaning": "尺度参数，缩放因子" }
+        ],
+        "explanation": "标准化变量z是威布尔分布的核心，通过位置参数γ平移和尺度参数η缩放，将原始数据转换到标准空间"
+      },
+      "outputs": [
+        {
+          "symbol": "z",
+          "math": "标准化变量数组",
+          "code": "z: np.ndarray - 所有z_i组成的数组，必须都>0",
+          "value": "[0.266, 0.502, 0.769, 0.941, 1.182]"
+        }
+      ],
+      "otherVariables": []
     },
     {
       "id": 8,
       "name": "计算对数似然值",
       "description": "根据当前参数计算对数似然函数值",
-      "formula": "\\ell = n\\ln\\beta - n\\ln\\eta + (\\beta-1)\\sum\\ln z_i - \\sum z_i^{\\beta}",
-      "inputs": {
-        "n": "样本数量",
-        "β, η, γ": "当前参数值",
-        "z": "标准化变量"
-      },
-      "outputs": {
-        "负对数似然": "目标函数值"
-      },
       "codeLines": [46, 47, 48],
-      "variables": [
-        { "name": "n·ln(β)", "value": "-0.971", "type": "intermediate" },
-        { "name": "-n·ln(η)", "value": "-22.78", "type": "intermediate" },
-        { "name": "(β-1)Σln(z)", "value": "0.181", "type": "intermediate" },
-        { "name": "-Σz^β", "value": "4.286", "type": "intermediate" },
-        { "name": "neg_log_lik", "value": 8.724, "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "n",
+          "math": "样本数量（全局）",
+          "code": "n: int - 全局变量"
+        },
+        {
+          "symbol": "β, η, γ",
+          "math": "当前参数值",
+          "code": "beta, eta, gamma: float - 从params解包"
+        },
+        {
+          "symbol": "z",
+          "math": "标准化变量",
+          "code": "z: np.ndarray - 从上一步计算"
+        }
       ],
-      "note": "优化算法的目标是找到使这个值最小的参数组合"
+      "formula": {
+        "expression": "\\ell = n\\ln\\beta - n\\ln\\eta + (\\beta-1)\\sum\\ln z_i - \\sum z_i^{\\beta}",
+        "symbols": [
+          { "symbol": "n·ln(β)", "meaning": "第一项，与β正相关" },
+          { "symbol": "-n·ln(η)", "meaning": "第二项，与η负相关" },
+          { "symbol": "(β-1)Σln(z)", "meaning": "第三项，取决于β和z的分布" },
+          { "symbol": "-Σz^β", "meaning": "第四项，惩罚偏离1的z值" }
+        ],
+        "explanation": "将所有项相加得到对数似然值。优化算法的目标是找到使这个值最大的参数组合"
+      },
+      "outputs": [
+        {
+          "symbol": "neg_log_lik",
+          "math": "-ℓ 负对数似然值",
+          "code": "return -ll: float - 返回负值用于最小化",
+          "value": 8.724
+        }
+      ],
+      "otherVariables": []
     },
     {
       "id": 9,
       "name": "数值优化",
       "description": "使用 Nelder-Mead 无导数优化算法搜索使对数似然最大的参数组合",
-      "formula": "\\{\\hat{\\beta}, \\hat{\\eta}, \\hat{\\gamma}\\} = \\arg\\max_{\\beta, \\eta, \\gamma} \\ell(\\beta, \\eta, \\gamma)",
-      "inputs": {
-        "初始值": "[beta_init, eta_init, gamma_init]",
-        "目标函数": "neg_log_likelihood",
-        "算法": "Nelder-Mead"
-      },
-      "outputs": {
-        "优化结果": "包含最优参数和收敛信息"
-      },
       "codeLines": [52, 53, 54, 55, 56],
-      "variables": [
-        { "name": "method", "value": "Nelder-Mead", "type": "input" },
-        { "name": "maxiter", "value": 1000, "type": "input" },
-        { "name": "xatol", "value": "1e-8", "type": "input" },
-        { "name": "fatol", "value": "1e-8", "type": "input" },
-        { "name": "初始值", "value": "[0.823, 95.28, 0.0]", "type": "input", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "初始值",
+          "math": "[β₀, η₀, γ₀]",
+          "code": "[beta_init, eta_init, gamma_init] - 从第4步获得",
+          "value": "[0.823, 95.28, 0.0]"
+        },
+        {
+          "symbol": "目标函数",
+          "math": "neg_log_likelihood",
+          "code": "neg_log_likelihood函数 - 从第5步定义"
+        },
+        {
+          "symbol": "算法",
+          "math": "Nelder-Mead",
+          "code": "method='Nelder-Mead' - 无导数优化算法"
+        }
       ],
-      "note": "Nelder-Mead是一种无导数优化算法，适用于不可导或导数难计算的情况",
+      "formula": {
+        "expression": "\\{\\hat{\\beta}, \\hat{\\eta}, \\hat{\\gamma}\\} = \\arg\\max_{\\beta, \\eta, \\gamma} \\ell(\\beta, \\eta, \\gamma)",
+        "symbols": [
+          { "symbol": "argmax", "meaning": "使函数达到最大的参数组合" },
+          { "symbol": "ℓ(β,η,γ)", "meaning": "对数似然函数" },
+          { "symbol": "β̂, η̂, γ̂", "meaning": "最优参数估计值（MLE）" }
+        ],
+        "explanation": "Nelder-Mead算法是一种无导数优化方法，通过单纯形的迭代变形来搜索最优解，适用于不可导或导数难计算的情况"
+      },
+      "outputs": [
+        {
+          "symbol": "优化结果",
+          "math": "包含最优参数和收敛信息的OptimizeResult对象",
+          "code": "result: OptimizeResult - 包含x（最优参数）、success（是否成功）等属性"
+        }
+      ],
+      "otherVariables": [
+        {
+          "symbol": "maxiter",
+          "math": "最大迭代次数",
+          "code": "options['maxiter']=1000 - 防止无限循环"
+        },
+        {
+          "symbol": "xatol, fatol",
+          "math": "收敛阈值",
+          "code": "xatol=1e-8, fatol=1e-8 - 参数变化和函数值变化小于此值时停止"
+        }
+      ],
       "isLoop": true,
       "loopCount": "~15次迭代"
     },
@@ -281,23 +483,48 @@
       "id": 10,
       "name": "优化迭代过程",
       "description": "优化算法逐步调整参数，使似然函数值最大化，直到满足收敛条件",
-      "formula": "\\text{迭代: } \\{\\beta^{(k+1)}, \\eta^{(k+1)}, \\gamma^{(k+1)}\\} = \\text{Nelder-Mead}(\\{\\beta^{(k)}, \\eta^{(k)}, \\gamma^{(k)}\\})",
-      "inputs": {
-        "当前参数": "β⁽ᵏ⁾, η⁽ᵏ⁾, γ⁽ᵏ⁾",
-        "目标函数": "neg_log_likelihood"
-      },
-      "outputs": {
-        "更新参数": "β⁽ᵏ⁺¹⁾, η⁽ᵏ⁺¹⁾, γ⁽ᵏ⁺¹⁾"
-      },
       "codeLines": [52, 53, 54, 55, 56],
-      "variables": [
-        { "name": "iter", "value": 1, "type": "intermediate" },
-        { "name": "β", "value": 0.8234, "type": "intermediate" },
-        { "name": "η", "value": 95.28, "type": "intermediate" },
-        { "name": "γ", "value": 0.0, "type": "intermediate" },
-        { "name": "neg_log_lik", "value": 8.7234, "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "当前参数",
+          "math": "β⁽ᵏ⁾, η⁽ᵏ⁾, γ⁽ᵏ⁾",
+          "code": "第k次迭代的参数值"
+        },
+        {
+          "symbol": "目标函数",
+          "math": "neg_log_likelihood",
+          "code": "用于评估参数质量的函数"
+        }
       ],
-      "note": "每次迭代算法评估多个参数组合，根据目标函数值调整搜索方向",
+      "formula": {
+        "expression": "\\{\\beta^{(k+1)}, \\eta^{(k+1)}, \\gamma^{(k+1)}\\} = \\text{Nelder-Mead}(\\{\\beta^{(k)}, \\eta^{(k)}, \\gamma^{(k)}\\})",
+        "symbols": [
+          { "symbol": "β⁽ᵏ⁾, η⁽ᵏ⁾, γ⁽ᵏ⁾", "meaning": "第k次迭代的参数值" },
+          { "symbol": "β⁽ᵏ⁺¹⁾, η⁽ᵏ⁺¹⁾, γ⁽ᵏ⁺¹⁾", "meaning": "第k+1次迭代的参数值（更新后）" }
+        ],
+        "explanation": "每次迭代算法评估多个参数组合，根据目标函数值调整搜索方向，逐步逼近最优解"
+      },
+      "outputs": [
+        {
+          "symbol": "更新参数",
+          "math": "β⁽ᵏ⁺¹⁾, η⁽ᵏ⁺¹⁾, γ⁽ᵏ⁺¹⁾",
+          "code": "新的参数组合，更接近最优解"
+        }
+      ],
+      "otherVariables": [
+        {
+          "symbol": "iter",
+          "math": "当前迭代次数",
+          "code": "int - 从1开始计数",
+          "value": 1
+        },
+        {
+          "symbol": "neg_log_lik",
+          "math": "当前目标函数值",
+          "code": "float - 越小越好",
+          "value": 8.7234
+        }
+      ],
       "isLoop": true,
       "loopCount": "第1/15次迭代"
     },
@@ -305,25 +532,49 @@
       "id": 11,
       "name": "迭代收敛",
       "description": "经过多次迭代后，参数变化小于收敛阈值，算法终止",
-      "formula": "\\text{收敛判据: } |\\Delta\\ell| < 10^{-8} \\text{ 且 } |\\Delta\\theta| < 10^{-8}",
-      "inputs": {
-        "迭代次数": "15",
-        "收敛阈值": "1e-8"
-      },
-      "outputs": {
-        "最优参数": "β*, η*, γ*",
-        "收敛状态": "success"
-      },
       "codeLines": [52, 53, 54, 55, 56],
-      "variables": [
-        { "name": "iter", "value": 15, "type": "intermediate" },
-        { "name": "β*", "value": 1.8547, "type": "intermediate", "highlighted": true },
-        { "name": "η*", "value": 102.35, "type": "intermediate", "highlighted": true },
-        { "name": "γ*", "value": 0.0, "type": "intermediate" },
-        { "name": "neg_log_lik", "value": 7.2145, "type": "intermediate" },
-        { "name": "converged", "value": true, "type": "intermediate" }
+      "inputs": [
+        {
+          "symbol": "收敛阈值",
+          "math": "xatol=10⁻⁸, fatol=10⁻⁸",
+          "code": "options中设置的停止条件"
+        }
       ],
-      "note": "收敛意味着找到了似然函数的局部最大值",
+      "formula": {
+        "expression": "\\text{收敛判据: } |\\Delta\\ell| < 10^{-8} \\text{ 且 } |\\Delta\\theta| < 10^{-8}",
+        "symbols": [
+          { "symbol": "|Δℓ|", "meaning": "目标函数值的变化量" },
+          { "symbol": "|Δθ|", "meaning": "参数向量的变化量（L2范数）" },
+          { "symbol": "10⁻⁸", "meaning": "非常小的阈值，确保高精度收敛" }
+        ],
+        "explanation": "当参数变化和函数值变化都小于阈值时，认为已经找到最优解，算法停止。收敛意味着找到了似然函数的局部最大值"
+      },
+      "outputs": [
+        {
+          "symbol": "最优参数",
+          "math": "β*, η*, γ*",
+          "code": "result.x: np.ndarray - [beta_hat, eta_hat, gamma_hat]"
+        },
+        {
+          "symbol": "收敛状态",
+          "math": "success / 未收敛",
+          "code": "result.success: bool - 是否成功收敛"
+        }
+      ],
+      "otherVariables": [
+        {
+          "symbol": "iter",
+          "math": "总迭代次数",
+          "code": "result.nit: int - 共进行的迭代次数",
+          "value": 15
+        },
+        {
+          "symbol": "neg_log_lik",
+          "math": "最终目标函数值",
+          "code": "result.fun: float - 最小的负对数似然值",
+          "value": 7.2145
+        }
+      ],
       "isLoop": true,
       "loopCount": "第15/15次迭代"
     },
@@ -331,66 +582,130 @@
       "id": 12,
       "name": "检查 Smith 无界问题",
       "description": "当 β < 1 时，似然函数在参数空间内无界，不存在 MLE 解（Smith, 1985）",
-      "formula": "\\text{If } \\hat{\\beta} < 1, \\text{ 无 MLE 解存在}",
-      "inputs": {
-        "β*": "优化得到的形状参数"
-      },
-      "outputs": {
-        "判断结果": "是否有界解"
-      },
       "codeLines": [60, 61, 62],
-      "variables": [
-        { "name": "β*", "value": 1.8547, "type": "intermediate" },
-        { "name": "检查", "value": "β > 1 ✓ 有界解", "type": "intermediate", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "β*",
+          "math": "优化得到的形状参数",
+          "code": "beta_hat: float - 从result.x[0]获得"
+        }
       ],
-      "note": "Smith (1985) 证明：当 β < 1 时，似然函数在 γ → t₍₁₎ 时趋向无穷大，无MLE解"
+      "formula": {
+        "expression": "\\text{If } \\hat{\\beta} < 1, \\text{ 无 MLE 解存在}",
+        "symbols": [
+          { "symbol": "β̂", "meaning": "MLE估计的形状参数" },
+          { "symbol": "无界", "meaning": "当β<1时，让γ→t₍₁₎，似然函数趋向无穷大" }
+        ],
+        "explanation": "Smith (1985) 证明：当 β < 1 时，似然函数在参数空间内无界。当位置参数γ趋近于最小失效时间t₍₁₎时，似然函数趋向无穷大，因此不存在MLE解"
+      },
+      "outputs": [
+        {
+          "symbol": "判断结果",
+          "math": "有界解 / 无界解",
+          "code": "if beta_hat < 1: return [..., 'unbounded']"
+        }
+      ],
+      "otherVariables": []
     },
     {
       "id": 13,
       "name": "计算拟合优度 R²",
       "description": "评估模型与数据的拟合程度，R² 越接近1表示拟合越好",
-      "formula": "R^2 = 1 - \\frac{\\sum(F_i - \\hat{F}_i)^2}{\\sum(F_i - \\bar{F})^2}",
-      "detailFormula": "\\hat{F}_i = 1 - \\exp(-((t_i - \\hat{\\gamma})/\\hat{\\eta})^{\\hat{\\beta}})",
-      "inputs": {
-        "β*, η*, γ*": "估计的参数",
-        "arr": "失效时间",
-        "F": "中位秩（经验累积概率）"
-      },
-      "outputs": {
-        "R²": "拟合优度 (0~1)"
-      },
       "codeLines": [66, 67, 68, 69],
-      "variables": [
-        { "name": "F_pred", "value": "[0.117, 0.328, 0.512, 0.678, 0.856]", "type": "intermediate" },
-        { "name": "SS_res", "value": 0.0034, "type": "intermediate" },
-        { "name": "SS_tot", "value": 0.1823, "type": "intermediate" },
-        { "name": "R²", "value": 0.9814, "type": "final", "highlighted": true }
+      "inputs": [
+        {
+          "symbol": "β*, η*, γ*",
+          "math": "估计的参数",
+          "code": "beta_hat, eta_hat, gamma_hat: float - 从优化结果获得"
+        },
+        {
+          "symbol": "arr",
+          "math": "失效时间（全局）",
+          "code": "arr: np.ndarray - 全局变量"
+        },
+        {
+          "symbol": "F",
+          "math": "中位秩（全局）",
+          "code": "F: np.ndarray - 从第2步获得"
+        }
       ],
-      "note": "R² > 0.95 表示拟合效果良好"
+      "formula": {
+        "expression": "R^2 = 1 - \\frac{\\sum(F_i - \\hat{F}_i)^2}{\\sum(F_i - \\bar{F})^2}",
+        "symbols": [
+          { "symbol": "R²", "meaning": "决定系数，取值范围通常在0到1之间" },
+          { "symbol": "F_i", "meaning": "观测的经验累积概率（中位秩）" },
+          { "symbol": "F̂_i", "meaning": "模型预测的累积概率，F̂_i = 1-exp(-((t_i-γ̂)/η̂)^β̂)" },
+          { "symbol": "F̄", "meaning": "F_i的均值" },
+          { "symbol": "SS_res", "meaning": "残差平方和，Σ(F_i-F̂_i)²" },
+          { "symbol": "SS_tot", "meaning": "总平方和，Σ(F_i-F̄)²" }
+        ],
+        "explanation": "R²衡量模型解释数据变异的比例。R²>0.95表示拟合效果良好。注意：威布尔分析中R²仅供参考，不应作为唯一标准"
+      },
+      "outputs": [
+        {
+          "symbol": "R²",
+          "math": "拟合优度",
+          "code": "r2: float - 决定系数",
+          "value": 0.9814
+        }
+      ],
+      "otherVariables": [
+        {
+          "symbol": "F_pred",
+          "math": "模型预测的累积概率",
+          "code": "F_pred: np.ndarray - 中间变量",
+          "value": "[0.117, 0.328, 0.512, 0.678, 0.856]"
+        },
+        {
+          "symbol": "SS_res",
+          "math": "残差平方和",
+          "code": "ss_res: float - 中间变量",
+          "value": 0.0034
+        },
+        {
+          "symbol": "SS_tot",
+          "math": "总平方和",
+          "code": "ss_tot: float - 中间变量",
+          "value": 0.1823
+        }
+      ]
     },
     {
       "id": 14,
       "name": "输出最终结果",
       "description": "返回估计的威布尔分布参数和拟合优度",
-      "formula": "\\{\\hat{\\beta}, \\hat{\\eta}, \\hat{\\gamma}, R^2\\} = \\text{MLE}(\\text{data})",
-      "inputs": {
-        "β*": "最优形状参数",
-        "η*": "最优尺度参数",
-        "γ*": "最优位置参数",
-        "R²": "拟合优度"
-      },
-      "outputs": {
-        "结果": "[beta_hat, eta_hat, gamma_hat, r2, 'success']"
-      },
       "codeLines": [72],
-      "variables": [
-        { "name": "β*", "value": 1.8547, "type": "final", "highlighted": true },
-        { "name": "η*", "value": 102.35, "type": "final", "highlighted": true },
-        { "name": "γ*", "value": 0.0, "type": "final", "highlighted": true },
-        { "name": "R²", "value": 0.9814, "type": "final", "highlighted": true },
-        { "name": "status", "value": "success", "type": "final" }
+      "inputs": [
+        {
+          "symbol": "β*, η*, γ*",
+          "math": "最优参数估计",
+          "code": "从优化结果和检查中获得"
+        },
+        {
+          "symbol": "R²",
+          "math": "拟合优度",
+          "code": "从上一步计算获得"
+        }
       ],
-      "note": "参数估计完成，可用于可靠性分析和预测"
+      "formula": {
+        "expression": "\\{\\hat{\\beta}, \\hat{\\eta}, \\hat{\\gamma}, R^2, \\text{status}\\} = \\text{MLE}(\\text{data})",
+        "symbols": [
+          { "symbol": "β̂", "meaning": "MLE形状参数估计" },
+          { "symbol": "η̂", "meaning": "MLE尺度参数估计" },
+          { "symbol": "γ̂", "meaning": "MLE位置参数估计" },
+          { "symbol": "R²", "meaning": "拟合优度" },
+          { "symbol": "status", "meaning": "success/unbounded - 计算状态" }
+        ],
+        "explanation": "返回所有估计结果，便于后续分析使用"
+      },
+      "outputs": [
+        {
+          "symbol": "结果",
+          "math": "[β̂, η̂, γ̂, R², 'success']",
+          "code": "List[float, float, float, float, str] - 完整的结果列表"
+        }
+      ],
+      "otherVariables": []
     }
   ]
 }
