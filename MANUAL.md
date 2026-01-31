@@ -42,14 +42,14 @@ C:\Web\Weibull\
 │   └── components\visualizers\ # 针对不同算法的专用可视化组件 (Recharts)
 │       ├── MLEVisualizer.tsx
 │       ├── WMLEVisualizer.tsx
-│       └── MDMVisualizer.tsx   # [New] 最小偏差法可视化
+│       └── MDMVisualizer.tsx   # [New] 最小差异法可视化
 └── python\
     ├── main.py                 # FastAPI 网关
     ├── base.py                 # 基类 (提供 Trace 记录器，兼容 NumPy 2.0)
     └── methods\                # 算法实现
         ├── wmle.py             # 支持 Trace 的高级算法
         ├── mle.py              # 支持 Trace 的基础算法
-        └── mdm.py              # [New] 最小偏差法 (梯度偏移判据)
+        └── mdm.py              # [New] 最小差异法 (梯度偏移判据)
 ```
 
 ### 3.2 过程量 (Trace) 协议

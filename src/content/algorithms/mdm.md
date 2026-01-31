@@ -1,10 +1,10 @@
 ---
 method_id: mdm
-method_name: 最小偏差法
+method_name: 最小差异法
 short_name: MDM
 category: 极小化适配法
 formula: \min_{\beta, \gamma} \sigma \left( \frac{t_i - \gamma}{[-\ln(1-F_i)]^{1/\beta}} \right)
-description: 最小偏差法 (Minimum Discrepancy Method, MDM) 是一种基于统计最小差异原理的参数估计方法。该方法通过构造尺度参数的伪估计量，利用递归算法寻找使各个样本点估计的尺度参数之间差异（标准差）最小的形状参数和位置参数。为了克服小样本下的不确定性，MDM 引入了梯度偏移判据（如一阶导数等于 0.1 而非 0），显著提高了估计的稳健性和准确性。
+description: 最小差异法 (Minimum Discrepancy Method, MDM) 是一种基于统计最小差异原理的参数估计方法。该方法通过构造尺度参数的伪估计量，利用递归算法寻找使各个样本点估计的尺度参数之间差异（标准差）最小的形状参数和位置参数。为了克服小样本下的不确定性，MDM 引入了梯度偏移判据（如一阶导数等于 0.1 而非 0），显著提高了估计的稳健性和准确性。
 variables:
   - symbol: η_i
     description: 基于第 i 个样本点估计的伪尺度参数
@@ -46,7 +46,7 @@ references:
 
 ## 1. 基本思想
 
-最小偏差法（MDM）的核心思想是：如果所选择的形状参数 $\beta$ 和位置参数 $\gamma$ 是真实的，那么利用样本中每一个数据点 $t_i$ 及其对应的累积失效概率 $F(t_i)$ 反算出来的尺度参数 $\eta_i$ 应该彼此相等（或差异最小）。
+最小差异法（MDM）的核心思想是：如果所选择的形状参数 $\beta$ 和位置参数 $\gamma$ 是真实的，那么利用样本中每一个数据点 $t_i$ 及其对应的累积失效概率 $F(t_i)$ 反算出来的尺度参数 $\eta_i$ 应该彼此相等（或差异最小）。
 
 对于三参数威布尔分布，累积分布函数 (CDF) 为：
 $$F(t) = 1 - \exp \left[ - \left(\frac {t - \gamma}{\eta}\right) ^ {\beta} \right]$$
