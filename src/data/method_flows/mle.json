@@ -1,0 +1,128 @@
+{
+  "methodId": "mle",
+  "methodName": "极大似然估计 (MLE)",
+  "description": "通过最大化对数似然函数来估计参数，大样本下渐近最优",
+  "steps": [
+    {
+      "id": 1,
+      "name": "数据预处理",
+      "description": "对原始样本进行排序，去除无效值",
+      "formula": "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
+      "inputs": {
+        "raw_data": "原始失效时间样本"
+      },
+      "outputs": {
+        "arr": "排序后的失效时间数组",
+        "n": "样本数量"
+      },
+      "code": "self.data = np.array(sorted([x for x in data if x > 0]))"
+    },
+    {
+      "id": 2,
+      "name": "计算中位秩（用于初始猜测）",
+      "description": "使用 Bernard 公式计算经验累积概率，为线性回归初值准备数据",
+      "formula": "F(t_i) = \\frac{i - 0.3}{n + 0.4}",
+      "inputs": {
+        "i": "样本序号 (1, 2, ..., n)",
+        "n": "样本数量"
+      },
+      "outputs": {
+        "F": "中位秩数组"
+      },
+      "code": "F = (np.arange(1, n + 1) - 0.3) / (n + 0.4)"
+    },
+    {
+      "id": 3,
+      "name": "线性回归求初始值",
+      "description": "通过对数变换后的线性回归获得参数的初始估计",
+      "formula": "\\ln(-\\ln(1-F)) = \\beta \\cdot \\ln(t) - \\beta \\cdot \\ln(\\eta)",
+      "detailFormula": "Y = \\beta X + C, \\quad Y = \\ln(-\\ln(1-F)), \\quad X = \\ln(t)",
+      "inputs": {
+        "F": "中位秩数组",
+        "t": "失效时间数组"
+      },
+      "outputs": {
+        "β₀": "初始形状参数（斜率）",
+        "η₀": "初始尺度参数",
+        "γ₀": "初始位置参数（设为 0）"
+      },
+      "code": "y = np.log(-np.log(1 - F))\nx = np.log(arr)\nslope, intercept = np.polyfit(x, y, 1)\nbeta_init = max(0.5, slope)\neta_init = np.exp(-intercept / slope)\ngamma_init = 0.0"
+    },
+    {
+      "id": 4,
+      "name": "定义对数似然函数",
+      "description": "构造三参数威布尔分布的对数似然函数（负值用于最小化）",
+      "formula": "\\ell(\\beta, \\eta, \\gamma) = n\\ln\\beta - n\\ln\\eta + (\\beta-1)\\sum\\ln z_i - \\sum z_i^{\\beta}",
+      "detailFormula": "z_i = \\frac{t_i - \\gamma}{\\eta}, \\quad t_i > \\gamma",
+      "inputs": {
+        "β": "形状参数候选值",
+        "η": "尺度参数候选值",
+        "γ": "位置参数候选值"
+      },
+      "outputs": {
+        "负对数似然": "目标函数值（越小=似然越大）"
+      },
+      "note": "优化算法最小化负对数似然等价于最大化对数似然"
+    },
+    {
+      "id": 5,
+      "name": "定义约束条件",
+      "description": "设置参数的物理约束，确保估计值有意义",
+      "formula": "\\beta > 0.01, \\quad \\eta > 0.01, \\quad \\gamma \\geq 0, \\quad \\gamma < t_{(1)}",
+      "inputs": {
+        "t_(1)": "最小失效时间"
+      },
+      "outputs": {
+        "约束函数": "违反约束时返回 1e10 惩罚值"
+      },
+      "code": "if beta <= 0.01 or eta <= 0.01 or gamma < 0 or gamma >= arr[0]:\n    return 1e10"
+    },
+    {
+      "id": 6,
+      "name": "数值优化（Nelder-Mead）",
+      "description": "使用无导数优化算法搜索使对数似然最大的参数组合",
+      "formula": "\\{\\hat{\\beta}, \\hat{\\eta}, \\hat{\\gamma}\\} = \\arg\\max_{\\beta, \\eta, \\gamma} \\ell(\\beta, \\eta, \\gamma)",
+      "inputs": {
+        "初始值": "beta_init, eta_init, gamma_init",
+        "目标函数": "neg_log_likelihood",
+        "约束": "参数范围约束"
+      },
+      "outputs": {
+        "β*": "最优形状参数",
+        "η*": "最优尺度参数",
+        "γ*": "最优位置参数"
+      },
+      "isLoop": true,
+      "method": "scipy.optimize.minimize (Nelder-Mead)",
+      "maxIter": 1000
+    },
+    {
+      "id": 7,
+      "name": "检查无界问题（Smith 1985）",
+      "description": "检测 β < 1 时的似然函数无界问题",
+      "formula": "\\text{If } \\hat{\\beta} < 1, \\text{ 无 MLE 解存在}",
+      "inputs": {
+        "β*": "优化得到的形状参数"
+      },
+      "outputs": {
+        "判断": "是否有界解"
+      },
+      "code": "if beta_hat < 1.0:\n    return [0, 0, 0, 0, 'unbounded']",
+      "note": "Smith (1985) 证明：当 β < 1 时，似然函数在参数空间内无界"
+    },
+    {
+      "id": 8,
+      "name": "计算拟合优度 R²",
+      "description": "评估模型与数据的拟合程度",
+      "formula": "R^2 = 1 - \\frac{\\sum(y_i - \\hat{y}_i)^2}{\\sum(y_i - \\bar{y})^2}",
+      "inputs": {
+        "β": "估计的形状参数",
+        "η": "估计的尺度参数",
+        "γ": "估计的位置参数"
+      },
+      "outputs": {
+        "R²": "拟合优度 (0~1)"
+      }
+    }
+  ]
+}

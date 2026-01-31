@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
-import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3 } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3, GitBranch, PlayCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AlgorithmDetail } from '@/components/AlgorithmDetail'
 import AnalysisCard from '@/components/AnalysisCard'
 import ResultAnalysisLab from '@/components/ResultAnalysisLab'
 import DataEditor from '@/components/DataEditor'
+import VariableFlowViewer from '@/components/VariableFlowViewer'
+import AlgorithmVisualizer, { AlgorithmAnimation } from '@/components/AlgorithmVisualizer'
 import MLEVisualizer from '@/components/visualizers/MLEVisualizer'
 import WMLEVisualizer from '@/components/visualizers/WMLEVisualizer'
 import MDMVisualizer from '@/components/visualizers/MDMVisualizer'
@@ -109,7 +111,11 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'doc' | 'lab' | 'analysis'>('doc')
+  const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'animation' | 'lab' | 'analysis'>('doc')
+
+  // Animation Data State
+  const [animationData, setAnimationData] = useState<AlgorithmAnimation | null>(null)
+  const [animationLoading, setAnimationLoading] = useState(false)
 
   // Result Analysis Card State (similar to Lab)
   const [analysisData, setAnalysisData] = useState<DataPoint[]>([])
@@ -152,6 +158,23 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       setActiveTab('analysis') // Auto-switch to analysis tab
     }
   }, [searchParams])
+
+  // Load animation data when tab switches to animation
+  useEffect(() => {
+    if (activeTab === 'animation' && !animationData && !animationLoading) {
+      setAnimationLoading(true)
+      fetch(`/api/algorithm-animation/${method.id}`)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Animation data not found')
+          }
+          return res.json()
+        })
+        .then(data => setAnimationData(data))
+        .catch(err => console.error('Failed to load animation data:', err))
+        .finally(() => setAnimationLoading(false))
+    }
+  }, [activeTab, animationData, animationLoading, method.id])
 
   // Auto-switch to lab if data is present and parse data
   useEffect(() => {
@@ -436,6 +459,26 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                   原理文档
                 </button>
                 <button
+                  onClick={() => setActiveTab('flow')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    activeTab === 'flow' ? "bg-white text-purple-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <GitBranch size={16} />
+                  程序流程
+                </button>
+                <button
+                  onClick={() => setActiveTab('animation')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    activeTab === 'animation' ? "bg-white text-pink-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <PlayCircle size={16} />
+                  动画演示
+                </button>
+                <button
                   onClick={() => setActiveTab('lab')}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
@@ -481,6 +524,27 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                  暂无详细文档
                </div>
              )}
+          </div>
+        ) : activeTab === 'flow' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <VariableFlowViewer methodId={method.id} />
+          </div>
+        ) : activeTab === 'animation' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {animationLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-pink-500"></div>
+                <span className="ml-4 text-slate-600 font-bold">加载动画演示...</span>
+              </div>
+            ) : animationData ? (
+              <AlgorithmVisualizer animation={animationData} />
+            ) : (
+              <div className="text-center py-20 text-slate-400 bg-white rounded-3xl border border-slate-200">
+                <PlayCircle className="mx-auto mb-4" size={48} />
+                <p className="font-bold">暂无动画演示</p>
+                <p className="text-sm mt-2">该方法尚未添加算法动画演示</p>
+              </div>
+            )}
           </div>
         ) : activeTab === 'lab' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">

@@ -1,0 +1,133 @@
+{
+  "methodId": "wmle",
+  "methodName": "加权极大似然估计 (WMLE)",
+  "description": "通过引入三个权重 (W₁, W₂, W₃) 修正 MLE 在小样本下的偏差，偏差减少 7 倍",
+  "steps": [
+    {
+      "id": 1,
+      "name": "数据预处理",
+      "description": "对原始样本进行排序，去除无效值",
+      "formula": "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
+      "inputs": {
+        "raw_data": "原始失效时间样本"
+      },
+      "outputs": {
+        "arr": "排序后的失效时间数组",
+        "n": "样本数量"
+      },
+      "code": "self.data = np.array(sorted([x for x in data if x > 0]))"
+    },
+    {
+      "id": 2,
+      "name": "计算静态权重 W₁, W₂",
+      "description": "根据样本量 n 从权重表中查取或计算两个静态修正权重",
+      "formula": "W_1 = \\frac{\\exp(\\psi(n))}{n}, \\quad W_2 = \\max\\left(0, 1 - \\frac{1}{n}\\right)",
+      "detailFormula": "\\psi(n) \\text{ 是 digamma 函数}",
+      "inputs": {
+        "n": "样本数量"
+      },
+      "outputs": {
+        "W₁": "修正权重1，用于 η 计算",
+        "W₂": "修正权重2，用于似然方程"
+      },
+      "code": "w1 = get_weight_j1(n)\nw2 = get_weight_j2(n)",
+      "note": "W₁ 和 W₂ 只依赖于样本量 n，可以在优化前预先计算"
+    },
+    {
+      "id": 3,
+      "name": "初始化搜索起点",
+      "description": "为数值优化算法设置初始猜测值",
+      "formula": "\\gamma^{(0)} = 2.0, \\quad \\alpha^{(0)} = 0.95 \\times t_{(1)}",
+      "inputs": {
+        "t_(1)": "最小失效时间"
+      },
+      "outputs": {
+        "gamma_init": "形状参数初始值 (2.0)",
+        "alpha_init": "位置参数初始值"
+      },
+      "code": "gamma_init = 2.0\nalpha_init = arr[0] * 0.95"
+    },
+    {
+      "id": 4,
+      "name": "定义目标函数（WMLE 方程）",
+      "description": "构造包含两个平方项的目标函数，每个项对应一个修正后的似然方程",
+      "formula": "O(\\gamma, \\alpha) = T_1^2 + T_2^2",
+      "detailFormula": "T_1 = \\frac{W_2}{\\gamma} + \\frac{1}{n}\\sum\\log(x_i - \\alpha) - \\frac{\\sum\\log(x_i - \\alpha)(x_i - \\alpha)^{\\gamma}}{\\sum(x_i - \\alpha)^{\\gamma}}",
+      "detailFormula2": "T_2 = \\frac{1}{n}\\sum\\frac{1}{x_i - \\alpha} \\times \\frac{\\sum(x_i - \\alpha)^{\\gamma}}{\\sum(x_i - \\alpha)^{\\gamma-1}} - W_3(\\gamma)",
+      "inputs": {
+        "γ": "当前形状参数候选值",
+        "α": "当前位置参数候选值",
+        "W₂": "静态权重2"
+      },
+      "outputs": {
+        "目标值": "目标函数值（越小越好）"
+      },
+      "note": "目标函数等于零时，两个加权似然方程同时满足"
+    },
+    {
+      "id": 5,
+      "name": "动态计算权重 W₃",
+      "description": "在目标函数内部，根据当前 γ 值计算动态权重 W₃",
+      "formula": "W_3(n, \\gamma) = \\text{查表或近似计算}",
+      "detailFormula": "W_3 = \\frac{\\gamma}{\\gamma - 1} \\times (1 - \\text{correction})",
+      "inputs": {
+        "n": "样本数量",
+        "γ": "当前形状参数"
+      },
+      "outputs": {
+        "W₃": "动态权重，用于修正第二个似然方程"
+      },
+      "code": "w3 = get_weight_j3(n, gamma)",
+      "note": "W₃ 依赖于当前的 γ 值，需要在每次迭代中重新计算"
+    },
+    {
+      "id": 6,
+      "name": "数值优化（Nelder-Mead）",
+      "description": "使用无导数优化算法搜索使目标函数最小的 γ 和 α",
+      "formula": "\\{\\hat{\\gamma}, \\hat{\\alpha}\\} = \\arg\\min_{\\gamma, \\alpha} O(\\gamma, \\alpha)",
+      "inputs": {
+        "初始值": "gamma_init, alpha_init",
+        "目标函数": "wmle_objective",
+        "约束条件": "γ > 0, γ ≤ 10, α < min(X)"
+      },
+      "outputs": {
+        "γ*": "最优形状参数",
+        "α*": "最优位置参数"
+      },
+      "isLoop": true,
+      "method": "scipy.optimize.minimize (Nelder-Mead)",
+      "maxIter": 500
+    },
+    {
+      "id": 7,
+      "name": "代数计算尺度参数 η",
+      "description": "使用最优的 γ* 和 α*，通过加权代数公式直接计算 η",
+      "formula": "\\hat{\\eta} = \\left[ \\frac{1}{n \\cdot W_1} \\sum_{i=1}^{n} (x_i - \\hat{\\alpha})^{\\hat{\\gamma}} \\right]^{1/\\hat{\\gamma}}",
+      "inputs": {
+        "γ*": "最优形状参数",
+        "α*": "最优位置参数",
+        "W₁": "静态权重1",
+        "arr": "失效时间数组"
+      },
+      "outputs": {
+        "η": "最终尺度参数"
+      },
+      "code": "eta_hat = (np.sum(x_adj ** beta_hat) / (n * w1)) ** (1 / beta_hat)",
+      "note": "无需迭代，直接代数求解，计算效率高"
+    },
+    {
+      "id": 8,
+      "name": "计算拟合优度 R²",
+      "description": "评估模型与数据的拟合程度",
+      "formula": "R^2 = 1 - \\frac{\\sum(y_i - \\hat{y}_i)^2}{\\sum(y_i - \\bar{y})^2}",
+      "inputs": {
+        "β": "估计的形状参数",
+        "η": "估计的尺度参数",
+        "γ": "估计的位置参数"
+      },
+      "outputs": {
+        "R²": "拟合优度 (0~1)"
+      }
+    }
+  ]
+}

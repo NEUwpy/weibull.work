@@ -1,0 +1,156 @@
+{
+  "methodId": "mdm",
+  "methodName": "最小偏差法 (MDM)",
+  "description": "通过最小化伪尺度参数的标准差来估计参数，引入梯度偏移判据提高稳健性",
+  "steps": [
+    {
+      "id": 1,
+      "name": "数据预处理",
+      "description": "对原始样本进行排序，去除无效值",
+      "formula": "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
+      "inputs": {
+        "raw_data": "原始失效时间样本"
+      },
+      "outputs": {
+        "t": "排序后的失效时间数组",
+        "n": "样本数量"
+      },
+      "code": "self.data = np.array(sorted([x for x in data if x > 0]))"
+    },
+    {
+      "id": 2,
+      "name": "计算中位秩",
+      "description": "使用 Bernard 公式计算每个点的经验累积分布函数值",
+      "formula": "F(t_i) = \\frac{i - 0.3}{n + 0.4}",
+      "inputs": {
+        "i": "样本序号 (1, 2, ..., n)",
+        "n": "样本数量"
+      },
+      "outputs": {
+        "ranks": "中位秩数组 F(t_i)",
+        "neg_ln_1_minus_F": "-\\ln(1 - F(t_i))"
+      },
+      "code": "ranks = (np.arange(1, n + 1) - 0.3) / (n + 0.4)"
+    },
+    {
+      "id": 3,
+      "name": "初始化位置参数搜索范围",
+      "description": "设置 γ 的候选值范围，约束条件：γ < t₁",
+      "formula": "\\gamma \\in [0, t_{\\min})",
+      "inputs": {
+        "t_min": "最小失效时间 t_{(1)}"
+      },
+      "outputs": {
+        "gammas": "γ 候选值数组 (60个等间距点)"
+      },
+      "code": "gammas = np.linspace(0, t_min * 0.99, 60)"
+    },
+    {
+      "id": 4,
+      "name": "外层循环：遍历位置参数 γ",
+      "description": "对每个 γ 候选值，进入内层优化",
+      "formula": "\\text{for each } \\gamma \\in \\text{gammas}:",
+      "inputs": {
+        "γ": "当前候选位置参数"
+      },
+      "outputs": {
+        "进入内层循环": "寻找该 γ 下的最佳 β"
+      },
+      "isLoop": true,
+      "loopCount": 60
+    },
+    {
+      "id": 5,
+      "name": "内层循环：寻找最佳形状参数 β",
+      "description": "固定 γ，搜索使伪尺度参数标准差最小的 β",
+      "formula": "\\beta^*(\\gamma) = \\arg\\min_\\beta \\sigma_\\eta(\\beta, \\gamma)",
+      "inputs": {
+        "γ": "固定的位置参数",
+        "t": "失效时间数组",
+        "neg_ln_1_minus_F": "-\\ln(1 - F(t_i))"
+      },
+      "outputs": {
+        "β*": "该 γ 下的最优形状参数",
+        "σ_min": "伪尺度参数的最小标准差"
+      },
+      "detailFormula": "\\sigma_\\eta(\\beta, \\gamma) = \\sqrt{\\frac{1}{n-1}\\sum_{i=1}^n(\\eta_i - \\bar{\\eta})^2}",
+      "detailFormula2": "\\eta_i = \\frac{t_i - \\gamma}{[-\\ln(1-F(t_i))]^{1/\\beta}}",
+      "isLoop": true,
+      "method": "scipy.optimize.minimize_scalar (bounded)"
+    },
+    {
+      "id": 6,
+      "name": "记录 σ_min 曲线",
+      "description": "记录每个 γ 对应的最小标准差，构建 σ_min(γ) 曲线",
+      "formula": "\\sigma_{\\min}(\\gamma) = \\min_\\beta \\sigma_\\eta(\\beta, \\gamma)",
+      "inputs": {
+        "gammas": "所有 γ 候选值",
+        "sigma_mins": "每个 γ 对应的 σ_min"
+      },
+      "outputs": {
+        "sigma_mins": "σ_min(γ) 曲线数据"
+      },
+      "note": "这条曲线反映了位置参数对估计一致性的影响"
+    },
+    {
+      "id": 7,
+      "name": "计算梯度",
+      "description": "计算 σ_min(γ) 关于 γ 的梯度（一阶导数）",
+      "formula": "\\nabla(\\gamma) = \\frac{\\partial \\sigma_{\\min}(\\gamma)}{\\partial \\gamma}",
+      "inputs": {
+        "sigma_mins": "σ_min(γ) 曲线",
+        "gammas": "γ 候选值"
+      },
+      "outputs": {
+        "grads": "梯度数组 ∇(γ)"
+      },
+      "code": "grads = np.gradient(sigma_mins, gammas)"
+    },
+    {
+      "id": 8,
+      "name": "梯度偏移判据寻优",
+      "description": "寻找梯度等于偏移值 δ=0.1 的点（而非导数为0的点），提高稳健性",
+      "formula": "\\nabla(\\gamma^*) = \\delta = 0.1",
+      "inputs": {
+        "grads": "梯度数组",
+        "gammas": "γ 候选值",
+        "δ": "偏移阈值 (0.1)"
+      },
+      "outputs": {
+        "γ*": "最优位置参数",
+        "β*": "对应的形状参数"
+      },
+      "method": "线性插值找到梯度与阈值的交点"
+    },
+    {
+      "id": 9,
+      "name": "计算最终尺度参数 η",
+      "description": "使用最优的 γ* 和 β* 计算所有伪尺度参数的均值",
+      "formula": "\\hat{\\eta} = \\frac{1}{n}\\sum_{i=1}^n \\frac{t_i - \\hat{\\gamma}}{[-\\ln(1-F(t_i))]^{1/\\hat{\\beta}}}",
+      "inputs": {
+        "γ*": "最优位置参数",
+        "β*": "最优形状参数",
+        "t": "失效时间数组",
+        "neg_ln_1_minus_F": "-\\ln(1 - F(t_i))"
+      },
+      "outputs": {
+        "η": "最终尺度参数"
+      },
+      "code": "etas = (t - found_gamma) / denom; found_eta = np.mean(etas)"
+    },
+    {
+      "id": 10,
+      "name": "计算拟合优度 R²",
+      "description": "评估模型与数据的拟合程度",
+      "formula": "R^2 = 1 - \\frac{\\sum(y_i - \\hat{y}_i)^2}{\\sum(y_i - \\bar{y})^2}",
+      "inputs": {
+        "β": "估计的形状参数",
+        "η": "估计的尺度参数",
+        "γ": "估计的位置参数"
+      },
+      "outputs": {
+        "R²": "拟合优度 (0~1)"
+      }
+    }
+  ]
+}
