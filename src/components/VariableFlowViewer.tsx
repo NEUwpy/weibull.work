@@ -324,35 +324,7 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
               <p className="text-sm text-slate-600 leading-relaxed">{currentStep.description}</p>
             </div>
 
-            {/* 2. Inputs */}
-            {currentStep.inputs.length > 0 && (
-              <div>
-                <h5 className="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
-                  <ArrowRight size={12} />
-                  输入
-                </h5>
-                <div className="space-y-2">
-                  {currentStep.inputs.map((input, index) => (
-                    <div key={index} className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <code className="font-bold text-sm text-blue-800">{input.symbol}</code>
-                        {input.value !== undefined && (
-                          <span className="font-mono text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
-                            {typeof input.value === 'number'
-                              ? (Number.isInteger(input.value) ? input.value : input.value.toFixed(4))
-                              : input.value}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-700 mb-1">{input.math}</div>
-                      <div className="text-xs text-blue-600 font-mono bg-blue-100 px-2 py-1 rounded">{input.code}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 3. Formula */}
+            {/* 2. Formula */}
             <div>
               <h5 className="text-xs font-bold text-purple-600 uppercase mb-2 flex items-center gap-1">
                 <ArrowRight size={12} />
@@ -365,14 +337,14 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
               {/* Symbols Explanation */}
               {currentStep.formula.symbols.length > 0 && (
                 <div className="bg-purple-50 rounded-lg p-2 border border-purple-200 mb-2">
-                  <div className="text-xs font-bold text-purple-700 mb-1">符号说明</div>
+                  <div className="text-xs font-bold text-purple-700 mb-2">符号说明</div>
                   <div className="space-y-1">
                     {currentStep.formula.symbols.map((sym, index) => (
                       <div key={index} className="flex items-start gap-2 text-xs">
-                        <code className="font-mono bg-purple-200 text-purple-800 px-1 rounded whitespace-nowrap">
+                        <code className="font-mono bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded whitespace-nowrap">
                           {sym.symbol}
                         </code>
-                        <span className="text-slate-700">{sym.meaning}</span>
+                        <span className="text-slate-700 leading-tight">{sym.meaning}</span>
                       </div>
                     ))}
                   </div>
@@ -381,39 +353,90 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
 
               {/* Formula Explanation */}
               <div className="bg-slate-50 rounded-lg p-2 border border-slate-200">
-                <div className="text-xs text-slate-600">{currentStep.formula.explanation}</div>
+                <div className="text-xs text-slate-600 leading-relaxed">{currentStep.formula.explanation}</div>
               </div>
             </div>
 
-            {/* 4. Outputs */}
-            {currentStep.outputs.length > 0 && (
-              <div>
-                <h5 className="text-xs font-bold text-green-600 uppercase mb-2 flex items-center gap-1">
-                  <ArrowRight size={12} />
-                  输出
-                </h5>
-                <div className="space-y-2">
-                  {currentStep.outputs.map((output, index) => (
-                    <div key={index} className="bg-green-50 rounded-lg p-3 border border-green-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <code className="font-bold text-sm text-green-800">{output.symbol}</code>
-                        {output.value !== undefined && (
-                          <span className="font-mono text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded">
-                            {typeof output.value === 'number'
-                              ? (Number.isInteger(output.value) ? output.value : output.value.toFixed(4))
-                              : output.value}
-                          </span>
-                        )}
+            {/* 3. Inputs & Outputs - Two Columns */}
+            <div className="space-y-3">
+              {/* Inputs */}
+              {currentStep.inputs.length > 0 && (
+                <div>
+                  <h5 className="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
+                    <ArrowRight size={12} />
+                    输入
+                  </h5>
+                  <div className="space-y-2">
+                    {currentStep.inputs.map((input, index) => (
+                      <div key={index} className="border border-blue-200 rounded-lg overflow-hidden">
+                        {/* Symbol Header */}
+                        <div className="bg-blue-100 px-3 py-1.5 flex items-center justify-between">
+                          <code className="font-bold text-sm text-blue-800">{input.symbol}</code>
+                          {input.value !== undefined && (
+                            <span className="font-mono text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
+                              {typeof input.value === 'number'
+                                ? (Number.isInteger(input.value) ? input.value : input.value.toFixed(4))
+                                : input.value}
+                            </span>
+                          )}
+                        </div>
+                        {/* Two Column Content */}
+                        <div className="grid grid-cols-2 divide-x divide-blue-200">
+                          <div className="p-2">
+                            <div className="text-xs text-blue-600 font-bold mb-1">数学变量</div>
+                            <div className="text-xs text-slate-700">{input.math}</div>
+                          </div>
+                          <div className="p-2">
+                            <div className="text-xs text-blue-600 font-bold mb-1">代码变量</div>
+                            <div className="text-xs text-slate-700 font-mono bg-blue-50 px-1.5 py-1 rounded">{input.code}</div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-slate-700 mb-1">{output.math}</div>
-                      <div className="text-xs text-green-600 font-mono bg-green-100 px-2 py-1 rounded">{output.code}</div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 5. Other Variables (按需显示) */}
+              {/* Outputs */}
+              {currentStep.outputs.length > 0 && (
+                <div>
+                  <h5 className="text-xs font-bold text-green-600 uppercase mb-2 flex items-center gap-1">
+                    <ArrowRight size={12} />
+                    输出
+                  </h5>
+                  <div className="space-y-2">
+                    {currentStep.outputs.map((output, index) => (
+                      <div key={index} className="border border-green-200 rounded-lg overflow-hidden">
+                        {/* Symbol Header */}
+                        <div className="bg-green-100 px-3 py-1.5 flex items-center justify-between">
+                          <code className="font-bold text-sm text-green-800">{output.symbol}</code>
+                          {output.value !== undefined && (
+                            <span className="font-mono text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded">
+                              {typeof output.value === 'number'
+                                ? (Number.isInteger(output.value) ? output.value : output.value.toFixed(4))
+                                : output.value}
+                            </span>
+                          )}
+                        </div>
+                        {/* Two Column Content */}
+                        <div className="grid grid-cols-2 divide-x divide-green-200">
+                          <div className="p-2">
+                            <div className="text-xs text-green-600 font-bold mb-1">数学变量</div>
+                            <div className="text-xs text-slate-700">{output.math}</div>
+                          </div>
+                          <div className="p-2">
+                            <div className="text-xs text-green-600 font-bold mb-1">代码变量</div>
+                            <div className="text-xs text-slate-700 font-mono bg-green-50 px-1.5 py-1 rounded">{output.code}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Other Variables (按需显示) */}
             {currentStep.otherVariables.length > 0 && (
               <div>
                 <h5 className="text-xs font-bold text-amber-600 uppercase mb-2 flex items-center gap-1">
@@ -422,22 +445,28 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
                 </h5>
                 <div className="space-y-2">
                   {currentStep.otherVariables.map((variable, index) => (
-                    <div key={index} className="bg-amber-50 rounded-lg p-2 border border-amber-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <code className="font-bold text-xs text-amber-800">{variable.symbol}</code>
-                          <div className="text-xs text-slate-600 mt-0.5">{variable.math}</div>
-                          <div className="text-xs text-amber-600 font-mono bg-amber-100 px-1.5 py-0.5 rounded mt-1">
-                            {variable.code}
-                          </div>
-                        </div>
+                    <div key={index} className="border border-amber-200 rounded-lg overflow-hidden">
+                      {/* Symbol Header */}
+                      <div className="bg-amber-100 px-3 py-1.5 flex items-center justify-between">
+                        <code className="font-bold text-xs text-amber-800">{variable.symbol}</code>
                         {variable.value !== undefined && (
-                          <span className="ml-2 font-mono text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded whitespace-nowrap">
+                          <span className="font-mono text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded">
                             {typeof variable.value === 'number'
                               ? (Number.isInteger(variable.value) ? variable.value : variable.value.toFixed(4))
                               : variable.value}
                           </span>
                         )}
+                      </div>
+                      {/* Two Column Content */}
+                      <div className="grid grid-cols-2 divide-x divide-amber-200">
+                        <div className="p-2">
+                          <div className="text-xs text-amber-600 font-bold mb-1">数学变量</div>
+                          <div className="text-xs text-slate-700">{variable.math}</div>
+                        </div>
+                        <div className="p-2">
+                          <div className="text-xs text-amber-600 font-bold mb-1">代码变量</div>
+                          <div className="text-xs text-slate-700 font-mono bg-amber-50 px-1.5 py-1 rounded">{variable.code}</div>
+                        </div>
                       </div>
                     </div>
                   ))}
