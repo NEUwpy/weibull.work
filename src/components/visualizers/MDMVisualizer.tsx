@@ -12,7 +12,6 @@ import {
   ReferenceLine,
   Label
 } from 'recharts'
-import MDMContourVisualizer from './MDMContourVisualizer'
 import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
 import { cn } from '@/lib/utils'
 
@@ -29,7 +28,7 @@ interface MDMVisualizerProps {
 }
 
 export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
-  const [activeScheme, setActiveScheme] = useState<'original' | 'contour' | '3d'>('original')
+  const [activeScheme, setActiveScheme] = useState<'original' | '3d'>('original')
 
   if (!traceData) return null
 
@@ -50,17 +49,6 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
               )}
             >
               原始视图
-            </button>
-            <button
-              onClick={() => setActiveScheme('contour')}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                activeScheme === 'contour'
-                  ? "bg-white text-purple-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              等高线
             </button>
             <button
               onClick={() => setActiveScheme('3d')}
@@ -179,11 +167,6 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
         </div>
 
       </div>
-      )}
-
-      {/* Contour Plot */}
-      {activeScheme === 'contour' && (
-        <MDMContourVisualizer traceData={traceData} />
       )}
 
       {/* 3D Surface Plot */}
