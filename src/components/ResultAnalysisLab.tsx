@@ -409,6 +409,7 @@ export default function ResultAnalysisLab({
       const offsetStats: OffsetStats[] = []
 
       for (const offset of offsets) {
+        console.log(`[ResultAnalysisLab] Processing offset=${offset}`)
         const betaEstimates: number[] = []
         const etaEstimates: number[] = []
         const gammaEstimates: number[] = []
@@ -474,6 +475,12 @@ export default function ResultAnalysisLab({
 
         setCurrentProgress({ completed: (offsets.indexOf(offset) + 1) * numSimulations, total: totalSimulations })
       }
+
+      // Log summary of offset results for debugging
+      console.log('[ResultAnalysisLab] Offset analysis complete:')
+      offsetStats.forEach(s => {
+        console.log(`  offset=${s.offset.toFixed(4)}: β̄=${s.betaMean.toFixed(4)}, γ̄=${s.gammaMean.toFixed(4)}, η̄=${s.etaMean.toFixed(2)}`)
+      })
 
       // Store results in multiStats for display (final complete data)
       setMultiStats(offsetStats as any)

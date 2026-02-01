@@ -61,36 +61,41 @@ class MDM(WeibullBase):
 
         # Calculate Gradient
         grads = np.gradient(sigma_mins, gammas)
-        
+
+        # Debug: Print gradient range
+        print(f"[MDM] offset={offset:.4f}, gradient range: [{grads.min():.6f}, {grads.max():.6f}]")
+
         # Criterion: Find gamma where Gradient = offset (0.1)
         diffs = grads - offset
-        
+
         # Find intersection point
         sign_changes = np.where(np.diff(np.sign(diffs)))[0]
-        
+
         found_gamma = 0.0
         found_beta = 1.0
-        
+
         if len(sign_changes) > 0:
             # Pick the intersection closest to t_min (usually larger gamma is better for 3P fits if valid)
             # Or just the last one
             idx = sign_changes[-1]
-            
+
             y1, y2 = diffs[idx], diffs[idx+1]
             x1, x2 = gammas[idx], gammas[idx+1]
-            
+
             # Linear interpolation
             if y2 != y1:
                 found_gamma = x1 - y1 * (x2 - x1) / (y2 - y1)
             else:
                 found_gamma = x1
-            
+
             found_beta, _ = find_best_beta_for_gamma(found_gamma)
+            print(f"[MDM] Found intersection: gamma={found_gamma:.4f}, beta={found_beta:.4f}")
         else:
             # Fallback: Find point closest to offset
             min_diff_idx = np.argmin(np.abs(diffs))
             found_gamma = gammas[min_diff_idx]
             found_beta = best_betas[min_diff_idx]
+            print(f"[MDM] No intersection, using closest: gamma={found_gamma:.4f}, beta={found_beta:.4f}, diff={diffs[min_diff_idx]:.6f}")
             
         # Final Calculation
         denom = np.power(neg_ln_1_minus_F, 1.0/found_beta)
