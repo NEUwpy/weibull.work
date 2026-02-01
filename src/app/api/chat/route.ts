@@ -378,9 +378,9 @@ async function stage3GenerateAnswer(
       const choice = chunk.choices[0]
 
       // Handle reasoning content (thinking)
-      if (useThinking && choice?.delta?.reasoning_content) {
-        fullThinking += choice.delta.reasoning_content
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ thinking: choice.delta.reasoning_content })}\n\n`))
+      if (useThinking && (choice?.delta as any)?.reasoning_content) {
+        fullThinking += (choice.delta as any).reasoning_content
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ thinking: (choice.delta as any).reasoning_content })}\n\n`))
       }
 
       // Handle regular content

@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import {
   LineChart,
   Line,
@@ -12,6 +12,11 @@ import {
   ReferenceLine,
   Label
 } from 'recharts'
+import MDMContourVisualizer from './MDMContourVisualizer'
+import MDMPathVisualizer from './MDMPathVisualizer'
+import MDMHistoryVisualizer from './MDMHistoryVisualizer'
+import MDM3DVisualizer from './MDM3DVisualizer'
+import { cn } from '@/lib/utils'
 
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
@@ -26,11 +31,80 @@ interface MDMVisualizerProps {
 }
 
 export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
+  const [activeScheme, setActiveScheme] = useState<'original' | 'contour' | 'path' | 'history' | '3d'>('original')
+
   if (!traceData) return null
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Scheme Selector */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-bold text-slate-700">寻优过程可视化方案：</span>
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <button
+              onClick={() => setActiveScheme('original')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                activeScheme === 'original'
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              原始视图
+            </button>
+            <button
+              onClick={() => setActiveScheme('contour')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                activeScheme === 'contour'
+                  ? "bg-white text-purple-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              方案1: 等高线
+            </button>
+            <button
+              onClick={() => setActiveScheme('path')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                activeScheme === 'path'
+                  ? "bg-white text-purple-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              方案2: 等高线+路径
+            </button>
+            <button
+              onClick={() => setActiveScheme('history')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                activeScheme === 'history'
+                  ? "bg-white text-purple-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              方案3: 优化历史
+            </button>
+            <button
+              onClick={() => setActiveScheme('3d')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                activeScheme === '3d'
+                  ? "bg-white text-purple-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              方案4: 伪3D
+            </button>
+          </div>
+          <span className="text-xs text-slate-400 ml-auto">点击切换不同可视化方案</span>
+        </div>
+      </div>
+
+      {/* Original View */}
+      {activeScheme === 'original' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Chart 1: Sigma vs Beta (at optimal Gamma) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -129,6 +203,27 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
         </div>
 
       </div>
+      )}
+
+      {/* Scheme 1: Contour Plot */}
+      {activeScheme === 'contour' && (
+        <MDMContourVisualizer traceData={traceData} />
+      )}
+
+      {/* Scheme 2: Contour + Path */}
+      {activeScheme === 'path' && (
+        <MDMPathVisualizer traceData={traceData} />
+      )}
+
+      {/* Scheme 3: History */}
+      {activeScheme === 'history' && (
+        <MDMHistoryVisualizer traceData={traceData} />
+      )}
+
+      {/* Scheme 4: 3D View */}
+      {activeScheme === '3d' && (
+        <MDM3DVisualizer traceData={traceData} />
+      )}
     </div>
   )
 }
