@@ -1213,16 +1213,20 @@ export default function ResultAnalysisLab({
 
               {/* Distribution Histograms with KDE Curves */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Calculate global xMax for consistent x-axis across all charts */}
+                {/* Calculate per-parameter xMax for consistent x-axis across offsets */}
                 {(() => {
-                  // Collect all errors from all offsets to find global max
-                  const allErrors: number[] = []
+                  // Calculate separate xMax for each parameter type
+                  const allBetaErrors: number[] = []
+                  const allEtaErrors: number[] = []
+                  const allGammaErrors: number[] = []
                   for (const stat of multiStats) {
-                    allErrors.push(...((stat as any)?.betaErrors || []))
-                    allErrors.push(...((stat as any)?.etaErrors || []))
-                    allErrors.push(...((stat as any)?.gammaErrors || []))
+                    allBetaErrors.push(...((stat as any)?.betaErrors || []))
+                    allEtaErrors.push(...((stat as any)?.etaErrors || []))
+                    allGammaErrors.push(...((stat as any)?.gammaErrors || []))
                   }
-                  const globalXMax = allErrors.length > 0 ? Math.max(...allErrors) * 1.05 : 1
+                  const betaXMax = allBetaErrors.length > 0 ? Math.max(...allBetaErrors) * 1.05 : 1
+                  const etaXMax = allEtaErrors.length > 0 ? Math.max(...allEtaErrors) * 1.05 : 1
+                  const gammaXMax = allGammaErrors.length > 0 ? Math.max(...allGammaErrors) * 1.05 : 1
 
                   return (
                     <>
@@ -1233,7 +1237,7 @@ export default function ResultAnalysisLab({
                         errors={(multiStats[selectedOffsetIndex] as any)?.betaErrors || []}
                         trueValue={trueBeta}
                         estimatedMean={(multiStats[selectedOffsetIndex] as any)?.betaMean}
-                        xMax={globalXMax}
+                        xMax={betaXMax}
                       />
 
                       {/* Eta Error Distribution */}
@@ -1243,7 +1247,7 @@ export default function ResultAnalysisLab({
                         errors={(multiStats[selectedOffsetIndex] as any)?.etaErrors || []}
                         trueValue={trueEta}
                         estimatedMean={(multiStats[selectedOffsetIndex] as any)?.etaMean}
-                        xMax={globalXMax}
+                        xMax={etaXMax}
                       />
 
                       {/* Gamma Error Distribution */}
@@ -1253,7 +1257,7 @@ export default function ResultAnalysisLab({
                         errors={(multiStats[selectedOffsetIndex] as any)?.gammaErrors || []}
                         trueValue={trueGamma}
                         estimatedMean={(multiStats[selectedOffsetIndex] as any)?.gammaMean}
-                        xMax={globalXMax}
+                        xMax={gammaXMax}
                       />
                     </>
                   )
