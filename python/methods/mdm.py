@@ -113,10 +113,19 @@ class MDM(WeibullBase):
             # 2. Gradient vs Gamma curve
             grad_gamma_curve = []
             for i in range(len(gammas)):
+                # Calculate eta for this gamma-beta pair
+                g = gammas[i]
+                b = best_betas[i]
+                denom = np.power(neg_ln_1_minus_F, 1.0/b)
+                etas_g = (t - g) / denom
+                eta_mean = float(np.mean(etas_g))
+
                 grad_gamma_curve.append({
-                    "gamma": gammas[i],
-                    "gradient": grads[i],
-                    "sigma_min": sigma_mins[i]
+                    "gamma": float(g),
+                    "gradient": float(grads[i]),
+                    "sigma_min": float(sigma_mins[i]),
+                    "best_beta": float(b),
+                    "best_eta": eta_mean  # Add eta for this gamma-beta pair
                 })
 
             # Since the frontend expects specific keys in the generic 'trace_data' list or object

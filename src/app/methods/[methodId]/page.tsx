@@ -11,11 +11,14 @@ import { AlgorithmDetail } from '@/components/AlgorithmDetail'
 import AnalysisCard from '@/components/AnalysisCard'
 import ResultAnalysisLab from '@/components/ResultAnalysisLab'
 import DataEditor from '@/components/DataEditor'
-import VariableFlowViewer from '@/components/VariableFlowViewer'
-import MLEVisualizer from '@/components/visualizers/MLEVisualizer'
-import WMLEVisualizer from '@/components/visualizers/WMLEVisualizer'
-import MDMVisualizer from '@/components/visualizers/MDMVisualizer'
+import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
+
+// Dynamic imports for heavy visualizers
+const VariableFlowViewer = dynamic(() => import('@/components/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MLEVisualizer = dynamic(() => import('@/components/visualizers/MLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const WMLEVisualizer = dynamic(() => import('@/components/visualizers/WMLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MDMVisualizer = dynamic(() => import('@/components/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 

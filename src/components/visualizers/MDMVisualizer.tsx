@@ -10,9 +10,12 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Label
+  Label,
+  Legend,
+  Brush
 } from 'recharts'
 import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
+import MDMOffsetAnalyzer from './MDMOffsetAnalyzer'
 import { cn } from '@/lib/utils'
 
 interface TraceData {
@@ -28,7 +31,7 @@ interface MDMVisualizerProps {
 }
 
 export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
-  const [activeScheme, setActiveScheme] = useState<'original' | '3d'>('original')
+  const [activeScheme, setActiveScheme] = useState<'original' | '3d' | 'offset'>('original')
 
   if (!traceData) return null
 
@@ -49,6 +52,17 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
               )}
             >
               原始视图
+            </button>
+            <button
+              onClick={() => setActiveScheme('offset')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                activeScheme === 'offset'
+                  ? "bg-white text-emerald-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              偏移量分析
             </button>
             <button
               onClick={() => setActiveScheme('3d')}
@@ -167,6 +181,11 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
         </div>
 
       </div>
+      )}
+
+      {/* Offset Analysis */}
+      {activeScheme === 'offset' && (
+        <MDMOffsetAnalyzer traceData={traceData} />
       )}
 
       {/* 3D Surface Plot */}
