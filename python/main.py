@@ -33,7 +33,13 @@ class CalculationRequest(BaseModel):
     method: str
     data: List[float]
     trace: Optional[bool] = False
+    offset: Optional[float] = None
     params: Optional[dict] = {}
+
+class Surface3DRequest(BaseModel):
+    method: str
+    data: List[float]
+    trace_data: Optional[dict] = None
 
 class CalculationResponse(BaseModel):
     beta: Optional[float]
@@ -72,9 +78,13 @@ async def calculate(req: CalculationRequest):
         # Instantiate
         algo_instance = AlgorithmClass(data)
 
-        # Run with optional trace
+        # Run with optional trace and offset (for MDM)
         try:
-            res = algo_instance.run(trace=req.trace)
+            # MDM supports offset parameter
+            if selected_method_id == 'mdm' and req.offset is not None:
+                res = algo_instance.run(trace=req.trace, offset=req.offset)
+            else:
+                res = algo_instance.run(trace=req.trace)
         except TypeError:
              # Fallback for methods that don't support trace arg yet
              res = algo_instance.run()
@@ -156,6 +166,41 @@ async def calculate(req: CalculationRequest):
             }
         except Exception as fallback_error:
             raise HTTPException(status_code=500, detail=f"Calculation failed: {str(e)} -> Fallback WMLE failed: {str(fallback_error)}")
+
+@app.post("/calculate_3d_surface")
+async def calculate_3d_surface(req: Surface3DRequest):
+    """
+    Calculate 3D surface data for MDM method.
+    Computes sigma(beta, gamma) for 20 gamma values with 50 beta points each.
+    """
+    if len(req.data) < 2:
+        raise HTTPException(status_code=400, detail="Insufficient data points")
+
+    if req.method.lower() != "mdm":
+        raise HTTPException(status_code=400, detail="3D surface only supported for MDM method")
+
+    try:
+        # Run MDM with trace to get sigma_beta_gamma
+        algo_instance = MDM(req.data)
+        res = algo_instance.run(trace=True, offset=0.1)
+
+        if len(res) >= 5:
+            converged = res[4]
+        else:
+            converged = True
+
+        return {
+            "beta": float(res[0]) if res[0] is not None else None,
+            "eta": float(res[1]) if res[1] is not None else None,
+            "gamma": float(res[2]) if res[2] is not None else None,
+            "rSquared": float(res[3]) if res[3] is not None else None,
+            "method": req.method,
+            "converged": bool(converged) if not isinstance(converged, str) else converged,
+            "trace_data": algo_instance.trace_data
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"3D surface calculation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

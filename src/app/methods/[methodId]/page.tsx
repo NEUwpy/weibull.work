@@ -567,7 +567,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                     <WMLEVisualizer traceData={traceData} />
                   )}
                   {method.id.toLowerCase() === 'mdm' && (
-                    <MDMVisualizer traceData={traceData} />
+                    <MDMVisualizer
+                      traceData={{...traceData, data: labData.filter(d => d.status === 'F').map(d => d.value)}}
+                      methodId={method.id}
+                    />
                   )}
 
                   {/* Fallback for others */}

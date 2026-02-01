@@ -21,19 +21,90 @@ import { cn } from '@/lib/utils'
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
   grad_gamma_curve: { gamma: number; gradient: number; sigma_min: number }[]
+  sigma_beta_gamma?: { gamma: number; betas: number[]; sigmas: number[] }[]
   target_offset: number
   optimal_gamma: number
   optimal_beta: number
+  data?: number[]  // Original data for 3D surface calculation
 }
 
 interface MDMVisualizerProps {
   traceData: TraceData
+  methodId?: string  // For API calls
 }
 
-export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
+export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisualizerProps) {
   const [activeScheme, setActiveScheme] = useState<'original' | '3d' | 'offset'>('original')
+  const [surfaceData, setSurfaceData] = useState<TraceData | null>(null)
+  const [isLoadingSurface, setIsLoadingSurface] = useState(false)
+  const [loadingProgress, setLoadingProgress] = useState(0)
 
   if (!traceData) return null
+
+  // Handle loading 3D surface data
+  const handleLoad3DSurface = async () => {
+    setIsLoadingSurface(true)
+    setLoadingProgress(0)
+
+    // Simulate progress while loading
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval)
+          return 90
+        }
+        return prev + Math.random() * 15
+      })
+    }, 200)
+
+    try {
+      // Call backend to calculate sigma_beta_gamma
+      const response = await fetch('http://localhost:8001/calculate_3d_surface', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: methodId,
+          data: traceData.data || [],
+          trace_data: traceData
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to load 3D surface data')
+      }
+
+      const result = await response.json()
+
+      clearInterval(progressInterval)
+      setLoadingProgress(100)
+
+      // Update trace data with sigma_beta_gamma from backend result
+      const newTraceData = result.trace_data || result
+      setSurfaceData({
+        ...traceData,
+        sigma_beta_gamma: newTraceData.sigma_beta_gamma || traceData.sigma_beta_gamma
+      })
+
+      setTimeout(() => {
+        setIsLoadingSurface(false)
+        setLoadingProgress(0)
+      }, 300)
+    } catch (error) {
+      clearInterval(progressInterval)
+      console.error('Failed to load 3D surface:', error)
+      setIsLoadingSurface(false)
+      setLoadingProgress(0)
+      alert('加载三维曲面数据失败，请确保后端服务已启动。')
+    }
+  }
+
+  // Reset 3D data when switching away from 3D view
+  const handleSchemeChange = (scheme: 'original' | '3d' | 'offset') => {
+    setActiveScheme(scheme)
+    if (scheme !== '3d') {
+      setSurfaceData(null)
+    }
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -43,7 +114,7 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
           <span className="text-sm font-bold text-slate-700">寻优过程可视化：</span>
           <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
             <button
-              onClick={() => setActiveScheme('original')}
+              onClick={() => handleSchemeChange('original')}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
                 activeScheme === 'original'
@@ -54,7 +125,7 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
               原始视图
             </button>
             <button
-              onClick={() => setActiveScheme('offset')}
+              onClick={() => handleSchemeChange('offset')}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
                 activeScheme === 'offset'
@@ -65,7 +136,7 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
               偏移量分析
             </button>
             <button
-              onClick={() => setActiveScheme('3d')}
+              onClick={() => handleSchemeChange('3d')}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
                 activeScheme === '3d'
@@ -190,7 +261,13 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
 
       {/* 3D Surface Plot */}
       {activeScheme === '3d' && (
-        <MDM3DSurfaceVisualizer traceData={traceData} />
+        <MDM3DSurfaceVisualizer
+          traceData={surfaceData || traceData}
+          isLoading={isLoadingSurface}
+          loadingProgress={loadingProgress}
+          onLoadData={handleLoad3DSurface}
+          hasLoadedData={surfaceData !== null}
+        />
       )}
     </div>
   )

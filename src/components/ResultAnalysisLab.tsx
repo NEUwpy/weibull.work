@@ -6,7 +6,8 @@ import {
   ResponsiveContainer,
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
   BarChart, Bar, Cell,
-  LineChart, Line, Legend
+  LineChart, Line, Legend,
+  Area, AreaChart
 } from 'recharts'
 import {
   DataPoint,
@@ -14,6 +15,182 @@ import {
   calculateMedianRanks,
   calculateWeibullParameters
 } from '@/lib/weibull'
+
+// Error Distribution Chart Component (Histogram + KDE Curve)
+interface ErrorDistributionChartProps {
+  title: string
+  color: string
+  errors: number[]
+  trueValue: number
+  estimatedMean?: number
+}
+
+function ErrorDistributionChart({ title, color, errors, trueValue, estimatedMean }: ErrorDistributionChartProps) {
+  if (!errors || errors.length === 0) {
+    return (
+      <div className="text-center text-slate-400 py-8">
+        暂无数据
+      </div>
+    )
+  }
+
+  // Calculate histogram bins
+  const binCount = Math.min(15, Math.max(5, Math.floor(Math.sqrt(errors.length))))
+  const max = Math.max(...errors)
+  const binWidth = max / binCount
+
+  const histogramData = Array.from({ length: binCount }, (_, i) => {
+    const binStart = i * binWidth
+    const binEnd = (i + 1) * binWidth
+    const count = errors.filter(err => err >= binStart && err < binEnd).length
+    return { binStart, binEnd, count }
+  })
+
+  // Calculate KDE
+  const mean = errors.reduce((a, b) => a + b, 0) / errors.length
+  const std = Math.sqrt(errors.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / errors.length)
+  const sorted = [...errors].sort((a, b) => a - b)
+  const iqr = sorted[Math.floor(sorted.length * 0.75)] - sorted[Math.floor(sorted.length * 0.25)]
+  const h = 0.9 * Math.min(std, iqr / 1.34) * Math.pow(errors.length, -0.2)
+
+  const kdePoints: { x: number; y: number }[] = []
+  const xMax = Math.max(...errors) * 1.1
+  const numPoints = 50
+
+  for (let i = 0; i <= numPoints; i++) {
+    const x = (i / numPoints) * xMax
+    let y = 0
+    for (const xi of errors) {
+      const u = (x - xi) / h
+      y += Math.exp(-0.5 * u * u)
+    }
+    y = y / (errors.length * h * Math.sqrt(2 * Math.PI))
+    kdePoints.push({ x, y })
+  }
+
+  const maxCount = Math.max(...histogramData.map(d => d.count))
+  const maxDensity = Math.max(...kdePoints.map(d => d.y))
+
+  // SVG dimensions
+  const width = 280
+  const height = 220
+  const padding = { top: 10, right: 15, bottom: 25, left: 35 }
+  const chartWidth = width - padding.left - padding.right
+  const chartHeight = height - padding.top - padding.bottom
+
+  const xScale = (val: number) => padding.left + (val / xMax) * chartWidth
+  const yScale = (val: number) => padding.top + chartHeight - (val / maxCount) * chartHeight
+
+  // Statistics
+  const median = sorted[Math.floor(sorted.length * 0.5)]
+  const q95 = sorted[Math.floor(sorted.length * 0.95)]
+
+  return (
+    <div>
+      <div className="text-center text-sm font-bold mb-2" style={{ color }}>{title}</div>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map(t => (
+          <line
+            key={`grid-${t}`}
+            x1={padding.left}
+            y1={padding.top + chartHeight * t}
+            x2={width - padding.right}
+            y2={padding.top + chartHeight * t}
+            stroke="#f1f5f9"
+            strokeWidth={1}
+          />
+        ))}
+
+        {/* Y-axis labels */}
+        {[0, 0.5, 1].map(t => {
+          const val = Math.round(maxCount * t)
+          return (
+            <text
+              key={`ylabel-${t}`}
+              x={padding.left - 5}
+              y={padding.top + chartHeight * t + 4}
+              textAnchor="end"
+              fontSize={9}
+              fill="#94a3b8"
+            >
+              {val}
+            </text>
+          )
+        })}
+
+        {/* X-axis labels */}
+        {[0, 0.25, 0.5, 0.75, 1].map(t => {
+          const val = xMax * t
+          return (
+            <text
+              key={`xlabel-${t}`}
+              x={xScale(val)}
+              y={height - 8}
+              textAnchor="middle"
+              fontSize={9}
+              fill="#94a3b8"
+            >
+              {val.toFixed(2)}
+            </text>
+          )
+        })}
+
+        {/* Histogram bars */}
+        {histogramData.map((d, i) => (
+          <rect
+            key={`bar-${i}`}
+            x={xScale(d.binStart)}
+            y={yScale(d.count)}
+            width={Math.max(xScale(d.binEnd) - xScale(d.binStart) - 1, 1)}
+            height={yScale(0) - yScale(d.count)}
+            fill={color}
+            fillOpacity={0.4}
+          />
+        ))}
+
+        {/* KDE Curve - scaled to match histogram height */}
+        <polyline
+          points={kdePoints.map(d => `${xScale(d.x)},${yScale(d.y * (maxCount / maxDensity))}`).join(' ')}
+          fill="none"
+          stroke={color}
+          strokeWidth={2.5}
+        />
+
+        {/* Mean line */}
+        <line
+          x1={xScale(mean)}
+          y1={padding.top}
+          x2={xScale(mean)}
+          y2={padding.top + chartHeight}
+          stroke={color}
+          strokeWidth={1}
+          strokeDasharray="4 4"
+          opacity={0.6}
+        />
+      </svg>
+
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-4 text-xs text-slate-500 mt-1">
+        <span className="flex items-center gap-1">
+          <div className="w-3 h-3" style={{ backgroundColor: color, opacity: 0.4 }}></div>
+          <span>直方图</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <div className="w-8 h-0.5" style={{ backgroundColor: color }}></div>
+          <span>密度曲线</span>
+        </span>
+      </div>
+
+      {/* Statistics */}
+      <div className="flex items-center justify-center gap-3 text-xs text-slate-600 mt-2">
+        <span>μ: {mean.toFixed(4)}</span>
+        <span>M: {median.toFixed(4)}</span>
+        <span>P95: {q95.toFixed(4)}</span>
+      </div>
+    </div>
+  )
+}
 
 interface SimulationResult {
   beta: number
@@ -66,7 +243,11 @@ interface OffsetStats {
   gammaStd: number
   gammaBias: number
   gammaMse: number
-  rSquaredMean: number
+  absError95th: number  // 95th percentile of absolute errors
+  // Raw error data for box plots
+  betaErrors: number[]
+  etaErrors: number[]
+  gammaErrors: number[]
 }
 
 interface ResultAnalysisLabProps {
@@ -148,6 +329,9 @@ export default function ResultAnalysisLab({
   const [multiStats, setMultiStats] = useState<MultiSampleStats[]>([])
   const [currentProgress, setCurrentProgress] = useState({ completed: 0, total: 0 })
 
+  // Offset slider state for interactive distribution view
+  const [selectedOffsetIndex, setSelectedOffsetIndex] = useState(0)
+
   // Estimate parameters using backend API
   const estimateParameters = async (data: DataPoint[], offset?: number): Promise<WeibullResult> => {
     try {
@@ -210,8 +394,10 @@ export default function ResultAnalysisLab({
     if (analysisMode === 'offset') {
       // Offset mode: Test different offset values with the same sample size
       const offsets: number[] = []
-      for (let o = offsetMin; o <= offsetMax; o += offsetStep) {
-        offsets.push(parseFloat(o.toFixed(4)))
+      const numSteps = Math.floor((offsetMax - offsetMin) / offsetStep) + 1
+      for (let i = 0; i < numSteps; i++) {
+        const offset = parseFloat((offsetMin + i * offsetStep).toFixed(4))
+        offsets.push(offset)
       }
 
       const totalSimulations = offsets.length * numSimulations
@@ -224,7 +410,9 @@ export default function ResultAnalysisLab({
         const betaEstimates: number[] = []
         const etaEstimates: number[] = []
         const gammaEstimates: number[] = []
-        const rSquaredValues: number[] = []
+        const betaErrors: number[] = []
+        const etaErrors: number[] = []
+        const gammaErrors: number[] = []
 
         for (let i = 0; i < numSimulations; i++) {
           const sample = generateSample(singleSampleSize, trueBeta, trueEta, trueGamma)
@@ -235,7 +423,11 @@ export default function ResultAnalysisLab({
           betaEstimates.push(estimated.beta)
           etaEstimates.push(estimated.eta)
           gammaEstimates.push(estimated.gamma)
-          rSquaredValues.push(estimated.rSquared ?? 0)
+
+          // Store absolute errors for box plots
+          betaErrors.push(Math.abs(estimated.beta - trueBeta))
+          etaErrors.push(Math.abs(estimated.eta - trueEta))
+          gammaErrors.push(Math.abs(estimated.gamma - trueGamma))
         }
 
         const calcStats = (estimates: number[], trueVal: number) => {
@@ -247,6 +439,15 @@ export default function ResultAnalysisLab({
           const bias = mean - trueVal
           const mse = estimates.reduce((a, b) => a + Math.pow(b - trueVal, 2), 0) / n
           return { mean, std, mse, bias }
+        }
+
+        // Calculate 95th percentile of absolute errors
+        const allAbsErrors = [...betaErrors, ...etaErrors, ...gammaErrors]
+        const calc95thPercentile = (data: number[]): number => {
+          if (data.length === 0) return 0
+          const sorted = [...data].sort((a, b) => a - b)
+          const idx = Math.ceil(sorted.length * 0.95) - 1
+          return sorted[Math.max(0, idx)]
         }
 
         offsetStats.push({
@@ -263,14 +464,16 @@ export default function ResultAnalysisLab({
           gammaStd: calcStats(gammaEstimates, trueGamma).std,
           gammaBias: calcStats(gammaEstimates, trueGamma).bias,
           gammaMse: calcStats(gammaEstimates, trueGamma).mse,
-          rSquaredMean: rSquaredValues.reduce((a, b) => a + b, 0) / rSquaredValues.length
+          absError95th: calc95thPercentile(allAbsErrors),
+          betaErrors,
+          etaErrors,
+          gammaErrors
         })
 
-        setMultiStats(offsetStats as any)
         setCurrentProgress({ completed: (offsets.indexOf(offset) + 1) * numSimulations, total: totalSimulations })
       }
 
-      // Store results in multiStats for display
+      // Store results in multiStats for display (final complete data)
       setMultiStats(offsetStats as any)
 
       // Set stats for first offset (for compatibility with existing display logic)
@@ -632,6 +835,7 @@ export default function ResultAnalysisLab({
               onChange={(e) => setNumSimulations(parseInt(e.target.value))}
               className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold bg-white"
             >
+              <option value={30}>30</option>
               <option value={100}>100</option>
               <option value={500}>500</option>
               <option value={1000}>1000</option>
@@ -720,7 +924,7 @@ export default function ResultAnalysisLab({
                           <th className="text-left py-2 px-3 font-black text-slate-500">偏移量</th>
                           <th className="text-center py-2 px-3 font-black text-blue-500">β̂ 均值</th>
                           <th className="text-center py-2 px-3 font-black text-blue-500">β̂ MSE</th>
-                          <th className="text-center py-2 px-3 font-black text-green-500">R² 均值</th>
+                          <th className="text-center py-2 px-3 font-black text-amber-500">95%分位数</th>
                           <th className="text-center py-2 px-3 font-black text-indigo-500">η̂ 均值</th>
                           <th className="text-center py-2 px-3 font-black text-indigo-500">η̂ MSE</th>
                           <th className="text-center py-2 px-3 font-black text-purple-500">γ̂ 均值</th>
@@ -750,7 +954,7 @@ export default function ResultAnalysisLab({
                             <td className="py-2 px-3 font-bold text-slate-900">δ={s.offset.toFixed(3)}</td>
                             <td className="py-2 px-3 text-right font-mono text-blue-600">{s.betaMean.toFixed(4)}</td>
                             <td className="py-2 px-3 text-right font-mono text-red-600">{s.betaMse.toFixed(4)}</td>
-                            <td className="py-2 px-3 text-right font-mono text-green-600">{s.rSquaredMean.toFixed(4)}</td>
+                            <td className="py-2 px-3 text-right font-mono text-amber-600">{s.absError95th.toFixed(4)}</td>
                             <td className="py-2 px-3 text-right font-mono text-indigo-600">{s.etaMean.toFixed(2)}</td>
                             <td className="py-2 px-3 text-right font-mono text-red-600">{s.etaMse.toFixed(2)}</td>
                             <td className="py-2 px-3 text-right font-mono text-purple-600">{s.gammaMean.toFixed(2)}</td>
@@ -864,6 +1068,7 @@ export default function ResultAnalysisLab({
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis
                       dataKey={analysisMode === 'offset' ? 'offset' : 'sampleSize'}
+                      domain={analysisMode === 'offset' ? ['dataMin', 'dataMax'] : ['auto', 'auto']}
                       label={{ value: analysisMode === 'offset' ? '偏移量 δ' : '样本量 n', position: 'insideBottom', offset: -5 }}
                       tickFormatter={analysisMode === 'offset' ? (v) => v.toFixed(3) : undefined}
                       tick={{ fontSize: 11 }}
@@ -892,13 +1097,13 @@ export default function ResultAnalysisLab({
             </div>
           )}
 
-          {/* Chart 3: MSE Curve / R² Curve */}
+          {/* Chart 3: MSE Curve / 95th Percentile Error Curve */}
           {multiStats.length > 0 && (analysisMode === 'range' || analysisMode === 'offset') && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className={analysisMode === 'offset' ? 'text-amber-600' : 'text-red-600'} size={20} />
                 <h3 className="font-bold text-slate-900">
-                  图3: {analysisMode === 'offset' ? 'R² 随偏移量变化' : 'MSE 收敛曲线'}
+                  图3: {analysisMode === 'offset' ? '偏差95%分位数随偏移量变化' : 'MSE 收敛曲线'}
                 </h3>
               </div>
 
@@ -908,20 +1113,21 @@ export default function ResultAnalysisLab({
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis
                       dataKey={analysisMode === 'offset' ? 'offset' : 'sampleSize'}
+                      domain={analysisMode === 'offset' ? ['dataMin', 'dataMax'] : ['auto', 'auto']}
                       label={{ value: analysisMode === 'offset' ? '偏移量 δ' : '样本量 n', position: 'insideBottom', offset: -5 }}
                       tickFormatter={analysisMode === 'offset' ? (v) => v.toFixed(3) : undefined}
                       tick={{ fontSize: 11 }}
                     />
-                    <YAxis label={{ value: analysisMode === 'offset' ? 'R²' : 'MSE', angle: -90, position: 'insideLeft' }} tick={{ fontSize: 11 }} />
+                    <YAxis label={{ value: analysisMode === 'offset' ? '偏差95%分位数' : 'MSE', angle: -90, position: 'insideLeft' }} tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Legend />
                     {analysisMode === 'offset' ? (
-                      // Offset mode: Show R²
+                      // Offset mode: Show 95th percentile error
                       <Line
                         type="monotone"
-                        dataKey="rSquaredMean"
-                        stroke="#22c55e"
-                        name="R² (拟合优度)"
+                        dataKey="absError95th"
+                        stroke="#f59e0b"
+                        name="95%分位数 P95(|偏差|)"
                         strokeWidth={2}
                         dot={{ r: 4 }}
                       />
@@ -939,7 +1145,103 @@ export default function ResultAnalysisLab({
             </div>
           )}
 
-          {/* Chart 4: Scatter Plot (single sample size mode) */}
+          {/* Chart 4: Interactive Error Distribution (offset mode only) */}
+          {multiStats.length > 0 && analysisMode === 'offset' && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="text-purple-600" size={20} />
+                <h3 className="font-bold text-slate-900">
+                  图4: 偏差分布直方图
+                </h3>
+                <span className="text-xs text-slate-500 ml-2">滑动滑块查看不同偏移量下的误差分布</span>
+              </div>
+
+              {/* Offset Slider */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-bold text-slate-700">
+                    当前偏移量 δ = {(multiStats[selectedOffsetIndex] as any)?.offset?.toFixed(3) || '0.000'}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {selectedOffsetIndex + 1} / {multiStats.length}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={multiStats.length - 1}
+                  step={1}
+                  value={selectedOffsetIndex}
+                  onChange={(e) => setSelectedOffsetIndex(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                  style={{ background: `linear-gradient(to right, #c4b5fd 0%, #c4b5fd ${(selectedOffsetIndex / (multiStats.length - 1)) * 100}%, #e2e8f0 ${(selectedOffsetIndex / (multiStats.length - 1)) * 100}%, #e2e8f0 100%)` }}
+                />
+                <div className="flex justify-between text-xs text-slate-400 mt-1">
+                  <span>δ = {offsetMin.toFixed(3)}</span>
+                  <span>δ = {offsetMax.toFixed(3)}</span>
+                </div>
+              </div>
+
+              {/* Statistics Summary for Selected Offset */}
+              {(multiStats[selectedOffsetIndex] as any)?.offset && (
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                    <div className="text-xs font-bold text-blue-600 mb-1">β 偏差</div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span>均值: {((multiStats[selectedOffsetIndex] as any)?.betaMean - trueBeta).toFixed(4)}</span>
+                      <span>95%分位: {((multiStats[selectedOffsetIndex] as any)?.absError95th).toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
+                    <div className="text-xs font-bold text-indigo-600 mb-1">η 偏差</div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span>均值: {Math.abs((multiStats[selectedOffsetIndex] as any)?.etaMean - trueEta).toFixed(2)}</span>
+                      <span>MSE: {((multiStats[selectedOffsetIndex] as any)?.etaMse).toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
+                    <div className="text-xs font-bold text-purple-600 mb-1">γ 偏差</div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span>均值: {Math.abs((multiStats[selectedOffsetIndex] as any)?.gammaMean - trueGamma).toFixed(2)}</span>
+                      <span>MSE: {((multiStats[selectedOffsetIndex] as any)?.gammaMse).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Distribution Histograms with KDE Curves */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Beta Error Distribution */}
+                <ErrorDistributionChart
+                  title="β 偏差 |β̂ - β|"
+                  color="#3b82f6"
+                  errors={(multiStats[selectedOffsetIndex] as any)?.betaErrors || []}
+                  trueValue={trueBeta}
+                  estimatedMean={(multiStats[selectedOffsetIndex] as any)?.betaMean}
+                />
+
+                {/* Eta Error Distribution */}
+                <ErrorDistributionChart
+                  title="η 偏差 |η̂ - η|"
+                  color="#6366f1"
+                  errors={(multiStats[selectedOffsetIndex] as any)?.etaErrors || []}
+                  trueValue={trueEta}
+                  estimatedMean={(multiStats[selectedOffsetIndex] as any)?.etaMean}
+                />
+
+                {/* Gamma Error Distribution */}
+                <ErrorDistributionChart
+                  title="γ 偏差 |γ̂ - γ|"
+                  color="#a855f7"
+                  errors={(multiStats[selectedOffsetIndex] as any)?.gammaErrors || []}
+                  trueValue={trueGamma}
+                  estimatedMean={(multiStats[selectedOffsetIndex] as any)?.gammaMean}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Chart 5: Scatter Plot (single sample size mode) */}
           {stats && results.length > 0 && analysisMode === 'single' && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-4">

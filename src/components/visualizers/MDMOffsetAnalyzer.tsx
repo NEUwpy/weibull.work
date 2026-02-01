@@ -286,7 +286,7 @@ export default function MDMOffsetAnalyzer({ traceData }: MDMOffsetAnalyzerProps)
                 strokeDasharray="4 4"
                 yAxisId="params"
                 label={{
-                  position: 'topLeft',
+                  position: 'top',
                   value: `当前 δ=${traceData.target_offset}`,
                   fill: '#f59e0b',
                   fontSize: 11,

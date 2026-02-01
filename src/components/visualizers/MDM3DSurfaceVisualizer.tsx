@@ -2,10 +2,12 @@
 
 import React, { useEffect, useRef } from 'react'
 import Plot from 'react-plotly.js'
+import { Play, Loader2, Box } from 'lucide-react'
 
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
   grad_gamma_curve: { gamma: number; gradient: number; sigma_min: number }[]
+  sigma_beta_gamma?: { gamma: number; betas: number[]; sigmas: number[] }[]  // New: full 2D surface data
   target_offset: number
   optimal_gamma: number
   optimal_beta: number
@@ -13,43 +15,189 @@ interface TraceData {
 
 interface MDM3DSurfaceVisualizerProps {
   traceData: TraceData
+  isLoading?: boolean
+  loadingProgress?: number
+  onLoadData?: () => void
+  hasLoadedData?: boolean
 }
 
-// Generate 3D surface data
-function generateSurfaceData(traceData: TraceData) {
-  const { grad_gamma_curve, sigma_beta_curve, optimal_gamma, optimal_beta } = traceData
+// Interpolate between two arrays
+function lerpArray(arr1: number[], arr2: number[], t: number): number[] {
+  return arr1.map((v1, i) => v1 + t * (arr2[i] - v1))
+}
 
-  // Get unique values for each axis
+// Generate 3D surface data using real calculated data with interpolation
+function generateSurfaceData(traceData: TraceData) {
+  const { grad_gamma_curve, sigma_beta_gamma, optimal_gamma, optimal_beta } = traceData
+
+  // If we have the new sigma_beta_gamma data, use it
+  if (sigma_beta_gamma && sigma_beta_gamma.length > 0) {
+    // Sort by gamma
+    const sortedData = [...sigma_beta_gamma].sort((a, b) => a.gamma - b.gamma)
+
+    // Get all gammas from grad_gamma_curve for the full surface
+    const allGammas = grad_gamma_curve.map(d => d.gamma)
+    const betas = sortedData[0].betas  // All curves share the same beta values
+
+    // Build the sigma matrix with interpolation
+    const sigmaMatrix: number[][] = []
+
+    for (const targetGamma of allGammas) {
+      // Find the two surrounding calculated gamma values
+      let lowerIdx = -1, upperIdx = -1
+
+      for (let i = 0; i < sortedData.length - 1; i++) {
+        if (targetGamma >= sortedData[i].gamma && targetGamma <= sortedData[i + 1].gamma) {
+          lowerIdx = i
+          upperIdx = i + 1
+          break
+        }
+      }
+
+      // Handle edge cases
+      if (lowerIdx === -1) {
+        if (targetGamma <= sortedData[0].gamma) {
+          // Before first point - use first curve
+          sigmaMatrix.push(sortedData[0].sigmas)
+          continue
+        } else {
+          // After last point - use last curve
+          sigmaMatrix.push(sortedData[sortedData.length - 1].sigmas)
+          continue
+        }
+      }
+
+      // Linear interpolation between the two curves
+      const lower = sortedData[lowerIdx]
+      const upper = sortedData[upperIdx]
+      const t = (targetGamma - lower.gamma) / (upper.gamma - lower.gamma)
+
+      const interpolatedSigmas = lerpArray(lower.sigmas, upper.sigmas, t)
+      sigmaMatrix.push(interpolatedSigmas)
+    }
+
+    return {
+      x: betas,
+      y: allGammas,
+      z: sigmaMatrix
+    }
+  }
+
+  // Fallback to old method if sigma_beta_gamma is not available
+  const { sigma_beta_curve } = traceData
   const gammas = grad_gamma_curve.map(d => d.gamma)
   const betas = sigma_beta_curve.map(d => d.beta)
 
-  // Build the sigma matrix (2D array: sigma[gamma_index][beta_index])
   const sigmaMatrix: number[][] = []
+  const sigmaBetaMap = new Map<number, number>()
+  sigma_beta_curve.forEach(point => {
+    sigmaBetaMap.set(point.beta, point.sigma)
+  })
 
   grad_gamma_curve.forEach(gammaPoint => {
-    const baseSigma = gammaPoint.sigma_min
     const row: number[] = []
+    const currentGamma = gammaPoint.gamma
+    const isOptimalGamma = Math.abs(currentGamma - optimal_gamma) < 0.01
 
     betas.forEach(beta => {
-      // Simulate sigma at this (beta, gamma) point
-      const betaOffset = Math.abs(beta - optimal_beta)
-      const gammaOffset = Math.abs(gammaPoint.gamma - optimal_gamma) / optimal_gamma
-      const estimatedSigma = baseSigma + betaOffset * baseSigma * 0.3 + gammaOffset * baseSigma * 0.2
-
-      row.push(estimatedSigma)
+      if (isOptimalGamma) {
+        const sigma = sigmaBetaMap.get(beta) ?? 0
+        row.push(sigma)
+      } else {
+        const baseSigma = gammaPoint.sigma_min
+        const optimalSigmaAtBeta = sigmaBetaMap.get(beta) ?? baseSigma
+        const sigmaRatio = optimalSigmaAtBeta / sigmaBetaMap.get(optimal_beta)!
+        const gammaOffset = Math.abs(currentGamma - optimal_gamma) / optimal_gamma
+        const estimatedSigma = baseSigma * sigmaRatio * (1 + gammaOffset * 0.5)
+        row.push(estimatedSigma)
+      }
     })
 
     sigmaMatrix.push(row)
   })
 
   return {
-    x: betas,         // 形状参数 β
-    y: gammas,        // 位置参数 γ
-    z: sigmaMatrix    // 标准差 σ_η 的二维矩阵
+    x: betas,
+    y: gammas,
+    z: sigmaMatrix
   }
 }
 
-export default function MDM3DSurfaceVisualizer({ traceData }: MDM3DSurfaceVisualizerProps) {
+export default function MDM3DSurfaceVisualizer({
+  traceData,
+  isLoading = false,
+  loadingProgress = 0,
+  onLoadData,
+  hasLoadedData = false
+}: MDM3DSurfaceVisualizerProps) {
+  // Show loading button if data hasn't been loaded yet
+  if (!hasLoadedData && !isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-slate-800">三维参数空间曲面（交互式3D）</h3>
+          <p className="text-sm text-slate-500 mt-1">
+            需要为多个γ值计算真实的 σ(β) 曲线以生成三维曲面。点击下方按钮开始计算。
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="mb-6">
+            <Box size={64} className="text-purple-300" />
+          </div>
+          <p className="text-slate-600 font-bold mb-2">三维曲面数据未加载</p>
+          <p className="text-sm text-slate-500 mb-8 text-center max-w-md">
+            将为20个γ值计算完整的 σ(β) 曲线，其余值通过插值平滑补齐。
+            <br />预计计算时间：5-15秒
+          </p>
+          <button
+            onClick={onLoadData}
+            className="flex items-center gap-2 px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-200"
+          >
+            <Play size={20} />
+            加载三维曲面数据
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading progress
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-slate-800">三维参数空间曲面（交互式3D）</h3>
+          <p className="text-sm text-slate-500 mt-1">
+            正在计算 σ(β, γ) 二维曲面数据...
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 size={48} className="text-purple-600 animate-spin mb-6" />
+          <p className="text-slate-600 font-bold mb-4">正在计算三维曲面数据</p>
+
+          {/* Progress Bar */}
+          <div className="w-full max-w-md">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500">计算进度</span>
+              <span className="text-xs font-bold text-purple-600">{Math.round(loadingProgress)}%</span>
+            </div>
+            <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-300 ease-out"
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-400 mt-2 text-center">
+              正在为 γ 值计算 σ(β) 曲线...
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!traceData) return null
 
   const surfaceData = generateSurfaceData(traceData)

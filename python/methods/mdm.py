@@ -102,15 +102,38 @@ class MDM(WeibullBase):
 
         # Trace Data
         if trace:
-            # 1. Sigma vs Beta curve (at optimal gamma)
-            # Just generate some points around the optimal beta
+            # 1. Sigma vs Beta curve (at optimal gamma) - for backward compatibility
             beta_scan = np.linspace(found_beta * 0.5, found_beta * 1.5, 50)
             sigma_beta_curve = []
             for b_val in beta_scan:
                 s = calculate_eta_std(b_val, found_gamma, t)
                 sigma_beta_curve.append({"beta": b_val, "sigma": s})
-                
-            # 2. Gradient vs Gamma curve
+
+            # 2. Full 2D surface data: sigma_beta_gamma for 3D visualization
+            # Select 20 gamma points to calculate full sigma(beta) curves
+            num_gamma_samples = 20
+            gamma_indices = np.linspace(0, len(gammas) - 1, num_gamma_samples, dtype=int)
+            sampled_gammas = gammas[gamma_indices]
+
+            # Beta scan range (same for all gamma values)
+            beta_range = np.linspace(found_beta * 0.5, found_beta * 1.5, 50)
+
+            sigma_beta_gamma = []  # Full 2D surface data
+
+            for idx, g in enumerate(sampled_gammas):
+                # For each sampled gamma, calculate full sigma(beta) curve
+                sigma_curve = []
+                for b_val in beta_range:
+                    s = calculate_eta_std(b_val, g, t)
+                    sigma_curve.append(float(s))
+
+                sigma_beta_gamma.append({
+                    "gamma": float(g),
+                    "betas": [float(b) for b in beta_range],
+                    "sigmas": sigma_curve
+                })
+
+            # 3. Gradient vs Gamma curve
             grad_gamma_curve = []
             for i in range(len(gammas)):
                 # Calculate eta for this gamma-beta pair
@@ -138,9 +161,10 @@ class MDM(WeibullBase):
             self.trace_data = {
                 "sigma_beta_curve": sigma_beta_curve,
                 "grad_gamma_curve": grad_gamma_curve,
+                "sigma_beta_gamma": sigma_beta_gamma,  # Full 2D surface for 3D visualization
                 "target_offset": offset,
                 "optimal_gamma": found_gamma,
                 "optimal_beta": found_beta
             }
 
-        return float(found_beta), float(found_eta), float(found_gamma), float(r2)
+        return float(found_beta), float(found_eta), float(found_gamma), float(r2), True
