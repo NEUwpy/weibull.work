@@ -13,6 +13,7 @@ import {
   Label
 } from 'recharts'
 import MDMContourVisualizer from './MDMContourVisualizer'
+import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
 import { cn } from '@/lib/utils'
 
 interface TraceData {
@@ -28,7 +29,7 @@ interface MDMVisualizerProps {
 }
 
 export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
-  const [activeScheme, setActiveScheme] = useState<'original' | 'contour'>('original')
+  const [activeScheme, setActiveScheme] = useState<'original' | 'contour' | '3d'>('original')
 
   if (!traceData) return null
 
@@ -59,7 +60,18 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
                   : "text-slate-500 hover:text-slate-700"
               )}
             >
-              参数空间等高线
+              等高线
+            </button>
+            <button
+              onClick={() => setActiveScheme('3d')}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                activeScheme === '3d'
+                  ? "bg-white text-purple-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              三维曲面
             </button>
           </div>
           <span className="text-xs text-slate-400 ml-auto">点击切换不同可视化方案</span>
@@ -169,9 +181,14 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
       </div>
       )}
 
-      {/* Contour Plot with Path */}
+      {/* Contour Plot */}
       {activeScheme === 'contour' && (
         <MDMContourVisualizer traceData={traceData} />
+      )}
+
+      {/* 3D Surface Plot */}
+      {activeScheme === '3d' && (
+        <MDM3DSurfaceVisualizer traceData={traceData} />
       )}
     </div>
   )

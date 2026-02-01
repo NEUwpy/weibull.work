@@ -13,8 +13,6 @@ import {
   Label,
   Cell
 } from 'recharts'
-import { ArrowRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
@@ -32,18 +30,13 @@ interface MDMContourVisualizerProps {
 function generateContourData(traceData: TraceData) {
   const { grad_gamma_curve, sigma_beta_curve } = traceData
 
-  // Extract unique gamma and beta values
-  const gammas = grad_gamma_curve.map(d => d.gamma)
   const betas = sigma_beta_curve.map(d => d.beta)
+  const data: { x: number; y: number; z: number }[] = []
 
-  // Create a grid: for each gamma, we have sigma_min value at corresponding beta
-  const data: { x: number; y: number; z: number; gamma: number; beta: number }[] = []
-
-  grad_gamma_curve.forEach((gammaPoint, i) => {
+  grad_gamma_curve.forEach((gammaPoint) => {
     const baseSigma = gammaPoint.sigma_min
     const gamma = gammaPoint.gamma
 
-    // Create a curve for this gamma: sigma varies with beta
     betas.forEach(beta => {
       const betaOffset = Math.abs(beta - traceData.optimal_beta)
       const estimatedSigma = baseSigma + betaOffset * baseSigma * 0.5
@@ -51,35 +44,12 @@ function generateContourData(traceData: TraceData) {
       data.push({
         x: gamma,
         y: beta,
-        z: estimatedSigma,
-        gamma,
-        beta
+        z: estimatedSigma
       })
     })
   })
 
   return data
-}
-
-// Generate optimization path data (for the search trajectory)
-function generatePathData(traceData: TraceData) {
-  const { grad_gamma_curve } = traceData
-
-  const pathData: { gamma: number; beta: number; sigma: number; step: number }[] = []
-
-  grad_gamma_curve.forEach((point, i) => {
-    const sigmaVariation = (point.sigma_min - Math.min(...grad_gamma_curve.map(p => p.sigma_min)))
-    const betaEstimate = traceData.optimal_beta + (Math.random() - 0.5) * sigmaVariation * 2
-
-    pathData.push({
-      gamma: point.gamma,
-      beta: Math.max(0.5, betaEstimate),
-      sigma: point.sigma_min,
-      step: i
-    })
-  })
-
-  return pathData
 }
 
 // Get color based on z-value (sigma)
@@ -95,7 +65,6 @@ export default function MDMContourVisualizer({ traceData }: MDMContourVisualizer
   if (!traceData) return null
 
   const contourData = generateContourData(traceData)
-  const pathData = generatePathData(traceData)
   const zValues = contourData.map(d => d.z)
   const minZ = Math.min(...zValues)
   const maxZ = Math.max(...zValues)
@@ -103,9 +72,9 @@ export default function MDMContourVisualizer({ traceData }: MDMContourVisualizer
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-slate-800">参数空间等高线 + 优化路径</h3>
+        <h3 className="text-lg font-bold text-slate-800">参数空间等高线</h3>
         <p className="text-sm text-slate-500 mt-1">
-          展示目标函数 {"$\\sigma_\\eta(\\beta, \\gamma)$"} 在二维参数空间的全貌，叠加外层循环的优化搜索路径。
+          展示目标函数 {"$\\sigma_\\eta(\\beta, \\gamma)$"} 在二维参数空间的全貌。
           颜色越蓝表示标准差越小（越优），星号标记最优解 (β*, γ*)。
         </p>
       </div>
@@ -143,7 +112,7 @@ export default function MDMContourVisualizer({ traceData }: MDMContourVisualizer
             <ReferenceLine x={traceData.optimal_gamma} stroke="#f59e0b" strokeDasharray="3 3" opacity={0.5} />
             <ReferenceLine y={traceData.optimal_beta} stroke="#f59e0b" strokeDasharray="3 3" opacity={0.5} />
 
-            {/* Contour background points - smaller dots */}
+            {/* Contour background points */}
             <Scatter data={contourData} shape="circle" r={2}>
               {contourData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getColor(entry.z, minZ, maxZ)} opacity={0.5} />
@@ -156,52 +125,6 @@ export default function MDMContourVisualizer({ traceData }: MDMContourVisualizer
             </Scatter>
           </ScatterChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* Path visualization */}
-      <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-200">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-bold text-slate-700">优化搜索路径</div>
-          <div className="flex items-center gap-2">
-            {pathData.filter((_, i) => i % 10 === 0).map((point, i) => (
-              <React.Fragment key={i}>
-                <div
-                  className={cn(
-                    "w-2 h-2 rounded-full transition-all",
-                    point.gamma < traceData.optimal_gamma ? "bg-blue-500" :
-                    point.gamma >= traceData.optimal_gamma - 5 && point.gamma <= traceData.optimal_gamma + 5 ? "bg-amber-500" :
-                    "bg-red-500"
-                  )}
-                  title={`γ=${point.gamma.toFixed(0)}, σ=${point.sigma.toFixed(4)}`}
-                />
-                {i < pathData.filter((_, j) => j % 10 === 0).length - 1 && (
-                  <ArrowRight size={10} className="text-slate-400" />
-                )}
-              </React.Fragment>
-            ))}
-            <div
-              className="w-4 h-3"
-              style={{
-                clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-                backgroundColor: '#f59e0b'
-              }}
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-            <span>搜索初期</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-            <span>接近最优</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-red-500"></div>
-            <span>偏离最优</span>
-          </div>
-        </div>
       </div>
 
       {/* Legend */}
