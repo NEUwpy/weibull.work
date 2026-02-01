@@ -157,6 +157,23 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     }
   }, [searchParams])
 
+  // Initialize default parameters when switching to analysis tab
+  useEffect(() => {
+    if (activeTab === 'analysis' && !analysisResult) {
+      // Set default parameters: β=2, η=1000, γ=1000
+      setAnalysisResult({
+        beta: 2,
+        eta: 1000,
+        gamma: 1000,
+        rSquared: null,
+        points: [],
+        converged: true
+      })
+      setAnalysisFitMode('manual')
+      setAnalysisIs3P(true)
+    }
+  }, [activeTab, analysisResult])
+
   // Auto-switch to lab if data is present and parse data
   useEffect(() => {
     const dataParam = searchParams.get('data')
@@ -597,10 +614,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
              {/* Monte Carlo Simulation */}
              {analysisResult && analysisResult.beta !== null && analysisResult.eta !== null && (
                <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
-                 <div className="flex items-center gap-2 mb-6">
-                   <BarChart3 className="text-emerald-500" size={20} />
-                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">蒙特卡洛模拟</h3>
-                 </div>
                  <ResultAnalysisLab
                    methodId={method.id}
                    trueBeta={analysisResult.beta}

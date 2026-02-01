@@ -139,7 +139,7 @@ export default function ResultAnalysisLab({
   const [offsetStep, setOffsetStep] = useState(0.02)
 
   // Simulation settings
-  const [numSimulations, setNumSimulations] = useState(1000)
+  const [numSimulations, setNumSimulations] = useState(100)
   const [isRunning, setIsRunning] = useState(false)
 
   // Results
