@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { BookOpen, FileText, Calendar, User, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ChatDialog } from '@/components/ChatDialog'
 
 type PaperMetadata = {
   slug: string
@@ -88,6 +89,9 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
             </button>
           </div>
         </div>
+
+        {/* AI Chat Dialog */}
+        <ChatDialog papers={papers} />
 
         {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
