@@ -23,9 +23,10 @@ interface ErrorDistributionChartProps {
   errors: number[]
   trueValue: number
   estimatedMean?: number
+  xMax?: number  // Global max for consistent x-axis across all charts
 }
 
-function ErrorDistributionChart({ title, color, errors, trueValue, estimatedMean }: ErrorDistributionChartProps) {
+function ErrorDistributionChart({ title, color, errors, trueValue, estimatedMean, xMax: globalXMax }: ErrorDistributionChartProps) {
   if (!errors || errors.length === 0) {
     return (
       <div className="text-center text-slate-400 py-8">
@@ -36,8 +37,10 @@ function ErrorDistributionChart({ title, color, errors, trueValue, estimatedMean
 
   // Calculate histogram bins
   const binCount = Math.min(15, Math.max(5, Math.floor(Math.sqrt(errors.length))))
-  const max = Math.max(...errors)
-  const binWidth = max / binCount
+  // Use global xMax if provided, otherwise use local max
+  const dataMax = Math.max(...errors)
+  const xMax = globalXMax ?? dataMax
+  const binWidth = xMax / binCount
 
   const histogramData = Array.from({ length: binCount }, (_, i) => {
     const binStart = i * binWidth
@@ -54,7 +57,6 @@ function ErrorDistributionChart({ title, color, errors, trueValue, estimatedMean
   const h = 0.9 * Math.min(std, iqr / 1.34) * Math.pow(errors.length, -0.2)
 
   const kdePoints: { x: number; y: number }[] = []
-  const xMax = Math.max(...errors) * 1.1
   const numPoints = 50
 
   for (let i = 0; i <= numPoints; i++) {
@@ -1211,32 +1213,51 @@ export default function ResultAnalysisLab({
 
               {/* Distribution Histograms with KDE Curves */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Beta Error Distribution */}
-                <ErrorDistributionChart
-                  title="β 偏差 |β̂ - β|"
-                  color="#3b82f6"
-                  errors={(multiStats[selectedOffsetIndex] as any)?.betaErrors || []}
-                  trueValue={trueBeta}
-                  estimatedMean={(multiStats[selectedOffsetIndex] as any)?.betaMean}
-                />
+                {/* Calculate global xMax for consistent x-axis across all charts */}
+                {(() => {
+                  // Collect all errors from all offsets to find global max
+                  const allErrors: number[] = []
+                  for (const stat of multiStats) {
+                    allErrors.push(...((stat as any)?.betaErrors || []))
+                    allErrors.push(...((stat as any)?.etaErrors || []))
+                    allErrors.push(...((stat as any)?.gammaErrors || []))
+                  }
+                  const globalXMax = allErrors.length > 0 ? Math.max(...allErrors) * 1.05 : 1
 
-                {/* Eta Error Distribution */}
-                <ErrorDistributionChart
-                  title="η 偏差 |η̂ - η|"
-                  color="#6366f1"
-                  errors={(multiStats[selectedOffsetIndex] as any)?.etaErrors || []}
-                  trueValue={trueEta}
-                  estimatedMean={(multiStats[selectedOffsetIndex] as any)?.etaMean}
-                />
+                  return (
+                    <>
+                      {/* Beta Error Distribution */}
+                      <ErrorDistributionChart
+                        title="β 偏差 |β̂ - β|"
+                        color="#3b82f6"
+                        errors={(multiStats[selectedOffsetIndex] as any)?.betaErrors || []}
+                        trueValue={trueBeta}
+                        estimatedMean={(multiStats[selectedOffsetIndex] as any)?.betaMean}
+                        xMax={globalXMax}
+                      />
 
-                {/* Gamma Error Distribution */}
-                <ErrorDistributionChart
-                  title="γ 偏差 |γ̂ - γ|"
-                  color="#a855f7"
-                  errors={(multiStats[selectedOffsetIndex] as any)?.gammaErrors || []}
-                  trueValue={trueGamma}
-                  estimatedMean={(multiStats[selectedOffsetIndex] as any)?.gammaMean}
-                />
+                      {/* Eta Error Distribution */}
+                      <ErrorDistributionChart
+                        title="η 偏差 |η̂ - η|"
+                        color="#6366f1"
+                        errors={(multiStats[selectedOffsetIndex] as any)?.etaErrors || []}
+                        trueValue={trueEta}
+                        estimatedMean={(multiStats[selectedOffsetIndex] as any)?.etaMean}
+                        xMax={globalXMax}
+                      />
+
+                      {/* Gamma Error Distribution */}
+                      <ErrorDistributionChart
+                        title="γ 偏差 |γ̂ - γ|"
+                        color="#a855f7"
+                        errors={(multiStats[selectedOffsetIndex] as any)?.gammaErrors || []}
+                        trueValue={trueGamma}
+                        estimatedMean={(multiStats[selectedOffsetIndex] as any)?.gammaMean}
+                        xMax={globalXMax}
+                      />
+                    </>
+                  )
+                })()}
               </div>
             </div>
           )}
