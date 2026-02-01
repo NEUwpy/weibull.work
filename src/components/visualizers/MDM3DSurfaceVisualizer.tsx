@@ -1,19 +1,7 @@
 "use client"
 
-import React, { useState } from 'react'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-  Label
-} from 'recharts'
-import { RotateCw } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import React, { useEffect, useRef } from 'react'
+import Plot from 'react-plotly.js'
 
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
@@ -27,185 +15,227 @@ interface MDM3DSurfaceVisualizerProps {
   traceData: TraceData
 }
 
-type ViewAngle = 'default' | 'rotated'
-
-// Generate 3D surface data: multiple gamma slices
-function generate3DSurfaceData(traceData: TraceData) {
+// Generate 3D surface data
+function generateSurfaceData(traceData: TraceData) {
   const { grad_gamma_curve, sigma_beta_curve, optimal_gamma, optimal_beta } = traceData
 
-  // Select key gamma points to show as slices
-  const numSlices = 7
-  const indices = Array.from({ length: numSlices }, (_, i) =>
-    Math.floor((i * (grad_gamma_curve.length - 1)) / (numSlices - 1))
-  )
+  // Get unique values for each axis
+  const gammas = grad_gamma_curve.map(d => d.gamma)
+  const betas = sigma_beta_curve.map(d => d.beta)
 
-  const slices: { name: string; gamma: number; data: { beta: number; sigma: number }[]; isOptimal: boolean }[] = []
+  // Build the sigma matrix (2D array: sigma[gamma_index][beta_index])
+  const sigmaMatrix: number[][] = []
 
-  indices.forEach((idx) => {
-    const gammaPoint = grad_gamma_curve[idx]
+  grad_gamma_curve.forEach(gammaPoint => {
     const baseSigma = gammaPoint.sigma_min
-    const isOptimal = Math.abs(gammaPoint.gamma - optimal_gamma) < 10
+    const row: number[] = []
 
-    // Generate sigma vs beta curve for this gamma
-    const curveData = sigma_beta_curve.map(betaPoint => {
-      const betaOffset = Math.abs(betaPoint.beta - optimal_beta)
-      const sigma = baseSigma + betaOffset * baseSigma * 0.3
-      return {
-        beta: betaPoint.beta,
-        sigma
-      }
+    betas.forEach(beta => {
+      // Simulate sigma at this (beta, gamma) point
+      const betaOffset = Math.abs(beta - optimal_beta)
+      const gammaOffset = Math.abs(gammaPoint.gamma - optimal_gamma) / optimal_gamma
+      const estimatedSigma = baseSigma + betaOffset * baseSigma * 0.3 + gammaOffset * baseSigma * 0.2
+
+      row.push(estimatedSigma)
     })
 
-    slices.push({
-      name: `γ=${gammaPoint.gamma.toFixed(0)}`,
-      gamma: gammaPoint.gamma,
-      data: curveData,
-      isOptimal
-    })
+    sigmaMatrix.push(row)
   })
 
-  return slices
+  return {
+    x: betas,         // 形状参数 β
+    y: gammas,        // 位置参数 γ
+    z: sigmaMatrix    // 标准差 σ_η 的二维矩阵
+  }
 }
 
 export default function MDM3DSurfaceVisualizer({ traceData }: MDM3DSurfaceVisualizerProps) {
-  const [viewAngle, setViewAngle] = useState<ViewAngle>('default')
-
   if (!traceData) return null
 
-  const slices = generate3DSurfaceData(traceData)
-  const allSigmaValues = slices.flatMap(s => s.data.map(d => d.sigma))
-  const minSigma = Math.min(...allSigmaValues)
-  const maxSigma = Math.max(...allSigmaValues)
+  const surfaceData = generateSurfaceData(traceData)
+  const { optimal_beta, optimal_gamma } = traceData
 
-  // Find the optimal slice
-  const optimalSlice = slices.find(s => s.isOptimal)
+  // Calculate min sigma for the optimal point marker
+  const allSigmaValues = surfaceData.z.flat()
+  const minSigma = Math.min(...allSigmaValues)
+
+  // Find the indices of optimal point
+  const optimalBetaIndex = surfaceData.x.findIndex(b => Math.abs(b - optimal_beta) < 0.1)
+  const optimalGammaIndex = surfaceData.y.findIndex(g => Math.abs(g - optimal_gamma) < 1)
+
+  const plotData = [
+    // Surface plot
+    {
+      type: 'surface' as const,
+      x: surfaceData.x,
+      y: surfaceData.y,
+      z: surfaceData.z,
+      colorscale: [
+        [0, '#3b82f6'],    // blue - 低 σ (优)
+        [0.25, '#10b981'],  // emerald
+        [0.5, '#22c55e'],   // green
+        [0.75, '#f59e0b'],  // amber
+        [1, '#ef4444']      // red - 高 σ (差)
+      ],
+      colorbar: {
+        title: { text: 'σ_η', side: 'right', font: { size: 12, color: '#64748b' } },
+        tickfont: { size: 10, color: '#64748b' },
+        thickness: 15,
+        len: 0.8
+      },
+      contours: {
+        z: {
+          show: true,
+          usecolormap: true,
+          highlightcolor: "#f59e0b",
+          project: { z: true }
+        }
+      },
+      opacity: 0.9,
+      showscale: true,
+      hovertemplate:
+        'β: %{x:.2f}<br>' +
+        'γ: %{y:.1f}<br>' +
+        'σ_η: %{z:.4f}<extra></extra>'
+    },
+    // Optimal point marker
+    {
+      type: 'scatter3d' as const,
+      mode: 'markers' as const,
+      x: [optimal_beta],
+      y: [optimal_gamma],
+      z: [minSigma],
+      marker: {
+        size: 12,
+        color: '#f59e0b',
+        symbol: 'diamond',
+        line: {
+          color: '#ffffff',
+          width: 2
+        }
+      },
+      name: '最优解 (β*, γ*)',
+      hovertemplate:
+        '<b>最优解</b><br>' +
+        'β*: %{x:.2f}<br>' +
+        'γ*: %{y:.1f}<br>' +
+        '最小 σ: %{z:.4f}<extra></extra>'
+    }
+  ]
+
+  const layout = {
+    title: {
+      text: 'σ_η(β, γ) 三维参数空间曲面',
+      font: { size: 16, color: '#1e293b' },
+      x: 0.05,
+      y: 0.95
+    },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    margin: { l: 0, r: 0, t: 40, b: 0, pad: 0 },
+    scene: {
+      xaxis: {
+        title: { text: '形状参数 β', font: { size: 12, color: '#64748b' } },
+        gridcolor: '#e2e8f0',
+        showgrid: true,
+        tickfont: { size: 10, color: '#64748b' },
+        backgroundcolor: 'rgba(248, 250, 252, 0.5)'
+      },
+      yaxis: {
+        title: { text: '位置参数 γ', font: { size: 12, color: '#64748b' } },
+        gridcolor: '#e2e8f0',
+        showgrid: true,
+        tickfont: { size: 10, color: '#64748b' },
+        backgroundcolor: 'rgba(248, 250, 252, 0.5)'
+      },
+      zaxis: {
+        title: { text: '标准差 σ_η', font: { size: 12, color: '#64748b' } },
+        gridcolor: '#e2e8f0',
+        showgrid: true,
+        tickfont: { size: 10, color: '#64748b' },
+        backgroundcolor: 'rgba(248, 250, 252, 0.5)'
+      },
+      camera: {
+        eye: { x: 1.5, y: 1.5, z: 1.3 }  // 初始视角
+      },
+      aspectmode: 'manual',
+      aspectratio: { x: 1, y: 1.5, z: 0.8 }
+    },
+    showlegend: true,
+    legend: {
+      x: 0.02,
+      y: 0.98,
+      bgcolor: 'rgba(255,255,255,0.8)',
+      bordercolor: '#e2e8f0',
+      borderwidth: 1,
+      font: { size: 11 }
+    },
+    annotations: [
+      {
+        x: 0.02,
+        y: 0.02,
+        xref: 'paper',
+        yref: 'paper',
+        text: `★ 最优解: β*=${optimal_beta.toFixed(2)}, γ*=${optimal_gamma.toFixed(1)}, σ_min=${minSigma.toFixed(4)}`,
+        showarrow: false,
+        font: { size: 12, color: '#f59e0b' },
+        bgcolor: 'rgba(255,255,255,0.9)',
+        bordercolor: '#f59e0b',
+        borderwidth: 1,
+        borderpad: 6,
+        xanchor: 'left',
+        yanchor: 'bottom'
+      }
+    ]
+  }
+
+  const config = {
+    responsive: true,
+    displayModeBar: true,
+    displaylogo: false,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    toImageButtonOptions: {
+      format: 'png',
+      filename: 'MDM_3D_Surface',
+      height: 500,
+      width: 700,
+      scale: 1
+    }
+  }
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800">三维参数空间曲面</h3>
-            <p className="text-sm text-slate-500 mt-1">
-              展示 {"$\\sigma_\\eta(\\beta, \\gamma)$"} 的三维曲面：多条曲线代表不同 {"$\\gamma$"} 截面。
-              橙色曲线为最优 {"$\\gamma^*$"} 处的截面，最低点对应最优参数组合 (β*, γ*)。
-            </p>
-          </div>
-          <button
-            onClick={() => setViewAngle(viewAngle === 'default' ? 'rotated' : 'default')}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-              "bg-slate-100 text-slate-600 hover:text-slate-800 hover:bg-slate-200"
-            )}
-          >
-            <RotateCw size={12} />
-            切换视角
-          </button>
-        </div>
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-slate-800">三维参数空间曲面（交互式3D）</h3>
+        <p className="text-sm text-slate-500 mt-1">
+          真正的交互式三维图，可拖拽旋转、缩放。展示 {"$\\sigma_\\eta(\\beta, \\gamma)$"} 在参数空间中的完整形态。
+          颜色越蓝表示标准差越小（越优），菱形标记最优解。
+        </p>
       </div>
 
-      <div className="h-[350px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            margin={{ top: 20, right: 20, bottom: 30, left: 20 }}
-            data={slices[0]?.data || []}
-          >
-            <CartesianGrid
-              strokeDasharray={viewAngle === 'default' ? "2 2" : "1 1"}
-              vertical={false}
-              stroke="#e2e8f0"
-            />
-            <XAxis
-              dataKey="beta"
-              type="number"
-              domain={[0, 'dataMax']}
-              tickFormatter={(v) => v.toFixed(1)}
-              tick={{ fontSize: 10 }}
-            >
-              <Label value="形状参数 β" position="bottom" offset={0} style={{ fontSize: 11, fill: '#64748b' }} />
-            </XAxis>
-            <YAxis
-              width={50}
-              tick={{ fontSize: 10 }}
-              domain={[minSigma * 0.95, maxSigma * 1.05]}
-              label={{ value: '标准差 σ_η', angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#64748b' } }}
-            />
-            <Tooltip
-              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-              labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
-              formatter={(value: number) => value.toFixed(4)}
-            />
-
-            {/* Reference line at optimal beta */}
-            <ReferenceLine x={traceData.optimal_beta} stroke="#f59e0b" strokeDasharray="3 3" opacity={0.3} />
-
-            {/* Multiple gamma slices - creating pseudo-3D effect */}
-            {slices.map((slice, idx) => {
-              // Calculate visual properties based on gamma (depth)
-              const gammaRatio = slice.gamma / Math.max(...slices.map(s => s.gamma))
-              const isOptimal = slice.isOptimal
-
-              return (
-                <Line
-                  key={slice.name}
-                  data={slice.data}
-                  type="monotone"
-                  dataKey="sigma"
-                  stroke={isOptimal ? "#f59e0b" : `hsl(${220 + idx * 15}, 70%, ${55 - idx * 5}%)`}
-                  strokeWidth={isOptimal ? 3 : 1.5}
-                  strokeOpacity={viewAngle === 'default' ? 0.3 + gammaRatio * 0.5 : 0.6}
-                  dot={false}
-                  activeDot={isOptimal ? { r: 5 } : false}
-                  name={slice.name}
-                />
-              )
-            })}
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="h-[450px] w-full">
+        <Plot
+          data={plotData as any}
+          layout={layout as any}
+          config={config as any}
+          style={{ width: '100%', height: '100%' }}
+          useResizeHandler={true}
+        />
       </div>
 
-      {/* Legend with gamma slices */}
-      <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-200">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-bold text-slate-700">γ 截面曲线（从前到后）</div>
-          <div className="flex items-center gap-3 flex-wrap">
-            {slices.map((slice, idx) => (
-              <div key={idx} className="flex items-center gap-1.5">
-                <div
-                  className={cn(
-                    "w-8 h-0.5 rounded transition-all",
-                    slice.isOptimal && "h-1"
-                  )}
-                  style={{
-                    backgroundColor: slice.isOptimal ? "#f59e0b" : `hsl(${220 + idx * 15}, 70%, ${55 - idx * 5}%)`,
-                    opacity: slice.isOptimal ? 1 : 0.3 + (slice.gamma / Math.max(...slices.map(s => s.gamma))) * 0.5
-                  }}
-                />
-                <span className={cn(
-                  "text-xs",
-                  slice.isOptimal ? "font-bold text-amber-600" : "text-slate-500"
-                )}>
-                  {slice.gamma.toFixed(0)}
-                  {slice.isOptimal && " ★"}
-                </span>
-              </div>
-            ))}
-          </div>
+      {/* Instructions */}
+      <div className="mt-4 flex items-center gap-4 text-xs text-slate-500 bg-slate-50 rounded-lg p-3 border border-slate-200">
+        <div className="flex items-center gap-1.5">
+          <span className="w-5 h-5 rounded bg-slate-200 flex items-center justify-center">🖱️</span>
+          <span>拖拽旋转</span>
         </div>
-
-        {/* Explanation */}
-        <div className="mt-3 pt-3 border-t border-slate-200">
-          <div className="flex items-start gap-2 text-xs text-slate-500">
-            <span className="font-bold text-amber-600">★</span>
-            <span>
-              最优解位置：β*={traceData.optimal_beta.toFixed(2)}, γ*={traceData.optimal_gamma.toFixed(1)},
-              最低 σ={minSigma.toFixed(4)}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-            <RotateCw size={11} />
-            <span>点击"切换视角"查看不同深度的参数截面</span>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-5 h-5 rounded bg-slate-200 flex items-center justify-center">🔍</span>
+          <span>滚轮缩放</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-5 h-5 rounded bg-slate-200 flex items-center justify-center">◆</span>
+          <span>菱形 = 最优解</span>
         </div>
       </div>
     </div>
