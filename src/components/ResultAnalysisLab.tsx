@@ -854,7 +854,7 @@ export default function ResultAnalysisLab({
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className={analysisMode === 'offset' ? 'text-amber-600' : 'text-emerald-600'} size={20} />
                 <h3 className="font-bold text-slate-900">
-                  图2: {analysisMode === 'offset' ? '标准差随偏移量变化' : '标准差随样本量变化'}
+                  图2: {analysisMode === 'offset' ? 'MSE 随偏移量变化' : '标准差随样本量变化'}
                 </h3>
               </div>
 
@@ -868,7 +868,7 @@ export default function ResultAnalysisLab({
                       tickFormatter={analysisMode === 'offset' ? (v) => v.toFixed(3) : undefined}
                       tick={{ fontSize: 11 }}
                     />
-                    <YAxis label={{ value: '标准差', angle: -90, position: 'insideLeft' }} tick={{ fontSize: 11 }} />
+                    <YAxis label={{ value: analysisMode === 'offset' ? 'MSE' : '标准差', angle: -90, position: 'insideLeft' }} tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Legend />
                     {analysisMode === 'offset' ? (
