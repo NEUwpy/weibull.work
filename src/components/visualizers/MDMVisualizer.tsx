@@ -13,9 +13,6 @@ import {
   Label
 } from 'recharts'
 import MDMContourVisualizer from './MDMContourVisualizer'
-import MDMPathVisualizer from './MDMPathVisualizer'
-import MDMHistoryVisualizer from './MDMHistoryVisualizer'
-import MDM3DVisualizer from './MDM3DVisualizer'
 import { cn } from '@/lib/utils'
 
 interface TraceData {
@@ -31,7 +28,7 @@ interface MDMVisualizerProps {
 }
 
 export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
-  const [activeScheme, setActiveScheme] = useState<'original' | 'contour' | 'path' | 'history' | '3d'>('original')
+  const [activeScheme, setActiveScheme] = useState<'original' | 'contour'>('original')
 
   if (!traceData) return null
 
@@ -40,7 +37,7 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
       {/* Scheme Selector */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-sm font-bold text-slate-700">寻优过程可视化方案：</span>
+          <span className="text-sm font-bold text-slate-700">寻优过程可视化：</span>
           <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
             <button
               onClick={() => setActiveScheme('original')}
@@ -62,40 +59,7 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
                   : "text-slate-500 hover:text-slate-700"
               )}
             >
-              方案1: 等高线
-            </button>
-            <button
-              onClick={() => setActiveScheme('path')}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                activeScheme === 'path'
-                  ? "bg-white text-purple-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              方案2: 等高线+路径
-            </button>
-            <button
-              onClick={() => setActiveScheme('history')}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                activeScheme === 'history'
-                  ? "bg-white text-purple-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              方案3: 优化历史
-            </button>
-            <button
-              onClick={() => setActiveScheme('3d')}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                activeScheme === '3d'
-                  ? "bg-white text-purple-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              方案4: 伪3D
+              参数空间等高线
             </button>
           </div>
           <span className="text-xs text-slate-400 ml-auto">点击切换不同可视化方案</span>
@@ -105,7 +69,7 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
       {/* Original View */}
       {activeScheme === 'original' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* Chart 1: Sigma vs Beta (at optimal Gamma) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="mb-6">
@@ -119,32 +83,32 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={traceData.sigma_beta_curve} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="beta" 
-                  type="number" 
-                  domain={['auto', 'auto']} 
+                <XAxis
+                  dataKey="beta"
+                  type="number"
+                  domain={['auto', 'auto']}
                   tickFormatter={(v) => v.toFixed(2)}
                   tick={{ fontSize: 10 }}
                 >
                   <Label value="形状参数 β" position="bottom" offset={0} style={{ fontSize: 10, fill: '#94a3b8' }} />
                 </XAxis>
-                <YAxis 
-                  width={40} 
+                <YAxis
+                  width={40}
                   tick={{ fontSize: 10 }}
                   domain={['auto', 'auto']}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   labelFormatter={(v) => `β: ${Number(v).toFixed(3)}`}
                   formatter={(v: number) => [v.toFixed(4), 'σ_η']}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="sigma" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2} 
+                <Line
+                  type="monotone"
+                  dataKey="sigma"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 6 }} 
+                  activeDot={{ r: 6 }}
                 />
                 <ReferenceLine x={traceData.optimal_beta} stroke="#f59e0b" strokeDasharray="3 3">
                    <Label value="最优 β" position="top" fill="#f59e0b" fontSize={10} />
@@ -167,33 +131,33 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={traceData.grad_gamma_curve} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="gamma" 
-                  type="number" 
-                  domain={['auto', 'auto']} 
+                <XAxis
+                  dataKey="gamma"
+                  type="number"
+                  domain={['auto', 'auto']}
                   tickFormatter={(v) => v.toFixed(0)}
                   tick={{ fontSize: 10 }}
                 >
                   <Label value="位置参数 γ" position="bottom" offset={0} style={{ fontSize: 10, fill: '#94a3b8' }} />
                 </XAxis>
-                <YAxis 
-                  width={40} 
+                <YAxis
+                  width={40}
                   tick={{ fontSize: 10 }}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
                   formatter={(v: number) => [v.toFixed(4), '∇(γ)']}
                 />
                 <ReferenceLine y={traceData.target_offset} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${traceData.target_offset}`, fill: '#10b981', fontSize: 10 }} />
                 <ReferenceLine y={0} stroke="#cbd5e1" />
-                <Line 
-                  type="monotone" 
-                  dataKey="gradient" 
-                  stroke="#ef4444" 
-                  strokeWidth={2} 
+                <Line
+                  type="monotone"
+                  dataKey="gradient"
+                  stroke="#ef4444"
+                  strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 6 }} 
+                  activeDot={{ r: 6 }}
                 />
                 <ReferenceLine x={traceData.optimal_gamma} stroke="#f59e0b" strokeDasharray="3 3">
                 </ReferenceLine>
@@ -205,24 +169,9 @@ export default function MDMVisualizer({ traceData }: MDMVisualizerProps) {
       </div>
       )}
 
-      {/* Scheme 1: Contour Plot */}
+      {/* Contour Plot with Path */}
       {activeScheme === 'contour' && (
         <MDMContourVisualizer traceData={traceData} />
-      )}
-
-      {/* Scheme 2: Contour + Path */}
-      {activeScheme === 'path' && (
-        <MDMPathVisualizer traceData={traceData} />
-      )}
-
-      {/* Scheme 3: History */}
-      {activeScheme === 'history' && (
-        <MDMHistoryVisualizer traceData={traceData} />
-      )}
-
-      {/* Scheme 4: 3D View */}
-      {activeScheme === '3d' && (
-        <MDM3DVisualizer traceData={traceData} />
       )}
     </div>
   )
