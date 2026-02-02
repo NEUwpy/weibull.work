@@ -127,15 +127,29 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   // In manual mode: use gammaIndex (follows slider)
   const getClosestGammaIndex = (targetGamma: number) => {
     if (useSigmaBetaGamma) {
-      const idx = traceData.sigma_beta_gamma!.findIndex(
-        d => Math.abs(d.gamma - targetGamma) < 5
-      )
-      return idx >= 0 ? idx : Math.floor(traceData.sigma_beta_gamma!.length / 2)
+      // 找到差值最小的索引
+      let minDiff = Infinity
+      let minIdx = 0
+      for (let i = 0; i < traceData.sigma_beta_gamma!.length; i++) {
+        const diff = Math.abs(traceData.sigma_beta_gamma![i].gamma - targetGamma)
+        if (diff < minDiff) {
+          minDiff = diff
+          minIdx = i
+        }
+      }
+      return minIdx
     } else {
-      const idx = traceData.grad_gamma_curve.findIndex(
-        d => Math.abs(d.gamma - targetGamma) < 1
-      )
-      return idx >= 0 ? idx : Math.floor(traceData.grad_gamma_curve.length / 2)
+      // 同理处理 grad_gamma_curve
+      let minDiff = Infinity
+      let minIdx = 0
+      for (let i = 0; i < traceData.grad_gamma_curve.length; i++) {
+        const diff = Math.abs(traceData.grad_gamma_curve[i].gamma - targetGamma)
+        if (diff < minDiff) {
+          minDiff = diff
+          minIdx = i
+        }
+      }
+      return minIdx
     }
   }
 
