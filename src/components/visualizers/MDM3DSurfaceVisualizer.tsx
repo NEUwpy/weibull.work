@@ -1,8 +1,19 @@
 "use client"
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Plot from 'react-plotly.js'
-import { Play, Loader2, Box } from 'lucide-react'
+import { Play, Loader2, Box, LineChart } from 'lucide-react'
+import {
+  ResponsiveContainer,
+  LineChart as RechartsLineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  Label
+} from 'recharts'
 
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
@@ -130,6 +141,10 @@ export default function MDM3DSurfaceVisualizer({
   onLoadData,
   hasLoadedData = false
 }: MDM3DSurfaceVisualizerProps) {
+  // Toggle states
+  const [showContours, setShowContours] = useState(false)
+  const [showSigmaBetaCurve, setShowSigmaBetaCurve] = useState(false)
+
   // Show loading button if data hasn't been loaded yet
   if (!hasLoadedData && !isLoading) {
     return (
@@ -231,12 +246,18 @@ export default function MDM3DSurfaceVisualizer({
         thickness: 15,
         len: 0.8
       },
-      contours: {
+      contours: showContours ? {
         z: {
           show: true,
           usecolormap: true,
           highlightcolor: "#f59e0b",
-          project: { z: true }
+          project: { z: true },
+          width: 2,
+          color: '#ffffff'  // 白色等高线
+        }
+      } : {
+        z: {
+          show: false
         }
       },
       opacity: 0.9,
@@ -284,6 +305,7 @@ export default function MDM3DSurfaceVisualizer({
     scene: {
       xaxis: {
         title: { text: '形状参数 β', font: { size: 12, color: '#64748b' } },
+        range: [0, 5],  // 固定范围 0-5
         gridcolor: '#e2e8f0',
         showgrid: true,
         tickfont: { size: 10, color: '#64748b' },
@@ -355,11 +377,35 @@ export default function MDM3DSurfaceVisualizer({
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
       <div className="mb-4">
-        <h3 className="text-lg font-bold text-slate-800">三维参数空间曲面（交互式3D）</h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-bold text-slate-800">三维参数空间曲面（交互式3D）</h3>
+        </div>
+        <p className="text-sm text-slate-500">
           真正的交互式三维图，可拖拽旋转、缩放。展示 {"$\\sigma_\\eta(\\beta, \\gamma)$"} 在参数空间中的完整形态。
           颜色越蓝表示标准差越小（越优），菱形标记最优解。
         </p>
+      </div>
+
+      {/* Toggle Controls */}
+      <div className="flex items-center gap-6 mb-4 flex-wrap">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showContours}
+            onChange={(e) => setShowContours(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+          />
+          <span className="text-sm text-slate-700">显示等高线</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showSigmaBetaCurve}
+            onChange={(e) => setShowSigmaBetaCurve(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-sm text-slate-700">显示 σ_η 随 β 曲线（20个γ值）</span>
+        </label>
       </div>
 
       <div className="h-[450px] w-full">
@@ -387,6 +433,62 @@ export default function MDM3DSurfaceVisualizer({
           <span>菱形 = 最优解</span>
         </div>
       </div>
+
+      {/* Sigma vs Beta Curves for all 20 gamma values */}
+      {showSigmaBetaCurve && traceData.sigma_beta_gamma && traceData.sigma_beta_gamma.length > 0 && (
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <h4 className="text-base font-bold text-slate-800 mb-4">σ_η 随 β 变化曲线（20个不同γ值）</h4>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsLineChart margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis
+                  type="number"
+                  domain={[0, 5]}
+                  tickFormatter={(v) => v.toFixed(1)}
+                  tick={{ fontSize: 10 }}
+                >
+                  <Label value="形状参数 β" position="bottom" offset={0} style={{ fontSize: 10, fill: '#94a3b8' }} />
+                </XAxis>
+                <YAxis
+                  width={50}
+                  tickFormatter={(v) => v.toFixed(0)}
+                  tick={{ fontSize: 10 }}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
+                  formatter={(v: number) => [v.toFixed(2), 'σ_η']}
+                />
+                {traceData.sigma_beta_gamma!.map((curve, idx) => {
+                  const hue = (idx / traceData.sigma_beta_gamma!.length) * 240  // 从蓝到红的渐变
+                  const color = `hsl(${240 - hue}, 70%, 50%)`
+                  const isOptimalGamma = Math.abs(curve.gamma - optimal_gamma) < 5
+                  return (
+                    <Line
+                      key={idx}
+                      type="monotone"
+                      dataKey="sigmas"
+                      data={curve.betas.map((beta, i) => ({ beta, sigma: curve.sigmas[i] }))}
+                      stroke={isOptimalGamma ? '#f59e0b' : color}
+                      strokeWidth={isOptimalGamma ? 3 : 1.5}
+                      dot={false}
+                      name={`γ=${curve.gamma.toFixed(0)}`}
+                      activeDot={{ r: isOptimalGamma ? 6 : 4 }}
+                    />
+                  )
+                })}
+                <ReferenceLine x={optimal_beta} stroke="#64748b" strokeDasharray="2 2" strokeWidth={1}>
+                  <Label value="最优β" position="top" fill="#64748b" fontSize={9} />
+                </ReferenceLine>
+              </RechartsLineChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-xs text-slate-500 mt-2 text-center">
+            每条曲线代表一个不同的 γ 值，橙色粗线为最优 γ 下的曲线
+          </p>
+        </div>
+      )}
     </div>
   )
 }
