@@ -14,6 +14,7 @@ import {
   Legend,
   Brush
 } from 'recharts'
+import Plot from 'react-plotly.js'
 import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
 import MDMOffsetAnalyzer from './MDMOffsetAnalyzer'
 import { cn } from '@/lib/utils'
@@ -234,44 +235,55 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
           </div>
 
           <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={currentSigmaBetaCurve} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="beta"
-                  type="number"
-                  domain={[0, 5]}
-                  tickFormatter={(v) => v.toFixed(2)}
-                  tick={{ fontSize: 10 }}
-                >
-                  <Label value="形状参数 β" position="bottom" offset={0} style={{ fontSize: 10, fill: '#94a3b8' }} />
-                </XAxis>
-                <YAxis
-                  width={40}
-                  tick={{ fontSize: 10 }}
-                  domain={['auto', 'auto']}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  labelFormatter={(v) => `β: ${Number(v).toFixed(3)}`}
-                  formatter={(v: number) => [v.toFixed(4), 'σ_η']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="sigma"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 6 }}
-                />
-                {/* Show optimal beta marker only if selected gamma is close to optimal gamma */}
-                {Math.abs(selectedGamma - traceData.optimal_gamma) < 5 && (
-                  <ReferenceLine x={traceData.optimal_beta} stroke="#f59e0b" strokeDasharray="3 3">
-                    <Label value="最优 β" position="top" fill="#f59e0b" fontSize={10} />
-                  </ReferenceLine>
-                )}
-              </LineChart>
-            </ResponsiveContainer>
+            <Plot
+              data={[
+                {
+                  x: currentSigmaBetaCurve.map(d => d.beta),
+                  y: currentSigmaBetaCurve.map(d => d.sigma),
+                  type: 'scatter',
+                  mode: 'lines',
+                  line: { color: '#3b82f6', width: 3 },
+                  name: 'σ_η'
+                },
+                ...(Math.abs(selectedGamma - traceData.optimal_gamma) < 5 ? [{
+                  x: [traceData.optimal_beta, traceData.optimal_beta],
+                  y: [0.1, Math.max(...currentSigmaBetaCurve.map(d => d.sigma))],
+                  type: 'scatter',
+                  mode: 'lines',
+                  line: { color: '#f59e0b', width: 2, dash: 'dashdot' },
+                  name: '最优 β',
+                  hovertemplate: 'β: %{x:.2f}<extra></extra>'
+                }] : [])
+              ] as any}
+              layout={{
+                margin: { t: 20, r: 20, b: 40, l: 40 },
+                xaxis: {
+                  title: '形状参数 β',
+                  range: [0, 5],
+                  tickfont: { size: 10, color: '#64748b' },
+                  gridcolor: '#f1f5f9',
+                  showgrid: true
+                },
+                yaxis: {
+                  title: { text: '标准差 σ_η (对数)', font: { size: 11, color: '#64748b' } },
+                  type: 'log',
+                  tickfont: { size: 10, color: '#64748b' },
+                  gridcolor: '#f1f5f9',
+                  showgrid: true
+                },
+                hovermode: 'x unified',
+                showlegend: false,
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
+              } as any}
+              config={{
+                responsive: true,
+                displayModeBar: false,
+                displaylogo: false
+              }}
+              style={{ width: '100%', height: '100%' }}
+              useResizeHandler={true}
+            />
           </div>
         </div>
 
