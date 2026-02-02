@@ -169,20 +169,38 @@ export default function AnalysisCard({
   const chartData = useMemo(() => {
     if (!result || result.beta === null || result.eta === null) return []
 
-    // Calculate default range
+    // Calculate default range for current card
     const defaultMinT = result.gamma
     const defaultMaxT = result.gamma + result.eta * 2.5
 
-    // Use auto range or custom range
-    const minT = xAxisRange.isAuto ? defaultMinT : xAxisRange.min
-    const maxT = xAxisRange.isAuto ? defaultMaxT : xAxisRange.max
+    // Calculate max range from all selected overlay layers
+    let overlayMaxT = defaultMaxT
+    let overlayMinT = defaultMinT
+
+    selectedOverlayIds.forEach(overlayId => {
+      const layer = availableLayers.find(l => l.id === overlayId)
+      if (layer?.result && layer.result.beta !== null && layer.result.eta !== null) {
+        const layerMaxT = layer.result.gamma + layer.result.eta * 2.5
+        const layerMinT = layer.result.gamma
+        overlayMaxT = Math.max(overlayMaxT, layerMaxT)
+        overlayMinT = Math.min(overlayMinT, layerMinT)
+      }
+    })
+
+    // Use the union of current card and overlay ranges
+    const unionMinT = Math.min(defaultMinT, overlayMinT)
+    const unionMaxT = Math.max(defaultMaxT, overlayMaxT)
+
+    // Use auto range (union of all) or custom range
+    const minT = xAxisRange.isAuto ? unionMinT : xAxisRange.min
+    const maxT = xAxisRange.isAuto ? unionMaxT : xAxisRange.max
 
     if (chartMode === 'pdf') {
       return generatePDFPoints(result.beta, result.eta, result.gamma, minT, maxT, 100)
     } else {
       return generateCDFPoints(result.beta, result.eta, result.gamma, minT, maxT, 100)
     }
-  }, [result, chartMode, xAxisRange])
+  }, [result, chartMode, xAxisRange, selectedOverlayIds, availableLayers])
 
   // Update default range when result changes
   useEffect(() => {
@@ -194,6 +212,21 @@ export default function AnalysisCard({
   }, [result?.beta, result?.eta, result?.gamma])
 
   const overlayCurves = useMemo(() => {
+    // Calculate unified range for all overlay curves (same as chartData)
+    let overlayMinT = result?.gamma ?? 0
+    let overlayMaxT = result ? result.gamma + (result.eta ?? 0) * 2.5 : 0
+
+    // Get max range from all selected overlay layers
+    selectedOverlayIds.forEach(overlayId => {
+      const layer = availableLayers.find(l => l.id === overlayId)
+      if (layer?.result && layer.result.beta !== null && layer.result.eta !== null) {
+        const layerMaxT = layer.result.gamma + layer.result.eta * 2.5
+        const layerMinT = layer.result.gamma
+        overlayMaxT = Math.max(overlayMaxT, layerMaxT)
+        overlayMinT = Math.min(overlayMinT, layerMinT)
+      }
+    })
+
     return selectedOverlayIds.map(overlayId => {
       const layer = availableLayers.find(l => l.id === overlayId)
       if (!layer || !layer.result || layer.result.beta === null || layer.result.eta === null) return null
@@ -202,8 +235,10 @@ export default function AnalysisCard({
       const beta = res.beta!
       const eta = res.eta!
       const gamma = res.gamma
-      const minT = gamma
-      const maxT = Math.max(eta * 2.5, ...(data?.map(d => d.value) || [])) * 1.2
+
+      // Use unified range
+      const minT = overlayMinT
+      const maxT = overlayMaxT
 
       const points = chartMode === 'pdf'
         ? generatePDFPoints(beta, eta, gamma, minT, maxT, 100)
@@ -211,7 +246,7 @@ export default function AnalysisCard({
 
       return { id: layer.id, name: layer.name, color: layer.color, points }
     }).filter(Boolean)
-  }, [selectedOverlayIds, availableLayers, chartMode, data])
+  }, [selectedOverlayIds, availableLayers, chartMode, result])
 
   const handleParamChange = (key: 'beta' | 'eta' | 'gamma', value: string) => {
     const val = parseFloat(value)
