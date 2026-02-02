@@ -108,7 +108,8 @@ class MDM(WeibullBase):
         # Trace Data
         if trace:
             # 1. Sigma vs Beta curve (at optimal gamma) - for backward compatibility
-            beta_scan = np.linspace(found_beta * 0.5, found_beta * 1.5, 50)
+            # Use range [0.5, 5] to match frontend x-axis range
+            beta_scan = np.linspace(0.5, 5, 100)
             sigma_beta_curve = []
             for b_val in beta_scan:
                 s = calculate_eta_std(b_val, found_gamma, t)
@@ -120,8 +121,8 @@ class MDM(WeibullBase):
             gamma_indices = np.linspace(0, len(gammas) - 1, num_gamma_samples, dtype=int)
             sampled_gammas = gammas[gamma_indices]
 
-            # Beta scan range (same for all gamma values)
-            beta_range = np.linspace(found_beta * 0.5, found_beta * 1.5, 50)
+            # Beta scan range (same for all gamma values) - [0.5, 5] to match frontend
+            beta_range = np.linspace(0.5, 5, 100)
 
             sigma_beta_gamma = []  # Full 2D surface data
 
