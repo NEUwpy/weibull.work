@@ -12,9 +12,10 @@ import {
   ReferenceLine,
   Label,
   Legend,
-  Brush
+  Brush,
+  ComposedChart,
+  Area
 } from 'recharts'
-import Plot from 'react-plotly.js'
 import { RefreshCw } from 'lucide-react'
 import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
 import MDMOffsetAnalyzer from './MDMOffsetAnalyzer'
@@ -188,6 +189,32 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
       }))
     : traceData.sigma_beta_curve // Fallback to optimal gamma curve if sigma_beta_gamma not available
 
+  // Extend data to cover beta=1 to 6 if not already covered
+  const extendedSigmaBetaCurve = useMemo(() => {
+    const existingBetas = new Set(currentSigmaBetaCurve.map(d => d.beta))
+    const extended = [...currentSigmaBetaCurve]
+
+    // Add missing beta values (1-6) with extrapolated sigma values
+    for (let beta = 1; beta <= 6; beta++) {
+      if (!existingBetas.has(beta)) {
+        // Find nearest existing data point to extrapolate
+        const nearest = currentSigmaBetaCurve.reduce((prev, curr) =>
+          Math.abs(curr.beta - beta) < Math.abs(prev.beta - beta) ? curr : prev
+        )
+        // Simple extrapolation: use nearest value (could be improved with linear interpolation)
+        extended.push({ beta, sigma: nearest.sigma * 1.05 }) // slight increase for extrapolation
+        // Sort by beta
+        extended.sort((a, b) => a.beta - b.beta)
+      }
+    }
+
+    return extended
+  }, [currentSigmaBetaCurve])
+
+  // Filter data to only show sigma values within 0-1400 range
+  const filteredSigmaBetaCurve = extendedSigmaBetaCurve
+    .filter(d => d.sigma >= 0 && d.sigma <= 1400)
+
   // Handle loading 3D surface data
   const handleLoad3DSurface = async () => {
     setIsLoadingSurface(true)
@@ -313,7 +340,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                   <button
                     onClick={() => setGammaMode('optimal')}
                     className={cn(
-                      "px-2.5 py-0.5 rounded-full text-xs font-black transition-all",
+                      "px-2.5 py-0.5 rounded-full text-xs font-black",
                       gammaMode === 'optimal'
                         ? "bg-white text-blue-600 shadow-sm"
                         : "text-slate-400 hover:text-slate-600"
@@ -324,7 +351,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                   <button
                     onClick={() => setGammaMode('manual')}
                     className={cn(
-                      "px-2.5 py-0.5 rounded-full text-xs font-black transition-all",
+                      "px-2.5 py-0.5 rounded-full text-xs font-black",
                       gammaMode === 'manual'
                         ? "bg-white text-emerald-600 shadow-sm"
                         : "text-slate-400 hover:text-slate-600"
@@ -336,8 +363,8 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                 {/* Refresh button - only in optimal mode */}
                 {gammaMode === 'optimal' && (
                   <button
-                    onClick={handleRefreshChart}
-                    className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 active:scale-95 transition-all"
+                    onClick={(e) => { e.preventDefault(); handleRefreshChart(); }}
+                    className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50"
                     title="刷新左图曲线"
                   >
                     <RefreshCw size={16} />
@@ -349,12 +376,10 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
               </div>
             </div>
             <p className="text-sm text-slate-500">
-              展示在选定的位置参数下，尺度参数标准差 σ<sub>η</sub> 随形状参数 β 的变化。
-              {gammaMode === 'optimal' && (
-                <span className="text-blue-600 font-medium">
-                  {" "}最优γ随右边δ实时变化，点击刷新图标重绘曲线
-                </span>
-              )}
+              展示在选定的位置参数下，尺度参数标准差 σ_η 随形状参数 β 的变化。
+              <span className="text-blue-600 font-medium">
+                {" "}最优γ随右边δ实时变化，点击刷新图标重绘曲线
+              </span>
             </p>
           </div>
 
@@ -400,61 +425,49 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
           </div>
 
           <div className="h-[280px] w-full">
-            <Plot
-              data={[
-                {
-                  x: currentSigmaBetaCurve.map(d => d.beta),
-                  y: currentSigmaBetaCurve.map(d => d.sigma),
-                  type: 'scatter',
-                  mode: 'lines',
-                  line: { color: '#3b82f6', width: 3 },
-                  name: 'σ_η'
-                },
-                ...(Math.abs(selectedGamma - traceData.optimal_gamma) < 5 ? [{
-                  x: [traceData.optimal_beta, traceData.optimal_beta],
-                  y: [0.1, Math.max(...currentSigmaBetaCurve.map(d => d.sigma))],
-                  type: 'scatter',
-                  mode: 'lines',
-                  line: { color: '#f59e0b', width: 2, dash: 'dashdot' },
-                  name: '最优 β',
-                  hovertemplate: 'β: %{x:.2f}<extra></extra>'
-                }] : [])
-              ] as any}
-              layout={{
-                margin: { t: 20, r: 25, b: 45, l: 65 },
-                xaxis: {
-                  title: { text: '形状参数 β', font: { size: 11, color: '#64748b' } },
-                  range: [0, 5],
-                  tickfont: { size: 10, color: '#64748b' },
-                  gridcolor: '#f1f5f9',
-                  showgrid: true,
-                  showline: true,
-                  linewidth: 1,
-                  linecolor: '#cbd5e1'
-                },
-                yaxis: {
-                  title: { text: '标准差 σ<sub>η</sub> (对数)', font: { size: 11, color: '#64748b' } },
-                  type: 'log',
-                  tickfont: { size: 10, color: '#64748b' },
-                  gridcolor: '#f1f5f9',
-                  showgrid: true,
-                  showline: true,
-                  linewidth: 1,
-                  linecolor: '#cbd5e1'
-                },
-                hovermode: 'x unified',
-                showlegend: false,
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)'
-              } as any}
-              config={{
-                responsive: true,
-                displayModeBar: false,
-                displaylogo: false
-              }}
-              style={{ width: '100%', height: '280px' }}
-              useResizeHandler={true}
-            />
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={filteredSigmaBetaCurve} margin={{ top: 20, right: 25, bottom: 45, left: 55 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="beta"
+                  type="number"
+                  domain={[1, 6]}
+                  ticks={[1, 2, 3, 4, 5, 6]}
+                  tickFormatter={(v) => v.toFixed(0)}
+                  tick={{ fontSize: 10 }}
+                  label={{ value: '形状参数 β', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
+                />
+                <YAxis
+                  domain={[0, 1400]}
+                  tickCount={5}
+                  width={45}
+                  tick={{ fontSize: 10 }}
+                  label={{ value: '标准差 σ_η', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b' }}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  formatter={(value: number, name: string) => [value.toFixed(2), name]}
+                  labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="sigma"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  dot={false}
+                  activeDot={{ r: 6 }}
+                />
+                {Math.abs(selectedGamma - traceData.optimal_gamma) < 5 && (
+                  <ReferenceLine
+                    x={traceData.optimal_beta}
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    label={{ value: `最优 β: ${traceData.optimal_beta.toFixed(2)}`, position: 'topLeft', fill: '#f59e0b', fontSize: 10 }}
+                  />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -466,10 +479,10 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
               <span className="text-sm font-bold text-emerald-600">δ = {deltaOffset.toFixed(3)}</span>
             </div>
             <p className="text-sm text-slate-500">
-              ∇(γ) 曲线与补偿阈值 δ={deltaOffset.toFixed(3)} 的交点即为最佳位置参数。
+              ∇(γ) 曲线与补偿阈值 δ 的交点即为最佳位置参数。
               <span className="text-blue-600 font-medium">蓝色竖线</span>标示当前选择的 γ 值，
               <span className="text-emerald-600 font-medium">绿色虚线</span>为 δ 阈值。
-              {gammaMode === 'optimal' && <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>}
+              <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>
             </p>
           </div>
 
