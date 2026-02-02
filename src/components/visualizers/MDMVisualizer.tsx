@@ -39,7 +39,41 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   const [isLoadingSurface, setIsLoadingSurface] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
 
+  // Gamma slider state for original view (shape parameter optimization)
+  const [gammaIndex, setGammaIndex] = useState(() => {
+    // Prefer sigma_beta_gamma (20 points) if available, otherwise use grad_gamma_curve (60 points)
+    if (traceData.sigma_beta_gamma && traceData.sigma_beta_gamma.length > 0) {
+      const optimalIdx = traceData.sigma_beta_gamma.findIndex(
+        d => Math.abs(d.gamma - traceData.optimal_gamma) < 5
+      )
+      return optimalIdx >= 0 ? optimalIdx : Math.floor(traceData.sigma_beta_gamma.length / 2)
+    } else {
+      const optimalIdx = traceData.grad_gamma_curve.findIndex(
+        d => Math.abs(d.gamma - traceData.optimal_gamma) < 1
+      )
+      return optimalIdx >= 0 ? optimalIdx : Math.floor(traceData.grad_gamma_curve.length / 2)
+    }
+  })
+
   if (!traceData) return null
+
+  // Determine which data source to use for the slider
+  const useSigmaBetaGamma = traceData.sigma_beta_gamma && traceData.sigma_beta_gamma.length > 0
+  const gammaDataCount = useSigmaBetaGamma ? traceData.sigma_beta_gamma!.length : traceData.grad_gamma_curve.length
+
+  // Get the currently selected gamma data
+  const selectedGammaData = useSigmaBetaGamma
+    ? traceData.sigma_beta_gamma![gammaIndex]
+    : traceData.grad_gamma_curve[gammaIndex]
+  const selectedGamma = selectedGammaData?.gamma ?? traceData.optimal_gamma
+
+  // Generate sigma(beta) curve for the selected gamma
+  const currentSigmaBetaCurve = useSigmaBetaGamma && selectedGammaData && 'betas' in selectedGammaData
+    ? selectedGammaData.betas.map((beta: number, i: number) => ({
+        beta,
+        sigma: selectedGammaData.sigmas[i]
+      }))
+    : traceData.sigma_beta_curve // Fallback to optimal gamma curve if sigma_beta_gamma not available
 
   // Handle loading 3D surface data
   const handleLoad3DSurface = async () => {
@@ -155,18 +189,53 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
       {activeScheme === 'original' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* Chart 1: Sigma vs Beta (at optimal Gamma) */}
+        {/* Chart 1: Sigma vs Beta (with Gamma Slider) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-slate-800">形状参数寻优 (固定 γ={traceData.optimal_gamma.toFixed(2)})</h3>
-            <p className="text-sm text-slate-500 mt-1">
-              展示在最佳置参数下，尺度参数标准差 {"$\\sigma_{\\eta}$"} 随形状参数 {"$\\beta$"} 的变化。
-              最低点对应最佳 {"$\\beta$"}。
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold text-slate-800">形状参数寻优</h3>
+              <span className="text-sm font-bold text-blue-600">γ = {selectedGamma.toFixed(2)}</span>
+            </div>
+            <p className="text-sm text-slate-500">
+              展示在选定的位置参数下，尺度参数标准差 {"$\\sigma_{\\eta}$"} 随形状参数 {"$\\beta$"} 的变化。
             </p>
           </div>
-          <div className="h-[300px] w-full">
+
+          {/* Gamma Slider */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500">位置参数 γ</span>
+              <span className="text-xs text-slate-400">
+                {gammaIndex + 1} / {gammaDataCount}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={gammaDataCount - 1}
+              step={1}
+              value={gammaIndex}
+              onChange={(e) => setGammaIndex(parseInt(e.target.value))}
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              style={{
+                background: `linear-gradient(to right, #93c5fd 0%, #93c5fd ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 100%)`
+              }}
+            />
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>{useSigmaBetaGamma
+                ? traceData.sigma_beta_gamma![0].gamma.toFixed(1)
+                : traceData.grad_gamma_curve[0].gamma.toFixed(1)}
+              </span>
+              <span>{useSigmaBetaGamma
+                ? traceData.sigma_beta_gamma![traceData.sigma_beta_gamma!.length - 1].gamma.toFixed(1)
+                : traceData.grad_gamma_curve[traceData.grad_gamma_curve.length - 1].gamma.toFixed(1)}
+              </span>
+            </div>
+          </div>
+
+          <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={traceData.sigma_beta_curve} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+              <LineChart data={currentSigmaBetaCurve} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis
                   dataKey="beta"
@@ -195,9 +264,12 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                   dot={false}
                   activeDot={{ r: 6 }}
                 />
-                <ReferenceLine x={traceData.optimal_beta} stroke="#f59e0b" strokeDasharray="3 3">
-                   <Label value="最优 β" position="top" fill="#f59e0b" fontSize={10} />
-                </ReferenceLine>
+                {/* Show optimal beta marker only if selected gamma is close to optimal gamma */}
+                {Math.abs(selectedGamma - traceData.optimal_gamma) < 5 && (
+                  <ReferenceLine x={traceData.optimal_beta} stroke="#f59e0b" strokeDasharray="3 3">
+                    <Label value="最优 β" position="top" fill="#f59e0b" fontSize={10} />
+                  </ReferenceLine>
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -205,14 +277,14 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
 
         {/* Chart 2: Gradient vs Gamma */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="mb-6">
+          <div className="mb-4">
             <h3 className="text-lg font-bold text-slate-800">位置参数梯度判据</h3>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500">
               {"$\\nabla(\\gamma)$"} 曲线与补偿阈值 {"$\\delta$"}={traceData.target_offset} 的交点即为最佳位置参数。
-              偏移值的引入提高了小样本估计的稳健性。
+              <span className="text-blue-600 font-medium">蓝色竖线</span>标示当前选择的 γ 值。
             </p>
           </div>
-          <div className="h-[300px] w-full">
+          <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={traceData.grad_gamma_curve} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -244,8 +316,16 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                   dot={false}
                   activeDot={{ r: 6 }}
                 />
-                <ReferenceLine x={traceData.optimal_gamma} stroke="#f59e0b" strokeDasharray="3 3">
+                {/* Current selected gamma marker */}
+                <ReferenceLine x={selectedGamma} stroke="#3b82f6" strokeDasharray="2 2" strokeWidth={2}>
+                  <Label value="当前" position="top" fill="#3b82f6" fontSize={9} />
                 </ReferenceLine>
+                {/* Optimal gamma marker */}
+                {Math.abs(selectedGamma - traceData.optimal_gamma) > 1 && (
+                  <ReferenceLine x={traceData.optimal_gamma} stroke="#f59e0b" strokeDasharray="3 3">
+                    <Label value="最优" position="bottom" fill="#f59e0b" fontSize={9} />
+                  </ReferenceLine>
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
