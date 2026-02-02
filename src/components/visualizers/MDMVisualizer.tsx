@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   LineChart,
   Line,
@@ -15,6 +15,7 @@ import {
   Brush
 } from 'recharts'
 import Plot from 'react-plotly.js'
+import { RefreshCw } from 'lucide-react'
 import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
 import MDMOffsetAnalyzer from './MDMOffsetAnalyzer'
 import { cn } from '@/lib/utils'
@@ -40,6 +41,33 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   const [isLoadingSurface, setIsLoadingSurface] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
 
+  // Gamma mode: 'optimal' (auto from delta) or 'manual' (user controlled)
+  const [gammaMode, setGammaMode] = useState<'optimal' | 'manual'>('optimal')
+
+  // Delta offset state for threshold adjustment
+  const [deltaOffset, setDeltaOffset] = useState(traceData.target_offset)
+
+  // For optimal mode: the gamma used for left chart curve (only updates on refresh)
+  const [chartGamma, setChartGamma] = useState(() => {
+    // Initialize with optimal gamma based on initial delta
+    const curve = traceData.grad_gamma_curve
+    const initialDelta = traceData.target_offset
+
+    // Find initial optimal gamma
+    for (let i = 0; i < curve.length - 1; i++) {
+      const curr = curve[i]
+      const next = curve[i + 1]
+      const crossingDown = (curr.gradient >= initialDelta && next.gradient < initialDelta)
+      const crossingUp = (curr.gradient <= initialDelta && next.gradient > initialDelta)
+
+      if (crossingDown || crossingUp) {
+        const t = Math.abs((curr.gradient - initialDelta) / (curr.gradient - next.gradient))
+        return curr.gamma + t * (next.gamma - curr.gamma)
+      }
+    }
+    return curve[0].gradient < initialDelta ? curve[curve.length - 1].gamma : curve[0].gamma
+  })
+
   // Gamma slider state for original view (shape parameter optimization)
   const [gammaIndex, setGammaIndex] = useState(() => {
     // Prefer sigma_beta_gamma (20 points) if available, otherwise use grad_gamma_curve (60 points)
@@ -62,11 +90,81 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   const useSigmaBetaGamma = traceData.sigma_beta_gamma && traceData.sigma_beta_gamma.length > 0
   const gammaDataCount = useSigmaBetaGamma ? traceData.sigma_beta_gamma!.length : traceData.grad_gamma_curve.length
 
-  // Get the currently selected gamma data
+  // Calculate optimal gamma based on current delta offset
+  // Find the gamma where gradient crosses the delta threshold
+  const optimalGammaFromDelta = useMemo(() => {
+    const curve = traceData.grad_gamma_curve
+    if (!curve || curve.length === 0) return traceData.optimal_gamma
+
+    // Find the crossing point: check all cases where we cross delta
+    for (let i = 0; i < curve.length - 1; i++) {
+      const curr = curve[i]
+      const next = curve[i + 1]
+
+      // Check if we crossed the threshold (handle both decreasing and increasing)
+      const crossingDown = (curr.gradient >= deltaOffset && next.gradient < deltaOffset)
+      const crossingUp = (curr.gradient <= deltaOffset && next.gradient > deltaOffset)
+
+      if (crossingDown || crossingUp) {
+        // Linear interpolation to find exact crossing point
+        const t = Math.abs((curr.gradient - deltaOffset) / (curr.gradient - next.gradient))
+        return curr.gamma + t * (next.gamma - curr.gamma)
+      }
+    }
+
+    // If no crossing found:
+    // - All gradients < delta: return largest gamma (rightmost point)
+    // - All gradients > delta: return smallest gamma (leftmost point)
+    if (curve[0].gradient < deltaOffset) {
+      return curve[curve.length - 1].gamma
+    } else {
+      return curve[0].gamma
+    }
+  }, [deltaOffset, traceData])
+
+  // Get the currently selected gamma data for left chart
+  // In optimal mode: use chartGamma (only updates on refresh)
+  // In manual mode: use gammaIndex (follows slider)
+  const getClosestGammaIndex = (targetGamma: number) => {
+    if (useSigmaBetaGamma) {
+      const idx = traceData.sigma_beta_gamma!.findIndex(
+        d => Math.abs(d.gamma - targetGamma) < 5
+      )
+      return idx >= 0 ? idx : Math.floor(traceData.sigma_beta_gamma!.length / 2)
+    } else {
+      const idx = traceData.grad_gamma_curve.findIndex(
+        d => Math.abs(d.gamma - targetGamma) < 1
+      )
+      return idx >= 0 ? idx : Math.floor(traceData.grad_gamma_curve.length / 2)
+    }
+  }
+
+  // Determine which gamma index to use for left chart
+  const effectiveGammaIndex = gammaMode === 'optimal'
+    ? getClosestGammaIndex(chartGamma)
+    : gammaIndex
+
   const selectedGammaData = useSigmaBetaGamma
-    ? traceData.sigma_beta_gamma![gammaIndex]
-    : traceData.grad_gamma_curve[gammaIndex]
+    ? traceData.sigma_beta_gamma![effectiveGammaIndex]
+    : traceData.grad_gamma_curve[effectiveGammaIndex]
   const selectedGamma = selectedGammaData?.gamma ?? traceData.optimal_gamma
+
+  // Handle refresh button click - update chartGamma to current optimalGammaFromDelta
+  const handleRefreshChart = () => {
+    setChartGamma(optimalGammaFromDelta)
+  }
+
+  // When switching to manual mode, sync chartGamma with current slider position
+  React.useEffect(() => {
+    if (gammaMode === 'manual') {
+      const currentGamma = useSigmaBetaGamma
+        ? traceData.sigma_beta_gamma![gammaIndex]?.gamma
+        : traceData.grad_gamma_curve[gammaIndex]?.gamma
+      if (currentGamma !== undefined) {
+        setChartGamma(currentGamma)
+      }
+    }
+  }, [gammaMode])
 
   // Generate sigma(beta) curve for the selected gamma
   const currentSigmaBetaCurve = useSigmaBetaGamma && selectedGammaData && 'betas' in selectedGammaData
@@ -195,10 +293,54 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-bold text-slate-800">形状参数寻优</h3>
-              <span className="text-sm font-bold text-blue-600">γ = {selectedGamma.toFixed(2)}</span>
+              <div className="flex items-center gap-2">
+                {/* Gamma Mode Switch */}
+                <div className="flex bg-slate-100 p-0.5 rounded-full border border-slate-200">
+                  <button
+                    onClick={() => setGammaMode('optimal')}
+                    className={cn(
+                      "px-2.5 py-0.5 rounded-full text-xs font-black transition-all",
+                      gammaMode === 'optimal'
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    最优γ
+                  </button>
+                  <button
+                    onClick={() => setGammaMode('manual')}
+                    className={cn(
+                      "px-2.5 py-0.5 rounded-full text-xs font-black transition-all",
+                      gammaMode === 'manual'
+                        ? "bg-white text-emerald-600 shadow-sm"
+                        : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    更改γ
+                  </button>
+                </div>
+                {/* Refresh button - only in optimal mode */}
+                {gammaMode === 'optimal' && (
+                  <button
+                    onClick={handleRefreshChart}
+                    className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 active:scale-95 transition-all"
+                    title="刷新左图曲线"
+                  >
+                    <RefreshCw size={16} />
+                  </button>
+                )}
+                <span className="text-sm font-bold text-blue-600">
+                  γ = {gammaMode === 'optimal' ? optimalGammaFromDelta.toFixed(2) : selectedGamma.toFixed(2)}
+                </span>
+              </div>
             </div>
             <p className="text-sm text-slate-500">
               展示在选定的位置参数下，尺度参数标准差 {"$\\sigma_{\\eta}$"} 随形状参数 {"$\\beta$"} 的变化。
+              {gammaMode === 'optimal' && (
+                <span className="text-blue-600 font-medium">
+                  {" "}最优γ随右边δ实时变化，点击刷新图标重绘曲线
+                </span>
+              )}
             </p>
           </div>
 
@@ -208,6 +350,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
               <span className="text-xs text-slate-500">位置参数 γ</span>
               <span className="text-xs text-slate-400">
                 {gammaIndex + 1} / {gammaDataCount}
+                {gammaMode === 'optimal' && <span className="text-blue-600 ml-1">(自动)</span>}
               </span>
             </div>
             <input
@@ -217,9 +360,17 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
               step={1}
               value={gammaIndex}
               onChange={(e) => setGammaIndex(parseInt(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              disabled={gammaMode === 'optimal'}
+              className={cn(
+                "w-full h-2 rounded-lg appearance-none cursor-pointer transition-all",
+                gammaMode === 'optimal'
+                  ? "bg-slate-100 cursor-not-allowed"
+                  : "bg-slate-200 accent-blue-600"
+              )}
               style={{
-                background: `linear-gradient(to right, #93c5fd 0%, #93c5fd ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 100%)`
+                background: gammaMode === 'optimal'
+                  ? '#e2e8f0'
+                  : `linear-gradient(to right, #93c5fd 0%, #93c5fd ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 100%)`
               }}
             />
             <div className="flex justify-between text-xs text-slate-400 mt-1">
@@ -292,10 +443,37 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
           <div className="mb-4">
             <h3 className="text-lg font-bold text-slate-800">位置参数梯度判据</h3>
             <p className="text-sm text-slate-500">
-              {"$\\nabla(\\gamma)$"} 曲线与补偿阈值 {"$\\delta$"}={traceData.target_offset} 的交点即为最佳位置参数。
-              <span className="text-blue-600 font-medium">蓝色竖线</span>标示当前选择的 γ 值。
+              {"$\\nabla(\\gamma)$"} 曲线与补偿阈值 {"$\\delta$"}={deltaOffset.toFixed(3)} 的交点即为最佳位置参数。
+              <span className="text-blue-600 font-medium">蓝色竖线</span>标示当前选择的 γ 值，
+              <span className="text-emerald-600 font-medium">绿色虚线</span>为 δ 阈值。
+              {gammaMode === 'optimal' && <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>}
             </p>
           </div>
+
+          {/* Delta Offset Slider */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500">补偿阈值 δ</span>
+              <span className="text-xs text-emerald-600 font-bold">δ = {deltaOffset.toFixed(3)}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={0.5}
+              step={0.001}
+              value={deltaOffset}
+              onChange={(e) => setDeltaOffset(parseFloat(e.target.value))}
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+              style={{
+                background: `linear-gradient(to right, #6ee7b7 0%, #6ee7b7 ${(deltaOffset / 0.5) * 100}%, #e2e8f0 ${(deltaOffset / 0.5) * 100}%, #e2e8f0 100%)`
+              }}
+            />
+            <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <span>0.000</span>
+              <span>0.500</span>
+            </div>
+          </div>
+
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={traceData.grad_gamma_curve} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
@@ -303,7 +481,10 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                 <XAxis
                   dataKey="gamma"
                   type="number"
-                  domain={['auto', 'auto']}
+                  domain={[
+                    Math.min(...traceData.grad_gamma_curve.map(d => d.gamma), optimalGammaFromDelta) - 5,
+                    Math.max(...traceData.grad_gamma_curve.map(d => d.gamma), optimalGammaFromDelta) + 5
+                  ]}
                   tickFormatter={(v) => v.toFixed(0)}
                   tick={{ fontSize: 10 }}
                 >
@@ -318,7 +499,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                   labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
                   formatter={(v: number) => [v.toFixed(4), '∇(γ)']}
                 />
-                <ReferenceLine y={traceData.target_offset} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${traceData.target_offset}`, fill: '#10b981', fontSize: 10 }} />
+                <ReferenceLine y={deltaOffset} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${deltaOffset.toFixed(3)}`, fill: '#10b981', fontSize: 10 }} />
                 <ReferenceLine y={0} stroke="#cbd5e1" />
                 <Line
                   type="monotone"
@@ -328,13 +509,21 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                   dot={false}
                   activeDot={{ r: 6 }}
                 />
-                {/* Current selected gamma marker */}
-                <ReferenceLine x={selectedGamma} stroke="#3b82f6" strokeDasharray="2 2" strokeWidth={2}>
-                  <Label value="当前" position="top" fill="#3b82f6" fontSize={9} />
-                </ReferenceLine>
-                {/* Optimal gamma marker */}
-                {Math.abs(selectedGamma - traceData.optimal_gamma) > 1 && (
-                  <ReferenceLine x={traceData.optimal_gamma} stroke="#f59e0b" strokeDasharray="3 3">
+                {/* Markers based on mode */}
+                {gammaMode === 'optimal' ? (
+                  // Optimal mode: only show orange line at optimal gamma (based on current delta)
+                  <ReferenceLine x={optimalGammaFromDelta} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={2}>
+                    <Label value="最优γ" position="bottom" fill="#f59e0b" fontSize={9} />
+                  </ReferenceLine>
+                ) : (
+                  // Manual mode: show blue line for current gamma
+                  <ReferenceLine x={selectedGamma} stroke="#3b82f6" strokeDasharray="2 2" strokeWidth={2}>
+                    <Label value="当前" position="top" fill="#3b82f6" fontSize={9} />
+                  </ReferenceLine>
+                )}
+                {/* In manual mode, also show optimal gamma marker if different from current */}
+                {gammaMode === 'manual' && Math.abs(selectedGamma - optimalGammaFromDelta) > 1 && (
+                  <ReferenceLine x={optimalGammaFromDelta} stroke="#f59e0b" strokeDasharray="3 3">
                     <Label value="最优" position="bottom" fill="#f59e0b" fontSize={9} />
                   </ReferenceLine>
                 )}
