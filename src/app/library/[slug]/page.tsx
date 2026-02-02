@@ -385,7 +385,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
-            <article className="prose prose-slate prose-base max-w-none prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:tracking-tight prose-headings:text-slate-900 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-slate-600 prose-p:leading-7 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-strong:font-bold prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded prose-pre:bg-slate-900 prose-pre:shadow-lg prose-pre:rounded-2xl prose-img:rounded-lg prose-img:max-w-[33%] prose-img:mx-auto prose-img:my-6">
+            <article className="prose prose-slate prose-base max-w-none prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:tracking-tight prose-headings:text-slate-900 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-slate-600 prose-p:leading-7 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-strong:font-bold prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-white prose-pre:shadow-lg prose-pre:rounded-2xl prose-img:rounded-lg prose-img:max-w-[33%] prose-img:mx-auto prose-img:my-6">
               <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeRaw, rehypeSlug, rehypeKatex, rehypeStyleCaptions]}>
                 {body}
               </Markdown>

@@ -330,7 +330,7 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
                 <ArrowRight size={12} />
                 公式
               </h5>
-              <div className="bg-slate-900 rounded-xl p-3 overflow-x-auto mb-2">
+              <div className="bg-slate-900 rounded-xl p-3 overflow-x-auto mb-2 text-white">
                 <LatexRenderer math={currentStep.formula.expression} block />
               </div>
 

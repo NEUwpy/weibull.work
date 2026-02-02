@@ -311,6 +311,7 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
           prose-code:py-0.5
           prose-code:text-sm
           prose-pre:bg-slate-900
+          prose-pre:text-white
           prose-pre:shadow-lg
           prose-pre:rounded-2xl
           prose-table:my-6
