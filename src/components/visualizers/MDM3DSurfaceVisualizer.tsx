@@ -297,7 +297,8 @@ export default function MDM3DSurfaceVisualizer({
         backgroundcolor: 'rgba(248, 250, 252, 0.5)'
       },
       zaxis: {
-        title: { text: '标准差 σ_η', font: { size: 12, color: '#64748b' } },
+        title: { text: '标准差 σ_η (对数)', font: { size: 12, color: '#64748b' } },
+        type: 'log',  // 使用对数坐标
         gridcolor: '#e2e8f0',
         showgrid: true,
         tickfont: { size: 10, color: '#64748b' },
