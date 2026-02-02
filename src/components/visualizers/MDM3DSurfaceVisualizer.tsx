@@ -30,7 +30,6 @@ interface MDM3DSurfaceVisualizerProps {
   loadingProgress?: number
   onLoadData?: () => void
   hasLoadedData?: boolean
-  selectedGamma?: number  // Current selected gamma from parent slider
 }
 
 // Interpolate between two arrays
@@ -140,8 +139,7 @@ export default function MDM3DSurfaceVisualizer({
   isLoading = false,
   loadingProgress = 0,
   onLoadData,
-  hasLoadedData = false,
-  selectedGamma
+  hasLoadedData = false
 }: MDM3DSurfaceVisualizerProps) {
   // Toggle states
   const [showContours, setShowContours] = useState(false)
@@ -228,16 +226,6 @@ export default function MDM3DSurfaceVisualizer({
   const optimalBetaIndex = surfaceData.x.findIndex(b => Math.abs(b - optimal_beta) < 0.1)
   const optimalGammaIndex = surfaceData.y.findIndex(g => Math.abs(g - optimal_gamma) < 1)
 
-  // Find index of selected gamma in the y array
-  const selectedGammaIndex = selectedGamma !== undefined
-    ? surfaceData.y.findIndex(g => Math.abs(g - selectedGamma) < 1)
-    : optimalGammaIndex
-
-  // Generate the selected gamma's sigma(beta) curve for 3D plot
-  const selectedGammaCurve = selectedGammaIndex >= 0 && traceData.sigma_beta_gamma
-    ? traceData.sigma_beta_gamma.find(c => Math.abs(c.gamma - surfaceData.y[selectedGammaIndex]) < 5)
-    : null
-
   const plotData = [
     // Surface plot
     {
@@ -288,24 +276,6 @@ export default function MDM3DSurfaceVisualizer({
           width: 2
         }
       }
-    }] : []),
-    // Selected gamma's sigma(beta) curve as red line on surface
-    ...(selectedGammaCurve ? [{
-      type: 'scatter3d' as const,
-      mode: 'lines' as const,
-      x: selectedGammaCurve.betas,
-      y: Array(selectedGammaCurve.betas.length).fill(selectedGammaCurve.gamma),
-      z: selectedGammaCurve.sigmas,
-      line: {
-        color: '#ef4444',
-        width: 5
-      },
-      name: `γ=${selectedGammaCurve.gamma.toFixed(1)} 的σ(β)曲线`,
-      hovertemplate:
-        '<b>当前γ曲线</b><br>' +
-        'β: %{x:.2f}<br>' +
-        'γ: %{y:.1f}<br>' +
-        'σ_η: %{z:.4f}<extra></extra>'
     }] : []),
     // Optimal point marker
     {
@@ -503,15 +473,7 @@ export default function MDM3DSurfaceVisualizer({
                 {traceData.sigma_beta_gamma!.map((curve, idx) => {
                   const hue = (idx / traceData.sigma_beta_gamma!.length) * 240  // 从蓝到红的渐变
                   const color = `hsl(${240 - hue}, 70%, 50%)`
-
-                  // Check if this is the currently selected gamma (from slider)
-                  const isSelectedGamma = selectedGamma !== undefined && Math.abs(curve.gamma - selectedGamma) < 5
-                  // Also check if this is the optimal gamma
                   const isOptimalGamma = Math.abs(curve.gamma - optimal_gamma) < 5
-
-                  // Use red for selected gamma, orange for optimal gamma, or gradient color otherwise
-                  const strokeColor = isSelectedGamma ? '#ef4444' : (isOptimalGamma ? '#f59e0b' : color)
-                  const strokeWidthVal = isSelectedGamma ? 3 : (isOptimalGamma ? 2.5 : 1.5)
 
                   return (
                     <Line
@@ -519,11 +481,11 @@ export default function MDM3DSurfaceVisualizer({
                       type="monotone"
                       dataKey="sigmas"
                       data={curve.betas.map((beta, i) => ({ beta, sigma: curve.sigmas[i] }))}
-                      stroke={strokeColor}
-                      strokeWidth={strokeWidthVal}
+                      stroke={isOptimalGamma ? '#f59e0b' : color}
+                      strokeWidth={isOptimalGamma ? 2.5 : 1.5}
                       dot={false}
                       name={`γ=${curve.gamma.toFixed(0)}`}
-                      activeDot={{ r: isSelectedGamma || isOptimalGamma ? 6 : 4 }}
+                      activeDot={{ r: isOptimalGamma ? 5 : 3 }}
                     />
                   )
                 })}
@@ -534,8 +496,7 @@ export default function MDM3DSurfaceVisualizer({
             </ResponsiveContainer>
           </div>
           <p className="text-xs text-slate-500 mt-2 text-center">
-            每条曲线代表一个不同的 γ 值，<span className="text-red-500 font-bold">红线</span>为当前选择的 γ，
-            <span className="text-amber-600 font-bold">橙色线</span>为最优 γ
+            每条曲线代表一个不同的 γ 值，<span className="text-amber-600 font-bold">橙色线</span>为最优 γ
           </p>
         </div>
       )}
