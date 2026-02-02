@@ -349,7 +349,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
               </div>
             </div>
             <p className="text-sm text-slate-500">
-              展示在选定的位置参数下，尺度参数标准差 {"$\\sigma_{\\eta}$"} 随形状参数 {"$\\beta$"} 的变化。
+              展示在选定的位置参数下，尺度参数标准差 σ<sub>η</sub> 随形状参数 β 的变化。
               {gammaMode === 'optimal' && (
                 <span className="text-blue-600 font-medium">
                   {" "}最优γ随右边δ实时变化，点击刷新图标重绘曲线
@@ -421,20 +421,26 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                 }] : [])
               ] as any}
               layout={{
-                margin: { t: 20, r: 20, b: 40, l: 40 },
+                margin: { t: 20, r: 25, b: 45, l: 65 },
                 xaxis: {
-                  title: '形状参数 β',
+                  title: { text: '形状参数 β', font: { size: 11, color: '#64748b' } },
                   range: [0, 5],
                   tickfont: { size: 10, color: '#64748b' },
                   gridcolor: '#f1f5f9',
-                  showgrid: true
+                  showgrid: true,
+                  showline: true,
+                  linewidth: 1,
+                  linecolor: '#cbd5e1'
                 },
                 yaxis: {
-                  title: { text: '标准差 σ_η (对数)', font: { size: 11, color: '#64748b' } },
+                  title: { text: '标准差 σ<sub>η</sub> (对数)', font: { size: 11, color: '#64748b' } },
                   type: 'log',
                   tickfont: { size: 10, color: '#64748b' },
                   gridcolor: '#f1f5f9',
-                  showgrid: true
+                  showgrid: true,
+                  showline: true,
+                  linewidth: 1,
+                  linecolor: '#cbd5e1'
                 },
                 hovermode: 'x unified',
                 showlegend: false,
@@ -446,7 +452,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                 displayModeBar: false,
                 displaylogo: false
               }}
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: '100%', height: '280px' }}
               useResizeHandler={true}
             />
           </div>
@@ -455,9 +461,12 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
         {/* Chart 2: Gradient vs Gamma */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-lg font-bold text-slate-800">位置参数梯度判据</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold text-slate-800">位置参数梯度判据</h3>
+              <span className="text-sm font-bold text-emerald-600">δ = {deltaOffset.toFixed(3)}</span>
+            </div>
             <p className="text-sm text-slate-500">
-              {"$\\nabla(\\gamma)$"} 曲线与补偿阈值 {"$\\delta$"}={deltaOffset.toFixed(3)} 的交点即为最佳位置参数。
+              ∇(γ) 曲线与补偿阈值 δ={deltaOffset.toFixed(3)} 的交点即为最佳位置参数。
               <span className="text-blue-600 font-medium">蓝色竖线</span>标示当前选择的 γ 值，
               <span className="text-emerald-600 font-medium">绿色虚线</span>为 δ 阈值。
               {gammaMode === 'optimal' && <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>}
@@ -468,7 +477,9 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-slate-500">补偿阈值 δ</span>
-              <span className="text-xs text-emerald-600 font-bold">δ = {deltaOffset.toFixed(3)}</span>
+              <span className="text-xs text-slate-400">
+                范围: 0.000 - 0.500
+              </span>
             </div>
             <input
               type="range"
@@ -489,8 +500,8 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
           </div>
 
           <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={traceData.grad_gamma_curve} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={traceData.grad_gamma_curve} margin={{ top: 20, right: 25, bottom: 45, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis
                   dataKey="gamma"
@@ -501,12 +512,12 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                   ]}
                   tickFormatter={(v) => v.toFixed(0)}
                   tick={{ fontSize: 10 }}
-                >
-                  <Label value="位置参数 γ" position="bottom" offset={0} style={{ fontSize: 10, fill: '#94a3b8' }} />
-                </XAxis>
+                  label={{ value: '位置参数 γ', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
+                />
                 <YAxis
-                  width={40}
+                  width={45}
                   tick={{ fontSize: 10 }}
+                  label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b' }}
                 />
                 <Tooltip
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
