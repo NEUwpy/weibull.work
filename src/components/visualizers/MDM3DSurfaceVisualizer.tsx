@@ -2,18 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import Plot from 'react-plotly.js'
-import { Play, Loader2, Box, LineChart } from 'lucide-react'
-import {
-  ResponsiveContainer,
-  LineChart as RechartsLineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine,
-  Label
-} from 'recharts'
+import { Play, Loader2, Box } from 'lucide-react'
 
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
@@ -227,7 +216,7 @@ export default function MDM3DSurfaceVisualizer({
   const optimalGammaIndex = surfaceData.y.findIndex(g => Math.abs(g - optimal_gamma) < 1)
 
   const plotData = [
-    // Surface plot
+    // Surface plot - 完全关闭等高线
     {
       type: 'surface' as const,
       x: surfaceData.x,
@@ -247,18 +236,17 @@ export default function MDM3DSurfaceVisualizer({
         len: 0.8
       },
       contours: {
-        z: {
-          show: false,  // 不在曲面上显示等高线
-        }
+        x: { show: false },
+        y: { show: false },
+        z: { show: false }  // 完全关闭曲面上所有等高线
       },
-      opacity: 0.9,
       showscale: true,
       hovertemplate:
         'β: %{x:.2f}<br>' +
         'γ: %{y:.1f}<br>' +
         'σ_η: %{z:.4f}<extra></extra>'
     },
-    // Contours projection (colored by sigma value)
+    // Contours projection - 只投影到底部（z方向）
     ...(showContours ? [{
       type: 'surface' as const,
       x: surfaceData.x,
@@ -267,16 +255,49 @@ export default function MDM3DSurfaceVisualizer({
       showscale: false,
       showlegend: false,
       hoverinfo: 'skip',
-      opacity: 0,
+      surfacecolor: surfaceData.z,
+      colorscale: [
+        [0, '#3b82f6'],
+        [0.25, '#10b981'],
+        [0.5, '#22c55e'],
+        [0.75, '#f59e0b'],
+        [1, '#ef4444']
+      ],
       contours: {
+        x: { show: false, project: { x: false } },
+        y: { show: false, project: { y: false } },
         z: {
           show: true,
           usecolormap: true,
-          project: { z: true },  // 只在z方向投影
-          width: 2
+          highlightcolor: '#ffffff',
+          project: { z: true },  // 只投影到z=0平面（底部）
+          width: 1.5,
+          start: null,
+          end: null,
+          size: null
         }
       }
     }] : []),
+    // Gamma curve slices - 显示每个γ值对应的 σ-β 曲线切片
+    ...(showSigmaBetaCurve && traceData.sigma_beta_gamma ? traceData.sigma_beta_gamma.map((curve, idx) => {
+      const isOptimalGamma = Math.abs(curve.gamma - optimal_gamma) < 5
+      return {
+        type: 'scatter3d' as const,
+        mode: 'lines' as const,
+        x: curve.betas,
+        y: Array(curve.betas.length).fill(curve.gamma),
+        z: curve.sigmas,
+        line: {
+          width: isOptimalGamma ? 4 : 2,
+          color: isOptimalGamma ? '#f59e0b' : `hsl(${(idx / traceData.sigma_beta_gamma!.length) * 240}, 70%, 50%)`
+        },
+        name: `γ=${curve.gamma.toFixed(0)}`,
+        hovertemplate:
+          `γ: ${curve.gamma.toFixed(0)}<br>` +
+          'β: %{x:.2f}<br>' +
+          'σ_η: %{z:.4f}<extra></extra>'
+      }
+    }) : []),
     // Optimal point marker
     {
       type: 'scatter3d' as const,
@@ -405,7 +426,7 @@ export default function MDM3DSurfaceVisualizer({
             onChange={(e) => setShowContours(e.target.checked)}
             className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
           />
-          <span className="text-sm text-slate-700">显示等高线</span>
+          <span className="text-sm text-slate-700">显示等高线投影</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -414,7 +435,7 @@ export default function MDM3DSurfaceVisualizer({
             onChange={(e) => setShowSigmaBetaCurve(e.target.checked)}
             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
           />
-          <span className="text-sm text-slate-700">显示 σ_η 随 β 曲线（20个γ值）</span>
+          <span className="text-sm text-slate-700">显示γ值曲线切片（20条）</span>
         </label>
       </div>
 
@@ -442,64 +463,13 @@ export default function MDM3DSurfaceVisualizer({
           <span className="w-5 h-5 rounded bg-slate-200 flex items-center justify-center">◆</span>
           <span>菱形 = 最优解</span>
         </div>
-      </div>
-
-      {/* Sigma vs Beta Curves for all 20 gamma values */}
-      {showSigmaBetaCurve && traceData.sigma_beta_gamma && traceData.sigma_beta_gamma.length > 0 && (
-        <div className="mt-6 pt-6 border-t border-slate-200">
-          <h4 className="text-base font-bold text-slate-800 mb-4">σ_η 随 β 变化曲线（20个不同γ值）</h4>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RechartsLineChart margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  type="number"
-                  domain={[0, 5]}
-                  tickFormatter={(v) => v.toFixed(1)}
-                  tick={{ fontSize: 10 }}
-                >
-                  <Label value="形状参数 β" position="bottom" offset={0} style={{ fontSize: 10, fill: '#94a3b8' }} />
-                </XAxis>
-                <YAxis
-                  width={50}
-                  tickFormatter={(v) => v.toFixed(0)}
-                  tick={{ fontSize: 10 }}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
-                  formatter={(v: number) => [v.toFixed(2), 'σ_η']}
-                />
-                {traceData.sigma_beta_gamma!.map((curve, idx) => {
-                  const hue = (idx / traceData.sigma_beta_gamma!.length) * 240  // 从蓝到红的渐变
-                  const color = `hsl(${240 - hue}, 70%, 50%)`
-                  const isOptimalGamma = Math.abs(curve.gamma - optimal_gamma) < 5
-
-                  return (
-                    <Line
-                      key={idx}
-                      type="monotone"
-                      dataKey="sigmas"
-                      data={curve.betas.map((beta, i) => ({ beta, sigma: curve.sigmas[i] }))}
-                      stroke={isOptimalGamma ? '#f59e0b' : color}
-                      strokeWidth={isOptimalGamma ? 2.5 : 1.5}
-                      dot={false}
-                      name={`γ=${curve.gamma.toFixed(0)}`}
-                      activeDot={{ r: isOptimalGamma ? 5 : 3 }}
-                    />
-                  )
-                })}
-                <ReferenceLine x={optimal_beta} stroke="#64748b" strokeDasharray="2 2" strokeWidth={1}>
-                  <Label value="最优β" position="top" fill="#64748b" fontSize={9} />
-                </ReferenceLine>
-              </RechartsLineChart>
-            </ResponsiveContainer>
+        {showSigmaBetaCurve && (
+          <div className="flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded bg-orange-200 flex items-center justify-center">📈</span>
+            <span>曲线 = γ值切片（橙色为最优γ）</span>
           </div>
-          <p className="text-xs text-slate-500 mt-2 text-center">
-            每条曲线代表一个不同的 γ 值，<span className="text-amber-600 font-bold">橙色线</span>为最优 γ
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
