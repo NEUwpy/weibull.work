@@ -359,6 +359,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
           loadingProgress={loadingProgress}
           onLoadData={handleLoad3DSurface}
           hasLoadedData={surfaceData !== null}
+          selectedGamma={selectedGamma}
         />
       )}
     </div>
