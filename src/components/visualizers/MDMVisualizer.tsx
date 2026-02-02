@@ -240,7 +240,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                 <XAxis
                   dataKey="beta"
                   type="number"
-                  domain={['auto', 'auto']}
+                  domain={[0, 5]}
                   tickFormatter={(v) => v.toFixed(2)}
                   tick={{ fontSize: 10 }}
                 >
