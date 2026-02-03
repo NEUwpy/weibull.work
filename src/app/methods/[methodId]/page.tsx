@@ -636,7 +636,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-      <div className="text-xs font-bold text-slate-400 uppercase">{label}</div>
+      <div className="text-xs font-bold text-slate-400">{label}</div>
       <div className="text-lg font-black text-slate-800 mt-1">{value}</div>
     </div>
   )

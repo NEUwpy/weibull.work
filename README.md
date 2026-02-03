@@ -1,118 +1,45 @@
-# 威布尔分析平台 (Weibull Analysis Platform)
+# Weibull Analysis Platform (威布尔分析平台) v7.0
 
 一个集计算工具、数据管理与科研文献于一体的现代化可靠性工程平台。
 
-## 🚀 核心模块 (Core Modules)
+## 🌟 核心模块
 
-### 1. 计算工具 (Calculator)
-- **功能**: 参数估计、分布拟合、蒙特卡洛模拟。
-- **算法**: 支持 MLE, LRE, EM 等多种估计算法。
-- **交互**: 基于卡片流 (Card Flow) 的对比分析界面。
-- **图表叠加**: *[v7.0 New]* 支持多卡片曲线叠加对比，坐标轴自动适配到所有曲线的并集范围。
+1.  **Calculator (计算器)**: 
+    *   交互式卡片流设计，支持多维度对比分析。
+    *   **后端计算**: 基于 Python (SciPy/NumPy) 的高精度参数估计。
+    *   **前端可视化**: 基于 D3/Recharts 的实时交互图表。
+2.  **Methods (方法系统)**:
+    *   25+ 种参数估计方法的详细文档。
+    *   **透明化视图**: 独创的代码执行流程可视化，逐行展示算法逻辑。
+3.  **Case Database (案例库)**:
+    *   从科研文献中提取的标准失效数据集。
+    *   一键导入计算器进行验证与对比。
+4.  **Library (图书馆)**:
+    *   基于 Markdown 的沉浸式文献阅读体验。
 
-### 2. 参数估计方法系统 (Parameter Estimation Methods)
-- **功能**: 8 大类别，25+ 算法的详细介绍与文档。
-- **亮点算法**:
-  - **WMLE (加权极大似然)**: 解决小样本下 MLE 的偏差问题。
-  - **MDM (最小差异法)**: *[New]* 基于统计最小差异原理和梯度偏移判据，显著提高工程小样本估计的稳健性。
-- **特点**:
-  - 基于 Markdown + Frontmatter 的标准化文档架构
-  - 支持 Mermaid 流程图、LaTeX 公式、变量说明表格
-  - 适用场景、相关文献一键查看
-  - **程序流程可视化**: *[New]* 三栏布局展示算法执行过程，包含Python代码、数学公式、变量说明
-- **数据源**:
-  - `src/content/algorithms/*.md` (MD 文件驱动)
-  - `src/data/methods.json`
-  - `src/data/method_flows/*.json` (流程数据)
+## 🚀 快速开始
 
-### 3. 案例数据库 (Case Database)
-- **功能**: 标准失效数据的存储与检索。
-- **特点**: 支持行业筛选、样本大小分类，并可一键导入计算器进行分析。
-- **数据源**: `src/data/cases.json` (JSON 文件驱动，易于扩展)。
+### 1. 启动后端 (Python API)
+负责核心算法计算。
+```bash
+cd python
+pip install -r requirements.txt
+python main.py
+# 服务启动在 http://localhost:8001
+```
 
-### 4. 电子图书馆 (Electronic Library)
-- **功能**: 可靠性工程文献的沉浸式阅读。
-- **特点**: 支持 LaTeX 公式渲染、双向引用链接、侧边目录导航。
-- **数据源**: `src/content/*.md` (Markdown 文件驱动)。
-
----
-
-## 🛠️ 内容管理指南 (Content Management)
-
-本平台采用"文件即数据库"的设计理念，无需操作复杂的数据库即可更新内容。
-
-### 添加算法文档
-1. 复制 `src/content/algorithms/_template.md` 创建新的算法文档。
-2. 填写 Frontmatter（公式、描述、变量、流程图、适用场景、文献）。
-3. 在 `src/data/methods.json` 中添加 `slug` 和 `hasDetail: true`。
-4. （可选）在 `python/` 目录下创建对应的 Python 实现文件。
-*详细规范请查阅: [`REQUIREMENTS.md`](REQUIREMENTS.md)*
-
-### 添加算法流程数据 (程序流程可视化)
-1. 复制 `src/data/method_flows/_template.md` 作为参考模板。
-2. 创建 `{methodId}.json` 文件，包含完整的Python代码和步骤分解。
-3. 每个步骤包含：名称、描述、代码行号、输入/输出变量、数学公式、示例值。
-4. JSON 文件会被 `VariableFlowViewer` 组件自动解析，生成三栏透明化视图。
-*详细规范请查阅: [`src/data/method_flows/_template.md`](src/data/method_flows/_template.md)*
-
-### 添加案例数据
-1. 打开 `src/data/cases.json`。
-2. 按照现有格式添加新的 JSON 对象。
-3. 保存文件，网页自动更新。
-*详细规范请查阅: [`src/data/README.md`](src/data/README.md)*
-
-### 添加文献文章
-1. 将 Markdown (`.md`) 文件放入 `src/content/` 目录。
-2. 确保文件头部包含标准 Frontmatter (标题、作者等)。
-3. 如有图片，存入 `public/assets/` 并在文中引用。
-*详细规范请查阅: [`src/content/README.md`](src/content/README.md)*
-
----
-
-## 💻 开发与部署
-
-### 本地运行
+### 2. 启动前端 (Next.js)
+负责界面展示与交互。
 ```bash
 npm install
 npm run dev
-```
-访问 `http://localhost:3000`
-
-### 构建生产版本
-```bash
-npm run build
-npm start
+# 访问 http://localhost:3000
 ```
 
-### 技术栈
-- **框架**: Next.js 14 (App Router)
-- **语言**: TypeScript
-- **样式**: Tailwind CSS
-- **渲染**: React Markdown, KaTeX (公式), Rehype (HTML处理), Mermaid (流程图)
-- **图标**: Lucide React
+## 📚 文档导航
 
----
+- **[架构与实现 (ARCHITECTURE.md)](ARCHITECTURE.md)**: 了解系统的技术架构、数据流向、目录规范及开发规则。（**开发者必读**）
+- **[需求与规划 (REQUIREMENTS.md)](REQUIREMENTS.md)**: 查看项目路线图、待办事项及功能需求。
 
-## 📝 更新日志 (Changelog)
-
-### v7.0.0 (2026-02-02)
-- **fix**: 修复计算器卡片叠加时坐标轴统一问题
-  - 主曲线和叠加曲线现在使用统一的X轴范围（所有曲线的并集）
-  - Y轴自动适配所有可见数据
-  - 确保叠加对比时所有曲线完整显示
-
----
-
-## 📋 后续计划 (Roadmap)
-
-- [ ] 为所有 25+ 算法创建完整的 MD 文档和 Python 实现
-- [ ] 集成 Python 算法到计算器后端
-- [ ] 添加文献图片放大功能 (Lightbox)
-- [ ] 扩展案例数据库详情页
-
-*完整开发计划请查阅: [`REQUIREMENTS.md`](REQUIREMENTS.md)*
-
----
-
-## 📄 许可证
+## ⚖️ License
 MIT License

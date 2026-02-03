@@ -166,14 +166,13 @@ export default function AnalysisCard({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const chartData = useMemo(() => {
-    if (!result || result.beta === null || result.eta === null) return []
+  // Calculate unified X-axis range for all charts (current + overlays)
+  const unifiedXRange = useMemo(() => {
+    if (!result || result.beta === null || result.eta === null) return null
 
-    // Calculate default range for current card
     const defaultMinT = result.gamma
     const defaultMaxT = result.gamma + result.eta * 2.5
 
-    // Calculate max range from all selected overlay layers
     let overlayMaxT = defaultMaxT
     let overlayMinT = defaultMinT
 
@@ -187,20 +186,25 @@ export default function AnalysisCard({
       }
     })
 
-    // Use the union of current card and overlay ranges
     const unionMinT = Math.min(defaultMinT, overlayMinT)
     const unionMaxT = Math.max(defaultMaxT, overlayMaxT)
 
+    return { min: unionMinT, max: unionMaxT }
+  }, [result, selectedOverlayIds, availableLayers])
+
+  const chartData = useMemo(() => {
+    if (!result || result.beta === null || result.eta === null || !unifiedXRange) return []
+
     // Use auto range (union of all) or custom range
-    const minT = xAxisRange.isAuto ? unionMinT : xAxisRange.min
-    const maxT = xAxisRange.isAuto ? unionMaxT : xAxisRange.max
+    const minT = xAxisRange.isAuto ? unifiedXRange.min : xAxisRange.min
+    const maxT = xAxisRange.isAuto ? unifiedXRange.max : xAxisRange.max
 
     if (chartMode === 'pdf') {
       return generatePDFPoints(result.beta, result.eta, result.gamma, minT, maxT, 100)
     } else {
       return generateCDFPoints(result.beta, result.eta, result.gamma, minT, maxT, 100)
     }
-  }, [result, chartMode, xAxisRange, selectedOverlayIds, availableLayers])
+  }, [result, chartMode, xAxisRange, unifiedXRange])
 
   // Update default range when result changes
   useEffect(() => {
@@ -212,33 +216,19 @@ export default function AnalysisCard({
   }, [result?.beta, result?.eta, result?.gamma])
 
   const overlayCurves = useMemo(() => {
-    // Calculate unified range for all overlay curves (same as chartData)
-    let overlayMinT = result?.gamma ?? 0
-    let overlayMaxT = result ? result.gamma + (result.eta ?? 0) * 2.5 : 0
-
-    // Get max range from all selected overlay layers
-    selectedOverlayIds.forEach(overlayId => {
-      const layer = availableLayers.find(l => l.id === overlayId)
-      if (layer?.result && layer.result.beta !== null && layer.result.eta !== null) {
-        const layerMaxT = layer.result.gamma + layer.result.eta * 2.5
-        const layerMinT = layer.result.gamma
-        overlayMaxT = Math.max(overlayMaxT, layerMaxT)
-        overlayMinT = Math.min(overlayMinT, layerMinT)
-      }
-    })
+    if (!unifiedXRange) return []
 
     return selectedOverlayIds.map(overlayId => {
       const layer = availableLayers.find(l => l.id === overlayId)
       if (!layer || !layer.result || layer.result.beta === null || layer.result.eta === null) return null
       const res = layer.result
-      // Non-null assertion is safe here because we checked above
       const beta = res.beta!
       const eta = res.eta!
       const gamma = res.gamma
 
       // Use unified range
-      const minT = overlayMinT
-      const maxT = overlayMaxT
+      const minT = xAxisRange.isAuto ? unifiedXRange.min : xAxisRange.min
+      const maxT = xAxisRange.isAuto ? unifiedXRange.max : xAxisRange.max
 
       const points = chartMode === 'pdf'
         ? generatePDFPoints(beta, eta, gamma, minT, maxT, 100)
@@ -246,7 +236,33 @@ export default function AnalysisCard({
 
       return { id: layer.id, name: layer.name, color: layer.color, points }
     }).filter(Boolean)
-  }, [selectedOverlayIds, availableLayers, chartMode, result])
+  }, [selectedOverlayIds, availableLayers, chartMode, unifiedXRange, xAxisRange])
+
+  // Calculate unified Y-axis range for all charts (current + overlays)
+  const unifiedYRange = useMemo(() => {
+    if (chartData.length === 0) return null
+
+    let minY = Infinity
+    let maxY = -Infinity
+
+    // Check current chart data
+    chartData.forEach(point => {
+      if (point.y < minY) minY = point.y
+      if (point.y > maxY) maxY = point.y
+    })
+
+    // Check all overlay curves
+    overlayCurves.forEach(layer => {
+      layer.points.forEach(point => {
+        if (point.y < minY) minY = point.y
+        if (point.y > maxY) maxY = point.y
+      })
+    })
+
+    // Add some padding (10% on each side)
+    const padding = (maxY - minY) * 0.1
+    return { min: Math.max(0, minY - padding), max: maxY + padding }
+  }, [chartData, overlayCurves])
 
   const handleParamChange = (key: 'beta' | 'eta' | 'gamma', value: string) => {
     const val = parseFloat(value)
@@ -613,8 +629,18 @@ export default function AnalysisCard({
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="x" type="number" domain={['auto', 'auto']} tick={{ fontSize: 9, fill: '#94a3b8' }} tickFormatter={(v) => v.toFixed(0)} />
-                      <YAxis tick={{ fontSize: 9, fill: '#94a3b8' }} width={30} />
+                      <XAxis
+                        dataKey="x"
+                        type="number"
+                        domain={unifiedXRange ? [unifiedXRange.min, unifiedXRange.max] : ['auto', 'auto']}
+                        tick={{ fontSize: 9, fill: '#94a3b8' }}
+                        tickFormatter={(v) => v.toFixed(0)}
+                      />
+                      <YAxis
+                        domain={unifiedYRange ? [unifiedYRange.min, unifiedYRange.max] : ['auto', 'auto']}
+                        tick={{ fontSize: 9, fill: '#94a3b8' }}
+                        width={30}
+                      />
                       <Tooltip content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             return (
