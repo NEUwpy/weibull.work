@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Any, Union
 import sys
 import os
+import io
+import numpy as np
 
 # Add methods directory to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'methods'))
@@ -40,6 +43,16 @@ class Surface3DRequest(BaseModel):
     method: str
     data: List[float]
     trace_data: Optional[dict] = None
+
+class BatchSimulationRequest(BaseModel):
+    method: str
+    true_beta: float
+    true_eta: float
+    true_gamma: float
+    sample_sizes: List[int]
+    betas: Optional[List[float]] = None
+    offsets: Optional[List[float]] = None
+    num_simulations: int = 100
 
 class CalculationResponse(BaseModel):
     beta: Optional[float]
@@ -201,6 +214,126 @@ async def calculate_3d_surface(req: Surface3DRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"3D surface calculation failed: {str(e)}")
+
+@app.post("/batch_simulation")
+async def batch_simulation(req: BatchSimulationRequest):
+    """
+    Batch Monte Carlo simulation for case study.
+
+    Returns CSV with columns:
+    - beta_true, eta_true, gamma_true (true parameters)
+    - sample_size (n)
+    - beta_value, offset_value (for multi-dimension cases)
+    - sim_id (simulation index 1-100)
+    - est_beta, est_eta, est_gamma (estimated parameters)
+    - bias_beta, bias_eta, bias_gamma (bias = estimated - true)
+    - r_squared (goodness of fit)
+    """
+    try:
+        method_map = {
+            "mle": MLE, "mmle": MLE, "mps": MPS, "wmle": WMLE,
+            "lse": LSE, "wlse": LSE, "mde": MDM, "eiv": LSE,
+            "lre": LRE, "rrx": LRE, "rry": LRE, "blre": LRE,
+            "mm": MM, "pwm": PWM, "lm": PWM, "tlm": PWM,
+            "grey": GreyGM11, "gm11": GreyGM11,
+            "construct_stat": WMLE, "mve": WMLE, "lsf": WMLE,
+            "bayesian": Bayesian, "gibbs": Bayesian, "map": Bayesian,
+            "ai": WMLE, "pso": WMLE, "svr": WMLE, "ann": WMLE,
+            "mdm": MDM,
+            "default": WMLE
+        }
+
+        selected_method_id = req.method.lower()
+        AlgorithmClass = method_map.get(selected_method_id, MDM)
+
+        # Generate CSV content
+        output = io.StringIO()
+        # Header
+        header = ["beta_true", "eta_true", "gamma_true", "sample_size"]
+        if req.betas:
+            header.append("beta_value")
+        if req.offsets:
+            header.append("offset_value")
+        header.extend(["sim_id", "est_beta", "est_eta", "est_gamma", "bias_beta", "bias_eta", "bias_gamma", "r_squared"])
+        output.write(",".join(header) + "\n")
+
+        # Iterate over all parameter combinations
+        for sample_size in req.sample_sizes:
+            # For beta dimension variation
+            beta_values = req.betas if req.betas else [None]
+            # For offset dimension variation
+            offset_values = req.offsets if req.offsets else [None]
+
+            for beta_val in beta_values:
+                for offset_val in offset_values:
+                    # Determine true beta for this iteration
+                    current_true_beta = beta_val if beta_val is not None else req.true_beta
+
+                    # Run Monte Carlo simulations
+                    for sim_id in range(1, req.num_simulations + 1):
+                        # Generate sample from true Weibull distribution
+                        np.random.seed(sim_id + sample_size * 1000 + int((beta_val or 0) * 100) + int((offset_val or 0) * 1000))
+                        u = np.random.uniform(0, 1, sample_size)
+                        # Weibull inverse CDF: x = gamma + eta * (-ln(1-u))^(1/beta)
+                        sample = req.true_gamma + req.true_eta * (-np.log(1 - u)) ** (1 / current_true_beta)
+                        sample = np.sort(sample)
+
+                        # Estimate parameters using selected method
+                        try:
+                            algo_instance = AlgorithmClass(sample.tolist())
+
+                            # Run with offset if MDM
+                            if selected_method_id == 'mdm' and offset_val is not None:
+                                res = algo_instance.run(trace=False, offset=offset_val)
+                            else:
+                                res = algo_instance.run(trace=False)
+
+                            est_beta = float(res[0]) if res[0] is not None else 0
+                            est_eta = float(res[1]) if res[1] is not None else 0
+                            est_gamma = float(res[2]) if res[2] is not None else 0
+                            r_squared = float(res[3]) if res[3] is not None else 0
+                        except Exception as e:
+                            print(f"Simulation failed: {e}")
+                            est_beta, est_eta, est_gamma, r_squared = 0, 0, 0, 0
+
+                        # Calculate biases
+                        bias_beta = est_beta - current_true_beta
+                        bias_eta = est_eta - req.true_eta
+                        bias_gamma = est_gamma - req.true_gamma
+
+                        # Write row
+                        row = [
+                            str(req.true_beta),
+                            str(req.true_eta),
+                            str(req.true_gamma),
+                            str(sample_size)
+                        ]
+                        if req.betas:
+                            row.append(str(beta_val) if beta_val is not None else "")
+                        if req.offsets:
+                            row.append(str(offset_val) if offset_val is not None else "")
+                        row.extend([
+                            str(sim_id),
+                            f"{est_beta:.6f}",
+                            f"{est_eta:.6f}",
+                            f"{est_gamma:.6f}",
+                            f"{bias_beta:.6f}",
+                            f"{bias_eta:.6f}",
+                            f"{bias_gamma:.6f}",
+                            f"{r_squared:.6f}"
+                        ])
+                        output.write(",".join(row) + "\n")
+
+        # Return as CSV file
+        csv_content = output.getvalue()
+        return StreamingResponse(
+            io.BytesIO(csv_content.encode('utf-8')),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=batch_simulation.csv"}
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Batch simulation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

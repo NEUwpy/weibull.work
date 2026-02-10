@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
-import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3, GitBranch } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3, GitBranch, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AlgorithmDetail } from '@/components/AlgorithmDetail'
 import AnalysisCard from '@/components/AnalysisCard'
@@ -19,6 +19,7 @@ const VariableFlowViewer = dynamic(() => import('@/components/VariableFlowViewer
 const MLEVisualizer = dynamic(() => import('@/components/visualizers/MLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const WMLEVisualizer = dynamic(() => import('@/components/visualizers/WMLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MDMVisualizer = dynamic(() => import('@/components/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const CaseStudyViewer = dynamic(() => import('@/components/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 
@@ -113,7 +114,7 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'lab' | 'analysis'>('doc')
+  const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'lab' | 'analysis' | 'cases'>('doc')
 
   // Result Analysis Card State (similar to Lab)
   const [analysisData, setAnalysisData] = useState<DataPoint[]>([])
@@ -486,6 +487,16 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                   <BarChart3 size={16} />
                   结果分析
                 </button>
+                <button
+                  onClick={() => setActiveTab('cases')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    activeTab === 'cases' ? "bg-white text-purple-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <FlaskConical size={16} />
+                  案例展示
+                </button>
              </div>
 
              {/* Apply Link */}
@@ -590,7 +601,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 </div>
              )}
           </div>
-        ) : (
+        ) : activeTab === 'analysis' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
              {/* Result Analysis Tab - Analysis Card */}
              <AnalysisCard
@@ -626,7 +637,11 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                </div>
              )}
           </div>
-        )}
+        ) : activeTab === 'cases' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <CaseStudyViewer methodId={method.id} />
+          </div>
+        ) : null}
       </div>
     </section>
     </>

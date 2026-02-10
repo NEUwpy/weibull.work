@@ -1,0 +1,830 @@
+"use client"
+
+import React, { useState, useEffect } from 'react'
+import { FlaskConical, Filter, ChevronDown, Check, Info } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  Cell,
+  ReferenceLine
+} from 'recharts'
+
+interface CaseStudyViewerProps {
+  methodId: string
+}
+
+// 维度选项类型
+type DimensionType = 'beta' | 'sampleSize' | 'offset'
+
+// 案例配置
+interface CaseConfig {
+  id: string
+  name: string
+  description: string
+  availableDimensions: DimensionType[]
+  dimensions?: {
+    beta?: number[]
+    sampleSize?: number[]
+    offset?: number[]
+  }
+  fixedParams?: {
+    eta?: number
+    gamma?: number
+  }
+  csvFile?: string
+}
+
+// CSV数据行
+interface SimulationRow {
+  beta_true: number
+  sample_size: number
+  offset_value: number
+  sim_id: number
+  est_beta: number
+  est_eta: number
+  est_gamma: number
+  bias_beta: number
+  bias_eta: number
+  bias_gamma: number
+  r_squared: number
+}
+
+// 统计结果
+interface StatsResult {
+  key: string
+  keyLabel: string
+  count: number
+  // 维度值（用于排序和展示）
+  beta_true?: number
+  sample_size?: number
+  offset_value?: number
+  // 统计量
+  bias_beta_mean: number
+  bias_beta_std: number
+  bias_eta_mean: number
+  bias_eta_std: number
+  bias_gamma_mean: number
+  bias_gamma_std: number
+  mse_beta: number
+  mse_eta: number
+  mse_gamma: number
+}
+
+// 预定义案例配置
+const CASE_CONFIGS: Record<string, CaseConfig[]> = {
+  mdm: [
+    {
+      id: 'case-1',
+      name: '案例1: 多维度参数影响研究',
+      description: '研究形状参数、样本量、偏移量对MDM三参数估计结果的影响。基于100次蒙特卡洛模拟的预设分析结果。',
+      availableDimensions: ['beta', 'sampleSize', 'offset'],
+      dimensions: {
+        beta: [1.5, 2.0, 3, 5, 7],
+        sampleSize: [5, 7, 10, 20, 30],
+        offset: [0, 0.05, 0.1, 0.15, 0.2]
+      },
+      fixedParams: {
+        eta: 1000,
+        gamma: 1000
+      },
+      csvFile: '/cases/mdm_case1_full.csv'
+    }
+  ]
+}
+
+export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('case-1')
+  const [selectedDimensions, setSelectedDimensions] = useState<DimensionType[]>(['sampleSize'])
+  const [csvData, setCsvData] = useState<SimulationRow[]>([])
+  const [stats, setStats] = useState<StatsResult[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const methodCases = CASE_CONFIGS[methodId.toLowerCase()] || []
+  const selectedCase = methodCases.find(c => c.id === selectedCaseId)
+
+  const dimensionLabels: Record<DimensionType, string> = {
+    beta: '形状参数 β',
+    sampleSize: '样本量 n',
+    offset: '偏移量 δ'
+  }
+
+  const dimensionColors: Record<DimensionType, string> = {
+    beta: 'bg-blue-100 text-blue-700 border-blue-200',
+    sampleSize: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    offset: 'bg-amber-100 text-amber-700 border-amber-200'
+  }
+
+  // 切换维度选择
+  const toggleDimension = (dim: DimensionType) => {
+    if (selectedDimensions.includes(dim)) {
+      if (selectedDimensions.length > 1) {
+        setSelectedDimensions(prev => prev.filter(d => d !== dim))
+      }
+    } else {
+      setSelectedDimensions(prev => [...prev, dim])
+    }
+  }
+
+  // 加载CSV数据
+  useEffect(() => {
+    if (!selectedCase?.csvFile) return
+
+    setIsLoading(true)
+    setError(null)
+
+    fetch(selectedCase.csvFile)
+      .then(res => {
+        if (!res.ok) throw new Error('数据文件加载失败')
+        return res.text()
+      })
+      .then(csvText => {
+        const parsedData = parseCSV(csvText)
+        setCsvData(parsedData)
+      })
+      .catch(err => {
+        setError(err.message || '数据加载失败')
+        console.error(err)
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [selectedCaseId])
+
+  // 当数据或选择的维度变化时，重新计算统计量
+  useEffect(() => {
+    if (csvData.length === 0) return
+    const statsResult = calculateStats(csvData, selectedDimensions)
+    setStats(statsResult)
+  }, [csvData, selectedDimensions])
+
+  // 解析CSV
+  const parseCSV = (csvText: string): SimulationRow[] => {
+    const lines = csvText.trim().split('\n')
+    const headers = lines[0].split(',')
+
+    return lines.slice(1).map(line => {
+      const values = line.split(',')
+      const row: any = {}
+      headers.forEach((header, idx) => {
+        const val = values[idx]
+        row[header] = isNaN(Number(val)) ? val : Number(val)
+      })
+      return row as SimulationRow
+    })
+  }
+
+  // 计算统计量 - 根据选择的维度分组
+  const calculateStats = (data: SimulationRow[], dims: DimensionType[]): StatsResult[] => {
+    const groups = new Map<string, SimulationRow[]>()
+
+    data.forEach(row => {
+      const keyParts: string[] = []
+      if (dims.includes('beta')) keyParts.push(`β=${row.beta_true}`)
+      if (dims.includes('sampleSize')) keyParts.push(`n=${row.sample_size}`)
+      if (dims.includes('offset')) keyParts.push(`δ=${row.offset_value}`)
+
+      const key = keyParts.join(', ')
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(row)
+    })
+
+    return Array.from(groups.entries()).map(([key, rows]) => {
+      const count = rows.length
+      const mean = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length
+      const variance = (arr: number[]) => {
+        const m = mean(arr)
+        return arr.reduce((sum, val) => sum + (val - m) ** 2, 0) / arr.length
+      }
+
+      const biasBeta = rows.map(r => r.bias_beta)
+      const biasEta = rows.map(r => r.bias_eta)
+      const biasGamma = rows.map(r => r.bias_gamma)
+
+      return {
+        key,
+        keyLabel: key,
+        beta_true: dims.includes('beta') ? rows[0].beta_true : undefined,
+        sample_size: dims.includes('sampleSize') ? rows[0].sample_size : undefined,
+        offset_value: dims.includes('offset') ? rows[0].offset_value : undefined,
+        count,
+        bias_beta_mean: mean(biasBeta),
+        bias_beta_std: Math.sqrt(variance(biasBeta)),
+        bias_eta_mean: mean(biasEta),
+        bias_eta_std: Math.sqrt(variance(biasEta)),
+        bias_gamma_mean: mean(biasGamma),
+        bias_gamma_std: Math.sqrt(variance(biasGamma)),
+        mse_beta: mean(biasBeta.map(v => v ** 2)),
+        mse_eta: mean(biasEta.map(v => v ** 2)),
+        mse_gamma: mean(biasGamma.map(v => v ** 2))
+      }
+    }).sort((a, b) => {
+      // 排序：按第一个维度的值排序
+      if (selectedDimensions[0] === 'beta') return (a.beta_true || 0) - (b.beta_true || 0)
+      if (selectedDimensions[0] === 'sampleSize') return (a.sample_size || 0) - (b.sample_size || 0)
+      if (selectedDimensions[0] === 'offset') return (a.offset_value || 0) - (b.offset_value || 0)
+      return 0
+    })
+  }
+
+  if (methodCases.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-12">
+        <div className="flex flex-col items-center justify-center text-center">
+          <FlaskConical className="text-slate-300 mb-4" size={48} />
+          <h3 className="text-lg font-bold text-slate-600 mb-2">暂无案例</h3>
+          <p className="text-slate-400">该方法的案例展示正在建设中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 顶部控制栏 */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <FlaskConical className="text-purple-600" size={24} />
+          <h2 className="text-xl font-bold text-slate-800">案例展示</h2>
+          <span className="text-xs text-slate-400 ml-auto">预设分析结果 · 基于CSV数据文件</span>
+        </div>
+
+        {/* 案例选择下拉 */}
+        <div className="flex items-center gap-4 mb-6">
+          <label className="text-sm font-bold text-slate-600 whitespace-nowrap">选择案例：</label>
+          <div className="relative flex-1 max-w-md">
+            <select
+              value={selectedCaseId}
+              onChange={(e) => {
+                setSelectedCaseId(e.target.value)
+                setSelectedDimensions(['sampleSize'])
+                setCsvData([])
+                setStats([])
+              }}
+              className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer hover:bg-slate-100 transition-colors"
+            >
+              {methodCases.map(case_ => (
+                <option key={case_.id} value={case_.id}>
+                  {case_.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+          </div>
+        </div>
+
+        {/* 案例描述 */}
+        {selectedCase && (
+          <div className="bg-purple-50 rounded-xl p-4 border border-purple-100 mb-6">
+            <p className="text-sm text-purple-800">{selectedCase.description}</p>
+          </div>
+        )}
+
+        {/* 维度选择器（多选） */}
+        {selectedCase && selectedCase.availableDimensions.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="text-slate-500" size={16} />
+              <span className="text-sm font-bold text-slate-600">选择展示维度（可多选）：</span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {selectedCase.availableDimensions.map(dim => (
+                <button
+                  key={dim}
+                  onClick={() => toggleDimension(dim)}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-bold transition-all",
+                    selectedDimensions.includes(dim)
+                      ? dimensionColors[dim]
+                      : "bg-slate-100 text-slate-400 border-slate-200 hover:border-slate-300"
+                  )}
+                >
+                  {selectedDimensions.includes(dim) && <Check size={16} />}
+                  {dimensionLabels[dim]}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              {!isLoading && csvData.length > 0
+                ? `数据已加载：${csvData.length} 组模拟，展示 ${stats.length} 种参数组合`
+                : '选择维度后加载预设数据'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* 错误提示 */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+          <div className="flex items-center gap-2">
+            <Info size={16} />
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
+
+      {/* 加载状态 */}
+      {isLoading && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+          <p className="text-slate-600 font-bold">加载数据中...</p>
+        </div>
+      )}
+
+      {/* 结果展示 */}
+      {!isLoading && stats.length > 0 && (
+        <ResultsVisualization
+          stats={stats}
+          selectedDimensions={selectedDimensions}
+          selectedCase={selectedCase}
+        />
+      )}
+    </div>
+  )
+}
+
+// 颜色映射函数
+function getColorForValue(value: number, absMax: number): string {
+  // 红色(正偏差) → 白色(0) → 蓝色(负偏差)
+  const ratio = value / absMax
+  if (ratio > 0) {
+    // 正偏差：白色到红色
+    const intensity = Math.min(Math.abs(ratio), 1)
+    return `rgba(239, 68, 68, ${0.3 + intensity * 0.7})` // red-500
+  } else {
+    // 负偏差：白色到蓝色
+    const intensity = Math.min(Math.abs(ratio), 1)
+    return `rgba(59, 130, 246, ${0.3 + intensity * 0.7})` // blue-500
+  }
+}
+
+// 结果可视化组件
+function ResultsVisualization({
+  stats,
+  selectedDimensions,
+  selectedCase
+}: {
+  stats: StatsResult[]
+  selectedDimensions: DimensionType[]
+  selectedCase?: CaseConfig
+}) {
+  const colors = {
+    beta: '#3b82f6',
+    eta: '#10b981',
+    gamma: '#f59e0b'
+  }
+
+  const dimensionLabels: Record<DimensionType, string> = {
+    beta: '形状参数 β',
+    sampleSize: '样本量 n',
+    offset: '偏移量 δ'
+  }
+
+  const isSingleDimension = selectedDimensions.length === 1
+  const isMultiDimension = selectedDimensions.length >= 2
+
+  // 获取X轴标签
+  const getXLabel = (s: StatsResult) => {
+    if (selectedDimensions[0] === 'beta') return s.beta_true!
+    if (selectedDimensions[0] === 'sampleSize') return s.sample_size!
+    if (selectedDimensions[0] === 'offset') return s.offset_value!
+    return 0
+  }
+
+  // 对于热力图，获取Y轴标签（第二维度）
+  const getYLabel = (s: StatsResult) => {
+    if (selectedDimensions[1] === 'beta') return s.beta_true!
+    if (selectedDimensions[1] === 'sampleSize') return s.sample_size!
+    if (selectedDimensions[1] === 'offset') return s.offset_value!
+    return 0
+  }
+
+  // 获取第二维度的所有值（用于热力图Y轴）
+  const getSecondDimensionValues = () => {
+    if (selectedDimensions.length < 2) return []
+    const dim = selectedDimensions[1]
+    const valueSet = new Set(stats.map(s => dim === 'beta' ? s.beta_true : dim === 'sampleSize' ? s.sample_size : s.offset_value))
+    const values = Array.from(valueSet).filter((v): v is number => v !== undefined) as number[]
+    return values.sort((a, b) => a - b)
+  }
+
+  const getSecondDimensionLabel = (val: number) => {
+    if (selectedDimensions[1] === 'offset') return val.toFixed(2)
+    return val.toString()
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 固定参数说明 */}
+      {selectedCase?.fixedParams && (
+        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+          <div className="flex items-center gap-2 mb-2">
+            <Info className="text-slate-500" size={16} />
+            <span className="text-sm font-bold text-slate-600">固定参数设置：</span>
+          </div>
+          <div className="flex gap-6 text-sm">
+            {selectedCase.fixedParams.eta !== undefined && (
+              <span className="text-slate-600">
+                尺度参数 η = <span className="font-mono font-bold text-slate-800">{selectedCase.fixedParams.eta}</span>
+              </span>
+            )}
+            {selectedCase.fixedParams.gamma !== undefined && (
+              <span className="text-slate-600">
+                位置参数 γ = <span className="font-mono font-bold text-slate-800">{selectedCase.fixedParams.gamma}</span>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 维度组合说明 */}
+      <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+        <div className="flex items-center gap-2 mb-2">
+          <Info className="text-blue-600" size={16} />
+          <span className="text-sm font-bold text-blue-800">当前展示维度：</span>
+        </div>
+        <p className="text-sm text-blue-700">
+          {selectedDimensions.map(d => dimensionLabels[d]).join(' × ')}
+          <span className="ml-2 font-mono">（{stats.length} 种组合）</span>
+        </p>
+      </div>
+
+      {/* 指标说明卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="text-xs font-bold text-slate-500 mb-1">偏差</div>
+          <div className="text-lg font-black text-slate-800">估计均值 - 真值</div>
+          <div className="text-xs text-slate-400 mt-1">正值=高估, 负值=低估</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="text-xs font-bold text-slate-500 mb-1">标准差 (SD)</div>
+          <div className="text-lg font-black text-slate-800">√方差</div>
+          <div className="text-xs text-slate-400 mt-1">100次结果的波动程度</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="text-xs font-bold text-slate-500 mb-1">均方误差 (MSE)</div>
+          <div className="text-lg font-black text-slate-800">偏差² + 方差</div>
+          <div className="text-xs text-slate-400 mt-1">综合反映准确性和稳定性</div>
+        </div>
+      </div>
+
+      {/* ========== 单维度展示：趋势图 ========== */}
+      {isSingleDimension && (
+        <>
+          {/* 偏差趋势图 */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">偏差随{dimensionLabels[selectedDimensions[0]]}的变化</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              偏差 = 100次估计的均值 - 真值
+            </p>
+            <div className="h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="keyLabel"
+                    tick={{ fontSize: 11 }}
+                    label={{ value: dimensionLabels[selectedDimensions[0]], position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    label={{ value: '偏差', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    formatter={(value: number) => value.toFixed(4)}
+                    labelFormatter={(label) => `${dimensionLabels[selectedDimensions[0]]}: ${label}`}
+                  />
+                  <Legend />
+                  <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
+                  <Line type="monotone" dataKey="bias_beta_mean" name="β 偏差" stroke={colors.beta} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="bias_eta_mean" name="η 偏差" stroke={colors.eta} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="bias_gamma_mean" name="γ 偏差" stroke={colors.gamma} strokeWidth={2} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* SD趋势图 */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">标准差 (SD) 随{dimensionLabels[selectedDimensions[0]]}的变化</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              标准差 = 100次结果的波动程度，值越小估计越稳定
+            </p>
+            <div className="h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="keyLabel"
+                    tick={{ fontSize: 11 }}
+                    label={{ value: dimensionLabels[selectedDimensions[0]], position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    label={{ value: 'SD', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    formatter={(value: number) => value.toFixed(4)}
+                    labelFormatter={(label) => `${dimensionLabels[selectedDimensions[0]]}: ${label}`}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="bias_beta_std" name="β SD" stroke={colors.beta} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="bias_eta_std" name="η SD" stroke={colors.eta} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="bias_gamma_std" name="γ SD" stroke={colors.gamma} strokeWidth={2} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* MSE趋势图 */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">均方误差 (MSE) 随{dimensionLabels[selectedDimensions[0]]}的变化</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              MSE = 偏差² + 方差，综合反映准确性和稳定性
+            </p>
+            <div className="h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="keyLabel"
+                    tick={{ fontSize: 11 }}
+                    label={{ value: dimensionLabels[selectedDimensions[0]], position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    label={{ value: 'MSE', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    formatter={(value: number) => value.toFixed(4)}
+                    labelFormatter={(label) => `${dimensionLabels[selectedDimensions[0]]}: ${label}`}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="mse_beta" name="β MSE" stroke={colors.beta} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="mse_eta" name="η MSE" stroke={colors.eta} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="mse_gamma" name="γ MSE" stroke={colors.gamma} strokeWidth={2} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ========== 多维度展示：热力图 ========== */}
+      {isMultiDimension && (
+        <>
+          {/* β偏差热力图 */}
+          <HeatmapCard
+            title={`β 偏差热力图 (${selectedDimensions.map(d => dimensionLabels[d]).join(' × ')})`}
+            stats={stats}
+            selectedDimensions={selectedDimensions}
+            dataKey="bias_beta_mean"
+            color={colors.beta}
+            dimensionLabels={dimensionLabels}
+            getXLabel={getXLabel}
+            getYLabel={getYLabel}
+            getSecondDimensionValues={getSecondDimensionValues}
+            getSecondDimensionLabel={getSecondDimensionLabel}
+          />
+
+          {/* β SD热力图 */}
+          <HeatmapCard
+            title={`β SD热力图 (${selectedDimensions.map(d => dimensionLabels[d]).join(' × ')})`}
+            stats={stats}
+            selectedDimensions={selectedDimensions}
+            dataKey="bias_beta_std"
+            color={colors.beta}
+            dimensionLabels={dimensionLabels}
+            getXLabel={getXLabel}
+            getYLabel={getYLabel}
+            getSecondDimensionValues={getSecondDimensionValues}
+            getSecondDimensionLabel={getSecondDimensionLabel}
+          />
+
+          {/* η偏差热力图 */}
+          <HeatmapCard
+            title={`η 偏差热力图 (${selectedDimensions.map(d => dimensionLabels[d]).join(' × ')})`}
+            stats={stats}
+            selectedDimensions={selectedDimensions}
+            dataKey="bias_eta_mean"
+            color={colors.eta}
+            dimensionLabels={dimensionLabels}
+            getXLabel={getXLabel}
+            getYLabel={getYLabel}
+            getSecondDimensionValues={getSecondDimensionValues}
+            getSecondDimensionLabel={getSecondDimensionLabel}
+          />
+
+          {/* η SD热力图 */}
+          <HeatmapCard
+            title={`η SD热力图 (${selectedDimensions.map(d => dimensionLabels[d]).join(' × ')})`}
+            stats={stats}
+            selectedDimensions={selectedDimensions}
+            dataKey="bias_eta_std"
+            color={colors.eta}
+            dimensionLabels={dimensionLabels}
+            getXLabel={getXLabel}
+            getYLabel={getYLabel}
+            getSecondDimensionValues={getSecondDimensionValues}
+            getSecondDimensionLabel={getSecondDimensionLabel}
+          />
+
+          {/* γ偏差热力图 */}
+          <HeatmapCard
+            title={`γ 偏差热力图 (${selectedDimensions.map(d => dimensionLabels[d]).join(' × ')})`}
+            stats={stats}
+            selectedDimensions={selectedDimensions}
+            dataKey="bias_gamma_mean"
+            color={colors.gamma}
+            dimensionLabels={dimensionLabels}
+            getXLabel={getXLabel}
+            getYLabel={getYLabel}
+            getSecondDimensionValues={getSecondDimensionValues}
+            getSecondDimensionLabel={getSecondDimensionLabel}
+          />
+
+          {/* γ SD热力图 */}
+          <HeatmapCard
+            title={`γ SD热力图 (${selectedDimensions.map(d => dimensionLabels[d]).join(' × ')})`}
+            stats={stats}
+            selectedDimensions={selectedDimensions}
+            dataKey="bias_gamma_std"
+            color={colors.gamma}
+            dimensionLabels={dimensionLabels}
+            getXLabel={getXLabel}
+            getYLabel={getYLabel}
+            getSecondDimensionValues={getSecondDimensionValues}
+            getSecondDimensionLabel={getSecondDimensionLabel}
+          />
+        </>
+      )}
+
+      {/* 详细统计表 */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h3 className="text-lg font-bold text-slate-800 mb-4">详细统计结果</h3>
+        <p className="text-sm text-slate-500 mb-4">
+          偏差 = 估计均值 - 真值 | SD = 标准差
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200">
+                <th className="text-left py-2 px-3 font-bold text-slate-700">参数组合</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-700">β 偏差±SD</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-700">η 偏差±SD</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-700">γ 偏差±SD</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((s, idx) => (
+                <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="py-2 px-3 font-mono text-xs">{s.keyLabel}</td>
+                  <td className="text-right py-2 px-3 font-mono text-xs">
+                    {s.bias_beta_mean.toFixed(4)} ± {s.bias_beta_std.toFixed(4)}
+                  </td>
+                  <td className="text-right py-2 px-3 font-mono text-xs">
+                    {s.bias_eta_mean.toFixed(2)} ± {s.bias_eta_std.toFixed(2)}
+                  </td>
+                  <td className="text-right py-2 px-3 font-mono text-xs">
+                    {s.bias_gamma_mean.toFixed(2)} ± {s.bias_gamma_std.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 热力图卡片组件
+interface HeatmapCardProps {
+  title: string
+  stats: StatsResult[]
+  selectedDimensions: DimensionType[]
+  dataKey: 'bias_beta_mean' | 'bias_eta_mean' | 'bias_gamma_mean' | 'bias_beta_std' | 'bias_eta_std' | 'bias_gamma_std'
+  color: string
+  dimensionLabels: Record<DimensionType, string>
+  getXLabel: (s: StatsResult) => number
+  getYLabel: (s: StatsResult) => number
+  getSecondDimensionValues: () => number[]
+  getSecondDimensionLabel: (val: number) => string
+}
+
+function HeatmapCard({
+  title,
+  stats,
+  selectedDimensions,
+  dataKey,
+  color,
+  dimensionLabels,
+  getXLabel,
+  getYLabel,
+  getSecondDimensionValues,
+  getSecondDimensionLabel
+}: HeatmapCardProps) {
+  // 计算颜色范围
+  const allValues = stats.map(s => s[dataKey])
+  const absMax = Math.max(...allValues.map(Math.abs), 0.01)
+
+  // 获取第一维度的所有唯一值
+  const getFirstDimensionValues = () => {
+    const dim = selectedDimensions[0]
+    const valueSet = new Set(stats.map(s => dim === 'beta' ? s.beta_true : dim === 'sampleSize' ? s.sample_size : s.offset_value))
+    const values = Array.from(valueSet).filter((v): v is number => v !== undefined) as number[]
+    return values.sort((a, b) => a - b)
+  }
+
+  const firstDimValues = getFirstDimensionValues()
+  const secondDimValues = getSecondDimensionValues()
+
+  // 构建热力图数据矩阵
+  const heatmapData = secondDimValues.map(yVal =>
+    firstDimValues.map(xVal => {
+      const item = stats.find(s => {
+        const matchX = selectedDimensions[0] === 'beta' ? s.beta_true === xVal
+                      : selectedDimensions[0] === 'sampleSize' ? s.sample_size === xVal
+                      : s.offset_value === xVal
+        const matchY = selectedDimensions[1] === 'beta' ? s.beta_true === yVal
+                      : selectedDimensions[1] === 'sampleSize' ? s.sample_size === yVal
+                      : s.offset_value === yVal
+        return matchX && matchY
+      })
+      return {
+        value: item?.[dataKey] ?? 0,
+        hasData: !!item
+      }
+    })
+  )
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+      <h3 className="text-lg font-bold text-slate-800 mb-4">{title}</h3>
+
+      {/* 图例 */}
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <span className="text-xs font-bold text-slate-600">负偏差</span>
+        <div className="flex items-center">
+          <div className="w-8 h-4 rounded" style={{ backgroundColor: getColorForValue(-absMax, absMax) }}></div>
+          <span className="text-xs text-slate-500 mx-1">←</span>
+          <div className="w-8 h-4 rounded bg-slate-200"></div>
+          <span className="text-xs text-slate-500 mx-1">→</span>
+          <div className="w-8 h-4 rounded" style={{ backgroundColor: getColorForValue(absMax, absMax) }}></div>
+        </div>
+        <span className="text-xs font-bold text-slate-600">正偏差</span>
+        <span className="text-xs text-slate-400 ml-4">{absMax.toFixed(4)}</span>
+      </div>
+
+      {/* 热力图 */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr>
+              <th className="p-2 bg-slate-50"></th>
+              {firstDimValues.map(val => (
+                <th key={val} className="p-2 bg-slate-50 text-xs font-bold text-slate-600 min-w-[60px]">
+                  {selectedDimensions[0] === 'offset' ? val.toFixed(2) : val}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {secondDimValues.map((yVal, yIdx) => (
+              <tr key={yVal}>
+                <td className="p-2 bg-slate-50 text-xs font-bold text-slate-600 whitespace-nowrap">
+                  {selectedDimensions[1] === 'offset' ? yVal.toFixed(2) : yVal}
+                </td>
+                {heatmapData[yIdx].map((cell, xIdx) => (
+                  <td
+                    key={xIdx}
+                    className="p-2 text-center border border-slate-100 min-w-[60px]"
+                    style={{
+                      backgroundColor: cell.hasData ? getColorForValue(cell.value, absMax) : '#f1f5f9'
+                    }}
+                  >
+                    <span className={cell.hasData ? 'font-mono text-xs font-bold' : 'text-xs text-slate-300'}>
+                      {cell.hasData ? cell.value.toFixed(3) : '—'}
+                    </span>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
