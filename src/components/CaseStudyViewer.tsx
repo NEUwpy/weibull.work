@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { FlaskConical, Filter, ChevronDown, Check, Info, Settings, Lock, Unlock } from 'lucide-react'
+import { Filter, Info, Settings, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   LineChart,
@@ -86,26 +86,7 @@ interface StatsResult {
   mse_gamma: number
 }
 
-// MDM 案例1: 5个参数的配置
-const CASE_CONFIGS: Record<string, CaseConfig[]> = {
-  mdm: [
-    {
-      id: 'case-1',
-      name: '案例1: 多维度参数影响研究',
-      description: '研究形状参数、样本量、偏移量对MDM三参数估计结果的影响。基于100次蒙特卡洛模拟的预设分析结果。',
-      processName: '偏移量',
-      processSymbol: 'δ',
-      csvFile: '/cases/mdm_case1_full.csv',
-      params: [
-        { id: 'beta', name: '形状参数', symbol: 'β', state: 'discrete', discreteValues: [1.5, 2.0, 3, 5, 7], isVariable: true, isDisplayDimension: false },
-        { id: 'eta', name: '尺度参数', symbol: 'η', state: 'fixed', fixedValue: 1000, isVariable: false, isDisplayDimension: false },
-        { id: 'gamma', name: '位置参数', symbol: 'γ', state: 'fixed', fixedValue: 1000, isVariable: false, isDisplayDimension: false },
-        { id: 'sampleSize', name: '样本量', symbol: 'n', state: 'discrete', discreteValues: [5, 7, 10, 20, 30], isVariable: true, isDisplayDimension: false },
-        { id: 'process', name: '偏移量', symbol: 'δ', state: 'discrete', discreteValues: [0, 0.05, 0.1, 0.15, 0.2], isVariable: true, isDisplayDimension: false }
-      ]
-    }
-  ]
-}
+// 从MD文件读取案例配置
 
 // 参数卡片颜色
 const PARAM_COLORS: Record<ParamType, string> = {
@@ -131,13 +112,35 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   const [stats, setStats] = useState<StatsResult[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [cases, setCases] = useState<CaseConfig[]>([])
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true)
 
-  const methodCases = CASE_CONFIGS[methodId.toLowerCase()] || []
-  const selectedCase = methodCases.find(c => c.id === selectedCaseId)
+  const selectedCase = cases.find(c => c.id === selectedCaseId)
+
+  // 加载案例配置
+  useEffect(() => {
+    const loadCases = async () => {
+      try {
+        const res = await fetch(`/api/cases/${methodId.toLowerCase()}`)
+        if (res.ok) {
+          const data = await res.json()
+          setCases(data.cases || [])
+          if (data.cases && data.cases.length > 0) {
+            setSelectedCaseId(data.cases[0].id)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load cases:', err)
+      } finally {
+        setIsLoadingConfig(false)
+      }
+    }
+    loadCases()
+  }, [methodId])
 
   // 初始化参数配置
   useEffect(() => {
-    if (selectedCase) {
+    if (selectedCase && selectedCase.params && Array.isArray(selectedCase.params) && selectedCase.params.length > 0) {
       setParams([...selectedCase.params])
     }
   }, [selectedCaseId, selectedCase])
@@ -153,10 +156,15 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 
   // 加载CSV数据
   useEffect(() => {
-    if (!selectedCase?.csvFile) return
+    if (!selectedCase?.csvFile) {
+      console.log('No CSV file path:', selectedCase)
+      return
+    }
 
     setIsLoading(true)
     setError(null)
+
+    console.log('Loading CSV from:', selectedCase.csvFile)
 
     fetch(selectedCase.csvFile)
       .then(res => {
@@ -165,25 +173,28 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
       })
       .then(csvText => {
         const parsedData = parseCSV(csvText)
+        console.log('CSV parsed, rows:', parsedData.length)
         setCsvData(parsedData)
       })
       .catch(err => {
         setError(err.message || '数据加载失败')
-        console.error(err)
+        console.error('CSV load error:', err)
       })
       .finally(() => {
         setIsLoading(false)
       })
-  }, [selectedCaseId])
+  }, [selectedCase])
 
   // 当数据或参数变化时，重新计算统计量
   useEffect(() => {
     if (csvData.length === 0) return
 
     const displayDimensions = params.filter(p => p.isDisplayDimension)
+    console.log('Display dimensions:', displayDimensions.map(p => p.id))
     if (displayDimensions.length === 0) return
 
     const statsResult = calculateStats(csvData, displayDimensions)
+    console.log('Stats calculated:', statsResult.length)
     setStats(statsResult)
   }, [csvData, params])
 
@@ -258,11 +269,22 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
     })
   }
 
-  if (methodCases.length === 0) {
+  if (isLoadingConfig) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-12">
+        <div className="flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+          <p className="text-slate-600 font-bold">加载配置中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (cases.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200 p-12">
         <div className="flex flex-col items-center justify-center text-center">
-          <FlaskConical className="text-slate-300 mb-4" size={48} />
+          <Settings className="text-slate-300 mb-4" size={48} />
           <h3 className="text-lg font-bold text-slate-600 mb-2">暂无案例</h3>
           <p className="text-slate-400">该方法的案例展示正在建设中...</p>
         </div>
@@ -278,43 +300,34 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 
   return (
     <div className="space-y-6">
-      {/* 顶部控制栏 */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <FlaskConical className="text-purple-600" size={24} />
-          <h2 className="text-xl font-bold text-slate-800">案例展示</h2>
-          <span className="text-xs text-slate-400 ml-auto">预设分析结果 · 通用参数框架</span>
-        </div>
-
-        {/* 案例选择下拉 */}
-        <div className="flex items-center gap-4 mb-6">
-          <label className="text-sm font-bold text-slate-600 whitespace-nowrap">选择案例：</label>
-          <div className="relative flex-1 max-w-md">
-            <select
-              value={selectedCaseId}
-              onChange={(e) => {
-                setSelectedCaseId(e.target.value)
-                setStats([])
-              }}
-              className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer hover:bg-slate-100 transition-colors"
-            >
-              {methodCases.map(case_ => (
-                <option key={case_.id} value={case_.id}>
-                  {case_.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+      {/* 案例选择 */}
+      {cases.length > 0 && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-bold text-slate-600 whitespace-nowrap">选择案例：</label>
+            <div className="relative flex-1 max-w-md">
+              <select
+                value={selectedCaseId}
+                onChange={(e) => {
+                  setSelectedCaseId(e.target.value)
+                  setStats([])
+                }}
+                className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer hover:bg-slate-100 transition-colors"
+              >
+                {cases.map(case_ => (
+                  <option key={case_.id} value={case_.id}>
+                    {case_.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+            </div>
+            {selectedCase && (
+              <span className="text-xs text-slate-500">{selectedCase.description}</span>
+            )}
           </div>
         </div>
-
-        {/* 案例描述 */}
-        {selectedCase && (
-          <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-            <p className="text-sm text-purple-800">{selectedCase.description}</p>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* 参数卡片框架 */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -505,21 +518,6 @@ function ResultsVisualization({
 
   return (
     <div className="space-y-6">
-      {/* 固定参数说明 */}
-      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-        <div className="flex items-center gap-2 mb-2">
-          <Info className="text-slate-500" size={16} />
-          <span className="text-sm font-bold text-slate-600">固定参数：</span>
-        </div>
-        <div className="flex flex-wrap gap-4 text-sm">
-          {params.filter(p => !p.isVariable).map(p => (
-            <span key={p.id} className="text-slate-600">
-              {p.symbol} = <span className="font-mono font-bold">{p.fixedValue}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
       {/* 维度说明 */}
       <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
         <div className="flex items-center gap-2 mb-2">
