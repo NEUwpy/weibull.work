@@ -41,5 +41,21 @@ npm run dev
 - **[架构与实现 (ARCHITECTURE.md)](ARCHITECTURE.md)**: 了解系统的技术架构、数据流向、目录规范及开发规则。（**开发者必读**）
 - **[需求与规划 (REQUIREMENTS.md)](REQUIREMENTS.md)**: 查看项目路线图、待办事项及功能需求。
 
+---
+
+## 🤖 For AI Assistants (AI 助手指南)
+
+如果你是维护本项目的 AI 助手，请务必遵循以下索引进行上下文加载：
+
+1.  **核心架构**: 必须优先读取 **[`ARCHITECTURE.md`](ARCHITECTURE.md)**，这是理解本项目“前后端分离”与“Markdown 数据源”规则的唯一真理来源。
+2.  **代码索引**: 
+    - **核心算法**: `python/methods/*.py` (所有统计计算逻辑)
+    - **API 接口**: `python/main.py`
+    - **前端页面**: `src/app/`
+    - **通用组件**: `src/components/`
+3.  **禁区**: 
+    - 严禁读取 `_archive/` 目录下的任何内容（包含废弃脚本与旧数据）。
+    - 严禁将重型计算逻辑写入前端 TypeScript 文件。
+
 ## ⚖️ License
 MIT License
