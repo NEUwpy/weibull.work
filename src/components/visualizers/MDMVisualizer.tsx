@@ -463,7 +463,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                     stroke="#f59e0b"
                     strokeWidth={2}
                     strokeDasharray="5 5"
-                    label={{ value: `最优 β: ${traceData.optimal_beta.toFixed(2)}`, position: 'topLeft', fill: '#f59e0b', fontSize: 10 }}
+                    label={{ value: `最优 β: ${traceData.optimal_beta.toFixed(2)}`, position: 'top', fill: '#f59e0b', fontSize: 10 }}
                   />
                 )}
               </ComposedChart>

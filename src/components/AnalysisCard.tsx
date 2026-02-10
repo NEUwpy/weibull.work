@@ -253,6 +253,7 @@ export default function AnalysisCard({
 
     // Check all overlay curves
     overlayCurves.forEach(layer => {
+      if (!layer) return
       layer.points.forEach(point => {
         if (point.y < minY) minY = point.y
         if (point.y > maxY) maxY = point.y
