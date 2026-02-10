@@ -35,7 +35,8 @@ interface ParamConfig {
   fixedValue?: number
   range?: { min: number; max: number }
   discreteValues?: number[]
-  isVariable: boolean  // 是否作为展示维度
+  isVariable: boolean  // 是否为变量（由数据决定，不可改）
+  isDisplayDimension: boolean  // 是否作为展示维度（用户可切换）
 }
 
 // 案例配置
@@ -96,11 +97,11 @@ const CASE_CONFIGS: Record<string, CaseConfig[]> = {
       processSymbol: 'δ',
       csvFile: '/cases/mdm_case1_full.csv',
       params: [
-        { id: 'beta', name: '形状参数', symbol: 'β', state: 'discrete', discreteValues: [1.5, 2.0, 3, 5, 7], isVariable: false },
-        { id: 'eta', name: '尺度参数', symbol: 'η', state: 'fixed', fixedValue: 1000, isVariable: false },
-        { id: 'gamma', name: '位置参数', symbol: 'γ', state: 'fixed', fixedValue: 1000, isVariable: false },
-        { id: 'sampleSize', name: '样本量', symbol: 'n', state: 'discrete', discreteValues: [5, 7, 10, 20, 30], isVariable: false },
-        { id: 'process', name: '偏移量', symbol: 'δ', state: 'discrete', discreteValues: [0, 0.05, 0.1, 0.15, 0.2], isVariable: false }
+        { id: 'beta', name: '形状参数', symbol: 'β', state: 'discrete', discreteValues: [1.5, 2.0, 3, 5, 7], isVariable: true, isDisplayDimension: false },
+        { id: 'eta', name: '尺度参数', symbol: 'η', state: 'fixed', fixedValue: 1000, isVariable: false, isDisplayDimension: false },
+        { id: 'gamma', name: '位置参数', symbol: 'γ', state: 'fixed', fixedValue: 1000, isVariable: false, isDisplayDimension: false },
+        { id: 'sampleSize', name: '样本量', symbol: 'n', state: 'discrete', discreteValues: [5, 7, 10, 20, 30], isVariable: true, isDisplayDimension: false },
+        { id: 'process', name: '偏移量', symbol: 'δ', state: 'discrete', discreteValues: [0, 0.05, 0.1, 0.15, 0.2], isVariable: true, isDisplayDimension: false }
       ]
     }
   ]
@@ -141,10 +142,10 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
     }
   }, [selectedCaseId, selectedCase])
 
-  // 切换变量状态
-  const toggleVariable = (paramId: ParamType) => {
+  // 切换显示维度
+  const toggleDisplayDimension = (paramId: ParamType) => {
     setParams(prev => prev.map(p =>
-      p.id === paramId ? { ...p, isVariable: !p.isVariable } : p
+      p.id === paramId && p.isVariable ? { ...p, isDisplayDimension: !p.isDisplayDimension } : p
     ))
     // 切换维度后清空统计数据，重新计算
     setStats([])
@@ -179,10 +180,10 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   useEffect(() => {
     if (csvData.length === 0) return
 
-    const variableParams = params.filter(p => p.isVariable)
-    if (variableParams.length === 0) return
+    const displayDimensions = params.filter(p => p.isDisplayDimension)
+    if (displayDimensions.length === 0) return
 
-    const statsResult = calculateStats(csvData, variableParams)
+    const statsResult = calculateStats(csvData, displayDimensions)
     setStats(statsResult)
   }, [csvData, params])
 
@@ -270,7 +271,8 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   }
 
   const variableParams = params.filter(p => p.isVariable)
-  const numCombinations = variableParams.reduce((acc, p) => {
+  const displayDimensions = params.filter(p => p.isDisplayDimension)
+  const numCombinations = displayDimensions.reduce((acc, p) => {
     return acc * (p.state === 'discrete' ? (p.discreteValues?.length || 1) : 1)
   }, 1)
 
@@ -333,23 +335,23 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
             <ParamCard
               key={param.id}
               param={param}
-              onToggleVariable={() => toggleVariable(param.id)}
+              onToggleDisplayDimension={() => toggleDisplayDimension(param.id)}
             />
           ))}
         </div>
 
         {/* 提示信息 */}
-        {variableParams.length === 0 && (
+        {displayDimensions.length === 0 && (
           <div className="mt-6 bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center gap-3">
             <Info size={16} className="text-slate-500" />
             <p className="text-sm text-slate-600">请至少选择一个变量作为展示维度</p>
           </div>
         )}
 
-        {variableParams.length >= 3 && (
+        {displayDimensions.length >= 3 && (
           <div className="mt-6 bg-amber-50 rounded-xl p-4 border border-amber-200 flex items-center gap-3">
             <Info size={16} className="text-amber-600" />
-            <p className="text-sm text-amber-700">建议选择1-2个变量，过多变量会使图表难以阅读</p>
+            <p className="text-sm text-amber-700">建议选择1-2个维度，过多维度会使图表难以阅读</p>
           </div>
         )}
       </div>
@@ -377,7 +379,7 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
         <ResultsVisualization
           stats={stats}
           params={params}
-          variableParams={variableParams}
+          displayDimensions={displayDimensions}
           selectedCase={selectedCase}
         />
       )}
@@ -386,10 +388,10 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 }
 
 // 参数卡片组件
-function ParamCard({ param, onToggleVariable }: { param: ParamConfig; onToggleVariable: () => void }) {
+function ParamCard({ param, onToggleDisplayDimension }: { param: ParamConfig; onToggleDisplayDimension: () => void }) {
   return (
     <div className={cn("rounded-xl border-2 p-4 transition-all", PARAM_COLORS[param.id])}>
-      {/* 标题行：名称 + 变量切换按钮 */}
+      {/* 标题行：名称 + 状态标识 */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1">
           <span className="text-sm font-bold">{param.name}</span>
@@ -397,18 +399,12 @@ function ParamCard({ param, onToggleVariable }: { param: ParamConfig; onToggleVa
             {param.symbol}
           </span>
         </div>
-        <button
-          onClick={onToggleVariable}
-          className={cn(
-            "p-1.5 rounded-lg transition-colors",
-            param.isVariable
-              ? "bg-white text-purple-600 hover:bg-purple-50"
-              : "bg-slate-100 text-slate-400 hover:bg-slate-200"
-          )}
-          title={param.isVariable ? "点击设为固定" : "点击设为变量"}
-        >
-          {param.isVariable ? <Unlock size={14} /> : <Lock size={14} />}
-        </button>
+        <div className={cn(
+          "px-2 py-0.5 rounded text-xs font-bold",
+          param.isVariable ? "bg-white text-purple-700" : "bg-slate-200 text-slate-500"
+        )}>
+          {param.isVariable ? "变量" : "固定"}
+        </div>
       </div>
 
       {/* 内容 */}
@@ -439,20 +435,33 @@ function ParamCard({ param, onToggleVariable }: { param: ParamConfig; onToggleVa
         </div>
       )}
 
-      {/* 状态标签 */}
-      <div className="mt-3 pt-3 border-t border-black/10">
-        {param.isVariable ? (
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-600">
+      {/* 变量参数：显示维度切换 */}
+      {param.isVariable && (
+        <div className="mt-3 pt-3 border-t border-black/10">
+          <button
+            onClick={onToggleDisplayDimension}
+            className={cn(
+              "w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all",
+              param.isDisplayDimension
+                ? "bg-purple-600 text-white hover:bg-purple-700"
+                : "bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            )}
+          >
             <Filter size={12} />
-            展示维度
-          </span>
-        ) : (
+            {param.isDisplayDimension ? "显示维度 ✓" : "设为显示维度"}
+          </button>
+        </div>
+      )}
+
+      {/* 固定参数：状态标签 */}
+      {!param.isVariable && (
+        <div className="mt-3 pt-3 border-t border-black/10">
           <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400">
             <Settings size={12} />
-            固定
+            固定参数
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -461,12 +470,12 @@ function ParamCard({ param, onToggleVariable }: { param: ParamConfig; onToggleVa
 function ResultsVisualization({
   stats,
   params,
-  variableParams,
+  displayDimensions,
   selectedCase
 }: {
   stats: StatsResult[]
   params: ParamConfig[]
-  variableParams: ParamConfig[]
+  displayDimensions: ParamConfig[]
   selectedCase?: CaseConfig
 }) {
   const colors = {
@@ -477,7 +486,7 @@ function ResultsVisualization({
 
   // 获取X轴标签
   const getXLabel = () => {
-    const firstVar = variableParams[0]
+    const firstVar = displayDimensions[0]
     if (firstVar.id === 'process') return selectedCase?.processSymbol || 'δ'
     return firstVar.symbol
   }
@@ -518,7 +527,7 @@ function ResultsVisualization({
           <span className="text-sm font-bold text-blue-800">展示维度：</span>
         </div>
         <p className="text-sm text-blue-700">
-          {variableParams.map(p => p.symbol).join(' × ')}
+          {displayDimensions.map(p => p.symbol).join(' × ')}
           <span className="ml-2 font-mono">（{stats.length} 种组合）</span>
         </p>
       </div>
@@ -543,11 +552,11 @@ function ResultsVisualization({
       </div>
 
       {/* 单变量展示：双Y轴趋势图 */}
-      {variableParams.length === 1 && (
+      {displayDimensions.length === 1 && (
         <>
           {/* 偏差趋势图 */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">偏差随{variableParams[0].name}的变化</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-4">偏差随{displayDimensions[0].name}的变化</h3>
             <p className="text-sm text-slate-500 mb-4">
               左轴: β偏差 | 右轴: η/γ偏差
             </p>
@@ -558,7 +567,7 @@ function ResultsVisualization({
                   <XAxis
                     dataKey="keyLabel"
                     tick={{ fontSize: 11 }}
-                    label={{ value: variableParams[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                    label={{ value: displayDimensions[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
                   />
                   <YAxis
                     yAxisId="left"
@@ -591,7 +600,7 @@ function ResultsVisualization({
 
           {/* SD趋势图 */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">标准差 (SD) 随{variableParams[0].name}的变化</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-4">标准差 (SD) 随{displayDimensions[0].name}的变化</h3>
             <p className="text-sm text-slate-500 mb-4">
               左轴: β SD | 右轴: η/γ SD
             </p>
@@ -602,7 +611,7 @@ function ResultsVisualization({
                   <XAxis
                     dataKey="keyLabel"
                     tick={{ fontSize: 11 }}
-                    label={{ value: variableParams[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                    label={{ value: displayDimensions[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
                   />
                   <YAxis
                     yAxisId="left"
@@ -633,7 +642,7 @@ function ResultsVisualization({
 
           {/* MSE趋势图 */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">均方误差 (MSE) 随{variableParams[0].name}的变化</h3>
+            <h3 className="text-lg font-bold text-slate-800 mb-4">均方误差 (MSE) 随{displayDimensions[0].name}的变化</h3>
             <p className="text-sm text-slate-500 mb-4">
               左轴: β MSE | 右轴: η/γ MSE
             </p>
@@ -644,7 +653,7 @@ function ResultsVisualization({
                   <XAxis
                     dataKey="keyLabel"
                     tick={{ fontSize: 11 }}
-                    label={{ value: variableParams[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                    label={{ value: displayDimensions[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
                   />
                   <YAxis
                     yAxisId="left"
@@ -676,28 +685,28 @@ function ResultsVisualization({
       )}
 
       {/* 多变量展示：热力图 */}
-      {variableParams.length >= 2 && (
+      {displayDimensions.length >= 2 && (
         <>
           <HeatmapCard
-            title={`β 偏差热力图 (${variableParams.map(p => p.symbol).join(' × ')})`}
+            title={`β 偏差热力图 (${displayDimensions.map(p => p.symbol).join(' × ')})`}
             stats={stats}
-            variableParams={variableParams}
+            displayDimensions={displayDimensions}
             dataKey="bias_beta_mean"
             color={colors.beta}
             getColorForValue={getColorForValue}
           />
           <HeatmapCard
-            title={`η 偏差热力图 (${variableParams.map(p => p.symbol).join(' × ')})`}
+            title={`η 偏差热力图 (${displayDimensions.map(p => p.symbol).join(' × ')})`}
             stats={stats}
-            variableParams={variableParams}
+            displayDimensions={displayDimensions}
             dataKey="bias_eta_mean"
             color={colors.eta}
             getColorForValue={getColorForValue}
           />
           <HeatmapCard
-            title={`γ 偏差热力图 (${variableParams.map(p => p.symbol).join(' × ')})`}
+            title={`γ 偏差热力图 (${displayDimensions.map(p => p.symbol).join(' × ')})`}
             stats={stats}
-            variableParams={variableParams}
+            displayDimensions={displayDimensions}
             dataKey="bias_gamma_mean"
             color={colors.gamma}
             getColorForValue={getColorForValue}
@@ -745,7 +754,7 @@ function ResultsVisualization({
 interface HeatmapCardProps {
   title: string
   stats: StatsResult[]
-  variableParams: ParamConfig[]
+  displayDimensions: ParamConfig[]
   dataKey: 'bias_beta_mean' | 'bias_eta_mean' | 'bias_gamma_mean'
   color: string
   getColorForValue: (value: number, absMax: number) => string
@@ -754,7 +763,7 @@ interface HeatmapCardProps {
 function HeatmapCard({
   title,
   stats,
-  variableParams,
+  displayDimensions,
   dataKey,
   color,
   getColorForValue
@@ -765,7 +774,7 @@ function HeatmapCard({
 
   // 获取第一维度的所有唯一值
   const getFirstDimensionValues = () => {
-    const dim = variableParams[0]
+    const dim = displayDimensions[0]
     const valueSet = new Set(stats.map(s => {
       if (dim.id === 'beta') return s.beta_true
       if (dim.id === 'sampleSize') return s.sample_size
@@ -778,8 +787,8 @@ function HeatmapCard({
 
   // 获取第二维度的所有值
   const getSecondDimensionValues = () => {
-    if (variableParams.length < 2) return []
-    const dim = variableParams[1]
+    if (displayDimensions.length < 2) return []
+    const dim = displayDimensions[1]
     const valueSet = new Set(stats.map(s => {
       if (dim.id === 'beta') return s.beta_true
       if (dim.id === 'sampleSize') return s.sample_size
@@ -805,11 +814,11 @@ function HeatmapCard({
   const heatmapData = secondDimValues.map(yVal =>
     firstDimValues.map(xVal => {
       const item = stats.find(s => {
-        const matchX = variableParams[0].id === 'beta' ? s.beta_true === xVal
-                      : variableParams[0].id === 'sampleSize' ? s.sample_size === xVal
+        const matchX = displayDimensions[0].id === 'beta' ? s.beta_true === xVal
+                      : displayDimensions[0].id === 'sampleSize' ? s.sample_size === xVal
                       : s.offset_value === xVal
-        const matchY = variableParams[1].id === 'beta' ? s.beta_true === yVal
-                      : variableParams[1].id === 'sampleSize' ? s.sample_size === yVal
+        const matchY = displayDimensions[1].id === 'beta' ? s.beta_true === yVal
+                      : displayDimensions[1].id === 'sampleSize' ? s.sample_size === yVal
                       : s.offset_value === yVal
         return matchX && matchY
       })
@@ -846,7 +855,7 @@ function HeatmapCard({
               <th className="p-2 bg-slate-50"></th>
               {firstDimValues.map(val => (
                 <th key={val} className="p-2 bg-slate-50 text-xs font-bold text-slate-600 min-w-[60px]">
-                  {formatValue(val, variableParams[0].id)}
+                  {formatValue(val, displayDimensions[0].id)}
                 </th>
               ))}
             </tr>
@@ -855,7 +864,7 @@ function HeatmapCard({
             {secondDimValues.map((yVal, yIdx) => (
               <tr key={yVal}>
                 <td className="p-2 bg-slate-50 text-xs font-bold text-slate-600 whitespace-nowrap">
-                  {formatValue(yVal, variableParams[1].id)}
+                  {formatValue(yVal, displayDimensions[1].id)}
                 </td>
                 {heatmapData[yIdx].map((cell, xIdx) => (
                   <td
