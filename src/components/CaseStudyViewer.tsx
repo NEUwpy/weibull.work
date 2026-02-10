@@ -247,13 +247,26 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 
     filteredData.forEach(row => {
       const keyParts: string[] = []
+      const labelParts: string[] = []
       variableParams.forEach(p => {
-        if (p.id === 'beta') keyParts.push(`β=${row.beta_true}`)
-        if (p.id === 'sampleSize') keyParts.push(`n=${row.sample_size}`)
-        if (p.id === 'process') keyParts.push(`${selectedCase?.processSymbol || 'δ'}=${row.offset_value}`)
+        if (p.id === 'beta') {
+          keyParts.push(`β=${row.beta_true}`)
+          labelParts.push(String(row.beta_true))
+        }
+        if (p.id === 'sampleSize') {
+          keyParts.push(`n=${row.sample_size}`)
+          labelParts.push(String(row.sample_size))
+        }
+        if (p.id === 'process') {
+          keyParts.push(`${selectedCase?.processSymbol || 'δ'}=${row.offset_value}`)
+          // 对于偏移量，如果是小数则显示2位，否则显示整数
+          const val = row.offset_value
+          labelParts.push(typeof val === 'number' && val < 1 && val !== 0 ? val.toFixed(2) : String(val))
+        }
       })
 
       const key = keyParts.join(', ')
+      const label = labelParts.length === 1 ? labelParts[0] : keyParts.join(', ')
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key)!.push(row)
     })
@@ -270,9 +283,26 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
       const biasEta = rows.map(r => r.bias_eta)
       const biasGamma = rows.map(r => r.bias_gamma)
 
+      // 生成标签
+      const labelParts: string[] = []
+      variableParams.forEach(p => {
+        if (p.id === 'beta') {
+          const val = rows[0].beta_true
+          labelParts.push(String(val))
+        }
+        if (p.id === 'sampleSize') {
+          const val = rows[0].sample_size
+          labelParts.push(String(val))
+        }
+        if (p.id === 'process') {
+          const val = rows[0].offset_value
+          labelParts.push(typeof val === 'number' && val < 1 && val !== 0 ? val.toFixed(2) : String(val))
+        }
+      })
+
       return {
         key,
-        keyLabel: key,
+        keyLabel: labelParts.length === 1 ? labelParts[0] : labelParts.join(', '),
         beta_true: variableParams.find(p => p.id === 'beta') ? rows[0].beta_true : undefined,
         sample_size: variableParams.find(p => p.id === 'sampleSize') ? rows[0].sample_size : undefined,
         offset_value: variableParams.find(p => p.id === 'process') ? rows[0].offset_value : undefined,
@@ -667,81 +697,74 @@ function ResultsVisualization({
         </div>
       )}
 
-      {/* 指标说明卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <div className="text-xs font-bold text-slate-500 mb-1">偏差</div>
-          <div className="text-lg font-black text-slate-800">估计均值 - 真值</div>
-          <div className="text-xs text-slate-400 mt-1">正值=高估, 负值=低估</div>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <div className="text-xs font-bold text-slate-500 mb-1">标准差 (SD)</div>
-          <div className="text-lg font-black text-slate-800">√方差</div>
-          <div className="text-xs text-slate-400 mt-1">100次结果的波动程度</div>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <div className="text-xs font-bold text-slate-500 mb-1">均方误差 (MSE)</div>
-          <div className="text-lg font-black text-slate-800">偏差² + 方差</div>
-          <div className="text-xs text-slate-400 mt-1">综合准确性和稳定性</div>
-        </div>
-      </div>
-
       {/* 单变量展示：双Y轴趋势图 */}
       {displayDimensions.length === 1 && (
         <>
           {/* 图1: 偏差趋势图 */}
-          <div className="bg-white border border-slate-300 p-4">
-            <div className="h-[350px]">
+          <div className="bg-white border border-slate-300 p-3">
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={stats} margin={{ top: 20, right: 70, bottom: 50, left: 70 }}>
-                  <CartesianGrid strokeDasharray="2 2" stroke="#e5e7eb" strokeWidth={0.5} />
+                <ComposedChart data={stats} margin={{ top: 5, right: 15, bottom: 40, left: 55 }}>
                   <XAxis
                     dataKey="keyLabel"
-                    tick={{ fontSize: 12, fill: '#374151' }}
+                    tick={{ fontSize: 15, fill: '#374151' }}
+                    tickLine={true}
+                    stroke="#000"
+                    strokeWidth={1}
                     label={{
-                      value: displayDimensions[0].symbol,
+                      value: displayDimensions[0].id === 'sampleSize' ? `样本量${displayDimensions[0].symbol}` : displayDimensions[0].symbol,
                       position: 'insideBottom',
-                      offset: -10,
-                      fontSize: 13,
+                      offset: -23,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: '#1f2937'
                     }}
+                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
                   />
                   <YAxis
                     yAxisId="left"
-                    tick={{ fontSize: 11, fill: '#374151' }}
+                    tick={{ fontSize: 14, fill: colors.beta }}
+                    tickLine={true}
+                    stroke={colors.beta}
+                    strokeWidth={1}
+                    tickSize={4}
                     label={{
-                      value: '参数偏差',
+                      value: 'β 偏差',
                       angle: -90,
                       position: 'insideLeft',
-                      offset: -15,
-                      fontSize: 13,
+                      offset: -3,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: colors.beta
                     }}
-                    stroke={colors.beta}
+                    axisLine={{ stroke: colors.beta, strokeWidth: 1 }}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    tick={{ fontSize: 11, fill: '#374151' }}
+                    tick={{ fontSize: 14, fill: '#6b7280' }}
+                    tickLine={true}
+                    stroke="#6b7280"
+                    strokeWidth={1}
+                    tickSize={4}
                     label={{
-                      value: '参数偏差',
+                      value: 'η、γ 偏差',
                       angle: -90,
                       position: 'insideRight',
-                      offset: -15,
-                      fontSize: 13,
+                      offset: -3,
+                      dy: -50,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: '#6b7280'
                     }}
-                    stroke="#6b7280"
+                    axisLine={{ stroke: '#6b7280', strokeWidth: 1 }}
                   />
                   <Tooltip
                     contentStyle={{
                       borderRadius: '4px',
                       border: '1px solid #e5e7eb',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      fontSize: '12px'
+                      fontSize: '13px'
                     }}
                     formatter={(value: number, name: string) => {
                       if (name.includes('β')) return [value.toFixed(4), name]
@@ -750,7 +773,8 @@ function ResultsVisualization({
                   />
                   <Legend
                     verticalAlign="top"
-                    wrapperStyle={{ fontSize: '12px', fontWeight: 500 }}
+                    align="right"
+                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 20 }}
                   />
                   <ReferenceLine yAxisId="left" y={0} stroke={colors.beta} strokeDasharray="4 4" strokeWidth={1} />
                   <ReferenceLine yAxisId="right" y={0} stroke="#6b7280" strokeDasharray="4 4" strokeWidth={1} />
@@ -787,64 +811,76 @@ function ResultsVisualization({
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-center text-sm font-semibold text-slate-700 mt-2">
+            <p className="text-center text-base font-semibold text-slate-700 mt-0.5">
               {getFigureNumber(1)}: {displayDimensions[0].name}对参数估计偏差的影响
             </p>
           </div>
 
           {/* 图2: SD趋势图 */}
-          <div className="bg-white border border-slate-300 p-4">
-            <div className="h-[350px]">
+          <div className="bg-white border border-slate-300 p-3">
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={stats} margin={{ top: 20, right: 70, bottom: 50, left: 70 }}>
-                  <CartesianGrid strokeDasharray="2 2" stroke="#e5e7eb" strokeWidth={0.5} />
+                <ComposedChart data={stats} margin={{ top: 5, right: 15, bottom: 40, left: 55 }}>
                   <XAxis
                     dataKey="keyLabel"
-                    tick={{ fontSize: 12, fill: '#374151' }}
+                    tick={{ fontSize: 15, fill: '#374151' }}
+                    tickLine={true}
+                    stroke="#000"
+                    strokeWidth={1}
                     label={{
-                      value: displayDimensions[0].symbol,
+                      value: displayDimensions[0].id === 'sampleSize' ? `样本量${displayDimensions[0].symbol}` : displayDimensions[0].symbol,
                       position: 'insideBottom',
-                      offset: -10,
-                      fontSize: 13,
+                      offset: -23,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: '#1f2937'
                     }}
+                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
                   />
                   <YAxis
                     yAxisId="left"
-                    tick={{ fontSize: 11, fill: '#374151' }}
+                    tick={{ fontSize: 14, fill: colors.beta }}
+                    tickLine={true}
+                    stroke={colors.beta}
+                    strokeWidth={1}
+                    tickSize={4}
                     label={{
-                      value: '标准差 (SD)',
+                      value: 'β 标准差',
                       angle: -90,
                       position: 'insideLeft',
-                      offset: -15,
-                      fontSize: 13,
+                      offset: -3,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: colors.beta
                     }}
-                    stroke={colors.beta}
+                    axisLine={{ stroke: colors.beta, strokeWidth: 1 }}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    tick={{ fontSize: 11, fill: '#374151' }}
+                    tick={{ fontSize: 14, fill: '#6b7280' }}
+                    tickLine={true}
+                    stroke="#6b7280"
+                    strokeWidth={1}
+                    tickSize={4}
                     label={{
-                      value: '标准差 (SD)',
+                      value: 'η、γ 标准差',
                       angle: -90,
                       position: 'insideRight',
-                      offset: -15,
-                      fontSize: 13,
+                      offset: -3,
+                      dy: -50,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: '#6b7280'
                     }}
-                    stroke="#6b7280"
+                    axisLine={{ stroke: '#6b7280', strokeWidth: 1 }}
                   />
                   <Tooltip
                     contentStyle={{
                       borderRadius: '4px',
                       border: '1px solid #e5e7eb',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      fontSize: '12px'
+                      fontSize: '13px'
                     }}
                     formatter={(value: number, name: string) => {
                       if (name.includes('β')) return [value.toFixed(4), name]
@@ -853,7 +889,8 @@ function ResultsVisualization({
                   />
                   <Legend
                     verticalAlign="top"
-                    wrapperStyle={{ fontSize: '12px', fontWeight: 500 }}
+                    align="right"
+                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 20 }}
                   />
                   <Line
                     yAxisId="left"
@@ -888,64 +925,76 @@ function ResultsVisualization({
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-center text-sm font-semibold text-slate-700 mt-2">
+            <p className="text-center text-base font-semibold text-slate-700 mt-0.5">
               {getFigureNumber(2)}: {displayDimensions[0].name}对参数估计标准差的影响
             </p>
           </div>
 
           {/* 图3: MSE趋势图 */}
-          <div className="bg-white border border-slate-300 p-4">
-            <div className="h-[350px]">
+          <div className="bg-white border border-slate-300 p-3">
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={stats} margin={{ top: 20, right: 70, bottom: 50, left: 70 }}>
-                  <CartesianGrid strokeDasharray="2 2" stroke="#e5e7eb" strokeWidth={0.5} />
+                <ComposedChart data={stats} margin={{ top: 5, right: 15, bottom: 40, left: 55 }}>
                   <XAxis
                     dataKey="keyLabel"
-                    tick={{ fontSize: 12, fill: '#374151' }}
+                    tick={{ fontSize: 15, fill: '#374151' }}
+                    tickLine={true}
+                    stroke="#000"
+                    strokeWidth={1}
                     label={{
-                      value: displayDimensions[0].symbol,
+                      value: displayDimensions[0].id === 'sampleSize' ? `样本量${displayDimensions[0].symbol}` : displayDimensions[0].symbol,
                       position: 'insideBottom',
-                      offset: -10,
-                      fontSize: 13,
+                      offset: -23,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: '#1f2937'
                     }}
+                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
                   />
                   <YAxis
                     yAxisId="left"
-                    tick={{ fontSize: 11, fill: '#374151' }}
+                    tick={{ fontSize: 14, fill: colors.beta }}
+                    tickLine={true}
+                    stroke={colors.beta}
+                    strokeWidth={1}
+                    tickSize={4}
                     label={{
-                      value: '均方误差 (MSE)',
+                      value: 'β 均方误差',
                       angle: -90,
                       position: 'insideLeft',
-                      offset: -15,
-                      fontSize: 13,
+                      offset: -3,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: colors.beta
                     }}
-                    stroke={colors.beta}
+                    axisLine={{ stroke: colors.beta, strokeWidth: 1 }}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    tick={{ fontSize: 11, fill: '#374151' }}
+                    tick={{ fontSize: 14, fill: '#6b7280' }}
+                    tickLine={true}
+                    stroke="#6b7280"
+                    strokeWidth={1}
+                    tickSize={4}
                     label={{
-                      value: '均方误差 (MSE)',
+                      value: 'η、γ 均方误差',
                       angle: -90,
                       position: 'insideRight',
-                      offset: -15,
-                      fontSize: 13,
+                      offset: -3,
+                      dy: -50,
+                      fontSize: 16,
                       fontWeight: 600,
                       fill: '#6b7280'
                     }}
-                    stroke="#6b7280"
+                    axisLine={{ stroke: '#6b7280', strokeWidth: 1 }}
                   />
                   <Tooltip
                     contentStyle={{
                       borderRadius: '4px',
                       border: '1px solid #e5e7eb',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      fontSize: '12px'
+                      fontSize: '13px'
                     }}
                     formatter={(value: number, name: string) => {
                       if (name.includes('β')) return [value.toFixed(4), name]
@@ -954,7 +1003,8 @@ function ResultsVisualization({
                   />
                   <Legend
                     verticalAlign="top"
-                    wrapperStyle={{ fontSize: '12px', fontWeight: 500 }}
+                    align="right"
+                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 20 }}
                   />
                   <Line
                     yAxisId="left"
@@ -983,13 +1033,13 @@ function ResultsVisualization({
                     name="γ"
                     stroke={colors.gamma}
                     strokeWidth={2.5}
-                    dot={{ r: 5, strokeWidth: 2 }}
+                    dot={{ r: 5, strokeWidth:2 }}
                     connectNulls={false}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-center text-sm font-semibold text-slate-700 mt-2">
+            <p className="text-center text-base font-semibold text-slate-700 mt-0.5">
               {getFigureNumber(3)}: {displayDimensions[0].name}对参数估计均方误差的影响
             </p>
           </div>
