@@ -48,6 +48,13 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
+  defaults?: {  // 默认基准值
+    beta?: number
+    eta?: number
+    gamma?: number
+    sampleSize?: number
+    process?: number
+  }
 }
 
 // CSV数据行
@@ -216,9 +223,29 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 
   // 计算统计量
   const calculateStats = (data: SimulationRow[], variableParams: ParamConfig[]): StatsResult[] => {
+    // 获取默认值
+    const defaults = selectedCase?.defaults || {}
+
+    // 先过滤数据：只保留非变量参数符合默认值的数据行
+    const filteredData = data.filter(row => {
+      // 如果beta不是变量，检查是否等于默认值
+      if (!variableParams.find(p => p.id === 'beta')) {
+        if (defaults.beta !== undefined && row.beta_true !== defaults.beta) return false
+      }
+      // 如果sampleSize不是变量，检查是否等于默认值
+      if (!variableParams.find(p => p.id === 'sampleSize')) {
+        if (defaults.sampleSize !== undefined && row.sample_size !== defaults.sampleSize) return false
+      }
+      // 如果process不是变量，检查是否等于默认值
+      if (!variableParams.find(p => p.id === 'process')) {
+        if (defaults.process !== undefined && row.offset_value !== defaults.process) return false
+      }
+      return true
+    })
+
     const groups = new Map<string, SimulationRow[]>()
 
-    data.forEach(row => {
+    filteredData.forEach(row => {
       const keyParts: string[] = []
       variableParams.forEach(p => {
         if (p.id === 'beta') keyParts.push(`β=${row.beta_true}`)
@@ -492,10 +519,16 @@ function ResultsVisualization({
   selectedCase?: CaseConfig
 }) {
   const colors = {
-    beta: '#3b82f6',
-    eta: '#10b981',
-    gamma: '#f59e0b'
+    beta: '#1e40af',      // 深蓝色
+    eta: '#047857',       // 深绿色
+    gamma: '#b45309'      // 深橙色
   }
+
+  // 图表编号
+  const getFigureNumber = (index: number) => `图 ${index + 1}`
+
+  // 表格编号
+  const getTableNumber = (index: number) => `表 ${index + 1}`
 
   // 获取X轴标签
   const getXLabel = () => {
@@ -504,15 +537,15 @@ function ResultsVisualization({
     return firstVar.symbol
   }
 
-  // 计算颜色范围
+  // 计算颜色范围（热力图用）
   const getColorForValue = (value: number, absMax: number): string => {
     const ratio = value / absMax
     if (ratio > 0) {
       const intensity = Math.min(Math.abs(ratio), 1)
-      return `rgba(239, 68, 68, ${0.3 + intensity * 0.7})`
+      return `rgba(220, 38, 38, ${0.2 + intensity * 0.6})`  // 红色系，透明度降低
     } else {
       const intensity = Math.min(Math.abs(ratio), 1)
-      return `rgba(59, 130, 246, ${0.3 + intensity * 0.7})`
+      return `rgba(30, 64, 175, ${0.2 + intensity * 0.6})`  // 蓝色系，透明度降低
     }
   }
 
@@ -528,7 +561,111 @@ function ResultsVisualization({
           {displayDimensions.map(p => p.symbol).join(' × ')}
           <span className="ml-2 font-mono">（{stats.length} 种组合）</span>
         </p>
+        {/* 显示其他变量参数固定在默认值 */}
+        {selectedCase?.defaults && displayDimensions.length < params.filter(p => p.isVariable).length && (
+          <div className="mt-2 pt-2 border-t border-blue-200">
+            <span className="text-xs text-blue-600">其他变量固定在：</span>
+            <span className="text-xs text-blue-700 ml-2 font-mono">
+              {params.filter(p => p.isVariable && !displayDimensions.some(d => d.id === p.id)).map(p => {
+                if (p.id === 'beta') return `β=${selectedCase.defaults?.beta}`
+                if (p.id === 'sampleSize') return `n=${selectedCase.defaults?.sampleSize}`
+                if (p.id === 'process') return `${selectedCase?.processSymbol || 'δ'}=${selectedCase.defaults?.process}`
+                return ''
+              }).filter(Boolean).join(', ')}
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* 参数汇总表 - 单变量 */}
+      {displayDimensions.length === 1 && (
+        <div className="bg-white border border-slate-300 p-4">
+          <p className="text-center text-sm font-semibold text-slate-700 mb-3">
+            {getTableNumber(0)}: 参数估计汇总统计 (按{displayDimensions[0].name}分组)
+          </p>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b-2 border-slate-400">
+                <th className="text-center py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400 w-24">{displayDimensions[0].symbol}</th>
+                <th className="text-center py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400 w-20">参数</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">真实值</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">估计均值</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">偏差</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">SD</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">MSE</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((s, idx) => {
+                // 获取变量值
+                const varValue = s.keyLabel
+
+                // 获取固定参数的真实值（从defaults中获取）
+                const getFixedTrueValue = (paramType: 'eta' | 'gamma'): number => {
+                  return selectedCase?.defaults?.[paramType] ?? 1000
+                }
+
+                // β 的真实值
+                const betaTrueValue = s.beta_true ?? selectedCase?.defaults?.beta ?? 2.0
+                // η 和 γ 是固定的
+                const etaTrueValue = getFixedTrueValue('eta')
+                const gammaTrueValue = getFixedTrueValue('gamma')
+
+                return (
+                  <React.Fragment key={idx}>
+                    {/* β 行 */}
+                    <tr className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                      <td rowSpan={3} className="py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200 text-center vertical-align-middle">
+                        {varValue}
+                      </td>
+                      <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">β</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">
+                        {displayDimensions[0].id === 'beta' ? '—' : betaTrueValue}
+                      </td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">
+                        {displayDimensions[0].id === 'beta' ? '—' : (betaTrueValue + s.bias_beta_mean).toFixed(4)}
+                      </td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_beta_mean.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_beta_std.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.mse_beta.toFixed(4)}</td>
+                    </tr>
+                    {/* η 行 */}
+                    <tr className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
+                      <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">η</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{etaTrueValue}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{(etaTrueValue + s.bias_eta_mean).toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_eta_mean.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_eta_std.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.mse_eta.toFixed(2)}</td>
+                    </tr>
+                    {/* γ 行 */}
+                    <tr className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                      <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">γ</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{gammaTrueValue}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{(gammaTrueValue + s.bias_gamma_mean).toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_gamma_mean.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_gamma_std.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.mse_gamma.toFixed(2)}</td>
+                    </tr>
+                  </React.Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+          <p className="text-center text-xs text-slate-500 mt-3">
+            注: 估计均值 = 真实值 + 偏差, 基于100次蒙特卡洛模拟. 其他参数固定在默认值.
+          </p>
+        </div>
+      )}
+
+      {/* 多变量提示 */}
+      {displayDimensions.length >= 2 && (
+        <div className="bg-white border border-slate-300 p-4">
+          <p className="text-sm text-slate-600 text-center">
+            多维度分析：请查看下方的热力图和详细统计表
+          </p>
+        </div>
+      )}
 
       {/* 指标说明卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -552,132 +689,309 @@ function ResultsVisualization({
       {/* 单变量展示：双Y轴趋势图 */}
       {displayDimensions.length === 1 && (
         <>
-          {/* 偏差趋势图 */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">偏差随{displayDimensions[0].name}的变化</h3>
-            <p className="text-sm text-slate-500 mb-4">
-              左轴: β偏差 | 右轴: η/γ偏差
-            </p>
-            <div className="h-[320px]">
+          {/* 图1: 偏差趋势图 */}
+          <div className="bg-white border border-slate-300 p-4">
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={stats} margin={{ top: 20, right: 60, bottom: 40, left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <ComposedChart data={stats} margin={{ top: 20, right: 70, bottom: 50, left: 70 }}>
+                  <CartesianGrid strokeDasharray="2 2" stroke="#e5e7eb" strokeWidth={0.5} />
                   <XAxis
                     dataKey="keyLabel"
-                    tick={{ fontSize: 11 }}
-                    label={{ value: displayDimensions[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#374151' }}
+                    label={{
+                      value: displayDimensions[0].symbol,
+                      position: 'insideBottom',
+                      offset: -10,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: '#1f2937'
+                    }}
                   />
                   <YAxis
                     yAxisId="left"
-                    tick={{ fontSize: 10 }}
-                    label={{ value: 'β 偏差', angle: -90, position: 'insideLeft', fontSize: 12, fill: colors.beta }}
+                    tick={{ fontSize: 11, fill: '#374151' }}
+                    label={{
+                      value: '参数偏差',
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: -15,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: colors.beta
+                    }}
+                    stroke={colors.beta}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    tick={{ fontSize: 10 }}
-                    label={{ value: 'η/γ 偏差', angle: -90, position: 'insideRight', fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 11, fill: '#374151' }}
+                    label={{
+                      value: '参数偏差',
+                      angle: -90,
+                      position: 'insideRight',
+                      offset: -15,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: '#6b7280'
+                    }}
+                    stroke="#6b7280"
                   />
                   <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    contentStyle={{
+                      borderRadius: '4px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      fontSize: '12px'
+                    }}
                     formatter={(value: number, name: string) => {
                       if (name.includes('β')) return [value.toFixed(4), name]
                       return [value.toFixed(2), name]
                     }}
                   />
-                  <Legend />
-                  <ReferenceLine yAxisId="left" y={0} stroke={colors.beta} strokeDasharray="3 3" strokeWidth={1} />
-                  <ReferenceLine yAxisId="right" y={0} stroke="#94a3b8" strokeDasharray="3 3" strokeWidth={1} />
-                  <Line yAxisId="left" type="monotone" dataKey="bias_beta_mean" name="β 偏差" stroke={colors.beta} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="bias_eta_mean" name="η 偏差" stroke={colors.eta} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="bias_gamma_mean" name="γ 偏差" stroke={colors.gamma} strokeWidth={2} dot={{ r: 4 }} />
+                  <Legend
+                    verticalAlign="top"
+                    wrapperStyle={{ fontSize: '12px', fontWeight: 500 }}
+                  />
+                  <ReferenceLine yAxisId="left" y={0} stroke={colors.beta} strokeDasharray="4 4" strokeWidth={1} />
+                  <ReferenceLine yAxisId="right" y={0} stroke="#6b7280" strokeDasharray="4 4" strokeWidth={1} />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="bias_beta_mean"
+                    name="β"
+                    stroke={colors.beta}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="bias_eta_mean"
+                    name="η"
+                    stroke={colors.eta}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="bias_gamma_mean"
+                    name="γ"
+                    stroke={colors.gamma}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
+            <p className="text-center text-sm font-semibold text-slate-700 mt-2">
+              {getFigureNumber(1)}: {displayDimensions[0].name}对参数估计偏差的影响
+            </p>
           </div>
 
-          {/* SD趋势图 */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">标准差 (SD) 随{displayDimensions[0].name}的变化</h3>
-            <p className="text-sm text-slate-500 mb-4">
-              左轴: β SD | 右轴: η/γ SD
-            </p>
-            <div className="h-[320px]">
+          {/* 图2: SD趋势图 */}
+          <div className="bg-white border border-slate-300 p-4">
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={stats} margin={{ top: 20, right: 60, bottom: 40, left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <ComposedChart data={stats} margin={{ top: 20, right: 70, bottom: 50, left: 70 }}>
+                  <CartesianGrid strokeDasharray="2 2" stroke="#e5e7eb" strokeWidth={0.5} />
                   <XAxis
                     dataKey="keyLabel"
-                    tick={{ fontSize: 11 }}
-                    label={{ value: displayDimensions[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#374151' }}
+                    label={{
+                      value: displayDimensions[0].symbol,
+                      position: 'insideBottom',
+                      offset: -10,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: '#1f2937'
+                    }}
                   />
                   <YAxis
                     yAxisId="left"
-                    tick={{ fontSize: 10 }}
-                    label={{ value: 'β SD', angle: -90, position: 'insideLeft', fontSize: 12, fill: colors.beta }}
+                    tick={{ fontSize: 11, fill: '#374151' }}
+                    label={{
+                      value: '标准差 (SD)',
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: -15,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: colors.beta
+                    }}
+                    stroke={colors.beta}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    tick={{ fontSize: 10 }}
-                    label={{ value: 'η/γ SD', angle: -90, position: 'insideRight', fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 11, fill: '#374151' }}
+                    label={{
+                      value: '标准差 (SD)',
+                      angle: -90,
+                      position: 'insideRight',
+                      offset: -15,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: '#6b7280'
+                    }}
+                    stroke="#6b7280"
                   />
                   <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    contentStyle={{
+                      borderRadius: '4px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      fontSize: '12px'
+                    }}
                     formatter={(value: number, name: string) => {
                       if (name.includes('β')) return [value.toFixed(4), name]
                       return [value.toFixed(2), name]
                     }}
                   />
-                  <Legend />
-                  <Line yAxisId="left" type="monotone" dataKey="bias_beta_std" name="β SD" stroke={colors.beta} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="bias_eta_std" name="η SD" stroke={colors.eta} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="bias_gamma_std" name="γ SD" stroke={colors.gamma} strokeWidth={2} dot={{ r: 4 }} />
+                  <Legend
+                    verticalAlign="top"
+                    wrapperStyle={{ fontSize: '12px', fontWeight: 500 }}
+                  />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="bias_beta_std"
+                    name="β"
+                    stroke={colors.beta}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="bias_eta_std"
+                    name="η"
+                    stroke={colors.eta}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="bias_gamma_std"
+                    name="γ"
+                    stroke={colors.gamma}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
+            <p className="text-center text-sm font-semibold text-slate-700 mt-2">
+              {getFigureNumber(2)}: {displayDimensions[0].name}对参数估计标准差的影响
+            </p>
           </div>
 
-          {/* MSE趋势图 */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">均方误差 (MSE) 随{displayDimensions[0].name}的变化</h3>
-            <p className="text-sm text-slate-500 mb-4">
-              左轴: β MSE | 右轴: η/γ MSE
-            </p>
-            <div className="h-[320px]">
+          {/* 图3: MSE趋势图 */}
+          <div className="bg-white border border-slate-300 p-4">
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={stats} margin={{ top: 20, right: 60, bottom: 40, left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <ComposedChart data={stats} margin={{ top: 20, right: 70, bottom: 50, left: 70 }}>
+                  <CartesianGrid strokeDasharray="2 2" stroke="#e5e7eb" strokeWidth={0.5} />
                   <XAxis
                     dataKey="keyLabel"
-                    tick={{ fontSize: 11 }}
-                    label={{ value: displayDimensions[0].symbol, position: 'insideBottom', offset: -5, fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 12, fill: '#374151' }}
+                    label={{
+                      value: displayDimensions[0].symbol,
+                      position: 'insideBottom',
+                      offset: -10,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: '#1f2937'
+                    }}
                   />
                   <YAxis
                     yAxisId="left"
-                    tick={{ fontSize: 10 }}
-                    label={{ value: 'β MSE', angle: -90, position: 'insideLeft', fontSize: 12, fill: colors.beta }}
+                    tick={{ fontSize: 11, fill: '#374151' }}
+                    label={{
+                      value: '均方误差 (MSE)',
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: -15,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: colors.beta
+                    }}
+                    stroke={colors.beta}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    tick={{ fontSize: 10 }}
-                    label={{ value: 'η/γ MSE', angle: -90, position: 'insideRight', fontSize: 12, fill: '#64748b' }}
+                    tick={{ fontSize: 11, fill: '#374151' }}
+                    label={{
+                      value: '均方误差 (MSE)',
+                      angle: -90,
+                      position: 'insideRight',
+                      offset: -15,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      fill: '#6b7280'
+                    }}
+                    stroke="#6b7280"
                   />
                   <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    contentStyle={{
+                      borderRadius: '4px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      fontSize: '12px'
+                    }}
                     formatter={(value: number, name: string) => {
                       if (name.includes('β')) return [value.toFixed(4), name]
                       return [value.toFixed(2), name]
                     }}
                   />
-                  <Legend />
-                  <Line yAxisId="left" type="monotone" dataKey="mse_beta" name="β MSE" stroke={colors.beta} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="mse_eta" name="η MSE" stroke={colors.eta} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="mse_gamma" name="γ MSE" stroke={colors.gamma} strokeWidth={2} dot={{ r: 4 }} />
+                  <Legend
+                    verticalAlign="top"
+                    wrapperStyle={{ fontSize: '12px', fontWeight: 500 }}
+                  />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="mse_beta"
+                    name="β"
+                    stroke={colors.beta}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="mse_eta"
+                    name="η"
+                    stroke={colors.eta}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="mse_gamma"
+                    name="γ"
+                    stroke={colors.gamma}
+                    strokeWidth={2.5}
+                    dot={{ r: 5, strokeWidth: 2 }}
+                    connectNulls={false}
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
+            <p className="text-center text-sm font-semibold text-slate-700 mt-2">
+              {getFigureNumber(3)}: {displayDimensions[0].name}对参数估计均方误差的影响
+            </p>
           </div>
         </>
       )}
@@ -686,64 +1000,34 @@ function ResultsVisualization({
       {displayDimensions.length >= 2 && (
         <>
           <HeatmapCard
-            title={`β 偏差热力图 (${displayDimensions.map(p => p.symbol).join(' × ')})`}
+            title={`β 参数偏差热力图`}
             stats={stats}
             displayDimensions={displayDimensions}
             dataKey="bias_beta_mean"
             color={colors.beta}
+            figureNumber={getFigureNumber(4)}
             getColorForValue={getColorForValue}
           />
           <HeatmapCard
-            title={`η 偏差热力图 (${displayDimensions.map(p => p.symbol).join(' × ')})`}
+            title={`η 参数偏差热力图`}
             stats={stats}
             displayDimensions={displayDimensions}
             dataKey="bias_eta_mean"
             color={colors.eta}
+            figureNumber={getFigureNumber(5)}
             getColorForValue={getColorForValue}
           />
           <HeatmapCard
-            title={`γ 偏差热力图 (${displayDimensions.map(p => p.symbol).join(' × ')})`}
+            title={`γ 参数偏差热力图`}
             stats={stats}
             displayDimensions={displayDimensions}
             dataKey="bias_gamma_mean"
             color={colors.gamma}
+            figureNumber={getFigureNumber(6)}
             getColorForValue={getColorForValue}
           />
         </>
       )}
-
-      {/* 详细统计表 */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h3 className="text-lg font-bold text-slate-800 mb-4">详细统计结果</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-2 px-3 font-bold text-slate-700">参数组合</th>
-                <th className="text-right py-2 px-3 font-bold text-slate-700">β 偏差±SD</th>
-                <th className="text-right py-2 px-3 font-bold text-slate-700">η 偏差±SD</th>
-                <th className="text-right py-2 px-3 font-bold text-slate-700">γ 偏差±SD</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.map((s, idx) => (
-                <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="py-2 px-3 font-mono text-xs">{s.keyLabel}</td>
-                  <td className="text-right py-2 px-3 font-mono text-xs">
-                    {s.bias_beta_mean.toFixed(4)} ± {s.bias_beta_std.toFixed(4)}
-                  </td>
-                  <td className="text-right py-2 px-3 font-mono text-xs">
-                    {s.bias_eta_mean.toFixed(2)} ± {s.bias_eta_std.toFixed(2)}
-                  </td>
-                  <td className="text-right py-2 px-3 font-mono text-xs">
-                    {s.bias_gamma_mean.toFixed(2)} ± {s.bias_gamma_std.toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   )
 }
@@ -755,6 +1039,7 @@ interface HeatmapCardProps {
   displayDimensions: ParamConfig[]
   dataKey: 'bias_beta_mean' | 'bias_eta_mean' | 'bias_gamma_mean'
   color: string
+  figureNumber: string
   getColorForValue: (value: number, absMax: number) => string
 }
 
@@ -764,6 +1049,7 @@ function HeatmapCard({
   displayDimensions,
   dataKey,
   color,
+  figureNumber,
   getColorForValue
 }: HeatmapCardProps) {
   // 计算颜色范围
@@ -828,31 +1114,67 @@ function HeatmapCard({
   )
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-      <h3 className="text-lg font-bold text-slate-800 mb-4">{title}</h3>
-
+    <div className="bg-white border border-slate-300 p-4">
       {/* 图例 */}
-      <div className="flex items-center justify-center gap-4 mb-4">
-        <span className="text-xs font-bold text-slate-600">负偏差</span>
+      <div className="flex items-center justify-center gap-3 mb-3">
+        <span className="text-xs font-semibold text-slate-700">低估</span>
         <div className="flex items-center">
-          <div className="w-8 h-4 rounded" style={{ backgroundColor: getColorForValue(-absMax, absMax) }}></div>
-          <span className="text-xs text-slate-500 mx-1">←</span>
-          <div className="w-8 h-4 rounded bg-slate-200"></div>
-          <span className="text-xs text-slate-500 mx-1">→</span>
-          <div className="w-8 h-4 rounded" style={{ backgroundColor: getColorForValue(absMax, absMax) }}></div>
+          <div className="w-10 h-3 rounded-l" style={{ backgroundColor: getColorForValue(-absMax, absMax) }}></div>
+          <div className="w-10 h-3 bg-slate-100"></div>
+          <div className="w-10 h-3 rounded-r" style={{ backgroundColor: getColorForValue(absMax, absMax) }}></div>
         </div>
-        <span className="text-xs font-bold text-slate-600">正偏差</span>
-        <span className="text-xs text-slate-400 ml-4">{absMax.toFixed(4)}</span>
+        <span className="text-xs font-semibold text-slate-700">高估</span>
+        <span className="text-xs text-slate-500 ml-3">
+          <span className="font-mono">[{(-absMax).toFixed(3)}, {absMax.toFixed(3)}]</span>
+        </span>
       </div>
 
       {/* 热力图 */}
       <div className="overflow-x-auto">
+        <style jsx>{`
+          .diagonal-cell {
+            position: relative;
+            width: 80px;
+            height: 60px;
+          }
+          .diagonal-cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to top right, transparent calc(50% - 0.5px), #64748b calc(50% - 0.5px), #64748b calc(50% + 0.5px), transparent calc(50% + 0.5px));
+            pointer-events: none;
+          }
+          .diagonal-label-top {
+            position: absolute;
+            top: 4px;
+            right: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #374151;
+          }
+          .diagonal-label-left {
+            position: absolute;
+            bottom: 4px;
+            left: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #374151;
+          }
+        `}</style>
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr>
-              <th className="p-2 bg-slate-50"></th>
+              <th className="bg-slate-50 border border-slate-300">
+                <div className="diagonal-cell">
+                  <span className="diagonal-label-top">{displayDimensions[0].name}</span>
+                  <span className="diagonal-label-left">{displayDimensions[1].name}</span>
+                </div>
+              </th>
               {firstDimValues.map(val => (
-                <th key={val} className="p-2 bg-slate-50 text-xs font-bold text-slate-600 min-w-[60px]">
+                <th key={val} className="p-2 bg-slate-50 border border-slate-300 text-xs font-bold text-slate-800 min-w-[65px]">
                   {formatValue(val, displayDimensions[0].id)}
                 </th>
               ))}
@@ -861,18 +1183,23 @@ function HeatmapCard({
           <tbody>
             {secondDimValues.map((yVal, yIdx) => (
               <tr key={yVal}>
-                <td className="p-2 bg-slate-50 text-xs font-bold text-slate-600 whitespace-nowrap">
+                <td className="p-2 bg-slate-50 border border-slate-300 text-xs font-bold text-slate-800 whitespace-nowrap">
                   {formatValue(yVal, displayDimensions[1].id)}
                 </td>
                 {heatmapData[yIdx].map((cell, xIdx) => (
                   <td
                     key={xIdx}
-                    className="p-2 text-center border border-slate-100 min-w-[60px]"
+                    className="p-2 text-center border border-slate-200 min-w-[65px]"
                     style={{
-                      backgroundColor: cell.hasData ? getColorForValue(cell.value, absMax) : '#f1f5f9'
+                      backgroundColor: cell.hasData ? getColorForValue(cell.value, absMax) : '#f3f4f6'
                     }}
                   >
-                    <span className={cell.hasData ? 'font-mono text-xs font-bold' : 'text-xs text-slate-300'}>
+                    <span
+                      className="font-mono text-xs font-semibold"
+                      style={{
+                        color: cell.hasData ? '#ffffff' : '#9ca3af'
+                      }}
+                    >
                       {cell.hasData ? cell.value.toFixed(3) : '—'}
                     </span>
                   </td>
@@ -882,6 +1209,9 @@ function HeatmapCard({
           </tbody>
         </table>
       </div>
+      <p className="text-center text-sm font-semibold text-slate-700 mt-3">
+        {figureNumber}: {title} ({displayDimensions.map(p => p.symbol).join(' × ')})
+      </p>
     </div>
   )
 }

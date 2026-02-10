@@ -32,7 +32,8 @@
 ### 2.1 数据源映射
 | 数据类型 | 存储格式 | 存储路径 | 读取方式 |
 | :--- | :--- | :--- | :--- |
-| **案例数据 (Cases)** | Markdown | `src/content/cases/*.md` | 解析 Frontmatter 中的 `data_raw` 字段 |
+| **案例配置 (Cases)** | Markdown + YAML | `public/cases/[methodId]_caseX.md` | API: `/api/cases/[methodId]` 解析 front matter |
+| **案例数据 (CSV)** | CSV | `public/cases/[methodId]_caseX_full.csv` | 前端直接 fetch 读取 |
 | **算法文档 (Algorithms)** | Markdown | `src/content/algorithms/*.md` | 标准 Markdown 渲染 |
 | **算法流程 (Flows)** | JSON | `src/data/method_flows/*.json` | 精确映射 UI 步骤与 Python 代码行 |
 | **文献 (Library)** | Markdown | `src/content/*.md` | 解析引用关系与 LaTeX 公式 |
@@ -95,22 +96,53 @@
 ### 5.3 案例展示 (Case Study) 功能
 **位置**: 方法详情页 → 第5个标签页 "案例展示"
 
-**现状 (v7.3.0)**:
+**现状 (v7.5.0)**:
 - 已实现通用框架 `CaseStudyViewer` 组件 (`src/components/CaseStudyViewer.tsx`)
-- 支持多案例下拉选择、多维度展示切换
-- MDM 方法首个案例：多维度参数影响研究
-  - 形状参数 β: [1.5, 2.0, 3, 5, 7]
-  - 样本量 n: [5, 7, 10, 20, 30]
-  - 偏移量 δ: [0, 0.05, 0.1, 0.15, 0.2]
-  - 固定参数: η = 1000, γ = 1000
+- 案例配置从 MD 文件读取，支持 YAML front matter 格式
+- API 路由: `/api/cases/[methodId]` 读取 `public/cases/[methodId]_case1.md`
+- 支持5参数卡片框架: β, η, γ, n (样本量), process (方法特定参数)
+- 每个参数可设置为 fixed/range/discrete 状态
+- 变量参数可点击选择"显示维度"
+- 单变量: 双Y轴趋势图 (偏差、SD、MSE)
+- 多变量: 热力图展示
+- 图表标题符合学术论文标准 (图1、图2... 表1)
+- 统计表包含偏差±标准差格式
+
+**MDM 案例1**: 多维度参数影响研究
+- 变量参数: β ∈ [1.5, 2.0, 3, 5, 7], n ∈ [5, 7, 10, 20, 30], δ ∈ [0, 0.05, 0.1, 0.15, 0.2]
+- 固定参数: η = 1000, γ = 1000
+- 数据源: `public/cases/mdm_case1_full.csv` (125种组合 × 100次模拟 = 12,500行)
+
+**添加新案例**:
+1. 创建 Python 脚本生成 CSV 数据 (`python/generate_case_data.py`)
+2. 创建 MD 配置文件 (`public/cases/[methodId]_caseX.md`)
+3. MD 文件格式:
+```yaml
+---
+id: "case-X"
+name: "案例X: 标题"
+description: "案例描述"
+processName: "过程参数名"
+processSymbol: "过程符号"
+csvFile: "/cases/[methodId]_caseX_full.csv"
+params:
+  - id: "beta"
+    name: "形状参数"
+    symbol: "β"
+    state: "discrete"
+    discreteValues: [...]
+    isVariable: true
+    isDisplayDimension: false
+  # ... 其他参数
+---
+```
 
 **未来规划**:
 1. **导出功能**: 从"计算过程"/"结果分析"页面导出当前配置到案例展示
-2. **批量模拟**: 后端支持蒙特卡洛批量计算（每种组合100组样本）
-3. **统计图表**: 偏差、方差、MSE的热力图和趋势图
-4. **截图保存**: 单次分析结果的可视化图表导出为图片
-5. **案例配置文件**: 将案例配置抽离到 JSON 文件，支持动态加载
+2. **批量模拟 API**: 后端支持实时蒙特卡洛批量计算
+3. **图表导出**: 支持导出为高分辨率图片 (PNG/SVG)
+4. **更多案例**: 扩展到其他方法 (MLE, LRE, etc.)
 
-### 5.3 维护注意事项
+### 5.4 维护注意事项
 *   **禁止硬编码**: 不要将数据直接写在 TS/JS 文件中。
 *   **双重验证**: 修改 Python 算法后，需同时检查前端可视化组件（`visualizers/`）是否兼容返回的数据结构。

@@ -5,6 +5,13 @@ description: "研究形状参数、样本量、偏移量对MDM三参数估计结
 processName: "偏移量"
 processSymbol: "δ"
 csvFile: "/cases/mdm_case1_full.csv"
+# 默认基准值（当某个参数作为变量时，其他参数固定在此值）
+defaults:
+  beta: 2.0
+  eta: 1000
+  gamma: 1000
+  sampleSize: 7
+  process: 0.1
 params:
   - id: "beta"
     name: "形状参数"
