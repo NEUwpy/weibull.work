@@ -13,7 +13,10 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  ReferenceLine
+  ReferenceLine,
+  ReferenceArea,
+  ScatterChart,
+  Scatter
 } from 'recharts'
 
 interface CaseStudyViewerProps {
@@ -91,6 +94,29 @@ interface StatsResult {
   mse_beta: number
   mse_eta: number
   mse_gamma: number
+  // 分布统计量
+  est_beta_min: number
+  est_beta_max: number
+  est_beta_p99: number
+  est_beta_median: number
+  est_beta_q1: number
+  est_beta_q3: number
+  est_eta_min: number
+  est_eta_max: number
+  est_eta_p99: number
+  est_eta_median: number
+  est_eta_q1: number
+  est_eta_q3: number
+  est_gamma_min: number
+  est_gamma_max: number
+  est_gamma_p99: number
+  est_gamma_median: number
+  est_gamma_q1: number
+  est_gamma_q3: number
+  // 原始估计值数组（用于散点图）
+  est_beta_values: number[]
+  est_eta_values: number[]
+  est_gamma_values: number[]
 }
 
 // 从MD文件读取案例配置
@@ -247,26 +273,19 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 
     filteredData.forEach(row => {
       const keyParts: string[] = []
-      const labelParts: string[] = []
       variableParams.forEach(p => {
         if (p.id === 'beta') {
           keyParts.push(`β=${row.beta_true}`)
-          labelParts.push(String(row.beta_true))
         }
         if (p.id === 'sampleSize') {
           keyParts.push(`n=${row.sample_size}`)
-          labelParts.push(String(row.sample_size))
         }
         if (p.id === 'process') {
           keyParts.push(`${selectedCase?.processSymbol || 'δ'}=${row.offset_value}`)
-          // 对于偏移量，如果是小数则显示2位，否则显示整数
-          const val = row.offset_value
-          labelParts.push(typeof val === 'number' && val < 1 && val !== 0 ? val.toFixed(2) : String(val))
         }
       })
 
       const key = keyParts.join(', ')
-      const label = labelParts.length === 1 ? labelParts[0] : keyParts.join(', ')
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key)!.push(row)
     })
@@ -282,6 +301,36 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
       const biasBeta = rows.map(r => r.bias_beta)
       const biasEta = rows.map(r => r.bias_eta)
       const biasGamma = rows.map(r => r.bias_gamma)
+
+      // 估计值数组
+      const estBeta = rows.map(r => r.est_beta)
+      const estEta = rows.map(r => r.est_eta)
+      const estGamma = rows.map(r => r.est_gamma)
+
+      // 计算分布统计量
+      const quantile = (arr: number[], q: number) => {
+        const sorted = [...arr].sort((a, b) => a - b)
+        const pos = (sorted.length - 1) * q
+        const base = Math.floor(pos)
+        const rest = pos - base
+        if (sorted[base + 1] !== undefined) {
+          return sorted[base] + rest * (sorted[base + 1] - sorted[base])
+        }
+        return sorted[base]
+      }
+
+      const calcStats = (arr: number[]) => ({
+        min: Math.min(...arr),
+        max: Math.max(...arr),
+        p99: quantile(arr, 0.99),
+        median: quantile(arr, 0.5),
+        q1: quantile(arr, 0.25),
+        q3: quantile(arr, 0.75)
+      })
+
+      const betaStats = calcStats(estBeta)
+      const etaStats = calcStats(estEta)
+      const gammaStats = calcStats(estGamma)
 
       // 生成标签
       const labelParts: string[] = []
@@ -315,7 +364,30 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
         bias_gamma_std: Math.sqrt(variance(biasGamma)),
         mse_beta: mean(biasBeta.map(v => v ** 2)),
         mse_eta: mean(biasEta.map(v => v ** 2)),
-        mse_gamma: mean(biasGamma.map(v => v ** 2))
+        mse_gamma: mean(biasGamma.map(v => v ** 2)),
+        // 分布统计量
+        est_beta_min: betaStats.min,
+        est_beta_max: betaStats.max,
+        est_beta_p99: betaStats.p99,
+        est_beta_median: betaStats.median,
+        est_beta_q1: betaStats.q1,
+        est_beta_q3: betaStats.q3,
+        est_eta_min: etaStats.min,
+        est_eta_max: etaStats.max,
+        est_eta_p99: etaStats.p99,
+        est_eta_median: etaStats.median,
+        est_eta_q1: etaStats.q1,
+        est_eta_q3: etaStats.q3,
+        est_gamma_min: gammaStats.min,
+        est_gamma_max: gammaStats.max,
+        est_gamma_p99: gammaStats.p99,
+        est_gamma_median: gammaStats.median,
+        est_gamma_q1: gammaStats.q1,
+        est_gamma_q3: gammaStats.q3,
+        // 原始估计值数组
+        est_beta_values: estBeta,
+        est_eta_values: estEta,
+        est_gamma_values: estGamma
       }
     }).sort((a, b) => {
       const firstVar = variableParams[0].id
@@ -610,10 +682,10 @@ function ResultsVisualization({
       {/* 参数汇总表 - 单变量 */}
       {displayDimensions.length === 1 && (
         <div className="bg-white border border-slate-300 p-4">
-          <p className="text-center text-sm font-semibold text-slate-700 mb-3">
+          <p className="text-center text-base font-semibold text-slate-700 mb-3">
             {getTableNumber(0)}: 参数估计汇总统计 (按{displayDimensions[0].name}分组)
           </p>
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-base border-collapse">
             <thead>
               <tr className="border-b-2 border-slate-400">
                 <th className="text-center py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400 w-24">{displayDimensions[0].symbol}</th>
@@ -623,6 +695,7 @@ function ResultsVisualization({
                 <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">偏差</th>
                 <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">SD</th>
                 <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">MSE</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">范围</th>
               </tr>
             </thead>
             <tbody>
@@ -635,8 +708,8 @@ function ResultsVisualization({
                   return selectedCase?.defaults?.[paramType] ?? 1000
                 }
 
-                // β 的真实值
-                const betaTrueValue = s.beta_true ?? selectedCase?.defaults?.beta ?? 2.0
+                // β 的真实值：当β是变量时，使用当前行的beta_true；否则使用默认值
+                const betaTrueValue = displayDimensions[0].id === 'beta' ? (s.beta_true ?? 2.0) : (selectedCase?.defaults?.beta ?? 2.0)
                 // η 和 γ 是固定的
                 const etaTrueValue = getFixedTrueValue('eta')
                 const gammaTrueValue = getFixedTrueValue('gamma')
@@ -645,45 +718,48 @@ function ResultsVisualization({
                   <React.Fragment key={idx}>
                     {/* β 行 */}
                     <tr className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                      <td rowSpan={3} className="py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200 text-center vertical-align-middle">
+                      <td rowSpan={3} className="py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200 text-center vertical-align-middle">
                         {varValue}
                       </td>
                       <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">β</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">
-                        {displayDimensions[0].id === 'beta' ? '—' : betaTrueValue}
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">
+                        {betaTrueValue}
                       </td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">
-                        {displayDimensions[0].id === 'beta' ? '—' : (betaTrueValue + s.bias_beta_mean).toFixed(4)}
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">
+                        {(betaTrueValue + s.bias_beta_mean).toFixed(4)}
                       </td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_beta_mean.toFixed(4)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_beta_std.toFixed(4)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.mse_beta.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_beta_mean.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_beta_std.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.mse_beta.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-sm text-slate-700 border-b border-slate-200">[{s.est_beta_min.toFixed(4)}, {s.est_beta_max.toFixed(4)}]</td>
                     </tr>
                     {/* η 行 */}
                     <tr className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
                       <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">η</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{etaTrueValue}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{(etaTrueValue + s.bias_eta_mean).toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_eta_mean.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_eta_std.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.mse_eta.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{etaTrueValue}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{(etaTrueValue + s.bias_eta_mean).toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_eta_mean.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_eta_std.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.mse_eta.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-sm text-slate-700 border-b border-slate-200">[{s.est_eta_min.toFixed(2)}, {s.est_eta_max.toFixed(2)}]</td>
                     </tr>
                     {/* γ 行 */}
                     <tr className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">γ</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{gammaTrueValue}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{(gammaTrueValue + s.bias_gamma_mean).toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_gamma_mean.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.bias_gamma_std.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-xs text-slate-700 border-b border-slate-200">{s.mse_gamma.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{gammaTrueValue}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{(gammaTrueValue + s.bias_gamma_mean).toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_gamma_mean.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_gamma_std.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.mse_gamma.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-sm text-slate-700 border-b border-slate-200">[{s.est_gamma_min.toFixed(2)}, {s.est_gamma_max.toFixed(2)}]</td>
                     </tr>
                   </React.Fragment>
                 )
               })}
             </tbody>
           </table>
-          <p className="text-center text-xs text-slate-500 mt-3">
-            注: 估计均值 = 真实值 + 偏差, 基于100次蒙特卡洛模拟. 其他参数固定在默认值.
+          <p className="text-center text-sm text-slate-500 mt-3">
+            注: 估计均值 = 真实值 + 偏差, 基于100次蒙特卡洛模拟. 范围=[最小值, 最大值]. 其他参数固定在默认值.
           </p>
         </div>
       )}
@@ -774,7 +850,7 @@ function ResultsVisualization({
                   <Legend
                     verticalAlign="top"
                     align="right"
-                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 20 }}
+                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 0 }}
                   />
                   <ReferenceLine yAxisId="left" y={0} stroke={colors.beta} strokeDasharray="4 4" strokeWidth={1} />
                   <ReferenceLine yAxisId="right" y={0} stroke="#6b7280" strokeDasharray="4 4" strokeWidth={1} />
@@ -890,7 +966,7 @@ function ResultsVisualization({
                   <Legend
                     verticalAlign="top"
                     align="right"
-                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 20 }}
+                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 0 }}
                   />
                   <Line
                     yAxisId="left"
@@ -1004,7 +1080,7 @@ function ResultsVisualization({
                   <Legend
                     verticalAlign="top"
                     align="right"
-                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 20 }}
+                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 0 }}
                   />
                   <Line
                     yAxisId="left"
@@ -1041,6 +1117,355 @@ function ResultsVisualization({
             </div>
             <p className="text-center text-base font-semibold text-slate-700 mt-0.5">
               {getFigureNumber(3)}: {displayDimensions[0].name}对参数估计均方误差的影响
+            </p>
+          </div>
+
+          {/* 图4: 估计值分布箱线图 */}
+          <div className="bg-white border border-slate-300 p-3">
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={stats} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="keyLabel"
+                    tick={{ fontSize: 15, fill: '#374151' }}
+                    tickLine={true}
+                    stroke="#000"
+                    strokeWidth={1}
+                    label={{
+                      value: displayDimensions[0].id === 'sampleSize' ? `样本量${displayDimensions[0].symbol}` : displayDimensions[0].symbol,
+                      position: 'insideBottom',
+                      offset: -23,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      fill: '#1f2937'
+                    }}
+                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                  />
+                  <YAxis
+                    yAxisId="beta"
+                    tick={{ fontSize: 14, fill: colors.beta }}
+                    tickLine={true}
+                    stroke={colors.beta}
+                    strokeWidth={1}
+                    tickSize={4}
+                    label={{
+                      value: 'β 估计值',
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: -3,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      fill: colors.beta
+                    }}
+                    axisLine={{ stroke: colors.beta, strokeWidth: 1 }}
+                  />
+                  <YAxis
+                    yAxisId="eta"
+                    orientation="right"
+                    tick={{ fontSize: 14, fill: '#6b7280' }}
+                    tickLine={true}
+                    stroke="#6b7280"
+                    strokeWidth={1}
+                    tickSize={4}
+                    label={{
+                      value: 'η 估计值',
+                      angle: -90,
+                      position: 'insideRight',
+                      offset: -3,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      fill: '#6b7280'
+                    }}
+                    axisLine={{ stroke: '#6b7280', strokeWidth: 1 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '4px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      fontSize: '13px'
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name.includes('β')) return [value.toFixed(4), name]
+                      return [value.toFixed(2), name]
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 0 }}
+                  />
+                  {/* β 箱线图 - 使用误差条表示范围 */}
+                  <Line
+                    yAxisId="beta"
+                    type="monotone"
+                    dataKey="est_beta_median"
+                    name="β 中位数"
+                    stroke={colors.beta}
+                    strokeWidth={3}
+                    dot={{ r: 6, fill: colors.beta, strokeWidth: 2 }}
+                    activeDot={{ r: 8 }}
+                  />
+                  {/* β 四分位范围 */}
+                  <Line
+                    yAxisId="beta"
+                    type="monotone"
+                    dataKey="est_beta_q1"
+                    name="β Q1"
+                    stroke={colors.beta}
+                    strokeWidth={0}
+                    dot={false}
+                    activeDot={false}
+                  />
+                  <Line
+                    yAxisId="beta"
+                    type="monotone"
+                    dataKey="est_beta_q3"
+                    name="β Q3"
+                    stroke={colors.beta}
+                    strokeWidth={0}
+                    dot={false}
+                    activeDot={false}
+                  />
+                  {/* η 箱线图 */}
+                  <Line
+                    yAxisId="eta"
+                    type="monotone"
+                    dataKey="est_eta_median"
+                    name="η 中位数"
+                    stroke={colors.eta}
+                    strokeWidth={3}
+                    dot={{ r: 6, fill: colors.eta, strokeWidth: 2 }}
+                    activeDot={{ r: 8 }}
+                  />
+                  {/* η 四分位范围 */}
+                  <Line
+                    yAxisId="eta"
+                    type="monotone"
+                    dataKey="est_eta_q1"
+                    name="η Q1"
+                    stroke={colors.eta}
+                    strokeWidth={0}
+                    dot={false}
+                    activeDot={false}
+                  />
+                  <Line
+                    yAxisId="eta"
+                    type="monotone"
+                    dataKey="est_eta_q3"
+                    name="η Q3"
+                    stroke={colors.eta}
+                    strokeWidth={0}
+                    dot={false}
+                    activeDot={false}
+                  />
+                  {/* 自定义误差条 - 使用 ReferenceArea 表示范围 */}
+                  {stats.map((s, idx) => {
+                    const xIndex = idx
+                    return (
+                      <React.Fragment key={idx}>
+                        {/* β 范围 */}
+                        <ReferenceArea
+                          yAxisId="beta"
+                          x1={xIndex - 0.35}
+                          x2={xIndex + 0.35}
+                          y1={s.est_beta_min}
+                          y2={s.est_beta_max}
+                          fill={colors.beta}
+                          fillOpacity={0.15}
+                          stroke={colors.beta}
+                          strokeWidth={1}
+                        />
+                        {/* β 99分位点标记 - 菱形 */}
+                        <ReferenceLine
+                          yAxisId="beta"
+                          y={s.est_beta_p99}
+                          stroke={colors.beta}
+                          strokeWidth={2}
+                          strokeDasharray="2 2"
+                          segment={[
+                            { x: xIndex - 0.3, y: s.est_beta_p99 },
+                            { x: xIndex + 0.3, y: s.est_beta_p99 }
+                          ]}
+                        />
+                        {/* η 范围 */}
+                        <ReferenceArea
+                          yAxisId="eta"
+                          x1={xIndex - 0.35}
+                          x2={xIndex + 0.35}
+                          y1={s.est_eta_min}
+                          y2={s.est_eta_max}
+                          fill={colors.eta}
+                          fillOpacity={0.15}
+                          stroke={colors.eta}
+                          strokeWidth={1}
+                        />
+                        {/* η 99分位点标记 */}
+                        <ReferenceLine
+                          yAxisId="eta"
+                          y={s.est_eta_p99}
+                          stroke={colors.eta}
+                          strokeWidth={2}
+                          strokeDasharray="2 2"
+                          segment={[
+                            { x: xIndex - 0.3, y: s.est_eta_p99 },
+                            { x: xIndex + 0.3, y: s.est_eta_p99 }
+                          ]}
+                        />
+                      </React.Fragment>
+                    )
+                  })}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <p className="text-xs text-slate-600 mb-2">
+                <strong>统计说明：</strong>每个参数组合基于100次蒙特卡洛模拟。箱线图中的范围线表示最小值到最大值，虚线标记表示99分位点。
+              </p>
+            </div>
+            <p className="text-center text-base font-semibold text-slate-700 mt-1">
+              {getFigureNumber(4)}: {displayDimensions[0].name}对参数估计值分布的影响（箱线图）
+            </p>
+          </div>
+
+          {/* 图5: 三参数估计分布图 */}
+          <div className="bg-white border border-slate-300 p-3">
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={stats} margin={{ top: 20, right: 60, bottom: 40, left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="keyLabel"
+                    tick={{ fontSize: 15, fill: '#374151' }}
+                    tickLine={true}
+                    stroke="#000"
+                    strokeWidth={1}
+                    label={{
+                      value: displayDimensions[0].id === 'sampleSize' ? `样本量${displayDimensions[0].symbol}` : displayDimensions[0].symbol,
+                      position: 'insideBottom',
+                      offset: -23,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      fill: '#1f2937'
+                    }}
+                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                  />
+                  <YAxis
+                    yAxisId="main"
+                    tick={{ fontSize: 14, fill: '#374151' }}
+                    tickLine={true}
+                    stroke="#000"
+                    strokeWidth={1}
+                    tickSize={4}
+                    label={{
+                      value: '估计值',
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: -3,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      fill: '#1f2937'
+                    }}
+                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '4px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      fontSize: '13px'
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name.includes('β')) return [value.toFixed(4), name]
+                      return [value.toFixed(2), name]
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 0 }}
+                  />
+                  {/* β 中位数线和范围 */}
+                  <Line
+                    yAxisId="main"
+                    type="monotone"
+                    dataKey="est_beta_median"
+                    name="β 中位数"
+                    stroke={colors.beta}
+                    strokeWidth={3}
+                    dot={{ r: 5, fill: colors.beta, strokeWidth: 2 }}
+                    activeDot={{ r: 7 }}
+                  />
+                  {/* η 中位数线和范围 */}
+                  <Line
+                    yAxisId="main"
+                    type="monotone"
+                    dataKey="est_eta_median"
+                    name="η 中位数"
+                    stroke={colors.eta}
+                    strokeWidth={3}
+                    dot={{ r: 5, fill: colors.eta, strokeWidth: 2 }}
+                    activeDot={{ r: 7 }}
+                  />
+                  {/* γ 中位数线和范围 */}
+                  <Line
+                    yAxisId="main"
+                    type="monotone"
+                    dataKey="est_gamma_median"
+                    name="γ 中位数"
+                    stroke={colors.gamma}
+                    strokeWidth={3}
+                    dot={{ r: 5, fill: colors.gamma, strokeWidth: 2 }}
+                    activeDot={{ r: 7 }}
+                  />
+                  {/* β 范围区域 */}
+                  {stats.map((s, idx) => (
+                    <ReferenceArea
+                      key={`beta-range-${idx}`}
+                      yAxisId="main"
+                      x1={idx - 0.35}
+                      x2={idx + 0.35}
+                      y1={s.est_beta_min}
+                      y2={s.est_beta_max}
+                      fill={colors.beta}
+                      fillOpacity={0.12}
+                      stroke="none"
+                    />
+                  ))}
+                  {/* η 范围区域 */}
+                  {stats.map((s, idx) => (
+                    <ReferenceArea
+                      key={`eta-range-${idx}`}
+                      yAxisId="main"
+                      x1={idx - 0.35}
+                      x2={idx + 0.35}
+                      y1={s.est_eta_min}
+                      y2={s.est_eta_max}
+                      fill={colors.eta}
+                      fillOpacity={0.08}
+                      stroke="none"
+                    />
+                  ))}
+                  {/* γ 范围区域 */}
+                  {stats.map((s, idx) => (
+                    <ReferenceArea
+                      key={`gamma-range-${idx}`}
+                      yAxisId="main"
+                      x1={idx - 0.35}
+                      x2={idx + 0.35}
+                      y1={s.est_gamma_min}
+                      y2={s.est_gamma_max}
+                      fill={colors.gamma}
+                      fillOpacity={0.08}
+                      stroke="none"
+                    />
+                  ))}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-center text-base font-semibold text-slate-700 mt-1">
+              {getFigureNumber(5)}: {displayDimensions[0].name}对三参数估计值分布的影响
             </p>
           </div>
         </>
@@ -1164,67 +1589,53 @@ function HeatmapCard({
   )
 
   return (
-    <div className="bg-white border border-slate-300 p-4">
+    <div className="bg-white border border-slate-300 p-4" style={{ maxWidth: '50%', margin: '0 auto' }}>
       {/* 图例 */}
       <div className="flex items-center justify-center gap-3 mb-3">
-        <span className="text-xs font-semibold text-slate-700">低估</span>
+        <span className="text-sm font-semibold text-slate-700">低估</span>
         <div className="flex items-center">
           <div className="w-10 h-3 rounded-l" style={{ backgroundColor: getColorForValue(-absMax, absMax) }}></div>
           <div className="w-10 h-3 bg-slate-100"></div>
           <div className="w-10 h-3 rounded-r" style={{ backgroundColor: getColorForValue(absMax, absMax) }}></div>
         </div>
-        <span className="text-xs font-semibold text-slate-700">高估</span>
-        <span className="text-xs text-slate-500 ml-3">
+        <span className="text-sm font-semibold text-slate-700">高估</span>
+        <span className="text-sm text-slate-500 ml-3">
           <span className="font-mono">[{(-absMax).toFixed(3)}, {absMax.toFixed(3)}]</span>
         </span>
       </div>
 
       {/* 热力图 */}
       <div className="overflow-x-auto">
-        <style jsx>{`
-          .diagonal-cell {
-            position: relative;
-            width: 80px;
-            height: 60px;
-          }
-          .diagonal-cell::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(to top right, transparent calc(50% - 0.5px), #64748b calc(50% - 0.5px), #64748b calc(50% + 0.5px), transparent calc(50% + 0.5px));
-            pointer-events: none;
-          }
-          .diagonal-label-top {
-            position: absolute;
-            top: 4px;
-            right: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #374151;
-          }
-          .diagonal-label-left {
-            position: absolute;
-            bottom: 4px;
-            left: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #374151;
-          }
-        `}</style>
-        <table className="w-full text-sm border-collapse">
+        <table className="w-full text-base border-collapse" style={{ tableLayout: 'auto' }}>
           <thead>
             <tr>
-              <th className="bg-slate-50 border border-slate-300">
-                <div className="diagonal-cell">
-                  <span className="diagonal-label-top">{displayDimensions[0].name}</span>
-                  <span className="diagonal-label-left">{displayDimensions[1].name}</span>
+              <th className="bg-slate-50 border border-slate-300" style={{ width: '80px', padding: '0' }}>
+                <div style={{
+                  position: 'relative',
+                  width: '80px',
+                  height: '60px',
+                  background: 'linear-gradient(to top right, transparent calc(50% - 0.5px), #64748b calc(50% - 0.5px), #64748b calc(50% + 0.5px), transparent calc(50% + 0.5px))'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    top: '4px',
+                    right: displayDimensions[0].id === 'sampleSize' ? '1px' : displayDimensions[0].id === 'beta' ? '11px' : '6px',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: '#374151'
+                  }}>{displayDimensions[0].name}</span>
+                  <span style={{
+                    position: 'absolute',
+                    bottom: '4px',
+                    left: displayDimensions[1].id === 'sampleSize' ? '1px' : displayDimensions[1].id === 'beta' ? '11px' : '6px',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: '#374151'
+                  }}>{displayDimensions[1].name}</span>
                 </div>
               </th>
               {firstDimValues.map(val => (
-                <th key={val} className="p-2 bg-slate-50 border border-slate-300 text-xs font-bold text-slate-800 min-w-[65px]">
+                <th key={val} className="p-2.5 bg-slate-50 border border-slate-300 text-sm font-bold text-slate-800">
                   {formatValue(val, displayDimensions[0].id)}
                 </th>
               ))}
@@ -1233,19 +1644,19 @@ function HeatmapCard({
           <tbody>
             {secondDimValues.map((yVal, yIdx) => (
               <tr key={yVal}>
-                <td className="p-2 bg-slate-50 border border-slate-300 text-xs font-bold text-slate-800 whitespace-nowrap">
+                <td className="p-2.5 bg-slate-50 border border-slate-300 text-sm font-bold text-slate-800 text-center" style={{ width: '80px' }}>
                   {formatValue(yVal, displayDimensions[1].id)}
                 </td>
                 {heatmapData[yIdx].map((cell, xIdx) => (
                   <td
                     key={xIdx}
-                    className="p-2 text-center border border-slate-200 min-w-[65px]"
+                    className="p-2.5 text-center border border-slate-200"
                     style={{
                       backgroundColor: cell.hasData ? getColorForValue(cell.value, absMax) : '#f3f4f6'
                     }}
                   >
                     <span
-                      className="font-mono text-xs font-semibold"
+                      className="font-mono text-sm font-semibold"
                       style={{
                         color: cell.hasData ? '#ffffff' : '#9ca3af'
                       }}
@@ -1259,7 +1670,7 @@ function HeatmapCard({
           </tbody>
         </table>
       </div>
-      <p className="text-center text-sm font-semibold text-slate-700 mt-3">
+      <p className="text-center text-base font-semibold text-slate-700 mt-3">
         {figureNumber}: {title} ({displayDimensions.map(p => p.symbol).join(' × ')})
       </p>
     </div>
