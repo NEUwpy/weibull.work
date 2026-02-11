@@ -525,7 +525,7 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                   <p className="text-slate-600 mb-3">
                     对于 n={n} 的完全样本，中位秩公式为：
                     <code className="ml-2 px-2 py-1 bg-slate-200 rounded text-xs">
-                      F<sub>i</sub> = (i - 0.3) / (n + 0.4)
+                      F&lt;sub&gt;i&lt;/sub&gt; = (i - 0.3) / (n + 0.4)
                     </code>
                   </p>
                   <div className="overflow-x-auto">
@@ -533,8 +533,8 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                       <thead>
                         <tr className="border-b border-slate-300">
                           <th className="py-2 text-left">序号 i</th>
-                          <th className="py-2 text-left">排序样本 t<sub>i</sub></th>
-                          <th className="py-2 text-left">中位秩 F<sub>i</sub></th>
+                          <th className="py-2 text-left">排序样本 t&lt;sub&gt;i&lt;/sub&gt;</th>
+                          <th className="py-2 text-left">中位秩 F&lt;sub&gt;i&lt;/sub&gt;</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -558,8 +558,8 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                   </p>
                   <div className="mb-3 p-3 bg-white rounded border border-blue-200">
                     <code className="text-xs">
-                      t<sub>理论</sub> = γ + η × (-ln(1-F<sub>i</sub>))<sup>1/β</sup>
-                      <br />= {TRUE_GAMMA} + 1000 × (-ln(1-F<sub>i</sub>))<sup>1/{TRUE_BETA}</sup>
+                      t&lt;sub&gt;理论&lt;/sub&gt; = γ + η × (-ln(1-F&lt;sub&gt;i&lt;/sub&gt;))&lt;sup&gt;1/β&lt;/sup&gt;
+                      <br />= {TRUE_GAMMA} + 1000 × (-ln(1-F&lt;sub&gt;i&lt;/sub&gt;))&lt;sup&gt;1/{TRUE_BETA}&lt;/sup&gt;
                     </code>
                   </div>
                   <div className="overflow-x-auto">
@@ -567,9 +567,9 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                       <thead>
                         <tr className="border-b border-slate-300">
                           <th className="py-2 text-left">序号</th>
-                          <th className="py-2 text-left">F<sub>i</sub></th>
-                          <th className="py-2 text-left">理论 t<sub>i</sub></th>
-                          <th className="py-2 text-left">实际 t<sub>i</sub></th>
+                          <th className="py-2 text-left">F&lt;sub&gt;i&lt;/sub&gt;</th>
+                          <th className="py-2 text-left">理论 t&lt;sub&gt;i&lt;/sub&gt;</th>
+                          <th className="py-2 text-left">实际 t&lt;sub&gt;i&lt;/sub&gt;</th>
                           <th className="py-2 text-left">误差</th>
                         </tr>
                       </thead>
