@@ -601,15 +601,15 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                   <h5 className="font-bold text-slate-700 mb-2">3. 无交点现象解释</h5>
                   <div className="space-y-2 text-slate-600">
                     <p>
-                      <strong>MDM方法原理：</strong>在固定γ的情况下，找到使σ<sub>η</sub>最小的β值，
-                      然后计算梯度 ∇(γ) = dσ<sub>η</sub>/dγ，寻找∇(γ) = δ的交点。
+                      <strong>MDM方法原理：</strong>在固定γ的情况下，找到使σ&lt;sub&gt;η&lt;/sub&gt;最小的β值，
+                      然后计算梯度 ∇(γ) = dσ&lt;sub&gt;η&lt;/sub&gt;/dγ，寻找∇(γ) = δ的交点。
                     </p>
                     <p>
-                      <strong>本样本情况：</strong>对于样本 #{selectedNonIntersect.sim_id}，在所有γ∈[0, t<sub>min</sub>]范围内，
-                      梯度∇(γ)始终为负值且小于δ={OFFSET_VALUE}（即∇(γ) < δ）。
+                      <strong>本样本情况：</strong>对于样本 #{selectedNonIntersect.sim_id}，在所有γ∈[0, t&lt;sub&gt;min&lt;/sub&gt;]范围内，
+                      梯度∇(γ)始终为负值且小于δ={OFFSET_VALUE}（即∇(γ) &lt; δ）。
                     </p>
                     <p>
-                      <strong>无交点原因：</strong>该样本的σ<sub>η</sub>(γ)曲线单调递减（或梯度始终为负），
+                      <strong>无交点原因：</strong>该样本的σ&lt;sub&gt;η&lt;/sub&gt;(γ)曲线单调递减（或梯度始终为负），
                       导致无法找到∇(γ) = δ={OFFSET_VALUE}的交点。MDM方法fallback返回边界值γ=0。
                     </p>
                     <p className="text-red-700">
