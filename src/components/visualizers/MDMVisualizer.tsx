@@ -19,11 +19,12 @@ import {
 import { RefreshCw } from 'lucide-react'
 import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
 import MDMOffsetAnalyzer from './MDMOffsetAnalyzer'
+import MDMIterationViewer from './MDMIterationViewer'
 import { cn } from '@/lib/utils'
 
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
-  grad_gamma_curve: { gamma: number; gradient: number; sigma_min: number }[]
+  grad_gamma_curve: { gamma: number; gradient: number; sigma_min: number; best_beta?: number }[]
   sigma_beta_gamma?: { gamma: number; betas: number[]; sigmas: number[] }[]
   target_offset: number
   optimal_gamma: number
@@ -327,7 +328,8 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
 
       {/* Original View */}
       {activeScheme === 'original' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* Chart 1: Sigma vs Beta (with Gamma Slider) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -571,6 +573,13 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
         </div>
 
       </div>
+          <MDMIterationViewer 
+            traceData={surfaceData || traceData}
+            isLoading={isLoadingSurface}
+            onLoadData={handleLoad3DSurface}
+            hasData={surfaceData !== null}
+          />
+        </>
       )}
 
       {/* Offset Analysis */}
