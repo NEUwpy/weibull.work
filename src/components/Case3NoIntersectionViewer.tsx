@@ -636,7 +636,15 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                         σ&lt;sub&gt;η&lt;/sub&gt;(γ) = std(&#123;η&lt;sub&gt;1&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;), ..., η&lt;sub&gt;n&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;)&#125;)
                       </code>
                       <p className="text-xs mt-2">
-                        在本样本中，当γ变化时，计算相应的σ&lt;sub&gt;η&lt;/sub&gt;(γ)值，形成标准差曲线。
+                        <strong>关于最小值：</strong>σ&lt;sub&gt;η&lt;/sub&gt;(γ)在闭区间[0, t&lt;sub&gt;min&lt;/sub&gt;]上一定存在最小值（极值定理）。
+                        最小值可能出现在：
+                      </p>
+                      <ul className="text-xs mt-1 ml-4 list-disc space-y-1">
+                        <li><strong>区间内部：</strong>梯度由负变正，存在极值点</li>
+                        <li><strong>区间边界：</strong>σ&lt;sub&gt;η&lt;/sub&gt;(γ)单调变化，最小值在γ=0或γ→t&lt;sub&gt;min&lt;/sub&gt;</li>
+                      </ul>
+                      <p className="text-xs mt-2">
+                        <strong>本样本情况：</strong>σ&lt;sub&gt;η&lt;/sub&gt;(γ)在整个区间上单调递减，最小值在右边界（γ接近t&lt;sub&gt;min&lt;/sub&gt;）。
                       </p>
                     </div>
 
@@ -648,11 +656,19 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                         ∇(γ) = dσ&lt;sub&gt;η&lt;/sub&gt;(γ) / dγ
                       </code>
                       <p className="text-xs mt-2">
-                        <strong>数值计算：</strong>在实际实现中，使用有限差分近似计算梯度：
+                        <strong>数值计算：</strong>使用有限差分近似：
                       </p>
                       <code className="text-xs block bg-slate-50 p-2 rounded">
                         ∇(γ&lt;sub&gt;i&lt;/sub&gt;) ≈ [σ&lt;sub&gt;η&lt;/sub&gt;(γ&lt;sub&gt;i+1&lt;/sub&gt;) - σ&lt;sub&gt;η&lt;/sub&gt;(γ&lt;sub&gt;i&lt;/sub&gt;)] / (γ&lt;sub&gt;i+1&lt;/sub&gt; - γ&lt;sub&gt;i&lt;/sub&gt;)
                       </code>
+                      <p className="text-xs mt-2">
+                        <strong>梯度符号的含义：</strong>
+                      </p>
+                      <ul className="text-xs mt-1 ml-4 list-disc space-y-1">
+                        <li>∇(γ) &gt; 0 → σ&lt;sub&gt;η&lt;/sub&gt;(γ)单调递增</li>
+                        <li>∇(γ) &lt; 0 → σ&lt;sub&gt;η&lt;/sub&gt;(γ)单调递减</li>
+                        <li>∇(γ) = 0 → σ&lt;sub&gt;η&lt;/sub&gt;(γ)达到极值点</li>
+                      </ul>
                     </div>
 
                     {/* 步骤5 - 本样本的具体情况 */}
