@@ -630,10 +630,10 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                       <p className="font-bold text-indigo-700 mb-1">步骤3：计算标准差函数 σ&lt;sub&gt;η&lt;/sub&gt;(γ)</p>
                       <p className="text-xs mb-2">对于固定的γ，找到使η的标准差最小的β值：</p>
                       <code className="text-xs block bg-slate-50 p-2 rounded">
-                        β&lt;sup&gt;*&lt;/sup&gt;(γ) = argmin&lt;sub&gt;β&lt;/sub&gt; std({η&lt;sub&gt;1&lt;/sub&gt;, η&lt;sub&gt;2&lt;/sub&gt;, ..., η&lt;sub&gt;n&lt;/sub&gt;})
+                        β&lt;sup&gt;*&lt;/sup&gt;(γ) = argmin&lt;sub&gt;β&lt;/sub&gt; std(&#123;η&lt;sub&gt;1&lt;/sub&gt;, η&lt;sub&gt;2&lt;/sub&gt;, ..., η&lt;sub&gt;n&lt;/sub&gt;&#125;)
                       </code>
                       <code className="text-xs block bg-slate-50 p-2 rounded mt-2">
-                        σ&lt;sub&gt;η&lt;/sub&gt;(γ) = std({η&lt;sub&gt;1&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;), ..., η&lt;sub&gt;n&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;))})
+                        σ&lt;sub&gt;η&lt;/sub&gt;(γ) = std(&#123;η&lt;sub&gt;1&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;), ..., η&lt;sub&gt;n&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;)&#125;)
                       </code>
                       <p className="text-xs mt-2">
                         在本样本中，当γ变化时，计算相应的σ&lt;sub&gt;η&lt;/sub&gt;(γ)值，形成标准差曲线。
