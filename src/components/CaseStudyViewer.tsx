@@ -100,18 +100,21 @@ interface StatsResult {
   // 分布统计量
   est_beta_min: number
   est_beta_max: number
+  est_beta_p01: number
   est_beta_p99: number
   est_beta_median: number
   est_beta_q1: number
   est_beta_q3: number
   est_eta_min: number
   est_eta_max: number
+  est_eta_p01: number
   est_eta_p99: number
   est_eta_median: number
   est_eta_q1: number
   est_eta_q3: number
   est_gamma_min: number
   est_gamma_max: number
+  est_gamma_p01: number
   est_gamma_p99: number
   est_gamma_median: number
   est_gamma_q1: number
@@ -325,6 +328,7 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
       const calcStats = (arr: number[]) => ({
         min: Math.min(...arr),
         max: Math.max(...arr),
+        p01: quantile(arr, 0.01),
         p99: quantile(arr, 0.99),
         median: quantile(arr, 0.5),
         q1: quantile(arr, 0.25),
@@ -371,18 +375,21 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
         // 分布统计量
         est_beta_min: betaStats.min,
         est_beta_max: betaStats.max,
+        est_beta_p01: betaStats.p01,
         est_beta_p99: betaStats.p99,
         est_beta_median: betaStats.median,
         est_beta_q1: betaStats.q1,
         est_beta_q3: betaStats.q3,
         est_eta_min: etaStats.min,
         est_eta_max: etaStats.max,
+        est_eta_p01: etaStats.p01,
         est_eta_p99: etaStats.p99,
         est_eta_median: etaStats.median,
         est_eta_q1: etaStats.q1,
         est_eta_q3: etaStats.q3,
         est_gamma_min: gammaStats.min,
         est_gamma_max: gammaStats.max,
+        est_gamma_p01: gammaStats.p01,
         est_gamma_p99: gammaStats.p99,
         est_gamma_median: gammaStats.median,
         est_gamma_q1: gammaStats.q1,
@@ -754,6 +761,33 @@ function ResultsVisualization({
     return colors[index % colors.length]
   }
 
+  // 确定当前的主要分组变量（用于分布曲线）
+  const primaryGroupingVar = displayDimensions[0]?.id
+  const getGroupingCurves = () => {
+    if (primaryGroupingVar === 'beta') return betaDistributionCurves
+    if (primaryGroupingVar === 'sampleSize') return nDistributionCurves
+    if (primaryGroupingVar === 'process') return deltaDistributionCurves
+    return []
+  }
+  const groupingCurves = getGroupingCurves()
+
+  // 根据分组变量过滤数据
+  const getFilteredValues = (valuesAccessor: (s: StatsResult) => number[], groupKey?: number) => {
+    if (groupKey === undefined) {
+      // 没有分组，返回所有值
+      return stats.flatMap(valuesAccessor)
+    }
+    // 按分组键过滤
+    return stats
+      .filter(s => {
+        if (primaryGroupingVar === 'beta') return s.beta_true === groupKey
+        if (primaryGroupingVar === 'sampleSize') return s.sample_size === groupKey
+        if (primaryGroupingVar === 'process') return s.offset_value === groupKey
+        return true
+      })
+      .flatMap(valuesAccessor)
+  }
+
   return (
     <div className="space-y-6">
       {/* 维度说明 */}
@@ -798,7 +832,8 @@ function ResultsVisualization({
                 <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">偏差</th>
                 <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">SD</th>
                 <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">MSE</th>
-                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">范围</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">99%范围</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400">全范围</th>
               </tr>
             </thead>
             <tbody>
@@ -834,6 +869,7 @@ function ResultsVisualization({
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_beta_mean.toFixed(4)}</td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_beta_std.toFixed(4)}</td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_beta.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_beta_p01.toFixed(4)}, {s.est_beta_p99.toFixed(4)}]</td>
                       <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_beta_min.toFixed(4)}, {s.est_beta_max.toFixed(4)}]</td>
                     </tr>
                     {/* η 行 */}
@@ -844,6 +880,7 @@ function ResultsVisualization({
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_eta_mean.toFixed(2)}</td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_eta_std.toFixed(2)}</td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_eta.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_eta_p01.toFixed(2)}, {s.est_eta_p99.toFixed(2)}]</td>
                       <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_eta_min.toFixed(2)}, {s.est_eta_max.toFixed(2)}]</td>
                     </tr>
                     {/* γ 行 */}
@@ -854,6 +891,7 @@ function ResultsVisualization({
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_gamma_mean.toFixed(2)}</td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_gamma_std.toFixed(2)}</td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_gamma.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_gamma_p01.toFixed(2)}, {s.est_gamma_p99.toFixed(2)}]</td>
                       <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_gamma_min.toFixed(2)}, {s.est_gamma_max.toFixed(2)}]</td>
                     </tr>
                   </React.Fragment>
@@ -862,7 +900,7 @@ function ResultsVisualization({
             </tbody>
           </table>
           <p className="text-center text-sm text-slate-500 mt-3">
-            注: 估计均值 = 真实值 + 偏差, 基于100次蒙特卡洛模拟. 范围=[最小值, 最大值]. 其他参数固定在默认值.
+            注: 估计均值 = 真实值 + 偏差. 99%范围 = [1%分位数, 99%分位数]. 全范围 = [最小值, 最大值]. 其他参数固定在默认值.
           </p>
         </div>
       )}
@@ -1226,16 +1264,16 @@ function ResultsVisualization({
           {/* 图4: 三参数估计值分布曲线 (按变量分组) */}
           <div className="bg-white border border-slate-300 p-3">
             {/* 选择要查看的变量分组 */}
-            {(betaDistributionCurves.length > 0 || nDistributionCurves.length > 0 || deltaDistributionCurves.length > 0) && (
+            {groupingCurves.length > 0 && (
               <div className="mb-4 flex items-center justify-center gap-4">
                 <span className="text-sm font-bold text-slate-600">按变量分组显示：</span>
-                {betaDistributionCurves.length > 0 && (
+                {primaryGroupingVar === 'beta' && (
                   <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">β (形状参数)</span>
                 )}
-                {nDistributionCurves.length > 0 && (
+                {primaryGroupingVar === 'sampleSize' && (
                   <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-bold">n (样本量)</span>
                 )}
-                {deltaDistributionCurves.length > 0 && (
+                {primaryGroupingVar === 'process' && (
                   <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-sm font-bold">δ (偏移量)</span>
                 )}
               </div>
@@ -1280,25 +1318,24 @@ function ResultsVisualization({
                         align="center"
                         wrapperStyle={{ fontSize: '11px', fontWeight: 500 }}
                       />
-                      {betaDistributionCurves.map((curve, idx) => (
+                      {groupingCurves.map((curve, idx) => (
                         <Line
                           key={curve.key}
                           type="monotone"
                           dataKey="y"
-                          data={curve.kde.points}
+                          data={computeKDE(getFilteredValues(s => s.est_beta_values, curve.key)).points}
                           name={curve.label}
-                          stroke={getCurveColor(idx, betaDistributionCurves.length)}
+                          stroke={getCurveColor(idx, groupingCurves.length)}
                           strokeWidth={2}
                           dot={false}
                           connectNulls={false}
                         />
                       ))}
-                      {/* 如果没有β分组，显示整体分布 */}
-                      {betaDistributionCurves.length === 0 && (
+                      {groupingCurves.length === 0 && (
                         <Line
                           type="monotone"
                           dataKey="y"
-                          data={computeKDE(stats.flatMap(s => s.est_beta_values)).points}
+                          data={computeKDE(getFilteredValues(s => s.est_beta_values)).points}
                           name="整体分布"
                           stroke={colors.beta}
                           strokeWidth={2}
@@ -1347,29 +1384,24 @@ function ResultsVisualization({
                         align="center"
                         wrapperStyle={{ fontSize: '11px', fontWeight: 500 }}
                       />
-                      {betaDistributionCurves.map((curve, idx) => (
+                      {groupingCurves.map((curve, idx) => (
                         <Line
                           key={curve.key}
                           type="monotone"
                           dataKey="y"
-                          data={computeKDE(
-                            stats
-                              .filter(s => s.beta_true === curve.key)
-                              .flatMap(s => s.est_eta_values)
-                          ).points}
+                          data={computeKDE(getFilteredValues(s => s.est_eta_values, curve.key)).points}
                           name={curve.label}
-                          stroke={getCurveColor(idx, betaDistributionCurves.length)}
+                          stroke={getCurveColor(idx, groupingCurves.length)}
                           strokeWidth={2}
                           dot={false}
                           connectNulls={false}
                         />
                       ))}
-                      {/* 如果没有β分组，显示整体分布 */}
-                      {betaDistributionCurves.length === 0 && (
+                      {groupingCurves.length === 0 && (
                         <Line
                           type="monotone"
                           dataKey="y"
-                          data={computeKDE(stats.flatMap(s => s.est_eta_values)).points}
+                          data={computeKDE(getFilteredValues(s => s.est_eta_values)).points}
                           name="整体分布"
                           stroke={colors.eta}
                           strokeWidth={2}
@@ -1418,29 +1450,24 @@ function ResultsVisualization({
                         align="center"
                         wrapperStyle={{ fontSize: '11px', fontWeight: 500 }}
                       />
-                      {betaDistributionCurves.map((curve, idx) => (
+                      {groupingCurves.map((curve, idx) => (
                         <Line
                           key={curve.key}
                           type="monotone"
                           dataKey="y"
-                          data={computeKDE(
-                            stats
-                              .filter(s => s.beta_true === curve.key)
-                              .flatMap(s => s.est_gamma_values)
-                          ).points}
+                          data={computeKDE(getFilteredValues(s => s.est_gamma_values, curve.key)).points}
                           name={curve.label}
-                          stroke={getCurveColor(idx, betaDistributionCurves.length)}
+                          stroke={getCurveColor(idx, groupingCurves.length)}
                           strokeWidth={2}
                           dot={false}
                           connectNulls={false}
                         />
                       ))}
-                      {/* 如果没有β分组，显示整体分布 */}
-                      {betaDistributionCurves.length === 0 && (
+                      {groupingCurves.length === 0 && (
                         <Line
                           type="monotone"
                           dataKey="y"
-                          data={computeKDE(stats.flatMap(s => s.est_gamma_values)).points}
+                          data={computeKDE(getFilteredValues(s => s.est_gamma_values)).points}
                           name="整体分布"
                           stroke={colors.gamma}
                           strokeWidth={2}
@@ -1456,7 +1483,7 @@ function ResultsVisualization({
               {getFigureNumber(4)}: 参数估计值概率密度分布 (核密度估计)
             </p>
             <p className="text-center text-xs text-slate-500 mt-1">
-              使用高斯核密度估计 (KDE) 平滑曲线，带宽采用 Silverman 规则自动选择
+              使用高斯核密度估计 (KDE) 平滑曲线，带宽采用 Silverman 规则自动选择。按 <span className="font-bold">{displayDimensions[0]?.name || '-'}</span> 分组显示
             </p>
           </div>
         </>
