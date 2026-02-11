@@ -654,44 +654,105 @@ function ResultsVisualization({
     }
   }
 
-  // 计算直方图数据的辅助函数
-  const computeHistogramData = (values: number[], binCount: number = 20) => {
+  // 核密度估计 (KDE) - 计算平滑的概率密度曲线
+  const computeKDE = (values: number[], bandwidth?: number) => {
+    const n = values.length
+    if (n === 0) return { points: [], bandwidth: 0 }
+
+    // 使用 Silverman 规则自动选择带宽
+    const std = Math.sqrt(values.reduce((sum, v) => sum + (v - values.reduce((a, b) => a + b, 0) / n) ** 2, 0) / n)
+    const iqr = () => {
+      const sorted = [...values].sort((a, b) => a - b)
+      const q1 = sorted[Math.floor(n * 0.25)]
+      const q3 = sorted[Math.floor(n * 0.75)]
+      return q3 - q1
+    }
+    const defaultBandwidth = 0.9 * Math.min(std, iqr() / 1.34) / Math.pow(n, 0.2)
+    const h = bandwidth ?? defaultBandwidth
+
+    // 生成KDE曲线点
     const min = Math.min(...values)
     const max = Math.max(...values)
-    const binWidth = (max - min) / binCount
-    const bins = Array.from({ length: binCount }, (_, i) => {
-      const binStart = min + i * binWidth
-      const binEnd = binStart + binWidth
-      const range = binWidth < 1
-        ? `${binStart.toFixed(3)}`
-        : `${binStart.toFixed(1)}`
-      return {
-        range,
-        binStart,
-        binEnd,
-        count: 0
+    const range = max - min
+    const numPoints = 200
+
+    const points = Array.from({ length: numPoints }, (_, i) => {
+      const x = min - range * 0.1 + (i / (numPoints - 1)) * range * 1.2
+      // 高斯核密度估计
+      let density = 0
+      for (const v of values) {
+        const u = (x - v) / h
+        density += Math.exp(-0.5 * u * u)
       }
+      density /= (n * h * Math.sqrt(2 * Math.PI))
+      return { x, y: density }
     })
-    values.forEach(v => {
-      const binIdx = Math.min(Math.floor((v - min) / binWidth), binCount - 1)
-      bins[binIdx].count++
-    })
-    const maxCount = Math.max(...bins.map(b => b.count))
-    return { bins, maxCount, binWidth }
+
+    return { points, bandwidth: h }
   }
 
-  // 计算三个参数的直方图数据
-  const allBetaValues: number[] = []
-  const allEtaValues: number[] = []
-  const allGammaValues: number[] = []
-  stats.forEach(s => {
-    allBetaValues.push(...s.est_beta_values)
-    allEtaValues.push(...s.est_eta_values)
-    allGammaValues.push(...s.est_gamma_values)
-  })
-  const betaHistogram = computeHistogramData(allBetaValues)
-  const etaHistogram = computeHistogramData(allEtaValues)
-  const gammaHistogram = computeHistogramData(allGammaValues)
+  // 按变量分组计算分布曲线
+  const computeDistributionCurves = (
+    stats: StatsResult[],
+    getValueFunc: (s: StatsResult) => number | undefined,
+    labelFunc: (s: StatsResult) => string
+  ) => {
+    // 按变量值分组
+    const groups = new Map<number, number[]>()
+    stats.forEach(s => {
+      const key = getValueFunc(s)
+      if (key !== undefined) {
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key)!.push(...s.est_beta_values)
+      }
+    })
+
+    // 为每组计算KDE
+    return Array.from(groups.entries()).map(([key, values]) => ({
+      key,
+      label: labelFunc(stats.find(s => getValueFunc(s) === key)!),
+      kde: computeKDE(values)
+    })).sort((a, b) => a.key - b.key)
+  }
+
+  // 计算β分组的分布曲线（当展示维度包含β时）
+  const betaDistributionCurves = displayDimensions.some(d => d.id === 'beta')
+    ? computeDistributionCurves(
+        stats,
+        s => s.beta_true,
+        s => `β=${s.beta_true}`
+      )
+    : []
+
+  // 计算n分组的分布曲线（当展示维度包含样本量时）
+  const nDistributionCurves = displayDimensions.some(d => d.id === 'sampleSize')
+    ? computeDistributionCurves(
+        stats,
+        s => s.sample_size,
+        s => `n=${s.sample_size}`
+      )
+    : []
+
+  // 计算δ分组的分布曲线（当展示维度包含偏移量时）
+  const deltaDistributionCurves = displayDimensions.some(d => d.id === 'process')
+    ? computeDistributionCurves(
+        stats,
+        s => s.offset_value,
+        s => `δ=${s.offset_value}`
+      )
+    : []
+
+  // 曲线颜色（按变量值数量分配）
+  const getCurveColor = (index: number, total: number) => {
+    const colors = [
+      '#3b82f6', // blue-500
+      '#ef4444', // red-500
+      '#10b981', // emerald-500
+      '#f59e0b', // amber-500
+      '#8b5cf6', // violet-500
+    ]
+    return colors[index % colors.length]
+  }
 
   return (
     <div className="space-y-6">
@@ -727,7 +788,7 @@ function ResultsVisualization({
           <p className="text-center text-base font-semibold text-slate-700 mb-3">
             {getTableNumber(0)}: 参数估计汇总统计 (按{displayDimensions[0].name}分组)
           </p>
-          <table className="w-full text-base border-collapse">
+          <table className="w-full text-lg border-collapse">
             <thead>
               <tr className="border-b-2 border-slate-400">
                 <th className="text-center py-2 px-3 font-bold text-slate-800 border-b-2 border-slate-400 w-24">{displayDimensions[0].symbol}</th>
@@ -760,40 +821,40 @@ function ResultsVisualization({
                   <React.Fragment key={idx}>
                     {/* β 行 */}
                     <tr className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                      <td rowSpan={3} className="py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200 text-center vertical-align-middle">
+                      <td rowSpan={3} className="py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200 text-center vertical-align-middle">
                         {varValue}
                       </td>
                       <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">β</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">
                         {betaTrueValue}
                       </td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">
                         {(betaTrueValue + s.bias_beta_mean).toFixed(4)}
                       </td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_beta_mean.toFixed(4)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_beta_std.toFixed(4)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.mse_beta.toFixed(4)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-sm text-slate-700 border-b border-slate-200">[{s.est_beta_min.toFixed(4)}, {s.est_beta_max.toFixed(4)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_beta_mean.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_beta_std.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_beta.toFixed(4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_beta_min.toFixed(4)}, {s.est_beta_max.toFixed(4)}]</td>
                     </tr>
                     {/* η 行 */}
                     <tr className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
                       <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">η</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{etaTrueValue}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{(etaTrueValue + s.bias_eta_mean).toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_eta_mean.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_eta_std.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.mse_eta.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-sm text-slate-700 border-b border-slate-200">[{s.est_eta_min.toFixed(2)}, {s.est_eta_max.toFixed(2)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{etaTrueValue}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{(etaTrueValue + s.bias_eta_mean).toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_eta_mean.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_eta_std.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_eta.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_eta_min.toFixed(2)}, {s.est_eta_max.toFixed(2)}]</td>
                     </tr>
                     {/* γ 行 */}
                     <tr className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">γ</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{gammaTrueValue}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{(gammaTrueValue + s.bias_gamma_mean).toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_gamma_mean.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.bias_gamma_std.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">{s.mse_gamma.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-sm text-slate-700 border-b border-slate-200">[{s.est_gamma_min.toFixed(2)}, {s.est_gamma_max.toFixed(2)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{gammaTrueValue}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{(gammaTrueValue + s.bias_gamma_mean).toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_gamma_mean.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_gamma_std.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_gamma.toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_gamma_min.toFixed(2)}, {s.est_gamma_max.toFixed(2)}]</td>
                     </tr>
                   </React.Fragment>
                 )
@@ -1162,105 +1223,240 @@ function ResultsVisualization({
             </p>
           </div>
 
-          {/* 图4: 三参数估计值分布直方图 */}
+          {/* 图4: 三参数估计值分布曲线 (按变量分组) */}
           <div className="bg-white border border-slate-300 p-3">
+            {/* 选择要查看的变量分组 */}
+            {(betaDistributionCurves.length > 0 || nDistributionCurves.length > 0 || deltaDistributionCurves.length > 0) && (
+              <div className="mb-4 flex items-center justify-center gap-4">
+                <span className="text-sm font-bold text-slate-600">按变量分组显示：</span>
+                {betaDistributionCurves.length > 0 && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">β (形状参数)</span>
+                )}
+                {nDistributionCurves.length > 0 && (
+                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-bold">n (样本量)</span>
+                )}
+                {deltaDistributionCurves.length > 0 && (
+                  <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-sm font-bold">δ (偏移量)</span>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* β 分布 */}
+              {/* β 分布曲线 */}
               <div>
                 <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.beta }}>β 参数估计分布</p>
-                <div className="h-[250px]">
+                <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={betaHistogram.bins} margin={{ top: 10, right: 10, bottom: 30, left: 40 }}>
+                    <LineChart margin={{ top: 10, right: 15, bottom: 30, left: 45 }}>
                       <XAxis
-                        dataKey="range"
+                        dataKey="x"
                         tick={{ fontSize: 10 }}
                         tickLine={true}
                         stroke="#000"
                         strokeWidth={1}
-                        interval="preserveStartEnd"
+                        type="number"
+                        domain={['auto', 'auto']}
                         axisLine={{ stroke: '#000', strokeWidth: 1 }}
                       />
                       <YAxis
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 10 }}
                         tickLine={true}
                         stroke="#000"
                         strokeWidth={1}
                         axisLine={{ stroke: '#000', strokeWidth: 1 }}
                       />
-                      <Bar dataKey="count" fill={colors.beta}>
-                        {betaHistogram.bins.map((bin, i) => (
-                          <Cell key={`beta-${i}`} fill={colors.beta} fillOpacity={0.3 + (bin.count / betaHistogram.maxCount) * 0.5} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: '4px',
+                          border: '1px solid #e5e7eb',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          fontSize: '12px'
+                        }}
+                        formatter={(value: number) => value.toFixed(4)}
+                        labelFormatter={(label) => `β估计值: ${label.toFixed(3)}`}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        align="center"
+                        wrapperStyle={{ fontSize: '11px', fontWeight: 500 }}
+                      />
+                      {betaDistributionCurves.map((curve, idx) => (
+                        <Line
+                          key={curve.key}
+                          type="monotone"
+                          dataKey="y"
+                          data={curve.kde.points}
+                          name={curve.label}
+                          stroke={getCurveColor(idx, betaDistributionCurves.length)}
+                          strokeWidth={2}
+                          dot={false}
+                          connectNulls={false}
+                        />
+                      ))}
+                      {/* 如果没有β分组，显示整体分布 */}
+                      {betaDistributionCurves.length === 0 && (
+                        <Line
+                          type="monotone"
+                          dataKey="y"
+                          data={computeKDE(stats.flatMap(s => s.est_beta_values)).points}
+                          name="整体分布"
+                          stroke={colors.beta}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      )}
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
-              {/* η 分布 */}
+              {/* η 分布曲线 */}
               <div>
                 <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.eta }}>η 参数估计分布</p>
-                <div className="h-[250px]">
+                <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={etaHistogram.bins} margin={{ top: 10, right: 10, bottom: 30, left: 40 }}>
+                    <LineChart margin={{ top: 10, right: 15, bottom: 30, left: 45 }}>
                       <XAxis
-                        dataKey="range"
+                        dataKey="x"
                         tick={{ fontSize: 10 }}
                         tickLine={true}
                         stroke="#000"
                         strokeWidth={1}
-                        interval="preserveStartEnd"
+                        type="number"
+                        domain={['auto', 'auto']}
                         axisLine={{ stroke: '#000', strokeWidth: 1 }}
                       />
                       <YAxis
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 10 }}
                         tickLine={true}
                         stroke="#000"
                         strokeWidth={1}
                         axisLine={{ stroke: '#000', strokeWidth: 1 }}
                       />
-                      <Bar dataKey="count" fill={colors.eta}>
-                        {etaHistogram.bins.map((bin, i) => (
-                          <Cell key={`eta-${i}`} fill={colors.eta} fillOpacity={0.3 + (bin.count / etaHistogram.maxCount) * 0.5} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: '4px',
+                          border: '1px solid #e5e7eb',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          fontSize: '12px'
+                        }}
+                        formatter={(value: number) => value.toFixed(5)}
+                        labelFormatter={(label) => `η估计值: ${label.toFixed(1)}`}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        align="center"
+                        wrapperStyle={{ fontSize: '11px', fontWeight: 500 }}
+                      />
+                      {betaDistributionCurves.map((curve, idx) => (
+                        <Line
+                          key={curve.key}
+                          type="monotone"
+                          dataKey="y"
+                          data={computeKDE(
+                            stats
+                              .filter(s => s.beta_true === curve.key)
+                              .flatMap(s => s.est_eta_values)
+                          ).points}
+                          name={curve.label}
+                          stroke={getCurveColor(idx, betaDistributionCurves.length)}
+                          strokeWidth={2}
+                          dot={false}
+                          connectNulls={false}
+                        />
+                      ))}
+                      {/* 如果没有β分组，显示整体分布 */}
+                      {betaDistributionCurves.length === 0 && (
+                        <Line
+                          type="monotone"
+                          dataKey="y"
+                          data={computeKDE(stats.flatMap(s => s.est_eta_values)).points}
+                          name="整体分布"
+                          stroke={colors.eta}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      )}
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
-              {/* γ 分布 */}
+              {/* γ 分布曲线 */}
               <div>
                 <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.gamma }}>γ 参数估计分布</p>
-                <div className="h-[250px]">
+                <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={gammaHistogram.bins} margin={{ top: 10, right: 10, bottom: 30, left: 40 }}>
+                    <LineChart margin={{ top: 10, right: 15, bottom: 30, left: 45 }}>
                       <XAxis
-                        dataKey="range"
+                        dataKey="x"
                         tick={{ fontSize: 10 }}
                         tickLine={true}
                         stroke="#000"
                         strokeWidth={1}
-                        interval="preserveStartEnd"
+                        type="number"
+                        domain={['auto', 'auto']}
                         axisLine={{ stroke: '#000', strokeWidth: 1 }}
                       />
                       <YAxis
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 10 }}
                         tickLine={true}
                         stroke="#000"
                         strokeWidth={1}
                         axisLine={{ stroke: '#000', strokeWidth: 1 }}
                       />
-                      <Bar dataKey="count" fill={colors.gamma}>
-                        {gammaHistogram.bins.map((bin, i) => (
-                          <Cell key={`gamma-${i}`} fill={colors.gamma} fillOpacity={0.3 + (bin.count / gammaHistogram.maxCount) * 0.5} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: '4px',
+                          border: '1px solid #e5e7eb',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          fontSize: '12px'
+                        }}
+                        formatter={(value: number) => value.toFixed(5)}
+                        labelFormatter={(label) => `γ估计值: ${label.toFixed(1)}`}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        align="center"
+                        wrapperStyle={{ fontSize: '11px', fontWeight: 500 }}
+                      />
+                      {betaDistributionCurves.map((curve, idx) => (
+                        <Line
+                          key={curve.key}
+                          type="monotone"
+                          dataKey="y"
+                          data={computeKDE(
+                            stats
+                              .filter(s => s.beta_true === curve.key)
+                              .flatMap(s => s.est_gamma_values)
+                          ).points}
+                          name={curve.label}
+                          stroke={getCurveColor(idx, betaDistributionCurves.length)}
+                          strokeWidth={2}
+                          dot={false}
+                          connectNulls={false}
+                        />
+                      ))}
+                      {/* 如果没有β分组，显示整体分布 */}
+                      {betaDistributionCurves.length === 0 && (
+                        <Line
+                          type="monotone"
+                          dataKey="y"
+                          data={computeKDE(stats.flatMap(s => s.est_gamma_values)).points}
+                          name="整体分布"
+                          stroke={colors.gamma}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      )}
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
             </div>
             <p className="text-center text-base font-semibold text-slate-700 mt-3">
-              {getFigureNumber(4)}: 参数估计值分布直方图
+              {getFigureNumber(4)}: 参数估计值概率密度分布 (核密度估计)
+            </p>
+            <p className="text-center text-xs text-slate-500 mt-1">
+              使用高斯核密度估计 (KDE) 平滑曲线，带宽采用 Silverman 规则自动选择
             </p>
           </div>
         </>

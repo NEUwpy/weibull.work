@@ -1,10 +1,10 @@
 ---
-id: "case-1"
-name: "案例1: 多维度参数影响研究 (100组)"
-description: "研究形状参数、样本量、偏移量对MDM三参数估计结果的影响。基于100次蒙特卡洛模拟的预设分析结果。"
+id: "case-2"
+name: "案例2: 多维度参数影响研究 (1000组)"
+description: "研究形状参数、样本量、偏移量对MDM三参数估计结果的影响。基于1000次蒙特卡洛模拟的预设分析结果。"
 processName: "偏移量"
 processSymbol: "δ"
-csvFile: "/cases/mdm_case1_full.csv"
+csvFile: "/cases/mdm_case2_full.csv"
 # 默认基准值（当某个参数作为变量时，其他参数固定在此值）
 defaults:
   beta: 2.0
@@ -50,6 +50,6 @@ params:
     isDisplayDimension: false
 ---
 
-# MDM 案例1: 多维度参数影响研究
+# MDM 案例2: 多维度参数影响研究 (1000组)
 
-研究形状参数、样本量、偏移量对MDM三参数估计结果的影响。基于100次蒙特卡洛模拟的预设分析结果。
+研究形状参数、样本量、偏移量对MDM三参数估计结果的影响。基于1000次蒙特卡洛模拟的预设分析结果。
