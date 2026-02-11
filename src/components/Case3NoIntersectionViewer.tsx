@@ -630,21 +630,27 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                       <p className="font-bold text-indigo-700 mb-1">步骤3：计算标准差函数 σ&lt;sub&gt;η&lt;/sub&gt;(γ)</p>
                       <p className="text-xs mb-2">对于固定的γ，找到使η的标准差最小的β值：</p>
                       <code className="text-xs block bg-slate-50 p-2 rounded">
-                        β&lt;sup&gt;*&lt;/sup&gt;(γ) = argmin&lt;sub&gt;β&lt;/sub&gt; std(&#123;η&lt;sub&gt;1&lt;/sub&gt;, η&lt;sub&gt;2&lt;/sub&gt;, ..., η&lt;sub&gt;n&lt;/sub&gt;&#125;)
+                        β&lt;sup&gt;*&lt;/sup&gt;(γ) = argmin&lt;sub&gt;β&lt;/sub&gt; std(&#123;η&lt;sub&gt;1&lt;/sub&gt;(γ, β), η&lt;sub&gt;2&lt;/sub&gt;(γ, β), ..., η&lt;sub&gt;n&lt;/sub&gt;(γ, β)&#125;)
                       </code>
                       <code className="text-xs block bg-slate-50 p-2 rounded mt-2">
-                        σ&lt;sub&gt;η&lt;/sub&gt;(γ) = std(&#123;η&lt;sub&gt;1&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;), ..., η&lt;sub&gt;n&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;)&#125;)
+                        σ&lt;sub&gt;η&lt;/sub&gt;(γ) = std(&#123;η&lt;sub&gt;1&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;(γ)), ..., η&lt;sub&gt;n&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;(γ))&#125;)
                       </code>
+                      <p className="text-xs mt-2 bg-blue-50 p-2 rounded">
+                        <strong>重要：</strong>对于每个固定的γ，β&lt;sup&gt;*&lt;/sup&gt;(γ)一定存在！
+                        因为当β→0时σ→∞，当β→∞时σ趋于有限值，连续函数必有最小值。
+                        无交点问题发生在γ层面，不是β层面。
+                      </p>
                       <p className="text-xs mt-2">
-                        <strong>关于最小值：</strong>σ&lt;sub&gt;η&lt;/sub&gt;(γ)在闭区间[0, t&lt;sub&gt;min&lt;/sub&gt;]上一定存在最小值（极值定理）。
-                        最小值可能出现在：
+                        <strong>关于σ&lt;sub&gt;η&lt;/sub&gt;(γ)的最小值：</strong>在闭区间[0, t&lt;sub&gt;min&lt;/sub&gt;]上一定存在最小值（极值定理）。
                       </p>
                       <ul className="text-xs mt-1 ml-4 list-disc space-y-1">
-                        <li><strong>区间内部：</strong>梯度由负变正，存在极值点</li>
-                        <li><strong>区间边界：</strong>σ&lt;sub&gt;η&lt;/sub&gt;(γ)单调变化，最小值在γ=0或γ→t&lt;sub&gt;min&lt;/sub&gt;</li>
+                        <li><strong>区间内部极值：</strong>梯度由负变正，存在∇(γ)=0的极值点</li>
+                        <li><strong>边界最小值：</strong>σ&lt;sub&gt;η&lt;/sub&gt;(γ)单调变化，最小值在γ=0或γ→t&lt;sub&gt;min&lt;/sub&gt;</li>
                       </ul>
                       <p className="text-xs mt-2">
-                        <strong>本样本情况：</strong>σ&lt;sub&gt;η&lt;/sub&gt;(γ)在整个区间上单调递减，最小值在右边界（γ接近t&lt;sub&gt;min&lt;/sub&gt;）。
+                        <strong>本样本情况：</strong>σ&lt;sub&gt;η&lt;/sub&gt;(γ)在整个区间上单调递减，
+                        每个γ都有对应的β&lt;sup&gt;*&lt;/sup&gt;(γ)，但σ&lt;sub&gt;η&lt;/sub&gt;(γ)对γ单调递减，
+                        导致梯度始终为负，无法与δ={OFFSET_VALUE}相交。
                       </p>
                     </div>
 
