@@ -596,27 +596,130 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
                   </p>
                 </div>
 
-                {/* 3. 无交点现象解释 */}
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <h5 className="font-bold text-slate-700 mb-2">3. 无交点现象解释</h5>
-                  <div className="space-y-2 text-slate-600">
-                    <p>
-                      <strong>MDM方法原理：</strong>在固定γ的情况下，找到使σ&lt;sub&gt;η&lt;/sub&gt;最小的β值，
-                      然后计算梯度 ∇(γ) = dσ&lt;sub&gt;η&lt;/sub&gt;/dγ，寻找∇(γ) = δ的交点。
-                    </p>
-                    <p>
-                      <strong>本样本情况：</strong>对于样本 #{selectedNonIntersect.sim_id}，在所有γ∈[0, t&lt;sub&gt;min&lt;/sub&gt;]范围内，
-                      梯度∇(γ)始终为负值且小于δ={OFFSET_VALUE}（即∇(γ) &lt; δ）。
-                    </p>
-                    <p>
-                      <strong>无交点原因：</strong>该样本的σ&lt;sub&gt;η&lt;/sub&gt;(γ)曲线单调递减（或梯度始终为负），
-                      导致无法找到∇(γ) = δ={OFFSET_VALUE}的交点。MDM方法fallback返回边界值γ=0。
-                    </p>
-                    <p className="text-red-700">
-                      <strong>结果：</strong>γ估计值为{selectedNonIntersect.est_gamma.toFixed(2)}，
-                      与真实值{TRUE_GAMMA}的偏差高达{(selectedNonIntersect.est_gamma - TRUE_GAMMA).toFixed(2)}，
-                      相对误差={((selectedNonIntersect.est_gamma - TRUE_GAMMA) / TRUE_GAMMA * 100).toFixed(1)}%。
-                    </p>
+                {/* 3. MDM方法计算过程 */}
+                <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <h5 className="font-bold text-slate-700 mb-2">3. MDM方法计算过程详解</h5>
+                  <div className="space-y-3 text-slate-600">
+                    {/* 步骤1 */}
+                    <div className="p-3 bg-white rounded border border-indigo-200">
+                      <p className="font-bold text-indigo-700 mb-1">步骤1：计算中位秩</p>
+                      <p className="text-xs mb-2">对于完全样本 n={n}，第i个顺序统计量的中位秩为：</p>
+                      <code className="text-xs block bg-slate-50 p-2 rounded">
+                        F(t&lt;sub&gt;i&lt;/sub&gt;) = (i - 0.3) / (n + 0.4), &nbsp; i = 1, 2, ..., n
+                      </code>
+                      <p className="text-xs mt-2">
+                        对于本样本，中位秩为：
+                        [{medianRanks.map(v => v.toFixed(3)).join(', ')}]
+                      </p>
+                    </div>
+
+                    {/* 步骤2 */}
+                    <div className="p-3 bg-white rounded border border-indigo-200">
+                      <p className="font-bold text-indigo-700 mb-1">步骤2：计算伪尺度参数 η&lt;sub&gt;i&lt;/sub&gt;(γ, β)</p>
+                      <p className="text-xs mb-2">对于给定的位置参数γ和形状参数β，每个失效时间对应的伪尺度参数为：</p>
+                      <code className="text-xs block bg-slate-50 p-2 rounded">
+                        η&lt;sub&gt;i&lt;/sub&gt;(γ, β) = (t&lt;sub&gt;i&lt;/sub&gt; - γ) / [-ln(1 - F(t&lt;sub&gt;i&lt;/sub&gt;))]&lt;sup&gt;1/β&lt;/sup&gt;
+                      </code>
+                      <p className="text-xs mt-2">
+                        <strong>约束条件：</strong>必须满足 t&lt;sub&gt;i&lt;/sub&gt; &gt; γ（否则对数为负）
+                      </p>
+                    </div>
+
+                    {/* 步骤3 */}
+                    <div className="p-3 bg-white rounded border border-indigo-200">
+                      <p className="font-bold text-indigo-700 mb-1">步骤3：计算标准差函数 σ&lt;sub&gt;η&lt;/sub&gt;(γ)</p>
+                      <p className="text-xs mb-2">对于固定的γ，找到使η的标准差最小的β值：</p>
+                      <code className="text-xs block bg-slate-50 p-2 rounded">
+                        β&lt;sup&gt;*&lt;/sup&gt;(γ) = argmin&lt;sub&gt;β&lt;/sub&gt; std({η&lt;sub&gt;1&lt;/sub&gt;, η&lt;sub&gt;2&lt;/sub&gt;, ..., η&lt;sub&gt;n&lt;/sub&gt;})
+                      </code>
+                      <code className="text-xs block bg-slate-50 p-2 rounded mt-2">
+                        σ&lt;sub&gt;η&lt;/sub&gt;(γ) = std({η&lt;sub&gt;1&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;), ..., η&lt;sub&gt;n&lt;/sub&gt;(γ, β&lt;sup&gt;*&lt;/sup&gt;))})
+                      </code>
+                      <p className="text-xs mt-2">
+                        在本样本中，当γ变化时，计算相应的σ&lt;sub&gt;η&lt;/sub&gt;(γ)值，形成标准差曲线。
+                      </p>
+                    </div>
+
+                    {/* 步骤4 */}
+                    <div className="p-3 bg-white rounded border border-indigo-200">
+                      <p className="font-bold text-indigo-700 mb-1">步骤4：计算梯度函数 ∇(γ)</p>
+                      <p className="text-xs mb-2">对标准差曲线求导，得到梯度：</p>
+                      <code className="text-xs block bg-slate-50 p-2 rounded">
+                        ∇(γ) = dσ&lt;sub&gt;η&lt;/sub&gt;(γ) / dγ
+                      </code>
+                      <p className="text-xs mt-2">
+                        <strong>数值计算：</strong>在实际实现中，使用有限差分近似计算梯度：
+                      </p>
+                      <code className="text-xs block bg-slate-50 p-2 rounded">
+                        ∇(γ&lt;sub&gt;i&lt;/sub&gt;) ≈ [σ&lt;sub&gt;η&lt;/sub&gt;(γ&lt;sub&gt;i+1&lt;/sub&gt;) - σ&lt;sub&gt;η&lt;/sub&gt;(γ&lt;sub&gt;i&lt;/sub&gt;)] / (γ&lt;sub&gt;i+1&lt;/sub&gt; - γ&lt;sub&gt;i&lt;/sub&gt;)
+                      </code>
+                    </div>
+
+                    {/* 步骤5 - 本样本的具体情况 */}
+                    <div className="p-3 bg-red-50 rounded border border-red-300">
+                      <p className="font-bold text-red-700 mb-1">步骤5：寻找交点 ∇(γ) = δ（本样本情况）</p>
+                      <p className="text-xs mb-2">
+                        <strong>偏移值（补偿阈值）：</strong>δ = {OFFSET_VALUE}
+                      </p>
+                      <p className="text-xs mb-2">
+                        <strong>本样本的梯度范围：</strong>
+                      </p>
+                      {(() => {
+                        if (!selectedNonIntersect || !selectedNonIntersect.grad_gamma_curve) {
+                          return <p className="text-xs">加载中...</p>
+                        }
+                        const grads = selectedNonIntersect.grad_gamma_curve.map(d => d.gradient)
+                        const minGrad = Math.min(...grads)
+                        const maxGrad = Math.max(...grads)
+                        return (
+                          <div className="text-xs bg-white p-2 rounded border border-red-200">
+                            <div>∇(γ) 最小值: {minGrad.toFixed(6)}</div>
+                            <div>∇(γ) 最大值: {maxGrad.toFixed(6)}</div>
+                            <div className="text-red-600 font-bold mt-1">
+                              结论: 所有梯度值 &lt; δ ({OFFSET_VALUE})
+                            </div>
+                          </div>
+                        )
+                      })()}
+                      <p className="text-xs mt-2 text-red-700">
+                        <strong>无交点原因：</strong>由于该样本的σ&lt;sub&gt;η&lt;/sub&gt;(γ)曲线在整个搜索区间[0, t&lt;sub&gt;min&lt;/sub&gt;]内单调递减，
+                        梯度∇(γ)始终为负值，且最小值为负数，因此不可能与正值δ = {OFFSET_VALUE}相交。
+                      </p>
+                    </div>
+
+                    {/* 步骤6 */}
+                    <div className="p-3 bg-amber-50 rounded border border-amber-300">
+                      <p className="font-bold text-amber-700 mb-1">步骤6：Fallback策略与结果</p>
+                      <p className="text-xs mb-2">
+                        <strong>MDM Fallback策略：</strong>当∇(γ)与δ无交点时，选择使|∇(γ) - δ|最小的γ值。
+                      </p>
+                      {(() => {
+                        if (!selectedNonIntersect || !selectedNonIntersect.grad_gamma_curve) {
+                          return <p className="text-xs">加载中...</p>
+                        }
+                        // 找到梯度最接近δ的点
+                        const curve = selectedNonIntersect.grad_gamma_curve
+                        const minDiffIdx = curve.findIndex(d => Math.abs(d.gradient - OFFSET_VALUE) ===
+                          Math.min(...curve.map(d => Math.abs(d.gradient - OFFSET_VALUE))))
+                        const fallbackPoint = curve[minDiffIdx]
+
+                        return (
+                          <div className="text-xs bg-white p-2 rounded border border-amber-200">
+                            <div>最接近δ的γ值: {fallbackPoint.gamma.toFixed(2)}</div>
+                            <div>对应梯度: {fallbackPoint.gradient.toFixed(6)}</div>
+                            <div>与δ的差值: {Math.abs(fallbackPoint.gradient - OFFSET_VALUE).toFixed(6)}</div>
+                            <div className="text-amber-700 font-bold mt-1">
+                              MDM返回: γ = {selectedNonIntersect.est_gamma.toFixed(2)}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                      <p className="text-xs mt-2 text-amber-700">
+                        <strong>估计结果：</strong>γ = {selectedNonIntersect?.est_gamma.toFixed(2)}，
+                        与真实值{TRUE_GAMMA}的偏差 = {(selectedNonIntersect?.est_gamma ?? 0 - TRUE_GAMMA).toFixed(2)}，
+                        相对误差 = {((selectedNonIntersect?.est_gamma ?? 0 - TRUE_GAMMA) / TRUE_GAMMA * 100).toFixed(1)}%
+                      </p>
+                    </div>
                   </div>
                 </div>
               </>
