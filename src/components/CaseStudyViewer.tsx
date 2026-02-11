@@ -16,7 +16,10 @@ import {
   ReferenceLine,
   ReferenceArea,
   ScatterChart,
-  Scatter
+  Scatter,
+  BarChart,
+  Bar,
+  Cell
 } from 'recharts'
 
 interface CaseStudyViewerProps {
@@ -651,6 +654,45 @@ function ResultsVisualization({
     }
   }
 
+  // 计算直方图数据的辅助函数
+  const computeHistogramData = (values: number[], binCount: number = 20) => {
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    const binWidth = (max - min) / binCount
+    const bins = Array.from({ length: binCount }, (_, i) => {
+      const binStart = min + i * binWidth
+      const binEnd = binStart + binWidth
+      const range = binWidth < 1
+        ? `${binStart.toFixed(3)}`
+        : `${binStart.toFixed(1)}`
+      return {
+        range,
+        binStart,
+        binEnd,
+        count: 0
+      }
+    })
+    values.forEach(v => {
+      const binIdx = Math.min(Math.floor((v - min) / binWidth), binCount - 1)
+      bins[binIdx].count++
+    })
+    const maxCount = Math.max(...bins.map(b => b.count))
+    return { bins, maxCount, binWidth }
+  }
+
+  // 计算三个参数的直方图数据
+  const allBetaValues: number[] = []
+  const allEtaValues: number[] = []
+  const allGammaValues: number[] = []
+  stats.forEach(s => {
+    allBetaValues.push(...s.est_beta_values)
+    allEtaValues.push(...s.est_eta_values)
+    allGammaValues.push(...s.est_gamma_values)
+  })
+  const betaHistogram = computeHistogramData(allBetaValues)
+  const etaHistogram = computeHistogramData(allEtaValues)
+  const gammaHistogram = computeHistogramData(allGammaValues)
+
   return (
     <div className="space-y-6">
       {/* 维度说明 */}
@@ -1120,352 +1162,105 @@ function ResultsVisualization({
             </p>
           </div>
 
-          {/* 图4: 估计值分布箱线图 */}
+          {/* 图4: 三参数估计值分布直方图 */}
           <div className="bg-white border border-slate-300 p-3">
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={stats} margin={{ top: 20, right: 30, bottom: 40, left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="keyLabel"
-                    tick={{ fontSize: 15, fill: '#374151' }}
-                    tickLine={true}
-                    stroke="#000"
-                    strokeWidth={1}
-                    label={{
-                      value: displayDimensions[0].id === 'sampleSize' ? `样本量${displayDimensions[0].symbol}` : displayDimensions[0].symbol,
-                      position: 'insideBottom',
-                      offset: -23,
-                      fontSize: 16,
-                      fontWeight: 600,
-                      fill: '#1f2937'
-                    }}
-                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                  />
-                  <YAxis
-                    yAxisId="beta"
-                    tick={{ fontSize: 14, fill: colors.beta }}
-                    tickLine={true}
-                    stroke={colors.beta}
-                    strokeWidth={1}
-                    tickSize={4}
-                    label={{
-                      value: 'β 估计值',
-                      angle: -90,
-                      position: 'insideLeft',
-                      offset: -3,
-                      fontSize: 16,
-                      fontWeight: 600,
-                      fill: colors.beta
-                    }}
-                    axisLine={{ stroke: colors.beta, strokeWidth: 1 }}
-                  />
-                  <YAxis
-                    yAxisId="eta"
-                    orientation="right"
-                    tick={{ fontSize: 14, fill: '#6b7280' }}
-                    tickLine={true}
-                    stroke="#6b7280"
-                    strokeWidth={1}
-                    tickSize={4}
-                    label={{
-                      value: 'η 估计值',
-                      angle: -90,
-                      position: 'insideRight',
-                      offset: -3,
-                      fontSize: 16,
-                      fontWeight: 600,
-                      fill: '#6b7280'
-                    }}
-                    axisLine={{ stroke: '#6b7280', strokeWidth: 1 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: '4px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      fontSize: '13px'
-                    }}
-                    formatter={(value: number, name: string) => {
-                      if (name.includes('β')) return [value.toFixed(4), name]
-                      return [value.toFixed(2), name]
-                    }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    align="right"
-                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 0 }}
-                  />
-                  {/* β 箱线图 - 使用误差条表示范围 */}
-                  <Line
-                    yAxisId="beta"
-                    type="monotone"
-                    dataKey="est_beta_median"
-                    name="β 中位数"
-                    stroke={colors.beta}
-                    strokeWidth={3}
-                    dot={{ r: 6, fill: colors.beta, strokeWidth: 2 }}
-                    activeDot={{ r: 8 }}
-                  />
-                  {/* β 四分位范围 */}
-                  <Line
-                    yAxisId="beta"
-                    type="monotone"
-                    dataKey="est_beta_q1"
-                    name="β Q1"
-                    stroke={colors.beta}
-                    strokeWidth={0}
-                    dot={false}
-                    activeDot={false}
-                  />
-                  <Line
-                    yAxisId="beta"
-                    type="monotone"
-                    dataKey="est_beta_q3"
-                    name="β Q3"
-                    stroke={colors.beta}
-                    strokeWidth={0}
-                    dot={false}
-                    activeDot={false}
-                  />
-                  {/* η 箱线图 */}
-                  <Line
-                    yAxisId="eta"
-                    type="monotone"
-                    dataKey="est_eta_median"
-                    name="η 中位数"
-                    stroke={colors.eta}
-                    strokeWidth={3}
-                    dot={{ r: 6, fill: colors.eta, strokeWidth: 2 }}
-                    activeDot={{ r: 8 }}
-                  />
-                  {/* η 四分位范围 */}
-                  <Line
-                    yAxisId="eta"
-                    type="monotone"
-                    dataKey="est_eta_q1"
-                    name="η Q1"
-                    stroke={colors.eta}
-                    strokeWidth={0}
-                    dot={false}
-                    activeDot={false}
-                  />
-                  <Line
-                    yAxisId="eta"
-                    type="monotone"
-                    dataKey="est_eta_q3"
-                    name="η Q3"
-                    stroke={colors.eta}
-                    strokeWidth={0}
-                    dot={false}
-                    activeDot={false}
-                  />
-                  {/* 自定义误差条 - 使用 ReferenceArea 表示范围 */}
-                  {stats.map((s, idx) => {
-                    const xIndex = idx
-                    return (
-                      <React.Fragment key={idx}>
-                        {/* β 范围 */}
-                        <ReferenceArea
-                          yAxisId="beta"
-                          x1={xIndex - 0.35}
-                          x2={xIndex + 0.35}
-                          y1={s.est_beta_min}
-                          y2={s.est_beta_max}
-                          fill={colors.beta}
-                          fillOpacity={0.15}
-                          stroke={colors.beta}
-                          strokeWidth={1}
-                        />
-                        {/* β 99分位点标记 - 菱形 */}
-                        <ReferenceLine
-                          yAxisId="beta"
-                          y={s.est_beta_p99}
-                          stroke={colors.beta}
-                          strokeWidth={2}
-                          strokeDasharray="2 2"
-                          segment={[
-                            { x: xIndex - 0.3, y: s.est_beta_p99 },
-                            { x: xIndex + 0.3, y: s.est_beta_p99 }
-                          ]}
-                        />
-                        {/* η 范围 */}
-                        <ReferenceArea
-                          yAxisId="eta"
-                          x1={xIndex - 0.35}
-                          x2={xIndex + 0.35}
-                          y1={s.est_eta_min}
-                          y2={s.est_eta_max}
-                          fill={colors.eta}
-                          fillOpacity={0.15}
-                          stroke={colors.eta}
-                          strokeWidth={1}
-                        />
-                        {/* η 99分位点标记 */}
-                        <ReferenceLine
-                          yAxisId="eta"
-                          y={s.est_eta_p99}
-                          stroke={colors.eta}
-                          strokeWidth={2}
-                          strokeDasharray="2 2"
-                          segment={[
-                            { x: xIndex - 0.3, y: s.est_eta_p99 },
-                            { x: xIndex + 0.3, y: s.est_eta_p99 }
-                          ]}
-                        />
-                      </React.Fragment>
-                    )
-                  })}
-                </ComposedChart>
-              </ResponsiveContainer>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* β 分布 */}
+              <div>
+                <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.beta }}>β 参数估计分布</p>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={betaHistogram.bins} margin={{ top: 10, right: 10, bottom: 30, left: 40 }}>
+                      <XAxis
+                        dataKey="range"
+                        tick={{ fontSize: 10 }}
+                        tickLine={true}
+                        stroke="#000"
+                        strokeWidth={1}
+                        interval="preserveStartEnd"
+                        axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        tickLine={true}
+                        stroke="#000"
+                        strokeWidth={1}
+                        axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                      />
+                      <Bar dataKey="count" fill={colors.beta}>
+                        {betaHistogram.bins.map((bin, i) => (
+                          <Cell key={`beta-${i}`} fill={colors.beta} fillOpacity={0.3 + (bin.count / betaHistogram.maxCount) * 0.5} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              {/* η 分布 */}
+              <div>
+                <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.eta }}>η 参数估计分布</p>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={etaHistogram.bins} margin={{ top: 10, right: 10, bottom: 30, left: 40 }}>
+                      <XAxis
+                        dataKey="range"
+                        tick={{ fontSize: 10 }}
+                        tickLine={true}
+                        stroke="#000"
+                        strokeWidth={1}
+                        interval="preserveStartEnd"
+                        axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        tickLine={true}
+                        stroke="#000"
+                        strokeWidth={1}
+                        axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                      />
+                      <Bar dataKey="count" fill={colors.eta}>
+                        {etaHistogram.bins.map((bin, i) => (
+                          <Cell key={`eta-${i}`} fill={colors.eta} fillOpacity={0.3 + (bin.count / etaHistogram.maxCount) * 0.5} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              {/* γ 分布 */}
+              <div>
+                <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.gamma }}>γ 参数估计分布</p>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={gammaHistogram.bins} margin={{ top: 10, right: 10, bottom: 30, left: 40 }}>
+                      <XAxis
+                        dataKey="range"
+                        tick={{ fontSize: 10 }}
+                        tickLine={true}
+                        stroke="#000"
+                        strokeWidth={1}
+                        interval="preserveStartEnd"
+                        axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        tickLine={true}
+                        stroke="#000"
+                        strokeWidth={1}
+                        axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                      />
+                      <Bar dataKey="count" fill={colors.gamma}>
+                        {gammaHistogram.bins.map((bin, i) => (
+                          <Cell key={`gamma-${i}`} fill={colors.gamma} fillOpacity={0.3 + (bin.count / gammaHistogram.maxCount) * 0.5} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
-            <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <p className="text-xs text-slate-600 mb-2">
-                <strong>统计说明：</strong>每个参数组合基于100次蒙特卡洛模拟。箱线图中的范围线表示最小值到最大值，虚线标记表示99分位点。
-              </p>
-            </div>
-            <p className="text-center text-base font-semibold text-slate-700 mt-1">
-              {getFigureNumber(4)}: {displayDimensions[0].name}对参数估计值分布的影响（箱线图）
-            </p>
-          </div>
-
-          {/* 图5: 三参数估计分布图 */}
-          <div className="bg-white border border-slate-300 p-3">
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={stats} margin={{ top: 20, right: 60, bottom: 40, left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="keyLabel"
-                    tick={{ fontSize: 15, fill: '#374151' }}
-                    tickLine={true}
-                    stroke="#000"
-                    strokeWidth={1}
-                    label={{
-                      value: displayDimensions[0].id === 'sampleSize' ? `样本量${displayDimensions[0].symbol}` : displayDimensions[0].symbol,
-                      position: 'insideBottom',
-                      offset: -23,
-                      fontSize: 16,
-                      fontWeight: 600,
-                      fill: '#1f2937'
-                    }}
-                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                  />
-                  <YAxis
-                    yAxisId="main"
-                    tick={{ fontSize: 14, fill: '#374151' }}
-                    tickLine={true}
-                    stroke="#000"
-                    strokeWidth={1}
-                    tickSize={4}
-                    label={{
-                      value: '估计值',
-                      angle: -90,
-                      position: 'insideLeft',
-                      offset: -3,
-                      fontSize: 16,
-                      fontWeight: 600,
-                      fill: '#1f2937'
-                    }}
-                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: '4px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      fontSize: '13px'
-                    }}
-                    formatter={(value: number, name: string) => {
-                      if (name.includes('β')) return [value.toFixed(4), name]
-                      return [value.toFixed(2), name]
-                    }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    align="right"
-                    wrapperStyle={{ fontSize: '15px', fontWeight: 500, right: 150, marginTop: 0 }}
-                  />
-                  {/* β 中位数线和范围 */}
-                  <Line
-                    yAxisId="main"
-                    type="monotone"
-                    dataKey="est_beta_median"
-                    name="β 中位数"
-                    stroke={colors.beta}
-                    strokeWidth={3}
-                    dot={{ r: 5, fill: colors.beta, strokeWidth: 2 }}
-                    activeDot={{ r: 7 }}
-                  />
-                  {/* η 中位数线和范围 */}
-                  <Line
-                    yAxisId="main"
-                    type="monotone"
-                    dataKey="est_eta_median"
-                    name="η 中位数"
-                    stroke={colors.eta}
-                    strokeWidth={3}
-                    dot={{ r: 5, fill: colors.eta, strokeWidth: 2 }}
-                    activeDot={{ r: 7 }}
-                  />
-                  {/* γ 中位数线和范围 */}
-                  <Line
-                    yAxisId="main"
-                    type="monotone"
-                    dataKey="est_gamma_median"
-                    name="γ 中位数"
-                    stroke={colors.gamma}
-                    strokeWidth={3}
-                    dot={{ r: 5, fill: colors.gamma, strokeWidth: 2 }}
-                    activeDot={{ r: 7 }}
-                  />
-                  {/* β 范围区域 */}
-                  {stats.map((s, idx) => (
-                    <ReferenceArea
-                      key={`beta-range-${idx}`}
-                      yAxisId="main"
-                      x1={idx - 0.35}
-                      x2={idx + 0.35}
-                      y1={s.est_beta_min}
-                      y2={s.est_beta_max}
-                      fill={colors.beta}
-                      fillOpacity={0.12}
-                      stroke="none"
-                    />
-                  ))}
-                  {/* η 范围区域 */}
-                  {stats.map((s, idx) => (
-                    <ReferenceArea
-                      key={`eta-range-${idx}`}
-                      yAxisId="main"
-                      x1={idx - 0.35}
-                      x2={idx + 0.35}
-                      y1={s.est_eta_min}
-                      y2={s.est_eta_max}
-                      fill={colors.eta}
-                      fillOpacity={0.08}
-                      stroke="none"
-                    />
-                  ))}
-                  {/* γ 范围区域 */}
-                  {stats.map((s, idx) => (
-                    <ReferenceArea
-                      key={`gamma-range-${idx}`}
-                      yAxisId="main"
-                      x1={idx - 0.35}
-                      x2={idx + 0.35}
-                      y1={s.est_gamma_min}
-                      y2={s.est_gamma_max}
-                      fill={colors.gamma}
-                      fillOpacity={0.08}
-                      stroke="none"
-                    />
-                  ))}
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="text-center text-base font-semibold text-slate-700 mt-1">
-              {getFigureNumber(5)}: {displayDimensions[0].name}对三参数估计值分布的影响
+            <p className="text-center text-base font-semibold text-slate-700 mt-3">
+              {getFigureNumber(4)}: 参数估计值分布直方图
             </p>
           </div>
         </>
@@ -1480,7 +1275,7 @@ function ResultsVisualization({
             displayDimensions={displayDimensions}
             dataKey="bias_beta_mean"
             color={colors.beta}
-            figureNumber={getFigureNumber(4)}
+            figureNumber={getFigureNumber(5)}
             getColorForValue={getColorForValue}
           />
           <HeatmapCard
@@ -1489,7 +1284,7 @@ function ResultsVisualization({
             displayDimensions={displayDimensions}
             dataKey="bias_eta_mean"
             color={colors.eta}
-            figureNumber={getFigureNumber(5)}
+            figureNumber={getFigureNumber(6)}
             getColorForValue={getColorForValue}
           />
           <HeatmapCard
@@ -1498,7 +1293,7 @@ function ResultsVisualization({
             displayDimensions={displayDimensions}
             dataKey="bias_gamma_mean"
             color={colors.gamma}
-            figureNumber={getFigureNumber(6)}
+            figureNumber={getFigureNumber(7)}
             getColorForValue={getColorForValue}
           />
         </>
