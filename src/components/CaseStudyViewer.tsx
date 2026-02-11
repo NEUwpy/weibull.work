@@ -21,6 +21,20 @@ import {
   Bar,
   Cell
 } from 'recharts'
+import dynamic from 'next/dynamic'
+
+// 动态导入特殊架构组件，避免SSR问题
+const Case3NoIntersectionViewer = dynamic(() => import('./Case3NoIntersectionViewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-200 border-t-red-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载无交点分析中...</p>
+      </div>
+    </div>
+  )
+})
 
 interface CaseStudyViewerProps {
   methodId: string
@@ -50,10 +64,11 @@ interface CaseConfig {
   id: string
   name: string
   description: string
-  params: ParamConfig[]  // 5个参数的配置
+  params?: ParamConfig[]  // 5个参数的配置（普通架构）
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
+  architecture?: 'normal' | 'no_intersection'  // 架构类型
   defaults?: {  // 默认基准值
     beta?: number
     eta?: number
@@ -61,6 +76,14 @@ interface CaseConfig {
     sampleSize?: number
     process?: number
   }
+  true_params?: {  // 真实参数（特殊架构用）
+    beta?: number
+    eta?: number
+    gamma?: number
+    sampleSize?: number
+    process?: number
+  }
+  research_type?: string  // 研究类型（特殊架构用）
 }
 
 // CSV数据行
@@ -429,6 +452,11 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
         </div>
       </div>
     )
+  }
+
+  // 检查是否为无交点架构
+  if (selectedCase?.architecture === 'no_intersection') {
+    return <Case3NoIntersectionViewer caseId={selectedCase.id} />
   }
 
   const variableParams = params.filter(p => p.isVariable)
