@@ -10,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Legend,
   ComposedChart
 } from 'recharts'
 import { AlertTriangle, CheckCircle } from 'lucide-react'
@@ -390,14 +389,6 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
               <h4 className="text-base font-bold text-slate-800">图3. 曲线簇 - 形状参数寻优</h4>
               <p className="text-xs text-slate-500">10条样本的 σ_η 关于 β 变化（对数坐标，红色为无交点）</p>
             </div>
-            <Legend verticalAlign="top" height={36} payload={
-              allCurvesData.slice(0, 10).map((sample, idx) => ({
-                value: `#${sample.sim_id}`,
-                type: 'line',
-                id: `line-${sample.sim_id}`,
-                color: curveColors[idx % curveColors.length]
-              }))
-            } />
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -459,14 +450,6 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
               <h4 className="text-base font-bold text-slate-800">图4. 曲线簇 - 位置参数梯度判据</h4>
               <p className="text-xs text-slate-500">10条样本的 ∇(γ) 与偏移值δ（红色为无交点）</p>
             </div>
-            <Legend verticalAlign="top" height={36} payload={
-              allCurvesData.slice(0, 10).map((sample, idx) => ({
-                value: `#${sample.sim_id}`,
-                type: 'line',
-                id: `line-${sample.sim_id}`,
-                color: curveColors[idx % curveColors.length]
-              }))
-            } />
           </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">

@@ -3,6 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import { Filter, Info, Settings, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
 import {
   LineChart,
   Line,
@@ -81,7 +86,8 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-  architecture?: 'normal' | 'no_intersection' | "case5"  // 架构类型
+  architecture?: 'normal' | 'no_intersection' | 'case5' | 'markdown'  // 架构类型
+  content?: string  // Markdown内容（仅用于markdown架构）
   defaults?: {  // 默认基准值
     beta?: number
     eta?: number
@@ -533,6 +539,22 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   // 检查是否为无交点架构
   if (selectedCase?.architecture === 'no_intersection') {
     return <Case3NoIntersectionViewer caseId={selectedCase.id} />
+  }
+
+  // 检查是否为markdown架构（纯文档展示，如案例5）
+  if (selectedCase?.architecture === 'markdown') {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <div className="prose prose-slate max-w-none prose-headings:font-bold prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3 prose-p:text-sm prose-p:leading-relaxed prose-table:text-sm prose-td:py-1 prose-td:px-2 prose-th:py-2 prose-th:px-2">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex, rehypeRaw]}
+          >
+            {selectedCase.content || ''}
+          </ReactMarkdown>
+        </div>
+      </div>
+    )
   }
 
   // 检查是否为案例5（30组实际样本分析）- 直接显示表1和图表

@@ -27,7 +27,7 @@ export async function GET(
 
       // 读取并解析MD文件
       const mdContent = fs.readFileSync(mdPath, 'utf-8')
-      const { data } = matter(mdContent)
+      const { data, content } = matter(mdContent)
 
       // 确保params存在
       if (!data.params || !Array.isArray(data.params)) {
@@ -35,7 +35,11 @@ export async function GET(
         continue
       }
 
-      cases.push(data)
+      // 如果是markdown架构，保留原始markdown内容
+      cases.push({
+        ...data,
+        content: data.architecture === 'markdown' ? content : undefined
+      })
     }
 
     if (cases.length === 0) {
