@@ -18,6 +18,7 @@ import {
   ScatterChart,
   Scatter,
   BarChart,
+  Area,
   Bar,
   Cell
 } from 'recharts'
@@ -31,6 +32,18 @@ const Case3NoIntersectionViewer = dynamic(() => import('./Case3NoIntersectionVie
       <div className="flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-200 border-t-red-600 mb-4"></div>
         <p className="text-slate-600 font-bold">加载无交点分析中...</p>
+      </div>
+    </div>
+  )
+})
+
+const Case5Viewer = dynamic(() => import('./Case5Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例5分析中...</p>
       </div>
     </div>
   )
@@ -68,7 +81,7 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-  architecture?: 'normal' | 'no_intersection'  // 架构类型
+  architecture?: 'normal' | 'no_intersection' | "case5"  // 架构类型
   defaults?: {  // 默认基准值
     beta?: number
     eta?: number
@@ -177,6 +190,7 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   const [error, setError] = useState<string | null>(null)
   const [cases, setCases] = useState<CaseConfig[]>([])
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
+  const [showBandType, setShowBandType] = useState<'99percentile' | 'minmax'>('99percentile')
 
   const selectedCase = cases.find(c => c.id === selectedCaseId)
 
@@ -521,6 +535,11 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
     return <Case3NoIntersectionViewer caseId={selectedCase.id} />
   }
 
+  // 检查是否为案例5（30组实际样本分析）- 直接显示表1和图表
+  if (selectedCase?.architecture === 'case5') {
+    return <Case5Viewer caseId={selectedCase.id} />
+  }
+
   const variableParams = params.filter(p => p.isVariable)
   const displayDimensions = params.filter(p => p.isDisplayDimension)
   const numCombinations = displayDimensions.reduce((acc, p) => {
@@ -745,15 +764,276 @@ function ResultsVisualization({
     return firstVar.symbol
   }
 
+  // 箱型图组件 - 使用SVG直接绘制
+  const BoxPlotChart = ({
+    data,
+    dataKeyMin,
+    dataKeyMax,
+    dataKeyP01,
+    dataKeyP99,
+    dataKeyMedian,
+    color,
+    yLabel,
+    yTickFormatter
+  }: {
+    data: StatsResult[]
+    dataKeyMin: keyof StatsResult
+    dataKeyMax: keyof StatsResult
+    dataKeyP01: keyof StatsResult
+    dataKeyP99: keyof StatsResult
+    dataKeyMedian: keyof StatsResult
+    color: string
+    yLabel: string
+    yTickFormatter: (v: number) => string
+  }) => {
+    // 计算Y轴范围
+    const allYValues = data.flatMap(d => [
+      d[dataKeyMin] as number | null,
+      d[dataKeyMax] as number | null,
+      d[dataKeyP01] as number | null,
+      d[dataKeyP99] as number | null
+    ].filter((v): v is number => v !== null))
+
+    const yMin = Math.min(...allYValues) * 0.98
+    const yMax = Math.max(...allYValues) * 1.02
+    const yRange = yMax - yMin
+
+    // SVG尺寸配置
+    const svgHeight = 220
+    const svgWidth = 600
+    const margin = { top: 10, right: 30, bottom: 40, left: 60 }
+    const plotWidth = svgWidth - margin.left - margin.right
+    const plotHeight = svgHeight - margin.top - margin.bottom
+
+    // 将数据值转换为Y坐标
+    const yToPixel = (y: number) => {
+      return margin.top + plotHeight - ((y - yMin) / yRange) * plotHeight
+    }
+
+    // 将索引转换为X坐标
+    const xToPixel = (index: number) => {
+      return margin.left + (index + 0.5) * (plotWidth / data.length)
+    }
+
+    // 生成Y轴刻度
+    const yTicks = []
+    const tickCount = 5
+    for (let i = 0; i <= tickCount; i++) {
+      const value = yMin + (yRange * i) / tickCount
+      yTicks.push(value)
+    }
+
+    return (
+      <div className="w-full" style={{ height: `${svgHeight}px` }}>
+        <svg width="100%" height="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ overflow: 'visible' }}>
+          {/* 网格线 */}
+          {yTicks.map(tick => (
+            <line
+              key={`grid-${tick}`}
+              x1={margin.left}
+              y1={yToPixel(tick)}
+              x2={svgWidth - margin.right}
+              y2={yToPixel(tick)}
+              stroke="#e5e7eb"
+              strokeDasharray="3 3"
+              strokeWidth={1}
+            />
+          ))}
+
+          {/* Y轴 */}
+          <line
+            x1={margin.left}
+            y1={margin.top}
+            x2={margin.left}
+            y2={svgHeight - margin.bottom}
+            stroke={color}
+            strokeWidth={1.5}
+          />
+
+          {/* X轴 */}
+          <line
+            x1={margin.left}
+            y1={svgHeight - margin.bottom}
+            x2={svgWidth - margin.right}
+            y2={svgHeight - margin.bottom}
+            stroke="#000"
+            strokeWidth={1}
+          />
+
+          {/* Y轴刻度 */}
+          {yTicks.map(tick => (
+            <g key={`tick-${tick}`}>
+              <line
+                x1={margin.left - 5}
+                y1={yToPixel(tick)}
+                x2={margin.left}
+                y2={yToPixel(tick)}
+                stroke={color}
+                strokeWidth={1}
+              />
+              <text
+                x={margin.left - 8}
+                y={yToPixel(tick)}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fontSize={12}
+                fill={color}
+              >
+                {yTickFormatter(tick)}
+              </text>
+            </g>
+          ))}
+
+          {/* Y轴标签 */}
+          <text
+            x={margin.left - 45}
+            y={(svgHeight / 2)}
+            textAnchor="middle"
+            transform={`rotate(-90, ${margin.left - 45}, ${svgHeight / 2})`}
+            fontSize={14}
+            fontWeight={600}
+            fill={color}
+          >
+            {yLabel}
+          </text>
+
+          {/* X轴刻度和标签 */}
+          {data.map((d, i) => {
+            const x = xToPixel(i)
+            return (
+              <g key={`x-tick-${i}`}>
+                <line
+                  x1={x}
+                  y1={svgHeight - margin.bottom}
+                  x2={x}
+                  y2={svgHeight - margin.bottom + 5}
+                  stroke="#000"
+                  strokeWidth={1}
+                />
+                <text
+                  x={x}
+                  y={svgHeight - margin.bottom + 18}
+                  textAnchor="middle"
+                  fontSize={12}
+                  fill="#374151"
+                >
+                  {d.keyLabel}
+                </text>
+              </g>
+            )
+          })}
+
+          {/* X轴标签 */}
+          <text
+            x={margin.left + plotWidth / 2}
+            y={svgHeight - 5}
+            textAnchor="middle"
+            fontSize={14}
+            fontWeight={600}
+            fill="#1f2937"
+          >
+            {displayDimensions[0].id === 'sampleSize' ? `样本量${displayDimensions[0].symbol}` : displayDimensions[0].symbol}
+          </text>
+
+          {/* 箱型图 */}
+          {data.map((d, i) => {
+            const min = d[dataKeyMin] as number | null
+            const max = d[dataKeyMax] as number | null
+            const p01 = d[dataKeyP01] as number | null
+            const p99 = d[dataKeyP99] as number | null
+            const median = d[dataKeyMedian] as number | null
+
+            if (min === null || max === null) return null
+
+            const x = xToPixel(i)
+            const boxWidth = Math.min(40, plotWidth / data.length * 0.7)
+            const boxTop = p99 !== null ? p99 : max
+            const boxBottom = p01 !== null ? p01 : min
+
+            return (
+              <g key={`boxplot-${i}`}>
+                {/* 须线 - 下 */}
+                <line
+                  x1={x}
+                  y1={yToPixel(min)}
+                  x2={x}
+                  y2={yToPixel(boxBottom)}
+                  stroke={color}
+                  strokeWidth={2}
+                  strokeDasharray="4 2"
+                />
+
+                {/* 须线 - 上 */}
+                <line
+                  x1={x}
+                  y1={yToPixel(boxTop)}
+                  x2={x}
+                  y2={yToPixel(max)}
+                  stroke={color}
+                  strokeWidth={2}
+                  strokeDasharray="4 2"
+                />
+
+                {/* 须线端点 - 下 */}
+                <line
+                  x1={x - boxWidth / 3}
+                  y1={yToPixel(min)}
+                  x2={x + boxWidth / 3}
+                  y2={yToPixel(min)}
+                  stroke={color}
+                  strokeWidth={2}
+                />
+
+                {/* 须线端点 - 上 */}
+                <line
+                  x1={x - boxWidth / 3}
+                  y1={yToPixel(max)}
+                  x2={x + boxWidth / 3}
+                  y2={yToPixel(max)}
+                  stroke={color}
+                  strokeWidth={2}
+                />
+
+                {/* 箱体 */}
+                {p01 !== null && p99 !== null && (
+                  <rect
+                    x={x - boxWidth / 2}
+                    y={yToPixel(p99)}
+                    width={boxWidth}
+                    height={yToPixel(p01) - yToPixel(p99)}
+                    fill={color}
+                    fillOpacity={0.25}
+                    stroke={color}
+                    strokeWidth={2}
+                  />
+                )}
+
+                {/* 中位数点 */}
+                {median !== null && (
+                  <circle
+                    cx={x}
+                    cy={yToPixel(median)}
+                    r={4}
+                    fill={color}
+                  />
+                )}
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+    )
+  }
+
   // 计算颜色范围（热力图用）
   const getColorForValue = (value: number, absMax: number): string => {
     const ratio = value / absMax
     if (ratio > 0) {
       const intensity = Math.min(Math.abs(ratio), 1)
-      return `rgba(220, 38, 38, ${0.2 + intensity * 0.6})`  // 红色系，透明度降低
+      return `rgba(220, 38, 38, ${0.08 + intensity * 0.25})`  // 红色系，更浅的透明度
     } else {
       const intensity = Math.min(Math.abs(ratio), 1)
-      return `rgba(30, 64, 175, ${0.2 + intensity * 0.6})`  // 蓝色系，透明度降低
+      return `rgba(30, 64, 175, ${0.08 + intensity * 0.25})`  // 蓝色系，更浅的透明度
     }
   }
 
@@ -1357,7 +1637,66 @@ function ResultsVisualization({
             </p>
           </div>
 
-          {/* 图4: 三参数估计值分布曲线 (按变量分组) */}
+          {/* 图4: 箱型图 - 箱体=99%分位数, 须线=最大最小值 */}
+          <div className="bg-white border border-slate-300 p-3">
+            <p className="text-center text-sm font-bold text-slate-700 mb-3">
+              箱体 = 99%分位数区间 | 须线 = 最大最小值范围 | 圆点 = 中位数
+            </p>
+
+            {/* 三个子图垂直排列 */}
+            <div className="space-y-5">
+              {/* β 子图 */}
+              <div>
+                <BoxPlotChart
+                  data={stats}
+                  dataKeyMin="est_beta_min"
+                  dataKeyMax="est_beta_max"
+                  dataKeyP01="est_beta_p01"
+                  dataKeyP99="est_beta_p99"
+                  dataKeyMedian="est_beta_median"
+                  color={colors.beta}
+                  yLabel="β 估计值"
+                  yTickFormatter={(v) => v.toFixed(3)}
+                />
+              </div>
+
+              {/* η 子图 */}
+              <div>
+                <BoxPlotChart
+                  data={stats}
+                  dataKeyMin="est_eta_min"
+                  dataKeyMax="est_eta_max"
+                  dataKeyP01="est_eta_p01"
+                  dataKeyP99="est_eta_p99"
+                  dataKeyMedian="est_eta_median"
+                  color={colors.eta}
+                  yLabel="η 估计值"
+                  yTickFormatter={(v) => v.toFixed(0)}
+                />
+              </div>
+
+              {/* γ 子图 */}
+              <div>
+                <BoxPlotChart
+                  data={stats}
+                  dataKeyMin="est_gamma_min"
+                  dataKeyMax="est_gamma_max"
+                  dataKeyP01="est_gamma_p01"
+                  dataKeyP99="est_gamma_p99"
+                  dataKeyMedian="est_gamma_median"
+                  color={colors.gamma}
+                  yLabel="γ 估计值"
+                  yTickFormatter={(v) => v.toFixed(0)}
+                />
+              </div>
+            </div>
+
+            <p className="text-center text-base font-semibold text-slate-700 mt-4">
+              {getFigureNumber(4)}: 参数估计箱型图
+            </p>
+          </div>
+
+          {/* 图5: 三参数估计值分布曲线 (按变量分组) */}
           <div className="bg-white border border-slate-300 p-3">
             {/* 选择要查看的变量分组 */}
             {groupingCurves.length > 0 && (
@@ -1734,22 +2073,22 @@ function HeatmapCard({
                     position: 'absolute',
                     top: '4px',
                     right: displayDimensions[0].id === 'sampleSize' ? '1px' : displayDimensions[0].id === 'beta' ? '11px' : '6px',
-                    fontSize: '15px',
+                    fontSize: '19px',
                     fontWeight: 600,
                     color: '#374151'
-                  }}>{displayDimensions[0].name}</span>
+                  }}>{displayDimensions[0].symbol}</span>
                   <span style={{
                     position: 'absolute',
                     bottom: '4px',
                     left: displayDimensions[1].id === 'sampleSize' ? '1px' : displayDimensions[1].id === 'beta' ? '11px' : '6px',
-                    fontSize: '15px',
+                    fontSize: '19px',
                     fontWeight: 600,
                     color: '#374151'
-                  }}>{displayDimensions[1].name}</span>
+                  }}>{displayDimensions[1].symbol}</span>
                 </div>
               </th>
               {firstDimValues.map(val => (
-                <th key={val} className="p-2.5 bg-slate-50 border border-slate-300 text-sm font-bold text-slate-800">
+                <th key={val} className="p-2.5 bg-slate-50 border border-slate-300 text-xl font-bold text-slate-800">
                   {formatValue(val, displayDimensions[0].id)}
                 </th>
               ))}
@@ -1758,7 +2097,7 @@ function HeatmapCard({
           <tbody>
             {secondDimValues.map((yVal, yIdx) => (
               <tr key={yVal}>
-                <td className="p-2.5 bg-slate-50 border border-slate-300 text-sm font-bold text-slate-800 text-center" style={{ width: '80px' }}>
+                <td className="p-2.5 bg-slate-50 border border-slate-300 text-xl font-bold text-slate-800 text-center" style={{ width: '80px' }}>
                   {formatValue(yVal, displayDimensions[1].id)}
                 </td>
                 {heatmapData[yIdx].map((cell, xIdx) => (
@@ -1770,9 +2109,9 @@ function HeatmapCard({
                     }}
                   >
                     <span
-                      className="font-mono text-sm font-semibold"
+                      className="font-mono text-xl font-semibold"
                       style={{
-                        color: cell.hasData ? '#ffffff' : '#9ca3af'
+                        color: cell.hasData ? '#000000' : '#9ca3af'
                       }}
                     >
                       {cell.hasData ? cell.value.toFixed(3) : '—'}

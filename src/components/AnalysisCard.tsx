@@ -645,7 +645,7 @@ export default function AnalysisCard({
                       <Tooltip content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             return (
-                              <div className="bg-white/95 backdrop-blur border border-slate-200 p-2 rounded-lg shadow-xl text-[10px] z-50">
+                              <div className="bg-white/95 backdrop-blur border border-slate-200 p-2 rounded-lg shadow-xl text-lg z-50">
                                 <p className="font-black text-slate-800">t: {payload[0].payload.x.toFixed(2)}</p>
                                 <p className="font-black" style={{ color }}>{chartMode.toUpperCase()}: {(payload[0].value as number)?.toFixed(4)}</p>
                               </div>
@@ -738,7 +738,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
         onClick={cycleStep}
         disabled={readOnly}
         className={cn(
-          "min-w-[42px] px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black border transition-all active:scale-90 shadow-sm",
+          "min-w-[42px] px-1.5 py-0.5 rounded-md text-base font-mono font-black border transition-all active:scale-90 shadow-sm",
           readOnly
             ? "bg-slate-50 border-slate-100 text-slate-300"
             : "bg-white border-blue-200 text-blue-600 hover:border-blue-400 hover:bg-blue-50"
