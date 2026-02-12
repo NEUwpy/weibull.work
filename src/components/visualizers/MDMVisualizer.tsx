@@ -52,8 +52,10 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   // For optimal mode: the gamma used for left chart curve (only updates on refresh)
   const [chartGamma, setChartGamma] = useState(() => {
     // Initialize with optimal gamma based on initial delta
-    const curve = traceData.grad_gamma_curve
+    const curve = traceData.grad_gamma_curve || []
     const initialDelta = traceData.target_offset
+
+    if (!curve || curve.length === 0) return traceData.optimal_gamma || 0
 
     // Find initial optimal gamma
     for (let i = 0; i < curve.length - 1; i++) {
@@ -67,7 +69,11 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
         return curr.gamma + t * (next.gamma - curr.gamma)
       }
     }
-    return curve[0].gradient < initialDelta ? curve[curve.length - 1].gamma : curve[0].gamma
+    // Safety check for edge cases
+    if (curve[0] && curve[curve.length - 1]) {
+       return curve[0].gradient < initialDelta ? curve[curve.length - 1].gamma : curve[0].gamma
+    }
+    return traceData.optimal_gamma || 0
   })
 
   // Gamma slider state for original view (shape parameter optimization)
@@ -78,19 +84,22 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
         d => Math.abs(d.gamma - traceData.optimal_gamma) < 5
       )
       return optimalIdx >= 0 ? optimalIdx : Math.floor(traceData.sigma_beta_gamma.length / 2)
-    } else {
+    } else if (traceData.grad_gamma_curve && traceData.grad_gamma_curve.length > 0) {
       const optimalIdx = traceData.grad_gamma_curve.findIndex(
         d => Math.abs(d.gamma - traceData.optimal_gamma) < 1
       )
       return optimalIdx >= 0 ? optimalIdx : Math.floor(traceData.grad_gamma_curve.length / 2)
     }
+    return 0
   })
 
   if (!traceData) return null
 
   // Determine which data source to use for the slider
   const useSigmaBetaGamma = traceData.sigma_beta_gamma && traceData.sigma_beta_gamma.length > 0
-  const gammaDataCount = useSigmaBetaGamma ? traceData.sigma_beta_gamma!.length : traceData.grad_gamma_curve.length
+  const gammaDataCount = useSigmaBetaGamma 
+    ? traceData.sigma_beta_gamma!.length 
+    : (traceData.grad_gamma_curve?.length || 0)
 
   // Calculate optimal gamma based on current delta offset
   // Find the gamma where gradient crosses the delta threshold
@@ -117,11 +126,12 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
     // If no crossing found:
     // - All gradients < delta: return largest gamma (rightmost point)
     // - All gradients > delta: return smallest gamma (leftmost point)
-    if (curve[0].gradient < deltaOffset) {
+    if (curve[0] && curve[0].gradient < deltaOffset) {
       return curve[curve.length - 1].gamma
-    } else {
+    } else if (curve[0]) {
       return curve[0].gamma
     }
+    return traceData.optimal_gamma || 0
   }, [deltaOffset, traceData])
 
   // Get the currently selected gamma data for left chart
@@ -130,10 +140,11 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   const getClosestGammaIndex = (targetGamma: number) => {
     if (useSigmaBetaGamma) {
       // 找到差值最小的索引
+      if (!traceData.sigma_beta_gamma) return 0
       let minDiff = Infinity
       let minIdx = 0
-      for (let i = 0; i < traceData.sigma_beta_gamma!.length; i++) {
-        const diff = Math.abs(traceData.sigma_beta_gamma![i].gamma - targetGamma)
+      for (let i = 0; i < traceData.sigma_beta_gamma.length; i++) {
+        const diff = Math.abs(traceData.sigma_beta_gamma[i].gamma - targetGamma)
         if (diff < minDiff) {
           minDiff = diff
           minIdx = i
@@ -142,6 +153,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
       return minIdx
     } else {
       // 同理处理 grad_gamma_curve
+      if (!traceData.grad_gamma_curve) return 0
       let minDiff = Infinity
       let minIdx = 0
       for (let i = 0; i < traceData.grad_gamma_curve.length; i++) {
@@ -161,9 +173,9 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
     : gammaIndex
 
   const selectedGammaData = useSigmaBetaGamma
-    ? traceData.sigma_beta_gamma![effectiveGammaIndex]
-    : traceData.grad_gamma_curve[effectiveGammaIndex]
-  const selectedGamma = selectedGammaData?.gamma ?? traceData.optimal_gamma
+    ? traceData.sigma_beta_gamma?.[effectiveGammaIndex]
+    : traceData.grad_gamma_curve?.[effectiveGammaIndex]
+  const selectedGamma = selectedGammaData?.gamma ?? traceData.optimal_gamma ?? 0
 
   // Handle refresh button click - update chartGamma to current optimalGammaFromDelta
   const handleRefreshChart = () => {
@@ -188,10 +200,11 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
         beta,
         sigma: selectedGammaData.sigmas[i]
       }))
-    : traceData.sigma_beta_curve // Fallback to optimal gamma curve if sigma_beta_gamma not available
+    : (traceData.sigma_beta_curve || []) // Fallback to optimal gamma curve, ensuring array
 
   // Extend data to cover beta=1 to 6 if not already covered
   const extendedSigmaBetaCurve = useMemo(() => {
+    if (!currentSigmaBetaCurve || currentSigmaBetaCurve.length === 0) return []
     const existingBetas = new Set(currentSigmaBetaCurve.map(d => d.beta))
     const extended = [...currentSigmaBetaCurve]
 

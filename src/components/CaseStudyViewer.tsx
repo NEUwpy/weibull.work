@@ -105,44 +105,45 @@ interface SimulationRow {
 interface StatsResult {
   key: string
   keyLabel: string
-  count: number
+  count: number          // 总行数
+  valid_count: number    // 有效行数（排除无解）
   // 维度值
   beta_true?: number
   sample_size?: number
   offset_value?: number
-  // 统计量
-  bias_beta_mean: number
-  bias_beta_std: number
-  bias_eta_mean: number
-  bias_eta_std: number
-  bias_gamma_mean: number
-  bias_gamma_std: number
-  mse_beta: number
-  mse_eta: number
-  mse_gamma: number
+  // 统计量（可能为null，如果全部无解）
+  bias_beta_mean: number | null
+  bias_beta_std: number | null
+  bias_eta_mean: number | null
+  bias_eta_std: number | null
+  bias_gamma_mean: number | null
+  bias_gamma_std: number | null
+  mse_beta: number | null
+  mse_eta: number | null
+  mse_gamma: number | null
   // 分布统计量
-  est_beta_min: number
-  est_beta_max: number
-  est_beta_p01: number
-  est_beta_p99: number
-  est_beta_median: number
-  est_beta_q1: number
-  est_beta_q3: number
-  est_eta_min: number
-  est_eta_max: number
-  est_eta_p01: number
-  est_eta_p99: number
-  est_eta_median: number
-  est_eta_q1: number
-  est_eta_q3: number
-  est_gamma_min: number
-  est_gamma_max: number
-  est_gamma_p01: number
-  est_gamma_p99: number
-  est_gamma_median: number
-  est_gamma_q1: number
-  est_gamma_q3: number
-  // 原始估计值数组（用于散点图）
+  est_beta_min: number | null
+  est_beta_max: number | null
+  est_beta_p01: number | null
+  est_beta_p99: number | null
+  est_beta_median: number | null
+  est_beta_q1: number | null
+  est_beta_q3: number | null
+  est_eta_min: number | null
+  est_eta_max: number | null
+  est_eta_p01: number | null
+  est_eta_p99: number | null
+  est_eta_median: number | null
+  est_eta_q1: number | null
+  est_eta_q3: number | null
+  est_gamma_min: number | null
+  est_gamma_max: number | null
+  est_gamma_p01: number | null
+  est_gamma_p99: number | null
+  est_gamma_median: number | null
+  est_gamma_q1: number | null
+  est_gamma_q3: number | null
+  // 原始估计值数组（用于散点图），已过滤null值
   est_beta_values: number[]
   est_eta_values: number[]
   est_gamma_values: number[]
@@ -269,8 +270,14 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
       const values = line.split(',')
       const row: any = {}
       headers.forEach((header, idx) => {
-        const val = values[idx]
-        row[header] = isNaN(Number(val)) ? val : Number(val)
+        const val = values[idx]?.trim()
+        // 处理NaN字符串和无效数字
+        if (val === 'NaN' || val === '' || val === undefined) {
+          row[header] = null  // 用null标记NaN值
+        } else {
+          const num = Number(val)
+          row[header] = isNaN(num) ? val : num
+        }
       })
       return row as SimulationRow
     })
@@ -320,21 +327,75 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
     })
 
     return Array.from(groups.entries()).map(([key, rows]) => {
-      const count = rows.length
-      const mean = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length
-      const variance = (arr: number[]) => {
-        const m = mean(arr)
-        return arr.reduce((sum, val) => sum + (val - m) ** 2, 0) / arr.length
+      // 过滤掉无解的行（est_beta为null表示MDM无解）
+      const validRows = rows.filter(r => r.est_beta !== null && r.est_eta !== null && r.est_gamma !== null)
+
+      // 如果全部无解，返回null标记的统计结果
+      if (validRows.length === 0) {
+        return {
+          key,
+          keyLabel: Array.from(groups.keys()).find(k => k.startsWith(key)) || key,
+          count: rows.length,
+          valid_count: 0,
+          bias_beta_mean: null,
+          bias_beta_std: null,
+          bias_eta_mean: null,
+          bias_eta_std: null,
+          bias_gamma_mean: null,
+          bias_gamma_std: null,
+          mse_beta: null,
+          mse_eta: null,
+          mse_gamma: null,
+          // 分布统计量
+          est_beta_min: null,
+          est_beta_max: null,
+          est_beta_p01: null,
+          est_beta_p99: null,
+          est_beta_median: null,
+          est_beta_q1: null,
+          est_beta_q3: null,
+          est_eta_min: null,
+          est_eta_max: null,
+          est_eta_p01: null,
+          est_eta_p99: null,
+          est_eta_median: null,
+          est_eta_q1: null,
+          est_eta_q3: null,
+          est_gamma_min: null,
+          est_gamma_max: null,
+          est_gamma_p01: null,
+          est_gamma_p99: null,
+          est_gamma_median: null,
+          est_gamma_q1: null,
+          est_gamma_q3: null,
+          // 原始估计值数组（空数组）
+          est_beta_values: [],
+          est_eta_values: [],
+          est_gamma_values: [],
+        }
       }
 
-      const biasBeta = rows.map(r => r.bias_beta)
-      const biasEta = rows.map(r => r.bias_eta)
-      const biasGamma = rows.map(r => r.bias_gamma)
+      const count = validRows.length
+      const mean = (arr: (number | null)[]) => {
+        const filtered = arr.filter((v): v is number => v !== null)
+        if (filtered.length === 0) return 0
+        return filtered.reduce((a, b) => a + b, 0) / filtered.length
+      }
+      const variance = (arr: (number | null)[]) => {
+        const filtered = arr.filter((v): v is number => v !== null)
+        if (filtered.length === 0) return 0
+        const m = mean(arr)
+        return filtered.reduce((sum, val) => sum + (val - m) ** 2, 0) / filtered.length
+      }
+
+      const biasBeta = validRows.map(r => r.bias_beta)
+      const biasEta = validRows.map(r => r.bias_eta)
+      const biasGamma = validRows.map(r => r.bias_gamma)
 
       // 估计值数组
-      const estBeta = rows.map(r => r.est_beta)
-      const estEta = rows.map(r => r.est_eta)
-      const estGamma = rows.map(r => r.est_gamma)
+      const estBeta = validRows.map(r => r.est_beta)
+      const estEta = validRows.map(r => r.est_eta)
+      const estGamma = validRows.map(r => r.est_gamma)
 
       // 计算分布统计量
       const quantile = (arr: number[], q: number) => {
@@ -362,7 +423,7 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
       const etaStats = calcStats(estEta)
       const gammaStats = calcStats(estGamma)
 
-      // 生成标签
+      // 生成标签（使用rows获取维度值，因为即使无解，维度值也是有效的）
       const labelParts: string[] = []
       variableParams.forEach(p => {
         if (p.id === 'beta') {
@@ -385,7 +446,8 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
         beta_true: variableParams.find(p => p.id === 'beta') ? rows[0].beta_true : undefined,
         sample_size: variableParams.find(p => p.id === 'sampleSize') ? rows[0].sample_size : undefined,
         offset_value: variableParams.find(p => p.id === 'process') ? rows[0].offset_value : undefined,
-        count,
+        count: rows.length,        // 总行数（包括无解）
+        valid_count: count,          // 有效行数（仅无解的）
         bias_beta_mean: mean(biasBeta),
         bias_beta_std: Math.sqrt(variance(biasBeta)),
         bias_eta_mean: mean(biasEta),
@@ -658,6 +720,12 @@ function ResultsVisualization({
   displayDimensions: ParamConfig[]
   selectedCase?: CaseConfig
 }) {
+  // 辅助函数：格式化可能为null的数字
+  const fmt = (val: number | null, decimals = 2) => {
+    if (val === null || val === undefined) return '—'
+    return val.toFixed(decimals)
+  }
+
   const colors = {
     beta: '#1e40af',      // 深蓝色
     eta: '#047857',       // 深绿色
@@ -892,35 +960,35 @@ function ResultsVisualization({
                         {betaTrueValue}
                       </td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">
-                        {(betaTrueValue + s.bias_beta_mean).toFixed(4)}
+                        {s.bias_beta_mean === null ? '—' : (betaTrueValue + s.bias_beta_mean).toFixed(4)}
                       </td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_beta_mean.toFixed(4)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_beta_std.toFixed(4)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_beta.toFixed(4)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_beta_p01.toFixed(4)}, {s.est_beta_p99.toFixed(4)}]</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_beta_min.toFixed(4)}, {s.est_beta_max.toFixed(4)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.bias_beta_mean, 4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.bias_beta_std, 4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.mse_beta, 4)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{fmt(s.est_beta_p01, 4)}, {fmt(s.est_beta_p99, 4)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{fmt(s.est_beta_min, 4)}, {fmt(s.est_beta_max, 4)}]</td>
                     </tr>
                     {/* η 行 */}
                     <tr className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
                       <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">η</td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{etaTrueValue}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{(etaTrueValue + s.bias_eta_mean).toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_eta_mean.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_eta_std.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_eta.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_eta_p01.toFixed(2)}, {s.est_eta_p99.toFixed(2)}]</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_eta_min.toFixed(2)}, {s.est_eta_max.toFixed(2)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_eta_mean === null ? '—' : (etaTrueValue + s.bias_eta_mean).toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.bias_eta_mean, 2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.bias_eta_std, 2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.mse_eta, 2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{fmt(s.est_eta_p01, 2)}, {fmt(s.est_eta_p99, 2)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{fmt(s.est_eta_min, 2)}, {fmt(s.est_eta_max, 2)}]</td>
                     </tr>
                     {/* γ 行 */}
                     <tr className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <td className="py-1.5 px-3 font-bold text-slate-800 border-b border-slate-200 text-center">γ</td>
                       <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{gammaTrueValue}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{(gammaTrueValue + s.bias_gamma_mean).toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_gamma_mean.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_gamma_std.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.mse_gamma.toFixed(2)}</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_gamma_p01.toFixed(2)}, {s.est_gamma_p99.toFixed(2)}]</td>
-                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{s.est_gamma_min.toFixed(2)}, {s.est_gamma_max.toFixed(2)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{s.bias_gamma_mean === null ? '—' : (gammaTrueValue + s.bias_gamma_mean).toFixed(2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.bias_gamma_mean, 2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.bias_gamma_std, 2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-lg text-slate-700 border-b border-slate-200">{fmt(s.mse_gamma, 2)}</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{fmt(s.est_gamma_p01, 2)}, {fmt(s.est_gamma_p99, 2)}]</td>
+                      <td className="text-right py-1.5 px-3 font-mono text-base text-slate-700 border-b border-slate-200">[{fmt(s.est_gamma_min, 2)}, {fmt(s.est_gamma_max, 2)}]</td>
                     </tr>
                   </React.Fragment>
                 )
@@ -1573,8 +1641,8 @@ function HeatmapCard({
   figureNumber,
   getColorForValue
 }: HeatmapCardProps) {
-  // 计算颜色范围
-  const allValues = stats.map(s => s[dataKey])
+  // 计算颜色范围（过滤null值）
+  const allValues = stats.map(s => s[dataKey]).filter((v): v is number => v !== null)
   const absMax = Math.max(...allValues.map(Math.abs), 0.01)
 
   // 获取第一维度的所有唯一值

@@ -44,39 +44,69 @@ class MDM(WeibullBase):
 
         # Search range for gamma: [0, t_min)
         t_min = t[0]
-        gamma_steps = 60 # Steps for gradient calculation
-        # Stop slightly before t_min to avoid log(0)
-        gammas = np.linspace(0, t_min * 0.99, gamma_steps)
-        
-        sigma_mins = []
-        best_betas = []
-        
-        for g in gammas:
-            b, sig = find_best_beta_for_gamma(g)
-            sigma_mins.append(sig)
-            best_betas.append(b)
-            
-        sigma_mins = np.array(sigma_mins)
-        best_betas = np.array(best_betas)
+        gamma_steps = 60  # Steps for gradient calculation per round
 
-        # Calculate Gradient
-        grads = np.gradient(sigma_mins, gammas)
+        # ========== Round 1: Search in [0, 0.99*t_min] ==========
+        gammas1 = np.linspace(0, t_min * 0.99, gamma_steps)
+        sigma_mins1 = []
+        best_betas1 = []
+
+        for g in gammas1:
+            b, sig = find_best_beta_for_gamma(g)
+            sigma_mins1.append(sig)
+            best_betas1.append(b)
+
+        sigma_mins1 = np.array(sigma_mins1)
+        best_betas1 = np.array(best_betas1)
+        grads1 = np.gradient(sigma_mins1, gammas1)
+
+        # Check for intersection in round 1
+        diffs1 = grads1 - offset
+        sign_changes = np.where(np.diff(np.sign(diffs1)))[0]
+
+        # ========== Round 2: Search in [0.99*t_min, 0.999999*t_min] if needed ==========
+        if len(sign_changes) == 0:
+            print(f"[MDM] No intersection in round 1, extending search to [0.99*t_min, 0.999999*t_min]")
+            gammas2 = np.linspace(t_min * 0.99, t_min * 0.999999, gamma_steps)
+            sigma_mins2 = []
+            best_betas2 = []
+
+            for g in gammas2:
+                b, sig = find_best_beta_for_gamma(g)
+                sigma_mins2.append(sig)
+                best_betas2.append(b)
+
+            sigma_mins2 = np.array(sigma_mins2)
+            best_betas2 = np.array(best_betas2)
+            grads2 = np.gradient(sigma_mins2, gammas2)
+
+            # Merge round 1 and round 2 data
+            gammas = np.concatenate([gammas1, gammas2])
+            sigma_mins = np.concatenate([sigma_mins1, sigma_mins2])
+            best_betas = np.concatenate([best_betas1, best_betas2])
+            grads = np.concatenate([grads1, grads2])
+
+            # Re-check for intersection
+            diffs = grads - offset
+            sign_changes = np.where(np.diff(np.sign(diffs)))[0]
+            print(f"[MDM] Round 2 gradient range: [{grads.min():.6f}, {grads.max():.6f}]")
+        else:
+            # Use round 1 data only
+            gammas = gammas1
+            sigma_mins = sigma_mins1
+            best_betas = best_betas1
+            grads = grads1
+            diffs = diffs1
 
         # Debug: Print gradient range
         print(f"[MDM] offset={offset:.4f}, gradient range: [{grads.min():.6f}, {grads.max():.6f}]")
 
-        # Criterion: Find gamma where Gradient = offset (0.1)
-        diffs = grads - offset
-
-        # Find intersection point
-        sign_changes = np.where(np.diff(np.sign(diffs)))[0]
-
+        # ========== Final: Find intersection point ==========
         found_gamma = 0.0
         found_beta = 1.0
 
         if len(sign_changes) > 0:
             # Pick the intersection closest to t_min (usually larger gamma is better for 3P fits if valid)
-            # Or just the last one
             idx = sign_changes[-1]
 
             y1, y2 = diffs[idx], diffs[idx+1]
@@ -91,11 +121,9 @@ class MDM(WeibullBase):
             found_beta, _ = find_best_beta_for_gamma(found_gamma)
             print(f"[MDM] Found intersection: gamma={found_gamma:.4f}, beta={found_beta:.4f}")
         else:
-            # Fallback: Find point closest to offset
-            min_diff_idx = np.argmin(np.abs(diffs))
-            found_gamma = gammas[min_diff_idx]
-            found_beta = best_betas[min_diff_idx]
-            print(f"[MDM] No intersection, using closest: gamma={found_gamma:.4f}, beta={found_beta:.4f}, diff={diffs[min_diff_idx]:.6f}")
+            # No intersection even after two rounds - return no solution
+            print(f"[MDM] No intersection found after two rounds, returning no_solution")
+            return None, None, None, None, "no_intersection"
             
         # Final Calculation
         denom = np.power(neg_ln_1_minus_F, 1.0/found_beta)
