@@ -325,11 +325,12 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
     }
   }
 
-  // 计算梯度范围，确保Y轴能显示偏移值线
-  const gradientMin = Math.min(...traceData.grad_gamma_curve.map(d => d.gradient))
-  const gradientMax = Math.max(...traceData.grad_gamma_curve.map(d => d.gradient))
-  const yMin = Math.min(0, gradientMin, traceData.target_offset) - 0.05
-  const yMax = Math.max(gradientMax, traceData.target_offset) + 0.1
+  // 计算梯度范围
+  const gradients = traceData.grad_gamma_curve.map(d => d.gradient)
+  const gradientMin = Math.min(...gradients)
+  const gradientMax = Math.max(...gradients)
+  const yMin = Math.min(gradientMin * 1.1, traceData.target_offset * 0.9)
+  const yMax = Math.max(gradientMax * 1.1, traceData.target_offset * 1.2)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -343,17 +344,11 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
         </div>
         <div className="h-[280px] w-full relative">
           <ResponsiveContainer width="100%" height={280}>
-            <ComposedChart
+            <LineChart
               data={gradientData}
               margin={{ top: 10, right: 40, bottom: 30, left: 50 }}
               onMouseMove={handleMouseMove}
             >
-              <defs>
-                <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis
                 dataKey="gamma"
@@ -364,24 +359,21 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
               <YAxis
                 width={45}
                 tick={{ fontSize: 10 }}
-                domain={[yMin, yMax]}
+                domain={['auto', 'auto']}
                 tickFormatter={(v) => v.toFixed(2)}
                 label={{ value: '梯度', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b' }}
               />
               <Tooltip
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                 labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
-                formatter={(v: number, name: string) => {
-                  if (name === 'gradient') return [v.toFixed(4), '梯度']
-                  return [v?.toFixed?.(2) ?? v, name]
-                }}
+                formatter={(v: number) => [v.toFixed(4), '梯度']}
               />
-              <Area
+              <Line
                 type="monotone"
                 dataKey="gradient"
                 stroke="#8b5cf6"
                 strokeWidth={2}
-                fill="url(#colorGradient)"
+                dot={false}
               />
               {/* 偏移值参考线 */}
               <ReferenceLine
@@ -389,7 +381,6 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
                 stroke="#ef4444"
                 strokeWidth={2}
                 strokeDasharray="5 5"
-                label={{ value: `δ=${traceData.target_offset}`, position: 'right', fontSize: 10, fill: '#ef4444' }}
               />
               {/* 最优γ参考线 */}
               <ReferenceLine
@@ -398,17 +389,19 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
                 strokeWidth={2}
                 strokeDasharray="3 3"
               />
-              <Scatter
-                data={[{ gamma: traceData.optimal_gamma, gradient: traceData.target_offset }]}
-                fill="#3b82f6"
-                shape="diamond"
-                r={8}
-              />
-            </ComposedChart>
+            </LineChart>
           </ResponsiveContainer>
+          {/* 交点标记 */}
+          <div
+            className="absolute w-3 h-3 bg-blue-500 transform -translate-x-1/2 -translate-y-1/2 rotate-45"
+            style={{
+              left: `calc(${((traceData.optimal_gamma - gradientData[0]?.gamma) / (gradientData[gradientData.length-1]?.gamma - gradientData[0]?.gamma)) * 100 || 50}% + 50px)`,
+              top: `${30 + (1 - (traceData.target_offset - yMin) / (yMax - yMin)) * 220}px`
+            }}
+          />
         </div>
         <p className="text-xs text-slate-500 mt-2">
-          梯度曲线与偏移值δ的交点即为最优γ。蓝色虚线标示找到的最优位置。
+          梯度曲线与偏移值δ的交点即为最优γ。蓝色虚线标示找到的最优位置：γ={traceData.optimal_gamma?.toFixed(2)}
         </p>
       </div>
 
