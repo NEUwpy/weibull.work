@@ -94,54 +94,83 @@
 2.  必须包含 `data_raw` (换行分隔的数据) 和基础元数据 (title, industry)。
 
 ### 5.3 案例展示 (Case Study) 功能
+
+案例展示是将预计算的参数研究/模拟实验数据进行可视化的功能，避免用户每次访问都需要重新计算。
+
 **位置**: 方法详情页 → 第5个标签页 "案例展示"
 
-**现状 (v7.5.0)**:
-- 已实现通用框架 `CaseStudyViewer` 组件 (`src/components/CaseStudyViewer.tsx`)
-- 案例配置从 MD 文件读取，支持 YAML front matter 格式
-- API 路由: `/api/cases/[methodId]` 读取 `public/cases/[methodId]_case1.md`
-- 支持5参数卡片框架: β, η, γ, n (样本量), process (方法特定参数)
-- 每个参数可设置为 fixed/range/discrete 状态
-- 变量参数可点击选择"显示维度"
-- 单变量: 双Y轴趋势图 (偏差、SD、MSE)
-- 多变量: 热力图展示
-- 图表标题符合学术论文标准 (图1、图2... 表1)
-- 统计表包含偏差±标准差格式
+#### 架构说明
 
-**MDM 案例1**: 多维度参数影响研究
-- 变量参数: β ∈ [1.5, 2.0, 3, 5, 7], n ∈ [5, 7, 10, 20, 30], δ ∈ [0, 0.05, 0.1, 0.15, 0.2]
-- 固定参数: η = 1000, γ = 1000
-- 数据源: `public/cases/mdm_case1_full.csv` (125种组合 × 100次模拟 = 12,500行)
+```
+/methods/mdm
+  → Tab: 概述 | 流程 | 实验室 | 分析 | 案例展示
+                                      ↓
+                              CaseStudyViewer 组件
+                                      ↓
+                              下拉框切换案例（所有案例都有）
+```
 
-**添加新案例**:
-1. 创建 Python 脚本生成 CSV 数据 (`python/generate_case_data.py`)
-2. 创建 MD 配置文件 (`public/cases/[methodId]_caseX.md`)
-3. MD 文件格式:
+**组件位置**: `src/components/`
+- `CaseStudyViewer.tsx` - 主组件，处理案例切换和数据加载
+- `Case3NoIntersectionViewer.tsx` - 案例3专用组件（无交点分析）
+- `Case5Viewer.tsx` - 案例5专用组件（30组样本分析）
+
+**数据位置**: `public/case-studies/mdm/caseX/`
+- `config.md` - YAML 配置 + Markdown 描述
+- `data.csv` - 模拟数据
+- 其他 JSON 文件（特殊案例）
+
+**API 路由**: `/api/case-studies/mdm/`
+
+**Python 脚本**: `python/mdm/case_studies/caseX/`
+
+#### 案例分类
+
+| 类型 | 使用组件 | 案例 |
+|------|----------|------|
+| 常规案例 | CaseStudyViewer 内置渲染 | case1, case2, case4 |
+| 特殊案例 | 专用组件 + 下拉框 | case3 (无交点), case5 (30组样本) |
+
+#### 添加新案例
+
+1. 创建 Python 脚本: `python/mdm/case_studies/caseX/generate_data.py`
+2. 创建数据文件: `public/case-studies/mdm/caseX/config.md` 和 `data.csv`
+3. 如果是特殊架构，创建专用组件并添加到 CaseStudyViewer 的架构判断中
+4. 更新案例下拉框选项（在 CaseStudyViewer 和专用组件中）
+
+**MD 配置格式**:
 ```yaml
 ---
 id: "case-X"
 name: "案例X: 标题"
 description: "案例描述"
-processName: "过程参数名"
-processSymbol: "过程符号"
-csvFile: "/cases/[methodId]_caseX_full.csv"
+processName: "偏移量"
+processSymbol: "δ"
+csvFile: "/case-studies/mdm/caseX/data.csv"
+defaults:
+  beta: 2.0
+  eta: 1000
+  gamma: 1000
+  sampleSize: 7
+  process: 0.1
 params:
   - id: "beta"
     name: "形状参数"
     symbol: "β"
     state: "discrete"
-    discreteValues: [...]
+    discreteValues: [1.5, 2.0, 3, 5, 7]
     isVariable: true
     isDisplayDimension: false
   # ... 其他参数
 ---
 ```
 
-**未来规划**:
-1. **导出功能**: 从"计算过程"/"结果分析"页面导出当前配置到案例展示
-2. **批量模拟 API**: 后端支持实时蒙特卡洛批量计算
-3. **图表导出**: 支持导出为高分辨率图片 (PNG/SVG)
-4. **更多案例**: 扩展到其他方法 (MLE, LRE, etc.)
+#### 待清理的旧文件
+
+> ⚠️ **注意**: 以下旧文件在新系统验证完成后可删除
+
+- `public/cases/mdm_case*.md/csv/json` → 已迁移到 `public/case-studies/mdm/`
+- `python/generate_case*_data.py` → 已迁移到 `python/mdm/case_studies/`
 
 ### 5.4 维护注意事项
 *   **禁止硬编码**: 不要将数据直接写在 TS/JS 文件中。

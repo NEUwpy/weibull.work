@@ -12,11 +12,12 @@ import {
   ReferenceLine,
   ComposedChart
 } from 'recharts'
-import { AlertTriangle, CheckCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, ChevronDown, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Case3NoIntersectionViewerProps {
   caseId: string
+  onCaseChange?: (caseId: string) => void  // 案例切换回调
 }
 
 // 曲线数据类型
@@ -75,7 +76,7 @@ interface LimitAnalysisData {
   data: LimitDataPoint[]
 }
 
-export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectionViewerProps) {
+export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case3NoIntersectionViewerProps) {
   const [samplesData, setSamplesData] = useState<SampleData[]>([])
   const [fullSamplesData, setFullSamplesData] = useState<FullSampleData[]>([])  // 包含原始样本的完整数据
   const [limitAnalysis, setLimitAnalysis] = useState<LimitAnalysisData | null>(null)
@@ -172,6 +173,30 @@ export default function Case3NoIntersectionViewer({ caseId }: Case3NoIntersectio
 
   return (
     <div className="space-y-6">
+      {/* 案例选择下拉框 */}
+      {onCaseChange && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-4">
+            <BookOpen className="text-purple-600" size={20} />
+            <label className="text-sm font-bold text-slate-600 whitespace-nowrap">切换案例：</label>
+            <div className="relative flex-1 max-w-md">
+              <select
+                value={caseId}
+                onChange={(e) => onCaseChange(e.target.value)}
+                className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer hover:bg-slate-100 transition-colors"
+              >
+                <option value="case-1">案例1: 多维度参数影响研究</option>
+                <option value="case-2">案例2: 样本量与偏移量影响</option>
+                <option value="case-3">案例3: 无交点梯度曲线研究 ★</option>
+                <option value="case-4">案例4: 大样本性能验证</option>
+                <option value="case-5">案例5: 30组实际样本分析 ★</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 标题和说明 */}
       <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-6 border border-red-200">
         <h2 className="text-xl font-bold text-slate-800 mb-2">案例3: 无交点梯度曲线可视化</h2>

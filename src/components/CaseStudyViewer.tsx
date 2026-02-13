@@ -200,11 +200,11 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 
   const selectedCase = cases.find(c => c.id === selectedCaseId)
 
-  // 加载案例配置
+  // 加载案例配置 - 使用新的 API 路径
   useEffect(() => {
     const loadCases = async () => {
       try {
-        const res = await fetch(`/api/cases/${methodId.toLowerCase()}`)
+        const res = await fetch(`/api/case-studies/${methodId.toLowerCase()}`)
         if (res.ok) {
           const data = await res.json()
           setCases(data.cases || [])
@@ -536,9 +536,15 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
     )
   }
 
+  // 案例切换处理函数
+  const handleCaseChange = (newCaseId: string) => {
+    setSelectedCaseId(newCaseId)
+    setStats([])
+  }
+
   // 检查是否为无交点架构
   if (selectedCase?.architecture === 'no_intersection') {
-    return <Case3NoIntersectionViewer caseId={selectedCase.id} />
+    return <Case3NoIntersectionViewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 
   // 检查是否为markdown架构（纯文档展示，如案例5）
@@ -559,7 +565,7 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 
   // 检查是否为案例5（30组实际样本分析）- 直接显示表1和图表
   if (selectedCase?.architecture === 'case5') {
-    return <Case5Viewer caseId={selectedCase.id} />
+    return <Case5Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 
   const variableParams = params.filter(p => p.isVariable)
