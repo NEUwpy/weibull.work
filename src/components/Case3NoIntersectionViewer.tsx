@@ -85,7 +85,7 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
   const [error, setError] = useState<string | null>(null)
   const [selectedNonIntersectId, setSelectedNonIntersectId] = useState<number | null>(null)
 
-  // 加载数据
+  // 加载数据 - 使用新路径
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -93,9 +93,9 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
 
         // 并行加载曲线数据、完整数据和极限分析数据
         const [curvesRes, fullRes, limitRes] = await Promise.all([
-          fetch('/cases/mdm_case3_curves.json'),
-          fetch('/cases/mdm_case3_data.json'),
-          fetch('/cases/mdm_case3_limit_analysis.json')
+          fetch('/case-studies/mdm/case3/curves.json'),
+          fetch('/case-studies/mdm/case3/full_data.json'),
+          fetch('/case-studies/mdm/case3/limit_analysis.json')
         ])
 
         if (!curvesRes.ok) throw new Error('曲线数据加载失败')

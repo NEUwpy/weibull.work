@@ -202,8 +202,8 @@ export default function Case5Viewer({ caseId, onCaseChange }: Case5ViewerProps) 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 只加载曲线数据
-        const curvesRes = await fetch('/cases/mdm_case5_curves.json')
+        // 只加载曲线数据 - 使用新路径
+        const curvesRes = await fetch('/case-studies/mdm/case5/curves.json')
         if (!curvesRes.ok) throw new Error('曲线数据加载失败')
         const curvesResJson = await curvesRes.json()
         // 对每个样本的梯度曲线进行裁剪，过滤超出[0, 0.6]范围的点
