@@ -352,6 +352,8 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis
                 dataKey="gamma"
+                type="number"
+                domain={['auto', 'auto']}
                 tick={{ fontSize: 10 }}
                 tickFormatter={(v) => v.toFixed(0)}
                 label={{ value: '位置参数 γ', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
@@ -373,7 +375,8 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
                 dataKey="gradient"
                 stroke="#8b5cf6"
                 strokeWidth={2}
-                dot={false}
+                dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: '#8b5cf6' }}
               />
               {/* 偏移值参考线 */}
               <ReferenceLine
@@ -381,24 +384,18 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
                 stroke="#ef4444"
                 strokeWidth={2}
                 strokeDasharray="5 5"
+                label={{ value: `δ=${traceData.target_offset}`, position: 'right', fill: '#ef4444', fontSize: 10 }}
               />
-              {/* 最优γ参考线 */}
+              {/* 最优γ参考线（竖线） */}
               <ReferenceLine
                 x={traceData.optimal_gamma}
                 stroke="#3b82f6"
                 strokeWidth={2}
-                strokeDasharray="3 3"
+                strokeDasharray="5 5"
+                label={{ value: `γ*=${traceData.optimal_gamma?.toFixed(0)}`, position: 'top', fill: '#3b82f6', fontSize: 10 }}
               />
             </LineChart>
           </ResponsiveContainer>
-          {/* 交点标记 */}
-          <div
-            className="absolute w-3 h-3 bg-blue-500 transform -translate-x-1/2 -translate-y-1/2 rotate-45"
-            style={{
-              left: `calc(${((traceData.optimal_gamma - gradientData[0]?.gamma) / (gradientData[gradientData.length-1]?.gamma - gradientData[0]?.gamma)) * 100 || 50}% + 50px)`,
-              top: `${30 + (1 - (traceData.target_offset - yMin) / (yMax - yMin)) * 220}px`
-            }}
-          />
         </div>
         <p className="text-xs text-slate-500 mt-2">
           梯度曲线与偏移值δ的交点即为最优γ。蓝色虚线标示找到的最优位置：γ={traceData.optimal_gamma?.toFixed(2)}
