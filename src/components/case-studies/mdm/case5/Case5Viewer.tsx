@@ -273,6 +273,7 @@ export default function Case5Viewer({ caseId, onCaseChange }: Case5ViewerProps) 
                 <option value="case-3">案例3: 无交点梯度曲线研究 ★</option>
                 <option value="case-4">案例4: 大样本性能验证</option>
                 <option value="case-5">案例5: 30组实际样本分析 ★</option>
+                <option value="case-6">案例6: 搜索步长对结果的影响 ★</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             </div>

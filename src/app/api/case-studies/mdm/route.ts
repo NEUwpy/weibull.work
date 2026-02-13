@@ -9,8 +9,8 @@ export async function GET() {
     const casesDir = path.join(process.cwd(), 'public', 'case-studies', 'mdm')
     const cases: any[] = []
 
-    // 遍历 case1-case5 目录
-    const caseDirs = ['case1', 'case2', 'case3', 'case4', 'case5']
+    // 遍历 case1-case6 目录
+    const caseDirs = ['case1', 'case2', 'case3', 'case4', 'case5', 'case6']
 
     for (const caseDir of caseDirs) {
       const configPath = path.join(casesDir, caseDir, 'config.md')

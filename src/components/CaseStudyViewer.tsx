@@ -54,6 +54,18 @@ const Case5Viewer = dynamic(() => import('./case-studies/mdm/case5/Case5Viewer')
   )
 })
 
+const Case6Viewer = dynamic(() => import('./case-studies/mdm/case6/Case6Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例6分析中...</p>
+      </div>
+    </div>
+  )
+})
+
 interface CaseStudyViewerProps {
   methodId: string
 }
@@ -86,7 +98,7 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-  architecture?: 'normal' | 'no_intersection' | 'case5' | 'markdown'  // 架构类型
+  architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'markdown'  // 架构类型
   content?: string  // Markdown内容（仅用于markdown架构）
   defaults?: {  // 默认基准值
     beta?: number
@@ -566,6 +578,11 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   // 检查是否为案例5（30组实际样本分析）- 直接显示表1和图表
   if (selectedCase?.architecture === 'case5') {
     return <Case5Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例6（搜索步长对结果的影响）
+  if (selectedCase?.architecture === 'case6') {
+    return <Case6Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 
   const variableParams = params.filter(p => p.isVariable)
