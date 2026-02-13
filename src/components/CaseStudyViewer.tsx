@@ -30,7 +30,7 @@ import {
 import dynamic from 'next/dynamic'
 
 // 动态导入特殊架构组件，避免SSR问题
-const Case3NoIntersectionViewer = dynamic(() => import('./Case3NoIntersectionViewer'), {
+const Case3Viewer = dynamic(() => import('./case-studies/mdm/case3/Case3Viewer'), {
   ssr: false,
   loading: () => (
     <div className="bg-white rounded-2xl border border-slate-200 p-12">
@@ -42,7 +42,7 @@ const Case3NoIntersectionViewer = dynamic(() => import('./Case3NoIntersectionVie
   )
 })
 
-const Case5Viewer = dynamic(() => import('./Case5Viewer'), {
+const Case5Viewer = dynamic(() => import('./case-studies/mdm/case5/Case5Viewer'), {
   ssr: false,
   loading: () => (
     <div className="bg-white rounded-2xl border border-slate-200 p-12">
@@ -544,7 +544,7 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
 
   // 检查是否为无交点架构
   if (selectedCase?.architecture === 'no_intersection') {
-    return <Case3NoIntersectionViewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+    return <Case3Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 
   // 检查是否为markdown架构（纯文档展示，如案例5）
