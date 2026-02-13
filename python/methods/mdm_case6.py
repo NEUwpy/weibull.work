@@ -10,6 +10,7 @@ MDM Case6 Variant - 支持自定义迭代次数和离散搜索
 from base import WeibullBase
 import numpy as np
 from scipy.optimize import minimize_scalar
+from scipy.interpolate import interp1d
 
 class MDMCase6(WeibullBase):
     def run(self, trace=False, offset=0.1, gamma_steps=60, discrete_gamma=False):
@@ -114,8 +115,10 @@ class MDMCase6(WeibullBase):
         # ========== Final: Find intersection point ==========
         found_gamma = 0.0
         found_beta = 1.0
+        status = True
 
         if len(sign_changes) > 0:
+            # 直接在离散点之间找到交点
             idx = sign_changes[-1]
             y1, y2 = diffs[idx], diffs[idx+1]
             x1, x2 = gammas[idx], gammas[idx+1]
@@ -127,24 +130,71 @@ class MDMCase6(WeibullBase):
 
             found_beta, _ = find_best_beta_for_gamma(found_gamma)
             print(f"[MDMCase6] Found intersection: gamma={found_gamma:.4f}, beta={found_beta:.4f}")
+        elif discrete_gamma and len(gammas) >= 3:
+            # 离散模式：使用插值拟合曲线来找交点
+            print(f"[MDMCase6] Discrete mode: using interpolation to find intersection")
+
+            # 使用三次样条插值
+            try:
+                grad_interp = interp1d(gammas, grads, kind='cubic', fill_value='extrapolate')
+
+                # 在更细的网格上搜索交点
+                fine_gammas = np.linspace(gammas.min(), gammas.max(), 200)
+                fine_grads = grad_interp(fine_gammas)
+                fine_diffs = fine_grads - offset
+                fine_sign_changes = np.where(np.diff(np.sign(fine_diffs)))[0]
+
+                if len(fine_sign_changes) > 0:
+                    idx = fine_sign_changes[-1]
+                    y1, y2 = fine_diffs[idx], fine_diffs[idx+1]
+                    x1, x2 = fine_gammas[idx], fine_gammas[idx+1]
+
+                    if abs(y2 - y1) > 1e-10:
+                        found_gamma = x1 - y1 * (x2 - x1) / (y2 - y1)
+                    else:
+                        found_gamma = x1
+
+                    found_beta, _ = find_best_beta_for_gamma(found_gamma)
+                    print(f"[MDMCase6] Found intersection via interpolation: gamma={found_gamma:.4f}, beta={found_beta:.4f}")
+                    status = "interpolated"
+                else:
+                    # 如果还是没有交点，使用外推
+                    print(f"[MDMCase6] No intersection even with interpolation, using extrapolation")
+                    status = "extrapolated"
+
+                    # 线性外推
+                    if grads[-1] < offset:
+                        # 梯度在下降，向右外推
+                        slope = (grads[-1] - grads[-2]) / (gammas[-1] - gammas[-2])
+                        if slope != 0:
+                            found_gamma = gammas[-1] + (offset - grads[-1]) / slope
+                            found_gamma = min(found_gamma, t_min * 0.999)
+                            found_beta, _ = find_best_beta_for_gamma(found_gamma)
+            except Exception as e:
+                print(f"[MDMCase6] Interpolation failed: {e}")
+                status = "interpolation_failed"
         else:
             print(f"[MDMCase6] No intersection found")
-            return None, None, None, None, "no_intersection"
+            status = "no_intersection"
+            found_gamma = gammas[-1] if len(gammas) > 0 else 0.0
+            found_beta = best_betas[-1] if len(best_betas) > 0 else 1.0
 
-        # Final Calculation
-        denom = np.power(neg_ln_1_minus_F, 1.0/found_beta)
-        etas = (t - found_gamma) / denom
-        found_eta = np.mean(etas)
+        # Final Calculation (only if we have valid estimates)
+        found_eta = None
+        r2 = None
+        if found_beta is not None and found_gamma is not None:
+            denom = np.power(neg_ln_1_minus_F, 1.0/found_beta)
+            etas = (t - found_gamma) / denom
+            found_eta = np.mean(etas)
+            r2 = self._calculate_r2(found_beta, found_eta, found_gamma)
 
-        # R^2
-        r2 = self._calculate_r2(found_beta, found_eta, found_gamma)
-
-        # Trace Data
+        # Trace Data - 始终生成，用于可视化
         if trace:
             beta_scan = np.linspace(0.5, 5, 100)
             sigma_beta_curve = []
+            target_gamma = found_gamma if found_gamma is not None else gammas[-1] if len(gammas) > 0 else 0
             for b_val in beta_scan:
-                s = calculate_eta_std(b_val, found_gamma, t)
+                s = calculate_eta_std(b_val, target_gamma, t)
                 sigma_beta_curve.append({"beta": b_val, "sigma": s})
 
             num_gamma_samples = min(20, len(gammas))
