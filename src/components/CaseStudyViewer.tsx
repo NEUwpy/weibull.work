@@ -66,6 +66,42 @@ const Case6Viewer = dynamic(() => import('./case-studies/mdm/case6/Case6Viewer')
   )
 })
 
+const Case7Viewer = dynamic(() => import('./case-studies/mdm/case7/Case7Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-200 border-t-teal-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例7分析中...</p>
+      </div>
+    </div>
+  )
+})
+
+const Case8Viewer = dynamic(() => import('./case-studies/mdm/case8/Case8Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-200 border-t-cyan-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例8分析中...</p>
+      </div>
+    </div>
+  )
+})
+
+const Case9Viewer = dynamic(() => import('./case-studies/mdm/case9/Case9Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-rose-200 border-t-rose-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例9分析中...</p>
+      </div>
+    </div>
+  )
+})
+
 interface CaseStudyViewerProps {
   methodId: string
 }
@@ -583,6 +619,21 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   // 检查是否为案例6（搜索步长对结果的影响）
   if (selectedCase?.architecture === 'case6') {
     return <Case6Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例7（搜索步长对结果的影响 - 实际样本）
+  if (selectedCase?.architecture === 'case7') {
+    return <Case7Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例8（β搜索方式对比 - 固定步长0.05）
+  if (selectedCase?.architecture === 'case8') {
+    return <Case8Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例9（β步长对估计结果的影响）
+  if (selectedCase?.architecture === 'case9') {
+    return <Case9Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 
   const variableParams = params.filter(p => p.isVariable)
