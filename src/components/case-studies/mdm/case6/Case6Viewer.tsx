@@ -129,7 +129,8 @@ export default function Case6Viewer({ caseId, onCaseChange }: Case6ViewerProps) 
                 <option value="case-3">案例3: 无交点梯度曲线研究 ★</option>
                 <option value="case-4">案例4: 大样本性能验证</option>
                 <option value="case-5">案例5: 30组实际样本分析 ★</option>
-                <option value="case-6">案例6: 搜索步长对结果的影响 ★</option>
+                <option value="case-6">案例6: 搜索步长对结果的影响 (c2数据)</option>
+                <option value="case-7">案例7: 搜索步长对结果的影响 (实际样本) ★</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             </div>
@@ -146,13 +147,13 @@ export default function Case6Viewer({ caseId, onCaseChange }: Case6ViewerProps) 
       </div>
 
       {/* 汇总表格 */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-3xl">
         <div className="flex items-center gap-2 mb-4">
           <Table2 className="text-purple-600" size={20} />
           <h3 className="text-lg font-bold text-slate-800">汇总对比表</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-base border-collapse">
             <thead>
               <tr className="border-b-2 border-slate-300">
                 <th className="py-2 px-3 text-left font-bold text-slate-700">搜索策略</th>
@@ -179,13 +180,13 @@ export default function Case6Viewer({ caseId, onCaseChange }: Case6ViewerProps) 
                   <td className="py-2 px-3 font-medium">{r.strategy_name}</td>
                   <td className="py-2 px-3 text-center font-mono">{r.offset}</td>
                   <td className="py-2 px-3 text-right font-mono">
-                    {r.gamma !== null ? r.gamma.toFixed(2) : '—'}
+                    {r.gamma !== null ? r.gamma.toFixed(1) : '—'}
                   </td>
                   <td className="py-2 px-3 text-right font-mono">
                     {r.beta !== null ? r.beta.toFixed(4) : '—'}
                   </td>
                   <td className="py-2 px-3 text-right font-mono">
-                    {r.eta !== null ? r.eta.toFixed(2) : '—'}
+                    {r.eta !== null ? r.eta.toFixed(1) : '—'}
                   </td>
                   <td className="py-2 px-3 text-center">
                     {r.status === 'no_intersection' ? (

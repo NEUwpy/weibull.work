@@ -56,11 +56,18 @@ class MDMCase6(WeibullBase):
 
         # ========== Discrete gamma mode ==========
         if discrete_gamma:
-            max_gamma = int(t_min * 0.99)
-            gammas1 = np.array([g for g in range(0, max_gamma + 1, 100)])
-            if len(gammas1) == 0:
-                gammas1 = np.array([0])
+            # 离散搜索：从1380开始往前取，间隔100
+            # 1380, 1280, 1180, ...
+            start_gamma = 1380
+            gammas_list = []
+            g = start_gamma
+            while g >= 0:
+                gammas_list.append(g)
+                g -= 100
+            gammas_list = sorted(gammas_list)  # 从小到大排序
+            gammas1 = np.array(gammas_list)
         else:
+            # 连续搜索：与原生mdm.py保持一致，使用 t_min * 0.99
             gammas1 = np.linspace(0, t_min * 0.99, gamma_steps)
 
         # ========== Round 1: Search ==========
