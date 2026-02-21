@@ -5,7 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, ComposedChart, Scatter, AreaChart, Area
 } from 'recharts'
-import { BookOpen, ChevronDown, GitCommit, ArrowRight, Table2, AlertTriangle, CheckCircle } from 'lucide-react'
+import { BookOpen, ChevronDown, GitCommit, ArrowRight, Table2, AlertTriangle, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Case6ViewerProps {
@@ -67,6 +67,9 @@ export default function Case6Viewer({ caseId, onCaseChange }: Case6ViewerProps) 
   // 当前选中的策略和偏移量
   const [activeStrategy, setActiveStrategy] = useState('iter60')
   const [activeOffset, setActiveOffset] = useState(0.1)
+
+  // 数据点显示开关
+  const [showDataPoints, setShowDataPoints] = useState(true)
 
   // 加载数据
   useEffect(() => {
@@ -267,7 +270,7 @@ export default function Case6Viewer({ caseId, onCaseChange }: Case6ViewerProps) 
 
         {/* 图表区域 */}
         {currentResult?.trace_data ? (
-          <ChartsDisplay traceData={currentResult.trace_data} />
+          <ChartsDisplay traceData={currentResult.trace_data} showDataPoints={showDataPoints} setShowDataPoints={setShowDataPoints} />
         ) : (
           <div className="h-40 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-center text-amber-700">
             <AlertTriangle className="mr-2" size={20} />
@@ -280,7 +283,7 @@ export default function Case6Viewer({ caseId, onCaseChange }: Case6ViewerProps) 
 }
 
 // 图表显示组件（复制自 MDMIterationViewer）
-function ChartsDisplay({ traceData }: { traceData: TraceData }) {
+function ChartsDisplay({ traceData, showDataPoints, setShowDataPoints }: { traceData: TraceData; showDataPoints: boolean; setShowDataPoints: (v: boolean) => void }) {
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
@@ -335,6 +338,21 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* 数据点显示开关 */}
+      <div className="col-span-full flex justify-end">
+        <button
+          onClick={() => setShowDataPoints(!showDataPoints)}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+            showDataPoints
+              ? "bg-slate-100 text-slate-700 border-slate-200"
+              : "bg-white text-slate-400 border-slate-200"
+          )}
+        >
+          {showDataPoints ? <Eye size={14} /> : <EyeOff size={14} />}
+          <span>数据点</span>
+        </button>
+      </div>
       {/* 图1: 梯度-γ 曲线 */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -441,11 +459,13 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
                   dot={false}
                 />
                 <ReferenceLine x={activePoint?.best_beta} stroke="#ef4444" strokeDasharray="3 3" />
-                <Scatter
-                  data={[{ beta: activePoint?.best_beta, sigma: activePoint?.sigma_min }]}
-                  fill="#ef4444"
-                  shape="diamond"
-                />
+                {showDataPoints && (
+                  <Scatter
+                    data={[{ beta: activePoint?.best_beta, sigma: activePoint?.sigma_min }]}
+                    fill="#ef4444"
+                    shape="diamond"
+                  />
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           ) : (

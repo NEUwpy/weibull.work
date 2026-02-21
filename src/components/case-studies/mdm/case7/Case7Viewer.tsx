@@ -5,7 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, ComposedChart, Scatter
 } from 'recharts'
-import { BookOpen, ChevronDown, GitCommit, Table2, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react'
+import { BookOpen, ChevronDown, GitCommit, Table2, AlertTriangle, CheckCircle, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Case7ViewerProps {
@@ -75,6 +75,9 @@ export default function Case7Viewer({ caseId, onCaseChange }: Case7ViewerProps) 
 
   const [activeStrategy, setActiveStrategy] = useState('iter60')
   const [activeOffset, setActiveOffset] = useState(0.1)
+
+  // 数据点显示开关
+  const [showDataPoints, setShowDataPoints] = useState(true)
 
   useEffect(() => {
     const loadData = async () => {
@@ -294,7 +297,7 @@ export default function Case7Viewer({ caseId, onCaseChange }: Case7ViewerProps) 
 
         {/* 图表区域 */}
         {currentResult?.trace_data ? (
-          <ChartsDisplay traceData={currentResult.trace_data} />
+          <ChartsDisplay traceData={currentResult.trace_data} showDataPoints={showDataPoints} setShowDataPoints={setShowDataPoints} />
         ) : (
           <div className="h-40 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-center text-amber-700">
             <AlertTriangle className="mr-2" size={20} />
@@ -307,7 +310,7 @@ export default function Case7Viewer({ caseId, onCaseChange }: Case7ViewerProps) 
 }
 
 // 图表显示组件
-function ChartsDisplay({ traceData }: { traceData: TraceData }) {
+function ChartsDisplay({ traceData, showDataPoints, setShowDataPoints }: { traceData: TraceData; showDataPoints: boolean; setShowDataPoints: (v: boolean) => void }) {
   const [activeIndex, setActiveIndex] = useState(0)
 
   // γ 范围限制
@@ -389,6 +392,21 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
 
   return (
     <div className="space-y-8">
+      {/* 数据点显示开关 */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowDataPoints(!showDataPoints)}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+            showDataPoints
+              ? "bg-slate-100 text-slate-700 border-slate-200"
+              : "bg-white text-slate-400 border-slate-200"
+          )}
+        >
+          {showDataPoints ? <Eye size={14} /> : <EyeOff size={14} />}
+          <span>数据点</span>
+        </button>
+      </div>
       {/* 图1: 梯度-γ 曲线 */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -710,12 +728,14 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
                   isAnimationActive={false}
                 />
                 {/* 原始数据点 */}
-                <Scatter
-                  data={gradientData}
-                  dataKey="gradient"
-                  fill="#8b5cf6"
-                  name="原始数据点"
-                />
+                {showDataPoints && (
+                  <Scatter
+                    data={gradientData}
+                    dataKey="gradient"
+                    fill="#8b5cf6"
+                    name="原始数据点"
+                  />
+                )}
                 {/* 偏移值参考线 */}
                 <ReferenceLine
                   y={traceData.target_offset}
@@ -735,7 +755,7 @@ function ChartsDisplay({ traceData }: { traceData: TraceData }) {
                   />
                 )}
                 {/* 交点标记 */}
-                {traceData.poly_fit.fit_gamma !== null && (
+                {traceData.poly_fit.fit_gamma !== null && showDataPoints && (
                   <Scatter
                     data={[{
                       gamma: traceData.poly_fit.fit_gamma,
