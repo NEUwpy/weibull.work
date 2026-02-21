@@ -1,0 +1,48 @@
+# ============================================
+# Weibull Platform - Docker Compose
+# 用于绿联 NAS 部署
+# 通过 Cloudflare Tunnel 实现外网访问
+# ============================================
+
+services:
+  # 前端服务 (Next.js)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: weibull-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:8001
+    depends_on:
+      - backend
+    networks:
+      - weibull-network
+
+  # 后端服务 (Python/FastAPI)
+  backend:
+    build:
+      context: ./python
+      dockerfile: Dockerfile.backend
+    container_name: weibull-backend
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    networks:
+      - weibull-network
+
+  # Cloudflare Tunnel (用于无公网IP访问)
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: weibull-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token eyJhIjoiNjZjYjE5MDlhZTk3MGZjM2M1MDgyNzI3NzY4NmJkOWMiLCJ0IjoiZWMwNzY3YzctMTFiOS00MjA2LTk0YWQtMWJhMWUyNTA1NDkwIiwicyI6IlpURmtNek01WWpndFpUZzVPQzAwWVdZekxXSTBZalV0TXpsbU9EQmhNR0U1WWpVMCJ9
+    networks:
+      - weibull-network
+
+networks:
+  weibull-network:
+    driver: bridge
