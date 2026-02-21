@@ -67,15 +67,26 @@ npm run dev
 
 如果你是维护本项目的 AI 助手，请务必遵循以下索引进行上下文加载：
 
-1.  **核心架构**: 必须优先读取 **[`ARCHITECTURE.md`](ARCHITECTURE.md)**，这是理解本项目“前后端分离”与“Markdown 数据源”规则的唯一真理来源。
-2.  **代码索引**: 
-    - **核心算法**: `python/methods/*.py` (所有统计计算逻辑)
-    - **API 接口**: `python/main.py`
-    - **前端页面**: `src/app/`
-    - **通用组件**: `src/components/`
-3.  **禁区**: 
-    - 严禁读取 `_archive/` 目录下的任何内容（包含废弃脚本与旧数据）。
-    - 严禁将重型计算逻辑写入前端 TypeScript 文件。
+### 维护指令
+
+当用户说以下指令时，执行对应操作：
+
+| 用户指令 | 执行操作 |
+|---------|---------|
+| "推版本到 GitHub" / "git一个版本" / "提交代码" | `git add -A && git commit && git push` |
+| "更新 Docker 版本" / "更新线上版本" / "部署到 NAS" | SSH 登录 NAS → `git pull && docker-compose up -d --build` |
+
+NAS 连接信息见 `docs/部署与维护指南.md`。
+
+### 代码索引
+
+1.  **核心架构**: 优先读取 **[`ARCHITECTURE.md`](ARCHITECTURE.md)**
+2.  **代码位置**:
+    - 核心算法: `python/methods/*.py`
+    - API 接口: `python/main.py`
+    - 前端页面: `src/app/`
+    - 通用组件: `src/components/`
+3.  **禁区**: 严禁读取 `_archive/` 目录
 
 ## ⚖️ License
 MIT License
