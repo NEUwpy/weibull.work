@@ -2,6 +2,25 @@
 
 一个集计算工具、数据管理与科研文献于一体的现代化可靠性工程平台。
 
+**线上地址**: [weibull.work](https://weibull.work)
+
+## 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 前端 | Next.js 14 + TypeScript + Tailwind CSS |
+| 后端 | Python + FastAPI + SciPy/NumPy |
+| 部署 | Docker + Cloudflare Tunnel |
+| 托管 | 绿联 NAS（无公网 IP） |
+
+## 架构
+
+```
+用户 → Cloudflare CDN → Tunnel → NAS Docker
+                                    ├── frontend:3000 (Next.js)
+                                    └── backend:8001 (FastAPI)
+```
+
 ## 🌟 核心模块
 
 1.  **Calculator (计算器)**: 
@@ -38,8 +57,9 @@ npm run dev
 
 ## 📚 文档导航
 
-- **[架构与实现 (ARCHITECTURE.md)](ARCHITECTURE.md)**: 了解系统的技术架构、数据流向、目录规范及开发规则。（**开发者必读**）
-- **[需求与规划 (REQUIREMENTS.md)](REQUIREMENTS.md)**: 查看项目路线图、待办事项及功能需求。
+- **[部署与维护指南 (docs/部署与维护指南.md)](docs/部署与维护指南.md)**: NAS + Cloudflare Tunnel 部署流程及日常维护。
+- **[架构与实现 (ARCHITECTURE.md)](ARCHITECTURE.md)**: 技术架构、数据流向、目录规范。（**开发者必读**）
+- **[需求与规划 (REQUIREMENTS.md)](REQUIREMENTS.md)**: 项目路线图、待办事项。
 
 ---
 
