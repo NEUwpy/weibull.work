@@ -76,7 +76,9 @@ npm run dev
 | "推版本到 GitHub" / "git一个版本" / "提交代码" | `git add -A && git commit && git push` |
 | "更新 Docker 版本" / "更新线上版本" / "部署到 NAS" | SSH 登录 NAS → `git pull && docker-compose up -d --build` |
 
-NAS 连接信息见 `docs/部署与维护指南.md`。
+### 凭证信息
+
+连接信息（GitHub、NAS、Cloudflare）存储在 `docs/凭证信息.md`（本地文件，不提交到 GitHub）。
 
 ### 代码索引
 
