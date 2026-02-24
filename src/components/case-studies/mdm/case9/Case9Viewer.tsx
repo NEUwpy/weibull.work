@@ -523,6 +523,7 @@ export default function Case9Viewer({ caseId, onCaseChange }: Case9ViewerProps) 
                 <option value="case-7">案例7: 搜索步长对结果的影响 (实际样本) ★</option>
                 <option value="case-8">案例8: β搜索方式对比 (β步长0.05) ★</option>
                 <option value="case-9">案例9: β步长对估计结果的影响 ★</option>
+                <option value="case-10">案例10: 中位秩方法对比研究 ★</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             </div>
@@ -927,13 +928,15 @@ export default function Case9Viewer({ caseId, onCaseChange }: Case9ViewerProps) 
                         isAnimationActive={false}
                       />
                       {/* 标记最优β点 */}
-                      <ReferenceLine
-                        x={brentSigmaBetaData.beta}
-                        stroke="#10b981"
-                        strokeDasharray="3 3"
-                        strokeWidth={1.5}
-                        label={{ value: `β=${brentSigmaBetaData.beta?.toFixed(4)}`, position: 'top', fill: '#10b981', fontSize: 10 }}
-                      />
+                      {brentSigmaBetaData.beta != null && (
+                        <ReferenceLine
+                          x={brentSigmaBetaData.beta}
+                          stroke="#10b981"
+                          strokeDasharray="3 3"
+                          strokeWidth={1.5}
+                          label={{ value: `β=${brentSigmaBetaData.beta.toFixed(4)}`, position: 'top', fill: '#10b981', fontSize: 10 }}
+                        />
+                      )}
                     </React.Fragment>
                   )}
                   {/* 离散搜索曲线 */}

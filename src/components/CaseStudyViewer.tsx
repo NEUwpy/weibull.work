@@ -102,6 +102,42 @@ const Case9Viewer = dynamic(() => import('./case-studies/mdm/case9/Case9Viewer')
   )
 })
 
+const Case10Viewer = dynamic(() => import('./case-studies/mdm/case10/Case10Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例10分析中...</p>
+      </div>
+    </div>
+  )
+})
+
+const Case11Viewer = dynamic(() => import('./case-studies/mdm/case11/Case11Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例11分析中...</p>
+      </div>
+    </div>
+  )
+})
+
+const Case12Viewer = dynamic(() => import('./case-studies/mdm/case12/Case12Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-200 border-t-teal-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例12分析中...</p>
+      </div>
+    </div>
+  )
+})
+
 interface CaseStudyViewerProps {
   methodId: string
 }
@@ -134,7 +170,7 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-  architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'markdown'  // 架构类型
+    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'case7' | 'case8' | 'case9' | 'case10' | 'case11' | 'case12' | 'markdown'  // 架构类型
   content?: string  // Markdown内容（仅用于markdown架构）
   defaults?: {  // 默认基准值
     beta?: number
@@ -634,6 +670,21 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   // 检查是否为案例9（β步长对估计结果的影响）
   if (selectedCase?.architecture === 'case9') {
     return <Case9Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例10（中位秩方法对比研究）
+  if (selectedCase?.architecture === 'case10') {
+    return <Case10Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例11（中位秩方法对比研究 - 多样本量）
+  if (selectedCase?.architecture === 'case11') {
+    return <Case11Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例12（MDM vs WMLE 方法对比）
+  if (selectedCase?.architecture === 'case12') {
+    return <Case12Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 
   const variableParams = params.filter(p => p.isVariable)

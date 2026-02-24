@@ -141,6 +141,8 @@ export default function Case7Viewer({ caseId, onCaseChange }: Case7ViewerProps) 
                 <option value="case-6">案例6: 搜索步长对结果的影响 (c2数据)</option>
                 <option value="case-7">案例7: 搜索步长对结果的影响 (实际样本) ★</option>
                 <option value="case-8">案例8: β搜索方式对比 (β步长0.05) ★</option>
+                <option value="case-9">案例9: β步长对估计结果的影响 ★</option>
+                <option value="case-10">案例10: 中位秩方法对比研究 ★</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             </div>
