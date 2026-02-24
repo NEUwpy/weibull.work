@@ -265,6 +265,7 @@ export default function Case13Viewer({ caseId, onCaseChange }: Case13ViewerProps
                 <option value="case-11">案例11: 中位秩方法对比 (多样本量) ★</option>
                 <option value="case-12">案例12: MDM vs WMLE 方法对比 ★</option>
                 <option value="case-13">案例13: 中位秩方法对比 (多尺度参数) ★</option>
+                <option value="case-14">案例14: MDM vs WMLE 方法对比 (多尺度参数) ★</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             </div>
