@@ -323,13 +323,13 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
                 <tr className="border-b-2 border-slate-300">
                   <th className="py-2 px-2 text-left font-bold text-slate-700">n</th>
                   <th className="py-2 px-2 text-left font-bold text-slate-700">方法</th>
-                  <th className="py-2 px-2 text-right font-bold text-slate-700">有解率</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">均值</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">中位数</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">标准差</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">偏差</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">MSE</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">95% CI</th>
+                  <th className="py-2 px-2 text-right font-bold text-slate-700">99% CI</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">全范围</th>
                 </tr>
               </thead>
@@ -357,7 +357,6 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
                             </td>
                           )}
                           <td className={cn("py-2 px-2 font-bold", color === 'blue' ? 'text-blue-700' : 'text-red-700')}>{name}</td>
-                          <td className="py-2 px-2 text-right font-mono">{(stats.solution_rate * 100).toFixed(1)}%</td>
                           <td className="py-2 px-2 text-right font-mono">{paramStats?.mean.toFixed(decimals)}</td>
                           <td className="py-2 px-2 text-right font-mono">{paramStats?.median.toFixed(decimals)}</td>
                           <td className="py-2 px-2 text-right font-mono">{paramStats?.std.toFixed(decimals)}</td>
@@ -365,6 +364,9 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
                           <td className="py-2 px-2 text-right font-mono">{paramStats?.mse.toFixed(decimals)}</td>
                           <td className="py-2 px-2 text-right font-mono text-xs">
                             [{paramStats?.p025.toFixed(ciDecimals)}, {paramStats?.p975.toFixed(ciDecimals)}]
+                          </td>
+                          <td className="py-2 px-2 text-right font-mono text-xs">
+                            [{paramStats?.p005.toFixed(ciDecimals)}, {paramStats?.p995.toFixed(ciDecimals)}]
                           </td>
                           <td className="py-2 px-2 text-right font-mono text-xs">
                             [{paramStats?.min.toFixed(ciDecimals)}, {paramStats?.max.toFixed(ciDecimals)}]
@@ -382,7 +384,7 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
               activeTab === 'beta' ? params.true_beta :
               activeTab === 'eta' ? selectedEta :
               params.true_gamma
-            } | 偏差 = 估计均值 - 真实值 | 95% CI = [P2.5, P97.5]
+            } | 偏差 = 估计均值 - 真实值 | 95% CI = [P2.5, P97.5] | 99% CI = [P0.5, P99.5]
           </p>
         </div>
       )}
