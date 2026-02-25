@@ -415,6 +415,8 @@ export default function Case13Viewer({ caseId, onCaseChange }: Case13ViewerProps
                   <th className="py-2 px-2 text-right font-bold text-slate-700">β标准差</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">β MSE</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">η偏差</th>
+                  <th className="py-2 px-2 text-right font-bold text-slate-700">η标准差</th>
+                  <th className="py-2 px-2 text-right font-bold text-slate-700">η MSE</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">γ偏差</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">γ标准差</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">γ MSE</th>
@@ -433,6 +435,8 @@ export default function Case13Viewer({ caseId, onCaseChange }: Case13ViewerProps
                       <td className="py-2 px-2 text-right font-mono">{sr.bernard_stats.beta?.std.toFixed(4)}</td>
                       <td className="py-2 px-2 text-right font-mono">{sr.bernard_stats.mse_beta?.toFixed(6)}</td>
                       <td className="py-2 px-2 text-right font-mono text-red-600">{sr.bernard_stats.bias_eta?.mean.toFixed(2)}</td>
+                      <td className="py-2 px-2 text-right font-mono">{sr.bernard_stats.eta?.std.toFixed(2)}</td>
+                      <td className="py-2 px-2 text-right font-mono">{sr.bernard_stats.mse_eta?.toFixed(2)}</td>
                       <td className="py-2 px-2 text-right font-mono text-red-600">{sr.bernard_stats.bias_gamma?.mean.toFixed(2)}</td>
                       <td className="py-2 px-2 text-right font-mono">{sr.bernard_stats.gamma?.std.toFixed(2)}</td>
                       <td className="py-2 px-2 text-right font-mono">{sr.bernard_stats.mse_gamma?.toFixed(2)}</td>
@@ -444,6 +448,8 @@ export default function Case13Viewer({ caseId, onCaseChange }: Case13ViewerProps
                       <td className="py-2 px-2 text-right font-mono">{sr.exact_stats.beta?.std.toFixed(4)}</td>
                       <td className="py-2 px-2 text-right font-mono">{sr.exact_stats.mse_beta?.toFixed(6)}</td>
                       <td className="py-2 px-2 text-right font-mono text-red-600">{sr.exact_stats.bias_eta?.mean.toFixed(2)}</td>
+                      <td className="py-2 px-2 text-right font-mono">{sr.exact_stats.eta?.std.toFixed(2)}</td>
+                      <td className="py-2 px-2 text-right font-mono">{sr.exact_stats.mse_eta?.toFixed(2)}</td>
                       <td className="py-2 px-2 text-right font-mono text-red-600">{sr.exact_stats.bias_gamma?.mean.toFixed(2)}</td>
                       <td className="py-2 px-2 text-right font-mono">{sr.exact_stats.gamma?.std.toFixed(2)}</td>
                       <td className="py-2 px-2 text-right font-mono">{sr.exact_stats.mse_gamma?.toFixed(2)}</td>
