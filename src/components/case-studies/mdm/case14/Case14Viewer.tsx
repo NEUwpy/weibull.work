@@ -122,12 +122,12 @@ const colors = {
 
 // 样本量颜色：MDM 蓝色系(随n增大变深)，WMLE 红色系(随n增大变深)
 const sampleColors: Record<number, { mdm: string; wmle: string }> = {
-  7: { mdm: '#93c5fd', wmle: '#fca5a5' },    // 浅蓝 / 浅红
-  9: { mdm: '#60a5fa', wmle: '#f87171' },    // 蓝 / 红
+  3: { mdm: '#dbeafe', wmle: '#fee2e2' },    // 最浅蓝 / 最浅红
+  5: { mdm: '#93c5fd', wmle: '#fca5a5' },    // 浅蓝 / 浅红
+  7: { mdm: '#60a5fa', wmle: '#f87171' },    // 蓝 / 红
   10: { mdm: '#3b82f6', wmle: '#ef4444' },   // 亮蓝 / 亮红
-  12: { mdm: '#2563eb', wmle: '#dc2626' },   // 深蓝 / 深红
-  15: { mdm: '#1d4ed8', wmle: '#b91c1c' },   // 更深蓝 / 更深红
-  20: { mdm: '#1e40af', wmle: '#991b1b' },   // 最深蓝 / 最深红
+  15: { mdm: '#1d4ed8', wmle: '#dc2626' },   // 深蓝 / 深红
+  30: { mdm: '#1e40af', wmle: '#991b1b' },   // 最深蓝 / 最深红
 }
 
 export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps) {
@@ -287,8 +287,6 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
                 <option value="case-12">案例12: MDM vs WMLE 方法对比 ★</option>
                 <option value="case-13">案例13: 中位秩方法对比 (多尺度参数) ★</option>
                 <option value="case-14">案例14: MDM vs WMLE 方法对比 (多尺度参数) ★</option>
-                <option value="case-15">案例15: MDM vs WMLE 方法对比 (精细步长) ★</option>
-                <option value="case-16">案例16: MDM vs WMLE 方法对比 (精细步长+多尺度) ★</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             </div>

@@ -23,7 +23,7 @@ from methods.mdm import MDM
 from methods.wmle import WMLE
 
 # 模拟参数
-SAMPLE_SIZES = [7, 9, 10, 12, 15, 20]
+SAMPLE_SIZES = [3, 5, 7, 10, 15, 30]
 N_SIMULATIONS = 1000
 
 # 真实参数
