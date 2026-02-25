@@ -9,8 +9,8 @@ export async function GET() {
     const casesDir = path.join(process.cwd(), 'public', 'case-studies', 'mdm')
     const cases: any[] = []
 
-    // 遍历 case1-case14 目录
-    const caseDirs = ['case1', 'case2', 'case3', 'case4', 'case5', 'case6', 'case7', 'case8', 'case9', 'case10', 'case11', 'case12', 'case13', 'case14']
+    // 遍历 case1-case16 目录
+    const caseDirs = ['case1', 'case2', 'case3', 'case4', 'case5', 'case6', 'case7', 'case8', 'case9', 'case10', 'case11', 'case12', 'case13', 'case14', 'case15', 'case16']
 
     for (const caseDir of caseDirs) {
       const configPath = path.join(casesDir, caseDir, 'config.md')
@@ -26,7 +26,7 @@ export async function GET() {
       cases.push({
         ...data,
         content: data.architecture === 'markdown' ? content : undefined,
-        csvFile: `/case-studies/mdm/${caseDir}/data.csv`
+        csvFile: `/case-studies/mdm/${caseDir}/data.json`
       })
     }
 

@@ -199,6 +199,8 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
                 <option value="case-12">案例12: MDM vs WMLE 方法对比 ★</option>
                 <option value="case-13">案例13: 中位秩方法对比 (多尺度参数) ★</option>
                 <option value="case-14">案例14: MDM vs WMLE 方法对比 (多尺度参数) ★</option>
+                <option value="case-15">案例15: MDM vs WMLE 方法对比 (精细步长) ★</option>
+                <option value="case-16">案例16: MDM vs WMLE 方法对比 (精细步长+多尺度) ★</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             </div>

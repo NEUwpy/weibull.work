@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 // 参数 Tab 类型
 type ParamTab = 'beta' | 'eta' | 'gamma'
 
-interface Case12ViewerProps {
+interface Case15ViewerProps {
   caseId: string
   onCaseChange?: (caseId: string) => void
 }
@@ -66,6 +66,8 @@ interface SimulationParams {
   true_eta: number
   true_gamma: number
   offset: number
+  beta_step: number
+  gamma_step: number
   seed: number
 }
 
@@ -125,7 +127,7 @@ const sampleColors: Record<number, { mdm: string; wmle: string }> = {
   20: { mdm: '#1e40af', wmle: '#991b1b' },   // 最深蓝 / 最深红
 }
 
-export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps) {
+export default function Case15Viewer({ caseId, onCaseChange }: Case15ViewerProps) {
   const [data, setData] = useState<CaseData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -135,7 +137,7 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
     const loadData = async () => {
       try {
         setIsLoading(true)
-        const res = await fetch('/case-studies/mdm/case12/data.json')
+        const res = await fetch('/case-studies/mdm/case15/data.json')
         if (!res.ok) throw new Error('数据加载失败')
         const json = await res.json()
         setData(json)
@@ -181,8 +183,8 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
     return (
       <div className="bg-white rounded-2xl border border-slate-200 p-12">
         <div className="flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-teal-200 border-t-teal-600 mb-4"></div>
-          <p className="text-slate-600 font-bold">加载案例12数据中...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+          <p className="text-slate-600 font-bold">加载案例15数据中...</p>
         </div>
       </div>
     )
@@ -236,14 +238,14 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
       )}
 
       {/* 标题 */}
-      <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-2xl p-6 border border-teal-200">
-        <h2 className="text-xl font-bold text-slate-800 mb-2">案例12: MDM vs WMLE 方法对比</h2>
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
+        <h2 className="text-xl font-bold text-slate-800 mb-2">案例15: MDM vs WMLE 方法对比 (精细步长)</h2>
         <p className="text-sm text-slate-600 mb-2">
           蒙特卡洛模拟: n ∈ {'{' + params.sample_sizes.join(', ') + '}'}, 各{params.n_simulations}次 | 真实参数: β={params.true_beta}, η={params.true_eta}, γ={params.true_gamma}
         </p>
-        <div className="flex items-center gap-2 text-xs text-teal-600 bg-teal-100 px-3 py-1.5 rounded-lg w-fit">
+        <div className="flex items-center gap-2 text-xs text-purple-600 bg-purple-100 px-3 py-1.5 rounded-lg w-fit">
           <Info size={14} />
-          <span>MDM: 中位差异法 (δ={params.offset}) | WMLE: 加权最大似然估计</span>
+          <span>MDM精细步长: β_step={params.beta_step}, γ_step={params.gamma_step} | WMLE: γ ≥ 0 边界约束</span>
         </div>
       </div>
 
@@ -251,7 +253,7 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Table2 className="text-teal-600" size={20} />
+            <Table2 className="text-purple-600" size={20} />
             <h3 className="text-lg font-bold text-slate-800">参数估计统计汇总</h3>
           </div>
           {/* Tab 切换按钮 */}
@@ -352,7 +354,7 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
       {allKDEData && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <LineChartIcon className="text-teal-600" size={20} />
+            <LineChartIcon className="text-purple-600" size={20} />
             <h3 className="text-lg font-bold text-slate-800">参数估计值概率密度分布</h3>
           </div>
 
@@ -370,6 +372,10 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
                 </span>
               </React.Fragment>
             ))}
+            <span className="flex items-center gap-1 ml-4">
+              <span className="w-4 h-0.5 bg-red-500 inline-block" style={{ borderStyle: 'dashed' }}></span>
+              <span className="text-slate-600">真实值</span>
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -387,6 +393,7 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
                       formatter={(v: number) => v.toFixed(4)}
                       labelFormatter={(l) => `β: ${Number(l).toFixed(3)}`}
                     />
+                    <ReferenceLine x={params.true_beta} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
                     {params.sample_sizes.map(n => (
                       <React.Fragment key={n}>
                         <Line type="monotone" dataKey="y" data={allKDEData[n].beta.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
@@ -411,6 +418,7 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
                       formatter={(v: number) => v.toFixed(5)}
                       labelFormatter={(l) => `η: ${Number(l).toFixed(1)}`}
                     />
+                    <ReferenceLine x={params.true_eta} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
                     {params.sample_sizes.map(n => (
                       <React.Fragment key={n}>
                         <Line type="monotone" dataKey="y" data={allKDEData[n].eta.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
@@ -435,6 +443,7 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
                       formatter={(v: number) => v.toFixed(5)}
                       labelFormatter={(l) => `γ: ${Number(l).toFixed(1)}`}
                     />
+                    <ReferenceLine x={params.true_gamma} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
                     {params.sample_sizes.map(n => (
                       <React.Fragment key={n}>
                         <Line type="monotone" dataKey="y" data={allKDEData[n].gamma.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
@@ -448,6 +457,7 @@ export default function Case12Viewer({ caseId, onCaseChange }: Case12ViewerProps
           </div>
           <p className="text-center text-xs text-slate-500 mt-3">
             使用高斯核密度估计 (KDE)。蓝色系 = MDM，红色系 = WMLE。
+            <span className="text-red-500 font-medium ml-2">红色虚线</span>为真实参数值。
           </p>
         </div>
       )}

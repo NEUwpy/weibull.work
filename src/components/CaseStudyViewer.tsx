@@ -162,6 +162,30 @@ const Case14Viewer = dynamic(() => import('./case-studies/mdm/case14/Case14Viewe
   )
 })
 
+const Case15Viewer = dynamic(() => import('./case-studies/mdm/case15/Case15Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例15分析中...</p>
+      </div>
+    </div>
+  )
+})
+
+const Case16Viewer = dynamic(() => import('./case-studies/mdm/case16/Case16Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例16分析中...</p>
+      </div>
+    </div>
+  )
+})
+
 interface CaseStudyViewerProps {
   methodId: string
 }
@@ -194,7 +218,7 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'case7' | 'case8' | 'case9' | 'case10' | 'case11' | 'case12' | 'case13' | 'case14' | 'markdown'  // 架构类型
+    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'case7' | 'case8' | 'case9' | 'case10' | 'case11' | 'case12' | 'case13' | 'case14' | 'case15' | 'case16' | 'markdown'  // 架构类型
   content?: string  // Markdown内容（仅用于markdown架构）
   defaults?: {  // 默认基准值
     beta?: number
@@ -719,6 +743,16 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
   // 检查是否为案例14（MDM vs WMLE 方法对比 - 多尺度参数）
   if (selectedCase?.architecture === 'case14') {
     return <Case14Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例15（MDM vs WMLE 方法对比 - 精细步长）
+  if (selectedCase?.architecture === 'case15') {
+    return <Case15Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  }
+
+  // 检查是否为案例16（MDM vs WMLE 方法对比 - 精细步长 + 多尺度参数）
+  if (selectedCase?.architecture === 'case16') {
+    return <Case16Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 
   const variableParams = params.filter(p => p.isVariable)

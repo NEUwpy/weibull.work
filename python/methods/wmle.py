@@ -72,7 +72,9 @@ class WMLE(WeibullBase):
             gamma = params[0]
             alpha = params[1]
 
-            if gamma <= 0 or gamma > 10 or alpha >= arr[0] - 1e-6:
+            # gamma: 形状参数 β (论文符号), 范围 (0, 10]
+            # alpha: 位置参数 γ (论文符号), 范围 [0, arr[0])
+            if gamma <= 0 or gamma > 10 or alpha >= arr[0] - 1e-6 or alpha < 0:
                 return 1e10
 
             x_minus_alpha = arr - alpha
