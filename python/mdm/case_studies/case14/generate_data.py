@@ -4,10 +4,11 @@
 研究内容:
 - 在 case12 基础上扩展，增加尺度参数 η 的选择
 - 对比两种威布尔参数估计方法: MDM vs WMLE
-- 多样本量: n = 7, 9, 10, 12, 15, 20
+- 多样本量: n = 3, 5, 7, 10, 15, 30
 - 多尺度参数: η = 200, 1000, 5000 (分散性从小到大)
 - 蒙特卡洛模拟: 各1000次/方法/样本量/η
 - 全面统计: 全范围、99%置信区间、95%置信区间
+- 分位数误差: F=0.0001, 0.001, 0.01, 0.1 的分位数估计误差
 
 输出:
 - public/case-studies/mdm/case14/data.json
@@ -129,6 +130,18 @@ def run_wmle(data: list, sim_id: int) -> dict:
         }
 
 
+# 分位数对应的累积失效概率
+QUANTILE_PROBS = [0.0001, 0.001, 0.01, 0.1]
+
+
+def calculate_quantile(beta: float, eta: float, gamma: float, prob: float) -> float:
+    """
+    计算给定累积失效概率对应的分位数
+    t = γ + η × (-ln(1-F))^(1/β)
+    """
+    return gamma + eta * np.power(-np.log(1 - prob), 1.0 / beta)
+
+
 def calculate_statistics(results: list, true_beta: float, true_eta: float, true_gamma: float) -> dict:
     """
     计算全面统计量
@@ -140,6 +153,7 @@ def calculate_statistics(results: list, true_beta: float, true_eta: float, true_
     - 集中趋势: mean, median
     - 离散程度: std
     - 偏差: bias (相对于真实值)
+    - 分位数误差: F=0.0001, 0.001, 0.01, 0.1 的分位数估计误差
     """
     valid_results = [r for r in results if r.get("beta") is not None and r.get("status") == "success"]
 
@@ -179,6 +193,34 @@ def calculate_statistics(results: list, true_beta: float, true_eta: float, true_
             "mse": float(np.mean((values - true_value) ** 2)),
         }
 
+    # 计算分位数误差
+    def calc_quantile_errors():
+        quantile_errors = {}
+        for prob in QUANTILE_PROBS:
+            # 真实分位数
+            true_q = calculate_quantile(true_beta, true_eta, true_gamma, prob)
+
+            # 估计的分位数
+            est_quantiles = []
+            for i in range(len(valid_results)):
+                est_q = calculate_quantile(betas[i], etas[i], gammas[i], prob)
+                est_quantiles.append(est_q)
+            est_quantiles = np.array(est_quantiles)
+
+            # 计算误差统计
+            errors = est_quantiles - true_q
+            relative_errors = errors / true_q * 100  # 相对误差 (%)
+
+            quantile_errors[str(prob)] = {
+                "true_quantile": float(true_q),
+                "mean_estimated": float(np.mean(est_quantiles)),
+                "mean_error": float(np.mean(errors)),
+                "mean_relative_error": float(np.mean(relative_errors)),
+                "std_error": float(np.std(errors, ddof=1)),
+                "rmse": float(np.sqrt(np.mean(errors ** 2))),
+            }
+        return quantile_errors
+
     return {
         "count": len(results),
         "valid_count": len(valid_results),
@@ -186,6 +228,7 @@ def calculate_statistics(results: list, true_beta: float, true_eta: float, true_
         "beta": calc_param_stats(betas, true_beta),
         "eta": calc_param_stats(etas, true_eta),
         "gamma": calc_param_stats(gammas, true_gamma),
+        "quantile_errors": calc_quantile_errors(),
     }
 
 
@@ -322,7 +365,7 @@ def main():
         print(f"η = {eta}")
         print(f"{'='*100}")
 
-        # 表头
+        # 参数估计汇总表
         print(f"\n{'n':<4} {'方法':<6} {'有解率':<8} {'β均值':<10} {'β标准差':<10} "
               f"{'β偏差':<12} {'γ偏差':<12}")
         print("-" * 80)
@@ -335,6 +378,22 @@ def main():
                 print(f"{n:<4} {method_name:<6} {stats['solution_rate']:<8.1%} "
                       f"{b['mean']:<10.4f} {b['std']:<10.4f} "
                       f"{b['bias']:<12.6f} {g['bias']:<12.2f}")
+            print("-" * 80)
+
+        # 分位数误差汇总表
+        print(f"\n--- 分位数误差 (η={eta}) ---")
+        print(f"{'n':<4} {'方法':<6} {'F=0.0001误差%':<14} {'F=0.001误差%':<14} {'F=0.01误差%':<14} {'F=0.1误差%':<14}")
+        print("-" * 80)
+
+        for sr in er["sample_results"]:
+            n = sr["n"]
+            for method_name, stats in [("MDM", sr["mdm_stats"]), ("WMLE", sr["wmle_stats"])]:
+                qe = stats.get("quantile_errors", {})
+                e_0001 = qe.get("0.0001", {}).get("mean_relative_error", 0)
+                e_001 = qe.get("0.001", {}).get("mean_relative_error", 0)
+                e_01 = qe.get("0.01", {}).get("mean_relative_error", 0)
+                e_1 = qe.get("0.1", {}).get("mean_relative_error", 0)
+                print(f"{n:<4} {method_name:<6} {e_0001:<14.2f} {e_001:<14.2f} {e_01:<14.2f} {e_1:<14.2f}")
             print("-" * 80)
 
 

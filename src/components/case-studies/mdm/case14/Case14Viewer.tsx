@@ -33,6 +33,16 @@ interface ParamStats {
   mse: number
 }
 
+// 分位数偏差统计
+interface QuantileErrorStats {
+  true_quantile: number
+  mean_estimated: number
+  mean_error: number
+  mean_relative_error: number
+  std_error: number
+  rmse: number
+}
+
 interface MethodStats {
   count: number
   valid_count: number
@@ -40,6 +50,7 @@ interface MethodStats {
   beta?: ParamStats
   eta?: ParamStats
   gamma?: ParamStats
+  quantile_errors?: Record<string, QuantileErrorStats>
 }
 
 interface SimulationResult {
@@ -80,7 +91,7 @@ interface CaseData {
 }
 
 // 核密度估计 (KDE)
-function computeKDE(values: number[], bandwidth?: number) {
+function computeKDE(values: number[], bandwidth?: number, minX?: number) {
   const n = values.length
   if (n === 0) return { points: [], bandwidth: 0 }
 
@@ -95,13 +106,16 @@ function computeKDE(values: number[], bandwidth?: number) {
   const defaultBandwidth = 0.9 * Math.min(std, iqr / 1.34) / Math.pow(n, 0.2)
   const h = bandwidth ?? defaultBandwidth
 
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min
+  const dataMin = Math.min(...values)
+  const dataMax = Math.max(...values)
+  const range = dataMax - dataMin
   const numPoints = 200
 
+  // 如果指定了 minX，确保不从 minX 以下开始绘制
+  const plotMin = minX !== undefined ? Math.max(dataMin - range * 0.1, minX) : dataMin - range * 0.1
+
   const points = Array.from({ length: numPoints }, (_, i) => {
-    const x = min - range * 0.1 + (i / (numPoints - 1)) * range * 1.2
+    const x = plotMin + (i / (numPoints - 1)) * (dataMax - plotMin + range * 0.1)
     let density = 0
     for (const v of values) {
       const u = (x - v) / h
@@ -118,6 +132,12 @@ const colors = {
   beta: '#1e40af',
   eta: '#047857',
   gamma: '#b45309'
+}
+
+// 根据正负值返回颜色类名
+const getBiasColorClass = (value: number | undefined): string => {
+  if (value === undefined) return ''
+  return value < 0 ? 'text-red-600' : value > 0 ? 'text-green-600' : ''
 }
 
 // 样本量颜色：MDM 蓝色系(随n增大变深)，WMLE 红色系(随n增大变深)
@@ -183,8 +203,8 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
           wmle: computeKDE(validWMLE.map(r => r.eta!)).points,
         },
         gamma: {
-          mdm: computeKDE(validMDM.map(r => r.gamma!)).points,
-          wmle: computeKDE(validWMLE.map(r => r.gamma!)).points,
+          mdm: computeKDE(validMDM.map(r => r.gamma!), undefined, 0).points,
+          wmle: computeKDE(validWMLE.map(r => r.gamma!), undefined, 0).points,
         }
       }
     }
@@ -219,12 +239,12 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
       const kdeMDM = {
         beta: computeKDE(validMDM.map(r => r.beta!)).points,
         eta: computeKDE(validMDM.map(r => r.eta!)).points,
-        gamma: computeKDE(validMDM.map(r => r.gamma!)).points,
+        gamma: computeKDE(validMDM.map(r => r.gamma!), undefined, 0).points,
       }
       const kdeWMLE = {
         beta: computeKDE(validWMLE.map(r => r.beta!)).points,
         eta: computeKDE(validWMLE.map(r => r.eta!)).points,
-        gamma: computeKDE(validWMLE.map(r => r.gamma!)).points,
+        gamma: computeKDE(validWMLE.map(r => r.gamma!), undefined, 0).points,
       }
 
       result.beta.mdm.push({ eta: er.eta, kde: kdeMDM.beta, color: etaColors[er.eta]?.mdm || '#888' })
@@ -364,13 +384,12 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full border-collapse" style={{ fontSize: '16px' }}>
               <thead>
                 <tr className="border-b-2 border-slate-300">
                   <th className="py-2 px-2 text-left font-bold text-slate-700">n</th>
                   <th className="py-2 px-2 text-left font-bold text-slate-700">方法</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">均值</th>
-                  <th className="py-2 px-2 text-right font-bold text-slate-700">中位数</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">标准差</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">偏差</th>
                   <th className="py-2 px-2 text-right font-bold text-slate-700">MSE</th>
@@ -404,17 +423,16 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
                           )}
                           <td className={cn("py-2 px-2 font-bold", color === 'blue' ? 'text-blue-700' : 'text-red-700')}>{name}</td>
                           <td className="py-2 px-2 text-right font-mono">{paramStats?.mean.toFixed(decimals)}</td>
-                          <td className="py-2 px-2 text-right font-mono">{paramStats?.median.toFixed(decimals)}</td>
                           <td className="py-2 px-2 text-right font-mono">{paramStats?.std.toFixed(decimals)}</td>
-                          <td className="py-2 px-2 text-right font-mono text-red-600">{paramStats?.bias.toFixed(decimals)}</td>
+                          <td className={cn("py-2 px-2 text-right font-mono", getBiasColorClass(paramStats?.bias))}>{paramStats?.bias.toFixed(decimals)}</td>
                           <td className="py-2 px-2 text-right font-mono">{paramStats?.mse.toFixed(decimals)}</td>
-                          <td className="py-2 px-2 text-right font-mono text-xs">
+                          <td className="py-2 px-2 text-right font-mono">
                             [{paramStats?.p025.toFixed(ciDecimals)}, {paramStats?.p975.toFixed(ciDecimals)}]
                           </td>
-                          <td className="py-2 px-2 text-right font-mono text-xs">
+                          <td className="py-2 px-2 text-right font-mono">
                             [{paramStats?.p005.toFixed(ciDecimals)}, {paramStats?.p995.toFixed(ciDecimals)}]
                           </td>
-                          <td className="py-2 px-2 text-right font-mono text-xs">
+                          <td className="py-2 px-2 text-right font-mono">
                             [{paramStats?.min.toFixed(ciDecimals)}, {paramStats?.max.toFixed(ciDecimals)}]
                           </td>
                         </tr>
@@ -435,27 +453,121 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
         </div>
       )}
 
-      {/* 概率密度分布对比 (所有样本量) */}
+      {/* 分位数偏差表格 */}
+      {currentEtaData && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Table2 className="text-purple-600" size={20} />
+            <h3 className="text-lg font-bold text-slate-800">分位数估计偏差 (η={selectedEta})</h3>
+          </div>
+          <p className="text-xs text-slate-500 mb-3">
+            计算公式: 分位数 t(F) = γ + η × (-ln(1-F))^(1/β) | 相对偏差 = (估计值 - 真实值) / 真实值 × 100%
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse" style={{ fontSize: '16px' }}>
+              <thead>
+                <tr className="border-b-2 border-slate-300">
+                  <th className="py-2 px-2 text-left font-bold text-slate-700">n</th>
+                  <th className="py-2 px-2 text-left font-bold text-slate-700">方法</th>
+                  <th className="py-2 px-1 text-center font-bold text-slate-700 border-l border-slate-300" colSpan={4}>F=0.01%</th>
+                  <th className="py-2 px-1 text-center font-bold text-slate-700 border-l border-slate-300" colSpan={4}>F=0.1%</th>
+                  <th className="py-2 px-1 text-center font-bold text-slate-700 border-l border-slate-300" colSpan={4}>F=1%</th>
+                  <th className="py-2 px-1 text-center font-bold text-slate-700 border-l border-slate-300" colSpan={4}>F=10%</th>
+                </tr>
+                <tr className="border-b border-slate-200 text-xs text-slate-500">
+                  <th></th>
+                  <th></th>
+                  <th className="py-1 px-1 text-right border-l border-slate-300">真值</th>
+                  <th className="py-1 px-1 text-right">估计</th>
+                  <th className="py-1 px-1 text-right">偏差</th>
+                  <th className="py-1 px-1 text-right">%</th>
+                  <th className="py-1 px-1 text-right border-l border-slate-300">真值</th>
+                  <th className="py-1 px-1 text-right">估计</th>
+                  <th className="py-1 px-1 text-right">偏差</th>
+                  <th className="py-1 px-1 text-right">%</th>
+                  <th className="py-1 px-1 text-right border-l border-slate-300">真值</th>
+                  <th className="py-1 px-1 text-right">估计</th>
+                  <th className="py-1 px-1 text-right">偏差</th>
+                  <th className="py-1 px-1 text-right">%</th>
+                  <th className="py-1 px-1 text-right border-l border-slate-300">真值</th>
+                  <th className="py-1 px-1 text-right">估计</th>
+                  <th className="py-1 px-1 text-right">偏差</th>
+                  <th className="py-1 px-1 text-right">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentEtaData.sample_results.map((sr) => (
+                  <React.Fragment key={sr.n}>
+                    {[
+                      { name: 'MDM', stats: sr.mdm_stats, color: 'blue' },
+                      { name: 'WMLE', stats: sr.wmle_stats, color: 'red' }
+                    ].map(({ name, stats, color }) => {
+                      const qe = stats.quantile_errors || {}
+                      const q0001 = qe['0.0001'] || {} as QuantileErrorStats
+                      const q001 = qe['0.001'] || {} as QuantileErrorStats
+                      const q01 = qe['0.01'] || {} as QuantileErrorStats
+                      const q1 = qe['0.1'] || {} as QuantileErrorStats
+
+                      const fmt = (v: number | undefined, d: number) => v !== undefined ? v.toFixed(d) : '-'
+                      const pct = (v: number | undefined) => v !== undefined ? `${v.toFixed(2)}%` : '-'
+
+                      return (
+                        <tr key={name} className={cn("border-b border-slate-200", color === 'blue' ? 'bg-blue-50' : 'bg-red-50')}>
+                          {name === 'MDM' && (
+                            <td rowSpan={2} className="py-1.5 px-2 font-bold text-slate-700 text-center align-middle border-r border-slate-200">
+                              {sr.n}
+                            </td>
+                          )}
+                          <td className={cn("py-1.5 px-2 font-bold", color === 'blue' ? 'text-blue-700' : 'text-red-700')}>{name}</td>
+                          {/* F=0.01% */}
+                          <td className="py-1.5 px-1 text-right font-mono border-l border-slate-300">{fmt(q0001.true_quantile, 1)}</td>
+                          <td className="py-1.5 px-1 text-right font-mono">{fmt(q0001.mean_estimated, 1)}</td>
+                          <td className={cn("py-1.5 px-1 text-right font-mono", getBiasColorClass(q0001.mean_error))}>{fmt(q0001.mean_error, 1)}</td>
+                          <td className={cn("py-1.5 px-1 text-right font-mono", getBiasColorClass(q0001.mean_relative_error))}>{pct(q0001.mean_relative_error)}</td>
+                          {/* F=0.1% */}
+                          <td className="py-1.5 px-1 text-right font-mono border-l border-slate-300">{fmt(q001.true_quantile, 1)}</td>
+                          <td className="py-1.5 px-1 text-right font-mono">{fmt(q001.mean_estimated, 1)}</td>
+                          <td className={cn("py-1.5 px-1 text-right font-mono", getBiasColorClass(q001.mean_error))}>{fmt(q001.mean_error, 1)}</td>
+                          <td className={cn("py-1.5 px-1 text-right font-mono", getBiasColorClass(q001.mean_relative_error))}>{pct(q001.mean_relative_error)}</td>
+                          {/* F=1% */}
+                          <td className="py-1.5 px-1 text-right font-mono border-l border-slate-300">{fmt(q01.true_quantile, 1)}</td>
+                          <td className="py-1.5 px-1 text-right font-mono">{fmt(q01.mean_estimated, 1)}</td>
+                          <td className={cn("py-1.5 px-1 text-right font-mono", getBiasColorClass(q01.mean_error))}>{fmt(q01.mean_error, 1)}</td>
+                          <td className={cn("py-1.5 px-1 text-right font-mono", getBiasColorClass(q01.mean_relative_error))}>{pct(q01.mean_relative_error)}</td>
+                          {/* F=10% */}
+                          <td className="py-1.5 px-1 text-right font-mono border-l border-slate-300">{fmt(q1.true_quantile, 1)}</td>
+                          <td className="py-1.5 px-1 text-right font-mono">{fmt(q1.mean_estimated, 1)}</td>
+                          <td className={cn("py-1.5 px-1 text-right font-mono", getBiasColorClass(q1.mean_error))}>{fmt(q1.mean_error, 1)}</td>
+                          <td className={cn("py-1.5 px-1 text-right font-mono", getBiasColorClass(q1.mean_relative_error))}>{pct(q1.mean_relative_error)}</td>
+                        </tr>
+                      )
+                    })}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-500 mt-2">
+            真值 = γ + η × (-ln(1-F))^(1/β) | 偏差 = 估计值 - 真实值 | % = 相对偏差
+          </p>
+        </div>
+      )}
+
+      {/* 概率密度分布对比 - MDM 方法 */}
       {allKDEData && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <LineChartIcon className="text-teal-600" size={20} />
-            <h3 className="text-lg font-bold text-slate-800">参数估计值概率密度分布 (η={selectedEta})</h3>
+            <LineChartIcon className="text-blue-600" size={20} />
+            <h3 className="text-lg font-bold text-slate-800">MDM 方法参数估计值概率密度分布 (η={selectedEta})</h3>
           </div>
 
           {/* 图例说明 */}
           <div className="flex flex-wrap gap-4 mb-4 text-xs">
             {params.sample_sizes.map(n => (
-              <React.Fragment key={n}>
-                <span className="flex items-center gap-1">
-                  <span className="w-4 h-0.5 inline-block" style={{ backgroundColor: sampleColors[n].mdm }}></span>
-                  <span className="text-slate-600">n={n} MDM</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-4 h-0.5 inline-block" style={{ backgroundColor: sampleColors[n].wmle }}></span>
-                  <span className="text-slate-600">n={n} WMLE</span>
-                </span>
-              </React.Fragment>
+              <span key={n} className="flex items-center gap-1">
+                <span className="w-4 h-0.5 inline-block" style={{ backgroundColor: sampleColors[n].mdm }}></span>
+                <span className="text-slate-600">n={n}</span>
+              </span>
             ))}
             <span className="flex items-center gap-1 ml-4">
               <span className="w-4 h-0.5 bg-red-500 inline-block" style={{ borderStyle: 'dashed' }}></span>
@@ -480,10 +592,7 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
                     />
                     <ReferenceLine x={params.true_beta} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
                     {params.sample_sizes.map(n => (
-                      <React.Fragment key={n}>
-                        <Line type="monotone" dataKey="y" data={allKDEData[n].beta.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="y" data={allKDEData[n].beta.wmle} stroke={sampleColors[n].wmle} strokeWidth={2} dot={false} />
-                      </React.Fragment>
+                      <Line key={n} type="monotone" dataKey="y" data={allKDEData[n].beta.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
@@ -505,10 +614,7 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
                     />
                     <ReferenceLine x={selectedEta} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
                     {params.sample_sizes.map(n => (
-                      <React.Fragment key={n}>
-                        <Line type="monotone" dataKey="y" data={allKDEData[n].eta.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="y" data={allKDEData[n].eta.wmle} stroke={sampleColors[n].wmle} strokeWidth={2} dot={false} />
-                      </React.Fragment>
+                      <Line key={n} type="monotone" dataKey="y" data={allKDEData[n].eta.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
@@ -530,10 +636,7 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
                     />
                     <ReferenceLine x={params.true_gamma} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
                     {params.sample_sizes.map(n => (
-                      <React.Fragment key={n}>
-                        <Line type="monotone" dataKey="y" data={allKDEData[n].gamma.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="y" data={allKDEData[n].gamma.wmle} stroke={sampleColors[n].wmle} strokeWidth={2} dot={false} />
-                      </React.Fragment>
+                      <Line key={n} type="monotone" dataKey="y" data={allKDEData[n].gamma.mdm} stroke={sampleColors[n].mdm} strokeWidth={2} dot={false} />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
@@ -541,7 +644,104 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
             </div>
           </div>
           <p className="text-center text-xs text-slate-500 mt-3">
-            使用高斯核密度估计 (KDE)。蓝色系 = MDM，红色系 = WMLE。
+            使用高斯核密度估计 (KDE)。蓝色系曲线为不同样本量 n 的 MDM 估计分布。
+            <span className="text-red-500 font-medium ml-2">红色虚线</span>为真实参数值。
+          </p>
+        </div>
+      )}
+
+      {/* 概率密度分布对比 - WMLE 方法 */}
+      {allKDEData && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <LineChartIcon className="text-red-600" size={20} />
+            <h3 className="text-lg font-bold text-slate-800">WMLE 方法参数估计值概率密度分布 (η={selectedEta})</h3>
+          </div>
+
+          {/* 图例说明 */}
+          <div className="flex flex-wrap gap-4 mb-4 text-xs">
+            {params.sample_sizes.map(n => (
+              <span key={n} className="flex items-center gap-1">
+                <span className="w-4 h-0.5 inline-block" style={{ backgroundColor: sampleColors[n].wmle }}></span>
+                <span className="text-slate-600">n={n}</span>
+              </span>
+            ))}
+            <span className="flex items-center gap-1 ml-4">
+              <span className="w-4 h-0.5 bg-red-500 inline-block" style={{ borderStyle: 'dashed' }}></span>
+              <span className="text-slate-600">真实值</span>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* β 分布曲线 */}
+            <div>
+              <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.beta }}>β 参数估计分布</p>
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart margin={{ top: 10, right: 15, bottom: 30, left: 45 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="x" tick={{ fontSize: 10 }} type="number" domain={['auto', 'auto']} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '4px', border: '1px solid #e5e7eb', fontSize: '11px' }}
+                      formatter={(v: number) => v.toFixed(4)}
+                      labelFormatter={(l) => `β: ${Number(l).toFixed(3)}`}
+                    />
+                    <ReferenceLine x={params.true_beta} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
+                    {params.sample_sizes.map(n => (
+                      <Line key={n} type="monotone" dataKey="y" data={allKDEData[n].beta.wmle} stroke={sampleColors[n].wmle} strokeWidth={2} dot={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            {/* η 分布曲线 */}
+            <div>
+              <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.eta }}>η 参数估计分布</p>
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart margin={{ top: 10, right: 15, bottom: 30, left: 45 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="x" tick={{ fontSize: 10 }} type="number" domain={['auto', 'auto']} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '4px', border: '1px solid #e5e7eb', fontSize: '11px' }}
+                      formatter={(v: number) => v.toFixed(5)}
+                      labelFormatter={(l) => `η: ${Number(l).toFixed(1)}`}
+                    />
+                    <ReferenceLine x={selectedEta} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
+                    {params.sample_sizes.map(n => (
+                      <Line key={n} type="monotone" dataKey="y" data={allKDEData[n].eta.wmle} stroke={sampleColors[n].wmle} strokeWidth={2} dot={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            {/* γ 分布曲线 */}
+            <div>
+              <p className="text-center text-sm font-semibold mb-2" style={{ color: colors.gamma }}>γ 参数估计分布</p>
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart margin={{ top: 10, right: 15, bottom: 30, left: 45 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="x" tick={{ fontSize: 10 }} type="number" domain={['auto', 'auto']} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '4px', border: '1px solid #e5e7eb', fontSize: '11px' }}
+                      formatter={(v: number) => v.toFixed(5)}
+                      labelFormatter={(l) => `γ: ${Number(l).toFixed(1)}`}
+                    />
+                    <ReferenceLine x={params.true_gamma} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={2} />
+                    {params.sample_sizes.map(n => (
+                      <Line key={n} type="monotone" dataKey="y" data={allKDEData[n].gamma.wmle} stroke={sampleColors[n].wmle} strokeWidth={2} dot={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+          <p className="text-center text-xs text-slate-500 mt-3">
+            使用高斯核密度估计 (KDE)。红色系曲线为不同样本量 n 的 WMLE 估计分布。
             <span className="text-red-500 font-medium ml-2">红色虚线</span>为真实参数值。
           </p>
         </div>
