@@ -2,7 +2,6 @@
 案例13: 中位秩方法对比研究 (多样本量 + 多尺度参数)
 
 研究内容:
-- 在 case11 基础上扩展，增加尺度参数 η 的选择
 - 对比两种中位秩方法: Bernard's approximation vs 精确中位秩
 - 多样本量: n = 7, 10, 15
 - 多尺度参数: η = 200, 1000, 5000 (分散性从小到大)
@@ -18,7 +17,147 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 
 import json
 import numpy as np
-from methods.mdm_case10 import MDMCase10, median_rank_bernard, median_rank_exact
+from scipy.special import betaincinv
+
+
+# ============== 中位秩函数 ==============
+def median_rank_bernard(i: int, n: int) -> float:
+    """Bernard's approximation for median rank"""
+    return (i - 0.3) / (n + 0.4)
+
+
+def median_rank_exact(i: int, n: int) -> float:
+    """
+    Exact median rank using inverse incomplete beta function.
+    F(i,n) = B^(-1)(0.5; i, n-i+1)
+    """
+    return betaincinv(i, n - i + 1, 0.5)
+
+
+# ============== MDM Case13 类 ==============
+class MDMCase13:
+    """
+    支持多种中位秩方法的 MDM 实现
+    """
+
+    def __init__(self, data: list, rank_method: str = 'bernard'):
+        self.data = np.array(sorted(data))
+        self.n = len(data)
+        self.rank_method = rank_method
+        self.trace_data = None
+
+    def _median_ranks(self) -> np.ndarray:
+        """计算中位秩"""
+        ranks = []
+        for i in range(1, self.n + 1):
+            if self.rank_method == 'exact':
+                ranks.append(median_rank_exact(i, self.n))
+            else:  # bernard
+                ranks.append(median_rank_bernard(i, self.n))
+        return np.array(ranks)
+
+    def run(self, offset: float = 0.1, gamma_steps: int = 60, trace: bool = False):
+        """
+        运行 MDM 估计
+
+        Returns:
+            (beta, eta, gamma, r_squared, status)
+        """
+        t = self.data
+        n = self.n
+
+        ranks = self._median_ranks()
+        neg_ln_1_minus_F = -np.log(1 - ranks)
+
+        def calculate_eta_std(beta, gamma, current_t):
+            if beta <= 0:
+                return float('inf')
+            denom = np.power(neg_ln_1_minus_F, 1.0 / beta)
+            etas = (current_t - gamma) / denom
+            return np.std(etas, ddof=1)
+
+        def find_best_beta_for_gamma(gamma):
+            if gamma >= t[0]:
+                return None, float('inf')
+
+            # 离散搜索
+            best_beta = 0.5
+            best_sigma = float('inf')
+            for beta in np.arange(0.1, 15.0, 0.01):
+                sigma = calculate_eta_std(beta, gamma, t)
+                if sigma < best_sigma:
+                    best_sigma = sigma
+                    best_beta = beta
+            return best_beta, best_sigma
+
+        t_min = t[0]
+        gammas = np.linspace(0, t_min * 0.99, gamma_steps)
+
+        sigma_mins = []
+        best_betas = []
+
+        for g in gammas:
+            b, sig = find_best_beta_for_gamma(g)
+            sigma_mins.append(sig)
+            best_betas.append(b)
+
+        sigma_mins = np.array(sigma_mins)
+        best_betas = np.array(best_betas)
+        grads = np.gradient(sigma_mins, gammas)
+
+        diffs = grads - offset
+        sign_changes = np.where(np.diff(np.sign(diffs)))[0]
+
+        if len(sign_changes) == 0:
+            # 扩展搜索
+            gammas2 = np.linspace(t_min * 0.99, t_min * 0.999999, gamma_steps)
+            sigma_mins2 = []
+            best_betas2 = []
+
+            for g in gammas2:
+                b, sig = find_best_beta_for_gamma(g)
+                sigma_mins2.append(sig)
+                best_betas2.append(b)
+
+            sigma_mins2 = np.array(sigma_mins2)
+            best_betas2 = np.array(best_betas2)
+            grads2 = np.gradient(sigma_mins2, gammas2)
+
+            gammas = np.concatenate([gammas, gammas2])
+            sigma_mins = np.concatenate([sigma_mins, sigma_mins2])
+            best_betas = np.concatenate([best_betas, best_betas2])
+            grads = np.concatenate([grads, grads2])
+
+            diffs = grads - offset
+            sign_changes = np.where(np.diff(np.sign(diffs)))[0]
+
+        if len(sign_changes) == 0:
+            return None, None, None, None, "no_intersection"
+
+        # 线性插值找交点
+        idx = sign_changes[-1]
+        y1, y2 = diffs[idx], diffs[idx + 1]
+        x1, x2 = gammas[idx], gammas[idx + 1]
+
+        if y2 != y1:
+            found_gamma = x1 - y1 * (x2 - x1) / (y2 - y1)
+        else:
+            found_gamma = x1
+
+        found_beta, _ = find_best_beta_for_gamma(found_gamma)
+
+        denom = np.power(neg_ln_1_minus_F, 1.0 / found_beta)
+        etas = (t - found_gamma) / denom
+        found_eta = np.mean(etas)
+
+        # R² 计算
+        y_pred = np.log(neg_ln_1_minus_F)
+        y_true = np.log((t - found_gamma) / found_eta)
+        ss_res = np.sum((y_true - found_beta * y_pred) ** 2)
+        ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+        r2 = 1 - ss_res / ss_tot if ss_tot > 0 else 0
+
+        return float(found_beta), float(found_eta), float(found_gamma), float(r2), "success"
 
 # 模拟参数 - 多个样本量
 SAMPLE_SIZES = [7, 10, 15]  # 样本量列表
@@ -54,7 +193,7 @@ def run_single_simulation(data: list, rank_method: str, sim_id: int, trace: bool
     运行单次MDM估计
     """
     try:
-        mdm = MDMCase10(data, rank_method=rank_method)
+        mdm = MDMCase13(data, rank_method=rank_method)
         beta, eta, gamma, r2, status = mdm.run(offset=OFFSET, gamma_steps=GAMMA_STEPS, trace=trace)
 
         result = {

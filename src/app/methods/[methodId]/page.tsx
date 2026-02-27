@@ -114,7 +114,7 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'lab' | 'analysis' | 'cases'>('doc')
+  const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'lab' | 'analysis' | 'examples' | 'cases'>('doc')
 
   // Result Analysis Card State (similar to Lab)
   const [analysisData, setAnalysisData] = useState<DataPoint[]>([])
@@ -488,6 +488,16 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                   结果分析
                 </button>
                 <button
+                  onClick={() => setActiveTab('examples')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    activeTab === 'examples' ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <FlaskConical size={16} />
+                  方法示例
+                </button>
+                <button
                   onClick={() => setActiveTab('cases')}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
@@ -636,6 +646,18 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                  />
                </div>
              )}
+          </div>
+        ) : activeTab === 'examples' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white rounded-3xl border border-slate-200 p-8">
+              <div className="flex items-center gap-2 mb-6">
+                <FlaskConical className="text-orange-500" size={20} />
+                <h3 className="text-lg font-bold text-slate-900">方法示例</h3>
+              </div>
+              <div className="text-center py-12 text-slate-400">
+                功能开发中...
+              </div>
+            </div>
           </div>
         ) : activeTab === 'cases' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
