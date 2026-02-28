@@ -107,70 +107,132 @@
                                       ↓
                               CaseStudyViewer 组件
                                       ↓
-                              下拉框切换案例（所有案例都有）
+                   ┌─────────────────────────────────┐
+                   │  useCaseList() Hook             │
+                   │  → GET /api/case-studies/mdm    │
+                   │  → 自动扫描 case* 目录           │
+                   │  → 返回案例列表                  │
+                   └─────────────────────────────────┘
+                                      ↓
+                              下拉框动态渲染
 ```
 
-**组件位置**: `src/components/`
-- `CaseStudyViewer.tsx` - 主组件，处理案例切换和数据加载
-- `Case3NoIntersectionViewer.tsx` - 案例3专用组件（无交点分析）
-- `Case5Viewer.tsx` - 案例5专用组件（30组样本分析）
+**关键文件**:
+
+| 文件 | 作用 |
+|------|------|
+| `src/hooks/useCaseList.ts` | 共享 Hook，获取案例列表 |
+| `src/app/api/case-studies/mdm/route.ts` | API 路由，自动扫描目录 |
+| `src/components/CaseStudyViewer.tsx` | 主组件，架构分发 |
+| `src/components/case-studies/mdm/caseX/CaseXViewer.tsx` | 各案例专用组件 |
 
 **数据位置**: `public/case-studies/mdm/caseX/`
-- `config.md` - YAML 配置 + Markdown 描述
-- `data.csv` - 模拟数据
-- 其他 JSON 文件（特殊案例）
+- `config.md` - YAML 配置 + Markdown 描述（必需）
+- `data.json` - 模拟数据
 
-**API 路由**: `/api/case-studies/mdm/`
+#### 案例自动发现机制
 
-**Python 脚本**: `python/mdm/case_studies/caseX/`
+**API 自动扫描** - 无需手动维护案例列表：
+- 扫描 `public/case-studies/mdm/` 下所有 `case*` 目录
+- 读取每个目录的 `config.md` 获取案例信息
+- 按案例编号排序返回
+
+**下拉列表自动更新** - 所有案例组件使用共享 Hook：
+```tsx
+import { useCaseList } from '@/hooks/useCaseList'
+
+// 在组件中
+const { cases: caseList } = useCaseList()
+
+// 渲染下拉列表
+{caseList.map(c => (
+  <option key={c.id} value={c.id}>{c.name}</option>
+))}
+```
 
 #### 案例分类
 
-| 类型 | 使用组件 | 案例 |
-|------|----------|------|
-| 常规案例 | CaseStudyViewer 内置渲染 | case1, case2, case4 |
-| 特殊案例 | 专用组件 + 下拉框 | case3 (无交点), case5 (30组样本) |
+| 类型 | architecture | 渲染方式 |
+|------|-------------|----------|
+| 常规案例 | `normal` | CaseStudyViewer 内置渲染 |
+| Markdown | `markdown` | 纯文档展示 |
+| 特殊案例 | `case5`, `case6`, ... | 专用组件 |
 
-#### 添加新案例
+#### 添加新案例（3步）
 
-1. 创建 Python 脚本: `python/mdm/case_studies/caseX/generate_data.py`
-2. 创建数据文件: `public/case-studies/mdm/caseX/config.md` 和 `data.csv`
-3. 如果是特殊架构，创建专用组件并添加到 CaseStudyViewer 的架构判断中
-4. 更新案例下拉框选项（在 CaseStudyViewer 和专用组件中）
+**1. 创建目录和配置**
+```bash
+mkdir public/case-studies/mdm/case17
+```
 
-**MD 配置格式**:
+创建 `config.md`:
 ```yaml
 ---
-id: "case-X"
-name: "案例X: 标题"
+id: "case-17"
+name: "案例17: 标题"
 description: "案例描述"
-processName: "偏移量"
-processSymbol: "δ"
-csvFile: "/case-studies/mdm/caseX/data.csv"
+architecture: "case17"  # 特殊架构用 caseN，常规用 normal
+csvFile: "/case-studies/mdm/case17/data.json"
 defaults:
   beta: 2.0
   eta: 1000
   gamma: 1000
   sampleSize: 7
-  process: 0.1
+true_params:
+  beta: 2.0
+  eta: 1000
+  gamma: 1000
+  sampleSizes: [3, 5, 7, 10]
 params:
-  - id: "beta"
-    name: "形状参数"
-    symbol: "β"
+  - id: "sample_size"
+    name: "样本量"
+    symbol: "n"
     state: "discrete"
-    discreteValues: [1.5, 2.0, 3, 5, 7]
+    discreteValues: [3, 5, 7, 10]
     isVariable: true
-    isDisplayDimension: false
-  # ... 其他参数
+    isDisplayDimension: true
 ---
+
+## 案例17: 标题
+
+### 研究目的
+...
 ```
 
-#### 待清理的旧文件
+**2. 创建数据文件**
+- Python 脚本: `python/mdm/case_studies/case17/generate_data.py`
+- 输出数据: `public/case-studies/mdm/case17/data.json`
 
-> ⚠️ **注意**: 以下旧文件在新系统验证完成后可删除
+**3. 注册组件（仅特殊架构需要）**
 
-- `public/cases/mdm_case*.md/csv/json` → 已迁移到 `public/case-studies/mdm/`
-- `python/generate_case*_data.py` → 已迁移到 `python/mdm/case_studies/`
+在 `CaseStudyViewer.tsx` 中：
+```tsx
+// 1. 添加 dynamic import
+const Case17Viewer = dynamic(() => import('./case-studies/mdm/case17/Case17Viewer'), {
+  ssr: false,
+  loading: () => <LoadingSpinner name="案例17" />
+})
+
+// 2. 在 componentMap 中添加
+'17': Case17Viewer,
+
+// 3. 在 architecture 类型中添加 'case17'
+```
+
+**注意**: 常规架构 (`normal`) 只需步骤 1-2，API 会自动发现，下拉列表会自动更新。
+
+#### 现有案例列表
+
+| 案例 | 名称 | 架构 |
+|------|------|------|
+| case3 | 无交点梯度曲线 | no_intersection |
+| case4 | 新MDM算法多维度研究 | normal |
+| case5 | 30组实际样本分析 | case5 |
+| case6-9 | 步长/搜索方式研究 | case6-9 |
+| case13 | 中位秩方法对比 | case13 |
+| case14 | MDM vs WMLE 对比 | case14 |
+| case15 | WMLE 权重 MC 验证 | case15 |
+| case16 | WMLE 极小样本失效 | case16 |
 
 ### 5.4 维护注意事项
 *   **禁止硬编码**: 不要将数据直接写在 TS/JS 文件中。

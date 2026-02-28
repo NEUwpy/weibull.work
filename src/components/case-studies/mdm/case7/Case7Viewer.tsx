@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import { BookOpen, ChevronDown, GitCommit, Table2, AlertTriangle, CheckCircle, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useCaseList } from '@/hooks/useCaseList'
 
 interface Case7ViewerProps {
   caseId: string
@@ -119,10 +120,13 @@ export default function Case7Viewer({ caseId, onCaseChange }: Case7ViewerProps) 
     )
   }
 
+  // 获取案例列表
+  const { cases: caseList } = useCaseList()
+
   return (
     <div className="space-y-6">
       {/* 案例选择下拉框 */}
-      {onCaseChange && (
+      {onCaseChange && caseList.length > 0 && (
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-4">
             <BookOpen className="text-purple-600" size={20} />
@@ -133,20 +137,9 @@ export default function Case7Viewer({ caseId, onCaseChange }: Case7ViewerProps) 
                 onChange={(e) => onCaseChange(e.target.value)}
                 className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer hover:bg-slate-100 transition-colors"
               >
-                <option value="case-1">案例1: 多维度参数影响研究</option>
-                <option value="case-2">案例2: 样本量与偏移量影响</option>
-                <option value="case-3">案例3: 无交点梯度曲线研究 ★</option>
-                <option value="case-4">案例4: 大样本性能验证</option>
-                <option value="case-5">案例5: 30组实际样本分析 ★</option>
-                <option value="case-6">案例6: 搜索步长对结果的影响 (c2数据)</option>
-                <option value="case-7">案例7: 搜索步长对结果的影响 (实际样本) ★</option>
-                <option value="case-8">案例8: β搜索方式对比 (β步长0.05) ★</option>
-                <option value="case-9">案例9: β步长对估计结果的影响 ★</option>
-                <option value="case-10">案例10: 中位秩方法对比研究 ★</option>
-                <option value="case-11">案例11: 中位秩方法对比 (多样本量) ★</option>
-                <option value="case-12">案例12: MDM vs WMLE 方法对比 ★</option>
-                <option value="case-13">案例13: 中位秩方法对比 (多尺度参数) ★</option>
-                <option value="case-14">案例14: MDM vs WMLE 方法对比 (多尺度参数) ★</option>
+                {caseList.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             </div>

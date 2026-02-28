@@ -138,6 +138,18 @@ const Case15Viewer = dynamic(() => import('./case-studies/mdm/case15/Case15Viewe
   )
 })
 
+const Case16Viewer = dynamic(() => import('./case-studies/mdm/case16/Case16Viewer'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-12">
+      <div className="flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600 mb-4"></div>
+        <p className="text-slate-600 font-bold">加载案例16分析中...</p>
+      </div>
+    </div>
+  )
+})
+
 interface CaseStudyViewerProps {
   methodId: string
 }
@@ -170,7 +182,7 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'case7' | 'case8' | 'case9' | 'case13' | 'case14' | 'case15' | 'markdown'  // 架构类型
+    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'case7' | 'case8' | 'case9' | 'case13' | 'case14' | 'case15' | 'case16' | 'markdown'  // 架构类型
   content?: string  // Markdown内容（仅用于markdown架构）
   defaults?: {  // 默认基准值
     beta?: number
@@ -647,44 +659,29 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
     )
   }
 
-  // 检查是否为案例5（30组实际样本分析）- 直接显示表1和图表
-  if (selectedCase?.architecture === 'case5') {
-    return <Case5Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
-  }
+  // 使用注册表检查特殊案例组件
+  // 添加新案例时，只需在 caseRegistry.tsx 中添加即可
+  const SpecialCaseComponent = selectedCase?.architecture
+    ? (() => {
+        // 动态获取组件
+        const caseNum = selectedCase.architecture.replace('case', '')
+        const componentMap: Record<string, React.ComponentType<{caseId: string, onCaseChange?: (caseId: string) => void}>> = {
+          '5': Case5Viewer,
+          '6': Case6Viewer,
+          '7': Case7Viewer,
+          '8': Case8Viewer,
+          '9': Case9Viewer,
+          '13': Case13Viewer,
+          '14': Case14Viewer,
+          '15': Case15Viewer,
+          '16': Case16Viewer,
+        }
+        return componentMap[caseNum]
+      })()
+    : null
 
-  // 检查是否为案例6（搜索步长对结果的影响）
-  if (selectedCase?.architecture === 'case6') {
-    return <Case6Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
-  }
-
-  // 检查是否为案例7（搜索步长对结果的影响 - 实际样本）
-  if (selectedCase?.architecture === 'case7') {
-    return <Case7Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
-  }
-
-  // 检查是否为案例8（β搜索方式对比 - 固定步长0.05）
-  if (selectedCase?.architecture === 'case8') {
-    return <Case8Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
-  }
-
-  // 检查是否为案例9（β步长对估计结果的影响）
-  if (selectedCase?.architecture === 'case9') {
-    return <Case9Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
-  }
-
-  // 检查是否为案例13（中位秩方法对比 - 多尺度参数）
-  if (selectedCase?.architecture === 'case13') {
-    return <Case13Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
-  }
-
-  // 检查是否为案例14（MDM vs WMLE 方法对比 - 多尺度参数）
-  if (selectedCase?.architecture === 'case14') {
-    return <Case14Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
-  }
-
-  // 检查是否为案例15（WMLE 权重 Monte Carlo 验证）
-  if (selectedCase?.architecture === 'case15') {
-    return <Case15Viewer caseId={selectedCase.id} onCaseChange={handleCaseChange} />
+  if (SpecialCaseComponent) {
+    return <SpecialCaseComponent caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 
   const variableParams = params.filter(p => p.isVariable)
