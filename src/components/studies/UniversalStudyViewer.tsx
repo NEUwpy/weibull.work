@@ -4,6 +4,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { ChevronDown, FlaskConical, Filter, Settings, Layers, BookOpen, Info, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import matter from 'gray-matter'
+// 导入独立图表组件
+import { ChartCard } from './charts/ChartCard'
+import { BoxPlotChart } from './charts/BoxPlotChart'
+import { HeatmapChart } from './charts/HeatmapChart'
 
 // 参数配置类型
 interface ParamConfig {
@@ -18,6 +22,34 @@ interface ParamConfig {
   isDisplayDimension: boolean
 }
 
+// 仿真设置类型
+interface SimulationConfig {
+  mcRuns?: number
+  totalCombinations?: number
+  totalRuns?: number
+  seedFormula?: string
+}
+
+// 计算设置类型
+interface CalculationConfig {
+  gammaSteps?: number
+  betaBounds?: [number, number]
+  gammaRangeRound1?: [number, number]
+  gammaRangeRound2?: [number, number]
+  defaultOffset?: number
+}
+
+// 图表配置类型
+interface ChartItemConfig {
+  param: 'beta' | 'eta' | 'gamma'
+  title: string
+}
+
+interface ChartsConfig {
+  univariate?: ChartItemConfig[]
+  bivariate?: ChartItemConfig[]
+}
+
 // 配置类型
 interface StudyConfig {
   id: string
@@ -28,6 +60,9 @@ interface StudyConfig {
   params?: ParamConfig[]
   defaults?: Record<string, number>
   processSymbol?: string
+  simulation?: SimulationConfig
+  calculation?: CalculationConfig
+  charts?: ChartsConfig
 }
 
 // CSV 数据行
@@ -287,7 +322,10 @@ export default function UniversalStudyViewer({ methodId }: UniversalStudyViewerP
         dirName: '',
         params: data.params || [],
         defaults: data.defaults || {},
-        processSymbol: data.processSymbol || 'δ'
+        processSymbol: data.processSymbol || 'δ',
+        simulation: data.simulation || {},
+        calculation: data.calculation || {},
+        charts: data.charts || {}
       }
     } catch (e) {
       throw new Error('配置文件格式错误')
@@ -541,6 +579,9 @@ export default function UniversalStudyViewer({ methodId }: UniversalStudyViewerP
             )}
           </div>
 
+          {/* 仿真设置面板 */}
+          <SimulationSettingsPanel config={config} />
+
           {/* 统计结果 */}
           {stats.length > 0 && (
             <ResultsVisualization
@@ -702,46 +743,68 @@ function ResultsVisualization({
 
       {/* 单变量箱型图 */}
       {displayDimensions.length === 1 && selectedParams.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {selectedParams.includes('beta') && (
-            <BoxPlotChart
-              data={stats}
-              dataKeyMin="est_beta_min" dataKeyMax="est_beta_max"
-              dataKeyP01="est_beta_p005" dataKeyP99="est_beta_p995"
-              dataKeyMedian="est_beta_median"
-              color={EST_PARAM_COLORS.beta.color}
-              yLabel="β估计值"
-              xLabel={displayDimensions[0].symbol}
-              title="图: β估计值分布"
-              trueValue={config.defaults?.beta ?? 2.0}
-            />
-          )}
-          {selectedParams.includes('eta') && (
-            <BoxPlotChart
-              data={stats}
-              dataKeyMin="est_eta_min" dataKeyMax="est_eta_max"
-              dataKeyP01="est_eta_p005" dataKeyP99="est_eta_p995"
-              dataKeyMedian="est_eta_median"
-              color={EST_PARAM_COLORS.eta.color}
-              yLabel="η估计值"
-              xLabel={displayDimensions[0].symbol}
-              title="图: η估计值分布"
-              trueValue={config.defaults?.eta ?? 1000}
-            />
-          )}
-          {selectedParams.includes('gamma') && (
-            <BoxPlotChart
-              data={stats}
-              dataKeyMin="est_gamma_min" dataKeyMax="est_gamma_max"
-              dataKeyP01="est_gamma_p005" dataKeyP99="est_gamma_p995"
-              dataKeyMedian="est_gamma_median"
-              color={EST_PARAM_COLORS.gamma.color}
-              yLabel="γ估计值"
-              xLabel={displayDimensions[0].symbol}
-              title="图: γ估计值分布"
-              trueValue={config.defaults?.gamma ?? 1000}
-            />
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {config.charts?.univariate?.filter(c => selectedParams.includes(c.param)).map((chartConfig, idx) => {
+            const paramConfig: Record<string, {
+              dataKeyMin: keyof StatsResult
+              dataKeyMax: keyof StatsResult
+              dataKeyP01: keyof StatsResult
+              dataKeyP99: keyof StatsResult
+              dataKeyMedian: keyof StatsResult
+              color: string
+              yLabel: string
+              trueValue: number
+            }> = {
+              beta: {
+                dataKeyMin: 'est_beta_min',
+                dataKeyMax: 'est_beta_max',
+                dataKeyP01: 'est_beta_p005',
+                dataKeyP99: 'est_beta_p995',
+                dataKeyMedian: 'est_beta_median',
+                color: EST_PARAM_COLORS.beta.color,
+                yLabel: 'β估计值',
+                trueValue: config.defaults?.beta ?? 2.0
+              },
+              eta: {
+                dataKeyMin: 'est_eta_min',
+                dataKeyMax: 'est_eta_max',
+                dataKeyP01: 'est_eta_p005',
+                dataKeyP99: 'est_eta_p995',
+                dataKeyMedian: 'est_eta_median',
+                color: EST_PARAM_COLORS.eta.color,
+                yLabel: 'η估计值',
+                trueValue: config.defaults?.eta ?? 1000
+              },
+              gamma: {
+                dataKeyMin: 'est_gamma_min',
+                dataKeyMax: 'est_gamma_max',
+                dataKeyP01: 'est_gamma_p005',
+                dataKeyP99: 'est_gamma_p995',
+                dataKeyMedian: 'est_gamma_median',
+                color: EST_PARAM_COLORS.gamma.color,
+                yLabel: 'γ估计值',
+                trueValue: config.defaults?.gamma ?? 1000
+              }
+            }
+            const pc = paramConfig[chartConfig.param]
+            if (!pc) return null
+            return (
+              <ChartCard key={chartConfig.param} title={`图 ${idx + 1}: ${chartConfig.title}`}>
+                <BoxPlotChart
+                  data={stats}
+                  dataKeyMin={pc.dataKeyMin}
+                  dataKeyMax={pc.dataKeyMax}
+                  dataKeyP01={pc.dataKeyP01}
+                  dataKeyP99={pc.dataKeyP99}
+                  dataKeyMedian={pc.dataKeyMedian}
+                  color={pc.color}
+                  yLabel={pc.yLabel}
+                  xLabel={displayDimensions[0].symbol}
+                  trueValue={pc.trueValue}
+                />
+              </ChartCard>
+            )
+          })}
         </div>
       )}
 
@@ -873,8 +936,90 @@ function DualVarSection({
   const var1Key = displayDimensions[0].id === 'beta' ? 'beta_true' : displayDimensions[0].id === 'sampleSize' ? 'sample_size' : 'offset_value'
   const var2Key = displayDimensions[1].id === 'beta' ? 'beta_true' : displayDimensions[1].id === 'sampleSize' ? 'sample_size' : 'offset_value'
 
-  const var1Values = [...new Set(stats.map(s => s[var1Key as keyof StatsResult]))].sort((a, b) => (a as number) - (b as number))
-  const var2Values = [...new Set(stats.map(s => s[var2Key as keyof StatsResult]))].sort((a, b) => (a as number) - (b as number))
+  const var1Values = Array.from(new Set(stats.map(s => s[var1Key as keyof StatsResult]))).sort((a, b) => (a as number) - (b as number))
+  const var2Values = Array.from(new Set(stats.map(s => s[var2Key as keyof StatsResult]))).sort((a, b) => (a as number) - (b as number))
+
+  // 获取参数统计值的辅助函数
+  const getStatValue = (s: StatsResult, param: 'beta' | 'eta' | 'gamma', statType: string): number | null => {
+    const key = `${statType}_${param}` as keyof StatsResult
+    const val = s[key]
+    return typeof val === 'number' ? val : null
+  }
+
+  // 渲染单个参数的统计列
+  const renderParamCells = (s: StatsResult, param: 'beta' | 'eta' | 'gamma', decimals: number) => {
+    const cells: React.ReactNode[] = []
+
+    if (displayOptions.mean) {
+      const val = getStatValue(s, param, 'est_mean')
+      cells.push(<td key={`mean-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-700 border-b border-slate-200">{fmt(val, decimals)}</td>)
+    }
+    if (displayOptions.biasMean) {
+      const val = getStatValue(s, param, 'bias_mean')
+      cells.push(<td key={`biasMean-${param}`} className={cn("text-right py-1.5 px-2 font-mono border-b border-slate-200", (val || 0) > 0 ? 'text-red-600' : 'text-blue-600')}>{fmt(val, decimals)}</td>)
+    }
+    if (displayOptions.median) {
+      const val = getStatValue(s, param, 'est_median')
+      cells.push(<td key={`median-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-700 border-b border-slate-200">{fmt(val, decimals)}</td>)
+    }
+    if (displayOptions.biasMedian) {
+      const val = getStatValue(s, param, 'bias_median')
+      cells.push(<td key={`biasMedian-${param}`} className={cn("text-right py-1.5 px-2 font-mono border-b border-slate-200", (val || 0) > 0 ? 'text-red-600' : 'text-blue-600')}>{fmt(val, decimals)}</td>)
+    }
+    if (displayOptions.std) {
+      const val = getStatValue(s, param, 'est_std')
+      cells.push(<td key={`std-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-700 border-b border-slate-200">{fmt(val, decimals)}</td>)
+    }
+    if (displayOptions.ci95) {
+      const p025 = getStatValue(s, param, 'est_p025')
+      const p975 = getStatValue(s, param, 'est_p975')
+      cells.push(<td key={`ci95-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-700 border-b border-slate-200 text-xs">[{fmt(p025, decimals)}, {fmt(p975, decimals)}]</td>)
+    }
+    if (displayOptions.ci99) {
+      const p005 = getStatValue(s, param, 'est_p005')
+      const p995 = getStatValue(s, param, 'est_p995')
+      cells.push(<td key={`ci99-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-700 border-b border-slate-200 text-xs">[{fmt(p005, decimals)}, {fmt(p995, decimals)}]</td>)
+    }
+    if (displayOptions.fullRange) {
+      const min = getStatValue(s, param, 'est_min')
+      const max = getStatValue(s, param, 'est_max')
+      cells.push(<td key={`range-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-700 border-b border-slate-200 text-xs">[{fmt(min, decimals)}, {fmt(max, decimals)}]</td>)
+    }
+    if (displayOptions.quantileBias) {
+      const trueVal = param === 'beta' ? (s.beta_true ?? config.defaults?.beta ?? 2.0) :
+                      param === 'eta' ? (config.defaults?.eta ?? 1000) :
+                      (config.defaults?.gamma ?? 1000)
+      const p0001 = getStatValue(s, param, 'est_p0001')
+      const p001 = getStatValue(s, param, 'est_p001')
+      const p01 = getStatValue(s, param, 'est_p01')
+      const p10 = getStatValue(s, param, 'est_p10')
+      cells.push(<td key={`qb1-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-600 border-b border-slate-200 text-xs">{fmt(p0001 !== null ? p0001 - trueVal : null, decimals)}</td>)
+      cells.push(<td key={`qb2-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-600 border-b border-slate-200 text-xs">{fmt(p001 !== null ? p001 - trueVal : null, decimals)}</td>)
+      cells.push(<td key={`qb3-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-600 border-b border-slate-200 text-xs">{fmt(p01 !== null ? p01 - trueVal : null, decimals)}</td>)
+      cells.push(<td key={`qb4-${param}`} className="text-right py-1.5 px-2 font-mono text-slate-600 border-b border-slate-200 text-xs">{fmt(p10 !== null ? p10 - trueVal : null, decimals)}</td>)
+    }
+    return cells
+  }
+
+  // 渲染表头
+  const renderParamHeaders = (param: 'beta' | 'eta' | 'gamma', label: string) => {
+    const headers: React.ReactNode[] = []
+    if (displayOptions.mean) headers.push(<th key="mean" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 min-w-[70px]">{label}均值</th>)
+    if (displayOptions.biasMean) headers.push(<th key="biasMean" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 min-w-[70px]">{label}偏差</th>)
+    if (displayOptions.median) headers.push(<th key="median" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 min-w-[70px]">{label}中位</th>)
+    if (displayOptions.biasMedian) headers.push(<th key="biasMedian" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 min-w-[80px]">{label}中位偏</th>)
+    if (displayOptions.std) headers.push(<th key="std" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 min-w-[60px]">{label}SD</th>)
+    if (displayOptions.ci95) headers.push(<th key="ci95" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 min-w-[100px]">{label}95%CI</th>)
+    if (displayOptions.ci99) headers.push(<th key="ci99" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 min-w-[100px]">{label}99%CI</th>)
+    if (displayOptions.fullRange) headers.push(<th key="range" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 min-w-[100px]">{label}范围</th>)
+    if (displayOptions.quantileBias) {
+      headers.push(<th key="qb1" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 text-xs">{label}.01%</th>)
+      headers.push(<th key="qb2" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 text-xs">{label}.1%</th>)
+      headers.push(<th key="qb3" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 text-xs">{label}1%</th>)
+      headers.push(<th key="qb4" className="text-right py-2 px-2 font-bold text-slate-800 border-b border-slate-300 text-xs">{label}10%</th>)
+    }
+    return headers
+  }
 
   // 双变量表格
   return (
@@ -885,32 +1030,26 @@ function DualVarSection({
           表: 双变量参数估计统计
         </p>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-sm border-collapse min-w-[600px]">
             <thead>
               <tr className="border-b-2 border-slate-400">
-                <th className="text-center py-2 px-3 font-bold text-slate-800">{displayDimensions[0].symbol}</th>
-                <th className="text-center py-2 px-3 font-bold text-slate-800">{displayDimensions[1].symbol}</th>
-                <th className="text-right py-2 px-3 font-bold text-slate-800">有效数</th>
-                {selectedParams.includes('beta') && displayOptions.biasMean && <th className="text-right py-2 px-3 font-bold text-slate-800">β偏差</th>}
-                {selectedParams.includes('eta') && displayOptions.biasMean && <th className="text-right py-2 px-3 font-bold text-slate-800">η偏差</th>}
-                {selectedParams.includes('gamma') && displayOptions.biasMean && <th className="text-right py-2 px-3 font-bold text-slate-800">γ偏差</th>}
+                <th className="text-center py-2 px-3 font-bold text-slate-800 sticky left-0 bg-white min-w-[60px]">{displayDimensions[0].symbol}</th>
+                <th className="text-center py-2 px-3 font-bold text-slate-800 min-w-[60px]">{displayDimensions[1].symbol}</th>
+                <th className="text-right py-2 px-3 font-bold text-slate-800 min-w-[60px]">有效数</th>
+                {selectedParams.includes('beta') && renderParamHeaders('beta', 'β')}
+                {selectedParams.includes('eta') && renderParamHeaders('eta', 'η')}
+                {selectedParams.includes('gamma') && renderParamHeaders('gamma', 'γ')}
               </tr>
             </thead>
             <tbody>
               {stats.map((s, idx) => (
                 <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                  <td className="py-2 px-3 font-mono text-slate-700 text-center">{s.keyLabel.split(',')[0]}</td>
-                  <td className="py-2 px-3 font-mono text-slate-700 text-center">{s.keyLabel.split(',')[1]}</td>
-                  <td className="text-right py-2 px-3 font-mono text-slate-700">{s.valid_count}/{s.count}</td>
-                  {selectedParams.includes('beta') && displayOptions.biasMean && (
-                    <td className={cn("text-right py-2 px-3 font-mono", (s.bias_beta_mean || 0) > 0 ? 'text-red-600' : 'text-blue-600')}>{fmt(s.bias_beta_mean, 4)}</td>
-                  )}
-                  {selectedParams.includes('eta') && displayOptions.biasMean && (
-                    <td className={cn("text-right py-2 px-3 font-mono", (s.bias_eta_mean || 0) > 0 ? 'text-red-600' : 'text-blue-600')}>{fmt(s.bias_eta_mean, 2)}</td>
-                  )}
-                  {selectedParams.includes('gamma') && displayOptions.biasMean && (
-                    <td className={cn("text-right py-2 px-3 font-mono", (s.bias_gamma_mean || 0) > 0 ? 'text-red-600' : 'text-blue-600')}>{fmt(s.bias_gamma_mean, 2)}</td>
-                  )}
+                  <td className="py-1.5 px-3 font-mono text-slate-700 text-center border-b border-slate-200 sticky left-0 bg-inherit">{s.keyLabel.split(',')[0]}</td>
+                  <td className="py-1.5 px-3 font-mono text-slate-700 text-center border-b border-slate-200">{s.keyLabel.split(',')[1]}</td>
+                  <td className="text-right py-1.5 px-3 font-mono text-slate-700 border-b border-slate-200">{s.valid_count}/{s.count}</td>
+                  {selectedParams.includes('beta') && renderParamCells(s, 'beta', 4)}
+                  {selectedParams.includes('eta') && renderParamCells(s, 'eta', 2)}
+                  {selectedParams.includes('gamma') && renderParamCells(s, 'gamma', 2)}
                 </tr>
               ))}
             </tbody>
@@ -918,38 +1057,22 @@ function DualVarSection({
         </div>
       </div>
 
-      {/* 热力图 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {selectedParams.map(param => {
-          const createMatrix = () => {
-            const matrix: (number | null)[][] = []
-            var2Values.forEach(v2 => {
-              const row: (number | null)[] = []
-              var1Values.forEach(v1 => {
-                const stat = stats.find(s => s[var1Key as keyof StatsResult] === v1 && s[var2Key as keyof StatsResult] === v2)
-                row.push(stat ? stat[`bias_${param}_mean` as keyof StatsResult] as number | null : null)
-              })
-              matrix.push(row)
-            })
-            return matrix
-          }
-
-          const maxAbs = Math.max(...stats.map(s => Math.abs(s[`bias_${param}_mean` as keyof StatsResult] as number || 0)))
+      {/* 热力图 - 统一网格布局 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {config.charts?.bivariate?.filter(c => selectedParams.includes(c.param)).map((chartConfig, idx) => {
+          const param = chartConfig.param
+          const allValues = stats.map(s => s[`bias_${param}_mean` as keyof StatsResult]).filter((v): v is number => v !== null)
+          const maxAbs = Math.max(...allValues.map(Math.abs), 0.01)
 
           return (
-            <div key={param} className="bg-white rounded-2xl border border-slate-200 p-4">
-              <p className="text-center text-sm font-semibold text-slate-700 mb-4">
-                {param}偏差热力图
-              </p>
+            <ChartCard key={param} title={`图 ${idx + 1}: ${chartConfig.title}`}>
               <HeatmapChart
-                data={createMatrix()}
-                xLabels={var1Values.map(v => String(v))}
-                yLabels={var2Values.map(v => String(v))}
-                xLabel={displayDimensions[0].symbol}
-                yLabel={displayDimensions[1].symbol}
+                stats={stats}
+                displayDimensions={displayDimensions}
+                dataKey={`bias_${param}_mean` as keyof StatsResult}
                 maxAbs={maxAbs}
               />
-            </div>
+            </ChartCard>
           )
         })}
       </div>
@@ -957,133 +1080,92 @@ function DualVarSection({
   )
 }
 
-// 热力图组件
-function HeatmapChart({ data, xLabels, yLabels, xLabel, yLabel, maxAbs }: {
-  data: (number | null)[][]
-  xLabels: string[]
-  yLabels: string[]
-  xLabel: string
-  yLabel: string
-  maxAbs: number
-}) {
-  const cellWidth = 60
-  const cellHeight = 40
-  const margin = { top: 30, right: 20, bottom: 50, left: 60 }
-  const width = margin.left + xLabels.length * cellWidth + margin.right
-  const height = margin.top + yLabels.length * cellHeight + margin.bottom
+// 仿真设置面板组件
+function SimulationSettingsPanel({ config }: { config: StudyConfig }) {
+  const { simulation, calculation } = config
 
-  const getBiasColor = (val: number | null) => {
-    if (val === null) return '#e2e8f0'
-    const ratio = maxAbs > 0 ? val / maxAbs : 0
-    if (Math.abs(ratio) < 0.05) return '#f8fafc'
-    if (ratio > 0) return `rgba(239, 68, 68, ${0.3 + Math.abs(ratio) * 0.7})`
-    return `rgba(59, 130, 246, ${0.3 + Math.abs(ratio) * 0.7})`
-  }
+  // 如果没有仿真和计算设置，不显示面板
+  if (!simulation && !calculation) return null
 
   return (
-    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-      <text x={margin.left - 10} y={margin.top + (yLabels.length * cellHeight) / 2} textAnchor="middle" transform={`rotate(-90, ${margin.left - 10}, ${margin.top + (yLabels.length * cellHeight) / 2})`} fontSize={12} fontWeight={600} fill="#374151">{yLabel}</text>
-      <text x={margin.left + (xLabels.length * cellWidth) / 2} y={height - 10} textAnchor="middle" fontSize={12} fontWeight={600} fill="#374151">{xLabel}</text>
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center gap-2 mb-4">
+        <FlaskConical className="text-purple-600" size={20} />
+        <h3 className="text-lg font-bold text-slate-800">仿真与计算设置</h3>
+      </div>
 
-      {data.map((row, yIdx) => (
-        row.map((val, xIdx) => {
-          const x = margin.left + xIdx * cellWidth
-          const y = margin.top + yIdx * cellHeight
-          return (
-            <g key={`${xIdx}-${yIdx}`}>
-              <rect x={x} y={y} width={cellWidth} height={cellHeight} fill={getBiasColor(val)} stroke="#fff" strokeWidth={2} />
-              {val !== null && (
-                <text x={x + cellWidth / 2} y={y + cellHeight / 2} textAnchor="middle" dominantBaseline="middle" fontSize={10} fill="#374151" fontWeight={600}>
-                  {val.toFixed(val < 10 ? 2 : 0)}
-                </text>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 仿真设置 */}
+        {simulation && (
+          <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+            <h4 className="text-sm font-bold text-purple-800 mb-3">蒙特卡洛仿真</h4>
+            <div className="space-y-2 text-sm">
+              {simulation.mcRuns && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">每组重复次数</span>
+                  <span className="font-mono font-bold text-purple-700">{simulation.mcRuns.toLocaleString()}</span>
+                </div>
               )}
-            </g>
-          )
-        })
-      ))}
+              {simulation.totalCombinations && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">参数组合数</span>
+                  <span className="font-mono font-bold text-purple-700">{simulation.totalCombinations}</span>
+                </div>
+              )}
+              {simulation.totalRuns && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">总模拟次数</span>
+                  <span className="font-mono font-bold text-purple-700">{simulation.totalRuns.toLocaleString()}</span>
+                </div>
+              )}
+              {simulation.seedFormula && (
+                <div className="mt-2 pt-2 border-t border-purple-200">
+                  <span className="text-slate-500 text-xs">随机种子公式:</span>
+                  <code className="block text-xs text-purple-600 mt-1 bg-white p-1.5 rounded font-mono">{simulation.seedFormula}</code>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-      {yLabels.map((label, idx) => (
-        <text key={`y-${idx}`} x={margin.left - 5} y={margin.top + idx * cellHeight + cellHeight / 2} textAnchor="end" dominantBaseline="middle" fontSize={11} fill="#374151">{label}</text>
-      ))}
-      {xLabels.map((label, idx) => (
-        <text key={`x-${idx}`} x={margin.left + idx * cellWidth + cellWidth / 2} y={margin.top + yLabels.length * cellHeight + 15} textAnchor="middle" fontSize={11} fill="#374151">{label}</text>
-      ))}
-    </svg>
-  )
-}
-
-// 箱型图组件
-function BoxPlotChart({ data, dataKeyMin, dataKeyMax, dataKeyP01, dataKeyP99, dataKeyMedian, color, yLabel, xLabel, title, trueValue }: {
-  data: StatsResult[]
-  dataKeyMin: keyof StatsResult
-  dataKeyMax: keyof StatsResult
-  dataKeyP01: keyof StatsResult
-  dataKeyP99: keyof StatsResult
-  dataKeyMedian: keyof StatsResult
-  color: string
-  yLabel: string
-  xLabel: string
-  title: string
-  trueValue: number
-}) {
-  const allYValues = data.flatMap(d => [d[dataKeyMin], d[dataKeyMax], d[dataKeyP01], d[dataKeyP99]].filter((v): v is number => v !== null))
-  if (allYValues.length === 0) return null
-
-  const yMin = Math.min(...allYValues, trueValue) * 0.95
-  const yMax = Math.max(...allYValues, trueValue) * 1.05
-  const yRange = yMax - yMin
-
-  const svgHeight = 240
-  const svgWidth = 400
-  const margin = { top: 30, right: 30, bottom: 50, left: 60 }
-  const plotWidth = svgWidth - margin.left - margin.right
-  const plotHeight = svgHeight - margin.top - margin.bottom
-
-  const yToPixel = (y: number) => margin.top + plotHeight - ((y - yMin) / yRange) * plotHeight
-  const xToPixel = (index: number) => margin.left + (index + 0.5) * (plotWidth / data.length)
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4">
-      <p className="text-center text-sm font-semibold text-slate-700 mb-2">{title}</p>
-      <div style={{ height: `${svgHeight}px` }}>
-        <svg width="100%" height="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ overflow: 'visible' }}>
-          {Array.from({ length: 5 }, (_, i) => yMin + (yRange * i) / 4).map(tick => (
-            <line key={`grid-${tick}`} x1={margin.left} y1={yToPixel(tick)} x2={svgWidth - margin.right} y2={yToPixel(tick)} stroke="#e5e7eb" strokeDasharray="3 3" />
-          ))}
-          <line x1={margin.left} y1={yToPixel(trueValue)} x2={svgWidth - margin.right} y2={yToPixel(trueValue)} stroke={color} strokeDasharray="5 5" strokeWidth={1.5} />
-          <text x={svgWidth - margin.right + 5} y={yToPixel(trueValue)} fontSize={10} fill={color} dominantBaseline="middle">真实值</text>
-          <line x1={margin.left} y1={margin.top} x2={margin.left} y2={svgHeight - margin.bottom} stroke={color} strokeWidth={1.5} />
-          <line x1={margin.left} y1={svgHeight - margin.bottom} x2={svgWidth - margin.right} y2={svgHeight - margin.bottom} stroke="#000" strokeWidth={1} />
-          {Array.from({ length: 5 }, (_, i) => yMin + (yRange * i) / 4).map(tick => (
-            <g key={`tick-${tick}`}>
-              <line x1={margin.left - 5} y1={yToPixel(tick)} x2={margin.left} y2={yToPixel(tick)} stroke={color} strokeWidth={1} />
-              <text x={margin.left - 8} y={yToPixel(tick)} textAnchor="end" dominantBaseline="middle" fontSize={10} fill={color}>{tick.toFixed(tick < 10 ? 2 : 0)}</text>
-            </g>
-          ))}
-          {data.map((d, i) => (
-            <text key={`x-${i}`} x={xToPixel(i)} y={svgHeight - margin.bottom + 18} textAnchor="middle" fontSize={11} fill="#374151">{d.keyLabel}</text>
-          ))}
-          {data.map((d, i) => {
-            const min = d[dataKeyMin] as number | null
-            const max = d[dataKeyMax] as number | null
-            const p01 = d[dataKeyP01] as number | null
-            const p99 = d[dataKeyP99] as number | null
-            const median = d[dataKeyMedian] as number | null
-            if (min === null || max === null) return null
-            const x = xToPixel(i)
-            const boxWidth = Math.min(35, plotWidth / data.length * 0.7)
-            return (
-              <g key={`boxplot-${i}`}>
-                <line x1={x} y1={yToPixel(min)} x2={x} y2={yToPixel(p01 ?? min)} stroke={color} strokeWidth={2} strokeDasharray="4 2" />
-                <line x1={x} y1={yToPixel(p99 ?? max)} x2={x} y2={yToPixel(max)} stroke={color} strokeWidth={2} strokeDasharray="4 2" />
-                <line x1={x - boxWidth / 3} y1={yToPixel(min)} x2={x + boxWidth / 3} y2={yToPixel(min)} stroke={color} strokeWidth={2} />
-                <line x1={x - boxWidth / 3} y1={yToPixel(max)} x2={x + boxWidth / 3} y2={yToPixel(max)} stroke={color} strokeWidth={2} />
-                {p01 !== null && p99 !== null && <rect x={x - boxWidth / 2} y={yToPixel(p99)} width={boxWidth} height={yToPixel(p01) - yToPixel(p99)} fill={color} fillOpacity={0.25} stroke={color} strokeWidth={2} />}
-                {median !== null && <circle cx={x} cy={yToPixel(median)} r={4} fill={color} />}
-              </g>
-            )
-          })}
-        </svg>
+        {/* 计算设置 */}
+        {calculation && (
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+            <h4 className="text-sm font-bold text-blue-800 mb-3">MDM 算法参数</h4>
+            <div className="space-y-2 text-sm">
+              {calculation.gammaSteps && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">梯度计算步数</span>
+                  <span className="font-mono font-bold text-blue-700">{calculation.gammaSteps}</span>
+                </div>
+              )}
+              {calculation.betaBounds && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">β 搜索范围</span>
+                  <span className="font-mono font-bold text-blue-700">[{calculation.betaBounds[0]}, {calculation.betaBounds[1]}]</span>
+                </div>
+              )}
+              {calculation.gammaRangeRound1 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">γ 搜索 R1</span>
+                  <span className="font-mono font-bold text-blue-700">[0, {calculation.gammaRangeRound1[1]}×t<sub>min</sub>]</span>
+                </div>
+              )}
+              {calculation.gammaRangeRound2 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">γ 搜索 R2</span>
+                  <span className="font-mono font-bold text-blue-700">[{calculation.gammaRangeRound2[0]}, {calculation.gammaRangeRound2[1]}]×t<sub>min</sub></span>
+                </div>
+              )}
+              {calculation.defaultOffset && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">默认偏移量 δ</span>
+                  <span className="font-mono font-bold text-blue-700">{calculation.defaultOffset}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

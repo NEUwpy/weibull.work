@@ -237,3 +237,38 @@ const Case17Viewer = dynamic(() => import('./case-studies/mdm/case17/Case17Viewe
 ### 5.4 维护注意事项
 *   **禁止硬编码**: 不要将数据直接写在 TS/JS 文件中。
 *   **双重验证**: 修改 Python 算法后，需同时检查前端可视化组件（`visualizers/`）是否兼容返回的数据结构。
+
+### 5.5 方法示例系统 (UniversalStudyViewer)
+
+**位置**: 方法详情页 → "方法示例" Tab
+
+**设计理念**: 插槽模式 - 框架 + 可复用图表组件
+
+```
+src/components/studies/
+├── UniversalStudyViewer.tsx    # 框架（布局 + 表格 + 组合逻辑）
+└── charts/                     # 可复用图表组件
+    ├── ChartCard.tsx           # 统一卡片容器
+    ├── BoxPlotChart.tsx        # 箱型图
+    └── HeatmapChart.tsx        # 热力图
+```
+
+**核心原则**:
+
+| 原则 | 说明 |
+|------|------|
+| 统一复用 | 相同结构不差异化（布局、样式、标题格式） |
+| 配置驱动 | 图题、图表类型从 config.md 加载 |
+| 插槽组合 | ChartCard(容器) + 图表组件(children) |
+| 职责分离 | 框架=布局，图表=内容，容器=样式 |
+
+**添加新图表**:
+1. 在 `charts/` 创建组件（只输出图表内容，不包含外框）
+2. 用 `ChartCard` 包裹使用:
+   ```tsx
+   <ChartCard title="图 N: 标题">
+     <NewChart data={...} />
+   </ChartCard>
+   ```
+
+详见: `docs/方法示例系统重构方案.md`

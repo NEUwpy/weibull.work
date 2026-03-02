@@ -10,6 +10,37 @@ defaults:
   gamma: 1000
   sampleSize: 7
   process: 0.1
+# 仿真设置
+simulation:
+  mcRuns: 1000              # 每组参数组合的蒙特卡洛重复次数
+  totalCombinations: 125    # 参数组合数 (5β × 5n × 5δ)
+  totalRuns: 125000         # 总模拟次数
+  seedFormula: "sim_id + sample_size * 1000 + int(beta * 100) + int(offset * 1000)"
+# MDM计算设置
+calculation:
+  gammaSteps: 60            # 每轮梯度计算的步数
+  betaBounds: [0.1, 15.0]   # beta搜索范围
+  gammaRangeRound1: [0, 0.99]     # 第一轮gamma搜索范围 (相对于t_min)
+  gammaRangeRound2: [0.99, 0.999999]  # 第二轮gamma搜索范围 (相对于t_min)
+  defaultOffset: 0.1        # 默认梯度偏移目标
+# 图表配置（从配置加载，不在tsx中硬编码）
+charts:
+  # 单变量图表（当选择1个显示维度时显示）
+  univariate:
+    - param: "beta"
+      title: "β估计值分布"
+    - param: "eta"
+      title: "η估计值分布"
+    - param: "gamma"
+      title: "γ估计值分布"
+  # 双变量图表（当选择2个显示维度时显示）
+  bivariate:
+    - param: "beta"
+      title: "β参数偏差热力图"
+    - param: "eta"
+      title: "η参数偏差热力图"
+    - param: "gamma"
+      title: "γ参数偏差热力图"
 params:
   - id: "beta"
     name: "形状参数"
