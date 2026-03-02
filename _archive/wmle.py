@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 from scipy.special import digamma
 from base import WeibullBase
 
-# 权重表略 (省略以保持简洁，使用计算函数)
+# 权重表
 WEIGHT_TABLE_J1 = {
     1: 0.693, 2: 0.839, 3: 0.891, 4: 0.918, 5: 0.934,
     6: 0.945, 7: 0.953, 8: 0.959, 9: 0.963, 10: 0.967,

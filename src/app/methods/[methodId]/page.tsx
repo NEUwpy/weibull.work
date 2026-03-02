@@ -20,6 +20,8 @@ const MLEVisualizer = dynamic(() => import('@/components/visualizers/MLEVisualiz
 const WMLEVisualizer = dynamic(() => import('@/components/visualizers/WMLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MDMVisualizer = dynamic(() => import('@/components/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const WMLEExample = dynamic(() => import('@/components/WMLEExample'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const UniversalStudyViewer = dynamic(() => import('@/components/studies/UniversalStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 
@@ -649,15 +651,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           </div>
         ) : activeTab === 'examples' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white rounded-3xl border border-slate-200 p-8">
-              <div className="flex items-center gap-2 mb-6">
-                <FlaskConical className="text-orange-500" size={20} />
-                <h3 className="text-lg font-bold text-slate-900">方法示例</h3>
-              </div>
-              <div className="text-center py-12 text-slate-400">
-                功能开发中...
-              </div>
-            </div>
+            <UniversalStudyViewer methodId={method.id} />
           </div>
         ) : activeTab === 'cases' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
