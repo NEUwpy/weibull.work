@@ -18,7 +18,7 @@ interface ParamConfig {
 
 // 通用数据类型
 interface HeatmapDataRow {
-  [key: string]: number | string | null
+  [key: string]: number | string | null | undefined
 }
 
 interface HeatmapChartProps {

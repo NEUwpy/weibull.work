@@ -11,7 +11,7 @@ import React from 'react'
 // 通用数据类型
 export interface BoxPlotDataRow {
   keyLabel: string
-  [key: string]: number | string | null
+  [key: string]: number | string | null | undefined
 }
 
 interface BoxPlotChartProps {

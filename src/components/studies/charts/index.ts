@@ -8,5 +8,6 @@
  */
 export { ChartCard } from './ChartCard'
 export { BoxPlotChart } from './BoxPlotChart'
-export type { BoxPlotData } from './BoxPlotChart'
+export type { BoxPlotDataRow } from './BoxPlotChart'
 export { HeatmapChart } from './HeatmapChart'
+export { DensityChart } from './DensityChart'

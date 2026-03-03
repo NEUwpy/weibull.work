@@ -8,6 +8,7 @@ import matter from 'gray-matter'
 import { ChartCard } from './charts/ChartCard'
 import { BoxPlotChart } from './charts/BoxPlotChart'
 import { HeatmapChart } from './charts/HeatmapChart'
+import { DensityChart } from './charts/DensityChart'
 
 // 参数配置类型
 interface ParamConfig {
@@ -40,14 +41,24 @@ interface CalculationConfig {
 }
 
 // 图表配置类型
-interface ChartItemConfig {
-  param: 'beta' | 'eta' | 'gamma'
-  title: string
+type ChartParam = 'beta' | 'eta' | 'gamma'
+type ChartType = 'boxplot' | 'density' | 'heatmap'
+type ContainerType = 'grid' | 'tab'
+
+interface ChartTypeConfig {
+  container?: ContainerType  // 可选，有默认规则
+  params: ChartParam[]
+  titles: Record<ChartParam, string>
 }
 
 interface ChartsConfig {
-  univariate?: ChartItemConfig[]
-  bivariate?: ChartItemConfig[]
+  univariate?: {
+    boxplot?: ChartTypeConfig
+    density?: ChartTypeConfig
+  }
+  bivariate?: {
+    heatmap?: ChartTypeConfig
+  }
 }
 
 // 配置类型
@@ -78,6 +89,7 @@ interface SimulationRow {
   bias_eta: number | null
   bias_gamma: number | null
   r_squared: number | null
+  [key: string]: number | null | string
 }
 
 // 统计结果
@@ -137,6 +149,8 @@ interface StatsResult {
   est_gamma_p001: number | null
   est_gamma_p01: number | null
   est_gamma_p10: number | null
+  // 索引签名
+  [key: string]: number | string | null | undefined
 }
 
 // 表格显示选项
@@ -242,6 +256,7 @@ export default function UniversalStudyViewer({ methodId }: UniversalStudyViewerP
   const [displayOptions, setDisplayOptions] = useState<TableDisplayOptions>(DEFAULT_DISPLAY_OPTIONS)
   const [paramSelection, setParamSelection] = useState<ParamSelection>(DEFAULT_PARAM_SELECTION)
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const [densityTab, setDensityTab] = useState<'beta' | 'eta' | 'gamma'>('beta')  // 密度图参数 tab
   const filterRef = useRef<HTMLDivElement>(null)
 
   // 点击外部关闭下拉
@@ -596,6 +611,9 @@ export default function UniversalStudyViewer({ methodId }: UniversalStudyViewerP
               showFilterDropdown={showFilterDropdown}
               setShowFilterDropdown={setShowFilterDropdown}
               filterRef={filterRef}
+              densityTab={densityTab}
+              setDensityTab={setDensityTab}
+              csvData={csvData}
             />
           )}
         </>
@@ -643,9 +661,60 @@ function ParamCard({ param, processSymbol, onToggleDisplayDimension }: { param: 
   )
 }
 
+// 图表网格容器 - 一行两图
+function ChartGridContainer({ children, title }: { children: React.ReactNode; title?: string }) {
+  return (
+    <div className="space-y-4">
+      {title && <h3 className="text-lg font-bold text-slate-800">{title}</h3>}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// 图表Tab容器 - Tab切换
+function ChartTabContainer({
+  tabs,
+  activeTab,
+  onTabChange,
+  title
+}: {
+  tabs: { id: string; label: string; color?: string; content: React.ReactNode }[]
+  activeTab: string
+  onTabChange: (id: string) => void
+  title?: string
+}) {
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        {title && <h3 className="text-lg font-bold text-slate-800">{title}</h3>}
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-sm font-bold transition-all",
+                activeTab === tab.id
+                  ? "bg-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+              style={activeTab === tab.id && tab.color ? { color: tab.color } : {}}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {tabs.find(t => t.id === activeTab)?.content}
+    </div>
+  )
+}
+
 // 结果可视化组件
 function ResultsVisualization({
-  stats, displayDimensions, config, displayOptions, onToggleDisplayOption, paramSelection, onToggleParamSelection, showFilterDropdown, setShowFilterDropdown, filterRef
+  stats, displayDimensions, config, displayOptions, onToggleDisplayOption, paramSelection, onToggleParamSelection, showFilterDropdown, setShowFilterDropdown, filterRef, densityTab, setDensityTab, csvData
 }: {
   stats: StatsResult[]
   params: ParamConfig[]
@@ -658,6 +727,9 @@ function ResultsVisualization({
   showFilterDropdown: boolean
   setShowFilterDropdown: (v: boolean) => void
   filterRef: React.RefObject<HTMLDivElement>
+  densityTab: 'beta' | 'eta' | 'gamma'
+  setDensityTab: (tab: 'beta' | 'eta' | 'gamma') => void
+  csvData: SimulationRow[]
 }) {
   const fmt = (val: number | null, decimals = 2) => val === null ? '—' : val.toFixed(decimals)
 
@@ -741,71 +813,103 @@ function ResultsVisualization({
         />
       )}
 
-      {/* 单变量箱型图 */}
+      {/* 单变量图表 - 从配置读取 */}
       {displayDimensions.length === 1 && selectedParams.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {config.charts?.univariate?.filter(c => selectedParams.includes(c.param)).map((chartConfig, idx) => {
-            const paramConfig: Record<string, {
-              dataKeyMin: keyof StatsResult
-              dataKeyMax: keyof StatsResult
-              dataKeyP01: keyof StatsResult
-              dataKeyP99: keyof StatsResult
-              dataKeyMedian: keyof StatsResult
-              color: string
-              yLabel: string
-              trueValue: number
-            }> = {
-              beta: {
-                dataKeyMin: 'est_beta_min',
-                dataKeyMax: 'est_beta_max',
-                dataKeyP01: 'est_beta_p005',
-                dataKeyP99: 'est_beta_p995',
-                dataKeyMedian: 'est_beta_median',
-                color: EST_PARAM_COLORS.beta.color,
-                yLabel: 'β估计值',
-                trueValue: config.defaults?.beta ?? 2.0
-              },
-              eta: {
-                dataKeyMin: 'est_eta_min',
-                dataKeyMax: 'est_eta_max',
-                dataKeyP01: 'est_eta_p005',
-                dataKeyP99: 'est_eta_p995',
-                dataKeyMedian: 'est_eta_median',
-                color: EST_PARAM_COLORS.eta.color,
-                yLabel: 'η估计值',
-                trueValue: config.defaults?.eta ?? 1000
-              },
-              gamma: {
-                dataKeyMin: 'est_gamma_min',
-                dataKeyMax: 'est_gamma_max',
-                dataKeyP01: 'est_gamma_p005',
-                dataKeyP99: 'est_gamma_p995',
-                dataKeyMedian: 'est_gamma_median',
-                color: EST_PARAM_COLORS.gamma.color,
-                yLabel: 'γ估计值',
-                trueValue: config.defaults?.gamma ?? 1000
-              }
-            }
-            const pc = paramConfig[chartConfig.param]
-            if (!pc) return null
-            return (
-              <ChartCard key={chartConfig.param} title={`图 ${idx + 1}: ${chartConfig.title}`}>
-                <BoxPlotChart
-                  data={stats}
-                  dataKeyMin={pc.dataKeyMin}
-                  dataKeyMax={pc.dataKeyMax}
-                  dataKeyP01={pc.dataKeyP01}
-                  dataKeyP99={pc.dataKeyP99}
-                  dataKeyMedian={pc.dataKeyMedian}
-                  color={pc.color}
-                  yLabel={pc.yLabel}
-                  xLabel={displayDimensions[0].symbol}
-                  trueValue={pc.trueValue}
-                />
-              </ChartCard>
-            )
-          })}
-        </div>
+        <>
+          {/* 箱型图 - Grid 容器 */}
+          {config.charts?.univariate?.boxplot && (
+            <ChartGridContainer>
+              {config.charts.univariate.boxplot.params
+                .filter(p => selectedParams.includes(p))
+                .map((param, idx) => {
+                  const paramData: Record<string, {
+                    dataKeyMin: string
+                    dataKeyMax: string
+                    dataKeyP01: string
+                    dataKeyP99: string
+                    dataKeyMedian: string
+                    color: string
+                    yLabel: string
+                    trueValue: number
+                  }> = {
+                    beta: {
+                      dataKeyMin: 'est_beta_min',
+                      dataKeyMax: 'est_beta_max',
+                      dataKeyP01: 'est_beta_p005',
+                      dataKeyP99: 'est_beta_p995',
+                      dataKeyMedian: 'est_beta_median',
+                      color: EST_PARAM_COLORS.beta.color,
+                      yLabel: 'β估计值',
+                      trueValue: config.defaults?.beta ?? 2.0
+                    },
+                    eta: {
+                      dataKeyMin: 'est_eta_min',
+                      dataKeyMax: 'est_eta_max',
+                      dataKeyP01: 'est_eta_p005',
+                      dataKeyP99: 'est_eta_p995',
+                      dataKeyMedian: 'est_eta_median',
+                      color: EST_PARAM_COLORS.eta.color,
+                      yLabel: 'η估计值',
+                      trueValue: config.defaults?.eta ?? 1000
+                    },
+                    gamma: {
+                      dataKeyMin: 'est_gamma_min',
+                      dataKeyMax: 'est_gamma_max',
+                      dataKeyP01: 'est_gamma_p005',
+                      dataKeyP99: 'est_gamma_p995',
+                      dataKeyMedian: 'est_gamma_median',
+                      color: EST_PARAM_COLORS.gamma.color,
+                      yLabel: 'γ估计值',
+                      trueValue: config.defaults?.gamma ?? 1000
+                    }
+                  }
+                  const pc = paramData[param]
+                  const title = config.charts?.univariate?.boxplot?.titles?.[param] ?? `${param}估计值分布`
+                  return (
+                    <ChartCard key={param} title={`图 ${idx + 1}: ${title}`}>
+                      <BoxPlotChart
+                        data={stats}
+                        dataKeyMin={pc.dataKeyMin}
+                        dataKeyMax={pc.dataKeyMax}
+                        dataKeyP01={pc.dataKeyP01}
+                        dataKeyP99={pc.dataKeyP99}
+                        dataKeyMedian={pc.dataKeyMedian}
+                        color={pc.color}
+                        yLabel={pc.yLabel}
+                        xLabel={displayDimensions[0].symbol}
+                        trueValue={pc.trueValue}
+                      />
+                    </ChartCard>
+                  )
+                })}
+            </ChartGridContainer>
+          )}
+
+          {/* 概率密度分布图 - Tab 容器 */}
+          {config.charts?.univariate?.density && (
+            <ChartTabContainer
+              title="参数估计值概率密度分布"
+              activeTab={densityTab}
+              onTabChange={(id) => setDensityTab(id as 'beta' | 'eta' | 'gamma')}
+              tabs={config.charts.univariate.density.params
+                .filter(p => selectedParams.includes(p))
+                .map(param => ({
+                  id: param,
+                  label: param === 'beta' ? 'β' : param === 'eta' ? 'η' : 'γ',
+                  color: EST_PARAM_COLORS[param].color,
+                  content: (
+                    <DensityChart
+                      rawData={csvData}
+                      paramId={param}
+                      displayDimension={displayDimensions[0]}
+                      trueValue={param === 'beta' ? (config.defaults?.beta ?? 2.0) : param === 'eta' ? (config.defaults?.eta ?? 1000) : (config.defaults?.gamma ?? 1000)}
+                      color={param === 'beta' ? 'blue' : param === 'eta' ? 'emerald' : 'amber'}
+                    />
+                  )
+                }))}
+            />
+          )}
+        </>
       )}
 
       {/* 双变量 */}
@@ -1059,22 +1163,24 @@ function DualVarSection({
 
       {/* 热力图 - 统一网格布局 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {config.charts?.bivariate?.filter(c => selectedParams.includes(c.param)).map((chartConfig, idx) => {
-          const param = chartConfig.param
-          const allValues = stats.map(s => s[`bias_${param}_mean` as keyof StatsResult]).filter((v): v is number => v !== null)
-          const maxAbs = Math.max(...allValues.map(Math.abs), 0.01)
+        {config.charts?.bivariate?.heatmap?.params
+          .filter(p => selectedParams.includes(p))
+          .map((param, idx) => {
+            const allValues = stats.map(s => s[`bias_${param}_mean` as keyof StatsResult]).filter((v): v is number => v !== null)
+            const maxAbs = Math.max(...allValues.map(Math.abs), 0.01)
+            const title = config.charts?.bivariate?.heatmap?.titles?.[param] ?? `${param}参数偏差热力图`
 
-          return (
-            <ChartCard key={param} title={`图 ${idx + 1}: ${chartConfig.title}`}>
-              <HeatmapChart
-                stats={stats}
-                displayDimensions={displayDimensions}
-                dataKey={`bias_${param}_mean` as keyof StatsResult}
-                maxAbs={maxAbs}
-              />
-            </ChartCard>
-          )
-        })}
+            return (
+              <ChartCard key={param} title={`图 ${idx + 1}: ${title}`}>
+                <HeatmapChart
+                  stats={stats}
+                  displayDimensions={displayDimensions}
+                  dataKey={`bias_${param}_mean`}
+                  maxAbs={maxAbs}
+                />
+              </ChartCard>
+            )
+          })}
       </div>
     </div>
   )
