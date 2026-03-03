@@ -680,7 +680,7 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
       })()
     : null
 
-  if (SpecialCaseComponent) {
+  if (SpecialCaseComponent && selectedCase) {
     return <SpecialCaseComponent caseId={selectedCase.id} onCaseChange={handleCaseChange} />
   }
 

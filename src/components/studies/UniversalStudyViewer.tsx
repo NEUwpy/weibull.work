@@ -522,11 +522,28 @@ export default function UniversalStudyViewer({ methodId }: UniversalStudyViewerP
         est_gamma_p0001: gammaStats.p0001, est_gamma_p001: gammaStats.p001, est_gamma_p01: gammaStats.p01, est_gamma_p10: gammaStats.p10
       }
     }).sort((a, b) => {
-      const firstVar = params.find(p => p.isDisplayDimension)
-      if (!firstVar) return 0
-      if (firstVar.id === 'beta') return (a.beta_true || 0) - (b.beta_true || 0)
-      if (firstVar.id === 'sampleSize') return (a.sample_size || 0) - (b.sample_size || 0)
-      if (firstVar.id === 'process') return (a.offset_value || 0) - (b.offset_value || 0)
+      const displayDims = params.filter(p => p.isDisplayDimension)
+      if (displayDims.length === 0) return 0
+
+      // 获取参数值的辅助函数
+      const getParamValue = (item: StatsResult, paramId: string): number => {
+        if (paramId === 'beta') return item.beta_true || 0
+        if (paramId === 'sampleSize') return item.sample_size || 0
+        if (paramId === 'process') return item.offset_value || 0
+        return 0
+      }
+
+      // 按第一个变量排序
+      const firstVar = displayDims[0]
+      const diff = getParamValue(a, firstVar.id) - getParamValue(b, firstVar.id)
+      if (diff !== 0) return diff
+
+      // 第一个变量相等时，按第二个变量排序
+      if (displayDims.length >= 2) {
+        const secondVar = displayDims[1]
+        return getParamValue(a, secondVar.id) - getParamValue(b, secondVar.id)
+      }
+
       return 0
     })
   }, [params, csvData, config])
@@ -582,7 +599,13 @@ export default function UniversalStudyViewer({ methodId }: UniversalStudyViewerP
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {params.map(param => (
-                <ParamCard key={param.id} param={param} processSymbol={config.processSymbol} onToggleDisplayDimension={() => toggleDisplayDimension(param.id)} />
+                <ParamCard
+                  key={param.id}
+                  param={param}
+                  processSymbol={config.processSymbol}
+                  defaults={config.defaults}
+                  onToggleDisplayDimension={() => toggleDisplayDimension(param.id)}
+                />
               ))}
             </div>
 
@@ -623,7 +646,55 @@ export default function UniversalStudyViewer({ methodId }: UniversalStudyViewerP
 }
 
 // 参数卡片组件
-function ParamCard({ param, processSymbol, onToggleDisplayDimension }: { param: ParamConfig; processSymbol?: string; onToggleDisplayDimension: () => void }) {
+function ParamCard({
+  param,
+  processSymbol,
+  defaults,
+  onToggleDisplayDimension
+}: {
+  param: ParamConfig
+  processSymbol?: string
+  defaults?: Record<string, number>
+  onToggleDisplayDimension: () => void
+}) {
+  // 判断某个值是否应该高亮（红色 = 当前生效的值）
+  const isActiveValue = (value: number): boolean => {
+    // 固定参数：高亮 fixedValue
+    if (!param.isVariable) {
+      return param.state === 'fixed' && param.fixedValue === value
+    }
+
+    // 变量参数且是显示维度：高亮所有 discreteValues
+    if (param.isDisplayDimension) {
+      return true // 所有值都高亮
+    }
+
+    // 变量参数但不是显示维度：高亮 defaults 中的对应值
+    const defaultKey = param.id === 'sampleSize' ? 'sampleSize' : param.id
+    const defaultValue = defaults?.[defaultKey]
+    return defaultValue !== undefined && defaultValue === value
+  }
+
+  // 格式化显示值
+  const formatValue = (v: number) => {
+    if (typeof v === 'number' && v < 1 && v !== 0) return v.toFixed(2)
+    if (Number.isInteger(v)) return String(v)
+    return String(v)
+  }
+
+  // 获取要显示的值列表（统一布局）
+  const getDisplayValues = (): number[] => {
+    if (param.state === 'fixed' && param.fixedValue !== undefined) {
+      return [param.fixedValue]
+    }
+    if (param.state === 'discrete' && param.discreteValues) {
+      return param.discreteValues
+    }
+    return []
+  }
+
+  const values = getDisplayValues()
+
   return (
     <div className={cn("rounded-xl border-2 p-4 transition-all", PARAM_COLORS[param.id] || 'border-slate-200 bg-slate-50')}>
       <div className="flex items-center justify-between mb-3">
@@ -638,17 +709,25 @@ function ParamCard({ param, processSymbol, onToggleDisplayDimension }: { param: 
         </div>
       </div>
 
-      {param.state === 'fixed' && <div className="text-center"><span className="text-lg font-black font-mono">{param.fixedValue}</span></div>}
-      {param.state === 'discrete' && param.discreteValues && (
-        <div className="flex flex-wrap gap-1">
-          {param.discreteValues.map(v => (
-            <span key={v} className="px-1.5 py-0.5 bg-white rounded text-xs font-mono font-bold">
-              {typeof v === 'number' && v < 1 && v !== 0 ? v.toFixed(2) : v}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* 统一布局：所有参数都用白色块显示值 */}
+      <div className="flex flex-wrap gap-1">
+        {values.map(v => (
+          <span
+            key={v}
+            className={cn(
+              "px-1.5 py-0.5 rounded text-xs font-mono font-bold transition-all bg-white",
+              isActiveValue(v)
+                ? "border-2 text-red-500 bg-gradient-to-r from-red-100 to-orange-50"
+                : "border border-slate-200 text-slate-600"
+            )}
+            style={isActiveValue(v) ? { borderColor: '#f87171' } : {}}
+          >
+            {formatValue(v)}
+          </span>
+        ))}
+      </div>
 
+      {/* 只有变量参数才显示"设为显示维度"按钮 */}
       {param.isVariable && (
         <div className="mt-3 pt-3 border-t border-black/10">
           <button onClick={onToggleDisplayDimension} className={cn("w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all", param.isDisplayDimension ? "bg-purple-600 text-white hover:bg-purple-700" : "bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-600")}>
@@ -1045,9 +1124,16 @@ function DualVarSection({
 
   // 获取参数统计值的辅助函数
   const getStatValue = (s: StatsResult, param: 'beta' | 'eta' | 'gamma', statType: string): number | null => {
-    const key = `${statType}_${param}` as keyof StatsResult
-    const val = s[key]
-    return typeof val === 'number' ? val : null
+    // 键名格式：est_beta_mean, bias_eta_median 等
+    // statType 格式：est_mean, bias_mean, est_median 等
+    // 需要拆分 statType 并重新组合
+    const parts = statType.split('_') // ['est', 'mean'] 或 ['bias', 'mean']
+    if (parts.length === 2) {
+      const key = `${parts[0]}_${param}_${parts[1]}` as keyof StatsResult // est_beta_mean
+      const val = s[key]
+      return typeof val === 'number' ? val : null
+    }
+    return null
   }
 
   // 渲染单个参数的统计列
