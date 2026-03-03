@@ -178,6 +178,9 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
     loadData()
   }, [])
 
+  // 获取案例列表 - 必须在所有条件返回之前调用
+  const { cases: caseList } = useCaseList()
+
   // 获取当前选中 η 的数据
   const currentEtaData = useMemo(() => {
     if (!data) return null
@@ -279,9 +282,6 @@ export default function Case14Viewer({ caseId, onCaseChange }: Case14ViewerProps
   }
 
   const params = data.simulation_params
-
-  // 获取案例列表
-  const { cases: caseList } = useCaseList()
 
   return (
     <div className="space-y-6">

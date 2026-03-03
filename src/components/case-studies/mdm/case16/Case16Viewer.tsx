@@ -5,8 +5,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, ReferenceLine, Cell
 } from 'recharts'
-import { AlertTriangle, Info, BarChart2, LineChart as LineChartIcon } from 'lucide-react'
+import { AlertTriangle, Info, BarChart2, LineChart as LineChartIcon, BookOpen, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useCaseList } from '@/hooks/useCaseList'
 
 interface Case16ViewerProps {
   caseId: string
@@ -75,6 +76,9 @@ export default function Case16Viewer({ caseId, onCaseChange }: Case16ViewerProps
   const [loading, setLoading] = useState(true)
   const [selectedN, setSelectedN] = useState<number>(3)
   const [activeTab, setActiveTab] = useState<'distribution' | 'contour' | 'j3curve'>('distribution')
+
+  // 获取案例列表
+  const { cases: caseList } = useCaseList()
 
   useEffect(() => {
     fetch('/case-studies/mdm/case16/data.json')
@@ -160,6 +164,28 @@ export default function Case16Viewer({ caseId, onCaseChange }: Case16ViewerProps
 
   return (
     <div className="space-y-6">
+      {/* 案例选择下拉框 */}
+      {onCaseChange && caseList.length > 0 && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-4">
+            <BookOpen className="text-orange-600" size={20} />
+            <label className="text-sm font-bold text-slate-600 whitespace-nowrap">切换案例：</label>
+            <div className="relative flex-1 max-w-md">
+              <select
+                value={caseId}
+                onChange={(e) => onCaseChange(e.target.value)}
+                className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer hover:bg-slate-100 transition-colors"
+              >
+                {caseList.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 警告信息 */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="flex items-start gap-3">

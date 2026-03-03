@@ -187,6 +187,9 @@ export default function Case9Viewer({ caseId, onCaseChange }: Case9ViewerProps) 
     loadData()
   }, [])
 
+  // 获取案例列表 - 必须在所有条件返回之前调用
+  const { cases: caseList } = useCaseList()
+
   // 当前偏移量下的所有结果
   const currentResults = useMemo(() => {
     if (!data) return []
@@ -500,9 +503,6 @@ export default function Case9Viewer({ caseId, onCaseChange }: Case9ViewerProps) 
       </div>
     )
   }
-
-  // 获取案例列表
-  const { cases: caseList } = useCaseList()
 
   return (
     <div className="space-y-6">

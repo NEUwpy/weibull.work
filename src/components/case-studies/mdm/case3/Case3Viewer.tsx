@@ -86,6 +86,9 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
   const [error, setError] = useState<string | null>(null)
   const [selectedNonIntersectId, setSelectedNonIntersectId] = useState<number | null>(null)
 
+  // 获取案例列表 - 必须在所有条件返回之前调用
+  const { cases: caseList } = useCaseList()
+
   // 加载数据 - 使用新路径
   useEffect(() => {
     const loadData = async () => {
@@ -171,9 +174,6 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
     '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4',
     '#ec4899', '#84cc16', '#6366f1', '#14b8a6', '#f97316'
   ]
-
-  // 获取案例列表
-  const { cases: caseList } = useCaseList()
 
   return (
     <div className="space-y-6">

@@ -108,6 +108,9 @@ export default function Case15Viewer({ caseId, onCaseChange }: Case15ViewerProps
   const [activeTab, setActiveTab] = useState<'J1' | 'J2' | 'J3'>('J3')
   const [showAllN, setShowAllN] = useState(false)
 
+  // 获取案例列表 - 必须在所有条件返回之前调用
+  const { cases: caseList } = useCaseList()
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -163,9 +166,6 @@ export default function Case15Viewer({ caseId, onCaseChange }: Case15ViewerProps
   }
 
   const params = data.simulation_params
-
-  // 获取案例列表
-  const { cases: caseList } = useCaseList()
 
   return (
     <div className="space-y-6">

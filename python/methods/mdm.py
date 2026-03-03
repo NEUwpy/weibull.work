@@ -3,22 +3,30 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 
 class MDM(WeibullBase):
-    def run(self, trace=False, offset=0.1):
+    def run(self, trace=False, offset=None, gamma_steps=60, rank_method='bernard'):
         """
         Run the Minimum Discrepancy Method.
-        
+
         Args:
             trace (bool): Whether to record trace data.
-            offset (float): Gradient offset target (default 0.1).
-        
+            offset (float): Gradient offset target (required, e.g., 0.1).
+            gamma_steps (int): Number of steps per round for gamma search (default 60).
+            rank_method (str): Median rank method - 'bernard' or 'exact' (default 'bernard').
+
         Returns:
-            (beta, eta, gamma, r_squared)
+            (beta, eta, gamma, r_squared, status) where status is True or "no_intersection"
         """
+        if offset is None:
+            raise ValueError("offset parameter is required (e.g., offset=0.1)")
+
+        # Update rank method if different from constructor
+        original_rank_method = self.rank_method
+        self.rank_method = rank_method
+
         t = self.data
         n = self.n
-        
-        # 1. Median Ranks
-        # F(ti) = (i - 0.3) / (n + 0.4)
+
+        # 1. Median Ranks (using configured method)
         ranks = self._median_ranks()
         neg_ln_1_minus_F = -np.log(1 - ranks)
 
@@ -34,7 +42,7 @@ class MDM(WeibullBase):
             # Constraint: gamma < t_min
             if gamma >= t[0]:
                 return None, float('inf')
-            
+
             res = minimize_scalar(
                 lambda b: calculate_eta_std(b, gamma, t),
                 bounds=(0.1, 15.0),
@@ -44,7 +52,6 @@ class MDM(WeibullBase):
 
         # Search range for gamma: [0, t_min)
         t_min = t[0]
-        gamma_steps = 60  # Steps for gradient calculation per round
 
         # ========== Round 1: Search in [0, 0.99*t_min] ==========
         gammas1 = np.linspace(0, t_min * 0.99, gamma_steps)
@@ -66,7 +73,6 @@ class MDM(WeibullBase):
 
         # ========== Round 2: Search in [0.99*t_min, 0.999999*t_min] if needed ==========
         if len(sign_changes) == 0:
-            print(f"[MDM] No intersection in round 1, extending search to [0.99*t_min, 0.999999*t_min]")
             gammas2 = np.linspace(t_min * 0.99, t_min * 0.999999, gamma_steps)
             sigma_mins2 = []
             best_betas2 = []
@@ -89,7 +95,6 @@ class MDM(WeibullBase):
             # Re-check for intersection
             diffs = grads - offset
             sign_changes = np.where(np.diff(np.sign(diffs)))[0]
-            print(f"[MDM] Round 2 gradient range: [{grads.min():.6f}, {grads.max():.6f}]")
         else:
             # Use round 1 data only
             gammas = gammas1
@@ -97,9 +102,6 @@ class MDM(WeibullBase):
             best_betas = best_betas1
             grads = grads1
             diffs = diffs1
-
-        # Debug: Print gradient range
-        print(f"[MDM] offset={offset:.4f}, gradient range: [{grads.min():.6f}, {grads.max():.6f}]")
 
         # ========== Final: Find intersection point ==========
         found_gamma = 0.0
@@ -119,17 +121,15 @@ class MDM(WeibullBase):
                 found_gamma = x1
 
             found_beta, _ = find_best_beta_for_gamma(found_gamma)
-            print(f"[MDM] Found intersection: gamma={found_gamma:.4f}, beta={found_beta:.4f}")
         else:
             # No intersection even after two rounds - return no solution
-            print(f"[MDM] No intersection found after two rounds, returning no_solution")
             return None, None, None, None, "no_intersection"
-            
+
         # Final Calculation
         denom = np.power(neg_ln_1_minus_F, 1.0/found_beta)
         etas = (t - found_gamma) / denom
         found_eta = np.mean(etas)
-        
+
         # R^2
         r2 = self._calculate_r2(found_beta, found_eta, found_gamma)
 
@@ -191,7 +191,7 @@ class MDM(WeibullBase):
             # But the backend returns `trace_data` as a list of dicts.
             # We can put this big object as the only item in the list, or modify the Visualizer to accept the raw object.
             # Base class appends to self.trace_data list.
-            
+
             self.trace_data = {
                 "sigma_beta_curve": sigma_beta_curve,
                 "grad_gamma_curve": grad_gamma_curve,

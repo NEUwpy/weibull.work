@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Table2, Table, ChevronDown, BookOpen } from 'lucide-react'
+import { useCaseList } from '@/hooks/useCaseList'
 import {
   LineChart,
   Line,
@@ -195,6 +196,9 @@ export default function Case5Viewer({ caseId, onCaseChange }: Case5ViewerProps) 
   const [curvesData, setCurvesData] = useState<SampleCurve[]>([])
   const [loading, setLoading] = useState(true)
 
+  // 获取案例列表 - 必须在所有条件返回之前调用
+  const { cases: caseList } = useCaseList()
+
   const results = HARDCODED_RESULTS
   const summary = HARDCODED_SUMMARY
   const samples = HARDCODED_SAMPLES
@@ -253,9 +257,6 @@ export default function Case5Viewer({ caseId, onCaseChange }: Case5ViewerProps) 
       </div>
     )
   }
-
-  // 获取案例列表
-  const { cases: caseList } = useCaseList()
 
   return (
     <div className="space-y-6">

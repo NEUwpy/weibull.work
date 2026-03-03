@@ -97,6 +97,9 @@ export default function Case7Viewer({ caseId, onCaseChange }: Case7ViewerProps) 
     loadData()
   }, [])
 
+  // 获取案例列表 - 必须在所有条件返回之前调用
+  const { cases: caseList } = useCaseList()
+
   const currentResult = data?.results.find(
     r => r.strategy_id === activeStrategy && r.offset === activeOffset
   )
@@ -119,9 +122,6 @@ export default function Case7Viewer({ caseId, onCaseChange }: Case7ViewerProps) 
       </div>
     )
   }
-
-  // 获取案例列表
-  const { cases: caseList } = useCaseList()
 
   return (
     <div className="space-y-6">

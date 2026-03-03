@@ -90,6 +90,9 @@ export default function Case6Viewer({ caseId, onCaseChange }: Case6ViewerProps) 
     loadData()
   }, [])
 
+  // 获取案例列表 - 必须在所有条件返回之前调用
+  const { cases: caseList } = useCaseList()
+
   // 获取当前结果
   const currentResult = data?.results.find(
     r => r.strategy_id === activeStrategy && r.offset === activeOffset
@@ -113,9 +116,6 @@ export default function Case6Viewer({ caseId, onCaseChange }: Case6ViewerProps) 
       </div>
     )
   }
-
-  // 获取案例列表
-  const { cases: caseList } = useCaseList()
 
   return (
     <div className="space-y-6">
