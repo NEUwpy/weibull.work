@@ -126,30 +126,6 @@ const Case14Viewer = dynamic(() => import('./case-studies/mdm/case14/Case14Viewe
   )
 })
 
-const Case15Viewer = dynamic(() => import('./case-studies/mdm/case15/Case15Viewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12">
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-violet-200 border-t-violet-600 mb-4"></div>
-        <p className="text-slate-600 font-bold">加载案例15分析中...</p>
-      </div>
-    </div>
-  )
-})
-
-const Case16Viewer = dynamic(() => import('./case-studies/mdm/case16/Case16Viewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12">
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600 mb-4"></div>
-        <p className="text-slate-600 font-bold">加载案例16分析中...</p>
-      </div>
-    </div>
-  )
-})
-
 interface CaseStudyViewerProps {
   methodId: string
 }
@@ -182,7 +158,7 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'case7' | 'case8' | 'case9' | 'case13' | 'case14' | 'case15' | 'case16' | 'markdown'  // 架构类型
+    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'case7' | 'case8' | 'case9' | 'case13' | 'case14' | 'markdown'  // 架构类型
   content?: string  // Markdown内容（仅用于markdown架构）
   defaults?: {  // 默认基准值
     beta?: number
@@ -673,8 +649,6 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
           '9': Case9Viewer,
           '13': Case13Viewer,
           '14': Case14Viewer,
-          '15': Case15Viewer,
-          '16': Case16Viewer,
         }
         return componentMap[caseNum]
       })()

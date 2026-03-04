@@ -41,8 +41,6 @@ const CASE_COMPONENTS_REGISTRY: Record<string, React.ComponentType<CaseComponent
   'case9': dynamic(() => import('./case9/Case9Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例9" /> }),
   'case13': dynamic(() => import('./case13/Case13Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例13" /> }),
   'case14': dynamic(() => import('./case14/Case14Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例14" /> }),
-  'case15': dynamic(() => import('./case15/Case15Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例15" /> }),
-  'case16': dynamic(() => import('./case16/Case16Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例16" /> }),
   // 添加新案例时，在这里添加：
   // 'case17': dynamic(() => import('./case17/Case17Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例17" /> }),
 }
