@@ -45,14 +45,22 @@ export default function MethodLab({ methodId, onCalculationComplete }: MethodLab
       setLoading(true)
       setError(null)
       try {
+        // Build request body - MDM method requires offset parameter
+        const requestBody: any = {
+          method: methodId,
+          data: data,
+          trace: true // Request process trace
+        }
+
+        // Add offset for MDM method
+        if (methodId.toLowerCase() === 'mdm') {
+          requestBody.offset = 0.1 // Default offset value
+        }
+
         const response = await fetch('http://localhost:8001/calculate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            method: methodId,
-            data: data,
-            trace: true // Request process trace
-          })
+          body: JSON.stringify(requestBody)
         })
 
         if (!response.ok) {

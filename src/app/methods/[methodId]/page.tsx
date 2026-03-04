@@ -21,7 +21,7 @@ const WMLEVisualizer = dynamic(() => import('@/components/visualizers/WMLEVisual
 const MDMVisualizer = dynamic(() => import('@/components/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const WMLEExample = dynamic(() => import('@/components/WMLEExample'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const UniversalStudyViewer = dynamic(() => import('@/components/studies/UniversalStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MDMStudyViewer = dynamic(() => import('@/components/studies/mdm/MDMStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 
@@ -238,14 +238,22 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
     setIsCalculating(true)
     try {
+      // Build request body - MDM method requires offset parameter
+      const requestBody: any = {
+        method: method.id,
+        data: labData.filter(d => d.status === 'F').map(d => d.value),
+        trace: true // Request process trace
+      }
+
+      // Add offset for MDM method
+      if (method.id.toLowerCase() === 'mdm') {
+        requestBody.offset = 0.1 // Default offset value
+      }
+
       const response = await fetch('http://localhost:8001/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: method.id,
-          data: labData.filter(d => d.status === 'F').map(d => d.value),
-          trace: true // Request process trace
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
@@ -651,7 +659,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           </div>
         ) : activeTab === 'examples' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <UniversalStudyViewer methodId={method.id} />
+            <MDMStudyViewer methodId={method.id} />
           </div>
         ) : activeTab === 'cases' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">

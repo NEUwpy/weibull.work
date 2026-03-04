@@ -16,6 +16,12 @@ import { AlertTriangle, CheckCircle, ChevronDown, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCaseList } from '@/hooks/useCaseList'
 
+// 导入通用图表组件
+import { SigmaBetaChart, GradientGammaChart } from '@/components/charts/mdm'
+
+// 开关：使用新组件（true）或旧代码（false）
+const USE_NEW_CHART_COMPONENTS = true
+
 interface Case3NoIntersectionViewerProps {
   caseId: string
   onCaseChange?: (caseId: string) => void  // 案例切换回调
@@ -299,245 +305,191 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
 
         {/* 图1: 单条无交点 - σ(β)曲线 */}
         {selectedNonIntersect && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="text-base font-bold text-slate-800">图1. 无交点样本 - 形状参数寻优</h4>
-                <p className="text-xs text-slate-500">样本 #{selectedNonIntersect.sim_id} 的 σ_η 关于 β 变化</p>
+          USE_NEW_CHART_COMPONENTS ? (
+            <SigmaBetaChart
+              curves={[{
+                id: selectedNonIntersect.sim_id,
+                data: selectedNonIntersect.sigma_beta_curve,
+                color: '#ef4444',
+                strokeWidth: 3,
+                name: `样本 #${selectedNonIntersect.sim_id}`
+              }]}
+              interactive={false}
+              overlayMode={false}
+              height={300}
+              domain={{ x: [0.5, 6], y: [0, 1400] }}
+              referenceLines={[
+                { value: TRUE_BETA, label: '真实β', color: '#94a3b8' },
+                { value: selectedNonIntersect.est_beta, label: '估计β', color: '#ef4444' }
+              ]}
+              title="图1. 无交点样本 - 形状参数寻优"
+              subtitle={`样本 #${selectedNonIntersect.sim_id} 的 σ_η 关于 β 变化`}
+            />
+          ) : (
+            /* 旧代码模式（保留以便对比） */
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="text-base font-bold text-slate-800">图1. 无交点样本 - 形状参数寻优</h4>
+                  <p className="text-xs text-slate-500">样本 #{selectedNonIntersect.sim_id} 的 σ_η 关于 β 变化</p>
+                </div>
+                <div className="w-4 h-4 bg-red-500 rounded"></div>
               </div>
-              <div className="w-4 h-4 bg-red-500 rounded"></div>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={selectedNonIntersect.sigma_beta_curve} margin={{ top: 20, right: 25, bottom: 45, left: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="beta"
+                      type="number"
+                      domain={[0.5, 6]}
+                      tick={{ fontSize: 10 }}
+                      tickLine={true}
+                      stroke="#000"
+                      strokeWidth={1}
+                      label={{ value: '形状参数 β', position: 'bottom', fontSize: 12, fill: '#64748b' }}
+                      axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                    />
+                    <YAxis
+                      domain={[0, 1400]}
+                      tickCount={5}
+                      tick={{ fontSize: 10 }}
+                      tickLine={true}
+                      stroke="#000"
+                      strokeWidth={1}
+                      label={{ value: '标准差 σ_η', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
+                      axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
+                      formatter={(v: number) => v.toFixed(2)}
+                    />
+                    <ReferenceLine x={TRUE_BETA} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: "真实β", fill: '#94a3b8', fontSize: 10 }} />
+                    <ReferenceLine x={selectedNonIntersect.est_beta} stroke="#ef4444" strokeDasharray="3 3" label={{ value: "估计β", fill: '#ef4444', fontSize: 10 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="sigma"
+                      stroke="#ef4444"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6 }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={selectedNonIntersect.sigma_beta_curve} margin={{ top: 20, right: 25, bottom: 45, left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="beta"
-                    type="number"
-                    domain={[0.5, 6]}
-                    tick={{ fontSize: 10 }}
-                    tickLine={true}
-                    stroke="#000"
-                    strokeWidth={1}
-                    label={{ value: '形状参数 β', position: 'bottom', fontSize: 12, fill: '#64748b' }}
-                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                  />
-                  <YAxis
-                    domain={[0, 1400]}
-                    tickCount={5}
-                    tick={{ fontSize: 10 }}
-                    tickLine={true}
-                    stroke="#000"
-                    strokeWidth={1}
-                    label={{ value: '标准差 σ_η', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
-                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                  />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
-                    formatter={(v: number) => v.toFixed(2)}
-                  />
-                  <ReferenceLine x={TRUE_BETA} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: "真实β", fill: '#94a3b8', fontSize: 10 }} />
-                  <ReferenceLine x={selectedNonIntersect.est_beta} stroke="#ef4444" strokeDasharray="3 3" label={{ value: "估计β", fill: '#ef4444', fontSize: 10 }} />
-                  <Line
-                    type="monotone"
-                    dataKey="sigma"
-                    stroke="#ef4444"
-                    strokeWidth={3}
-                    dot={false}
-                    activeDot={{ r: 6 }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          )
         )}
 
         {/* 图2: 单条无交点 - 梯度曲线 */}
         {selectedNonIntersect && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="text-base font-bold text-slate-800">图2. 无交点样本 - 位置参数梯度判据</h4>
-                <p className="text-xs text-slate-500">样本 #{selectedNonIntersect.sim_id} 的 ∇(γ) 与偏移值δ</p>
+          USE_NEW_CHART_COMPONENTS ? (
+            <GradientGammaChart
+              curves={[{
+                id: selectedNonIntersect.sim_id,
+                data: selectedNonIntersect.grad_gamma_curve,
+                color: '#ef4444',
+                strokeWidth: 2,
+                name: `样本 #${selectedNonIntersect.sim_id}`
+              }]}
+              singleCurve={selectedNonIntersect.grad_gamma_curve}
+              interactive={false}
+              overlayMode={false}
+              height={300}
+              offsetReference={OFFSET_VALUE}
+              gammaReferenceLines={[
+                { gamma: selectedNonIntersect.est_gamma, label: '估计γ', color: '#ef4444' }
+              ]}
+              title="图2. 无交点样本 - 位置参数梯度判据"
+              subtitle={`样本 #${selectedNonIntersect.sim_id} 的 ∇(γ) 与偏移值δ`}
+            />
+          ) : (
+            /* 旧代码模式（保留以便对比） */
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="text-base font-bold text-slate-800">图2. 无交点样本 - 位置参数梯度判据</h4>
+                  <p className="text-xs text-slate-500">样本 #{selectedNonIntersect.sim_id} 的 ∇(γ) 与偏移值δ</p>
+                </div>
+                <div className="w-4 h-4 bg-red-500 rounded"></div>
               </div>
-              <div className="w-4 h-4 bg-red-500 rounded"></div>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={selectedNonIntersect.grad_gamma_curve} margin={{ top: 20, right: 30, bottom: 40, left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="gamma"
+                      type="number"
+                      tickFormatter={(v) => v.toFixed(0)}
+                      tick={{ fontSize: 10 }}
+                      tickLine={true}
+                      stroke="#000"
+                      strokeWidth={1}
+                      label={{ value: '位置参数 γ', position: 'bottom', fontSize: 12, fill: '#64748b' }}
+                      axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                    />
+                    <YAxis
+                      width={45}
+                      tick={{ fontSize: 10 }}
+                      tickLine={true}
+                      stroke="#000"
+                      strokeWidth={1}
+                      label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
+                      axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
+                      formatter={(v: number) => [v.toFixed(4), '∇(γ)']}
+                    />
+                    <ReferenceLine y={OFFSET_VALUE} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${OFFSET_VALUE}`, fill: '#10b981', fontSize: 10 }} />
+                    <ReferenceLine y={0} stroke="#cbd5e1" />
+                    <ReferenceLine x={selectedNonIntersect.est_gamma} stroke="#ef4444" strokeDasharray="3 3" label={{ value: "估计γ", fill: '#ef4444', fontSize: 10 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="gradient"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={selectedNonIntersect.grad_gamma_curve} margin={{ top: 20, right: 30, bottom: 40, left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="gamma"
-                    type="number"
-                    tickFormatter={(v) => v.toFixed(0)}
-                    tick={{ fontSize: 10 }}
-                    tickLine={true}
-                    stroke="#000"
-                    strokeWidth={1}
-                    label={{ value: '位置参数 γ', position: 'bottom', fontSize: 12, fill: '#64748b' }}
-                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                  />
-                  <YAxis
-                    width={45}
-                    tick={{ fontSize: 10 }}
-                    tickLine={true}
-                    stroke="#000"
-                    strokeWidth={1}
-                    label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
-                    axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                  />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
-                    formatter={(v: number) => [v.toFixed(4), '∇(γ)']}
-                  />
-                  <ReferenceLine y={OFFSET_VALUE} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${OFFSET_VALUE}`, fill: '#10b981', fontSize: 10 }} />
-                  <ReferenceLine y={0} stroke="#cbd5e1" />
-                  <ReferenceLine x={selectedNonIntersect.est_gamma} stroke="#ef4444" strokeDasharray="3 3" label={{ value: "估计γ", fill: '#ef4444', fontSize: 10 }} />
-                  <Line
-                    type="monotone"
-                    dataKey="gradient"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          )
         )}
 
         {/* 图3: 10条曲线簇 - σ(β)曲线 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h4 className="text-base font-bold text-slate-800">图3. 曲线簇 - 形状参数寻优</h4>
-              <p className="text-xs text-slate-500">10条样本的 σ_η 关于 β 变化（对数坐标，红色为无交点）</p>
-            </div>
-          </div>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart margin={{ top: 20, right: 25, bottom: 45, left: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="beta"
-                  type="number"
-                  domain={[0.5, 6]}
-                  ticks={[1, 2, 3, 4, 5, 6]}
-                  tickFormatter={(v) => v.toFixed(0)}
-                  tick={{ fontSize: 10 }}
-                  tickLine={true}
-                  stroke="#000"
-                  strokeWidth={1}
-                  label={{ value: '形状参数 β', position: 'bottom', fontSize: 12, fill: '#64748b' }}
-                  axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                />
-                <YAxis
-                  scale="log"
-                  domain={[1, 2000]}
-                  ticks={[1, 10, 100, 1000]}
-                  tickFormatter={(v) => v.toString()}
-                  tick={{ fontSize: 10 }}
-                  tickLine={true}
-                  stroke="#000"
-                  strokeWidth={1}
-                  label={{ value: '标准差 σ_η (对数)', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
-                  axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
-                  formatter={(v: number, name: string) => [v.toFixed(2), name]}
-                />
-                <ReferenceLine x={TRUE_BETA} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: "真实β", fill: '#94a3b8', fontSize: 10 }} />
-                {allCurvesData.slice(0, 10).map((sample, idx) => (
-                  <Line
-                    key={sample.sim_id}
-                    data={sample.sigma_beta_curve}
-                    type="monotone"
-                    dataKey="sigma"
-                    stroke={curveColors[idx % curveColors.length]}
-                    strokeWidth={sample.has_intersection ? 1.5 : 3}
-                    dot={false}
-                    name={`#${sample.sim_id}`}
-                    opacity={sample.has_intersection ? 0.7 : 1}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* 图4: 10条曲线簇 - 梯度曲线 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h4 className="text-base font-bold text-slate-800">图4. 曲线簇 - 位置参数梯度判据</h4>
-              <p className="text-xs text-slate-500">10条样本的 ∇(γ) 与偏移值δ（红色为无交点）</p>
-            </div>
-          </div>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart margin={{ top: 20, right: 25, bottom: 40, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="gamma"
-                  type="number"
-                  tickFormatter={(v) => v.toFixed(0)}
-                  tick={{ fontSize: 10 }}
-                  tickLine={true}
-                  stroke="#000"
-                  strokeWidth={1}
-                  label={{ value: '位置参数 γ', position: 'bottom', fontSize: 12, fill: '#64748b' }}
-                  axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                />
-                <YAxis
-                  width={45}
-                  tick={{ fontSize: 10 }}
-                  tickLine={true}
-                  stroke="#000"
-                  strokeWidth={1}
-                  label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
-                  axisLine={{ stroke: '#000', strokeWidth: 1 }}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
-                  formatter={(v: number, name: string) => [v.toFixed(4), name]}
-                />
-                <ReferenceLine y={OFFSET_VALUE} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${OFFSET_VALUE}`, fill: '#10b981', fontSize: 10 }} />
-                <ReferenceLine y={0} stroke="#cbd5e1" />
-                {allCurvesData.slice(0, 10).map((sample, idx) => (
-                  <Line
-                    key={sample.sim_id}
-                    data={sample.grad_gamma_curve}
-                    type="monotone"
-                    dataKey="gradient"
-                    stroke={curveColors[idx % curveColors.length]}
-                    strokeWidth={sample.has_intersection ? 1.5 : 3}
-                    dot={false}
-                    name={`#${sample.sim_id}`}
-                    opacity={sample.has_intersection ? 0.7 : 1}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* 图5: 扩展搜索范围 - 10条样本 σ(β)曲线簇 */}
-        {limitAnalysis && (
+        {USE_NEW_CHART_COMPONENTS ? (
+          <SigmaBetaChart
+            curves={allCurvesData.slice(0, 10).map((sample, idx) => ({
+              id: sample.sim_id,
+              data: sample.sigma_beta_curve,
+              color: curveColors[idx % curveColors.length],
+              strokeWidth: sample.has_intersection ? 1.5 : 3,
+              name: `#${sample.sim_id}`,
+              opacity: sample.has_intersection ? 0.7 : 1
+            }))}
+            interactive={false}
+            overlayMode={true}
+            height={300}
+            yScale="log"
+            domain={{ x: [0.5, 6], y: [1, 2000] }}
+            referenceLines={[
+              { value: TRUE_BETA, label: '真实β', color: '#94a3b8' }
+            ]}
+            title="图3. 曲线簇 - 形状参数寻优"
+            subtitle="10条样本的 σ_η 关于 β 变化（对数坐标，红色为无交点）"
+          />
+        ) : (
+          /* 旧代码模式（保留以便对比） */
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h4 className="text-base font-bold text-slate-800">图5. 扩展搜索范围 - 形状参数寻优</h4>
-                <p className="text-xs text-slate-500">10条样本的 σ_η 关于 β 变化（γ搜索范围扩展至 99.9999% t_min）</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span className="text-xs text-blue-600 font-bold">扩展搜索</span>
+                <h4 className="text-base font-bold text-slate-800">图3. 曲线簇 - 形状参数寻优</h4>
+                <p className="text-xs text-slate-500">10条样本的 σ_η 关于 β 变化（对数坐标，红色为无交点）</p>
               </div>
             </div>
             <div className="h-[300px]">
@@ -561,7 +513,7 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
                     scale="log"
                     domain={[1, 2000]}
                     ticks={[1, 10, 100, 1000]}
-                    tickFormatter={(v) => v.toFixed(3)}
+                    tickFormatter={(v) => v.toString()}
                     tick={{ fontSize: 10 }}
                     tickLine={true}
                     stroke="#000"
@@ -571,78 +523,54 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
                   />
                   <Tooltip
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    labelFormatter={(v) => `β: ${Number(v).toFixed(3)}`}
-                    formatter={(v: number, name: string) => [v.toFixed(3), name]}
+                    labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
+                    formatter={(v: number, name: string) => [v.toFixed(2), name]}
                   />
                   <ReferenceLine x={TRUE_BETA} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: "真实β", fill: '#94a3b8', fontSize: 10 }} />
-                  {/* 从图6交点找到的β*处画参考线 */}
-                  {(() => {
-                    const intersectionPoint = limitAnalysis.data.find(d => d.gradient >= OFFSET_VALUE)
-                    if (!intersectionPoint) return null
-                    return (
-                      <ReferenceLine
-                        x={intersectionPoint.beta}
-                        stroke="#ef4444"
-                        strokeDasharray="5 2"
-                        label={{ value: `β*=${intersectionPoint.beta.toFixed(1)}`, fill: '#ef4444', fontSize: 10 }}
-                      />
-                    )
-                  })()}
-                  {allCurvesData.slice(0, 10).map((sample, idx) => {
-                    // 原无交点样本：使用limitAnalysis.data绘制
-                    if (!sample.has_intersection) {
-                      const extData = limitAnalysis.data
-                        .filter(d => d.sigma !== null)
-                        .map(d => ({ beta: d.beta, sigma: d.sigma }))
-                        .sort((a, b) => a.beta - b.beta)
-                      return (
-                        <Line
-                          key={`ext-${sample.sim_id}`}
-                          data={extData}
-                          type="monotone"
-                          dataKey="sigma"
-                          stroke="#ef4444"
-                          strokeWidth={3}
-                          dot={false}
-                          name={`#${sample.sim_id} (新γ)`}
-                          opacity={1}
-                        />
-                      )
-                    }
-                    return (
-                      <Line
-                        key={`ext-${sample.sim_id}`}
-                        data={sample.sigma_beta_curve}
-                        type="monotone"
-                        dataKey="sigma"
-                        stroke={curveColors[idx % curveColors.length]}
-                        strokeWidth={1.5}
-                        dot={false}
-                        name={`#${sample.sim_id}`}
-                        opacity={0.7}
-                      />
-                    )
-                  })}
+                  {allCurvesData.slice(0, 10).map((sample, idx) => (
+                    <Line
+                      key={sample.sim_id}
+                      data={sample.sigma_beta_curve}
+                      type="monotone"
+                      dataKey="sigma"
+                      stroke={curveColors[idx % curveColors.length]}
+                      strokeWidth={sample.has_intersection ? 1.5 : 3}
+                      dot={false}
+                      name={`#${sample.sim_id}`}
+                      opacity={sample.has_intersection ? 0.7 : 1}
+                    />
+                  ))}
                 </LineChart>
               </ResponsiveContainer>
-            </div>
-            <div className="mt-3 text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
-              <strong>重要发现：</strong>扩展搜索后，原"无交点"样本的σ_η(β)曲线同样存在最小值。这表明β<sup>*</sup>(γ)在扩展范围内始终存在，"无交点"问题只出现在γ层面的梯度判据上。
             </div>
           </div>
         )}
 
-        {/* 图6: 扩展搜索范围 - 10条样本梯度曲线簇 */}
-        {limitAnalysis && (
+        {/* 图4: 10条曲线簇 - 梯度曲线 */}
+        {USE_NEW_CHART_COMPONENTS ? (
+          <GradientGammaChart
+            curves={allCurvesData.slice(0, 10).map((sample, idx) => ({
+              id: sample.sim_id,
+              data: sample.grad_gamma_curve,
+              color: curveColors[idx % curveColors.length],
+              strokeWidth: sample.has_intersection ? 1.5 : 3,
+              name: `#${sample.sim_id}`,
+              opacity: sample.has_intersection ? 0.7 : 1
+            }))}
+            interactive={false}
+            overlayMode={true}
+            height={300}
+            offsetReference={OFFSET_VALUE}
+            title="图4. 曲线簇 - 位置参数梯度判据"
+            subtitle="10条样本的 ∇(γ) 与偏移值δ（红色为无交点）"
+          />
+        ) : (
+          /* 旧代码模式（保留以便对比） */
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h4 className="text-base font-bold text-slate-800">图6. 扩展搜索范围 - 位置参数梯度判据</h4>
-                <p className="text-xs text-slate-500">10条样本的 ∇(γ) 与 δ 比较（γ搜索范围扩展至 99.9999% t_min）</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                <span className="text-xs text-purple-600 font-bold">找到交点!</span>
+                <h4 className="text-base font-bold text-slate-800">图4. 曲线簇 - 位置参数梯度判据</h4>
+                <p className="text-xs text-slate-500">10条样本的 ∇(γ) 与偏移值δ（红色为无交点）</p>
               </div>
             </div>
             <div className="h-[300px]">
@@ -652,7 +580,6 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
                   <XAxis
                     dataKey="gamma"
                     type="number"
-                    domain={[0, limitAnalysis.t_min * 1.0]}
                     tickFormatter={(v) => v.toFixed(0)}
                     tick={{ fontSize: 10 }}
                     tickLine={true}
@@ -663,8 +590,6 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
                   />
                   <YAxis
                     width={45}
-                    domain={[-0.5, 1]}
-                    tickFormatter={(v) => v.toFixed(3)}
                     tick={{ fontSize: 10 }}
                     tickLine={true}
                     stroke="#000"
@@ -679,27 +604,271 @@ export default function Case3NoIntersectionViewer({ caseId, onCaseChange }: Case
                   />
                   <ReferenceLine y={OFFSET_VALUE} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${OFFSET_VALUE}`, fill: '#10b981', fontSize: 10 }} />
                   <ReferenceLine y={0} stroke="#cbd5e1" />
-                  <ReferenceLine x={limitAnalysis.t_min * 0.99} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: "原99%边界", position: 'top', fill: '#f59e0b', fontSize: 9 }} />
-                  <ReferenceLine x={limitAnalysis.t_min} stroke="#ef4444" strokeWidth={2} label={{ value: 't_min (极限)', position: 'top', fill: '#ef4444', fontSize: 10 }} />
                   {allCurvesData.slice(0, 10).map((sample, idx) => (
                     <Line
-                      key={`ext-grad-${sample.sim_id}`}
+                      key={sample.sim_id}
                       data={sample.grad_gamma_curve}
                       type="monotone"
                       dataKey="gradient"
                       stroke={curveColors[idx % curveColors.length]}
-                      strokeWidth={2}
+                      strokeWidth={sample.has_intersection ? 1.5 : 3}
                       dot={false}
                       name={`#${sample.sim_id}`}
-                      opacity={0.8}
+                      opacity={sample.has_intersection ? 0.7 : 1}
                     />
                   ))}
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-3 text-xs text-purple-600 bg-purple-50 p-2 rounded border border-purple-200">
-              <strong>关键发现：</strong>扩展搜索后，红色无交点样本的梯度曲线在γ≈{limitAnalysis.data.find(d => d.gradient >= OFFSET_VALUE)?.gamma.toFixed(0)}处成功穿过δ={OFFSET_VALUE}线！这证明"无交点"是搜索范围不足(只到99% t_min)导致的伪象。
+          </div>
+        )}
+
+        {/* 图5: 扩展搜索范围 - 10条样本 σ(β)曲线簇 */}
+        {limitAnalysis && (
+          <div className="space-y-3">
+            {USE_NEW_CHART_COMPONENTS ? (
+              <SigmaBetaChart
+                curves={allCurvesData.slice(0, 10).map((sample, idx) => {
+                  if (!sample.has_intersection) {
+                    const extData = limitAnalysis.data
+                      .filter(d => d.sigma !== null)
+                      .map(d => ({ beta: d.beta, sigma: d.sigma }))
+                      .sort((a, b) => a.beta - b.beta)
+                    return {
+                      id: `ext-${sample.sim_id}`,
+                      data: extData,
+                      color: '#ef4444',
+                      strokeWidth: 3,
+                      name: `#${sample.sim_id} (新γ)`,
+                      opacity: 1
+                    }
+                  }
+                  return {
+                    id: `ext-${sample.sim_id}`,
+                    data: sample.sigma_beta_curve,
+                    color: curveColors[idx % curveColors.length],
+                    strokeWidth: 1.5,
+                    name: `#${sample.sim_id}`,
+                    opacity: 0.7
+                  }
+                })}
+                interactive={false}
+                overlayMode={true}
+                height={300}
+                yScale="log"
+                domain={{ x: [0.5, 6], y: [1, 2000] }}
+                referenceLines={[
+                  { value: TRUE_BETA, label: '真实β', color: '#94a3b8' },
+                  ...(limitAnalysis.data.find(d => d.gradient >= OFFSET_VALUE)
+                    ? [{ value: limitAnalysis.data.find(d => d.gradient >= OFFSET_VALUE)!.beta, label: `β*=${limitAnalysis.data.find(d => d.gradient >= OFFSET_VALUE)!.beta.toFixed(1)}`, color: '#ef4444', strokeDasharray: '5 2' }]
+                    : [])
+                ]}
+                title="图5. 扩展搜索范围 - 形状参数寻优"
+                subtitle="10条样本的 σ_η 关于 β 变化（γ搜索范围扩展至 99.9999% t_min）"
+              />
+            ) : (
+              /* 旧代码模式（保留以便对比） */
+              <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="text-base font-bold text-slate-800">图5. 扩展搜索范围 - 形状参数寻优</h4>
+                    <p className="text-xs text-slate-500">10条样本的 σ_η 关于 β 变化（γ搜索范围扩展至 99.9999% t_min）</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                    <span className="text-xs text-blue-600 font-bold">扩展搜索</span>
+                  </div>
+                </div>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart margin={{ top: 20, right: 25, bottom: 45, left: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="beta"
+                        type="number"
+                        domain={[0.5, 6]}
+                        ticks={[1, 2, 3, 4, 5, 6]}
+                        tickFormatter={(v) => v.toFixed(0)}
+                        tick={{ fontSize: 10 }}
+                        tickLine={true}
+                        stroke="#000"
+                        strokeWidth={1}
+                        label={{ value: '形状参数 β', position: 'bottom', fontSize: 12, fill: '#64748b' }}
+                        axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                      />
+                      <YAxis
+                        scale="log"
+                        domain={[1, 2000]}
+                        ticks={[1, 10, 100, 1000]}
+                        tickFormatter={(v) => v.toFixed(3)}
+                        tick={{ fontSize: 10 }}
+                        tickLine={true}
+                        stroke="#000"
+                        strokeWidth={1}
+                        label={{ value: '标准差 σ_η (对数)', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
+                        axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                      />
+                      <Tooltip
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        labelFormatter={(v) => `β: ${Number(v).toFixed(3)}`}
+                        formatter={(v: number, name: string) => [v.toFixed(3), name]}
+                      />
+                      <ReferenceLine x={TRUE_BETA} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: "真实β", fill: '#94a3b8', fontSize: 10 }} />
+                      {/* 从图6交点找到的β*处画参考线 */}
+                      {(() => {
+                        const intersectionPoint = limitAnalysis.data.find(d => d.gradient >= OFFSET_VALUE)
+                        if (!intersectionPoint) return null
+                        return (
+                          <ReferenceLine
+                            x={intersectionPoint.beta}
+                            stroke="#ef4444"
+                            strokeDasharray="5 2"
+                            label={{ value: `β*=${intersectionPoint.beta.toFixed(1)}`, fill: '#ef4444', fontSize: 10 }}
+                          />
+                        )
+                      })()}
+                      {allCurvesData.slice(0, 10).map((sample, idx) => {
+                        // 原无交点样本：使用limitAnalysis.data绘制
+                        if (!sample.has_intersection) {
+                          const extData = limitAnalysis.data
+                            .filter(d => d.sigma !== null)
+                            .map(d => ({ beta: d.beta, sigma: d.sigma }))
+                            .sort((a, b) => a.beta - b.beta)
+                          return (
+                            <Line
+                              key={`ext-${sample.sim_id}`}
+                              data={extData}
+                              type="monotone"
+                              dataKey="sigma"
+                              stroke="#ef4444"
+                              strokeWidth={3}
+                              dot={false}
+                              name={`#${sample.sim_id} (新γ)`}
+                              opacity={1}
+                            />
+                          )
+                        }
+                        return (
+                          <Line
+                            key={`ext-${sample.sim_id}`}
+                            data={sample.sigma_beta_curve}
+                            type="monotone"
+                            dataKey="sigma"
+                            stroke={curveColors[idx % curveColors.length]}
+                            strokeWidth={1.5}
+                            dot={false}
+                            name={`#${sample.sim_id}`}
+                            opacity={0.7}
+                          />
+                        )
+                      })}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+            {/* 分析说明（统一显示） */}
+            <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
+              <strong>重要发现：</strong>扩展搜索后，原"无交点"样本的σ_η(β)曲线同样存在最小值。这表明β<sup>*</sup>(γ)在扩展范围内始终存在，"无交点"问题只出现在γ层面的梯度判据上。
             </div>
+          </div>
+        )}
+
+        {/* 图6: 扩展搜索范围 - 10条样本梯度曲线簇 */}
+        {limitAnalysis && (
+          <div className="space-y-3">
+            {USE_NEW_CHART_COMPONENTS ? (
+              <GradientGammaChart
+                curves={allCurvesData.slice(0, 10).map((sample, idx) => ({
+                  id: `ext-grad-${sample.sim_id}`,
+                  data: sample.grad_gamma_curve,
+                  color: curveColors[idx % curveColors.length],
+                  strokeWidth: 2,
+                  name: `#${sample.sim_id}`,
+                  opacity: 0.8
+                }))}
+                interactive={false}
+                overlayMode={true}
+                height={300}
+                offsetReference={OFFSET_VALUE}
+                domain={{ x: [0, limitAnalysis.t_min * 1.0], y: [-0.5, 1] }}
+                gammaReferenceLines={[
+                  { gamma: limitAnalysis.t_min * 0.99, label: '原99%边界', color: '#f59e0b', position: 'top' as const },
+                  { gamma: limitAnalysis.t_min, label: 't_min (极限)', color: '#ef4444', position: 'top' as const }
+                ]}
+                title="图6. 扩展搜索范围 - 位置参数梯度判据"
+                subtitle="10条样本的 ∇(γ) 与 δ 比较（γ搜索范围扩展至 99.9999% t_min）"
+              />
+            ) : (
+            /* 旧代码模式（保留以便对比） */
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h4 className="text-base font-bold text-slate-800">图6. 扩展搜索范围 - 位置参数梯度判据</h4>
+                  <p className="text-xs text-slate-500">10条样本的 ∇(γ) 与 δ 比较（γ搜索范围扩展至 99.9999% t_min）</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                  <span className="text-xs text-purple-600 font-bold">找到交点!</span>
+                </div>
+              </div>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart margin={{ top: 20, right: 25, bottom: 40, left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="gamma"
+                      type="number"
+                      domain={[0, limitAnalysis.t_min * 1.0]}
+                      tickFormatter={(v) => v.toFixed(0)}
+                      tick={{ fontSize: 10 }}
+                      tickLine={true}
+                      stroke="#000"
+                      strokeWidth={1}
+                      label={{ value: '位置参数 γ', position: 'bottom', fontSize: 12, fill: '#64748b' }}
+                      axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                    />
+                    <YAxis
+                      width={45}
+                      domain={[-0.5, 1]}
+                      tickFormatter={(v) => v.toFixed(3)}
+                      tick={{ fontSize: 10 }}
+                      tickLine={true}
+                      stroke="#000"
+                      strokeWidth={1}
+                      label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#64748b' }}
+                      axisLine={{ stroke: '#000', strokeWidth: 1 }}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
+                      formatter={(v: number, name: string) => [v.toFixed(4), name]}
+                    />
+                    <ReferenceLine y={OFFSET_VALUE} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${OFFSET_VALUE}`, fill: '#10b981', fontSize: 10 }} />
+                    <ReferenceLine y={0} stroke="#cbd5e1" />
+                    <ReferenceLine x={limitAnalysis.t_min * 0.99} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: "原99%边界", position: 'top', fill: '#f59e0b', fontSize: 9 }} />
+                    <ReferenceLine x={limitAnalysis.t_min} stroke="#ef4444" strokeWidth={2} label={{ value: 't_min (极限)', position: 'top', fill: '#ef4444', fontSize: 10 }} />
+                    {allCurvesData.slice(0, 10).map((sample, idx) => (
+                      <Line
+                        key={`ext-grad-${sample.sim_id}`}
+                        data={sample.grad_gamma_curve}
+                        type="monotone"
+                        dataKey="gradient"
+                        stroke={curveColors[idx % curveColors.length]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={`#${sample.sim_id}`}
+                        opacity={0.8}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 text-xs text-purple-600 bg-purple-50 p-2 rounded border border-purple-200">
+                <strong>关键发现：</strong>扩展搜索后，红色无交点样本的梯度曲线在γ≈{limitAnalysis.data.find(d => d.gradient >= OFFSET_VALUE)?.gamma.toFixed(0)}处成功穿过δ={OFFSET_VALUE}线！这证明"无交点"是搜索范围不足(只到99% t_min)导致的伪象。
+              </div>
+            </div>
+          )}
           </div>
         )}
 

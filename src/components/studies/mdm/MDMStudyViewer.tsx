@@ -4,11 +4,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { ChevronDown, FlaskConical, Filter, Settings, Layers, BookOpen, Info, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import matter from 'gray-matter'
-// 导入独立图表组件
-import { ChartCard } from './charts/ChartCard'
-import { BoxPlotChart } from './charts/BoxPlotChart'
-import { HeatmapChart } from './charts/HeatmapChart'
-import { DensityChart } from './charts/DensityChart'
+// 导入通用图表组件
+import { ChartCard, BoxPlotChart, HeatmapChart, DensityChart } from '@/components/charts/common'
 
 // 参数配置类型
 interface ParamConfig {
@@ -191,7 +188,7 @@ const DEFAULT_PARAM_SELECTION: ParamSelection = {
   gamma: true
 }
 
-interface UniversalStudyViewerProps {
+interface MDMStudyViewerProps {
   methodId: string
 }
 
@@ -244,7 +241,7 @@ function useStudyList(methodId: string) {
   return { studies, isLoading }
 }
 
-export default function UniversalStudyViewer({ methodId }: UniversalStudyViewerProps) {
+export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
   const { studies, isLoading: isLoadingList } = useStudyList(methodId)
   const [selectedStudyId, setSelectedStudyId] = useState<string>('')
 

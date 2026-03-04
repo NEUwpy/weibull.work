@@ -41,9 +41,24 @@ export default function MDMOffsetAnalyzer({ traceData }: MDMOffsetAnalyzerProps)
   const [showEta, setShowEta] = React.useState(true)
   const [showSigma, setShowSigma] = React.useState(false)
 
+  // Check if grad_gamma_curve exists and has data
+  const hasGradientCurve = traceData?.grad_gamma_curve && traceData.grad_gamma_curve.length > 0
+
   // Check if backend is returning best_beta and best_eta
-  const hasBestBeta = traceData.grad_gamma_curve.length > 0 && 'best_beta' in traceData.grad_gamma_curve[0]
-  const hasBestEta = traceData.grad_gamma_curve.length > 0 && 'best_eta' in traceData.grad_gamma_curve[0]
+  const hasBestBeta = hasGradientCurve && 'best_beta' in traceData.grad_gamma_curve[0]
+  const hasBestEta = hasGradientCurve && 'best_eta' in traceData.grad_gamma_curve[0]
+
+  // Early return if no gradient curve data
+  if (!hasGradientCurve) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-8 text-center">
+        <p className="text-yellow-800 font-bold mb-2">数据不完整</p>
+        <p className="text-yellow-700 text-sm">
+          未能获取梯度曲线数据。请确保后端正确返回 MDM 方法的 trace_data。
+        </p>
+      </div>
+    )
+  }
 
   // Generate offset analysis data
   const offsetAnalysis = useMemo(() => {

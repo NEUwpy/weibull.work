@@ -31,13 +31,21 @@ export default function MDMIterationViewer({
   // State for the currently hovered gamma index
   const [activeIndex, setActiveIndex] = useState<number>(0)
 
+  // Check if data exists
+  const hasGradientCurve = traceData?.grad_gamma_curve?.length > 0
+
   // Update index when traceData changes or initially
   React.useEffect(() => {
-    if (traceData.grad_gamma_curve) {
-      const idx = traceData.grad_gamma_curve.findIndex(d => Math.abs(d.gamma - traceData.optimal_gamma) < 1)
+    if (traceData?.grad_gamma_curve?.length) {
+      const idx = traceData.grad_gamma_curve.findIndex(d => Math.abs(d.gamma - (traceData.optimal_gamma ?? 0)) < 1)
       setActiveIndex(idx >= 0 ? idx : Math.floor(traceData.grad_gamma_curve.length / 2))
     }
-  }, [traceData.optimal_gamma, traceData.grad_gamma_curve])
+  }, [traceData?.optimal_gamma, traceData?.grad_gamma_curve])
+
+  // Early return if no data (after hooks)
+  if (!hasGradientCurve) {
+    return null
+  }
 
   // Determine active gamma from index
   const activeGammaPoint = traceData.grad_gamma_curve[activeIndex] || traceData.grad_gamma_curve[0]
@@ -68,7 +76,7 @@ export default function MDMIterationViewer({
   const pathData = traceData.grad_gamma_curve.map((d, i) => ({
     ...d,
     index: i,
-    isOptimal: Math.abs(d.gamma - traceData.optimal_gamma) < 1
+    isOptimal: Math.abs(d.gamma - (traceData.optimal_gamma ?? 0)) < 1
   }))
 
   const handleMouseMove = (state: any) => {

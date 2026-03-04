@@ -22,6 +22,12 @@ import MDMOffsetAnalyzer from './MDMOffsetAnalyzer'
 import MDMIterationViewer from './MDMIterationViewer'
 import { cn } from '@/lib/utils'
 
+// 导入MDM图表组件
+import { SigmaBetaChart, GradientGammaChart } from '@/components/charts/mdm'
+
+// 开关：使用新组件（true）或旧代码（false）
+const USE_NEW_CHART_COMPONENTS = true
+
 interface TraceData {
   sigma_beta_curve: { beta: number; sigma: number }[]
   grad_gamma_curve: { gamma: number; gradient: number; sigma_min: number; best_beta?: number }[]
@@ -47,13 +53,13 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   const [gammaMode, setGammaMode] = useState<'optimal' | 'manual'>('optimal')
 
   // Delta offset state for threshold adjustment
-  const [deltaOffset, setDeltaOffset] = useState(traceData.target_offset)
+  const [deltaOffset, setDeltaOffset] = useState(traceData.target_offset ?? 0.1)
 
   // For optimal mode: the gamma used for left chart curve (only updates on refresh)
   const [chartGamma, setChartGamma] = useState(() => {
     // Initialize with optimal gamma based on initial delta
     const curve = traceData.grad_gamma_curve || []
-    const initialDelta = traceData.target_offset
+    const initialDelta = traceData.target_offset ?? 0.1
 
     if (!curve || curve.length === 0) return traceData.optimal_gamma || 0
 
@@ -105,7 +111,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   // Find the gamma where gradient crosses the delta threshold
   const optimalGammaFromDelta = useMemo(() => {
     const curve = traceData.grad_gamma_curve
-    if (!curve || curve.length === 0) return traceData.optimal_gamma
+    if (!curve || curve.length === 0) return traceData.optimal_gamma ?? 0
 
     // Find the crossing point: check all cases where we cross delta
     for (let i = 0; i < curve.length - 1; i++) {
@@ -344,246 +350,432 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* Chart 1: Sigma vs Beta (with Gamma Slider) */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-bold text-slate-800">形状参数寻优</h3>
-              <div className="flex items-center gap-2">
-                {/* Gamma Mode Switch */}
-                <div className="flex bg-slate-100 p-0.5 rounded-full border border-slate-200">
-                  <button
-                    onClick={() => setGammaMode('optimal')}
-                    className={cn(
-                      "px-2.5 py-0.5 rounded-full text-xs font-black",
-                      gammaMode === 'optimal'
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-slate-400 hover:text-slate-600"
-                    )}
-                  >
-                    最优γ
-                  </button>
-                  <button
-                    onClick={() => setGammaMode('manual')}
-                    className={cn(
-                      "px-2.5 py-0.5 rounded-full text-xs font-black",
-                      gammaMode === 'manual'
-                        ? "bg-white text-emerald-600 shadow-sm"
-                        : "text-slate-400 hover:text-slate-600"
-                    )}
-                  >
-                    更改γ
-                  </button>
+        {/* ========== Chart 1: Sigma vs Beta (with Gamma Slider) ========== */}
+        {USE_NEW_CHART_COMPONENTS ? (
+          /* ===== 新组件模式 ===== */
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold text-slate-800">形状参数寻优</h3>
+                <div className="flex items-center gap-2">
+                  {/* Gamma Mode Switch */}
+                  <div className="flex bg-slate-100 p-0.5 rounded-full border border-slate-200">
+                    <button
+                      onClick={() => setGammaMode('optimal')}
+                      className={cn(
+                        "px-2.5 py-0.5 rounded-full text-xs font-black",
+                        gammaMode === 'optimal'
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-slate-400 hover:text-slate-600"
+                      )}
+                    >
+                      最优γ
+                    </button>
+                    <button
+                      onClick={() => setGammaMode('manual')}
+                      className={cn(
+                        "px-2.5 py-0.5 rounded-full text-xs font-black",
+                        gammaMode === 'manual'
+                          ? "bg-white text-emerald-600 shadow-sm"
+                          : "text-slate-400 hover:text-slate-600"
+                      )}
+                    >
+                      更改γ
+                    </button>
+                  </div>
+                  {/* Refresh button - only in optimal mode */}
+                  {gammaMode === 'optimal' && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); handleRefreshChart(); }}
+                      className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50"
+                      title="刷新左图曲线"
+                    >
+                      <RefreshCw size={16} />
+                    </button>
+                  )}
+                  <span className="text-sm font-bold text-blue-600">
+                    γ = {gammaMode === 'optimal' ? optimalGammaFromDelta.toFixed(2) : selectedGamma.toFixed(2)}
+                  </span>
                 </div>
-                {/* Refresh button - only in optimal mode */}
-                {gammaMode === 'optimal' && (
-                  <button
-                    onClick={(e) => { e.preventDefault(); handleRefreshChart(); }}
-                    className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50"
-                    title="刷新左图曲线"
-                  >
-                    <RefreshCw size={16} />
-                  </button>
+              </div>
+              <p className="text-sm text-slate-500">
+                展示在选定的位置参数下，尺度参数标准差 σ_η 随形状参数 β 的变化。
+                <span className="text-blue-600 font-medium">
+                  {" "}最优γ随右边δ实时变化，点击刷新图标重绘曲线
+                </span>
+              </p>
+            </div>
+
+            {/* Gamma Slider */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-500">位置参数 γ</span>
+                <span className="text-xs text-slate-400">
+                  {gammaIndex + 1} / {gammaDataCount}
+                  {gammaMode === 'optimal' && <span className="text-blue-600 ml-1">(自动)</span>}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={gammaDataCount - 1}
+                step={1}
+                value={gammaIndex}
+                onChange={(e) => setGammaIndex(parseInt(e.target.value))}
+                disabled={gammaMode === 'optimal'}
+                className={cn(
+                  "w-full h-2 rounded-lg appearance-none cursor-pointer transition-all",
+                  gammaMode === 'optimal'
+                    ? "bg-slate-100 cursor-not-allowed"
+                    : "bg-slate-200 accent-blue-600"
                 )}
-                <span className="text-sm font-bold text-blue-600">
-                  γ = {gammaMode === 'optimal' ? optimalGammaFromDelta.toFixed(2) : selectedGamma.toFixed(2)}
+                style={{
+                  background: gammaMode === 'optimal'
+                    ? '#e2e8f0'
+                    : `linear-gradient(to right, #93c5fd 0%, #93c5fd ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                <span>{useSigmaBetaGamma && traceData.sigma_beta_gamma?.[0]
+                  ? traceData.sigma_beta_gamma[0].gamma.toFixed(1)
+                  : traceData.grad_gamma_curve?.[0]?.gamma?.toFixed(1) ?? '-'}
+                </span>
+                <span>{useSigmaBetaGamma && traceData.sigma_beta_gamma?.length
+                  ? traceData.sigma_beta_gamma[traceData.sigma_beta_gamma.length - 1].gamma.toFixed(1)
+                  : traceData.grad_gamma_curve?.[traceData.grad_gamma_curve.length - 1]?.gamma?.toFixed(1) ?? '-'}
                 </span>
               </div>
             </div>
-            <p className="text-sm text-slate-500">
-              展示在选定的位置参数下，尺度参数标准差 σ_η 随形状参数 β 的变化。
-              <span className="text-blue-600 font-medium">
-                {" "}最优γ随右边δ实时变化，点击刷新图标重绘曲线
-              </span>
-            </p>
-          </div>
 
-          {/* Gamma Slider */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-500">位置参数 γ</span>
-              <span className="text-xs text-slate-400">
-                {gammaIndex + 1} / {gammaDataCount}
-                {gammaMode === 'optimal' && <span className="text-blue-600 ml-1">(自动)</span>}
-              </span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={gammaDataCount - 1}
-              step={1}
-              value={gammaIndex}
-              onChange={(e) => setGammaIndex(parseInt(e.target.value))}
-              disabled={gammaMode === 'optimal'}
-              className={cn(
-                "w-full h-2 rounded-lg appearance-none cursor-pointer transition-all",
-                gammaMode === 'optimal'
-                  ? "bg-slate-100 cursor-not-allowed"
-                  : "bg-slate-200 accent-blue-600"
-              )}
-              style={{
-                background: gammaMode === 'optimal'
-                  ? '#e2e8f0'
-                  : `linear-gradient(to right, #93c5fd 0%, #93c5fd ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 100%)`
-              }}
+            {/* 使用新的 SigmaBetaChart 组件 */}
+            <SigmaBetaChart
+              curves={[{ id: 'current', data: filteredSigmaBetaCurve }]}
+              interactive={false}
+              overlayMode={false}
+              noContainer={true}
+              height={280}
+              domain={{ x: [1, 6], y: [0, 1400] }}
+              referenceLines={
+                Math.abs(selectedGamma - traceData.optimal_gamma) < 5
+                  ? [{ value: traceData.optimal_beta, label: `最优 β: ${traceData.optimal_beta.toFixed(2)}`, color: '#f59e0b', strokeDasharray: '5 5' }]
+                  : []
+              }
             />
-            <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>{useSigmaBetaGamma
-                ? traceData.sigma_beta_gamma![0].gamma.toFixed(1)
-                : traceData.grad_gamma_curve[0].gamma.toFixed(1)}
-              </span>
-              <span>{useSigmaBetaGamma
-                ? traceData.sigma_beta_gamma![traceData.sigma_beta_gamma!.length - 1].gamma.toFixed(1)
-                : traceData.grad_gamma_curve[traceData.grad_gamma_curve.length - 1].gamma.toFixed(1)}
-              </span>
-            </div>
           </div>
+        ) : (
+          /* ===== 旧代码模式（保留以便对比） ===== */
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold text-slate-800">形状参数寻优</h3>
+                <div className="flex items-center gap-2">
+                  {/* Gamma Mode Switch */}
+                  <div className="flex bg-slate-100 p-0.5 rounded-full border border-slate-200">
+                    <button
+                      onClick={() => setGammaMode('optimal')}
+                      className={cn(
+                        "px-2.5 py-0.5 rounded-full text-xs font-black",
+                        gammaMode === 'optimal'
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-slate-400 hover:text-slate-600"
+                      )}
+                    >
+                      最优γ
+                    </button>
+                    <button
+                      onClick={() => setGammaMode('manual')}
+                      className={cn(
+                        "px-2.5 py-0.5 rounded-full text-xs font-black",
+                        gammaMode === 'manual'
+                          ? "bg-white text-emerald-600 shadow-sm"
+                          : "text-slate-400 hover:text-slate-600"
+                      )}
+                    >
+                      更改γ
+                    </button>
+                  </div>
+                  {/* Refresh button - only in optimal mode */}
+                  {gammaMode === 'optimal' && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); handleRefreshChart(); }}
+                      className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50"
+                      title="刷新左图曲线"
+                    >
+                      <RefreshCw size={16} />
+                    </button>
+                  )}
+                  <span className="text-sm font-bold text-blue-600">
+                    γ = {gammaMode === 'optimal' ? optimalGammaFromDelta.toFixed(2) : selectedGamma.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-slate-500">
+                展示在选定的位置参数下，尺度参数标准差 σ_η 随形状参数 β 的变化。
+                <span className="text-blue-600 font-medium">
+                  {" "}最优γ随右边δ实时变化，点击刷新图标重绘曲线
+                </span>
+              </p>
+            </div>
 
-          <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={filteredSigmaBetaCurve} margin={{ top: 20, right: 25, bottom: 45, left: 55 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="beta"
-                  type="number"
-                  domain={[1, 6]}
-                  ticks={[1, 2, 3, 4, 5, 6]}
-                  tickFormatter={(v) => v.toFixed(0)}
-                  tick={{ fontSize: 10 }}
-                  label={{ value: '形状参数 β', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
-                />
-                <YAxis
-                  domain={[0, 1400]}
-                  tickCount={5}
-                  width={45}
-                  tick={{ fontSize: 10 }}
-                  label={{ value: '标准差 σ_η', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b' }}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  formatter={(value: number, name: string) => [value.toFixed(2), name]}
-                  labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="sigma"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={false}
-                  activeDot={{ r: 6 }}
-                />
-                {Math.abs(selectedGamma - traceData.optimal_gamma) < 5 && (
-                  <ReferenceLine
-                    x={traceData.optimal_beta}
-                    stroke="#f59e0b"
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    label={{ value: `最优 β: ${traceData.optimal_beta.toFixed(2)}`, position: 'top', fill: '#f59e0b', fontSize: 10 }}
+            {/* Gamma Slider */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-500">位置参数 γ</span>
+                <span className="text-xs text-slate-400">
+                  {gammaIndex + 1} / {gammaDataCount}
+                  {gammaMode === 'optimal' && <span className="text-blue-600 ml-1">(自动)</span>}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={gammaDataCount - 1}
+                step={1}
+                value={gammaIndex}
+                onChange={(e) => setGammaIndex(parseInt(e.target.value))}
+                disabled={gammaMode === 'optimal'}
+                className={cn(
+                  "w-full h-2 rounded-lg appearance-none cursor-pointer transition-all",
+                  gammaMode === 'optimal'
+                    ? "bg-slate-100 cursor-not-allowed"
+                    : "bg-slate-200 accent-blue-600"
+                )}
+                style={{
+                  background: gammaMode === 'optimal'
+                    ? '#e2e8f0'
+                    : `linear-gradient(to right, #93c5fd 0%, #93c5fd ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 ${(gammaIndex / (gammaDataCount - 1)) * 100}%, #e2e8f0 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                <span>{useSigmaBetaGamma && traceData.sigma_beta_gamma?.[0]
+                  ? traceData.sigma_beta_gamma[0].gamma.toFixed(1)
+                  : traceData.grad_gamma_curve?.[0]?.gamma?.toFixed(1) ?? '-'}
+                </span>
+                <span>{useSigmaBetaGamma && traceData.sigma_beta_gamma?.length
+                  ? traceData.sigma_beta_gamma[traceData.sigma_beta_gamma.length - 1].gamma.toFixed(1)
+                  : traceData.grad_gamma_curve?.[traceData.grad_gamma_curve.length - 1]?.gamma?.toFixed(1) ?? '-'}
+                </span>
+              </div>
+            </div>
+
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height={280}>
+                <ComposedChart data={filteredSigmaBetaCurve} margin={{ top: 20, right: 25, bottom: 45, left: 55 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="beta"
+                    type="number"
+                    domain={[1, 6]}
+                    ticks={[1, 2, 3, 4, 5, 6]}
+                    tickFormatter={(v) => v.toFixed(0)}
+                    tick={{ fontSize: 10 }}
+                    label={{ value: '形状参数 β', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
                   />
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Chart 2: Gradient vs Gamma */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-bold text-slate-800">位置参数梯度判据</h3>
-              <span className="text-sm font-bold text-emerald-600">δ = {deltaOffset.toFixed(3)}</span>
+                  <YAxis
+                    domain={[0, 1400]}
+                    tickCount={5}
+                    width={45}
+                    tick={{ fontSize: 10 }}
+                    label={{ value: '标准差 σ_η', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b' }}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    formatter={(value: number, name: string) => [value.toFixed(2), name]}
+                    labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="sigma"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={false}
+                    activeDot={{ r: 6 }}
+                  />
+                  {Math.abs(selectedGamma - traceData.optimal_gamma) < 5 && (
+                    <ReferenceLine
+                      x={traceData.optimal_beta}
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      label={{ value: `最优 β: ${traceData.optimal_beta.toFixed(2)}`, position: 'top', fill: '#f59e0b', fontSize: 10 }}
+                    />
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
-            <p className="text-sm text-slate-500">
-              ∇(γ) 曲线与补偿阈值 δ 的交点即为最佳位置参数。
-              <span className="text-blue-600 font-medium">蓝色竖线</span>标示当前选择的 γ 值，
-              <span className="text-emerald-600 font-medium">绿色虚线</span>为 δ 阈值。
-              <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>
-            </p>
           </div>
+        )}
 
-          {/* Delta Offset Slider */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-500">补偿阈值 δ</span>
-              <span className="text-xs text-slate-400">
-                范围: 0.000 - 0.500
-              </span>
+        {/* ========== Chart 2: Gradient vs Gamma ========== */}
+        {USE_NEW_CHART_COMPONENTS ? (
+          /* ===== 新组件模式 ===== */
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold text-slate-800">位置参数梯度判据</h3>
+                <span className="text-sm font-bold text-emerald-600">δ = {deltaOffset.toFixed(3)}</span>
+              </div>
+              <p className="text-sm text-slate-500">
+                ∇(γ) 曲线与补偿阈值 δ 的交点即为最佳位置参数。
+                <span className="text-blue-600 font-medium">蓝色竖线</span>标示当前选择的 γ 值，
+                <span className="text-emerald-600 font-medium">绿色虚线</span>为 δ 阈值。
+                <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>
+              </p>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={0.5}
-              step={0.001}
-              value={deltaOffset}
-              onChange={(e) => setDeltaOffset(parseFloat(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-              style={{
-                background: `linear-gradient(to right, #6ee7b7 0%, #6ee7b7 ${(deltaOffset / 0.5) * 100}%, #e2e8f0 ${(deltaOffset / 0.5) * 100}%, #e2e8f0 100%)`
+
+            {/* Delta Offset Slider */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-500">补偿阈值 δ</span>
+                <span className="text-xs text-slate-400">
+                  范围: 0.000 - 0.500
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={0.5}
+                step={0.001}
+                value={deltaOffset}
+                onChange={(e) => setDeltaOffset(parseFloat(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                style={{
+                  background: `linear-gradient(to right, #6ee7b7 0%, #6ee7b7 ${(deltaOffset / 0.5) * 100}%, #e2e8f0 ${(deltaOffset / 0.5) * 100}%, #e2e8f0 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                <span>0.000</span>
+                <span>0.500</span>
+              </div>
+            </div>
+
+            {/* 使用新的 GradientGammaChart 组件 */}
+            <GradientGammaChart
+              curves={[{ id: 'current', data: traceData.grad_gamma_curve || [] }]}
+              singleCurve={traceData.grad_gamma_curve}
+              interactive={false}
+              overlayMode={false}
+              noContainer={true}
+              height={280}
+              offsetReference={deltaOffset}
+              domain={{
+                x: [
+                  Math.min(...(traceData.grad_gamma_curve?.map(d => d.gamma) || [0]), optimalGammaFromDelta) - 5,
+                  Math.max(...(traceData.grad_gamma_curve?.map(d => d.gamma) || [0]), optimalGammaFromDelta) + 5
+                ]
               }}
+              gammaReferenceLines={
+                gammaMode === 'optimal'
+                  ? [{ gamma: optimalGammaFromDelta, label: '最优γ', color: '#f59e0b', position: 'bottom' as const }]
+                  : [
+                      { gamma: selectedGamma, label: '当前', color: '#3b82f6', position: 'top' as const },
+                      ...(Math.abs(selectedGamma - optimalGammaFromDelta) > 1
+                        ? [{ gamma: optimalGammaFromDelta, label: '最优', color: '#f59e0b', position: 'bottom' as const }]
+                        : [])
+                    ]
+              }
             />
-            <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>0.000</span>
-              <span>0.500</span>
+          </div>
+        ) : (
+          /* ===== 旧代码模式（保留以便对比） ===== */
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold text-slate-800">位置参数梯度判据</h3>
+                <span className="text-sm font-bold text-emerald-600">δ = {deltaOffset.toFixed(3)}</span>
+              </div>
+              <p className="text-sm text-slate-500">
+                ∇(γ) 曲线与补偿阈值 δ 的交点即为最佳位置参数。
+                <span className="text-blue-600 font-medium">蓝色竖线</span>标示当前选择的 γ 值，
+                <span className="text-emerald-600 font-medium">绿色虚线</span>为 δ 阈值。
+                <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>
+              </p>
+            </div>
+
+            {/* Delta Offset Slider */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-500">补偿阈值 δ</span>
+                <span className="text-xs text-slate-400">
+                  范围: 0.000 - 0.500
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={0.5}
+                step={0.001}
+                value={deltaOffset}
+                onChange={(e) => setDeltaOffset(parseFloat(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                style={{
+                  background: `linear-gradient(to right, #6ee7b7 0%, #6ee7b7 ${(deltaOffset / 0.5) * 100}%, #e2e8f0 ${(deltaOffset / 0.5) * 100}%, #e2e8f0 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                <span>0.000</span>
+                <span>0.500</span>
+              </div>
+            </div>
+
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={traceData.grad_gamma_curve || []} margin={{ top: 20, right: 25, bottom: 45, left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="gamma"
+                    type="number"
+                    domain={[
+                      Math.min(...(traceData.grad_gamma_curve?.map(d => d.gamma) || [0]), optimalGammaFromDelta) - 5,
+                      Math.max(...(traceData.grad_gamma_curve?.map(d => d.gamma) || [0]), optimalGammaFromDelta) + 5
+                    ]}
+                    tickFormatter={(v) => v.toFixed(0)}
+                    tick={{ fontSize: 10 }}
+                    label={{ value: '位置参数 γ', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
+                  />
+                  <YAxis
+                    width={45}
+                    tick={{ fontSize: 10 }}
+                    label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b' }}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
+                    formatter={(v: number) => [v.toFixed(4), '∇(γ)']}
+                  />
+                  <ReferenceLine y={deltaOffset} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${deltaOffset.toFixed(3)}`, fill: '#10b981', fontSize: 10 }} />
+                  <ReferenceLine y={0} stroke="#cbd5e1" />
+                  <Line
+                    type="monotone"
+                    dataKey="gradient"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6 }}
+                  />
+                  {/* Markers based on mode */}
+                  {gammaMode === 'optimal' ? (
+                    // Optimal mode: only show orange line at optimal gamma (based on current delta)
+                    <ReferenceLine x={optimalGammaFromDelta} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={2}>
+                      <Label value="最优γ" position="bottom" fill="#f59e0b" fontSize={9} />
+                    </ReferenceLine>
+                  ) : (
+                    // Manual mode: show blue line for current gamma
+                    <ReferenceLine x={selectedGamma} stroke="#3b82f6" strokeDasharray="2 2" strokeWidth={2}>
+                      <Label value="当前" position="top" fill="#3b82f6" fontSize={9} />
+                    </ReferenceLine>
+                  )}
+                  {/* In manual mode, also show optimal gamma marker if different from current */}
+                  {gammaMode === 'manual' && Math.abs(selectedGamma - optimalGammaFromDelta) > 1 && (
+                    <ReferenceLine x={optimalGammaFromDelta} stroke="#f59e0b" strokeDasharray="3 3">
+                      <Label value="最优" position="bottom" fill="#f59e0b" fontSize={9} />
+                    </ReferenceLine>
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
-
-          <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={traceData.grad_gamma_curve} margin={{ top: 20, right: 25, bottom: 45, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="gamma"
-                  type="number"
-                  domain={[
-                    Math.min(...traceData.grad_gamma_curve.map(d => d.gamma), optimalGammaFromDelta) - 5,
-                    Math.max(...traceData.grad_gamma_curve.map(d => d.gamma), optimalGammaFromDelta) + 5
-                  ]}
-                  tickFormatter={(v) => v.toFixed(0)}
-                  tick={{ fontSize: 10 }}
-                  label={{ value: '位置参数 γ', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
-                />
-                <YAxis
-                  width={45}
-                  tick={{ fontSize: 10 }}
-                  label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b' }}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
-                  formatter={(v: number) => [v.toFixed(4), '∇(γ)']}
-                />
-                <ReferenceLine y={deltaOffset} stroke="#10b981" strokeDasharray="3 3" label={{ position: 'right', value: `δ=${deltaOffset.toFixed(3)}`, fill: '#10b981', fontSize: 10 }} />
-                <ReferenceLine y={0} stroke="#cbd5e1" />
-                <Line
-                  type="monotone"
-                  dataKey="gradient"
-                  stroke="#ef4444"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 6 }}
-                />
-                {/* Markers based on mode */}
-                {gammaMode === 'optimal' ? (
-                  // Optimal mode: only show orange line at optimal gamma (based on current delta)
-                  <ReferenceLine x={optimalGammaFromDelta} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={2}>
-                    <Label value="最优γ" position="bottom" fill="#f59e0b" fontSize={9} />
-                  </ReferenceLine>
-                ) : (
-                  // Manual mode: show blue line for current gamma
-                  <ReferenceLine x={selectedGamma} stroke="#3b82f6" strokeDasharray="2 2" strokeWidth={2}>
-                    <Label value="当前" position="top" fill="#3b82f6" fontSize={9} />
-                  </ReferenceLine>
-                )}
-                {/* In manual mode, also show optimal gamma marker if different from current */}
-                {gammaMode === 'manual' && Math.abs(selectedGamma - optimalGammaFromDelta) > 1 && (
-                  <ReferenceLine x={optimalGammaFromDelta} stroke="#f59e0b" strokeDasharray="3 3">
-                    <Label value="最优" position="bottom" fill="#f59e0b" fontSize={9} />
-                  </ReferenceLine>
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        )}
 
       </div>
           <MDMIterationViewer 

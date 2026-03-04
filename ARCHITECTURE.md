@@ -71,7 +71,16 @@
 │   └── methods/          # 算法的具体实现类 (继承自 BaseMethod)
 ├── src/                  # [前端]
 │   ├── app/              # Next.js 页面逻辑
-│   ├── components/       # UI 组件 (AnalysisCard, Visualizers)
+│   ├── components/       # UI 组件
+│   │   ├── charts/       # 图表组件库 (按方法分类)
+│   │   │   ├── common/   # 通用图表 (箱型图、热力图等)
+│   │   │   ├── mdm/      # MDM方法图表
+│   │   │   ├── mle/      # MLE方法图表
+│   │   │   └── wmle/     # WMLE方法图表
+│   │   ├── studies/      # 方法示例组件
+│   │   │   └── mdm/      # MDM方法示例
+│   │   ├── case-studies/ # 案例展示组件
+│   │   └── visualizers/  # 计算过程可视化器
 │   ├── content/          # [数据源] Markdown 内容库
 │   │   ├── algorithms/   # 算法原理
 │   │   └── cases/        # 案例数据
@@ -238,37 +247,184 @@ const Case17Viewer = dynamic(() => import('./case-studies/mdm/case17/Case17Viewe
 *   **禁止硬编码**: 不要将数据直接写在 TS/JS 文件中。
 *   **双重验证**: 修改 Python 算法后，需同时检查前端可视化组件（`visualizers/`）是否兼容返回的数据结构。
 
-### 5.5 方法示例系统 (UniversalStudyViewer)
+### 5.5 方法示例系统 (MethodStudyViewer)
 
 **位置**: 方法详情页 → "方法示例" Tab
 
-**设计理念**: 插槽模式 - 框架 + 可复用图表组件
+**设计理念**: 按方法独立组织，每个方法有自己的示例组件
 
 ```
 src/components/studies/
-├── UniversalStudyViewer.tsx    # 框架（布局 + 表格 + 组合逻辑）
-└── charts/                     # 可复用图表组件
-    ├── ChartCard.tsx           # 统一卡片容器
-    ├── BoxPlotChart.tsx        # 箱型图
-    └── HeatmapChart.tsx        # 热力图
+├── mdm/                        # MDM方法示例
+│   ├── index.ts
+│   └── MDMStudyViewer.tsx      # MDM示例查看器
+├── mle/                        # MLE方法示例（将来）
+│   └── MLEStudyViewer.tsx
+└── wmle/                       # WMLE方法示例（将来）
+    └── WMLEStudyViewer.tsx
 ```
+
+**通用部分**（所有威布尔方法共享）：
+- 三参数：β, η, γ
+- 样本量 n
+- 蒙特卡洛 mcRuns
+- 估计结果 + 偏差统计
+- 图表：箱型图、密度图、热力图
+
+**方法特有部分**：
+- MDM: 偏移量 δ、gammaSteps、betaBounds 等
+- WMLE: 权重函数参数
+- MLE: （基本无特有参数）
 
 **核心原则**:
 
 | 原则 | 说明 |
 |------|------|
-| 统一复用 | 相同结构不差异化（布局、样式、标题格式） |
-| 配置驱动 | 图题、图表类型从 config.md 加载 |
-| 插槽组合 | ChartCard(容器) + 图表组件(children) |
+| 方法独立 | 每个方法一个目录，避免过度抽象 |
+| 配置驱动 | 参数、图表配置从 config.md 加载 |
+| 组件复用 | 通用图表从 `charts/common/` 导入 |
 | 职责分离 | 框架=布局，图表=内容，容器=样式 |
 
-**添加新图表**:
-1. 在 `charts/` 创建组件（只输出图表内容，不包含外框）
-2. 用 `ChartCard` 包裹使用:
-   ```tsx
-   <ChartCard title="图 N: 标题">
-     <NewChart data={...} />
-   </ChartCard>
-   ```
+**添加新方法示例**:
+1. 在 `studies/{method}/` 创建 `{Method}StudyViewer.tsx`
+2. 复制 MDMStudyViewer 作为模板
+3. 修改方法特有参数和计算设置
+4. 在 `page.tsx` 中注册 dynamic import
 
 详见: `docs/方法示例系统重构方案.md`
+
+### 5.6 图表组件复用规范
+
+**设计原则：交互组件 + 功能开关**
+
+将复杂交互图表作为"高配版"，通过 props 屏蔽功能变为"低配版"复用于不同场景。
+
+#### 层级结构
+
+```
+┌──────────────────────────────────────────────────┐
+│  层级1: 纯渲染层 (可复用)                          │
+│  - 只负责画图，无状态                              │
+│  - 接收数据 + 配置，输出 SVG/Canvas               │
+├──────────────────────────────────────────────────┤
+│  层级2: 交互层 (场景特定)                          │
+│  - 滑动条、模式切换、下拉选择                      │
+│  - 通过 interactive 等开关控制是否启用             │
+├──────────────────────────────────────────────────┤
+│  层级3: 容器层 (布局组合)                          │
+│  - ChartCard 统一外框样式                         │
+│  - 响应式布局、标题、间距                          │
+└──────────────────────────────────────────────────┘
+```
+
+#### 组件目录
+
+```
+src/components/charts/
+├── index.ts                # 总导出入口
+├── common/                 # 通用图表（可跨方法复用）
+│   ├── ChartCard.tsx       # 统一容器
+│   ├── BoxPlotChart.tsx    # 箱型图
+│   ├── HeatmapChart.tsx    # 热力图
+│   └── DensityChart.tsx    # 密度图
+├── mdm/                    # MDM方法图表
+│   ├── SigmaBetaChart.tsx  # σ_η(β) 曲线 - 形状参数寻优
+│   └── GradientGammaChart.tsx  # ∇(γ) 曲线 - 位置参数梯度判据
+├── mle/                    # MLE方法图表（将来）
+└── wmle/                   # WMLE方法图表（将来）
+```
+
+#### 设计原则
+
+**核心原则：一个方法统一一套图表组件**
+
+- 同一方法内，横纵坐标相同的图表应统一为一个组件
+- 通过 props（interactive, overlayMode 等）控制不同场景的展示
+- 避免为不同场景（计算过程、案例展示、方法示例）重复创建相似图表
+
+**引用方式**：
+```tsx
+// 通用图表
+import { ChartCard, BoxPlotChart } from '@/components/charts/common'
+
+// MDM 方法图表
+import { SigmaBetaChart, GradientGammaChart } from '@/components/charts/mdm'
+
+// 或从总入口导入
+import { SigmaBetaChart, BoxPlotChart } from '@/components/charts'
+```
+
+#### 使用场景
+
+| 场景 | 配置 | 用途 |
+|------|------|------|
+| 计算过程 (MDMVisualizer) | `interactive={true}` | 完整交互探索，滑动条调参 |
+| 案例展示 (Case3Viewer) | `interactive={false}` `overlayMode={true}` | 静态对比展示，多曲线叠加 |
+| 方法示例 (UniversalStudyViewer) | 纯渲染组件 + ChartCard | 配置驱动，插槽组合 |
+
+#### 组件接口示例
+
+```tsx
+interface SigmaBetaChartProps {
+  // 数据（必须）
+  curves: CurveData[]
+
+  // 功能开关（可选，默认全开）
+  interactive?: boolean       // 总开关，默认 true
+  showGammaSlider?: boolean   // γ 滑动条，默认 true
+  overlayMode?: boolean       // 多条曲线叠加，默认 false
+
+  // 展示配置
+  yScale?: 'linear' | 'log'
+  domain?: { x: [number, number]; y: [number, number] }
+  referenceLines?: ReferenceLine[]
+  colors?: string[]
+
+  // 交互回调（仅 interactive 模式）
+  onGammaChange?: (gamma: number) => void
+}
+```
+
+#### 使用示例
+
+```tsx
+// 计算过程：完整功能
+<SigmaBetaChart
+  data={curves}
+  interactive={true}
+  showGammaSlider={true}
+/>
+
+// 案例展示：降级版
+<SigmaBetaChart
+  data={curves}
+  interactive={false}
+  overlayMode={true}
+  referenceLines={[{ beta: 2.0, label: '真实β' }]}
+/>
+```
+
+#### 添加新图表组件
+
+1. **确定组件类型**：
+   - 通用图表（箱型图、热力图等）→ `charts/common/`
+   - 方法特有图表 → `charts/{方法名}/`（如 `charts/mdm/`）
+
+2. **检查是否已存在**：
+   - 同一方法内，横纵坐标相同的图表应复用现有组件
+   - 通过 props 控制差异，而不是创建新组件
+
+3. **创建组件**：
+   - 设计 `interactive` 等功能开关 props
+   - 确保纯渲染部分可独立使用
+   - 可选用 `ChartCard` 包裹外框
+
+4. **导出组件**：
+   - 在对应目录的 `index.ts` 中导出
+   - 如需全局导出，也在 `charts/index.ts` 中添加
+
+#### 重构原则
+
+- **渐进式重构**：先提取组件，不替换原代码；验证通过后再替换
+- **功能等价**：重构后功能、样式、交互与原来完全一致
+- **单一职责**：一个组件只做一件事，通过组合实现复杂功能
