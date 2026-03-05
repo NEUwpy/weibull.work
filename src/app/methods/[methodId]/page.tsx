@@ -7,21 +7,20 @@ import { notFound } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
 import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3, GitBranch, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { AlgorithmDetail } from '@/components/AlgorithmDetail'
-import AnalysisCard from '@/components/AnalysisCard'
-import ResultAnalysisLab from '@/components/ResultAnalysisLab'
-import DataEditor from '@/components/DataEditor'
+import { AlgorithmDetail } from '@/components/methods/AlgorithmDetail'
+import AnalysisCard from '@/components/calculator/AnalysisCard'
+import ResultAnalysisLab from '@/components/methods/ResultAnalysisLab'
+import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
 
 // Dynamic imports for heavy visualizers
-const VariableFlowViewer = dynamic(() => import('@/components/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const MLEVisualizer = dynamic(() => import('@/components/visualizers/MLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const WMLEVisualizer = dynamic(() => import('@/components/visualizers/WMLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const MDMVisualizer = dynamic(() => import('@/components/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const CaseStudyViewer = dynamic(() => import('@/components/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const WMLEExample = dynamic(() => import('@/components/WMLEExample'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const MDMStudyViewer = dynamic(() => import('@/components/studies/mdm/MDMStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const VariableFlowViewer = dynamic(() => import('@/components/methods/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MLEVisualizer = dynamic(() => import('@/components/methods/mle/visualizers/MLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const WMLEVisualizer = dynamic(() => import('@/components/methods/wmle/visualizers/WMLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MDMStudyViewer = dynamic(() => import('@/components/methods/mdm/studies/MDMStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 

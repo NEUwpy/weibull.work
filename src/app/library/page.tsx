@@ -4,7 +4,8 @@ import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
 import { BookOpen, FileText, Calendar, Tag, User, Filter } from 'lucide-react'
-import { LibraryPageClient } from '@/components/LibraryPageClient'
+import { LibraryPageClient } from '@/components/library'
+
 
 // Library Page (Server Component)
 

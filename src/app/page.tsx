@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, Suspense } from 'react'
-import AnalysisCard from '@/components/AnalysisCard'
+import AnalysisCard from '@/components/calculator/AnalysisCard'
 import { LayoutGrid } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import {
@@ -10,8 +10,8 @@ import {
   calculateMedianRanks,
   calculateWeibullParameters
 } from '@/lib/weibull'
-import MethodSelector from '@/components/MethodSelector'
-import DataEditor from '@/components/DataEditor'
+import MethodSelector from '@/components/calculator/MethodSelector'
+import DataEditor from '@/components/calculator/DataEditor'
 
 const CHART_COLORS = [
   '#3b82f6', // Blue-500

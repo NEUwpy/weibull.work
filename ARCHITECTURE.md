@@ -68,19 +68,78 @@
 ├── _archive/             # [忽略] 归档的废弃文件与脚本
 ├── python/               # [后端]
 │   ├── main.py           # API 路由入口
+│   ├── tests/            # 测试脚本
 │   └── methods/          # 算法的具体实现类 (继承自 BaseMethod)
 ├── src/                  # [前端]
 │   ├── app/              # Next.js 页面逻辑
-│   ├── components/       # UI 组件
-│   │   ├── charts/       # 图表组件库 (按方法分类)
-│   │   │   ├── common/   # 通用图表 (箱型图、热力图等)
-│   │   │   ├── mdm/      # MDM方法图表
-│   │   │   ├── mle/      # MLE方法图表
-│   │   │   └── wmle/     # WMLE方法图表
-│   │   ├── studies/      # 方法示例组件
-│   │   │   └── mdm/      # MDM方法示例
-│   │   ├── case-studies/ # 案例展示组件
-│   │   └── visualizers/  # 计算过程可视化器
+│   ├── components/       # UI 组件 (按页面/业务模块组织)
+│   │   │
+│   │   ├── calculator/   # 计算器页面 (/)
+│   │   │   ├── index.ts
+│   │   │   ├── AnalysisCard.tsx
+│   │   │   ├── DataEditor.tsx
+│   │   │   └── MethodSelector.tsx
+│   │   │
+│   │   ├── methods/      # 方法页面 (/methods/[methodId])
+│   │   │   ├── index.ts
+│   │   │   ├── AlgorithmDetail.tsx      # 原理文档
+│   │   │   ├── MethodDetailContent.tsx  # 方法详情内容
+│   │   │   ├── VariableFlowViewer.tsx   # 程序流程
+│   │   │   ├── ResultAnalysisLab.tsx    # 结果分析
+│   │   │   ├── CaseStudyViewer.tsx      # 案例展示容器
+│   │   │   │
+│   │   │   ├── mle/                     # MLE 方法
+│   │   │   │   ├── index.ts
+│   │   │   │   └── visualizers/
+│   │   │   │       ├── index.ts
+│   │   │   │       └── MLEVisualizer.tsx
+│   │   │   │
+│   │   │   ├── wmle/                    # WMLE 方法
+│   │   │   │   ├── index.ts
+│   │   │   │   └── visualizers/
+│   │   │   │       ├── index.ts
+│   │   │   │       └── WMLEVisualizer.tsx
+│   │   │   │
+│   │   │   └── mdm/                     # MDM 方法
+│   │   │       ├── index.ts
+│   │   │       ├── visualizers/
+│   │   │       │   ├── index.ts
+│   │   │       │   ├── MDMVisualizer.tsx
+│   │   │       │   ├── MDM3DSurfaceVisualizer.tsx
+│   │   │       │   ├── MDMIterationViewer.tsx
+│   │   │       │   └── MDMOffsetAnalyzer.tsx
+│   │   │       ├── charts/
+│   │   │       │   ├── index.ts
+│   │   │       │   ├── SigmaBetaChart.tsx
+│   │   │       │   └── GradientGammaChart.tsx
+│   │   │       ├── studies/
+│   │   │       │   ├── index.ts
+│   │   │       │   └── MDMStudyViewer.tsx
+│   │   │       └── case-studies/
+│   │   │           ├── index.ts
+│   │   │           ├── caseRegistry.tsx
+│   │   │           ├── case3/Case3Viewer.tsx
+│   │   │           ├── case5/Case5Viewer.tsx
+│   │   │           └── ...
+│   │   │
+│   │   ├── library/      # 图书馆页面 (/library)
+│   │   │   ├── index.ts
+│   │   │   └── LibraryPageClient.tsx
+│   │   │
+│   │   ├── chat/         # 聊天功能
+│   │   │   ├── index.ts
+│   │   │   └── ChatDialog.tsx
+│   │   │
+│   │   └── shared/       # 跨页面共享组件
+│   │       ├── index.ts
+│   │       ├── ui/       # 通用 UI (预留)
+│   │       └── charts/   # 通用图表
+│   │           ├── index.ts
+│   │           ├── ChartCard.tsx
+│   │           ├── BoxPlotChart.tsx
+│   │           ├── HeatmapChart.tsx
+│   │           └── DensityChart.tsx
+│   │
 │   ├── content/          # [数据源] Markdown 内容库
 │   │   ├── algorithms/   # 算法原理
 │   │   └── cases/        # 案例数据
@@ -132,8 +191,8 @@
 |------|------|
 | `src/hooks/useCaseList.ts` | 共享 Hook，获取案例列表 |
 | `src/app/api/case-studies/mdm/route.ts` | API 路由，自动扫描目录 |
-| `src/components/CaseStudyViewer.tsx` | 主组件，架构分发 |
-| `src/components/case-studies/mdm/caseX/CaseXViewer.tsx` | 各案例专用组件 |
+| `src/components/methods/CaseStudyViewer.tsx` | 主组件，架构分发 |
+| `src/components/methods/mdm/case-studies/caseX/CaseXViewer.tsx` | 各案例专用组件 |
 
 **数据位置**: `public/case-studies/mdm/caseX/`
 - `config.md` - YAML 配置 + Markdown 描述（必需）
@@ -217,7 +276,7 @@ params:
 在 `CaseStudyViewer.tsx` 中：
 ```tsx
 // 1. 添加 dynamic import
-const Case17Viewer = dynamic(() => import('./case-studies/mdm/case17/Case17Viewer'), {
+const Case17Viewer = dynamic(() => import('./mdm/case-studies/case17/Case17Viewer'), {
   ssr: false,
   loading: () => <LoadingSpinner name="案例17" />
 })
@@ -245,7 +304,7 @@ const Case17Viewer = dynamic(() => import('./case-studies/mdm/case17/Case17Viewe
 
 ### 5.4 维护注意事项
 *   **禁止硬编码**: 不要将数据直接写在 TS/JS 文件中。
-*   **双重验证**: 修改 Python 算法后，需同时检查前端可视化组件（`visualizers/`）是否兼容返回的数据结构。
+*   **双重验证**: 修改 Python 算法后，需同时检查前端可视化组件（`methods/{method}/visualizers/`）是否兼容返回的数据结构。
 
 ### 5.5 方法示例系统 (MethodStudyViewer)
 
@@ -254,14 +313,17 @@ const Case17Viewer = dynamic(() => import('./case-studies/mdm/case17/Case17Viewe
 **设计理念**: 按方法独立组织，每个方法有自己的示例组件
 
 ```
-src/components/studies/
-├── mdm/                        # MDM方法示例
-│   ├── index.ts
-│   └── MDMStudyViewer.tsx      # MDM示例查看器
-├── mle/                        # MLE方法示例（将来）
-│   └── MLEStudyViewer.tsx
-└── wmle/                       # WMLE方法示例（将来）
-    └── WMLEStudyViewer.tsx
+src/components/methods/
+├── mdm/                        # MDM 方法
+│   └── studies/
+│       ├── index.ts
+│       └── MDMStudyViewer.tsx  # MDM 示例查看器
+├── mle/                        # MLE 方法（将来）
+│   └── studies/
+│       └── MLEStudyViewer.tsx
+└── wmle/                       # WMLE 方法（将来）
+    └── studies/
+        └── WMLEStudyViewer.tsx
 ```
 
 **通用部分**（所有威布尔方法共享）：
@@ -286,7 +348,7 @@ src/components/studies/
 | 职责分离 | 框架=布局，图表=内容，容器=样式 |
 
 **添加新方法示例**:
-1. 在 `studies/{method}/` 创建 `{Method}StudyViewer.tsx`
+1. 在 `methods/{method}/studies/` 创建 `{Method}StudyViewer.tsx`
 2. 复制 MDMStudyViewer 作为模板
 3. 修改方法特有参数和计算设置
 4. 在 `page.tsx` 中注册 dynamic import
@@ -320,18 +382,20 @@ src/components/studies/
 #### 组件目录
 
 ```
-src/components/charts/
-├── index.ts                # 总导出入口
-├── common/                 # 通用图表（可跨方法复用）
-│   ├── ChartCard.tsx       # 统一容器
-│   ├── BoxPlotChart.tsx    # 箱型图
-│   ├── HeatmapChart.tsx    # 热力图
-│   └── DensityChart.tsx    # 密度图
-├── mdm/                    # MDM方法图表
-│   ├── SigmaBetaChart.tsx  # σ_η(β) 曲线 - 形状参数寻优
-│   └── GradientGammaChart.tsx  # ∇(γ) 曲线 - 位置参数梯度判据
-├── mle/                    # MLE方法图表（将来）
-└── wmle/                   # WMLE方法图表（将来）
+src/components/
+├── shared/                        # 跨页面共享
+│   └── charts/                    # 通用图表（可跨方法复用）
+│       ├── index.ts
+│       ├── ChartCard.tsx          # 统一容器
+│       ├── BoxPlotChart.tsx       # 箱型图
+│       ├── HeatmapChart.tsx       # 热力图
+│       └── DensityChart.tsx       # 密度图
+│
+└── methods/                       # 方法页面
+    └── {method}/                  # 各方法目录
+        └── charts/                # 方法专用图表
+            ├── index.ts
+            └── ...
 ```
 
 #### 设计原则
@@ -344,14 +408,11 @@ src/components/charts/
 
 **引用方式**：
 ```tsx
-// 通用图表
-import { ChartCard, BoxPlotChart } from '@/components/charts/common'
+// 通用图表（从 shared 导入）
+import { ChartCard, BoxPlotChart } from '@/components/shared/charts'
 
-// MDM 方法图表
-import { SigmaBetaChart, GradientGammaChart } from '@/components/charts/mdm'
-
-// 或从总入口导入
-import { SigmaBetaChart, BoxPlotChart } from '@/components/charts'
+// MDM 方法图表（从 methods/mdm 导入）
+import { SigmaBetaChart, GradientGammaChart } from '@/components/methods/mdm/charts'
 ```
 
 #### 使用场景
@@ -407,8 +468,8 @@ interface SigmaBetaChartProps {
 #### 添加新图表组件
 
 1. **确定组件类型**：
-   - 通用图表（箱型图、热力图等）→ `charts/common/`
-   - 方法特有图表 → `charts/{方法名}/`（如 `charts/mdm/`）
+   - 通用图表（箱型图、热力图等）→ `shared/charts/`
+   - 方法特有图表 → `methods/{方法名}/charts/`（如 `methods/mdm/charts/`）
 
 2. **检查是否已存在**：
    - 同一方法内，横纵坐标相同的图表应复用现有组件
@@ -421,7 +482,6 @@ interface SigmaBetaChartProps {
 
 4. **导出组件**：
    - 在对应目录的 `index.ts` 中导出
-   - 如需全局导出，也在 `charts/index.ts` 中添加
 
 #### 重构原则
 
