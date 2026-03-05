@@ -21,6 +21,7 @@ import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
 import MDMOffsetAnalyzer from './MDMOffsetAnalyzer'
 import MDMIterationViewer from './MDMIterationViewer'
 import { cn } from '@/lib/utils'
+import { DataSource, MULTI_CURVE_COLORS } from '@/lib/weibull'
 
 // 导入MDM图表组件
 import { SigmaBetaChart, GradientGammaChart } from '../charts'
@@ -41,9 +42,10 @@ interface TraceData {
 interface MDMVisualizerProps {
   traceData: TraceData
   methodId?: string  // For API calls
+  dataSources?: DataSource[]  // 多选数据源，用于叠加显示
 }
 
-export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisualizerProps) {
+export default function MDMVisualizer({ traceData, methodId = 'mdm', dataSources }: MDMVisualizerProps) {
   const [activeScheme, setActiveScheme] = useState<'original' | '3d' | 'offset'>('original')
   const [surfaceData, setSurfaceData] = useState<TraceData | null>(null)
   const [isLoadingSurface, setIsLoadingSurface] = useState(false)
@@ -234,6 +236,40 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
   // Filter data to only show sigma values within 0-1400 range
   const filteredSigmaBetaCurve = extendedSigmaBetaCurve
     .filter(d => d.sigma >= 0 && d.sigma <= 1400)
+
+  // 准备多曲线数据（用于叠加显示多组样本的寻优过程）
+  const allSigmaBetaCurves = useMemo(() => {
+    // 如果有多数据源，直接使用 dataSources 中的数据
+    if (dataSources && dataSources.length > 0) {
+      return dataSources
+        .filter(ds => ds.traceData?.sigma_beta_curve)
+        .map((ds, index) => ({
+          id: ds.id,
+          data: ds.traceData.sigma_beta_curve.filter((d: { sigma: number }) => d.sigma >= 0 && d.sigma <= 1400),
+          color: ds.color || MULTI_CURVE_COLORS[index % MULTI_CURVE_COLORS.length]
+        }))
+    }
+
+    // 单数据源模式：使用当前 traceData
+    return [{ id: 'current', data: filteredSigmaBetaCurve, color: '#3b82f6' }]
+  }, [filteredSigmaBetaCurve, dataSources])
+
+  // 准备多曲线梯度数据
+  const allGradientGammaCurves = useMemo(() => {
+    // 如果有多数据源，直接使用 dataSources 中的数据
+    if (dataSources && dataSources.length > 0) {
+      return dataSources
+        .filter(ds => ds.traceData?.grad_gamma_curve)
+        .map((ds, index) => ({
+          id: ds.id,
+          data: ds.traceData.grad_gamma_curve,
+          color: ds.color || MULTI_CURVE_COLORS[index % MULTI_CURVE_COLORS.length]
+        }))
+    }
+
+    // 单数据源模式：使用当前 traceData
+    return [{ id: 'current', data: traceData.grad_gamma_curve || [], color: '#ef4444' }]
+  }, [traceData.grad_gamma_curve, dataSources])
 
   // Handle loading 3D surface data
   const handleLoad3DSurface = async () => {
@@ -449,9 +485,9 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
 
             {/* 使用新的 SigmaBetaChart 组件 */}
             <SigmaBetaChart
-              curves={[{ id: 'current', data: filteredSigmaBetaCurve }]}
+              curves={allSigmaBetaCurves}
               interactive={false}
-              overlayMode={false}
+              overlayMode={dataSources && dataSources.length > 0}
               noContainer={true}
               height={280}
               domain={{ x: [1, 6], y: [0, 1400] }}
@@ -461,6 +497,20 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                   : []
               }
             />
+            {/* 多曲线图例 */}
+            {dataSources && dataSources.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+                {allSigmaBetaCurves.map((curve, idx) => (
+                  <div key={curve.id} className="flex items-center gap-1.5 text-xs">
+                    <div
+                      className="w-3 h-0.5 rounded"
+                      style={{ backgroundColor: curve.color || MULTI_CURVE_COLORS[idx % MULTI_CURVE_COLORS.length] }}
+                    />
+                    <span className="text-slate-600">{curve.id === 'current' ? '当前' : curve.id}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           /* ===== 旧代码模式（保留以便对比） ===== */
@@ -651,10 +701,10 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
 
             {/* 使用新的 GradientGammaChart 组件 */}
             <GradientGammaChart
-              curves={[{ id: 'current', data: traceData.grad_gamma_curve || [] }]}
+              curves={allGradientGammaCurves}
               singleCurve={traceData.grad_gamma_curve}
               interactive={false}
-              overlayMode={false}
+              overlayMode={dataSources && dataSources.length > 0}
               noContainer={true}
               height={280}
               offsetReference={deltaOffset}
@@ -675,6 +725,20 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm' }: MDMVisual
                     ]
               }
             />
+            {/* 多曲线图例 */}
+            {dataSources && dataSources.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+                {allGradientGammaCurves.map((curve, idx) => (
+                  <div key={curve.id} className="flex items-center gap-1.5 text-xs">
+                    <div
+                      className="w-3 h-0.5 rounded"
+                      style={{ backgroundColor: curve.color || MULTI_CURVE_COLORS[idx % MULTI_CURVE_COLORS.length] }}
+                    />
+                    <span className="text-slate-600">{curve.id === 'current' ? '当前' : curve.id}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           /* ===== 旧代码模式（保留以便对比） ===== */

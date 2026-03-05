@@ -1,10 +1,11 @@
 "use client"
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ComposedChart, Area
 } from 'recharts'
+import { DataSource, MULTI_CURVE_COLORS } from '@/lib/weibull'
 
 interface TraceItem {
   phase: string // 'init', 'iter', 'final'
@@ -21,10 +22,14 @@ interface TraceItem {
 
 interface Props {
   traceData: TraceItem[]
+  dataSources?: DataSource[]  // 多选数据源
 }
 
-export default function WMLEVisualizer({ traceData }: Props) {
+export default function WMLEVisualizer({ traceData, dataSources }: Props) {
   if (!traceData || traceData.length === 0) return null
+
+  // 是否有多个数据源
+  const hasMultipleSources = dataSources && dataSources.length > 0
 
   // Filter only iteration steps for charts
   const iterData = traceData
@@ -42,10 +47,68 @@ export default function WMLEVisualizer({ traceData }: Props) {
   const w1 = initData?.w1?.toFixed(4) || 'N/A'
   const w2 = initData?.w2?.toFixed(4) || 'N/A'
 
+  // 准备多曲线数据（用于叠加显示多组样本的寻优过程）
+  const allObjectiveCurves = useMemo(() => {
+    const curves: { id: string; data: any[]; color: string }[] = [
+      { id: 'current', data: iterData, color: hasMultipleSources ? MULTI_CURVE_COLORS[0] : '#ef4444' }
+    ]
+
+    // 如果有 dataSources，添加每组的目标函数曲线
+    if (hasMultipleSources) {
+      dataSources.forEach((ds, index) => {
+        if (ds.traceData && Array.isArray(ds.traceData)) {
+          const processedData = ds.traceData
+            .filter((d: TraceItem) => d.phase === 'iter')
+            .map((d: TraceItem, i: number) => ({
+              ...d,
+              step: i + 1,
+              obj_val: typeof d.obj_val === 'number' ? parseFloat(d.obj_val.toFixed(6)) : null
+            }))
+          curves.push({
+            id: ds.name || `样本${index + 1}`,
+            data: processedData,
+            color: MULTI_CURVE_COLORS[(index + 1) % MULTI_CURVE_COLORS.length]
+          })
+        }
+      })
+    }
+
+    return curves
+  }, [iterData, dataSources, hasMultipleSources])
+
+  // 准备多曲线动态权重数据
+  const allDynamicWeightCurves = useMemo(() => {
+    const curves: { id: string; data: any[]; color: string }[] = [
+      { id: 'current', data: iterData, color: hasMultipleSources ? MULTI_CURVE_COLORS[0] : '#10b981' }
+    ]
+
+    if (hasMultipleSources) {
+      dataSources.forEach((ds, index) => {
+        if (ds.traceData && Array.isArray(ds.traceData)) {
+          const processedData = ds.traceData
+            .filter((d: TraceItem) => d.phase === 'iter')
+            .map((d: TraceItem, i: number) => ({
+              ...d,
+              step: i + 1,
+              gamma: typeof d.gamma === 'number' ? parseFloat(d.gamma.toFixed(4)) : null,
+              w3: typeof d.w3 === 'number' ? parseFloat(d.w3.toFixed(4)) : null
+            }))
+          curves.push({
+            id: ds.name || `样本${index + 1}`,
+            data: processedData,
+            color: MULTI_CURVE_COLORS[(index + 1) % MULTI_CURVE_COLORS.length]
+          })
+        }
+      })
+    }
+
+    return curves
+  }, [iterData, dataSources, hasMultipleSources])
+
   return (
     <div className="space-y-8">
-      
-      {/* Info Cards */}
+
+      {/* Info Cards - 仅显示当前样本 */}
       <div className="grid grid-cols-2 gap-4">
          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
             <span className="text-[10px] uppercase font-bold text-slate-400">静态权重 W1</span>
@@ -67,25 +130,44 @@ export default function WMLEVisualizer({ traceData }: Props) {
         </p>
         <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={iterData}>
+            <LineChart>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="step" tick={{fontSize: 10}} tickLine={false} />
+              <XAxis dataKey="step" type="number" domain={['auto', 'auto']} tick={{fontSize: 10}} tickLine={false} />
               <YAxis domain={[0, 'auto']} tick={{fontSize: 10}} axisLine={false} width={40} />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
                 itemStyle={{fontSize: '12px'}}
               />
-              <Line 
-                type="monotone" 
-                dataKey="obj_val" 
-                stroke="#ef4444" 
-                strokeWidth={2}
-                dot={false}
-                name="Error"
-              />
+              <Legend wrapperStyle={{fontSize: '12px'}} />
+              {allObjectiveCurves.map((curve) => (
+                <Line
+                  key={curve.id}
+                  data={curve.data}
+                  type="monotone"
+                  dataKey="obj_val"
+                  stroke={curve.color}
+                  strokeWidth={2}
+                  dot={false}
+                  name={curve.id === 'current' ? '当前' : curve.id}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
+        {/* 多曲线图例 */}
+        {hasMultipleSources && (
+          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+            {allObjectiveCurves.map((curve) => (
+              <div key={curve.id} className="flex items-center gap-1.5 text-xs">
+                <div
+                  className="w-3 h-0.5 rounded"
+                  style={{ backgroundColor: curve.color }}
+                />
+                <span className="text-slate-600">{curve.id === 'current' ? '当前' : curve.id}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Chart 2: Dynamic Weight W3 */}
@@ -98,36 +180,58 @@ export default function WMLEVisualizer({ traceData }: Props) {
         </p>
         <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={iterData}>
+            <ComposedChart>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="step" tick={{fontSize: 10}} tickLine={false} />
+              <XAxis dataKey="step" type="number" domain={['auto', 'auto']} tick={{fontSize: 10}} tickLine={false} />
               <YAxis yAxisId="left" domain={['auto', 'auto']} tick={{fontSize: 10}} axisLine={false} label={{ value: 'Gamma', angle: -90, position: 'insideLeft', fontSize: 10 }} />
               <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tick={{fontSize: 10}} axisLine={false} label={{ value: 'W3', angle: 90, position: 'insideRight', fontSize: 10 }} />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
                 itemStyle={{fontSize: '12px'}}
               />
               <Legend wrapperStyle={{fontSize: '12px'}} />
-              <Area 
-                yAxisId="right"
-                type="monotone" 
-                dataKey="w3" 
-                fill="#dbeafe" 
-                stroke="#3b82f6" 
-                name="Weight W3"
-              />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="gamma" 
-                stroke="#10b981" 
-                strokeWidth={2}
-                dot={false}
-                name="Est. Shape"
-              />
+              {allDynamicWeightCurves.map((curve) => (
+                <React.Fragment key={curve.id}>
+                  <Area
+                    yAxisId="right"
+                    data={curve.data}
+                    type="monotone"
+                    dataKey="w3"
+                    fill={curve.color + '33'}
+                    stroke={curve.color}
+                    name={`${curve.id === 'current' ? '当前' : curve.id} W3`}
+                  />
+                  <Line
+                    yAxisId="left"
+                    data={curve.data}
+                    type="monotone"
+                    dataKey="gamma"
+                    stroke={curve.color}
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name={`${curve.id === 'current' ? '当前' : curve.id} γ`}
+                  />
+                </React.Fragment>
+              ))}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
+        {/* 多曲线图例 */}
+        {hasMultipleSources && (
+          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+            {allDynamicWeightCurves.map((curve) => (
+              <div key={curve.id} className="flex items-center gap-1.5 text-xs">
+                <div
+                  className="w-3 h-0.5 rounded"
+                  style={{ backgroundColor: curve.color }}
+                />
+                <span className="text-slate-600">{curve.id === 'current' ? '当前' : curve.id}</span>
+                <span className="text-slate-400">(γ 虚线)</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
     </div>

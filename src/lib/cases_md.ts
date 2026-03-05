@@ -300,3 +300,41 @@ export function getAllCasesAndGroups(): CaseOrGroup[] {
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
 }
+
+// ============ 树形结构（用于多选选择器） ============
+
+export type CaseTreeNode =
+  | { type: 'group'; group: CaseGroup; children: SubCaseItem[] }
+  | { type: 'case'; case: CaseItem }
+
+// 获取案例树形结构（组+子案例，独立案例）
+export function getCasesTree(): CaseTreeNode[] {
+  const nodes: CaseTreeNode[] = []
+
+  // 1. 获取所有案例组（含子案例）
+  const groups = getAllGroups()
+  for (const group of groups) {
+    const subCases = getSubCases(group.id)
+    nodes.push({
+      type: 'group',
+      group,
+      children: subCases
+    })
+  }
+
+  // 2. 获取所有独立案例（不在组内的）
+  const allCases = getAllCases()
+  for (const c of allCases) {
+    nodes.push({
+      type: 'case',
+      case: c
+    })
+  }
+
+  // 按日期排序
+  return nodes.sort((a, b) => {
+    const dateA = a.type === 'group' ? a.group.created_at : a.case.created_at
+    const dateB = b.type === 'group' ? b.group.created_at : b.case.created_at
+    return new Date(dateB).getTime() - new Date(dateA).getTime()
+  })
+}

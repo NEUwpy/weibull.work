@@ -12,7 +12,7 @@ import AnalysisCard from '@/components/calculator/AnalysisCard'
 import ResultAnalysisLab from '@/components/methods/ResultAnalysisLab'
 import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
-import { DataPoint, WeibullResult, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
+import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
 
 // Dynamic imports for heavy visualizers
 const VariableFlowViewer = dynamic(() => import('@/components/methods/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -117,23 +117,20 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'lab' | 'analysis' | 'examples' | 'cases'>('doc')
 
-  // Result Analysis Card State (similar to Lab)
-  const [analysisData, setAnalysisData] = useState<DataPoint[]>([])
-  const [analysisResult, setAnalysisResult] = useState<WeibullResult | undefined>(undefined)
-  const [analysisFitMode, setAnalysisFitMode] = useState<'fit' | 'manual'>('manual')
-  const [analysisIs3P, setAnalysisIs3P] = useState(false)
-  const [isAnalysisDataEditorOpen, setIsAnalysisDataEditorOpen] = useState(false)
-
-  // Calculator Lab State
-  const [labData, setLabData] = useState<DataPoint[]>([])
-  const [labResult, setLabResult] = useState<WeibullResult | undefined>(undefined)
-  const [labFitMode, setLabFitMode] = useState<'fit' | 'manual'>('fit')
-  const [labIs3P, setLabIs3P] = useState(false)
+  // 统一的数据状态 - 计算过程和结果分析共用
+  const [data, setData] = useState<DataPoint[]>([])
+  const [result, setResult] = useState<WeibullResult | undefined>(undefined)
+  const [fitMode, setFitMode] = useState<'fit' | 'manual'>('fit')
+  const [is3P, setIs3P] = useState(false)
+  const [dataSources, setDataSources] = useState<DataSource[] | undefined>(undefined)
   const [traceData, setTraceData] = useState<any>(null)
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
 
-  // Read trueBeta, trueEta, trueGamma from URL params and initialize analysis card
+  // 当前活跃的数据源索引 (用于 Stats Bar 切换器)
+  const [activeSourceIndex, setActiveSourceIndex] = useState(0)
+
+  // Read trueBeta, trueEta, trueGamma from URL params and initialize
   useEffect(() => {
     const betaParam = searchParams.get('trueBeta')
     const etaParam = searchParams.get('trueEta')
@@ -144,8 +141,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       const eta = parseFloat(etaParam)
       const gamma = parseFloat(gammaParam)
 
-      // Initialize analysis result with parameters from URL
-      setAnalysisResult({
+      setResult({
         beta,
         eta,
         gamma,
@@ -153,17 +149,16 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         points: [],
         converged: true
       })
-      setAnalysisFitMode('manual')
-      setAnalysisIs3P(gamma !== 0)
+      setFitMode('manual')
+      setIs3P(gamma !== 0)
       setActiveTab('analysis') // Auto-switch to analysis tab
     }
   }, [searchParams])
 
-  // Initialize default parameters when switching to analysis tab
+  // Initialize default parameters when switching to analysis tab (if no result yet)
   useEffect(() => {
-    if (activeTab === 'analysis' && !analysisResult) {
-      // Set default parameters: β=2, η=1000, γ=1000
-      setAnalysisResult({
+    if (activeTab === 'analysis' && !result) {
+      setResult({
         beta: 2,
         eta: 1000,
         gamma: 1000,
@@ -171,10 +166,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         points: [],
         converged: true
       })
-      setAnalysisFitMode('manual')
-      setAnalysisIs3P(true)
+      setFitMode('manual')
+      setIs3P(true)
     }
-  }, [activeTab, analysisResult])
+  }, [activeTab, result])
 
   // Auto-switch to lab if data is present and parse data
   useEffect(() => {
@@ -184,63 +179,172 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       try {
         const parsed = dataParam.split(',').map(Number).filter(n => !isNaN(n))
         const points: DataPoint[] = parsed.map((v, i) => ({ id: i, value: v, status: 'F' }))
-        setLabData(points)
-        // Auto-calculate with initial data
+        setData(points)
         const calculatedPoints = calculateMedianRanks(points, 0)
-        const result = calculateWeibullParameters(calculatedPoints, 0)
-        setLabResult(result)
+        const res = calculateWeibullParameters(calculatedPoints, 0)
+        setResult(res)
       } catch(e) {
         console.error("Failed to parse data", e)
       }
     }
   }, [searchParams])
 
-  // Calculator Lab Handlers
-  const handleLabDataClick = () => {
+  // Data Editor Handlers
+  const handleDataClick = () => {
     setIsDataEditorOpen(true)
   }
 
-  const handleLabDataSave = (newData: DataPoint[]) => {
-    const currentGamma = labResult?.gamma || 0
+  const handleDataSave = (newData: DataPoint[]) => {
+    const currentGamma = result?.gamma || 0
     const points = calculateMedianRanks(newData, currentGamma)
-    const result = calculateWeibullParameters(points, currentGamma)
-    setLabData(newData)
-    setLabResult(result)
-    setLabFitMode('fit')
+    const res = calculateWeibullParameters(points, currentGamma)
+    setData(newData)
+    setResult(res)
+    setFitMode('fit')
+    setDataSources(undefined) // 单选时清空多数据源
     setIsDataEditorOpen(false)
   }
 
-  const handleLabDataChange = (newData: DataPoint[]) => {
-    const currentGamma = labResult?.gamma || 0
-    const points = calculateMedianRanks(newData, currentGamma)
-    setLabData(newData)
-    setLabResult(prev => prev ? { ...prev, points } : undefined)
-    setLabFitMode('fit')
+  // 多选模式：处理多个数据源
+  const handleDataSaveMulti = (sources: DataSource[]) => {
+    if (sources.length === 0) return
+
+    // 第一组数据作为主数据
+    const firstSource = sources[0]
+    const firstGamma = 0
+    const points = calculateMedianRanks(firstSource.data, firstGamma)
+    const res = calculateWeibullParameters(points, firstGamma)
+
+    // 为每个数据源分配颜色
+    const dataSourcesWithResults: DataSource[] = sources.map((source, index) => ({
+      ...source,
+      color: MULTI_CURVE_COLORS[index % MULTI_CURVE_COLORS.length],
+      result: undefined as WeibullResult | undefined
+    }))
+
+    setData(firstSource.data)
+    setResult(res)
+    setFitMode('fit')
+    setDataSources(dataSourcesWithResults)
+    setActiveSourceIndex(0) // 重置活跃索引
+    setIsDataEditorOpen(false)
+
+    // 不自动触发批量计算，等用户点击"参数估计"按钮
   }
 
-  const handleLabParamsUpdate = (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
-    const baseResult = labResult || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
+  // 批量计算所有数据源（含 trace）
+  const handleBatchCalculate = async (dataSourcesParam?: DataSource[]) => {
+    // 使用传入的参数或当前状态
+    const sourcesToCalculate = dataSourcesParam || dataSources
+    if (!sourcesToCalculate || sourcesToCalculate.length === 0) return
+
+    setIsCalculating(true)
+
+    // 创建可变的副本用于累积结果
+    let updatedSources = [...sourcesToCalculate]
+
+    try {
+      for (let i = 0; i < updatedSources.length; i++) {
+        const source = updatedSources[i]
+
+        // 构建请求体 - MDM 方法需要 offset 参数
+        const requestBody: any = {
+          method: method.id,
+          data: source.data.filter(d => d.status === 'F').map(d => d.value),
+          trace: true // 请求过程量
+        }
+
+        // MDM 方法添加 offset
+        if (method.id.toLowerCase() === 'mdm') {
+          requestBody.offset = 0.1
+        }
+
+        const response = await fetch('http://localhost:8001/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        })
+
+        if (response.ok) {
+          const res = await response.json()
+          const gamma = res.gamma || 0
+          const points = calculateMedianRanks(source.data, gamma)
+
+          // 更新当前数据源
+          updatedSources[i] = {
+            ...updatedSources[i],
+            result: {
+              beta: res.beta,
+              eta: res.eta,
+              gamma,
+              rSquared: res.rSquared,
+              points,
+              converged: res.converged
+            },
+            traceData: res.trace_data // 存储 trace 数据
+          }
+        }
+      }
+
+      // 所有计算完成后，一次性更新状态
+      setDataSources(updatedSources)
+
+      // 设置主显示的 traceData（第一组的）
+      if (updatedSources.length > 0 && updatedSources[0].traceData) {
+        setTraceData(updatedSources[0].traceData)
+      }
+
+      // 更新主结果为第一组的结果
+      if (updatedSources.length > 0 && updatedSources[0].result) {
+        setResult(updatedSources[0].result)
+      }
+
+    } catch (err: any) {
+      console.error(err)
+      alert(`后端计算错误: ${err.message}`)
+    } finally {
+      setIsCalculating(false)
+    }
+  }
+
+  const handleDataChange = (newData: DataPoint[]) => {
+    const currentGamma = result?.gamma || 0
+    const points = calculateMedianRanks(newData, currentGamma)
+    setData(newData)
+    setResult(prev => prev ? { ...prev, points } : undefined)
+    setFitMode('fit')
+  }
+
+  const handleParamsUpdate = (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
+    const baseResult = result || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
     const newResult = { ...baseResult, ...updates }
-    let newPoints = labResult?.points || []
+    let newPoints = result?.points || []
     // Only recalculate points if gamma changed AND points not already provided in updates
-    if (updates.gamma !== undefined && !updates.points && labData) {
-      newPoints = calculateMedianRanks(labData, updates.gamma)
+    if (updates.gamma !== undefined && !updates.points && data) {
+      newPoints = calculateMedianRanks(data, updates.gamma)
     } else if (updates.points !== undefined) {
       newPoints = updates.points
     }
-    setLabResult({ ...newResult, points: newPoints })
-    if (mode) setLabFitMode(mode)
+    setResult({ ...newResult, points: newPoints })
+    if (mode) setFitMode(mode)
   }
 
-  const handleLabCalculate = async () => {
-    if (!labData || labData.length === 0) return
+  const handleCalculate = async () => {
+    // 如果有多选数据源，触发批量计算
+    if (dataSources && dataSources.length > 0) {
+      await handleBatchCalculate(dataSources)
+      return
+    }
+
+    // 单选模式：原有逻辑
+    if (!data || data.length === 0) return
 
     setIsCalculating(true)
     try {
       // Build request body - MDM method requires offset parameter
       const requestBody: any = {
         method: method.id,
-        data: labData.filter(d => d.status === 'F').map(d => d.value),
+        data: data.filter(d => d.status === 'F').map(d => d.value),
         trace: true // Request process trace
       }
 
@@ -265,7 +369,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       // Check convergence
       if (res.converged === false) {
         // Return result with actual values (0) but marked as not converged
-        const newPoints = calculateMedianRanks(labData, res.gamma || 0)
+        const newPoints = calculateMedianRanks(data, res.gamma || 0)
         const newResult: WeibullResult = {
           beta: res.beta,
           eta: res.eta,
@@ -274,8 +378,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           points: newPoints,
           converged: false
         }
-        setLabResult(newResult)
-        setLabFitMode('fit')
+        setResult(newResult)
+        setFitMode('fit')
 
         // Store trace data for visualization even when not converged
         if (res.trace_data) {
@@ -286,7 +390,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         return
       }
 
-      const newPoints = calculateMedianRanks(labData, res.gamma || 0)
+      const newPoints = calculateMedianRanks(data, res.gamma || 0)
       const newResult: WeibullResult = {
         beta: res.beta,
         eta: res.eta,
@@ -295,8 +399,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         points: newPoints,
         converged: true
       }
-      setLabResult(newResult)
-      setLabFitMode('fit')
+      setResult(newResult)
+      setFitMode('fit')
 
       // Store trace data for visualization
       if (res.trace_data) {
@@ -310,117 +414,26 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     }
   }
 
-  const handleLabToggle3P = () => {
-    const nextIs3P = !labIs3P
+  const handleToggle3P = () => {
+    const nextIs3P = !is3P
     let updates: Partial<WeibullResult> = {}
-    let newPoints = labResult?.points || []
+    let newPoints = result?.points || []
 
     if (!nextIs3P) {
       updates = { gamma: 0 }
-      if (labData) {
-        newPoints = calculateMedianRanks(labData, 0)
+      if (data) {
+        newPoints = calculateMedianRanks(data, 0)
       }
     }
-    setLabResult(prev => prev ? { ...prev, ...updates, points: newPoints } : undefined)
-    setLabIs3P(nextIs3P)
-  }
-
-  // Result Analysis Card Handlers
-  const handleAnalysisDataClick = () => {
-    setIsAnalysisDataEditorOpen(true)
-  }
-
-  const handleAnalysisDataSave = (newData: DataPoint[]) => {
-    const currentGamma = analysisResult?.gamma || 0
-    const points = calculateMedianRanks(newData, currentGamma)
-    const result = calculateWeibullParameters(points, currentGamma)
-    setAnalysisData(newData)
-    setAnalysisResult(result)
-    setAnalysisFitMode('fit')
-    setIsAnalysisDataEditorOpen(false)
-  }
-
-  const handleAnalysisDataChange = (newData: DataPoint[]) => {
-    const currentGamma = analysisResult?.gamma || 0
-    const points = calculateMedianRanks(newData, currentGamma)
-    setAnalysisData(newData)
-    setAnalysisResult(prev => prev ? { ...prev, points } : undefined)
-    setAnalysisFitMode('fit')
-  }
-
-  const handleAnalysisParamsUpdate = (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
-    const baseResult = analysisResult || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
-    const newResult = { ...baseResult, ...updates }
-    let newPoints = analysisResult?.points || []
-    if (updates.gamma !== undefined && !updates.points && analysisData) {
-      newPoints = calculateMedianRanks(analysisData, updates.gamma)
-    } else if (updates.points !== undefined) {
-      newPoints = updates.points
-    }
-    setAnalysisResult({ ...newResult, points: newPoints })
-    if (mode) setAnalysisFitMode(mode)
-  }
-
-  const handleAnalysisCalculate = async () => {
-    if (!analysisData || analysisData.length === 0) return
-
-    setIsCalculating(true)
-    try {
-      const response = await fetch('http://localhost:8001/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: method.id,
-          data: analysisData.filter(d => d.status === 'F').map(d => d.value),
-          trace: false
-        })
-      })
-
-      if (!response.ok) {
-        const errData = await response.json()
-        throw new Error(errData.detail || '计算失败')
-      }
-
-      const res = await response.json()
-      const newPoints = calculateMedianRanks(analysisData, res.gamma || 0)
-      const newResult: WeibullResult = {
-        beta: res.beta,
-        eta: res.eta,
-        gamma: res.gamma || 0,
-        rSquared: res.rSquared,
-        points: newPoints,
-        converged: res.converged
-      }
-      setAnalysisResult(newResult)
-      setAnalysisFitMode('fit')
-    } catch (err: any) {
-      console.error(err)
-      alert(`后端计算错误: ${err.message}\n请确保 Python main.py 已在 8001 端口运行。`)
-    } finally {
-      setIsCalculating(false)
-    }
-  }
-
-  const handleAnalysisToggle3P = () => {
-    const nextIs3P = !analysisIs3P
-    let updates: Partial<WeibullResult> = {}
-    let newPoints = analysisResult?.points || []
-
-    if (!nextIs3P) {
-      updates = { gamma: 0 }
-      if (analysisData) {
-        newPoints = calculateMedianRanks(analysisData, 0)
-      }
-    }
-    setAnalysisResult(prev => prev ? { ...prev, ...updates, points: newPoints } : undefined)
-    setAnalysisIs3P(nextIs3P)
+    setResult(prev => prev ? { ...prev, ...updates, points: newPoints } : undefined)
+    setIs3P(nextIs3P)
   }
 
   // Auto-run calculation when data is present from URL
   useEffect(() => {
     const dataParam = searchParams.get('data')
-    if (dataParam && labData.length > 0 && !traceData) {
-      handleLabCalculate()
+    if (dataParam && data.length > 0 && !traceData) {
+      handleCalculate()
     }
     // Only run once when data is first loaded
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -430,15 +443,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     <>
       <DataEditor
         isOpen={isDataEditorOpen}
-        initialData={labData}
+        initialData={data}
         onClose={() => setIsDataEditorOpen(false)}
-        onSave={handleLabDataSave}
-      />
-      <DataEditor
-        isOpen={isAnalysisDataEditorOpen}
-        initialData={analysisData}
-        onClose={() => setIsAnalysisDataEditorOpen(false)}
-        onSave={handleAnalysisDataSave}
+        onSave={handleDataSave}
+        onSaveMulti={handleDataSaveMulti}
       />
 
       <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
@@ -553,21 +561,22 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
              <AnalysisCard
                id="lab"
                index={0}
-               data={labData}
-               result={labResult}
+               data={data}
+               result={result}
                methodId={method.id}
                color="#4f46e5" // Indigo-600
-               fitMode={labFitMode}
-               is3P={labIs3P}
+               fitMode={fitMode}
+               is3P={is3P}
+               dataSources={dataSources}
                availableLayers={[]}
                onAdd={() => {}}
                onDelete={() => {}}
-               onDataChange={handleLabDataChange}
-               onParamsUpdate={handleLabParamsUpdate}
-               onToggle3P={handleLabToggle3P}
-               onCalculate={handleLabCalculate}
+               onDataChange={handleDataChange}
+               onParamsUpdate={handleParamsUpdate}
+               onToggle3P={handleToggle3P}
+               onCalculate={handleCalculate}
                onMethodClick={undefined}
-               onDataClick={handleLabDataClick}
+               onDataClick={handleDataClick}
                hideCalculationProcessButton={true}
              />
 
@@ -579,27 +588,37 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                     <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">计算过程</h3>
                   </div>
 
-                  {/* Stats Bar */}
-                  {labResult && labResult.converged !== false && (
-                    <div className="grid grid-cols-4 gap-4 mb-8">
-                       <StatBox label="估计 β" value={labResult.beta !== null ? labResult.beta.toFixed(4) : '--'} />
-                       <StatBox label="估计 η" value={labResult.eta !== null ? labResult.eta.toFixed(2) : '--'} />
-                       <StatBox label="估计 γ" value={labResult.gamma.toFixed(2)} />
-                       <StatBox label="R²" value={labResult.rSquared !== null ? labResult.rSquared.toFixed(4) : '--'} />
-                    </div>
-                  )}
+                  {/* Stats Bar - 显示当前选中组或单个结果 */}
+                  {(() => {
+                    // 确定显示哪个结果
+                    const displayResult = (dataSources && dataSources.length > 0 && dataSources[activeSourceIndex]?.result)
+                      ? dataSources[activeSourceIndex].result
+                      : result
+
+                    return displayResult && displayResult.converged !== false && (
+                      <div className="mb-8">
+                        <div className="grid grid-cols-4 gap-4 mb-3">
+                           <StatBox label="估计 β" value={displayResult.beta !== null ? displayResult.beta.toFixed(4) : '--'} />
+                           <StatBox label="估计 η" value={displayResult.eta !== null ? displayResult.eta.toFixed(2) : '--'} />
+                           <StatBox label="估计 γ" value={displayResult.gamma.toFixed(2)} />
+                           <StatBox label="R²" value={displayResult.rSquared !== null ? displayResult.rSquared.toFixed(4) : '--'} />
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Visualizers */}
                   {method.id.toLowerCase() === 'mle' && (
-                    <MLEVisualizer traceData={traceData} />
+                    <MLEVisualizer traceData={traceData} dataSources={dataSources} />
                   )}
                   {method.id.toLowerCase() === 'wmle' && (
-                    <WMLEVisualizer traceData={traceData} />
+                    <WMLEVisualizer traceData={traceData} dataSources={dataSources} />
                   )}
                   {method.id.toLowerCase() === 'mdm' && (
                     <MDMVisualizer
-                      traceData={{...traceData, data: labData.filter(d => d.status === 'F').map(d => d.value)}}
+                      traceData={{...traceData, data: data.filter(d => d.status === 'F').map(d => d.value)}}
                       methodId={method.id}
+                      dataSources={dataSources}
                     />
                   )}
 
@@ -622,36 +641,37 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           </div>
         ) : activeTab === 'analysis' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-             {/* Result Analysis Tab - Analysis Card */}
+             {/* Result Analysis Tab - Analysis Card (共用计算过程的数据) */}
              <AnalysisCard
                id="analysis"
                index={0}
-               data={analysisData}
-               result={analysisResult}
+               data={data}
+               result={result}
                methodId={method.id}
                color="#10b981" // Emerald-500
-               fitMode={analysisFitMode}
-               is3P={analysisIs3P}
+               fitMode={fitMode}
+               is3P={is3P}
+               dataSources={dataSources}
                availableLayers={[]}
                onAdd={() => {}}
                onDelete={() => {}}
-               onDataChange={handleAnalysisDataChange}
-               onParamsUpdate={handleAnalysisParamsUpdate}
-               onToggle3P={handleAnalysisToggle3P}
-               onCalculate={handleAnalysisCalculate}
+               onDataChange={handleDataChange}
+               onParamsUpdate={handleParamsUpdate}
+               onToggle3P={handleToggle3P}
+               onCalculate={handleCalculate}
                onMethodClick={undefined}
-               onDataClick={handleAnalysisDataClick}
+               onDataClick={handleDataClick}
                hideCalculationProcessButton={true}
              />
 
              {/* Monte Carlo Simulation */}
-             {analysisResult && analysisResult.beta !== null && analysisResult.eta !== null && (
+             {result && result.beta !== null && result.eta !== null && (
                <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
                  <ResultAnalysisLab
                    methodId={method.id}
-                   trueBeta={analysisResult.beta}
-                   trueEta={analysisResult.eta}
-                   trueGamma={analysisResult.gamma}
+                   trueBeta={result.beta}
+                   trueEta={result.eta}
+                   trueGamma={result.gamma}
                  />
                </div>
              )}

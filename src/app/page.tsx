@@ -7,6 +7,8 @@ import { useSearchParams } from 'next/navigation'
 import {
   DataPoint,
   WeibullResult,
+  DataSource,
+  MULTI_CURVE_COLORS,
   calculateMedianRanks,
   calculateWeibullParameters
 } from '@/lib/weibull'
@@ -42,6 +44,8 @@ type CardData = {
   color: string
   fitMode?: 'fit' | 'manual' // Track mode: fit (sample based) or manual (param based)
   is3P?: boolean // New: Track 2P vs 3P mode
+  // 多数据源模式
+  dataSources?: DataSource[] // 多选案例时的数据源列表
 }
 
 function CalculatorContent() {
@@ -222,16 +226,113 @@ function CalculatorContent() {
 
       setCards(prev => prev.map(card => {
         if (card.id === activeCardId) {
-          return { 
-            ...card, 
+          return {
+            ...card,
             data: newData,
-            result: result 
+            result: result,
+            dataSources: undefined // 单选时清空多数据源
           }
         }
         return card
       }))
     }
     setIsDataEditorOpen(false)
+  }
+
+  // 多选模式：处理多个数据源
+  const handleDataSaveMulti = async (sources: DataSource[]) => {
+    if (!activeCardId || sources.length === 0) return
+
+    // 第一组数据作为主数据
+    const firstSource = sources[0]
+    const firstGamma = 0
+    const points = calculateMedianRanks(firstSource.data, firstGamma)
+    const result = calculateWeibullParameters(points, firstGamma)
+
+    // 为每个数据源分配颜色和计算结果
+    const dataSourcesWithResults: DataSource[] = sources.map((source, index) => ({
+      ...source,
+      color: MULTI_CURVE_COLORS[index % MULTI_CURVE_COLORS.length],
+      result: undefined as WeibullResult | undefined // 初始为空，批量计算后填充
+    }))
+
+    setCards(prev => prev.map(card => {
+      if (card.id === activeCardId) {
+        return {
+          ...card,
+          data: firstSource.data,
+          result: result,
+          dataSources: dataSourcesWithResults
+        }
+      }
+      return card
+    }))
+
+    setIsDataEditorOpen(false)
+    // 不再自动触发批量计算，等用户点击"参数估计"时再计算
+  }
+
+  // 批量计算所有数据源
+  const handleBatchCalculate = async (cardId: string, sources: DataSource[]) => {
+    const card = cards.find(c => c.id === cardId)
+    if (!card) return sources
+
+    const methodId = card.methodId || 'lre'
+
+    // 逐个计算
+    for (let i = 0; i < sources.length; i++) {
+      const source = sources[i]
+      try {
+        // 构建请求体 - MDM 方法需要 offset 参数
+        const requestBody: any = {
+          method: methodId,
+          data: source.data.filter(d => d.status === 'F').map(d => d.value)
+        }
+
+        // MDM 方法添加 offset
+        if (methodId.toLowerCase() === 'mdm') {
+          requestBody.offset = 0.1
+        }
+
+        const response = await fetch('http://localhost:8001/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        })
+
+        if (response.ok) {
+          const res = await response.json()
+          const gamma = res.gamma || 0
+          const points = calculateMedianRanks(source.data, gamma)
+
+          // 更新对应 dataSouce 的 result
+          setCards(prev => prev.map(c => {
+            if (c.id === cardId && c.dataSources) {
+              const updatedSources = c.dataSources.map((ds, idx) => {
+                if (idx === i) {
+                  return {
+                    ...ds,
+                    result: {
+                      beta: res.beta,
+                      eta: res.eta,
+                      gamma,
+                      rSquared: res.rSquared,
+                      points,
+                      converged: res.converged
+                    }
+                  }
+                }
+                return ds
+              })
+              return { ...c, dataSources: updatedSources }
+            }
+            return c
+          }))
+        }
+      } catch (err) {
+        console.error(`Failed to calculate source ${i}:`, err)
+      }
+    }
   }
 
   const handleDataChange = (cardId: string, newData: DataPoint[]) => {
@@ -276,16 +377,33 @@ function CalculatorContent() {
 
   const handleCalculate = async (cardId: string) => {
     const card = cards.find(c => c.id === cardId)
-    if (!card || !card.data) return
+    if (!card) return
+
+    // 如果有多数据源，执行批量计算
+    if (card.dataSources && card.dataSources.length > 0) {
+      await handleBatchCalculate(cardId, card.dataSources)
+      return
+    }
+
+    // 单数据源计算
+    if (!card.data) return
 
     try {
+      // 构建请求体 - MDM 方法需要 offset 参数
+      const requestBody: any = {
+        method: card.methodId || 'lre',
+        data: card.data.filter(d => d.status === 'F').map(d => d.value)
+      }
+
+      // MDM 方法添加 offset
+      if (card.methodId?.toLowerCase() === 'mdm') {
+        requestBody.offset = 0.1
+      }
+
       const response = await fetch('http://localhost:8001/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: card.methodId || 'lre',
-          data: card.data.filter(d => d.status === 'F').map(d => d.value)
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
@@ -371,13 +489,14 @@ function CalculatorContent() {
         initialData={activeCard?.data}
         onClose={() => setIsDataEditorOpen(false)}
         onSave={handleDataSave}
+        onSaveMulti={handleDataSaveMulti}
       />
 
       <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12 space-y-8 pb-32">
         {cards.map((card, index) => (
-          <AnalysisCard 
-            key={card.id} 
-            id={card.id} 
+          <AnalysisCard
+            key={card.id}
+            id={card.id}
             index={index}
             data={card.data}
             result={card.result}
@@ -385,6 +504,7 @@ function CalculatorContent() {
             color={card.color}
             fitMode={card.fitMode || 'fit'}
             is3P={!!card.is3P}
+            dataSources={card.dataSources}
             availableLayers={cards
               .map((c, i) => ({ ...c, originalIndex: i }))
               .filter(c => c.id !== card.id && c.result)

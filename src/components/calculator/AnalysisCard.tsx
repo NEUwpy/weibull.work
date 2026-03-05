@@ -39,6 +39,8 @@ import { ZoomIn } from 'lucide-react'
 import {
   DataPoint,
   WeibullResult,
+  DataSource,
+  MULTI_CURVE_COLORS,
   generatePDFPoints,
   generateCDFPoints,
   calculateMedianRanks
@@ -64,6 +66,8 @@ interface AnalysisCardProps {
   fitMode: 'fit' | 'manual'
   is3P: boolean
   availableLayers: LayerInfo[]
+  // 多数据源模式
+  dataSources?: DataSource[]
   onAdd: (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string, currentData?: DataPoint[]) => void
   onMethodClick?: () => void
   onToggle3P?: () => void
@@ -85,6 +89,7 @@ export default function AnalysisCard({
   fitMode,
   is3P,
   availableLayers,
+  dataSources,
   onAdd,
   onMethodClick,
   onToggle3P,
@@ -102,9 +107,18 @@ export default function AnalysisCard({
   const [isCalculating, setIsCalculating] = useState(false)
   const [chartMode, setChartMode] = useState<'pdf' | 'cdf'>('pdf')
   const [xAxisRange, setXAxisRange] = useState<{ min: number; max: number; isAuto: boolean }>({ min: 0, max: 0, isAuto: true })
-  
+  const [activeSourceIndex, setActiveSourceIndex] = useState(0)  // 多数据源切换索引
+
   const [sampleText, setSampleText] = useState("")
   const [simN, setSimN] = useState(20)
+
+  // 根据 activeSourceIndex 决定显示哪个 result
+  const displayResult = React.useMemo(() => {
+    if (dataSources && dataSources.length > 0 && dataSources[activeSourceIndex]?.result) {
+      return dataSources[activeSourceIndex].result
+    }
+    return result
+  }, [dataSources, activeSourceIndex, result])
 
   const menuRef = useRef<HTMLDivElement>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
@@ -146,12 +160,33 @@ export default function AnalysisCard({
   }, [methodId])
 
   useEffect(() => {
-    if (data) {
+    // 优先使用 dataSources（多选模式）
+    if (dataSources && dataSources.length > 0) {
+      const groups = dataSources.map(ds =>
+        ds.data.map(d => `${d.value}${d.status === 'S' ? ' S' : ''}`).join('\n')
+      )
+      const text = groups.join('\n---\n')
+      setSampleText(text)
+      // 设置 simN 为第一组的大小（用于参数栏显示）
+      setSimN(dataSources[0].data.length)
+    } else if (data) {
       const text = data.map(d => `${d.value}${d.status === 'S' ? ' S' : ''}`).join('\n')
       setSampleText(text)
       setSimN(data.length)
     }
-  }, [data])
+  }, [data, dataSources])
+
+  // 计算样本统计信息
+  const sampleStats = useMemo(() => {
+    if (dataSources && dataSources.length > 0) {
+      const groupSize = dataSources[0].data.length
+      const groupCount = dataSources.length
+      return { groupSize, groupCount, total: groupSize * groupCount }
+    } else if (data) {
+      return { groupSize: data.length, groupCount: 1, total: data.length }
+    }
+    return { groupSize: 0, groupCount: 0, total: 0 }
+  }, [data, dataSources])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -166,7 +201,7 @@ export default function AnalysisCard({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Calculate unified X-axis range for all charts (current + overlays)
+  // Calculate unified X-axis range for all charts (current + overlays + dataSources)
   const unifiedXRange = useMemo(() => {
     if (!result || result.beta === null || result.eta === null) return null
 
@@ -186,11 +221,23 @@ export default function AnalysisCard({
       }
     })
 
+    // 新增: 考虑 dataSources 中的曲线范围
+    if (dataSources && dataSources.length > 0) {
+      dataSources.forEach(ds => {
+        if (ds.result && ds.result.beta !== null && ds.result.eta !== null) {
+          const dsMaxT = ds.result.gamma + ds.result.eta * 2.5
+          const dsMinT = ds.result.gamma
+          overlayMaxT = Math.max(overlayMaxT, dsMaxT)
+          overlayMinT = Math.min(overlayMinT, dsMinT)
+        }
+      })
+    }
+
     const unionMinT = Math.min(defaultMinT, overlayMinT)
     const unionMaxT = Math.max(defaultMaxT, overlayMaxT)
 
     return { min: unionMinT, max: unionMaxT }
-  }, [result, selectedOverlayIds, availableLayers])
+  }, [result, selectedOverlayIds, availableLayers, dataSources])
 
   const chartData = useMemo(() => {
     if (!result || result.beta === null || result.eta === null || !unifiedXRange) return []
@@ -458,7 +505,12 @@ export default function AnalysisCard({
                   onChange={(e) => setSampleText(e.target.value)}
                   onBlur={handleSampleTextBlur}
                 />
-                <div className="absolute bottom-2 right-2 text-xs font-black text-slate-400 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-100">N={data ? data.length : 0}</div>
+                <div className="absolute bottom-2 right-2 text-xs font-black text-slate-400 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-100">
+                  {sampleStats.groupCount > 1
+                    ? `N=${sampleStats.groupSize}×${sampleStats.groupCount}`
+                    : `N=${sampleStats.total}`
+                  }
+                </div>
               </div>
             </div>
             {/* 底栏 */}
@@ -488,15 +540,38 @@ export default function AnalysisCard({
                                                  </div>
                                               </div>                                  {/* 内容栏 */}
                                   <div className="flex-1 p-4 flex flex-col overflow-y-auto">
-                                    {result ? (
+                                    {displayResult ? (
                                       <div className="space-y-3">
-                                        <ParamInput label="β 形状" value={result.beta} onChange={(v) => handleParamChange('beta', v)} readOnly={result.converged === false || result.converged === 'unbounded'} color={result.converged === false || result.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
-                                        <ParamInput label="η 尺度" value={result.eta} onChange={(v) => handleParamChange('eta', v)} readOnly={result.converged === false || result.converged === 'unbounded'} color={result.converged === false || result.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
-                                        <ParamInput label="γ 位置" value={result.gamma} onChange={(v) => handleParamChange('gamma', v)} readOnly={!is3P || result.converged === false || result.converged === 'unbounded'} color={(!is3P || result.converged === false || result.converged === 'unbounded') ? "text-slate-300" : "text-blue-600"} decimals={3} />
+                                        <ParamInput label="β 形状" value={displayResult.beta} onChange={(v) => handleParamChange('beta', v)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
+                                        <ParamInput label="η 尺度" value={displayResult.eta} onChange={(v) => handleParamChange('eta', v)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
+                                        <ParamInput label="γ 位置" value={displayResult.gamma} onChange={(v) => handleParamChange('gamma', v)} readOnly={!is3P || displayResult.converged === false || displayResult.converged === 'unbounded'} color={(!is3P || displayResult.converged === false || displayResult.converged === 'unbounded') ? "text-slate-300" : "text-blue-600"} decimals={3} />
+                                        {/* 多数据源切换器 - 放在 γ 下面 */}
+                                        {dataSources && dataSources.length > 1 && (
+                                          <div className="flex items-center justify-center gap-2">
+                                            <div className="flex items-center gap-1.5">
+                                              {dataSources.map((ds, idx) => (
+                                                <button
+                                                  key={idx}
+                                                  onClick={() => setActiveSourceIndex(idx)}
+                                                  className={cn(
+                                                    "w-3 h-3 rounded-full transition-all",
+                                                    idx === activeSourceIndex
+                                                      ? "bg-indigo-500 scale-110"
+                                                      : "bg-slate-300 hover:bg-slate-400"
+                                                  )}
+                                                  title={ds.name || `样本 ${idx + 1}`}
+                                                />
+                                              ))}
+                                            </div>
+                                            <span className="text-xs text-slate-400 ml-2">
+                                              ({activeSourceIndex + 1}/{dataSources.length}) {dataSources[activeSourceIndex]?.name || ''}
+                                            </span>
+                                          </div>
+                                        )}
                                         <div className="pt-2 border-t border-slate-100 mt-2">
-                                          <ParamInput label="N 样本数" value={simN} onChange={(v) => setSimN(parseInt(v) || 0)} readOnly={result.converged === false || result.converged === 'unbounded'} color={result.converged === false || result.converged === 'unbounded' ? "text-slate-400" : "text-slate-500"} step={1} decimals={0} />
+                                          <ParamInput label="N 样本数" value={simN} onChange={(v) => setSimN(parseInt(v) || 0)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-slate-400" : "text-slate-500"} step={1} decimals={0} />
                                         </div>
-                                        {result.converged === 'unbounded' && (
+                                        {displayResult.converged === 'unbounded' && (
                                           <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
                                             <div className="flex items-center justify-between gap-2">
                                               <div className="flex items-center gap-2 text-xs">
@@ -512,7 +587,7 @@ export default function AnalysisCard({
                                             </div>
                                           </div>
                                         )}
-                                        {result.converged === false && (
+                                        {displayResult.converged === false && (
                                           <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
                                             <div className="flex items-center justify-between gap-2">
                                               <div className="flex items-center gap-2 text-xs">
@@ -654,10 +729,33 @@ export default function AnalysisCard({
                           return null;
                         }}
                       />
-                      <Area type="monotone" dataKey="y" stroke={color} strokeWidth={2} fillOpacity={1} fill={`url(#color-${id})`} isAnimationActive={false} />
+                      {/* 主曲线 - 仅在没有多数据源时渲染 */}
+                      {!(dataSources && dataSources.length > 0) && (
+                        <Area type="monotone" dataKey="y" stroke={color} strokeWidth={2} fillOpacity={1} fill={`url(#color-${id})`} isAnimationActive={false} />
+                      )}
                       {overlayCurves.map(layer => layer && (
                          <Area key={layer.id} type="monotone" data={layer.points} dataKey="y" stroke={layer.color} strokeWidth={1.5} strokeDasharray="4 4" fill="none" isAnimationActive={false} />
                       ))}
+                      {/* dataSources curves - 多选案例叠加显示 */}
+                      {dataSources && unifiedXRange && dataSources
+                        .filter(ds => ds.result && ds.result.beta !== null && ds.result.eta !== null && ds.visible !== false)
+                        .map(ds => {
+                          const points = chartMode === 'pdf'
+                            ? generatePDFPoints(ds.result!.beta!, ds.result!.eta!, ds.result!.gamma, unifiedXRange.min, unifiedXRange.max, 100)
+                            : generateCDFPoints(ds.result!.beta!, ds.result!.eta!, ds.result!.gamma, unifiedXRange.min, unifiedXRange.max, 100)
+                          return (
+                            <Area
+                              key={ds.id}
+                              type="monotone"
+                              data={points}
+                              dataKey="y"
+                              stroke={ds.color}
+                              strokeWidth={2}
+                              fill="none"
+                              isAnimationActive={false}
+                            />
+                          )
+                        })}
                     </AreaChart>
                  </ResponsiveContainer>
                ) : (

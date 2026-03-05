@@ -35,6 +35,33 @@ export type WeibullResult = {
 }
 
 /**
+ * Multi-curve data source for batch display
+ */
+export type DataSource = {
+  id: string                    // Unique identifier
+  name: string                  // Display name (e.g., "g1-1", "案例1")
+  color: string                 // Curve color
+  data: DataPoint[]             // Raw data
+  result?: WeibullResult        // Calculation result (filled after calculation)
+  traceData?: any               // Trace data for calculation process visualization
+  sourceType: 'case' | 'group-subcase' | 'custom'
+  groupId?: string              // Parent group ID if it's a subcase
+  visible?: boolean             // Curve visibility (for legend toggle)
+}
+
+/**
+ * 30 colors for multi-curve display
+ */
+export const MULTI_CURVE_COLORS = [
+  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',  // 1-5: Blue, Red, Emerald, Amber, Violet
+  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',  // 6-10: Pink, Cyan, Lime, Orange, Indigo
+  '#14b8a6', '#eab308', '#a855f7', '#22c55e', '#f43f5e',  // 11-15: Teal, Yellow, Purple, Green, Rose
+  '#0ea5e9', '#e11d48', '#7c3aed', '#059669', '#d97706',  // 16-20: Sky, Red-600, Violet-600, Emerald-600, Amber-600
+  '#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ca8a04',  // 21-25: Blue-600, Red-600, Green-600, Purple-600, Yellow-600
+  '#0891b2', '#be185d', '#4f46e5', '#15803d', '#c2410c',  // 26-30: Cyan-600, Pink-700, Indigo-600, Green-700, Orange-700
+]
+
+/**
  * Calculates Median Ranks using Benard's approximation: (i - 0.3) / (N + 0.4)
  * Applies Weibull transformation with Gamma parameter.
  * X = ln(t - gamma)
