@@ -319,7 +319,7 @@ export default function DataEditor({
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  <Users size={16} className="inline mr-2" />
+                  <File size={16} className="inline mr-2" />
                   单选
                 </button>
                 <button

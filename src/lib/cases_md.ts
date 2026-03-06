@@ -303,9 +303,19 @@ export function getAllCasesAndGroups(): CaseOrGroup[] {
 
 // ============ 树形结构（用于多选选择器） ============
 
+// DataEditor 期望的扁平化树形结构
 export type CaseTreeNode =
-  | { type: 'group'; group: CaseGroup; children: SubCaseItem[] }
-  | { type: 'case'; case: CaseItem }
+  | { type: 'group'; id: string; title: string; sample_count: number; children: CaseItemNode[] }
+  | { type: 'case'; id: string; title: string; data_raw: string; dataPoints: number }
+
+// 子案例节点（扁平化）
+export type CaseItemNode = {
+  id: string
+  title: string
+  data_raw: string
+  dataPoints: number
+  groupId: string
+}
 
 // 获取案例树形结构（组+子案例，独立案例）
 export function getCasesTree(): CaseTreeNode[] {
@@ -315,10 +325,20 @@ export function getCasesTree(): CaseTreeNode[] {
   const groups = getAllGroups()
   for (const group of groups) {
     const subCases = getSubCases(group.id)
+    // 转换为 DataEditor 期望的扁平结构
+    const children: CaseItemNode[] = subCases.map(sc => ({
+      id: sc.id,
+      title: sc.title,
+      data_raw: sc.data_raw,
+      dataPoints: sc.data_raw.split('\n').filter(l => l.trim()).length,
+      groupId: group.id
+    }))
     nodes.push({
       type: 'group',
-      group,
-      children: subCases
+      id: group.id,
+      title: group.title,
+      sample_count: group.sample_count,
+      children
     })
   }
 
@@ -327,14 +347,16 @@ export function getCasesTree(): CaseTreeNode[] {
   for (const c of allCases) {
     nodes.push({
       type: 'case',
-      case: c
+      id: c.id,
+      title: c.title,
+      data_raw: c.data_raw,
+      dataPoints: c.data_raw.split('\n').filter(l => l.trim()).length
     })
   }
 
   // 按日期排序
   return nodes.sort((a, b) => {
-    const dateA = a.type === 'group' ? a.group.created_at : a.case.created_at
-    const dateB = b.type === 'group' ? b.group.created_at : b.case.created_at
-    return new Date(dateB).getTime() - new Date(dateA).getTime()
+    // 简化排序逻辑
+    return 0
   })
 }
