@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import katex from 'katex'
 import { ChevronLeft, ChevronRight, SkipBack, GitBranch, FileCode, Database, Code, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -10,10 +10,9 @@ import { cn } from '@/lib/utils'
 // ========================================
 
 interface Variable {
-  symbol: string
-  math: string
-  code: string
-  value?: string | number
+  symbol: string    // 数学符号
+  meaning: string   // 含义说明
+  code: string      // 代码变量名
 }
 
 interface Formula {
@@ -33,7 +32,6 @@ interface FlowStep {
   inputs: Variable[]
   formula: Formula
   outputs: Variable[]
-  otherVariables: Variable[]
   isLoop?: boolean
   loopCount?: string
 }
@@ -76,6 +74,31 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
   const [flowData, setFlowData] = useState<MethodFlow | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const codeContainerRef = useRef<HTMLDivElement>(null)
+
+  // 当步骤改变时，滚动到对应的代码行
+  useEffect(() => {
+    if (!flowData || !codeContainerRef.current) return
+
+    const currentStep = flowData.steps[currentStepIndex]
+    if (!currentStep || currentStep.codeLines.length === 0) return
+
+    // 找到第一个非元数据注释的代码行
+    const codeLines = currentStep.codeLines.filter(lineIndex => {
+      const line = flowData.code[lineIndex]
+      return line && !/^\s*#\s*@/.test(line)
+    })
+
+    if (codeLines.length === 0) return
+
+    // 滚动到第一个代码行
+    const targetLine = codeLines[0]
+    const lineElement = codeContainerRef.current.querySelector(`[data-line="${targetLine}"]`)
+
+    if (lineElement) {
+      lineElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [currentStepIndex, flowData])
 
   useEffect(() => {
     async function loadFlowData() {
@@ -268,7 +291,10 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
         </div>
 
         {/* Middle Column: Code */}
-        <div className="lg:col-span-6 border-r border-slate-200 bg-slate-900 max-h-[600px] overflow-y-auto">
+        <div
+          ref={codeContainerRef}
+          className="lg:col-span-6 border-r border-slate-200 bg-slate-900 max-h-[600px] overflow-y-auto"
+        >
           <div className="sticky top-0 bg-slate-800 border-b border-slate-700 px-4 py-3 z-10 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
               <Code size={16} className="text-emerald-400" />
@@ -282,24 +308,29 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
             {flowData.code.map((line, index) => {
               const lineNumber = index + 1
               const isCurrentLine = currentStep.codeLines.includes(index)
+              // 检测是否是元数据注释行（# @step:, # @formula: 等）
+              const isMetaComment = /^\s*#\s*@/.test(line)
+              // 只有非元数据注释行才高亮
+              const shouldHighlight = isCurrentLine && !isMetaComment
 
               return (
                 <div
                   key={index}
+                  data-line={index}
                   className={cn(
-                    "flex items-start gap-3 py-1 px-2 rounded-lg",
-                    isCurrentLine && "bg-emerald-900/30 border-l-2 border-emerald-500 -ml-2 pl-4"
+                    "flex items-start gap-3 py-1 px-2 rounded-lg transition-colors",
+                    shouldHighlight && "bg-emerald-900/30 border-l-2 border-emerald-500 -ml-2 pl-4"
                   )}
                 >
                   <span className={cn(
                     "text-slate-600 select-none flex-shrink-0 text-xs w-6 text-right",
-                    isCurrentLine && "text-emerald-400"
+                    shouldHighlight && "text-emerald-400"
                   )}>
                     {lineNumber}
                   </span>
                   <span className={cn(
                     "flex-1 whitespace-pre",
-                    isCurrentLine ? "text-white" : "text-slate-400"
+                    shouldHighlight ? "text-white" : isMetaComment ? "text-slate-600" : "text-slate-400"
                   )}>
                     {line || <span className="text-slate-700">&nbsp;</span>}
                   </span>
@@ -357,7 +388,7 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
               </div>
             </div>
 
-            {/* 3. Inputs & Outputs - Two Columns */}
+            {/* 3. Inputs & Outputs - Three Columns (3:4:3) */}
             <div className="space-y-3">
               {/* Inputs */}
               {currentStep.inputs.length > 0 && (
@@ -369,26 +400,15 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
                   <div className="space-y-2">
                     {currentStep.inputs.map((input, index) => (
                       <div key={index} className="border border-blue-200 rounded-lg overflow-hidden">
-                        {/* Symbol Header */}
-                        <div className="bg-blue-100 px-3 py-1.5 flex items-center justify-between">
-                          <code className="font-bold text-sm text-blue-800">{input.symbol}</code>
-                          {input.value !== undefined && (
-                            <span className="font-mono text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
-                              {typeof input.value === 'number'
-                                ? (Number.isInteger(input.value) ? input.value : input.value.toFixed(4))
-                                : input.value}
-                            </span>
-                          )}
-                        </div>
-                        {/* Two Column Content */}
-                        <div className="grid grid-cols-2 divide-x divide-blue-200">
-                          <div className="p-2">
-                            <div className="text-xs text-blue-600 font-bold mb-1">数学变量</div>
-                            <div className="text-xs text-slate-700">{input.math}</div>
+                        <div className="grid grid-cols-10 divide-x divide-blue-200">
+                          <div className="col-span-3 p-2 bg-blue-50 flex items-center" style={{ paddingLeft: '18px' }}>
+                            <LatexRenderer math={input.symbol} />
                           </div>
-                          <div className="p-2">
-                            <div className="text-xs text-blue-600 font-bold mb-1">代码变量</div>
-                            <div className="text-xs text-slate-700 font-mono bg-blue-50 px-1.5 py-1 rounded">{input.code}</div>
+                          <div className="col-span-4 p-2 flex items-center">
+                            <div className="text-xs text-slate-700">{input.meaning}</div>
+                          </div>
+                          <div className="col-span-3 p-2 flex items-center">
+                            <div className="text-xs text-slate-700 font-mono">{input.code}</div>
                           </div>
                         </div>
                       </div>
@@ -407,26 +427,15 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
                   <div className="space-y-2">
                     {currentStep.outputs.map((output, index) => (
                       <div key={index} className="border border-green-200 rounded-lg overflow-hidden">
-                        {/* Symbol Header */}
-                        <div className="bg-green-100 px-3 py-1.5 flex items-center justify-between">
-                          <code className="font-bold text-sm text-green-800">{output.symbol}</code>
-                          {output.value !== undefined && (
-                            <span className="font-mono text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded">
-                              {typeof output.value === 'number'
-                                ? (Number.isInteger(output.value) ? output.value : output.value.toFixed(4))
-                                : output.value}
-                            </span>
-                          )}
-                        </div>
-                        {/* Two Column Content */}
-                        <div className="grid grid-cols-2 divide-x divide-green-200">
-                          <div className="p-2">
-                            <div className="text-xs text-green-600 font-bold mb-1">数学变量</div>
-                            <div className="text-xs text-slate-700">{output.math}</div>
+                        <div className="grid grid-cols-10 divide-x divide-green-200">
+                          <div className="col-span-3 p-2 bg-green-50 flex items-center" style={{ paddingLeft: '18px' }}>
+                            <LatexRenderer math={output.symbol} />
                           </div>
-                          <div className="p-2">
-                            <div className="text-xs text-green-600 font-bold mb-1">代码变量</div>
-                            <div className="text-xs text-slate-700 font-mono bg-green-50 px-1.5 py-1 rounded">{output.code}</div>
+                          <div className="col-span-4 p-2 flex items-center">
+                            <div className="text-xs text-slate-700">{output.meaning}</div>
+                          </div>
+                          <div className="col-span-3 p-2 flex items-center">
+                            <div className="text-xs text-slate-700 font-mono">{output.code}</div>
                           </div>
                         </div>
                       </div>
@@ -435,44 +444,6 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
                 </div>
               )}
             </div>
-
-            {/* 4. Other Variables (按需显示) */}
-            {currentStep.otherVariables.length > 0 && (
-              <div>
-                <h5 className="text-xs font-bold text-amber-600 uppercase mb-2 flex items-center gap-1">
-                  <ArrowRight size={12} />
-                  其它变量
-                </h5>
-                <div className="space-y-2">
-                  {currentStep.otherVariables.map((variable, index) => (
-                    <div key={index} className="border border-amber-200 rounded-lg overflow-hidden">
-                      {/* Symbol Header */}
-                      <div className="bg-amber-100 px-3 py-1.5 flex items-center justify-between">
-                        <code className="font-bold text-xs text-amber-800">{variable.symbol}</code>
-                        {variable.value !== undefined && (
-                          <span className="font-mono text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded">
-                            {typeof variable.value === 'number'
-                              ? (Number.isInteger(variable.value) ? variable.value : variable.value.toFixed(4))
-                              : variable.value}
-                          </span>
-                        )}
-                      </div>
-                      {/* Two Column Content */}
-                      <div className="grid grid-cols-2 divide-x divide-amber-200">
-                        <div className="p-2">
-                          <div className="text-xs text-amber-600 font-bold mb-1">数学变量</div>
-                          <div className="text-xs text-slate-700">{variable.math}</div>
-                        </div>
-                        <div className="p-2">
-                          <div className="text-xs text-amber-600 font-bold mb-1">代码变量</div>
-                          <div className="text-xs text-slate-700 font-mono bg-amber-50 px-1.5 py-1 rounded">{variable.code}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
