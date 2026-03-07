@@ -78,30 +78,47 @@ WEIGHT_TABLE_J2 = {
 # ============================================================================
 # J3 Weight Table (median of W3)
 # Source: https://github.com/dcousin3/wMLE/weigths/J3.tsv
+# Complete table: n=1-100, gamma=0.1-5.0 (step 0.1), 4999 entries
 # Note: J3 depends on both n and gamma (shape parameter)
-# This table provides key values; linear interpolation is used for gamma
 # ============================================================================
-J3_TABLE = {
-    # n=1: J3 ~ 1.0 for all gamma
-    1: {0.5: 1.001, 1.0: 0.999, 1.5: 0.999, 2.0: 0.995, 2.5: 0.998},
-    2: {0.5: 2.101, 1.0: 1.677, 1.5: 1.450, 2.0: 1.328, 2.5: 1.259},
-    3: {0.5: 3.081, 1.0: 2.082, 1.5: 1.680, 2.0: 1.479, 2.5: 1.367},
-    4: {0.5: 3.950, 1.0: 2.381, 1.5: 1.822, 2.0: 1.567, 2.5: 1.428},
-    5: {0.5: 4.806, 1.0: 2.631, 1.5: 1.920, 2.0: 1.625, 2.5: 1.464},
-    6: {0.5: 5.631, 1.0: 2.808, 1.5: 2.004, 2.0: 1.669, 2.5: 1.492},
-    7: {0.5: 6.433, 1.0: 2.982, 1.5: 2.056, 2.0: 1.698, 2.5: 1.509},
-    8: {0.5: 7.150, 1.0: 3.114, 1.5: 2.105, 2.0: 1.722, 2.5: 1.525},
-    9: {0.5: 7.931, 1.0: 3.252, 1.5: 2.151, 2.0: 1.739, 2.5: 1.537},
-    10: {0.5: 8.643, 1.0: 3.365, 1.5: 2.180, 2.0: 1.758, 2.5: 1.552},
-    11: {0.5: 9.319, 1.0: 3.462, 1.5: 2.207, 2.0: 1.774, 2.5: 1.555},
-    12: {0.5: 10.051, 1.0: 3.560, 1.5: 2.239, 2.0: 1.782, 2.5: 1.565},
-    13: {0.5: 10.746, 1.0: 3.642, 1.5: 2.262, 2.0: 1.793, 2.5: 1.570},
-    14: {0.5: 11.379, 1.0: 3.713, 1.5: 2.285, 2.0: 1.804, 2.5: 1.578},
-    15: {0.5: 12.069, 1.0: 3.780, 1.5: 2.301, 2.0: 1.813, 2.5: 1.581},
-    16: {0.5: 12.743, 1.0: 3.854, 1.5: 2.324, 2.0: 1.820, 2.5: 1.586},
-}
 
-J3_GAMMA_VALUES = [0.5, 1.0, 1.5, 2.0, 2.5]
+import os
+
+# Load complete J3 table from external file (loaded once on module import)
+_J3_TABLE = None
+_J3_GAMMA_VALUES = None
+
+def _load_j3_table():
+    """Load J3 weights from TSV file."""
+    global _J3_TABLE, _J3_GAMMA_VALUES
+    if _J3_TABLE is not None:
+        return _J3_TABLE, _J3_GAMMA_VALUES
+
+    j3_table = {}
+    gamma_values = set()
+
+    # Get the directory of this file
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    j3_file = os.path.join(current_dir, 'j3_weights.tsv')
+
+    with open(j3_file, 'r') as f:
+        for line in f:
+            parts = line.strip().split()
+            if len(parts) >= 3:
+                n = int(parts[0])
+                gamma = float(parts[1])
+                value = float(parts[2])
+                if n not in j3_table:
+                    j3_table[n] = {}
+                j3_table[n][gamma] = value
+                gamma_values.add(gamma)
+
+    _J3_TABLE = j3_table
+    _J3_GAMMA_VALUES = sorted(gamma_values)
+    return _J3_TABLE, _J3_GAMMA_VALUES
+
+# Pre-load on module import
+_J3_TABLE, _J3_GAMMA_VALUES = _load_j3_table()
 
 
 def get_weight_j1(n: int) -> float:
@@ -109,16 +126,25 @@ def get_weight_j1(n: int) -> float:
     Get J1 weight (median of W1) for sample size n.
 
     J1 is used to compute the scale parameter beta.
-    For n > 100, asymptotic value is 1.0.
+    For n > 100, use exact formula: exp(digamma(n)) / n
     """
     if n in WEIGHT_TABLE_J1:
         return WEIGHT_TABLE_J1[n]
     if n < 1:
         return 0.5
     if n > 100:
-        return 1.0
-    # Exact formula: exp(digamma(n)) / n
-    return np.exp(digamma(n)) / n
+        # Exact formula for large n
+        return np.exp(digamma(n)) / n
+    # Linear interpolation
+    known_ns = sorted(WEIGHT_TABLE_J1.keys())
+    for i in range(len(known_ns) - 1):
+        n_low, n_high = known_ns[i], known_ns[i + 1]
+        if n_low < n < n_high:
+            w_low = WEIGHT_TABLE_J1[n_low]
+            w_high = WEIGHT_TABLE_J1[n_high]
+            t = (n - n_low) / (n_high - n_low)
+            return w_low + t * (w_high - w_low)
+    return WEIGHT_TABLE_J1[known_ns[-1]]
 
 
 def get_weight_j2(n: int) -> float:
@@ -163,43 +189,83 @@ def get_weight_j3(n: int, gamma: float) -> float:
     Unlike J1 and J2, J3 depends on both n and gamma.
 
     For gamma > 1, the asymptotic value is gamma / (gamma - 1).
-    """
-    gamma = max(0.1, min(5.0, gamma))  # Clamp to [0.1, 5.0]
 
-    # Asymptotic value for gamma > 1
-    if gamma > 1:
-        asymp_val = gamma / (gamma - 1)
+    Implementation follows R code approach:
+    - Linear interpolation in gamma direction (0.1 resolution)
+    - For n not in table, interpolate between nearest n values
+    """
+    global _J3_TABLE, _J3_GAMMA_VALUES
+
+    # Clamp gamma to [0.1, 5.0] (same as R code)
+    gamma_clamped = max(0.1, min(5.0, gamma))
+
+    # Calculate asymptotic value for very large n
+    if gamma_clamped > 1:
+        asymp_val = gamma_clamped / (gamma_clamped - 1)
     else:
         asymp_val = float('inf')
 
-    if n <= 16:
-        # Use table with interpolation
-        if n not in J3_TABLE:
-            return asymp_val if gamma > 1 else 2.0
+    # Helper function for gamma interpolation
+    def interpolate_gamma(n_val):
+        """Linear interpolation in gamma direction"""
+        if n_val not in _J3_TABLE:
+            return asymp_val if gamma_clamped > 1 else 2.0
 
-        gammas = J3_GAMMA_VALUES
+        gammas = sorted(_J3_TABLE[n_val].keys())
 
-        if gamma <= gammas[0]:
-            return J3_TABLE[n][gammas[0]]
-        if gamma >= gammas[-1]:
-            return J3_TABLE[n][gammas[-1]]
+        if gamma_clamped <= gammas[0]:
+            return _J3_TABLE[n_val][gammas[0]]
+        if gamma_clamped >= gammas[-1]:
+            return _J3_TABLE[n_val][gammas[-1]]
 
-        # Linear interpolation in gamma
+        # Linear interpolation
         for i in range(len(gammas) - 1):
             g_low, g_high = gammas[i], gammas[i + 1]
-            if g_low <= gamma <= g_high:
-                j3_low = J3_TABLE[n][g_low]
-                j3_high = J3_TABLE[n][g_high]
-                t = (gamma - g_low) / (g_high - g_low)
+            if g_low <= gamma_clamped <= g_high:
+                j3_low = _J3_TABLE[n_val][g_low]
+                j3_high = _J3_TABLE[n_val][g_high]
+                t = (gamma_clamped - g_low) / (g_high - g_low)
                 return j3_low + t * (j3_high - j3_low)
 
-        return J3_TABLE[n][gammas[-1]]
-    else:
-        # n > 16: Use asymptotic approximation
-        if gamma > 1:
+        return _J3_TABLE[n_val][gammas[-1]]
+
+    # Get available n values
+    available_ns = sorted(_J3_TABLE.keys())
+
+    # n is in table
+    if n in _J3_TABLE:
+        return interpolate_gamma(n)
+
+    # n < minimum in table
+    if n < available_ns[0]:
+        return interpolate_gamma(available_ns[0])
+
+    # n > maximum in table (100)
+    if n > available_ns[-1]:
+        # Use asymptotic value for very large n
+        if gamma_clamped > 1:
             return asymp_val
         else:
             return 2.0
+
+    # Interpolate between two nearest n values (bilinear interpolation)
+    n_low, n_high = None, None
+    for i in range(len(available_ns) - 1):
+        if available_ns[i] < n < available_ns[i + 1]:
+            n_low, n_high = available_ns[i], available_ns[i + 1]
+            break
+
+    if n_low is None:
+        # Fallback to closest value
+        return interpolate_gamma(available_ns[-1])
+
+    # Get J3 values at both n values
+    j3_low = interpolate_gamma(n_low)
+    j3_high = interpolate_gamma(n_high)
+
+    # Linear interpolation in n direction
+    t = (n - n_low) / (n_high - n_low)
+    return j3_low + t * (j3_high - j3_low)
 
 
 class WMLE(WeibullBase):
@@ -310,8 +376,8 @@ class WMLE(WeibullBase):
         if not result.success:
             return [1, 100, 0, 0]
 
-        gamma_hat = result.x[0]  # Shape (paper's gamma -> system's beta)
-        alpha_hat = result.x[1]  # Location (paper's alpha -> system's gamma)
+        gamma_hat = result.x[0]  # Shape (paper's gamma -> System's beta)
+        alpha_hat = result.x[1]  # Location (Paper's alpha -> System's gamma)
 
         # @step: 5 | Compute scale parameter | Algebraic solution from paper
         # @formula: \\hat{\\beta} = \\left( \\frac{\\sum(x_i-\\hat{\\alpha})^{\\hat{\\gamma}}}{n \\times J_1} \\right)^{1/\\hat{\\gamma}}
@@ -331,5 +397,4 @@ class WMLE(WeibullBase):
         r2 = self._calculate_r2(gamma_hat, beta_hat, alpha_hat)
 
         # Return: [shape, scale, location, r2]
-        # System notation: beta=shape, eta=scale, gamma=location
         return [gamma_hat, beta_hat, alpha_hat, r2]
