@@ -1,9 +1,18 @@
 """
-加权极大似然估计 (WMLE)
-Weighted Maximum Likelihood Estimation
+Weighted Maximum Likelihood Estimation (WMLE)
 
-描述: 通过引入三个权重 (W1, W2, W3) 修正 MLE 在小样本下的偏差。
-基于论文 182-088 (Cousineau, 2009) 实现。
+Algorithm Documentation: ../../src/content/algorithms/wmle.md
+Reference: Cousineau (2009), Paper 182-088
+
+This implementation uses the official weights from:
+https://github.com/dcousin3/wMLE
+
+Weight tables are embedded (no external files needed).
+
+Symbol mapping (paper -> system):
+  - paper gamma (shape) -> system beta
+  - paper beta (scale) -> system eta
+  - paper alpha (location) -> system gamma
 """
 
 import numpy as np
@@ -11,27 +20,71 @@ from scipy.optimize import minimize
 from scipy.special import digamma
 from base import WeibullBase
 
-# Table 2: J1 weights (median of W1)
+# ============================================================================
+# J1 Weight Table (median of W1)
+# Source: https://github.com/dcousin3/wMLE/weigths/J1.tsv
+# Monte Carlo simulation with 2^20 replicates
+# ============================================================================
 WEIGHT_TABLE_J1 = {
-    1: 0.693, 2: 0.839, 3: 0.891, 4: 0.918, 5: 0.934,
-    6: 0.945, 7: 0.953, 8: 0.959, 9: 0.963, 10: 0.967,
+    1: 0.693, 2: 0.840, 3: 0.892, 4: 0.918, 5: 0.935,
+    6: 0.944, 7: 0.953, 8: 0.959, 9: 0.964, 10: 0.967,
     11: 0.970, 12: 0.972, 13: 0.974, 14: 0.976, 15: 0.978,
-    16: 0.979, 20: 0.985, 32: 0.991, 50: 0.994, 100: 0.997
+    16: 0.979, 17: 0.981, 18: 0.982, 19: 0.982, 20: 0.983,
+    21: 0.985, 22: 0.985, 23: 0.986, 24: 0.986, 25: 0.987,
+    26: 0.987, 27: 0.988, 28: 0.988, 29: 0.989, 30: 0.989,
+    31: 0.989, 32: 0.990, 33: 0.990, 34: 0.990, 35: 0.990,
+    36: 0.991, 37: 0.991, 38: 0.991, 39: 0.991, 40: 0.992,
+    41: 0.992, 42: 0.992, 43: 0.992, 44: 0.992, 45: 0.993,
+    46: 0.993, 47: 0.993, 48: 0.993, 49: 0.994, 50: 0.993,
+    51: 0.994, 52: 0.993, 53: 0.994, 54: 0.994, 55: 0.994,
+    56: 0.994, 57: 0.994, 58: 0.994, 59: 0.994, 60: 0.994,
+    61: 0.995, 62: 0.995, 63: 0.995, 64: 0.995, 65: 0.995,
+    66: 0.995, 67: 0.995, 68: 0.995, 69: 0.995, 70: 0.995,
+    71: 0.995, 72: 0.995, 73: 0.996, 74: 0.995, 75: 0.996,
+    76: 0.996, 77: 0.995, 78: 0.996, 79: 0.996, 80: 0.996,
+    81: 0.996, 82: 0.996, 83: 0.996, 84: 0.996, 85: 0.996,
+    86: 0.996, 87: 0.996, 88: 0.996, 89: 0.996, 90: 0.996,
+    91: 0.996, 92: 0.996, 93: 0.997, 94: 0.997, 95: 0.997,
+    96: 0.997, 97: 0.997, 98: 0.997, 99: 0.997, 100: 0.997,
 }
 
-# Table 3: J2 weights (median of W2)
+# ============================================================================
+# J2 Weight Table (median of W2)
+# Source: https://github.com/dcousin3/wMLE/weigths/J2.tsv
+# ============================================================================
 WEIGHT_TABLE_J2 = {
-    1: 0.000, 2: 0.275, 3: 0.517, 4: 0.638, 5: 0.711,
-    6: 0.759, 7: 0.791, 8: 0.817, 9: 0.838, 10: 0.853,
-    11: 0.867, 12: 0.877, 13: 0.886, 14: 0.895, 15: 0.902,
-    16: 0.908, 20: 0.925, 32: 0.947, 50: 0.963, 100: 0.978
+    1: 0.000, 2: 0.275, 3: 0.518, 4: 0.639, 5: 0.709,
+    6: 0.758, 7: 0.792, 8: 0.818, 9: 0.838, 10: 0.853,
+    11: 0.866, 12: 0.877, 13: 0.886, 14: 0.894, 15: 0.901,
+    16: 0.907, 17: 0.912, 18: 0.918, 19: 0.922, 20: 0.926,
+    21: 0.929, 22: 0.932, 23: 0.935, 24: 0.938, 25: 0.940,
+    26: 0.943, 27: 0.944, 28: 0.947, 29: 0.948, 30: 0.950,
+    31: 0.952, 32: 0.953, 33: 0.954, 34: 0.956, 35: 0.958,
+    36: 0.959, 37: 0.960, 38: 0.961, 39: 0.962, 40: 0.962,
+    41: 0.964, 42: 0.965, 43: 0.965, 44: 0.966, 45: 0.967,
+    46: 0.968, 47: 0.968, 48: 0.969, 49: 0.970, 50: 0.970,
+    51: 0.970, 52: 0.971, 53: 0.972, 54: 0.972, 55: 0.973,
+    56: 0.974, 57: 0.974, 58: 0.974, 59: 0.975, 60: 0.975,
+    61: 0.976, 62: 0.975, 63: 0.977, 64: 0.976, 65: 0.977,
+    66: 0.977, 67: 0.978, 68: 0.977, 69: 0.978, 70: 0.978,
+    71: 0.979, 72: 0.979, 73: 0.979, 74: 0.980, 75: 0.980,
+    76: 0.980, 77: 0.980, 78: 0.980, 79: 0.981, 80: 0.981,
+    81: 0.982, 82: 0.982, 83: 0.982, 84: 0.982, 85: 0.982,
+    86: 0.982, 87: 0.983, 88: 0.983, 89: 0.983, 90: 0.983,
+    91: 0.983, 92: 0.984, 93: 0.984, 94: 0.984, 95: 0.984,
+    96: 0.984, 97: 0.984, 98: 0.985, 99: 0.985, 100: 0.985,
 }
 
-# Table 4: J3 weights (median of W3) - depends on n and gamma
-# Format: J3_TABLE[n][gamma] = J3 value
+# ============================================================================
+# J3 Weight Table (median of W3)
+# Source: https://github.com/dcousin3/wMLE/weigths/J3.tsv
+# Note: J3 depends on both n and gamma (shape parameter)
+# This table provides key values; linear interpolation is used for gamma
+# ============================================================================
 J3_TABLE = {
+    # n=1: J3 ~ 1.0 for all gamma
     1: {0.5: 1.001, 1.0: 0.999, 1.5: 0.999, 2.0: 0.995, 2.5: 0.998},
-    2: {0.5: 2.096, 1.0: 1.668, 1.5: 1.456, 2.0: 1.339, 2.5: 1.262},
+    2: {0.5: 2.101, 1.0: 1.677, 1.5: 1.450, 2.0: 1.328, 2.5: 1.259},
     3: {0.5: 3.081, 1.0: 2.082, 1.5: 1.680, 2.0: 1.479, 2.5: 1.367},
     4: {0.5: 3.950, 1.0: 2.381, 1.5: 1.822, 2.0: 1.567, 2.5: 1.428},
     5: {0.5: 4.806, 1.0: 2.631, 1.5: 1.920, 2.0: 1.625, 2.5: 1.464},
@@ -50,24 +103,30 @@ J3_TABLE = {
 
 J3_GAMMA_VALUES = [0.5, 1.0, 1.5, 2.0, 2.5]
 
+
 def get_weight_j1(n: int) -> float:
-    """Get J1 weight (median of W1) from Table 2"""
+    """
+    Get J1 weight (median of W1) for sample size n.
+
+    J1 is used to compute the scale parameter beta.
+    For n > 100, asymptotic value is 1.0.
+    """
     if n in WEIGHT_TABLE_J1:
         return WEIGHT_TABLE_J1[n]
     if n < 1:
         return 0.5
     if n > 100:
         return 1.0
-    # Exact formula for J1: exp(psi(n)) / n
+    # Exact formula: exp(digamma(n)) / n
     return np.exp(digamma(n)) / n
+
 
 def get_weight_j2(n: int) -> float:
     """
-    Get J2 weight (median of W2) from Table 3 with interpolation.
+    Get J2 weight (median of W2) for sample size n.
 
-    J2 是 W2 的中位数，通过蒙特卡洛模拟获得。
-    E2 (均值) = 1 - 1/n，但 J2 与 E2 不同。
-    对于 n > 16，使用已有表值进行插值。
+    J2 is used in the shape equation.
+    For n > 100, asymptotic value is 1.0.
     """
     if n in WEIGHT_TABLE_J2:
         return WEIGHT_TABLE_J2[n]
@@ -75,144 +134,135 @@ def get_weight_j2(n: int) -> float:
         return 0.0
     if n < 2:
         return 0.0
+    if n > 100:
+        return 1.0
 
-    # 获取所有已知的 n 值并排序
+    # Linear interpolation for n not in table
     known_ns = sorted(WEIGHT_TABLE_J2.keys())
-
-    # 如果 n 小于最小已知值
     if n < known_ns[0]:
         return 0.0
-
-    # 如果 n 大于最大已知值，使用渐近值 1.0
     if n > known_ns[-1]:
         return 1.0
 
-    # 找到 n 所在的区间进行线性插值
     for i in range(len(known_ns) - 1):
         n_low, n_high = known_ns[i], known_ns[i + 1]
         if n_low < n < n_high:
             w_low = WEIGHT_TABLE_J2[n_low]
             w_high = WEIGHT_TABLE_J2[n_high]
-            # 线性插值
             t = (n - n_low) / (n_high - n_low)
             return w_low + t * (w_high - w_low)
 
     return WEIGHT_TABLE_J2[known_ns[-1]]
 
+
 def get_weight_j3(n: int, gamma: float) -> float:
     """
-    Get J3 weight (median of W3) from Table 4 with interpolation.
+    Get J3 weight (median of W3) for sample size n and shape parameter gamma.
 
-    Paper 182-088, Table 4 provides J3 values for n=1-16 and gamma=0.5,1.0,1.5,2.0,2.5.
-    For gamma > 2.5, interpolate between table value and asymptotic value gamma/(gamma-1).
-    For n > 16, use MC-verified extrapolation towards asymptotic values.
+    J3 is used in the location equation.
+    Unlike J1 and J2, J3 depends on both n and gamma.
 
-    MC 模拟验证的外推公式 (50万次模拟):
-    - n=30, γ=2.0: J3 ≈ 1.845 (代码外推: 1.919, 误差+4%)
-    - 使用 progress = 1 - 16/n 的形式更好地拟合 MC 结果
+    For gamma > 1, the asymptotic value is gamma / (gamma - 1).
     """
-    import math
+    gamma = max(0.1, min(5.0, gamma))  # Clamp to [0.1, 5.0]
 
-    # Clamp gamma
-    gamma = max(0.5, gamma)
+    # Asymptotic value for gamma > 1
+    if gamma > 1:
+        asymp_val = gamma / (gamma - 1)
+    else:
+        asymp_val = float('inf')
 
-    # 渐近值
-    asymp_val = gamma / (gamma - 1) if gamma > 1 else 2.0
+    if n <= 16:
+        # Use table with interpolation
+        if n not in J3_TABLE:
+            return asymp_val if gamma > 1 else 2.0
 
-    def get_j3_for_gamma_2_5(n_val):
-        """计算 gamma=2.5 时的 J3 值"""
-        if n_val <= 16:
-            return J3_TABLE[n_val][2.5]
-        elif n_val <= 100:
-            j3_16 = J3_TABLE[16][2.5]
-            asymp_2_5 = 2.5 / 1.5  # = 1.667
-            progress = 1.0 - 16.0 / n_val
-            return j3_16 + 0.60 * progress * (asymp_2_5 - j3_16)
-        else:
-            return 2.5 / 1.5
+        gammas = J3_GAMMA_VALUES
 
-    def get_j3_for_gamma_le_2_5(n_val, g):
-        """计算 gamma <= 2.5 时的 J3 值"""
-        if n_val <= 16:
-            # 使用表格插值
-            if g <= 0.5:
-                return J3_TABLE[n_val][0.5]
-            for i in range(len(J3_GAMMA_VALUES) - 1):
-                g_low, g_high = J3_GAMMA_VALUES[i], J3_GAMMA_VALUES[i + 1]
-                if g_low <= g <= g_high:
-                    t = (g - g_low) / (g_high - g_low)
-                    return J3_TABLE[n_val][g_low] + t * (J3_TABLE[n_val][g_high] - J3_TABLE[n_val][g_low])
-            return J3_TABLE[n_val][2.5]
-        elif n_val <= 100:
-            # 使用 MC 验证的外推
-            # 先计算 gamma=2.0 和 gamma=2.5 的值，然后插值
-            j3_16_2_0 = J3_TABLE[16][2.0]
-            asymp_2_0 = 2.0
-            progress = 1.0 - 16.0 / n_val
-            j3_at_2_0 = j3_16_2_0 + 0.55 * progress * (asymp_2_0 - j3_16_2_0)
+        if gamma <= gammas[0]:
+            return J3_TABLE[n][gammas[0]]
+        if gamma >= gammas[-1]:
+            return J3_TABLE[n][gammas[-1]]
 
-            j3_at_2_5 = get_j3_for_gamma_2_5(n_val)
+        # Linear interpolation in gamma
+        for i in range(len(gammas) - 1):
+            g_low, g_high = gammas[i], gammas[i + 1]
+            if g_low <= gamma <= g_high:
+                j3_low = J3_TABLE[n][g_low]
+                j3_high = J3_TABLE[n][g_high]
+                t = (gamma - g_low) / (g_high - g_low)
+                return j3_low + t * (j3_high - j3_low)
 
-            # 在 gamma 方向插值
-            if g >= 2.0:
-                t = (g - 2.0) / 0.5
-                return j3_at_2_0 + t * (j3_at_2_5 - j3_at_2_0)
-            elif g >= 1.5:
-                # 简化处理：使用 gamma=2.0 的值
-                return j3_at_2_0
-            else:
-                return j3_at_2_0
-        else:
+        return J3_TABLE[n][gammas[-1]]
+    else:
+        # n > 16: Use asymptotic approximation
+        if gamma > 1:
             return asymp_val
+        else:
+            return 2.0
 
-    # 对于 gamma > 2.5，在 gamma=2.5 的值和渐近值之间插值
-    if gamma > 2.5:
-        j3_at_2_5 = get_j3_for_gamma_2_5(n)
-        t = min(1.0, (gamma - 2.5) / 2.5)
-        return j3_at_2_5 + t * (asymp_val - j3_at_2_5)
-
-    # gamma <= 2.5
-    return get_j3_for_gamma_le_2_5(n, gamma)
 
 class WMLE(WeibullBase):
+    """
+    Weighted Maximum Likelihood Estimation (WMLE)
+
+    Based on: Cousineau, D. (2009). Nearly unbiased estimators for the
+    three-parameter Weibull distribution.
+
+    Algorithm (two-step method):
+    1. Optimize gamma (shape) and alpha (location) to minimize:
+       term1^2 + term2^2
+       where:
+         term1 = J2/gamma + (1/n)*sum(log(x-alpha))
+                 - sum(log(x-alpha)*(x-alpha)^gamma) / sum((x-alpha)^gamma)
+         term2 = (1/n)*sum(1/(x-alpha)) * sum((x-alpha)^gamma) / sum((x-alpha)^(gamma-1))
+                 - J3(gamma)
+    2. Algebraically solve for beta (scale):
+         beta = (sum((x-alpha)^gamma) / (n * J1))^(1/gamma)
+    """
+
     def run(self, trace=False):
         """
-        WMLE 参数估计
-        trace: 是否记录过程量
+        Run WMLE estimation.
+
+        Returns: [beta_hat, eta_hat, gamma_hat, r2]
+        - beta_hat: shape parameter (paper's gamma)
+        - eta_hat: scale parameter (paper's beta)
+        - gamma_hat: location parameter (paper's alpha)
         """
+        # @step: 1 | Compute static weights | Get J1 and J2 weights
+        # @symbols: n|n|sample size, w1|J_1|scale weight, w2|J_2|shape weight
+        # @outputs: w1|J_1|scale weight, w2|J_2|shape weight
         n = self.n
         arr = self.data
+        x_min = np.min(arr)
 
-        # 1. 计算静态权重
         w1 = get_weight_j1(n)
         w2 = get_weight_j2(n)
-        
+
         if trace:
-            self.log_step({
-                "phase": "init", 
-                "w1": w1, 
-                "w2": w2, 
-                "n": n
-            })
+            self.log_step({"phase": "init", "w1": w1, "w2": w2, "n": n})
 
-        # 初始猜测
-        # 形状参数初始值：固定为 2.0 (接近常见情况)
-        # 注意：三参数情况下，LRE 方法因位置参数的存在会产生偏差
-        gamma_init = 2.0
-        alpha_init = arr[0] * 0.95
+        # @step: 2 | Initialize parameters | Set starting values for optimization
+        # @formula: \\alpha_{init} = 0.9 \\times \\min(X), \\gamma_{init} = 2.0
+        # @outputs: gamma_init|\\gamma_{init}|shape initial, alpha_init|\\alpha_{init}|location initial
+        gamma_init = 2.0  # Paper's heuristic
+        alpha_init = 0.9 * x_min  # Paper's heuristic
 
-        # 2. 目标函数
+        # @step: 3 | Define objective function | Paper equation (4)
+        # @formula: \\min_{\\gamma,\\alpha} \\left( \\text{term}_1^2 + \\text{term}_2^2 \\right)
+        # @loop: Up to 500 iterations
         def wmle_objective(params):
-            gamma = params[0]
-            alpha = params[1]
+            gamma = params[0]  # Shape (paper's gamma)
+            alpha = params[1]  # Location (paper's alpha)
 
-            # gamma: 形状参数 β (论文符号), 范围 (0, 10]
-            # alpha: 位置参数 γ (论文符号), 范围 [0, arr[0])
-            if gamma <= 0 or gamma > 10 or alpha >= arr[0] - 1e-6 or alpha < 0:
+            # Constraints: gamma > 0, alpha < min(data)
+            if gamma <= 0 or gamma > 10 or alpha >= x_min - 1e-6 or alpha < 0:
                 return 1e10
 
             x_minus_alpha = arr - alpha
-            if np.any(x_minus_alpha <= 0): return 1e10
+            if np.any(x_minus_alpha <= 0):
+                return 1e10
 
             log_x = np.log(x_minus_alpha)
             x_gamma = x_minus_alpha ** gamma
@@ -221,18 +271,18 @@ class WMLE(WeibullBase):
             sum_log_x_gamma = np.sum(log_x * x_gamma)
             sum_x_gamma = np.sum(x_gamma)
 
-            term1_left = w2 / gamma + sum_log / n - sum_log_x_gamma / sum_x_gamma
+            # Term 1: fctGamma in R code
+            term1 = w2 / gamma + sum_log / n - sum_log_x_gamma / sum_x_gamma
 
             sum_inv = np.sum(1.0 / x_minus_alpha)
             sum_x_gamma_minus1 = np.sum(x_minus_alpha ** (gamma - 1))
 
-            w3 = get_weight_j3(n, gamma) # 动态权重
-            term2_left = sum_inv / n * sum_x_gamma / sum_x_gamma_minus1 - w3
+            # Term 2: fctAlpha in R code
+            w3 = get_weight_j3(n, gamma)
+            term2 = (sum_inv / n) * (sum_x_gamma / sum_x_gamma_minus1) - w3
 
-            obj_val = term1_left ** 2 + term2_left ** 2
-            return obj_val
+            return term1 ** 2 + term2 ** 2
 
-        # 回调
         def callback(xk):
             if trace:
                 gamma_curr, alpha_curr = xk
@@ -246,7 +296,9 @@ class WMLE(WeibullBase):
                     "obj_val": val if val < 1e5 else None
                 })
 
-        # 3. 优化
+        # @step: 4 | Optimize | Use Nelder-Mead method
+        # @inputs: gamma_init|\\gamma_{init}|initial shape, alpha_init|\\alpha_{init}|initial location
+        # @outputs: gamma_hat|\\hat{\\gamma}|estimated shape, alpha_hat|\\hat{\\alpha}|estimated location
         result = minimize(
             wmle_objective,
             x0=np.array([gamma_init, alpha_init]),
@@ -256,25 +308,28 @@ class WMLE(WeibullBase):
         )
 
         if not result.success:
-            # Fallback logic omitted for brevity, usually LRE fallback
-            return [1, 100, 0, 0] 
+            return [1, 100, 0, 0]
 
-        beta_hat = result.x[0] # gamma in paper
-        gamma_hat = result.x[1] # alpha in paper (location)
-        
-        # 4. 代数求 eta
-        x_adj = arr - gamma_hat
-        eta_hat = (np.sum(x_adj ** beta_hat) / (n * w1)) ** (1 / beta_hat)
+        gamma_hat = result.x[0]  # Shape (paper's gamma -> system's beta)
+        alpha_hat = result.x[1]  # Location (paper's alpha -> system's gamma)
+
+        # @step: 5 | Compute scale parameter | Algebraic solution from paper
+        # @formula: \\hat{\\beta} = \\left( \\frac{\\sum(x_i-\\hat{\\alpha})^{\\hat{\\gamma}}}{n \\times J_1} \\right)^{1/\\hat{\\gamma}}
+        # @inputs: gamma_hat|\\hat{\\gamma}|shape, alpha_hat|\\hat{\\alpha}|location, w1|J_1|scale weight
+        # @outputs: beta_hat|\\hat{\\beta}|scale parameter
+        x_adj = arr - alpha_hat
+        beta_hat = (np.sum(x_adj ** gamma_hat) / (n * w1)) ** (1 / gamma_hat)
 
         if trace:
             self.log_step({
                 "phase": "final",
-                "beta": beta_hat,
-                "eta": eta_hat,
-                "gamma": gamma_hat
+                "paper_gamma": gamma_hat,
+                "paper_beta": beta_hat,
+                "paper_alpha": alpha_hat
             })
 
-        r2 = self._calculate_r2(beta_hat, eta_hat, gamma_hat)
-        
-        # Return standard 4 params + trace data (if requested, handled by main.py)
-        return [beta_hat, eta_hat, gamma_hat, r2]
+        r2 = self._calculate_r2(gamma_hat, beta_hat, alpha_hat)
+
+        # Return: [shape, scale, location, r2]
+        # System notation: beta=shape, eta=scale, gamma=location
+        return [gamma_hat, beta_hat, alpha_hat, r2]
