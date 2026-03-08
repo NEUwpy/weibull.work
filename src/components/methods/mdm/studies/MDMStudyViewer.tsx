@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import matter from 'gray-matter'
 // 导入通用图表组件
 import { ChartCard, BoxPlotChart, HeatmapChart, DensityChart } from '@/components/shared/charts'
+// 导入 Demo2Viewer
+import { Demo2Viewer } from './demo2'
 
 // 参数配置类型
 interface ParamConfig {
@@ -726,15 +728,23 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
         </div>
       </div>
 
-      {isLoading && <LoadingSpinner message="加载数据中..." />}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-sm">
-          <div className="flex items-center gap-2"><Info size={16} /><span>{error}</span></div>
-        </div>
+      {/* Demo2 使用专用组件 */}
+      {selectedStudyId === 'demo-2' && !isLoadingList && (
+        <Demo2Viewer />
       )}
 
-      {!isLoading && !error && config && (
+      {/* Demo1 及其他示例使用原有逻辑 */}
+      {selectedStudyId !== 'demo-2' && (
+        <>
+          {isLoading && <LoadingSpinner message="加载数据中..." />}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-sm">
+              <div className="flex items-center gap-2"><Info size={16} /><span>{error}</span></div>
+            </div>
+          )}
+
+          {!isLoading && !error && config && (
         <>
           {/* 参数面板 */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -791,6 +801,8 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
               csvData={csvData}
             />
           )}
+        </>
+      )}
         </>
       )}
     </div>
