@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { ChevronDown, FlaskConical, Filter, Settings, Layers, BookOpen, Info, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import matter from 'gray-matter'
@@ -15,7 +15,7 @@ interface ParamConfig {
   state: 'fixed' | 'range' | 'discrete'
   fixedValue?: number
   range?: { min: number; max: number }
-  discreteValues?: number[]
+  discreteValues?: (number | string)[]  // 支持字符串格式，如 "2.0"
   isVariable: boolean
   isDisplayDimension: boolean
 }
@@ -76,6 +76,7 @@ interface StudyConfig {
 // CSV 数据行
 interface SimulationRow {
   beta_true: number
+  eta_true: number
   sample_size: number
   offset_value: number
   sim_id: number
@@ -94,6 +95,8 @@ interface StatsResult {
   key: string
   keyLabel: string
   beta_true?: number
+  eta_true?: number
+  gamma_true?: number
   sample_size?: number
   offset_value?: number
   count: number
@@ -192,6 +195,41 @@ interface MDMStudyViewerProps {
   methodId: string
 }
 
+// 解析 CSV 文本（纯函数，放在组件外部）
+function parseCsv(text: string): SimulationRow[] {
+  const lines = text.trim().split('\n')
+  if (lines.length < 2) return []
+
+  const headers = lines[0].split(',')
+  const rows: SimulationRow[] = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',')
+    const parseVal = (key: string) => {
+      const v = values[headers.indexOf(key)]
+      if (!v || v === 'NaN' || v === 'nan') return null
+      const n = parseFloat(v)
+      return isNaN(n) ? null : n
+    }
+
+    rows.push({
+      beta_true: parseFloat(values[headers.indexOf('beta_true')] || '0'),
+      eta_true: parseFloat(values[headers.indexOf('eta_true')] || '0'),
+      sample_size: parseInt(values[headers.indexOf('sample_size')] || '0'),
+      offset_value: parseFloat(values[headers.indexOf('offset_value')] || '0'),
+      sim_id: parseInt(values[headers.indexOf('sim_id')] || '0'),
+      est_beta: parseVal('est_beta'),
+      est_eta: parseVal('est_eta'),
+      est_gamma: parseVal('est_gamma'),
+      bias_beta: parseVal('bias_beta'),
+      bias_eta: parseVal('bias_eta'),
+      bias_gamma: parseVal('bias_gamma'),
+      r_squared: parseVal('r_squared')
+    })
+  }
+  return rows
+}
+
 // 参数卡片颜色
 const PARAM_COLORS: Record<string, string> = {
   beta: 'border-blue-200 bg-blue-50',
@@ -256,6 +294,117 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
   const [densityTab, setDensityTab] = useState<'beta' | 'eta' | 'gamma'>('beta')  // 密度图参数 tab
   const filterRef = useRef<HTMLDivElement>(null)
 
+  // 根据显示维度和默认值构建需要加载的 chunk 文件名列表
+  // 格式化规则与 Python 脚本保持一致
+  const getRequiredChunks = useCallback((
+    paramList: ParamConfig[],
+    defaults: Record<string, number>
+  ): string[] => {
+    const displayDimensions = paramList.filter(p => p.isDisplayDimension && p.isVariable)
+    console.log('[getRequiredChunks] paramList:', paramList.map(p => ({ id: p.id, isDisplayDimension: p.isDisplayDimension, discreteValues: p.discreteValues })))
+    console.log('[getRequiredChunks] displayDimensions:', displayDimensions.map(p => p.id))
+    console.log('[getRequiredChunks] defaults:', defaults)
+    if (displayDimensions.length === 0) return []
+
+    // 格式化参数值用于文件名（与 Python 脚本 generate_chunk_filename 保持一致）
+    const formatValue = (val: number | string, paramId: string): string => {
+      const numVal = typeof val === 'string' ? parseFloat(val) : val
+
+      if (paramId === 'beta') {
+        // beta 保留 1 位小数: b1.5, b2.0, b3.0, b5.0, b7.0
+        return numVal.toFixed(1)
+      } else if (paramId === 'process') {
+        // process 保留 2 位小数，去掉末尾的 0（但不去掉整数部分）
+        // Python: f"{val:.2f}".rstrip('0').rstrip('.')
+        // 0 → "0.00" → "0"
+        // 0.05 → "0.05" → "0.05"
+        // 0.1 → "0.10" → "0.1"
+        if (numVal === 0) return '0'
+        const formatted = numVal.toFixed(2)
+        // 只去掉小数部分末尾的 0
+        return formatted.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
+      } else if (paramId === 'sampleSize') {
+        // sampleSize 整数
+        return String(Math.round(numVal))
+      } else {
+        // 其他参数（eta 等）：整数显示整数，浮点数保留原样
+        if (Number.isInteger(numVal)) {
+          return String(numVal)
+        }
+        return String(numVal)
+      }
+    }
+
+    // 获取非显示维度参数的默认值
+    const getDefaultValue = (paramId: string): number => {
+      const defaultKey = paramId === 'sampleSize' ? 'sampleSize' : paramId
+      return defaults[defaultKey] ?? (paramId === 'eta' ? 1000 : paramId === 'sampleSize' ? 7 : 0.1)
+    }
+
+    // 获取参数值：显示维度取所有值，非显示维度取默认值
+    const getParamValues = (paramId: string): (number | string)[] => {
+      const param = paramList.find(p => p.id === paramId)
+      console.log(`[getParamValues] ${paramId}:`, { isDisplayDimension: param?.isDisplayDimension, discreteValues: param?.discreteValues })
+      if (param?.isDisplayDimension && param.discreteValues) {
+        return param.discreteValues
+      }
+      return [getDefaultValue(paramId)]
+    }
+
+    const betaValues = getParamValues('beta')
+    const etaValues = getParamValues('eta')
+    const nValues = getParamValues('sampleSize')
+    const dValues = getParamValues('process')
+
+    console.log('[getRequiredChunks] betaValues:', betaValues)
+    console.log('[getRequiredChunks] etaValues:', etaValues)
+    console.log('[getRequiredChunks] nValues:', nValues)
+    console.log('[getRequiredChunks] dValues:', dValues)
+
+    const chunks: string[] = []
+
+    // 生成所有需要的 chunk 文件名
+    betaValues.forEach(beta => {
+      etaValues.forEach(eta => {
+        nValues.forEach(n => {
+          dValues.forEach(d => {
+            const b = formatValue(beta, 'beta')
+            const e = formatValue(eta, 'eta')
+            const ns = formatValue(n, 'sampleSize')
+            const ds = formatValue(d, 'process')
+            chunks.push(`b${b}_e${e}_n${ns}_d${ds}.csv`)
+          })
+        })
+      })
+    })
+
+    return chunks
+  }, [])
+
+  // 批量加载 chunk 文件
+  const loadChunks = useCallback(async (
+    basePath: string,
+    chunkNames: string[]
+  ): Promise<SimulationRow[]> => {
+    const results = await Promise.all(
+      chunkNames.map(async (name) => {
+        try {
+          const res = await fetch(`${basePath}/chunks/${name}`)
+          if (!res.ok) {
+            console.warn(`Chunk not found: ${name}`)
+            return []
+          }
+          const text = await res.text()
+          return parseCsv(text)
+        } catch (err) {
+          console.warn(`Error loading chunk ${name}:`, err)
+          return []
+        }
+      })
+    )
+    return results.flat()
+  }, [])
+
   // 点击外部关闭下拉
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -274,7 +423,7 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
     }
   }, [studies, selectedStudyId])
 
-  // 加载配置和数据
+  // 加载配置文件
   useEffect(() => {
     if (!selectedStudyId) return
 
@@ -283,27 +432,18 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
 
     const basePath = `/studies/${methodId.toLowerCase()}/${selectedStudy.dirName}`
 
-    const loadData = async () => {
+    const loadConfig = async () => {
       try {
         setIsLoading(true)
         setError(null)
 
-        const [configRes, csvRes] = await Promise.all([
-          fetch(`${basePath}/config.md`),
-          fetch(`${basePath}/data.csv`)
-        ])
-
+        const configRes = await fetch(`${basePath}/config.md`)
         if (!configRes.ok) throw new Error('配置文件加载失败')
-        if (!csvRes.ok) throw new Error('数据文件加载失败')
 
         const configText = await configRes.text()
-        const csvText = await csvRes.text()
-
         const parsedConfig = parseConfigMd(configText)
-        const parsedCsv = parseCsv(csvText)
 
         setConfig({ ...parsedConfig, dirName: selectedStudy.dirName })
-        setCsvData(parsedCsv)
 
         if (parsedConfig.params && parsedConfig.params.length > 0) {
           const initializedParams = parsedConfig.params.map((p, idx) => ({
@@ -315,13 +455,45 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
       } catch (err) {
         setError(err instanceof Error ? err.message : '加载失败')
         console.error('Load error:', err)
+        setIsLoading(false)
+      }
+    }
+
+    loadConfig()
+  }, [methodId, selectedStudyId, studies])
+
+  // 当参数（显示维度）变化时，按需加载 chunks
+  useEffect(() => {
+    if (!config || params.length === 0) return
+
+    const basePath = `/studies/${methodId.toLowerCase()}/${config.dirName}`
+    const defaults = config.defaults || {}
+
+    const loadChunksData = async () => {
+      try {
+        setIsLoading(true)
+
+        const chunkNames = getRequiredChunks(params, defaults)
+        if (chunkNames.length === 0) {
+          setCsvData([])
+          setIsLoading(false)
+          return
+        }
+
+        console.log(`Loading ${chunkNames.length} chunks:`, chunkNames)
+        const data = await loadChunks(basePath, chunkNames)
+        console.log(`Loaded ${data.length} rows`)
+        setCsvData(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '数据加载失败')
+        console.error('Chunk load error:', err)
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadData()
-  }, [methodId, selectedStudyId, studies])
+    loadChunksData()
+  }, [config, params, methodId, getRequiredChunks, loadChunks])
 
   const parseConfigMd = (text: string): StudyConfig => {
     try {
@@ -344,39 +516,6 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
     }
   }
 
-  const parseCsv = (text: string): SimulationRow[] => {
-    const lines = text.trim().split('\n')
-    if (lines.length < 2) return []
-
-    const headers = lines[0].split(',')
-    const rows: SimulationRow[] = []
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',')
-      const parseVal = (key: string) => {
-        const v = values[headers.indexOf(key)]
-        if (!v || v === 'NaN' || v === 'nan') return null
-        const n = parseFloat(v)
-        return isNaN(n) ? null : n
-      }
-
-      rows.push({
-        beta_true: parseFloat(values[headers.indexOf('beta_true')] || '0'),
-        sample_size: parseInt(values[headers.indexOf('sample_size')] || '0'),
-        offset_value: parseFloat(values[headers.indexOf('offset_value')] || '0'),
-        sim_id: parseInt(values[headers.indexOf('sim_id')] || '0'),
-        est_beta: parseVal('est_beta'),
-        est_eta: parseVal('est_eta'),
-        est_gamma: parseVal('est_gamma'),
-        bias_beta: parseVal('bias_beta'),
-        bias_eta: parseVal('bias_eta'),
-        bias_gamma: parseVal('bias_gamma'),
-        r_squared: parseVal('r_squared')
-      })
-    }
-    return rows
-  }
-
   const toggleDisplayDimension = (paramId: string) => {
     setParams(prev => prev.map(p =>
       p.id === paramId && p.isVariable ? { ...p, isDisplayDimension: !p.isDisplayDimension } : p
@@ -397,16 +536,22 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
     if (displayDimensions.length === 0 || csvData.length === 0) return []
 
     const variableParams = params.filter(p => p.isVariable)
+    const displayDimensionIds = new Set(displayDimensions.map(p => p.id))
     const defaults = config?.defaults || {}
 
     const filteredData = csvData.filter(row => {
-      if (!variableParams.find(p => p.id === 'beta')) {
+      // 如果参数不是变量参数，或者虽然是变量参数但不是显示维度，则按默认值过滤
+      // 关键修复：变量参数但不是显示维度时，也应该按默认值过滤，避免混合数据
+      if (!variableParams.find(p => p.id === 'beta') || !displayDimensionIds.has('beta')) {
         if (defaults.beta !== undefined && row.beta_true !== defaults.beta) return false
       }
-      if (!variableParams.find(p => p.id === 'sampleSize')) {
+      if (!variableParams.find(p => p.id === 'eta') || !displayDimensionIds.has('eta')) {
+        if (defaults.eta !== undefined && row.eta_true !== defaults.eta) return false
+      }
+      if (!variableParams.find(p => p.id === 'sampleSize') || !displayDimensionIds.has('sampleSize')) {
         if (defaults.sampleSize !== undefined && row.sample_size !== defaults.sampleSize) return false
       }
-      if (!variableParams.find(p => p.id === 'process')) {
+      if (!variableParams.find(p => p.id === 'process') || !displayDimensionIds.has('process')) {
         if (defaults.process !== undefined && row.offset_value !== defaults.process) return false
       }
       return true
@@ -417,6 +562,7 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
       const keyParts: string[] = []
       displayDimensions.forEach(p => {
         if (p.id === 'beta') keyParts.push(`β=${row.beta_true}`)
+        if (p.id === 'eta') keyParts.push(`η=${row.eta_true}`)
         if (p.id === 'sampleSize') keyParts.push(`n=${row.sample_size}`)
         if (p.id === 'process') keyParts.push(`${config?.processSymbol || 'δ'}=${row.offset_value}`)
       })
@@ -456,10 +602,17 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
     return Array.from(groups.entries()).map(([key, rows]): StatsResult => {
       const validRows = rows.filter(r => r.est_beta !== null && r.est_eta !== null && r.est_gamma !== null)
 
+      // 获取真实值（移到前面，确保两个分支都能使用）
+      const betaTrue = rows[0].beta_true ?? config?.defaults?.beta ?? 2.0
+      const etaTrue = rows[0].eta_true ?? config?.defaults?.eta ?? 1000
+      const gammaTrue = config?.defaults?.gamma ?? 1000
+
       if (validRows.length === 0) {
         return {
           key, keyLabel: key,
-          beta_true: displayDimensions.some(d => d.id === 'beta') ? rows[0].beta_true : undefined,
+          beta_true: betaTrue,
+          eta_true: etaTrue,
+          gamma_true: gammaTrue,
           sample_size: displayDimensions.some(d => d.id === 'sampleSize') ? rows[0].sample_size : undefined,
           offset_value: displayDimensions.some(d => d.id === 'process') ? rows[0].offset_value : undefined,
           count: rows.length, valid_count: 0,
@@ -475,10 +628,6 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
         }
       }
 
-      const betaTrue = rows[0].beta_true ?? config?.defaults?.beta ?? 2.0
-      const etaTrue = config?.defaults?.eta ?? 1000
-      const gammaTrue = config?.defaults?.gamma ?? 1000
-
       const betaStats = calcStats(validRows.map(r => r.est_beta!), betaTrue)
       const etaStats = calcStats(validRows.map(r => r.est_eta!), etaTrue)
       const gammaStats = calcStats(validRows.map(r => r.est_gamma!), gammaTrue)
@@ -486,6 +635,7 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
       const labelParts: string[] = []
       displayDimensions.forEach(p => {
         if (p.id === 'beta') labelParts.push(String(rows[0].beta_true))
+        if (p.id === 'eta') labelParts.push(String(rows[0].eta_true))
         if (p.id === 'sampleSize') labelParts.push(String(rows[0].sample_size))
         if (p.id === 'process') {
           const val = rows[0].offset_value
@@ -495,7 +645,11 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
 
       return {
         key, keyLabel: labelParts.length === 1 ? labelParts[0] : labelParts.join(', '),
-        beta_true: displayDimensions.some(d => d.id === 'beta') ? rows[0].beta_true : undefined,
+        // 保存用于计算偏差的真实值（始终保存，用于表格显示）
+        beta_true: betaTrue,
+        eta_true: etaTrue,
+        gamma_true: gammaTrue,
+        // 显示维度的值（用于分组标签）
         sample_size: displayDimensions.some(d => d.id === 'sampleSize') ? rows[0].sample_size : undefined,
         offset_value: displayDimensions.some(d => d.id === 'process') ? rows[0].offset_value : undefined,
         count: rows.length, valid_count: validRows.length,
@@ -525,6 +679,7 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
       // 获取参数值的辅助函数
       const getParamValue = (item: StatsResult, paramId: string): number => {
         if (paramId === 'beta') return item.beta_true || 0
+        if (paramId === 'eta') return item.eta_true || 0
         if (paramId === 'sampleSize') return item.sample_size || 0
         if (paramId === 'process') return item.offset_value || 0
         return 0
@@ -655,10 +810,10 @@ function ParamCard({
   onToggleDisplayDimension: () => void
 }) {
   // 判断某个值是否应该高亮（红色 = 当前生效的值）
-  const isActiveValue = (value: number): boolean => {
+  const isActiveValue = (value: number | string): boolean => {
     // 固定参数：高亮 fixedValue
     if (!param.isVariable) {
-      return param.state === 'fixed' && param.fixedValue === value
+      return param.state === 'fixed' && String(param.fixedValue) === String(value)
     }
 
     // 变量参数且是显示维度：高亮所有 discreteValues
@@ -669,18 +824,19 @@ function ParamCard({
     // 变量参数但不是显示维度：高亮 defaults 中的对应值
     const defaultKey = param.id === 'sampleSize' ? 'sampleSize' : param.id
     const defaultValue = defaults?.[defaultKey]
-    return defaultValue !== undefined && defaultValue === value
+    return defaultValue !== undefined && String(defaultValue) === String(value)
   }
 
   // 格式化显示值
-  const formatValue = (v: number) => {
+  const formatValue = (v: number | string) => {
+    if (typeof v === 'string') return v
     if (typeof v === 'number' && v < 1 && v !== 0) return v.toFixed(2)
     if (Number.isInteger(v)) return String(v)
     return String(v)
   }
 
   // 获取要显示的值列表（统一布局）
-  const getDisplayValues = (): number[] => {
+  const getDisplayValues = (): (number | string)[] => {
     if (param.state === 'fixed' && param.fixedValue !== undefined) {
       return [param.fixedValue]
     }
@@ -1081,9 +1237,10 @@ function StatsTable({
           </thead>
           <tbody>
             {stats.map((s, idx) => {
+              // 使用 StatsResult 中保存的真实值（与偏差计算一致）
               const betaTrue = s.beta_true ?? config.defaults?.beta ?? 2.0
-              const etaTrue = config.defaults?.eta ?? 1000
-              const gammaTrue = config.defaults?.gamma ?? 1000
+              const etaTrue = s.eta_true ?? config.defaults?.eta ?? 1000
+              const gammaTrue = s.gamma_true ?? config.defaults?.gamma ?? 1000
 
               return (
                 <React.Fragment key={idx}>
@@ -1113,8 +1270,14 @@ function DualVarSection({
   const fmt = (v: number | null, d = 2) => v === null ? '—' : v.toFixed(d)
 
   // 获取两个变量的值
-  const var1Key = displayDimensions[0].id === 'beta' ? 'beta_true' : displayDimensions[0].id === 'sampleSize' ? 'sample_size' : 'offset_value'
-  const var2Key = displayDimensions[1].id === 'beta' ? 'beta_true' : displayDimensions[1].id === 'sampleSize' ? 'sample_size' : 'offset_value'
+  const getVarKey = (dim: typeof displayDimensions[0]) => {
+    if (dim.id === 'beta') return 'beta_true'
+    if (dim.id === 'eta') return 'eta_true'
+    if (dim.id === 'sampleSize') return 'sample_size'
+    return 'offset_value'
+  }
+  const var1Key = getVarKey(displayDimensions[0])
+  const var2Key = displayDimensions[1] ? getVarKey(displayDimensions[1]) : var1Key
 
   const var1Values = Array.from(new Set(stats.map(s => s[var1Key as keyof StatsResult]))).sort((a, b) => (a as number) - (b as number))
   const var2Values = Array.from(new Set(stats.map(s => s[var2Key as keyof StatsResult]))).sort((a, b) => (a as number) - (b as number))

@@ -56,6 +56,7 @@ export function HeatmapChart({
   // 获取维度键名
   const getVarKey = (dim: ParamConfig) => {
     if (dim.id === 'beta') return 'beta_true'
+    if (dim.id === 'eta') return 'eta_true'
     if (dim.id === 'sampleSize') return 'sample_size'
     return 'offset_value'
   }

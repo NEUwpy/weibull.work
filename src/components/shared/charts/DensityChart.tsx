@@ -80,7 +80,7 @@ function computeKDE(values: number[], bandwidth?: number, minX?: number) {
 // 获取分组键名
 function getGroupKey(dim: ParamConfig): string {
   if (dim.id === 'beta') return 'beta_true'
-  if (dim.id === 'eta') return 'eta'
+  if (dim.id === 'eta') return 'eta_true'
   if (dim.id === 'gamma') return 'gamma'
   if (dim.id === 'sampleSize') return 'sample_size'
   if (dim.id === 'process') return 'offset_value'
