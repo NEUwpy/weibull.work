@@ -13,6 +13,7 @@ import ResultAnalysisLab from '@/components/methods/ResultAnalysisLab'
 import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
+import { getApiBaseUrl } from '@/lib/config'
 
 // Dynamic imports for heavy visualizers
 const VariableFlowViewer = dynamic(() => import('@/components/methods/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -260,7 +261,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           requestBody.offset = 0.1
         }
 
-        const response = await fetch('http://localhost:8001/calculate', {
+        const response = await fetch(`${getApiBaseUrl()}/calculate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)

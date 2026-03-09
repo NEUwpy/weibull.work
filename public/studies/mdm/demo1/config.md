@@ -1,6 +1,6 @@
 ---
 id: demo-1
-name: '示例1: MDM多维度研究'
+name: '示例1: 参数设置'
 description: 研究形状参数、尺度参数、样本量、偏移量对MDM三参数估计结果的影响。
 method: mdm
 defaults:

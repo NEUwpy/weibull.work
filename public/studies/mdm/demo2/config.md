@@ -1,6 +1,6 @@
 ---
 id: demo-2
-name: '示例2: 蒙特卡洛收敛性研究'
+name: '示例2: 仿真设置'
 description: 研究不同样本量和蒙特卡洛重复次数下MDM估计的收敛特性。
 method: mdm
 defaults:

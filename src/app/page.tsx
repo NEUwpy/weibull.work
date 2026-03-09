@@ -14,6 +14,7 @@ import {
 } from '@/lib/weibull'
 import MethodSelector from '@/components/calculator/MethodSelector'
 import DataEditor from '@/components/calculator/DataEditor'
+import { getApiBaseUrl } from '@/lib/config'
 
 const CHART_COLORS = [
   '#3b82f6', // Blue-500
@@ -294,7 +295,7 @@ function CalculatorContent() {
           requestBody.offset = 0.1
         }
 
-        const response = await fetch('http://localhost:8001/calculate', {
+        const response = await fetch(`${getApiBaseUrl()}/calculate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)

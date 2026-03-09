@@ -18,6 +18,7 @@ import {
 } from 'recharts'
 import { RefreshCw } from 'lucide-react'
 import MDM3DSurfaceVisualizer from './MDM3DSurfaceVisualizer'
+import { getApiBaseUrl } from '@/lib/config'
 import MDMOffsetAnalyzer from './MDMOffsetAnalyzer'
 import MDMIterationViewer from './MDMIterationViewer'
 import { cn } from '@/lib/utils'
@@ -289,7 +290,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm', dataSources
 
     try {
       // Call backend to calculate sigma_beta_gamma
-      const response = await fetch('http://localhost:8001/calculate_3d_surface', {
+      const response = await fetch(`${getApiBaseUrl()}/calculate_3d_surface`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

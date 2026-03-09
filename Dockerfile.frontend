@@ -5,6 +5,8 @@
 # Stage 1: 依赖安装
 FROM node:20-alpine AS deps
 WORKDIR /app
+# 配置淘宝镜像源
+RUN npm config set registry https://registry.npmmirror.com
 COPY package.json package-lock.json* ./
 RUN npm ci
 

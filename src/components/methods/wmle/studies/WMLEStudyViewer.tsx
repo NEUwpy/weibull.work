@@ -59,7 +59,17 @@ interface StudyConfig {
   params?: ParamConfig[]
   defaults?: Record<string, number>
   simulation?: SimulationConfig
+  calculation?: CalculationConfig
   charts?: ChartsConfig
+}
+
+// 计算配置类型
+interface CalculationConfig {
+  gammaSteps?: number
+  betaBounds?: [number, number]
+  gammaRangeRound1?: [number, number]
+  gammaRangeRound2?: [number, number]
+  defaultOffset?: number
 }
 
 // CSV 数据行

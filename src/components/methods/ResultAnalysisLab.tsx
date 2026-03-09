@@ -15,6 +15,7 @@ import {
   calculateMedianRanks,
   calculateWeibullParameters
 } from '@/lib/weibull'
+import { getApiBaseUrl } from '@/lib/config'
 
 // Error Distribution Chart Component (Histogram + KDE Curve)
 interface ErrorDistributionChartProps {
@@ -347,7 +348,7 @@ export default function ResultAnalysisLab({
         body.offset = offset
       }
 
-      const response = await fetch('http://localhost:8001/calculate', {
+      const response = await fetch(`${getApiBaseUrl()}/calculate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
