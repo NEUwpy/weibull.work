@@ -39,7 +39,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: weibull-cloudflared
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token eyJhIjoiNjZjYjE5MDlhZTk3MGZjM2M1MDgyNzI3NzY4NmJkOWMiLCJ0IjoiZWMwNzY3YzctMTFiOS00MjA2LTk0YWQtMWJhMWUyNTA1NDkwIiwicyI6IlpURmtNek01WWpndFpUZzVPQzAwWVdZekxXSTBZalV0TXpsbU9EQmhNR0U1WWpVMCJ9
+    command: tunnel --no-autoupdate run --token eyJhIjoiNjZjYjE5MDlhZTk3MGZjM2M1MDgyNzI3NzY4NmJkOWMiLCJ0IjoiZWMwNzY3YzctMTFiOS00MjA2LTk0YWQtMWJhMWUyNTA1NDkwIiwicyI6IllURXlaRFExTW1VdE56VmpNQzAwWVRJMExXRTFOV0V0TkdaaE9UQTRaR1ZoWm1VeiJ9
     network_mode: host
     # 使用 host 网络模式，可直接访问 localhost:3000 和 localhost:8001
 
