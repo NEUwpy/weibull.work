@@ -40,8 +40,8 @@ services:
     container_name: weibull-cloudflared
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token eyJhIjoiNjZjYjE5MDlhZTk3MGZjM2M1MDgyNzI3NzY4NmJkOWMiLCJ0IjoiZWMwNzY3YzctMTFiOS00MjA2LTk0YWQtMWJhMWUyNTA1NDkwIiwicyI6IlpURmtNek01WWpndFpUZzVPQzAwWVdZekxXSTBZalV0TXpsbU9EQmhNR0U1WWpVMCJ9
-    networks:
-      - weibull-network
+    network_mode: host
+    # 使用 host 网络模式，可直接访问 localhost:3000 和 localhost:8001
 
 networks:
   weibull-network:
