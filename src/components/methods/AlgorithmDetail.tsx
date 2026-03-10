@@ -170,19 +170,25 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3 text-left font-bold text-slate-900">符号</th>
-                  <th className="px-4 py-3 text-left font-bold text-slate-900">说明</th>
-                  <th className="px-4 py-3 text-left font-bold text-slate-900">单位/范围</th>
+                  <th className="px-4 py-3 text-left font-bold text-slate-900 w-[15%]">符号</th>
+                  <th className="px-4 py-3 text-left font-bold text-slate-900 w-[35%]">说明</th>
+                  <th className="px-4 py-3 text-left font-bold text-slate-900 w-[15%]">符号</th>
+                  <th className="px-4 py-3 text-left font-bold text-slate-900 w-[35%]">说明</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {frontmatter.variables.map((variable: any, index: number) => (
-                  <tr key={index}>
-                    <td className="px-4 py-3 text-blue-600 font-mono">{variable.symbol}</td>
-                    <td className="px-4 py-3 text-slate-600">{variable.description}</td>
-                    <td className="px-4 py-3 text-slate-500">{variable.range || '-'}</td>
-                  </tr>
-                ))}
+                {Array.from({ length: Math.ceil(frontmatter.variables.length / 2) }).map((_, rowIndex) => {
+                  const leftVar = frontmatter.variables[rowIndex * 2]
+                  const rightVar = frontmatter.variables[rowIndex * 2 + 1]
+                  return (
+                    <tr key={rowIndex}>
+                      <td className="px-4 py-3 text-blue-600"><LatexRenderer math={leftVar?.symbol || ''} /></td>
+                      <td className="px-4 py-3 text-slate-600">{leftVar?.description}</td>
+                      <td className="px-4 py-3 text-blue-600"><LatexRenderer math={rightVar?.symbol || ''} /></td>
+                      <td className="px-4 py-3 text-slate-600">{rightVar?.description || ''}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -195,38 +201,38 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
         {frontmatter?.applicability && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <h3 className="font-bold text-slate-900 mb-4">适用场景</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${frontmatter.applicability.complete_sample ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
                 {frontmatter.applicability.complete_sample ? (
                   <CheckCircle size={16} className="text-emerald-500" />
                 ) : (
                   <XCircle size={16} className="text-slate-300" />
                 )}
-                <span className="text-sm text-slate-600">完全样本</span>
+                <span className="text-sm text-slate-700">完全样本</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${frontmatter.applicability.censored_sample ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
                 {frontmatter.applicability.censored_sample ? (
                   <CheckCircle size={16} className="text-emerald-500" />
                 ) : (
                   <XCircle size={16} className="text-slate-300" />
                 )}
-                <span className="text-sm text-slate-600">截尾样本</span>
+                <span className="text-sm text-slate-700">截尾样本</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${frontmatter.applicability.small_sample ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
                 {frontmatter.applicability.small_sample ? (
                   <CheckCircle size={16} className="text-emerald-500" />
                 ) : (
                   <XCircle size={16} className="text-slate-300" />
                 )}
-                <span className="text-sm text-slate-600">小样本</span>
+                <span className="text-sm text-slate-700">小样本</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${frontmatter.applicability.large_sample ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
                 {frontmatter.applicability.large_sample ? (
                   <CheckCircle size={16} className="text-emerald-500" />
                 ) : (
                   <XCircle size={16} className="text-slate-300" />
                 )}
-                <span className="text-sm text-slate-600">大样本</span>
+                <span className="text-sm text-slate-700">大样本</span>
               </div>
             </div>
           </div>
