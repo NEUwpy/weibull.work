@@ -373,7 +373,7 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
                     {currentStep.formula.symbols.map((sym, index) => (
                       <div key={index} className="flex items-start gap-2 text-xs">
                         <code className="font-mono bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded whitespace-nowrap">
-                          {sym.symbol}
+                          <LatexRenderer math={sym.symbol} />
                         </code>
                         <span className="text-slate-700 leading-tight">{sym.meaning}</span>
                       </div>

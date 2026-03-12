@@ -53,7 +53,7 @@
     "    J3 = get_weight_j3(n, gamma)",
     "    sum_inv = np.sum(1.0 / x_adj)",
     "    sum_x_gamma_minus1 = np.sum(x_adj ** (gamma - 1))",
-    "    term2 = (sum_inv / n) * (sum_x_gamma / sum_x_gamma_minus1) - J3",
+    "    term2 = (sum_inv / n) * (sum_x_gamma / sum_x_gamma_minus1) - J3(gamma)",
     "    ",
     "    return term1 ** 2 + term2 ** 2",
     "",
@@ -89,7 +89,7 @@
       "inputs": [
         {
           "symbol": "data",
-          "math": "原始失效时间样本 \\{x_1, x_2, ..., x_n\\}",
+          "math": "原始失效时间样本 \\{x_1, x_2, \\dots, x_n\\}",
           "code": "data: List[float] - 输入的原始失效时间数据",
           "value": "[310, 342, 353, 365, 383, 393, 403, 412, 451, 456]"
         }
@@ -144,14 +144,14 @@
           { "symbol": "J_1", "meaning": "尺度参数权重，用于 η 的代数计算" },
           { "symbol": "J_2", "meaning": "形状参数权重，用于修正似然方程" }
         ],
-        "explanation": "J₁ 和 J₂ 是通过 2²⁰ 次蒙特卡洛模拟得到的中位数权重。对于大样本 (n>100)，J₁ 可用精确公式 exp(ψ(n))/n 计算，J₂ 渐近趋近于 1"
+        "explanation": "J₁ 和 J₂ 是通过 2²⁰ 次蒙特卡洛模拟得到的中位数权重。对于大样本 (n>100)，J₁ 可用精确公式 exp(ψ(n))/n 计算，J₂ 渐近趋近于 1.0"
       },
       "outputs": [
         {
           "symbol": "J_1",
           "math": "尺度权重",
           "code": "J1: float - 用于 η 计算的权重",
-          "value": 0.967"
+          "value": 0.967
         },
         {
           "symbol": "J_2",
@@ -176,25 +176,25 @@
         }
       ],
       "formula": {
-        "expression": "\\gamma^{(0)} = 2.0, \\quad \\alpha^{(0)} = 0.9 \\times x_{\\min}",
+        "expression": "\\beta^{(0)} = 2.0, \\quad \\gamma^{(0)} = 0.9 \\times x_{\\min}",
         "symbols": [
-          { "symbol": "\\gamma^{(0)}", "meaning": "形状参数初始值（论文建议 2.0）" },
-          { "symbol": "\\alpha^{(0)}", "meaning": "位置参数初始值（略小于最小观测值）" }
+          { "symbol": "\\beta^{(0)}", "meaning": "形状参数初始值（论文建议 2.0）" },
+          { "symbol": "\\gamma^{(0)}", "meaning": "位置参数初始值（略小于最小观测值）" }
         ],
-        "explanation": "初始值影响优化收敛速度。γ=2.0 是常见威布尔形状参数；α 必须小于最小观测值"
+        "explanation": "初始值影响优化收敛速度。β=2.0 是常见威布尔形状参数；γ 必须小于最小观测值"
       },
       "outputs": [
         {
-          "symbol": "\\gamma^{(0)}",
+          "symbol": "\\beta^{(0)}",
           "math": "形状参数初始值",
           "code": "gamma_init: float - 初始猜测值",
-          "value": 2.0"
+          "value": 2.0
         },
         {
-          "symbol": "\\alpha^{(0)}",
+          "symbol": "\\gamma^{(0)}",
           "math": "位置参数初始值",
           "code": "alpha_init: float - 初始猜测值",
-          "value": 279.0"
+          "value": 279.0
         }
       ],
       "otherVariables": []
@@ -206,12 +206,12 @@
       "codeLines": [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56],
       "inputs": [
         {
-          "symbol": "\\gamma",
+          "symbol": "\\beta",
           "math": "当前形状参数候选值",
           "code": "gamma: float - 优化变量1"
         },
         {
-          "symbol": "\\alpha",
+          "symbol": "\\gamma",
           "math": "当前位置参数候选值",
           "code": "alpha: float - 优化变量2"
         },
@@ -219,11 +219,11 @@
           "symbol": "J_2",
           "math": "形状权重",
           "code": "J2: float - 从第2步获得",
-          "value": 0.853"
+          "value": 0.853
         }
       ],
       "formula": {
-        "expression": "O(\\gamma, \\alpha) = T_1^2 + T_2^2",
+        "expression": "O(\\beta, \\gamma) = T_1^2 + T_2^2",
         "symbols": [
           { "symbol": "T_1", "meaning": "第一项：修正的形状参数似然方程" },
           { "symbol": "T_2", "meaning": "第二项：修正的位置参数似然方程" }
@@ -241,57 +241,57 @@
         {
           "symbol": "J_3",
           "math": "动态位置权重",
-          "code": "J3: float - 依赖于当前 γ 值和样本量 n",
-          "formula": "J_3 = J_3(n, \\gamma)",
-          "note": "J₃ 从预计算表中插值获取，是 γ 和 n 的函数"
+          "code": "J3: float - 依赖于当前 β 值和样本量 n",
+          "formula": "J_3 = J_3(n, \\beta)",
+          "note": "J₃ 从预计算表中插值获取，是 β 和 n 的函数"
         },
         {
           "symbol": "T_1",
           "math": "第一项",
-          "formula": "T_1 = \\frac{J_2}{\\gamma} + \\frac{1}{n}\\sum\\ln(x_i-\\alpha) - \\frac{\\sum(x_i-\\alpha)^\\gamma \\ln(x_i-\\alpha)}{\\sum(x_i-\\alpha)^\\gamma}"
+          "formula": "T_1 = \\frac{J_2}{\\beta} + \\frac{1}{n}\\sum\\ln(x_i-\\gamma) - \\frac{\\sum(x_i-\\gamma)^\\beta \\ln(x_i-\\gamma)}{\\sum(x_i-\\gamma)^\\beta}"
         },
         {
           "symbol": "T_2",
           "math": "第二项",
-          "formula": "T_2 = \\frac{1}{n}\\sum\\frac{1}{x_i-\\alpha} \\cdot \\frac{\\sum(x_i-\\alpha)^\\gamma}{\\sum(x_i-\\alpha)^{\\gamma-1}} - J_3(\\gamma)"
+          "formula": "T_2 = \\frac{1}{n}\\sum\\frac{1}{x_i-\\gamma} \\cdot \\frac{\\sum(x_i-\\gamma)^\\beta}{\\sum(x_i-\\gamma)^{\\beta-1}} - J_3(\\beta)"
         }
       ]
     },
     {
       "id": 5,
       "name": "Nelder-Mead 优化",
-      "description": "使用无导数单纯形优化算法搜索使目标函数最小的 γ 和 α",
+      "description": "使用无导数单纯形优化算法搜索使目标函数最小的 β 和 γ",
       "codeLines": [58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69],
       "inputs": [
         {
-          "symbol": "[\\gamma^{(0)}, \\alpha^{(0)}]",
+          "symbol": "[\\beta^{(0)}, \\gamma^{(0)}]",
           "math": "初始值向量",
           "code": "[gamma_init, alpha_init]",
           "value": "[2.0, 279.0]"
         },
         {
-          "symbol": "O(\\gamma, \\alpha)",
+          "symbol": "O(\\beta, \\gamma)",
           "math": "目标函数",
           "code": "wmle_objective"
         }
       ],
       "formula": {
-        "expression": "\\{\\hat{\\gamma}, \\hat{\\alpha}\\} = \\arg\\min_{\\gamma, \\alpha} O(\\gamma, \\alpha)",
+        "expression": "\\{\\hat{\\beta}, \\hat{\\gamma}\\} = \\arg\\min_{\\beta, \\gamma} O(\\beta, \\gamma)",
         "symbols": [
-          { "symbol": "\\hat{\\gamma}", "meaning": "最优形状参数" },
-          { "symbol": "\\hat{\\alpha}", "meaning": "最优位置参数" }
+          { "symbol": "\\hat{\\beta}", "meaning": "最优形状参数" },
+          { "symbol": "\\hat{\\gamma}", "meaning": "最优位置参数" }
         ],
         "explanation": "Nelder-Mead 算法通过单纯形的迭代变形（反射、扩张、收缩）来搜索最优解，无需计算梯度"
       },
       "outputs": [
         {
-          "symbol": "\\hat{\\gamma}",
+          "symbol": "\\hat{\\beta}",
           "math": "最优形状参数",
           "code": "gamma_hat: float - 估计的形状参数 β",
-          "value": 2.34"
+          "value": 2.34
         },
         {
-          "symbol": "\\hat{\\alpha}",
+          "symbol": "\\hat{\\gamma}",
           "math": "最优位置参数",
           "code": "alpha_hat: float - 估计的位置参数 γ",
           "value": 285.6"
@@ -304,17 +304,17 @@
     {
       "id": 6,
       "name": "代数计算尺度参数 η",
-      "description": "使用最优的 γ̂ 和 α̂，通过加权代数公式直接计算尺度参数",
+      "description": "使用最优的 β̂ 和 γ̂，通过加权代数公式直接计算尺度参数",
       "codeLines": [71, 72, 73, 74],
       "inputs": [
         {
-          "symbol": "\\hat{\\gamma}",
+          "symbol": "\\hat{\\beta}",
           "math": "最优形状参数",
           "code": "gamma_hat: float",
           "value": 2.34"
         },
         {
-          "symbol": "\\hat{\\alpha}",
+          "symbol": "\\hat{\\gamma}",
           "math": "最优位置参数",
           "code": "alpha_hat: float",
           "value": 285.6"
@@ -323,14 +323,14 @@
           "symbol": "J_1",
           "math": "尺度权重",
           "code": "J1: float - 从第2步获得",
-          "value": 0.967"
+          "value": 0.967
         }
       ],
       "formula": {
-        "expression": "\\hat{\\eta} = \\left[ \\frac{1}{n \\cdot J_1} \\sum_{i=1}^{n} (x_i - \\hat{\\alpha})^{\\hat{\\gamma}} \\right]^{1/\\hat{\\gamma}}",
+        "expression": "\\hat{\\eta} = \\left[ \\frac{1}{n \\cdot J_1} \\sum_{i=1}^{n} (x_i - \\hat{\\gamma})^{\\hat{\\beta}} \\]^{1/\\hat{\\beta}}",
         "symbols": [
           { "symbol": "\\hat{\\eta}", "meaning": "尺度参数估计值" },
-          { "symbol": "x_i - \\hat{\\alpha}", "meaning": "平移后的数据" },
+          { "symbol": "x_i - \\hat{\\gamma}", "meaning": "平移后的数据" },
           { "symbol": "J_1", "meaning": "尺度修正权重" }
         ],
         "explanation": "这是 WMLE 的核心公式，直接通过代数方式计算 η，无需迭代。J₁ 的修正使得估计量近似无偏"
@@ -340,7 +340,7 @@
           "symbol": "\\hat{\\eta}",
           "math": "尺度参数估计值",
           "code": "eta_hat: float - 最终的尺度参数",
-          "value": 112.5"
+          "value": 112.5
         }
       ],
       "otherVariables": []
@@ -353,7 +353,7 @@
       "inputs": [
         {
           "symbol": "\\hat{\\beta}",
-          "math": "形状参数 (即 \\hat{\\gamma})",
+          "math": "形状参数",
           "code": "gamma_hat: float",
           "value": 2.34"
         },
@@ -365,7 +365,7 @@
         },
         {
           "symbol": "\\hat{\\gamma}",
-          "math": "位置参数 (即 \\hat{\\alpha})",
+          "math": "位置参数",
           "code": "alpha_hat: float",
           "value": 285.6"
         }
@@ -384,7 +384,7 @@
           "symbol": "R^2",
           "math": "拟合优度",
           "code": "r2: float - 决定系数",
-          "value": 0.982"
+          "value": 0.982
         }
       ],
       "otherVariables": []

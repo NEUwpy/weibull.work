@@ -9,22 +9,18 @@ import {
   FileText,
   BookOpen,
   Calculator,
-  BarChart3,
-  Tag,
-  Layers,
+  Copy,
+  Check,
   Database
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 type SubCase = {
   id: string
   title: string
-  industry: string
   type: string
-  size: string
   tags: string[]
   data_raw: string
-  content: string
+  description: string
   groupId: string
   parameters?: {
     beta?: number
@@ -36,7 +32,7 @@ type SubCase = {
 type CaseGroup = {
   id: string
   title: string
-  industry: string
+  type: string
   description: string
   related_paper?: string
   sample_count: number
@@ -57,6 +53,7 @@ export default function CaseGroupPage() {
 
   const [group, setGroup] = useState<CaseGroup | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/cases/groups/${groupId}`)
@@ -74,6 +71,12 @@ export default function CaseGroupPage() {
         setIsLoading(false)
       })
   }, [groupId])
+
+  const handleCopy = async (data_raw: string, id: string) => {
+    await navigator.clipboard.writeText(data_raw)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   if (isLoading) {
     return (
@@ -104,6 +107,9 @@ export default function CaseGroupPage() {
     )
   }
 
+  // 获取每组点数（从第一个子案例推断）
+  const pointsPerGroup = group.subCases[0]?.data_raw?.split('\n').filter(Boolean).length ?? 0
+
   return (
     <main className="flex-1 bg-slate-50 min-h-screen">
       <div className="max-w-6xl mx-auto px-8 py-8 space-y-6">
@@ -123,80 +129,48 @@ export default function CaseGroupPage() {
                 <h1 className="text-2xl font-bold text-slate-800">{group.title}</h1>
               </div>
               <p className="text-sm text-slate-400 mt-1">
-                {group.subCases.length} 个子案例 · {group.industry}
+                {group.subCases.length} 组 · {pointsPerGroup}点/组 · {group.type}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {group.related_paper && (
-              <Link
-                href={`/library/${group.related_paper}`}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors"
-              >
-                <BookOpen size={16} />
-                查看文献
-              </Link>
-            )}
-          </div>
+          {group.related_paper && (
+            <Link
+              href={`/library/${group.related_paper}`}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 rounded-xl shadow-sm transition-colors"
+            >
+              <BookOpen size={16} />
+              查看文献
+            </Link>
+          )}
         </div>
 
         {/* 元数据卡片 */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase">ID</span>
-              <p className="text-sm font-mono text-slate-600 mt-1">{group.id}</p>
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase">案例数量</span>
-              <p className="text-sm font-bold text-slate-600 mt-1">{group.sample_count} 组</p>
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase">行业</span>
-              <p className="text-sm text-slate-600 mt-1">{group.industry}</p>
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase">关联文献</span>
-              <p className="text-sm text-slate-600 mt-1">{group.related_paper || '-'}</p>
-            </div>
-          </div>
-
           {/* 真实参数 */}
           {group.true_params && (
-            <div className="pt-4 border-t border-slate-100">
+            <div>
               <span className="text-xs font-bold text-slate-400 uppercase">真实参数</span>
               <div className="flex items-center gap-6 mt-2">
-                {group.true_params.beta && (
-                  <span className="text-sm">
+                {group.true_params.beta !== undefined && (
+                  <span className="text-base">
                     <span className="text-slate-400">β = </span>
                     <span className="font-bold text-slate-700">{group.true_params.beta}</span>
                   </span>
                 )}
-                {group.true_params.eta && (
-                  <span className="text-sm">
+                {group.true_params.eta !== undefined && (
+                  <span className="text-base">
                     <span className="text-slate-400">η = </span>
                     <span className="font-bold text-slate-700">{group.true_params.eta}</span>
                   </span>
                 )}
-                {group.true_params.gamma && (
-                  <span className="text-sm">
+                {group.true_params.gamma !== undefined && (
+                  <span className="text-base">
                     <span className="text-slate-400">γ = </span>
                     <span className="font-bold text-slate-700">{group.true_params.gamma}</span>
                   </span>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* 标签 */}
-          {group.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-100">
-              {group.tags.map(tag => (
-                <span key={tag} className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                  #{tag}
-                </span>
-              ))}
             </div>
           )}
 
@@ -211,11 +185,8 @@ export default function CaseGroupPage() {
         {/* 子案例列表 */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers size={18} className="text-slate-400" />
-              <span className="font-bold text-slate-700">子案例列表</span>
-            </div>
-            <span className="text-sm text-slate-400">{group.subCases.length} 个</span>
+            <span className="font-bold text-slate-700">样本数据</span>
+            <span className="text-sm text-slate-400">{group.subCases.length} 组</span>
           </div>
 
           {group.subCases.length === 0 ? (
@@ -224,79 +195,52 @@ export default function CaseGroupPage() {
               <p>暂无子案例</p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100 text-xs font-black text-slate-400 uppercase tracking-wider">
-                  <th className="px-6 py-3">#</th>
-                  <th className="px-6 py-3">案例名称</th>
-                  <th className="px-6 py-3">类型</th>
-                  <th className="px-6 py-3">数据量</th>
-                  <th className="px-6 py-3">标签</th>
-                  <th className="px-6 py-3 text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {group.subCases.map((subCase, index) => (
-                  <tr key={subCase.id} className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-mono text-slate-400">{index + 1}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/cases/groups/${groupId}/${subCase.id}`}
-                        className="font-bold text-slate-800 hover:text-emerald-600 transition-colors"
+            <div className="divide-y divide-slate-50">
+              {group.subCases.map((subCase, index) => {
+                const values = subCase.data_raw?.split('\n').filter(Boolean) ?? []
+
+                return (
+                  <div
+                    key={subCase.id}
+                    onClick={() => router.push(`/cases/groups/${groupId}/${subCase.id}`)}
+                    className="px-6 py-4 hover:bg-slate-50/80 transition-colors cursor-pointer group flex items-center gap-6"
+                  >
+                    {/* 序号 */}
+                    <div className="w-8 flex-shrink-0">
+                      <span className="text-base font-mono text-slate-400">{index + 1}</span>
+                    </div>
+
+                    {/* 样本值 - 使用网格均匀排布 */}
+                    <div className="flex-1 grid grid-cols-7 gap-2">
+                      {values.map((val, i) => (
+                        <span key={i} className="text-sm font-mono text-slate-600 bg-slate-50 px-2 py-1 rounded text-center">
+                          {parseFloat(val).toFixed(1)}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* 操作按钮 */}
+                    <div className="flex-shrink-0 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleCopy(subCase.data_raw, subCase.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-lg shadow-sm transition-colors"
+                        title="复制数据"
                       >
-                        {subCase.title}
-                      </Link>
-                      <span className="text-xs text-slate-400 ml-2">({subCase.id})</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-600">{subCase.type}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "px-2 py-0.5 rounded text-xs font-bold",
-                        subCase.size === '小样本' ? "bg-orange-50 text-orange-600" :
-                        subCase.size === '大样本' ? "bg-emerald-50 text-emerald-600" :
-                        "bg-slate-100 text-slate-500"
-                      )}>
-                        {subCase.size}
-                      </span>
-                      <span className="text-xs text-slate-400 ml-2">
-                        {subCase.data_raw?.split('\n').filter(Boolean).length || 0} 点
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {subCase.tags.slice(0, 3).map(tag => (
-                          <span key={tag} className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link
-                          href={`/cases/groups/${groupId}/${subCase.id}`}
-                          className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                          title="查看详情"
-                        >
-                          <FileText size={16} />
-                        </Link>
-                        <button
-                          onClick={() => router.push(`/?caseData=${encodeURIComponent(subCase.data_raw)}`)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"
-                        >
-                          <Calculator size={14} />
-                          计算
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {copiedId === subCase.id ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        {copiedId === subCase.id ? '已复制' : '复制'}
+                      </button>
+                      <button
+                        onClick={() => router.push(`/?caseData=${encodeURIComponent(subCase.data_raw)}`)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-lg shadow-sm transition-colors"
+                      >
+                        <Calculator size={14} />
+                        去计算
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
 

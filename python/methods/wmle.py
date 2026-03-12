@@ -9,10 +9,16 @@ Weighted Maximum Likelihood Estimation
 权重数据来源: https://github.com/dcousin3/wMLE
 权重表已嵌入代码中，无需外部文件
 
-符号映射 (论文 → 系统):
-  - 论文 gamma (形状) → 系统 beta
-  - 论文 beta (尺度) → 系统 eta
-  - 论文 alpha (位置) → 系统 gamma
+符号映射说明:
+  ┌─────────────┬──────────────┬──────────────┬─────────────┐
+  │   参数      │   论文符号   │   系统符号   │  代码变量   │
+  ├─────────────┼──────────────┼──────────────┼─────────────┤
+  │   形状参数  │     γ        │      β       │  gamma_hat  │
+  │   尺度参数  │     β        │      η       │  beta_hat   │
+  │   位置参数  │     α        │      γ       │  alpha_hat  │
+  └─────────────┴──────────────┴──────────────┴─────────────┘
+
+注意: 本文件注释中的公式使用系统标准符号 (β=形状, η=尺度, γ=位置)
 """
 
 import numpy as np
@@ -300,7 +306,7 @@ class WMLE(WeibullBase):
         - gamma_hat: 位置参数（论文中的 alpha）
         """
         # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
-        # @formula: x_{(1)} \\leq x_{(2)} \\leq \\cdots \\leq x_{(n)}
+        # @formula: x_{(1)} \leq x_{(2)} \leq \cdots \leq x_{(n)}
         # @symbols: x_{(i)}|x_{(i)}|第i小的失效时间, n|n|样本数量, x_{min}|x_{min}|最小失效时间
         # @inputs: data|x_i|原始失效时间样本
         # @outputs: arr|x|排序后数组, n|n|样本数量, x_min|x_{min}|最小值
@@ -309,7 +315,7 @@ class WMLE(WeibullBase):
         x_min = np.min(arr)
 
         # @step: 2 | 计算静态权重 J₁, J₂ | 根据样本量 n 从权重表中查取两个静态修正权重
-        # @formula: J_1 = \\mathrm{median}(W_1), \\quad J_2 = \\mathrm{median}(W_2)
+        # @formula: J_1 = \mathrm{median}(W_1), \quad J_2 = \mathrm{median}(W_2)
         # @symbols: J_1|J_1|尺度参数权重, J_2|J_2|形状参数权重
         # @inputs: n|n|样本数量
         # @outputs: J1|J_1|尺度权重, J2|J_2|形状权重
@@ -320,15 +326,15 @@ class WMLE(WeibullBase):
             self.log_step({"phase": "init", "w1": w1, "w2": w2, "n": n})
 
         # @step: 3 | 初始化优化起点 | 为 Nelder-Mead 优化算法设置初始猜测值
-        # @formula: \\gamma^{(0)} = 2.0, \\quad \\alpha^{(0)} = 0.9 \\times x_{\\min}
-        # @symbols: \\gamma^{(0)}|\\gamma^{(0)}|形状参数初始值, \\alpha^{(0)}|\\alpha^{(0)}|位置参数初始值
+        # @formula: \beta^{(0)} = 2.0, \quad \gamma^{(0)} = 0.9 \times x_{\min}
+        # @symbols: \beta^{(0)}|\beta^{(0)}|形状参数初始值, \gamma^{(0)}|\gamma^{(0)}|位置参数初始值
         # @inputs: x_min|x_{min}|最小失效时间
-        # @outputs: gamma_init|\\gamma^{(0)}|形状参数初始值, alpha_init|\\alpha^{(0)}|位置参数初始值
+        # @outputs: gamma_init|\beta^{(0)}|形状参数初始值, alpha_init|\gamma^{(0)}|位置参数初始值
         gamma_init = 2.0  # Paper's heuristic
         alpha_init = 0.9 * x_min  # Paper's heuristic
 
         # @step: 4 | 定义 WMLE 目标函数 | 构造包含两个平方项的目标函数（论文公式4）
-        # @formula: O(\\gamma, \\alpha) = T_1^2 + T_2^2
+        # @formula: O(\beta, \gamma) = T_1^2 + T_2^2
         # @symbols: T_1|T_1|第一项：修正的形状参数似然方程, T_2|T_2|第二项：修正的位置参数似然方程, J_3|J_3|动态位置权重
         # @inputs: J2|J_2|形状权重, arr|x|失效时间数组
         # @outputs: O|O|目标函数值
@@ -376,11 +382,11 @@ class WMLE(WeibullBase):
                     "obj_val": val if val < 1e5 else None
                 })
 
-        # @step: 5 | Nelder-Mead 优化 | 使用无导数单纯形优化算法搜索使目标函数最小的 γ 和 α
-        # @formula: \\{\\hat{\\gamma}, \\hat{\\alpha}\\} = \\arg\\min_{\\gamma, \\alpha} O(\\gamma, \\alpha)
-        # @symbols: \\hat{\\gamma}|\\hat{\\gamma}|最优形状参数, \\hat{\\alpha}|\\hat{\\alpha}|最优位置参数
-        # @inputs: gamma_init|\\gamma^{(0)}|形状初始值, alpha_init|\\alpha^{(0)}|位置初始值
-        # @outputs: gamma_hat|\\hat{\\gamma}|最优形状参数, alpha_hat|\\hat{\\alpha}|最优位置参数
+        # @step: 5 | Nelder-Mead 优化 | 使用无导数单纯形优化算法搜索使目标函数最小的 β 和 γ
+        # @formula: \{\hat{\beta}, \hat{\gamma}\} = \arg\min_{\beta, \gamma} O(\beta, \gamma)
+        # @symbols: \hat{\beta}|\hat{\beta}|最优形状参数, \hat{\gamma}|\hat{\gamma}|最优位置参数
+        # @inputs: gamma_init|\beta^{(0)}|形状初始值, alpha_init|\gamma^{(0)}|位置初始值
+        # @outputs: gamma_hat|\hat{\beta}|最优形状参数, alpha_hat|\hat{\gamma}|最优位置参数
         # @loop: 约 50-200 次迭代
         result = minimize(
             wmle_objective,
@@ -396,11 +402,11 @@ class WMLE(WeibullBase):
         gamma_hat = result.x[0]  # Shape (paper's gamma -> System's beta)
         alpha_hat = result.x[1]  # Location (Paper's alpha -> System's gamma)
 
-        # @step: 6 | 代数计算尺度参数 η | 使用最优的 γ̂ 和 α̂，通过加权代数公式直接计算尺度参数
-        # @formula: \\hat{\\eta} = \\left[ \\frac{1}{n \\cdot J_1} \\sum_{i=1}^{n} (x_i - \\hat{\\alpha})^{\\hat{\\gamma}} \\right]^{1/\\hat{\\gamma}}
-        # @symbols: \\hat{\\eta}|\\hat{\\eta}|尺度参数估计值, x_i - \\hat{\\alpha}|x_i-\\hat{\\alpha}|平移后的数据, J_1|J_1|尺度修正权重
-        # @inputs: gamma_hat|\\hat{\\gamma}|最优形状参数, alpha_hat|\\hat{\\alpha}|最优位置参数, w1|J_1|尺度权重
-        # @outputs: beta_hat|\\hat{\\eta}|尺度参数估计值
+        # @step: 6 | 代数计算尺度参数 η | 使用最优的 β̂ 和 γ̂，通过加权代数公式直接计算尺度参数
+        # @formula: \hat{\eta} = \left[ \frac{1}{n \cdot J_1} \sum_{i=1}^{n} (x_i - \hat{\gamma})^{\hat{\beta}} \right]^{1/\hat{\beta}}
+        # @symbols: \hat{\eta}|\hat{\eta}|尺度参数估计值, x_i - \hat{\gamma}|x_i-\hat{\gamma}|平移后的数据, J_1|J_1|尺度修正权重
+        # @inputs: gamma_hat|\hat{\beta}|最优形状参数, alpha_hat|\hat{\gamma}|最优位置参数, w1|J_1|尺度权重
+        # @outputs: beta_hat|\hat{\eta}|尺度参数估计值
         x_adj = arr - alpha_hat
         beta_hat = (np.sum(x_adj ** gamma_hat) / (n * w1)) ** (1 / gamma_hat)
 
@@ -413,9 +419,9 @@ class WMLE(WeibullBase):
             })
 
         # @step: 7 | 计算拟合优度 R² | 评估模型与数据的拟合程度
-        # @formula: R^2 = 1 - \\frac{\\sum(F_i - \\hat{F}_i)^2}{\\sum(F_i - \\bar{F})^2}
-        # @symbols: R^2|R^2|决定系数, F_i|F_i|经验累积概率, \\hat{F}_i|\\hat{F}_i|模型预测概率
-        # @inputs: gamma_hat|\\hat{\\gamma}|形状参数, beta_hat|\\hat{\\eta}|尺度参数, alpha_hat|\\hat{\\alpha}|位置参数
+        # @formula: R^2 = 1 - \frac{\sum(F_i - \hat{F}_i)^2}{\sum(F_i - \bar{F})^2}
+        # @symbols: R^2|R^2|决定系数, F_i|F_i|经验累积概率, \hat{F}_i|\hat{F}_i|模型预测概率
+        # @inputs: gamma_hat|\hat{\beta}|形状参数, beta_hat|\hat{\eta}|尺度参数, alpha_hat|\hat{\gamma}|位置参数
         # @outputs: r2|R^2|拟合优度
         r2 = self._calculate_r2(gamma_hat, beta_hat, alpha_hat)
 

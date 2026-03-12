@@ -1,3 +1,35 @@
+/**
+ * 案例数据读取模块
+ *
+ * ============================================================================
+ * 案例数据统一格式规范
+ * ============================================================================
+ *
+ * 【名称】格式：[id] 标题 [文献ID]
+ *   - 示例：[c1] MDM方法验证样本 [182-030]
+ *   - 文献ID通过 related_paper_slug 指定，自动显示
+ *
+ * 【类型】只有两种：
+ *   - 抽样样本：Monte Carlo 等模拟生成的数据，有已知真实参数
+ *   - 真实样本：实际工程/实验中的失效数据，无已知参数
+ *
+ * 【数据规模】自动计算：X点×Y组
+ *   - 单案例：根据 data_raw 行数自动计算
+ *   - 案例组：根据 sample_count 字段
+ *
+ * 【描述】统一模板（content 正文部分）：
+ *   - 抽样样本：来源：文献ID/描述，β=x，η=x，γ=x，用于XX验证
+ *   - 真实样本：来源：XX设备/XX实验，描述
+ *
+ * 【Tags】必选标签（3-4个）：
+ *   - 方法：MDM / MLE / WMLE / 通用
+ *   - 参数类型：三参数Weibull / 两参数Weibull
+ *   - 样本量：大样本 / 小样本
+ *   - 数据完整度（真实样本必选）：完全样本 / 截断样本
+ *
+ * ============================================================================
+ */
+
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
@@ -9,12 +41,11 @@ const GROUPS_DIR = path.join(CASES_DIR, 'groups')
 export type CaseItem = {
   id: string
   title: string
-  industry: string
-  type: string
-  size: string
+  type: string  // 抽样样本 | 真实样本
   tags: string[]
   data_raw: string
   created_at: string
+  description: string  // 从 content 提取的简短描述
   // Optional metadata
   related_paper_slug?: string
   parameters?: {
@@ -22,8 +53,11 @@ export type CaseItem = {
     eta?: number
     gamma?: number
   }
-  // Content body
-  content: string
+  true_params?: {
+    beta?: number
+    eta?: number
+    gamma?: number
+  }
   // 标识为单案例
   isGroup?: false
 }
@@ -37,8 +71,7 @@ export type SubCaseItem = CaseItem & {
 export type CaseGroup = {
   id: string
   title: string
-  industry: string
-  type: 'group'
+  type: string  // 抽样样本 | 真实样本
   description: string
   related_paper?: string
   sample_count: number
@@ -58,33 +91,50 @@ export type CaseGroup = {
 // 统一类型（列表页使用）
 export type CaseOrGroup = CaseItem | CaseGroup
 
+// 从 content 中提取描述（第一段非空文本）
+function extractDescription(content: string): string {
+  const lines = content.split('\n')
+  const descLines: string[] = []
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    // 跳过空行和标题
+    if (!trimmed || trimmed.startsWith('#')) continue
+    descLines.push(trimmed)
+    // 只取第一段
+    if (descLines.length === 1) break
+  }
+
+  return descLines.join(' ').trim()
+}
+
 export function getAllCases(): CaseItem[] {
   if (!fs.existsSync(CASES_DIR)) {
     return []
   }
 
   const files = fs.readdirSync(CASES_DIR)
-  
+
   const cases = files
     .filter(file => file.endsWith('.md') && !file.startsWith('_')) // Ignore _template.md
     .map(file => {
       const filePath = path.join(CASES_DIR, file)
       const fileContent = fs.readFileSync(filePath, 'utf-8')
       const { data, content } = matter(fileContent)
-      
+
       // Map frontmatter to CaseItem
       return {
         id: data.id || file.replace(/\.md$/, ''),
         title: data.title || 'Untitled Case',
-        industry: data.industry || 'Unknown',
-        type: data.type || 'Unknown',
-        size: data.size || 'Unknown',
+        type: data.type || '真实样本',  // 默认为真实样本
         tags: data.tags || [],
         data_raw: data.data_raw || '',
+        description: extractDescription(content),
         created_at: data.created_at || new Date().toISOString(),
         related_paper_slug: data.related_paper_slug,
         parameters: data.parameters,
-        content: content
+        true_params: data.true_params,
+        isGroup: false as const
       }
     })
     // Sort by date desc
@@ -94,10 +144,6 @@ export function getAllCases(): CaseItem[] {
 }
 
 export function getCaseById(id: string): CaseItem | null {
-  // Try to find file by ID (assuming filename matches ID for simplicity, or search content)
-  // For performance, direct filename match is preferred.
-  // We'll search both: filename == id.md OR frontmatter.id == id
-
   const allCases = getAllCases()
   return allCases.find(c => c.id === id) || null
 }
@@ -122,8 +168,7 @@ export function getAllGroups(): CaseGroup[] {
       return {
         id: groupDir,
         title: groupDir,
-        industry: 'Unknown',
-        type: 'group' as const,
+        type: '真实样本',
         description: '',
         sample_count: 0,
         created_at: new Date().toISOString(),
@@ -141,9 +186,8 @@ export function getAllGroups(): CaseGroup[] {
     return {
       id: data.id || groupDir,
       title: data.title || groupDir,
-      industry: data.industry || 'Unknown',
-      type: 'group' as const,
-      description: data.description || content.slice(0, 200),
+      type: data.type || '真实样本',
+      description: data.description || extractDescription(content),
       related_paper: data.related_paper,
       sample_count: data.sample_count || subCaseCount,
       true_params: data.true_params,
@@ -183,9 +227,8 @@ export function getGroupById(groupId: string): CaseGroup | null {
   return {
     id: data.id || groupId,
     title: data.title || groupId,
-    industry: data.industry || 'Unknown',
-    type: 'group' as const,
-    description: data.description || '',
+    type: data.type || '真实样本',
+    description: data.description || extractDescription(content),
     related_paper: data.related_paper,
     sample_count: data.sample_count || subCases.length,
     true_params: data.true_params,
@@ -215,16 +258,16 @@ export function getSubCases(groupId: string): SubCaseItem[] {
     return {
       id: data.id || file.replace(/\.md$/, ''),
       title: data.title || file.replace(/\.md$/, ''),
-      industry: data.industry || 'Unknown',
-      type: data.type || 'Unknown',
-      size: data.size || 'Unknown',
+      type: data.type || '真实样本',
       tags: data.tags || [],
       data_raw: data.data_raw || '',
+      description: extractDescription(content),
       created_at: data.created_at || new Date().toISOString(),
       related_paper_slug: data.related_paper_slug,
       parameters: data.parameters,
-      content,
-      groupId
+      true_params: data.true_params,
+      groupId,
+      isGroup: false as const
     }
   })
 
@@ -255,16 +298,16 @@ export function getSubCaseById(groupId: string, caseId: string): SubCaseItem | n
         return {
           id: d.id || file.replace(/\.md$/, ''),
           title: d.title || file.replace(/\.md$/, ''),
-          industry: d.industry || 'Unknown',
-          type: d.type || 'Unknown',
-          size: d.size || 'Unknown',
+          type: d.type || '真实样本',
           tags: d.tags || [],
           data_raw: d.data_raw || '',
+          description: extractDescription(content),
           created_at: d.created_at || new Date().toISOString(),
           related_paper_slug: d.related_paper_slug,
           parameters: d.parameters,
-          content,
-          groupId
+          true_params: d.true_params,
+          groupId,
+          isGroup: false as const
         }
       }
     }
@@ -277,22 +320,22 @@ export function getSubCaseById(groupId: string, caseId: string): SubCaseItem | n
   return {
     id: data.id || caseId,
     title: data.title || caseId,
-    industry: data.industry || 'Unknown',
-    type: data.type || 'Unknown',
-    size: data.size || 'Unknown',
+    type: data.type || '真实样本',
     tags: data.tags || [],
     data_raw: data.data_raw || '',
+    description: extractDescription(content),
     created_at: data.created_at || new Date().toISOString(),
     related_paper_slug: data.related_paper_slug,
     parameters: data.parameters,
-    content,
-    groupId
+    true_params: data.true_params,
+    groupId,
+    isGroup: false as const
   }
 }
 
 // 获取所有案例和案例组（用于列表页）
 export function getAllCasesAndGroups(): CaseOrGroup[] {
-  const cases = getAllCases().map(c => ({ ...c, isGroup: false as const }))
+  const cases = getAllCases()
   const groups = getAllGroups()
 
   // 合并并按日期排序
@@ -354,9 +397,5 @@ export function getCasesTree(): CaseTreeNode[] {
     })
   }
 
-  // 按日期排序
-  return nodes.sort((a, b) => {
-    // 简化排序逻辑
-    return 0
-  })
+  return nodes
 }

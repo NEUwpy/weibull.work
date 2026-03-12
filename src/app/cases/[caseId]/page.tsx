@@ -6,47 +6,50 @@ import { useRouter, useParams } from 'next/navigation'
 import {
   ArrowLeft,
   FileText,
-  FolderOpen,
   BookOpen,
   Calculator,
   Copy,
   Check
 } from 'lucide-react'
 
-type SubCase = {
+type CaseItem = {
   id: string
   title: string
   type: string
   tags: string[]
   data_raw: string
   description: string
-  groupId: string
   related_paper_slug?: string
+  related_paper?: string
   parameters?: {
+    beta?: number
+    eta?: number
+    gamma?: number
+  }
+  true_params?: {
     beta?: number
     eta?: number
     gamma?: number
   }
 }
 
-export default function SubCasePage() {
+export default function CaseDetailPage() {
   const params = useParams()
-  const groupId = params.groupId as string
   const caseId = params.caseId as string
   const router = useRouter()
 
-  const [subCase, setSubCase] = useState<SubCase | null>(null)
+  const [caseItem, setCaseItem] = useState<CaseItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/cases/groups/${groupId}/${caseId}`)
+    fetch(`/api/cases/${caseId}`)
       .then(res => res.json())
       .then(data => {
         if (data.error) {
           console.error(data.error)
         } else {
-          setSubCase(data)
+          setCaseItem(data)
         }
         setIsLoading(false)
       })
@@ -54,11 +57,11 @@ export default function SubCasePage() {
         console.error(err)
         setIsLoading(false)
       })
-  }, [groupId, caseId])
+  }, [caseId])
 
   const handleCopy = async () => {
-    if (subCase?.data_raw) {
-      await navigator.clipboard.writeText(subCase.data_raw)
+    if (caseItem?.data_raw) {
+      await navigator.clipboard.writeText(caseItem.data_raw)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
@@ -77,15 +80,15 @@ export default function SubCasePage() {
     )
   }
 
-  if (!subCase) {
+  if (!caseItem) {
     return (
       <main className="flex-1 bg-slate-50 min-h-screen">
         <div className="max-w-6xl mx-auto px-8 py-12">
           <div className="text-center text-slate-400">
             <FileText size={48} className="mx-auto mb-4 opacity-20" />
-            <p>子案例不存在</p>
-            <Link href={`/cases/groups/${groupId}`} className="text-emerald-600 hover:underline mt-4 inline-block">
-              返回案例组
+            <p>案例不存在</p>
+            <Link href="/cases" className="text-emerald-600 hover:underline mt-4 inline-block">
+              返回案例列表
             </Link>
           </div>
         </div>
@@ -93,7 +96,9 @@ export default function SubCasePage() {
     )
   }
 
-  const dataPoints = subCase.data_raw?.split('\n').filter(Boolean) ?? []
+  const paperId = caseItem.related_paper_slug || caseItem.related_paper
+  const dataPoints = caseItem.data_raw?.split('\n').filter(Boolean) ?? []
+  const trueParams = caseItem.true_params || caseItem.parameters
 
   return (
     <main className="flex-1 bg-slate-50 min-h-screen">
@@ -103,7 +108,7 @@ export default function SubCasePage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
-              href={`/cases/groups/${groupId}`}
+              href="/cases"
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition-colors"
             >
               <ArrowLeft size={20} />
@@ -111,17 +116,17 @@ export default function SubCasePage() {
             <div>
               <div className="flex items-center gap-2">
                 <FileText size={20} className="text-blue-500" />
-                <h1 className="text-2xl font-bold text-slate-800">{subCase.title}</h1>
+                <h1 className="text-2xl font-bold text-slate-800">{caseItem.title}</h1>
               </div>
               <p className="text-sm text-slate-400 mt-1">
-                1 组 · {dataPoints.length} 点/组 · {subCase.type}
+                1 组 · {dataPoints.length} 点/组 · {caseItem.type}
               </p>
             </div>
           </div>
 
-          {subCase.related_paper_slug && (
+          {paperId && (
             <Link
-              href={`/library/${subCase.related_paper_slug}`}
+              href={`/library/${paperId}`}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 rounded-xl shadow-sm transition-colors"
             >
               <BookOpen size={16} />
@@ -133,26 +138,26 @@ export default function SubCasePage() {
         {/* 元数据卡片 */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
           {/* 真实参数 */}
-          {subCase.parameters && (
+          {trueParams && (
             <div>
-              <span className="text-xs font-bold text-slate-400 uppercase">估计参数</span>
+              <span className="text-xs font-bold text-slate-400 uppercase">真实参数</span>
               <div className="flex items-center gap-6 mt-2">
-                {subCase.parameters.beta !== undefined && (
+                {trueParams.beta !== undefined && (
                   <span className="text-base">
-                    <span className="text-slate-400">β̂ = </span>
-                    <span className="font-bold text-slate-700">{subCase.parameters.beta}</span>
+                    <span className="text-slate-400">β = </span>
+                    <span className="font-bold text-slate-700">{trueParams.beta}</span>
                   </span>
                 )}
-                {subCase.parameters.eta !== undefined && (
+                {trueParams.eta !== undefined && (
                   <span className="text-base">
-                    <span className="text-slate-400">η̂ = </span>
-                    <span className="font-bold text-slate-700">{subCase.parameters.eta}</span>
+                    <span className="text-slate-400">η = </span>
+                    <span className="font-bold text-slate-700">{trueParams.eta}</span>
                   </span>
                 )}
-                {subCase.parameters.gamma !== undefined && (
+                {trueParams.gamma !== undefined && (
                   <span className="text-base">
-                    <span className="text-slate-400">γ̂ = </span>
-                    <span className="font-bold text-slate-700">{subCase.parameters.gamma}</span>
+                    <span className="text-slate-400">γ = </span>
+                    <span className="font-bold text-slate-700">{trueParams.gamma}</span>
                   </span>
                 )}
               </div>
@@ -160,9 +165,9 @@ export default function SubCasePage() {
           )}
 
           {/* 描述 */}
-          {subCase.description && (
+          {caseItem.description && (
             <div className="pt-4 border-t border-slate-100">
-              <p className="text-sm text-slate-600 leading-relaxed">{subCase.description}</p>
+              <p className="text-sm text-slate-600 leading-relaxed">{caseItem.description}</p>
             </div>
           )}
         </div>
@@ -201,7 +206,7 @@ export default function SubCasePage() {
                   {copied ? '已复制' : '复制'}
                 </button>
                 <button
-                  onClick={() => router.push(`/?caseData=${encodeURIComponent(subCase.data_raw)}`)}
+                  onClick={() => router.push(`/?caseData=${encodeURIComponent(caseItem.data_raw)}`)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-lg shadow-sm transition-colors"
                 >
                   <Calculator size={14} />
