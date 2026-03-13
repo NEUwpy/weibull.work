@@ -183,34 +183,53 @@ async def calculate(req: CalculationRequest):
 @app.post("/calculate_3d_surface")
 async def calculate_3d_surface(req: Surface3DRequest):
     """
-    Calculate 3D surface data for MDM method.
-    Computes sigma(beta, gamma) for 20 gamma values with 50 beta points each.
+    Calculate 3D surface data for optimization methods.
+    - MDM: Computes sigma(beta, gamma) for 20 gamma values with 50 beta points each.
+    - WMLE: Computes objective function O(beta, gamma) for 50x50 grid.
     """
     if len(req.data) < 2:
         raise HTTPException(status_code=400, detail="Insufficient data points")
 
-    if req.method.lower() != "mdm":
-        raise HTTPException(status_code=400, detail="3D surface only supported for MDM method")
+    method_lower = req.method.lower()
 
     try:
-        # Run MDM with trace to get sigma_beta_gamma
-        algo_instance = MDM(req.data)
-        res = algo_instance.run(trace=True, offset=0.1)
+        if method_lower == "mdm":
+            # Run MDM with trace to get sigma_beta_gamma
+            algo_instance = MDM(req.data)
+            res = algo_instance.run(trace=True, offset=0.1)
 
-        if len(res) >= 5:
-            converged = res[4]
+            if len(res) >= 5:
+                converged = res[4]
+            else:
+                converged = True
+
+            return {
+                "beta": float(res[0]) if res[0] is not None else None,
+                "eta": float(res[1]) if res[1] is not None else None,
+                "gamma": float(res[2]) if res[2] is not None else None,
+                "rSquared": float(res[3]) if res[3] is not None else None,
+                "method": req.method,
+                "converged": bool(converged) if not isinstance(converged, str) else converged,
+                "trace_data": algo_instance.trace_data
+            }
+
+        elif method_lower == "wmle":
+            # Run WMLE with surface generation
+            algo_instance = WMLE(req.data)
+            res = algo_instance.run(trace=True, generate_surface=True)
+
+            return {
+                "beta": float(res[0]) if res[0] is not None else None,
+                "eta": float(res[1]) if res[1] is not None else None,
+                "gamma": float(res[2]) if res[2] is not None else None,
+                "rSquared": float(res[3]) if res[3] is not None else None,
+                "method": req.method,
+                "converged": True,
+                "trace_data": algo_instance.trace_data
+            }
+
         else:
-            converged = True
-
-        return {
-            "beta": float(res[0]) if res[0] is not None else None,
-            "eta": float(res[1]) if res[1] is not None else None,
-            "gamma": float(res[2]) if res[2] is not None else None,
-            "rSquared": float(res[3]) if res[3] is not None else None,
-            "method": req.method,
-            "converged": bool(converged) if not isinstance(converged, str) else converged,
-            "trace_data": algo_instance.trace_data
-        }
+            raise HTTPException(status_code=400, detail=f"3D surface not supported for method: {req.method}")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"3D surface calculation failed: {str(e)}")

@@ -614,7 +614,20 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                     <MLEVisualizer traceData={traceData} dataSources={dataSources} />
                   )}
                   {method.id.toLowerCase() === 'wmle' && (
-                    <WMLEVisualizer traceData={traceData} dataSources={dataSources} />
+                    <WMLEVisualizer
+                      traceData={traceData}
+                      dataSources={dataSources}
+                      data={data.filter(d => d.status === 'F').map(d => d.value)}
+                      onSurfaceLoad={(surfaceData) => {
+                        // 将曲面数据添加到 traceData
+                        setTraceData((prev: any) => {
+                          if (!prev) return [surfaceData]
+                          // 检查是否已有 surface 数据，有则替换
+                          const filtered = prev.filter((d: any) => d.phase !== 'surface')
+                          return [...filtered, surfaceData]
+                        })
+                      }}
+                    />
                   )}
                   {method.id.toLowerCase() === 'mdm' && (
                     <MDMVisualizer

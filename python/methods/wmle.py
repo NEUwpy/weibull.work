@@ -293,12 +293,13 @@ class WMLE(WeibullBase):
          beta = (sum((x-alpha)^gamma) / (n * J1))^(1/gamma)
     """
 
-    def run(self, trace=False):
+    def run(self, trace=False, generate_surface=False):
         """
         执行 WMLE 参数估计
 
         参数:
             trace: 是否记录追踪数据
+            generate_surface: 是否生成 3D 曲面网格数据（用于可视化，计算量较大）
 
         返回: [beta_hat, eta_hat, gamma_hat, r2]
         - beta_hat: 形状参数（论文中的 gamma）
@@ -371,13 +372,18 @@ class WMLE(WeibullBase):
 
         def callback(xk):
             if trace:
-                gamma_curr, alpha_curr = xk
-                w3_curr = get_weight_j3(n, gamma_curr)
+                # 论文符号 -> 系统符号映射
+                # paper_gamma (形状) -> system_beta
+                # paper_alpha (位置) -> system_gamma
+                paper_gamma_curr, paper_alpha_curr = xk
+                system_beta_curr = paper_gamma_curr   # 形状参数
+                system_gamma_curr = paper_alpha_curr  # 位置参数
+                w3_curr = get_weight_j3(n, paper_gamma_curr)
                 val = wmle_objective(xk)
                 self.log_step({
                     "phase": "iter",
-                    "gamma": gamma_curr,
-                    "alpha": alpha_curr,
+                    "beta": system_beta_curr,      # 系统符号：形状参数
+                    "gamma": system_gamma_curr,    # 系统符号：位置参数
                     "w3": w3_curr,
                     "obj_val": val if val < 1e5 else None
                 })
@@ -410,12 +416,42 @@ class WMLE(WeibullBase):
         x_adj = arr - alpha_hat
         beta_hat = (np.sum(x_adj ** gamma_hat) / (n * w1)) ** (1 / gamma_hat)
 
+        # 符号映射：论文 -> 系统
+        # paper_gamma (形状) -> system_beta
+        # paper_alpha (位置) -> system_gamma
+        # paper_beta (尺度) -> system_eta
+        system_beta = gamma_hat   # 形状参数
+        system_gamma = alpha_hat  # 位置参数
+        system_eta = beta_hat     # 尺度参数
+
         if trace:
             self.log_step({
                 "phase": "final",
-                "paper_gamma": gamma_hat,
-                "paper_beta": beta_hat,
-                "paper_alpha": alpha_hat
+                "beta": system_beta,
+                "eta": system_eta,
+                "gamma": system_gamma
+            })
+
+        # 只有在请求时才生成 3D 曲面网格数据（计算量较大）
+        if generate_surface:
+            beta_range = np.linspace(0.5, 5.0, 50)
+            gamma_range = np.linspace(0, x_min * 0.95, 50)
+
+            surface_data = []
+            for b in beta_range:
+                row = []
+                for g in gamma_range:
+                    val = wmle_objective([b, g])
+                    row.append(val if val < 1e5 else None)
+                surface_data.append(row)
+
+            self.trace_data.append({
+                "phase": "surface",
+                "betas": beta_range.tolist(),   # 形状参数 β (x轴)
+                "gammas": gamma_range.tolist(), # 位置参数 γ (y轴)
+                "values": surface_data,         # 目标函数值 O(β,γ) (z轴)
+                "optimal_beta": system_beta,
+                "optimal_gamma": system_gamma
             })
 
         # @step: 7 | 计算拟合优度 R² | 评估模型与数据的拟合程度
