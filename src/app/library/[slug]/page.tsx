@@ -337,7 +337,10 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
              </div>
 
              <div>
-               <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-2">{frontmatter.title}</h1>
+               <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-2 flex items-center gap-3">
+                 <span>{frontmatter.title}</span>
+                 <span className="text-sm font-bold text-white bg-emerald-500 px-2.5 py-1 rounded shrink-0">ID: {slug}</span>
+               </h1>
                {frontmatter.title_en && <h2 className="text-xl md:text-2xl font-bold text-slate-400 leading-tight">{frontmatter.title_en}</h2>}
              </div>
 
