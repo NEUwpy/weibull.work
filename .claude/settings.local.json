@@ -70,7 +70,8 @@
       "Bash(docker save python:3.11-slim node:20-alpine -o /tmp/weibull-images.tar)",
       "Read(//tmp/**)",
       "Bash(scp:*)",
-      "Bash(nslookup:*)"
+      "Bash(nslookup:*)",
+      "Bash(rsync -avz --exclude 'node_modules' --exclude '.next' --exclude '.git' --exclude '_archive' \"C:/Web/Weibull/\" weipengyu@192.168.31.148:/volume1/docker/weibull/)"
     ]
   }
 }
