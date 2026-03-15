@@ -446,7 +446,7 @@ export default function AnalysisCard({
             {/* 标题栏 */}
             <div className="h-12 flex items-center gap-2 px-3 text-slate-500 border-b border-slate-100/50">
               <Settings2 size={16} className="text-blue-600" />
-              <span className="text-base font-black uppercase tracking-wider">方法</span>
+              <span className="text-base font-black uppercase tracking-wider">方法选择</span>
             </div>
             {/* 内容栏 */}
             <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
