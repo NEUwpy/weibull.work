@@ -3,7 +3,7 @@
 Maximum Likelihood Estimation
 
 算法文档: ../../src/content/algorithms/mle.md
-描述: 通过最大化对数似然函数来估计参数。
+描述: 通过最大化对数似然函数来估计威布尔分布参数
 """
 
 import numpy as np
@@ -15,19 +15,32 @@ class MLE(WeibullBase):
         n = self.n
         arr = self.data
 
-        # 1. 更稳健的初始猜测 (使用 LRE 逻辑快速估算)
-        # y = ln(-ln(1-F)) = beta*ln(x) - beta*ln(eta) (假设 gamma=0)
+        # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
+        # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
+        # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
+        # @inputs: data|t_i|原始失效时间样本
+        # @outputs: arr|t|排序后数组, n|n|样本数量
+
+        # @step: 2 | 计算中位秩 | 使用 Bernard 公式计算经验累积概率
+        # @formula: F(t_i) = \frac{i - 0.3}{n + 0.4}
+        # @symbols: F(t_i)|F(t_i)|第i个样本的经验累积概率
+        # @inputs: n|n|样本数量
+        # @outputs: F|F(t_i)|中位秩数组
+        F = (np.arange(1, n + 1) - 0.3) / (n + 0.4)
+
+        # @step: 3 | 线性变换与初值估计 | 对数线性化后通过线性回归获得参数初始估计
+        # @formula: Y = \ln(-\ln(1-F)), \quad X = \ln(t), \quad \beta_0 = \text{slope}, \quad \eta_0 = e^{-\text{intercept}/\text{slope}}
+        # @symbols: Y|Y|变换后的响应变量, X|X|对数化的失效时间, \beta_0|\beta_0|形状参数初始值, \eta_0|\eta_0|尺度参数初始值
+        # @inputs: F|F(t_i)|中位秩数组, arr|t|失效时间数组
+        # @outputs: beta_init|\beta_0|形状参数初始值, eta_init|\eta_0|尺度参数初始值, gamma_init|\gamma_0|位置参数初始值
         try:
-            F = (np.arange(1, n + 1) - 0.3) / (n + 0.4)
             y = np.log(-np.log(1 - F))
             x = np.log(arr)
-            # 简单的线性回归求斜率(beta)
             slope, intercept = np.polyfit(x, y, 1)
             beta_init = max(0.5, slope)
             eta_init = np.exp(-intercept / slope)
             gamma_init = 0.0
         except:
-            # Fallback if fit fails
             beta_init = 1.0
             eta_init = np.mean(arr)
             gamma_init = 0.0
@@ -40,16 +53,19 @@ class MLE(WeibullBase):
                 "gamma_guess": gamma_init
             })
 
-        # 2. 对数似然函数（三参数威布尔）
+        # @step: 4 | 定义对数似然函数 | 构造三参数威布尔分布的对数似然函数
+        # @formula: \ell(\beta,\eta,\gamma) = n\ln\beta - n\ln\eta + (\beta-1)\sum\ln z_i - \sum z_i^{\beta}
+        # @symbols: \ell|\ell|对数似然函数值, z_i|z_i|标准化变量 z_i = (t_i-\gamma)/\eta
+        # @inputs: beta|\beta|形状参数, eta|\eta|尺度参数, gamma|\gamma|位置参数
+        # @outputs: neg_ll|- \ell|负对数似然值
         def neg_log_likelihood(params):
             beta, eta, gamma_val = params
 
-            # 标准约束
+            # 约束检查
             if beta <= 0.01 or eta <= 0.01:
                 return 1e10
             if gamma_val < 0:
                 return 1e10
-            # Smith (1985): gamma 必须严格小于最小数据点
             if gamma_val >= arr[0]:
                 return 1e10
 
@@ -77,7 +93,12 @@ class MLE(WeibullBase):
                     "log_likelihood": -val if val < 1e9 else None
                 })
 
-        # 3. 优化
+        # @step: 5 | 数值优化 | 使用 Nelder-Mead 无导数优化算法搜索最优参数
+        # @formula: \{\hat{\beta}, \hat{\eta}, \hat{\gamma}\} = \arg\max_{\beta, \eta, \gamma} \ell(\beta, \eta, \gamma)
+        # @symbols: \hat{\beta}|\hat{\beta}|形状参数估计值, \hat{\eta}|\hat{\eta}|尺度参数估计值, \hat{\gamma}|\hat{\gamma}|位置参数估计值
+        # @inputs: beta_init|\beta_0|初始形状参数, eta_init|\eta_0|初始尺度参数, gamma_init|\gamma_0|初始位置参数
+        # @outputs: beta_hat|\hat{\beta}|最优形状参数, eta_hat|\hat{\eta}|最优尺度参数, gamma_hat|\hat{\gamma}|最优位置参数
+        # @loop: ~15-30次迭代
         result = minimize(
             neg_log_likelihood,
             [beta_init, eta_init, gamma_init],
@@ -99,9 +120,11 @@ class MLE(WeibullBase):
                 })
             return [0, 0, 0, 0, False]
 
-        # 检测 Smith (1985) 无界问题
-        # 当 beta < 1 时，似然函数在参数空间内无界（趋向 +∞）
-        # 因此不存在最大似然估计，无解
+        # @step: 6 | 检查无界问题 | 当 β < 1 时似然函数无界，不存在 MLE 解
+        # @formula: \text{If } \hat{\beta} < 1, \text{ 无 MLE 解存在}
+        # @symbols: \hat{\beta}|\hat{\beta}|估计的形状参数
+        # @inputs: beta_hat|\hat{\beta}|形状参数估计值
+        # @outputs: status|status|求解状态（success/unbounded）
         if beta_hat < 1.0:
             if trace:
                 self.log_step({
@@ -110,7 +133,6 @@ class MLE(WeibullBase):
                     "message": "Smith (1985): beta < 1, likelihood function is unbounded, no MLE solution exists",
                     "beta": beta_hat
                 })
-            # 无界问题：不返回任何有效参数
             return [0, 0, 0, 0, "unbounded"]
 
         # 检查收敛状态
@@ -123,7 +145,7 @@ class MLE(WeibullBase):
                 })
             return [0, 0, 0, 0, False]
 
-        # 5. 成功
+        # 成功
         if trace:
             self.log_step({
                 "phase": "final",
@@ -138,7 +160,11 @@ class MLE(WeibullBase):
         if gamma_hat < 1e-5:
             gamma_hat = 0.0
 
-        # 最终 R2
+        # @step: 7 | 计算拟合优度 | 评估模型与数据的拟合程度
+        # @formula: R^2 = 1 - \frac{\sum(F_i - \hat{F}_i)^2}{\sum(F_i - \bar{F})^2}
+        # @symbols: R^2|R^2|决定系数, F_i|F_i|经验累积概率, \hat{F}_i|\hat{F}_i|模型预测概率
+        # @inputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数, gamma_hat|\hat{\gamma}|位置参数
+        # @outputs: r2|R^2|拟合优度
         r2 = self._calculate_r2(beta_hat, eta_hat, gamma_hat)
 
         return [beta_hat, eta_hat, gamma_hat, r2, True]

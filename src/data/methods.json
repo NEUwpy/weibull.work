@@ -17,10 +17,12 @@
       },
       {
         "id": "mmle",
-        "name": "修正极大似然",
+        "name": "修正极大似然估计",
         "shortName": "MMLE",
-        "description": "Cohen & Whitten 提出，用于修正 MLE 在小样本下的偏差。",
-        "formula": "ln(n/(n+1)) = (t(0)-γ)/η)^β"
+        "slug": "mmle",
+        "hasDetail": true,
+        "description": "Cohen & Whitten 于 1982 年提出，通过替换似然方程来修正 MLE 在小样本下的偏差。当 δ<2 时 MLE 不满足正则条件，MMLE 提供了更稳健的估计。",
+        "formula": "-\\ln\\frac{n}{n+1} = \\frac{(x_1 - \\gamma)^{\\delta}}{\\theta}"
       },
       {
         "id": "mps",

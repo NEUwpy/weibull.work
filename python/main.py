@@ -12,6 +12,7 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), 'methods'))
 
 from methods.mle import MLE
+from methods.mmle import MMLE
 from methods.lre import LRE
 from methods.lse import LSE
 from methods.mps import MPS
@@ -72,7 +73,7 @@ async def calculate(req: CalculationRequest):
 
     # Map method IDs to Algorithm Classes
     method_map = {
-        "mle": MLE, "mmle": MLE, "mps": MPS, "wmle": WMLE,
+        "mle": MLE, "mmle": MMLE, "mps": MPS, "wmle": WMLE,
         "lse": LSE, "wlse": LSE, "mde": MDM, "eiv": LSE, # MDE aliased to MDM
         "lre": LRE, "rrx": LRE, "rry": LRE, "blre": LRE,
         "mm": MM, "pwm": PWM, "lm": PWM, "tlm": PWM,

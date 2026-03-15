@@ -53,98 +53,54 @@ references:
 
 # 极大似然估计 (MLE)
 
-## 算法原理
+## 1. 基本思想
 
-极大似然估计 (MLE) 的核心思想是寻找一组参数 $(\hat{\beta}, \hat{\eta}, \hat{\gamma})$，使得在该组参数下，观测到当前数据集 $X = \{x_1, ..., x_n\}$ 的概率密度乘积（即似然函数）最大。即：**“已经发生的事情应该是概率最大的事情”**。
+极大似然估计 (MLE) 的核心思想是：寻找一组参数 $(\hat{\beta}, \hat{\eta}, \hat{\gamma})$，使得在该组参数下，观测到当前数据集 $X = \{x_1, ..., x_n\}$ 的概率密度乘积（即似然函数）最大。
 
-## 威布尔分布基础
+即：**已经发生的事情应该是概率最大的事情**。
 
-概率密度函数（PDF）：
+## 2. 似然函数
+
+威布尔分布的概率密度函数 (PDF)：
 
 $$
 f(x | \beta, \eta, \gamma) = \frac{\beta}{\eta} \left( \frac{x - \gamma}{\eta} \right)^{\beta - 1} \exp\left[ -\left( \frac{x - \gamma}{\eta} \right)^\beta \right]
 $$
 
-## 估计方程
+假设样本相互独立，则**似然函数**为各样本点概率密度的乘积：
 
-为了简化计算（将乘积转化为求和），通常最大化**对数似然函数** $\ln L$：
+$$
+L(\beta, \eta, \gamma) = \prod_{i=1}^{n} f(x_i | \beta, \eta, \gamma) = \prod_{i=1}^{n} \frac{\beta}{\eta} \left( \frac{x_i - \gamma}{\eta} \right)^{\beta - 1} \exp\left[ -\left( \frac{x_i - \gamma}{\eta} \right)^\beta \right]
+$$
 
-$$$ 
+为简化计算（将乘积转化为求和），取**对数似然函数**：
+
+$$
 \ln L = n \ln \beta - n \beta \ln \eta + (\beta - 1) \sum_{i=1}^{n} \ln(x_i - \gamma) - \sum_{i=1}^{n} \left( \frac{x_i - \gamma}{\eta} \right)^\beta
-$$$ 
+$$
 
-### 变量说明
+## 3. 似然方程
 
-| 符号 | 说明 | 范围 |
-|------|------|----------|
-| $\beta$ | 形状参数 | $\beta > 0$ |
-| $\eta$ | 尺度参数 | $\eta > 0$ |
-| $\gamma$ | 位置参数 | $0 \le \gamma < \min(x)$ |
+对 $\beta, \eta, \gamma$ 分别求偏导并令其为零：
 
-## 算法流程详解
+$$
+\frac{\partial \ln L}{\partial \beta} = \frac{n}{\beta} - n \ln \eta + \sum_{i=1}^{n} \ln(x_i - \gamma) - \sum_{i=1}^{n} \left( \frac{x_i - \gamma}{\eta} \right)^\beta \ln\left( \frac{x_i - \gamma}{\eta} \right) = 0
+$$
 
-### 输入
-- 失效数据数组 X = [x₁, x₂, ..., xₙ]
-- 样本量 n
+$$
+\frac{\partial \ln L}{\partial \eta} = -\frac{n \beta}{\eta} + \frac{\beta}{\eta} \sum_{i=1}^{n} \left( \frac{x_i - \gamma}{\eta} \right)^\beta = 0
+$$
 
-### 步骤
+$$
+\frac{\partial \ln L}{\partial \gamma} = -(\beta - 1) \sum_{i=1}^{n} \frac{1}{x_i - \gamma} + \frac{\beta}{\eta} \sum_{i=1}^{n} \left( \frac{x_i - \gamma}{\eta} \right)^{\beta - 1} = 0
+$$
 
-1. **初始猜测**
-   - 使用线性回归法 (LRE) 快速估算 $\beta_0, \eta_0$。
-   - 设 $\gamma_0 = 0$（或略小于最小值）。
+该方程组无解析解，需通过数值方法（如 Nelder-Mead、Newton-Raphson）迭代求解。
 
-2. **数值优化**
-   - 使用 Nelder-Mead 或 Newton-Raphson 算法。
-   - 目标：$\max_{\beta, \eta, \gamma} (\ln L)$。
-   - 约束：$\beta > 0, \eta > 0, \gamma < \min(x)$。
+## 4. 无界问题
 
-3. **结果验证**
-   - 检查 Hessian 矩阵是否负定（确保是极大值）。
-   - 检查 $\beta$ 是否小于 1（可能涉及无界问题）。
+当 $\beta < 1$ 且 $\gamma$ 未知时，似然函数可能趋向无穷大。
 
-### 输出
-```python
-{
-    "beta": 2.5,
-    "eta": 100.0,
-    "gamma": 0.0,
-    "log_likelihood": -150.23,
-    "success": true
-}
-```
+原因：当 $\gamma \to \min(x_i)$ 时，$x_{\min} - \gamma \to 0$，若 $\beta < 1$，则 $(x_{\min} - \gamma)^{\beta - 1} \to \infty$，导致似然函数无界。
 
-## 适用场景详解
-
-| 场景 | 说明 |
-|------|------|
-| **完全样本** | 最常用的场景，效果稳定。 |
-| **截尾样本** | 需修改似然函数（加入生存函数项），完全支持。 |
-| **小样本** | **不推荐**。偏差显著，建议改用 WMLE。 |
-| **大样本** | **最优**。渐近方差最小。 |
-
-## 优缺点分析
-
-### 优点
-- **理论性质优**：渐近无偏、一致、有效。
-- **通用性**：适用于各种复杂的截尾类型。
-
-### 缺点
-- **无界问题**：当 $\beta < 1$ 且 $\gamma$ 未知时，似然函数可能趋向无穷大。
-- **小样本偏差**：严重高估 $\beta$。
-- **计算复杂**：需要迭代求解，对初值敏感。
-
-## 与其他方法对比
-
-| 方法 | 小样本偏差 | 计算复杂度 | 特点 |
-|------|----------|-----------|---------|
-| MLE | 高 | 中 | 大样本理论最优 |
-| WMLE | 低 | 高 | 修正了小样本偏差 |
-| LRE | 低 | 低 | 简单，无解问题少 |
-
-## 参考文献
-
-[1] Smith, R. L. (1985). Maximum likelihood estimation in a class of nonregular cases. *Biometrika*, 72(1): 67-90.
-
----
-
-**相关文献**：详见 [182-090](/library/182-090) 完整论文
+此时 MLE 不存在，需采用其他方法（如约束优化、惩罚项）或改用 WMLE、MDM 等方法。

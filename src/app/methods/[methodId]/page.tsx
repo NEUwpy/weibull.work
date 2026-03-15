@@ -23,6 +23,7 @@ const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers
 const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MDMStudyViewer = dynamic(() => import('@/components/methods/mdm/studies/MDMStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const WMLEStudyViewer = dynamic(() => import('@/components/methods/wmle/studies/WMLEStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MLEStudyViewer = dynamic(() => import('@/components/methods/mle/studies/MLEStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 
@@ -695,7 +696,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {method.id.toLowerCase() === 'mdm' && <MDMStudyViewer methodId={method.id} />}
             {method.id.toLowerCase() === 'wmle' && <WMLEStudyViewer methodId={method.id} />}
-            {!['mdm', 'wmle'].includes(method.id.toLowerCase()) && (
+            {method.id.toLowerCase() === 'mle' && <MLEStudyViewer methodId={method.id} />}
+            {!['mdm', 'wmle', 'mle'].includes(method.id.toLowerCase()) && (
               <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200">
                 该方法暂无示例数据
               </div>
