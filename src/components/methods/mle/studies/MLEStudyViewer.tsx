@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import matter from 'gray-matter'
 // 导入通用图表组件
 import { ChartCard, BoxPlotChart, HeatmapChart, DensityChart } from '@/components/shared/charts'
+// 导入 Demo2Viewer
+import { Demo2Viewer } from './demo2'
 
 // 参数配置类型
 interface ParamConfig {
@@ -693,69 +695,79 @@ export default function MLEStudyViewer({ methodId }: MLEStudyViewerProps) {
         </div>
       </div>
 
-      {isLoading && <LoadingSpinner message="加载数据中..." />}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-sm">
-          <div className="flex items-center gap-2"><Info size={16} /><span>{error}</span></div>
-        </div>
+      {/* Demo2 使用专用组件 */}
+      {selectedStudyId === 'demo-2' && !isLoadingList && (
+        <Demo2Viewer />
       )}
 
-      {!isLoading && !error && config && (
+      {/* Demo1 及其他示例使用原有逻辑 */}
+      {selectedStudyId !== 'demo-2' && (
         <>
-          {/* 参数面板 */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Settings className="text-slate-600" size={20} />
-                <h3 className="text-lg font-bold text-slate-800">参数配置</h3>
-              </div>
-              <div className="text-sm text-slate-500">
-                <span className="font-bold text-blue-600">{variableParams.length}</span> 个变量 /
-                <span className="font-bold text-slate-600">{params.length - variableParams.length}</span> 个固定
-              </div>
-            </div>
+          {isLoading && <LoadingSpinner message="加载数据中..." />}
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {params.map(param => (
-                <ParamCard
-                  key={param.id}
-                  param={param}
-                  defaults={config.defaults}
-                  onToggleDisplayDimension={() => toggleDisplayDimension(param.id)}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-sm">
+              <div className="flex items-center gap-2"><Info size={16} /><span>{error}</span></div>
+            </div>
+          )}
+
+          {!isLoading && !error && config && (
+            <>
+              {/* 参数面板 */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Settings className="text-slate-600" size={20} />
+                    <h3 className="text-lg font-bold text-slate-800">参数配置</h3>
+                  </div>
+                  <div className="text-sm text-slate-500">
+                    <span className="font-bold text-blue-600">{variableParams.length}</span> 个变量 /
+                    <span className="font-bold text-slate-600">{params.length - variableParams.length}</span> 个固定
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {params.map(param => (
+                    <ParamCard
+                      key={param.id}
+                      param={param}
+                      defaults={config.defaults}
+                      onToggleDisplayDimension={() => toggleDisplayDimension(param.id)}
+                    />
+                  ))}
+                </div>
+
+                {displayDimensions.length === 0 && (
+                  <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center gap-3">
+                    <Info size={16} className="text-slate-500" />
+                    <p className="text-sm text-slate-600">请至少选择一个变量作为展示维度</p>
+                  </div>
+                )}
+              </div>
+
+              {/* 仿真设置面板 */}
+              <SimulationSettingsPanel config={config} />
+
+              {/* 统计结果 */}
+              {stats.length > 0 && (
+                <ResultsVisualization
+                  stats={stats}
+                  params={params}
+                  displayDimensions={displayDimensions}
+                  config={config}
+                  displayOptions={displayOptions}
+                  onToggleDisplayOption={toggleDisplayOption}
+                  paramSelection={paramSelection}
+                  onToggleParamSelection={toggleParamSelection}
+                  showFilterDropdown={showFilterDropdown}
+                  setShowFilterDropdown={setShowFilterDropdown}
+                  filterRef={filterRef}
+                  densityTab={densityTab}
+                  setDensityTab={setDensityTab}
+                  csvData={csvData}
                 />
-              ))}
-            </div>
-
-            {displayDimensions.length === 0 && (
-              <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center gap-3">
-                <Info size={16} className="text-slate-500" />
-                <p className="text-sm text-slate-600">请至少选择一个变量作为展示维度</p>
-              </div>
-            )}
-          </div>
-
-          {/* 仿真设置面板 */}
-          <SimulationSettingsPanel config={config} />
-
-          {/* 统计结果 */}
-          {stats.length > 0 && (
-            <ResultsVisualization
-              stats={stats}
-              params={params}
-              displayDimensions={displayDimensions}
-              config={config}
-              displayOptions={displayOptions}
-              onToggleDisplayOption={toggleDisplayOption}
-              paramSelection={paramSelection}
-              onToggleParamSelection={toggleParamSelection}
-              showFilterDropdown={showFilterDropdown}
-              setShowFilterDropdown={setShowFilterDropdown}
-              filterRef={filterRef}
-              densityTab={densityTab}
-              setDensityTab={setDensityTab}
-              csvData={csvData}
-            />
+              )}
+            </>
           )}
         </>
       )}
