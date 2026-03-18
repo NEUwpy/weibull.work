@@ -1,0 +1,2448 @@
+[
+    [
+        {
+            "type": "header",
+            "bbox": [
+                0.082,
+                0.074,
+                0.152,
+                0.145
+            ],
+            "angle": 0,
+            "content": "N·H"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.076,
+                0.148,
+                0.157,
+                0.161
+            ],
+            "angle": 0,
+            "content": "ELSEVIER"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.255,
+                0.149,
+                0.654,
+                0.163
+            ],
+            "angle": 0,
+            "content": "Mathematics and Computers in Simulation 39 (1995) 173-185"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.756,
+                0.075,
+                0.921,
+                0.161
+            ],
+            "angle": 0,
+            "content": "MATHEMATICS AND COMPUTERS IN SIMULATION"
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.224,
+                0.232,
+                0.777,
+                0.285
+            ],
+            "angle": 0,
+            "content": "Estimation of the three parameter Weibull probability distribution"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.332,
+                0.299,
+                0.66,
+                0.319
+            ],
+            "angle": 0,
+            "content": "Hongzhu Qiao, Chris P. Tsokos *"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.192,
+                0.325,
+                0.802,
+                0.343
+            ],
+            "angle": 0,
+            "content": "Department of Mathematics, University of South Florida, Tampa, IL 33620-5700, USA"
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.074,
+                0.376,
+                0.143,
+                0.391
+            ],
+            "angle": 0,
+            "content": "Abstract"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.406,
+                0.922,
+                0.527
+            ],
+            "angle": 0,
+            "content": "The aim of the present paper is to propose an algorithm to easily obtain good estimates of the three parameter Weibull distribution. Our proposed procedure is given in eight steps and it depends on the Simple Iteration Procedure, which always converges, converges fast and does not depend on any conditions, whatsoever, that has been developed by the authors for the two parameter Weibull model. Numerical examples will be given to illustrate the effectiveness of our proposed statistical procedure. Finally, we address the issue of what we lose in characterizing the probabilistic behavior of a certain phenomenon with a two parameter Weibull model when in fact the true characterization calls for a three parameter Weibull model. We use the concept of percentiles, cumulative distribution function and graphical presentations to answer the above questions."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.542,
+                0.921,
+                0.573
+            ],
+            "angle": 0,
+            "content": "Keywords: Two parameter Weibull distribution; Three parameter Weibull distribution; Newton-Raphson method; Simple Iterative Procedure (SIP); Maximum likelihood estimation (MLE); Percentile"
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.074,
+                0.62,
+                0.216,
+                0.637
+            ],
+            "angle": 0,
+            "content": "1. Introduction"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.662,
+                0.922,
+                0.734
+            ],
+            "angle": 0,
+            "content": "The Weibull probability density function is an extremely important distribution to characterize the probabilistic behavior of a large number of real world phenomena. It is especially useful as a failure model in analyzing the reliability of different types of systems. The complete three parameter Weibull probability distribution, \\( W(a, b, c) \\), is given by"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.115,
+                0.747,
+                0.92,
+                0.793
+            ],
+            "angle": 0,
+            "content": "\\[\nf (x; a, b, c) = \\frac {c (x - a) ^ {c - 1}}{b ^ {c}} \\exp \\left\\{- \\left(\\frac {x - a}{b}\\right) ^ {c} \\right\\} \\tag {1}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.805,
+                0.921,
+                0.841
+            ],
+            "angle": 0,
+            "content": "where \\( x \\geqslant a, b > 0, c > 0 \\) and \\( a, b \\) and \\( c \\) are the location, scale, and shape parameter, respectively."
+        },
+        {
+            "type": "page_footnote",
+            "bbox": [
+                0.087,
+                0.869,
+                0.265,
+                0.884
+            ],
+            "angle": 0,
+            "content": "* Corresponding author"
+        },
+        {
+            "type": "footer",
+            "bbox": [
+                0.071,
+                0.899,
+                0.538,
+                0.927
+            ],
+            "angle": 0,
+            "content": "0378-4754/95/$09.50 © 1995 Elsevier Science B.V. All rights reserved  \nSSDI 0378-4754(95)00053-4"
+        }
+    ],
+    [
+        {
+            "type": "page_number",
+            "bbox": [
+                0.077,
+                0.077,
+                0.104,
+                0.088
+            ],
+            "angle": 0,
+            "content": "174"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.23,
+                0.077,
+                0.768,
+                0.09
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersinSimulation39(1995)173-185"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.107,
+                0.921,
+                0.195
+            ],
+            "angle": 0,
+            "content": "Successful application of the Weibull distribution depends on having acceptable statistical estimates of the three parameters. There is no existing method in obtaining close form estimates of the two and three parameters of the Weibull distribution. Because of this difficulty the three parameter Weibull model is seldom used. Even the popular two parameter model does not offer close form estimates of the parameters and relies on numerical procedures."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.197,
+                0.92,
+                0.356
+            ],
+            "angle": 0,
+            "content": "Sinha ([8]) attempted to formulate a numerical procedure to estimate the three parameters of the Weibull model. We believe that his method is not effective because there is no idea in his numerical procedure about the range of the parameters. This deficiency makes the computational procedure difficult to implement, among other problems. In the present study we extend our developed procedure for two parameter case (see Qiao and Tsokos [5]) into the three parameter Weibull model. Our Simple Iterative Procedure for the two parameter model, always converges and it converges fast. Our proposed algorithm in the present study is given in eight steps that can be easily implemented with effective results. Numerical examples are given to illustrate the usefulness of our proposed procedure, in comparison with Sinha's results."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.356,
+                0.92,
+                0.427
+            ],
+            "angle": 0,
+            "content": "Finally, we address the issue of what we lose in characterizing the probabilistic behavior of real world problems with a two parameter Weibull distribution when in fact we should have used a three parameter Weibull model. We will use three different approaches to show that such a loss is quite significant."
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.073,
+                0.47,
+                0.371,
+                0.487
+            ],
+            "angle": 0,
+            "content": "2. Two parameter Weibull model"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.509,
+                0.919,
+                0.545
+            ],
+            "angle": 0,
+            "content": "If in (1), we let \\( a = 0 \\) or consider \\( t = x - a \\) in case that \\( a (\\neq 0) \\) is a known value, the three parameter Weibull distribution reduces to"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.113,
+                0.555,
+                0.918,
+                0.597
+            ],
+            "angle": 0,
+            "content": "\\[\nf (x; 0, b, c) = \\frac {c x ^ {c - 1}}{b ^ {c}} \\exp \\left(- \\left(\\frac {x}{b}\\right) ^ {c}\\right), \\tag {2}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.094,
+                0.608,
+                0.364,
+                0.624
+            ],
+            "angle": 0,
+            "content": "where \\(x\\geqslant 0,b > 0\\) and \\(c > 0\\)"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.625,
+                0.92,
+                0.696
+            ],
+            "angle": 0,
+            "content": "Qiao and Tsokos ([5]) have introduced an effective Simple Iterative Procedure, SIP, to easily obtain estimates of the shape and scale parameters of the Weibull probability distribution. The SIP always converges, it converges very fast and its convergence does not depend on any other conditions. For convenience, we shall briefly summarize our procedure."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.697,
+                0.919,
+                0.732
+            ],
+            "angle": 0,
+            "content": "The maximum likelihood estimate of \\( c \\) can be obtained from solving for the unique positive solution of \\( g(c) = 0 \\), where"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.114,
+                0.739,
+                0.918,
+                0.781
+            ],
+            "angle": 0,
+            "content": "\\[\ng (c) = \\frac {c}{n} \\sum_ {i = 1} ^ {n} \\log x _ {i} \\sum_ {i = 1} ^ {n} x _ {i} ^ {c} - c \\sum_ {i = 1} ^ {n} x _ {i} ^ {c} \\log x _ {i} + \\sum_ {i = 1} ^ {n} x _ {i} ^ {c}. \\tag {3}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.791,
+                0.918,
+                0.825
+            ],
+            "angle": 0,
+            "content": "Numerically, once an initial estimate, \\( c_{0} \\), is given, Newton-Raphson iteration procedure runs as"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.114,
+                0.836,
+                0.918,
+                0.877
+            ],
+            "angle": 0,
+            "content": "\\[\nc _ {k + 1} = c _ {k} - \\frac {g \\left(c _ {k}\\right)}{g ^ {\\prime} \\left(c _ {k}\\right)}, \\quad \\text {f o r} k = 0, 1, 2, \\dots . \\tag {4}\n\\]"
+        }
+    ],
+    [
+        {
+            "type": "header",
+            "bbox": [
+                0.229,
+                0.067,
+                0.769,
+                0.082
+            ],
+            "angle": 0,
+            "content": "H. Qiao, C.P. Tsokos / Mathematics and Computers in Simulation 39 (1995) 173-185"
+        },
+        {
+            "type": "page_number",
+            "bbox": [
+                0.896,
+                0.069,
+                0.92,
+                0.08
+            ],
+            "angle": 0,
+            "content": "175"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.097,
+                0.099,
+                0.296,
+                0.117
+            ],
+            "angle": 0,
+            "content": "For simplification, let"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.121,
+                0.127,
+                0.92,
+                0.218
+            ],
+            "angle": 0,
+            "content": "\\[\n\\begin{array}{l} s _ {1} (c) = \\sum_ {i = 1} ^ {n} \\log x _ {i}, \\quad s _ {2} (c) = \\sum_ {i = 1} ^ {n} x _ {i} ^ {c}, \\\\ s _ {3} (c) = \\sum_ {i = 1} ^ {n} x _ {i} ^ {c} \\log x _ {i} \\quad \\text {a n d} \\quad s _ {4} (c) = \\sum_ {i = 1} ^ {n} x _ {i} ^ {c} \\log^ {2} x _ {i} \\tag {5} \\\\ \\end{array}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.098,
+                0.229,
+                0.405,
+                0.248
+            ],
+            "angle": 0,
+            "content": "Thus, we can rewrite \\( g \\) and \\( g' \\) as"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.121,
+                0.257,
+                0.92,
+                0.292
+            ],
+            "angle": 0,
+            "content": "\\[\ng (c) = \\frac {c}{n} s _ {1} s _ {2} - c s _ {3} + s _ {2} \\tag {6}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.098,
+                0.304,
+                0.137,
+                0.319
+            ],
+            "angle": 0,
+            "content": "and"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.121,
+                0.332,
+                0.919,
+                0.369
+            ],
+            "angle": 0,
+            "content": "\\[\ng ^ {\\prime} (c) = \\frac {1}{n} s _ {1} \\left(s _ {2} + c s _ {3}\\right) - c s _ {4}. \\tag {7}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.098,
+                0.381,
+                0.61,
+                0.399
+            ],
+            "angle": 0,
+            "content": "Then the Newton-Raphson iteration can be rewritten as"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.121,
+                0.409,
+                0.92,
+                0.485
+            ],
+            "angle": 0,
+            "content": "\\[\nc _ {k + 1} = c _ {k} - \\frac {\\frac {c}{n} s _ {1} s _ {2} - c s _ {3} + s _ {2}}{1}. \\tag {8}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.098,
+                0.497,
+                0.18,
+                0.513
+            ],
+            "angle": 0,
+            "content": "If we let"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.121,
+                0.524,
+                0.287,
+                0.564
+            ],
+            "angle": 0,
+            "content": "\\[\nq (c) = \\frac {n s _ {2}}{n s _ {3} - s _ {1} s _ {2}},\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.097,
+                0.575,
+                0.61,
+                0.594
+            ],
+            "angle": 0,
+            "content": "then to solve for the zero of \\( g(c) \\) is equivalent to solving"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.121,
+                0.605,
+                0.205,
+                0.623
+            ],
+            "angle": 0,
+            "content": "\\[\nc = q (c).\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.633,
+                0.92,
+                0.685
+            ],
+            "angle": 0,
+            "content": "Thus, the problem of solving for the zero of (3) has been reduced to finding the fixed point of \\( q(c) \\). Using McCool's theorem [3], we know that there exists a unique positive \\( c^* \\) such that \\( c^* = q(c^*) \\)."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.097,
+                0.686,
+                0.284,
+                0.704
+            ],
+            "angle": 0,
+            "content": "The SIP begins with"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.121,
+                0.715,
+                0.919,
+                0.753
+            ],
+            "angle": 0,
+            "content": "\\[\nc _ {k + 1} = \\frac {c _ {k} + q \\left(c _ {k}\\right)}{2}. \\tag {9}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.074,
+                0.765,
+                0.531,
+                0.782
+            ],
+            "angle": 0,
+            "content": "starting at an initial point \\( c = c_0 \\) for \\( k = 0, 1, 2, \\ldots \\)"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.096,
+                0.783,
+                0.507,
+                0.8
+            ],
+            "angle": 0,
+            "content": "The properties of SIP are summarized below."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.824,
+                0.924,
+                0.879
+            ],
+            "angle": 0,
+            "content": "Theorem 1 (Qiao and Tsokos, [5]). The Simple Iterative Procedure always converges for any positive starting point, that is, \\( c_k \\) generated by SIP (9) converges to the unique fixed point \\( c^* \\) of \\( q(c) \\) as \\( k \\to \\infty \\), for any starting point \\( c_0 > 0 \\). And the convergence is at least at a geometric rate of \\( \\frac{1}{2} \\)."
+        }
+    ],
+    [
+        {
+            "type": "page_number",
+            "bbox": [
+                0.078,
+                0.072,
+                0.105,
+                0.084
+            ],
+            "angle": 0,
+            "content": "176"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.23,
+                0.071,
+                0.768,
+                0.086
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersinSimulation39(1995)173-185"
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.074,
+                0.102,
+                0.541,
+                0.12
+            ],
+            "angle": 0,
+            "content": "3. Three parameter Weibull probability distribution"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.096,
+                0.138,
+                0.682,
+                0.156
+            ],
+            "angle": 0,
+            "content": "The log likelihood function of three parameter model is given by"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.162,
+                0.797,
+                0.206
+            ],
+            "angle": 0,
+            "content": "\\[\n\\log L (a, b, c) = n \\log c - n c \\log b + (c - 1) \\sum_ {i = 1} ^ {n} \\log \\left(x _ {i} - a\\right) - \\sum_ {i = 1} ^ {n} \\left(\\frac {x _ {i} - a}{b}\\right) ^ {c}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.213,
+                0.135,
+                0.228
+            ],
+            "angle": 0,
+            "content": "where"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.237,
+                0.405,
+                0.264
+            ],
+            "angle": 0,
+            "content": "\\[\na \\leqslant \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}, \\quad b > 0 \\text {a n d} c > 0.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.269,
+                0.921,
+                0.306
+            ],
+            "angle": 0,
+            "content": "Our objective is to obtain estimates of \\( a, b \\), and \\( c \\) so as to maximize \\( \\log L(a, b, c) \\) with respect to the constraints:"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.312,
+                0.401,
+                0.339
+            ],
+            "angle": 0,
+            "content": "\\[\na \\leqslant \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}, \\quad b > 0 \\text {a n d} c > 0.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.095,
+                0.345,
+                0.7,
+                0.363
+            ],
+            "angle": 0,
+            "content": "We proceed to obtain the following system of likelihood equations:"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.12,
+                0.368,
+                0.619,
+                0.413
+            ],
+            "angle": 0,
+            "content": "\\[\n\\frac {\\partial \\log L}{\\partial a} = - (c - 1) \\sum_ {i = 1} ^ {n} \\frac {1}{x _ {i} - a} + \\frac {c}{b ^ {c}} \\sum_ {i = 1} ^ {n} \\left(x _ {i} - a\\right) ^ {c - 1} = 0,\n\\]"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.12,
+                0.417,
+                0.488,
+                0.462
+            ],
+            "angle": 0,
+            "content": "\\[\n\\frac {\\partial \\log L}{\\partial b} = - \\frac {n c}{b} + \\frac {c}{b ^ {c + 1}} \\sum_ {i = 1} ^ {n} \\left(x _ {i} - a\\right) ^ {c} = 0\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.469,
+                0.113,
+                0.484
+            ],
+            "angle": 0,
+            "content": "and"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.12,
+                0.492,
+                0.846,
+                0.536
+            ],
+            "angle": 0,
+            "content": "\\[\n\\frac {\\partial \\log L}{\\partial c} = \\frac {n}{c} - n \\log b + \\sum_ {i = 1} ^ {n} \\log (x _ {i} - a) - \\sum_ {i = 1} ^ {n} \\left(\\frac {x _ {i} - a}{b}\\right) ^ {c} \\left\\{\\log (x _ {i} - a) - \\log b \\right\\} = 0.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.542,
+                0.92,
+                0.629
+            ],
+            "angle": 0,
+            "content": "The above three equations constitute a system of nonlinear equations. There are no existing methods to solve them analytically. Moreover, to our knowledge, there are not even any effective numerical methods available. Based on this concern and the importance of the three parameter Weibull probability distribution in practice, we shall proceed to develop an effective numerical approach to solve these equations."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.631,
+                0.919,
+                0.665
+            ],
+            "angle": 0,
+            "content": "We shall begin by examining the properties of the maximum likelihood functions of the Weibull model."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.666,
+                0.316,
+                0.681
+            ],
+            "angle": 0,
+            "content": "Let us first consider \\( c < 1 \\)."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.091,
+                0.683,
+                0.92,
+                0.736
+            ],
+            "angle": 0,
+            "content": "When \\( a \\to \\min_{1 \\leqslant i \\leqslant n} x_i \\), \\( \\log L(a, b, c) \\to +\\infty \\) for arbitrary \\( b \\). In a broader sense, we can say that \\( \\log L(a, b, c) \\) obtain maximum \\( \\infty \\) at \\( a = \\min_{1 \\leqslant i \\leqslant n} x_i \\). This case does not have any practical significance. So from now on, we will put restrictions that \\( c \\geqslant 1 \\)."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.737,
+                0.919,
+                0.772
+            ],
+            "angle": 0,
+            "content": "Thus, we will consider \\( c \\geqslant 1 \\) only. We will rewrite the problem of maximum likelihood functions as an optimization problem. That is,"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.117,
+                0.777,
+                0.919,
+                0.877
+            ],
+            "angle": 0,
+            "content": "\\[\n\\left\\{ \\begin{array}{l} \\text {M a x i m i z e} L (a, b, c) \\\\ = n \\log c - n c \\log b + (c - 1) \\sum_ {i = 1} ^ {n} \\log \\left(x _ {i} - a\\right) - \\sum_ {i = 1} ^ {n} \\left(\\frac {x _ {i} - a}{b}\\right) ^ {c} \\\\ \\text {s u b j e c t} a \\leqslant \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}, \\quad b > 0, c \\geqslant 1 \\end{array} \\right\\} \\tag {10}\n\\]"
+        }
+    ],
+    [
+        {
+            "type": "header",
+            "bbox": [
+                0.226,
+                0.071,
+                0.767,
+                0.086
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185"
+        },
+        {
+            "type": "page_number",
+            "bbox": [
+                0.893,
+                0.072,
+                0.92,
+                0.084
+            ],
+            "angle": 0,
+            "content": "177"
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.073,
+                0.103,
+                0.49,
+                0.121
+            ],
+            "angle": 0,
+            "content": "3.1. Possible range of the three parameter MLE"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.135,
+                0.92,
+                0.172
+            ],
+            "angle": 0,
+            "content": "Rockets, Antle and Klimko ([7]) examined the existence and uniqueness of the solutions of the three parameter Weibull distribution. They have introduced the following conjecture."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.184,
+                0.919,
+                0.239
+            ],
+            "angle": 0,
+            "content": "Proposition 1. It is believed empirically based on numerous examples that there will be either no solution or two solutions to the likelihood equations. In case that no solution exists for the likelihood equations, the maximum value for the likelihood function occurs at the corner point:"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.243,
+                0.52,
+                0.284
+            ],
+            "angle": 0,
+            "content": "\\[\na = \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}, c = 1 a n d b = \\frac {\\sum_ {i = 1} ^ {n} \\left(x _ {i} - a\\right)}{n}.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.289,
+                0.919,
+                0.343
+            ],
+            "angle": 0,
+            "content": "In case that there are two solutions to the likelihood equations, one of them is a local maximum point, the other is a saddle point. In this case, except for the possibility of the likelihood function being equal at these points, the maximum estimates would be unique."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.355,
+                0.918,
+                0.39
+            ],
+            "angle": 0,
+            "content": "Before we begin our search for the solution, it would be of much help if we can narrow the range of the search so that our numerical process will be more efficient."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.391,
+                0.919,
+                0.425
+            ],
+            "angle": 0,
+            "content": "To assist in locating the possible range of the parameter \\( a \\), we introduce the following theorem."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.44,
+                0.919,
+                0.475
+            ],
+            "angle": 0,
+            "content": "Theorem 2. Suppose \\( x_{i} \\), \\( i = 1, 2, \\ldots, n \\) are the samples from the three parameter Weibull distribution \\( W(a, b, c) \\). Let"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.48,
+                0.504,
+                0.508
+            ],
+            "angle": 0,
+            "content": "\\[\nA = 2 \\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - \\max  _ {1 \\leqslant i \\leqslant n} x _ {i}, \\quad B = \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.074,
+                0.511,
+                0.489,
+                0.529
+            ],
+            "angle": 0,
+            "content": "We have the following result for the range of \\(a\\),"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.533,
+                0.92,
+                0.609
+            ],
+            "angle": 0,
+            "content": "\\[\n\\operatorname {P r o b} (a \\in [ A, B ]) = 1 - \\frac {\\frac {n}{2 ^ {c} - 1} \\Gamma \\left(\\frac {n}{2 ^ {c} - 1}\\right) \\Gamma (n)}{\\Gamma \\left(\\frac {n}{2 ^ {c} - 1} + n\\right)}. \\tag {11}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.614,
+                0.534,
+                0.632
+            ],
+            "angle": 0,
+            "content": "Proof. The condition \\( a \\in [A, B] \\) can be written as:"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.637,
+                0.435,
+                0.664
+            ],
+            "angle": 0,
+            "content": "\\[\n2 \\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - \\max  _ {1 \\leqslant i \\leqslant n} x _ {i} \\leqslant a \\leqslant \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.667,
+                0.919,
+                0.703
+            ],
+            "angle": 0,
+            "content": "Notice that the second half of the above inequality is always true in view of the fact that \\(\\{x_{i}, i = 1,2,\\ldots,n\\}\\) are from \\(W(a,b,c)\\), then it is equivalent to"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.708,
+                0.341,
+                0.735
+            ],
+            "angle": 0,
+            "content": "\\[\n2 \\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - \\max  _ {1 \\leqslant i \\leqslant n} x _ {i} \\leqslant a,\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.739,
+                0.141,
+                0.755
+            ],
+            "angle": 0,
+            "content": "that is,"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.76,
+                0.41,
+                0.793
+            ],
+            "angle": 0,
+            "content": "\\[\n2 \\left(\\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - a\\right) \\leqslant \\left(\\max  _ {1 \\leqslant i \\leqslant n} x _ {i} - a\\right).\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.796,
+                0.92,
+                0.831
+            ],
+            "angle": 0,
+            "content": "Assume \\( u = \\min_{1 \\leqslant i \\leqslant n} x_i - a \\) and \\( v = \\max_{1 \\leqslant i \\leqslant n} x_i - a \\), then the joint probability density function of \\( u, v \\) is given by"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.114,
+                0.835,
+                0.545,
+                0.877
+            ],
+            "angle": 0,
+            "content": "\\[\nf (u, v) = \\frac {n !}{(n - 2) !} \\left(F (v) - F (u)\\right) ^ {n - 2} f (u) f (v),\n\\]"
+        }
+    ],
+    [
+        {
+            "type": "page_number",
+            "bbox": [
+                0.076,
+                0.074,
+                0.102,
+                0.085
+            ],
+            "angle": 0,
+            "content": "178"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.227,
+                0.074,
+                0.763,
+                0.087
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.104,
+                0.916,
+                0.139
+            ],
+            "angle": 0,
+            "content": "for \\(-\\infty < u < v < \\infty\\), where \\(f(.)\\), \\(F(.)\\) denote the probability density function and cumulative distribution function for \\(x_i - a\\), respectively."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.094,
+                0.14,
+                0.582,
+                0.158
+            ],
+            "angle": 0,
+            "content": "Recall \\( x_{i} - a \\) is from \\( W(a, b, c) \\) and thus we can write"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.113,
+                0.164,
+                0.443,
+                0.205
+            ],
+            "angle": 0,
+            "content": "\\[\nf (u) = \\frac {c}{b} \\left(\\frac {u}{b}\\right) ^ {c - 1} e ^ {- \\left(\\frac {u}{b}\\right) ^ {c}} \\quad (u \\geqslant 0),\n\\]"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.209,
+                0.393,
+                0.239
+            ],
+            "angle": 0,
+            "content": "\\[\nF (u) = 1 - e ^ {- \\left(\\frac {u}{b}\\right) ^ {c}} \\quad (u \\geqslant 0),\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.244,
+                0.111,
+                0.258
+            ],
+            "angle": 0,
+            "content": "and"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.115,
+                0.267,
+                0.46,
+                0.297
+            ],
+            "angle": 0,
+            "content": "\\[\nR (u) = 1 - F (u) = e ^ {- \\left(\\frac {u}{b}\\right) ^ {c}} \\quad (u \\geqslant 0).\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.095,
+                0.301,
+                0.219,
+                0.317
+            ],
+            "angle": 0,
+            "content": "We can write"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.324,
+                0.739,
+                0.48
+            ],
+            "angle": 0,
+            "content": "\\[\n\\begin{array}{l} \\operatorname {P r o b} (a \\in [ A, B ]) = P (2 u \\leqslant v) \\\\ = \\int_ {0} ^ {\\infty} \\int_ {2 u} ^ {\\infty} n (n - 1) (F (v) - F (u)) ^ {n - 2} f (u) f (v) \\mathrm {d} v \\mathrm {d} u \\\\ = n (n - 1) \\int_ {0} ^ {\\infty} \\frac {(F (v) - F (u)) ^ {n - 1}}{n - 1} | _ {2 u} ^ {\\infty} f (u) d u \\\\ = 1 - n \\int_ {0} ^ {\\infty} (F (2 u) - F (u)) ^ {n - 1} f (u) d u. \\\\ \\end{array}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.485,
+                0.32,
+                0.502
+            ],
+            "angle": 0,
+            "content": "Letting \\( s = 2^c - 1 \\), we have"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.51,
+                0.653,
+                0.756
+            ],
+            "angle": 0,
+            "content": "\\[\n\\begin{array}{l} \\operatorname {P r o b} (a \\in [ A, B ]) = 1 - n \\int_ {0} ^ {\\infty} (R (u) - R ^ {2 ^ {c}} (u)) ^ {n - 1} (- d R (u)) \\\\ = 1 - n \\int_ {0} ^ {1} \\left(t - t ^ {2 ^ {c}}\\right) ^ {n - 1} d t \\\\ = 1 - n \\int_ {0} ^ {1} t ^ {n - 1} (1 - t ^ {s}) ^ {n - 1} d t \\\\ = 1 - \\frac {n}{s} \\int_ {0} ^ {1} x ^ {\\frac {n}{s} - 1} (1 - x) ^ {n - 1} d x \\\\ = 1 - \\frac {n}{s} \\frac {\\Gamma \\left(\\frac {n}{s}\\right) \\Gamma (n)}{\\Gamma \\left(\\frac {n}{s} + n\\right)}. \\\\ \\end{array}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.093,
+                0.762,
+                0.568,
+                0.779
+            ],
+            "angle": 0,
+            "content": "Substituting \\(s\\) back, we will complete our proof. \\(\\square\\)"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.093,
+                0.794,
+                0.694,
+                0.812
+            ],
+            "angle": 0,
+            "content": "Using Gamma functions, we can expand expression (11) as follows:"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.114,
+                0.818,
+                0.914,
+                0.879
+            ],
+            "angle": 0,
+            "content": "\\[\n\\operatorname {P r o b} (a \\in [ A, B ]) = 1 - \\frac {(n - 1) !}{\\left(\\frac {n}{2 ^ {c} - 1} + n - 1\\right) \\left(\\frac {n}{2 ^ {c} - 1} + n - 2\\right) \\cdots \\left(\\frac {n}{2 ^ {c} - 1} + 1\\right)}. \\tag {12}\n\\]"
+        }
+    ],
+    [
+        {
+            "type": "header",
+            "bbox": [
+                0.229,
+                0.071,
+                0.767,
+                0.086
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185"
+        },
+        {
+            "type": "page_number",
+            "bbox": [
+                0.893,
+                0.071,
+                0.92,
+                0.084
+            ],
+            "angle": 0,
+            "content": "179"
+        },
+        {
+            "type": "table_caption",
+            "bbox": [
+                0.074,
+                0.104,
+                0.279,
+                0.133
+            ],
+            "angle": 0,
+            "content": "Table 1 Values of Prob(a∈[A,B])"
+        },
+        {
+            "type": "table",
+            "bbox": [
+                0.073,
+                0.134,
+                0.921,
+                0.412
+            ],
+            "angle": 0,
+            "content": "<table><tr><td rowspan=\"2\">c</td><td colspan=\"8\">n</td></tr><tr><td>25</td><td>50</td><td>75</td><td>100</td><td>125</td><td>150</td><td>175</td><td>200</td></tr><tr><td>1.0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>1.5</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>2.0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>2.5</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>3.0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>3.5</td><td>0.999</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>4.0</td><td>0.993</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>4.5</td><td>0.974</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>5.0</td><td>0.93</td><td>0.997</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>5.5</td><td>0.855</td><td>0.987</td><td>0.999</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>6.0</td><td>0.751</td><td>0.958</td><td>0.994</td><td>0.999</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>6.5</td><td>0.632</td><td>0.9</td><td>0.975</td><td>0.994</td><td>0.999</td><td>1</td><td>1</td><td>1</td></tr><tr><td>7.0</td><td>0.511</td><td>0.809</td><td>0.93</td><td>0.975</td><td>0.991</td><td>0.997</td><td>0.999</td><td>1</td></tr><tr><td>7.5</td><td>0.399</td><td>0.695</td><td>0.853</td><td>0.931</td><td>0.968</td><td>0.986</td><td>0.993</td><td>0.997</td></tr><tr><td>8.0</td><td>0.304</td><td>0.572</td><td>0.747</td><td>0.854</td><td>0.917</td><td>0.953</td><td>0.974</td><td>0.985</td></tr></table>"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.436,
+                0.918,
+                0.526
+            ],
+            "angle": 0,
+            "content": "In order to see that our range is meaningful, namely, \\( \\operatorname{Prob}(a \\in [A, B]) \\) is close to 1, we have listed possible values of \\( \\operatorname{Prob}(a \\in [A, B]) \\) for \\( c \\) and \\( n \\) in Table 1. From this table, it is clear that the probability that the location parameter falls in the proposed bounds is quite close to 1, especially when \\( n \\) is large. Thus, we only need to search in the interval \\( [A, B] \\). This process narrows the search range and makes our proposed search procedure much more efficient."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.535,
+                0.92,
+                0.605
+            ],
+            "angle": 0,
+            "content": "Remark. Since the shape parameter \\( c \\) is one of the unknowns to be estimated, Theorem 2 cannot, in principle, supply a reliable probabilistic information on the search range of parameter \\( a \\). Thus, the proposed procedure is \"a priori\" statistically valid only if a large number of samples are available, as can be seen from Table 1."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.095,
+                0.606,
+                0.521,
+                0.623
+            ],
+            "angle": 0,
+            "content": "Our method is based on the following formula:"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.124,
+                0.628,
+                0.917,
+                0.693
+            ],
+            "angle": 0,
+            "content": "\\[\n\\begin{array}{l} \\max  _ {a, b, c} L (a, b, c) \\approx \\max  _ {a, b, c} L (a, b, c) \\\\ = \\max  _ {a \\in [ A, B ]} \\left[ \\max  _ {b > 0, c \\geqslant 1} L (a, b, c) \\right] \\tag {13} \\\\ \\end{array}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.698,
+                0.918,
+                0.731
+            ],
+            "angle": 0,
+            "content": "This means that we can proceed to perform a stepwise approximation of the solution of the likelihood function."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.733,
+                0.918,
+                0.785
+            ],
+            "angle": 0,
+            "content": "Let \\(\\{x_{i}, i = 1, \\ldots, n\\}\\) be the samples from Weibull probability distribution that we shall use to estimate its parameters. We shall employ the above formulation (13) to estimate the parameters, \\(a, b\\) and \\(c\\). The process proceeds as follows:"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.786,
+                0.919,
+                0.855
+            ],
+            "angle": 0,
+            "content": "For each \\( a \\) in \\( [A, B] \\), we can solve the two parameter MLE problem for \\( b \\) and \\( c \\) for the data set \\( x_i - a \\), which possesses a unique solution as we have stated in [5]. Then we proceed to use our proposed Simple Iterative Procedure to solve for the unique \\( b \\) and \\( c \\). Therefore, \\( b \\) and \\( c \\) can be considered as a function of \\( a \\). Thus, we can write"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.859,
+                0.352,
+                0.877
+            ],
+            "angle": 0,
+            "content": "\\[\nb = b (a) \\quad \\text {a n d} \\quad c = c (a).\n\\]"
+        }
+    ],
+    [
+        {
+            "type": "page_number",
+            "bbox": [
+                0.077,
+                0.075,
+                0.103,
+                0.087
+            ],
+            "angle": 0,
+            "content": "180"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.228,
+                0.074,
+                0.768,
+                0.089
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersinSimulation39(1995)173-185"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.105,
+                0.636,
+                0.123
+            ],
+            "angle": 0,
+            "content": "Also \\( L(a, b, c) \\) can be treated as a function of \\( a \\) only, that is,"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.121,
+                0.13,
+                0.918,
+                0.15
+            ],
+            "angle": 0,
+            "content": "\\[\nG (a) = \\log L (a, b (a), c (a)). \\tag {14}\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.155,
+                0.92,
+                0.226
+            ],
+            "angle": 0,
+            "content": "The optimization problem now becomes a one-dimension search problem. We will use the effective Golden Section Method to obtain the optimal \\(a^*\\) that maximizes \\(G(a)\\), or \\(L(a, b(a), c(a))\\). The corresponding optimal parameters \\(b^*, c^*\\) for \\(a^*\\) can be uniquely generated from Qiao and Tsokos ([5]) for the data set \\(\\{x_i - a^*, i = 1, \\dots, n\\}\\)."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.227,
+                0.919,
+                0.299
+            ],
+            "angle": 0,
+            "content": "The Golden Section Method is also referred to as Golden Ratio Method or 0.618 method, where the Golden Ratio is 0.618. This method is quite effective in one-dimensional search procedures. Given below is the proposed algorithm for the estimation process of the three parameters."
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.073,
+                0.315,
+                0.31,
+                0.333
+            ],
+            "angle": 0,
+            "content": "3.2. Estimation procedures"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.351,
+                0.918,
+                0.385
+            ],
+            "angle": 0,
+            "content": "Here is an eight step procedure that has been proven effective in estimating the three parameters of the Weibull distribution."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.387,
+                0.918,
+                0.422
+            ],
+            "angle": 0,
+            "content": "Step 1. Find the steps \\(N\\) to reach the preset convergence level or tolerance (say, \\(\\varepsilon\\)). \\(N\\) is the smallest number to satisfy \\(0.618^{N}(B - A) \\leqslant \\varepsilon\\), where"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.115,
+                0.429,
+                0.531,
+                0.456
+            ],
+            "angle": 0,
+            "content": "\\[\nA = 2 \\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - \\max  _ {1 \\leqslant i \\leqslant n} x _ {i} \\quad \\text {a n d} \\quad B = \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.461,
+                0.655,
+                0.479
+            ],
+            "angle": 0,
+            "content": "Step 2. Start with initial points \\( a_1, a_2 \\), where \\( a_1 = A \\) and \\( a_2 = B \\)."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.48,
+                0.478,
+                0.496
+            ],
+            "angle": 0,
+            "content": "Step 3. Set the initial counting number \\( i = 0 \\)"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.498,
+                0.434,
+                0.514
+            ],
+            "angle": 0,
+            "content": "Step 4. Start with two points as follows:"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.115,
+                0.521,
+                0.337,
+                0.542
+            ],
+            "angle": 0,
+            "content": "\\[\na _ {4} = a _ {1} + 0. 6 1 8 \\left(a _ {2} - a _ {1}\\right)\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.548,
+                0.113,
+                0.563
+            ],
+            "angle": 0,
+            "content": "and"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.571,
+                0.344,
+                0.59
+            ],
+            "angle": 0,
+            "content": "\\[\na _ {3} = a _ {2} + 0. 6 1 8 \\left(a _ {1} - a _ {2}\\right).\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.596,
+                0.918,
+                0.65
+            ],
+            "angle": 0,
+            "content": "Step 5. Compute the values of \\( G(a) = \\log L((a), b(a), c(a)) \\) at the above points, where \\( b(a), c(a) \\) can be generated from our proposed Simple Iterative Procedure to the data set \\( \\{x_i - a, i = 1, \\ldots, n\\} \\) as summarized in Section 2. Use the following notations:"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.656,
+                0.412,
+                0.676
+            ],
+            "angle": 0,
+            "content": "\\[\nG _ {3} = G \\left(a _ {3}\\right) \\quad \\text {a n d} \\quad G _ {4} = G \\left(a _ {4}\\right),\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.682,
+                0.444,
+                0.701
+            ],
+            "angle": 0,
+            "content": "Step 6. Compare \\( G_{3} \\), \\( G_{4} \\). If \\( G_{3} \\leqslant G_{4} \\), let"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.706,
+                0.383,
+                0.725
+            ],
+            "angle": 0,
+            "content": "\\[\na _ {2} = a _ {4}, \\quad a _ {4} = a _ {3}, \\quad G _ {4} = G _ {3},\n\\]"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.73,
+                0.521,
+                0.751
+            ],
+            "angle": 0,
+            "content": "\\[\na _ {3} = a _ {2} + 0. 6 1 8 \\left(a _ {1} - a _ {2}\\right) \\quad \\text {a n d} \\quad G _ {3} = G \\left(a _ {3}\\right).\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.757,
+                0.206,
+                0.773
+            ],
+            "angle": 0,
+            "content": "Otherwise, let"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.779,
+                0.383,
+                0.798
+            ],
+            "angle": 0,
+            "content": "\\[\na _ {1} = a _ {3}, \\quad a _ {3} = a _ {4}, \\quad G _ {3} = G _ {4},\n\\]"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.116,
+                0.803,
+                0.52,
+                0.823
+            ],
+            "angle": 0,
+            "content": "\\[\na _ {4} = a _ {1} + 0. 6 1 8 \\left(a _ {2} - a _ {1}\\right) \\quad \\text {a n d} \\quad G _ {4} = G \\left(a _ {4}\\right);\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.072,
+                0.829,
+                0.725,
+                0.846
+            ],
+            "angle": 0,
+            "content": "Step 7. Let \\( i = i + 1 \\). If \\( i < N \\), go to Step 4. Otherwise go to next Step 8."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.847,
+                0.918,
+                0.88
+            ],
+            "angle": 0,
+            "content": "Step 8. Compare \\( G_{3} \\) and \\( G_{4} \\), if \\( G_{3} < G_{4} \\), then \\( a_{3} \\) is the minimum. Otherwise, \\( a_{4} \\) is the minimum."
+        }
+    ],
+    [
+        {
+            "type": "header",
+            "bbox": [
+                0.227,
+                0.072,
+                0.764,
+                0.086
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185"
+        },
+        {
+            "type": "page_number",
+            "bbox": [
+                0.893,
+                0.073,
+                0.915,
+                0.084
+            ],
+            "angle": 0,
+            "content": "181"
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.075,
+                0.104,
+                0.296,
+                0.12
+            ],
+            "angle": 0,
+            "content": "4. Numerical illustration"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.075,
+                0.133,
+                0.918,
+                0.168
+            ],
+            "angle": 0,
+            "content": "We shall now illustrate the effectiveness of the proposed algorithm with a numerical example. We shall also compare our results with those obtained by Sinha ([8])."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.075,
+                0.169,
+                0.918,
+                0.204
+            ],
+            "angle": 0,
+            "content": "We shall use the data that was generated by Sinha [8], from a three parameter Weibull model \\(a = 30\\), \\(b = 100\\), \\(c = 3\\), given in Table 2."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.075,
+                0.205,
+                0.918,
+                0.329
+            ],
+            "angle": 0,
+            "content": "Following our proposed procedure, we chose the same tolerance \\(\\varepsilon = 0.001\\) for the Golden Section Method as Sinha's and the tolerance \\(tol = 0.00001\\) for our Simple Iterative Procedure. The reason we have chosen such a small \\(tol\\) is to obtain a very accurate estimate of the parameters \\(b = b(a)\\) and \\(c = c(a)\\) in each step of the Golden Section Method to prevent the spread of the roundoff errors in the middle steps. Furthermore, our proposed Simple Iterative Procedure converges very fast, which results in forcing the Golden Section Search to converge very fast. Table 3 gives the number of steps for our Golden Section Search method to converge."
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.075,
+                0.341,
+                0.325,
+                0.359
+            ],
+            "angle": 0,
+            "content": "Analysis of numerical results"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.097,
+                0.373,
+                0.745,
+                0.389
+            ],
+            "angle": 0,
+            "content": "As a result of our numerical calculations we can conclude the following:"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.075,
+                0.391,
+                0.918,
+                0.425
+            ],
+            "angle": 0,
+            "content": "(i). In the proposed procedure, we have used our Theorem 2 to narrow the search range to make our numerical process quite efficient. In contrast, Sinha's method did not narrow the"
+        },
+        {
+            "type": "table_caption",
+            "bbox": [
+                0.075,
+                0.459,
+                0.254,
+                0.488
+            ],
+            "angle": 0,
+            "content": "Table 2 Data from \\(W(30,100,3)\\)"
+        },
+        {
+            "type": "table",
+            "bbox": [
+                0.072,
+                0.49,
+                0.917,
+                0.56
+            ],
+            "angle": 0,
+            "content": "<table><tr><td>99.7</td><td>112.4</td><td>109.0</td><td>121.5</td><td>100.3</td><td>160.5</td><td>179.1</td><td>73.5</td></tr><tr><td>120.9</td><td>82.8</td><td>113.8</td><td>125.5</td><td>182.6</td><td>150.6</td><td>112.2</td><td>113.1</td></tr><tr><td>138.1</td><td>133.5</td><td>129.9</td><td>200.5</td><td>164.4</td><td>156.0</td><td>104.7</td><td>89.9</td></tr><tr><td>191.5</td><td>113.8</td><td>108.4</td><td>150.8</td><td>168.9</td><td>94.7</td><td>145.9</td><td>54.6</td></tr></table>"
+        },
+        {
+            "type": "table_caption",
+            "bbox": [
+                0.075,
+                0.595,
+                0.385,
+                0.623
+            ],
+            "angle": 0,
+            "content": "Table 3 Results of Golden Section Search Method"
+        },
+        {
+            "type": "table",
+            "bbox": [
+                0.071,
+                0.625,
+                0.917,
+                0.879
+            ],
+            "angle": 0,
+            "content": "<table><tr><td>Step k</td><td>Location a</td><td>Scale b = b(a)</td><td>Shape c = c(a)</td><td>Log likelihood Function log L(a, b, c)</td></tr><tr><td>1</td><td>-1.133800</td><td>139.993908</td><td>4.273316</td><td>-196.067261780</td></tr><tr><td>2</td><td>-35.574224</td><td>175.272609</td><td>5.362803</td><td>-196.694642680</td></tr><tr><td>3</td><td>20.154617</td><td>117.896208</td><td>3.580135</td><td>-195.595529845</td></tr><tr><td>4</td><td>33.311583</td><td>104.015574</td><td>3.133874</td><td>-195.331162559</td></tr><tr><td>5</td><td>41.443034</td><td>95.267960</td><td>2.841952</td><td>-195.278870452</td></tr><tr><td>6</td><td>46.468548</td><td>89.733491</td><td>2.646594</td><td>-195.410316483</td></tr><tr><td>7</td><td>38.337096</td><td>98.631087</td><td>2.955816</td><td>-195.277066987</td></tr><tr><td>8</td><td>36.417521</td><td>100.696009</td><td>3.024574</td><td>-195.291567728</td></tr><tr><td>9</td><td>39.523459</td><td>97.350347</td><td>2.912753</td><td>-195.273394272</td></tr><tr><td>10</td><td>40.256672</td><td>96.556517</td><td>2.885887</td><td>-195.273626971</td></tr><tr><td>11</td><td>39.070309</td><td>97.840067</td><td>2.929258</td><td>-195.274246332</td></tr><tr><td>12*</td><td>39.803521</td><td>97.047348</td><td>2.902515</td><td>-195.273237880</td></tr><tr><td>13</td><td>39.976609</td><td>96.859951</td><td>2.896173</td><td>-195.273290292</td></tr><tr><td>*</td><td>39.803521</td><td>97.047348</td><td>2.902515</td><td>-195.273237880</td></tr></table>"
+        }
+    ],
+    [
+        {
+            "type": "page_number",
+            "bbox": [
+                0.078,
+                0.076,
+                0.103,
+                0.088
+            ],
+            "angle": 0,
+            "content": "182"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.23,
+                0.076,
+                0.767,
+                0.09
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputers in Simulation 39 (1995)173-185"
+        },
+        {
+            "type": "table_caption",
+            "bbox": [
+                0.075,
+                0.106,
+                0.269,
+                0.136
+            ],
+            "angle": 0,
+            "content": "Table 4 Data from \\(W(50,100,1.2)\\)"
+        },
+        {
+            "type": "table",
+            "bbox": [
+                0.075,
+                0.137,
+                0.919,
+                0.224
+            ],
+            "angle": 0,
+            "content": "<table><tr><td>68.75</td><td>138.7</td><td>103.0</td><td>81.23</td><td>63.26</td><td>213.8</td><td>317.7</td><td>162.9</td><td>55.93</td><td>157.5</td></tr><tr><td>129.4</td><td>162.5</td><td>187.1</td><td>58.10</td><td>51.20</td><td>208.5</td><td>97.41</td><td>81.55</td><td>133.6</td><td>324.1</td></tr><tr><td>55.86</td><td>158.9</td><td>142.8</td><td>80.86</td><td>108.2</td><td>68.91</td><td>204.1</td><td>284.0</td><td>86.06</td><td>138.2</td></tr><tr><td>67.87</td><td>177.5</td><td>148.0</td><td>86.03</td><td>163.3</td><td>119.6</td><td>202.1</td><td>152.8</td><td>286.4</td><td>87.20</td></tr><tr><td>100.9</td><td>120.2</td><td>132.7</td><td>116.3</td><td>61.23</td><td>180.2</td><td>112.9</td><td>158.3</td><td>401.2</td><td>161.0</td></tr></table>"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.076,
+                0.25,
+                0.918,
+                0.284
+            ],
+            "angle": 0,
+            "content": "search range and therefore, had to search in a quite large range to make the convergence possible. Also, Sinha's procedure doesn't guarantee convergence."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.076,
+                0.285,
+                0.919,
+                0.355
+            ],
+            "angle": 0,
+            "content": "(ii). We used Qiao and Tsokos' Simple Iterative Procedure for solving the resulting nonlinear system of two parameter Weibull problem. Our results required significantly less number of steps for convergence than the number required by Sinha's method. Overall, our proposed method only requires 13 one dimensional search steps, compared to Sinha's more than 50 steps."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.076,
+                0.356,
+                0.918,
+                0.391
+            ],
+            "angle": 0,
+            "content": "Thus, it is quite clear that our proposed method offers several advantages over Sinha's procedure."
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.076,
+                0.426,
+                0.7,
+                0.444
+            ],
+            "angle": 0,
+            "content": "5. Comparison of two parameter and three parameter Weibull models"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.076,
+                0.461,
+                0.918,
+                0.531
+            ],
+            "angle": 0,
+            "content": "In this section, we are going to illustrate the importance of the three parameter Weibull model in contrast to the two parameter Weibull model. That is, what is being lost when we use a two parameter Weibull distribution when in fact we should be using all three parameters. We shall use numerical examples to illustrate this fact."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.076,
+                0.532,
+                0.918,
+                0.566
+            ],
+            "angle": 0,
+            "content": "We generated 50 samples from the three parameter Weibull distribution \\( W(50,100,1.2) \\), as shown in Table 4."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.076,
+                0.567,
+                0.918,
+                0.602
+            ],
+            "angle": 0,
+            "content": "Using our SIP and its corresponding algorithm, we obtained estimates of two and three parameter Weibull models, that is, \\( W(0, 162.4933, 2.0301) \\) and \\( W(50.6527, 97.5671, 1.1746) \\)."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.076,
+                0.603,
+                0.918,
+                0.673
+            ],
+            "angle": 0,
+            "content": "It is clear that a significant difference exists between the two estimated Weibull models. We shall use three different approaches to compare the two and three parameter Weibull estimates to answer the important question of what we lose when we use a two parameter Weibull model when in fact we should be using all three parameters."
+        },
+        {
+            "type": "table_caption",
+            "bbox": [
+                0.076,
+                0.706,
+                0.243,
+                0.735
+            ],
+            "angle": 0,
+            "content": "Table 5 Percentile Comparison"
+        },
+        {
+            "type": "table",
+            "bbox": [
+                0.072,
+                0.737,
+                0.917,
+                0.879
+            ],
+            "angle": 0,
+            "content": "<table><tr><td>Percentile</td><td>0</td><td>10</td><td>20</td><td>30</td><td>40</td></tr><tr><td>True Model</td><td>50.00</td><td>65.33</td><td>78.65</td><td>92.35</td><td>107.13</td></tr><tr><td>3 Parameter Model</td><td>50.65</td><td>65.02</td><td>77.86</td><td>91.22</td><td>105.73</td></tr><tr><td>2 Parameter Model</td><td>0.00</td><td>53.63</td><td>77.62</td><td>97.79</td><td>116.72</td></tr><tr><td>Percentile</td><td>50</td><td>60</td><td>70</td><td>80</td><td>90</td></tr><tr><td>True Model</td><td>123.68</td><td>142.97</td><td>166.73</td><td>198.67</td><td>250.38</td></tr><tr><td>3 Parameter Model</td><td>122.07</td><td>141.22</td><td>164.92</td><td>196.96</td><td>249.11</td></tr><tr><td>2 Parameter Model</td><td>135.65</td><td>155.64</td><td>178.05</td><td>205.42</td><td>245.05</td></tr></table>"
+        }
+    ],
+    [
+        {
+            "type": "header",
+            "bbox": [
+                0.226,
+                0.072,
+                0.767,
+                0.086
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersinSimulation39(1995)173-185"
+        },
+        {
+            "type": "page_number",
+            "bbox": [
+                0.893,
+                0.073,
+                0.917,
+                0.084
+            ],
+            "angle": 0,
+            "content": "183"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.103,
+                0.918,
+                0.156
+            ],
+            "angle": 0,
+            "content": "Percentiles. Table 5 shows the percentiles of the true, three and two parameter models. We can conclude that the estimates of the percentiles of the three parameter model are closer to the true model than that of the two parameter model."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.156,
+                0.918,
+                0.191
+            ],
+            "angle": 0,
+            "content": "For example, at the 50th percentile, the difference between the two parameter Weibull model and the true model is"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.115,
+                0.197,
+                0.357,
+                0.216
+            ],
+            "angle": 0,
+            "content": "\\[\n\\left| 1 3 5. 6 5 - 1 2 3. 6 8 \\right| = 1 1. 9 7,\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.22,
+                0.862,
+                0.239
+            ],
+            "angle": 0,
+            "content": "while the difference between the three parameter Weibull model and the true model is"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.115,
+                0.244,
+                0.347,
+                0.263
+            ],
+            "angle": 0,
+            "content": "\\[\n\\left| 1 2 2. 0 7 - 1 2 3. 6 8 \\right| = 1. 6 1.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.267,
+                0.918,
+                0.302
+            ],
+            "angle": 0,
+            "content": "That is, the percentage deviation of 50th percentile of the two parameter Weibull characterization from the true one is"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.119,
+                0.307,
+                0.26,
+                0.348
+            ],
+            "angle": 0,
+            "content": "\\[\n\\frac{11.97}{123.68} = 9.7\\%\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.354,
+                0.918,
+                0.389
+            ],
+            "angle": 0,
+            "content": "while the percentage deviation of 50th percentile of the three parameter Weibull characterization from the true one is only"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.119,
+                0.394,
+                0.266,
+                0.435
+            ],
+            "angle": 0,
+            "content": "\\[\n\\frac{1.61}{123.68} = 1.3\\%.\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.44,
+                0.918,
+                0.476
+            ],
+            "angle": 0,
+            "content": "Thus, the three parameter Weibull model gives a much better characterization of the phenomenon of interest than the two parameter Weibull model."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.491,
+                0.918,
+                0.56
+            ],
+            "angle": 0,
+            "content": "Cumulative Distribution Function. Table 6 gives the cumulative distribution function values for all three models. We can conclude from Table 6, that the three parameter Weibull estimate is closer in representing the true probability distribution function than that of the two parameter model."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.562,
+                0.918,
+                0.597
+            ],
+            "angle": 0,
+            "content": "For example, for the cumulative distribution function at point 125, the difference between the two parameter Weibull model and the true model is"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.114,
+                0.603,
+                0.306,
+                0.621
+            ],
+            "angle": 0,
+            "content": "\\[\n\\left| 0. 4 4 - 0. 5 1 \\right| = 0. 0 9,\n\\]"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.07,
+                0.626,
+                0.859,
+                0.644
+            ],
+            "angle": 0,
+            "content": "while the difference between the three parameter Weibull model and the true model is"
+        },
+        {
+            "type": "equation",
+            "bbox": [
+                0.115,
+                0.649,
+                0.306,
+                0.668
+            ],
+            "angle": 0,
+            "content": "\\[\n\\left| 0. 5 2 - 0. 5 1 \\right| = 0. 0 1.\n\\]"
+        },
+        {
+            "type": "table_caption",
+            "bbox": [
+                0.074,
+                0.703,
+                0.455,
+                0.732
+            ],
+            "angle": 0,
+            "content": "Table 6 Cumulative distribution function (CDF) comparison"
+        },
+        {
+            "type": "table",
+            "bbox": [
+                0.071,
+                0.734,
+                0.917,
+                0.879
+            ],
+            "angle": 0,
+            "content": "<table><tr><td>Point</td><td>0</td><td>25</td><td>50</td><td>75</td><td>100</td><td>125</td><td>150</td><td>175</td><td>200</td></tr><tr><td>True CDF</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.17</td><td>0.35</td><td>0.51</td><td>0.63</td><td>0.73</td><td>0.80</td></tr><tr><td>3 Parameter Model</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.18</td><td>0.36</td><td>0.52</td><td>0.64</td><td>0.74</td><td>0.81</td></tr><tr><td>2 Parameter Model</td><td>0.00</td><td>0.02</td><td>0.09</td><td>0.19</td><td>0.31</td><td>0.44</td><td>0.57</td><td>0.69</td><td>0.78</td></tr><tr><td>Point</td><td>225</td><td>250</td><td>275</td><td>300</td><td>325</td><td>350</td><td>375</td><td>400</td><td></td></tr><tr><td>True CDF</td><td>0.86</td><td>0.90</td><td>0.93</td><td>0.95</td><td>0.97</td><td>0.98</td><td>0.98</td><td>0.99</td><td></td></tr><tr><td>3 Parameter Model</td><td>0.86</td><td>0.90</td><td>0.93</td><td>0.95</td><td>0.97</td><td>0.98</td><td>0.98</td><td>0.99</td><td></td></tr><tr><td>2 Parameter Model</td><td>0.86</td><td>0.91</td><td>0.95</td><td>0.97</td><td>0.98</td><td>0.99</td><td>1.00</td><td>1.00</td><td></td></tr></table>"
+        }
+    ],
+    [
+        {
+            "type": "page_number",
+            "bbox": [
+                0.079,
+                0.076,
+                0.105,
+                0.088
+            ],
+            "angle": 0,
+            "content": "184"
+        },
+        {
+            "type": "header",
+            "bbox": [
+                0.23,
+                0.076,
+                0.767,
+                0.09
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185"
+        },
+        {
+            "type": "table",
+            "bbox": [
+                0.209,
+                0.109,
+                0.574,
+                0.157
+            ],
+            "angle": 0,
+            "content": "<table><tr><td>True Model:</td><td></td></tr><tr><td>3 Parameter Model:</td><td>**********</td></tr><tr><td>2 Parameter Model:</td><td>-- -- -- -- --</td></tr></table>"
+        },
+        {
+            "type": "image",
+            "bbox": [
+                0.193,
+                0.184,
+                0.817,
+                0.508
+            ],
+            "angle": 0,
+            "content": null
+        },
+        {
+            "type": "image_caption",
+            "bbox": [
+                0.151,
+                0.512,
+                0.841,
+                0.529
+            ],
+            "angle": 0,
+            "content": "Fig. 1. Comparison of two and three parameter Weibull models -- probability density function."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.551,
+                0.918,
+                0.606
+            ],
+            "angle": 0,
+            "content": "This implies, at point 125, the percentage deviation of the CDF value of the two parameter Weibull model from the true one is \\(0.09 / 0.51 = 16.6\\%\\) while the percentage deviation of the CDF value of the three parameter Weibull model from the true one is only \\(0.01 / 0.51 = 2\\%\\)."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.627,
+                0.918,
+                0.681
+            ],
+            "angle": 0,
+            "content": "Graphical Presentation. Fig. 1 illustrates the true probability density function along with the three and two parameter Weibull model estimations. We can visually see that the three parameter Weibull model fits the true model better than the two parameter Weibull model."
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.072,
+                0.722,
+                0.202,
+                0.739
+            ],
+            "angle": 0,
+            "content": "6. Conclusion"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.093,
+                0.76,
+                0.674,
+                0.776
+            ],
+            "angle": 0,
+            "content": "In the present study we have accomplished the following results:"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.777,
+                0.918,
+                0.829
+            ],
+            "angle": 0,
+            "content": "(1). We have summarized our Simple Iterative Procedure (SIP) that one can use to effectively obtain estimates of a two parameter Weibull model. Analytically, our SIP is stable, always converges and converges very fast."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.071,
+                0.829,
+                0.918,
+                0.881
+            ],
+            "angle": 0,
+            "content": "(2). Our proposed SIP method has been extended to solve the optimization problem resulting from the estimation procedure of a three parameter Weibull probability density function. This procedure is also stable and converges very fast."
+        },
+        {
+            "type": "list",
+            "bbox": [
+                0.071,
+                0.777,
+                0.918,
+                0.881
+            ],
+            "angle": 0,
+            "content": null
+        }
+    ],
+    [
+        {
+            "type": "header",
+            "bbox": [
+                0.228,
+                0.07,
+                0.766,
+                0.085
+            ],
+            "angle": 0,
+            "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185"
+        },
+        {
+            "type": "page_number",
+            "bbox": [
+                0.892,
+                0.072,
+                0.917,
+                0.083
+            ],
+            "angle": 0,
+            "content": "185"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.102,
+                0.918,
+                0.226
+            ],
+            "angle": 0,
+            "content": "(3) The extension of our SIP method to three parameter Weibull model has been presented as an eight step algorithm that can be easily implemented. We have shown using three different criteria to illustrate that one will experience a significant loss in characterizing a certain phenomenon with a two parameter Weibull model instead of a three parameter Weibull model. Scientists and engineers avoided using the three parameter Weibull model because of the difficulties in estimating its parameters. The findings in the present study should assist in eliminating this difficulty."
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.073,
+                0.226,
+                0.918,
+                0.262
+            ],
+            "angle": 0,
+            "content": "(4). We have shown that our proposed algorithm is superior to that of Sinha with respect to convergence and it results in significantly better estimates of the parameters."
+        },
+        {
+            "type": "list",
+            "bbox": [
+                0.073,
+                0.102,
+                0.918,
+                0.262
+            ],
+            "angle": 0,
+            "content": null
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.074,
+                0.298,
+                0.238,
+                0.314
+            ],
+            "angle": 0,
+            "content": "Acknowledgement"
+        },
+        {
+            "type": "text",
+            "bbox": [
+                0.096,
+                0.333,
+                0.714,
+                0.35
+            ],
+            "angle": 0,
+            "content": "The authors wish to thank the referees for many helpful suggestions."
+        },
+        {
+            "type": "title",
+            "bbox": [
+                0.074,
+                0.387,
+                0.176,
+                0.403
+            ],
+            "angle": 0,
+            "content": "References"
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.42,
+                0.918,
+                0.45
+            ],
+            "angle": 0,
+            "content": "[1] L.J. Bain and M. Engelhardt, Statistical Analysis of Reliability and Life Testing Models (Marcel Dekker, New York, 1991, 2nd Ed.)."
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.451,
+                0.918,
+                0.479
+            ],
+            "angle": 0,
+            "content": "[2] P. Hall, S.J. Sheather, M.C. Jones and J.S. Marron, On optimal data-based bandwidth selection in kernel density estimation, Biometrika 78 (1991) 263."
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.481,
+                0.918,
+                0.509
+            ],
+            "angle": 0,
+            "content": "[3] J.I. McCool, Inference on Weibull percentiles and shape parameter from maximum likelihood estimates, IEEE Trans Reliability 19 (1970) 2-9."
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.51,
+                0.918,
+                0.54
+            ],
+            "angle": 0,
+            "content": "[4] W.H. Press, B.P. Fannery, S.A. Teukolsky and W.T. Vetterling, Numerical Recipes in C (Cambridge University Press, Cambridge, 1988)."
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.541,
+                0.918,
+                0.569
+            ],
+            "angle": 0,
+            "content": "[5] H. Qiao and Tsokos, Parameter estimation of the Weibull probability distribution, Math. Comput. Simulation, to appear."
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.57,
+                0.864,
+                0.585
+            ],
+            "angle": 0,
+            "content": "[6] V.K. Rohatgi, An Introduction to Probability Theory and Mathematical Statistics (Wiley Eastern, 1990)."
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.586,
+                0.917,
+                0.614
+            ],
+            "angle": 0,
+            "content": "[7] H. Rockette, C.E. Antle and L.A. Klimko, Maximum likelihood estimation with the Weibull model, J. Amer. Stat. Assoc. 69 (1974) 246-249."
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.615,
+                0.581,
+                0.63
+            ],
+            "angle": 0,
+            "content": "[8] S.K. Sinha, Reliability and Life Testing (Wiley, New York, 1986)."
+        },
+        {
+            "type": "ref_text",
+            "bbox": [
+                0.074,
+                0.63,
+                0.869,
+                0.646
+            ],
+            "angle": 0,
+            "content": "[9] B.W. Silverman, Density Estimation for Statistics and Data Analysis (Chapman and Hall, London, 1986)."
+        },
+        {
+            "type": "list",
+            "bbox": [
+                0.074,
+                0.42,
+                0.918,
+                0.646
+            ],
+            "angle": 0,
+            "content": null
+        }
+    ]
+]

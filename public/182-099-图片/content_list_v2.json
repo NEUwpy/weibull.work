@@ -1,0 +1,2184 @@
+[
+    [
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "威布尔分布的极大似然估计的精度分析"
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                125,
+                69,
+                870,
+                99
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "李 进 黄 敏 赵 宇"
+                    }
+                ]
+            },
+            "bbox": [
+                306,
+                114,
+                687,
+                135
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "北京航空航天大学 工程系统工程系 北京"
+                    }
+                ]
+            },
+            "bbox": [
+                306,
+                147,
+                687,
+                161
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "摘 要: 威布尔分布参数估计的极大似然方法是一种常用的方法,在故障数不小于的情况下推荐使用 但在工程中,由于产品的可靠性高,或者是样本量少,试验的故障数常常是小于10,在这种情况下需要明确所得的评估结果的精度是否满足要求. 运用区间估计的思想,提出了一种解决上述问题的评价和判断的方法,并应用此方法对完全样本情况下,形状参数的极大似然估计量的精度进行了讨论 工程上,可以依据文中提供的结论定量分析威布尔分布形状参数极大似然估计量的精度"
+                    }
+                ]
+            },
+            "bbox": [
+                56,
+                176,
+                937,
+                297
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "关 键 词: 威布尔分布; 极大似然估计; 分析"
+                    }
+                ]
+            },
+            "bbox": [
+                100,
+                298,
+                552,
+                317
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "中图分类号"
+                    }
+                ]
+            },
+            "bbox": [
+                100,
+                319,
+                320,
+                336
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "文献标识码: A 文 章 编 号: 1001鄄5965(2006)08鄄0930鄄03"
+                    }
+                ]
+            },
+            "bbox": [
+                100,
+                340,
+                725,
+                357
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "Analysis of precision for maximum likelihood estimation in the Weibull distribution "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                143,
+                402,
+                852,
+                447
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Li Jin Huang Min ZhaoYu "
+                    }
+                ]
+            },
+            "bbox": [
+                356,
+                456,
+                637,
+                473
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "( Dept. of System Engineering of Engineering Technology, Beijing University of Aeronautics and Astronautics, Beijing 100083, China) "
+                    }
+                ]
+            },
+            "bbox": [
+                47,
+                480,
+                945,
+                494
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Abstract: Maximum likelihood estimation(MLE) in the Weibull distribution of parameters is considered an effective method, which is recommended in the case that the number of failure is more than 10 or equal 10. In practice, the number of failure is often less than 10 because of the high reliability or the fewness of sample. It is wanted to be known whether the MLE can be used in the case above; the number of failure, which makes the estimator have a given precision, will be known, sometimes, before the experimentation applying. So a method of analysis and estimation, which resolves that problems, was given with the idea of interval estima鄄 tion. Then the precision of the estimator of shape parameter was discussed by this way under complete sample. In the practice projects, the precision of maximum likelihood estimation of Weibull shape parameter is quanti鄄 tatively provided by the conclusion. "
+                    }
+                ]
+            },
+            "bbox": [
+                12,
+                497,
+                981,
+                678
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Key words: Weibull distribution; maximum likelihood estimation; analysis "
+                    }
+                ]
+            },
+            "bbox": [
+                56,
+                682,
+                729,
+                699
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "1 问题的提出"
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                12,
+                761,
+                206,
+                781
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "威布尔分布是一种常用的寿命分布 极大似然估计法( MLE, Maximum Likelihood Estimation)是一种对威布尔分布参数估计普遍采用的方法一般在 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "n \\geqslant r \\geqslant 1 0 ( \\ n"
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "n"
+                    },
+                    {
+                        "type": "text",
+                        "content": "为样本量 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "为失效数 的情况下推荐使用. 但是在许多的工程领域中 由于产品的可靠性比较高 或者样本量比较少 要达到故障数大于或等于 这样的条件是比较困难的. 因"
+                    }
+                ]
+            },
+            "bbox": [
+                12,
+                797,
+                481,
+                939
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "此 工程中常常在 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r \\leqslant 1 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": "情况下 使用极大似然估计. 在通常情况下 不清楚估计出参数的精度 也同样不清楚估计出的参数是否满足要求."
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                742,
+                981,
+                800
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "实际上 无论是故障数大于或者小于 参数的估计值都不能肯定等于参数的真实值 通常的做法是进行区间估计 这样在给定置信度的情况下 就可以得到置信区间. 但是 要是想要了解估计出的参数在给定真值区间的概率 或者在试验还没有进行时想要了解使参数的估计值具有一定的精度的条件下所需要进行的试验的故障数"
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                802,
+                981,
+                943
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "2006 年 8 月"
+                    }
+                ]
+            },
+            "bbox": [
+                33,
+                9,
+                154,
+                24
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "第32卷 第8期"
+                    }
+                ]
+            },
+            "bbox": [
+                35,
+                26,
+                154,
+                40
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "北 京 航 空 航 天 大 学 学 报"
+                    }
+                ]
+            },
+            "bbox": [
+                375,
+                9,
+                622,
+                24
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "Journal of Beijing University of Aeronautics and Astronautics "
+                    }
+                ]
+            },
+            "bbox": [
+                270,
+                27,
+                725,
+                39
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "August 2006 "
+                    }
+                ]
+            },
+            "bbox": [
+                852,
+                11,
+                958,
+                24
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "Vol. 32 No郾 8 "
+                    }
+                ]
+            },
+            "bbox": [
+                847,
+                26,
+                960,
+                39
+            ]
+        },
+        {
+            "type": "page_footer",
+            "content": {
+                "page_footer_content": [
+                    {
+                        "type": "text",
+                        "content": "收稿日期"
+                    }
+                ]
+            },
+            "bbox": [
+                29,
+                956,
+                193,
+                969
+            ]
+        },
+        {
+            "type": "page_footer",
+            "content": {
+                "page_footer_content": [
+                    {
+                        "type": "text",
+                        "content": "作者简介: 李 进(1980-), 男, 北京人,硕士生, jinlee@ sohu. com."
+                    }
+                ]
+            },
+            "bbox": [
+                29,
+                972,
+                514,
+                986
+            ]
+        }
+    ],
+    [
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "区间估计显然不能解决这样的问题."
+                    }
+                ]
+            },
+            "bbox": [
+                14,
+                46,
+                352,
+                63
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "本文为解决此类的问题 提出一种方法. 同时使用此方法对于完全样本的情况下 威布尔分布的形状参数 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\beta"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的极大似然估计量 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\hat { \\boldsymbol { \\beta } }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "进行了估计精度的讨论 同时得到了满足相应条件的最小样本失效数."
+                    }
+                ]
+            },
+            "bbox": [
+                12,
+                67,
+                479,
+                167
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2 极大似然估计量的评价方法"
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                12,
+                186,
+                412,
+                207
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "两参数威布尔分布,其密度函数为"
+                    }
+                ]
+            },
+            "bbox": [
+                56,
+                218,
+                381,
+                234
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "f (t) = \\frac {\\beta}{\\alpha} \\left(\\frac {t}{\\alpha}\\right) ^ {\\beta - 1} \\exp \\left[ - \\left(\\frac {t}{\\alpha}\\right) ^ {\\beta} \\right] \\quad t \\geqslant 0 \\tag {1}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/26c8e7125aa9591d796994e66b3e3dda0f352eaa40c5666dbe984e64511bc849.jpg"
+                }
+            },
+            "bbox": [
+                33,
+                238,
+                475,
+                298
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "其中 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\beta { > } 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": "和 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\alpha { > } 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": "是参数,分别称为威布尔分布的形状参数和尺度参数."
+                    }
+                ]
+            },
+            "bbox": [
+                14,
+                301,
+                477,
+                338
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "对于威布尔分布的两个参数的极大似然估计量是由下面的方程组解出的[1]."
+                    }
+                ]
+            },
+            "bbox": [
+                14,
+                340,
+                479,
+                381
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\left. \\begin{array}{l} \\frac {\\sum_ {i = 1} ^ {r} t _ {i} ^ {\\beta} \\ln t _ {i} + (n - r) \\cdot t _ {\\mathrm {Z}} ^ {\\beta} \\ln t _ {\\mathrm {Z}}}{\\sum_ {i = 1} ^ {r} t _ {i} ^ {\\beta} + (n - r) \\cdot t _ {\\mathrm {Z}} ^ {\\beta}} - \\\\ \\frac {1}{r} \\sum_ {i = 1} ^ {r} \\ln t _ {i} - \\frac {1}{\\beta} = 0 \\\\ \\alpha = \\left(\\frac {\\sum_ {i = 1} ^ {r} t _ {i} ^ {\\beta} + (n - r) \\cdot t _ {\\mathrm {Z}} ^ {\\beta}}{r}\\right) ^ {\\frac {1}{\\beta}} \\end{array} \\right\\} \\tag {2}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/e292510aaeaed1e2cb319a72ec824d3769ca7571aa74d710874ef0e3c52145f3.jpg"
+                }
+            },
+            "bbox": [
+                95,
+                386,
+                475,
+                567
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "其中, "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\mathbf { \\nabla } _ { t _ { i } }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "为第 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "i"
+                    },
+                    {
+                        "type": "text",
+                        "content": "个失效时间; "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "t _ { Z }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "为截尾时间."
+                    }
+                ]
+            },
+            "bbox": [
+                14,
+                570,
+                410,
+                588
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "对于方程 解出的极大似然的估计值 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\hat { \\boldsymbol { \\beta } }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "和"
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\hat { \\alpha }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "理论上符合某种分布. 下面就以 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\beta"
+                    },
+                    {
+                        "type": "text",
+                        "content": "为例来说明这个方法. 首先,构造枢轴量: "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z = { \\hat { \\boldsymbol { \\beta } } } / \\beta"
+                    },
+                    {
+                        "type": "text",
+                        "content": "(证明见文献 所以 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的分布和 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\beta"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的取值是无关的. 这样 就可以得到 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的分布 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "F _ { Z }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "得到 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的分布 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "F _ { Z }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的方法有很多 例如用公式推导或是用模拟的方法 . 然后 利用这个分布 计算概率 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". 计算的步骤是: "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\textcircled{1}"
+                    },
+                    {
+                        "type": "text",
+                        "content": "取 区 间 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\left[ z _ { 1 } , z _ { 2 } \\right]"
+                    },
+                    {
+                        "type": "text",
+                        "content": "; "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\textcircled{2}"
+                    },
+                    {
+                        "type": "text",
+                        "content": "计 算 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p = F _ { z } ( z _ { 2 } ) -"
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "F _ { z } ( z _ { 1 } )"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". 这样 得到的概率 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p"
+                    },
+                    {
+                        "type": "text",
+                        "content": "可以描述为 在给定"
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "n"
+                    },
+                    {
+                        "type": "text",
+                        "content": "和 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的情况下 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\hat { \\beta }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "在真值 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\beta"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的区间 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\left[ z _ { 1 } \\beta , z _ { 2 } \\beta \\right]"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的概率为 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". 由于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z"
+                    },
+                    {
+                        "type": "text",
+                        "content": "为枢轴量 所以这个概率 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p"
+                    },
+                    {
+                        "type": "text",
+                        "content": "只与 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "n"
+                    },
+                    {
+                        "type": "text",
+                        "content": "和 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "有关. 这样,就可以用这个概率 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p"
+                    },
+                    {
+                        "type": "text",
+                        "content": "来评价和判断 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "n"
+                    },
+                    {
+                        "type": "text",
+                        "content": "和 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "在各种情况下 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\hat { \\beta }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的优劣了."
+                    }
+                ]
+            },
+            "bbox": [
+                12,
+                591,
+                479,
+                857
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3 完全样本情况下的 MLE 的评价"
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                12,
+                875,
+                464,
+                896
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "下面就利用上面的方法对完全样本情况下的威布尔分布形状参数的 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\hat { \\beta }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "进行评价."
+                    }
+                ]
+            },
+            "bbox": [
+                14,
+                907,
+                479,
+                946
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3. 1 枢轴量 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\scriptstyle { Z = { \\hat { \\pmb { \\beta } } } / \\pmb { \\beta } }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的分布的研究"
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                14,
+                949,
+                352,
+                967
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "极值分布是与威布尔分布等价的 可以代替"
+                    }
+                ]
+            },
+            "bbox": [
+                58,
+                969,
+                479,
+                986
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "其的一种更为方便的形式 其密度函数为"
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                46,
+                904,
+                63
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "f (x, u, b) =",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/8633104b15b6e8ce36503438e707cc2de2340b232e141267eb3a5e0e023d5b7f.jpg"
+                }
+            },
+            "bbox": [
+                687,
+                67,
+                802,
+                86
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\begin{array}{l} \\frac {1}{b} \\exp [ (x - u) / b ] \\exp \\{- \\exp [ (x - u) / b ] \\} \\\\ - \\infty <   x <   \\infty \\tag {3} \\\\ \\end{array}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/d2732e46ea0bbe783d462f6b3f57bf18a19c224f4437cba14ddce8441d31b735.jpg"
+                }
+            },
+            "bbox": [
+                541,
+                90,
+                975,
+                143
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "其中 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "u ( - \\infty < u < \\infty"
+                    },
+                    {
+                        "type": "text",
+                        "content": "和 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b ( \\ b { > } 0 )"
+                    },
+                    {
+                        "type": "text",
+                        "content": "是参数. 若 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "T"
+                    },
+                    {
+                        "type": "text",
+                        "content": "服从威布尔分布,则随机变量 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "X { = } \\log T"
+                    },
+                    {
+                        "type": "text",
+                        "content": "就服从极值分布,其中 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "u = \\log \\alpha , b = \\beta ^ { - 1 }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "."
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                146,
+                979,
+                204
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "对于极值分布函数的参数 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b , Z ^ { \\prime } = \\hat { b } / b"
+                    },
+                    {
+                        "type": "text",
+                        "content": "同样为枢轴量. 对于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z ^ { \\prime }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的分布 已经给出了其分布密度 但是同时也指出对于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z ^ { \\prime }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "忆的分布密度的积分不可能有解析的表达式. 所以只能找出一个近似的分布 对于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z ^ { \\prime }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的分布 从经验中发展起来有如下形式的近似"
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                212,
+                979,
+                332
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "g Z ^ {\\prime} \\sim \\chi_ {(h)} ^ {2} \\tag {4}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/0b4c55a620e0d30ba694b563898c43b32f6222f3add86a59fd735112c648b555.jpg"
+                }
+            },
+            "bbox": [
+                693,
+                336,
+                977,
+                356
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "其中 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "^ { g }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "和 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "h"
+                    },
+                    {
+                        "type": "text",
+                        "content": "只与 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "n"
+                    },
+                    {
+                        "type": "text",
+                        "content": "和 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "有 关. Harter 和 Moore(1968),McCool(1975)和 Lawless 和 Mann(1976)分别得到结果组成了表 给出了各种 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "( r , n )"
+                    },
+                    {
+                        "type": "text",
+                        "content": "组合的 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "h"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的值, "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "^ { g }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "由 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\scriptstyle g = h + 2"
+                    },
+                    {
+                        "type": "text",
+                        "content": "给出. 表 1 只列出了对于本文有用的值[2]."
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                357,
+                979,
+                456
+            ]
+        },
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/afe53ccda4609bae037b40b0b20e0a7ad003d6980bc95a8e5de589f4beedd7c1.jpg"
+                },
+                "table_caption": [
+                    {
+                        "type": "text",
+                        "content": "表1 近似所用的 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\pmb { h }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "值"
+                    }
+                ],
+                "table_footnote": [],
+                "html": "<table><tr><td rowspan=\"2\">r/n</td><td colspan=\"5\">n</td></tr><tr><td>5</td><td>10</td><td>20</td><td>40</td><td>60</td></tr><tr><td>1.0</td><td>12.9</td><td>29.3</td><td>62.4</td><td>128.2</td><td>194.8</td></tr></table>",
+                "table_type": "complex_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                522,
+                479,
+                977,
+                546
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "对于表 中没有给出的 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "h"
+                    },
+                    {
+                        "type": "text",
+                        "content": "值 可以通过线性插值获得 本段论述的各种近似和取值以及具体的证明和解释见文献 ."
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                550,
+                979,
+                607
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "这样就可以得到 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "F _ { Z }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的近似的计算公式:"
+                    }
+                ]
+            },
+            "bbox": [
+                558,
+                610,
+                935,
+                629
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\begin{array}{l} F _ {Z} (x) = P (Z \\leqslant x) = P \\left(\\chi_ {(h)} ^ {2} \\geqslant \\frac {g}{x}\\right) = \\\\ 1 - P \\left(\\chi_ {(h)} ^ {2} \\leqslant \\frac {g}{x}\\right) \\tag {5} \\\\ \\end{array}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/120a3ae3bb55916cf904f388d3a7b56da1aa3d3c08894c2c5a6bde2e04a53dcf.jpg"
+                }
+            },
+            "bbox": [
+                566,
+                635,
+                977,
+                701
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "式 是非常便于计算的."
+                    }
+                ]
+            },
+            "bbox": [
+                558,
+                706,
+                802,
+                721
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3. 2 对于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的各种情况的计算"
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                514,
+                727,
+                814,
+                742
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "关于下面的讨论 假定讨论的 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的范围是. 这是由于 对于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r { < } 3"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的情况 认为不适合用极大似然法进行估计 同时 对于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r { > } 4 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的情况视为其估计的精度已经足够精确."
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                746,
+                979,
+                826
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "利用第 节中所给的方法 同时结合第 .节中所推倒出的 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "F _ { Z }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "就可以很容易地求出概率 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p"
+                    },
+                    {
+                        "type": "text",
+                        "content": ".具体的计算步骤如下"
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                830,
+                977,
+                887
+            ]
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "1) 给定 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "n = r = n _ { 0 }"
+                            },
+                            {
+                                "type": "text",
+                                "content": "; "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "给出 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "Z = \\frac { \\hat { \\beta } } { \\beta }"
+                            },
+                            {
+                                "type": "text",
+                                "content": "^茁 的区间 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "[ z _ { 1 } , z _ { 2 } ]"
+                            },
+                            {
+                                "type": "text",
+                                "content": "; "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "3) 利用线性内插值,对于给定的 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "n"
+                            },
+                            {
+                                "type": "text",
+                                "content": "求出相应的 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "h"
+                            },
+                            {
+                                "type": "text",
+                                "content": "和 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "^ { g }"
+                            },
+                            {
+                                "type": "text",
+                                "content": ";"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                892,
+                979,
+                986
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "第 8 期"
+                    }
+                ]
+            },
+            "bbox": [
+                35,
+                23,
+                95,
+                37
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "李 进等 威布尔分布的极大似然估计的精度分析"
+                    }
+                ]
+            },
+            "bbox": [
+                297,
+                23,
+                706,
+                39
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "931 "
+                    }
+                ]
+            },
+            "bbox": [
+                927,
+                24,
+                960,
+                37
+            ]
+        }
+    ],
+    [
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "4) 分别计算概率 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "P"
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "P \\left( \\chi _ { \\left( h \\right) } ^ { 2 } \\leqslant \\frac { g } { z _ { 1 } } \\right)"
+                            },
+                            {
+                                "type": "text",
+                                "content": "和 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "P ( \\chi _ { ( h ) } ^ { 2 } \\leqslant"
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "{ \\frac { g } { z _ { 2 } } } \\mathbf { \\epsilon } ) ;"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "5) 则 "
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "p = F _ { _ { Z } } \\left( z _ { 2 } \\right) - F _ { _ { Z } } \\left( z _ { 1 } \\right) = P \\ \\left( \\chi _ { _ { ( h ) } } ^ { 2 } \\leqslant \\frac { g } { z _ { 1 } } \\ \\right) - P"
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "\\Big ( \\chi _ { ( h ) } ^ { 2 } \\leqslant \\frac { g } { z _ { 2 } } \\Big ) ."
+                            },
+                            {
+                                "type": "text",
+                                "content": "z . "
+                            }
+                        ]
+                    }
+                ]
+            },
+            "bbox": [
+                16,
+                52,
+                481,
+                191
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "为了工程应用的方便 在构造表 的过程中给定 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p = p _ { 0 }"
+                    },
+                    {
+                        "type": "text",
+                        "content": ",然后对于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "Z = \\frac { \\hat { \\beta } } { \\beta }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "不同的区间,求出满足"
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "p ( r ) \\geqslant p _ { 0 }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "最小的 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "值."
+                    }
+                ]
+            },
+            "bbox": [
+                12,
+                194,
+                479,
+                270
+            ]
+        },
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/9dd293791836017547b84cb7c09ae66fd2e24b2b9e3616bfec659b3ea8df2d1d.jpg"
+                },
+                "table_caption": [
+                    {
+                        "type": "text",
+                        "content": "表2 满足条件最小 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "值表"
+                    }
+                ],
+                "table_footnote": [],
+                "html": "<table><tr><td rowspan=\"2\">Z</td><td colspan=\"5\">p/%</td></tr><tr><td>50</td><td>60</td><td>70</td><td>80</td><td>90</td></tr><tr><td>[0.85,1.15]</td><td>15</td><td>22</td><td>32</td><td>-</td><td>-</td></tr><tr><td>[0.8,1.2]</td><td>9</td><td>13</td><td>19</td><td>29</td><td>-</td></tr><tr><td>[0.75,1.25]</td><td>7</td><td>10</td><td>14</td><td>20</td><td>32</td></tr><tr><td>[0.7,1.3]</td><td>6</td><td>7</td><td>10</td><td>15</td><td>24</td></tr><tr><td>[0.6,1.4]</td><td>4</td><td>5</td><td>7</td><td>10</td><td>16</td></tr><tr><td>[0.5,1.5]</td><td>3</td><td>4</td><td>6</td><td>8</td><td>12</td></tr><tr><td>[0.4,1.6]</td><td>3</td><td>4</td><td>5</td><td>7</td><td>10</td></tr><tr><td>[0.3,1.7]</td><td>3</td><td>4</td><td>4</td><td>6</td><td>8</td></tr><tr><td>[0.2,1.8]</td><td>3</td><td>3</td><td>4</td><td>5</td><td>7</td></tr></table>",
+                "table_type": "complex_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                22,
+                291,
+                475,
+                477
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "注 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\textcircled{1}"
+                    },
+                    {
+                        "type": "text",
+                        "content": "表中 代表 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的值大于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\textcircled{2}"
+                    },
+                    {
+                        "type": "text",
+                        "content": "由于 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "的值最小为 所以表的左下方都是 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\textcircled{3}"
+                    },
+                    {
+                        "type": "text",
+                        "content": "对于表中没有给出的数据 用二次插值可以近似地得到."
+                    }
+                ]
+            },
+            "bbox": [
+                14,
+                479,
+                481,
+                527
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "表 中数据的解释和使用的方法 以第 行中的数 为例 代表故障数为 的完全样本情况下 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\hat { \\beta }"
+                    },
+                    {
+                        "type": "text",
+                        "content": "在真值区间 "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "[ 0 . \\ 8 \\beta , 1 . \\ 2 \\beta ]"
+                    },
+                    {
+                        "type": "text",
+                        "content": "内的概率为"
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "60 \\%"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". 这样在工程中 如果给出形状参数的估计值可以接受的区间 同时给出可以接受的概率 就可以得到要进行的试验在完全样本情况下最少的故障数."
+                    }
+                ]
+            },
+            "bbox": [
+                12,
+                531,
+                479,
+                671
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "这里还要说明的一点就是这种评价的方法和区间估计的区别"
+                    }
+                ]
+            },
+            "bbox": [
+                14,
+                674,
+                479,
+                712
+            ]
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "这里只是一种评价和判断的方法 得到的结论只是可以用和不可以用 可以不用知道参数"
+                            },
+                            {
+                                "type": "equation_inline",
+                                "content": "\\beta"
+                            },
+                            {
+                                "type": "text",
+                                "content": "的真值 所以这里考虑的是估计的参数在真值区间的概率 而区间估计所要求的是区间的数值所以求的是在一定概率下的真值在估计参数的区间;"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "这里所用的方法是给定区间求概率 而区间估计是给定概率求区间."
+                            }
+                        ]
+                    }
+                ]
+            },
+            "bbox": [
+                12,
+                716,
+                479,
+                875
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "所以,本文的方法和区间估计可以说是一种"
+                    }
+                ]
+            },
+            "bbox": [
+                56,
+                879,
+                479,
+                896
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "理念的两种不同角度的理解和看法."
+                    }
+                ]
+            },
+            "bbox": [
+                516,
+                46,
+                854,
+                63
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "4 结 束 语"
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                512,
+                83,
+                681,
+                103
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "本文对于威布尔分布的极大似然法的估计量 在样本量和故障数的各种不同情况的精度 给了一种评价和判断的方法. 同时对于完全样本情况下 形状参数的极大似然估计进行了讨论 文中并没有给出好坏的结论. 这是由于在不同的情况下 要求的精度是不同的 所以可以根据不同的情况 依照表 进行选择."
+                    }
+                ]
+            },
+            "bbox": [
+                512,
+                114,
+                979,
+                255
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "表2 中的数据定量地给出了满足一定精度要求的威布尔分布形状参数的极大似然估计值所要求的最少样本量 同时使得在工程中应用极大似然估计威布尔形状参数时对估计值精度有了定量的了解."
+                    }
+                ]
+            },
+            "bbox": [
+                512,
+                259,
+                979,
+                357
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "对于文中没有讨论的尺度参数和不是完全样本的情况 同样可以按照第 节中所述的方法 根据不同的性质 分别进行分析和处理."
+                    }
+                ]
+            },
+            "bbox": [
+                514,
+                362,
+                979,
+                420
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "参考文献 (References) "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                635,
+                437,
+                858,
+                454
+            ]
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "reference_list",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "杨华波 张士峰 蔡洪 分布可靠性分析 飞行器测控学报，2003,22(4)：37-42"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "Yang Huabo,Zhang Shifeng，Cai Hong.Reliability analysis of Weibull distribution[ J] . Journal of Spacecraft TT&C Technolo鄄 gy, 2003, 22(4):37-42(in Chinese) "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "寿命数据中的统计模型与方法 北京 中国统计出版社，1998：141-199"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "Lawlee JF.Statistical models and methods for lifetime data [ M] . Beijing: China Statistical Press,1998:141 - 199 ( in Chi鄄 nese) "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "叶慈南 完全样本情形下威布尔分布参数的估计 应用概率统计，2003，19(3）：259-266"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "Ye Cinan.Estimator for the parameters of the Weibull distribution based on complete sample [ J] . Chinese Journal of Applied Probability and Statistics,2003,19(3):259-266(in Chinese) "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "肖良华 赵宇 黄敏 引入位置参数的三参数 过程以及其点估计方法 北京航空航天大学学报897-900"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "Xiao Lianghua,Zhao Yu,Huang Min. Three鄄parameter Weibull process of using position element and point estimation「J].Jour nal of Beijing University of Aeronautics and Astronautics, 2004, 30(9):897-900(in Chinese) "
+                            }
+                        ]
+                    }
+                ]
+            },
+            "bbox": [
+                516,
+                464,
+                983,
+                840
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "(责任编辑:赵海容)"
+                    }
+                ]
+            },
+            "bbox": [
+                787,
+                861,
+                975,
+                878
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "932 "
+                    }
+                ]
+            },
+            "bbox": [
+                35,
+                24,
+                66,
+                37
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "北 京 航 空 航 天 大 学 学 报"
+                    }
+                ]
+            },
+            "bbox": [
+                352,
+                24,
+                620,
+                39
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "2006 年"
+                    }
+                ]
+            },
+            "bbox": [
+                895,
+                24,
+                960,
+                37
+            ]
+        }
+    ]
+]

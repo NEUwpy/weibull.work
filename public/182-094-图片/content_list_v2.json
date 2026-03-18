@@ -1,0 +1,4509 @@
+[
+    [
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "Estimation of the three parameter Weibull probability distribution "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                222,
+                230,
+                775,
+                284
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Hongzhu Qiao, Chris P. Tsokos * "
+                    }
+                ]
+            },
+            "bbox": [
+                331,
+                297,
+                659,
+                317
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Department of Mathematics, University of South Florida, Tampa, IL 33620-5700, USA "
+                    }
+                ]
+            },
+            "bbox": [
+                190,
+                324,
+                801,
+                341
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "Abstract "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                72,
+                375,
+                142,
+                389
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The aim of the present paper is to propose an algorithm to easily obtain good estimates of the three parameter Weibull distribution. Our proposed procedure is given in eight steps and it depends on the Simple Iteration Procedure, which always converges, converges fast and does not depend on any conditions, whatsoever, that has been developed by the authors for the two parameter Weibull model. Numerical examples will be given to illustrate the effectiveness of our proposed statistical procedure. Finally, we address the issue of what we lose in characterizing the probabilistic behavior of a certain phenomenon with a two parameter Weibull model when in fact the true characterization calls for a three parameter Weibull model. We use the concept of percentiles, cumulative distribution function and graphical presentations to answer the above questions. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                405,
+                920,
+                526
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Keywords: Two parameter Weibull distribution; Three parameter Weibull distribution; Newton-Raphson method; Simple Iterative Procedure (SIP); Maximum likelihood estimation (MLE); Percentile "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                540,
+                920,
+                572
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "1. Introduction "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                72,
+                619,
+                214,
+                636
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The Weibull probability density function is an extremely important distribution to characterize the probabilistic behavior of a large number of real world phenomena. It is especially useful as a failure model in analyzing the reliability of different types of systems. The complete three parameter Weibull probability distribution,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(a, b, c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", is given by "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                660,
+                920,
+                732
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "f (x; a, b, c) = \\frac {c (x - a) ^ {c - 1}}{b ^ {c}} \\exp \\left\\{- \\left(\\frac {x - a}{b}\\right) ^ {c} \\right\\} \\tag {1}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/c63ab8f075231d50597b76f15f1e82c34303454e34d838213035f9e655f32304.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                746,
+                918,
+                791
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "where  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "x \\geqslant a, b > 0, c > 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a, b"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": " are the location, scale, and shape parameter, respectively. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                803,
+                920,
+                839
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "N·H "
+                    }
+                ]
+            },
+            "bbox": [
+                81,
+                73,
+                151,
+                144
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "ELSEVIER "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                146,
+                155,
+                160
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "Mathematics and Computers in Simulation 39 (1995) 173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                253,
+                148,
+                653,
+                162
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "MATHEMATICS AND COMPUTERS IN SIMULATION "
+                    }
+                ]
+            },
+            "bbox": [
+                755,
+                74,
+                920,
+                160
+            ]
+        },
+        {
+            "type": "page_footnote",
+            "content": {
+                "page_footnote_content": [
+                    {
+                        "type": "text",
+                        "content": "* Corresponding author "
+                    }
+                ]
+            },
+            "bbox": [
+                85,
+                867,
+                264,
+                883
+            ]
+        },
+        {
+            "type": "page_footer",
+            "content": {
+                "page_footer_content": [
+                    {
+                        "type": "text",
+                        "content": "0378-4754/95/$09.50 © 1995 Elsevier Science B.V. All rights reserved  \nSSDI 0378-4754(95)00053-4 "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                898,
+                537,
+                926
+            ]
+        }
+    ],
+    [
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Successful application of the Weibull distribution depends on having acceptable statistical estimates of the three parameters. There is no existing method in obtaining close form estimates of the two and three parameters of the Weibull distribution. Because of this difficulty the three parameter Weibull model is seldom used. Even the popular two parameter model does not offer close form estimates of the parameters and relies on numerical procedures. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                106,
+                920,
+                194
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Sinha ([8]) attempted to formulate a numerical procedure to estimate the three parameters of the Weibull model. We believe that his method is not effective because there is no idea in his numerical procedure about the range of the parameters. This deficiency makes the computational procedure difficult to implement, among other problems. In the present study we extend our developed procedure for two parameter case (see Qiao and Tsokos [5]) into the three parameter Weibull model. Our Simple Iterative Procedure for the two parameter model, always converges and it converges fast. Our proposed algorithm in the present study is given in eight steps that can be easily implemented with effective results. Numerical examples are given to illustrate the usefulness of our proposed procedure, in comparison with Sinha's results. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                196,
+                918,
+                355
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Finally, we address the issue of what we lose in characterizing the probabilistic behavior of real world problems with a two parameter Weibull distribution when in fact we should have used a three parameter Weibull model. We will use three different approaches to show that such a loss is quite significant. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                355,
+                918,
+                425
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2. Two parameter Weibull model "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                72,
+                469,
+                370,
+                485
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "If in (1), we let  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a = 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": " or consider  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "t = x - a"
+                    },
+                    {
+                        "type": "text",
+                        "content": " in case that  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a (\\neq 0)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is a known value, the three parameter Weibull distribution reduces to "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                508,
+                918,
+                544
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "f (x; 0, b, c) = \\frac {c x ^ {c - 1}}{b ^ {c}} \\exp \\left(- \\left(\\frac {x}{b}\\right) ^ {c}\\right), \\tag {2}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/36394eddcd304a25b3ab0cbdffebe7de63e75a6352d48bdd76776f0145c65feb.jpg"
+                }
+            },
+            "bbox": [
+                112,
+                554,
+                916,
+                596
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "where  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "x\\geqslant 0,b > 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c > 0"
+                    }
+                ]
+            },
+            "bbox": [
+                92,
+                607,
+                362,
+                623
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Qiao and Tsokos ([5]) have introduced an effective Simple Iterative Procedure, SIP, to easily obtain estimates of the shape and scale parameters of the Weibull probability distribution. The SIP always converges, it converges very fast and its convergence does not depend on any other conditions. For convenience, we shall briefly summarize our procedure. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                624,
+                918,
+                695
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The maximum likelihood estimate of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": " can be obtained from solving for the unique positive solution of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "g(c) = 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", where "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                696,
+                918,
+                731
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "g (c) = \\frac {c}{n} \\sum_ {i = 1} ^ {n} \\log x _ {i} \\sum_ {i = 1} ^ {n} x _ {i} ^ {c} - c \\sum_ {i = 1} ^ {n} x _ {i} ^ {c} \\log x _ {i} + \\sum_ {i = 1} ^ {n} x _ {i} ^ {c}. \\tag {3}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/66216d45acdbede476c004c56ccbf48a74404e76e6881fb085333034f74f3cf4.jpg"
+                }
+            },
+            "bbox": [
+                112,
+                738,
+                916,
+                779
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Numerically, once an initial estimate,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c_{0}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", is given, Newton-Raphson iteration procedure runs as "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                790,
+                916,
+                823
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "c _ {k + 1} = c _ {k} - \\frac {g \\left(c _ {k}\\right)}{g ^ {\\prime} \\left(c _ {k}\\right)}, \\quad \\text {f o r} k = 0, 1, 2, \\dots . \\tag {4}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/53f4267dde2ff83e0f1b1006626a94533b5b58106fcf0dbd1a1c65386ddd52d1.jpg"
+                }
+            },
+            "bbox": [
+                112,
+                835,
+                916,
+                875
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "174 "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                76,
+                103,
+                86
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersinSimulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                229,
+                76,
+                766,
+                89
+            ]
+        }
+    ],
+    [
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "For simplification, let "
+                    }
+                ]
+            },
+            "bbox": [
+                96,
+                98,
+                294,
+                116
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\begin{array}{l} s _ {1} (c) = \\sum_ {i = 1} ^ {n} \\log x _ {i}, \\quad s _ {2} (c) = \\sum_ {i = 1} ^ {n} x _ {i} ^ {c}, \\\\ s _ {3} (c) = \\sum_ {i = 1} ^ {n} x _ {i} ^ {c} \\log x _ {i} \\quad \\text {a n d} \\quad s _ {4} (c) = \\sum_ {i = 1} ^ {n} x _ {i} ^ {c} \\log^ {2} x _ {i} \\tag {5} \\\\ \\end{array}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/aeb6627ecdc1fb53de74cf8c4f928d2be472b85cbe0c2c1fa460103e9a98711d.jpg"
+                }
+            },
+            "bbox": [
+                120,
+                126,
+                918,
+                217
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Thus, we can rewrite  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "g"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "g'"
+                    },
+                    {
+                        "type": "text",
+                        "content": " as "
+                    }
+                ]
+            },
+            "bbox": [
+                96,
+                228,
+                403,
+                246
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "g (c) = \\frac {c}{n} s _ {1} s _ {2} - c s _ {3} + s _ {2} \\tag {6}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/70ca9fda694b2af156e25a837e3808ad5c6b2a222e54a028fc652de22d949daf.jpg"
+                }
+            },
+            "bbox": [
+                120,
+                256,
+                918,
+                291
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "and "
+                    }
+                ]
+            },
+            "bbox": [
+                96,
+                303,
+                135,
+                317
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "g ^ {\\prime} (c) = \\frac {1}{n} s _ {1} \\left(s _ {2} + c s _ {3}\\right) - c s _ {4}. \\tag {7}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/7aea7847013d6196cc529c4453674f67b9e4ff74a756ea8f80a9c5f2332d9ee8.jpg"
+                }
+            },
+            "bbox": [
+                120,
+                331,
+                918,
+                368
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Then the Newton-Raphson iteration can be rewritten as "
+                    }
+                ]
+            },
+            "bbox": [
+                96,
+                380,
+                609,
+                397
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "c _ {k + 1} = c _ {k} - \\frac {\\frac {c}{n} s _ {1} s _ {2} - c s _ {3} + s _ {2}}{1}. \\tag {8}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/ef931d21015d6f171dd4780b3226fc545843878d57d05f874487ec41121474de.jpg"
+                }
+            },
+            "bbox": [
+                120,
+                408,
+                918,
+                484
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "If we let "
+                    }
+                ]
+            },
+            "bbox": [
+                96,
+                496,
+                179,
+                512
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "q (c) = \\frac {n s _ {2}}{n s _ {3} - s _ {1} s _ {2}},",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/314788b66dc68381748f6cbe84dffaa10b805d815f0a4984bbfa328734d54ee6.jpg"
+                }
+            },
+            "bbox": [
+                120,
+                523,
+                285,
+                563
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "then to solve for the zero of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "g(c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is equivalent to solving "
+                    }
+                ]
+            },
+            "bbox": [
+                96,
+                574,
+                609,
+                592
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "c = q (c).",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/6fe773a16065375f0f848f1cd1de8fad153c2d89d89b83e5e69feea116bfbea9.jpg"
+                }
+            },
+            "bbox": [
+                120,
+                604,
+                203,
+                622
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Thus, the problem of solving for the zero of (3) has been reduced to finding the fixed point of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "q(c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". Using McCool's theorem [3], we know that there exists a unique positive  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c^*"
+                    },
+                    {
+                        "type": "text",
+                        "content": " such that  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c^* = q(c^*)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                632,
+                918,
+                684
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The SIP begins with "
+                    }
+                ]
+            },
+            "bbox": [
+                96,
+                684,
+                283,
+                703
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "c _ {k + 1} = \\frac {c _ {k} + q \\left(c _ {k}\\right)}{2}. \\tag {9}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/5cc607d220404fae03395e5e4aff01e679cc062ba3799f3da184e536d6d1dd05.jpg"
+                }
+            },
+            "bbox": [
+                120,
+                714,
+                918,
+                751
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "starting at an initial point  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c = c_0"
+                    },
+                    {
+                        "type": "text",
+                        "content": " for  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "k = 0, 1, 2, \\ldots"
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                763,
+                529,
+                781
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The properties of SIP are summarized below. "
+                    }
+                ]
+            },
+            "bbox": [
+                94,
+                782,
+                505,
+                799
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Theorem 1 (Qiao and Tsokos, [5]). The Simple Iterative Procedure always converges for any positive starting point, that is,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c_k"
+                    },
+                    {
+                        "type": "text",
+                        "content": " generated by SIP (9) converges to the unique fixed point  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c^*"
+                    },
+                    {
+                        "type": "text",
+                        "content": " of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "q(c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " as  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "k \\to \\infty"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", for any starting point  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c_0 > 0"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". And the convergence is at least at a geometric rate of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\frac{1}{2}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                823,
+                922,
+                878
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H. Qiao, C.P. Tsokos / Mathematics and Computers in Simulation 39 (1995) 173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                227,
+                66,
+                768,
+                81
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "175 "
+                    }
+                ]
+            },
+            "bbox": [
+                894,
+                68,
+                918,
+                78
+            ]
+        }
+    ],
+    [
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3. Three parameter Weibull probability distribution "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                72,
+                101,
+                540,
+                118
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The log likelihood function of three parameter model is given by "
+                    }
+                ]
+            },
+            "bbox": [
+                94,
+                137,
+                681,
+                154
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\log L (a, b, c) = n \\log c - n c \\log b + (c - 1) \\sum_ {i = 1} ^ {n} \\log \\left(x _ {i} - a\\right) - \\sum_ {i = 1} ^ {n} \\left(\\frac {x _ {i} - a}{b}\\right) ^ {c}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/cef725a7706efe59cc5057d14fac9bebaff9120e7018ef287e97249ca48fe0e4.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                161,
+                796,
+                205
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "where "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                212,
+                133,
+                226
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a \\leqslant \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}, \\quad b > 0 \\text {a n d} c > 0.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/57bb3da1a4b67896fd332060b3403be07c79ce7e074444b84225557c2c27f0b8.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                236,
+                403,
+                263
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Our objective is to obtain estimates of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a, b"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": " so as to maximize  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\log L(a, b, c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " with respect to the constraints: "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                268,
+                920,
+                305
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a \\leqslant \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}, \\quad b > 0 \\text {a n d} c > 0.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/9a1e2dac8f3dd0e83879e9913cb057e84211f6efc02c933c9bc7d1118399b3f7.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                311,
+                400,
+                337
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "We proceed to obtain the following system of likelihood equations: "
+                    }
+                ]
+            },
+            "bbox": [
+                94,
+                344,
+                700,
+                361
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\frac {\\partial \\log L}{\\partial a} = - (c - 1) \\sum_ {i = 1} ^ {n} \\frac {1}{x _ {i} - a} + \\frac {c}{b ^ {c}} \\sum_ {i = 1} ^ {n} \\left(x _ {i} - a\\right) ^ {c - 1} = 0,",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/a64759ddaa0106e86d8a410d964750b544756bc353fc480f116590d4fccb60b8.jpg"
+                }
+            },
+            "bbox": [
+                118,
+                367,
+                618,
+                412
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\frac {\\partial \\log L}{\\partial b} = - \\frac {n c}{b} + \\frac {c}{b ^ {c + 1}} \\sum_ {i = 1} ^ {n} \\left(x _ {i} - a\\right) ^ {c} = 0",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/c95b5903fb30543e4b935726df08a928d406350d10166fc69569fddc82064f2f.jpg"
+                }
+            },
+            "bbox": [
+                118,
+                416,
+                487,
+                461
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "and "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                468,
+                112,
+                483
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\frac {\\partial \\log L}{\\partial c} = \\frac {n}{c} - n \\log b + \\sum_ {i = 1} ^ {n} \\log (x _ {i} - a) - \\sum_ {i = 1} ^ {n} \\left(\\frac {x _ {i} - a}{b}\\right) ^ {c} \\left\\{\\log (x _ {i} - a) - \\log b \\right\\} = 0.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/52712381ffc2177da64e047e0cdd5349a1b98d8420a32ec315356998a67399c4.jpg"
+                }
+            },
+            "bbox": [
+                118,
+                491,
+                844,
+                535
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The above three equations constitute a system of nonlinear equations. There are no existing methods to solve them analytically. Moreover, to our knowledge, there are not even any effective numerical methods available. Based on this concern and the importance of the three parameter Weibull probability distribution in practice, we shall proceed to develop an effective numerical approach to solve these equations. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                540,
+                918,
+                628
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "We shall begin by examining the properties of the maximum likelihood functions of the Weibull model. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                630,
+                918,
+                664
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Let us first consider  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c < 1"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                664,
+                314,
+                680
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "When  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a \\to \\min_{1 \\leqslant i \\leqslant n} x_i"
+                    },
+                    {
+                        "type": "text",
+                        "content": ",  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\log L(a, b, c) \\to +\\infty"
+                    },
+                    {
+                        "type": "text",
+                        "content": " for arbitrary  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". In a broader sense, we can say that  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\log L(a, b, c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " obtain maximum  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\infty"
+                    },
+                    {
+                        "type": "text",
+                        "content": " at  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a = \\min_{1 \\leqslant i \\leqslant n} x_i"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". This case does not have any practical significance. So from now on, we will put restrictions that  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c \\geqslant 1"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". "
+                    }
+                ]
+            },
+            "bbox": [
+                90,
+                682,
+                918,
+                735
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Thus, we will consider  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c \\geqslant 1"
+                    },
+                    {
+                        "type": "text",
+                        "content": " only. We will rewrite the problem of maximum likelihood functions as an optimization problem. That is, "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                736,
+                918,
+                771
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\left\\{ \\begin{array}{l} \\text {M a x i m i z e} L (a, b, c) \\\\ = n \\log c - n c \\log b + (c - 1) \\sum_ {i = 1} ^ {n} \\log \\left(x _ {i} - a\\right) - \\sum_ {i = 1} ^ {n} \\left(\\frac {x _ {i} - a}{b}\\right) ^ {c} \\\\ \\text {s u b j e c t} a \\leqslant \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}, \\quad b > 0, c \\geqslant 1 \\end{array} \\right\\} \\tag {10}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/7eee24c8041df64619b00ed677400fdd1bf2a06cc4b2fbd7b2b32926d62cdff4.jpg"
+                }
+            },
+            "bbox": [
+                116,
+                775,
+                918,
+                875
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "176 "
+                    }
+                ]
+            },
+            "bbox": [
+                77,
+                70,
+                103,
+                82
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersinSimulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                229,
+                70,
+                766,
+                85
+            ]
+        }
+    ],
+    [
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3.1. Possible range of the three parameter MLE "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                72,
+                102,
+                488,
+                120
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Rockets, Antle and Klimko ([7]) examined the existence and uniqueness of the solutions of the three parameter Weibull distribution. They have introduced the following conjecture. "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                134,
+                918,
+                170
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Proposition 1. It is believed empirically based on numerous examples that there will be either no solution or two solutions to the likelihood equations. In case that no solution exists for the likelihood equations, the maximum value for the likelihood function occurs at the corner point: "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                182,
+                918,
+                238
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a = \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}, c = 1 a n d b = \\frac {\\sum_ {i = 1} ^ {n} \\left(x _ {i} - a\\right)}{n}.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/7198804440f63d8671b219c79084f40ead579a3bc5f2751552a27590d280cfd4.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                242,
+                518,
+                283
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "In case that there are two solutions to the likelihood equations, one of them is a local maximum point, the other is a saddle point. In this case, except for the possibility of the likelihood function being equal at these points, the maximum estimates would be unique. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                288,
+                918,
+                341
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Before we begin our search for the solution, it would be of much help if we can narrow the range of the search so that our numerical process will be more efficient. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                353,
+                916,
+                389
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "To assist in locating the possible range of the parameter  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", we introduce the following theorem. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                389,
+                918,
+                424
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Theorem 2. Suppose  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "x_{i}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ",  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "i = 1, 2, \\ldots, n"
+                    },
+                    {
+                        "type": "text",
+                        "content": " are the samples from the three parameter Weibull distribution  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(a, b, c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". Let "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                439,
+                918,
+                473
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "A = 2 \\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - \\max  _ {1 \\leqslant i \\leqslant n} x _ {i}, \\quad B = \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/09a83107e522f8e1d2cd54d755576447d0cc84a86880b5b54f50aae57a65a0a2.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                479,
+                503,
+                507
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "We have the following result for the range of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                510,
+                488,
+                528
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\operatorname {P r o b} (a \\in [ A, B ]) = 1 - \\frac {\\frac {n}{2 ^ {c} - 1} \\Gamma \\left(\\frac {n}{2 ^ {c} - 1}\\right) \\Gamma (n)}{\\Gamma \\left(\\frac {n}{2 ^ {c} - 1} + n\\right)}. \\tag {11}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/56ce6f425c95ec344a2e1299704712e70f5316abcfa80b052088f3dc4fc8f8a4.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                532,
+                918,
+                608
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Proof. The condition  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a \\in [A, B]"
+                    },
+                    {
+                        "type": "text",
+                        "content": " can be written as: "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                612,
+                533,
+                631
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "2 \\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - \\max  _ {1 \\leqslant i \\leqslant n} x _ {i} \\leqslant a \\leqslant \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/415d02285e9bf9fd323f97b6b3132a30d5c12c7feab133e837242d48d8699ae5.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                636,
+                433,
+                663
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Notice that the second half of the above inequality is always true in view of the fact that  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\{x_{i}, i = 1,2,\\ldots,n\\}"
+                    },
+                    {
+                        "type": "text",
+                        "content": " are from  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(a,b,c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", then it is equivalent to "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                666,
+                918,
+                702
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "2 \\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - \\max  _ {1 \\leqslant i \\leqslant n} x _ {i} \\leqslant a,",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/8476b0548aeb651aea0f31345c44dfadba1af9addf03a60d61ee168e28caf96d.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                707,
+                340,
+                734
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "that is, "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                738,
+                140,
+                754
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "2 \\left(\\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - a\\right) \\leqslant \\left(\\max  _ {1 \\leqslant i \\leqslant n} x _ {i} - a\\right).",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/bf9af360c57b00119e37a5290249013589d1cef8bd1e7dfeefa877fd5bc24e2a.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                759,
+                409,
+                791
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Assume  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "u = \\min_{1 \\leqslant i \\leqslant n} x_i - a"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "v = \\max_{1 \\leqslant i \\leqslant n} x_i - a"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", then the joint probability density function of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "u, v"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is given by "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                795,
+                918,
+                830
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "f (u, v) = \\frac {n !}{(n - 2) !} \\left(F (v) - F (u)\\right) ^ {n - 2} f (u) f (v),",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/9ed7305146e246504b0fc8a081ecca937e1f0cb8e52236bd42f57fe365cb6a3a.jpg"
+                }
+            },
+            "bbox": [
+                112,
+                834,
+                544,
+                875
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                225,
+                70,
+                766,
+                85
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "177 "
+                    }
+                ]
+            },
+            "bbox": [
+                892,
+                70,
+                918,
+                82
+            ]
+        }
+    ],
+    [
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "for  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "-\\infty < u < v < \\infty"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", where  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "f(.)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ",  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "F(.)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " denote the probability density function and cumulative distribution function for  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "x_i - a"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", respectively. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                102,
+                914,
+                138
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Recall  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "x_{i} - a"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is from  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(a, b, c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and thus we can write "
+                    }
+                ]
+            },
+            "bbox": [
+                92,
+                138,
+                581,
+                157
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "f (u) = \\frac {c}{b} \\left(\\frac {u}{b}\\right) ^ {c - 1} e ^ {- \\left(\\frac {u}{b}\\right) ^ {c}} \\quad (u \\geqslant 0),",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/c5b410de490e2dc06fa93f4edb774d4b1970e1e5f3be2fb36986527f920ed663.jpg"
+                }
+            },
+            "bbox": [
+                112,
+                162,
+                442,
+                204
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "F (u) = 1 - e ^ {- \\left(\\frac {u}{b}\\right) ^ {c}} \\quad (u \\geqslant 0),",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/3f7c0518e374d387c577e080f71e8fcea95309b6f74cc92642c143d82eaa6fb3.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                208,
+                392,
+                238
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "and "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                242,
+                109,
+                257
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "R (u) = 1 - F (u) = e ^ {- \\left(\\frac {u}{b}\\right) ^ {c}} \\quad (u \\geqslant 0).",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/c81a1feb73afb355d351df7679109a7548cf377ecc725d16919532d5c1f01903.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                265,
+                459,
+                296
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "We can write "
+                    }
+                ]
+            },
+            "bbox": [
+                94,
+                300,
+                218,
+                316
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\begin{array}{l} \\operatorname {P r o b} (a \\in [ A, B ]) = P (2 u \\leqslant v) \\\\ = \\int_ {0} ^ {\\infty} \\int_ {2 u} ^ {\\infty} n (n - 1) (F (v) - F (u)) ^ {n - 2} f (u) f (v) \\mathrm {d} v \\mathrm {d} u \\\\ = n (n - 1) \\int_ {0} ^ {\\infty} \\frac {(F (v) - F (u)) ^ {n - 1}}{n - 1} | _ {2 u} ^ {\\infty} f (u) d u \\\\ = 1 - n \\int_ {0} ^ {\\infty} (F (2 u) - F (u)) ^ {n - 1} f (u) d u. \\\\ \\end{array}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/f4cb0ecbcab43029a1420dd18297b9013f5578b215779efa71f8662e6fd072c5.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                323,
+                738,
+                479
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Letting  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "s = 2^c - 1"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", we have "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                484,
+                318,
+                500
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\begin{array}{l} \\operatorname {P r o b} (a \\in [ A, B ]) = 1 - n \\int_ {0} ^ {\\infty} (R (u) - R ^ {2 ^ {c}} (u)) ^ {n - 1} (- d R (u)) \\\\ = 1 - n \\int_ {0} ^ {1} \\left(t - t ^ {2 ^ {c}}\\right) ^ {n - 1} d t \\\\ = 1 - n \\int_ {0} ^ {1} t ^ {n - 1} (1 - t ^ {s}) ^ {n - 1} d t \\\\ = 1 - \\frac {n}{s} \\int_ {0} ^ {1} x ^ {\\frac {n}{s} - 1} (1 - x) ^ {n - 1} d x \\\\ = 1 - \\frac {n}{s} \\frac {\\Gamma \\left(\\frac {n}{s}\\right) \\Gamma (n)}{\\Gamma \\left(\\frac {n}{s} + n\\right)}. \\\\ \\end{array}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/5b8fea44960c62402931b99d0b23aa3d5d1090fa86fa293cda14f61f39c6183b.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                508,
+                651,
+                755
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Substituting  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "s"
+                    },
+                    {
+                        "type": "text",
+                        "content": " back, we will complete our proof.  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\square"
+                    }
+                ]
+            },
+            "bbox": [
+                92,
+                761,
+                566,
+                778
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Using Gamma functions, we can expand expression (11) as follows: "
+                    }
+                ]
+            },
+            "bbox": [
+                92,
+                793,
+                692,
+                811
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\operatorname {P r o b} (a \\in [ A, B ]) = 1 - \\frac {(n - 1) !}{\\left(\\frac {n}{2 ^ {c} - 1} + n - 1\\right) \\left(\\frac {n}{2 ^ {c} - 1} + n - 2\\right) \\cdots \\left(\\frac {n}{2 ^ {c} - 1} + 1\\right)}. \\tag {12}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/427eb711805fc46a0d9be553e539f200624708ab51b16ac85ec14af5b9b745ef.jpg"
+                }
+            },
+            "bbox": [
+                112,
+                817,
+                912,
+                878
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "178 "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                73,
+                101,
+                84
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                225,
+                73,
+                762,
+                86
+            ]
+        }
+    ],
+    [
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/96171e4da448a21a3121c2fc485b02eaa37bea3e8e3c92406d185b9994e65ba7.jpg"
+                },
+                "table_caption": [
+                    {
+                        "type": "text",
+                        "content": "Table 1 Values of Prob(a∈[A,B])"
+                    }
+                ],
+                "table_footnote": [],
+                "html": "<table><tr><td rowspan=\"2\">c</td><td colspan=\"8\">n</td></tr><tr><td>25</td><td>50</td><td>75</td><td>100</td><td>125</td><td>150</td><td>175</td><td>200</td></tr><tr><td>1.0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>1.5</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>2.0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>2.5</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>3.0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>3.5</td><td>0.999</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>4.0</td><td>0.993</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>4.5</td><td>0.974</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>5.0</td><td>0.93</td><td>0.997</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>5.5</td><td>0.855</td><td>0.987</td><td>0.999</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>6.0</td><td>0.751</td><td>0.958</td><td>0.994</td><td>0.999</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>6.5</td><td>0.632</td><td>0.9</td><td>0.975</td><td>0.994</td><td>0.999</td><td>1</td><td>1</td><td>1</td></tr><tr><td>7.0</td><td>0.511</td><td>0.809</td><td>0.93</td><td>0.975</td><td>0.991</td><td>0.997</td><td>0.999</td><td>1</td></tr><tr><td>7.5</td><td>0.399</td><td>0.695</td><td>0.853</td><td>0.931</td><td>0.968</td><td>0.986</td><td>0.993</td><td>0.997</td></tr><tr><td>8.0</td><td>0.304</td><td>0.572</td><td>0.747</td><td>0.854</td><td>0.917</td><td>0.953</td><td>0.974</td><td>0.985</td></tr></table>",
+                "table_type": "complex_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                72,
+                133,
+                920,
+                411
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "In order to see that our range is meaningful, namely,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\operatorname{Prob}(a \\in [A, B])"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is close to 1, we have listed possible values of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\operatorname{Prob}(a \\in [A, B])"
+                    },
+                    {
+                        "type": "text",
+                        "content": " for  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "n"
+                    },
+                    {
+                        "type": "text",
+                        "content": " in Table 1. From this table, it is clear that the probability that the location parameter falls in the proposed bounds is quite close to 1, especially when  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "n"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is large. Thus, we only need to search in the interval  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "[A, B]"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". This process narrows the search range and makes our proposed search procedure much more efficient. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                435,
+                916,
+                524
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Remark. Since the shape parameter  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is one of the unknowns to be estimated, Theorem 2 cannot, in principle, supply a reliable probabilistic information on the search range of parameter  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". Thus, the proposed procedure is \"a priori\" statistically valid only if a large number of samples are available, as can be seen from Table 1. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                534,
+                918,
+                604
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Our method is based on the following formula: "
+                    }
+                ]
+            },
+            "bbox": [
+                94,
+                604,
+                520,
+                622
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\begin{array}{l} \\max  _ {a, b, c} L (a, b, c) \\approx \\max  _ {a, b, c} L (a, b, c) \\\\ = \\max  _ {a \\in [ A, B ]} \\left[ \\max  _ {b > 0, c \\geqslant 1} L (a, b, c) \\right] \\tag {13} \\\\ \\end{array}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/21c01c411f31f84af2898fc3ddc331cf73a89edc5deae30e8e6d9bfe9fd010c5.jpg"
+                }
+            },
+            "bbox": [
+                122,
+                627,
+                916,
+                692
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "This means that we can proceed to perform a stepwise approximation of the solution of the likelihood function. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                696,
+                916,
+                730
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Let  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\{x_{i}, i = 1, \\ldots, n\\}"
+                    },
+                    {
+                        "type": "text",
+                        "content": " be the samples from Weibull probability distribution that we shall use to estimate its parameters. We shall employ the above formulation (13) to estimate the parameters,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a, b"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". The process proceeds as follows: "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                732,
+                916,
+                783
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "For each  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a"
+                    },
+                    {
+                        "type": "text",
+                        "content": " in  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "[A, B]"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", we can solve the two parameter MLE problem for  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": " for the data set  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "x_i - a"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", which possesses a unique solution as we have stated in [5]. Then we proceed to use our proposed Simple Iterative Procedure to solve for the unique  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". Therefore,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c"
+                    },
+                    {
+                        "type": "text",
+                        "content": " can be considered as a function of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". Thus, we can write "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                785,
+                918,
+                854
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "b = b (a) \\quad \\text {a n d} \\quad c = c (a).",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/a754695589d5aae5e67bec77df6d9b55ed6ba37dd24dea14b46a92ff9a9b2fd1.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                858,
+                351,
+                875
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                227,
+                70,
+                766,
+                85
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "179 "
+                    }
+                ]
+            },
+            "bbox": [
+                892,
+                70,
+                918,
+                82
+            ]
+        }
+    ],
+    [
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Also  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "L(a, b, c)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " can be treated as a function of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a"
+                    },
+                    {
+                        "type": "text",
+                        "content": " only, that is, "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                104,
+                635,
+                122
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "G (a) = \\log L (a, b (a), c (a)). \\tag {14}",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/53038f1a20d149073f706687ec2b39b05452085df4675d5bb0d91a33a31f44b7.jpg"
+                }
+            },
+            "bbox": [
+                120,
+                129,
+                916,
+                149
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The optimization problem now becomes a one-dimension search problem. We will use the effective Golden Section Method to obtain the optimal  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a^*"
+                    },
+                    {
+                        "type": "text",
+                        "content": " that maximizes  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "G(a)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", or  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "L(a, b(a), c(a))"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". The corresponding optimal parameters  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b^*, c^*"
+                    },
+                    {
+                        "type": "text",
+                        "content": " for  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a^*"
+                    },
+                    {
+                        "type": "text",
+                        "content": " can be uniquely generated from Qiao and Tsokos ([5]) for the data set  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\{x_i - a^*, i = 1, \\dots, n\\}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                154,
+                918,
+                225
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The Golden Section Method is also referred to as Golden Ratio Method or 0.618 method, where the Golden Ratio is 0.618. This method is quite effective in one-dimensional search procedures. Given below is the proposed algorithm for the estimation process of the three parameters. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                226,
+                918,
+                297
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3.2. Estimation procedures "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                72,
+                313,
+                309,
+                332
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Here is an eight step procedure that has been proven effective in estimating the three parameters of the Weibull distribution. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                349,
+                916,
+                384
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Step 1. Find the steps  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "N"
+                    },
+                    {
+                        "type": "text",
+                        "content": " to reach the preset convergence level or tolerance (say,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\varepsilon"
+                    },
+                    {
+                        "type": "text",
+                        "content": ").  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "N"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is the smallest number to satisfy  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "0.618^{N}(B - A) \\leqslant \\varepsilon"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", where "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                385,
+                916,
+                421
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "A = 2 \\min  _ {1 \\leqslant i \\leqslant n} x _ {i} - \\max  _ {1 \\leqslant i \\leqslant n} x _ {i} \\quad \\text {a n d} \\quad B = \\min  _ {1 \\leqslant i \\leqslant n} x _ {i}.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/ef7c8a219da630182827ef594ddabe33817d8b20c20921057fff2775bc2029b9.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                428,
+                529,
+                455
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Step 2. Start with initial points  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a_1, a_2"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", where  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a_1 = A"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a_2 = B"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                460,
+                653,
+                477
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Step 3. Set the initial counting number  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "i = 0"
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                479,
+                477,
+                495
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Step 4. Start with two points as follows: "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                497,
+                433,
+                512
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a _ {4} = a _ {1} + 0. 6 1 8 \\left(a _ {2} - a _ {1}\\right)",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/bb13ac9501893834721d181715268b300f728deb52a81200fab2d7bf14e5aef4.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                520,
+                335,
+                540
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "and "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                547,
+                112,
+                562
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a _ {3} = a _ {2} + 0. 6 1 8 \\left(a _ {1} - a _ {2}\\right).",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/59bda51c541c7058e996cff4cb0b5ae25f545797ce634093cdc9947777ff9f59.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                570,
+                342,
+                588
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Step 5. Compute the values of  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "G(a) = \\log L((a), b(a), c(a))"
+                    },
+                    {
+                        "type": "text",
+                        "content": " at the above points, where  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b(a), c(a)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " can be generated from our proposed Simple Iterative Procedure to the data set  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\{x_i - a, i = 1, \\ldots, n\\}"
+                    },
+                    {
+                        "type": "text",
+                        "content": " as summarized in Section 2. Use the following notations: "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                595,
+                916,
+                648
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "G _ {3} = G \\left(a _ {3}\\right) \\quad \\text {a n d} \\quad G _ {4} = G \\left(a _ {4}\\right),",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/8be321ab3048fcd058c26074b2a698c6e6527df4ffbfad719a2ba09187c5fa2b.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                655,
+                411,
+                675
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Step 6. Compare  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "G_{3}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ",  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "G_{4}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". If  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "G_{3} \\leqslant G_{4}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", let "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                680,
+                442,
+                700
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a _ {2} = a _ {4}, \\quad a _ {4} = a _ {3}, \\quad G _ {4} = G _ {3},",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/b431185ce46ab7489e7ba37636cc4345ec284fe5f4b0b0f7a9b7a2b398ce5882.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                704,
+                381,
+                724
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a _ {3} = a _ {2} + 0. 6 1 8 \\left(a _ {1} - a _ {2}\\right) \\quad \\text {a n d} \\quad G _ {3} = G \\left(a _ {3}\\right).",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/5628ed954eb795967aa080ed2a918bcd378694a465ccaa397649bac70d850f0d.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                728,
+                520,
+                750
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Otherwise, let "
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                755,
+                205,
+                771
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a _ {1} = a _ {3}, \\quad a _ {3} = a _ {4}, \\quad G _ {3} = G _ {4},",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/34887b642c225275914e03edeeded64ef69dbd1488ac773d315751d5ba227a87.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                778,
+                381,
+                797
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "a _ {4} = a _ {1} + 0. 6 1 8 \\left(a _ {2} - a _ {1}\\right) \\quad \\text {a n d} \\quad G _ {4} = G \\left(a _ {4}\\right);",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/55ecc5e6219098220d50deb0ca1945594dcb580885a18a396e6d3291c8c6b313.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                802,
+                518,
+                822
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Step 7. Let  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "i = i + 1"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". If  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "i < N"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", go to Step 4. Otherwise go to next Step 8. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                827,
+                724,
+                845
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Step 8. Compare  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "G_{3}"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "G_{4}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", if  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "G_{3} < G_{4}"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", then  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a_{3}"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is the minimum. Otherwise,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a_{4}"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is the minimum. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                846,
+                916,
+                879
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "180 "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                74,
+                101,
+                86
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersinSimulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                227,
+                73,
+                766,
+                88
+            ]
+        }
+    ],
+    [
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "4. Numerical illustration "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                74,
+                102,
+                294,
+                118
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "We shall now illustrate the effectiveness of the proposed algorithm with a numerical example. We shall also compare our results with those obtained by Sinha ([8]). "
+                    }
+                ]
+            },
+            "bbox": [
+                74,
+                132,
+                916,
+                166
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "We shall use the data that was generated by Sinha [8], from a three parameter Weibull model  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "a = 30"
+                    },
+                    {
+                        "type": "text",
+                        "content": ",  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b = 100"
+                    },
+                    {
+                        "type": "text",
+                        "content": ",  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c = 3"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", given in Table 2. "
+                    }
+                ]
+            },
+            "bbox": [
+                74,
+                168,
+                916,
+                202
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Following our proposed procedure, we chose the same tolerance  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "\\varepsilon = 0.001"
+                    },
+                    {
+                        "type": "text",
+                        "content": " for the Golden Section Method as Sinha's and the tolerance  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "tol = 0.00001"
+                    },
+                    {
+                        "type": "text",
+                        "content": " for our Simple Iterative Procedure. The reason we have chosen such a small  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "tol"
+                    },
+                    {
+                        "type": "text",
+                        "content": " is to obtain a very accurate estimate of the parameters  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "b = b(a)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "c = c(a)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " in each step of the Golden Section Method to prevent the spread of the roundoff errors in the middle steps. Furthermore, our proposed Simple Iterative Procedure converges very fast, which results in forcing the Golden Section Search to converge very fast. Table 3 gives the number of steps for our Golden Section Search method to converge. "
+                    }
+                ]
+            },
+            "bbox": [
+                74,
+                204,
+                916,
+                328
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "Analysis of numerical results "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                74,
+                340,
+                324,
+                357
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "As a result of our numerical calculations we can conclude the following: "
+                    }
+                ]
+            },
+            "bbox": [
+                96,
+                372,
+                744,
+                388
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "(i). In the proposed procedure, we have used our Theorem 2 to narrow the search range to make our numerical process quite efficient. In contrast, Sinha's method did not narrow the "
+                    }
+                ]
+            },
+            "bbox": [
+                74,
+                389,
+                916,
+                424
+            ]
+        },
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/3e13e916c3c6dbacae65a8d8e5bfa1cd50189a251d2f24a0912c488dbf46e024.jpg"
+                },
+                "table_caption": [
+                    {
+                        "type": "text",
+                        "content": "Table 2 Data from  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(30,100,3)"
+                    }
+                ],
+                "table_footnote": [],
+                "html": "<table><tr><td>99.7</td><td>112.4</td><td>109.0</td><td>121.5</td><td>100.3</td><td>160.5</td><td>179.1</td><td>73.5</td></tr><tr><td>120.9</td><td>82.8</td><td>113.8</td><td>125.5</td><td>182.6</td><td>150.6</td><td>112.2</td><td>113.1</td></tr><tr><td>138.1</td><td>133.5</td><td>129.9</td><td>200.5</td><td>164.4</td><td>156.0</td><td>104.7</td><td>89.9</td></tr><tr><td>191.5</td><td>113.8</td><td>108.4</td><td>150.8</td><td>168.9</td><td>94.7</td><td>145.9</td><td>54.6</td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                70,
+                489,
+                916,
+                559
+            ]
+        },
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/29e7e4e2ec3e50e65b9578ac87ce8a30316a77f342b9a5490e44ebcbaea94ba5.jpg"
+                },
+                "table_caption": [
+                    {
+                        "type": "text",
+                        "content": "Table 3 Results of Golden Section Search Method "
+                    }
+                ],
+                "table_footnote": [],
+                "html": "<table><tr><td>Step k</td><td>Location a</td><td>Scale b = b(a)</td><td>Shape c = c(a)</td><td>Log likelihood Function log L(a, b, c)</td></tr><tr><td>1</td><td>-1.133800</td><td>139.993908</td><td>4.273316</td><td>-196.067261780</td></tr><tr><td>2</td><td>-35.574224</td><td>175.272609</td><td>5.362803</td><td>-196.694642680</td></tr><tr><td>3</td><td>20.154617</td><td>117.896208</td><td>3.580135</td><td>-195.595529845</td></tr><tr><td>4</td><td>33.311583</td><td>104.015574</td><td>3.133874</td><td>-195.331162559</td></tr><tr><td>5</td><td>41.443034</td><td>95.267960</td><td>2.841952</td><td>-195.278870452</td></tr><tr><td>6</td><td>46.468548</td><td>89.733491</td><td>2.646594</td><td>-195.410316483</td></tr><tr><td>7</td><td>38.337096</td><td>98.631087</td><td>2.955816</td><td>-195.277066987</td></tr><tr><td>8</td><td>36.417521</td><td>100.696009</td><td>3.024574</td><td>-195.291567728</td></tr><tr><td>9</td><td>39.523459</td><td>97.350347</td><td>2.912753</td><td>-195.273394272</td></tr><tr><td>10</td><td>40.256672</td><td>96.556517</td><td>2.885887</td><td>-195.273626971</td></tr><tr><td>11</td><td>39.070309</td><td>97.840067</td><td>2.929258</td><td>-195.274246332</td></tr><tr><td>12*</td><td>39.803521</td><td>97.047348</td><td>2.902515</td><td>-195.273237880</td></tr><tr><td>13</td><td>39.976609</td><td>96.859951</td><td>2.896173</td><td>-195.273290292</td></tr><tr><td>*</td><td>39.803521</td><td>97.047348</td><td>2.902515</td><td>-195.273237880</td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                70,
+                624,
+                916,
+                878
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                225,
+                70,
+                762,
+                85
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "181 "
+                    }
+                ]
+            },
+            "bbox": [
+                892,
+                72,
+                914,
+                82
+            ]
+        }
+    ],
+    [
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/c56d02187c6e390938cbed39ca1ad48aaa174e83af8e9c2c2c00f1dca9f41aca.jpg"
+                },
+                "table_caption": [
+                    {
+                        "type": "text",
+                        "content": "Table 4 Data from  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(50,100,1.2)"
+                    }
+                ],
+                "table_footnote": [],
+                "html": "<table><tr><td>68.75</td><td>138.7</td><td>103.0</td><td>81.23</td><td>63.26</td><td>213.8</td><td>317.7</td><td>162.9</td><td>55.93</td><td>157.5</td></tr><tr><td>129.4</td><td>162.5</td><td>187.1</td><td>58.10</td><td>51.20</td><td>208.5</td><td>97.41</td><td>81.55</td><td>133.6</td><td>324.1</td></tr><tr><td>55.86</td><td>158.9</td><td>142.8</td><td>80.86</td><td>108.2</td><td>68.91</td><td>204.1</td><td>284.0</td><td>86.06</td><td>138.2</td></tr><tr><td>67.87</td><td>177.5</td><td>148.0</td><td>86.03</td><td>163.3</td><td>119.6</td><td>202.1</td><td>152.8</td><td>286.4</td><td>87.20</td></tr><tr><td>100.9</td><td>120.2</td><td>132.7</td><td>116.3</td><td>61.23</td><td>180.2</td><td>112.9</td><td>158.3</td><td>401.2</td><td>161.0</td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                74,
+                136,
+                918,
+                222
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "search range and therefore, had to search in a quite large range to make the convergence possible. Also, Sinha's procedure doesn't guarantee convergence. "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                249,
+                916,
+                283
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "(ii). We used Qiao and Tsokos' Simple Iterative Procedure for solving the resulting nonlinear system of two parameter Weibull problem. Our results required significantly less number of steps for convergence than the number required by Sinha's method. Overall, our proposed method only requires 13 one dimensional search steps, compared to Sinha's more than 50 steps. "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                284,
+                918,
+                353
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Thus, it is quite clear that our proposed method offers several advantages over Sinha's procedure. "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                355,
+                916,
+                389
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "5. Comparison of two parameter and three parameter Weibull models "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                75,
+                425,
+                700,
+                443
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "In this section, we are going to illustrate the importance of the three parameter Weibull model in contrast to the two parameter Weibull model. That is, what is being lost when we use a two parameter Weibull distribution when in fact we should be using all three parameters. We shall use numerical examples to illustrate this fact. "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                460,
+                916,
+                530
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "We generated 50 samples from the three parameter Weibull distribution  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(50,100,1.2)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ", as shown in Table 4. "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                531,
+                916,
+                564
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Using our SIP and its corresponding algorithm, we obtained estimates of two and three parameter Weibull models, that is,  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(0, 162.4933, 2.0301)"
+                    },
+                    {
+                        "type": "text",
+                        "content": " and  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "W(50.6527, 97.5671, 1.1746)"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                566,
+                916,
+                600
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "It is clear that a significant difference exists between the two estimated Weibull models. We shall use three different approaches to compare the two and three parameter Weibull estimates to answer the important question of what we lose when we use a two parameter Weibull model when in fact we should be using all three parameters. "
+                    }
+                ]
+            },
+            "bbox": [
+                75,
+                602,
+                916,
+                672
+            ]
+        },
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/b542bec17bf61e6a3143d393c7d6b162f157268dcea88300e5c4d8761c2cb576.jpg"
+                },
+                "table_caption": [
+                    {
+                        "type": "text",
+                        "content": "Table 5 Percentile Comparison "
+                    }
+                ],
+                "table_footnote": [],
+                "html": "<table><tr><td>Percentile</td><td>0</td><td>10</td><td>20</td><td>30</td><td>40</td></tr><tr><td>True Model</td><td>50.00</td><td>65.33</td><td>78.65</td><td>92.35</td><td>107.13</td></tr><tr><td>3 Parameter Model</td><td>50.65</td><td>65.02</td><td>77.86</td><td>91.22</td><td>105.73</td></tr><tr><td>2 Parameter Model</td><td>0.00</td><td>53.63</td><td>77.62</td><td>97.79</td><td>116.72</td></tr><tr><td>Percentile</td><td>50</td><td>60</td><td>70</td><td>80</td><td>90</td></tr><tr><td>True Model</td><td>123.68</td><td>142.97</td><td>166.73</td><td>198.67</td><td>250.38</td></tr><tr><td>3 Parameter Model</td><td>122.07</td><td>141.22</td><td>164.92</td><td>196.96</td><td>249.11</td></tr><tr><td>2 Parameter Model</td><td>135.65</td><td>155.64</td><td>178.05</td><td>205.42</td><td>245.05</td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                70,
+                736,
+                916,
+                878
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "182 "
+                    }
+                ]
+            },
+            "bbox": [
+                77,
+                74,
+                101,
+                86
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputers in Simulation 39 (1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                229,
+                74,
+                766,
+                89
+            ]
+        }
+    ],
+    [
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Percentiles. Table 5 shows the percentiles of the true, three and two parameter models. We can conclude that the estimates of the percentiles of the three parameter model are closer to the true model than that of the two parameter model. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                102,
+                916,
+                154
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "For example, at the 50th percentile, the difference between the two parameter Weibull model and the true model is "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                154,
+                916,
+                190
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\left| 1 3 5. 6 5 - 1 2 3. 6 8 \\right| = 1 1. 9 7,",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/7b4b3e0377fd754591a749cdbf8485478e11af30e1fdc3abc11aa40debe01779.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                196,
+                355,
+                214
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "while the difference between the three parameter Weibull model and the true model is "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                218,
+                861,
+                238
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\left| 1 2 2. 0 7 - 1 2 3. 6 8 \\right| = 1. 6 1.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/d94f7562c65eab58b0553c11321e5593f4a62b309944f13dff8468f1a77e28be.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                242,
+                346,
+                261
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "That is, the percentage deviation of 50th percentile of the two parameter Weibull characterization from the true one is "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                265,
+                916,
+                301
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\frac{11.97}{123.68} = 9.7\\%",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/10d9c6d34cf78a116352d141428fa54f7442c170938c5b701180d4a17458caff.jpg"
+                }
+            },
+            "bbox": [
+                118,
+                305,
+                259,
+                347
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "while the percentage deviation of 50th percentile of the three parameter Weibull characterization from the true one is only "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                353,
+                916,
+                388
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\frac{1.61}{123.68} = 1.3\\%.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/714fab8c519f4dbc5ea9290fc6a23ed546920c24c67cc4b4a85c57c9265f56a3.jpg"
+                }
+            },
+            "bbox": [
+                118,
+                393,
+                264,
+                433
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Thus, the three parameter Weibull model gives a much better characterization of the phenomenon of interest than the two parameter Weibull model. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                439,
+                916,
+                475
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Cumulative Distribution Function. Table 6 gives the cumulative distribution function values for all three models. We can conclude from Table 6, that the three parameter Weibull estimate is closer in representing the true probability distribution function than that of the two parameter model. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                489,
+                916,
+                559
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "For example, for the cumulative distribution function at point 125, the difference between the two parameter Weibull model and the true model is "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                560,
+                916,
+                596
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\left| 0. 4 4 - 0. 5 1 \\right| = 0. 0 9,",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/0539843b2b59b42a5dd52976ae47c227f1b20fc3e7c10e938a991ba4e60ea521.jpg"
+                }
+            },
+            "bbox": [
+                112,
+                602,
+                305,
+                620
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "while the difference between the three parameter Weibull model and the true model is "
+                    }
+                ]
+            },
+            "bbox": [
+                68,
+                624,
+                857,
+                643
+            ]
+        },
+        {
+            "type": "equation_interline",
+            "content": {
+                "math_content": "\\left| 0. 5 2 - 0. 5 1 \\right| = 0. 0 1.",
+                "math_type": "latex",
+                "image_source": {
+                    "path": "images/326f7cf7904e629d56d2bbad6425195ac982809eaaf296a1103122e734aa3e44.jpg"
+                }
+            },
+            "bbox": [
+                114,
+                648,
+                305,
+                667
+            ]
+        },
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/5cf50e16ede34ffaca287d56406439cfa26d4012dd0d785869b2804a98d80ad5.jpg"
+                },
+                "table_caption": [
+                    {
+                        "type": "text",
+                        "content": "Table 6 Cumulative distribution function (CDF) comparison "
+                    }
+                ],
+                "table_footnote": [],
+                "html": "<table><tr><td>Point</td><td>0</td><td>25</td><td>50</td><td>75</td><td>100</td><td>125</td><td>150</td><td>175</td><td>200</td></tr><tr><td>True CDF</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.17</td><td>0.35</td><td>0.51</td><td>0.63</td><td>0.73</td><td>0.80</td></tr><tr><td>3 Parameter Model</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.18</td><td>0.36</td><td>0.52</td><td>0.64</td><td>0.74</td><td>0.81</td></tr><tr><td>2 Parameter Model</td><td>0.00</td><td>0.02</td><td>0.09</td><td>0.19</td><td>0.31</td><td>0.44</td><td>0.57</td><td>0.69</td><td>0.78</td></tr><tr><td>Point</td><td>225</td><td>250</td><td>275</td><td>300</td><td>325</td><td>350</td><td>375</td><td>400</td><td></td></tr><tr><td>True CDF</td><td>0.86</td><td>0.90</td><td>0.93</td><td>0.95</td><td>0.97</td><td>0.98</td><td>0.98</td><td>0.99</td><td></td></tr><tr><td>3 Parameter Model</td><td>0.86</td><td>0.90</td><td>0.93</td><td>0.95</td><td>0.97</td><td>0.98</td><td>0.98</td><td>0.99</td><td></td></tr><tr><td>2 Parameter Model</td><td>0.86</td><td>0.91</td><td>0.95</td><td>0.97</td><td>0.98</td><td>0.99</td><td>1.00</td><td>1.00</td><td></td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                70,
+                732,
+                916,
+                878
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersinSimulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                225,
+                70,
+                766,
+                85
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "183 "
+                    }
+                ]
+            },
+            "bbox": [
+                892,
+                72,
+                916,
+                82
+            ]
+        }
+    ],
+    [
+        {
+            "type": "table",
+            "content": {
+                "image_source": {
+                    "path": "images/aa005a86f492870b45797ff80834d0ede4a99752e794c6a8e1cb6ba98b719b07.jpg"
+                },
+                "table_caption": [],
+                "table_footnote": [],
+                "html": "<table><tr><td>True Model:</td><td></td></tr><tr><td>3 Parameter Model:</td><td>**********</td></tr><tr><td>2 Parameter Model:</td><td>-- -- -- -- --</td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            },
+            "bbox": [
+                207,
+                108,
+                572,
+                156
+            ]
+        },
+        {
+            "type": "image",
+            "content": {
+                "image_source": {
+                    "path": "images/7b42aa41e5244f08bd0435970a8c5092ed5e70bb75ef6f825b0f7ccbce2b8013.jpg"
+                },
+                "image_caption": [
+                    {
+                        "type": "text",
+                        "content": "Fig. 1. Comparison of two and three parameter Weibull models -- probability density function. "
+                    }
+                ],
+                "image_footnote": []
+            },
+            "bbox": [
+                192,
+                182,
+                816,
+                507
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "This implies, at point 125, the percentage deviation of the CDF value of the two parameter Weibull model from the true one is  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "0.09 / 0.51 = 16.6\\%"
+                    },
+                    {
+                        "type": "text",
+                        "content": " while the percentage deviation of the CDF value of the three parameter Weibull model from the true one is only  "
+                    },
+                    {
+                        "type": "equation_inline",
+                        "content": "0.01 / 0.51 = 2\\%"
+                    },
+                    {
+                        "type": "text",
+                        "content": ". "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                550,
+                916,
+                604
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Graphical Presentation. Fig. 1 illustrates the true probability density function along with the three and two parameter Weibull model estimations. We can visually see that the three parameter Weibull model fits the true model better than the two parameter Weibull model. "
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                626,
+                916,
+                680
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "6. Conclusion "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                70,
+                720,
+                201,
+                738
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "In the present study we have accomplished the following results: "
+                    }
+                ]
+            },
+            "bbox": [
+                92,
+                759,
+                672,
+                775
+            ]
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "(1). We have summarized our Simple Iterative Procedure (SIP) that one can use to effectively obtain estimates of a two parameter Weibull model. Analytically, our SIP is stable, always converges and converges very fast. "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "(2). Our proposed SIP method has been extended to solve the optimization problem resulting from the estimation procedure of a three parameter Weibull probability density function. This procedure is also stable and converges very fast. "
+                            }
+                        ]
+                    }
+                ]
+            },
+            "bbox": [
+                70,
+                775,
+                916,
+                879
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "184 "
+                    }
+                ]
+            },
+            "bbox": [
+                77,
+                74,
+                103,
+                86
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                229,
+                74,
+                766,
+                89
+            ]
+        }
+    ],
+    [
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "(3) The extension of our SIP method to three parameter Weibull model has been presented as an eight step algorithm that can be easily implemented. We have shown using three different criteria to illustrate that one will experience a significant loss in characterizing a certain phenomenon with a two parameter Weibull model instead of a three parameter Weibull model. Scientists and engineers avoided using the three parameter Weibull model because of the difficulties in estimating its parameters. The findings in the present study should assist in eliminating this difficulty. "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "(4). We have shown that our proposed algorithm is superior to that of Sinha with respect to convergence and it results in significantly better estimates of the parameters. "
+                            }
+                        ]
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                101,
+                916,
+                261
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "Acknowledgement "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                72,
+                297,
+                237,
+                313
+            ]
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "The authors wish to thank the referees for many helpful suggestions. "
+                    }
+                ]
+            },
+            "bbox": [
+                94,
+                332,
+                712,
+                349
+            ]
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "References "
+                    }
+                ],
+                "level": 1
+            },
+            "bbox": [
+                72,
+                385,
+                175,
+                401
+            ]
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "reference_list",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[1] L.J. Bain and M. Engelhardt, Statistical Analysis of Reliability and Life Testing Models (Marcel Dekker, New York, 1991, 2nd Ed.). "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[2] P. Hall, S.J. Sheather, M.C. Jones and J.S. Marron, On optimal data-based bandwidth selection in kernel density estimation, Biometrika 78 (1991) 263. "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[3] J.I. McCool, Inference on Weibull percentiles and shape parameter from maximum likelihood estimates, IEEE Trans Reliability 19 (1970) 2-9. "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[4] W.H. Press, B.P. Fannery, S.A. Teukolsky and W.T. Vetterling, Numerical Recipes in C (Cambridge University Press, Cambridge, 1988). "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[5] H. Qiao and Tsokos, Parameter estimation of the Weibull probability distribution, Math. Comput. Simulation, to appear. "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[6] V.K. Rohatgi, An Introduction to Probability Theory and Mathematical Statistics (Wiley Eastern, 1990). "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[7] H. Rockette, C.E. Antle and L.A. Klimko, Maximum likelihood estimation with the Weibull model, J. Amer. Stat. Assoc. 69 (1974) 246-249. "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[8] S.K. Sinha, Reliability and Life Testing (Wiley, New York, 1986). "
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "[9] B.W. Silverman, Density Estimation for Statistics and Data Analysis (Chapman and Hall, London, 1986). "
+                            }
+                        ]
+                    }
+                ]
+            },
+            "bbox": [
+                72,
+                419,
+                916,
+                644
+            ]
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "H.Qiao,C.P.Tsokos/MathematicsandComputersin Simulation39(1995)173-185 "
+                    }
+                ]
+            },
+            "bbox": [
+                227,
+                69,
+                764,
+                84
+            ]
+        },
+        {
+            "type": "page_number",
+            "content": {
+                "page_number_content": [
+                    {
+                        "type": "text",
+                        "content": "185 "
+                    }
+                ]
+            },
+            "bbox": [
+                890,
+                70,
+                916,
+                82
+            ]
+        }
+    ]
+]

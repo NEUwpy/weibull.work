@@ -1,0 +1,3014 @@
+[
+    {
+        "type": "text",
+        "text": "Methods of Estimation for the Three-Parameter Reflected Weibull Distribution ",
+        "text_level": 1,
+        "bbox": [
+            142,
+            122,
+            854,
+            176
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Fateme Maleki jebeli a , Einolah Deiri b.* ",
+        "bbox": [
+            334,
+            229,
+            658,
+            248
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "aDepartment of Statistics, Marvdasht Branch, Islamic Azad University, Marvdasht, Iran ",
+        "bbox": [
+            207,
+            256,
+            785,
+            272
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Email: f.maleki7351@yahoo.com ",
+        "bbox": [
+            388,
+            277,
+            609,
+            292
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "bDepartment of Statistics, Qaemshahr Branch, Islamic Azad University, Qaemshahr, Iran ",
+        "bbox": [
+            202,
+            300,
+            790,
+            316
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Email: e.deiri53@qaemiau.ac.ir ",
+        "bbox": [
+            393,
+            323,
+            601,
+            338
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            367,
+            189,
+            383
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "In this paper, we propose methods for the estimation of parameters for the three-parameter Reflected Weibull (????) distribution. The Moment estimator (??????), Maximum likelihood estimator (??????) and Location and Scale Parameters free maximum likelihood estimator (??????????). The ?????????? is based on a data transformation, which avoids the problem of unbounded likelihood estimator. Through Mont Carlo simulations, we further show that the ?????????? performs better than ?????? and ?????? in terms of bias and root mean squared error (????????). Finally, two examples based on real data sets are presented to illustrate methods. ",
+        "bbox": [
+            111,
+            396,
+            885,
+            510
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Keyword: Reflected Weibull, Mont Carlo simulations, Moment estimator, Maximum likelihood estimator. ",
+        "bbox": [
+            111,
+            522,
+            883,
+            539
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Introduction ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            551,
+            220,
+            568
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The Weibull distribution, first presented by Weibull [17], is the most widely used distribution in reliability and lifetime studies. The cumulative distribution function $( C D F )$ and probability density function $( P D F )$ of the three-parameter Weibull distribution are given by ",
+        "bbox": [
+            111,
+            580,
+            883,
+            635
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "equation",
+        "text": "$$\nF (x; \\delta , \\beta , \\gamma) = 1 - \\exp \\left[ - \\left(\\frac {x - \\gamma}{\\beta}\\right) ^ {\\delta} \\right] \\tag {1}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            119,
+            635,
+            877,
+            675
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            112,
+            676,
+            145,
+            691
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "equation",
+        "text": "$$\nf (x; \\delta , \\beta , \\gamma) = \\frac {\\delta}{\\beta} \\left(\\frac {x - \\gamma}{\\beta}\\right) ^ {\\delta - 1} \\exp \\left[ - \\left(\\frac {x - \\gamma}{\\beta}\\right) ^ {\\delta} \\right] \\tag {2}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            117,
+            693,
+            880,
+            733
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "for $\\delta > 0$ , $\\beta > 0$ and $\\gamma < x$ , for example see, Johnson et al. [8]. ",
+        "bbox": [
+            111,
+            734,
+            624,
+            750
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "If X has the Weibull distribution with $C D F$ and ?????? given by (1) and (2) then – ?? is said to have the RW distribution. The $C D F$ and ?????? for the three-parameter ???? are given by ",
+        "bbox": [
+            111,
+            751,
+            880,
+            786
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "equation",
+        "text": "$$\nF (x; \\delta , \\beta , \\gamma) = 1 - \\exp \\left[ - \\left(\\frac {\\gamma - x}{\\beta}\\right) ^ {\\delta} \\right] \\tag {3}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            117,
+            787,
+            877,
+            827
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            112,
+            829,
+            145,
+            843
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "equation",
+        "text": "$$\nf (x; \\delta , \\beta , \\gamma) = \\frac {\\delta}{\\beta} \\left(\\frac {\\gamma - x}{\\beta}\\right) ^ {\\delta - 1} e x p \\left[ - \\left(\\frac {\\gamma - x}{\\beta}\\right) ^ {\\delta} \\right] \\tag {4}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            844,
+            883,
+            886
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "for $\\delta > 0 , \\beta > 0$ and $x < \\gamma$ . The associated mean $\\begin{array} { r } { E ( x ) = \\gamma - \\beta { \\cal { T } } \\left( \\frac { 1 } { \\gamma } + 1 \\right) } \\end{array}$ ; where $\\boldsymbol { \\Gamma } ( \\boldsymbol { x } )$ is gamma function ",
+        "bbox": [
+            109,
+            89,
+            825,
+            133
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\Gamma (x) = \\int_ {0} ^ {\\infty} t ^ {x - 1} e ^ {- x} d x.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            401,
+            135,
+            596,
+            176
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "This distribution , first presented by Cohen[4]. ",
+        "bbox": [
+            111,
+            175,
+            480,
+            191
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "For $\\delta \\leq 1$ , the distribution is J-shape, for $\\delta > 1$ , the ???? distribution becomes bell-shape. ",
+        "bbox": [
+            109,
+            194,
+            823,
+            212
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "image",
+        "img_path": "images/da1dd4becda792b2117c10beecbd62d0a752dabc520ce82234b1dcff5b6a7e94.jpg",
+        "image_caption": [
+            "Figure1. The density function of the three parameter ???? distribution for different choices of $\\delta$ where $\\beta = 1 , \\gamma = 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            313,
+            256,
+            687,
+            426
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "As Cohen[4] has said some readers may recognize the ???? distribution of largest values, or the Fisher-Tippet type III distribution of largest values as discussed by Gumbel[7]. ",
+        "bbox": [
+            111,
+            431,
+            883,
+            465
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "As Lai [9] has said strictly speaking , the ???? is not suitable for reliability modeling unless $\\gamma > 0$ and $( { \\frac { \\gamma } { \\beta } } ) ^ { \\delta } \\geq 9$ . ",
+        "bbox": [
+            111,
+            465,
+            883,
+            508
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The RW distribution is suitable for ductile strength, you can see Nadarajah and Kotz.[12]. ",
+        "bbox": [
+            111,
+            510,
+            828,
+            527
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "In this paper, we propose three method of estimation of parameters of the three-parameter ???? distribution. ?????? and ?????? that discussed with many of authors for a lot of distributions .As Chen and Amin [3] said ?????? does not always give satisfactory estimates of parameters for certain threeparameter distributions where the density is positive only to right of a shifted origin, ??, this being of the unknown parameters. for example in the Lognormal, Gamma distribution and Weibull model with three parameters the critical difficulty is that there are paths in the parameter space, with ?? tending to the smallest observation, along which the likelihood becomes infinite. ",
+        "bbox": [
+            109,
+            527,
+            883,
+            651
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Griffths [6] suggested a method for estimation parameters of the three-parameter Lognorma l distribution. Lawless [10] have all given detailed of descriptions of various methods of parameter estimation of the three-parameter Weibull distribution. ",
+        "bbox": [
+            109,
+            652,
+            883,
+            704
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "As Nagatsuka and Balakrishnan [13] said since there are estimation that are uniqueness but they are useless from an inferential point of views and consistency is one of the most fundame nta l properties to show that statistics are suitable as estimators of unknown parameters and as Nagatsuka et al. [14] suggested we will say ??????????s. ",
+        "bbox": [
+            109,
+            715,
+            883,
+            787
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The rest of this article is organized as follows. In section 1, we present the ??????. In section 2, we present the ??????. In section 3, we present the ??????????, as a new method for estimation of parameters of the three-parameter ???? distribution. In section 4, we show that the ?????????? performs well compared to some other prominent methods, we will simulate and use of bias and ????????. In section 5, two real life data sets are used as examples to illustrate the methods of estimation. In section 6 we will write some concluding remarks. ",
+        "bbox": [
+            109,
+            799,
+            883,
+            906
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "1. Maximum likelihood estimation ",
+        "text_level": 1,
+        "bbox": [
+            142,
+            119,
+            444,
+            137
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Let $X _ { i } , i = 1 , 2 , \\ldots n ,$ be a random variable distributed as (3) with the vector of parameters $( \\delta , \\beta , \\gamma )$ . We now determine the ??????s of the parameters of the three-parameter ???? distribution. Le t $x _ { 1 } , x _ { 2 } , \\ldots , x _ { n }$ be observed values of a random sample size ?? from the three-parameter ???? distribution.The log-likelihood function for the vector of parameters can be written as ",
+        "bbox": [
+            111,
+            148,
+            885,
+            222
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nl (\\delta , \\beta , \\gamma) = n l o g \\delta - n l o g \\beta + (\\delta - 1) \\sum_ {i = 1} ^ {n} l o g \\left(\\frac {\\gamma - x _ {i}}{\\beta}\\right) - \\sum_ {i = 1} ^ {n} \\left(\\frac {\\gamma - x _ {i}}{\\beta}\\right) ^ {\\delta}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            205,
+            220,
+            790,
+            272
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "When $x _ { i } < \\gamma , i = 1 , 2 , \\ldots n ,$ and ",
+        "bbox": [
+            112,
+            270,
+            372,
+            287
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nl (\\delta) = \\frac {\\partial l (\\delta , \\beta , \\gamma)}{\\partial \\delta} = \\frac {n}{\\delta} + \\sum_ {i = 1} ^ {n} l o g \\left(\\frac {\\gamma - x _ {i}}{\\beta}\\right) - \\sum_ {i = 1} ^ {n} \\left(\\frac {\\gamma - x _ {i}}{\\beta}\\right) ^ {\\delta} l o g \\left(\\frac {\\gamma - x _ {i}}{\\beta}\\right),\n$$",
+        "text_format": "latex",
+        "bbox": [
+            114,
+            287,
+            696,
+            338
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nl (\\beta) = \\frac {\\partial l (\\delta , \\beta , \\gamma)}{\\partial \\beta} = \\frac {- n \\delta}{\\beta} + \\frac {\\delta}{\\beta} \\sum_ {i = 1} ^ {n} \\left(\\frac {\\gamma - x _ {i}}{\\beta}\\right) ^ {\\delta + 1}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            114,
+            338,
+            491,
+            388
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nl (\\gamma) = \\frac {\\partial l (\\delta , \\beta , \\gamma)}{\\partial \\gamma} = (\\delta - 1) \\sum_ {i = 1} ^ {n} \\left(\\frac {1}{\\gamma - x _ {i}}\\right) - \\frac {\\delta}{\\beta} \\sum_ {i = 1} ^ {n} \\left(\\frac {\\gamma - x _ {i}}{\\beta}\\right) ^ {\\delta - 1}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            114,
+            388,
+            616,
+            436
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "As we know, The ?????? of ?? is more than $X _ { ( 1 ) }$ , where $X _ { ( i ) }$ denotes $i$ -th order statistic. The ?????? of ??, ?? and $\\gamma$ are obtained by solving the non-linear equations $l ( \\delta ) = 0$ , $l ( \\beta ) = 0$ and $l ( \\gamma ) = 0$ . ",
+        "bbox": [
+            111,
+            436,
+            875,
+            476
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2. Moments Estimation ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            517,
+            349,
+            534
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "We know ",
+        "bbox": [
+            112,
+            547,
+            192,
+            561
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE (\\gamma - X) ^ {k} = \\int_ {- \\infty} ^ {\\gamma} \\left(\\frac {\\delta}{\\beta}\\right) (\\gamma - x) ^ {k} \\left(\\frac {\\gamma - x}{\\beta}\\right) ^ {\\delta - 1} e x p \\left[ - \\left(\\frac {\\gamma - x}{\\beta}\\right) ^ {\\delta} \\right] d x\n$$",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            563,
+            761,
+            606
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "If $\\begin{array} { r } { \\left( \\frac { \\gamma - x } { \\beta } \\right) ^ { \\delta } = u } \\end{array}$ then ",
+        "bbox": [
+            112,
+            606,
+            276,
+            638
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE (\\gamma - X) ^ {k} = \\beta^ {k} \\Gamma \\left(\\frac {k}{\\delta} + 1\\right).\n$$",
+        "text_format": "latex",
+        "bbox": [
+            383,
+            637,
+            611,
+            667
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "We can write ",
+        "bbox": [
+            112,
+            665,
+            220,
+            681
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE (X) = \\gamma - \\beta \\Gamma \\left(\\frac {1}{\\delta} + 1\\right),\n$$",
+        "text_format": "latex",
+        "bbox": [
+            398,
+            683,
+            598,
+            710
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE (X ^ {2}) = 2 \\gamma E (X) - \\gamma^ {2} + \\beta^ {2} \\Gamma \\left(\\frac {2}{\\delta} + 1\\right),\n$$",
+        "text_format": "latex",
+        "bbox": [
+            341,
+            710,
+            655,
+            737
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE (X ^ {3}) = \\gamma^ {3} - 3 \\gamma^ {2} E (X) + 3 \\gamma E (X ^ {2}) - \\beta^ {3} \\Gamma \\left(\\frac {3}{\\delta} + 1\\right)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            287,
+            738,
+            709,
+            772
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "with replace $E ( X ) , E ( X ^ { 2 } )$ and $E ( X ^ { 3 } )$ with $\\textstyle { \\bar { x } } = { \\frac { 1 } { n } } \\sum _ { i = 1 } ^ { n } x _ { i }$ , $\\begin{array} { r } { \\overline { { x ^ { 2 } } } = \\frac { 1 } { n } \\sum _ { i = 1 } ^ { n } x _ { i } ^ { 2 } } \\end{array}$ and $\\begin{array} { r } { \\overline { { x ^ { 3 } } } = \\frac { 1 } { n } \\sum _ { i = 1 } ^ { n } x _ { i } ^ { 3 } } \\end{array}$ , we simply obtain the moment estimates of $\\delta , \\beta$ and ??. ",
+        "bbox": [
+            111,
+            772,
+            875,
+            816
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3. Location and scale parameters free maximum likelihood Estimation ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            833,
+            748,
+            851
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "It is well known that the reliability conditions are not satisfied for the ?????? for every distribut io n with three-parameter then some authors suggested a new method for this problem. For example; ",
+        "bbox": [
+            111,
+            863,
+            885,
+            898
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Nagatsuka and Balakrishnan [13] studied about methods of estimation for three-parameter Inverse Gaussian distribution. Nagatsuka et al. [15] studied about methods of estimation for threeparameter Gamma distribution. Nagatsuka et al. [14] studied about methods of estimation for three-parameter Weibull distribution and suggested that authors can be study about another distributions such as the three-parameter ???? distribution. Then in this paper we want studied this new method for estimation of parameters for this distribution and compared with the ?????? and ??????. In this section we will say about this new method. ",
+        "bbox": [
+            109,
+            89,
+            885,
+            213
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "3.1. Estimation of the shape parameter ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            229,
+            447,
+            248
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In this section, we describe a new method of estimation of the parameters of the three - parameters RW distribution and discuss some of properties. Let $X _ { 1 } , X _ { 2 } , \\dots , X _ { n }$ be $n$ independent random variables from the three- parameter $R W$ distribution with common ?????? (3). Throughout the paper, we assume that the following two conditions hold: ",
+        "bbox": [
+            109,
+            260,
+            885,
+            333
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Assumption 1. The sample size $n$ is greater than 2. ",
+        "bbox": [
+            112,
+            344,
+            519,
+            361
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Assumption 2. With $X _ { i } \\neq X _ { j }$ probability 1, for some $i \\neq j$ . ",
+        "bbox": [
+            112,
+            362,
+            586,
+            382
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "These conditions are very natural, which are required for all existing methods of estimation for three-parameter distributions. We first consider some statistics depending on only one parameter a before presenting the method of estimation. For $i = 1 , 2 , . . . , n$ , let $X _ { ( i ) }$ denote the order statistics among $X _ { 1 } , X _ { 2 } , \\ldots , X _ { n }$ . Then, we consider the following statistics: ",
+        "bbox": [
+            109,
+            392,
+            885,
+            465
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\nW _ {(i)} = \\frac {X _ {(i)} - X _ {(1)}}{X _ {(n)} - X _ {(1)}}, \\quad i = 1, 2, \\dots .., n \\tag {5}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            116,
+            469,
+            880,
+            512
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "It is easy to see that $W _ { ( i ) } ^ { \\prime } \\mathrm { s }$ do not depend on ?? and $\\beta$ , but depend only on ??. Statistics similar to those in (5) have been considered by Nagatsuka and Kamakura [16] for the model presented by Castillo and Hadi [2]. Observe that $W _ { ( 1 ) }$ takes on the value 0 and $W _ { ( n ) }$ takes on the value 1 constantly. ",
+        "bbox": [
+            109,
+            515,
+            867,
+            589
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "We consider the maximum likelihood estimator of $\\delta$ based on $W _ { ( 1 ) } , W _ { ( 2 ) } , \\ldots , W _ { ( n ) } .$ The likelihood function of $\\delta$ based on $W _ { ( 1 ) } , W _ { ( 2 ) } , \\dots , W _ { ( n ) }$ might be bounded (will be proved later) since these are not dependent on ?? as mentioned above. To obtain the maximum likelihood estimator of $\\delta$ based on W(i)’s, we first derive the joint ?????? of ??(2) , ??(3) , … , ??(??−1). $P D F$ $W _ { ( 2 ) } , W _ { ( 3 ) } , \\dots , W _ { ( n - 1 ) }$ ",
+        "bbox": [
+            109,
+            590,
+            885,
+            669
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Proposition 1. For $\\delta > 0$ , the joint density $P D F$ of $W _ { ( 2 ) } , W _ { ( 3 ) } , \\dots , W _ { ( n - 1 ) }$ is given by ",
+        "bbox": [
+            109,
+            681,
+            785,
+            702
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\psi (w _ {2}, w, \\dots ., w _ {n - 1}) = n! \\delta^ {n} \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} (- u) ^ {n - 2} \\left\\{\\prod_ {i = 1} ^ {n} (- v - u + u w _ {i}) \\right\\} ^ {\\delta - 1} \\\\ \\times e x p \\left[ - \\left\\{\\sum_ {i = 1} ^ {n} (- v - u + u \\omega w _ {i}) ^ {\\delta} \\right\\} \\right] d u d v \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            116,
+            714,
+            689,
+            799
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "when $0 \\leq w _ { 2 } \\leq \\cdots \\leq w _ { n - 1 } \\leq 1$ ; and $w _ { 1 } = 0$ , $w _ { n } = 1$ . ",
+        "bbox": [
+            112,
+            821,
+            516,
+            838
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Proof: ",
+        "bbox": [
+            112,
+            859,
+            168,
+            875
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Denote $F ( . ; 1 , \\delta , 0 )$ by $G ( . ; \\delta )$ and $f ( . ; 1 , \\delta , 0 )$ by $g ( . ; \\delta )$ , for simplicity. Suppose $Z _ { 1 } , Z _ { 2 } , \\dots , Z _ { n }$ are $n$ independent random variables from the standard ???? distribution with ?????? $g ( z _ { i } ; \\delta )$ and CDF $G ( z _ { i } ; \\delta ) . \\mathrm { F o r } i = 1 , 2 , . . . , n$ , let $Z _ { ( i ) }$ be the i-th order statistics among $Z _ { 1 } , Z _ { 2 } , \\dots , Z _ { n }$ . For $n -$ 2 real value $0 \\leq w _ { 2 } \\leq \\cdots \\leq w _ { n - 1 } \\leq 1$ , let us consider ",
+        "bbox": [
+            111,
+            89,
+            885,
+            165
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} P _ {r} \\big (W _ {(i)} \\leq w _ {i}, i = 2,.., n - 1 \\big) = P _ {r} \\left(\\frac {Z _ {(i)} - Z _ {(1)}}{Z _ {(n)} - Z _ {(1)}} \\leq w _ {i}, i = 2,.., n - 1\\right) \\\\ = \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} P _ {r} \\big (Z _ {(i)} \\leq u + (v - u) w _ {i}, i = 2, \\dots ., n - 1 \\big | Z _ {(1)} = u, Z _ {(n)} = v \\big) \\\\ \\times n (n - 1) g (v; \\delta) g (u; \\delta) \\{G (v; \\delta) - G (u; \\delta) \\} ^ {n - 2} d u d v \\\\ = \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} n! g (v; \\delta) g (u; \\delta) \\prod_ {i = 2} ^ {n - 1} \\left\\{G (u + (v - u) w _ {i}; \\delta) \\right\\} d u d v. \\tag {6} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            150,
+            176,
+            848,
+            354
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "For every $u , v$ such that $u < v < 0$ , $n > 2$ and $\\delta > 0$ , the integrand in (6) , i.e, ",
+        "bbox": [
+            111,
+            364,
+            740,
+            383
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\nn! g (v; \\delta) g (u; \\delta) \\prod_ {i = 2} ^ {n - 1} \\{G (u + (v - u) w _ {i}; \\delta) \\}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            316,
+            393,
+            679,
+            448
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "has a partial derivative ",
+        "bbox": [
+            111,
+            459,
+            290,
+            477
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\nn! g (v; \\delta) g (u; \\delta) \\prod_ {i = 2} ^ {n - 1} (v - u) g (u + (v - u) w _ {i}; \\delta),\n$$",
+        "text_format": "latex",
+        "bbox": [
+            277,
+            489,
+            704,
+            508
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "with respect to $w _ { i } , i \\ = \\ 2 , \\ldots , n \\ - \\ 1 .$ . Moreover, we not that ",
+        "bbox": [
+            111,
+            513,
+            591,
+            531
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\frac {(n - 2) ! \\prod_ {i = 2} ^ {n - 1} (v - u) g (u + (v - u) w _ {i} ; \\delta)}{\\{G (v ; \\delta) - G (u ; \\delta) \\} ^ {n - 2}},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            272,
+            535,
+            635,
+            575
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "is bounded above then we have ",
+        "bbox": [
+            111,
+            590,
+            362,
+            606
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\nn! \\prod_ {i = 2} ^ {n - 1} (v - u) g (u + (v - u) w _ {i}; \\delta) \\leq n (n - 1) g (v; \\delta) g (u; \\delta) \\{G (v; \\delta) - G (u; \\delta) \\} ^ {n - 2},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            147,
+            609,
+            849,
+            662
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "and by applying part(ii) of theorem 16.8 Billingsley[1], the partial derivative of ",
+        "bbox": [
+            111,
+            662,
+            750,
+            681
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\operatorname * {P r} \\left(W i \\leq w _ {i}; i = 2, \\dots , n - 1\\right)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            359,
+            694,
+            635,
+            713
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "with respect to $w _ { i } i = 2 , \\ldots , n \\ - \\ 1$ , is given by ",
+        "bbox": [
+            111,
+            724,
+            503,
+            744
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} \\frac {\\partial^ {n - 2} n ! g (v ; \\delta) g (u ; \\delta) \\prod_ {i = 2} ^ {n - 1} G (u + (v - u) w _ {i} ; \\delta)}{\\prod_ {i = 2} ^ {n - 1} \\partial w _ {i}} d v d u \\\\ = \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} n! g (v; \\delta) g (u; \\delta) (v - u) ^ {n - 2} \\prod_ {i = 2} ^ {n - 1} g (u + (v - u) w _ {i}; \\delta) d v d u. \\tag {7} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            116,
+            755,
+            785,
+            861
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "For $w _ { 2 } , \\cdots , w _ { n - 1 }$ for which $0 \\leq w _ { 2 } \\leq \\cdots \\leq w _ { n - 1 } \\leq 1$ is not satisfied, the partial derivative of $P _ { r } \\big ( W _ { ( i ) } \\leq w _ { i } , i = 2 , \\dots , n - 1 \\big )$ with respect to $w _ { ( i ) } , i = 2 , \\ldots . , n - 1$ , is always equal to 0 since ",
+        "bbox": [
+            111,
+            89,
+            885,
+            130
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim _ {\\partial w _ {i} \\to 0, i = 2, \\dots , n - 1} \\frac {P _ {r} (w _ {i} \\leq W _ {(i)} \\leq w _ {i} + \\delta w _ {i} , i = 2 , \\dots . , n - 1)}{\\prod_ {i = 2} ^ {n - 1} \\partial w _ {i}} = 0.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            192,
+            138,
+            712,
+            181
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "After suitable transformations of variables $u$ and $v$ , the proof of proposition 1 gets completed. □ ",
+        "bbox": [
+            111,
+            195,
+            872,
+            213
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "From Proposition 1, we can obtain the likelihood function of $\\delta$ based on $W _ { ( 1 ) } , \\dots . , W _ { ( n ) }$ as ",
+        "bbox": [
+            111,
+            224,
+            826,
+            244
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nl (\\delta ; w 2, w 3, \\dots , w n - 1) = \\psi (w 2, w 3, \\dots , w n - 1; \\delta), \\tag {8}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            256,
+            864,
+            276
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Where $w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 }$ are the realized values of $W _ { ( 2 ) } , W _ { ( 3 ) } , \\dots , W _ { ( n - 1 ) }$ . Then, the ?????? of $\\delta$ based on $W _ { ( i ) } ^ { \\prime } s ,$ , denoted by $\\hat { \\delta } _ { w } .$ , is obtained by maximizing $l ( \\delta ; w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 } )$ with respect to $\\delta$ , by substituting $W _ { ( i ) } ^ { \\prime } s$ for $w _ { i } ^ { \\prime } \\mathrm { s }$ . ",
+        "bbox": [
+            111,
+            294,
+            885,
+            358
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Proposition 2. For $\\delta > 0$ and any given $w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 }$ such that $0 \\leq w _ { 2 } \\leq \\cdots \\leq \\ w _ { 2 } \\leq \\ 1$ , the likelihood function $l ( \\delta ; w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 } )$ is differentiable with respect to $\\delta$ , and the derivative $l ^ { ' } ( \\delta ; w _ { 2 } , \\dots \\dots , w _ { n - 1 } )$ is given by ",
+        "bbox": [
+            111,
+            377,
+            883,
+            433
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nl ^ {\\prime} (\\delta , w _ {2}, \\dots ., w _ {n - 1}) = n! \\delta^ {n} \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} \\left\\{\\frac {n}{\\delta} + \\sum_ {i = 1} ^ {n} \\log (- v - u + u w _ {i}) \\right. [ (- v - u + u w _ {i}) ] d v d u\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            441,
+            748,
+            469
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{r l} & {\\left. u w _ {i}) ^ {\\delta} \\right] \\Big \\} \\exp \\{(n - 2) \\log (- u) + (\\delta - 1) \\sum_ {i = 1} ^ {n} \\log (- v - u + u w _ {i}) - \\sum_ {i = 1} ^ {n} (- v - u + u w _ {i}) ^ {\\delta} \\}} \\\\ & {\\left. u w _ {i}) ^ {\\delta} \\right\\} d u d v.} \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            470,
+            790,
+            516
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Proof: ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            527,
+            168,
+            542
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "For $\\delta > 0$ , given $w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 }$ such that $0 \\le w _ { 2 } \\le \\cdots \\le w _ { n - 1 } \\le 1 , l ( \\delta ; w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 } )$ can be rewritten as ",
+        "bbox": [
+            111,
+            555,
+            875,
+            589
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nl (\\delta ; w _ {2}, \\dots ., w _ {n - 1}) = \\mathrm {n}! \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} \\exp \\{h (\\delta , u, v; w _ {2}, \\dots , w _ {n - 1}) \\} d u d v,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            176,
+            590,
+            730,
+            631
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "where ",
+        "bbox": [
+            112,
+            643,
+            163,
+            657
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} h (\\delta , u, v; w _ {2}, \\dots , w _ {n - 1}) \\\\ = n l o g \\delta + (n - 2) \\log (- u) + (\\delta - 1) \\sum_ {i = 1} ^ {n} \\log (- v - u + u w _ {i}) - \\sum_ {i = 1} ^ {n} (- v - u + u w _ {i}) ^ {\\delta} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            669,
+            813,
+            750
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "without loss of generality, we denote $h ( \\delta , u , v ; w _ { 2 } , \\ldots , w _ { n - 1 } )$ by $h ( \\delta , u , v )$ in the remaining part of this proof. For every $\\delta > 0 , u < 0 , v < 0 , n > 2$ $n > 2$ and $w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 }$ such that $0 \\leq w _ { 2 } \\leq$ $\\cdots \\leq w _ { n - 1 } \\leq 1$ , the partial derivative of $e x p \\{ h ( \\delta , u , v \\}$ with respect to $\\delta$ is given by $h ^ { \\prime } \\left( \\delta , u , v \\right) e x p \\{ h ( \\delta , u , v ) \\}$ , where $h ^ { \\prime } \\left( \\delta , u , v \\right)$ , is the partial derivative of $h ( \\delta , u , v )$ with respect to $\\delta$ , which is ",
+        "bbox": [
+            111,
+            760,
+            885,
+            849
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\frac {n}{\\delta} + \\sum_ {i = 1} ^ {n} \\log (- v - u + u w _ {i}) [ 1 - (- v - u + u w _ {i}) ^ {\\delta} ].\n$$",
+        "text_format": "latex",
+        "bbox": [
+            238,
+            88,
+            669,
+            140
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "And $| h ^ { \\prime } \\left( \\delta , u , v \\right) e x p \\{ h ( \\delta , u , v ) \\} |$ is bounded above and then there exists $M$ such that ",
+        "bbox": [
+            112,
+            151,
+            787,
+            171
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\left| h ^ {\\prime} \\left(\\delta , u, v\\right) e x p \\{h (\\delta , u, v) / 2 \\} \\right| \\leq M.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            349,
+            181,
+            645,
+            202
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Thus ",
+        "bbox": [
+            112,
+            213,
+            155,
+            229
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} | h ^ {\\prime} (\\delta , u, v) e x p \\{h (\\delta , u, v) \\} | d u d v \\\\ \\leq M \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} \\exp \\{h (\\delta , u, v) / 2 \\} d u d v \\\\ \\leq M \\left(\\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} \\exp \\{h (\\delta , u, v) \\} d u d v\\right) ^ {\\frac {1}{2}}. \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            243,
+            612,
+            404
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The second last inequality is due to Lyapunov’s inequality while the last inequality holds from proposition 1. ",
+        "bbox": [
+            111,
+            415,
+            883,
+            449
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Then, by applying part (ii) of theorem 16.8 of Billingsley [1], the derivative of $l ( \\delta ; w _ { 2 } , \\ldots , w _ { n - 1 } )$ is given by ",
+        "bbox": [
+            112,
+            462,
+            741,
+            500
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} l ^ {\\prime} (\\delta ; w _ {2}, \\dots ., w _ {n - 1}) = n! \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} \\frac {\\partial e x p \\{h (\\delta , u , v) \\}}{\\partial \\delta} d u d v \\\\ = n! \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} h ^ {\\prime} (\\delta , u, v) e x p \\{h (\\delta , u, v) \\} d u d v. \\tag {9} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            510,
+            790,
+            606
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The proof of proposition 2 is thus complete. □ ",
+        "bbox": [
+            112,
+            617,
+            480,
+            636
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The following theorem and the using corollary implies that the estimate of $\\delta$ obtained by maximizing $l ( \\delta ; w _ { 2 } , \\ldots , w _ { n - 1 } )$ or solving equation $l ^ { ' } ( \\delta ; w _ { 2 } , \\dots , w _ { n - 1 } ) = 0$ always exists uniquely over the entire parameter space. ",
+        "bbox": [
+            111,
+            647,
+            883,
+            702
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Theorem′ 1. For $\\delta > 0$ and any given $w _ { 2 } , \\ldots , w _ { n - 1 }$ such that $0 \\leq w _ { 2 } \\leq \\cdots \\leq w _ { n - 1 } \\leq 1$ the likelihood equation $l ^ { ' } ( \\delta ; w _ { 2 } , \\dots . , w _ { n - 1 } ) = 0$ always has a unique solution. ",
+        "bbox": [
+            111,
+            705,
+            883,
+            746
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Proof: ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            756,
+            168,
+            772
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "First, we shall that likelihood equation has at least one solution. For simplicity, we denote $l ^ { ' } ( \\delta ; w _ { 2 } , \\dots . , w _ { n - 1 } )$ by $l ^ { ' } ( \\delta )$ , $h ( \\delta , u , v , w _ { 2 } \\ldots , w _ { n - 1 } )$ by $h ( \\delta , u , v )$ and $h ^ { \\prime } \\left( \\delta , u , v , w _ { 2 } \\ldots , w _ { n - 1 } \\right)$ by $h ^ { \\prime } \\left( \\delta , u , v \\right)$ in the remaining part of this proof. Since $e x p \\{ h ( \\delta , u , v ) \\} \\ > \\ 0$ , ?????? $h ^ { \\prime } ( \\delta , u , v ) = \\infty$ , and $\\operatorname* { l i m } _ { \\delta  \\infty } h ^ { \\prime } ( \\delta , u , v ) < 0$ for every $\\delta > 0$ and $u < 0$ ??↓0 and $v < 0$ , there exist a positive real value $\\delta _ { 1 }$ , such that $l ^ { ' } ( \\delta ) > 0$ for all $\\delta$ in $( 0 , \\delta 1 )$ and a positive real value $\\delta _ { 2 }$ ,such that $l ^ { ' } ( \\delta ) < 0$ for all $\\delta > \\delta _ { 2 }$ ,also for $\\delta > 0 , \\dot { l ^ { \\prime } } ( \\delta )$ is continuous with ",
+        "bbox": [
+            111,
+            785,
+            883,
+            902
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "respect to $\\delta$ . Thus $l ^ { ' } ( \\delta ) = 0$ always has at least one solution. Next we shall show that the number of solution exactly one. Let, $s _ { u , v , i : n } = \\log ( - u - v + u w _ { i } ) , i ~ = ~ 1 , \\ldots , n$ for simplicity. Then, we rewrite $h ( \\delta , u , v )$ and $h ^ { \\prime } ( \\delta , u , v )$ as ",
+        "bbox": [
+            109,
+            90,
+            880,
+            145
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\nh (\\delta , u, v) = \\mathrm {h} \\big (\\delta , S _ {u, v} \\big) = n l o g \\delta + (n - 2) \\log (- u) + (\\delta - 1) \\sum_ {i = 1} ^ {n} s _ {u, v, i: n} - \\sum_ {i = 1} ^ {n} \\exp (\\delta s _ {u, v, i: n})\n$$",
+        "text_format": "latex",
+        "bbox": [
+            109,
+            145,
+            861,
+            198
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            112,
+            208,
+            147,
+            223
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} h ^ {\\prime} (\\delta , u, v) = h ^ {\\prime} \\big (\\delta , S _ {u, v} \\big) = h ^ {\\prime} \\big (\\delta , \\xi \\left(\\beta , S _ {u, v}\\right) \\big) \\\\ = \\frac {n}{\\delta} + \\sum_ {i = 1} ^ {n} s _ {u, v, i: n} - \\sum_ {i = 1} ^ {n} s _ {u, v, i: n} \\exp \\big (\\delta s _ {u, v, i: n} \\big) \\\\ = \\frac {n}{\\delta} + \\sum_ {i = 1} ^ {n} \\{1 - \\exp \\big (\\delta s _ {u, v, i: n} \\big) \\} s _ {u, v, i: n} \\\\ = \\frac {n}{\\delta} + \\xi (\\delta , S _ {u, v}), \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            299,
+            238,
+            696,
+            426
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "where $S _ { u , v } = ( s _ { u , v , 1 : n } , s _ { u , v , 2 : n } , \\ldots , s _ { u , v , n : n } )$ and ",
+        "bbox": [
+            109,
+            438,
+            488,
+            459
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\xi \\left(\\delta , S _ {u, v}\\right) = \\sum_ {i = 1} ^ {n} \\{1 - \\exp (\\delta) s _ {u, v, i: n} \\} s _ {u, v, i: n}, \\qquad i = 1, 2, \\dots ., n.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            218,
+            462,
+            777,
+            513
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "we see that each $s _ { u , v , i : n }$ , $i = 1 , 2 , \\dots . , n$ , takes on values over $( - \\infty , + \\infty )$ for $u$ and $\\nu { < } 0$ , note that, if $s _ { ( u , v , i : n ) } < 0 , i \\ = \\ 1 , \\ldots , n , \\xi \\left( \\delta , S u , \\upsilon \\right)$ is strictly increasing in each $S _ { u , \\upsilon , i : n } < 0 , i = 1 , \\ldots , n ,$ and takes on value over $( - \\infty , 0 )$ , for any fixed $\\delta > 0$ , thus there exist a unique value of $\\xi ( \\delta , S _ { u , \\upsilon } )$ on the set $\\{ S _ { u , v } \\colon s _ { u , v , i : n } \\ < \\ 0 , i \\ = \\ 1 , \\ldots , n \\}$ such that $h ^ { \\prime } \\left( \\delta , S _ { u , v } \\right) = 0$ , for any fixed $\\delta > { \\cal O }$ , we denote the value of $\\xi \\left( \\delta , S _ { u , \\upsilon } \\right)$ by $\\xi _ { 0 } ^ { - } \\left( \\delta \\right)$ , we see that $h ^ { \\prime } \\left( \\delta , S _ { u , v } \\right) \\ : < \\ : 0$ for $S _ { u , \\upsilon }$ on the set $\\{ S u , \\upsilon ; \\xi \\left( \\delta , S _ { u , \\upsilon } \\right) < \\xi _ { 0 } ^ { - } \\left( \\delta \\right) , S _ { u , \\upsilon } , i : n < 0 , i = 1 , \\ldots , n \\}$ and for $h ^ { \\prime } \\left( \\delta , S _ { u , \\upsilon } \\right) > 0$ for $S _ { u , \\upsilon }$ on the $\\mathrm { s e t } \\ \\{ S _ { u , v } ; \\xi ( \\delta , S _ { u , v } ) > \\xi _ { 0 } ^ { - } ( \\delta ) , S _ { u , v , i : n } < 0 , i = 1 , \\ldots , n$ } for any $\\delta > \\theta$ . Analogously, if $S _ { u , \\upsilon , i : n } > 0$ , $i = 1 , \\ldots , n ; \\xi ( \\delta , S _ { u , \\upsilon } )$ $\\xi \\left( \\delta , S _ { u , \\upsilon } \\right)$ is strictly decreasing in each $S _ { u , \\upsilon , i : n } < 0$ ; $i = 1 , . . . , n$ and take on values over $( - \\infty , 0 )$ thus, there exists a unique value of $\\xi \\ ( \\delta , S _ { u , \\upsilon } )$ on the set $\\{ S _ { u , v } \\colon s _ { u , v , i : n } > 0 ; i = 1 , \\ldots , n \\}$ such that $h ^ { \\prime } ( \\delta , S _ { u , v } ) = 0$ , for any fixed $\\delta > 0$ .we denote the value of $\\xi ( \\delta , S _ { u , \\upsilon } )$ by $\\xi _ { 0 } ^ { + } \\left( \\delta \\right)$ $\\xi _ { 0 } ^ { + }$ . We see that $h ^ { \\prime } \\left( \\delta , S _ { u , \\upsilon } \\right) > 0$ for $S _ { u , \\upsilon }$ on the set $\\{ S _ { u , \\upsilon } ; ~ \\xi ~ ( \\delta , S _ { u , \\upsilon } ) >$ $\\xi _ { 0 } ^ { + } \\left( \\delta \\right) , S _ { u , \\upsilon , i : n } > 0 , i \\ = \\ 1 , . . . , n \\}$ and that $h ^ { \\prime } \\left( \\delta , S _ { u , \\upsilon } \\right) \\ : < \\ : 0$ for $S _ { u , \\upsilon }$ on the set $\\{ S _ { u , \\upsilon } ; ~ \\xi \\left( \\delta , S _ { u , \\upsilon } \\right) <$ $\\xi _ { 0 } ^ { + } \\left( \\delta \\right) , S _ { u , \\upsilon , i : n } > 0 , i = 1 , \\ldots , n \\}$ for any $\\delta > 0$ . ",
+        "bbox": [
+            109,
+            516,
+            888,
+            763
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Let, for $\\Delta \\delta$ ",
+        "bbox": [
+            112,
+            765,
+            207,
+            780
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\Phi \\big (\\delta , \\Delta \\delta , S _ {u, v} \\big) = \\frac {h ^ {\\prime} (\\delta + \\Delta \\delta , \\xi \\big (\\delta , S _ {u , v} \\big)) \\exp \\big \\{h (\\delta + \\Delta \\delta , S _ {u , v}) \\big \\}}{h ^ {\\prime} (\\delta , \\xi \\big (\\delta , S _ {u , v} \\big)) \\exp \\big \\{h (\\delta , S _ {u , v}) \\big \\}} \\\\ = \\frac {\\frac {n}{\\delta + \\Delta \\delta} + \\xi (\\delta + \\Delta \\delta , S _ {u , v})}{\\frac {n}{\\delta} + \\xi (\\delta , S _ {u , v})} (1 + \\frac {\\Delta \\delta}{\\delta}) ^ {n} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            792,
+            599,
+            906
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\times \\exp \\left\\{\\Delta \\delta \\sum_ {i = 1} ^ {n} s _ {u, v, i: n} + \\sum_ {i = 1} ^ {n} [ 1 - \\exp (\\Delta \\delta s _ {u, v, i: n}) ] \\exp (\\delta s _ {u, v, i: n}) \\right\\}; \\tag {10}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            256,
+            89,
+            864,
+            141
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Then $l ^ { ' } ( \\delta + \\Delta \\delta )$ can be rewritten as ",
+        "bbox": [
+            112,
+            152,
+            398,
+            170
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\nl ^ {\\prime} (\\delta + \\Delta \\delta) = n! \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {0} \\Phi (\\delta , \\Delta \\delta , S _ {u, v}) h ^ {\\prime} (\\delta , S _ {u, v}) \\exp \\left\\{h (\\delta , S _ {u, v}) \\right\\} d u d v. \\tag {11}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            119,
+            170,
+            875,
+            210
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "From now on, let us focus on the case when $\\Delta \\delta \\geq 0$ . We note that, ",
+        "bbox": [
+            111,
+            212,
+            650,
+            229
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim _ {\\Delta \\delta \\downarrow 0} \\Phi \\big (\\delta , \\Delta \\delta , S _ {u, v} \\big) = \\Phi \\big (\\delta , 0, S _ {u, v} \\big) = 1,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            292,
+            239,
+            617,
+            268
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "For ",
+        "bbox": [
+            112,
+            279,
+            148,
+            295
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n(u, v) \\epsilon \\left\\{\\xi \\left(\\delta , S _ {u, v}\\right) \\neq \\xi_ {0} ^ {-} (\\delta) a n d \\xi_ {0} ^ {+} (\\delta) \\right\\}. \\tag {12}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            130,
+            308,
+            867,
+            330
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "While ",
+        "bbox": [
+            112,
+            342,
+            161,
+            358
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\varPhi \\big (\\delta , \\Delta \\delta , S _ {u, v} \\big) = \\left\\{ \\begin{array}{l l l} 1 & i f & \\Delta \\delta = 0 \\\\ - \\infty & i f & \\Delta \\delta > 0 \\end{array} \\right. \\qquad (u, v) \\epsilon \\big \\{\\xi \\big (\\delta , S _ {u, v} \\big) = \\xi_ {0} ^ {-} (\\delta) o r \\xi_ {0} ^ {+} (\\delta) \\big \\}. \\qquad (1 3)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            117,
+            372,
+            867,
+            410
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "for any $\\delta$ ",
+        "bbox": [
+            112,
+            421,
+            194,
+            438
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Let $\\delta ^ { * }$ be one of the solutions of $l ^ { ' } ( \\delta ) = 0$ . Then, ",
+        "bbox": [
+            111,
+            452,
+            514,
+            469
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\lim  _ {\\Delta \\delta \\downarrow 0} \\frac {l ^ {\\prime} (\\delta^ {*} + \\Delta \\delta) - l ^ {\\prime} (\\delta^ {*})}{\\Delta \\delta} = \\lim  _ {\\Delta \\delta \\downarrow 0} \\frac {l ^ {\\prime} (\\delta^ {*} + \\Delta \\delta)}{\\Delta \\delta} \\\\ = \\lim _ {\\Delta \\delta \\downarrow 0} \\frac {n ! \\iint_ {\\{u <   0 , v <   0 \\}} \\Phi \\left(\\delta^ {*} , \\Delta \\delta , S _ {u , v}\\right) h ^ {\\prime} \\left(\\delta^ {*} , S _ {u , v}\\right) e x p \\left\\{h \\left(\\delta^ {*} , S _ {u , v}\\right) \\right\\} d u d v}{\\Delta \\delta} \\\\ = n! \\lim _ {\\Delta \\delta \\downarrow 0} \\frac {1}{\\Delta \\delta} [ \\iint_ {\\{\\xi (\\delta^ {*}, S _ {u, v}) = \\xi_ {0} ^ {-} (\\delta^ {*}) o r \\xi_ {0} ^ {+} (\\delta^ {*}) \\}} \\Phi (\\delta^ {*}, \\Delta \\delta , S _ {u, v}) h ^ {'} (\\delta^ {*}, S _ {u, v}) e x p \\{h (\\delta^ {*}, S _ {u, v}) \\} d u d v \\\\ + \\iint_ {\\left\\{\\xi \\left(\\delta^ {*}, S _ {u, v}\\right) \\neq \\xi_ {0} ^ {-} \\left(\\delta^ {*}\\right) a n d \\xi_ {0} ^ {+} \\left(\\delta^ {*}\\right) \\right\\}} \\Phi \\left(\\delta^ {*}, \\Delta \\delta , S _ {u, v}\\right) h ^ {\\prime} \\left(\\delta^ {*}, S _ {u, v}\\right) e x p \\left\\{h \\left(\\delta^ {*}, S _ {u, v}\\right) \\right\\} d u d v ]. \\tag {14} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            481,
+            846,
+            666
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "From (12) and (13) it is too easy to see that $\\phi \\left( { \\delta ^ { * } , \\Delta \\delta , S _ { u , v } } \\right) )$ , for any $( u , v ) \\epsilon \\{ \\xi ( \\delta ^ { * } , S _ { u , v } ) \\neq$ $\\xi _ { 0 } ^ { - } ( \\delta ^ { * } )$ ?????? $\\xi _ { 0 } ^ { + } \\left( \\delta ^ { * } \\right) \\}$ approaches 1 faster than $\\Phi \\left( { { \\delta ^ { * } } , \\Delta \\delta , { S _ { u , v } } } \\right)$ for any $( u , v ) \\epsilon \\{ \\xi ( \\delta ^ { * } , S _ { u , v } ) =$ $\\xi _ { 0 } ^ { - } ( \\delta ^ { * } )$ ???? $\\xi _ { 0 } ^ { + } ( \\delta ^ { * } ) \\big \\}$ approaching 1 when $\\Delta \\delta$ decreases. Hence ",
+        "bbox": [
+            111,
+            675,
+            885,
+            739
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\iint_ {\\{\\xi (\\delta^ {*}, S _ {u, v}) \\neq \\xi_ {0} ^ {-} (\\delta^ {*}) a n d \\xi_ {0} ^ {+} (\\delta^ {*}) \\}} \\Phi (\\delta^ {*}, \\Delta \\delta , S _ {u, v}) h ^ {\\prime} (\\delta^ {*}, S _ {u, v}) e x p \\{h (\\delta^ {*}, S _ {u, v}) \\} d u d v\n$$",
+        "text_format": "latex",
+        "bbox": [
+            187,
+            750,
+            808,
+            777
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "approaches ",
+        "bbox": [
+            112,
+            789,
+            205,
+            806
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\iint_ {\\left\\{\\xi \\left(\\delta^ {*}, S _ {u, v}\\right) \\neq \\xi_ {0} ^ {-} \\left(\\delta^ {*}\\right) a n d \\xi_ {0} ^ {+} \\left(\\delta^ {*}\\right) \\right\\}} h ^ {\\prime} \\left(\\delta^ {*}, S _ {u, v}\\right) e x p \\left\\{h \\left(\\delta^ {*}, S _ {u, v}\\right) \\right\\} d u d v\n$$",
+        "text_format": "latex",
+        "bbox": [
+            246,
+            816,
+            750,
+            845
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "faster that ",
+        "bbox": [
+            112,
+            856,
+            196,
+            871
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\iint_ {\\left\\{\\xi \\left(\\delta^ {*}, S _ {u, v}\\right) = \\xi_ {0} ^ {-} \\left(\\delta^ {*}\\right) o r \\xi_ {0} ^ {+} \\left(\\delta^ {*}\\right) \\right\\}} \\Phi \\left(\\delta^ {*}, \\Delta \\delta , S _ {u, v}\\right) h ^ {'} \\left(\\delta^ {*}, S _ {u, v}\\right) e x p \\left\\{h \\left(\\delta^ {*}, S _ {u, v}\\right) \\right\\} d u d v\n$$",
+        "text_format": "latex",
+        "bbox": [
+            194,
+            88,
+            803,
+            116
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "approaching ",
+        "bbox": [
+            112,
+            127,
+            210,
+            143
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\iint_ {\\left\\{\\xi \\big (\\delta^ {*}, S _ {u, v} \\big) = \\xi_ {0} ^ {-} (\\delta^ {*}) o r \\xi_ {0} ^ {+} (\\delta^ {*}) \\right\\}} h ^ {\\prime} \\big (\\delta^ {*}, S _ {u, v} \\big) e x p \\big \\{h \\big (\\delta^ {*}, S _ {u, v} \\big) \\big \\} d u d v,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            250,
+            156,
+            746,
+            184
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "when $\\Delta \\delta$ decreases. Note further than ",
+        "bbox": [
+            112,
+            195,
+            413,
+            212
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\iint_ {\\{\\xi (\\delta^ {*}, S _ {u, v}) \\neq \\xi_ {0} ^ {-} (\\delta^ {*}) a n d \\xi_ {0} ^ {+} (\\delta^ {*}) \\}} h (\\delta^ {*}, S _ {u, v}) e x p \\{h (\\delta^ {*}, S _ {u, v}) \\} d u d v \\\\ = \\iint_ {\\left\\{\\xi \\left(\\delta^ {*}, S _ {u, v}\\right) = \\xi_ {0} ^ {-} \\left(\\delta^ {*}\\right) o r \\xi_ {0} ^ {+} \\left(\\delta^ {*}\\right) \\right\\}} h ^ {\\prime} \\left(\\delta^ {*}, S _ {u, v}\\right) e x p \\left\\{h \\left(\\delta^ {*}, S _ {u, v}\\right) \\right\\} d u d v = 0 \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            223,
+            772,
+            287
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Therefore by the fundamental theory of differential calculus, the sign of the RHS of (14) agrees with sign of ",
+        "bbox": [
+            111,
+            299,
+            867,
+            335
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\iint_ {\\left\\{\\xi \\left(\\delta^ {*}, S _ {u, v}\\right) = \\xi_ {0} ^ {-} \\left(\\delta^ {*}\\right) o r \\xi_ {0} ^ {+} \\left(\\delta^ {*}\\right) \\right\\}} \\Phi \\left(\\delta^ {*}, \\Delta \\delta , S _ {u, v}\\right) h ^ {\\prime} \\left(\\delta^ {*}, S _ {u, v}\\right) e x p \\left\\{h \\left(\\delta^ {*}, S _ {u, v}\\right) \\right\\} d u d v\n$$",
+        "text_format": "latex",
+        "bbox": [
+            194,
+            345,
+            808,
+            375
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "for sufficiently small $\\Delta \\delta > 0$ , which implies ",
+        "bbox": [
+            112,
+            383,
+            459,
+            402
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {\\Delta \\delta \\downarrow 0} \\frac {l ^ {\\prime} \\left(\\delta^ {*} + \\Delta \\delta\\right) - l ^ {\\prime} \\left(\\delta^ {*}\\right)}{\\Delta \\delta} <   0 \\tag {15}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            414,
+            872,
+            454
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Since for any ",
+        "bbox": [
+            112,
+            465,
+            220,
+            482
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\Delta \\delta > 0, h ^ {\\prime} \\left(\\delta^ {*} + \\Delta \\delta , S _ {u, v}\\right) <   0\n$$",
+        "text_format": "latex",
+        "bbox": [
+            374,
+            479,
+            620,
+            502
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "And ",
+        "bbox": [
+            112,
+            503,
+            151,
+            517
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\ne x p \\left\\{\\xi \\left(\\delta^ {*} + \\Delta \\delta , S _ {u, v}\\right) \\right\\} > 0\n$$",
+        "text_format": "latex",
+        "bbox": [
+            388,
+            517,
+            609,
+            540
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "for any ",
+        "bbox": [
+            112,
+            541,
+            174,
+            556
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\n(u, v) \\epsilon \\left\\{\\xi \\left(\\delta^ {*}, S _ {u, v}\\right) = \\xi_ {0} ^ {-} \\left(\\delta^ {*}\\right) o r \\xi_ {0} ^ {+} \\left(\\delta^ {*}\\right) \\right\\}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            330,
+            555,
+            666,
+            578
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "and thus ",
+        "bbox": [
+            112,
+            579,
+            181,
+            593
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\iint_ {\\left\\{\\xi \\left(\\delta^ {*}, S _ {u, v}\\right) = \\xi_ {0} ^ {-} \\left(\\delta^ {*}\\right) o r \\xi_ {0} ^ {+} \\left(\\delta^ {*}\\right) \\right\\}} \\Phi \\left(\\delta^ {*}, \\Delta \\delta , S _ {u, v}\\right) h ^ {'} \\left(\\delta^ {*}, S _ {u, v}\\right) e x p \\left\\{h \\left(\\delta^ {*}, S _ {u, v}\\right) \\right\\} d u d v \\\\ = \\iint_ {\\left\\{\\xi \\big (\\delta^ {*}, S _ {u, v} \\big) = \\xi_ {0} ^ {-} (\\delta^ {*}) o r \\xi_ {0} ^ {+} (\\delta^ {*}) \\right\\}} h ^ {\\prime} \\big (\\delta^ {*} + \\Delta \\delta , S _ {u, v} \\big) e x p \\big \\{h \\big (\\delta^ {*} + \\Delta \\delta , S _ {u, v} \\big) \\big \\} d u d v <   0 \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            183,
+            594,
+            818,
+            660
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Analogously, we obtain the following inequality: ",
+        "bbox": [
+            112,
+            670,
+            498,
+            686
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {\\Delta \\delta \\uparrow 0} \\frac {l ^ {\\prime} \\left(\\delta^ {*} + \\Delta \\delta\\right) - l ^ {\\prime} \\left(\\delta^ {*}\\right)}{\\Delta \\delta} <   0 \\tag {16}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            688,
+            854,
+            728
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "The proof is very similar to proof of (15) and is therefore omitted for the sake of brevity. ",
+        "bbox": [
+            111,
+            737,
+            810,
+            756
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "It follows from (15), (16) and the fact that $l ^ { ' } ( \\delta )$ is differentiable with respect to $\\delta$ (the proof is very similar to the proof of the differentiability of $l ( \\delta ; w _ { 2 } , \\ldots , w _ { n - 1 } )$ in proposition 2 and is therefore omitted for the sake of brevity that $\\frac { \\dot { l ^ { . } } ( \\delta ^ { * } ) } { \\Delta \\delta } < 0$ ) < 0 holds. ",
+        "bbox": [
+            111,
+            767,
+            883,
+            833
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "This is clearly implies that $l ^ { ' } ( \\delta )$ changes sign only once with respect to $\\delta$ . From the facts established above , $\\overset { ^ { \\prime } } { l ^ { \\prime } } ( \\delta ) = 0$ always has a unique solution with respect to $\\delta$ . The proof of theorem 1 is thus completed. □ ",
+        "bbox": [
+            111,
+            834,
+            885,
+            888
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Corollary 1. For $\\delta > 0$ , and any given $w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 }$ such that $0 \\leq w _ { 2 } \\leq \\cdots \\leq w _ { n - 1 } \\leq 1$ , the likelihood function $l ( \\delta ; w _ { 2 } , w _ { 3 } , \\ldots , w _ { n - 1 } )$ is unimodal with respect to $\\delta$ . ",
+        "bbox": [
+            111,
+            89,
+            861,
+            128
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Proof: Corollary 1 the obvious from theorem 1 , and the proof therefore omitted. □ ",
+        "bbox": [
+            111,
+            138,
+            771,
+            156
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "One of the main purposes of this section is to prove that the estimate of $\\delta$ has consistency. The following lemma is needed before presenting the result about the consistency. ",
+        "bbox": [
+            111,
+            169,
+            861,
+            204
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Lemma 1. For any fixed $\\delta \\neq \\delta _ { 0 }$ , where $\\delta _ { 0 }$ is the true value of the parameter $\\delta$ ",
+        "bbox": [
+            111,
+            217,
+            735,
+            234
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim _ {n \\to \\infty} P _ {r} (l (\\delta ; W _ {(2)}, \\ldots W _ {(n)}) <   l (\\delta_ {0}; W _ {(2)}, \\ldots , W _ {(n)}) = 1\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            246,
+            545,
+            273
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Proof: ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            284,
+            168,
+            300
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Let $W _ { i } , i = 2 , \\dots . , n - 1$ , be the random variables whose order statistics are $W _ { ( i ) } , i = 2 , \\ldots . , n - 1$ . For every $u$ ?????? $v$ such that $u < v < 0$ , under the conditions $Z _ { ( 1 ) } = u , Z _ { ( n ) } = v _ { \\mathrm { { i } } }$ , where $Z _ { ( 1 ) } =$ ??(1)−??0 , ??(??) $\\begin{array} { r } { \\frac { X _ { ( 1 ) } - \\gamma _ { 0 } } { \\beta _ { 0 } } , Z _ { ( n ) } = \\frac { X _ { ( n ) } - \\gamma _ { 0 } } { \\beta _ { 0 } } , } \\end{array}$ , and $\\beta _ { 0 }$ and $\\gamma _ { 0 }$ are the true values of $\\beta$ and $\\gamma$ , respectively, since the conditional joint pdf of the order statisticts of $W _ { i } ^ { \\prime } s$ given $Z _ { ( 1 ) } = u , Z _ { ( n ) } = v _ { . }$ , is given by ",
+        "bbox": [
+            111,
+            314,
+            885,
+            404
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "text": "$$\n(n - 2)! \\prod_ {i = 2} ^ {n - 1} (v - u) g (u + (v - u) w _ {i}; \\delta_ {0}) / \\{G (v; \\delta_ {0}) - G (u; \\delta_ {0}) \\}, 0 \\leq w _ {2} \\leq \\dots \\leq w _ {n - 1} \\leq 1\n$$",
+        "text_format": "latex",
+        "bbox": [
+            119,
+            415,
+            888,
+            436
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "$W _ { i } , \\ i = 2 , \\dots , n - 1 .$ , are distributed with the common conditional pdf, given $Z _ { ( 1 ) } = u , Z _ { ( n ) } = v ,$ which is expressed as ",
+        "bbox": [
+            111,
+            446,
+            885,
+            484
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "text": "$$\n(v - u) g (u + (v - u) w _ {i}; \\delta_ {0}) / \\{G (v; \\delta_ {0}) - G (u; \\delta_ {0}) \\}, \\quad 0 \\leq w _ {i} \\leq 1. \\tag {17}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            133,
+            496,
+            861,
+            517
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "and these are conditionally independent, given $Z _ { ( 1 ) } = u , Z _ { ( n ) } = v$ . ",
+        "bbox": [
+            111,
+            527,
+            645,
+            547
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Denote ",
+        "bbox": [
+            112,
+            561,
+            174,
+            575
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "text": "$$\n(n - 2)! \\prod_ {i = 2} ^ {n - 1} (v - u) g (u + (v - u) w _ {i}; \\delta) / \\{G (v; \\delta) - G (u; \\delta) \\}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            200,
+            589,
+            710,
+            642
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "by $l _ { u , v } \\bigl ( \\delta ; W _ { ( 2 ) } , \\ldots , W _ { ( n - 1 ) } \\bigr )$ . For any fixed $u$ and $v$ such that $u < v < 0$ , under the conditiona l $Z _ { ( 1 ) } = u \\ : , Z _ { ( n ) } = v _ { . }$ , let us consider, for every $\\delta \\neq \\delta _ { 0 , } n > 2$ , ",
+        "bbox": [
+            111,
+            652,
+            885,
+            696
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\frac {1}{n - 2} \\left[ \\log \\frac {l _ {u , v} (\\delta ; W _ {(2)} , \\ldots , W _ {(n - 1)})}{l _ {u , v} (\\delta_ {0} ; W _ {(2)} , \\ldots , W _ {(n - 1)})} \\right] \\\\ = \\frac {1}{n - 2} \\sum_ {i = 2} ^ {n - 1} l o g \\left[ \\frac {(v - u) g (u + (v - u) w _ {i} ; \\delta) / \\{G (v ; \\delta) - G (u ; \\delta) \\}}{(v - u) g (u + (v - u) w _ {i} ; \\delta_ {0}) / \\{G (v ; \\delta_ {0}) - G (u ; \\delta_ {0}) \\}} \\right] \\tag {18} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            705,
+            867,
+            818
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "By the law of large numbers, (18) tends in probability to ",
+        "bbox": [
+            111,
+            828,
+            563,
+            847
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE \\left[ l o g \\left[ \\frac {(v - u) g (u + (v - u) w ; \\delta) / \\{G (v ; \\delta) - G (u ; \\delta) \\}}{(v - u) g (u + (v - u) w ; \\delta_ {0}) / \\{G (v ; \\delta_ {0}) - G (u ; \\delta_ {0}) \\}} \\right] \\right] \\tag {19}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            240,
+            854,
+            864,
+            906
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Where ?? is a random variable which is distributed with the conditional ?????? in (17), given $Z _ { ( 1 ) } =$ $u , Z _ { ( n ) } = v$ . By Jensen's inequality, we have ",
+        "bbox": [
+            111,
+            89,
+            885,
+            130
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} E \\left[ l o g \\left[ \\frac {(v - u) g (u + (v - u) w ; \\delta) / \\{G (v ; \\delta) - G (u ; \\delta) \\}}{(v - u) g (u + (v - u) w ; \\delta_ {0}) / \\{G (v ; \\delta_ {0}) - G (u ; \\delta_ {0}) \\}} \\right] \\right. \\\\ <   \\log \\left\\{E \\left[ \\frac {(v - u) g (u + (v - u) w ; \\delta) / \\{G (v ; \\delta) - G (u ; \\delta) \\}}{(v - u) g (u + (v - u) w ; \\delta_ {0}) / \\{G (v ; \\delta_ {0}) - G (u ; \\delta_ {0}) \\}} \\right] \\right\\} \\\\ = \\log \\int_ {0} ^ {1} \\frac {(v - u) g (u + (v - u) w ; \\delta)}{\\{G (v ; \\delta) - G (u ; \\delta) \\}} = 0 \\tag {20} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            116,
+            143,
+            828,
+            297
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "It follows that ",
+        "bbox": [
+            112,
+            309,
+            228,
+            324
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim _ {n \\to \\infty} P _ {r} \\left\\{\\frac {1}{n - 2} \\log \\frac {l _ {u , v} (\\delta ; W _ {(2)} , \\dots , W _ {(n - 1)})}{l _ {u , v} (\\delta_ {0} ; W _ {(2)} , \\dots , W _ {(n - 1)})} <   0 \\Bigg | Z _ {(1)} = u, Z _ {(n)} = v \\right\\} = 1\n$$",
+        "text_format": "latex",
+        "bbox": [
+            158,
+            338,
+            750,
+            381
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "or ",
+        "bbox": [
+            112,
+            396,
+            133,
+            407
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {n \\rightarrow \\infty} P _ {r} \\left\\{ \\right.l _ {u, v} (\\delta ; W _ {(2)}, \\dots , W _ {(n - 1)}) <   l _ {u, v} (\\delta_ {0}; W _ {(2)}, \\dots , W _ {(n - 1)}) \\left. \\right| Z _ {(1)} = u, Z _ {(n)} = v \\rbrace = 1 \\tag {21}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            133,
+            422,
+            859,
+            452
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "By the positivity and the integrability of $l _ { u , v } \\bigl ( \\delta ; W _ { ( 2 ) } , \\ldots , W _ { ( n - 1 ) } \\bigr )$ and $l _ { u , v } \\bigl ( \\delta _ { 0 } ; W _ { ( 2 ) } , \\ldots , W _ { ( n - 1 ) } \\bigr )$ and (21), implies ",
+        "bbox": [
+            111,
+            463,
+            866,
+            503
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {n \\rightarrow \\infty} P _ {r} \\left\\{l (\\delta ; W _ {(2)}, \\dots , W _ {(n - 1)}) <   l (\\delta_ {0}; W _ {(2)}, \\dots , W _ {(n - 1)}) \\mid Z _ {(1)} = u, Z _ {(n)} = v \\right\\} = 1 \\tag {22}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            138,
+            513,
+            859,
+            542
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Moreover ",
+        "bbox": [
+            112,
+            556,
+            194,
+            571
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} n (n - 1) g \\left(u; \\delta_ {0}\\right) g \\left(v; \\delta_ {0}\\right) \\left\\{G \\left(v; \\delta_ {0}\\right) - G \\left(u; \\delta_ {0}\\right) \\right\\} ^ {n - 2} d u d v = 1 \\tag {23}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            116,
+            588,
+            866,
+            609
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            112,
+            623,
+            145,
+            637
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} n (n - 1) g (u; \\delta_ {0}) g (v; \\delta_ {0}) \\{G (v; \\delta_ {0}) - G (u; \\delta_ {0}) \\} ^ {n - 2} \\\\ \\times P _ {r} \\left\\{l \\left(\\delta ; W _ {(2)}, \\dots W _ {(n)}\\right) <   l \\left(\\delta_ {0}; W _ {(2)}, \\dots , W _ {(n)}\\right) \\mid Z _ {(1)} = u, Z _ {(n)} = v \\right\\} d u d v \\\\ \\leq \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} n (n - 1) g (u; \\delta_ {0}) g (v; \\delta_ {0}) \\left\\{G (v; \\delta_ {0}) - G (u; \\delta_ {0}) \\right\\} ^ {n - 2} d u d v = 1 \\tag {24} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            117,
+            654,
+            864,
+            765
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "since $P _ { r } \\{ l \\bigl ( \\delta ; W _ { ( 2 ) } , \\ldots W _ { ( n ) } \\bigr ) < l \\bigl ( \\delta _ { 0 } ; W _ { ( 2 ) } , \\ldots , W _ { ( n ) } \\bigr ) \\big | Z _ { ( 1 ) } = u , Z _ { ( n ) } = v \\}$ $Z _ { ( n ) } = v \\}$ is bounded by 1. ",
+        "bbox": [
+            111,
+            776,
+            816,
+            800
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Then by applying the dominated convergence theorem, from (23) and (24) it follows that ",
+        "bbox": [
+            111,
+            811,
+            815,
+            829
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {n \\rightarrow \\infty} P _ {r} \\left(l \\left(\\delta ; W _ {(2)}, \\dots , W _ {(n - 1)}\\right) <   l \\left(\\delta_ {0}; W _ {(2)}, \\dots , W _ {(n - 1)}\\right)\\right)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            839,
+            555,
+            872
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} = \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} \\lim _ {n \\to \\infty} n (n - 1) g (u; \\delta_ {0}) g (v; \\delta_ {0}) \\{G (v; \\delta_ {0}) - G (u; \\delta_ {0}) \\} ^ {n - 2} \\\\ \\times P _ {r} \\left\\{l \\left(\\delta ; W _ {(2)}, \\dots W _ {(n)}\\right) <   l \\left(\\delta_ {0}; W _ {(2)}, \\dots , W _ {(n)}\\right) \\mid Z _ {(1)} = u, Z _ {(n)} = v \\right\\} d u d v \\\\ = \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} \\lim _ {n \\to \\infty} n (n - 1) g (u; \\delta_ {0}) g (v; \\delta_ {0}) \\{G (v; \\delta_ {0}) - G (u; \\delta_ {0}) \\} ^ {n - 2} d u d v \\\\ = \\lim  _ {n \\rightarrow \\infty} \\int_ {- \\infty} ^ {0} \\int_ {- \\infty} ^ {v} n (n - 1) g (u; \\delta_ {0}) g (v; \\delta_ {0}) \\{G (v; \\delta_ {0}) - G (u; \\delta_ {0}) \\} ^ {n - 2} d u d v = 1 \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            117,
+            90,
+            732,
+            271
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "The proof of Lemma 1 is thus complete. □ ",
+        "bbox": [
+            112,
+            282,
+            455,
+            301
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Theorem 2. The estimator $\\hat { \\delta } _ { w }$ is consistent for $\\delta { > } 0$ . ",
+        "bbox": [
+            112,
+            314,
+            521,
+            334
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Proof: The proof is very similar to the proof of Theorem 3.7 of Lehmann and Casella [11], and is therefore omitted. □ ",
+        "bbox": [
+            111,
+            345,
+            866,
+            378
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "3.3. Estimation of location and scale parameters ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            422,
+            516,
+            441
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Once we obtain the estimate of $\\delta$ , using the method outlined above, we may proceed to the stimation of ?? and $\\beta$ , where in the estimators have the following properties. ",
+        "bbox": [
+            111,
+            453,
+            880,
+            489
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Property 1. The estimates exist uniquely for all n and for all $\\delta , \\gamma$ and $\\beta$ , where $n > 2 , \\delta > 0 , - \\infty <$ $\\gamma < \\infty$ and $\\beta > 0$ . ",
+        "bbox": [
+            111,
+            500,
+            883,
+            537
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Property 2. The estimators are consistent for ?? and $\\beta$ , respectively. ",
+        "bbox": [
+            111,
+            550,
+            642,
+            566
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "First , before providing the estimators having the above properties, we consider the following estimators of $\\gamma$ and $\\beta$ : ",
+        "bbox": [
+            111,
+            568,
+            844,
+            602
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\hat {\\gamma} _ {i n i t} = X _ {(n)} \\tag {25}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            114,
+            603,
+            880,
+            622
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            112,
+            635,
+            147,
+            651
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\hat {\\beta} _ {i n i t} = \\left[ \\frac {\\sum_ {i = 1} ^ {n} \\left(\\hat {\\gamma} _ {i n i t} - x _ {i}\\right) ^ {\\delta_ {W}}}{n} \\right] ^ {\\frac {1}{\\delta_ {W}}} \\tag {26}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            114,
+            664,
+            872,
+            720
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "It is evident that the estimates $\\hat { \\gamma } _ { i n i t }$ ?????? $\\hat { \\beta } _ { i n i t }$ uniquely exist, given the observations $x _ { 1 } , \\ldots , x _ { n } ,$ where $\\hat { \\delta } _ { W } ^ { ' }$ is the realized value of $\\hat { \\delta } _ { W }$ . It is well-known that $X _ { ( n ) }$ tends in probability to $\\gamma$ as $n $ $\\infty$ for every $\\gamma$ since ",
+        "bbox": [
+            111,
+            736,
+            875,
+            792
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE \\left(X _ {(n)} - \\gamma\\right) ^ {2} = \\frac {n \\delta}{\\beta} \\int_ {- \\infty} ^ {\\gamma} (\\gamma - x) ^ {2} e x p \\left[ - n \\left(\\frac {\\gamma - x}{\\beta}\\right) ^ {\\delta} \\right] \\left(\\frac {\\gamma - x}{\\beta}\\right) ^ {\\delta - 1} d x\n$$",
+        "text_format": "latex",
+        "bbox": [
+            227,
+            805,
+            769,
+            847
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "when $\\begin{array} { r } { n \\left( \\frac { \\gamma - x } { \\beta } \\right) ^ { \\delta } = z } \\end{array}$ then $\\begin{array} { r } { E \\bigl ( X _ { ( n ) } - \\gamma \\bigr ) ^ { 2 } = \\beta ^ { 2 } \\int _ { 0 } ^ { \\infty } \\sqrt [ \\delta ] { \\frac { z ^ { 2 } } { n ^ { 2 } } } e ^ { - z } d z , \\mathrm { w h e n } \\to \\infty ; E \\bigl ( X _ { ( n ) } - \\gamma \\bigr ) ^ { 2 } = 0 . } \\end{array}$ $\\begin{array} { r } { E \\left( X _ { ( n ) } - \\gamma \\right) ^ { 2 } = \\beta ^ { 2 } \\int _ { 0 } ^ { \\infty } \\sqrt [ \\delta ] { \\frac { z ^ { 2 } } { n ^ { 2 } } } e ^ { - z } d z } \\end{array}$ ",
+        "bbox": [
+            111,
+            859,
+            843,
+            897
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Assuming that $\\delta$ and ?? are known and substituting $\\delta$ for $\\hat { \\delta } _ { W }$ and ?? for $\\hat { \\gamma } _ { i n i t }$ in (25,26) , $\\hat { \\beta } _ { i n i t }$ is the maximum likelihood estimator of $\\beta$ in the regular case and therefore consistent for $\\beta$ . It follows these facts and slutsky´s theorem that $\\hat { \\beta } _ { i n i t }$ is consistent for $\\beta$ . The estimators $\\hat { \\gamma } _ { i n i t }$ and $\\hat { \\beta } _ { i n i t }$ then have properties 1 and 2 mentioned above. However, the estimators could have considerable bias since $\\hat { \\gamma } _ { i n i t }$ has significant bias. So, we need to consider correction of bias for these estimators. ",
+        "bbox": [
+            109,
+            90,
+            885,
+            186
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Since ",
+        "bbox": [
+            112,
+            194,
+            161,
+            210
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE \\big [ X _ {(n)} \\big ] = \\gamma - \\beta \\left(1 + \\frac {1}{\\delta}\\right) n ^ {- \\frac {1}{\\delta}}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            331,
+            223,
+            578,
+            261
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "It is easy to proof, upon substituting $\\hat { \\delta } _ { W }$ for $\\delta$ and $\\hat { \\beta } _ { i n i t }$ for $\\beta$ ,the bias-corrected estimator of ?? becomes ",
+        "bbox": [
+            109,
+            272,
+            864,
+            308
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\hat {\\gamma} _ {W} = X _ {(n)} + \\hat {\\beta} _ {i n i t} \\left(1 + \\frac {1}{\\hat {\\delta} _ {W}}\\right) n ^ {- \\frac {1}{\\hat {\\delta} _ {W}}}. (2 7)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            319,
+            861,
+            364
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We then obtain the bias-corrected estimator of $\\beta$ as ",
+        "bbox": [
+            112,
+            376,
+            529,
+            393
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\hat {\\beta} _ {W} = \\left[ \\frac {\\sum_ {i = 1} ^ {n} (\\hat {\\gamma} _ {W} - x _ {i}) ^ {\\widehat {\\delta} _ {W}}}{n} \\right] ^ {\\frac {1}{\\widehat {\\delta} _ {W}}}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            334,
+            404,
+            573,
+            465
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "It follows, from the above mentioned forms and the fact that the term $\\hat { \\beta } _ { i n i t } \\left( 1 + \\frac { 1 } { \\hat { \\delta } _ { W } } \\right) n ^ { - \\frac { 1 } { \\hat { \\delta } _ { W } } }$ ??̂ ?? in (27) tends in probability to 0 as $n \\to \\infty$ (which can be shown easily by using slutsky´s theorem),tha t $\\hat { \\gamma } _ { w }$ and ${ \\hat { \\beta } } _ { W }$ also have properties 1 and 2. ",
+        "bbox": [
+            111,
+            477,
+            885,
+            551
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "4. Simulation ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            559,
+            267,
+            574
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We carry out a Mont Carlo simulation study to evaluate the compare of the proposed estimators. The proposed estimators , termed LSPFE, MLE and MME. ",
+        "bbox": [
+            111,
+            589,
+            880,
+            625
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "In the simulation study, the values of the shape parameter $\\delta$ are selected as 0.5,1,2,3,4,5 and take $\\gamma = 0$ and $\\beta = 1 0$ the sample size is taken to be 20,50,100. ",
+        "bbox": [
+            111,
+            625,
+            880,
+            659
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "All programs in this numerical study were written in the package R. Tables 1-6 display the simulation results of the bias and root mean squared on 100 Monte carlo runs for each set of configurations .Bias column is joint columns represent the sum of the absolute values of bias of the three estimators, and ???????? column in joint columns represents the root of the trace of ?????? matrix of the three estimators , which are used for evaluting the marginal performance based on bias and ???????? of the three estimators. Figures 2-10 show the bias and ???????? of tables 1-6. from these results , we observe the following. ",
+        "bbox": [
+            109,
+            660,
+            885,
+            785
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/176574dee5c2ff8bdbaf6d6d9874541703eb31626b2f4d764c0ce5b9286d5db1.jpg",
+        "table_caption": [
+            "Table 1. ????????, ????????of ????????, ????, ???? estimators based on 100 simulations with $\\delta = 0 . 5$ and $n =$ 20,50,100. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">δ</td><td rowspan=\"2\">n</td><td rowspan=\"2\">method</td><td colspan=\"2\">location</td><td colspan=\"2\">shape</td><td colspan=\"2\">scale</td><td colspan=\"2\">joint</td></tr><tr><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td></tr><tr><td rowspan=\"9\">0.5</td><td rowspan=\"3\">20</td><td>LSPF</td><td>-0.1610</td><td>0.5483</td><td>-0.0431</td><td>0.7763</td><td>0.2325</td><td>0.5881</td><td>0.0095</td><td>1.1177</td></tr><tr><td>MLE</td><td>-0.5512</td><td>0.5463</td><td>0.0091</td><td>0.5123</td><td>-0.204</td><td>0.7746</td><td>-0.2481</td><td>1.0775</td></tr><tr><td>MME</td><td>-0.5971</td><td>0.7107</td><td>-0.1231</td><td>0.7617</td><td>1.4276</td><td>2.3191</td><td>0.2358</td><td>2.5423</td></tr><tr><td rowspan=\"3\">50</td><td>LSPF</td><td>0.1375</td><td>0.5235</td><td>-0.0471</td><td>0.6604</td><td>0.1664</td><td>0.4469</td><td>0.0856</td><td>0.9539</td></tr><tr><td>MLE</td><td>0.2975</td><td>0.5380</td><td>0.0231</td><td>0.4406</td><td>0.1959</td><td>0.6311</td><td>0.1721</td><td>0.9391</td></tr><tr><td>MME</td><td>-0.5525</td><td>0.6965</td><td>-0.1161</td><td>0.9375</td><td>1.1753</td><td>1.8561</td><td>0.1689</td><td>2.1931</td></tr><tr><td rowspan=\"3\">100</td><td>LSPF</td><td>-0.1166</td><td>0.5051</td><td>-0.0451</td><td>0.7485</td><td>-0.0011</td><td>0.0008</td><td>-0.0541</td><td>0.9030</td></tr><tr><td>MLE</td><td>-0.1833</td><td>0.5076</td><td>-0.0661</td><td>0.6128</td><td>-0.0011</td><td>0.0011</td><td>-0.0831</td><td>0.7957</td></tr><tr><td>MME</td><td>-0.5466</td><td>0.5507</td><td>-0.0841</td><td>0.4406</td><td>1.2963</td><td>1.8461</td><td>0.2219</td><td>1.9762</td></tr></table>",
+        "bbox": [
+            112,
+            133,
+            929,
+            320
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "table",
+        "img_path": "images/60b0b52aae5e0fe370cb6d54fc8f2ccfbf6032d0aa297d6b1c7c62b63ca3d119.jpg",
+        "table_caption": [
+            "Table 2. ????????, ????????of ????????, ????, ???? estimators based on 100 simulations with $\\delta = 1$ and $n =$ 20,50,100. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">δ</td><td rowspan=\"2\">n</td><td rowspan=\"2\">method</td><td colspan=\"2\">location</td><td colspan=\"2\">shape</td><td colspan=\"2\">scale</td><td colspan=\"2\">joint</td></tr><tr><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td></tr><tr><td rowspan=\"9\">1</td><td rowspan=\"3\">20</td><td>LSPF</td><td>0.3071</td><td>0.4804</td><td>-0.0751</td><td>0.3331</td><td>0.4372</td><td>0.7175</td><td>0.2230</td><td>0.9255</td></tr><tr><td>MLE</td><td>-0.2617</td><td>0.8345</td><td>-0.2693</td><td>0.5987</td><td>-0.4641</td><td>0.7351</td><td>-0.3303</td><td>1.2631</td></tr><tr><td>MME</td><td>-0.8715</td><td>1.0553</td><td>-0.6748</td><td>1.0009</td><td>1.6422</td><td>2.1225</td><td>0.0318</td><td>2.5731</td></tr><tr><td rowspan=\"3\">50</td><td>LSPF</td><td>0.3005</td><td>0.4769</td><td>-0.2021</td><td>0.5098</td><td>-0.0131</td><td>0.0551</td><td>0.0295</td><td>0.7003</td></tr><tr><td>MLE</td><td>0.2387</td><td>0.7235</td><td>-0.4966</td><td>0.7139</td><td>-0.0621</td><td>0.1121</td><td>-0.1059</td><td>1.0227</td></tr><tr><td>MME</td><td>-0.8476</td><td>0.8930</td><td>-0.6274</td><td>1.0793</td><td>1.1431</td><td>1.9301</td><td>-0.1107</td><td>2.3849</td></tr><tr><td rowspan=\"3\">100</td><td>LSPF</td><td>-0.1676</td><td>0.1974</td><td>0.0996</td><td>0.7273</td><td>0.0082</td><td>0.0223</td><td>-0.0199</td><td>0.7541</td></tr><tr><td>MLE</td><td>-0.2291</td><td>0.5246</td><td>-0.2066</td><td>0.8295</td><td>-0.0112</td><td>0.0265</td><td>-0.1485</td><td>0.9818</td></tr><tr><td>MME</td><td>-0.8158</td><td>0.8786</td><td>-0.7266</td><td>0.9551</td><td>1.1161</td><td>1.3683</td><td>-0.1422</td><td>1.8859</td></tr></table>",
+        "bbox": [
+            112,
+            392,
+            918,
+            580
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "table",
+        "img_path": "images/b21961ce8594037fde09564c85aa0346e711c3a4871e600b7ea4c449f9aadbb4.jpg",
+        "table_caption": [
+            "Table 3. ????????, ???????? of ????????, ????, ???? estimators based on 100 simulations with $\\delta = 2$ and $n = 2 0 , 5 0 , 1 0 0$ . "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">δ</td><td rowspan=\"2\">n</td><td rowspan=\"2\">method</td><td colspan=\"2\">location</td><td colspan=\"2\">shape</td><td colspan=\"2\">scale</td><td colspan=\"2\">joint</td></tr><tr><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td></tr><tr><td rowspan=\"9\">2</td><td rowspan=\"3\">20</td><td>LSPF</td><td>-0.2212</td><td>0.9367</td><td>-0.4791</td><td>1.0354</td><td>-0.3491</td><td>0.3505</td><td>-0.3496</td><td>1.4396</td></tr><tr><td>MLE</td><td>-0.3448</td><td>0.8677</td><td>-0.9122</td><td>0.9444</td><td>-0.4692</td><td>0.4712</td><td>-0.5752</td><td>1.3663</td></tr><tr><td>MME</td><td>-0.9233</td><td>1.0066</td><td>-1.7770</td><td>1.9459</td><td>1.1964</td><td>2.8355</td><td>-0.5013</td><td>3.5833</td></tr><tr><td rowspan=\"3\">50</td><td>LSPF</td><td>0.1775</td><td>0.7071</td><td>-0.4071</td><td>0.8143</td><td>-0.2104</td><td>0.2523</td><td>-0.1465</td><td>1.1076</td></tr><tr><td>MLE</td><td>-0.2956</td><td>0.6685</td><td>-0.7533</td><td>1.1845</td><td>-0.2875</td><td>0.3550</td><td>-0.4452</td><td>1.4057</td></tr><tr><td>MME</td><td>-0.8775</td><td>0.9784</td><td>-1.2994</td><td>1.9909</td><td>1.1918</td><td>1.7498</td><td>-0.3282</td><td>2.8254</td></tr><tr><td rowspan=\"3\">100</td><td>LSPF</td><td>0.1334</td><td>0.1201</td><td>-0.1352</td><td>0.4837</td><td>-0.0624</td><td>0.1035</td><td>-0.0211</td><td>0.5091</td></tr><tr><td>MLE</td><td>0.1066</td><td>0.5962</td><td>-0.9841</td><td>1.3548</td><td>-0.1422</td><td>0.1593</td><td>-0.3397</td><td>1.4887</td></tr><tr><td>MME</td><td>-0.7023</td><td>0.9346</td><td>-1.4392</td><td>1.9803</td><td>1.1033</td><td>1.5260</td><td>-0.3460</td><td>2.6691</td></tr></table>",
+        "bbox": [
+            112,
+            633,
+            906,
+            819
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "table",
+        "img_path": "images/057580273b2fce808d16b140564936da03f155ee789596daa9a82dfcabc5aca3.jpg",
+        "table_caption": [
+            "Table 4. ????????, ????????of ????????, ????, ???? estimators based on 100 simulations with $\\delta = 3$ and $n =$ 20,50,100. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">δ</td><td rowspan=\"2\">n</td><td rowspan=\"2\">method</td><td colspan=\"2\">Location</td><td colspan=\"2\">shape</td><td colspan=\"2\">scale</td><td colspan=\"2\">joint</td></tr><tr><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td></tr><tr><td rowspan=\"9\">3</td><td rowspan=\"3\">20</td><td>LSPF</td><td>-0.4035</td><td>0.4207</td><td>-1.3051</td><td>2.3454</td><td>-0.4162</td><td>0.4272</td><td>-0.7081</td><td>2.4208</td></tr><tr><td>MLE</td><td>-0.4816</td><td>0.8843</td><td>-1.2705</td><td>2.4899</td><td>-0.5883</td><td>0.5913</td><td>-0.7798</td><td>2.7076</td></tr><tr><td>MME</td><td>-0.9766</td><td>1.0329</td><td>-2.1584</td><td>3.0973</td><td>1.58333</td><td>2.5923</td><td>-0.5171</td><td>4.1689</td></tr><tr><td rowspan=\"3\">50</td><td>LSPF</td><td>-0.1975</td><td>0.4092</td><td>-1.1972</td><td>1.3112</td><td>-0.2362</td><td>0.3702</td><td>-0.5435</td><td>1.4226</td></tr><tr><td>MLE</td><td>-0.3425</td><td>0.5783</td><td>-1.4134</td><td>1.5540</td><td>-0.2221</td><td>0.4404</td><td>-0.6591</td><td>1.7156</td></tr><tr><td>MME</td><td>-0.8965</td><td>0.9265</td><td>-2.2703</td><td>2.8085</td><td>1.42134</td><td>1.8190</td><td>-0.5817</td><td>3.4720</td></tr><tr><td rowspan=\"3\">100</td><td>LSPF</td><td>0.1885</td><td>0.2859</td><td>-0.5832</td><td>1.1419</td><td>-0.1593</td><td>0.3682</td><td>-0.1844</td><td>1.2334</td></tr><tr><td>MLE</td><td>-0.2633</td><td>0.3314</td><td>-1.8962</td><td>2.0324</td><td>-0.1844</td><td>0.4222</td><td>-0.7811</td><td>2.1021</td></tr><tr><td>MME</td><td>-0.7198</td><td>0.9956</td><td>-2.2501</td><td>2.7733</td><td>1.41525</td><td>1.6870</td><td>-0.5182</td><td>3.3954</td></tr></table>",
+        "bbox": [
+            117,
+            133,
+            879,
+            320
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "table",
+        "img_path": "images/85699f21c400920136998c0d81da0b8e6973498925127dd16a9e9ac6346325d4.jpg",
+        "table_caption": [
+            "Table 5. ????????, ????????of ????????, ????, ???? estimators based on 100 simulations with $\\delta = 4$ and $n =$ 20,50,100. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">δ</td><td rowspan=\"2\">n</td><td rowspan=\"2\">method</td><td colspan=\"2\">locatin</td><td colspan=\"2\">shape</td><td colspan=\"2\">scale</td><td colspan=\"2\">joint</td></tr><tr><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td></tr><tr><td rowspan=\"9\">4</td><td rowspan=\"3\">20</td><td>LSPF</td><td>-0.5152</td><td>0.5994</td><td>-1.7012</td><td>2.9138</td><td>-0.4666</td><td>0.5766</td><td>-0.8941</td><td>3.0301</td></tr><tr><td>MLE</td><td>-0.5823</td><td>0.6881</td><td>-2.1624</td><td>3.0818</td><td>-0.3565</td><td>0.6814</td><td>-1.0334</td><td>3.2303</td></tr><tr><td>MME</td><td>-0.9361</td><td>0.9962</td><td>-2.8055</td><td>4.2989</td><td>1.8166</td><td>2.8170</td><td>-0.6412</td><td>5.2353</td></tr><tr><td rowspan=\"3\">50</td><td>LSPF</td><td>-0.4353</td><td>0.4948</td><td>-1.5972</td><td>2.3024</td><td>-0.3864</td><td>0.5237</td><td>-0.8062</td><td>2.4125</td></tr><tr><td>MLE</td><td>-0.5021</td><td>0.5903</td><td>-2.3731</td><td>2.4607</td><td>-0.3365</td><td>0.6073</td><td>-1.0703</td><td>2.6023</td></tr><tr><td>MME</td><td>-0.7433</td><td>0.8967</td><td>-3.1522</td><td>3.7828</td><td>1.4953</td><td>2.0957</td><td>-0.7992</td><td>4.4165</td></tr><tr><td rowspan=\"3\">100</td><td>LSPF</td><td>-0.3956</td><td>0.4070</td><td>-0.7283</td><td>1.4701</td><td>-0.2830</td><td>0.4881</td><td>-0.4692</td><td>1.6015</td></tr><tr><td>MLE</td><td>-0.4732</td><td>0.4163</td><td>-2.0125</td><td>2.6382</td><td>0.2865</td><td>0.5355</td><td>-0.7321</td><td>2.7240</td></tr><tr><td>MME</td><td>-0.6324</td><td>0.7384</td><td>-2.9104</td><td>3.7994</td><td>1.0646</td><td>1.8203</td><td>-0.8254</td><td>4.2771</td></tr></table>",
+        "bbox": [
+            114,
+            392,
+            916,
+            588
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "table",
+        "img_path": "images/6255d723dbd865f4d689577361dd6c834ab55581873ee1240a39539bffe5567b.jpg",
+        "table_caption": [
+            "Table 6. ????????, ????????of ????????, ????, ???? estimators based on 100 simulations with $\\delta = 5$ and $n =$ 20,50,100. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">δ</td><td rowspan=\"2\">n</td><td rowspan=\"2\">method</td><td colspan=\"2\">Location</td><td colspan=\"2\">shape</td><td colspan=\"2\">scale</td><td colspan=\"2\">joint</td></tr><tr><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td></tr><tr><td rowspan=\"9\">5</td><td rowspan=\"3\">20</td><td>LSPF</td><td>-0.6162</td><td>0.8932</td><td>-2.4394</td><td>3.5809</td><td>-0.4065</td><td>0.6076</td><td>-1.1532</td><td>3.7403</td></tr><tr><td>MLE</td><td>-0.6511</td><td>0.9086</td><td>-2.6842</td><td>4.2845</td><td>-0.5026</td><td>0.6279</td><td>-1.2794</td><td>4.4246</td></tr><tr><td>MME</td><td>-0.9133</td><td>1.1093</td><td>-3.3283</td><td>4.9113</td><td>1.5332</td><td>3.4707</td><td>-0.9023</td><td>6.1153</td></tr><tr><td rowspan=\"3\">50</td><td>LSPF</td><td>-0.4525</td><td>0.4521</td><td>-2.2532</td><td>3.1435</td><td>-0.3915</td><td>0.5493</td><td>-1.0322</td><td>3.2230</td></tr><tr><td>MLE</td><td>-0.5271</td><td>0.5284</td><td>-2.5521</td><td>3.8372</td><td>-0.4294</td><td>0.5873</td><td>-1.1693</td><td>3.9176</td></tr><tr><td>MME</td><td>-0.7895</td><td>0.9893</td><td>-3.4084</td><td>4.8109</td><td>1.4839</td><td>2.4489</td><td>-0.9045</td><td>5.4882</td></tr><tr><td rowspan=\"3\">100</td><td>LSPF</td><td>-0.4502</td><td>0.4465</td><td>-1.5851</td><td>1.9033</td><td>-0.3141</td><td>0.4614</td><td>-0.7837</td><td>2.0087</td></tr><tr><td>MLE</td><td>-0.4934</td><td>0.4586</td><td>-2.4012</td><td>3.4528</td><td>-0.3723</td><td>0.5704</td><td>-1.0886</td><td>3.5295</td></tr><tr><td>MME</td><td>-0.7540</td><td>0.8926</td><td>-3.3794</td><td>4.7901</td><td>1.2931</td><td>1.8546</td><td>-0.9462</td><td>5.2136</td></tr></table>",
+        "bbox": [
+            114,
+            659,
+            916,
+            847
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "image",
+        "img_path": "images/e7ca69f72d80735da9f216198cfd95867223c4c118dd9cbbdbc467c51224ae56.jpg",
+        "image_caption": [
+            "Figure 2. ????????, ???????? of ????????, ????, ???? estimators for $\\delta$ based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 2 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            212,
+            133,
+            694,
+            282
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "image",
+        "img_path": "images/dee20577f88f7c05864a61837f960bbf5b1b929cd4bf261ae334f2ed9ba6865b.jpg",
+        "image_caption": [
+            "Figure 3. ????????, ???????? of ????????, ????, ???? estimators for $\\delta$ based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 5 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            202,
+            366,
+            707,
+            554
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "image",
+        "img_path": "images/b5553d4aec1988e07898ee4e765d1394759ea6065ceaecc6a80d47cca9151074.jpg",
+        "image_caption": [
+            "Figure 4. ????????, ???????? of ????????, ????, ???? estimators for $\\delta$ based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 1 0 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            222,
+            636,
+            686,
+            834
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "image",
+        "img_path": "images/19ade8308eb317ccd353d6ff7ee061586cb7c9933de8a13b20ea779059993d5b.jpg",
+        "image_caption": [
+            "Figure 5. ????????, ???????? of ????????, ????, ???? estimators for $\\beta$ based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 2 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            217,
+            133,
+            694,
+            324
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "image",
+        "img_path": "images/c93a6e5ec34376a1e0ccba8ab7690f33a57447972aa58a38c4b9ee17e1d03988.jpg",
+        "image_caption": [
+            "Figure 6. ????????, ???????? of ????????, ????, ???? estimators for $\\beta$ based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 5 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            210,
+            407,
+            697,
+            597
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "image",
+        "img_path": "images/89dd38d357c65e2145d399cfa07ed1e429f91c1f0912290def9d60b71e3c08d9.jpg",
+        "image_caption": [
+            "Figure 7. ????????, ???????? of ????????, ????, ???? estimators for $\\beta$ based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 1 0 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            228,
+            681,
+            679,
+            858
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "image",
+        "img_path": "images/8f4610ad606345139cc5ab4099e368799a3a69e457d8fbcf6ef2cb3e1be0da68.jpg",
+        "image_caption": [
+            "Figure 8. ????????, ???????? of ????????, ????, ???? estimators for ?? based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 2 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            218,
+            133,
+            689,
+            316
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "image",
+        "img_path": "images/1fde18512fa49ce9f48e60ead748c6f5d25c4c00c52e5125ebd5724577477e9b.jpg",
+        "image_caption": [
+            "Figure 9. ????????, ???????? of $L S P F , M L , M M$ estimators for ?? based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 5 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            209,
+            398,
+            697,
+            569
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "image",
+        "img_path": "images/1b115eaf3f4d2a2974ff8328bd08ac9a8d299816ce1062d44f525009633538be.jpg",
+        "image_caption": [
+            "Figure 10. ????????, ???????? of ????????, ????, ???? estimators for ?? based on 100 simulations with $\\delta = 0 . 5 , 1 , 2 , 3 , 4 , 5$ and $n = 1 0 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            200,
+            654,
+            697,
+            832
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "list",
+        "sub_type": "text",
+        "list_items": [
+            "1. The ???????????? have the less ???????? and absolute bias for every $n$ and $\\delta$ constant. ",
+            "2. If sample size will be large the ???????? and absolute bias for the ?????????? and ?????? will be small. ",
+            "3. If sample size will be large the ?????? has not very large variant, and this is almost independent to sample size. ",
+            "4. When the $\\delta$ is increase and the sample size is constant then the ???????? and absolute ???????? are increase. ",
+            "5.The ???????? for ??????????s are minus on the other hand ?????????? are less than real value , but the bias for ?????? and ?????? are minus or plus. "
+        ],
+        "bbox": [
+            109,
+            90,
+            879,
+            282
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "5. Illustrate examples ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            325,
+            302,
+            343
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "We demonstrate the proposed method for the Three-parameter ???? distribution in this section by using two data sets.one of them is with large sample size and the other is with small sample size. ",
+        "bbox": [
+            109,
+            354,
+            879,
+            390
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "5.2. Example 1 ",
+        "text_level": 1,
+        "bbox": [
+            142,
+            431,
+            269,
+            450
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "The first sample has been selected from Cohen [4] and Elderton and Johnson [5], is fitted an observed age distribution of holders of a certain type of life insurance policy. The data is in the table 7. Cohen [4]obtained the ?????? of this data, $\\beta = 3 1 0 . 5 4 6 5 9 , \\gamma = 3 3 9 . 7 7 9 2 1 2 5$ and $\\delta =$ 40.043878. We computed the ???? and the ???????? estimation for $\\beta , \\gamma$ and ??. The results are in table 8. Figures 11 and 12 show the density plots(fitted pdf versus empirical $P D F )$ for the distribut io n plots (fitted ?????? versus empirical $C D F )$ for the three different estimation methods. The figures show that the ???????? estimators provide the best fit. ",
+        "bbox": [
+            109,
+            462,
+            883,
+            587
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "table",
+        "img_path": "images/d61cf0d611fa6310ca91c89285b7d65013e66dc0e9e6e93b607132a84dab25dd.jpg",
+        "table_caption": [
+            "Table 7: The data for age of life insurance policy holders. ",
+            "Table 8:Estimates of the parameters for data I example 1. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Age in years</td><td>5-14</td><td>15-24</td><td>25-34</td><td>35-44</td><td>45-54</td><td>55-64</td><td>65-74</td><td>75-84</td><td>totals</td></tr><tr><td>frequencies</td><td>1</td><td>56</td><td>167</td><td>98</td><td>34</td><td>9</td><td>2</td><td>1</td><td>368</td></tr></table>",
+        "bbox": [
+            114,
+            647,
+            883,
+            683
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "table",
+        "img_path": "images/13f380dee827641c76cbd21e9062495c9a506cdacaa5a3d68dae15a68179c0bf.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td>LSPFE</td><td>MLE</td><td>MME</td></tr><tr><td>δ</td><td>8.58</td><td>15.88</td><td>40.04</td></tr><tr><td>β</td><td>45.40</td><td>134.33</td><td>310.54</td></tr><tr><td>γ</td><td>72.51</td><td>163.49</td><td>339.77</td></tr></table>",
+        "bbox": [
+            245,
+            710,
+            751,
+            787
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "Figure 11: Fitted ??????s and the histogram for the three different estimation methods for data in example 1. ",
+        "bbox": [
+            238,
+            843,
+            643,
+            878
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "image",
+        "img_path": "images/30ffc37302cec332067aa86b1684a5c77720668d01e83568bb516017f2ba2cc5.jpg",
+        "image_caption": [
+            "Figure 12: Fitted versus the empirical ?????? for the three different estimation methods for data in example 1. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            243,
+            113,
+            640,
+            294
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "image",
+        "img_path": "images/ce570b5f73eee684f83662842c1f73e717e93fa9453a2163433ef4f1e1464f53.jpg",
+        "image_caption": [],
+        "image_footnote": [],
+        "bbox": [
+            236,
+            371,
+            681,
+            597
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "5.2. Example 2 ",
+        "text_level": 1,
+        "bbox": [
+            142,
+            614,
+            272,
+            633
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "We said if $X$ has the Weibull distribution then $- X$ has the ???? distribution. Next, we consider initially reported by Nagatsuka et al.[13]. ",
+        "bbox": [
+            111,
+            645,
+            883,
+            680
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "This data has the three-parameter Weibull distribution and reporte in the table 9. We consider −?? that has the three-parameter ???? distribution. ",
+        "bbox": [
+            111,
+            681,
+            882,
+            714
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "This data is bearing´s fatigue life data. The ?????? and ?????????? and ?????? of parameters are in table 10. ",
+        "bbox": [
+            111,
+            715,
+            880,
+            748
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Figures 13 and 14 show the density plots(fitted ?????? versus empirical ??????) for the distributio n plots (fitted ?????? versus empirical ??????) for the three different estimation methods. The figures show that the ???????? estimators provide the best fit. ",
+        "bbox": [
+            109,
+            752,
+            883,
+            806
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Table 9: The data for age of life insurance policy holders. ",
+        "bbox": [
+            112,
+            875,
+            532,
+            893
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "table",
+        "img_path": "images/23f9923a61d7a74cf966edd66074dc4522607d7ca238ec8770c3241f3fd58b11.jpg",
+        "table_caption": [
+            "Table 10: Estimates of the parameters for data in example 2. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td>LSPFE</td><td>MLE</td><td>MME</td></tr><tr><td>δ</td><td>0.7825</td><td>0.288</td><td>0.4037</td></tr><tr><td>β</td><td>64.87</td><td>54.31</td><td>17.12</td></tr><tr><td>γ</td><td>-149.02</td><td>-152.7</td><td>56.23</td></tr></table>",
+        "bbox": [
+            228,
+            196,
+            674,
+            273
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "image",
+        "img_path": "images/a590c6a471a88cfe52f644bdec97bffc4236c780f6044a54fa3876934e543c45.jpg",
+        "image_caption": [
+            "Figure 13: Fitted ??????s and the histogram for the three different estimation methods for data in example 2. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            236,
+            381,
+            648,
+            601
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "image",
+        "img_path": "images/266602f82cb9c5b143669f06e23133a8c0ecf3ab7e4dda3fef4e913c9322630f.jpg",
+        "image_caption": [
+            "Figure 14: Fitted versus the empirical ?????? for the three different estimation methods for data in example 2. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            227,
+            659,
+            684,
+            847
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "Examples show that ??????????s are less ???????? and bias then this is better than the ?????? and ?????? for every sample size. ",
+        "bbox": [
+            109,
+            864,
+            875,
+            902
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "header",
+        "text": "-152.7 -172 -172.5 -173.3 -193 -204.7 -216.5 -234.9 -262.6 -422.6 ",
+        "bbox": [
+            122,
+            104,
+            741,
+            125
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "6.Concluding remarks ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            89,
+            302,
+            108
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "We consider three methods for estimation of parameters in the three-parameter ???? distribution. The ?????? and ?????? methods have studied in books and articles , but ?????????? has studied just for a little the three-parameter distributions, In article has proofed that ??????????s provide the best fit. ",
+        "bbox": [
+            114,
+            119,
+            875,
+            174
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "7. Refrences ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            215,
+            220,
+            233
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "list",
+        "sub_type": "ref_text",
+        "list_items": [
+            "[1] Billingsley P. (1994) Probability and Measure, third ed. John Wiley and Sons, New York. ",
+            "[2] Castillo E., Hadi A.S. (1995) A method for estimating parameters and quantiles of distributio ns of continuous random variables. computational statistics and data analysis; 27:125-139. ",
+            "[3] Chen R. C. H., Amin N. A. K. (1983) Estimating Parameters in Continuous Univar iate distributions with a shifted origin. Journal of the Royal Statistical Society; 45(3):394-4.3. ",
+            "[4] Cohen A. C. (1973) The reflected weibull distribution. Technometrics; 15(4):867-873. ",
+            "[5] Elderton W. P., Johnson N. L. (1969) Systems of Frequency Curves. Cambridge University Press. ",
+            "[6] Griffths D. A. (1980) Interval estimation for the three-parameter lognormal distribution via the likelihood function. Applied Statistics; 29:58-68. ",
+            "[7]Gumbel E. J. (1958) Statistics of extermes. Columbia university press, New York, N. Y. ",
+            "[8] Johnson N. L., Kotz S., Balakrishnan N. (1995) Continuous univariate distribution, $2 ^ { \\mathrm { n d } }$ ed. New York: Wiley. ",
+            "[9] Lai C. D. (2014) Generalized Weibull disributions. Springer. ISBN: 978-3-642-39105-7. ",
+            "[10] Lawless J. F. (2003) Statistical Models and Methods for lifetime Data, second ed. John Wiley & Sons, Hoboken, New Jersey. ",
+            "[11] Lehmann E. L., Casella G. (1998) Theory of Point Estimation,2nd ed., Springer, New York. ",
+            "[12] Nadarajah S., Kotz S. (2008) Strength modeling using weibull distributions. Journal of mechanical science and technology; 22:1247-1254. ",
+            "[13] Nagatsuka N., Balakrishnan N. (2012) A consistent method of estimation for the parameters of the three-parameter inverse Gaussian distribution. Journal of statistical computation and simulation; 83(10):1915-1931. ",
+            "[14] Nagatsuka N., Balakrishnan N., Kamakura T. (2013) A consistent method of estimation for the parameters of the three-parameter Weibull distribution. Computational statistics and data analysis; 58:210-226. "
+        ],
+        "bbox": [
+            112,
+            243,
+            883,
+            847
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "list",
+        "sub_type": "ref_text",
+        "list_items": [
+            "[15] Nagatsuka N., Balakrishnan N., Kamakura T. (2014) A consistent method of estimation for the parameters of the three-parameter Gamma distribution. Communications in statistic s-Theory and Methods .3905-3926 ",
+            "[16] Nagatsuka H., kamakura T. (2004) Parameter estimation of the shape parameter of the Castillo-Hadi model. Communications in statistics-Theory and Methods; 33:15-27. ",
+            "[17] Weibull W. (1939) A statistical theory of strength of materials. Ingeniors Vetenskaps Akademiens Handingar; 151. "
+        ],
+        "bbox": [
+            114,
+            88,
+            883,
+            239
+        ],
+        "page_idx": 23
+    }
+]
