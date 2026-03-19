@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
-import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3, GitBranch, FlaskConical } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3, GitBranch, FlaskConical, FileCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AlgorithmDetail } from '@/components/methods/AlgorithmDetail'
 import AnalysisCard from '@/components/calculator/AnalysisCard'
@@ -524,7 +524,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                     activeTab === 'cases' ? "bg-white text-purple-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
-                  <FlaskConical size={16} />
+                  <FileCheck size={16} />
                   案例展示
                 </button>
              </div>
