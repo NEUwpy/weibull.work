@@ -118,7 +118,7 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'lab' | 'analysis' | 'examples' | 'cases'>('doc')
+  const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'lab' | 'analysis' | 'examples' | 'cases' | 'compare'>('doc')
 
   // 统一的数据状态 - 计算过程和结果分析共用
   const [data, setData] = useState<DataPoint[]>([])
@@ -515,7 +515,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                   )}
                 >
                   <FlaskConical size={16} />
-                  方法示例
+                  适应性分析
                 </button>
                 <button
                   onClick={() => setActiveTab('cases')}
@@ -525,7 +525,17 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                   )}
                 >
                   <FileCheck size={16} />
-                  案例展示
+                  可信性验证
+                </button>
+                <button
+                  onClick={() => setActiveTab('compare')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    activeTab === 'compare' ? "bg-white text-cyan-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  <BarChart3 size={16} />
+                  方法对比
                 </button>
              </div>
 
@@ -706,6 +716,12 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         ) : activeTab === 'cases' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <CaseStudyViewer methodId={method.id} />
+          </div>
+        ) : activeTab === 'compare' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200">
+              方法对比功能开发中...
+            </div>
           </div>
         ) : null}
       </div>

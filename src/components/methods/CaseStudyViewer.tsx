@@ -66,18 +66,6 @@ const Case14Viewer = dynamic(() => import('./mdm/case-studies/case14/Case14Viewe
   )
 })
 
-const Case17Viewer = dynamic(() => import('./mdm/case-studies/case17/Case17Viewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12">
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-rose-200 border-t-rose-600 mb-4"></div>
-        <p className="text-slate-600 font-bold">加载案例17分析中...</p>
-      </div>
-    </div>
-  )
-})
-
 interface CaseStudyViewerProps {
   methodId: string
 }
@@ -110,7 +98,7 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case14' | 'case17' | 'markdown'  // 架构类型
+    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case14' | 'markdown'  // 架构类型
   content?: string  // Markdown内容（仅用于markdown架构）
   defaults?: {  // 默认基准值
     beta?: number
@@ -596,7 +584,6 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
         const componentMap: Record<string, React.ComponentType<{caseId: string, onCaseChange?: (caseId: string) => void}>> = {
           '5': Case5Viewer,
           '14': Case14Viewer,
-          '17': Case17Viewer,
         }
         return componentMap[caseNum]
       })()
