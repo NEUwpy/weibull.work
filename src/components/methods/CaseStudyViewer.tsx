@@ -54,66 +54,6 @@ const Case5Viewer = dynamic(() => import('./mdm/case-studies/case5/Case5Viewer')
   )
 })
 
-const Case6Viewer = dynamic(() => import('./mdm/case-studies/case6/Case6Viewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12">
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
-        <p className="text-slate-600 font-bold">加载案例6分析中...</p>
-      </div>
-    </div>
-  )
-})
-
-const Case7Viewer = dynamic(() => import('./mdm/case-studies/case7/Case7Viewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12">
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-200 border-t-teal-600 mb-4"></div>
-        <p className="text-slate-600 font-bold">加载案例7分析中...</p>
-      </div>
-    </div>
-  )
-})
-
-const Case8Viewer = dynamic(() => import('./mdm/case-studies/case8/Case8Viewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12">
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-200 border-t-cyan-600 mb-4"></div>
-        <p className="text-slate-600 font-bold">加载案例8分析中...</p>
-      </div>
-    </div>
-  )
-})
-
-const Case9Viewer = dynamic(() => import('./mdm/case-studies/case9/Case9Viewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12">
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-rose-200 border-t-rose-600 mb-4"></div>
-        <p className="text-slate-600 font-bold">加载案例9分析中...</p>
-      </div>
-    </div>
-  )
-})
-
-const Case13Viewer = dynamic(() => import('./mdm/case-studies/case13/Case13Viewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12">
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
-        <p className="text-slate-600 font-bold">加载案例13分析中...</p>
-      </div>
-    </div>
-  )
-})
-
 const Case14Viewer = dynamic(() => import('./mdm/case-studies/case14/Case14Viewer'), {
   ssr: false,
   loading: () => (
@@ -170,7 +110,7 @@ interface CaseConfig {
   processName?: string  // 过程参数的名称（如"偏移量"）
   processSymbol?: string // 过程参数符号（如"δ"）
   csvFile?: string
-    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case6' | 'case7' | 'case8' | 'case9' | 'case13' | 'case14' | 'case17' | 'markdown'  // 架构类型
+    architecture?: 'normal' | 'no_intersection' | 'case5' | 'case14' | 'case17' | 'markdown'  // 架构类型
   content?: string  // Markdown内容（仅用于markdown架构）
   defaults?: {  // 默认基准值
     beta?: number
@@ -655,11 +595,6 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
         const caseNum = selectedCase.architecture.replace('case', '')
         const componentMap: Record<string, React.ComponentType<{caseId: string, onCaseChange?: (caseId: string) => void}>> = {
           '5': Case5Viewer,
-          '6': Case6Viewer,
-          '7': Case7Viewer,
-          '8': Case8Viewer,
-          '9': Case9Viewer,
-          '13': Case13Viewer,
           '14': Case14Viewer,
           '17': Case17Viewer,
         }
