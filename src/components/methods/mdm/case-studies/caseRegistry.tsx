@@ -35,7 +35,6 @@ const CASE_COMPONENTS_REGISTRY: Record<string, React.ComponentType<CaseComponent
   // 特殊架构案例
   'case3': dynamic(() => import('./case3/Case3Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例3" /> }),
   'case5': dynamic(() => import('./case5/Case5Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例5" /> }),
-  'case14': dynamic(() => import('./case14/Case14Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例14" /> }),
   // 添加新案例时，在这里添加：
   // 'case17': dynamic(() => import('./case17/Case17Viewer'), { ssr: false, loading: () => <LoadingSpinner name="案例17" /> }),
 }

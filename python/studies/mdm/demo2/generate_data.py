@@ -10,11 +10,13 @@ MDM 示例2 数据生成脚本 - 蒙特卡洛收敛性研究
     python generate_data.py --only 3 5 7 # 只生成指定样本量
     python generate_data.py --force      # 强制重新生成
 
-输出文件：
+输出文件（新命名规范）：
     public/studies/mdm/demo2/chunks/
-    ├── n3.csv    # 样本量=3 的 5000 次仿真
-    ├── n4.csv    # 样本量=4 的 5000 次仿真
+    ├── b2.0_e1000_g1000_n3_d0.1_rep5000_seed42_step60.csv
+    ├── b2.0_e1000_g1000_n4_d0.1_rep5000_seed42_step60.csv
     └── ...
+
+命名格式：b{beta}_e{eta}_g{gamma}_n{n}_d{offset}_rep{rep}_seed{seed}_step{step}.csv
 """
 
 import sys
@@ -32,6 +34,31 @@ sys.path.insert(0, str(PROJECT_ROOT / 'python'))
 
 import yaml
 from methods.mdm import MDM
+
+
+def format_number(value):
+    """格式化数值：整数显示为整数，小数保留原样"""
+    if value == int(value):
+        return str(int(value))
+    return str(value)
+
+
+def generate_chunk_filename(params: dict) -> str:
+    """
+    生成 chunk 文件名
+
+    格式: b{beta}_e{eta}_g{gamma}_n{n}_d{offset}_rep{rep}_seed{seed}_step{step}.csv
+    """
+    beta = format_number(params['beta'])
+    eta = int(params['eta'])
+    gamma = int(params['gamma'])
+    n = int(params['n'])
+    offset = format_number(params['offset'])
+    rep = int(params['rep'])
+    seed = int(params['seed'])
+    step = int(params['step'])
+
+    return f'b{beta}_e{eta}_g{gamma}_n{n}_d{offset}_rep{rep}_seed{seed}_step{step}.csv'
 
 
 def parse_config(config_path: str) -> dict:
@@ -144,6 +171,7 @@ def main():
     parser.add_argument('--only', nargs='+', type=int, help='只生成指定样本量')
     parser.add_argument('--force', '-f', action='store_true', help='强制重新生成')
     parser.add_argument('--verbose', '-v', action='store_true', help='详细输出')
+    parser.add_argument('--seed', type=int, default=42, help='随机种子 (默认: 42)')
 
     args = parser.parse_args()
 
@@ -170,6 +198,7 @@ def main():
 
     # 获取计算配置
     calculation = config.get('calculation', {})
+    gamma_steps = calculation.get('gammaSteps', 60)
 
     # 获取样本量列表
     sample_size_param = next((p for p in config.get('params', []) if p['id'] == 'sampleSize'), None)
@@ -179,8 +208,20 @@ def main():
 
     sample_sizes = [int(v) for v in sample_size_param.get('discreteValues', [])]
 
-    # 仿真次数
+    # 仿真次数和种子
     mc_runs = config.get('simulation', {}).get('maxMcRuns', 5000)
+    seed = args.seed
+
+    # 用于生成文件名的参数模板
+    filename_params = {
+        'beta': fixed_params['beta'],
+        'eta': fixed_params['eta'],
+        'gamma': fixed_params['gamma'],
+        'offset': fixed_params['process'],
+        'rep': mc_runs,
+        'seed': seed,
+        'step': gamma_steps,
+    }
 
     # 筛选要生成的样本量
     if args.only:
@@ -191,7 +232,9 @@ def main():
         # 增量模式：跳过已存在的文件
         to_generate = []
         for n in sample_sizes:
-            output_path = output_dir / f'n{n}.csv'
+            filename_params['n'] = n
+            filename = generate_chunk_filename(filename_params)
+            output_path = output_dir / filename
             if not output_path.exists():
                 to_generate.append(n)
 
@@ -202,6 +245,7 @@ def main():
     print("=" * 60)
     print(f"MDM 示例2 数据生成")
     print(f"固定参数: β={fixed_params['beta']}, η={fixed_params['eta']}, γ={fixed_params['gamma']}, δ={fixed_params['process']}")
+    print(f"计算配置: 步长={gamma_steps}, 种子={seed}")
     print(f"样本量: {to_generate}")
     print(f"每组仿真次数: {mc_runs}")
     print("=" * 60)
@@ -209,8 +253,11 @@ def main():
     # 生成数据
     results = []
     for i, n in enumerate(to_generate):
-        output_path = output_dir / f'n{n}.csv'
+        filename_params['n'] = n
+        filename = generate_chunk_filename(filename_params)
+        output_path = output_dir / filename
         print(f"\n[{i+1}/{len(to_generate)}] 生成 n={n} ...")
+        print(f"  输出文件: {filename}")
 
         result = generate_chunk(
             sample_size=n,

@@ -10,11 +10,13 @@ MLE 示例2 数据生成脚本 - 蒙特卡洛收敛性研究
     python generate_data.py --only 3 5 7 # 只生成指定样本量
     python generate_data.py --force      # 强制重新生成
 
-输出文件：
+输出文件（新命名规范）：
     public/studies/mle/demo2/chunks/
-    ├── n3.csv    # 样本量=3 的 5000 次仿真
-    ├── n4.csv    # 样本量=4 的 5000 次仿真
+    ├── b2.0_e1000_g1000_n3_rep5000_seed42.csv
+    ├── b2.0_e1000_g1000_n4_rep5000_seed42.csv
     └── ...
+
+命名格式：b{beta}_e{eta}_g{gamma}_n{n}_rep{rep}_seed{seed}.csv
 """
 
 import sys
@@ -32,6 +34,29 @@ sys.path.insert(0, str(PROJECT_ROOT / 'python'))
 
 import yaml
 from methods.mle import MLE
+
+
+def format_number(value):
+    """格式化数值：整数显示为整数，小数保留原样"""
+    if value == int(value):
+        return str(int(value))
+    return str(value)
+
+
+def generate_chunk_filename(params: dict) -> str:
+    """
+    生成 chunk 文件名
+
+    格式: b{beta}_e{eta}_g{gamma}_n{n}_rep{rep}_seed{seed}.csv
+    """
+    beta = format_number(params['beta'])
+    eta = int(params['eta'])
+    gamma = int(params['gamma'])
+    n = int(params['n'])
+    rep = int(params['rep'])
+    seed = int(params['seed'])
+
+    return f'b{beta}_e{eta}_g{gamma}_n{n}_rep{rep}_seed{seed}.csv'
 
 
 def parse_config(config_path: str) -> dict:
@@ -134,18 +159,28 @@ def generate_chunk(
     }
 
 
-def generate_convergence_csv(chunks_dir: Path, output_path: Path, mc_runs_list: List[int]):
+def generate_convergence_csv(chunks_dir: Path, output_path: Path, mc_runs_list: List[int], filename_params: dict):
     """从 chunks 生成 convergence.csv"""
     sample_sizes = []
 
-    # 找到所有 chunk 文件
-    chunk_files = sorted(chunks_dir.glob('n*.csv'))
-    for cf in chunk_files:
-        # 从文件名提取样本量
-        n = int(cf.stem[1:])
-        sample_sizes.append(n)
+    # 找到所有 chunk 文件（新格式）
+    pattern = f'b*_e*_g*_n*_rep*_seed*.csv'
+    chunk_files = sorted(chunks_dir.glob(pattern))
 
-    sample_sizes.sort()
+    for cf in chunk_files:
+        # 从文件名提取样本量: b2_e1000_g1000_n7_rep5000_seed42.csv
+        # 解析 n 值
+        parts = cf.stem.split('_')
+        for p in parts:
+            if p.startswith('n') and not p.startswith('rep'):
+                try:
+                    n = int(p[1:])
+                    sample_sizes.append(n)
+                    break
+                except:
+                    pass
+
+    sample_sizes = sorted(set(sample_sizes))
 
     if not sample_sizes:
         print("错误: 没有找到 chunk 文件")
@@ -154,11 +189,15 @@ def generate_convergence_csv(chunks_dir: Path, output_path: Path, mc_runs_list: 
     # 读取所有数据
     all_data = {}
     for n in sample_sizes:
-        chunk_path = chunks_dir / f'n{n}.csv'
-        with open(chunk_path, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
-            all_data[n] = rows
+        filename_params['n'] = n
+        chunk_path = chunks_dir / generate_chunk_filename(filename_params)
+        if chunk_path.exists():
+            with open(chunk_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                rows = list(reader)
+                all_data[n] = rows
+        else:
+            print(f"警告: 找不到 chunk 文件 {chunk_path.name}")
 
     # 生成 convergence.csv
     with open(output_path, 'w', newline='', encoding='utf-8') as f:
@@ -172,6 +211,9 @@ def generate_convergence_csv(chunks_dir: Path, output_path: Path, mc_runs_list: 
         writer.writerow(header)
 
         for n in sample_sizes:
+            if n not in all_data:
+                continue
+
             rows = all_data[n]
 
             for mc in mc_runs_list:
@@ -217,6 +259,7 @@ def main():
     parser.add_argument('--force', '-f', action='store_true', help='强制重新生成')
     parser.add_argument('--verbose', '-v', action='store_true', help='详细输出')
     parser.add_argument('--convergence-only', action='store_true', help='只生成 convergence.csv')
+    parser.add_argument('--seed', type=int, default=42, help='随机种子 (默认: 42)')
 
     args = parser.parse_args()
 
@@ -248,13 +291,23 @@ def main():
 
     sample_sizes = [int(v) for v in sample_size_param.get('discreteValues', [])]
 
-    # 仿真次数
+    # 仿真次数和种子
     mc_runs = config.get('simulation', {}).get('maxMcRuns', 5000)
     mc_runs_list = config.get('simulation', {}).get('mcRunsList', [1000, 2000, 3000, 4000, 5000])
+    seed = args.seed
+
+    # 用于生成文件名的参数模板
+    filename_params = {
+        'beta': fixed_params['beta'],
+        'eta': fixed_params['eta'],
+        'gamma': fixed_params['gamma'],
+        'rep': mc_runs,
+        'seed': seed,
+    }
 
     # 只生成 convergence.csv
     if args.convergence_only:
-        generate_convergence_csv(output_dir, config_path.parent / 'convergence.csv', mc_runs_list)
+        generate_convergence_csv(output_dir, config_path.parent / 'convergence.csv', mc_runs_list, filename_params)
         return
 
     # 筛选要生成的样本量
@@ -266,7 +319,9 @@ def main():
         # 增量模式：跳过已存在的文件
         to_generate = []
         for n in sample_sizes:
-            output_path = output_dir / f'n{n}.csv'
+            filename_params['n'] = n
+            filename = generate_chunk_filename(filename_params)
+            output_path = output_dir / filename
             if not output_path.exists():
                 to_generate.append(n)
 
@@ -276,6 +331,7 @@ def main():
         print("=" * 60)
         print(f"MLE 示例2 数据生成")
         print(f"固定参数: β={fixed_params['beta']}, η={fixed_params['eta']}, γ={fixed_params['gamma']}")
+        print(f"种子: {seed}")
         print(f"样本量: {to_generate}")
         print(f"每组仿真次数: {mc_runs}")
         print("=" * 60)
@@ -283,8 +339,11 @@ def main():
         # 生成数据
         results = []
         for i, n in enumerate(to_generate):
-            output_path = output_dir / f'n{n}.csv'
+            filename_params['n'] = n
+            filename = generate_chunk_filename(filename_params)
+            output_path = output_dir / filename
             print(f"\n[{i+1}/{len(to_generate)}] 生成 n={n} ...")
+            print(f"  输出文件: {filename}")
 
             result = generate_chunk(
                 sample_size=n,
