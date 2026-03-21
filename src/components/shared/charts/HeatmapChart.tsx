@@ -58,7 +58,10 @@ export function HeatmapChart({
     if (dim.id === 'beta') return 'beta_true'
     if (dim.id === 'eta') return 'eta_true'
     if (dim.id === 'sampleSize') return 'sample_size'
-    return 'offset_value'
+    if (dim.id === 'process') return 'offset_value'
+    if (dim.id === 'rep') return 'rep'
+    if (dim.id === 'step') return 'step'
+    return dim.id
   }
 
   const var1Key = getVarKey(displayDimensions[0])
@@ -90,45 +93,45 @@ export function HeatmapChart({
   return (
     <>
       {/* 图例 */}
-      <div className="flex items-center justify-center gap-3 mb-3">
-        <span className="text-sm font-semibold text-slate-700">低估</span>
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <span className="text-xs font-medium text-slate-600">低估</span>
         <div className="flex items-center">
-          <div className="w-10 h-3 rounded-l" style={{ backgroundColor: getColorForValue(-maxAbs) }}></div>
-          <div className="w-10 h-3 bg-slate-100"></div>
-          <div className="w-10 h-3 rounded-r" style={{ backgroundColor: getColorForValue(maxAbs) }}></div>
+          <div className="w-8 h-2.5 rounded-l" style={{ backgroundColor: getColorForValue(-maxAbs) }}></div>
+          <div className="w-8 h-2.5 bg-slate-100"></div>
+          <div className="w-8 h-2.5 rounded-r" style={{ backgroundColor: getColorForValue(maxAbs) }}></div>
         </div>
-        <span className="text-sm font-semibold text-slate-700">高估</span>
-        <span className="text-sm text-slate-500 ml-3 font-mono">[{(-maxAbs).toFixed(3)}, {maxAbs.toFixed(3)}]</span>
+        <span className="text-xs font-medium text-slate-600">高估</span>
+        <span className="text-xs text-slate-400 ml-2 font-mono">[{(-maxAbs).toFixed(3)}, {maxAbs.toFixed(3)}]</span>
       </div>
 
       {/* 热力图表格 */}
       <div className="overflow-x-auto">
-        <table className="w-full text-base border-collapse" style={{ tableLayout: 'auto' }}>
+        <table className="w-full text-sm border-collapse" style={{ tableLayout: 'auto' }}>
           <thead>
             <tr>
-              <th className="bg-slate-50 border border-slate-300" style={{ width: '80px', padding: '0' }}>
+              <th className="bg-slate-50 border border-slate-300" style={{ width: '50px', padding: '0' }}>
                 <div style={{
                   position: 'relative',
-                  width: '80px',
-                  height: '60px',
+                  width: '50px',
+                  height: '40px',
                   background: 'linear-gradient(to top right, transparent calc(50% - 0.5px), #64748b calc(50% - 0.5px), #64748b calc(50% + 0.5px), transparent calc(50% + 0.5px))'
                 }}>
-                  <span style={{ position: 'absolute', top: '4px', right: displayDimensions[0].id === 'sampleSize' ? '1px' : displayDimensions[0].id === 'beta' ? '11px' : '6px', fontSize: '19px', fontWeight: 600, color: '#374151' }}>{displayDimensions[0].symbol}</span>
-                  <span style={{ position: 'absolute', bottom: '4px', left: displayDimensions[1].id === 'sampleSize' ? '1px' : displayDimensions[1].id === 'beta' ? '11px' : '6px', fontSize: '19px', fontWeight: 600, color: '#374151' }}>{displayDimensions[1].symbol}</span>
+                  <span style={{ position: 'absolute', top: '2px', right: displayDimensions[0].id === 'sampleSize' ? '1px' : displayDimensions[0].id === 'beta' ? '6px' : '3px', fontSize: '13px', fontWeight: 600, color: '#374151' }}>{displayDimensions[0].symbol}</span>
+                  <span style={{ position: 'absolute', bottom: '2px', left: displayDimensions[1].id === 'sampleSize' ? '1px' : displayDimensions[1].id === 'beta' ? '6px' : '3px', fontSize: '13px', fontWeight: 600, color: '#374151' }}>{displayDimensions[1].symbol}</span>
                 </div>
               </th>
               {firstDimValues.map(val => (
-                <th key={val} className="p-2.5 bg-slate-50 border border-slate-300 text-xl font-bold text-slate-800">{formatValue(val, displayDimensions[0].id)}</th>
+                <th key={val} className="px-1.5 py-1 bg-slate-50 border border-slate-300 text-sm font-bold text-slate-700">{formatValue(val, displayDimensions[0].id)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {secondDimValues.map((yVal, yIdx) => (
               <tr key={yVal}>
-                <td className="p-2.5 bg-slate-50 border border-slate-300 text-xl font-bold text-slate-800 text-center" style={{ width: '80px' }}>{formatValue(yVal, displayDimensions[1].id)}</td>
+                <td className="px-1.5 py-1 bg-slate-50 border border-slate-300 text-sm font-bold text-slate-700 text-center" style={{ width: '50px' }}>{formatValue(yVal, displayDimensions[1].id)}</td>
                 {heatmapData[yIdx].map((cell, xIdx) => (
-                  <td key={xIdx} className="p-2.5 text-center border border-slate-200" style={{ backgroundColor: cell.hasData ? getColorForValue(cell.value) : '#f3f4f6' }}>
-                    <span className="font-mono text-xl font-semibold" style={{ color: cell.hasData ? '#000000' : '#9ca3af' }}>
+                  <td key={xIdx} className="px-1.5 py-1 text-center border border-slate-200" style={{ backgroundColor: cell.hasData ? getColorForValue(cell.value) : '#f3f4f6' }}>
+                    <span className="font-mono text-xs font-medium" style={{ color: cell.hasData ? '#000000' : '#9ca3af' }}>
                       {cell.hasData ? cell.value!.toFixed(3) : '—'}
                     </span>
                   </td>

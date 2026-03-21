@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { FlaskConical, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ChartCard, BoxPlotChart, HeatmapChart } from '@/components/shared/charts'
+import { ChartCard, BoxPlotChart, HeatmapChart, DensityChart } from '@/components/shared/charts'
 
 // ============ Types ============
 
@@ -29,6 +29,10 @@ interface StatsResult {
   beta_true?: number
   eta_true?: number
   gamma_true?: number
+  rep: number | null
+  step: number | null
+  sample_size?: number
+  offset_value?: number
   count: number
   valid_count: number
   [key: string]: number | string | null | undefined
@@ -73,6 +77,7 @@ const STUDY_TABS: Array<{
 const PARAM_DEFINITIONS = [
   { id: 'beta', name: '形状参数', symbol: 'β', chunkKey: 'beta', isVariable: true },
   { id: 'eta', name: '尺度参数', symbol: 'η', chunkKey: 'eta', isVariable: true },
+  { id: 'gamma', name: '位置参数', symbol: 'γ', chunkKey: 'gamma', isVariable: false },
   { id: 'sampleSize', name: '样本量', symbol: 'n', chunkKey: 'n', isVariable: true },
   { id: 'process', name: '偏移量', symbol: 'δ', chunkKey: 'd', isVariable: true }
 ]
@@ -90,6 +95,7 @@ const CALC_CONFIG_DEFINITIONS = [
 const PARAM_COLORS: Record<string, string> = {
   beta: 'border-blue-200 bg-blue-50',
   eta: 'border-emerald-200 bg-emerald-50',
+  gamma: 'border-amber-200 bg-amber-50',
   sampleSize: 'border-purple-200 bg-purple-50',
   process: 'border-rose-200 bg-rose-50',
   rep: 'border-violet-200 bg-violet-50',
@@ -104,13 +110,32 @@ const EST_PARAM_COLORS = {
 }
 
 const BORDER_STYLES = {
-  red: 'border-2 border-red-400 bg-red-50 text-red-700',
+  red: 'border border-red-400 bg-red-50 text-red-700',
   green: 'border border-green-300 bg-green-50 text-green-700 cursor-pointer hover:bg-green-100',
   white: 'border border-slate-200 bg-white text-slate-400'
 }
 
 const DEFAULT_DISPLAY_OPTIONS = { mean: true, biasMean: true, std: true, ci99: true }
 const DEFAULT_PARAM_SELECTION = { beta: true, eta: true, gamma: true }
+
+// 预设的"推荐"默认值（用于初始化和找不到 chunk 时的回退）
+const PRESET_DEFAULTS = {
+  beta: 2.0,
+  eta: 1000,
+  gamma: 1000,
+  n: 7,
+  d: 0.1,
+  rep: 1000,
+  seed: 42,
+  step: 60
+}
+
+// 各 Tab 的推荐配置（用于变量选择后的固定值推断）
+const TAB_PRESET_CONFIGS: Record<string, Partial<typeof PRESET_DEFAULTS>> = {
+  demo1: { beta: 2.0, eta: 1000, n: 7, d: 0.1, rep: 1000 },
+  demo2: { beta: 2.0, eta: 1000, d: 0.1, rep: 5000 },  // 示例2重点看 rep 影响
+  demo3: { beta: 2.0, eta: 1000, d: 0.1, step: 60 }
+}
 
 // ============ Utility Functions ============
 
@@ -189,9 +214,13 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
   const [csvData, setCsvData] = useState<SimulationRow[]>([])
   const [isLoadingData, setIsLoadingData] = useState(false)
 
+  // Chunk 加载信息（用于底部表格显示）
+  const [loadedChunks, setLoadedChunks] = useState<Array<{ filename: string; rowCount: number; success: boolean }>>([])
+
   // UI 状态
   const [displayOptions] = useState(DEFAULT_DISPLAY_OPTIONS)
   const [paramSelection, setParamSelection] = useState(DEFAULT_PARAM_SELECTION)
+  const [densityTab, setDensityTab] = useState<'beta' | 'eta' | 'gamma'>('beta')
 
   // 当前 Tab
   const currentTab = STUDY_TABS.find(t => t.id === activeTab)!
@@ -223,51 +252,339 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
 
   // 初始化选中值（基于 chunkInfo）
   useEffect(() => {
-    if (!chunkInfo?.parsedParams) return
+    if (!chunkInfo?.parsedParams || !chunkInfo?.chunks) return
 
     const pp = chunkInfo.parsedParams
 
-    // 获取第一个可用值作为默认值
-    const getFirst = (key: string): number => pp[key]?.[0] ?? 0
+    // 获取 Tab 特定的预设配置
+    const presetConfig = TAB_PRESET_CONFIGS[currentTab.id] || {}
 
     // 根据 Tab 设置默认变量维度
-    setParamVariableDimensions([...currentTab.defaultVariables.slice(0, 1)])
-    setSimVariableDimensions(currentTab.defaultVariables.includes('rep') ? ['rep'] : [])
-    setCalcVariableDimensions(currentTab.defaultVariables.includes('step') ? ['step'] : [])
+    const paramVarDims = [...currentTab.defaultVariables.slice(0, 1)]
+    const simVarDims = currentTab.defaultVariables.includes('rep') ? ['rep'] : []
+    const calcVarDims = currentTab.defaultVariables.includes('step') ? ['step'] : []
 
-    // 初始化参数选中值（全选）
+    setParamVariableDimensions(paramVarDims)
+    setSimVariableDimensions(simVarDims)
+    setCalcVariableDimensions(calcVarDims)
+
+    // 解析所有 chunk 文件名，获取参数组合
+    const parseChunk = (filename: string): Record<string, number> | null => {
+      const name = filename.replace('.csv', '')
+      const parts = name.split('_')
+      const params: Record<string, number> = {}
+      for (const part of parts) {
+        if (part.match(/^b[\d.]+$/)) params.beta = parseFloat(part.slice(1))
+        else if (part.match(/^e[\d.]+$/)) params.eta = parseFloat(part.slice(1))
+        else if (part.match(/^g[\d.]+$/)) params.gamma = parseFloat(part.slice(1))
+        else if (part.match(/^n\d+$/)) params.n = parseInt(part.slice(1))
+        else if (part.match(/^d[\d.]+$/)) params.d = parseFloat(part.slice(1))
+        else if (part.match(/^rep\d+$/)) params.rep = parseInt(part.slice(3))
+        else if (part.match(/^seed\d+$/)) params.seed = parseInt(part.slice(4))
+        else if (part.match(/^step\d+$/)) params.step = parseInt(part.slice(4))
+      }
+      return Object.keys(params).length > 0 ? params : null
+    }
+
+    const allChunks = chunkInfo.chunks.map(parseChunk).filter(Boolean) as Record<string, number>[]
+
+    // 计算各参数在所有 chunks 中的可用值（用于非变量维度）
+    const getAvailableValues = (key: string): number[] => {
+      const values = new Set<number>()
+      for (const chunk of allChunks) {
+        if (chunk[key] !== undefined) values.add(chunk[key])
+      }
+      return Array.from(values).sort((a, b) => a - b)
+    }
+
+    // 对于变量维度，计算与预设配置兼容的值
+    const getCompatibleValues = (paramKey: string, excludeKeys: string[] = []): number[] => {
+      const compatible: number[] = []
+      const values = getAvailableValues(paramKey)
+      for (const v of values) {
+        // 检查是否存在包含该值的 chunk，且该 chunk 的其他参数与预设兼容
+        const hasCompatible = allChunks.some(chunk => {
+          if (chunk[paramKey] !== v) return false
+          // 检查预设的其他固定值（排除其他变量维度）
+          for (const [key, val] of Object.entries(presetConfig)) {
+            if (key === paramKey || excludeKeys.includes(key)) continue
+            if (chunk[key] !== undefined && chunk[key] !== val) return false
+          }
+          return true
+        })
+        if (hasCompatible) compatible.push(v)
+      }
+      return compatible
+    }
+
+    // 计算多个变量维度的交集（用于初始化）
+    // 先计算每个变量维度的兼容值，然后取交集
+    const computeVariableIntersections = () => {
+      // 1. 先计算 rep 变量的兼容值
+      let repCompatible: number[] = []
+      if (simVarDims.includes('rep')) {
+        repCompatible = getCompatibleValues('rep', [])
+      }
+
+      // 2. 计算其他参数变量的兼容值（基于 rep 兼容值）
+      const paramCompatible: Record<string, number[]> = {}
+      for (const param of PARAM_DEFINITIONS) {
+        if (!paramVarDims.includes(param.id)) continue
+        const key = param.chunkKey
+        // 如果 rep 是变量，需要计算与 repCompatible 的交集
+        if (repCompatible.length > 0) {
+          const intersection: number[] = []
+          for (const v of getAvailableValues(key)) {
+            // 检查该值是否与所有 rep 兼容值都有对应的 chunk
+            const compatibleWithAllRep = repCompatible.every(r =>
+              allChunks.some(chunk =>
+                chunk[key] === v &&
+                chunk.rep === r &&
+                Object.entries(presetConfig).every(([k, val]) =>
+                  k === key || k === 'rep' || chunk[k] === val
+                )
+              )
+            )
+            if (compatibleWithAllRep) intersection.push(v)
+          }
+          paramCompatible[param.id] = intersection
+        } else {
+          paramCompatible[param.id] = getCompatibleValues(key, ['rep'])
+        }
+      }
+
+      // 3. 如果 sampleSize 也是变量，重新计算 rep 的交集
+      if (paramCompatible.sampleSize && paramCompatible.sampleSize.length > 0) {
+        const nValues = paramCompatible.sampleSize
+        repCompatible = repCompatible.filter(r =>
+          nValues.every(n =>
+            allChunks.some(chunk =>
+              chunk.rep === r &&
+              chunk.n === n &&
+              Object.entries(presetConfig).every(([k, val]) =>
+                k === 'rep' || k === 'n' || chunk[k] === val
+              )
+            )
+          )
+        )
+      }
+
+      return { repCompatible, paramCompatible }
+    }
+
+    const { repCompatible, paramCompatible } = computeVariableIntersections()
+
+    // 计算非变量维度的兼容值（与所有变量维度的交集兼容）
+    const getNonVarCompatibleValues = (paramKey: string): number[] => {
+      const allValues = getAvailableValues(paramKey)
+      const compatible: number[] = []
+
+      // 获取所有变量维度的选中值组合
+      const varCombos: Array<Record<string, number>> = []
+
+      // 生成 rep 变量的值组合
+      const repValues = repCompatible.length > 0 ? repCompatible : getAvailableValues('rep')
+      // 生成 sampleSize 变量的值组合
+      const nValues = paramCompatible.sampleSize || getAvailableValues('n')
+
+      // 如果 rep 和 sampleSize 都是变量，生成笛卡尔积
+      for (const r of repValues) {
+        for (const n of nValues) {
+          varCombos.push({ rep: r, n })
+        }
+      }
+
+      // 如果没有变量组合，只检查与 presetConfig 的兼容性
+      if (varCombos.length === 0) {
+        return allValues.filter(v => {
+          return allChunks.some(chunk =>
+            chunk[paramKey] === v &&
+            Object.entries(presetConfig).every(([k, val]) =>
+              k === paramKey || chunk[k] === val
+            )
+          )
+        })
+      }
+
+      // 对于每个值，检查是否与所有变量组合都兼容
+      for (const v of allValues) {
+        const isCompatibleWithAll = varCombos.every(combo => {
+          return allChunks.some(chunk =>
+            chunk[paramKey] === v &&
+            chunk.rep === combo.rep &&
+            chunk.n === combo.n &&
+            // 检查与 presetConfig 的兼容性（排除 rep 和 n）
+            Object.entries(presetConfig).every(([k, val]) =>
+              k === paramKey || k === 'rep' || k === 'n' || chunk[k] === val
+            )
+          )
+        })
+        if (isCompatibleWithAll) compatible.push(v)
+      }
+
+      return compatible
+    }
+
+    // 初始化参数选中值
     const newSelectedParamValues: Record<string, number[]> = {}
     for (const param of PARAM_DEFINITIONS) {
-      const values = pp[param.chunkKey] || []
-      if (values.length > 0) {
-        newSelectedParamValues[param.id] = values
+      const key = param.chunkKey
+      const isVar = paramVarDims.includes(param.id)
+      const presetVal = presetConfig[key as keyof typeof presetConfig]
+
+      if (isVar) {
+        // 变量维度：使用计算出的交集
+        newSelectedParamValues[param.id] = paramCompatible[param.id] || getAvailableValues(key)
+      } else {
+        // 非变量维度：使用与变量兼容的值，优先使用预设值
+        const compatible = getNonVarCompatibleValues(key)
+        if (presetVal !== undefined && compatible.includes(presetVal)) {
+          newSelectedParamValues[param.id] = [presetVal]
+        } else if (compatible.length > 0) {
+          newSelectedParamValues[param.id] = [compatible[0]]
+        } else {
+          // 如果没有兼容值，使用预设值或第一个可用值
+          const available = getAvailableValues(key)
+          if (presetVal !== undefined && available.includes(presetVal)) {
+            newSelectedParamValues[param.id] = [presetVal]
+          } else {
+            newSelectedParamValues[param.id] = available.length > 0 ? [available[0]] : []
+          }
+        }
       }
     }
     setSelectedParamValues(newSelectedParamValues)
 
     // 初始化仿真配置选中值
+    const repAvailable = getAvailableValues('rep')
+    const repPreset = presetConfig.rep
+    const repIsVar = simVarDims.includes('rep')
+
+    let repValues: number[]
+    if (repIsVar) {
+      // 变量维度：使用计算出的交集
+      repValues = repCompatible.length > 0 ? repCompatible : repAvailable
+    } else {
+      repValues = repPreset !== undefined && repAvailable.includes(repPreset) ? [repPreset] : repAvailable
+    }
+
     setSelectedSimValues({
-      rep: pp.rep || [getFirst('rep')],
-      seed: pp.seed || [42]
+      rep: repValues,
+      seed: [PRESET_DEFAULTS.seed]
     })
 
     // 初始化计算配置选中值
+    const stepAvailable = getAvailableValues('step')
+    const stepPreset = presetConfig.step
     setSelectedCalcValues({
-      step: pp.step || [getFirst('step')]
+      step: stepPreset !== undefined && stepAvailable.includes(stepPreset) ? [stepPreset] : stepAvailable
     })
 
-    // 初始化固定值
-    setFixedValues({
-      beta: getFirst('beta'),
-      eta: getFirst('eta'),
-      gamma: getFirst('gamma'),
-      n: getFirst('n'),
-      d: getFirst('d'),
-      rep: getFirst('rep'),
-      seed: pp.seed?.[0] ?? 42,
-      step: getFirst('step')
-    })
+    // 初始化固定值（使用预设配置中的第一个兼容 chunk 的值）
+    const firstCompatible = allChunks.find(chunk =>
+      Object.entries(presetConfig).every(([k, v]) => chunk[k] === v)
+    ) || allChunks[0]
+
+    if (firstCompatible) {
+      setFixedValues({
+        beta: firstCompatible.beta ?? presetConfig.beta ?? PRESET_DEFAULTS.beta,
+        eta: firstCompatible.eta ?? presetConfig.eta ?? PRESET_DEFAULTS.eta,
+        gamma: firstCompatible.gamma ?? PRESET_DEFAULTS.gamma,
+        n: firstCompatible.n ?? presetConfig.n ?? PRESET_DEFAULTS.n,
+        d: firstCompatible.d ?? presetConfig.d ?? PRESET_DEFAULTS.d,
+        rep: firstCompatible.rep ?? presetConfig.rep ?? PRESET_DEFAULTS.rep,
+        seed: firstCompatible.seed ?? PRESET_DEFAULTS.seed,
+        step: firstCompatible.step ?? presetConfig.step ?? PRESET_DEFAULTS.step
+      })
+    }
   }, [chunkInfo, currentTab])
+
+  // 当变量选择变化时，推断并更新固定值（从匹配的 chunks 中提取）
+  useEffect(() => {
+    if (!chunkInfo?.chunks || !chunkInfo?.parsedParams) return
+
+    // 获取当前 Tab 的预设配置
+    const presetConfig = TAB_PRESET_CONFIGS[currentTab.id] || {}
+
+    // 解析所有 chunk 文件名，获取参数组合
+    const parseChunk = (filename: string): Record<string, number> | null => {
+      const name = filename.replace('.csv', '')
+      const parts = name.split('_')
+      const params: Record<string, number> = {}
+      for (const part of parts) {
+        if (part.match(/^b[\d.]+$/)) params.beta = parseFloat(part.slice(1))
+        else if (part.match(/^e[\d.]+$/)) params.eta = parseFloat(part.slice(1))
+        else if (part.match(/^g[\d.]+$/)) params.gamma = parseFloat(part.slice(1))
+        else if (part.match(/^n\d+$/)) params.n = parseInt(part.slice(1))
+        else if (part.match(/^d[\d.]+$/)) params.d = parseFloat(part.slice(1))
+        else if (part.match(/^rep\d+$/)) params.rep = parseInt(part.slice(3))
+        else if (part.match(/^seed\d+$/)) params.seed = parseInt(part.slice(4))
+        else if (part.match(/^step\d+$/)) params.step = parseInt(part.slice(4))
+      }
+      return Object.keys(params).length > 0 ? params : null
+    }
+
+    const allChunks = chunkInfo.chunks.map(parseChunk).filter(Boolean) as Record<string, number>[]
+
+    // 根据当前变量选择，筛选匹配的 chunks
+    const matchingChunks = allChunks.filter(chunk => {
+      // 检查参数变量
+      for (const dim of paramVariableDimensions) {
+        const param = PARAM_DEFINITIONS.find(p => p.id === dim)
+        if (!param) continue
+        const key = param.chunkKey
+        const selected = selectedParamValues[dim] || []
+        if (selected.length > 0 && !selected.includes(chunk[key])) return false
+      }
+      // 检查仿真配置变量
+      for (const dim of simVariableDimensions) {
+        const selected = selectedSimValues[dim] || []
+        if (selected.length > 0 && !selected.includes(chunk[dim])) return false
+      }
+      // 检查计算配置变量
+      for (const dim of calcVariableDimensions) {
+        const selected = selectedCalcValues[dim] || []
+        if (selected.length > 0 && !selected.includes(chunk[dim])) return false
+      }
+      return true
+    })
+
+    if (matchingChunks.length === 0) return
+
+    // 优先选择与 presetConfig 匹配的 chunk
+    const presetMatch = matchingChunks.find(chunk =>
+      Object.entries(presetConfig).every(([k, v]) => chunk[k] === v)
+    )
+    const firstMatch = presetMatch || matchingChunks[0]
+
+    // 从匹配的 chunks 中提取固定值（取第一个匹配的 chunk 的值）
+    const newFixedValues: Record<string, number> = {}
+
+    // 对于非变量维度，使用匹配 chunk 中的值
+    const isParamVar = (id: string) => paramVariableDimensions.includes(id)
+    const isSimVar = (id: string) => simVariableDimensions.includes(id)
+    const isCalcVar = (id: string) => calcVariableDimensions.includes(id)
+
+    // 参数固定值（优先使用匹配 chunk 的值，回退到预设默认值）
+    for (const param of PARAM_DEFINITIONS) {
+      if (!isParamVar(param.id)) {
+        newFixedValues[param.chunkKey] = firstMatch[param.chunkKey] ?? PRESET_DEFAULTS[param.chunkKey as keyof typeof PRESET_DEFAULTS]
+      }
+    }
+
+    // 仿真配置固定值
+    if (!isSimVar('rep')) newFixedValues.rep = firstMatch.rep ?? PRESET_DEFAULTS.rep
+    if (!isSimVar('seed')) newFixedValues.seed = firstMatch.seed ?? PRESET_DEFAULTS.seed
+
+    // 计算配置固定值
+    if (!isCalcVar('step')) newFixedValues.step = firstMatch.step ?? PRESET_DEFAULTS.step
+
+    // gamma 总是固定
+    newFixedValues.gamma = firstMatch.gamma ?? PRESET_DEFAULTS.gamma
+
+    setFixedValues(prev => ({ ...prev, ...newFixedValues }))
+  }, [chunkInfo, currentTab, paramVariableDimensions, simVariableDimensions, calcVariableDimensions,
+      selectedParamValues, selectedSimValues, selectedCalcValues])
 
   // 生成需要加载的 chunk 列表
   const getRequiredChunks = useCallback((): string[] => {
@@ -332,18 +649,22 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
         chunks.map(async (name) => {
           try {
             const res = await fetch(`${basePath}/${name}`)
-            if (!res.ok) return []
+            if (!res.ok) return { data: [], filename: name, success: false }
             const text = await res.text()
-            return parseCsv(text)
+            const data = parseCsv(text)
+            return { data, filename: name, success: data.length > 0 }
           } catch {
-            return []
+            return { data: [], filename: name, success: false }
           }
         })
       )
 
-      const allData = results.flat()
-      console.log(`[DataLoader] Loaded ${allData.length} rows`)
+      const allData = results.flatMap(r => r.data)
+      const chunkInfoList = results.map(r => ({ filename: r.filename, rowCount: r.data.length, success: r.success }))
+      const successCount = chunkInfoList.filter(c => c.success).length
+      console.log(`[DataLoader] Loaded ${allData.length} rows from ${successCount}/${chunks.length} chunks`)
       setCsvData(allData)
+      setLoadedChunks(chunkInfoList)
       setIsLoadingData(false)
     }
 
@@ -460,6 +781,24 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
 
   // === 三色边框逻辑 ===
 
+  // 解析 chunk 文件名获取参数值
+  const parseChunkParams = useCallback((filename: string): Record<string, number> | null => {
+    const name = filename.replace('.csv', '')
+    const parts = name.split('_')
+    const params: Record<string, number> = {}
+    for (const part of parts) {
+      if (part.match(/^b[\d.]+$/)) params.beta = parseFloat(part.slice(1))
+      else if (part.match(/^e[\d.]+$/)) params.eta = parseFloat(part.slice(1))
+      else if (part.match(/^g[\d.]+$/)) params.gamma = parseFloat(part.slice(1))
+      else if (part.match(/^n\d+$/)) params.n = parseInt(part.slice(1))
+      else if (part.match(/^d[\d.]+$/)) params.d = parseFloat(part.slice(1))
+      else if (part.match(/^rep\d+$/)) params.rep = parseInt(part.slice(3))
+      else if (part.match(/^seed\d+$/)) params.seed = parseInt(part.slice(4))
+      else if (part.match(/^step\d+$/)) params.step = parseInt(part.slice(4))
+    }
+    return Object.keys(params).length > 0 ? params : null
+  }, [])
+
   const getParamBorderState = useCallback((paramId: string, value: number): 'red' | 'green' | 'white' => {
     const param = PARAM_DEFINITIONS.find(p => p.id === paramId)
     if (!param || !chunkInfo?.chunks) return 'white'
@@ -468,42 +807,101 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
     const selectedVals = selectedParamValues[paramId] || []
     const fixedVal = fixedValues[param.chunkKey]
 
+    // 红色：当前选中
     const isSelected = isVariable
       ? selectedVals.includes(value)
       : fixedVal === value
-
     if (isSelected) return 'red'
 
-    // 检查兼容性
-    const getVal = (pId: string, testValue?: number): number => {
-      const p = PARAM_DEFINITIONS.find(x => x.id === pId)
-      if (!p) return 0
-      if (pId === paramId && testValue !== undefined) return testValue
-      if (paramVariableDimensions.includes(pId)) {
-        const vals = selectedParamValues[pId]
-        if (vals && vals.length > 0) return vals[0]
+    // 绿色检查：必须在**所有**当前变量选择下都有对应的 chunk
+    const chunkKey = param.chunkKey
+
+    // 收集所有其他变量维度的选中值组合
+    // 如果有多个变量维度，需要检查每个组合是否都有 chunk
+
+    // 获取其他变量维度的选中值
+    const otherVars: Array<{
+      dim: string
+      values: number[]
+      key: string
+    }> = []
+
+    // 参数变量维度
+    for (const dim of paramVariableDimensions) {
+      if (dim === paramId) continue
+      const p = PARAM_DEFINITIONS.find(x => x.id === dim)
+      if (p) {
+        const selected = selectedParamValues[dim] || []
+        if (selected.length > 0) {
+          otherVars.push({ dim, values: selected, key: p.chunkKey })
+        }
       }
-      return fixedValues[p.chunkKey] ?? 0
     }
 
-    const testParams = {
-      beta: getVal('beta', value),
-      eta: getVal('eta', value),
-      gamma: fixedValues.gamma ?? 1000,
-      n: getVal('sampleSize', value),
-      d: getVal('process', value),
-      rep: fixedValues.rep ?? 1000,
-      seed: fixedValues.seed ?? 42,
-      step: fixedValues.step ?? 60
+    // 仿真配置变量维度
+    for (const dim of simVariableDimensions) {
+      const selected = selectedSimValues[dim] || []
+      if (selected.length > 0) {
+        otherVars.push({ dim, values: selected, key: dim })
+      }
     }
 
-    const chunkName = generateChunkFilename(testParams)
-    return chunkInfo.chunks.includes(chunkName) ? 'green' : 'white'
-  }, [paramVariableDimensions, selectedParamValues, fixedValues, chunkInfo])
+    // 计算配置变量维度
+    for (const dim of calcVariableDimensions) {
+      const selected = selectedCalcValues[dim] || []
+      if (selected.length > 0) {
+        otherVars.push({ dim, values: selected, key: dim })
+      }
+    }
+
+    // 如果没有其他变量维度，只需检查是否存在一个 chunk
+    if (otherVars.length === 0) {
+      return chunkInfo.chunks.some(chunkName => {
+        const chunkParams = parseChunkParams(chunkName)
+        return chunkParams && chunkParams[chunkKey] === value
+      }) ? 'green' : 'white'
+    }
+
+    // 生成所有其他变量的值组合
+    const generateCombinations = (vars: typeof otherVars): Array<Record<string, number>> => {
+      if (vars.length === 0) return [{}]
+      const [first, ...rest] = vars
+      const restCombinations = generateCombinations(rest)
+      const result: Array<Record<string, number>> = []
+      for (const v of first.values) {
+        for (const restComb of restCombinations) {
+          result.push({ ...restComb, [first.key]: v })
+        }
+      }
+      return result
+    }
+
+    const combinations = generateCombinations(otherVars)
+
+    // 检查每个组合是否都有对应的 chunk
+    for (const combo of combinations) {
+      const hasChunk = chunkInfo.chunks.some(chunkName => {
+        const chunkParams = parseChunkParams(chunkName)
+        if (!chunkParams) return false
+        if (chunkParams[chunkKey] !== value) return false
+        // 检查组合中的所有变量值是否匹配
+        for (const [key, val] of Object.entries(combo)) {
+          if (chunkParams[key] !== val) return false
+        }
+        return true
+      })
+      if (!hasChunk) return 'white'  // 任何一个组合没有 chunk，就是白色
+    }
+
+    return 'green'  // 所有组合都有 chunk
+  }, [paramVariableDimensions, simVariableDimensions, calcVariableDimensions,
+      selectedParamValues, selectedSimValues, selectedCalcValues, fixedValues, chunkInfo, parseChunkParams])
 
   const getConfigBorderState = useCallback((
     configId: string, value: number, type: 'sim' | 'calc'
   ): 'red' | 'green' | 'white' => {
+    if (!chunkInfo?.chunks) return 'white'
+
     const isVariable = type === 'sim'
       ? simVariableDimensions.includes(configId)
       : calcVariableDimensions.includes(configId)
@@ -513,42 +911,133 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
       : selectedCalcValues[configId] || []
     const fixedVal = fixedValues[configId]
 
+    // 红色：当前选中
     const isSelected = isVariable
       ? selectedVals.includes(value)
       : fixedVal === value
-
     if (isSelected) return 'red'
 
-    const availableValues = chunkInfo?.parsedParams?.[configId] || []
-    if (availableValues.length <= 1) return 'white'
+    // 绿色检查：遍历所有 chunks，检查兼容性
+    for (const chunkName of chunkInfo.chunks) {
+      const chunkParams = parseChunkParams(chunkName)
+      if (!chunkParams) continue
 
-    return availableValues.includes(value) ? 'green' : 'white'
-  }, [simVariableDimensions, calcVariableDimensions, selectedSimValues, selectedCalcValues, fixedValues, chunkInfo])
+      // 当前测试的配置值必须匹配
+      if (chunkParams[configId] !== value) continue
+
+      // 检查其他变量维度是否兼容
+      let isCompatible = true
+
+      // 检查参数变量维度
+      for (const dim of paramVariableDimensions) {
+        const p = PARAM_DEFINITIONS.find(x => x.id === dim)
+        if (!p) continue
+        const selected = selectedParamValues[dim] || []
+        if (selected.length > 0 && !selected.includes(chunkParams[p.chunkKey])) {
+          isCompatible = false
+          break
+        }
+      }
+      if (!isCompatible) continue
+
+      // 检查仿真配置变量维度（跳过当前测试的维度）
+      for (const dim of simVariableDimensions) {
+        if (dim === configId) continue
+        const selected = selectedSimValues[dim] || []
+        if (selected.length > 0 && !selected.includes(chunkParams[dim])) {
+          isCompatible = false
+          break
+        }
+      }
+      if (!isCompatible) continue
+
+      // 检查计算配置变量维度（跳过当前测试的维度）
+      for (const dim of calcVariableDimensions) {
+        if (dim === configId) continue
+        const selected = selectedCalcValues[dim] || []
+        if (selected.length > 0 && !selected.includes(chunkParams[dim])) {
+          isCompatible = false
+          break
+        }
+      }
+      if (!isCompatible) continue
+
+      // 找到一个兼容的 chunk
+      return 'green'
+    }
+
+    return 'white'
+  }, [simVariableDimensions, calcVariableDimensions, selectedSimValues, selectedCalcValues,
+      fixedValues, chunkInfo, parseChunkParams, paramVariableDimensions, selectedParamValues])
+
+  // 带参数信息的数据行（用于统计分组）
+  interface EnrichedRow {
+    row: SimulationRow
+    rep: number | null
+    step: number | null
+  }
+
+  const enrichedCsvData = useMemo((): EnrichedRow[] => {
+    if (!loadedChunks.length || csvData.length === 0) {
+      return csvData.map(row => ({ row, rep: null, step: null }))
+    }
+
+    const result: EnrichedRow[] = []
+    let rowIndex = 0
+
+    for (const chunk of loadedChunks) {
+      if (!chunk.success) continue
+      const params = parseChunkParams(chunk.filename)
+      const rowCount = chunk.rowCount
+
+      for (let i = 0; i < rowCount && rowIndex < csvData.length; i++) {
+        result.push({
+          row: csvData[rowIndex],
+          rep: params?.rep ?? null,
+          step: params?.step ?? null
+        })
+        rowIndex++
+      }
+    }
+
+    return result
+  }, [csvData, loadedChunks, parseChunkParams])
 
   // === 统计计算 ===
 
   const stats = useMemo(() => {
-    if (csvData.length === 0) return []
+    if (enrichedCsvData.length === 0) return []
 
-    const groups = new Map<string, SimulationRow[]>()
+    const groups = new Map<string, EnrichedRow[]>()
 
-    csvData.forEach(row => {
+    enrichedCsvData.forEach(enrichedRow => {
+      const row = enrichedRow.row
       const keyParts: string[] = []
+      // 参数变量
       paramVariableDimensions.forEach(dim => {
         if (dim === 'beta') keyParts.push(`β=${row.beta_true}`)
         if (dim === 'eta') keyParts.push(`η=${row.eta_true}`)
         if (dim === 'sampleSize') keyParts.push(`n=${row.sample_size}`)
         if (dim === 'process') keyParts.push(`δ=${row.offset_value}`)
       })
+      // 仿真变量
+      simVariableDimensions.forEach(dim => {
+        if (dim === 'rep' && enrichedRow.rep !== null) keyParts.push(`rep=${enrichedRow.rep}`)
+      })
+      // 计算变量
+      calcVariableDimensions.forEach(dim => {
+        if (dim === 'step' && enrichedRow.step !== null) keyParts.push(`step=${enrichedRow.step}`)
+      })
       const key = keyParts.join(', ') || 'all'
       if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(row)
+      groups.get(key)!.push(enrichedRow)
     })
 
     return Array.from(groups.entries()).map(([key, rows]): StatsResult => {
-      const validRows = rows.filter(r => r.est_beta !== null && r.est_eta !== null && r.est_gamma !== null)
-      const betaTrue = rows[0].beta_true ?? 2.0
-      const etaTrue = rows[0].eta_true ?? 1000
+      const dataRows = rows.map(r => r.row)
+      const validRows = dataRows.filter(r => r.est_beta !== null && r.est_eta !== null && r.est_gamma !== null)
+      const betaTrue = dataRows[0].beta_true ?? 2.0
+      const etaTrue = dataRows[0].eta_true ?? 1000
       const gammaTrue = fixedValues.gamma ?? 1000
 
       const calcStats = (values: number[]) => {
@@ -569,9 +1058,17 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
       const etaStats = calcStats(validRows.map(r => r.est_eta!))
       const gammaStats = calcStats(validRows.map(r => r.est_gamma!))
 
+      // 提取非参数变量值
+      const repValue = rows[0].rep
+      const stepValue = rows[0].step
+
       return {
         key, keyLabel: key,
         beta_true: betaTrue, eta_true: etaTrue, gamma_true: gammaTrue,
+        rep: repValue,
+        step: stepValue,
+        sample_size: dataRows[0].sample_size,
+        offset_value: dataRows[0].offset_value,
         count: rows.length, valid_count: validRows.length,
         est_beta_mean: betaStats.mean, bias_beta_mean: betaStats.mean !== null ? betaStats.mean - betaTrue : null,
         est_beta_std: betaStats.std, est_beta_min: betaStats.min, est_beta_max: betaStats.max,
@@ -584,7 +1081,7 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
         est_gamma_p005: gammaStats.p005, est_gamma_p995: gammaStats.p995
       }
     })
-  }, [csvData, paramVariableDimensions, fixedValues])
+  }, [enrichedCsvData, paramVariableDimensions, simVariableDimensions, calcVariableDimensions, fixedValues])
 
   // === 渲染 ===
 
@@ -594,25 +1091,24 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Tab 导航 */}
-      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="bg-gradient-to-r from-slate-50 to-white p-1 rounded-2xl shadow-sm">
         <div className="flex gap-1">
           {STUDY_TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
+                "flex-1 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200",
                 activeTab === tab.id
-                  ? "bg-orange-500 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-white text-slate-800 shadow-md ring-1 ring-slate-200"
+                  : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
               )}
             >
               {tab.name}
             </button>
           ))}
         </div>
-        <p className="text-xs text-slate-500 text-center mt-2">{currentTab.description}</p>
+        <p className="text-xs text-slate-400 text-center mt-3 mb-1">{currentTab.description}</p>
       </div>
 
       {/* 参数配置 */}
@@ -627,15 +1123,17 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="flex flex-wrap gap-3">
           {PARAM_DEFINITIONS.map(param => {
             const chunkValues = chunkInfo?.parsedParams?.[param.chunkKey] || []
+            // gamma 只有一个值，占用较小空间
+            const isSingleValue = chunkValues.length <= 1
             return (
-              <ConfigCard
-                key={param.id}
-                id={param.id}
-                name={param.name}
-                symbol={param.symbol}
+              <div key={param.id} className={cn("flex flex-col", isSingleValue ? "flex-shrink-0 min-w-[100px]" : "flex-1 min-w-[140px]")}>
+                <ConfigCard
+                  id={param.id}
+                  name={param.name}
+                  symbol={param.symbol}
                 values={chunkValues}
                 isVariable={param.isVariable}
                 isVariableDimension={paramVariableDimensions.includes(param.id)}
@@ -645,6 +1143,7 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
                 onSelectAll={() => handleSelectAllParam(param.id)}
                 onToggleVariableMode={() => handleToggleParamVariableMode(param.id)}
               />
+              </div>
             )
           })}
         </div>
@@ -718,10 +1217,14 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
         <ResultsSection
           stats={stats}
           variableDimensions={paramVariableDimensions}
+          allVariableDimensions={allVariableDimensions}
           displayOptions={displayOptions}
           paramSelection={paramSelection}
           setParamSelection={setParamSelection}
           fixedValues={fixedValues}
+          csvData={csvData}
+          densityTab={densityTab}
+          setDensityTab={setDensityTab}
         />
       )}
 
@@ -730,6 +1233,51 @@ export default function MDMStudyViewer({ methodId }: MDMStudyViewerProps) {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
           <p className="text-amber-700">当前配置没有对应的数据文件</p>
           <p className="text-sm text-amber-600 mt-1">请调整参数或生成对应的数据</p>
+        </div>
+      )}
+
+      {/* Chunk 数据来源信息 */}
+      {loadedChunks.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-base font-semibold text-slate-700">数据来源</p>
+            <p className="text-xs text-slate-500">
+              共 {loadedChunks.length} 个分片，{loadedChunks.filter(c => c.success).length} 个加载成功
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b-2 border-slate-300">
+                  <th className="py-2 px-3 font-bold text-slate-700 text-left w-12">#</th>
+                  <th className="py-2 px-3 font-bold text-slate-700 text-left">文件名</th>
+                  <th className="py-2 px-3 font-bold text-slate-700 text-right w-28">数据规模</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadedChunks.map((chunk, idx) => (
+                  <tr key={chunk.filename} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                    <td className="py-1.5 px-3 text-slate-500 font-mono">{idx + 1}</td>
+                    <td className="py-1.5 px-3 font-mono text-xs text-slate-600">{chunk.filename}</td>
+                    <td className={cn(
+                      "py-1.5 px-3 text-right font-mono",
+                      chunk.success ? "text-slate-700" : "text-red-500"
+                    )}>
+                      {chunk.success ? `${chunk.rowCount} 行` : '加载失败'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-slate-300 bg-slate-100">
+                  <td className="py-2 px-3 font-bold text-slate-700" colSpan={2}>合计</td>
+                  <td className="py-2 px-3 text-right font-bold font-mono text-slate-700">
+                    {loadedChunks.reduce((sum, c) => sum + c.rowCount, 0)} 行
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -763,8 +1311,8 @@ function ConfigCard({
   }
 
   return (
-    <div className={cn("rounded-xl border-2 p-3 transition-all", PARAM_COLORS[id] || 'border-slate-200 bg-slate-50')}>
-      <div className="flex items-center justify-between mb-2">
+    <div className={cn("rounded-xl border-2 p-3 transition-all h-full flex flex-col", PARAM_COLORS[id] || 'border-slate-200 bg-slate-50')}>
+      <div className="flex items-center justify-between mb-2 min-h-[28px]">
         <div className="flex items-center gap-1">
           <span className="text-sm font-bold">{name}</span>
           <span className="text-xs font-mono text-slate-500">{symbol}</span>
@@ -778,7 +1326,7 @@ function ConfigCard({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 flex-1 content-start">
         {values.map(v => {
           const state = getBorderState(v)
           const isClickable = state !== 'white'
@@ -798,40 +1346,50 @@ function ConfigCard({
         })}
       </div>
 
-      {isVariable && (
-        <div className="mt-2 pt-2 border-t border-slate-200 flex gap-2">
-          {isVariableDimension && (
-            <button onClick={onSelectAll} className="flex-1 text-xs font-bold text-slate-500 hover:text-slate-700 py-1 rounded hover:bg-slate-100">
-              全选
-            </button>
-          )}
-          <button
-            onClick={onToggleVariableMode}
-            disabled={!isVariableDimension && !canAddVariable}
-            className={cn(
-              "flex-1 text-xs font-bold py-1 rounded transition-all",
-              isVariableDimension ? "bg-purple-600 text-white hover:bg-purple-700" :
-              canAddVariable ? "text-slate-500 hover:text-slate-700 hover:bg-slate-100" :
-              "text-slate-300 cursor-not-allowed"
+      {/* 按钮区域 - 统一高度 */}
+      <div className="mt-auto pt-2 border-t border-slate-200/50 flex gap-2 min-h-[36px]">
+        {isVariable ? (
+          <>
+            {isVariableDimension && (
+              <button onClick={onSelectAll} className="flex-1 text-xs font-bold text-slate-500 hover:text-slate-700 py-1.5 rounded hover:bg-slate-100">
+                全选
+              </button>
             )}
-          >
-            {isVariableDimension ? "取消变量" : "设为变量"}
-          </button>
-        </div>
-      )}
+            <button
+              onClick={onToggleVariableMode}
+              disabled={!isVariableDimension && !canAddVariable}
+              className={cn(
+                "flex-1 text-xs font-bold py-1.5 rounded transition-all",
+                isVariableDimension ? "bg-purple-600 text-white hover:bg-purple-700" :
+                canAddVariable ? "text-slate-500 hover:text-slate-700 hover:bg-slate-100" :
+                "text-slate-300 cursor-not-allowed"
+              )}
+            >
+              {isVariableDimension ? "取消变量" : "设为变量"}
+            </button>
+          </>
+        ) : (
+          <div className="flex-1" /> // 占位，保持高度统一
+        )}
+      </div>
     </div>
   )
 }
 
 function ResultsSection({
-  stats, variableDimensions, displayOptions, paramSelection, setParamSelection, fixedValues
+  stats, variableDimensions, allVariableDimensions, displayOptions, paramSelection, setParamSelection, fixedValues,
+  csvData, densityTab, setDensityTab
 }: {
   stats: StatsResult[]
   variableDimensions: string[]
+  allVariableDimensions: string[]
   displayOptions: { mean: boolean; biasMean: boolean; std: boolean; ci99: boolean }
   paramSelection: { beta: boolean; eta: boolean; gamma: boolean }
   setParamSelection: (v: { beta: boolean; eta: boolean; gamma: boolean }) => void
   fixedValues: Record<string, number>
+  csvData: SimulationRow[]
+  densityTab: 'beta' | 'eta' | 'gamma'
+  setDensityTab: (v: 'beta' | 'eta' | 'gamma') => void
 }) {
   const fmt = (v: number | string | null | undefined, d = 2) => {
     if (v === null || v === undefined) return '—'
@@ -918,7 +1476,7 @@ function ResultsSection({
       </div>
 
       {/* 单变量：箱型图 */}
-      {variableDimensions.length === 1 && (
+      {allVariableDimensions.length === 1 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {selectedParams.map((param, idx) => {
             const minKey = `est_${param}_min` as keyof StatsResult
@@ -938,7 +1496,7 @@ function ResultsSection({
                   dataKeyMedian={medianKey as string}
                   color={EST_PARAM_COLORS[param].color}
                   yLabel={`${param}估计值`}
-                  xLabel={variableDimensions[0] === 'sampleSize' ? 'n' : variableDimensions[0]}
+                  xLabel={allVariableDimensions[0] === 'sampleSize' ? 'n' : allVariableDimensions[0]}
                   trueValue={fixedValues[trueKey] ?? (param === 'beta' ? 2.0 : param === 'eta' ? 1000 : 1000)}
                 />
               </ChartCard>
@@ -948,22 +1506,60 @@ function ResultsSection({
       )}
 
       {/* 双变量：热力图 */}
-      {variableDimensions.length === 2 && (
+      {allVariableDimensions.length === 2 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {selectedParams.map((param, idx) => {
             const allValues = stats.map(s => s[`bias_${param}_mean` as keyof StatsResult]).filter((v): v is number => v !== null)
             const maxAbs = Math.max(...allValues.map(Math.abs), 0.01)
+            const dimSymbols: Record<string, string> = { sampleSize: 'n', beta: 'β', eta: 'η', process: 'δ', rep: 'rep', step: 'step' }
             return (
               <ChartCard key={param} title={`图 ${idx + 1}: ${param}偏差热力图`}>
                 <HeatmapChart
                   stats={stats}
-                  displayDimensions={variableDimensions.map(v => ({ id: v, name: v, symbol: v === 'sampleSize' ? 'n' : v }))}
+                  displayDimensions={allVariableDimensions.map(v => ({ id: v, name: v, symbol: dimSymbols[v] || v }))}
                   dataKey={`bias_${param}_mean`}
                   maxAbs={maxAbs}
                 />
               </ChartCard>
             )
           })}
+        </div>
+      )}
+
+      {/* 概率密度分布图 */}
+      {csvData.length > 0 && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-800">参数估计值概率密度分布</h3>
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+              {selectedParams.map(param => (
+                <button
+                  key={param}
+                  onClick={() => setDensityTab(param)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-md text-sm font-bold transition-all",
+                    densityTab === param
+                      ? "bg-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  )}
+                  style={densityTab === param ? { color: EST_PARAM_COLORS[param].color } : {}}
+                >
+                  {param === 'beta' ? 'β' : param === 'eta' ? 'η' : 'γ'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <DensityChart
+            rawData={csvData}
+            paramId={densityTab}
+            displayDimension={{
+              id: variableDimensions[0] || 'sampleSize',
+              name: variableDimensions[0] === 'sampleSize' ? '样本量' : variableDimensions[0],
+              symbol: variableDimensions[0] === 'sampleSize' ? 'n' : variableDimensions[0]
+            }}
+            trueValue={fixedValues[densityTab] ?? (densityTab === 'beta' ? 2.0 : densityTab === 'eta' ? 1000 : 1000)}
+            color={densityTab === 'beta' ? 'blue' : densityTab === 'eta' ? 'emerald' : 'amber'}
+          />
         </div>
       )}
     </div>
