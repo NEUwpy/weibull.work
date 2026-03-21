@@ -519,11 +519,41 @@ export default function GenericStudyViewer({
 
   const handleSelectAllParam = useCallback((paramId: string) => {
     const param = paramDefinitions.find(p => p.id === paramId)
-    if (param && chunkInfo?.parsedParams) {
-      const allValues = chunkInfo.parsedParams[param.chunkKey] || []
-      setSelectedParamValues(prev => ({ ...prev, [paramId]: allValues }))
+    if (!param || !chunkInfo?.chunks) return
+
+    // 只选择在当前约束下有对应分片文件的值（即绿色状态的值）
+    const availableValues = new Set<number>()
+    for (const chunkName of chunkInfo.chunks) {
+      const chunkParams = parseChunkParams(chunkName)
+      if (!chunkParams || chunkParams[param.chunkKey] === undefined) continue
+
+      // 检查其他参数约束是否匹配
+      let matches = true
+      for (const p of paramDefinitions) {
+        if (p.id === paramId) continue // 跳过当前参数
+        if (paramVariableDimensions.includes(p.id)) {
+          // 变量维度：chunkParams 需要在已选值中
+          const selected = selectedParamValues[p.id] || []
+          if (selected.length > 0 && !selected.includes(chunkParams[p.chunkKey]!)) {
+            matches = false
+            break
+          }
+        } else {
+          // 固定维度：chunkParams 需要等于 fixedValue
+          const fixed = fixedValues[p.chunkKey]
+          if (fixed !== undefined && chunkParams[p.chunkKey] !== fixed) {
+            matches = false
+            break
+          }
+        }
+      }
+      if (matches) {
+        availableValues.add(chunkParams[param.chunkKey]!)
+      }
     }
-  }, [chunkInfo, paramDefinitions])
+
+    setSelectedParamValues(prev => ({ ...prev, [paramId]: Array.from(availableValues).sort((a, b) => a - b) }))
+  }, [chunkInfo, paramDefinitions, parseChunkParams, paramVariableDimensions, selectedParamValues, fixedValues])
 
   const handleToggleParamVariableMode = useCallback((paramId: string) => {
     if (paramVariableDimensions.includes(paramId)) {

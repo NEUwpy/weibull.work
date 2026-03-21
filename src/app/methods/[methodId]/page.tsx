@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
-import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3, GitBranch, FlaskConical, FileCheck } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, BarChart3, GitBranch, FlaskConical, FileCheck, Gauge, Scale, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AlgorithmDetail } from '@/components/methods/AlgorithmDetail'
 import AnalysisCard from '@/components/calculator/AnalysisCard'
@@ -21,7 +21,6 @@ const MLEVisualizer = dynamic(() => import('@/components/methods/mle/visualizers
 const WMLEVisualizer = dynamic(() => import('@/components/methods/wmle/visualizers/WMLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-// 通用适应性分析组件
 const GenericStudyViewer = dynamic(() => import('@/components/methods/shared/studies/GenericStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
@@ -71,7 +70,6 @@ export default function MethodDetailPage({ params }: MethodDetailPageProps) {
 }
 
 function CategoryOverview({ category }: { category: MethodNode }) {
-  // ... (Keep existing implementation for category overview)
   return (
     <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
       <div className="mb-8">
@@ -117,9 +115,8 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'doc' | 'flow' | 'lab' | 'analysis' | 'examples' | 'cases' | 'compare'>('doc')
+  const [activeTab, setActiveTab] = useState<null | 'flow' | 'lab' | 'analysis' | 'examples' | 'cases' | 'compare'>(null)
 
-  // 统一的数据状态 - 计算过程和结果分析共用
   const [data, setData] = useState<DataPoint[]>([])
   const [result, setResult] = useState<WeibullResult | undefined>(undefined)
   const [fitMode, setFitMode] = useState<'fit' | 'manual'>('fit')
@@ -128,11 +125,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const [traceData, setTraceData] = useState<any>(null)
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
-
-  // 当前活跃的数据源索引 (用于 Stats Bar 切换器)
   const [activeSourceIndex, setActiveSourceIndex] = useState(0)
 
-  // Read trueBeta, trueEta, trueGamma from URL params and initialize
   useEffect(() => {
     const betaParam = searchParams.get('trueBeta')
     const etaParam = searchParams.get('trueEta')
@@ -153,11 +147,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       })
       setFitMode('manual')
       setIs3P(gamma !== 0)
-      setActiveTab('analysis') // Auto-switch to analysis tab
+      setActiveTab('analysis')
     }
   }, [searchParams])
 
-  // Initialize default parameters when switching to analysis tab (if no result yet)
   useEffect(() => {
     if (activeTab === 'analysis' && !result) {
       setResult({
@@ -173,7 +166,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     }
   }, [activeTab, result])
 
-  // Auto-switch to lab if data is present and parse data
   useEffect(() => {
     const dataParam = searchParams.get('data')
     if (dataParam) {
@@ -191,7 +183,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     }
   }, [searchParams])
 
-  // Data Editor Handlers
   const handleDataClick = () => {
     setIsDataEditorOpen(true)
   }
@@ -203,21 +194,18 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     setData(newData)
     setResult(res)
     setFitMode('fit')
-    setDataSources(undefined) // 单选时清空多数据源
+    setDataSources(undefined)
     setIsDataEditorOpen(false)
   }
 
-  // 多选模式：处理多个数据源
   const handleDataSaveMulti = (sources: DataSource[]) => {
     if (sources.length === 0) return
 
-    // 第一组数据作为主数据
     const firstSource = sources[0]
     const firstGamma = 0
     const points = calculateMedianRanks(firstSource.data, firstGamma)
     const res = calculateWeibullParameters(points, firstGamma)
 
-    // 为每个数据源分配颜色
     const dataSourcesWithResults: DataSource[] = sources.map((source, index) => ({
       ...source,
       color: MULTI_CURVE_COLORS[index % MULTI_CURVE_COLORS.length],
@@ -228,35 +216,27 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     setResult(res)
     setFitMode('fit')
     setDataSources(dataSourcesWithResults)
-    setActiveSourceIndex(0) // 重置活跃索引
+    setActiveSourceIndex(0)
     setIsDataEditorOpen(false)
-
-    // 不自动触发批量计算，等用户点击"参数估计"按钮
   }
 
-  // 批量计算所有数据源（含 trace）
   const handleBatchCalculate = async (dataSourcesParam?: DataSource[]) => {
-    // 使用传入的参数或当前状态
     const sourcesToCalculate = dataSourcesParam || dataSources
     if (!sourcesToCalculate || sourcesToCalculate.length === 0) return
 
     setIsCalculating(true)
-
-    // 创建可变的副本用于累积结果
     let updatedSources = [...sourcesToCalculate]
 
     try {
       for (let i = 0; i < updatedSources.length; i++) {
         const source = updatedSources[i]
 
-        // 构建请求体 - MDM 方法需要 offset 参数
         const requestBody: any = {
           method: method.id,
           data: source.data.filter(d => d.status === 'F').map(d => d.value),
-          trace: true // 请求过程量
+          trace: true
         }
 
-        // MDM 方法添加 offset
         if (method.id.toLowerCase() === 'mdm') {
           requestBody.offset = 0.1
         }
@@ -272,7 +252,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           const gamma = res.gamma || 0
           const points = calculateMedianRanks(source.data, gamma)
 
-          // 更新当前数据源
           updatedSources[i] = {
             ...updatedSources[i],
             result: {
@@ -283,20 +262,17 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               points,
               converged: res.converged
             },
-            traceData: res.trace_data // 存储 trace 数据
+            traceData: res.trace_data
           }
         }
       }
 
-      // 所有计算完成后，一次性更新状态
       setDataSources(updatedSources)
 
-      // 设置主显示的 traceData（第一组的）
       if (updatedSources.length > 0 && updatedSources[0].traceData) {
         setTraceData(updatedSources[0].traceData)
       }
 
-      // 更新主结果为第一组的结果
       if (updatedSources.length > 0 && updatedSources[0].result) {
         setResult(updatedSources[0].result)
       }
@@ -321,7 +297,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     const baseResult = result || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
     const newResult = { ...baseResult, ...updates }
     let newPoints = result?.points || []
-    // Only recalculate points if gamma changed AND points not already provided in updates
     if (updates.gamma !== undefined && !updates.points && data) {
       newPoints = calculateMedianRanks(data, updates.gamma)
     } else if (updates.points !== undefined) {
@@ -332,27 +307,23 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   }
 
   const handleCalculate = async () => {
-    // 如果有多选数据源，触发批量计算
     if (dataSources && dataSources.length > 0) {
       await handleBatchCalculate(dataSources)
       return
     }
 
-    // 单选模式：原有逻辑
     if (!data || data.length === 0) return
 
     setIsCalculating(true)
     try {
-      // Build request body - MDM method requires offset parameter
       const requestBody: any = {
         method: method.id,
         data: data.filter(d => d.status === 'F').map(d => d.value),
-        trace: true // Request process trace
+        trace: true
       }
 
-      // Add offset for MDM method
       if (method.id.toLowerCase() === 'mdm') {
-        requestBody.offset = 0.1 // Default offset value
+        requestBody.offset = 0.1
       }
 
       const response = await fetch(`${getApiBaseUrl()}/calculate`, {
@@ -368,9 +339,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
       const res = await response.json()
 
-      // Check convergence
       if (res.converged === false) {
-        // Return result with actual values (0) but marked as not converged
         const newPoints = calculateMedianRanks(data, res.gamma || 0)
         const newResult: WeibullResult = {
           beta: res.beta,
@@ -383,7 +352,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         setResult(newResult)
         setFitMode('fit')
 
-        // Store trace data for visualization even when not converged
         if (res.trace_data) {
           setTraceData(res.trace_data)
         }
@@ -404,7 +372,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       setResult(newResult)
       setFitMode('fit')
 
-      // Store trace data for visualization
       if (res.trace_data) {
         setTraceData(res.trace_data)
       }
@@ -431,13 +398,11 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     setIs3P(nextIs3P)
   }
 
-  // Auto-run calculation when data is present from URL
   useEffect(() => {
     const dataParam = searchParams.get('data')
     if (dataParam && data.length > 0 && !traceData) {
       handleCalculate()
     }
-    // Only run once when data is first loaded
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -458,24 +423,23 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
             <ArrowLeft size={18} /> 返回方法总览
           </Link>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-black text-slate-900">{method.name}</h1>
+            {/* 方法名 - 点击返回原理文档 */}
+            <button
+              onClick={() => setActiveTab(null)}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <h1 className={cn(
+                "text-3xl font-black text-left",
+                activeTab === null ? "text-slate-900" : "text-slate-500 hover:text-slate-800"
+              )}>
+                {method.name}
+              </h1>
               <span className="text-lg font-mono text-slate-400">{method.shortName.toUpperCase()}</span>
-            </div>
+            </button>
 
             <div className="flex items-center gap-4">
-               {/* Mode Toggle */}
+               {/* Tab Toggle */}
                <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200">
-                <button
-                  onClick={() => setActiveTab('doc')}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                    activeTab === 'doc' ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                  )}
-                >
-                  <FileText size={16} />
-                  原理文档
-                </button>
                 <button
                   onClick={() => setActiveTab('flow')}
                   className={cn(
@@ -513,8 +477,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                     activeTab === 'examples' ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
-                  <FlaskConical size={16} />
-                  适应性分析
+                  <Gauge size={16} />
+                  适用范围
                 </button>
                 <button
                   onClick={() => setActiveTab('cases')}
@@ -533,7 +497,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                     activeTab === 'compare' ? "bg-white text-cyan-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
-                  <BarChart3 size={16} />
+                  <Scale size={16} />
                   方法对比
                 </button>
              </div>
@@ -543,7 +507,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                href={`/?method=${method.id}`}
                className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl transition-all shadow-sm shadow-blue-200"
              >
-               <Sigma size={18} />
+               <Play size={18} />
                在计算器中应用
                <ExternalLink size={14} />
              </Link>
@@ -553,7 +517,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
       {/* Content Area */}
       <div className="min-h-[500px]">
-        {activeTab === 'doc' ? (
+        {activeTab === null ? (
+          // 默认显示原理文档
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
              {'slug' in method && method.hasDetail && method.slug ? (
                <AlgorithmDetail slug={method.slug} />
@@ -565,146 +530,134 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           </div>
         ) : activeTab === 'flow' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <VariableFlowViewer methodId={method.id} />
+            <VariableFlowViewer methodId={method.id} />
           </div>
         ) : activeTab === 'lab' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-             {/* Calculator Lab - Full Featured Analysis Card */}
-             <AnalysisCard
-               id="lab"
-               index={0}
-               data={data}
-               result={result}
-               methodId={method.id}
-               color="#4f46e5" // Indigo-600
-               fitMode={fitMode}
-               is3P={is3P}
-               dataSources={dataSources}
-               availableLayers={[]}
-               onAdd={() => {}}
-               onDelete={() => {}}
-               onDataChange={handleDataChange}
-               onParamsUpdate={handleParamsUpdate}
-               onToggle3P={handleToggle3P}
-               onCalculate={handleCalculate}
-               onMethodClick={undefined}
-               onDataClick={handleDataClick}
-               hideCalculationProcessButton={true}
-             />
+            <AnalysisCard
+              id="lab"
+              index={0}
+              data={data}
+              result={result}
+              methodId={method.id}
+              color="#4f46e5"
+              fitMode={fitMode}
+              is3P={is3P}
+              dataSources={dataSources}
+              availableLayers={[]}
+              onAdd={() => {}}
+              onDelete={() => {}}
+              onDataChange={handleDataChange}
+              onParamsUpdate={handleParamsUpdate}
+              onToggle3P={handleToggle3P}
+              onCalculate={handleCalculate}
+              onMethodClick={undefined}
+              onDataClick={handleDataClick}
+              hideCalculationProcessButton={true}
+            />
 
-             {/* Calculation Process Visualization */}
-             {traceData && (
-                <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-6">
-                    <Microscope className="text-indigo-500" size={20} />
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">计算过程</h3>
-                  </div>
+            {traceData && (
+              <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+                <div className="flex items-center gap-2 mb-6">
+                  <Microscope className="text-indigo-500" size={20} />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">计算过程</h3>
+                </div>
 
-                  {/* Stats Bar - 显示当前选中组或单个结果 */}
-                  {(() => {
-                    // 确定显示哪个结果
-                    const displayResult = (dataSources && dataSources.length > 0 && dataSources[activeSourceIndex]?.result)
-                      ? dataSources[activeSourceIndex].result
-                      : result
+                {(() => {
+                  const displayResult = (dataSources && dataSources.length > 0 && dataSources[activeSourceIndex]?.result)
+                    ? dataSources[activeSourceIndex].result
+                    : result
 
-                    return displayResult && displayResult.converged !== false && (
-                      <div className="mb-8">
-                        <div className="grid grid-cols-4 gap-4 mb-3">
-                           <StatBox label="估计 β" value={displayResult.beta !== null ? displayResult.beta.toFixed(4) : '--'} />
-                           <StatBox label="估计 η" value={displayResult.eta !== null ? displayResult.eta.toFixed(2) : '--'} />
-                           <StatBox label="估计 γ" value={displayResult.gamma.toFixed(2)} />
-                           <StatBox label="R²" value={displayResult.rSquared !== null ? displayResult.rSquared.toFixed(4) : '--'} />
-                        </div>
+                  return displayResult && displayResult.converged !== false && (
+                    <div className="mb-8">
+                      <div className="grid grid-cols-4 gap-4 mb-3">
+                        <StatBox label="估计 β" value={displayResult.beta !== null ? displayResult.beta.toFixed(4) : '--'} />
+                        <StatBox label="估计 η" value={displayResult.eta !== null ? displayResult.eta.toFixed(2) : '--'} />
+                        <StatBox label="估计 γ" value={displayResult.gamma.toFixed(2)} />
+                        <StatBox label="R²" value={displayResult.rSquared !== null ? displayResult.rSquared.toFixed(4) : '--'} />
                       </div>
-                    )
-                  })()}
-
-                  {/* Visualizers */}
-                  {method.id.toLowerCase() === 'mle' && (
-                    <MLEVisualizer traceData={traceData} dataSources={dataSources} />
-                  )}
-                  {method.id.toLowerCase() === 'wmle' && (
-                    <WMLEVisualizer
-                      traceData={traceData}
-                      dataSources={dataSources}
-                      data={data.filter(d => d.status === 'F').map(d => d.value)}
-                      onSurfaceLoad={(surfaceData) => {
-                        // 将曲面数据添加到 traceData
-                        setTraceData((prev: any) => {
-                          if (!prev) return [surfaceData]
-                          // 检查是否已有 surface 数据，有则替换
-                          const filtered = prev.filter((d: any) => d.phase !== 'surface')
-                          return [...filtered, surfaceData]
-                        })
-                      }}
-                    />
-                  )}
-                  {method.id.toLowerCase() === 'mdm' && (
-                    <MDMVisualizer
-                      traceData={{...traceData, data: data.filter(d => d.status === 'F').map(d => d.value)}}
-                      methodId={method.id}
-                      dataSources={dataSources}
-                    />
-                  )}
-
-                  {/* Fallback for others */}
-                  {!['mle', 'wmle', 'mdm'].includes(method.id.toLowerCase()) && (
-                    <div className="text-center py-12 text-slate-400">
-                      此算法暂未适配可视化组件。
                     </div>
-                  )}
-                </div>
-             )}
+                  )
+                })()}
 
-             {/* Loading State */}
-             {isCalculating && (
-                <div className="bg-slate-50 rounded-3xl p-12 border border-slate-200 flex flex-col items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
-                  <p className="text-slate-600 font-bold">正在运行计算...</p>
-                </div>
-             )}
+                {method.id.toLowerCase() === 'mle' && (
+                  <MLEVisualizer traceData={traceData} dataSources={dataSources} />
+                )}
+                {method.id.toLowerCase() === 'wmle' && (
+                  <WMLEVisualizer
+                    traceData={traceData}
+                    dataSources={dataSources}
+                    data={data.filter(d => d.status === 'F').map(d => d.value)}
+                    onSurfaceLoad={(surfaceData) => {
+                      setTraceData((prev: any) => {
+                        if (!prev) return [surfaceData]
+                        const filtered = prev.filter((d: any) => d.phase !== 'surface')
+                        return [...filtered, surfaceData]
+                      })
+                    }}
+                  />
+                )}
+                {method.id.toLowerCase() === 'mdm' && (
+                  <MDMVisualizer
+                    traceData={{...traceData, data: data.filter(d => d.status === 'F').map(d => d.value)}}
+                    methodId={method.id}
+                    dataSources={dataSources}
+                  />
+                )}
+
+                {!['mle', 'wmle', 'mdm'].includes(method.id.toLowerCase()) && (
+                  <div className="text-center py-12 text-slate-400">
+                    此算法暂未适配可视化组件。
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isCalculating && (
+              <div className="bg-slate-50 rounded-3xl p-12 border border-slate-200 flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
+                <p className="text-slate-600 font-bold">正在运行计算...</p>
+              </div>
+            )}
           </div>
         ) : activeTab === 'analysis' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-             {/* Result Analysis Tab - Analysis Card (共用计算过程的数据) */}
-             <AnalysisCard
-               id="analysis"
-               index={0}
-               data={data}
-               result={result}
-               methodId={method.id}
-               color="#10b981" // Emerald-500
-               fitMode={fitMode}
-               is3P={is3P}
-               dataSources={dataSources}
-               availableLayers={[]}
-               onAdd={() => {}}
-               onDelete={() => {}}
-               onDataChange={handleDataChange}
-               onParamsUpdate={handleParamsUpdate}
-               onToggle3P={handleToggle3P}
-               onCalculate={handleCalculate}
-               onMethodClick={undefined}
-               onDataClick={handleDataClick}
-               hideCalculationProcessButton={true}
-             />
+            <AnalysisCard
+              id="analysis"
+              index={0}
+              data={data}
+              result={result}
+              methodId={method.id}
+              color="#10b981"
+              fitMode={fitMode}
+              is3P={is3P}
+              dataSources={dataSources}
+              availableLayers={[]}
+              onAdd={() => {}}
+              onDelete={() => {}}
+              onDataChange={handleDataChange}
+              onParamsUpdate={handleParamsUpdate}
+              onToggle3P={handleToggle3P}
+              onCalculate={handleCalculate}
+              onMethodClick={undefined}
+              onDataClick={handleDataClick}
+              hideCalculationProcessButton={true}
+            />
 
-             {/* Monte Carlo Simulation */}
-             {result && result.beta !== null && result.eta !== null && (
-               <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
-                 <ResultAnalysisLab
-                   methodId={method.id}
-                   trueBeta={result.beta}
-                   trueEta={result.eta}
-                   trueGamma={result.gamma}
-                 />
-               </div>
-             )}
+            {result && result.beta !== null && result.eta !== null && (
+              <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+                <ResultAnalysisLab
+                  methodId={method.id}
+                  trueBeta={result.beta}
+                  trueEta={result.eta}
+                  trueGamma={result.gamma}
+                />
+              </div>
+            )}
           </div>
         ) : activeTab === 'examples' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {method.id.toLowerCase() === 'mdm' ? (
-              // MDM有偏移量参数，使用专属配置
               <GenericStudyViewer
                 methodId={method.id}
                 extraParamDefs={[
@@ -713,7 +666,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 extraChunkKeys={['d']}
               />
             ) : (
-              // 其他方法使用通用组件
               <GenericStudyViewer methodId={method.id} />
             )}
           </div>
