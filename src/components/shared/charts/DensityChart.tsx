@@ -20,7 +20,7 @@ interface ParamConfig {
 
 // 原始数据行类型
 interface RawDataRow {
-  [key: string]: number | string | null
+  [key: string]: number | string | null | undefined
 }
 
 // 分组数据
