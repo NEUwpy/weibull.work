@@ -105,7 +105,8 @@ export default function CompareConfigPanel({
   }
 
   const getBorderState = (paramId: string, chunkKey: string, value: number): 'red' | 'green' | 'white' => {
-    const isVariable = variableDimensions.includes(paramId)
+    // 使用 chunkKey 来判断是否是变量（因为 variableDimensions 存的是 chunkKey）
+    const isVariable = variableDimensions.includes(chunkKey)
     // 使用 chunkKey 来查找 selectedParams（如 sampleSize -> n）
     const selected = selectedParams[chunkKey as keyof typeof selectedParams] || []
     const fixed = fixedValues[chunkKey]
@@ -127,7 +128,8 @@ export default function CompareConfigPanel({
     param: { id: string; name: string; symbol: string; chunkKey: string },
     values: number[]
   ) => {
-    const isVariable = variableDimensions.includes(param.id)
+    // 使用 chunkKey 来判断是否是变量
+    const isVariable = variableDimensions.includes(param.chunkKey)
     const hasMultipleValues = values.length > 1
 
     return (
@@ -164,7 +166,7 @@ export default function CompareConfigPanel({
             return (
               <span
                 key={v}
-                onClick={() => isClickable && onToggleValue(param.id, v)}
+                onClick={() => isClickable && onToggleValue(param.chunkKey, v)}
                 className={cn(
                   "px-1.5 py-0.5 rounded text-xs font-mono font-bold transition-all",
                   BORDER_STYLES[state],
@@ -180,14 +182,14 @@ export default function CompareConfigPanel({
         <div className="mt-auto pt-2 border-t border-slate-200/50 flex gap-2 min-h-[36px]">
           {isVariable && (
             <button
-              onClick={() => onSelectAll(param.id)}
+              onClick={() => onSelectAll(param.chunkKey)}
               className="flex-1 text-xs font-bold text-slate-500 hover:text-slate-700 py-1.5 rounded hover:bg-slate-100"
             >
               全选
             </button>
           )}
           <button
-            onClick={() => onToggleVariable(param.id)}
+            onClick={() => onToggleVariable(param.chunkKey)}
             disabled={!isVariable && !canAddVariable}
             className={cn(
               "flex-1 text-xs font-bold py-1.5 rounded transition-all",
