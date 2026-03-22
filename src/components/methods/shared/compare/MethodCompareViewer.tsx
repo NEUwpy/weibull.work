@@ -95,7 +95,7 @@ function parseCsv(text: string): SimulationRow[] {
   return rows
 }
 
-function generateChunkFilename(params: Record<string, number>, isMDM: boolean = false): string {
+function generateChunkFilename(params: Record<string, number | undefined>, isMDM: boolean = false): string {
   const parts: string[] = []
 
   if (params.beta !== undefined) parts.push(`b${params.beta}`)
@@ -302,18 +302,20 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
     return parseChunkParams(chunkInfo.chunks[0])
   }, [parseChunkParams])
 
-  // 加载选中方法的 chunkInfo（只加载元数据，不加载数据）
+  // 加载选中方法的 chunkInfo 并立即加载初始数据
   useEffect(() => {
     let isMounted = true
     let hasInitializedParams = false
+    let initialParamsCache: Record<string, number> | null = null
 
-    const loadChunkInfos = async () => {
+    const loadChunkInfoAndData = async () => {
       for (const methodId of selectedMethods) {
-        // 如果已经有 chunkInfo，跳过
-        if (methodsData[methodId]?.chunkInfo) continue
+        // 如果已经有 chunkInfo 且有数据，跳过
+        if (methodsData[methodId]?.chunkInfo && methodsData[methodId]?.csvData?.length > 0) continue
 
         if (!isMounted) return
 
+        // 设置加载状态
         setMethodsData(prev => ({
           ...prev,
           [methodId]: {
@@ -328,43 +330,45 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
         }))
 
         try {
+          // 1. 加载 chunkInfo
           const res = await fetch(`/api/studies/${methodId.toLowerCase()}/chunks`)
           if (!isMounted) return
 
           if (res.ok) {
             const chunkInfo = await res.json()
 
-            // 在第一个 chunkInfo 加载成功时，立即初始化参数
+            // 2. 初始化参数（只初始化一次）
             if (!hasInitializedParams && !paramsInitialized) {
-              const initialParams = findInitialChunkParams(chunkInfo)
-              if (initialParams) {
-                console.log('[MethodCompare] 使用初始 chunk 参数:', initialParams)
+              initialParamsCache = findInitialChunkParams(chunkInfo)
+              if (initialParamsCache) {
+                console.log('[MethodCompare] 使用初始 chunk 参数:', initialParamsCache)
                 setFixedValues(prev => ({
                   ...prev,
-                  beta: initialParams.beta ?? prev.beta,
-                  eta: initialParams.eta ?? prev.eta,
-                  gamma: initialParams.gamma ?? prev.gamma,
-                  n: initialParams.n ?? prev.n,
-                  rep: initialParams.rep ?? prev.rep,
-                  seed: initialParams.seed ?? prev.seed,
-                  step: initialParams.step ?? prev.step,
-                  offset: initialParams.d ?? prev.offset
+                  beta: initialParamsCache!.beta ?? prev.beta,
+                  eta: initialParamsCache!.eta ?? prev.eta,
+                  gamma: initialParamsCache!.gamma ?? prev.gamma,
+                  n: initialParamsCache!.n ?? prev.n,
+                  rep: initialParamsCache!.rep ?? prev.rep,
+                  seed: initialParamsCache!.seed ?? prev.seed,
+                  step: initialParamsCache!.step ?? prev.step,
+                  offset: initialParamsCache!.d ?? prev.offset
                 }))
                 setSelectedParams(prev => ({
                   ...prev,
-                  beta: [initialParams.beta ?? DEFAULT_VALUES.beta],
-                  eta: [initialParams.eta ?? DEFAULT_VALUES.eta],
-                  gamma: [initialParams.gamma ?? DEFAULT_VALUES.gamma],
-                  n: [initialParams.n ?? DEFAULT_VALUES.n],
-                  rep: [initialParams.rep ?? DEFAULT_VALUES.rep],
-                  seed: [initialParams.seed ?? DEFAULT_VALUES.seed],
-                  step: [initialParams.step ?? DEFAULT_VALUES.step]
+                  beta: [initialParamsCache!.beta ?? DEFAULT_VALUES.beta],
+                  eta: [initialParamsCache!.eta ?? DEFAULT_VALUES.eta],
+                  gamma: [initialParamsCache!.gamma ?? DEFAULT_VALUES.gamma],
+                  n: [initialParamsCache!.n ?? DEFAULT_VALUES.n],
+                  rep: [initialParamsCache!.rep ?? DEFAULT_VALUES.rep],
+                  seed: [initialParamsCache!.seed ?? DEFAULT_VALUES.seed],
+                  step: [initialParamsCache!.step ?? DEFAULT_VALUES.step]
                 }))
                 hasInitializedParams = true
               }
               setParamsInitialized(true)
             }
 
+            // 3. 保存 chunkInfo
             setMethodsData(prev => ({
               ...prev,
               [methodId]: {
@@ -373,6 +377,67 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
                 isLoading: false
               }
             }))
+
+            // 4. 立即用初始参数加载数据
+            const params = initialParamsCache || {
+              beta: DEFAULT_VALUES.beta,
+              eta: DEFAULT_VALUES.eta,
+              gamma: DEFAULT_VALUES.gamma,
+              n: DEFAULT_VALUES.n,
+              rep: DEFAULT_VALUES.rep,
+              seed: DEFAULT_VALUES.seed,
+              step: DEFAULT_VALUES.step,
+              d: DEFAULT_VALUES.offset
+            }
+            const isMDM = methodId.toLowerCase() === 'mdm'
+            const filename = generateChunkFilename({
+              beta: params.beta,
+              eta: params.eta,
+              gamma: params.gamma,
+              n: params.n,
+              offset: isMDM ? params.d : undefined,
+              rep: params.rep,
+              seed: params.seed,
+              step: params.step
+            }, isMDM)
+
+            const chunkExists = chunkInfo.chunks.includes(filename)
+            console.log(`[MethodCompare] ${methodId} - 初始加载: ${filename}, exists: ${chunkExists}`)
+
+            if (chunkExists) {
+              try {
+                const dataRes = await fetch(`/studies/${methodId.toLowerCase()}/chunks/${filename}`)
+                if (!isMounted) return
+
+                if (dataRes.ok) {
+                  const text = await dataRes.text()
+                  const data = parseCsv(text)
+                  console.log(`[MethodCompare] ${methodId} - 加载成功: ${data.length} 行`)
+                  setMethodsData(prev => ({
+                    ...prev,
+                    [methodId]: {
+                      ...prev[methodId],
+                      csvData: data,
+                      needsSimulation: false,
+                      loadedFilename: filename
+                    }
+                  }))
+                }
+              } catch (dataErr) {
+                console.error(`[MethodCompare] ${methodId} - 加载数据失败:`, dataErr)
+              }
+            } else {
+              // 没有预计算数据，标记需要模拟
+              setMethodsData(prev => ({
+                ...prev,
+                [methodId]: {
+                  ...prev[methodId],
+                  csvData: [],
+                  needsSimulation: true,
+                  loadedFilename: undefined
+                }
+              }))
+            }
           } else {
             setMethodsData(prev => ({
               ...prev,
@@ -396,7 +461,7 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
       }
     }
 
-    loadChunkInfos()
+    loadChunkInfoAndData()
 
     return () => {
       isMounted = false
@@ -454,23 +519,23 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
     return selectedMethods.every(methodId => methodsData[methodId]?.chunkInfo)
   }, [selectedMethods, methodsData])
 
-  // 跟踪上次加载的参数键，用于检测参数变化
+  // 跟踪上次加载的参数键，用于检测参数变化（初始加载后）
   const lastLoadedParamKeyRef = React.useRef<string>('')
 
-  // 参数变化时加载数据
+  // 参数变化时重新加载数据（仅在初始加载完成后触发）
   useEffect(() => {
-    // 等待 chunkInfo 加载完成
-    if (!allChunkInfoLoaded) return
+    // 等待初始加载完成
+    if (!allChunkInfoLoaded || !paramsInitialized) return
 
     // 检测参数是否变化
     const paramChanged = lastLoadedParamKeyRef.current !== currentParamKey
+    if (!paramChanged) return
 
-    if (!paramChanged) return // 参数没变化，跳过
-
-    console.log(`[MethodCompare] 参数变化，重新加载: ${currentParamKey}`)
+    // 记录新的参数键
     lastLoadedParamKeyRef.current = currentParamKey
+    console.log(`[MethodCompare] 参数变化，重新加载: ${currentParamKey}`)
 
-    // 当前参数（在 useEffect 内部计算，确保使用最新值）
+    // 当前参数
     const currentParams = {
       beta: variableDimensions.includes('beta')
         ? (selectedParams.beta[0] ?? DEFAULT_VALUES.beta)
@@ -494,76 +559,62 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
       offset: fixedValues.offset ?? DEFAULT_VALUES.offset
     }
 
-    // 加载数据的函数
-    const loadData = async () => {
-      for (const methodId of selectedMethods) {
-        // 直接从 methodsData 中获取 chunkInfo（因为已经检查过 allChunkInfoLoaded）
-        const chunkInfo = methodsData[methodId]?.chunkInfo
+    // 异步加载所有方法的数据
+    selectedMethods.forEach(methodId => {
+      const chunkInfo = methodsData[methodId]?.chunkInfo
+      if (!chunkInfo) return
 
-        if (!chunkInfo) {
-          console.log(`[MethodCompare] ${methodId} - chunkInfo not available yet`)
-          continue
+      // 先重置状态
+      setMethodsData(prev => ({
+        ...prev,
+        [methodId]: {
+          ...prev[methodId],
+          csvData: [],
+          needsSimulation: false,
+          errorMessage: undefined,
+          loadedFilename: undefined
         }
+      }))
 
-        // 先重置该方法的数据状态
+      const isMDM = methodId.toLowerCase() === 'mdm'
+      const filename = generateChunkFilename(currentParams, isMDM)
+      const chunkExists = chunkInfo.chunks.includes(filename)
+
+      if (chunkExists) {
+        fetch(`/studies/${methodId.toLowerCase()}/chunks/${filename}`)
+          .then(res => {
+            if (res.ok) return res.text()
+            throw new Error(`HTTP ${res.status}`)
+          })
+          .then(text => {
+            const data = parseCsv(text)
+            setMethodsData(prev => ({
+              ...prev,
+              [methodId]: {
+                ...prev[methodId],
+                csvData: data,
+                needsSimulation: false,
+                loadedFilename: filename
+              }
+            }))
+          })
+          .catch(err => {
+            console.error(`[MethodCompare] ${methodId} - 加载失败:`, err)
+          })
+      } else {
         setMethodsData(prev => ({
           ...prev,
           [methodId]: {
             ...prev[methodId],
             csvData: [],
-            needsSimulation: false,
-            errorMessage: undefined,
+            needsSimulation: !isMultiSelectMode,
             loadedFilename: undefined
           }
         }))
-
-        // 生成需要加载的chunk文件名
-        const params: Record<string, number> = { ...currentParams }
-        const isMDM = methodId.toLowerCase() === 'mdm'
-
-        const filename = generateChunkFilename(params, isMDM)
-        const chunkExists = chunkInfo.chunks.includes(filename)
-
-        console.log(`[MethodCompare] ${methodId} - filename: ${filename}, exists: ${chunkExists}`)
-
-        if (chunkExists) {
-          // 加载chunk数据
-          try {
-            const res = await fetch(`/studies/${methodId.toLowerCase()}/chunks/${filename}`)
-            if (res.ok) {
-              const text = await res.text()
-              const data = parseCsv(text)
-              setMethodsData(prev => ({
-                ...prev,
-                [methodId]: {
-                  ...prev[methodId],
-                  csvData: data,
-                  needsSimulation: false,
-                  loadedFilename: filename
-                }
-              }))
-            }
-          } catch (err) {
-            console.error(`Failed to load chunk ${filename}:`, err)
-          }
-        } else {
-          // 标记需要现场计算
-          setMethodsData(prev => ({
-            ...prev,
-            [methodId]: {
-              ...prev[methodId],
-              csvData: [],
-              needsSimulation: !isMultiSelectMode,
-              loadedFilename: undefined
-            }
-          }))
-        }
       }
-    }
-
-    loadData()
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentParamKey, allChunkInfoLoaded, isMultiSelectMode])
+  }, [currentParamKey, allChunkInfoLoaded, isMultiSelectMode, paramsInitialized])
 
   // 当有方法需要模拟时，自动触发模拟
   useEffect(() => {
