@@ -22,6 +22,7 @@ const WMLEVisualizer = dynamic(() => import('@/components/methods/wmle/visualize
 const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const GenericStudyViewer = dynamic(() => import('@/components/methods/shared/studies/GenericStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MethodCompareViewer = dynamic(() => import('@/components/methods/shared/compare/MethodCompareViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
 
@@ -675,9 +676,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           </div>
         ) : activeTab === 'compare' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200">
-              方法对比功能开发中...
-            </div>
+            <MethodCompareViewer currentMethodId={method.id} />
           </div>
         ) : null}
       </div>
