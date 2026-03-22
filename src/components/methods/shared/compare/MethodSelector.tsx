@@ -92,10 +92,6 @@ export default function MethodSelector({
           )
         })}
       </div>
-
-      <p className="text-xs text-slate-400 mt-4">
-        当前方法默认选中，最多选择 {maxMethods} 个方法进行对比
-      </p>
     </div>
   )
 }

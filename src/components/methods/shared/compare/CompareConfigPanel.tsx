@@ -15,7 +15,10 @@ const PARAM_DEFINITIONS = [
 const SIM_CONFIG_DEFINITIONS = [
   { id: 'rep', name: '重复次数', symbol: 'rep', chunkKey: 'rep' },
   { id: 'seed', name: '随机种子', symbol: 'seed', chunkKey: 'seed' },
-  { id: 'step', name: '计算步长', symbol: 'step', chunkKey: 'step' },
+]
+
+const CALC_CONFIG_DEFINITIONS = [
+  { id: 'step', name: '迭代步长', symbol: 'step', chunkKey: 'step' },
 ]
 
 // 样式常量
@@ -26,7 +29,7 @@ const PARAM_COLORS: Record<string, string> = {
   sampleSize: 'border-purple-200 bg-purple-50',
   rep: 'border-violet-200 bg-violet-50',
   seed: 'border-indigo-200 bg-indigo-50',
-  step: 'border-slate-200 bg-slate-50',
+  step: 'border-cyan-200 bg-cyan-50',
   offset: 'border-rose-200 bg-rose-50',  // MDM 偏移量
 }
 
@@ -130,15 +133,12 @@ export default function CompareConfigPanel({
   ) => {
     // 使用 chunkKey 来判断是否是变量
     const isVariable = variableDimensions.includes(param.chunkKey)
-    const hasMultipleValues = values.length > 1
 
     return (
       <div
         className={cn(
           "rounded-xl border-2 p-3 transition-all h-full flex flex-col",
-          PARAM_COLORS[param.id] || "border-slate-200 bg-slate-50",
-          !hasMultipleValues && "flex-shrink-0 min-w-[100px]",
-          hasMultipleValues && "flex-1 min-w-[140px]"
+          PARAM_COLORS[param.id] || "border-slate-200 bg-slate-50"
         )}
       >
         <div className="flex items-center justify-between mb-2 min-h-[28px]">
@@ -222,30 +222,75 @@ export default function CompareConfigPanel({
         </div>
 
         <div className="flex flex-wrap gap-3">
-          {PARAM_DEFINITIONS.map((param) =>
-            renderParamCard(param, availableParams[param.chunkKey as keyof typeof availableParams] || [])
-          )}
+          {PARAM_DEFINITIONS.map((param) => {
+            const values = availableParams[param.chunkKey as keyof typeof availableParams] || []
+            const isSingleValue = values.length <= 1
+            return (
+              <div key={param.id} className={cn("flex flex-col", isSingleValue ? "flex-shrink-0 min-w-[100px]" : "flex-1 min-w-[140px]")}>
+                {renderParamCard(param, values)}
+              </div>
+            )
+          })}
           {/* MDM 偏移量参数 */}
-          {hasMDM && renderParamCard(
-            { id: 'offset', name: '偏移量', symbol: 'δ', chunkKey: 'offset' },
-            availableParams.offset || []
-          )}
+          {hasMDM && (() => {
+            const values = availableParams.offset || []
+            const isSingleValue = values.length <= 1
+            return (
+              <div className={cn("flex flex-col", isSingleValue ? "flex-shrink-0 min-w-[100px]" : "flex-1 min-w-[140px]")}>
+                {renderParamCard(
+                  { id: 'offset', name: '偏移量', symbol: 'δ', chunkKey: 'offset' },
+                  values
+                )}
+              </div>
+            )
+          })()}
         </div>
       </div>
 
-      {/* 仿真配置 */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <FlaskConical className="text-violet-600" size={20} />
-          <h3 className="text-lg font-bold text-slate-800">仿真配置</h3>
+      {/* 仿真与计算配置 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 仿真配置 */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <FlaskConical className="text-violet-600" size={20} />
+            <h3 className="text-lg font-bold text-slate-800">仿真配置</h3>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {SIM_CONFIG_DEFINITIONS.map((config) => {
+              const values = availableParams[config.chunkKey as keyof typeof availableParams] || [1000]
+              const isSingleValue = values.length <= 1
+              return (
+                <div key={config.id} className={cn("flex flex-col", isSingleValue ? "flex-shrink-0 min-w-[100px]" : "flex-1 min-w-[140px]")}>
+                  {renderParamCard(
+                    { ...config, id: config.chunkKey },
+                    values
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {SIM_CONFIG_DEFINITIONS.map((config) =>
-            renderParamCard(
-              { ...config, id: config.chunkKey },
-              availableParams[config.chunkKey as keyof typeof availableParams] || [1000]
-            )
-          )}
+
+        {/* 计算配置 */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="text-cyan-600" size={20} />
+            <h3 className="text-lg font-bold text-slate-800">计算配置</h3>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {CALC_CONFIG_DEFINITIONS.map((config) => {
+              const values = availableParams[config.chunkKey as keyof typeof availableParams] || [60]
+              const isSingleValue = values.length <= 1
+              return (
+                <div key={config.id} className={cn("flex flex-col", isSingleValue ? "flex-shrink-0 min-w-[100px]" : "flex-1 min-w-[140px]")}>
+                  {renderParamCard(
+                    { ...config, id: config.chunkKey },
+                    values
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
