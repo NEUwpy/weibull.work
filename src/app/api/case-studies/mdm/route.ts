@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
 
-// 获取所有MDM案例配置 - 自动扫描目录
+// 获取所有MDM验证配置 - 自动扫描目录
 export async function GET() {
   try {
     const casesDir = path.join(process.cwd(), 'public', 'case-studies', 'mdm')
@@ -13,16 +13,11 @@ export async function GET() {
     if (fs.existsSync(casesDir)) {
       const entries = fs.readdirSync(casesDir, { withFileTypes: true })
 
-      // 过滤出以 case 开头的目录
+      // 过滤出以 verification 或 case 开头的目录
       const caseDirs = entries
-        .filter(entry => entry.isDirectory() && entry.name.startsWith('case'))
+        .filter(entry => entry.isDirectory() && (entry.name.startsWith('verification') || entry.name.startsWith('case')))
         .map(entry => entry.name)
-        .sort((a, b) => {
-          // 按数字排序：case3, case4, ..., case10, ..., case16
-          const numA = parseInt(a.replace('case', ''), 10)
-          const numB = parseInt(b.replace('case', ''), 10)
-          return numA - numB
-        })
+        .sort()
 
       // 读取每个案例的配置
       for (const caseDir of caseDirs) {
@@ -47,19 +42,17 @@ export async function GET() {
           // 添加案例
           cases.push({
             ...data,
-            dirName: caseDir,  // 保存目录名
-            content: data.architecture === 'markdown' ? content : undefined,
-            csvFile: `/case-studies/mdm/${caseDir}/data.json`
+            dirName: caseDir
           })
 
-          console.log(`[MDM Cases] 加载案例: ${data.name} (${caseDir})`)
+          console.log(`[MDM Cases] 加载验证: ${data.name} (${caseDir})`)
         } catch (parseError) {
           console.error(`[MDM Cases] 解析 ${caseDir}/config.md 失败:`, parseError)
         }
       }
     }
 
-    console.log(`[MDM Cases] 共加载 ${cases.length} 个案例`)
+    console.log(`[MDM Cases] 共加载 ${cases.length} 个验证`)
 
     return NextResponse.json({ cases })
   } catch (error) {

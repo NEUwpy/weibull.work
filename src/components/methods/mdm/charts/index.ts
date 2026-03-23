@@ -1,2 +1,2 @@
 export { SigmaBetaChart } from './SigmaBetaChart'
-export { GradientGammaChart } from './GradientGammaChart'
+export { GradientGammaChart, type GradientCurveData } from './GradientGammaChart'
