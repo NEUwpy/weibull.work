@@ -122,25 +122,27 @@ def _run_algorithm(method_id, AlgorithmClass, data, trace=False, offset=None):
     return _extract_result(res, method_id, trace_data)
 
 
+def _run_with_fallback(method_id, AlgorithmClass, data, trace=False, offset=None):
+    """执行算法，失败时自动 fallback 到 WMLE"""
+    try:
+        return _run_algorithm(method_id, AlgorithmClass, data, trace=trace, offset=offset)
+    except Exception as e:
+        print(f"Algorithm {method_id} failed: {e}. Fallback to WMLE.")
+        try:
+            return _run_algorithm(f"{method_id}_fallback_wmle", WMLE, data, trace=trace)
+        except Exception as fallback_error:
+            raise HTTPException(status_code=500,
+                                detail=f"Calculation failed: {e} -> Fallback WMLE failed: {fallback_error}")
+
+
 @app.post("/calculate", response_model=CalculationResponse)
 async def calculate(req: CalculationRequest):
     if len(req.data) < 2:
         raise HTTPException(status_code=400, detail="Insufficient data points")
 
     selected_method_id, AlgorithmClass = resolve_method(req.method)
-    data = req.data
-
-    try:
-        return _run_algorithm(selected_method_id, AlgorithmClass, data,
+    return _run_with_fallback(selected_method_id, AlgorithmClass, req.data,
                               trace=req.trace, offset=req.offset)
-
-    except (NotImplementedError, Exception) as e:
-        print(f"Algorithm {selected_method_id} failed: {e}. Fallback to WMLE.")
-        try:
-            return _run_algorithm(f"{selected_method_id}_fallback_wmle", WMLE, data,
-                                  trace=req.trace)
-        except Exception as fallback_error:
-            raise HTTPException(status_code=500, detail=f"Calculation failed: {str(e)} -> Fallback WMLE failed: {str(fallback_error)}")
 
 @app.post("/calculate_3d_surface")
 async def calculate_3d_surface(req: Surface3DRequest):
