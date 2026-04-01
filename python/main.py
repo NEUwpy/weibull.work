@@ -33,6 +33,61 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ============================================================
+# 方法注册表
+# IMPLEMENTED: 有独立实现的方法
+# ALIASES: 合理的别名映射（同族方法的不同变体）
+# NOT_IMPLEMENTED: 前端有定义但后端尚未实现的方法
+# ============================================================
+IMPLEMENTED = {
+    "mle": MLE, "mmle": MMLE, "mps": MPS, "wmle": WMLE,
+    "lse": LSE, "mdm": MDM, "lre": LRE,
+    "mm": MM, "pwm": PWM,
+    "grey": GreyGM11, "bayesian": Bayesian,
+}
+
+ALIASES = {
+    "wlse": "lse", "mde": "mdm", "eiv": "lse",
+    "rrx": "lre", "rry": "lre", "blre": "lre",
+    "lm": "pwm", "tlm": "pwm",
+    "gm11": "grey",
+    "gibbs": "bayesian", "map": "bayesian",
+}
+
+NOT_IMPLEMENTED = {
+    "construct_stat", "mve", "lsf",
+    "ai", "pso", "svr", "ann",
+}
+
+
+def resolve_method(method_id: str):
+    """
+    解析方法ID，返回对应的算法类。
+    - 已实现：直接返回
+    - 别名：解析到已实现的方法
+    - 未实现：抛出 501 HTTPException
+    - 未知方法：抛出 400 HTTPException
+    """
+    mid = method_id.lower()
+
+    if mid in NOT_IMPLEMENTED:
+        raise HTTPException(
+            status_code=501,
+            detail=f"方法 '{method_id}' 尚未实现，暂不可用。"
+        )
+
+    # 先查别名
+    if mid in ALIASES:
+        mid = ALIASES[mid]
+
+    if mid in IMPLEMENTED:
+        return mid, IMPLEMENTED[mid]
+
+    raise HTTPException(
+        status_code=400,
+        detail=f"不支持的方法: '{method_id}'。"
+    )
+
 class CalculationRequest(BaseModel):
     method: str
     data: List[float]
@@ -80,24 +135,8 @@ async def calculate(req: CalculationRequest):
     if len(req.data) < 2:
         raise HTTPException(status_code=400, detail="Insufficient data points")
 
+    selected_method_id, AlgorithmClass = resolve_method(req.method)
     data = req.data
-
-    # Map method IDs to Algorithm Classes
-    method_map = {
-        "mle": MLE, "mmle": MMLE, "mps": MPS, "wmle": WMLE,
-        "lse": LSE, "wlse": LSE, "mde": MDM, "eiv": LSE, # MDE aliased to MDM
-        "lre": LRE, "rrx": LRE, "rry": LRE, "blre": LRE,
-        "mm": MM, "pwm": PWM, "lm": PWM, "tlm": PWM,
-        "grey": GreyGM11, "gm11": GreyGM11,
-        "construct_stat": WMLE, "mve": WMLE, "lsf": WMLE,
-        "bayesian": Bayesian, "gibbs": Bayesian, "map": Bayesian,
-        "ai": WMLE, "pso": WMLE, "svr": WMLE, "ann": WMLE,
-        "mdm": MDM,
-        "default": WMLE
-    }
-
-    selected_method_id = req.method.lower()
-    AlgorithmClass = method_map.get(selected_method_id, WMLE)
 
     try:
         # Instantiate
@@ -242,21 +281,7 @@ async def batch_simulation(req: BatchSimulationRequest):
     - r_squared (goodness of fit)
     """
     try:
-        method_map = {
-            "mle": MLE, "mmle": MLE, "mps": MPS, "wmle": WMLE,
-            "lse": LSE, "wlse": LSE, "mde": MDM, "eiv": LSE,
-            "lre": LRE, "rrx": LRE, "rry": LRE, "blre": LRE,
-            "mm": MM, "pwm": PWM, "lm": PWM, "tlm": PWM,
-            "grey": GreyGM11, "gm11": GreyGM11,
-            "construct_stat": WMLE, "mve": WMLE, "lsf": WMLE,
-            "bayesian": Bayesian, "gibbs": Bayesian, "map": Bayesian,
-            "ai": WMLE, "pso": WMLE, "svr": WMLE, "ann": WMLE,
-            "mdm": MDM,
-            "default": WMLE
-        }
-
-        selected_method_id = req.method.lower()
-        AlgorithmClass = method_map.get(selected_method_id, MDM)
+        selected_method_id, AlgorithmClass = resolve_method(req.method)
 
         # Generate CSV content
         output = io.StringIO()
@@ -372,24 +397,7 @@ async def monte_carlo_simulate(req: MonteCarloRequest):
         raise HTTPException(status_code=400, detail=f"参数验证失败: {'; '.join(errors)}")
 
     try:
-        method_map = {
-            "mle": MLE, "mmle": MLE, "mps": MPS, "wmle": WMLE,
-            "lse": LSE, "wlse": LSE, "mde": MDM, "eiv": LSE,
-            "lre": LRE, "rrx": LRE, "rry": LRE, "blre": LRE,
-            "mm": MM, "pwm": PWM, "lm": PWM, "tlm": PWM,
-            "grey": GreyGM11, "gm11": GreyGM11,
-            "construct_stat": WMLE, "mve": WMLE, "lsf": WMLE,
-            "bayesian": Bayesian, "gibbs": Bayesian, "map": Bayesian,
-            "ai": WMLE, "pso": WMLE, "svr": WMLE, "ann": WMLE,
-            "mdm": MDM,
-            "default": WMLE
-        }
-
-        selected_method_id = req.method.lower()
-        if selected_method_id not in method_map:
-            raise HTTPException(status_code=400, detail=f"不支持的方法: {req.method}。支持的方法: {', '.join(method_map.keys())}")
-
-        AlgorithmClass = method_map[selected_method_id]
+        selected_method_id, AlgorithmClass = resolve_method(req.method)
 
         print(f"[MonteCarlo] 开始模拟: method={req.method}, beta={req.beta}, eta={req.eta}, gamma={req.gamma}, n={req.n}, rep={req.rep}")
 
