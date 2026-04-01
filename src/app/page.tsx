@@ -16,13 +16,7 @@ import MethodSelector from '@/components/calculator/MethodSelector'
 import DataEditor from '@/components/calculator/DataEditor'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
 
-const CHART_COLORS = [
-  '#3b82f6', // Blue-500
-  '#ef4444', // Red-500
-  '#10b981', // Emerald-500
-  '#f59e0b', // Amber-500
-  '#8b5cf6', // Violet-500
-]
+const CHART_COLORS = MULTI_CURVE_COLORS.slice(0, 5)
 
 // Helper to generate random Weibull data
 function generateRandomData(n: number, beta: number, eta: number, gamma: number = 0): DataPoint[] {
