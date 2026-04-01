@@ -14,6 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'methods'))
 from methods.registry import resolve_method
 from methods.mdm import MDM
 from methods.wmle import WMLE
+from base import MethodResult
 
 app = FastAPI()
 
@@ -64,8 +65,62 @@ class CalculationResponse(BaseModel):
     gamma: Optional[float]
     rSquared: Optional[float]
     method: str
-    converged: Union[bool, str] = True  # Support both boolean and "unbounded" string
+    converged: Union[bool, str] = True
     trace_data: Optional[Any] = None
+
+
+def _extract_result(res, method_id, trace_data=None):
+    """
+    从 run() 返回值中提取统一的响应字典。
+    兼容三种格式：
+    - MethodResult 对象（新）
+    - 5 元素 list/tuple [beta, eta, gamma, r2, converged]（较新）
+    - 4 元素 list/tuple [beta, eta, gamma, r2]（旧）
+    """
+    if isinstance(res, MethodResult):
+        converged = res.converged
+        return {
+            "beta": float(res.beta) if res.beta is not None else None,
+            "eta": float(res.eta) if res.eta is not None else None,
+            "gamma": float(res.gamma) if res.gamma is not None else None,
+            "rSquared": float(res.r_squared) if res.r_squared is not None else None,
+            "method": method_id,
+            "converged": converged if isinstance(converged, str) else bool(converged),
+            "trace_data": trace_data,
+        }
+
+    # 旧的 list/tuple 格式
+    converged = res[4] if len(res) >= 5 else True
+    if isinstance(converged, str):
+        converged_value = converged
+    else:
+        converged_value = bool(converged)
+
+    return {
+        "beta": float(res[0]) if res[0] is not None else None,
+        "eta": float(res[1]) if res[1] is not None else None,
+        "gamma": float(res[2]) if res[2] is not None else None,
+        "rSquared": float(res[3]) if res[3] is not None else None,
+        "method": method_id,
+        "converged": converged_value,
+        "trace_data": trace_data,
+    }
+
+
+def _run_algorithm(method_id, AlgorithmClass, data, trace=False, offset=None):
+    """执行算法并返回结果，处理不同方法签名差异"""
+    algo_instance = AlgorithmClass(data)
+    try:
+        if method_id == 'mdm' and offset is not None:
+            res = algo_instance.run(trace=trace, offset=offset)
+        else:
+            res = algo_instance.run(trace=trace)
+    except TypeError:
+        res = algo_instance.run()
+
+    trace_data = algo_instance.trace_data if trace else None
+    return _extract_result(res, method_id, trace_data)
+
 
 @app.post("/calculate", response_model=CalculationResponse)
 async def calculate(req: CalculationRequest):
@@ -76,95 +131,14 @@ async def calculate(req: CalculationRequest):
     data = req.data
 
     try:
-        # Instantiate
-        algo_instance = AlgorithmClass(data)
+        return _run_algorithm(selected_method_id, AlgorithmClass, data,
+                              trace=req.trace, offset=req.offset)
 
-        # Run with optional trace and offset (for MDM)
+    except (NotImplementedError, Exception) as e:
+        print(f"Algorithm {selected_method_id} failed: {e}. Fallback to WMLE.")
         try:
-            # MDM supports offset parameter
-            if selected_method_id == 'mdm' and req.offset is not None:
-                res = algo_instance.run(trace=req.trace, offset=req.offset)
-            else:
-                res = algo_instance.run(trace=req.trace)
-        except TypeError:
-             # Fallback for methods that don't support trace arg yet
-             res = algo_instance.run()
-
-        # Handle both 4-element (old) and 5-element (new with converged) return
-        if len(res) >= 5:
-            converged = res[4]
-        else:
-            converged = True
-
-        # Convert converged: keep string values like "unbounded", convert others to bool
-        if isinstance(converged, str):
-            converged_value = converged  # Keep "unbounded" as-is
-        else:
-            converged_value = bool(converged)  # Convert True/False/None to bool
-
-        return {
-            "beta": float(res[0]) if res[0] is not None else None,
-            "eta": float(res[1]) if res[1] is not None else None,
-            "gamma": float(res[2]) if res[2] is not None else None,
-            "rSquared": float(res[3]) if res[3] is not None else None,
-            "method": selected_method_id,
-            "converged": converged_value,
-            "trace_data": algo_instance.trace_data if req.trace else None
-        }
-
-    except NotImplementedError:
-        try:
-            print(f"Algorithm {selected_method_id} not implemented. Fallback to WMLE.")
-            fallback_instance = WMLE(data)
-            res = fallback_instance.run(trace=req.trace) # WMLE supports trace
-
-            if len(res) >= 5:
-                fallback_converged = res[4]
-            else:
-                fallback_converged = True
-
-            if isinstance(fallback_converged, str):
-                fallback_converged_value = fallback_converged
-            else:
-                fallback_converged_value = bool(fallback_converged)
-
-            return {
-                "beta": float(res[0]) if res[0] is not None else None,
-                "eta": float(res[1]) if res[1] is not None else None,
-                "gamma": float(res[2]) if res[2] is not None else None,
-                "rSquared": float(res[3]) if res[3] is not None else None,
-                "method": f"{selected_method_id}_fallback_wmle",
-                "converged": fallback_converged_value,
-                "trace_data": fallback_instance.trace_data if req.trace else None
-            }
-        except Exception as e:
-             raise HTTPException(status_code=500, detail=f"Fallback WMLE failed: {str(e)}")
-
-    except Exception as e:
-        try:
-            print(f"Algorithm {selected_method_id} failed: {e}. Fallback to WMLE.")
-            fallback_instance = WMLE(data)
-            res = fallback_instance.run(trace=req.trace)
-
-            if len(res) >= 5:
-                fallback_converged = res[4]
-            else:
-                fallback_converged = True
-
-            if isinstance(fallback_converged, str):
-                fallback_converged_value = fallback_converged
-            else:
-                fallback_converged_value = bool(fallback_converged)
-
-            return {
-                "beta": float(res[0]) if res[0] is not None else None,
-                "eta": float(res[1]) if res[1] is not None else None,
-                "gamma": float(res[2]) if res[2] is not None else None,
-                "rSquared": float(res[3]) if res[3] is not None else None,
-                "method": f"{selected_method_id}_fallback_wmle",
-                "converged": fallback_converged_value,
-                "trace_data": fallback_instance.trace_data if req.trace else None
-            }
+            return _run_algorithm(f"{selected_method_id}_fallback_wmle", WMLE, data,
+                                  trace=req.trace)
         except Exception as fallback_error:
             raise HTTPException(status_code=500, detail=f"Calculation failed: {str(e)} -> Fallback WMLE failed: {str(fallback_error)}")
 
@@ -181,24 +155,7 @@ async def calculate_3d_surface(req: Surface3DRequest):
         raise HTTPException(status_code=400, detail="3D surface only supported for MDM method")
 
     try:
-        # Run MDM with trace to get sigma_beta_gamma
-        algo_instance = MDM(req.data)
-        res = algo_instance.run(trace=True, offset=0.1)
-
-        if len(res) >= 5:
-            converged = res[4]
-        else:
-            converged = True
-
-        return {
-            "beta": float(res[0]) if res[0] is not None else None,
-            "eta": float(res[1]) if res[1] is not None else None,
-            "gamma": float(res[2]) if res[2] is not None else None,
-            "rSquared": float(res[3]) if res[3] is not None else None,
-            "method": req.method,
-            "converged": bool(converged) if not isinstance(converged, str) else converged,
-            "trace_data": algo_instance.trace_data
-        }
+        return _run_algorithm("mdm", MDM, req.data, trace=True, offset=0.1)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"3D surface calculation failed: {str(e)}")
@@ -266,7 +223,7 @@ async def batch_simulation(req: BatchSimulationRequest):
                             est_eta = float(res[1]) if res[1] is not None else 0
                             est_gamma = float(res[2]) if res[2] is not None else 0
                             r_squared = float(res[3]) if res[3] is not None else 0
-                        except Exception as e:
+                        except (NotImplementedError, Exception) as e:
                             print(f"Simulation failed: {e}")
                             est_beta, est_eta, est_gamma, r_squared = 0, 0, 0, 0
 

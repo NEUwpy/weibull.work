@@ -1,5 +1,22 @@
 import numpy as np
 from scipy.special import betaincinv
+from dataclasses import dataclass, field
+from typing import Any, Union, List, Optional
+
+
+@dataclass
+class MethodResult:
+    """统一的参数估计结果"""
+    beta: float
+    eta: float
+    gamma: float
+    r_squared: float
+    converged: Union[bool, str] = True
+    trace_data: Any = field(default=None, repr=False)
+
+    def to_list(self) -> list:
+        """向后兼容：转换为 [beta, eta, gamma, r2, converged] 列表"""
+        return [self.beta, self.eta, self.gamma, self.r_squared, self.converged]
 
 class WeibullBase:
     def __init__(self, data, rank_method='bernard'):
