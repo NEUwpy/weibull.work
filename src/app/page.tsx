@@ -14,7 +14,7 @@ import {
 } from '@/lib/weibull'
 import MethodSelector from '@/components/calculator/MethodSelector'
 import DataEditor from '@/components/calculator/DataEditor'
-import { getApiBaseUrl } from '@/lib/config'
+import { calculateWeibull } from '@/hooks/useWeibullCalculation'
 
 const CHART_COLORS = [
   '#3b82f6', // Blue-500
@@ -280,56 +280,26 @@ function CalculatorContent() {
 
     const methodId = card.methodId || 'lre'
 
-    // 逐个计算
     for (let i = 0; i < sources.length; i++) {
       const source = sources[i]
       try {
-        // 构建请求体 - MDM 方法需要 offset 参数
-        const requestBody: any = {
-          method: methodId,
-          data: source.data.filter(d => d.status === 'F').map(d => d.value)
-        }
-
-        // MDM 方法添加 offset
-        if (methodId.toLowerCase() === 'mdm') {
-          requestBody.offset = 0.1
-        }
-
-        const response = await fetch(`${getApiBaseUrl()}/calculate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+        const { result } = await calculateWeibull({
+          methodId,
+          data: source.data,
         })
 
-        if (response.ok) {
-          const res = await response.json()
-          const gamma = res.gamma || 0
-          const points = calculateMedianRanks(source.data, gamma)
-
-          // 更新对应 dataSouce 的 result
-          setCards(prev => prev.map(c => {
-            if (c.id === cardId && c.dataSources) {
-              const updatedSources = c.dataSources.map((ds, idx) => {
-                if (idx === i) {
-                  return {
-                    ...ds,
-                    result: {
-                      beta: res.beta,
-                      eta: res.eta,
-                      gamma,
-                      rSquared: res.rSquared,
-                      points,
-                      converged: res.converged
-                    }
-                  }
-                }
-                return ds
-              })
-              return { ...c, dataSources: updatedSources }
-            }
-            return c
-          }))
-        }
+        setCards(prev => prev.map(c => {
+          if (c.id === cardId && c.dataSources) {
+            const updatedSources = c.dataSources.map((ds, idx) => {
+              if (idx === i) {
+                return { ...ds, result }
+              }
+              return ds
+            })
+            return { ...c, dataSources: updatedSources }
+          }
+          return c
+        }))
       } catch (err) {
         console.error(`Failed to calculate source ${i}:`, err)
       }
@@ -390,57 +360,12 @@ function CalculatorContent() {
     if (!card.data) return
 
     try {
-      // 构建请求体 - MDM 方法需要 offset 参数
-      const requestBody: any = {
-        method: card.methodId || 'lre',
-        data: card.data.filter(d => d.status === 'F').map(d => d.value)
-      }
-
-      // MDM 方法添加 offset
-      if (card.methodId?.toLowerCase() === 'mdm') {
-        requestBody.offset = 0.1
-      }
-
-      const response = await fetch(`${getApiBaseUrl()}/calculate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+      const { result } = await calculateWeibull({
+        methodId: card.methodId || 'lre',
+        data: card.data,
       })
 
-      if (!response.ok) {
-        const errData = await response.json()
-        throw new Error(errData.detail || '计算失败')
-      }
-
-      const res = await response.json()
-
-      // Check convergence (including unbounded)
-      if (res.converged === false || res.converged === 'unbounded') {
-        // Return result with actual values (0) but marked as not converged
-        const newPoints = calculateMedianRanks(card.data, res.gamma || 0)
-        const newResult: WeibullResult = {
-          beta: res.beta,
-          eta: res.eta,
-          gamma: res.gamma || 0,
-          rSquared: res.rSquared,
-          points: newPoints,
-          converged: res.converged  // Keep 'unbounded' or false
-        }
-        setCards(prev => prev.map(c => c.id === cardId ? { ...c, result: newResult, fitMode: 'fit' } : c))
-        return
-      }
-
-      const newPoints = calculateMedianRanks(card.data, res.gamma || 0)
-      const newResult: WeibullResult = {
-        beta: res.beta,
-        eta: res.eta,
-        gamma: res.gamma || 0,
-        rSquared: res.rSquared,
-        points: newPoints,
-        converged: true
-      }
-
-      setCards(prev => prev.map(c => c.id === cardId ? { ...c, result: newResult, fitMode: 'fit' } : c))
+      setCards(prev => prev.map(c => c.id === cardId ? { ...c, result, fitMode: 'fit' } : c))
     } catch (err: any) {
       console.error(err)
       alert(`后端计算错误: ${err.message}\n请确保 Python main.py 已在 8001 端口运行。`)

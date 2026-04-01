@@ -13,7 +13,7 @@ import ResultAnalysisLab from '@/components/methods/ResultAnalysisLab'
 import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
-import { getApiBaseUrl } from '@/lib/config'
+import { calculateWeibull } from '@/hooks/useWeibullCalculation'
 
 // Dynamic imports for heavy visualizers
 const VariableFlowViewer = dynamic(() => import('@/components/methods/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -231,40 +231,20 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     try {
       for (let i = 0; i < updatedSources.length; i++) {
         const source = updatedSources[i]
-
-        const requestBody: any = {
-          method: method.id,
-          data: source.data.filter(d => d.status === 'F').map(d => d.value),
-          trace: true
-        }
-
-        if (method.id.toLowerCase() === 'mdm') {
-          requestBody.offset = 0.1
-        }
-
-        const response = await fetch(`${getApiBaseUrl()}/calculate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
-        })
-
-        if (response.ok) {
-          const res = await response.json()
-          const gamma = res.gamma || 0
-          const points = calculateMedianRanks(source.data, gamma)
+        try {
+          const { result, traceData } = await calculateWeibull({
+            methodId: method.id,
+            data: source.data,
+            trace: true,
+          })
 
           updatedSources[i] = {
             ...updatedSources[i],
-            result: {
-              beta: res.beta,
-              eta: res.eta,
-              gamma,
-              rSquared: res.rSquared,
-              points,
-              converged: res.converged
-            },
-            traceData: res.trace_data
+            result,
+            traceData,
           }
+        } catch (err) {
+          console.error(`Failed to calculate source ${i}:`, err)
         }
       }
 
@@ -317,64 +297,17 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
     setIsCalculating(true)
     try {
-      const requestBody: any = {
-        method: method.id,
-        data: data.filter(d => d.status === 'F').map(d => d.value),
-        trace: true
-      }
-
-      if (method.id.toLowerCase() === 'mdm') {
-        requestBody.offset = 0.1
-      }
-
-      const response = await fetch(`${getApiBaseUrl()}/calculate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+      const { result: newResult, traceData } = await calculateWeibull({
+        methodId: method.id,
+        data,
+        trace: true,
       })
 
-      if (!response.ok) {
-        const errData = await response.json()
-        throw new Error(errData.detail || '计算失败')
-      }
-
-      const res = await response.json()
-
-      if (res.converged === false) {
-        const newPoints = calculateMedianRanks(data, res.gamma || 0)
-        const newResult: WeibullResult = {
-          beta: res.beta,
-          eta: res.eta,
-          gamma: res.gamma || 0,
-          rSquared: res.rSquared,
-          points: newPoints,
-          converged: false
-        }
-        setResult(newResult)
-        setFitMode('fit')
-
-        if (res.trace_data) {
-          setTraceData(res.trace_data)
-        }
-
-        setIsCalculating(false)
-        return
-      }
-
-      const newPoints = calculateMedianRanks(data, res.gamma || 0)
-      const newResult: WeibullResult = {
-        beta: res.beta,
-        eta: res.eta,
-        gamma: res.gamma || 0,
-        rSquared: res.rSquared,
-        points: newPoints,
-        converged: true
-      }
       setResult(newResult)
       setFitMode('fit')
 
-      if (res.trace_data) {
-        setTraceData(res.trace_data)
+      if (traceData) {
+        setTraceData(traceData)
       }
     } catch (err: any) {
       console.error(err)
