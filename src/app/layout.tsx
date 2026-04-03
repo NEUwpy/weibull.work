@@ -1,11 +1,12 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import './globals.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calculator, Library, Database, Settings2 } from 'lucide-react'
+import { Calculator, Library, Database, Settings2, ChevronDown, BookOpen, FileText, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { APP_VERSION } from '@/lib/config'
 
 export default function RootLayout({
   children,
@@ -16,6 +17,19 @@ export default function RootLayout({
   const isLibrary = pathname.startsWith('/library')
   const isCases = pathname.startsWith('/cases')
   const isMethods = pathname.startsWith('/methods')
+  const [infoOpen, setInfoOpen] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+
+  // 点击外部关闭下拉
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (infoRef.current && !infoRef.current.contains(e.target as Node)) {
+        setInfoOpen(false)
+      }
+    }
+    if (infoOpen) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [infoOpen])
 
   let title = 'Weibull Calculator'
   let subtitle = '威布尔计算器'
@@ -117,14 +131,54 @@ export default function RootLayout({
                   </Link>
                </div>
                
-               <div className="flex flex-col items-end leading-tight hidden sm:flex">
-                  <div className="text-sm text-slate-400 font-mono font-bold">
-                     v7.0
-                  </div>
-                  <div className="text-[10px] text-slate-300 font-bold tracking-wider uppercase">
-                     by wpyneu
-                  </div>
-               </div>
+               {/* Software Info Dropdown */}
+               <div ref={infoRef} className="relative hidden sm:block">
+                  <button
+                    onClick={() => setInfoOpen(!infoOpen)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  >
+                    <Info size={14} />
+                    <span className="font-medium">软件信息</span>
+                    <ChevronDown size={12} className={cn("transition-transform", infoOpen && "rotate-180")} />
+                  </button>
+
+                  {infoOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg ring-1 ring-black/5 border border-slate-200 py-1 z-50">
+                      {/* Version */}
+                      <div className="px-4 py-2.5 border-b border-slate-100">
+                        <div className="text-xs text-slate-400 font-medium">版本号</div>
+                        <div className="text-sm text-slate-700 font-mono font-bold mt-0.5">{APP_VERSION}</div>
+                      </div>
+
+                      {/* Menu Items */}
+                      <div className="py-1">
+                        <Link
+                          href="/help"
+                          onClick={() => setInfoOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        >
+                          <BookOpen size={16} className="text-slate-400" />
+                          用户手册
+                        </Link>
+                        <Link
+                          href="/help/changelog"
+                          onClick={() => setInfoOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        >
+                          <FileText size={16} className="text-slate-400" />
+                          更新日志
+                        </Link>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="px-4 py-2 border-t border-slate-100">
+                        <div className="text-[10px] text-slate-300 font-bold tracking-wider uppercase">
+                          by wpyneu
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
             </div>
           </div>
         </header>

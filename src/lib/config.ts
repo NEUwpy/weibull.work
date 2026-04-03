@@ -17,6 +17,9 @@ export const getApiBaseUrl = (): string => {
   return 'https://api.weibull.work'
 }
 
+// 应用版本号（统一管理）
+export const APP_VERSION = 'v1.01-260403'
+
 // API 端点
 export const API_ENDPOINTS = {
   calculate: '/calculate',
