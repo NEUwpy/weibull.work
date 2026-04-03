@@ -18,9 +18,11 @@ from base import MethodResult
 
 app = FastAPI()
 
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://weibull.work,http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in CORS_ORIGINS],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
