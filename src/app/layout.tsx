@@ -17,6 +17,7 @@ export default function RootLayout({
   const isLibrary = pathname.startsWith('/library')
   const isCases = pathname.startsWith('/cases')
   const isMethods = pathname.startsWith('/methods')
+  const isHelp = pathname.startsWith('/help')
   const [infoOpen, setInfoOpen] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
 
@@ -51,6 +52,11 @@ export default function RootLayout({
     subtitle = '参数估计方法'
     Icon = Settings2
     themeColor = 'bg-amber-600 shadow-amber-200'
+  } else if (isHelp) {
+    title = 'Help Center'
+    subtitle = '帮助中心'
+    Icon = BookOpen
+    themeColor = 'bg-violet-600 shadow-violet-200'
   }
 
   return (
@@ -153,7 +159,7 @@ export default function RootLayout({
                       {/* Menu Items */}
                       <div className="py-1">
                         <Link
-                          href="/help"
+                          href="/help/manual/about"
                           onClick={() => setInfoOpen(false)}
                           className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                         >

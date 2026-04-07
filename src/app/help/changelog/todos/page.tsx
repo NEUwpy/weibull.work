@@ -9,12 +9,12 @@ function readDoc(filename: string): string {
   return fs.readFileSync(path.join(process.cwd(), filename), 'utf-8')
 }
 
-export default function StatusPage() {
-  const body = stripBlockquotes(readDoc('05-状态.md'))
+export default function TodosPage() {
+  const body = stripBlockquotes(readDoc('04-目标与待办.md'))
 
   return (
     <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
-      <article className="prose prose-slate prose-base max-w-none prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:text-slate-900 prose-h2:text-2xl prose-p:text-slate-600 prose-p:leading-7 prose-strong:text-slate-900 prose-strong:font-bold prose-table:text-sm prose-th:bg-slate-50 prose-th:px-3 prose-th:py-2 prose-td:px-3 prose-td:py-2 prose-th:border-b prose-td:border-b prose-td:border-slate-100">
+      <article className="prose prose-slate prose-base max-w-none prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:text-slate-900 prose-h2:text-2xl prose-h3:text-xl prose-p:text-slate-600 prose-p:leading-7 prose-strong:text-slate-900 prose-strong:font-bold prose-table:text-sm">
         <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>
           {body}
         </Markdown>

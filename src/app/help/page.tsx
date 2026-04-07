@@ -1,30 +1,35 @@
-import fs from 'fs'
-import path from 'path'
-import matter from 'gray-matter'
-import HelpContent from './HelpContent'
-import { stripBlockquotes, extractFirstSection } from '@/lib/markdown'
-
-function readDoc(filename: string): string {
-  return fs.readFileSync(path.join(process.cwd(), filename), 'utf-8')
-}
+import Link from 'next/link'
+import { BookOpen, FileText } from 'lucide-react'
 
 export default function HelpPage() {
-  // 读取多个文档源
-  const { content: features } = matter(readDoc('07-功能.md'))
-  const { content: modules } = matter(readDoc('06-模块.md'))
-  const structureRaw = readDoc('01-结构.md')
-
-  // 过滤：引用为开发者内部注释，不呈现给用户
-  // 01-结构.md 只取第 1 节（系统架构概览），其余为内部架构细节
-  const helpBody = stripBlockquotes(features)
-  const modulesBody = stripBlockquotes(modules)
-  const structureBody = stripBlockquotes(extractFirstSection(structureRaw))
-
   return (
-    <HelpContent
-      helpBody={helpBody}
-      modulesBody={modulesBody}
-      structureBody={structureBody}
-    />
+    <div className="max-w-3xl mx-auto px-6 py-20">
+      <div className="text-center mb-12">
+        <h1 className="text-3xl font-black text-slate-900 mb-3">帮助中心</h1>
+        <p className="text-slate-500">了解平台功能、查阅更新记录</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <Link
+          href="/help/manual/about"
+          className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
+        >
+          <div className="p-3 rounded-xl bg-blue-100 text-blue-600 w-fit mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <BookOpen size={24} />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">用户手册</h2>
+          <p className="text-sm text-slate-500">软件介绍、模块概览、功能详解</p>
+        </Link>
+        <Link
+          href="/help/changelog"
+          className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-200 transition-all"
+        >
+          <div className="p-3 rounded-xl bg-amber-100 text-amber-600 w-fit mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+            <FileText size={24} />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">更新日志</h2>
+          <p className="text-sm text-slate-500">功能状态、版本记录、待办事项</p>
+        </Link>
+      </div>
+    </div>
   )
 }

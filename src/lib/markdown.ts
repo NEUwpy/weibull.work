@@ -17,3 +17,21 @@ export function extractFirstSection(markdown: string): string {
   const match = markdown.match(/^[\s\S]*?(?=\n## )/)
   return match ? match[0] : markdown
 }
+
+/** Extract content from start up to (but not including) a specific ## heading. */
+export function extractBeforeHeading(markdown: string, heading: string): string {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`^## ${escaped}`, 'm')
+  const match = regex.exec(markdown)
+  if (!match) return markdown
+  return markdown.slice(0, match.index).trim()
+}
+
+/** Extract content from a specific ## heading to end of document. */
+export function extractFromHeading(markdown: string, heading: string): string {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`^## ${escaped}`, 'm')
+  const match = regex.exec(markdown)
+  if (!match) return ''
+  return markdown.slice(match.index).trim()
+}
