@@ -8,8 +8,9 @@ const NAV_STRUCTURE = [
   {
     group: '用户手册',
     items: [
-      { label: '软件介绍', href: '/help/manual/about' },
-      { label: '功能详解', href: '/help/manual/features' },
+      { label: '软件结构', href: '/help/manual/about' },
+      { label: '功能详情', href: '/help/manual/features' },
+      { label: '工作流介绍', href: '/help/manual/workflow' },
     ]
   },
   {
@@ -17,7 +18,7 @@ const NAV_STRUCTURE = [
     items: [
       { label: '功能状态', href: '/help/changelog' },
       { label: '版本记录', href: '/help/changelog/versions' },
-      { label: '待办', href: '/help/changelog/todos' },
+      { label: '更新计划', href: '/help/changelog/todos' },
     ]
   },
 ]

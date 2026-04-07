@@ -17,7 +17,7 @@ export default function HelpPage() {
             <BookOpen size={24} />
           </div>
           <h2 className="text-lg font-bold text-slate-900 mb-2">用户手册</h2>
-          <p className="text-sm text-slate-500">软件介绍、模块概览、功能详解</p>
+          <p className="text-sm text-slate-500">软件结构、功能详情、工作流介绍</p>
         </Link>
         <Link
           href="/help/changelog"
@@ -27,7 +27,7 @@ export default function HelpPage() {
             <FileText size={24} />
           </div>
           <h2 className="text-lg font-bold text-slate-900 mb-2">更新日志</h2>
-          <p className="text-sm text-slate-500">功能状态、版本记录、待办事项</p>
+          <p className="text-sm text-slate-500">功能状态、版本记录、更新计划</p>
         </Link>
       </div>
     </div>
