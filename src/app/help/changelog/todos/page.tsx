@@ -1,25 +1,17 @@
-import WorkflowFlowchart, { FlowStep } from '@/components/help/WorkflowFlowchart'
-
-const WORKFLOW_PLAN: FlowStep[] = [
-  { label: '数据准备', status: 'done', desc: '手动输入 + 案例库调用' },
-  { label: '方法选择', status: 'done', desc: '单方法 / 多方法对比' },
-  { label: '参数估计', status: 'done', desc: '11 种算法实现' },
-  { label: '结果分析', status: 'partial', desc: '部分方法已完成' },
-  { label: '适用范围研究', status: 'partial', desc: 'MDM / MLE 已完成' },
-  { label: '可信性验证', status: 'partial', desc: 'MDM 已完成' },
-  { label: '方法横向对比', status: 'todo', desc: '统一评价体系' },
-]
-
-type PlanStatus = 'done' | 'todo'
-
 interface PlanItem {
   text: string
-  status: PlanStatus
+  status: 'done' | 'todo'
 }
 
-const FEATURE_PLANS: { category: string; items: PlanItem[] }[] = [
+type Phase = {
+  label: string
+  desc: string
+  items: PlanItem[]
+}
+
+const PHASES: Phase[] = [
   {
-    category: '方法系统完善',
+    label: '短期',
     items: [
       { text: '完成所有 25+ 算法的流程数据文件 (method_flows/*.json)', status: 'todo' },
       { text: '完成所有算法的 Markdown 原理文档', status: 'todo' },
@@ -27,10 +19,13 @@ const FEATURE_PLANS: { category: string; items: PlanItem[] }[] = [
       { text: '各方法的结果分析模块', status: 'todo' },
       { text: '各方法的适用范围蒙特卡洛分析', status: 'todo' },
       { text: '各方法的可信性验证（复现论文结果）', status: 'todo' },
+      { text: '完善和校对案例数据库', status: 'todo' },
+      { text: '完善和校对文献库', status: 'todo' },
+      { text: '建立案例与文献的完整关联', status: 'todo' },
     ],
   },
   {
-    category: '横向比较与评价体系',
+    label: '中期',
     items: [
       { text: '建立统一的参数估计结果评价标准', status: 'todo' },
       { text: '方法横向对比模块开发', status: 'todo' },
@@ -38,15 +33,7 @@ const FEATURE_PLANS: { category: string; items: PlanItem[] }[] = [
     ],
   },
   {
-    category: '数据与文献',
-    items: [
-      { text: '完善和校对案例数据库', status: 'todo' },
-      { text: '完善和校对文献库', status: 'todo' },
-      { text: '建立案例与文献的完整关联', status: 'todo' },
-    ],
-  },
-  {
-    category: '人工智能功能',
+    label: '长期',
     items: [
       { text: '基于文献库的 RAG 智能问答', status: 'todo' },
       { text: '智能优化算法辅助参数估计', status: 'todo' },
@@ -54,6 +41,12 @@ const FEATURE_PLANS: { category: string; items: PlanItem[] }[] = [
     ],
   },
 ]
+
+const PHASE_STYLES: Record<string, { badge: string; dot: string }> = {
+  '短期': { badge: 'bg-blue-100 text-blue-700', dot: 'bg-blue-400' },
+  '中期': { badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
+  '长期': { badge: 'bg-violet-100 text-violet-700', dot: 'bg-violet-400' },
+}
 
 export default function TodosPage() {
   return (
@@ -64,20 +57,25 @@ export default function TodosPage() {
         <p className="text-slate-500">后续开发方向与待办事项</p>
       </div>
 
-      {/* 工作流完成状态 */}
-      <section>
-        <WorkflowFlowchart steps={WORKFLOW_PLAN} title="工作流开发进度" />
-      </section>
+      {/* 阶段规划 */}
+      <div className="space-y-10">
+        {PHASES.map(phase => {
+          const style = PHASE_STYLES[phase.label]
+          const doneCount = phase.items.filter(i => i.status === 'done').length
+          const totalCount = phase.items.length
+          return (
+            <section key={phase.label}>
+              {/* 阶段标题 */}
+              <div className="flex items-center gap-3 mb-2">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
+                  {phase.label}
+                </span>
+                <span className="ml-auto text-xs text-slate-400">{doneCount}/{totalCount}</span>
+              </div>
 
-      {/* 功能规划 */}
-      <section>
-        <h2 className="text-lg font-bold text-slate-900 mb-6">功能规划</h2>
-        <div className="space-y-8">
-          {FEATURE_PLANS.map(group => (
-            <div key={group.category}>
-              <h3 className="text-base font-bold text-slate-700 mb-3">{group.category}</h3>
-              <div className="space-y-2">
-                {group.items.map(item => (
+              {/* 任务列表 */}
+              <div className="space-y-2 mt-3">
+                {phase.items.map(item => (
                   <div
                     key={item.text}
                     className={`flex items-center gap-3 py-2.5 px-4 rounded-xl ${
@@ -86,10 +84,10 @@ export default function TodosPage() {
                   >
                     <span
                       className={`shrink-0 w-2 h-2 rounded-full ${
-                        item.status === 'done' ? 'bg-emerald-500' : 'bg-slate-300'
+                        item.status === 'done' ? 'bg-emerald-500' : style.dot
                       }`}
                     />
-                    <span className={`text-sm ${item.status === 'todo' ? 'text-slate-400' : 'text-slate-700'}`}>
+                    <span className={`text-sm ${item.status === 'todo' ? 'text-slate-500' : 'text-slate-700'}`}>
                       {item.text}
                     </span>
                     {item.status === 'todo' && (
@@ -100,10 +98,10 @@ export default function TodosPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }

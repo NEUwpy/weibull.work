@@ -53,10 +53,10 @@ export default function RootLayout({
     Icon = Settings2
     themeColor = 'bg-amber-600 shadow-amber-200'
   } else if (isHelp) {
-    title = 'Help Center'
-    subtitle = '帮助中心'
-    Icon = BookOpen
-    themeColor = 'bg-violet-600 shadow-violet-200'
+    title = 'Software Info'
+    subtitle = '软件信息'
+    Icon = Info
+    themeColor = 'bg-slate-600 shadow-slate-200'
   }
 
   return (
