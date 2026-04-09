@@ -17,8 +17,8 @@ export const getApiBaseUrl = (): string => {
   return 'https://api.weibull.work'
 }
 
-// 应用版本号（统一管理）
-export const APP_VERSION = 'v1.01-260403'
+// 应用版本号 —— 由 next.config.js 从 08-更新日志.md 头部提取，构建时注入
+export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || 'v0.00-000000'
 
 // API 端点
 export const API_ENDPOINTS = {
