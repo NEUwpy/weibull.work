@@ -12,6 +12,7 @@ type Phase = {
 const PHASES: Phase[] = [
   {
     label: '短期',
+    desc: '',
     items: [
       { text: '完成所有 25+ 算法的流程数据文件 (method_flows/*.json)', status: 'todo' },
       { text: '完成所有算法的 Markdown 原理文档', status: 'todo' },
@@ -26,6 +27,7 @@ const PHASES: Phase[] = [
   },
   {
     label: '中期',
+    desc: '',
     items: [
       { text: '建立统一的参数估计结果评价标准', status: 'todo' },
       { text: '方法横向对比模块开发', status: 'todo' },
@@ -34,6 +36,7 @@ const PHASES: Phase[] = [
   },
   {
     label: '长期',
+    desc: '',
     items: [
       { text: '基于文献库的 RAG 智能问答', status: 'todo' },
       { text: '智能优化算法辅助参数估计', status: 'todo' },
