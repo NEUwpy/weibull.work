@@ -4,7 +4,9 @@ import matter from 'gray-matter'
 
 type ShortItem = {
   text: string
-  status: 'focus' | 'next' | 'todo'
+  status: 'focus' | 'next' | 'todo' | 'count'
+  current?: number
+  total?: number
 }
 
 type ShortTerm = {
@@ -64,7 +66,7 @@ function parseTodos(markdown: string): LongTerm[] {
       continue
     }
 
-    // - [>] focus, - [!] next, - [ ] todo
+    // - [>] focus, - [!] next, - [ ] todo, - [x/y] count
     const focusMatch = line.match(/^- \[>\] (.+)$/)
     if (focusMatch && currentShort) {
       currentShort.items.push({ text: focusMatch[1].trim(), status: 'focus' })
@@ -78,6 +80,16 @@ function parseTodos(markdown: string): LongTerm[] {
     const todoMatch = line.match(/^- \[ \] (.+)$/)
     if (todoMatch && currentShort) {
       currentShort.items.push({ text: todoMatch[1].trim(), status: 'todo' })
+      continue
+    }
+    const countMatch = line.match(/^- \[(\d+)\/(\d+)\] (.+)$/)
+    if (countMatch && currentShort) {
+      currentShort.items.push({
+        text: countMatch[3].trim(),
+        status: 'count',
+        current: parseInt(countMatch[1], 10),
+        total: parseInt(countMatch[2], 10),
+      })
     }
   }
   return results
@@ -96,12 +108,14 @@ const ITEM_BORDER: Record<string, string> = {
   focus: 'border-2 border-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.4)]',
   next: 'border-2 border-amber-400',
   todo: 'border border-slate-200',
+  count: 'border border-sky-200 bg-sky-50/30',
 }
 
 const ITEM_BADGE: Record<string, { text: string; cls: string }> = {
   focus: { text: '聚焦中', cls: 'bg-emerald-100 text-emerald-700' },
   next: { text: '下一个', cls: 'bg-amber-100 text-amber-700' },
   todo: { text: '待完成', cls: 'bg-slate-100 text-slate-400' },
+  count: { text: '', cls: 'bg-sky-100 text-sky-700' },
 }
 
 export default function TodosPage() {
@@ -155,21 +169,23 @@ export default function TodosPage() {
                           >
                             <span className={`shrink-0 w-2 h-2 rounded-full ${
                               item.status === 'focus' ? 'bg-emerald-500' :
-                              item.status === 'next' ? 'bg-amber-400' : style.dot
+                              item.status === 'next' ? 'bg-amber-400' :
+                              item.status === 'count' ? 'bg-sky-400' : style.dot
                             }`} />
                             <span className={`text-sm ${
                               item.status === 'focus' ? 'text-slate-800 font-medium' :
-                              item.status === 'next' ? 'text-slate-600' : 'text-slate-400'
+                              item.status === 'next' ? 'text-slate-600' :
+                              item.status === 'count' ? 'text-slate-700' : 'text-slate-400'
                             }`}>
                               {item.text}
                             </span>
-                            {short.label && item.status !== 'focus' && item.status !== 'next' && (
+                            {short.label && item.status !== 'focus' && item.status !== 'next' && item.status !== 'count' && (
                               <span className="text-[10px] text-slate-300 bg-slate-50 px-1.5 py-0.5 rounded shrink-0">
                                 {short.label}
                               </span>
                             )}
                             <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${ITEM_BADGE[item.status].cls}`}>
-                              {ITEM_BADGE[item.status].text}
+                              {item.status === 'count' && item.current !== undefined && item.total !== undefined ? `${item.current}/${item.total}` : ITEM_BADGE[item.status].text}
                             </span>
                           </div>
                         ))
