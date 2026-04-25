@@ -24,4 +24,5 @@ export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || 'v0.00-000000'
 export const API_ENDPOINTS = {
   calculate: '/calculate',
   calculate3DSurface: '/calculate_3d_surface',
+  aiPredictDelta: '/ai/relationship/mdm',
 } as const

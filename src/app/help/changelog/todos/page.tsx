@@ -159,36 +159,44 @@ export default function TodosPage() {
                       <span className="text-sm font-semibold text-slate-700">{mid.label}</span>
                     </div>
 
-                    {/* 短期条目：卡片样式，按 #### 分组但不显示标题 */}
-                    <div className="space-y-2 ml-3">
+                    {/* 短期目标子卡片区域：每个 #### 是一个子卡片 */}
+                    <div className="space-y-3 ml-3">
                       {mid.shorts.map(short => (
-                        short.items.map(item => (
-                          <div
-                            key={item.text}
-                            className={`flex items-center gap-3 py-2.5 px-4 rounded-xl bg-white ${ITEM_BORDER[item.status]}`}
-                          >
-                            <span className={`shrink-0 w-2 h-2 rounded-full ${
-                              item.status === 'focus' ? 'bg-emerald-500' :
-                              item.status === 'next' ? 'bg-amber-400' :
-                              item.status === 'count' ? 'bg-sky-400' : style.dot
-                            }`} />
-                            <span className={`text-sm ${
-                              item.status === 'focus' ? 'text-slate-800 font-medium' :
-                              item.status === 'next' ? 'text-slate-600' :
-                              item.status === 'count' ? 'text-slate-700' : 'text-slate-400'
-                            }`}>
-                              {item.text}
+                        <div key={short.label} className="bg-slate-50/60 rounded-xl p-3">
+                          {/* 短期目标标题 */}
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${style.badge}`}>
+                              短期
                             </span>
-                            {short.label && item.status !== 'focus' && item.status !== 'next' && item.status !== 'count' && (
-                              <span className="text-[10px] text-slate-300 bg-slate-50 px-1.5 py-0.5 rounded shrink-0">
-                                {short.label}
-                              </span>
-                            )}
-                            <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${ITEM_BADGE[item.status].cls}`}>
-                              {item.status === 'count' && item.current !== undefined && item.total !== undefined ? `${item.current}/${item.total}` : ITEM_BADGE[item.status].text}
-                            </span>
+                            <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                            <span className="text-sm font-semibold text-slate-700">{short.label}</span>
                           </div>
-                        ))
+                          {/* 短期目标下的任务条目 */}
+                          <div className="space-y-2">
+                            {short.items.map(item => (
+                              <div
+                                key={item.text}
+                                className={`flex items-center gap-3 py-2 px-3 rounded-lg bg-white ${ITEM_BORDER[item.status]}`}
+                              >
+                                <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${
+                                  item.status === 'focus' ? 'bg-emerald-500' :
+                                  item.status === 'next' ? 'bg-amber-400' :
+                                  item.status === 'count' ? 'bg-sky-400' : style.dot
+                                }`} />
+                                <span className={`text-sm ${
+                                  item.status === 'focus' ? 'text-slate-800 font-medium' :
+                                  item.status === 'next' ? 'text-slate-600' :
+                                  item.status === 'count' ? 'text-slate-700' : 'text-slate-400'
+                                }`}>
+                                  {item.text}
+                                </span>
+                                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${ITEM_BADGE[item.status].cls}`}>
+                                  {item.status === 'count' && item.current !== undefined && item.total !== undefined ? `${item.current}/${item.total}` : ITEM_BADGE[item.status].text}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>

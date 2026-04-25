@@ -365,3 +365,127 @@ async def monte_carlo_simulate(req: MonteCarloRequest):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
+
+
+# ============================================================
+# AI Methods — 关系建立: MDM 偏移量优化
+# ============================================================
+
+import torch
+import torch.nn as nn
+
+class DeltaMLP(nn.Module):
+    """全连接 MLP：输入样本数据，输出最优偏移量 δ"""
+
+    def __init__(self, input_dim: int, hidden1: int = 64, hidden2: int = 32):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, hidden1),
+            nn.ReLU(),
+            nn.Linear(hidden1, hidden2),
+            nn.ReLU(),
+            nn.Linear(hidden2, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+# 模型缓存
+_ai_models = {}
+
+def _load_delta_model(n: int):
+    """按样本量 n 加载对应的模型"""
+    if n in _ai_models:
+        return _ai_models[n]
+
+    models_dir = os.path.join(os.path.dirname(__file__), 'models', 'mdm_delta')
+    model_path = os.path.join(models_dir, f'n{n}_model.pth')
+
+    if not os.path.exists(model_path):
+        return None
+
+    checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
+    model = DeltaMLP(
+        input_dim=checkpoint['input_dim'],
+        hidden1=checkpoint['hidden1'],
+        hidden2=checkpoint['hidden2']
+    )
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.eval()
+
+    delta_min = checkpoint.get('delta_min', 0.01)
+    delta_max = checkpoint.get('delta_max', 0.50)
+    scaler_params = checkpoint.get('scaler_params', None)
+
+    _ai_models[n] = (model, delta_min, delta_max, scaler_params)
+    return _ai_models[n]
+
+
+class AIDeltaRequest(BaseModel):
+    """AI 偏移量预测请求"""
+    data: List[float]
+
+class AIDeltaResponse(BaseModel):
+    """AI 偏移量预测响应"""
+    optimal_delta: float
+    model_n: int
+    confidence: Optional[str] = None
+
+
+@app.post("/ai/relationship/mdm", response_model=AIDeltaResponse)
+async def ai_predict_delta(req: AIDeltaRequest):
+    """
+    AI 预测 MDM 最优偏移量 δ
+
+    输入：样本数据（排序后的失效时间）
+    输出：AI 预测的最优偏移量 δ
+    """
+    if len(req.data) < 3:
+        raise HTTPException(status_code=400, detail="样本量至少为 3")
+
+    n = len(req.data)
+
+    # 加载模型
+    result = _load_delta_model(n)
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"未找到样本量 n={n} 的模型。当前可用模型: {list(_ai_models.keys())}"
+        )
+
+    model, delta_min, delta_max, scaler_params = result
+
+    # 排序
+    sample = sorted(req.data)
+    sample_arr = np.array(sample).reshape(1, -1)
+
+    # 标准化输入
+    if scaler_params:
+        x_mean = np.array(scaler_params['x_mean'])
+        x_std = np.array(scaler_params['x_std'])
+        sample_arr = (sample_arr - x_mean) / x_std
+
+    sample_tensor = torch.FloatTensor(sample_arr)
+
+    # 推理
+    with torch.no_grad():
+        pred = model(sample_tensor).squeeze().item()
+
+    # 缩放到 δ 范围
+    optimal_delta = pred * (delta_max - delta_min) + delta_min
+
+    # 置信度评估（基于是否接近边界）
+    if optimal_delta <= delta_min + 0.01 or optimal_delta >= delta_max - 0.01:
+        confidence = "low"
+    elif optimal_delta <= delta_min + 0.03 or optimal_delta >= delta_max - 0.03:
+        confidence = "medium"
+    else:
+        confidence = "high"
+
+    return AIDeltaResponse(
+        optimal_delta=round(optimal_delta, 4),
+        model_n=n,
+        confidence=confidence
+    )

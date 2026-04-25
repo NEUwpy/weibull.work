@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import './globals.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calculator, Library, Database, Settings2, ChevronDown, BookOpen, FileText, Info } from 'lucide-react'
+import { Calculator, Library, Database, Settings2, ChevronDown, BookOpen, FileText, Info, Brain } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/config'
 
@@ -17,6 +17,7 @@ export default function RootLayout({
   const isLibrary = pathname.startsWith('/library')
   const isCases = pathname.startsWith('/cases')
   const isMethods = pathname.startsWith('/methods')
+  const isAI = pathname.startsWith('/ai')
   const isHelp = pathname.startsWith('/help')
   const [infoOpen, setInfoOpen] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
@@ -42,6 +43,11 @@ export default function RootLayout({
     subtitle = '可靠性图书馆'
     Icon = Library
     themeColor = 'bg-emerald-600 shadow-emerald-200'
+  } else if (isAI) {
+    title = 'AI Methods'
+    subtitle = '人工智能方法'
+    Icon = Brain
+    themeColor = 'bg-violet-600 shadow-violet-200'
   } else if (isCases) {
     title = 'Case Database'
     subtitle = '案例数据库'
@@ -91,7 +97,7 @@ export default function RootLayout({
                     href="/"
                     className={cn(
                       "px-5 py-2 rounded-lg text-base font-bold flex items-center gap-2 transition-all whitespace-nowrap",
-                      !isLibrary && !isCases && !isMethods
+                      !isLibrary && !isCases && !isMethods && !isAI
                         ? "bg-white text-blue-600 shadow-sm ring-1 ring-black/5"
                         : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                     )}
@@ -110,6 +116,18 @@ export default function RootLayout({
                   >
                     <Settings2 size={18} />
                     参数估计方法
+                  </Link>
+                  <Link
+                    href="/ai"
+                    className={cn(
+                      "px-5 py-2 rounded-lg text-base font-bold flex items-center gap-2 transition-all whitespace-nowrap",
+                      isAI
+                        ? "bg-white text-violet-600 shadow-sm ring-1 ring-black/5"
+                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                    )}
+                  >
+                    <Brain size={18} />
+                    人工智能方法
                   </Link>
                   <Link
                     href="/cases"
