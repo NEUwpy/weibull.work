@@ -26,4 +26,5 @@ export const API_ENDPOINTS = {
   calculate3DSurface: '/calculate_3d_surface',
   aiPredictDelta: '/ai/relationship/mdm',
   aiPredictDeltaIterate: '/ai/relationship/mdm/iterate',
+  aiDirectEstimation: '/ai/direct-estimation',
 } as const

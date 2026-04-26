@@ -45,8 +45,8 @@ const modules = [
     accentBg: 'bg-cyan-50',
     accentBorder: 'border-cyan-100',
     description: '神经网络端到端直接输出参数估计值（β、η、γ），完全绕过优化过程，纯前向传播。',
-    status: '待开发',
-    statusColor: 'bg-slate-100 text-slate-500',
+    status: '进行中',
+    statusColor: 'bg-green-100 text-green-700',
   },
 ]
 

@@ -418,6 +418,35 @@ class DeltaMLP_N1(nn.Module):
 _ai_models_n2 = {}   # 路线 1 模型（按 n 缓存）
 _ai_model_n1 = None  # 路线 2 公共模型
 
+
+# ============================================================
+# AI Methods — 直接估计: 端到端参数预测
+# ============================================================
+
+class DirectEstimationMLP(nn.Module):
+    """直接估计模型：样本 → (β, η, γ)
+    Linear(n,128)→ReLU→Linear(128,64)→ReLU→Linear(64,32)→ReLU→Linear(32,3)
+    输出层线性，直接输出原始值
+    """
+    def __init__(self, input_dim: int):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 3),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+# 直接估计模型缓存
+_ai_direct_models = {}  # 按 n 缓存
+
 def _load_delta_model(n: int):
     """按样本量 n 加载路线 1 的 N₂ 模型"""
     if n in _ai_models_n2:
@@ -693,4 +722,166 @@ async def ai_predict_delta_iterate(req: AIIterateRequest):
         iterations=iterations,
         converged=converged,
         convergence_reason=convergence_reason
+    )
+
+
+# ============================================================
+# 直接估计：端到端参数预测
+# ============================================================
+
+def _load_direct_estimation_model(n: int, scheme: str = 'a1'):
+    """按样本量 n 和预处理方案加载直接估计模型"""
+    cache_key = f'{n}_{scheme}'
+    if cache_key in _ai_direct_models:
+        return _ai_direct_models[cache_key]
+
+    models_dir = os.path.join(os.path.dirname(__file__), 'models', 'direct_estimation')
+
+    if scheme == 'b1':
+        model_path = os.path.join(models_dir, 'b1_model.pth')
+    else:
+        suffix = f'_{scheme}' if scheme != 'a1' else ''
+        model_path = os.path.join(models_dir, f'n{n}{suffix}_model.pth')
+
+    if not os.path.exists(model_path):
+        return None
+
+    checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
+    model = DirectEstimationMLP(input_dim=checkpoint['input_dim'])
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.eval()
+
+    scaler_params = checkpoint.get('scaler_params', None)
+    y_scaler = checkpoint.get('y_scaler', None)
+    preprocessing = checkpoint.get('preprocessing', 'a1')
+    n_max = checkpoint.get('n_max', None)
+
+    _ai_direct_models[cache_key] = (model, scaler_params, y_scaler, preprocessing, n_max)
+    return _ai_direct_models[cache_key]
+
+
+class AIDirectEstimationRequest(BaseModel):
+    """直接估计请求"""
+    data: List[float]
+    scheme: str = 'a1'  # 预处理方案: a1, a2, a3, b1, b2, c1, c2, c3
+
+
+class AIDirectEstimationResponse(BaseModel):
+    """直接估计响应"""
+    beta: float
+    eta: float
+    gamma: float
+    model_n: int
+
+
+@app.post("/ai/direct-estimation", response_model=AIDirectEstimationResponse)
+async def ai_direct_estimation(req: AIDirectEstimationRequest):
+    """
+    直接估计：AI 端到端直接输出 β、η、γ
+
+    输入：样本数据（排序后的失效时间）+ 预处理方案
+    输出：AI 预测的 β（形状参数）、η（尺度参数）、γ（位置参数）
+    """
+    if len(req.data) < 3:
+        raise HTTPException(status_code=400, detail="样本量至少为 3")
+
+    n = len(req.data)
+    scheme = req.scheme
+
+    # 加载模型
+    result = _load_direct_estimation_model(n, scheme)
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"未找到方案 {scheme} 样本量 n={n} 的直接估计模型"
+        )
+
+    model, scaler_params, y_scaler, preprocessing, n_max = result
+
+    # 排序
+    sample = sorted(req.data)
+    sample_arr = np.array(sample).reshape(1, -1)
+
+    # 预处理
+    if preprocessing == 'a2':
+        t_bar = np.mean(sample_arr, axis=1, keepdims=True)
+        t_bar_safe = np.where(t_bar < 1e-10, 1e-10, t_bar)
+        sample_arr = np.concatenate([sample_arr / t_bar_safe, t_bar], axis=1)
+    elif preprocessing == 'a3':
+        t_min = np.min(sample_arr, axis=1, keepdims=True)
+        sample_arr = sample_arr - t_min
+    elif preprocessing == 'c1':
+        t_bar = np.mean(sample_arr, axis=1, keepdims=True)
+        t_std = np.std(sample_arr, axis=1, keepdims=True)
+        t_min = np.min(sample_arr, axis=1, keepdims=True)
+        t_max = np.max(sample_arr, axis=1, keepdims=True)
+        sample_arr = np.concatenate([t_bar, t_std, t_min, t_max], axis=1)
+    elif preprocessing == 'c2':
+        from scipy import stats
+        t_bar = np.mean(sample_arr, axis=1, keepdims=True)
+        t_std = np.std(sample_arr, axis=1, keepdims=True)
+        t_min = np.min(sample_arr, axis=1, keepdims=True)
+        t_max = np.max(sample_arr, axis=1, keepdims=True)
+        t_median = np.median(sample_arr, axis=1, keepdims=True)
+        skewness = np.array([stats.skew(sample_arr[0])]).reshape(1, -1)
+        kurtosis = np.array([stats.kurtosis(sample_arr[0])]).reshape(1, -1)
+        sample_arr = np.concatenate([t_bar, t_std, t_min, t_max, skewness, kurtosis, t_median], axis=1)
+    elif preprocessing == 'c3':
+        from scipy import stats
+        t_bar = np.mean(sample_arr, axis=1, keepdims=True)
+        t_std = np.std(sample_arr, axis=1, keepdims=True)
+        t_min = np.min(sample_arr, axis=1, keepdims=True)
+        t_max = np.max(sample_arr, axis=1, keepdims=True)
+        t_median = np.median(sample_arr, axis=1, keepdims=True)
+        skewness = np.array([stats.skew(sample_arr[0])]).reshape(1, -1)
+        kurtosis = np.array([stats.kurtosis(sample_arr[0])]).reshape(1, -1)
+        q1 = np.percentile(sample_arr, 25, axis=1, keepdims=True)
+        q3 = np.percentile(sample_arr, 75, axis=1, keepdims=True)
+        iqr = q3 - q1
+        t_bar_safe = np.where(t_bar < 1e-10, 1e-10, t_bar)
+        cv = t_std / t_bar_safe
+        sample_arr = np.concatenate([t_bar, t_std, t_min, t_max, skewness, kurtosis, t_median, q1, q3, iqr, cv], axis=1)
+    elif preprocessing == 'b1':
+        n_max_val = n_max or 15
+        padded = np.zeros((1, n_max_val))
+        padded[0, :n] = sample_arr[0]
+        mask = np.zeros((1, n_max_val))
+        mask[0, :n] = 1.0
+        sample_arr = np.concatenate([padded, mask], axis=1)
+    elif preprocessing == 'b2':
+        n_max_val = n_max or 15
+        t_bar = np.mean(sample_arr, axis=1, keepdims=True)
+        t_bar_safe = np.where(t_bar < 1e-10, 1e-10, t_bar)
+        normalized = sample_arr / t_bar_safe
+        padded = np.zeros((1, n_max_val))
+        padded[0, :n] = normalized[0]
+        mask = np.zeros((1, n_max_val))
+        mask[0, :n] = 1.0
+        sample_arr = np.concatenate([padded, t_bar, mask], axis=1)
+
+    # 标准化输入
+    if scaler_params:
+        x_mean = np.array(scaler_params['x_mean'])
+        x_std = np.array(scaler_params['x_std'])
+        sample_arr = (sample_arr - x_mean) / x_std
+
+    sample_tensor = torch.FloatTensor(sample_arr)
+
+    # 推理
+    with torch.no_grad():
+        pred_norm = model(sample_tensor).squeeze().numpy()
+
+    # 反归一化输出
+    if y_scaler:
+        y_mean = np.array(y_scaler['y_mean'])
+        y_std = np.array(y_scaler['y_std'])
+        pred = pred_norm * y_std + y_mean
+    else:
+        pred = pred_norm
+
+    return AIDirectEstimationResponse(
+        beta=round(float(pred[0]), 4),
+        eta=round(float(pred[1]), 2),
+        gamma=round(float(pred[2]), 2),
+        model_n=n
     )
