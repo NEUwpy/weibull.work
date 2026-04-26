@@ -128,6 +128,76 @@ def find_optimal_delta(sample, true_beta, true_eta, true_gamma, delta_grid, gamm
     return best_delta, best_mse, success_count
 
 
+def find_optimal_delta_coarse_to_fine(sample, true_beta, true_eta, true_gamma,
+                                      delta_min, delta_max, coarse_step, fine_step,
+                                      gamma_steps, fine_range):
+    """
+    粗搜+细搜两阶段 δ 搜索
+
+    阶段 1（粗搜）: 步长 coarse_step 遍历 [delta_min, delta_max]
+    阶段 2（细搜）: 在 best_coarse ± fine_range 范围内，步长 fine_step 精搜
+
+    优点：
+    - 比小步长全覆盖快得多
+    - 比大步长全覆盖精度高
+    - 自然减少边界聚集（粗搜边界不影响，细搜在内部）
+
+    返回: (optimal_delta, best_relative_mse, success_count, is_boundary)
+    """
+    # === 阶段 1: 粗搜 ===
+    coarse_grid = np.arange(delta_min, delta_max + coarse_step / 2, coarse_step)
+    coarse_grid = np.round(coarse_grid, 4)
+
+    best_coarse_delta = None
+    best_coarse_mse = float('inf')
+    coarse_success = 0
+
+    for delta in coarse_grid:
+        result = run_mdm_with_delta(sample, delta, gamma_steps=gamma_steps)
+        if result is None:
+            continue
+        est_beta, est_eta, est_gamma = result
+        if est_beta <= 0 or est_beta > 50 or est_eta <= 0 or est_eta > 1e6:
+            continue
+        mse = compute_relative_mse(est_beta, est_eta, est_gamma, true_beta, true_eta, true_gamma)
+        coarse_success += 1
+        if mse < best_coarse_mse:
+            best_coarse_mse = mse
+            best_coarse_delta = delta
+
+    if best_coarse_delta is None:
+        return None, None, 0, False
+
+    # === 阶段 2: 细搜 ===
+    fine_min = max(delta_min, best_coarse_delta - fine_range)
+    fine_max = min(delta_max, best_coarse_delta + fine_range)
+    fine_grid = np.arange(fine_min, fine_max + fine_step / 2, fine_step)
+    fine_grid = np.round(fine_grid, 4)
+
+    best_fine_delta = best_coarse_delta
+    best_fine_mse = best_coarse_mse
+    fine_success = 0
+
+    for delta in fine_grid:
+        result = run_mdm_with_delta(sample, delta, gamma_steps=gamma_steps)
+        if result is None:
+            continue
+        est_beta, est_eta, est_gamma = result
+        if est_beta <= 0 or est_beta > 50 or est_eta <= 0 or est_eta > 1e6:
+            continue
+        mse = compute_relative_mse(est_beta, est_eta, est_gamma, true_beta, true_eta, true_gamma)
+        fine_success += 1
+        if mse < best_fine_mse:
+            best_fine_mse = mse
+            best_fine_delta = delta
+
+    # 边界检查：用细搜的边界
+    is_boundary = (abs(best_fine_delta - delta_min) < 1e-9 or
+                   abs(best_fine_delta - delta_max) < 1e-9)
+
+    return best_fine_delta, best_fine_mse, coarse_success + fine_success, is_boundary
+
+
 def main():
     parser = argparse.ArgumentParser(description='MDM 偏移量 δ 优化 — 训练数据生成')
     parser.add_argument('--betas', type=str, default='2',
@@ -144,6 +214,15 @@ def main():
                         help='δ 搜索最大值 (默认: 1.00)')
     parser.add_argument('--delta-step', type=float, default=0.05,
                         help='δ 搜索步长 (默认: 0.05)')
+    parser.add_argument('--search-mode', type=str, default='coarse-to-fine',
+                        choices=['grid', 'coarse-to-fine'],
+                        help='搜索模式: grid=网格搜索, coarse-to-fine=粗搜+细搜 (默认: coarse-to-fine)')
+    parser.add_argument('--coarse-step', type=float, default=0.1,
+                        help='粗搜步长 (默认: 0.1)')
+    parser.add_argument('--fine-step', type=float, default=0.01,
+                        help='细搜步长 (默认: 0.01)')
+    parser.add_argument('--fine-range', type=float, default=0.1,
+                        help='细搜范围: best_coarse +/- fine_range (默认: 0.1)')
     parser.add_argument('--mc-runs', type=int, default=500,
                         help='每组参数的蒙特卡洛次数 (默认: 500)')
     parser.add_argument('--gamma-steps', type=int, default=60,
@@ -175,8 +254,12 @@ def main():
         'etas': etas,
         'gamma': args.gamma,
         'sampleSizes': sample_sizes,
+        'searchMode': args.search_mode,
         'deltaRange': [args.delta_min, args.delta_max, args.delta_step],
         'deltaCount': len(delta_grid),
+        'coarseStep': args.coarse_step if args.search_mode == 'coarse-to-fine' else None,
+        'fineStep': args.fine_step if args.search_mode == 'coarse-to-fine' else None,
+        'fineRange': args.fine_range if args.search_mode == 'coarse-to-fine' else None,
         'mcRuns': args.mc_runs,
         'gammaSteps': args.gamma_steps,
         'seedStart': args.seed_start,
@@ -189,15 +272,21 @@ def main():
         json.dump(config, f, indent=2, ensure_ascii=False)
 
     print("=" * 60)
-    print("MDM 偏移量 δ 优化 — 训练数据生成")
+    print("MDM 偏移量 delta 优化 -- 训练数据生成")
     print("=" * 60)
-    print(f"β: {betas}")
-    print(f"η: {etas}")
-    print(f"γ: {args.gamma}")
+    print(f"beta: {betas}")
+    print(f"eta: {etas}")
+    print(f"gamma: {args.gamma}")
     print(f"样本量: {sample_sizes}")
-    print(f"δ 网格: [{args.delta_min}, {args.delta_max}], 步长 {args.delta_step}, 共 {len(delta_grid)} 个")
+    if args.search_mode == 'coarse-to-fine':
+        print(f"搜索模式: 粗搜+细搜")
+        print(f"  粗搜: [{args.delta_min}, {args.delta_max}], 步长 {args.coarse_step}")
+        print(f"  细搜: best +/- {args.fine_range}, 步长 {args.fine_step}")
+    else:
+        print(f"搜索模式: 网格搜索")
+        print(f"  delta 网格: [{args.delta_min}, {args.delta_max}], 步长 {args.delta_step}, 共 {len(delta_grid)} 个")
     print(f"MC 次数: {args.mc_runs}")
-    print(f"参数组合: {len(betas)}×{len(etas)}×{len(sample_sizes)} = {len(betas)*len(etas)*len(sample_sizes)} 组")
+    print(f"参数组合: {len(betas)}x{len(etas)}x{len(sample_sizes)} = {len(betas)*len(etas)*len(sample_sizes)} 组")
     print(f"预期样本: {len(betas)*len(etas)*len(sample_sizes)*args.mc_runs}")
     print(f"输出目录: {output_dir}")
     print("=" * 60)
@@ -230,9 +319,18 @@ def main():
                 sample = generate_weibull_sample(beta_val, eta_val, gamma_val, n, seed)
 
                 # 找最优 δ
-                optimal_delta, best_mse, success_count = find_optimal_delta(
-                    sample, beta_val, eta_val, gamma_val, delta_grid, args.gamma_steps
-                )
+                if args.search_mode == 'coarse-to-fine':
+                    optimal_delta, best_mse, success_count, is_boundary = find_optimal_delta_coarse_to_fine(
+                        sample, beta_val, eta_val, gamma_val,
+                        args.delta_min, args.delta_max, args.coarse_step, args.fine_step,
+                        args.gamma_steps, args.fine_range
+                    )
+                    if is_boundary:
+                        optimal_delta = None
+                else:
+                    optimal_delta, best_mse, success_count = find_optimal_delta(
+                        sample, beta_val, eta_val, gamma_val, delta_grid, args.gamma_steps
+                    )
 
                 if optimal_delta is None:
                     combo_no_solution += 1

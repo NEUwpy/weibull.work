@@ -1,14 +1,10 @@
 {
   "config": {
     "betas": [
-      1.0,
-      2.0,
-      5.0
+      2.0
     ],
     "etas": [
-      100.0,
-      1000.0,
-      5000.0
+      1000.0
     ],
     "gamma": 1000,
     "sampleSizes": [
@@ -16,43 +12,47 @@
       7,
       15
     ],
+    "searchMode": "coarse-to-fine",
     "deltaRange": [
-      0.01,
-      0.5,
-      0.01
+      0.001,
+      1.0,
+      0.05
     ],
-    "deltaCount": 50,
+    "deltaCount": 21,
+    "coarseStep": 0.1,
+    "fineStep": 0.01,
+    "fineRange": 0.1,
     "mcRuns": 500,
     "gammaSteps": 60,
     "seedStart": 1,
-    "totalCombinations": 27,
-    "expectedSamples": 13500,
-    "generatedAt": "2026-04-26T03:17:33"
+    "totalCombinations": 3,
+    "expectedSamples": 1500,
+    "generatedAt": "2026-04-26T14:25:13"
   },
   "results": {
     "n5": {
-      "totalSamples": 4500,
-      "successSamples": 4458,
-      "noSolutionSamples": 42,
-      "successRate": "99.1%",
+      "totalSamples": 500,
+      "successSamples": 264,
+      "noSolutionSamples": 236,
+      "successRate": "52.8%",
       "outputFile": "training_data_n5.csv"
     },
     "n7": {
-      "totalSamples": 4500,
-      "successSamples": 4485,
-      "noSolutionSamples": 15,
-      "successRate": "99.7%",
+      "totalSamples": 500,
+      "successSamples": 278,
+      "noSolutionSamples": 222,
+      "successRate": "55.6%",
       "outputFile": "training_data_n7.csv"
     },
     "n15": {
-      "totalSamples": 4500,
-      "successSamples": 4499,
-      "noSolutionSamples": 1,
-      "successRate": "100.0%",
+      "totalSamples": 500,
+      "successSamples": 306,
+      "noSolutionSamples": 194,
+      "successRate": "61.2%",
       "outputFile": "training_data_n15.csv"
     }
   },
-  "totalRecords": 13442,
-  "totalNoSolution": 58,
-  "successRate": "99.6%"
+  "totalRecords": 848,
+  "totalNoSolution": 652,
+  "successRate": "56.5%"
 }

@@ -20,7 +20,7 @@ interface DataRow {
   [key: string]: number
 }
 
-const SAMPLE_SIZES = [5, 7, 15]
+const SAMPLE_SIZES = [5, 7, 10, 15, 20]
 
 export function DataTab() {
   const [data, setData] = useState<Map<number, DataRow[]>>(new Map())
