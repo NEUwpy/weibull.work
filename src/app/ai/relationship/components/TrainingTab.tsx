@@ -23,7 +23,7 @@ interface MetricsData {
   trained_at: string
 }
 
-const SAMPLE_SIZES = [5, 7, 15]
+const SAMPLE_SIZES = [5, 7, 10, 15, 20]
 
 export function TrainingTab() {
   const [n2Metrics, setN2Metrics] = useState<Map<number, MetricsData>>(new Map())

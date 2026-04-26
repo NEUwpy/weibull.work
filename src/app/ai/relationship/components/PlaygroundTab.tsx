@@ -176,7 +176,7 @@ export function PlaygroundTab() {
         <div className="space-y-3">
           <h3 className="text-base font-bold text-slate-800">输入样本数据</h3>
           <p className="text-xs text-slate-400">
-            输入排序后的失效时间，每行一个或用逗号/空格分隔。当前支持 n=5, 7, 15。
+            输入排序后的失效时间，每行一个或用逗号/空格分隔。当前支持 n=5, 7, 10, 15, 20。
           </p>
           <textarea
             value={sampleInput}

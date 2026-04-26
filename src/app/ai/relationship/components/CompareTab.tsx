@@ -31,7 +31,11 @@ interface FixedDeltaRow {
   [key: string]: number | string
 }
 
-const SAMPLE_SIZES = [5, 7, 15]
+interface Route2ComparisonRow {
+  [key: string]: number | string
+}
+
+const SAMPLE_SIZES = [5, 7, 10, 15, 20]
 const FIXED_DELTAS = [0.01, 0.05, 0.1, 0.2, 0.5]
 
 export function CompareTab() {
@@ -40,6 +44,7 @@ export function CompareTab() {
   const [improvementData, setImprovementData] = useState<ImprovementRow[]>([])
   const [iterationData, setIterationData] = useState<IterationRow[]>([])
   const [fixedDeltaData, setFixedDeltaData] = useState<FixedDeltaRow[]>([])
+  const [route2Data, setRoute2Data] = useState<Route2ComparisonRow[]>([])
   const [loading, setLoading] = useState(true)
 
   const toNum = (v: number | string): number => typeof v === 'number' ? v : parseFloat(v) || 0
@@ -47,18 +52,20 @@ export function CompareTab() {
   useEffect(() => {
     async function load() {
       try {
-        const [comp, sweep, imp, iter, fixedDelta] = await Promise.all([
+        const [comp, sweep, imp, iter, fixedDelta, route2] = await Promise.all([
           loadCSV<ComparisonRow>('/ai/data/comparison_ai_vs_fixed.csv').catch(() => []),
           loadCSV<SweepRow>('/ai/data/comparison_sweep.csv').catch(() => []),
           loadCSV<ImprovementRow>('/ai/data/comparison_improvement.csv').catch(() => []),
           loadCSV<IterationRow>('/ai/data/iteration_stats.csv').catch(() => []),
           loadCSV<FixedDeltaRow>('/ai/data/fixed_delta_comparison.csv').catch(() => []),
+          loadCSV<Route2ComparisonRow>('/ai/data/route2_comparison.csv').catch(() => []),
         ])
         setComparisonData(comp)
         setSweepData(sweep)
         setImprovementData(imp)
         setIterationData(iter)
         setFixedDeltaData(fixedDelta)
+        setRoute2Data(route2)
       } finally {
         setLoading(false)
       }
@@ -348,6 +355,61 @@ export function CompareTab() {
     )
   }
 
+  // C5: Route 2 vs Fixed Delta comparison (from evaluate_route2.py)
+  const renderRoute2Comparison = () => {
+    if (route2Data.length === 0) return null
+
+    return (
+      <div className="space-y-4">
+        <ChartCard title="C5: 路线 2 vs 固定 δ 对比">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-xs text-blue-700 font-medium">
+              路线 2（迭代逼近）与固定 δ 基准的 MSE 对比。
+              收敛率和平均迭代步数反映迭代过程的稳定性。
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-slate-100">
+                  <th className="border border-slate-200 px-3 py-2 text-center font-bold text-slate-600">n</th>
+                  <th className="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600">Route2 MSE</th>
+                  <th className="border border-slate-200 px-3 py-2 text-center font-bold text-slate-600">收敛率</th>
+                  <th className="border border-slate-200 px-3 py-2 text-center font-bold text-slate-600">平均步数</th>
+                  <th className="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600">δ=0.1 MSE</th>
+                  <th className="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600">δ=0.2 MSE</th>
+                  <th className="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600">δ=0.5 MSE</th>
+                  <th className="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600">vs δ=0.2</th>
+                </tr>
+              </thead>
+              <tbody>
+                {route2Data.map((r, i) => {
+                  const improv = toNum(r.improvement_vs_0_2 ?? 0)
+                  return (
+                    <tr key={i} className={i === route2Data.length - 1 ? 'bg-blue-50 font-bold' : 'hover:bg-slate-50'}>
+                      <td className="border border-slate-200 px-3 py-2 text-center font-mono">{r.n}</td>
+                      <td className="border border-slate-200 px-3 py-2 text-right font-mono">{toNum(r.route2_mse).toFixed(4)}</td>
+                      <td className="border border-slate-200 px-3 py-2 text-center font-mono">{toNum(r.route2_convergence_rate).toFixed(1)}%</td>
+                      <td className="border border-slate-200 px-3 py-2 text-center font-mono">{toNum(r.route2_avg_steps).toFixed(1)}</td>
+                      <td className="border border-slate-200 px-3 py-2 text-right font-mono">{toNum(r.fixed_delta_0_1_mse ?? 0).toFixed(4)}</td>
+                      <td className="border border-slate-200 px-3 py-2 text-right font-mono">{toNum(r.fixed_delta_0_2_mse ?? 0).toFixed(4)}</td>
+                      <td className="border border-slate-200 px-3 py-2 text-right font-mono">{toNum(r.fixed_delta_0_5_mse ?? 0).toFixed(4)}</td>
+                      <td className={`border border-slate-200 px-3 py-2 text-right font-mono ${
+                        improv > 0 ? 'text-green-600' : improv < 0 ? 'text-red-600' : 'text-slate-500'
+                      }`}>
+                        {improv > 0 ? '+' : ''}{improv.toFixed(1)}%
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </ChartCard>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* 说明 */}
@@ -358,6 +420,7 @@ export function CompareTab() {
           <li>• AI 预测 δ vs 多个固定 δ 值（0.01, 0.05, 0.10, 0.20, 0.50）</li>
           <li>• 不同 (β, n) 组合下的改善程度</li>
           <li>• 路线 2（迭代逼近）收敛统计</li>
+          <li>• 路线 2 vs 固定 δ 基准对比（C5）</li>
         </ul>
       </div>
 
@@ -366,6 +429,7 @@ export function CompareTab() {
       {renderComparisonBars()}
       {renderImprovementTable()}
       {renderIterationStats()}
+      {renderRoute2Comparison()}
     </div>
   )
 }

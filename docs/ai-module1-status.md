@@ -1,8 +1,9 @@
 # AI 模块 1 现状梳理：MDM 偏移量 δ 优化
 
 > **更新时间**: 2026-04-26
-> **状态**: 方案重新讨论中（原型已完成，正在梳理完整设计）
+> **状态**: 路线 2 实验完成（失败），N₂ 模型已重新训练，待确定下一步方向
 > **详细方案**: [ai-methods-module1-detail.md](ai-methods-module1-detail.md)
+> **路线 2 结果**: [ai-module1-route2-results.md](ai-module1-route2-results.md)
 
 ---
 

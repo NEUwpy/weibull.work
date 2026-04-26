@@ -15,7 +15,7 @@ interface PredRow {
   [key: string]: number | string
 }
 
-const SAMPLE_SIZES = [5, 7, 15]
+const SAMPLE_SIZES = [5, 7, 10, 15, 20]
 
 export function PerformanceTab() {
   const [data, setData] = useState<Map<number, PredRow[]>>(new Map())

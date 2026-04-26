@@ -401,8 +401,8 @@ def main():
         # N₂ 模型训练（路线 1：样本 → δ）
         # ============================================================
         csv_files = sorted(data_dir.glob('training_data_n*.csv'))
-        # 排除 training_data_all.csv 和旧的 n10 文件
-        csv_files = [f for f in csv_files if 'all' not in f.stem and f.stem != 'training_data_n10']
+        # 排除 training_data_all.csv
+        csv_files = [f for f in csv_files if 'all' not in f.stem]
 
         if not csv_files:
             print(f"错误: 在 {data_dir} 中未找到 training_data_n*.csv 文件")
@@ -447,7 +447,7 @@ def main():
                 torch.FloatTensor(X_val_norm),
                 torch.FloatTensor(y_val_norm)
             )
-            train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+            train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
             val_loader = DataLoader(val_dataset, batch_size=args.batch_size)
 
             # 构建模型
@@ -559,7 +559,7 @@ def main():
             torch.FloatTensor(X_val_norm),
             torch.FloatTensor(y_val_norm)
         )
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size)
 
         # 构建模型

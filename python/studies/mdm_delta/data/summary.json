@@ -4,13 +4,17 @@
       2.0
     ],
     "etas": [
-      1000.0
+      100.0,
+      1000.0,
+      5000.0
     ],
     "gamma": 1000,
     "sampleSizes": [
       5,
       7,
-      15
+      10,
+      15,
+      20
     ],
     "searchMode": "coarse-to-fine",
     "deltaRange": [
@@ -25,34 +29,48 @@
     "mcRuns": 500,
     "gammaSteps": 60,
     "seedStart": 1,
-    "totalCombinations": 3,
-    "expectedSamples": 1500,
-    "generatedAt": "2026-04-26T14:25:13"
+    "totalCombinations": 15,
+    "expectedSamples": 7500,
+    "generatedAt": "2026-04-26T18:21:48"
   },
   "results": {
     "n5": {
-      "totalSamples": 500,
-      "successSamples": 264,
-      "noSolutionSamples": 236,
-      "successRate": "52.8%",
+      "totalSamples": 1500,
+      "successSamples": 827,
+      "noSolutionSamples": 673,
+      "successRate": "55.1%",
       "outputFile": "training_data_n5.csv"
     },
     "n7": {
-      "totalSamples": 500,
-      "successSamples": 278,
-      "noSolutionSamples": 222,
-      "successRate": "55.6%",
+      "totalSamples": 1500,
+      "successSamples": 868,
+      "noSolutionSamples": 632,
+      "successRate": "57.9%",
       "outputFile": "training_data_n7.csv"
     },
+    "n10": {
+      "totalSamples": 1500,
+      "successSamples": 916,
+      "noSolutionSamples": 584,
+      "successRate": "61.1%",
+      "outputFile": "training_data_n10.csv"
+    },
     "n15": {
-      "totalSamples": 500,
-      "successSamples": 306,
-      "noSolutionSamples": 194,
-      "successRate": "61.2%",
+      "totalSamples": 1500,
+      "successSamples": 902,
+      "noSolutionSamples": 598,
+      "successRate": "60.1%",
       "outputFile": "training_data_n15.csv"
+    },
+    "n20": {
+      "totalSamples": 1500,
+      "successSamples": 878,
+      "noSolutionSamples": 622,
+      "successRate": "58.5%",
+      "outputFile": "training_data_n20.csv"
     }
   },
-  "totalRecords": 848,
-  "totalNoSolution": 652,
-  "successRate": "56.5%"
+  "totalRecords": 4391,
+  "totalNoSolution": 3109,
+  "successRate": "58.5%"
 }

@@ -36,11 +36,24 @@ def main():
         shutil.copy2(f, PUBLIC_DIR / f.name)
         print(f"  {f.name}")
 
+    # 复制 Route 2 评估数据
+    for f in DATA_DIR.glob('route2_*.csv'):
+        shutil.copy2(f, PUBLIC_DIR / f.name)
+        print(f"  {f.name}")
+
+    for f in DATA_DIR.glob('route2_*.json'):
+        shutil.copy2(f, PUBLIC_DIR / f.name)
+        print(f"  {f.name}")
+
     for f in DATA_DIR.glob('verification_cases.csv'):
         shutil.copy2(f, PUBLIC_DIR / f.name)
         print(f"  {f.name}")
 
     for f in DATA_DIR.glob('boundary_tests.csv'):
+        shutil.copy2(f, PUBLIC_DIR / f.name)
+        print(f"  {f.name}")
+
+    for f in DATA_DIR.glob('fixed_delta_*.csv'):
         shutil.copy2(f, PUBLIC_DIR / f.name)
         print(f"  {f.name}")
 

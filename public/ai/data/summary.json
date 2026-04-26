@@ -1,9 +1,7 @@
 {
   "config": {
     "betas": [
-      1.0,
-      2.0,
-      5.0
+      2.0
     ],
     "etas": [
       100.0,
@@ -14,45 +12,65 @@
     "sampleSizes": [
       5,
       7,
-      15
+      10,
+      15,
+      20
     ],
+    "searchMode": "coarse-to-fine",
     "deltaRange": [
-      0.01,
-      0.5,
-      0.01
+      0.001,
+      1.0,
+      0.05
     ],
-    "deltaCount": 50,
+    "deltaCount": 21,
+    "coarseStep": 0.1,
+    "fineStep": 0.01,
+    "fineRange": 0.1,
     "mcRuns": 500,
     "gammaSteps": 60,
     "seedStart": 1,
-    "totalCombinations": 27,
-    "expectedSamples": 13500,
-    "generatedAt": "2026-04-26T03:17:33"
+    "totalCombinations": 15,
+    "expectedSamples": 7500,
+    "generatedAt": "2026-04-26T18:21:48"
   },
   "results": {
     "n5": {
-      "totalSamples": 4500,
-      "successSamples": 4458,
-      "noSolutionSamples": 42,
-      "successRate": "99.1%",
+      "totalSamples": 1500,
+      "successSamples": 827,
+      "noSolutionSamples": 673,
+      "successRate": "55.1%",
       "outputFile": "training_data_n5.csv"
     },
     "n7": {
-      "totalSamples": 4500,
-      "successSamples": 4485,
-      "noSolutionSamples": 15,
-      "successRate": "99.7%",
+      "totalSamples": 1500,
+      "successSamples": 868,
+      "noSolutionSamples": 632,
+      "successRate": "57.9%",
       "outputFile": "training_data_n7.csv"
     },
+    "n10": {
+      "totalSamples": 1500,
+      "successSamples": 916,
+      "noSolutionSamples": 584,
+      "successRate": "61.1%",
+      "outputFile": "training_data_n10.csv"
+    },
     "n15": {
-      "totalSamples": 4500,
-      "successSamples": 4499,
-      "noSolutionSamples": 1,
-      "successRate": "100.0%",
+      "totalSamples": 1500,
+      "successSamples": 902,
+      "noSolutionSamples": 598,
+      "successRate": "60.1%",
       "outputFile": "training_data_n15.csv"
+    },
+    "n20": {
+      "totalSamples": 1500,
+      "successSamples": 878,
+      "noSolutionSamples": 622,
+      "successRate": "58.5%",
+      "outputFile": "training_data_n20.csv"
     }
   },
-  "totalRecords": 13442,
-  "totalNoSolution": 58,
-  "successRate": "99.6%"
+  "totalRecords": 4391,
+  "totalNoSolution": 3109,
+  "successRate": "58.5%"
 }
