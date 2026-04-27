@@ -1,8 +1,8 @@
 # AI 模块 1 交接提示词（2026-04-27）
 
 > **用途**：在新窗口中继续 AI 模块 1 的工作
-> **当前状态**：前端页面重构完成（路线分离），β={1,2,5} 数据生成完成，M1-R1/M1-R2 已重新训练
-> **下一步重点**：M1-R2 重新评估 + 边界过滤修复 + param-accuracy 数据生成
+> **当前状态**：前端页面重构完成（路线分离），所有 17 个 Tab 已填充真实数据，M1-R2 评估完成，param-accuracy 三-way 对比已生成
+> **下一步重点**：边界过滤修复 + 搜索策略优化（Brent 法）
 
 ---
 
@@ -55,24 +55,34 @@ Weibull 分析平台（weibull.work）的 **AI 模块 1**（MDM 偏移量 δ 优
 | 预测范围 | [0.246, 0.295]（恒定） | [0.036, 0.814]（有变化） |
 | 早停 epoch | 29 | 29 |
 
-旧 M1-R2 是常数预测器（β=2 固定时 η 与 δ 无强相关）。新 M1-R2 预测范围显著扩大，不再是常数。
+### M1-R2 评估（已完成）
 
-### 前端（已同步）
-- `public/ai/data/` 已更新为 β={1,2,5} 新数据
-- 模型指标 JSON 已同步
-- 验证数据已重新生成（45 个验证案例 + 8 个边界测试）
+运行 `evaluate_route2.py --test-samples 50 --betas 1,2,5`，结果：
+- **收敛率**：74-80%（各 n 值）
+- **平均迭代步数**：5.7-6.7 步
+- **Route 2 vs 固定 δ**：小样本 (n=5) 不如固定 δ（MSE 3.72 vs 2.00），大样本 (n=20) 优于固定 δ（MSE 0.49 vs 0.76）
+- 输出文件：`route2_convergence.csv` (2250 条)、`route2_iteration_traces.csv` (1068 条)
+
+### param-accuracy 三-way 对比（已完成）
+
+运行 `generate_param_accuracy.py`，对 45 个验证组合分别用 δ=0.5、δ=AI、δ=网格搜索最优 运行 MDM：
+- 输出文件：`param_accuracy_comparison.csv` (45 条)
+- AI δ 在多数情况下优于固定 δ=0.5，但与最优 δ 仍有差距
+
+### 前端页面重构（已完成）
+
+`ai/relationship/` 已拆分为：
+- `/ai/relationship/` — 总览页（两个卡片）
+- `/ai/relationship/m1-r1/` — M1-R1 子页面（8 Tab）
+- `/ai/relationship/m1-r2/` — M1-R2 子页面（9 Tab）
+
+**所有 17 个 Tab 已填充真实数据**（无占位 Tab）。
 
 ---
 
 ## 待做任务（按优先级）
 
-### 任务 1：~~前端页面重构（路线分离）~~ ✅ 已完成
-
-`ai/relationship/` 已拆分为总览页 + m1-r1（8 Tab）+ m1-r2（9 Tab）。
-旧 `components/` 目录已删除，术语已统一（N₁→M1-R2, N₂→M1-R1）。
-详见 `docs/ai-module1-status.md` 第六节。
-
-### 任务 2：边界过滤修复
+### 任务 1：边界过滤修复（高优先级）
 
 `generate_training_data.py` 第 328-329 行：
 ```python
@@ -84,21 +94,21 @@ if is_boundary:
 - MSE-δ 曲线分析：大部分 n≤10 样本最优 δ 就是 0，n=20 才需要正 δ
 - **待决定**：去掉边界过滤？或 delta_min 改为 0？
 
-### 任务 3：M1-R2 重新评估 ⭐ 最重要
-
-M1-R2 已用新数据重新训练，不再是常数预测器。需要运行：
-```bash
-cd python/studies/mdm_delta
-python evaluate_route2.py --test-samples 100 --betas 1,2,5
-```
-
-### 任务 4：搜索策略优化
+### 任务 2：搜索策略优化（高优先级）
 
 当前粗搜+细搜 31 次 MDM 调用。MSE(δ) 曲线 11/12 单峰，可用 Brent 法减到 ~10-15 次。
 
-### 任务 5：param-accuracy 数据生成
+### 任务 3：模型改进（低优先级）
 
-需要对同一批验证样本，分别用 δ=0.5、δ=AI、δ=最优 运行 MDM，记录 (β̂, η̂, γ̂) 用于 param-accuracy Tab。
+更深网络、学习率调度、数据增强。
+
+### 任务 4：ONNX 导出（低优先级）
+
+减少 PyTorch 依赖。
+
+### 任务 5：截尾支持（低优先级）
+
+处理不完全样本（Type II censoring）。
 
 ---
 
@@ -109,8 +119,9 @@ python evaluate_route2.py --test-samples 100 --betas 1,2,5
 |------|------|
 | `python/studies/mdm_delta/generate_training_data.py` | 训练数据生成（有边界过滤） |
 | `python/studies/mdm_delta/generate_comparison_data.py` | 对比数据生成（betas 已更新为 [1,2,5]） |
+| `python/studies/mdm_delta/generate_param_accuracy.py` | param-accuracy 三-way 对比数据生成 |
 | `python/studies/mdm_delta/train_model.py` | M1-R1/M1-R2 模型训练 |
-| `python/studies/mdm_delta/evaluate_route2.py` | M1-R2 评估脚本 |
+| `python/studies/mdm_delta/evaluate_route2.py` | M1-R2 评估脚本（含迭代轨迹输出） |
 | `python/studies/mdm_delta/plot_mse_delta_curve.py` | MSE-δ 曲线分析 |
 
 ### 模型文件
@@ -119,7 +130,20 @@ python evaluate_route2.py --test-samples 100 --betas 1,2,5
 | `python/models/mdm_delta/n{5,7,10,15,20}_model.pth` | M1-R1 模型（路线 1，当前可用） |
 | `python/models/mdm_delta/delta_from_params.pth` | M1-R2 模型（路线 2，已重新训练） |
 
-### 前端页面（重构后）
+### 前端数据文件（public/ai/data/）
+| 文件 | 说明 | 记录数 |
+|------|------|--------|
+| `training_data_n{5,7,10,15,20}.csv` | M1-R1 训练数据 | 12,597 总 |
+| `validation_predictions_n{5,7,10,15,20}.csv` | M1-R1 验证预测 | ~500/n |
+| `delta_from_params_metrics.json` | M1-R2 训练指标 | — |
+| `route2_convergence.csv` | M1-R2 收敛详情（含 est_beta/eta/gamma） | 2,250 |
+| `route2_iteration_traces.csv` | M1-R2 迭代轨迹 | 1,068 |
+| `route2_comparison.csv` | M1-R2 vs 固定 δ 对比 | 5 |
+| `param_accuracy_comparison.csv` | M1-R1 三-way 对比（δ=0.5/AI/最优） | 45 |
+| `verification_cases.csv` | M1-R1 验证案例 | 45 |
+| `comparison_ai_vs_fixed.csv` | M1-R1 AI vs 固定 δ | 2,250 |
+
+### 前端页面
 | 文件 | 说明 |
 |------|------|
 | `src/app/ai/relationship/page.tsx` | 总览页（两个卡片） |
@@ -131,8 +155,7 @@ python evaluate_route2.py --test-samples 100 --betas 1,2,5
 ### 文档
 | 文件 | 说明 |
 |------|------|
-| `docs/ai-module1-status.md` | 完整状态文档 |
-| `docs/ai-module1-restructure-plan.md` | 前端重构详细计划（**本次新增**） |
+| `docs/ai-module1-status.md` | 完整状态文档（最重要） |
 | `docs/ai-module1-route2-results.md` | M1-R2 实验结果 |
 | `docs/ai-methods-module1-detail.md` | 完整技术方案 |
 
