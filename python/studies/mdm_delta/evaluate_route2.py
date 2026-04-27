@@ -225,6 +225,7 @@ def main():
     # Results storage
     convergence_records = []  # Per-sample details
     comparison_records = []   # Aggregated comparison
+    trace_records = []        # Step-by-step iteration traces (converged, non-boundary only)
 
     for n in sample_sizes:
         print(f"\n--- Evaluating n={n} ---")
@@ -262,6 +263,7 @@ def main():
                     convergence_records.append({
                         'n': n, 'beta': beta_val, 'eta': eta_val, 'gamma': gamma_val,
                         'seed': seed, 'route2_delta': None, 'route2_mse': None,
+                        'est_beta': None, 'est_eta': None, 'est_gamma': None,
                         'steps': steps, 'converged': False, 'reason': reason,
                     })
                 else:
@@ -278,8 +280,23 @@ def main():
                         'n': n, 'beta': beta_val, 'eta': eta_val, 'gamma': gamma_val,
                         'seed': seed, 'route2_delta': round(final_delta, 6),
                         'route2_mse': round(mse, 6),
+                        'est_beta': round(final_beta, 4) if final_beta is not None else None,
+                        'est_eta': round(final_eta, 2) if final_eta is not None else None,
+                        'est_gamma': round(final_gamma, 2) if final_gamma is not None else None,
                         'steps': steps, 'converged': converged, 'reason': reason,
                     })
+
+                    # Save step-by-step history for converged non-boundary cases
+                    is_boundary = (final_delta is not None and
+                                   (final_delta <= delta_min * 1.1 or final_delta >= delta_max * 0.99))
+                    if converged and not is_boundary:
+                        for h in history:
+                            trace_records.append({
+                                'n': n, 'beta': beta_val, 'eta': eta_val, 'gamma': gamma_val,
+                                'seed': seed, 'mse': round(mse, 6),
+                                'step': h['step'], 'delta': h['delta'],
+                                'est_beta': h['beta'], 'est_eta': h['eta'], 'est_gamma': h['gamma'],
+                            })
 
                 # Fixed delta baselines
                 for d in fixed_deltas:
@@ -319,6 +336,15 @@ def main():
             else:
                 row[f'improvement_vs_{d_str}'] = 0.0
         comparison_records.append(row)
+
+    # Save iteration traces
+    trace_path = output_dir / 'route2_iteration_traces.csv'
+    with open(trace_path, 'w', newline='', encoding='utf-8') as f:
+        if trace_records:
+            writer = csv.DictWriter(f, fieldnames=trace_records[0].keys())
+            writer.writeheader()
+            writer.writerows(trace_records)
+    print(f"Iteration traces: {trace_path} ({len(trace_records)} records)")
 
     # Save convergence details
     conv_path = output_dir / 'route2_convergence.csv'
