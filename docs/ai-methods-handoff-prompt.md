@@ -10,7 +10,8 @@
 
 1. `C:\Web\Weibull\CLAUDE.md` — 项目总览
 2. `C:\Web\Weibull\docs\ai-methods-plan.md` — 人工智能方法模块总规划
-3. `C:\Web\Weibull\docs\ai-module1-status.md` — 模块 1 当前状态（**最重要**）
+3. `C:\Web\Weibull\docs\ai-module1-status.md` — 模块 1 当前状态
+4. `C:\Web\Weibull\docs\ai-module3-status.md` — 模块 3 当前状态
 
 ### 项目背景
 
@@ -44,16 +45,6 @@ AI 模块与 Methods 同级，探索 AI 辅助参数估计的效果与适用范�
 2. 训练数据质量不稳定 — 边界过滤、搜索范围不一致
 3. 模型学到的映射本身不准确 — 垃圾进垃圾出
 
-**已完成**：
-- 数据生成：β∈{1,2,5}, η∈{100,1000,5000}, γ=1000, n∈{5,7,10,15,20}, MC=500
-- 12,597 条有效训练数据（22,500 总样本，56% 成功率）
-- M1-R1 模型（路线 1）：5 个 n 值，MSE 0.027-0.034
-- M1-R2 模型（路线 2）：已重新训练，不再是常数预测器
-- 前端数据已同步到 public/ai/data/
-- ✅ 前端页面重构完成：路线分离为 m1-r1（8 Tab）+ m1-r2（9 Tab），所有 17 个 Tab 已填充真实数据
-- ✅ M1-R2 评估完成：收敛率 74-80%，平均 5.7-6.7 步
-- ✅ param-accuracy 三-way 对比完成：δ=0.5 / AI / 最优，45 个验证组合
-
 **下一步方向**（需要你提出具体 plan）：
 1. 系统性研究 MSE-δ 曲线数学性质（单调性、极值点、有效范围）
 2. 基于曲线性质优化搜索策略（Brent 法等）
@@ -61,12 +52,49 @@ AI 模块与 Methods 同级，探索 AI 辅助参数估计的效果与适用范�
 4. 用高质量数据重新训练模型
 
 **关键文件**：
-- 状态文档: `docs/ai-module1-status.md`（包含详细问题分析）
+- 状态文档: `docs/ai-module1-status.md`
 - 训练数据: `python/studies/mdm_delta/data/`
 - 模型文件: `python/models/mdm_delta/n{5,7,10,15,20}_model.pth`
 - 训练脚本: `python/studies/mdm_delta/train_model.py`
 - 后端 API: `POST /ai/relationship/mdm`（在 python/main.py 末尾）
 - 前端页面: `src/app/ai/relationship/`（总览）→ `m1-r1/`（路线1）→ `m1-r2/`（路线2）
+
+### 模块 3 当前状态（2026-04-27 V2 完成）
+
+**核心发现**：MLP 端到端直接估计 β、η、γ 可行，B-1 统一模型（填充+掩码）实用性最强。
+
+**三大方案组、8 种预处理，全部已完成**：
+
+| 方案 | 结论 |
+|------|------|
+| A-1 原始样本 | 基线方案 |
+| A-2 除以均值 | 对 η 变差 |
+| A-3 去位置 | 明显变差，MAE(β) 几乎翻倍 |
+| B-1 原始+掩码 | **最优方案**，统一模型覆盖所有 n |
+| B-2 除以均值+掩码 | ≈ B-1 |
+| C-1 基础统计量 | ≈ A-1，4 个统计量已充分 |
+| C-2/C-3 扩展统计量 | 无额外优势 |
+
+**参数空间**（V2）：β∈{0.5,1,2,3,5}, η∈{100,500,1000,3000,5000}, γ∈{0,50,100,200}, n∈{5,7,10,15}, MC=500, 共 200,000 条
+
+**泛化验证结论**：
+- 插值精度略降（比组内高 ~27%）
+- 外推精度大幅下降（8-10 倍）
+- a2/b2 外推发散（MAE(β) 达 10^10）
+- a1/b1/c1/c2 外推相对稳健
+
+**下一步方向**：
+1. AI vs 传统方法对比（MLE/MDM）
+2. 扩大参数空间（更多 β/η、更多 n）
+3. 网络架构实验
+
+**关键文件**：
+- 状态文档: `docs/ai-module3-status.md`
+- 训练数据: `python/studies/direct_estimation/data/`
+- 模型文件: `python/models/direct_estimation/`
+- 训练脚本: `python/studies/direct_estimation/train_model.py`
+- 后端 API: `POST /ai/direct-estimation`（在 python/main.py）
+- 前端页面: `src/app/ai/direct-estimation/`（方案选择）→ `[scheme]/`（7-Tab 详情）
 
 ### 关键文件参考
 
