@@ -102,7 +102,7 @@ export default function SchemePage() {
 
         {/* Tab Content */}
         <div className="p-6 min-h-[400px]">
-          {activeTab === 'theory' && <TheoryTab />}
+          {activeTab === 'theory' && <TheoryTab scheme={scheme} />}
           {activeTab === 'training' && <TrainingTab scheme={scheme} />}
           {activeTab === 'data' && <DataTab scheme={scheme} />}
           {activeTab === 'playground' && <PlaygroundTab scheme={scheme} />}

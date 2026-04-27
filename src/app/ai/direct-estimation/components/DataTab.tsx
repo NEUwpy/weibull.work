@@ -29,7 +29,7 @@ export function DataTab({ scheme = 'a-1' }: { scheme?: string }) {
 
       {/* 参数空间 */}
       <div>
-        <h3 className="text-base font-bold text-slate-800 mb-3">参数空间（V1）</h3>
+        <h3 className="text-base font-bold text-slate-800 mb-3">参数空间（V2）</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -56,8 +56,8 @@ export function DataTab({ scheme = 'a-1' }: { scheme?: string }) {
               <tr>
                 <td className="border border-slate-200 px-3 py-2 font-mono font-bold">γ</td>
                 <td className="border border-slate-200 px-3 py-2 text-slate-600">位置参数</td>
-                <td className="border border-slate-200 px-3 py-2 font-mono">{'{0}'}</td>
-                <td className="border border-slate-200 px-3 py-2 text-right font-mono">1</td>
+                <td className="border border-slate-200 px-3 py-2 font-mono">{'{50, 100, 200, 1000}'}</td>
+                <td className="border border-slate-200 px-3 py-2 text-right font-mono">4</td>
               </tr>
               <tr>
                 <td className="border border-slate-200 px-3 py-2 font-mono font-bold">n</td>
@@ -74,8 +74,8 @@ export function DataTab({ scheme = 'a-1' }: { scheme?: string }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
           <div className="text-xs text-cyan-500">参数组合数</div>
-          <div className="text-lg font-black text-cyan-700">100</div>
-          <div className="text-xs text-cyan-400">5×5×1×4</div>
+          <div className="text-lg font-black text-cyan-700">400</div>
+          <div className="text-xs text-cyan-400">5×5×4×4</div>
         </div>
         <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
           <div className="text-xs text-cyan-500">每组 MC 次数</div>
@@ -84,8 +84,8 @@ export function DataTab({ scheme = 'a-1' }: { scheme?: string }) {
         </div>
         <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
           <div className="text-xs text-cyan-500">总样本数</div>
-          <div className="text-lg font-black text-cyan-700">50,000</div>
-          <div className="text-xs text-cyan-400">100 × 500</div>
+          <div className="text-lg font-black text-cyan-700">200,000</div>
+          <div className="text-xs text-cyan-400">400 × 500</div>
         </div>
         <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
           <div className="text-xs text-cyan-500">验证集比例</div>
@@ -116,8 +116,8 @@ export function DataTab({ scheme = 'a-1' }: { scheme?: string }) {
         <h4 className="text-sm font-bold text-slate-700 mb-2">CSV 文件格式</h4>
         <div className="font-mono text-xs bg-white px-3 py-2 rounded border border-slate-200">
           <div className="text-slate-400">n,beta,eta,gamma,t1,t2,...,tn</div>
-          <div className="text-slate-600">5,1,1000,0,234.5,567.8,890.1,1234.5,1567.8</div>
-          <div className="text-slate-600">5,2,1000,0,112.3,245.6,456.7,789.0,1234.5</div>
+          <div className="text-slate-600">5,1,1000,100,1234.5,1567.8,1890.1,2234.5,2567.8</div>
+          <div className="text-slate-600">5,2,1000,200,412.3,645.6,856.7,1089.0,1434.5</div>
         </div>
       </div>
 
