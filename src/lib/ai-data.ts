@@ -90,6 +90,123 @@ export function route2ComparisonPath() {
 }
 
 // ============================================================
+// 直接估计数据路径
+// ============================================================
+
+export function directEstimationTrainingDataPath(n: number) {
+  return `${AI_DATA_BASE}/direct_estimation_training_data_n${n}.csv`
+}
+
+export function directEstimationMetricsPath(n: number) {
+  return `${AI_DATA_BASE}/direct_estimation_n${n}_metrics.json`
+}
+
+export function directEstimationValidationPath(n: number) {
+  return `${AI_DATA_BASE}/direct_estimation_validation_predictions_n${n}.csv`
+}
+
+export function directEstimationHistoryPath(n: number) {
+  return `${AI_DATA_BASE}/direct_estimation_training_history_n${n}.csv`
+}
+
+// Scheme-aware 路径函数
+export function schemeMetricsPath(scheme: string, n?: number) {
+  const schemeKey = scheme.replace('-', '')
+  if (scheme === 'b-1' || scheme === 'b-2') return `${AI_DATA_BASE}/direct_estimation_${schemeKey}_metrics.json`
+  const suffix = scheme === 'a-1' ? '' : `_${schemeKey}`
+  return `${AI_DATA_BASE}/direct_estimation_n${n}${suffix}_metrics.json`
+}
+
+export function schemeValidationPath(scheme: string, n?: number) {
+  const schemeKey = scheme.replace('-', '')
+  if (scheme === 'b-1' || scheme === 'b-2') return `${AI_DATA_BASE}/direct_estimation_validation_predictions_${schemeKey}.csv`
+  const suffix = scheme === 'a-1' ? '' : `_${schemeKey}`
+  return `${AI_DATA_BASE}/direct_estimation_validation_predictions_n${n}${suffix}.csv`
+}
+
+export function schemeHistoryPath(scheme: string, n?: number) {
+  const schemeKey = scheme.replace('-', '')
+  if (scheme === 'b-1' || scheme === 'b-2') return `${AI_DATA_BASE}/direct_estimation_training_history_${schemeKey}.csv`
+  const suffix = scheme === 'a-1' ? '' : `_${schemeKey}`
+  return `${AI_DATA_BASE}/direct_estimation_training_history_n${n}${suffix}.csv`
+}
+
+export function generalizationMetricsPath() {
+  return `${AI_DATA_BASE}/direct_estimation_generalization_metrics.json`
+}
+
+export interface DirectEstimationMetricsData {
+  metrics: {
+    mse_beta: number
+    mse_eta: number
+    mse_gamma: number
+    mae_beta: number
+    mae_eta: number
+    mae_gamma: number
+    rmse_beta: number
+    rmse_eta: number
+    rmse_gamma: number
+    mean_relative_error_beta: number
+    mean_relative_error_eta: number
+    mean_relative_error_gamma: number
+    total_relative_mse: number
+    best_epoch: number
+    best_val_loss: number
+    input_dim: number
+    train_samples: number
+    val_samples: number
+    architecture: string
+  }
+  history: {
+    train_loss: number[]
+    val_loss: number[]
+    lr: number[]
+  }
+  config: Record<string, number>
+  trained_at: string
+}
+
+export interface DirectEstimationValidationRow {
+  n: number
+  true_beta: number
+  true_eta: number
+  true_gamma: number
+  pred_beta: number
+  pred_eta: number
+  pred_gamma: number
+}
+
+export interface DirectEstimationHistoryRow {
+  epoch: number
+  train_loss: number
+  val_loss: number
+  lr: number
+}
+
+// 泛化评估数据类型
+export interface GeneralizationMetricsByN {
+  mae_beta: number
+  mae_eta: number
+  mae_gamma: number
+  mre_beta: number
+  mre_eta: number
+  mre_gamma: number
+  count: number
+}
+
+export interface GeneralizationMetricsByType {
+  overall: GeneralizationMetricsByN
+  by_n: Record<string, GeneralizationMetricsByN>
+}
+
+export interface GeneralizationMetricsData {
+  results: Record<string, Record<string, GeneralizationMetricsByType>>
+  validation_types: string[]
+  sample_sizes: number[]
+  generated_at: string
+}
+
+// ============================================================
 // 统计工具
 // ============================================================
 
