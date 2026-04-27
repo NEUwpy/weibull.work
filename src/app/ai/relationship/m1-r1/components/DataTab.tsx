@@ -1,5 +1,5 @@
 /**
- * 训练数据可视化 Tab
+ * M1-R1 训练数据可视化 Tab
  *
  * 图表：D1(δ分布直方图), D2(按β,n分组箱型图), D3-D5(散点图), D6(无解率), D7(参数空间)
  */
@@ -128,8 +128,8 @@ export function DataTab() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
           <div className="text-xs text-purple-500">参数组合</div>
-          <div className="text-lg font-black text-purple-700">27 组</div>
-          <div className="text-xs text-purple-400">3×3×1×3</div>
+          <div className="text-lg font-black text-purple-700">45 组</div>
+          <div className="text-xs text-purple-400">3×3×1×5</div>
         </div>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="text-xs text-blue-500">总样本数</div>
@@ -191,8 +191,8 @@ export function DataTab() {
               <tr><td className="border border-slate-200 px-3 py-2 font-mono">β</td><td className="border border-slate-200 px-3 py-2">1, 2, 5</td><td className="border border-slate-200 px-3 py-2 text-slate-500">形状参数</td></tr>
               <tr><td className="border border-slate-200 px-3 py-2 font-mono">η</td><td className="border border-slate-200 px-3 py-2">100, 1000, 5000</td><td className="border border-slate-200 px-3 py-2 text-slate-500">尺度参数</td></tr>
               <tr><td className="border border-slate-200 px-3 py-2 font-mono">γ</td><td className="border border-slate-200 px-3 py-2">1000</td><td className="border border-slate-200 px-3 py-2 text-slate-500">位置参数（固定）</td></tr>
-              <tr><td className="border border-slate-200 px-3 py-2 font-mono">n</td><td className="border border-slate-200 px-3 py-2">5, 7, 15</td><td className="border border-slate-200 px-3 py-2 text-slate-500">样本量</td></tr>
-              <tr><td className="border border-slate-200 px-3 py-2 font-mono">δ</td><td className="border border-slate-200 px-3 py-2">[0.01, 0.50] 步长 0.01</td><td className="border border-slate-200 px-3 py-2 text-slate-500">搜索网格（50 个值）</td></tr>
+              <tr><td className="border border-slate-200 px-3 py-2 font-mono">n</td><td className="border border-slate-200 px-3 py-2">5, 7, 10, 15, 20</td><td className="border border-slate-200 px-3 py-2 text-slate-500">样本量</td></tr>
+              <tr><td className="border border-slate-200 px-3 py-2 font-mono">δ</td><td className="border border-slate-200 px-3 py-2">[0.001, 1.00] 粗搜 0.1 + 细搜 0.01</td><td className="border border-slate-200 px-3 py-2 text-slate-500">搜索范围</td></tr>
               <tr><td className="border border-slate-200 px-3 py-2 font-mono">MC</td><td className="border border-slate-200 px-3 py-2">500</td><td className="border border-slate-200 px-3 py-2 text-slate-500">每组参数模拟次数</td></tr>
             </tbody>
           </table>

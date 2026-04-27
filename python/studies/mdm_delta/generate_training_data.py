@@ -9,7 +9,7 @@ MDM 偏移量 δ 优化 — 训练数据生成脚本
 参数空间（已确认）：
     β=2, η∈{100,1000,5000}, γ=1000, n∈{5,7,10,15,20}, MC=500
     15 组 × 500 样本 = 7,500 个样本
-    δ 网格: [0.001, 1.00] 步长 0.05, 共 20 个值
+    δ 网格: [0.0, 1.00] 步长 0.05, 共 21 个值
     MDM 调用: 7,500 × 20 = 150,000 次
 
 指标方案：
@@ -120,9 +120,10 @@ def find_optimal_delta(sample, true_beta, true_eta, true_gamma, delta_grid, gamm
             best_mse = mse
             best_delta = delta
 
-    # 边界排除：最优 δ 在搜索范围两端的样本视为无效
+    # 边界排除：仅排除上边界（δ=1.0 可能意味着最优 δ 更大）
+    # δ=0 是物理下限，不是人为边界，不排除
     if best_delta is not None:
-        if abs(best_delta - delta_min) < 1e-9 or abs(best_delta - delta_max) < 1e-9:
+        if abs(best_delta - delta_max) < 1e-9:
             return None, None, success_count
 
     return best_delta, best_mse, success_count
@@ -191,9 +192,8 @@ def find_optimal_delta_coarse_to_fine(sample, true_beta, true_eta, true_gamma,
             best_fine_mse = mse
             best_fine_delta = delta
 
-    # 边界检查：用细搜的边界
-    is_boundary = (abs(best_fine_delta - delta_min) < 1e-9 or
-                   abs(best_fine_delta - delta_max) < 1e-9)
+    # 边界检查：仅检查上边界（δ=0 是物理下限，不排除）
+    is_boundary = abs(best_fine_delta - delta_max) < 1e-9
 
     return best_fine_delta, best_fine_mse, coarse_success + fine_success, is_boundary
 
@@ -208,8 +208,8 @@ def main():
                         help='γ 值 (默认: 1000)')
     parser.add_argument('--sample-sizes', type=str, default='5,7,10,15,20',
                         help='样本量列表，逗号分隔 (默认: 5,7,10,15,20)')
-    parser.add_argument('--delta-min', type=float, default=0.001,
-                        help='δ 搜索最小值 (默认: 0.001)')
+    parser.add_argument('--delta-min', type=float, default=0.0,
+                        help='δ 搜索最小值 (默认: 0.0)')
     parser.add_argument('--delta-max', type=float, default=1.00,
                         help='δ 搜索最大值 (默认: 1.00)')
     parser.add_argument('--delta-step', type=float, default=0.05,

@@ -76,6 +76,19 @@ export function validationPredictionsPath(n: number) {
   return `${AI_DATA_BASE}/validation_predictions_n${n}.csv`
 }
 
+// M1-R2 specific paths
+export function m1r2MetricsPath() {
+  return `${AI_DATA_BASE}/delta_from_params_metrics.json`
+}
+
+export function iterationStatsPath() {
+  return `${AI_DATA_BASE}/iteration_stats.csv`
+}
+
+export function route2ComparisonPath() {
+  return `${AI_DATA_BASE}/route2_comparison.csv`
+}
+
 // ============================================================
 // 统计工具
 // ============================================================

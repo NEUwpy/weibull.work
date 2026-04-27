@@ -1,8 +1,8 @@
 # 模块 1 详细方案：MDM 偏移量优化（关系建立）
 
-> **状态**: 方案讨论中（原型已完成，正在重新梳理设计）
+> **状态**: 前端重构完成，数据和模型已训练
 > **创建时间**: 2026-04-25
-> **更新时间**: 2026-04-26
+> **更新时间**: 2026-04-27
 > **父文档**: [ai-methods-plan.md](ai-methods-plan.md)
 > **状态文档**: [ai-module1-status.md](ai-module1-status.md)
 
@@ -241,17 +241,29 @@ Linear(n, 128) → ReLU → BatchNorm1d → Linear(128, 64) → ReLU → BatchNo
 
 ## 七、系统集成
 
-### 7.1 前端 Tab 结构
+### 7.1 前端页面结构（已重构 ✅）
 
 ```
-/ai/relationship
-  ├── 原理说明（Theory）        — 两条路线的原理
-  ├── 训练算法（Training）      — 网络结构、训练过程可视化
-  ├── 训练数据（Data）          — 数据生成、参数空间、分布可视化
-  ├── 在线使用（Playground）    — 路线1/路线2 子切换
-  ├── 性能展示（Performance）   — 模型效果可视化
-  ├── 可信性验证（Verification）— 已知参数验证
-  └── 方法对比（Compare）      — AI vs 固定 δ、路线1 vs 路线2
+/ai/relationship                          ← 总览页（M1-R1 + M1-R2 两个卡片）
+  ├── m1-r1/                              ← M1-R1 直接学习（8 个 Tab）
+  │   ├── 原理说明（Theory）              — 直接学习原理、网络架构
+  │   ├── 训练算法（Training）            — 损失曲线、学习率、指标汇总
+  │   ├── 训练数据（Data）                — δ 分布、散点图、参数空间
+  │   ├── 偏移量估计精度（DeltaAccuracy） — 预测 vs 真实、误差分布
+  │   ├── 三参数估计精度（ParamAccuracy） — 占位（需数据）
+  │   ├── 在线使用（Playground）          — 样本 → AI → δ
+  │   ├── 可信性验证（Verification）      — 验证案例、边界测试
+  │   └── 方法对比（Compare）            — AI vs 固定 δ
+  └── m1-r2/                              ← M1-R2 迭代逼近（9 个 Tab）
+      ├── 原理说明（Theory）              — 迭代逼近原理、收敛判据
+      ├── 训练算法（Training）            — M1-R2 网络结构
+      ├── 训练数据（Data）                — 参数 vs δ 散点图
+      ├── 迭代过程（Iteration）           — 占位（需 evaluate_route2.py 数据）
+      ├── 偏移量估计精度（DeltaAccuracy） — 占位（需数据）
+      ├── 三参数估计精度（ParamAccuracy） — 占位（需数据）
+      ├── 在线使用（Playground）          — 迭代逼近演示
+      ├── 可信性验证（Verification）      — 占位（需数据）
+      └── 方法对比（Compare）            — 迭代统计、M1-R2 vs 固定 δ
 ```
 
 ### 7.2 后端 API
@@ -280,14 +292,19 @@ python/
 └── main.py
 
 src/
-├── app/ai/relationship/page.tsx
-└── components/ai/charts/        # 新增：通用图表组件
-    ├── ScatterPlot.tsx
-    ├── Histogram.tsx
-    ├── BoxPlot.tsx
-    ├── LineChart.tsx
-    ├── Heatmap.tsx
-    └── ...
+├── app/ai/relationship/
+│   ├── page.tsx                 # 总览页（两个卡片）
+│   ├── m1-r1/
+│   │   ├── page.tsx             # M1-R1 子页面（8 Tab）
+│   │   └── components/          # 8 个 Tab 组件
+│   └── m1-r2/
+│       ├── page.tsx             # M1-R2 子页面（9 Tab）
+│       └── components/          # 9 个 Tab 组件
+├── components/ai/charts/        # 通用图表组件
+│   ├── ScatterPlot.tsx
+│   ├── Histogram.tsx
+│   ├── LineChart.tsx
+│   └── BarChart.tsx
 ```
 
 ---
@@ -309,6 +326,7 @@ src/
 - [x] 训练路线 1 模型（N₂，5 个 n 值）
 - [x] 训练路线 2 公共模型（N₁，β 扩展后改善）
 - [x] 前端数据同步（public/ai/data/）
+- [x] 前端页面重构（路线分离为 m1-r1/m1-r2）
 - [ ] 路线 2 重新评估（evaluate_route2.py --betas 1,2,5）
 - [ ] 边界过滤问题处理（~44% 样本被丢弃）
 - [ ] 搜索策略优化（Brent 法）

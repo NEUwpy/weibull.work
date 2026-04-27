@@ -1,7 +1,7 @@
 # AI 模块 1 现状梳理：MDM 偏移量 δ 优化
 
 > **更新时间**: 2026-04-27
-> **状态**: β 扩展数据生成完成，N₁/N₂ 模型已重新训练，前端数据已同步
+> **状态**: 前端页面重构完成（路线分离），β 扩展数据已生成，M1-R1/M1-R2 模型已训练
 > **详细方案**: [ai-methods-module1-detail.md](ai-methods-module1-detail.md)
 > **路线 2 结果**: [ai-module1-route2-results.md](ai-module1-route2-results.md)
 
@@ -105,9 +105,12 @@
 | 文件 | 说明 |
 |------|------|
 | `src/app/ai/page.tsx` | AI 总览页（3 个模块卡片 + 交叉矩阵） |
-| `src/app/ai/relationship/page.tsx` | 关系建立子页面（7 个 Tab） |
+| `src/app/ai/relationship/page.tsx` | 总览页（M1-R1 + M1-R2 两个卡片） |
+| `src/app/ai/relationship/m1-r1/page.tsx` | M1-R1 子页面（8 个 Tab） |
+| `src/app/ai/relationship/m1-r1/components/` | M1-R1 Tab 组件（8 个） |
+| `src/app/ai/relationship/m1-r2/page.tsx` | M1-R2 子页面（9 个 Tab） |
+| `src/app/ai/relationship/m1-r2/components/` | M1-R2 Tab 组件（9 个） |
 | `src/lib/ai-data.ts` | 数据加载工具（CSV/JSON） |
-| `src/app/ai/relationship/components/DataTab.tsx` | 训练数据可视化 |
 
 ### 4.5 前端数据（public/ai/data/）
 
@@ -170,32 +173,65 @@
 | N₂（最佳 n=7） | 0.0275 | 0.100 | 0.166 | 直接看样本，信息量大 |
 | N₁（公共模型） | 0.0520 | 0.161 | 0.228 | 只看 (β,η,γ)，信息量少 |
 
-N₂ 效果明显好于 N₁（MSE 低 ~40%），符合预期——N₂ 直接看样本，信号更丰富。
+M1-R1 效果明显好于 M1-R2（MSE 低 ~40%），符合预期——M1-R1 直接看样本，信号更丰富。
 
 ---
 
-## 六、前端页面 Tab 状态
+## 六、前端页面结构（已重构 ✅）
 
-| Tab | 名称 | 状态 | 内容 |
-|-----|------|------|------|
-| Theory | 原理说明 | ✅ 已完成 | 为什么需要、AI 与传统方法关系、工作流程 |
-| Training | 训练算法 | ✅ 已完成 | 网络结构、数据预处理、训练策略、评价标准 |
-| Data | 训练数据 | ✅ 已完成 | 生成方式、参数空间表格、数据规模、数据格式 |
-| Playground | 在线使用 | ✅ 已完成 | 样本输入 → AI 预测 δ → 置信度评估 |
-| Performance | 性能展示 | ⚠️ 部分完成 | 有指标卡片，缺可视化（热力图、箱型图） |
-| Verification | 可信性验证 | ⚠️ 部分完成 | 45 个验证案例 + 8 个边界测试（β={1,2,5}） |
-| Compare | 方法对比 | ⚠️ 部分完成 | 有 Route 2 对比表（C5），缺 AI vs 固定 δ 箱型图 |
+> 重构完成时间: 2026-04-27
+
+`ai/relationship/` 已从单一 7-Tab 页面拆分为总览页 + 两个独立子页面。
+
+### 文件结构
+
+```
+ai/relationship/page.tsx              ← 总览页（M1-R1 + M1-R2 两个卡片）
+ai/relationship/m1-r1/page.tsx        ← M1-R1 子页面（8 个 Tab）
+ai/relationship/m1-r1/components/     ← M1-R1 Tab 组件（8 个）
+ai/relationship/m1-r2/page.tsx        ← M1-R2 子页面（9 个 Tab）
+ai/relationship/m1-r2/components/     ← M1-R2 Tab 组件（9 个）
+```
+
+### M1-R1 Tab（8 个）
+
+| # | Tab | 状态 | 内容 |
+|---|-----|------|------|
+| 1 | 原理说明 | ✅ 已完成 | 直接学习原理、网络架构、参数空间 |
+| 2 | 训练算法 | ✅ 已完成 | 损失曲线、学习率变化、指标汇总 |
+| 3 | 训练数据 | ✅ 已完成 | δ 分布、散点图、参数空间 |
+| 4 | 偏移量估计精度 | ✅ 已完成 | 预测 vs 真实散点图、误差分布、分布对比 |
+| 5 | 三参数估计精度 | ⏳ 占位 | 需要 param-accuracy 对比数据 |
+| 6 | 在线使用 | ✅ 已完成 | 样本输入 → AI 预测 δ |
+| 7 | 可信性验证 | ✅ 已完成 | 验证案例表、散点图、边界测试 |
+| 8 | 方法对比 | ✅ 已完成 | 固定 δ 精度、AI vs 固定 δ、改善热力图 |
+
+### M1-R2 Tab（9 个）
+
+| # | Tab | 状态 | 内容 |
+|---|-----|------|------|
+| 1 | 原理说明 | ✅ 已完成 | 迭代逼近原理、收敛判据 |
+| 2 | 训练算法 | ✅ 已完成 | M1-R2 网络结构、损失曲线 |
+| 3 | 训练数据 | ✅ 已完成 | 参数 vs δ 散点图、与 M1-R1 数据对比 |
+| 4 | 迭代过程 | ⏳ 占位 | 需要 evaluate_route2.py 数据 |
+| 5 | 偏移量估计精度 | ⏳ 占位 | 需要 evaluate_route2.py 数据 |
+| 6 | 三参数估计精度 | ⏳ 占位 | 需要 evaluate_route2.py 数据 |
+| 7 | 在线使用 | ✅ 已完成 | 迭代逼近演示（输入样本 → 显示迭代过程） |
+| 8 | 可信性验证 | ⏳ 占位 | 需要 evaluate_route2.py 数据 |
+| 9 | 方法对比 | ✅ 已完成 | 迭代统计、M1-R2 vs 固定 δ |
 
 ---
 
 ## 七、端到端调用链路
+
+### M1-R1（直接学习）
 
 ```
 用户浏览器
   ↓ 填写失效时间数据
   ↓ 点击"AI 预测最优 δ"
   ↓
-src/app/ai/relationship/page.tsx (PlaygroundTab)
+src/app/ai/relationship/m1-r1/components/PlaygroundTab.tsx
   ↓ fetch POST /ai/relationship/mdm
   ↓
 python/main.py → ai_predict_delta()
@@ -206,6 +242,24 @@ python/main.py → ai_predict_delta()
 返回 { optimal_delta, model_n, confidence }
   ↓
 前端展示 δ 值 + 置信度 + 使用提示
+```
+
+### M1-R2（迭代逼近）
+
+```
+用户浏览器
+  ↓ 填写失效时间数据
+  ↓ 点击"迭代逼近预测 δ"
+  ↓
+src/app/ai/relationship/m1-r2/components/PlaygroundTab.tsx
+  ↓ fetch POST /ai/relationship/mdm/iterate
+  ↓
+python/main.py → ai_predict_delta_iterate()
+  ↓ δ₀=0.5 → MDM → M1-R2 网络 → δ₁ → MDM → ... → 收敛
+  ↓
+返回 { final_delta, final_params, iterations, converged }
+  ↓
+前端展示最终 δ + 参数估计 + 迭代历史表
 ```
 
 ---
@@ -243,32 +297,31 @@ if is_boundary:
 2. 或者将 delta_min 改为 0，搜索从 0 开始
 3. 搜索策略优化：MSE(δ) 曲线 11/12 单峰，可用 Brent 法减到 ~10-15 次
 
-### 8.2 路线 2 待重新评估
+### 8.2 M1-R2 待重新评估
 
-N₁ 已用 β={1,2,5} 数据重新训练，不再是常数预测器。需要用 `evaluate_route2.py` 重新评估路线 2 的效果。
+M1-R2 已用 β={1,2,5} 数据重新训练，不再是常数预测器。需要用 `evaluate_route2.py` 重新评估效果。
 
 ### 8.3 其他局限
 
 1. **无截尾处理** — 只支持完全样本（Type II censoring 等未处理）
-2. **Performance 可视化不完整** — 缺热力图、箱型图、收敛曲线
-3. **无验证案例** — Verification Tab 为空
-4. **Compare 不完整** — 缺 AI vs 固定 δ 的蒙特卡洛对比
+2. ~~前端页面待重构~~ — ✅ 已完成，拆分为 m1-r1/m1-r2 两个子页面
+3. **param-accuracy 数据缺失** — 需要 δ=0.5 / AI / 最优 三种情况的对比数据
+4. **M1-R2 迭代数据缺失** — 需要 evaluate_route2.py 输出
 
 ---
 
-## 九、可扩展方向
+## 九、待做任务
 
-| 方向 | 说明 | 优先级 |
-|------|------|--------|
-| 边界过滤修复 | 去掉过滤或调整 delta_min=0 | 高 |
-| 搜索策略优化 | Brent 法替代粗搜+细搜 | 高 |
-| 路线 2 重新评估 | 用新 N₁ 模型跑 evaluate_route2.py | 高 |
-| Performance 可视化 | 热力图、箱型图、收敛曲线 | 中 |
-| 可信性验证 | 已知参数的验证案例 | 中 |
-| 方法对比 | AI vs 固定 δ 的蒙特卡洛对比 | 中 |
-| 模型改进 | 更深网络、学习率调度、数据增强 | 低 |
-| ONNX 导出 | 减少 PyTorch 依赖 | 低 |
-| 截尾支持 | 处理不完全样本 | 低 |
+| # | 任务 | 说明 | 优先级 |
+|---|------|------|--------|
+| 1 | ~~前端页面重构~~ | ✅ 已完成：路线分离为 m1-r1/m1-r2 两个子页面 | ✅ |
+| 2 | 边界过滤修复 | 去掉过滤或调整 delta_min=0 | 高 |
+| 3 | M1-R2 重新评估 | 用新模型跑 evaluate_route2.py --betas 1,2,5 | 銶态 | 高 |
+| 4 | 搜索策略优化 | Brent 法替代粗搜+细搜 | 高 |
+| 5 | param-accuracy 数据 | δ=0.5 / AI / 最优 三种情况的 MDM 对比数据 | 中 |
+| 6 | 模型改进 | 更深网络、学习率调度、数据增强 | 低 |
+| 7 | ONNX 导出 | 减少 PyTorch 依赖 | 低 |
+| 8 | 截尾支持 | 处理不完全样本 | 低 |
 
 ---
 

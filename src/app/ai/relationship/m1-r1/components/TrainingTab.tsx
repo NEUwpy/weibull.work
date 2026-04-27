@@ -1,5 +1,5 @@
 /**
- * 训练算法可视化 Tab
+ * M1-R1 训练算法可视化 Tab
  *
  * 图表：T1(损失收敛曲线), T2(学习率变化曲线)
  * 说明：网络结构、数据预处理、训练策略
@@ -26,8 +26,7 @@ interface MetricsData {
 const SAMPLE_SIZES = [5, 7, 10, 15, 20]
 
 export function TrainingTab() {
-  const [n2Metrics, setN2Metrics] = useState<Map<number, MetricsData>>(new Map())
-  const [n1Metrics, setN1Metrics] = useState<MetricsData | null>(null)
+  const [metrics, setMetrics] = useState<Map<number, MetricsData>>(new Map())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -40,12 +39,7 @@ export function TrainingTab() {
             map.set(n, data)
           } catch {}
         }
-        setN2Metrics(map)
-
-        try {
-          const n1 = await loadJSON<MetricsData>('n1' as any)
-          setN1Metrics(n1)
-        } catch {}
+        setMetrics(map)
       } finally {
         setLoading(false)
       }
@@ -60,28 +54,16 @@ export function TrainingTab() {
   return (
     <div className="space-y-6">
       {/* 网络结构说明 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* N₂ 架构 */}
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h4 className="text-sm font-bold text-purple-700 mb-2">N₂ 模型（路线 1：样本 → δ）</h4>
-          <div className="text-xs font-mono text-purple-600 space-y-1">
-            <p>Linear(n, 128) → ReLU → BatchNorm</p>
-            <p>Linear(128, 64) → ReLU → BatchNorm</p>
-            <p>Linear(64, 1) → Sigmoid</p>
-          </div>
-          <p className="text-xs text-purple-500 mt-2">按样本量 n 分别训练独立模型</p>
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+        <h4 className="text-sm font-bold text-purple-700 mb-2">M1-R1 模型架构（按 n 分别训练）</h4>
+        <div className="text-xs font-mono text-purple-600 space-y-1">
+          <p>Linear(n, 128) → ReLU → BatchNorm</p>
+          <p>Linear(128, 64) → ReLU → BatchNorm</p>
+          <p>Linear(64, 1) → Sigmoid</p>
         </div>
-
-        {/* N₁ 架构 */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-sm font-bold text-blue-700 mb-2">N₁ 模型（路线 2：真值 → δ）</h4>
-          <div className="text-xs font-mono text-blue-600 space-y-1">
-            <p>Linear(3, 32) → ReLU</p>
-            <p>Linear(32, 16) → ReLU</p>
-            <p>Linear(16, 1) → Sigmoid</p>
-          </div>
-          <p className="text-xs text-blue-500 mt-2">输入 (β,η,γ) 真值，训练一个公共模型</p>
-        </div>
+        <p className="text-xs text-purple-500 mt-2">
+          输入：排序后的失效时间（n 个值）。Sigmoid 输出映射到 [0, 1]，对应 δ ∈ [0.001, 1.00]。
+        </p>
       </div>
 
       {/* 训练超参数 */}
@@ -121,10 +103,10 @@ export function TrainingTab() {
       </div>
 
       {/* T1: 损失收敛曲线 */}
-      {n2Metrics.size > 0 && (
+      {metrics.size > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {SAMPLE_SIZES.filter(n => n2Metrics.has(n)).map(n => {
-            const m = n2Metrics.get(n)!
+          {SAMPLE_SIZES.filter(n => metrics.has(n)).map(n => {
+            const m = metrics.get(n)!
             const trainData = m.history.train_loss.map((v, i) => ({ x: i + 1, y: v }))
             const valData = m.history.val_loss.map((v, i) => ({ x: i + 1, y: v }))
 
@@ -150,10 +132,10 @@ export function TrainingTab() {
       )}
 
       {/* T2: 学习率变化曲线 */}
-      {n2Metrics.size > 0 && (
+      {metrics.size > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {SAMPLE_SIZES.filter(n => n2Metrics.has(n)).map(n => {
-            const m = n2Metrics.get(n)!
+          {SAMPLE_SIZES.filter(n => metrics.has(n)).map(n => {
+            const m = metrics.get(n)!
             const lrData = m.history.lr.map((v, i) => ({ x: i + 1, y: v }))
 
             return (
@@ -171,7 +153,7 @@ export function TrainingTab() {
       )}
 
       {/* 无数据提示 */}
-      {n2Metrics.size === 0 && (
+      {metrics.size === 0 && (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
           <p className="text-sm text-slate-400">训练指标未找到</p>
           <p className="text-xs text-slate-300 mt-1">请先运行 train_model.py 生成训练指标</p>
@@ -179,9 +161,9 @@ export function TrainingTab() {
       )}
 
       {/* 指标汇总 */}
-      {n2Metrics.size > 0 && (
+      {metrics.size > 0 && (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-          <h4 className="text-sm font-bold text-slate-700 mb-3">N₂ 模型验证指标汇总</h4>
+          <h4 className="text-sm font-bold text-slate-700 mb-3">M1-R1 模型验证指标汇总</h4>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -195,8 +177,8 @@ export function TrainingTab() {
                 </tr>
               </thead>
               <tbody>
-                {SAMPLE_SIZES.filter(n => n2Metrics.has(n)).map(n => {
-                  const m = n2Metrics.get(n)!
+                {SAMPLE_SIZES.filter(n => metrics.has(n)).map(n => {
+                  const m = metrics.get(n)!
                   return (
                     <tr key={n}>
                       <td className="border border-slate-200 px-3 py-2 font-mono font-bold">n={n}</td>

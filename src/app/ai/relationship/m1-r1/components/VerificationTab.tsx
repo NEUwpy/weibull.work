@@ -1,5 +1,5 @@
 /**
- * 可信性验证 Tab
+ * M1-R1 可信性验证 Tab
  *
  * 图表：V1(验证案例表), V3(边界测试)
  */
@@ -144,7 +144,7 @@ export function VerificationTab() {
         </div>
       </ChartCard>
 
-      {/* V2: 验证案例散点图 — 真实 β vs 估计 β */}
+      {/* V2: 验证案例散点图 — 真实 vs 估计 */}
       {validCases.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <ChartCard title="V2: 真实 β vs 估计 β">
