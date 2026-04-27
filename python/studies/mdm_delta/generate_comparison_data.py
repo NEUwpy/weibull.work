@@ -143,7 +143,7 @@ def main():
     models_dir = PROJECT_ROOT / 'python' / 'models' / 'mdm_delta'
 
     # 参数空间
-    betas = [2.0]
+    betas = [1.0, 2.0, 5.0]
     etas = [100.0, 1000.0, 5000.0]
     gamma = 1000.0
     sample_sizes = [5, 7, 10, 15, 20]
@@ -338,8 +338,12 @@ def main():
     # ============================================================
     print("\n生成 boundary_tests.csv...")
     boundary_cases = [
+        {'beta': 1.0, 'eta': 50, 'gamma': 1000, 'n': 5, 'label': 'beta=1,小η'},
+        {'beta': 1.0, 'eta': 10000, 'gamma': 1000, 'n': 5, 'label': 'beta=1,大η'},
         {'beta': 2.0, 'eta': 50, 'gamma': 1000, 'n': 5, 'label': 'beta=2,小η'},
         {'beta': 2.0, 'eta': 10000, 'gamma': 1000, 'n': 5, 'label': 'beta=2,大η'},
+        {'beta': 5.0, 'eta': 50, 'gamma': 1000, 'n': 5, 'label': 'beta=5,小η'},
+        {'beta': 5.0, 'eta': 10000, 'gamma': 1000, 'n': 5, 'label': 'beta=5,大η'},
         {'beta': 2.0, 'eta': 100, 'gamma': 1000, 'n': 3, 'label': '极小样本'},
         {'beta': 2.0, 'eta': 5000, 'gamma': 1000, 'n': 30, 'label': '大样本'},
     ]
