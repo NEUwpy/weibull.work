@@ -7,6 +7,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { loadJSON, directEstimationMetricsPath, DirectEstimationMetricsData } from '@/lib/ai-data'
+import { ChartCard } from '@/components/shared/charts/ChartCard'
+import { MultiLineChart } from '@/components/ai/charts/MultiLineChart'
 
 const SAMPLE_SIZES = [5, 7, 10, 15]
 const SCHEMES = ['a1', 'a2', 'a3', 'b1', 'b2', 'c1', 'c2', 'c3'] as const
@@ -102,12 +104,12 @@ export function CompareTab() {
               {[
                 { id: 'a1', label: 'A-1', model: '按 n 独立模型', done: true },
                 { id: 'a2', label: 'A-2', model: '按 n 独立模型', done: true },
-                { id: 'a3', label: 'A-3', model: '按 n 独立模型', done: false },
+                { id: 'a3', label: 'A-3', model: '按 n 独立模型', done: true },
                 { id: 'b1', label: 'B-1', model: '统一模型', done: true },
-                { id: 'b2', label: 'B-2', model: '统一模型', done: false },
+                { id: 'b2', label: 'B-2', model: '统一模型', done: true },
                 { id: 'c1', label: 'C-1', model: '按 n 独立模型', done: true },
                 { id: 'c2', label: 'C-2', model: '按 n 独立模型', done: true },
-                { id: 'c3', label: 'C-3', model: '按 n 独立模型', done: false },
+                { id: 'c3', label: 'C-3', model: '按 n 独立模型', done: true },
               ].map((s, i) => (
                 <tr key={s.id} className={i % 2 === 0 ? 'bg-cyan-50/50' : ''}>
                   <td className="border border-slate-200 px-3 py-2 font-mono font-bold">{s.label}</td>
@@ -187,14 +189,64 @@ export function CompareTab() {
         </div>
       </div>
 
+      {/* MAE 折线图 */}
+      {(() => {
+        const lineData_beta = SAMPLE_SIZES.map(n => {
+          const row: Record<string, number> = { n }
+          for (const scheme of SCHEMES) {
+            const m = getMetric(scheme, n)
+            if (m) row[scheme] = m.metrics.mae_beta
+          }
+          return row
+        })
+        const lineData_eta = SAMPLE_SIZES.map(n => {
+          const row: Record<string, number> = { n }
+          for (const scheme of SCHEMES) {
+            const m = getMetric(scheme, n)
+            if (m) row[scheme] = m.metrics.mae_eta
+          }
+          return row
+        })
+        const lineColors: Record<string, string> = {
+          a1: '#6366f1', a2: '#8b5cf6', a3: '#a78bfa',
+          b1: '#0891b2', b2: '#06b6d4',
+          c1: '#f59e0b', c2: '#f97316', c3: '#ef4444',
+        }
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ChartCard title="MAE(β) 随样本量变化">
+              <MultiLineChart
+                data={lineData_beta}
+                lines={SCHEMES.map(s => ({ key: s, label: SCHEME_LABELS[s], color: lineColors[s] }))}
+                xKey="n"
+                xLabel="样本量 n"
+                yLabel="MAE(β)"
+              />
+            </ChartCard>
+            <ChartCard title="MAE(η) 随样本量变化">
+              <MultiLineChart
+                data={lineData_eta}
+                lines={SCHEMES.map(s => ({ key: s, label: SCHEME_LABELS[s], color: lineColors[s] }))}
+                xKey="n"
+                xLabel="样本量 n"
+                yLabel="MAE(η)"
+              />
+            </ChartCard>
+          </div>
+        )
+      })()}
+
       {/* 结论 */}
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
         <h4 className="text-sm font-bold text-slate-700 mb-3">实验结论</h4>
         <div className="text-xs text-slate-600 space-y-2">
-          <p><strong>1. C-1 与 A-1 几乎相同</strong>：4 个统计量 [mean, std, min, max] 已经充分提取了 Weibull 参数信息。</p>
-          <p><strong>2. A-2 对 η 变差</strong>：除以均值的预处理没有帮助，反而丢失了尺度信息。</p>
-          <p><strong>3. C-2 无额外优势</strong>：偏度/峰度/中位数没有提供超出 C-1 的信息。</p>
-          <p><strong>4. B-1 统一模型可行</strong>：一个模型覆盖所有 n，精度与独立模型几乎相同，实用性最强。</p>
+          <p><strong>1. C-1 ≈ A-1</strong>：4 个统计量 [mean, std, min, max] 已经充分提取了 Weibull 参数信息。</p>
+          <p><strong>2. B-1 统一模型可行</strong>：一个模型覆盖所有 n，精度与独立模型几乎相同，实用性最强。</p>
+          <p><strong>3. A-2 对 η 变差</strong>：除以均值反而丢失尺度信息，对 η 估计不利。</p>
+          <p><strong>4. C-2 无额外优势</strong>：偏度/峰度/中位数未提供超出 C-1 的新信息。</p>
+          <p><strong>5. A-3 明显变差</strong>：去位置丢失绝对尺度信息，MAE(β) 几乎翻倍。</p>
+          <p><strong>6. B-2 ≈ B-1</strong>：除以均值+掩码与原始+掩码精度相当。</p>
+          <p><strong>7. C-3 ≈ C-1</strong>：Q1/Q3/IQR/CV 未提供超出基础统计量的新信息。</p>
         </div>
       </div>
 

@@ -34,6 +34,22 @@
 
 ## 任务清单
 
+### 阶段 8：V2 — 加入 γ≠0 + 泛化验证
+
+> 详见 `ai-direct-estimation-v2-plan.md`
+
+- [ ] 8a. 更新 `generate_training_data.py` 默认 γ={0,50,100,200}
+- [ ] 8b. 生成新训练数据（400 组 × 500 = 200,000 条）
+- [ ] 8c. 新建 `generate_test_data.py`（插值 + 外推参数组合）
+- [ ] 8d. 生成测试数据（约 30,000 条）
+- [ ] 8e. 为全部 8 个方案重新训练模型（用新训练数据）
+- [ ] 8f. 复制模型和指标到 public/ai/data/
+- [ ] 8g. 新建 `evaluate_generalization.py`
+- [ ] 8h. 对全部 8 个方案做泛化推理，输出 generalization_metrics.json
+- [ ] 8i. VerificationTab：精度汇总增加 validation_type 切换（组内/插值/外推）
+- [ ] 8j. PerformanceTab：精度分解增加 validation_type 切换
+- [ ] 8k. 更新 design.md / tasks.md / handoff-prompt.md
+
 ### 阶段 1：扩大参数空间 ✅
 
 - [x] 更新 `generate_training_data.py` 支持更多参数值
@@ -142,6 +158,8 @@
 | 2026-04-26 | B-1 统一模型完成：一个模型覆盖所有 n，精度几乎相同 |
 | 2026-04-26 | 前端重构：方案选择页 + 动态路由 [scheme] + 8 方案横向对比 |
 | 2026-04-27 | A-3/B-2/C-3 全部完成：8/8 方案已实验，全部方案标记为"已完成" |
+| 2026-04-27 | 前端可视化优化：散点图改 ScatterPlot、直方图、精度表维度切换、精度汇总绝对/相对切换 |
+| 2026-04-27 | V2 规划完成：γ≠0 扩展 + 泛化验证（组内/插值/外推），详见 v2-plan.md |
 
 ---
 
