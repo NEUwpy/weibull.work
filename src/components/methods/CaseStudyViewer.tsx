@@ -8,10 +8,16 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { BookOpen, ChevronDown } from 'lucide-react'
+import { BookOpen, ChevronDown, BarChart3 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { VerificationItem, type SampleInfo } from './shared/verification'
 import { GradientGammaChart, type GradientCurveData } from './mdm/charts'
 import type { VerificationConfig, SampleData, EstimateResult, SampleCurve } from './shared/verification/types'
+import dynamic from 'next/dynamic'
+
+const CurvePropertiesViewer = dynamic(() => import('./mdm/CurvePropertiesViewer'), {
+  loading: () => <div className="p-8 text-center text-slate-400">加载中...</div>
+})
 
 interface CaseStudyViewerProps {
   methodId: string
@@ -28,6 +34,7 @@ const CURVE_COLORS = [
 ]
 
 export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
+  const [subTab, setSubTab] = useState<'paper' | 'curve'>('paper')
   const [verifications, setVerifications] = useState<VerificationConfig[]>([])
   const [selectedId, setSelectedId] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -202,6 +209,205 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
     opacity: 0.8
   }))
 
+  // Sub-tab for MDM: curve properties research
+  if (methodId.toLowerCase() === 'mdm') {
+    return (
+      <div className="space-y-6">
+        {/* Sub-tab switcher */}
+        <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200">
+              <button
+                onClick={() => setSubTab('paper')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                  subTab === 'paper' ? "bg-white text-purple-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                <BookOpen size={16} />
+                论文复现
+              </button>
+              <button
+                onClick={() => setSubTab('curve')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                  subTab === 'curve' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                <BarChart3 size={16} />
+                曲线性质
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        {subTab === 'paper' ? (
+          <div className="space-y-6">
+            {/* Loading state */}
+            {loading && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
+                  <p className="text-slate-600 font-bold">加载验证列表中...</p>
+                </div>
+              </div>
+            )}
+
+            {/* No verifications */}
+            {!loading && verifications.length === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12">
+                <div className="flex flex-col items-center justify-center">
+                  <BookOpen className="text-slate-300 mb-4" size={48} />
+                  <h3 className="text-lg font-bold text-slate-600 mb-2">暂无验证项</h3>
+                  <p className="text-slate-400">该方法的可信性验证正在建设中...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
+                <p className="text-red-700 font-bold">加载失败: {error}</p>
+              </div>
+            )}
+
+            {/* Verification content */}
+            {!loading && verifications.length > 0 && !error && (
+              <>
+                {/* Selector */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <BookOpen className="text-purple-600" size={20} />
+                    <label className="text-sm font-bold text-slate-600 whitespace-nowrap">选择验证：</label>
+                    <div className="relative flex-1 max-w-xl">
+                      <select
+                        value={selectedId}
+                        onChange={(e) => setSelectedId(e.target.value)}
+                        className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer hover:bg-slate-100 transition-colors"
+                      >
+                        {verifications.map(v => (
+                          <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                    </div>
+                    {selectedVerification?.paper?.id && (
+                      <a
+                        href={`/library/${selectedVerification.paper.id}-pdf原文`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                        title="查看论文原文"
+                      >
+                        <BookOpen size={16} />
+                        <span className="text-xs font-bold">论文</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Data loading */}
+                {dataLoading && (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-12">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
+                      <p className="text-slate-600 font-bold">加载验证数据中...</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Verification item */}
+                {!dataLoading && selectedVerification?.verification && (() => {
+                  const v = selectedVerification.verification
+                  const paper = selectedVerification.paper
+                  const params: SampleInfo[] = [
+                    { label: '真实分布', value: `W(${v.trueParams.beta}, ${v.trueParams.eta}, ${v.trueParams.gamma})` },
+                    { label: '样本量', value: `n=${v.sampleSize}` },
+                    { label: '偏移量', value: `δ=${v.offset}` },
+                    { label: '样本数', value: `${v.nSamples}组` },
+                  ]
+                  const samplesTableData = {
+                    headers: ['样本', 't₁', 't₂', 't₃', 't₄', 't₅', 't₆', 't₇'],
+                    rows: samples.map(s => [s.id, ...s.values]),
+                  }
+                  const chartCurves: GradientCurveData[] = curvesData.slice(0, 30).map((sample, idx) => ({
+                    id: sample.sample_id,
+                    data: sample.grad_gamma_curve,
+                    color: CURVE_COLORS[idx % CURVE_COLORS.length],
+                    strokeWidth: 1.5,
+                    name: sample.sample_id,
+                    opacity: 0.8,
+                  }))
+
+                  return (
+                    <VerificationItem
+                      title={paper?.figure || '验证'}
+                      params={params}
+                      samplesData={samplesTableData}
+                      samplesExpandable={true}
+                      paperContent={{
+                        type: 'image',
+                        src: v.paperImage,
+                        alt: paper?.figure || '论文图片',
+                      }}
+                      systemContent={
+                        <GradientGammaChart
+                          curves={chartCurves}
+                          interactive={false}
+                          overlayMode={true}
+                          showTitle={false}
+                          height={400}
+                          offsetReference={v.offset}
+                          domain={{ x: [200, 1800], y: [0, 0.6] }}
+                        />
+                      }
+                      chartHeight={450}
+                    />
+                  )
+                })()}
+              </>
+            )}
+          </div>
+        ) : (
+          <CurvePropertiesViewer />
+        )}
+      </div>
+    )
+  }
+
+  // Non-MDM methods: original layout
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-12">
+        <div className="flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
+          <p className="text-slate-600 font-bold">加载验证列表中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (verifications.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-12">
+        <div className="flex flex-col items-center justify-center">
+          <BookOpen className="text-slate-300 mb-4" size={48} />
+          <h3 className="text-lg font-bold text-slate-600 mb-2">暂无验证项</h3>
+          <p className="text-slate-400">该方法的可信性验证正在建设中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
+        <p className="text-red-700 font-bold">加载失败: {error}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* 验证选择下拉框 */}
@@ -221,7 +427,6 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
           </div>
-          {/* 论文链接 */}
           {selectedVerification?.paper?.id && (
             <a
               href={`/library/${selectedVerification.paper.id}-pdf原文`}
@@ -241,38 +446,61 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
       {dataLoading && (
         <div className="bg-white rounded-2xl border border-slate-200 p-12">
           <div className="flex flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
             <p className="text-slate-600 font-bold">加载验证数据中...</p>
           </div>
         </div>
       )}
 
       {/* 验证项 */}
-      {!dataLoading && v && (
-        <VerificationItem
-          title={paper?.figure || '验证'}
-          params={params}
-          samplesData={samplesTableData}
-          samplesExpandable={true}
-          paperContent={{
-            type: 'image',
-            src: v.paperImage,
-            alt: paper?.figure || '论文图片'
-          }}
-          systemContent={
-            <GradientGammaChart
-              curves={chartCurves}
-              interactive={false}
-              overlayMode={true}
-              showTitle={false}
-              height={400}
-              offsetReference={v.offset}
-              domain={{ x: [200, 1800], y: [0, 0.6] }}
-            />
-          }
-          chartHeight={450}
-        />
-      )}
+      {!dataLoading && selectedVerification?.verification && (() => {
+        const v = selectedVerification.verification
+        const paper = selectedVerification.paper
+        const params: SampleInfo[] = [
+          { label: '真实分布', value: `W(${v.trueParams.beta}, ${v.trueParams.eta}, ${v.trueParams.gamma})` },
+          { label: '样本量', value: `n=${v.sampleSize}` },
+          { label: '偏移量', value: `δ=${v.offset}` },
+          { label: '样本数', value: `${v.nSamples}组` },
+        ]
+        const samplesTableData = {
+          headers: ['样本', 't₁', 't₂', 't₃', 't₄', 't₅', 't₆', 't₇'],
+          rows: samples.map(s => [s.id, ...s.values]),
+        }
+        const chartCurves: GradientCurveData[] = curvesData.slice(0, 30).map((sample, idx) => ({
+          id: sample.sample_id,
+          data: sample.grad_gamma_curve,
+          color: CURVE_COLORS[idx % CURVE_COLORS.length],
+          strokeWidth: 1.5,
+          name: sample.sample_id,
+          opacity: 0.8,
+        }))
+
+        return (
+          <VerificationItem
+            title={paper?.figure || '验证'}
+            params={params}
+            samplesData={samplesTableData}
+            samplesExpandable={true}
+            paperContent={{
+              type: 'image',
+              src: v.paperImage,
+              alt: paper?.figure || '论文图片',
+            }}
+            systemContent={
+              <GradientGammaChart
+                curves={chartCurves}
+                interactive={false}
+                overlayMode={true}
+                showTitle={false}
+                height={400}
+                offsetReference={v.offset}
+                domain={{ x: [200, 1800], y: [0, 0.6] }}
+              />
+            }
+            chartHeight={450}
+          />
+        )
+      })()}
     </div>
   )
 }
