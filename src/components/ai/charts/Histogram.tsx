@@ -11,8 +11,16 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
 
+interface PrecomputedBin {
+  x0: number
+  x1: number
+  count: number
+}
+
 interface HistogramProps {
-  values: number[]
+  values?: number[]
+  precomputedBins?: PrecomputedBin[]  // 预计算的 bin 数据，传入时跳过 values 解析
+  precomputedMean?: number            // 预计算的均值
   bins?: number          // 分箱数，默认 auto
   xLabel?: string
   yLabel?: string
@@ -50,6 +58,8 @@ function computeBins(values: number[], binCount?: number) {
 
 export function Histogram({
   values,
+  precomputedBins,
+  precomputedMean,
   bins: binCount,
   xLabel = '',
   yLabel = '频次',
@@ -60,37 +70,50 @@ export function Histogram({
   secondLabel,
 }: HistogramProps) {
   const result = useMemo(() => {
-    const allValues = secondValues ? [...values, ...secondValues] : values
-    const { bins, binWidth, min, max } = computeBins(allValues, binCount)
+    // 使用预计算的 bin 数据
+    if (precomputedBins && precomputedBins.length > 0) {
+      const avgWidth = precomputedBins.length > 1
+        ? (precomputedBins[precomputedBins.length - 1].x1 - precomputedBins[0].x0) / precomputedBins.length
+        : 1
+      const data = precomputedBins.map(b => ({
+        label: ((b.x0 + b.x1) / 2).toFixed(avgWidth < 0.01 ? 3 : avgWidth < 0.1 ? 2 : 1),
+        count: b.count,
+        count2: undefined,
+      }))
+      return { data, mean: precomputedMean ?? 0 }
+    }
 
-    // 重新计算两组数据的频次
+    // 从原始 values 计算
+    const allValues = secondValues ? [...values!, ...secondValues] : values!
+    const { bins, binWidth } = computeBins(allValues, binCount)
+
     for (const b of bins) { b.count = 0; b.count2 = 0 }
-    for (const v of values) {
-      let idx = Math.floor((v - min) / binWidth)
+    for (const v of values!) {
+      let idx = Math.floor((v - bins[0].x0) / binWidth)
       if (idx >= bins.length) idx = bins.length - 1
       if (idx < 0) idx = 0
       bins[idx].count++
     }
     if (secondValues) {
       for (const v of secondValues) {
-        let idx = Math.floor((v - min) / binWidth)
+        let idx = Math.floor((v - bins[0].x0) / binWidth)
         if (idx >= bins.length) idx = bins.length - 1
         if (idx < 0) idx = 0
         bins[idx].count2++
       }
     }
 
-    const data = bins.map((b, i) => ({
+    const data = bins.map(b => ({
       label: ((b.x0 + b.x1) / 2).toFixed(binWidth < 0.01 ? 3 : binWidth < 0.1 ? 2 : 1),
       count: b.count,
       count2: secondValues ? b.count2 : undefined,
     }))
 
-    const mean = values.reduce((a, b) => a + b, 0) / values.length
+    const mean = values!.reduce((a, b) => a + b, 0) / values!.length
     return { data, mean }
-  }, [values, binCount, secondValues])
+  }, [values, precomputedBins, precomputedMean, binCount, secondValues])
 
-  if (!values || values.length === 0) {
+  if ((!values || values.length === 0) && (!precomputedBins || precomputedBins.length === 0)) {
     return (
       <div className="h-[280px] flex items-center justify-center text-slate-400">
         无有效数据

@@ -1,22 +1,30 @@
 /**
  * 可信性验证 Tab — 直接估计
  *
- * 精度汇总表（绝对/相对切换）+ 验证案例表
+ * 精度汇总表（绝对/相对切换 + 组内/插值/外推切换）+ 验证案例表
  */
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { loadCSV, loadJSON, schemeMetricsPath, schemeValidationPath, groupBy, DirectEstimationMetricsData, DirectEstimationValidationRow } from '@/lib/ai-data'
+import { loadCSV, loadJSON, schemeMetricsPath, schemeValidationPath, generalizationMetricsPath, groupBy, DirectEstimationMetricsData, DirectEstimationValidationRow, GeneralizationMetricsData, GeneralizationMetricsByN } from '@/lib/ai-data'
 
 const SAMPLE_SIZES = [5, 7, 10, 15]
 const PARAM_NAMES = ['beta', 'eta', 'gamma'] as const
 const PARAM_LABELS: Record<string, string> = { beta: 'β', eta: 'η', gamma: 'γ' }
 
+const VALIDATION_TYPE_OPTIONS = [
+  { key: 'ig', label: '组内验证' },
+  { key: 'ip', label: '插值验证' },
+  { key: 'ex', label: '外推验证' },
+] as const
+
 export function VerificationTab({ scheme = 'a-1' }: { scheme?: string }) {
   const [metrics, setMetrics] = useState<Map<number, DirectEstimationMetricsData>>(new Map())
   const [predictions, setPredictions] = useState<Map<number, DirectEstimationValidationRow[]>>(new Map())
+  const [genMetrics, setGenMetrics] = useState<GeneralizationMetricsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [metricMode, setMetricMode] = useState<'absolute' | 'relative'>('absolute')
+  const [validationType, setValidationType] = useState<string>('ig')
 
   useEffect(() => {
     async function load() {
@@ -49,6 +57,12 @@ export function VerificationTab({ scheme = 'a-1' }: { scheme?: string }) {
           }
         }
 
+        // 加载泛化评估数据
+        try {
+          const gen = await loadJSON<GeneralizationMetricsData>(generalizationMetricsPath())
+          setGenMetrics(gen)
+        } catch {}
+
         setMetrics(mMap)
         setPredictions(pMap)
       } finally {
@@ -73,63 +87,155 @@ export function VerificationTab({ scheme = 'a-1' }: { scheme?: string }) {
       </div>
 
       {/* 精度汇总表 */}
-      {hasMetrics && (
+      {(hasMetrics || genMetrics) && (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-bold text-slate-700">精度汇总</h4>
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
-              <button
-                onClick={() => setMetricMode('absolute')}
-                className={`px-3 py-1 font-medium transition-colors ${metricMode === 'absolute' ? 'bg-cyan-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-              >
-                绝对精度 (MAE)
-              </button>
-              <button
-                onClick={() => setMetricMode('relative')}
-                className={`px-3 py-1 font-medium transition-colors ${metricMode === 'relative' ? 'bg-cyan-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-              >
-                相对精度 (MRE)
-              </button>
+            <div className="flex items-center gap-2">
+              {/* 验证类型切换 */}
+              {genMetrics && (
+                <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+                  {VALIDATION_TYPE_OPTIONS.map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setValidationType(opt.key)}
+                      className={`px-3 py-1 font-medium transition-colors ${validationType === opt.key ? 'bg-cyan-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* 精度类型切换 */}
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+                <button
+                  onClick={() => setMetricMode('absolute')}
+                  className={`px-3 py-1 font-medium transition-colors ${metricMode === 'absolute' ? 'bg-cyan-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                >
+                  绝对精度 (MAE)
+                </button>
+                <button
+                  onClick={() => setMetricMode('relative')}
+                  className={`px-3 py-1 font-medium transition-colors ${metricMode === 'relative' ? 'bg-cyan-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                >
+                  相对精度 (MRE)
+                </button>
+              </div>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-slate-100">
-                  <th className="border border-slate-200 px-3 py-2 text-left font-bold text-slate-600">样本量 n</th>
-                  {PARAM_NAMES.map(p => (
-                    <th key={p} className="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600">
-                      {metricMode === 'absolute' ? `MAE(${PARAM_LABELS[p]})` : `MRE(${PARAM_LABELS[p]})`}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {SAMPLE_SIZES.filter(n => metrics.has(n)).map(n => {
-                  const m = metrics.get(n)!
-                  return (
-                    <tr key={n}>
-                      <td className="border border-slate-200 px-3 py-2 font-mono font-bold">n={n}</td>
+
+          {/* 泛化精度表（有 generalization_metrics.json 时） */}
+          {genMetrics && (() => {
+            const schemeKey = scheme.replace('-', '')
+            const typeData = genMetrics.results?.[schemeKey]?.[validationType]
+            if (!typeData) return <p className="text-xs text-slate-400">该方案/验证类型暂无泛化数据</p>
+
+            const byN = typeData.by_n || {}
+            return (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100">
+                        <th className="border border-slate-200 px-3 py-2 text-left font-bold text-slate-600">样本量 n</th>
+                        {PARAM_NAMES.map(p => (
+                          <th key={p} className="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600">
+                            {metricMode === 'absolute' ? `MAE(${PARAM_LABELS[p]})` : `MRE(${PARAM_LABELS[p]})`}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {SAMPLE_SIZES.map(n => {
+                        const m = byN[`n${n}`] as GeneralizationMetricsByN | undefined
+                        if (!m) return null
+                        return (
+                          <tr key={n}>
+                            <td className="border border-slate-200 px-3 py-2 font-mono font-bold">n={n}</td>
+                            {PARAM_NAMES.map(p => (
+                              <td key={p} className="border border-slate-200 px-3 py-2 text-right font-mono">
+                                {metricMode === 'absolute'
+                                  ? (m[`mae_${p}` as keyof GeneralizationMetricsByN] as number)?.toFixed(p === 'beta' ? 4 : 2)
+                                  : `${((m[`mre_${p}` as keyof GeneralizationMetricsByN] as number) * 100)?.toFixed(1)}%`
+                                }
+                              </td>
+                            ))}
+                          </tr>
+                        )
+                      })}
+                      {/* 汇总行 */}
+                      {typeData.overall && (
+                        <tr className="bg-cyan-50 font-bold">
+                          <td className="border border-slate-200 px-3 py-2 font-mono">汇总</td>
+                          {PARAM_NAMES.map(p => (
+                            <td key={p} className="border border-slate-200 px-3 py-2 text-right font-mono">
+                              {metricMode === 'absolute'
+                                ? (typeData.overall[`mae_${p}` as keyof GeneralizationMetricsByN] as number)?.toFixed(p === 'beta' ? 4 : 2)
+                                : `${((typeData.overall[`mre_${p}` as keyof GeneralizationMetricsByN] as number) * 100)?.toFixed(1)}%`
+                              }
+                            </td>
+                          ))}
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  {metricMode === 'absolute'
+                    ? 'MAE = 平均绝对误差（原始尺度）'
+                    : 'MRE = 平均相对误差 = mean(|pred - true| / true) × 100%'
+                  }
+                  {' | '}
+                  {VALIDATION_TYPE_OPTIONS.find(o => o.key === validationType)?.label}：
+                  {validationType === 'ig' ? '训练集参数组合' : validationType === 'ip' ? '训练网格之间的新组合' : '超出训练范围的组合'}
+                </p>
+              </>
+            )
+          })()}
+
+          {/* 回退：无泛化数据时用原有 metrics */}
+          {!genMetrics && hasMetrics && (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100">
+                      <th className="border border-slate-200 px-3 py-2 text-left font-bold text-slate-600">样本量 n</th>
                       {PARAM_NAMES.map(p => (
-                        <td key={p} className="border border-slate-200 px-3 py-2 text-right font-mono">
-                          {metricMode === 'absolute'
-                            ? (m.metrics as unknown as Record<string, number>)[`mae_${p}`]?.toFixed(p === 'beta' ? 4 : 2)
-                            : `${((m.metrics as unknown as Record<string, number>)[`mean_relative_error_${p}`] * 100)?.toFixed(1)}%`
-                          }
-                        </td>
+                        <th key={p} className="border border-slate-200 px-3 py-2 text-right font-bold text-slate-600">
+                          {metricMode === 'absolute' ? `MAE(${PARAM_LABELS[p]})` : `MRE(${PARAM_LABELS[p]})`}
+                        </th>
                       ))}
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-slate-400 mt-2">
-            {metricMode === 'absolute'
-              ? 'MAE = 平均绝对误差（原始尺度）'
-              : 'MRE = 平均相对误差 = mean(|pred - true| / true) × 100%'
-            }
-          </p>
+                  </thead>
+                  <tbody>
+                    {SAMPLE_SIZES.filter(n => metrics.has(n)).map(n => {
+                      const m = metrics.get(n)!
+                      return (
+                        <tr key={n}>
+                          <td className="border border-slate-200 px-3 py-2 font-mono font-bold">n={n}</td>
+                          {PARAM_NAMES.map(p => (
+                            <td key={p} className="border border-slate-200 px-3 py-2 text-right font-mono">
+                              {metricMode === 'absolute'
+                                ? (m.metrics as unknown as Record<string, number>)[`mae_${p}`]?.toFixed(p === 'beta' ? 4 : 2)
+                                : `${((m.metrics as unknown as Record<string, number>)[`mean_relative_error_${p}`] * 100)?.toFixed(1)}%`
+                              }
+                            </td>
+                          ))}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-slate-400 mt-2">
+                {metricMode === 'absolute'
+                  ? 'MAE = 平均绝对误差（原始尺度）'
+                  : 'MRE = 平均相对误差 = mean(|pred - true| / true) × 100%'
+                }
+              </p>
+            </>
+          )}
         </div>
       )}
 

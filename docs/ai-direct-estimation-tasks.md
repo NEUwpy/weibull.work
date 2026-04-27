@@ -38,17 +38,17 @@
 
 > 详见 `ai-direct-estimation-v2-plan.md`
 
-- [ ] 8a. 更新 `generate_training_data.py` 默认 γ={0,50,100,200}
-- [ ] 8b. 生成新训练数据（400 组 × 500 = 200,000 条）
-- [ ] 8c. 新建 `generate_test_data.py`（插值 + 外推参数组合）
-- [ ] 8d. 生成测试数据（约 30,000 条）
-- [ ] 8e. 为全部 8 个方案重新训练模型（用新训练数据）
-- [ ] 8f. 复制模型和指标到 public/ai/data/
-- [ ] 8g. 新建 `evaluate_generalization.py`
-- [ ] 8h. 对全部 8 个方案做泛化推理，输出 generalization_metrics.json
-- [ ] 8i. VerificationTab：精度汇总增加 validation_type 切换（组内/插值/外推）
-- [ ] 8j. PerformanceTab：精度分解增加 validation_type 切换
-- [ ] 8k. 更新 design.md / tasks.md / handoff-prompt.md
+- [x] 8a. 更新 `generate_training_data.py` 默认 γ={0,50,100,200}
+- [x] 8b. 生成新训练数据（400 组 × 500 = 200,000 条）
+- [x] 8c. 新建 `generate_test_data.py`（插值 + 外推参数组合）
+- [x] 8d. 生成测试数据（67,600 条：ig 40k + ip 19.2k + ex 8.4k）
+- [x] 8e. 为全部 8 个方案重新训练模型（用新训练数据）
+- [x] 8f. 复制模型和指标到 public/ai/data/
+- [x] 8g. 新建 `evaluate_generalization.py`
+- [x] 8h. 对全部 8 个方案做泛化推理，输出 generalization_metrics.json
+- [x] 8i. VerificationTab：精度汇总增加 validation_type 切换（组内/插值/外推）
+- [x] 8j. PerformanceTab：精度分解增加 validation_type 切换
+- [x] 8k. 更新 design.md / tasks.md / handoff-prompt.md
 
 ### 阶段 1：扩大参数空间 ✅
 
@@ -121,17 +121,17 @@
 
 ---
 
-## 参数空间（统一）
+## 参数空间（V2 统一）
 
 | 参数 | 取值 | 数量 |
 |------|------|------|
 | β | {0.5, 1, 2, 3, 5} | 5 |
 | η | {100, 500, 1000, 3000, 5000} | 5 |
-| γ | {0} | 1 |
+| γ | {0, 50, 100, 200} | 4 |
 | n | {5, 7, 10, 15} | 4 |
 | MC | 500 | — |
-| **总组合** | 5×5×1×4 = **100 组** | |
-| **总样本** | 100 × 500 = **50,000 条** | |
+| **总组合** | 5×5×4×4 = **400 组** | |
+| **总样本** | 400 × 500 = **200,000 条** | |
 
 ---
 
@@ -160,6 +160,7 @@
 | 2026-04-27 | A-3/B-2/C-3 全部完成：8/8 方案已实验，全部方案标记为"已完成" |
 | 2026-04-27 | 前端可视化优化：散点图改 ScatterPlot、直方图、精度表维度切换、精度汇总绝对/相对切换 |
 | 2026-04-27 | V2 规划完成：γ≠0 扩展 + 泛化验证（组内/插值/外推），详见 v2-plan.md |
+| 2026-04-27 | V2 实施完成：γ∈{0,50,100,200}，200k 训练数据，8 方案全部重训，泛化评估完成 |
 
 ---
 

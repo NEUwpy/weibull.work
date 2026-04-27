@@ -98,21 +98,28 @@ export function directEstimationHistoryPath(n: number) {
 
 // Scheme-aware 路径函数
 export function schemeMetricsPath(scheme: string, n?: number) {
-  if (scheme === 'b-1') return `${AI_DATA_BASE}/direct_estimation_b1_metrics.json`
-  const suffix = scheme === 'a-1' ? '' : `_${scheme.replace('-', '')}`
+  const schemeKey = scheme.replace('-', '')
+  if (scheme === 'b-1' || scheme === 'b-2') return `${AI_DATA_BASE}/direct_estimation_${schemeKey}_metrics.json`
+  const suffix = scheme === 'a-1' ? '' : `_${schemeKey}`
   return `${AI_DATA_BASE}/direct_estimation_n${n}${suffix}_metrics.json`
 }
 
 export function schemeValidationPath(scheme: string, n?: number) {
-  if (scheme === 'b-1') return `${AI_DATA_BASE}/direct_estimation_validation_predictions_b1.csv`
-  const suffix = scheme === 'a-1' ? '' : `_${scheme.replace('-', '')}`
+  const schemeKey = scheme.replace('-', '')
+  if (scheme === 'b-1' || scheme === 'b-2') return `${AI_DATA_BASE}/direct_estimation_validation_predictions_${schemeKey}.csv`
+  const suffix = scheme === 'a-1' ? '' : `_${schemeKey}`
   return `${AI_DATA_BASE}/direct_estimation_validation_predictions_n${n}${suffix}.csv`
 }
 
 export function schemeHistoryPath(scheme: string, n?: number) {
-  if (scheme === 'b-1') return `${AI_DATA_BASE}/direct_estimation_training_history_b1.csv`
-  const suffix = scheme === 'a-1' ? '' : `_${scheme.replace('-', '')}`
+  const schemeKey = scheme.replace('-', '')
+  if (scheme === 'b-1' || scheme === 'b-2') return `${AI_DATA_BASE}/direct_estimation_training_history_${schemeKey}.csv`
+  const suffix = scheme === 'a-1' ? '' : `_${schemeKey}`
   return `${AI_DATA_BASE}/direct_estimation_training_history_n${n}${suffix}.csv`
+}
+
+export function generalizationMetricsPath() {
+  return `${AI_DATA_BASE}/direct_estimation_generalization_metrics.json`
 }
 
 export interface DirectEstimationMetricsData {
@@ -161,6 +168,29 @@ export interface DirectEstimationHistoryRow {
   train_loss: number
   val_loss: number
   lr: number
+}
+
+// 泛化评估数据类型
+export interface GeneralizationMetricsByN {
+  mae_beta: number
+  mae_eta: number
+  mae_gamma: number
+  mre_beta: number
+  mre_eta: number
+  mre_gamma: number
+  count: number
+}
+
+export interface GeneralizationMetricsByType {
+  overall: GeneralizationMetricsByN
+  by_n: Record<string, GeneralizationMetricsByN>
+}
+
+export interface GeneralizationMetricsData {
+  results: Record<string, Record<string, GeneralizationMetricsByType>>
+  validation_types: string[]
+  sample_sizes: number[]
+  generated_at: string
 }
 
 // ============================================================

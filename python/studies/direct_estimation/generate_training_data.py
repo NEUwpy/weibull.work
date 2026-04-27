@@ -5,9 +5,9 @@
     蒙特卡洛模拟生成训练数据，供神经网络学习"样本 → β,η,γ"的直接映射。
     与模块 1（MDM δ 优化）不同，本模块不需要调用 MDM，直接从 Weibull 分布采样即可。
 
-参数空间（V1）：
-    β∈{0.5,1,2,3,5}, η∈{100,500,1000,3000,5000}, γ=0, n∈{5,7,10,15}, MC=500
-    25 组 × 4 n × 500 = 50,000 个样本
+参数空间（V2）：
+    β∈{0.5,1,2,3,5}, η∈{100,500,1000,3000,5000}, γ∈{0,50,100,200}, n∈{5,7,10,15}, MC=500
+    100 组 × 4 n × 500 = 200,000 个样本
 
 使用方法：
     cd python/studies/direct_estimation
@@ -55,8 +55,8 @@ def main():
                         help='β 值列表，逗号分隔 (默认: 0.5,1,2,3,5)')
     parser.add_argument('--etas', type=str, default='100,500,1000,3000,5000',
                         help='η 值列表，逗号分隔 (默认: 100,500,1000,3000,5000)')
-    parser.add_argument('--gammas', type=str, default='0',
-                        help='γ 值列表，逗号分隔 (默认: 0)')
+    parser.add_argument('--gammas', type=str, default='0,50,100,200',
+                        help='γ 值列表，逗号分隔 (默认: 0,50,100,200)')
     parser.add_argument('--sample-sizes', type=str, default='5,7,10,15',
                         help='样本量列表，逗号分隔 (默认: 5,7,10,15)')
     parser.add_argument('--mc-runs', type=int, default=500,
