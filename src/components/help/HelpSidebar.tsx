@@ -21,6 +21,13 @@ const NAV_STRUCTURE = [
       { label: '更新计划', href: '/help/changelog/todos' },
     ]
   },
+  {
+    group: '系统规范',
+    items: [
+      { label: '指标规范', href: '/help/metrics' },
+      { label: '图表规范', href: '/help/charts' },
+    ]
+  },
 ]
 
 export default function HelpSidebar() {
