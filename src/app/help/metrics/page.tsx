@@ -2,6 +2,7 @@
 
 import React from 'react'
 import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import { cn } from '@/lib/utils'
 
 // ============================================================
@@ -50,19 +51,19 @@ interface MetricDef {
 const METRICS: MetricDef[] = [
   {
     name: 'MSE',
-    latex: '\\text{MSE} = \\frac{1}{n}\\sum_{i=1}^{n}(\\hat{y}_i - y_i)^2',
+    latex: '\\text{MSE} = \\frac{1}{n}\\sum_{i=1}^{n} e_i^2',
     description: '均方误差，衡量估计值与真值的偏差平方均值。对大偏差敏感，适合检测异常估计。',
     usage: { methods_analysis: true, methods_studies: false, methods_verification: false, m1_delta: true, m1_param: true, m3_performance: false, m3_verification: false, m3_compare: false },
   },
   {
     name: 'MAE',
-    latex: '\\text{MAE} = \\frac{1}{n}\\sum_{i=1}^{n}|\\hat{y}_i - y_i|',
+    latex: '\\text{MAE} = \\frac{1}{n}\\sum_{i=1}^{n} r_i',
     description: '平均绝对误差，直观反映估计偏差幅度。与原始数据同量纲，易于解释。',
     usage: { methods_analysis: true, methods_studies: false, methods_verification: false, m1_delta: true, m1_param: true, m3_performance: true, m3_verification: true, m3_compare: true },
   },
   {
     name: 'MRE',
-    latex: '\\text{MRE} = \\frac{1}{n}\\sum_{i=1}^{n}\\frac{|\\hat{y}_i - y_i|}{|y_i|}',
+    latex: '\\text{MRE} = \\frac{1}{n}\\sum_{i=1}^{n}\\frac{r_i}{|y_i|}',
     description: '平均相对误差，消除量纲影响，便于跨参数（β vs η）比较。',
     usage: { methods_analysis: false, methods_studies: false, methods_verification: false, m1_delta: false, m1_param: true, m3_performance: true, m3_verification: true, m3_compare: true },
   },
@@ -74,7 +75,7 @@ const METRICS: MetricDef[] = [
   },
   {
     name: 'bias',
-    latex: '\\text{bias}(\\hat{y}) = \\frac{1}{n}\\sum_{i=1}^{n}(\\hat{y}_i - y_i)',
+    latex: '\\text{bias}(\\hat{y}) = \\frac{1}{n}\\sum_{i=1}^{n} e_i',
     description: '系统偏差。正值 = 高估，负值 = 低估。接近 0 表示无系统性偏移。',
     usage: { methods_analysis: true, methods_studies: true, methods_verification: false, m1_delta: true, m1_param: true, m3_performance: false, m3_verification: false, m3_compare: false },
   },
@@ -86,14 +87,14 @@ const METRICS: MetricDef[] = [
   },
   {
     name: 'CI99',
-    latex: '\\text{CI}_{99} = [\\hat{y}_{0.5\\%},\\; \\hat{y}_{99.5\\%}]',
-    description: '99% 置信区间，展示估计值的极端范围。',
+    latex: '\\text{CI}_{99} = [P_{0.5}(e_i),\\; P_{99.5}(e_i)]',
+    description: '对误差序列取第 0.5 和 99.5 百分位数作为区间端点。',
     usage: { methods_analysis: false, methods_studies: true, methods_verification: false, m1_delta: false, m1_param: false, m3_performance: false, m3_verification: false, m3_compare: false },
   },
   {
     name: 'P95',
-    latex: '\\text{P}_{95} = \\text{percentile}_{95}\\left(|\\hat{y}_i - y_i|\\right)',
-    description: '95% 分位绝对误差，反映尾部误差水平。',
+    latex: '\\text{P}_{95} = P_{95}(r_i)',
+    description: '对绝对误差序列取第 95 百分位数。',
     usage: { methods_analysis: true, methods_studies: false, methods_verification: false, m1_delta: false, m1_param: false, m3_performance: false, m3_verification: false, m3_compare: false },
   },
   {
@@ -135,6 +136,27 @@ export default function MetricsPage() {
           定义系统所有评价指标的公式、含义与使用范围。本页面是指标的唯一定义源（single source of truth）。
         </p>
       </div>
+
+      {/* 基础定义 */}
+      <section>
+        <h2 className="text-lg font-bold text-slate-900 mb-4">基础定义</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="font-mono font-bold text-slate-900 text-base mb-2">误差 error</div>
+            <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 text-center mb-2">
+              <Latex math="e_i = \hat{y}_i - y_i" block />
+            </div>
+            <p className="text-sm text-slate-600">估计值减真值，有正有负。正值 = 高估，负值 = 低估。</p>
+          </div>
+          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
+            <div className="font-mono font-bold text-slate-900 text-base mb-2">绝对误差 absolute error</div>
+            <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 text-center mb-2">
+              <Latex math="r_i = |\hat{y}_i - y_i|" block />
+            </div>
+            <p className="text-sm text-slate-600">误差取绝对值，恒 ≥ 0。反映偏差幅度，不区分高估/低估。</p>
+          </div>
+        </div>
+      </section>
 
       {/* 指标定义表 */}
       <section>
