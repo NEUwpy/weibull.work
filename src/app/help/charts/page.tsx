@@ -1,9 +1,11 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { cn } from '@/lib/utils'
 import { ChartCard } from '@/components/shared/charts/ChartCard'
+import { loadCSV, loadJSON } from '@/lib/ai-data'
+import { chartRegistry, ChartUsage } from './chart-registry'
 
 // AI Charts
 import { ScatterPlot } from '@/components/ai/charts/ScatterPlot'
@@ -39,16 +41,14 @@ function Placeholder({ label }: { label: string }) {
 }
 
 // ============================================================
-// 模拟数据
+// 模拟数据（模板示例用）
 // ============================================================
 
-// ScatterPlot: 真实值 vs 估计值
 const scatterData = Array.from({ length: 30 }, (_, i) => {
   const x = 0.5 + Math.random() * 4.5
   return { x, y: x + (Math.random() - 0.5) * 0.6 }
 })
 
-// BoxPlot: 按分组的估计值分布
 const boxPlotData = [
   { label: 'n=5', true_val: 2.0, min: 1.2, q1: 1.7, median: 2.05, q3: 2.3, max: 2.8, mean: 2.02, count: 100, outlier_count: 3 },
   { label: 'n=10', true_val: 2.0, min: 1.5, q1: 1.85, median: 2.0, q3: 2.15, max: 2.5, mean: 2.01, count: 100, outlier_count: 1 },
@@ -56,16 +56,13 @@ const boxPlotData = [
   { label: 'n=20', true_val: 2.0, min: 1.7, q1: 1.92, median: 2.0, q3: 2.08, max: 2.3, mean: 2.0, count: 100, outlier_count: 0 },
 ]
 
-// Histogram: 误差分布
 const histValues = Array.from({ length: 200 }, () => (Math.random() - 0.5) * 0.4 + (Math.random() - 0.5) * 0.1)
 
-// LineChart: δ sweep MSE 曲线
 const lineData = Array.from({ length: 20 }, (_, i) => {
   const x = 0.01 + i * 0.025
   return { x, y: 0.05 / (x + 0.1) + Math.random() * 0.005 }
 })
 
-// MultiLineChart: 多方案对比
 const multiLineData = Array.from({ length: 10 }, (_, i) => ({
   n: [5, 7, 10, 12, 15, 17, 20, 22, 25, 30][i],
   'A-1': 0.03 + Math.random() * 0.02,
@@ -73,7 +70,6 @@ const multiLineData = Array.from({ length: 10 }, (_, i) => ({
   'C-1': 0.035 + Math.random() * 0.02,
 }))
 
-// BarChart: 分类对比
 const barData = [
   { label: 'A-1', value: 0.032, color: '#3b82f6' },
   { label: 'A-2', value: 0.045, color: '#6366f1' },
@@ -81,7 +77,6 @@ const barData = [
   { label: 'C-1', value: 0.034, color: '#f59e0b' },
 ]
 
-// GroupedBar: 多指标对比
 const groupedBarData = [
   { n: 'n=5', MAE_β: 0.12, MAE_η: 1.5 },
   { n: 'n=10', MAE_β: 0.08, MAE_η: 1.0 },
@@ -89,14 +84,11 @@ const groupedBarData = [
   { n: 'n=20', MAE_β: 0.05, MAE_η: 0.6 },
 ]
 
-// ScatterWithLine: 散点 + 拟合线
 const swlScatter = Array.from({ length: 20 }, (_, i) => ({ x: i * 0.5, y: i * 0.48 + (Math.random() - 0.5) * 1.5 }))
 const swlLine = Array.from({ length: 20 }, (_, i) => ({ x: i * 0.5, y: i * 0.48 }))
 
-// DistributionMark: 分布 + 标记
 const distValues = Array.from({ length: 300 }, () => 0.3 + Math.random() * 0.4)
 
-// HeatmapChart: β-η 偏差热力图
 const heatmapStats = [
   { beta_true: '0.5', eta_true: '1.0', bias_beta: -0.05 },
   { beta_true: '0.5', eta_true: '2.0', bias_beta: 0.02 },
@@ -112,7 +104,6 @@ const heatmapStats = [
   { beta_true: '5.0', eta_true: '5.0', bias_beta: 0.01 },
 ]
 
-// DensityChart: 需要 rawData + displayDimension + trueValue
 const densityRawData = Array.from({ length: 100 }, () => ({
   beta: 2.0 + (Math.random() - 0.5) * 0.6,
   eta: 10 + (Math.random() - 0.5) * 3,
@@ -120,7 +111,6 @@ const densityRawData = Array.from({ length: 100 }, () => ({
   sample_size: 10,
 }))
 
-// BoxPlotChart: 适用范围数据
 const bpChartData = [
   { keyLabel: 'n=5', est_beta_min: 1.2, est_beta_max: 2.8, est_beta_p01: 1.3, est_beta_p99: 2.7, est_beta_median: 2.0 },
   { keyLabel: 'n=10', est_beta_min: 1.5, est_beta_max: 2.5, est_beta_p01: 1.6, est_beta_p99: 2.4, est_beta_median: 2.0 },
@@ -128,7 +118,6 @@ const bpChartData = [
   { keyLabel: 'n=20', est_beta_min: 1.7, est_beta_max: 2.3, est_beta_p01: 1.75, est_beta_p99: 2.25, est_beta_median: 2.0 },
 ]
 
-// ConvergenceChart: 收敛数据
 const convCurves = [
   {
     id: 'n5', label: 'n=5', color: '#3b82f6',
@@ -144,7 +133,6 @@ const convCurves = [
   },
 ]
 
-// ContourChart: 等高线数据
 const contourData = {
   x: Array.from({ length: 20 }, (_, i) => 0.5 + i * 0.2),
   y: Array.from({ length: 20 }, (_, i) => 5 + i * 1),
@@ -153,7 +141,6 @@ const contourData = {
   ),
 }
 
-// ObjectiveSurface3D: 3D 曲面数据
 const surfaceData = {
   betas: Array.from({ length: 15 }, (_, i) => 0.5 + i * 0.3),
   gammas: Array.from({ length: 15 }, (_, i) => 0 + i * 0.5),
@@ -174,24 +161,376 @@ interface TemplateCardProps {
   children: React.ReactNode
 }
 
-function TemplateCard({ name, nameCn, path, purpose, children }: TemplateCardProps) {
+// ============================================================
+// 展开实例卡片
+// ============================================================
+
+function InstanceCard({ usage, chartType }: { usage: ChartUsage; chartType: string }) {
+  const [data, setData] = useState<unknown>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const loadData = useCallback(async () => {
+    if (usage.dataSource.type === 'api') return
+    setLoading(true)
+    setError('')
+    try {
+      if (usage.dataSource.type === 'csv') {
+        const rows = await loadCSV(usage.dataSource.path)
+        setData(rows)
+      } else {
+        const json = await loadJSON(usage.dataSource.path)
+        setData(json)
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '加载失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [usage.dataSource])
+
+  useEffect(() => { loadData() }, [loadData])
+
   return (
-    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200">
-      <div className="flex items-start gap-3 mb-4">
+    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 h-full flex flex-col">
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div className="font-mono font-bold text-slate-900 text-sm">{usage.label}</div>
+          <div className="font-mono text-xs text-slate-500 mt-0.5">{usage.location}</div>
+        </div>
+        <DataSourceBadge source={usage.dataSource} />
+      </div>
+      <p className="text-xs text-slate-500 mb-3">{usage.description}</p>
+      <div className="bg-white rounded-xl border border-slate-200 p-4 flex-1 min-h-[280px] flex items-center justify-center overflow-hidden">
+        {usage.dataSource.type === 'api' ? (
+          <div className="text-center">
+            <div className="text-2xl mb-2">🔗</div>
+            <div className="text-xs text-slate-500">来源：{usage.dataSource.endpoint}</div>
+            <div className="text-xs text-slate-400 mt-1">API 调用，无静态数据</div>
+          </div>
+        ) : loading ? (
+          <div className="text-xs text-slate-400">加载数据中...</div>
+        ) : error ? (
+          <div className="text-xs text-red-400">{error}</div>
+        ) : data ? (
+          <div className="w-full h-[240px]">
+            <InstanceChart chartType={chartType} data={data} usage={usage} />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function DataSourceBadge({ source }: { source: ChartUsage['dataSource'] }) {
+  if (source.type === 'api') {
+    return <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">API</span>
+  }
+  return (
+    <span className={cn(
+      'text-[10px] font-mono px-2 py-0.5 rounded border',
+      source.type === 'csv' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-blue-600 border-blue-200'
+    )}>
+      {source.type.toUpperCase()}
+    </span>
+  )
+}
+
+// ============================================================
+// 实例图表渲染
+// ============================================================
+
+function InstanceChart({ chartType, data, usage }: { chartType: string; data: unknown; usage: ChartUsage }) {
+  const toNum = (v: unknown): number => typeof v === 'number' ? v : parseFloat(v as string) || 0
+  const props = usage.props as Record<string, unknown>
+
+  // ScatterPlot: 自动找 {x,y} 列
+  if (chartType === 'ScatterPlot' && Array.isArray(data) && data.length > 0) {
+    const row = data[0] as Record<string, unknown>
+    const keys = Object.keys(row)
+    const numKeys = keys.filter(k => typeof row[k] === 'number' || !isNaN(parseFloat(row[k] as string)))
+    const xKey = keys.find(k => k === 'true_delta' || k === 'beta' || k === 'true_beta') || numKeys[0]
+    const yKey = keys.find(k => k === 'predicted_delta' || k === 'ai_delta' || k === 'est_beta' || k === 'pred_beta') || numKeys[1]
+    const scatterPoints = (data as Record<string, unknown>[]).map(r => ({ x: toNum(r[xKey]), y: toNum(r[yKey]) }))
+    return <ScatterPlot data={scatterPoints} xLabel={(props.xLabel as string) || xKey} yLabel={(props.yLabel as string) || yKey} color={(props.color as string) || '#8b5cf6'} showDiagonal={!!props.showDiagonal} />
+  }
+
+  // Histogram: 自动找误差列
+  if (chartType === 'Histogram' && Array.isArray(data) && data.length > 0) {
+    const row = data[0] as Record<string, unknown>
+    const keys = Object.keys(row)
+    const valKey = keys.find(k => k === 'error' || k === 'beta_error' || k === 'best_relative_mse') || keys.find(k => typeof row[k] === 'number' && k !== 'n' && k !== 'seed' && k !== 'step') || keys[0]
+    const values = (data as Record<string, unknown>[]).map(r => toNum(r[valKey])).filter(v => !isNaN(v))
+    return <Histogram values={values} xLabel={(props.xLabel as string) || valKey} yLabel={(props.yLabel as string) || '频数'} color={(props.color as string) || '#8b5cf6'} showMean={!!props.showMean} />
+  }
+
+  // LineChart: JSON metrics → history
+  if (chartType === 'LineChart' && data && typeof data === 'object' && 'history' in (data as Record<string, unknown>)) {
+    const metrics = data as { history: { train_loss: number[]; val_loss: number[] } }
+    const lines = [
+      { id: 'train', label: '训练损失', data: metrics.history.train_loss.map((v, i) => ({ x: i, y: v })), color: '#8b5cf6' },
+      { id: 'val', label: '验证损失', data: metrics.history.val_loss.map((v, i) => ({ x: i, y: v })), color: '#10b981' },
+    ]
+    return <AIChartLine lines={lines} xLabel="Epoch" yLabel="Loss" />
+  }
+
+  // LineChart: CSV sweep data
+  if (chartType === 'LineChart' && Array.isArray(data) && data.length > 0) {
+    const row = data[0] as Record<string, unknown>
+    const keys = Object.keys(row)
+    if (keys.includes('delta') && keys.includes('mean_mse')) {
+      const xKey = 'delta'
+      const yKey = 'mean_mse'
+      const lineData = (data as Record<string, unknown>[]).map(r => ({ x: toNum(r[xKey]), y: toNum(r[yKey]) }))
+      return <AIChartLine data={lineData} xLabel={(props.xLabel as string) || 'δ'} yLabel={(props.yLabel as string) || 'MSE'} color={(props.color as string) || '#8b5cf6'} />
+    }
+    // 通用: 用前两列
+    const xKey = keys[0]
+    const yKey = keys.find(k => k !== xKey && (typeof row[k] === 'number' || !isNaN(parseFloat(row[k] as string)))) || keys[1]
+    const lineData = (data as Record<string, unknown>[]).map(r => ({ x: toNum(r[xKey]), y: toNum(r[yKey]) }))
+    return <AIChartLine data={lineData} xLabel={(props.xLabel as string) || xKey} yLabel={(props.yLabel as string) || yKey} color={(props.color as string) || '#8b5cf6'} />
+  }
+
+  // BoxPlot: JSON preprocessed → boxplot data
+  if (chartType === 'BoxPlot' && data && typeof data === 'object' && 'boxplot' in (data as Record<string, unknown>)) {
+    const prep = data as { boxplot: Record<string, Record<string, Array<{ label: string; true_val: number; min: number; q1: number; median: number; q3: number; max: number; mean: number; count: number; outlier_count: number }>>> }
+    const firstType = Object.keys(prep.boxplot)[0]
+    const firstN = Object.keys(prep.boxplot[firstType])[0]
+    const bpData = prep.boxplot[firstType][firstN]
+    return <BoxPlot data={bpData} xLabel={(props.xLabel as string) || '样本量'} yLabel={(props.yLabel as string) || 'β̂'} color={(props.color as string) || '#10b981'} />
+  }
+
+  // MultiLineChart: JSON scheme comparison
+  if (chartType === 'MultiLineChart' && data && typeof data === 'object' && !Array.isArray(data)) {
+    const json = data as Record<string, Record<string, { aggregate: { total_relative_mse: number } }>>
+    const ns = Object.keys(json)
+    if (ns.length > 0) {
+      const schemes = Object.keys(json[ns[0]])
+      const mlData = ns.map(n => {
+        const row: Record<string, number> = { n: Number(n) }
+        for (const s of schemes) {
+          row[s] = json[n][s]?.aggregate?.total_relative_mse ?? 0
+        }
+        return row
+      })
+      const lines = schemes.map((s, i) => ({
+        key: s, label: s, color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1', '#ec4899', '#14b8a6'][i % 8],
+      }))
+      return <MultiLineChart data={mlData} xKey="n" lines={lines} xLabel="样本量" yLabel="total_relative_mse" />
+    }
+  }
+
+  // BarChart: CSV with no-solution rate
+  if (chartType === 'BarChart' && Array.isArray(data) && data.length > 0) {
+    const row = data[0] as Record<string, unknown>
+    const keys = Object.keys(row)
+    const valKey = keys.find(k => k === 'best_relative_mse' || k === 'mse') || keys[keys.length - 1]
+    // Group by beta and compute mean
+    const groups = new Map<string, number[]>()
+    for (const r of data as Record<string, unknown>[]) {
+      const label = String(r.beta || r.n || 'unknown')
+      if (!groups.has(label)) groups.set(label, [])
+      groups.get(label)!.push(toNum(r[valKey]))
+    }
+    const barD = Array.from(groups.entries()).slice(0, 8).map(([label, vals]) => ({
+      label: `β=${label}`,
+      value: vals.reduce((a, b) => a + b, 0) / vals.length,
+      color: '#3b82f6',
+    }))
+    return <BarChart data={barD} xLabel={(props.xLabel as string) || ''} yLabel={(props.yLabel as string) || valKey} showValue />
+  }
+
+  // Fallback: 数据预览
+  return <DataPreview data={data} />
+}
+
+// 数据预览（兜底）
+function DataPreview({ data }: { data: unknown }) {
+  if (!data) return <div className="text-xs text-slate-400">无数据</div>
+  if (Array.isArray(data) && data.length > 0) {
+    const rows = data.slice(0, 5) as Record<string, unknown>[]
+    const keys = Object.keys(rows[0]).slice(0, 6)
+    return (
+      <div className="overflow-auto text-[10px] w-full">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>{keys.map(k => <th key={k} className="text-left px-1 py-0.5 bg-slate-100 border-b font-mono text-slate-500">{k}</th>)}</tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i}>{keys.map(k => <td key={k} className="px-1 py-0.5 border-b border-slate-50 font-mono text-slate-700">{typeof r[k] === 'number' ? (r[k] as number).toFixed(4) : String(r[k] ?? '')}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="text-[10px] text-slate-400 mt-1">共 {data.length} 行，显示前 5 行</div>
+      </div>
+    )
+  }
+  return <div className="text-xs text-slate-400 font-mono">{JSON.stringify(data).slice(0, 200)}</div>
+}
+
+// ============================================================
+// 可展开的图表卡片
+// ============================================================
+
+function ChartExpandable({ name, nameCn, path, purpose, children }: TemplateCardProps) {
+  const [expanded, setExpanded] = useState(false)
+  const usages = chartRegistry[name] || []
+
+  // 内部：模板卡片（始终显示）
+  const templateCard = (
+    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 h-full flex flex-col">
+      <div className="flex items-start justify-between mb-3">
         <div>
           <div className="font-mono font-bold text-slate-900 text-base">{name} <span className="text-slate-500 font-sans font-normal">{nameCn}</span></div>
           <div className="font-mono text-xs text-blue-600 mt-0.5">{path}</div>
           <div className="text-sm text-slate-500 mt-1">{purpose}</div>
         </div>
+        {usages.length > 0 && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="shrink-0 ml-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer
+              bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+          >
+            <span>{expanded ? '收起' : `展开 (${usages.length})`}</span>
+            <svg className={cn('w-3.5 h-3.5 transition-transform', expanded && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        )}
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 p-4 h-[320px] flex items-center justify-center overflow-hidden">
-        <div className="w-full h-[280px]">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 flex-1 min-h-[280px] flex items-center justify-center overflow-hidden">
+        <div className="w-full h-[240px]">
           {children}
         </div>
       </div>
     </div>
   )
+
+  // 未展开：只显示模板卡片
+  if (!expanded || usages.length === 0) {
+    return templateCard
+  }
+
+  // 展开：模板卡片 + 实例卡片，外层统一分组背景
+  return (
+    <div className="xl:col-span-2 p-4 rounded-2xl bg-slate-100/70 border border-slate-200 border-dashed">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {templateCard}
+        {usages.map(u => (
+          <InstanceCard key={u.id} usage={u} chartType={name} />
+        ))}
+      </div>
+    </div>
+  )
 }
+
+// ============================================================
+// 图表分组定义
+// ============================================================
+
+const chartGroups = [
+  {
+    title: '关系展示',
+    description: '两个变量之间的对应关系',
+    charts: [
+      {
+        name: 'ScatterPlot', nameCn: '散点图', path: 'ai/charts', purpose: '真实值 vs 估计值，带对角线参考线',
+        render: () => <ScatterPlot data={scatterData} xLabel="真实值" yLabel="估计值" color="#8b5cf6" showDiagonal />,
+      },
+      {
+        name: 'ScatterWithLine', nameCn: '散点+拟合线', path: 'ai/charts', purpose: '散点数据 + 拟合曲线',
+        render: () => <ScatterWithLine scatterData={swlScatter} lineData={swlLine} xLabel="真实值" yLabel="估计值" scatterColor="#3b82f6" lineColor="#ef4444" />,
+      },
+    ],
+  },
+  {
+    title: '分布展示',
+    description: '数据的频率分布与统计特征',
+    charts: [
+      {
+        name: 'Histogram', nameCn: '直方图', path: 'ai/charts', purpose: '误差分布或估计值频率分布',
+        render: () => <Histogram values={histValues} xLabel="误差" yLabel="频数" color="#6366f1" showMean />,
+      },
+      {
+        name: 'DistributionMark', nameCn: '分布标记', path: 'ai/charts', purpose: '直方图 + 垂直标记线（预测值在分布中的位置）',
+        render: () => <DistributionMark distributionValues={distValues} markValue={0.52} color="#8b5cf6" markColor="#ef4444" />,
+      },
+      {
+        name: 'BoxPlot', nameCn: '箱型图（AI）', path: 'ai/charts', purpose: '按分组展示估计值分布（中位数、四分位、异常值）',
+        render: () => <BoxPlot data={boxPlotData} xLabel="样本量" yLabel="β̂" color="#3b82f6" showDiagonal />,
+      },
+      {
+        name: 'BoxPlotChart', nameCn: '箱型图（Methods）', path: 'shared/charts', purpose: '适配适用范围数据格式：min/max/P1/P99/median',
+        render: () => <BoxPlotChart data={bpChartData} dataKeyMin="est_beta_min" dataKeyMax="est_beta_max" dataKeyP01="est_beta_p01" dataKeyP99="est_beta_p99" dataKeyMedian="est_beta_median" color="#3b82f6" yLabel="β̂" xLabel="样本量" trueValue={2.0} />,
+      },
+      {
+        name: 'DensityChart', nameCn: '密度图', path: 'shared/charts', purpose: '估计值的概率密度分布（KDE 核密度估计）',
+        render: () => <DensityChart rawData={densityRawData} paramId="beta" displayDimension={{ id: 'sample_size', name: '样本量', symbol: 'n' }} trueValue={2.0} color="#3b82f6" />,
+      },
+    ],
+  },
+  {
+    title: '趋势与对比',
+    description: '随变量变化的趋势或方案间对比',
+    charts: [
+      {
+        name: 'LineChart', nameCn: '折线图', path: 'ai/charts', purpose: '单系列趋势（如 δ sweep MSE 曲线）',
+        render: () => <AIChartLine data={lineData} xLabel="δ" yLabel="MSE" color="#8b5cf6" />,
+      },
+      {
+        name: 'MultiLineChart', nameCn: '多系列折线图', path: 'ai/charts', purpose: '多方案精度对比曲线',
+        render: () => <MultiLineChart data={multiLineData} xKey="n" lines={[{ key: 'A-1', label: 'A-1', color: '#3b82f6' }, { key: 'B-1', label: 'B-1', color: '#10b981' }, { key: 'C-1', label: 'C-1', color: '#f59e0b' }]} xLabel="样本量" yLabel="MAE(β)" />,
+      },
+      {
+        name: 'ConvergenceChart', nameCn: '收敛图', path: 'shared/charts', purpose: '统计量随蒙特卡洛仿真次数的收敛趋势',
+        render: () => <ConvergenceChart curves={convCurves} statType="mean" trueValue={2.0} yLabel="β̂ 均值" />,
+      },
+      {
+        name: 'BarChart', nameCn: '柱状图', path: 'ai/charts', purpose: '分类数据对比',
+        render: () => <BarChart data={barData} xLabel="方案" yLabel="MAE(β)" showValue />,
+      },
+      {
+        name: 'GroupedBar', nameCn: '分组柱状图', path: 'ai/charts', purpose: '多指标并列对比',
+        render: () => <GroupedBar data={groupedBarData} xKey="n" groups={[{ key: 'MAE_β', label: 'MAE(β)', color: '#3b82f6' }, { key: 'MAE_η', label: 'MAE(η)', color: '#6366f1' }]} xLabel="样本量" yLabel="MAE" />,
+      },
+    ],
+  },
+  {
+    title: '空间展示',
+    description: '参数空间或目标函数可视化',
+    charts: [
+      {
+        name: 'HeatmapChart', nameCn: '热力图', path: 'shared/charts', purpose: '二维参数空间的偏差/精度（蓝色=低估，红色=高估）',
+        render: () => <HeatmapChart stats={heatmapStats} displayDimensions={[{ id: 'beta', name: 'β', symbol: 'β' }, { id: 'eta', name: 'η', symbol: 'η' }]} dataKey="bias_beta" maxAbs={0.15} />,
+      },
+      {
+        name: 'ContourChart', nameCn: '等高线图', path: 'shared/charts', purpose: '目标函数在参数空间的等值线 + 优化路径',
+        render: () => <ContourChart contourData={contourData} xLabel="β" yLabel="γ" title="目标函数等高线" height={260} />,
+      },
+      {
+        name: 'ObjectiveSurface3D', nameCn: '3D 曲面图', path: 'shared/charts', purpose: '目标函数的三维可视化',
+        render: () => <ObjectiveSurface3D surfaceData={surfaceData} height={260} />,
+      },
+    ],
+  },
+  {
+    title: '容器',
+    description: '布局与包装组件',
+    charts: [
+      {
+        name: 'ChartCard', nameCn: '图表容器', path: 'shared/charts', purpose: '统一标题、边框、间距的容器组件',
+        render: () => (
+          <ChartCard title="示例图表标题">
+            <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+              图表内容区域 — 由 ChartCard 提供统一外框
+            </div>
+          </ChartCard>
+        ),
+      },
+    ],
+  },
+]
 
 // ============================================================
 // 页面
@@ -204,93 +543,32 @@ export default function ChartsPage() {
       <div>
         <h1 className="text-2xl font-black text-slate-900 mb-2">图表规范</h1>
         <p className="text-slate-500">
-          统一系统所有图表的使用标准。使用或新建图表前，请先查阅本页面。
+          统一系统所有图表的使用标准。使用或新建图表前，请先查阅本页面。点击「展开」可查看该图表在系统中的所有使用实例。
         </p>
       </div>
 
-      {/* AI 专用组件 */}
-      <section className="space-y-6">
-        <h2 className="text-lg font-bold text-slate-900">AI 专用组件</h2>
-        <p className="text-sm text-slate-500 -mt-3">路径：<code className="bg-slate-100 px-1 rounded">src/components/ai/charts</code></p>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <TemplateCard name="ScatterPlot" nameCn="散点图" path="ai/charts" purpose="真实值 vs 估计值，带对角线参考线">
-            <ScatterPlot data={scatterData} xLabel="真实值" yLabel="估计值" color="#8b5cf6" showDiagonal />
-          </TemplateCard>
-
-          <TemplateCard name="BoxPlot" nameCn="箱型图" path="ai/charts" purpose="按分组展示估计值分布（中位数、四分位、异常值）">
-            <BoxPlot data={boxPlotData} xLabel="样本量" yLabel="β̂" color="#3b82f6" showDiagonal />
-          </TemplateCard>
-
-          <TemplateCard name="Histogram" nameCn="直方图" path="ai/charts" purpose="误差分布或估计值频率分布">
-            <Histogram values={histValues} xLabel="误差" yLabel="频数" color="#6366f1" showMean />
-          </TemplateCard>
-
-          <TemplateCard name="LineChart" nameCn="折线图" path="ai/charts" purpose="单系列趋势（如 δ sweep MSE 曲线）">
-            <AIChartLine data={lineData} xLabel="δ" yLabel="MSE" color="#8b5cf6" />
-          </TemplateCard>
-
-          <TemplateCard name="MultiLineChart" nameCn="多系列折线图" path="ai/charts" purpose="多方案精度对比曲线">
-            <MultiLineChart data={multiLineData} xKey="n" lines={[{ key: 'A-1', label: 'A-1', color: '#3b82f6' }, { key: 'B-1', label: 'B-1', color: '#10b981' }, { key: 'C-1', label: 'C-1', color: '#f59e0b' }]} xLabel="样本量" yLabel="MAE(β)" />
-          </TemplateCard>
-
-          <TemplateCard name="BarChart" nameCn="柱状图" path="ai/charts" purpose="分类数据对比">
-            <BarChart data={barData} xLabel="方案" yLabel="MAE(β)" showValue />
-          </TemplateCard>
-
-          <TemplateCard name="GroupedBar" nameCn="分组柱状图" path="ai/charts" purpose="多指标并列对比">
-            <GroupedBar data={groupedBarData} xKey="n" groups={[{ key: 'MAE_β', label: 'MAE(β)', color: '#3b82f6' }, { key: 'MAE_η', label: 'MAE(η)', color: '#6366f1' }]} xLabel="样本量" yLabel="MAE" />
-          </TemplateCard>
-
-          <TemplateCard name="ScatterWithLine" nameCn="散点+拟合线" path="ai/charts" purpose="散点数据 + 拟合曲线">
-            <ScatterWithLine scatterData={swlScatter} lineData={swlLine} xLabel="真实值" yLabel="估计值" scatterColor="#3b82f6" lineColor="#ef4444" />
-          </TemplateCard>
-
-          <TemplateCard name="DistributionMark" nameCn="分布标记" path="ai/charts" purpose="直方图 + 垂直标记线（预测值在分布中的位置）">
-            <DistributionMark distributionValues={distValues} markValue={0.52} color="#8b5cf6" markColor="#ef4444" />
-          </TemplateCard>
-        </div>
-      </section>
-
-      {/* 共享组件 */}
-      <section className="space-y-6">
-        <h2 className="text-lg font-bold text-slate-900">共享组件</h2>
-        <p className="text-sm text-slate-500 -mt-3">路径：<code className="bg-slate-100 px-1 rounded">src/components/shared/charts</code></p>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <TemplateCard name="ChartCard" nameCn="图表容器" path="shared/charts" purpose="统一标题、边框、间距的容器组件">
-            <ChartCard title="示例图表标题">
-              <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-                图表内容区域 — 由 ChartCard 提供统一外框
-              </div>
-            </ChartCard>
-          </TemplateCard>
-
-          <TemplateCard name="BoxPlotChart" nameCn="箱型图（Methods）" path="shared/charts" purpose="适配适用范围数据格式：min/max/P1/P99/median">
-            <BoxPlotChart data={bpChartData} dataKeyMin="est_beta_min" dataKeyMax="est_beta_max" dataKeyP01="est_beta_p01" dataKeyP99="est_beta_p99" dataKeyMedian="est_beta_median" color="#3b82f6" yLabel="β̂" xLabel="样本量" trueValue={2.0} />
-          </TemplateCard>
-
-          <TemplateCard name="HeatmapChart" nameCn="热力图" path="shared/charts" purpose="二维参数空间的偏差/精度（蓝色=低估，红色=高估）">
-            <HeatmapChart stats={heatmapStats} displayDimensions={[{ id: 'beta', name: 'β', symbol: 'β' }, { id: 'eta', name: 'η', symbol: 'η' }]} dataKey="bias_beta" maxAbs={0.15} />
-          </TemplateCard>
-
-          <TemplateCard name="DensityChart" nameCn="密度图" path="shared/charts" purpose="估计值的概率密度分布（KDE 核密度估计）">
-            <DensityChart rawData={densityRawData} paramId="beta" displayDimension={{ id: 'sample_size', name: '样本量', symbol: 'n' }} trueValue={2.0} color="#3b82f6" />
-          </TemplateCard>
-
-          <TemplateCard name="ConvergenceChart" nameCn="收敛图" path="shared/charts" purpose="统计量随蒙特卡洛仿真次数的收敛趋势">
-            <ConvergenceChart curves={convCurves} statType="mean" trueValue={2.0} yLabel="β̂ 均值" />
-          </TemplateCard>
-
-          <TemplateCard name="ContourChart" nameCn="等高线图" path="shared/charts" purpose="目标函数在参数空间的等值线 + 优化路径">
-            <ContourChart contourData={contourData} xLabel="β" yLabel="γ" title="目标函数等高线" height={260} />
-          </TemplateCard>
-
-          <TemplateCard name="ObjectiveSurface3D" nameCn="3D 曲面图" path="shared/charts" purpose="目标函数的三维可视化">
-            <ObjectiveSurface3D surfaceData={surfaceData} height={260} />
-          </TemplateCard>
-        </div>
-      </section>
+      {/* 图表分组 */}
+      {chartGroups.map(group => (
+        <section key={group.title} className="space-y-5">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">{group.title}</h2>
+            <p className="text-sm text-slate-500">{group.description}</p>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            {group.charts.map(chart => (
+              <ChartExpandable
+                key={chart.name}
+                name={chart.name}
+                nameCn={chart.nameCn}
+                path={chart.path}
+                purpose={chart.purpose}
+              >
+                {chart.render()}
+              </ChartExpandable>
+            ))}
+          </div>
+        </section>
+      ))}
 
       {/* 图谱 */}
       <section className="space-y-6">
@@ -389,6 +667,7 @@ export default function ChartsPage() {
           <li>• 使用图表 → 优先复用已有组件，用 props 控制差异</li>
           <li>• 相同数据含义的图表必须使用相同组件，禁止为不同场景创建功能重复的图表</li>
           <li>• 配色必须遵循本页规范，保持全系统视觉一致</li>
+          <li>• 新增图表使用位置 → 必须同步更新 <code className="bg-blue-100 px-1 rounded">chart-registry.ts</code></li>
         </ul>
       </section>
     </div>
