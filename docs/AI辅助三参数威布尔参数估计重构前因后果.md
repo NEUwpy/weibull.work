@@ -41,7 +41,7 @@
 | GreyGM11 | `grey_gm11.py` | 灰色 GM(1,1) 模型 | 有 |
 | Bayesian | `bayesian.py` | 贝叶斯估计 | 有 |
 
-所有方法通过 `resolve_method()` 统一调用，返回 `MethodResult(beta, eta, gamma, r_squared, converged)`。
+所有方法通过 `resolve_method()` 统一调用。返回格式兼容三种：`MethodResult` 对象、5 元素 list/tuple、4 元素 list/tuple，由 `main.py` 的 `_extract_result()` 统一处理。许多方法仍返回 list 而非 `MethodResult`。
 
 另有 `NOT_IMPLEMENTED` 集合标记了前端已定义但后端未实现的方法：`construct_stat, mve, lsf, ai, pso, svr, ann`。
 
