@@ -1,0 +1,91 @@
+"""
+统一方法调用模块
+
+通过 registry 解析方法 ID，实例化并调用 run()，
+兼容 MethodResult / 5 元组 / 4 元组三种返回格式。
+
+规范来源：AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划 第 3.3 节
+"""
+
+import time
+from typing import Optional, Dict, Any
+
+from base import MethodResult
+from methods.registry import resolve_method
+
+
+def run_method(method_id: str, sample, variant: Optional[str] = None,
+               **kwargs) -> Dict[str, Any]:
+    """统一调用估计方法，返回标准化结果字典。
+
+    Args:
+        method_id: 方法标识（如 "mle", "mdm"）
+        sample: 排序后的样本（list 或 np.ndarray）
+        variant: 方法方案标识，用于区分同一方法的不同参数配置；
+                 为 None 时自动设为 method_id
+        **kwargs: 方法特有参数（如 MDM 的 offset, gamma_steps）
+
+    Returns:
+        标准化结果字典：
+        {
+            "method_id": str,
+            "method_variant": str,
+            "beta_hat": float | None,
+            "eta_hat": float | None,
+            "gamma_hat": float | None,
+            "r_squared": float | None,
+            "converged": bool,
+            "time": float,
+            "extra": dict | None,
+        }
+    """
+    method_variant = variant if variant is not None else method_id
+
+    result = {
+        "method_id": method_id,
+        "method_variant": method_variant,
+        "beta_hat": None,
+        "eta_hat": None,
+        "gamma_hat": None,
+        "r_squared": None,
+        "converged": False,
+        "time": 0.0,
+        "extra": None,
+    }
+
+    try:
+        _, method_cls = resolve_method(method_id)
+    except Exception:
+        return result
+
+    try:
+        instance = method_cls(sample)
+        t0 = time.perf_counter()
+        raw = instance.run(**kwargs)
+        elapsed = time.perf_counter() - t0
+
+        result["time"] = elapsed
+
+        if isinstance(raw, MethodResult):
+            result["beta_hat"] = float(raw.beta)
+            result["eta_hat"] = float(raw.eta)
+            result["gamma_hat"] = float(raw.gamma)
+            result["r_squared"] = float(raw.r_squared)
+            result["converged"] = bool(raw.converged)
+        elif isinstance(raw, (list, tuple)):
+            if len(raw) >= 5:
+                result["beta_hat"] = float(raw[0])
+                result["eta_hat"] = float(raw[1])
+                result["gamma_hat"] = float(raw[2])
+                result["r_squared"] = float(raw[3])
+                result["converged"] = bool(raw[4])
+            elif len(raw) == 4:
+                result["beta_hat"] = float(raw[0])
+                result["eta_hat"] = float(raw[1])
+                result["gamma_hat"] = float(raw[2])
+                result["r_squared"] = float(raw[3])
+                result["converged"] = True
+    except Exception:
+        pass
+
+    return result

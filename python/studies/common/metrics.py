@@ -131,7 +131,8 @@ def check_status(
 
 def aggregate_param_metrics(
     results: List[Dict],
-    R_levels: Tuple[float, ...] = DEFAULT_R_LEVELS
+    R_levels: Tuple[float, ...] = DEFAULT_R_LEVELS,
+    ne_threshold: float = DEFAULT_NE_THRESHOLD
 ) -> Dict:
     """批量计算全部指标
 
@@ -142,6 +143,7 @@ def aggregate_param_metrics(
             - time: 运行时间（秒）
             - converged: 方法自身报告是否成功
         R_levels: 可靠度水平，默认 (0.995, 0.990, 0.950, 0.900)
+        ne_threshold: outlier 判定阈值，默认 1.0，与 check_status() 一致
 
     Returns:
         汇总字典，包含参数视角、分位点视角和可用性视角的全部指标。
@@ -171,7 +173,8 @@ def aggregate_param_metrics(
         status = check_status(
             beta_hat, eta_hat, gamma_hat,
             r["beta"], r["eta"], r["gamma"],
-            converged=converged
+            converged=converged,
+            ne_threshold=ne_threshold
         )
 
         if status == "failure":

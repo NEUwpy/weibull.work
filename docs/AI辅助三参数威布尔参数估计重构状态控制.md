@@ -26,7 +26,7 @@
 当前阶段：
 
 ```text
-S2 统一评价指标已完成，尚未进入 S3/S4。
+S4 统一蒙特卡洛框架已实现，59 个测试全部通过，待小规模端到端验证运行。
 ```
 
 已完成：
@@ -37,7 +37,10 @@ S2 统一评价指标已完成，尚未进入 S3/S4。
 - 完成重构与实验设计总纲；
 - 根据外部审稿意见补充总纲中的关键契约性约束；
 - S1 旧平台现状梳理：代码现状清单和关键差异分析已融入前因后果文档；
-- S2 统一评价指标：`python/studies/common/metrics.py` + 32 个测试通过。
+- S2 统一评价指标：`python/studies/common/metrics.py` + 33 个测试通过；
+- S2.5 指标规范同步：`/help/metrics` 页面更新为三视角指标体系 + `src/lib/metrics.ts` 前端共享函数创建；
+- S4 规划文档：`docs/AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划.md`，已通过外部审查（有条件），审查意见已全部修正；
+- S4 统一蒙特卡洛框架实现：`python/studies/common/sample.py` + `runner.py` + `experiment.py`，接入 MLE/MDM/LRE，59 个测试全部通过（含原有 33 个指标测试 + 9 个样本测试 + 9 个方法调用测试 + 8 个端到端测试）。
 
 尚未开始：
 
@@ -62,9 +65,10 @@ S2 统一评价指标已完成，尚未进入 S3/S4。
 |------|------|----------|----------|
 | S0 文档收敛 | 保留一个清晰总纲和接力状态 | 已完成 | `docs` 根目录主线清楚 |
 | S1 旧平台梳理 | 梳理传统方法、AI 原型、蒙特卡洛脚本、指标和可视化 | 已完成 | 现状清单融入前因后果文档 |
-| S2 统一评价指标 | 建立参数视角 + 分位点视角 + 可用性指标 | 已完成 | `studies/common/metrics.py` + 32 个测试通过 |
+| S2 统一评价指标 | 建立参数视角 + 分位点视角 + 可用性指标 | 已完成 | `studies/common/metrics.py` + 33 个测试通过 |
+| S2.5 指标规范同步 | 前端指标页面 + 共享函数与后端对齐 | 已完成 | `/help/metrics` 页面 + `src/lib/metrics.ts` + build 通过 |
 | S3 Loss 对比实验 | 用简单 M3 验证不同 loss 的影响 | 未开始 | 输出 loss 对比表和推荐原则 |
-| S4 统一蒙特卡洛框架 | 建立共享样本、统一调用、统一结果保存 | 未开始 | 同一框架能跑传统方法和 AI 方法 |
+| S4 统一蒙特卡洛框架 | 建立共享样本、统一调用、统一结果保存 | 已实现，59 个测试通过 | 同一框架能跑传统方法和 AI 方法 |
 | S5 模块整理 | 整理 M1/M2/M3/M4 代表方案 | 未开始 | 各模块可接入统一框架 |
 | S6 横向比较 | 在同一参数空间和指标下比较所有方法 | 未开始 | 统一结果表含传统方法与 AI 方法 |
 | S7 汇报产物 | 生成组会或论文用表格和图 | 未开始 | 图表可追溯到统一实验配置 |
@@ -197,14 +201,10 @@ n ∈ {10, 20, 30, 50, 100}
 下一轮最适合做：
 
 ```text
-S3 或 S4（需外部审查者确认顺序）
+S4 小规模端到端验证运行 + S3 Loss 对比实验
 ```
 
-S3 Loss 对比实验：用简单 M3 直接估计模型比较不同 loss（原始 MSE、标准化 MSE、NE-Loss、Quantile-Loss、Hybrid-Loss）。
-
-S4 统一蒙特卡洛框架：建立共享样本、统一方法调用、统一结果保存的调度框架，接入新指标模块。
-
-建议先做 S4 再做 S3，因为 S3 需要统一的样本生成和指标计算流程。但顺序由外部审查者决定。
+S4 框架已实现，59 个测试全部通过。下一步用验证参数空间（beta ∈ {1.5, 2.0, 3.0}, eta=100, gamma/eta ∈ {0, 0.10}, n ∈ {10, 30}, 100 次重复）运行 MLE/MDM/LRE 端到端实验，确认 CSV/JSON 输出正确、指标合理。之后可进入 S3 Loss 对比实验。
 
 ---
 
@@ -303,7 +303,7 @@ S4 统一蒙特卡洛框架：建立共享样本、统一方法调用、统一�
 
 还有什么问题：
 
-- S2 已实现，32 个测试全部通过；
+- S2 已实现，33 个测试全部通过；
 - 统一蒙特卡洛框架尚未实现；
 - loss 对比实验尚未开始。
 
@@ -322,7 +322,7 @@ S4 统一蒙特卡洛框架：建立共享样本、统一方法调用、统一�
 做了什么：
 
 - 创建 `python/studies/common/metrics.py`，实现全部指标函数；
-- 创建 `python/tests/test_metrics.py`，32 个测试全部通过；
+- 创建 `python/tests/test_metrics.py`，33 个测试全部通过；
 - 修正 S2 规划文档中的过期问题和 gamma_hat 检查。
 
 改了哪些文件：
@@ -359,3 +359,120 @@ S4 统一蒙特卡洛框架：建立共享样本、统一方法调用、统一�
 下轮建议：
 
 - S3 或 S4，需外部审查者确认顺序。
+
+### 2026-05-22（S2.5 实现）
+
+执行者：Claude Code
+
+本轮阶段：S2.5 指标规范同步
+
+做了什么：
+
+- 更新 `/help/metrics` 页面，按 S2 三视角（参数估计/工程分位点/方法可用性）重写指标定义；
+- 新增 NE、NQE_R、RE_R、Bias_QR、Failure Rate、Outlier Rate、Time 等指标说明；
+- 新增三态互斥（success/failure/outlier）可视化说明；
+- 旧 TRMSE 标记为已废弃（被 NE 替代），旧 MSE/MAE/MRE/bias/std 保留为单参数基础指标并标注适用范围；
+- 创建 `src/lib/metrics.ts`，camelCase 命名，实现 ne/quantileTrue/quantileEst/nqeR/reR/checkStatus 等基础函数；
+- `npm run build` 通过，后端 33 个测试未受影响。
+
+改了哪些文件：
+
+- `src/app/help/metrics/page.tsx`（重写为三视角指标体系）
+- `src/lib/metrics.ts`（新建，前端共享指标函数）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（更新状态和接手记录）
+
+形成了什么决策：
+
+- 指标规范页面和共享函数共同承载前端指标定义，不互相竞争权威：页面展示规范，前后端共享函数实现同一公式；
+- `src/lib/metrics.ts` 第一版只实现基础函数，批量聚合等前端确有需求时再补；
+- 旧指标不删除，标注适用范围和局限性（如 MRE 不适用于 gamma=0）。
+
+还有什么问题：
+
+- 统一蒙特卡洛框架尚未实现；
+- loss 对比实验尚未开始。
+
+下轮建议：
+
+- S3 或 S4，需外部审查者确认顺序。
+
+### 2026-05-22（S4 审查修正）
+
+执行者：MiMo
+
+本轮阶段：S4 规划审查修正
+
+做了什么：
+
+- 接收外部审查者对 S4 规划的有条件通过结论；
+- 修正 4 个必须项：种子策略改为 hashlib.sha256、结果结构加入 method_variant、ne_threshold 一致性处理、CSV ne 字段记录 success+outlier；
+- 同步扩展 S2 `aggregate_param_metrics()` 接收 `ne_threshold` 参数并透传；
+- 新增 1 个测试（ne_threshold 透传），加上原有 32 个测试，共 33 个；
+- 更新状态控制文档：S4 状态改为"规划审查通过（有条件），待实现"，下一步改为"S4 实现"。
+
+改了哪些文件：
+
+- `docs/AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划.md`（4 个必须项修正 + 验收标准 + 文件清单 + 审查记录）
+- `python/studies/common/metrics.py`（`aggregate_param_metrics()` 新增 `ne_threshold` 参数）
+- `python/tests/test_metrics.py`（新增 `test_ne_threshold_passthrough`）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（状态更新 + 接手记录）
+
+形成了什么决策：
+
+- S4 实现阶段固定默认阈值 1.0，不暴露 `ne_threshold` 参数；聚合函数已具备扩展能力，后续需要时再暴露；
+- `method_variant` 是区分同一方法不同方案的关键字段，CSV 和聚合均按此分组；
+- 种子使用 `hashlib.sha256` + `repr()` 规范化，不依赖 Python 内置 `hash()`。
+
+还有什么问题：
+
+- S4 三个模块（sample.py / runner.py / experiment.py）尚未实现；
+- loss 对比实验尚未开始。
+
+下轮建议：
+
+- 进入 S4 实现：按规划文档创建 `sample.py`、`runner.py`、`experiment.py`，接入 MLE/MDM/LSE，运行小规模端到端验证。
+
+### 2026-05-22（S4 实现）
+
+执行者：MiMo
+
+本轮阶段：S4 统一蒙特卡洛框架实现
+
+做了什么：
+
+- 创建 `python/studies/common/sample.py`，实现 `generate_sample()`，使用 hashlib.sha256 + repr() 种子策略；
+- 创建 `python/studies/common/runner.py`，实现 `run_method()`，兼容 MethodResult/5元组/4元组三种返回格式；
+- 创建 `python/studies/common/experiment.py`，实现 `run_experiment()`，遍历参数网格 × 样本量，共享样本，调用方法，计算指标，保存逐条 CSV + 聚合 JSON；
+- 创建 `python/tests/test_sample.py`（9 个测试）、`test_runner.py`（9 个测试）、`test_experiment.py`（8 个测试）；
+- 验证方法：MLE、MDM（需 offset 参数）、LRE（替代未实现的 LSE）；
+- 全部 59 个测试通过（33 指标 + 9 样本 + 9 方法调用 + 8 端到端）；
+- 修正状态控制文档两处口径（S4 状态、S2 测试数）；
+- 修正 S4 规划文档种子字符串顺序（beta|eta|gamma|n|repeat_id）。
+
+改了哪些文件：
+
+- `python/studies/common/sample.py`（新建）
+- `python/studies/common/runner.py`（新建）
+- `python/studies/common/experiment.py`（新建）
+- `python/tests/test_sample.py`（新建）
+- `python/tests/test_runner.py`（新建）
+- `python/tests/test_experiment.py`（新建）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（状态更新 + 接手记录）
+- `docs/AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划.md`（种子顺序修正）
+
+形成了什么决策：
+
+- LSE 未实现，用 LRE 替代作为第三个验证方法；
+- MDM 必须传 offset 参数，否则抛 ValueError；实验调用时需显式指定；
+- runner.py 直接使用 registry 的 resolve_method()，捕获异常返回 failure 结构；
+- experiment.py 固定默认阈值 1.0，不暴露 ne_threshold 参数。
+
+还有什么问题：
+
+- S4 小规模端到端验证运行尚未执行（用验证参数空间跑一次确认输出正确）；
+- S3 Loss 对比实验尚未开始。
+
+下轮建议：
+
+- 用验证参数空间运行一次端到端实验，检查 CSV/JSON 输出和指标合理性；
+- 确认无误后进入 S3 Loss 对比实验。

@@ -296,6 +296,23 @@ class TestAggregate:
         agg = aggregate_param_metrics(results)
         assert abs(agg["time_mean"] - 0.2) < 1e-10
 
+    def test_ne_threshold_passthrough(self):
+        """ne_threshold 参数透传：低阈值让更多样本变为 outlier"""
+        # NE ≈ 0.5 的样本：beta_hat 偏移约 25%
+        results = [
+            self._make_result(2.0, 100.0, 10.0),       # NE=0, success
+            self._make_result(2.5, 100.0, 10.0),       # NE ≈ 0.25
+        ]
+        # 默认阈值 1.0：两个都是 success
+        agg_default = aggregate_param_metrics(results)
+        assert agg_default["n_success"] == 2
+        assert agg_default["n_outlier"] == 0
+
+        # 低阈值 0.1：第二个变为 outlier
+        agg_strict = aggregate_param_metrics(results, ne_threshold=0.1)
+        assert agg_strict["n_success"] == 1
+        assert agg_strict["n_outlier"] == 1
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
