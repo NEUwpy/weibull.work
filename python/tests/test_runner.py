@@ -71,6 +71,21 @@ def test_invalid_method_returns_failure():
     assert r["method_variant"] == "nonexistent_method_xyz"
 
 
+def test_mdm_no_offset_captures_error():
+    """MDM 不传 offset 时 extra 包含错误信息"""
+    r = run_method("mdm", FIXED_SAMPLE)
+    assert r["converged"] is False
+    assert r["extra"] is not None
+    assert "error" in r["extra"]
+
+
+def test_invalid_method_captures_error():
+    """不存在的方法 extra 包含 resolve_method 错误"""
+    r = run_method("nonexistent_method_xyz", FIXED_SAMPLE)
+    assert r["extra"] is not None
+    assert "error" in r["extra"]
+
+
 def test_result_dict_keys():
     """结果字典包含所有必要字段"""
     r = run_method("mle", FIXED_SAMPLE)

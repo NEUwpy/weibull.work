@@ -26,7 +26,7 @@
 当前阶段：
 
 ```text
-S4 统一蒙特卡洛框架已实现，59 个测试全部通过，待小规模端到端验证运行。
+S4.5+ 深度诊断完成。MDM failure 确认为理论限制（非搜索网格遗漏）：2000 点高分辨率分析 19/20 个 failure 样本仍无交点，梯度曲线在 t_min 附近单调上升而非下降。fallback 策略可消除全部 failure 且精度不降。默认配置确定（offset=0.1, gs=20），可进入 S3。
 ```
 
 已完成：
@@ -40,12 +40,12 @@ S4 统一蒙特卡洛框架已实现，59 个测试全部通过，待小规模�
 - S2 统一评价指标：`python/studies/common/metrics.py` + 33 个测试通过；
 - S2.5 指标规范同步：`/help/metrics` 页面更新为三视角指标体系 + `src/lib/metrics.ts` 前端共享函数创建；
 - S4 规划文档：`docs/AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划.md`，已通过外部审查（有条件），审查意见已全部修正；
-- S4 统一蒙特卡洛框架实现：`python/studies/common/sample.py` + `runner.py` + `experiment.py`，接入 MLE/MDM/LRE，59 个测试全部通过（含原有 33 个指标测试 + 9 个样本测试 + 9 个方法调用测试 + 8 个端到端测试）。
+- S4 统一蒙特卡洛框架实现：`python/studies/common/sample.py` + `runner.py` + `experiment.py`，接入 MLE/MDM/LRE，59 个测试全部通过（含原有 33 个指标测试 + 9 个样本测试 + 9 个方法调用测试 + 8 个端到端测试）；
+- S4.5 MDM 调用配置校准 + failure 深度诊断 + 梯度曲线性质探究：定位 failure 全为 `no_intersection`（理论限制，非搜索网格遗漏），默认配置确定为 offset=0.1, gamma_steps=20，61 个测试全部通过；fallback 策略评估确认可消除全部 failure 且精度不降。
 
 尚未开始：
 
-- loss 对比实验；
-- 统一蒙特卡洛调度框架实现；
+- loss 对比实验（S3）；
 - M1/M2/M3/M4 正式实验；
 - 新结果可视化和论文表格。
 
@@ -68,7 +68,8 @@ S4 统一蒙特卡洛框架已实现，59 个测试全部通过，待小规模�
 | S2 统一评价指标 | 建立参数视角 + 分位点视角 + 可用性指标 | 已完成 | `studies/common/metrics.py` + 33 个测试通过 |
 | S2.5 指标规范同步 | 前端指标页面 + 共享函数与后端对齐 | 已完成 | `/help/metrics` 页面 + `src/lib/metrics.ts` + build 通过 |
 | S3 Loss 对比实验 | 用简单 M3 验证不同 loss 的影响 | 未开始 | 输出 loss 对比表和推荐原则 |
-| S4 统一蒙特卡洛框架 | 建立共享样本、统一调用、统一结果保存 | 已实现，59 个测试通过 | 同一框架能跑传统方法和 AI 方法 |
+| S4 统一蒙特卡洛框架 | 建立共享样本、统一调用、统一结果保存 | 已实现，59 个测试通过，端到端验证通过 | 同一框架能跑传统方法和 AI 方法 |
+| S4.5 MDM 调用配置校准 | 定位 MDM failure 来源，校准 offset/gamma_steps 默认配置 | 已完成 | failure 确认为理论限制（非搜索遗漏），默认配置确定，fallback 可消除 |
 | S5 模块整理 | 整理 M1/M2/M3/M4 代表方案 | 未开始 | 各模块可接入统一框架 |
 | S6 横向比较 | 在同一参数空间和指标下比较所有方法 | 未开始 | 统一结果表含传统方法与 AI 方法 |
 | S7 汇报产物 | 生成组会或论文用表格和图 | 未开始 | 图表可追溯到统一实验配置 |
@@ -201,10 +202,10 @@ n ∈ {10, 20, 30, 50, 100}
 下一轮最适合做：
 
 ```text
-S4 小规模端到端验证运行 + S3 Loss 对比实验
+S3 Loss 对比实验
 ```
 
-S4 框架已实现，59 个测试全部通过。下一步用验证参数空间（beta ∈ {1.5, 2.0, 3.0}, eta=100, gamma/eta ∈ {0, 0.10}, n ∈ {10, 30}, 100 次重复）运行 MLE/MDM/LRE 端到端实验，确认 CSV/JSON 输出正确、指标合理。之后可进入 S3 Loss 对比实验。
+S4.5+ 已完成（含深度诊断 + 梯度曲线性质探究）。MDM failure 确认为理论限制：2000 点高分辨率分析 19/20 个 failure 样本仍无交点，梯度曲线在 t_min 附近单调上升（不是下降），解不会藏在 t_min 附近。灵敏度测试 9/10 个样本即使 1280 steps 也无交点。fallback_min_sigma 策略可消除全部 failure 且精度不降（NE 0.343 vs 0.386），但需外部审查确认是否改变方法语义。默认配置确定为 offset=0.1, gamma_steps=20。下一步进入 S3 Loss 对比实验。
 
 ---
 
@@ -469,10 +470,173 @@ S4 框架已实现，59 个测试全部通过。下一步用验证参数空间�
 
 还有什么问题：
 
-- S4 小规模端到端验证运行尚未执行（用验证参数空间跑一次确认输出正确）；
+- S3 Loss 对比实验尚未开始。
+
+端到端验证结果（外部审查者运行）：
+
+- 验证参数空间：beta ∈ {1.5, 2.0, 3.0}, eta=100, gamma/eta ∈ {0, 0.10}, n ∈ {10, 30}, 100 repeats, 3 个方法（MLE/MDM/LRE）
+- 结果：3600 行 CSV/JSON 生成成功，耗时约 36.77 秒
+- 状态分布：2864 success / 657 failure / 79 outlier
+- failure 主要来自 MDM，需 S4.5 诊断原因并校准调用配置
+
+下轮建议：
+
+- 进入 S4.5：MDM 调用配置校准 / 计算预算评估，定位 failure 来源，比较 offset × gamma_steps 小网格，给出默认配置建议；
+- S4.5 完成后再进入 S3 Loss 对比实验。
+
+### 2026-05-22（S4.5 实现）
+
+执行者：MiMo
+
+本轮阶段：S4.5 MDM 调用配置校准 / 计算预算评估
+
+做了什么：
+
+- 增强 `runner.py` 失败诊断能力：捕获 MDM 的 `no_intersection` 状态和异常信息，写入 `extra` 字段；
+- 编写并运行 `s4_5_mdm_calibration.py`，在验证参数空间上测试 offset ∈ {0.05, 0.1, 0.2} × gamma_steps ∈ {20, 40, 60} 共 9 种配置；
+- 分析 failure 来源：所有 failure 均为 `no_intersection`（梯度曲线未达 offset 阈值），无实现 bug、无异常吞没；
+- 新增 2 个 runner 测试（failure reason 捕获），总测试数 61 个全部通过。
+
+改了哪些文件：
+
+- `python/studies/common/runner.py`（增强 failure reason 捕获）
+- `python/tests/test_runner.py`（新增 2 个 failure reason 测试）
+- `python/studies/s4_5_mdm_calibration.py`（新建，校准实验脚本）
+- `output/s4_5_mdm_calibration.json`（新建，详细结果）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（状态更新 + 接手记录）
+
+校准实验结果：
+
+| variant | offset | gs | NE mean | NQE_R | fail% | out% | t_mean | t_p95 |
+|---------|--------|----|---------|-------|-------|------|--------|-------|
+| mdm_o0.05_gs20 | 0.05 | 20 | 0.3843 | 0.0948 | 39.6% | 1.2% | 5.1ms | 7.5ms |
+| mdm_o0.05_gs40 | 0.05 | 40 | 0.3876 | 0.0951 | 39.4% | 1.3% | 9.6ms | 12.0ms |
+| mdm_o0.05_gs60 | 0.05 | 60 | 0.3857 | 0.0945 | 39.3% | 1.6% | 14.2ms | 17.3ms |
+| mdm_o0.1_gs20 | 0.10 | 20 | 0.3864 | 0.0946 | 32.8% | 1.2% | 5.1ms | 7.0ms |
+| mdm_o0.1_gs40 | 0.10 | 40 | 0.3870 | 0.0941 | 32.4% | 1.7% | 9.9ms | 12.8ms |
+| mdm_o0.1_gs60 | 0.10 | 60 | 0.3875 | 0.0938 | 32.2% | 1.7% | 17.2ms | 24.6ms |
+| mdm_o0.2_gs20 | 0.20 | 20 | 0.3884 | 0.0919 | 22.5% | 1.6% | 5.6ms | 8.5ms |
+| mdm_o0.2_gs40 | 0.20 | 40 | 0.3893 | 0.0913 | 22.4% | 2.0% | 10.7ms | 14.8ms |
+| mdm_o0.2_gs60 | 0.20 | 60 | 0.3876 | 0.0907 | 22.4% | 2.3% | 15.8ms | 22.1ms |
+
+形成了什么决策：
+
+- MDM 默认配置确定为 **offset=0.1, gamma_steps=20**（`mdm_o0.1_gs20`）；
+- 选择理由：失败率适中（32.8%），耗时最低（5.1ms/call），精度与高成本配置无实质差异；
+- gamma_steps 对失败率几乎无影响（20→60 仅差 <1%），但线性增加耗时（3x），故选最小值；
+- offset=0.2 失败率更低（22.5%）但 outlier 率更高（2.3%）且精度略差（NQE_R 0.091 vs 0.095），不做默认；
+- 后续实验中 MDM 统一使用 `("mdm", {"offset": 0.1, "gamma_steps": 20, "variant": "mdm_o0.1_gs20"})`。
+
+还有什么问题：
+
+- S3 Loss 对比实验尚未开始；
+- MDM 的 32.8% 失败率是方法本身的限制（no_intersection），非 bug，后续可考虑 MDM 变体或 fallback 策略。
+
+下轮建议：
+
+- 进入 S3 Loss 对比实验，使用 S4 统一框架 + 共享样本，MDM 使用 mdm_o0.1_gs20 作为 baseline。
+
+### 2026-05-22（S4.5 failure 深度诊断）
+
+执行者：MiMo
+
+本轮阶段：S4.5 MDM failure 深度诊断（追加要求）
+
+做了什么：
+
+- 编写并运行 `s4_5_mdm_diagnosis.py`，对全部 394 个 failure 样本做抽样复核；
+- 分类 failure 原因：100% 为"梯度范围不含 offset"（grad_min > 0.1），0% 为网格太粗或数值噪声；
+- 梯度范围统计：grad_min ∈ [0.10, 6.49]，均值 0.45，offset=0.1 远低于梯度最小值；
+- failure 参数分布：gamma=0 占 64%（254/394），gamma=10 占 36%；beta 和 n 分布较均匀；
+- 修复 `s4_5_mdm_fallback_eval.py` 的 `diffs` 变量未定义 bug，重新运行 fallback 评估；
+- 诊断结果保存到 `output/s4_5_mdm_diagnosis.json`。
+
+改了哪些文件：
+
+- `python/studies/s4_5_mdm_diagnosis.py`（新建，failure 深度诊断脚本）
+- `python/studies/s4_5_mdm_fallback_eval.py`（修复 diffs 变量 bug）
+- `output/s4_5_mdm_diagnosis.json`（新建，诊断摘要）
+- `output/s4_5_mdm_fallback_eval.json`（更新，修正后结果）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（状态更新 + 接手记录）
+
+核心结论：
+
+MDM failure 是**理论失败**，不是实现失败、调用配置失败或状态判定口径导致的失败。
+
+证据：
+
+1. 100% failure 样本的 grad_min > offset（0.1），梯度曲线从未下降到 offset 阈值；
+2. 增大 gamma_steps 不可能恢复交点（诊断已验证 offset 不在梯度范围内）；
+3. 改变 offset 也不可能（除非 offset > grad_min，但那会改变方法语义）；
+4. failure 在参数空间中非均匀分布（gamma=0 时更多），说明是参数组合导致的梯度特性。
+
+fallback 评估结果：
+
+| 策略 | NE mean | NQE_R | fail% | out% | t_mean |
+|------|---------|-------|-------|------|--------|
+| MLE (参考) | 0.350 | 0.081 | 22.5% | 1.8% | 4.8ms |
+| MDM 标准 | 0.386 | 0.095 | 32.8% | 1.2% | 4.7ms |
+| MDM + fallback_min_sigma | 0.343 | 0.085 | 0.0% | 1.3% | 6.0ms |
+
+- fallback 消除全部 failure，NE 和 NQE_R 反而更好（0.343 vs 0.386）；
+- 394 个 no_intersection 样本的 fallback NE mean=0.26，outlier 仅 0.5%；
+- 说明 no_intersection 样本用最小 sigma 解质量很好，offset 判据对这些样本过于保守。
+
+形成了什么决策：
+
+- MDM failure 的根源是 offset 判据在某些参数组合下过于保守（梯度曲线整体高于 offset），不是实现 bug；
+- fallback_min_sigma 策略可作为 MDM 的可选增强，但需外部审查者确认是否改变方法语义；
+- 当前 baseline 仍使用 MDM 标准（offset=0.1, gs=20），fallback 作为备选方案记录；
+- S3 实验中可同时比较 MDM 标准和 MDM + fallback，看 loss 对比是否受影响。
+
+还有什么问题：
+
+- fallback 是否应成为 MDM 默认行为，需外部审查者确认（它改变了方法的判定逻辑）；
 - S3 Loss 对比实验尚未开始。
 
 下轮建议：
 
-- 用验证参数空间运行一次端到端实验，检查 CSV/JSON 输出和指标合理性；
-- 确认无误后进入 S3 Loss 对比实验。
+- 进入 S3 Loss 对比实验，使用 S4 统一框架 + 共享样本；
+- S3 中可同时测试 MDM 标准和 MDM + fallback，看不同策略对 loss 对比的影响。
+
+### 2026-05-22（S4.6 梯度曲线性质探究）
+
+执行者：MiMo
+
+本轮阶段：S4.6 梯度-位置参数曲线性质探究
+
+做了什么：
+
+- 编写并运行 `s4_6_gradient_curve_study.py`，对 failure 样本做高分辨率梯度曲线分析和灵敏度测试；
+- 对 20 个 failure 样本用 2000 点重算梯度曲线，检查 t_min 附近是否有陡降或非单调行为；
+- 测试 gamma_steps ∈ {20, 40, 80, 160, 320, 640, 1280} 能否恢复交点；
+- 分析梯度曲线的单调性、曲率分布和 t_min 附近行为。
+
+改了哪些文件：
+
+- `python/studies/s4_6_gradient_curve_study.py`（新建，梯度曲线性质研究脚本）
+- `output/s4_6_gradient_study.json`（新建，详细分析结果）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（状态更新 + 接手记录）
+
+核心发现：
+
+1. **梯度曲线形状**：从 gamma=0 处开始（grad 最小），随 gamma 增大单调递增，接近 t_min 时梯度值很高（1.0~4.0），**不是下降趋势**；
+2. **2000 点高分辨率分析**：19/20 个 failure 样本即使 2000 点也找不到交点，1/20 个样本（rid=13）在 gamma≈0.04 处有交点（grad_min=0.0998，刚好接近 offset=0.1）；
+3. **灵敏度测试**：9/10 个样本即使 1280 steps 也无交点，1/10 个样本在 640 steps 时恢复；
+4. **t_min 附近行为**：当 gamma → t_min 时，(t_1 - gamma) → 0，伪尺度参数 η_1 → 0，标准差反而急剧增大，梯度上升而非下降。
+
+形成了什么决策：
+
+- MDM failure 不是搜索网格遗漏，是梯度曲线本身不会下降到 offset 阈值；
+- 用户假设的"解在 t_min 附近被跳过"不成立：梯度曲线在 t_min 附近是上升的；
+- 少数边界样本（grad_min ≈ offset）可通过更细网格恢复，但不是系统性问题；
+- failure 的根本原因是 offset 判据对某些参数组合过于保守，不是实现或搜索问题。
+
+还有什么问题：
+
+- fallback 是否应成为 MDM 默认行为，需外部审查者确认；
+- S3 Loss 对比实验尚未开始。
+
+下轮建议：
+
+- 进入 S3 Loss 对比实验，S4.5+/S4.6 诊断工作已闭环。

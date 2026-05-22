@@ -8,6 +8,7 @@
 """
 
 import time
+import traceback
 from typing import Optional, Dict, Any
 
 from base import MethodResult
@@ -55,7 +56,8 @@ def run_method(method_id: str, sample, variant: Optional[str] = None,
 
     try:
         _, method_cls = resolve_method(method_id)
-    except Exception:
+    except Exception as e:
+        result["extra"] = {"error": f"resolve_method failed: {e}"}
         return result
 
     try:
@@ -73,19 +75,34 @@ def run_method(method_id: str, sample, variant: Optional[str] = None,
             result["r_squared"] = float(raw.r_squared)
             result["converged"] = bool(raw.converged)
         elif isinstance(raw, (list, tuple)):
+            # 检查第 5 个元素是否为非 True 的状态字符串（如 "no_intersection"）
             if len(raw) >= 5:
-                result["beta_hat"] = float(raw[0])
-                result["eta_hat"] = float(raw[1])
-                result["gamma_hat"] = float(raw[2])
-                result["r_squared"] = float(raw[3])
-                result["converged"] = bool(raw[4])
+                status_val = raw[4]
+                if isinstance(status_val, str) and status_val is not True:
+                    # 方法返回了诊断状态（如 MDM 的 "no_intersection"）
+                    result["converged"] = False
+                    result["extra"] = {"raw_status": status_val}
+                elif raw[0] is None:
+                    # 返回值包含 None（如 MDM 无交点时）
+                    result["converged"] = False
+                    if isinstance(status_val, str):
+                        result["extra"] = {"raw_status": status_val}
+                else:
+                    result["beta_hat"] = float(raw[0])
+                    result["eta_hat"] = float(raw[1])
+                    result["gamma_hat"] = float(raw[2])
+                    result["r_squared"] = float(raw[3])
+                    result["converged"] = bool(status_val)
             elif len(raw) == 4:
-                result["beta_hat"] = float(raw[0])
-                result["eta_hat"] = float(raw[1])
-                result["gamma_hat"] = float(raw[2])
-                result["r_squared"] = float(raw[3])
-                result["converged"] = True
-    except Exception:
-        pass
+                if raw[0] is None:
+                    result["converged"] = False
+                else:
+                    result["beta_hat"] = float(raw[0])
+                    result["eta_hat"] = float(raw[1])
+                    result["gamma_hat"] = float(raw[2])
+                    result["r_squared"] = float(raw[3])
+                    result["converged"] = True
+    except Exception as e:
+        result["extra"] = {"error": f"{type(e).__name__}: {e}"}
 
     return result

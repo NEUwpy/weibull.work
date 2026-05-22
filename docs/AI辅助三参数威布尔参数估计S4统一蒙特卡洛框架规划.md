@@ -205,7 +205,7 @@ def run_experiment(
 |------|----------|
 | MLE | 最常用，有 `run()` 实现 |
 | MDM | 项目核心方法，有额外参数（offset） |
-| LSE | 结构简单，有 `run()` 实现 |
+| LRE | 结构简单，有 `run()` 实现（原计划 LSE，但 `LSE.run()` 尚未实现，改用 LRE） |
 
 ---
 
