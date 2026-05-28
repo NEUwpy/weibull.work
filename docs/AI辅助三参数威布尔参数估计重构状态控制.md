@@ -26,7 +26,7 @@
 当前阶段：
 
 ```text
-S4.5+ 深度诊断完成。MDM failure 确认为理论限制（非搜索网格遗漏）：2000 点高分辨率分析 19/20 个 failure 样本仍无交点，梯度曲线在 t_min 附近单调上升而非下降。fallback 策略可消除全部 failure 且精度不降。默认配置确定（offset=0.1, gs=20），可进入 S3。
+S4.7 MDM 约束边界处理研究修正版已通过外部审查（有条件）。默认 MDM 确定为 mdm_offset_constrained，mdm_min_sigma 保留为对照。审查意见已处理完毕，可进入 S3 Loss 对比实验。
 ```
 
 已完成：
@@ -41,7 +41,9 @@ S4.5+ 深度诊断完成。MDM failure 确认为理论限制（非搜索网格�
 - S2.5 指标规范同步：`/help/metrics` 页面更新为三视角指标体系 + `src/lib/metrics.ts` 前端共享函数创建；
 - S4 规划文档：`docs/AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划.md`，已通过外部审查（有条件），审查意见已全部修正；
 - S4 统一蒙特卡洛框架实现：`python/studies/common/sample.py` + `runner.py` + `experiment.py`，接入 MLE/MDM/LRE，59 个测试全部通过（含原有 33 个指标测试 + 9 个样本测试 + 9 个方法调用测试 + 8 个端到端测试）；
-- S4.5 MDM 调用配置校准 + failure 深度诊断 + 梯度曲线性质探究：定位 failure 全为 `no_intersection`（理论限制，非搜索网格遗漏），默认配置确定为 offset=0.1, gamma_steps=20，61 个测试全部通过；fallback 策略评估确认可消除全部 failure 且精度不降。
+- S4.5 MDM 调用配置校准 + failure 深度诊断 + 梯度曲线性质探究：定位 failure 全为 `no_intersection`（offset 判据内点条件不满足），默认配置确定为 offset=0.1, gamma_steps=20，61 个测试全部通过；fallback 策略评估确认可消除全部 failure 且精度不降。
+- S4.7 MDM 约束边界处理研究（初版）：实现四种 MDM 变体，81 个测试全部通过。初版结论过于乐观（验证空间仅 gamma/eta ∈ {0, 0.1}）。
+- S4.7 MDM 约束边界处理研究（修正版）：扩展验证空间至 gamma/eta ∈ {0, 0.1, 0.5, 1.0} + n=7。关键发现：min_sigma 在高 gamma/eta 时 outlier 率飙升（33%），不适合做默认；constrained 稳健（outlier 5.1%）。min_sigma 搜索逻辑已修正为独立完整区间搜索。修正版待外部审查。
 
 尚未开始：
 
@@ -69,7 +71,8 @@ S4.5+ 深度诊断完成。MDM failure 确认为理论限制（非搜索网格�
 | S2.5 指标规范同步 | 前端指标页面 + 共享函数与后端对齐 | 已完成 | `/help/metrics` 页面 + `src/lib/metrics.ts` + build 通过 |
 | S3 Loss 对比实验 | 用简单 M3 验证不同 loss 的影响 | 未开始 | 输出 loss 对比表和推荐原则 |
 | S4 统一蒙特卡洛框架 | 建立共享样本、统一调用、统一结果保存 | 已实现，59 个测试通过，端到端验证通过 | 同一框架能跑传统方法和 AI 方法 |
-| S4.5 MDM 调用配置校准 | 定位 MDM failure 来源，校准 offset/gamma_steps 默认配置 | 已完成 | failure 确认为理论限制（非搜索遗漏），默认配置确定，fallback 可消除 |
+| S4.5 MDM 调用配置校准 | 定位 MDM failure 来源，校准 offset/gamma_steps 默认配置 | 已完成 | failure 确认为 offset 判据内点条件不满足，默认配置确定 |
+| S4.7 MDM 约束边界处理 | 实现 MDM 变体，消除 failure，比较精度 | 修正版已通过审查 | 扩展网格验证：constrained outlier 5.1%，min_sigma 15.2%（高 gamma/eta 时 33%）；默认 MDM 确定为 constrained |
 | S5 模块整理 | 整理 M1/M2/M3/M4 代表方案 | 未开始 | 各模块可接入统一框架 |
 | S6 横向比较 | 在同一参数空间和指标下比较所有方法 | 未开始 | 统一结果表含传统方法与 AI 方法 |
 | S7 汇报产物 | 生成组会或论文用表格和图 | 未开始 | 图表可追溯到统一实验配置 |
@@ -202,10 +205,31 @@ n ∈ {10, 20, 30, 50, 100}
 下一轮最适合做：
 
 ```text
-S3 Loss 对比实验
+进入 S3 Loss 对比实验（外部审查已通过）
 ```
 
-S4.5+ 已完成（含深度诊断 + 梯度曲线性质探究）。MDM failure 确认为理论限制：2000 点高分辨率分析 19/20 个 failure 样本仍无交点，梯度曲线在 t_min 附近单调上升（不是下降），解不会藏在 t_min 附近。灵敏度测试 9/10 个样本即使 1280 steps 也无交点。fallback_min_sigma 策略可消除全部 failure 且精度不降（NE 0.343 vs 0.386），但需外部审查确认是否改变方法语义。默认配置确定为 offset=0.1, gamma_steps=20。下一步进入 S3 Loss 对比实验。
+S4.7 修正版已通过外部审查（有条件通过）。默认 MDM 确定为 **mdm_offset_constrained**，min_sigma 保留为对照。
+
+S4.7 汇总表（3600 样本/变体，gamma/eta ∈ {0, 0.1, 0.5, 1.0}，n ∈ {7, 10, 30}）：
+
+| Variant | NE | fail% | out% | 备注 |
+|---------|------|-------|------|------|
+| MLE (reference) | 0.379 | 32.3% | 13.9% | 高 gamma/eta 时 failure/outlier 显著 |
+| mdm_offset_strict | 0.419 | 16.8% | 4.4% | 原默认行为 |
+| mdm_offset_constrained | 0.397 | 0.0% | 5.1% | **默认 MDM** |
+| mdm_min_sigma | 0.409 | 0.0% | 15.2% | 高 gamma/eta 时 outlier 飙升（33%） |
+| mdm_allow_negative_gamma | 0.396 | 0.0% | 7.5% | 仅诊断用 |
+
+按 gamma/eta 分组 outlier 率（关键对照）：
+
+| gamma/eta | MLE | strict | constrained | min_sigma | neg_gamma |
+|-----------|------|--------|-------------|-----------|-----------|
+| 0.0 | 3.7% | 1.8% | 2.0% | 2.8% | 4.6% |
+| 0.1 | 4.7% | 3.1% | 3.4% | 3.4% | 7.6% |
+| 0.5 | 19.0% | 4.9% | 6.9% | **21.4%** | 8.1% |
+| 1.0 | 28.4% | 7.9% | 8.0% | **33.0%** | 9.8% |
+
+min_sigma 在 gamma/eta=0.5/1.0 时 outlier 率飙升，是它不适合做默认的核心原因。
 
 ---
 
@@ -640,3 +664,148 @@ fallback 评估结果：
 下轮建议：
 
 - 进入 S3 Loss 对比实验，S4.5+/S4.6 诊断工作已闭环。
+
+### 2026-05-22（S4.7 MDM 约束边界处理）
+
+执行者：MiMo
+
+本轮阶段：S4.7 MDM 约束边界处理研究
+
+做了什么：
+
+- 创建 `python/methods/mdm_variants.py`，实现四种 MDM 变体：mdm_offset_strict、mdm_offset_constrained、mdm_min_sigma、mdm_allow_negative_gamma；
+- 更新 `python/studies/common/runner.py`，新增 MDM 变体函数表，支持通过 variant 名直接调用变体函数；
+- 创建 `python/tests/test_mdm_variants.py`，20 个测试全部通过；
+- 运行全部 81 个测试（原有 61 个 + 新增 20 个），无回归；
+- 编写并运行 `s4_7_mdm_constrained_study.py`，在验证参数空间上比较四种变体 + MLE。
+
+改了哪些文件：
+
+- `python/methods/mdm_variants.py`（新建，四种 MDM 变体实现）
+- `python/studies/common/runner.py`（新增 MDM 变体函数表和调用逻辑）
+- `python/tests/test_mdm_variants.py`（新建，20 个测试）
+- `python/studies/s4_7_mdm_constrained_study.py`（新建，对比研究脚本）
+- `output/s4_7_mdm_constrained_study.json`（新建，详细结果）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（状态更新 + 接手记录）
+
+研究结果：
+
+| Variant | NE | NE_std | NQE95 | fail% | out% | t_ms |
+|---------|------|--------|-------|-------|------|------|
+| MLE (reference) | 0.3500 | 0.2098 | 0.0811 | 22.5% | 1.8% | 5.0 |
+| mdm_offset_strict | 0.3864 | 0.2216 | 0.0946 | 32.8% | 1.2% | 4.8 |
+| mdm_offset_constrained | 0.3432 | 0.2126 | 0.0848 | 0.0% | 1.3% | 6.2 |
+| mdm_min_sigma | 0.3284 | 0.2096 | 0.0814 | 0.0% | 1.8% | 6.1 |
+| mdm_allow_negative_gamma | 0.3578 | 0.2084 | 0.0851 | 0.0% | 4.3% | 4.5 |
+
+形成了什么决策：
+
+- MDM strict 的 32.8% failure 不是"理论无解"，而是在当前离散搜索（gamma_steps=20）和扩展验证下，offset 判据的内点条件不满足，failure 样本表现为边界最优；
+- mdm_offset_constrained（约束边界解）消除全部 failure，NE 从 0.386 降到 0.343，NQE95 从 0.095 降到 0.085；
+- mdm_min_sigma（网格搜索下的最小 sigma 解）在初版验证空间下精度最优（NE=0.328），但扩展验证后 outlier 率飙升；
+- mdm_allow_negative_gamma 虽然 0% failure，但 outlier 率偏高（4.3%），仅适合诊断；
+- 推荐 mdm_offset_constrained 作为默认 MDM 实现；
+- strict 保留作为诊断 variant，不作为默认工程方法。
+
+还有什么问题：
+
+- 最终选择 min_sigma 还是 constrained 作为默认，需外部审查者确认（两者精度接近，min_sigma 更简单，constrained 更符合 MDM 的 offset 理论框架）；
+- S3 Loss 对比实验尚未开始。
+
+下轮建议：
+
+- 进入 S3 Loss 对比实验，使用无 failure 的 MDM 变体作为 baseline；
+- S3 中可同时比较 min_sigma 和 constrained，看不同变体对 loss 对比结论的影响。
+
+### 重要更正
+
+**撤回"MDM failure 是理论限制"的表述。** 正确表述为：在当前离散搜索（gamma_steps=20）与扩展验证（gamma/eta ∈ {0, 0.1, 0.5, 1.0}）下，无交点样本表现为边界最优；这不等价于"永远不可能找到内点解"（有 4 个 failure 样本 grad_min - offset ≤ 0.001，边界很近）。默认工程实现需要约束边界规则。
+
+**撤回"min_sigma 可作为默认 MDM"的结论。** 初版 S4.7 验证空间仅 gamma/eta ∈ {0, 0.1}，偏向边界场景。扩展至 gamma/eta ∈ {0, 0.1, 0.5, 1.0} 后，min_sigma（网格搜索下的最小 sigma 解）outlier 率从初版 1.8% 飙升至 15.2%（gamma/eta=1.0 时达 33%）。原因是 min_sigma 倾向于选 gamma≈0，当真值 gamma 较大时产生系统性偏差。推荐 mdm_offset_constrained 作为默认。
+
+**撤回"success 样本都是 U 形"的表述。** 初版声称 failure 样本 sigma 单调上升、success 样本呈 U 形。修正版诊断显示：39% 的全部样本（含 success）sigma 曲线单调非降，success 样本中也有 26.7% 是单调的。正确说法是：failure 样本的最小 sigma 全部在边界（gamma≈0），而 success 样本的最小 sigma 多数在内部。
+
+### 2026-05-22（S4.7 修正版）
+
+执行者：MiMo
+
+本轮阶段：S4.7 MDM 约束边界处理研究修正
+
+做了什么：
+
+- 修正 `mdm_min_sigma` 搜索逻辑：创建独立的 `_compute_sigma_curve()` 函数，覆盖完整 [0, t_min) 区间，不再复用 `_compute_mdm_search` 的两段分割逻辑；
+- 修正 `mdm_offset_constrained` 注释：将"梯度单调高于 offset"改为"采样点上梯度均高于 offset"，不假设曲线单调性；
+- 扩展 S4.7 验证参数空间：gamma/eta ∈ {0, 0.1, 0.5, 1.0}，n ∈ {7, 10, 30}；
+- 新增逐样本诊断：sigma_monotone、min_location、grad_min/max、offset_crossing；
+- 运行修正版研究，分析结果。
+
+改了哪些文件：
+
+- `python/methods/mdm_variants.py`（新增 `_compute_sigma_curve`，修正 `mdm_min_sigma` 和 `mdm_offset_constrained` 注释）
+- `python/studies/s4_7_mdm_constrained_study.py`（重写：扩展参数空间 + 逐样本诊断）
+- `output/s4_7_mdm_constrained_study_v2.json`（新建，修正版结果含逐样本诊断）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（状态更新 + 接手记录）
+
+形成了什么决策：
+
+- **默认 MDM 推荐 mdm_offset_constrained**，不推荐 min_sigma；
+- min_sigma（网格搜索下的最小 sigma 解）在高 gamma/eta 时 outlier 率过高（gamma/eta=1.0 时 33%），原因是它倾向于选 gamma≈0；
+- constrained 在所有 gamma/eta 水平均稳健（outlier 5.1%），0% failure；
+- 初版结论"min_sigma 最优"是验证空间不足导致的假象；
+- MLE 在扩展网格上 failure 率 32.3%、outlier 13.9%，也需要关注。
+
+还有什么问题：
+
+- ~~S4.7 修正版待外部审查者确认~~ → 已通过（有条件），见下方接手记录。
+
+下轮建议：
+
+- ~~外部审查 S4.7 修正版~~ → 已完成；
+- 进入 S3 Loss 对比实验。
+
+### 2026-05-22（S4.7 审查通过）
+
+执行者：MiMo + 外部审查者
+
+本轮阶段：S4.7 外部审查
+
+做了什么：
+
+- 外部审查者审查 S4.7 修正版，给出有条件通过结论；
+- 处理审查必须修改项：修正结论措辞、修正 min_sigma 描述、写入 gamma/eta 分组表、清理旧文档；
+- 处理审查建议项：给 mdm_offset_constrained 增加 fallback_reason 字段；
+- 重新运行 S4.7 研究，保存逐样本 NE/status 和 gamma/eta 分组统计到 JSON。
+
+改了哪些文件：
+
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（状态更新 + 接手记录 + 分组表）
+- `docs/提示词_新窗口接手.md`（修正旧结论措辞）
+- `python/studies/s4_7_mdm_constrained_study.py`（新增逐样本 NE/status + 分组统计 + fallback_reason）
+- `python/methods/mdm_variants.py`（增加 fallback_reason 返回字段）
+- `output/s4_7_mdm_constrained_study_v2.json`（更新：含 grouped_by_gamma_eta）
+
+审查意见及处理：
+
+1. **必须项 1**：结论措辞从"永远不可能找到内点解"改为"在当前离散搜索/扩展验证下未发现内点交点，且 failure 样本表现为边界最优" ✓
+2. **必须项 2**：min_sigma 描述改为"网格搜索下的最小 sigma 解" ✓
+3. **必须项 3**：gamma/eta 分组表写入状态文档和 JSON ✓
+4. **必须项 4**：清理 docs 根目录旧文档中的过时结论 ✓
+5. **建议项 1**：给 mdm_offset_constrained 增加 fallback_reason 字段 ✓
+
+形成了什么决策：
+
+- **默认 MDM 确定为 mdm_offset_constrained**；
+- mdm_min_sigma 保留为敏感性对照，不作为默认；
+- mdm_offset_strict 保留为诊断变体；
+- mdm_allow_negative_gamma 仅诊断用；
+- S3 Loss 对比实验中 MDM baseline 使用 constrained，同时保留 min_sigma 作为对照。
+
+还有什么问题：
+
+- S3 Loss 对比实验尚未开始。
+
+下轮建议：
+
+- 进入 S3 Loss 对比实验，使用 S4 统一框架 + 共享样本；
+- MDM baseline 使用 mdm_offset_constrained，同时保留 mdm_min_sigma 作为敏感性对照；
+- S3 中必须按 gamma/eta 分层看结果，不要只看平均值。

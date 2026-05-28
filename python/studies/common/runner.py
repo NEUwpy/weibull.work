@@ -13,6 +13,20 @@ from typing import Optional, Dict, Any
 
 from base import MethodResult
 from methods.registry import resolve_method
+from methods.mdm_variants import (
+    mdm_offset_strict,
+    mdm_offset_constrained,
+    mdm_min_sigma,
+    mdm_allow_negative_gamma,
+)
+
+# MDM 变体函数表：key=method_variant, value=(函数, method_id)
+_MDM_VARIANTS = {
+    "mdm_offset_strict": (mdm_offset_strict, "mdm"),
+    "mdm_offset_constrained": (mdm_offset_constrained, "mdm"),
+    "mdm_min_sigma": (mdm_min_sigma, "mdm"),
+    "mdm_allow_negative_gamma": (mdm_allow_negative_gamma, "mdm"),
+}
 
 
 def run_method(method_id: str, sample, variant: Optional[str] = None,
@@ -53,6 +67,31 @@ def run_method(method_id: str, sample, variant: Optional[str] = None,
         "time": 0.0,
         "extra": None,
     }
+
+    # MDM 变体函数：直接调用，不经 registry
+    variant_fn_info = _MDM_VARIANTS.get(method_variant)
+    if variant_fn_info is not None:
+        variant_fn, effective_id = variant_fn_info
+        result["method_id"] = effective_id
+        try:
+            t0 = time.perf_counter()
+            raw = variant_fn(sample, **kwargs)
+            elapsed = time.perf_counter() - t0
+            result["time"] = elapsed
+            if raw[0] is None:
+                result["converged"] = False
+            else:
+                result["beta_hat"] = float(raw[0])
+                result["eta_hat"] = float(raw[1])
+                result["gamma_hat"] = float(raw[2])
+                result["converged"] = True
+            # 捕获 fallback_reason（如有）
+            reason = getattr(variant_fn, "last_fallback_reason", None)
+            if reason is not None:
+                result["extra"] = {"fallback_reason": reason}
+        except Exception as e:
+            result["extra"] = {"error": f"{type(e).__name__}: {e}"}
+        return result
 
     try:
         _, method_cls = resolve_method(method_id)
