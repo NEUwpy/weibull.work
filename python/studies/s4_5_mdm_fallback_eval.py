@@ -6,7 +6,7 @@ S4.5 MDM fallback 策略评估
 2. MDM + fallback_min_sigma（no_intersection → 用最小 sigma 的 gamma）
 3. MLE（作为参考）
 
-评估维度：NE mean, NQE_R, failure_rate, outlier_rate, time
+评估维度：S2R 分布指标、failure_rate
 """
 
 import sys
@@ -19,7 +19,7 @@ from scipy.optimize import minimize_scalar
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from studies.common.sample import generate_sample
-from studies.common.metrics import ne, check_status, aggregate_param_metrics, quantile_true, quantile_est
+from studies.common.metrics import aggregate_param_metrics
 from base import WeibullBase
 
 
@@ -149,25 +149,24 @@ def evaluate_strategy(name, method_fn, **kwargs):
                         "gamma": gamma,
                         "time": elapsed,
                         "converged": beta_hat is not None,
+                        "sample_min": float(min(sample)),
                     })
 
     wall_time = time.time() - t_start
     agg = aggregate_param_metrics(results)
 
-    q95 = agg.get("quantile", {}).get(0.950, {})
     return {
         "name": name,
-        "ne_mean": agg.get("ne_mean", float("nan")),
-        "nqe_r": q95.get("nqe_mean", float("nan")),
+        "mdape_beta": agg.get("mdape_beta", float("nan")),
+        "mdape_eta": agg.get("mdape_eta", float("nan")),
+        "mdape_gamma": agg.get("mdape_gamma", float("nan")),
+        "mdape_x_r0p95": agg.get("mdape_x_r0p95", float("nan")),
+        "p95_abs_beta": agg.get("p95_abs_beta", float("nan")),
         "failure_rate": agg.get("failure_rate", 0),
-        "outlier_rate": agg.get("outlier_rate", 0),
-        "time_mean_ms": agg.get("time_mean", 0) * 1000,
-        "time_p95_ms": agg.get("time_p95", 0) * 1000,
         "wall_time": wall_time,
         "n_total": agg.get("n_total", 0),
-        "n_success": agg.get("n_success", 0),
+        "n_valid": agg.get("n_valid", 0),
         "n_failure": agg.get("n_failure", 0),
-        "n_outlier": agg.get("n_outlier", 0),
     }
 
 
@@ -217,13 +216,13 @@ if __name__ == "__main__":
 
     # 输出对比表
     print()
-    print(f"{'Strategy':<35} {'NE':>6} {'NQE_R':>6} {'fail%':>6} {'out%':>6} "
-          f"{'t_ms':>6} {'t95_ms':>7} {'wall':>6}")
+    print(f"{'Strategy':<35} {'MdAPEβ':>8} {'MdAPEη':>8} {'MdAPEγ':>8} "
+          f"{'x95Md':>8} {'fail%':>6} {'wall':>6}")
     print("-" * 90)
     for r in all_results:
-        print(f"{r['name']:<35} {r['ne_mean']:>6.3f} {r['nqe_r']:>6.4f} "
-              f"{r['failure_rate']*100:>5.1f}% {r['outlier_rate']*100:>5.1f}% "
-              f"{r['time_mean_ms']:>5.1f}ms {r['time_p95_ms']:>6.1f}ms "
+        print(f"{r['name']:<35} {r['mdape_beta']:>8.4f} {r['mdape_eta']:>8.4f} "
+              f"{r['mdape_gamma']:>8.4f} {r['mdape_x_r0p95']:>8.4f} "
+              f"{r['failure_rate']*100:>5.1f}% "
               f"{r['wall_time']:>5.1f}s")
 
     # 保存

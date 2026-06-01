@@ -1,119 +1,143 @@
 /**
- * 统一评价指标 — 前端共享函数
+ * S2R 唯一评价指标模块
  *
- * 与 python/studies/common/metrics.py 公式对等。
- * 前端组件计算指标时必须调用本模块，禁止内联重复实现。
+ * 维护约定：
+ * - 本模块是指标规范页面 `/help/metrics` 的可执行实现。
+ * - `/help/metrics` 是本模块的可读规范说明。
+ * - 修改本模块任一公式、字段名或判定口径时，必须同步修改
+ *   `src/app/help/metrics/page.tsx`；反过来，页面规范变更也必须同步本模块。
  *
- * 命名：camelCase（前端规范），注释标注对应 Python 函数名。
+ * 当前唯一指标体系：
+ * - 参数视角和工程分位点视角都先形成带符号相对误差分布。
+ * - 主指标为 MdAPE；并列报告方向、稳定性、尾部和有效估计率。
+ * - beta/eta 用自身归一化，gamma 用 eta 归一化。
+ * - NE、NQE_R、RE_R、Outlier Rate 等旧体系指标已废止，不再导出。
  */
 
-// ============================================================
-// 常量
-// ============================================================
+export const DEFAULT_R_LEVELS = [0.50, 0.90, 0.95, 0.99, 0.999] as const
 
-/** 默认可靠度水平 */
-export const DEFAULT_R_LEVELS = [0.995, 0.990, 0.950, 0.900] as const
+export type SampleStatus = 'success' | 'failure'
 
-/** 默认 outlier 判定阈值 */
-export const DEFAULT_NE_THRESHOLD = 1.0
-
-// ============================================================
-// 层 1：单样本基础指标
-// ============================================================
-
-/**
- * 归一化综合误差 NE（对应 Python: ne()）
- *
- * NE = sqrt(
- *   ((betaHat - beta) / beta)^2
- *   + ((etaHat - eta) / eta)^2
- *   + ((gammaHat - gamma) / eta)^2
- * )
- *
- * gamma 使用 eta 归一化，避免 gamma=0 时的分母问题。
- */
-export function ne(
-  betaHat: number, etaHat: number, gammaHat: number,
-  beta: number, eta: number, gamma: number,
-): number {
-  return Math.sqrt(
-    ((betaHat - beta) / beta) ** 2
-    + ((etaHat - eta) / eta) ** 2
-    + ((gammaHat - gamma) / eta) ** 2,
-  )
+export interface ParamRelativeErrors {
+  beta: number
+  eta: number
+  gamma: number
 }
 
-/**
- * 真实分位点 x_R = gamma + eta * (-ln(R))^(1/beta)（对应 Python: quantile_true()）
- */
+export interface DistributionSummary {
+  mdape: number | null
+  medRel: number | null
+  p25Rel: number | null
+  p75Rel: number | null
+  relIqr: number | null
+  p5Rel: number | null
+  p95Rel: number | null
+  p95Abs: number | null
+  p99Abs: number | null
+}
+
 export function quantileTrue(beta: number, eta: number, gamma: number, R: number): number {
   return gamma + eta * (-Math.log(R)) ** (1 / beta)
 }
 
-/**
- * 估计分位点 x̂_R = gammaHat + etaHat * (-ln(R))^(1/betaHat)（对应 Python: quantile_est()）
- */
 export function quantileEst(betaHat: number, etaHat: number, gammaHat: number, R: number): number {
   return gammaHat + etaHat * (-Math.log(R)) ** (1 / betaHat)
 }
 
-/**
- * 归一化分位点误差 |x̂_R - x_R| / eta（对应 Python: nqe_R()）
- *
- * 用 eta 归一化，比 reR（用 x_R 归一化）更稳健。
- */
-export function nqeR(
-  betaHat: number, etaHat: number, gammaHat: number,
-  beta: number, eta: number, gamma: number,
+export function paramRelativeErrors(
+  betaHat: number,
+  etaHat: number,
+  gammaHat: number,
+  beta: number,
+  eta: number,
+  gamma: number,
+): ParamRelativeErrors {
+  return {
+    beta: (betaHat - beta) / beta,
+    eta: (etaHat - eta) / eta,
+    gamma: (gammaHat - gamma) / eta,
+  }
+}
+
+export function quantileRelativeError(
+  betaHat: number,
+  etaHat: number,
+  gammaHat: number,
+  beta: number,
+  eta: number,
+  gamma: number,
   R: number,
 ): number {
   const xR = quantileTrue(beta, eta, gamma, R)
   const xHatR = quantileEst(betaHat, etaHat, gammaHat, R)
-  return Math.abs(xHatR - xR) / eta
+  return (xHatR - xR) / xR
 }
 
-/**
- * 相对分位点误差 |x̂_R - x_R| / x_R（对应 Python: re_R()）
- */
-export function reR(
-  betaHat: number, etaHat: number, gammaHat: number,
-  beta: number, eta: number, gamma: number,
-  R: number,
-): number {
-  const xR = quantileTrue(beta, eta, gamma, R)
-  const xHatR = quantileEst(betaHat, etaHat, gammaHat, R)
-  return Math.abs(xHatR - xR) / xR
+function emptySummary(): DistributionSummary {
+  return {
+    mdape: null,
+    medRel: null,
+    p25Rel: null,
+    p75Rel: null,
+    relIqr: null,
+    p5Rel: null,
+    p95Rel: null,
+    p95Abs: null,
+    p99Abs: null,
+  }
 }
 
-// ============================================================
-// 层 2：状态判定
-// ============================================================
+function percentile(sortedValues: number[], p: number): number {
+  if (sortedValues.length === 1) return sortedValues[0]
+  const pos = (p / 100) * (sortedValues.length - 1)
+  const lo = Math.floor(pos)
+  const hi = Math.ceil(pos)
+  if (lo === hi) return sortedValues[lo]
+  const weight = pos - lo
+  return sortedValues[lo] * (1 - weight) + sortedValues[hi] * weight
+}
 
-export type SampleStatus = 'success' | 'failure' | 'outlier'
+export function summarizeRelativeErrors(errors: number[]): DistributionSummary {
+  const values = errors.filter(Number.isFinite).sort((a, b) => a - b)
+  if (values.length === 0) return emptySummary()
 
-/**
- * 判定单样本状态（对应 Python: check_status()）
- *
- * 判定顺序：
- * 1. betaHat 或 etaHat 非有限或 <= 0 → failure
- * 2. gammaHat 非有限 → failure（不要求 >0，但必须 finite）
- * 3. converged 为 false → failure
- * 4. NE > neThreshold → outlier
- * 5. 其余 → success
- */
+  const absValues = values.map(Math.abs).sort((a, b) => a - b)
+  const p25Rel = percentile(values, 25)
+  const p75Rel = percentile(values, 75)
+
+  return {
+    mdape: percentile(absValues, 50),
+    medRel: percentile(values, 50),
+    p25Rel,
+    p75Rel,
+    relIqr: p75Rel - p25Rel,
+    p5Rel: percentile(values, 5),
+    p95Rel: percentile(values, 95),
+    p95Abs: percentile(absValues, 95),
+    p99Abs: percentile(absValues, 99),
+  }
+}
+
 export function checkStatus(
-  betaHat: number, etaHat: number, gammaHat: number,
-  beta: number, eta: number, gamma: number,
+  betaHat: number,
+  etaHat: number,
+  gammaHat: number,
+  _beta: number,
+  eta: number,
+  _gamma: number,
   converged = true,
-  neThreshold = DEFAULT_NE_THRESHOLD,
+  sampleMin?: number,
+  boundaryTol = 1e-10,
 ): SampleStatus {
+  if (!converged) return 'failure'
   if (!Number.isFinite(betaHat) || betaHat <= 0) return 'failure'
   if (!Number.isFinite(etaHat) || etaHat <= 0) return 'failure'
   if (!Number.isFinite(gammaHat)) return 'failure'
-  if (!converged) return 'failure'
 
-  const neValue = ne(betaHat, etaHat, gammaHat, beta, eta, gamma)
-  if (neValue > neThreshold) return 'outlier'
+  if (sampleMin !== undefined && Number.isFinite(sampleMin)) {
+    const tol = boundaryTol * Math.max(Math.abs(sampleMin), Math.abs(eta), 1)
+    if (gammaHat >= sampleMin - tol) return 'failure'
+  }
 
   return 'success'
 }

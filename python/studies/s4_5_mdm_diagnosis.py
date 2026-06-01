@@ -5,7 +5,7 @@ S4.5 MDM failure 深度诊断
 1. 理论失败：梯度范围不含 offset（算法在此参数下确实无解）
 2. 配置失败：梯度范围含 offset 但 gamma_steps 太粗未检测到
 3. 实现失败：数值噪声导致符号变化检测失败
-4. 判定口径失败：有合理解但被 check_status 判为 outlier/failure
+4. 判定口径失败：有合理解但被 check_status 判为 failure
 
 对 failure 样本做抽样复核 + 替代策略测试。
 """
@@ -19,7 +19,7 @@ from collections import Counter, defaultdict
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from studies.common.sample import generate_sample
-from studies.common.metrics import ne, check_status
+from studies.common.metrics import param_relative_errors, summarize_relative_errors
 from base import WeibullBase
 
 
@@ -243,24 +243,30 @@ def run_diagnosis():
     print(f"  offset={OFFSET}")
     print()
 
-    # 替代策略评估：对 failure 样本用 fallback_min_sigma 计算 NE
+    # 替代策略评估：对 failure 样本用 fallback_min_sigma 计算 S2R 参数误差
     print("=== 替代策略：fallback_min_sigma（忽略 offset，用最小 sigma 的 gamma）===")
-    fallback_nes = []
+    fallback_beta_errors = []
+    fallback_eta_errors = []
+    fallback_gamma_errors = []
     for s in failure_samples:
         fb = s["fallback_min_sigma"]
         if fb["beta"] > 0 and fb["eta"] > 0 and np.isfinite(fb["eta"]):
-            ne_val = ne(fb["beta"], fb["eta"], fb["gamma"],
-                        s["beta"], s["eta"], s["gamma"])
-            fallback_nes.append(ne_val)
+            errors = param_relative_errors(
+                fb["beta"], fb["eta"], fb["gamma"],
+                s["beta"], s["eta"], s["gamma"],
+            )
+            fallback_beta_errors.append(errors["beta"])
+            fallback_eta_errors.append(errors["eta"])
+            fallback_gamma_errors.append(errors["gamma"])
 
-    if fallback_nes:
-        ne_arr = np.array(fallback_nes)
-        print(f"  n={len(ne_arr)}")
-        print(f"  NE mean={np.mean(ne_arr):.4f}, std={np.std(ne_arr):.4f}")
-        print(f"  NE median={np.median(ne_arr):.4f}, p95={np.percentile(ne_arr, 95):.4f}")
-        # 有多少会被判为 outlier (NE > 1.0)
-        n_outlier = np.sum(ne_arr > 1.0)
-        print(f"  NE > 1.0 (outlier): {n_outlier}/{len(ne_arr)} ({n_outlier/len(ne_arr)*100:.1f}%)")
+    if fallback_beta_errors:
+        beta_summary = summarize_relative_errors(fallback_beta_errors)
+        eta_summary = summarize_relative_errors(fallback_eta_errors)
+        gamma_summary = summarize_relative_errors(fallback_gamma_errors)
+        print(f"  n={len(fallback_beta_errors)}")
+        print(f"  beta MdAPE={beta_summary['mdape']:.4f}, P95(|e|)={beta_summary['p95_abs']:.4f}")
+        print(f"  eta  MdAPE={eta_summary['mdape']:.4f}, P95(|e|)={eta_summary['p95_abs']:.4f}")
+        print(f"  gamma MdAE/eta={gamma_summary['mdape']:.4f}, P95(|e|)={gamma_summary['p95_abs']:.4f}")
     print()
 
     # 抽样输出前 5 个 failure 样本的详细诊断

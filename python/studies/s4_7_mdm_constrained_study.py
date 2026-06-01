@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
-from studies.common.metrics import aggregate_param_metrics, ne, check_status
+from studies.common.metrics import aggregate_param_metrics, check_status, param_relative_errors
 from methods.mdm_variants import (
     _compute_mdm_search,
     _compute_sigma_curve,
@@ -104,15 +104,19 @@ def run_variant_with_diagnostics(method_variant, kwargs):
                     sample = generate_sample(beta, ETA, gamma, n, rid)
                     r = run_method(method_variant, sample, **kwargs)
 
-                    ne_val = None
+                    rel_errors = {"beta": None, "eta": None, "gamma": None}
                     status = "failure"
                     if r["converged"] and r["beta_hat"] is not None:
-                        ne_val = ne(r["beta_hat"], r["eta_hat"], r["gamma_hat"],
-                                    beta, ETA, gamma)
                         status = check_status(
                             r["beta_hat"], r["eta_hat"], r["gamma_hat"],
-                            beta, ETA, gamma, r["converged"]
+                            beta, ETA, gamma, r["converged"],
+                            sample_min=float(min(sample)),
                         )
+                        if status == "success":
+                            rel_errors = param_relative_errors(
+                                r["beta_hat"], r["eta_hat"], r["gamma_hat"],
+                                beta, ETA, gamma,
+                            )
 
                     row = {
                         "beta": beta,
@@ -127,8 +131,11 @@ def run_variant_with_diagnostics(method_variant, kwargs):
                         "gamma_hat": r["gamma_hat"],
                         "converged": r["converged"],
                         "time": r["time"],
-                        "ne": ne_val,
+                        "beta_rel_error": rel_errors["beta"],
+                        "eta_rel_error": rel_errors["eta"],
+                        "gamma_rel_error": rel_errors["gamma"],
                         "status": status,
+                        "sample_min": float(min(sample)),
                     }
                     results.append(row)
 
@@ -151,22 +158,22 @@ def run_variant_with_diagnostics(method_variant, kwargs):
 
     wall_time = time.time() - wall_start
     agg = aggregate_param_metrics(results)
-    q95 = agg.get("quantile", {}).get(0.950, {})
 
     return {
         "variant": method_variant,
-        "ne_mean": agg.get("ne_mean"),
-        "ne_std": agg.get("ne_std"),
-        "nqe_r95": q95.get("nqe_mean"),
+        "mdape_beta": agg.get("mdape_beta"),
+        "mdape_eta": agg.get("mdape_eta"),
+        "mdape_gamma": agg.get("mdape_gamma"),
+        "p95_abs_beta": agg.get("p95_abs_beta"),
+        "p95_abs_eta": agg.get("p95_abs_eta"),
+        "p95_abs_gamma": agg.get("p95_abs_gamma"),
+        "mdape_x_r0p95": agg.get("mdape_x_r0p95"),
+        "p95_abs_x_r0p95": agg.get("p95_abs_x_r0p95"),
         "failure_rate": agg.get("failure_rate"),
-        "outlier_rate": agg.get("outlier_rate"),
-        "time_mean_ms": agg.get("time_mean", 0) * 1000,
-        "time_p95_ms": agg.get("time_p95", 0) * 1000,
         "wall_time_s": wall_time,
         "n_total": agg.get("n_total"),
-        "n_success": agg.get("n_success"),
+        "n_valid": agg.get("n_valid"),
         "n_failure": agg.get("n_failure"),
-        "n_outlier": agg.get("n_outlier"),
         "diagnostics": diagnostics,
         "per_row": results,
     }
@@ -242,19 +249,19 @@ def main():
 
     # 打印对比表
     print()
-    print(f"{'变体':<30} {'NE':>7} {'NE_std':>7} {'NQE95':>7} "
-          f"{'fail%':>6} {'out%':>6} {'t_ms':>7} {'succ':>5} {'fail':>5}")
+    print(f"{'变体':<30} {'MdAPEβ':>8} {'MdAPEη':>8} {'MdAPEγ':>8} "
+          f"{'P95β':>8} {'x95Md':>8} {'fail%':>6} {'valid':>5} {'fail':>5}")
     print("-" * 95)
     for r in all_results:
-        ne_val = r['ne_mean'] or 0
-        ne_s = r['ne_std'] or 0
-        nqe = r['nqe_r95'] or 0
+        mb = r['mdape_beta'] or 0
+        me = r['mdape_eta'] or 0
+        mg = r['mdape_gamma'] or 0
+        p95b = r['p95_abs_beta'] or 0
+        x95 = r['mdape_x_r0p95'] or 0
         fr = (r['failure_rate'] or 0) * 100
-        outr = (r['outlier_rate'] or 0) * 100
-        t = r['time_mean_ms']
-        print(f"{r['variant']:<30} {ne_val:>7.4f} {ne_s:>7.4f} {nqe:>7.4f} "
-              f"{fr:>5.1f}% {outr:>5.1f}% {t:>6.1f}ms "
-              f"{r['n_success']:>5} {r['n_failure']:>5}")
+        print(f"{r['variant']:<30} {mb:>8.4f} {me:>8.4f} {mg:>8.4f} "
+              f"{p95b:>8.4f} {x95:>8.4f} {fr:>5.1f}% "
+              f"{r['n_valid']:>5} {r['n_failure']:>5}")
 
     # 分析诊断数据
     print()
@@ -337,14 +344,17 @@ def main():
         "diagnostics": {},
     }
 
-    # 按 gamma/eta 分组统计 NE/outlier/failure
+    # 按 gamma/eta 分组统计 S2R 指标
     output["grouped_by_gamma_eta"] = {}
     for r in all_results:
         variant = r["variant"]
-        by_ge = defaultdict(lambda: {"nes": [], "statuses": []})
+        by_ge = defaultdict(lambda: {"beta_abs": [], "eta_abs": [], "gamma_abs": [], "statuses": []})
         for row in results_by_variant.get(variant, []):
             ge = row["gamma_eta"]
-            by_ge[ge]["nes"].append(row["ne"])
+            if row["status"] == "success":
+                by_ge[ge]["beta_abs"].append(abs(row["beta_rel_error"]))
+                by_ge[ge]["eta_abs"].append(abs(row["eta_rel_error"]))
+                by_ge[ge]["gamma_abs"].append(abs(row["gamma_rel_error"]))
             by_ge[ge]["statuses"].append(row["status"])
 
         grouped = {}
@@ -352,18 +362,16 @@ def main():
             d = by_ge[ge]
             total = len(d["statuses"])
             n_failure = sum(1 for s in d["statuses"] if s == "failure")
-            n_outlier = sum(1 for s in d["statuses"] if s == "outlier")
-            n_success = sum(1 for s in d["statuses"] if s == "success")
-            success_nes = [v for v, s in zip(d["nes"], d["statuses"])
-                           if s == "success" and v is not None]
+            n_valid = sum(1 for s in d["statuses"] if s == "success")
             grouped[str(ge)] = {
                 "total": total,
                 "failure": n_failure,
                 "failure_pct": round(n_failure / total * 100, 1),
-                "outlier": n_outlier,
-                "outlier_pct": round(n_outlier / total * 100, 1),
-                "success": n_success,
-                "ne_mean": round(float(np.mean(success_nes)), 4) if success_nes else None,
+                "valid": n_valid,
+                "mdape_beta": round(float(np.median(d["beta_abs"])), 4) if d["beta_abs"] else None,
+                "mdape_eta": round(float(np.median(d["eta_abs"])), 4) if d["eta_abs"] else None,
+                "mdape_gamma": round(float(np.median(d["gamma_abs"])), 4) if d["gamma_abs"] else None,
+                "p95_abs_beta": round(float(np.percentile(d["beta_abs"], 95)), 4) if d["beta_abs"] else None,
             }
         output["grouped_by_gamma_eta"][variant] = grouped
 

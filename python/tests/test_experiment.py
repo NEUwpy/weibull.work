@@ -63,13 +63,13 @@ def test_csv_columns():
             "method_id", "method_variant",
             "beta_hat", "eta_hat", "gamma_hat",
             "r_squared", "converged", "time",
-            "status", "ne", "extra",
+            "status", "beta_rel_error", "eta_rel_error", "gamma_rel_error", "extra",
         }
         assert set(rows[0].keys()) == expected_cols
 
 
 def test_status_values():
-    """status 列只包含 success/failure/outlier"""
+    """status 列只包含 success/failure"""
     with tempfile.TemporaryDirectory() as tmpdir:
         run_experiment(
             methods=["mle", ("mdm", {"offset": 0.1})],
@@ -82,11 +82,11 @@ def test_status_values():
         with open(csv_path, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             statuses = [row["status"] for row in reader]
-        assert all(s in ("success", "failure", "outlier") for s in statuses)
+        assert all(s in ("success", "failure") for s in statuses)
 
 
 def test_json_summary_counts():
-    """JSON 汇总中 failure + outlier + success = total"""
+    """JSON 汇总中 failure + valid = total"""
     with tempfile.TemporaryDirectory() as tmpdir:
         run_experiment(
             methods=["mle"],
@@ -99,7 +99,9 @@ def test_json_summary_counts():
         with open(json_path, encoding="utf-8") as f:
             summary = json.load(f)
         for key, group in summary.items():
-            assert group["n_failure"] + group["n_outlier"] + group["n_success"] == group["n_total"]
+            assert group["n_failure"] + group["n_valid"] == group["n_total"]
+            assert "param_distribution" in group
+            assert "quantile_distribution" in group
 
 
 def test_variant_in_summary():
@@ -132,8 +134,8 @@ def test_shared_sample_evidence():
     np.testing.assert_array_equal(s1, s2)
 
 
-def test_ne_recorded_for_outlier():
-    """outlier 行的 ne 列有值而非 NaN"""
+def test_success_rows_record_relative_errors():
+    """success 行记录 S2R 参数相对误差"""
     with tempfile.TemporaryDirectory() as tmpdir:
         run_experiment(
             methods=["mle"],
@@ -146,5 +148,7 @@ def test_ne_recorded_for_outlier():
         with open(csv_path, encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row["status"] == "outlier":
-                    assert row["ne"] != "" and row["ne"] != "nan"
+                if row["status"] == "success":
+                    assert row["beta_rel_error"] != "" and row["beta_rel_error"] != "nan"
+                    assert row["eta_rel_error"] != "" and row["eta_rel_error"] != "nan"
+                    assert row["gamma_rel_error"] != "" and row["gamma_rel_error"] != "nan"

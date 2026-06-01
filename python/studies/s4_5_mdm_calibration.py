@@ -1,7 +1,7 @@
 """
 S4.5 MDM 调用配置校准实验
 
-比较 offset × gamma_steps 小网格，输出精度/耗时/失败率对比表。
+比较 offset × gamma_steps 小网格，输出 S2R 指标/失败率对比表。
 """
 
 import sys
@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
-from studies.common.metrics import ne, check_status, aggregate_param_metrics
+from studies.common.metrics import check_status, aggregate_param_metrics
 
 # 验证参数空间
 BETAS = [1.5, 2.0, 3.0]
@@ -68,6 +68,7 @@ def run_calibration():
                                     beta_hat, eta_hat, gamma_hat,
                                     beta, ETA, gamma,
                                     converged=converged,
+                                    sample_min=float(min(sample)),
                                 )
 
                             all_results.append({
@@ -79,6 +80,7 @@ def run_calibration():
                                 "gamma": gamma,
                                 "time": r["time"],
                                 "converged": converged,
+                                "sample_min": float(min(sample)),
                             })
 
             elapsed = time.time() - t_start
@@ -86,16 +88,15 @@ def run_calibration():
             results_by_config[variant] = {
                 "offset": offset,
                 "gamma_steps": gs,
-                "ne_mean": agg.get("ne_mean", float("nan")),
-                "nqe_r_mean": _avg_nqe(agg),
+                "mdape_beta": agg.get("mdape_beta", float("nan")),
+                "mdape_eta": agg.get("mdape_eta", float("nan")),
+                "mdape_gamma": agg.get("mdape_gamma", float("nan")),
+                "mdape_x_r0p95": agg.get("mdape_x_r0p95", float("nan")),
+                "p95_abs_beta": agg.get("p95_abs_beta", float("nan")),
                 "failure_rate": agg.get("failure_rate", 0),
-                "outlier_rate": agg.get("outlier_rate", 0),
-                "time_mean": agg.get("time_mean", 0),
-                "time_p95": agg.get("time_p95", 0),
                 "n_total": agg.get("n_total", 0),
-                "n_success": agg.get("n_success", 0),
+                "n_valid": agg.get("n_valid", 0),
                 "n_failure": agg.get("n_failure", 0),
-                "n_outlier": agg.get("n_outlier", 0),
                 "failure_reasons": dict(failure_reasons),
                 "wall_time": elapsed,
             }
@@ -103,25 +104,18 @@ def run_calibration():
     return results_by_config
 
 
-def _avg_nqe(agg):
-    """从聚合结果中提取 NQE_R 均值（取 R=0.950 作为代表）"""
-    q = agg.get("quantile", {})
-    r95 = q.get(0.950, {})
-    return r95.get("nqe_mean", float("nan"))
-
-
 def print_table(results_by_config):
     """输出对比表"""
     print()
-    print(f"{'variant':<20} {'offset':>6} {'gs':>4} {'NE_mean':>8} {'NQE_R':>8} "
-          f"{'fail%':>6} {'out%':>6} {'t_mean':>8} {'t_p95':>8} {'wall_s':>7}")
+    print(f"{'variant':<20} {'offset':>6} {'gs':>4} {'MdAPEβ':>8} {'MdAPEη':>8} "
+          f"{'MdAPEγ':>8} {'x95Md':>8} {'fail%':>6} {'wall_s':>7}")
     print("-" * 95)
 
     for variant, d in sorted(results_by_config.items()):
         print(f"{variant:<20} {d['offset']:>6.2f} {d['gamma_steps']:>4d} "
-              f"{d['ne_mean']:>8.4f} {d['nqe_r_mean']:>8.4f} "
-              f"{d['failure_rate']*100:>5.1f}% {d['outlier_rate']*100:>5.1f}% "
-              f"{d['time_mean']*1000:>7.1f}ms {d['time_p95']*1000:>7.1f}ms "
+              f"{d['mdape_beta']:>8.4f} {d['mdape_eta']:>8.4f} "
+              f"{d['mdape_gamma']:>8.4f} {d['mdape_x_r0p95']:>8.4f} "
+              f"{d['failure_rate']*100:>5.1f}% "
               f"{d['wall_time']:>6.1f}s")
 
     print()

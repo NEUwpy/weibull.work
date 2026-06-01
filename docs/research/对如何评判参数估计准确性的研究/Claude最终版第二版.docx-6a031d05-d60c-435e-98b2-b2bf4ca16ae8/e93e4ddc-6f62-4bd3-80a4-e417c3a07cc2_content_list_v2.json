@@ -1,0 +1,4142 @@
+[
+    [
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "三参数 Weibull(β, η, γ)参数估计准确性",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "评价指标:统一方案与实证论证",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "一个分布 · 三个视角 · 每视角一个主指标 + 少量正交辅助"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "评价用稳健中位数族,训练用可微平方族,二者同处相对/对数空间"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "摘要",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "本报告整合既有方案,给出一套"
+                    },
+                    {
+                        "type": "text",
+                        "content": "简单、可用、无争议",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "的三参数 Weibull 参数估计准确性评价体系。核心主张是:所有点估计指标本质上都在描述"
+                    },
+                    {
+                        "type": "text",
+                        "content": "相对误差的分布",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ";因此每个评价视角只需一个主指标回答“误差有多大”,再配几个互不重叠的辅助指标回答“偏哪边、有多散、尾多深、算不算数”。报告设三个视角——"
+                    },
+                    {
+                        "type": "text",
+                        "content": "参数视角、工程应用视角、训练损失",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。准确性主指标统一为中位绝对百分比误差(Median Absolute Percentage Error, MdAPE);方向、稳定性、尾部分别用中位带符号误差、区间 [P25,P75]、区间 [P5,P95] 与 P95;并以有效估计率作门槛。训练损失不被视为第四类独立指标,而是“所选视角的准确性指标的可微版本”。所有指标选择都配有可复现的数值测试(含构造反例)加以论证。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "目录",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "1  问题分析与总体框架",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "1.1  评价对象与适用场景",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "三参数 Weibull 的可靠度函数为 R(t)=exp(−((t−γ)/η)"
+                    },
+                    {
+                        "type": "text",
+                        "content": "β",
+                        "style": [
+                            "superscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "),其中 β 为形状、η 为尺度、γ 为位置(最小寿命)。本报告评价的是“把 (β,η,γ) 估得多准”,而非“模型与数据拟合得多好”——只有在真值已知时,这两件事才一致。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "准确性只能在真值已知的场景下度量:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "即蒙特卡洛(Monte Carlo, MC)仿真(从已知 (β,η,γ) 抽样再估计)与深度学习的仿真训练/评测(标签即真值)。在真实工程数据上真值不可得,只能退而评"
+                    },
+                    {
+                        "type": "text",
+                        "content": "拟合优度",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(柯尔莫哥洛夫–斯米尔诺夫检验(Kolmogorov–Smirnov, K-S)、安德森–达令检验(Anderson–Darling, A-D)、概率图相关系数等),它衡量“像不像 Weibull”,不是“参数准不准”,二者不可混为一谈。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "外部效度警告:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "蒙特卡洛若要为真实场景背书,其先验池(β,η,γ 的范围)、样本量 n、删失比例必须与目标场景一致;否则“仿真里很准”不能推广到“真实数据上很准”。本报告数值示例取 β=2.5、η=1000、γ=100,n∈{20,50,100},"
+                    },
+                    {
+                        "type": "text",
+                        "content": "仅用于说明方法",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",落地时应替换为你的真实设定。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "1.2  一个分布,三类指标 + 一道门槛",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "对任一被估量 θ(参数或寿命分位),定义其在多次重复下的相对误差 e=(θ̂−θ)/θ。一个好的体系只需回答关于 e 分布的三个正交问题,外加一道 Weibull 特有的门槛:"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "attribute": "unordered",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "有多大(准确性):",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "|e| 的典型量级 → 主指标 "
+                            },
+                            {
+                                "type": "text",
+                                "content": "MdAPE",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "偏哪边(方向):",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "e 的中心位置 → "
+                            },
+                            {
+                                "type": "text",
+                                "content": "中位带符号误差",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "有多散(稳定性):",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "e 的内 50% 离散 → 区间 "
+                            },
+                            {
+                                "type": "text",
+                                "content": "[P25, P75]",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "(即 RelIQR)。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "多深的尾(尾部风险):",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "e 的极端分位 → 区间 "
+                            },
+                            {
+                                "type": "text",
+                                "content": "[P5, P95] 与 P95",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "算不算数(求解率):",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "有效估计的比例 → "
+                            },
+                            {
+                                "type": "text",
+                                "content": "有效估计率",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "这套划分"
+                    },
+                    {
+                        "type": "text",
+                        "content": "简单且不重叠",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ":每个指标只回答一个问题,合起来覆盖误差分布的全部侧面。报告刻意"
+                    },
+                    {
+                        "type": "text",
+                        "content": "不",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "把它们加权成单一综合分数作为主指标——加权会让分项问题互相掩盖(见附录 A)。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "记号约定:相对误差 e = (θ̂ − θ)/θ;P"
+                    },
+                    {
+                        "type": "text",
+                        "content": "α",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(·) 表示第 α 百分位数(percentile),如 P"
+                    },
+                    {
+                        "type": "text",
+                        "content": "95",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(|e|) 为 |e| 的第 95 百分位;Q"
+                    },
+                    {
+                        "type": "text",
+                        "content": "1",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、Q"
+                    },
+                    {
+                        "type": "text",
+                        "content": "3",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 为上、下四分位数。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "1.3  评价与训练:同一空间,两种形态",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "有一个贯穿全报告的关键区分:"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "attribute": "unordered",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "评价(给人看、要稳健)",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "用“中位数 + 绝对值”族:中位数对 Weibull 常见的异常解稳健,绝对值直观。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "训练(给优化器、要可微且惩罚尾部)",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "用“均值 + 平方”族:可微,且平方天然对大误差施加更大梯度。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "两者处于"
+                    },
+                    {
+                        "type": "text",
+                        "content": "同一相对/对数空间",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(都按相对误差度量),只是聚合形态不同。这恰好化解一个隐忧:中位数评价指标“看不见右尾”,而训练用的平方损失对右尾敏感,优化时会自动压低尾部误差——"
+                    },
+                    {
+                        "type": "text",
+                        "content": "评价的盲区被训练的形态补上了",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。损失因此不是第四类独立指标,而是“所选视角准确性指标的可微版本”(见第 4 节)。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "1.4  总览(三视角 × 五类指标)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "table",
+            "content": {
+                "table_caption": [],
+                "html": "<table><tr><td><p><strong>视角</strong></p></td><td><p><strong>准确性(主)</strong></p></td><td><p><strong>方向</strong></p></td><td><p><strong>稳定性</strong></p></td><td><p><strong>尾部</strong></p></td><td><p><strong>求解率</strong></p></td></tr><tr><td><p>参数视角</p></td><td><p>MdAPE(β、η;γ 用 /η)</p></td><td><p>中位带符号误差</p></td><td><p>[P25,P75] / RelIQR</p></td><td><p>[P5,P95]、P95</p></td><td><p>有效估计率</p></td></tr><tr><td><p>工程应用视角</p></td><td><p>MdAPE(每个 R 一个)</p></td><td><p>中位带符号误差</p></td><td><p>[P25,P75] / RelIQR</p></td><td><p>[P5,P95]、P95(高 R 尤需)</p></td><td><p>同左</p></td></tr><tr><td><p>训练损失</p></td><td colspan=\"5\"><p>非独立指标:按视角用 log-参数 MSE 或 log-分位 MSE;均值+平方,天然惩罚尾部。</p></td></tr></table>",
+                "table_type": "complex_table",
+                "table_nest_level": 1
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "(此外全局随附"
+                    },
+                    {
+                        "type": "text",
+                        "content": "相对均方根误差(Relative Root Mean Square Error, RRMSE)",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "与经典的偏差²–方差–"
+                    },
+                    {
+                        "type": "text",
+                        "content": "均方误差(Mean Squared Error, MSE)",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "分解作为辅助,便于与文献对话、与估计理论衔接,但不作主指标,理由见 2.6。)"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2  参数视角指标与验证",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2.1  主指标:MdAPE(中位绝对百分比误差)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "是什么 / 怎么算:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "对 θ∈{β,η},先对每次重复算绝对相对误差,再取这 N 个值的中位数:"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "MdAPE(θ) = median"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " |θ̂"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " − θ| / θ"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "对位置参数 γ,因其可能为 0(不能除以自身),改用真尺度 η 归一:"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "MdAE(γ)/η = median"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " |γ̂"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " − γ| / η"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "反映什么:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "至少一半的估计其相对误差不超过 MdAPE——它是“典型一次估计能做到的相对精度”。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "关键提醒:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "MdAPE 是“误差的中位数”,不是“中位估计的误差”;必须先逐次算误差、再取中位,两者不同。此外,MdAPE "
+                    },
+                    {
+                        "type": "text",
+                        "content": "只有幅度、没有正负",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(它取了绝对值);“高估还是低估”由 2.2 的带符号方向指标回答。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "为什么用它、不用别的:",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "attribute": "unordered",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "不用平均绝对百分比误差(Mean Absolute Percentage Error, MAPE)/RRMSE(均值族)作主——",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "三参数 Weibull 似然在 γ→样本最小值附近可发散,边界解/异常解时有发生,均值族会被放大。"
+                            },
+                            {
+                                "type": "text",
+                                "content": "验证(T1b):",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "向一个无偏估计注入 2% 离谱解(放大到 3–6 倍),MdAPE 仅从 20.3% 微动到 20.8%,而均值绝对误差从 24.0% 升到 30.5%、RRMSE 从 30.1% 近乎翻倍到 59.1%。中位数对“有效但异常”的解稳健。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "用相对/对数尺度、不用原尺度——",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "见 2.6 与第 4 节的量纲论证(T2)。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "等价替代:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "中位 |ln 比| = median"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " |ln(θ̂"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "/θ)| 与 MdAPE 含义几乎一致,但具"
+                    },
+                    {
+                        "type": "text",
+                        "content": "乘法对称性",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(高估 2 倍与低估到 1/2 同等惩罚),且与推荐的 log-参数损失"
+                    },
+                    {
+                        "type": "text",
+                        "content": "严格同一空间",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。两者在误差 <20% 时数值几乎相同,可任选其一并全程保持一致;本报告以 MdAPE 为默认表述。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2.2  方向:中位带符号相对误差(替代 Mean RelBias)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "是什么:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "它就是你要的“高估/低估”指标——逐参数相对误差的中位数,"
+                    },
+                    {
+                        "type": "text",
+                        "content": "带正负号",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ":"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "Med"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(θ) = median"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " (θ̂"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " − θ) / θ      (γ 用 /η);   正值 = 系统高估,负值 = 系统低估"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "为什么幅度与方向要各报一个、而不是只用一个带符号的:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "因为“准不准”和“偏哪边”是两个正交问题。只看带符号中位,一个高一半、低一半的估计器会显示 ≈0、看似完美,但它每次其实都偏 30%(幅度大、方向中性);反之 MdAPE(纯幅度,取了绝对值)看不出系统性高估还是低估。"
+                    },
+                    {
+                        "type": "text",
+                        "content": "二者必须并列:MdAPE 报幅度用于排序,Med",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 报方向用于判断高估/低估。数值验证见 5.4(S4):β 的 ±10% 偏差给出"
+                    },
+                    {
+                        "type": "text",
+                        "content": "完全相同的 |MdAPE|",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",却产生方向相反的寿命误差,只有带符号指标能把“抬高寿命=危险”那一侧识别出来。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "为什么改用中位、而非均值:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "原方案用 Mean RelBias(均值),而它最怕的恰恰是主指标想躲开的那几个异常解,与整套中位数思想不一致。改用中位带符号误差后,方向与大小、稳定性"
+                    },
+                    {
+                        "type": "text",
+                        "content": "同源同形态",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",既稳健又一致。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "为什么方向必须独立于大小:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "验证(T1)构造两个 η 估计器——A 无偏但分散(σ=30%),B 偏低 15% 但集中(σ=10%)。结果 A:RRMSE 30.1%、方向 −0.3%;B:RRMSE 18.0%、方向 −15.0%。若只看混合指标 RRMSE 会判 B 更优,却"
+                    },
+                    {
+                        "type": "text",
+                        "content": "完全掩盖 B 系统性低估 15%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "这一在可靠性工程里致命的问题。验证(T6)还表明中位与均值方向可显著不同(n=50 时 η 的中位方向 −7.5%、均值方向 −3.7%),进一步说明稳健方向指标的必要性。见图 1。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "image",
+            "content": {
+                "image_source": {
+                    "path": "images/87f286a845df577e035c8067de511f3e5c02108d94b2dc718558744dd6d99bea.png"
+                },
+                "image_caption": []
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "图 1  ",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "为什么大小、方向、稳定性必须分开报告。RRMSE 判 B 优于 A,却藏住了 B 的 −15% 系统性低估。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2.3  稳定性:区间 [P25, P75](等价 RelIQR)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "是什么:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "相对误差分布的内 50% 区间;其相对宽度即相对四分位距(Relative Interquartile Range, RelIQR),其中四分位距(Interquartile Range, IQR)= Q3 − Q1:"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "[P"
+                    },
+                    {
+                        "type": "text",
+                        "content": "25",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(e), P"
+                    },
+                    {
+                        "type": "text",
+                        "content": "75",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(e)] ,    e = (θ̂ − θ)/θ ;     RelIQR = (Q"
+                    },
+                    {
+                        "type": "text",
+                        "content": "3",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(θ̂) − Q"
+                    },
+                    {
+                        "type": "text",
+                        "content": "1",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(θ̂)) / median(θ̂)"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "反映什么:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "同一方法在重复实验间的可复现性/抖动幅度,与“准不准”(中心位置)解耦。区间形式比单一数字更直观地给出“中间一半的估计落在哪”。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2.4  尾部:区间 [P5, P95] 与 P95(补上中位+IQR 的盲区)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "动机:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "MdAPE 是 P50、[P25,P75] 是中间 50%,两者都“看不见”右尾;而求解率只挡"
+                    },
+                    {
+                        "type": "text",
+                        "content": "无效",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "解(不收敛、边界、发散),挡不住“有效但很烂”的解。一个方法完全可能 100% 有效、中位误差很小,却有可观比例的样本误差很大。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "指标:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "相对误差分布的 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "[P5, P95]",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 区间 + 上尾幅度 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "P95(|e|)",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(必要时 P99);其中 [P25,P75] 与 [P5,P95] 即两个嵌套的区间形式辅助,分别刻画“中间一半”与“近尾”。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "[P"
+                    },
+                    {
+                        "type": "text",
+                        "content": "5",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(e), P"
+                    },
+                    {
+                        "type": "text",
+                        "content": "95",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(e)] ;    P"
+                    },
+                    {
+                        "type": "text",
+                        "content": "95",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(|e|) = |e| 的第 95 百分位 ;    P"
+                    },
+                    {
+                        "type": "text",
+                        "content": "99",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(|e|) = |e| 的第 99 百分位"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "验证(T1c):",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "构造 80% 集中(σ=5%)、20% 发散(σ=60%)的混合估计器。其 MdAPE=4.3%、RelIQR=8.6%,看上去极好;但 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "[P5,P95]=[−41%,+40%]、P95(|e|)=69%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。若只报中位与 IQR,会完全错过“每十次就有一次偏 40% 以上”。这类问题在真实 MLE 中也确实出现(见 3.3,图 2)。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2.5  门槛:有效估计率",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "定义:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "有效估计 = 收敛 ∩ 非边界(γ̂ 未贴到样本最小值)∩ 非异常(β̂、η̂ 落在事先约定的合理范围)∩ 数值有限。有效估计率 = 有效次数 / 总次数。判定准则须在实验前固定,且所有准确性/稳定性指标"
+                    },
+                    {
+                        "type": "text",
+                        "content": "只在有效集上计算",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "有效估计率  r"
+                    },
+                    {
+                        "type": "text",
+                        "content": "valid",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " = (有效次数) / N ,    有效 = 收敛 ∩ 非边界 ∩ 非异常 ∩ 数值有限"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "为什么需要它:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "它回答“方法在多大比例情形下能给出可用的解”。验证(T6):真实概率剖面极大似然(profile maximum likelihood estimation, MLE)在 n=20 时有效率 93.8%(存在边界/异常解),n=50、100 时升至 100%。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "明确边界:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "有效估计率与尾部指标分工不同——前者剔除“不算数”的解,后者刻画“算数但很差”的解;二者都需要,缺一不可。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "2.6  文献陪跑与经典分解(辅助,非主)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "RRMSE:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "RRMSE=√mean((θ̂/θ−1)²) 是 Weibull 文献最常用的精度指标,本报告将其作为"
+                    },
+                    {
+                        "type": "text",
+                        "content": "辅助列随附",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",以便与既有文献直接对话。"
+                    },
+                    {
+                        "type": "text",
+                        "content": "为什么不作主:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "它把偏差与方差混在一个数里(T1 中它判 B 优于 A 即源于此),且作为均值平方统计量对异常解敏感(T1b 中从 30% 跳到 59%)。MdAPE 更稳健、且把大小/方向/散度分开报告,信息更清晰;但保留 RRMSE 陪跑,兼顾稳健性与可比性。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "RRMSE(θ) = √( (1/N) Σ"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " (θ̂"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "/θ − 1)² )"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "经典“偏差²–方差–MSE”:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "同样作为辅助保留。它在相对/对数空间给出 MSE"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "=bias"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "²+var"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 的标准分解,直通估计理论语言,便于审稿人对照。它本身是混合指标(MSE 即“想避开的混合”),故只作辅助;但其分解视角对解释“误差来自系统偏倚还是随机波动”很有价值。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "bias"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " = (1/N) Σ"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " e"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " ;   var"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " = (1/N) Σ"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " (e"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " − bias"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ")² ;   MSE"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " = bias"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "² + var"
+                    },
+                    {
+                        "type": "text",
+                        "content": "rel",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " = (1/N) Σ"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " e"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "²"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3  工程应用视角指标与验证",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3.1  为什么需要应用视角(参数视角不能替代)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "更有解释力的说法:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "参数视角与应用视角"
+                    },
+                    {
+                        "type": "text",
+                        "content": "并不独立",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "——可靠寿命 x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "=γ+η(−ln R)"
+                    },
+                    {
+                        "type": "text",
+                        "content": "1/β",
+                        "style": [
+                            "superscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 是 (β,η,γ) 的确定函数,故参数的"
+                    },
+                    {
+                        "type": "text",
+                        "content": "联合误差分布完全决定了 x",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 的误差分布。应用视角的价值不在于“另一组独立信息”,而在于:其一,它是“按工程实际使用方式(给定 R 求寿命)做的那个投影”,直接对应决策量;其二,它能反映边际(逐参数)指标"
+                    },
+                    {
+                        "type": "text",
+                        "content": "根本看不到的误差相关性",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "验证(T4):",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "固定 β̂、η̂ 的边际精度完全相同(RMSE"
+                    },
+                    {
+                        "type": "text",
+                        "content": "β",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "≈0.45、RMSE"
+                    },
+                    {
+                        "type": "text",
+                        "content": "η",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "≈130),仅改变二者误差的相关系数 ρ。x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "0.99",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 的 RRMSE 随之为 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "14.8%(ρ=−0.8)、21.3%(ρ=0)、26.9%(ρ=+0.8)",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。三种情形下逐参数指标一模一样,工程寿命误差却差出近一倍(图 3)。这证明:只报 β、η、γ 各自的精度无法预测寿命估计的好坏,"
+                    },
+                    {
+                        "type": "text",
+                        "content": "必须直接在 x",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 上度量。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "image",
+            "content": {
+                "image_source": {
+                    "path": "images/4da6e16942da0971aab7ce0239e636a286bac9bb042c37eecd065fea2a65945c.png"
+                },
+                "image_caption": []
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "图 3  ",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "边际精度完全相同,仅 β、η 误差相关性不同,x_0.99 的误差却近乎翻倍——应用视角不可省略。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3.2  应用视角的指标",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "被估量:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "=γ+η(−ln R)"
+                    },
+                    {
+                        "type": "text",
+                        "content": "1/β",
+                        "style": [
+                            "superscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。对每个目标 R,报告与参数视角"
+                    },
+                    {
+                        "type": "text",
+                        "content": "同一套族",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ":主指标 MdAPE,辅以中位带符号误差、[P25,P75]、[P5,P95] 与 P95。如此两视角共用同一套“读法”,学习成本低、口径一致。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3.3  为什么要多个 R,且 R 必须与数据支撑挂钩",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "为什么多个 R(不用单点):",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "验证(T5)对 (β,η,γ) 各 +10%,看 x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 的相对变化:+10% β 在 R=0.999 处引起 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "11.0%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 变化、在 R=0.5 处仅 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "1.2%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ";+10% η 在 R=0.5 处 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "9.0%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、在 R=0.999 处 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "3.9%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ";+10% γ 在 R=0.999 处 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "6.1%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、在 R=0.5 处 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "1.0%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。即"
+                    },
+                    {
+                        "type": "text",
+                        "content": "不同可靠度由不同参数主导",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "——只报一个 R 会系统性隐藏方法在其它区段的表现。建议标准化报告 R∈{0.50, 0.90, 0.95, 0.99, 0.999}。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "R 必须与数据支撑挂钩:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "验证(T6,真实 MLE)显示,深尾分位的误差主要来自"
+                    },
+                    {
+                        "type": "text",
+                        "content": "外推",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、而非方法本身。n=50 时 x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 的 MdAPE 从 R=0.5 的 4.4% 单调升到 R=0.999 的 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "49.7%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",P95(|e|) 从 12.8% 升到 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "144.3%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ";即便有效率 100%,深尾依旧极差。从几十个样本去估 99.9% 分位,本就是远超数据范围的外推。因此报 x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "0.999",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 这类点要"
+                    },
+                    {
+                        "type": "text",
+                        "content": "克制",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ":不要报样本量根本撑不起的分位(经验规则:目标尾概率 1−R 不应远小于 ~1/n;估 x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "0.999",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 通常需数百至上千样本),否则读者会把“外推困难”误读成“方法很差”。图 2 直观展示了这一尾部增长。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "image",
+            "content": {
+                "image_source": {
+                    "path": "images/9bf978ec3d58205849407239ddd95421ee6e4753f04d06a96cab0c054aebea91.png"
+                },
+                "image_caption": []
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "图 2  ",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "真实 profile-MLE(n=50)。中位误差很小而上尾急剧扩大并系统性偏正(高估寿命);中位+IQR 看不见,必须补一个高分位。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3.4  方向在应用视角尤为关键",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "验证(T6):",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 的方向在高 R 处系统性为正且很大——n=50 时 x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "0.999",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 的中位方向 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "+27.7%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、均值方向 +23.8%。这意味着方法在深尾"
+                    },
+                    {
+                        "type": "text",
+                        "content": "系统性高估寿命",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",在可靠性设计里是偏危险的方向(高估寿命→低估失效风险)。这再次说明方向指标必须单列,且在工程语境下尤需关注其符号。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "3.5  可选:命中率(有明确容差时)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "若工程上存在明确的可接受相对误差容差 τ(例如 ±10%),可加报 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "命中率 HR(τ) = P(|e| < τ)",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",作为应用视角最直观的“通过/不通过”型并列主指标。无明确容差时不必引入,以免人为设定阈值。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "HR(τ) = (1/N) Σ"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 𝟙[ |e"
+                    },
+                    {
+                        "type": "text",
+                        "content": "j",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "| < τ ]"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "4  训练损失:不是第四个指标,而是视角的可微投影",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "4.1  框架:损失 = 所选视角准确性指标的“可微 + 均值 + 平方”版本",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "你已决定按“参数”还是“工程寿命”衡量准确性;训练损失只需是"
+                    },
+                    {
+                        "type": "text",
+                        "content": "同一目标的可微形态",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",无需另立标准:"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "attribute": "unordered",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "评价视角是"
+                            },
+                            {
+                                "type": "text",
+                                "content": "参数恢复",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": " → 损失用 "
+                            },
+                            {
+                                "type": "text",
+                                "content": "log-参数 MSE",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "评价视角是"
+                            },
+                            {
+                                "type": "text",
+                                "content": "工程寿命",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": " → 损失用 "
+                            },
+                            {
+                                "type": "text",
+                                "content": "log-分位 MSE",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "两者都重要 → 二者加权。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "与评价的唯一差别是聚合形态:评价用中位+绝对值(稳健、可读),训练用均值+平方(可微、对尾部敏感),"
+                    },
+                    {
+                        "type": "text",
+                        "content": "两者同处相对/对数空间",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。"
+                    },
+                    {
+                        "type": "text",
+                        "content": "可行性结论:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "这个写法不仅可行,而且比“把损失当第四类独立指标”更自洽——它把“训练用什么”直接锚定到“评价关心什么”,并让平方损失的尾部敏感性补上中位评价指标的尾部盲区。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "4.2  基础损失:log-参数 MSE",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "L"
+                    },
+                    {
+                        "type": "text",
+                        "content": "param",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " = (ln β̂ − ln β)² + (ln η̂ − ln η)² + ((γ̂ − γ)/η)²"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "前两项在对数空间度量 β、η 的相对误差(均值平方形态),第三项以尺度 η 归一处理可能为 0 的 γ,与评价指标的 γ 处理一致。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "4.3  为什么用它,为什么不用别的",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "不用原尺度 MSE((",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "β̂−β)²+(η̂−η)²+(γ̂−γ)²):"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "attribute": "unordered",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "量纲依赖(T2,决定性)——",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "同一组各 10% 的相对误差,把 η、γ 的时间单位从“小时”换成“千小时”,原尺度 MSE 中 β 的占比从 "
+                            },
+                            {
+                                "type": "text",
+                                "content": "0.0006% 跳到 86.0%",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "、η 的占比从 99.0% 降到 13.8%;而相对/对数空间恒为约 33/33/33。"
+                            },
+                            {
+                                "type": "text",
+                                "content": "一个会随单位改变含义的损失不可接受。",
+                                "style": [
+                                    "bold"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "梯度失衡(T7 机制)——",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "在 +10% 误差处,原尺度 MSE 对 η 输出的梯度幅度约为对 β 的 "
+                            },
+                            {
+                                "type": "text",
+                                "content": "450 倍",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "(η 主导);log 参数损失把各参数的相对梯度拉平(比值约 0.002,实为按 1/参数 归一,使“相对误差等量齐观”)。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "诚实更正(T7 实证)——",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "需澄清:此前文档里那张“log 参数 MSE 给出 0.00% 误差”的对比表,是把真 log 参数直接当理想目标喂进去的"
+                            },
+                            {
+                                "type": "text",
+                                "content": "恒等式式 sanity check",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "——能说明量纲论点,但不能作为损失有效性的实证。为补上真正实证,本报告用同一套特征、同一网络结构、同一初始化、同一优化器即自适应矩估计(Adaptive Moment Estimation, Adam),"
+                            },
+                            {
+                                "type": "text",
+                                "content": "只切换损失",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": ",真实训练后在留出集比较:原尺度 MSE 得 {β 9.6%, η 5.7%, γ 4.3%, x"
+                            },
+                            {
+                                "type": "text",
+                                "content": "0.90",
+                                "style": [
+                                    "subscript"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": " 7.0%},log 参数 MSE 得 {β 8.7%, η 7.0%, γ 4.6%, x"
+                            },
+                            {
+                                "type": "text",
+                                "content": "0.90",
+                                "style": [
+                                    "subscript"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": " 6.8%}(均为 MdAPE,图 4)。结论是"
+                            },
+                            {
+                                "type": "text",
+                                "content": "权衡而非灾难",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": ":原尺度损失把精度堆在大尺度的 η 上、牺牲 β;log 损失更均衡、在 β 上更好,工程寿命基本打平。在带自适应优化器(Adam 按坐标重标定梯度)的现实训练里,原尺度 MSE 并"
+                            },
+                            {
+                                "type": "text",
+                                "content": "不会",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "让 β“学不出来”——之前文档对其失效程度有所夸大。故选 log 参数 MSE 的真正理由是"
+                            },
+                            {
+                                "type": "text",
+                                "content": "量纲不变性 + 与评价指标同空间 + 跨优化器稳健",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": ",而非某种训练崩溃。"
+                            }
+                        ]
+                    },
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "不用负对数似然(Negative Log-Likelihood, NLL)/对数似然作主——",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "NLL 适合直接对原始(可含删失)样本建模;但当网络直接输出 (β,η,γ) 或寿命分位、且评价用相对误差时,NLL 与评价目标不在同一度量上,既非必要也不对齐。可在原始/删失样本场景作为补充损失。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "NLL = − Σ"
+                    },
+                    {
+                        "type": "text",
+                        "content": "i",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " [ ln β − β ln η + (β−1) ln(t"
+                    },
+                    {
+                        "type": "text",
+                        "content": "i",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "−γ) − ((t"
+                    },
+                    {
+                        "type": "text",
+                        "content": "i",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "−γ)/η)"
+                    },
+                    {
+                        "type": "text",
+                        "content": "β",
+                        "style": [
+                            "superscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " ]"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "(右删失观测仅保留生存项 ((t"
+                    },
+                    {
+                        "type": "text",
+                        "content": "i",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "−γ)/η)"
+                    },
+                    {
+                        "type": "text",
+                        "content": "β",
+                        "style": [
+                            "superscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",即 −ln S(t"
+                    },
+                    {
+                        "type": "text",
+                        "content": "i",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "),不计前面的密度项。)"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "list",
+            "content": {
+                "list_type": "text_list",
+                "attribute": "unordered",
+                "list_items": [
+                    {
+                        "item_type": "text",
+                        "ilevel": 0,
+                        "prefix": "-",
+                        "item_content": [
+                            {
+                                "type": "text",
+                                "content": "不用一致性指数(Concordance Index, C-index)等排序型指标作损失——",
+                                "style": [
+                                    "bold"
+                                ]
+                            },
+                            {
+                                "type": "text",
+                                "content": "它度量风险排序的一致性,而非参数或寿命的数值准确性,与本任务目标不符。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "image",
+            "content": {
+                "image_source": {
+                    "path": "images/8e8c448ad3f536fc01470b1990290a924c817e16f4dd81fc327254396c2e9828.png"
+                },
+                "image_caption": []
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "图 4  ",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "左:+10% 误差处的梯度幅度,原尺度下 η 压过 β 约 450×,log 参数则均衡。右:真实训练(Adam,收敛)是权衡而非灾难。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "4.4  进阶损失(可选,按视角加权)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "L = λ·L"
+                    },
+                    {
+                        "type": "text",
+                        "content": "param",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " + (1−λ)·Σ"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " w"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " (ln x̂"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " − ln x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ")²"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "分位项在对数空间度量寿命相对误差,w"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 为各可靠度权重(依工程关注点设置),λ∈[0.5, 0.7](默认 0.5)。λ 越小越偏向工程寿命、越大越偏向参数恢复——这正是 4.1“视角切换”在损失里的连续体现。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "5  补充情景测试(五个独立情景验证)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "本节用五个与第 2–4 节"
+                    },
+                    {
+                        "type": "text",
+                        "content": "不重复",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "的独立情景,进一步检验本套指标的科学性。每个情景给出条件、结果与结论;所有测试固定随机种子、可复现。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "5.1  情景 S1:中位与 IQR 看不见“有效但很烂”的尾部",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "条件:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "构造两个对 η 的估计器(真值归一)。方法 A 为高斯相对误差;方法 B 为“紧核 + 重尾”混合(88% 窄 + 12% 宽),并调到与 A 的 MdAPE 相等。各 40 万次重复。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "结果:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "二者 MdAPE 均为 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "10.1%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、方向均为 0%、RelIQR 均为 20.2%("
+                    },
+                    {
+                        "type": "text",
+                        "content": "三项完全打平",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ");但 B 的尾部显著更差——P95(|e|) "
+                    },
+                    {
+                        "type": "text",
+                        "content": "45.2%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " vs A 的 29.4%,P99(|e|) "
+                    },
+                    {
+                        "type": "text",
+                        "content": "95.9%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " vs 38.6%,[P5,P95] 也更宽。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "结论:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "仅凭主指标、方向、稳定性三者,A 与 B 无法区分;只有尾部区间/分位能正确判出 B 风险更高。这印证尾部辅助(2.4)是"
+                    },
+                    {
+                        "type": "text",
+                        "content": "排序的必需项",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",而非锦上添花。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "image",
+            "content": {
+                "image_source": {
+                    "path": "images/20a0571056abdae062d3cabf95f77ea46e560e293dac66c9c2f6cc14a89db2ca.png"
+                },
+                "image_caption": []
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "图 5  ",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "S1:A 与 B 在 MdAPE / 方向 / RelIQR 上完全打平(虚线为 P95),只有尾部指标揭示 B 风险远高。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "5.2  情景 S2:样本量增大时整套指标应单调改善(一致性检验)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "条件:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "真实概率剖面极大似然(profile maximum likelihood),n=20/40/80/160/320,各 1000 次,观察 η 的整套指标随 n 的行为。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "table",
+            "content": {
+                "table_caption": [],
+                "html": "<table><tr><td><p><strong>n</strong></p></td><td><p><strong>有效估计率</strong></p></td><td><p><strong>MdAPE</strong></p></td><td><p><strong>RelIQR</strong></p></td><td><p><strong>P95(|e|)</strong></p></td><td><p><strong>RRMSE(陪跑)</strong></p></td></tr><tr><td><p>20</p></td><td><p>94.1%</p></td><td><p>24.3%</p></td><td><p>46.8%</p></td><td><p>142.8%</p></td><td><p>57.3%</p></td></tr><tr><td><p>40</p></td><td><p>100%</p></td><td><p>15.2%</p></td><td><p>28.1%</p></td><td><p>42.4%</p></td><td><p>25.8%</p></td></tr><tr><td><p>80</p></td><td><p>100%</p></td><td><p>10.1%</p></td><td><p>18.9%</p></td><td><p>27.4%</p></td><td><p>14.6%</p></td></tr><tr><td><p>160</p></td><td><p>100%</p></td><td><p>6.4%</p></td><td><p>12.4%</p></td><td><p>18.6%</p></td><td><p>9.8%</p></td></tr><tr><td><p>320</p></td><td><p>100%</p></td><td><p>4.0%</p></td><td><p>8.0%</p></td><td><p>12.0%</p></td><td><p>6.1%</p></td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "结果与结论:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "随 n 增大,MdAPE、RelIQR、P95(|e|) 全部"
+                    },
+                    {
+                        "type": "text",
+                        "content": "单调下降",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",有效估计率升到 100%。作为对照,均值族 RRMSE 在小样本被异常解放大(n=20 时 57.3%,是 MdAPE 的 2.4 倍)、更“跳”。一个合格的准确性指标必须满足“数据越多越准”的一致性——本套指标全部通过;且中位族 MdAPE 比 RRMSE 更平滑稳健,再次支持以中位族为主、RRMSE 仅作陪跑。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "5.3  情景 S3:相同 MdAPE 也可能有不同的工程命中率",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "条件:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "容差 τ=±10%。方法 C 为高斯误差(MdAPE=8%);方法 D 为不同形状的混合,调到 MdAPE 同为 8%。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "结果:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "两者 MdAPE 都是 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "8.0%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",但落在 ±10% 容差内的命中率不同——C 为 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "60.2%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、D 为 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "55.5%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ";且 D 的尾部更差(P95 58.5% vs 23.2%)。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "结论:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "“典型误差幅度相同”不等于“工程可接受比例相同”。命中率是与 MdAPE "
+                    },
+                    {
+                        "type": "text",
+                        "content": "正交",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、且决策最直观的一个轴;在有明确容差时把它列为应用视角的并列主指标(3.5)是有依据的。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "5.4  情景 S4:同样的 |误差|、相反的符号 → 相反方向的寿命误差",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "条件:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "仅 β 偏 +10% 与 −10%(η、γ 精确),两者 β 的 "
+                    },
+                    {
+                        "type": "text",
+                        "content": "|MdAPE| 同为 10%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。计算其对寿命分位 x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": " 的影响。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "table",
+            "content": {
+                "table_caption": [],
+                "html": "<table><tr><td><p><strong>可靠度 R</strong></p></td><td><p><strong>β 高估 +10% → x_R 误差</strong></p></td><td><p><strong>β 低估 −10% → x_R 误差</strong></p></td></tr><tr><td><p>0.50</p></td><td><p>+1.2%</p></td><td><p>−1.4%</p></td></tr><tr><td><p>0.90</p></td><td><p>+6.8%</p></td><td><p>−7.6%</p></td></tr><tr><td><p>0.95</p></td><td><p>+8.6%</p></td><td><p>−9.3%</p></td></tr><tr><td><p>0.99</p></td><td><p>+11.2%</p></td><td><p>−11.3%</p></td></tr><tr><td><p>0.999</p></td><td><p>+11.0%</p></td><td><p>−10.2%</p></td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            }
+        },
+        {
+            "type": "image",
+            "content": {
+                "image_source": {
+                    "path": "images/73e39d47c4a60b8583902f6182368dc772f35757a9e8e1f702b38df3f3d9ab7c.png"
+                },
+                "image_caption": []
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "图 6  ",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "S4:β 的 ±10% 偏差给出相同 |MdAPE|,却在各 R 处产生方向相反的寿命误差(红=抬高寿命/危险,绿=保守/安全)。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "结论:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "纯幅度指标(MdAPE)对两者"
+                    },
+                    {
+                        "type": "text",
+                        "content": "打同分",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",完全无法区分“抬高寿命=危险”与“偏保守=安全”;只有带符号方向指标能识别危险的一侧。这就是逐参数必须"
+                    },
+                    {
+                        "type": "text",
+                        "content": "同时报“幅度(MdAPE)+ 方向(带符号中位)”",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "的直接数值证据,也正面回答了“为什么 MdAPE 不带正负、为什么不只用一个带符号指标”。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "5.5  情景 S5:加权综合评分会把“危险方法”排到“安全方法”前面",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 2
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "条件:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "方法 X 中心极好(90% 误差很小)但有 10% 灾难性大误差;方法 Y 全程中等但尾部良好。用一个“看似合理”的加权综合分(0.5·MdAPE + 0.3·RelIQR + 0.2·|方向|,"
+                    },
+                    {
+                        "type": "text",
+                        "content": "不含尾部",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",越小越好)排序。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "结果:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "综合分判 X("
+                    },
+                    {
+                        "type": "text",
+                        "content": "0.042",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ")优于 Y(0.097);但 X 的尾部是灾难性的——P95(|e|) "
+                    },
+                    {
+                        "type": "text",
+                        "content": "53.7%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "、P99(|e|) "
+                    },
+                    {
+                        "type": "text",
+                        "content": "131.3%",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",而 Y 仅 25.5% / 33.5%。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "结论:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "把多个分项加权成一个标量、且不含尾部时,会"
+                    },
+                    {
+                        "type": "text",
+                        "content": "系统性地把危险方法排在前面",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。这印证本报告“不以综合评分为主指标、而是分项展示并让尾部/求解率把关”的决定(附录 A);也说明尾部分位要取得足够高(对稀有灾难需看 P99)。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "6  全部测试汇总(条件 / 内容 / 结果 / 结论)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "所有测试均"
+                    },
+                    {
+                        "type": "text",
+                        "content": "固定随机种子、可复现",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。下表汇总,图 1–4 给出关键图示。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "table",
+            "content": {
+                "table_caption": [],
+                "html": "<table><tr><td><p><strong>编号</strong></p></td><td><p><strong>目的</strong></p></td><td><p><strong>条件 / 内容</strong></p></td><td><p><strong>关键结果</strong></p></td><td><p><strong>结论</strong></p></td></tr><tr><td><p><strong>T1</strong></p></td><td><p>为何大小/方向/稳定要分开</p></td><td><p>构造 A(无偏 σ30%)与 B(偏 −15% σ10%)两个 η 估计器,N=4 万</p></td><td><p>A:RRMSE 30.1%/方向 −0.3%;B:RRMSE 18.0%/方向 −15.0%</p></td><td><p>混合指标 RRMSE 判 B 更优却藏住致命偏倚 → 必须分项</p></td></tr><tr><td><p><strong>T1b</strong></p></td><td><p>为何主指标用中位非均值</p></td><td><p>向 A 注入 2% 离谱解</p></td><td><p>MdAPE 20.3→20.8%;均值|e| 24→30.5%;RRMSE 30→59%</p></td><td><p>中位对异常解稳健,均值族不稳健</p></td></tr><tr><td><p><strong>T1c</strong></p></td><td><p>为何要尾部分位</p></td><td><p>80% σ5% + 20% σ60% 混合估计器</p></td><td><p>MdAPE 4.3%/RelIQR 8.6%,但 [P5,P95]=[−41%,+40%]、P95|e| 69%</p></td><td><p>中位+IQR 看不见右尾 → 必加 [P5,P95]/P95</p></td></tr><tr><td><p><strong>T2</strong></p></td><td><p>为何相对/对数,不用原尺度</p></td><td><p>各 10% 相对误差,切换小时↔千小时</p></td><td><p>β 占比 0.0006%↔86%;相对空间恒 ~33/33/33</p></td><td><p>原尺度 MSE 随单位改变含义 → 用相对/对数</p></td></tr><tr><td><p><strong>T3</strong></p></td><td><p>为何 γ 用 /η 归一</p></td><td><p>γ=100、σ=50</p></td><td><p>除以 γ:[P5,P95]=[−81%,+82%]、2.1% 堆在 −100%;除以 η:[−8%,+8%]</p></td><td><p>γ 可能为 0 且相对误差病态 → 用 η 归一</p></td></tr><tr><td><p><strong>T4</strong></p></td><td><p>为何需要应用视角</p></td><td><p>固定边际 RMSE,变误差相关 ρ</p></td><td><p>x_0.99 RRMSE:14.8% / 21.3% / 26.9%(ρ=−0.8/0/+0.8)</p></td><td><p>逐参数指标相同而寿命误差近翻倍 → 应用视角不可省</p></td></tr><tr><td><p><strong>T5</strong></p></td><td><p>为何多个 R</p></td><td><p>(β,η,γ) 各 +10% 看 x_R</p></td><td><p>+10%β:R0.999→11% vs R0.5→1.2%;+10%η:R0.5→9% vs R0.999→3.9%</p></td><td><p>不同 R 由不同参数主导 → 需多 R</p></td></tr><tr><td><p><strong>T6</strong></p></td><td><p>真实 MLE 全貌:尾部+数据支撑+方向</p></td><td><p>profile-MLE,β2.5/η1000/γ100,n=20/50/100,各 2000 次</p></td><td><p>n=50:η MdAPE 13.7%、有效率 100%;x_R MdAPE 4.4%→49.7%、P95|e| 13%→144%、高 R 方向 +27.7%</p></td><td><p>尾部远差于中位且系统高估寿命;深尾是外推 → 克制报高 R</p></td></tr><tr><td><p><strong>T7</strong></p></td><td><p>损失:为何 log 参数 MSE</p></td><td><p>同特征/结构/初始化/优化器,仅换损失;另算梯度幅度</p></td><td><p>梯度 η:β=450(raw) vs 0.002(log);训练 raw{β9.6,η5.7}/log{β8.7,η7.0}</p></td><td><p>量纲不变+同空间是真正理由;Adam 下 raw 非崩溃而是权衡(纠正旧表)</p></td></tr><tr><td><p><strong>S1</strong></p></td><td><p>为何尾部能在“打平”时分胜负</p></td><td><p>A 高斯 vs B 紧核+重尾,调到 MdAPE 相等</p></td><td><p>MdAPE/方向/RelIQR 全打平;P95|e| 29% vs 45%、P99|e| 39% vs 96%</p></td><td><p>尾部是排序的必需项,不只是补充</p></td></tr><tr><td><p><strong>S2</strong></p></td><td><p>整套指标随 n 的一致性</p></td><td><p>真实 MLE,n=20→320,各 1000 次</p></td><td><p>MdAPE 24→4%、P95|e| 143→12% 单调降,有效率→100%;RRMSE 小样本被放大</p></td><td><p>指标通过“越多越准”一致性;MdAPE 比 RRMSE 更平滑</p></td></tr><tr><td><p><strong>S3</strong></p></td><td><p>相同 MdAPE 也有不同命中率</p></td><td><p>C 高斯 vs D 混合,调到 MdAPE 相等,τ=10%</p></td><td><p>MdAPE 同 8%,但命中率 60.2% vs 55.5%、尾部 23% vs 58%</p></td><td><p>命中率是与 MdAPE 正交的工程轴</p></td></tr><tr><td><p><strong>S4</strong></p></td><td><p>为何方向必须带符号</p></td><td><p>β +10% vs −10%,|MdAPE| 同为 10%</p></td><td><p>x_R 误差全正(+1.2~+11%)vs 全负(−1.4~−11%),幅度同符号反</p></td><td><p>纯幅度无法分辨危险/保守 → 须报带符号方向</p></td></tr><tr><td><p><strong>S5</strong></p></td><td><p>为何不用综合评分作主</p></td><td><p>X(中心好/10% 灾难)vs Y(中等/尾好),加权综合分</p></td><td><p>综合分判 X 优(0.042&lt;0.097),但 X P95|e| 54%、P99|e| 131%</p></td><td><p>综合分掩盖尾部风险 → 分项展示,尾部把关</p></td></tr></table>",
+                "table_type": "simple_table",
+                "table_nest_level": 1
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "7  落地清单(拿来即用)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "参数视角:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "主 MdAPE(β、η 各一;γ 用 MdAE/η);方向 中位带符号误差;稳定 [P25,P75](RelIQR);尾部 [P5,P95] 与 P95;门槛 有效估计率。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "工程应用视角:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "对 R∈{0.50, 0.90, 0.95, 0.99, 0.999} 各报上述同一套,且只报样本量撑得起的分位;高 R 重点看 P95 与方向(警惕系统高估寿命)。可选:有容差 τ 时加报命中率。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "训练损失:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "基础 log-参数 MSE;需兼顾工程寿命时用 λ·L"
+                    },
+                    {
+                        "type": "text",
+                        "content": "param",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "+(1−λ)·Σ w"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(ln x̂"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "−ln x"
+                    },
+                    {
+                        "type": "text",
+                        "content": "R",
+                        "style": [
+                            "subscript"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ")²(λ 默认 0.5)。原始/删失样本可加 NLL。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "全局辅助:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "随附 RRMSE 与经典 偏差²–方差–MSE(相对空间),供文献对话与理论对照。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "适用范围:",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "以上准确性度量"
+                    },
+                    {
+                        "type": "text",
+                        "content": "只在真值已知",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "(蒙特卡洛 / 仿真训练)时使用,且仿真设定须匹配目标场景;真实数据仅评拟合优度。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "title",
+            "content": {
+                "title_content": [
+                    {
+                        "type": "text",
+                        "content": "附录 A  可选脚手架:综合评分与裁决规则(默认不纳入主流程)",
+                        "style": [
+                            "bold"
+                        ]
+                    }
+                ],
+                "level": 1
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "为兼顾“保留原文档中值得参考的设计”,此处保留综合评分与多层裁决规则备查,但"
+                    },
+                    {
+                        "type": "text",
+                        "content": "默认不作主指标",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",原因有二:其一,它与“简单又好用”的目标相悖;其二,把多个分项加权成一个标量,会让分项问题互相掩盖(T1 已表明混合指标如何藏住系统偏倚)。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "paragraph",
+            "content": {
+                "paragraph_content": [
+                    {
+                        "type": "text",
+                        "content": "如确需单一汇总分用于排序,建议"
+                    },
+                    {
+                        "type": "text",
+                        "content": "仅在已通过稳定性/求解率/尾部门槛的方法之间",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": ",用主指标 MdAPE 的简单聚合(如对各参数、各 R 的 MdAPE 取最大或加权平均)进行,且"
+                    },
+                    {
+                        "type": "text",
+                        "content": "始终与分项指标并列展示、不替代之",
+                        "style": [
+                            "bold"
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "content": "。"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "page_header",
+            "content": {
+                "page_header_content": [
+                    {
+                        "type": "text",
+                        "content": "三参数 Weibull 参数估计准确性评价指标"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "page_footer",
+            "content": {
+                "page_footer_content": [
+                    {
+                        "type": "text",
+                        "content": "第  页"
+                    }
+                ]
+            }
+        }
+    ]
+]

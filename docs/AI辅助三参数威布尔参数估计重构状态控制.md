@@ -13,9 +13,10 @@
 1. `AGENTS.md`
 2. `README.md`
 3. `02-规则.md`
-4. `docs/AI辅助三参数威布尔参数估计重构前因后果.md`
-5. `docs/AI辅助三参数威布尔参数估计重构与实验设计总纲.md`
-6. 本文档
+4. `docs/S2R统一评价指标体系进程控制.md`
+5. `docs/AI辅助三参数威布尔参数估计重构前因后果.md`
+6. `docs/AI辅助三参数威布尔参数估计重构与实验设计总纲.md`
+7. 本文档
 
 旧草案、旧审查稿、旧交接说明已归档到 `docs/history/`。它们只作为历史资料，不作为当前执行依据。
 
@@ -26,7 +27,7 @@
 当前阶段：
 
 ```text
-S4.7 MDM 约束边界处理研究修正版已通过外部审查（有条件）。默认 MDM 确定为 mdm_offset_constrained，mdm_min_sigma 保留为对照。审查意见已处理完毕，可进入 S3 Loss 对比实验。
+S2R 唯一评价指标体系基础迁移已完成。旧 NE/NQE_R/RE_R/Outlier Rate 体系已废止；页面、前后端指标模块、统一实验框架、总纲和接手提示词已同步。下一步是用 S2R 重新计算 S4.7。S4.7 旧 NE 表格不再作为当前结论依据。
 ```
 
 已完成：
@@ -37,17 +38,20 @@ S4.7 MDM 约束边界处理研究修正版已通过外部审查（有条件）�
 - 完成重构与实验设计总纲；
 - 根据外部审稿意见补充总纲中的关键契约性约束；
 - S1 旧平台现状梳理：代码现状清单和关键差异分析已融入前因后果文档；
-- S2 统一评价指标：`python/studies/common/metrics.py` + 33 个测试通过；
-- S2.5 指标规范同步：`/help/metrics` 页面更新为三视角指标体系 + `src/lib/metrics.ts` 前端共享函数创建；
+- S2R 统一评价指标：旧 NE/NQE_R/RE_R/Outlier Rate 体系废止，`python/studies/common/metrics.py` 重写为 MdAPE/方向/IQR/尾部/有效率唯一体系；
+- S2R 指标规范同步：`/help/metrics` 页面与 `src/lib/metrics.ts` 前端共享函数同步为唯一体系，并在页面和模块头部写明双向同步维护关系；
+- S2R 文档同步：总纲、S3 前审查稿、新窗口接手提示词已改为 S2R 唯一口径；
+- S2R 基础验证：`python -m pytest -q`、`python -m compileall -q python/studies`、`npx tsc --noEmit`、`npm run build` 已通过；
 - S4 规划文档：`docs/AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划.md`，已通过外部审查（有条件），审查意见已全部修正；
 - S4 统一蒙特卡洛框架实现：`python/studies/common/sample.py` + `runner.py` + `experiment.py`，接入 MLE/MDM/LRE，59 个测试全部通过（含原有 33 个指标测试 + 9 个样本测试 + 9 个方法调用测试 + 8 个端到端测试）；
 - S4.5 MDM 调用配置校准 + failure 深度诊断 + 梯度曲线性质探究：定位 failure 全为 `no_intersection`（offset 判据内点条件不满足），默认配置确定为 offset=0.1, gamma_steps=20，61 个测试全部通过；fallback 策略评估确认可消除全部 failure 且精度不降。
 - S4.7 MDM 约束边界处理研究（初版）：实现四种 MDM 变体，81 个测试全部通过。初版结论过于乐观（验证空间仅 gamma/eta ∈ {0, 0.1}）。
-- S4.7 MDM 约束边界处理研究（修正版）：扩展验证空间至 gamma/eta ∈ {0, 0.1, 0.5, 1.0} + n=7。关键发现：min_sigma 在高 gamma/eta 时 outlier 率飙升（33%），不适合做默认；constrained 稳健（outlier 5.1%）。min_sigma 搜索逻辑已修正为独立完整区间搜索。修正版待外部审查。
+- S4.7 MDM 约束边界处理研究（修正版）：旧 NE/outlier 口径下的结果已完成并通过审查，但该结论需用 S2R 指标重新计算后再作为当前结论。
 
 尚未开始：
 
 - loss 对比实验（S3）；
+- S4.7 新指标重算；
 - M1/M2/M3/M4 正式实验；
 - 新结果可视化和论文表格。
 
@@ -56,6 +60,8 @@ S4.7 MDM 约束边界处理研究修正版已通过外部审查（有条件）�
 - 不要直接训练模型；
 - 不要直接用旧 M1/M3 结果写正式结论；
 - 不要跳过统一指标和统一样本框架；
+- 不要再新增或使用 NE/NQE_R/RE_R/Outlier Rate 作为当前指标；
+- 不要在 S4.7 新指标重算前沿用旧 NE 表格写新结论；
 - 不要读取 `_archive/`；
 - 不要把 `docs/history/` 里的旧方案重新提升为当前主线。
 
@@ -67,12 +73,12 @@ S4.7 MDM 约束边界处理研究修正版已通过外部审查（有条件）�
 |------|------|----------|----------|
 | S0 文档收敛 | 保留一个清晰总纲和接力状态 | 已完成 | `docs` 根目录主线清楚 |
 | S1 旧平台梳理 | 梳理传统方法、AI 原型、蒙特卡洛脚本、指标和可视化 | 已完成 | 现状清单融入前因后果文档 |
-| S2 统一评价指标 | 建立参数视角 + 分位点视角 + 可用性指标 | 已完成 | `studies/common/metrics.py` + 33 个测试通过 |
-| S2.5 指标规范同步 | 前端指标页面 + 共享函数与后端对齐 | 已完成 | `/help/metrics` 页面 + `src/lib/metrics.ts` + build 通过 |
+| S2R 唯一评价指标 | 废止旧 NE/NQE/outlier 体系，建立 MdAPE/方向/IQR/尾部/有效率体系 | 基础迁移完成 | `studies/common/metrics.py` + `/help/metrics` + `src/lib/metrics.ts` 同口径，测试/构建通过 |
+| S2R 进程控制 | 明确页面与模块双向同步、S4.7 重算前置条件 | 已新增 | `docs/S2R统一评价指标体系进程控制.md` |
 | S3 Loss 对比实验 | 用简单 M3 验证不同 loss 的影响 | 未开始 | 输出 loss 对比表和推荐原则 |
 | S4 统一蒙特卡洛框架 | 建立共享样本、统一调用、统一结果保存 | 已实现，59 个测试通过，端到端验证通过 | 同一框架能跑传统方法和 AI 方法 |
 | S4.5 MDM 调用配置校准 | 定位 MDM failure 来源，校准 offset/gamma_steps 默认配置 | 已完成 | failure 确认为 offset 判据内点条件不满足，默认配置确定 |
-| S4.7 MDM 约束边界处理 | 实现 MDM 变体，消除 failure，比较精度 | 修正版已通过审查 | 扩展网格验证：constrained outlier 5.1%，min_sigma 15.2%（高 gamma/eta 时 33%）；默认 MDM 确定为 constrained |
+| S4.7 MDM 约束边界处理 | 实现 MDM 变体，消除 failure，比较精度 | 待 S2R 重算 | 旧 NE/outlier 表格不再作为当前结论依据 |
 | S5 模块整理 | 整理 M1/M2/M3/M4 代表方案 | 未开始 | 各模块可接入统一框架 |
 | S6 横向比较 | 在同一参数空间和指标下比较所有方法 | 未开始 | 统一结果表含传统方法与 AI 方法 |
 | S7 汇报产物 | 生成组会或论文用表格和图 | 未开始 | 图表可追溯到统一实验配置 |
@@ -96,20 +102,23 @@ M3 中允许保留分类扩展，但作为 M3 子方向，不单独新增主模�
 
 ### 4.2 评价体系
 
-评价体系必须包含两套视角：
+当前只保留 S2R 唯一评价体系。评价体系包含两套可读视角，使用同一套误差分布指标：
 
-- 参数估计视角：NE、Bias、MAE、RMSE、Failure Rate、Outlier Rate、Time；
-- 工程应用分位点视角：可靠度分位点误差，重点 `R ∈ {0.995, 0.990, 0.950, 0.900}`。
+- 参数估计视角：`e_beta=(beta_hat-beta)/beta`，`e_eta=(eta_hat-eta)/eta`，`e_gamma=(gamma_hat-gamma)/eta`；
+- 工程应用分位点视角：`e_R=(x_hat_R-x_R)/x_R`，默认 `R ∈ {0.50, 0.90, 0.95, 0.99, 0.999}`。
 
-NE 使用 `eta` 归一化 `gamma`：
+每个误差分布统一报告：
 
 ```text
-NE = sqrt(
-    ((beta_hat - beta) / beta)^2
-  + ((eta_hat - eta) / eta)^2
-  + ((gamma_hat - gamma) / eta)^2
-)
+MdAPE
+中位带符号相对误差
+[P25, P75] / RelIQR
+[P5, P95]
+P95(|e|)，必要时 P99(|e|)
+有效估计率
 ```
+
+NE、NQE_R、RE_R、Outlier Rate、TRMSE 以及旧均值型主排序口径已废止。
 
 ### 4.3 状态判定
 
@@ -117,15 +126,8 @@ NE = sqrt(
 
 - `success`
 - `failure`
-- `outlier`
 
-第一版默认 outlier 规则：
-
-```text
-NE > 1.0
-```
-
-后续可调整，但必须记录阈值并说明原因。
+误差很大但数值有效的解仍为 `success`，必须进入尾部统计；只有不收敛、数值非法、物理非法或 gamma 贴到样本最小值等边界病态才是 `failure`。
 
 ### 4.4 样本规则
 
@@ -140,11 +142,10 @@ NE > 1.0
 候选包括：
 
 - 原始参数 MSE；
-- 标准化参数 MSE；
-- NE-Loss；
+- log-参数 MSE；
 - Huber Loss；
-- Quantile-Loss；
-- Hybrid-Loss。
+- log-分位 MSE；
+- Hybrid log loss。
 
 Hybrid-Loss 第一版使用：
 
@@ -205,31 +206,12 @@ n ∈ {10, 20, 30, 50, 100}
 下一轮最适合做：
 
 ```text
-进入 S3 Loss 对比实验（外部审查已通过）
+完成 S2R 全量验证后，用新指标重算 S4.7。
 ```
 
-S4.7 修正版已通过外部审查（有条件通过）。默认 MDM 确定为 **mdm_offset_constrained**，min_sigma 保留为对照。
+S4.7 旧表使用 NE/outlier 口径，已不再作为当前结论。重算时必须输出 MdAPE、方向、IQR、尾部、有效率，并按 gamma/eta、n 分层检查。
 
-S4.7 汇总表（3600 样本/变体，gamma/eta ∈ {0, 0.1, 0.5, 1.0}，n ∈ {7, 10, 30}）：
-
-| Variant | NE | fail% | out% | 备注 |
-|---------|------|-------|------|------|
-| MLE (reference) | 0.379 | 32.3% | 13.9% | 高 gamma/eta 时 failure/outlier 显著 |
-| mdm_offset_strict | 0.419 | 16.8% | 4.4% | 原默认行为 |
-| mdm_offset_constrained | 0.397 | 0.0% | 5.1% | **默认 MDM** |
-| mdm_min_sigma | 0.409 | 0.0% | 15.2% | 高 gamma/eta 时 outlier 飙升（33%） |
-| mdm_allow_negative_gamma | 0.396 | 0.0% | 7.5% | 仅诊断用 |
-
-按 gamma/eta 分组 outlier 率（关键对照）：
-
-| gamma/eta | MLE | strict | constrained | min_sigma | neg_gamma |
-|-----------|------|--------|-------------|-----------|-----------|
-| 0.0 | 3.7% | 1.8% | 2.0% | 2.8% | 4.6% |
-| 0.1 | 4.7% | 3.1% | 3.4% | 3.4% | 7.6% |
-| 0.5 | 19.0% | 4.9% | 6.9% | **21.4%** | 8.1% |
-| 1.0 | 28.4% | 7.9% | 8.0% | **33.0%** | 9.8% |
-
-min_sigma 在 gamma/eta=0.5/1.0 时 outlier 率飙升，是它不适合做默认的核心原因。
+旧结论中 min_sigma 的风险来自高 gamma/eta 下系统偏差；需用 S2R 的方向和尾部指标重新确认。
 
 ---
 

@@ -1,270 +1,254 @@
 """
-统一评价指标模块
+S2R 唯一评价指标模块
 
-供蒙特卡洛框架和 AI 训练脚本共同调用。
-三态互斥：success / failure / outlier。
+维护约定：
+- 本模块是指标规范页面 `/help/metrics` 的可执行实现。
+- `/help/metrics` 是本模块的可读规范说明。
+- 修改本模块任一公式、字段名或判定口径时，必须同步修改
+  `src/app/help/metrics/page.tsx`；反过来，页面规范变更也必须同步本模块。
 
-规范来源：AI辅助三参数威布尔参数估计重构与实验设计总纲 第 4 节
+当前唯一指标体系：
+- 参数视角和工程分位点视角都先形成带符号相对误差分布。
+- 主指标为 MdAPE；并列报告方向、稳定性、尾部和有效估计率。
+- beta/eta 用自身归一化，gamma 用 eta 归一化。
+- NE、NQE_R、RE_R、Outlier Rate 等旧体系指标已废止，不再输出。
 """
 
 import math
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
-from typing import List, Dict, Optional, Tuple
 
 
-# ============================================================
-# 默认参数
-# ============================================================
-
-DEFAULT_R_LEVELS = (0.995, 0.990, 0.950, 0.900)
-DEFAULT_NE_THRESHOLD = 1.0
-
-
-# ============================================================
-# 层 1：单样本基础指标
-# ============================================================
-
-def ne(beta_hat: float, eta_hat: float, gamma_hat: float,
-       beta: float, eta: float, gamma: float) -> float:
-    """归一化综合误差 NE
-
-    NE = sqrt(
-        ((beta_hat - beta) / beta)^2
-      + ((eta_hat - eta) / eta)^2
-      + ((gamma_hat - gamma) / eta)^2
-    )
-
-    gamma 使用 eta 归一化，避免 gamma=0 时的分母问题。
-    """
-    return math.sqrt(
-        ((beta_hat - beta) / beta) ** 2
-        + ((eta_hat - eta) / eta) ** 2
-        + ((gamma_hat - gamma) / eta) ** 2
-    )
+DEFAULT_R_LEVELS = (0.50, 0.90, 0.95, 0.99, 0.999)
 
 
 def quantile_true(beta: float, eta: float, gamma: float, R: float) -> float:
-    """真实分位点 x_R = gamma + eta * (-ln(R))^(1/beta)"""
+    """真实可靠度寿命分位点 x_R = gamma + eta * (-ln R)^(1/beta)。"""
     return gamma + eta * (-math.log(R)) ** (1.0 / beta)
 
 
 def quantile_est(beta_hat: float, eta_hat: float, gamma_hat: float, R: float) -> float:
-    """估计分位点 x_hat_R = gamma_hat + eta_hat * (-ln(R))^(1/beta_hat)"""
+    """估计可靠度寿命分位点 x_hat_R。"""
     return gamma_hat + eta_hat * (-math.log(R)) ** (1.0 / beta_hat)
 
 
-def nqe_R(beta_hat: float, eta_hat: float, gamma_hat: float,
-          beta: float, eta: float, gamma: float, R: float) -> float:
-    """归一化分位点误差 |x̂_R - x_R| / eta
+def param_relative_errors(
+    beta_hat: float,
+    eta_hat: float,
+    gamma_hat: float,
+    beta: float,
+    eta: float,
+    gamma: float,
+) -> Dict[str, float]:
+    """返回参数视角的带符号相对误差。
 
-    NQE_R 用 eta 归一化，比 RE_QR（用 x_R 归一化）更稳健，
-    适合 x_R 较小或接近边界时作为主参考。
+    gamma 可能为 0，且工程上与寿命尺度同量纲，因此统一用 eta 归一化。
     """
+    return {
+        "beta": (beta_hat - beta) / beta,
+        "eta": (eta_hat - eta) / eta,
+        "gamma": (gamma_hat - gamma) / eta,
+    }
+
+
+def quantile_relative_error(
+    beta_hat: float,
+    eta_hat: float,
+    gamma_hat: float,
+    beta: float,
+    eta: float,
+    gamma: float,
+    R: float,
+) -> float:
+    """返回工程分位点视角的带符号相对误差。"""
     x_r = quantile_true(beta, eta, gamma, R)
     x_hat_r = quantile_est(beta_hat, eta_hat, gamma_hat, R)
-    return abs(x_hat_r - x_r) / eta
+    return (x_hat_r - x_r) / x_r
 
 
-def re_R(beta_hat: float, eta_hat: float, gamma_hat: float,
-         beta: float, eta: float, gamma: float, R: float) -> float:
-    """相对分位点误差 |x̂_R - x_R| / x_R"""
-    x_r = quantile_true(beta, eta, gamma, R)
-    x_hat_r = quantile_est(beta_hat, eta_hat, gamma_hat, R)
-    return abs(x_hat_r - x_r) / x_r
+def summarize_relative_errors(errors: List[float] | np.ndarray) -> Dict[str, Optional[float]]:
+    """汇总带符号相对误差分布。
 
+    返回字段即当前唯一指标族：
+    - mdape: median(|e|)
+    - med_rel: median(e)
+    - p25_rel/p75_rel/reliqr: 稳定性
+    - p5_rel/p95_rel/p95_abs/p99_abs: 尾部
+    """
+    arr = np.asarray(errors, dtype=float)
+    arr = arr[np.isfinite(arr)]
 
-# ============================================================
-# 层 2：状态判定
-# ============================================================
+    empty = {
+        "mdape": None,
+        "med_rel": None,
+        "p25_rel": None,
+        "p75_rel": None,
+        "reliqr": None,
+        "p5_rel": None,
+        "p95_rel": None,
+        "p95_abs": None,
+        "p99_abs": None,
+    }
+    if arr.size == 0:
+        return empty
+
+    abs_arr = np.abs(arr)
+    p25 = float(np.percentile(arr, 25))
+    p75 = float(np.percentile(arr, 75))
+
+    return {
+        "mdape": float(np.median(abs_arr)),
+        "med_rel": float(np.median(arr)),
+        "p25_rel": p25,
+        "p75_rel": p75,
+        "reliqr": p75 - p25,
+        "p5_rel": float(np.percentile(arr, 5)),
+        "p95_rel": float(np.percentile(arr, 95)),
+        "p95_abs": float(np.percentile(abs_arr, 95)),
+        "p99_abs": float(np.percentile(abs_arr, 99)),
+    }
+
 
 def check_status(
-    beta_hat: float, eta_hat: float, gamma_hat: float,
-    beta: float, eta: float, gamma: float,
+    beta_hat: float,
+    eta_hat: float,
+    gamma_hat: float,
+    beta: float,
+    eta: float,
+    gamma: float,
     converged: bool = True,
-    ne_threshold: float = DEFAULT_NE_THRESHOLD
+    sample_min: Optional[float] = None,
+    boundary_tol: float = 1e-10,
 ) -> str:
-    """判定单样本状态：success / failure / outlier
+    """判定估计是否有效。
 
-    判定顺序：
-    1. beta_hat 或 eta_hat 非有限或 <= 0 → failure
-    2. gamma_hat 非有限 → failure（不要求 >0，但必须 finite）
-    3. converged 为 False → failure
-    4. NE > ne_threshold → outlier
-    5. 其余 → success
-
-    Args:
-        beta_hat, eta_hat, gamma_hat: 估计值
-        beta, eta, gamma: 真值（用于计算 NE）
-        converged: 方法自身报告是否成功
-        ne_threshold: outlier 判定阈值，默认 1.0
-
-    Returns:
-        "success" | "failure" | "outlier"
+    S2R 不再按误差大小判 outlier。误差很大但数值有效的样本必须进入
+    尾部统计；只有不收敛、数值非法、物理非法或边界病态才判 failure。
     """
-    # 检查 beta_hat
+    if not converged:
+        return "failure"
     if not math.isfinite(beta_hat) or beta_hat <= 0:
         return "failure"
-
-    # 检查 eta_hat
     if not math.isfinite(eta_hat) or eta_hat <= 0:
         return "failure"
-
-    # 检查 gamma_hat（不要求 >0，但必须 finite）
     if not math.isfinite(gamma_hat):
         return "failure"
 
-    # 检查方法自身报告
-    if not converged:
-        return "failure"
-
-    # 计算 NE 并判定 outlier
-    ne_value = ne(beta_hat, eta_hat, gamma_hat, beta, eta, gamma)
-    if ne_value > ne_threshold:
-        return "outlier"
+    if sample_min is not None and math.isfinite(sample_min):
+        tol = boundary_tol * max(abs(sample_min), abs(eta), 1.0)
+        if gamma_hat >= sample_min - tol:
+            return "failure"
 
     return "success"
 
 
-# ============================================================
-# 层 3：批量聚合
-# ============================================================
-
 def aggregate_param_metrics(
     results: List[Dict],
     R_levels: Tuple[float, ...] = DEFAULT_R_LEVELS,
-    ne_threshold: float = DEFAULT_NE_THRESHOLD
 ) -> Dict:
-    """批量计算全部指标
+    """批量计算当前唯一指标体系。
 
     Args:
-        results: 每个元素为字典，包含：
-            - beta_hat, eta_hat, gamma_hat: 估计值（failure 时为 None）
-            - beta, eta, gamma: 真值
-            - time: 运行时间（秒）
-            - converged: 方法自身报告是否成功
-        R_levels: 可靠度水平，默认 (0.995, 0.990, 0.950, 0.900)
-        ne_threshold: outlier 判定阈值，默认 1.0，与 check_status() 一致
+        results: 每个元素包含 beta_hat/eta_hat/gamma_hat、beta/eta/gamma、
+            converged，可选 time、sample_min。
+        R_levels: 需要报告的可靠度分位点。
 
     Returns:
-        汇总字典，包含参数视角、分位点视角和可用性视角的全部指标。
-        三态互斥：failure_count + outlier_count + success_count = n_total。
-        精度指标仅统计 success 样本。
+        汇总结果。参数视角位于 `param_distribution`，工程分位点视角位于
+        `quantile_distribution`，并提供常用 flat key 便于表格输出。
     """
     n_total = len(results)
     if n_total == 0:
         return {"n_total": 0}
 
-    # 分类
-    successes = []
-    failures = 0
-    outliers = 0
+    valid_rows = []
+    n_failure = 0
 
-    for r in results:
-        beta_hat = r.get("beta_hat")
-        eta_hat = r.get("eta_hat")
-        gamma_hat = r.get("gamma_hat")
-        converged = r.get("converged", True)
+    for row in results:
+        beta_hat = row.get("beta_hat")
+        eta_hat = row.get("eta_hat")
+        gamma_hat = row.get("gamma_hat")
 
-        # failure 情况：None 或非法值
-        if (beta_hat is None or eta_hat is None or gamma_hat is None):
-            failures += 1
+        if beta_hat is None or eta_hat is None or gamma_hat is None:
+            n_failure += 1
             continue
 
         status = check_status(
-            beta_hat, eta_hat, gamma_hat,
-            r["beta"], r["eta"], r["gamma"],
-            converged=converged,
-            ne_threshold=ne_threshold
+            beta_hat,
+            eta_hat,
+            gamma_hat,
+            row["beta"],
+            row["eta"],
+            row["gamma"],
+            converged=row.get("converged", True),
+            sample_min=row.get("sample_min"),
         )
 
         if status == "failure":
-            failures += 1
-        elif status == "outlier":
-            outliers += 1
+            n_failure += 1
         else:
-            successes.append(r)
+            valid_rows.append(row)
 
-    n_success = len(successes)
-    n_failure = failures
-    n_outlier = outliers
-
-    result = {
+    n_valid = len(valid_rows)
+    output = {
         "n_total": n_total,
-        "n_success": n_success,
+        "n_valid": n_valid,
         "n_failure": n_failure,
-        "n_outlier": n_outlier,
+        "valid_rate": n_valid / n_total,
         "failure_rate": n_failure / n_total,
-        "outlier_rate": n_outlier / n_total,
-        "success_rate": n_success / n_total,
     }
 
-    if n_success == 0:
-        return result
+    if n_valid == 0:
+        return output
 
-    # --- 参数视角（仅 success 样本）---
-    beta_hats = np.array([r["beta_hat"] for r in successes])
-    eta_hats = np.array([r["eta_hat"] for r in successes])
-    gamma_hats = np.array([r["gamma_hat"] for r in successes])
-    betas = np.array([r["beta"] for r in successes])
-    etas = np.array([r["eta"] for r in successes])
-    gammas = np.array([r["gamma"] for r in successes])
-    times = np.array([r.get("time", 0) for r in successes])
+    param_errors = {"beta": [], "eta": [], "gamma": []}
+    quantile_errors = {R: [] for R in R_levels}
 
-    # NE
-    ne_values = np.array([
-        ne(bh, eh, gh, b, e, g)
-        for bh, eh, gh, b, e, g in zip(beta_hats, eta_hats, gamma_hats, betas, etas, gammas)
-    ])
-    result["ne_mean"] = float(np.mean(ne_values))
-    result["ne_std"] = float(np.std(ne_values))
+    for row in valid_rows:
+        errors = param_relative_errors(
+            row["beta_hat"],
+            row["eta_hat"],
+            row["gamma_hat"],
+            row["beta"],
+            row["eta"],
+            row["gamma"],
+        )
+        for name, value in errors.items():
+            param_errors[name].append(value)
 
-    # Bias（按参数）
-    result["bias_beta"] = float(np.mean(beta_hats - betas))
-    result["bias_eta"] = float(np.mean(eta_hats - etas))
-    result["bias_gamma"] = float(np.mean(gamma_hats - gammas))
+        for R in R_levels:
+            quantile_errors[R].append(
+                quantile_relative_error(
+                    row["beta_hat"],
+                    row["eta_hat"],
+                    row["gamma_hat"],
+                    row["beta"],
+                    row["eta"],
+                    row["gamma"],
+                    R,
+                )
+            )
 
-    # MAE（按参数）
-    result["mae_beta"] = float(np.mean(np.abs(beta_hats - betas)))
-    result["mae_eta"] = float(np.mean(np.abs(eta_hats - etas)))
-    result["mae_gamma"] = float(np.mean(np.abs(gamma_hats - gammas)))
+    param_distribution = {
+        name: summarize_relative_errors(values)
+        for name, values in param_errors.items()
+    }
+    quantile_distribution = {
+        R: summarize_relative_errors(values)
+        for R, values in quantile_errors.items()
+    }
 
-    # RMSE（按参数）
-    result["rmse_beta"] = float(np.sqrt(np.mean((beta_hats - betas) ** 2)))
-    result["rmse_eta"] = float(np.sqrt(np.mean((eta_hats - etas) ** 2)))
-    result["rmse_gamma"] = float(np.sqrt(np.mean((gamma_hats - gammas) ** 2)))
+    output["param_distribution"] = param_distribution
+    output["quantile_distribution"] = quantile_distribution
 
-    # Time
-    result["time_mean"] = float(np.mean(times))
-    result["time_p50"] = float(np.percentile(times, 50))
-    result["time_p95"] = float(np.percentile(times, 95))
+    for name, summary in param_distribution.items():
+        for key, value in summary.items():
+            output[f"{key}_{name}"] = value
 
-    # --- 分位点视角（仅 success 样本）---
-    quantile_results = {}
-    for R in R_levels:
-        nqe_values = []
-        re_values = []
-        bias_qr_values = []
+    for R, summary in quantile_distribution.items():
+        r_key = str(R).replace(".", "p")
+        for key, value in summary.items():
+            output[f"{key}_x_r{r_key}"] = value
 
-        for r in successes:
-            x_r = quantile_true(r["beta"], r["eta"], r["gamma"], R)
-            x_hat_r = quantile_est(r["beta_hat"], r["eta_hat"], r["gamma_hat"], R)
-            bias_qr_values.append(x_hat_r - x_r)
-            nqe_values.append(abs(x_hat_r - x_r) / r["eta"])
-            re_values.append(abs(x_hat_r - x_r) / x_r)
-
-        nqe_arr = np.array(nqe_values)
-        re_arr = np.array(re_values)
-        bias_arr = np.array(bias_qr_values)
-
-        quantile_results[R] = {
-            "bias": float(np.mean(bias_arr)),
-            "mae": float(np.mean(np.abs(bias_arr))),
-            "rmse": float(np.sqrt(np.mean(bias_arr ** 2))),
-            "nqe_mean": float(np.mean(nqe_arr)),
-            "nqe_std": float(np.std(nqe_arr)),
-            "re_mean": float(np.mean(re_arr)),
-        }
-
-    result["quantile"] = quantile_results
-
-    return result
+    return output
