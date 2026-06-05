@@ -49,8 +49,20 @@ def mse_of_delta(sample, delta, true_params, gamma_steps=60):
     return mse_b + mse_e + mse_g, mse_b, mse_e, mse_g
 
 
+def _build_geometric_gamma_grid(t_min, gamma_steps):
+    """Build a discrete gamma grid searched from t_min downward to 0.
+    Mirrors the default MDM implementation in python/methods/mdm.py."""
+    steps = max(4, int(gamma_steps))
+    min_gap = max(abs(float(t_min)) * 1e-9, 1e-12)
+    gaps = np.geomspace(min_gap, float(t_min), steps)
+    gammas = float(t_min) - gaps
+    gammas[0] = float(t_min) - min_gap
+    gammas[-1] = 0.0
+    return gammas
+
+
 def compute_max_gradient(sample, gamma_steps=200):
-    """Compute the max gradient of sigma_min(gamma) curve."""
+    """Compute the max gradient of sigma_min(gamma) curve using geometric grid."""
     t = np.array(sorted(sample))
     n = len(t)
     ranks = (np.arange(1, n + 1) - 0.3) / (n + 0.4)
@@ -72,7 +84,7 @@ def compute_max_gradient(sample, gamma_steps=200):
         )
         return res.x, res.fun
 
-    gammas = np.linspace(0, t[0] * 0.999999, gamma_steps)
+    gammas = _build_geometric_gamma_grid(t[0], gamma_steps)
     sigmas = []
     for g in gammas:
         _, sig = find_best_beta_for_gamma(g)
@@ -83,7 +95,7 @@ def compute_max_gradient(sample, gamma_steps=200):
 
 
 def scan_curve(sample, true_params, delta_step=0.002, delta_max=2.0):
-    """Scan MSE-delta curve."""
+    """Scan MSE-delta curve. Retains both success and failure points."""
     deltas = np.arange(delta_step, delta_max + delta_step / 2, delta_step)
     results = []
     for d in deltas:
@@ -99,6 +111,18 @@ def scan_curve(sample, true_params, delta_step=0.002, delta_max=2.0):
                 'est_beta': round(float(est[0]), 4),
                 'est_eta': round(float(est[1]), 2),
                 'est_gamma': round(float(est[2]), 2),
+            })
+        else:
+            # Retain failure points so failure_delta can be found downstream
+            results.append({
+                'delta': round(float(d), 4),
+                'mse': None,
+                'mse_beta': None,
+                'mse_eta': None,
+                'mse_gamma': None,
+                'est_beta': None,
+                'est_eta': None,
+                'est_gamma': None,
             })
     return results
 
@@ -286,8 +310,8 @@ def main():
     # === Assemble final JSON ===
     data = {
         'meta': {
-            'generated': '2026-04-27',
-            'description': 'MSE-delta curve properties study for MDM method',
+            'generated': '2026-06-05',
+            'description': 'MSE-delta curve properties study for MDM method (S4.9: geometric gamma grid, truncation rule instead of failure)',
             'param_space': {
                 'beta': [0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0],
                 'eta': 1000.0,
@@ -305,7 +329,8 @@ def main():
                 {'shape': 'monotone_decreasing', 'desc': 'MSE decreases with delta. Optimal delta at boundary. Requires large search range.', 'example': 'b1_n7'},
                 {'shape': 'non_unimodal', 'desc': 'Very narrow valley (width ~0.005). Requires fine step size.', 'example': 'b5_n7'},
             ],
-            'failure_condition': 'MDM fails when delta exceeds max(gradient of sigma_min(gamma)). This is a mathematical limit, not a resolution issue. Increasing gamma_steps does not help.',
+            'failure_condition': 'S4.9 uses gamma=0 gradient as the decision boundary: (1) offset_root — gradient curve crosses offset, interpolate gamma_hat; (2) truncated_at_zero — no crossing but gamma=0 gradient >= offset (unconstrained root on negative axis, clipped by gamma>=0 constraint); (3) no_offset_root — no crossing and gamma=0 gradient < offset (entire gradient curve below offset, e.g. delta > max(nabla sigma)).',
+            'failure_condition_historical': 'Pre-S4.9: MDM returned no_intersection when delta > max(nabla sigma). This was an engineering implementation issue (gamma >= 0 constraint clipping + discrete grid miss), not a mathematical impossibility.',
             'recommended_search': {
                 'strategy': 'three_phase',
                 'phases': [
@@ -319,6 +344,7 @@ def main():
                 'speedup_vs_full_scan': '28x',
             },
             'boundary_samples': 'Samples where optimal delta is at the search boundary have inherent MDM accuracy limits. These should be flagged in training data but not filtered out.',
+            'boundary_samples_s49': 'S4.9: 当 offset 超过梯度曲线最大值时，gamma=0 处梯度也低于 offset，系统返回 no_offset_root（诊断状态）。truncated_at_zero 仅在 gamma=0 处梯度 >= offset 时触发（无约束根在负半轴被 gamma>=0 约束切除）。',
         },
     }
 

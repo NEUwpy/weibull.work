@@ -1,4 +1,6 @@
 """
+⚠ 历史复现实验，不是当前默认 MDM 口径
+
 案例15: WMLE 权重 Monte Carlo 验证
 
 研究内容:
@@ -20,6 +22,8 @@
 
 输出:
 - public/case-studies/mdm/case15/data.json
+
+S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
 
 import sys

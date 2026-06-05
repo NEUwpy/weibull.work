@@ -259,6 +259,9 @@ export function DeltaAccuracyTab() {
       {/* 收敛原因统计 */}
       <div className="bg-white border border-slate-200 rounded-lg p-4">
         <h4 className="text-sm font-bold text-slate-700 mb-3">收敛原因统计</h4>
+        <p className="text-xs text-amber-600 mb-3 font-medium">
+          ⚠ 注：mdm_failed 数据基于 S4.9 前历史旧口径，S4.9 后默认 MDM 已重写，待重算更新。
+        </p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {Array.from(new Set(data.map(r => r.reason as string))).map(reason => {
             const count = data.filter(r => r.reason === reason).length

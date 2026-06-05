@@ -1,4 +1,6 @@
 """
+⚠ 历史复现实验，不是当前默认 MDM 口径
+
 批量生成MDM案例4数据的脚本 (1000次模拟) - 使用新MDM算法
 
 生成两个文件：
@@ -6,6 +8,8 @@
 2. mdm_case4_samples.csv - 样本文件（每次模拟的抽样样本）
 
 关联方式：通过 sim_id + beta_true + sample_size + offset_value 联合键关联
+
+S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
 
 import sys

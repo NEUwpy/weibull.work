@@ -18,7 +18,10 @@ from base import MethodResult
 
 app = FastAPI()
 
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://weibull.work,http://localhost:3000").split(",")
+CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "https://weibull.work,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
+).split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -362,11 +365,6 @@ async def monte_carlo_simulate(req: MonteCarloRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Monte Carlo simulation failed: {str(e)}")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
-
-
 # ============================================================
 # AI Methods — 关系建立: MDM 偏移量优化
 # ============================================================
@@ -579,7 +577,7 @@ class AIIterateStep(BaseModel):
     beta: Optional[float] = None
     eta: Optional[float] = None
     gamma: Optional[float] = None
-    mdm_status: str  # "ok" | "no_intersection" | "diverged"
+    mdm_status: str  # "ok" | "no_intersection" | "diverged" | "converged"
 
 class AIIterateResponse(BaseModel):
     """路线 2 迭代响应"""
@@ -885,3 +883,8 @@ async def ai_direct_estimation(req: AIDirectEstimationRequest):
         gamma=round(float(pred[2]), 2),
         model_n=n
     )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

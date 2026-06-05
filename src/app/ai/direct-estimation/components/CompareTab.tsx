@@ -218,6 +218,7 @@ export function CompareTab() {
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
           MDM 在 M3 测试集（β∈{'{0.5,1,2,3,5}'}, η∈{'{100~5000}'}, γ∈{'{0~200}'}）上运行，成功率为 80-84%。
           AI 直接估计无需迭代，成功率 100%。
+          <span className="block mt-1 text-amber-500">注：MDM 成功率为 S4.9 前历史旧口径数据，S4.9 后默认 MDM 已重写，待重算更新。</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">

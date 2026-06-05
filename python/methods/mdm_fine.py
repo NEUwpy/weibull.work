@@ -1,4 +1,6 @@
 """
+⚠ 历史复现实验，不是当前默认 MDM
+
 精细步长MDM (Minimum Discrepancy Method)
 
 与标准MDM的区别：
@@ -8,6 +10,8 @@
 参数：
 - beta_step: β搜索步长，默认0.01
 - gamma_step: γ搜索步长，默认10（当estimated_gamma=1000时为1%）
+
+S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本文件仅用于历史案例复现。
 """
 
 from base import WeibullBase

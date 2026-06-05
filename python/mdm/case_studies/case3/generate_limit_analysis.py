@@ -1,3 +1,11 @@
+"""
+⚠ 历史复现实验，不是当前默认 MDM 口径
+
+案例3 极限分析数据生成脚本
+
+S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
+"""
+
 import json
 import numpy as np
 from scipy.optimize import minimize_scalar

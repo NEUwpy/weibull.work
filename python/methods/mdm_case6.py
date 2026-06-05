@@ -1,10 +1,14 @@
 """
+⚠ 历史复现实验，不是当前默认 MDM
+
 MDM Case6 Variant - 支持自定义迭代次数和离散搜索
 用于案例6: 搜索步长对结果的影响
 
 复制自 mdm.py，添加以下参数:
 - gamma_steps: 迭代次数 (默认60)
 - discrete_gamma: 离散搜索模式 (间隔100)
+
+S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本文件仅用于历史案例复现。
 """
 
 from base import WeibullBase

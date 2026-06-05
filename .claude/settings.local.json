@@ -153,7 +153,9 @@
       "Bash(bash *)",
       "Bash(gh auth *)",
       "Bash(env)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(xxd \"C:\\\\weibull\\\\docs\\\\提示词_新窗口接手.md\")",
+      "PowerShell([System.IO.File]::ReadAllBytes\\(\"C:\\\\weibull\\\\docs\\\\提示词_新窗口接手.md\"\\)[0..50] | ForEach-Object { '{0:X2}' -f $_ } | Join-String -Separator ' ')"
     ]
   }
 }

@@ -109,6 +109,9 @@ export function VerificationTab() {
           通过迭代收敛后的 δ 运行 MDM 得到参数估计。
           表格默认按 MSE 升序排列（最好的案例在前）。
         </p>
+        <p className="text-xs text-amber-600 mt-2 font-medium">
+          ⚠ 注：本页 MDM 失败数据基于 S4.9 前历史旧口径（旧版 MDM 的 no_intersection 机制），S4.9 后默认 MDM 已重写，待重算更新。
+        </p>
       </div>
 
       {/* 收敛统计 */}

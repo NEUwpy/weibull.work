@@ -80,7 +80,7 @@ class MDM(WeibullBase):
         Args:
             trace (bool): Whether to record trace data.
             offset (float): Gradient offset target (required, e.g., 0.1).
-            gamma_steps (int): Number of steps per round for gamma search (default 60).
+            gamma_steps (int): 几何 gamma 网格采样点数 / 搜索与可视化采样密度 (default 60).
             rank_method (str): Median rank method - 'bernard' or 'exact' (default 'bernard').
 
         Returns:

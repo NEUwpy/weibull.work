@@ -46,9 +46,9 @@ S4.9 已完成：默认 MDM 已按最新有解性研究改为离散几何网格 
 - S2R 基础验证：`python -m pytest -q`、`python -m compileall -q python/studies`、`npx tsc --noEmit`、`npm run build` 已通过；
 - S4 规划文档：`docs/AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划.md`，已通过外部审查（有条件），审查意见已全部修正；
 - S4 统一蒙特卡洛框架实现：`python/studies/common/sample.py` + `runner.py` + `experiment.py`，接入 MLE/MDM/LRE，59 个测试全部通过（含原有 33 个指标测试 + 9 个样本测试 + 9 个方法调用测试 + 8 个端到端测试）；
-- S4.5 MDM 调用配置校准 + failure 深度诊断 + 梯度曲线性质探究：定位 failure 全为 `no_intersection`（offset 判据内点条件不满足），默认配置确定为 offset=0.1, gamma_steps=20，61 个测试全部通过；fallback 策略评估确认可消除全部 failure 且精度不降。
-- S4.7 MDM 约束边界处理研究（初版）：实现四种 MDM 变体，81 个测试全部通过。初版结论过于乐观（验证空间仅 gamma/eta ∈ {0, 0.1}）。
-- S4.7 MDM 约束边界处理研究（修正版）：旧 NE/outlier 口径下的结果已完成并通过审查，但该结论需用 S2R 指标重新计算后再作为当前结论。
+- **[历史记录，已被 S4.9 修正/覆盖]** S4.5 MDM 调用配置校准 + failure 深度诊断 + 梯度曲线性质探究：定位 failure 全为 `no_intersection`（offset 判据内点条件不满足），默认配置确定为 offset=0.1, gamma_steps=20，61 个测试全部通过；fallback 策略评估确认可消除全部 failure 且精度不降。
+- **[历史记录，已被 S4.9 修正/覆盖]** S4.7 MDM 约束边界处理研究（初版）：实现四种 MDM 变体，81 个测试全部通过。初版结论过于乐观（验证空间仅 gamma/eta ∈ {0, 0.1}）。
+- **[历史记录，已被 S4.9 修正/覆盖]** S4.7 MDM 约束边界处理研究（修正版）：旧 NE/outlier 口径下的结果已完成并通过审查，但该结论需用 S2R 指标重新计算后再作为当前结论。
 - S4.9 MDM 默认实现与可视化一致性改造：默认 MDM 已使用 `geometric_from_tmin` 离散网格和 `truncated_at_zero` 边界规则；前端主可视化与 offset 敏感性分析已读取后端 trace 策略；历史 MDM 研究变体已归档；`python -m pytest tests -q` 与 `npx tsc --noEmit` 已通过。
 
 尚未开始：
@@ -80,8 +80,8 @@ S4.9 已完成：默认 MDM 已按最新有解性研究改为离散几何网格 
 | S2R 进程控制 | 明确页面与模块双向同步、S4.7 重算前置条件 | 已新增 | `docs/S2R统一评价指标体系进程控制.md` |
 | S3 Loss 对比实验 | 用简单 M3 验证不同 loss 的影响 | 未开始 | 输出 loss 对比表和推荐原则 |
 | S4 统一蒙特卡洛框架 | 建立共享样本、统一调用、统一结果保存 | 已实现，59 个测试通过，端到端验证通过 | 同一框架能跑传统方法和 AI 方法 |
-| S4.5 MDM 调用配置校准 | 定位 MDM failure 来源，校准 offset/gamma_steps 默认配置 | 已完成 | failure 确认为 offset 判据内点条件不满足，默认配置确定 |
-| S4.7 MDM 约束边界处理 | 实现 MDM 变体，消除 failure，比较精度 | 待 S2R 重算 | 旧 NE/outlier 表格不再作为当前结论依据 |
+| S4.5 MDM 调用配置校准 | **[历史记录，已被 S4.9 修正/覆盖]** 定位 MDM failure 来源，校准 offset/gamma_steps 默认配置 | 已完成 | failure 确认为 offset 判据内点条件不满足，默认配置确定 |
+| S4.7 MDM 约束边界处理 | **[历史记录，已被 S4.9 修正/覆盖]** 实现 MDM 变体，消除 failure，比较精度 | 待 S2R 重算 | 旧 NE/outlier 表格不再作为当前结论依据 |
 | S4.9 MDM 默认实现与可视化一致性 | 根据最新有解性研究修正默认 MDM，并保证 trace 可视化表达实际求解过程 | 已完成 | 默认 MDM 不再因负半轴交点返回 failure；trace 标明 `offset_root`/`truncated_at_zero`；后端测试和前端类型检查通过 |
 | S5 模块整理 | 整理 M1/M2/M3/M4 代表方案 | 未开始 | 各模块可接入统一框架 |
 | S6 横向比较 | 在同一参数空间和指标下比较所有方法 | 未开始 | 统一结果表含传统方法与 AI 方法 |
@@ -522,6 +522,8 @@ S4.7 旧表使用 NE/outlier 口径，且基于历史 MDM 变体，已不再作�
 
 ### 2026-05-22（S4.5 实现）
 
+> **⚠ 历史记录，已被 S4.9 修正/覆盖**：以下 S4.5 结论基于旧版 MDM 实现（两段均匀网格 + `no_intersection` 失败机制）。S4.9 已完成默认 MDM 重写，使用几何加密网格 + 约束边界规则，`no_intersection` 已被 `truncated_at_zero` 替代。
+
 执行者：MiMo
 
 本轮阶段：S4.5 MDM 调用配置校准 / 计算预算评估
@@ -573,6 +575,8 @@ S4.7 旧表使用 NE/outlier 口径，且基于历史 MDM 变体，已不再作�
 - 进入 S3 Loss 对比实验，使用 S4 统一框架 + 共享样本，MDM 使用 mdm_o0.1_gs20 作为 baseline。
 
 ### 2026-05-22（S4.5 failure 深度诊断）
+
+> **⚠ 历史记录，已被 S4.9 修正/覆盖**：以下 S4.5 诊断结论基于旧版 MDM 实现。S4.9 已证明 MDM 本身并非固有无解，`no_intersection` 主要来自 `gamma >= 0` 约束切除和离散网格漏检，而非"理论失败"。
 
 执行者：MiMo
 
@@ -679,6 +683,8 @@ fallback 评估结果：
 
 ### 2026-05-22（S4.7 MDM 约束边界处理）
 
+> **⚠ 历史记录，已被 S4.9 修正/覆盖**：以下 S4.7 研究基于旧版 MDM 变体体系（`mdm_variants.py`）。S4.9 已将这些变体归档至 `_archive/S4.9_MDM研究变体已完成/`，默认 MDM 统一使用 `python/methods/mdm.py`。
+
 执行者：MiMo
 
 本轮阶段：S4.7 MDM 约束边界处理研究
@@ -739,6 +745,8 @@ fallback 评估结果：
 
 ### 2026-05-22（S4.7 修正版）
 
+> **⚠ 历史记录，已被 S4.9 修正/覆盖**：以下 S4.7 修正版结论基于旧版 MDM 变体体系。S4.9 已将这些变体归档，默认 MDM 统一使用 `python/methods/mdm.py`，不再区分 strict/constrained/min_sigma 等变体。
+
 执行者：MiMo
 
 本轮阶段：S4.7 MDM 约束边界处理研究修正
@@ -776,6 +784,8 @@ fallback 评估结果：
 - 进入 S3 Loss 对比实验。
 
 ### 2026-05-22（S4.7 审查通过）
+
+> **⚠ 历史记录，已被 S4.9 修正/覆盖**：以下 S4.7 审查结论基于旧版 MDM 变体体系。S4.9 已将这些变体归档，默认 MDM 统一使用 `python/methods/mdm.py`，后续 S2R 重算将基于新默认 MDM。
 
 执行者：MiMo + 外部审查者
 
