@@ -10,6 +10,68 @@ from base import WeibullBase
 import numpy as np
 from scipy.optimize import minimize_scalar
 
+
+def _json_float(value):
+    """Convert numpy scalars to plain floats while preserving None."""
+    if value is None:
+        return None
+    return float(value)
+
+
+def _build_geometric_gamma_grid(t_min, gamma_steps):
+    """Build a discrete gamma grid searched from t_min downward to 0."""
+    steps = max(4, int(gamma_steps))
+    min_gap = max(abs(float(t_min)) * 1e-9, 1e-12)
+    gaps = np.geomspace(min_gap, float(t_min), steps)
+    gammas = float(t_min) - gaps
+    gammas[0] = float(t_min) - min_gap
+    gammas[-1] = 0.0
+    return gammas
+
+
+def _find_offset_crossing(gammas, gradients, offset):
+    """Find the discrete bracket whose interpolated crossing is closest to t_min."""
+    diffs = gradients - offset
+    candidates = []
+
+    for i in range(len(diffs) - 1):
+        y1, y2 = diffs[i], diffs[i + 1]
+        if not (np.isfinite(y1) and np.isfinite(y2)):
+            continue
+        if y1 == 0 or y2 == 0 or y1 * y2 < 0:
+            candidates.append(i)
+
+    if not candidates:
+        return None, diffs
+
+    idx = max(candidates, key=lambda i: max(gammas[i], gammas[i + 1]))
+    y1, y2 = diffs[idx], diffs[idx + 1]
+    x1, x2 = gammas[idx], gammas[idx + 1]
+
+    if y1 == 0:
+        gamma = x1
+    elif y2 == 0:
+        gamma = x2
+    elif y2 != y1:
+        gamma = x1 - y1 * (x2 - x1) / (y2 - y1)
+    else:
+        gamma = x1
+
+    bracket = {
+        "left": {
+            "gamma": _json_float(x1),
+            "gradient": _json_float(gradients[idx]),
+            "diff": _json_float(y1),
+        },
+        "right": {
+            "gamma": _json_float(x2),
+            "gradient": _json_float(gradients[idx + 1]),
+            "diff": _json_float(y2),
+        },
+    }
+    return (float(gamma), bracket), diffs
+
+
 class MDM(WeibullBase):
     def run(self, trace=False, offset=None, gamma_steps=60, rank_method='bernard'):
         """
@@ -22,7 +84,10 @@ class MDM(WeibullBase):
             rank_method (str): Median rank method - 'bernard' or 'exact' (default 'bernard').
 
         Returns:
-            (beta, eta, gamma, r_squared, status) where status is True or "no_intersection"
+            (beta, eta, gamma, r_squared, status) where status is True for a solved
+            offset root or boundary truncation. "no_intersection" is retained only
+            for extreme diagnostic cases where neither an in-domain root nor the
+            gamma=0 truncation rule applies.
         """
         if offset is None:
             raise ValueError("offset parameter is required (e.g., offset=0.1)")
@@ -71,104 +136,85 @@ class MDM(WeibullBase):
             )
             return res.x, res.fun
 
-        # @step: 5 | 初始化搜索范围 | 设置 γ 的候选值范围，约束条件：γ < t_min
-        # @formula: \gamma \in [0, t_{\min} \times 0.99)
+        # @step: 5 | 初始化搜索范围 | 设置 γ 的离散候选网格，约束条件：0 <= γ < t_min
+        # @formula: \gamma_j = t_{\min} - d_j,\quad d_j \in \text{geomspace}(\epsilon, t_{\min})
         # @symbols: t_{\min}|t_{\min}|最小失效时间, gamma_steps|N|搜索步数
         # @inputs: t|t|失效时间数组
         # @outputs: t_min|t_{\min}|最小失效时间
         t_min = t[0]
 
-        # @step: 6 | 第一轮搜索 | 在 [0, 0.99*t_min] 范围内遍历 γ，记录每个 γ 对应的最小标准差和最优 β
+        # @step: 6 | 离散搜索 | 从接近 t_min 的位置向 0 展开几何加密网格，记录每个 γ 对应的最小标准差和最优 β
         # @formula: \sigma_{\min}(\gamma) = \min_\beta \sigma_\eta(\beta, \gamma)
         # @loop: gamma_steps 次 (默认 60)
         # @inputs: t_min|t_{\min}|最小失效时间, gamma_steps|N|搜索步数
-        # @outputs: gammas1|\gamma|γ候选值数组, sigma_mins1|\sigma_{min}|最小标准差数组, best_betas1|\beta^*|最优β数组
-        gammas1 = np.linspace(0, t_min * 0.99, gamma_steps)
-        sigma_mins1 = []
-        best_betas1 = []
+        # @outputs: gammas|\gamma|γ候选值数组, sigma_mins|\sigma_{min}|最小标准差数组, best_betas|\beta^*|最优β数组
+        gammas = _build_geometric_gamma_grid(t_min, gamma_steps)
+        sigma_mins = []
+        best_betas = []
 
-        for g in gammas1:
+        for g in gammas:
             b, sig = find_best_beta_for_gamma(g)
-            sigma_mins1.append(sig)
-            best_betas1.append(b)
+            sigma_mins.append(sig)
+            best_betas.append(b)
 
-        sigma_mins1 = np.array(sigma_mins1)
-        best_betas1 = np.array(best_betas1)
+        sigma_mins = np.array(sigma_mins, dtype=float)
+        best_betas = np.array(best_betas, dtype=float)
 
-        # @step: 7 | 计算第一轮梯度 | 计算 σ_min(γ) 关于 γ 的数值梯度
+        # @step: 7 | 计算离散梯度 | 计算 σ_min(γ) 关于 γ 的数值梯度
         # @formula: \nabla(\gamma) = \frac{\partial \sigma_{\min}(\gamma)}{\partial \gamma} \approx \frac{\Delta \sigma_{\min}}{\Delta \gamma}
         # @symbols: \nabla(\gamma)|\nabla|梯度值
-        # @inputs: sigma_mins1|\sigma_{min}|标准差数组, gammas1|\gamma|γ数组
-        # @outputs: grads1|\nabla|梯度数组
-        grads1 = np.gradient(sigma_mins1, gammas1)
+        # @inputs: sigma_mins|\sigma_{min}|标准差数组, gammas|\gamma|γ数组
+        # @outputs: grads|\nabla|梯度数组
+        grads = np.gradient(sigma_mins, gammas)
 
-        # @step: 8 | 检查第一轮交点 | 检查梯度曲线与偏移阈值是否有交点
-        # @formula: \text{sign\_changes} = \{i : \text{sign}(\nabla_i - \delta) \neq \text{sign}(\nabla_{i+1} - \delta)\}
+        # @step: 8 | 检查 offset 交点 | 检查梯度曲线与偏移阈值是否有交点
+        # @formula: \nabla(\gamma^*) = \delta
         # @symbols: \delta|\delta|偏移阈值(offset)
-        # @inputs: grads1|\nabla|梯度数组, offset|\delta|偏移阈值
-        # @outputs: sign_changes|I|交点索引数组
-        diffs1 = grads1 - offset
-        sign_changes = np.where(np.diff(np.sign(diffs1)))[0]
+        # @inputs: grads|\nabla|梯度数组, offset|\delta|偏移阈值
+        # @outputs: root_info|root|交点插值结果, diffs|\nabla-\delta|梯度差值数组
+        root_info, diffs = _find_offset_crossing(gammas, grads, offset)
 
-        # @step: 9 | 第二轮搜索 | 若第一轮无交点，在 [0.99*t_min, 0.999999*t_min] 范围内继续搜索
-        # @formula: \gamma \in [0.99 t_{\min}, 0.999999 t_{\min})
-        # @loop: gamma_steps 次
-        # @inputs: t_min|t_{\min}|最小失效时间, sign_changes|I|交点索引
-        # @outputs: gammas|\gamma|合并后的γ数组, sigma_mins|\sigma_{min}|合并后的标准差数组, best_betas|\beta^*|合并后的β数组, grads|\nabla|合并后的梯度数组
-        if len(sign_changes) == 0:
-            gammas2 = np.linspace(t_min * 0.99, t_min * 0.999999, gamma_steps)
-            sigma_mins2 = []
-            best_betas2 = []
-
-            for g in gammas2:
-                b, sig = find_best_beta_for_gamma(g)
-                sigma_mins2.append(sig)
-                best_betas2.append(b)
-
-            sigma_mins2 = np.array(sigma_mins2)
-            best_betas2 = np.array(best_betas2)
-            grads2 = np.gradient(sigma_mins2, gammas2)
-
-            # 合并两轮数据
-            gammas = np.concatenate([gammas1, gammas2])
-            sigma_mins = np.concatenate([sigma_mins1, sigma_mins2])
-            best_betas = np.concatenate([best_betas1, best_betas2])
-            grads = np.concatenate([grads1, grads2])
-
-            # 重新检查交点
-            diffs = grads - offset
-            sign_changes = np.where(np.diff(np.sign(diffs)))[0]
-        else:
-            # 使用第一轮数据
-            gammas = gammas1
-            sigma_mins = sigma_mins1
-            best_betas = best_betas1
-            grads = grads1
-            diffs = diffs1
-
-        # @step: 10 | 线性插值求交点 | 使用线性插值找到梯度等于偏移值的精确 γ 值
+        # @step: 9 | 线性插值或边界截断 | 使用离散曲线交点确定 γ；若根被 γ>=0 约束切除，则取 γ=0
         # @formula: \gamma^* = \gamma_i - (\nabla_i - \delta) \cdot \frac{\gamma_{i+1} - \gamma_i}{\nabla_{i+1} - \nabla_i}
         # @symbols: \gamma^*|\gamma^*|最优位置参数
-        # @inputs: gammas|\gamma|γ数组, diffs|\nabla-\delta|梯度差值数组, sign_changes|I|交点索引
-        # @outputs: found_gamma|\gamma^*|最优γ值
-        found_gamma = 0.0
-        found_beta = 1.0
+        # @inputs: root_info|root|交点结果, grads|\nabla|梯度数组, offset|\delta|偏移阈值
+        # @outputs: found_gamma|\gamma^*|最优γ值, solution_strategy|strategy|求解策略
+        zero_idx = int(np.argmin(np.abs(gammas)))
+        probe_gradient_at_zero = float(grads[zero_idx])
+        root_bracket = None
 
-        if len(sign_changes) > 0:
-            # 选择最接近 t_min 的交点（通常更大的 gamma 更适合 3P 拟合）
-            idx = sign_changes[-1]
-            y1, y2 = diffs[idx], diffs[idx+1]
-            x1, x2 = gammas[idx], gammas[idx+1]
-
-            # 线性插值
-            if y2 != y1:
-                found_gamma = x1 - y1 * (x2 - x1) / (y2 - y1)
-            else:
-                found_gamma = x1
-
+        if root_info is not None:
+            found_gamma, root_bracket = root_info
+            found_gamma = min(max(float(found_gamma), 0.0), float(t_min) - 1e-12)
             found_beta, _ = find_best_beta_for_gamma(found_gamma)
+            solution_strategy = "offset_root"
+        elif probe_gradient_at_zero >= offset:
+            found_gamma = 0.0
+            found_beta, _ = find_best_beta_for_gamma(found_gamma)
+            solution_strategy = "truncated_at_zero"
         else:
-            # 两轮搜索后仍未找到交点 - 返回无解
+            # 极端情形：默认 offset 下通常不会进入这里。保留显式状态，便于诊断过高 offset 或异常样本。
+            if trace:
+                self.trace_data = {
+                    "grad_gamma_curve": [
+                        {
+                            "gamma": float(gammas[i]),
+                            "gradient": float(grads[i]),
+                            "sigma_min": float(sigma_mins[i]),
+                            "best_beta": float(best_betas[i]),
+                        }
+                        for i in range(len(gammas))
+                    ],
+                    "target_offset": offset,
+                    "search_strategy": "geometric_from_tmin",
+                    "solution_strategy": "no_offset_root",
+                    "constraint": "gamma >= 0",
+                    "probe_gradient_at_zero": probe_gradient_at_zero,
+                    "root_bracket": None,
+                    "gamma_steps": int(max(4, int(gamma_steps))),
+                    "optimal_gamma": None,
+                    "optimal_beta": None,
+                }
             return None, None, None, None, "no_intersection"
 
         # @step: 11 | 计算最终尺度参数 η | 使用最优的 γ* 和 β* 计算所有伪尺度参数的均值
@@ -239,6 +285,12 @@ class MDM(WeibullBase):
                 "grad_gamma_curve": grad_gamma_curve,
                 "sigma_beta_gamma": sigma_beta_gamma,
                 "target_offset": offset,
+                "search_strategy": "geometric_from_tmin",
+                "solution_strategy": solution_strategy,
+                "constraint": "gamma >= 0",
+                "probe_gradient_at_zero": probe_gradient_at_zero,
+                "root_bracket": root_bracket,
+                "gamma_steps": len(gammas),
                 "optimal_gamma": found_gamma,
                 "optimal_beta": found_beta
             }

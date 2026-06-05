@@ -22,6 +22,8 @@ interface TraceData {
   target_offset: number
   optimal_gamma: number
   optimal_beta: number
+  solution_strategy?: string
+  probe_gradient_at_zero?: number
 }
 
 interface MDMOffsetAnalyzerProps {
@@ -76,12 +78,22 @@ export default function MDMOffsetAnalyzer({ traceData }: MDMOffsetAnalyzerProps)
     const minGrad = Math.min(...grads)
     const maxGrad = Math.max(...grads)
 
-    // Generate offset values to test
+    const zeroPoint = grad_gamma_curve.reduce((closest, point) => {
+      return Math.abs(point.gamma) < Math.abs(closest.gamma) ? point : closest
+    }, grad_gamma_curve[0])
+
+    // Generate offset values to test. Include the target offset even when it
+    // sits below the observed gradient range, which is the S4.9 boundary case.
     const offsetRange: number[] = []
-    const step = (maxGrad - minGrad) / 100
-    for (let o = minGrad; o <= maxGrad * 1.05; o += step) {
+    const startOffset = Math.min(0, traceData.target_offset, minGrad)
+    const endOffset = Math.max(traceData.target_offset, maxGrad * 1.05)
+    const step = (endOffset - startOffset) / 100 || 0.001
+    for (let o = startOffset; o <= endOffset; o += step) {
       offsetRange.push(o)
     }
+    offsetRange.push(traceData.target_offset)
+    offsetRange.sort((a, b) => a - b)
+    const uniqueOffsets = Array.from(new Set(offsetRange.map(o => o.toFixed(12)))).map(Number)
 
     // For each offset, find the corresponding gamma via interpolation
     const results: {
@@ -92,15 +104,21 @@ export default function MDMOffsetAnalyzer({ traceData }: MDMOffsetAnalyzerProps)
       sigma: number
     }[] = []
 
-    for (const offset of offsetRange) {
+    for (const offset of uniqueOffsets) {
       // Find where gradient = offset (or closest point)
       let foundGamma: number
       let foundBeta: number
       let foundEta: number
       let foundSigma: number
 
-      // Binary search or linear interpolation
-      if (offset <= grads[0]) {
+      // Boundary truncation: if the whole constrained curve is above this
+      // offset, the unconstrained root lies at gamma < 0, so gamma is clipped to 0.
+      if (offset <= grads[0] && zeroPoint.gradient >= offset) {
+        foundGamma = 0
+        foundBeta = zeroPoint.best_beta ?? traceData.optimal_beta
+        foundEta = zeroPoint.best_eta ?? 100
+        foundSigma = zeroPoint.sigma_min
+      } else if (offset <= grads[0]) {
         foundGamma = gammas[0]
         foundBeta = best_betas[0]
         foundEta = sortedCurve[0].best_eta ?? 100

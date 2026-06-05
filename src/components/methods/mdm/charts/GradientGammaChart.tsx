@@ -219,7 +219,7 @@ export function GradientGammaChart({
         )}
 
         {/* 最优 γ 参考线（交互模式） */}
-        {interactive && optimalGamma !== undefined && optimalGamma > 0 && (
+        {interactive && optimalGamma !== undefined && Number.isFinite(optimalGamma) && (
           <ReferenceLine
             x={gammaMode === 'optimal' ? optimalGamma : (currentGamma ?? optimalGamma)}
             stroke={gammaMode === 'optimal' ? '#f59e0b' : '#3b82f6'}

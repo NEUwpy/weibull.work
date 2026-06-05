@@ -1,508 +1,327 @@
 {
   "methodId": "mdm",
   "methodName": "最小差异法 (MDM)",
-  "description": "通过最小化伪尺度参数的标准差来估计参数，引入梯度偏移判据提高稳健性",
+  "description": "通过最小化伪尺度参数的标准差来估计参数，使用离散梯度偏移判据确定位置参数，并在交点落到 gamma<0 时按 gamma>=0 约束截断。",
   "code": [
-    "# MDM 算法：最小差异法",
-    "# 输入: data - 原始失效时间样本",
-    "# 输出: beta, eta, gamma - 威布尔分布参数",
-    "",
+    "# S4.9 MDM：离散搜索 + 几何加密 gamma 网格 + 约束边界规则",
     "import numpy as np",
     "from scipy.optimize import minimize_scalar",
     "",
     "# ========== 第1步：数据预处理 ==========",
-    "# 去除无效值，排序数据",
     "t = np.array(sorted([x for x in data if x > 0]))",
     "n = len(t)",
+    "t_min = t[0]",
     "",
     "# ========== 第2步：计算中位秩 ==========",
-    "# 使用 Bernard 公式计算经验累积分布函数值",
     "ranks = (np.arange(1, n + 1) - 0.3) / (n + 0.4)",
-    "neg_ln_1_minus_F = -np.log(1 - ranks)",
+    "x = -np.log(1 - ranks)",
     "",
-    "# ========== 第3步：初始化位置参数搜索范围 ==========",
-    "# 设置 γ 的候选值范围，约束条件：γ < t₁",
-    "t_min = t[0]",
-    "gammas = np.linspace(0, t_min * 0.99, 60)",
+    "# ========== 第3步：从 t_min 向 0 构造离散 gamma 网格 ==========",
+    "def build_gamma_grid(t_min, gamma_steps):",
+    "    min_gap = max(abs(t_min) * 1e-9, 1e-12)",
+    "    gaps = np.geomspace(min_gap, t_min, gamma_steps)",
+    "    gammas = t_min - gaps",
+    "    gammas[0] = t_min - min_gap",
+    "    gammas[-1] = 0.0",
+    "    return gammas",
     "",
-    "# ========== 第4步：定义伪尺度参数计算函数 ==========",
-    "# 计算给定 β 和 γ 下，每个样本点的伪尺度参数",
-    "def compute_pseudo_eta(beta, gamma, t, neg_ln_1_minus_F):",
-    "    denom = neg_ln_1_minus_F ** (1 / beta)",
-    "    return (t - gamma) / denom",
+    "gammas = build_gamma_grid(t_min, gamma_steps)",
     "",
-    "# ========== 第5步：定义目标函数（标准差） ==========",
-    "# 计算伪尺度参数的标准差",
-    "def sigma_eta(beta, gamma, t, neg_ln_1_minus_F):",
-    "    etas = compute_pseudo_eta(beta, gamma, t, neg_ln_1_minus_F)",
-    "    return np.std(etas)",
+    "# ========== 第4步：定义伪尺度参数标准差 ==========",
+    "def sigma_eta(beta, gamma):",
+    "    eta_i = (t - gamma) / (x ** (1 / beta))",
+    "    return np.std(eta_i, ddof=1)",
     "",
-    "# ========== 第6步：外层循环：遍历位置参数 γ ==========",
-    "# 对每个 γ 候选值，记录最小的标准差及其对应的 β",
-    "sigma_mins = []",
-    "beta_for_gamma = []",
-    "",
-    "for gamma in gammas:",
-    "    # 内层优化：寻找使标准差最小的 β",
+    "# ========== 第5步：给定 gamma，寻找最优 beta ==========",
+    "def best_beta_for_gamma(gamma):",
     "    result = minimize_scalar(",
-    "        lambda beta: sigma_eta(beta, gamma, t, neg_ln_1_minus_F),",
-    "        bounds=(0.5, 10.0),",
+    "        lambda beta: sigma_eta(beta, gamma),",
+    "        bounds=(0.1, 15.0),",
     "        method='bounded'",
     "    )",
-    "    sigma_mins.append(result.fun)",
-    "    beta_for_gamma.append(result.x)",
+    "    return result.x, result.fun",
     "",
-    "# ========== 第7步：计算梯度 ==========",
-    "# 计算 σ_min(γ) 关于 γ 的梯度（一阶导数）",
+    "# ========== 第6步：外层离散搜索 gamma ==========",
+    "sigma_mins = []",
+    "best_betas = []",
+    "for gamma in gammas:",
+    "    beta, sigma_min = best_beta_for_gamma(gamma)",
+    "    sigma_mins.append(sigma_min)",
+    "    best_betas.append(beta)",
+    "",
+    "# ========== 第7步：计算离散梯度 ==========",
     "grads = np.gradient(sigma_mins, gammas)",
+    "diffs = grads - offset",
     "",
-    "# ========== 第8步：梯度偏移判据寻优 ==========",
-    "# 寻找梯度等于偏移值 δ=0.1 的点（而非导数为0的点）",
-    "delta = 0.1",
-    "# 使用线性插值找到梯度与阈值的交点",
-    "found_gamma = np.interp(delta, grads, gammas)",
-    "# 找到对应的 β 值",
-    "found_beta = np.interp(found_gamma, gammas, beta_for_gamma)",
+    "# ========== 第8步：寻找梯度曲线与 offset 的交点 ==========",
+    "root_bracket = None",
+    "for i in range(len(diffs) - 1):",
+    "    if diffs[i] == 0 or diffs[i + 1] == 0 or diffs[i] * diffs[i + 1] < 0:",
+    "        root_bracket = (i, i + 1)",
+    "        break",
     "",
-    "# ========== 第9步：计算最终尺度参数 η ==========",
-    "# 使用最优的 γ* 和 β* 计算所有伪尺度参数的均值",
-    "denom = neg_ln_1_minus_F ** (1 / found_beta)",
-    "etas = (t - found_gamma) / denom",
-    "found_eta = np.mean(etas)",
+    "# ========== 第9步：交点插值或边界截断 ==========",
+    "if root_bracket is not None:",
+    "    i, j = root_bracket",
+    "    found_gamma = gammas[i] - diffs[i] * (gammas[j] - gammas[i]) / (diffs[j] - diffs[i])",
+    "    solution_strategy = 'offset_root'",
+    "else:",
+    "    probe_gradient_at_zero = grads[np.argmin(np.abs(gammas))]",
+    "    if probe_gradient_at_zero >= offset:",
+    "        found_gamma = 0.0",
+    "        solution_strategy = 'truncated_at_zero'",
+    "    else:",
+    "        return None, None, None, None, 'no_intersection'",
     "",
-    "# ========== 第10步：计算拟合优度 R² ==========",
-    "# 评估模型与数据的拟合程度",
-    "F_pred = 1 - np.exp(-((t - found_gamma) / found_eta) ** found_beta)",
-    "F = (np.arange(1, n + 1) - 0.3) / (n + 0.4)",
-    "r2 = 1 - np.sum((F - F_pred) ** 2) / np.sum((F - np.mean(F)) ** 2)",
+    "# ========== 第10步：计算最终 beta、eta、R²，并返回 trace ==========",
+    "found_beta, _ = best_beta_for_gamma(found_gamma)",
+    "eta_i = (t - found_gamma) / (x ** (1 / found_beta))",
+    "found_eta = np.mean(eta_i)",
+    "r2 = calculate_r2(found_beta, found_eta, found_gamma)",
     "",
-    "# ========== 输出结果 ==========",
-    "return [found_beta, found_eta, found_gamma, r2, 'success']"
+    "trace_data = {",
+    "    'grad_gamma_curve': list(zip(gammas, grads, sigma_mins, best_betas)),",
+    "    'search_strategy': 'geometric_from_tmin',",
+    "    'solution_strategy': solution_strategy,",
+    "    'constraint': 'gamma >= 0',",
+    "    'gamma_steps': gamma_steps",
+    "}",
+    "",
+    "return found_beta, found_eta, found_gamma, r2, True"
   ],
   "steps": [
     {
       "id": 1,
       "name": "数据预处理",
-      "description": "对原始样本进行排序，去除无效值，获取样本数量",
-      "codeLines": [9, 10, 11, 12],
+      "description": "对失效时间样本排序，取得样本量和最小失效时间。",
+      "codeLines": [5, 6, 7, 8],
       "inputs": [
         {
           "symbol": "data",
-          "math": "原始失效时间样本 \\\\{t_1, t_2, ..., t_n\\\\}",
-          "code": "data: List[float] - 输入的原始失效时间数据",
-          "value": "[310, 342, 353, 365, 383, 393, 403, 412, 451, 456]"
+          "math": "原始失效时间样本",
+          "code": "data: List[float]"
         }
       ],
       "formula": {
         "expression": "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
         "symbols": [
-          { "symbol": "t_{(i)}", "meaning": "第i小的失效时间（顺序统计量）" },
+          { "symbol": "t_{(1)}", "meaning": "最小失效时间" },
           { "symbol": "n", "meaning": "样本数量" }
         ],
-        "explanation": "将失效时间从小到大排序，确保后续计算的正确性"
+        "explanation": "位置参数必须小于最小失效时间，因此 t_min 是后续 gamma 搜索的上边界。"
       },
       "outputs": [
-        {
-          "symbol": "t",
-          "math": "排序后的数组 [t_{(1)}, t_{(2)}, ..., t_{(n)}]",
-          "code": "t: np.ndarray - 排序后的失效时间数组",
-          "value": "[310, 342, 353, 365, 383, 393, 403, 412, 451, 456]"
-        },
-        {
-          "symbol": "n",
-          "math": "样本数量",
-          "code": "n: int - 样本个数",
-          "value": 10
-        }
+        { "symbol": "t", "math": "排序后的失效时间数组", "code": "np.ndarray" },
+        { "symbol": "t_min", "math": "最小失效时间", "code": "float" }
       ],
       "otherVariables": []
     },
     {
       "id": 2,
       "name": "计算中位秩",
-      "description": "使用 Bernard 公式计算每个点的经验累积分布函数值",
-      "codeLines": [14, 15, 16, 17],
+      "description": "使用 Bernard 公式估计经验累积概率，并计算 Weibull 线性化变量。",
+      "codeLines": [10, 11, 12],
       "inputs": [
-        {
-          "symbol": "i",
-          "math": "样本序号 (1, 2, ..., n)",
-          "code": "np.arange(1, n + 1) - 样本序号数组",
-          "value": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
-        },
-        {
-          "symbol": "n",
-          "math": "样本数量",
-          "code": "n: int - 从上一步获得",
-          "value": 10
-        }
+        { "symbol": "i", "math": "样本序号", "code": "np.arange(1, n + 1)" },
+        { "symbol": "n", "math": "样本数量", "code": "int" }
       ],
       "formula": {
-        "expression": "F(t_i) = \\frac{i - 0.3}{n + 0.4}, \\quad -\\ln(1-F(t_i)) = -\\ln\\left(1 - \\frac{i - 0.3}{n + 0.4}\\right)",
+        "expression": "F(t_i) = \\frac{i - 0.3}{n + 0.4}, \\quad x_i = -\\ln(1-F(t_i))",
         "symbols": [
-          { "symbol": "F(t_i)", "meaning": "第i个样本点的经验累积概率（中位秩）" },
-          { "symbol": "i", "meaning": "样本序号" },
-          { "symbol": "n", "meaning": "样本总数" }
+          { "symbol": "F(t_i)", "meaning": "第 i 个样本点的经验累积概率" },
+          { "symbol": "x_i", "meaning": "伪尺度参数公式中的中位秩变换项" }
         ],
-        "explanation": "Bernard公式是常用的中位秩估计公式，用于计算经验累积分布函数值。-ln(1-F)项在后续的伪尺度参数计算中作为分母使用"
+        "explanation": "x_i 用于从每个样本点反算伪尺度参数 eta_i。"
       },
       "outputs": [
-        {
-          "symbol": "ranks",
-          "math": "中位秩数组 F(t_i)",
-          "code": "ranks: np.ndarray - 经验累积概率数组",
-          "value": "[0.067, 0.163, 0.260, 0.356, 0.452, 0.548, 0.644, 0.741, 0.837, 0.933]"
-        },
-        {
-          "symbol": "neg_ln_1_minus_F",
-          "math": "-\\ln(1 - F(t_i))",
-          "code": "neg_ln_1_minus_F: np.ndarray - 用于后续计算的中间变量",
-          "value": "[0.070, 0.177, 0.299, 0.439, 0.602, 0.794, 1.028, 1.341, 1.807, 2.702]"
-        }
+        { "symbol": "ranks", "math": "中位秩数组", "code": "np.ndarray" },
+        { "symbol": "x", "math": "-ln(1-F) 数组", "code": "np.ndarray" }
       ],
       "otherVariables": []
     },
     {
       "id": 3,
-      "name": "初始化位置参数搜索范围",
-      "description": "设置 γ 的候选值范围，约束条件：γ < t₁",
-      "codeLines": [19, 20, 21, 22, 23],
+      "name": "构造 gamma 离散网格",
+      "description": "保持原文的离散搜索思想，从接近 t_min 的位置向 0 搜索，并在 t_min 附近几何加密。",
+      "codeLines": [14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
       "inputs": [
-        {
-          "symbol": "t_min",
-          "math": "最小失效时间 t_{(1)}",
-          "code": "t[0]: float - 排序后的第一个元素",
-          "value": 310
-        }
+        { "symbol": "t_min", "math": "最小失效时间", "code": "float" },
+        { "symbol": "gamma_steps", "math": "离散采样点数量", "code": "int" }
       ],
       "formula": {
-        "expression": "\\gamma \\in [0, t_{\\min} \\times 0.99)",
+        "expression": "\\gamma_j = t_{\\min} - d_j, \\quad d_j \\in \\operatorname{geomspace}(\\epsilon, t_{\\min})",
         "symbols": [
-          { "symbol": "γ", "meaning": "位置参数候选值" },
-          { "symbol": "t_min", "meaning": "最小失效时间" }
+          { "symbol": "gamma_steps", "meaning": "搜索和可视化的采样密度" },
+          { "symbol": "epsilon", "meaning": "靠近 t_min 的最小安全间隔" }
         ],
-        "explanation": "位置参数必须小于最小失效时间，否则所有观测值都会被减掉导致无意义。设置上限为0.99倍以避免数值问题"
+        "explanation": "旧实现使用两段均匀网格，容易漏掉贴近 t_min 的交点；S4.9 使用几何间隔提高靠近 t_min 的分辨率。"
       },
       "outputs": [
-        {
-          "symbol": "gammas",
-          "math": "γ 候选值数组",
-          "code": "gammas: np.ndarray - 60个等间距点",
-          "value": "[0.0, 5.1, 10.3, ..., 304.9]"
-        }
+        { "symbol": "gammas", "math": "从 t_min 附近到 0 的 gamma 候选数组", "code": "np.ndarray" }
       ],
       "otherVariables": []
     },
     {
       "id": 4,
-      "name": "定义伪尺度参数计算函数",
-      "description": "计算给定 β 和 γ 下，每个样本点的伪尺度参数 η_i",
-      "codeLines": [25, 26, 27, 28, 29, 30],
+      "name": "定义伪尺度参数标准差",
+      "description": "在给定 beta 和 gamma 下，计算各样本点伪尺度参数的样本标准差。",
+      "codeLines": [25, 26, 27, 28],
       "inputs": [
-        {
-          "symbol": "β",
-          "math": "形状参数候选值",
-          "code": "beta: float - 在内层循环中优化"
-        },
-        {
-          "symbol": "γ",
-          "math": "固定的位置参数",
-          "code": "gamma: float - 从外层循环传入"
-        },
-        {
-          "symbol": "t",
-          "math": "失效时间数组",
-          "code": "t: np.ndarray - 全局变量"
-        },
-        {
-          "symbol": "-ln(1-F)",
-          "math": "中位秩的变换",
-          "code": "neg_ln_1_minus_F: np.ndarray - 从第2步获得"
-        }
+        { "symbol": "β", "math": "形状参数候选值", "code": "beta" },
+        { "symbol": "γ", "math": "位置参数候选值", "code": "gamma" }
       ],
       "formula": {
-        "expression": "\\eta_i = \\frac{t_i - \\gamma}{[-\\ln(1-F(t_i))]^{1/\\beta}}",
+        "expression": "\\eta_i = \\frac{t_i - \\gamma}{x_i^{1/\\beta}}, \\quad \\sigma_\\eta = \\operatorname{std}(\\eta_1,\\ldots,\\eta_n)",
         "symbols": [
-          { "symbol": "η_i", "meaning": "基于第i个样本点估计的伪尺度参数" },
-          { "symbol": "t_i - γ", "meaning": "平移后的失效时间" },
-          { "symbol": "[-ln(1-F(t_i))]^{1/β}", "meaning": "幂变换后的分母" }
+          { "symbol": "eta_i", "meaning": "第 i 个伪尺度参数" },
+          { "symbol": "sigma_eta", "meaning": "伪尺度参数离散程度" }
         ],
-        "explanation": "这是MDM的核心公式。如果选择的β和γ是真实的，那么所有样本点计算出的η_i应该彼此相等（或差异最小）"
+        "explanation": "如果 beta 与 gamma 合理，所有 eta_i 应更接近同一个尺度参数 eta。"
       },
       "outputs": [
-        {
-          "symbol": "etas",
-          "math": "伪尺度参数数组 [η_1, η_2, ..., η_n]",
-          "code": "return: np.ndarray - n个伪尺度参数值"
-        }
-      ],
-      "otherVariables": [
-        {
-          "symbol": "denom",
-          "math": "分母 [-\\ln(1-F(t_i))]^{1/\\beta}",
-          "code": "denom: np.ndarray - 中间计算变量"
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "name": "定义目标函数（标准差）",
-      "description": "计算伪尺度参数的标准差，作为目标函数值",
-      "codeLines": [32, 33, 34, 35, 36, 37],
-      "inputs": [
-        {
-          "symbol": "β",
-          "math": "形状参数候选值"
-        },
-        {
-          "symbol": "γ",
-          "math": "固定的位置参数"
-        }
-      ],
-      "formula": {
-        "expression": "\\sigma_\\eta(\\beta, \\gamma) = \\sqrt{\\frac{1}{n-1}\\sum_{i=1}^n(\\eta_i - \\bar{\\eta})^2}",
-        "symbols": [
-          { "symbol": "σ_η", "meaning": "伪尺度参数的标准差" },
-          { "symbol": "η_i", "meaning": "第i个伪尺度参数" },
-          { "symbol": "η̄", "meaning": "伪尺度参数的均值" }
-        ],
-        "explanation": "标准差衡量了n个伪尺度参数之间的离散程度。MDM的核心思想是：寻找使这个标准差最小的参数组合"
-      },
-      "outputs": [
-        {
-          "symbol": "σ",
-          "math": "标准差值",
-          "code": "return: float - 目标函数值（越小越好）"
-        }
+        { "symbol": "sigma_eta", "math": "伪尺度参数标准差", "code": "float" }
       ],
       "otherVariables": []
     },
     {
-      "id": 6,
-      "name": "双重循环优化",
-      "description": "外层遍历γ，内层优化β，记录每个γ对应的最小标准差",
-      "codeLines": [39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52],
+      "id": 5,
+      "name": "内层 beta 优化",
+      "description": "对每个固定 gamma，使用有界一维优化寻找使 sigma_eta 最小的 beta。",
+      "codeLines": [30, 31, 32, 33, 34, 35, 36, 37],
       "inputs": [
-        {
-          "symbol": "gammas",
-          "math": "γ 候选值数组",
-          "code": "gammas: np.ndarray - 从第3步获得",
-          "value": "60个候选值"
-        }
+        { "symbol": "γ", "math": "当前外层位置参数", "code": "gamma" }
       ],
       "formula": {
-        "expression": "\\sigma_{\\min}(\\gamma) = \\min_\\beta \\sigma_\\eta(\\beta, \\gamma)",
+        "expression": "\\beta^*(\\gamma) = \\arg\\min_{\\beta \\in [0.1,15]} \\sigma_\\eta(\\beta,\\gamma)",
         "symbols": [
-          { "symbol": "σ_min(γ)", "meaning": "固定γ时，关于β的最小标准差" },
-          { "symbol": "β*(γ)", "meaning": "该γ下使标准差最小的β值" }
+          { "symbol": "beta*(gamma)", "meaning": "当前 gamma 下的最优形状参数" },
+          { "symbol": "sigma_min(gamma)", "meaning": "当前 gamma 下的最小标准差" }
         ],
-        "explanation": "这是一个嵌套优化过程：外层循环遍历γ候选值，内层使用有界优化算法（bounded）搜索最佳β。内层优化使用scipy.optimize.minimize_scalar"
+        "explanation": "当前工程实现保留连续 beta 优化，以减少 beta 离散步长带来的额外误差。"
       },
       "outputs": [
-        {
-          "symbol": "sigma_mins",
-          "math": "每个γ对应的σ_min数组",
-          "code": "sigma_mins: List[float] - 记录每个γ的最小标准差"
-        },
-        {
-          "symbol": "beta_for_gamma",
-          "math": "每个γ对应的最优β数组",
-          "code": "beta_for_gamma: List[float] - 记录每个γ的最优β值"
-        }
+        { "symbol": "beta", "math": "最优 beta", "code": "float" },
+        { "symbol": "sigma_min", "math": "最小标准差", "code": "float" }
       ],
       "otherVariables": [],
       "isLoop": true,
-      "loopCount": "60次外层迭代，每次内层~20-50次优化迭代"
+      "loopCount": "每个 gamma 点调用一次"
+    },
+    {
+      "id": 6,
+      "name": "外层 gamma 离散搜索",
+      "description": "遍历 gamma 网格，记录 sigma_min(gamma) 与 beta*(gamma)，这些点就是可视化的过程量。",
+      "codeLines": [39, 40, 41, 42, 43, 44, 45],
+      "inputs": [
+        { "symbol": "gammas", "math": "gamma 候选数组", "code": "np.ndarray" }
+      ],
+      "formula": {
+        "expression": "\\sigma_{\\min}(\\gamma_j) = \\sigma_\\eta(\\beta^*(\\gamma_j), \\gamma_j)",
+        "symbols": [
+          { "symbol": "gamma_j", "meaning": "第 j 个离散位置参数候选值" },
+          { "symbol": "sigma_min", "meaning": "曲线上的最小标准差点" }
+        ],
+        "explanation": "前端梯度曲线、迭代路径和三维曲面都应来自这些真实搜索点。"
+      },
+      "outputs": [
+        { "symbol": "sigma_mins", "math": "sigma_min 曲线", "code": "List[float]" },
+        { "symbol": "best_betas", "math": "beta*(gamma) 曲线", "code": "List[float]" }
+      ],
+      "otherVariables": [],
+      "isLoop": true,
+      "loopCount": "gamma_steps 次"
     },
     {
       "id": 7,
-      "name": "计算梯度",
-      "description": "计算 σ_min(γ) 关于 γ 的梯度（一阶导数）",
-      "codeLines": [54, 55, 56],
+      "name": "计算离散梯度",
+      "description": "用离散差分计算 sigma_min 关于 gamma 的梯度曲线。",
+      "codeLines": [47, 48, 49],
       "inputs": [
-        {
-          "symbol": "sigma_mins",
-          "math": "σ_min(γ) 曲线",
-          "code": "sigma_mins: np.ndarray - 从第6步获得"
-        },
-        {
-          "symbol": "gammas",
-          "math": "γ 候选值",
-          "code": "gammas: np.ndarray - 对应的γ值数组"
-        }
+        { "symbol": "sigma_mins", "math": "sigma_min 曲线", "code": "List[float]" },
+        { "symbol": "gammas", "math": "gamma 网格", "code": "np.ndarray" }
       ],
       "formula": {
-        "expression": "\\nabla(\\gamma) = \\frac{\\partial \\sigma_{\\min}(\\gamma)}{\\partial \\gamma} \\approx \\frac{\\Delta \\sigma_{\\min}}{\\Delta \\gamma}",
+        "expression": "\\nabla(\\gamma_j) \\approx \\frac{\\Delta \\sigma_{\\min}}{\\Delta \\gamma}",
         "symbols": [
-          { "symbol": "∇(γ)", "meaning": "标准差最小值关于位置参数的梯度" },
-          { "symbol": "∂σ_min/∂γ", "meaning": "一阶偏导数" }
+          { "symbol": "gradient", "meaning": "sigma_min 对 gamma 的离散梯度" },
+          { "symbol": "offset", "meaning": "偏移判据阈值 delta" }
         ],
-        "explanation": "梯度反映了标准差随位置参数变化的敏感度。使用numpy的gradient函数计算数值梯度（使用中心差分法）"
+        "explanation": "梯度曲线与 offset 的关系决定位置参数估计值。"
       },
       "outputs": [
-        {
-          "symbol": "grads",
-          "math": "梯度数组 ∇(γ)",
-          "code": "grads: np.ndarray - 每个γ点对应的梯度值"
-        }
+        { "symbol": "grads", "math": "梯度曲线", "code": "np.ndarray" },
+        { "symbol": "diffs", "math": "gradient - offset", "code": "np.ndarray" }
       ],
       "otherVariables": []
     },
     {
       "id": 8,
-      "name": "梯度偏移判据寻优",
-      "description": "寻找梯度等于偏移值 δ=0.1 的点（而非导数为0的点），提高稳健性",
-      "codeLines": [58, 59, 60, 61, 62, 63, 64],
+      "name": "寻找 offset 交点",
+      "description": "在相邻离散点之间寻找 gradient - offset 的符号变化。",
+      "codeLines": [51, 52, 53, 54, 55, 56, 57],
       "inputs": [
-        {
-          "symbol": "grads",
-          "math": "梯度数组",
-          "code": "grads: np.ndarray - 从第7步获得"
-        },
-        {
-          "symbol": "gammas",
-          "math": "γ 候选值",
-          "code": "gammas: np.ndarray - 对应的γ值数组"
-        },
-        {
-          "symbol": "δ",
-          "math": "偏移阈值",
-          "code": "delta: float - 设为0.1",
-          "value": 0.1
-        }
+        { "symbol": "diffs", "math": "gradient - offset", "code": "np.ndarray" }
       ],
       "formula": {
-        "expression": "\\nabla(\\gamma^*) = \\delta = 0.1",
+        "expression": "(\\nabla_i-\\delta)(\\nabla_{i+1}-\\delta) \\leq 0",
         "symbols": [
-          { "symbol": "γ*", "meaning": "最优位置参数" },
-          { "symbol": "δ", "meaning": "偏移阈值，经验值取0.1" }
+          { "symbol": "root_bracket", "meaning": "包含 offset 交点的一对相邻离散点" }
         ],
-        "explanation": "由于统计不确定性，直接寻找σ的绝对最小值（即导数为0点）在小样本下可能导致偏差。MDM创新性地使用偏移判据：寻找梯度等于0.1的点，而非0的点。这显著提高了估计的稳健性"
+        "explanation": "若存在交点，继续用线性插值求 gamma；若不存在，则进入约束边界判断。"
       },
       "outputs": [
-        {
-          "symbol": "γ*",
-          "math": "最优位置参数",
-          "code": "found_gamma: float - 插值找到的最优γ值",
-          "value": 294.5
-        },
-        {
-          "symbol": "β*",
-          "math": "对应的形状参数",
-          "code": "found_beta: float - 插值找到的最优β值",
-          "value": 2.1
-        }
+        { "symbol": "root_bracket", "math": "交点括区", "code": "tuple | None" }
       ],
       "otherVariables": []
     },
     {
       "id": 9,
-      "name": "计算最终尺度参数 η",
-      "description": "使用最优的 γ* 和 β* 计算所有伪尺度参数的均值",
-      "codeLines": [66, 67, 68, 69, 70],
+      "name": "交点插值或边界截断",
+      "description": "有交点时按离散曲线插值；无交点且 gamma=0 处梯度仍高于 offset 时，说明无约束交点落在 gamma<0，按约束取 gamma=0。",
+      "codeLines": [59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
       "inputs": [
-        {
-          "symbol": "γ*",
-          "math": "最优位置参数",
-          "code": "found_gamma: float - 从第8步获得",
-          "value": 294.5
-        },
-        {
-          "symbol": "β*",
-          "math": "最优形状参数",
-          "code": "found_beta: float - 从第8步获得",
-          "value": 2.1
-        },
-        {
-          "symbol": "t",
-          "math": "失效时间数组（全局）",
-          "code": "t: np.ndarray - 全局变量"
-        },
-        {
-          "symbol": "-ln(1-F)",
-          "math": "中位秩的变换（全局）",
-          "code": "neg_ln_1_minus_F: np.ndarray - 从第2步获得"
-        }
+        { "symbol": "root_bracket", "math": "交点括区", "code": "tuple | None" },
+        { "symbol": "probe_gradient_at_zero", "math": "gamma=0 处梯度", "code": "float" }
       ],
       "formula": {
-        "expression": "\\hat{\\eta} = \\frac{1}{n}\\sum_{i=1}^n \\frac{t_i - \\hat{\\gamma}}{[-\\ln(1-F(t_i))]^{1/\\hat{\\beta}}}",
+        "expression": "\\hat\\gamma = \\gamma_i - (\\nabla_i-\\delta)\\frac{\\gamma_j-\\gamma_i}{\\nabla_j-\\nabla_i}; \\quad \\text{or}\\quad \\hat\\gamma=0",
         "symbols": [
-          { "symbol": "η̂", "meaning": "尺度参数的最终估计值" },
-          { "symbol": "t_i - γ̂", "meaning": "平移后的失效时间" },
-          { "symbol": "β̂, γ̂", "meaning": "估计的形状和位置参数" }
+          { "symbol": "offset_root", "meaning": "离散交点插值得到的解" },
+          { "symbol": "truncated_at_zero", "meaning": "gamma>=0 约束下的边界截断解" }
         ],
-        "explanation": "使用最优的β和γ，计算所有样本点的伪尺度参数，然后取均值作为最终的尺度参数估计。这相当于对n个独立估计值进行平均"
+        "explanation": "S4.9 将旧 no_intersection 的主要情形解释为负半轴交点被约束切除，因此返回 gamma=0 而不是失败。"
       },
       "outputs": [
-        {
-          "symbol": "η",
-          "math": "最终尺度参数",
-          "code": "found_eta: float - 尺度参数估计值",
-          "value": 115.8
-        }
+        { "symbol": "found_gamma", "math": "最终位置参数", "code": "float" },
+        { "symbol": "solution_strategy", "math": "求解策略", "code": "offset_root | truncated_at_zero" }
       ],
-      "otherVariables": [
-        {
-          "symbol": "etas",
-          "math": "伪尺度参数数组（最终）",
-          "code": "etas: np.ndarray - 用于计算均值"
-        }
-      ]
+      "otherVariables": []
     },
     {
       "id": 10,
-      "name": "计算拟合优度 R²",
-      "description": "评估模型与数据的拟合程度",
-      "codeLines": [72, 73, 74, 75, 76],
+      "name": "计算最终参数与 trace",
+      "description": "在最终 gamma 上重新优化 beta，计算 eta 与 R²，并返回与实际求解过程一致的 trace 字段。",
+      "codeLines": [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86],
       "inputs": [
-        {
-          "symbol": "β*",
-          "math": "估计的形状参数",
-          "code": "found_beta: float - 最终估计值",
-          "value": 2.1
-        },
-        {
-          "symbol": "γ*",
-          "math": "估计的位置参数",
-          "code": "found_gamma: float - 最终估计值",
-          "value": 294.5
-        },
-        {
-          "symbol": "η*",
-          "math": "估计的尺度参数",
-          "code": "found_eta: float - 最终估计值",
-          "value": 115.8
-        }
+        { "symbol": "found_gamma", "math": "最终位置参数", "code": "float" },
+        { "symbol": "solution_strategy", "math": "求解策略", "code": "str" }
       ],
       "formula": {
-        "expression": "R^2 = 1 - \\frac{\\sum(y_i - \\hat{y}_i)^2}{\\sum(y_i - \\bar{y})^2}",
+        "expression": "\\hat\\eta = \\frac{1}{n}\\sum_{i=1}^{n}\\frac{t_i-\\hat\\gamma}{x_i^{1/\\hat\\beta}}",
         "symbols": [
-          { "symbol": "R²", "meaning": "决定系数，取值范围通常在0到1之间" },
-          { "symbol": "y_i", "meaning": "观测的经验累积概率（中位秩）" },
-          { "symbol": "ŷ_i", "meaning": "模型预测的累积概率" },
-          { "symbol": "ȳ", "meaning": "y_i的均值" }
+          { "symbol": "found_beta", "meaning": "最终形状参数" },
+          { "symbol": "found_eta", "meaning": "最终尺度参数" },
+          { "symbol": "trace_data", "meaning": "用于前端可视化的真实过程量" }
         ],
-        "explanation": "R²衡量模型解释数据变异的比例。R²>0.95表示拟合效果良好。注意：R²越高说明模型拟合越好，但过高的R²也可能意味着过拟合"
+        "explanation": "trace_data 会标明 search_strategy、solution_strategy、constraint 和 gamma_steps，前端据此展示实际求解过程。"
       },
       "outputs": [
-        {
-          "symbol": "R²",
-          "math": "拟合优度",
-          "code": "r2: float - 决定系数",
-          "value": 0.978
-        }
+        { "symbol": "beta", "math": "形状参数估计值", "code": "float" },
+        { "symbol": "eta", "math": "尺度参数估计值", "code": "float" },
+        { "symbol": "gamma", "math": "位置参数估计值", "code": "float" },
+        { "symbol": "trace_data", "math": "计算过程数据", "code": "dict" }
       ],
-      "otherVariables": [
-        {
-          "symbol": "F",
-          "math": "中位秩数组（全局）",
-          "code": "F: np.ndarray - 从公式计算"
-        },
-        {
-          "symbol": "F_pred",
-          "math": "模型预测的累积概率",
-          "code": "F_pred: np.ndarray - 预测值"
-        }
-      ]
+      "otherVariables": []
     }
   ]
 }
