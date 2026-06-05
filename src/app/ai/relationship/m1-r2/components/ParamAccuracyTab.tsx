@@ -121,6 +121,9 @@ export function ParamAccuracyTab() {
         <p className="text-xs text-blue-600">
           展示 M1-R2 迭代逼近后 (β̂, η̂, γ̂) 与真值的对比。仅统计 MDM 成功返回结果的样本。
         </p>
+        <p className="text-xs text-amber-600 mt-2 font-medium">
+          ⚠ 注：本页 MDM 成功/失败筛选基于 S4.9 前历史旧口径（旧版 MDM 的 no_intersection 机制），S4.9 后默认 MDM 已重写，待重算更新。
+        </p>
       </div>
 
       {/* 汇总指标 */}

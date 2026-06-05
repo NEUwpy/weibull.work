@@ -311,7 +311,7 @@ def main():
     data = {
         'meta': {
             'generated': '2026-06-05',
-            'description': 'MSE-delta curve properties study for MDM method (S4.9: geometric gamma grid, truncation rule instead of failure)',
+            'description': 'MSE-delta curve properties study for MDM method (S4.9: geometric gamma grid, offset_root / truncated_at_zero / no_offset_root semantics)',
             'param_space': {
                 'beta': [0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0],
                 'eta': 1000.0,

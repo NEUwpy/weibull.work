@@ -4,7 +4,7 @@
  * 展示 MDM 方法中 MSE(δ) 曲线的数学性质研究结果：
  * 1. 曲线概览 — 选择案例查看 MSE(δ) 曲线 + 分量
  * 2. 跨案例汇总 — 所有案例的关键指标表
- * 3. MDM 梯度上限分析 — max(∇σ) 与 β 的关系（S4.9：失败已改为截断规则）
+ * 3. MDM 梯度上限分析 — max(∇σ) 与 β 的关系（S4.9：区分边界截断和诊断失败）
  * 4. 搜索策略对比 — 效率 vs 精度
  * 5. 结论与建议
  */
@@ -271,14 +271,14 @@ function CurveOverview({
               />
             )}
 
-            {/* Gradient upper limit */}
+            {/* Diagnostic failure boundary */}
             {selected.failure_delta && (
               <ReferenceLine
                 x={selected.failure_delta}
                 stroke={COLORS.failure}
                 strokeWidth={2}
                 strokeDasharray="4 4"
-                label={{ value: `梯度上限 δ`, position: 'top', style: { fontSize: 11, fontWeight: 'bold', fill: COLORS.failure } }}
+                label={{ value: `诊断失败起点`, position: 'top', style: { fontSize: 11, fontWeight: 'bold', fill: COLORS.failure } }}
               />
             )}
           </LineChart>
@@ -291,8 +291,8 @@ function CurveOverview({
         <InfoCard label="最小 MSE" value={selected.best_mse?.toFixed(6) ?? 'N/A'} color="text-green-600" />
         <InfoCard label="曲线形状" value={SHAPE_LABELS[selected.shape] || selected.shape} color="text-blue-600" />
         <InfoCard
-          label="梯度上限 δ"
-          value={selected.failure_delta?.toFixed(3) ?? '无截断'}
+          label="诊断失败起点"
+          value={selected.failure_delta?.toFixed(3) ?? '未触发'}
           color={selected.failure_delta ? 'text-amber-600' : 'text-slate-500'}
         />
       </div>
@@ -322,7 +322,7 @@ function CrossCaseSummary({ samples }: { samples: CurveSample[] }) {
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">最优 δ</th>
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">最小 MSE</th>
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">曲线形状</th>
-              <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">截断阈值 δ</th>
+              <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">诊断失败 δ</th>
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">有效率</th>
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">max(∇σ)</th>
             </tr>
@@ -425,7 +425,7 @@ function FailureAnalysis({
             <h4 className="text-sm font-bold text-slate-800 mb-2">关键发现</h4>
             <ul className="text-sm text-slate-600 space-y-1.5">
               <li>• max(∇σ) 随 β 非单调变化</li>
-              <li>• β=3.0 时 max(∇σ) 最低（~0.32），截断阈值最窄</li>
+              <li>• β=3.0 时 max(∇σ) 最低（~0.32），可用 offset 范围最窄</li>
               <li>• β=0.5 时 max(∇σ) 极高（~27.6），几乎不受限</li>
               <li>• 不同随机种子的 max(∇σ) 不同（样本依赖）</li>
             </ul>
