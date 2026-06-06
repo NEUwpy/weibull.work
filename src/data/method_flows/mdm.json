@@ -1,11 +1,11 @@
 {
   "methodId": "mdm",
   "methodName": "最小差异法 (MDM)",
-  "description": "通过最小化伪尺度参数的标准差来估计参数，使用离散梯度偏移判据确定位置参数，并在交点落到 gamma<0 时按 gamma>=0 约束截断。",
+  "description": "通过最小化伪尺度参数的标准差来估计参数，使用 g(0) 探测、近 t_min 右端括弧和 Brent 定根确定位置参数，并在交点落到 gamma<0 时按 gamma>=0 约束截断。",
   "code": [
-    "# S4.9 MDM：离散搜索 + 几何加密 gamma 网格 + 约束边界规则",
+    "# S4.9.3 MDM：离散 trace + g(0) 探测 + 右端括弧 + Brent 定根",
     "import numpy as np",
-    "from scipy.optimize import minimize_scalar",
+    "from scipy.optimize import minimize_scalar, root_scalar",
     "",
     "# ========== 第1步：数据预处理 ==========",
     "t = np.array(sorted([x for x in data if x > 0]))",
@@ -41,7 +41,7 @@
     "    )",
     "    return result.x, result.fun",
     "",
-    "# ========== 第6步：外层离散搜索 gamma ==========",
+    "# ========== 第6步：外层离散采样 gamma ==========",
     "sigma_mins = []",
     "best_betas = []",
     "for gamma in gammas:",
@@ -49,29 +49,38 @@
     "    sigma_mins.append(sigma_min)",
     "    best_betas.append(beta)",
     "",
-    "# ========== 第7步：计算离散梯度 ==========",
-    "grads = np.gradient(sigma_mins, gammas)",
+    "# ========== 第7步：用求解器同源函数计算廓线梯度 ==========",
+    "def profile_gradient(gamma):",
+    "    # 与后端求解器一致：对 profile sigma 做稳定有限差分",
+    "    return finite_difference(lambda g: best_beta_for_gamma(g)[1], gamma)",
+    "",
+    "grads = np.array([profile_gradient(gamma) for gamma in gammas])",
     "diffs = grads - offset",
     "",
-    "# ========== 第8步：寻找梯度曲线与 offset 的交点 ==========",
-    "root_bracket = None",
+    "# ========== 第8步：同源采样曲线记录交点诊断 ==========",
+    "legacy_grid_crossing = None",
     "for i in range(len(diffs) - 1):",
     "    if diffs[i] == 0 or diffs[i + 1] == 0 or diffs[i] * diffs[i + 1] < 0:",
-    "        root_bracket = (i, i + 1)",
+    "        legacy_grid_crossing = (i, i + 1)",
     "        break",
     "",
-    "# ========== 第9步：交点插值或边界截断 ==========",
-    "if root_bracket is not None:",
-    "    i, j = root_bracket",
-    "    found_gamma = gammas[i] - diffs[i] * (gammas[j] - gammas[i]) / (diffs[j] - diffs[i])",
-    "    solution_strategy = 'offset_root'",
+    "# ========== 第9步：g(0) 探测 + 右端括弧 + Brent 定根 ==========",
+    "probe_gradient_at_zero = profile_gradient(0.0)",
+    "if probe_gradient_at_zero >= offset:",
+    "    found_gamma = 0.0",
+    "    solution_strategy = 'truncated_at_zero'",
     "else:",
-    "    probe_gradient_at_zero = grads[np.argmin(np.abs(gammas))]",
-    "    if probe_gradient_at_zero >= offset:",
-    "        found_gamma = 0.0",
-    "        solution_strategy = 'truncated_at_zero'",
-    "    else:",
-    "        return None, None, None, None, 'no_intersection'",
+    "    right_gamma, right_gradient = find_right_anchor_near_t_min()",
+    "    # 即使当前右端锚点仍低于 offset，也按 S4.9.3 向 t_min 近端补出交点",
+    "    root = solve_offset_root_from_right_edge(",
+    "        left_gamma=0.0,",
+    "        right_grid_gamma=right_gamma,",
+    "        right_grid_gradient=right_gradient,",
+    "        t_min=t_min,",
+    "        offset=offset",
+    "    )",
+    "    found_gamma = root.gamma",
+    "    solution_strategy = 'brent_root'",
     "",
     "# ========== 第10步：计算最终 beta、eta、R²，并返回 trace ==========",
     "found_beta, _ = best_beta_for_gamma(found_gamma)",
@@ -80,10 +89,11 @@
     "r2 = calculate_r2(found_beta, found_eta, found_gamma)",
     "",
     "trace_data = {",
-    "    'grad_gamma_curve': list(zip(gammas, grads, sigma_mins, best_betas)),",
+    "    'grad_gamma_curve': build_solver_trace_curve(gammas, grads, found_gamma, offset),",
     "    'search_strategy': 'geometric_from_tmin',",
     "    'solution_strategy': solution_strategy,",
     "    'constraint': 'gamma >= 0',",
+    "    'legacy_grid_crossing': legacy_grid_crossing,",
     "    'gamma_steps': gamma_steps",
     "}",
     "",
@@ -233,20 +243,20 @@
     },
     {
       "id": 7,
-      "name": "计算离散梯度",
-      "description": "用离散差分计算 sigma_min 关于 gamma 的梯度曲线。",
+      "name": "计算同源廓线梯度",
+      "description": "用与后端求解器相同的 profile_gradient 计算 sigma_min 关于 gamma 的梯度曲线。",
       "codeLines": [47, 48, 49],
       "inputs": [
         { "symbol": "sigma_mins", "math": "sigma_min 曲线", "code": "List[float]" },
         { "symbol": "gammas", "math": "gamma 网格", "code": "np.ndarray" }
       ],
       "formula": {
-        "expression": "\\nabla(\\gamma_j) \\approx \\frac{\\Delta \\sigma_{\\min}}{\\Delta \\gamma}",
+        "expression": "g(\\gamma_j)=\\frac{\\partial \\sigma_{\\min}(\\gamma)}{\\partial \\gamma}\\bigg|_{\\gamma=\\gamma_j}",
         "symbols": [
-          { "symbol": "gradient", "meaning": "sigma_min 对 gamma 的离散梯度" },
+          { "symbol": "gradient", "meaning": "求解器同源的廓线梯度" },
           { "symbol": "offset", "meaning": "偏移判据阈值 delta" }
         ],
-        "explanation": "梯度曲线与 offset 的关系决定位置参数估计值。"
+        "explanation": "trace 曲线和后端 Brent/root solver 使用同一套 g(gamma)，避免展示曲线与实际定根函数不一致。"
       },
       "outputs": [
         { "symbol": "grads", "math": "梯度曲线", "code": "np.ndarray" },
@@ -256,8 +266,8 @@
     },
     {
       "id": 8,
-      "name": "寻找 offset 交点",
-      "description": "在相邻离散点之间寻找 gradient - offset 的符号变化。",
+      "name": "记录同源曲线诊断",
+      "description": "在同源采样点之间检查 gradient - offset 的符号变化；最终结果仍由 g(0) 探测和右端求解器确定。",
       "codeLines": [51, 52, 53, 54, 55, 56, 57],
       "inputs": [
         { "symbol": "diffs", "math": "gradient - offset", "code": "np.ndarray" }
@@ -265,35 +275,36 @@
       "formula": {
         "expression": "(\\nabla_i-\\delta)(\\nabla_{i+1}-\\delta) \\leq 0",
         "symbols": [
-          { "symbol": "root_bracket", "meaning": "包含 offset 交点的一对相邻离散点" }
+          { "symbol": "legacy_grid_crossing", "meaning": "同源 trace 曲线上是否观察到 offset 交点" }
         ],
-        "explanation": "若存在交点，继续用线性插值求 gamma；若不存在，则进入约束边界判断。"
+        "explanation": "S4.9.3 起固定采样点不再作为唯一求解器；trace 会额外写入后端实际根点，使前端展示与后端结果一致。"
       },
       "outputs": [
-        { "symbol": "root_bracket", "math": "交点括区", "code": "tuple | None" }
+        { "symbol": "legacy_grid_crossing", "math": "同源曲线交点诊断", "code": "tuple | None" }
       ],
       "otherVariables": []
     },
     {
       "id": 9,
-      "name": "交点插值或边界截断",
-      "description": "有交点时按离散曲线插值；无交点且 gamma=0 处梯度仍高于 offset 时，说明无约束交点落在 gamma<0，按约束取 gamma=0。",
+      "name": "Brent 定根或右端补交点",
+      "description": "先探测 gamma=0 处梯度；若根在负半轴则截断到 0，否则以最右网格点和 t_min 近端形成拟合/括弧并求交点。",
       "codeLines": [59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
       "inputs": [
-        { "symbol": "root_bracket", "math": "交点括区", "code": "tuple | None" },
-        { "symbol": "probe_gradient_at_zero", "math": "gamma=0 处梯度", "code": "float" }
+        { "symbol": "probe_gradient_at_zero", "math": "gamma=0 处梯度", "code": "float" },
+        { "symbol": "right_anchor", "math": "贴近 t_min 的右端锚点", "code": "tuple[float, float]" }
       ],
       "formula": {
-        "expression": "\\hat\\gamma = \\gamma_i - (\\nabla_i-\\delta)\\frac{\\gamma_j-\\gamma_i}{\\nabla_j-\\nabla_i}; \\quad \\text{or}\\quad \\hat\\gamma=0",
+        "expression": "g(0)\\ge\\delta \\Rightarrow \\hat\\gamma=0; \\quad g(0)<\\delta \\Rightarrow g(\\hat\\gamma)=\\delta,\\ \\hat\\gamma\\in(0,t_{\\min})",
         "symbols": [
-          { "symbol": "offset_root", "meaning": "离散交点插值得到的解" },
-          { "symbol": "truncated_at_zero", "meaning": "gamma>=0 约束下的边界截断解" }
+          { "symbol": "brent_root", "meaning": "右端括弧 + Brent 定根得到的内点解" },
+          { "symbol": "truncated_at_zero", "meaning": "无约束根在 gamma<0 时的下边界截断解" },
+          { "symbol": "right_edge_fit", "meaning": "最右网格点仍低于 offset 时向 t_min 近端补交点" }
         ],
-        "explanation": "S4.9 将旧 no_intersection 的主要情形解释为负半轴交点被约束切除，因此返回 gamma=0 而不是失败。"
+        "explanation": "full.md 第 9.1 节指出，g(0)<offset 时应主动向 t_min 构造右端括弧并定根，而不是依赖离散网格是否碰巧采到交点。"
       },
       "outputs": [
         { "symbol": "found_gamma", "math": "最终位置参数", "code": "float" },
-        { "symbol": "solution_strategy", "math": "求解策略", "code": "offset_root | truncated_at_zero" }
+        { "symbol": "solution_strategy", "math": "求解策略", "code": "brent_root | truncated_at_zero" }
       ],
       "otherVariables": []
     },
@@ -313,7 +324,7 @@
           { "symbol": "found_eta", "meaning": "最终尺度参数" },
           { "symbol": "trace_data", "meaning": "用于前端可视化的真实过程量" }
         ],
-        "explanation": "trace_data 会标明 search_strategy、solution_strategy、constraint 和 gamma_steps，前端据此展示实际求解过程。"
+        "explanation": "trace_data 会标明 search_strategy、solution_strategy、root_solver、constraint、legacy_grid_crossing 和 gamma_steps，前端据此展示实际求解过程。"
       },
       "outputs": [
         { "symbol": "beta", "math": "形状参数估计值", "code": "float" },

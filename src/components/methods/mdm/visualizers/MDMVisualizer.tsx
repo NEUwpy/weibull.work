@@ -43,7 +43,14 @@ interface TraceData {
   probe_gradient_at_zero?: number
   root_bracket?: {
     left: { gamma: number; gradient: number; diff?: number }
-    right: { gamma: number; gradient: number; diff?: number }
+    right: { gamma: number; gradient: number; diff?: number; virtual?: boolean }
+  } | null
+  root_solver?: string | null
+  right_edge_extrapolation?: {
+    gamma: number
+    anchor_gradient: number
+    virtual_gradient: number
+    model: string
   } | null
   gamma_steps?: number
   data?: number[]  // Original data for 3D surface calculation
@@ -53,41 +60,6 @@ interface MDMVisualizerProps {
   traceData: TraceData
   methodId?: string  // For API calls
   dataSources?: DataSource[]  // 多选数据源，用于叠加显示
-}
-
-function findGammaForOffset(
-  curve: TraceData['grad_gamma_curve'],
-  delta: number,
-  backendGamma?: number
-) {
-  if (!curve || curve.length === 0) return backendGamma ?? 0
-
-  for (let i = 0; i < curve.length - 1; i++) {
-    const curr = curve[i]
-    const next = curve[i + 1]
-    const currDiff = curr.gradient - delta
-    const nextDiff = next.gradient - delta
-    const crossed = currDiff === 0 || nextDiff === 0 || currDiff * nextDiff < 0
-
-    if (crossed) {
-      if (currDiff === 0) return curr.gamma
-      if (nextDiff === 0) return next.gamma
-      const ratio = Math.abs(currDiff / (curr.gradient - next.gradient))
-      return curr.gamma + ratio * (next.gamma - curr.gamma)
-    }
-  }
-
-  const zeroPoint = curve.reduce((closest, point) => {
-    return Math.abs(point.gamma) < Math.abs(closest.gamma) ? point : closest
-  }, curve[0])
-
-  if (zeroPoint.gradient >= delta) {
-    return 0
-  }
-
-  return curve.reduce((highest, point) => {
-    return point.gamma > highest.gamma ? point : highest
-  }, curve[0]).gamma
 }
 
 export default function MDMVisualizer({ traceData, methodId = 'mdm', dataSources }: MDMVisualizerProps) {
@@ -104,8 +76,7 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm', dataSources
 
   // For optimal mode: the gamma used for left chart curve (only updates on refresh)
   const [chartGamma, setChartGamma] = useState(() => {
-    const initialDelta = traceData.target_offset ?? 0.1
-    return findGammaForOffset(traceData.grad_gamma_curve || [], initialDelta, traceData.optimal_gamma)
+    return traceData.optimal_gamma ?? 0
   })
 
   // Gamma slider state for original view (shape parameter optimization)
@@ -133,37 +104,35 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm', dataSources
     ? traceData.sigma_beta_gamma!.length 
     : (traceData.grad_gamma_curve?.length || 0)
 
-  // Calculate optimal gamma based on current delta offset
-  // Find the gamma where gradient crosses the delta threshold
+  // The optimal gamma shown here is the backend result for this trace.
+  // The delta slider only moves the reference threshold line.
   const optimalGammaFromDelta = useMemo(() => {
-    if (Math.abs(deltaOffset - (traceData.target_offset ?? 0.1)) < 1e-12) {
-      return traceData.optimal_gamma ?? 0
-    }
-    return findGammaForOffset(traceData.grad_gamma_curve, deltaOffset, traceData.optimal_gamma)
-  }, [deltaOffset, traceData])
+    return traceData.optimal_gamma ?? 0
+  }, [traceData.optimal_gamma])
 
   const solutionLabel = useMemo(() => {
     switch (traceData.solution_strategy) {
-      case 'offset_root':
-        return '离散交点'
+      case 'brent_root':
+        return traceData.root_solver === 'right_edge_fit' ? '右端补交点' : 'Brent 定根'
       case 'truncated_at_zero':
         return '边界截断'
-      case 'no_offset_root':
-        return '未找到交点'
       default:
-        return '离散判据'
+        return '偏移判据'
     }
-  }, [traceData.solution_strategy])
+  }, [traceData.solution_strategy, traceData.root_solver])
 
   const solutionDescription = useMemo(() => {
     if (traceData.solution_strategy === 'truncated_at_zero') {
       return '梯度曲线在 γ=0 处仍高于当前 δ，说明无约束交点落在 γ<0；本次结果按 γ≥0 约束取 γ=0。'
     }
-    if (traceData.solution_strategy === 'offset_root') {
-      return '最优 γ 由离散梯度曲线与 δ 阈值的交点线性插值得到。'
+    if (traceData.solution_strategy === 'brent_root' && traceData.root_solver === 'right_edge_fit') {
+      return '后端同一 g(γ) 采样记录显示右端仍低于 δ；本次求解按 S4.9.3 右端近 t₁ 补交点规则给出内点 γ。'
     }
-    return '本次结果来自后端返回的 MDM 离散搜索过程。'
-  }, [traceData.solution_strategy])
+    if (traceData.solution_strategy === 'brent_root') {
+      return '后端先探测 g(0)，再用右端括弧和 Brent 法求解 g(γ)=δ。'
+    }
+    return '本次结果来自后端返回的 MDM 偏移判据过程。'
+  }, [traceData.solution_strategy, traceData.root_solver])
 
   // Get the currently selected gamma data for left chart
   // In optimal mode: use chartGamma (only updates on refresh)
@@ -710,10 +679,12 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm', dataSources
               <p className="text-sm text-slate-500">
                 {traceData.solution_strategy === 'truncated_at_zero'
                   ? '当前 δ 下无约束交点位于 γ<0，最佳位置参数按约束截断为 γ=0。'
-                  : '∇(γ) 曲线与补偿阈值 δ 的交点即为最佳位置参数。'}
+                  : traceData.root_solver === 'right_edge_fit'
+                    ? '后端同一 g(γ) 采样记录未覆盖右端急升段，本次求解使用右端补交点规则确定最佳位置参数。'
+                    : '后端使用 g(0) 探测和右端括弧求解 g(γ)=δ，图中曲线来自同一求解函数。'}
                 <span className="text-blue-600 font-medium">竖线</span>标示当前选择的 γ 值，
                 <span className="text-emerald-600 font-medium">绿色虚线</span>为 δ 阈值。
-                <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>
+                <span className="text-blue-600 font-medium"> 最优γ来自本次后端 trace</span>
               </p>
             </div>
 
@@ -795,10 +766,12 @@ export default function MDMVisualizer({ traceData, methodId = 'mdm', dataSources
               <p className="text-sm text-slate-500">
                 {traceData.solution_strategy === 'truncated_at_zero'
                   ? '当前 δ 下无约束交点位于 γ<0，最佳位置参数按约束截断为 γ=0。'
-                  : '∇(γ) 曲线与补偿阈值 δ 的交点即为最佳位置参数。'}
+                  : traceData.root_solver === 'right_edge_fit'
+                    ? '后端同一 g(γ) 采样记录未覆盖右端急升段，本次求解使用右端补交点规则确定最佳位置参数。'
+                    : '后端使用 g(0) 探测和右端括弧求解 g(γ)=δ，图中曲线来自同一求解函数。'}
                 <span className="text-blue-600 font-medium">竖线</span>标示当前选择的 γ 值，
                 <span className="text-emerald-600 font-medium">绿色虚线</span>为 δ 阈值。
-                <span className="text-blue-600 font-medium"> 拖动δ滑动条自动更新最优γ</span>
+                <span className="text-blue-600 font-medium"> 最优γ来自本次后端 trace</span>
               </p>
             </div>
 

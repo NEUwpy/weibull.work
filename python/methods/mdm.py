@@ -8,7 +8,7 @@ Minimum Discrepancy Method
 
 from base import WeibullBase
 import numpy as np
-from scipy.optimize import minimize_scalar
+from scipy.optimize import minimize_scalar, root_scalar
 
 
 def _json_float(value):
@@ -84,10 +84,11 @@ class MDM(WeibullBase):
             rank_method (str): Median rank method - 'bernard' or 'exact' (default 'bernard').
 
         Returns:
-            (beta, eta, gamma, r_squared, status) where status is True for a solved
-            offset root or boundary truncation. "no_intersection" is retained only
-            for extreme diagnostic cases where neither an in-domain root nor the
-            gamma=0 truncation rule applies.
+            (beta, eta, gamma, r_squared, status) where status is True for either
+            an in-domain offset root or the gamma=0 constraint truncation. The
+            default engineering solver follows the S4.9.3 rule: probe g(0),
+            bracket near t_min, solve by Brent when possible, and use a right
+            edge fit when the fixed trace grid still misses the near-t_min root.
         """
         if offset is None:
             raise ValueError("offset parameter is required (e.g., offset=0.1)")
@@ -126,15 +127,104 @@ class MDM(WeibullBase):
         # @symbols: \beta^*(\gamma)|\beta^*(\gamma)|给定γ时的最优β
         # @inputs: gamma|\gamma|位置参数候选值
         # @outputs: best_beta|\beta^*|最优β值, min_sigma|\sigma_{min}|最小标准差
+        beta_sigma_cache = {}
+        profile_gradient_cache = {}
+
         def find_best_beta_for_gamma(gamma):
             if gamma >= t[0]:
                 return None, float('inf')
+            cache_key = float(gamma)
+            if cache_key in beta_sigma_cache:
+                return beta_sigma_cache[cache_key]
             res = minimize_scalar(
                 lambda b: calculate_eta_std(b, gamma, t),
                 bounds=(0.1, 15.0),
                 method='bounded'
             )
-            return res.x, res.fun
+            beta_sigma_cache[cache_key] = (res.x, res.fun)
+            return beta_sigma_cache[cache_key]
+
+        def profile_sigma(gamma):
+            _, sigma = find_best_beta_for_gamma(float(gamma))
+            return float(sigma)
+
+        def profile_gradient(gamma):
+            """Finite-difference derivative of the profiled sigma curve."""
+            gamma = float(gamma)
+            cache_key = gamma
+            if cache_key in profile_gradient_cache:
+                return profile_gradient_cache[cache_key]
+            t_min_float = float(t_min)
+            scale = max(abs(t_min_float), 1.0)
+            nominal_h = scale * 1e-5
+            left_room = max(gamma, 0.0)
+            right_room = max(t_min_float - gamma, 0.0)
+
+            if right_room <= 0:
+                return float("inf")
+
+            if gamma <= 0.0 or left_room <= nominal_h:
+                h = min(nominal_h, right_room * 0.25)
+                h = max(h, np.finfo(float).eps * scale)
+                gradient = (profile_sigma(gamma + h) - profile_sigma(gamma)) / h
+                profile_gradient_cache[cache_key] = float(gradient)
+                return profile_gradient_cache[cache_key]
+
+            if right_room <= nominal_h:
+                h = min(nominal_h, left_room * 0.25, right_room * 0.5)
+                h = max(h, np.finfo(float).eps * scale)
+                gradient = (profile_sigma(gamma) - profile_sigma(gamma - h)) / h
+                profile_gradient_cache[cache_key] = float(gradient)
+                return profile_gradient_cache[cache_key]
+
+            h = min(nominal_h, left_room * 0.25, right_room * 0.25)
+            h = max(h, np.finfo(float).eps * scale)
+            gradient = (profile_sigma(gamma + h) - profile_sigma(gamma - h)) / (2.0 * h)
+            profile_gradient_cache[cache_key] = float(gradient)
+            return profile_gradient_cache[cache_key]
+
+        def find_right_anchor():
+            """Probe points increasingly close to t_min until g(gamma) exceeds offset."""
+            t_min_float = float(t_min)
+            min_gap = max(abs(t_min_float) * 1e-12, 1e-12)
+            gaps = np.geomspace(max(abs(t_min_float) * 1e-3, min_gap), min_gap, 24)
+
+            best_anchor = None
+            for gap in gaps:
+                gamma = max(0.0, t_min_float - float(gap))
+                if gamma >= t_min_float:
+                    gamma = t_min_float - min_gap
+                grad = float(profile_gradient(gamma))
+                if not np.isfinite(grad):
+                    continue
+                anchor = (gamma, grad)
+                if best_anchor is None or gamma > best_anchor[0]:
+                    best_anchor = anchor
+                if grad >= offset:
+                    return anchor
+
+            if best_anchor is not None:
+                return best_anchor
+
+            gamma = max(0.0, t_min_float - min_gap)
+            return gamma, float(profile_gradient(gamma))
+
+        def fit_right_edge_root(anchor_gamma, anchor_gradient):
+            """Return an interior root estimate when the sampled right edge is still below offset."""
+            t_min_float = float(t_min)
+            virtual_gamma = float(np.nextafter(t_min_float, 0.0))
+            if virtual_gamma <= anchor_gamma:
+                gap = max(t_min_float - float(anchor_gamma), 0.0)
+                fallback_gap = max(gap * 0.5, np.finfo(float).eps * max(abs(t_min_float), 1.0))
+                virtual_gamma = min(t_min_float - fallback_gap, float(np.nextafter(t_min_float, 0.0)))
+            virtual_gamma = min(max(float(virtual_gamma), 0.0), float(np.nextafter(t_min_float, 0.0)))
+
+            return {
+                "gamma": virtual_gamma,
+                "anchor_gradient": float(anchor_gradient),
+                "virtual_gradient": float(offset),
+                "model": "right_endpoint_asymptote",
+            }
 
         # @step: 5 | 初始化搜索范围 | 设置 γ 的离散候选网格，约束条件：0 <= γ < t_min
         # @formula: \gamma_j = t_{\min} - d_j,\quad d_j \in \text{geomspace}(\epsilon, t_{\min})
@@ -160,62 +250,96 @@ class MDM(WeibullBase):
         sigma_mins = np.array(sigma_mins, dtype=float)
         best_betas = np.array(best_betas, dtype=float)
 
-        # @step: 7 | 计算离散梯度 | 计算 σ_min(γ) 关于 γ 的数值梯度
-        # @formula: \nabla(\gamma) = \frac{\partial \sigma_{\min}(\gamma)}{\partial \gamma} \approx \frac{\Delta \sigma_{\min}}{\Delta \gamma}
+        # @step: 7 | 计算廓线梯度 | 使用与求解器相同的 profile_gradient 计算 g(gamma)
+        # @formula: g(\gamma) = \frac{\partial \sigma_{\min}(\gamma)}{\partial \gamma}
         # @symbols: \nabla(\gamma)|\nabla|梯度值
         # @inputs: sigma_mins|\sigma_{min}|标准差数组, gammas|\gamma|γ数组
         # @outputs: grads|\nabla|梯度数组
-        grads = np.gradient(sigma_mins, gammas)
+        grads = np.array([profile_gradient(g) for g in gammas], dtype=float)
 
-        # @step: 8 | 检查 offset 交点 | 检查梯度曲线与偏移阈值是否有交点
+        # @step: 8 | 离散曲线诊断 | 保留离散梯度曲线用于 trace，可视化和历史对照
         # @formula: \nabla(\gamma^*) = \delta
         # @symbols: \delta|\delta|偏移阈值(offset)
         # @inputs: grads|\nabla|梯度数组, offset|\delta|偏移阈值
         # @outputs: root_info|root|交点插值结果, diffs|\nabla-\delta|梯度差值数组
         root_info, diffs = _find_offset_crossing(gammas, grads, offset)
 
-        # @step: 9 | 线性插值或边界截断 | 使用离散曲线交点确定 γ；若根被 γ>=0 约束切除，则取 γ=0
-        # @formula: \gamma^* = \gamma_i - (\nabla_i - \delta) \cdot \frac{\gamma_{i+1} - \gamma_i}{\nabla_{i+1} - \nabla_i}
+        # @step: 9 | 始终有解求解器 | 探测 g(0)，近 t_min 构造右端括弧，Brent 定根或边界截断
+        # @formula: g(0)\ge\delta \Rightarrow \hat{\gamma}=0;\quad g(0)<\delta \Rightarrow g(\hat{\gamma})=\delta
         # @symbols: \gamma^*|\gamma^*|最优位置参数
         # @inputs: root_info|root|交点结果, grads|\nabla|梯度数组, offset|\delta|偏移阈值
         # @outputs: found_gamma|\gamma^*|最优γ值, solution_strategy|strategy|求解策略
-        zero_idx = int(np.argmin(np.abs(gammas)))
-        probe_gradient_at_zero = float(grads[zero_idx])
+        probe_gradient_at_zero = float(profile_gradient(0.0))
         root_bracket = None
+        root_solver = None
+        root_solver_iterations = 0
+        right_anchor_gamma = None
+        right_anchor_gradient = None
+        right_edge_extrapolation = None
+        legacy_grid_crossing = root_info is not None
 
-        if root_info is not None:
-            found_gamma, root_bracket = root_info
-            found_gamma = min(max(float(found_gamma), 0.0), float(t_min) - 1e-12)
-            found_beta, _ = find_best_beta_for_gamma(found_gamma)
-            solution_strategy = "offset_root"
-        elif probe_gradient_at_zero >= offset:
+        if probe_gradient_at_zero >= offset:
             found_gamma = 0.0
             found_beta, _ = find_best_beta_for_gamma(found_gamma)
             solution_strategy = "truncated_at_zero"
         else:
-            # 极端情形：默认 offset 下通常不会进入这里。保留显式状态，便于诊断过高 offset 或异常样本。
-            if trace:
-                self.trace_data = {
-                    "grad_gamma_curve": [
-                        {
-                            "gamma": float(gammas[i]),
-                            "gradient": float(grads[i]),
-                            "sigma_min": float(sigma_mins[i]),
-                            "best_beta": float(best_betas[i]),
-                        }
-                        for i in range(len(gammas))
-                    ],
-                    "target_offset": offset,
-                    "search_strategy": "geometric_from_tmin",
-                    "solution_strategy": "no_offset_root",
-                    "constraint": "gamma >= 0",
-                    "probe_gradient_at_zero": probe_gradient_at_zero,
-                    "root_bracket": None,
-                    "gamma_steps": int(max(4, int(gamma_steps))),
-                    "optimal_gamma": None,
-                    "optimal_beta": None,
+            right_anchor_gamma, right_anchor_gradient = find_right_anchor()
+            right_diff = right_anchor_gradient - offset
+            left_diff = probe_gradient_at_zero - offset
+
+            if right_diff >= 0:
+                root_bracket = {
+                    "left": {
+                        "gamma": 0.0,
+                        "gradient": _json_float(probe_gradient_at_zero),
+                        "diff": _json_float(left_diff),
+                    },
+                    "right": {
+                        "gamma": _json_float(right_anchor_gamma),
+                        "gradient": _json_float(right_anchor_gradient),
+                        "diff": _json_float(right_diff),
+                    },
                 }
-            return None, None, None, None, "no_intersection"
+
+                def root_objective(gamma):
+                    return profile_gradient(gamma) - offset
+
+                root = root_scalar(
+                    root_objective,
+                    bracket=(0.0, float(right_anchor_gamma)),
+                    method="brentq",
+                    xtol=1e-8,
+                    rtol=1e-10,
+                    maxiter=80,
+                )
+                found_gamma = float(root.root)
+                found_gamma = min(max(found_gamma, 0.0), float(t_min) - 1e-12)
+                found_beta, _ = find_best_beta_for_gamma(found_gamma)
+                solution_strategy = "brent_root"
+                root_solver = "brent"
+                root_solver_iterations = int(root.iterations)
+            else:
+                right_edge_extrapolation = fit_right_edge_root(
+                    right_anchor_gamma,
+                    right_anchor_gradient,
+                )
+                found_gamma = right_edge_extrapolation["gamma"]
+                found_beta, _ = find_best_beta_for_gamma(found_gamma)
+                solution_strategy = "brent_root"
+                root_solver = "right_edge_fit"
+                root_bracket = {
+                    "left": {
+                        "gamma": _json_float(right_anchor_gamma),
+                        "gradient": _json_float(right_anchor_gradient),
+                        "diff": _json_float(right_diff),
+                    },
+                    "right": {
+                        "gamma": _json_float(found_gamma),
+                        "gradient": _json_float(offset),
+                        "diff": 0.0,
+                        "virtual": True,
+                    },
+                }
 
         # @step: 11 | 计算最终尺度参数 η | 使用最优的 γ* 和 β* 计算所有伪尺度参数的均值
         # @formula: \hat{\eta} = \frac{1}{n}\sum_{i=1}^n \frac{t_i - \hat{\gamma}}{x_i^{1/\hat{\beta}}}
@@ -232,6 +356,24 @@ class MDM(WeibullBase):
         # @inputs: found_beta|\hat{\beta}|形状参数, found_eta|\hat{\eta}|尺度参数, found_gamma|\hat{\gamma}|位置参数
         # @outputs: r2|R^2|拟合优度
         r2 = self._calculate_r2(found_beta, found_eta, found_gamma)
+
+        self.last_solution_info = {
+            "target_offset": offset,
+            "search_strategy": "geometric_from_tmin",
+            "solution_strategy": solution_strategy,
+            "constraint": "gamma >= 0",
+            "probe_gradient_at_zero": probe_gradient_at_zero,
+            "root_bracket": root_bracket,
+            "root_solver": root_solver,
+            "right_anchor_gamma": right_anchor_gamma,
+            "right_anchor_gradient": right_anchor_gradient,
+            "root_solver_iterations": root_solver_iterations,
+            "legacy_grid_crossing": legacy_grid_crossing,
+            "right_edge_extrapolation": right_edge_extrapolation,
+            "gamma_steps": len(gammas),
+            "optimal_gamma": found_gamma,
+            "optimal_beta": found_beta,
+        }
 
         # @step: 13 | 生成追踪数据 | 若启用 trace，生成用于可视化的详细数据
         # @inputs: found_gamma|\gamma^*|最优γ, found_beta|\beta^*|最优β, gammas|\gamma|γ数组, sigma_mins|\sigma_{min}|标准差数组, best_betas|\beta^*|最优β数组
@@ -263,36 +405,50 @@ class MDM(WeibullBase):
                     "sigmas": sigma_curve
                 })
 
-            # 3. Gradient vs Gamma curve
-            grad_gamma_curve = []
-            for i in range(len(gammas)):
-                g = gammas[i]
-                b = best_betas[i]
-                denom = np.power(neg_ln_1_minus_F, 1.0/b)
-                etas_g = (t - g) / denom
-                eta_mean = float(np.mean(etas_g))
+            # 3. Gradient vs Gamma curve. This uses the same profile_gradient
+            # function as the backend solver, so the visual trace and result match.
+            grad_gamma_points = {}
 
-                grad_gamma_curve.append({
-                    "gamma": float(g),
-                    "gradient": float(grads[i]),
-                    "sigma_min": float(sigma_mins[i]),
+            def add_gradient_point(gamma, gradient, source="trace_grid", virtual=False):
+                gamma = float(gamma)
+                b, sig = find_best_beta_for_gamma(gamma)
+                denom = np.power(neg_ln_1_minus_F, 1.0/b)
+                etas_g = (t - gamma) / denom
+                eta_mean = float(np.mean(etas_g))
+                point = {
+                    "gamma": gamma,
+                    "gradient": float(gradient),
+                    "sigma_min": float(sig),
                     "best_beta": float(b),
-                    "best_eta": eta_mean
-                })
+                    "best_eta": eta_mean,
+                    "source": source,
+                }
+                if virtual:
+                    point["virtual"] = True
+                grad_gamma_points[gamma] = point
+
+            for i in range(len(gammas)):
+                add_gradient_point(gammas[i], grads[i])
+
+            if solution_strategy == "brent_root":
+                if root_solver == "right_edge_fit":
+                    add_gradient_point(found_gamma, offset, source="solver_root", virtual=True)
+                else:
+                    add_gradient_point(found_gamma, profile_gradient(found_gamma), source="solver_root")
+            elif solution_strategy == "truncated_at_zero":
+                add_gradient_point(0.0, probe_gradient_at_zero, source="solver_root")
+
+            grad_gamma_curve = sorted(
+                grad_gamma_points.values(),
+                key=lambda point: point["gamma"],
+                reverse=True,
+            )
 
             self.trace_data = {
                 "sigma_beta_curve": sigma_beta_curve,
                 "grad_gamma_curve": grad_gamma_curve,
                 "sigma_beta_gamma": sigma_beta_gamma,
-                "target_offset": offset,
-                "search_strategy": "geometric_from_tmin",
-                "solution_strategy": solution_strategy,
-                "constraint": "gamma >= 0",
-                "probe_gradient_at_zero": probe_gradient_at_zero,
-                "root_bracket": root_bracket,
-                "gamma_steps": len(gammas),
-                "optimal_gamma": found_gamma,
-                "optimal_beta": found_beta
+                **self.last_solution_info,
             }
 
         return float(found_beta), float(found_eta), float(found_gamma), float(r2), True

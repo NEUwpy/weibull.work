@@ -3,6 +3,8 @@
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from methods.mdm import MDM
@@ -31,8 +33,8 @@ def test_default_mdm_truncates_negative_offset_root_to_zero():
     assert trace["probe_gradient_at_zero"] > trace["target_offset"]
 
 
-def test_default_mdm_trace_records_discrete_offset_root_bracket():
-    """有交点样本应由离散梯度曲线插值得到最优 gamma。"""
+def test_default_mdm_uses_brent_root_when_zero_probe_is_below_offset():
+    """g(0) < offset 时应使用右端括弧 + Brent 定根，而不是离散网格插值。"""
     sample = generate_sample(2.0, 100.0, 5.0, 30, 0)
 
     mdm = MDM(sample)
@@ -46,9 +48,11 @@ def test_default_mdm_trace_records_discrete_offset_root_bracket():
 
     trace = mdm.trace_data
     assert trace["search_strategy"] == "geometric_from_tmin"
-    assert trace["solution_strategy"] == "offset_root"
+    assert trace["solution_strategy"] == "brent_root"
+    assert trace["root_solver"] == "brent"
     assert trace["gamma_steps"] == 30
-    assert len(trace["grad_gamma_curve"]) == 30
+    assert len(trace["grad_gamma_curve"]) >= 30
+    assert trace["probe_gradient_at_zero"] < trace["target_offset"]
 
     bracket = trace["root_bracket"]
     assert bracket is not None
@@ -58,3 +62,60 @@ def test_default_mdm_trace_records_discrete_offset_root_bracket():
     assert (left["gradient"] - trace["target_offset"]) * (
         right["gradient"] - trace["target_offset"]
     ) <= 0
+    assert trace["right_anchor_gamma"] == right["gamma"]
+    assert trace["right_anchor_gradient"] == right["gradient"]
+    assert trace["root_solver_iterations"] > 0
+
+
+def test_default_mdm_fits_right_edge_when_anchor_is_still_below_offset():
+    """最右端锚点仍低于 offset 时也应补出内点解，而不是引入第四种截断。"""
+    sample = generate_sample(2.0, 100.0, 5.0, 30, 0)
+
+    mdm = MDM(sample)
+    beta, eta, gamma, r2, status = mdm.run(trace=True, offset=5.0, gamma_steps=30)
+
+    assert status is True
+    assert beta is not None and beta > 0
+    assert eta is not None and eta > 0
+    assert gamma is not None and 0 < gamma < min(sample)
+    assert r2 is not None
+
+    trace = mdm.trace_data
+    assert trace["solution_strategy"] == "brent_root"
+    assert trace["root_solver"] == "right_edge_fit"
+    assert trace["root_bracket"] is not None
+    assert trace.get("offset_diagnostic") is None
+    assert trace["right_edge_extrapolation"] is not None
+    assert trace["right_anchor_gradient"] < trace["target_offset"]
+
+
+def test_default_mdm_trace_curve_matches_solver_gradient_function():
+    """trace 中的梯度曲线应展示后端求解器使用的同一套 g(gamma)。"""
+    sample = generate_sample(2.0, 100.0, 5.0, 30, 0)
+
+    mdm = MDM(sample)
+    _, _, gamma, _, _ = mdm.run(trace=True, offset=0.1, gamma_steps=30)
+
+    trace = mdm.trace_data
+    curve = trace["grad_gamma_curve"]
+
+    zero_point = min(curve, key=lambda point: abs(point["gamma"]))
+    assert zero_point["gradient"] == pytest.approx(trace["probe_gradient_at_zero"])
+
+    root_point = min(curve, key=lambda point: abs(point["gamma"] - gamma))
+    assert root_point["gamma"] == pytest.approx(gamma)
+    assert root_point["gradient"] == pytest.approx(trace["target_offset"], abs=1e-5)
+
+
+def test_default_mdm_records_lightweight_solution_info_without_trace():
+    """批量研究可读取轻量求解摘要，而不必为每个 delta 生成完整 trace。"""
+    sample = generate_sample(2.0, 100.0, 5.0, 30, 0)
+
+    mdm = MDM(sample)
+    mdm.run(trace=False, offset=0.1, gamma_steps=30)
+
+    info = mdm.last_solution_info
+    assert info["solution_strategy"] == "brent_root"
+    assert info["root_solver"] == "brent"
+    assert info["optimal_gamma"] > 0
+    assert info["target_offset"] == pytest.approx(0.1)

@@ -14,7 +14,7 @@
 2. `README.md`
 3. `02-规则.md`
 4. `docs/S2R统一评价指标体系进程控制.md`
-5. `docs/S4.9_MDM默认实现与可视化一致性改造进程控制.md`
+5. `docs/S4.9.3_MDM始终有解Brent求解器改造进程控制.md`
 6. `docs/AI辅助三参数威布尔参数估计重构前因后果.md`
 7. `docs/AI辅助三参数威布尔参数估计重构与实验设计总纲.md`
 8. 本文档
@@ -29,7 +29,7 @@
 
 ```text
 S2R 唯一评价指标体系基础迁移已完成。旧 NE/NQE_R/RE_R/Outlier Rate 体系已废止；页面、前后端指标模块、统一实验框架、总纲和接手提示词已同步。下一步是用 S2R 重新计算 S4.7。S4.7 旧 NE 表格不再作为当前结论依据。
-S4.9 已完成：默认 MDM 已按最新有解性研究改为离散几何网格 + gamma=0 边界截断规则，trace 可视化与实际求解过程一致；后续实验可继续把默认 mdm 作为 baseline。
+S4.9/S4.9.2 已完成并归档。S4.9.3 已完成：默认 MDM 已按 `full.md` 第 9.1 节改为“一次探测 + 右端括弧/Brent 定根 + 负根截断到 0”的始终有解求解器，并严格收束为三种情况——正常内点解、`g(0) >= offset` 时截断到 0、右端锚点仍低于 offset 时向 `t_min` 近端补交点；未引入 `truncated_at_upper_bound` 或 `offset_above_supported_range` 第四分支。trace 梯度曲线与后端求解器同源，前端展示与后端计算过程一致。下一步可回到 S2R 口径下的 S4.7 重算或 S3 loss 对比实验。
 ```
 
 已完成：
@@ -50,6 +50,8 @@ S4.9 已完成：默认 MDM 已按最新有解性研究改为离散几何网格 
 - **[历史记录，已被 S4.9 修正/覆盖]** S4.7 MDM 约束边界处理研究（初版）：实现四种 MDM 变体，81 个测试全部通过。初版结论过于乐观（验证空间仅 gamma/eta ∈ {0, 0.1}）。
 - **[历史记录，已被 S4.9 修正/覆盖]** S4.7 MDM 约束边界处理研究（修正版）：旧 NE/outlier 口径下的结果已完成并通过审查，但该结论需用 S2R 指标重新计算后再作为当前结论。
 - S4.9 MDM 默认实现与可视化一致性改造：默认 MDM 已使用 `geometric_from_tmin` 离散网格和 `truncated_at_zero` 边界规则；前端主可视化与 offset 敏感性分析已读取后端 trace 策略；历史 MDM 研究变体已归档；`python -m pytest tests -q` 与 `npx tsc --noEmit` 已通过。
+- S4.9.2 MDM 一致性整改：曲线性质页面、curve-study 数据、AI 旧数据提示、case-study 历史标注、接手提示词和更新日志已完成并复核；完成态文档已移入 `docs/history/`。
+- S4.9.3 MDM 始终有解求解器改造：默认 MDM 已实现 `g(0)` 探测、右端括弧 + Brent 定根、右端补交点和 `gamma=0` 截断；trace 梯度曲线与求解器同源；curve-study 数据和前端展示已更新；后端测试与前端类型检查通过。
 
 尚未开始：
 
@@ -83,6 +85,8 @@ S4.9 已完成：默认 MDM 已按最新有解性研究改为离散几何网格 
 | S4.5 MDM 调用配置校准 | **[历史记录，已被 S4.9 修正/覆盖]** 定位 MDM failure 来源，校准 offset/gamma_steps 默认配置 | 已完成 | failure 确认为 offset 判据内点条件不满足，默认配置确定 |
 | S4.7 MDM 约束边界处理 | **[历史记录，已被 S4.9 修正/覆盖]** 实现 MDM 变体，消除 failure，比较精度 | 待 S2R 重算 | 旧 NE/outlier 表格不再作为当前结论依据 |
 | S4.9 MDM 默认实现与可视化一致性 | 根据最新有解性研究修正默认 MDM，并保证 trace 可视化表达实际求解过程 | 已完成 | 默认 MDM 不再因负半轴交点返回 failure；trace 标明 `offset_root`/`truncated_at_zero`；后端测试和前端类型检查通过 |
+| S4.9.2 MDM 一致性整改 | 清理 S4.9 后用户可见旧口径、历史 AI 数据提示、case-study 标注和接手文档 | 已完成并归档 | S4.9/S4.9.2 完成态文档已移入 `docs/history/` |
+| S4.9.3 MDM 始终有解求解器 | 按 full.md 第 9.1 节实现一次探测 + 括弧/Brent 定根 + 负则截断到 0 | 已完成 | 默认 MDM 不再因离散网格漏检返回 failure；trace 与后端求解器同源 |
 | S5 模块整理 | 整理 M1/M2/M3/M4 代表方案 | 未开始 | 各模块可接入统一框架 |
 | S6 横向比较 | 在同一参数空间和指标下比较所有方法 | 未开始 | 统一结果表含传统方法与 AI 方法 |
 | S7 汇报产物 | 生成组会或论文用表格和图 | 未开始 | 图表可追溯到统一实验配置 |
@@ -210,16 +214,104 @@ n ∈ {10, 20, 30, 50, 100}
 下一轮最适合做：
 
 ```text
-用 S4.9 后的默认 MDM 作为 baseline，按 S2R 新指标重算 S4.7。
+S4.9.3 已完成。下一步可在 S2R 口径下重算 S4.7，或进入 S3 loss 对比实验。
 ```
 
-S4.7 旧表使用 NE/outlier 口径，且基于历史 MDM 变体，已不再作为当前结论。重算时必须输出 MdAPE、方向、IQR、尾部、有效率，并按 gamma/eta、n 分层检查。
+S4.7 旧表使用 NE/outlier 口径，且基于历史 MDM 变体，已不再作为当前结论。后续重算时必须输出 MdAPE、方向、IQR、尾部、有效率，并按 gamma/eta、n 分层检查。
 
 旧结论中 min_sigma 的风险来自高 gamma/eta 下系统偏差；需用 S2R 的方向和尾部指标重新确认。
+
+S4.9.3 的求解语义以 2026-06-05 人工确认的三种情况为准：
+
+```text
+1. 正常内点解；
+2. g(0) >= offset 时，根在 gamma<0，截断到 gamma=0；
+3. 最右网格点仍低于 offset 时，不判无解、不做上边界截断，而是向 t_min 近端拟合/定根补交点。
+```
+
+S4.9.3 已移除 `truncated_at_upper_bound` / `offset_above_supported_range` 这类第四种默认策略。
 
 ---
 
 ## 7. 接手记录
+
+### 2026-06-06（S4.9.3 完成）
+
+执行者：Codex
+
+本轮阶段：S4.9.3 MDM 始终有解求解器改造（已完成）
+
+做了什么：
+
+- 修正上一轮临时代码，移除默认 MDM 的第四种上边界截断/offset 超范围策略；
+- `python/methods/mdm.py` 改为三种情况：`truncated_at_zero`、`brent_root / brent`、`brent_root / right_edge_fit`；
+- `trace_data.grad_gamma_curve` 改为与后端求解器同源的 `profile_gradient()` 采样，并写入实际根点，避免前端展示曲线与后端定根函数不一致；
+- 新增 `last_solution_info` 轻量摘要，供批量曲线研究读取求解策略而不必生成完整 trace；
+- 重写/扩展 `python/tests/test_mdm_s49.py`，覆盖三种情况、右端补交点、trace 同源性和轻量摘要；
+- 更新 `python/studies/mdm_delta/generate_curve_study_data.py`，重新生成 `public/case-studies/mdm/curve-study/data.json`；
+- 更新 MDM 曲线研究页面、计算过程可视化、算法说明和流程 JSON 为 S4.9.3 口径。
+
+形成了什么决策：
+
+- 默认 MDM 不再返回旧 failure 叙事，也不引入 `truncated_at_upper_bound` / `offset_above_supported_range`；
+- 前端的最优 γ 来自后端 trace，不再用前端离散插值改写本次求解结果；
+- `gamma_steps` 表示后端同源 trace 采样密度，最终根点可额外写入 trace，因此 `grad_gamma_curve` 点数可大于 `gamma_steps`。
+
+验证：
+
+```bash
+cd python
+python -m pytest tests -q  # 52 passed
+
+cd ..
+npx tsc --noEmit
+python -m py_compile python/studies/mdm_delta/generate_curve_study_data.py
+git diff --check
+```
+
+下一轮建议：
+
+- 可回到 S2R 口径下重算 S4.7；
+- 或进入 S3 loss 对比实验，但需使用 S4.9.3 后的默认 MDM baseline。
+
+### 2026-06-05（S4.9.3 暂停交接）
+
+执行者：Codex
+
+本轮阶段：S4.9.3 MDM 始终有解求解器改造（未完成，暂停）
+
+做了什么：
+
+- 按接手要求读取 `AGENTS.md`、`README.md`、状态控制文档、S2R 进程控制、S4.9.3 进程控制、重构前因后果、实验设计总纲和 `full.md` 相关段落；
+- 确认当前权威状态不是直接进入 S3，而是先完成 S4.9.3；
+- 曾临时修改 `python/methods/mdm.py`、`python/tests/test_mdm_s49.py`、`src/content/algorithms/mdm.md`、`src/data/method_flows/mdm.json`，尝试引入 `g(0)` 探测和 Brent 定根；
+- 临时代码一度加入 `truncated_at_upper_bound` / `offset_above_supported_range`，后来被人工明确纠正：默认 MDM 不应有第四种上边界截断/offset 超范围策略。
+
+改了哪些文件：
+
+- `docs/S4.9.3_MDM始终有解Brent求解器改造进程控制.md`（补充三种情况和暂停记录）
+- `docs/提示词_新窗口接手.md`（补充三种情况和上一轮临时代码提醒）
+- `docs/AI辅助三参数威布尔参数估计重构状态控制.md`（本接手记录）
+- 另有未完成临时代码改动：`python/methods/mdm.py`、`python/tests/test_mdm_s49.py`、`src/content/algorithms/mdm.md`、`src/data/method_flows/mdm.json`
+
+形成了什么决策：
+
+- S4.9.3 默认 MDM 只保留三种情况：正常内点解；`g(0) >= offset` 时截断到 0；最右网格点仍低于 offset 时向 `t_min` 近端拟合/定根补交点；
+- 第三种情况不是 `offset` 超出推荐范围，也不是 MDM failure；
+- 不要把 `truncated_at_upper_bound` 或 `offset_above_supported_range` 作为默认求解策略；
+- 本轮临时通过的测试不代表 S4.9.3 完成，因为测试语义包含已被否定的第四种策略。
+
+还有什么问题：
+
+- `python/methods/mdm.py` 当前临时代码需要下一轮先审查并改回三种情况语义；
+- `python/tests/test_mdm_s49.py` 当前临时测试需要重写，覆盖“最右网格点仍低于 offset 但靠近 `t_min` 必有交点”的漏检场景；
+- 前端算法说明和流程 JSON 也可能包含上一轮临时语义，需在代码定稿后一并同步。
+
+下一轮建议：
+
+- 先不要继续 S3/S2R 重算；
+- 先修正 S4.9.3 测试语义，再改 `python/methods/mdm.py`；
+- 目标是默认 MDM 永不因离散网格漏检返回 `no_intersection`，而是用三种情况给出工程解。
 
 ### 2026-06-05
 

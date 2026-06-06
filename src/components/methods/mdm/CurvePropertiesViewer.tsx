@@ -4,7 +4,7 @@
  * 展示 MDM 方法中 MSE(δ) 曲线的数学性质研究结果：
  * 1. 曲线概览 — 选择案例查看 MSE(δ) 曲线 + 分量
  * 2. 跨案例汇总 — 所有案例的关键指标表
- * 3. MDM 梯度上限分析 — max(∇σ) 与 β 的关系（S4.9：区分边界截断和诊断失败）
+ * 3. MDM 右端补交点分析 — max(∇σ) 与 β 的关系（S4.9.3：Brent 定根与右端拟合）
  * 4. 搜索策略对比 — 效率 vs 精度
  * 5. 结论与建议
  */
@@ -52,6 +52,7 @@ interface CurveSample {
   valid_count: number
   total_count: number
   max_gradient: number
+  right_edge_fit_delta?: number | null
 }
 
 interface StrategyResult {
@@ -145,7 +146,7 @@ export default function CurvePropertiesViewer() {
       {/* Section 2: Cross-case Summary */}
       <CrossCaseSummary samples={data.curve_samples} />
 
-      {/* Section 3: Failure Analysis */}
+      {/* Section 3: Right-edge fit analysis */}
       <FailureAnalysis
         betaSensitivity={data.beta_sensitivity}
         samples={data.curve_samples}
@@ -271,14 +272,14 @@ function CurveOverview({
               />
             )}
 
-            {/* Diagnostic failure boundary */}
-            {selected.failure_delta && (
+            {/* Right-edge fit boundary */}
+            {selected.right_edge_fit_delta && (
               <ReferenceLine
-                x={selected.failure_delta}
+                x={selected.right_edge_fit_delta}
                 stroke={COLORS.failure}
                 strokeWidth={2}
                 strokeDasharray="4 4"
-                label={{ value: `诊断失败起点`, position: 'top', style: { fontSize: 11, fontWeight: 'bold', fill: COLORS.failure } }}
+                label={{ value: `右端补交点起点`, position: 'top', style: { fontSize: 11, fontWeight: 'bold', fill: COLORS.failure } }}
               />
             )}
           </LineChart>
@@ -291,9 +292,9 @@ function CurveOverview({
         <InfoCard label="最小 MSE" value={selected.best_mse?.toFixed(6) ?? 'N/A'} color="text-green-600" />
         <InfoCard label="曲线形状" value={SHAPE_LABELS[selected.shape] || selected.shape} color="text-blue-600" />
         <InfoCard
-          label="诊断失败起点"
-          value={selected.failure_delta?.toFixed(3) ?? '未触发'}
-          color={selected.failure_delta ? 'text-amber-600' : 'text-slate-500'}
+          label="右端补交点起点"
+          value={selected.right_edge_fit_delta?.toFixed(3) ?? '未触发'}
+          color={selected.right_edge_fit_delta ? 'text-amber-600' : 'text-slate-500'}
         />
       </div>
     </div>
@@ -322,7 +323,7 @@ function CrossCaseSummary({ samples }: { samples: CurveSample[] }) {
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">最优 δ</th>
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">最小 MSE</th>
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">曲线形状</th>
-              <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">诊断失败 δ</th>
+              <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">右端补交点 δ</th>
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">有效率</th>
               <th className="px-3 py-2.5 text-center font-bold text-slate-700 border border-slate-200">max(∇σ)</th>
             </tr>
@@ -339,8 +340,8 @@ function CrossCaseSummary({ samples }: { samples: CurveSample[] }) {
                   <ShapeBadge shape={s.shape} />
                 </td>
                 <td className={cn("px-3 py-2 text-center font-mono border border-slate-200",
-                  s.failure_delta ? 'text-amber-600 font-bold' : 'text-slate-400')}>
-                  {s.failure_delta?.toFixed(3) ?? '—'}
+                  s.right_edge_fit_delta ? 'text-amber-600 font-bold' : 'text-slate-400')}>
+                  {s.right_edge_fit_delta?.toFixed(3) ?? '—'}
                 </td>
                 <td className="px-3 py-2 text-center font-mono border border-slate-200">{s.valid_count}/{s.total_count}</td>
                 <td className="px-3 py-2 text-center font-mono border border-slate-200">{s.max_gradient.toFixed(3)}</td>
@@ -353,7 +354,7 @@ function CrossCaseSummary({ samples }: { samples: CurveSample[] }) {
   )
 }
 
-// === Section 3: Failure Analysis ===
+// === Section 3: Right-edge Fit Analysis ===
 
 function FailureAnalysis({
   betaSensitivity, samples,
@@ -371,7 +372,7 @@ function FailureAnalysis({
       <div className="flex items-center gap-2 mb-4">
         <AlertTriangle className="text-amber-500" size={20} />
         <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-          MDM 梯度上限分析（S4.9 口径）
+          MDM 右端补交点分析（S4.9.3 口径）
         </h3>
       </div>
 
@@ -409,15 +410,15 @@ function FailureAnalysis({
         {/* Explanation */}
         <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <h4 className="text-sm font-bold text-amber-800 mb-2">梯度上限与 S4.9 求解策略</h4>
+            <h4 className="text-sm font-bold text-amber-800 mb-2">梯度上限与 S4.9.3 求解策略</h4>
             <p className="text-sm text-amber-700 leading-relaxed">
               max(∇σ_min) 是梯度曲线的观测上限，增大 <code className="bg-amber-100 px-1 rounded">gamma_steps</code> 无法改变这一上限。
-              S4.9 依据 gamma=0 处的梯度值决定求解策略：
+              S4.9.3 依据 gamma=0 处的梯度值和右端锚点决定求解策略：
             </p>
             <ul className="text-sm text-amber-700 mt-2 space-y-1">
-              <li>• <strong>offset_root</strong>：梯度曲线与 offset 有交点，插值得到 γ̂</li>
-              <li>• <strong>truncated_at_zero</strong>：无交点，但 γ=0 处梯度 ≥ offset（无约束根在负半轴，被 γ≥0 约束切除）</li>
-              <li>• <strong>no_offset_root</strong>：无交点，且 γ=0 处梯度 &lt; offset（整条梯度曲线低于 offset，如 δ &gt; max(∇σ)）</li>
+              <li>• <strong>brent_root / brent</strong>：g(0)&lt;offset 且右端括弧成立，Brent 定根得到 γ̂</li>
+              <li>• <strong>truncated_at_zero</strong>：g(0)≥offset，无约束根在负半轴，被 γ≥0 约束切除</li>
+              <li>• <strong>brent_root / right_edge_fit</strong>：右端锚点仍低于 offset，向 t_min 近端补出内点解</li>
             </ul>
           </div>
 
@@ -432,11 +433,11 @@ function FailureAnalysis({
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <h4 className="text-sm font-bold text-blue-800 mb-2">b2_n20 实例（S4.9 后）</h4>
+            <h4 className="text-sm font-bold text-blue-800 mb-2">b2_n20 实例（S4.9.3 后）</h4>
             <p className="text-sm text-blue-700">
-              max(∇σ) = 0.5153。当 δ=0.52 时梯度曲线全段低于 offset 且 γ=0 处梯度也低于 offset，
-              S4.9 返回 <code className="bg-blue-100 px-1 rounded">no_offset_root</code> 作为诊断状态。
-              <code className="bg-blue-100 px-1 rounded">truncated_at_zero</code> 仅在 γ=0 处梯度 ≥ offset 时触发（无约束根在负半轴被切除）。
+              当离散 trace 或当前右端锚点仍低于 offset 时，默认 MDM 不再返回失败诊断。
+              S4.9.3 会标记 <code className="bg-blue-100 px-1 rounded">root_solver=right_edge_fit</code>，
+              并在 <code className="bg-blue-100 px-1 rounded">[0, t_min)</code> 内补出 near-t_min 解。
             </p>
           </div>
         </div>
@@ -510,7 +511,7 @@ function SearchStrategyComparison({ strategies }: { strategies: StrategyResult[]
             <AlertTriangle className="text-red-600" size={16} />
             <h4 className="text-sm font-bold text-red-800">Scipy Brent</h4>
           </div>
-          <p className="text-xs text-red-700">b2_n20 完全失败（被 MDM 失败的 penalty 误导）</p>
+          <p className="text-xs text-red-700">旧版会被 MDM failure penalty 误导，S4.9.3 后应改用显式区间扫描</p>
         </div>
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -564,7 +565,7 @@ function Conclusions({ conclusions }: { conclusions: any }) {
           </div>
 
           <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-            <h4 className="text-sm font-bold text-amber-800 mb-2">边界样本处理（S4.9 更新）</h4>
+            <h4 className="text-sm font-bold text-amber-800 mb-2">边界样本处理（S4.9.3 更新）</h4>
             <p className="text-xs text-amber-700 leading-relaxed">
               {conclusions.boundary_samples_s49 ?? conclusions.boundary_samples}
             </p>
