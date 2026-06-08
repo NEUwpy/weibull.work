@@ -22,8 +22,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 import json
-import numpy as np
-from methods.mdm_case6 import MDMCase6
+from methods.mdm import MDM
 
 # c2案例数据 (保留一位小数)
 C2_DATA = [2169.4, 1495.1, 1611.6, 1875.7, 1396.7, 2567.3, 1970.9]
@@ -36,25 +35,17 @@ STRATEGIES = [
     {"id": "iter60", "name": "60次迭代", "gamma_steps": 60, "discrete": False},
     {"id": "iter30", "name": "30次迭代", "gamma_steps": 30, "discrete": False},
     {"id": "iter15", "name": "15次迭代", "gamma_steps": 15, "discrete": False},
-    {"id": "discrete", "name": "离散搜索(间隔100)", "gamma_steps": 0, "discrete": True},
+    {"id": "min_grid", "name": "最小几何网格(4点)", "gamma_steps": 4, "discrete": False},
 ]
 
 def run_strategy(data, offset, strategy):
     """运行单个策略并返回结果"""
-    mdm = MDMCase6(data)
-
-    if strategy["discrete"]:
-        beta, eta, gamma, r2, status = mdm.run(
-            trace=True,
-            offset=offset,
-            discrete_gamma=True
-        )
-    else:
-        beta, eta, gamma, r2, status = mdm.run(
-            trace=True,
-            offset=offset,
-            gamma_steps=strategy["gamma_steps"]
-        )
+    mdm = MDM(data)
+    beta, eta, gamma, r2, status = mdm.run(
+        trace=True,
+        offset=offset,
+        gamma_steps=strategy["gamma_steps"]
+    )
 
     result = {
         "strategy_id": strategy["id"],

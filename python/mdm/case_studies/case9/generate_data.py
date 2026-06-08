@@ -30,9 +30,6 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 import json
-import numpy as np
-from methods.mdm_case8 import MDMCase8  # 复用case8的算法，它支持自定义beta_step
-from methods.mdm_case7 import MDMCase7  # 使用Brent优化的版本
 
 # 实际样本数据 (与案例7/8相同)
 SAMPLE_DATA = [1430.724077, 2632.924529, 1463.409269, 1469.488488, 2019.967671, 1620.885368, 1811.277248]
@@ -103,6 +100,11 @@ def run_with_brent(data, offset):
     return result
 
 def main():
+    raise SystemExit(
+        "案例9依赖已废弃的 beta_step / Brent 分支对照实现。当前项目只保留 "
+        "methods.mdm.MDM，历史结果请读取 public/case-studies/mdm/case9/data.json。"
+    )
+
     print("=" * 70)
     print("案例9: β步长对MDM估计结果的影响研究")
     print(f"数据: 实际样本 (n={len(SAMPLE_DATA)})")

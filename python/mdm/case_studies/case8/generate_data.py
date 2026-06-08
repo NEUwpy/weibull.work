@@ -26,8 +26,6 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 import json
-import numpy as np
-from methods.mdm_case8 import MDMCase8
 
 # 实际样本数据 (与案例7相同)
 SAMPLE_DATA = [1430.724077, 2632.924529, 1463.409269, 1469.488488, 2019.967671, 1620.885368, 1811.277248]
@@ -84,6 +82,11 @@ def run_strategy(data, offset, strategy):
     return result
 
 def main():
+    raise SystemExit(
+        "案例8依赖已废弃的 beta_step MDM 分支。当前项目只保留 methods.mdm.MDM，"
+        "历史结果请读取 public/case-studies/mdm/case8/data.json。"
+    )
+
     print("=" * 60)
     print("案例8: β搜索方式对比研究 (β步长0.05)")
     print(f"数据: 实际样本 (n={len(SAMPLE_DATA)})")
