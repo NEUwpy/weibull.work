@@ -1,0 +1,184 @@
+{
+  "config": {
+    "command": "simulate",
+    "outdir": "full_run",
+    "reps": 800,
+    "seed": 20260610,
+    "nbeta": 261,
+    "beta_min": 0.1,
+    "beta_max": 20.0,
+    "ngamma": 700,
+    "eta_hat": "mean",
+    "nboot": 300,
+    "no_tree": false,
+    "quick": false,
+    "n_samples": 22400
+  },
+  "sv_check": {
+    "sv_check_pass": true,
+    "sv_max_abs_diff_2dp": 0.0
+  },
+  "n_samples_main_grid": 20000,
+  "scheme_ratio_vs_fixed0.1_gridmedian": {
+    "fixed_0.1": 1.0,
+    "global_c_truebeta": 0.7698,
+    "global_c_deploy_naive": 1.081,
+    "best_fixed_delta": 0.9164,
+    "fixed_delta_per_n": 0.8963,
+    "table_true_cv": 0.7773,
+    "oracle": 0.3031,
+    "probe_ridge_A_n_only": 1.0515,
+    "probe_ridge_B_plus_beta0": 1.0355,
+    "probe_ridge_C_plus_orderstats": 1.0133,
+    "probe_ridge_D_full": 1.0133,
+    "probe_ridge_D_softtarget": 0.9851,
+    "probe_tree_D_full": 0.9915,
+    "probe_tree_D_softtarget": 0.9511,
+    "probe_tree_D_soft_guardrail": 0.9856,
+    "probe_ridge_E_multidelta": 0.8929,
+    "probe_tree_E_multidelta_soft": 0.7074,
+    "probe_tree_E_multidelta_star": 0.7322,
+    "probe_DIAG_tree_truebeta": 0.5126
+  },
+  "scheme_ratio_CI95": {
+    "best_fixed_delta": [
+      0.8883,
+      0.9697
+    ],
+    "fixed_delta_per_n": [
+      0.8794,
+      0.9491
+    ],
+    "global_c_truebeta": [
+      0.731,
+      0.8081
+    ],
+    "table_true_cv": [
+      0.7285,
+      0.8053
+    ],
+    "probe_tree_E_multidelta_soft": [
+      0.6733,
+      0.7465
+    ],
+    "oracle": [
+      0.2701,
+      0.3266
+    ],
+    "rho": [
+      0.0155,
+      0.189
+    ],
+    "rho_deploy": [
+      0.2652,
+      0.3846
+    ]
+  },
+  "rho_hat": {
+    "definition": "(r_ref - r_bestProbe)/(r_ref - r_oracle)",
+    "best_probe": "probe_tree_E_multidelta_soft",
+    "vs_table_true": {
+      "value": 0.1474,
+      "CI95": [
+        0.0155,
+        0.189
+      ]
+    },
+    "vs_deployable_simple": {
+      "value": 0.3184,
+      "CI95": [
+        0.2652,
+        0.3846
+      ],
+      "ref_ratio": 0.8963
+    },
+    "all_probes": {
+      "probe_ridge_A_n_only": 1.0515,
+      "probe_ridge_B_plus_beta0": 1.0355,
+      "probe_ridge_C_plus_orderstats": 1.0133,
+      "probe_ridge_D_full": 1.0133,
+      "probe_ridge_D_softtarget": 0.9851,
+      "probe_tree_D_full": 0.9915,
+      "probe_tree_D_softtarget": 0.9511,
+      "probe_tree_D_soft_guardrail": 0.9856,
+      "probe_ridge_E_multidelta": 0.8929,
+      "probe_tree_E_multidelta_soft": 0.7074,
+      "probe_tree_E_multidelta_star": 0.7322,
+      "probe_DIAG_tree_truebeta": 0.5126
+    }
+  },
+  "cstar_summary": {
+    "band_beta_ge_1.5": [
+      0.113,
+      0.338
+    ],
+    "scaling_law": {
+      "a": -1.3732,
+      "b_lnbeta": -0.5837,
+      "d_lnn": 0.1203,
+      "r2": 0.7816
+    }
+  },
+  "consistency_maxgap_gridmedian": 0.15,
+  "safety": {
+    "at_c0.21": {
+      "med_dgam_rel_pct": 52.08,
+      "med_dgam_over_eta_pct": 5.21,
+      "med_xr999_pct": 24.46,
+      "q10_dgam_rel_pct": -95.39
+    },
+    "at_delta0.1": {
+      "med_dgam_rel_pct": 35.21,
+      "med_dgam_over_eta_pct": 3.52,
+      "med_xr999_pct": 13.69
+    }
+  },
+  "entanglement_med_betahat_over_beta_at_c0.21": {
+    "beta=1.0": 0.98,
+    "beta=1.5": 0.943,
+    "beta=2.0": 0.903,
+    "beta=3.0": 0.834,
+    "beta=5.0": 0.722
+  },
+  "best_fixed_delta_by_fold": [
+    0.2826,
+    0.2826,
+    0.2826,
+    0.2128,
+    0.2826
+  ],
+  "fixed_delta_per_n_choices": {
+    "fold0_n7": 0.213,
+    "fold0_n10": 0.283,
+    "fold0_n20": 0.375,
+    "fold0_n30": 0.341,
+    "fold0_n50": 0.213,
+    "fold1_n7": 0.234,
+    "fold1_n10": 0.311,
+    "fold1_n20": 0.341,
+    "fold1_n30": 0.413,
+    "fold1_n50": 0.213,
+    "fold2_n7": 0.194,
+    "fold2_n10": 0.311,
+    "fold2_n20": 0.413,
+    "fold2_n30": 0.454,
+    "fold2_n50": 0.213,
+    "fold3_n7": 0.283,
+    "fold3_n10": 0.311,
+    "fold3_n20": 0.499,
+    "fold3_n30": 0.413,
+    "fold3_n50": 0.213,
+    "fold4_n7": 0.194,
+    "fold4_n10": 0.257,
+    "fold4_n20": 0.499,
+    "fold4_n30": 0.413,
+    "fold4_n50": 0.213
+  },
+  "flags": {
+    "wall_rate": 0.0399,
+    "left_edge_rate_at_c0": 0.0,
+    "interp_fidelity_fixed01_max_cell_relgap": 0.0236
+  },
+  "runtime_analyze_sec": 23.1,
+  "tree_probe_used": true
+}
