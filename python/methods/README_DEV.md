@@ -30,7 +30,7 @@ return [beta, eta, gamma, r_squared]
 
 | 参数 | 符号 | 描述 | 备注 |
 | :--- | :--- | :--- | :--- |
-| **beta** | $\beta$ | 形状参数 (Shape) | 斜率，必�� > 0 |
+| **beta** | $\beta$ | 形状参数 (Shape) | 斜率，必须 > 0 |
 | **eta** | $\eta$ | 尺度参数 (Scale) | 特征寿命，必须 > 0 |
 | **gamma** | $\gamma$ | 位置参数 (Location) | 失效阈值，通常 >= 0 |
 | **r_squared** | $R^2$ | 拟合优度 | 0.0 - 1.0 之间 |
@@ -78,7 +78,7 @@ class MyNewMethod(WeibullBase):
 
 ## 5. 调试建议
 
-建议每���算法文件底部保留一段测试代码，这样您可以直接运行 `python methods/your_algo.py` 进行独立调试，而不需要每次都通过 API。
+建议每个算法文件底部保留一段测试代码，这样您可以直接运行 `python methods/your_algo.py` 进行独立调试，而不需要每次都通过 API。
 
 ```python
 if __name__ == "__main__":
