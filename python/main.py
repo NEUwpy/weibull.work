@@ -6,6 +6,7 @@ from typing import List, Optional, Any, Union
 import sys
 import os
 import io
+import csv
 import numpy as np
 
 # Add methods directory to path
@@ -13,8 +14,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'methods'))
 
 from methods.registry import resolve_method
 from methods.mdm import MDM
-from methods.wmle import WMLE
-from base import MethodResult
+from studies.common.runner import run_method
+from studies.common.simulation import iter_batch_rows, simulate_method
 
 app = FastAPI()
 
@@ -74,70 +75,60 @@ class CalculationResponse(BaseModel):
     trace_data: Optional[Any] = None
 
 
-def _extract_result(res, method_id, trace_data=None):
-    """
-    从 run() 返回值中提取统一的响应字典。
-    兼容三种格式：
-    - MethodResult 对象（新）
-    - 5 元素 list/tuple [beta, eta, gamma, r2, converged]（较新）
-    - 4 元素 list/tuple [beta, eta, gamma, r2]（旧）
-    """
-    if isinstance(res, MethodResult):
-        converged = res.converged
-        return {
-            "beta": float(res.beta) if res.beta is not None else None,
-            "eta": float(res.eta) if res.eta is not None else None,
-            "gamma": float(res.gamma) if res.gamma is not None else None,
-            "rSquared": float(res.r_squared) if res.r_squared is not None else None,
-            "method": method_id,
-            "converged": converged if isinstance(converged, str) else bool(converged),
-            "trace_data": trace_data,
-        }
+def _calculation_kwargs(method_id: str, trace: bool = False, offset: Optional[float] = None) -> dict:
+    """构建统一方法调用参数；方法签名差异由 run_method 负责过滤。"""
+    kwargs = {"trace": trace}
+    if method_id == "mdm":
+        kwargs["offset"] = 0.1 if offset is None else offset
+    return kwargs
 
-    # 旧的 list/tuple 格式
-    converged = res[4] if len(res) >= 5 else True
-    if isinstance(converged, str):
-        converged_value = converged
-    else:
-        converged_value = bool(converged)
+
+def _calculation_response(result: dict, method_id: str) -> dict:
+    """把 studies.common.runner 的标准结果转换为 API 响应。"""
+    extra = result.get("extra") or {}
+    converged = extra.get("raw_status") if "raw_status" in extra else result["converged"]
 
     return {
-        "beta": float(res[0]) if res[0] is not None else None,
-        "eta": float(res[1]) if res[1] is not None else None,
-        "gamma": float(res[2]) if res[2] is not None else None,
-        "rSquared": float(res[3]) if res[3] is not None else None,
+        "beta": float(result["beta_hat"]) if result["beta_hat"] is not None else None,
+        "eta": float(result["eta_hat"]) if result["eta_hat"] is not None else None,
+        "gamma": float(result["gamma_hat"]) if result["gamma_hat"] is not None else None,
+        "rSquared": float(result["r_squared"]) if result["r_squared"] is not None else None,
         "method": method_id,
-        "converged": converged_value,
-        "trace_data": trace_data,
+        "converged": converged if isinstance(converged, str) else bool(converged),
+        "trace_data": result.get("trace_data"),
     }
 
 
-def _run_algorithm(method_id, AlgorithmClass, data, trace=False, offset=None):
-    """执行算法并返回结果，处理不同方法签名差异"""
-    algo_instance = AlgorithmClass(data)
-    try:
-        if method_id == 'mdm' and offset is not None:
-            res = algo_instance.run(trace=trace, offset=offset)
-        else:
-            res = algo_instance.run(trace=trace)
-    except TypeError:
-        res = algo_instance.run()
+def _run_calculation_method(method_id: str, data, trace=False, offset=None):
+    """统一执行单次估计；异常失败时沿用历史 WMLE 后备策略。"""
+    result = run_method(method_id, data, **_calculation_kwargs(method_id, trace=trace, offset=offset))
+    if result["beta_hat"] is not None:
+        return _calculation_response(result, method_id)
 
-    trace_data = algo_instance.trace_data if trace else None
-    return _extract_result(res, method_id, trace_data)
+    print(f"Algorithm {method_id} failed: {result.get('extra')}. Fallback to WMLE.")
+    fallback = run_method("wmle", data, trace=trace)
+    if fallback["beta_hat"] is not None:
+        return _calculation_response(fallback, f"{method_id}_fallback_wmle")
+
+    raise HTTPException(
+        status_code=500,
+        detail=f"Calculation failed: {result.get('extra')} -> Fallback WMLE failed: {fallback.get('extra')}"
+    )
 
 
-def _run_with_fallback(method_id, AlgorithmClass, data, trace=False, offset=None):
-    """执行算法，失败时自动 fallback 到 WMLE"""
-    try:
-        return _run_algorithm(method_id, AlgorithmClass, data, trace=trace, offset=offset)
-    except Exception as e:
-        print(f"Algorithm {method_id} failed: {e}. Fallback to WMLE.")
-        try:
-            return _run_algorithm(f"{method_id}_fallback_wmle", WMLE, data, trace=trace)
-        except Exception as fallback_error:
-            raise HTTPException(status_code=500,
-                                detail=f"Calculation failed: {e} -> Fallback WMLE failed: {fallback_error}")
+_CSV_FLOAT_COLUMNS = {
+    "est_beta", "est_eta", "est_gamma",
+    "bias_beta", "bias_eta", "bias_gamma", "r_squared",
+}
+
+
+def _csv_cell(column: str, value):
+    """保持 batch_simulation 历史 CSV 数值格式。"""
+    if value is None:
+        return "0" if column in _CSV_FLOAT_COLUMNS else ""
+    if column in _CSV_FLOAT_COLUMNS:
+        return f"{float(value):.6f}"
+    return value
 
 
 @app.post("/calculate", response_model=CalculationResponse)
@@ -145,9 +136,9 @@ async def calculate(req: CalculationRequest):
     if len(req.data) < 2:
         raise HTTPException(status_code=400, detail="Insufficient data points")
 
-    selected_method_id, AlgorithmClass = resolve_method(req.method)
-    return _run_with_fallback(selected_method_id, AlgorithmClass, req.data,
-                              trace=req.trace, offset=req.offset)
+    selected_method_id, _ = resolve_method(req.method)
+    return _run_calculation_method(selected_method_id, req.data,
+                                   trace=req.trace, offset=req.offset)
 
 @app.post("/calculate_3d_surface")
 async def calculate_3d_surface(req: Surface3DRequest):
@@ -162,7 +153,7 @@ async def calculate_3d_surface(req: Surface3DRequest):
         raise HTTPException(status_code=400, detail="3D surface only supported for MDM method")
 
     try:
-        return _run_algorithm("mdm", MDM, req.data, trace=True, offset=0.1)
+        return _run_calculation_method("mdm", req.data, trace=True, offset=0.1)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"3D surface calculation failed: {str(e)}")
@@ -182,85 +173,32 @@ async def batch_simulation(req: BatchSimulationRequest):
     - r_squared (goodness of fit)
     """
     try:
-        selected_method_id, AlgorithmClass = resolve_method(req.method)
+        selected_method_id, _ = resolve_method(req.method)
 
         # Generate CSV content
         output = io.StringIO()
-        # Header
+
         header = ["beta_true", "eta_true", "gamma_true", "sample_size"]
         if req.betas:
             header.append("beta_value")
         if req.offsets:
             header.append("offset_value")
         header.extend(["sim_id", "est_beta", "est_eta", "est_gamma", "bias_beta", "bias_eta", "bias_gamma", "r_squared"])
-        output.write(",".join(header) + "\n")
 
-        # Iterate over all parameter combinations
-        for sample_size in req.sample_sizes:
-            # For beta dimension variation
-            beta_values = req.betas if req.betas else [None]
-            # For offset dimension variation
-            offset_values = req.offsets if req.offsets else [None]
+        writer = csv.DictWriter(output, fieldnames=header, extrasaction="ignore", lineterminator="\n")
+        writer.writeheader()
 
-            for beta_val in beta_values:
-                for offset_val in offset_values:
-                    # Determine true beta for this iteration
-                    current_true_beta = beta_val if beta_val is not None else req.true_beta
-
-                    # Run Monte Carlo simulations
-                    for sim_id in range(1, req.num_simulations + 1):
-                        # Generate sample from true Weibull distribution
-                        np.random.seed(sim_id + sample_size * 1000 + int((beta_val or 0) * 100) + int((offset_val or 0) * 1000))
-                        u = np.random.uniform(0, 1, sample_size)
-                        # Weibull inverse CDF: x = gamma + eta * (-ln(1-u))^(1/beta)
-                        sample = req.true_gamma + req.true_eta * (-np.log(1 - u)) ** (1 / current_true_beta)
-                        sample = np.sort(sample)
-
-                        # Estimate parameters using selected method
-                        try:
-                            algo_instance = AlgorithmClass(sample.tolist())
-
-                            # Run with offset if MDM
-                            if selected_method_id == 'mdm' and offset_val is not None:
-                                res = algo_instance.run(trace=False, offset=offset_val)
-                            else:
-                                res = algo_instance.run(trace=False)
-
-                            est_beta = float(res[0]) if res[0] is not None else 0
-                            est_eta = float(res[1]) if res[1] is not None else 0
-                            est_gamma = float(res[2]) if res[2] is not None else 0
-                            r_squared = float(res[3]) if res[3] is not None else 0
-                        except (NotImplementedError, Exception) as e:
-                            print(f"Simulation failed: {e}")
-                            est_beta, est_eta, est_gamma, r_squared = 0, 0, 0, 0
-
-                        # Calculate biases
-                        bias_beta = est_beta - current_true_beta
-                        bias_eta = est_eta - req.true_eta
-                        bias_gamma = est_gamma - req.true_gamma
-
-                        # Write row
-                        row = [
-                            str(req.true_beta),
-                            str(req.true_eta),
-                            str(req.true_gamma),
-                            str(sample_size)
-                        ]
-                        if req.betas:
-                            row.append(str(beta_val) if beta_val is not None else "")
-                        if req.offsets:
-                            row.append(str(offset_val) if offset_val is not None else "")
-                        row.extend([
-                            str(sim_id),
-                            f"{est_beta:.6f}",
-                            f"{est_eta:.6f}",
-                            f"{est_gamma:.6f}",
-                            f"{bias_beta:.6f}",
-                            f"{bias_eta:.6f}",
-                            f"{bias_gamma:.6f}",
-                            f"{r_squared:.6f}"
-                        ])
-                        output.write(",".join(row) + "\n")
+        for row in iter_batch_rows(
+            method_id=selected_method_id,
+            true_beta=req.true_beta,
+            true_eta=req.true_eta,
+            true_gamma=req.true_gamma,
+            sample_sizes=req.sample_sizes,
+            beta_values=req.betas,
+            offset_values=req.offsets,
+            num_simulations=req.num_simulations,
+        ):
+            writer.writerow({column: _csv_cell(column, row.get(column)) for column in header})
 
         # Return as CSV file
         csv_content = output.getvalue()
@@ -298,61 +236,20 @@ async def monte_carlo_simulate(req: MonteCarloRequest):
         raise HTTPException(status_code=400, detail=f"参数验证失败: {'; '.join(errors)}")
 
     try:
-        selected_method_id, AlgorithmClass = resolve_method(req.method)
+        selected_method_id, _ = resolve_method(req.method)
 
         print(f"[MonteCarlo] 开始模拟: method={req.method}, beta={req.beta}, eta={req.eta}, gamma={req.gamma}, n={req.n}, rep={req.rep}")
 
-        rows = []
-
-        for sim_id in range(1, req.rep + 1):
-            # 使用种子生成可复现的随机数
-            np.random.seed(req.seed + sim_id)
-
-            # 生成威布尔分布样本
-            u = np.random.uniform(0, 1, req.n)
-            # Weibull inverse CDF: x = gamma + eta * (-ln(1-u))^(1/beta)
-            sample = req.gamma + req.eta * (-np.log(1 - u)) ** (1 / req.beta)
-            sample = np.sort(sample)
-
-            # 执行参数估计
-            try:
-                algo_instance = AlgorithmClass(sample.tolist())
-
-                # MDM支持offset参数，默认使用0.1
-                if selected_method_id == 'mdm':
-                    offset_val = req.offset if req.offset is not None else 0.1
-                    res = algo_instance.run(trace=False, offset=offset_val)
-                else:
-                    res = algo_instance.run(trace=False)
-
-                est_beta = float(res[0]) if res[0] is not None else None
-                est_eta = float(res[1]) if res[1] is not None else None
-                est_gamma = float(res[2]) if res[2] is not None else None
-                r_squared = float(res[3]) if res[3] is not None else None
-            except Exception as e:
-                print(f"Simulation {sim_id} failed: {e}")
-                est_beta, est_eta, est_gamma, r_squared = None, None, None, None
-
-            # 计算偏差
-            bias_beta = est_beta - req.beta if est_beta is not None else None
-            bias_eta = est_eta - req.eta if est_eta is not None else None
-            bias_gamma = est_gamma - req.gamma if est_gamma is not None else None
-
-            rows.append({
-                "beta_true": req.beta,
-                "eta_true": req.eta,
-                "gamma": req.gamma,
-                "sample_size": req.n,
-                "offset_value": req.offset,
-                "sim_id": sim_id,
-                "est_beta": est_beta,
-                "est_eta": est_eta,
-                "est_gamma": est_gamma,
-                "bias_beta": bias_beta,
-                "bias_eta": bias_eta,
-                "bias_gamma": bias_gamma,
-                "r_squared": r_squared
-            })
+        rows = simulate_method(
+            method_id=selected_method_id,
+            beta=req.beta,
+            eta=req.eta,
+            gamma=req.gamma,
+            n=req.n,
+            rep=req.rep,
+            seed=req.seed,
+            offset=req.offset,
+        )
 
         print(f"[MonteCarlo] 完成: method={req.method}, 成功 {len(rows)}/{req.rep} 次")
         return {"rows": rows, "count": len(rows), "success": True}

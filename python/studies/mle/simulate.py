@@ -1,6 +1,12 @@
 """
 MLE 方法通用仿真脚本 (单变量+双变量模式)
 
+状态说明（2026-06）：本脚本是历史的方法专属分片生成入口，暂时保留以
+兼容旧数据生成流程。新的统一方法调用与蒙特卡洛核心在
+python/studies/common/{sample.py, runner.py, simulation.py, experiment.py}，
+并由 python/main.py 的 API 端点调用。新增方法应优先实现
+python/methods/{method}.py 并注册到 methods.registry，而不是复制本脚本。
+
 用途：
     从 config.md 读取参数配置，生成蒙特卡洛仿真数据
     支持"单变量+双变量"模式，避免全交叉组合

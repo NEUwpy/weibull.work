@@ -51,6 +51,22 @@ def test_lre_returns_valid():
     assert r["gamma_hat"] is not None
 
 
+def test_trace_kwarg_is_ignored_when_method_does_not_accept_it():
+    """统一调用器可接收 API 传来的 trace，并兼容不支持 trace 的方法。"""
+    r = run_method("lre", FIXED_SAMPLE, trace=True)
+    assert r["converged"] is True
+    assert r["extra"] is None
+    assert r["beta_hat"] is not None
+
+
+def test_trace_data_returned_when_method_records_it():
+    """统一调用器在 trace=True 时返回算法记录的追踪数据。"""
+    r = run_method("mdm", FIXED_SAMPLE, trace=True, offset=0.1, gamma_steps=20)
+    assert r["converged"] is True
+    assert r["trace_data"] is not None
+    assert r["trace_data"]["target_offset"] == 0.1
+
+
 def test_variant_defaults_to_method_id():
     """不指定 variant 时默认为 method_id"""
     r = run_method("mle", FIXED_SAMPLE)
