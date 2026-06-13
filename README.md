@@ -58,4 +58,4 @@ npm run dev
 
 ---
 
-AI 助手请先阅读 C:\Web\Weibull\claude.md
+AI 助手请先阅读 `AGENTS.md`。

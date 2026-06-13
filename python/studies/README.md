@@ -1,5 +1,8 @@
 # 方法示例通用仿真程序
 
+> 当前状态（2026-06）：本文件描述的是旧的“每个方法一个 simulate.py”的适用范围分片生成流程。该流程仍用于兼容旧 `public/studies/*` 数据。新的蒙特卡洛、真值抽样、API 现场模拟和实验产物保存，应优先阅读并使用 `python/studies/common/README.md`。
+> 新实验不要复制 `mdm/mle/wmle/simulate.py`；应走 `python/studies/common/{sample.py, runner.py, simulation.py, experiment.py, metrics.py}`。
+
 ## 概述
 
 本目录包含各参数估计方法的通用仿真脚本，用于生成蒙特卡洛模拟数据。

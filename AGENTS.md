@@ -33,6 +33,9 @@
 | [02-A-适用范围规范.md](02-A-适用范围规范.md) | 开发适用范围时 | 分片命名、组件结构、数据来源表格 |
 | [02-B-可信性验证规范.md](02-B-可信性验证规范.md) | 开发可信性验证时 | 验证配置格式、组件架构、添加流程 |
 | [docs/AI协作协议.md](docs/AI协作协议.md) | Hermes/mimo 与 Codex 结对开发时 | 执行/审批分工、计划模板、检核清单、审批结论 |
+| [docs/AI辅助三参数威布尔参数估计重构当前路线图.md](docs/AI辅助三参数威布尔参数估计重构当前路线图.md) | 接手 AI 重构或继续研究03时 | 当前已完成内容、路线偏移原因、下一步里程碑 |
+| [python/studies/common/README.md](python/studies/common/README.md) | 开发蒙特卡洛/API模拟/实验流水线时 | 统一抽样、方法调用、指标聚合、结果文件契约 |
+| [python/studies/mdm/README.md](python/studies/mdm/README.md) | 开发 MDM 真值抽样或研究03 baseline 时 | 默认 MDM、full-v1 baseline、同源对比要求 |
 | 指标规范（`/help/metrics`） | 使用或新增评价指标时 | MAE/MRE/MSE 等指标的公式、含义、共享函数引用 |
 | 图表规范（`/help/charts`） | 使用或新增图表时 | 图表类型用途、数据要求、配色规范、组件复用 |
 | [03-维护.md](03-维护.md) | 部署或运维时 | 部署流程、日常维护、故障排查、安全措施 |
