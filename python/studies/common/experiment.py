@@ -49,6 +49,7 @@ def run_experiment(
     diagnostic_R_levels: Tuple[float, ...] = DEFAULT_R_LEVELS,
     seed_namespace: Optional[int] = None,
     code_version: str = "unknown",
+    run_label: str = "",
 ) -> Dict[str, Any]:
     """运行完整蒙特卡洛实验。
 
@@ -61,7 +62,8 @@ def run_experiment(
         R_levels: 标准主指标默认报告的工程寿命可靠度水平
         diagnostic_R_levels: S2R diagnostics 报告的可靠度水平
         seed_namespace: 传递给 generate_sample 的种子命名空间
-        code_version: 写入 manifest 的代码版本标识
+        code_version: 写入 manifest 的代码版本标识（默认读取 git commit）
+        run_label: 写入 manifest 的实验标签（如 pilot/full-v1）
 
     Returns:
         汇总字典，按 method_variant × (beta, eta, gamma) × n 分组
@@ -182,6 +184,7 @@ def run_experiment(
         "version": "1.0",
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "code_version": code_version,
+        "run_label": run_label,
         "methods": [
             {
                 "method_id": mid,

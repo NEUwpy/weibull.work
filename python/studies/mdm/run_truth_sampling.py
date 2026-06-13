@@ -18,6 +18,7 @@ MDM 真值抽样估计 — 实验入口脚本
 import argparse
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -64,6 +65,21 @@ DIAGNOSTIC_R_LEVELS = (0.50, 0.90, 0.95, 0.99, 0.999)
 DEFAULT_SEED_NAMESPACE = 2026
 
 
+def _git_version() -> str:
+    """读取当前 git commit short hash，失败时返回 unknown"""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, cwd=str(PROJECT_ROOT),
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return "unknown"
+
+
 def run_pilot(args):
     """运行 pilot 实验"""
     output_dir = args.output or str(
@@ -71,15 +87,17 @@ def run_pilot(args):
     )
     repeats = args.repeats or PILOT_REPEATS
     seed = args.seed if args.seed is not None else DEFAULT_SEED_NAMESPACE
+    code_version = args.code_version or _git_version()
 
     print("=" * 60)
     print("MDM 真值抽样估计 — PILOT")
     print("=" * 60)
-    print(f"  参数组合: {len(PILOT_PARAM_GRID)}")
-    print(f"  样本量:   {PILOT_N_VALUES}")
-    print(f"  重复次数: {repeats}")
-    print(f"  Seed:     {seed}")
-    print(f"  输出目录: {output_dir}")
+    print(f"  参数组合:   {len(PILOT_PARAM_GRID)}")
+    print(f"  样本量:     {PILOT_N_VALUES}")
+    print(f"  重复次数:   {repeats}")
+    print(f"  Seed:       {seed}")
+    print(f"  code_version: {code_version}")
+    print(f"  输出目录:   {output_dir}")
     print()
 
     summary = run_experiment(
@@ -91,7 +109,8 @@ def run_pilot(args):
         R_levels=R_LEVELS,
         diagnostic_R_levels=DIAGNOSTIC_R_LEVELS,
         seed_namespace=seed,
-        code_version="pilot",
+        code_version=code_version,
+        run_label="pilot",
     )
 
     _print_summary(summary)
@@ -106,17 +125,19 @@ def run_full(args):
     )
     repeats = args.repeats or FULL_REPEATS
     seed = args.seed if args.seed is not None else DEFAULT_SEED_NAMESPACE
+    code_version = args.code_version or _git_version()
 
     print("=" * 60)
     print("MDM 真值抽样估计 — FULL")
     print("=" * 60)
-    print(f"  参数组合: {len(FULL_PARAM_GRID)}")
-    print(f"  样本量:   {FULL_N_VALUES}")
-    print(f"  重复次数: {repeats}")
-    print(f"  Seed:     {seed}")
-    print(f"  输出目录: {output_dir}")
+    print(f"  参数组合:   {len(FULL_PARAM_GRID)}")
+    print(f"  样本量:     {FULL_N_VALUES}")
+    print(f"  重复次数:   {repeats}")
+    print(f"  Seed:       {seed}")
+    print(f"  code_version: {code_version}")
+    print(f"  输出目录:   {output_dir}")
     total = len(FULL_PARAM_GRID) * len(FULL_N_VALUES) * repeats
-    print(f"  总行数:   {total}")
+    print(f"  总行数:     {total}")
     print()
 
     summary = run_experiment(
@@ -128,7 +149,8 @@ def run_full(args):
         R_levels=R_LEVELS,
         diagnostic_R_levels=DIAGNOSTIC_R_LEVELS,
         seed_namespace=seed,
-        code_version="full-v1",
+        code_version=code_version,
+        run_label="full-v1",
     )
 
     _print_summary(summary)
@@ -170,6 +192,7 @@ def _print_manifest_check(output_dir):
     print("Manifest 溯源检查")
     print("-" * 60)
     print(f"  code_version:     {m.get('code_version')}")
+    print(f"  run_label:        {m.get('run_label')}")
     print(f"  generated_at:     {m.get('generated_at')}")
     print(f"  seed_namespace:   {m.get('seed_namespace')}")
     print(f"  total_rows:       {m.get('total_rows')}")
@@ -198,6 +221,10 @@ def main():
     parser.add_argument(
         "--output", type=str, default=None,
         help="覆盖默认输出目录"
+    )
+    parser.add_argument(
+        "--code-version", type=str, default=None, dest="code_version",
+        help="覆盖 git commit hash 作为 code_version"
     )
 
     args = parser.parse_args()

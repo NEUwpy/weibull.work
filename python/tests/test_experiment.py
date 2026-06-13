@@ -183,6 +183,7 @@ def test_experiment_produces_manifest():
         assert m["methods"][0]["method_id"] == "mdm"
         assert m["methods"][0]["kwargs"]["offset"] == 0.1
         assert "primary" in m["metrics"]
+        assert "run_label" in m
 
 
 def test_manifest_seed_namespace():
