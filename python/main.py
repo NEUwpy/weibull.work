@@ -15,7 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'methods'))
 from methods.registry import resolve_method
 from methods.mdm import MDM
 from studies.common.runner import run_method
-from studies.common.simulation import iter_batch_rows, simulate_method
+from studies.common.simulation import aggregate_simulation_rows, iter_batch_rows, simulate_method
 
 app = FastAPI()
 
@@ -252,7 +252,8 @@ async def monte_carlo_simulate(req: MonteCarloRequest):
         )
 
         print(f"[MonteCarlo] 完成: method={req.method}, 成功 {len(rows)}/{req.rep} 次")
-        return {"rows": rows, "count": len(rows), "success": True}
+        metrics = aggregate_simulation_rows(rows)
+        return {"rows": rows, "count": len(rows), "metrics": metrics, "success": True}
 
     except HTTPException:
         raise

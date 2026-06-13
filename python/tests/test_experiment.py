@@ -63,7 +63,8 @@ def test_csv_columns():
             "method_id", "method_variant",
             "beta_hat", "eta_hat", "gamma_hat",
             "r_squared", "converged", "time",
-            "status", "beta_rel_error", "eta_rel_error", "gamma_rel_error", "extra",
+            "status", "beta_error", "eta_error", "gamma_error",
+            "beta_rel_error", "eta_rel_error", "gamma_rel_error", "extra",
         }
         assert set(rows[0].keys()) == expected_cols
 
@@ -100,8 +101,11 @@ def test_json_summary_counts():
             summary = json.load(f)
         for key, group in summary.items():
             assert group["n_failure"] + group["n_valid"] == group["n_total"]
-            assert "param_distribution" in group
-            assert "quantile_distribution" in group
+            assert "param_standard" in group
+            assert "quantile_standard" in group
+            assert "diagnostics" in group
+            assert "param_distribution" in group["diagnostics"]
+            assert "quantile_distribution" in group["diagnostics"]
 
 
 def test_variant_in_summary():

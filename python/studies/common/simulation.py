@@ -11,6 +11,7 @@ from typing import Dict, Iterable, List, Optional
 from methods.registry import resolve_method
 from studies.common.runner import run_method
 from studies.common.sample import generate_sample
+from studies.common.metrics import aggregate_standard_metrics
 
 
 def _canonical_method_id(method_id: str) -> str:
@@ -62,6 +63,7 @@ def simulate_method(
         est_beta = estimate["beta_hat"]
         est_eta = estimate["eta_hat"]
         est_gamma = estimate["gamma_hat"]
+        sample_min = float(min(sample))
 
         rows.append({
             "beta_true": beta,
@@ -77,6 +79,10 @@ def simulate_method(
             "bias_eta": _bias(est_eta, eta),
             "bias_gamma": _bias(est_gamma, gamma),
             "r_squared": estimate["r_squared"],
+            "method_id": estimate["method_id"],
+            "converged": estimate["converged"],
+            "time": estimate["time"],
+            "sample_min": sample_min,
         })
 
     return rows
@@ -141,3 +147,21 @@ def iter_batch_rows(
                         row["offset_value"] = actual_offset
 
                     yield row
+
+
+def aggregate_simulation_rows(rows: List[Dict]) -> Dict:
+    """把 simulate_method() 的 API 行转换为默认指标汇总。"""
+    metric_inputs = []
+    for row in rows:
+        metric_inputs.append({
+            "beta_hat": row.get("est_beta"),
+            "eta_hat": row.get("est_eta"),
+            "gamma_hat": row.get("est_gamma"),
+            "beta": row["beta_true"],
+            "eta": row["eta_true"],
+            "gamma": row["gamma"],
+            "converged": row.get("converged", True),
+            "time": row.get("time"),
+            "sample_min": row.get("sample_min"),
+        })
+    return aggregate_standard_metrics(metric_inputs)

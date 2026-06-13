@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * S2R 指标规范页面
+ * 统一评价指标规范页面
  *
  * 维护约定：
  * - 本页面是 `src/lib/metrics.ts` 与 `python/studies/common/metrics.py` 的可读规范。
@@ -9,9 +9,10 @@
  * - 修改本页面任一公式、字段名或判定口径时，必须同步修改上述模块；
  *   反过来，模块变更也必须同步本页面。
  *
- * 当前唯一指标体系：
- * - 只展示 MdAPE、带符号中位误差、[P25,P75]、[P5,P95]、P95/P99(|e|)、有效估计率。
- * - NE、NQE_R、RE_R、Outlier Rate 等旧体系指标已废止，不在当前规范中继续使用。
+ * 当前默认主口径：
+ * - 参数视角：Bias、SD、RMSE、MAE；beta/eta 可附相对 Bias/RMSE，gamma 不输出相对指标。
+ * - 工程寿命视角：x_R 的 Bias、SD、RMSE、MAE 与相对 Bias/RMSE。
+ * - S2R 中位数族与尾部指标保留为 diagnostics，不再作为唯一主口径。
  */
 
 import React from 'react'
@@ -48,39 +49,32 @@ interface MetricDef {
 
 const CORE_METRICS: MetricDef[] = [
   {
-    name: 'MdAPE',
-    nameCn: '中位绝对百分比误差',
-    latex: '\\operatorname{median}_j\\left|e_j\\right|',
-    description: '主准确性指标。回答典型一次估计的误差幅度，稳健于少量边界解或离谱解。',
-    role: '主指标',
-  },
-  {
-    name: 'MedRel',
-    nameCn: '中位带符号相对误差',
-    latex: '\\operatorname{median}_j(e_j)',
-    description: '方向指标。正值表示系统高估，负值表示系统低估；与 MdAPE 并列报告。',
+    name: 'Bias',
+    nameCn: '偏差',
+    latex: '\\frac{1}{N}\\sum_i(\\hat\\theta_i-\\theta)',
+    description: '主指标。回答估计值平均偏高还是偏低，必须关注符号。',
     role: '方向',
   },
   {
-    name: '[P25, P75]',
-    nameCn: '内 50% 区间 / RelIQR',
-    latex: '[P_{25}(e),\\;P_{75}(e)]',
-    description: '稳定性指标。展示重复实验中间一半估计落在哪，避免只看一个平均值。',
+    name: 'SD',
+    nameCn: '标准差',
+    latex: '\\sqrt{\\frac{1}{N-1}\\sum_i(\\hat\\theta_i-\\bar{\\hat\\theta})^2}',
+    description: '主指标。回答重复抽样下估计值自身波动有多大。',
     role: '稳定性',
   },
   {
-    name: '[P5, P95] / P95',
-    nameCn: '尾部风险',
-    latex: '[P_5(e),\\;P_{95}(e)],\\quad P_{95}(|e|)',
-    description: '尾部指标。保留“有效但很差”的解，让高分位风险被看见。',
-    role: '尾部',
+    name: 'RMSE',
+    nameCn: '均方根误差',
+    latex: '\\sqrt{\\frac{1}{N}\\sum_i(\\hat\\theta_i-\\theta)^2}',
+    description: '主指标。回答总体误差量级，需与 Bias 和 SD 成套阅读。',
+    role: '综合',
   },
   {
-    name: 'Valid Rate',
-    nameCn: '有效估计率',
-    latex: 'r_{valid}=\\frac{n_{valid}}{n_{total}}',
-    description: '门槛指标。只剔除不收敛、数值非法、物理非法或边界病态解。',
-    role: '门槛',
+    name: 'MAE',
+    nameCn: '平均绝对误差',
+    latex: '\\frac{1}{N}\\sum_i|\\hat\\theta_i-\\theta|',
+    description: '补充指标。与 RMSE 对照可提示尾部或极端误差。',
+    role: '补充',
   },
 ]
 
@@ -90,24 +84,24 @@ const PERSPECTIVES = [
     accent: 'text-blue-700',
     bg: 'bg-blue-50/70',
     border: 'border-blue-100',
-    formula: 'e_\\beta=\\frac{\\hat\\beta-\\beta}{\\beta},\\quad e_\\eta=\\frac{\\hat\\eta-\\eta}{\\eta},\\quad e_\\gamma=\\frac{\\hat\\gamma-\\gamma}{\\eta}',
-    body: 'beta 和 eta 用自身归一化；gamma 可能为 0，因此统一用 eta 归一化。',
+    formula: 'e_\\beta=\\hat\\beta-\\beta,\\quad e_\\eta=\\hat\\eta-\\eta,\\quad e_\\gamma=\\hat\\gamma-\\gamma',
+    body: '对 beta、eta、gamma 分别报告 Bias、SD、RMSE、MAE。beta 和 eta 可附相对 Bias/RMSE；gamma 不使用相对指标。',
   },
   {
-    title: '工程应用视角',
+    title: '工程寿命视角',
     accent: 'text-purple-700',
     bg: 'bg-purple-50/70',
     border: 'border-purple-100',
-    formula: 'x_R=\\gamma+\\eta(-\\ln R)^{1/\\beta},\\quad e_R=\\frac{\\hat x_R-x_R}{x_R}',
-    body: '对每个 R 使用同一套分布指标。默认 R = 0.50, 0.90, 0.95, 0.99, 0.999；深尾分位必须由样本量支撑。',
+    formula: 'x_R=\\gamma+\\eta(-\\ln R)^{1/\\beta}',
+    body: '默认关注 x0.95 与 x0.99。每个 R 单独报告 Bias、SD、RMSE、MAE 与相对 RMSE，不用参数排序替代寿命排序。',
   },
   {
-    title: '训练损失',
+    title: '诊断视角',
     accent: 'text-emerald-700',
     bg: 'bg-emerald-50/70',
     border: 'border-emerald-100',
-    formula: 'L_{param}=(\\ln\\hat\\beta-\\ln\\beta)^2+(\\ln\\hat\\eta-\\ln\\eta)^2+\\left(\\frac{\\hat\\gamma-\\gamma}{\\eta}\\right)^2',
-    body: '损失不是独立评价指标，而是所选评价视角在相对/对数空间里的可微版本。',
+    formula: 'MdAPE,\\;MedRel,\\;[P_5,P_{95}],\\;P_{95}(|e|),\\;Valid\\ Rate',
+    body: 'S2R 中位数族和尾部分位保留为风险诊断，用于发现 RMSE 表格可能掩盖的异常尾部和有效率问题。',
   },
 ]
 
@@ -131,12 +125,13 @@ export default function MetricsPage() {
   return (
     <div className="space-y-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
       <div>
-        <div className="mb-2 text-xs font-black uppercase tracking-wider text-blue-600">S2R Metric System</div>
+        <div className="mb-2 text-xs font-black uppercase tracking-wider text-blue-600">Evaluation Metrics</div>
         <h1 className="mb-2 text-2xl font-black text-slate-900">指标规范</h1>
         <p className="max-w-4xl text-sm leading-relaxed text-slate-500">
-          评价准确性时，所有点估计指标本质上都在描述相对误差分布。
-          当前系统只保留 MdAPE + 方向 + 稳定性 + 尾部 + 有效估计率这一套口径；
-          NE、NQE_R、RE_R、Outlier Rate 等旧指标已废止。前后端共享实现位于
+          当前系统默认采用第七轮报告的常用指标：参数视角报告 Bias、SD、RMSE、MAE；
+          工程寿命视角报告 x_R 的 Bias、SD、RMSE、MAE 与相对 RMSE。
+          S2R 的 MdAPE、方向、IQR、P95/P99 与有效估计率保留为诊断指标，用于识别尾部风险和异常解。
+          前后端共享实现位于
           <code className="mx-1 rounded bg-slate-100 px-1 text-xs">src/lib/metrics.ts</code>
           和
           <code className="mx-1 rounded bg-slate-100 px-1 text-xs">python/studies/common/metrics.py</code>。
@@ -190,7 +185,7 @@ export default function MetricsPage() {
       <section className="rounded-lg border border-blue-100 bg-blue-50 p-5">
         <h2 className="mb-3 text-sm font-black text-blue-900">开发规范</h2>
         <ul className="space-y-2 text-sm leading-relaxed text-blue-800">
-          <li>• 横向比较先看 MdAPE、MedRel、[P25,P75]、[P5,P95]、P95(|e|)、Valid Rate。</li>
+          <li>• 横向比较默认主口径：Bias、SD、RMSE、MAE；工程寿命视角额外关注 x0.95 / x0.99 的相对 RMSE。S2R 的 MdAPE、方向、IQR、P95/P99 与有效估计率仅作诊断参考。</li>
           <li>• 新增实验必须调用共享指标函数，禁止在组件或脚本中内联重复实现。</li>
           <li>• 页面规范和共享模块必须双向同步；任何一方变更都要同时更新另一方。</li>
           <li>• 真实工程数据没有真值时，只能评价拟合优度；准确性指标仅用于蒙特卡洛或仿真标签已知场景。</li>

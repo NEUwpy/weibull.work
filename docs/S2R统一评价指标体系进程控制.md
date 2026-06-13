@@ -1,33 +1,22 @@
-# S2R 统一评价指标体系进程控制
+# 评价指标体系进程控制
 
-> 用途：记录“旧指标体系废止、S2R 成为唯一指标体系”的推进状态。
+> 用途：记录"旧指标体系废止、标准指标成为默认主口径"的推进状态。S2R 诊断层保留为辅助参考。
 > 本文档是轻量接力文档，不替代 `/help/metrics` 页面和共享指标模块。
 
 ---
 
 ## 1. 当前结论
 
-从本阶段开始，项目只保留 **S2R 评价指标体系**。
+从本阶段开始，项目默认主评价口径调整为第七轮报告推荐的常用指标：
 
-已废止旧指标：
+| 视角 | 默认主指标 |
+|------|------------|
+| 参数视角 | Bias、SD、RMSE、MAE |
+| beta/eta 相对补充 | 相对 Bias、相对 RMSE |
+| gamma | 只使用绝对尺度指标，不使用相对指标 |
+| 工程寿命视角 | x_R 的 Bias、SD、RMSE、MAE、相对 RMSE |
 
-- NE
-- NQE_R / RE_R
-- Outlier Rate
-- TRMSE
-- 以均值型误差或综合误差作为主排序依据的旧口径
-
-当前唯一指标族：
-
-| 维度 | 指标 |
-|------|------|
-| 准确性 | MdAPE |
-| 方向 | 中位带符号相对误差 |
-| 稳定性 | [P25, P75] / RelIQR |
-| 尾部 | [P5, P95]、P95(|e|)、必要时 P99(|e|) |
-| 门槛 | 有效估计率 |
-
-参数视角与工程分位点视角使用同一套误差分布读法。
+S2R 的 MdAPE、MedRel、RelIQR、P95/P99 与有效估计率保留为诊断指标，不再作为唯一主口径。
 
 ---
 
@@ -38,8 +27,8 @@
 | 位置 | 职责 |
 |------|------|
 | `src/app/help/metrics/page.tsx` | 用户/开发者可读的指标规范页面 |
-| `src/lib/metrics.ts` | 前端可调用的 S2R 指标实现 |
-| `python/studies/common/metrics.py` | 后端/实验脚本可调用的 S2R 指标实现 |
+| `src/lib/metrics.ts` | 前端可调用的标准指标实现 |
+| `python/studies/common/metrics.py` | 后端/实验脚本可调用的标准指标实现 |
 
 维护规则：
 
@@ -54,13 +43,13 @@
 
 已完成：
 
-- 后端指标测试改为唯一 S2R 口径。
-- `python/studies/common/metrics.py` 重写为 S2R 模块。
+- 后端指标测试改为标准指标主口径。
+- `python/studies/common/metrics.py` 重写为标准指标模块 + S2R 诊断层。
 - `python/studies/common/experiment.py` 输出从 `ne` 改为参数带符号相对误差。
-- `/help/metrics` 页面改为只展示 S2R 指标，并明确旧指标废止。
-- `src/lib/metrics.ts` 改为只导出 S2R 函数。
-- S4.5/S4.7 相关研究脚本已去除对旧 NE/NQE/outlier 字段的直接依赖，准备后续用 S2R 重新评估。
-- 当前主线接手提示词、S3 前审查稿和实验设计总纲已同步为 S2R 唯一体系。
+- `/help/metrics` 页面改为展示标准指标 + S2R 诊断，并明确旧指标废止。
+- `src/lib/metrics.ts` 改为导出标准指标函数 + S2R 诊断函数。
+- S4.5/S4.7 相关研究脚本已去除对旧 NE/NQE/outlier 字段的直接依赖。
+- 当前主线接手提示词、S3 前审查稿和实验设计总纲已同步为标准指标主口径。
 - 已完成验证：`python -m pytest -q`、`python -m compileall -q python/studies`、`npx tsc --noEmit`、`npm run build`。
 - 当前主线代码旧指标残留只剩“废止说明”和测试中的旧字段禁止断言。
 
@@ -74,8 +63,8 @@
 
 ## 4. 下一步顺序
 
-1. 用 S2R 指标重算 S4.7。
-2. 基于 MdAPE、方向、IQR、尾部、有效率重新判断默认 MDM 变体。
+1. 用标准指标口径重算 S4.7。
+2. 基于 Bias、SD、RMSE、MAE 重新判断默认 MDM 变体；S2R 诊断层作辅助参考。
 3. 更新状态控制文档里的 S4.7 结论表。
 4. 之后再进入 S3 Loss 对比实验。
 

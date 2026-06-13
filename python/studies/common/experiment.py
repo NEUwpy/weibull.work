@@ -2,7 +2,7 @@
 统一蒙特卡洛调度模块
 
 遍历参数网格 × 样本量，生成共享样本，调用所有方法，
-用 S2R 指标模块计算状态和指标，保存逐条 CSV + 聚合 JSON。
+用标准指标模块计算状态和指标，保存逐条 CSV + 聚合 JSON。S2R 诊断指标作为附加输出。
 
 规范来源：AI辅助三参数威布尔参数估计S4统一蒙特卡洛框架规划 第 3.4 节
 """
@@ -16,7 +16,8 @@ from typing import List, Dict, Tuple, Any, Union
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 from studies.common.metrics import (
-    check_status, aggregate_param_metrics, DEFAULT_R_LEVELS, param_relative_errors,
+    check_status, aggregate_standard_metrics, DEFAULT_R_LEVELS, DEFAULT_STANDARD_R_LEVELS,
+    param_absolute_errors, param_relative_errors,
 )
 
 
@@ -43,7 +44,8 @@ def run_experiment(
     n_values: List[int],
     n_repeats: int,
     output_dir: str,
-    R_levels: Tuple[float, ...] = DEFAULT_R_LEVELS,
+    R_levels: Tuple[float, ...] = DEFAULT_STANDARD_R_LEVELS,
+    diagnostic_R_levels: Tuple[float, ...] = DEFAULT_R_LEVELS,
 ) -> Dict[str, Any]:
     """运行完整蒙特卡洛实验。
 
@@ -53,7 +55,8 @@ def run_experiment(
         n_values: [10, 20, 30, ...] 样本量列表
         n_repeats: 每组重复次数
         output_dir: 结果保存目录
-        R_levels: 可靠度水平
+        R_levels: 标准主指标默认报告的工程寿命可靠度水平
+        diagnostic_R_levels: S2R diagnostics 报告的可靠度水平
 
     Returns:
         汇总字典，按 method_variant × (beta, eta, gamma) × n 分组
@@ -98,6 +101,11 @@ def run_experiment(
                             beta, eta, gamma,
                         ) if status == "success" else {"beta": float("nan"), "eta": float("nan"), "gamma": float("nan")}
 
+                    abs_errors = param_absolute_errors(
+                        beta_hat, eta_hat, gamma_hat,
+                        beta, eta, gamma,
+                    ) if status == "success" else {"beta": float("nan"), "eta": float("nan"), "gamma": float("nan")}
+
                     row = {
                         "beta": beta,
                         "eta": eta,
@@ -113,6 +121,9 @@ def run_experiment(
                         "converged": converged,
                         "time": m_result["time"],
                         "status": status,
+                        "beta_error": abs_errors["beta"],
+                        "eta_error": abs_errors["eta"],
+                        "gamma_error": abs_errors["gamma"],
                         "beta_rel_error": rel_errors["beta"],
                         "eta_rel_error": rel_errors["eta"],
                         "gamma_rel_error": rel_errors["gamma"],
@@ -139,10 +150,14 @@ def run_experiment(
     # 写 CSV
     _write_csv(csv_path, csv_rows)
 
-    # 聚合并写 JSON
+    # 标准指标聚合并写 JSON，S2R 分布指标嵌入 diagnostics。
     summary = {}
     for (variant, beta, eta, gamma, n), results in agg_inputs.items():
-        agg = aggregate_param_metrics(results, R_levels=R_levels)
+        agg = aggregate_standard_metrics(
+            results,
+            R_levels=R_levels,
+            diagnostic_R_levels=diagnostic_R_levels,
+        )
         group_key = f"{variant}|b{beta}_e{eta}_g{gamma}_n{n}"
         summary[group_key] = {
             "method_variant": variant,
@@ -169,7 +184,8 @@ def _write_csv(path: str, rows: List[Dict]):
         "method_id", "method_variant",
         "beta_hat", "eta_hat", "gamma_hat",
         "r_squared", "converged", "time",
-        "status", "beta_rel_error", "eta_rel_error", "gamma_rel_error", "extra",
+        "status", "beta_error", "eta_error", "gamma_error",
+        "beta_rel_error", "eta_rel_error", "gamma_rel_error", "extra",
     ]
 
     with open(path, "w", newline="", encoding="utf-8") as f:

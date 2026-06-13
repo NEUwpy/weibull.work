@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
-from studies.common.simulation import iter_batch_rows, simulate_method
+from studies.common.simulation import aggregate_simulation_rows, iter_batch_rows, simulate_method
 
 
 def test_generate_sample_accepts_optional_seed_namespace():
@@ -45,6 +45,10 @@ def test_simulate_method_uses_common_sample_and_runner():
     assert rows[0]["sample_size"] == 20
     assert rows[0]["est_beta"] == pytest.approx(expected["beta_hat"])
     assert rows[0]["r_squared"] == pytest.approx(expected["r_squared"])
+    assert rows[0]["method_id"] == "mle"
+    assert rows[0]["converged"] is True
+    assert rows[0]["time"] >= 0
+    assert rows[0]["sample_min"] == pytest.approx(float(min(sample)))
 
 
 def test_simulate_method_applies_default_mdm_offset():
@@ -61,6 +65,25 @@ def test_simulate_method_applies_default_mdm_offset():
 
     assert rows[0]["offset_value"] == 0.1
     assert rows[0]["est_beta"] is not None
+
+
+def test_aggregate_simulation_rows_returns_standard_metrics():
+    rows = simulate_method(
+        method_id="mle",
+        beta=2.0,
+        eta=100.0,
+        gamma=5.0,
+        n=20,
+        rep=3,
+        seed=42,
+    )
+
+    metrics = aggregate_simulation_rows(rows)
+
+    assert metrics["n_total"] == 3
+    assert "param_standard" in metrics
+    assert "quantile_standard" in metrics
+    assert "diagnostics" in metrics
 
 
 def test_iter_batch_rows_keeps_batch_csv_shape():

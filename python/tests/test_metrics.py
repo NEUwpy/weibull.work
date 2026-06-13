@@ -1,11 +1,11 @@
 """
-S2R 唯一评价指标模块测试
+评价指标模块测试
 
 当前权威口径：
-- 只保留 MdAPE、带符号中位误差、[P25,P75]、[P5,P95]、P95/P99(|e|)、有效估计率
-- 参数视角和工程分位点视角使用同一套误差分布读法
-- beta/eta 用自身归一化，gamma 用 eta 归一化
-- NE、NQE_R、RE_R、Outlier Rate 等旧体系指标不再输出
+- 第七轮常用指标为默认主口径：Bias、SD、RMSE、MAE。
+- beta/eta 可附相对 Bias、相对 RMSE；gamma 不输出相对指标。
+- 工程寿命分位点 x_R 输出 Bias、SD、RMSE、MAE 与相对 Bias/RMSE。
+- S2R 的 MdAPE、MedRel、IQR、P95/P99、Valid Rate 保留为 diagnostics。
 """
 
 import math
@@ -18,13 +18,16 @@ sys.path.insert(0, str(PROJECT_ROOT / "python"))
 
 from studies.common.metrics import (
     DEFAULT_R_LEVELS,
+    DEFAULT_STANDARD_R_LEVELS,
     aggregate_param_metrics,
+    aggregate_standard_metrics,
     check_status,
     param_relative_errors,
     quantile_est,
     quantile_relative_error,
     quantile_true,
     summarize_relative_errors,
+    summarize_standard_errors,
 )
 
 
@@ -92,6 +95,37 @@ class TestDistributionSummary:
 
         assert summary["mdape"] is None
         assert summary["p95_abs"] is None
+
+
+class TestStandardSummary:
+    def test_standard_summary_reports_bias_sd_rmse_mae(self):
+        summary = summarize_standard_errors([10.0, -5.0, 0.0])
+
+        assert summary["n"] == 3
+        assert summary["bias"] == pytest.approx(5.0 / 3.0)
+        assert summary["sd"] == pytest.approx(7.637626, rel=1e-6)
+        assert summary["rmse"] == pytest.approx(math.sqrt(125.0 / 3.0))
+        assert summary["mae"] == pytest.approx(5.0)
+        assert summary["mse"] == pytest.approx(125.0 / 3.0)
+
+    def test_standard_summary_ignores_nonfinite_values(self):
+        summary = summarize_standard_errors([float("nan"), -2.0, 2.0, float("inf")])
+
+        assert summary["n"] == 2
+        assert summary["bias"] == pytest.approx(0.0)
+        assert summary["rmse"] == pytest.approx(2.0)
+
+    def test_empty_standard_summary_uses_none_values(self):
+        summary = summarize_standard_errors([float("nan")])
+
+        assert summary == {
+            "n": 0,
+            "bias": None,
+            "sd": None,
+            "mse": None,
+            "rmse": None,
+            "mae": None,
+        }
 
 
 class TestStatus:
@@ -228,6 +262,57 @@ class TestAggregate:
 
         for old_key in ("ne_mean", "ne_std", "nqe_mean", "re_mean", "outlier_rate", "n_outlier"):
             assert old_key not in agg
+
+    def test_standard_metrics_are_default_output(self):
+        agg = aggregate_standard_metrics([
+            self._make_result(2.2, 110.0, 12.0),
+            self._make_result(1.8, 90.0, 8.0),
+            self._make_result(None, None, None),
+        ])
+
+        assert agg["n_total"] == 3
+        assert agg["n_valid"] == 2
+        assert agg["n_failure"] == 1
+        assert agg["valid_rate"] == pytest.approx(2.0 / 3.0)
+
+        beta_abs = agg["param_standard"]["beta"]["absolute"]
+        assert beta_abs["bias"] == pytest.approx(0.0)
+        assert beta_abs["sd"] == pytest.approx(0.2828427, rel=1e-6)
+        assert beta_abs["rmse"] == pytest.approx(0.2)
+        assert beta_abs["mae"] == pytest.approx(0.2)
+
+        beta_rel = agg["param_standard"]["beta"]["relative"]
+        assert beta_rel["bias"] == pytest.approx(0.0)
+        assert beta_rel["rmse"] == pytest.approx(0.1)
+
+        assert "relative" not in agg["param_standard"]["gamma"]
+        assert "diagnostics" in agg
+        assert "param_distribution" in agg["diagnostics"]
+
+    def test_standard_quantile_metrics_include_x095_and_x099_by_default(self):
+        agg = aggregate_standard_metrics([
+            self._make_result(2.0, 100.0, 10.0),
+            self._make_result(2.2, 110.0, 12.0),
+        ])
+
+        assert DEFAULT_STANDARD_R_LEVELS == (0.95, 0.99)
+        assert set(agg["quantile_standard"]) == {0.95, 0.99}
+
+        for R in DEFAULT_STANDARD_R_LEVELS:
+            item = agg["quantile_standard"][R]
+            assert set(item) == {"absolute", "relative"}
+            assert "rmse" in item["absolute"]
+            assert "rmse" in item["relative"]
+
+    def test_s2r_diagnostics_do_not_emit_old_ne_family(self):
+        agg = aggregate_standard_metrics([
+            self._make_result(2.0, 100.0, 10.0),
+            self._make_result(2.1, 105.0, 12.0),
+        ])
+
+        diagnostics = agg["diagnostics"]
+        for old_key in ("ne_mean", "ne_std", "nqe_mean", "re_mean", "outlier_rate", "n_outlier"):
+            assert old_key not in diagnostics
 
 
 if __name__ == "__main__":
