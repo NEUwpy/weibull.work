@@ -122,6 +122,13 @@ def run_method(method_id: str, sample, variant: Optional[str] = None,
                     result["r_squared"] = float(raw[3])
                     result["converged"] = True
 
+        # 无条件暴露 last_solution_info（MDM 求解器诊断）
+        solution_info = getattr(instance, "last_solution_info", None)
+        if solution_info is not None:
+            if result["extra"] is None:
+                result["extra"] = {}
+            result["extra"]["solution_info"] = solution_info
+
         if kwargs.get("trace"):
             trace_data = getattr(instance, "trace_data", None)
             if isinstance(raw, MethodResult) and raw.trace_data is not None:

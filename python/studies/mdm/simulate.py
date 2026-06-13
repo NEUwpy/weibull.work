@@ -1,6 +1,9 @@
 """
 MDM 方法通用仿真脚本 (分片+索引模式)
 
+⚠️ DEPRECATED: 本脚本已被 python/studies/common/experiment.py 取代。
+新实验请使用 run_experiment()。本脚本仅用于复现旧数据或兼容旧流程。
+
 状态说明（2026-06）：本脚本是历史的方法专属分片生成入口，暂时保留以
 兼容旧数据生成流程。新的统一方法调用与蒙特卡洛核心在
 python/studies/common/{sample.py, runner.py, simulation.py, experiment.py}，

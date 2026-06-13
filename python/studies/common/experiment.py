@@ -11,7 +11,8 @@ import csv
 import json
 import math
 import os
-from typing import List, Dict, Tuple, Any, Union
+from datetime import datetime, timezone
+from typing import List, Dict, Tuple, Any, Optional, Union
 
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
@@ -46,6 +47,8 @@ def run_experiment(
     output_dir: str,
     R_levels: Tuple[float, ...] = DEFAULT_STANDARD_R_LEVELS,
     diagnostic_R_levels: Tuple[float, ...] = DEFAULT_R_LEVELS,
+    seed_namespace: Optional[int] = None,
+    code_version: str = "unknown",
 ) -> Dict[str, Any]:
     """运行完整蒙特卡洛实验。
 
@@ -57,6 +60,8 @@ def run_experiment(
         output_dir: 结果保存目录
         R_levels: 标准主指标默认报告的工程寿命可靠度水平
         diagnostic_R_levels: S2R diagnostics 报告的可靠度水平
+        seed_namespace: 传递给 generate_sample 的种子命名空间
+        code_version: 写入 manifest 的代码版本标识
 
     Returns:
         汇总字典，按 method_variant × (beta, eta, gamma) × n 分组
@@ -73,7 +78,7 @@ def run_experiment(
     for beta, eta, gamma in param_grid:
         for n in n_values:
             for rid in range(n_repeats):
-                sample = generate_sample(beta, eta, gamma, n, rid)
+                sample = generate_sample(beta, eta, gamma, n, rid, seed=seed_namespace)
 
                 for method_id, kwargs, variant in parsed_methods:
                     m_result = run_method(method_id, sample, variant=variant, **kwargs)
@@ -170,6 +175,36 @@ def run_experiment(
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
+
+    # 写 manifest.json — 实验产物溯源
+    manifest_path = os.path.join(output_dir, "manifest.json")
+    manifest = {
+        "version": "1.0",
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "code_version": code_version,
+        "methods": [
+            {
+                "method_id": mid,
+                "variant": var,
+                "kwargs": kw,
+            }
+            for mid, kw, var in parsed_methods
+        ],
+        "param_grid": [list(p) for p in param_grid],
+        "n_values": list(n_values),
+        "n_repeats": n_repeats,
+        "seed_namespace": seed_namespace,
+        "metrics": {
+            "primary": ["bias", "sd", "rmse", "mae"],
+            "R_levels": list(R_levels),
+            "diagnostics": ["mdape", "med_rel", "p95_abs"],
+            "diagnostic_R_levels": list(diagnostic_R_levels),
+        },
+        "total_rows": len(csv_rows),
+        "output_files": ["results.csv", "summary.json", "manifest.json"],
+    }
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
 
     return summary
 

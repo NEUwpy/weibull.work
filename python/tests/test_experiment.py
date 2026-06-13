@@ -156,3 +156,107 @@ def test_success_rows_record_relative_errors():
                     assert row["beta_rel_error"] != "" and row["beta_rel_error"] != "nan"
                     assert row["eta_rel_error"] != "" and row["eta_rel_error"] != "nan"
                     assert row["gamma_rel_error"] != "" and row["gamma_rel_error"] != "nan"
+
+
+def test_experiment_produces_manifest():
+    """run_experiment 输出 manifest.json 且包含必要字段"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        run_experiment(
+            methods=[("mdm", {"offset": 0.1})],
+            param_grid=[(2.0, 100.0, 5.0)],
+            n_values=[20],
+            n_repeats=10,
+            output_dir=tmpdir,
+            code_version="test-v1",
+        )
+        manifest_path = os.path.join(tmpdir, "manifest.json")
+        assert os.path.exists(manifest_path)
+        with open(manifest_path, encoding="utf-8") as f:
+            m = json.load(f)
+        assert "methods" in m
+        assert "param_grid" in m
+        assert "generated_at" in m
+        assert m["code_version"] == "test-v1"
+        assert m["n_repeats"] == 10
+        assert m["total_rows"] == 10
+        assert len(m["methods"]) == 1
+        assert m["methods"][0]["method_id"] == "mdm"
+        assert m["methods"][0]["kwargs"]["offset"] == 0.1
+        assert "primary" in m["metrics"]
+
+
+def test_manifest_seed_namespace():
+    """manifest 记录 seed_namespace"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        run_experiment(
+            methods=["mle"],
+            param_grid=[(2.0, 100.0, 5.0)],
+            n_values=[20],
+            n_repeats=3,
+            output_dir=tmpdir,
+            seed_namespace=42,
+        )
+        with open(os.path.join(tmpdir, "manifest.json"), encoding="utf-8") as f:
+            m = json.load(f)
+        assert m["seed_namespace"] == 42
+
+
+def test_mdm_solution_info_in_extra():
+    """MDM 行的 extra 列包含 solution_info"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        run_experiment(
+            methods=[("mdm", {"offset": 0.1})],
+            param_grid=[(2.0, 100.0, 5.0)],
+            n_values=[20],
+            n_repeats=5,
+            output_dir=tmpdir,
+        )
+        csv_path = os.path.join(tmpdir, "results.csv")
+        found_solution_info = False
+        with open(csv_path, encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["status"] == "success" and row["extra"]:
+                    extra = json.loads(row["extra"])
+                    if "solution_info" in extra:
+                        found_solution_info = True
+                        si = extra["solution_info"]
+                        assert "solution_strategy" in si
+                        assert "target_offset" in si
+                        assert si["constraint"] == "gamma >= 0"
+                        break
+        assert found_solution_info, "未找到包含 solution_info 的 MDM 行"
+
+
+def test_mdm_small_grid_valid_rate():
+    """MDM 在标准小网格上 valid_rate = 100%"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        summary = run_experiment(
+            methods=[("mdm", {"offset": 0.1})],
+            param_grid=[(2.0, 100.0, 5.0), (3.0, 100.0, 0.0)],
+            n_values=[20, 30],
+            n_repeats=50,
+            output_dir=tmpdir,
+        )
+        for key, group in summary.items():
+            assert group["valid_rate"] == 1.0, f"{key}: valid_rate={group['valid_rate']}"
+
+
+def test_manifest_records_custom_r_levels():
+    """manifest.json 记录实际传入的 R_levels 和 diagnostic_R_levels"""
+    custom_R = (0.90, 0.95, 0.99)
+    custom_diag = (0.50, 0.90, 0.95, 0.99, 0.999)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        run_experiment(
+            methods=["mle"],
+            param_grid=[(2.0, 100.0, 5.0)],
+            n_values=[20],
+            n_repeats=5,
+            output_dir=tmpdir,
+            R_levels=custom_R,
+            diagnostic_R_levels=custom_diag,
+        )
+        with open(os.path.join(tmpdir, "manifest.json"), encoding="utf-8") as f:
+            m = json.load(f)
+        assert m["metrics"]["R_levels"] == [0.90, 0.95, 0.99]
+        assert m["metrics"]["diagnostic_R_levels"] == [0.50, 0.90, 0.95, 0.99, 0.999]
