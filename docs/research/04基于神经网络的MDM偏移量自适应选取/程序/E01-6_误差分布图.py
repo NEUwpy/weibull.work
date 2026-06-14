@@ -164,7 +164,7 @@ print('saved: E01-6_误差箱线图.png')
 # Figure C: Engineering perspective boxplot (x95)
 # ============================================================
 fig, axes = plt.subplots(1, 2, figsize=(5, 2.5))
-params_eng = [('err_x95', 'x̂₀.₉₅ − x₀.₉₅'), ('err_x99', 'x̂₀.₉₉ − x₀.₉₉')]
+params_eng = [('err_x95', 'x0.95 error'), ('err_x99', 'x0.99 error')]
 
 for idx, (pkey, plabel) in enumerate(params_eng):
     ax = axes[idx]

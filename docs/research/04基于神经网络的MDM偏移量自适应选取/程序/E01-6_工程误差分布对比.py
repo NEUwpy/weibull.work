@@ -61,7 +61,7 @@ for tag in ['err_x95', 'err_x99']:
 # Plot: 2 rows (x95, x99) × 2 cols (n=5, n=20), each col has 3 overlaid histograms
 fig, axes = plt.subplots(2, 2, figsize=(7, 4.5))
 
-for row_idx, (tag, plabel) in enumerate([('err_x95', 'x̂₀.₉₅ error'), ('err_x99', 'x̂₀.₉₉ error')]):
+for row_idx, (tag, plabel) in enumerate([('err_x95', 'x0.95 error'), ('err_x99', 'x0.99 error')]):
     for col_idx, n in enumerate([5, 20]):
         ax = axes[row_idx, col_idx]
         lo, hi = shared[tag]
