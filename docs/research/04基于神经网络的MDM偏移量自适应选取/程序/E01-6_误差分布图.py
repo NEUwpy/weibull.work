@@ -57,8 +57,17 @@ for key in data:
 
 
 # ============================================================
-# Figure A: 3×3 error distribution histogram (n=5)
+# Figure A: 3×3 error distribution histogram
 # ============================================================
+# Compute shared bin ranges from n=5 (widest)
+shared_ranges = {}
+for pkey in ['err_beta', 'err_eta', 'err_gamma']:
+    all_vals = np.concatenate([data[(5, m)][pkey] for m in methods])
+    lo, hi = np.percentile(all_vals, [0.5, 99.5])
+    margin = (hi - lo) * 0.1
+    shared_ranges[pkey] = (lo - margin, hi + margin)
+
+
 def plot_error_grid(n, filename):
     fig, axes = plt.subplots(3, 3, figsize=(7, 6))
     params = [('err_beta', 'β̂ − β'), ('err_eta', 'η̂ − η'), ('err_gamma', 'γ̂ − γ')]
@@ -75,17 +84,8 @@ def plot_error_grid(n, filename):
                     ax.set_xlabel('Error', fontsize=6)
                 continue
 
-            # Determine bin range
-            if pkey == 'err_gamma':
-                lo, hi = np.percentile(vals, [0.5, 99.5])
-                lo = max(lo, -400)
-                hi = min(hi, 800)
-            elif pkey == 'err_eta':
-                lo, hi = np.percentile(vals, [0.5, 99.5])
-            else:
-                lo, hi = np.percentile(vals, [0.5, 99.5])
-            margin = (hi - lo) * 0.1
-            bins = np.linspace(lo - margin, hi + margin, 35)
+            lo, hi = shared_ranges[pkey]
+            bins = np.linspace(lo, hi, 35)
 
             ax.hist(vals, bins=bins, color=colors_m[m], edgecolor='none',
                     alpha=0.7, density=True)
