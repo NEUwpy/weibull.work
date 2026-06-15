@@ -84,11 +84,17 @@ def undiscretize_proba(proba, bin_centers):
 # ============================================================
 
 def compute_discretization_error(y_true, bin_edges, bin_centers, param_idx=0):
-    """计算离散化误差下界（完美分类时的最小误差）"""
+    """计算离散化误差下界（完美分类时的最小误差）
+
+    注意 J_param 归一化：beta/eta 除以自身，gamma 除以 eta
+    """
     values = y_true[:, param_idx]
     labels = discretize(values, bin_edges)
     reconstructed = undiscretize(labels, bin_centers)
-    errors = (reconstructed - values) / values  # 相对误差
+    if param_idx == 2:  # gamma 除以 eta
+        errors = (reconstructed - values) / y_true[:, 1]
+    else:
+        errors = (reconstructed - values) / values  # 相对误差
     return np.sqrt(np.mean(errors ** 2))  # RMSE
 
 

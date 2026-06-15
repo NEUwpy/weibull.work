@@ -1,0 +1,115 @@
+{
+  "experiment_id": "09",
+  "title": "三参数 Weibull 的 AI 直接估计范式比较",
+  "code_version": "1.0",
+  "date": "2026-06-15",
+  "description": "比较连续回归（BP）、离散分类（SVM/XGBoost）、分类+局部回归三种范式在三参数 Weibull 参数直接估计中的适用性。",
+
+  "why_not_run_experiment": "09 是 ML 训练实验（BP 神经网络、SVM、XGBoost），包含 train/val/test 划分、epoch 训练循环、模型权重保存、超参数调优等概念，不适用于平台的 run_experiment() 蒙特卡洛模拟框架。09 复用了平台的 studies/common/metrics.py 评价指标，数据生成逻辑与平台分布意图一致但实现不同（见 data_generation 差异说明）。",
+
+  "parameter_ranges": {
+    "beta": [1.0, 5.0],
+    "eta": [0.5, 5.0],
+    "gamma": [0.0, 2.0]
+  },
+
+  "sample_sizes": [5, 7, 10, 15, 20, 50],
+
+  "data_generation": {
+    "description": "09 使用 common.py 中的 generate_dataset() 生成数据，与平台 studies/common/sample.py::generate_sample() 的差异如下：",
+    "differences": [
+      "09 用 RandomState(seed)，平台用 default_rng",
+      "09 用 uniform(0.001, 0.999)，平台用 uniform(0, 1)",
+      "09 用线性 sample_seed_start + offset，平台用 hash namespace + (beta, eta, gamma, n, repeat_id, seed_namespace) 绑定",
+      "分布意图一致（三参数 Weibull 逆变换采样），但随机数序列不同"
+    ],
+    "implication": "相同 seed 下 09 和平台会生成不同的样本，因此结果不能直接与平台其他研究的数值对比，但统计结论可比"
+  },
+
+  "train_val_test_config": {
+    "E09-2a_2b": {
+      "train": "500 configs x 4 repeats",
+      "val": "100 configs x 4 repeats",
+      "test": "100 configs x 5 repeats",
+      "seeds": {"train": 42, "val": 100, "test": 200}
+    },
+    "E09-4": {
+      "train": "500 configs x 4 repeats",
+      "val": "100 configs x 4 repeats",
+      "test": "100 configs x 5 repeats",
+      "seeds": {"train": 42, "val": 100, "test": 200}
+    },
+    "E09-5": {
+      "train": "500 configs x 4 repeats",
+      "test": "100 configs x 5 repeats",
+      "seeds": {"train": 42, "test": 200}
+    },
+    "E09-7_8": {
+      "train": "500 configs x 4 repeats",
+      "test": "100 configs x 5 repeats",
+      "seeds": {"train": 42, "test": 200}
+    }
+  },
+
+  "seed_strategy": {
+    "param_seed": "参数空间采样种子，train=42, val=100, test=200",
+    "sample_seed_start": "样本生成种子起始值，train=0, val=10000, test=20000",
+    "model_seed": "模型随机种子，固定为 42（BP/SVM/XGBoost/LightGBM/RF）"
+  },
+
+  "metrics": {
+    "primary": "J_param",
+    "J_param_formula": "J_param = sqrt( mean( ((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2 ) )",
+    "J_param_note": "gamma 使用 eta 归一化（因两者与寿命同量纲），不是用 gamma 自身。源自 04 研究定义。",
+    "secondary": [
+      "逐参数相对 RMSE（beta/eta 除以自身，gamma 除以 eta）",
+      "逐参数 Bias",
+      "x0.95 / x0.99 工程寿命 RMSE",
+      "分类准确率（仅分类范式）"
+    ],
+    "shared_with_platform": "复用 studies/common/metrics.py 的 aggregate_standard_metrics、param_absolute_errors、param_relative_errors、quantile_true、quantile_est"
+  },
+
+  "features": {
+    "original_12": "mean, std, xmin, xmax, range, q25, q50, q75, iqr, skewness, kurtosis, cv",
+    "enhanced_30": "原始12维 + q10/q20/q30/q40/q60/q70/q80/q90 + q90-q10/q80-q20/q70-q30 + q75/q25 + x[1]/x[-2] + trimmed_mean + log_mean/log_std + mad + iqr/median"
+  },
+
+  "classifiers": {
+    "SVM": "sklearn SVC, RBF kernel, probability=True",
+    "XGBoost": "xgboost XGBClassifier, n_estimators=200, max_depth=6, lr=0.1",
+    "LightGBM": "lightgbm LGBMClassifier, n_estimators=200, max_depth=6, lr=0.1",
+    "RandomForest": "sklearn RandomForestClassifier, n_estimators=200, max_depth=10"
+  },
+
+  "discretization": {
+    "method": "等距分箱",
+    "K_candidates": [5, 10, 20, 50],
+    "default_K": 10,
+    "reconstruction": "概率加权法（各类别概率加权平均 bin center）"
+  },
+
+  "output_files": {
+    "experiment_data": {
+      "E09-2a_summary.csv": "BP-raw 6 样本量汇总",
+      "E09-2b_summary.csv": "BP-feature 6 样本量汇总",
+      "E09-4a_discretization_bounds.csv": "离散化误差下界",
+      "E09-4b_svm_summary.csv": "SVM 分类汇总",
+      "E09-4d_comparison.csv": "SVM vs BP 对比",
+      "E09-5_hybrid_summary.csv": "混合模型汇总",
+      "E09-6_unified_summary.csv": "三范式统一对比",
+      "E09-7a_classifiers_compare.csv": "多分类器对比",
+      "E09-7b_bins_sensitivity.csv": "分箱数敏感性",
+      "E09-7c_hierarchical_compare.csv": "分层分类对比",
+      "E09-7d_summary.csv": "分类范式总结",
+      "E09-7e_enhanced_features.csv": "增强特征实验"
+    },
+    "models": {
+      "E09-2a_bp_raw_n*.pt": "BP-raw 模型权重",
+      "E09-2b_bp_feature_n*.pt": "BP-feature 模型权重",
+      "E09-4_svm_n*.pkl": "SVM 模型"
+    }
+  },
+
+  "dependencies": "见 requirements.txt"
+}
