@@ -1,10 +1,11 @@
-﻿rank,method,jparam,vs_oracle,cost,deployable,need_true
-1,L5 Oracle (per-sample),0.3701515204362394,1.000,very high (scan all delta),X need true values,yes
-2,"L4 by (beta,n,gamma/eta)",0.5468471347178867,1.477,low (need param est),Y need external est,no
-3,"L3 by (beta,n)",0.5563342764891066,1.503,low (need beta est),Y need external beta,no
-4,L1 by n,0.5813015548964345,1.570,very low (lookup),Y precompute,no (offline calibrate)
-5,Default(delta=0.1),0.581985286935982,1.572,very low (1 MDM),Y direct,no
-6,L0 global,0.581985286935982,1.572,very low (lookup),Y precompute,no (offline calibrate)
-7,Self-iterate,0.5890962446511359,1.592,medium (2 MDM),? convergence unstable,no
-8,MLE external beta,0.5968945595122466,1.613,high (MLE+MDM),? MLE fails small n,no
-9,LSE external beta,0.6509025019278057,1.758,high (LSE+MDM),Y LSE stable,no
+﻿rank,method,jparam,deployable,note
+1,L5 Oracle (per-sample),0.3701515204362394,X,upper bound
+2,"L4 by (b,n,g/eta)",0.5468471347178867,X,needs all true params
+3,L3 Oracle (true beta),0.5563342764891066,X,needs true beta
+4,L1 by n,0.5813015548964345,Y,n is known
+5,Default delta=0.1,0.581985286935982,Y,"zero cost, RECOMMENDED"
+6,Self-iterate,0.5890962446511359,N,"unstable, worsens"
+7,WMLE + table,0.6257210258732568,N,+7.5% worse
+8,MDM d=0 + table,0.6376147537132579,N,+9.6% worse
+9,Dual-delta + table,0.6392276297716227,N,+9.8% worse
+10,L-moments + table,0.6481412444364041,N,"+11.4%, 15.6% valid"
