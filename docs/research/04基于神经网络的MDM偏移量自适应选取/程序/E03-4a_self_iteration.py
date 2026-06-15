@@ -32,7 +32,7 @@ print("L3查找表 (n, β) → δ*:")
 for (n, beta), delta in sorted(l3_lookup.items()):
     print(f"  n={n}, β={beta} → δ*={delta}")
 
-BETA_VALUES = [2.0, 2.5, 4.0]
+BETA_VALUES = [1.5, 2.0, 2.5, 4.0, 5.0]
 DELTA_VALUES = np.arange(0, 0.52, 0.02)
 
 def nearest_beta(beta_hat):
@@ -55,7 +55,7 @@ def compute_jparam(beta_hats, eta_hats, gamma_hats, beta_true, eta_true, gamma_t
 
 print("\n加载E03-3分片数据...")
 
-betas = [2.0, 2.5, 4.0]
+betas = [1.5, 2.0, 2.5, 4.0, 5.0]
 ns = [7, 10, 20]
 gamma_eta_ratios = [0.1, 0.5, 1.0]
 ETA_TRUE = 1.0

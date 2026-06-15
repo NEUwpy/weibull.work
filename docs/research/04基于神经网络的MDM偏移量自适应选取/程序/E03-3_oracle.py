@@ -14,7 +14,7 @@ from studies.common.runner import run_method
 
 # 只在 n=7 上做
 n = 7
-betas = [2.0, 2.5, 4.0]
+betas = [1.5, 2.0, 2.5, 4.0, 5.0]
 gamma_eta_ratios = [0.1, 0.5, 1.0]
 deltas = np.arange(0, 0.52, 0.02)  # 26个点
 n_reps = 500

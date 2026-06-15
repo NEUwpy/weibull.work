@@ -20,7 +20,7 @@ print("计算各配置×各δ的 J_param ...")
 
 config_jparam = {}  # (beta, n, ger, delta) -> J_param
 
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for ger in [0.1, 0.5, 1.0]:
             gamma_true = ger * eta_true
@@ -70,7 +70,7 @@ optimal_rows = []
 # L0 全局
 for d in deltas:
     vals = [config_jparam.get((b, n, g, d), np.nan) 
-            for b in [2.0, 2.5, 4.0] for n in [7, 10, 20] for g in [0.1, 0.5, 1.0]]
+            for b in [1.5, 2.0, 2.5, 4.0, 5.0] for n in [7, 10, 20] for g in [0.1, 0.5, 1.0]]
     vals = [v for v in vals if not np.isnan(v)]
     if vals:
         optimal_rows.append({'level': 'L0', 'group': 'global', 'delta': d, 'jparam': np.mean(vals)})
@@ -79,13 +79,13 @@ for d in deltas:
 for n in [7, 10, 20]:
     for d in deltas:
         vals = [config_jparam.get((b, n, g, d), np.nan) 
-                for b in [2.0, 2.5, 4.0] for g in [0.1, 0.5, 1.0]]
+                for b in [1.5, 2.0, 2.5, 4.0, 5.0] for g in [0.1, 0.5, 1.0]]
         vals = [v for v in vals if not np.isnan(v)]
         if vals:
             optimal_rows.append({'level': 'L1', 'group': f'n={n}', 'delta': d, 'jparam': np.mean(vals)})
 
 # L2 按 β
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for d in deltas:
         vals = [config_jparam.get((beta, n, g, d), np.nan) 
                 for n in [7, 10, 20] for g in [0.1, 0.5, 1.0]]
@@ -94,7 +94,7 @@ for beta in [2.0, 2.5, 4.0]:
             optimal_rows.append({'level': 'L2', 'group': f'beta={beta}', 'delta': d, 'jparam': np.mean(vals)})
 
 # L3 按 (β, n)
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for d in deltas:
             vals = [config_jparam.get((beta, n, g, d), np.nan) for g in [0.1, 0.5, 1.0]]
@@ -103,7 +103,7 @@ for beta in [2.0, 2.5, 4.0]:
                 optimal_rows.append({'level': 'L3', 'group': f'beta={beta}_n={n}', 'delta': d, 'jparam': np.mean(vals)})
 
 # L4 按 (β, n, γ/η)
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for ger in [0.1, 0.5, 1.0]:
             for d in deltas:
@@ -141,7 +141,7 @@ for level in ['L0', 'L1', 'L2', 'L3', 'L4']:
 print("\n\n计算 L5 Oracle J_param ...")
 
 oracle_rows = []
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for ger in [0.1, 0.5, 1.0]:
             gamma_true = ger * eta_true
@@ -185,7 +185,7 @@ oracle_df.to_csv(os.path.join(datadir, "E03-3_L5_oracle_jparam.csv"), index=Fals
 
 # 按配置汇总
 print("\n--- L5 Oracle 汇总 ---")
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for ger in [0.1, 0.5, 1.0]:
             sub = oracle_df[(oracle_df['beta'] == beta) & (oracle_df['n'] == n) & (oracle_df['gamma_eta'] == ger)]

@@ -188,7 +188,7 @@ print("图3 已保存: E03_optimal_delta_heatmap.png/pdf")
 # ============================================================
 # L5 oracle 按 (beta, n, ger) 汇总
 oracle_by_config = {}
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for ger in [0.1, 0.5, 1.0]:
             sub = oracle[(oracle['beta'] == beta) & (oracle['n'] == n) & (oracle['gamma_eta'] == ger)]
@@ -211,7 +211,7 @@ for level in ['L0', 'L1', 'L2', 'L3', 'L4']:
 
 # 默认 δ=0.1 按配置汇总
 default_by_config = {}
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for ger in [0.1, 0.5, 1.0]:
             sub = summary[(summary['beta'] == beta) & (summary['n'] == n) & 
@@ -232,7 +232,7 @@ for target_n in [7, 10, 20]:
     oracle_vals = []
     default_vals = []
     
-    for beta in [2.0, 2.5, 4.0]:
+    for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
         for ger in [0.1, 0.5, 1.0]:
             # L0-L4
             for level in ['L0', 'L1', 'L2', 'L3', 'L4']:

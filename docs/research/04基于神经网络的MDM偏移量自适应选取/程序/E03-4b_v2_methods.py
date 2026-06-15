@@ -20,7 +20,7 @@ from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 from scipy.optimize import brentq
 
-BETAS = [2.0, 2.5, 4.0]
+BETAS = [1.5, 2.0, 2.5, 4.0, 5.0]
 NS = [7, 10, 20]
 GERS = [0.1, 0.5, 1.0]
 N_REPS = 500

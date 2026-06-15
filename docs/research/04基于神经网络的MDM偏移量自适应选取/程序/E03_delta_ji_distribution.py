@@ -19,7 +19,7 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE, "实验数据")
 IMG_DIR = os.path.join(BASE, "图像")
 
-BETAS = [2.0, 2.5, 4.0]
+BETAS = [1.5, 2.0, 2.5, 4.0, 5.0]
 NS = [7, 10, 20]
 GAMMA_RATIOS = [0.1, 0.5, 1.0]
 

@@ -97,7 +97,7 @@ ax.legend(fontsize=8)
 
 # 1d: J_param vs c curves by beta (averaged over n, ger)
 ax = axes[1, 1]
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     sub = c_config[c_config['beta'] == beta]
     c_uniq = sorted(sub['c'].unique())
     j_avg = [sub[sub['c'] == c]['jparam'].mean() for c in c_uniq]
@@ -124,7 +124,7 @@ print("Figure 1 saved: E03_cspace_comparison.png")
 # ============================================================
 fig, ax = plt.subplots(figsize=(8, 5))
 
-betas = [2.0, 2.5, 4.0]
+betas = [1.5, 2.0, 2.5, 4.0, 5.0]
 ns = [7, 10, 20]
 c_l3 = c_level[c_level['level'] == 'L3'].copy()
 heatmap_data = np.zeros((len(betas), len(ns)))

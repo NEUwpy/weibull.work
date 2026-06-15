@@ -15,7 +15,7 @@ deltas = np.arange(0, 0.52, 0.02)
 
 oracle_rows = []
 
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for ger in [0.1, 0.5, 1.0]:
             gamma_true = ger * eta_true
@@ -86,7 +86,7 @@ for n in [7, 10, 20]:
     print(f"n={n}:  J_param均值={sub['jparam'].mean():.4f}  δ*均值={sub['optimal_delta'].mean():.3f}")
 
 print()
-for beta in [2.0, 2.5, 4.0]:
+for beta in [1.5, 2.0, 2.5, 4.0, 5.0]:
     for n in [7, 10, 20]:
         for ger in [0.1, 0.5, 1.0]:
             sub = df[(df['beta'] == beta) & (df['n'] == n) & (df['gamma_eta'] == ger)]

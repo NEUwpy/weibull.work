@@ -51,7 +51,7 @@ def compute_jparam(bh, eh, gh, beta_true, gamma_true):
     return np.sqrt(np.mean(tb + te + tg))
 
 # ---- Load data ----
-BETAS = [2.0, 2.5, 4.0]
+BETAS = [1.5, 2.0, 2.5, 4.0, 5.0]
 NS = [7, 10, 20]
 GERS = [0.1, 0.5, 1.0]
 all_data = {}

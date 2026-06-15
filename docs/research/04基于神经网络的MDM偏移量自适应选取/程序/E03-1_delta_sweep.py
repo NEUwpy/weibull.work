@@ -13,7 +13,7 @@ from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 
 # 参数网格
-betas = [2.0, 2.5, 4.0]
+betas = [1.5, 2.0, 2.5, 4.0, 5.0]
 ns = [7, 10, 20]
 gamma_eta_ratios = [0.1, 0.5, 1.0]
 deltas = np.arange(0, 0.52, 0.02)  # 0, 0.02, ..., 0.50

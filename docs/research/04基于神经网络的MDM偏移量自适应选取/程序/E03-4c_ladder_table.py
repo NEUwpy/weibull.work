@@ -26,6 +26,9 @@ wmle  = ext_df[ext_df['method']=='wmle']['jparam'].mean()
 mdm0  = ext_df[ext_df['method']=='mdm0']['jparam'].mean()
 dual  = ext_df[ext_df['method']=='dual']['jparam'].mean()
 lmom  = ext_df[ext_df['method']=='lmom']['jparam'].mean()
+lmom_n = ext_df[ext_df['method']=='lmom']['n_valid'].sum()
+lmom_pct = lmom_n / 22500 * 100  # 45 configs * 500 reps
+lmom_n_valid = f'{lmom_pct:.1f}%'
 
 # Old methods
 iterate  = iter_df['jparam_iterate'].mean()
@@ -39,11 +42,11 @@ ladder = [
     ('L3 Oracle (true beta)',   oracle_l3, 'X', 'needs true beta'),
     ('L1 by n',                 l1,        'Y', 'n is known'),
     ('Default delta=0.1',       default,   'Y', 'zero cost, RECOMMENDED'),
-    ('Self-iterate',            iterate,   'N', 'unstable, worsens'),
-    ('WMLE + table',            wmle,      'N', '+7.5% worse'),
-    ('MDM d=0 + table',         mdm0,      'N', '+9.6% worse'),
-    ('Dual-delta + table',      dual,      'N', '+9.8% worse'),
-    ('L-moments + table',       lmom,      'N', '+11.4%, 15.6% valid'),
+    ('WMLE + table',            wmle,      'N', f'{(wmle/default-1)*100:+.1f}%'),
+    ('MDM d=0 + table',         mdm0,      'N', f'{(mdm0/default-1)*100:+.1f}%'),
+    ('Dual-delta + table',      dual,      'N', f'{(dual/default-1)*100:+.1f}%'),
+    ('L-moments + table',       lmom,      'N', f'{(lmom/default-1)*100:+.1f}%, {lmom_pct:.1f}% valid'),
+    ('Self-iterate',            iterate,   'N', f'{(iterate/default-1)*100:+.1f}%'),
 ]
 
 ladder.sort(key=lambda x: x[1])

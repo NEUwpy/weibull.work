@@ -23,7 +23,7 @@ from studies.common.runner import run_method
 from lse_weibull import fit_weibull3_lse
 
 ETA_TRUE = 1.0
-BETA_VALUES = [2.0, 2.5, 4.0]
+BETA_VALUES = [1.5, 2.0, 2.5, 4.0, 5.0]
 NS = [7, 10, 20]
 GAMMA_ETA_RATIOS = [0.1, 0.5, 1.0]
 DELTA_VALUES = np.arange(0, 0.52, 0.02)

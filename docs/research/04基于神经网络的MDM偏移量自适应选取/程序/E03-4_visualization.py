@@ -128,7 +128,7 @@ iter_df = pd.read_csv(os.path.join(DATA_DIR, "E03-4a_self_iteration.csv"))
 # 按beta分组
 fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
 
-for idx, beta in enumerate([2.0, 2.5, 4.0]):
+for idx, beta in enumerate([1.5, 2.0, 2.5, 4.0, 5.0]):
     ax = axes[idx]
 
     # 筛选该beta的数据
