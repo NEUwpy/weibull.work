@@ -75,10 +75,20 @@ for i, n in enumerate(n_vals):
             vals.append(sub['jparam'].iloc[0] if len(sub) > 0 else 0)
             
         elif level == 'L2':
-            # L2按β，没有n维度——从L3按n取均值
-            sub = opt_jparam[opt_jparam['level'] == 'L3']
-            sub = sub[sub['group'].str.contains(f'_n={n}$')]
-            vals.append(sub['jparam'].mean())
+            # L2按β分组：每个β有全局最优δ*，用该δ*查各n的J_param
+            l2_sub = opt_jparam[opt_jparam['level'] == 'L2']
+            jp_vals = []
+            for _, l2row in l2_sub.iterrows():
+                beta_val = float(l2row['group'].split('=')[1])
+                delta_star = l2row['optimal_delta']
+                match = jparam_by_config[
+                    (jparam_by_config['beta'] == beta_val) &
+                    (jparam_by_config['n'] == n) &
+                    (abs(jparam_by_config['delta'] - delta_star) < 0.001)
+                ]
+                if len(match) > 0:
+                    jp_vals.append(match['jparam'].mean())
+            vals.append(np.mean(jp_vals) if jp_vals else 0)
             
         elif level == 'L3':
             sub = opt_jparam[opt_jparam['level'] == 'L3']

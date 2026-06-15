@@ -62,7 +62,7 @@ delta,rep,beta_hat,eta_hat,gamma_hat,status
 - n_valid: 有效样本数
 
 ## 最优定义
-使 **Bias(θ̂)** 最小的 δ 为最优 δ*（同时展示 SD 作为稳定性指标）。
+使 **J_param** 最小的 δ 为最优 δ*。J_param = √( mean( ((β̂-β)/β)² + ((η̂-η)/η)² + ((γ̂-γ)/η)² ) )，三参数综合相对RMSE，无量纲化后可跨参数比较。
 
 ## 层级定义
 
