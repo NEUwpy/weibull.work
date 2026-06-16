@@ -65,11 +65,17 @@ def undiscretize_proba(proba, bin_centers):
 # ============================================================
 
 def compute_discretization_bound(y_true, param_idx, bin_edges, bin_centers):
-    """完美分类时的最小 J_param 贡献"""
+    """完美分类时的最小 J_param 贡献
+
+    注意 J_param 归一化：beta/eta 除以自身，gamma 除以 eta
+    """
     values = y_true[:, param_idx]
     labels = discretize(values, bin_edges)
     reconstructed = bin_centers[labels]
-    errors = (reconstructed - values) / values
+    if param_idx == 2:  # gamma 除以 eta
+        errors = (reconstructed - values) / y_true[:, 1]
+    else:
+        errors = (reconstructed - values) / values
     return np.sqrt(np.mean(errors**2))
 
 
