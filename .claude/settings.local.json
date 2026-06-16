@@ -154,7 +154,15 @@
       "Bash(gh auth *)",
       "Bash(env)",
       "Bash(echo \"exit: $?\")",
-      "PowerShell($env:TEMP)"
+      "Bash(GIT_SSH_COMMAND=\"ssh -o ProxyCommand='connect -S 127.0.0.1:7897 %h %p'\" git pull *)",
+      "Bash(GIT_SSH_COMMAND=\"ssh -v -o ProxyCommand='connect -S 127.0.0.1:7897 %h %p' -o ConnectTimeout=10\" git pull *)",
+      "Bash(export ALL_PROXY=socks5://127.0.0.1:7897)",
+      "Bash(find docs/research/04* -type f -o -type d)",
+      "Bash(find docs/research/09* -type f -o -type d)",
+      "Bash(mv docs/research/09两种神经网络直接估计/图像/E09-2a_*.png docs/research/09两种神经网络直接估计/历史/)",
+      "Bash(mv docs/research/09两种神经网络直接估计/图像/E09-2a_*.pdf docs/research/09两种神经网络直接估计/历史/)",
+      "Bash(read f *)",
+      "Bash([ -f \"C:/Web/Weibull/docs/research/09两种神经网络直接估计/$f\" ])"
     ]
   }
 }
