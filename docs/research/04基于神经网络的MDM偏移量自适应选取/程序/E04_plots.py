@@ -71,8 +71,7 @@ for method in ['L4_hard','L5_hard','Risk_curve']:
         for ri in range(3):
             for ci in range(5):
                 if np.isfinite(mat[ri,ci]):
-                    axes[gi].text(ci, ri, f'{mat[ri,ci]:.3f}', ha='center', va='center', fontsize=6,
-                                  color='white' if mat[ri,ci] > 0.5 else 'black')
+                    axes[gi].text(ci, ri, f'{mat[ri,ci]:.3f}', ha='center', va='center', fontsize=6, color='black')
     axes[0].set_ylabel('n')
     cbar = fig.colorbar(im, ax=axes, shrink=0.85, pad=0.02); cbar.set_label('J_param')
     fig.suptitle(f'{method} per-config J_param', fontsize=9, y=1.02)
