@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MDM偏移量自适应选取 · 从双视角评价到神经网络端到端学习</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fdfdfc;
+  --fg: #1a1a1a;
+  --accent: #2563eb;
+  --accent-light: #dbeafe;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --code-bg: #f3f4f6;
+  --serif: 'Noto Serif SC', 'Times New Roman', serif;
+  --sans: 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'JetBrains Mono', 'Consolas', monospace;
+  --slide-w: 100vw; --slide-h: 100vh;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;font-family:var(--sans);background:var(--bg);color:var(--fg)}
+
+/* ===== Deck Container ===== */
+#deck{display:flex;width:fit-content;height:100vh;transition:transform .55s cubic-bezier(.4,0,.2,1)}
+.slide{
+  width:var(--slide-w);height:var(--slide-h);flex-shrink:0;
+  overflow-y:auto;overflow-x:hidden;
+  padding:5vh 4.5vw 8vh;
+  display:flex;flex-direction:column;
+}
+
+/* ===== Typography ===== */
+.slide-title{font-family:var(--serif);font-weight:700;font-size:min(3.6vw,2.6rem);line-height:1.25;margin-bottom:1.4vh;color:var(--fg)}
+.slide-subtitle{font-family:var(--sans);font-weight:400;font-size:min(1.35vw,1.1rem);color:var(--muted);margin-bottom:3vh}
+.section-label{font-family:var(--mono);font-size:min(0.85vw,0.75rem);color:var(--accent);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.8vh}
+h3{font-family:var(--serif);font-weight:600;font-size:min(1.8vw,1.25rem);margin:2vh 0 1vh;color:var(--fg)}
+h4{font-family:var(--sans);font-weight:600;font-size:min(1.25vw,1rem);margin:1.2vh 0 .6vh;color:var(--fg)}
+
+/* ===== Layout Helpers ===== */
+.row{display:flex;gap:2vw;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:1vh}
+.col-2{flex:1;min-width:0}
+.col-3{flex:1;min-width:0}
+.col-4{flex:1;min-width:0}
+.grow{flex:1}
+.center{text-align:center;align-items:center;justify-content:center}
+.gap-sm{gap:.8vh}
+.gap-md{gap:1.6vh}
+.gap-lg{gap:2.4vh}
+.mt-sm{margin-top:1vh}
+.mt-md{margin-top:2vh}
+.mt-lg{margin-top:3vh}
+
+/* ===== Compact Content Cards ===== */
+.card{
+  background:#fff;border:1px solid var(--border);border-radius:4px;
+  padding:min(1.8vh,14px) min(1.4vw,16px);
+}
+.card-accent{border-left:3px solid var(--accent);background:var(--accent-light)}
+.card-dark{background:var(--fg);color:#fff;border-color:var(--fg)}
+.card-dark h3,.card-dark h4{color:#fff}
+.card-dark .muted-text{color:rgba(255,255,255,.65)}
+
+/* ===== Typography tokens ===== */
+.text-sm{font-size:min(1.05vw,.9rem);line-height:1.55;color:var(--fg)}
+.text-xs{font-size:min(.9vw,.8rem);line-height:1.5;color:var(--muted)}
+.text-mono{font-family:var(--mono);font-size:min(.85vw,.78rem)}
+.muted-text{color:var(--muted)}
+.accent-text{color:var(--accent);font-weight:600}
+.bold{font-weight:600}
+
+/* ===== KPI Numbers ===== */
+.kpi{font-family:var(--serif);font-weight:700;font-size:min(4vw,3rem);line-height:1;color:var(--accent)}
+.kpi-sm{font-family:var(--serif);font-weight:700;font-size:min(2.4vw,1.8rem);color:var(--accent)}
+.kpi-label{font-family:var(--mono);font-size:min(.8vw,.72rem);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+
+/* ===== Tables ===== */
+table{width:100%;border-collapse:collapse;font-size:min(1vw,.88rem);margin:1vh 0}
+th{font-family:var(--sans);font-weight:600;text-align:left;padding:.6vh .8vw;border-bottom:2px solid var(--fg);font-size:min(.9vw,.8rem);white-space:nowrap}
+td{padding:.55vh .8vw;border-bottom:1px solid var(--border);line-height:1.45}
+tr:nth-child(even) td{background:#fafafa}
+.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+
+/* ===== Formula ===== */
+.formula{
+  font-family:var(--mono);font-size:min(1.05vw,.92rem);
+  background:var(--code-bg);padding:.8vh 1vw;border-radius:3px;
+  display:inline-block;margin:.6vh 0;line-height:1.6
+}
+
+/* ===== Images ===== */
+.img-wrap{border:1px solid var(--border);border-radius:4px;overflow:hidden;background:#fff}
+.img-wrap img{width:100%;display:block}
+.img-caption{font-size:min(.82vw,.72rem);color:var(--muted);padding:.6vh .6vw;border-top:1px solid var(--border);line-height:1.4}
+
+/* ===== Tags ===== */
+.tag{
+  display:inline-block;font-family:var(--mono);font-size:min(.75vw,.68rem);
+  padding:.3vh .6vw;border-radius:3px;background:var(--accent-light);color:var(--accent);
+  margin:.3vh .2vw;
+}
+.tag-dark{background:var(--fg);color:#fff}
+
+/* ===== Cover Page ===== */
+.cover{justify-content:center;align-items:flex-start;padding-top:22vh}
+.cover-title{font-family:var(--serif);font-weight:700;font-size:min(5.6vw,4rem);line-height:1.2;margin-bottom:2vh}
+.cover-sub{font-family:var(--sans);font-weight:300;font-size:min(1.8vw,1.3rem);color:var(--muted);max-width:60ch;line-height:1.6;margin-bottom:1.2vh}
+.cover-meta{font-family:var(--mono);font-size:min(.9vw,.78rem);color:var(--muted);margin-top:4vh}
+
+/* ===== Section Divider ===== */
+.section-slide{justify-content:center;align-items:flex-start;padding-top:24vh;background:var(--fg);color:#fff}
+.section-slide .section-label{color:rgba(255,255,255,.7)}
+.section-slide .slide-title{color:#fff}
+.section-slide .slide-subtitle{color:rgba(255,255,255,.7)}
+
+/* ===== Footer ===== */
+.slide-footer{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:auto;padding-top:2vh;
+  border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:min(.75vw,.7rem);color:var(--muted)
+}
+
+/* ===== Grid layouts for cards ===== */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.4vh 1.4vw}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.4vh 1.4vw}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.4vh 1.2vw}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:1.4vh 1.6vw}
+.grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:1.4vh 1.6vw}
+
+/* ===== Nav ===== */
+#nav{
+  position:fixed;bottom:2.4vh;left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;z-index:100
+}
+#nav button{
+  width:8px;height:8px;border-radius:50%;border:1.5px solid var(--muted);
+  background:transparent;cursor:pointer;padding:0;transition:all .25s
+}
+#nav button.active{background:var(--accent);border-color:var(--accent);transform:scale(1.4)}
+#hint{position:fixed;bottom:2.6vh;right:3vw;font-family:var(--mono);font-size:.7rem;color:var(--muted);z-index:100}
+
+/* ===== Overview grid ===== */
+#overview{position:fixed;inset:0;z-index:200;background:rgba(253,253,252,.96);display:none;overflow-y:auto;padding:4vh 3vw}
+#overview .ov-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.5vw;max-width:92vw;margin:0 auto}
+#overview .ov-card{cursor:pointer;border:2px solid var(--border);border-radius:4px;overflow:hidden;background:#fff;transition:border-color .2s}
+#overview .ov-card.active{border-color:var(--accent)}
+#overview .ov-card:hover{border-color:var(--fg)}
+#overview .ov-card .ov-preview{width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;background:var(--bg)}
+#overview .ov-card .ov-preview .ov-clone{width:var(--slide-w);height:var(--slide-h);transform:scale(.2);transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none}
+#overview .ov-card .ov-label{padding:6px 10px;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+
+/* ===== List styles ===== */
+ul.dense{list-style:none;padding:0}
+ul.dense li{padding:.35vh 0;font-size:min(.95vw,.84rem);line-height:1.5;position:relative;padding-left:1.2em}
+ul.dense li::before{content:'—';position:absolute;left:0;color:var(--accent)}
+
+/* ===== Highlight box ===== */
+.highlight-box{background:var(--accent-light);border-left:3px solid var(--accent);padding:1.2vh 1.2vw;border-radius:0 4px 4px 0;font-size:min(.95vw,.84rem);line-height:1.55}
+</style>
+</head>
+<body>
+<div id="hint">← → 翻页 · ESC 索引</div>
+<div id="deck">
+
+<!-- ===== 01 · 封面 ===== -->
+<section class="slide cover">
+<div class="section-label">Weibull Analysis · MDM · Neural Network</div>
+<h1 class="cover-title">MDM偏移量自适应选取</h1>
+<p class="cover-sub">从双视角指标评价体系 → MDM有解性证明 → 最优偏移量选取 → 神经网络端到端学习</p>
+<p class="cover-meta">威布尔分析平台 · 可靠性工程研究 · 2025.06</p>
+</section>
+
+<!-- ===== 02 · 01块 分章 ===== -->
+<section class="slide section-slide">
+<div class="section-label">Part 01 · 7 Pages</div>
+<h2 class="slide-title">第一大块：用什么指标评价<br>参数估计的准确性</h2>
+<p class="slide-subtitle">文献统计 → 指标定义 → 为什么没有统一有效指标 → J_param → 工程视角 → 三方法蒙特卡洛比较 → 总结</p>
+</section>
+
+<!-- ===== 03 · 01-1 文献指标统计 ===== -->
+<section class="slide">
+<div class="section-label">01-1 · Literature Survey</div>
+<h2 class="slide-title">文献里实际用什么指标？</h2>
+<p class="slide-subtitle">对 182 文件夹 68 篇文献逐篇统计精度指标使用频次。不自创指标，先搞清楚文献主流用什么。</p>
+<div class="row gap-lg mt-md">
+  <div class="col-2">
+    <table>
+      <tr><th>排名</th><th>精度指标</th><th>频次</th><th>占比</th></tr>
+      <tr><td>1</td><td>Bias</td><td class="num">51</td><td class="num">75%</td></tr>
+      <tr><td>2</td><td>SD / 方差</td><td class="num">38</td><td class="num">56%</td></tr>
+      <tr><td>3</td><td>MSE / RMSE</td><td class="num">27</td><td class="num">40%</td></tr>
+      <tr><td>4</td><td>相对误差</td><td class="num">11</td><td class="num">16%</td></tr>
+      <tr><td>5</td><td>MAE</td><td class="num">2</td><td class="num">3%</td></tr>
+    </table>
+  </div>
+  <div class="col-2">
+    <div class="img-wrap"><img src="../图像/E01-1_精度指标频次.png" alt="精度指标频次"></div>
+    <div class="img-caption">图：文献精度指标使用频次统计</div>
+  </div>
+</div>
+<div class="highlight-box mt-md"><strong>结论：</strong>Bias+SD 是绝对主干（75%、56%），MSE/RMSE 是常见补充（40%）。相对误差（16%）和 MAE（3%）使用率低。置信区间/敏感性/拟合优度属统计性质范畴，不纳入精度指标。</div>
+</section>
+
+<!-- ===== 04 · 01-2 指标定义 ===== -->
+<section class="slide">
+<div class="section-label">01-2 · Metric Definitions</div>
+<h2 class="slide-title">常见指标的定义与各自反映什么</h2>
+<div class="row gap-lg">
+  <div class="col-2">
+    <table>
+      <tr><th>指标</th><th>公式</th><th>看的是什么</th><th>量纲</th></tr>
+      <tr><td>Bias</td><td class="formula" style="font-size:.78rem;padding:.3vh .5vw">E[θ̂] − θ</td><td>系统性偏移</td><td>同参数</td></tr>
+      <tr><td>SD</td><td class="formula" style="font-size:.78rem;padding:.3vh .5vw">√E[(θ̂−E[θ̂])²]</td><td>散布</td><td>同参数</td></tr>
+      <tr><td>MSE</td><td class="formula" style="font-size:.78rem;padding:.3vh .5vw">E[(θ̂−θ)²] = Bias²+SD²</td><td>综合</td><td>同参数²</td></tr>
+      <tr><td>RMSE</td><td class="formula" style="font-size:.78rem;padding:.3vh .5vw">√MSE</td><td>综合（与SD同量纲）</td><td>同参数</td></tr>
+      <tr><td>相对误差</td><td class="formula" style="font-size:.78rem;padding:.3vh .5vw">(θ̂−θ)/θ</td><td>无量纲偏差</td><td>无量纲</td></tr>
+      <tr><td>MAE</td><td class="formula" style="font-size:.78rem;padding:.3vh .5vw">E[|θ̂−θ|]</td><td>平均绝对偏离</td><td>同参数</td></tr>
+    </table>
+  </div>
+  <div class="col-2">
+    <div class="img-wrap"><img src="../图像/E01-6_误差分布_n20.png" alt="n=20误差分布"></div>
+    <div class="img-caption">n=20 三方法误差分布 3×3。γ̂ 呈现"零点堆积+宽幅右散"的双峰形态。</div>
+  </div>
+</div>
+<p class="text-sm mt-md"><strong>结论：</strong>Bias+SD 是最小充分集。MSE/RMSE 是合成指标。γ̂ 的双峰分布意味着必须附图阅读——任何单一数字都不足以概括。</p>
+</section>
+
+<!-- ===== 05 · 01-3 无统一有效指标 ===== -->
+<section class="slide">
+<div class="section-label">01-3 · No Universal Metric</div>
+<h2 class="slide-title">为什么没有一个统一有效指标？</h2>
+<p class="slide-subtitle">单指标在特定分布形态下会失真。必须成套报告 Bias+SD+RMSE，γ 禁用相对指标。</p>
+<div class="grid-3 mt-md">
+  <div class="card card-accent"><h4>情景1：RMSE相同≠精度相同</h4><p class="text-xs">相同RMSE可掩盖完全不同的偏差-方差结构。必须分解报告Bias和SD。</p></div>
+  <div class="card card-accent"><h4>情景2：中位/均值尾部钝感</h4><p class="text-xs">P99.9与中位数比达5.4×，最大误差差6.7×。仅报Mean/Median严重低估极端风险。</p></div>
+  <div class="card card-accent"><h4>情景3：γ≈0相对指标失真</h4><p class="text-xs">γ=2时RelRMSE达8800%。同一估计器精度没变，因真值不同相对指标任意放大。</p></div>
+</div>
+<div class="grid-2 mt-sm">
+  <div class="card card-accent"><h4>情景4：参数排序≠工程排序</h4><p class="text-xs">n=20：参数视角MDM最优（RMSE_β=0.609），工程视角LSE追平MDM（RMSE_x₀.₉₅≈97.8）。两视角分离。</p></div>
+  <div class="card card-accent"><h4>情景5：跨量纲MSE不可比</h4><p class="text-xs">γ的MSE是β的84000倍——纯量纲差异。跨参数比较必须用相对指标或标准化。</p></div>
+</div>
+<div class="row gap-lg mt-md">
+  <div class="col-3"><div class="img-wrap"><img src="../图像/E01-3a_RMSE相同结构不同.png"></div></div>
+  <div class="col-3"><div class="img-wrap"><img src="../图像/E01-3b_尾部钝感.png"></div></div>
+  <div class="col-3"><div class="img-wrap"><img src="../图像/E01-3d_两视角排序.png"></div></div>
+</div>
+</section>
+
+<!-- ===== 06 · 01-4 J_param定义 ===== -->
+<section class="slide">
+<div class="section-label">01-4 · Parameter Perspective Recommendation</div>
+<h2 class="slide-title">参数视角推荐方案 + 综合精度指标 J<sub>param</sub></h2>
+<div class="row gap-lg">
+  <div class="col-2">
+    <h3>多指标方案（诊断用）</h3>
+    <table>
+      <tr><th>参数</th><th>Bias</th><th>SD</th><th>RMSE</th><th>相对Bias</th><th>相对RMSE</th><th>其他</th></tr>
+      <tr><td>β̂</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td></td></tr>
+      <tr><td>η̂</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td></td></tr>
+      <tr><td>γ̂</td><td>✓</td><td>✓</td><td>✓</td><td class="accent-text">禁用</td><td class="accent-text">禁用</td><td>附报γ̂=0截断率+γ̂近零率</td></tr>
+    </table>
+    <h3 class="mt-md">单指标 J<sub>param</sub>（排序/训练用）</h3>
+    <div class="formula" style="display:block;padding:1.2vh 1.2vw;font-size:min(1.1vw,.9rem)">J<sub>param</sub> = √( mean( ((β̂−β)/β)² + ((η̂−η)/η)² + ((γ̂−γ)/η)² ) )</div>
+    <p class="text-sm mt-sm">β、η除以自身真值转为无量纲；γ不除以γ自身而除以η，避免γ≈0失真。几何含义：三维标准化误差空间中的平均欧氏距离。</p>
+  </div>
+  <div class="col-2">
+    <div class="card card-dark">
+      <h4>设计理由</h4>
+      <p class="text-sm" style="color:rgba(255,255,255,.8)">Bias和SD构成参数视角最小充分集。若为δ方案排序或神经网络训练需要标量目标，则J_param把三参数误差统一到可比较空间。</p>
+    </div>
+    <div class="card card-accent mt-sm">
+      <h4>两个视角不冲突</h4>
+      <p class="text-sm">多指标聚焦单个参数诊断，J_param聚焦整体效果排序。后续03-04：参数视角目标用J_param；多指标保留用于诊断。</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 07 · 01-5 工程视角 ===== -->
+<section class="slide">
+<div class="section-label">01-5 · Engineering Perspective</div>
+<h2 class="slide-title">工程视角：目标分位点 RMSE</h2>
+<p class="slide-subtitle">可靠性工程真正关心的是指定可靠度下的寿命分位点预测是否准确，而非参数本身。</p>
+<div class="row gap-lg">
+  <div class="col-2">
+    <div class="formula" style="display:block;padding:1.2vh 1.2vw">x<sub>R</sub> = γ + η(−lnR)<sup>1/β</sup></div>
+    <p class="text-sm mt-sm">对目标R，报告Bias_xR、SD_xR、RMSE_xR。如果只能选一个工程排序指标，就用RMSE_xR。</p>
+    <table class="mt-sm">
+      <tr><th>方法</th><th>RelRMSE_β</th><th>RelRMSE_x₀.₉₅</th></tr>
+      <tr><td>MDM</td><td class="num">24.4%</td><td class="num">24.1%</td></tr>
+      <tr><td>LSE</td><td class="num">27.0%</td><td class="num">24.2%</td></tr>
+      <tr><td>MLE</td><td class="num">31.0%</td><td class="num">26.0%</td></tr>
+    </table>
+    <p class="text-xs mt-sm">MDM的参数优势在工程视角被LSE追平——参数准≠寿命准（非线性传递+补偿结构）。两视角必须分开报告。</p>
+  </div>
+  <div class="col-2">
+    <div class="img-wrap"><img src="../图像/E01-6_工程误差分布_n5_n20.png" alt="工程误差分布"></div>
+    <div class="img-caption">工程视角误差分布：单峰、近似连续，仅带右偏尾。参数层面剧烈的补偿在分位组合中大部分抵消。</div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 08 · 01-6 三方法蒙特卡洛 ===== -->
+<section class="slide">
+<div class="section-label">01-6 · Three-Method Monte Carlo</div>
+<h2 class="slide-title">两视角不等价 + 三方法蒙特卡洛比较</h2>
+<p class="slide-subtitle">β=2.5, η=1000, γ=100；n∈{5,7,10,15,20,50}；每组2000次重复；MDM/MLE/LSE配对估计</p>
+<div class="grid-2-1 gap-md">
+  <div>
+    <table>
+      <tr><th>n</th><th>MDM</th><th>MLE</th><th>LSE</th></tr>
+      <tr><td>5</td><td class="num">0.4%</td><td class="num accent-text">54.4%</td><td class="num">0.0%</td></tr>
+      <tr><td>7</td><td class="num">0.1%</td><td class="num accent-text">46.2%</td><td class="num">0.0%</td></tr>
+      <tr><td>10</td><td class="num">0.0%</td><td class="num accent-text">28.9%</td><td class="num">0.0%</td></tr>
+      <tr><td>20</td><td class="num">0.0%</td><td class="num">4.3%</td><td class="num">0.0%</td></tr>
+      <tr><td>50</td><td class="num">0.0%</td><td class="num">0.0%</td><td class="num">0.0%</td></tr>
+    </table>
+    <p class="text-xs">失败率表。MLE小样本灾难性失效。</p>
+    <table class="mt-sm">
+      <tr><th>n</th><th>方法</th><th>RMSE_β</th><th>RMSE_η</th><th>RMSE_γ</th></tr>
+      <tr><td>20</td><td>MDM</td><td class="num accent-text">0.609</td><td class="num">212.4</td><td class="num">176.0</td></tr>
+      <tr><td>20</td><td>MLE</td><td class="num">0.774</td><td class="num">247.1</td><td class="num">203.3</td></tr>
+      <tr><td>20</td><td>LSE</td><td class="num">0.676</td><td class="num">215.8</td><td class="num">175.0</td></tr>
+    </table>
+  </div>
+  <div>
+    <div class="img-wrap"><img src="../图像/E01-6_失败率.png"></div>
+    <div class="img-caption">三方法失败率曲线</div>
+  </div>
+</div>
+<div class="highlight-box mt-sm"><strong>关键结论：</strong>① MDM全样本量参数视角最优 ② 工程视角LSE≈MDM ③ MLE小样本灾难（n=5失败率54.4%） ④ γ是最难估参数 ⑤ γ̂=0截断是MDM特征（~20%）非缺陷 ⑥ n≥50三法趋同</div>
+</section>
+
+<!-- ===== 09 · 01-7 第一大块总结 ===== -->
+<section class="slide">
+<div class="section-label">01-7 · Block 01 Summary</div>
+<h2 class="slide-title">第一大块指标选择总结</h2>
+<div class="row gap-lg mt-lg">
+  <div class="col-2">
+    <div class="card card-accent"><h4>参数视角</h4><p class="text-sm">常规报告 Bias、SD、RMSE；需要一个排序/训练目标时用 <strong>J<sub>param</sub></strong>。Bias/SD/RMSE保留用于诊断，J_param负责排序。</p></div>
+    <div class="card card-accent mt-sm"><h4>工程视角</h4><p class="text-sm">先选目标可靠度R，再报告 x_R 的 Bias、SD、RMSE；需要一个工程排序指标时用 <strong>RMSE_xR</strong>。</p></div>
+    <div class="highlight-box mt-sm"><strong>诊断时必须看分布。</strong>J_param或RMSE_xR负责排序；Bias/SD/RMSE、γ̂=0截断率、近零率和误差分布图负责解释原因。</div>
+  </div>
+  <div class="col-2">
+    <div class="img-wrap"><img src="../图像/E01-6_gamma分布.png" alt="γ分布"></div>
+    <div class="img-caption">γ̂分布：MDM截断~20%，LSE近零尖峰~35-43%，无截断。双峰形态必须配图阅读。</div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 10 · 02块 分章 ===== -->
+<section class="slide section-slide">
+<div class="section-label">Part 02 · 4 Pages</div>
+<h2 class="slide-title">第二大块：MDM方法<br>的有解性证明</h2>
+<p class="slide-subtitle">无解现象 → 理论存在性 → 两类成因 → 工程方案（截断+拟合） → 精度验证</p>
+</section>
+
+<!-- ===== 11 · 02-1 无解现象 ===== -->
+<section class="slide">
+<div class="section-label">02-1 · Solvability</div>
+<h2 class="slide-title">无解现象与理论存在性</h2>
+<div class="row gap-lg">
+  <div class="col-2">
+    <p class="text-sm">按原文实现MDM（偏置求根判据 δ=0.1），在多个配置上做蒙特卡洛检验，<strong>发现无解现象</strong>。</p>
+    <h3>理论推导</h3>
+    <div class="formula" style="display:block;padding:1vh 1vw">σ²<sub>η</sub>(γ) = C<sub>uu</sub> − 2γC<sub>uv</sub> + γ²C<sub>vv</sub></div>
+    <p class="text-sm mt-sm">开口向上的二次函数。包络梯度 g(γ) = (γC<sub>vv</sub> − C<sub>uv</sub>) / S(γ) 单调上升。</p>
+    <p class="text-sm">存在性判据：s<sub>v</sub> > offset 且无约束根 ∈ [0, t₍₁₎) ⟹ <strong>合法根存在且唯一</strong>。</p>
+  </div>
+  <div class="col-2">
+    <div class="card card-dark"><h4 style="color:#fff">推断</h4><p class="text-sm" style="color:rgba(255,255,255,.8)">理论预测合法根几乎总存在 → 实际无解必定来自：</p><p class="text-sm" style="color:rgba(255,255,255,.8)">① 根落在 γ&lt;0 被截断（非法根）<br>② 根贴近 t₍₁₎ 被网格漏检（数值问题）</p></div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 12 · 02-2 两类成因 ===== -->
+<section class="slide">
+<div class="section-label">02-2 · Two Causes</div>
+<h2 class="slide-title">无解的两类成因</h2>
+<div class="row gap-lg">
+  <div class="col-2">
+    <div class="card card-accent"><h4>成因① 下界切除（主因）</h4><p class="text-sm">无约束根落在γ&lt;0处，被物理约束γ≥0切掉。差异函数本身有良好定义的偏置根，只是不合法。γ₀/η越大有解率越高——真值离0越远，根越不容易落入负区。</p></div>
+    <div class="img-wrap mt-sm"><img src="../图像/E02-1_负根示例.png" alt="负根示例"></div>
+    <div class="img-caption">成因①示例：差异函数曲线，无约束根在γ&lt;0被截断</div>
+  </div>
+  <div class="col-2">
+    <div class="card card-accent"><h4>成因② 网格漏检（次因）</h4><p class="text-sm">根紧贴 t₍₁₎，均匀网格看不到。n越大时 t₍₁₎ 越贴近0，漏检更严重。均匀搜索的数值分辨率不足。</p></div>
+    <div class="img-wrap mt-sm"><img src="../图像/E02-2_漏检示例.png" alt="漏检示例"></div>
+    <div class="img-caption">成因②示例：20个搜索点离散采样，根极靠近t₁导致漏检</div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 13 · 02-3 工程方案 ===== -->
+<section class="slide">
+<div class="section-label">02-3 · Engineering Solution</div>
+<h2 class="slide-title">工程方案：截断 + 拟合</h2>
+<div class="row gap-lg mt-md">
+  <div class="col-2">
+    <div class="card card-accent"><h4>成因① → 截断：γ̂ = 0</h4><p class="text-sm">直接截断到γ̂=0（物理约束，最稳）。成因①截断策略在E01-6中已验证（MDM γ̂=0截断率~20%，误差可控）。</p></div>
+    <div class="card card-accent mt-sm"><h4>成因② → 拟合：解析梯度推算</h4><p class="text-sm">不依赖密集网格，改用拟合（解析梯度）直接推算根的位置。避免均匀网格在t₁附近的数值分辨率不足。</p></div>
+  </div>
+  <div class="col-2">
+    <h3>三步流程</h3>
+    <table>
+      <tr><th>Step</th><th>操作</th><th>针对</th></tr>
+      <tr><td>1</td><td>检测无解样本，分类成因①/②</td><td>识别</td></tr>
+      <tr><td>2</td><td>成因①：γ̂=0截断（物理约束）</td><td>下界切除</td></tr>
+      <tr><td>3</td><td>成因②：解析梯度直接推算根</td><td>网格漏检</td></tr>
+      <tr><td class="accent-text">→</td><td class="accent-text">failure_rate → 0%，始终有解</td><td class="accent-text">100%可用</td></tr>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ===== 14 · 02-4 精度验证 ===== -->
+<section class="slide">
+<div class="section-label">02-4 · Accuracy Verification</div>
+<h2 class="slide-title">始终有解方案的精度验证</h2>
+<p class="slide-subtitle">对照组（标准网格搜索，20点）vs 实验组（截断+拟合，100%给出估计）。三层次对比。</p>
+<div class="row gap-lg">
+  <div class="col-2">
+    <table>
+      <tr><th>层次</th><th>对比内容</th><th>预期</th></tr>
+      <tr><td>1</td><td>可用性提升：failure_rate</td><td class="accent-text">X% → 0%</td></tr>
+      <tr><td>2</td><td>valid-only子集精度：J_param</td><td>≈一致</td></tr>
+      <tr><td>3</td><td>全样本精度：全量 vs valid-only</td><td>无退化</td></tr>
+    </table>
+    <div class="highlight-box mt-md"><strong>目标：</strong>始终有解方案显著提升可用性（failure_rate→0%），且主精度指标未出现不可接受退化。这是从"能算"到"能算且可信"的关键一步。</div>
+  </div>
+  <div class="col-2">
+    <p class="text-sm">报告指标：valid_rate / failure_rate、J_param、RMSE_β/η/γ、RMSE_x₀.₉₅/x₀.₉₉、γ̂=0截断率与near-zero率。</p>
+    <p class="text-sm mt-sm">实验配置：β=2.5, η=1000, γ=100；n∈{5,7,10,20}；2000次/组；δ=0.1固定。对照组（标准网格，valid-only）vs 实验组（截断+拟合，100%有解）。</p>
+  </div>
+</div>
+</section>
+
+<!-- ===== 15 · 03块 分章 ===== -->
+<section class="slide section-slide">
+<div class="section-label">Part 03 · 5 Pages</div>
+<h2 class="slide-title">第三大块：最优偏移量<br>δ 的选取</h2>
+<p class="slide-subtitle">研究目标 → δ扫描与影响因素 → Oracle阶梯 → 可部署方案 → 03→04交接</p>
+</section>
+
+<!-- ===== 16 · 03-1 研究目标 ===== -->
+<section class="slide">
+<div class="section-label">03-1 · Research Target</div>
+<h2 class="slide-title">最优δ的研究目标与评价口径</h2>
+<div class="row gap-lg">
+  <div class="col-2">
+    <h3>层级定义（L0~L5）</h3>
+    <table>
+      <tr><th>层级</th><th>信息</th><th>可部署性</th></tr>
+      <tr><td>L0</td><td>全局固定（不区分任何条件）</td><td>✓ Default</td></tr>
+      <tr><td>L1</td><td>按样本量 n</td><td>✓ 可部署</td></tr>
+      <tr><td>L2</td><td>按形状参数 β（真值）</td><td>Oracle</td></tr>
+      <tr><td>L3</td><td>按 β × n（真值）</td><td>Oracle</td></tr>
+      <tr><td>L4</td><td>按 β × n × γ/η（真值）</td><td>Oracle</td></tr>
+      <tr><td>L5</td><td>逐样本事后最优</td><td>事后上界</td></tr>
+    </table>
+  </div>
+  <div class="col-2">
+    <h3>统一风险函数</h3>
+    <p class="text-sm">单样本平方损失 <code>loss_i(δ)</code> → 层级聚合。后续任何δ扫描、oracle、部署策略或神经网络标签都追溯同一套统计口径。主排序指标：<strong>J_param</strong>（参数视角），工程指标RMSE_xR为补充诊断。</p>
+    <div class="kpi mt-md">J<sub>param</sub></div>
+    <div class="kpi-label">参数视角主排序口径</div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 17 · 03-2 δ扫描 ===== -->
+<section class="slide">
+<div class="section-label">03-2 · δ Scan &amp; Factors</div>
+<h2 class="slide-title">δ扫描与最优δ的影响因素</h2>
+<p class="slide-subtitle">β是主驱动，n次之，γ/η影响弱。逐样本异质性显著。</p>
+<div class="grid-3 mt-sm">
+  <div class="img-wrap"><img src="../图像/E03_L0_global_curve.png"><div class="img-caption">L0 全局 δ-J_param 曲线</div></div>
+  <div class="img-wrap"><img src="../图像/E03_L1_by_n.png"><div class="img-caption">L1 按n分组曲线</div></div>
+  <div class="img-wrap"><img src="../图像/E03_L2_by_beta.png"><div class="img-caption">L2 按β分组曲线</div></div>
+</div>
+<div class="grid-3 mt-sm">
+  <div class="img-wrap"><img src="../图像/E03_L3_heatmap.png"><div class="img-caption">L3 β×n热力图</div></div>
+  <div class="img-wrap"><img src="../图像/E03_L4_heatmaps.png"><div class="img-caption">L4 β×n×γ/η热力图</div></div>
+  <div class="img-wrap"><img src="../图像/E03_L5_distributions.png"><div class="img-caption">L5 δ*_i分布直方图+小提琴图</div></div>
+</div>
+</section>
+
+<!-- ===== 18 · 03-3 Oracle阶梯 ===== -->
+<section class="slide">
+<div class="section-label">03-3 · Oracle Ladder</div>
+<h2 class="slide-title">信息层级与Oracle阶梯</h2>
+<p class="slide-subtitle">知道越多信息，风险上界下降越多。L2~L4为真值Oracle，L5为事后上界。</p>
+<table class="mt-md">
+  <tr><th>层级</th><th>δ使用方式</th><th>可部署性</th><th>J<sub>param</sub></th><th>vs Default</th><th>边际增益</th></tr>
+  <tr><td>Default</td><td>δ=0.1 全局固定</td><td>✓ 基线</td><td class="num">0.6353</td><td class="num">—</td><td class="num">—</td></tr>
+  <tr><td>L1</td><td>按样本量 n</td><td>✓ 可部署</td><td class="num accent-text">0.5988</td><td class="num">-5.7%</td><td class="num">+5.7%</td></tr>
+  <tr><td>L2</td><td>按形状参数 β</td><td>Oracle</td><td class="num accent-text">0.5891</td><td class="num">-7.3%</td><td class="num">+1.6%</td></tr>
+  <tr><td>L3</td><td>按 β × n</td><td>Oracle</td><td class="num accent-text">0.5701</td><td class="num">-10.3%</td><td class="num">+3.2%</td></tr>
+  <tr><td>L4</td><td>按 β×n×γ/η</td><td>Oracle</td><td class="num">0.5701</td><td class="num">-10.3%</td><td class="num">≈0</td></tr>
+  <tr class="accent-text"><td><strong>L5</strong></td><td><strong>逐样本事后最优</strong></td><td><strong>事后上界</strong></td><td class="num"><strong>0.4941</strong></td><td class="num"><strong>-22.2%</strong></td><td class="num"><strong>+12.0%</strong></td></tr>
+</table>
+<div class="highlight-box mt-md"><strong>关键区分：</strong>Default/L0/L1是部署可接近的基线，L2~L4是真值Oracle，L5是事后Oracle上界。神经网络的目标是逼近L4/L5而仅用可观测特征。</div>
+</section>
+
+<!-- ===== 19 · 03-4 可部署方案 ===== -->
+<section class="slide">
+<div class="section-label">03-4 · Deployable δ Selection</div>
+<h2 class="slide-title">真值未知时的可部署δ选择</h2>
+<div class="grid-3 mt-md">
+  <div class="card"><h4>方向1：MDM自迭代</h4><p class="text-sm">δ=0.1 → MDM估β̂ → 查δ*(β̂,n) → 迭代收敛。</p><p class="text-sm accent-text mt-sm">不稳定：部分配置不收敛，无法全空间超越Default。</p></div>
+  <div class="card"><h4>方向2：外部β预估</h4><p class="text-sm">L矩/WMLE/双δ/MDM0等方法估β̂ → 查δ*(β̂,n) → MDM拟合。</p><p class="text-sm accent-text mt-sm">不稳健：L矩有失败率，所有外部β法无法稳定超越Default 0.6353。</p></div>
+  <div class="card card-dark"><h4>→ 导向神经网络</h4><p class="text-sm" style="color:rgba(255,255,255,.8)">多维样本统计特征 vs 单统计量τ₃，信息利用率有质的差别。神经网络从可观测特征端到端学习δ策略。</p></div>
+</div>
+<div class="row gap-lg mt-md">
+  <div class="col-2"><div class="img-wrap"><img src="../图像/E03-4a_trajectories.png"></div><div class="img-caption">自迭代轨迹</div></div>
+  <div class="col-2"><div class="img-wrap"><img src="../图像/E03-4b_methods_comparison.png"></div><div class="img-caption">外部β方法比较</div></div>
+</div>
+</section>
+
+<!-- ===== 20 · 03-5 交接 ===== -->
+<section class="slide">
+<div class="section-label">03-5 · 03→04 Handoff</div>
+<h2 class="slide-title">第三大块到第四大块的实验交接</h2>
+<div class="row gap-lg mt-md">
+  <div class="col-2">
+    <div class="card card-dark"><h4 style="color:#fff">两条训练路线</h4>
+      <p class="text-sm" style="color:rgba(255,255,255,.8)"><strong>路线1（L4）：</strong>22,500样本 → 45个δ*标签（配置级最优）</p>
+      <p class="text-sm" style="color:rgba(255,255,255,.8)"><strong>路线2（L5）：</strong>22,500样本 → 22,500个δ*_i标签（逐样本最优）</p>
+    </div>
+    <h3 class="mt-md">输入特征（真值禁止）</h3>
+    <p class="text-sm">样本次序统计量、间距比、偏度、变异系数CV、t₁/median、tₙ/median、log(tₙ/t₁)、n。全部z-score标准化。</p>
+  </div>
+  <div class="col-2">
+    <table>
+      <tr><th>方案</th><th>J<sub>param</sub></th><th>目标</th></tr>
+      <tr><td>Default基线</td><td class="num">0.6353</td><td>—</td></tr>
+      <tr><td>路线1目标</td><td class="num">≤ 0.5701</td><td>逼近L4 Oracle</td></tr>
+      <tr><td>路线2目标</td><td class="num accent-text">≤ 0.4941</td><td>逼近L5 Oracle</td></tr>
+    </table>
+    <div class="highlight-box mt-sm"><strong>04成功标准：</strong>全样本有效且J_param优于Default 0.6353，逼近oracle上界。训练标签与模型输入严格分离。</div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 21 · 04块 分章 ===== -->
+<section class="slide section-slide">
+<div class="section-label">Part 04 · 6 Pages</div>
+<h2 class="slide-title">第四大块：基于神经网络的<br>MDM偏移量自适应选取</h2>
+<p class="slide-subtitle">实验契约 → 特征+架构 → 主结果 → 泛化 → 消融 → 最终方案</p>
+</section>
+
+<!-- ===== 22 · 04-1 实验契约 ===== -->
+<section class="slide">
+<div class="section-label">04-1 · Experiment Contract</div>
+<h2 class="slide-title">03→04 实验契约</h2>
+<div class="grid-3 mt-md">
+  <div class="card card-accent"><h4>标签1：L4 δ*_{β,n,γ/η}</h4><p class="text-xs">45个配置级最优δ标签</p></div>
+  <div class="card card-accent"><h4>标签2：L5 δ*_i</h4><p class="text-xs">22,500个逐样本最优δ标签</p></div>
+  <div class="card card-accent"><h4>标签3：Risk Curve</h4><p class="text-xs">每样本26维loss_i(δ)曲线</p></div>
+</div>
+<div class="grid-3 mt-sm">
+  <div class="card"><h4>输入特征</h4><p class="text-xs">次序统计量、间距比、偏度、CV、t₁/tₙ/n。真值禁止作为输入。</p></div>
+  <div class="card"><h4>数据划分</h4><p class="text-xs">同配置内rep 7:3随机划分（同分布检查），blocked split用于泛化。</p></div>
+  <div class="card"><h4>损失函数</h4><p class="text-xs">MSE（回归δ*）、交叉熵（分类）、KL/JS（风险曲线）、或直接优化J_param。</p></div>
+</div>
+<div class="highlight-box mt-md"><strong>核心原则：</strong>训练标签与模型输入严格分离——训练时可用真值生成oracle标签，使用时只有样本可观测特征。</div>
+</section>
+
+<!-- ===== 23 · 04-2 特征+架构 ===== -->
+<section class="slide">
+<div class="section-label">04-2 · Feature Engineering &amp; Architecture</div>
+<h2 class="slide-title">特征工程 + 标签设计 + 网络架构</h2>
+<div class="row gap-lg">
+  <div class="col-2">
+    <h3>输入特征（尺度归一化）</h3>
+    <div class="mt-sm"><span class="tag">次序统计量</span><span class="tag">间距比</span><span class="tag">偏度</span><span class="tag">CV</span><span class="tag">t₁/median</span><span class="tag">tₙ/median</span><span class="tag">log(tₙ/t₁)</span><span class="tag">n</span></div>
+    <p class="text-xs mt-sm">全部 z-score 标准化。真 β/η/γ 禁止作为输入。</p>
+    <h3 class="mt-md">MLP架构</h3>
+    <p class="text-sm">输入（特征维度）→ <strong>256</strong> → <strong>128</strong> → <strong>64</strong> → 输出（1或26）</p>
+    <p class="text-xs">ReLU + Dropout(0.2) + BatchNorm。AdamW，lr=1e-3，weight decay=1e-4，cosine annealing，early stopping（200 epochs），batch size 256。</p>
+  </div>
+  <div class="col-2">
+    <h3>三条标签路线</h3>
+    <div class="card card-accent mt-sm"><h4>L4 Hard</h4><p class="text-sm">回归δ*_{β,n,γ/η}（45个值），MSE损失。</p></div>
+    <div class="card card-accent mt-sm"><h4>L5 Hard</h4><p class="text-sm">回归δ*_i（22,500个值），逐样本最优标签，MSE损失。</p></div>
+    <div class="card card-accent mt-sm"><h4>Risk Curve</h4><p class="text-sm">26维soft label，KL散度或MSE损失。直接从风险曲线学习δ选择策略。</p></div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 24 · 04-3 主结果 ===== -->
+<section class="slide">
+<div class="section-label">04-3 · Main Results</div>
+<h2 class="slide-title">同分布主结果：Risk Curve 最优</h2>
+<p class="slide-subtitle">同配置内 rep 7:3 划分，对比三条路线 vs Default / L4 / L5 oracle</p>
+<div class="row gap-lg mt-md">
+  <div class="col-2">
+    <table>
+      <tr><th>方案</th><th>J<sub>param</sub></th><th>vs Default (0.6337)</th></tr>
+      <tr><td>Default (δ=0.1)</td><td class="num">0.6337</td><td class="num">—</td></tr>
+      <tr><td>L4 Hard</td><td class="num">0.5891</td><td class="num accent-text">-7.0%</td></tr>
+      <tr><td>L5 Hard</td><td class="num">0.5434</td><td class="num accent-text">-14.2%</td></tr>
+      <tr class="accent-text"><td><strong>Risk Curve</strong></td><td class="num"><strong>0.5332</strong></td><td class="num"><strong>-15.9% 🏆</strong></td></tr>
+      <tr><td>L4 Oracle（参考）</td><td class="num">0.5701</td><td class="num">-10.0%</td></tr>
+      <tr><td>L5 Oracle（参考）</td><td class="num">0.4941</td><td class="num">-22.0%</td></tr>
+    </table>
+  </div>
+  <div class="col-2">
+    <div class="img-wrap"><img src="../图像/E04_main_results.png" alt="主结果"></div>
+    <div class="img-caption">主结果对比图</div>
+  </div>
+</div>
+<div class="highlight-box mt-sm"><strong>结论：</strong>Risk curve（J=0.5332）逼近L5 Oracle（0.4941，gap仅+0.039），已超越L4 Oracle（0.5701）。逐样本标签优于配置标签（L5 &gt; L4）。三路线均显著优于Default。</div>
+</section>
+
+<!-- ===== 25 · 04-4 泛化 ===== -->
+<section class="slide">
+<div class="section-label">04-4 · Generalization</div>
+<h2 class="slide-title">泛化能力</h2>
+<div class="row gap-lg mt-md">
+  <div class="col-2">
+    <table>
+      <tr><th>泛化任务</th><th>Risk J</th><th>vs Default</th><th>gap</th></tr>
+      <tr><td>跨 β</td><td class="num">0.5389</td><td class="num">-12.9%</td><td class="num accent-text">+0.006</td></tr>
+      <tr><td>跨 n</td><td class="num">0.5474</td><td class="num">-14.9%</td><td class="num accent-text">+0.014</td></tr>
+      <tr><td>跨 γ/η</td><td class="num">0.6392</td><td class="num">-0.9%</td><td class="num" style="color:#dc2626">+0.106</td></tr>
+    </table>
+    <div class="highlight-box mt-md"><strong>结论：</strong>跨 β/n 泛化良好（gap < 0.015）。跨 γ/η 退化至接近 Default——γ/η 信息弱，模型难以从样本特征中捕捉其规律。模型学到了 β 规律而非记忆。</div>
+  </div>
+  <div class="col-2">
+    <div class="img-wrap"><img src="../图像/E04_generalization.png" alt="泛化结果"></div>
+    <div class="img-caption">泛化能力对比</div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 26 · 04-5 消融 ===== -->
+<section class="slide">
+<div class="section-label">04-5 · Ablation</div>
+<h2 class="slide-title">消融实验</h2>
+<div class="row gap-lg mt-md">
+  <div class="col-3">
+    <div class="card card-accent"><h4>标签消融</h4><p class="text-sm">Risk &gt; L5 &gt; L4：Risk曲线标签性能最优。L5比Risk差+1.6pp，L4比Risk差+10.5pp。</p></div>
+    <div class="card card-accent mt-sm"><h4>特征消融</h4><p class="text-sm">尾部特征贡献最大（+0.023），其次形态特征（+0.008），n的贡献最小（+0.006）。</p></div>
+    <div class="card card-accent mt-sm"><h4>架构消融</h4><p class="text-sm">所有变体差距 &lt; 0.005，架构不敏感。256→128→64 足以。</p></div>
+  </div>
+  <div class="col-2">
+    <div class="img-wrap"><img src="../图像/E04_ablation.png" alt="消融实验"></div>
+    <div class="img-caption">消融实验完整结果</div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 27 · 04-6 最终方案（总结） ===== -->
+<section class="slide">
+<div class="section-label">04-6 · Final Recommendation</div>
+<h2 class="slide-title">最终方案阶梯：推荐替代 Default δ=0.1</h2>
+<div class="row gap-lg mt-lg">
+  <div class="col-2">
+    <div class="kpi">0.5332</div>
+    <div class="kpi-label">NN Risk Curve J<sub>param</sub></div>
+    <p class="text-sm mt-md"><strong>vs Default 0.6337: -15.9%</strong>。跨β泛化稳定（gap +0.006）。全样本有效，无需真值特征。</p>
+    <table class="mt-md">
+      <tr><th>方案阶梯</th><th>J<sub>param</sub></th><th>vs Default</th></tr>
+      <tr><td>Default δ=0.1</td><td class="num">0.6337</td><td class="num">—</td></tr>
+      <tr><td>L4 Hard (NN)</td><td class="num">0.5891</td><td class="num">-7.0%</td></tr>
+      <tr><td>L5 Hard (NN)</td><td class="num">0.5434</td><td class="num">-14.2%</td></tr>
+      <tr class="accent-text"><td><strong>Risk Curve (NN)</strong></td><td class="num"><strong>0.5332</strong></td><td class="num"><strong>-15.9%</strong></td></tr>
+      <tr><td>L5 Oracle (上界)</td><td class="num">0.4941</td><td class="num">-22.2%</td></tr>
+    </table>
+  </div>
+  <div class="col-2">
+    <h3>四条核心Takeaway</h3>
+    <div class="card card-accent mt-sm"><p class="text-sm"><strong>01 · 参数+工程双视角：</strong>J_param用于排序，RMSE_xR用于决策。两视角必须分离。</p></div>
+    <div class="card card-accent mt-sm"><p class="text-sm"><strong>02 · MDM始终有解：</strong>截断+拟合方案使failure_rate→0%，精度无退化。</p></div>
+    <div class="card card-accent mt-sm"><p class="text-sm"><strong>03 · Oracle阶梯明确上界：</strong>L4 Oracle J=0.5701，L5 Oracle J=0.4941。神经网络逼近上界。</p></div>
+    <div class="card card-dark mt-sm"><p class="text-sm" style="color:rgba(255,255,255,.8)"><strong>04 · 推荐替代Default：</strong>NN Risk Curve J=0.5332（-15.9%），全样本有效，跨β泛化稳定。</p></div>
+  </div>
+</div>
+</section>
+
+</div><!-- /#deck -->
+
+<div id="nav"></div>
+<div id="overview"><div class="ov-grid"></div></div>
+
+<script>
+(function(){
+const deck=document.getElementById('deck');
+const slides=deck.querySelectorAll('.slide');
+const nav=document.getElementById('nav');
+const overview=document.getElementById('overview');
+const ovGrid=overview.querySelector('.ov-grid');
+let idx=0,total=slides.length,lock=false;
+
+deck.style.width=(total*100)+'vw';
+
+slides.forEach((_,i)=>{
+  const b=document.createElement('button');
+  b.title='Page '+(i+1);
+  b.onclick=()=>go(i);
+  nav.appendChild(b);
+});
+
+function go(n){
+  if(lock||n===idx)return;
+  idx=Math.max(0,Math.min(total-1,n));
+  deck.style.transform=`translateX(${-idx*100}vw)`;
+  nav.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  lock=true;setTimeout(()=>lock=false,400);
+}
+
+let overviewOn=false;
+function buildOverview(){
+  ovGrid.innerHTML='';
+  slides.forEach((s,i)=>{
+    const card=document.createElement('div');
+    card.className='ov-card'+(i===idx?' active':'');
+    const wrap=document.createElement('div');wrap.className='ov-preview';
+    const clone=s.cloneNode(true);
+    clone.className='ov-clone';
+    wrap.appendChild(clone);
+    const label=document.createElement('div');
+    label.className='ov-label';
+    label.textContent=(i+1)+' / '+total;
+    card.appendChild(wrap);card.appendChild(label);
+    card.onclick=()=>{toggleOverview();go(i)};
+    ovGrid.appendChild(card);
+  });
+}
+function toggleOverview(){
+  overviewOn=!overviewOn;
+  if(overviewOn){buildOverview();overview.style.display='block'}
+  else overview.style.display='none';
+}
+
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();toggleOverview();return}
+  if(overviewOn)return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){go(idx+1)}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){go(idx-1)}
+  if(e.key==='Home')go(0);
+  if(e.key==='End')go(total-1);
+});
+
+let wheelAcc=0,wheelTO;
+addEventListener('wheel',e=>{
+  wheelAcc+=e.deltaY+e.deltaX;
+  if(Math.abs(wheelAcc)>50){go(idx+(wheelAcc>0?1:-1));wheelAcc=0}
+  clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150);
+},{passive:true});
+
+let tx=0,ty=0;
+addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy))go(idx+(dx<0?1:-1));
+},{passive:true});
+
+go(0);
+})();
+</script>
+</body>
+</html>
