@@ -1,8 +1,8 @@
 {
   "experiment_id": "09",
   "title": "三参数 Weibull 的 AI 直接估计范式比较",
-  "code_version": "1.0",
-  "date": "2026-06-15",
+  "code_version": "1.1",
+  "date": "2026-06-16",
   "description": "比较连续回归（BP）、离散分类（SVM/XGBoost）、分类+局部回归三种范式在三参数 Weibull 参数直接估计中的适用性。",
 
   "why_not_run_experiment": "09 是 ML 训练实验（BP 神经网络、SVM、XGBoost），包含 train/val/test 划分、epoch 训练循环、模型权重保存、超参数调优等概念，不适用于平台的 run_experiment() 蒙特卡洛模拟框架。09 复用了平台的 studies/common/metrics.py 评价指标，数据生成逻辑与平台分布意图一致但实现不同（见 data_generation 差异说明）。",
@@ -48,6 +48,34 @@
       "train": "500 configs x 4 repeats",
       "test": "100 configs x 5 repeats",
       "seeds": {"train": 42, "test": 200}
+    },
+    "E09-9a": {
+      "description": "跨样本量交叉测试，复用 E09-2b 模型",
+      "test": "100 configs x 5 repeats x 6 sample sizes",
+      "seeds": {"test": 200}
+    },
+    "E09-9b": {
+      "train": "合并所有 n 的训练数据 (500 configs x 4 repeats x 6 n = 12000 samples)",
+      "val": "合并所有 n 的验证数据 (100 configs x 4 repeats x 6 n = 2400 samples)",
+      "test": "100 configs x 5 repeats per n",
+      "seeds": {"train": 42, "val": 100, "test": 200},
+      "model": "E09-9b_mixed_n_model.pt"
+    },
+    "E09-10": {
+      "description": "跨参数范围泛化，复用 E09-2b 模型",
+      "test": "100 configs x 5 repeats per scenario per n",
+      "seeds": {"test": 200},
+      "scenarios": {
+        "base": "β∈[1,5], η∈[0.5,5], γ∈[0,2]",
+        "beta_ext": "β∈[1,6]",
+        "eta_ext": "η∈[0.5,6]",
+        "gamma_ext": "γ∈[0,2.5]",
+        "all_ext": "β∈[1,6], η∈[0.5,6], γ∈[0,2.5]",
+        "beta_con": "β∈[2,4]",
+        "eta_con": "η∈[1,4]",
+        "gamma_con": "γ∈[0.5,1.5]",
+        "all_con": "β∈[2,4], η∈[1,4], γ∈[0.5,1.5]"
+      }
     }
   },
 
@@ -102,12 +130,17 @@
       "E09-7b_bins_sensitivity.csv": "分箱数敏感性",
       "E09-7c_hierarchical_compare.csv": "分层分类对比",
       "E09-7d_summary.csv": "分类范式总结",
-      "E09-7e_enhanced_features.csv": "增强特征实验"
+      "E09-7e_enhanced_features.csv": "增强特征实验",
+      "E09-9a_cross_n_matrix.csv": "跨样本量 6×6 J_param 矩阵",
+      "E09-9b_mixed_n_compare.csv": "混合训练 vs 单n训练对比",
+      "E09-10_range_generalization.csv": "范围扩展/收缩测试",
+      "E09-10b_multi_n_range.csv": "多样本量范围扩展测试"
     },
     "models": {
       "E09-2a_bp_raw_n*.pt": "BP-raw 模型权重",
       "E09-2b_bp_feature_n*.pt": "BP-feature 模型权重",
-      "E09-4_svm_n*.pkl": "SVM 模型"
+      "E09-4_svm_n*.pkl": "SVM 模型",
+      "E09-9b_mixed_n_model.pt": "混合样本量训练统一模型"
     }
   },
 
