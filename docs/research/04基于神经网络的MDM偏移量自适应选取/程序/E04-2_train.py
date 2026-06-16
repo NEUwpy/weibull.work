@@ -78,7 +78,7 @@ print(f"Train: {len(train_idx)}, Test: {len(test_idx)}")
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_all[train_idx])
 X_test = scaler.transform(X_all[test_idx])
-df_test = df.iloc[test_idx].reset_index(drop=True)
+df_test = df.iloc[test_idx]  # keep original index
 
 # ══════════════════════════════════════════
 # Train 3 models
