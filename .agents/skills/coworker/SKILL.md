@@ -3,12 +3,13 @@ name: coworker
 description: >
   Coordinate the user's multi-agent coworker loop across Codex, Hermes/MiMo,
   OpenCode/DeepSeek, and Claude Code. In D:\weibull,
-  use docs/AI协作协议.md as the canonical protocol: Codex reviews and approves,
-  Hermes/Claude Code with MiMo executes first, OpenCode with DeepSeek can act
-  as secondary executor or reviewer. Use this skill before coding, implementing,
-  refactoring, fixing bugs, reviewing diffs, approving agent output, or handing
-  work between agents; improve-style planning is optional support rather than
-  the source of truth.
+  use README.md as the single canonical project entrypoint, then use this
+  coworker skill as the multi-agent protocol: Codex reviews and approves,
+  Hermes/Claude Code with MiMo executes first, and OpenCode with DeepSeek can
+  act as secondary executor or reviewer. Use this skill before coding,
+  implementing, refactoring, fixing bugs, reviewing diffs, approving agent
+  output, or handing work between agents; improve-style planning is optional
+  support rather than the source of truth.
 ---
 
 # Coworker Loop
@@ -38,16 +39,42 @@ For tiny one-command tasks, direct factual questions, or pure explanation with n
 If working in `D:\weibull`, or if the user refers to the Weibull project, first read and follow:
 
 ```text
-D:\weibull\docs\AI协作协议.md
+D:\weibull\README.md
 ```
 
-That document is the canonical local version of the `improve` advisor/executor pattern. It supersedes this generic skill and any installed `shadcn/improve` behavior for Weibull work. In that project:
+`README.md` is the only canonical project entrypoint. Follow its reading path progressively, and do not treat archived docs under `docs/history/` or `docs/oldrules/` as current rules unless the user explicitly asks for historical context. The old `docs/AI协作协议.md` project contract has been archived and is no longer a live authority.
+
+For multi-agent coding, review, and handoff work in Weibull, this `coworker` skill is the active collaboration protocol. It supersedes any installed `shadcn/improve` behavior for Weibull work. In that project:
 
 - Codex is `Advisor / Reviewer`.
 - Hermes using MiMo is the primary `Executor`; OpenCode using DeepSeek is the secondary executor/reviewer; Claude Code with MiMo can play the same execution role when the user asks.
 - Codex final reviews should use the Review Verdict Protocol below.
-- Codex should read project entry/rule docs such as `AGENTS.md`, `README.md`, and `02-规则.md` before planning or approving.
+- Codex should read `README.md` first, then read only the task-relevant current docs named by the README such as `02-规则.md` before coding, planning, or approving.
 - The user keeps final authority over merge, commit, deletion, release, and scope expansion.
+
+## Project Coworker Workspace
+
+In `D:\weibull`, use `coworker/` as the durable task-flow workspace for multi-agent work. It records how tasks are planned, distributed, reported, and reviewed; it is not a second project-rule entrypoint.
+
+- `coworker/plans/`: Codex-authored plans, scope boundaries, STOP conditions, and verification commands.
+- `coworker/handoffs/`: exact prompts or task briefs sent to Hermes, OpenCode, or Claude Code.
+- `coworker/reports/`: executor reports with changed files, command results, failures, skipped checks, and deviations.
+- `coworker/reviews/`: Codex final verdicts and optional secondary-review findings.
+- `coworker/templates/`: reusable handoff and review templates.
+
+Use sortable names such as `YYYY-MM-DD-<short-slug>-<role>.md`. Keep credentials, tokens, and private service secrets out of this workspace. Treat files in `coworker/` as task evidence; if a conclusion becomes a standing rule, update `README.md` or the current doc named by the README instead.
+
+For command-line distribution, prefer reading a handoff file and passing it to the target agent:
+
+```powershell
+$prompt = Get-Content -Raw .\coworker\handoffs\<task>-hermes-handoff.md
+hermes --skills coworker -z $prompt
+```
+
+```powershell
+$prompt = Get-Content -Raw .\coworker\handoffs\<task>-opencode-handoff.md
+opencode run $prompt
+```
 
 ## Role Priority Matrix
 
@@ -157,7 +184,7 @@ Do not scatter shortcut comments everywhere. Use them only when the shortcut is 
 ## Workflow
 
 1. **Create or refresh plans**
-   - In `D:\weibull`, Codex may write the plan in chat, `plans/`, or `docs/todo/`, following `docs/AI协作协议.md`.
+   - In `D:\weibull`, Codex may write the plan in chat for tiny tasks, but should prefer `coworker/plans/` for durable multi-agent work and `coworker/handoffs/` for prompts that will be sent to Hermes, OpenCode, or Claude Code.
    - Outside Weibull, `/improve quick`, `/improve`, `/improve deep`, or `/improve plan <description>` may be used when helpful.
    - Prefer one plan per execution task.
 
@@ -184,7 +211,7 @@ Do not scatter shortcut comments everywhere. Use them only when the shortcut is 
 6. **Codex final audit**
    - Codex reviews the diff against the approved plan.
    - Codex should look first for behavioral regressions, missing tests, stale generated artifacts, undocumented scope expansion, and verification gaps.
-   - In `D:\weibull`, Codex must also check `git diff --stat`, project architecture boundaries, `02-规则.md`, and the verification commands listed in `docs/AI协作协议.md`.
+   - In `D:\weibull`, Codex must also check `git diff --stat`, project architecture boundaries, the task-relevant README-directed rules such as `02-规则.md`, and the verification commands listed in the approved plan or relevant current docs.
    - Only after Codex review passes should the user consider commit/merge.
 
 ## Review Verdict Protocol

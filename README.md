@@ -82,6 +82,7 @@ npm run dev
 | `02-A-适用范围规范.md` | 开发适用范围模块时 | 分片命名、组件结构、数据来源表格 |
 | `02-B-可信性验证规范.md` | 开发可信性验证模块时 | 验证配置格式、组件架构、添加流程 |
 | `.agents/skills/coworker/SKILL.md` | 使用多 agent 编程、审查、交接时 | Codex / Hermes / OpenCode 的执行与审查协作协议 |
+| `coworker/README.md` | 分发、规划、回收、验收多 agent 任务时 | 任务计划、handoff、报告和 review 的项目内流转工作区 |
 | `docs/AI辅助三参数威布尔参数估计重构当前路线图.md` | 接手 AI 重构或继续研究 03 时 | 当前已完成内容、路线偏移原因、下一步里程碑 |
 | `python/studies/common/README.md` | 开发蒙特卡洛、API 模拟、实验流水线时 | 统一抽样、方法调用、指标聚合、结果文件契约 |
 | `python/studies/mdm/README.md` | 开发 MDM 真值抽样或研究 03 baseline 时 | 默认 MDM、full-v1 baseline、同源对比要求 |
@@ -99,6 +100,7 @@ npm run dev
 
 - 所有人和所有 agent 都以本 README 为唯一入口。
 - 编程、重构、修 bug、审查 diff 或在 Codex / Hermes / OpenCode / Claude Code 之间交接任务时，使用 `coworker` skill。
+- 具体多 agent 任务的计划、分发、执行报告和验收记录放在 `coworker/`；该目录是流转工作区，不是新的规则入口。
 - 写新代码前必须阅读 `02-规则.md`，并按任务读取相关专题规范。
 - 禁止读取 `_archive/` 作为当前实现参考；`docs/history/` 和 `docs/oldrules/` 只用于历史追溯。
 - 审查时以实际 diff、验证命令和项目规则为准，不以历史手稿覆盖当前代码事实。
