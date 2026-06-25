@@ -238,7 +238,7 @@ AI 方法也必须产出可被 `aggregate_standard_metrics()` 使用的估计行
 验收：
 
 ```text
-AGENTS.md 能引导到当前路线图；
+README.md 能引导到当前路线图；
 02-规则.md 能阻止重复 MC/指标实现；
 python/studies/common/README.md 说明统一流水线；
 python/studies/mdm/README.md 说明 full-v1 baseline；
@@ -332,14 +332,12 @@ M1/M2/M3/M4 页面不重复造相似图表；
 后续 AI 接手时，优先按以下顺序读：
 
 ```text
-1. AGENTS.md
-2. README.md
-3. 02-规则.md
-4. docs/AI协作协议.md
-5. docs/AI辅助三参数威布尔参数估计重构当前路线图.md
-6. docs/MDM真值抽样估计full-v1阶段总结.md
-7. python/studies/common/README.md
-8. python/studies/mdm/README.md
+1. README.md
+2. 02-规则.md
+3. docs/AI辅助三参数威布尔参数估计重构当前路线图.md
+4. docs/MDM真值抽样估计full-v1阶段总结.md
+5. python/studies/common/README.md
+6. python/studies/mdm/README.md
 ```
 
 禁止把 `_archive/` 作为当前依据。`docs/history/` 可以作为历史追溯，但不能覆盖当前路线图、规则文档和代码事实。
@@ -352,13 +350,13 @@ docs/oldrules/AI辅助三参数威布尔参数估计重构与实验设计总纲.
 
 ---
 
-## 8. Codex/Hermes 执行边界
+## 8. 多 agent 执行边界
 
-按 `docs/AI协作协议.md`：
+按 `coworker` skill：
 
-- Codex 负责计划、审查和审批。
-- Hermes/mimo 或 Claude Code 负责按计划执行。
-- 审批结论使用 `VERDICT: APPROVE / REVISE / BLOCK`。
+- Codex、Hermes/MiMo、OpenCode/DeepSeek、Claude Code 的执行/审查优先级由 skill 维护。
+- 审查者对执行者的裁决语言由 skill 维护。
+- README.md 是本项目唯一权威入口。
 - 用户保留最终范围、提交、合并、上线决策权。
 
 任何后续执行计划都应明确：
