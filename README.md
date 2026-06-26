@@ -101,6 +101,8 @@ npm run dev
 - 所有人和所有 agent 都以本 README 为唯一入口。
 - 编程、重构、修 bug、审查 diff 或在 Codex / Hermes / OpenCode / Claude Code 之间交接任务时，使用 `coworker` skill。
 - 具体多 agent 任务的计划、分发、执行报告和验收记录放在 `coworker/`；该目录是流转工作区，不是新的规则入口。
+- 默认协作角色：Codex 负责需求对齐、规划审查和最终验收；Hermes / MiMo 或 Claude Code / MiMo 优先执行；OpenCode / DeepSeek 可作二审、备选执行或独立 bug-finding。
+- 规划只写目标、已知事实、边界、执行自主性、停止条件和验证条件；不要把执行者当新手写成逐步施工脚本。
 - 写新代码前必须阅读 `02-规则.md`，并按任务读取相关专题规范。
 - 禁止读取 `_archive/` 作为当前实现参考；`docs/history/` 和 `docs/oldrules/` 只用于历史追溯。
 - 审查时以实际 diff、验证命令和项目规则为准，不以历史手稿覆盖当前代码事实。
