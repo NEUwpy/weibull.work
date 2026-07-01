@@ -7,10 +7,10 @@
 - S2R 中位数族与尾部指标保留为 diagnostics，用于风险诊断，不再作为唯一主口径。
 
 维护约定：
-- 本模块是指标规范页面 `/help/metrics` 的可执行实现。
-- `/help/metrics` 是本模块的可读规范说明。
+- 本模块是指标规范源 `src/app/help/metrics/metrics-spec.ts` 的可执行实现。
+- `/help/metrics` 是该规范源的渲染视图。
 - 修改本模块任一公式、字段名或判定口径时，必须同步修改
-  `src/app/help/metrics/page.tsx`；反过来，页面规范变更也必须同步本模块。
+  `src/app/help/metrics/metrics-spec.ts`；反过来，规范源变更也必须同步本模块。
 """
 
 import math

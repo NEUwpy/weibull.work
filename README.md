@@ -82,8 +82,10 @@ Help 页面是权威源的渲染视图，不是第二事实源：
 | `/help/changelog` (版本页) | `08-更新日志.md` |
 | `/help/changelog/todos` | `04-目标与待办.md` |
 | `/help/manual` (用户手册) | `07-用户手册.md` |
+| `/help/metrics` | `src/app/help/metrics/metrics-spec.ts` + 共享实现 |
+| `/help/charts` | `src/app/help/charts/charts-spec.ts` + `chart-registry.ts` + 图表组件 |
 
-`/help/metrics`、`/help/charts` 的可读规范即当前权威定义；可执行实现见 `src/lib/metrics.ts`、`python/studies/common/metrics.py`、`chart-registry.ts` 及图表组件。`06-模块.md` §6.3/§6.4 为设计参考文档。
+`/help/metrics`、`/help/charts` 是渲染视图，不是第二事实源。指标规范源为 `metrics-spec.ts`，图表/表格展示规范源为 `charts-spec.ts`，真实图表使用实例由 `chart-registry.ts` 维护；可执行计算和渲染实现见 `src/lib/metrics.ts`、`python/studies/common/metrics.py` 及图表组件。`06-模块.md` §6.3/§6.4 为设计参考文档。
 
 ### 文档同步矩阵
 
@@ -91,8 +93,8 @@ Help 页面是权威源的渲染视图，不是第二事实源：
 
 | 改动类型 | 必须同步 |
 |----------|----------|
-| 新增/修改评价指标 | `02-规则.md` §5 + `src/lib/metrics.ts` + `python/studies/common/metrics.py` + `/help/metrics` |
-| 新增/修改图表 | `02-规则.md` §5 + `chart-registry.ts` + 图表组件 + `/help/charts` |
+| 新增/修改评价指标 | `02-规则.md` §5 + `src/app/help/metrics/metrics-spec.ts` + `src/lib/metrics.ts` + `python/studies/common/metrics.py` |
+| 新增/修改图表/表格范式 | `02-规则.md` §5 + `src/app/help/charts/charts-spec.ts` + `chart-registry.ts` + 图表组件 |
 | 新增方法/模块 | `06-模块.md` + `05-状态.md` + `04-目标与待办.md`（如涉及路线） |
 | 版本发布 | `08-更新日志.md` + `README.md`「当前状态快照」（如状态变化） |
 | 架构决策变更 | `06-A-架构决策.md` + `README.md`（如影响概况） |
@@ -148,8 +150,8 @@ npm run dev
 | `06-A-架构决策.md` | 需要了解设计原因 |
 | `python/studies/common/README.md` | 开发蒙特卡洛、API 模拟、实验流水线 |
 | `docs/AI辅助三参数威布尔参数估计重构当前路线图.md` | 接手 AI 重构或继续研究 03 |
-| `/help/metrics` | 使用或新增评价指标时（可读规范，权威源为代码：`src/lib/metrics.ts` + `python/studies/common/metrics.py`） |
-| `/help/charts` | 使用或新增图表时（可读规范，权威源为代码：`chart-registry.ts` + 图表组件） |
+| `/help/metrics` | 使用或新增评价指标时（渲染视图；规范源为 `metrics-spec.ts`，可执行实现为 `src/lib/metrics.ts` + `python/studies/common/metrics.py`） |
+| `/help/charts` | 使用或新增图表/表格范式时（渲染视图；规范源为 `charts-spec.ts`，实例源为 `chart-registry.ts`） |
 | `03-维护.md` | 部署或运维 |
 | `04-目标与待办.md` | 规划功能 |
 | `07-用户手册.md` | 编写或核对用户手册内容 |

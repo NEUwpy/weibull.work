@@ -2,10 +2,10 @@
  * 统一评价指标模块
  *
  * 维护约定：
- * - 本模块是指标规范页面 `/help/metrics` 的可执行实现。
- * - `/help/metrics` 是本模块的可读规范说明。
+ * - 本模块是指标规范源 `src/app/help/metrics/metrics-spec.ts` 的可执行实现。
+ * - `/help/metrics` 是该规范源的渲染视图。
  * - 修改本模块任一公式、字段名或判定口径时，必须同步修改
- *   `src/app/help/metrics/page.tsx`；反过来，页面规范变更也必须同步本模块。
+ *   `src/app/help/metrics/metrics-spec.ts`；反过来，规范源变更也必须同步本模块。
  *
  * 当前默认主口径：
  * - 参数视角：Bias、SD、RMSE、MAE；beta/eta 可附相对 Bias/RMSE，gamma 不输出相对指标。

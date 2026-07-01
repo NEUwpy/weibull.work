@@ -3,6 +3,9 @@
  *
  * 记录每种图表类型在系统中的所有使用位置。
  * 展开时按 dataSource 加载真实数据渲染。
+ *
+ * 展示范式、表格范式和视觉语义定义见 charts-spec.ts；
+ * 本文件只维护真实实例、数据源和实例级 props。
  */
 
 export type DataSource =
