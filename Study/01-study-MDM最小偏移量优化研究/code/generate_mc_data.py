@@ -697,13 +697,12 @@ if __name__ == "__main__":
         delta_grid = [0.0, 0.1, 0.2, 0.3]
         print("*** PILOT 模式: R=10, δ=[0.0,0.1,0.2,0.3] ***")
         # pilot 写独立目录，绝不污染正式 shared_data
-        import generate_mc_data as gmc
-        pilot_dir = os.path.join(gmc.ARTIFACTS_DIR if hasattr(gmc, 'ARTIFACTS_DIR')
-                                 else os.path.join(gmc.STUDY_ROOT, "artifacts", "formal"),
-                                 "pilot_data")
-        gmc.SHARED_DATA_DIR = pilot_dir
-        gmc.CHUNKS_DIR = os.path.join(pilot_dir, "chunks")
-        os.makedirs(gmc.CHUNKS_DIR, exist_ok=True)
+        # 注意：必须用 globals() 修改当前模块（__main__）的全局变量，
+        # 而不是 import 的模块副本
+        pilot_dir = os.path.join(os.path.dirname(SHARED_DATA_DIR), "pilot_data")
+        globals()["SHARED_DATA_DIR"] = pilot_dir
+        globals()["CHUNKS_DIR"] = os.path.join(pilot_dir, "chunks")
+        os.makedirs(CHUNKS_DIR, exist_ok=True)
         print(f"  Pilot 输出目录: {pilot_dir}")
     else:
         repeats = R_MAIN
