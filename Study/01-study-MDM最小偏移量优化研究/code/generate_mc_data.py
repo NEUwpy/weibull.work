@@ -125,21 +125,84 @@ def chunk_exists(idx):
     return os.path.isfile(mdm_p) and os.path.isfile(mle_p)
 
 
-def validate_chunk(idx, expected_mdm_rows, expected_mle_rows):
-    """校验分片文件完整性（行数检查）。
+def write_chunk_meta(idx, unit, repeats, delta_grid, seed_ns):
+    """写分片元数据文件（chunk_XXXX_meta.json）。
+
+    用于断点续跑时验证分片是否与当前配置匹配——
+    如果 git_commit / repeats / delta_grid / unit 参数变了，
+    旧分片会被视为过期。
+    """
+    meta = {
+        "unit_idx": idx,
+        "unit": unit,
+        "repeats": repeats,
+        "delta_grid": delta_grid,
+        "seed_namespace": seed_ns,
+        "git_commit": get_git_info(),
+        "created_at": now_iso(),
+    }
+    _, mle_p = chunk_paths(idx)
+    meta_path = mle_p.replace("_mle.csv", "_meta.json")
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2, ensure_ascii=False)
+
+
+def read_chunk_meta(idx):
+    """读分片元数据。不存在返回 None。"""
+    _, mle_p = chunk_paths(idx)
+    meta_path = mle_p.replace("_mle.csv", "_meta.json")
+    if not os.path.isfile(meta_path):
+        return None
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def validate_chunk(idx, expected_mdm_rows, expected_mle_rows,
+                   current_unit=None, repeats=None, delta_grid=None):
+    """校验分片文件完整性。
+
+    检查项（逐层加严）：
+    1. 两个分片文件都存在
+    2. 行数匹配期望值
+    3. 如果提供了 current_unit/repeats/delta_grid，检查元数据是否匹配
 
     Returns:
-        True 如果分片完整可用，False 如果需要重跑。
+        (True, "") 如果分片完整可用
+        (False, reason_str) 如果需要重跑
     """
     mdm_p, mle_p = chunk_paths(idx)
+    if not (os.path.isfile(mdm_p) and os.path.isfile(mle_p)):
+        return False, "分片文件缺失"
+
     try:
         with open(mdm_p, "r", encoding="utf-8") as f:
-            mdm_lines = sum(1 for _ in f) - 1  # 减表头
+            mdm_lines = sum(1 for _ in f) - 1
         with open(mle_p, "r", encoding="utf-8") as f:
             mle_lines = sum(1 for _ in f) - 1
-        return mdm_lines == expected_mdm_rows and mle_lines == expected_mle_rows
-    except Exception:
-        return False
+    except Exception as e:
+        return False, f"读取失败: {e}"
+
+    if mdm_lines != expected_mdm_rows:
+        return False, f"MDM行数不匹配 ({mdm_lines} != {expected_mdm_rows})"
+    if mle_lines != expected_mle_rows:
+        return False, f"MLE行数不匹配 ({mle_lines} != {expected_mle_rows})"
+
+    # 元数据校验（如果调用方提供了对比基准）
+    if current_unit is not None and repeats is not None and delta_grid is not None:
+        meta = read_chunk_meta(idx)
+        if meta is None:
+            return False, "元数据文件缺失"
+        if meta["unit"] != current_unit:
+            return False, f"unit参数变了: {meta['unit']} != {current_unit}"
+        if meta["repeats"] != repeats:
+            return False, f"repeats变了: {meta['repeats']} != {repeats}"
+        if meta["delta_grid"] != delta_grid:
+            return False, "delta_grid变了"
+
+    return True, ""
 
 
 # ============================================================
@@ -160,10 +223,14 @@ def process_and_save_unit(args):
     """
     idx, unit, repeats, delta_grid, seed_ns = args
 
-    # 断点续跑：跳过已完成分片
+    # 断点续跑：跳过已完成且元数据匹配的分片
     expected_mdm = repeats * len(delta_grid)
     expected_mle = repeats
-    if chunk_exists(idx) and validate_chunk(idx, expected_mdm, expected_mle):
+    ok, reason = validate_chunk(
+        idx, expected_mdm, expected_mle,
+        current_unit=unit, repeats=repeats, delta_grid=list(delta_grid),
+    )
+    if ok:
         return (idx, 0, 0, 0.0, "skipped")
 
     beta = unit["beta"]
@@ -258,6 +325,9 @@ def process_and_save_unit(args):
     os.replace(mdm_tmp, mdm_path)  # Windows 上 os.replace 是原子操作
     os.replace(mle_tmp, mle_path)
 
+    # 写元数据（最后写，确保数据分片先完成）
+    write_chunk_meta(idx, unit, repeats, list(delta_grid), seed_ns)
+
     return (idx, len(mdm_rows), len(mle_rows), elapsed, "done")
 
 
@@ -265,12 +335,58 @@ def process_and_save_unit(args):
 # 合并分片
 # ============================================================
 
-def merge_chunks(total_units):
+def preflight_chunks(total_units, repeats, delta_grid):
+    """合并前硬验证：所有分片必须存在且行数正确。
+
+    缺任何一个分片或行数不对，直接 raise RuntimeError。
+    这是论文证据链的硬门槛——不允许生成"看似完成"的半成品。
+
+    Returns:
+        (total_mdm_rows, total_mle_rows) 期望的总行数
+    """
+    expected_mdm = repeats * len(delta_grid)
+    expected_mle = repeats
+    total_mdm = 0
+    total_mle = 0
+    errors = []
+
+    for idx in range(total_units):
+        ok, reason = validate_chunk(idx, expected_mdm, expected_mle)
+        if not ok:
+            errors.append(f"  分片 {idx:04d}: {reason}")
+        else:
+            total_mdm += expected_mdm
+            total_mle += expected_mle
+
+    if errors:
+        print(f"\n{'='*60}")
+        print(f"合并前验证失败 — {len(errors)} 个分片有问题：")
+        for e in errors[:10]:
+            print(e)
+        if len(errors) > 10:
+            print(f"  ...还有 {len(errors)-10} 个")
+        print(f"\n修复方法：")
+        print(f"  1. 删除有问题的分片: rm artifacts/formal/shared_data/chunks/chunk_XXXX_*.csv")
+        print(f"  2. 重跑: python generate_mc_data.py")
+        print(f"  3. 合并: python generate_mc_data.py --merge-only")
+        print(f"{'='*60}")
+        raise RuntimeError(f"Preflight 失败: {len(errors)} 个分片不完整")
+
+    print(f"  Preflight 通过: {total_units} 个分片全部完整")
+    return total_mdm, total_mle
+
+
+def merge_chunks(total_units, repeats, delta_grid):
     """将所有分片合并为最终 CSV 文件。
+
+    合并前先做 preflight 硬验证，确保所有分片完整。
 
     Returns:
         (total_mdm_rows, total_mle_rows)
     """
+    # 合并前硬验证
+    expected_mdm, expected_mle = preflight_chunks(total_units, repeats, delta_grid)
+
     os.makedirs(SHARED_DATA_DIR, exist_ok=True)
 
     mdm_out = os.path.join(SHARED_DATA_DIR, "mc_scan_raw.csv")
@@ -418,7 +534,10 @@ def run_parallel(repeats, delta_grid, seed_ns, n_workers):
     tasks = [
         (idx, unit, repeats, delta_grid, seed_ns)
         for idx, unit in units
-        if not (chunk_exists(idx) and validate_chunk(idx, repeats * len(delta_grid), repeats))
+        if not validate_chunk(
+            idx, repeats * len(delta_grid), repeats,
+            current_unit=unit, repeats=repeats, delta_grid=list(delta_grid),
+        )[0]
     ]
 
     if not tasks:
@@ -482,7 +601,7 @@ def run_parallel(repeats, delta_grid, seed_ns, n_workers):
 
     # ── 合并分片 ──
     print(f"\n[{now_local()}] 合并 {total_units} 个分片...")
-    merged_mdm, merged_mle = merge_chunks(total_units)
+    merged_mdm, merged_mle = merge_chunks(total_units, repeats, delta_grid)
     print(f"合并完成: MDM {merged_mdm:,} 行 | MLE {merged_mle:,} 行")
 
     # ── 写 manifest ──
@@ -523,8 +642,12 @@ def run_serial(repeats, delta_grid, seed_ns):
     unit_status = []
 
     for idx, unit in units:
-        if chunk_exists(idx) and validate_chunk(idx, repeats * len(delta_grid), repeats):
-            print(f"[{now_local()}] 单元 {idx+1}/{total_units} 已存在，跳过")
+        ok, _ = validate_chunk(
+            idx, repeats * len(delta_grid), repeats,
+            current_unit=unit, repeats=repeats, delta_grid=list(delta_grid),
+        )
+        if ok:
+            print(f"[{now_local()}] 单元 {idx+1}/{total_units} 已存在且配置匹配，跳过")
             unit_status.append({"unit_idx": idx, "status": "skipped", "mdm_rows": 0, "mle_rows": 0})
             continue
 
@@ -539,7 +662,7 @@ def run_serial(repeats, delta_grid, seed_ns):
 
     # 合并
     print(f"\n[{now_local()}] 合并分片...")
-    merged_mdm, merged_mle = merge_chunks(total_units)
+    merged_mdm, merged_mle = merge_chunks(total_units, repeats, delta_grid)
     write_manifest(repeats, delta_grid, seed_ns, 1, merged_mdm, merged_mle, total_elapsed, unit_status)
 
     print(f"\n完成！MDM {merged_mdm:,} | MLE {merged_mle:,} | {total_elapsed:.0f}s")
@@ -563,7 +686,7 @@ if __name__ == "__main__":
         units = build_work_units()
         total_units = len(units)
         print(f"[{now_local()}] 只合并模式：合并 {total_units} 个分片...")
-        merged_mdm, merged_mle = merge_chunks(total_units)
+        merged_mdm, merged_mle = merge_chunks(total_units, R_MAIN, DELTA_GRID)
         write_manifest(R_MAIN, DELTA_GRID, SEED_NAMESPACE, 0,
                        merged_mdm, merged_mle, 0, [])
         print(f"完成: MDM {merged_mdm:,} | MLE {merged_mle:,}")
@@ -573,8 +696,15 @@ if __name__ == "__main__":
         repeats = 10
         delta_grid = [0.0, 0.1, 0.2, 0.3]
         print("*** PILOT 模式: R=10, δ=[0.0,0.1,0.2,0.3] ***")
-        # pilot 用独立目录避免覆盖正式数据
-        os.environ["PILOT_MODE"] = "1"
+        # pilot 写独立目录，绝不污染正式 shared_data
+        import generate_mc_data as gmc
+        pilot_dir = os.path.join(gmc.ARTIFACTS_DIR if hasattr(gmc, 'ARTIFACTS_DIR')
+                                 else os.path.join(gmc.STUDY_ROOT, "artifacts", "formal"),
+                                 "pilot_data")
+        gmc.SHARED_DATA_DIR = pilot_dir
+        gmc.CHUNKS_DIR = os.path.join(pilot_dir, "chunks")
+        os.makedirs(gmc.CHUNKS_DIR, exist_ok=True)
+        print(f"  Pilot 输出目录: {pilot_dir}")
     else:
         repeats = R_MAIN
         delta_grid = DELTA_GRID
