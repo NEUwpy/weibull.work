@@ -1,0 +1,400 @@
+{
+  "run_id": "E1E2_mc_scan_v1",
+  "created_at": "2026-07-04T06:46:12+00:00",
+  "code_entry": "code/generate_mc_data.py",
+  "git_commit": "8209ba5",
+  "python_version": "3.11.15",
+  "method_versions": {
+    "mdm": {
+      "source": "python/methods/mdm.py",
+      "class": "MDM",
+      "run_signature": "run(offset: float, gamma_steps=60, rank_method='bernard')",
+      "description": "Minimum Discrepancy Method, offset=delta gradient threshold"
+    },
+    "mle": {
+      "source": "python/methods/mle.py",
+      "class": "MLE",
+      "run_signature": "run()",
+      "description": "Standard MLE, gamma<x_(1) constraint, beta<1 => unbounded"
+    },
+    "sample": {
+      "source": "python/studies/common/sample.py",
+      "function": "generate_sample(beta, eta, gamma, n, repeat_id, seed)",
+      "seed_scheme": "sha256(repr(seed)|repr(beta)|repr(eta)|repr(gamma)|n|repeat_id) -> 4 bytes -> np.random.default_rng"
+    }
+  },
+  "parameter_grid": {
+    "beta": [
+      1.5,
+      2.0,
+      2.5,
+      4.0,
+      5.0
+    ],
+    "eta": [
+      1.0
+    ],
+    "gamma_over_eta": [
+      0.1,
+      0.5,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      20
+    ]
+  },
+  "delta_grid": [
+    0.0,
+    0.1,
+    0.2,
+    0.3
+  ],
+  "repeats": 10,
+  "seed_namespace": "study01_v1",
+  "n_workers": 1,
+  "total_mdm_estimates": 1800,
+  "total_mle_estimates": 450,
+  "elapsed_seconds": 193.94170159986243,
+  "unit_status": [
+    {
+      "unit_idx": 0,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 1.690781399840489
+    },
+    {
+      "unit_idx": 1,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 2.670559100108221
+    },
+    {
+      "unit_idx": 2,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 3.9426424000412226
+    },
+    {
+      "unit_idx": 3,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.524679200025275
+    },
+    {
+      "unit_idx": 4,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.226049500051886
+    },
+    {
+      "unit_idx": 5,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.033493299968541
+    },
+    {
+      "unit_idx": 6,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.523832899983972
+    },
+    {
+      "unit_idx": 7,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 3.9349893000908196
+    },
+    {
+      "unit_idx": 8,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.010708200046793
+    },
+    {
+      "unit_idx": 9,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.382208100054413
+    },
+    {
+      "unit_idx": 10,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 3.8020901000127196
+    },
+    {
+      "unit_idx": 11,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.005755600053817
+    },
+    {
+      "unit_idx": 12,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.768007199978456
+    },
+    {
+      "unit_idx": 13,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 3.846315799979493
+    },
+    {
+      "unit_idx": 14,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.067708400078118
+    },
+    {
+      "unit_idx": 15,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.56049480009824
+    },
+    {
+      "unit_idx": 16,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.8193432001862675
+    },
+    {
+      "unit_idx": 17,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.58264570008032
+    },
+    {
+      "unit_idx": 18,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.670739600202069
+    },
+    {
+      "unit_idx": 19,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.376484000124037
+    },
+    {
+      "unit_idx": 20,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.243958400096744
+    },
+    {
+      "unit_idx": 21,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.9243771999608725
+    },
+    {
+      "unit_idx": 22,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.361725900089368
+    },
+    {
+      "unit_idx": 23,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.218399999896064
+    },
+    {
+      "unit_idx": 24,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.758724399842322
+    },
+    {
+      "unit_idx": 25,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.464140800060704
+    },
+    {
+      "unit_idx": 26,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.105272599961609
+    },
+    {
+      "unit_idx": 27,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.617516100173816
+    },
+    {
+      "unit_idx": 28,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.812643800163642
+    },
+    {
+      "unit_idx": 29,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.010272799991071
+    },
+    {
+      "unit_idx": 30,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 5.0447062000166625
+    },
+    {
+      "unit_idx": 31,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.382171199889854
+    },
+    {
+      "unit_idx": 32,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.654665200039744
+    },
+    {
+      "unit_idx": 33,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 5.030805599875748
+    },
+    {
+      "unit_idx": 34,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.502479899907485
+    },
+    {
+      "unit_idx": 35,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.601347899995744
+    },
+    {
+      "unit_idx": 36,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.542754900176078
+    },
+    {
+      "unit_idx": 37,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.336405199952424
+    },
+    {
+      "unit_idx": 38,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.2213369000237435
+    },
+    {
+      "unit_idx": 39,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.487787300022319
+    },
+    {
+      "unit_idx": 40,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 3.949239999987185
+    },
+    {
+      "unit_idx": 41,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.155227100010961
+    },
+    {
+      "unit_idx": 42,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.201971800066531
+    },
+    {
+      "unit_idx": 43,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.13811399997212
+    },
+    {
+      "unit_idx": 44,
+      "status": "done",
+      "mdm_rows": 40,
+      "mle_rows": 10,
+      "elapsed": 4.275436200201511
+    }
+  ],
+  "output_files": [
+    "chunks/chunk_XXXX_mdm.csv (分片)",
+    "chunks/chunk_XXXX_mle.csv (分片)",
+    "mc_scan_raw.csv (合并后)",
+    "mle_anchor.csv (合并后)",
+    "manifest.json",
+    "progress.json"
+  ],
+  "metrics_contract": {
+    "primary": "J1 = sqrt(mean[(db/b)^2 + (de/e)^2 + (dg/e)^2])",
+    "gamma_normalization": "divided by eta (scale parameter), not gamma itself",
+    "weights": "equal (w_beta = w_eta = w_gamma = 1)",
+    "auxiliary": [
+      "bias_beta",
+      "sd_beta",
+      "bias_eta",
+      "sd_eta",
+      "bias_gamma",
+      "sd_gamma"
+    ],
+    "gate": "failure_rate"
+  },
+  "notes": "E1/E2 共用 MC 扫描数据。每个(beta,eta,gamma,n)工作单元独立写入分片文件，支持断点续跑。断点续跑：删除 mc_scan_raw.csv 和 mle_anchor.csv 不会导致重跑，只有删除 chunks/ 目录下对应分片才会重跑该单元。E1 分析按 delta 聚合得 L1/L2，E2 按 (beta+n) 等聚合得 L3-L6 oracle。"
+}
