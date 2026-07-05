@@ -100,23 +100,20 @@ MDM 方法相关原文在本地文献库中已有 Markdown 正文、图片和 PD
   -> 可作为正式实验的候选路线
 ```
 
-投稿论文应重新组织为一条“正式证据链”：
+投稿论文应重新组织为一条"正式证据链"：
 
 ```text
-Formal E1 MDM 基线表现
-  -> 不同参数组合和小样本下的正式方法比较
+Formal E1 δ 扫描与 L1-L2 层级
+  -> Default / L1 / L2 的正式阶梯，回答"δ=0.1 是否最优全局常数"
 
-Formal E2 delta 扫描与信息层级
-  -> Default / L0-L5 的正式阶梯和边际收益
+Formal E2 L3-L6 Oracle 层级
+  -> 按 β / β+n / β+γ/η+n / 逐样本的 oracle 精度上限，识别边际递减点
 
-Formal E3 可部署显式规则
-  -> 自迭代、外部 beta 预估、查表和 fallback 的正式比较
+Formal E3 NN 样本→δ 映射
+  -> 用样本可观测特征学习最优 δ，验证能否逼近 oracle 精度
 
-Formal E4 样本特征驱动策略
-  -> hard label vs risk curve，多 seed、多 split
-
-Formal E5 边界与稳健性
-  -> 跨 beta/n/gamma_eta、x0.95、失败处理、计算成本
+Formal E4 边界与稳健性
+  -> 跨 β/n/gamma_eta、极小样本、失败处理、计算成本
 ```
 
 ## 工作边界
@@ -127,6 +124,7 @@ Formal E5 边界与稳健性
 - 正式实验应优先调用 `python/studies/common` 与 `python/methods/mdm.py`，但正式代码、配置、manifest 和输出应组织在本目录下。
 - 正式实验必须保留 `results.csv`、`summary.json`、`manifest.json` 等可复现实验产物。
 - 本目录应保存论文级整理材料；大规模原始输出不要直接堆进来，除非先说明用途和来源。
+- `artifacts/formal/shared_data/mc_scan_raw.csv` 被 `.gitignore` 排除（体积过大）。干净 clone 后需先运行 `python code/generate_mc_data.py --merge-only` 从 tracked chunks 合并出分析输入。tracked chunks 是正式数据源，`mc_scan_raw.csv` 是分析脚本的直接读取对象。
 
 ## 投稿准备文件
 
@@ -135,8 +133,8 @@ Formal E5 边界与稳健性
 | 文件 | 作用 |
 |------|------|
 | `00-研究问题与边界.md` | 明确本文作为 MDM 第三篇推进工作的研究定位、主问题、贡献、禁区，以及旧材料的 pilot 地位 |
-| `01-证据索引.md` | 区分文献证据、pilot 证据和正式证据；正式证据待由 Formal E1-E5 生成 |
-| `02-实验协议.md` | 规划正式投稿实验 E1-E5、参数网格、指标、baseline、数据切分、输出结构和停止条件 |
-| `03-论文骨架.md` | 按 Formal E1-E5 的正式证据链组织论文，而不是按汇报页码重组 |
+| `01-证据索引.md` | 区分文献证据、pilot 证据和正式证据；正式证据待由 Formal E1-E4 生成 |
+| `02-实验协议.md` | 规划正式投稿实验 E1-E4、参数网格、指标、baseline、数据切分、输出结构和停止条件 |
+| `03-论文骨架.md` | 按 Formal E1-E4 的正式证据链组织论文，而不是按汇报页码重组 |
 | `04-待复核清单.md` | 检查正式代码、正式实验产物、指标、统计、图表和正文主张 |
 | `05-投稿进度控制.md` | 以投稿闸门管理从正式实验设计到投稿包的进度 |

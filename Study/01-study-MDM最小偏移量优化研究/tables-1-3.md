@@ -78,7 +78,7 @@ L2 全局 J₁ = 0.6325，相比 L1 改善 0.059%。
 
 1. **两个大跳点**：L1→L3（+7.6%，β 信息是关键驱动因素）和 L5→L6（+13.4%，逐样本 hindsight 的上限）。
 2. **边际递减区**：L3→L4→L5，每级改善 ≤1.9%，n 和 γ/η 信息贡献有限。
-3. **L6 天花板**：逐样本 hindsight 将 J₁ 从 0.63 降到 0.49，理论上限改善 21.9%。但 L6 不可部署（需要事后知道每个样本的最优 δ），实际可部署的目标是逼近 L3–L5。
+3. **L6 天花板**：逐样本 hindsight 将 J₁ 从 0.63 降到 0.49，扫描范围内上限改善 21.9%。但 L6 不可部署（需要事后知道每个样本的最优 δ），实际可部署的目标是逼近 L3–L5。
 4. **MLE 锚点**：J₁ = 1.10（即使只算收敛样本），失败率 30.4%。MDM 在任何层级（含 Default）均显著优于 MLE——β < 2 区间 MLE 失败率超 35%，这正是 MDM 的优势区域。
 
 > 数据溯源：`artifacts/formal/E2_oracle_layers/ladder_L1_L6.csv`，`artifacts/formal/shared_data/mle_anchor.csv`，`artifacts/formal/E1_baseline/summary.json`
