@@ -1,82 +1,83 @@
 {
   "experiment": "E2",
-  "created_at": "2026-07-05T01:33:09+00:00",
-  "git_commit": "9fad6af",
+  "created_at": "2026-07-05T03:12:20+00:00",
+  "git_commit": "3742a92",
+  "j1_aggregation_rule": "层级聚合: 先收集所有样本的未开方j1_sq → mean → sqrt（不平均已开方J₁）",
   "results": {
     "ladder": [
       {
         "layer": "Default",
-        "delta_star": 0.1,
-        "J1_mean": 0.6136776503711532,
+        "delta_star": 0.08,
+        "J1_global": 0.6332189473722903,
         "description": "基线",
         "improvement_vs_default_pct": 0.0
       },
       {
         "layer": "L1",
-        "delta_star": 0.1,
-        "J1_mean": 0.6136776503711532,
+        "delta_star": 0.08,
+        "J1_global": 0.6329130843027161,
         "description": "全局最优常数",
-        "improvement_vs_prev_pct": 0.0,
-        "improvement_vs_default_pct": 0.0
+        "improvement_vs_prev_pct": 0.04830289283722644,
+        "improvement_vs_default_pct": 0.04830289283722644
       },
       {
         "layer": "L3",
         "delta_star": null,
-        "J1_mean": 0.5673464414538925,
+        "J1_global": 0.5850675058410649,
         "description": "按真β (oracle)",
-        "improvement_vs_prev_pct": 7.549763118998964,
-        "improvement_vs_default_pct": 7.549763118998964
+        "improvement_vs_prev_pct": 7.5595811886813635,
+        "improvement_vs_default_pct": 7.604232585118076
       },
       {
         "layer": "L4",
         "delta_star": null,
-        "J1_mean": 0.5640405766483414,
+        "J1_global": 0.5820901089588821,
         "description": "按真β+n (oracle)",
-        "improvement_vs_prev_pct": 0.5826889117484191,
-        "improvement_vs_default_pct": 8.088460398189701
+        "improvement_vs_prev_pct": 0.5088980079149374,
+        "improvement_vs_default_pct": 8.07443280489013
       },
       {
         "layer": "L5",
         "delta_star": null,
-        "J1_mean": 0.5535226056908757,
+        "J1_global": 0.5711703880260268,
         "description": "按真β+γ/η+n (oracle)",
-        "improvement_vs_prev_pct": 1.8647543089835517,
-        "improvement_vs_default_pct": 9.80238479336759
+        "improvement_vs_prev_pct": 1.875950263505799,
+        "improvement_vs_default_pct": 9.798910724915999
       },
       {
         "layer": "L6",
         "delta_star": null,
-        "J1_mean": 0.4785231149691833,
+        "J1_global": 0.4945297307934269,
         "description": "逐样本 (hindsight oracle)",
-        "improvement_vs_prev_pct": 13.549490111263351,
-        "improvement_vs_default_pct": 22.023701746385616
+        "improvement_vs_prev_pct": 13.418177629528582,
+        "improvement_vs_default_pct": 21.90225310761642
       }
     ],
     "L3_table": [
       {
         "beta": 1.5,
-        "delta_star_L3": 0.4,
-        "J1_at_L3": 0.4548154344163313
+        "delta_star_L3": 0.36,
+        "J1_at_L3": 0.46893073353007875
       },
       {
         "beta": 2.0,
         "delta_star_L3": 0.2,
-        "J1_at_L3": 0.4889645627461584
+        "J1_at_L3": 0.5004237324807874
       },
       {
         "beta": 2.5,
         "delta_star_L3": 0.12,
-        "J1_at_L3": 0.5300157261935592
+        "J1_at_L3": 0.5397214234547651
       },
       {
         "beta": 4.0,
         "delta_star_L3": 0.04,
-        "J1_at_L3": 0.6538694971475278
+        "J1_at_L3": 0.6611331711112794
       },
       {
         "beta": 5.0,
         "delta_star_L3": 0.04,
-        "J1_at_L3": 0.7090669867658852
+        "J1_at_L3": 0.7161031365639088
       }
     ],
     "L4_table": [
@@ -84,91 +85,91 @@
         "beta": 1.5,
         "n": 7,
         "delta_star_L4": 0.3,
-        "J1_at_L4": 0.5865162310435337
+        "J1_at_L4": 0.5869380503548243
       },
       {
         "beta": 1.5,
         "n": 10,
         "delta_star_L4": 0.42,
-        "J1_at_L4": 0.45705914063912223
+        "J1_at_L4": 0.4570788055194551
       },
       {
         "beta": 1.5,
         "n": 20,
         "delta_star_L4": 0.5,
-        "J1_at_L4": 0.3062794349989249
+        "J1_at_L4": 0.3062821439920258
       },
       {
         "beta": 2.0,
         "n": 7,
         "delta_star_L4": 0.16,
-        "J1_at_L4": 0.6048592667964982
+        "J1_at_L4": 0.6055800791350276
       },
       {
         "beta": 2.0,
         "n": 10,
         "delta_star_L4": 0.2,
-        "J1_at_L4": 0.5014572561467391
+        "J1_at_L4": 0.5015371391142424
       },
       {
         "beta": 2.0,
         "n": 20,
         "delta_star_L4": 0.28,
-        "J1_at_L4": 0.34828747951283684
+        "J1_at_L4": 0.3483584808536427
       },
       {
         "beta": 2.5,
         "n": 7,
         "delta_star_L4": 0.12,
-        "J1_at_L4": 0.6451495846586428
+        "J1_at_L4": 0.6452279308628195
       },
       {
         "beta": 2.5,
         "n": 10,
         "delta_star_L4": 0.14,
-        "J1_at_L4": 0.5438921613721378
+        "J1_at_L4": 0.5441092462201906
       },
       {
         "beta": 2.5,
         "n": 20,
         "delta_star_L4": 0.16,
-        "J1_at_L4": 0.3966524842260272
+        "J1_at_L4": 0.396737603628662
       },
       {
         "beta": 4.0,
         "n": 7,
         "delta_star_L4": 0.04,
-        "J1_at_L4": 0.7584721235932167
+        "J1_at_L4": 0.7587686368011453
       },
       {
         "beta": 4.0,
         "n": 10,
         "delta_star_L4": 0.04,
-        "J1_at_L4": 0.6708546406504542
+        "J1_at_L4": 0.6719123073107547
       },
       {
         "beta": 4.0,
         "n": 20,
         "delta_star_L4": 0.06,
-        "J1_at_L4": 0.5244666075823942
+        "J1_at_L4": 0.5244928786940319
       },
       {
         "beta": 5.0,
         "n": 7,
         "delta_star_L4": 0.02,
-        "J1_at_L4": 0.8046749196074123
+        "J1_at_L4": 0.8057687822543036
       },
       {
         "beta": 5.0,
         "n": 10,
-        "delta_star_L4": 0.02,
-        "J1_at_L4": 0.7363973257202113
+        "delta_star_L4": 0.04,
+        "J1_at_L4": 0.7368266726798649
       },
       {
         "beta": 5.0,
         "n": 20,
         "delta_star_L4": 0.04,
-        "J1_at_L4": 0.5755899931769702
+        "J1_at_L4": 0.5756271955715435
       }
     ],
     "L5_table": [
@@ -212,7 +213,7 @@
         "gamma_over_eta": 0.5,
         "n": 20,
         "delta_star_L5": 0.5,
-        "J1_at_L5": 0.308084146887684
+        "J1_at_L5": 0.30808414688768404
       },
       {
         "beta": 1.5,
@@ -247,7 +248,7 @@
         "gamma_over_eta": 0.1,
         "n": 10,
         "delta_star_L5": 0.1,
-        "J1_at_L5": 0.48149086764453336
+        "J1_at_L5": 0.4814908676445334
       },
       {
         "beta": 2.0,
@@ -338,7 +339,7 @@
         "gamma_over_eta": 0.5,
         "n": 20,
         "delta_star_L5": 0.18,
-        "J1_at_L5": 0.39465676308054526
+        "J1_at_L5": 0.3946567630805452
       },
       {
         "beta": 2.5,
@@ -359,7 +360,7 @@
         "gamma_over_eta": 1.0,
         "n": 20,
         "delta_star_L5": 0.18,
-        "J1_at_L5": 0.407530234734134
+        "J1_at_L5": 0.40753023473413397
       },
       {
         "beta": 4.0,
@@ -436,7 +437,7 @@
         "gamma_over_eta": 0.1,
         "n": 10,
         "delta_star_L5": 0.0,
-        "J1_at_L5": 0.6457166677247443
+        "J1_at_L5": 0.6457166677247442
       },
       {
         "beta": 5.0,
@@ -471,7 +472,7 @@
         "gamma_over_eta": 1.0,
         "n": 7,
         "delta_star_L5": 0.04,
-        "J1_at_L5": 0.8261460774182636
+        "J1_at_L5": 0.8261460774182637
       },
       {
         "beta": 5.0,

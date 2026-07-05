@@ -1,7 +1,7 @@
 {
   "experiment": "E1",
-  "created_at": "2026-07-05T01:30:04+00:00",
-  "git_commit": "9fad6af",
+  "created_at": "2026-07-05T03:12:00+00:00",
+  "git_commit": "3742a92",
   "delta_grid": [
     0.0,
     0.02,
@@ -31,36 +31,37 @@
     0.5
   ],
   "default_delta": 0.1,
+  "j1_aggregation_rule": "层级聚合: 先收集所有样本的未开方j1_sq → mean → sqrt（不平均已开方J₁）",
   "results": {
     "default": {
       "delta": 0.1,
-      "J1_global_mean": 0.6136776503711532
+      "J1_global": 0.6332189473722903
     },
     "L1": {
-      "delta_star": 0.1,
-      "J1_global_mean": 0.6136776503711532,
-      "improvement_vs_default_pct": 0.0
+      "delta_star": 0.08,
+      "J1_global": 0.6329130843027161,
+      "improvement_vs_default_pct": 0.04830289283722644
     },
     "L2": {
       "table": [
         {
           "n": 7,
           "delta_star_L2": 0.1,
-          "J1_at_L2": 0.7295438331507242
+          "J1_at_L2": 0.7392855016503717
         },
         {
           "n": 10,
           "delta_star_L2": 0.1,
-          "J1_at_L2": 0.6331994630424503
+          "J1_at_L2": 0.6445203563841531
         },
         {
           "n": 20,
-          "delta_star_L2": 0.1,
-          "J1_at_L2": 0.478289654920285
+          "delta_star_L2": 0.08,
+          "J1_at_L2": 0.488234706243098
         }
       ],
-      "J1_global_mean": 0.6136776503711532,
-      "improvement_vs_L1_pct": 0.0
+      "J1_global": 0.6325405576256966,
+      "improvement_vs_L1_pct": 0.05885905762714749
     }
   }
 }
