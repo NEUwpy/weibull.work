@@ -2,7 +2,11 @@
 
 ## §1 全局 δ-risk 曲线
 
-图 2 展示了全局 J₁ 随 δ 的变化曲线（基于 45 个参数组合 × R = 1000 的完整 MC 扫描）。
+**图 2**(a) 展示了全局 J₁ 随 δ 的变化曲线（基于 45 个参数组合 × R = 1000 的完整 MC 扫描）。
+
+![Figure 2: δ-risk 曲线](artifacts/formal/figures/fig2_delta_risk_curve.png)
+
+**Figure 2.** δ 对 MDM 估计精度的影响。(a) 全局 δ-risk 曲线：J₁ 随偏移量 δ 的变化（45 参数组合 × R = 1000）。蓝色虚线标注全局最优 δ\* = 0.08，橙色点线标注 Default δ = 0.10，灰色阴影为平坦区间 [0.06, 0.12]。(b) 分形状参数 β 的 δ-risk 曲线：5 个 β 值对应不同最优 δ（β = 1.5 时 δ\* = 0.36，β = 5.0 时 δ\* = 0.04），揭示全局平坦是不同 β 条件下最优 δ 方向相反、聚合后互相抵消的结果。
 
 **全局最优常数 δ\* = 0.08，对应 J₁ = 0.6329。**
 
@@ -40,7 +44,7 @@ n = 7 和 n = 10 的最优 δ 均为 0.10（恰好等于 Default），仅 n = 20
 
 ## §3 L1 vs Default 的分参数视角——为什么全局看起来无改进
 
-全局 J₁ 的近乎相等掩盖了一个重要的分参数现象。Table 2（完整 45 组合，见 `table_default_vs_L1.csv`）揭示了 L1 相比 Default 的改善具有**强烈的 β 依赖性**：
+全局 J₁ 的近乎相等掩盖了一个重要的分参数现象。**图 2**(b) 将 δ-risk 曲线按 β 分解，揭示了全局聚合所掩盖的结构性差异。Table 2（完整 45 组合，见 `table_default_vs_L1.csv`）进一步量化了 L1 相比 Default 的改善具有**强烈的 β 依赖性**：
 
 | β 区间 | L1 vs Default 表现 | 典型改善幅度 |
 |---|---|---|
@@ -69,12 +73,10 @@ n = 7 和 n = 10 的最优 δ 均为 0.10（恰好等于 Default），仅 n = 20
 ---
 
 > **数据溯源：**
-> - δ-risk 曲线：`artifacts/formal/E1_baseline/delta_risk_curve.csv`
+> - δ-risk 曲线数据：`artifacts/formal/E1_baseline/delta_risk_curve.csv`
 > - Default vs L1 分组合：`artifacts/formal/E1_baseline/table_default_vs_L1.csv`
 > - L2 按 n：`artifacts/formal/E1_baseline/table_L2_by_n.csv`
 > - 汇总：`artifacts/formal/E1_baseline/summary.json`
 > - manifest：`artifacts/formal/E1_baseline/manifest.json`（run_id: `E1_baseline_v1`, git_commit: `3a35abc`, mdm git_commit: `e4ef9e9`）
->
-> **图表占位：**
-> - Figure 2：δ-risk 曲线（全局 + 分 n 三条线）— 待绘图脚本生成
-> - Table 2（骨架中编号）：L1 最优 vs Default — 即本章 Table 2 和分参数表
+> - Figure 2 绘图脚本：`code/plot_fig2.py`
+> - Figure 2 图片：`artifacts/formal/figures/fig2_delta_risk_curve.{svg,pdf,png}`
