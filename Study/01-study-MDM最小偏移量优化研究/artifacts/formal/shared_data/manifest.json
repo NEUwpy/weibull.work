@@ -1,0 +1,422 @@
+{
+  "run_id": "E1E2_mc_scan_v1",
+  "created_at": "2026-07-05T01:01:30+00:00",
+  "code_entry": "code/generate_mc_data.py",
+  "git_commit": "9fad6af",
+  "python_version": "3.11.15",
+  "method_versions": {
+    "mdm": {
+      "source": "python/methods/mdm.py",
+      "class": "MDM",
+      "run_signature": "run(offset: float, gamma_steps=60, rank_method='bernard')",
+      "description": "Minimum Discrepancy Method, offset=delta gradient threshold"
+    },
+    "mle": {
+      "source": "python/methods/mle.py",
+      "class": "MLE",
+      "run_signature": "run()",
+      "description": "Standard MLE, gamma<x_(1) constraint, beta<1 => unbounded"
+    },
+    "sample": {
+      "source": "python/studies/common/sample.py",
+      "function": "generate_sample(beta, eta, gamma, n, repeat_id, seed)",
+      "seed_scheme": "sha256(repr(seed)|repr(beta)|repr(eta)|repr(gamma)|n|repeat_id) -> 4 bytes -> np.random.default_rng"
+    }
+  },
+  "parameter_grid": {
+    "beta": [
+      1.5,
+      2.0,
+      2.5,
+      4.0,
+      5.0
+    ],
+    "eta": [
+      1.0
+    ],
+    "gamma_over_eta": [
+      0.1,
+      0.5,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      20
+    ]
+  },
+  "delta_grid": [
+    0.0,
+    0.02,
+    0.04,
+    0.06,
+    0.08,
+    0.1,
+    0.12,
+    0.14,
+    0.16,
+    0.18,
+    0.2,
+    0.22,
+    0.24,
+    0.26,
+    0.28,
+    0.3,
+    0.32,
+    0.34,
+    0.36,
+    0.38,
+    0.4,
+    0.42,
+    0.44,
+    0.46,
+    0.48,
+    0.5
+  ],
+  "repeats": 1000,
+  "seed_namespace": "study01_v1",
+  "n_workers": 4,
+  "total_mdm_estimates": 1170000,
+  "total_mle_estimates": 45000,
+  "elapsed_seconds": 64382.32740909979,
+  "unit_status": [
+    {
+      "unit_idx": 3,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 6197.851524699945
+    },
+    {
+      "unit_idx": 2,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 6224.997041000053
+    },
+    {
+      "unit_idx": 1,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 6253.461865700083
+    },
+    {
+      "unit_idx": 0,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 6278.551321400097
+    },
+    {
+      "unit_idx": 5,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5443.931152400095
+    },
+    {
+      "unit_idx": 4,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5515.9740734000225
+    },
+    {
+      "unit_idx": 7,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5467.076649100054
+    },
+    {
+      "unit_idx": 6,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5557.201355899917
+    },
+    {
+      "unit_idx": 8,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5370.328873899998
+    },
+    {
+      "unit_idx": 10,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5401.979622799903
+    },
+    {
+      "unit_idx": 11,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5343.550886000041
+    },
+    {
+      "unit_idx": 9,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5522.42430069996
+    },
+    {
+      "unit_idx": 14,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5340.533595400164
+    },
+    {
+      "unit_idx": 12,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5503.611189299962
+    },
+    {
+      "unit_idx": 13,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5428.4937335001305
+    },
+    {
+      "unit_idx": 15,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5889.694336499786
+    },
+    {
+      "unit_idx": 18,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5830.151353999972
+    },
+    {
+      "unit_idx": 16,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5956.4884889000095
+    },
+    {
+      "unit_idx": 17,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5982.234035700094
+    },
+    {
+      "unit_idx": 19,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5832.942997799953
+    },
+    {
+      "unit_idx": 20,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5759.844677199842
+    },
+    {
+      "unit_idx": 21,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5770.27488650009
+    },
+    {
+      "unit_idx": 22,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5712.981709499843
+    },
+    {
+      "unit_idx": 23,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5670.53444359987
+    },
+    {
+      "unit_idx": 26,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5440.0319248999
+    },
+    {
+      "unit_idx": 25,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5523.109300599899
+    },
+    {
+      "unit_idx": 24,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5625.05365399993
+    },
+    {
+      "unit_idx": 27,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5566.1370759999845
+    },
+    {
+      "unit_idx": 29,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5385.108950300142
+    },
+    {
+      "unit_idx": 28,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5491.8548649
+    },
+    {
+      "unit_idx": 30,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5925.4896156000905
+    },
+    {
+      "unit_idx": 31,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5942.469009299995
+    },
+    {
+      "unit_idx": 33,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5772.406609300058
+    },
+    {
+      "unit_idx": 32,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5956.207922900096
+    },
+    {
+      "unit_idx": 34,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5745.906220200006
+    },
+    {
+      "unit_idx": 35,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5742.338681400055
+    },
+    {
+      "unit_idx": 36,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5701.811365799978
+    },
+    {
+      "unit_idx": 37,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5649.391126199858
+    },
+    {
+      "unit_idx": 38,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5621.795917699812
+    },
+    {
+      "unit_idx": 39,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5627.703727900051
+    },
+    {
+      "unit_idx": 41,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5151.395245100139
+    },
+    {
+      "unit_idx": 40,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5243.770431999816
+    },
+    {
+      "unit_idx": 42,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 5094.761417600093
+    },
+    {
+      "unit_idx": 43,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 4838.055564399809
+    },
+    {
+      "unit_idx": 44,
+      "status": "done",
+      "mdm_rows": 26000,
+      "mle_rows": 1000,
+      "elapsed": 2487.4708625001367
+    }
+  ],
+  "output_files": [
+    "chunks/chunk_XXXX_mdm.csv (分片)",
+    "chunks/chunk_XXXX_mle.csv (分片)",
+    "mc_scan_raw.csv (合并后)",
+    "mle_anchor.csv (合并后)",
+    "manifest.json",
+    "progress.json"
+  ],
+  "metrics_contract": {
+    "primary": "J1 = sqrt(mean[(db/b)^2 + (de/e)^2 + (dg/e)^2])",
+    "gamma_normalization": "divided by eta (scale parameter), not gamma itself",
+    "weights": "equal (w_beta = w_eta = w_gamma = 1)",
+    "auxiliary": [
+      "bias_beta",
+      "sd_beta",
+      "bias_eta",
+      "sd_eta",
+      "bias_gamma",
+      "sd_gamma"
+    ],
+    "gate": "failure_rate"
+  },
+  "notes": "E1/E2 共用 MC 扫描数据。每个(beta,eta,gamma,n)工作单元独立写入分片文件，支持断点续跑。断点续跑：删除 mc_scan_raw.csv 和 mle_anchor.csv 不会导致重跑，只有删除 chunks/ 目录下对应分片才会重跑该单元。E1 分析按 delta 聚合得 L1/L2，E2 按 (beta+n) 等聚合得 L3-L6 oracle。"
+}
