@@ -372,6 +372,10 @@ def run_e1_analysis():
         "code_entry": "code/analyze_E1.py",
         "git_commit": get_git_info(),
         "python_version": sys.version.split()[0],
+        "method_versions": {
+            "mdm": {"source": "python/methods/mdm.py", "git_commit": "e4ef9e9"},
+            "mle": {"source": "python/methods/mle.py", "git_commit": "e4ef9e9"},
+        },
         "input_data": "artifacts/formal/shared_data/mc_scan_raw.csv",
         "parameter_grid": {
             "beta": BETA_GRID,
