@@ -1,9 +1,69 @@
 {
+  "run_id": "E2_oracle_layers_v1",
   "experiment": "E2",
-  "created_at": "2026-07-05T03:12:20+00:00",
+  "created_at": "2026-07-05T03:28:22+00:00",
   "code_entry": "code/analyze_E2.py",
-  "git_commit": "3742a92",
+  "git_commit": "7f3b3ee",
+  "python_version": "3.11.15",
   "input_data": "artifacts/formal/shared_data/mc_scan_raw.csv",
+  "parameter_grid": {
+    "beta": [
+      1.5,
+      2.0,
+      2.5,
+      4.0,
+      5.0
+    ],
+    "eta": [
+      1.0
+    ],
+    "gamma_over_eta": [
+      0.1,
+      0.5,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      20
+    ]
+  },
+  "delta_grid": [
+    0.0,
+    0.02,
+    0.04,
+    0.06,
+    0.08,
+    0.1,
+    0.12,
+    0.14,
+    0.16,
+    0.18,
+    0.2,
+    0.22,
+    0.24,
+    0.26,
+    0.28,
+    0.3,
+    0.32,
+    0.34,
+    0.36,
+    0.38,
+    0.4,
+    0.42,
+    0.44,
+    0.46,
+    0.48,
+    0.5
+  ],
+  "repeats": 1000,
+  "seed_namespace": "study01_v1",
+  "metrics_contract": {
+    "primary": "J1 = sqrt(mean[(db/b)^2 + (de/e)^2 + (dg/e)^2])",
+    "aggregation_rule": "层级聚合: 先收集所有样本未开方j1_sq → mean → sqrt",
+    "gamma_normalization": "divided by eta (scale parameter), not gamma itself",
+    "weights": "equal (w_beta = w_eta = w_gamma = 1)"
+  },
   "output_files": [
     "summary.json",
     "results.csv",
@@ -13,5 +73,6 @@
     "L4_by_beta_n.csv",
     "L5_by_beta_goe_n.csv",
     "L6_per_sample_delta.csv"
-  ]
+  ],
+  "notes": "E2 从共用 MC 数据按 oracle 条件聚合 L3-L6。L3-L5用grid search找各组δ*，L6逐样本取argmin。"
 }

@@ -42,7 +42,7 @@ sys.path.insert(0, r"D:\weibull\python")
 
 from config import (
     BETA_GRID, ETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID,
-    DELTA_GRID, DEFAULT_DELTA, R_MAIN,
+    DELTA_GRID, DEFAULT_DELTA, R_MAIN, SEED_NAMESPACE,
     SHARED_DATA_DIR, E2_OUTPUT_DIR,
 )
 from metrics import j1_single
@@ -333,7 +333,7 @@ def run_e2_analysis():
     print(f"\n[{now_local()}] 构建阶梯表...")
     ladder = []
     layers = [
-        ("Default", delta_star_l1, j1_default, "基线"),
+        ("Default", DEFAULT_DELTA, j1_default, "基线"),
         ("L1", delta_star_l1, j1_l1, "全局最优常数"),
         ("L3", None, j1_l3, "按真β (oracle)"),
         ("L4", None, j1_l4, "按真β+n (oracle)"),
@@ -406,17 +406,35 @@ def run_e2_analysis():
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
     manifest = {
+        "run_id": "E2_oracle_layers_v1",
         "experiment": "E2",
         "created_at": now_iso(),
         "code_entry": "code/analyze_E2.py",
         "git_commit": get_git_info(),
+        "python_version": sys.version.split()[0],
         "input_data": "artifacts/formal/shared_data/mc_scan_raw.csv",
+        "parameter_grid": {
+            "beta": BETA_GRID,
+            "eta": ETA_GRID,
+            "gamma_over_eta": GAMMA_OVER_ETA_GRID,
+            "n": N_GRID,
+        },
+        "delta_grid": DELTA_GRID,
+        "repeats": R_MAIN,
+        "seed_namespace": SEED_NAMESPACE,
+        "metrics_contract": {
+            "primary": "J1 = sqrt(mean[(db/b)^2 + (de/e)^2 + (dg/e)^2])",
+            "aggregation_rule": "层级聚合: 先收集所有样本未开方j1_sq → mean → sqrt",
+            "gamma_normalization": "divided by eta (scale parameter), not gamma itself",
+            "weights": "equal (w_beta = w_eta = w_gamma = 1)",
+        },
         "output_files": [
             "summary.json", "results.csv", "manifest.json",
             "ladder_L1_L6.csv",
             "L3_by_beta.csv", "L4_by_beta_n.csv", "L5_by_beta_goe_n.csv",
             "L6_per_sample_delta.csv",
         ],
+        "notes": "E2 从共用 MC 数据按 oracle 条件聚合 L3-L6。L3-L5用grid search找各组δ*，L6逐样本取argmin。",
     }
     with open(os.path.join(E2_OUTPUT_DIR, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)

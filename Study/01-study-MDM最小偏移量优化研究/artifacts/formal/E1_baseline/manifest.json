@@ -1,9 +1,78 @@
 {
+  "run_id": "E1_baseline_v1",
   "experiment": "E1",
-  "created_at": "2026-07-05T03:12:00+00:00",
+  "created_at": "2026-07-05T03:27:06+00:00",
   "code_entry": "code/analyze_E1.py",
-  "git_commit": "3742a92",
+  "git_commit": "7f3b3ee",
+  "python_version": "3.11.15",
   "input_data": "artifacts/formal/shared_data/mc_scan_raw.csv",
+  "parameter_grid": {
+    "beta": [
+      1.5,
+      2.0,
+      2.5,
+      4.0,
+      5.0
+    ],
+    "eta": [
+      1.0
+    ],
+    "gamma_over_eta": [
+      0.1,
+      0.5,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      20
+    ]
+  },
+  "delta_grid": [
+    0.0,
+    0.02,
+    0.04,
+    0.06,
+    0.08,
+    0.1,
+    0.12,
+    0.14,
+    0.16,
+    0.18,
+    0.2,
+    0.22,
+    0.24,
+    0.26,
+    0.28,
+    0.3,
+    0.32,
+    0.34,
+    0.36,
+    0.38,
+    0.4,
+    0.42,
+    0.44,
+    0.46,
+    0.48,
+    0.5
+  ],
+  "default_delta": 0.1,
+  "repeats": 1000,
+  "seed_namespace": "study01_v1",
+  "metrics_contract": {
+    "primary": "J1 = sqrt(mean[(db/b)^2 + (de/e)^2 + (dg/e)^2])",
+    "aggregation_rule": "层级聚合: 先收集所有样本未开方j1_sq → mean → sqrt",
+    "gamma_normalization": "divided by eta (scale parameter), not gamma itself",
+    "weights": "equal (w_beta = w_eta = w_gamma = 1)",
+    "auxiliary": [
+      "bias_beta",
+      "sd_beta",
+      "bias_eta",
+      "sd_eta",
+      "bias_gamma",
+      "sd_gamma"
+    ]
+  },
   "output_files": [
     "summary.json",
     "results.csv",
@@ -13,5 +82,6 @@
     "delta_risk_curve.csv",
     "bias_sd_default.csv",
     "bias_sd_L1.csv"
-  ]
+  ],
+  "notes": "E1 从 E1/E2 共用 MC 扫描数据按 δ 聚合，回答 Default/L1/L2 的精度。"
 }

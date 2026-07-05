@@ -116,6 +116,7 @@ def compute_default(j1_sq_df):
     """
     sub = j1_sq_df[j1_sq_df["delta"] == DEFAULT_DELTA]
     result = j1_at_grouping(sub, COMBO_COLS)
+    result = result.drop(columns=["delta"], errors="ignore")
     return result.rename(columns={"J1": "J1_default"})
 
 
@@ -148,6 +149,7 @@ def compute_L1_per_combo(j1_sq_df, delta_star):
     """
     sub = j1_sq_df[j1_sq_df["delta"] == delta_star]
     result = j1_at_grouping(sub, COMBO_COLS)
+    result = result.drop(columns=["delta"], errors="ignore")
     return result.rename(columns={"J1": "J1_L1"})
 
 
@@ -186,6 +188,7 @@ def compute_L2_per_combo(j1_sq_df, l2_table):
         delta_star = l2_row["delta_star_L2"]
         sub = j1_sq_df[(j1_sq_df["n"] == n_val) & (j1_sq_df["delta"] == delta_star)]
         result = j1_at_grouping(sub, COMBO_COLS)
+        result = result.drop(columns=["delta"], errors="ignore")
         result = result.rename(columns={"J1": "J1_L2"})
         parts.append(result)
     return pd.concat(parts, ignore_index=True)
@@ -311,8 +314,26 @@ def run_e1_analysis():
     bias_default.to_csv(os.path.join(E1_OUTPUT_DIR, "bias_sd_default.csv"), index=False)
     bias_l1.to_csv(os.path.join(E1_OUTPUT_DIR, "bias_sd_L1.csv"), index=False)
 
-    # results.csv（规范逐条结果）
-    results_csv = default_df.merge(l1_per_combo, on=COMBO_COLS).merge(l2_per_combo, on=COMBO_COLS)
+    # results.csv（规范逐条结果 — 显式列名，无 delta_x/delta_y）
+    results_csv = pd.DataFrame({
+        "beta": default_df["beta"],
+        "eta": default_df["eta"],
+        "gamma": default_df["gamma"],
+        "gamma_over_eta": default_df["gamma_over_eta"],
+        "n": default_df["n"],
+        "delta_default": DEFAULT_DELTA,
+        "J1_default": default_df["J1_default"],
+        "delta_L1": delta_star_L1,
+        "J1_L1": l1_per_combo["J1_L1"],
+    })
+    # L2 的 δ* 按 n 查表
+    l2_delta_map = dict(zip(l2_table["n"], l2_table["delta_star_L2"]))
+    results_csv["delta_L2"] = results_csv["n"].map(l2_delta_map)
+    results_csv["J1_L2"] = l2_per_combo.set_index(COMBO_COLS).loc[
+        results_csv.set_index(COMBO_COLS).index, "J1_L2"
+    ].values
+    results_csv["improvement_L1_vs_default_pct"] = (1 - results_csv["J1_L1"] / results_csv["J1_default"]) * 100
+    results_csv["improvement_L2_vs_L1_pct"] = (1 - results_csv["J1_L2"] / results_csv["J1_L1"]) * 100
     results_csv.to_csv(os.path.join(E1_OUTPUT_DIR, "results.csv"), index=False)
 
     # Summary JSON
@@ -343,18 +364,38 @@ def run_e1_analysis():
     with open(os.path.join(E1_OUTPUT_DIR, "summary.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
-    # Manifest
+    # Manifest（满足 02-实验协议.md 必填字段）
     manifest = {
+        "run_id": "E1_baseline_v1",
         "experiment": "E1",
         "created_at": now_iso(),
         "code_entry": "code/analyze_E1.py",
         "git_commit": get_git_info(),
+        "python_version": sys.version.split()[0],
         "input_data": "artifacts/formal/shared_data/mc_scan_raw.csv",
+        "parameter_grid": {
+            "beta": BETA_GRID,
+            "eta": ETA_GRID,
+            "gamma_over_eta": GAMMA_OVER_ETA_GRID,
+            "n": N_GRID,
+        },
+        "delta_grid": DELTA_GRID,
+        "default_delta": DEFAULT_DELTA,
+        "repeats": R_MAIN,
+        "seed_namespace": SEED_NAMESPACE,
+        "metrics_contract": {
+            "primary": "J1 = sqrt(mean[(db/b)^2 + (de/e)^2 + (dg/e)^2])",
+            "aggregation_rule": "层级聚合: 先收集所有样本未开方j1_sq → mean → sqrt",
+            "gamma_normalization": "divided by eta (scale parameter), not gamma itself",
+            "weights": "equal (w_beta = w_eta = w_gamma = 1)",
+            "auxiliary": ["bias_beta", "sd_beta", "bias_eta", "sd_eta", "bias_gamma", "sd_gamma"],
+        },
         "output_files": [
             "summary.json", "results.csv", "manifest.json",
             "table_default_vs_L1.csv", "table_L2_by_n.csv",
             "delta_risk_curve.csv", "bias_sd_default.csv", "bias_sd_L1.csv",
         ],
+        "notes": "E1 从 E1/E2 共用 MC 扫描数据按 δ 聚合，回答 Default/L1/L2 的精度。",
     }
     with open(os.path.join(E1_OUTPUT_DIR, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
