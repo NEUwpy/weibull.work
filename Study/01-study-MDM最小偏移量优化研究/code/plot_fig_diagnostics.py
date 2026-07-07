@@ -2,9 +2,13 @@
 Figure diagnostics: Ch1-Ch5 图像解释链补齐
 
 4 张图：
-  Fig A (fig_offset_mechanism): δ mechanism 概念示意图
-    - 手绘 profile σ_η(γ) 曲线，标注 zero-gradient 判据 vs offset-δ 判据
-    - 数据源：概念图，不来自 MC
+  Fig A (fig_offset_mechanism): δ gradient-criterion diagnostic (real MDM trace)
+    - 用 generate_sample(β=2.0, η=1000, γ=1000, n=7) + MDM(trace=True) 计算
+    - 横轴 γ，纵轴 ∂σ_η,min(γ)/∂γ（真实计算值）
+    - 两条水平判据线：y=0（zero-gradient）与 y=0.1（offset δ）
+    - 3 条真实 grad_gamma_curve，按可复现规则从 100 样本中选出
+    - zero marker = curve-derived；offset marker = solver root
+    - 视觉语境参考 182-046 图4，但非原图复刻
     - 目标：Ch3 §1.4
 
   Fig B (fig_l2_n_heterogeneity): L2/n 双 panel 诊断
@@ -33,12 +37,25 @@ generate_mc_data.py。请用户手动执行：
 
 import os
 import sys
+import json
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 import pandas as pd
+
+# ── MDM 方法路径（真实 trace 计算）──
+# __file__ = .../Study/01-.../code/plot_fig_diagnostics.py
+# STUDY_DIR = dirname(dirname(__file__)) = .../Study/01-.../
+# 需要到 D:\weibull\python，即 STUDY_DIR 往上两层
+_STUDY_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_REPO_ROOT = os.path.dirname(_STUDY_PARENT)
+_PYTHON_DIR = os.path.join(_REPO_ROOT, "python")
+if _PYTHON_DIR not in sys.path:
+    sys.path.insert(0, _PYTHON_DIR)
+from studies.common.sample import generate_sample
+from methods.mdm import MDM
 
 # ── 路径 ──
 STUDY_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -118,111 +135,259 @@ def ensure_mc_scan_raw():
 # Fig A: δ mechanism schematic (概念图)
 # ============================================================
 
+def _scan_mdm_samples(beta, eta, gamma_true, n, delta, n_repeats=100,
+                      gamma_steps=200, cache_path=None):
+    """扫描 n_repeats 个样本，对每个样本计算 curve-derived zero marker
+    和 offset solver root。
+
+    可复现性：seed=None（项目默认 namespace），种子由
+    generate_sample(beta, eta, gamma, n, repeat_id) 内部 sha256 确定。
+
+    Returns:
+        list of dict, 每个 dict 含 rid/sample/gamma_zero_curve/
+        gamma_offset_solver/err_zero/err_offset/grad_curve(offset run)
+    """
+    results = []
+    for rid in range(n_repeats):
+        sample = generate_sample(beta, eta, gamma_true, n, rid, seed=None)
+        sample_list = sample.tolist()
+
+        mdm = MDM(sample_list)
+        beta_h, eta_h, gamma_off, r2, conv = mdm.run(
+            trace=True, offset=delta, gamma_steps=gamma_steps
+        )
+        grad_curve = mdm.trace_data.get("grad_gamma_curve", [])
+
+        gs = np.array([p["gamma"] for p in grad_curve])
+        grads = np.array([p["gradient"] for p in grad_curve])
+
+        # curve-derived zero marker：找 sign change 插值，否则取最接近 0 的点
+        zero_interp = False
+        gamma_zero = None
+        sign_changes = []
+        for i in range(len(grads) - 1):
+            if grads[i] * grads[i + 1] < 0:
+                t = grads[i] / (grads[i] - grads[i + 1])
+                g_interp = gs[i] + t * (gs[i + 1] - gs[i])
+                sign_changes.append(g_interp)
+        if sign_changes:
+            gamma_zero = min(sign_changes, key=lambda g: abs(g - gamma_true))
+            zero_interp = True
+        elif len(grads) > 0:
+            idx = int(np.argmin(np.abs(grads)))
+            gamma_zero = float(gs[idx])
+
+        results.append({
+            "rid": rid,
+            "sample": sample_list,
+            "gamma_zero_curve": float(gamma_zero) if gamma_zero is not None else None,
+            "zero_interp": zero_interp,
+            "gamma_offset_solver": float(gamma_off),
+            "err_zero_curve": (gamma_zero - gamma_true) / gamma_true * 100
+                              if gamma_zero is not None else None,
+            "err_offset": (gamma_off - gamma_true) / gamma_true * 100,
+            "grad_curve": grad_curve,
+        })
+    return results
+
+
+def _select_representative_samples(results, gamma_true):
+    """按可复现规则从扫描结果选 3 个代表样本。
+
+    选择规则（不手工挑图）：
+      - closest: |err_zero| 最小
+      - largest_improvement: |err_zero|-|err_offset| 最大
+      - mild_worsening: 从 worsening 样本（|err_offset|>|err_zero|）中，
+        按 worsening 增量（|err_offset|-|err_zero|）取中位数附近的样本，
+        避免极端样本拉满 y 轴。若没有 worsening 样本，返回 None。
+    """
+    valid = [r for r in results if r["gamma_zero_curve"] is not None]
+
+    closest = min(valid, key=lambda r: abs(r["err_zero_curve"]))
+
+    improvers = sorted(
+        valid,
+        key=lambda r: -(abs(r["err_zero_curve"]) - abs(r["err_offset"])),
+    )
+    best_imp = improvers[0]
+
+    # worsening 池：只保留真正变差的样本
+    worseners = [r for r in valid
+                 if abs(r["err_offset"]) > abs(r["err_zero_curve"])]
+    if not worseners:
+        best_worsen = None
+    else:
+        # 按 worsening 增量排序，取中位数附近的样本
+        worseners_sorted = sorted(
+            worseners,
+            key=lambda r: (abs(r["err_offset"]) - abs(r["err_zero_curve"])),
+        )
+        mid_idx = len(worseners_sorted) // 2
+        best_worsen = worseners_sorted[mid_idx]
+
+    return closest, best_imp, best_worsen
+
+
 def plot_fig_offset_mechanism():
+    """用真实 MDM trace 绘制梯度判据诊断图（视觉语境参考 182-046 图4）。
+
+    参数：β=2.0, η=1000, γ=1000, n=7（贴近 182-046 原文语境）。
+    扫描 repeat_id=0-99，按可复现规则选 3 个代表样本：
+      - closest-to-true
+      - largest-improvement
+      - mild-worsening（从真正变差样本中按 worsening 增量取中位数附近）
+
+    每条曲线来自 MDM(trace=True, offset=0.1, gamma_steps=200) 的
+    grad_gamma_curve，是真实计算结果，不是 stylized schematic。
+    marker：
+      - offset marker：solver root (γ_offset)
+      - zero marker：curve-derived（grad_gamma_curve 与 y=0 的 sign-change 插值，
+        或曲线 gradient 最接近 0 的点）。offset=0.0 的 solver 因 g(0)>=0 频繁
+        截断到 γ=0，不作为 zero marker。
     """
-    概念示意图：profile 标准差曲线 σ_η,min(γ) 在真实 γ 附近，
-    展示 zero-gradient 判据 vs offset-δ 判据的差异。
+    print("\n[Fig A] δ gradient-criterion (real MDM trace) ...")
 
-    这是 finite-sample 下的一种可能示意，不是所有样本的通用行为。
-    """
-    print("\n[Fig A] δ mechanism schematic ...")
+    beta, eta, gamma_true, n, delta = 2.0, 1000.0, 1000.0, 7, 0.1
 
-    fig, ax = plt.subplots(figsize=(4.8, 3.2))
+    cache_path = os.path.join(STUDY_DIR, "code", "_mdm_scan_cache.json")
+    # 扫描（有缓存则读缓存，避免每次重跑 30 秒）
+    if os.path.exists(cache_path):
+        print(f"  Loading cached scan from {os.path.basename(cache_path)}")
+        with open(cache_path) as f:
+            results = json.load(f)
+    else:
+        print(f"  Scanning {100} samples (β={beta}, n={n}) ...")
+        results = _scan_mdm_samples(beta, eta, gamma_true, n, delta,
+                                    n_repeats=100, gamma_steps=200)
+        with open(cache_path, "w") as f:
+            json.dump(results, f)
+        print(f"  Cached scan to {os.path.basename(cache_path)}")
 
-    # ── 构造一条 profile 曲线（概念化，非真实数据）──
-    gamma = np.linspace(-0.3, 1.0, 400)
-    gamma_true = 0.15
+    closest, best_imp, best_worsen = _select_representative_samples(
+        results, gamma_true
+    )
 
-    sigma_ideal = 0.6 * (gamma - gamma_true)**2 + 0.02
-    distortion = -0.15 * np.exp(-((gamma - 0.55) / 0.18)**2)
-    sigma_profile = sigma_ideal + distortion + 0.04
-    sigma_profile = sigma_profile - sigma_profile.min() + 0.05
+    # 构建绘图数据
+    plot_items = [
+        (f"rid={closest['rid']} (closest)", closest, "#009E73", "o"),
+        (f"rid={best_imp['rid']} (δ improves)", best_imp, "#D55E00", "s"),
+    ]
+    if best_worsen is not None:
+        plot_items.append(
+            (f"rid={best_worsen['rid']} (mild worsening)", best_worsen, "#0072B2", "^")
+        )
 
-    ax.plot(gamma, sigma_profile, color="#333333", linewidth=1.3, zorder=4,
-            label=r"$\sigma_{\eta,\min}(\gamma)$ profile (schematic)")
+    print(f"  Selected samples:")
+    for label, r, _, _ in plot_items:
+        print(f"    {label}: γ_zero={r['gamma_zero_curve']:.1f} "
+              f"(err {r['err_zero_curve']:+.1f}%) -> "
+              f"γ_offset={r['gamma_offset_solver']:.1f} "
+              f"(err {r['err_offset']:+.1f}%)")
 
-    # 计算极值用于设置 ylim（给底部留出空间放误差标注）
-    sigma_min_val = sigma_profile.min()
-    sigma_max_val = sigma_profile.max()
+    fig, ax = plt.subplots(figsize=(5.5, 3.8))
 
-    # ── 真实 γ 标记 ──
-    sigma_at_true = np.interp(gamma_true, gamma, sigma_profile)
-    ax.axvline(gamma_true, color="#009E73", linewidth=0.7, linestyle="--", zorder=2)
-    ax.scatter([gamma_true], [sigma_at_true], color="#009E73", s=18, zorder=5,
-               clip_on=False)
-    ax.annotate(r"True $\gamma$", xy=(gamma_true, sigma_at_true),
-                xytext=(gamma_true - 0.08, sigma_at_true + 0.06),
-                fontsize=6, color="#009E73", ha="right",
-                arrowprops=dict(arrowstyle="-", lw=0.5, color="#009E73"))
+    # 先固定轴范围，避免后续 text/marker 放置位置不确定
+    ax.set_xlim(-20, 1900)
+    ax.set_ylim(-0.2, 0.6)
 
-    # ── 零梯度判据 ──
-    grad = np.gradient(sigma_profile, gamma)
-    mask_right = gamma > 0.3
-    idx_zero = np.argmin(np.abs(grad[mask_right]))
-    gamma_zero_grad = gamma[mask_right][idx_zero]
-    sigma_zero_grad = sigma_profile[mask_right][idx_zero]
+    # ── 绘制真实 grad_gamma_curve ──
+    for label, r, color, marker in plot_items:
+        curve = r["grad_curve"]
+        gs = np.array([p["gamma"] for p in curve])
+        grads = np.array([p["gradient"] for p in curve])
+        ax.plot(gs, grads, color=color, linewidth=0.9, alpha=0.8,
+                zorder=3, label=label)
 
-    ax.axvline(gamma_zero_grad, color="#D55E00", linewidth=0.7, linestyle=":", zorder=2)
-    ax.scatter([gamma_zero_grad], [sigma_zero_grad], color="#D55E00", s=18,
-               zorder=5, clip_on=False, marker="v")
-    ax.annotate(r"$\hat{\gamma}_0$ (zero-gradient)" + "\n" +
-                r"$\partial\sigma/\partial\gamma = 0$",
-                xy=(gamma_zero_grad, sigma_zero_grad),
-                xytext=(gamma_zero_grad + 0.06, sigma_zero_grad + 0.02),
-                fontsize=5.5, color="#D55E00",
-                arrowprops=dict(arrowstyle="-", lw=0.5, color="#D55E00"))
+    # ── 两条水平判据线 ──
+    ax.axhline(0.0, color="#333333", linewidth=0.8, linestyle="--", zorder=2)
+    ax.axhline(delta, color="#333333", linewidth=0.8, linestyle="-.", zorder=2)
+    # 判据线标签贴近对应 data y 值，避免视觉上脱离水平线
+    label_x = 1860
+    ax.text(label_x, 0.012, r"$\nabla\gamma=0$ (zero-grad)",
+            fontsize=5.5, color="#333333", ha="right", va="bottom")
+    ax.text(label_x, delta + 0.012, r"$\nabla\gamma=\delta=0.1$ (offset)",
+            fontsize=5.5, color="#333333", ha="right", va="bottom")
 
-    # ── offset-δ 判据 ──
-    delta_val = 0.35
-    mask_left = (gamma > -0.1) & (gamma < 0.4)
-    target = grad[mask_left] - delta_val
-    idx_delta = np.argmin(np.abs(target))
-    gamma_delta = gamma[mask_left][idx_delta]
-    sigma_delta = sigma_profile[mask_left][idx_delta]
+    # ── 真实 γ 参考线 ──
+    ax.axvline(gamma_true, color="#999999", linewidth=0.6,
+               linestyle=":", zorder=1)
+    ax.text(0.53, 0.95, r"True $\gamma$",
+            transform=ax.transAxes, fontsize=5.5, color="#666666",
+            ha="center", va="top")
 
-    ax.axvline(gamma_delta, color="#0072B2", linewidth=0.7, linestyle="--", zorder=2)
-    ax.scatter([gamma_delta], [sigma_delta], color="#0072B2", s=18,
-               zorder=5, clip_on=False, marker="s")
-    ax.annotate(r"$\hat{\gamma}_\delta$ (offset-$\delta$)" + "\n" +
-                r"$\partial\sigma/\partial\gamma = \delta$",
-                xy=(gamma_delta, sigma_delta),
-                xytext=(gamma_delta - 0.08, sigma_delta + 0.08),
-                fontsize=5.5, color="#0072B2", ha="center",
-                arrowprops=dict(arrowstyle="-", lw=0.5, color="#0072B2"))
+    # ── marker ──
+    for label, r, color, marker in plot_items:
+        # zero marker：curve-derived
+        g_zero = r["gamma_zero_curve"]
+        # 找曲线在 g_zero 处的 gradient 值
+        curve = r["grad_curve"]
+        gs = np.array([p["gamma"] for p in curve])
+        grads = np.array([p["gradient"] for p in curve])
+        if r["zero_interp"]:
+            grad_at_zero = 0.0
+        else:
+            idx = int(np.argmin(np.abs(gs - g_zero)))
+            grad_at_zero = float(grads[idx])
+        ax.scatter([g_zero], [grad_at_zero], color=color, s=30,
+                   marker=marker, zorder=5, clip_on=False,
+                   edgecolors="white", linewidths=0.4)
 
-    # ── 误差箭头：放在 axes 内部的可见区域（修复底部重叠）──
-    # 用 axes 坐标系，确保始终在可见范围内
-    y_small_err = sigma_min_val - 0.008  # 略低于曲线最低点
-    y_large_err = y_small_err - 0.035    # 再低一档，两箭头分层不重叠
-    ax.annotate("", xy=(gamma_delta, y_small_err), xytext=(gamma_true, y_small_err),
-                arrowprops=dict(arrowstyle="<->", lw=0.6, color="#0072B2",
+        # offset marker：solver root，gradient=delta（solver 定义）
+        g_off = r["gamma_offset_solver"]
+        ax.scatter([g_off], [delta], color=color, s=30,
+                   marker=marker, zorder=5, clip_on=False,
+                   edgecolors="white", linewidths=0.4)
+
+        # 连接线（同一曲线两个 marker）
+        ax.annotate("", xy=(g_off, delta), xytext=(g_zero, grad_at_zero),
+                    arrowprops=dict(arrowstyle="->", lw=0.6,
+                                    color=color, alpha=0.5,
+                                    connectionstyle="arc3,rad=0.1"))
+
+    # ── 核心机制标注：判据线从 y=0 移到 y=δ ──
+    # 在 true γ 附近画双向竖箭头，从 y=0 到 y=0.1
+    arrow_x = gamma_true + 60  # 略偏右，不挡参考线
+    ax.annotate("", xy=(arrow_x, delta), xytext=(arrow_x, 0.0),
+                arrowprops=dict(arrowstyle="<->", lw=1.0, color="#D55E00",
                                 shrinkA=0, shrinkB=0))
-    ax.text((gamma_true + gamma_delta) / 2, y_small_err + 0.003,
-            "small error", fontsize=5, color="#0072B2", ha="center", va="bottom")
+    ax.text(arrow_x + 25, delta / 2, r"criterion offset $\delta=0.1$",
+            fontsize=5.5, color="#D55E00", ha="left", va="center",
+            fontweight="bold")
 
-    ax.annotate("", xy=(gamma_zero_grad, y_large_err), xytext=(gamma_true, y_large_err),
-                arrowprops=dict(arrowstyle="<->", lw=0.6, color="#D55E00",
-                                shrinkA=0, shrinkB=0))
-    ax.text((gamma_true + gamma_zero_grad) / 2, y_large_err + 0.003,
-            "large error", fontsize=5, color="#D55E00", ha="center", va="bottom")
+    # ── 对 largest-improvement 样本（rid=77）标出水平位移 ──
+    imp_item = next((it for it in plot_items if "improves" in it[0]), None)
+    if imp_item is not None:
+        _, imp_r, imp_color, _ = imp_item
+        g_z = imp_r["gamma_zero_curve"]
+        g_o = imp_r["gamma_offset_solver"]
+        # zero criterion 标注（在 zero marker 附近）
+        ax.annotate("zero: boundary /\nnear-flat point",
+                    xy=(g_z, 0.0087 if not imp_r["zero_interp"] else 0.0),
+                    xytext=(g_z + 250, -0.125),
+                    fontsize=4.8, color=imp_color, ha="left", va="top",
+                    arrowprops=dict(arrowstyle="->", lw=0.5,
+                                    color=imp_color, alpha=0.7))
+        # offset criterion 标注（在 offset marker 附近）
+        ax.annotate(r"offset: $\gamma$ near true $\gamma$",
+                    xy=(g_o, delta),
+                    xytext=(g_o + 105, 0.32),
+                    fontsize=4.8, color=imp_color, ha="left", va="bottom",
+                    arrowprops=dict(arrowstyle="->", lw=0.5,
+                                    color=imp_color, alpha=0.7))
 
-    # ── 梯度判据的文字说明框 ──
-    textstr = ("Two criteria (schematic):\n"
-               r"(· · ·) $\partial\sigma/\partial\gamma = 0$" + "  zero-gradient\n"
-               r"(---) $\partial\sigma/\partial\gamma = \delta$" + "  offset-$\\delta$")
-    props = dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="#cccccc",
-                 linewidth=0.5)
-    ax.text(0.97, 0.97, textstr, transform=ax.transAxes, fontsize=5.5,
-            verticalalignment="top", horizontalalignment="right", bbox=props)
-
+    # ── 轴 ──
     ax.set_xlabel(r"Location parameter $\gamma$")
-    ax.set_ylabel(r"Profile std $\sigma_{\eta,\min}(\gamma)$")
-    ax.set_xlim(-0.3, 1.0)
-    # 显式设置 ylim，底部留足空间放误差箭头和文字
-    ax.set_ylim(y_large_err - 0.02, sigma_max_val * 1.12)
-    ax.set_title(r"$\delta$ shifts the search criterion"
-                 "\n(one possible finite-sample schematic, not a universal claim)",
-                 fontweight="bold", loc="left", fontsize=7)
+    ax.set_ylabel(
+        r"Profile gradient $\partial\sigma_{\eta,\min}(\gamma)/\partial\gamma$"
+    )
+    # y 轴聚焦判据区间 [-0.2, 0.6]（已在绘图前设置），裁切 γ→t_min 的梯度尖峰
+    ax.set_title(
+        r"$\delta$ shifts the gradient criterion: real MDM trace"
+        "\n(not a 182-046 reproduction; per-sample effect varies)",
+        fontweight="bold", loc="left", fontsize=7,
+    )
+    ax.legend(loc="upper right", fontsize=5.5, framealpha=0.85,
+              edgecolor="#cccccc")
 
     out_base = os.path.join(FIG_DIR, "fig_offset_mechanism")
     fig.tight_layout(pad=0.5)
@@ -230,10 +395,14 @@ def plot_fig_offset_mechanism():
     plt.close(fig)
 
     # QA
-    print(f"  QA: γ_true={gamma_true}, γ_hat_0={gamma_zero_grad:.3f} (zero-grad), "
-          f"γ_hat_δ={gamma_delta:.3f} (offset)")
-    print(f"  |error zero-grad| = {abs(gamma_zero_grad - gamma_true):.3f}, "
-          f"|error offset| = {abs(gamma_delta - gamma_true):.3f}")
+    print(f"  True γ = {gamma_true}")
+    print(f"  Curve points per sample: {len(plot_items[0][1]['grad_curve'])}")
+    for label, r, _, _ in plot_items:
+        print(f"    {label}: sample={[f'{v:.1f}' for v in r['sample'][:3]]}...")
+        print(f"      γ_zero(curve)={r['gamma_zero_curve']:.1f} "
+              f"(err {r['err_zero_curve']:+.1f}%, interp={r['zero_interp']})")
+        print(f"      γ_offset(solver δ=0.1)={r['gamma_offset_solver']:.1f} "
+              f"(err {r['err_offset']:+.1f}%)")
 
 
 # ============================================================
@@ -491,17 +660,25 @@ def plot_fig_l5_heatmap():
 # ============================================================
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Figure diagnostics plotting")
+    parser.add_argument("--only", type=str, default="A",
+                        help="Which figure to generate: A (default), B, C, D, or all")
+    args = parser.parse_args()
+
     print("=" * 60)
     print("Figure diagnostics: Ch1-Ch5 图像解释链补齐")
+    print(f"  Generating: {args.only}")
     print("=" * 60)
 
-    # Fig A, C, D 不依赖 mc_scan_raw.csv
-    plot_fig_offset_mechanism()
-    plot_fig_l4_beta_n_heatmap()
-    plot_fig_l5_heatmap()
-
-    # Fig B 依赖 mc_scan_raw.csv
-    plot_fig_l2_n_heterogeneity()
+    if args.only in ("A", "all"):
+        plot_fig_offset_mechanism()
+    if args.only in ("C", "all"):
+        plot_fig_l4_beta_n_heatmap()
+    if args.only in ("D", "all"):
+        plot_fig_l5_heatmap()
+    if args.only in ("B", "all"):
+        plot_fig_l2_n_heterogeneity()
 
     print("\n" + "=" * 60)
     print("Done. Output:", FIG_DIR)
