@@ -2,14 +2,17 @@
 Figure diagnostics: Ch1-Ch5 图像解释链补齐
 
 4 张图：
-  Fig A (fig_offset_mechanism): δ gradient-criterion diagnostic (real MDM trace)
-    - 用 generate_sample(β=2.0, η=1000, γ=1000, n=7) + MDM(trace=True) 计算
-    - 横轴 γ，纵轴 ∂σ_η,min(γ)/∂γ（真实计算值）
-    - 两条水平判据线：y=0（zero-gradient）与 y=0.1（offset δ）
-    - 3 条真实 grad_gamma_curve，按可复现规则从 100 样本中选出
-    - zero marker = curve-derived；offset marker = solver root
-    - 视觉语境参考 182-046 图4，但非原图复刻
-    - 目标：Ch3 §1.4
+  Fig A (fig_offset_mechanism): δ 机制/波动诊断三子图（Ch2 §4，Figure 1）
+    - 三 panel 共享代表配置 β=2.0, η=1000, γ=1000, n=7（贴近 182-046 语境）
+    - Panel A：真实 MDM γ profile / 梯度判据图
+      - 用 generate_sample(β=2.0, η=1000, γ=1000, n=7) + MDM(trace=True) 计算
+      - 横轴 γ，纵轴 ∂σ_η,min(γ)/∂γ（真实计算值）
+      - 两条水平判据线：y=0（zero-gradient）与 y=0.1（offset δ）
+      - 3 条真实 grad_gamma_curve，按可复现规则从 100 样本中选出
+      - zero marker = curve-derived；offset marker = solver root
+      - 视觉语境参考 182-046 图4，但非原图复刻
+    - Panel B：δ=0 与 δ=0.1 的 γ̂ 分布（MC R=1000，数据源 mc_scan_raw.csv）
+    - Panel C：同上的归一化误差 (γ̂-γ)/η 分布
 
   Fig B (fig_l2_n_heterogeneity): L2/n 双 panel 诊断
     - Panel A: pooled δ-risk by n (n=7/10/20)，标 δ*
@@ -227,23 +230,18 @@ def _select_representative_samples(results, gamma_true):
 
     return closest, best_imp, best_worsen
 
-
 def plot_fig_offset_mechanism():
-    """用真实 MDM trace 绘制梯度判据诊断图（视觉语境参考 182-046 图4）。
+    """δ 机制/波动诊断三子图（Figure 1）。
 
-    参数：β=2.0, η=1000, γ=1000, n=7（贴近 182-046 原文语境）。
-    扫描 repeat_id=0-99，按可复现规则选 3 个代表样本：
-      - closest-to-true
-      - largest-improvement
-      - mild-worsening（从真正变差样本中按 worsening 增量取中位数附近）
-
-    每条曲线来自 MDM(trace=True, offset=0.1, gamma_steps=200) 的
-    grad_gamma_curve，是真实计算结果，不是 stylized schematic。
-    marker：
-      - offset marker：solver root (γ_offset)
-      - zero marker：curve-derived（grad_gamma_curve 与 y=0 的 sign-change 插值，
-        或曲线 gradient 最接近 0 的点）。offset=0.0 的 solver 因 g(0)>=0 频繁
-        截断到 γ=0，不作为 zero marker。
+    三 panel 共享代表配置 β=2.0, η=1000, γ=1000, n=7（贴近 182-046 语境）。
+      - Panel A：真实 MDM γ profile / 梯度判据图。扫描 repeat_id=0-99，
+        按可复现规则选 3 个代表样本（closest-to-true / largest-improvement /
+        mild-worsening），从 grad_gamma_curve 绘制 y=0 与 y=δ=0.1 两条
+        判据线及对应搜索位置。每条曲线是真实计算结果，不是 stylized schematic。
+      - Panel B：δ=0 与 δ=0.1 的 γ̂ 分布（n=7，MC R=1000）。
+        数据来自正式 mc_scan_raw.csv（与 Panel A 等价配置 eta=1.0/gamma=1.0，
+        显示时乘 1000 以对齐 Panel A 的 γ=1000 语境）。
+      - Panel C：同上的归一化误差 (γ̂-γ)/η 分布。
     """
     print("\n[Fig A] δ gradient-criterion (real MDM trace) ...")
 
@@ -284,35 +282,40 @@ def plot_fig_offset_mechanism():
               f"γ_offset={r['gamma_offset_solver']:.1f} "
               f"(err {r['err_offset']:+.1f}%)")
 
-    fig, ax = plt.subplots(figsize=(5.5, 3.8))
+    fig = plt.figure(figsize=(13.5, 4.2))
+    gs = gridspec.GridSpec(1, 3, width_ratios=[1.0, 1.0, 1.0],
+                            wspace=0.32, figure=fig)
+    ax_a = fig.add_subplot(gs[0, 0])
+    ax_b = fig.add_subplot(gs[0, 1])
+    ax_c = fig.add_subplot(gs[0, 2])
 
     # 先固定轴范围，避免后续 text/marker 放置位置不确定
-    ax.set_xlim(-20, 1900)
-    ax.set_ylim(-0.2, 0.6)
+    ax_a.set_xlim(-20, 1900)
+    ax_a.set_ylim(-0.2, 0.6)
 
     # ── 绘制真实 grad_gamma_curve ──
     for label, r, color, marker in plot_items:
         curve = r["grad_curve"]
         gs = np.array([p["gamma"] for p in curve])
         grads = np.array([p["gradient"] for p in curve])
-        ax.plot(gs, grads, color=color, linewidth=0.9, alpha=0.8,
+        ax_a.plot(gs, grads, color=color, linewidth=0.9, alpha=0.8,
                 zorder=3, label=label)
 
     # ── 两条水平判据线 ──
-    ax.axhline(0.0, color="#333333", linewidth=0.8, linestyle="--", zorder=2)
-    ax.axhline(delta, color="#333333", linewidth=0.8, linestyle="-.", zorder=2)
+    ax_a.axhline(0.0, color="#333333", linewidth=0.8, linestyle="--", zorder=2)
+    ax_a.axhline(delta, color="#333333", linewidth=0.8, linestyle="-.", zorder=2)
     # 判据线标签贴近对应 data y 值，避免视觉上脱离水平线
     label_x = 1860
-    ax.text(label_x, 0.012, r"$\nabla\gamma=0$ (zero-grad)",
+    ax_a.text(label_x, 0.012, r"$\nabla\gamma=0$ (zero-grad)",
             fontsize=5.5, color="#333333", ha="right", va="bottom")
-    ax.text(label_x, delta + 0.012, r"$\nabla\gamma=\delta=0.1$ (offset)",
+    ax_a.text(label_x, delta + 0.012, r"$\nabla\gamma=\delta=0.1$ (offset)",
             fontsize=5.5, color="#333333", ha="right", va="bottom")
 
     # ── 真实 γ 参考线 ──
-    ax.axvline(gamma_true, color="#999999", linewidth=0.6,
+    ax_a.axvline(gamma_true, color="#999999", linewidth=0.6,
                linestyle=":", zorder=1)
-    ax.text(0.53, 0.95, r"True $\gamma$",
-            transform=ax.transAxes, fontsize=5.5, color="#666666",
+    ax_a.text(0.53, 0.95, r"True $\gamma$",
+            transform=ax_a.transAxes, fontsize=5.5, color="#666666",
             ha="center", va="top")
 
     # ── marker ──
@@ -328,18 +331,18 @@ def plot_fig_offset_mechanism():
         else:
             idx = int(np.argmin(np.abs(gs - g_zero)))
             grad_at_zero = float(grads[idx])
-        ax.scatter([g_zero], [grad_at_zero], color=color, s=30,
+        ax_a.scatter([g_zero], [grad_at_zero], color=color, s=30,
                    marker=marker, zorder=5, clip_on=False,
                    edgecolors="white", linewidths=0.4)
 
         # offset marker：solver root，gradient=delta（solver 定义）
         g_off = r["gamma_offset_solver"]
-        ax.scatter([g_off], [delta], color=color, s=30,
+        ax_a.scatter([g_off], [delta], color=color, s=30,
                    marker=marker, zorder=5, clip_on=False,
                    edgecolors="white", linewidths=0.4)
 
         # 连接线（同一曲线两个 marker）
-        ax.annotate("", xy=(g_off, delta), xytext=(g_zero, grad_at_zero),
+        ax_a.annotate("", xy=(g_off, delta), xytext=(g_zero, grad_at_zero),
                     arrowprops=dict(arrowstyle="->", lw=0.6,
                                     color=color, alpha=0.5,
                                     connectionstyle="arc3,rad=0.1"))
@@ -347,10 +350,10 @@ def plot_fig_offset_mechanism():
     # ── 核心机制标注：判据线从 y=0 移到 y=δ ──
     # 在 true γ 附近画双向竖箭头，从 y=0 到 y=0.1
     arrow_x = gamma_true + 60  # 略偏右，不挡参考线
-    ax.annotate("", xy=(arrow_x, delta), xytext=(arrow_x, 0.0),
+    ax_a.annotate("", xy=(arrow_x, delta), xytext=(arrow_x, 0.0),
                 arrowprops=dict(arrowstyle="<->", lw=1.0, color="#D55E00",
                                 shrinkA=0, shrinkB=0))
-    ax.text(arrow_x + 25, delta / 2, r"criterion offset $\delta=0.1$",
+    ax_a.text(arrow_x + 25, delta / 2, r"criterion offset $\delta=0.1$",
             fontsize=5.5, color="#D55E00", ha="left", va="center",
             fontweight="bold")
 
@@ -361,14 +364,14 @@ def plot_fig_offset_mechanism():
         g_z = imp_r["gamma_zero_curve"]
         g_o = imp_r["gamma_offset_solver"]
         # zero criterion 标注（在 zero marker 附近）
-        ax.annotate("zero: boundary /\nnear-flat point",
+        ax_a.annotate("zero: boundary /\nnear-flat point",
                     xy=(g_z, 0.0087 if not imp_r["zero_interp"] else 0.0),
                     xytext=(g_z + 250, -0.125),
                     fontsize=4.8, color=imp_color, ha="left", va="top",
                     arrowprops=dict(arrowstyle="->", lw=0.5,
                                     color=imp_color, alpha=0.7))
         # offset criterion 标注（在 offset marker 附近）
-        ax.annotate(r"offset: $\gamma$ near true $\gamma$",
+        ax_a.annotate(r"offset: $\gamma$ near true $\gamma$",
                     xy=(g_o, delta),
                     xytext=(g_o + 105, 0.32),
                     fontsize=4.8, color=imp_color, ha="left", va="bottom",
@@ -376,18 +379,87 @@ def plot_fig_offset_mechanism():
                                     color=imp_color, alpha=0.7))
 
     # ── 轴 ──
-    ax.set_xlabel(r"Location parameter $\gamma$")
-    ax.set_ylabel(
+    ax_a.set_xlabel(r"Location parameter $\gamma$")
+    ax_a.set_ylabel(
         r"Profile gradient $\partial\sigma_{\eta,\min}(\gamma)/\partial\gamma$"
     )
     # y 轴聚焦判据区间 [-0.2, 0.6]（已在绘图前设置），裁切 γ→t_min 的梯度尖峰
-    ax.set_title(
-        r"$\delta$ shifts the gradient criterion: real MDM trace"
-        "\n(not a 182-046 reproduction; per-sample effect varies)",
+    ax_a.legend(loc="upper right", fontsize=5.5, framealpha=0.85,
+              edgecolor="#cccccc")
+
+
+    # ── Panel B：δ=0 vs δ=0.1 的 γ̂ 分布 ──
+    if not ensure_mc_scan_raw():
+        raise RuntimeError("mc_scan_raw.csv 缺失，无法绘制 Panel B/C")
+    mc_path = os.path.join(SHARED_DIR, "mc_scan_raw.csv")
+    mc = pd.read_csv(mc_path)
+    # 筛选与 Panel A 等价的配置：β=2.0, η=1.0, γ/η=1.0, n=7（尺度等价 W(2,1000,1000),n=7）
+    sub = mc[(mc["beta"] == 2.0) & (mc["eta"] == 1.0) &
+             (mc["gamma_over_eta"] == 1.0) & (mc["n"] == 7) &
+             (mc["delta"].isin([0.0, 0.1])) & (mc["converged"] == True)].copy()
+    d0 = sub[sub["delta"] == 0.0]
+    d1 = sub[sub["delta"] == 0.1]
+    # eta=1 数据乘 1000 对齐 Panel A 的 γ=1000 语境
+    gh0 = d0["gamma_hat"].values * 1000.0
+    gh1 = d1["gamma_hat"].values * 1000.0
+
+    bins_b = np.linspace(min(gh0.min(), gh1.min()),
+                         max(gh0.max(), gh1.max()), 45)
+    ax_b.hist(gh0, bins=bins_b, density=True, alpha=0.55,
+              color="#0072B2", edgecolor="white", linewidth=0.3,
+              label=r"$\delta=0$ (zero-grad)")
+    ax_b.hist(gh1, bins=bins_b, density=True, alpha=0.55,
+              color="#D55E00", edgecolor="white", linewidth=0.3,
+              label=r"$\delta=0.1$ (offset)")
+    ax_b.axvline(1000.0, color="#999999", linewidth=0.8,
+                 linestyle=":", zorder=2)
+    ax_b.text(0.04, 0.95, "True $\\gamma=1000$",
+              transform=ax_b.transAxes, fontsize=6, color="#666666",
+              ha="left", va="top")
+    ax_b.set_xlabel(r"Location estimate $\hat{\gamma}$")
+    ax_b.set_ylabel("Density")
+    ax_b.set_title(r"Panel B: $\hat{\gamma}$ distribution",
+                   fontweight="bold", loc="left", fontsize=7)
+    ax_b.legend(loc="upper right", fontsize=5.5, framealpha=0.85,
+                edgecolor="#cccccc")
+
+    # ── Panel C：归一化误差 (γ̂-γ)/η 分布 ──
+    # eta=1, gamma=1，所以 (gamma_hat - gamma)/eta = gamma_hat - 1
+    err0 = (d0["gamma_hat"].values - 1.0) / 1.0
+    err1 = (d1["gamma_hat"].values - 1.0) / 1.0
+    bins_c = np.linspace(min(err0.min(), err1.min()),
+                         max(err0.max(), err1.max()), 45)
+    ax_c.hist(err0, bins=bins_c, density=True, alpha=0.55,
+              color="#0072B2", edgecolor="white", linewidth=0.3,
+              label=r"$\delta=0$ (zero-grad)")
+    ax_c.hist(err1, bins=bins_c, density=True, alpha=0.55,
+              color="#D55E00", edgecolor="white", linewidth=0.3,
+              label=r"$\delta=0.1$ (offset)")
+    ax_c.axvline(0.0, color="#999999", linewidth=0.8,
+                 linestyle=":", zorder=2)
+    ax_c.text(0.04, 0.95, "Zero error",
+              transform=ax_c.transAxes, fontsize=6, color="#666666",
+              ha="left", va="top")
+    ax_c.set_xlabel(r"Normalized error $(\hat{\gamma}-\gamma)/\eta$")
+    ax_c.set_ylabel("Density")
+    ax_c.set_title(r"Panel C: normalized $\hat{\gamma}$ error",
+                   fontweight="bold", loc="left", fontsize=7)
+    ax_c.legend(loc="upper right", fontsize=5.5, framealpha=0.85,
+                edgecolor="#cccccc")
+
+    # Panel A 标题
+    ax_a.set_title(
+        r"Panel A: $\delta$ shifts gradient criterion (real MDM trace)"
+        "\n(per-sample effect varies)",
         fontweight="bold", loc="left", fontsize=7,
     )
-    ax.legend(loc="upper right", fontsize=5.5, framealpha=0.85,
-              edgecolor="#cccccc")
+
+    # ── Panel B/C 诊断数字 ──
+    print(f"  Panel B/C (mc_scan_raw.csv筛选 n={len(d0)}+{len(d1)}):")
+    print(f"    δ=0:   γ̂ median={np.median(gh0):.1f}, "
+          f"|err| median={np.median(np.abs(err0)):.3f}")
+    print(f"    δ=0.1: γ̂ median={np.median(gh1):.1f}, "
+          f"|err| median={np.median(np.abs(err1)):.3f}")
 
     out_base = os.path.join(FIG_DIR, "fig_offset_mechanism")
     fig.tight_layout(pad=0.5)
@@ -408,7 +480,6 @@ def plot_fig_offset_mechanism():
 # ============================================================
 # Fig B: L2/n heterogeneity (GridSpec 布局，无重叠)
 # ============================================================
-
 def plot_fig_l2_n_heterogeneity(by_nb=None):
     """
     使用 GridSpec 2列布局：

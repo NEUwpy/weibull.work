@@ -320,7 +320,7 @@ def run_e2_analysis():
     # ── 从 E1 获取 Default 和 L1 ──
     e1_summary_path = os.path.join(os.path.dirname(E2_OUTPUT_DIR),
                                    "E1_baseline", "summary.json")
-    j1_default = j1_l1 = None
+    j1_default = j1_l1 = j1_l2 = None
     delta_star_l1 = DEFAULT_DELTA
     if os.path.isfile(e1_summary_path):
         with open(e1_summary_path, "r") as f:
@@ -328,6 +328,9 @@ def run_e2_analysis():
         j1_default = e1["results"]["default"]["J1_global"]
         j1_l1 = e1["results"]["L1"]["J1_global"]
         delta_star_l1 = e1["results"]["L1"]["delta_star"]
+        # L2（按 n 查表）：E1 summary 里已有 J1_global，直接读
+        if "L2" in e1["results"]:
+            j1_l2 = e1["results"]["L2"]["J1_global"]
 
     # ── 阶梯表 ──
     print(f"\n[{now_local()}] 构建阶梯表...")
@@ -335,6 +338,7 @@ def run_e2_analysis():
     layers = [
         ("Default", DEFAULT_DELTA, j1_default, "基线"),
         ("L1", delta_star_l1, j1_l1, "全局最优常数"),
+        ("L2", None, j1_l2, "按n查表"),
         ("L3", None, j1_l3, "按真β (oracle)"),
         ("L4", None, j1_l4, "按真β+n (oracle)"),
         ("L5", None, j1_l5, "按真β+γ/η+n (oracle)"),

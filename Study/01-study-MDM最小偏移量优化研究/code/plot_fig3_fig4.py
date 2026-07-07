@@ -72,6 +72,7 @@ OKABE = {
 LAYER_COLORS = {
     "Default": OKABE["gray"],
     "L1": OKABE["gray"],
+    "L2": OKABE["gray"],
     "L3": OKABE["skyblue"],
     "L4": OKABE["blue"],
     "L5": OKABE["blue"],
@@ -110,10 +111,11 @@ print(f"  MLE J₁={j1_mle:.4f}, fail_rate={mle_fail_rate*100:.1f}%")
 # ============================================================
 print("[fig3] 绘制阶梯收益图...")
 
-layers_order = ["Default", "L1", "L3", "L4", "L5", "L6"]
+layers_order = ["Default", "L1", "L2", "L3", "L4", "L5", "L6"]
 layer_labels = ["Default\n$\\delta$=0.1", "L1\n$\\delta^*$=0.08",
-                "L3\nby $\\beta$", "L4\nby $\\beta$+$n$",
-                "L5\nby $\\beta$+$\\gamma/\\eta$+$n$", "L6\nper-sample"]
+                "L2\nby $n$", "L3\nby $\\beta$",
+                "L4\nby $\\beta$+$n$", "L5\nby $\\beta$+$\\gamma/\\eta$+$n$",
+                "L6\nper-sample"]
 j1_values = [ladder.loc[ladder["layer"] == l, "J1_global"].values[0] for l in layers_order]
 improvements = [ladder.loc[ladder["layer"] == l, "improvement_vs_default_pct"].values[0]
                 for l in layers_order]
@@ -143,7 +145,7 @@ for i, (bar, j1, imp) in enumerate(zip(bars, j1_values, improvements)):
                   color="white", fontweight="bold")
 
 # 边际收益箭头（只标大跳点）
-for i in [2, 5]:  # L3, L6
+for i in [3, 6]:  # L3, L6
     prev_j1 = j1_values[i - 1]
     curr_j1 = j1_values[i]
     mid_x = i - 0.5
@@ -163,7 +165,7 @@ ax3a.set_title("(a) Accuracy ladder: Default $\\to$ L6", fontweight="bold", loc=
 # 图例
 from matplotlib.patches import Patch
 legend_elements = [
-    Patch(facecolor=OKABE["gray"], label="Deployable (Default, L1)"),
+    Patch(facecolor=OKABE["gray"], label="Deployable (Default, L1, L2)"),
     Patch(facecolor=OKABE["blue"], label="Oracle (L3–L5)"),
     Patch(facecolor=OKABE["vermillion"], label="Hindsight (L6)"),
 ]
@@ -178,7 +180,7 @@ ax3b.fill_between(range(len(layers_order)), improvements, 0,
                    alpha=0.08, color=OKABE["blue"], zorder=1)
 
 # 标注大跳点
-for i in [2, 5]:
+for i in [3, 6]:
     ax3b.annotate(f"+{improvements[i]-improvements[i-1]:.1f}%",
                   xy=(i, improvements[i]),
                   xytext=(i, improvements[i] + 3),
@@ -187,14 +189,14 @@ for i in [2, 5]:
                   arrowprops=dict(arrowstyle="->", lw=0.8, color=OKABE["vermillion"]))
 
 ax3b.set_xticks(range(len(layers_order)))
-ax3b.set_xticklabels(["Def", "L1", "L3", "L4", "L5", "L6"], fontsize=6)
+ax3b.set_xticklabels(["Def", "L1", "L2", "L3", "L4", "L5", "L6"], fontsize=6)
 ax3b.set_ylabel("Cumulative improvement vs Default (%)")
 ax3b.set_ylim(-1, 26)
 ax3b.set_title("(b) Marginal returns diminish at L4–L5", fontweight="bold", loc="left")
 
 # 标注边际递减区域
-ax3b.axvspan(2.7, 4.3, alpha=0.06, color=OKABE["gray"], zorder=0)
-ax3b.text(3.5, 1, "diminishing\nreturns", ha="center", fontsize=5,
+ax3b.axvspan(3.7, 5.3, alpha=0.06, color=OKABE["gray"], zorder=0)
+ax3b.text(4.5, 1, "diminishing\nreturns", ha="center", fontsize=5,
           color=OKABE["gray"], fontstyle="italic")
 
 fig3.tight_layout(pad=0.5, w_pad=1.5)
@@ -209,6 +211,9 @@ print(f"  Saved: {out3}.{{svg,pdf,png}}")
 # Figure 4: L6 逐样本 δ* 分布
 # ============================================================
 print("[fig4] 绘制 L6 分布图...")
+
+# 固定 RNG，确保 fig4 的 jitter/scatter 可复现（避免非确定性 diff）
+np.random.seed(42)
 
 fig4, (ax4a, ax4b) = plt.subplots(1, 2, figsize=(7.2, 2.8),
                                    gridspec_kw={"width_ratios": [2, 3]})
