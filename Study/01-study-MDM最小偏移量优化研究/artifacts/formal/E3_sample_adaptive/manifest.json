@@ -1,0 +1,106 @@
+{
+  "run_id": "E3a_risk_curve_pilot_v1",
+  "created_at": "2026-07-08T03:33:56.377656+00:00",
+  "code_entry": "code/run_E3a.py",
+  "git_commit": "cd4355b",
+  "workspace_dirty": true,
+  "git_status_short": [
+    "M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/03-\\350\\256\\272\\346\\226\\207\\351\\252\\250\\346\\236\\266.md\"",
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/E3-risk-curve-\\346\\226\\260\\347\\252\\227\\345\\217\\243\\344\\272\\244\\346\\216\\245.md\"",
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/formal/E3_sample_adaptive/\"",
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/code/run_E3a.py\"",
+    "?? coworker/handoffs/2026-07-08-study01-e3a-risk-curve-hermes.md",
+    "?? coworker/plans/2026-07-08-study01-e3a-risk-curve-pilot.md",
+    "?? python/tests/test_study01_e3a_contract.py"
+  ],
+  "python_version": "3.11.15",
+  "data_source": {
+    "mc_scan": "artifacts/formal/shared_data/mc_scan_raw.csv",
+    "mc_manifest": "artifacts/formal/shared_data/manifest.json"
+  },
+  "sample_reconstruction": {
+    "function": "generate_sample(beta, eta, gamma, n, repeat_id, seed)",
+    "seed_namespace": "study01_v1",
+    "verification": {
+      "seed_namespace": "study01_v1",
+      "probe": "beta=1.5, eta=1.0, gamma=0.1, n=7, repeat_id=0",
+      "n": 7,
+      "x_min": 0.2926891202897657,
+      "x_max": 1.2929402732426232,
+      "sample_sha256_rounded_12": "b7bd71eba82ab3174282861018f1b0398729597e7061850b8458d66101996dfd"
+    }
+  },
+  "feature_contract": {
+    "input": [
+      "x_min",
+      "x_max",
+      "range",
+      "Q1",
+      "Med",
+      "Q3",
+      "IQR",
+      "x_bar",
+      "s",
+      "n",
+      "CV",
+      "g1",
+      "g2",
+      "delta"
+    ],
+    "zscore_applied": [
+      "x_min",
+      "x_max",
+      "range",
+      "Q1",
+      "Med",
+      "Q3",
+      "IQR",
+      "x_bar",
+      "s"
+    ],
+    "zscore_source": "training_set_only",
+    "raw_passthrough": [
+      "n",
+      "CV",
+      "g1",
+      "g2",
+      "delta"
+    ],
+    "no_rescale_delta": true
+  },
+  "label_contract": {
+    "base": "((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2",
+    "failure_penalty": "p99(valid_training_loss)",
+    "no_regret": true,
+    "no_log_transform": true
+  },
+  "split_contract": {
+    "random_split": "80/20 sanity check, seed=42",
+    "combo_holdout": "deterministic 5-fold full-combo holdout; each fold holds 9 complete (beta,gamma/eta,n) combos"
+  },
+  "fit_contract": {
+    "max_train_samples_per_fold": 12000,
+    "sample_curve_preserved": true,
+    "note": "Scalers, failure penalties, and L4/L5 group labels use the full training fold; model fitting is capped by complete sample curves for runtime."
+  },
+  "models": {
+    "NN-RC-L4": "sklearn MLPRegressor(32, 16), max_iter=40, ReLU/Adam, supervised by train-only mean loss per (beta,n,delta)",
+    "NN-RC-L5": "sklearn MLPRegressor(32, 16), max_iter=40, ReLU/Adam, supervised by train-only mean loss per (beta,gamma/eta,n,delta)",
+    "NN-RC-L6": "sklearn MLPRegressor(32, 16), max_iter=40, ReLU/Adam, supervised by per-sample loss_i(delta)",
+    "Tabular-L6": "HistGradientBoostingRegressor(200 trees), supervised by per-sample loss_i(delta)"
+  },
+  "evaluation": {
+    "objective": "selection_quality (argmin_delta predicted_loss -> true selected J1)",
+    "metric": "J1 = sqrt(mean_i(true_loss_i(delta_hat_i)))"
+  },
+  "output_files": [
+    "manifest.json",
+    "results.csv",
+    "summary.json",
+    "model_comparison.csv",
+    "split_report.csv",
+    "delta_distribution.csv",
+    "E3a_acceptance_report.md"
+  ],
+  "notes": "E3a pilot: existing-grid only, no new MC scans. L4/L5 group labels computed from train fold only."
+}
