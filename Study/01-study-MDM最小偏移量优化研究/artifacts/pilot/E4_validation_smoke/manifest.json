@@ -1,0 +1,83 @@
+{
+  "run_id": "E4_validation_smoke_pilot_v1",
+  "created_at": "2026-07-09T16:04:52+00:00",
+  "status": "PILOT — NOT FORMAL EVIDENCE",
+  "code_entry": "code/run_E4_validation_smoke.py",
+  "git_commit": "d17edee",
+  "workspace_dirty": true,
+  "dirty_files": [
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/code/run_E4_validation_smoke.py\""
+  ],
+  "python_version": "3.11.15",
+  "input_data": {
+    "mc_scan_path": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\shared_data\\mc_scan_raw.csv",
+    "mc_manifest_path": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\shared_data\\manifest.json",
+    "mc_git_commit": "9fad6af",
+    "mc_run_id": "E1E2_mc_scan_v1",
+    "mc_seed_namespace": "study01_v1"
+  },
+  "method_versions": {
+    "mdm": {
+      "source": "python/methods/mdm.py",
+      "class": "MDM",
+      "run_signature": "run(offset: float, gamma_steps=60, rank_method='bernard')"
+    },
+    "sample": {
+      "source": "python/studies/common/sample.py",
+      "function": "generate_sample(beta, eta, gamma, n, repeat_id, seed)"
+    }
+  },
+  "smoke_scale": {
+    "e4a_combos": 3,
+    "e4a_repeats_per_combo": 50,
+    "e4b_boundary_combos": 3,
+    "e4b_repeats_per_combo": 10,
+    "e4c_arbitrary_combos": 2,
+    "e4c_repeats_per_combo": 10,
+    "total_new_mdm_calls": 1300
+  },
+  "delta_grid": [
+    0.0,
+    0.02,
+    0.04,
+    0.06,
+    0.08,
+    0.1,
+    0.12,
+    0.14,
+    0.16,
+    0.18,
+    0.2,
+    0.22,
+    0.24,
+    0.26,
+    0.28,
+    0.3,
+    0.32,
+    0.34,
+    0.36,
+    0.38,
+    0.4,
+    0.42,
+    0.44,
+    0.46,
+    0.48,
+    0.5
+  ],
+  "metrics_contract": {
+    "J1": "sqrt(mean_i[(beta_hat-beta)/beta)^2 + (eta_hat-eta)/eta)^2 + (gamma_hat-gamma)/eta)^2])",
+    "loss": "per-sample pre-sqrt contribution (same as J1 numerator)"
+  },
+  "output_files": [
+    "manifest.json",
+    "summary.json",
+    "results.csv",
+    "run_log.txt"
+  ],
+  "notes": [
+    "This is a PILOT smoke test, not formal E4 evidence.",
+    "All outputs are under artifacts/pilot/, not artifacts/formal/.",
+    "E4a uses existing MC data (read-only). E4b/E4c generate new tiny MDM estimates.",
+    "Formal E4 requires Codex review and separate authorization."
+  ]
+}

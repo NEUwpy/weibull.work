@@ -1,0 +1,164 @@
+{
+  "run_id": "E4_validation_smoke_pilot_v1",
+  "created_at": "2026-07-09T16:04:52+00:00",
+  "status": "PILOT — NOT FORMAL EVIDENCE",
+  "total_elapsed_s": 52.19427537918091,
+  "tracks": {
+    "E4a": {
+      "track": "E4a",
+      "description": "Feature ablation pipeline smoke (existing MC data, tiny MLP)",
+      "combos": [
+        [
+          2.0,
+          1.0,
+          0.1,
+          7
+        ],
+        [
+          2.0,
+          1.0,
+          0.5,
+          10
+        ],
+        [
+          4.0,
+          1.0,
+          1.0,
+          20
+        ]
+      ],
+      "repeats_per_combo": 50,
+      "total_rows": 3900,
+      "mlp_config": {
+        "hidden_layers": [
+          32,
+          16
+        ],
+        "max_iter": 50
+      },
+      "ablation_results": [
+        {
+          "feature_group": "full",
+          "n_features": 13,
+          "pooled_J1": 0.6302211531365733,
+          "n_samples": 150,
+          "n_iter": 50
+        },
+        {
+          "feature_group": "n_only",
+          "n_features": 1,
+          "pooled_J1": 0.7048878201274091,
+          "n_samples": 150,
+          "n_iter": 50
+        }
+      ],
+      "elapsed_s": 0.11505722999572754,
+      "banned_field_check": "PASSED — no banned fields in feature set",
+      "note": "SMOKE ONLY — single fold, single seed, tiny MLP. Not formal evidence."
+    },
+    "E4b": {
+      "track": "E4b",
+      "description": "Expanded-grid boundary pipeline smoke",
+      "boundary_combos": [
+        [
+          1.2,
+          1.0,
+          0.0,
+          5
+        ],
+        [
+          6.0,
+          1.0,
+          0.5,
+          7
+        ],
+        [
+          2.5,
+          1.0,
+          1.0,
+          50
+        ]
+      ],
+      "repeats_per_combo": 10,
+      "total_rows": 780,
+      "non_success_rate": 0.0,
+      "reference_results": [
+        {
+          "model": "Default",
+          "pooled_J1": 0.6814208086908978,
+          "n_samples": 30
+        },
+        {
+          "model": "L1-smoke",
+          "pooled_J1": 0.603343348809141,
+          "n_samples": 30
+        }
+      ],
+      "l1_delta_on_smoke": 0.02,
+      "elapsed_s": 30.949341297149658,
+      "note": "SMOKE ONLY — R=10, not R=500. Boundary behavior indicative only."
+    },
+    "E4c": {
+      "track": "E4c",
+      "description": "Out-of-grid feasibility pipeline smoke",
+      "arbitrary_combos": [
+        [
+          3.3,
+          1.0,
+          0.7,
+          15
+        ],
+        [
+          1.8,
+          1.0,
+          0.3,
+          12
+        ]
+      ],
+      "repeats_per_combo": 10,
+      "total_rows": 520,
+      "non_success_rate": 0.0,
+      "feature_computation_ok": 20,
+      "feature_computation_total": 20,
+      "elapsed_s": 20.165732860565186,
+      "decision": "Pipeline can handle off-grid parameters. If continuous-space TRAINING is needed (not just evaluation), it should be classified as E3c, not E4c. This smoke only tests evaluation feasibility.",
+      "note": "SMOKE ONLY — feasibility test, not generalization evidence."
+    }
+  },
+  "schema_verification": {
+    "manifest_fields": [
+      "run_id",
+      "created_at",
+      "status",
+      "code_entry",
+      "git_commit",
+      "workspace_dirty",
+      "dirty_files",
+      "python_version",
+      "input_data",
+      "method_versions",
+      "smoke_scale",
+      "delta_grid",
+      "metrics_contract",
+      "output_files",
+      "notes"
+    ],
+    "summary_fields": [
+      "run_id",
+      "created_at",
+      "status",
+      "total_elapsed_s",
+      "tracks",
+      "schema_verification"
+    ],
+    "results_csv_columns": [
+      "track",
+      "model_or_group",
+      "metric",
+      "value",
+      "n",
+      "note"
+    ],
+    "all_under_pilot_dir": true
+  }
+}

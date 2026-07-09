@@ -5,24 +5,23 @@
 
 ## 快速结论
 
-当前支线目标：启动 **E4 validation suite** 的第一轮门控任务。
+第一轮 smoke/pilot 已完成。三轨验证合同已设计，pipeline 已验证，report 已写入。
 
-第一轮只允许 Hermes 完成：
+当前阶段：`S2_CODEX_REVIEW` — 等待 Codex 审查。
 
-1. 审查 Ch1-Ch6 与 E3b 证据链，明确 Ch7 需要哪些验证结果。
-2. 设计 E4 三轨验证合同：
-   - `E4a`: feature ablation 正式化。
-   - `E4b`: expanded-grid / boundary robustness。
-   - `E4c`: out-of-grid 或 continuous-space generalization feasibility。
-3. 做小规模 smoke / pilot，验证脚本、数据结构、指标、产物目录和 provenance 字段是否能闭环。
-4. 写回 report，等待 Codex 审查。
+### 第一轮完成状态
 
-第一轮 **不允许**：
+- [x] 审查 Ch1-Ch6 与 E3b 证据链，明确 Ch7 需要哪些验证结果。
+- [x] 设计 E4 三轨验证合同（E4a/E4b/E4c）。
+- [x] 做小规模 smoke/pilot，验证脚本、数据结构、指标、产物目录和 provenance 字段闭环。
+- [x] 写回 report，等待 Codex 审查。
 
-- 直接跑全量 Formal E4。
-- 把 pilot/smoke 结果放入 `artifacts/formal/`。
-- 写 Ch7 正文结论。
-- 修改 Ch1-Ch6、`00-05`、README 或正式 artifacts。
+### 第一轮未做（遵守 STOP 条件）
+
+- 未直接跑全量 Formal E4。
+- 未把 pilot/smoke 结果放入 `artifacts/formal/`。
+- 未写 Ch7 正文结论。
+- 未修改 Ch1-Ch6、`00-05`、README 或正式 artifacts。
 
 当前 verdict：**APPROVE FIRST-ROUND PLAN / DO NOT APPROVE FORMAL E4 RESULT YET**。
 
@@ -53,7 +52,7 @@
 | `S5_CH7_AUTHORIZED` | Codex 验收 formal E4 后，才允许 Ch7 写作 handoff | Ch7 草稿完成 |
 | `S6_DONE` | E4 支线完成，Ch7 可进入主线整合 | 无 |
 
-当前阶段：`S0_PLAN_READY`。
+当前阶段：`S2_CODEX_REVIEW`。
 
 Loop 不等于无条件自动推进。以下情况必须停下等待 Codex 或用户：
 
@@ -100,8 +99,9 @@ Loop 不等于无条件自动推进。以下情况必须停下等待 Codex 或�
 |------|------|------|
 | Codex plan | `coworker/plans/2026-07-09-study01-e4-validation-suite.md` | 已创建 |
 | Hermes handoff | `coworker/handoffs/2026-07-09-study01-e4-validation-suite-hermes.md` | 已创建 |
-| Hermes report | `coworker/reports/2026-07-09-study01-e4-validation-suite-hermes.md` | 待 Hermes 写入 |
-| Pilot artifacts | `Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/` | 待 Hermes 生成 |
+| Hermes report | `coworker/reports/2026-07-09-study01-e4-validation-suite-hermes.md` | 已完成 |
+| Pilot artifacts | `Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/` | 已生成 |
+| Smoke script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_validation_smoke.py` | 已创建 |
 
 ## E4 三轨定义
 
@@ -171,29 +171,36 @@ Not allowed:
 
 ## 下一步
 
-把下面 handoff 发给 Hermes：
+当前下一步：Codex 审查 Hermes report。
 
-```powershell
-$prompt = Get-Content -Raw .\coworker\handoffs\2026-07-09-study01-e4-validation-suite-hermes.md
-hermes --skills coworker -z $prompt
-```
+审查入口：`coworker/reports/2026-07-09-study01-e4-validation-suite-hermes.md`
 
-Hermes 返回后，Codex 审查重点：
+Codex 审查重点：
 
 1. 是否遵守第一轮 STOP 条件。
 2. E4a/E4b/E4c 合同是否区分 pilot、formal、E3c。
 3. smoke 产物是否在 `artifacts/pilot/`，且 manifest / summary / results / report 可追溯。
 4. 是否未污染 formal artifacts 和 Ch1-Ch6 正文。
 5. 是否给出 `APPROVE / REVISE / BLOCK` 的下一轮建议。
+6. E4b model reuse 决策（Option C 推荐：references only）。
+7. E4c scope 确认（evaluation-only，不做 continuous-space training）。
 
 ## 下一步指令
 
-当前下一步：把 `coworker/handoffs/2026-07-09-study01-e4-validation-suite-hermes.md` 发给 Hermes。
+当前下一步：Codex 审查 report 并给出 `APPROVE / REVISE / BLOCK`。
 
-Hermes 完成第一轮后，必须：
+如果 APPROVE，Codex 写第二轮 formal E4 handoff，阶段进入 `S3_FORMAL_E4_AUTHORIZED`。
 
-- 将当前阶段改为 `S2_CODEX_REVIEW`。
-- 写明 report 路径。
-- 写明 pilot artifacts 路径。
-- 写明是否建议进入正式 E4。
-- 写明任何 blocker。
+如果 REVISE，Hermes 按 Codex 意见修改 report/合同，阶段回 `S1_FIRST_ROUND_RUNNING`。
+
+### Blocker
+
+- **E4b model reuse**：E3b Vector-MLP-L6 未序列化。推荐 Option C（E4b 仅评估 Default/L1/L2/oracle，不部署 NN selector 到边界）。需 Codex 确认。
+- **E4c scope**：推荐 evaluation-only。如需 continuous-space training → E3c。需 Codex 确认。
+
+### Hermes 第一轮已完成
+
+- Report 路径：`coworker/reports/2026-07-09-study01-e4-validation-suite-hermes.md`
+- Pilot artifacts 路径：`Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/`
+- 建议进入正式 E4：是（subject to Codex review of design decisions above）
+- Blocker：E4b model reuse + E4c scope（需 Codex 确认）
