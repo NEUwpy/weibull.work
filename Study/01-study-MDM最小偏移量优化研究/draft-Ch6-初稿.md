@@ -6,6 +6,8 @@
 
 本章使用 Formal E3 的 existing-grid 证据回答这一问题。E3a 是轻量 scalar risk-curve pilot，用于验证样本特征和候选 delta 到 loss 的学习信号；E3b 是更严格的 vector-output MLP follow-up，用 5-fold full `(beta, gamma/eta, n)` combo holdout 检验未见参数组合上的选择质量。当前正文主张限定为：**在本文正式离散网格内，样本可观测特征含有实质的可部署偏移量选择信号**。本章不把 E3b 外推为 continuous-space 泛化结论，也不自动完成第 7 章的边界与稳健性验证。
 
+因此，NN 在本章中的位置需要准确表述：它不是为了把论文改写成一个机器学习模型论文而引入的装饰性方法，而是当前用来解决样本自适应 offset selection 的主要候选求解器。E3b 选择 vector-output MLP，是因为本章要学习的是"样本统计特征 -> 整条 delta 风险曲线 -> 选择 delta"这一非线性映射；其他回归器或显式规则未来也可以服务同一问题，但本章的正式结果来自该 MLP 方案。
+
 ## §1 从 oracle 参照到可部署选择器
 
 L3-L5 的最优 delta 是按真参数分组得到的。例如 L5 按 `(beta, gamma/eta, n)` 给出组级最优 delta。实际使用时，新样本的 `beta` 和 `gamma/eta` 正是待估参数，不能作为输入。因此，样本自适应选择器只能使用下列可观测信息：
@@ -18,7 +20,7 @@ x_bar, s, CV,
 g1, g2
 ```
 
-E3a 采用 scalar risk-curve 形式：输入 `sample_features + candidate delta`，输出该候选 delta 的 raw loss。E3b 改为 vector-output 形式：输入样本特征一次性输出 26 维 loss curve，再通过 `argmin_delta` 选择偏移量。E3b 不把 candidate `delta` 放进 vector 模型输入，这更接近部署时“给定一个样本，一次性预测其风险曲线”的使用方式。
+E3a 采用 scalar risk-curve 形式：输入 `sample_features + candidate delta`，输出该候选 delta 的 raw loss。E3b 改为 vector-output MLP：输入样本特征一次性输出 26 维 loss curve，再通过 `argmin_delta` 选择偏移量。E3b 不把 candidate `delta` 放进 vector 模型输入，这更接近部署时“给定一个样本，一次性预测其风险曲线”的使用方式。
 
 训练标签使用单样本 raw loss：
 
@@ -35,7 +37,7 @@ loss_i(delta) =
 J1 = sqrt(mean_i loss_i(delta_hat_i))
 ```
 
-也就是说，模型训练拟合的是风险曲线，论文评价的是用预测曲线选出的 `delta_hat` 在真实 MDM 估计结果上的 selected-loss J1。predicted-loss MSE 不是本章主指标。
+也就是说，模型训练拟合的是风险曲线，论文评价的是用预测曲线选出的 `delta_hat` 在真实 MDM 估计结果上的 selected-loss J1。predicted-loss MSE 不是本章主指标。这样的写法保留了 NN 方法的必要细节，但判断标准仍是 MDM 偏移量选择是否改善，而不是模型预测误差本身是否好看。
 
 ## §2 E3b 实验合同与来源
 
@@ -48,7 +50,7 @@ E3b 比较以下方法：
 - **L2**：按 `n` 查表。
 - **L3-L5 oracle**：按真参数分组的参照层级。
 - **L6 hindsight**：逐样本扫描网格内 hindsight benchmark。
-- **Vector-MLP-L4/L5/L6**：vector-output MLP，差异在于监督粒度。
+- **Vector-MLP-L4/L5/L6**：vector-output MLP，差异在于监督粒度；这是本章主要样本自适应方法。
 - **Tabular-L6**：scalar tabular baseline，用于判断向量 MLP 是否真的利用了样本特征。
 
 数据溯源如下：
@@ -88,7 +90,7 @@ E3b 比较以下方法：
 | Default | 0.633219 | 0.000 | 0.739286 | 0.644520 | 0.490866 | 经验基线 |
 | MLE anchor | 1.1009 | 0.304 | — | — | — | 绝对精度锚点 |
 
-结果显示，`Vector-MLP-L6` 的 pooled J1 为 0.547003，明显优于 L2 的 0.632541，改善幅度为 0.085538。它也优于 `Tabular-L6`（0.557849），说明 vector-output risk curve 不是只复现一个普通 tabular baseline，而是在同一输入边界下取得了更强的选择质量。
+结果显示，`Vector-MLP-L6` 的 pooled J1 为 0.547003，明显优于 L2 的 0.632541，改善幅度为 0.085538。它也优于 `Tabular-L6`（0.557849），说明 vector-output MLP 不是只复现一个普通 tabular baseline，而是在同一输入边界下通过整条 risk curve 取得了更强的选择质量。
 
 更重要的是，`Vector-MLP-L6` 落在 oracle 阶梯内部：它优于 L3/L4/L5 组级 oracle 参照，但仍未达到 L6 hindsight。这个结果并不矛盾。L5 是按真参数组合查表的组级 oracle，不包含同一参数组合内的逐样本形状差异；而样本统计特征包含每个样本的 order statistics、分位数、离散度和形状信息，可以在 existing-grid 上利用一部分组内差异。因此，`Vector-MLP-L6` 数值上优于 L5，不能被解读为“超过理论上界”，也不能被解读为使用了真参数输入。真正不可部署的 hindsight 参照仍是 L6，其 J1=0.494530。
 
@@ -167,7 +169,7 @@ E3b 还对 `Vector-MLP-L6` 做了 fold 1、seed 42 的特征消融。
 
 第二，E3b 的模型输入没有真参数泄漏。真参数和 `repeat_id` 只用于复现样本、计算可观测样本统计特征和离线 loss 标签；模型输入不包含 `beta`、`eta`、`gamma`、`gamma/eta`、参数组合 ID、seed 或 `repeat_id`。这一点已由 contract tests 验证。
 
-第三，E3b 不是把 NN 作为论文目的。NN 只是样本自适应 delta 选择的一种实现工具。本章真正回答的是：当 Default/L1/L2 收益很小、L3-L5 又不可部署时，样本可观测特征是否能提供中间桥梁。E3b 的答案是肯定的，但限定在现有正式离散网格内。
+第三，E3b 不是把 NN 作为论文目的，但也不能把 NN 写到可有可无。NN/Vector-MLP 是本章解决样本自适应 delta 选择问题的主要方法；本章真正回答的是：当 Default/L1/L2 收益很小、L3-L5 又不可部署时，样本可观测特征能否经由这种风险曲线学习器提供中间桥梁。E3b 的答案是肯定的，但限定在现有正式离散网格内。
 
 ## §8 本章小结
 
@@ -176,7 +178,7 @@ E3b 还对 `Vector-MLP-L6` 做了 fold 1、seed 42 的特征消融。
 - `Vector-MLP-L6` pooled J1=0.547003，明显优于 L2=0.632541、L1=0.632913 和 Default=0.633219。
 - `Vector-MLP-L6` 在 `n=7/10/20` 三个分层上均优于 L2，说明收益不是单一样本量驱动。
 - 3 seed 下 pooled J1 为 0.547003 / 0.546133 / 0.544009，主 J1 结论稳定。
-- near-optimal 诊断显示，`Vector-MLP-L6` 相比 L2 更常选到接近逐样本最优的 delta。
+- near-optimal 诊断显示，`Vector-MLP-L6` 相比 L2 更常选到接近逐样本最优的 delta，说明 MLP 学到的是有用的选择信号，而不是单纯复现固定查表。
 - endpoint 选择率较高，但 L6 hindsight 本身也高度 endpoint 化，因此 endpoint 只能作为边界诊断，不能单独判定成功或失败。
 
 结论：**在本文正式离散网格内，样本可观测特征能够为 MDM 偏移量选择提供实质性信息，并显著优于固定 `delta=0.1` 与按 `n` 查表。** 这说明 L3-L6 oracle 阶梯中的一部分收益可以通过可部署样本特征近似获得。下一章需要回答的是：这种 existing-grid 信号在更宽参数范围、边界样本量、失败处理和计算成本约束下是否仍然可靠。

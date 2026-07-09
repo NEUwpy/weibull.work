@@ -113,8 +113,8 @@ MDM 方法相关原文在本地文献库中已有 Markdown 正文、图片和 PD
 
 04 自适应选取
   -> 尝试用样本可观测特征学习 delta
-  -> 样本自适应 δ 选择是 Formal E3 的候选路线
-  -> NN 是候选实现，不是论文目的本身
+  -> 样本自适应 δ 选择已经形成 E3a/E3b existing-grid 证据
+  -> E3b 当前主要求解器是 vector-output MLP；NN 是解决该选择问题的方法，不是论文目的本身
 ```
 
 投稿论文应重新组织为一条"正式证据链"：
@@ -127,7 +127,7 @@ Formal E2 L3-L6 Oracle 层级
   -> 按 β / β+n / β+γ/η+n / 逐样本 hindsight 的参照精度，识别边际递减点
 
 Formal E3 样本自适应 δ 选择
-  -> 在真参数不可见时，用样本可观测特征和 n 学习 δ 选择规则；NN 是候选实现，不是论文目的本身
+  -> 在真参数不可见时，用样本可观测特征和 n 学习 δ 选择规则；E3b 用 vector-output MLP 验证 existing-grid 可达性，但不自动外推 continuous-space 泛化
 
 Formal E4 边界与稳健性
   -> 跨 β/n/gamma_eta、极小样本、失败处理、计算成本
@@ -142,7 +142,7 @@ Formal E4 边界与稳健性
 - 正式实验必须保留 `results.csv`、`summary.json`、`manifest.json` 等可复现实验产物。
 - 本目录应保存论文级整理材料；大规模原始输出不要直接堆进来，除非先说明用途和来源。
 - `artifacts/formal/shared_data/mc_scan_raw.csv` 被 `.gitignore` 排除（体积过大）。干净 clone 后需先运行 `python code/generate_mc_data.py --merge-only` 从 tracked chunks 合并出分析输入。tracked chunks 是正式数据源，`mc_scan_raw.csv` 是分析脚本的直接读取对象。
-- 不要把本文写成“用神经网络优化 MDM”的单一 ML 论文；本文主线是偏移量 `delta` 的层级最优性、改善幅度和部署可达性。神经网络只是在真参数不可见时逼近下游层级的一种候选工具。
+- 不要把本文写成“用神经网络优化 MDM”的单一 ML 论文；本文主线是偏移量 `delta` 的层级最优性、改善幅度和部署可达性。神经网络/Vector-MLP 是 Ch6 解决样本自适应 `delta` 选择问题的当前主要方法，但不是论文目的本身。
 
 ## 投稿准备文件
 
@@ -151,7 +151,7 @@ Formal E4 边界与稳健性
 | 文件 | 作用 |
 |------|------|
 | `00-研究问题与边界.md` | 明确本文作为 MDM 第三篇推进工作的研究定位、主问题、贡献、禁区，以及旧材料的 pilot 地位 |
-| `01-证据索引.md` | 区分文献证据、pilot 证据和正式证据；Formal E1/E2 已可用，E3/E4 待生成 |
+| `01-证据索引.md` | 区分文献证据、pilot 证据和正式证据；Formal E1/E2 与 E3 existing-grid 已可用，E4 待决策 |
 | `02-实验协议.md` | 记录正式投稿实验 E1-E4、参数网格、指标、baseline、数据切分、输出结构和停止条件 |
 | `03-论文骨架.md` | 按 Formal E1-E4 的正式证据链组织论文；章节图表需求写在各章手段中 |
 | `04-待复核清单.md` | 检查正式代码、正式实验产物、指标、统计、图表和正文主张 |
