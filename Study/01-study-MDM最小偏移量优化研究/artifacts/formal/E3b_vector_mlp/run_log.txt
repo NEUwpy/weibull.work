@@ -1,0 +1,175 @@
+======================================================================
+Study/01 Formal E3b: Vector-Output Heavy MLP Experiment
+======================================================================
+
+[1/8] Loading MC scan data...
+  Loaded 1170000 rows from mc_scan_raw.csv
+
+[2/8] Verifying data integrity...
+[Data Integrity] Expected rows: 1170000, Actual: 1170000
+[Data Integrity] Duplicate rows: 0
+[Data Integrity] Unique (beta, gamma/eta, n) combos: 45
+[Data Integrity] Delta values: 26
+[Data Integrity] Repeats per combo: min=1000, max=1000
+[Data Integrity] Non-success rate: 0.0000
+[Data Integrity] ALL CHECKS PASSED
+  Sample probe SHA256: b7bd71eba82a...
+
+[3/8] Building feature table...
+[Features] Computing features for 45000 unique samples...
+[Features] Done in 19.9s
+[Features] Merged table: 1170000 rows, 26 columns
+
+[4/8] Computing per-sample loss labels...
+  NaN/invalid losses: 0 (0.00%)
+
+[5/8] Computing oracle references...
+  L1 delta* = 0.08
+  L2 table: {7: {'delta_star': 0.1, 'J1': 0.7392855016503717}, 10: {'delta_star': 0.1, 'J1': 0.6445203563841531}, 20: {'delta_star': 0.08, 'J1': 0.488234706243098}}
+  Banned field check: PASSED
+
+[6/8] Combo holdout (main judgment)...
+
+  === combo_fold_1 ===
+  Train combos: 36, Test combos: 9
+  Train rows: 936000, Test rows: 234000
+  Failure penalty (train p99): 2.196617
+  Vector MLP: X_train=(36000, 13), Y_train_l6=(36000, 26), X_test=(9000, 13)
+  Training Vector-MLP-L6...
+    Done in 283.1s, n_iter=59
+  Training Vector-MLP-L5...
+    Done in 383.8s, n_iter=76
+  Training Vector-MLP-L4...
+    Done in 376.5s, n_iter=76
+  Training Tabular-L6...
+    Done in 11.8s
+
+  === combo_fold_2 ===
+  Train combos: 36, Test combos: 9
+  Train rows: 936000, Test rows: 234000
+  Failure penalty (train p99): 2.179007
+  Vector MLP: X_train=(36000, 13), Y_train_l6=(36000, 26), X_test=(9000, 13)
+  Training Vector-MLP-L6...
+    Done in 418.9s, n_iter=80
+  Training Vector-MLP-L5...
+    Done in 244.8s, n_iter=54
+  Training Vector-MLP-L4...
+    Done in 319.2s, n_iter=65
+  Training Tabular-L6...
+    Done in 10.2s
+
+  === combo_fold_3 ===
+  Train combos: 36, Test combos: 9
+  Train rows: 936000, Test rows: 234000
+  Failure penalty (train p99): 2.213408
+  Vector MLP: X_train=(36000, 13), Y_train_l6=(36000, 26), X_test=(9000, 13)
+  Training Vector-MLP-L6...
+    Done in 442.1s, n_iter=97
+  Training Vector-MLP-L5...
+    Done in 274.4s, n_iter=62
+  Training Vector-MLP-L4...
+    Done in 285.6s, n_iter=65
+  Training Tabular-L6...
+    Done in 9.8s
+
+  === combo_fold_4 ===
+  Train combos: 36, Test combos: 9
+  Train rows: 936000, Test rows: 234000
+  Failure penalty (train p99): 2.216452
+  Vector MLP: X_train=(36000, 13), Y_train_l6=(36000, 26), X_test=(9000, 13)
+  Training Vector-MLP-L6...
+    Done in 479.2s, n_iter=99
+  Training Vector-MLP-L5...
+    Done in 25.1s, n_iter=47
+  Training Vector-MLP-L4...
+    Done in 66.7s, n_iter=91
+  Training Tabular-L6...
+    Done in 4.2s
+
+  === combo_fold_5 ===
+  Train combos: 36, Test combos: 9
+  Train rows: 936000, Test rows: 234000
+  Failure penalty (train p99): 2.188687
+  Vector MLP: X_train=(36000, 13), Y_train_l6=(36000, 26), X_test=(9000, 13)
+  Training Vector-MLP-L6...
+    Done in 228.4s, n_iter=63
+  Training Vector-MLP-L5...
+    Done in 244.6s, n_iter=53
+  Training Vector-MLP-L4...
+    Done in 474.6s, n_iter=91
+  Training Tabular-L6...
+    Done in 10.3s
+
+  Pooling combo holdout across folds...
+
+[7/8] Running diagnostics...
+
+  Feature ablation (fold 1)...
+    Ablation: full (13 features)
+    Ablation: n_only (1 features)
+    Ablation: scale_quantile (10 features)
+    Ablation: shape (4 features)
+
+  Seed stability (5-fold combo holdout, 3 seeds)...
+
+    Seed stability: seed=42 (5-fold combo holdout)
+      seed=42: pooled J1=0.547003, endpoint=0.4881
+
+    Seed stability: seed=2026 (5-fold combo holdout)
+      seed=2026: pooled J1=0.546133, endpoint=0.4884
+
+    Seed stability: seed=3407 (5-fold combo holdout)
+      seed=3407: pooled J1=0.544009, endpoint=0.5624
+
+  Random split sanity check...
+
+  Random split (sanity check)...
+  Train rows: 936000, Test rows: 234000
+  Failure penalty (train p99): 2.179693
+  Training Vector-MLP-L6 (random)...
+
+  Generating diagnostic plots...
+  Saved plots/model_j1_comparison.png
+  Saved plots/delta_distribution_comparison.png
+  Saved plots/endpoint_rate_by_n.png
+  Saved plots/near_optimal_summary.png
+  Saved plots/seed_stability.png
+  Saved plots/feature_ablation.png
+
+[8/8] Saving artifacts...
+  Saved model_comparison.csv
+  Saved split_report.csv
+  Saved vector_mlp_results.csv
+  Saved tabular_l6_results.csv
+  Saved sample_features.csv (45000 unique samples from all folds)
+  Saved risk_curves.csv (45000 samples ¡Á 26 deltas)
+  Saved endpoint_diagnostics.csv
+  Saved near_optimal_diagnostics.csv
+  Saved feature_ablation.csv
+  Saved seed_stability.csv
+  Saved summary.json
+  Saved E3b_acceptance_report.md
+  Saved manifest.json
+
+======================================================================
+RESULTS SUMMARY ¡ª Combo Holdout (Pooled)
+======================================================================
+Model                    J1   Fail%  J1(n=7) J1(n=10) J1(n=20)
+----------------------------------------------------------------------
+L6-hindsight         0.4945   0.00%   0.5911   0.5036   0.3615
+Vector-MLP-L6        0.5470   0.00%   0.6576   0.5498   0.4037
+Tabular-L6           0.5578   0.00%   0.6667   0.5638   0.4138
+L5-oracle            0.5712   0.00%   0.6766   0.5797   0.4300
+L4-oracle            0.5821   0.00%   0.6859   0.5918   0.4425
+L3-oracle            0.5851   0.00%   0.6900   0.5922   0.4473
+Vector-MLP-L5        0.5968   0.00%   0.7083   0.6051   0.4480
+Vector-MLP-L4        0.6062   0.00%   0.7123   0.6176   0.4622
+L2                   0.6325   0.00%   0.7393   0.6445   0.4882
+L1                   0.6329   0.00%   0.7397   0.6451   0.4882
+Default              0.6332   0.00%   0.7393   0.6445   0.4909
+
+Decision: APPROVE
+  - Best vector candidate is Vector-MLP-L6 with J1=0.547003; L2 J1=0.632541; improvement=0.085538.
+  - Tabular-L6 J1=0.557849; gap to best vector=0.010847.
+  - Combo holdout shows clear pooled J1 improvement over L2.
+  - Strong NN signal: Vector-MLP is within 0.01 J1 of or better than Tabular-L6.

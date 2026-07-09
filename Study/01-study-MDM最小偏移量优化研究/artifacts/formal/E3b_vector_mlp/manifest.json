@@ -1,0 +1,120 @@
+{
+  "run_id": "E3b_vector_mlp_v1",
+  "created_at": "2026-07-09T05:31:04.585316+00:00",
+  "code_entry": "code/run_E3b_vector_mlp.py",
+  "git_commit": "04e99c5",
+  "workspace_dirty": true,
+  "git_status_short": [
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/formal/E3b_vector_mlp/\"",
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/code/run_E3b_vector_mlp.py\"",
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/docs/\"",
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/history/260709\\344\\270\\212\\344\\270\\213\\346\\226\\207.md\"",
+    "?? coworker/handoffs/2026-07-08-study01-e3b-vector-mlp-hermes.md",
+    "?? coworker/plans/2026-07-08-study01-e3b-vector-mlp-diagnostics.md",
+    "?? coworker/reports/2026-07-08-study01-e3b-vector-mlp-hermes.md",
+    "?? python/tests/test_study01_e3b_contract.py"
+  ],
+  "python_version": "3.11.15",
+  "data_source": {
+    "mc_scan": "artifacts/formal/shared_data/mc_scan_raw.csv",
+    "mc_manifest": "artifacts/formal/shared_data/manifest.json"
+  },
+  "sample_reconstruction": {
+    "function": "generate_sample(beta, eta, gamma, n, repeat_id, seed)",
+    "seed_namespace": "study01_v1",
+    "verification": {
+      "seed_namespace": "study01_v1",
+      "probe": "beta=1.5, eta=1.0, gamma=0.1, n=7, repeat_id=0",
+      "n": 7,
+      "x_min": 0.2926891202897657,
+      "x_max": 1.2929402732426232,
+      "sample_sha256_rounded_12": "b7bd71eba82ab3174282861018f1b0398729597e7061850b8458d66101996dfd"
+    }
+  },
+  "feature_contract": {
+    "vector_input": [
+      "x_min",
+      "x_max",
+      "range",
+      "Q1",
+      "Med",
+      "Q3",
+      "IQR",
+      "x_bar",
+      "s",
+      "n",
+      "CV",
+      "g1",
+      "g2"
+    ],
+    "zscore_applied": [
+      "x_min",
+      "x_max",
+      "range",
+      "Q1",
+      "Med",
+      "Q3",
+      "IQR",
+      "x_bar",
+      "s"
+    ],
+    "zscore_source": "training_set_only",
+    "raw_passthrough": [
+      "n",
+      "CV",
+      "g1",
+      "g2"
+    ],
+    "no_delta_in_vector_input": true
+  },
+  "label_contract": {
+    "base": "((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2",
+    "failure_penalty": "p99(valid_training_loss)",
+    "no_regret": true,
+    "no_log_transform": true,
+    "vector_target": "26-dim raw loss curve per sample",
+    "target_scaling": "StandardScaler, train-fold-only"
+  },
+  "split_contract": {
+    "random_split": "80/20 sanity check, seed=42",
+    "combo_holdout": "deterministic 5-fold full-combo holdout; same as E3a"
+  },
+  "training_contract": {
+    "full_fold": true,
+    "no_sample_cap": true,
+    "note": "All training samples used for vector MLP; scalers/failure_penalty/L4L5 from train fold only."
+  },
+  "models": {
+    "Vector-MLP-L4": "sklearn MLPRegressor(256, 128, 64), max_iter=300, ReLU/Adam; target: train-only mean loss per (beta,n,delta)",
+    "Vector-MLP-L5": "sklearn MLPRegressor(256, 128, 64), max_iter=300, ReLU/Adam; target: train-only mean loss per (beta,gamma/eta,n,delta)",
+    "Vector-MLP-L6": "sklearn MLPRegressor(256, 128, 64), max_iter=300, ReLU/Adam; target: per-sample 26-dim loss curve",
+    "Tabular-L6": "HistGradientBoostingRegressor(200), scalar form, supervised by per-sample loss_i(delta)"
+  },
+  "evaluation": {
+    "objective": "selection_quality (argmin_delta predicted_loss -> true selected J1)",
+    "metric": "J1 = sqrt(mean_i(true_loss_i(delta_hat_i)))"
+  },
+  "diagnostics": {
+    "endpoint": "P(delta=0), P(delta=0.5), P(extreme) by n and combo",
+    "near_optimal": "regret, rel_regret, near hit rate for eps=1%/2%/5%",
+    "feature_ablation": "full/n_only/scale_quantile/shape, fold 1 seed 42",
+    "seed_stability": "seeds 42/2026/3407, ALL 5 folds pooled"
+  },
+  "output_files": [
+    "manifest.json",
+    "summary.json",
+    "model_comparison.csv",
+    "vector_mlp_results.csv",
+    "tabular_l6_results.csv",
+    "split_report.csv",
+    "endpoint_diagnostics.csv",
+    "near_optimal_diagnostics.csv",
+    "feature_ablation.csv",
+    "seed_stability.csv",
+    "E3b_acceptance_report.md",
+    "sample_features.csv",
+    "risk_curves.csv",
+    "plots/*.png"
+  ],
+  "notes": "E3b: standalone vector-output heavy MLP. No E3a modification. No MDM reruns. No manuscript conclusions."
+}
