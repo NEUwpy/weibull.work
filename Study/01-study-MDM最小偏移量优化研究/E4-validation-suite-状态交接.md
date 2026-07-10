@@ -124,8 +124,8 @@ Loop 不等于无条件自动推进。以下情况必须停下等待 Codex 或�
 | Step 2 report | `coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | **已完成：APPROVE for Step 3** |
 | Pilot artifacts | `Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/` | 已生成 |
 | Smoke script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_validation_smoke.py` | 已创建 |
-| MC generation script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py` | 已提交 (`8103587`)，Step 2 已执行 |
-| Analysis script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_formal_validation.py` | 已提交 (`8103587`)，待 Step 3 执行 |
+| MC generation script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py` | Step 2 生成版本: `8103587`；R3 fail-closed 增强在 `b65eba7` |
+| Analysis script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_formal_validation.py` | Step 3 当前分析版本: `b65eba7`（含 fail-closed input gate + track_status） |
 | Formal MC output (boundary) | `Study/01-study-.../artifacts/formal/E4_robustness/boundary_risk_curves.csv` | 已生成（260000 rows），已通过独立验证 |
 | Formal MC output (offgrid) | `Study/01-study-.../artifacts/formal/E4_robustness/offgrid_risk_curves.csv` | 已生成（182000 rows），已通过独立验证 |
 | Misplaced partial output | `Study/artifacts/` | 已删除（Step 2 cleanup） |

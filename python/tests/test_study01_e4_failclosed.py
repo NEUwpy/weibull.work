@@ -15,9 +15,6 @@ Run:
 import os
 import sys
 import json
-import subprocess
-import tempfile
-import shutil
 
 import pandas as pd
 import numpy as np
@@ -150,100 +147,82 @@ class TestChunkValidation:
 
 
 # ============================================================
-# --tracks input gate tests
+# --tracks input gate tests (unit-level, using tmp_path)
 # ============================================================
 
 class TestTracksInputGate:
-    """Test that requesting a track with missing input causes nonzero exit."""
+    """Test that preflight_check_inputs rejects missing inputs.
+    Uses tmp_path to avoid touching real formal CSV files."""
 
     def test_e4b_missing_boundary_aborts(self, tmp_path):
-        """Requesting e4b when boundary_risk_curves.csv is absent must exit nonzero."""
-        # Run the script in an isolated temp E4_OUTPUT_DIR with no boundary file
-        # We test the input pre-validation logic by running the script with
-        # --tracks e4b in a temp directory where boundary_risk_curves.csv doesn't exist.
-        # Since the script uses hardcoded paths via config, we test the pre-validation
-        # by calling the script directly — it will fail at the input check.
-        #
-        # We simulate by temporarily renaming the boundary file.
-        study_artifacts = os.path.join(
-            PROJECT_ROOT,
-            "Study", "01-study-MDM最小偏移量优化研究",
-            "artifacts", "formal", "E4_robustness",
-        )
-        boundary_path = os.path.join(study_artifacts, "boundary_risk_curves.csv")
-        offgrid_path = os.path.join(study_artifacts, "offgrid_risk_curves.csv")
-        backup_boundary = None
-        backup_offgrid = None
+        """Requesting e4b when boundary CSV is absent must raise PreflightError."""
+        from run_E4_formal_validation import preflight_check_inputs, PreflightError
 
-        try:
-            # Temporarily move boundary and offgrid files
-            if os.path.exists(boundary_path):
-                backup_boundary = boundary_path + ".test_bak"
-                shutil.move(boundary_path, backup_boundary)
-            if os.path.exists(offgrid_path):
-                backup_offgrid = offgrid_path + ".test_bak"
-                shutil.move(offgrid_path, backup_offgrid)
-
-            # Run --tracks e4b — should abort because boundary file is missing
-            result = subprocess.run(
-                [sys.executable, os.path.join(STUDY_CODE_DIR, "run_E4_formal_validation.py"),
-                 "--tracks", "e4b"],
-                capture_output=True, text=True, timeout=30,
-                cwd=PROJECT_ROOT,
-            )
-            assert result.returncode != 0, (
-                f"Expected nonzero exit when boundary input missing, got 0.\n"
-                f"stdout: {result.stdout}\nstderr: {result.stderr}"
-            )
-            assert "missing" in result.stdout.lower() or "missing" in result.stderr.lower(), (
-                f"Expected 'missing' in output.\nstdout: {result.stdout}"
-            )
-            # No FORMAL metadata should have been written
-            for fname in ["manifest_e4b.json", "summary_e4b.json"]:
-                fpath = os.path.join(study_artifacts, fname)
-                assert not os.path.exists(fpath), (
-                    f"{fname} was written despite missing input — fail-open bug!"
-                )
-        finally:
-            # Restore files
-            if backup_boundary and os.path.exists(backup_boundary):
-                shutil.move(backup_boundary, boundary_path)
-            if backup_offgrid and os.path.exists(backup_offgrid):
-                shutil.move(backup_offgrid, offgrid_path)
+        # Only offgrid exists in tmp_path
+        (tmp_path / "offgrid_risk_curves.csv").write_text("dummy")
+        # boundary does NOT exist
+        input_map = {
+            'e4a': [str(tmp_path / "mc_scan_raw.csv")],
+            'e4b': [str(tmp_path / "boundary_risk_curves.csv")],
+            'e4c': [str(tmp_path / "offgrid_risk_curves.csv")],
+            'e4d': [str(tmp_path / "mc_scan_raw.csv"),
+                    str(tmp_path / "boundary_risk_curves.csv"),
+                    str(tmp_path / "offgrid_risk_curves.csv")],
+        }
+        with pytest.raises(PreflightError, match="boundary_risk_curves"):
+            preflight_check_inputs({'e4b'}, input_map)
 
     def test_e4c_missing_offgrid_aborts(self, tmp_path):
-        """Requesting e4c when offgrid_risk_curves.csv is absent must exit nonzero."""
-        study_artifacts = os.path.join(
-            PROJECT_ROOT,
-            "Study", "01-study-MDM最小偏移量优化研究",
-            "artifacts", "formal", "E4_robustness",
-        )
-        offgrid_path = os.path.join(study_artifacts, "offgrid_risk_curves.csv")
-        backup_offgrid = None
+        """Requesting e4c when offgrid CSV is absent must raise PreflightError."""
+        from run_E4_formal_validation import preflight_check_inputs, PreflightError
 
-        try:
-            if os.path.exists(offgrid_path):
-                backup_offgrid = offgrid_path + ".test_bak"
-                shutil.move(offgrid_path, backup_offgrid)
+        # Only boundary exists
+        (tmp_path / "boundary_risk_curves.csv").write_text("dummy")
+        input_map = {
+            'e4a': [str(tmp_path / "mc_scan_raw.csv")],
+            'e4b': [str(tmp_path / "boundary_risk_curves.csv")],
+            'e4c': [str(tmp_path / "offgrid_risk_curves.csv")],
+            'e4d': [str(tmp_path / "mc_scan_raw.csv"),
+                    str(tmp_path / "boundary_risk_curves.csv"),
+                    str(tmp_path / "offgrid_risk_curves.csv")],
+        }
+        with pytest.raises(PreflightError, match="offgrid_risk_curves"):
+            preflight_check_inputs({'e4c'}, input_map)
 
-            result = subprocess.run(
-                [sys.executable, os.path.join(STUDY_CODE_DIR, "run_E4_formal_validation.py"),
-                 "--tracks", "e4c"],
-                capture_output=True, text=True, timeout=30,
-                cwd=PROJECT_ROOT,
-            )
-            assert result.returncode != 0, (
-                f"Expected nonzero exit when offgrid input missing, got 0.\n"
-                f"stdout: {result.stdout}\nstderr: {result.stderr}"
-            )
-            for fname in ["manifest_e4c.json", "summary_e4c.json"]:
-                fpath = os.path.join(study_artifacts, fname)
-                assert not os.path.exists(fpath), (
-                    f"{fname} was written despite missing input — fail-open bug!"
-                )
-        finally:
-            if backup_offgrid and os.path.exists(backup_offgrid):
-                shutil.move(backup_offgrid, offgrid_path)
+    def test_e4d_missing_multiple_inputs_reports_all(self, tmp_path):
+        """Requesting e4d when multiple inputs are missing must report all."""
+        from run_E4_formal_validation import preflight_check_inputs, PreflightError
+
+        input_map = {
+            'e4d': [str(tmp_path / "mc_scan_raw.csv"),
+                    str(tmp_path / "boundary_risk_curves.csv"),
+                    str(tmp_path / "offgrid_risk_curves.csv")],
+        }
+        with pytest.raises(PreflightError) as exc_info:
+            preflight_check_inputs({'e4d'}, input_map)
+        msg = str(exc_info.value)
+        # All three missing paths should be in the message
+        assert "mc_scan_raw" in msg
+        assert "boundary_risk_curves" in msg
+        assert "offgrid_risk_curves" in msg
+
+    def test_all_present_passes(self, tmp_path):
+        """When all required inputs exist, preflight should pass without error."""
+        from run_E4_formal_validation import preflight_check_inputs
+
+        (tmp_path / "mc_scan_raw.csv").write_text("dummy")
+        (tmp_path / "boundary_risk_curves.csv").write_text("dummy")
+        (tmp_path / "offgrid_risk_curves.csv").write_text("dummy")
+        input_map = {
+            'e4a': [str(tmp_path / "mc_scan_raw.csv")],
+            'e4b': [str(tmp_path / "boundary_risk_curves.csv")],
+            'e4c': [str(tmp_path / "offgrid_risk_curves.csv")],
+            'e4d': [str(tmp_path / "mc_scan_raw.csv"),
+                    str(tmp_path / "boundary_risk_curves.csv"),
+                    str(tmp_path / "offgrid_risk_curves.csv")],
+        }
+        # Should not raise — all tracks have their inputs
+        preflight_check_inputs({'e4a', 'e4b', 'e4c', 'e4d'}, input_map)
 
 
 # ============================================================

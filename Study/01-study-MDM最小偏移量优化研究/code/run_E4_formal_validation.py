@@ -136,6 +136,33 @@ def log(msg):
     log_lines.append(line)
 
 
+class PreflightError(Exception):
+    """Raised when preflight input validation fails (fail-closed)."""
+    pass
+
+
+def preflight_check_inputs(requested_tracks, input_path_map):
+    """Validate that all required input files exist for the requested tracks.
+
+    Args:
+        requested_tracks: set of track strings (e.g. {'e4b', 'e4c'})
+        input_path_map: dict mapping track -> list of required file paths
+
+    Raises:
+        PreflightError: with a descriptive message if any input is missing.
+    """
+    missing_inputs = []
+    for track in sorted(requested_tracks):
+        for path in input_path_map.get(track, []):
+            if not os.path.exists(path):
+                missing_inputs.append((track, path))
+    if missing_inputs:
+        lines = ["Required input files missing for requested tracks:"]
+        for track, path in missing_inputs:
+            lines.append(f"  [{track}] {path}")
+        raise PreflightError("\n".join(lines))
+
+
 # ============================================================
 # Feature computation (same as E3b)
 # ============================================================
@@ -839,15 +866,10 @@ def main():
         'e4c': [OFFGRID_PATH],
         'e4d': [MC_SCAN_PATH, BOUNDARY_PATH, OFFGRID_PATH],
     }
-    missing_inputs = []
-    for track in sorted(requested_tracks):
-        for path in required_inputs[track]:
-            if not os.path.exists(path):
-                missing_inputs.append((track, path))
-    if missing_inputs:
-        print("ERROR: Required input files missing for requested tracks:")
-        for track, path in missing_inputs:
-            print(f"  [{track}] {path}")
+    try:
+        preflight_check_inputs(requested_tracks, required_inputs)
+    except PreflightError as e:
+        print(f"ERROR: {e}")
         print("Aborting before any output is produced.")
         sys.exit(1)
 
