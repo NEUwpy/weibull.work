@@ -101,6 +101,68 @@ def process_combo_serial(combo_id, beta, gamma_over_eta, n, repeats):
     return rows
 
 
+class ChunkValidationError(Exception):
+    """Raised when chunk validation fails (fail-closed)."""
+    pass
+
+
+def validate_chunk(df_chunk, expected_combos, worker_id, r_formal, n_deltas):
+    """Validate a chunk DataFrame against frozen expectations.
+
+    Args:
+        df_chunk: DataFrame with the chunk data
+        expected_combos: set of combo_id strings this worker should have produced
+        worker_id: int, for error messages
+        r_formal: expected repeats per combo
+        n_deltas: expected delta values per combo (len of delta grid)
+
+    Raises:
+        ChunkValidationError: if any check fails
+    """
+    chunk_combos = set(df_chunk['combo_id'].unique())
+
+    # Reject missing or extra combos
+    missing_combos = expected_combos - chunk_combos
+    extra_combos = chunk_combos - expected_combos
+    if missing_combos:
+        raise ChunkValidationError(
+            f"chunk_{worker_id:02d}.csv missing expected combos: "
+            f"{sorted(missing_combos)}"
+        )
+    if extra_combos:
+        raise ChunkValidationError(
+            f"chunk_{worker_id:02d}.csv contains unexpected combos: "
+            f"{sorted(extra_combos)} (expected only {sorted(expected_combos)})"
+        )
+
+    n_chunk_combos = len(expected_combos)
+    expected_rows = n_chunk_combos * r_formal * n_deltas
+    actual_rows = len(df_chunk)
+    if actual_rows == 0:
+        raise ChunkValidationError(f"chunk_{worker_id:02d}.csv is empty")
+    if actual_rows != expected_rows:
+        raise ChunkValidationError(
+            f"chunk_{worker_id:02d}.csv has {actual_rows} rows, "
+            f"expected {expected_rows} ({n_chunk_combos} combos x "
+            f"{r_formal} repeats x {n_deltas} deltas)"
+        )
+    # Verify per-combo: exactly r_formal repeats and n_deltas deltas
+    for cid in sorted(expected_combos):
+        df_c = df_chunk[df_chunk['combo_id'] == cid]
+        n_repeats = df_c['repeat_id'].nunique()
+        n_deltas_actual = df_c['delta'].nunique()
+        if n_repeats != r_formal:
+            raise ChunkValidationError(
+                f"combo {cid} in chunk_{worker_id:02d}.csv has "
+                f"{n_repeats} repeats, expected {r_formal}"
+            )
+        if n_deltas_actual != n_deltas:
+            raise ChunkValidationError(
+                f"combo {cid} in chunk_{worker_id:02d}.csv has "
+                f"{n_deltas_actual} deltas, expected {n_deltas}"
+            )
+
+
 def worker_main(worker_id, all_combos):
     """Run as a worker process — handle a subset of combos."""
     os.makedirs(E4_OUTPUT_DIR, exist_ok=True)
@@ -133,7 +195,13 @@ def worker_main(worker_id, all_combos):
 
 
 def merge_chunks():
-    """Merge all chunk files into boundary_risk_curves.csv and offgrid_risk_curves.csv."""
+    """Merge all chunk files into boundary_risk_curves.csv and offgrid_risk_curves.csv.
+
+    Fail-closed checks:
+    - Verify all expected combos are present in the merged data.
+    - Verify no duplicate (combo_id, repeat_id, delta) keys.
+    - Atomic write via temp file + os.replace.
+    """
     import pandas as pd
 
     chunks = []
@@ -143,10 +211,12 @@ def merge_chunks():
             df = pd.read_csv(chunk_path)
             chunks.append(df)
             print(f"  Loaded chunk_{i:02d}.csv: {len(df)} rows")
+        else:
+            print(f"  WARNING: chunk_{i:02d}.csv missing!")
 
     if not chunks:
-        print("ERROR: No chunk files found!")
-        return
+        print("*** ABORTING: No chunk files found! ***")
+        sys.exit(1)
 
     df_all = pd.concat(chunks, ignore_index=True)
 
@@ -157,13 +227,53 @@ def merge_chunks():
     df_boundary = df_all[df_all['combo_id'].isin(boundary_ids)].copy()
     df_offgrid = df_all[df_all['combo_id'].isin(offgrid_ids)].copy()
 
+    # Fail-closed: verify combo coverage
+    found_boundary = set(df_boundary['combo_id'].unique())
+    missing_boundary = boundary_ids - found_boundary
+    if missing_boundary:
+        print(f"*** ABORTING: Missing boundary combos: {sorted(missing_boundary)} ***")
+        sys.exit(1)
+
+    found_offgrid = set(df_offgrid['combo_id'].unique())
+    missing_offgrid = offgrid_ids - found_offgrid
+    if missing_offgrid:
+        print(f"*** ABORTING: Missing offgrid combos: {sorted(missing_offgrid)} ***")
+        sys.exit(1)
+
+    # Fail-closed: verify no duplicate keys
+    for label, df_check in [("boundary", df_boundary), ("offgrid", df_offgrid)]:
+        dup_count = df_check.duplicated(subset=['combo_id', 'repeat_id', 'delta']).sum()
+        if dup_count > 0:
+            print(f"*** ABORTING: {dup_count} duplicate keys in {label} data ***")
+            sys.exit(1)
+
+    # Fail-closed: verify exact total row counts (frozen, not derived from data)
+    expected_boundary_rows = len(E4B_BOUNDARY_COMBOS) * R_FORMAL * len(DELTA_GRID)
+    expected_offgrid_rows = len(E4C_OFFGRID_COMBOS) * R_FORMAL * len(DELTA_GRID)
+    if len(df_boundary) != expected_boundary_rows:
+        print(f"*** ABORTING: boundary merged rows={len(df_boundary)}, "
+              f"expected {expected_boundary_rows} "
+              f"({len(E4B_BOUNDARY_COMBOS)} combos x {R_FORMAL} x {len(DELTA_GRID)}) ***")
+        sys.exit(1)
+    if len(df_offgrid) != expected_offgrid_rows:
+        print(f"*** ABORTING: offgrid merged rows={len(df_offgrid)}, "
+              f"expected {expected_offgrid_rows} "
+              f"({len(E4C_OFFGRID_COMBOS)} combos x {R_FORMAL} x {len(DELTA_GRID)}) ***")
+        sys.exit(1)
+
+    # Atomic write: write to temp file, then rename
     boundary_path = os.path.join(E4_OUTPUT_DIR, "boundary_risk_curves.csv")
     offgrid_path = os.path.join(E4_OUTPUT_DIR, "offgrid_risk_curves.csv")
+    boundary_tmp = boundary_path + ".tmp"
+    offgrid_tmp = offgrid_path + ".tmp"
 
-    df_boundary.to_csv(boundary_path, index=False)
-    df_offgrid.to_csv(offgrid_path, index=False)
+    df_boundary.to_csv(boundary_tmp, index=False)
+    df_offgrid.to_csv(offgrid_tmp, index=False)
 
-    print(f"\nMerged:")
+    os.replace(boundary_tmp, boundary_path)
+    os.replace(offgrid_tmp, offgrid_path)
+
+    print(f"\nMerged (atomic write):")
     print(f"  Boundary: {len(df_boundary)} rows -> {boundary_path}")
     print(f"  Off-grid: {len(df_offgrid)} rows -> {offgrid_path}")
     print(f"  Boundary non-success: {(df_boundary['status']!='success').mean():.4f}")
@@ -221,20 +331,52 @@ def main():
         print(f"Started worker {wid} (PID {p.pid})")
 
     # Wait for all workers and stream output
+    worker_failures = []
     for wid, p in enumerate(procs):
         p.wait()
         elapsed = time.time() - t0
-        print(f"Worker {wid} finished (exit={p.returncode}, {elapsed:.0f}s elapsed)")
+        status_str = f"exit={p.returncode}"
+        if p.returncode != 0:
+            worker_failures.append(wid)
+            status_str += " *** FAILED ***"
+        print(f"Worker {wid} finished ({status_str}, {elapsed:.0f}s elapsed)")
         # Print worker output
         if p.stdout:
             output = p.stdout.read().decode('utf-8', errors='replace')
             for line in output.strip().split('\n')[-5:]:  # last 5 lines
                 print(f"  [W{wid}] {line}")
 
+    # Fail-closed: abort if any worker failed
+    if worker_failures:
+        print(f"\n*** ABORTING: Workers {worker_failures} failed ***")
+        print("Chunk files preserved for diagnosis. Final CSVs NOT generated.")
+        sys.exit(1)
+
     total_elapsed = time.time() - t0
     print(f"\nAll workers done in {total_elapsed:.1f}s ({total_elapsed/60:.1f} min)")
 
-    # Merge chunks
+    # Validate chunks before merge: frozen combo set, exact row count, per-combo repeats/deltas
+    import pandas as pd
+    for wid in range(N_WORKERS):
+        chunk_path = os.path.join(E4_OUTPUT_DIR, f"chunk_{wid:02d}.csv")
+        if not os.path.exists(chunk_path):
+            print(f"\n*** ABORTING: chunk_{wid:02d}.csv missing ***")
+            sys.exit(1)
+        df_chunk = pd.read_csv(chunk_path)
+
+        # Frozen expected combo set from worker assignment (NOT from chunk content)
+        expected_combos_wid = {c[0] for i, c in enumerate(all_combos) if i % N_WORKERS == wid}
+        try:
+            validate_chunk(df_chunk, expected_combos_wid, wid, R_FORMAL, len(DELTA_GRID))
+        except ChunkValidationError as e:
+            print(f"\n*** ABORTING: {e} ***")
+            sys.exit(1)
+        n_chunk_combos = len(expected_combos_wid)
+        expected_rows = n_chunk_combos * R_FORMAL * len(DELTA_GRID)
+        print(f"  chunk_{wid:02d}.csv: {len(df_chunk)} rows, {n_chunk_combos} combos "
+              f"({n_chunk_combos}x{R_FORMAL}x{len(DELTA_GRID)}={expected_rows}) — VERIFIED")
+
+    # Merge chunks (with atomic write)
     print("\nMerging chunks...")
     merge_chunks()
 

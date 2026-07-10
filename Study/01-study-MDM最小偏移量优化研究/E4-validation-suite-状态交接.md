@@ -7,9 +7,13 @@
 
 第一轮 smoke/pilot 已完成并通过 Codex 条件审查。由于 Hermes/GLM API 不稳定，原一次性 formal batch 改为 staged execution。
 
-**Step 1 preflight 已完成 (2026-07-10 Hermes)。** Verdict: APPROVE Step 2 (MC generation only)。
+**Step 1 preflight 已完成 (2026-07-10 Hermes)。** Verdict: APPROVE Step 2。
+**Step 2 MC generation 已完成 (2026-07-10 Hermes)。** Codex REVISE（数据 APPROVE，formal package 需补 provenance + fail-closed + tracks 拆分）。
+**Step 2 R1 REVISE fixes 已应用 (2026-07-10 Hermes)。** 4 项修复全部完成。
+**Step 2 R2 REVISE fixes 已应用 (2026-07-10 Hermes)。** 4 项修复全部完成。
+**Step 2 R3 REVISE fixes 已应用 (2026-07-10 Hermes)。** 4 项 P1/P2 修复 + 契约测试。
 
-当前阶段：`S4_FORMAL_E4_RUNNING` — Step 2 MC generation 已由 Codex 授权，等待 Hermes 执行。
+当前阶段：`S4_FORMAL_E4_RUNNING` — Step 2 第三轮 REVISE fixes 已应用，等待 Codex 审查后授权 Step 3 reference analysis。
 
 ### 第一轮完成状态
 
@@ -54,7 +58,7 @@
 | `S5_CH7_AUTHORIZED` | Codex 验收 formal E4 后，才允许 Ch7 写作 handoff | Ch7 草稿完成 |
 | `S6_DONE` | E4 支线完成，Ch7 可进入主线整合 | 无 |
 
-当前阶段：`S4_FORMAL_E4_RUNNING` — Step 2 MC generation 已授权，等待 Hermes 执行。
+当前阶段：`S4_FORMAL_E4_RUNNING` — Step 2 第三轮 REVISE fixes 已应用，等待 Codex 审查后授权 Step 3 reference analysis。
 审查文件：`coworker/reviews/2026-07-10-study01-e4-validation-suite-codex.md`
 
 已确认的设计决策：
@@ -117,12 +121,14 @@ Loop 不等于无条件自动推进。以下情况必须停下等待 Codex 或�
 | Step 1 report | `coworker/reports/2026-07-10-study01-e4-step1-preflight-hermes.md` | **已完成** |
 | Step 1 Codex review | `coworker/reviews/2026-07-10-study01-e4-step1-preflight-codex.md` | **已完成：APPROVE Step 2** |
 | Step 2 handoff | `coworker/handoffs/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | 已创建 |
-| Step 2 report | `coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | 待 Hermes 写入 |
+| Step 2 report | `coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | **已完成：APPROVE for Step 3** |
 | Pilot artifacts | `Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/` | 已生成 |
 | Smoke script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_validation_smoke.py` | 已创建 |
-| MC generation script (untracked) | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py` | 已盘点 — 可复用于 Step 2 |
-| Analysis script (untracked) | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_formal_validation.py` | 已盘点 — 可复用于 Step 3+ |
-| Misplaced partial output (untracked) | `Study/artifacts/formal/E4_robustness/boundary_risk_curves.csv` | 已盘点 — MISPLACED + INCOMPLETE，建议 Codex/user 授权删除 |
+| MC generation script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py` | 已提交 (`8103587`)，Step 2 已执行 |
+| Analysis script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_formal_validation.py` | 已提交 (`8103587`)，待 Step 3 执行 |
+| Formal MC output (boundary) | `Study/01-study-.../artifacts/formal/E4_robustness/boundary_risk_curves.csv` | 已生成（260000 rows），已通过独立验证 |
+| Formal MC output (offgrid) | `Study/01-study-.../artifacts/formal/E4_robustness/offgrid_risk_curves.csv` | 已生成（182000 rows），已通过独立验证 |
+| Misplaced partial output | `Study/artifacts/` | 已删除（Step 2 cleanup） |
 
 ## E4 三轨定义
 
@@ -192,33 +198,32 @@ Not allowed:
 
 ## 下一步
 
-当前下一步：把 Step 2 MC generation handoff 发给 Hermes。
+当前下一步：等待 Codex 审查第三轮 REVISE fixes，授权 Step 3 (E4b/E4c reference analysis)。
 
-Step 1 report：`coworker/reports/2026-07-10-study01-e4-step1-preflight-hermes.md`
-Step 1 Codex review：`coworker/reviews/2026-07-10-study01-e4-step1-preflight-codex.md`
-Step 1 verdict：**APPROVE Step 2**，带 cleanup gate。
+第三轮 REVISE fixes 已完成（4 项 P1/P2 + 契约测试）：
+1. [P1] Chunk 校验改为从 worker 冻结分配派生 expected combo 集，拒绝缺失/额外 combo；merge 后增加总行数硬断言（260000/182000）
+2. [P1] `--tracks` fail-closed：请求 track 的必需输入在运行前预验证，缺失则 abort（exit 1），不写任何正式输出
+3. [P2] Summary track 状态语义：`e4d_skipped` 替换为 per-track `track_status`（requested/status: completed/not_requested/skipped_error/skipped_no_input）
+4. [P2] `get_git_info()` 增强：返回 `-dirty` 后缀；handoff inventory 已刷新
 
-Step 2 将执行：
-- 脚本：`Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py`
-- 产出：`boundary_risk_curves.csv` + `offgrid_risk_curves.csv` → `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E4_robustness/`
-- 预计耗时：~110 分钟 (34 combos × 500 repeats × 26 deltas, 4 workers)
-- Step 2 只跑 MC generation，不跑分析脚本，不跑 E4a/E4d。
+Step 2 report：`coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md`
+
+Step 2 已产出：
+- `boundary_risk_curves.csv`：260000 rows, B01-B20, R=500, 26 deltas — `Study/01-study-.../artifacts/formal/E4_robustness/`
+- `offgrid_risk_curves.csv`：182000 rows, O01-O14, R=500, 26 deltas — 同目录
+- 运行时间：115.3 分钟
+- 失败率：0.0000
+
+Step 3 将执行（待 Codex 授权）：
+- 脚本：`Study/01-study-MDM最小偏移量优化研究/code/run_E4_formal_validation.py --tracks e4b,e4c`
+- 产出：E4b_boundary_reference.csv, E4c_offgrid_reference.csv, endpoint_diagnostics.csv, near_optimal_diagnostics.csv, cost_report.csv, manifest_e4b_e4c.json, summary_e4b_e4c.json, run_log_e4b_e4c.txt
+- Step 3 = reference only（已通过 --tracks 参数实现硬 gate，E4a/E4d 不会执行也不会写输出）
 
 ## 下一步指令
 
-当前下一步：Hermes 执行 `coworker/handoffs/2026-07-10-study01-e4-step2-mc-generation-hermes.md`。
+当前下一步：等待 Codex 审查 `coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md`。
 
-Cleanup rule:
-
-- 若派发时附加精确句子 `Cleanup Study/artifacts approved`，Hermes 可删除误置的未跟踪 `Study/artifacts/` 后再跑 Step 2。
-- 若不附加该句，Hermes 不得删除/移动 `Study/artifacts/`，只记录忽略该误置目录并验证正确输出路径独立。
-
-Step 2 handoff 命令：
-
-```powershell
-$prompt = Get-Content -Raw .\coworker\handoffs\2026-07-10-study01-e4-step2-mc-generation-hermes.md
-hermes --skills coworker -z $prompt
-```
+Codex APPROVE 后，派 Step 3 handoff (E4b/E4c reference analysis only)。
 
 ### 已确认决策
 

@@ -814,14 +814,61 @@ def run_e4d(df_mc, df_boundary_feat, df_offgrid_feat,
 # ============================================================
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Study/01 Formal E4 Validation Analysis")
+    parser.add_argument(
+        '--tracks', type=str, default='e4a,e4b,e4c,e4d',
+        help='Comma-separated tracks to run (e.g. "e4b,e4c"). '
+             'Default: all tracks.')
+    args = parser.parse_args()
+
+    requested_tracks = set(t.strip().lower() for t in args.tracks.split(','))
+    valid_tracks = {'e4a', 'e4b', 'e4c', 'e4d'}
+    invalid = requested_tracks - valid_tracks
+    if invalid:
+        print(f"ERROR: Unknown tracks: {invalid}. Valid: {valid_tracks}")
+        sys.exit(1)
+
+    # ============================================================
+    # Pre-validate required inputs for requested tracks (fail-closed)
+    # ============================================================
+    required_inputs = {
+        'e4a': [MC_SCAN_PATH],
+        'e4b': [BOUNDARY_PATH],
+        'e4c': [OFFGRID_PATH],
+        'e4d': [MC_SCAN_PATH, BOUNDARY_PATH, OFFGRID_PATH],
+    }
+    missing_inputs = []
+    for track in sorted(requested_tracks):
+        for path in required_inputs[track]:
+            if not os.path.exists(path):
+                missing_inputs.append((track, path))
+    if missing_inputs:
+        print("ERROR: Required input files missing for requested tracks:")
+        for track, path in missing_inputs:
+            print(f"  [{track}] {path}")
+        print("Aborting before any output is produced.")
+        sys.exit(1)
+
     log("=" * 70)
     log("Study/01 Formal E4 — Validation Analysis")
     log(f"Started: {now_iso()}")
     log(f"Output: {E4_OUTPUT_DIR}")
+    log(f"Tracks requested: {sorted(requested_tracks)}")
     log("=" * 70)
 
     overall_t0 = time.time()
     all_cost = []
+    cost_e4a = pd.DataFrame()  # default empty for cost report logic
+
+    # Track status tracking for accurate summary semantics
+    track_status = {}
+    for t in valid_tracks:
+        if t in requested_tracks:
+            track_status[t] = {'requested': True, 'status': 'pending'}
+        else:
+            track_status[t] = {'requested': False, 'status': 'not_requested'}
 
     # --- Load existing MC data ---
     log("Loading main-grid MC data...")
@@ -832,61 +879,77 @@ def main():
         mc_manifest = json.load(f)
 
     # --- Check boundary/offgrid data availability ---
+    # (Required inputs already validated above for requested tracks.)
     has_boundary = os.path.exists(BOUNDARY_PATH)
     has_offgrid = os.path.exists(OFFGRID_PATH)
+
+    df_boundary = None
+    df_offgrid = None
 
     if has_boundary:
         df_boundary = pd.read_csv(BOUNDARY_PATH)
         log(f"  Boundary data: {len(df_boundary)} rows")
-    else:
-        log("  WARNING: boundary_risk_curves.csv not found — E4b/E4d will be limited")
-        df_boundary = None
 
     if has_offgrid:
         df_offgrid = pd.read_csv(OFFGRID_PATH)
         log(f"  Off-grid data: {len(df_offgrid)} rows")
-    else:
-        log("  WARNING: offgrid_risk_curves.csv not found — E4c/E4d will be limited")
-        df_offgrid = None
 
     # --- E4a: Feature ablation ---
-    e4a_t0 = time.time()
-    df_e4a, cost_e4a = run_e4a(df_mc)
-    e4a_elapsed = time.time() - e4a_t0
-    log(f"E4a total: {e4a_elapsed:.1f}s")
-    all_cost.append({'track': 'E4a', 'elapsed_s': e4a_elapsed, 'note': 'feature ablation'})
+    df_e4a = pd.DataFrame()
+    if 'e4a' in requested_tracks:
+        e4a_t0 = time.time()
+        df_e4a, cost_e4a = run_e4a(df_mc)
+        e4a_elapsed = time.time() - e4a_t0
+        log(f"E4a total: {e4a_elapsed:.1f}s")
+        all_cost.append({'track': 'E4a', 'elapsed_s': e4a_elapsed, 'note': 'feature ablation'})
+        track_status['e4a']['status'] = 'completed'
 
-    # Save E4a
-    e4a_path = os.path.join(E4_OUTPUT_DIR, "E4a_feature_ablation.csv")
-    df_e4a.to_csv(e4a_path, index=False)
-    log(f"  Saved: {e4a_path}")
+        # Save E4a
+        e4a_path = os.path.join(E4_OUTPUT_DIR, "E4a_feature_ablation.csv")
+        df_e4a.to_csv(e4a_path, index=False)
+        log(f"  Saved: {e4a_path}")
+    else:
+        log("E4a SKIPPED (not in --tracks)")
 
     # --- E4b: Boundary reference evaluation ---
     df_e4b = pd.DataFrame()
     e4b_summary = {}
-    if df_boundary is not None:
+    if 'e4b' in requested_tracks and df_boundary is not None:
+        e4b_t0 = time.time()
         df_e4b, e4b_summary = evaluate_references(df_boundary, "E4b")
+        e4b_elapsed = time.time() - e4b_t0
         e4b_path = os.path.join(E4_OUTPUT_DIR, "E4b_boundary_reference.csv")
         df_e4b.to_csv(e4b_path, index=False)
         log(f"  Saved: {e4b_path}")
-        all_cost.append({'track': 'E4b', 'elapsed_s': 0, 'note': 'boundary reference evaluation'})
+        all_cost.append({'track': 'E4b', 'elapsed_s': e4b_elapsed, 'note': 'boundary reference evaluation'})
+        track_status['e4b']['status'] = 'completed'
+    elif 'e4b' not in requested_tracks:
+        log("E4b SKIPPED (not in --tracks)")
 
     # --- E4c: Off-grid reference evaluation ---
     df_e4c = pd.DataFrame()
     e4c_summary = {}
-    if df_offgrid is not None:
+    if 'e4c' in requested_tracks and df_offgrid is not None:
+        e4c_t0 = time.time()
         df_e4c, e4c_summary = evaluate_references(df_offgrid, "E4c")
+        e4c_elapsed = time.time() - e4c_t0
         e4c_path = os.path.join(E4_OUTPUT_DIR, "E4c_offgrid_reference.csv")
         df_e4c.to_csv(e4c_path, index=False)
         log(f"  Saved: {e4c_path}")
-        all_cost.append({'track': 'E4c', 'elapsed_s': 0, 'note': 'offgrid reference evaluation'})
+        all_cost.append({'track': 'E4c', 'elapsed_s': e4c_elapsed, 'note': 'offgrid reference evaluation'})
+        track_status['e4c']['status'] = 'completed'
+    elif 'e4c' not in requested_tracks:
+        log("E4c SKIPPED (not in --tracks)")
 
     # --- E4d: Selector extrapolation diagnostic ---
     df_e4d = pd.DataFrame()
     e4d_train_time = 0
     e4d_skip = False
 
-    if df_boundary is not None and df_offgrid is not None:
+    if 'e4d' not in requested_tracks:
+        log("E4d SKIPPED (not in --tracks)")
+        # track_status['e4d'] already set to not_requested
+    elif df_boundary is not None and df_offgrid is not None:
         try:
             # Build feature tables for boundary and offgrid
             boundary_combos = [(cid, b, g, n) for cid, b, g, n in E4B_BOUNDARY_COMBOS]
@@ -912,14 +975,18 @@ def main():
             log(f"  Saved: {e4d_path}")
             all_cost.append({'track': 'E4d', 'elapsed_s': e4d_train_time,
                            'note': 'selector extrapolation diagnostic'})
+            track_status['e4d']['status'] = 'completed'
         except Exception as e:
             log(f"  E4d FAILED: {type(e).__name__}: {e}")
             e4d_skip = True
+            track_status['e4d']['status'] = 'skipped_error'
     else:
         log("  E4d SKIPPED: boundary/offgrid data not available")
         e4d_skip = True
+        track_status['e4d']['status'] = 'skipped_no_input'
 
-    if e4d_skip:
+    # Write E4d skip reason ONLY if e4d was requested but could not run
+    if e4d_skip and 'e4d' in requested_tracks:
         skip_path = os.path.join(E4_OUTPUT_DIR, "E4d_skip_reason.md")
         with open(skip_path, 'w') as f:
             f.write("# E4d Skip Reason\n\n")
@@ -975,27 +1042,66 @@ def main():
         all_cost_rows.append(dict(row))
     pd.DataFrame(all_cost_rows).to_csv(cost_path, index=False)
 
-    # --- Split report ---
-    split_path = os.path.join(E4_OUTPUT_DIR, "split_report.csv")
-    split_rows = []
-    for fold in get_combo_split():
-        for combo in fold['test_combos']:
-            split_rows.append({
-                'fold': fold['fold_name'],
-                'test_beta': combo[0],
-                'test_gamma_over_eta': combo[1],
-                'test_n': combo[2],
-            })
-    pd.DataFrame(split_rows).to_csv(split_path, index=False)
+    # --- Split report (E4a-specific, only if E4a was requested) ---
+    if 'e4a' in requested_tracks:
+        split_path = os.path.join(E4_OUTPUT_DIR, "split_report.csv")
+        split_rows = []
+        for fold in get_combo_split():
+            for combo in fold['test_combos']:
+                split_rows.append({
+                    'fold': fold['fold_name'],
+                    'test_beta': combo[0],
+                    'test_gamma_over_eta': combo[1],
+                    'test_n': combo[2],
+                })
+        pd.DataFrame(split_rows).to_csv(split_path, index=False)
 
     # --- Manifest ---
     git_commit = get_git_info()
     total_elapsed = time.time() - overall_t0
 
+    # Build output_files list dynamically: only files that were actually produced this run
+    output_files_actual = []
+    output_files_actual.append("cost_report.csv")
+    if 'e4a' in requested_tracks and len(df_e4a) > 0:
+        output_files_actual.append("E4a_feature_ablation.csv")
+        output_files_actual.append("split_report.csv")
+    if len(df_e4b) > 0:
+        output_files_actual.append("E4b_boundary_reference.csv")
+    if len(df_e4c) > 0:
+        output_files_actual.append("E4c_offgrid_reference.csv")
+    if endpoint_dfs:
+        output_files_actual.append("endpoint_diagnostics.csv")
+    if near_dfs:
+        output_files_actual.append("near_optimal_diagnostics.csv")
+    if not e4d_skip and len(df_e4d) > 0:
+        output_files_actual.append("E4d_selector_extrapolation.csv")
+    elif e4d_skip and 'e4d' in requested_tracks:
+        output_files_actual.append("E4d_skip_reason.md")
+
+    # Use track-specific manifest/summary/run_log filenames when not all tracks are requested
+    is_full_run = requested_tracks == valid_tracks
+    if is_full_run:
+        manifest_name = "manifest.json"
+        summary_name = "summary.json"
+        run_log_name = "run_log.txt"
+    else:
+        track_tag = "_".join(sorted(requested_tracks))
+        manifest_name = f"manifest_{track_tag}.json"
+        summary_name = f"summary_{track_tag}.json"
+        run_log_name = f"run_log_{track_tag}.txt"
+
+    output_files_actual.append(manifest_name)
+    output_files_actual.append(summary_name)
+    output_files_actual.append(run_log_name)
+
     manifest = {
         "run_id": "E4_formal_validation_v1",
         "created_at": now_iso(),
         "status": "FORMAL",
+        "tracks_requested": sorted(requested_tracks),
+        "is_full_run": is_full_run,
+        "track_status": track_status,
         "code_entry": "code/run_E4_formal_validation.py",
         "mc_generation_entry": "code/run_E4_mc_generation.py",
         "git_commit": git_commit,
@@ -1059,19 +1165,7 @@ def main():
             "raw_passthrough": FEATURE_COLS_RAW,
         },
         "total_elapsed_s": total_elapsed,
-        "output_files": [
-            "manifest.json", "summary.json", "run_log.txt",
-            "E4_acceptance_report.md",
-            "E4a_feature_ablation.csv",
-            "E4b_boundary_reference.csv",
-            "E4c_offgrid_reference.csv",
-            "boundary_risk_curves.csv",
-            "offgrid_risk_curves.csv",
-            "endpoint_diagnostics.csv",
-            "near_optimal_diagnostics.csv",
-            "cost_report.csv",
-            "split_report.csv",
-        ],
+        "output_files": output_files_actual,
         "notes": [
             "E4a uses existing main-grid MC data (read-only).",
             "E4b/E4c use new MDM risk curves generated by run_E4_mc_generation.py.",
@@ -1081,13 +1175,9 @@ def main():
         ],
     }
 
-    # Add E4d file to outputs if present
-    if not e4d_skip:
-        manifest["output_files"].append("E4d_selector_extrapolation.csv")
-    else:
-        manifest["output_files"].append("E4d_skip_reason.md")
+    # output_files_actual already includes E4d outputs if applicable
 
-    with open(os.path.join(E4_OUTPUT_DIR, "manifest.json"), 'w', encoding='utf-8') as f:
+    with open(os.path.join(E4_OUTPUT_DIR, manifest_name), 'w', encoding='utf-8') as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False, default=str)
 
     # --- Summary ---
@@ -1099,7 +1189,7 @@ def main():
         "e4a_summary": {},
         "e4b_summary": e4b_summary,
         "e4c_summary": e4c_summary,
-        "e4d_skipped": e4d_skip,
+        "track_status": track_status,
     }
 
     # E4a aggregate: mean/std across seeds per group
@@ -1116,12 +1206,13 @@ def main():
                     "mean_near_5pct": float(sub['near_5pct'].mean()),
                 }
 
-    with open(os.path.join(E4_OUTPUT_DIR, "summary.json"), 'w', encoding='utf-8') as f:
+    with open(os.path.join(E4_OUTPUT_DIR, summary_name), 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, ensure_ascii=False, default=str)
 
     # --- Run log ---
-    with open(os.path.join(E4_OUTPUT_DIR, "run_log.txt"), 'w', encoding='utf-8') as f:
+    with open(os.path.join(E4_OUTPUT_DIR, run_log_name), 'w', encoding='utf-8') as f:
         f.write(f"Study/01 Formal E4 Validation Analysis\n")
+        f.write(f"Tracks: {sorted(requested_tracks)}\n")
         f.write(f"Started: {manifest['created_at']}\n")
         f.write(f"Git commit: {git_commit}\n")
         f.write(f"Total elapsed: {total_elapsed:.1f}s ({total_elapsed/60:.1f} min)\n\n")
