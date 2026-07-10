@@ -5,9 +5,11 @@
 
 ## 快速结论
 
-第一轮 smoke/pilot 已完成并通过 Codex 条件审查。三轨验证合同已设计，pipeline 已验证，第二轮 formal E4 batch handoff 已准备。
+第一轮 smoke/pilot 已完成并通过 Codex 条件审查。由于 Hermes/GLM API 不稳定，原一次性 formal batch 改为 staged execution。
 
-当前阶段：`S3_FORMAL_E4_AUTHORIZED` — 等待 Hermes 执行第二轮 formal E4 batch。
+**Step 1 preflight 已完成 (2026-07-10 Hermes)。** Verdict: APPROVE Step 2 (MC generation only)。
+
+当前阶段：`S4_FORMAL_E4_RUNNING` — Step 2 MC generation 已由 Codex 授权，等待 Hermes 执行。
 
 ### 第一轮完成状态
 
@@ -52,9 +54,7 @@
 | `S5_CH7_AUTHORIZED` | Codex 验收 formal E4 后，才允许 Ch7 写作 handoff | Ch7 草稿完成 |
 | `S6_DONE` | E4 支线完成，Ch7 可进入主线整合 | 无 |
 
-当前阶段：`S3_FORMAL_E4_AUTHORIZED`。
-
-Codex 审查已完成（2026-07-10）：APPROVE (conditional)。
+当前阶段：`S4_FORMAL_E4_RUNNING` — Step 2 MC generation 已授权，等待 Hermes 执行。
 审查文件：`coworker/reviews/2026-07-10-study01-e4-validation-suite-codex.md`
 
 已确认的设计决策：
@@ -110,11 +110,19 @@ Loop 不等于无条件自动推进。以下情况必须停下等待 Codex 或�
 | Hermes handoff | `coworker/handoffs/2026-07-09-study01-e4-validation-suite-hermes.md` | 已创建 |
 | Hermes report | `coworker/reports/2026-07-09-study01-e4-validation-suite-hermes.md` | 已完成 |
 | Codex review | `coworker/reviews/2026-07-10-study01-e4-validation-suite-codex.md` | 已完成 |
-| Formal batch plan | `coworker/plans/2026-07-10-study01-e4-formal-batch.md` | 已创建 |
-| Formal batch handoff | `coworker/handoffs/2026-07-10-study01-e4-formal-batch-hermes.md` | 已创建 |
-| Formal batch report | `coworker/reports/2026-07-10-study01-e4-formal-batch-hermes.md` | 待 Hermes 写入 |
+| Superseded batch plan | `coworker/plans/2026-07-10-study01-e4-formal-batch.md` | 保留为设计参考，不直接派发 |
+| Superseded batch handoff | `coworker/handoffs/2026-07-10-study01-e4-formal-batch-hermes.md` | 保留为设计参考，不直接派发 |
+| Staged execution plan | `coworker/plans/2026-07-10-study01-e4-staged-execution.md` | 已创建 |
+| Step 1 handoff | `coworker/handoffs/2026-07-10-study01-e4-step1-preflight-hermes.md` | 已创建 |
+| Step 1 report | `coworker/reports/2026-07-10-study01-e4-step1-preflight-hermes.md` | **已完成** |
+| Step 1 Codex review | `coworker/reviews/2026-07-10-study01-e4-step1-preflight-codex.md` | **已完成：APPROVE Step 2** |
+| Step 2 handoff | `coworker/handoffs/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | 已创建 |
+| Step 2 report | `coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | 待 Hermes 写入 |
 | Pilot artifacts | `Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/` | 已生成 |
 | Smoke script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_validation_smoke.py` | 已创建 |
+| MC generation script (untracked) | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py` | 已盘点 — 可复用于 Step 2 |
+| Analysis script (untracked) | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_formal_validation.py` | 已盘点 — 可复用于 Step 3+ |
+| Misplaced partial output (untracked) | `Study/artifacts/formal/E4_robustness/boundary_risk_curves.csv` | 已盘点 — MISPLACED + INCOMPLETE，建议 Codex/user 授权删除 |
 
 ## E4 三轨定义
 
@@ -184,29 +192,33 @@ Not allowed:
 
 ## 下一步
 
-当前下一步：把第二轮 formal E4 batch handoff 发给 Hermes。
+当前下一步：把 Step 2 MC generation handoff 发给 Hermes。
 
-handoff：`coworker/handoffs/2026-07-10-study01-e4-formal-batch-hermes.md`
+Step 1 report：`coworker/reports/2026-07-10-study01-e4-step1-preflight-hermes.md`
+Step 1 Codex review：`coworker/reviews/2026-07-10-study01-e4-step1-preflight-codex.md`
+Step 1 verdict：**APPROVE Step 2**，带 cleanup gate。
 
-第二轮 Hermes 必须完成：
-
-1. 按 Codex review 修正 first-round 遗留问题。
-2. 跑 E4a/E4b/E4c formal batch。
-3. 可行则跑单独标记的 `E4d_selector_extrapolation` 诊断；不可行则写 skip reason。
-4. 只写 formal E4 report，不写 Ch7。
+Step 2 将执行：
+- 脚本：`Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py`
+- 产出：`boundary_risk_curves.csv` + `offgrid_risk_curves.csv` → `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E4_robustness/`
+- 预计耗时：~110 分钟 (34 combos × 500 repeats × 26 deltas, 4 workers)
+- Step 2 只跑 MC generation，不跑分析脚本，不跑 E4a/E4d。
 
 ## 下一步指令
 
-当前下一步：Hermes 执行 `coworker/handoffs/2026-07-10-study01-e4-formal-batch-hermes.md`。
+当前下一步：Hermes 执行 `coworker/handoffs/2026-07-10-study01-e4-step2-mc-generation-hermes.md`。
 
-建议命令：
+Cleanup rule:
+
+- 若派发时附加精确句子 `Cleanup Study/artifacts approved`，Hermes 可删除误置的未跟踪 `Study/artifacts/` 后再跑 Step 2。
+- 若不附加该句，Hermes 不得删除/移动 `Study/artifacts/`，只记录忽略该误置目录并验证正确输出路径独立。
+
+Step 2 handoff 命令：
 
 ```powershell
-$prompt = Get-Content -Raw .\coworker\handoffs\2026-07-10-study01-e4-formal-batch-hermes.md
+$prompt = Get-Content -Raw .\coworker\handoffs\2026-07-10-study01-e4-step2-mc-generation-hermes.md
 hermes --skills coworker -z $prompt
 ```
-
-Hermes 完成后，Codex 审查 `coworker/reports/2026-07-10-study01-e4-formal-batch-hermes.md` 和 `artifacts/formal/E4_robustness/`，再决定是否进入 `S5_CH7_AUTHORIZED`。
 
 ### 已确认决策
 
@@ -220,4 +232,4 @@ Hermes 完成后，Codex 审查 `coworker/reports/2026-07-10-study01-e4-formal-b
 - Report 路径：`coworker/reports/2026-07-09-study01-e4-validation-suite-hermes.md`
 - Codex review 路径：`coworker/reviews/2026-07-10-study01-e4-validation-suite-codex.md`
 - Pilot artifacts 路径：`Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/`
-- 第二轮 handoff 路径：`coworker/handoffs/2026-07-10-study01-e4-formal-batch-hermes.md`
+- 当前 Step 1 handoff 路径：`coworker/handoffs/2026-07-10-study01-e4-step1-preflight-hermes.md`
