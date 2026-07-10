@@ -6,6 +6,23 @@
 
 ---
 
+## 【作者备注】全文术语表
+
+| 规范写法 | 首次出现 | 禁止漂移/使用说明 |
+|----------|----------|-------------------|
+| Minimum Discrepancy Method（MDM） | 首次出现写全称，之后统一用 MDM | 正文不在 MDM/MDE 之间切换；讨论原始论文命名时另行说明 |
+| 偏移量 `delta` | 中文正文首次写“偏移量 `delta`”，之后可简称 `delta` | 不在“offset 参数”“修正量”“小正数”之间随意换名 |
+| `nabla gamma`（原文写作 `∇γ`） | Ch2 首次定义为 `sigma_eta,min(gamma)` 关于位置参数 `gamma` 的离散梯度 | 尊重第二篇 MDM 原文记号；必须说明不是 `gamma` 自身的梯度，不另改名为 `g(gamma)` |
+| Default（`delta = 0.1`） | Ch3 正式定义 | Default 专指原文经验设置，不泛指任意基线 |
+| L1-L6 信息层级 | Ch3 正式定义 | L1/L2 为可部署层级；L3-L5 为 oracle 参照；L6 为 sample-level hindsight benchmark |
+| oracle 参照 | 首次出现说明依赖真参数 | 不写成可直接部署策略或理论上界 |
+| hindsight benchmark | 首次出现说明是扫描网格内逐样本事后参照 | 不写成理论上限或实际部署目标 |
+| 神经网络（NN） | Ch1 结尾首次点明，Ch6 定义具体结构 | NN 是样本自适应 offset 选择的主要实现方法，不是论文目的 |
+| Vector-MLP | Ch6 定义 | 仅在指 E3b 的具体 vector-output MLP 模型时使用，不与 NN 泛称混用 |
+| 现有正式离散参数网格（existing-grid） | Ch6 首次界定证据边界 | 不简写成连续空间或无条件泛化 |
+
+---
+
 ## 【作者备注】引用标注规则
 
 - `(182-XXX)` 为文献库一手引用。

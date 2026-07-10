@@ -37,7 +37,7 @@ E3b 封存点：`bedd65a`
 解释边界：
 
 - `Vector-MLP-L6` 超过 L5-oracle 不表示超过理论上界；L5 是组级真参数 oracle，L6 才是逐样本 hindsight benchmark。
-- endpoint rate 高不是自动失败；L6-hindsight 本身也高度 endpoint 化，必须结合 selected-loss J1 和 near-optimal/regret 判断。
+- 网格边缘诊断必须分开 exact $P(\delta=0)$、exact $P(\delta=0.50)$ 与 extreme/near-boundary rate。E3b 中 `P_extreme` 定义为 $P(\delta\in\{0,0.02,0.48,0.50\})$，不是 exact endpoint rate。L6-hindsight 的 $P(\delta=0)=0.4746$ 与 $P(\delta=0.50)=0.0657$ 含义不同，必须结合 selected-loss J1 和 near-optimal/regret 判断。
 - E3b 的输入不包含真参数、配置 ID、seed、`repeat_id` 或 candidate `delta`；真参数只用于离线标签和评价。
 
 ## 触发 E3c 的条件
@@ -64,6 +64,7 @@ E4 适合回答边界与稳健性，而不是继续证明 Ch6 的主信号。建
 1. 需要说明方法在更小 `n`、更大 `n`、更极端 `beta` 或 `gamma/eta=0` 时是否仍可用。
 2. 需要比较计算成本、失败率、endpoint 行为和 near-optimal 行为的边界。
 3. 需要给实践推荐分层：何时用 Default，何时用 L2，何时值得用样本自适应模型。
+4. 需要回答当前 $δ\le0.50$ 是否截断了部分逐样本风险曲线。扩展上界敏感性至少应报告 L6 上端点质量的迁移、扩展区间内风险曲线方向，以及样本自适应 selected-loss 主判断是否改变。这是 Ch7/E4 的边界接口，不要求默认重跑 Ch1-Ch6 的 E1/E2 主网格。
 
 若不启动 E4，Ch7/Discussion 仍可写，但必须是边界说明而不是强推荐。
 

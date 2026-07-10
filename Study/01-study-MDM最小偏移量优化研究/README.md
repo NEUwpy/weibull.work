@@ -71,6 +71,7 @@ MDM 方法相关原文在本地文献库中已有 Markdown 正文、图片和 PD
    - `03-论文骨架.md`
    - `04-待复核清单.md`
    - `05-投稿进度控制.md`
+   - `06-grill-me-论文完善续接记录.md`（开新窗口时优先阅读）
 4. 历史动机与总体想法：
    - `Study/研究规划备忘录.md`
    - `history/2026-07-03-头脑风暴进度.md`
@@ -129,8 +130,8 @@ Formal E2 L3-L6 Oracle 层级
 Formal E3 样本自适应 δ 选择
   -> 在真参数不可见时，用样本可观测特征和 n 学习 δ 选择规则；E3b 用 vector-output MLP 验证 existing-grid 可达性，但不自动外推 continuous-space 泛化
 
-Formal E4 边界与稳健性
-  -> 跨 β/n/gamma_eta、极小样本、失败处理、计算成本
+Formal E4 消融、边界与稳健性
+  -> E4a 正式特征组消融；其余模块检查跨 β/n/gamma_eta、极小样本、失败处理、计算成本和网格上界
 ```
 
 ## 工作边界
@@ -141,6 +142,7 @@ Formal E4 边界与稳健性
 - 正式实验应优先调用 `python/studies/common` 与 `python/methods/mdm.py`，但正式代码、配置、manifest 和输出应组织在本目录下。
 - 正式实验必须保留 `results.csv`、`summary.json`、`manifest.json` 等可复现实验产物。
 - 本目录应保存论文级整理材料；大规模原始输出不要直接堆进来，除非先说明用途和来源。
+- 替换或重绘已进入论文工作流的图表前，必须先把旧版 PNG/SVG/PDF 等完整导出包归档到 `history/figures/YYYY-MM-DD-<figure>-<revision>/`，并附来源提交、替换原因和恢复说明；禁止只覆盖或删除旧图。`history/figures/` 仅用于追溯与恢复，不作为当前正文或正式证据源。
 - `artifacts/formal/shared_data/mc_scan_raw.csv` 被 `.gitignore` 排除（体积过大）。干净 clone 后需先运行 `python code/generate_mc_data.py --merge-only` 从 tracked chunks 合并出分析输入。tracked chunks 是正式数据源，`mc_scan_raw.csv` 是分析脚本的直接读取对象。
 - 不要把本文写成“用神经网络优化 MDM”的单一 ML 论文；本文主线是偏移量 `delta` 的层级最优性、改善幅度和部署可达性。神经网络/Vector-MLP 是 Ch6 解决样本自适应 `delta` 选择问题的当前主要方法，但不是论文目的本身。
 
@@ -156,4 +158,5 @@ Formal E4 边界与稳健性
 | `03-论文骨架.md` | 按 Formal E1-E4 的正式证据链组织论文；章节图表需求写在各章手段中 |
 | `04-待复核清单.md` | 检查正式代码、正式实验产物、指标、统计、图表和正文主张 |
 | `05-投稿进度控制.md` | 以投稿闸门管理从正式实验设计到投稿包的进度 |
+| `06-grill-me-论文完善续接记录.md` | 汇总逐问锁定的论文决策、已落地产物、验证状态、Hermes/E4 所有权边界与新窗口续接点 |
 | `history/2026-07-03-头脑风暴进度.md` | 历史动机与决策来源归档；不是当前执行规则的最高优先级来源 |
