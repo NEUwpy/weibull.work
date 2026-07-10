@@ -1,9 +1,9 @@
 # E4 Validation Suite — Hermes First-Round Report
 
-> Date: 2026-07-09  
-> Stage: S1_FIRST_ROUND_RUNNING → S2_CODEX_REVIEW  
-> Author: Hermes  
-> Plan: `coworker/plans/2026-07-09-study01-e4-validation-suite.md`  
+> Date: 2026-07-09<br>
+> Stage: S1_FIRST_ROUND_RUNNING → S2_CODEX_REVIEW<br>
+> Author: Hermes<br>
+> Plan: `coworker/plans/2026-07-09-study01-e4-validation-suite.md`
 > Status/Handoff: `Study/01-study-MDM最小偏移量优化研究/E4-validation-suite-状态交接.md`
 
 ## Verdict
@@ -159,7 +159,7 @@ The E3b Vector-MLP-L6 model was NOT serialized. The E3b script trains and evalua
 
 **Recommendation**: Option C for E4b (evaluate references only on boundary). Option A as a separate diagnostic if Codex approves. Option B is E3c territory.
 
-**Cost estimate (Option C)**: 
+**Cost estimate (Option C)**:
 - Boundary combos: 2β × 3γ/η × 2n × 1η = 12 new combos (plus 3 from smoke). Actually full boundary = (7 main β + 2 boundary β) × (3 main γ/η + 1 boundary γ/η) × (3 main n + 2 boundary n) × 1η — but we only need the NEW boundary combos, not re-run existing ones.
 - Conservative: ~20 new boundary combos × 26 δ × 500 repeats = 260,000 MDM calls.
 - At ~100ms/call serial: ~7.2 hours. With 4 workers: ~1.8 hours.

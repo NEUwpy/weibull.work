@@ -1,8 +1,8 @@
 # Study/01 E4 — Codex Review of Step 1 Preflight
 
-> Date: 2026-07-10  
-> Reviewer: Codex  
-> Report: `coworker/reports/2026-07-10-study01-e4-step1-preflight-hermes.md`  
+> Date: 2026-07-10<br>
+> Reviewer: Codex<br>
+> Report: `coworker/reports/2026-07-10-study01-e4-step1-preflight-hermes.md`
 > Status/Handoff: `Study/01-study-MDM最小偏移量优化研究/E4-validation-suite-状态交接.md`
 
 ## Verdict: APPROVE STEP 2, WITH CLEANUP GATE
