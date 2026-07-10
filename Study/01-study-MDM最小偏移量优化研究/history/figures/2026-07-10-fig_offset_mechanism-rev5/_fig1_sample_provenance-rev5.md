@@ -1,6 +1,6 @@
 # Figure 1 (fig_offset_mechanism) 样本溯源报告
 
-> 生成时间：2026-07-10（rev 6：Panel A 改为对称的典型效果选样；Panel B/C 保持 ECDF + 严格配对误差散点）
+> 生成时间：2026-07-10（rev 5：Panel B 改为 ECDF，Panel C 改为严格配对误差散点）
 > 图：`artifacts/formal/figures/fig_offset_mechanism.{png,svg,pdf}`
 > 脚本：`code/plot_fig_diagnostics.py` → `plot_fig_offset_mechanism()`
 
@@ -8,7 +8,7 @@
 
 本图从 rev 3 的单 panel 梯度判据图升级为三子图机制/波动诊断。三 panel 共享代表配置 β=2.0, η=1000, γ=1000, n=7（贴近 182-046 原文语境 W(2.0,1000,1000), n=7）。
 
-- **Panel A**：真实 MDM γ profile / 梯度判据图。横轴 γ，纵轴 profile gradient（第二篇原文记号 `nabla gamma`）；两条水平判据线 `nabla gamma=0`（zero-grad）与 `nabla gamma=0.1`（offset δ）；三个代表样本的真实 grad_gamma_curve 和对应搜索位置 marker。
+- **Panel A**：真实 MDM γ profile / 梯度判据图。横轴 γ，纵轴 profile gradient；两条水平判据线 y=0（zero-grad）与 y=0.1（offset δ）；三个代表样本的真实 grad_gamma_curve 和对应搜索位置 marker。
 - **Panel B**：δ=0 与 δ=0.1 的 γ̂ ECDF（MC R=1000）。横轴 γ̂（乘 1000 对齐 Panel A 语境），纵轴经验累积概率；直接显示 δ=0 在 γ̂=0 处的边界质量。
 - **Panel C**：同一 `repeat_id` 下绝对归一化误差的配对散点。横轴为 δ=0，纵轴为 δ=0.1；对角线下方为改善，上方为变差。
 
@@ -17,8 +17,7 @@
 - **核心结论**：`delta` 会改变 `gamma` 搜索判据并系统性改变有限样本估计分布；`delta=0.1` 总体上能够缓解部分不稳定情况，但并非每个样本都改善，因此 `delta` 应被视为需要正式优化的决策变量。
 - **图形类型**：quantitative grid；Panel A 承担机制主证据，后续 panel 承担总体分布与逐样本异质性证据。
 - **证据边界**：本图不证明 `delta=0.1` 全条件最优，不替代 Ch4 的 E1 正式比较，也不把代表曲线选择写成总体效果证据。
-- **必须保留**：真实 MDM trace、原文 `nabla gamma=0` 与 `nabla gamma=0.1` 判据、总体分布信息，以及改善/变差样本同时存在的可视证据。
-- **尺度合同**：Panel B/C 将正式 `W(2,1,1)` 结果乘 1000 映射到 `W(2,1000,1000)` 展示尺度；这一处理依据 Ch2 的 MDM 尺度等变性推导，并由 `python/tests/test_mdm_s49.py::test_default_mdm_is_scale_equivariant_for_fixed_offset` 的 $c=1000$ 回归测试锁定。
+- **必须保留**：真实 MDM trace、`y=0` 与 `y=0.1` 判据、总体分布信息，以及改善/变差样本同时存在的可视证据。
 - **已处理的审稿风险**：Panel B/C 信息重复已通过 ECDF + 配对散点消除；边界质量不再被密度尖峰遮蔽；内部 `repeat_id` 已移出主图；高梯度曲线裁切已在图注中说明。
 - **仍需复核**：代表曲线只能承担机制示例，不能承担总体效果证据；最终投稿格式确定后复核 SVG/PDF/位图导出规格。
 
@@ -41,17 +40,16 @@
 
 扫描 `repeat_id=0-99`（共 100 个样本），对每个样本：
 1. 跑 `MDM(sample).run(trace=True, offset=0.1, gamma_steps=200)`
-2. 从 `grad_gamma_curve` 计算 curve-derived zero marker（`nabla gamma=0` sign-change 插值，
+2. 从 `grad_gamma_curve` 计算 curve-derived zero marker（y=0 sign-change 插值，
    或曲线 gradient 最接近 0 的点）
 3. solver root 作为 offset marker（γ_offset）
 
-定义配对效果变化 `Delta_abs_err = |err_offset| - |err_zero|`，从 100 个样本中按以下对称规则选 3 条代表曲线：
-
-- **minimal-change**：`|Delta_abs_err|` 最小；只表示两种判据效果接近，不表示估计接近真值。
-- **typical-improvement**：`Delta_abs_err < 0` 的改善组按效果变化排序后取 lower median。
-- **typical-worsening**：`Delta_abs_err > 0` 的变差组按效果变化排序后取 lower median。
-
-minimal-change 样本从改善/变差池中排除，确保三条曲线不重复。该规则不再选择 largest-improvement 极端样本。
+从 100 个样本中按以下规则选 3 条代表曲线：
+- **closest-to-true**: `|err_zero|` 最小
+- **largest-improvement**: `|err_zero| - |err_offset|` 最大
+- **mild-worsening**: 从 worsening 样本池（`|err_offset| > |err_zero|`）中，
+  按 worsening 增量（`|err_offset| - |err_zero|`）升序排列后取中位数附近的样本。
+  避免极端 worsening 样本（如 rid=99，+69.8pp）拉满纵轴，保持判据区间可读。
 
 ### Panel A 扫描结果摘要（β=2.0, n=7, 100 样本）
 
@@ -68,28 +66,30 @@ offset=0.0 solver 作为 zero marker，改用 curve-derived。
 
 ### Panel A 选中样本详情
 
-#### rid=83 (minimal-change)
+#### rid=26 (closest-to-true)
 
-- sample (n=7): [1561.8, 1618.5, 1674.5, 1677.6, 1717.7, 1783.1, 3167.9]
-- γ_zero(curve) = 1551.1 (err +55.1%, `nabla gamma=0` sign-change 插值)
-- γ_offset(solver δ=0.1) = 1551.4 (err +55.1%)
-- **δ 效果**：绝对误差变化 +0.03pp，代表两种判据效果几乎不变；不代表估计准确。
+- sample (n=7): [1205.0, 1544.9, 1571.6, 1648.5, 1927.9, 2171.7, 3399.9]
+- γ_zero(curve) = 1000.7 (err +0.1%, y=0 sign-change 插值)
+- γ_offset(solver δ=0.1) = 1033.3 (err +3.3%)
+- **δ 效果**：轻微变差（|err| 0.1% → 3.3%）
 
-#### rid=41 (typical-improvement, 按改善组效果变化取 lower median)
+#### rid=77 (largest-improvement)
 
-- sample (n=7): [1146.1, 1536.6, 1574.8, 2053.0, 2056.0, 2348.7, 2393.6]
+- sample (n=7): [1289.5, 1326.8, 1637.6, 1946.4, 2215.7, 2360.2, 2408.8]
 - γ_zero(curve) = 0.0 (err −100.0%, 曲线 gradient 全程 >0，min=0.0087 在 γ=0 边界)
-- γ_offset(solver δ=0.1) = 631.0 (err −36.9%)
-- **δ 效果**：典型改善（|err| 100.0% → 36.9%，改善 63.1pp），但并未恢复为近乎无误差估计。
+- γ_offset(solver δ=0.1) = 991.9 (err −0.8%)
+- **δ 效果**：大幅改善（|err| 100% → 0.8%）
 - 注：此样本的 zero-gradient 曲线不过零（gradient 始终为正），
   说明零梯度判据在此样本下无有效域内解，curve-derived zero 退到 γ=0 边界
 
-#### rid=93 (typical-worsening, 按变差组效果变化取 lower median)
+#### rid=93 (mild-worsening, 按 worsening 增量中位数选取)
 
 - sample (n=7): [1313.8, 1485.9, 1517.8, ...]
-- γ_zero(curve) = 1177.9 (err +17.8%, `nabla gamma=0` sign-change 插值)
+- γ_zero(curve) = 1177.9 (err +17.8%, y=0 sign-change 插值)
 - γ_offset(solver δ=0.1) = 1199.4 (err +19.9%)
 - **δ 效果**：轻微变差（|err| 17.8% → 19.9%，worsening 增量 +2.1pp）
+- 对比：最大 worsening 样本 rid=99 的增量为 +69.8pp（+6.7%→+76.5%），
+  会让纵轴被尖峰拉满，故不放入主图
 
 ### Panel A 曲线验证
 
@@ -99,8 +99,8 @@ source 字段包含 `trace_grid`（真实计算网格点）和 `solver_root`（�
 
 ### Panel A 纵轴范围说明
 
-Panel A 纵轴聚焦 `[-0.2, 0.6]`，让 `nabla gamma=0` 和 `nabla gamma=0.1` 两条判据线的差异可读。
-曲线在 γ→t_min 时梯度趋向大正值（rid=41/93 可超过当前显示上限），这些尖峰被
+Panel A 纵轴聚焦 `[-0.2, 0.6]`，让 y=0 和 y=0.1 两条判据线的差异可读。
+曲线在 γ→t_min 时梯度趋向大正值（rid=77/93 可达 2.7+），这些尖峰被
 裁切以保持判据区间的视觉可读性，不影响 marker 和交点的准确性。
 
 ---

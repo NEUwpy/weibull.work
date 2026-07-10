@@ -241,48 +241,46 @@ def _scan_mdm_samples(beta, eta, gamma_true, n, delta, n_repeats=100,
 def _select_representative_samples(results, gamma_true):
     """按可复现规则从扫描结果选 3 个代表样本。
 
-    令 effect_change = |err_offset| - |err_zero|：
-      - near-neutral: |effect_change| 最小
-      - typical-improvement: effect_change < 0 的组内中位样本
-      - typical-worsening: effect_change > 0 的组内中位样本
-
-    近中性样本从后两组排除，保证三条代表曲线不重复。偶数组使用
-    lower median，避免选择更极端的一侧。若某一效果组为空则返回 None。
+    选择规则（不手工挑图）：
+      - closest: |err_zero| 最小
+      - largest_improvement: |err_zero|-|err_offset| 最大
+      - mild_worsening: 从 worsening 样本（|err_offset|>|err_zero|）中，
+        按 worsening 增量（|err_offset|-|err_zero|）取中位数附近的样本，
+        避免极端样本拉满 y 轴。若没有 worsening 样本，返回 None。
     """
-    _ = gamma_true  # 保留调用签名；选样只依赖配对误差变化
     valid = [r for r in results if r["gamma_zero_curve"] is not None]
-    if not valid:
-        raise ValueError("at least one valid trace is required")
 
-    def effect_change(row):
-        return abs(row["err_offset"]) - abs(row["err_zero_curve"])
+    closest = min(valid, key=lambda r: abs(r["err_zero_curve"]))
 
-    neutral = min(
-        valid,
-        key=lambda r: (abs(effect_change(r)), int(r["rid"])),
-    )
-
-    remaining = [r for r in valid if r is not neutral]
     improvers = sorted(
-        (r for r in remaining if effect_change(r) < 0.0),
-        key=lambda r: (effect_change(r), int(r["rid"])),
+        valid,
+        key=lambda r: -(abs(r["err_zero_curve"]) - abs(r["err_offset"])),
     )
-    worseners = sorted(
-        (r for r in remaining if effect_change(r) > 0.0),
-        key=lambda r: (effect_change(r), int(r["rid"])),
-    )
+    best_imp = improvers[0]
 
-    typical_improvement = improvers[(len(improvers) - 1) // 2] if improvers else None
-    typical_worsening = worseners[(len(worseners) - 1) // 2] if worseners else None
-    return neutral, typical_improvement, typical_worsening
+    # worsening 池：只保留真正变差的样本
+    worseners = [r for r in valid
+                 if abs(r["err_offset"]) > abs(r["err_zero_curve"])]
+    if not worseners:
+        best_worsen = None
+    else:
+        # 按 worsening 增量排序，取中位数附近的样本
+        worseners_sorted = sorted(
+            worseners,
+            key=lambda r: (abs(r["err_offset"]) - abs(r["err_zero_curve"])),
+        )
+        mid_idx = len(worseners_sorted) // 2
+        best_worsen = worseners_sorted[mid_idx]
+
+    return closest, best_imp, best_worsen
 
 def plot_fig_offset_mechanism():
     """δ 机制/波动诊断三子图（Figure 1）。
 
     三 panel 共享代表配置 β=2.0, η=1000, γ=1000, n=7（贴近 182-046 语境）。
       - Panel A：真实 MDM γ profile / 梯度判据图。扫描 repeat_id=0-99，
-        按配对误差变化的对称规则选 3 个代表样本（near-neutral /
-        typical-improvement / typical-worsening），从 grad_gamma_curve 绘制 y=0 与 y=δ=0.1 两条
+        按可复现规则选 3 个代表样本（closest-to-true / largest-improvement /
+        mild-worsening），从 grad_gamma_curve 绘制 y=0 与 y=δ=0.1 两条
         判据线及对应搜索位置。每条曲线是真实计算结果，不是 stylized schematic。
       - Panel B：δ=0 与 δ=0.1 的 γ̂ ECDF（n=7，MC R=1000）。
         数据来自正式 mc_scan_raw.csv（与 Panel A 等价配置 eta=1.0/gamma=1.0，
@@ -308,21 +306,18 @@ def plot_fig_offset_mechanism():
             json.dump(results, f)
         print(f"  Cached scan to {os.path.basename(cache_path)}")
 
-    neutral, typical_imp, typical_worsen = _select_representative_samples(
+    closest, best_imp, best_worsen = _select_representative_samples(
         results, gamma_true
     )
 
     # 构建绘图数据
     plot_items = [
-        ("Minimal change", neutral, "#009E73", "o"),
+        ("Near-neutral", closest, "#009E73", "o"),
+        ("Large improvement", best_imp, "#D55E00", "s"),
     ]
-    if typical_imp is not None:
+    if best_worsen is not None:
         plot_items.append(
-            ("Typical improvement", typical_imp, "#D55E00", "s")
-        )
-    if typical_worsen is not None:
-        plot_items.append(
-            ("Typical worsening", typical_worsen, "#0072B2", "^")
+            ("Mild worsening", best_worsen, "#0072B2", "^")
         )
 
     print(f"  Selected samples:")
@@ -406,7 +401,7 @@ def plot_fig_offset_mechanism():
             fontsize=5.5, color="#D55E00", ha="left", va="center",
             fontweight="bold")
 
-    # ── 对 typical-improvement 样本标出水平位移 ──
+    # ── 对 largest-improvement 样本（rid=77）标出水平位移 ──
     imp_item = next((it for it in plot_items if "improvement" in it[0].lower()), None)
     if imp_item is not None:
         _, imp_r, imp_color, _ = imp_item
