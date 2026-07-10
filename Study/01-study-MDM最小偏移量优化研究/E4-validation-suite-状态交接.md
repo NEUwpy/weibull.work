@@ -124,6 +124,7 @@ Loop 不等于无条件自动推进。以下情况必须停下等待 Codex 或�
 | Step 2 handoff | `coworker/handoffs/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | 已创建 |
 | Step 2 report | `coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | **已完成：APPROVE for Step 3** |
 | Step 3 report | `coworker/reports/2026-07-10-study01-e4-step3-reference-analysis-hermes.md` | **已完成：APPROVE for Step 4+** |
+| Step 4 report | `coworker/reports/2026-07-10-study01-e4-step4-feature-ablation-hermes.md` | **已完成：E4a formal evidence verified; consolidate to main** |
 | Pilot artifacts | `Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/` | 已生成 |
 | Smoke script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_validation_smoke.py` | 已创建 |
 | MC generation script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py` | Step 2 生成版本: `8103587`；R3 fail-closed 增强在 `b65eba7` |
@@ -199,6 +200,17 @@ Not allowed:
 - 只有 Codex review 后，才能把 `pilot` 改成 `formal approved` 或把结果写成 Ch7 可用结论。
 
 ## 下一步
+
+### 2026-07-11 当前权威动作
+
+- E4a Step 4 已完成：60 runs = 4 feature groups × 5 combo folds × 3 seeds，`pooled_J1` 等全部数值字段无 NaN/Inf。
+- `split_report.csv` 为 45 个唯一 test combos，每折 9 个；`manifest_e4a.json` 标记 `FORMAL/completed`。
+- Step 3 的 E4b/E4c 文件由提交 `0147baa` 跟踪且与提交一致；此前暂时消失的根因是单工作树在 00:15 切到 `main`、00:30 切回 E4，不是文件永久删除或编码故障。
+- `cost_report.csv` 已合并为 63 rows：E4a 61、E4b 1、E4c 1。E4b/E4c 两行与 `0147baa` 完全一致。
+- 当前不启动 E4d。后续若要执行任一 subset-track，必须先用回归测试修复公共 `cost_report.csv` 覆盖其他轨成本行的问题。
+- 用户已决定不再维持 E4 分支工作流；当前动作是按范围提交 E4 与主文修改，然后 fast-forward 收口到 `main`。
+
+以下旧的 Step 3 等待指令仅保留作历史过程记录，不再是当前动作。
 
 当前下一步：等待 Codex 审查 Step 3 report，授权 Step 4 (E4a feature ablation) 或后续步骤。
 
