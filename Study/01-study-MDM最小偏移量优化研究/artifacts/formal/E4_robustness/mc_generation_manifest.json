@@ -1,0 +1,333 @@
+{
+  "run_id": "E4_mc_generation_v1",
+  "provenance_type": "POST-HOC RECONSTRUCTED",
+  "provenance_note": "This manifest was reconstructed after MC generation because the generation script (run_E4_mc_generation.py v1) did not produce a manifest at run time. All fields are derived from the script source, git state at run time, and the generated CSV files. The SHA-256 values have been independently verified by Codex review.",
+  "created_at": "2026-07-10T05:09:54.188315+00:00",
+  "generation_info": {
+    "code_entry": "code/run_E4_mc_generation.py",
+    "git_commit": "8103587",
+    "git_branch": "study01-e4-validation",
+    "workspace_dirty": true,
+    "dirty_note": "Working tree had modifications to 00-05/draft files and the E4-validation-suite status handoff. The MC generation script and config.py were committed in 8103587.",
+    "python_version": "3.11.15",
+    "start_time_approx": "2026-07-10T09:15:00+08:00",
+    "end_time_approx": "2026-07-10T11:10:00+08:00",
+    "total_elapsed_s": 6919.8,
+    "total_elapsed_note": "Per script stdout: 115.3 min",
+    "workers": 4,
+    "worker_rows": {
+      "worker_0": 117000,
+      "worker_1": 117000,
+      "worker_2": 104000,
+      "worker_3": 104000
+    }
+  },
+  "parameter_grids": {
+    "delta_grid": [
+      0.0,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.12,
+      0.14,
+      0.16,
+      0.18,
+      0.2,
+      0.22,
+      0.24,
+      0.26,
+      0.28,
+      0.3,
+      0.32,
+      0.34,
+      0.36,
+      0.38,
+      0.4,
+      0.42,
+      0.44,
+      0.46,
+      0.48,
+      0.5
+    ],
+    "delta_grid_count": 26,
+    "repeats": 500,
+    "eta": 1.0,
+    "seed_namespace": "study01_v1",
+    "boundary_combos": [
+      {
+        "id": "B01",
+        "beta": 1.2,
+        "gamma_over_eta": 0.0,
+        "n": 5
+      },
+      {
+        "id": "B02",
+        "beta": 1.2,
+        "gamma_over_eta": 0.0,
+        "n": 20
+      },
+      {
+        "id": "B03",
+        "beta": 1.2,
+        "gamma_over_eta": 0.5,
+        "n": 5
+      },
+      {
+        "id": "B04",
+        "beta": 1.2,
+        "gamma_over_eta": 0.5,
+        "n": 20
+      },
+      {
+        "id": "B05",
+        "beta": 1.2,
+        "gamma_over_eta": 1.0,
+        "n": 50
+      },
+      {
+        "id": "B06",
+        "beta": 1.2,
+        "gamma_over_eta": 0.1,
+        "n": 10
+      },
+      {
+        "id": "B07",
+        "beta": 6.0,
+        "gamma_over_eta": 0.0,
+        "n": 5
+      },
+      {
+        "id": "B08",
+        "beta": 6.0,
+        "gamma_over_eta": 0.0,
+        "n": 20
+      },
+      {
+        "id": "B09",
+        "beta": 6.0,
+        "gamma_over_eta": 0.5,
+        "n": 7
+      },
+      {
+        "id": "B10",
+        "beta": 6.0,
+        "gamma_over_eta": 0.5,
+        "n": 50
+      },
+      {
+        "id": "B11",
+        "beta": 6.0,
+        "gamma_over_eta": 1.0,
+        "n": 20
+      },
+      {
+        "id": "B12",
+        "beta": 6.0,
+        "gamma_over_eta": 0.1,
+        "n": 10
+      },
+      {
+        "id": "B13",
+        "beta": 2.5,
+        "gamma_over_eta": 0.0,
+        "n": 5
+      },
+      {
+        "id": "B14",
+        "beta": 2.5,
+        "gamma_over_eta": 0.0,
+        "n": 50
+      },
+      {
+        "id": "B15",
+        "beta": 2.5,
+        "gamma_over_eta": 0.5,
+        "n": 50
+      },
+      {
+        "id": "B16",
+        "beta": 2.5,
+        "gamma_over_eta": 1.0,
+        "n": 5
+      },
+      {
+        "id": "B17",
+        "beta": 1.5,
+        "gamma_over_eta": 0.0,
+        "n": 10
+      },
+      {
+        "id": "B18",
+        "beta": 4.0,
+        "gamma_over_eta": 0.0,
+        "n": 20
+      },
+      {
+        "id": "B19",
+        "beta": 2.0,
+        "gamma_over_eta": 0.1,
+        "n": 50
+      },
+      {
+        "id": "B20",
+        "beta": 4.0,
+        "gamma_over_eta": 1.0,
+        "n": 5
+      }
+    ],
+    "offgrid_combos": [
+      {
+        "id": "O01",
+        "beta": 1.8,
+        "gamma_over_eta": 0.3,
+        "n": 12
+      },
+      {
+        "id": "O02",
+        "beta": 3.3,
+        "gamma_over_eta": 0.7,
+        "n": 15
+      },
+      {
+        "id": "O03",
+        "beta": 5.5,
+        "gamma_over_eta": 0.2,
+        "n": 30
+      },
+      {
+        "id": "O04",
+        "beta": 1.3,
+        "gamma_over_eta": 0.9,
+        "n": 8
+      },
+      {
+        "id": "O05",
+        "beta": 4.7,
+        "gamma_over_eta": 0.4,
+        "n": 25
+      },
+      {
+        "id": "O06",
+        "beta": 2.2,
+        "gamma_over_eta": 0.0,
+        "n": 6
+      },
+      {
+        "id": "O07",
+        "beta": 5.8,
+        "gamma_over_eta": 0.8,
+        "n": 45
+      },
+      {
+        "id": "O08",
+        "beta": 1.6,
+        "gamma_over_eta": 0.05,
+        "n": 50
+      },
+      {
+        "id": "O09",
+        "beta": 3.8,
+        "gamma_over_eta": 0.95,
+        "n": 5
+      },
+      {
+        "id": "O10",
+        "beta": 2.8,
+        "gamma_over_eta": 0.6,
+        "n": 18
+      },
+      {
+        "id": "O11",
+        "beta": 4.4,
+        "gamma_over_eta": 0.15,
+        "n": 35
+      },
+      {
+        "id": "O12",
+        "beta": 1.25,
+        "gamma_over_eta": 0.25,
+        "n": 7
+      },
+      {
+        "id": "O13",
+        "beta": 5.9,
+        "gamma_over_eta": 0.75,
+        "n": 20
+      },
+      {
+        "id": "O14",
+        "beta": 3.6,
+        "gamma_over_eta": 0.35,
+        "n": 10
+      }
+    ]
+  },
+  "method_versions": {
+    "mdm": {
+      "source": "python/methods/mdm.py",
+      "class": "MDM",
+      "run_signature": "run(offset: float, gamma_steps=60, rank_method='bernard')"
+    },
+    "sample": {
+      "source": "python/studies/common/sample.py",
+      "function": "generate_sample(beta, eta, gamma, n, repeat_id, seed)"
+    }
+  },
+  "output_files": {
+    "boundary_risk_curves.csv": {
+      "path": "artifacts/formal/E4_robustness/boundary_risk_curves.csv",
+      "rows": 260000,
+      "size_bytes": 35533656,
+      "sha256": "6b268e4242ff71df716ca24ff0271a2de96f1aa008516009f0be447269374f90",
+      "expected_rows_calc": "20 combos x 500 repeats x 26 deltas = 260000",
+      "status_distribution": {
+        "success": 260000,
+        "failure": 0
+      }
+    },
+    "offgrid_risk_curves.csv": {
+      "path": "artifacts/formal/E4_robustness/offgrid_risk_curves.csv",
+      "rows": 182000,
+      "size_bytes": 25194298,
+      "sha256": "a1d2f4e21d355bbd232517f49337250d34a63b8a911b0687c3fb332446f2e2c8",
+      "expected_rows_calc": "14 combos x 500 repeats x 26 deltas = 182000",
+      "status_distribution": {
+        "success": 182000,
+        "failure": 0
+      }
+    }
+  },
+  "fields_written": [
+    "combo_id",
+    "beta",
+    "eta",
+    "gamma",
+    "gamma_over_eta",
+    "n",
+    "repeat_id",
+    "delta",
+    "beta_hat",
+    "eta_hat",
+    "gamma_hat",
+    "r_squared",
+    "converged",
+    "time_ms",
+    "status"
+  ],
+  "metrics_contract": {
+    "J1": "sqrt(mean_i[((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2])"
+  },
+  "codex_independent_verification": {
+    "row_counts": "PASS",
+    "combo_coverage": "PASS (B01-B20, O01-O14)",
+    "duplicate_keys": "0",
+    "nan_inf": "0",
+    "spot_check_max_abs_diff": "8.9e-16",
+    "sha256_boundary": "verified match",
+    "sha256_offgrid": "verified match",
+    "e3a_e3b_contract_tests": "16 passed",
+    "sealed_artifacts_diff": "empty"
+  }
+}

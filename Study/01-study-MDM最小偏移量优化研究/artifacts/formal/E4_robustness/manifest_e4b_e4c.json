@@ -1,0 +1,396 @@
+{
+  "run_id": "E4_formal_validation_v1",
+  "created_at": "2026-07-10T13:40:22+00:00",
+  "status": "FORMAL",
+  "tracks_requested": [
+    "e4b",
+    "e4c"
+  ],
+  "is_full_run": false,
+  "track_status": {
+    "e4d": {
+      "requested": false,
+      "status": "not_requested"
+    },
+    "e4c": {
+      "requested": true,
+      "status": "completed"
+    },
+    "e4a": {
+      "requested": false,
+      "status": "not_requested"
+    },
+    "e4b": {
+      "requested": true,
+      "status": "completed"
+    }
+  },
+  "code_entry": "code/run_E4_formal_validation.py",
+  "mc_generation_entry": "code/run_E4_mc_generation.py",
+  "git_commit": "831a8b4-dirty",
+  "python_version": "3.11.15",
+  "input_data": {
+    "mc_scan_path": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\shared_data\\mc_scan_raw.csv",
+    "mc_manifest": "E1E2_mc_scan_v1",
+    "mc_git_commit": "9fad6af",
+    "boundary_path": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E4_robustness\\boundary_risk_curves.csv",
+    "offgrid_path": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E4_robustness\\offgrid_risk_curves.csv",
+    "mc_seed_namespace": "study01_v1"
+  },
+  "method_versions": {
+    "mdm": {
+      "source": "python/methods/mdm.py",
+      "class": "MDM",
+      "run_signature": "run(offset: float, gamma_steps=60, rank_method='bernard')"
+    },
+    "sample": {
+      "source": "python/studies/common/sample.py",
+      "function": "generate_sample(beta, eta, gamma, n, repeat_id, seed)"
+    },
+    "mlp": {
+      "class": "sklearn.neural_network.MLPRegressor",
+      "hidden_layer_sizes": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "early_stopping": true
+    }
+  },
+  "parameter_grids": {
+    "e4a_main_grid": {
+      "beta": [
+        1.5,
+        2.0,
+        2.5,
+        4.0,
+        5.0
+      ],
+      "eta": [
+        1.0
+      ],
+      "gamma_over_eta": [
+        0.1,
+        0.5,
+        1.0
+      ],
+      "n": [
+        7,
+        10,
+        20
+      ]
+    },
+    "e4b_boundary_combos": [
+      {
+        "id": "B01",
+        "beta": 1.2,
+        "gamma_over_eta": 0.0,
+        "n": 5
+      },
+      {
+        "id": "B02",
+        "beta": 1.2,
+        "gamma_over_eta": 0.0,
+        "n": 20
+      },
+      {
+        "id": "B03",
+        "beta": 1.2,
+        "gamma_over_eta": 0.5,
+        "n": 5
+      },
+      {
+        "id": "B04",
+        "beta": 1.2,
+        "gamma_over_eta": 0.5,
+        "n": 20
+      },
+      {
+        "id": "B05",
+        "beta": 1.2,
+        "gamma_over_eta": 1.0,
+        "n": 50
+      },
+      {
+        "id": "B06",
+        "beta": 1.2,
+        "gamma_over_eta": 0.1,
+        "n": 10
+      },
+      {
+        "id": "B07",
+        "beta": 6.0,
+        "gamma_over_eta": 0.0,
+        "n": 5
+      },
+      {
+        "id": "B08",
+        "beta": 6.0,
+        "gamma_over_eta": 0.0,
+        "n": 20
+      },
+      {
+        "id": "B09",
+        "beta": 6.0,
+        "gamma_over_eta": 0.5,
+        "n": 7
+      },
+      {
+        "id": "B10",
+        "beta": 6.0,
+        "gamma_over_eta": 0.5,
+        "n": 50
+      },
+      {
+        "id": "B11",
+        "beta": 6.0,
+        "gamma_over_eta": 1.0,
+        "n": 20
+      },
+      {
+        "id": "B12",
+        "beta": 6.0,
+        "gamma_over_eta": 0.1,
+        "n": 10
+      },
+      {
+        "id": "B13",
+        "beta": 2.5,
+        "gamma_over_eta": 0.0,
+        "n": 5
+      },
+      {
+        "id": "B14",
+        "beta": 2.5,
+        "gamma_over_eta": 0.0,
+        "n": 50
+      },
+      {
+        "id": "B15",
+        "beta": 2.5,
+        "gamma_over_eta": 0.5,
+        "n": 50
+      },
+      {
+        "id": "B16",
+        "beta": 2.5,
+        "gamma_over_eta": 1.0,
+        "n": 5
+      },
+      {
+        "id": "B17",
+        "beta": 1.5,
+        "gamma_over_eta": 0.0,
+        "n": 10
+      },
+      {
+        "id": "B18",
+        "beta": 4.0,
+        "gamma_over_eta": 0.0,
+        "n": 20
+      },
+      {
+        "id": "B19",
+        "beta": 2.0,
+        "gamma_over_eta": 0.1,
+        "n": 50
+      },
+      {
+        "id": "B20",
+        "beta": 4.0,
+        "gamma_over_eta": 1.0,
+        "n": 5
+      }
+    ],
+    "e4c_offgrid_combos": [
+      {
+        "id": "O01",
+        "beta": 1.8,
+        "gamma_over_eta": 0.3,
+        "n": 12
+      },
+      {
+        "id": "O02",
+        "beta": 3.3,
+        "gamma_over_eta": 0.7,
+        "n": 15
+      },
+      {
+        "id": "O03",
+        "beta": 5.5,
+        "gamma_over_eta": 0.2,
+        "n": 30
+      },
+      {
+        "id": "O04",
+        "beta": 1.3,
+        "gamma_over_eta": 0.9,
+        "n": 8
+      },
+      {
+        "id": "O05",
+        "beta": 4.7,
+        "gamma_over_eta": 0.4,
+        "n": 25
+      },
+      {
+        "id": "O06",
+        "beta": 2.2,
+        "gamma_over_eta": 0.0,
+        "n": 6
+      },
+      {
+        "id": "O07",
+        "beta": 5.8,
+        "gamma_over_eta": 0.8,
+        "n": 45
+      },
+      {
+        "id": "O08",
+        "beta": 1.6,
+        "gamma_over_eta": 0.05,
+        "n": 50
+      },
+      {
+        "id": "O09",
+        "beta": 3.8,
+        "gamma_over_eta": 0.95,
+        "n": 5
+      },
+      {
+        "id": "O10",
+        "beta": 2.8,
+        "gamma_over_eta": 0.6,
+        "n": 18
+      },
+      {
+        "id": "O11",
+        "beta": 4.4,
+        "gamma_over_eta": 0.15,
+        "n": 35
+      },
+      {
+        "id": "O12",
+        "beta": 1.25,
+        "gamma_over_eta": 0.25,
+        "n": 7
+      },
+      {
+        "id": "O13",
+        "beta": 5.9,
+        "gamma_over_eta": 0.75,
+        "n": 20
+      },
+      {
+        "id": "O14",
+        "beta": 3.6,
+        "gamma_over_eta": 0.35,
+        "n": 10
+      }
+    ]
+  },
+  "delta_grid": [
+    0.0,
+    0.02,
+    0.04,
+    0.06,
+    0.08,
+    0.1,
+    0.12,
+    0.14,
+    0.16,
+    0.18,
+    0.2,
+    0.22,
+    0.24,
+    0.26,
+    0.28,
+    0.3,
+    0.32,
+    0.34,
+    0.36,
+    0.38,
+    0.4,
+    0.42,
+    0.44,
+    0.46,
+    0.48,
+    0.5
+  ],
+  "repeats": {
+    "e4a": 1000,
+    "e4b": "R=500 (from mc_generation)",
+    "e4c": "R=500 (from mc_generation)"
+  },
+  "seeds": [
+    42,
+    2026,
+    3407
+  ],
+  "metrics_contract": {
+    "J1": "sqrt(mean_i[((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2])"
+  },
+  "feature_contract": {
+    "vector_input": [
+      "x_min",
+      "x_max",
+      "range",
+      "Q1",
+      "Med",
+      "Q3",
+      "IQR",
+      "x_bar",
+      "s",
+      "n",
+      "CV",
+      "g1",
+      "g2"
+    ],
+    "banned_fields": [
+      "gamma_over_eta",
+      "combo_id",
+      "gamma",
+      "seed",
+      "beta",
+      "eta",
+      "repeat_id"
+    ],
+    "zscore_applied": [
+      "x_min",
+      "x_max",
+      "range",
+      "Q1",
+      "Med",
+      "Q3",
+      "IQR",
+      "x_bar",
+      "s"
+    ],
+    "zscore_source": "training_set_only",
+    "raw_passthrough": [
+      "n",
+      "CV",
+      "g1",
+      "g2"
+    ]
+  },
+  "total_elapsed_s": 18.418225288391113,
+  "output_files": [
+    "cost_report.csv",
+    "E4b_boundary_reference.csv",
+    "E4c_offgrid_reference.csv",
+    "endpoint_diagnostics.csv",
+    "near_optimal_diagnostics.csv",
+    "manifest_e4b_e4c.json",
+    "summary_e4b_e4c.json",
+    "run_log_e4b_e4c.txt"
+  ],
+  "notes": [
+    "E4a uses existing main-grid MC data (read-only).",
+    "E4b/E4c use new MDM risk curves generated by run_E4_mc_generation.py.",
+    "E4d is a diagnostic, not a deployment-ready continuous-space proof.",
+    "E4b uses Option C: reference-only evaluation at boundary (no NN deployment).",
+    "E4c is evaluation-only. Continuous-space training is E3c."
+  ]
+}

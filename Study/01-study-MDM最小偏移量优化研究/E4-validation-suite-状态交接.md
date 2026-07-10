@@ -12,8 +12,9 @@
 **Step 2 R1 REVISE fixes 已应用 (2026-07-10 Hermes)。** 4 项修复全部完成。
 **Step 2 R2 REVISE fixes 已应用 (2026-07-10 Hermes)。** 4 项修复全部完成。
 **Step 2 R3 REVISE fixes 已应用 (2026-07-10 Hermes)。** 4 项 P1/P2 修复 + 契约测试。
+**Step 3 reference analysis 已完成 (2026-07-10 Hermes)。** E4b/E4c references + diagnostics 已产出。
 
-当前阶段：`S4_FORMAL_E4_RUNNING` — Step 2 第三轮 REVISE fixes 已应用，等待 Codex 审查后授权 Step 3 reference analysis。
+当前阶段：`S4_FORMAL_E4_RUNNING` — Step 3 已完成，等待 Codex 审查后授权 Step 4+。
 
 ### 第一轮完成状态
 
@@ -58,7 +59,7 @@
 | `S5_CH7_AUTHORIZED` | Codex 验收 formal E4 后，才允许 Ch7 写作 handoff | Ch7 草稿完成 |
 | `S6_DONE` | E4 支线完成，Ch7 可进入主线整合 | 无 |
 
-当前阶段：`S4_FORMAL_E4_RUNNING` — Step 2 第三轮 REVISE fixes 已应用，等待 Codex 审查后授权 Step 3 reference analysis。
+当前阶段：`S4_FORMAL_E4_RUNNING` — Step 3 已完成，等待 Codex 审查后授权 Step 4+。
 审查文件：`coworker/reviews/2026-07-10-study01-e4-validation-suite-codex.md`
 
 已确认的设计决策：
@@ -122,6 +123,7 @@ Loop 不等于无条件自动推进。以下情况必须停下等待 Codex 或�
 | Step 1 Codex review | `coworker/reviews/2026-07-10-study01-e4-step1-preflight-codex.md` | **已完成：APPROVE Step 2** |
 | Step 2 handoff | `coworker/handoffs/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | 已创建 |
 | Step 2 report | `coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md` | **已完成：APPROVE for Step 3** |
+| Step 3 report | `coworker/reports/2026-07-10-study01-e4-step3-reference-analysis-hermes.md` | **已完成：APPROVE for Step 4+** |
 | Pilot artifacts | `Study/01-study-MDM最小偏移量优化研究/artifacts/pilot/E4_validation_smoke/` | 已生成 |
 | Smoke script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_validation_smoke.py` | 已创建 |
 | MC generation script | `Study/01-study-MDM最小偏移量优化研究/code/run_E4_mc_generation.py` | Step 2 生成版本: `8103587`；R3 fail-closed 增强在 `b65eba7` |
@@ -198,15 +200,15 @@ Not allowed:
 
 ## 下一步
 
-当前下一步：等待 Codex 审查第三轮 REVISE fixes，授权 Step 3 (E4b/E4c reference analysis)。
+当前下一步：等待 Codex 审查 Step 3 report，授权 Step 4 (E4a feature ablation) 或后续步骤。
 
-第三轮 REVISE fixes 已完成（4 项 P1/P2 + 契约测试）：
-1. [P1] Chunk 校验改为从 worker 冻结分配派生 expected combo 集，拒绝缺失/额外 combo；merge 后增加总行数硬断言（260000/182000）
-2. [P1] `--tracks` fail-closed：请求 track 的必需输入在运行前预验证，缺失则 abort（exit 1），不写任何正式输出
-3. [P2] Summary track 状态语义：`e4d_skipped` 替换为 per-track `track_status`（requested/status: completed/not_requested/skipped_error/skipped_no_input）
-4. [P2] `get_git_info()` 增强：返回 `-dirty` 后缀；handoff inventory 已刷新
+Step 3 report：`coworker/reports/2026-07-10-study01-e4-step3-reference-analysis-hermes.md`
 
-Step 2 report：`coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md`
+Step 3 已完成（E4b/E4c reference analysis）：
+- 脚本：`run_E4_formal_validation.py --tracks e4b,e4c`（commit `831a8b4`，dirty）
+- 产出：E4b_boundary_reference.csv (70000 rows), E4c_offgrid_reference.csv (49000 rows), endpoint/near_optimal/cost diagnostics, manifest/summary/run_log with track-specific filenames
+- 运行时间：18.4 秒
+- E4a/E4d 正确跳过（not_requested，非 skipped）
 
 Step 2 已产出：
 - `boundary_risk_curves.csv`：260000 rows, B01-B20, R=500, 26 deltas — `Study/01-study-.../artifacts/formal/E4_robustness/`

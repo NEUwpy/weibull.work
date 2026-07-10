@@ -1,0 +1,58 @@
+Study/01 Formal E4 — MC Data Generation Run Log
+===================================================================
+PROVENANCE TYPE: POST-HOC RECONSTRUCTED
+Reconstructed at: 2026-07-10T05:09:54.190816+00:00
+
+GENERATION RUN:
+  Script: code/run_E4_mc_generation.py
+  Git commit: 8103587 (study01-e4-validation)
+  Workspace dirty: YES (00-05/draft/handoff modifications, unrelated to script)
+  Python: 3.11.15
+  Start: ~2026-07-10T09:15:00+08:00
+  End:   ~2026-07-10T11:10:00+08:00
+  Elapsed: 6919.8s (115.3 min)
+
+WORKERS (4 subprocess workers):
+  Worker 0: 117000 rows (9 combos)
+  Worker 1: 117000 rows (9 combos)
+  Worker 2: 104000 rows (8 combos)
+  Worker 3: 104000 rows (8 combos)
+  Total: 442000 rows
+
+PARAMETERS:
+  Delta grid: 0.00, 0.02, ..., 0.50 (26 points)
+  Repeats: 500
+  Eta: 1.0
+  Seed namespace: study01_v1
+  Boundary combos: 20 (B01-B20)
+  Offgrid combos: 14 (O01-O14)
+
+OUTPUT:
+  boundary_risk_curves.csv: 260000 rows, 35533656 bytes
+    SHA-256: 6b268e4242ff71df716ca24ff0271a2de96f1aa008516009f0be447269374f90
+  offgrid_risk_curves.csv: 182000 rows, 25194298 bytes
+    SHA-256: a1d2f4e21d355bbd232517f49337250d34a63b8a911b0687c3fb332446f2e2c8
+  Non-success rate (boundary): 0.0000
+  Non-success rate (offgrid): 0.0000
+
+MERGE:
+  Chunk files (chunk_00.csv - chunk_03.csv) were merged and deleted.
+  NOTE: The original script (v1) did not perform atomic write or fail-closed
+  chunk validation. These safeguards were added in a subsequent patch but
+  were NOT active during this generation run.
+
+INDEPENDENT VERIFICATION (Codex review 2026-07-10):
+  Row counts: PASS
+  Combo coverage: PASS
+  Duplicate keys: 0
+  NaN/Inf: 0
+  Spot-check max abs diff: 8.9e-16
+  SHA-256: both verified
+  E3a/E3b contract tests: 16 passed
+  Sealed artifacts diff: empty
+
+OPERATIONAL NOTES:
+  - First background run failed silently due to shell drifting to main branch.
+  - Successful run was the second attempt on study01-e4-validation branch.
+  - Chunk files showed 0 bytes for ~15 min due to Python CSV writer buffering
+    (flush only occurs after each combo completes ~15-20 min).
