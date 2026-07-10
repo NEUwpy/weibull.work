@@ -1,0 +1,32 @@
+{
+  "experiment": "E1_E2_crossfit",
+  "generated_at_utc": "2026-07-10T11:05:00.018305+00:00",
+  "input": "artifacts\\formal\\shared_data\\mc_scan_raw.csv",
+  "input_sha256": "29d7dd6d93e2c174e221e8e300946bb629d565f06a651d252163bd4144d74e29",
+  "script": "code\\analyze_E1_E2_crossfit.py",
+  "script_sha256": "9c8e9b303a875e1e409ff77780a8914551faae3886eed223f01d76bfe21ebd6d",
+  "n_folds": 5,
+  "fold_rule": "repeat_id mod 5",
+  "selection_layers": [
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5"
+  ],
+  "excluded_layer": "L6 (per-sample hindsight benchmark)",
+  "outputs": [
+    "manifest.json",
+    "summary.json",
+    "results.csv",
+    "fold_metrics.csv",
+    "model_comparison.csv",
+    "by_n_metrics.csv",
+    "selected_deltas.csv",
+    "selection_stability.csv",
+    "comparison_vs_same_sample.csv",
+    "crossfit_report.md"
+  ],
+  "git_commit": "8103587d0bde70a1c1fd404ab9d1a8dfd7b937cb",
+  "workspace_dirty": true
+}

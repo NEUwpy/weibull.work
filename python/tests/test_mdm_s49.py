@@ -119,3 +119,26 @@ def test_default_mdm_records_lightweight_solution_info_without_trace():
     assert info["root_solver"] == "brent"
     assert info["optimal_gamma"] > 0
     assert info["target_offset"] == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize("offset", [0.0, 0.1, 0.5])
+def test_default_mdm_is_scale_equivariant_for_fixed_offset(offset):
+    """整体缩放寿命时 beta 不变，eta/gamma 应按相同比例缩放。"""
+    sample = generate_sample(2.0, 1.0, 1.0, 7, 0)
+    scale = 1000.0
+
+    base = MDM(sample).run(trace=False, offset=offset, gamma_steps=200)
+    scaled = MDM(sample * scale).run(
+        trace=False,
+        offset=offset,
+        gamma_steps=200,
+    )
+
+    beta, eta, gamma, r2, status = base
+    beta_scaled, eta_scaled, gamma_scaled, r2_scaled, status_scaled = scaled
+
+    assert status is True and status_scaled is True
+    assert beta_scaled == pytest.approx(beta, rel=1e-6, abs=1e-8)
+    assert eta_scaled / scale == pytest.approx(eta, rel=1e-6, abs=1e-8)
+    assert gamma_scaled / scale == pytest.approx(gamma, rel=1e-6, abs=1e-8)
+    assert r2_scaled == pytest.approx(r2, rel=1e-8, abs=1e-10)
