@@ -20,6 +20,21 @@
 - Preserve the existing user-owned unstaged `08-更新日志.md` v1.66 corrections in every commit.
 - Formal figures require a Nature claim/evidence/archetype/risk/export contract before plotting and Python-only visual QA.
 
+## Execution Progress
+
+- [x] Task 1 — frozen config/hash contract (`6daffdf`).
+- [x] Task 2 — parameter design and role isolation (`2ed1b48`).
+- [x] Task 3 — equivariant targets and feature routes (`8ddbc2f`).
+- [x] Task 4 — constrained models and losses (`ee67fc7`).
+- [ ] Task 5 — deterministic training and validation-only search.
+- [ ] Task 6 — evaluation and method admission.
+- [ ] Task 7 — matrix, artifacts and CLI.
+- [ ] Task 8 — pilot gate.
+- [ ] Task 9 — sequential G3 formal execution.
+- [ ] Task 10 — evidence, Nature figures and G3 report.
+
+Baseline note: the repository-wide suite on `C:/Web/Weibull` produced 109 passes and 9 pre-existing Study/01 E3b failures because that test file hard-codes `D:/weibull`; Study/02 changes do not modify or waive those tests.
+
 ---
 
 ## File Structure
