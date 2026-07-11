@@ -1,0 +1,126 @@
+{
+  "protocol_id": "A-G2-v1",
+  "status": "frozen_oracle_approved",
+  "distribution": "weibull_3p_complete_iid",
+  "parameterization": {
+    "rho": "gamma / eta",
+    "core": {
+      "beta": {"distribution": "log_uniform", "min": 1.2, "max": 4.0},
+      "eta": {"distribution": "log_uniform", "min": 100.0, "max": 10000.0},
+      "rho": {"distribution": "uniform", "min": 0.0, "max": 1.0}
+    },
+    "stress_layers": {
+      "boundary_low": {"beta": [0.6, 1.2], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+      "boundary_high": {"beta": [4.0, 8.0], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+      "location_stress": {"beta": [1.2, 4.0], "eta": [100.0, 10000.0], "rho": [-0.5, 2.0]}
+    },
+    "training_distributions": {
+      "legacy_grid": {
+        "beta": [0.5, 1.0, 2.0, 3.0, 5.0],
+        "eta": [100.0, 500.0, 1000.0, 3000.0, 5000.0],
+        "gamma": [50.0, 100.0, 200.0, 1000.0]
+      },
+      "core_continuous": {
+        "beta": {"distribution": "log_uniform", "min": 1.2, "max": 4.0},
+        "eta": {"distribution": "log_uniform", "min": 100.0, "max": 10000.0},
+        "rho": {"distribution": "uniform", "min": 0.0, "max": 1.0}
+      },
+      "extended_wide": {
+        "beta": {"distribution": "log_uniform", "min": 0.6, "max": 8.0},
+        "eta": {"distribution": "log_uniform", "min": 10.0, "max": 100000.0},
+        "rho": {"distribution": "uniform", "min": -0.5, "max": 2.0}
+      }
+    },
+    "design": "scrambled_sobol",
+    "roles_share_parameter_points": false
+  },
+  "sample_sizes": {
+    "core": [5, 7, 10, 15, 20],
+    "unseen_interpolation": [6, 8, 12],
+    "unseen_extrapolation": [25, 30, 50]
+  },
+  "data_roles": ["training", "validation", "calibration", "test"],
+  "seeds": {
+    "design": {"training": 220201, "validation": 220202, "calibration": 220203, "pilot": 220204},
+    "sample": {"training": 320201, "validation": 320202, "calibration": 320203, "pilot": 320204},
+    "module_test_design": {"A-E1": 220301, "A-E2": 220302, "A-E3": 220303, "A-E4": 220304, "A-E5": 220305, "A-E6": 220306},
+    "module_test_sample": {"A-E1": 320301, "A-E2": 320302, "A-E3": 320303, "A-E4": 320304, "A-E5": 320305, "A-E6": 320306},
+    "nn_screening": [420001, 420002, 420003],
+    "nn_formal": [420101, 420102, 420103, 420104, 420105, 420106, 420107, 420108, 420109, 420110],
+    "bootstrap": 520001,
+    "real_splits": 620001
+  },
+  "training_sizes": [7000, 25000, 100000, 400000],
+  "training_row_allocation": {
+    "fixed_n_model": "training_size rows for that n",
+    "shared_n_model": "training_size total rows, balanced over sorted core n with quotient-remainder allocation",
+    "legacy_grid_fixed_n": "sort 100 beta-eta-gamma cells lexicographically; q=floor(N/100), r=N mod 100; first r cells receive q+1 rows, remaining cells q rows",
+    "legacy_grid_shared_n": "sort 500 beta-eta-gamma-n cells lexicographically; q=floor(N/500), r=N mod 500; first r cells receive q+1 rows, remaining cells q rows",
+    "historical_combo_split": "sort 100 beta-eta-gamma cells lexicographically; zero-based cell index mod 5 == 0 gives 20 validation cells, all other indices give 80 training cells; no cell crosses roles",
+    "historical_training_shared_n": "7000 rows over 80 training parameter cells x 5 core n by quotient-remainder allocation in lexicographic parameter-n order",
+    "historical_validation_shared_n": "2000 rows over 20 validation parameter cells x 5 core n by quotient-remainder allocation in lexicographic parameter-n order",
+    "continuous_fixed_n": "first N scrambled-Sobol parameter points for the role design seed, one independently seeded sample per point",
+    "continuous_shared_n": "first N scrambled-Sobol parameter points; assign sorted core n by quotient-remainder round-robin",
+    "within_cell_repeat_id": "zero_based_ascending",
+    "sample_seed_source": "role sample namespace plus canonical parameter-n-repeat tuple through common sha256 generator"
+  },
+  "formal_sizes": {
+    "validation": {"parameter_points": 256, "repeats_per_point_n": 50},
+    "calibration": {"parameter_points": 256, "repeats_per_point_n": 50},
+    "module_test": {"parameter_points": 256, "repeats_per_point_n": 200},
+    "stress_test_each": {"parameter_points": 128, "repeats_per_point_n": 200},
+    "nn_screening_seeds": 3,
+    "nn_formal_seeds": 10,
+    "bootstrap_replicates": 2000
+  },
+  "pilot": {"parameter_points": 32, "repeats": 4, "sample_sizes": [5, 20]},
+  "inputs": {
+    "historical": ["H0_hsm", "H0_kde_scott1024", "H1"],
+    "common_protocol_attribution": ["F0eq_hsm", "F0eq_kde_scott1024", "F1eq", "F2", "V", "S"],
+    "study02_features": ["n", "max", "mean", "median", "sd", "cv", "skewness", "excess_kurtosis", "q10", "q25", "q75", "q90", "iqr", "mad", "half_sample_mode"],
+    "raw_fixed_n": "sorted_normalized_sample",
+    "raw_variable_n": "mask_aware_deepsets"
+  },
+  "equivariant_transform": {
+    "location_anchor": "sample_min",
+    "scale_anchor": "iqr_if_positive_else_range_if_positive_else_degenerate_sample",
+    "targets": ["log_beta", "log_eta_over_scale", "log_min_minus_gamma_over_scale"]
+  },
+  "methods": {
+    "primary": ["mle", "mps", "wmle", "mdm_offset_0p1", "lre"],
+    "diagnostic": ["mmle", "lse", "mm", "pwm"],
+    "excluded": ["grey", "bayesian", "ccm_unimplemented"]
+  },
+  "primary_metrics": ["failure_rate", "l_param", "rmse_beta_rel", "rmse_eta_rel", "rmse_gamma_over_eta"],
+  "secondary_R_levels": [0.95],
+  "diagnostic_R_levels": [0.9, 0.99],
+  "failure_penalty": {"primary": 10.0, "sensitivity": [2.0, 5.0]},
+  "global_better_rule": {
+    "failure_rate_difference_ci_upper_max": 0.01,
+    "paired_l_param_improvement_ci_lower_min_exclusive": 0.0,
+    "component_rmse_relative_worsening_ci_upper_max": 0.05
+  },
+  "range_clipped_oracle": {
+    "admit_only_finite_eta_positive": true,
+    "beta_clip": [1.2, 4.0],
+    "eta_clip": [100.0, 10000.0],
+    "rho_from": "gamma_hat / eta_hat",
+    "rho_clip": [0.0, 1.0],
+    "gamma_reconstruction": "rho_clipped * eta_clipped",
+    "original_failure_remains_failure": true
+  },
+  "real_data": {
+    "primary": "nist_6061_t6_aluminum_fatigue_101_complete",
+    "url": "https://www.itl.nist.gov/div898/handbook/eda/section4/eda4291.htm",
+    "small_n": [5, 7, 10, 15, 20],
+    "splits": 500,
+    "holdout_primary": "empirical_cdf_distance"
+  },
+  "artifact_policy": {
+    "raw_training_samples_tracked": false,
+    "formal_result_format": "csv.gz",
+    "max_shard_mib": 20,
+    "max_stage_git_mib_before_large_file_review": 150,
+    "append_only_ledger": "artifacts/run_ledger.jsonl"
+  }
+}
