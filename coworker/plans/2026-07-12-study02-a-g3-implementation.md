@@ -4,13 +4,14 @@
 
 **Goal:** Build and verify the reproducible Study/02 A pipeline, pass the G3 pilot gate, then execute the sealed A-E1/A-E3/A-E2 formal sequence needed to answer the P0 questions.
 
-**Architecture:** A focused `study02a` package lives under the canonical Study/02 `code/` directory and reuses `python/studies/common/sample.py` for every Weibull sample. Pure modules handle frozen config, parameter design, representations, models, training, evaluation and artifacts; a CLI composes them without embedding research decisions. Formal tests remain sealed until the pilot report, experiment matrix, resource estimate and independent review all pass.
+**Architecture:** A focused `study02a` package lives under the canonical Study/02 `code/` directory and reuses `python/studies/common/sample.py` for every Weibull sample. Pure modules handle frozen config, parameter design, representations, models, training, evaluation and artifacts; a CLI composes them without embedding research decisions. Pilot approval permits only training/validation. Formal tests remain sealed until selection traces, ceiling-hit diagnostics and leakage audit receive a separate explicit oracle approval.
 
 **Tech Stack:** Python 3.12, NumPy 2.1, SciPy 1.14 (`scipy.stats.qmc.Sobol`), pandas 2.2, PyTorch 2.11 CPU, pytest, matplotlib through the frozen Nature Python workflow.
 
 ## Global Constraints
 
-- Authority order: repository `README.md`, Study/02 `02-A-实验协议.md`, `configs/A-g2-protocol-v1.json`, then `configs/A-g2-search-v1.json`.
+- Authority order: repository `README.md`, Study/02 `02-A-实验协议.md`, `configs/A-g2-protocol-v1.json`, `configs/A-g2-search-v1.json`, then approved override `configs/A-g3-pilot-amendment-v4.json` with SHA-256 `164e72658669dbb57f6dab8b1fc80099bd319f1fa327d5dda60cb61cb929ee38`.
+- Every formal fit must consume one fail-closed `EffectiveFormalConfig`; the amendment may override only `search.training.max_epochs` from 500 to 100, while min epochs=50 and patience=40 remain unchanged. Missing/mismatched amendment, an effective value other than 100, or a CLI override above 100 must abort before output creation.
 - Do not duplicate sample generation; call `studies.common.sample.generate_sample` with the frozen sample namespace.
 - Screening seeds are `420001..420003`; formal seeds are `420101..420110`; their intersection must remain empty.
 - training, validation, calibration and each module test use disjoint parameter-design and sample namespaces.
@@ -33,7 +34,7 @@
 - [ ] Task 9 — sequential G3 formal execution.
 - [ ] Task 10 — evidence, Nature figures and G3 report.
 
-Baseline note: the repository-wide suite on `C:/Web/Weibull` produced 109 passes and 9 pre-existing Study/01 E3b failures because that test file hard-codes `D:/weibull`; Study/02 changes do not modify or waive those tests.
+Verification baseline: `python -m pytest python/tests --ignore=python/tests/test_study01_e3b_contract.py -q` produced 152 passes for pilot v7. The one ignored Study01 E3b contract file hard-codes `D:/weibull` while the authoritative checkout is `C:/Web/Weibull`; its exact command and reason are recorded in the v7 validation manifest.
 
 ---
 
@@ -48,6 +49,10 @@ Baseline note: the repository-wide suite on `C:/Web/Weibull` produced 109 passes
 - `Study/02-study-NN参数估计与分位点目标研究/code/study02a/admission.py`: traditional-method declared domains and contract audit.
 - `Study/02-study-NN参数估计与分位点目标研究/code/study02a/matrix.py`: deterministic expansion of all nine frozen module matrix rules.
 - `Study/02-study-NN参数估计与分位点目标研究/code/study02a/artifacts.py`: manifests, hashes, gzip shards and append-only run ledger.
+- `Study/02-study-NN参数估计与分位点目标研究/code/study02a/formal_config.py`: verified amendment loading and the sole `EffectiveFormalConfig` entry point.
+- `Study/02-study-NN参数估计与分位点目标研究/code/study02a/formal_data.py`: formal role datasets plus fixed- and variable-length collate contracts.
+- `Study/02-study-NN参数估计与分位点目标研究/code/study02a/formal_contracts.py`: manifests, dependency traces, selection, fit status, ceiling/leakage and pre-unseal bundles.
+- `Study/02-study-NN参数估计与分位点目标研究/code/study02a/formal_state.py`: approval-bound `sealed -> unsealed_once -> consumed` state machine and ledger transitions.
 - `Study/02-study-NN参数估计与分位点目标研究/code/run_study02a.py`: `validate-config`, `expand-matrix`, `pilot`, `formal-select` and `formal-test` commands.
 - `python/tests/test_study02a_*.py`: contract tests; no formal test data are read by the test suite.
 
@@ -253,7 +258,7 @@ def test_two_stage_search_expansion_is_frozen(cfg):
 
 - [ ] **Step 2: Implement CPU determinism (`random`, NumPy and torch seeds; deterministic algorithms) and training-only scalers.**
 
-- [ ] **Step 3: Implement min-50/max-500 epoch early stopping with patience 40 and best-validation checkpoint.**
+- [x] **Step 3: Implement min-50 early stopping with patience 40 and best-validation checkpoint; effective max epochs is overridden to 100 by approved `A-G3-pilot-amendment-v4`.**
 
 - [ ] **Step 4: Run a 128-row synthetic smoke fit twice with the same seed and assert identical predictions/checkpoint hash.**
 
@@ -347,17 +352,37 @@ Expected: hash verification passes; matrix reports nine rules, no seed overlap a
 ### Task 9: Sequential G3 formal execution
 
 **Files:**
+- Create: `Study/02-study-NN参数估计与分位点目标研究/code/study02a/formal_config.py`
+- Create: `Study/02-study-NN参数估计与分位点目标研究/code/study02a/formal_data.py`
+- Create: `Study/02-study-NN参数估计与分位点目标研究/code/study02a/formal_contracts.py`
+- Create: `Study/02-study-NN参数估计与分位点目标研究/code/study02a/formal_state.py`
+- Modify: `Study/02-study-NN参数估计与分位点目标研究/code/run_study02a.py`
+- Test: `python/tests/test_study02a_formal_config.py`
+- Test: `python/tests/test_study02a_formal_data.py`
+- Test: `python/tests/test_study02a_formal_contracts.py`
+- Test: `python/tests/test_study02a_formal_state.py`
 - Create: `Study/02-study-NN参数估计与分位点目标研究/artifacts/formal/A-E1/G3-AE1-formal-v1/manifest.json`
 - Create: `Study/02-study-NN参数估计与分位点目标研究/artifacts/formal/A-E3/G3-AE3-formal-v1/manifest.json`
 - Create: `Study/02-study-NN参数估计与分位点目标研究/artifacts/formal/A-E2/G3-AE2-formal-v1/manifest.json`
 
-- [ ] **Step 1: Freeze code commit/config hashes and run A-E1 training/validation only; select F2/V baseline without opening A-E1 test.**
-- [ ] **Step 2: Fit A-E3 loss/architecture/joint/shared candidates from the frozen A-E1 selection; select on validation only.**
-- [ ] **Step 3: Fit A-E2 size/distribution variants from the frozen A-E3 baseline; select on validation only.**
-- [ ] **Step 4: Write the complete selection trace, checkpoint hashes and selected IDs; run leakage audit.**
-- [ ] **Step 5: Atomically change only A-E1/A-E3/A-E2 test manifests from `sealed` to `unsealed_once`, evaluate shared paired test samples once, then mark `consumed`.**
-- [ ] **Step 6: Aggregate A1/A4/A5/A6/A7/A8/A9/A10/A17/A18 evidence with conditional and failure-inclusive metrics.**
-- [ ] **Step 7: Independent oracle review to APPROVE, then phase commit and push.**
+**Interfaces and mandatory contracts:**
+
+- `load_effective_formal_config(study_root) -> EffectiveFormalConfig` verifies base protocol/search hashes, amendment-v4 hash and the sole override; exposes base IDs/SHA-256, amendment ID/SHA-256, effective-config SHA-256, max/min epochs and patience.
+- `collate_set_features(items) -> (values, mask, n, targets, anchors)` pads only `values`; boolean `mask.sum(1)==n`; explicit `n` never enters set values; padding never contributes to sum/mean pooling.
+- `build_formal_manifest(...)` requires base IDs/hashes, amendment ID/hash, effective epoch contract, 820-fit matrix hash, exact rule/fit subset, code commit, role namespaces, screening/formal seeds, `test_state=sealed`, and predecessor trace hash (`none` for A-E1, A-E1 hash for A-E3, A-E3 hash for A-E2). Missing/mismatched fields fail closed before files are written.
+- `selection_trace.jsonl`, `fit_status.csv`, `ceiling_hit_report.json`, `leakage_audit.json` and `pre_unseal_bundle.json` are mandatory. The bundle hashes every upstream artifact plus the frozen code commit and effective-config hash.
+- `formal-select` accepts no test path/dataset argument and records `test_access_count=0`. `formal-test` requires an oracle approval artifact binding code commit, effective-config hash, selection-trace hash, ceiling-report hash and leakage-report hash.
+- `formal-test` permits only atomic `sealed -> unsealed_once -> consumed`; hash mismatch, missing approval, repeat execution or `consumed` state fails closed and every transition is appended to the ledger.
+
+- [ ] **Step 1: TDD the effective formal configuration entry point.** Verify success yields max/min/patience `100/50/40`; missing amendment, SHA mismatch, residual 500, forbidden override, or CLI max >100 fails before output creation.
+- [ ] **Step 2: TDD formal manifest and dependency hashes.** Verify every mandatory field, the exact 820-fit matrix hash and rule/fit subset; A-E3 must validate the A-E1 selection trace hash and A-E2 must validate the A-E3 trace hash. Changed upstream traces require a new run ID and invalidate downstream output.
+- [ ] **Step 3: TDD formal datasets and S collate/training.** Cover mixed `n`, permutation invariance, `mask.sum==n`, padding exclusion, explicit n separation and a real DeepSets train/validation smoke fit using the same effective 100-epoch ceiling as MLP routes.
+- [ ] **Step 4: TDD fit and selection artifacts.** Persist per-fit candidate, validation score, tie-break, selected ID, checkpoint hash, actual/best epoch, `hit_epoch_100`, early-stop reason and failures. Generate ceiling summaries by rule/route/n/seed and selected arm with terminal validation slope/curve evidence.
+- [ ] **Step 5: TDD leakage and pre-unseal contracts.** Prove parameter-point intersections are zero, namespaces are role-correct, scalers derive from training only, feature/model selection derives from validation only and `test_access_count=0`; hash all evidence into `pre_unseal_bundle.json`.
+- [ ] **Step 6: TDD the approval-bound CLI state machine.** Prove `formal-select` cannot accept/read test data; prove missing/mismatched approval and repeat/consumed test runs fail closed; prove only the three atomic states and append-only ledger transitions are possible.
+- [ ] **Step 7: Run A-E1 training/validation and freeze its unique baseline trace; run A-E3 only against the verified A-E1 trace; run A-E2 only against the verified A-E3 trace.** All formal manifests record amendment-v4 and effective max epochs 100; test remains sealed.
+- [ ] **Step 8: Build the pre-unseal bundle and obtain explicit oracle `APPROVE test unseal`.** If selected/key arms frequently hit epoch 100 while validation still improves, revise the contract and keep test sealed.
+- [ ] **Step 9: After approval only, perform the one-shot shared paired test evaluation, mark state consumed, and aggregate A1/A4/A5/A6/A7/A8/A9/A10/A17/A18 evidence.** Task 9 creates no G3 phase-completion commit; Task 10 closes the single G3 formal phase after figures/report/review.
 
 ### Task 10: G3 evidence, Nature figures and report
 
@@ -377,7 +402,7 @@ Expected: hash verification passes; matrix reports nine rules, no seed overlap a
 - [ ] **Step 2: Plot learning curves, input comparison, loss/architecture comparison and seed stability using the Nature Python contract; export SVG/PDF/PNG.**
 - [ ] **Step 3: Visually inspect every PNG at final size and record clipping, font, colorblind and uncertainty checks.**
 - [ ] **Step 4: Update the evidence index with question → run ID → table/figure → bounded answer → limitation.**
-- [ ] **Step 5: Run full verification, independent oracle review, update `08-更新日志.md`, commit and push G3.**
+- [ ] **Step 5: Run full verification and independent oracle review; then update `08-更新日志.md` and create the single G3 formal phase commit/push containing Task 9 formal results plus Task 10 evidence, Nature figures and report.**
 
 ## Plan Self-Review
 
