@@ -7,12 +7,13 @@ from dataclasses import dataclass
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path
 import re
 from typing import Any, Mapping, Sequence
 
-from .artifacts import write_manifest
+from .artifacts import append_ledger, write_manifest
 from .formal_config import (
     APPROVED_BASE_MAX_EPOCHS,
     APPROVED_AMENDMENT_ID,
@@ -38,6 +39,16 @@ _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}")
 _CODE_COMMIT_RE = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
 _PREDECESSOR_BY_MODULE = {"A-E1": None, "A-E3": "A-E1", "A-E2": "A-E3"}
 _MATRIX_FIELDS = {"fit_id", "rule_id", "module", "test_state"}
+_SELECTION_RECORD_FIELDS = {
+    "module_id",
+    "run_id",
+    "decision_id",
+    "candidate_id",
+    "validation_score",
+    "tie_break_key",
+    "selected",
+    "checkpoint_sha256",
+}
 
 
 @dataclass(frozen=True)
@@ -48,6 +59,10 @@ class PredecessorTrace:
     run_id: str
     trace_path: Path
     trace_sha256: str
+    receipt_path: Path
+    receipt_sha256: str
+    ledger_path: Path
+    selection_code_commit: str
 
 
 @dataclass(frozen=True)
@@ -192,6 +207,160 @@ def _validate_matrix(
     return requested_rules, requested_fits
 
 
+def _read_jsonl(path: Path, label: str) -> tuple[bytes, list[dict[str, Any]]]:
+    if not path.is_file():
+        raise ValueError(f"{label} is missing: {path}")
+    payload = path.read_bytes()
+    if not payload:
+        raise ValueError(f"{label} must not be empty")
+    try:
+        records = [json.loads(line) for line in payload.decode("utf-8").splitlines() if line.strip()]
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label} must be valid UTF-8 JSONL: {exc}") from exc
+    if not records or any(not isinstance(record, dict) for record in records):
+        raise ValueError(f"{label} must contain JSON objects")
+    return payload, records
+
+
+def _validate_selection_trace(
+    path: Path,
+    declared_sha256: str,
+    module_id: str,
+    run_id: str,
+) -> tuple[str, int, int]:
+    declared_digest = _require_sha256(declared_sha256, "Selection trace SHA-256")
+    trace_bytes, records = _read_jsonl(Path(path), "Predecessor selection trace")
+    actual_digest = hashlib.sha256(trace_bytes).hexdigest()
+    if actual_digest != declared_digest:
+        raise ValueError(
+            f"Predecessor trace SHA-256 mismatch: declared {declared_digest}, actual {actual_digest}"
+        )
+
+    pairs: set[tuple[str, str]] = set()
+    winners: dict[str, int] = {}
+    for record in records:
+        missing = _SELECTION_RECORD_FIELDS - set(record)
+        if missing:
+            raise ValueError(f"Predecessor selection trace record is missing fields: {sorted(missing)}")
+        if record["module_id"] != module_id or record["run_id"] != run_id:
+            raise ValueError("Predecessor selection trace ownership does not match declared module/run")
+        decision_id = record["decision_id"]
+        candidate_id = record["candidate_id"]
+        if not isinstance(decision_id, str) or not decision_id.strip():
+            raise ValueError("Predecessor selection trace decision_id must be a non-empty string")
+        if not isinstance(candidate_id, str) or not candidate_id.strip():
+            raise ValueError("Predecessor selection trace candidate_id must be a non-empty string")
+        pair = (decision_id, candidate_id)
+        if pair in pairs:
+            raise ValueError("Predecessor selection trace decision/candidate pairs must be unique")
+        pairs.add(pair)
+        score = record["validation_score"]
+        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
+            raise ValueError("Predecessor selection trace validation_score must be finite")
+        if record["tie_break_key"] is None:
+            raise ValueError("Predecessor selection trace tie_break_key is required")
+        if not isinstance(record["selected"], bool):
+            raise ValueError("Predecessor selection trace selected must be boolean")
+        _require_sha256(record["checkpoint_sha256"], "Selection trace checkpoint_sha256")
+        winners.setdefault(decision_id, 0)
+        winners[decision_id] += int(record["selected"])
+    if any(count != 1 for count in winners.values()):
+        raise ValueError("Predecessor selection trace must have exactly one selected candidate per decision")
+    return actual_digest, len(records), len(winners)
+
+
+def _publish_json_no_replace(payload: Mapping[str, Any], destination: Path) -> None:
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(destination.name + f".{os.getpid()}.validated")
+    if temporary.exists():
+        raise FileExistsError(f"Temporary destination already exists: {temporary}")
+    try:
+        write_manifest(payload, temporary)
+        os.link(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _read_selection_ledger(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    _, records = _read_jsonl(path, "Formal selection ledger")
+    return records
+
+
+def publish_selection_receipt(
+    *,
+    receipt_path: Path,
+    ledger_path: Path,
+    module_id: str,
+    run_id: str,
+    trace_path: Path,
+    trace_sha256: str,
+    effective_config: EffectiveFormalConfig,
+    code_commit: str,
+) -> dict[str, Any]:
+    """Publish one immutable selection receipt and its unique ledger binding."""
+
+    if module_id not in _PREDECESSOR_BY_MODULE:
+        raise ValueError(f"Unsupported formal selection module_id: {module_id!r}")
+    if not isinstance(run_id, str) or not run_id.strip():
+        raise ValueError("Selection receipt run_id is required")
+    if not isinstance(code_commit, str) or _CODE_COMMIT_RE.fullmatch(code_commit) is None:
+        raise ValueError("Selection receipt code_commit must be a full commit ID")
+    _validate_effective_config(effective_config)
+    actual_trace_sha, record_count, decision_count = _validate_selection_trace(
+        Path(trace_path), trace_sha256, module_id, run_id
+    )
+    receipt_path = Path(receipt_path)
+    ledger_path = Path(ledger_path)
+    if receipt_path.exists():
+        raise FileExistsError(f"Selection receipt already exists: {receipt_path}")
+
+    receipt = {
+        "receipt_version": "study02-formal-selection-v1",
+        "module_id": module_id,
+        "run_id": run_id,
+        "selection_trace_sha256": actual_trace_sha,
+        "effective_config_sha256": effective_config.effective_config_sha256,
+        "code_commit": code_commit.lower(),
+        "record_count": record_count,
+        "decision_count": decision_count,
+    }
+    lock_path = ledger_path.with_name(ledger_path.name + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        lock_fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        raise ValueError(f"Formal selection ledger binding is locked: {ledger_path}") from exc
+    os.close(lock_fd)
+    try:
+        existing = _read_selection_ledger(ledger_path)
+        same_run = [
+            row for row in existing
+            if row.get("binding_type") == "formal-selection"
+            and row.get("module_id") == module_id
+            and row.get("run_id") == run_id
+        ]
+        if same_run:
+            raise ValueError(f"Formal selection binding already exists for {module_id}/{run_id}")
+        _publish_json_no_replace(receipt, receipt_path)
+        receipt_sha256 = hashlib.sha256(receipt_path.read_bytes()).hexdigest()
+        ledger_entry = {
+            "binding_type": "formal-selection",
+            **receipt,
+            "receipt_sha256": receipt_sha256,
+        }
+        try:
+            append_ledger(ledger_entry, ledger_path)
+        except Exception:
+            receipt_path.unlink(missing_ok=True)
+            raise
+    finally:
+        lock_path.unlink(missing_ok=True)
+    return {**receipt, "receipt_sha256": receipt_sha256}
+
+
 def _coerce_predecessor(value: Mapping[str, Any] | PredecessorTrace) -> PredecessorTrace:
     if isinstance(value, PredecessorTrace):
         return value
@@ -203,6 +372,10 @@ def _coerce_predecessor(value: Mapping[str, Any] | PredecessorTrace) -> Predeces
             run_id=value["run_id"],
             trace_path=Path(value["trace_path"]),
             trace_sha256=value["trace_sha256"],
+            receipt_path=Path(value["receipt_path"]),
+            receipt_sha256=value["receipt_sha256"],
+            ledger_path=Path(value["ledger_path"]),
+            selection_code_commit=value["selection_code_commit"],
         )
     except (KeyError, TypeError) as exc:
         raise ValueError("Incomplete predecessor selection trace metadata") from exc
@@ -216,7 +389,15 @@ def _validate_predecessor(
     if expected_module is None:
         if value is not None:
             raise ValueError("A-E1 requires exactly no predecessor")
-        return {"module_id": "none", "selection_trace_path": "none", "selection_trace_sha256": "none"}
+        return {
+            "module_id": "none",
+            "run_id": "none",
+            "selection_trace_path": "none",
+            "selection_trace_sha256": "none",
+            "selection_receipt_path": "none",
+            "selection_receipt_sha256": "none",
+            "selection_ledger_path": "none",
+        }
 
     predecessor = _coerce_predecessor(value)
     if predecessor.module_id != expected_module:
@@ -225,34 +406,65 @@ def _validate_predecessor(
         )
     if not isinstance(predecessor.run_id, str) or not predecessor.run_id.strip():
         raise ValueError("Predecessor trace run_id is required")
-    declared_digest = _require_sha256(predecessor.trace_sha256, "Predecessor trace SHA-256")
+    if not isinstance(predecessor.selection_code_commit, str) or _CODE_COMMIT_RE.fullmatch(
+        predecessor.selection_code_commit
+    ) is None:
+        raise ValueError("Predecessor selection code_commit must be a full commit ID")
     path = Path(predecessor.trace_path)
-    if not path.is_file():
-        raise ValueError(f"Predecessor selection trace is missing: {path}")
-    trace_bytes = path.read_bytes()
-    if not trace_bytes:
-        raise ValueError("Predecessor selection trace must not be empty")
-    actual_digest = hashlib.sha256(trace_bytes).hexdigest()
-    if actual_digest != declared_digest:
-        raise ValueError(
-            f"Predecessor trace SHA-256 mismatch: declared {declared_digest}, actual {actual_digest}"
-        )
+    actual_digest, record_count, decision_count = _validate_selection_trace(
+        path, predecessor.trace_sha256, expected_module, predecessor.run_id
+    )
+
+    receipt_path = Path(predecessor.receipt_path)
+    if not receipt_path.is_file():
+        raise ValueError(f"Predecessor selection receipt is missing: {receipt_path}")
+    receipt_bytes = receipt_path.read_bytes()
+    declared_receipt_sha = _require_sha256(predecessor.receipt_sha256, "Selection receipt SHA-256")
+    actual_receipt_sha = hashlib.sha256(receipt_bytes).hexdigest()
+    if actual_receipt_sha != declared_receipt_sha:
+        raise ValueError("Predecessor selection receipt SHA-256 mismatch")
     try:
-        trace_text = trace_bytes.decode("utf-8")
-        records = [json.loads(line) for line in trace_text.splitlines() if line.strip()]
+        receipt = json.loads(receipt_bytes.decode("utf-8"))
     except (UnicodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"Predecessor selection trace must be valid UTF-8 JSONL: {exc}") from exc
-    if not records or any(not isinstance(record, dict) for record in records):
-        raise ValueError("Predecessor selection trace must contain JSON objects")
-    if any(record.get("module_id") != expected_module for record in records):
-        raise ValueError("Predecessor selection trace module does not match declared dependency")
-    if any(record.get("run_id") != predecessor.run_id for record in records):
-        raise ValueError("Predecessor selection trace run does not match declared dependency")
+        raise ValueError(f"Predecessor selection receipt must be valid JSON: {exc}") from exc
+    expected_receipt = {
+        "receipt_version": "study02-formal-selection-v1",
+        "module_id": expected_module,
+        "run_id": predecessor.run_id,
+        "selection_trace_sha256": actual_digest,
+        "effective_config_sha256": APPROVED_EFFECTIVE_CONFIG_SHA256,
+        "code_commit": predecessor.selection_code_commit.lower(),
+        "record_count": record_count,
+        "decision_count": decision_count,
+    }
+    if receipt != expected_receipt:
+        raise ValueError("Predecessor selection receipt does not match trace/config ownership")
+
+    ledger_path = Path(predecessor.ledger_path)
+    ledger = _read_selection_ledger(ledger_path)
+    same_run = [
+        row for row in ledger
+        if row.get("binding_type") == "formal-selection"
+        and row.get("module_id") == expected_module
+        and row.get("run_id") == predecessor.run_id
+    ]
+    if len(same_run) != 1:
+        raise ValueError("Formal selection ledger must contain exactly one binding for predecessor run")
+    expected_ledger_entry = {
+        "binding_type": "formal-selection",
+        **expected_receipt,
+        "receipt_sha256": actual_receipt_sha,
+    }
+    if same_run[0] != expected_ledger_entry:
+        raise ValueError("Formal selection ledger binding does not match predecessor receipt")
     return {
         "module_id": predecessor.module_id,
         "run_id": predecessor.run_id,
         "selection_trace_path": str(path),
         "selection_trace_sha256": actual_digest,
+        "selection_receipt_path": str(receipt_path),
+        "selection_receipt_sha256": actual_receipt_sha,
+        "selection_ledger_path": str(ledger_path),
     }
 
 
@@ -329,16 +541,7 @@ def build_and_write_formal_manifest(destination: Path, **manifest_kwargs: Any) -
     """Fully validate, then atomically create a previously absent manifest file."""
 
     manifest = build_formal_manifest(**manifest_kwargs)
-    destination = Path(destination)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_name(destination.name + f".{os.getpid()}.validated")
-    if temporary.exists():
-        raise FileExistsError(f"Formal manifest temporary destination already exists: {temporary}")
-    try:
-        write_manifest(manifest, temporary)
-        os.link(temporary, destination)
-    finally:
-        temporary.unlink(missing_ok=True)
+    _publish_json_no_replace(manifest, Path(destination))
     return manifest
 
 
@@ -351,4 +554,5 @@ __all__ = [
     "RoleNamespaces",
     "build_and_write_formal_manifest",
     "build_formal_manifest",
+    "publish_selection_receipt",
 ]

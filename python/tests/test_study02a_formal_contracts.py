@@ -20,14 +20,71 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _read_trace(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+def _write_trace(path: Path, records: list[dict]) -> str:
+    path.write_text("".join(json.dumps(record) + "\n" for record in records), encoding="utf-8")
+    return _sha256(path)
+
+
 def _trace(tmp_path: Path, module_id: str) -> tuple[Path, str, str]:
     run_id = f"G3-{module_id.replace('-', '')}-formal-v1"
     path = tmp_path / f"{module_id}-selection-trace.jsonl"
-    path.write_text(
-        json.dumps({"module_id": module_id, "run_id": run_id, "selected": "candidate-1"}) + "\n",
-        encoding="utf-8",
-    )
+    records = [
+        {
+            "module_id": module_id,
+            "run_id": run_id,
+            "decision_id": "baseline",
+            "candidate_id": "candidate-1",
+            "validation_score": 0.125,
+            "tie_break_key": [0.125, "candidate-1"],
+            "selected": True,
+            "checkpoint_sha256": "b" * 64,
+        },
+        {
+            "module_id": module_id,
+            "run_id": run_id,
+            "decision_id": "baseline",
+            "candidate_id": "candidate-2",
+            "validation_score": 0.25,
+            "tie_break_key": [0.25, "candidate-2"],
+            "selected": False,
+            "checkpoint_sha256": "c" * 64,
+        },
+    ]
+    path.write_text("".join(json.dumps(record) + "\n" for record in records), encoding="utf-8")
     return path, _sha256(path), run_id
+
+
+def _predecessor_binding(tmp_path: Path, module_id: str) -> dict:
+    from study02a.formal_config import load_effective_formal_config
+    from study02a.formal_contracts import publish_selection_receipt
+
+    trace_path, trace_sha256, run_id = _trace(tmp_path, module_id)
+    receipt_path = tmp_path / f"{module_id}-selection-receipt.json"
+    ledger_path = tmp_path / "formal-selection-ledger.jsonl"
+    binding = publish_selection_receipt(
+        receipt_path=receipt_path,
+        ledger_path=ledger_path,
+        module_id=module_id,
+        run_id=run_id,
+        trace_path=trace_path,
+        trace_sha256=trace_sha256,
+        effective_config=load_effective_formal_config(STUDY_ROOT),
+        code_commit="b" * 40,
+    )
+    return {
+        "module_id": module_id,
+        "run_id": run_id,
+        "trace_path": trace_path,
+        "trace_sha256": trace_sha256,
+        "receipt_path": receipt_path,
+        "receipt_sha256": binding["receipt_sha256"],
+        "ledger_path": ledger_path,
+        "selection_code_commit": "b" * 40,
+    }
 
 
 def _kwargs(module_id: str, tmp_path: Path) -> dict:
@@ -46,28 +103,16 @@ def _kwargs(module_id: str, tmp_path: Path) -> dict:
     if module_id == "A-E1":
         kwargs.update(rule_ids=("A-E1_historical",), fit_ids=("G3-fit-0000",), predecessor=None)
     elif module_id == "A-E3":
-        path, digest, predecessor_run_id = _trace(tmp_path, "A-E1")
         kwargs.update(
             rule_ids=("A-E3_loss",),
             fit_ids=("G3-fit-0349",),
-            predecessor={
-                "module_id": "A-E1",
-                "run_id": predecessor_run_id,
-                "trace_path": path,
-                "trace_sha256": digest,
-            },
+            predecessor=_predecessor_binding(tmp_path, "A-E1"),
         )
     elif module_id == "A-E2":
-        path, digest, predecessor_run_id = _trace(tmp_path, "A-E3")
         kwargs.update(
             rule_ids=("A-E2_training_size",),
             fit_ids=("G3-fit-0615",),
-            predecessor={
-                "module_id": "A-E3",
-                "run_id": predecessor_run_id,
-                "trace_path": path,
-                "trace_sha256": digest,
-            },
+            predecessor=_predecessor_binding(tmp_path, "A-E3"),
         )
     else:
         raise AssertionError(module_id)
@@ -81,7 +126,8 @@ def _kwargs(module_id: str, tmp_path: Path) -> dict:
 def test_builds_complete_sealed_manifest_for_formal_sequence(tmp_path, module_id, expected_predecessor):
     from study02a.formal_contracts import build_formal_manifest
 
-    manifest = build_formal_manifest(**_kwargs(module_id, tmp_path))
+    kwargs = _kwargs(module_id, tmp_path)
+    manifest = build_formal_manifest(**kwargs)
 
     assert manifest["module_id"] == module_id
     assert manifest["base_protocol"] == {
@@ -95,8 +141,8 @@ def test_builds_complete_sealed_manifest_for_formal_sequence(tmp_path, module_id
     assert manifest["effective_config"]["patience"] == 40
     assert manifest["matrix"]["sha256"] == "fad701af2e2084bf7ce8f678d642410af58057b4ae33029c9150e50971fdf6b1"
     assert manifest["matrix"]["row_count"] == 820
-    assert manifest["matrix"]["rule_ids"] == list(_kwargs(module_id, tmp_path)["rule_ids"])
-    assert manifest["matrix"]["fit_ids"] == list(_kwargs(module_id, tmp_path)["fit_ids"])
+    assert manifest["matrix"]["rule_ids"] == list(kwargs["rule_ids"])
+    assert manifest["matrix"]["fit_ids"] == list(kwargs["fit_ids"])
     assert manifest["code_commit"] == "a" * 40
     assert manifest["role_namespaces"]["training"] != manifest["role_namespaces"]["validation"]
     assert manifest["seeds"]["screening"] == [420001, 420002, 420003]
@@ -273,6 +319,96 @@ def test_ae1_requires_exactly_no_predecessor(tmp_path):
         build_formal_manifest(**kwargs)
 
 
+def test_selection_receipt_rejects_ownership_only_trace(tmp_path):
+    from study02a.formal_config import load_effective_formal_config
+    from study02a.formal_contracts import publish_selection_receipt
+
+    trace_path = tmp_path / "selection-trace.jsonl"
+    trace_path.write_text('{"module_id":"A-E1","run_id":"run-1"}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="selection trace"):
+        publish_selection_receipt(
+            receipt_path=tmp_path / "receipt.json",
+            ledger_path=tmp_path / "ledger.jsonl",
+            module_id="A-E1",
+            run_id="run-1",
+            trace_path=trace_path,
+            trace_sha256=_sha256(trace_path),
+            effective_config=load_effective_formal_config(STUDY_ROOT),
+            code_commit="b" * 40,
+        )
+    assert not (tmp_path / "receipt.json").exists()
+    assert not (tmp_path / "ledger.jsonl").exists()
+
+
+@pytest.mark.parametrize("case", ["duplicate_pair", "no_winner", "multiple_winners", "nonfinite_score"])
+def test_selection_receipt_rejects_invalid_decision_contract(tmp_path, case):
+    from study02a.formal_config import load_effective_formal_config
+    from study02a.formal_contracts import publish_selection_receipt
+
+    trace_path, _, run_id = _trace(tmp_path, "A-E1")
+    records = _read_trace(trace_path)
+    if case == "duplicate_pair":
+        records.append(dict(records[0]))
+    elif case == "no_winner":
+        records[0]["selected"] = False
+    elif case == "multiple_winners":
+        records[1]["selected"] = True
+    else:
+        records[0]["validation_score"] = float("inf")
+    digest = _write_trace(trace_path, records)
+
+    with pytest.raises(ValueError, match="selection trace"):
+        publish_selection_receipt(
+            receipt_path=tmp_path / "receipt.json",
+            ledger_path=tmp_path / "ledger.jsonl",
+            module_id="A-E1",
+            run_id=run_id,
+            trace_path=trace_path,
+            trace_sha256=digest,
+            effective_config=load_effective_formal_config(STUDY_ROOT),
+            code_commit="b" * 40,
+        )
+
+
+def test_selection_receipt_atomically_binds_trace_and_unique_ledger_entry(tmp_path):
+    predecessor = _predecessor_binding(tmp_path, "A-E1")
+
+    receipt = json.loads(predecessor["receipt_path"].read_text(encoding="utf-8"))
+    ledger = [json.loads(line) for line in predecessor["ledger_path"].read_text(encoding="utf-8").splitlines()]
+    assert receipt["selection_trace_sha256"] == predecessor["trace_sha256"]
+    assert receipt["effective_config_sha256"] == "44fba47c7af66166e1d3f11890299a8bb5c352ac1abf3447cd00cfd3acf97449"
+    assert receipt["code_commit"] == predecessor["selection_code_commit"]
+    assert len(ledger) == 1
+    assert ledger[0]["receipt_sha256"] == predecessor["receipt_sha256"]
+
+
+@pytest.mark.parametrize("case", ["duplicate", "conflict"])
+def test_selection_publisher_rejects_duplicate_or_conflicting_run_binding(tmp_path, case):
+    from study02a.formal_config import load_effective_formal_config
+    from study02a.formal_contracts import publish_selection_receipt
+
+    predecessor = _predecessor_binding(tmp_path, "A-E1")
+    trace_path = predecessor["trace_path"]
+    trace_sha256 = predecessor["trace_sha256"]
+    if case == "conflict":
+        records = _read_trace(trace_path)
+        records[0]["validation_score"] = 0.124
+        trace_sha256 = _write_trace(trace_path, records)
+
+    with pytest.raises(ValueError, match="binding"):
+        publish_selection_receipt(
+            receipt_path=tmp_path / "second-receipt.json",
+            ledger_path=predecessor["ledger_path"],
+            module_id="A-E1",
+            run_id=predecessor["run_id"],
+            trace_path=trace_path,
+            trace_sha256=trace_sha256,
+            effective_config=load_effective_formal_config(STUDY_ROOT),
+            code_commit="b" * 40,
+        )
+    assert not (tmp_path / "second-receipt.json").exists()
+
+
 @pytest.mark.parametrize(("module_id", "wrong_module"), [("A-E3", "A-E3"), ("A-E2", "A-E1")])
 def test_downstream_dependency_rejects_wrong_predecessor_module(tmp_path, module_id, wrong_module):
     from study02a.formal_contracts import build_formal_manifest
@@ -302,6 +438,47 @@ def test_downstream_dependency_rejects_missing_or_unbound_trace(tmp_path, case):
         predecessor["trace_path"].write_text('{"changed":true}\n', encoding="utf-8")
         match = "SHA-256 mismatch"
     with pytest.raises((ValueError, FileNotFoundError), match=match):
+        build_formal_manifest(**kwargs)
+
+
+def test_downstream_rejects_recomputed_trace_sha_for_same_receipted_run(tmp_path):
+    from study02a.formal_contracts import build_formal_manifest
+
+    kwargs = _kwargs("A-E3", tmp_path)
+    predecessor = kwargs["predecessor"]
+    records = _read_trace(predecessor["trace_path"])
+    records[0]["validation_score"] = 0.124
+    predecessor["trace_sha256"] = _write_trace(predecessor["trace_path"], records)
+
+    with pytest.raises(ValueError, match="receipt"):
+        build_formal_manifest(**kwargs)
+
+
+@pytest.mark.parametrize("case", ["receipt_mismatch", "ledger_mismatch", "ledger_duplicate", "ledger_conflict"])
+def test_downstream_rejects_receipt_or_ledger_binding_failure(tmp_path, case):
+    from study02a.formal_contracts import build_formal_manifest
+
+    kwargs = _kwargs("A-E3", tmp_path)
+    predecessor = kwargs["predecessor"]
+    if case == "receipt_mismatch":
+        receipt = json.loads(predecessor["receipt_path"].read_text(encoding="utf-8"))
+        receipt["selection_trace_sha256"] = "0" * 64
+        predecessor["receipt_path"].write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+        predecessor["receipt_sha256"] = _sha256(predecessor["receipt_path"])
+    else:
+        ledger_path = predecessor["ledger_path"]
+        rows = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines()]
+        if case == "ledger_mismatch":
+            rows[0]["receipt_sha256"] = "0" * 64
+        elif case == "ledger_duplicate":
+            rows.append(dict(rows[0]))
+        else:
+            conflict = dict(rows[0])
+            conflict["selection_trace_sha256"] = "0" * 64
+            rows.append(conflict)
+        ledger_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="receipt|ledger|binding"):
         build_formal_manifest(**kwargs)
 
 
