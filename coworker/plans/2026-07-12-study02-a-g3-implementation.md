@@ -27,8 +27,8 @@
 - [x] Task 3 — equivariant targets and feature routes (`8ddbc2f`).
 - [x] Task 4 — constrained models and losses (`ee67fc7`).
 - [x] Task 5 — deterministic training and validation-only search (`4bb352a`).
-- [x] Task 6 — evaluation and method admission (`pending commit`).
-- [ ] Task 7 — matrix, artifacts and CLI.
+- [x] Task 6 — evaluation and method admission (`ea8a6f9`).
+- [x] Task 7 — matrix, artifacts and CLI (`d8a85e6`).
 - [ ] Task 8 — pilot gate.
 - [ ] Task 9 — sequential G3 formal execution.
 - [ ] Task 10 — evidence, Nature figures and G3 report.
