@@ -1,0 +1,30 @@
+{
+  "run_id": "G3-pilot-20260712-07-validation",
+  "validated_run_id": "G3-pilot-20260712-07",
+  "code_version": "0e2ac19c5e7127e43ba6c48d5cf7c8f61d4577f4",
+  "pilot_amendment_id": "A-G3-pilot-amendment-v4",
+  "pilot_amendment_sha256": "164e72658669dbb57f6dab8b1fc80099bd319f1fa327d5dda60cb61cb929ee38",
+  "pytest_command": "python -m pytest python/tests --ignore=python/tests/test_study01_e3b_contract.py -q",
+  "pytest_result": "152 passed in 121.11s",
+  "ignored_test_file": "python/tests/test_study01_e3b_contract.py",
+  "ignored_test_reason": "Pre-existing Study01 contract hard-codes D:/weibull while the authoritative checkout is C:/Web/Weibull; it is unrelated to Study02 changes.",
+  "test_state": "sealed",
+  "feature_failures": 0,
+  "admitted_methods": ["wmle", "mdm"],
+  "runtime_gate_pass": true,
+  "storage_gate_pass": true,
+  "resource_gate_pass": true,
+  "projected_wall_seconds": 1373822.9856684294,
+  "wall_time_limit_seconds": 2592000.0,
+  "effective_worker_factor": 1.0,
+  "checksums": {
+    "admission_report.csv": "1204b50d99ce826af3dca9b8b4c4fc9078a63af73f1dc15fad24337b42f66842",
+    "feature_failures.csv": "27519f23b0b623cacf37a40f1c0c1742fab16b09cc152e8fe0d44b5ac2366b6b",
+    "manifest.json": "4362a9a3bdda1d90b01fbebc096581a6b9ce69dc046b89943e7047b1dbbc5aa6",
+    "pilot_samples.csv.gz": "ae9e2b5b0784b5f2033c0d70dc0519b2e8ed3fe445343c062d2e3751ea486738",
+    "pytest_command.txt": "3eae26c1439fc3bf238305bfc49fbaecb01d1387e578287260950a62180a83e3",
+    "pytest_output.txt": "a518985fb4b80ca98c8d37e7b12d21fcf7abd9c6f36adf753f18aedee018f7e9",
+    "resource_estimate.json": "2ce4fa099690c416969423303d2409b2128a03df779beb167cdc1defb5705cd0",
+    "run_log.txt": "4c031891651d677e985349f364931767960d890fbf64c8b4c42dbebff4aa1ce1"
+  }
+}

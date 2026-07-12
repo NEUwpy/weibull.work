@@ -29,7 +29,7 @@
 - [x] Task 5 — deterministic training and validation-only search (`4bb352a`).
 - [x] Task 6 — evaluation and method admission (`ea8a6f9`).
 - [x] Task 7 — matrix, artifacts and CLI (`d8a85e6`).
-- [ ] Task 8 — pilot gate.
+- [x] Task 8 — pilot gate (`G3-pilot-20260712-07`; oracle APPROVE for formal training/validation only; test sealed).
 - [ ] Task 9 — sequential G3 formal execution.
 - [ ] Task 10 — evidence, Nature figures and G3 report.
 
@@ -337,12 +337,12 @@ Expected: hash verification passes; matrix reports nine rules, no seed overlap a
 **Interfaces:**
 - Consumes the CLI and sealed configs; produces no scientific conclusion.
 
-- [ ] **Step 1: Run the full Study02 contract suite and save pytest output in the pilot run directory.**
-- [ ] **Step 2: Execute `pilot --modules A-E1,A-E2,A-E3 --points 32 --repeats 4 --n 5,20`; keep every warning and method failure.**
-- [ ] **Step 3: Generate `experiment_matrix.csv`, `resource_estimate.json`, `admission_report.csv`, manifest, log and ledger entry.**
-- [ ] **Step 4: Verify role-point intersections are zero, test remains sealed, predicted disk stays below 80% of 55.4 GiB free-at-G2 snapshot, and actual fit count is ≤900.**
-- [ ] **Step 5: Request independent oracle review; revise code/protocol version until APPROVE.**
-- [ ] **Step 6: Commit and push the approved pilot as its own phase checkpoint.**
+- [x] **Step 1: Run the full Study02 contract suite and save pytest output in the pilot run directory.**
+- [x] **Step 2: Execute the 32-point × 4-repeat × `n={5,20}` pilot; retain every warning and method failure.**
+- [x] **Step 3: Generate `experiment_matrix.csv`, `resource_estimate.json`, `admission_report.csv`, manifest, log and ledger entry.**
+- [x] **Step 4: Verify role-point intersections are zero, test remains sealed, storage stays below the 80% free-disk gate, robust runtime stays below 720 h, and fit count is 820 ≤ 900.**
+- [x] **Step 5: Request independent oracle review; preserve v1-v7 and revise contracts/resources until APPROVE.**
+- [x] **Step 6: Commit and push the approved pilot as its own phase checkpoint.**
 
 ### Task 9: Sequential G3 formal execution
 
