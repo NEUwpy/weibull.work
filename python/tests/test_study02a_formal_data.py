@@ -14,10 +14,15 @@ STUDY_ROOT = next((ROOT / "Study").glob("02-study-*"))
 sys.path.insert(0, str(STUDY_ROOT / "code"))
 
 from study02a.formal_config import EffectiveFormalConfig
-from study02a.formal_data import FormalSetExample, collate_set_features
-from study02a.models import build_deepsets
+from study02a.formal_data import (
+    FormalFixedExample,
+    FormalSetExample,
+    collate_fixed_features,
+    collate_set_features,
+)
+from study02a.models import build_deepsets, build_mlp
 from study02a.representations import SetFeatures
-from study02a.training import fit_set_candidate
+from study02a.training import fit_fixed_candidate, fit_set_candidate
 
 
 def _example(n: int, *, offset: float = 0.0) -> FormalSetExample:
@@ -45,6 +50,54 @@ def _effective_config() -> EffectiveFormalConfig:
         base_max_epochs=500,
         approved_override_paths=("search.training.max_epochs",),
     )
+
+
+def _fixed_example(width: int, *, offset: float = 0.0) -> FormalFixedExample:
+    return FormalFixedExample(
+        features=np.arange(width, dtype=float) + offset,
+        target=np.array([0.1, -0.2, 0.3], dtype=float) + offset / 10.0,
+        location=10.0 + offset,
+        scale=2.0 + offset / 10.0,
+    )
+
+
+def test_collate_fixed_features_carries_targets_and_anchors() -> None:
+    batch = collate_fixed_features([_fixed_example(4), _fixed_example(4, offset=1.0)])
+
+    assert batch.features.shape == (2, 4)
+    assert batch.targets.shape == (2, 3)
+    assert batch.location.shape == batch.scale.shape == (2,)
+    assert all(tensor.dtype == torch.float32 for tensor in (
+        batch.features, batch.targets, batch.location, batch.scale
+    ))
+
+
+def test_real_fixed_fit_is_deterministic_and_config_only() -> None:
+    training = collate_fixed_features([_fixed_example(4, offset=float(i) / 5.0) for i in range(8)])
+    validation = collate_fixed_features([_fixed_example(4, offset=2.0 + float(i) / 5.0) for i in range(3)])
+    config = _effective_config()
+
+    def factory():
+        return build_mlp(input_dim=4, widths=(5,), activation="relu", dropout=0.0)
+
+    result_a = fit_fixed_candidate(factory, training, validation, config, seed=92, batch_size=4)
+    result_b = fit_fixed_candidate(factory, training, validation, config, seed=92, batch_size=4)
+
+    assert torch.equal(result_a.predictions, result_b.predictions)
+    assert result_a.checkpoint_sha256 == result_b.checkpoint_sha256
+    assert result_a.best_epoch == result_b.best_epoch
+    parameters = inspect.signature(fit_fixed_candidate).parameters
+    assert not ({"max_epochs", "min_epochs", "patience"} & set(parameters))
+
+    with pytest.raises(ValueError, match="100/50/40"):
+        fit_fixed_candidate(
+            factory,
+            training,
+            validation,
+            replace(config, patience=39),
+            seed=92,
+            batch_size=4,
+        )
 
 
 def test_collate_mixed_n_pads_without_fake_n_element() -> None:
@@ -129,6 +182,38 @@ def test_collate_rejects_empty_and_nonfinite_or_nonpositive_fields() -> None:
         ),
     ):
         with pytest.raises(ValueError):
+            collate_set_features([item])
+
+
+def test_fixed_collate_rejects_float32_overflow_in_every_float_tensor() -> None:
+    huge = float(np.finfo(np.float32).max) * 2.0
+    for item in (
+        replace(_fixed_example(3), features=np.array([1.0, huge, 3.0])),
+        replace(_fixed_example(3), target=np.array([1.0, huge, 3.0])),
+        replace(_fixed_example(3), location=huge),
+        replace(_fixed_example(3), scale=huge),
+    ):
+        with pytest.raises(ValueError, match="float32"):
+            collate_fixed_features([item])
+
+
+def test_set_collate_rejects_float32_overflow_in_every_float_tensor() -> None:
+    huge = float(np.finfo(np.float32).max) * 2.0
+    base = _example(3)
+    for item in (
+        replace(
+            base,
+            features=SetFeatures(
+                values=np.array([[1.0], [huge], [3.0]]),
+                mask=np.ones(3, dtype=bool),
+                n=3,
+            ),
+        ),
+        replace(base, target=np.array([1.0, huge, 3.0])),
+        replace(base, location=huge),
+        replace(base, scale=huge),
+    ):
+        with pytest.raises(ValueError, match="float32"):
             collate_set_features([item])
 
 

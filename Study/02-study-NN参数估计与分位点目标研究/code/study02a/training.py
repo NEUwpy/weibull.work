@@ -20,7 +20,7 @@ from .formal_config import (
     APPROVED_PATIENCE,
     EffectiveFormalConfig,
 )
-from .formal_data import FormalSetBatch
+from .formal_data import FormalFixedBatch, FormalSetBatch
 
 
 STANDARDIZED_LOSSES = {"raw_train_z_mse", "transformed_train_z_mse", "transformed_train_z_huber"}
@@ -136,30 +136,34 @@ def _checkpoint_hash(state: Mapping[str, torch.Tensor]) -> str:
     return digest.hexdigest()
 
 
-def fit_candidate(
+def _fit_deterministic_candidate(
     model_factory: Callable[[], nn.Module],
-    training_data: tuple[torch.Tensor, torch.Tensor],
-    validation_data: tuple[torch.Tensor, torch.Tensor],
+    training_inputs: tuple[torch.Tensor, ...],
+    training_targets: torch.Tensor,
+    validation_targets: torch.Tensor,
+    forward_batch: Callable[[nn.Module, tuple[torch.Tensor, ...]], torch.Tensor],
+    forward_validation: Callable[[nn.Module], torch.Tensor],
     *,
     seed: int,
-    max_epochs: int = 500,
-    min_epochs: int = 50,
-    patience: int = 40,
-    loss_id: str = "transformed_train_z_huber",
-    lr: float = 1e-3,
-    weight_decay: float = 1e-4,
-    batch_size: int = 512,
+    max_epochs: int,
+    min_epochs: int,
+    patience: int,
+    loss_id: str,
+    lr: float,
+    weight_decay: float,
+    batch_size: int,
 ) -> FitResult:
     seed_everything(seed)
-    train_x, train_y = training_data
-    validation_x, validation_y = validation_data
-    stats = {"mean": train_y.mean(dim=0), "sd": train_y.std(dim=0, unbiased=False)}
+    stats = {
+        "mean": training_targets.mean(dim=0),
+        "sd": training_targets.std(dim=0, unbiased=False),
+    }
     model = model_factory()
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     generator = torch.Generator().manual_seed(seed)
     loader = DataLoader(
-        TensorDataset(train_x, train_y),
-        batch_size=min(int(batch_size), len(train_x)),
+        TensorDataset(*training_inputs, training_targets),
+        batch_size=min(int(batch_size), len(training_targets)),
         shuffle=True,
         generator=generator,
     )
@@ -170,14 +174,18 @@ def fit_candidate(
 
     for epoch in range(int(max_epochs)):
         model.train()
-        for batch_x, batch_y in loader:
+        for batch in loader:
+            inputs = tuple(batch[:-1])
+            targets = batch[-1]
             optimizer.zero_grad(set_to_none=True)
-            loss = compute_loss(loss_id, model(batch_x), batch_y, stats)
+            loss = compute_loss(loss_id, forward_batch(model, inputs), targets, stats)
             loss.backward()
             optimizer.step()
         model.eval()
         with torch.no_grad():
-            validation_loss = float(compute_loss(loss_id, model(validation_x), validation_y, stats))
+            validation_loss = float(
+                compute_loss(loss_id, forward_validation(model), validation_targets, stats)
+            )
         if validation_loss < best_loss:
             best_loss = validation_loss
             best_epoch = epoch
@@ -193,8 +201,88 @@ def fit_candidate(
     model.load_state_dict(best_state)
     model.eval()
     with torch.no_grad():
-        predictions = model(validation_x).detach().clone()
+        predictions = forward_validation(model).detach().clone()
     return FitResult(predictions, _checkpoint_hash(best_state), best_loss, best_epoch)
+
+
+def fit_candidate(
+    model_factory: Callable[[], nn.Module],
+    training_data: tuple[torch.Tensor, torch.Tensor],
+    validation_data: tuple[torch.Tensor, torch.Tensor],
+    *,
+    seed: int,
+    max_epochs: int = 500,
+    min_epochs: int = 50,
+    patience: int = 40,
+    loss_id: str = "transformed_train_z_huber",
+    lr: float = 1e-3,
+    weight_decay: float = 1e-4,
+    batch_size: int = 512,
+) -> FitResult:
+    train_x, train_y = training_data
+    validation_x, validation_y = validation_data
+    return _fit_deterministic_candidate(
+        model_factory,
+        (train_x,),
+        train_y,
+        validation_y,
+        lambda model, inputs: model(inputs[0]),
+        lambda model: model(validation_x),
+        seed=seed,
+        max_epochs=max_epochs,
+        min_epochs=min_epochs,
+        patience=patience,
+        loss_id=loss_id,
+        lr=lr,
+        weight_decay=weight_decay,
+        batch_size=batch_size,
+    )
+
+
+def _require_approved_formal_config(effective_config: EffectiveFormalConfig) -> None:
+    """Fail closed unless the sole effective formal epoch contract is supplied."""
+
+    if not isinstance(effective_config, EffectiveFormalConfig) or (
+        effective_config.max_epochs,
+        effective_config.min_epochs,
+        effective_config.patience,
+    ) != (APPROVED_MAX_EPOCHS, APPROVED_MIN_EPOCHS, APPROVED_PATIENCE):
+        raise ValueError("formal fits require the approved 100/50/40 epoch contract")
+
+
+def fit_fixed_candidate(
+    model_factory: Callable[[], nn.Module],
+    training_data: FormalFixedBatch,
+    validation_data: FormalFixedBatch,
+    effective_config: EffectiveFormalConfig,
+    *,
+    seed: int,
+    loss_id: str = "transformed_train_z_huber",
+    lr: float = 1e-3,
+    weight_decay: float = 1e-4,
+    batch_size: int = 512,
+) -> FitResult:
+    """Fit a fixed-route MLP under the sole approved formal epoch contract."""
+
+    _require_approved_formal_config(effective_config)
+    if len(training_data) == 0 or len(validation_data) == 0:
+        raise ValueError("formal fixed training and validation batches must be non-empty")
+    return _fit_deterministic_candidate(
+        model_factory,
+        (training_data.features,),
+        training_data.targets,
+        validation_data.targets,
+        lambda model, inputs: model(inputs[0]),
+        lambda model: model(validation_data.features),
+        seed=seed,
+        max_epochs=effective_config.max_epochs,
+        min_epochs=effective_config.min_epochs,
+        patience=effective_config.patience,
+        loss_id=loss_id,
+        lr=lr,
+        weight_decay=weight_decay,
+        batch_size=batch_size,
+    )
 
 
 def fit_set_candidate(
@@ -211,76 +299,33 @@ def fit_set_candidate(
 ) -> FitResult:
     """Fit a DeepSets candidate under the sole approved formal epoch contract."""
 
-    if not isinstance(effective_config, EffectiveFormalConfig) or (
-        effective_config.max_epochs,
-        effective_config.min_epochs,
-        effective_config.patience,
-    ) != (APPROVED_MAX_EPOCHS, APPROVED_MIN_EPOCHS, APPROVED_PATIENCE):
-        raise ValueError("formal set fits require the approved 100/50/40 epoch contract")
+    _require_approved_formal_config(effective_config)
     if len(training_data) == 0 or len(validation_data) == 0:
         raise ValueError("formal set training and validation batches must be non-empty")
-
-    seed_everything(seed)
-    stats = {
-        "mean": training_data.targets.mean(dim=0),
-        "sd": training_data.targets.std(dim=0, unbiased=False),
-    }
-    model = model_factory()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    generator = torch.Generator().manual_seed(seed)
-    loader = DataLoader(
-        TensorDataset(
+    return _fit_deterministic_candidate(
+        model_factory,
+        (
             training_data.values,
             training_data.mask,
             training_data.n,
-            training_data.targets,
         ),
-        batch_size=min(int(batch_size), len(training_data)),
-        shuffle=True,
-        generator=generator,
-    )
-    best_loss = float("inf")
-    best_epoch = -1
-    best_state: dict[str, torch.Tensor] | None = None
-    stale_epochs = 0
-
-    for epoch in range(effective_config.max_epochs):
-        model.train()
-        for values, mask, n, targets in loader:
-            optimizer.zero_grad(set_to_none=True)
-            loss = compute_loss(loss_id, model(values, mask, n), targets, stats)
-            loss.backward()
-            optimizer.step()
-        model.eval()
-        with torch.no_grad():
-            predictions = model(validation_data.values, validation_data.mask, validation_data.n)
-            validation_loss = float(
-                compute_loss(loss_id, predictions, validation_data.targets, stats)
-            )
-        if validation_loss < best_loss:
-            best_loss = validation_loss
-            best_epoch = epoch
-            best_state = {
-                name: value.detach().clone()
-                for name, value in model.state_dict().items()
-            }
-            stale_epochs = 0
-        else:
-            stale_epochs += 1
-        if epoch + 1 >= effective_config.min_epochs and stale_epochs >= effective_config.patience:
-            break
-
-    if best_state is None:
-        raise RuntimeError("Training produced no checkpoint")
-    model.load_state_dict(best_state)
-    model.eval()
-    with torch.no_grad():
-        predictions = model(
+        training_data.targets,
+        validation_data.targets,
+        lambda model, inputs: model(inputs[0], inputs[1], inputs[2]),
+        lambda model: model(
             validation_data.values,
             validation_data.mask,
             validation_data.n,
-        ).detach().clone()
-    return FitResult(predictions, _checkpoint_hash(best_state), best_loss, best_epoch)
+        ),
+        seed=seed,
+        max_epochs=effective_config.max_epochs,
+        min_epochs=effective_config.min_epochs,
+        patience=effective_config.patience,
+        loss_id=loss_id,
+        lr=lr,
+        weight_decay=weight_decay,
+        batch_size=batch_size,
+    )
 
 
 def run_two_stage_search(
