@@ -26,8 +26,8 @@
 - [x] Task 2 — parameter design and role isolation (`2ed1b48`).
 - [x] Task 3 — equivariant targets and feature routes (`8ddbc2f`).
 - [x] Task 4 — constrained models and losses (`ee67fc7`).
-- [x] Task 5 — deterministic training and validation-only search (`pending commit`).
-- [ ] Task 6 — evaluation and method admission.
+- [x] Task 5 — deterministic training and validation-only search (`4bb352a`).
+- [x] Task 6 — evaluation and method admission (`pending commit`).
 - [ ] Task 7 — matrix, artifacts and CLI.
 - [ ] Task 8 — pilot gate.
 - [ ] Task 9 — sequential G3 formal execution.
