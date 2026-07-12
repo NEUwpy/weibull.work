@@ -2,8 +2,8 @@
 Figure 3 + Figure 4: Oracle 层级阶梯收益 + L6 逐样本 δ* 分布
 
 Figure 3 (阶梯收益):
-  Panel A: Default-L6 阶梯柱状图 (J₁ 绝对高度)
-  Panel B: 相邻信息层级的逐级相对 J₁ 降幅
+  Panel A: L1-L6 阶梯柱状图 (J₁ 高度)，标注边际收益
+  Panel B: 累积改善%曲线，标注两个大跳点 (L3, L6)
 
 Figure 4 (L6 分布):
   Panel A: 全样本 L6 δ* 直方图
@@ -12,12 +12,12 @@ Figure 4 (L6 分布):
 数据来源:
   - ladder: artifacts/formal/E2_oracle_layers/ladder_L1_L6.csv
   - L6: artifacts/formal/E2_oracle_layers/L6_per_sample_delta.csv
+  - MLE anchor: artifacts/formal/shared_data/mle_anchor.csv
 
 输出: artifacts/formal/figures/fig3_ladder.{svg,pdf,png}
       artifacts/formal/figures/fig4_l6_distribution.{svg,pdf,png}
 """
 
-import argparse
 import os
 import numpy as np
 import pandas as pd
@@ -29,17 +29,9 @@ from matplotlib.patches import FancyArrowPatch
 # ── 路径 ──
 STUDY_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 E2_DIR = os.path.join(STUDY_DIR, "artifacts", "formal", "E2_oracle_layers")
+SHARED_DIR = os.path.join(STUDY_DIR, "artifacts", "formal", "shared_data")
 FIG_DIR = os.path.join(STUDY_DIR, "artifacts", "formal", "figures")
 os.makedirs(FIG_DIR, exist_ok=True)
-
-parser = argparse.ArgumentParser(description="Generate the formal ladder and L6 diagnostic figures.")
-parser.add_argument(
-    "--figure",
-    choices=("all", "fig3", "fig4"),
-    default="all",
-    help="Restrict file export to one figure while retaining the shared QA computation.",
-)
-args = parser.parse_args()
 
 # ── 出版级 rcParams ──
 mpl.rcParams.update({
@@ -100,6 +92,20 @@ print("[fig3/4] 读取数据...")
 ladder = pd.read_csv(os.path.join(E2_DIR, "ladder_L1_L6.csv"))
 l6 = pd.read_csv(os.path.join(E2_DIR, "L6_per_sample_delta.csv"))
 
+# MLE J₁（只算 converged）
+print("[fig3/4] 计算 MLE 锚点...")
+mle_df = pd.read_csv(os.path.join(SHARED_DIR, "mle_anchor.csv"))
+mle_v = mle_df[mle_df["converged"]].copy()
+mle_v["j1_sq"] = (
+    ((mle_v["beta_hat"] - mle_v["beta"]) / mle_v["beta"]) ** 2
+    + ((mle_v["eta_hat"] - mle_v["eta"]) / mle_v["eta"]) ** 2
+    + ((mle_v["gamma_hat"] - mle_v["gamma"]) / mle_v["eta"]) ** 2
+)
+mle_fail_rate = 1 - mle_df["converged"].mean()
+j1_mle = np.sqrt(mle_v["j1_sq"].mean())
+print(f"  MLE J₁={j1_mle:.4f}, fail_rate={mle_fail_rate*100:.1f}%")
+
+
 # ============================================================
 # Figure 3: 阶梯收益
 # ============================================================
@@ -113,13 +119,6 @@ layer_labels = ["Default\n$\\delta$=0.1", "L1\n$\\delta^*$=0.08",
 j1_values = [ladder.loc[ladder["layer"] == l, "J1_global"].values[0] for l in layers_order]
 improvements = [ladder.loc[ladder["layer"] == l, "improvement_vs_default_pct"].values[0]
                 for l in layers_order]
-stepwise_reductions = [
-    (previous - current) / previous * 100
-    for previous, current in zip(j1_values[:-1], j1_values[1:])
-]
-transition_labels = [
-    "Def→L1", "L1→L2", "L2→L3", "L3→L4", "L4→L5", "L5→L6\nhindsight gap"
-]
 
 fig3, (ax3a, ax3b) = plt.subplots(1, 2, figsize=(7.2, 3.0),
                                    gridspec_kw={"width_ratios": [3, 2]})
@@ -129,15 +128,38 @@ colors = [LAYER_COLORS[l] for l in layers_order]
 bars = ax3a.bar(range(len(layers_order)), j1_values, color=colors,
                 edgecolor="white", linewidth=0.5, width=0.7, zorder=3)
 
+# MLE 锚点水平线
+ax3a.axhline(j1_mle, color=OKABE["pink"], linewidth=0.8, linestyle="--", zorder=2)
+ax3a.text(len(layers_order) - 0.5, j1_mle + 0.02,
+          f"MLE\n$J_1$={j1_mle:.2f}\n(fail {mle_fail_rate*100:.0f}%)",
+          fontsize=5, color=OKABE["pink"], ha="center", va="bottom",
+          fontstyle="italic")
+
 # 标注每柱的 J₁ 值
-for bar, j1 in zip(bars, j1_values):
+for i, (bar, j1, imp) in enumerate(zip(bars, j1_values, improvements)):
     ax3a.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.008,
               f"{j1:.3f}", ha="center", va="bottom", fontsize=5.5, fontweight="bold")
+    if i > 0 and imp > 0.1:
+        ax3a.text(bar.get_x() + bar.get_width() / 2, bar.get_height() / 2,
+                  f"+{imp:.1f}%", ha="center", va="center", fontsize=5,
+                  color="white", fontweight="bold")
+
+# 边际收益箭头（只标大跳点）
+for i in [3, 6]:  # L3, L6
+    prev_j1 = j1_values[i - 1]
+    curr_j1 = j1_values[i]
+    mid_x = i - 0.5
+    mid_y = (prev_j1 + curr_j1) / 2
+    delta_imp = improvements[i] - improvements[i - 1]
+    if delta_imp > 3:
+        ax3a.annotate(f"+{delta_imp:.1f}%", xy=(mid_x, mid_y),
+                      fontsize=5.5, color=OKABE["vermillion"], fontweight="bold",
+                      ha="center")
 
 ax3a.set_xticks(range(len(layers_order)))
 ax3a.set_xticklabels(layer_labels, fontsize=5.5)
 ax3a.set_ylabel("$J_1$ (global)")
-ax3a.set_ylim(0, max(j1_values) * 1.15)
+ax3a.set_ylim(0, max(j1_mle, max(j1_values)) * 1.15)
 ax3a.set_title("(a) Accuracy ladder: Default $\\to$ L6", fontweight="bold", loc="left")
 
 # 图例
@@ -149,48 +171,40 @@ legend_elements = [
 ]
 ax3a.legend(handles=legend_elements, loc="upper right", fontsize=5)
 
-# ── Panel B: 相邻层级的逐级相对 J₁ 降幅 ──
-transition_colors = [LAYER_COLORS[layer] for layer in layers_order[1:]]
-step_bars = ax3b.bar(
-    range(len(stepwise_reductions)),
-    stepwise_reductions,
-    color=transition_colors,
-    edgecolor="white",
-    linewidth=0.5,
-    width=0.68,
-    zorder=3,
-)
+# ── Panel B: 累积改善曲线 ──
+ax3b.plot(range(len(layers_order)), improvements, "o-",
+          color=OKABE["black"], markersize=4, linewidth=1.2, zorder=5)
 
-for bar, reduction in zip(step_bars, stepwise_reductions):
-    reduction_label = f"{reduction:.2f}%" if reduction < 0.1 else f"{reduction:.1f}%"
-    ax3b.text(
-        bar.get_x() + bar.get_width() / 2,
-        bar.get_height() + 0.25,
-        reduction_label,
-        ha="center",
-        va="bottom",
-        fontsize=5.5,
-        fontweight="bold",
-    )
+# 填充
+ax3b.fill_between(range(len(layers_order)), improvements, 0,
+                   alpha=0.08, color=OKABE["blue"], zorder=1)
 
-ax3b.set_xticks(range(len(transition_labels)))
-ax3b.set_xticklabels(transition_labels, fontsize=5.5, rotation=25, ha="right")
-ax3b.set_ylabel("Stepwise $J_1$ reduction vs previous layer (%)")
-ax3b.set_ylim(0, max(stepwise_reductions) * 1.18)
-ax3b.set_title("(b) Stepwise information gains and hindsight gap", fontweight="bold", loc="left")
+# 标注大跳点
+for i in [3, 6]:
+    ax3b.annotate(f"+{improvements[i]-improvements[i-1]:.1f}%",
+                  xy=(i, improvements[i]),
+                  xytext=(i, improvements[i] + 3),
+                  fontsize=5.5, color=OKABE["vermillion"], fontweight="bold",
+                  ha="center",
+                  arrowprops=dict(arrowstyle="->", lw=0.8, color=OKABE["vermillion"]))
+
+ax3b.set_xticks(range(len(layers_order)))
+ax3b.set_xticklabels(["Def", "L1", "L2", "L3", "L4", "L5", "L6"], fontsize=6)
+ax3b.set_ylabel("Cumulative improvement vs Default (%)")
+ax3b.set_ylim(-1, 26)
+ax3b.set_title("(b) Marginal returns diminish at L4–L5", fontweight="bold", loc="left")
 
 # 标注边际递减区域
-ax3b.axvspan(2.5, 4.5, alpha=0.06, color=OKABE["gray"], zorder=0)
-ax3b.text(3.5, max(stepwise_reductions) * 0.72, "diminishing\nreturns", ha="center", fontsize=5,
+ax3b.axvspan(3.7, 5.3, alpha=0.06, color=OKABE["gray"], zorder=0)
+ax3b.text(4.5, 1, "diminishing\nreturns", ha="center", fontsize=5,
           color=OKABE["gray"], fontstyle="italic")
 
 fig3.tight_layout(pad=0.5, w_pad=1.5)
 out3 = os.path.join(FIG_DIR, "fig3_ladder")
-if args.figure in ("all", "fig3"):
-    fig3.savefig(f"{out3}.svg", bbox_inches="tight")
-    fig3.savefig(f"{out3}.pdf", bbox_inches="tight")
-    fig3.savefig(f"{out3}.png", dpi=300, bbox_inches="tight")
-    print(f"  Saved: {out3}.{{svg,pdf,png}}")
+fig3.savefig(f"{out3}.svg", bbox_inches="tight")
+fig3.savefig(f"{out3}.pdf", bbox_inches="tight")
+fig3.savefig(f"{out3}.png", dpi=300, bbox_inches="tight")
+print(f"  Saved: {out3}.{{svg,pdf,png}}")
 
 
 # ============================================================
@@ -270,19 +284,17 @@ ax4b.set_title("(b) $\\delta^*$ decreases with $\\beta$", fontweight="bold", loc
 
 fig4.tight_layout(pad=0.5, w_pad=1.5)
 out4 = os.path.join(FIG_DIR, "fig4_l6_distribution")
-if args.figure in ("all", "fig4"):
-    fig4.savefig(f"{out4}.svg", bbox_inches="tight")
-    fig4.savefig(f"{out4}.pdf", bbox_inches="tight")
-    fig4.savefig(f"{out4}.png", dpi=300, bbox_inches="tight")
-    print(f"  Saved: {out4}.{{svg,pdf,png}}")
+fig4.savefig(f"{out4}.svg", bbox_inches="tight")
+fig4.savefig(f"{out4}.pdf", bbox_inches="tight")
+fig4.savefig(f"{out4}.png", dpi=300, bbox_inches="tight")
+print(f"  Saved: {out4}.{{svg,pdf,png}}")
 
 # ── QA ──
 print("\n=== QA ===")
 print("Figure 3:")
 for l, j1, imp in zip(layers_order, j1_values, improvements):
     print(f"  {l}: J1={j1:.4f}, improvement={imp:.2f}%")
-for label, reduction in zip(transition_labels, stepwise_reductions):
-    print(f"  {label.replace(chr(10), ' / ')}: stepwise J1 reduction={reduction:.2f}%")
+print(f"  MLE: J1={j1_mle:.4f}, fail_rate={mle_fail_rate*100:.1f}%")
 print("\nFigure 4:")
 print(f"  L6 total samples: {len(l6)}")
 print(f"  δ*=0: {pct_zero:.1f}%")

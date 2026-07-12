@@ -1,0 +1,78 @@
+{
+  "run_id": "E2_beta_profile_audit_v1",
+  "created_at": "2026-07-12T01:25:45+00:00",
+  "design": {
+    "beta": [
+      1.5,
+      2.0,
+      2.5,
+      4.0,
+      5.0
+    ],
+    "eta": 1.0,
+    "gamma_over_eta": 0.5,
+    "n": [
+      7,
+      10,
+      20
+    ],
+    "repeat_ids": [
+      0,
+      19
+    ],
+    "n_samples": 300,
+    "seed_namespace": "study01_v1",
+    "mdm_call": "MDM.run(trace=True, offset=0.1)"
+  },
+  "metric_trends": {
+    "gradient_at_zero": {
+      "within_n_spearman_rho": {
+        "n=7": 0.11880619298314847,
+        "n=10": 0.30473176097120963,
+        "n=20": 0.6520867746827652
+      },
+      "direction_consistent_across_n": true
+    },
+    "gradient_at_true_gamma": {
+      "within_n_spearman_rho": {
+        "n=7": -0.21556587592818688,
+        "n=10": -0.04335813640828304,
+        "n=20": 0.0002449612226456669
+      },
+      "direction_consistent_across_n": false
+    },
+    "local_gradient_slope": {
+      "within_n_spearman_rho": {
+        "n=7": -0.4634666332456018,
+        "n=10": -0.4945767085216015,
+        "n=20": -0.5293612021372861
+      },
+      "direction_consistent_across_n": true
+    },
+    "gamma_hat_d01": {
+      "within_n_spearman_rho": {
+        "n=7": 0.5335319459843392,
+        "n=10": 0.5602263161906402,
+        "n=20": 0.4945767085216015
+      },
+      "direction_consistent_across_n": true
+    },
+    "gamma_error_d01": {
+      "within_n_spearman_rho": {
+        "n=7": 0.5335319459843392,
+        "n=10": 0.5602263161906402,
+        "n=20": 0.4945767085216015
+      },
+      "direction_consistent_across_n": true
+    }
+  },
+  "evidence_boundary": {
+    "causal_claim_allowed": false,
+    "allowed_if_direction_consistent": "profile curve geometry varies systematically with beta and is consistent with the proposed mechanism explanation",
+    "prohibited_claims": [
+      "tail shape causally determines optimal delta",
+      "the mechanism is proven",
+      "mediation is identified"
+    ]
+  }
+}

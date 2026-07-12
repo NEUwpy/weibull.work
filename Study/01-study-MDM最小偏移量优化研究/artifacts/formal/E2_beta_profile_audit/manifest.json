@@ -1,0 +1,43 @@
+{
+  "run_id": "E2_beta_profile_audit_v1",
+  "created_at": "2026-07-12T01:25:45+00:00",
+  "git_commit": "155052bab90d540489331d6eeddeeb7f24201c33",
+  "workspace_dirty": true,
+  "contract": "code/_ch5_beta_profile_audit_contract.md",
+  "parameter_grid": {
+    "beta": [
+      1.5,
+      2.0,
+      2.5,
+      4.0,
+      5.0
+    ],
+    "eta": 1.0,
+    "gamma_over_eta": 0.5,
+    "n": [
+      7,
+      10,
+      20
+    ],
+    "repeat_ids": [
+      0,
+      19
+    ],
+    "n_samples": 300,
+    "seed_namespace": "study01_v1",
+    "mdm_call": "MDM.run(trace=True, offset=0.1)"
+  },
+  "metric_definitions": {
+    "gradient_at_zero": "profile gradient g(gamma) at gamma=0",
+    "gradient_at_true_gamma": "linear interpolation of trace g(gamma) at true gamma=0.5",
+    "local_gradient_slope": "OLS slope of g(gamma) on nearest 7 finite nonvirtual trace points",
+    "gamma_hat_d01": "MDM solution at offset delta=0.1",
+    "gamma_error_d01": "gamma_hat_d01 - true gamma"
+  },
+  "outputs": {
+    "profile_metrics.csv": 300,
+    "by_beta_n.csv": 15,
+    "trend_summary.csv": 20,
+    "summary.json": 1
+  }
+}

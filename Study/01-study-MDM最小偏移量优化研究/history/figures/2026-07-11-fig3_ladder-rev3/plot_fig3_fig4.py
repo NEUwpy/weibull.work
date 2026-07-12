@@ -118,7 +118,7 @@ stepwise_reductions = [
     for previous, current in zip(j1_values[:-1], j1_values[1:])
 ]
 transition_labels = [
-    "Def→L1", "L1→L2", "L2→L3", "L3→L4", "L4→L5", "L5→L6\nhindsight gap"
+    "Def→L1", "L1→L2", "L2→L3", "L3→L4", "L4→L5", "L5→L6"
 ]
 
 fig3, (ax3a, ax3b) = plt.subplots(1, 2, figsize=(7.2, 3.0),
@@ -177,7 +177,7 @@ ax3b.set_xticks(range(len(transition_labels)))
 ax3b.set_xticklabels(transition_labels, fontsize=5.5, rotation=25, ha="right")
 ax3b.set_ylabel("Stepwise $J_1$ reduction vs previous layer (%)")
 ax3b.set_ylim(0, max(stepwise_reductions) * 1.18)
-ax3b.set_title("(b) Stepwise information gains and hindsight gap", fontweight="bold", loc="left")
+ax3b.set_title("(b) Stepwise gains reveal two major jumps", fontweight="bold", loc="left")
 
 # 标注边际递减区域
 ax3b.axvspan(2.5, 4.5, alpha=0.06, color=OKABE["gray"], zorder=0)
@@ -282,7 +282,7 @@ print("Figure 3:")
 for l, j1, imp in zip(layers_order, j1_values, improvements):
     print(f"  {l}: J1={j1:.4f}, improvement={imp:.2f}%")
 for label, reduction in zip(transition_labels, stepwise_reductions):
-    print(f"  {label.replace(chr(10), ' / ')}: stepwise J1 reduction={reduction:.2f}%")
+    print(f"  {label}: stepwise J1 reduction={reduction:.2f}%")
 print("\nFigure 4:")
 print(f"  L6 total samples: {len(l6)}")
 print(f"  δ*=0: {pct_zero:.1f}%")

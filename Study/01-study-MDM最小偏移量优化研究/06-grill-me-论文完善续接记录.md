@@ -21,7 +21,7 @@
 
 NN 是 Ch6 的主要实现方法，但不是论文目的。Ch1–Ch6 完成 formal existing-grid 主体闭环；Ch7 以后负责稳健性、外推边界和真实数据适用性。
 
-## 截至第 26 问的已确认决策
+## 截至第 33 问的已确认决策
 
 | 项 | 已锁定决策 | 落地位置 |
 |---:|---|---|
@@ -51,6 +51,34 @@ NN 是 Ch6 的主要实现方法，但不是论文目的。Ch1–Ch6 完成 form
 | 24 | Ch6 的完整 delta distribution diagnostic plot 降为补充图；主文用紧凑表按 pooled/n 分列 exact 下端点、exact 上端点和 extreme/near-boundary rate；三 seed 表继续只承担稳定性职责 | Ch6、`03`、`04` |
 | 25 | Ch6 主文 Figure 8 改为 vector-output MLP 方法流程图；原 pooled J1 柱状图降为补充图，Table 5 继续承担定量结果权威 | Ch6、`plot_ch6_workflow.py`、Figure 8、`03`、`04` |
 | 26 | 正式 feature-group ablation 归 Ch7/E4a；Ch6 删除原 Table 9，只保留前向说明，不在单 fold pilot 上提前作稳定特征贡献结论 | Ch6、`01`、`02`、`03`、`04`、`05` |
+| 27 | Ch6 第一主张锚定相对最佳简单可部署层级 L2 的 13.52% pooled $J_1$ 降幅及其跨 $n$/seed 一致性；低于组级 L5 只作参照定位，不写成“超越 oracle”；L6 保持为逐样本 hindsight 参照 | Ch6、`03` |
+| 28 | MLE 退出 Ch3 独立小节、Ch5 Figure 5、Table 4 和 Ch6 Table 5；仅在 Ch5 正文保留简短绝对精度背景，成对报告收敛样本 $J_1$ 与失败率，不展开横向排名；实现合同保留在 `02`，需要分层完整数字时只放补充表 | Ch3、Ch5、Ch6、`02`、`03`、`05`、`plot_fig3_fig4.py` |
+| 29 | Figure 4 保留在 Ch4 主文，专门证明按 $n$ 条件化后 $\beta$ 异质性仍未消失，因而 L2 仍难产生收益；Figure 3 只承担 L1 全局抵消解释，两图不重复泛化的 $\beta$ 主效应口径 | Ch4、`03`、`04` |
+| 30 | Figure 5 Panel A 只展示 Default–L6 绝对 $J_1$；Panel B 从相对 Default 的累计改善曲线改为相邻层级的逐级相对 $J_1$ 降幅，与 Table 4 同口径；L2→L3=7.51%，L5→L6=13.42% | Ch5、`03`、`04`、`plot_fig3_fig4.py`、`test_study01_fig3_ladder_contract.py` |
+| 31 | L2→L3 命名为引入 $\beta$ 组级信息的主要增益；L5→L6 单独命名为 hindsight gap，表示从组级选择到逐样本事后选择的决策粒度变化，不将两者写成同质信息跳点 | Ch5、`03`、`04`、`plot_fig3_fig4.py`、`test_study01_fig3_ladder_contract.py` |
+| 32 | Figure 7 保留在 Ch5 主文，唯一职责是解释 hindsight gap 的逐样本来源与不可部署性；Panel A 展示上下精确端点质量，Panel B 显示给定 $\beta$ 后仍有组内逐样本分散，不重复 Figure 6 的 $\beta$/$n$ 选点跨度比较，不将 L6 分布写成部署查表 | Ch5、`03`、`04` |
+| 33 | Ch6 Table 6 只保留 pooled 与分 $n$ 的 $J_1$ 跨 seed 稳定性；三 seed 的 extreme/near-boundary rate 移至新建 `draft-补充材料.md` 的 Supplementary Table S1；Ch6 只保留 selected-loss 稳定不等于选择分布完全稳定的限制性说明 | Ch6、`03`、`04`、`draft-补充材料.md` |
+| 34 | Ch6 Table 7 保留主文，唯一职责是拆解 primary seed 42 下精确上下端点与 near-boundary 构成；不承担跨 seed 稳健性判断，也不构成部署推荐 | Ch6、`03`、`04` |
+| 35 | Ch6 Table 8 从主文删除 mean relative regret，只保留 mean regret 与 near-1%/2%/5% hit rate；完整 relative-regret 诊断继续留在正式 artifact | Ch6、`03`、`04` |
+| 36 | Ch6 Table 8 只说明模型差异同时体现在 pooled $J_1$ 与 near-hit 比例，删除“并非由少数极端样本驱动”的强判断；后者需逐样本损失差分布证据 | Ch6、`03`、`04` |
+| 37 | Tabular-L6 从 Ch6 方法清单、Table 5、Table 8 与正文比较中移除，代码和 sealed artifact 只作 provenance 保留；公平方法比较推迟到 Ch7 正式消融完成之后 | Ch6、`01`、`03`、`04` |
+| 38 | Ch6 Table 5 删除所有方法均为 0 的 failure-rate 列，正文只用一句说明当前 selected-point failure rate 均为 0；更宽范围的失败处理稳健性留给 Ch7 | Ch6、`03`、`04` |
+| 39 | Ch6 Table 5 保留 Default、L1–L6 参照与 Vector-MLP-L4/L5/L6 全部 10 行，完整展示当前比较景观；正文仍以 L2、L5、L6 为主张锚点 | Ch6、`03`、`04` |
+| 40 | Ch6 解释 Vector-MLP-L4/L5/L6 的 pooled $J_1$ 与逐级降幅，但限定为 primary E3b 的描述性监督粒度对应关系；只有 L6 有三-seed检查，正式消融仍归 Ch7 | Ch6、`03`、`04` |
+| 41 | Ch6 Table 5 继续按 pooled $J_1$ 从低到高排列以直观显示效果，不按信息角色重排；方法名、`性质`列与正文承担信息边界区分 | Ch6、`03`、`04` |
+| 42 | Ch6 Table 5 `性质`列显式区分 Vector-MLP 的可部署输入与 L4/L5/L6 离线监督标签，并把 L3–L5/L6 标为组级 oracle/逐样本 hindsight 参照 | Ch6、`03`、`04` |
+| 43 | Ch6 分 $n$ 段用相对 L2 的 11.05%/14.69%/17.32% 降幅替代重复的绝对值，并限定三个正式 $n$ 水平的递增只作描述、不外推单调规律 | Ch6、`03`、`04` |
+| 44 | Ch6 三-seed稳定性改报 pooled $J_1$ 范围 0.544009–0.547003、最大差值 0.002994（均值的 0.55%）及相对 L2 降幅 13.52%–14.00%；逐-seed值留在 Table 6 | Ch6、`03`、`04` |
+| 45 | Ch6 开篇、结论与骨架删除“实质信号”“明显优于”等抽象判断，直接写相对 L2 的 13.52% pooled $J_1$ 降幅及跨 $n$/三-seed方向一致，并保留 existing-grid 边界 | Ch6、`03`、`04` |
+| 46 | Ch4 将“样本量强烈影响 $J_1$ 水平”改为 L2 下 $n=20$ 相对 $n=7$ 低 33.96%，同时指出最优 $\delta$ 仅由 0.10 移至 0.08 | Ch4、`03`、`04` |
+| 47 | Ch4 删除 $\gamma/\eta$ 差异可能源于“搜索敏感性”的机制猜测，只保留次级经验模式并声明现有证据不识别其形成机制 | Ch4、`03`、`04` |
+| 48 | Ch4 用各 $\beta$ 下的改善组合数与精确改善/恶化范围替代“稳定改善约2%–4%”，直接量化 L1 相对 Default 的方向反转 | Ch4、`03`、`04` |
+| 49 | Ch4 删除“工程上可忽略”“几乎没有收益”“收益极小”等未定义阈值判断；改报 0.048%/0.059%，并与按 $\beta$ 分组的 0.77%–8.11% 变化比较 | Ch4、`03`、`04` |
+| 50 | 用 300 个正式 seed 样本轻量审计 Ch5 的 $\beta$–profile 解释；局部梯度斜率跨 $n$ 方向一致，只保留“与机制解释一致”而不作因果证明 | Ch5、`E2_beta_profile_audit/`、`01`、`03`、`04` |
+| 51 | Ch5 删除“迅速衰减”“边际递减区”；将 7.51%→0.51%→1.88% 写成后两级均低于 L2→L3但彼此不单调 | Ch5、`01`、`03`、`04` |
+| 52 | Ch5 删除 L3 $\delta^*$ 与 $\beta$“强负相关”的形容；改报 5 个设计点 0.36/0.20/0.12/0.04/0.04、单调不增与 $\rho=-0.975$，不外推总体相关性 | Ch5、`03`、`04` |
+| 53 | Ch5 Figure 6 删除“$\beta$ 主效应、$n$ 微弱调节”；改报跨 $\beta$/$n$ 平均跨度 0.37/0.08、比值 4.67 和 L3→L4 pooled $J_1$ 降幅 0.51% | Ch5、`03`、`04` |
+| 54 | Ch5 L5 删除“$\gamma/\eta$ 效应同样微弱”和单例概括；改报 15 个 $(\beta,n)$ 单元内跨度分布与 L4→L5 pooled $J_1$ 降幅 1.88% | Ch5、`03`、`04` |
 
 ## 长期工作规则
 
@@ -95,21 +123,26 @@ NN 是 Ch6 的主要实现方法，但不是论文目的。Ch1–Ch6 完成 form
   - L1 五折都选 0.08；L3 的 5 个 beta 选点五折全部稳定。
   - L6 不进入 cross-fit，仍是 existing-grid hindsight benchmark。
 
+### Ch5 β–profile 轻量机制审计
+
+- 合同：`code/_ch5_beta_profile_audit_contract.md`。
+- 计划：`code/_ch5_beta_profile_audit_plan.md`。
+- 代码：`code/analyze_beta_profile_audit.py`。
+- 测试：`python/tests/test_study01_beta_profile_audit.py`。
+- 产物：`artifacts/formal/E2_beta_profile_audit/`。
+- 固定设计：$\eta=1$、$\gamma/\eta=0.5$，5 个 $\beta$ × 3 个 $n$ × 20 repeats，共 300 个正式 `study01_v1` seed 样本；每个样本只运行一次 `MDM.run(trace=True, offset=0.1)`。
+- 核心结果：局部梯度斜率与 $\beta$ 的 Spearman $\rho$ 在 $n=7/10/20$ 下分别为 −0.463、−0.495、−0.529；真实 $\gamma$ 处梯度方向不一致。
+- 解释边界：支持“profile 曲线几何随 $\beta$ 系统变化，与机制解释一致”，不支持“尾部形态因果地决定最优 $\delta$”或“机制已证明”。
+
 ## 当前验证状态
 
 最近联合命令：
 
 ```text
-python -m pytest python/tests/test_study01_e1_e2_crossfit.py python/tests/test_mdm_s49.py python/tests/test_study01_framework_figure_contract.py python/tests/test_study01_figure1_contract.py -q
+python -m pytest python/tests/test_study01_beta_profile_audit.py python/tests/test_study01_e1_e2_crossfit.py python/tests/test_mdm_s49.py python/tests/test_study01_framework_figure_contract.py python/tests/test_study01_figure1_contract.py python/tests/test_study01_ch6_workflow_figure_contract.py python/tests/test_study01_fig3_ladder_contract.py -q
 ```
 
-第 25 问新增 Figure 8 合同测试后，最近联合命令还应加入：
-
-```text
-python/tests/test_study01_ch6_workflow_figure_contract.py
-```
-
-最近结果：第 26 问同步并完成 Ch6/Ch7 消融归属检查后重新运行，**18 passed**。此后若继续修改，新窗口必须重新运行而不直接沿用该数字。
+最近结果：第 53 问删除 Ch5 Figure 6 的“$\beta$ 主效应、$n$ 微弱调节”后重新运行，**27 passed**；正式 `L4_by_beta_n.csv` 重算得到固定 $n$ 跨 $\beta$ 的跨度为 0.28/0.38/0.46、平均 0.373333，固定 $\beta$ 跨 $n$ 的跨度为 0.20/0.12/0.04/0.02/0.02、平均 0.080000，未舍入比值为 4.666667（正文写 0.37/0.08/4.67 倍）；L3→L4 pooled $J_1$ 降幅为 0.51%。正文明确该比较不是正式方差分解或假设检验。同轮禁用措辞扫描与 `git diff --check` 均通过。此后若继续修改，新窗口必须重新运行而不直接沿用该数字。
 
 ## 当前共享工作区的所有权边界
 
@@ -128,5 +161,33 @@ python/tests/test_study01_ch6_workflow_figure_contract.py
 - 第 24 问已确认并落地：Ch6 的完整 delta distribution diagnostic plot 降为补充图；主文改用 pooled/按 $n$ 分层的精确上下端点与 near-boundary 紧凑表，三 seed 表保持稳定性职责。
 - 第 25 问已确认并落地：Ch6 Figure 8 改为可复现的 vector-output MLP 方法流程图；原 pooled J1 柱状图降为补充图，Table 5 保持结果权威。
 - 第 26 问已确认并落地：正式 feature-group ablation 归 Ch7/E4a；Ch6 删除原 Table 9，只保留前向说明，当前 fold 1、seed 42 结果只作 Ch7 实验设计的 pilot 来源。
-- 第 27 问尚未提出。继续时从 Ch4–Ch6 的剩余主张、图表和证据对齐开始，仍保持一次一问。
+- 第 27 问已确认并落地：Ch6 第一主张锚定 L2 可部署对比；组级 L5 和逐样本 L6 只按各自信息边界承担参照职责，不使用“超越 oracle”标题化口径。
+- 第 28 问已确认并落地：MLE 只作 Ch5 正文背景锚点，不再进入 Figure 5 或 Ch5/Ch6 主表；旧 Figure 5 图像与脚本已完整归档到 `history/figures/2026-07-11-fig3_ladder-rev1/`。
+- 第 29 问已确认并落地：Figure 3 解释 L1 全局抵消，Figure 4 保留主文并专门解释为何按 $n$ 条件化后 L2 仍难改进。
+- 第 30 问已确认并落地：Figure 5 Panel A 展示绝对 $J_1$，Panel B 展示逐级相对 $J_1$ 降幅，与 Table 4 保持同一改善口径；修改前的无 MLE 累计曲线版本已归档到 `history/figures/2026-07-11-fig3_ladder-rev2/`。
+- 第 31 问已确认并落地：L2→L3 是主要信息增益，L5→L6 是 hindsight gap，两者不再并称为同质跳点；修改前的“two major jumps”版本已归档到 `history/figures/2026-07-11-fig3_ladder-rev3/`。
+- 第 32 问已确认并落地：Figure 7 保留 Ch5 主文，只用于解释 hindsight gap 的逐样本来源及不可部署性，不把 L6 选点分布写成部署推荐。
+- 第 33 问已确认并落地：Table 6 只承担跨 seed 主 $J_1$ 稳定性；边界选择率跨 seed 数值移至 Supplementary Table S1，Ch6 只保留一句限制性说明。
+- 第 34 问已确认并落地：Table 7 保留 Ch6 主文，只承担 primary seed 42 的边界选择构成解释；跨 seed 稳健性与部署推荐均不由该表承担。
+- 第 35 问已确认并落地：Table 8 删除对小分母敏感的 mean relative regret，主文只保留 mean regret 与 near-1%/2%/5% hit rate；完整诊断继续保留在正式 artifact。
+- 第 36 问已确认并落地：Table 8 的解释收紧为 pooled $J_1$ 之外的 near-hit 补充观测，不再用现有表格排除少数极端样本驱动。
+- 第 37 问已确认并落地：Ch6 不再使用 Tabular-L6 作学习器比较，保持样本自适应 MDM 偏移量选择主线；方法比较推迟到 Ch7 正式消融之后。
+- 第 38 问已确认并落地：Table 5 删除不区分方法的 failure-rate 列，当前零失败率转为正文边界说明。
+- 第 39 问已确认并落地：Table 5 不压缩为四行，保留全部 10 行比较；表格完整展示与正文主张聚焦分开处理。
+- 第 40 问已确认并落地：Vector-MLP-L4/L5/L6 三行获得描述性解释，但不升级为已稳定验证的监督粒度消融结论。
+- 第 41 问已确认并落地：Table 5 保持按 $J_1$ 排序，效果可读性优先；排序不表示不同信息边界的方法可无条件横向等价。
+- 第 42 问已确认并落地：Table 5 `性质`列现在承担部署输入、离线监督、oracle 与 hindsight 的边界区分。
+- 第 43 问已确认并落地：分 $n$ 正文改报效应幅度，绝对值留在 Table 5，并加入不外推单调规律的边界。
+- 第 44 问已确认并落地：三-seed“稳定”改为范围、差值、相对均值比例与效应区间的具体量化。
+- 第 45 问已确认并落地：Ch6 首尾主张统一为具体效应幅度、一致性证据与 existing-grid 边界。
+- 第 46 问已确认并落地：Ch4 用33.96%量化样本量对误差水平的影响，并与最优偏移方向变化有限分开表述。
+- 第 47 问已确认并落地：Ch4 的 $\gamma/\eta$ 结果回到观测层，不再承担未经验证的机制解释。
+- 第 48 问已确认并落地：Ch4 的 $\beta$ 方向反转改由组合计数和精确幅度范围支撑。
+- 第 49 问已确认并落地：Ch4 的 L1/L2 小幅收益不再使用未定义工程阈值，而改用 0.048%/0.059% 与 0.77%–8.11% 的量级比较。
+- 第 50 问已确认并落地：Ch5 的 $\beta$–profile 解释经 300 样本轻量审计后保留为一致性证据，但因果链仍明确未识别。
+- 第 51 问已确认并落地：Ch5 的后续组级收益改为精确、非单调表述，不再使用“迅速衰减”或“边际递减区”。
+- 第 52 问已确认并落地：Ch5 的 L3 $\beta$–$\delta^*$ 关系改为 5 个设计点上的单调不增与 $\rho=-0.975$，并明确末两点并列及总体外推边界。
+- 第 53 问已确认并落地：Ch5 Figure 6 改用跨 $\beta$/$n$ 的精确选点跨度与 L3→L4 效应幅度，不再使用“主效应/微弱调节”的术语判断。
+- 第 54 问已确认并落地：Ch5 L5 改用 15 个 $(\beta,n)$ 单元的跨 $\gamma/\eta$ 选点跨度分布及 1.88% 逐级收益，不再用“同样微弱”或单个组合代表整体。
+- 第 55 问尚未提出。继续时从 Ch4–Ch6 的剩余主张、图表和证据对齐开始，仍保持一次一问。
 - 本轮改动尚未提交或暂存；不要因开新窗口而默认它们已封存。
