@@ -289,6 +289,28 @@ def _read_selection_ledger(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _resolve_distinct_selection_paths(
+    trace_path: Path,
+    receipt_path: Path,
+    ledger_path: Path,
+) -> tuple[Path, Path, Path]:
+    try:
+        paths = tuple(Path(path).resolve(strict=False) for path in (trace_path, receipt_path, ledger_path))
+    except (OSError, TypeError) as exc:
+        raise ValueError(f"Selection paths cannot be resolved: {exc}") from exc
+    for index, first in enumerate(paths):
+        for second in paths[index + 1:]:
+            if first == second:
+                raise ValueError("Selection trace, receipt, and ledger paths must be distinct")
+            if first.exists() and second.exists():
+                try:
+                    if first.samefile(second):
+                        raise ValueError("Selection trace, receipt, and ledger paths must be distinct")
+                except OSError as exc:
+                    raise ValueError(f"Selection path identity cannot be verified: {exc}") from exc
+    return paths
+
+
 def publish_selection_receipt(
     *,
     receipt_path: Path,
@@ -302,6 +324,9 @@ def publish_selection_receipt(
 ) -> dict[str, Any]:
     """Publish one immutable selection receipt and its unique ledger binding."""
 
+    trace_path, receipt_path, ledger_path = _resolve_distinct_selection_paths(
+        trace_path, receipt_path, ledger_path
+    )
     if module_id not in _PREDECESSOR_BY_MODULE:
         raise ValueError(f"Unsupported formal selection module_id: {module_id!r}")
     if not isinstance(run_id, str) or not run_id.strip():
@@ -310,10 +335,8 @@ def publish_selection_receipt(
         raise ValueError("Selection receipt code_commit must be a full commit ID")
     _validate_effective_config(effective_config)
     actual_trace_sha, record_count, decision_count = _validate_selection_trace(
-        Path(trace_path), trace_sha256, module_id, run_id
+        trace_path, trace_sha256, module_id, run_id
     )
-    receipt_path = Path(receipt_path)
-    ledger_path = Path(ledger_path)
     if receipt_path.exists():
         raise FileExistsError(f"Selection receipt already exists: {receipt_path}")
 

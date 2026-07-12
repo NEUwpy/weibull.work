@@ -382,6 +382,98 @@ def test_selection_receipt_atomically_binds_trace_and_unique_ledger_entry(tmp_pa
     assert ledger[0]["receipt_sha256"] == predecessor["receipt_sha256"]
 
 
+@pytest.mark.parametrize("collision", ["ledger_trace", "ledger_receipt", "receipt_trace"])
+def test_selection_publisher_rejects_identical_path_aliases_without_side_effects(tmp_path, collision):
+    from study02a.formal_config import load_effective_formal_config
+    from study02a.formal_contracts import publish_selection_receipt
+
+    trace_path, trace_sha256, run_id = _trace(tmp_path, "A-E1")
+    receipt_path = tmp_path / "receipt.json"
+    ledger_path = tmp_path / "ledger.jsonl"
+    if collision == "ledger_trace":
+        ledger_path = trace_path
+    elif collision == "ledger_receipt":
+        ledger_path = receipt_path
+    else:
+        receipt_path = trace_path
+    before_files = {path: path.read_bytes() for path in tmp_path.iterdir() if path.is_file()}
+
+    with pytest.raises(ValueError, match="paths must be distinct"):
+        publish_selection_receipt(
+            receipt_path=receipt_path,
+            ledger_path=ledger_path,
+            module_id="A-E1",
+            run_id=run_id,
+            trace_path=trace_path,
+            trace_sha256=trace_sha256,
+            effective_config=load_effective_formal_config(STUDY_ROOT),
+            code_commit="b" * 40,
+        )
+
+    assert {path: path.read_bytes() for path in tmp_path.iterdir() if path.is_file()} == before_files
+    assert trace_path.read_bytes() == before_files[trace_path]
+    assert not list(tmp_path.glob("*.lock"))
+
+
+def test_selection_publisher_rejects_relative_absolute_alias_before_writes(tmp_path, monkeypatch):
+    from study02a.formal_config import load_effective_formal_config
+    from study02a.formal_contracts import publish_selection_receipt
+
+    trace_path, trace_sha256, run_id = _trace(tmp_path, "A-E1")
+    receipt_path = Path("binding.json")
+    ledger_path = (tmp_path / "binding.json").resolve()
+    before_trace = trace_path.read_bytes()
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(ValueError, match="paths must be distinct"):
+        publish_selection_receipt(
+            receipt_path=receipt_path,
+            ledger_path=ledger_path,
+            module_id="A-E1",
+            run_id=run_id,
+            trace_path=trace_path,
+            trace_sha256=trace_sha256,
+            effective_config=load_effective_formal_config(STUDY_ROOT),
+            code_commit="b" * 40,
+        )
+
+    assert trace_path.read_bytes() == before_trace
+    assert not (tmp_path / "binding.json").exists()
+    assert not list(tmp_path.glob("*.lock"))
+
+
+def test_selection_publisher_rejects_existing_hardlink_alias_without_trace_mutation(tmp_path):
+    from study02a.formal_config import load_effective_formal_config
+    from study02a.formal_contracts import publish_selection_receipt
+
+    trace_path, trace_sha256, run_id = _trace(tmp_path, "A-E1")
+    ledger_path = tmp_path / "ledger-hardlink.jsonl"
+    try:
+        import os
+
+        os.link(trace_path, ledger_path)
+    except OSError as exc:
+        pytest.skip(f"hard links unavailable: {exc}")
+    before_trace = trace_path.read_bytes()
+    before_files = {path: path.read_bytes() for path in tmp_path.iterdir() if path.is_file()}
+
+    with pytest.raises(ValueError, match="paths must be distinct"):
+        publish_selection_receipt(
+            receipt_path=tmp_path / "receipt.json",
+            ledger_path=ledger_path,
+            module_id="A-E1",
+            run_id=run_id,
+            trace_path=trace_path,
+            trace_sha256=trace_sha256,
+            effective_config=load_effective_formal_config(STUDY_ROOT),
+            code_commit="b" * 40,
+        )
+
+    assert trace_path.read_bytes() == before_trace
+    assert {path: path.read_bytes() for path in tmp_path.iterdir() if path.is_file()} == before_files
+    assert not list(tmp_path.glob("*.lock"))
+
+
 @pytest.mark.parametrize("case", ["duplicate", "conflict"])
 def test_selection_publisher_rejects_duplicate_or_conflicting_run_binding(tmp_path, case):
     from study02a.formal_config import load_effective_formal_config
