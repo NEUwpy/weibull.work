@@ -62,3 +62,13 @@ def test_runtime_projection_uses_matrix_sizes_batches_epochs_and_headroom():
     assert result["projected_serial_seconds"] == expected
     assert result["projected_wall_seconds"] == expected / 4
     assert result["runtime_gate_pass"] is True
+
+    discounted = project_formal_runtime(
+        matrix,
+        {32: 0.1, 128: 0.2, 512: 0.3},
+        settings,
+        effective_worker_factor=2.5,
+    )
+    assert discounted["parallel_workers"] == 4
+    assert discounted["effective_worker_factor"] == 2.5
+    assert discounted["projected_wall_seconds"] == expected / 2.5

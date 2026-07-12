@@ -24,7 +24,7 @@ from study02a.pilot import run_pilot
 
 
 def _load_pilot_amendment() -> dict:
-    path = STUDY_ROOT / "configs" / "A-g3-pilot-amendment-v1.json"
+    path = STUDY_ROOT / "configs" / "A-g3-pilot-amendment-v2.json"
     checksum_path = path.with_suffix(".sha256")
     expected = checksum_path.read_text(encoding="utf-8").split()[0]
     actual = hashlib.sha256(path.read_bytes()).hexdigest()

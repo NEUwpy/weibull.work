@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from concurrent.futures import ProcessPoolExecutor
 import gzip
 import hashlib
 import json
 import math
+import multiprocessing
 from pathlib import Path
 import shutil
 import time
@@ -42,6 +44,8 @@ def project_formal_runtime(
     matrix: pd.DataFrame,
     seconds_per_batch: dict[int, float],
     settings: dict[str, Any],
+    *,
+    effective_worker_factor: float | None = None,
 ) -> dict[str, Any]:
     """Conservatively extrapolate measured batch times over the sealed fit matrix."""
 
@@ -66,15 +70,17 @@ def project_formal_runtime(
         bucket["seconds"] = float(bucket["seconds"]) + elapsed
     headroom = float(settings["runtime_headroom_factor"])
     projected_serial = total_seconds * headroom
-    workers = int(settings["parallel_workers"])
-    projected_wall = projected_serial / workers
+    nominal_workers = int(settings.get("concurrency_workers", settings.get("parallel_workers", 1)))
+    effective_workers = float(effective_worker_factor if effective_worker_factor is not None else nominal_workers)
+    projected_wall = projected_serial / effective_workers
     limit_seconds = float(settings["wall_time_limit_hours"]) * 3600.0
     return {
         "measured_seconds_per_batch": {str(key): value for key, value in sorted(seconds_per_batch.items())},
         "projected_optimizer_updates": total_updates,
         "projection_by_batch_size": by_batch,
         "runtime_headroom_factor": headroom,
-        "parallel_workers": workers,
+        "parallel_workers": nominal_workers,
+        "effective_worker_factor": effective_workers,
         "projected_serial_seconds": projected_serial,
         "projected_wall_seconds": projected_wall,
         "wall_time_limit_seconds": limit_seconds,
@@ -82,10 +88,27 @@ def project_formal_runtime(
     }
 
 
+def _timed_mlp_fit(payload: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any], int, int]) -> float:
+    train_x, train_y, validation_x, validation_y, settings, batch_size, epochs = payload
+    torch.set_num_threads(int(settings.get("threads_per_worker", 1)))
+    started = time.perf_counter()
+    fit_candidate(
+        lambda: build_mlp(train_x.shape[1], settings["widths"], str(settings["activation"]), 0.0),
+        (torch.tensor(train_x), torch.tensor(train_y)),
+        (torch.tensor(validation_x), torch.tensor(validation_y)),
+        seed=int(settings["seed"]),
+        max_epochs=int(epochs),
+        min_epochs=int(epochs),
+        patience=int(epochs),
+        batch_size=int(batch_size),
+    )
+    return time.perf_counter() - started
+
+
 def _benchmark_formal_batches(
     config: FrozenConfig,
     settings: dict[str, Any],
-) -> dict[int, float]:
+) -> tuple[dict[int, float], dict[str, Any], float]:
     rows = allocate_training_rows(
         "core_continuous",
         "fixed_n",
@@ -108,25 +131,59 @@ def _benchmark_formal_batches(
     train_y, validation_y = y[:split], y[split:]
     mean, sd = train_x.mean(axis=0), train_x.std(axis=0)
     sd[sd == 0] = 1.0
-    training_data = (torch.tensor((train_x - mean) / sd), torch.tensor(train_y))
-    validation_data = (torch.tensor((validation_x - mean) / sd), torch.tensor(validation_y))
-    measured: dict[int, float] = {}
+    train_x = np.asarray((train_x - mean) / sd, dtype=np.float32)
+    validation_x = np.asarray((validation_x - mean) / sd, dtype=np.float32)
+    train_y = np.asarray(train_y, dtype=np.float32)
+    validation_y = np.asarray(validation_y, dtype=np.float32)
+    base_payload = (train_x, train_y, validation_x, validation_y, settings)
     epochs = int(settings["epochs"])
-    for batch_size in [int(value) for value in settings["batch_sizes"]]:
-        started = time.perf_counter()
-        fit_candidate(
-            lambda: build_mlp(x.shape[1], settings["widths"], str(settings["activation"]), 0.0),
-            training_data,
-            validation_data,
-            seed=int(settings["seed"]),
-            max_epochs=epochs,
-            min_epochs=epochs,
-            patience=epochs,
-            batch_size=batch_size,
-        )
-        elapsed = time.perf_counter() - started
-        measured[batch_size] = elapsed / (epochs * math.ceil(len(train_x) / batch_size))
-    return measured
+    batch_sizes = [int(value) for value in settings["batch_sizes"]]
+    for batch_size in batch_sizes:
+        _timed_mlp_fit((*base_payload, batch_size, int(settings["warmup_epochs"])))
+
+    measurements: dict[int, list[float]] = {batch_size: [] for batch_size in batch_sizes}
+    orders = settings["measurement_orders"]
+    if len(orders) != int(settings["measured_repetitions"]):
+        raise ValueError("measurement_orders must match measured_repetitions")
+    for order in orders:
+        if sorted(map(int, order)) != sorted(batch_sizes):
+            raise ValueError("each measurement order must contain every frozen batch size exactly once")
+        for batch_size in map(int, order):
+            elapsed = _timed_mlp_fit((*base_payload, batch_size, epochs))
+            measurements[batch_size].append(elapsed / (epochs * math.ceil(len(train_x) / batch_size)))
+    measured = {batch_size: float(np.median(values)) for batch_size, values in measurements.items()}
+
+    workers = int(settings["concurrency_workers"])
+    concurrency_batch = int(settings["concurrency_batch_size"])
+    concurrency_epochs = int(settings["concurrency_epochs"])
+    concurrency_payload = (*base_payload, concurrency_batch, concurrency_epochs)
+    single_reference = measured[concurrency_batch] * concurrency_epochs * math.ceil(len(train_x) / concurrency_batch)
+    speedups: list[float] = []
+    context = multiprocessing.get_context("spawn")
+    with ProcessPoolExecutor(max_workers=workers, mp_context=context) as executor:
+        warmups = [executor.submit(_timed_mlp_fit, concurrency_payload) for _ in range(int(settings["concurrency_warmup_tasks"]))]
+        for future in warmups:
+            future.result()
+        for _ in range(int(settings["concurrency_repetitions"])):
+            started = time.perf_counter()
+            futures = [executor.submit(_timed_mlp_fit, concurrency_payload) for _ in range(workers)]
+            for future in futures:
+                future.result()
+            wall = time.perf_counter() - started
+            speedups.append(min(float(workers), workers * single_reference / wall))
+    effective_workers = float(np.quantile(speedups, 0.25, method="linear"))
+    details = {
+        "warmup_epochs": int(settings["warmup_epochs"]),
+        "measured_repetitions": int(settings["measured_repetitions"]),
+        "measurement_orders": orders,
+        "seconds_per_batch_repetitions": {str(key): value for key, value in measurements.items()},
+        "batch_time_aggregate": "median",
+        "concurrency_workers": workers,
+        "concurrency_speedup_repetitions": speedups,
+        "effective_worker_aggregate": "q25",
+        "effective_worker_factor": effective_workers,
+    }
+    return measured, details, effective_workers
 
 
 def _sha256(path: Path) -> str:
@@ -262,8 +319,12 @@ def run_pilot(
 
         if pilot_amendment is not None and matrix_path is not None:
             runtime_settings = dict(pilot_amendment["runtime_benchmark"])
-            measured = _benchmark_formal_batches(config, runtime_settings)
-            runtime_projection = project_formal_runtime(pd.read_csv(matrix_path), measured, runtime_settings)
+            measured, benchmark_details, effective_workers = _benchmark_formal_batches(config, runtime_settings)
+            runtime_projection = project_formal_runtime(
+                pd.read_csv(matrix_path), measured, runtime_settings,
+                effective_worker_factor=effective_workers,
+            )
+            runtime_projection["benchmark_details"] = benchmark_details
 
     disk = shutil.disk_usage(output_dir)
     formal_result_rows = 3 * 256 * 200 * len(config.protocol["sample_sizes"]["core"])
