@@ -171,7 +171,7 @@ def _benchmark_formal_batches(
                 future.result()
             wall = time.perf_counter() - started
             speedups.append(min(float(workers), workers * single_reference / wall))
-    effective_workers = float(np.quantile(speedups, 0.25, method="linear"))
+    effective_workers = max(1.0, float(np.quantile(speedups, 0.25, method="linear")))
     details = {
         "warmup_epochs": int(settings["warmup_epochs"]),
         "measured_repetitions": int(settings["measured_repetitions"]),
@@ -180,7 +180,7 @@ def _benchmark_formal_batches(
         "batch_time_aggregate": "median",
         "concurrency_workers": workers,
         "concurrency_speedup_repetitions": speedups,
-        "effective_worker_aggregate": "q25",
+        "effective_worker_aggregate": "max(1,q25)",
         "effective_worker_factor": effective_workers,
     }
     return measured, details, effective_workers
