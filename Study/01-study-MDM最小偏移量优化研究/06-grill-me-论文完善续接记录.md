@@ -79,6 +79,9 @@ NN 是 Ch6 的主要实现方法，但不是论文目的。Ch1–Ch6 完成 form
 | 52 | Ch5 删除 L3 $\delta^*$ 与 $\beta$“强负相关”的形容；改报 5 个设计点 0.36/0.20/0.12/0.04/0.04、单调不增与 $\rho=-0.975$，不外推总体相关性 | Ch5、`03`、`04` |
 | 53 | Ch5 Figure 6 删除“$\beta$ 主效应、$n$ 微弱调节”；改报跨 $\beta$/$n$ 平均跨度 0.37/0.08、比值 4.67 和 L3→L4 pooled $J_1$ 降幅 0.51% | Ch5、`03`、`04` |
 | 54 | Ch5 L5 删除“$\gamma/\eta$ 效应同样微弱”和单例概括；改报 15 个 $(\beta,n)$ 单元内跨度分布与 L4→L5 pooled $J_1$ 降幅 1.88% | Ch5、`03`、`04` |
+| 55 | Ch5 删除对 13.42% hindsight gap 中结构性与随机性来源比例的无证据归因；端点质量与组内分散只支撑不可部署边界 | Ch5、`03`、`04` |
+| 56 | Ch5 cross-fit 段删除“留出 $J_1$ 只轻微上调”；改报 L2/L4/L5 上调 0.030%/0.085%/0.132%、最大 0.132% 和 L2→L5 留出顺序 | Ch5、`03`、`04` |
+| 57 | Ch5 将“最大逐级增益”限定于 L2→L5 组级信息层级；L2→L3=7.51%，L5→L6=13.42% hindsight gap 不参与该排序 | Ch5、`03`、`04` |
 
 ## 长期工作规则
 
@@ -142,7 +145,7 @@ NN 是 Ch6 的主要实现方法，但不是论文目的。Ch1–Ch6 完成 form
 python -m pytest python/tests/test_study01_beta_profile_audit.py python/tests/test_study01_e1_e2_crossfit.py python/tests/test_mdm_s49.py python/tests/test_study01_framework_figure_contract.py python/tests/test_study01_figure1_contract.py python/tests/test_study01_ch6_workflow_figure_contract.py python/tests/test_study01_fig3_ladder_contract.py -q
 ```
 
-最近结果：第 53 问删除 Ch5 Figure 6 的“$\beta$ 主效应、$n$ 微弱调节”后重新运行，**27 passed**；正式 `L4_by_beta_n.csv` 重算得到固定 $n$ 跨 $\beta$ 的跨度为 0.28/0.38/0.46、平均 0.373333，固定 $\beta$ 跨 $n$ 的跨度为 0.20/0.12/0.04/0.02/0.02、平均 0.080000，未舍入比值为 4.666667（正文写 0.37/0.08/4.67 倍）；L3→L4 pooled $J_1$ 降幅为 0.51%。正文明确该比较不是正式方差分解或假设检验。同轮禁用措辞扫描与 `git diff --check` 均通过。此后若继续修改，新窗口必须重新运行而不直接沿用该数字。
+最近结果：第 57 问限定 Ch5 “最大逐级增益”的比较域后重新运行，**27 passed**；L2→L5 的可比较组级信息层级中，L2→L3 的 7.51% 为最大逐级相对 $J_1$ 降幅；L5→L6 的 13.42% 明确作为逐样本 hindsight gap，不进入组级信息增益排序。同轮“最大 oracle 收益”禁用措辞扫描与 `git diff --check` 均通过。此后若继续修改，新窗口必须重新运行而不直接沿用该数字。
 
 ## 当前共享工作区的所有权边界
 
@@ -189,5 +192,8 @@ python -m pytest python/tests/test_study01_beta_profile_audit.py python/tests/te
 - 第 52 问已确认并落地：Ch5 的 L3 $\beta$–$\delta^*$ 关系改为 5 个设计点上的单调不增与 $\rho=-0.975$，并明确末两点并列及总体外推边界。
 - 第 53 问已确认并落地：Ch5 Figure 6 改用跨 $\beta$/$n$ 的精确选点跨度与 L3→L4 效应幅度，不再使用“主效应/微弱调节”的术语判断。
 - 第 54 问已确认并落地：Ch5 L5 改用 15 个 $(\beta,n)$ 单元的跨 $\gamma/\eta$ 选点跨度分布及 1.88% 逐级收益，不再用“同样微弱”或单个组合代表整体。
-- 第 55 问尚未提出。继续时从 Ch4–Ch6 的剩余主张、图表和证据对齐开始，仍保持一次一问。
+- 第 55 问已确认并落地：Ch5 不再声称 13.42% hindsight gap 中有“相当部分”来自偶然性，明确当前未分解结构性与随机性来源。
+- 第 56 问已确认并落地：Ch5 cross-fit 段用精确偏差幅度和留出 $J_1$ 顺序替代“轻微上调”。
+- 第 57 问已确认并落地：Ch5 的“最大逐级增益”只在 L2→L5 组级信息层级内比较，13.42% hindsight gap 明确排除在该排序之外。
+- 第 58 问尚未提出。继续时从 Ch4–Ch6 的剩余主张、图表和证据对齐开始，仍保持一次一问。
 - 本轮改动尚未提交或暂存；不要因开新窗口而默认它们已封存。
