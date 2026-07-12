@@ -36,3 +36,7 @@ def test_small_pilot_keeps_test_sealed_and_writes_auditable_outputs(tmp_path):
     assert (output / "pilot_samples.csv.gz").exists()
     assert (output / "resource_estimate.json").exists()
     assert (output / "run_log.txt").exists()
+    estimate = result["resource_estimate"]
+    assert estimate["estimated_formal_result_rows"] == 768000
+    assert estimate["estimated_formal_artifact_bytes"] > 0
+    assert isinstance(estimate["resource_gate_pass"], bool)

@@ -142,6 +142,13 @@ def run_pilot(
         smoke_checkpoint = fit.checkpoint_sha256
 
     disk = shutil.disk_usage(output_dir)
+    formal_result_rows = 3 * 256 * 200 * len(config.protocol["sample_sizes"]["core"])
+    assumed_compressed_bytes_per_result_row = 512
+    assumed_checkpoint_bytes_per_fit = 2 * 1024 * 1024
+    estimated_formal_artifact_bytes = 2 * (
+        formal_result_rows * assumed_compressed_bytes_per_result_row
+        + 820 * assumed_checkpoint_bytes_per_fit
+    )
     estimate = {
         "matrix_fits": 820,
         "pilot_smoke_fit_seconds": smoke_seconds,
@@ -149,6 +156,12 @@ def run_pilot(
         "disk_free_bytes": disk.free,
         "disk_80_percent_bytes": int(disk.free * 0.8),
         "pilot_output_bytes": sum(path.stat().st_size for path in output_dir.glob("*")),
+        "estimated_formal_result_rows": formal_result_rows,
+        "assumed_compressed_bytes_per_result_row": assumed_compressed_bytes_per_result_row,
+        "assumed_checkpoint_bytes_per_fit": assumed_checkpoint_bytes_per_fit,
+        "formal_storage_headroom_factor": 2,
+        "estimated_formal_artifact_bytes": estimated_formal_artifact_bytes,
+        "resource_gate_pass": estimated_formal_artifact_bytes < int(disk.free * 0.8),
         "formal_test_remains_sealed": True,
     }
     write_manifest(estimate, output_dir / "resource_estimate.json")
