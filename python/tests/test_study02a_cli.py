@@ -22,3 +22,15 @@ def test_expand_matrix_cli_writes_sealed_manifest(tmp_path):
     assert manifest["test_state"] == "sealed"
     assert manifest["total_fits"] == 820
     assert (output / "experiment_matrix.csv").exists()
+
+
+def test_pilot_cli_never_opens_test_data(tmp_path):
+    output = tmp_path / "pilot-cli"
+    subprocess.run([
+        sys.executable, str(SCRIPT), "pilot", "--output", str(output), "--run-id", "pilot-cli",
+        "--points", "4", "--repeats", "1", "--n", "5", "--ledger", str(tmp_path / "ledger.jsonl"),
+        "--skip-methods", "--skip-train-smoke",
+    ], cwd=REPO_ROOT, check=True, capture_output=True, text=True)
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["test_state"] == "sealed"
+    assert manifest["total_samples"] == 4
