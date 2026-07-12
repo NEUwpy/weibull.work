@@ -1,7 +1,7 @@
 # Study 02：面向寿命分位点目标的 NN Weibull 参数估计研究
 
 > 创建日期：2026-07-11
-> 当前状态：前置研究 A 的 G2 协议已通过独立审查并冻结，准备进入 G3 实现与 pilot。
+> 当前状态：前置研究 A 的 G3 pilot v7 已通过独立审查；获准进入 formal training/validation，test 继续 sealed。
 
 ## 目录定位
 
