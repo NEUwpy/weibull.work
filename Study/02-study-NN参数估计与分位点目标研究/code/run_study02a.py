@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -20,6 +21,16 @@ from study02a.artifacts import write_manifest
 from study02a.config import load_frozen_config
 from study02a.matrix import expand_module_matrix
 from study02a.pilot import run_pilot
+
+
+def _load_pilot_amendment() -> dict:
+    path = STUDY_ROOT / "configs" / "A-g3-pilot-amendment-v1.json"
+    checksum_path = path.with_suffix(".sha256")
+    expected = checksum_path.read_text(encoding="utf-8").split()[0]
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != expected:
+        raise ValueError(f"Pilot amendment hash mismatch: {actual} != {expected}")
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _git_sha() -> str:
@@ -96,6 +107,7 @@ def main() -> int:
         payload = expand_matrix(args.output)
     elif args.command == "pilot":
         config = load_frozen_config(STUDY_ROOT)
+        amendment = _load_pilot_amendment()
         payload = run_pilot(
             config,
             args.output,
@@ -107,6 +119,8 @@ def main() -> int:
             run_methods=not args.skip_methods,
             train_smoke=not args.skip_train_smoke,
             ledger_path=args.ledger,
+            pilot_amendment=amendment,
+            matrix_path=STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv",
         )
     else:
         raise AssertionError(f"Unreachable command: {args.command}")

@@ -19,6 +19,15 @@ class Anchor:
     z: np.ndarray
 
 
+@dataclass(frozen=True)
+class SetFeatures:
+    """Variable-length set values with an explicit observation mask and n."""
+
+    values: np.ndarray
+    mask: np.ndarray
+    n: int
+
+
 def _as_sample(x: np.ndarray) -> np.ndarray:
     values = np.asarray(x, dtype=float).reshape(-1)
     if values.size < 2:
@@ -109,7 +118,7 @@ def _mode(values: np.ndarray, route_id: str) -> float:
     return kde_mode(values) if "kde_scott1024" in route_id else half_sample_mode(values)
 
 
-def build_features(route_id: str, x: np.ndarray, n: int) -> np.ndarray:
+def build_features(route_id: str, x: np.ndarray, n: int) -> np.ndarray | SetFeatures:
     values = _as_sample(x)
     if int(n) != values.size:
         raise ValueError(f"n={n} does not match sample length {values.size}")
@@ -145,5 +154,9 @@ def build_features(route_id: str, x: np.ndarray, n: int) -> np.ndarray:
     if route_id == "V":
         return np.array(z, dtype=float)
     if route_id == "S":
-        return np.concatenate([np.array(z, dtype=float), np.array([float(n)])])
+        return SetFeatures(
+            values=np.asarray(z, dtype=float).reshape(-1, 1),
+            mask=np.ones(values.size, dtype=bool),
+            n=int(n),
+        )
     raise ValueError(f"Unknown Study02 feature route: {route_id}")

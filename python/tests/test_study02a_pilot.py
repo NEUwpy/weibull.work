@@ -12,7 +12,9 @@ for path in (STUDY_CODE, PYTHON_ROOT):
         sys.path.insert(0, str(path))
 
 from study02a.config import load_frozen_config
-from study02a.pilot import run_pilot
+import pandas as pd
+
+from study02a.pilot import project_formal_runtime, run_pilot
 
 
 def test_small_pilot_keeps_test_sealed_and_writes_auditable_outputs(tmp_path):
@@ -40,3 +42,23 @@ def test_small_pilot_keeps_test_sealed_and_writes_auditable_outputs(tmp_path):
     assert estimate["estimated_formal_result_rows"] == 768000
     assert estimate["estimated_formal_artifact_bytes"] > 0
     assert isinstance(estimate["resource_gate_pass"], bool)
+
+
+def test_runtime_projection_uses_matrix_sizes_batches_epochs_and_headroom():
+    matrix = pd.DataFrame([
+        {"training_size": 1000, "optimizer": "adam_historical"},
+        {"training_size": -1, "optimizer": "selected:A-E3_optimizer"},
+    ])
+    settings = {
+        "formal_max_epochs": 10,
+        "unknown_training_size": 4000,
+        "unknown_optimizer_batch_size": 128,
+        "parallel_workers": 4,
+        "wall_time_limit_hours": 1,
+        "runtime_headroom_factor": 2.0,
+    }
+    result = project_formal_runtime(matrix, {32: 0.1, 128: 0.2, 512: 0.3}, settings)
+    expected = ((32 * 10 * 0.1) + (32 * 10 * 0.2)) * 2.0
+    assert result["projected_serial_seconds"] == expected
+    assert result["projected_wall_seconds"] == expected / 4
+    assert result["runtime_gate_pass"] is True

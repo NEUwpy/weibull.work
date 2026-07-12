@@ -19,7 +19,18 @@ def test_deepsets_is_permutation_invariant():
     torch.manual_seed(4)
     model = build_deepsets((32, 32), "mean", (64, 32), "relu")
     x = torch.tensor([[[0.0], [0.5], [2.0], [4.0]]])
-    assert torch.allclose(model(x), model(x[:, [2, 0, 3, 1], :]), atol=1e-6)
+    mask = torch.ones(1, 4, dtype=torch.bool)
+    n = torch.tensor([4.0])
+    assert torch.allclose(model(x, mask, n), model(x[:, [2, 0, 3, 1], :], mask, n), atol=1e-6)
+
+
+def test_deepsets_has_explicit_n_channel_not_a_fake_set_element():
+    model = build_deepsets((8, 8), "mean", (8,), "relu")
+    x = torch.tensor([[[0.0], [1.0], [2.0], [0.0]]])
+    mask = torch.tensor([[True, True, True, False]])
+    assert model(x, mask, torch.tensor([3.0])).shape == (1, 3)
+    with pytest.raises(TypeError):
+        model(x, mask)
 
 
 def test_decode_is_always_legal():

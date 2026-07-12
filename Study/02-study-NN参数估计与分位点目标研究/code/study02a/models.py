@@ -39,20 +39,18 @@ class DeepSets(nn.Module):
             raise ValueError("pool must be mean or sum")
         self.pool = pool
         self.encoder = _feed_forward(1, encoder[:-1], int(encoder[-1]), activation, 0.0)
-        self.head = _feed_forward(int(encoder[-1]), head, 3, activation, 0.0)
+        self.head = _feed_forward(int(encoder[-1]) + 1, head, 3, activation, 0.0)
 
-    def forward(self, values: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(self, values: torch.Tensor, mask: torch.Tensor, n: torch.Tensor) -> torch.Tensor:
         encoded = self.encoder(values)
-        if mask is None:
-            pooled = encoded.mean(dim=1) if self.pool == "mean" else encoded.sum(dim=1)
+        weights = mask.to(encoded.dtype).unsqueeze(-1)
+        total = (encoded * weights).sum(dim=1)
+        if self.pool == "mean":
+            pooled = total / weights.sum(dim=1).clamp_min(1.0)
         else:
-            weights = mask.to(encoded.dtype).unsqueeze(-1)
-            total = (encoded * weights).sum(dim=1)
-            if self.pool == "mean":
-                pooled = total / weights.sum(dim=1).clamp_min(1.0)
-            else:
-                pooled = total
-        return self.head(pooled)
+            pooled = total
+        explicit_n = n.to(device=pooled.device, dtype=pooled.dtype).reshape(-1, 1)
+        return self.head(torch.cat([pooled, explicit_n], dim=1))
 
 
 def build_deepsets(encoder: Sequence[int], pool: str, head: Sequence[int], activation: str) -> DeepSets:

@@ -17,6 +17,7 @@ from study02a.representations import (
     build_features,
     decode_targets,
     encode_targets,
+    SetFeatures,
 )
 
 
@@ -67,11 +68,15 @@ def test_frozen_feature_route_widths_and_mode_ids():
         "F1eq": 6,
         "F2": 15,
         "V": len(x),
-        "S": len(x) + 1,
     }
     features = {route: build_features(route, x, len(x)) for route in expected_widths}
     assert {route: len(value) for route, value in features.items()} == expected_widths
     assert features["H0_hsm"][4] != pytest.approx(features["H0_kde_scott1024"][4])
+    set_features = build_features("S", x, len(x))
+    assert isinstance(set_features, SetFeatures)
+    assert set_features.values.shape == (len(x), 1)
+    assert set_features.mask.tolist() == [True] * len(x)
+    assert set_features.n == len(x)
 
 
 def test_equivariant_feature_routes_ignore_units_and_shift():
