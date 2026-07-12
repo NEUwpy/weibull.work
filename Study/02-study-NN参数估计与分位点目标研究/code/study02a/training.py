@@ -14,6 +14,14 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
+from .formal_config import (
+    APPROVED_MAX_EPOCHS,
+    APPROVED_MIN_EPOCHS,
+    APPROVED_PATIENCE,
+    EffectiveFormalConfig,
+)
+from .formal_data import FormalSetBatch
+
 
 STANDARDIZED_LOSSES = {"raw_train_z_mse", "transformed_train_z_mse", "transformed_train_z_huber"}
 
@@ -186,6 +194,92 @@ def fit_candidate(
     model.eval()
     with torch.no_grad():
         predictions = model(validation_x).detach().clone()
+    return FitResult(predictions, _checkpoint_hash(best_state), best_loss, best_epoch)
+
+
+def fit_set_candidate(
+    model_factory: Callable[[], nn.Module],
+    training_data: FormalSetBatch,
+    validation_data: FormalSetBatch,
+    effective_config: EffectiveFormalConfig,
+    *,
+    seed: int,
+    loss_id: str = "transformed_train_z_huber",
+    lr: float = 1e-3,
+    weight_decay: float = 1e-4,
+    batch_size: int = 512,
+) -> FitResult:
+    """Fit a DeepSets candidate under the sole approved formal epoch contract."""
+
+    if not isinstance(effective_config, EffectiveFormalConfig) or (
+        effective_config.max_epochs,
+        effective_config.min_epochs,
+        effective_config.patience,
+    ) != (APPROVED_MAX_EPOCHS, APPROVED_MIN_EPOCHS, APPROVED_PATIENCE):
+        raise ValueError("formal set fits require the approved 100/50/40 epoch contract")
+    if len(training_data) == 0 or len(validation_data) == 0:
+        raise ValueError("formal set training and validation batches must be non-empty")
+
+    seed_everything(seed)
+    stats = {
+        "mean": training_data.targets.mean(dim=0),
+        "sd": training_data.targets.std(dim=0, unbiased=False),
+    }
+    model = model_factory()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    generator = torch.Generator().manual_seed(seed)
+    loader = DataLoader(
+        TensorDataset(
+            training_data.values,
+            training_data.mask,
+            training_data.n,
+            training_data.targets,
+        ),
+        batch_size=min(int(batch_size), len(training_data)),
+        shuffle=True,
+        generator=generator,
+    )
+    best_loss = float("inf")
+    best_epoch = -1
+    best_state: dict[str, torch.Tensor] | None = None
+    stale_epochs = 0
+
+    for epoch in range(effective_config.max_epochs):
+        model.train()
+        for values, mask, n, targets in loader:
+            optimizer.zero_grad(set_to_none=True)
+            loss = compute_loss(loss_id, model(values, mask, n), targets, stats)
+            loss.backward()
+            optimizer.step()
+        model.eval()
+        with torch.no_grad():
+            predictions = model(validation_data.values, validation_data.mask, validation_data.n)
+            validation_loss = float(
+                compute_loss(loss_id, predictions, validation_data.targets, stats)
+            )
+        if validation_loss < best_loss:
+            best_loss = validation_loss
+            best_epoch = epoch
+            best_state = {
+                name: value.detach().clone()
+                for name, value in model.state_dict().items()
+            }
+            stale_epochs = 0
+        else:
+            stale_epochs += 1
+        if epoch + 1 >= effective_config.min_epochs and stale_epochs >= effective_config.patience:
+            break
+
+    if best_state is None:
+        raise RuntimeError("Training produced no checkpoint")
+    model.load_state_dict(best_state)
+    model.eval()
+    with torch.no_grad():
+        predictions = model(
+            validation_data.values,
+            validation_data.mask,
+            validation_data.n,
+        ).detach().clone()
     return FitResult(predictions, _checkpoint_hash(best_state), best_loss, best_epoch)
 
 
