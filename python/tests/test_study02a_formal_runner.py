@@ -201,9 +201,9 @@ def test_training_only_scalers_and_raw_n_separation(configs) -> None:
     )
     training = build_dataset(train_spec, frozen, effective)
     validation = build_dataset(valid_spec, frozen, effective)
-    scaler = fit_training_scaler(training)
-    prepared_train = apply_training_scaler(training, scaler, training)
-    prepared_valid = apply_training_scaler(validation, scaler, training)
+    scaler = fit_training_scaler(training, frozen, effective)
+    prepared_train = apply_training_scaler(training, scaler, training, frozen, effective)
+    prepared_valid = apply_training_scaler(validation, scaler, training, frozen, effective)
     assert scaler.source_role == "training" and scaler.channel == "explicit_n"
     assert torch.equal(prepared_train.batch.n, training.batch.n)
     assert torch.equal(prepared_valid.batch.n, validation.batch.n)
@@ -211,7 +211,7 @@ def test_training_only_scalers_and_raw_n_separation(configs) -> None:
     assert not torch.equal(prepared_valid.batch.model_n, prepared_valid.batch.n)
 
     with pytest.raises(ValueError, match="training"):
-        fit_training_scaler(validation)
+        fit_training_scaler(validation, frozen, effective)
 
     fixed_spec = build_training_spec(
         route="V", distribution="core_continuous", n_mode="fixed_n", fixed_n=5,
@@ -219,8 +219,8 @@ def test_training_only_scalers_and_raw_n_separation(configs) -> None:
         _pilot_for_tests=guard,
     )
     fixed = build_dataset(fixed_spec, frozen, effective)
-    fixed_scaler = fit_training_scaler(fixed)
-    fixed_prepared = apply_training_scaler(fixed, fixed_scaler, fixed)
+    fixed_scaler = fit_training_scaler(fixed, frozen, effective)
+    fixed_prepared = apply_training_scaler(fixed, fixed_scaler, fixed, frozen, effective)
     assert fixed_scaler.columns == tuple(f"sorted_z_{index}" for index in range(5))
     assert fixed_scaler.sd[0] == 0.0
     assert torch.equal(fixed_prepared.batch.features[:, 0], torch.zeros(len(fixed.batch)))
@@ -232,16 +232,21 @@ def test_training_only_scalers_and_raw_n_separation(configs) -> None:
         _pilot_for_tests=guard,
     )
     other_data = build_dataset(other_spec, frozen, effective)
-    other_scaler = fit_training_scaler(other_data)
+    other_scaler = fit_training_scaler(other_data, frozen, effective)
     six_wide_spec = build_training_spec(
         route="F0eq_hsm", distribution="core_continuous", n_mode="fixed_n", fixed_n=5,
         training_rows=7000, frozen_config=frozen, effective_config=effective,
         _pilot_for_tests=guard,
     )
     with pytest.raises(ValueError, match="provenance"):
-        apply_training_scaler(build_dataset(six_wide_spec, frozen, effective), other_scaler, other_data)
+        apply_training_scaler(
+            build_dataset(six_wide_spec, frozen, effective), other_scaler, other_data,
+            frozen, effective,
+        )
     with pytest.raises(ValueError, match="dataset hash"):
-        apply_training_scaler(replace(fixed, dataset_hash="f" * 64), fixed_scaler, fixed)
+        apply_training_scaler(
+            replace(fixed, dataset_hash="f" * 64), fixed_scaler, fixed, frozen, effective,
+        )
 
     wide_spec = build_training_spec(
         route="F2", distribution="extended_wide", n_mode="fixed_n", fixed_n=5,
@@ -253,8 +258,11 @@ def test_training_only_scalers_and_raw_n_separation(configs) -> None:
         frozen_config=frozen, effective_config=effective, _pilot_for_tests=guard,
     )
     wide_data = build_dataset(wide_spec, frozen, effective)
-    wide_scaler = fit_training_scaler(wide_data)
-    assert apply_training_scaler(build_dataset(core_validation_spec, frozen, effective), wide_scaler, wide_data).batch.features.shape[1] == 15
+    wide_scaler = fit_training_scaler(wide_data, frozen, effective)
+    assert apply_training_scaler(
+        build_dataset(core_validation_spec, frozen, effective), wide_scaler, wide_data,
+        frozen, effective,
+    ).batch.features.shape[1] == 15
     with pytest.raises(ValueError, match="core_continuous"):
         build_validation_spec(
             route="F2", distribution="extended_wide", n_mode="fixed_n", fixed_n=5,
@@ -444,18 +452,70 @@ def test_scaler_payload_validation_and_repeat_application(configs) -> None:
         _pilot_for_tests=guard,
     )
     dataset = build_dataset(spec, frozen, effective)
-    scaler = fit_training_scaler(dataset)
+    scaler = fit_training_scaler(dataset, frozen, effective)
     for forged in (
         replace(scaler, mean=(float("nan"),) * 5),
         replace(scaler, sd=(-1.0,) * 5),
         replace(scaler, zero_sd_handling="divide_anyway"),
     ):
         with pytest.raises(ValueError, match="scaler"):
-            apply_training_scaler(dataset, forged, dataset)
-    prepared = apply_training_scaler(dataset, scaler, dataset)
+            apply_training_scaler(dataset, forged, dataset, frozen, effective)
+    prepared = apply_training_scaler(dataset, scaler, dataset, frozen, effective)
     assert prepared.preprocessing_hash
     with pytest.raises(ValueError, match="already preprocessed"):
-        apply_training_scaler(prepared, scaler, dataset)
+        apply_training_scaler(prepared, scaler, dataset, frozen, effective)
+
+
+def test_scaler_public_api_revalidates_source_and_target_authorities(configs) -> None:
+    frozen, effective = configs
+    assert {"frozen_config", "effective_config"}.issubset(
+        inspect.signature(fit_training_scaler).parameters
+    )
+    assert {"frozen_config", "effective_config"}.issubset(
+        inspect.signature(apply_training_scaler).parameters
+    )
+    guard = pilot_for_tests(rows=8, points=2, repeats=1)
+    source_spec = build_training_spec(
+        route="V", distribution="core_continuous", n_mode="fixed_n", fixed_n=5,
+        training_rows=7000, frozen_config=frozen, effective_config=effective,
+        _pilot_for_tests=guard,
+    )
+    target_spec = build_validation_spec(
+        route="V", distribution="core_continuous", n_mode="fixed_n", fixed_n=5,
+        frozen_config=frozen, effective_config=effective, _pilot_for_tests=guard,
+    )
+    source = build_dataset(source_spec, frozen, effective)
+    target = build_dataset(target_spec, frozen, effective)
+    scaler = fit_training_scaler(source, frozen, effective)
+
+    def resign(dataset, **spec_changes):
+        forged_spec = replace(dataset.spec, **spec_changes)
+        return replace(
+            dataset,
+            spec=forged_spec,
+            dataset_hash=formal_runner._dataset_hash(
+                forged_spec, dataset.batch, dataset.metadata,
+            ),
+        )
+
+    for forged_source in (
+        resign(source, amendment_sha256="f" * 64),
+        resign(source, base_protocol_sha256="e" * 64),
+        resign(source, distribution="extended_wide"),
+    ):
+        with pytest.raises(ValueError):
+            fit_training_scaler(forged_source, frozen, effective)
+        with pytest.raises(ValueError):
+            apply_training_scaler(target, scaler, forged_source, frozen, effective)
+
+    forged_target = resign(target, amendment_sha256="f" * 64)
+    with pytest.raises(ValueError, match="authority"):
+        apply_training_scaler(forged_target, scaler, source, frozen, effective)
+    with pytest.raises(ValueError, match="approved effective config"):
+        apply_training_scaler(
+            target, scaler, source, frozen,
+            replace(effective, base_search_id="forged"),
+        )
 
 
 def test_collation_float32_failure_keeps_row_identity(configs) -> None:

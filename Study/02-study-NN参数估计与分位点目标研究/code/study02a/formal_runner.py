@@ -748,8 +748,13 @@ def _validate_scaler(scaler: ScalerManifest) -> None:
         raise ValueError("scaler statistics must be finite with nonnegative sd")
 
 
-def fit_training_scaler(dataset: FormalDataset) -> ScalerManifest:
-    _validate_dataset_semantics(dataset, require_raw=True)
+def fit_training_scaler(
+    dataset: FormalDataset,
+    frozen_config: FrozenConfig,
+    effective_config: EffectiveFormalConfig,
+) -> ScalerManifest:
+    _validate_spec_against_authorities(dataset.spec, frozen_config, effective_config)
+    _validate_dataset_semantics(dataset, require_raw=True, frozen_config=frozen_config)
     if dataset.spec.role != "training":
         raise ValueError("scaler may be fit from training data only")
     if isinstance(dataset.batch, FormalSetBatch):
@@ -795,17 +800,43 @@ def apply_training_scaler(
     dataset: FormalDataset,
     scaler: ScalerManifest,
     source_training_dataset: FormalDataset,
+    frozen_config: FrozenConfig,
+    effective_config: EffectiveFormalConfig,
 ) -> FormalDataset:
     if dataset.preprocessing_hash is not None:
         raise ValueError("dataset is already preprocessed")
-    _validate_dataset_semantics(dataset, require_raw=True)
+    _validate_spec_against_authorities(dataset.spec, frozen_config, effective_config)
+    _validate_dataset_semantics(dataset, require_raw=True, frozen_config=frozen_config)
     _validate_scaler(scaler)
-    _validate_dataset_semantics(source_training_dataset, require_raw=True)
+    _validate_spec_against_authorities(
+        source_training_dataset.spec, frozen_config, effective_config,
+    )
+    _validate_dataset_semantics(
+        source_training_dataset, require_raw=True, frozen_config=frozen_config,
+    )
     if source_training_dataset.spec.role != "training":
         raise ValueError("scaler source dataset must be training")
-    expected_scaler = fit_training_scaler(source_training_dataset)
+    expected_scaler = fit_training_scaler(
+        source_training_dataset, frozen_config, effective_config,
+    )
     if scaler != expected_scaler:
         raise ValueError("scaler payload does not match the supplied training dataset")
+    source_binding = (
+        source_training_dataset.spec.cache_key,
+        source_training_dataset.spec.distribution,
+        source_training_dataset.dataset_hash,
+        source_training_dataset.spec.row_count,
+        type(source_training_dataset.spec) is _TestDatasetSpec,
+    )
+    manifest_binding = (
+        scaler.source_spec_cache_key,
+        scaler.source_distribution,
+        scaler.source_dataset_hash,
+        scaler.source_row_count,
+        scaler.source_test_only,
+    )
+    if manifest_binding != source_binding:
+        raise ValueError("scaler manifest source binding is not exact")
     if scaler.source_role != "training" or scaler.effective_config_sha256 != dataset.spec.effective_config_sha256:
         raise ValueError("scaler is not owned by the matching training config")
     if scaler.source_test_only is not (type(dataset.spec) is _TestDatasetSpec):
