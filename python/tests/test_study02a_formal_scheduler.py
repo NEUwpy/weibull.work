@@ -96,7 +96,7 @@ def test_concurrent_claim_has_exactly_one_live_owner(tmp_path):
     from study02a.formal_scheduler import claim_next_fit
 
     def claim(owner):
-        return claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id=owner, owner_nonce=f"nonce-{owner}", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+        return claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id=owner, owner_nonce=f"nonce-{owner}", timestamp="2026-07-13T00:00:00Z")
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         outcomes = list(pool.map(claim, ("worker-a", "worker-b")))
@@ -108,12 +108,12 @@ def test_stale_claim_recovers_only_without_outputs(tmp_path, monkeypatch):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, recover_claim
 
-    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="dead", owner_nonce="nonce-dead", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="dead", owner_nonce="nonce-dead", timestamp="2026-07-13T00:00:00Z")
     monkeypatch.setattr("study02a.formal_scheduler._process_start_token", lambda _pid: claim["process_start_token"] + "-ended")
     recovered = recover_claim(run_dir, cache_root=tmp_path / "cache", timestamp="2026-07-13T00:01:00Z")
     assert recovered["status"] == "released_to_pending"
     monkeypatch.undo()
-    again = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="next", owner_nonce="nonce-next", process_id=os.getpid(), timestamp="2026-07-13T00:02:00Z")
+    again = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="next", owner_nonce="nonce-next", timestamp="2026-07-13T00:02:00Z")
     assert again["fit_id"] == claim["fit_id"]
 
 
@@ -121,7 +121,7 @@ def test_stale_claim_with_any_output_refuses_recovery(tmp_path, monkeypatch):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, recover_claim
 
-    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="dead", owner_nonce="nonce-dead", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="dead", owner_nonce="nonce-dead", timestamp="2026-07-13T00:00:00Z")
     monkeypatch.setattr("study02a.formal_scheduler._process_start_token", lambda _pid: claim["process_start_token"] + "-ended")
     output = run_dir / claim["expected_outputs"][0]["relative_path"]
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -134,9 +134,9 @@ def test_terminal_failure_is_immutable_and_not_retried(tmp_path):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, record_fit_failed
 
-    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     record_fit_failed(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="worker", owner_nonce="nonce-worker", failure_code="fit_error", timestamp="2026-07-13T00:01:00Z")
-    nxt = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker-2", owner_nonce="nonce-worker-2", process_id=os.getpid(), timestamp="2026-07-13T00:02:00Z")
+    nxt = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker-2", owner_nonce="nonce-worker-2", timestamp="2026-07-13T00:02:00Z")
     assert nxt["fit_id"] != claim["fit_id"]
     with pytest.raises((FileExistsError, ValueError)):
         record_fit_failed(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="worker", owner_nonce="nonce-worker", failure_code="again", timestamp="2026-07-13T00:03:00Z")
@@ -145,7 +145,7 @@ def test_terminal_failure_is_immutable_and_not_retried(tmp_path):
 def test_status_is_read_only_and_reports_hashes_counts_and_claim(tmp_path):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, status_run
-    claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     before = {p: p.read_bytes() for p in run_dir.rglob("*") if p.is_file()}
     status = status_run(run_dir, cache_root=tmp_path / "cache")
     after = {p: p.read_bytes() for p in run_dir.rglob("*") if p.is_file()}
@@ -185,7 +185,7 @@ def test_status_and_claim_rebuild_current_authority_and_require_exact_cache(tmp_
     with pytest.raises(ValueError, match="authority|manifest|code"):
         scheduler.status_run(run_dir, cache_root=tmp_path / "cache")
     with pytest.raises(ValueError, match="authority|manifest|code"):
-        scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="w", owner_nonce="nonce-w", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+        scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="w", owner_nonce="nonce-w", timestamp="2026-07-13T00:00:00Z")
 
 
 def test_exact_repo_matrix_path_rejects_identical_copy(tmp_path):
@@ -198,7 +198,7 @@ def test_exact_repo_matrix_path_rejects_identical_copy(tmp_path):
 def test_event_truncation_reorder_forged_tail_and_state_forgery_reject(tmp_path):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, status_run
-    claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     event_files = sorted((run_dir / "events").glob("*.json"))
     assert len(event_files) == 2
     tail = event_files[-1]
@@ -224,7 +224,7 @@ def test_event_truncation_reorder_forged_tail_and_state_forgery_reject(tmp_path)
 def test_success_requires_exact_contained_complete_nonempty_outputs(tmp_path):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, record_fit_succeeded
-    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     with pytest.raises(ValueError, match="output"):
         record_fit_succeeded(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="worker", owner_nonce="nonce-worker", output_hashes={}, timestamp="2026-07-13T00:01:00Z")
     outside = tmp_path / "outside.bin"
@@ -248,7 +248,7 @@ def test_success_requires_exact_contained_complete_nonempty_outputs(tmp_path):
 def test_failure_and_recovery_refuse_any_hidden_temp_subdir_or_alias_output(tmp_path, monkeypatch):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, record_fit_failed, recover_claim
-    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="dead", owner_nonce="nonce-dead", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="dead", owner_nonce="nonce-dead", timestamp="2026-07-13T00:00:00Z")
     monkeypatch.setattr("study02a.formal_scheduler._process_start_token", lambda _pid: claim["process_start_token"] + "-ended")
     output_dir = run_dir / "outputs" / claim["fit_id"]
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -262,7 +262,7 @@ def test_failure_and_recovery_refuse_any_hidden_temp_subdir_or_alias_output(tmp_
 def test_pid_reuse_uses_creation_token_not_pid_alone(tmp_path, monkeypatch):
     run_dir = Path(_create(tmp_path)["run_dir"])
     import study02a.formal_scheduler as scheduler
-    claim = scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim = scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     monkeypatch.setattr(scheduler, "_process_start_token", lambda _pid: claim["process_start_token"] + "-reused")
     recovered = scheduler.recover_claim(run_dir, cache_root=tmp_path / "cache", timestamp="2026-07-13T00:01:00Z")
     assert recovered["status"] == "released_to_pending"
@@ -280,9 +280,9 @@ def test_transaction_journal_recovers_state_after_event_publication_crash(tmp_pa
         return original(path, payload)
     monkeypatch.setattr(scheduler, "_atomic_replace", crash_once)
     with pytest.raises(OSError, match="simulated crash"):
-        scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+        scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     monkeypatch.setattr(scheduler, "_atomic_replace", original)
-    outcome = scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker-2", owner_nonce="nonce-worker-2", process_id=os.getpid(), timestamp="2026-07-13T00:01:00Z")
+    outcome = scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker-2", owner_nonce="nonce-worker-2", timestamp="2026-07-13T00:01:00Z")
     assert outcome["status"] == "monitor_only"
     assert not (run_dir / ".scheduler.journal").exists()
 
@@ -290,7 +290,7 @@ def test_transaction_journal_recovers_state_after_event_publication_crash(tmp_pa
 def test_claim_hardlink_and_extra_receipt_are_rejected(tmp_path):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, status_run
-    claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     claim_path = next((run_dir / "claims").glob("*.json"))
     hardlink = tmp_path / "claim-hardlink.json"
     os.link(claim_path, hardlink)
@@ -308,7 +308,7 @@ def test_dead_stale_lock_is_cleared_only_after_identity_check(tmp_path):
     import study02a.formal_scheduler as scheduler
     stale = {"host_id": scheduler.socket.gethostname(), "lock_version": "study02-formal-scheduler-lock-v1", "owner_nonce": "dead-lock", "process_id": 99999999, "process_start_token": "dead-token"}
     (run_dir / ".scheduler.lock").write_bytes((json.dumps(stale, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode())
-    claim = scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+    claim = scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     assert claim["status"] == "claimed"
     assert not (run_dir / ".scheduler.lock").exists()
 
@@ -320,3 +320,77 @@ def test_cli_wrong_cache_root_fails_for_status_and_claim(tmp_path):
     wrong[wrong.index(str(tmp_path / "cache"))] = str(tmp_path / "wrong-cache")
     assert subprocess.run(wrong + ["--status"], cwd=ROOT, capture_output=True, text=True).returncode != 0
     assert subprocess.run(wrong + ["--claim-next"], cwd=ROOT, capture_output=True, text=True).returncode != 0
+
+
+def test_public_manifest_has_no_matrix_bytes_injection_and_claim_owns_pid(tmp_path):
+    from study02a.formal_contracts import build_formal_manifest
+    from study02a.formal_scheduler import claim_next_fit
+    assert "matrix_snapshot" not in inspect.signature(build_formal_manifest).parameters
+    assert "process_id" not in inspect.signature(claim_next_fit).parameters
+    run_dir = Path(_create(tmp_path)["run_dir"])
+    with pytest.raises(TypeError, match="process_id"):
+        claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="borrower", owner_nonce="borrowed-nonce", process_id=os.getpid(), timestamp="2026-07-13T00:00:00Z")
+
+
+def test_scoped_scientific_code_drift_rejects_resume(tmp_path, monkeypatch):
+    run_dir = Path(_create(tmp_path)["run_dir"])
+    import study02a.formal_scheduler as scheduler
+    original = scheduler._scoped_code_snapshot(STUDY_ROOT)
+    monkeypatch.setattr(scheduler, "_scoped_code_snapshot", lambda _root: {**original, "scoped_code_sha256": "f" * 64})
+    with pytest.raises(ValueError, match="code|authority|drift"):
+        scheduler.status_run(run_dir, cache_root=tmp_path / "cache")
+
+
+def test_external_controller_anchor_rejects_coordinated_run_local_rollback(tmp_path):
+    run_dir = Path(_create(tmp_path)["run_dir"])
+    from study02a.formal_scheduler import claim_next_fit, status_run
+    genesis_state = (run_dir / "scheduler_state.json").read_bytes()
+    claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
+    claim_file = next((run_dir / "claims").glob("*.json"))
+    tail_event = sorted((run_dir / "events").glob("*.json"))[-1]
+    claim_file.unlink(); tail_event.unlink(); (run_dir / "scheduler_state.json").write_bytes(genesis_state)
+    with pytest.raises(ValueError, match="controller|anchor|tail|count"):
+        status_run(run_dir, cache_root=tmp_path / "cache")
+
+
+def test_controller_key_is_external_to_run_and_manifest_binds_key_id(tmp_path):
+    result = _create(tmp_path)
+    run_dir = Path(result["run_dir"])
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    key_path = tmp_path / "artifacts" / ".study02-controller" / "keys" / "controller.hmac.key"
+    assert key_path.is_file()
+    assert run_dir not in key_path.parents
+    assert hashlib.sha256(key_path.read_bytes()).hexdigest() == manifest["scheduler"]["authority"]["controller_key_id"]
+    anchors = list((tmp_path / "artifacts" / ".study02-controller" / "runs" / "A-E1" / "G3-AE1-plan-v1" / "anchors").glob("*.json"))
+    assert len(anchors) == 1
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows FILETIME contract")
+def test_windows_current_pid_creation_token_uses_real_filetime():
+    import study02a.formal_scheduler as scheduler
+    token = scheduler._process_start_token(os.getpid())
+    assert token is not None and token.startswith("win-filetime-")
+    assert int(token.removeprefix("win-filetime-")) > 0
+
+
+def test_output_identity_change_after_one_read_snapshot_rejects(tmp_path, monkeypatch):
+    run_dir = Path(_create(tmp_path)["run_dir"])
+    import study02a.formal_scheduler as scheduler
+    claim = scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
+    checkpoint = run_dir / claim["expected_outputs"][0]["relative_path"]
+    status_file = run_dir / claim["expected_outputs"][1]["relative_path"]
+    checkpoint.parent.mkdir(parents=True, exist_ok=True); checkpoint.write_bytes(b"checkpoint")
+    checkpoint_sha = hashlib.sha256(b"checkpoint").hexdigest()
+    status_payload = {"checkpoint_sha256": checkpoint_sha, "fit_id": claim["fit_id"], "run_id": "G3-AE1-plan-v1", "status": "succeeded", "test_access_count": 0}
+    status_file.write_bytes((json.dumps(status_payload, sort_keys=True, separators=(",", ":")) + "\n").encode())
+    output_hashes = {item["relative_path"]: hashlib.sha256((run_dir / item["relative_path"]).read_bytes()).hexdigest() for item in claim["expected_outputs"]}
+    original = scheduler._read_identity_snapshot
+    changed = {"done": False}
+    def mutate_after_read(path):
+        snapshot = original(path)
+        if Path(path) == checkpoint and not changed["done"]:
+            changed["done"] = True; checkpoint.write_bytes(b"changed-after-read")
+        return snapshot
+    monkeypatch.setattr(scheduler, "_read_identity_snapshot", mutate_after_read)
+    with pytest.raises(ValueError, match="identity changed"):
+        scheduler.record_fit_succeeded(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="worker", owner_nonce="nonce-worker", output_hashes=output_hashes, timestamp="2026-07-13T00:01:00Z")

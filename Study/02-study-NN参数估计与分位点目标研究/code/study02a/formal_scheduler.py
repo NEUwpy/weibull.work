@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import csv
 import ctypes
+from ctypes import wintypes
+import hmac
 import hashlib
 import json
 import os
@@ -14,13 +16,16 @@ import stat
 import subprocess
 import threading
 import time
+import secrets
+from dataclasses import asdict, is_dataclass
 from typing import Any, Mapping, Sequence
 
 from .config import load_frozen_config
 from .formal_config import load_effective_formal_config
 from .formal_contracts import (
     APPROVED_FORMAL_SEEDS, APPROVED_SCREENING_SEEDS, FROZEN_MATRIX_ROWS,
-    FROZEN_MATRIX_SHA256, build_formal_manifest,
+    FROZEN_MATRIX_SHA256, _build_formal_manifest_with_matrix_evidence,
+    _open_verified_matrix_evidence,
 )
 from .formal_runner import build_training_spec, build_validation_spec
 from .matrix import expand_module_matrix
@@ -57,10 +62,15 @@ _RECEIPT_FIELDS = {
 }
 _JOURNAL_FIELDS = {
     "journal_version", "before_state_sha256", "event_relative_path", "event_sha256",
-    "event", "publications", "after_state", "after_state_sha256",
+    "event", "publications", "after_state", "after_state_sha256", "controller_anchor",
 }
 _LOCK_FIELDS = {"lock_version", "host_id", "process_id", "process_start_token", "owner_nonce"}
 _FIT_STATUS_FIELDS = {"checkpoint_sha256", "fit_id", "run_id", "status", "test_access_count"}
+_ANCHOR_FIELDS = {
+    "anchor_version", "module_id", "run_id", "seq", "event_count", "event_tail_sha256",
+    "state_sha256", "authority_sha256", "previous_anchor_sha256", "controller_key_id",
+    "hmac_sha256",
+}
 _ZERO_HASH = "0" * 64
 
 
@@ -140,6 +150,77 @@ def _atomic_replace(path: Path, payload: bytes) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _harden_controller_key(path: Path) -> None:
+    os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+    if os.name == "nt":
+        account = os.environ.get("USERNAME")
+        if account:
+            try:
+                subprocess.run(
+                    ["icacls", str(path), "/inheritance:r", "/grant:r", f"{account}:(F)"],
+                    check=False, capture_output=True, text=True,
+                )
+            except OSError:
+                pass
+
+
+def _controller_context(artifact_root: Path, *, create: bool) -> dict[str, Any]:
+    root = _reject_alias(_resolved(artifact_root) / ".study02-controller")
+    key_path = root / "keys" / "controller.hmac.key"
+    if create and not key_path.exists():
+        key_path.parent.mkdir(parents=True, exist_ok=True)
+        created = False
+        try:
+            with key_path.open("xb") as handle:
+                handle.write(secrets.token_bytes(32)); handle.flush(); os.fsync(handle.fileno())
+            created = True
+            _harden_controller_key(key_path)
+        except FileExistsError:
+            pass
+        except Exception:
+            if created:
+                key_path.unlink(missing_ok=True)
+            raise
+    snapshot = _read_identity_snapshot(key_path)
+    if len(snapshot["bytes"]) != 32:
+        raise ValueError("controller HMAC key must be exactly 32 secret bytes")
+    return {"root": root, "key_path": key_path, "key": snapshot["bytes"], "key_id": _sha(snapshot["bytes"])}
+
+
+def _anchor_dir(run_dir: Path) -> Path:
+    artifact_root = _resolved(run_dir).parents[1]
+    return artifact_root / ".study02-controller" / "runs" / run_dir.parent.name / run_dir.name / "anchors"
+
+
+def _sign_anchor(core: Mapping[str, Any], key: bytes) -> str:
+    return hmac.new(key, _canonical(core), hashlib.sha256).hexdigest()
+
+
+def _anchor_path(run_dir: Path, anchor: Mapping[str, Any]) -> Path:
+    return _anchor_dir(run_dir) / f"{anchor['seq']:08d}-{anchor['event_tail_sha256']}.json"
+
+
+def _make_anchor(run_dir: Path, event: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any]:
+    context = _controller_context(_resolved(run_dir).parents[1], create=False)
+    directory = _anchor_dir(run_dir)
+    previous = _ZERO_HASH
+    if directory.exists():
+        existing = sorted(Path(entry.path) for entry in os.scandir(_reject_alias(directory)))
+        if existing:
+            previous = _sha(_reject_alias(existing[-1], require_file=True).read_bytes())
+    core = {"anchor_version": "study02-formal-controller-anchor-v1", "module_id": state["module_id"], "run_id": state["run_id"], "seq": event["seq"], "event_count": state["event_count"], "event_tail_sha256": event["event_sha256"], "state_sha256": _sha(_canonical(state)), "authority_sha256": state["authority_sha256"], "previous_anchor_sha256": previous, "controller_key_id": context["key_id"]}
+    return {**core, "hmac_sha256": _sign_anchor(core, context["key"])}
+
+
+def _publish_anchor(run_dir: Path, anchor: Mapping[str, Any]) -> None:
+    path = _anchor_path(run_dir, anchor)
+    if path.exists():
+        if _reject_alias(path, require_file=True).read_bytes() != _canonical(anchor):
+            raise ValueError("controller anchor conflicts with an existing signed checkpoint")
+        return
+    _write_no_replace(path, _canonical(anchor))
+
+
 def _load_exact(path: Path, fields: set[str], label: str) -> tuple[bytes, dict[str, Any]]:
     path = _reject_alias(path, require_file=True)
     payload = path.read_bytes()
@@ -152,6 +233,16 @@ def _load_exact(path: Path, fields: set[str], label: str) -> tuple[bytes, dict[s
     return payload, value
 
 
+def _decode_exact(payload: bytes, fields: set[str], label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(payload.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label} must be valid canonical UTF-8 JSON") from exc
+    if not isinstance(value, dict) or set(value) != fields or payload != _canonical(value):
+        raise ValueError(f"{label} must match its exact canonical schema")
+    return value
+
+
 def _git_sha(study_root: Path) -> str:
     repo_root = _resolved(study_root).parents[1]
     value = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo_root, check=True, capture_output=True, text=True).stdout.strip().lower()
@@ -160,18 +251,63 @@ def _git_sha(study_root: Path) -> str:
     return value
 
 
+def _read_identity_snapshot(path: Path) -> dict[str, Any]:
+    path = _reject_alias(path, require_file=True)
+    with path.open("rb") as handle:
+        before = os.fstat(handle.fileno()); payload = handle.read(); after = os.fstat(handle.fileno())
+    final = path.stat()
+    identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    if identity != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) or identity != (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns):
+        raise ValueError(f"file identity changed during one-read snapshot: {path}")
+    return {"path": path, "bytes": payload, "identity": identity}
+
+
+def _scoped_code_snapshot(study_root: Path) -> dict[str, Any]:
+    code_root = _resolved(study_root) / "code"
+    paths = sorted(path for path in code_root.rglob("*.py") if "__pycache__" not in path.parts)
+    if not paths:
+        raise ValueError("scoped Study02 production code tree is empty")
+    files: dict[str, str] = {}
+    for path in paths:
+        snapshot = _read_identity_snapshot(path)
+        files[path.relative_to(code_root).as_posix()] = _sha(snapshot["bytes"])
+    return {"files": files, "scoped_code_sha256": _sha(_canonical(files))}
+
+
+def _assert_scoped_code_clean(study_root: Path) -> None:
+    study_root = _resolved(study_root)
+    repo_root = study_root.parents[1]
+    code_relative = (study_root / "code").relative_to(repo_root)
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all", "--", str(code_relative)],
+        cwd=repo_root, check=True, capture_output=True, text=True,
+    )
+    if result.stdout.strip():
+        raise ValueError("Study02 scoped scientific production code tree is dirty")
+
+
 def _process_start_token(process_id: int) -> str | None:
     if os.name == "nt":
         kernel32 = ctypes.windll.kernel32
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.GetProcessTimes.argtypes = [
+            wintypes.HANDLE, ctypes.POINTER(wintypes.FILETIME), ctypes.POINTER(wintypes.FILETIME),
+            ctypes.POINTER(wintypes.FILETIME), ctypes.POINTER(wintypes.FILETIME),
+        ]
+        kernel32.GetProcessTimes.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
         handle = kernel32.OpenProcess(0x1000, False, process_id)
         if not handle:
             return None
         try:
-            creation = ctypes.c_ulonglong(); exit_time = ctypes.c_ulonglong()
-            kernel = ctypes.c_ulonglong(); user = ctypes.c_ulonglong()
+            creation = wintypes.FILETIME(); exit_time = wintypes.FILETIME()
+            kernel = wintypes.FILETIME(); user = wintypes.FILETIME()
             if not kernel32.GetProcessTimes(handle, ctypes.byref(creation), ctypes.byref(exit_time), ctypes.byref(kernel), ctypes.byref(user)):
                 return None
-            return f"win-filetime-{creation.value}"
+            value = (creation.dwHighDateTime << 32) | creation.dwLowDateTime
+            return f"win-filetime-{value}"
         finally:
             kernel32.CloseHandle(handle)
     stat_path = Path(f"/proc/{process_id}/stat")
@@ -189,12 +325,13 @@ def _identity_confirmed_dead(identity: Mapping[str, Any]) -> bool:
     return identity.get("host_id") == socket.gethostname() and _process_start_token(identity.get("process_id")) != identity.get("process_start_token")
 
 
-def _matrix_snapshot(study_root: Path, matrix_path: Path) -> tuple[bytes, list[dict[str, str]]]:
+def _matrix_snapshot(study_root: Path, matrix_path: Path):
     expected_path = _resolved(study_root / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv")
     actual_path = _resolved(matrix_path)
     if actual_path != expected_path:
         raise ValueError("formal matrix path must be the exact frozen repository path")
-    payload = _reject_alias(actual_path, require_file=True).read_bytes()
+    evidence = _open_verified_matrix_evidence(actual_path)
+    payload = evidence.payload
     if _sha(payload) != FROZEN_MATRIX_SHA256:
         raise ValueError("formal matrix SHA-256 mismatch")
     try:
@@ -207,7 +344,7 @@ def _matrix_snapshot(study_root: Path, matrix_path: Path) -> tuple[bytes, list[d
     expected = [{key: str(value) for key, value in row.items()} for row in expand_module_matrix(frozen).to_dict("records")]
     if rows != expected:
         raise ValueError("formal matrix differs from the independently reconstructed frozen order")
-    return payload, rows
+    return evidence, rows
 
 
 def _distribution(row: Mapping[str, str]) -> str:
@@ -255,18 +392,43 @@ def _plan_rows(study_root: Path, rows: Sequence[dict[str, str]], module_id: str,
     return result
 
 
-def _authority(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, cache_root: Path, predecessor: Mapping[str, Any] | None) -> tuple[dict[str, Any], list[dict[str, Any]], bytes, dict[str, Any]]:
+def _predecessor_scope(predecessor: Any, artifact_root: Path) -> Mapping[str, Any] | None:
+    if predecessor is None:
+        return None
+    value = dict(predecessor) if isinstance(predecessor, Mapping) else asdict(predecessor) if is_dataclass(predecessor) else None
+    if value is None:
+        raise ValueError("predecessor evidence must be a mapping or immutable dataclass")
+    root = _resolved(artifact_root)
+    for field in ("trace_path", "receipt_path", "ledger_path"):
+        if field not in value:
+            raise ValueError(f"predecessor evidence is missing {field}")
+        original = Path(value[field]).absolute()
+        _reject_alias(original, require_file=True)
+        path = original.resolve(strict=True)
+        try:
+            path.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("predecessor evidence must remain inside the same artifact root") from exc
+        value[field] = path
+    return value
+
+
+def _authority(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, artifact_root: Path, cache_root: Path, predecessor: Mapping[str, Any] | None, controller_key_id: str, matrix_bundle: tuple[Any, list[dict[str, str]]] | None = None) -> tuple[dict[str, Any], list[dict[str, Any]], bytes, dict[str, Any]]:
     study_root = _reject_alias(study_root); cache_root = _reject_alias(cache_root)
-    matrix_bytes, matrix_rows = _matrix_snapshot(study_root, matrix_path)
+    _assert_scoped_code_clean(study_root)
+    predecessor = _predecessor_scope(predecessor, artifact_root)
+    matrix_evidence, matrix_rows = _matrix_snapshot(study_root, matrix_path) if matrix_bundle is None else matrix_bundle
+    matrix_bytes = matrix_evidence.payload
     code_commit = _git_sha(study_root); effective = load_effective_formal_config(study_root)
+    code_snapshot = _scoped_code_snapshot(study_root)
     selected = [row for row in matrix_rows if row["module"] == module_id]
     rules = tuple(dict.fromkeys(row["rule_id"] for row in selected)); fits = tuple(row["fit_id"] for row in selected)
-    formal = build_formal_manifest(effective_config=effective, module_id=module_id, run_id=run_id, code_commit=code_commit, matrix_path=matrix_path, matrix_snapshot=matrix_bytes, rule_ids=rules, fit_ids=fits, role_namespaces={"training": "study02/formal/training", "validation": "study02/formal/validation"}, screening_seeds=APPROVED_SCREENING_SEEDS, formal_seeds=APPROVED_FORMAL_SEEDS, predecessor=predecessor)
+    formal = _build_formal_manifest_with_matrix_evidence(effective_config=effective, module_id=module_id, run_id=run_id, code_commit=code_commit, matrix_path=matrix_path, matrix_evidence=matrix_evidence, rule_ids=rules, fit_ids=fits, role_namespaces={"training": "study02/formal/training", "validation": "study02/formal/validation"}, screening_seeds=APPROVED_SCREENING_SEEDS, formal_seeds=APPROVED_FORMAL_SEEDS, predecessor=predecessor)
     predecessor_hash = formal["predecessor"]["selection_trace_sha256"]
     plan = _plan_rows(study_root, matrix_rows, module_id, run_id, cache_root, code_commit, predecessor_hash)
     plan_bytes = b"".join(_canonical(row) for row in plan); plan_sha = _sha(plan_bytes)
-    predecessor_input = None if predecessor is None else {key: str(value) if isinstance(value, Path) else value for key, value in dict(predecessor).items()}
-    authority = {"study_root": str(study_root), "matrix_path": str(_resolved(matrix_path)), "matrix_sha256": _sha(matrix_bytes), "cache_root": str(cache_root), "code_commit": code_commit, "effective_config_sha256": effective.effective_config_sha256, "predecessor_input": predecessor_input, "predecessor_trace_sha256": predecessor_hash, "plan_sha256": plan_sha}
+    predecessor_input = None if predecessor is None else {key: str(value) if isinstance(value, Path) else value for key, value in predecessor.items()}
+    authority = {"study_root": str(study_root), "matrix_path": str(_resolved(matrix_path)), "matrix_sha256": _sha(matrix_bytes), "cache_root": str(cache_root), "code_commit": code_commit, "scoped_code_sha256": code_snapshot["scoped_code_sha256"], "scoped_code_files": code_snapshot["files"], "controller_key_id": _hash(controller_key_id, "controller key ID"), "effective_config_sha256": effective.effective_config_sha256, "predecessor_input": predecessor_input, "predecessor_trace_sha256": predecessor_hash, "plan_sha256": plan_sha}
     authority_sha = _sha(_canonical(authority)); authority["authority_sha256"] = authority_sha
     return formal, plan, plan_bytes, authority
 
@@ -332,7 +494,7 @@ def _receipt_path(run_dir: Path, relative: str) -> Path:
     return path
 
 
-def _replay(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str, Any]], events: Sequence[dict[str, Any]], virtual_records: Mapping[str, tuple[bytes, dict[str, Any]]] | None = None) -> dict[str, Any]:
+def _replay(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str, Any]], events: Sequence[dict[str, Any]], virtual_records: Mapping[str, tuple[bytes, dict[str, Any]]] | None = None, allow_future_records: bool = False) -> dict[str, Any]:
     authority_sha = manifest["scheduler"]["authority"]["authority_sha256"]
     virtual_records = {} if virtual_records is None else dict(virtual_records)
     fit_states = {row["fit_id"]: "pending" for row in plan}; by_fit = {row["fit_id"]: row for row in plan}
@@ -395,9 +557,31 @@ def _replay(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str,
             for entry in entries:
                 _reject_alias(Path(entry.path), require_file=True); actual.add(entry.name)
         virtual_names = {Path(relative).name for relative in virtual_records if Path(relative).parent.as_posix() == dirname}
-        if actual | virtual_names != referenced or actual & virtual_names:
+        available = actual | virtual_names
+        if (not allow_future_records and available != referenced) or (allow_future_records and not referenced.issubset(available)) or actual & virtual_names:
             raise ValueError(f"{dirname} contains missing, extra, or unbound immutable records")
     return {"state_version": "study02-formal-scheduler-state-v2", "run_id": manifest["run_id"], "module_id": manifest["module_id"], "authority_sha256": authority_sha, "plan_sha256": manifest["scheduler"]["authority"]["plan_sha256"], "fit_states": fit_states, "live_claim": live, "event_count": len(events), "last_event_sha256": events[-1]["event_sha256"], "test_access_count": 0}
+
+
+def _validate_controller_anchors(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str, Any]], events: Sequence[dict[str, Any]], final_state: Mapping[str, Any]) -> None:
+    context = _controller_context(_resolved(run_dir).parents[1], create=False)
+    if context["key_id"] != manifest["scheduler"]["authority"]["controller_key_id"]:
+        raise ValueError("controller key ID differs from the immutable manifest authority")
+    directory = _reject_alias(_anchor_dir(run_dir))
+    entries = list(os.scandir(directory))
+    if any(not entry.is_file(follow_symlinks=False) for entry in entries):
+        raise ValueError("controller anchor directory contains a non-file entry")
+    paths = [Path(entry.path) for entry in sorted(entries, key=lambda item: item.name)]
+    if len(paths) != len(events):
+        raise ValueError("controller anchor count does not match the run event count")
+    previous = _ZERO_HASH
+    for seq, (path, event) in enumerate(zip(paths, events)):
+        anchor_bytes, anchor = _load_exact(path, _ANCHOR_FIELDS, "controller anchor")
+        core = {key: value for key, value in anchor.items() if key != "hmac_sha256"}
+        expected_state = _replay(run_dir, manifest, plan, events[: seq + 1], allow_future_records=True)
+        if path != _anchor_path(run_dir, anchor) or anchor["seq"] != seq or anchor["event_count"] != seq + 1 or anchor["event_tail_sha256"] != event["event_sha256"] or anchor["state_sha256"] != _sha(_canonical(expected_state)) or anchor["authority_sha256"] != final_state["authority_sha256"] or anchor["previous_anchor_sha256"] != previous or anchor["controller_key_id"] != context["key_id"] or not hmac.compare_digest(anchor["hmac_sha256"], _sign_anchor(core, context["key"])):
+            raise ValueError("controller signed tail checkpoint does not match immutable replay")
+        previous = _sha(anchor_bytes)
 
 
 def _predecessor_from_manifest(manifest: Mapping[str, Any]) -> Mapping[str, Any] | None:
@@ -405,7 +589,7 @@ def _predecessor_from_manifest(manifest: Mapping[str, Any]) -> Mapping[str, Any]
     return None if value is None else value
 
 
-def _rebuild_authority(run_dir: Path, cache_root: Path) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
+def _rebuild_authority(run_dir: Path, cache_root: Path, *, validate_controller: bool = True) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
     run_dir = _reject_alias(run_dir); manifest_bytes = _reject_alias(run_dir / "manifest.json", require_file=True).read_bytes()
     try:
         manifest = json.loads(manifest_bytes.decode("utf-8"))
@@ -414,11 +598,12 @@ def _rebuild_authority(run_dir: Path, cache_root: Path) -> tuple[dict[str, Any],
     if manifest_bytes != _canonical(manifest) or not isinstance(manifest.get("scheduler"), dict) or set(manifest["scheduler"]) != {"scheduler_version", "authority", "fit_count", "genesis_event_sha256", "test_access_count"}:
         raise ValueError("manifest must match exact scheduler schema/canonical bytes")
     authority = manifest["scheduler"]["authority"]
-    if set(authority) != {"study_root", "matrix_path", "matrix_sha256", "cache_root", "code_commit", "effective_config_sha256", "predecessor_input", "predecessor_trace_sha256", "plan_sha256", "authority_sha256"}:
+    if set(authority) != {"study_root", "matrix_path", "matrix_sha256", "cache_root", "code_commit", "scoped_code_sha256", "scoped_code_files", "controller_key_id", "effective_config_sha256", "predecessor_input", "predecessor_trace_sha256", "plan_sha256", "authority_sha256"}:
         raise ValueError("manifest authority schema mismatch")
     if _resolved(cache_root) != Path(authority["cache_root"]):
         raise ValueError("cache root differs from the immutable run authority")
-    formal, expected_plan, expected_plan_bytes, current_authority = _authority(study_root=Path(authority["study_root"]), matrix_path=Path(authority["matrix_path"]), module_id=manifest["module_id"], run_id=manifest["run_id"], cache_root=cache_root, predecessor=_predecessor_from_manifest(manifest))
+    controller = _controller_context(_resolved(run_dir).parents[1], create=False)
+    formal, expected_plan, expected_plan_bytes, current_authority = _authority(study_root=Path(authority["study_root"]), matrix_path=Path(authority["matrix_path"]), module_id=manifest["module_id"], run_id=manifest["run_id"], artifact_root=_resolved(run_dir).parents[1], cache_root=cache_root, predecessor=_predecessor_from_manifest(manifest), controller_key_id=controller["key_id"])
     if current_authority != authority:
         raise ValueError("current code/config/matrix/cache/predecessor authority drift")
     expected_scheduler = {"scheduler_version": "study02-formal-scheduler-v2", "authority": current_authority, "fit_count": len(expected_plan), "genesis_event_sha256": manifest["scheduler"]["genesis_event_sha256"], "test_access_count": 0}
@@ -431,6 +616,8 @@ def _rebuild_authority(run_dir: Path, cache_root: Path) -> tuple[dict[str, Any],
     state_bytes, state = _load_exact(run_dir / "scheduler_state.json", _STATE_FIELDS, "scheduler state")
     if state_bytes != _canonical(derived) or state != derived:
         raise ValueError("scheduler state differs from full immutable event replay")
+    if validate_controller:
+        _validate_controller_anchors(run_dir, manifest, plan, events, state)
     return manifest, plan, state, events
 
 
@@ -441,9 +628,14 @@ def _recover_journal(run_dir: Path) -> None:
     _, journal = _load_exact(path, _JOURNAL_FIELDS, "scheduler transaction journal")
     event = journal["event"]
     publications = journal["publications"]
+    anchor = journal["controller_anchor"]
     core = {key: value for key, value in event.items() if key != "event_sha256"} if isinstance(event, dict) else {}
-    if not isinstance(event, dict) or set(event) != _EVENT_FIELDS or not isinstance(publications, list) or journal["event_sha256"] != event["event_sha256"] or event["event_sha256"] != _sha(_canonical(core)) or not isinstance(journal["after_state"], dict) or set(journal["after_state"]) != _STATE_FIELDS or journal["after_state_sha256"] != _sha(_canonical(journal["after_state"])):
+    if not isinstance(event, dict) or set(event) != _EVENT_FIELDS or not isinstance(publications, list) or not isinstance(anchor, dict) or set(anchor) != _ANCHOR_FIELDS or journal["event_sha256"] != event["event_sha256"] or event["event_sha256"] != _sha(_canonical(core)) or not isinstance(journal["after_state"], dict) or set(journal["after_state"]) != _STATE_FIELDS or journal["after_state_sha256"] != _sha(_canonical(journal["after_state"])):
         raise ValueError("scheduler journal event/state schema mismatch")
+    controller = _controller_context(_resolved(run_dir).parents[1], create=False)
+    anchor_core = {key: value for key, value in anchor.items() if key != "hmac_sha256"}
+    if anchor["event_tail_sha256"] != event["event_sha256"] or anchor["state_sha256"] != journal["after_state_sha256"] or anchor["controller_key_id"] != controller["key_id"] or not hmac.compare_digest(anchor["hmac_sha256"], _sign_anchor(anchor_core, controller["key"])):
+        raise ValueError("scheduler journal controller anchor signature mismatch")
     state_path = run_dir / "scheduler_state.json"; current = _reject_alias(state_path, require_file=True).read_bytes(); current_sha = _sha(current)
     event_path = _contained(run_dir, journal["event_relative_path"])
     if event_path != _event_path(run_dir, event):
@@ -479,12 +671,14 @@ def _recover_journal(run_dir: Path) -> None:
         else:
             _write_no_replace(event_path, _canonical(event))
         _atomic_replace(state_path, _canonical(journal["after_state"]))
+        _publish_anchor(run_dir, anchor)
     elif current_sha == journal["after_state_sha256"]:
         for destination, payload in publication_payloads:
             if not destination.is_file() or _reject_alias(destination, require_file=True).read_bytes() != payload:
                 raise ValueError("journal after-state lacks its exact immutable publication")
         if not event_path.is_file() or _reject_alias(event_path, require_file=True).read_bytes() != _canonical(event):
             raise ValueError("journal after-state lacks its exact immutable event")
+        _publish_anchor(run_dir, anchor)
     else:
         raise ValueError("journal matches neither before nor after state")
     path.unlink()
@@ -503,7 +697,10 @@ def _acquire(run_dir: Path, owner_nonce: str) -> Path:
         try:
             _write_no_replace(lock, desired); return lock
         except FileExistsError:
-            _, existing = _load_exact(lock, _LOCK_FIELDS, "scheduler lock")
+            try:
+                _, existing = _load_exact(lock, _LOCK_FIELDS, "scheduler lock")
+            except FileNotFoundError:
+                continue
             if _identity_live(existing):
                 time.sleep(0.005); continue
             if not _identity_confirmed_dead(existing):
@@ -528,12 +725,14 @@ def _acquire(run_dir: Path, owner_nonce: str) -> Path:
 def _commit_transaction(run_dir: Path, before: Mapping[str, Any], event: Mapping[str, Any], after: Mapping[str, Any], publications: Sequence[tuple[str, Mapping[str, Any]]] = ()) -> None:
     event_path = _event_path(run_dir, event); relative = event_path.relative_to(run_dir).as_posix()
     records = [{"relative_path": item_path, "sha256": _sha(_canonical(value)), "value": dict(value)} for item_path, value in publications]
-    journal = {"journal_version": "study02-formal-scheduler-journal-v1", "before_state_sha256": _sha(_canonical(before)), "event_relative_path": relative, "event_sha256": event["event_sha256"], "event": dict(event), "publications": records, "after_state": dict(after), "after_state_sha256": _sha(_canonical(after))}
+    anchor = _make_anchor(run_dir, event, after)
+    journal = {"journal_version": "study02-formal-scheduler-journal-v1", "before_state_sha256": _sha(_canonical(before)), "event_relative_path": relative, "event_sha256": event["event_sha256"], "event": dict(event), "publications": records, "after_state": dict(after), "after_state_sha256": _sha(_canonical(after)), "controller_anchor": anchor}
     _write_no_replace(run_dir / ".scheduler.journal", _canonical(journal))
     for record in records:
         _write_no_replace(_contained(run_dir, record["relative_path"]), _canonical(record["value"]))
     _write_no_replace(event_path, _canonical(event))
     _atomic_replace(run_dir / "scheduler_state.json", _canonical(after))
+    _publish_anchor(run_dir, anchor)
     (run_dir / ".scheduler.journal").unlink()
 
 
@@ -558,20 +757,33 @@ def _validate_success_files(run_dir: Path, row: Mapping[str, Any], output_hashes
     expected = {item["relative_path"] for item in row["expected_outputs"]}
     if not isinstance(output_hashes, Mapping) or set(output_hashes) != expected:
         raise ValueError("success output hashes must cover exactly all expected outputs, with no missing or extra path")
+    output_dir = run_dir / "outputs" / row["fit_id"]
     snapshot = _output_snapshot(run_dir, row["fit_id"])
     if {path.relative_to(run_dir).as_posix() for path in snapshot} != expected:
         raise ValueError("output directory contains missing, extra, hidden, or nested output")
+    file_snapshots: dict[str, dict[str, Any]] = {}
     for item in row["expected_outputs"]:
-        relative = item["relative_path"]; path = _contained(run_dir, relative); _reject_alias(path, require_file=True)
-        payload = path.read_bytes()
+        relative = item["relative_path"]; path = _contained(run_dir, relative)
+        file_snapshot = _read_identity_snapshot(path); file_snapshots[relative] = file_snapshot
+        payload = file_snapshot["bytes"]
         if not payload or _sha(payload) != _hash(output_hashes[relative], "output SHA-256"):
             raise ValueError("scientific output is empty or its exact hash mismatches")
         if item["content_type"] == "canonical_json":
-            _, status_value = _load_exact(path, _FIT_STATUS_FIELDS, "fit status output")
+            status_value = _decode_exact(payload, _FIT_STATUS_FIELDS, "fit status output")
             checkpoint_relative = next(entry["relative_path"] for entry in row["expected_outputs"] if entry["content_type"] == "binary")
-            checkpoint_sha = _sha(_contained(run_dir, checkpoint_relative).read_bytes())
+            checkpoint_snapshot = file_snapshots.get(checkpoint_relative)
+            if checkpoint_snapshot is None:
+                raise ValueError("checkpoint must be snapshotted before canonical fit status")
+            checkpoint_sha = _sha(checkpoint_snapshot["bytes"])
             if status_value != {"checkpoint_sha256": checkpoint_sha, "fit_id": row["fit_id"], "run_id": row["run_id"], "status": "succeeded", "test_access_count": 0}:
                 raise ValueError("fit status output does not bind the exact fit/checkpoint authority")
+    final_entries = list(os.scandir(_reject_alias(output_dir)))
+    if {Path(entry.path).relative_to(run_dir).as_posix() for entry in final_entries} != expected:
+        raise ValueError("output directory identity changed during validation")
+    for relative, original in file_snapshots.items():
+        final = _contained(run_dir, relative).stat()
+        if original["identity"] != (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns):
+            raise ValueError("output file identity changed after its one-read snapshot")
 
 
 def materialize_run(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, artifact_root: Path, cache_root: Path, predecessor: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -579,16 +791,31 @@ def materialize_run(*, study_root: Path, matrix_path: Path, module_id: str, run_
     if module_id not in _MODULE_RULES:
         raise ValueError("unsupported formal module")
     artifact_root = _reject_alias(artifact_root); cache_root = _reject_alias(cache_root)
-    formal, plan, plan_bytes, authority = _authority(study_root=study_root, matrix_path=matrix_path, module_id=module_id, run_id=run_id, cache_root=cache_root, predecessor=predecessor)
+    matrix_bundle = _matrix_snapshot(study_root, matrix_path)
+    formal, plan, plan_bytes, authority = _authority(study_root=study_root, matrix_path=matrix_path, module_id=module_id, run_id=run_id, artifact_root=artifact_root, cache_root=cache_root, predecessor=predecessor, controller_key_id=_ZERO_HASH, matrix_bundle=matrix_bundle)
+    controller = _controller_context(artifact_root, create=True)
+    authority = {key: value for key, value in authority.items() if key != "authority_sha256"}
+    authority["controller_key_id"] = controller["key_id"]
+    authority["authority_sha256"] = _sha(_canonical(authority))
     genesis = _event("run_initialized", 0, _ZERO_HASH, authority["authority_sha256"], {"run_id": run_id, "module_id": module_id, "plan_sha256": authority["plan_sha256"]})
     scheduler = {"scheduler_version": "study02-formal-scheduler-v2", "authority": authority, "fit_count": len(plan), "genesis_event_sha256": genesis["event_sha256"], "test_access_count": 0}
     manifest = {**formal, "scheduler": scheduler}; manifest_bytes = _canonical(manifest)
     run_dir = artifact_root / module_id / run_id
     if run_dir.exists():
-        current, _, _, _ = _rebuild_authority(run_dir, cache_root)
+        current, existing_plan, existing_state, existing_events = _rebuild_authority(run_dir, cache_root, validate_controller=False)
+        anchor_directory = _anchor_dir(run_dir)
+        anchors = list(os.scandir(anchor_directory)) if anchor_directory.exists() else []
+        if not anchors:
+            if len(existing_events) != 1:
+                raise ValueError("non-genesis run is missing external controller anchors")
+            _publish_anchor(run_dir, _make_anchor(run_dir, existing_events[0], existing_state))
+        _validate_controller_anchors(run_dir, current, existing_plan, existing_events, existing_state)
         if _canonical(current) != manifest_bytes:
             raise ValueError("existing run differs from the exact current authority")
         return {"status": "existing_exact", "run_dir": str(run_dir), "plan_sha256": authority["plan_sha256"], "fit_count": len(plan), "test_access_count": 0}
+    anchor_directory = _anchor_dir(run_dir)
+    if anchor_directory.exists() and list(os.scandir(_reject_alias(anchor_directory))):
+        raise ValueError("controller already contains an orphan or conflicting run anchor")
     stage = run_dir.with_name(f".{run_dir.name}.{os.getpid()}.{threading.get_ident()}.staging")
     try:
         stage.mkdir(parents=True)
@@ -596,15 +823,15 @@ def materialize_run(*, study_root: Path, matrix_path: Path, module_id: str, run_
         _write_no_replace(_event_path(stage, genesis), _canonical(genesis))
         initial = _replay(stage, manifest, plan, [genesis]); _write_no_replace(stage / "scheduler_state.json", _canonical(initial))
         run_dir.parent.mkdir(parents=True, exist_ok=True); os.rename(stage, run_dir)
+        _publish_anchor(run_dir, _make_anchor(run_dir, genesis, initial))
     except Exception:
         shutil.rmtree(stage, ignore_errors=True); raise
     return {"status": "created", "run_dir": str(run_dir), "plan_sha256": authority["plan_sha256"], "fit_count": len(plan), "test_access_count": 0}
 
 
-def claim_next_fit(run_dir: Path, *, cache_root: Path, owner_id: str, owner_nonce: str, process_id: int, timestamp: str) -> dict[str, Any]:
+def claim_next_fit(run_dir: Path, *, cache_root: Path, owner_id: str, owner_nonce: str, timestamp: str) -> dict[str, Any]:
     run_dir = _reject_alias(run_dir); owner_id = _identifier(owner_id, "owner_id"); owner_nonce = _identifier(owner_nonce, "owner_nonce")
-    if process_id <= 0 or isinstance(process_id, bool):
-        raise ValueError("process_id must be positive")
+    process_id = os.getpid()
     token = _process_start_token(process_id)
     if token is None:
         raise ValueError("claim process identity is not live")

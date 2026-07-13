@@ -1,6 +1,7 @@
 from dataclasses import replace
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -246,7 +247,7 @@ def test_matrix_byte_hash_mismatch_rejects(tmp_path):
     kwargs = _kwargs("A-E1", tmp_path)
     kwargs["matrix_path"] = _copy_matrix(tmp_path)
     kwargs["matrix_path"].write_bytes(kwargs["matrix_path"].read_bytes() + b"\n")
-    with pytest.raises(ValueError, match="matrix SHA-256"):
+    with pytest.raises(ValueError, match="exact frozen repository path"):
         build_formal_manifest(**kwargs)
 
 
@@ -257,7 +258,7 @@ def test_matrix_must_have_exactly_820_rows(tmp_path):
     kwargs["matrix_path"] = _copy_matrix(tmp_path)
     lines = kwargs["matrix_path"].read_text(encoding="utf-8").splitlines()
     kwargs["matrix_path"].write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="exactly 820"):
+    with pytest.raises(ValueError, match="exact frozen repository path"):
         build_formal_manifest(**kwargs)
 
 
@@ -272,7 +273,7 @@ def test_matrix_fit_ids_must_be_unique(tmp_path):
     final[0] = duplicate[0]
     lines[-1] = ",".join(final)
     kwargs["matrix_path"].write_text("\n".join(lines) + "\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="unique fit_id"):
+    with pytest.raises(ValueError, match="exact frozen repository path"):
         build_formal_manifest(**kwargs)
 
 
@@ -283,8 +284,22 @@ def test_matrix_all_rows_must_remain_sealed(tmp_path):
     kwargs["matrix_path"] = _copy_matrix(tmp_path)
     text = kwargs["matrix_path"].read_text(encoding="utf-8")
     kwargs["matrix_path"].write_text(text.replace(",sealed\n", ",consumed\n", 1), encoding="utf-8")
-    with pytest.raises(ValueError, match="sealed"):
+    with pytest.raises(ValueError, match="exact frozen repository path"):
         build_formal_manifest(**kwargs)
+
+
+def test_predecessor_trace_hardlink_is_rejected(tmp_path):
+    from study02a.formal_contracts import build_formal_manifest
+
+    kwargs = _kwargs("A-E3", tmp_path)
+    trace_path = Path(kwargs["predecessor"]["trace_path"])
+    alias = tmp_path / "trace-hardlink.jsonl"
+    os.link(trace_path, alias)
+    try:
+        with pytest.raises(ValueError, match="hardlinked|plain"):
+            build_formal_manifest(**kwargs)
+    finally:
+        alias.unlink(missing_ok=True)
 
 
 @pytest.mark.parametrize(

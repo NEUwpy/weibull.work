@@ -11,6 +11,7 @@ import math
 import os
 from pathlib import Path
 import re
+import stat
 from typing import Any, Mapping, Sequence
 
 from .artifacts import append_ledger, write_manifest
@@ -82,6 +83,10 @@ _FROZEN_RULE_FIT_RANGES = {
     "A-E2_training_size": (615, 724),
     "A-E2_distribution": (725, 819),
 }
+_FROZEN_MATRIX_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv"
+).resolve()
 
 
 @dataclass(frozen=True)
@@ -104,6 +109,46 @@ class RoleNamespaces:
 
     training: str
     validation: str
+
+
+@dataclass(frozen=True)
+class _VerifiedMatrixEvidence:
+    path: Path
+    payload: bytes
+    identity: tuple[int, int, int, int]
+    rows: tuple[dict[str, str], ...]
+
+
+def _open_verified_matrix_evidence(matrix_path: Path) -> _VerifiedMatrixEvidence:
+    path = Path(matrix_path).resolve(strict=False)
+    if path != _FROZEN_MATRIX_PATH:
+        raise ValueError("Formal matrix path must be the exact frozen repository path")
+    try:
+        info = path.lstat()
+        if path.is_symlink() or not path.is_file() or info.st_nlink != 1:
+            raise ValueError("Formal matrix must be one plain non-aliased file")
+        with path.open("rb") as handle:
+            before = os.fstat(handle.fileno())
+            payload = handle.read()
+            after = os.fstat(handle.fileno())
+        final = path.stat()
+    except OSError as exc:
+        raise ValueError(f"Formal matrix cannot be opened safely: {exc}") from exc
+    identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    if identity != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) or identity != (
+        final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns
+    ):
+        raise ValueError("Formal matrix identity changed during its one-open snapshot")
+    try:
+        reader = csv.DictReader(io.StringIO(payload.decode("utf-8"), newline=""))
+        if reader.fieldnames is None or not _MATRIX_FIELDS.issubset(reader.fieldnames):
+            raise ValueError("Formal matrix is missing required columns")
+        rows = tuple(reader)
+    except (UnicodeError, csv.Error) as exc:
+        raise ValueError(f"Formal matrix cannot be decoded: {exc}") from exc
+    if len(rows) != FROZEN_MATRIX_ROWS or hashlib.sha256(payload).hexdigest() != FROZEN_MATRIX_SHA256:
+        raise ValueError("Formal matrix row count or frozen SHA-256 mismatch")
+    return _VerifiedMatrixEvidence(path=path, payload=payload, identity=identity, rows=rows)
 
 
 def _require_sha256(value: str, label: str) -> str:
@@ -185,24 +230,14 @@ def _validate_seeds(values: Sequence[int], label: str, approved: tuple[int, ...]
 
 
 def _validate_matrix(
-    matrix_path: Path,
+    evidence: _VerifiedMatrixEvidence,
     module_id: str,
     rule_ids: Sequence[str],
     fit_ids: Sequence[str],
-    matrix_snapshot: bytes | None = None,
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    path = Path(matrix_path)
-    if not path.is_file():
-        raise ValueError(f"Formal matrix file is missing: {path}")
-    try:
-        matrix_bytes = path.read_bytes() if matrix_snapshot is None else matrix_snapshot
-        matrix_text = matrix_bytes.decode("utf-8")
-        reader = csv.DictReader(io.StringIO(matrix_text, newline=""))
-        if reader.fieldnames is None or not _MATRIX_FIELDS.issubset(reader.fieldnames):
-            raise ValueError("Formal matrix is missing required columns")
-        rows = list(reader)
-    except (OSError, UnicodeError, csv.Error) as exc:
-        raise ValueError(f"Formal matrix cannot be read: {exc}") from exc
+    if not isinstance(evidence, _VerifiedMatrixEvidence) or evidence.path != _FROZEN_MATRIX_PATH:
+        raise ValueError("Formal matrix evidence must come from the internal one-open validator")
+    rows = list(evidence.rows)
 
     if len(rows) != FROZEN_MATRIX_ROWS:
         raise ValueError(f"Formal matrix must contain exactly {FROZEN_MATRIX_ROWS} rows; got {len(rows)}")
@@ -211,7 +246,7 @@ def _validate_matrix(
         raise ValueError("Formal matrix must contain unique fit_id values")
     if any(row["test_state"] != "sealed" for row in rows):
         raise ValueError("Every formal matrix row must remain sealed")
-    actual_digest = hashlib.sha256(matrix_bytes).hexdigest()
+    actual_digest = hashlib.sha256(evidence.payload).hexdigest()
     if actual_digest != FROZEN_MATRIX_SHA256:
         raise ValueError(
             f"Formal matrix SHA-256 mismatch: expected {FROZEN_MATRIX_SHA256}, got {actual_digest}"
@@ -246,6 +281,30 @@ def _read_jsonl(path: Path, label: str) -> tuple[bytes, list[dict[str, Any]]]:
         raise ValueError(f"{label} is missing: {path}")
     payload = path.read_bytes()
     return payload, _read_jsonl_bytes(payload, label)
+
+
+def _safe_one_read(path: Path, label: str) -> bytes:
+    path = Path(path)
+    for current in (path, *path.parents):
+        if not current.exists():
+            continue
+        info = current.lstat()
+        reparse = getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        if current.is_symlink() or reparse:
+            raise ValueError(f"{label} path aliases/reparse points are forbidden")
+    try:
+        info = path.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise ValueError(f"{label} must be one plain non-hardlinked file")
+        with path.open("rb") as handle:
+            before = os.fstat(handle.fileno()); payload = handle.read(); after = os.fstat(handle.fileno())
+        final = path.stat()
+    except OSError as exc:
+        raise ValueError(f"{label} cannot be read safely: {exc}") from exc
+    identity = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    if identity != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) or identity != (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns):
+        raise ValueError(f"{label} identity changed during its one-read snapshot")
+    return payload
 
 
 def _read_jsonl_bytes(payload: bytes, label: str) -> list[dict[str, Any]]:
@@ -1357,14 +1416,13 @@ def _validate_predecessor(
     ) is None:
         raise ValueError("Predecessor selection code_commit must be a full commit ID")
     path = Path(predecessor.trace_path)
-    actual_digest, record_count, decision_count = _validate_selection_trace(
-        path, predecessor.trace_sha256, expected_module, predecessor.run_id
+    trace_bytes = _safe_one_read(path, "Predecessor selection trace")
+    actual_digest, record_count, decision_count = _validate_selection_trace_bytes(
+        trace_bytes, predecessor.trace_sha256, expected_module, predecessor.run_id
     )
 
     receipt_path = Path(predecessor.receipt_path)
-    if not receipt_path.is_file():
-        raise ValueError(f"Predecessor selection receipt is missing: {receipt_path}")
-    receipt_bytes = receipt_path.read_bytes()
+    receipt_bytes = _safe_one_read(receipt_path, "Predecessor selection receipt")
     declared_receipt_sha = _require_sha256(predecessor.receipt_sha256, "Selection receipt SHA-256")
     actual_receipt_sha = hashlib.sha256(receipt_bytes).hexdigest()
     if actual_receipt_sha != declared_receipt_sha:
@@ -1387,7 +1445,7 @@ def _validate_predecessor(
         raise ValueError("Predecessor selection receipt does not match trace/config ownership")
 
     ledger_path = Path(predecessor.ledger_path)
-    ledger = _read_selection_ledger(ledger_path)
+    ledger = _read_jsonl_bytes(_safe_one_read(ledger_path, "Predecessor selection ledger"), "Formal selection ledger")
     same_run = [
         row for row in ledger
         if row.get("binding_type") == "formal-selection"
@@ -1414,7 +1472,7 @@ def _validate_predecessor(
     }
 
 
-def build_formal_manifest(
+def _build_formal_manifest_with_matrix_evidence(
     *,
     effective_config: EffectiveFormalConfig,
     module_id: str,
@@ -1427,7 +1485,7 @@ def build_formal_manifest(
     screening_seeds: Sequence[int],
     formal_seeds: Sequence[int],
     predecessor: Mapping[str, Any] | PredecessorTrace | None,
-    matrix_snapshot: bytes | None = None,
+    matrix_evidence: _VerifiedMatrixEvidence,
 ) -> dict[str, Any]:
     """Validate every formal input, then return a write-free manifest."""
 
@@ -1441,9 +1499,9 @@ def build_formal_manifest(
     namespaces = _validate_namespaces(role_namespaces)
     screening = _validate_seeds(screening_seeds, "screening", APPROVED_SCREENING_SEEDS)
     formal = _validate_seeds(formal_seeds, "formal", APPROVED_FORMAL_SEEDS)
-    requested_rules, requested_fits = _validate_matrix(
-        matrix_path, module_id, rule_ids, fit_ids, matrix_snapshot=matrix_snapshot
-    )
+    if Path(matrix_path).resolve(strict=False) != matrix_evidence.path:
+        raise ValueError("Formal matrix path and internal evidence identity differ")
+    requested_rules, requested_fits = _validate_matrix(matrix_evidence, module_id, rule_ids, fit_ids)
     predecessor_manifest = _validate_predecessor(module_id, predecessor)
 
     return {
@@ -1484,6 +1542,32 @@ def build_formal_manifest(
         "test_state": "sealed",
         "predecessor": predecessor_manifest,
     }
+
+
+def build_formal_manifest(
+    *,
+    effective_config: EffectiveFormalConfig,
+    module_id: str,
+    run_id: str,
+    code_commit: str,
+    matrix_path: Path,
+    rule_ids: Sequence[str],
+    fit_ids: Sequence[str],
+    role_namespaces: Mapping[str, str] | RoleNamespaces,
+    screening_seeds: Sequence[int],
+    formal_seeds: Sequence[int],
+    predecessor: Mapping[str, Any] | PredecessorTrace | None,
+) -> dict[str, Any]:
+    """Open and validate the exact frozen matrix once, then build a sealed manifest."""
+
+    evidence = _open_verified_matrix_evidence(matrix_path)
+    return _build_formal_manifest_with_matrix_evidence(
+        effective_config=effective_config, module_id=module_id, run_id=run_id,
+        code_commit=code_commit, matrix_path=matrix_path, rule_ids=rule_ids,
+        fit_ids=fit_ids, role_namespaces=role_namespaces,
+        screening_seeds=screening_seeds, formal_seeds=formal_seeds,
+        predecessor=predecessor, matrix_evidence=evidence,
+    )
 
 
 def build_and_write_formal_manifest(destination: Path, **manifest_kwargs: Any) -> dict[str, Any]:

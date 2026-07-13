@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import secrets
 from pathlib import Path
 import subprocess
@@ -156,7 +155,6 @@ def main() -> int:
                 cache_root=args.cache_root,
                 owner_id=args.owner_id,
                 owner_nonce=secrets.token_hex(16),
-                process_id=os.getpid(),
                 timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             )
     else:
