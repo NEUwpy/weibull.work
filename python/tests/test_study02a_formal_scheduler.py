@@ -363,6 +363,9 @@ def test_controller_key_is_external_to_run_and_manifest_binds_key_id(tmp_path):
     assert hashlib.sha256(key_path.read_bytes()).hexdigest() == manifest["scheduler"]["authority"]["controller_key_id"]
     anchors = list((tmp_path / "artifacts" / ".study02-controller" / "runs" / "A-E1" / "G3-AE1-plan-v1" / "anchors").glob("*.json"))
     assert len(anchors) == 1
+    canonical_key = STUDY_ROOT / "artifacts" / ".study02-controller" / "keys" / "controller.hmac.key"
+    ignored = subprocess.run(["git", "check-ignore", str(canonical_key)], cwd=ROOT, capture_output=True, text=True)
+    assert ignored.returncode == 0
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows FILETIME contract")
