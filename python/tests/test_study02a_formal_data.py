@@ -90,6 +90,9 @@ def test_real_fixed_fit_is_deterministic_and_config_only() -> None:
     assert result_a.early_stop_reason in {"patience_exhausted", "max_epochs"}
     assert result_a.hit_epoch_ceiling is (result_a.actual_epochs == config.max_epochs)
     assert all(np.isfinite(result_a.validation_loss_history))
+    assert result_a.actual_epochs == 100
+    assert result_a.early_stop_reason == "max_epochs"
+    assert result_a.hit_epoch_ceiling is True
     stopped = fit_fixed_candidate(factory, training, validation, config, seed=92, batch_size=4, lr=0.0)
     assert stopped.actual_epochs == config.min_epochs
     assert stopped.early_stop_reason == "patience_exhausted"
@@ -243,6 +246,9 @@ def test_real_set_fit_is_deterministic_and_uses_only_effective_config() -> None:
     assert result_a.early_stop_reason in {"patience_exhausted", "max_epochs"}
     assert result_a.hit_epoch_ceiling is (result_a.actual_epochs == config.max_epochs)
     assert all(np.isfinite(result_a.validation_loss_history))
+    assert result_a.actual_epochs == 100
+    assert result_a.early_stop_reason == "max_epochs"
+    assert result_a.hit_epoch_ceiling is True
     stopped = fit_set_candidate(factory, training, validation, config, seed=91, batch_size=4, lr=0.0)
     assert stopped.actual_epochs == config.min_epochs
     assert stopped.early_stop_reason == "patience_exhausted"

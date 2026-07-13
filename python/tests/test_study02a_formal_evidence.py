@@ -30,6 +30,7 @@ from study02a.training import FitResult
 
 SHA_A = "a" * 64
 SHA_B = "b" * 64
+EFFECTIVE_SHA = "44fba47c7af66166e1d3f11890299a8bb5c352ac1abf3447cd00cfd3acf97449"
 
 
 def _fit(*, epochs=100, curve=None) -> FitResult:
@@ -88,7 +89,7 @@ def test_fit_status_records_success_and_failure_without_invented_values(tmp_path
         write_fit_status(path, [success])
 
 
-def test_fit_status_rejects_inconsistent_or_nonfinite_diagnostics():
+def test_fit_status_rejects_inconsistent_or_nonfinite_diagnostics(tmp_path):
     bad = _fit()
     object.__setattr__(bad, "actual_epochs", 99)
     with pytest.raises(ValueError, match="history"):
@@ -96,6 +97,10 @@ def test_fit_status_rejects_inconsistent_or_nonfinite_diagnostics():
             fit_id="fit-bad", module_id="A-E1", rule_id="r", route_id="F1",
             n=5, seed=420101, candidate_id="c", selected=False, result=bad,
         )
+    success = _status()
+    success["failure_message"] = "must be empty"
+    with pytest.raises(ValueError, match="failure_message"):
+        write_fit_status(tmp_path / "unused-fit-status.csv", [success])
 
 
 def test_selection_trace_is_deterministic_preserves_ties_and_validates(tmp_path):
@@ -134,12 +139,29 @@ def test_selection_trace_uses_value_order_for_tie_break_and_writer_rejects_wrong
         write_selection_trace(tmp_path / "wrong.jsonl", records)
 
 
+def test_selection_trace_writer_canonicalizes_decision_and_candidate_order(tmp_path):
+    candidates = [
+        {"decision_id": "z-decision", "candidate_id": "b", "validation_score": 2.0,
+         "tie_break_key": [2], "checkpoint_sha256": SHA_A},
+        {"decision_id": "a-decision", "candidate_id": "x", "validation_score": 1.0,
+         "tie_break_key": [1], "checkpoint_sha256": SHA_B},
+        {"decision_id": "z-decision", "candidate_id": "a", "validation_score": 1.0,
+         "tie_break_key": [1], "checkpoint_sha256": SHA_B},
+    ]
+    records = list(build_selection_trace_records("A-E1", "run-1", candidates))
+    first = tmp_path / "first.jsonl"
+    second = tmp_path / "second.jsonl"
+    write_selection_trace(first, records)
+    write_selection_trace(second, list(reversed(records)))
+    assert first.read_bytes() == second.read_bytes()
+
+
 def test_ceiling_report_groups_and_derives_frozen_last_ten_slope(tmp_path):
     curve = [float(20 - index) for index in range(20)] + [float(0 - index) for index in range(80)]
     row = _status(curve=curve)
     failed = build_fit_status_record(
         fit_id="fit-failed", module_id="A-E1", rule_id="rule-1", route_id="F2",
-        n=10, seed=420101, candidate_id="candidate-b", selected=True,
+        n=10, seed=420101, candidate_id="candidate-a", selected=True,
         failure_message="failed",
     )
     report = build_ceiling_hit_report([row, failed])
@@ -156,6 +178,14 @@ def test_ceiling_report_groups_and_derives_frozen_last_ten_slope(tmp_path):
         write_ceiling_hit_report(tmp_path / "bad-ceiling.json", bad_report)
     with pytest.raises(ValueError, match="history"):
         build_ceiling_hit_report([{**row, "actual_epochs": 99}])
+
+
+def test_ceiling_report_keeps_selected_candidate_arms_separate():
+    first = _status("fit-a", selected=True)
+    second = {**_status("fit-b", selected=True), "candidate_id": "candidate-b"}
+    report = build_ceiling_hit_report([first, second])
+    assert len(report["groups"]) == 2
+    assert {group["selected_arm"] for group in report["groups"]} == {"candidate-a", "candidate-b"}
 
 
 def _leakage_kwargs():
@@ -209,8 +239,34 @@ def _bundle_inputs(tmp_path: Path):
     manifest = _json(tmp_path / "manifest.json", {
         "manifest_version": "study02-formal-v1",
         "module_id": "A-E1", "run_id": "run-1", "code_commit": "c" * 40,
-        "effective_config": {"sha256": SHA_A}, "test_state": "sealed",
-        "predecessor": {"module_id": "none", "selection_trace_sha256": "none"},
+        "base_protocol": {
+            "id": "A-G2-v1",
+            "sha256": "f82e078051d760d7c9c11ece54b8fae7360c6db1aef3229a97b4fcd92ae01a11",
+        },
+        "base_search": {
+            "id": "A-G2-search-v1",
+            "sha256": "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed889534ed4f6ab5e0ca13",
+        },
+        "amendment": {
+            "id": "A-G3-pilot-amendment-v4",
+            "sha256": "164e72658669dbb57f6dab8b1fc80099bd319f1fa327d5dda60cb61cb929ee38",
+        },
+        "effective_config": {"sha256": EFFECTIVE_SHA, "max_epochs": 100, "min_epochs": 50, "patience": 40},
+        "matrix": {
+            "path": "experiment_matrix.csv",
+            "sha256": "fad701af2e2084bf7ce8f678d642410af58057b4ae33029c9150e50971fdf6b1",
+            "row_count": 820,
+            "rule_ids": ["A-E1_historical"],
+            "fit_ids": ["G3-fit-0000"],
+        },
+        "role_namespaces": {"training": "study02/formal/training", "validation": "study02/formal/validation"},
+        "seeds": {"screening": [420001, 420002, 420003], "formal": list(range(420101, 420111))},
+        "test_state": "sealed",
+        "predecessor": {
+            "module_id": "none", "run_id": "none", "selection_trace_path": "none",
+            "selection_trace_sha256": "none", "selection_receipt_path": "none",
+            "selection_receipt_sha256": "none", "selection_ledger_path": "none",
+        },
     })
     trace = tmp_path / "selection_trace.jsonl"
     records = build_selection_trace_records("A-E1", "run-1", [{
@@ -220,7 +276,7 @@ def _bundle_inputs(tmp_path: Path):
     trace_sha = write_selection_trace(trace, records)
     receipt = _json(tmp_path / "selection_receipt.json", {
         "module_id": "A-E1", "run_id": "run-1", "selection_trace_sha256": trace_sha,
-        "effective_config_sha256": SHA_A, "code_commit": "c" * 40,
+        "effective_config_sha256": EFFECTIVE_SHA, "code_commit": "c" * 40,
         "record_count": 1, "decision_count": 1,
         "receipt_version": "study02-formal-selection-v1",
     })
@@ -234,7 +290,7 @@ def _bundle_inputs(tmp_path: Path):
         "formal_manifests": [manifest], "selection_traces": [trace],
         "selection_receipts": [receipt], "fit_status_path": fit_status,
         "ceiling_report_path": ceiling, "leakage_audit_path": leakage,
-        "code_commit": "c" * 40, "effective_config_sha256": SHA_A,
+        "code_commit": "c" * 40, "effective_config_sha256": EFFECTIVE_SHA,
         "module_run_ids": {"A-E1": "run-1"},
     }
 
@@ -251,6 +307,50 @@ def test_pre_unseal_bundle_hashes_validated_artifacts_and_refuses_overwrite(tmp_
     write_pre_unseal_bundle(output, **kwargs)
     with pytest.raises(FileExistsError):
         write_pre_unseal_bundle(output, **kwargs)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "match"),
+    [
+        (lambda manifest: manifest.pop("base_protocol"), "manifest"),
+        (lambda manifest: manifest["effective_config"].update(max_epochs=500), "max_epochs"),
+        (lambda manifest: manifest["matrix"].update(row_count=819), "matrix"),
+        (lambda manifest: manifest["matrix"].update(rule_ids=["A-E1_replacement"]), "subset"),
+        (lambda manifest: manifest["seeds"].update(formal=[420101]), "formal"),
+        (lambda manifest: manifest.update(extra="replacement"), "schema"),
+    ],
+)
+def test_pre_unseal_bundle_rejects_truncated_or_replaced_formal_manifest(tmp_path, mutation, match):
+    kwargs = _bundle_inputs(tmp_path)
+    path = kwargs["formal_manifests"][0]
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    mutation(manifest)
+    _json(path, manifest)
+    with pytest.raises(ValueError, match=match):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_pre_unseal_bundle_reads_each_artifact_bytes_once(tmp_path, monkeypatch):
+    kwargs = _bundle_inputs(tmp_path)
+    artifacts = {
+        path.resolve()
+        for path in [
+            *kwargs["formal_manifests"], *kwargs["selection_traces"], *kwargs["selection_receipts"],
+            kwargs["fit_status_path"], kwargs["ceiling_report_path"], kwargs["leakage_audit_path"],
+        ]
+    }
+    counts = {path: 0 for path in artifacts}
+    original = Path.read_bytes
+
+    def counted(path):
+        resolved = path.resolve()
+        if resolved in counts:
+            counts[resolved] += 1
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", counted)
+    build_pre_unseal_bundle(**kwargs)
+    assert set(counts.values()) == {1}
 
 
 @pytest.mark.parametrize("case", ["missing", "tamper", "unsealed", "alias", "ceiling_tamper"])

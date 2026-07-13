@@ -70,6 +70,17 @@ _FIT_STATUS_FIELDS = (
     "validation_curve_json",
 )
 _EVIDENCE_ROLES = ("training", "validation", "calibration", "test")
+_FROZEN_RULE_FIT_RANGES = {
+    "A-E1_historical": (0, 29),
+    "A-E1_controlled": (30, 104),
+    "A-E1_optimized_supplement": (105, 348),
+    "A-E3_loss": (349, 360),
+    "A-E3_architecture": (361, 432),
+    "A-E3_joint_independent": (433, 532),
+    "A-E3_fixed_shared": (533, 614),
+    "A-E2_training_size": (615, 724),
+    "A-E2_distribution": (725, 819),
+}
 
 
 @dataclass(frozen=True)
@@ -232,6 +243,10 @@ def _read_jsonl(path: Path, label: str) -> tuple[bytes, list[dict[str, Any]]]:
     if not path.is_file():
         raise ValueError(f"{label} is missing: {path}")
     payload = path.read_bytes()
+    return payload, _read_jsonl_bytes(payload, label)
+
+
+def _read_jsonl_bytes(payload: bytes, label: str) -> list[dict[str, Any]]:
     if not payload:
         raise ValueError(f"{label} must not be empty")
     try:
@@ -240,7 +255,7 @@ def _read_jsonl(path: Path, label: str) -> tuple[bytes, list[dict[str, Any]]]:
         raise ValueError(f"{label} must be valid UTF-8 JSONL: {exc}") from exc
     if not records or any(not isinstance(record, dict) for record in records):
         raise ValueError(f"{label} must contain JSON objects")
-    return payload, records
+    return records
 
 
 def _validate_selection_trace(
@@ -249,8 +264,18 @@ def _validate_selection_trace(
     module_id: str,
     run_id: str,
 ) -> tuple[str, int, int]:
+    trace_bytes, _ = _read_jsonl(Path(path), "Predecessor selection trace")
+    return _validate_selection_trace_bytes(trace_bytes, declared_sha256, module_id, run_id)
+
+
+def _validate_selection_trace_bytes(
+    trace_bytes: bytes,
+    declared_sha256: str,
+    module_id: str,
+    run_id: str,
+) -> tuple[str, int, int]:
     declared_digest = _require_sha256(declared_sha256, "Selection trace SHA-256")
-    trace_bytes, records = _read_jsonl(Path(path), "Predecessor selection trace")
+    records = _read_jsonl_bytes(trace_bytes, "Predecessor selection trace")
     actual_digest = hashlib.sha256(trace_bytes).hexdigest()
     if actual_digest != declared_digest:
         raise ValueError(
@@ -493,6 +518,8 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
         ] != "" or normalized["hit_epoch_100"]:
             raise ValueError("failed fit status diagnostics must remain empty")
         return normalized
+    if normalized["failure_message"] != "":
+        raise ValueError("successful fit status failure_message must be empty")
     try:
         curve = json.loads(normalized["validation_curve_json"])
     except (TypeError, json.JSONDecodeError) as exc:
@@ -605,6 +632,13 @@ def write_selection_trace(destination: Path, records: Sequence[Mapping[str, Any]
         selected = [row for row in decision_rows if row["selected"]]
         if len(selected) != 1 or selected[0]["candidate_id"] != ranked[0]["candidate_id"]:
             raise ValueError("selection trace selected candidate does not match deterministic rank")
+    rows = sorted(
+        rows,
+        key=lambda row: (
+            row["decision_id"], row["validation_score"],
+            _tie_break_sort_key(row["tie_break_key"]), row["candidate_id"],
+        ),
+    )
     payload = b"".join(_canonical_json_bytes(row) for row in rows)
     digest = hashlib.sha256(payload).hexdigest()
     destination = Path(destination)
@@ -627,7 +661,8 @@ def build_ceiling_hit_report(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any
         raise ValueError("ceiling report requires fit-status rows")
     groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
     for row in validated:
-        key = (row["rule_id"], row["route_id"], row["n"], row["seed"], row["selected"])
+        selected_arm = row["candidate_id"] if row["selected"] else ""
+        key = (row["rule_id"], row["route_id"], row["n"], row["seed"], row["selected"], selected_arm)
         groups.setdefault(key, []).append(row)
     output_groups = []
     for key in sorted(groups, key=lambda item: tuple(str(value) for value in item)):
@@ -650,6 +685,7 @@ def build_ceiling_hit_report(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any
         } for row in group_rows]
         output_groups.append({
             "rule_id": key[0], "route_id": key[1], "n": key[2], "seed": key[3], "selected": key[4],
+            "selected_arm": key[5],
             "fit_count": len(group_rows), "failure_count": len(group_rows) - len(successes),
             "ceiling_hit_count": len(ceiling_hits),
             "ceiling_hit_rate": len(ceiling_hits) / len(successes) if successes else 0.0,
@@ -692,7 +728,15 @@ def _validate_ceiling_hit_report(report: Mapping[str, Any]) -> None:
             raise ValueError("ceiling report groups must contain fit evidence")
         successes = []
         hits = 0
+        expected_selected_arm = None
         for fit in group["fits"]:
+            if fit.get("selected") is not group.get("selected"):
+                raise ValueError("ceiling report selected-arm membership is inconsistent")
+            fit_arm = fit.get("candidate_id") if fit.get("selected") else ""
+            if expected_selected_arm is None:
+                expected_selected_arm = fit_arm
+            elif fit_arm != expected_selected_arm:
+                raise ValueError("ceiling report merges distinct selected candidate arms")
             if fit.get("failed"):
                 if fit.get("actual_epochs") != 0 or fit.get("validation_curve") != []:
                     raise ValueError("failed ceiling evidence must have empty history")
@@ -716,6 +760,8 @@ def _validate_ceiling_hit_report(report: Mapping[str, Any]) -> None:
                 raise ValueError("ceiling report terminal validation slope is inconsistent")
             successes.append(fit)
             hits += int(expected_hit)
+        if group.get("selected_arm") != (expected_selected_arm or ""):
+            raise ValueError("ceiling report selected arm is inconsistent")
         fit_count = len(group["fits"])
         failures = fit_count - len(successes)
         if group.get("fit_count") != fit_count or group.get("failure_count") != failures:
@@ -841,13 +887,115 @@ def _load_json_object(path: Path, label: str) -> tuple[bytes, dict[str, Any]]:
     if not Path(path).is_file():
         raise FileNotFoundError(f"{label} is missing: {path}")
     payload = Path(path).read_bytes()
+    return payload, _load_json_object_bytes(payload, label)
+
+
+def _load_json_object_bytes(payload: bytes, label: str) -> dict[str, Any]:
     try:
         value = json.loads(payload.decode("utf-8"))
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"{label} must be valid JSON") from exc
     if not isinstance(value, dict):
         raise ValueError(f"{label} must be a JSON object")
-    return payload, value
+    return value
+
+
+def _require_exact_fields(value: Any, fields: set[str], label: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping) or set(value) != fields:
+        raise ValueError(f"{label} schema must contain exactly {sorted(fields)}")
+    return value
+
+
+def _validate_formal_manifest_snapshot(
+    manifest: Mapping[str, Any], *, module_id: str, run_id: str, code_commit: str,
+    effective_config_sha256: str,
+) -> None:
+    _require_exact_fields(manifest, {
+        "manifest_version", "module_id", "run_id", "base_protocol", "base_search",
+        "amendment", "effective_config", "matrix", "code_commit", "role_namespaces",
+        "seeds", "test_state", "predecessor",
+    }, "formal manifest")
+    if manifest["manifest_version"] != "study02-formal-v1":
+        raise ValueError("formal manifest version mismatch")
+    if manifest["module_id"] != module_id or manifest["run_id"] != run_id:
+        raise ValueError("formal manifest module/run ownership mismatch")
+    if manifest["code_commit"] != code_commit.lower():
+        raise ValueError("formal manifest code commit mismatch")
+    if manifest["test_state"] != "sealed":
+        raise ValueError("formal manifest test_state must remain sealed")
+
+    for label, actual, expected in (
+        ("base_protocol", manifest["base_protocol"], {
+            "id": APPROVED_BASE_PROTOCOL_ID, "sha256": APPROVED_BASE_PROTOCOL_SHA256,
+        }),
+        ("base_search", manifest["base_search"], {
+            "id": APPROVED_BASE_SEARCH_ID, "sha256": APPROVED_BASE_SEARCH_SHA256,
+        }),
+        ("amendment", manifest["amendment"], {
+            "id": APPROVED_AMENDMENT_ID, "sha256": APPROVED_AMENDMENT_SHA256,
+        }),
+    ):
+        if actual != expected:
+            raise ValueError(f"formal manifest {label} frozen binding mismatch")
+
+    effective = _require_exact_fields(
+        manifest["effective_config"], {"sha256", "max_epochs", "min_epochs", "patience"},
+        "formal manifest effective_config",
+    )
+    if effective_config_sha256 != APPROVED_EFFECTIVE_CONFIG_SHA256 or effective["sha256"] != effective_config_sha256:
+        raise ValueError("formal manifest effective config SHA mismatch")
+    for field, expected in (
+        ("max_epochs", APPROVED_MAX_EPOCHS), ("min_epochs", APPROVED_MIN_EPOCHS),
+        ("patience", APPROVED_PATIENCE),
+    ):
+        if effective[field] != expected:
+            raise ValueError(f"formal manifest effective {field} must be exactly {expected}")
+
+    matrix = _require_exact_fields(
+        manifest["matrix"], {"path", "sha256", "row_count", "rule_ids", "fit_ids"},
+        "formal manifest matrix",
+    )
+    if not isinstance(matrix["path"], str) or not matrix["path"].strip():
+        raise ValueError("formal manifest matrix path is required")
+    if matrix["sha256"] != FROZEN_MATRIX_SHA256 or matrix["row_count"] != FROZEN_MATRIX_ROWS:
+        raise ValueError("formal manifest matrix frozen binding mismatch")
+    rules, fits = matrix["rule_ids"], matrix["fit_ids"]
+    if not isinstance(rules, list) or not rules or any(not isinstance(rule, str) for rule in rules):
+        raise ValueError("formal manifest matrix rule subset is invalid")
+    if len(set(rules)) != len(rules) or any(
+        rule not in _FROZEN_RULE_FIT_RANGES or not rule.startswith(module_id + "_") for rule in rules
+    ):
+        raise ValueError("formal manifest matrix rule subset is invalid")
+    if not isinstance(fits, list) or not fits or any(not isinstance(fit, str) for fit in fits):
+        raise ValueError("formal manifest matrix fit subset is invalid")
+    if len(set(fits)) != len(fits) or any(re.fullmatch(r"G3-fit-\d{4}", fit) is None for fit in fits):
+        raise ValueError("formal manifest matrix fit subset is invalid")
+    fit_numbers = [int(fit.rsplit("-", 1)[1]) for fit in fits]
+    if any(not any(_FROZEN_RULE_FIT_RANGES[rule][0] <= number <= _FROZEN_RULE_FIT_RANGES[rule][1] for rule in rules)
+           for number in fit_numbers) or any(
+        not any(start <= number <= end for number in fit_numbers)
+        for start, end in (_FROZEN_RULE_FIT_RANGES[rule] for rule in rules)
+    ):
+        raise ValueError("formal manifest matrix rule/fit subset is inconsistent")
+
+    namespaces = _require_exact_fields(
+        manifest["role_namespaces"], {"training", "validation"}, "formal manifest role_namespaces"
+    )
+    if any(not isinstance(namespaces[role], str) or not namespaces[role].strip() for role in namespaces) or (
+        namespaces["training"] == namespaces["validation"]
+    ):
+        raise ValueError("formal manifest role namespaces are invalid")
+    seeds = _require_exact_fields(manifest["seeds"], {"screening", "formal"}, "formal manifest seeds")
+    if seeds["screening"] != list(APPROVED_SCREENING_SEEDS):
+        raise ValueError("formal manifest screening seeds mismatch")
+    if seeds["formal"] != list(APPROVED_FORMAL_SEEDS):
+        raise ValueError("formal manifest formal seeds mismatch")
+    predecessor = _require_exact_fields(manifest["predecessor"], {
+        "module_id", "run_id", "selection_trace_path", "selection_trace_sha256",
+        "selection_receipt_path", "selection_receipt_sha256", "selection_ledger_path",
+    }, "formal manifest predecessor")
+    if any(not isinstance(predecessor[field], str) or not predecessor[field] for field in predecessor):
+        raise ValueError("formal manifest predecessor fields must be non-empty strings")
 
 
 def build_pre_unseal_bundle(
@@ -859,6 +1007,8 @@ def build_pre_unseal_bundle(
     if not isinstance(code_commit, str) or _CODE_COMMIT_RE.fullmatch(code_commit) is None:
         raise ValueError("code_commit must be a full commit ID")
     effective_config_sha256 = _require_sha256(effective_config_sha256, "effective_config_sha256")
+    if effective_config_sha256 != APPROVED_EFFECTIVE_CONFIG_SHA256:
+        raise ValueError("effective_config_sha256 must match the frozen approved config")
     if not module_run_ids:
         raise ValueError("module_run_ids must not be empty")
     paths = [*map(Path, formal_manifests), *map(Path, selection_traces), *map(Path, selection_receipts),
@@ -875,54 +1025,49 @@ def build_pre_unseal_bundle(
                     raise ValueError("pre-unseal artifact paths must not alias")
             except OSError as exc:
                 raise ValueError(f"pre-unseal artifact identity cannot be verified: {exc}") from exc
+
+    snapshots = {resolved_path: path.read_bytes() for path, resolved_path in zip(paths, resolved)}
+
+    def artifact_bytes(path: Path) -> bytes:
+        return snapshots[Path(path).resolve(strict=False)]
+
     manifests: dict[str, dict[str, Any]] = {}
+    manifest_fields = {
+        "manifest_version", "module_id", "run_id", "base_protocol", "base_search",
+        "amendment", "effective_config", "matrix", "code_commit", "role_namespaces",
+        "seeds", "test_state", "predecessor",
+    }
     for path in formal_manifests:
-        _, manifest = _load_json_object(Path(path), "formal manifest")
-        if manifest.get("manifest_version") != "study02-formal-v1":
-            raise ValueError("formal manifest version mismatch")
-        module = manifest.get("module_id")
+        manifest = _load_json_object_bytes(artifact_bytes(Path(path)), "formal manifest")
+        _require_exact_fields(manifest, manifest_fields, "formal manifest")
+        module = manifest["module_id"]
         if module in manifests or module not in module_run_ids:
             raise ValueError("formal manifests must have unique declared module ownership")
-        if manifest.get("run_id") != module_run_ids[module]:
-            raise ValueError("formal manifest run ID mismatch")
-        if manifest.get("code_commit") != code_commit.lower():
-            raise ValueError("formal manifest code commit mismatch")
-        if manifest.get("effective_config", {}).get("sha256") != effective_config_sha256:
-            raise ValueError("formal manifest effective config mismatch")
-        if manifest.get("test_state") != "sealed":
-            raise ValueError("formal manifest test_state must remain sealed")
+        _validate_formal_manifest_snapshot(
+            manifest, module_id=module, run_id=module_run_ids[module], code_commit=code_commit,
+            effective_config_sha256=effective_config_sha256,
+        )
         manifests[module] = manifest
     if set(manifests) != set(module_run_ids):
         raise ValueError("formal manifests do not cover module_run_ids exactly")
     if len(selection_traces) != len(module_run_ids) or len(selection_receipts) != len(module_run_ids):
         raise ValueError("selection traces and receipts must cover every module")
+
     traces: dict[str, tuple[Path, str, int, int]] = {}
     for path in selection_traces:
-        payload, records = _read_jsonl(Path(path), "selection trace")
+        payload = artifact_bytes(Path(path))
+        records = _read_jsonl_bytes(payload, "selection trace")
         module = records[0].get("module_id")
         if module in traces or module not in module_run_ids:
             raise ValueError("selection traces must have unique declared module ownership")
         digest = hashlib.sha256(payload).hexdigest()
-        _, count, decisions = _validate_selection_trace(Path(path), digest, module, module_run_ids[module])
+        _, count, decisions = _validate_selection_trace_bytes(payload, digest, module, module_run_ids[module])
         traces[module] = (Path(path), digest, count, decisions)
-    for module, manifest in manifests.items():
-        predecessor = manifest.get("predecessor")
-        expected_predecessor = _PREDECESSOR_BY_MODULE.get(module)
-        if not isinstance(predecessor, Mapping):
-            raise ValueError("formal manifest predecessor binding is missing")
-        if expected_predecessor is None:
-            if predecessor.get("module_id") != "none" or predecessor.get("selection_trace_sha256") != "none":
-                raise ValueError("A-E1 formal manifest predecessor binding must be none")
-        else:
-            if expected_predecessor not in traces:
-                raise ValueError("formal manifest predecessor trace is missing from bundle")
-            if predecessor.get("module_id") != expected_predecessor or predecessor.get(
-                "selection_trace_sha256"
-            ) != traces[expected_predecessor][1]:
-                raise ValueError("formal manifest predecessor trace binding mismatch")
-    receipts: set[str] = set()
+
+    receipts: dict[str, tuple[Path, str]] = {}
     for path in selection_receipts:
-        _, receipt = _load_json_object(Path(path), "selection receipt")
+        receipt_payload = artifact_bytes(Path(path))
+        receipt = _load_json_object_bytes(receipt_payload, "selection receipt")
         module = receipt.get("module_id")
         if module in receipts or module not in traces:
             raise ValueError("selection receipts must have unique declared module ownership")
@@ -935,8 +1080,33 @@ def build_pre_unseal_bundle(
         }
         if receipt != expected:
             raise ValueError("selection receipt does not match trace/config ownership")
-        receipts.add(module)
-    fit_payload = Path(fit_status_path).read_bytes()
+        receipts[module] = (Path(path), hashlib.sha256(receipt_payload).hexdigest())
+
+    for module, manifest in manifests.items():
+        predecessor = manifest["predecessor"]
+        expected_predecessor = _PREDECESSOR_BY_MODULE.get(module)
+        if expected_predecessor is None:
+            if set(predecessor.values()) != {"none"}:
+                raise ValueError("A-E1 formal manifest predecessor binding must be none")
+        else:
+            if expected_predecessor not in traces or expected_predecessor not in receipts:
+                raise ValueError("formal manifest predecessor evidence is missing from bundle")
+            trace_path, trace_sha, _, _ = traces[expected_predecessor]
+            receipt_path, receipt_sha = receipts[expected_predecessor]
+            if predecessor["module_id"] != expected_predecessor or predecessor["run_id"] != module_run_ids[
+                expected_predecessor
+            ]:
+                raise ValueError("formal manifest predecessor module/run binding mismatch")
+            if predecessor["selection_trace_sha256"] != trace_sha or Path(
+                predecessor["selection_trace_path"]
+            ).resolve(strict=False) != trace_path.resolve(strict=False):
+                raise ValueError("formal manifest predecessor trace binding mismatch")
+            if predecessor["selection_receipt_sha256"] != receipt_sha or Path(
+                predecessor["selection_receipt_path"]
+            ).resolve(strict=False) != receipt_path.resolve(strict=False):
+                raise ValueError("formal manifest predecessor receipt binding mismatch")
+
+    fit_payload = artifact_bytes(Path(fit_status_path))
     try:
         fit_rows = list(csv.DictReader(io.StringIO(fit_payload.decode("utf-8"), newline="")))
         if not fit_rows:
@@ -944,13 +1114,13 @@ def build_pre_unseal_bundle(
         normalized_fit_rows = [_validate_fit_status_row(row) for row in fit_rows]
     except (UnicodeError, csv.Error) as exc:
         raise ValueError("fit status must be valid UTF-8 CSV") from exc
-    _, ceiling = _load_json_object(Path(ceiling_report_path), "ceiling report")
+    ceiling = _load_json_object_bytes(artifact_bytes(Path(ceiling_report_path)), "ceiling report")
     _validate_ceiling_hit_report(ceiling)
     if ceiling != build_ceiling_hit_report(normalized_fit_rows):
         raise ValueError("ceiling report does not match fit-status evidence")
-    _, leakage = _load_json_object(Path(leakage_audit_path), "leakage audit")
+    leakage = _load_json_object_bytes(artifact_bytes(Path(leakage_audit_path)), "leakage audit")
     _validate_leakage_audit(leakage)
-    artifact_hashes = {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+    artifact_hashes = {str(path): hashlib.sha256(artifact_bytes(path)).hexdigest() for path in paths}
     return {
         "bundle_version": "study02-pre-unseal-v1",
         "code_commit": code_commit.lower(),
