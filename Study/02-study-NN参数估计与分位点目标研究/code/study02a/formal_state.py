@@ -33,6 +33,8 @@ _EVENT_FIELDS = {
     "after_state_sha256", "approval_sha256", "pre_unseal_bundle_sha256",
     "result_receipt_sha256", "failure_receipt_sha256", "test_access_count", "timestamp",
 }
+_JOURNAL_FIELDS = {"event", "ledger_size_before", "ledger_sha_before"}
+_EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 
 
 def _canonical(value: Any) -> bytes:
@@ -110,12 +112,35 @@ def _validate_approval(payload: bytes, bundle: Mapping[str, Any], bundle_sha: st
     for field in ("effective_config_sha256", "pre_unseal_bundle_sha256", "ceiling_report_sha256", "leakage_audit_sha256", "oracle_review_artifact_sha256"):
         _sha(approval[field], field)
     _validate_hash_map(approval["selection_trace_hashes"], "approval selection_trace_hashes")
-    artifact_digests = set(bundle["artifact_hashes"].values())
-    for field in ("ceiling_report_sha256", "leakage_audit_sha256", "oracle_review_artifact_sha256"):
-        if approval[field] not in artifact_digests:
-            raise ValueError(f"oracle approval {field} is not bound by bundle artifacts")
     _text(approval["issued_at"], "issued_at")
     return approval
+
+
+def _validate_evidence_paths(
+    *,
+    bundle: Mapping[str, Any],
+    approval: Mapping[str, Any],
+    ceiling_report_path: Path,
+    leakage_audit_path: Path,
+    oracle_review_path: Path,
+) -> None:
+    artifact_bindings: dict[Path, str] = {}
+    for declared_path, declared_sha in bundle["artifact_hashes"].items():
+        resolved = Path(declared_path).resolve(strict=False)
+        if resolved in artifact_bindings:
+            raise ValueError("bundle artifact paths must not alias")
+        artifact_bindings[resolved] = declared_sha
+    for role, path, approval_field in (
+        ("ceiling", ceiling_report_path, "ceiling_report_sha256"),
+        ("leakage", leakage_audit_path, "leakage_audit_sha256"),
+    ):
+        if path not in artifact_bindings:
+            raise ValueError(f"{role} evidence path is not the path bound by the pre-unseal bundle")
+        actual = _digest(path.read_bytes())
+        if artifact_bindings[path] != approval[approval_field] or actual != approval[approval_field]:
+            raise ValueError(f"{role} evidence exact-byte SHA-256 mismatch")
+    if _digest(oracle_review_path.read_bytes()) != approval["oracle_review_artifact_sha256"]:
+        raise ValueError("oracle review exact-byte SHA-256 mismatch")
 
 
 def _validate_state(payload: bytes) -> dict[str, Any]:
@@ -235,6 +260,82 @@ def _ledger_rows(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _validate_ledger_chain(
+    state: Mapping[str, Any],
+    state_bytes: bytes,
+    rows: list[dict[str, Any]],
+    *,
+    bundle_sha: str,
+    approval_sha: str,
+) -> None:
+    current = [row for row in rows if row["run_family_id"] == state["run_family_id"]]
+    expected_count = {"sealed": 0, "unsealed_once": 1, "consumed": 2}[state["state"]]
+    if len(current) != expected_count or [row["seq"] for row in current] != list(range(1, expected_count + 1)):
+        raise ValueError("formal ledger chain does not match current state sequence")
+    if not current:
+        return
+
+    sealed = {
+        **state,
+        "state": "sealed",
+        "transition_seq": 0,
+        "approval_sha256": None,
+        "result_receipt_sha256": None,
+        "failure_receipt_sha256": None,
+        "updated_at": state["created_at"],
+        "test_access_count": 0,
+    }
+    authorize = current[0]
+    unsealed = {
+        **state,
+        "state": "unsealed_once",
+        "transition_seq": 1,
+        "approval_sha256": approval_sha,
+        "result_receipt_sha256": None,
+        "failure_receipt_sha256": None,
+        "updated_at": authorize["timestamp"],
+        "test_access_count": 1,
+    }
+    expected_authorize = {
+        "transition_version": "study02-formal-transition-v1",
+        "run_family_id": state["run_family_id"],
+        "transition": "authorize_test_once",
+        "seq": 1,
+        "before_state_sha256": _digest(_canonical(sealed)),
+        "after_state_sha256": _digest(_canonical(unsealed)),
+        "approval_sha256": approval_sha,
+        "pre_unseal_bundle_sha256": bundle_sha,
+        "result_receipt_sha256": None,
+        "failure_receipt_sha256": None,
+        "test_access_count": 1,
+        "timestamp": authorize["timestamp"],
+    }
+    if authorize != expected_authorize:
+        raise ValueError("formal ledger chain authorize event is not exact")
+    if state["state"] == "unsealed_once":
+        if _digest(state_bytes) != authorize["after_state_sha256"]:
+            raise ValueError("formal ledger chain after-state hash mismatch")
+        return
+
+    consume = current[1]
+    expected_consume = {
+        "transition_version": "study02-formal-transition-v1",
+        "run_family_id": state["run_family_id"],
+        "transition": "consume_test_once",
+        "seq": 2,
+        "before_state_sha256": authorize["after_state_sha256"],
+        "after_state_sha256": _digest(state_bytes),
+        "approval_sha256": approval_sha,
+        "pre_unseal_bundle_sha256": bundle_sha,
+        "result_receipt_sha256": state["result_receipt_sha256"],
+        "failure_receipt_sha256": state["failure_receipt_sha256"],
+        "test_access_count": 1,
+        "timestamp": state["updated_at"],
+    }
+    if consume != expected_consume or _digest(_canonical(unsealed)) != consume["before_state_sha256"]:
+        raise ValueError("formal ledger chain consume event is not exact")
+
+
 def initialize_formal_state(*, state_path: Path, bundle_path: Path, run_family_id: str, code_commit: str, effective_config_sha256: str, timestamp: str) -> dict[str, Any]:
     state_path, bundle_path = _resolved_distinct(state_path, bundle_path)
     if state_path.exists():
@@ -288,35 +389,84 @@ def _lock(path: Path) -> Path:
     return lock
 
 
-def _recover_journal(state_path: Path, ledger_path: Path, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _recover_journal(state_path: Path, ledger_path: Path) -> None:
     journal = state_path.with_name(state_path.name + ".journal")
     if not journal.exists():
-        return rows
-    event = _json_object(journal.read_bytes(), "transition journal", _EVENT_FIELDS)
+        return
+    record = _json_object(journal.read_bytes(), "transition journal", _JOURNAL_FIELDS)
+    event = record["event"]
+    if not isinstance(event, dict) or set(event) != _EVENT_FIELDS:
+        raise ValueError("transition journal event must match exact schema")
+    size_before = record["ledger_size_before"]
+    if isinstance(size_before, bool) or not isinstance(size_before, int) or size_before < 0:
+        raise ValueError("transition journal ledger_size_before is invalid")
+    sha_before = _sha(record["ledger_sha_before"], "journal ledger_sha_before")
+    ledger_bytes = ledger_path.read_bytes() if ledger_path.exists() else b""
+    if len(ledger_bytes) < size_before or _digest(ledger_bytes[:size_before]) != sha_before:
+        raise ValueError("transition journal ledger prefix conflicts with recorded snapshot")
     state_bytes = state_path.read_bytes()
-    if _digest(state_bytes) != event["after_state_sha256"]:
-        raise ValueError("transition journal does not match current state")
-    matches = [row for row in rows if (row["run_family_id"], row["seq"]) == (event["run_family_id"], event["seq"])]
-    if matches and matches != [event]:
-        raise ValueError("transition journal conflicts with ledger")
-    if not matches:
-        _append_ledger(event, ledger_path); rows = [*rows, event]
+    state_sha = _digest(state_bytes)
+    if state_sha == event["before_state_sha256"]:
+        if len(ledger_bytes) != size_before:
+            raise ValueError("journal-before-state requires unchanged ledger snapshot")
+        journal.unlink()
+        return
+    if state_sha != event["after_state_sha256"]:
+        raise ValueError("transition journal matches neither before nor after state")
+
+    event_bytes = _canonical(event)
+    suffix = ledger_bytes[size_before:]
+    if suffix == event_bytes:
+        journal.unlink()
+        return
+    if not event_bytes.startswith(suffix):
+        raise ValueError("journal-after-state ledger tail conflicts with exact event")
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    with ledger_path.open("r+b" if ledger_path.exists() else "w+b") as handle:
+        handle.truncate(size_before)
+        handle.flush()
+        os.fsync(handle.fileno())
+    _append_ledger(event, ledger_path)
     journal.unlink()
-    return rows
 
 
-def _transition(*, state_path: Path, bundle_path: Path, approval_path: Path, ledger_path: Path, timestamp: str, kind: str, result_receipt_sha256: str | None = None, failure_receipt_sha256: str | None = None) -> dict[str, Any]:
-    state_path, bundle_path, approval_path, ledger_path = _resolved_distinct(state_path, bundle_path, approval_path, ledger_path)
-    _reject_internal_path_collisions(state_path, bundle_path, approval_path, ledger_path)
+def _transition(
+    *, state_path: Path, bundle_path: Path, approval_path: Path, ledger_path: Path,
+    timestamp: str, kind: str, ceiling_report_path: Path,
+    leakage_audit_path: Path, oracle_review_path: Path,
+    result_receipt_sha256: str | None = None, failure_receipt_sha256: str | None = None,
+) -> dict[str, Any]:
+    (
+        state_path, bundle_path, approval_path, ledger_path, ceiling_report_path,
+        leakage_audit_path, oracle_review_path,
+    ) = _resolved_distinct(
+        state_path, bundle_path, approval_path, ledger_path, ceiling_report_path,
+        leakage_audit_path, oracle_review_path,
+    )
+    _reject_internal_path_collisions(
+        state_path, bundle_path, approval_path, ledger_path, ceiling_report_path,
+        leakage_audit_path, oracle_review_path,
+    )
     lock = _lock(state_path)
     try:
+        _recover_journal(state_path, ledger_path)
         rows = _ledger_rows(ledger_path)
-        rows = _recover_journal(state_path, ledger_path, rows)
         state_bytes = state_path.read_bytes(); state = _validate_state(state_bytes)
         bundle_bytes = bundle_path.read_bytes(); bundle = _validate_bundle(bundle_bytes); bundle_sha = _digest(bundle_bytes)
-        approval_bytes = approval_path.read_bytes(); _validate_approval(approval_bytes, bundle, bundle_sha); approval_sha = _digest(approval_bytes)
+        approval_bytes = approval_path.read_bytes()
+        approval = _validate_approval(approval_bytes, bundle, bundle_sha)
+        approval_sha = _digest(approval_bytes)
+        _validate_evidence_paths(
+            bundle=bundle, approval=approval, ceiling_report_path=ceiling_report_path,
+            leakage_audit_path=leakage_audit_path, oracle_review_path=oracle_review_path,
+        )
         if state["code_commit"] != bundle["code_commit"] or state["effective_config_sha256"] != bundle["effective_config_sha256"] or state["pre_unseal_bundle_sha256"] != bundle_sha:
             raise ValueError("formal state binding differs from pre-unseal bundle")
+        if state["state"] != "sealed" and state["approval_sha256"] != approval_sha:
+            raise ValueError("formal state must retain the same approval SHA-256")
+        _validate_ledger_chain(
+            state, state_bytes, rows, bundle_sha=bundle_sha, approval_sha=approval_sha
+        )
         if kind == "authorize_test_once":
             if state["state"] != "sealed" or state["test_access_count"] != 0:
                 raise ValueError("authorize_test_once requires sealed state and access count 0")
@@ -339,7 +489,13 @@ def _transition(*, state_path: Path, bundle_path: Path, approval_path: Path, led
             "timestamp": timestamp,
         }
         journal = state_path.with_name(state_path.name + ".journal")
-        _publish_no_replace(_canonical(event), journal)
+        ledger_bytes_before = ledger_path.read_bytes() if ledger_path.exists() else b""
+        journal_record = {
+            "event": event,
+            "ledger_size_before": len(ledger_bytes_before),
+            "ledger_sha_before": _digest(ledger_bytes_before),
+        }
+        _publish_no_replace(_canonical(journal_record), journal)
         _atomic_replace(after_bytes, state_path)
         try:
             _append_ledger(event, ledger_path)
@@ -351,12 +507,33 @@ def _transition(*, state_path: Path, bundle_path: Path, approval_path: Path, led
         lock.unlink(missing_ok=True)
 
 
-def authorize_test_once(*, state_path: Path, bundle_path: Path, approval_path: Path, ledger_path: Path, timestamp: str) -> dict[str, Any]:
-    return _transition(state_path=state_path, bundle_path=bundle_path, approval_path=approval_path, ledger_path=ledger_path, timestamp=timestamp, kind="authorize_test_once")
+def authorize_test_once(
+    *, state_path: Path, bundle_path: Path, approval_path: Path, ledger_path: Path,
+    timestamp: str, ceiling_report_path: Path,
+    leakage_audit_path: Path, oracle_review_path: Path,
+) -> dict[str, Any]:
+    return _transition(
+        state_path=state_path, bundle_path=bundle_path, approval_path=approval_path,
+        ledger_path=ledger_path, timestamp=timestamp, kind="authorize_test_once",
+        ceiling_report_path=ceiling_report_path, leakage_audit_path=leakage_audit_path,
+        oracle_review_path=oracle_review_path,
+    )
 
 
-def consume_test_once(*, state_path: Path, bundle_path: Path, approval_path: Path, ledger_path: Path, result_receipt_sha256: str | None, failure_receipt_sha256: str | None, timestamp: str) -> dict[str, Any]:
-    return _transition(state_path=state_path, bundle_path=bundle_path, approval_path=approval_path, ledger_path=ledger_path, timestamp=timestamp, kind="consume_test_once", result_receipt_sha256=result_receipt_sha256, failure_receipt_sha256=failure_receipt_sha256)
+def consume_test_once(
+    *, state_path: Path, bundle_path: Path, approval_path: Path, ledger_path: Path,
+    result_receipt_sha256: str | None, failure_receipt_sha256: str | None,
+    timestamp: str, ceiling_report_path: Path,
+    leakage_audit_path: Path, oracle_review_path: Path,
+) -> dict[str, Any]:
+    return _transition(
+        state_path=state_path, bundle_path=bundle_path, approval_path=approval_path,
+        ledger_path=ledger_path, timestamp=timestamp, kind="consume_test_once",
+        result_receipt_sha256=result_receipt_sha256,
+        failure_receipt_sha256=failure_receipt_sha256,
+        ceiling_report_path=ceiling_report_path, leakage_audit_path=leakage_audit_path,
+        oracle_review_path=oracle_review_path,
+    )
 
 
 __all__ = ["authorize_test_once", "consume_test_once", "initialize_formal_state", "publish_oracle_approval"]
