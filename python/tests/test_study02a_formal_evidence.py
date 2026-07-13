@@ -47,14 +47,15 @@ def _fit(*, epochs=100, curve=None) -> FitResult:
     )
 
 
-def _status(fit_id="fit-1", *, selected=True, curve=None):
+def _status(fit_id="G3-fit-0000", *, selected=True, curve=None):
     return build_fit_status_record(
         fit_id=fit_id,
         module_id="A-E1",
-        rule_id="rule-1",
+        rule_id="A-E1_historical",
         route_id="F2",
         n=10,
         seed=420101,
+        decision_id="d",
         candidate_id="candidate-a",
         selected=selected,
         result=_fit(curve=curve),
@@ -70,6 +71,7 @@ def test_fit_status_records_success_and_failure_without_invented_values(tmp_path
         route_id="S",
         n=15,
         seed=420102,
+        decision_id="d",
         candidate_id="candidate-b",
         selected=False,
         failure_message="optimizer failed",
@@ -95,7 +97,7 @@ def test_fit_status_rejects_inconsistent_or_nonfinite_diagnostics(tmp_path):
     with pytest.raises(ValueError, match="history"):
         build_fit_status_record(
             fit_id="fit-bad", module_id="A-E1", rule_id="r", route_id="F1",
-            n=5, seed=420101, candidate_id="c", selected=False, result=bad,
+            n=5, seed=420101, decision_id="d", candidate_id="c", selected=False, result=bad,
         )
     success = _status()
     success["failure_message"] = "must be empty"
@@ -156,12 +158,22 @@ def test_selection_trace_writer_canonicalizes_decision_and_candidate_order(tmp_p
     assert first.read_bytes() == second.read_bytes()
 
 
+def test_selection_trace_writer_rejects_extra_fields(tmp_path):
+    records = list(build_selection_trace_records("A-E1", "run-1", [{
+        "decision_id": "d", "candidate_id": "a", "validation_score": 1.0,
+        "tie_break_key": ["a"], "checkpoint_sha256": SHA_A,
+    }]))
+    records[0]["extra"] = "forbidden"
+    with pytest.raises(ValueError, match="schema"):
+        write_selection_trace(tmp_path / "extra.jsonl", records)
+
+
 def test_ceiling_report_groups_and_derives_frozen_last_ten_slope(tmp_path):
     curve = [float(20 - index) for index in range(20)] + [float(0 - index) for index in range(80)]
     row = _status(curve=curve)
     failed = build_fit_status_record(
-        fit_id="fit-failed", module_id="A-E1", rule_id="rule-1", route_id="F2",
-        n=10, seed=420101, candidate_id="candidate-a", selected=True,
+        fit_id="fit-failed", module_id="A-E1", rule_id="A-E1_historical", route_id="F2",
+        n=10, seed=420101, decision_id="d", candidate_id="candidate-a", selected=True,
         failure_message="failed",
     )
     report = build_ceiling_hit_report([row, failed])
@@ -269,17 +281,27 @@ def _bundle_inputs(tmp_path: Path):
         },
     })
     trace = tmp_path / "selection_trace.jsonl"
-    records = build_selection_trace_records("A-E1", "run-1", [{
-        "decision_id": "d", "candidate_id": "c", "validation_score": 1.0,
-        "tie_break_key": ["c"], "checkpoint_sha256": SHA_B,
-    }])
+    records = build_selection_trace_records("A-E1", "run-1", [
+        {"decision_id": "d", "candidate_id": "candidate-a", "validation_score": 1.0,
+         "tie_break_key": ["a"], "checkpoint_sha256": SHA_A},
+        {"decision_id": "d", "candidate_id": "candidate-b", "validation_score": 2.0,
+         "tie_break_key": ["b"], "checkpoint_sha256": SHA_B},
+    ])
     trace_sha = write_selection_trace(trace, records)
-    receipt = _json(tmp_path / "selection_receipt.json", {
+    receipt_payload = {
         "module_id": "A-E1", "run_id": "run-1", "selection_trace_sha256": trace_sha,
         "effective_config_sha256": EFFECTIVE_SHA, "code_commit": "c" * 40,
-        "record_count": 1, "decision_count": 1,
+        "record_count": 2, "decision_count": 1,
         "receipt_version": "study02-formal-selection-v1",
-    })
+    }
+    receipt = _json(tmp_path / "selection_receipt.json", receipt_payload)
+    ledger = tmp_path / "selection_ledger.jsonl"
+    ledger_entry = {
+        "binding_type": "formal-selection",
+        **receipt_payload,
+        "receipt_sha256": hashlib.sha256(receipt.read_bytes()).hexdigest(),
+    }
+    ledger.write_text(json.dumps(ledger_entry, sort_keys=True) + "\n", encoding="utf-8")
     fit_status = tmp_path / "fit_status.csv"
     write_fit_status(fit_status, [_status()])
     ceiling = tmp_path / "ceiling_hit_report.json"
@@ -289,10 +311,95 @@ def _bundle_inputs(tmp_path: Path):
     return {
         "formal_manifests": [manifest], "selection_traces": [trace],
         "selection_receipts": [receipt], "fit_status_path": fit_status,
+        "selection_ledger_path": ledger,
         "ceiling_report_path": ceiling, "leakage_audit_path": leakage,
         "code_commit": "c" * 40, "effective_config_sha256": EFFECTIVE_SHA,
         "module_run_ids": {"A-E1": "run-1"},
     }
+
+
+def _sync_trace_receipt_and_ledger(kwargs, records):
+    trace = kwargs["selection_traces"][0]
+    trace.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in records), encoding="utf-8")
+    receipt_path = kwargs["selection_receipts"][0]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["selection_trace_sha256"] = hashlib.sha256(trace.read_bytes()).hexdigest()
+    _json(receipt_path, receipt)
+    ledger_entry = {
+        "binding_type": "formal-selection", **receipt,
+        "receipt_sha256": hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
+    }
+    kwargs["selection_ledger_path"].write_text(
+        json.dumps(ledger_entry, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize(("case", "match"), [("wrong_winner", "rank"), ("extra", "schema"), ("order", "canonical")])
+def test_bundle_rejects_invalid_trace_even_when_hash_receipt_and_ledger_are_synchronized(tmp_path, case, match):
+    kwargs = _bundle_inputs(tmp_path)
+    records = [json.loads(line) for line in kwargs["selection_traces"][0].read_text(encoding="utf-8").splitlines()]
+    if case == "wrong_winner":
+        records[0]["selected"] = False
+        records[1]["selected"] = True
+    elif case == "extra":
+        records[0]["extra"] = "forbidden"
+    else:
+        records.reverse()
+    _sync_trace_receipt_and_ledger(kwargs, records)
+    with pytest.raises(ValueError, match=match):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def _rewrite_fit_evidence(kwargs, mutation):
+    fit_path = kwargs["fit_status_path"]
+    with fit_path.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    mutation(rows[0])
+    fit_path.unlink()
+    write_fit_status(fit_path, rows)
+    ceiling_path = kwargs["ceiling_report_path"]
+    ceiling_path.unlink()
+    write_ceiling_hit_report(ceiling_path, build_ceiling_hit_report(rows))
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda row: row.update(module_id="A-E3"),
+        lambda row: row.update(fit_id="G3-fit-0030"),
+        lambda row: row.update(rule_id="A-E1_controlled"),
+        lambda row: row.update(decision_id="missing-decision"),
+        lambda row: row.update(candidate_id="missing-candidate"),
+        lambda row: row.update(selected="False"),
+        lambda row: row.update(checkpoint_sha256=SHA_B),
+    ],
+)
+def test_bundle_binds_every_fit_status_row_to_manifest_and_selection_trace(tmp_path, mutation):
+    kwargs = _bundle_inputs(tmp_path)
+    _rewrite_fit_evidence(kwargs, mutation)
+    with pytest.raises(ValueError, match="fit status"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+@pytest.mark.parametrize("case", ["missing", "tamper", "duplicate", "conflict"])
+def test_bundle_requires_one_exact_global_ledger_binding_per_module(tmp_path, case):
+    kwargs = _bundle_inputs(tmp_path)
+    ledger = kwargs["selection_ledger_path"]
+    if case == "missing":
+        ledger.unlink()
+    else:
+        rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        if case == "tamper":
+            rows[0]["selection_trace_sha256"] = "0" * 64
+        elif case == "duplicate":
+            rows.append(dict(rows[0]))
+        else:
+            conflict = dict(rows[0])
+            conflict["receipt_sha256"] = "0" * 64
+            rows.append(conflict)
+        ledger.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    with pytest.raises((ValueError, FileNotFoundError), match="ledger|artifact"):
+        build_pre_unseal_bundle(**kwargs)
 
 
 def test_pre_unseal_bundle_hashes_validated_artifacts_and_refuses_overwrite(tmp_path):
@@ -336,7 +443,8 @@ def test_pre_unseal_bundle_reads_each_artifact_bytes_once(tmp_path, monkeypatch)
         path.resolve()
         for path in [
             *kwargs["formal_manifests"], *kwargs["selection_traces"], *kwargs["selection_receipts"],
-            kwargs["fit_status_path"], kwargs["ceiling_report_path"], kwargs["leakage_audit_path"],
+            kwargs["selection_ledger_path"], kwargs["fit_status_path"],
+            kwargs["ceiling_report_path"], kwargs["leakage_audit_path"],
         ]
     }
     counts = {path: 0 for path in artifacts}

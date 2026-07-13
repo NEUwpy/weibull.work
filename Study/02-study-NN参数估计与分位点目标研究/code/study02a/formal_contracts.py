@@ -56,6 +56,7 @@ _FIT_STATUS_FIELDS = (
     "route_id",
     "n",
     "seed",
+    "decision_id",
     "candidate_id",
     "selected",
     "checkpoint_sha256",
@@ -283,11 +284,10 @@ def _validate_selection_trace_bytes(
         )
 
     pairs: set[tuple[str, str]] = set()
-    winners: dict[str, int] = {}
+    by_decision: dict[str, list[dict[str, Any]]] = {}
     for record in records:
-        missing = _SELECTION_RECORD_FIELDS - set(record)
-        if missing:
-            raise ValueError(f"Predecessor selection trace record is missing fields: {sorted(missing)}")
+        if set(record) != _SELECTION_RECORD_FIELDS:
+            raise ValueError("selection trace record must match the frozen schema exactly")
         if record["module_id"] != module_id or record["run_id"] != run_id:
             raise ValueError("Predecessor selection trace ownership does not match declared module/run")
         decision_id = record["decision_id"]
@@ -305,14 +305,33 @@ def _validate_selection_trace_bytes(
             raise ValueError("Predecessor selection trace validation_score must be finite")
         if record["tie_break_key"] is None:
             raise ValueError("Predecessor selection trace tie_break_key is required")
+        _tie_break_sort_key(record["tie_break_key"])
         if not isinstance(record["selected"], bool):
             raise ValueError("Predecessor selection trace selected must be boolean")
         _require_sha256(record["checkpoint_sha256"], "Selection trace checkpoint_sha256")
-        winners.setdefault(decision_id, 0)
-        winners[decision_id] += int(record["selected"])
-    if any(count != 1 for count in winners.values()):
-        raise ValueError("Predecessor selection trace must have exactly one selected candidate per decision")
-    return actual_digest, len(records), len(winners)
+        by_decision.setdefault(decision_id, []).append(record)
+    for decision_id, decision_rows in by_decision.items():
+        ranked = sorted(
+            decision_rows,
+            key=lambda row: (
+                row["validation_score"], _tie_break_sort_key(row["tie_break_key"]), row["candidate_id"]
+            ),
+        )
+        selected = [row for row in decision_rows if row["selected"]]
+        if len(selected) != 1 or selected[0]["candidate_id"] != ranked[0]["candidate_id"]:
+            raise ValueError(
+                f"selection trace winner for {decision_id} does not equal deterministic frozen rank"
+            )
+    canonical = sorted(
+        records,
+        key=lambda row: (
+            row["decision_id"], row["validation_score"],
+            _tie_break_sort_key(row["tie_break_key"]), row["candidate_id"],
+        ),
+    )
+    if records != canonical:
+        raise ValueError("selection trace records are not in canonical order")
+    return actual_digest, len(records), len(by_decision)
 
 
 def _publish_json_no_replace(payload: Mapping[str, Any], destination: Path) -> None:
@@ -397,6 +416,7 @@ def build_fit_status_record(
     route_id: str,
     n: int,
     seed: int,
+    decision_id: str,
     candidate_id: str,
     selected: bool,
     result: Any | None = None,
@@ -409,6 +429,7 @@ def build_fit_status_record(
         "module_id": _require_identifier(module_id, "module_id"),
         "rule_id": _require_identifier(rule_id, "rule_id"),
         "route_id": _require_identifier(route_id, "route_id"),
+        "decision_id": _require_identifier(decision_id, "decision_id"),
         "candidate_id": _require_identifier(candidate_id, "candidate_id"),
     }
     if isinstance(n, bool) or not isinstance(n, int) or n <= 0:
@@ -500,7 +521,7 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
                 normalized["terminal_validation_slope"] = float(normalized["terminal_validation_slope"])
         except (TypeError, ValueError) as exc:
             raise ValueError(f"fit status contains an invalid scalar: {exc}") from exc
-    for field in ("fit_id", "module_id", "rule_id", "route_id", "candidate_id"):
+    for field in ("fit_id", "module_id", "rule_id", "route_id", "decision_id", "candidate_id"):
         _require_identifier(normalized[field], f"fit status {field}")
     if isinstance(normalized["n"], bool) or not isinstance(normalized["n"], int) or normalized["n"] <= 0:
         raise ValueError("fit status n must be a positive integer")
@@ -614,24 +635,9 @@ def write_selection_trace(destination: Path, records: Sequence[Mapping[str, Any]
     rows = [dict(record) for record in records]
     if not rows:
         raise ValueError("selection trace must not be empty")
-    grouped: dict[str, list[dict[str, Any]]] = {}
     ownership = {(row.get("module_id"), row.get("run_id")) for row in rows}
     if len(ownership) != 1:
         raise ValueError("selection trace ownership must be uniform")
-    for row in rows:
-        if set(row) != _SELECTION_RECORD_FIELDS:
-            raise ValueError("selection trace records must match the frozen schema exactly")
-        grouped.setdefault(row["decision_id"], []).append(row)
-    for decision_rows in grouped.values():
-        ranked = sorted(
-            decision_rows,
-            key=lambda row: (
-                row["validation_score"], _tie_break_sort_key(row["tie_break_key"]), row["candidate_id"]
-            ),
-        )
-        selected = [row for row in decision_rows if row["selected"]]
-        if len(selected) != 1 or selected[0]["candidate_id"] != ranked[0]["candidate_id"]:
-            raise ValueError("selection trace selected candidate does not match deterministic rank")
     rows = sorted(
         rows,
         key=lambda row: (
@@ -641,17 +647,9 @@ def write_selection_trace(destination: Path, records: Sequence[Mapping[str, Any]
     )
     payload = b"".join(_canonical_json_bytes(row) for row in rows)
     digest = hashlib.sha256(payload).hexdigest()
-    destination = Path(destination)
-    if destination.exists():
-        raise FileExistsError(f"Destination already exists: {destination}")
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_name(destination.name + f".{os.getpid()}.validated")
-    try:
-        temporary.write_bytes(payload)
-        _validate_selection_trace(temporary, digest, rows[0].get("module_id"), rows[0].get("run_id"))
-        os.link(temporary, destination)
-    finally:
-        temporary.unlink(missing_ok=True)
+    module_id, run_id = next(iter(ownership))
+    _validate_selection_trace_bytes(payload, digest, module_id, run_id)
+    _publish_bytes_no_replace(payload, destination)
     return digest
 
 
@@ -673,6 +671,7 @@ def build_ceiling_hit_report(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any
         best = [row["best_epoch_one_based"] for row in successes]
         fits = [{
             "fit_id": row["fit_id"],
+            "decision_id": row["decision_id"],
             "candidate_id": row["candidate_id"],
             "selected": row["selected"],
             "failed": row["failed"],
@@ -1000,7 +999,8 @@ def _validate_formal_manifest_snapshot(
 
 def build_pre_unseal_bundle(
     *, formal_manifests: Sequence[Path], selection_traces: Sequence[Path],
-    selection_receipts: Sequence[Path], fit_status_path: Path, ceiling_report_path: Path,
+    selection_receipts: Sequence[Path], selection_ledger_path: Path,
+    fit_status_path: Path, ceiling_report_path: Path,
     leakage_audit_path: Path, code_commit: str, effective_config_sha256: str,
     module_run_ids: Mapping[str, str],
 ) -> dict[str, Any]:
@@ -1012,7 +1012,8 @@ def build_pre_unseal_bundle(
     if not module_run_ids:
         raise ValueError("module_run_ids must not be empty")
     paths = [*map(Path, formal_manifests), *map(Path, selection_traces), *map(Path, selection_receipts),
-             Path(fit_status_path), Path(ceiling_report_path), Path(leakage_audit_path)]
+             Path(selection_ledger_path), Path(fit_status_path), Path(ceiling_report_path),
+             Path(leakage_audit_path)]
     resolved = [path.resolve(strict=False) for path in paths]
     if len(set(resolved)) != len(resolved):
         raise ValueError("pre-unseal artifact paths must not alias")
@@ -1054,6 +1055,7 @@ def build_pre_unseal_bundle(
         raise ValueError("selection traces and receipts must cover every module")
 
     traces: dict[str, tuple[Path, str, int, int]] = {}
+    trace_records: dict[str, list[dict[str, Any]]] = {}
     for path in selection_traces:
         payload = artifact_bytes(Path(path))
         records = _read_jsonl_bytes(payload, "selection trace")
@@ -1063,8 +1065,9 @@ def build_pre_unseal_bundle(
         digest = hashlib.sha256(payload).hexdigest()
         _, count, decisions = _validate_selection_trace_bytes(payload, digest, module, module_run_ids[module])
         traces[module] = (Path(path), digest, count, decisions)
+        trace_records[module] = records
 
-    receipts: dict[str, tuple[Path, str]] = {}
+    receipts: dict[str, tuple[Path, str, dict[str, Any]]] = {}
     for path in selection_receipts:
         receipt_payload = artifact_bytes(Path(path))
         receipt = _load_json_object_bytes(receipt_payload, "selection receipt")
@@ -1080,7 +1083,23 @@ def build_pre_unseal_bundle(
         }
         if receipt != expected:
             raise ValueError("selection receipt does not match trace/config ownership")
-        receipts[module] = (Path(path), hashlib.sha256(receipt_payload).hexdigest())
+        receipts[module] = (Path(path), hashlib.sha256(receipt_payload).hexdigest(), receipt)
+
+    ledger_records = _read_jsonl_bytes(
+        artifact_bytes(Path(selection_ledger_path)), "Formal selection ledger"
+    )
+    for module, (_, receipt_sha, receipt) in receipts.items():
+        bindings = [
+            row for row in ledger_records
+            if row.get("binding_type") == "formal-selection"
+            and row.get("module_id") == module
+            and row.get("run_id") == module_run_ids[module]
+        ]
+        if len(bindings) != 1:
+            raise ValueError(f"Formal selection ledger must contain exactly one binding for {module}")
+        expected_binding = {"binding_type": "formal-selection", **receipt, "receipt_sha256": receipt_sha}
+        if bindings[0] != expected_binding:
+            raise ValueError(f"Formal selection ledger binding for {module} is not exact")
 
     for module, manifest in manifests.items():
         predecessor = manifest["predecessor"]
@@ -1092,7 +1111,7 @@ def build_pre_unseal_bundle(
             if expected_predecessor not in traces or expected_predecessor not in receipts:
                 raise ValueError("formal manifest predecessor evidence is missing from bundle")
             trace_path, trace_sha, _, _ = traces[expected_predecessor]
-            receipt_path, receipt_sha = receipts[expected_predecessor]
+            receipt_path, receipt_sha, _ = receipts[expected_predecessor]
             if predecessor["module_id"] != expected_predecessor or predecessor["run_id"] != module_run_ids[
                 expected_predecessor
             ]:
@@ -1105,6 +1124,10 @@ def build_pre_unseal_bundle(
                 predecessor["selection_receipt_path"]
             ).resolve(strict=False) != receipt_path.resolve(strict=False):
                 raise ValueError("formal manifest predecessor receipt binding mismatch")
+            if Path(predecessor["selection_ledger_path"]).resolve(strict=False) != Path(
+                selection_ledger_path
+            ).resolve(strict=False):
+                raise ValueError("formal manifest predecessor selection ledger path mismatch")
 
     fit_payload = artifact_bytes(Path(fit_status_path))
     try:
@@ -1114,6 +1137,30 @@ def build_pre_unseal_bundle(
         normalized_fit_rows = [_validate_fit_status_row(row) for row in fit_rows]
     except (UnicodeError, csv.Error) as exc:
         raise ValueError("fit status must be valid UTF-8 CSV") from exc
+    seen_fit_rows: set[tuple[str, str, str, str]] = set()
+    for row in normalized_fit_rows:
+        module = row["module_id"]
+        if module not in manifests:
+            raise ValueError("fit status module is not present in formal manifests")
+        matrix = manifests[module]["matrix"]
+        if row["fit_id"] not in matrix["fit_ids"] or row["rule_id"] not in matrix["rule_ids"]:
+            raise ValueError("fit status fit_id/rule_id is outside its formal manifest subset")
+        key = (module, row["fit_id"], row["decision_id"], row["candidate_id"])
+        if key in seen_fit_rows:
+            raise ValueError("fit status contains a duplicate fit/decision/candidate row")
+        seen_fit_rows.add(key)
+        matches = [
+            record for record in trace_records[module]
+            if record["decision_id"] == row["decision_id"]
+            and record["candidate_id"] == row["candidate_id"]
+        ]
+        if len(matches) != 1:
+            raise ValueError("fit status decision/candidate is not uniquely bound to its selection trace")
+        selection = matches[0]
+        if selection["selected"] is not row["selected"]:
+            raise ValueError("fit status selected flag disagrees with its selection trace")
+        if not row["failed"] and selection["checkpoint_sha256"] != row["checkpoint_sha256"]:
+            raise ValueError("fit status checkpoint disagrees with its selection trace")
     ceiling = _load_json_object_bytes(artifact_bytes(Path(ceiling_report_path)), "ceiling report")
     _validate_ceiling_hit_report(ceiling)
     if ceiling != build_ceiling_hit_report(normalized_fit_rows):
