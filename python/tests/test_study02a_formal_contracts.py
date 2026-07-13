@@ -25,7 +25,10 @@ def _read_trace(path: Path) -> list[dict]:
 
 
 def _write_trace(path: Path, records: list[dict]) -> str:
-    path.write_text("".join(json.dumps(record) + "\n" for record in records), encoding="utf-8")
+    path.write_bytes(b"".join(
+        (json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        for record in records
+    ))
     return _sha256(path)
 
 
@@ -54,8 +57,7 @@ def _trace(tmp_path: Path, module_id: str) -> tuple[Path, str, str]:
             "checkpoint_sha256": "c" * 64,
         },
     ]
-    path.write_text("".join(json.dumps(record) + "\n" for record in records), encoding="utf-8")
-    return path, _sha256(path), run_id
+    return path, _write_trace(path, records), run_id
 
 
 def _predecessor_binding(tmp_path: Path, module_id: str) -> dict:

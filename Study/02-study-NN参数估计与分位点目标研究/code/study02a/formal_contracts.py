@@ -331,6 +331,9 @@ def _validate_selection_trace_bytes(
     )
     if records != canonical:
         raise ValueError("selection trace records are not in canonical order")
+    canonical_bytes = b"".join(_canonical_json_bytes(record) for record in canonical)
+    if trace_bytes != canonical_bytes:
+        raise ValueError("selection trace must equal canonical JSONL bytes exactly")
     return actual_digest, len(records), len(by_decision)
 
 
@@ -439,6 +442,8 @@ def build_fit_status_record(
     if not isinstance(selected, bool):
         raise ValueError("selected must be boolean")
     if result is None:
+        if selected:
+            raise ValueError("failed fit status cannot be selected")
         message = _require_identifier(failure_message, "failure_message")
         return {
             **identifiers,
@@ -530,6 +535,8 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
     if not all(isinstance(normalized[field], bool) for field in ("failed", "selected", "hit_epoch_100")):
         raise ValueError("fit status boolean fields are invalid")
     if normalized["failed"]:
+        if normalized["selected"]:
+            raise ValueError("failed fit status cannot be selected")
         if normalized["checkpoint_sha256"] or normalized["validation_score"] != "" or not normalized["failure_message"]:
             raise ValueError("failed fit status must not invent checkpoint or validation score")
         if normalized["actual_epochs"] != 0 or normalized["validation_curve_json"] != "[]":
@@ -1145,6 +1152,10 @@ def build_pre_unseal_bundle(
         matrix = manifests[module]["matrix"]
         if row["fit_id"] not in matrix["fit_ids"] or row["rule_id"] not in matrix["rule_ids"]:
             raise ValueError("fit status fit_id/rule_id is outside its formal manifest subset")
+        fit_number = int(row["fit_id"].rsplit("-", 1)[1])
+        rule_start, rule_end = _FROZEN_RULE_FIT_RANGES[row["rule_id"]]
+        if not rule_start <= fit_number <= rule_end:
+            raise ValueError("fit status rule_id and fit_id are cross-labelled")
         key = (module, row["fit_id"], row["decision_id"], row["candidate_id"])
         if key in seen_fit_rows:
             raise ValueError("fit status contains a duplicate fit/decision/candidate row")
@@ -1154,6 +1165,10 @@ def build_pre_unseal_bundle(
             if record["decision_id"] == row["decision_id"]
             and record["candidate_id"] == row["candidate_id"]
         ]
+        if row["failed"]:
+            if matches:
+                raise ValueError("failed fit status must not have a selection trace edge")
+            continue
         if len(matches) != 1:
             raise ValueError("fit status decision/candidate is not uniquely bound to its selection trace")
         selection = matches[0]
@@ -1161,6 +1176,10 @@ def build_pre_unseal_bundle(
             raise ValueError("fit status selected flag disagrees with its selection trace")
         if not row["failed"] and selection["checkpoint_sha256"] != row["checkpoint_sha256"]:
             raise ValueError("fit status checkpoint disagrees with its selection trace")
+        # JSON and CSV numeric tokens are parsed to Python binary64; the evidence edge is exact,
+        # not tolerance-based, so their round-tripped float values must be identical.
+        if float(selection["validation_score"]) != float(row["validation_score"]):
+            raise ValueError("fit status validation_score disagrees with its selection trace")
     ceiling = _load_json_object_bytes(artifact_bytes(Path(ceiling_report_path)), "ceiling report")
     _validate_ceiling_hit_report(ceiling)
     if ceiling != build_ceiling_hit_report(normalized_fit_rows):

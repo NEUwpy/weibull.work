@@ -170,10 +170,10 @@ def test_selection_trace_writer_rejects_extra_fields(tmp_path):
 
 def test_ceiling_report_groups_and_derives_frozen_last_ten_slope(tmp_path):
     curve = [float(20 - index) for index in range(20)] + [float(0 - index) for index in range(80)]
-    row = _status(curve=curve)
+    row = _status(curve=curve, selected=False)
     failed = build_fit_status_record(
         fit_id="fit-failed", module_id="A-E1", rule_id="A-E1_historical", route_id="F2",
-        n=10, seed=420101, decision_id="d", candidate_id="candidate-a", selected=True,
+        n=10, seed=420101, decision_id="d", candidate_id="candidate-a", selected=False,
         failure_message="failed",
     )
     report = build_ceiling_hit_report([row, failed])
@@ -282,9 +282,9 @@ def _bundle_inputs(tmp_path: Path):
     })
     trace = tmp_path / "selection_trace.jsonl"
     records = build_selection_trace_records("A-E1", "run-1", [
-        {"decision_id": "d", "candidate_id": "candidate-a", "validation_score": 1.0,
+        {"decision_id": "d", "candidate_id": "candidate-a", "validation_score": 0.01,
          "tie_break_key": ["a"], "checkpoint_sha256": SHA_A},
-        {"decision_id": "d", "candidate_id": "candidate-b", "validation_score": 2.0,
+        {"decision_id": "d", "candidate_id": "candidate-b", "validation_score": 0.02,
          "tie_break_key": ["b"], "checkpoint_sha256": SHA_B},
     ])
     trace_sha = write_selection_trace(trace, records)
@@ -318,12 +318,14 @@ def _bundle_inputs(tmp_path: Path):
     }
 
 
-def _sync_trace_receipt_and_ledger(kwargs, records):
+def _sync_receipt_and_ledger(kwargs):
     trace = kwargs["selection_traces"][0]
-    trace.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in records), encoding="utf-8")
+    records = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines() if line.strip()]
     receipt_path = kwargs["selection_receipts"][0]
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["selection_trace_sha256"] = hashlib.sha256(trace.read_bytes()).hexdigest()
+    receipt["record_count"] = len(records)
+    receipt["decision_count"] = len({row["decision_id"] for row in records})
     _json(receipt_path, receipt)
     ledger_entry = {
         "binding_type": "formal-selection", **receipt,
@@ -332,6 +334,14 @@ def _sync_trace_receipt_and_ledger(kwargs, records):
     kwargs["selection_ledger_path"].write_text(
         json.dumps(ledger_entry, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+
+def _sync_trace_receipt_and_ledger(kwargs, records):
+    kwargs["selection_traces"][0].write_bytes(b"".join(
+        (json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        for row in records
+    ))
+    _sync_receipt_and_ledger(kwargs)
 
 
 @pytest.mark.parametrize(("case", "match"), [("wrong_winner", "rank"), ("extra", "schema"), ("order", "canonical")])
@@ -347,6 +357,84 @@ def test_bundle_rejects_invalid_trace_even_when_hash_receipt_and_ledger_are_sync
         records.reverse()
     _sync_trace_receipt_and_ledger(kwargs, records)
     with pytest.raises(ValueError, match=match):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_noncanonical_jsonl_bytes_with_synchronized_receipt_and_ledger(tmp_path):
+    kwargs = _bundle_inputs(tmp_path)
+    trace = kwargs["selection_traces"][0]
+    records = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
+    trace.write_text("".join(json.dumps(row, sort_keys=True) + "\n\n" for row in records), encoding="utf-8")
+    _sync_receipt_and_ledger(kwargs)
+    with pytest.raises(ValueError, match="canonical.*bytes"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def _add_failed_fit(kwargs, *, selected=False, decision_id="failure-d", candidate_id="failure-c"):
+    fit_path = kwargs["fit_status_path"]
+    with fit_path.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    failed = build_fit_status_record(
+        fit_id="G3-fit-0000", module_id="A-E1", rule_id="A-E1_historical", route_id="F2",
+        n=10, seed=420101, decision_id=decision_id, candidate_id=candidate_id,
+        selected=selected, failure_message="transparent failure",
+    )
+    fit_path.unlink()
+    write_fit_status(fit_path, [*rows, failed])
+    ceiling_path = kwargs["ceiling_report_path"]
+    ceiling_path.unlink()
+    write_ceiling_hit_report(ceiling_path, build_ceiling_hit_report([*rows, failed]))
+
+
+def test_bundle_preserves_transparent_failed_fit_without_selection_edge(tmp_path):
+    kwargs = _bundle_inputs(tmp_path)
+    _add_failed_fit(kwargs)
+    bundle = build_pre_unseal_bundle(**kwargs)
+    assert bundle["test_state"] == "sealed"
+
+
+def test_failed_fit_must_not_be_selected(tmp_path):
+    with pytest.raises(ValueError, match="failed.*selected"):
+        build_fit_status_record(
+            fit_id="G3-fit-0000", module_id="A-E1", rule_id="A-E1_historical", route_id="F2",
+            n=10, seed=420101, decision_id="failure-d", candidate_id="failure-c",
+            selected=True, failure_message="invalid selected failure",
+        )
+
+
+def test_bundle_rejects_failed_fit_when_candidate_exists_in_selection_trace(tmp_path):
+    kwargs = _bundle_inputs(tmp_path)
+    _add_failed_fit(kwargs)
+    records = [json.loads(line) for line in kwargs["selection_traces"][0].read_text(encoding="utf-8").splitlines()]
+    records.extend(build_selection_trace_records("A-E1", "run-1", [
+        {"decision_id": "failure-d", "candidate_id": "other", "validation_score": 0.1,
+         "tie_break_key": ["a"], "checkpoint_sha256": SHA_A},
+        {"decision_id": "failure-d", "candidate_id": "failure-c", "validation_score": 0.2,
+         "tie_break_key": ["b"], "checkpoint_sha256": SHA_B},
+    ]))
+    _sync_trace_receipt_and_ledger(kwargs, records)
+    with pytest.raises(ValueError, match="failed fit status.*selection trace"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_success_validation_score_mismatch_with_trace(tmp_path):
+    kwargs = _bundle_inputs(tmp_path)
+    records = [json.loads(line) for line in kwargs["selection_traces"][0].read_text(encoding="utf-8").splitlines()]
+    records[0]["validation_score"] = 0.015
+    _sync_trace_receipt_and_ledger(kwargs, records)
+    with pytest.raises(ValueError, match="validation_score"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_multi_rule_cross_labelled_fit(tmp_path):
+    kwargs = _bundle_inputs(tmp_path)
+    manifest_path = kwargs["formal_manifests"][0]
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["matrix"]["rule_ids"].append("A-E1_controlled")
+    manifest["matrix"]["fit_ids"].append("G3-fit-0030")
+    _json(manifest_path, manifest)
+    _rewrite_fit_evidence(kwargs, lambda row: row.update(rule_id="A-E1_controlled"))
+    with pytest.raises(ValueError, match="rule.*fit|fit.*rule"):
         build_pre_unseal_bundle(**kwargs)
 
 
