@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
+from datetime import datetime, timezone
 
 
 SCRIPT_PATH = Path(__file__).resolve()
@@ -21,6 +23,7 @@ from study02a.artifacts import write_manifest
 from study02a.config import load_frozen_config
 from study02a.matrix import expand_module_matrix
 from study02a.pilot import run_pilot
+from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run
 
 
 def _load_pilot_amendment() -> dict:
@@ -96,6 +99,16 @@ def _parser() -> argparse.ArgumentParser:
     pilot.add_argument("--ledger", type=Path, default=STUDY_ROOT / "artifacts" / "run_ledger.jsonl")
     pilot.add_argument("--skip-methods", action="store_true")
     pilot.add_argument("--skip-train-smoke", action="store_true")
+    formal = commands.add_parser("formal-select", help="plan, inspect, or claim sealed training/validation work")
+    formal.add_argument("--module", choices=("A-E1", "A-E3", "A-E2"), required=True)
+    formal.add_argument("--run-id", required=True)
+    formal.add_argument("--artifact-root", type=Path, required=True)
+    formal.add_argument("--cache-root", type=Path, required=True)
+    mode = formal.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--dry-run", action="store_true")
+    mode.add_argument("--status", action="store_true")
+    mode.add_argument("--claim-next", action="store_true")
+    formal.add_argument("--owner-id", default="formal-select-cli")
     return parser
 
 
@@ -122,6 +135,28 @@ def main() -> int:
             pilot_amendment=amendment,
             matrix_path=STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv",
         )
+    elif args.command == "formal-select":
+        run_dir = args.artifact_root / args.module / args.run_id
+        if args.dry_run:
+            payload = materialize_run(
+                study_root=STUDY_ROOT,
+                matrix_path=STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv",
+                module_id=args.module,
+                run_id=args.run_id,
+                artifact_root=args.artifact_root,
+                cache_root=args.cache_root,
+                code_commit=_git_sha(),
+                predecessor=None,
+            )
+        elif args.status:
+            payload = status_run(run_dir)
+        else:
+            payload = claim_next_fit(
+                run_dir,
+                owner_id=args.owner_id,
+                process_id=os.getpid(),
+                timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            )
     else:
         raise AssertionError(f"Unreachable command: {args.command}")
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
