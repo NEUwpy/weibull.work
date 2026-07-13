@@ -97,6 +97,10 @@ class FitResult:
     checkpoint_sha256: str
     best_validation_loss: float
     best_epoch: int
+    actual_epochs: int = 0
+    validation_loss_history: tuple[float, ...] = ()
+    early_stop_reason: str = "max_epochs"
+    hit_epoch_ceiling: bool = False
 
 
 @dataclass(frozen=True)
@@ -171,6 +175,7 @@ def _fit_deterministic_candidate(
     best_epoch = -1
     best_state: dict[str, torch.Tensor] | None = None
     stale_epochs = 0
+    validation_loss_history: list[float] = []
 
     for epoch in range(int(max_epochs)):
         model.train()
@@ -186,6 +191,9 @@ def _fit_deterministic_candidate(
             validation_loss = float(
                 compute_loss(loss_id, forward_validation(model), validation_targets, stats)
             )
+        if not np.isfinite(validation_loss):
+            raise RuntimeError("Training produced a non-finite validation loss")
+        validation_loss_history.append(validation_loss)
         if validation_loss < best_loss:
             best_loss = validation_loss
             best_epoch = epoch
@@ -202,7 +210,18 @@ def _fit_deterministic_candidate(
     model.eval()
     with torch.no_grad():
         predictions = forward_validation(model).detach().clone()
-    return FitResult(predictions, _checkpoint_hash(best_state), best_loss, best_epoch)
+    actual_epochs = len(validation_loss_history)
+    hit_epoch_ceiling = actual_epochs == int(max_epochs)
+    return FitResult(
+        predictions=predictions,
+        checkpoint_sha256=_checkpoint_hash(best_state),
+        best_validation_loss=best_loss,
+        best_epoch=best_epoch,
+        actual_epochs=actual_epochs,
+        validation_loss_history=tuple(validation_loss_history),
+        early_stop_reason="max_epochs" if hit_epoch_ceiling else "patience_exhausted",
+        hit_epoch_ceiling=hit_epoch_ceiling,
+    )
 
 
 def fit_candidate(

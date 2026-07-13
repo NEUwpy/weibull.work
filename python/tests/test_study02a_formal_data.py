@@ -86,6 +86,14 @@ def test_real_fixed_fit_is_deterministic_and_config_only() -> None:
     assert torch.equal(result_a.predictions, result_b.predictions)
     assert result_a.checkpoint_sha256 == result_b.checkpoint_sha256
     assert result_a.best_epoch == result_b.best_epoch
+    assert result_a.actual_epochs == len(result_a.validation_loss_history)
+    assert result_a.early_stop_reason in {"patience_exhausted", "max_epochs"}
+    assert result_a.hit_epoch_ceiling is (result_a.actual_epochs == config.max_epochs)
+    assert all(np.isfinite(result_a.validation_loss_history))
+    stopped = fit_fixed_candidate(factory, training, validation, config, seed=92, batch_size=4, lr=0.0)
+    assert stopped.actual_epochs == config.min_epochs
+    assert stopped.early_stop_reason == "patience_exhausted"
+    assert stopped.hit_epoch_ceiling is False
     parameters = inspect.signature(fit_fixed_candidate).parameters
     assert not ({"max_epochs", "min_epochs", "patience"} & set(parameters))
 
@@ -231,6 +239,14 @@ def test_real_set_fit_is_deterministic_and_uses_only_effective_config() -> None:
     assert torch.equal(result_a.predictions, result_b.predictions)
     assert result_a.checkpoint_sha256 == result_b.checkpoint_sha256
     assert result_a.best_epoch == result_b.best_epoch
+    assert result_a.actual_epochs == len(result_a.validation_loss_history)
+    assert result_a.early_stop_reason in {"patience_exhausted", "max_epochs"}
+    assert result_a.hit_epoch_ceiling is (result_a.actual_epochs == config.max_epochs)
+    assert all(np.isfinite(result_a.validation_loss_history))
+    stopped = fit_set_candidate(factory, training, validation, config, seed=91, batch_size=4, lr=0.0)
+    assert stopped.actual_epochs == config.min_epochs
+    assert stopped.early_stop_reason == "patience_exhausted"
+    assert stopped.hit_epoch_ceiling is False
     assert "max_epochs" not in inspect.signature(fit_set_candidate).parameters
 
     with pytest.raises(ValueError, match="100/50/40"):

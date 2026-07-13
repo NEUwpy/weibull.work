@@ -49,6 +49,27 @@ _SELECTION_RECORD_FIELDS = {
     "selected",
     "checkpoint_sha256",
 }
+_FIT_STATUS_FIELDS = (
+    "fit_id",
+    "module_id",
+    "rule_id",
+    "route_id",
+    "n",
+    "seed",
+    "candidate_id",
+    "selected",
+    "checkpoint_sha256",
+    "validation_score",
+    "actual_epochs",
+    "best_epoch_one_based",
+    "hit_epoch_100",
+    "early_stop_reason",
+    "failed",
+    "failure_message",
+    "terminal_validation_slope",
+    "validation_curve_json",
+)
+_EVIDENCE_ROLES = ("training", "validation", "calibration", "test")
 
 
 @dataclass(frozen=True)
@@ -280,6 +301,671 @@ def _publish_json_no_replace(payload: Mapping[str, Any], destination: Path) -> N
         os.link(temporary, destination)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _canonical_json_bytes(payload: Any) -> bytes:
+    return (json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode(
+        "utf-8"
+    )
+
+
+def _publish_bytes_no_replace(payload: bytes, destination: Path) -> None:
+    destination = Path(destination)
+    if destination.exists():
+        raise FileExistsError(f"Destination already exists: {destination}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(destination.name + f".{os.getpid()}.validated")
+    if temporary.exists():
+        raise FileExistsError(f"Temporary destination already exists: {temporary}")
+    try:
+        temporary.write_bytes(payload)
+        os.link(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _terminal_ols_slope(curve: Sequence[float]) -> float:
+    values = tuple(float(value) for value in curve)
+    if not values or any(not math.isfinite(value) for value in values):
+        raise ValueError("validation history must contain finite values")
+    terminal = values[-10:]
+    if len(terminal) == 1:
+        return 0.0
+    x_mean = (len(terminal) - 1) / 2.0
+    y_mean = sum(terminal) / len(terminal)
+    numerator = sum((index - x_mean) * (value - y_mean) for index, value in enumerate(terminal))
+    denominator = sum((index - x_mean) ** 2 for index in range(len(terminal)))
+    return numerator / denominator
+
+
+def _require_identifier(value: Any, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{label} must be a non-empty string")
+    return value
+
+
+def _tie_break_sort_key(value: Any) -> tuple[Any, ...]:
+    if value is None:
+        return (0,)
+    if isinstance(value, bool):
+        return (1, int(value))
+    if isinstance(value, (int, float)):
+        if not math.isfinite(value):
+            raise ValueError("selection tie_break_key numeric values must be finite")
+        return (2, float(value))
+    if isinstance(value, str):
+        return (3, value)
+    if isinstance(value, (list, tuple)):
+        return (4, tuple(_tie_break_sort_key(item) for item in value))
+    if isinstance(value, Mapping):
+        if any(not isinstance(key, str) for key in value):
+            raise ValueError("selection tie_break_key object keys must be strings")
+        return (5, tuple((key, _tie_break_sort_key(value[key])) for key in sorted(value)))
+    raise ValueError("selection tie_break_key must contain only JSON values")
+
+
+def build_fit_status_record(
+    *,
+    fit_id: str,
+    module_id: str,
+    rule_id: str,
+    route_id: str,
+    n: int,
+    seed: int,
+    candidate_id: str,
+    selected: bool,
+    result: Any | None = None,
+    failure_message: str | None = None,
+) -> dict[str, Any]:
+    """Build one validated fit-status row; best_epoch_one_based is explicitly one based."""
+
+    identifiers = {
+        "fit_id": _require_identifier(fit_id, "fit_id"),
+        "module_id": _require_identifier(module_id, "module_id"),
+        "rule_id": _require_identifier(rule_id, "rule_id"),
+        "route_id": _require_identifier(route_id, "route_id"),
+        "candidate_id": _require_identifier(candidate_id, "candidate_id"),
+    }
+    if isinstance(n, bool) or not isinstance(n, int) or n <= 0:
+        raise ValueError("n must be a positive integer")
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError("seed must be an integer")
+    if not isinstance(selected, bool):
+        raise ValueError("selected must be boolean")
+    if result is None:
+        message = _require_identifier(failure_message, "failure_message")
+        return {
+            **identifiers,
+            "n": n,
+            "seed": seed,
+            "selected": selected,
+            "checkpoint_sha256": "",
+            "validation_score": "",
+            "actual_epochs": 0,
+            "best_epoch_one_based": "",
+            "hit_epoch_100": False,
+            "early_stop_reason": "",
+            "failed": True,
+            "failure_message": message,
+            "terminal_validation_slope": "",
+            "validation_curve_json": "[]",
+        }
+    if failure_message is not None:
+        raise ValueError("successful fit status cannot include failure_message")
+    checkpoint = _require_sha256(getattr(result, "checkpoint_sha256", None), "checkpoint_sha256")
+    score = getattr(result, "best_validation_loss", None)
+    actual_epochs = getattr(result, "actual_epochs", None)
+    best_epoch = getattr(result, "best_epoch", None)
+    history = tuple(getattr(result, "validation_loss_history", ()))
+    reason = getattr(result, "early_stop_reason", None)
+    hit_ceiling = getattr(result, "hit_epoch_ceiling", None)
+    if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
+        raise ValueError("validation score must be finite")
+    if isinstance(actual_epochs, bool) or not isinstance(actual_epochs, int) or actual_epochs <= 0:
+        raise ValueError("actual_epochs must be a positive integer")
+    if len(history) != actual_epochs or any(
+        isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
+        for value in history
+    ):
+        raise ValueError("validation history must be finite and match actual_epochs")
+    if isinstance(best_epoch, bool) or not isinstance(best_epoch, int) or not 0 <= best_epoch < actual_epochs:
+        raise ValueError("best_epoch must be a valid zero-based history index")
+    if float(history[best_epoch]) != float(score):
+        raise ValueError("best validation score must match validation history at best_epoch")
+    if reason not in {"patience_exhausted", "max_epochs"}:
+        raise ValueError("early_stop_reason is invalid")
+    expected_hit = actual_epochs == APPROVED_MAX_EPOCHS
+    if hit_ceiling is not expected_hit or (reason == "max_epochs") is not expected_hit:
+        raise ValueError("epoch ceiling and early-stop fields are inconsistent")
+    return {
+        **identifiers,
+        "n": n,
+        "seed": seed,
+        "selected": selected,
+        "checkpoint_sha256": checkpoint,
+        "validation_score": float(score),
+        "actual_epochs": actual_epochs,
+        "best_epoch_one_based": best_epoch + 1,
+        "hit_epoch_100": expected_hit,
+        "early_stop_reason": reason,
+        "failed": False,
+        "failure_message": "",
+        "terminal_validation_slope": _terminal_ols_slope(history),
+        "validation_curve_json": json.dumps(list(map(float, history)), separators=(",", ":")),
+    }
+
+
+def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
+    if not isinstance(row, Mapping) or set(row) != set(_FIT_STATUS_FIELDS):
+        raise ValueError("fit status row must match the frozen schema exactly")
+    normalized = dict(row)
+    if isinstance(normalized["failed"], str):
+        try:
+            for field in ("failed", "selected", "hit_epoch_100"):
+                if normalized[field].lower() not in {"true", "false"}:
+                    raise ValueError(f"fit status {field} must be boolean")
+                normalized[field] = normalized[field].lower() == "true"
+            for field in ("n", "seed", "actual_epochs"):
+                normalized[field] = int(normalized[field])
+            if normalized["best_epoch_one_based"] != "":
+                normalized["best_epoch_one_based"] = int(normalized["best_epoch_one_based"])
+            if normalized["validation_score"] != "":
+                normalized["validation_score"] = float(normalized["validation_score"])
+            if normalized["terminal_validation_slope"] != "":
+                normalized["terminal_validation_slope"] = float(normalized["terminal_validation_slope"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"fit status contains an invalid scalar: {exc}") from exc
+    for field in ("fit_id", "module_id", "rule_id", "route_id", "candidate_id"):
+        _require_identifier(normalized[field], f"fit status {field}")
+    if isinstance(normalized["n"], bool) or not isinstance(normalized["n"], int) or normalized["n"] <= 0:
+        raise ValueError("fit status n must be a positive integer")
+    if isinstance(normalized["seed"], bool) or not isinstance(normalized["seed"], int):
+        raise ValueError("fit status seed must be an integer")
+    if not all(isinstance(normalized[field], bool) for field in ("failed", "selected", "hit_epoch_100")):
+        raise ValueError("fit status boolean fields are invalid")
+    if normalized["failed"]:
+        if normalized["checkpoint_sha256"] or normalized["validation_score"] != "" or not normalized["failure_message"]:
+            raise ValueError("failed fit status must not invent checkpoint or validation score")
+        if normalized["actual_epochs"] != 0 or normalized["validation_curve_json"] != "[]":
+            raise ValueError("failed fit status must have empty history")
+        if normalized["best_epoch_one_based"] != "" or normalized["early_stop_reason"] != "" or normalized[
+            "terminal_validation_slope"
+        ] != "" or normalized["hit_epoch_100"]:
+            raise ValueError("failed fit status diagnostics must remain empty")
+        return normalized
+    try:
+        curve = json.loads(normalized["validation_curve_json"])
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ValueError("fit status validation history is invalid") from exc
+    if len(curve) != normalized["actual_epochs"] or any(
+        isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
+        for value in curve
+    ):
+        raise ValueError("fit status history does not match actual_epochs")
+    if normalized["hit_epoch_100"] is not (normalized["actual_epochs"] == APPROVED_MAX_EPOCHS):
+        raise ValueError("fit status history/epoch/ceiling fields are inconsistent")
+    if normalized["early_stop_reason"] != (
+        "max_epochs" if normalized["hit_epoch_100"] else "patience_exhausted"
+    ):
+        raise ValueError("fit status early-stop reason is inconsistent")
+    best = normalized["best_epoch_one_based"]
+    if not isinstance(best, int) or not 1 <= best <= len(curve):
+        raise ValueError("fit status best epoch is invalid")
+    if not math.isfinite(float(normalized["validation_score"])) or float(curve[best - 1]) != float(
+        normalized["validation_score"]
+    ):
+        raise ValueError("fit status validation score is inconsistent")
+    slope = _terminal_ols_slope(curve)
+    if not math.isclose(float(normalized["terminal_validation_slope"]), slope, rel_tol=1e-12, abs_tol=1e-12):
+        raise ValueError("fit status terminal validation slope is inconsistent")
+    _require_sha256(normalized["checkpoint_sha256"], "fit status checkpoint_sha256")
+    return normalized
+
+
+def write_fit_status(destination: Path, rows: Sequence[Mapping[str, Any]]) -> str:
+    validated = [_validate_fit_status_row(row) for row in rows]
+    if not validated:
+        raise ValueError("fit status must contain at least one row")
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=_FIT_STATUS_FIELDS, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(validated)
+    payload = output.getvalue().encode("utf-8")
+    _publish_bytes_no_replace(payload, destination)
+    return hashlib.sha256(payload).hexdigest()
+
+
+def build_selection_trace_records(
+    module_id: str, run_id: str, candidates: Sequence[Mapping[str, Any]]
+) -> tuple[dict[str, Any], ...]:
+    module_id = _require_identifier(module_id, "module_id")
+    run_id = _require_identifier(run_id, "run_id")
+    if not candidates:
+        raise ValueError("selection candidates must not be empty")
+    by_decision: dict[str, list[dict[str, Any]]] = {}
+    pairs: set[tuple[str, str]] = set()
+    for candidate in candidates:
+        try:
+            decision_id = _require_identifier(candidate["decision_id"], "decision_id")
+            candidate_id = _require_identifier(candidate["candidate_id"], "candidate_id")
+            score = candidate["validation_score"]
+            tie_break_key = candidate["tie_break_key"]
+            checkpoint = _require_sha256(candidate["checkpoint_sha256"], "checkpoint_sha256")
+        except KeyError as exc:
+            raise ValueError(f"selection candidate is missing {exc.args[0]}") from exc
+        if (decision_id, candidate_id) in pairs:
+            raise ValueError("duplicate selection decision/candidate pair")
+        pairs.add((decision_id, candidate_id))
+        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
+            raise ValueError("selection validation_score must be finite")
+        tie_sort = _tie_break_sort_key(tie_break_key)
+        by_decision.setdefault(decision_id, []).append({
+            "module_id": module_id,
+            "run_id": run_id,
+            "decision_id": decision_id,
+            "candidate_id": candidate_id,
+            "validation_score": float(score),
+            "tie_break_key": tie_break_key,
+            "selected": False,
+            "checkpoint_sha256": checkpoint,
+            "_tie_sort": tie_sort,
+        })
+    records: list[dict[str, Any]] = []
+    for decision_id in sorted(by_decision):
+        ranked = sorted(
+            by_decision[decision_id],
+            key=lambda row: (row["validation_score"], row["_tie_sort"], row["candidate_id"]),
+        )
+        ranked[0]["selected"] = True
+        for row in ranked:
+            row.pop("_tie_sort")
+            records.append(row)
+    return tuple(records)
+
+
+def write_selection_trace(destination: Path, records: Sequence[Mapping[str, Any]]) -> str:
+    rows = [dict(record) for record in records]
+    if not rows:
+        raise ValueError("selection trace must not be empty")
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    ownership = {(row.get("module_id"), row.get("run_id")) for row in rows}
+    if len(ownership) != 1:
+        raise ValueError("selection trace ownership must be uniform")
+    for row in rows:
+        if set(row) != _SELECTION_RECORD_FIELDS:
+            raise ValueError("selection trace records must match the frozen schema exactly")
+        grouped.setdefault(row["decision_id"], []).append(row)
+    for decision_rows in grouped.values():
+        ranked = sorted(
+            decision_rows,
+            key=lambda row: (
+                row["validation_score"], _tie_break_sort_key(row["tie_break_key"]), row["candidate_id"]
+            ),
+        )
+        selected = [row for row in decision_rows if row["selected"]]
+        if len(selected) != 1 or selected[0]["candidate_id"] != ranked[0]["candidate_id"]:
+            raise ValueError("selection trace selected candidate does not match deterministic rank")
+    payload = b"".join(_canonical_json_bytes(row) for row in rows)
+    digest = hashlib.sha256(payload).hexdigest()
+    destination = Path(destination)
+    if destination.exists():
+        raise FileExistsError(f"Destination already exists: {destination}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(destination.name + f".{os.getpid()}.validated")
+    try:
+        temporary.write_bytes(payload)
+        _validate_selection_trace(temporary, digest, rows[0].get("module_id"), rows[0].get("run_id"))
+        os.link(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return digest
+
+
+def build_ceiling_hit_report(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    validated = [_validate_fit_status_row(row) for row in rows]
+    if not validated:
+        raise ValueError("ceiling report requires fit-status rows")
+    groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+    for row in validated:
+        key = (row["rule_id"], row["route_id"], row["n"], row["seed"], row["selected"])
+        groups.setdefault(key, []).append(row)
+    output_groups = []
+    for key in sorted(groups, key=lambda item: tuple(str(value) for value in item)):
+        group_rows = sorted(groups[key], key=lambda row: (row["fit_id"], row["candidate_id"]))
+        successes = [row for row in group_rows if not row["failed"]]
+        ceiling_hits = [row for row in successes if row["hit_epoch_100"]]
+        actual = [row["actual_epochs"] for row in successes]
+        best = [row["best_epoch_one_based"] for row in successes]
+        fits = [{
+            "fit_id": row["fit_id"],
+            "candidate_id": row["candidate_id"],
+            "selected": row["selected"],
+            "failed": row["failed"],
+            "hit_epoch_100": row["hit_epoch_100"],
+            "actual_epochs": row["actual_epochs"],
+            "best_epoch_one_based": row["best_epoch_one_based"],
+            "terminal_validation_slope": row["terminal_validation_slope"],
+            "validation_curve": json.loads(row["validation_curve_json"]),
+            "failure_message": row["failure_message"],
+        } for row in group_rows]
+        output_groups.append({
+            "rule_id": key[0], "route_id": key[1], "n": key[2], "seed": key[3], "selected": key[4],
+            "fit_count": len(group_rows), "failure_count": len(group_rows) - len(successes),
+            "ceiling_hit_count": len(ceiling_hits),
+            "ceiling_hit_rate": len(ceiling_hits) / len(successes) if successes else 0.0,
+            "actual_epochs_summary": {
+                "min": min(actual) if actual else None, "max": max(actual) if actual else None,
+                "mean": sum(actual) / len(actual) if actual else None,
+            },
+            "best_epoch_one_based_summary": {
+                "min": min(best) if best else None, "max": max(best) if best else None,
+                "mean": sum(best) / len(best) if best else None,
+            },
+            "fits": fits,
+        })
+    return {
+        "report_version": "study02-ceiling-hit-v1",
+        "terminal_slope_contract": "OLS slope over last 10 validation losses, or all losses if shorter",
+        "fit_count": len(validated),
+        "failure_count": sum(row["failed"] for row in validated),
+        "ceiling_hit_count": sum(not row["failed"] and row["hit_epoch_100"] for row in validated),
+        "groups": output_groups,
+    }
+
+
+def write_ceiling_hit_report(
+    destination: Path, report_or_rows: Mapping[str, Any] | Sequence[Mapping[str, Any]]
+) -> str:
+    report = dict(report_or_rows) if isinstance(report_or_rows, Mapping) else build_ceiling_hit_report(report_or_rows)
+    _validate_ceiling_hit_report(report)
+    payload = _canonical_json_bytes(report)
+    _publish_bytes_no_replace(payload, destination)
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _validate_ceiling_hit_report(report: Mapping[str, Any]) -> None:
+    if report.get("report_version") != "study02-ceiling-hit-v1" or not isinstance(report.get("groups"), list):
+        raise ValueError("invalid ceiling-hit report")
+    total_fits = total_failures = total_hits = 0
+    for group in report["groups"]:
+        if not isinstance(group, Mapping) or not isinstance(group.get("fits"), list) or not group["fits"]:
+            raise ValueError("ceiling report groups must contain fit evidence")
+        successes = []
+        hits = 0
+        for fit in group["fits"]:
+            if fit.get("failed"):
+                if fit.get("actual_epochs") != 0 or fit.get("validation_curve") != []:
+                    raise ValueError("failed ceiling evidence must have empty history")
+                continue
+            curve = fit.get("validation_curve")
+            if not isinstance(curve, list) or len(curve) != fit.get("actual_epochs") or any(
+                isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
+                for value in curve
+            ):
+                raise ValueError("ceiling report history does not match actual epochs")
+            expected_hit = len(curve) == APPROVED_MAX_EPOCHS
+            if fit.get("hit_epoch_100") is not expected_hit:
+                raise ValueError("ceiling report history/ceiling fields are inconsistent")
+            best = fit.get("best_epoch_one_based")
+            if isinstance(best, bool) or not isinstance(best, int) or not 1 <= best <= len(curve):
+                raise ValueError("ceiling report best epoch is invalid")
+            slope = fit.get("terminal_validation_slope")
+            if isinstance(slope, bool) or not isinstance(slope, (int, float)) or not math.isclose(
+                float(slope), _terminal_ols_slope(curve), rel_tol=1e-12, abs_tol=1e-12
+            ):
+                raise ValueError("ceiling report terminal validation slope is inconsistent")
+            successes.append(fit)
+            hits += int(expected_hit)
+        fit_count = len(group["fits"])
+        failures = fit_count - len(successes)
+        if group.get("fit_count") != fit_count or group.get("failure_count") != failures:
+            raise ValueError("ceiling report group counts are inconsistent")
+        if group.get("ceiling_hit_count") != hits:
+            raise ValueError("ceiling report group hit count is inconsistent")
+        expected_rate = hits / len(successes) if successes else 0.0
+        if not math.isclose(float(group.get("ceiling_hit_rate", -1)), expected_rate):
+            raise ValueError("ceiling report group hit rate is inconsistent")
+        actual = [fit["actual_epochs"] for fit in successes]
+        best = [fit["best_epoch_one_based"] for fit in successes]
+        expected_actual = {
+            "min": min(actual) if actual else None, "max": max(actual) if actual else None,
+            "mean": sum(actual) / len(actual) if actual else None,
+        }
+        expected_best = {
+            "min": min(best) if best else None, "max": max(best) if best else None,
+            "mean": sum(best) / len(best) if best else None,
+        }
+        if group.get("actual_epochs_summary") != expected_actual or group.get(
+            "best_epoch_one_based_summary"
+        ) != expected_best:
+            raise ValueError("ceiling report epoch summaries are inconsistent")
+        total_fits += fit_count
+        total_failures += failures
+        total_hits += hits
+    if (report.get("fit_count"), report.get("failure_count"), report.get("ceiling_hit_count")) != (
+        total_fits, total_failures, total_hits
+    ):
+        raise ValueError("ceiling report total counts are inconsistent")
+
+
+def build_leakage_audit(
+    *, parameter_point_ids: Mapping[str, Sequence[Any]], role_namespaces: Mapping[str, str],
+    scaler_source: str, feature_selection_source: str, model_selection_source: str,
+    test_access_count: int,
+) -> dict[str, Any]:
+    if set(parameter_point_ids) != set(_EVIDENCE_ROLES) or set(role_namespaces) != set(_EVIDENCE_ROLES):
+        raise ValueError("leakage audit requires exact training/validation/calibration/test roles")
+    point_sets: dict[str, set[Any]] = {}
+    for role in _EVIDENCE_ROLES:
+        values = list(parameter_point_ids[role])
+        try:
+            point_sets[role] = set(values)
+        except TypeError as exc:
+            raise ValueError("parameter-point IDs must be hashable metadata") from exc
+        if len(point_sets[role]) != len(values):
+            raise ValueError(f"duplicate parameter-point ID in {role}")
+        namespace = role_namespaces[role]
+        if not isinstance(namespace, str) or not namespace.strip() or role not in namespace.lower():
+            raise ValueError(f"{role} namespace is not role-correct")
+    if len(set(role_namespaces.values())) != len(_EVIDENCE_ROLES):
+        raise ValueError("role namespaces must be distinct")
+    intersections: dict[str, int] = {}
+    for index, first in enumerate(_EVIDENCE_ROLES):
+        for second in _EVIDENCE_ROLES[index + 1:]:
+            size = len(point_sets[first] & point_sets[second])
+            intersections[f"{first}:{second}"] = size
+            if size:
+                raise ValueError(f"parameter-point intersection detected for {first}/{second}")
+    expected_sources = {
+        "scaler_source": (scaler_source, "training_only"),
+        "feature_selection_source": (feature_selection_source, "validation_only"),
+        "model_selection_source": (model_selection_source, "validation_only"),
+    }
+    for label, (actual, expected) in expected_sources.items():
+        if actual != expected:
+            raise ValueError(f"{label} must be {expected}")
+    if test_access_count != 0 or isinstance(test_access_count, bool):
+        raise ValueError("test_access_count must be exactly 0")
+    return {
+        "audit_version": "study02-leakage-v1",
+        "parameter_point_counts": {role: len(point_sets[role]) for role in _EVIDENCE_ROLES},
+        "pairwise_intersections": dict(sorted(intersections.items())),
+        "role_namespaces": {role: role_namespaces[role] for role in _EVIDENCE_ROLES},
+        "scaler_source": scaler_source,
+        "feature_selection_source": feature_selection_source,
+        "model_selection_source": model_selection_source,
+        "test_access_count": 0,
+    }
+
+
+def write_leakage_audit(destination: Path, audit: Mapping[str, Any] | None = None, **kwargs: Any) -> str:
+    if audit is not None and kwargs:
+        raise ValueError("supply either a built leakage audit or builder arguments")
+    payload_obj = dict(audit) if audit is not None else build_leakage_audit(**kwargs)
+    _validate_leakage_audit(payload_obj)
+    payload = _canonical_json_bytes(payload_obj)
+    _publish_bytes_no_replace(payload, destination)
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _validate_leakage_audit(audit: Mapping[str, Any]) -> None:
+    if audit.get("audit_version") != "study02-leakage-v1":
+        raise ValueError("leakage audit version mismatch")
+    if set(audit.get("parameter_point_counts", {})) != set(_EVIDENCE_ROLES):
+        raise ValueError("leakage audit parameter-point roles mismatch")
+    namespaces = audit.get("role_namespaces", {})
+    if set(namespaces) != set(_EVIDENCE_ROLES) or len(set(namespaces.values())) != len(_EVIDENCE_ROLES):
+        raise ValueError("leakage audit role namespaces mismatch")
+    if any(not isinstance(namespaces[role], str) or role not in namespaces[role].lower() for role in _EVIDENCE_ROLES):
+        raise ValueError("leakage audit contains a role-incorrect namespace")
+    expected_pairs = {
+        f"{first}:{second}"
+        for index, first in enumerate(_EVIDENCE_ROLES)
+        for second in _EVIDENCE_ROLES[index + 1:]
+    }
+    intersections = audit.get("pairwise_intersections", {})
+    if set(intersections) != expected_pairs or any(value != 0 for value in intersections.values()):
+        raise ValueError("leakage audit contains parameter-point intersections")
+    for field, expected in (
+        ("scaler_source", "training_only"),
+        ("feature_selection_source", "validation_only"),
+        ("model_selection_source", "validation_only"),
+    ):
+        if audit.get(field) != expected:
+            raise ValueError(f"{field} must be {expected}")
+    if audit.get("test_access_count") != 0 or isinstance(audit.get("test_access_count"), bool):
+        raise ValueError("test_access_count must be exactly 0")
+
+
+def _load_json_object(path: Path, label: str) -> tuple[bytes, dict[str, Any]]:
+    if not Path(path).is_file():
+        raise FileNotFoundError(f"{label} is missing: {path}")
+    payload = Path(path).read_bytes()
+    try:
+        value = json.loads(payload.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label} must be valid JSON") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be a JSON object")
+    return payload, value
+
+
+def build_pre_unseal_bundle(
+    *, formal_manifests: Sequence[Path], selection_traces: Sequence[Path],
+    selection_receipts: Sequence[Path], fit_status_path: Path, ceiling_report_path: Path,
+    leakage_audit_path: Path, code_commit: str, effective_config_sha256: str,
+    module_run_ids: Mapping[str, str],
+) -> dict[str, Any]:
+    if not isinstance(code_commit, str) or _CODE_COMMIT_RE.fullmatch(code_commit) is None:
+        raise ValueError("code_commit must be a full commit ID")
+    effective_config_sha256 = _require_sha256(effective_config_sha256, "effective_config_sha256")
+    if not module_run_ids:
+        raise ValueError("module_run_ids must not be empty")
+    paths = [*map(Path, formal_manifests), *map(Path, selection_traces), *map(Path, selection_receipts),
+             Path(fit_status_path), Path(ceiling_report_path), Path(leakage_audit_path)]
+    resolved = [path.resolve(strict=False) for path in paths]
+    if len(set(resolved)) != len(resolved):
+        raise ValueError("pre-unseal artifact paths must not alias")
+    for index, first in enumerate(paths):
+        if not first.is_file():
+            raise FileNotFoundError(f"required pre-unseal artifact is missing: {first}")
+        for second in paths[index + 1:]:
+            try:
+                if first.samefile(second):
+                    raise ValueError("pre-unseal artifact paths must not alias")
+            except OSError as exc:
+                raise ValueError(f"pre-unseal artifact identity cannot be verified: {exc}") from exc
+    manifests: dict[str, dict[str, Any]] = {}
+    for path in formal_manifests:
+        _, manifest = _load_json_object(Path(path), "formal manifest")
+        if manifest.get("manifest_version") != "study02-formal-v1":
+            raise ValueError("formal manifest version mismatch")
+        module = manifest.get("module_id")
+        if module in manifests or module not in module_run_ids:
+            raise ValueError("formal manifests must have unique declared module ownership")
+        if manifest.get("run_id") != module_run_ids[module]:
+            raise ValueError("formal manifest run ID mismatch")
+        if manifest.get("code_commit") != code_commit.lower():
+            raise ValueError("formal manifest code commit mismatch")
+        if manifest.get("effective_config", {}).get("sha256") != effective_config_sha256:
+            raise ValueError("formal manifest effective config mismatch")
+        if manifest.get("test_state") != "sealed":
+            raise ValueError("formal manifest test_state must remain sealed")
+        manifests[module] = manifest
+    if set(manifests) != set(module_run_ids):
+        raise ValueError("formal manifests do not cover module_run_ids exactly")
+    if len(selection_traces) != len(module_run_ids) or len(selection_receipts) != len(module_run_ids):
+        raise ValueError("selection traces and receipts must cover every module")
+    traces: dict[str, tuple[Path, str, int, int]] = {}
+    for path in selection_traces:
+        payload, records = _read_jsonl(Path(path), "selection trace")
+        module = records[0].get("module_id")
+        if module in traces or module not in module_run_ids:
+            raise ValueError("selection traces must have unique declared module ownership")
+        digest = hashlib.sha256(payload).hexdigest()
+        _, count, decisions = _validate_selection_trace(Path(path), digest, module, module_run_ids[module])
+        traces[module] = (Path(path), digest, count, decisions)
+    for module, manifest in manifests.items():
+        predecessor = manifest.get("predecessor")
+        expected_predecessor = _PREDECESSOR_BY_MODULE.get(module)
+        if not isinstance(predecessor, Mapping):
+            raise ValueError("formal manifest predecessor binding is missing")
+        if expected_predecessor is None:
+            if predecessor.get("module_id") != "none" or predecessor.get("selection_trace_sha256") != "none":
+                raise ValueError("A-E1 formal manifest predecessor binding must be none")
+        else:
+            if expected_predecessor not in traces:
+                raise ValueError("formal manifest predecessor trace is missing from bundle")
+            if predecessor.get("module_id") != expected_predecessor or predecessor.get(
+                "selection_trace_sha256"
+            ) != traces[expected_predecessor][1]:
+                raise ValueError("formal manifest predecessor trace binding mismatch")
+    receipts: set[str] = set()
+    for path in selection_receipts:
+        _, receipt = _load_json_object(Path(path), "selection receipt")
+        module = receipt.get("module_id")
+        if module in receipts or module not in traces:
+            raise ValueError("selection receipts must have unique declared module ownership")
+        trace = traces[module]
+        expected = {
+            "receipt_version": "study02-formal-selection-v1", "module_id": module,
+            "run_id": module_run_ids[module], "selection_trace_sha256": trace[1],
+            "effective_config_sha256": effective_config_sha256, "code_commit": code_commit.lower(),
+            "record_count": trace[2], "decision_count": trace[3],
+        }
+        if receipt != expected:
+            raise ValueError("selection receipt does not match trace/config ownership")
+        receipts.add(module)
+    fit_payload = Path(fit_status_path).read_bytes()
+    try:
+        fit_rows = list(csv.DictReader(io.StringIO(fit_payload.decode("utf-8"), newline="")))
+        if not fit_rows:
+            raise ValueError("fit status is empty")
+        normalized_fit_rows = [_validate_fit_status_row(row) for row in fit_rows]
+    except (UnicodeError, csv.Error) as exc:
+        raise ValueError("fit status must be valid UTF-8 CSV") from exc
+    _, ceiling = _load_json_object(Path(ceiling_report_path), "ceiling report")
+    _validate_ceiling_hit_report(ceiling)
+    if ceiling != build_ceiling_hit_report(normalized_fit_rows):
+        raise ValueError("ceiling report does not match fit-status evidence")
+    _, leakage = _load_json_object(Path(leakage_audit_path), "leakage audit")
+    _validate_leakage_audit(leakage)
+    artifact_hashes = {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+    return {
+        "bundle_version": "study02-pre-unseal-v1",
+        "code_commit": code_commit.lower(),
+        "effective_config_sha256": effective_config_sha256,
+        "module_run_ids": dict(sorted(module_run_ids.items())),
+        "selection_trace_hashes": {module: traces[module][1] for module in sorted(traces)},
+        "artifact_hashes": dict(sorted(artifact_hashes.items())),
+        "test_state": "sealed",
+    }
+
+
+def write_pre_unseal_bundle(destination: Path, **kwargs: Any) -> dict[str, Any]:
+    bundle = build_pre_unseal_bundle(**kwargs)
+    _publish_bytes_no_replace(_canonical_json_bytes(bundle), destination)
+    return bundle
 
 
 def _read_selection_ledger(path: Path) -> list[dict[str, Any]]:
@@ -575,7 +1261,17 @@ __all__ = [
     "APPROVED_SCREENING_SEEDS",
     "PredecessorTrace",
     "RoleNamespaces",
+    "build_ceiling_hit_report",
+    "build_fit_status_record",
     "build_and_write_formal_manifest",
     "build_formal_manifest",
+    "build_leakage_audit",
+    "build_pre_unseal_bundle",
+    "build_selection_trace_records",
     "publish_selection_receipt",
+    "write_ceiling_hit_report",
+    "write_fit_status",
+    "write_leakage_audit",
+    "write_pre_unseal_bundle",
+    "write_selection_trace",
 ]
