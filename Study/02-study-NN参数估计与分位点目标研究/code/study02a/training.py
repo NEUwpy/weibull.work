@@ -326,7 +326,7 @@ def fit_set_candidate(
         (
             training_data.values,
             training_data.mask,
-            training_data.n,
+            training_data.model_n,
         ),
         training_data.targets,
         validation_data.targets,
@@ -334,7 +334,7 @@ def fit_set_candidate(
         lambda model: model(
             validation_data.values,
             validation_data.mask,
-            validation_data.n,
+            validation_data.model_n,
         ),
         seed=seed,
         max_epochs=effective_config.max_epochs,

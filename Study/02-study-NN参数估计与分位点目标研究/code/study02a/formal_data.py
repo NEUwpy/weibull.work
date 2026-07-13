@@ -51,6 +51,7 @@ class FormalSetBatch:
     values: torch.Tensor
     mask: torch.Tensor
     n: torch.Tensor
+    model_n: torch.Tensor
     targets: torch.Tensor
     location: torch.Tensor
     scale: torch.Tensor
@@ -177,6 +178,7 @@ def collate_set_features(items: Sequence[FormalSetExample]) -> FormalSetBatch:
         values=torch.from_numpy(values),
         mask=torch.from_numpy(mask),
         n=torch.from_numpy(n_values),
+        model_n=torch.from_numpy(n_values.copy()),
         targets=torch.from_numpy(targets),
         location=torch.from_numpy(locations),
         scale=torch.from_numpy(scales),
@@ -184,6 +186,7 @@ def collate_set_features(items: Sequence[FormalSetExample]) -> FormalSetBatch:
     _require_finite_float32(
         values=batch.values,
         n=batch.n,
+        model_n=batch.model_n,
         targets=batch.targets,
         location=batch.location,
         scale=batch.scale,
