@@ -1,26 +1,26 @@
-"""Fail-closed planning and claim coordination for sealed Study/02 formal fits."""
+"""Fail-closed planning and resumable coordination for sealed Study/02 fits."""
 
 from __future__ import annotations
 
 import csv
+import ctypes
 import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
+import socket
 import stat
+import subprocess
 import threading
 import time
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from .config import load_frozen_config
 from .formal_config import load_effective_formal_config
 from .formal_contracts import (
-    APPROVED_FORMAL_SEEDS,
-    APPROVED_SCREENING_SEEDS,
-    FROZEN_MATRIX_ROWS,
-    FROZEN_MATRIX_SHA256,
-    build_formal_manifest,
+    APPROVED_FORMAL_SEEDS, APPROVED_SCREENING_SEEDS, FROZEN_MATRIX_ROWS,
+    FROZEN_MATRIX_SHA256, build_formal_manifest,
 )
 from .formal_runner import build_training_spec, build_validation_spec
 from .matrix import expand_module_matrix
@@ -31,10 +31,37 @@ _MODULE_RULES = {
     "A-E3": ("A-E3_loss", "A-E3_architecture", "A-E3_joint_independent", "A-E3_fixed_shared"),
     "A-E2": ("A-E2_training_size", "A-E2_distribution"),
 }
-_MANIFEST = "manifest.json"
-_PLAN = "plan.jsonl"
-_STATE = "scheduler_state.json"
-_LEDGER = "scheduler_ledger.jsonl"
+_PLAN_FIELDS = {
+    "plan_version", "plan_index", "run_id", "fit_id", "fit_range", "matrix_row_sha256",
+    "module_id", "rule_id", "route", "distribution", "n_mode", "fixed_n", "loss",
+    "architecture", "optimizer", "training_size", "seed", "effective_config_sha256",
+    "code_commit", "training_cache_key", "validation_cache_key", "training_cache_path",
+    "validation_cache_path", "predecessor_trace_sha256", "expected_outputs", "test_access_count",
+}
+_STATE_FIELDS = {
+    "state_version", "run_id", "module_id", "authority_sha256", "plan_sha256", "fit_states",
+    "live_claim", "event_count", "last_event_sha256", "test_access_count",
+}
+_EVENT_FIELDS = {
+    "event_version", "seq", "event_type", "previous_event_sha256", "authority_sha256",
+    "payload", "event_sha256", "test_access_count",
+}
+_CLAIM_FIELDS = {
+    "claim_version", "run_id", "fit_id", "owner_id", "owner_nonce", "host_id", "process_id",
+    "process_start_token", "started_at", "expected_outputs", "predecessor_event_sha256",
+    "fit_identity_sha256", "authority_sha256", "test_access_count",
+}
+_RECEIPT_FIELDS = {
+    "receipt_version", "run_id", "fit_id", "owner_id", "owner_nonce", "state", "details",
+    "timestamp", "claim_receipt_sha256", "authority_sha256", "test_access_count",
+}
+_JOURNAL_FIELDS = {
+    "journal_version", "before_state_sha256", "event_relative_path", "event_sha256",
+    "event", "publications", "after_state", "after_state_sha256",
+}
+_LOCK_FIELDS = {"lock_version", "host_id", "process_id", "process_start_token", "owner_nonce"}
+_FIT_STATUS_FIELDS = {"checkpoint_sha256", "fit_id", "run_id", "status", "test_access_count"}
+_ZERO_HASH = "0" * 64
 
 
 def _canonical(value: Any) -> bytes:
@@ -46,25 +73,50 @@ def _sha(payload: bytes) -> str:
 
 
 def _identifier(value: str, label: str) -> str:
-    if not isinstance(value, str) or not value or any(char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_." for char in value):
+    allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_."
+    if not isinstance(value, str) or not value or any(char not in allowed for char in value):
         raise ValueError(f"{label} must be a safe non-empty identifier")
     return value
 
 
-def _reject_alias(path: Path) -> Path:
-    path = Path(path).absolute()
+def _hash(value: Any, label: str) -> str:
+    if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+        raise ValueError(f"{label} must be a lowercase SHA-256")
+    return value
+
+
+def _resolved(path: Path) -> Path:
+    return Path(path).absolute()
+
+
+def _reject_alias(path: Path, *, require_file: bool = False) -> Path:
+    path = _resolved(path)
     for current in (path, *path.parents):
         if not current.exists():
             continue
-        try:
-            info = current.lstat()
-        except OSError as exc:
-            raise ValueError(f"cannot inspect scheduler path: {current}") from exc
-        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
-            raise ValueError(f"scheduler path aliases/reparse points are forbidden: {current}")
+        info = current.lstat()
+        reparse = getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        if stat.S_ISLNK(info.st_mode) or reparse:
+            raise ValueError(f"aliases/reparse points are forbidden: {current}")
         if current.is_file() and info.st_nlink != 1:
-            raise ValueError(f"scheduler hard-linked files are forbidden: {current}")
+            raise ValueError(f"hard-linked files are forbidden: {current}")
+    if require_file:
+        info = path.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise ValueError(f"expected one plain file: {path}")
     return path
+
+
+def _contained(root: Path, relative: str) -> Path:
+    if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
+        raise ValueError("output path must be a non-empty relative path")
+    root = _resolved(root)
+    candidate = _resolved(root / relative)
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("output path escapes the run directory") from exc
+    return candidate
 
 
 def _write_no_replace(path: Path, payload: bytes) -> None:
@@ -72,321 +124,568 @@ def _write_no_replace(path: Path, payload: bytes) -> None:
     temporary = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
         with temporary.open("xb") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
+            handle.write(payload); handle.flush(); os.fsync(handle.fileno())
         os.link(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
 
 
-def _replace(path: Path, payload: bytes) -> None:
+def _atomic_replace(path: Path, payload: bytes) -> None:
     temporary = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
         with temporary.open("xb") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
+            handle.write(payload); handle.flush(); os.fsync(handle.fileno())
         os.replace(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
 
 
-def _matrix_rows(study_root: Path, matrix_path: Path) -> list[dict[str, str]]:
-    path = _reject_alias(matrix_path)
+def _load_exact(path: Path, fields: set[str], label: str) -> tuple[bytes, dict[str, Any]]:
+    path = _reject_alias(path, require_file=True)
     payload = path.read_bytes()
+    try:
+        value = json.loads(payload.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label} must be valid canonical UTF-8 JSON") from exc
+    if not isinstance(value, dict) or set(value) != fields or payload != _canonical(value):
+        raise ValueError(f"{label} must match its exact canonical schema")
+    return payload, value
+
+
+def _git_sha(study_root: Path) -> str:
+    repo_root = _resolved(study_root).parents[1]
+    value = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo_root, check=True, capture_output=True, text=True).stdout.strip().lower()
+    if len(value) != 40 or any(char not in "0123456789abcdef" for char in value):
+        raise ValueError("current approved code SHA is invalid")
+    return value
+
+
+def _process_start_token(process_id: int) -> str | None:
+    if os.name == "nt":
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(0x1000, False, process_id)
+        if not handle:
+            return None
+        try:
+            creation = ctypes.c_ulonglong(); exit_time = ctypes.c_ulonglong()
+            kernel = ctypes.c_ulonglong(); user = ctypes.c_ulonglong()
+            if not kernel32.GetProcessTimes(handle, ctypes.byref(creation), ctypes.byref(exit_time), ctypes.byref(kernel), ctypes.byref(user)):
+                return None
+            return f"win-filetime-{creation.value}"
+        finally:
+            kernel32.CloseHandle(handle)
+    stat_path = Path(f"/proc/{process_id}/stat")
+    if not stat_path.is_file():
+        return None
+    fields = stat_path.read_text(encoding="ascii").split()
+    return f"proc-start-{fields[21]}" if len(fields) > 21 else None
+
+
+def _identity_live(identity: Mapping[str, Any]) -> bool:
+    return identity.get("host_id") == socket.gethostname() and _process_start_token(identity.get("process_id")) == identity.get("process_start_token")
+
+
+def _identity_confirmed_dead(identity: Mapping[str, Any]) -> bool:
+    return identity.get("host_id") == socket.gethostname() and _process_start_token(identity.get("process_id")) != identity.get("process_start_token")
+
+
+def _matrix_snapshot(study_root: Path, matrix_path: Path) -> tuple[bytes, list[dict[str, str]]]:
+    expected_path = _resolved(study_root / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv")
+    actual_path = _resolved(matrix_path)
+    if actual_path != expected_path:
+        raise ValueError("formal matrix path must be the exact frozen repository path")
+    payload = _reject_alias(actual_path, require_file=True).read_bytes()
     if _sha(payload) != FROZEN_MATRIX_SHA256:
         raise ValueError("formal matrix SHA-256 mismatch")
     try:
         rows = list(csv.DictReader(payload.decode("utf-8").splitlines()))
     except (UnicodeError, csv.Error) as exc:
-        raise ValueError("formal matrix is not valid canonical UTF-8 CSV") from exc
-    if len(rows) != FROZEN_MATRIX_ROWS or len(rows) > 900:
-        raise ValueError("formal matrix row count/cap mismatch")
+        raise ValueError("formal matrix is not canonical UTF-8 CSV") from exc
+    if len(rows) != FROZEN_MATRIX_ROWS or len(rows) > 900 or len({row["fit_id"] for row in rows}) != len(rows):
+        raise ValueError("formal matrix row identity/count/cap mismatch")
     frozen = load_frozen_config(study_root)
     expected = [{key: str(value) for key, value in row.items()} for row in expand_module_matrix(frozen).to_dict("records")]
     if rows != expected:
-        raise ValueError("formal matrix differs from independently reconstructed frozen order")
-    if len({row["fit_id"] for row in rows}) != len(rows):
-        raise ValueError("formal matrix contains duplicate fit identity")
-    return rows
-
-
-def _route_for_spec(route: str) -> str:
-    return route.split(":", 1)[0]
+        raise ValueError("formal matrix differs from the independently reconstructed frozen order")
+    return payload, rows
 
 
 def _distribution(row: Mapping[str, str]) -> str:
-    if row["route"].startswith(("H0_", "H1")):
+    if row["route"].startswith(("H0_", "H1")) or row["route"].endswith(":legacy_grid"):
         return "legacy_grid"
-    if row["route"].endswith(":legacy_grid"):
-        return "legacy_grid"
-    if row["route"].endswith(":extended_wide"):
-        return "extended_wide"
-    return "core_continuous"
+    return "extended_wide" if row["route"].endswith(":extended_wide") else "core_continuous"
 
 
-def _plan_rows(study_root: Path, matrix_rows: list[dict[str, str]], module_id: str, run_id: str, cache_root: Path, code_commit: str, predecessor_hash: str) -> list[dict[str, Any]]:
-    frozen = load_frozen_config(study_root)
-    effective = load_effective_formal_config(study_root)
-    selected = [row for row in matrix_rows if row["module"] == module_id]
-    if not selected:
-        raise ValueError(f"matrix has no rows for module {module_id}")
+def _plan_rows(study_root: Path, rows: Sequence[dict[str, str]], module_id: str, run_id: str, cache_root: Path, code_commit: str, predecessor_hash: str) -> list[dict[str, Any]]:
+    frozen = load_frozen_config(study_root); effective = load_effective_formal_config(study_root)
+    selected = [row for row in rows if row["module"] == module_id]
     result: list[dict[str, Any]] = []
     for index, row in enumerate(selected):
-        route = _route_for_spec(row["route"])
-        shared = row["n"] == "shared"
-        fixed_n = None if shared else int(row["n"])
-        n_mode = "shared_n" if shared else "fixed_n"
-        distribution = _distribution(row)
+        shared = row["n"] == "shared"; fixed_n = None if shared else int(row["n"])
+        n_mode = "shared_n" if shared else "fixed_n"; distribution = _distribution(row)
         training_size = int(row["training_size"])
         if module_id == "A-E1":
+            route = row["route"]
             training = build_training_spec(route=route, distribution=distribution, n_mode=n_mode, fixed_n=fixed_n, training_rows=training_size, frozen_config=frozen, effective_config=effective)
             validation_distribution = "legacy_grid" if distribution == "legacy_grid" and route.startswith(("H0_", "H1")) else "core_continuous"
             validation = build_validation_spec(route=route, distribution=validation_distribution, n_mode=n_mode, fixed_n=fixed_n, frozen_config=frozen, effective_config=effective)
             training_key, validation_key = training.cache_key, validation.cache_key
         else:
-            # Downstream symbolic selections are already bound to an immutable predecessor
-            # receipt. Their eventual resolved data specs therefore key on that trace too.
-            common_key = {
-                "schema_version": "study02-formal-deferred-dataset-v1", "route": row["route"],
-                "distribution": distribution, "n_mode": n_mode, "fixed_n": fixed_n,
-                "training_size": training_size, "effective_config_sha256": effective.effective_config_sha256,
-                "predecessor_trace_sha256": predecessor_hash,
-            }
-            training_key = _sha(_canonical({**common_key, "role": "training"}))
-            validation_key = _sha(_canonical({**common_key, "role": "validation"}))
-        output_dir = Path("outputs") / row["fit_id"]
-        result.append({
-            "plan_version": "study02-formal-plan-row-v1", "plan_index": index,
-            "run_id": run_id, "fit_id": row["fit_id"], "fit_range": [int(row["fit_id"].rsplit("-", 1)[1])] * 2,
-            "matrix_row_sha256": _sha(_canonical(row)), "module_id": module_id,
-            "rule_id": row["rule_id"], "route": row["route"], "distribution": distribution,
-            "n_mode": n_mode, "fixed_n": fixed_n, "loss": row["loss"],
-            "architecture": row["architecture"], "optimizer": row["optimizer"],
-            "training_size": training_size, "seed": int(row["seed"]),
-            "effective_config_sha256": effective.effective_config_sha256,
-            "code_commit": code_commit.lower(), "training_cache_key": training_key,
-            "validation_cache_key": validation_key,
-            "training_cache_path": str(cache_root / training_key),
-            "validation_cache_path": str(cache_root / validation_key),
-            "predecessor_trace_sha256": predecessor_hash,
-            "expected_output_paths": [str(output_dir / "checkpoint.pt"), str(output_dir / "fit_status.json")],
-            "test_access_count": 0,
-        })
+            common = {"schema_version": "study02-formal-deferred-dataset-v1", "route": row["route"], "distribution": distribution, "n_mode": n_mode, "fixed_n": fixed_n, "training_size": training_size, "effective_config_sha256": effective.effective_config_sha256, "predecessor_trace_sha256": predecessor_hash}
+            training_key = _sha(_canonical({**common, "role": "training"})); validation_key = _sha(_canonical({**common, "role": "validation"}))
+        fit_number = int(row["fit_id"].rsplit("-", 1)[1])
+        outputs = [
+            {"relative_path": f"outputs/{row['fit_id']}/checkpoint.pt", "content_type": "binary", "required": True},
+            {"relative_path": f"outputs/{row['fit_id']}/fit_status.json", "content_type": "canonical_json", "required": True},
+        ]
+        item = {
+            "plan_version": "study02-formal-plan-row-v2", "plan_index": index, "run_id": run_id,
+            "fit_id": row["fit_id"], "fit_range": [fit_number, fit_number], "matrix_row_sha256": _sha(_canonical(row)),
+            "module_id": module_id, "rule_id": row["rule_id"], "route": row["route"], "distribution": distribution,
+            "n_mode": n_mode, "fixed_n": fixed_n, "loss": row["loss"], "architecture": row["architecture"],
+            "optimizer": row["optimizer"], "training_size": training_size, "seed": int(row["seed"]),
+            "effective_config_sha256": effective.effective_config_sha256, "code_commit": code_commit,
+            "training_cache_key": training_key, "validation_cache_key": validation_key,
+            "training_cache_path": str(cache_root / training_key), "validation_cache_path": str(cache_root / validation_key),
+            "predecessor_trace_sha256": predecessor_hash, "expected_outputs": outputs, "test_access_count": 0,
+        }
+        if set(item) != _PLAN_FIELDS:
+            raise AssertionError("internal formal plan schema mismatch")
+        result.append(item)
     return result
 
 
-def _event(event_type: str, seq: int, previous_hash: str, payload: Mapping[str, Any]) -> dict[str, Any]:
-    core = {"event_version": "study02-formal-scheduler-event-v1", "seq": seq, "event_type": event_type, "previous_event_sha256": previous_hash, "payload": dict(payload), "test_access_count": 0}
+def _authority(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, cache_root: Path, predecessor: Mapping[str, Any] | None) -> tuple[dict[str, Any], list[dict[str, Any]], bytes, dict[str, Any]]:
+    study_root = _reject_alias(study_root); cache_root = _reject_alias(cache_root)
+    matrix_bytes, matrix_rows = _matrix_snapshot(study_root, matrix_path)
+    code_commit = _git_sha(study_root); effective = load_effective_formal_config(study_root)
+    selected = [row for row in matrix_rows if row["module"] == module_id]
+    rules = tuple(dict.fromkeys(row["rule_id"] for row in selected)); fits = tuple(row["fit_id"] for row in selected)
+    formal = build_formal_manifest(effective_config=effective, module_id=module_id, run_id=run_id, code_commit=code_commit, matrix_path=matrix_path, matrix_snapshot=matrix_bytes, rule_ids=rules, fit_ids=fits, role_namespaces={"training": "study02/formal/training", "validation": "study02/formal/validation"}, screening_seeds=APPROVED_SCREENING_SEEDS, formal_seeds=APPROVED_FORMAL_SEEDS, predecessor=predecessor)
+    predecessor_hash = formal["predecessor"]["selection_trace_sha256"]
+    plan = _plan_rows(study_root, matrix_rows, module_id, run_id, cache_root, code_commit, predecessor_hash)
+    plan_bytes = b"".join(_canonical(row) for row in plan); plan_sha = _sha(plan_bytes)
+    predecessor_input = None if predecessor is None else {key: str(value) if isinstance(value, Path) else value for key, value in dict(predecessor).items()}
+    authority = {"study_root": str(study_root), "matrix_path": str(_resolved(matrix_path)), "matrix_sha256": _sha(matrix_bytes), "cache_root": str(cache_root), "code_commit": code_commit, "effective_config_sha256": effective.effective_config_sha256, "predecessor_input": predecessor_input, "predecessor_trace_sha256": predecessor_hash, "plan_sha256": plan_sha}
+    authority_sha = _sha(_canonical(authority)); authority["authority_sha256"] = authority_sha
+    return formal, plan, plan_bytes, authority
+
+
+def _event(event_type: str, seq: int, previous: str, authority_sha: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+    core = {"event_version": "study02-formal-scheduler-event-v2", "seq": seq, "event_type": event_type, "previous_event_sha256": previous, "authority_sha256": authority_sha, "payload": dict(payload), "test_access_count": 0}
     return {**core, "event_sha256": _sha(_canonical(core))}
 
 
-def _validate_ledger(path: Path) -> list[dict[str, Any]]:
-    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-    previous = "0" * 64
-    for seq, row in enumerate(rows):
-        event_hash = row.get("event_sha256")
-        core = {key: value for key, value in row.items() if key != "event_sha256"}
-        if row.get("seq") != seq or row.get("previous_event_sha256") != previous or event_hash != _sha(_canonical(core)) or row.get("test_access_count") != 0:
-            raise ValueError("scheduler ledger hash chain is invalid")
-        previous = event_hash
-    return rows
+def _event_path(run_dir: Path, event: Mapping[str, Any]) -> Path:
+    return run_dir / "events" / f"{event['seq']:08d}-{event['event_sha256']}.json"
 
 
-def _load(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
-    run_dir = _reject_alias(run_dir)
-    for name in (_MANIFEST, _PLAN, _STATE, _LEDGER):
-        _reject_alias(run_dir / name)
-    manifest_bytes = (run_dir / _MANIFEST).read_bytes()
-    manifest = json.loads(manifest_bytes)
-    plan_bytes = (run_dir / _PLAN).read_bytes()
-    if _sha(plan_bytes) != manifest["scheduler"]["plan_sha256"]:
-        raise ValueError("formal plan hash mismatch")
-    plan = [json.loads(line) for line in plan_bytes.decode("utf-8").splitlines()]
-    if len(plan) != manifest["scheduler"]["fit_count"] or b"".join(_canonical(row) for row in plan) != plan_bytes:
-        raise ValueError("formal plan canonical bytes/count mismatch")
-    state_bytes = (run_dir / _STATE).read_bytes()
-    state = json.loads(state_bytes)
-    if state_bytes != _canonical(state) or state["plan_sha256"] != manifest["scheduler"]["plan_sha256"] or state["manifest_sha256"] != _sha(manifest_bytes):
-        raise ValueError("scheduler state binding is invalid")
-    ledger = _validate_ledger(run_dir / _LEDGER)
-    if state["last_event_sha256"] != ledger[-1]["event_sha256"] or state["event_count"] != len(ledger):
-        raise ValueError("scheduler state/ledger binding is invalid")
-    fit_ids = {row["fit_id"] for row in plan}
-    if set(state["fit_states"]) != fit_ids or any(value not in {"pending", "claimed", "succeeded", "failed"} for value in state["fit_states"].values()):
-        raise ValueError("scheduler fit states do not match the exact plan")
-    claim_hashes = {_sha(path.read_bytes()) for path in (run_dir / "claims").glob("*.json")} if (run_dir / "claims").exists() else set()
-    for event in ledger:
-        payload = event["payload"]
-        if event["event_type"] == "fit_claimed" and payload["claim_receipt_sha256"] not in claim_hashes:
-            raise ValueError("immutable claim receipt is missing or changed")
-        if event["event_type"] in {"fit_succeeded", "fit_failed"}:
-            terminal = event["event_type"].removeprefix("fit_")
-            receipt_path = run_dir / "receipts" / f"{payload['fit_id']}.{terminal}.json"
-            if not receipt_path.is_file() or _sha(receipt_path.read_bytes()) != payload["receipt_sha256"]:
-                raise ValueError("immutable terminal receipt is missing or changed")
-    return manifest, plan, state, ledger
-
-
-def materialize_run(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, artifact_root: Path, cache_root: Path, code_commit: str, predecessor: Mapping[str, Any] | None) -> dict[str, Any]:
-    module_id = _identifier(module_id, "module_id")
-    run_id = _identifier(run_id, "run_id")
-    if module_id not in _MODULE_RULES:
-        raise ValueError("unsupported formal module")
-    artifact_root = _reject_alias(artifact_root)
-    cache_root = _reject_alias(cache_root)
-    run_dir = artifact_root / module_id / run_id
-    matrix_rows = _matrix_rows(study_root, matrix_path)
-    effective = load_effective_formal_config(study_root)
-    module_rows = [row for row in matrix_rows if row["module"] == module_id]
-    rules = tuple(dict.fromkeys(row["rule_id"] for row in module_rows))
-    fits = tuple(row["fit_id"] for row in module_rows)
-    formal_manifest = build_formal_manifest(effective_config=effective, module_id=module_id, run_id=run_id, code_commit=code_commit, matrix_path=matrix_path, rule_ids=rules, fit_ids=fits, role_namespaces={"training": "study02/formal/training", "validation": "study02/formal/validation"}, screening_seeds=APPROVED_SCREENING_SEEDS, formal_seeds=APPROVED_FORMAL_SEEDS, predecessor=predecessor)
-    predecessor_hash = formal_manifest["predecessor"]["selection_trace_sha256"]
-    plan = _plan_rows(study_root, matrix_rows, module_id, run_id, cache_root, code_commit, predecessor_hash)
-    plan_bytes = b"".join(_canonical(row) for row in plan)
-    plan_sha = _sha(plan_bytes)
-    manifest = {**formal_manifest, "scheduler": {"scheduler_version": "study02-formal-scheduler-v1", "fit_count": len(plan), "plan_sha256": plan_sha, "cache_root": str(cache_root), "test_access_count": 0}}
-    manifest_bytes = _canonical(manifest)
-    if run_dir.exists():
-        existing_manifest, _, _, _ = _load(run_dir)
-        if _canonical(existing_manifest) != manifest_bytes:
-            raise ValueError("existing run bindings differ from requested inputs")
-        return {"status": "existing_exact", "run_dir": str(run_dir), "plan_sha256": plan_sha, "fit_count": len(plan), "test_access_count": 0}
-    stage = run_dir.with_name(f".{run_dir.name}.{os.getpid()}.{threading.get_ident()}.staging")
-    if stage.exists():
-        raise FileExistsError(f"scheduler staging path exists: {stage}")
+def _validate_plan(plan_bytes: bytes, manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
     try:
-        stage.mkdir(parents=True)
-        _write_no_replace(stage / _PLAN, plan_bytes)
-        _write_no_replace(stage / _MANIFEST, manifest_bytes)
-        initial_event = _event("run_initialized", 0, "0" * 64, {"run_id": run_id, "module_id": module_id, "plan_sha256": plan_sha})
-        _write_no_replace(stage / _LEDGER, _canonical(initial_event))
-        state = {"state_version": "study02-formal-scheduler-state-v1", "run_id": run_id, "module_id": module_id, "plan_sha256": plan_sha, "manifest_sha256": _sha(manifest_bytes), "fit_states": {row["fit_id"]: "pending" for row in plan}, "live_claim": None, "event_count": 1, "last_event_sha256": initial_event["event_sha256"], "test_access_count": 0}
-        _write_no_replace(stage / _STATE, _canonical(state))
-        run_dir.parent.mkdir(parents=True, exist_ok=True)
-        os.rename(stage, run_dir)
-    except Exception:
-        shutil.rmtree(stage, ignore_errors=True)
-        raise
-    return {"status": "created", "run_dir": str(run_dir), "plan_sha256": plan_sha, "fit_count": len(plan), "test_access_count": 0}
+        plan = [json.loads(line) for line in plan_bytes.decode("utf-8").splitlines()]
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("formal plan must be canonical JSONL") from exc
+    if b"".join(_canonical(row) for row in plan) != plan_bytes or _sha(plan_bytes) != manifest["scheduler"]["authority"]["plan_sha256"]:
+        raise ValueError("formal plan canonical bytes/hash mismatch")
+    for index, row in enumerate(plan):
+        if not isinstance(row, dict) or set(row) != _PLAN_FIELDS or row["plan_index"] != index or row["test_access_count"] != 0:
+            raise ValueError("formal plan row schema/order mismatch")
+        outputs = row["expected_outputs"]
+        if not isinstance(outputs, list) or len(outputs) != 2 or any(set(item) != {"relative_path", "content_type", "required"} or item["required"] is not True for item in outputs):
+            raise ValueError("formal plan expected output schema mismatch")
+    return plan
 
 
-def _acquire(run_dir: Path) -> Path:
-    lock = run_dir / ".scheduler.lock"
+def _event_files(run_dir: Path) -> list[Path]:
+    directory = _reject_alias(run_dir / "events")
+    entries = list(os.scandir(directory))
+    if any(not entry.is_file(follow_symlinks=False) for entry in entries):
+        raise ValueError("event ledger contains a non-file entry")
+    return [Path(entry.path) for entry in sorted(entries, key=lambda item: item.name)]
+
+
+def _load_events(run_dir: Path, manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []; previous = _ZERO_HASH
+    for seq, path in enumerate(_event_files(run_dir)):
+        _, event = _load_exact(path, _EVENT_FIELDS, "scheduler event")
+        core = {key: value for key, value in event.items() if key != "event_sha256"}
+        expected_name = f"{seq:08d}-{event['event_sha256']}.json"
+        if path.name != expected_name or event["seq"] != seq or event["previous_event_sha256"] != previous or event["event_sha256"] != _sha(_canonical(core)) or event["authority_sha256"] != manifest["scheduler"]["authority"]["authority_sha256"] or event["test_access_count"] != 0:
+            raise ValueError("scheduler event canonical sequence/hash/authority mismatch")
+        previous = event["event_sha256"]; events.append(event)
+    if not events or events[0]["event_sha256"] != manifest["scheduler"]["genesis_event_sha256"]:
+        raise ValueError("scheduler immutable genesis event mismatch")
+    return events
+
+
+def _claim_path(run_dir: Path, relative: str) -> Path:
+    path = _contained(run_dir, relative)
+    if path.parent != run_dir / "claims":
+        raise ValueError("claim receipt path is outside the exact claims directory")
+    return path
+
+
+def _receipt_path(run_dir: Path, relative: str) -> Path:
+    path = _contained(run_dir, relative)
+    if path.parent != run_dir / "receipts":
+        raise ValueError("terminal receipt path is outside the exact receipts directory")
+    return path
+
+
+def _replay(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str, Any]], events: Sequence[dict[str, Any]], virtual_records: Mapping[str, tuple[bytes, dict[str, Any]]] | None = None) -> dict[str, Any]:
+    authority_sha = manifest["scheduler"]["authority"]["authority_sha256"]
+    virtual_records = {} if virtual_records is None else dict(virtual_records)
+    fit_states = {row["fit_id"]: "pending" for row in plan}; by_fit = {row["fit_id"]: row for row in plan}
+    live: dict[str, Any] | None = None; referenced_claims: set[str] = set(); referenced_receipts: set[str] = set()
+    for seq, event in enumerate(events):
+        payload = event["payload"]; kind = event["event_type"]
+        if seq == 0:
+            if kind != "run_initialized" or set(payload) != {"run_id", "module_id", "plan_sha256"} or payload != {"run_id": manifest["run_id"], "module_id": manifest["module_id"], "plan_sha256": manifest["scheduler"]["authority"]["plan_sha256"]}:
+                raise ValueError("scheduler genesis payload schema mismatch")
+            continue
+        if kind == "fit_claimed":
+            if set(payload) != {"fit_id", "claim_relative_path", "claim_sha256"} or live is not None or fit_states.get(payload.get("fit_id")) != "pending":
+                raise ValueError("fit_claimed event is not a valid replay transition")
+            claim_path = _claim_path(run_dir, payload["claim_relative_path"])
+            claim_bytes, claim = virtual_records.get(payload["claim_relative_path"], (None, None))
+            if claim_bytes is None:
+                claim_bytes, claim = _load_exact(claim_path, _CLAIM_FIELDS, "claim receipt")
+            elif set(claim) != _CLAIM_FIELDS or claim_bytes != _canonical(claim):
+                raise ValueError("virtual claim receipt schema mismatch")
+            row = by_fit[payload["fit_id"]]
+            if _sha(claim_bytes) != payload["claim_sha256"] or claim["fit_id"] != row["fit_id"] or claim["run_id"] != manifest["run_id"] or claim["authority_sha256"] != authority_sha or claim["fit_identity_sha256"] != _sha(_canonical(row)) or claim["expected_outputs"] != row["expected_outputs"] or claim["predecessor_event_sha256"] != event["previous_event_sha256"] or claim["test_access_count"] != 0:
+                raise ValueError("claim receipt fit/authority/plan binding mismatch")
+            if not all(isinstance(claim[field], str) and claim[field] for field in ("owner_id", "owner_nonce", "host_id", "process_start_token", "started_at")) or isinstance(claim["process_id"], bool) or not isinstance(claim["process_id"], int) or claim["process_id"] <= 0:
+                raise ValueError("claim receipt owner/process identity schema mismatch")
+            referenced_claims.add(claim_path.name); live = {**claim, "claim_relative_path": payload["claim_relative_path"], "claim_sha256": payload["claim_sha256"]}; fit_states[row["fit_id"]] = "claimed"
+        elif kind == "claim_recovered":
+            if set(payload) != {"fit_id", "timestamp", "reason"} or live is None or payload["fit_id"] != live["fit_id"] or payload["reason"] != "dead_identity_no_outputs":
+                raise ValueError("claim_recovered event is not a valid replay transition")
+            fit_states[live["fit_id"]] = "pending"; live = None
+        elif kind in {"fit_succeeded", "fit_failed"}:
+            terminal = kind.removeprefix("fit_")
+            if set(payload) != {"fit_id", "receipt_relative_path", "receipt_sha256"} or live is None or payload["fit_id"] != live["fit_id"]:
+                raise ValueError("terminal event is not a valid replay transition")
+            receipt_path = _receipt_path(run_dir, payload["receipt_relative_path"])
+            receipt_bytes, receipt = virtual_records.get(payload["receipt_relative_path"], (None, None))
+            if receipt_bytes is None:
+                receipt_bytes, receipt = _load_exact(receipt_path, _RECEIPT_FIELDS, "terminal receipt")
+            elif set(receipt) != _RECEIPT_FIELDS or receipt_bytes != _canonical(receipt):
+                raise ValueError("virtual terminal receipt schema mismatch")
+            if _sha(receipt_bytes) != payload["receipt_sha256"] or receipt["run_id"] != manifest["run_id"] or receipt["fit_id"] != live["fit_id"] or receipt["owner_id"] != live["owner_id"] or receipt["owner_nonce"] != live["owner_nonce"] or receipt["state"] != terminal or receipt["claim_receipt_sha256"] != live["claim_sha256"] or receipt["authority_sha256"] != authority_sha or receipt["test_access_count"] != 0:
+                raise ValueError("terminal receipt schema/fit/claim/authority mismatch")
+            if terminal == "failed" and set(receipt["details"]) != {"failure_code"}:
+                raise ValueError("failure receipt details schema mismatch")
+            if terminal == "succeeded" and set(receipt["details"]) != {"output_hashes"}:
+                raise ValueError("success receipt details schema mismatch")
+            if terminal == "failed" and _output_snapshot(run_dir, live["fit_id"]):
+                raise ValueError("failed terminal receipt conflicts with scientific output")
+            if terminal == "succeeded":
+                _validate_success_files(run_dir, by_fit[live["fit_id"]], receipt["details"]["output_hashes"])
+            referenced_receipts.add(receipt_path.name); fit_states[live["fit_id"]] = terminal; live = None
+        else:
+            raise ValueError("unknown scheduler event type")
+    for dirname, referenced in (("claims", referenced_claims), ("receipts", referenced_receipts)):
+        directory = run_dir / dirname
+        actual: set[str] = set()
+        if directory.exists():
+            entries = list(os.scandir(_reject_alias(directory)))
+            if any(not entry.is_file(follow_symlinks=False) for entry in entries):
+                raise ValueError(f"{dirname} contains alias or non-file entry")
+            for entry in entries:
+                _reject_alias(Path(entry.path), require_file=True); actual.add(entry.name)
+        virtual_names = {Path(relative).name for relative in virtual_records if Path(relative).parent.as_posix() == dirname}
+        if actual | virtual_names != referenced or actual & virtual_names:
+            raise ValueError(f"{dirname} contains missing, extra, or unbound immutable records")
+    return {"state_version": "study02-formal-scheduler-state-v2", "run_id": manifest["run_id"], "module_id": manifest["module_id"], "authority_sha256": authority_sha, "plan_sha256": manifest["scheduler"]["authority"]["plan_sha256"], "fit_states": fit_states, "live_claim": live, "event_count": len(events), "last_event_sha256": events[-1]["event_sha256"], "test_access_count": 0}
+
+
+def _predecessor_from_manifest(manifest: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    value = manifest["scheduler"]["authority"]["predecessor_input"]
+    return None if value is None else value
+
+
+def _rebuild_authority(run_dir: Path, cache_root: Path) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
+    run_dir = _reject_alias(run_dir); manifest_bytes = _reject_alias(run_dir / "manifest.json", require_file=True).read_bytes()
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("manifest must be canonical UTF-8 JSON") from exc
+    if manifest_bytes != _canonical(manifest) or not isinstance(manifest.get("scheduler"), dict) or set(manifest["scheduler"]) != {"scheduler_version", "authority", "fit_count", "genesis_event_sha256", "test_access_count"}:
+        raise ValueError("manifest must match exact scheduler schema/canonical bytes")
+    authority = manifest["scheduler"]["authority"]
+    if set(authority) != {"study_root", "matrix_path", "matrix_sha256", "cache_root", "code_commit", "effective_config_sha256", "predecessor_input", "predecessor_trace_sha256", "plan_sha256", "authority_sha256"}:
+        raise ValueError("manifest authority schema mismatch")
+    if _resolved(cache_root) != Path(authority["cache_root"]):
+        raise ValueError("cache root differs from the immutable run authority")
+    formal, expected_plan, expected_plan_bytes, current_authority = _authority(study_root=Path(authority["study_root"]), matrix_path=Path(authority["matrix_path"]), module_id=manifest["module_id"], run_id=manifest["run_id"], cache_root=cache_root, predecessor=_predecessor_from_manifest(manifest))
+    if current_authority != authority:
+        raise ValueError("current code/config/matrix/cache/predecessor authority drift")
+    expected_scheduler = {"scheduler_version": "study02-formal-scheduler-v2", "authority": current_authority, "fit_count": len(expected_plan), "genesis_event_sha256": manifest["scheduler"]["genesis_event_sha256"], "test_access_count": 0}
+    if {**formal, "scheduler": expected_scheduler} != manifest:
+        raise ValueError("current authority does not reproduce the exact manifest")
+    plan_bytes = _reject_alias(run_dir / "plan.jsonl", require_file=True).read_bytes(); plan = _validate_plan(plan_bytes, manifest)
+    if plan_bytes != expected_plan_bytes or plan != expected_plan:
+        raise ValueError("current authority does not reproduce the plan byte-for-byte")
+    events = _load_events(run_dir, manifest); derived = _replay(run_dir, manifest, plan, events)
+    state_bytes, state = _load_exact(run_dir / "scheduler_state.json", _STATE_FIELDS, "scheduler state")
+    if state_bytes != _canonical(derived) or state != derived:
+        raise ValueError("scheduler state differs from full immutable event replay")
+    return manifest, plan, state, events
+
+
+def _recover_journal(run_dir: Path) -> None:
+    path = run_dir / ".scheduler.journal"
+    if not path.exists():
+        return
+    _, journal = _load_exact(path, _JOURNAL_FIELDS, "scheduler transaction journal")
+    event = journal["event"]
+    publications = journal["publications"]
+    core = {key: value for key, value in event.items() if key != "event_sha256"} if isinstance(event, dict) else {}
+    if not isinstance(event, dict) or set(event) != _EVENT_FIELDS or not isinstance(publications, list) or journal["event_sha256"] != event["event_sha256"] or event["event_sha256"] != _sha(_canonical(core)) or not isinstance(journal["after_state"], dict) or set(journal["after_state"]) != _STATE_FIELDS or journal["after_state_sha256"] != _sha(_canonical(journal["after_state"])):
+        raise ValueError("scheduler journal event/state schema mismatch")
+    state_path = run_dir / "scheduler_state.json"; current = _reject_alias(state_path, require_file=True).read_bytes(); current_sha = _sha(current)
+    event_path = _contained(run_dir, journal["event_relative_path"])
+    if event_path != _event_path(run_dir, event):
+        raise ValueError("journal event path does not match the immutable event identity")
+    if not isinstance(event["payload"], dict):
+        raise ValueError("journal event payload must be an object")
+    expected_publication = None
+    if event["event_type"] == "fit_claimed":
+        expected_publication = event["payload"].get("claim_relative_path")
+    elif event["event_type"] in {"fit_succeeded", "fit_failed"}:
+        expected_publication = event["payload"].get("receipt_relative_path")
+    expected_publications = set() if expected_publication is None else {expected_publication}
+    if {record.get("relative_path") for record in publications if isinstance(record, dict)} != expected_publications:
+        raise ValueError("journal publications do not match the event schema")
+    publication_payloads: list[tuple[Path, bytes]] = []
+    for record in publications:
+        if not isinstance(record, dict) or set(record) != {"relative_path", "sha256", "value"}:
+            raise ValueError("journal publication schema mismatch")
+        payload = _canonical(record["value"])
+        if _sha(payload) != record["sha256"]:
+            raise ValueError("journal publication hash mismatch")
+        publication_payloads.append((_contained(run_dir, record["relative_path"]), payload))
+    if current_sha == journal["before_state_sha256"]:
+        for destination, payload in publication_payloads:
+            if destination.exists():
+                if _reject_alias(destination, require_file=True).read_bytes() != payload:
+                    raise ValueError("journal publication conflicts with immutable record")
+            else:
+                _write_no_replace(destination, payload)
+        if event_path.exists():
+            if _reject_alias(event_path, require_file=True).read_bytes() != _canonical(event):
+                raise ValueError("journal event path conflicts with immutable event")
+        else:
+            _write_no_replace(event_path, _canonical(event))
+        _atomic_replace(state_path, _canonical(journal["after_state"]))
+    elif current_sha == journal["after_state_sha256"]:
+        for destination, payload in publication_payloads:
+            if not destination.is_file() or _reject_alias(destination, require_file=True).read_bytes() != payload:
+                raise ValueError("journal after-state lacks its exact immutable publication")
+        if not event_path.is_file() or _reject_alias(event_path, require_file=True).read_bytes() != _canonical(event):
+            raise ValueError("journal after-state lacks its exact immutable event")
+    else:
+        raise ValueError("journal matches neither before nor after state")
+    path.unlink()
+
+
+def _lock_record(owner_nonce: str) -> dict[str, Any]:
+    pid = os.getpid(); token = _process_start_token(pid)
+    if token is None:
+        raise ValueError("cannot establish scheduler process creation identity")
+    return {"lock_version": "study02-formal-scheduler-lock-v1", "host_id": socket.gethostname(), "process_id": pid, "process_start_token": token, "owner_nonce": owner_nonce}
+
+
+def _acquire(run_dir: Path, owner_nonce: str) -> Path:
+    lock = run_dir / ".scheduler.lock"; desired = _canonical(_lock_record(owner_nonce))
     for _ in range(200):
         try:
-            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            _write_no_replace(lock, desired); return lock
         except FileExistsError:
-            time.sleep(0.005)
-            continue
-        os.close(fd)
-        return lock
-    raise ValueError("scheduler is locked")
+            _, existing = _load_exact(lock, _LOCK_FIELDS, "scheduler lock")
+            if _identity_live(existing):
+                time.sleep(0.005); continue
+            if not _identity_confirmed_dead(existing):
+                raise ValueError("scheduler lock owner liveness cannot be confirmed from this host")
+            recovery = run_dir / ".scheduler.recovery.lock"
+            try:
+                _write_no_replace(recovery, desired)
+            except FileExistsError:
+                time.sleep(0.005); continue
+            try:
+                _, again = _load_exact(lock, _LOCK_FIELDS, "scheduler lock")
+                if _identity_live(again):
+                    continue
+                if not _identity_confirmed_dead(again):
+                    raise ValueError("scheduler stale lock identity is not confirmed dead")
+                _recover_journal(run_dir); lock.unlink()
+            finally:
+                recovery.unlink(missing_ok=True)
+    raise ValueError("scheduler lock owner remains live")
 
 
-def _mutate(run_dir: Path, state: dict[str, Any], ledger: list[dict[str, Any]], event_type: str, payload: Mapping[str, Any]) -> None:
-    event = _event(event_type, len(ledger), ledger[-1]["event_sha256"], payload)
-    with (run_dir / _LEDGER).open("ab") as handle:
-        handle.write(_canonical(event)); handle.flush(); os.fsync(handle.fileno())
-    state["event_count"] = len(ledger) + 1
-    state["last_event_sha256"] = event["event_sha256"]
-    _replace(run_dir / _STATE, _canonical(state))
+def _commit_transaction(run_dir: Path, before: Mapping[str, Any], event: Mapping[str, Any], after: Mapping[str, Any], publications: Sequence[tuple[str, Mapping[str, Any]]] = ()) -> None:
+    event_path = _event_path(run_dir, event); relative = event_path.relative_to(run_dir).as_posix()
+    records = [{"relative_path": item_path, "sha256": _sha(_canonical(value)), "value": dict(value)} for item_path, value in publications]
+    journal = {"journal_version": "study02-formal-scheduler-journal-v1", "before_state_sha256": _sha(_canonical(before)), "event_relative_path": relative, "event_sha256": event["event_sha256"], "event": dict(event), "publications": records, "after_state": dict(after), "after_state_sha256": _sha(_canonical(after))}
+    _write_no_replace(run_dir / ".scheduler.journal", _canonical(journal))
+    for record in records:
+        _write_no_replace(_contained(run_dir, record["relative_path"]), _canonical(record["value"]))
+    _write_no_replace(event_path, _canonical(event))
+    _atomic_replace(run_dir / "scheduler_state.json", _canonical(after))
+    (run_dir / ".scheduler.journal").unlink()
 
 
-def claim_next_fit(run_dir: Path, *, owner_id: str, process_id: int, timestamp: str) -> dict[str, Any]:
-    run_dir = _reject_alias(run_dir)
-    owner_id = _identifier(owner_id, "owner_id")
-    if isinstance(process_id, bool) or not isinstance(process_id, int) or process_id <= 0:
-        raise ValueError("process_id must be positive")
-    lock = _acquire(run_dir)
+def _next_state(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str, Any]], events: Sequence[dict[str, Any]], event: Mapping[str, Any], publications: Sequence[tuple[str, Mapping[str, Any]]] = ()) -> dict[str, Any]:
+    virtual = {path: (_canonical(value), dict(value)) for path, value in publications}
+    return _replay(run_dir, manifest, plan, [*events, event], virtual_records=virtual)
+
+
+def _output_snapshot(run_dir: Path, fit_id: str) -> list[Path]:
+    directory = run_dir / "outputs" / fit_id
+    if not directory.exists():
+        return []
+    _reject_alias(directory)
+    entries = list(os.scandir(directory))
+    paths = [Path(entry.path) for entry in entries]
+    for path in paths:
+        _reject_alias(path)
+    return paths
+
+
+def _validate_success_files(run_dir: Path, row: Mapping[str, Any], output_hashes: Mapping[str, str]) -> None:
+    expected = {item["relative_path"] for item in row["expected_outputs"]}
+    if not isinstance(output_hashes, Mapping) or set(output_hashes) != expected:
+        raise ValueError("success output hashes must cover exactly all expected outputs, with no missing or extra path")
+    snapshot = _output_snapshot(run_dir, row["fit_id"])
+    if {path.relative_to(run_dir).as_posix() for path in snapshot} != expected:
+        raise ValueError("output directory contains missing, extra, hidden, or nested output")
+    for item in row["expected_outputs"]:
+        relative = item["relative_path"]; path = _contained(run_dir, relative); _reject_alias(path, require_file=True)
+        payload = path.read_bytes()
+        if not payload or _sha(payload) != _hash(output_hashes[relative], "output SHA-256"):
+            raise ValueError("scientific output is empty or its exact hash mismatches")
+        if item["content_type"] == "canonical_json":
+            _, status_value = _load_exact(path, _FIT_STATUS_FIELDS, "fit status output")
+            checkpoint_relative = next(entry["relative_path"] for entry in row["expected_outputs"] if entry["content_type"] == "binary")
+            checkpoint_sha = _sha(_contained(run_dir, checkpoint_relative).read_bytes())
+            if status_value != {"checkpoint_sha256": checkpoint_sha, "fit_id": row["fit_id"], "run_id": row["run_id"], "status": "succeeded", "test_access_count": 0}:
+                raise ValueError("fit status output does not bind the exact fit/checkpoint authority")
+
+
+def materialize_run(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, artifact_root: Path, cache_root: Path, predecessor: Mapping[str, Any] | None) -> dict[str, Any]:
+    module_id = _identifier(module_id, "module_id"); run_id = _identifier(run_id, "run_id")
+    if module_id not in _MODULE_RULES:
+        raise ValueError("unsupported formal module")
+    artifact_root = _reject_alias(artifact_root); cache_root = _reject_alias(cache_root)
+    formal, plan, plan_bytes, authority = _authority(study_root=study_root, matrix_path=matrix_path, module_id=module_id, run_id=run_id, cache_root=cache_root, predecessor=predecessor)
+    genesis = _event("run_initialized", 0, _ZERO_HASH, authority["authority_sha256"], {"run_id": run_id, "module_id": module_id, "plan_sha256": authority["plan_sha256"]})
+    scheduler = {"scheduler_version": "study02-formal-scheduler-v2", "authority": authority, "fit_count": len(plan), "genesis_event_sha256": genesis["event_sha256"], "test_access_count": 0}
+    manifest = {**formal, "scheduler": scheduler}; manifest_bytes = _canonical(manifest)
+    run_dir = artifact_root / module_id / run_id
+    if run_dir.exists():
+        current, _, _, _ = _rebuild_authority(run_dir, cache_root)
+        if _canonical(current) != manifest_bytes:
+            raise ValueError("existing run differs from the exact current authority")
+        return {"status": "existing_exact", "run_dir": str(run_dir), "plan_sha256": authority["plan_sha256"], "fit_count": len(plan), "test_access_count": 0}
+    stage = run_dir.with_name(f".{run_dir.name}.{os.getpid()}.{threading.get_ident()}.staging")
     try:
-        _, plan, state, ledger = _load(run_dir)
+        stage.mkdir(parents=True)
+        _write_no_replace(stage / "plan.jsonl", plan_bytes); _write_no_replace(stage / "manifest.json", manifest_bytes)
+        _write_no_replace(_event_path(stage, genesis), _canonical(genesis))
+        initial = _replay(stage, manifest, plan, [genesis]); _write_no_replace(stage / "scheduler_state.json", _canonical(initial))
+        run_dir.parent.mkdir(parents=True, exist_ok=True); os.rename(stage, run_dir)
+    except Exception:
+        shutil.rmtree(stage, ignore_errors=True); raise
+    return {"status": "created", "run_dir": str(run_dir), "plan_sha256": authority["plan_sha256"], "fit_count": len(plan), "test_access_count": 0}
+
+
+def claim_next_fit(run_dir: Path, *, cache_root: Path, owner_id: str, owner_nonce: str, process_id: int, timestamp: str) -> dict[str, Any]:
+    run_dir = _reject_alias(run_dir); owner_id = _identifier(owner_id, "owner_id"); owner_nonce = _identifier(owner_nonce, "owner_nonce")
+    if process_id <= 0 or isinstance(process_id, bool):
+        raise ValueError("process_id must be positive")
+    token = _process_start_token(process_id)
+    if token is None:
+        raise ValueError("claim process identity is not live")
+    lock = _acquire(run_dir, owner_nonce)
+    try:
+        _recover_journal(run_dir); manifest, plan, state, events = _rebuild_authority(run_dir, cache_root)
         if state["live_claim"] is not None:
             return {"status": "monitor_only", **state["live_claim"]}
         row = next((item for item in plan if state["fit_states"][item["fit_id"]] == "pending"), None)
         if row is None:
             return {"status": "exhausted"}
-        existing_outputs = [str(run_dir / path) for path in row["expected_output_paths"] if (run_dir / path).exists()]
-        if existing_outputs:
-            raise ValueError(f"pending fit has conflicting scientific output: {existing_outputs}")
-        claim_seq = sum(1 for item in ledger if item["event_type"] == "fit_claimed")
-        expected = [str(run_dir / path) for path in row["expected_output_paths"]]
-        claim = {"claim_version": "study02-formal-claim-v1", "run_id": state["run_id"], "fit_id": row["fit_id"], "owner_id": owner_id, "process_id": process_id, "started_at": timestamp, "expected_output_paths": expected, "predecessor_event_sha256": ledger[-1]["event_sha256"], "fit_identity_sha256": _sha(_canonical(row)), "test_access_count": 0}
-        claim_path = run_dir / "claims" / f"{row['fit_id']}.{claim_seq:04d}.json"
-        _write_no_replace(claim_path, _canonical(claim))
-        state["fit_states"][row["fit_id"]] = "claimed"
-        state["live_claim"] = {**claim, "claim_receipt_path": str(claim_path)}
-        _mutate(run_dir, state, ledger, "fit_claimed", {"fit_id": row["fit_id"], "claim_receipt_sha256": _sha(claim_path.read_bytes())})
-        return {"status": "claimed", **state["live_claim"]}
+        if _output_snapshot(run_dir, row["fit_id"]):
+            raise ValueError("pending fit has conflicting scientific output")
+        claim = {"claim_version": "study02-formal-claim-v2", "run_id": state["run_id"], "fit_id": row["fit_id"], "owner_id": owner_id, "owner_nonce": owner_nonce, "host_id": socket.gethostname(), "process_id": process_id, "process_start_token": token, "started_at": timestamp, "expected_outputs": row["expected_outputs"], "predecessor_event_sha256": events[-1]["event_sha256"], "fit_identity_sha256": _sha(_canonical(row)), "authority_sha256": state["authority_sha256"], "test_access_count": 0}
+        relative = f"claims/{row['fit_id']}.{len(events):08d}.json"; _claim_path(run_dir, relative)
+        event = _event("fit_claimed", len(events), events[-1]["event_sha256"], state["authority_sha256"], {"fit_id": row["fit_id"], "claim_relative_path": relative, "claim_sha256": _sha(_canonical(claim))})
+        publications = [(relative, claim)]
+        after = _next_state(run_dir, manifest, plan, events, event, publications); _commit_transaction(run_dir, state, event, after, publications)
+        return {"status": "claimed", **after["live_claim"]}
     finally:
         lock.unlink(missing_ok=True)
 
 
-def _pid_live(process_id: int) -> bool:
+def recover_claim(run_dir: Path, *, cache_root: Path, timestamp: str) -> dict[str, Any]:
+    run_dir = _reject_alias(run_dir); lock = _acquire(run_dir, "recovery")
     try:
-        os.kill(process_id, 0)
-    except (OSError, ValueError):
-        return False
-    return True
-
-
-def recover_claim(run_dir: Path, *, timestamp: str) -> dict[str, Any]:
-    run_dir = _reject_alias(run_dir)
-    lock = _acquire(run_dir)
-    try:
-        _, _, state, ledger = _load(run_dir)
-        claim = state["live_claim"]
+        _recover_journal(run_dir); manifest, plan, state, events = _rebuild_authority(run_dir, cache_root); claim = state["live_claim"]
         if claim is None:
             return {"status": "clean_pending"}
-        if _pid_live(claim["process_id"]):
+        if _identity_live(claim) or not _identity_confirmed_dead(claim):
             return {"status": "monitor_only", **claim}
-        if any(Path(path).exists() for path in claim["expected_output_paths"]):
-            raise ValueError("stale claim has partial/conflicting scientific output")
-        state["fit_states"][claim["fit_id"]] = "pending"
-        state["live_claim"] = None
-        _mutate(run_dir, state, ledger, "claim_recovered", {"fit_id": claim["fit_id"], "timestamp": timestamp, "reason": "dead_process_no_outputs"})
+        if _output_snapshot(run_dir, claim["fit_id"]):
+            raise ValueError("stale claim has partial, hidden, alias, or conflicting output")
+        event = _event("claim_recovered", len(events), events[-1]["event_sha256"], state["authority_sha256"], {"fit_id": claim["fit_id"], "timestamp": timestamp, "reason": "dead_identity_no_outputs"})
+        after = _next_state(run_dir, manifest, plan, events, event); _commit_transaction(run_dir, state, event, after)
         return {"status": "released_to_pending", "fit_id": claim["fit_id"]}
     finally:
         lock.unlink(missing_ok=True)
 
 
-def _terminal(run_dir: Path, *, fit_id: str, owner_id: str, terminal_state: str, details: Mapping[str, Any], timestamp: str) -> dict[str, Any]:
-    run_dir = _reject_alias(run_dir)
-    lock = _acquire(run_dir)
+def _terminal(run_dir: Path, *, cache_root: Path, fit_id: str, owner_id: str, owner_nonce: str, terminal: str, details: Mapping[str, Any], timestamp: str) -> dict[str, Any]:
+    run_dir = _reject_alias(run_dir); lock = _acquire(run_dir, owner_nonce)
     try:
-        _, _, state, ledger = _load(run_dir)
-        claim = state["live_claim"]
-        if claim is None or claim["fit_id"] != fit_id or claim["owner_id"] != owner_id or state["fit_states"].get(fit_id) != "claimed":
-            raise ValueError("terminal receipt does not own the live claim")
-        receipt = {"receipt_version": "study02-formal-fit-terminal-v1", "run_id": state["run_id"], "fit_id": fit_id, "owner_id": owner_id, "state": terminal_state, "details": dict(details), "timestamp": timestamp, "claim_receipt_sha256": _sha(Path(claim["claim_receipt_path"]).read_bytes()), "test_access_count": 0}
-        receipt_path = run_dir / "receipts" / f"{fit_id}.{terminal_state}.json"
-        _write_no_replace(receipt_path, _canonical(receipt))
-        state["fit_states"][fit_id] = terminal_state
-        state["live_claim"] = None
-        _mutate(run_dir, state, ledger, f"fit_{terminal_state}", {"fit_id": fit_id, "receipt_sha256": _sha(receipt_path.read_bytes())})
-        return {**receipt, "receipt_path": str(receipt_path)}
+        _recover_journal(run_dir); manifest, plan, state, events = _rebuild_authority(run_dir, cache_root); claim = state["live_claim"]
+        if claim is None or claim["fit_id"] != fit_id or claim["owner_id"] != owner_id or claim["owner_nonce"] != owner_nonce:
+            raise ValueError("terminal receipt does not own the exact live claim identity")
+        if terminal == "failed" and _output_snapshot(run_dir, fit_id):
+            raise ValueError("failed fit has scientific or partial output")
+        if terminal == "succeeded":
+            row = next(item for item in plan if item["fit_id"] == fit_id)
+            _validate_success_files(run_dir, row, details["output_hashes"])
+        receipt = {"receipt_version": "study02-formal-fit-terminal-v2", "run_id": state["run_id"], "fit_id": fit_id, "owner_id": owner_id, "owner_nonce": owner_nonce, "state": terminal, "details": dict(details), "timestamp": timestamp, "claim_receipt_sha256": claim["claim_sha256"], "authority_sha256": state["authority_sha256"], "test_access_count": 0}
+        relative = f"receipts/{fit_id}.{terminal}.json"; _receipt_path(run_dir, relative)
+        event = _event(f"fit_{terminal}", len(events), events[-1]["event_sha256"], state["authority_sha256"], {"fit_id": fit_id, "receipt_relative_path": relative, "receipt_sha256": _sha(_canonical(receipt))})
+        publications = [(relative, receipt)]
+        after = _next_state(run_dir, manifest, plan, events, event, publications); _commit_transaction(run_dir, state, event, after, publications)
+        return {**receipt, "receipt_relative_path": relative}
     finally:
         lock.unlink(missing_ok=True)
 
 
-def record_fit_failed(run_dir: Path, *, fit_id: str, owner_id: str, failure_code: str, timestamp: str) -> dict[str, Any]:
-    return _terminal(run_dir, fit_id=fit_id, owner_id=owner_id, terminal_state="failed", details={"failure_code": _identifier(failure_code, "failure_code")}, timestamp=timestamp)
+def record_fit_failed(run_dir: Path, *, cache_root: Path, fit_id: str, owner_id: str, owner_nonce: str, failure_code: str, timestamp: str) -> dict[str, Any]:
+    return _terminal(run_dir, cache_root=cache_root, fit_id=fit_id, owner_id=owner_id, owner_nonce=owner_nonce, terminal="failed", details={"failure_code": _identifier(failure_code, "failure_code")}, timestamp=timestamp)
 
 
-def record_fit_succeeded(run_dir: Path, *, fit_id: str, owner_id: str, output_hashes: Mapping[str, str], timestamp: str) -> dict[str, Any]:
-    for path, declared in output_hashes.items():
-        payload = Path(path).read_bytes()
-        if _sha(payload) != declared:
-            raise ValueError("scientific output hash mismatch")
-    return _terminal(run_dir, fit_id=fit_id, owner_id=owner_id, terminal_state="succeeded", details={"output_hashes": dict(output_hashes)}, timestamp=timestamp)
+def record_fit_succeeded(run_dir: Path, *, cache_root: Path, fit_id: str, owner_id: str, owner_nonce: str, output_hashes: Mapping[str, str], timestamp: str) -> dict[str, Any]:
+    run_dir = _resolved(run_dir); manifest, plan, state, _ = _rebuild_authority(run_dir, cache_root)
+    del manifest, state
+    row = next((item for item in plan if item["fit_id"] == fit_id), None)
+    if row is None:
+        raise ValueError("fit is absent from the exact plan")
+    _validate_success_files(run_dir, row, output_hashes)
+    return _terminal(run_dir, cache_root=cache_root, fit_id=fit_id, owner_id=owner_id, owner_nonce=owner_nonce, terminal="succeeded", details={"output_hashes": dict(output_hashes)}, timestamp=timestamp)
 
 
-def status_run(run_dir: Path) -> dict[str, Any]:
-    manifest, _, state, _ = _load(run_dir)
+def status_run(run_dir: Path, *, cache_root: Path) -> dict[str, Any]:
+    if (_resolved(run_dir) / ".scheduler.journal").exists():
+        raise ValueError("scheduler transaction requires deterministic mutation recovery")
+    manifest, _, state, _ = _rebuild_authority(run_dir, cache_root)
     counts = {name: sum(value == name for value in state["fit_states"].values()) for name in ("pending", "claimed", "succeeded", "failed")}
-    return {"run_id": state["run_id"], "module_id": state["module_id"], "plan_sha256": state["plan_sha256"], "manifest_sha256": state["manifest_sha256"], "matrix_sha256": manifest["matrix"]["sha256"], "effective_config_sha256": manifest["effective_config"]["sha256"], "counts": counts, "live_claim": state["live_claim"], "test_access_count": 0}
+    return {"run_id": state["run_id"], "module_id": state["module_id"], "plan_sha256": state["plan_sha256"], "authority_sha256": state["authority_sha256"], "matrix_sha256": manifest["matrix"]["sha256"], "effective_config_sha256": manifest["effective_config"]["sha256"], "counts": counts, "live_claim": state["live_claim"], "test_access_count": 0}
 
 
 __all__ = ["claim_next_fit", "materialize_run", "record_fit_failed", "record_fit_succeeded", "recover_claim", "status_run"]

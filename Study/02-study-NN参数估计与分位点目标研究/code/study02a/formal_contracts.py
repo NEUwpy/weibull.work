@@ -189,12 +189,13 @@ def _validate_matrix(
     module_id: str,
     rule_ids: Sequence[str],
     fit_ids: Sequence[str],
+    matrix_snapshot: bytes | None = None,
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     path = Path(matrix_path)
     if not path.is_file():
         raise ValueError(f"Formal matrix file is missing: {path}")
     try:
-        matrix_bytes = path.read_bytes()
+        matrix_bytes = path.read_bytes() if matrix_snapshot is None else matrix_snapshot
         matrix_text = matrix_bytes.decode("utf-8")
         reader = csv.DictReader(io.StringIO(matrix_text, newline=""))
         if reader.fieldnames is None or not _MATRIX_FIELDS.issubset(reader.fieldnames):
@@ -1426,6 +1427,7 @@ def build_formal_manifest(
     screening_seeds: Sequence[int],
     formal_seeds: Sequence[int],
     predecessor: Mapping[str, Any] | PredecessorTrace | None,
+    matrix_snapshot: bytes | None = None,
 ) -> dict[str, Any]:
     """Validate every formal input, then return a write-free manifest."""
 
@@ -1439,7 +1441,9 @@ def build_formal_manifest(
     namespaces = _validate_namespaces(role_namespaces)
     screening = _validate_seeds(screening_seeds, "screening", APPROVED_SCREENING_SEEDS)
     formal = _validate_seeds(formal_seeds, "formal", APPROVED_FORMAL_SEEDS)
-    requested_rules, requested_fits = _validate_matrix(matrix_path, module_id, rule_ids, fit_ids)
+    requested_rules, requested_fits = _validate_matrix(
+        matrix_path, module_id, rule_ids, fit_ids, matrix_snapshot=matrix_snapshot
+    )
     predecessor_manifest = _validate_predecessor(module_id, predecessor)
 
     return {

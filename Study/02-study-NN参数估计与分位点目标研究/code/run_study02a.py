@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import secrets
 from pathlib import Path
 import subprocess
 import sys
@@ -145,15 +146,16 @@ def main() -> int:
                 run_id=args.run_id,
                 artifact_root=args.artifact_root,
                 cache_root=args.cache_root,
-                code_commit=_git_sha(),
                 predecessor=None,
             )
         elif args.status:
-            payload = status_run(run_dir)
+            payload = status_run(run_dir, cache_root=args.cache_root)
         else:
             payload = claim_next_fit(
                 run_dir,
+                cache_root=args.cache_root,
                 owner_id=args.owner_id,
+                owner_nonce=secrets.token_hex(16),
                 process_id=os.getpid(),
                 timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             )
