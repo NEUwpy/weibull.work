@@ -24,6 +24,7 @@ from study02a.config import load_frozen_config
 from study02a.matrix import expand_module_matrix
 from study02a.pilot import run_pilot
 from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run
+from study02a.formal_executor import run_module as run_formal_module
 
 
 def _load_pilot_amendment() -> dict:
@@ -109,6 +110,13 @@ def _parser() -> argparse.ArgumentParser:
     mode.add_argument("--status", action="store_true")
     mode.add_argument("--claim-next", action="store_true")
     formal.add_argument("--owner-id", default="formal-select-cli")
+    execute = commands.add_parser("formal-execute", help="drive resumable claim->train->record formal fits")
+    execute.add_argument("--module", choices=("A-E1", "A-E3", "A-E2"), required=True)
+    execute.add_argument("--run-id", required=True)
+    execute.add_argument("--artifact-root", type=Path, required=True)
+    execute.add_argument("--cache-root", type=Path, required=True)
+    execute.add_argument("--max-fits", type=int, default=None, help="stop after N successful fits (default: run to exhaustion)")
+    execute.add_argument("--owner-id", default="formal-executor")
     return parser
 
 
@@ -157,6 +165,16 @@ def main() -> int:
                 owner_nonce=secrets.token_hex(16),
                 timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             )
+    elif args.command == "formal-execute":
+        payload = run_formal_module(
+            study_root=STUDY_ROOT,
+            module_id=args.module,
+            run_id=args.run_id,
+            artifact_root=args.artifact_root,
+            cache_root=args.cache_root,
+            owner_id=args.owner_id,
+            max_fits=args.max_fits,
+        )
     else:
         raise AssertionError(f"Unreachable command: {args.command}")
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True))

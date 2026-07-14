@@ -101,6 +101,7 @@ class FitResult:
     validation_loss_history: tuple[float, ...] = ()
     early_stop_reason: str = "max_epochs"
     hit_epoch_ceiling: bool = False
+    checkpoint_bytes: bytes = b""
 
 
 @dataclass(frozen=True)
@@ -129,15 +130,25 @@ def expand_search_specs(route_id: str, search_config: Mapping[str, Any]) -> Sear
     return SearchSpecs(stage1, architectures, search_config["stage2_rule"])
 
 
-def _checkpoint_hash(state: Mapping[str, torch.Tensor]) -> str:
-    digest = hashlib.sha256()
+def _checkpoint_canonical_bytes(state: Mapping[str, torch.Tensor]) -> bytes:
+    """Deterministic, pickle-free checkpoint bytes whose SHA-256 is ``_checkpoint_hash``.
+
+    Formal fits write this exact byte string to ``checkpoint.pt`` so that
+    ``sha256(checkpoint.pt) == FitResult.checkpoint_sha256`` without a second
+    reconstruction that could drift from the hash.
+    """
+    parts: list[bytes] = []
     for name in sorted(state):
         tensor = state[name].detach().cpu().contiguous()
-        digest.update(name.encode("utf-8"))
-        digest.update(str(tensor.dtype).encode("ascii"))
-        digest.update(np.asarray(tensor.shape, dtype=np.int64).tobytes())
-        digest.update(tensor.numpy().tobytes())
-    return digest.hexdigest()
+        parts.append(name.encode("utf-8"))
+        parts.append(str(tensor.dtype).encode("ascii"))
+        parts.append(np.asarray(tensor.shape, dtype=np.int64).tobytes())
+        parts.append(tensor.numpy().tobytes())
+    return b"".join(parts)
+
+
+def _checkpoint_hash(state: Mapping[str, torch.Tensor]) -> str:
+    return hashlib.sha256(_checkpoint_canonical_bytes(state)).hexdigest()
 
 
 def _fit_deterministic_candidate(
@@ -221,6 +232,7 @@ def _fit_deterministic_candidate(
         validation_loss_history=tuple(validation_loss_history),
         early_stop_reason="max_epochs" if hit_epoch_ceiling else "patience_exhausted",
         hit_epoch_ceiling=hit_epoch_ceiling,
+        checkpoint_bytes=_checkpoint_canonical_bytes(best_state),
     )
 
 
