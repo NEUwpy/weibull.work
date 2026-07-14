@@ -32,12 +32,12 @@ codex 在 `codex/long-task-20260711` 分支上跑了 Study/02（神经网络 Wei
   - Task 9b.2 pre-unseal evidence — APPROVE（`00ec685..8361c8d`）
   - Task 9b.3 test state — APPROVE（`74f4a5b..7408b7a`）
   - Task 9c.1 formal dataset cache + scalers — APPROVE（`b254e5a..589d5fd`，40 tests）
-  - **Task 9c.2 formal scheduler — 实现完成（`7913ae7`/`6408518`/`6fe8117`，109 tests 通过），但 review2 为 `CHANGES REQUIRED`，修正已提交（6fe8117）后 codex 断档，最终 APPROVE 未记录。→ 这是接力第一个动作。**
+  - **Task 9c.2 formal scheduler — APPROVED。实现 `7913ae7`/`6408518`/`6fe8117`；Claude 接力独立 oracle 复审（`task-9c2-review3.md`）确认 review2 的 6 项修正与 8 项攻击全部闭合，focused 套件 `109 passed in 45.48s`。A-E1 formal training/validation 已授权；test 仍 sealed。接力过程中发现并修复 Windows CRLF 环境阻断（见第 8 节地雷，非代码缺陷）。**
 - **codex 断点**：lease 文件 `.slim/deepwork/study02-a.lease.json` 记录当前任务 `task-9c2-report.md`，heartbeat 停在 2026-07-13。该 30 分钟 heartbeat loop 已随 codex 额度失效。
 
 ## 4. 接力计划（顺序执行，每步有成果即提交+推送）
 
-1. **Task 9c.2 收尾审查**：对 `formal_scheduler.py`（commit 6fe8117 后状态）做一次独立 oracle 审查，核对 review2 的 6 项要求与 8 项攻击是否全部闭合；跑 focused 测试套件确认 GREEN；写 `.superpowers/sdd/task-9c2-review3.md` 给出 APPROVE。提交。
+1. **Task 9c.2 收尾审查 ✅ 已完成（Claude 接力）**：对 `formal_scheduler.py`（commit 6fe8117 状态）做了独立 oracle 复审，核对 review2 的 6 项要求与 8 项攻击全部闭合（见 `.superpowers/sdd/task-9c2-review3.md`，本地未跟踪）；focused 套件 GREEN（`109 passed in 45.48s`）。给出 APPROVE，授权 A-E1 formal training/validation。审查中发现并修复 Windows CRLF 环境阻断（见第 8 节），无需为此提交代码。
 2. **Task 9c：跑 formal training/validation**。按 **A-E1 → A-E3 → A-E2** 顺序，经 formal_scheduler 调度，跑满 **820 fits**（上限 900），test **全程 sealed**。确定性、可断点续跑、append-only ledger。这是重计算（可能数小时～数天）。提交 fit 产物/ledger。
 3. **Task 9d：Claude 自任 oracle 解封 test + 一次性评估**（按用户决定）。写解封审批记录，跑 one-shot test evaluation，产出最终指标。提交。
 4. **Task 10：证据 + Nature 图 + G3 报告**。图用 `nature-figure`（Python 后端，不混 R）。产出 G3 阶段报告，更新 `08-更新日志.md`。提交。
@@ -68,6 +68,7 @@ codex 在 `codex/long-task-20260711` 分支上跑了 Study/02（神经网络 Wei
 
 ## 8. 已知地雷
 
+- **【最高优先·本棒新增】Windows CRLF 阻断 frozen 哈希校验**：本工作区 `core.autocrlf` 曾为 `true`，导致 4 个 byte-hashed frozen 工件（`configs/A-g2-protocol-v1.json`、`configs/A-g2-search-v1.json`、`configs/A-g3-pilot-amendment-v4.json`、`artifacts/pilot/G3-matrix/experiment_matrix.csv`）被 smudge 成 CRLF，`verify_frozen_hashes`/`FROZEN_MATRIX_SHA256`/`APPROVED_AMENDMENT_SHA256` 全部 mismatch，focused 套件大面积 RED（`90 failed`，非代码缺陷）。git blob 本身是 LF 且哈希正确，仅工作树被污染。**修复（环境级，不提交任何文件）**：① `git config core.autocrlf input`（本地 `.git/config`，持久、不跟踪）；② 把上述 4 个文件工作树正则化为 LF（`git add --renormalize` 已验证内容与提交的 LF blob 完全一致，staged 为空）。修复后 focused 套件 `109 passed`。**重启/新会话必须先确认 `core.autocrlf=input` 且这 4 个文件为 LF**，否则会误判 scheduler 崩坏。详见 `task-9c2-review3.md` 的 environment note。`code/**/*.py` 等其余文件保持原样即可，scheduler 的 `_assert_scoped_code_clean` 只 scope `code/` 且对 CRLF/LF 一致读取不敏感。
 - **9 个既有 Study/01 E3b 测试失败**：硬编码 `D:/weibull`，当前工作区 `C:/Web/Weibull`。**历史遗留、非本棒所为**，只记录不修。
 - 进度文档引用的"总执行合同"`coworker/plans/2026-07-12-study02-a-full-execution.md` **磁盘上不存在**（从未落盘或已删）。以 SDD brief + 实验协议/计划为实际权威。
 - `.slim/` 与 `.claude/settings.local.json` 见第 6 节，勿提交。
