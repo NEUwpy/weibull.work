@@ -191,3 +191,28 @@ def test_smoke_a_e1_one_fit_end_to_end(tmp_path, monkeypatch):
     assert set(state_dict) and all(isinstance(t, torch.Tensor) for t in state_dict.values())
     # no untrusted metrics sidecar exists (selection signal must derive from the bound checkpoint)
     assert not (run_dir / "metrics").exists()
+
+
+@pytest.mark.slow
+def test_run_module_defers_selection_dependent_fits(tmp_path, monkeypatch):
+    """#1: selection-dependent fits are deferred cleanly, not claimed-and-failed.
+
+    Forces every fit to look placeholder-dependent; run_module must stop at the first
+    pending fit with ``selection_required`` and record zero successes/failures (no churn).
+    Requires a clean ``code/`` tree for materialize.
+    """
+    status = __import__("subprocess").run(
+        ["git", "status", "--porcelain", "--", str((STUDY_ROOT / "code").relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    )
+    assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
+    monkeypatch.setattr(fe, "_is_selection_dependent", lambda row: True)
+    summary = fe.run_module(
+        study_root=STUDY_ROOT, module_id="A-E1", run_id="defer-0001",
+        artifact_root=tmp_path / "artifact", cache_root=tmp_path / "cache",
+        owner_id="defer-test", max_fits=5,
+    )
+    assert summary["succeeded_count"] == 0
+    assert summary["failed_count"] == 0
+    assert summary["selection_required_count"] == 1
+    assert summary["selection_required"] == ["G3-fit-0000"]
