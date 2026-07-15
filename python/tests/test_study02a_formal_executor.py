@@ -91,14 +91,16 @@ def test_resolve_loss_id_passthrough_and_fail_closed():
         fe.resolve_loss_id("selected:A-E1_loss")
 
 
-def test_resolve_decision_candidate_search_vs_singleton():
-    search = fe.resolve_decision_candidate(_plan_row(fit_kind="search_stage1", architecture="m05", optimizer="stage1"))
-    assert search[2] is False  # search candidates are unselected until D7 selection
-    assert search[1] == "m05"
-    singleton = fe.resolve_decision_candidate(_plan_row(fit_kind="historical"))
-    assert singleton[2] is True  # singleton fits are their own selected winner
-    with pytest.raises(ValueError):
-        fe.resolve_decision_candidate(_plan_row(fit_kind="not_a_real_kind"))
+def test_resolve_decision_candidate_from_plan_row():
+    # decision/candidate derived from plan-row fields only (plan rows have no fit_kind);
+    # all candidates are unselected because selection (D7) is deferred.
+    arch = fe.resolve_decision_candidate(_plan_row(architecture="m05", optimizer="stage1"))
+    assert arch[1] == "m05" and arch[2] is False
+    assert arch[0].startswith("A-E1:A-E1_historical:H0_hsm:")  # decision grouping keeps module/rule/route/n
+    opt = fe.resolve_decision_candidate(_plan_row(optimizer="o3"))
+    assert opt[1] == "o3" and opt[2] is False
+    hist = fe.resolve_decision_candidate(_plan_row())  # historical_128_64_32 / adam_historical base row
+    assert hist[1] == "historical_128_64_32" and hist[2] is False
 
 
 def test_reconstruct_a_e1_specs_cache_keys_match_scheduler(tmp_path):

@@ -59,24 +59,6 @@ _MLP_PREFIX = "m"
 _DEEP_PREFIX = "d"
 _STAGE_TOP_PREFIX = "selected_top_"
 _SELECTED_PREFIX = "selected:"
-_SEARCH_FIT_KINDS = {
-    "search_stage1",
-    "search_stage2",
-    "loss_screen",
-    "output_form",
-    "distribution_screen",
-    "size_screen",
-    "shared_search",
-}
-_SINGLETON_FIT_KINDS = {
-    "historical",
-    "controlled",
-    "winner_retrain",
-    "selected_winner_retrain",
-    "shared_winner_retrain",
-    "selected_size_retrain",
-    "selected_distribution_retrain",
-}
 
 
 def _canonical(value: Any) -> bytes:
@@ -178,15 +160,15 @@ def _find_by_id(items: Sequence[Mapping[str, Any]], identifier: str, label: str)
 
 
 def resolve_decision_candidate(plan_row: Mapping[str, Any]) -> tuple[str, str, bool]:
-    """Deterministic (decision_id, candidate_id, selected) for a plan row (D6).
+    """Deterministic (decision_id, candidate_id, selected) from a scheduler plan row (D6).
 
-    Search candidates (``_SEARCH_FIT_KINDS``) compete inside a decision and are
-    recorded unselected; the winner is chosen later by selection-trace generation
-    (D7). Singleton fits (historical / controlled / winner-retrain) form a
-    self-only decision and are selected. Decision grouping keeps every axis that
-    identifies a distinct competition (module, rule, route, n, screening axis).
+    Plan rows carry ``_PLAN_FIELDS`` (no ``fit_kind`` — that lives on the matrix), so the
+    decision is derived from ``module/rule/route/n`` and the concrete varying axis
+    (optimizer ``o\\d+``, loss, or architecture). ``selected`` is False for every fit:
+    the winner of each decision is chosen later by selection-trace generation (D7), so
+    recording all candidates unselected is the honest pre-selection state. Decision
+    grouping keeps every axis that identifies a distinct competition.
     """
-    fit_kind = str(plan_row["fit_kind"])
     module_id = str(plan_row["module_id"])
     rule_id = str(plan_row["rule_id"])
     route = str(plan_row["route"])
@@ -196,25 +178,15 @@ def resolve_decision_candidate(plan_row: Mapping[str, Any]) -> tuple[str, str, b
     loss = str(plan_row["loss"])
     n_token = "shared" if n_mode == "shared_n" else str(plan_row.get("fixed_n"))
 
-    if fit_kind in _SINGLETON_FIT_KINDS:
-        candidate = architecture if not architecture.startswith(_SELECTED_PREFIX) else optimizer
-        candidate = candidate or loss or plan_row["fit_id"]
-        decision_id = f"{module_id}:{rule_id}:{route}:{n_token}:{fit_kind}"
-        return decision_id, candidate, True
-
-    if fit_kind not in _SEARCH_FIT_KINDS:
-        raise ValueError(f"plan row has unknown fit_kind for decision resolution: {fit_kind!r}")
-
-    # Search candidates: the varying axis is the candidate id.
-    if architecture != "selected_top_placeholder" and not optimizer.startswith("o") and optimizer == "stage1":
-        # stage-1 architecture search: architecture varies, optimizer fixed.
-        candidate, axis = architecture, "arch"
-    elif optimizer.startswith("o"):
+    if optimizer.startswith("o") and optimizer[1:].isdigit():
         candidate, axis = optimizer, "opt"
-    elif loss.startswith(_SELECTED_PREFIX) or fit_kind == "loss_screen":
+    elif loss.startswith(_SELECTED_PREFIX):
         candidate, axis = loss, "loss"
-    else:
+    elif architecture.startswith(_SELECTED_PREFIX) or architecture.startswith(_STAGE_TOP_PREFIX):
         candidate, axis = architecture, "arch"
+    else:
+        candidate = architecture or optimizer or loss or str(plan_row["fit_id"])
+        axis = "arch"
 
     decision_id = f"{module_id}:{rule_id}:{route}:{n_token}:{axis}"
     return decision_id, candidate, False
@@ -431,6 +403,8 @@ def run_module(
 
     succeeded: list[str] = []
     failed: list[dict[str, str]] = []
+    consecutive_failures = 0
+    _MAX_CONSECUTIVE_FAILURES = 8  # stop churning on a systematic execution error
     while max_fits is None or len(succeeded) < int(max_fits):
         timestamp = _utc_now()
         claim = claim_next_fit(
@@ -452,6 +426,7 @@ def run_module(
                 claim=claim, frozen=frozen, effective=effective, timestamp=timestamp,
             )
             succeeded.append(fit_id)
+            consecutive_failures = 0
         except Exception as error:  # training/numerical failure -> record failed terminal
             failure_code = f"{type(error).__name__}"
             output_dir = run_dir / "outputs" / fit_id
@@ -462,6 +437,12 @@ def run_module(
                 owner_nonce=claim["owner_nonce"], failure_code=failure_code[:64], timestamp=timestamp,
             )
             failed.append({"fit_id": fit_id, "failure_code": failure_code, "message": str(error)[:200]})
+            consecutive_failures += 1
+            if consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
+                raise RuntimeError(
+                    f"formal execution aborted: {_MAX_CONSECUTIVE_FAILURES} consecutive fit failures "
+                    f"(last: {failure_code}: {error})"
+                ) from error
 
     return {
         "module_id": module_id, "run_id": run_id, "run_dir": str(run_dir),
