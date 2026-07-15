@@ -33,12 +33,13 @@ codex 在 `codex/long-task-20260711` 分支上跑了 Study/02（神经网络 Wei
   - Task 9b.3 test state — APPROVE（`74f4a5b..7408b7a`）
   - Task 9c.1 formal dataset cache + scalers — APPROVE（`b254e5a..589d5fd`，40 tests）
   - **Task 9c.2 formal scheduler — APPROVED。实现 `7913ae7`/`6408518`/`6fe8117`；Claude 接力独立 oracle 复审（`task-9c2-review3.md`）确认 review2 的 6 项修正与 8 项攻击全部闭合，focused 套件 `109 passed in 45.48s`。A-E1 formal training/validation 已授权；test 仍 sealed。接力过程中发现并修复 Windows CRLF 环境阻断（见第 8 节地雷，非代码缺陷）。**
+  - **Task 9c.3 formal 执行驱动 — 自审 APPROVE（`task-9c3-review.md`，commit `5c74b6a`+`37dc6b7`+decision-fix）。** 造出缺失的执行驱动：claim→cache/scaler→fit(100/50/40)→规范 checkpoint.pt+5字段 fit_status 绑定+metrics sidecar→record，可断点续跑 `run_module` + `formal-execute` CLI，A-E1 spec 重建（与 scheduler cache_key 一致），decision/candidate 模型。9 个测试通过（含真实端到端冒烟）；联合 formal 套件 118 passed 无回归。**A-E1 现在可执行。run 经用户决定推迟。**
 - **codex 断点**：lease 文件 `.slim/deepwork/study02-a.lease.json` 记录当前任务 `task-9c2-report.md`，heartbeat 停在 2026-07-13。该 30 分钟 heartbeat loop 已随 codex 额度失效。
 
 ## 4. 接力计划（顺序执行，每步有成果即提交+推送）
 
 1. **Task 9c.2 收尾审查 ✅ 已完成（Claude 接力）**：对 `formal_scheduler.py`（commit 6fe8117 状态）做了独立 oracle 复审，核对 review2 的 6 项要求与 8 项攻击全部闭合（见 `.superpowers/sdd/task-9c2-review3.md`，本地未跟踪）；focused 套件 GREEN（`109 passed in 45.48s`）。给出 APPROVE，授权 A-E1 formal training/validation。审查中发现并修复 Windows CRLF 环境阻断（见第 8 节），无需为此提交代码。
-2. **Task 9c：跑 formal training/validation**。按 **A-E1 → A-E3 → A-E2** 顺序，经 formal_scheduler 调度，跑满 **820 fits**（上限 900），test **全程 sealed**。确定性、可断点续跑、append-only ledger。这是重计算（可能数小时～数天）。提交 fit 产物/ledger。
+2. **Task 9c.3 执行驱动 ✅ 已完成（Claude 接力）；9c run ⏸️ 用户决定推迟**：原以为 9c 只需"跑"，实测**执行驱动（claim→train→record）当时并不存在**（codex 在 9c.2 后断档）。Claude 按 SDD 把驱动（`formal_executor.py` + `formal-execute` CLI + `training.py` checkpoint 规范字节）造出并自审 APPROVE（commit `5c74b6a`+`37dc6b7`+decision-fix），9 测试通过含真实端到端冒烟（1 historical fit）。**用户随后决定：本棒不启动多日 run（约 4-16 天），仅交付驱动+冒烟。** run 的启动（含 A-E1→A-E3→A-E2 全 820 fit）交还用户择机/择地。**run 前必须先解封 D7/D8 两个前置（见第 8 节）**。
 3. **Task 9d：Claude 自任 oracle 解封 test + 一次性评估**（按用户决定）。写解封审批记录，跑 one-shot test evaluation，产出最终指标。提交。
 4. **Task 10：证据 + Nature 图 + G3 报告**。图用 `nature-figure`（Python 后端，不混 R）。产出 G3 阶段报告，更新 `08-更新日志.md`。提交。
 5. **G3 收官 → 停**。推送 claude 分支，向用户汇报，等待是否进 G4 的指示。
@@ -70,6 +71,7 @@ codex 在 `codex/long-task-20260711` 分支上跑了 Study/02（神经网络 Wei
 
 - **【最高优先·本棒新增】Windows CRLF 阻断 frozen 哈希校验**：本工作区 `core.autocrlf` 曾为 `true`，导致 4 个 byte-hashed frozen 工件（`configs/A-g2-protocol-v1.json`、`configs/A-g2-search-v1.json`、`configs/A-g3-pilot-amendment-v4.json`、`artifacts/pilot/G3-matrix/experiment_matrix.csv`）被 smudge 成 CRLF，`verify_frozen_hashes`/`FROZEN_MATRIX_SHA256`/`APPROVED_AMENDMENT_SHA256` 全部 mismatch，focused 套件大面积 RED（`90 failed`，非代码缺陷）。git blob 本身是 LF 且哈希正确，仅工作树被污染。**修复（环境级，不提交任何文件）**：① `git config core.autocrlf input`（本地 `.git/config`，持久、不跟踪）；② 把上述 4 个文件工作树正则化为 LF（`git add --renormalize` 已验证内容与提交的 LF blob 完全一致，staged 为空）。修复后 focused 套件 `109 passed`。**重启/新会话必须先确认 `core.autocrlf=input` 且这 4 个文件为 LF**，否则会误判 scheduler 崩坏。详见 `task-9c2-review3.md` 的 environment note。`code/**/*.py` 等其余文件保持原样即可，scheduler 的 `_assert_scoped_code_clean` 只 scope `code/` 且对 CRLF/LF 一致读取不敏感。
 - **9 个既有 Study/01 E3b 测试失败**：硬编码 `D:/weibull`，当前工作区 `C:/Web/Weibull`。**历史遗留、非本棒所为**，只记录不修。
+- **【run 启动前置·本棒发现】9c run 的 D7/D8 两个缺口必须在跑 820 fit 之前补齐并复审**：① **D7 selection 排序指标 `L_param` 未定义** —— frozen ranking 规则是 `mean_validation_failure_penalized_l_param_across_screening_seeds_ascending`，但 search config 里**没有** `metrics`/`L_param` 的精确定义，故 `build_module_selection` 目前 fail-closed。必须先和用户/协议敲定 `L_param`（失败惩罚的 validation 指标）的口径并 oracle 复审，A-E3/A-E2 才能选出 winner。② **D8 predecessor 链 + A-E3/A-E2 deferred-spec 重建** 未实现（`run_module` 目前只接 A-E1；A-E3/A-E2 需要 A-E1/A-E3 的 selection trace 作为 predecessor）。③ shared_n 的 fit_status `n` 字段现取 `max(core sample sizes)` 作代表，D7 时确认。这三项是 `formal_executor.py` 末尾的 fail-closed 占位（`build_module_selection`/`resolve_selected_placeholders`/`reconstruct_deferred_specs`），调用即抛 NotImplementedError。详见 `task-9c3-review.md` 的 Explicit gaps。
 - 进度文档引用的"总执行合同"`coworker/plans/2026-07-12-study02-a-full-execution.md` **磁盘上不存在**（从未落盘或已删）。以 SDD brief + 实验协议/计划为实际权威。
 - `.slim/` 与 `.claude/settings.local.json` 见第 6 节，勿提交。
 - glm-5.2 子代理路由坑：派 Agent/Workflow 时**必须传 `model: "sonnet"`** 才走 glm-5.2（fable 档未映射）。详见 memory `reference_subagent_model_quirk.md`。
