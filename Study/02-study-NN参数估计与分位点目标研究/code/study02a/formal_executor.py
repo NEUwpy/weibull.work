@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,6 +46,7 @@ from .formal_runner import (
     fit_training_scaler,
 )
 from .formal_scheduler import (
+    _rebuild_authority,
     claim_next_fit,
     materialize_run,
     record_fit_failed,
@@ -159,51 +161,17 @@ def _find_by_id(items: Sequence[Mapping[str, Any]], identifier: str, label: str)
     raise ValueError(f"unknown frozen {label} id: {identifier!r}")
 
 
-def resolve_decision_candidate(plan_row: Mapping[str, Any]) -> tuple[str, str, bool]:
-    """Deterministic (decision_id, candidate_id, selected) from a scheduler plan row (D6).
+def _is_selection_dependent(plan_row: Mapping[str, Any]) -> bool:
+    """A fit whose architecture/optimizer/loss is a ``selected:`` / ``selected_top_`` placeholder.
 
-    Plan rows carry ``_PLAN_FIELDS`` (no ``fit_kind`` — that lives on the matrix), so the
-    decision is derived from ``module/rule/route/n`` and the concrete varying axis
-    (optimizer ``o\\d+``, loss, or architecture). ``selected`` is False for every fit:
-    the winner of each decision is chosen later by selection-trace generation (D7), so
-    recording all candidates unselected is the honest pre-selection state. Decision
-    grouping keeps every axis that identifies a distinct competition.
+    Such fits cannot be executed until a within-module selection (D7) resolves the
+    placeholder from the concrete fits' bound checkpoints. ``run_module`` defers them.
     """
-    module_id = str(plan_row["module_id"])
-    rule_id = str(plan_row["rule_id"])
-    route = str(plan_row["route"])
-    n_mode = str(plan_row["n_mode"])
-    architecture = str(plan_row["architecture"])
-    optimizer = str(plan_row["optimizer"])
-    loss = str(plan_row["loss"])
-    n_token = "shared" if n_mode == "shared_n" else str(plan_row.get("fixed_n"))
-
-    if optimizer.startswith("o") and optimizer[1:].isdigit():
-        candidate, axis = optimizer, "opt"
-    elif loss.startswith(_SELECTED_PREFIX):
-        candidate, axis = loss, "loss"
-    elif architecture.startswith(_SELECTED_PREFIX) or architecture.startswith(_STAGE_TOP_PREFIX):
-        candidate, axis = architecture, "arch"
-    else:
-        candidate = architecture or optimizer or loss or str(plan_row["fit_id"])
-        axis = "arch"
-
-    decision_id = f"{module_id}:{rule_id}:{route}:{n_token}:{axis}"
-    return decision_id, candidate, False
-
-
-def _shared_n_representative(frozen: FrozenConfig) -> int:
-    sizes = [int(value) for value in frozen.protocol["sample_sizes"]["core"]]
-    _require(sizes, "frozen core sample sizes are missing")
-    return max(sizes)
-
-
-def _fit_n(plan_row: Mapping[str, Any], frozen: FrozenConfig) -> int:
-    if plan_row["n_mode"] == "shared_n":
-        return _shared_n_representative(frozen)
-    value = int(plan_row["fixed_n"])
-    _require(value > 0, "fixed_n must be positive")
-    return value
+    for field in ("architecture", "optimizer", "loss"):
+        value = str(plan_row[field])
+        if value.startswith(_SELECTED_PREFIX) or value.startswith(_STAGE_TOP_PREFIX):
+            return True
+    return False
 
 
 def reconstruct_a_e1_specs(
@@ -241,43 +209,59 @@ def reconstruct_a_e1_specs(
     return training, validation
 
 
+def _terminal_validation_slope(curve: Sequence[float]) -> float:
+    """OLS slope over the last 10 validation losses (mirrors the frozen ceiling contract)."""
+    values = tuple(float(v) for v in curve)
+    terminal = values[-10:]
+    if len(terminal) <= 1:
+        return 0.0
+    x_mean = (len(terminal) - 1) / 2.0
+    y_mean = sum(terminal) / len(terminal)
+    numerator = sum((index - x_mean) * (value - y_mean) for index, value in enumerate(terminal))
+    denominator = sum((index - x_mean) ** 2 for index in range(len(terminal)))
+    return numerator / denominator
+
+
 def _write_outputs(
     run_dir: Path,
     fit_id: str,
     run_id: str,
     checkpoint_bytes: bytes,
     checkpoint_sha256: str,
-    metrics: Mapping[str, Any],
+    evidence: Mapping[str, Any],
 ) -> dict[str, str]:
-    """Write the scheduler-required per-fit outputs plus a metrics sidecar.
+    """Write the three scheduler-required per-fit outputs atomically to a staging dir.
 
-    ``outputs/{fit_id}/`` contains exactly ``checkpoint.pt`` (binary, canonical
-    bytes) and ``fit_status.json`` (the 5-field scheduler binding) — what
-    ``formal_scheduler._validate_success_files`` requires. The full training
-    metrics are written to ``metrics/{fit_id}.json`` (outside the validated
-    output dir) so selection / pre-unseal aggregation (D7) can consume them
-    without conflicting with the scheduler contract.
+    All three (checkpoint.pt, fit_status.json, evidence.json) are staged under a
+    process-private temp dir and ``os.replace``-d into ``outputs/{fit_id}/`` together,
+    so a crash leaves either nothing or the complete bound triple — never a partial
+    set that the scheduler's success validation would reject on recovery. The
+    selection signal itself is never stored here: evidence holds only the
+    non-recomputable training trajectory; validation loss / L_param are derived by
+    selection (D7) from the integrity-bound checkpoint.
     """
     output_dir = run_dir / "outputs" / fit_id
     _require(not output_dir.exists(), f"fit output directory already exists: {output_dir}")
-    output_dir.mkdir(parents=True)
     fit_status_binding = {
         "checkpoint_sha256": checkpoint_sha256, "fit_id": fit_id, "run_id": run_id,
         "status": "succeeded", "test_access_count": 0,
     }
     status_bytes = _canonical(fit_status_binding)
+    evidence_bytes = _canonical(evidence)
+    staging = output_dir.parent / f".{fit_id}.{os.getpid()}.staging"
+    staging.mkdir(parents=True, exist_ok=False)
     try:
-        (output_dir / "checkpoint.pt").write_bytes(checkpoint_bytes)
-        (output_dir / "fit_status.json").write_bytes(status_bytes)
-        metrics_dir = run_dir / "metrics"
-        metrics_dir.mkdir(parents=True, exist_ok=True)
-        (metrics_dir / f"{fit_id}.json").write_bytes(_canonical(metrics))
+        (staging / "checkpoint.pt").write_bytes(checkpoint_bytes)
+        (staging / "fit_status.json").write_bytes(status_bytes)
+        (staging / "evidence.json").write_bytes(evidence_bytes)
+        os.replace(staging, output_dir)
     except Exception:
-        shutil.rmtree(output_dir, ignore_errors=True)
+        shutil.rmtree(staging, ignore_errors=True)
         raise
     return {
         f"outputs/{fit_id}/checkpoint.pt": hashlib.sha256(checkpoint_bytes).hexdigest(),
         f"outputs/{fit_id}/fit_status.json": hashlib.sha256(status_bytes).hexdigest(),
+        f"outputs/{fit_id}/evidence.json": hashlib.sha256(evidence_bytes).hexdigest(),
     }
 
 
@@ -294,8 +278,13 @@ def execute_claimed_fit(
 ) -> dict[str, Any]:
     """Train one claimed fit and record its terminal state through the scheduler.
 
-    Returns the scheduler's terminal receipt. On training failure, records a failed
-    terminal after ensuring no output artifacts exist.
+    Returns ``{"state": "succeeded"|"failed", "receipt": ...}``. Only the training
+    call itself is a per-fit *scientific* failure (recorded as a failed terminal);
+    dataset/cache/scaler/write/record errors are infrastructure failures and
+    propagate so the run aborts and can be retried, never misrecorded as a
+    scientific failure. No outputs are written before a successful fit, so a
+    scientific failure records cleanly; an infra crash after writing is recovered
+    by the scheduler cleaning the orphaned outputs of a confirmed-dead claim.
     """
     fit_id = str(claim["fit_id"])
     owner_id = str(claim["owner_id"])
@@ -303,55 +292,72 @@ def execute_claimed_fit(
     route = str(plan_row["route"])
     is_set = route == "S"
 
-    try:
-        training_spec, validation_spec = reconstruct_a_e1_specs(plan_row, frozen, effective)
-    except NotImplementedError:
-        raise
+    # Infrastructure: data + scaler + resolved model/hyperparams (errors propagate).
+    training_spec, validation_spec = reconstruct_a_e1_specs(plan_row, frozen, effective)
     training_dataset = cache_dataset(training_spec, frozen, effective, cache_root)
     validation_dataset = cache_dataset(validation_spec, frozen, effective, cache_root)
     scaler = fit_training_scaler(training_dataset, frozen, effective)
     scaled_training = apply_training_scaler(training_dataset, scaler, training_dataset, frozen, effective)
     scaled_validation = apply_training_scaler(validation_dataset, scaler, training_dataset, frozen, effective)
-
     input_dim = None if is_set else int(scaled_training.batch.features.shape[1])
     model_factory = resolve_model_factory(str(plan_row["architecture"]), frozen, input_dim)
     hyperparams = resolve_optimizer_hyperparams(str(plan_row["optimizer"]), frozen)
     loss_id = resolve_loss_id(str(plan_row["loss"]))
 
-    if is_set:
-        fit = fit_set_candidate(
-            model_factory, scaled_training.batch, scaled_validation.batch, effective,
-            seed=int(plan_row["seed"]), loss_id=loss_id, lr=hyperparams["lr"],
-            weight_decay=hyperparams["weight_decay"], batch_size=hyperparams["batch_size"],
-        )
-    else:
-        fit = fit_fixed_candidate(
-            model_factory, scaled_training.batch, scaled_validation.batch, effective,
-            seed=int(plan_row["seed"]), loss_id=loss_id, lr=hyperparams["lr"],
-            weight_decay=hyperparams["weight_decay"], batch_size=hyperparams["batch_size"],
-        )
+    # Scientific: the fit itself. Only this is a retryable-as-failed scientific outcome.
+    try:
+        if is_set:
+            fit = fit_set_candidate(
+                model_factory, scaled_training.batch, scaled_validation.batch, effective,
+                seed=int(plan_row["seed"]), loss_id=loss_id, lr=hyperparams["lr"],
+                weight_decay=hyperparams["weight_decay"], batch_size=hyperparams["batch_size"],
+                optimizer_id=str(hyperparams["optimizer"]),
+            )
+        else:
+            fit = fit_fixed_candidate(
+                model_factory, scaled_training.batch, scaled_validation.batch, effective,
+                seed=int(plan_row["seed"]), loss_id=loss_id, lr=hyperparams["lr"],
+                weight_decay=hyperparams["weight_decay"], batch_size=hyperparams["batch_size"],
+                optimizer_id=str(hyperparams["optimizer"]),
+            )
+    except (RuntimeError, ValueError) as science_error:
+        return {
+            "state": "failed",
+            "failure_code": f"{type(science_error).__name__}",
+            "message": str(science_error)[:200],
+            "receipt": record_fit_failed(
+                run_dir, cache_root=cache_root, fit_id=fit_id, owner_id=owner_id, owner_nonce=owner_nonce,
+                failure_code=f"{type(science_error).__name__}"[:64], timestamp=timestamp,
+            ),
+        }
 
     _require(
         hashlib.sha256(fit.checkpoint_bytes).hexdigest() == fit.checkpoint_sha256,
         "canonical checkpoint bytes do not hash to the recorded checkpoint_sha256",
     )
-    decision_id, candidate_id, selected = resolve_decision_candidate(plan_row)
-    metrics = {
-        "fit_id": fit_id, "run_id": str(plan_row["run_id"]), "module_id": str(plan_row["module_id"]),
-        "rule_id": str(plan_row["rule_id"]), "route_id": route, "n": _fit_n(plan_row, frozen),
-        "seed": int(plan_row["seed"]), "decision_id": decision_id, "candidate_id": candidate_id,
-        "selected": selected, "failed": False, "checkpoint_sha256": fit.checkpoint_sha256,
-        "best_validation_loss": float(fit.best_validation_loss), "actual_epochs": int(fit.actual_epochs),
-        "best_epoch": int(fit.best_epoch), "validation_loss_history": list(fit.validation_loss_history),
-        "early_stop_reason": str(fit.early_stop_reason), "hit_epoch_ceiling": bool(fit.hit_epoch_ceiling),
+    curve = [float(value) for value in fit.validation_loss_history]
+    evidence = {
+        "evidence_version": "study02-formal-fit-evidence-v1",
+        "fit_id": fit_id, "run_id": str(plan_row["run_id"]),
+        "checkpoint_sha256": fit.checkpoint_sha256,
+        "actual_epochs": int(fit.actual_epochs),
+        "best_epoch_one_based": int(fit.best_epoch) + 1,
+        "hit_epoch_100": bool(fit.hit_epoch_ceiling),
+        "early_stop_reason": str(fit.early_stop_reason),
+        "terminal_validation_slope": _terminal_validation_slope(curve),
+        "validation_curve": curve,
+        "test_access_count": 0,
     }
     output_hashes = _write_outputs(
-        run_dir, fit_id, str(plan_row["run_id"]), fit.checkpoint_bytes, fit.checkpoint_sha256, metrics,
+        run_dir, fit_id, str(plan_row["run_id"]), fit.checkpoint_bytes, fit.checkpoint_sha256, evidence,
     )
-    return record_fit_succeeded(
-        run_dir, cache_root=cache_root, fit_id=fit_id, owner_id=owner_id, owner_nonce=owner_nonce,
-        output_hashes=output_hashes, timestamp=timestamp,
-    )
+    return {
+        "state": "succeeded",
+        "receipt": record_fit_succeeded(
+            run_dir, cache_root=cache_root, fit_id=fit_id, owner_id=owner_id, owner_nonce=owner_nonce,
+            output_hashes=output_hashes, timestamp=timestamp,
+        ),
+    }
 
 
 def run_module(
@@ -367,10 +373,18 @@ def run_module(
 ) -> dict[str, Any]:
     """Drive one formal module end-to-end (materialize if needed, then claim/execute/record).
 
-    Resumable: each fit is one claim->record transaction guarded by the scheduler
-    journal. Stops when the plan is exhausted or ``max_fits`` successful fits are
-    recorded. A-E1 needs no predecessor; A-E3/A-E2 require a predecessor
-    (D8, deferred) and fail closed here until that wiring exists.
+    Executes the **concrete** fits of the module (those whose architecture/optimizer/loss
+    are fully resolved). When the next pending fit depends on a within-module selection
+    (``selected_top_*`` / ``selected:*`` placeholders), it STOPS cleanly with
+    ``selection_required`` rather than claiming and failing it — selection itself is a
+    separate operation (D7) that resolves placeholders from the concrete fits' bound
+    checkpoints. This is why A-E1 is not "fully executable" in one pass: its stage-2
+    and winner-retrain fits require the stage-1 selection to have run first.
+
+    Each concrete fit is one claim->record transaction guarded by the scheduler journal.
+    Infrastructure errors (data/cache/scaler/write/record) propagate so the run aborts and
+    can be retried; only training/numerical failures are recorded as per-fit scientific
+    failures. A-E3/A-E2 require a predecessor (D8, deferred) and fail closed here.
     """
     study_root = Path(study_root)
     if module_id != "A-E1":
@@ -378,9 +392,6 @@ def run_module(
             f"execution of module {module_id!r} requires predecessor wiring (D8, deferred); "
             "only A-E1 is executable in this relay"
         )
-    # Resolve to absolute paths up front: the scheduler stores matrix.path in the form it is
-    # given, and rebuilds it from the (absolute) authority field, so relative inputs would make
-    # the manifest irreproducible. Absolute inputs keep materialize and rebuild consistent.
     study_root = Path(study_root).resolve()
     artifact_root = Path(artifact_root).resolve()
     cache_root = Path(cache_root).resolve()
@@ -393,61 +404,62 @@ def run_module(
     frozen = load_frozen_config(study_root)
     effective = load_effective_formal_config(study_root)
 
-    # Re-read the plan rows from the materialized plan.jsonl (canonical source).
     plan_rows = [
         json.loads(line)
         for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+    plan_order = [row["fit_id"] for row in plan_rows]
     by_fit = {row["fit_id"]: row for row in plan_rows}
 
     succeeded: list[str] = []
     failed: list[dict[str, str]] = []
+    selection_required: list[str] = []
     consecutive_failures = 0
-    _MAX_CONSECUTIVE_FAILURES = 8  # stop churning on a systematic execution error
+    _MAX_CONSECUTIVE_FAILURES = 8  # stop on a systematic scientific failure, not churn
     while max_fits is None or len(succeeded) < int(max_fits):
+        # Peek the next pending fit WITHOUT claiming, so a selection-dependent fit is
+        # deferred cleanly instead of being claimed and then failed.
+        state = _rebuild_authority(run_dir, cache_root)[2]
+        pending = [fid for fid in plan_order if state["fit_states"].get(fid) == "pending"]
+        if not pending:
+            break  # plan exhausted
+        next_fit = pending[0]
+        if _is_selection_dependent(by_fit[next_fit]):
+            selection_required.append(next_fit)
+            break  # defer to D7 selection
         timestamp = _utc_now()
         claim = claim_next_fit(
             run_dir, cache_root=cache_root, owner_id=owner_id,
             owner_nonce=hashlib.sha256(f"{owner_id}:{timestamp}".encode("utf-8")).hexdigest()[:32],
             timestamp=timestamp,
         )
-        status = claim["status"]
-        if status == "exhausted":
+        if claim["status"] == "exhausted":
             break
-        if status != "claimed":
-            # monitor_only: another live owner holds the claim; stop and let the caller retry.
-            break
-        fit_id = claim["fit_id"]
-        plan_row = by_fit[fit_id]
-        try:
-            execute_claimed_fit(
-                study_root=study_root, run_dir=run_dir, cache_root=cache_root, plan_row=plan_row,
-                claim=claim, frozen=frozen, effective=effective, timestamp=timestamp,
-            )
-            succeeded.append(fit_id)
+        if claim["status"] != "claimed":
+            break  # monitor_only: another live owner; let the caller retry
+        result = execute_claimed_fit(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root,
+            plan_row=by_fit[claim["fit_id"]], claim=claim, frozen=frozen, effective=effective,
+            timestamp=timestamp,
+        )
+        if result["state"] == "succeeded":
+            succeeded.append(claim["fit_id"])
             consecutive_failures = 0
-        except Exception as error:  # training/numerical failure -> record failed terminal
-            failure_code = f"{type(error).__name__}"
-            output_dir = run_dir / "outputs" / fit_id
-            if output_dir.exists():
-                shutil.rmtree(output_dir, ignore_errors=True)
-            record_fit_failed(
-                run_dir, cache_root=cache_root, fit_id=fit_id, owner_id=claim["owner_id"],
-                owner_nonce=claim["owner_nonce"], failure_code=failure_code[:64], timestamp=timestamp,
-            )
-            failed.append({"fit_id": fit_id, "failure_code": failure_code, "message": str(error)[:200]})
+        else:
+            failed.append({"fit_id": claim["fit_id"], "failure_code": result["failure_code"], "message": result["message"]})
             consecutive_failures += 1
             if consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
                 raise RuntimeError(
-                    f"formal execution aborted: {_MAX_CONSECUTIVE_FAILURES} consecutive fit failures "
-                    f"(last: {failure_code}: {error})"
-                ) from error
+                    f"formal execution aborted: {_MAX_CONSECUTIVE_FAILURES} consecutive scientific failures "
+                    f"(last: {result['failure_code']}: {result['message']})"
+                )
 
     return {
         "module_id": module_id, "run_id": run_id, "run_dir": str(run_dir),
-        "succeeded": succeeded, "failed": failed,
+        "succeeded": succeeded, "failed": failed, "selection_required": selection_required,
         "succeeded_count": len(succeeded), "failed_count": len(failed),
+        "selection_required_count": len(selection_required),
     }
 
 
@@ -487,7 +499,6 @@ def reconstruct_deferred_specs(*arg: Any, **kw: Any) -> Any:  # pragma: no cover
 __all__ = [
     "execute_claimed_fit",
     "reconstruct_a_e1_specs",
-    "resolve_decision_candidate",
     "resolve_loss_id",
     "resolve_model_factory",
     "resolve_optimizer_hyperparams",

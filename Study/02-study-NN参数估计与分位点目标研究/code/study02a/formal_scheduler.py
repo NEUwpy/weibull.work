@@ -66,6 +66,11 @@ _JOURNAL_FIELDS = {
 }
 _LOCK_FIELDS = {"lock_version", "host_id", "process_id", "process_start_token", "owner_nonce"}
 _FIT_STATUS_FIELDS = {"checkpoint_sha256", "fit_id", "run_id", "status", "test_access_count"}
+_EVIDENCE_FIELDS = {
+    "evidence_version", "fit_id", "run_id", "checkpoint_sha256", "actual_epochs",
+    "best_epoch_one_based", "hit_epoch_100", "early_stop_reason",
+    "terminal_validation_slope", "validation_curve", "test_access_count",
+}
 _ANCHOR_FIELDS = {
     "anchor_version", "module_id", "run_id", "seq", "event_count", "event_tail_sha256",
     "state_sha256", "authority_sha256", "previous_anchor_sha256", "controller_key_id",
@@ -263,27 +268,49 @@ def _read_identity_snapshot(path: Path) -> dict[str, Any]:
 
 
 def _scoped_code_snapshot(study_root: Path) -> dict[str, Any]:
-    code_root = _resolved(study_root) / "code"
-    paths = sorted(path for path in code_root.rglob("*.py") if "__pycache__" not in path.parts)
-    if not paths:
-        raise ValueError("scoped Study02 production code tree is empty")
+    """Hash the Study02 scientific code AND the shared research code it depends on.
+
+    Data generation reaches outside ``code/``: ``design.py`` imports
+    ``studies.common.sample``. A run is only reproducible if both the Study02 tree and
+    the shared ``python/studies`` tree are bound into the authority, so a drift in
+    either fails closed. Keys are namespaced (``study02/...``, ``studies/...``).
+    """
+    study_root = _resolved(study_root)
+    repo_root = study_root.parents[1]
     files: dict[str, str] = {}
-    for path in paths:
+    code_root = study_root / "code"
+    study_paths = sorted(path for path in code_root.rglob("*.py") if "__pycache__" not in path.parts)
+    if not study_paths:
+        raise ValueError("scoped Study02 production code tree is empty")
+    for path in study_paths:
         snapshot = _read_identity_snapshot(path)
-        files[path.relative_to(code_root).as_posix()] = _sha(snapshot["bytes"])
+        files[f"study02/{path.relative_to(code_root).as_posix()}"] = _sha(snapshot["bytes"])
+    shared_root = repo_root / "python" / "studies"
+    if shared_root.is_dir():
+        shared_paths = sorted(path for path in shared_root.rglob("*.py") if "__pycache__" not in path.parts)
+        for path in shared_paths:
+            snapshot = _read_identity_snapshot(path)
+            files[f"studies/{path.relative_to(shared_root).as_posix()}"] = _sha(snapshot["bytes"])
     return {"files": files, "scoped_code_sha256": _sha(_canonical(files))}
 
 
 def _assert_scoped_code_clean(study_root: Path) -> None:
     study_root = _resolved(study_root)
     repo_root = study_root.parents[1]
-    code_relative = (study_root / "code").relative_to(repo_root)
-    result = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=all", "--", str(code_relative)],
-        cwd=repo_root, check=True, capture_output=True, text=True,
-    )
-    if result.stdout.strip():
-        raise ValueError("Study02 scoped scientific production code tree is dirty")
+    scopes: list[Path] = [(study_root / "code").relative_to(repo_root)]
+    shared_relative = Path("python") / "studies"
+    if (repo_root / shared_relative).is_dir():
+        scopes.append(shared_relative)
+    dirty: list[str] = []
+    for relative in scopes:
+        result = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=all", "--", str(relative)],
+            cwd=repo_root, check=True, capture_output=True, text=True,
+        )
+        if result.stdout.strip():
+            dirty.append(str(relative))
+    if dirty:
+        raise ValueError(f"Study02 scoped scientific code tree is dirty: {dirty}")
 
 
 def _process_start_token(process_id: int) -> str | None:
@@ -373,7 +400,8 @@ def _plan_rows(study_root: Path, rows: Sequence[dict[str, str]], module_id: str,
         fit_number = int(row["fit_id"].rsplit("-", 1)[1])
         outputs = [
             {"relative_path": f"outputs/{row['fit_id']}/checkpoint.pt", "content_type": "binary", "required": True},
-            {"relative_path": f"outputs/{row['fit_id']}/fit_status.json", "content_type": "canonical_json", "required": True},
+            {"relative_path": f"outputs/{row['fit_id']}/fit_status.json", "content_type": "fit_status_json", "required": True},
+            {"relative_path": f"outputs/{row['fit_id']}/evidence.json", "content_type": "evidence_json", "required": True},
         ]
         item = {
             "plan_version": "study02-formal-plan-row-v2", "plan_index": index, "run_id": run_id,
@@ -453,7 +481,7 @@ def _validate_plan(plan_bytes: bytes, manifest: Mapping[str, Any]) -> list[dict[
         if not isinstance(row, dict) or set(row) != _PLAN_FIELDS or row["plan_index"] != index or row["test_access_count"] != 0:
             raise ValueError("formal plan row schema/order mismatch")
         outputs = row["expected_outputs"]
-        if not isinstance(outputs, list) or len(outputs) != 2 or any(set(item) != {"relative_path", "content_type", "required"} or item["required"] is not True for item in outputs):
+        if not isinstance(outputs, list) or len(outputs) != 3 or any(set(item) != {"relative_path", "content_type", "required"} or item["required"] is not True for item in outputs):
             raise ValueError("formal plan expected output schema mismatch")
     return plan
 
@@ -763,20 +791,33 @@ def _validate_success_files(run_dir: Path, row: Mapping[str, Any], output_hashes
         raise ValueError("output directory contains missing, extra, hidden, or nested output")
     file_snapshots: dict[str, dict[str, Any]] = {}
     for item in row["expected_outputs"]:
-        relative = item["relative_path"]; path = _contained(run_dir, relative)
-        file_snapshot = _read_identity_snapshot(path); file_snapshots[relative] = file_snapshot
-        payload = file_snapshot["bytes"]
+        relative = item["relative_path"]
+        file_snapshots[relative] = _read_identity_snapshot(_contained(run_dir, relative))
+    checkpoint_relative = next(item["relative_path"] for item in row["expected_outputs"] if item["content_type"] == "binary")
+    checkpoint_sha = _sha(file_snapshots[checkpoint_relative]["bytes"])
+    for item in row["expected_outputs"]:
+        relative = item["relative_path"]; payload = file_snapshots[relative]["bytes"]
         if not payload or _sha(payload) != _hash(output_hashes[relative], "output SHA-256"):
             raise ValueError("scientific output is empty or its exact hash mismatches")
-        if item["content_type"] == "canonical_json":
+        content_type = item["content_type"]
+        if content_type == "binary":
+            continue
+        if content_type == "fit_status_json":
             status_value = _decode_exact(payload, _FIT_STATUS_FIELDS, "fit status output")
-            checkpoint_relative = next(entry["relative_path"] for entry in row["expected_outputs"] if entry["content_type"] == "binary")
-            checkpoint_snapshot = file_snapshots.get(checkpoint_relative)
-            if checkpoint_snapshot is None:
-                raise ValueError("checkpoint must be snapshotted before canonical fit status")
-            checkpoint_sha = _sha(checkpoint_snapshot["bytes"])
             if status_value != {"checkpoint_sha256": checkpoint_sha, "fit_id": row["fit_id"], "run_id": row["run_id"], "status": "succeeded", "test_access_count": 0}:
                 raise ValueError("fit status output does not bind the exact fit/checkpoint authority")
+        elif content_type == "evidence_json":
+            evidence = _decode_exact(payload, _EVIDENCE_FIELDS, "fit evidence output")
+            if (evidence["evidence_version"] != "study02-formal-fit-evidence-v1"
+                    or evidence["checkpoint_sha256"] != checkpoint_sha
+                    or evidence["fit_id"] != row["fit_id"]
+                    or evidence["run_id"] != row["run_id"]
+                    or evidence["test_access_count"] != 0):
+                raise ValueError("fit evidence output does not bind the exact fit/checkpoint authority")
+            if not isinstance(evidence["validation_curve"], list) or len(evidence["validation_curve"]) != int(evidence["actual_epochs"]):
+                raise ValueError("fit evidence validation curve does not match actual epochs")
+        else:
+            raise ValueError(f"unknown expected output content type: {content_type}")
     final_entries = list(os.scandir(_reject_alias(output_dir)))
     if {Path(entry.path).relative_to(run_dir).as_posix() for entry in final_entries} != expected:
         raise ValueError("output directory identity changed during validation")
@@ -863,8 +904,15 @@ def recover_claim(run_dir: Path, *, cache_root: Path, timestamp: str) -> dict[st
             return {"status": "clean_pending"}
         if _identity_live(claim) or not _identity_confirmed_dead(claim):
             return {"status": "monitor_only", **claim}
-        if _output_snapshot(run_dir, claim["fit_id"]):
-            raise ValueError("stale claim has partial, hidden, alias, or conflicting output")
+        orphaned_outputs = _output_snapshot(run_dir, claim["fit_id"])
+        if orphaned_outputs:
+            # The executor died between writing outputs and recording success. Because no
+            # success event exists for this still-claimed fit, the outputs are uncommitted;
+            # remove them so the fit re-runs deterministically (recovery is possible instead
+            # of a permanently stuck claim). The fit is confirmed dead, so these are not a
+            # live owner's in-flight artifacts.
+            output_dir = _reject_alias(run_dir / "outputs" / claim["fit_id"])
+            shutil.rmtree(output_dir, ignore_errors=False)
         event = _event("claim_recovered", len(events), events[-1]["event_sha256"], state["authority_sha256"], {"fit_id": claim["fit_id"], "timestamp": timestamp, "reason": "dead_identity_no_outputs"})
         after = _next_state(run_dir, manifest, plan, events, event); _commit_transaction(run_dir, state, event, after)
         return {"status": "released_to_pending", "fit_id": claim["fit_id"]}

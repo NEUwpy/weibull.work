@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 import hashlib
+from pathlib import Path
 import random
+import struct
 from typing import Any, Callable, Sequence
 
 import numpy as np
@@ -131,20 +133,64 @@ def expand_search_specs(route_id: str, search_config: Mapping[str, Any]) -> Sear
 
 
 def _checkpoint_canonical_bytes(state: Mapping[str, torch.Tensor]) -> bytes:
-    """Deterministic, pickle-free checkpoint bytes whose SHA-256 is ``_checkpoint_hash``.
+    """Deterministic, loadable, pickle-free checkpoint bytes.
 
-    Formal fits write this exact byte string to ``checkpoint.pt`` so that
-    ``sha256(checkpoint.pt) == FitResult.checkpoint_sha256`` without a second
-    reconstruction that could drift from the hash.
+    Each parameter (sorted by name) is encoded with explicit length prefixes so the
+    bytes are unambiguously parseable by :func:`load_checkpoint`:
+
+        uint32 name_len | name(utf-8) | uint32 dtype_len | dtype(ascii)
+        | uint32 ndim | ndim*uint64 shape | uint64 nbytes | raw tensor bytes (C order)
+
+    ``sha256`` of these bytes is ``_checkpoint_hash``; the same bytes are written to
+    ``checkpoint.pt``. This is deliberately *not* ``torch.save`` so the hash is stable
+    across processes and library versions, while remaining loadable via the decoder.
     """
     parts: list[bytes] = []
     for name in sorted(state):
         tensor = state[name].detach().cpu().contiguous()
-        parts.append(name.encode("utf-8"))
-        parts.append(str(tensor.dtype).encode("ascii"))
-        parts.append(np.asarray(tensor.shape, dtype=np.int64).tobytes())
-        parts.append(tensor.numpy().tobytes())
+        arr = tensor.numpy()
+        name_bytes = name.encode("utf-8")
+        dtype_bytes = str(arr.dtype).encode("ascii")
+        shape = arr.shape
+        parts.append(struct.pack("<I", len(name_bytes)))
+        parts.append(name_bytes)
+        parts.append(struct.pack("<I", len(dtype_bytes)))
+        parts.append(dtype_bytes)
+        parts.append(struct.pack("<I", len(shape)))
+        if shape:
+            parts.append(struct.pack("<%dQ" % len(shape), *shape))
+        raw = arr.tobytes(order="C")
+        parts.append(struct.pack("<Q", len(raw)))
+        parts.append(raw)
     return b"".join(parts)
+
+
+def load_checkpoint(source: bytes | str | Path) -> dict[str, torch.Tensor]:
+    """Decode canonical checkpoint bytes (or a path to them) back into a state dict.
+
+    Inverse of :func:`_checkpoint_canonical_bytes`; used by Task 9d to restore a
+    selected fit's model for one-shot test evaluation.
+    """
+    if isinstance(source, (str, Path)):
+        source = Path(source).read_bytes()
+    pos = 0
+    total = len(source)
+    state: dict[str, torch.Tensor] = {}
+    while pos < total:
+        (name_len,) = struct.unpack_from("<I", source, pos); pos += 4
+        name = source[pos:pos + name_len].decode("utf-8"); pos += name_len
+        (dtype_len,) = struct.unpack_from("<I", source, pos); pos += 4
+        dtype = source[pos:pos + dtype_len].decode("ascii"); pos += dtype_len
+        (ndim,) = struct.unpack_from("<I", source, pos); pos += 4
+        shape = struct.unpack_from("<%dQ" % ndim, source, pos) if ndim else ()
+        pos += 8 * ndim
+        (nbytes,) = struct.unpack_from("<Q", source, pos); pos += 8
+        raw = source[pos:pos + nbytes]; pos += nbytes
+        array = np.frombuffer(raw, dtype=np.dtype(dtype)).reshape(shape).copy()
+        state[name] = torch.from_numpy(array)
+    if pos != total:
+        raise ValueError("checkpoint bytes have a trailing/short tail; not canonical")
+    return state
 
 
 def _checkpoint_hash(state: Mapping[str, torch.Tensor]) -> str:
@@ -167,14 +213,21 @@ def _fit_deterministic_candidate(
     lr: float,
     weight_decay: float,
     batch_size: int,
+    optimizer_id: str = "adamw",
 ) -> FitResult:
+    if optimizer_id == "adamw":
+        optimizer_cls = torch.optim.AdamW
+    elif optimizer_id == "adam":
+        optimizer_cls = torch.optim.Adam
+    else:
+        raise ValueError(f"unsupported frozen optimizer id: {optimizer_id!r}")
     seed_everything(seed)
     stats = {
         "mean": training_targets.mean(dim=0),
         "sd": training_targets.std(dim=0, unbiased=False),
     }
     model = model_factory()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = optimizer_cls(model.parameters(), lr=lr, weight_decay=weight_decay)
     generator = torch.Generator().manual_seed(seed)
     loader = DataLoader(
         TensorDataset(*training_inputs, training_targets),
@@ -249,6 +302,7 @@ def fit_candidate(
     lr: float = 1e-3,
     weight_decay: float = 1e-4,
     batch_size: int = 512,
+    optimizer_id: str = "adamw",
 ) -> FitResult:
     train_x, train_y = training_data
     validation_x, validation_y = validation_data
@@ -267,6 +321,7 @@ def fit_candidate(
         lr=lr,
         weight_decay=weight_decay,
         batch_size=batch_size,
+        optimizer_id=optimizer_id,
     )
 
 
@@ -292,6 +347,7 @@ def fit_fixed_candidate(
     lr: float = 1e-3,
     weight_decay: float = 1e-4,
     batch_size: int = 512,
+    optimizer_id: str = "adamw",
 ) -> FitResult:
     """Fit a fixed-route MLP under the sole approved formal epoch contract."""
 
@@ -313,6 +369,7 @@ def fit_fixed_candidate(
         lr=lr,
         weight_decay=weight_decay,
         batch_size=batch_size,
+        optimizer_id=optimizer_id,
     )
 
 
@@ -327,6 +384,7 @@ def fit_set_candidate(
     lr: float = 1e-3,
     weight_decay: float = 1e-4,
     batch_size: int = 512,
+    optimizer_id: str = "adamw",
 ) -> FitResult:
     """Fit a DeepSets candidate under the sole approved formal epoch contract."""
 
@@ -356,6 +414,7 @@ def fit_set_candidate(
         lr=lr,
         weight_decay=weight_decay,
         batch_size=batch_size,
+        optimizer_id=optimizer_id,
     )
 
 

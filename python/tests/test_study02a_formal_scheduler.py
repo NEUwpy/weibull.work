@@ -37,6 +37,31 @@ def _create(tmp_path: Path, **overrides):
     return materialize_run(**kwargs)
 
 
+def _canonical(obj) -> bytes:
+    return (json.dumps(obj, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+
+
+def _write_success(run_dir: Path, claim: dict, checkpoint: bytes = b"checkpoint", curve=None) -> dict:
+    """Write a valid bound triple (checkpoint.pt + fit_status.json + evidence.json) and return its hashes."""
+    fit_id = claim["fit_id"]; run_id = claim["run_id"]
+    out = run_dir / "outputs" / fit_id
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "checkpoint.pt").write_bytes(checkpoint)
+    checkpoint_sha = hashlib.sha256(checkpoint).hexdigest()
+    (out / "fit_status.json").write_bytes(_canonical(
+        {"checkpoint_sha256": checkpoint_sha, "fit_id": fit_id, "run_id": run_id, "status": "succeeded", "test_access_count": 0}))
+    history = [1.0, 0.9, 0.8] if curve is None else list(curve)
+    evidence = {
+        "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id, "run_id": run_id,
+        "checkpoint_sha256": checkpoint_sha, "actual_epochs": len(history), "best_epoch_one_based": 1,
+        "hit_epoch_100": False, "early_stop_reason": "patience_exhausted",
+        "terminal_validation_slope": 0.0, "validation_curve": history, "test_access_count": 0,
+    }
+    (out / "evidence.json").write_bytes(_canonical(evidence))
+    return {f"outputs/{fit_id}/{name}": hashlib.sha256((out / name).read_bytes()).hexdigest()
+            for name in ("checkpoint.pt", "fit_status.json", "evidence.json")}
+
+
 def test_exact_matrix_and_a_e1_plan_are_canonical(tmp_path):
     result = _create(tmp_path)
     run_dir = Path(result["run_dir"])
@@ -117,7 +142,7 @@ def test_stale_claim_recovers_only_without_outputs(tmp_path, monkeypatch):
     assert again["fit_id"] == claim["fit_id"]
 
 
-def test_stale_claim_with_any_output_refuses_recovery(tmp_path, monkeypatch):
+def test_stale_claim_with_orphaned_output_is_cleaned_and_recovered(tmp_path, monkeypatch):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, recover_claim
 
@@ -125,9 +150,10 @@ def test_stale_claim_with_any_output_refuses_recovery(tmp_path, monkeypatch):
     monkeypatch.setattr("study02a.formal_scheduler._process_start_token", lambda _pid: claim["process_start_token"] + "-ended")
     output = run_dir / claim["expected_outputs"][0]["relative_path"]
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text("partial", encoding="utf-8")
-    with pytest.raises(ValueError, match="output"):
-        recover_claim(run_dir, cache_root=tmp_path / "cache", timestamp="2026-07-13T00:01:00Z")
+    output.write_text("partial", encoding="utf-8")  # orphaned output from a crashed executor (no success event)
+    recovered = recover_claim(run_dir, cache_root=tmp_path / "cache", timestamp="2026-07-13T00:01:00Z")
+    assert recovered["status"] == "released_to_pending"
+    assert not output.parent.exists()  # orphaned outputs removed so the fit re-runs deterministically
 
 
 def test_terminal_failure_is_immutable_and_not_retried(tmp_path):
@@ -232,20 +258,24 @@ def test_success_requires_exact_contained_complete_nonempty_outputs(tmp_path):
     with pytest.raises(ValueError, match="output|relative|expected"):
         record_fit_succeeded(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="worker", owner_nonce="nonce-worker", output_hashes={str(outside): hashlib.sha256(b"x").hexdigest()}, timestamp="2026-07-13T00:01:00Z")
     expected = claim["expected_outputs"]
-    checkpoint = run_dir / expected[0]["relative_path"]
-    status_file = run_dir / expected[1]["relative_path"]
-    checkpoint.parent.mkdir(parents=True, exist_ok=True)
-    checkpoint.write_bytes(b"checkpoint")
-    status_payload = {"checkpoint_sha256": hashlib.sha256(b"checkpoint").hexdigest(), "fit_id": claim["fit_id"], "run_id": "G3-AE1-plan-v1", "status": "succeeded", "test_access_count": 0}
-    status_file.write_bytes((json.dumps(status_payload, sort_keys=True, separators=(",", ":")) + "\n").encode())
-    exact = {item["relative_path"]: hashlib.sha256((run_dir / item["relative_path"]).read_bytes()).hexdigest() for item in expected}
+    exact = _write_success(run_dir, claim)
     with pytest.raises(ValueError, match="extra|expected"):
         record_fit_succeeded(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="worker", owner_nonce="nonce-worker", output_hashes={**exact, "outputs/extra": "0" * 64}, timestamp="2026-07-13T00:01:00Z")
-    receipt = record_fit_succeeded(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="worker", owner_nonce="nonce-worker", output_hashes=exact, timestamp="2026-07-13T00:01:00Z")
+    # tampering the bound evidence (its checkpoint binding) must be rejected
+    fit_id = claim["fit_id"]
+    ev_path = run_dir / "outputs" / fit_id / "evidence.json"
+    tampered = json.loads(ev_path.read_bytes()); tampered["checkpoint_sha256"] = "0" * 64
+    ev_path.write_bytes(_canonical(tampered))
+    tampered_hashes = {**exact, f"outputs/{fit_id}/evidence.json": hashlib.sha256(ev_path.read_bytes()).hexdigest()}
+    with pytest.raises(ValueError, match="evidence|bind|authority|fit"):
+        record_fit_succeeded(run_dir, cache_root=tmp_path / "cache", fit_id=fit_id, owner_id="worker", owner_nonce="nonce-worker", output_hashes=tampered_hashes, timestamp="2026-07-13T00:01:00Z")
+    # rewrite correct evidence and record cleanly
+    exact = _write_success(run_dir, claim)
+    receipt = record_fit_succeeded(run_dir, cache_root=tmp_path / "cache", fit_id=fit_id, owner_id="worker", owner_nonce="nonce-worker", output_hashes=exact, timestamp="2026-07-13T00:01:00Z")
     assert receipt["state"] == "succeeded"
 
 
-def test_failure_and_recovery_refuse_any_hidden_temp_subdir_or_alias_output(tmp_path, monkeypatch):
+def test_failed_fit_refuses_outputs_and_recovery_cleans_orphans(tmp_path, monkeypatch):
     run_dir = Path(_create(tmp_path)["run_dir"])
     from study02a.formal_scheduler import claim_next_fit, record_fit_failed, recover_claim
     claim = claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="dead", owner_nonce="nonce-dead", timestamp="2026-07-13T00:00:00Z")
@@ -253,10 +283,13 @@ def test_failure_and_recovery_refuse_any_hidden_temp_subdir_or_alias_output(tmp_
     output_dir = run_dir / "outputs" / claim["fit_id"]
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / ".partial.tmp").write_bytes(b"partial")
-    with pytest.raises(ValueError, match="output"):
-        recover_claim(run_dir, cache_root=tmp_path / "cache", timestamp="2026-07-13T00:01:00Z")
+    # a failed fit must not carry any (hidden/temp) output
     with pytest.raises(ValueError, match="output"):
         record_fit_failed(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="dead", owner_nonce="nonce-dead", failure_code="infra", timestamp="2026-07-13T00:01:00Z")
+    # recovery cleans the orphaned output dir (including hidden/temp) and releases the fit
+    recovered = recover_claim(run_dir, cache_root=tmp_path / "cache", timestamp="2026-07-13T00:01:00Z")
+    assert recovered["status"] == "released_to_pending"
+    assert not output_dir.exists()
 
 
 def test_pid_reuse_uses_creation_token_not_pid_alone(tmp_path, monkeypatch):
@@ -381,12 +414,7 @@ def test_output_identity_change_after_one_read_snapshot_rejects(tmp_path, monkey
     import study02a.formal_scheduler as scheduler
     claim = scheduler.claim_next_fit(run_dir, cache_root=tmp_path / "cache", owner_id="worker", owner_nonce="nonce-worker", timestamp="2026-07-13T00:00:00Z")
     checkpoint = run_dir / claim["expected_outputs"][0]["relative_path"]
-    status_file = run_dir / claim["expected_outputs"][1]["relative_path"]
-    checkpoint.parent.mkdir(parents=True, exist_ok=True); checkpoint.write_bytes(b"checkpoint")
-    checkpoint_sha = hashlib.sha256(b"checkpoint").hexdigest()
-    status_payload = {"checkpoint_sha256": checkpoint_sha, "fit_id": claim["fit_id"], "run_id": "G3-AE1-plan-v1", "status": "succeeded", "test_access_count": 0}
-    status_file.write_bytes((json.dumps(status_payload, sort_keys=True, separators=(",", ":")) + "\n").encode())
-    output_hashes = {item["relative_path"]: hashlib.sha256((run_dir / item["relative_path"]).read_bytes()).hexdigest() for item in claim["expected_outputs"]}
+    output_hashes = _write_success(run_dir, claim)
     original = scheduler._read_identity_snapshot
     changed = {"done": False}
     def mutate_after_read(path):

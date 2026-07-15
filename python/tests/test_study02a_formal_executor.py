@@ -91,16 +91,12 @@ def test_resolve_loss_id_passthrough_and_fail_closed():
         fe.resolve_loss_id("selected:A-E1_loss")
 
 
-def test_resolve_decision_candidate_from_plan_row():
-    # decision/candidate derived from plan-row fields only (plan rows have no fit_kind);
-    # all candidates are unselected because selection (D7) is deferred.
-    arch = fe.resolve_decision_candidate(_plan_row(architecture="m05", optimizer="stage1"))
-    assert arch[1] == "m05" and arch[2] is False
-    assert arch[0].startswith("A-E1:A-E1_historical:H0_hsm:")  # decision grouping keeps module/rule/route/n
-    opt = fe.resolve_decision_candidate(_plan_row(optimizer="o3"))
-    assert opt[1] == "o3" and opt[2] is False
-    hist = fe.resolve_decision_candidate(_plan_row())  # historical_128_64_32 / adam_historical base row
-    assert hist[1] == "historical_128_64_32" and hist[2] is False
+def test_is_selection_dependent_defers_placeholder_fits():
+    # concrete historical/controlled/stage1 fits are executable; selected:* / selected_top_* defer to D7
+    assert fe._is_selection_dependent(_plan_row()) is False  # historical_128_64_32 / adam_historical
+    assert fe._is_selection_dependent(_plan_row(architecture="m05", optimizer="stage1")) is False
+    assert fe._is_selection_dependent(_plan_row(architecture="selected_top_1", optimizer="o1")) is True
+    assert fe._is_selection_dependent(_plan_row(architecture="selected:A-E1_architecture", optimizer="selected:A-E1_optimizer")) is True
 
 
 def test_reconstruct_a_e1_specs_cache_keys_match_scheduler(tmp_path):
@@ -153,13 +149,14 @@ def test_smoke_a_e1_one_fit_end_to_end(tmp_path, monkeypatch):
     )
     assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
 
-    def fast_fixed(model_factory, train_batch, val_batch, effective, *, seed, loss_id, lr, weight_decay, batch_size):
+    def fast_fixed(model_factory, train_batch, val_batch, effective, *, seed, loss_id, lr, weight_decay, batch_size, optimizer_id="adamw"):
         return fit_candidate(
             model_factory,
             (train_batch.features, train_batch.targets),
             (val_batch.features, val_batch.targets),
             seed=seed, max_epochs=2, min_epochs=1, patience=1,
             batch_size=min(int(batch_size), 64), loss_id=loss_id, lr=lr, weight_decay=weight_decay,
+            optimizer_id=optimizer_id,
         )
     monkeypatch.setattr(fe, "fit_fixed_candidate", fast_fixed)
 
@@ -178,15 +175,19 @@ def test_smoke_a_e1_one_fit_end_to_end(tmp_path, monkeypatch):
     stat = status_run(run_dir, cache_root=cache_root)
     assert stat["test_access_count"] == 0
     assert stat["counts"]["succeeded"] == 1
-    # authority rebuild (incl. external controller anchors) must pass on the recorded fit
     manifest, plan, state, events = _rebuild_authority(run_dir, cache_root)
     assert state["fit_states"][fit_id] == "succeeded"
-    # checkpoint.pt + 5-field fit_status.json + metrics sidecar all present and consistent
+    # checkpoint.pt is loadable and reproduces the model; fit_status binds the checkpoint; evidence binds trajectory
     import hashlib, json
+    from study02a.training import load_checkpoint
     checkpoint = (run_dir / "outputs" / fit_id / "checkpoint.pt").read_bytes()
     binding = json.loads((run_dir / "outputs" / fit_id / "fit_status.json").read_bytes())
     assert binding == {"checkpoint_sha256": hashlib.sha256(checkpoint).hexdigest(),
                        "fit_id": fit_id, "run_id": "smoke-0001", "status": "succeeded", "test_access_count": 0}
-    metrics = json.loads((run_dir / "metrics" / f"{fit_id}.json").read_bytes())
-    assert metrics["checkpoint_sha256"] == binding["checkpoint_sha256"]
-    assert metrics["failed"] is False and metrics["actual_epochs"] >= 1
+    evidence = json.loads((run_dir / "outputs" / fit_id / "evidence.json").read_bytes())
+    assert evidence["checkpoint_sha256"] == binding["checkpoint_sha256"]
+    assert evidence["actual_epochs"] >= 1 and len(evidence["validation_curve"]) == evidence["actual_epochs"]
+    state_dict = load_checkpoint(checkpoint)
+    assert set(state_dict) and all(isinstance(t, torch.Tensor) for t in state_dict.values())
+    # no untrusted metrics sidecar exists (selection signal must derive from the bound checkpoint)
+    assert not (run_dir / "metrics").exists()
