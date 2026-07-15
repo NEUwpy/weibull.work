@@ -401,12 +401,18 @@ def run_module(
     (D8, deferred) and fail closed here until that wiring exists.
     """
     study_root = Path(study_root)
-    matrix_path = study_root / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv"
     if module_id != "A-E1":
         raise NotImplementedError(
             f"execution of module {module_id!r} requires predecessor wiring (D8, deferred); "
             "only A-E1 is executable in this relay"
         )
+    # Resolve to absolute paths up front: the scheduler stores matrix.path in the form it is
+    # given, and rebuilds it from the (absolute) authority field, so relative inputs would make
+    # the manifest irreproducible. Absolute inputs keep materialize and rebuild consistent.
+    study_root = Path(study_root).resolve()
+    artifact_root = Path(artifact_root).resolve()
+    cache_root = Path(cache_root).resolve()
+    matrix_path = (study_root / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv").resolve()
     materialize_run(
         study_root=study_root, matrix_path=matrix_path, module_id=module_id, run_id=run_id,
         artifact_root=artifact_root, cache_root=cache_root, predecessor=predecessor,
