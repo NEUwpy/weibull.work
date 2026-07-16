@@ -150,13 +150,23 @@ def test_smoke_a_e1_one_fit_end_to_end(tmp_path, monkeypatch):
     assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
 
     def fast_fixed(model_factory, train_batch, val_batch, effective, *, seed, loss_id, lr, weight_decay, batch_size, optimizer_id="adamw"):
-        return fit_candidate(
-            model_factory,
-            (train_batch.features, train_batch.targets),
-            (val_batch.features, val_batch.targets),
+        # Real checkpoint + predictions from a 2-epoch warmup, but a synthetic 60-epoch
+        # trajectory so the evidence satisfies the formal [min,max]-epochs contract without
+        # paying for 50-100 real epochs. Real training->checkpoint->evidence is covered by
+        # test_checkpoint_round_trip_reproduces_predictions.
+        from study02a.training import FitResult
+        warmup = fit_candidate(
+            model_factory, (train_batch.features, train_batch.targets), (val_batch.features, val_batch.targets),
             seed=seed, max_epochs=2, min_epochs=1, patience=1,
-            batch_size=min(int(batch_size), 64), loss_id=loss_id, lr=lr, weight_decay=weight_decay,
-            optimizer_id=optimizer_id,
+            batch_size=min(int(batch_size), 64), loss_id=loss_id, lr=lr, weight_decay=weight_decay, optimizer_id=optimizer_id,
+        )
+        curve = tuple(100.0 / (i + 1) for i in range(60))
+        best_epoch = min(range(60), key=lambda i: curve[i])
+        return FitResult(
+            predictions=warmup.predictions, checkpoint_sha256=warmup.checkpoint_sha256,
+            checkpoint_bytes=warmup.checkpoint_bytes, best_validation_loss=warmup.best_validation_loss,
+            actual_epochs=60, best_epoch=best_epoch, validation_loss_history=curve,
+            early_stop_reason="patience_exhausted", hit_epoch_ceiling=False,
         )
     monkeypatch.setattr(fe, "fit_fixed_candidate", fast_fixed)
 

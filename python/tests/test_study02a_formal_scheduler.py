@@ -41,8 +41,9 @@ def _canonical(obj) -> bytes:
     return (json.dumps(obj, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
 
 
-def _write_success(run_dir: Path, claim: dict, checkpoint: bytes = b"checkpoint", curve=None) -> dict:
-    """Write a valid bound triple (checkpoint.pt + fit_status.json + evidence.json) and return its hashes."""
+def _write_success(run_dir: Path, claim: dict, checkpoint: bytes = b"checkpoint", size: int = 60) -> dict:
+    """Write a valid, semantically self-consistent bound triple and return its hashes."""
+    from study02a.formal_contracts import _terminal_ols_slope
     fit_id = claim["fit_id"]; run_id = claim["run_id"]
     out = run_dir / "outputs" / fit_id
     out.mkdir(parents=True, exist_ok=True)
@@ -50,12 +51,14 @@ def _write_success(run_dir: Path, claim: dict, checkpoint: bytes = b"checkpoint"
     checkpoint_sha = hashlib.sha256(checkpoint).hexdigest()
     (out / "fit_status.json").write_bytes(_canonical(
         {"checkpoint_sha256": checkpoint_sha, "fit_id": fit_id, "run_id": run_id, "status": "succeeded", "test_access_count": 0}))
-    history = [1.0, 0.9, 0.8] if curve is None else list(curve)
+    history = [100.0 / (i + 1) for i in range(size)]  # finite, strictly decreasing
+    best_epoch = min(range(size), key=lambda i: history[i])
+    hit = size == 100
     evidence = {
         "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id, "run_id": run_id,
-        "checkpoint_sha256": checkpoint_sha, "actual_epochs": len(history), "best_epoch_one_based": 1,
-        "hit_epoch_100": False, "early_stop_reason": "patience_exhausted",
-        "terminal_validation_slope": 0.0, "validation_curve": history, "test_access_count": 0,
+        "checkpoint_sha256": checkpoint_sha, "actual_epochs": size, "best_epoch_one_based": best_epoch + 1,
+        "hit_epoch_100": hit, "early_stop_reason": "max_epochs" if hit else "patience_exhausted",
+        "terminal_validation_slope": _terminal_ols_slope(history), "validation_curve": history, "test_access_count": 0,
     }
     (out / "evidence.json").write_bytes(_canonical(evidence))
     return {f"outputs/{fit_id}/{name}": hashlib.sha256((out / name).read_bytes()).hexdigest()

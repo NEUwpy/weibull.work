@@ -8,6 +8,7 @@ from ctypes import wintypes
 import hmac
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -21,11 +22,11 @@ from dataclasses import asdict, is_dataclass
 from typing import Any, Mapping, Sequence
 
 from .config import load_frozen_config
-from .formal_config import load_effective_formal_config
+from .formal_config import APPROVED_MAX_EPOCHS, APPROVED_MIN_EPOCHS, load_effective_formal_config
 from .formal_contracts import (
     APPROVED_FORMAL_SEEDS, APPROVED_SCREENING_SEEDS, FROZEN_MATRIX_ROWS,
     FROZEN_MATRIX_SHA256, _build_formal_manifest_with_matrix_evidence,
-    _open_verified_matrix_evidence,
+    _open_verified_matrix_evidence, _terminal_ols_slope,
 )
 from .formal_runner import build_training_spec, build_validation_spec
 from .matrix import expand_module_matrix
@@ -814,8 +815,26 @@ def _validate_success_files(run_dir: Path, row: Mapping[str, Any], output_hashes
                     or evidence["run_id"] != row["run_id"]
                     or evidence["test_access_count"] != 0):
                 raise ValueError("fit evidence output does not bind the exact fit/checkpoint authority")
-            if not isinstance(evidence["validation_curve"], list) or len(evidence["validation_curve"]) != int(evidence["actual_epochs"]):
+            curve = evidence["validation_curve"]
+            actual = int(evidence["actual_epochs"])
+            if not isinstance(curve, list) or len(curve) != actual:
                 raise ValueError("fit evidence validation curve does not match actual epochs")
+            if actual < APPROVED_MIN_EPOCHS or actual > APPROVED_MAX_EPOCHS:
+                raise ValueError("fit evidence actual epochs are outside the approved contract")
+            if any((not isinstance(v, (int, float))) or isinstance(v, bool) or not math.isfinite(float(v)) for v in curve):
+                raise ValueError("fit evidence validation curve must contain only finite values")
+            expected_best = min(range(actual), key=lambda index: curve[index]) + 1
+            if int(evidence["best_epoch_one_based"]) != expected_best:
+                raise ValueError("fit evidence best epoch is not the validation-curve argmin")
+            expected_hit = actual == APPROVED_MAX_EPOCHS
+            if bool(evidence["hit_epoch_100"]) is not expected_hit:
+                raise ValueError("fit evidence epoch-ceiling flag is inconsistent with actual epochs")
+            expected_reason = "max_epochs" if expected_hit else "patience_exhausted"
+            if str(evidence["early_stop_reason"]) != expected_reason:
+                raise ValueError("fit evidence early-stop reason is inconsistent")
+            expected_slope = _terminal_ols_slope(curve)
+            if not math.isclose(float(evidence["terminal_validation_slope"]), expected_slope, rel_tol=1e-12, abs_tol=1e-12):
+                raise ValueError("fit evidence terminal validation slope does not match the curve")
         else:
             raise ValueError(f"unknown expected output content type: {content_type}")
     final_entries = list(os.scandir(_reject_alias(output_dir)))

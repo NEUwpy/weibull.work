@@ -35,6 +35,7 @@ from torch import nn
 
 from .config import FrozenConfig, load_frozen_config
 from .formal_config import EffectiveFormalConfig, load_effective_formal_config
+from .formal_contracts import _terminal_ols_slope
 from .formal_data import FormalFixedBatch, FormalSetBatch  # noqa: F401  (type re-export)
 from .formal_runner import (
     FormalDataset,
@@ -209,19 +210,6 @@ def reconstruct_a_e1_specs(
     return training, validation
 
 
-def _terminal_validation_slope(curve: Sequence[float]) -> float:
-    """OLS slope over the last 10 validation losses (mirrors the frozen ceiling contract)."""
-    values = tuple(float(v) for v in curve)
-    terminal = values[-10:]
-    if len(terminal) <= 1:
-        return 0.0
-    x_mean = (len(terminal) - 1) / 2.0
-    y_mean = sum(terminal) / len(terminal)
-    numerator = sum((index - x_mean) * (value - y_mean) for index, value in enumerate(terminal))
-    denominator = sum((index - x_mean) ** 2 for index in range(len(terminal)))
-    return numerator / denominator
-
-
 def _write_outputs(
     run_dir: Path,
     fit_id: str,
@@ -344,7 +332,7 @@ def execute_claimed_fit(
         "best_epoch_one_based": int(fit.best_epoch) + 1,
         "hit_epoch_100": bool(fit.hit_epoch_ceiling),
         "early_stop_reason": str(fit.early_stop_reason),
-        "terminal_validation_slope": _terminal_validation_slope(curve),
+        "terminal_validation_slope": _terminal_ols_slope(curve),
         "validation_curve": curve,
         "test_access_count": 0,
     }
