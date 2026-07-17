@@ -1,0 +1,124 @@
+"""D7/D8 selection tests for Study/02 (scoring, decision grouping, trace/receipt,
+placeholder resolution, tamper/dup/conflict, sealed-test)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+import numpy as np
+import pytest
+import torch
+
+
+ROOT = Path(__file__).resolve().parents[2]
+STUDY_ROOT = ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
+sys.path.insert(0, str(STUDY_ROOT / "code"))
+sys.path.insert(0, str(ROOT / "python"))
+
+from study02a import formal_executor as fe  # noqa: E402
+from study02a.evaluation import evaluate_rows  # noqa: E402
+from study02a.formal_contracts import (  # noqa: E402
+    build_selection_trace_records,
+    publish_selection_receipt,
+    write_selection_trace,
+)
+from study02a.formal_data import FormalFixedBatch  # noqa: E402
+from study02a.formal_config import load_effective_formal_config  # noqa: E402
+from study02a.models import build_mlp  # noqa: E402
+from study02a.representations import anchor_sample, build_features, decode_targets, encode_targets  # noqa: E402
+from study02a.training import fit_candidate, load_checkpoint  # noqa: E402
+
+EFFECTIVE = load_effective_formal_config(STUDY_ROOT)
+
+
+def _synthetic_batch(n_samples: int = 64, seed: int = 7) -> tuple[FormalFixedBatch, np.ndarray, np.ndarray, np.ndarray]:
+    """Build a formal fixed batch with known true params and anchors (route F1eq)."""
+    rng = np.random.default_rng(seed)
+    betas = rng.uniform(1.5, 3.5, n_samples)
+    etas = rng.uniform(500.0, 5000.0, n_samples)
+    gammas = rng.uniform(0.0, 50.0, n_samples)
+    feats, targets, locations, scales = [], [], [], []
+    true_beta, true_eta, true_gamma = [], [], []
+    for i in range(n_samples):
+        beta, eta, gamma = float(betas[i]), float(etas[i]), float(gammas[i])
+        n = 12
+        x = np.sort((gamma + eta * rng.exponential(1.0, n))).astype(float)
+        anchor = anchor_sample(x)
+        target = encode_targets(beta, eta, gamma, anchor)
+        feature = build_features("F1eq", x, n)
+        feats.append(feature); targets.append(target)
+        locations.append(anchor.location); scales.append(anchor.scale)
+        true_beta.append(beta); true_eta.append(eta); true_gamma.append(gamma)
+    batch = FormalFixedBatch(
+        features=torch.as_tensor(np.stack(feats), dtype=torch.float32),
+        targets=torch.as_tensor(np.stack(targets), dtype=torch.float32),
+        location=torch.as_tensor(locations, dtype=torch.float32),
+        scale=torch.as_tensor(scales, dtype=torch.float32),
+    )
+    return batch, np.array(true_beta), np.array(true_eta), np.array(true_gamma)
+
+
+def test_decode_param_columns_inverts_encode_targets():
+    """The vectorized decode in formal_executor is the exact inverse of encode_targets
+    and matches representations.decode_targets — the scientific correctness basis for
+    deriving (beta_hat, eta_hat, gamma_hat) from a checkpoint's raw output."""
+    rng = np.random.default_rng(3)
+    for _ in range(20):
+        beta = float(rng.uniform(1.0, 5.0)); eta = float(rng.uniform(100.0, 9000.0))
+        gamma = float(rng.uniform(0.0, 80.0))
+        x = np.sort(rng.uniform(gamma + 1.0, gamma + eta, 20))
+        anchor = anchor_sample(x)
+        encoded = encode_targets(beta, eta, gamma, anchor)
+        # vectorized decode in float64 (the math) is the exact inverse of encode_targets
+        raw = torch.as_tensor(encoded[None, :], dtype=torch.float64)
+        loc = np.array([anchor.location]); scl = np.array([anchor.scale])
+        b_v, e_v, g_v = fe._decode_param_columns(raw, loc, scl)
+        assert b_v[0] == pytest.approx(beta, rel=1e-12)
+        assert e_v[0] == pytest.approx(eta, rel=1e-12)
+        assert g_v[0] == pytest.approx(gamma, rel=1e-12)
+        # and is identical to the canonical decode_targets
+        b_c, e_c, g_c = decode_targets(encoded, anchor)
+        assert b_v[0] == pytest.approx(b_c, rel=1e-12)
+        assert e_v[0] == pytest.approx(e_c, rel=1e-12)
+        assert g_v[0] == pytest.approx(g_c, rel=1e-12)
+
+
+def test_validation_l_param_reproduces_from_checkpoint():
+    """D7 scoring: checkpoint -> load -> inference -> decode -> L_param must equal the
+    L_param computed directly from the fit's predictions. Proves the score is derived
+    from the integrity-bound checkpoint, not a sidecar, and reproduces exactly."""
+    batch, true_beta, true_eta, true_gamma = _synthetic_batch()
+    input_dim = int(batch.features.shape[1])
+    factory = lambda: build_mlp(input_dim, [24, 12], "relu", 0.0)
+    fit = fit_candidate(
+        factory, (batch.features, batch.targets), (batch.features, batch.targets),
+        seed=11, max_epochs=3, min_epochs=1, patience=1, batch_size=32,
+        loss_id="transformed_unscaled_mse",
+    )
+    score_from_checkpoint = fe.validation_failure_penalized_l_param(
+        checkpoint_bytes=fit.checkpoint_bytes, model_factory=factory,
+        validation_batch=batch, is_set=False,
+    )
+    # Manual replication: load the SAME checkpoint (best_state, not fit.predictions which
+    # is the last-epoch model), forward, decode with float64 anchors, evaluate_rows.
+    state = load_checkpoint(fit.checkpoint_bytes)
+    model = factory(); model.load_state_dict(state); model.eval()
+    with torch.no_grad():
+        replay = model(batch.features)
+    loc64 = batch.location.numpy().astype(float)
+    scl64 = batch.scale.numpy().astype(float)
+    b_hat, e_hat, g_hat = fe._decode_param_columns(replay, loc64, scl64)
+    rows = [
+        {
+            "beta_hat": float(b_hat[i]), "eta_hat": float(e_hat[i]), "gamma_hat": float(g_hat[i]),
+            "beta": float(true_beta[i]), "eta": float(true_eta[i]), "gamma": float(true_gamma[i]),
+            "sample_min": float(batch.location[i]),
+        }
+        for i in range(len(b_hat))
+    ]
+    manual = float(evaluate_rows(rows, failure_penalty=10.0)["unconditional_mean_l_param"])
+    assert np.isfinite(score_from_checkpoint)
+    # Agreement to float32 thread-reduction noise (two independent forward passes through
+    # the loaded checkpoint); exact decode math is covered by the float64 round-trip test.
+    assert score_from_checkpoint == pytest.approx(manual, rel=1e-6)

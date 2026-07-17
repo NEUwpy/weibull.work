@@ -26,17 +26,27 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+import numpy as np
 import torch
 from torch import nn
 
 from .config import FrozenConfig, load_frozen_config
 from .formal_config import EffectiveFormalConfig, load_effective_formal_config
-from .formal_contracts import _terminal_ols_slope
+from .formal_contracts import (
+    PredecessorTrace,
+    _terminal_ols_slope,
+    build_selection_trace_records,
+    publish_selection_receipt,
+    write_selection_trace,
+)
 from .formal_data import FormalFixedBatch, FormalSetBatch  # noqa: F401  (type re-export)
+from .evaluation import evaluate_rows
 from .formal_runner import (
     FormalDataset,
     FormalDatasetSpec,
@@ -54,7 +64,7 @@ from .formal_scheduler import (
     record_fit_succeeded,
 )
 from .models import build_deepsets, build_mlp
-from .training import fit_fixed_candidate, fit_set_candidate
+from .training import fit_fixed_candidate, fit_set_candidate, load_checkpoint
 
 
 _HISTORICAL_PREFIX = "historical_"
@@ -162,6 +172,62 @@ def _find_by_id(items: Sequence[Mapping[str, Any]], identifier: str, label: str)
     raise ValueError(f"unknown frozen {label} id: {identifier!r}")
 
 
+def _decode_param_columns(raw: torch.Tensor, location: np.ndarray, scale: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Vectorized inverse of representations.encode_targets (identical formula to
+    representations.decode_targets, kept vectorized for one-time selection cost).
+    Round-trip equivalence is asserted by the selection unit tests.
+    """
+    values = raw.detach().cpu().numpy().astype(float)
+    beta = np.exp(values[:, 0])
+    eta = scale * np.exp(values[:, 1])
+    gamma = location - scale * np.exp(values[:, 2])
+    return beta, eta, gamma
+
+
+def validation_failure_penalized_l_param(
+    *, checkpoint_bytes: bytes,
+    model_factory: Callable[[], nn.Module],
+    validation_batch: FormalFixedBatch | FormalSetBatch,
+    is_set: bool,
+) -> float:
+    """Mean failure-penalized ``L_param`` over the validation batch, derived by
+    loading the integrity-bound checkpoint and running inference — never a sidecar.
+
+    The model's raw output lives in the ``encode_targets`` (log-transform) space for
+    every frozen loss (the loss-internal standardization is affine and does not move
+    the output target), so the inverse transform recovers ``(/hat\\beta, /hat\\eta,
+    /hat\\gamma)``. True params are recovered the same way from the bound targets.
+    ``anchor.location`` is the sample minimum (``anchor_sample`` sorts and takes
+    ``values[0]``), which is the legality bound ``\\hat\\gamma < \\min x``.
+    ``evaluate_rows`` then applies the frozen failure penalty (10) to non-finite or
+    illegal estimates and returns ``unconditional_mean_l_param`` — the frozen ranking
+    metric ``mean_validation_failure_penalized_l_param_across_screening_seeds`` per
+    (candidate, seed).
+    """
+    state = load_checkpoint(checkpoint_bytes)
+    model = model_factory()
+    model.load_state_dict(state)
+    model.eval()
+    with torch.no_grad():
+        if is_set:
+            prediction = model(validation_batch.values, validation_batch.mask, validation_batch.model_n)
+        else:
+            prediction = model(validation_batch.features)
+    location = validation_batch.location.detach().cpu().numpy().astype(float)
+    scale = validation_batch.scale.detach().cpu().numpy().astype(float)
+    beta_hat, eta_hat, gamma_hat = _decode_param_columns(prediction, location, scale)
+    beta_true, eta_true, gamma_true = _decode_param_columns(validation_batch.targets, location, scale)
+    rows = [
+        {
+            "beta_hat": float(beta_hat[i]), "eta_hat": float(eta_hat[i]), "gamma_hat": float(gamma_hat[i]),
+            "beta": float(beta_true[i]), "eta": float(eta_true[i]), "gamma": float(gamma_true[i]),
+            "sample_min": float(location[i]),
+        }
+        for i in range(location.size)
+    ]
+    return float(evaluate_rows(rows, failure_penalty=10.0)["unconditional_mean_l_param"])
+
+
 def _is_selection_dependent(plan_row: Mapping[str, Any]) -> bool:
     """A fit whose architecture/optimizer/loss is a ``selected:`` / ``selected_top_`` placeholder.
 
@@ -253,6 +319,49 @@ def _write_outputs(
     }
 
 
+@dataclass(frozen=True)
+class _PreparedFit:
+    """Shared, single-source-of-truth fit inputs (training + validation + model).
+
+    Both single-fit execution and D7 selection scoring prepare the validation
+    batch through this path so the L_param is computed on the exact scaled
+    validation set the fit trained against — no drift between training and
+    selection.
+    """
+
+    scaled_training: Any
+    scaled_validation: FormalFixedBatch | FormalSetBatch
+    model_factory: Callable[[], nn.Module]
+    hyperparams: Mapping[str, Any]
+    loss_id: str
+    is_set: bool
+
+
+def _prepare_fit_inputs(
+    plan_row: Mapping[str, Any], frozen: FrozenConfig,
+    effective: EffectiveFormalConfig, cache_root: Path,
+) -> _PreparedFit:
+    """Build the cached datasets, training-only scaler, resolved model and hyperparams.
+
+    Reconstructs the A-E1 training/validation specs exactly as the scheduler did
+    (so executor and scheduler agree byte-for-byte) and applies the training-only
+    scaler. A-E3/A-E2 add a deferred-spec predecessor path (D8); A-E1 is the
+    currently executable scope.
+    """
+    training_spec, validation_spec = reconstruct_a_e1_specs(plan_row, frozen, effective)
+    training_dataset = cache_dataset(training_spec, frozen, effective, cache_root)
+    validation_dataset = cache_dataset(validation_spec, frozen, effective, cache_root)
+    scaler = fit_training_scaler(training_dataset, frozen, effective)
+    scaled_training = apply_training_scaler(training_dataset, scaler, training_dataset, frozen, effective)
+    scaled_validation = apply_training_scaler(validation_dataset, scaler, training_dataset, frozen, effective)
+    is_set = str(plan_row["route"]) == "S"
+    input_dim = None if is_set else int(scaled_training.batch.features.shape[1])
+    model_factory = resolve_model_factory(str(plan_row["architecture"]), frozen, input_dim)
+    hyperparams = resolve_optimizer_hyperparams(str(plan_row["optimizer"]), frozen)
+    loss_id = resolve_loss_id(str(plan_row["loss"]))
+    return _PreparedFit(scaled_training, scaled_validation, model_factory, hyperparams, loss_id, is_set)
+
+
 def execute_claimed_fit(
     *,
     study_root: Path,
@@ -277,20 +386,15 @@ def execute_claimed_fit(
     fit_id = str(claim["fit_id"])
     owner_id = str(claim["owner_id"])
     owner_nonce = str(claim["owner_nonce"])
-    route = str(plan_row["route"])
-    is_set = route == "S"
 
     # Infrastructure: data + scaler + resolved model/hyperparams (errors propagate).
-    training_spec, validation_spec = reconstruct_a_e1_specs(plan_row, frozen, effective)
-    training_dataset = cache_dataset(training_spec, frozen, effective, cache_root)
-    validation_dataset = cache_dataset(validation_spec, frozen, effective, cache_root)
-    scaler = fit_training_scaler(training_dataset, frozen, effective)
-    scaled_training = apply_training_scaler(training_dataset, scaler, training_dataset, frozen, effective)
-    scaled_validation = apply_training_scaler(validation_dataset, scaler, training_dataset, frozen, effective)
-    input_dim = None if is_set else int(scaled_training.batch.features.shape[1])
-    model_factory = resolve_model_factory(str(plan_row["architecture"]), frozen, input_dim)
-    hyperparams = resolve_optimizer_hyperparams(str(plan_row["optimizer"]), frozen)
-    loss_id = resolve_loss_id(str(plan_row["loss"]))
+    prepared = _prepare_fit_inputs(plan_row, frozen, effective, cache_root)
+    scaled_training = prepared.scaled_training
+    scaled_validation = prepared.scaled_validation
+    model_factory = prepared.model_factory
+    hyperparams = prepared.hyperparams
+    loss_id = prepared.loss_id
+    is_set = prepared.is_set
 
     # Scientific: the fit itself. Only this is a retryable-as-failed scientific outcome.
     try:
