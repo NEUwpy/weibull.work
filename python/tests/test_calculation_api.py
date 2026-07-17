@@ -5,34 +5,54 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-# 导入隔离：torch 不可用时构造最小 mock，使 main 模块可被导入
-class _FakeModule:
-    pass
-
-_mock_nn = type(sys)("torch.nn")
-_mock_nn.Module = _FakeModule
-_mock_nn.Linear = _FakeModule
-_mock_nn.ReLU = _FakeModule
-_mock_nn.BatchNorm1d = _FakeModule
-_mock_nn.Sequential = _FakeModule
-_mock_nn.Sigmoid = _FakeModule
-
-_mock_torch = type(sys)("torch")
-_mock_torch.nn = _mock_nn
-_mock_torch.load = lambda *args, **kwargs: {}
-_mock_torch.FloatTensor = lambda x: x
-_mock_torch.no_grad = _FakeModule()
-
-sys.modules["torch"] = _mock_torch
-sys.modules["torch.nn"] = _mock_nn  # noqa: E402
-
 import pytest
 from fastapi import HTTPException
 
 
+class _FakeModule:
+    pass
+
+
+def _build_torch_mocks():
+    nn = type(sys)("torch.nn")
+    nn.Module = _FakeModule
+    nn.Linear = _FakeModule
+    nn.ReLU = _FakeModule
+    nn.BatchNorm1d = _FakeModule
+    nn.Sequential = _FakeModule
+    nn.Sigmoid = _FakeModule
+
+    torch = type(sys)("torch")
+    torch.nn = nn
+    torch.load = lambda *args, **kwargs: {}
+    torch.FloatTensor = lambda x: x
+    torch.no_grad = _FakeModule()
+    return torch, nn
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_torch_mock():
+    saved = {}
+    for key in ("torch", "torch.nn"):
+        saved[key] = sys.modules.get(key, None)
+
+    torch, nn = _build_torch_mocks()
+    sys.modules["torch"] = torch
+    sys.modules["torch.nn"] = nn
+    sys.modules.pop("torch.nn.modules", None)  # 防止旧缓存的子模块干扰
+
+    yield
+
+    for key, original in saved.items():
+        if original is None:
+            sys.modules.pop(key, None)
+        else:
+            sys.modules[key] = original
+
+
 @pytest.fixture
 def helpers():
-    import main
+    import main  # noqa: E402  — main 在 mock 环境下解析一次，受益于 fixture 的导入缓存
 
     return main
 
@@ -62,7 +82,6 @@ def test_failed_selected_method_raises_422_and_never_calls_wmle(helpers, monkeyp
 
     assert exc.value.status_code == 422
     assert "mle" in exc.value.detail
-    # 应该只调用一次，且不调用 WMLE
     assert calls == ["mle"]
 
 
