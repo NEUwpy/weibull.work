@@ -104,4 +104,45 @@ MLE、MMLE、LRE 的 `PAPER_NEEDED` 保持 blocked，本阶段未变更。
 
 ## 停止点
 
-Stage C 全部完成。Phase 0（单一状态源与安全基础）的实现阶段结束。不进入 Phase 1。等待 Codex 依据审核合同出具 `APPROVE`。
+Stage C 全部完成。Phase 0（单一状态源与安全基础）的实现阶段结束。不进入 Phase 1。
+
+---
+
+## 修订（2026-07-17，REVISE 响应）
+
+审核记录：`coworker/reviews/2026-07-17-method-status-foundation-stage-c-codex.md`。判决：REVISE。一项修复，一个修订提交。
+
+### 修订提交
+
+`d023de3` — fix: contain torch mock to session fixture scope
+
+### 修复内容
+
+| 缺口 | 严重度 | 修复 |
+|------|--------|------|
+| 测试泄漏假 torch 模块 | P2 | 模块级注入改为 `session` scope `autouse` fixture：注入前保存 `sys.modules["torch"]` / `["torch.nn"]` 原始状态，`yield` 后恢复；构建函数 `_build_torch_mocks()` 与 fixture 分离，无副作用残留 |
+
+### 修订验证
+
+| 命令 | 结果 |
+|------|------|
+| `python -m pytest python/tests -q` | 131 passed（含 4 个新 API 测试 + 127 个回归），零收集错误 |
+| `python -m pytest python/tests/test_calculation_api.py python/tests/test_runner.py -q` | 17 passed |
+| `npm run test:method-status` | 18/18 pass |
+| `npm run check:method-status` | cache is up to date (22 methods) |
+| `npx tsc --noEmit` | 通过 |
+| `git diff --check` | 通过 |
+
+### 修订后提交链
+
+- `ea5200c` — docs: authorize method status Stage C（基线）
+- `29c072c` — fix: fail selected methods without substitution（Task 7）
+- `e1163fa` — docs: sync authority docs after Stage C safety fixes（Task 8）
+- `88bd731` — docs: report method status Stage C（初版报告）
+- `d023de3` — fix: contain torch mock to session fixture scope（本次修订）
+
+`Study/01` 与 `docs/history/260717.md` 未纳入。
+
+### 审核状态
+
+等待 Codex 对修订后实现出具 APPROVE / REVISE / BLOCK；`APPROVE` 后 Phase 0 正式关闭。
