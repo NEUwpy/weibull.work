@@ -18,6 +18,7 @@ export interface CalculateOptions {
 export interface CalculateResponse {
   result: WeibullResult
   traceData?: any
+  methodId: string
 }
 
 /**
@@ -54,6 +55,15 @@ export async function calculateWeibull(options: CalculateOptions): Promise<Calcu
   }
 
   const res = await response.json()
+
+  const backendMethod = (res.method || '').toLowerCase()
+  const requestedMethod = methodId.toLowerCase()
+  if (backendMethod !== requestedMethod) {
+    throw new Error(
+      `方法身份不一致：请求 ${methodId}，返回 ${res.method}`,
+    )
+  }
+
   const gamma = res.gamma || 0
   const points = calculateMedianRanks(data, gamma)
 
@@ -67,5 +77,6 @@ export async function calculateWeibull(options: CalculateOptions): Promise<Calcu
       converged: res.converged,
     },
     traceData: res.trace_data,
+    methodId: backendMethod,
   }
 }

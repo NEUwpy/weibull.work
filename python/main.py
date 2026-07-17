@@ -100,19 +100,15 @@ def _calculation_response(result: dict, method_id: str) -> dict:
 
 
 def _run_calculation_method(method_id: str, data, trace=False, offset=None):
-    """统一执行单次估计；异常失败时沿用历史 WMLE 后备策略。"""
+    """执行单次估计；失败时返回明确 HTTP 422，不回退到其他方法。"""
     result = run_method(method_id, data, **_calculation_kwargs(method_id, trace=trace, offset=offset))
     if result["beta_hat"] is not None:
         return _calculation_response(result, method_id)
 
-    print(f"Algorithm {method_id} failed: {result.get('extra')}. Fallback to WMLE.")
-    fallback = run_method("wmle", data, trace=trace)
-    if fallback["beta_hat"] is not None:
-        return _calculation_response(fallback, f"{method_id}_fallback_wmle")
-
+    error_info = result.get("extra") or {}
     raise HTTPException(
-        status_code=500,
-        detail=f"Calculation failed: {result.get('extra')} -> Fallback WMLE failed: {fallback.get('extra')}"
+        status_code=422,
+        detail=f"Method '{method_id}' failed: {error_info}",
     )
 
 
