@@ -177,6 +177,20 @@ function collectEvidencePaths(method) {
   return paths
 }
 
+function assertRepositoryPath(context, rootDir, candidatePath) {
+  if (path.isAbsolute(candidatePath)) {
+    fail(`${context}: path must be repository-relative: "${candidatePath}"`)
+  }
+  const resolved = path.resolve(rootDir, candidatePath)
+  const relative = path.relative(rootDir, resolved)
+  if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    fail(`${context}: path escapes the repository root: "${candidatePath}"`)
+  }
+  if (!fs.existsSync(resolved)) {
+    fail(`${context}: path does not exist: "${candidatePath}"`)
+  }
+}
+
 export function validateStatusDocument(document, expectedLeafIds, options = {}) {
   if (!isPlainObject(document)) {
     fail('status document must be an object')
@@ -212,13 +226,33 @@ export function validateStatusDocument(document, expectedLeafIds, options = {}) 
   if (options.checkEvidencePaths) {
     const rootDir = options.rootDir ?? process.cwd()
     for (const method of document.methods) {
+      assertRepositoryPath(method.id, rootDir, method.classification_source)
       for (const evidencePath of collectEvidencePaths(method)) {
-        if (path.isAbsolute(evidencePath)) {
-          fail(`${method.id}: evidence path must be repository-relative: "${evidencePath}"`)
-        }
-        if (!fs.existsSync(path.join(rootDir, evidencePath))) {
-          fail(`${method.id}: evidence path does not exist: "${evidencePath}"`)
-        }
+        assertRepositoryPath(method.id, rootDir, evidencePath)
+      }
+    }
+  }
+
+  if (options.catalogLeaves) {
+    const catalogByLeafId = new Map()
+    for (const leaf of options.catalogLeaves) {
+      if (!isPlainObject(leaf) || !isNonEmptyString(leaf.id)) {
+        fail('every catalog leaves entry requires a non-empty id')
+      }
+      catalogByLeafId.set(leaf.id, leaf)
+    }
+    for (const method of document.methods) {
+      const catalogLeaf = catalogByLeafId.get(method.id)
+      if (!catalogLeaf) continue
+      if (catalogLeaf.name !== undefined && method.name !== catalogLeaf.name) {
+        fail(
+          `${method.id}: name in status document ("${method.name}") does not match methods.json ("${catalogLeaf.name}")`,
+        )
+      }
+      if (catalogLeaf.family !== undefined && method.family !== catalogLeaf.family) {
+        fail(
+          `${method.id}: family in status document ("${method.family}") does not match methods.json ("${catalogLeaf.family}")`,
+        )
       }
     }
   }
@@ -355,21 +389,38 @@ export function parseStatusMarkdown(markdown, expectedLeafIds, options = {}) {
   return validateStatusDocument(parsed.data, expectedLeafIds, options)
 }
 
-export function flattenLeafIds(methodsCatalog) {
+export function flattenCatalogLeaves(methodsCatalog) {
   if (!Array.isArray(methodsCatalog)) {
     fail('methods catalog must be an array of categories')
   }
-  const leafIds = []
+  const seenCategoryIds = new Set()
+  const seenLeafIds = new Set()
+  const leaves = []
   for (const category of methodsCatalog) {
     if (!isPlainObject(category) || !Array.isArray(category.children)) {
       fail('every methods catalog category requires a children array')
     }
+    if (!isNonEmptyString(category.id)) {
+      fail('every methods catalog category requires a non-empty id')
+    }
+    if (seenCategoryIds.has(category.id)) {
+      fail(`duplicate category id in methods catalog: "${category.id}"`)
+    }
+    seenCategoryIds.add(category.id)
     for (const child of category.children) {
       if (!isPlainObject(child) || !isNonEmptyString(child.id)) {
         fail('every methods catalog leaf requires a non-empty id')
       }
-      leafIds.push(child.id)
+      if (seenLeafIds.has(child.id)) {
+        fail(`duplicate leaf id in methods catalog: "${child.id}"`)
+      }
+      seenLeafIds.add(child.id)
+      leaves.push({ id: child.id, name: child.name, family: category.id })
     }
   }
-  return leafIds
+  return leaves
+}
+
+export function flattenLeafIds(methodsCatalog) {
+  return flattenCatalogLeaves(methodsCatalog).map((leaf) => leaf.id)
 }

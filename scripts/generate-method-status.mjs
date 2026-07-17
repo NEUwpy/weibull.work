@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import {
   buildGeneratedStatus,
+  flattenCatalogLeaves,
   flattenLeafIds,
   parseStatusMarkdown,
 } from './lib/method-status.mjs'
@@ -18,11 +19,13 @@ function main() {
 
   const markdown = fs.readFileSync(STATUS_SOURCE, 'utf-8')
   const catalog = JSON.parse(fs.readFileSync(METHODS_CATALOG, 'utf-8'))
-  const expectedLeafIds = flattenLeafIds(catalog)
+  const catalogLeaves = flattenCatalogLeaves(catalog)
+  const expectedLeafIds = catalogLeaves.map((leaf) => leaf.id)
 
   const document = parseStatusMarkdown(markdown, expectedLeafIds, {
     checkEvidencePaths: true,
     rootDir: ROOT_DIR,
+    catalogLeaves,
   })
   const generated = buildGeneratedStatus(document, expectedLeafIds)
   const serialized = `${JSON.stringify(generated, null, 2)}\n`

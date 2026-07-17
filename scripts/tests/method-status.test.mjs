@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   deriveMethodCapability,
+  flattenLeafIds,
   validateStatusDocument,
 } from '../lib/method-status.mjs'
 
@@ -188,5 +189,68 @@ test('not_applicable on a mandatory item requires approved exception', () => {
   }
   assert.doesNotThrow(
     () => validateStatusDocument(statusDoc([method]), ['mdm']),
+  )
+})
+
+test('evidence path must not escape the repository root', () => {
+  const method = completeMethod('mdm')
+  method.layer1.backend.evidence = ['..']
+  assert.throws(
+    () =>
+      validateStatusDocument(statusDoc([method]), ['mdm'], {
+        checkEvidencePaths: true,
+        rootDir: process.cwd(),
+      }),
+    /escapes/,
+  )
+  method.layer1.backend.evidence = ['../outside']
+  assert.throws(
+    () =>
+      validateStatusDocument(statusDoc([method]), ['mdm'], {
+        checkEvidencePaths: true,
+        rootDir: process.cwd(),
+      }),
+    /escapes/,
+  )
+})
+
+test('duplicate leaf ids in methods catalog are rejected', () => {
+  assert.throws(
+    () =>
+      flattenLeafIds([
+        {
+          id: 'max_adequacy',
+          name: '极大化适配法',
+          children: [
+            { id: 'mle', name: '极大似然估计' },
+            { id: 'mle', name: '极大似然估计' },
+          ],
+        },
+      ]),
+    /duplicate leaf id/i,
+  )
+})
+
+test('name in status document must match methods catalog', () => {
+  const method = completeMethod('mdm')
+  method.name = '最小二乘估计'
+  assert.throws(
+    () =>
+      validateStatusDocument(statusDoc([method]), ['mdm'], {
+        catalogLeaves: [{ id: 'mdm', name: '最小差异法', family: 'min_adequacy' }],
+      }),
+    /name.*does not match.*最小差异法/i,
+  )
+})
+
+test('family in status document must match methods catalog', () => {
+  const method = completeMethod('mdm')
+  method.family = 'max_adequacy'
+  assert.throws(
+    () =>
+      validateStatusDocument(statusDoc([method]), ['mdm'], {
+        catalogLeaves: [{ id: 'mdm', name: '最小差异法', family: 'min_adequacy' }],
+      }),
+    /family.*does not match.*min_adequacy/i,
   )
 })
