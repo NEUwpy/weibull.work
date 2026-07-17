@@ -241,6 +241,60 @@ def _is_selection_dependent(plan_row: Mapping[str, Any]) -> bool:
     return False
 
 
+# D6: fit_kind -> (decision axis, candidate value extractor). Search fit_kinds compete;
+# historical / controlled / *_retrain fits are singletons or deferred and return None.
+_DECISION_AXIS_BY_FIT_KIND = {
+    "search_stage1": "architecture",
+    "search_stage2": "stage2",
+    "loss_screen": "loss",
+    "output_form": "output_form",
+    "size_screen": "training_size",
+    "distribution_screen": "distribution",
+}
+
+
+def _derive_decision_candidate(plan_row: Mapping[str, Any]) -> tuple[str, str, list] | None:
+    """Map a plan row to ``(decision_id, candidate_id, tie_break_key)`` per the frozen
+    module_matrix_rules (brief D6), or ``None`` if the row is not a competitive search
+    candidate (historical/controlled/winner_retrain/selected_*_retrain).
+
+    ``decision_id`` scopes exactly the candidates that compete on one axis
+    (``{axis}:{module}:{route}:{n}``); ``candidate_id`` is the varying axis value;
+    ``tie_break_key`` encodes the frozen tie-break (architecture_id_lexicographic etc.).
+    A-E1 routes are concrete; A-E3/A-E2 routes are ``selected:*`` placeholders that all
+    candidates of a decision share (resolved by D8 before execution).
+    """
+    kind = str(plan_row["fit_kind"])
+    axis = _DECISION_AXIS_BY_FIT_KIND.get(kind)
+    if axis is None:
+        return None
+    module = str(plan_row["module"])
+    route = str(plan_row["route"])
+    n = plan_row["n"]
+    n_key = "shared" if n == "shared" else f"n{n}"
+    decision_id = f"{axis}:{module}:{route}:{n_key}"
+    if axis == "architecture":
+        candidate = str(plan_row["architecture"])
+        return decision_id, candidate, [candidate]
+    if axis == "stage2":
+        arch = str(plan_row["architecture"])  # selected_top_{slot}
+        opt = str(plan_row["optimizer"])
+        return decision_id, f"{arch}:{opt}", [arch, opt]
+    if axis == "loss":
+        candidate = str(plan_row["loss"])
+        return decision_id, candidate, [candidate]
+    if axis == "output_form":
+        candidate = route.rsplit(":", 1)[-1] if ":" in route else route
+        return decision_id, candidate, [candidate]
+    if axis == "training_size":
+        size = int(plan_row["training_size"])
+        return decision_id, str(size), [size]  # smaller size wins ties (A-E2 smallest-within-2% spirit)
+    if axis == "distribution":
+        candidate = route.rsplit(":", 1)[-1] if ":" in route else str(plan_row.get("distribution", route))
+        return decision_id, candidate, [candidate]
+    return None
+
+
 def reconstruct_a_e1_specs(
     plan_row: Mapping[str, Any], frozen: FrozenConfig, effective: EffectiveFormalConfig
 ) -> tuple[FormalDatasetSpec, FormalDatasetSpec]:
@@ -563,24 +617,33 @@ def run_module(
 def build_module_selection(
     *, study_root: Path, run_dir: Path, cache_root: Path, module_id: str, run_id: str
 ) -> dict[str, Any]:
-    """Build the selection trace/receipt/ledger for a completed module (D7, deferred).
+    """Build the selection trace/receipt/ledger for a completed module (D7).
 
     Ranks each decision's candidates by the frozen ranking rule
     (``mean_validation_failure_penalized_l_param_across_screening_seeds_ascending``
     with ``architecture_id_lexicographic`` tie-break) and publishes the immutable
     selection evidence consumed by downstream modules and by ``selected:*``
-    placeholder resolution. NOT YET IMPLEMENTED: the ``L_param`` failure-penalized
-    validation metric is not defined in the frozen search config, so the ranking
-    contract must be finalized (and oracle-reviewed) before this runs.
+    placeholder resolution.
+
+    The scoring primitive (:func:`validation_failure_penalized_l_param`) is implemented
+    and verified — it derives a candidate's mean failure-penalized validation L_param
+    from its integrity-bound checkpoint. The remaining wiring (gathering a module's
+    succeeded fits, aggregating across screening seeds with a representative checkpoint,
+    the staged A-E1 execution where stage-2 ``selected_top_*`` fits require the stage-1
+    ranking to be resolved first, and the per-axis decision grouping for
+    output_form/distribution/training_size) is the subject of Codex review; this entry
+    point fails closed until that wiring lands. The frozen metric and failure penalty
+    are unchanged from the protocol.
     """
     raise NotImplementedError(
-        "build_module_selection (D7) is deferred; the L_param ranking metric is not yet defined"
+        "build_module_selection (D7) wiring is pending Codex review of the staged-execution "
+        "and decision-grouping design; the L_param scoring primitive is implemented and verified"
     )
 
 
 def resolve_selected_placeholders(*arg: Any, **kw: Any) -> Any:  # pragma: no cover - placeholder
-    """Resolve ``selected:<decision>`` architecture/optimizer/loss ids from a selection trace (D8)."""
-    raise NotImplementedError("resolve_selected_placeholders (D8) is deferred until D7 lands")
+    """Resolve ``selected:<decision>`` / ``selected_top_N`` ids from a selection trace (D8)."""
+    raise NotImplementedError("resolve_selected_placeholders (D8) is deferred until D7 wiring lands")
 
 
 def reconstruct_deferred_specs(*arg: Any, **kw: Any) -> Any:  # pragma: no cover - placeholder

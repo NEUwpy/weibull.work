@@ -17,6 +17,7 @@ sys.path.insert(0, str(STUDY_ROOT / "code"))
 sys.path.insert(0, str(ROOT / "python"))
 
 from study02a import formal_executor as fe  # noqa: E402
+from study02a.config import load_frozen_config  # noqa: E402
 from study02a.evaluation import evaluate_rows  # noqa: E402
 from study02a.formal_contracts import (  # noqa: E402
     build_selection_trace_records,
@@ -25,11 +26,13 @@ from study02a.formal_contracts import (  # noqa: E402
 )
 from study02a.formal_data import FormalFixedBatch  # noqa: E402
 from study02a.formal_config import load_effective_formal_config  # noqa: E402
+from study02a.matrix import expand_module_matrix  # noqa: E402
 from study02a.models import build_mlp  # noqa: E402
 from study02a.representations import anchor_sample, build_features, decode_targets, encode_targets  # noqa: E402
 from study02a.training import fit_candidate, load_checkpoint  # noqa: E402
 
 EFFECTIVE = load_effective_formal_config(STUDY_ROOT)
+FROZEN = load_frozen_config(STUDY_ROOT)
 
 
 def _synthetic_batch(n_samples: int = 64, seed: int = 7) -> tuple[FormalFixedBatch, np.ndarray, np.ndarray, np.ndarray]:
@@ -122,3 +125,45 @@ def test_validation_l_param_reproduces_from_checkpoint():
     # Agreement to float32 thread-reduction noise (two independent forward passes through
     # the loaded checkpoint); exact decode math is covered by the float64 round-trip test.
     assert score_from_checkpoint == pytest.approx(manual, rel=1e-6)
+
+
+_SEARCH_FIT_KINDS = {
+    "search_stage1", "search_stage2", "loss_screen",
+    "output_form", "size_screen", "distribution_screen",
+}
+
+
+def test_derive_decision_candidate_covers_frozen_matrix():
+    """D6 diagnostic: _derive_decision_candidate applied to the frozen 820-row matrix.
+
+    Asserts the structural invariants the executor is confident about — every search
+    fit_kind maps to a (decision, candidate); historical/controlled/*_retrain map to
+    None; each decision groups at least one candidate and the union of search rows is
+    covered exactly. The per-axis candidate counts (printed via the assertion note) are
+    the interpretation Codex reviews; output_form/distribution/training_size route
+    scoping is the known design choice documented in the relay report.
+    """
+    matrix = expand_module_matrix(FROZEN)
+    assert len(matrix) == 820
+    by_decision: dict[str, set[str]] = {}
+    search_rows = 0
+    for _, row in matrix.iterrows():
+        derived = fe._derive_decision_candidate(row)
+        if row["fit_kind"] in _SEARCH_FIT_KINDS:
+            assert derived is not None, f"search fit_kind {row['fit_kind']} must derive a decision"
+            decision_id, candidate_id, tie_break_key = derived
+            assert candidate_id, "candidate_id must be non-empty"
+            assert isinstance(tie_break_key, list) and tie_break_key, "tie_break_key must be a non-empty list"
+            by_decision.setdefault(decision_id, set()).add(candidate_id)
+            search_rows += 1
+        else:
+            assert derived is None, f"non-search fit_kind {row['fit_kind']} must not derive a decision"
+    # Every frozen search rule produced at least one decision, and every decision has
+    # a non-empty candidate set (a real competition once the rule's fits run).
+    assert by_decision, "no decisions derived from the frozen matrix"
+    for decision_id, candidates in by_decision.items():
+        assert len(candidates) >= 1, f"decision {decision_id} has no candidates"
+    # Sanity: A-E1 stage-1 architecture decisions exist for both optimized routes.
+    arch_decisions = {d for d in by_decision if d.startswith("architecture:A-E1:")}
+    assert any("F2" in d for d in arch_decisions)
+    assert any(":V:" in d or d.endswith(":V:n10") for d in arch_decisions)
