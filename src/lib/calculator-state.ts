@@ -27,6 +27,19 @@ export function getDefaultParameters(is3P: boolean): CalculatorParameters {
   return { ...DEFAULT_3P_PARAMETERS, gamma: is3P ? DEFAULT_3P_PARAMETERS.gamma : 0 }
 }
 
+export function createDefaultParameterResult<TData, TPoint>(
+  data: TData[],
+  calculatePoints: (data: TData[], gamma: number) => TPoint[],
+) {
+  const parameters = getDefaultParameters(true)
+  return {
+    ...parameters,
+    rSquared: null,
+    points: calculatePoints(data, parameters.gamma),
+    converged: true,
+  }
+}
+
 export function toggleParameterMode(state: {
   is3P: boolean
   currentGamma?: number

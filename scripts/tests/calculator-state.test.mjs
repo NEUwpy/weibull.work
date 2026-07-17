@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  createDefaultParameterResult,
   generateWeibullSample,
   getDefaultParameters,
   getEstimateFailure,
@@ -46,4 +47,20 @@ test('invalid and non-converged estimates return explicit failures', () => {
     '参数估计无解',
   )
   assert.equal(getEstimateFailure({ beta: 2, eta: 100, gamma: 0, converged: true }), null)
+})
+
+test('default parameter result is 3P manual-ready and uses current data points', () => {
+  const points = [{ x: 1, y: 2, rank: 0.5, t: 3 }]
+  const result = createDefaultParameterResult(
+    [{ id: 0, value: 1200, status: 'F' }],
+    () => points,
+  )
+  assert.deepEqual(result, {
+    beta: 2,
+    eta: 1000,
+    gamma: 1000,
+    rSquared: null,
+    points,
+    converged: true,
+  })
 })

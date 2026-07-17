@@ -46,6 +46,7 @@ import {
   calculateMedianRanks
 } from '@/lib/weibull'
 import { getMethodInfo } from '@/lib/methods'
+import { generateWeibullSample, getDefaultParameters } from '@/lib/calculator-state'
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
 
@@ -336,26 +337,19 @@ export default function AnalysisCard({
 
   const handleGenerateSample = () => {
     if (!result || !onDataChange || result.beta === null || result.eta === null) return
-    const beta = result.beta
-    const eta = result.eta
-    const gamma = result.gamma
-    const newSample: DataPoint[] = Array.from({ length: simN }, (_, i) => {
-      const u = Math.random()
-      const t = gamma + eta * Math.pow(-Math.log(u), 1 / beta)
-      return { id: i, value: t, status: 'F' }
+    const newSample = generateWeibullSample(simN, {
+      beta: result.beta,
+      eta: result.eta,
+      gamma: result.gamma,
     })
     onDataChange(newSample)
   }
 
   const handleResetToDefault = () => {
-    const defaultBeta = 2
-    const defaultEta = 1000
-    const defaultGamma = 1000
-    const newPoints = data ? calculateMedianRanks(data, defaultGamma) : []
+    const defaults = getDefaultParameters(is3P)
+    const newPoints = data ? calculateMedianRanks(data, defaults.gamma) : []
     onParamsUpdate?.({
-      beta: defaultBeta,
-      eta: defaultEta,
-      gamma: defaultGamma,
+      ...defaults,
       points: newPoints,
       converged: true
     }, 'manual')
@@ -613,9 +607,9 @@ export default function AnalysisCard({
                   <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
                   <span>生成样本</span>
                 </button>
-                <button onClick={() => onParamsUpdate?.({ beta: 1.0, eta: 100.0, gamma: 0.0 }, 'manual')} className="flex-1 h-full bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm group">
+                <button onClick={handleResetToDefault} className="flex-1 h-full bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm group">
                   <Eraser size={14} className="group-hover:rotate-12 transition-transform" />
-                  <span>清除参数</span>
+                  <span>重置参数</span>
                 </button>
             </div>
                     </div>

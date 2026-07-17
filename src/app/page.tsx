@@ -9,25 +9,19 @@ import {
   WeibullResult,
   DataSource,
   MULTI_CURVE_COLORS,
-  calculateMedianRanks,
-  calculateWeibullParameters
+  calculateMedianRanks
 } from '@/lib/weibull'
 import MethodSelector from '@/components/calculator/MethodSelector'
 import DataEditor from '@/components/calculator/DataEditor'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
 import { isCalculatorEnabled, getEnabledMethodIds } from '@/lib/method-status'
+import {
+  createDefaultParameterResult,
+  generateWeibullSample,
+  getDefaultParameters,
+} from '@/lib/calculator-state'
 
 const CHART_COLORS = MULTI_CURVE_COLORS.slice(0, 5)
-
-// Helper to generate random Weibull data
-function generateRandomData(n: number, beta: number, eta: number, gamma: number = 0): DataPoint[] {
-  return Array.from({ length: n }, (_, i) => {
-    // Inverse transform sampling: t = gamma + eta * (-ln(U))^(1/beta)
-    const u = Math.random()
-    const t = gamma + eta * Math.pow(-Math.log(u), 1 / beta)
-    return { id: i, value: t, status: 'F' }
-  })
-}
 
 // Define a simple type for our card data
 type CardData = {
@@ -40,8 +34,32 @@ type CardData = {
   color: string
   fitMode?: 'fit' | 'manual' // Track mode: fit (sample based) or manual (param based)
   is3P?: boolean // New: Track 2P vs 3P mode
+  last3PGamma?: number
   // 多数据源模式
   dataSources?: DataSource[] // 多选案例时的数据源列表
+}
+
+function createManualResult(data: DataPoint[], is3P = true): WeibullResult {
+  const parameters = getDefaultParameters(is3P)
+  return {
+    ...parameters,
+    rSquared: null,
+    points: calculateMedianRanks(data, parameters.gamma),
+    converged: true,
+  }
+}
+
+function preserveParametersForData(card: CardData, nextData: DataPoint[]): CardData {
+  const result = card.result || createManualResult(nextData, card.is3P !== false)
+  return {
+    ...card,
+    data: nextData,
+    result: {
+      ...result,
+      points: calculateMedianRanks(nextData, result.gamma),
+    },
+    fitMode: 'manual',
+  }
 }
 
 function CalculatorContent() {
@@ -68,7 +86,6 @@ function CalculatorContent() {
     const init = async () => {
       const caseId = searchParams.get('caseId')
       let initialData: DataPoint[] = []
-      let initialResult: WeibullResult | undefined = undefined
       let selectedMethodId: string | undefined = undefined
 
       // Determine selected method from ?method= param, gated by calculatorEnabled
@@ -96,8 +113,6 @@ function CalculatorContent() {
               const parts = line.trim().split(/\s+/)
               return { id: idx, value: parseFloat(parts[0]), status: parts[1] === 'S' ? 'S' : 'F' }
             })
-            const points = calculateMedianRanks(initialData, 0)
-            initialResult = calculateWeibullParameters(points, 0)
           }
         } catch (err) {
           console.error('Failed to load case:', err)
@@ -106,27 +121,13 @@ function CalculatorContent() {
 
       // Fallback if no case found or error
       if (initialData.length === 0) {
-        initialData = generateRandomData(20, 2.5, 100, 0)
-        const points = calculateMedianRanks(initialData, 0)
-        initialResult = calculateWeibullParameters(points, 0)
+        initialData = generateWeibullSample(20, getDefaultParameters(true))
       }
 
-      // When an enabled method is selected, try backend for initial result.
-      // On failure, clear the result rather than mislabeling a local fallback.
-      if (selectedMethodId && initialData.length > 0) {
-        try {
-          const { result } = await calculateWeibull({
-            methodId: selectedMethodId,
-            data: initialData,
-          })
-          initialResult = result
-        } catch {
-          initialResult = undefined
-        }
-      } else if (!selectedMethodId) {
-        // No enabled method — no method identity to assign
-        initialResult = undefined
-      }
+      const initialResult: WeibullResult = createDefaultParameterResult(
+        initialData,
+        calculateMedianRanks,
+      )
 
       setCards([
         {
@@ -135,8 +136,9 @@ function CalculatorContent() {
           data: initialData,
           result: initialResult,
           color: CHART_COLORS[0],
-          fitMode: 'fit',
-          is3P: false,
+          fitMode: 'manual',
+          is3P: true,
+          last3PGamma: initialResult.gamma,
           methodId: selectedMethodId,
         }
       ])
@@ -154,19 +156,21 @@ function CalculatorContent() {
     let newData: DataPoint[] | undefined = undefined
     let newResult: WeibullResult | undefined = undefined
     let newMethodId: string | undefined = undefined
-    let newFitMode: 'fit' | 'manual' = 'fit'
-    let newIs3P = false
+    let newFitMode: 'fit' | 'manual' = 'manual'
+    let newIs3P = true
+    let newLast3PGamma = getDefaultParameters(true).gamma
 
     if (type === 'blank') {
       newData = undefined
       newResult = undefined
       newMethodId = undefined
-      newFitMode = 'fit'
-      newIs3P = false
+      newFitMode = 'manual'
+      newIs3P = true
     } else if (sourceCard) {
       newMethodId = sourceCard.methodId
-      newIs3P = sourceCard.is3P || false
-      newFitMode = sourceCard.fitMode || 'fit'
+      newIs3P = sourceCard.is3P !== false
+      newFitMode = sourceCard.fitMode || 'manual'
+      newLast3PGamma = sourceCard.last3PGamma ?? sourceCard.result?.gamma ?? newLast3PGamma
 
       if (type === 'data') {
         if (sourceCard.data && sourceCard.data.length > 0) {
@@ -191,6 +195,11 @@ function CalculatorContent() {
       }
     }
 
+    if (!newResult) {
+      newResult = createManualResult(newData || [], newIs3P)
+      newFitMode = 'manual'
+    }
+
     const nextColorIndex = (cards.length) % CHART_COLORS.length
     const newCard: CardData = {
       id: Date.now().toString(),
@@ -201,7 +210,8 @@ function CalculatorContent() {
       methodId: newMethodId,
       color: CHART_COLORS[nextColorIndex],
       fitMode: newFitMode,
-      is3P: newIs3P
+      is3P: newIs3P,
+      last3PGamma: newLast3PGamma,
     }
     
     const sourceIndex = cards.findIndex(c => c.id === sourceId)
@@ -244,17 +254,10 @@ function CalculatorContent() {
 
   const handleDataSave = (newData: DataPoint[]) => {
     if (activeCardId) {
-      const currentCard = cards.find(c => c.id === activeCardId)
-      const currentGamma = currentCard?.result?.gamma || 0
-      const points = calculateMedianRanks(newData, currentGamma)
-      const result = calculateWeibullParameters(points, currentGamma)
-
       setCards(prev => prev.map(card => {
         if (card.id === activeCardId) {
           return {
-            ...card,
-            data: newData,
-            result: result,
+            ...preserveParametersForData(card, newData),
             dataSources: undefined // 单选时清空多数据源
           }
         }
@@ -270,9 +273,6 @@ function CalculatorContent() {
 
     // 第一组数据作为主数据
     const firstSource = sources[0]
-    const firstGamma = 0
-    const points = calculateMedianRanks(firstSource.data, firstGamma)
-    const result = calculateWeibullParameters(points, firstGamma)
 
     // 为每个数据源分配颜色和计算结果
     const dataSourcesWithResults: DataSource[] = sources.map((source, index) => ({
@@ -284,9 +284,7 @@ function CalculatorContent() {
     setCards(prev => prev.map(card => {
       if (card.id === activeCardId) {
         return {
-          ...card,
-          data: firstSource.data,
-          result: result,
+          ...preserveParametersForData(card, firstSource.data),
           dataSources: dataSourcesWithResults
         }
       }
@@ -331,18 +329,9 @@ function CalculatorContent() {
   }
 
   const handleDataChange = (cardId: string, newData: DataPoint[]) => {
-    const currentCard = cards.find(c => c.id === cardId)
-    const currentGamma = currentCard?.result?.gamma || 0
-    const points = calculateMedianRanks(newData, currentGamma)
-
     setCards(prev => prev.map(card => {
       if (card.id === cardId) {
-        return { 
-          ...card, 
-          data: newData,
-          result: card.result ? { ...card.result, points: points } : undefined,
-          fitMode: 'fit'
-        }
+        return preserveParametersForData(card, newData)
       }
       return card
     }))
