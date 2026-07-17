@@ -99,4 +99,46 @@ Design: `docs/superpowers/specs/2026-07-17-method-construction-status-source-des
 
 ## 停止点
 
-Stage B 全部完成，已按投递单停止。未进入 Stage C（WMLE 回退移除等后端任务）。等待 Codex 审核。
+Stage B 全部完成，已按投递单停止。未进入 Stage C（WMLE 回退移除等后端任务）。
+
+---
+
+## 修订（2026-07-17，REVISE 响应）
+
+审核记录：`coworker/reviews/2026-07-17-method-status-foundation-stage-b-codex.md`。判决：REVISE。三项修复，一个修订提交。
+
+### 修订提交
+
+`0cb97f8` — fix: tighten calculator init identity and layer1 completeness
+
+### 修复内容
+
+| 缺口 | 严重度 | 修复 |
+|------|--------|------|
+| 后端不可达时本地 MLE 参数被标为所选方法 | P1 | `catch` 块中 `initialResult = undefined`；不再复用本地计算结果 |
+| 零开放方法时 `?? 'mle'` 回退 | P2 | `methodId: selectedMethodId`（可为 `undefined`，不再回退到 `'mle'`） |
+| 看板第一层计数仅认 `done` | P2 | `getLayer1Readiness()` 改用 `6 - cap.missingLayer1.length`，复用校验器 `isItemComplete()` 口径（含 `not_applicable` + `exception_approved`） |
+
+### 修订验证
+
+| 命令 | 结果 |
+|------|------|
+| `npx tsc --noEmit` | 通过 |
+| `npm run check:method-status` | cache is up to date (22 methods) |
+| `npm run test:method-status` | 18/18 pass |
+| `git diff --check` | 通过 |
+
+### 修订后提交链
+
+- `564ec8b` — docs: authorize method status Stage B（基线）
+- `4b26cc2` — feat: render method status from docs（Task 4）
+- `af4e703` — feat: gate calculator by method maturity（Task 5）
+- `da8f39c` — feat: expose method construction states（Task 6）
+- `b0817d5` — docs: report method status Stage B（初版报告）
+- `0cb97f8` — fix: tighten calculator init identity and layer1 completeness（本次修订）
+
+缓存未变化，`Study/01` 与 `docs/history/260717.md` 未纳入。
+
+### 审核状态
+
+等待 Codex 对修订后实现出具 APPROVE / REVISE / BLOCK；`APPROVE` 后方可开始 Stage C。
