@@ -5,6 +5,7 @@ import {
   createDefaultParameterResult,
   generateWeibullSample,
   getDefaultParameters,
+  getEstimationModeFailure,
   getEstimateFailure,
   toggleParameterMode,
 } from '../../src/lib/calculator-state.ts'
@@ -43,10 +44,15 @@ test('invalid and non-converged estimates return explicit failures', () => {
     '参数估计未收敛',
   )
   assert.equal(
-    getEstimateFailure({ beta: 2, eta: 100, gamma: 0, converged: 'unbounded' }),
+    getEstimateFailure({ beta: null, eta: null, gamma: 0, converged: 'unbounded' }),
     '参数估计无解',
   )
   assert.equal(getEstimateFailure({ beta: 2, eta: 100, gamma: 0, converged: true }), null)
+})
+
+test('2P estimation is blocked until a verified 2P method exists', () => {
+  assert.equal(getEstimationModeFailure(false), '当前方法仅支持 3P 估计，请切换到 3P')
+  assert.equal(getEstimationModeFailure(true), null)
 })
 
 test('default parameter result is 3P manual-ready and uses current data points', () => {

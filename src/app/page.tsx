@@ -19,6 +19,9 @@ import {
   createDefaultParameterResult,
   generateWeibullSample,
   getDefaultParameters,
+  getEstimateFailure,
+  getEstimationModeFailure,
+  toggleParameterMode,
 } from '@/lib/calculator-state'
 
 const CHART_COLORS = MULTI_CURVE_COLORS.slice(0, 5)
@@ -300,32 +303,42 @@ function CalculatorContent() {
     const card = cards.find(c => c.id === cardId)
     if (!card) return sources
 
-    const methodId = card.methodId || 'lre'
+    if (!card.methodId) {
+      alert('请先选择方法')
+      return sources
+    }
 
-    for (let i = 0; i < sources.length; i++) {
-      const source = sources[i]
-      try {
+    try {
+      const results = await Promise.all(sources.map(async source => {
         const { result } = await calculateWeibull({
-          methodId,
+          methodId: card.methodId!,
           data: source.data,
         })
+        const failure = getEstimateFailure(result)
+        if (failure) throw new Error(failure)
+        return result
+      }))
 
-        setCards(prev => prev.map(c => {
-          if (c.id === cardId && c.dataSources) {
-            const updatedSources = c.dataSources.map((ds, idx) => {
-              if (idx === i) {
-                return { ...ds, result }
-              }
-              return ds
-            })
-            return { ...c, dataSources: updatedSources }
-          }
-          return c
-        }))
-      } catch (err) {
-        console.error(`Failed to calculate source ${i}:`, err)
-      }
+      setCards(prev => prev.map(c => {
+        if (c.id !== cardId || !c.dataSources) return c
+        return {
+          ...c,
+          result: results[0],
+          dataSources: c.dataSources.map((source, index) => ({
+            ...source,
+            result: results[index],
+          })),
+          fitMode: 'fit',
+          last3PGamma: results[0].gamma,
+        }
+      }))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('Batch parameter estimation failed:', err)
+      alert(`参数估计失败: ${message}`)
     }
+
+    return sources
   }
 
   const handleDataChange = (cardId: string, newData: DataPoint[]) => {
@@ -340,7 +353,7 @@ function CalculatorContent() {
   const handleParamsUpdate = (cardId: string, updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
     setCards(prev => prev.map(card => {
       if (card.id === cardId) {
-        const baseResult = card.result || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
+        const baseResult = card.result || createManualResult(card.data || [], card.is3P !== false)
         const newResult = { ...baseResult, ...updates }
         let newPoints = card.result?.points || []
         // Only recalculate points if gamma changed AND points not already provided in updates
@@ -349,10 +362,14 @@ function CalculatorContent() {
         } else if (updates.points !== undefined) {
           newPoints = updates.points
         }
+        const nextLast3PGamma = card.is3P !== false && updates.gamma !== undefined && Number.isFinite(updates.gamma)
+          ? updates.gamma
+          : card.last3PGamma
         return {
           ...card,
           result: { ...newResult, points: newPoints },
-          fitMode: mode || card.fitMode
+          fitMode: mode || card.fitMode,
+          last3PGamma: nextLast3PGamma,
         }
       }
       return card
@@ -363,6 +380,12 @@ function CalculatorContent() {
     const card = cards.find(c => c.id === cardId)
     if (!card) return
 
+    const modeFailure = getEstimationModeFailure(card.is3P !== false)
+    if (modeFailure) {
+      alert(modeFailure)
+      return
+    }
+
     // 如果有多数据源，执行批量计算
     if (card.dataSources && card.dataSources.length > 0) {
       await handleBatchCalculate(cardId, card.dataSources)
@@ -370,18 +393,33 @@ function CalculatorContent() {
     }
 
     // 单数据源计算
-    if (!card.data) return
+    if (!card.data || card.data.length === 0) {
+      alert('请先输入样本')
+      return
+    }
+    if (!card.methodId) {
+      alert('请先选择方法')
+      return
+    }
 
     try {
       const { result } = await calculateWeibull({
-        methodId: card.methodId || 'lre',
+        methodId: card.methodId,
         data: card.data,
       })
+      const failure = getEstimateFailure(result)
+      if (failure) throw new Error(failure)
 
-      setCards(prev => prev.map(c => c.id === cardId ? { ...c, result, fitMode: 'fit' } : c))
-    } catch (err: any) {
-      console.error(err)
-      alert(`后端计算错误: ${err.message}\n请确保 Python main.py 已在 8001 端口运行。`)
+      setCards(prev => prev.map(c => c.id === cardId ? {
+        ...c,
+        result,
+        fitMode: 'fit',
+        last3PGamma: result.gamma,
+      } : c))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('Parameter estimation failed:', err)
+      alert(`参数估计失败: ${message}`)
     }
   }
 
@@ -396,18 +434,23 @@ function CalculatorContent() {
   const handleToggle3P = (cardId: string) => {
     setCards(prev => prev.map(card => {
       if (card.id === cardId) {
-        const nextIs3P = !card.is3P
-        let updates: Partial<WeibullResult> = {}
-        let newPoints = card.result?.points || []
-
-        if (!nextIs3P) {
-          updates = { gamma: 0 }
-          if (card.data) {
-             newPoints = calculateMedianRanks(card.data, 0)
-          }
+        const result = card.result || createManualResult(card.data || [], card.is3P !== false)
+        const mode = toggleParameterMode({
+          is3P: card.is3P !== false,
+          currentGamma: result.gamma,
+          last3PGamma: card.last3PGamma ?? getDefaultParameters(true).gamma,
+        })
+        return {
+          ...card,
+          is3P: mode.is3P,
+          last3PGamma: mode.last3PGamma,
+          fitMode: 'manual',
+          result: {
+            ...result,
+            gamma: mode.gamma,
+            points: calculateMedianRanks(card.data || [], mode.gamma),
+          },
         }
-        const newResult = card.result ? { ...card.result, ...updates, points: newPoints } : undefined
-        return { ...card, is3P: nextIs3P, result: newResult }
       }
       return card
     }))
@@ -441,7 +484,7 @@ function CalculatorContent() {
             result={card.result}
             methodId={card.methodId}
             color={card.color}
-            fitMode={card.fitMode || 'fit'}
+            fitMode={card.fitMode || 'manual'}
             is3P={!!card.is3P}
             dataSources={card.dataSources}
             availableLayers={cards

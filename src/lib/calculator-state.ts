@@ -77,8 +77,12 @@ export function generateWeibullSample(
 }
 
 export function getEstimateFailure(result: EstimateCandidate): string | null {
-  if (result.beta === null || result.eta === null) return '参数估计未返回完整参数'
   if (result.converged === 'unbounded') return '参数估计无解'
   if (result.converged === false) return '参数估计未收敛'
+  if (result.beta === null || result.eta === null) return '参数估计未返回完整参数'
   return null
+}
+
+export function getEstimationModeFailure(is3P: boolean): string | null {
+  return is3P ? null : '当前方法仅支持 3P 估计，请切换到 3P'
 }
