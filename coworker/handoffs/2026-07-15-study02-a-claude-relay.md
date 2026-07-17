@@ -88,3 +88,16 @@ codex 在 `codex/long-task-20260711` 分支上跑了 Study/02（神经网络 Wei
 
 - 接力开始前 claude 分支仅含本交接文档一个提交。如需丢弃整棒：`git checkout codex/long-task-20260711 && git branch -D claude/study02-a-20260715`，远端 `git push origin --delete claude/study02-a-20260715`。
 - codex 基线已固化在 origin（`8e56a0e`），不受本棒影响。
+
+## 11. 2026-07-17 执行者棒更新（角色切换：Claude=执行者，Codex=唯一规划者/审批者）
+
+**本棒角色与之前不同**：用户把 Claude 定位为**执行者**，Codex 为**唯一规划者与审批者**。Claude **不得自签 APPROVE、不得启封 test**；完成即提交报告停止，等 Codex 的 APPROVE/REVISE/BLOCK。本棒目标：完成阻止 820-fit formal 链的 D7/D8 + 关闭新环境复现缺口，使 G3 达到"可由 Codex 批准后分阶段启动 formal"的状态。**未启动 formal run，test 全程 sealed。**
+
+**已完成并推送（claude 分支，`git log codex/long-task-20260711..claude/study02-a-20260715`）：**
+- `cd2efb1` 复现缺口闭环：`.gitattributes` 强制 `eol=lf`（解决 autocrlf=true 致冻结字节哈希变化，新 checkout 无需人工干预）+ Study02 `requirements.txt`（torch CPU + pin）。**已用干净 clone + autocrlf=true 验证** `verify_frozen_hashes` + `FROZEN_MATRIX_SHA256` 通过、冻结文件全 LF。
+- `73de48b` D7 selection scoring 原语：`validation_failure_penalized_l_param`——从**完整性绑定 checkpoint 加载并推理**产生 `mean failure-penalized L_param`（load_checkpoint→model→forward→decode 反演 encode_targets→evaluate_rows 失败惩罚 10），无 sidecar；共享 `_prepare_fit_inputs`（单源真理，训练与打分用同一 validation 准备）。**测试证明** decode 精确反演 encode + scoring 从 checkpoint 复现 L_param。全套 formal 225 passed 无回归。
+- `5ecda89` D6 决策分组 helper `_derive_decision_candidate` + 冻结矩阵覆盖诊断测试；修正失真的"L_param 未定义"占位说明（指标已冻结且可算）。
+
+**未完成（待 Codex 设计确认，详见 `coworker/reports/2026-07-17-study02-g3-d7-d8-claude.md`）：** D7/D8 完整 wiring——`build_module_selection` 的 run_module 集成（A-E1 stage1 排序→解析 `selected_top_*`→stage2→baseline_input F2-vs-V 的分阶段执行）、代表 checkpoint 策略、D8 占位符解析 + deferred-spec 重建 + 前驱链 wiring。诊断测试客观暴露 3 处决策分组 scoping 问题（output_form/distribution 按路由后缀拆成单候选决策；training_size 按 n 拆分）需 Codex 裁定。A-E1 的 architecture/stage2 分组正确。
+
+**结论**：本棒交付了可验证的复现+scoring 基础与设计诊断，但 D7/D8 尚未完整实现——其剩余 wiring 依赖 Codex 对上述设计点的确认。状态：**partial implementation, awaiting Codex design review**（非 APPROVE，formal 未授权）。
