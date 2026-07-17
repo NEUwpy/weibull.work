@@ -6,6 +6,7 @@ import { X, BookOpen, ChevronRight, Edit, CheckCircle, Plus, GripVertical, Setti
 import { useRouter } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
 import { MethodDetailContent } from '@/components/methods/MethodDetailContent'
+import { isCalculatorEnabled } from '@/lib/method-status'
 
 interface MethodSelectorProps {
   isOpen: boolean
@@ -123,8 +124,8 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
   }
 
   const handleConfirm = () => {
-    console.log('[MethodSelector] handleConfirm called', { activeMethodId, activeMethod, hasDetail: activeMethod?.hasDetail })
-    if (activeMethodId && activeMethod?.hasDetail) {
+    console.log('[MethodSelector] handleConfirm called', { activeMethodId, activeMethod })
+    if (activeMethodId && isCalculatorEnabled(activeMethodId)) {
       setIsClosing(true) // Prevent further rendering of heavy content
       onSelect(activeMethodId)
       onClose()
@@ -246,12 +247,12 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                      className="space-y-3 pb-6"
                    >
                      {selectedCategory.children?.map(method => {
-                       const isImplemented = method.hasDetail === true
+                       const isImplemented = isCalculatorEnabled(method.id)
                        return (
                          <Reorder.Item key={method.id} value={method}>
                            <div
                              onClick={() => {
-                               console.log('[MethodSelector] Method clicked:', method.id, method.name, 'hasDetail:', method.hasDetail)
+                               console.log('[MethodSelector] Method clicked:', method.id, method.name)
                                setActiveMethodId(method.id)
                              }}
                              className={cn(
@@ -364,10 +365,10 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
 
                           <button
                             onClick={handleConfirm}
-                            disabled={!activeMethodId || !activeMethod?.hasDetail}
+                            disabled={!activeMethodId || !isCalculatorEnabled(activeMethodId)}
                             className={cn(
                               "flex-[2] h-12 font-bold rounded-xl transition-all flex items-center justify-center gap-2",
-                              activeMethodId && activeMethod?.hasDetail
+                              activeMethodId && isCalculatorEnabled(activeMethodId)
                                 ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:translate-y-[-1px] active:translate-y-[1px] cursor-pointer"
                                 : "bg-slate-100 text-slate-300 cursor-not-allowed"
                             )}

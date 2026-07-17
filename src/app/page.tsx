@@ -15,6 +15,7 @@ import {
 import MethodSelector from '@/components/calculator/MethodSelector'
 import DataEditor from '@/components/calculator/DataEditor'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
+import { isCalculatorEnabled, getEnabledMethodIds } from '@/lib/method-status'
 
 const CHART_COLORS = MULTI_CURVE_COLORS.slice(0, 5)
 
@@ -68,7 +69,19 @@ function CalculatorContent() {
       const caseId = searchParams.get('caseId')
       let initialData: DataPoint[] = []
       let initialResult: WeibullResult | undefined = undefined
-      let selectedCaseIdFound = 'mle'
+      let selectedMethodId: string | undefined = undefined
+
+      // Determine selected method from ?method= param, gated by calculatorEnabled
+      const requestedMethod = searchParams.get('method')
+      if (requestedMethod && isCalculatorEnabled(requestedMethod)) {
+        selectedMethodId = requestedMethod
+      }
+      if (!selectedMethodId) {
+        const enabledIds = getEnabledMethodIds()
+        if (enabledIds.length > 0) {
+          selectedMethodId = enabledIds[0]
+        }
+      }
 
       if (caseId) {
         try {
@@ -98,6 +111,19 @@ function CalculatorContent() {
         initialResult = calculateWeibullParameters(points, 0)
       }
 
+      // When an enabled method is selected, try backend for initial result
+      if (selectedMethodId && initialData.length > 0) {
+        try {
+          const { result } = await calculateWeibull({
+            methodId: selectedMethodId,
+            data: initialData,
+          })
+          initialResult = result
+        } catch {
+          // backend unavailable; keep local result as fallback
+        }
+      }
+
       setCards([
         {
           id: '1',
@@ -107,7 +133,7 @@ function CalculatorContent() {
           color: CHART_COLORS[0],
           fitMode: 'fit',
           is3P: false,
-          methodId: 'mle'
+          methodId: selectedMethodId ?? 'mle',
         }
       ])
     }
