@@ -111,7 +111,8 @@ function CalculatorContent() {
         initialResult = calculateWeibullParameters(points, 0)
       }
 
-      // When an enabled method is selected, try backend for initial result
+      // When an enabled method is selected, try backend for initial result.
+      // On failure, clear the result rather than mislabeling a local fallback.
       if (selectedMethodId && initialData.length > 0) {
         try {
           const { result } = await calculateWeibull({
@@ -120,8 +121,11 @@ function CalculatorContent() {
           })
           initialResult = result
         } catch {
-          // backend unavailable; keep local result as fallback
+          initialResult = undefined
         }
+      } else if (!selectedMethodId) {
+        // No enabled method — no method identity to assign
+        initialResult = undefined
       }
 
       setCards([
@@ -133,7 +137,7 @@ function CalculatorContent() {
           color: CHART_COLORS[0],
           fitMode: 'fit',
           is3P: false,
-          methodId: selectedMethodId ?? 'mle',
+          methodId: selectedMethodId,
         }
       ])
     }

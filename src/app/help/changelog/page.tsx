@@ -43,12 +43,7 @@ function statusFromItem(item: { status: AtomicStatus }): AtomicStatus {
 }
 
 function getLayer1Readiness(cap: MethodCapability): { done: number; total: number } {
-  let done = 0
-  if (cap.paper.status === 'done') done++
-  for (const key of ['backend', 'tests', 'calculator', 'theory', 'process'] as const) {
-    if (cap.layer1[key].status === 'done') done++
-  }
-  return { done, total: 6 }
+  return { done: 6 - cap.missingLayer1.length, total: 6 }
 }
 
 function getTabStatus(cap: MethodCapability, tabKey: string): AtomicStatus {
