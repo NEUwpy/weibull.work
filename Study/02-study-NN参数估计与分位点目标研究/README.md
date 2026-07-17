@@ -67,6 +67,7 @@ x_R=F^{-1}(1-R)=\gamma+\eta[-\ln(R)]^{1/\beta}.
 | `configs/A-g2-protocol-v1.json` | G2 已冻结的机器可读实验配置 |
 | `configs/A-g2-search-v1.json` | 特征公式、损失、架构、优化器与两阶段搜索规则 |
 | `configs/A-g2-configs.sha256` | G2 两个冻结 JSON 配置的 SHA-256 |
+| `requirements.txt` | Study/02 正式可复现依赖（torch CPU + numpy/scipy/pandas，含 `--extra-index-url`），新环境安装入口 |
 | `history/README.md` | 说明历史材料的归档边界 |
 | `history/2026-07-11-2026-07-12-grill-me-主题确定记录.md` | 主题确立与 A 问题池形成过程；仅用于追溯决策来源 |
 
@@ -85,6 +86,18 @@ x_R=F^{-1}(1-R)=\gamma+\eta[-\ln(R)]^{1/\beta}.
 - 前置研究 A 的 19 个必答问题及 G2 实验协议已经冻结；formal 仍须逐模块通过代码合同、pilot、配置哈希和一次启封门。
 - 尚未决定前置研究最终是内部积累、论文中的基础章节，还是独立成果。
 - 在上述决策完成前，不启动正式大规模实验，也不把开放问题写成论文结论。
+
+## 环境与复现入口
+
+Study/02 正式代码（`code/study02a/*.py`）依赖 PyTorch。为避免依赖某一台机器的隐含环境，可复现依赖声明在本目录的 `requirements.txt`：
+
+```
+pip install -r "Study/02-study-NN参数估计与分位点目标研究/requirements.txt"
+```
+
+它通过 `--extra-index-url` 拉取 CPU 版 torch，并 pin 了验证过的 numpy/scipy/pandas 版本（2026-07-17）。
+
+冻结工件的字节哈希（`configs/A-g2-protocol-v1.json`、`configs/A-g2-search-v1.json`、`configs/A-g3-pilot-amendment-v4.json`、`artifacts/pilot/G3-matrix/experiment_matrix.csv`）按 LF 内容批准。仓库根的 `.gitattributes` 对这些文本类型强制 `eol=lf`，因此即使在 Windows 默认 `core.autocrlf=true` 上做全新 checkout，工作树也是 LF，`verify_frozen_hashes` / `FROZEN_MATRIX_SHA256` 无需人工改 Git 配置或手工重写文件即可通过。
 
 ## 研究原则
 

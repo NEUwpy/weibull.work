@@ -1,23 +1,38 @@
-* text=auto
+# All text files are normalized to LF in the repo AND forced to LF on checkout.
+# `eol=lf` (not bare `text`) is required so that a Windows checkout performed
+# with the default core.autocrlf=true still produces LF working-tree bytes.
+# This matters because Study/02 byte-hashes frozen artifacts whose approved
+# SHA-256 is computed over LF content:
+#   configs/A-g2-protocol-v1.json, configs/A-g2-search-v1.json,
+#   configs/A-g3-pilot-amendment-v4.json,
+#   artifacts/pilot/G3-matrix/experiment_matrix.csv
+# Under bare `text`, autocrlf=true would smudge those to CRLF on checkout and
+# break verify_frozen_hashes / FROZEN_MATRIX_SHA256. With eol=lf the working
+# tree matches the approved bytes with no manual git config or file rewriting.
+* text=auto eol=lf
 
-*.css  text
-*.html text
-*.js   text
-*.json text
-*.jsx  text
-*.md   text
-*.mjs  text
-*.py   text
-*.ps1  text
-*.ts   text
-*.tsx  text
-*.txt  text
-*.yaml text
-*.yml  text
+*.css   text eol=lf
+*.csv   text eol=lf
+*.html  text eol=lf
+*.js    text eol=lf
+*.json  text eol=lf
+*.jsonl text eol=lf
+*.jsx   text eol=lf
+*.md    text eol=lf
+*.mjs   text eol=lf
+*.py    text eol=lf
+*.ps1   text eol=lf
+*.sha256 text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.txt   text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
 
 *.docx binary
 *.jpg  binary
 *.jpeg binary
 *.png  binary
 *.pdf  binary
+*.pt   binary
 *.pth  binary

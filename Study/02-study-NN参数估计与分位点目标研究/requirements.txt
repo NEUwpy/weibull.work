@@ -1,0 +1,15 @@
+# Study/02 formal reproducibility — validated environment (2026-07-17).
+#
+# Install (CPU wheels, matches the environment the formal suite was validated in):
+#
+#     pip install -r "Study/02-study-NN参数估计与分位点目标研究/requirements.txt"
+#
+# The CPU PyTorch index is pulled via --extra-index-url below so torch resolves
+# to the +cpu wheel without inheriting an implicit environment from another
+# machine. numpy/scipy/pandas still resolve from PyPI.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.11.0
+numpy==2.1.1
+scipy==1.14.1
+pandas==2.2.3
