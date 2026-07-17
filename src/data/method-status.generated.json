@@ -1,0 +1,1464 @@
+{
+  "schemaVersion": 1,
+  "source": "05-状态.md",
+  "methods": [
+    {
+      "id": "mle",
+      "name": "极大似然估计",
+      "family": "max_adequacy",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "layer1_in_progress",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper"
+      ],
+      "paper": {
+        "status": "blocked",
+        "evidence": [],
+        "reason": "PAPER_NEEDED：缺少与当前三参数 MLE 实现口径一致的专项论文；181-004 仅提供 Smith (1985)、Hirose (1996) 等文献线索，不单独充当专项依据"
+      },
+      "layer1": {
+        "backend": {
+          "status": "done",
+          "evidence": [
+            "python/methods/mle.py"
+          ]
+        },
+        "tests": {
+          "status": "done",
+          "evidence": [
+            "python/tests/test_runner.py"
+          ]
+        },
+        "calculator": {
+          "status": "done",
+          "evidence": [
+            "src/hooks/useWeibullCalculation.ts"
+          ]
+        },
+        "theory": {
+          "status": "done",
+          "evidence": [
+            "src/content/algorithms/mle.md"
+          ]
+        },
+        "process": {
+          "status": "done",
+          "evidence": [
+            "python/methods/mle.py"
+          ]
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "done",
+          "evidence": [
+            "public/studies/mle"
+          ]
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "mmle",
+      "name": "修正极大似然估计",
+      "family": "max_adequacy",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "layer1_in_progress",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "tests"
+      ],
+      "paper": {
+        "status": "blocked",
+        "evidence": [],
+        "reason": "PAPER_NEEDED：需要 Cohen & Whitten (1982) Modified maximum likelihood and modified moment estimators for the three-parameter Weibull distribution 全文；本地尚未发现"
+      },
+      "layer1": {
+        "backend": {
+          "status": "done",
+          "evidence": [
+            "python/methods/mmle.py"
+          ]
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": [],
+          "note": "尚无针对 MMLE 的独立测试断言"
+        },
+        "calculator": {
+          "status": "done",
+          "evidence": [
+            "src/hooks/useWeibullCalculation.ts"
+          ]
+        },
+        "theory": {
+          "status": "done",
+          "evidence": [
+            "src/content/algorithms/mmle.md"
+          ]
+        },
+        "process": {
+          "status": "done",
+          "evidence": [
+            "python/methods/mmle.py"
+          ]
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "mps",
+      "name": "最大乘积间距",
+      "family": "max_adequacy",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "注册占位，运行时抛 NotImplementedError"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "wmle",
+      "name": "加权极大似然",
+      "family": "max_adequacy",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "layer1_in_progress",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "tests"
+      ],
+      "paper": {
+        "status": "done",
+        "title": "Nearly unbiased estimators for the three-parameter Weibull distribution with greater efficiency than the iterative likelihood method",
+        "publication": "British Journal of Mathematical and Statistical Psychology",
+        "year": 2009,
+        "stable_id": "Br. J. Math. Stat. Psychol. 62(1): 167-191 (2009)",
+        "evidence": [
+          "src/content/182-088-pdf原文.md"
+        ]
+      },
+      "layer1": {
+        "backend": {
+          "status": "done",
+          "evidence": [
+            "python/methods/wmle.py"
+          ]
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": [],
+          "note": "尚无针对 WMLE 的独立测试断言"
+        },
+        "calculator": {
+          "status": "done",
+          "evidence": [
+            "src/hooks/useWeibullCalculation.ts"
+          ]
+        },
+        "theory": {
+          "status": "done",
+          "evidence": [
+            "src/content/algorithms/wmle.md"
+          ]
+        },
+        "process": {
+          "status": "done",
+          "evidence": [
+            "python/methods/wmle.py",
+            "src/data/method_flows/wmle.json"
+          ]
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "done",
+          "evidence": [
+            "src/components/methods/wmle"
+          ]
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "in_progress",
+          "evidence": [
+            "public/studies/wmle"
+          ],
+          "note": "模拟数据已生成，旧状态表未确认完成"
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "lse",
+      "name": "最小二乘估计",
+      "family": "min_adequacy",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "注册占位，运行时抛 NotImplementedError"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "wlse",
+      "name": "加权最小二乘",
+      "family": "min_adequacy",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "当前仅为 lse 的注册别名，无独立实现"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "mdm",
+      "name": "最小差异法",
+      "family": "min_adequacy",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "layer2_complete",
+      "calculatorEnabled": true,
+      "missingLayer1": [],
+      "paper": {
+        "status": "done",
+        "title": "基于统计最小差异原理的威布尔分布参数估计方法",
+        "publication": "东北大学学报（自然科学版）",
+        "year": 2025,
+        "stable_id": "1005-3026(2025)07-0108-06",
+        "evidence": [
+          "src/content/182-046-pdf原文.md"
+        ]
+      },
+      "layer1": {
+        "backend": {
+          "status": "done",
+          "evidence": [
+            "python/methods/mdm.py"
+          ]
+        },
+        "tests": {
+          "status": "done",
+          "evidence": [
+            "python/tests/test_runner.py",
+            "python/tests/test_mdm_single_source.py"
+          ]
+        },
+        "calculator": {
+          "status": "done",
+          "evidence": [
+            "src/hooks/useWeibullCalculation.ts"
+          ]
+        },
+        "theory": {
+          "status": "done",
+          "evidence": [
+            "src/content/algorithms/mdm.md"
+          ]
+        },
+        "process": {
+          "status": "done",
+          "evidence": [
+            "python/methods/mdm.py",
+            "src/data/method_flows/mdm.json"
+          ]
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "done",
+          "evidence": [
+            "src/components/methods/mdm"
+          ]
+        },
+        "analysis": {
+          "status": "done",
+          "evidence": [
+            "src/components/methods/mdm"
+          ]
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "done",
+          "evidence": [
+            "public/studies/mdm"
+          ]
+        },
+        "verification": {
+          "status": "in_progress",
+          "evidence": [
+            "public/case-studies/mdm"
+          ],
+          "note": "已有 verification-182-046 一个验证项"
+        }
+      }
+    },
+    {
+      "id": "eiv",
+      "name": "变量误差法",
+      "family": "min_adequacy",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "当前仅为 lse 的注册别名，无独立实现"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "lre",
+      "name": "线性回归",
+      "family": "lre_group",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "layer1_in_progress",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "blocked",
+        "evidence": [],
+        "reason": "PAPER_NEEDED：需要 Park (2017) Weibullness test and parameter estimation for the three-parameter Weibull model using the sample correlation coefficient 全文；本地尚未发现"
+      },
+      "layer1": {
+        "backend": {
+          "status": "done",
+          "evidence": [
+            "python/methods/lre.py"
+          ]
+        },
+        "tests": {
+          "status": "done",
+          "evidence": [
+            "python/tests/test_runner.py"
+          ]
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": [],
+          "note": "计算器选择器当前未开放 LRE"
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": [],
+          "note": "python/methods/lre.py 尚无 @step 流程标注"
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "blre",
+      "name": "双线性回归",
+      "family": "lre_group",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "当前仅为 lre 的注册别名，无独立实现"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "mm",
+      "name": "矩估计",
+      "family": "moments",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "注册占位，运行时抛 NotImplementedError"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "pwm",
+      "name": "概率加权矩",
+      "family": "moments",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "注册占位，运行时抛 NotImplementedError"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "lm",
+      "name": "L-矩",
+      "family": "moments",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "当前仅为 pwm 的注册别名，无独立实现"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "tlm",
+      "name": "TL-矩",
+      "family": "moments",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "当前仅为 pwm 的注册别名，无独立实现"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "gm11",
+      "name": "灰色模型 GM(1,1)",
+      "family": "grey",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "gm11 别名指向 grey 注册占位，运行时抛 NotImplementedError"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "mve",
+      "name": "最小方差无偏估计",
+      "family": "construct_stat",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "后端未实现（NOT_IMPLEMENTED）"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "lsf",
+      "name": "位置尺度无关极大似然",
+      "family": "construct_stat",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "后端未实现（NOT_IMPLEMENTED）"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "gibbs",
+      "name": "Gibbs 采样",
+      "family": "bayesian",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "当前仅为 bayesian 注册占位的别名，运行时抛 NotImplementedError"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "map",
+      "name": "最大后验估计",
+      "family": "bayesian",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "当前仅为 bayesian 注册占位的别名，运行时抛 NotImplementedError"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "pso",
+      "name": "粒子群优化",
+      "family": "ai",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "后端未实现（NOT_IMPLEMENTED）；AI 方法需独立成熟度设计"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "svr",
+      "name": "支持向量回归",
+      "family": "ai",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "后端未实现（NOT_IMPLEMENTED）；AI 方法需独立成熟度设计"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    },
+    {
+      "id": "ann",
+      "name": "人工神经网络",
+      "family": "ai",
+      "shared_core": null,
+      "classification_source": "src/content/181-004-pdf原文.md",
+      "level": "not_started",
+      "calculatorEnabled": false,
+      "missingLayer1": [
+        "paper",
+        "backend",
+        "tests",
+        "calculator",
+        "theory",
+        "process"
+      ],
+      "paper": {
+        "status": "todo",
+        "evidence": []
+      },
+      "layer1": {
+        "backend": {
+          "status": "todo",
+          "evidence": [],
+          "note": "后端未实现（NOT_IMPLEMENTED）；AI 方法需独立成熟度设计"
+        },
+        "tests": {
+          "status": "todo",
+          "evidence": []
+        },
+        "calculator": {
+          "status": "todo",
+          "evidence": []
+        },
+        "theory": {
+          "status": "todo",
+          "evidence": []
+        },
+        "process": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer2": {
+        "calculation": {
+          "status": "todo",
+          "evidence": []
+        },
+        "analysis": {
+          "status": "todo",
+          "evidence": []
+        }
+      },
+      "layer3": {
+        "applicability": {
+          "status": "todo",
+          "evidence": []
+        },
+        "verification": {
+          "status": "todo",
+          "evidence": []
+        }
+      }
+    }
+  ]
+}
