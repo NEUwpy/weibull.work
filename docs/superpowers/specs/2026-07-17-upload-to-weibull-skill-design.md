@@ -2,7 +2,7 @@
 
 ## 目标
 
-建立一个由 Codex、Claude Code 和 OpenCode 共用的 `upload-to-weibull` 技能，将博士阶段文献库中已经完成 OCR 的文献安全投递到 `D:\weibull` 电子图书馆，并按当前站点规范完成发布前整理。
+建立一个由 Codex、Claude Code、OpenCode 和 Hermes 共用的 `upload-to-weibull` 技能，将博士阶段文献库中已经完成 OCR 的文献安全投递到 `D:\weibull` 电子图书馆，并按当前站点规范完成发布前整理。
 
 ## 已选方案
 
@@ -16,6 +16,7 @@
 - Codex：直接从共享 `.agents\skills` 发现技能。
 - Claude Code：在 `.claude\skills` 建立指向权威目录的目录链接。
 - OpenCode：在 `.config\opencode\skills` 建立指向权威目录的目录链接。
+- Hermes：在当前安装实际使用的 `C:\Users\36089\AppData\Local\hermes\skills` 建立指向权威目录的目录链接；不写入已停用的旧 `C:\Users\36089\.hermes\skills` 副本。
 
 技能包含：
 
@@ -85,7 +86,7 @@
 - 相同目标被跳过，不同目标触发冲突且不覆盖。
 - 重复源、非法 ID 和越界路径被拒绝。
 - 源目录在执行前后文件数量与哈希不变。
-- 技能可被三种代理发现，且三处入口指向同一权威目录。
+- 技能可被四种代理发现，且四处入口指向同一权威目录；Hermes 还需通过 `hermes skills list` 验证为 enabled。
 
 完成语义整理后，再检查 YAML、图片链接、参考文献标题与编号、`git diff --check`，并运行与内容库相关的最小站点验证。
 
