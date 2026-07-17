@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate:method-status": "node scripts/generate-method-status.mjs",
+    "check:method-status": "node scripts/generate-method-status.mjs --check",
+    "test:method-status": "node --test scripts/tests/method-status.test.mjs",
+    "predev": "npm run generate:method-status",
+    "prebuild": "npm run check:method-status"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
