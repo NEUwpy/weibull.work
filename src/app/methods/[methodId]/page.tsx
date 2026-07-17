@@ -14,6 +14,8 @@ import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
+import { getMethodCapability } from '@/lib/method-status'
+import MethodBuildStatus from '@/components/methods/MethodBuildStatus'
 
 // Dynamic imports for heavy visualizers
 const VariableFlowViewer = dynamic(() => import('@/components/methods/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -117,6 +119,8 @@ function CategoryOverview({ category }: { category: MethodNode }) {
 function MethodDetail({ category, method }: { category: MethodNode; method: MethodNode }) {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<null | 'flow' | 'lab' | 'analysis' | 'examples' | 'cases' | 'compare'>(null)
+  const capability = getMethodCapability(method.id)
+  const isFirstLayerComplete = capability?.calculatorEnabled ?? false
 
   const [data, setData] = useState<DataPoint[]>([])
   const [result, setResult] = useState<WeibullResult | undefined>(undefined)
@@ -437,14 +441,21 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
              </div>
 
              {/* Apply Link */}
-             <Link
-               href={`/?method=${method.id}`}
-               className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl transition-all shadow-sm shadow-blue-200"
-             >
-               <Play size={18} />
-               在计算器中应用
-               <ExternalLink size={14} />
-             </Link>
+             {isFirstLayerComplete ? (
+               <Link
+                 href={`/?method=${method.id}`}
+                 className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl transition-all shadow-sm shadow-blue-200"
+               >
+                 <Play size={18} />
+                 在计算器中应用
+                 <ExternalLink size={14} />
+               </Link>
+             ) : (
+               <span className="inline-flex items-center gap-2 px-5 py-3 bg-slate-100 text-slate-400 font-bold rounded-xl cursor-not-allowed select-none">
+                 <Play size={18} />
+                 开发中
+               </span>
+             )}
           </div>
         </div>
       </div>
@@ -452,22 +463,41 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       {/* Content Area */}
       <div className="min-h-[500px]">
         {activeTab === null ? (
-          // 默认显示原理文档
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-             {'slug' in method && method.hasDetail && method.slug ? (
-               <AlgorithmDetail slug={method.slug} />
+             {capability && capability.layer1.theory.status === 'done' ? (
+               'slug' in method && method.slug ? (
+                 <AlgorithmDetail slug={method.slug} />
+               ) : (
+                 <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200">
+                   暂无详细文档
+                 </div>
+               )
              ) : (
-               <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200">
-                 暂无详细文档
-               </div>
+               <MethodBuildStatus
+                 label="原理文档"
+                 status={capability?.layer1.theory.status ?? 'todo'}
+                 reason={capability?.layer1.theory.reason}
+                 evidence={capability?.layer1.theory.evidence}
+               />
              )}
           </div>
         ) : activeTab === 'flow' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <VariableFlowViewer methodId={method.id} />
+            {capability && capability.layer1.process.status === 'done' ? (
+              <VariableFlowViewer methodId={method.id} />
+            ) : (
+              <MethodBuildStatus
+                label="程序流程"
+                status={capability?.layer1.process.status ?? 'todo'}
+                reason={capability?.layer1.process.reason}
+                evidence={capability?.layer1.process.evidence}
+              />
+            )}
           </div>
         ) : activeTab === 'lab' ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {capability && capability.layer2.calculation.status === 'done' ? (
+              <div className="space-y-8">
             <AnalysisCard
               id="lab"
               index={0}
@@ -547,15 +577,26 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               </div>
             )}
 
-            {isCalculating && (
-              <div className="bg-slate-50 rounded-3xl p-12 border border-slate-200 flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
-                <p className="text-slate-600 font-bold">正在运行计算...</p>
+             {isCalculating && (
+               <div className="bg-slate-50 rounded-3xl p-12 border border-slate-200 flex flex-col items-center justify-center">
+                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
+                 <p className="text-slate-600 font-bold">正在运行计算...</p>
+               </div>
+             )}
               </div>
+            ) : (
+              <MethodBuildStatus
+                label="计算过程"
+                status={capability?.layer2.calculation.status ?? 'todo'}
+                reason={capability?.layer2.calculation.reason}
+                evidence={capability?.layer2.calculation.evidence}
+              />
             )}
           </div>
         ) : activeTab === 'analysis' ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {capability && capability.layer2.analysis.status === 'done' ? (
+              <div className="space-y-8">
             <AnalysisCard
               id="analysis"
               index={0}
@@ -588,24 +629,51 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 />
               </div>
             )}
+              </div>
+            ) : (
+              <MethodBuildStatus
+                label="结果分析"
+                status={capability?.layer2.analysis.status ?? 'todo'}
+                reason={capability?.layer2.analysis.reason}
+                evidence={capability?.layer2.analysis.evidence}
+              />
+            )}
           </div>
         ) : activeTab === 'examples' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {method.id.toLowerCase() === 'mdm' ? (
-              <GenericStudyViewer
-                methodId={method.id}
-                extraParamDefs={[
-                  { id: 'offset', name: '偏移量', symbol: 'δ', chunkKey: 'd', isVariable: true }
-                ]}
-                extraChunkKeys={['d']}
-              />
+            {capability && capability.layer3.applicability.status === 'done' ? (<>
+              {method.id.toLowerCase() === 'mdm' ? (
+                <GenericStudyViewer
+                  methodId={method.id}
+                  extraParamDefs={[
+                    { id: 'offset', name: '偏移量', symbol: 'δ', chunkKey: 'd', isVariable: true }
+                  ]}
+                  extraChunkKeys={['d']}
+                />
+              ) : (
+                <GenericStudyViewer methodId={method.id} />
+              )}</>
             ) : (
-              <GenericStudyViewer methodId={method.id} />
+              <MethodBuildStatus
+                label="适用范围"
+                status={capability?.layer3.applicability.status ?? 'todo'}
+                reason={capability?.layer3.applicability.reason}
+                evidence={capability?.layer3.applicability.evidence}
+              />
             )}
           </div>
         ) : activeTab === 'cases' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <CaseStudyViewer methodId={method.id} />
+            {capability && capability.layer3.verification.status === 'done' ? (
+              <CaseStudyViewer methodId={method.id} />
+            ) : (
+              <MethodBuildStatus
+                label="可信性验证"
+                status={capability?.layer3.verification.status ?? 'todo'}
+                reason={capability?.layer3.verification.reason}
+                evidence={capability?.layer3.verification.evidence}
+              />
+            )}
           </div>
         ) : activeTab === 'compare' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
