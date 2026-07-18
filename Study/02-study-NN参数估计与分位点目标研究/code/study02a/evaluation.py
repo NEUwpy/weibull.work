@@ -150,6 +150,16 @@ _COMPONENT_NAMES = ("beta", "eta", "gamma")
 _BOOTSTRAP_CONFIG: dict[str, int] = {"seed": _BOOTSTRAP_SEED, "replicates": _BOOTSTRAP_REPLICATES}
 
 
+# The canonical per-sample point-record schema (single authority; selection.py imports it).
+# R3#1: the exact field set a point record carries -- bound verbatim into the point-evidence
+# SHA, so a missing/extra field changes the digest. R4#2 validates each field's semantics.
+POINT_RECORD_FIELDS = ("sample_id", "seed_id", "point_id", "legal", "failure",
+                       "l_param", "e_beta", "e_eta", "e_gamma")
+# Frozen failure penalty applied to every illegal validation cell (protocol 02-A, constant
+# across the formal pipeline; an illegal cell's l_param and component errors all equal it).
+FROZEN_FAILURE_PENALTY = 10.0
+
+
 def validate_point_records(records: Sequence[Mapping]) -> list[dict]:
     """R3: validate per-sample point records BEFORE any dict is built.
 
@@ -181,6 +191,69 @@ def validate_point_records(records: Sequence[Mapping]) -> list[dict]:
     return validated
 
 
+def validate_canonical_point_records(records: Sequence[Mapping], *, support_seed: int) -> list[dict]:
+    """R4#2: structural + semantic validation of per-sample point records before hashing.
+
+    The single gate every point-evidence artifact passes before its content SHA is computed
+    (called from :func:`compute_point_evidence_sha256`), so any semantic tamper either raises
+    here or changes the bound digest. Delegates the structural checks (mapping type, non-empty
+    pairing ids, no duplicate cell, no cross-point sample within the list) to
+    :func:`validate_point_records`, then enforces per-record semantics -- all fail-closed:
+
+    * exact canonical field set (no missing/extra field) and JSON-correct types;
+    * ``seed_id == str(support_seed)`` -- the record belongs to this fit's frozen support seed
+      (a record relabelled to another seed is a tamper);
+    * finite numerics (no NaN / Inf); ``l_param >= 0``; ``failure`` in {0, 1};
+    * ``legal`` <-> ``failure`` consistency (legal <=> failure == 0);
+    * ``l_param`` <-> component errors: for a legal record ``l_param == rms(e_beta, e_eta,
+      e_gamma)``; for an illegal record ``l_param`` and all three component errors equal the
+      frozen failure penalty.
+    """
+    validated = validate_point_records(records)
+    expected_seed = str(int(support_seed))
+    canonical: list[dict] = []
+    for record in validated:
+        if set(record) != set(POINT_RECORD_FIELDS):
+            raise ValueError(
+                f"point record must carry exactly the canonical fields {list(POINT_RECORD_FIELDS)}; "
+                f"got {sorted(record)}"
+            )
+        legal = record["legal"]
+        failure = record["failure"]
+        if not isinstance(legal, bool):
+            raise ValueError("point record 'legal' must be a boolean")
+        if isinstance(failure, bool) or not isinstance(failure, int) or failure not in (0, 1):
+            raise ValueError("point record 'failure' must be the integer 0 or 1")
+        if str(record["seed_id"]) != expected_seed:
+            raise ValueError(
+                f"point record seed_id {record['seed_id']!r} disagrees with frozen support seed {expected_seed!r}"
+            )
+        numeric = {field: record[field] for field in ("l_param", "e_beta", "e_eta", "e_gamma")}
+        for field, value in numeric.items():
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                raise ValueError(f"point record {field!r} must be finite (no NaN/Inf)")
+        l_param = float(numeric["l_param"])
+        if l_param < 0:
+            raise ValueError("point record 'l_param' must be non-negative")
+        if (failure == 0) != legal:
+            raise ValueError("point record 'legal' and 'failure' are inconsistent")
+        if legal:
+            expected = math.sqrt(
+                (float(numeric["e_beta"]) ** 2 + float(numeric["e_eta"]) ** 2
+                 + float(numeric["e_gamma"]) ** 2) / 3.0
+            )
+            if not math.isclose(l_param, expected, rel_tol=1e-9, abs_tol=1e-12):
+                raise ValueError("point record 'l_param' disagrees with its component errors")
+        else:
+            for field in ("e_beta", "e_eta", "e_gamma"):
+                if not math.isclose(float(numeric[field]), FROZEN_FAILURE_PENALTY, rel_tol=1e-12, abs_tol=1e-12):
+                    raise ValueError(f"illegal point record {field!r} must equal the frozen failure penalty")
+            if not math.isclose(l_param, FROZEN_FAILURE_PENALTY, rel_tol=1e-12, abs_tol=1e-12):
+                raise ValueError("illegal point record 'l_param' must equal the frozen failure penalty")
+        canonical.append(record)
+    return canonical
+
+
 def _paired_grids(
     candidate_records: Sequence[Mapping], comparator_records: Sequence[Mapping], *, field: str,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], list[str], list[str]]:
@@ -200,6 +273,17 @@ def _paired_grids(
         raise ValueError("paired comparison requires identical (seed_id, sample_id) sets across candidates")
     if not cand_by:
         raise ValueError("paired comparison requires at least one paired cell")
+    # R4#2: across the two candidates being paired, the same (seed_id, sample_id) cell must
+    # carry the SAME point_id. ``sample_id`` is the stable pairing id of one validation sample
+    # (one frozen true-parameter point), so it determines ``point_id``; a relabel that gives one
+    # candidate's cell a different parameter-point id than the comparator's would otherwise pair
+    # two different truths on the same id (the CROSS_POINT attack) and silently accept them.
+    for cell in cand_by:
+        if cand_by[cell]["point_id"] != comp_by[cell]["point_id"]:
+            raise ValueError(
+                f"cross-candidate point_id mismatch for {cell!r}: "
+                f"{cand_by[cell]['point_id']!r} vs {comp_by[cell]['point_id']!r}"
+            )
     seed_ids = sorted({k[0] for k in cand_by})
     sample_ids = sorted({k[1] for k in cand_by})
     point_ids = sorted({cand_by[k]["point_id"] for k in cand_by})

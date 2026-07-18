@@ -712,45 +712,12 @@ def build_module_selection(
     cache_root = Path(cache_root).resolve()
     frozen = load_frozen_config(study_root)
     effective = load_effective_formal_config(study_root)
-    plan_rows = [
-        json.loads(line)
-        for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    plan_by_fit = {str(row["fit_id"]): row for row in plan_rows}
-    # DecisionSpecs are derived from the frozen matrix (which carries module/fit_kind/n),
-    # not from plan.jsonl (whose rows rename those fields); the plan rows supply the runtime
-    # per-fit metadata used for scoring. The matrix is the same frozen authority pre-unseal
-    # reopens, so the two derivations agree.
-    matrix_rows = expand_module_matrix(frozen).to_dict("records")
-    specs = build_decision_specs(module_id, matrix_rows)
+    specs, evaluations_by_fit = _derive_and_score_evaluations(
+        run_dir=run_dir, cache_root=cache_root, module_id=module_id, frozen=frozen,
+        effective=effective, score_fit=score_fit,
+    )
     if not specs:
         raise ValueError(f"build_module_selection derived no selection decisions for module {module_id!r}")
-
-    fit_states: Mapping[str, str] = {}
-    if score_fit is None:
-        fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
-
-    evaluations_by_fit: dict[str, FitEvaluation] = {}
-    for spec in specs:
-        for candidate in spec.candidates:
-            for key in candidate.support_keys:
-                fit_id = candidate.support_for(key)
-                plan_row = plan_by_fit[fit_id]
-                if score_fit is not None:
-                    evaluation = score_fit(fit_id, plan_row)
-                else:
-                    evaluation = _score_fit_from_checkpoint(
-                        run_dir=run_dir, cache_root=cache_root, fit_id=fit_id,
-                        plan_row=plan_row, frozen=frozen, effective=effective, fit_states=fit_states,
-                        module_id=module_id, decision_id=spec.decision_id, candidate_id=candidate.candidate_id,
-                    )
-                if evaluation.support_key != key:
-                    raise ValueError(
-                        f"scored fit {fit_id!r} support {evaluation.support_key!r} disagrees with "
-                        f"frozen expected {key!r}"
-                    )
-                evaluations_by_fit[fit_id] = evaluation
 
     records, diagnostics_records = build_selection_trace(
         module_id=module_id, run_id=run_id, specs=specs, evaluations_by_fit=evaluations_by_fit,
@@ -849,6 +816,89 @@ def _score_fit_from_checkpoint(
     )
 
 
+def _derive_and_score_evaluations(
+    *, run_dir: Path, cache_root: Path, module_id: str, frozen: FrozenConfig,
+    effective: EffectiveFormalConfig,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
+) -> tuple[tuple, dict[str, FitEvaluation]]:
+    """Single-source derivation + scoring of one module's selection fits (R4#1).
+
+    Derives the module's DecisionSpecs deterministically from the frozen matrix and scores
+    every expected supporting fit. With ``score_fit=None`` (the production path used at BOTH
+    publish time and pre-unseal) each fit is scored from its integrity-bound checkpoint via
+    :func:`_score_fit_from_checkpoint` -- the one scoring path, so the publish-time artifacts
+    and the independent pre-unseal rebuild cannot drift into two reasoning calibers. A test
+    may inject ``score_fit`` to stand in for checkpoint scoring without launching training.
+    Returns ``(specs, evaluations_by_fit)``.
+    """
+    plan_rows = [
+        json.loads(line)
+        for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    plan_by_fit = {str(row["fit_id"]): row for row in plan_rows}
+    # DecisionSpecs are derived from the frozen matrix (which carries module/fit_kind/n), not
+    # from plan.jsonl (whose rows rename those fields); the plan rows supply the runtime
+    # per-fit metadata used for scoring. The matrix is the same frozen authority pre-unseal
+    # reopens, so the two derivations agree.
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    specs = build_decision_specs(module_id, matrix_rows)
+    fit_states: Mapping[str, str] = {}
+    if score_fit is None:
+        fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+    evaluations_by_fit: dict[str, FitEvaluation] = {}
+    for spec in specs:
+        for candidate in spec.candidates:
+            for key in candidate.support_keys:
+                fit_id = candidate.support_for(key)
+                plan_row = plan_by_fit[fit_id]
+                if score_fit is not None:
+                    evaluation = score_fit(fit_id, plan_row)
+                else:
+                    evaluation = _score_fit_from_checkpoint(
+                        run_dir=run_dir, cache_root=cache_root, fit_id=fit_id,
+                        plan_row=plan_row, frozen=frozen, effective=effective, fit_states=fit_states,
+                        module_id=module_id, decision_id=spec.decision_id, candidate_id=candidate.candidate_id,
+                    )
+                if evaluation.support_key != key:
+                    raise ValueError(
+                        f"scored fit {fit_id!r} support {evaluation.support_key!r} disagrees with "
+                        f"frozen expected {key!r}"
+                    )
+                evaluations_by_fit[fit_id] = evaluation
+    return specs, evaluations_by_fit
+
+
+def rebuild_selection_point_provenance(
+    *, study_root: Path, run_dir: Path, cache_root: Path, module_id: str, run_id: str,
+) -> dict[str, FitEvaluation]:
+    """R4#1: independently rebuild every selection fit's point evidence from its bound
+    checkpoint, reusing the single-source scoring path the publisher used.
+
+    For each expected supporting fit of the module's decisions: a succeeded fit is reloaded
+    from ``outputs/{fit_id}/checkpoint.pt`` (the scheduler-authority file), forwarded on the
+    validation batch rebuilt from the frozen plan/config/cache, decoded and scored per
+    parameter point (mean failure-penalized ``L_param`` + canonical point records); a failed
+    fit is rebuilt as the all-illegal records over its frozen validation cells. No fit_status
+    scalar and no published artifact is trusted -- the returned :class:`FitEvaluation` map is
+    the independently reconstructed truth pre-unseal compares the published artifacts against.
+    ``run_id`` is accepted for interface symmetry but the rebuild reads ``run_dir`` directly.
+    """
+    study_root = Path(study_root).resolve()
+    run_dir = Path(run_dir).resolve()
+    cache_root = Path(cache_root).resolve()
+    del run_id  # the rebuild reads run_dir/outputs/{fit_id}/checkpoint.pt directly
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+    specs, evaluations_by_fit = _derive_and_score_evaluations(
+        run_dir=run_dir, cache_root=cache_root, module_id=module_id, frozen=frozen,
+        effective=effective, score_fit=None,
+    )
+    if not specs:
+        raise ValueError(f"rebuild_selection_point_provenance derived no selection decisions for module {module_id!r}")
+    return evaluations_by_fit
+
+
 def resolve_selected_placeholders(*arg: Any, **kw: Any) -> Any:  # pragma: no cover - placeholder
     """Resolve ``selected:<decision>`` / ``selected_top_N`` ids from a selection trace (D8)."""
     raise NotImplementedError("resolve_selected_placeholders (D8) is deferred until D7 wiring lands")
@@ -862,6 +912,7 @@ def reconstruct_deferred_specs(*arg: Any, **kw: Any) -> Any:  # pragma: no cover
 __all__ = [
     "build_module_selection",
     "execute_claimed_fit",
+    "rebuild_selection_point_provenance",
     "reconstruct_a_e1_specs",
     "resolve_loss_id",
     "resolve_model_factory",

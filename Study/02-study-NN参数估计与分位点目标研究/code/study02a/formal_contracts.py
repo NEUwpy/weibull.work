@@ -1112,6 +1112,7 @@ def build_pre_unseal_bundle(
     module_run_ids: Mapping[str, str],
     point_evidence_paths: Mapping[str, Path] | None = None,
     selection_diagnostics_paths: Sequence[Path] | None = None,
+    point_provenance_by_fit: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not isinstance(code_commit, str) or _CODE_COMMIT_RE.fullmatch(code_commit) is None:
         raise ValueError("code_commit must be a full commit ID")
@@ -1302,6 +1303,37 @@ def build_pre_unseal_bundle(
             if key in published_diagnostics:
                 raise ValueError(f"duplicate selection diagnostics record for {key!r}")
             published_diagnostics[key] = record
+
+    # R4#1: independently rebuild each fit's point evidence from its bound checkpoint and
+    # require every published artifact to agree with the rebuild field-by-field. The caller
+    # supplies ``point_provenance_by_fit`` (produced by formal_executor's single-source
+    # rebuild_selection_point_provenance: reload checkpoint.pt -> rebuild validation inputs
+    # -> forward -> decode -> canonical point records). This closes the loop the artifact's
+    # self-consistent content SHA leaves open: an attacker who rewrites the point records AND
+    # resynchronises the artifact's content SHA plus the downstream supporting/diagnostics/
+    # trace/receipt/ledger/fit_status still fails closed, because the rebuilt records come
+    # from the actual checkpoint, not the artifact. Mandatory whenever point-evidence
+    # artifacts are present (fail-closed -- the rebuild cannot be skipped).
+    if point_evidence_paths:
+        if point_provenance_by_fit is None:
+            raise ValueError(
+                "point_evidence_paths requires point_provenance_by_fit (the independent checkpoint rebuild)"
+            )
+        from .selection import assert_point_evidence_provenance as _assert_point_evidence_provenance
+        artifact_keys = set(point_evidence_paths)
+        provenance_keys = set(point_provenance_by_fit)
+        if provenance_keys != artifact_keys:
+            missing = sorted(artifact_keys - provenance_keys)
+            extra = sorted(provenance_keys - artifact_keys)
+            raise ValueError(
+                "point_provenance_by_fit must cover exactly the point-evidence artifacts; "
+                f"missing={missing!r} extra={extra!r}"
+            )
+        for fit_id in sorted(point_evidence_paths):
+            _assert_point_evidence_provenance(
+                published=point_evidence_by_fit[fit_id],
+                rebuilt=point_provenance_by_fit[fit_id],
+            )
 
     frozen_matrix_rows = _open_verified_matrix_evidence(_FROZEN_MATRIX_PATH).rows
     for module, module_fit_rows in fit_rows_by_module.items():

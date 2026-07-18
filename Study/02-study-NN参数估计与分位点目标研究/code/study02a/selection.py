@@ -34,12 +34,15 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 import hashlib
 import json
+import math
 from typing import Any, Mapping, Sequence
 
 from .evaluation import (
+    POINT_RECORD_FIELDS,
     global_better_intervals,
     paired_two_level_bootstrap_ci,
     smallest_within_2pct_ci_choice,
+    validate_canonical_point_records,
 )
 from .formal_contracts import (
     SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,
@@ -145,8 +148,7 @@ class DecisionSpec:
         return _AXIS_RULE[self.axis][1]
 
 
-_POINT_RECORD_FIELDS = ("sample_id", "seed_id", "point_id", "legal", "failure",
-                        "l_param", "e_beta", "e_eta", "e_gamma")
+_POINT_RECORD_FIELDS = POINT_RECORD_FIELDS  # canonical field authority lives in evaluation.py
 
 
 def _canonical_point_record(record: Mapping[str, Any]) -> dict[str, Any]:
@@ -166,10 +168,10 @@ def compute_point_evidence_sha256(
     point-evidence artifact (fit A's records under fit B's identity) or any tampered
     record/checkpoint/validation-set changes this digest, and (because it is bound into
     ``supporting_evidence_sha256``) the whole selection chain fails closed. Records are
-    validated and sorted by ``(seed_id, sample_id)`` so the digest is order-independent.
+    semantically validated (R4#2: structure + per-record semantics, bound to the frozen
+    support seed) and sorted by ``(seed_id, sample_id)`` so the digest is order-independent.
     """
-    from .evaluation import validate_point_records
-    records = validate_point_records(point_records)
+    records = validate_canonical_point_records(point_records, support_seed=int(support_key.seed))
     canonical_records = sorted(
         (_canonical_point_record(record) for record in records),
         key=lambda r: (str(r["seed_id"]), str(r["sample_id"])),
@@ -511,7 +513,8 @@ def _improvement_records(
     Uses the frozen failure-penalized ``L_param`` per cell (failed-seed cells carry the
     penalty, so a worse-on-failures candidate is not silently favoured). Pairing is
     exact on ``(seed_id, sample_id)`` via :func:`validate_point_records`; a mismatched
-    cell set, duplicate cell, or cross-point sample fails closed.
+    cell set, duplicate cell, cross-point sample, or cross-candidate ``point_id``
+    disagreement for the same cell fails closed (R4#2: the CROSS_POINT attack).
     """
     from .evaluation import validate_point_records
     comparator_records = validate_point_records(comparator_points)
@@ -520,6 +523,12 @@ def _improvement_records(
     comparator_by = {(r["seed_id"], r["sample_id"]): r for r in comparator_records}
     if set(candidate_by) != set(comparator_by):
         raise ValueError("CI pairing requires identical (seed_id, sample_id) sets across candidates")
+    for cell in candidate_by:
+        if candidate_by[cell]["point_id"] != comparator_by[cell]["point_id"]:
+            raise ValueError(
+                f"cross-candidate point_id mismatch for {cell!r}: "
+                f"{candidate_by[cell]['point_id']!r} vs {comparator_by[cell]['point_id']!r}"
+            )
     records: list[Mapping[str, Any]] = []
     for key in sorted(candidate_by):
         cand, comp = candidate_by[key], comparator_by[key]
@@ -648,8 +657,12 @@ def load_point_evidence(payload: Mapping[str, Any]) -> FitEvaluation:
     Recomputes ``point_evidence_sha256`` from the bound identity + checkpoint +
     validation identity + failed flag + canonical point records and requires it to
     equal the artifact's stored digest (any tampered record/identity/checkpoint fails
-    closed). Returns the reconstructed :class:`FitEvaluation`. The point records are
-    validated (no duplicate cell, no cross-point sample) before hashing.
+    closed). The point records are semantically validated (R4#2) before hashing, and
+    the artifact's stored scalar must equal the independent aggregate of its canonical
+    records (R4#2#9: a succeeded fit's ``selection_score`` is the mean per-sample
+    ``L_param``; a failed fit's ``failure_penalty`` is the mean over its all-illegal
+    cells) -- so a scalar fabricated independently of the records fails closed even
+    before the supporting-hash check. Returns the reconstructed :class:`FitEvaluation`.
     """
     if payload.get("artifact_version") != _POINT_EVIDENCE_ARTIFACT_VERSION:
         raise ValueError("point-evidence artifact version mismatch")
@@ -669,6 +682,20 @@ def load_point_evidence(payload: Mapping[str, Any]) -> FitEvaluation:
         raise ValueError(
             f"point-evidence artifact {payload['fit_id']!r} content SHA disagrees with its stored digest"
         )
+    records = tuple(payload["point_records"])
+    if records:
+        mean_l_param = sum(float(record["l_param"]) for record in records) / len(records)
+        if bool(payload["failed"]):
+            if not math.isclose(float(payload["failure_penalty"]), mean_l_param, rel_tol=1e-9, abs_tol=1e-12):
+                raise ValueError(
+                    f"point-evidence artifact {payload['fit_id']!r} failure_penalty disagrees with "
+                    f"the mean L_param of its canonical records"
+                )
+        elif not math.isclose(float(payload["selection_score"]), mean_l_param, rel_tol=1e-9, abs_tol=1e-12):
+            raise ValueError(
+                f"point-evidence artifact {payload['fit_id']!r} selection_score disagrees with "
+                f"the mean L_param of its canonical records"
+            )
     return FitEvaluation(
         fit_id=payload["fit_id"], module_id=payload["module_id"], decision_id=payload["decision_id"],
         candidate_id=payload["candidate_id"], support_key=support_key, failed=bool(payload["failed"]),
@@ -676,6 +703,61 @@ def load_point_evidence(payload: Mapping[str, Any]) -> FitEvaluation:
         selection_score=float(payload["selection_score"]), failure_penalty=float(payload["failure_penalty"]),
         point_records=tuple(payload["point_records"]),
     )
+
+
+def assert_point_evidence_provenance(*, published: "FitEvaluation", rebuilt: "FitEvaluation") -> None:
+    """R4#1: assert a published point-evidence artifact agrees field-by-field with an
+    independently rebuilt evaluation (the rebuilt evaluation is derived from the bound
+    checkpoint + the frozen validation inputs through the single-source scoring path -- never
+    from the artifact itself).
+
+    This closes the loop the artifact's self-consistent content SHA leaves open: an attacker
+    who rewrites the point records AND resynchronises the artifact's content SHA plus the
+    downstream supporting-evidence / diagnostics / trace / receipt / ledger / fit_status
+    still fails closed, because the rebuilt records come from the actual checkpoint, not the
+    artifact. Compares the checkpoint SHA (the real file, via the rebuild), the validation
+    identity (must equal the rebuilt dataset/cache identity), the failed flag, the scalar
+    (selection_score for a succeeded fit, failure_penalty for a failed fit), and the canonical
+    point records (field-by-field, via ``point_evidence_sha256`` which binds the records plus
+    the identity, checkpoint, validation identity and failed flag).
+    """
+    fit_id = rebuilt.fit_id
+    if published.fit_id != fit_id:
+        raise ValueError(f"point-evidence provenance fit_id mismatch: {published.fit_id!r} vs {fit_id!r}")
+    if published.module_id != rebuilt.module_id or published.decision_id != rebuilt.decision_id \
+            or published.candidate_id != rebuilt.candidate_id:
+        raise ValueError(f"point-evidence provenance identity mismatch for {fit_id!r}")
+    if published.support_key != rebuilt.support_key:
+        raise ValueError(
+            f"point-evidence provenance support key mismatch for {fit_id!r}: "
+            f"{published.support_key!r} vs {rebuilt.support_key!r}"
+        )
+    if published.checkpoint_sha256 != rebuilt.checkpoint_sha256:
+        raise ValueError(
+            f"point-evidence artifact {fit_id!r} checkpoint_sha256 disagrees with the rebuilt checkpoint"
+        )
+    if published.validation_identity != rebuilt.validation_identity:
+        raise ValueError(
+            f"point-evidence artifact {fit_id!r} validation_identity disagrees with the rebuilt "
+            f"dataset/cache identity"
+        )
+    if bool(published.failed) != bool(rebuilt.failed):
+        raise ValueError(f"point-evidence artifact {fit_id!r} failed flag disagrees with the rebuild")
+    if published.failed:
+        if not math.isclose(float(published.failure_penalty), float(rebuilt.failure_penalty),
+                            rel_tol=1e-9, abs_tol=1e-12):
+            raise ValueError(
+                f"point-evidence artifact {fit_id!r} failure_penalty disagrees with the rebuild"
+            )
+    elif not math.isclose(float(published.selection_score), float(rebuilt.selection_score),
+                          rel_tol=1e-9, abs_tol=1e-12):
+        raise ValueError(
+            f"point-evidence artifact {fit_id!r} selection_score disagrees with the rebuild"
+        )
+    if published.point_evidence_sha256() != rebuilt.point_evidence_sha256():
+        raise ValueError(
+            f"point-evidence artifact {fit_id!r} canonical point records disagree with the rebuild"
+        )
 
 
 def build_selection_trace(
@@ -757,6 +839,7 @@ __all__ = [
     "DecisionSpec",
     "FitEvaluation",
     "apply_selection_rule",
+    "assert_point_evidence_provenance",
     "build_decision_specs",
     "build_rule_diagnostics",
     "build_selection_trace",
