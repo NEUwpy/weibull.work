@@ -18,6 +18,7 @@ import sys
 import os
 
 import numpy as np
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -128,4 +129,22 @@ def test_lre_not_an_alias():
     """LRE 不是任何其他方法的别名或回退（run_method 始终返回 lre ID）。"""
     r = run_method("lre", FIXED_SAMPLE)
     assert r["method_id"] == "lre"
-    assert r["extra"] is None
+    assert r["extra"] is None or "solution_info" in (r["extra"] or {})
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_lre_degenerate_sample_fails_explicitly():
+    """全等值样本必须显式失败，禁止返回 β=1, γ=0 伪结果。"""
+    r = run_method("lre", [5.0] * 10)
+    assert r["converged"] is False
+    assert r["beta_hat"] is None
+    assert r["extra"]["raw_status"] == "degenerate_sample"
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_lre_insufficient_sample_fails_explicitly():
+    """n < 3 无相关系数自由度，必须显式失败。"""
+    r = run_method("lre", [1.0, 2.0])
+    assert r["converged"] is False
+    assert r["beta_hat"] is None
+    assert r["extra"]["raw_status"] == "insufficient_sample"

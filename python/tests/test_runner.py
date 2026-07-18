@@ -55,7 +55,6 @@ def test_trace_kwarg_is_ignored_when_method_does_not_accept_it():
     """统一调用器可接收 API 传来的 trace，并兼容不支持 trace 的方法。"""
     r = run_method("lre", FIXED_SAMPLE, trace=True)
     assert r["converged"] is True
-    assert r["extra"] is None
     assert r["beta_hat"] is not None
 
 
