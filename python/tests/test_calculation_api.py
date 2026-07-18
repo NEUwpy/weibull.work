@@ -174,3 +174,19 @@ def test_calculate_api_runs_real_mle_with_identity(helpers):
     assert abs(response["beta"] - 4.529) < 0.01
     assert abs(response["eta"] - 6.239) < 0.01
     assert abs(response["gamma"] - 22.092) < 0.01
+
+
+# Cousineau (2009) §4 数值例（src/content/182-088-pdf原文.md），
+# WMLE 基准：shape=2.29, scale=116.0, location=283.7。
+_COUSINEAU_X = [310, 342, 353, 365, 383, 393, 403, 412, 451, 456]
+
+
+def test_calculate_api_runs_real_wmle_with_identity(helpers):
+    """真实后端路径：/calculate 的 WMLE 调用返回 wmle 身份和论文基准参数。"""
+    response = helpers._run_calculation_method("wmle", _COUSINEAU_X)
+
+    assert response["method"] == "wmle"
+    assert response["converged"] is True
+    assert abs(response["beta"] - 2.29) < 0.06
+    assert abs(response["eta"] - 116.0) < 2.5
+    assert abs(response["gamma"] - 283.7) < 2.5

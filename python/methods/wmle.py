@@ -23,8 +23,11 @@ Weighted Maximum Likelihood Estimation
 
 import numpy as np
 from scipy.optimize import minimize
-from scipy.special import digamma
+from scipy.special import gammaincinv
 from base import WeibullBase
+
+# 形状参数搜索上界（实现保护，超出视为无解，见 run() 中的显式失败分支）
+SHAPE_UPPER = 10.0
 
 # ============================================================================
 # J1 Weight Table (median of W1)
@@ -132,15 +135,18 @@ def get_weight_j1(n: int) -> float:
     Get J1 weight (median of W1) for sample size n.
 
     J1 is used to compute the scale parameter beta.
-    For n > 100, use exact formula: exp(digamma(n)) / n
+    Paper definition: W1 = (1/n) * sum(log(1/(1-F(x_i)))), the summands are
+    iid Exp(1), so W1 ~ Gamma(n, 1/n) and its exact median is
+    gammaincinv(n, 0.5) / n (Cousineau 2009, Table 2 lists the same values).
+    For n > 100 (outside the lookup table) we use this exact median.
     """
     if n in WEIGHT_TABLE_J1:
         return WEIGHT_TABLE_J1[n]
     if n < 1:
         return 0.5
     if n > 100:
-        # Exact formula for large n
-        return np.exp(digamma(n)) / n
+        # Exact median of W1 ~ Gamma(n, 1/n)
+        return float(gammaincinv(n, 0.5)) / n
     # Linear interpolation
     known_ns = sorted(WEIGHT_TABLE_J1.keys())
     for i in range(len(known_ns) - 1):
@@ -344,7 +350,7 @@ class WMLE(WeibullBase):
             alpha = params[1]  # Location (paper's alpha)
 
             # Constraints: gamma > 0, alpha < min(data)
-            if gamma <= 0 or gamma > 10 or alpha >= x_min - 1e-6 or alpha < 0:
+            if gamma <= 0 or gamma > SHAPE_UPPER or alpha >= x_min - 1e-6 or alpha < 0:
                 return 1e10
 
             x_minus_alpha = arr - alpha
@@ -403,10 +409,44 @@ class WMLE(WeibullBase):
         )
 
         if not result.success:
-            return [1, 100, 0, 0]
+            # 优化失败必须显式报错，禁止返回伪造的默认参数
+            self.last_solution_info = {
+                "status": "optimizer_failed",
+                "message": str(result.message),
+            }
+            if trace:
+                self.log_step({
+                    "phase": "failed",
+                    "reason": "optimizer_failed",
+                    "message": str(result.message),
+                })
+            return [0, 0, 0, 0, False]
 
         gamma_hat = result.x[0]  # Shape (paper's gamma -> System's beta)
         alpha_hat = result.x[1]  # Location (Paper's alpha -> System's gamma)
+
+        # 形状估计压在实现上界：加权方程组在支持范围内无根，视为无解
+        if gamma_hat >= SHAPE_UPPER - 0.01:
+            self.last_solution_info = {
+                "status": "shape_at_bound",
+                "shape_upper": SHAPE_UPPER,
+                "objective": float(result.fun),
+            }
+            if trace:
+                self.log_step({
+                    "phase": "failed",
+                    "reason": "shape_at_bound",
+                    "shape": float(gamma_hat),
+                    "objective": float(result.fun),
+                })
+            return [0, 0, 0, 0, "shape_at_bound"]
+
+        # 求解诊断：目标函数残差（论文式(4) 应在根处为 0）与位置边界标记
+        self.last_solution_info = {
+            "status": "ok",
+            "objective": float(result.fun),
+            "location_at_zero_boundary": bool(alpha_hat < 1e-6),
+        }
 
         # @step: 6 | 代数计算尺度参数 η | 使用最优的 β̂ 和 γ̂，通过加权代数公式直接计算尺度参数
         # @formula: \hat{\eta} = \left[ \frac{1}{n \cdot J_1} \sum_{i=1}^{n} (x_i - \hat{\gamma})^{\hat{\beta}} \right]^{1/\hat{\beta}}
