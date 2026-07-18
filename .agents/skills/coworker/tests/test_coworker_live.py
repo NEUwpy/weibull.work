@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -44,8 +45,14 @@ def run_live():
     if not POWERSHELL:
         pytest.skip("Windows PowerShell is required")
 
-    def invoke(action: str, *, repo: Path, task_id: str) -> subprocess.CompletedProcess[str]:
-        return run_command(
+    def invoke(
+        action: str,
+        *,
+        repo: Path,
+        task_id: str,
+        **options: object,
+    ) -> subprocess.CompletedProcess[str]:
+        command = [
             POWERSHELL,
             "-NoProfile",
             "-ExecutionPolicy",
@@ -58,8 +65,11 @@ def run_live():
             str(repo),
             "-TaskId",
             task_id,
-            cwd=repo,
-        )
+        ]
+        for name, value in options.items():
+            if value is not None:
+                command.extend([f"-{name}", str(value)])
+        return run_command(*command, cwd=repo)
 
     return invoke
 
@@ -90,3 +100,171 @@ def test_preflight_rejects_non_git_directory(tmp_path: Path, run_live) -> None:
 
     assert result.returncode != 0
     assert "not a Git worktree" in result.stderr
+
+
+def write_fake_claude(
+    repo: Path,
+    *,
+    payload: str | None = None,
+    exit_code: int = 0,
+    delay_seconds: int = 0,
+) -> Path:
+    launcher = repo / "fake-claude.cmd"
+    result = payload or json.dumps(
+        {
+            "type": "result",
+            "subtype": "success",
+            "is_error": False,
+            "result": "worker complete",
+            "session_id": "11111111-1111-1111-1111-111111111111",
+        }
+    )
+    launcher.write_text(
+        "@echo off\n"
+        "echo %* > \"%~dp0claude-args.log\"\n"
+        + (f"powershell -NoProfile -Command Start-Sleep -Seconds {delay_seconds}\n" if delay_seconds else "")
+        + f"echo {result}\n"
+        + f"exit /b {exit_code}\n",
+        encoding="ascii",
+    )
+    return launcher
+
+
+def write_contract_files(repo: Path) -> dict[str, Path]:
+    files = {
+        "PromptFile": repo / "prompt.md",
+        "Plan": repo / "plan.md",
+        "Handoff": repo / "handoff.md",
+        "Report": repo / "report.md",
+        "Review": repo / "review.md",
+    }
+    files["PromptFile"].write_text("Role: executor\nDo the bounded task.\n", encoding="utf-8")
+    files["Plan"].write_text("# Plan\n", encoding="utf-8")
+    files["Handoff"].write_text("# Handoff\n", encoding="utf-8")
+    return files
+
+
+def wait_for_state(run_live, repo: Path, task_id: str, expected: str, timeout: float = 12) -> dict:
+    deadline = time.monotonic() + timeout
+    last: dict = {}
+    while time.monotonic() < deadline:
+        result = run_live("status", repo=repo, task_id=task_id)
+        if result.returncode == 0:
+            last = json.loads(result.stdout)
+            if last["state"] == expected:
+                return last
+        time.sleep(0.1)
+    raise AssertionError(f"task did not reach {expected}; last status: {last}")
+
+
+def test_start_collect_resume_preserves_claude_session(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo)
+
+    started = run_live(
+        "start",
+        repo=repo,
+        task_id="demo",
+        ClaudeCommand=claude,
+        **files,
+    )
+
+    assert started.returncode == 0, started.stderr
+    first = wait_for_state(run_live, repo, "demo", "AWAITING_CODEX_REVIEW")
+    assert first["round"] == 1
+    assert first["claude_session_id"] == "11111111-1111-1111-1111-111111111111"
+    files["Report"].write_text("# Worker report\n", encoding="utf-8")
+    collected = run_live("collect", repo=repo, task_id="demo")
+    assert collected.returncode == 0, collected.stderr
+    assert json.loads(collected.stdout)["result"] == "worker complete"
+
+    files["Review"].write_text("Verdict: REVISE\nFix the evidence table.\n", encoding="utf-8")
+    resumed = run_live(
+        "resume",
+        repo=repo,
+        task_id="demo",
+        Review=files["Review"],
+        ClaudeCommand=claude,
+    )
+    assert resumed.returncode == 0, resumed.stderr
+    second = wait_for_state(run_live, repo, "demo", "AWAITING_CODEX_REVIEW")
+    assert second["round"] == 2
+    assert second["claude_session_id"] == first["claude_session_id"]
+    args = (repo / "claude-args.log").read_text(encoding="utf-8")
+    assert "--resume 11111111-1111-1111-1111-111111111111" in args
+
+
+def test_start_rejects_duplicate_live_worker(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo, delay_seconds=3)
+
+    first = run_live("start", repo=repo, task_id="duplicate", ClaudeCommand=claude, **files)
+    second = run_live("start", repo=repo, task_id="duplicate", ClaudeCommand=claude, **files)
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode != 0
+    assert "already" in second.stderr.lower()
+    run_live("cancel", repo=repo, task_id="duplicate")
+
+
+def test_collect_requires_worker_report(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo)
+    result = run_live("start", repo=repo, task_id="missing-report", ClaudeCommand=claude, **files)
+    assert result.returncode == 0, result.stderr
+    wait_for_state(run_live, repo, "missing-report", "AWAITING_CODEX_REVIEW")
+
+    collected = run_live("collect", repo=repo, task_id="missing-report")
+
+    assert collected.returncode != 0
+    assert "report" in collected.stderr.lower()
+
+
+@pytest.mark.parametrize(
+    ("payload", "exit_code"),
+    [("not-json", 0), (None, 7)],
+)
+def test_worker_failures_pause_task(
+    repo: Path,
+    run_live,
+    payload: str | None,
+    exit_code: int,
+) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo, payload=payload, exit_code=exit_code)
+
+    result = run_live("start", repo=repo, task_id=f"failure-{exit_code}", ClaudeCommand=claude, **files)
+
+    assert result.returncode == 0, result.stderr
+    status = wait_for_state(run_live, repo, f"failure-{exit_code}", "PAUSED")
+    assert status["exit_code"] == exit_code
+
+
+def test_status_reports_stale_recorded_pid(repo: Path, run_live) -> None:
+    runtime = repo / "coworker" / "runtime" / "stale"
+    runtime.mkdir(parents=True)
+    (runtime / "state.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "task_id": "stale",
+                "repo": str(repo),
+                "state": "WORKER_RUNNING",
+                "worker_pid": 99999999,
+                "heartbeat_path": str(runtime / "heartbeat.txt"),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_live("status", repo=repo, task_id="stale")
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["worker_alive"] is False
+
+
+def test_cancel_refuses_task_without_recorded_pid(repo: Path, run_live) -> None:
+    result = run_live("cancel", repo=repo, task_id="never-started")
+
+    assert result.returncode != 0
+    assert "recorded" in result.stderr.lower()
