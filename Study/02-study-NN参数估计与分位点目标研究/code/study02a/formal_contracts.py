@@ -407,6 +407,13 @@ def _validate_selection_trace_bytes(
             raise ValueError("Predecessor selection trace selection_rule is not a frozen rule")
         by_decision.setdefault(decision_id, []).append(record)
     for decision_id, decision_rows in by_decision.items():
+        # Contract E: a decision's selection_rule must be unique (no mixed rules within one
+        # decision). Two candidates of the same decision carrying different rules is a tamper.
+        decision_rules = {row["selection_rule"] for row in decision_rows}
+        if len(decision_rules) != 1:
+            raise ValueError(
+                f"selection trace decision {decision_id} mixes selection rules {sorted(decision_rules)!r}"
+            )
         ranked = sorted(
             decision_rows,
             key=lambda row: (

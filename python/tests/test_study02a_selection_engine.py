@@ -317,3 +317,119 @@ def test_winner_is_never_caller_supplied():
     import inspect
     params = inspect.signature(build_selection_trace).parameters
     assert "winner" not in params and "selected_candidate_id" not in params
+
+
+# --------------------------------------------------------------------------
+# Additional attack-surface coverage (R2 / contract attack list).
+# --------------------------------------------------------------------------
+
+
+def test_identical_fits_under_two_candidates_get_distinct_supporting_hashes():
+    # R2 #3: the supporting_evidence_sha256 binds candidate_id, so two candidates that
+    # bind the SAME checkpoint/score still get distinct hashes.
+    keys = (SupportKey(10, 420101),)
+    cand_a = _candidate("d:A-T:r:n10", "a", keys, rule=SELECTION_RULE_LOWEST_AGGREGATE)
+    cand_b = _candidate("d:A-T:r:n10", "b", keys, rule=SELECTION_RULE_LOWEST_AGGREGATE)
+    ev_a = candidate_supporting_evidence(module_id="A-T", run_id="r1", candidate=cand_a, evaluations_by_support=_evals_for(cand_a, {keys[0]: 0.1}))
+    ev_b = candidate_supporting_evidence(module_id="A-T", run_id="r1", candidate=cand_b, evaluations_by_support=_evals_for(cand_b, {keys[0]: 0.1}))
+    assert ev_a["supporting_evidence_sha256"] != ev_b["supporting_evidence_sha256"]
+
+
+def test_mixed_selection_rule_within_one_decision_is_rejected(tmp_path):
+    # Contract E: a decision's selection_rule must be unique. Hand-build a trace where two
+    # candidates of one decision carry different rules; write_selection_trace must reject it.
+    from study02a.formal_contracts import write_selection_trace
+    keys = (SupportKey(10, 420101),)
+    cand_a = _candidate("d:A-T:r:n10", "a", keys, rule=SELECTION_RULE_LOWEST_AGGREGATE)
+    ev = candidate_supporting_evidence(module_id="A-T", run_id="r1", candidate=cand_a,
+                                       evaluations_by_support=_evals_for(cand_a, {keys[0]: 0.1}))
+    records = [{
+        "module_id": "A-T", "run_id": "r1", "decision_id": "d:A-T:r:n10", "candidate_id": "a",
+        "validation_score": ev["aggregate_score"], "tie_break_key": ["a"], "selected": True,
+        "supporting_evidence_sha256": ev["supporting_evidence_sha256"], "support_count": 1,
+        "seed_count": 1, "selection_rule": SELECTION_RULE_LOWEST_AGGREGATE,
+    }, {
+        "module_id": "A-T", "run_id": "r1", "decision_id": "d:A-T:r:n10", "candidate_id": "b",
+        "validation_score": ev["aggregate_score"], "tie_break_key": ["b"], "selected": False,
+        "supporting_evidence_sha256": ev["supporting_evidence_sha256"], "support_count": 1,
+        "seed_count": 1, "selection_rule": SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,  # mixed!
+    }]
+    with pytest.raises(ValueError, match="mixes selection rules"):
+        write_selection_trace(tmp_path / "mixed.jsonl", records)
+
+
+def _global_better_spec_and_evals():
+    """Two candidates, global_better rule, per-point evidence where NEITHER globally
+    dominates (each wins one parameter point) so the rule falls back to lowest L_param."""
+    keys = (SupportKey(10, 420101),)
+    cand_a = CandidateSpec(decision_id="distribution:A-T:base", candidate_id="legacy", selection_rule=SELECTION_RULE_GLOBAL_BETTER,
+                           tie_break_key=("legacy",), support_keys=keys, expected_fit_ids=("fit-legacy",),
+                           fit_id_by_support={keys[0]: "fit-legacy"}, approved_seeds=(420101,))
+    cand_b = CandidateSpec(decision_id="distribution:A-T:base", candidate_id="core", selection_rule=SELECTION_RULE_GLOBAL_BETTER,
+                           tie_break_key=("core",), support_keys=keys, expected_fit_ids=("fit-core",),
+                           fit_id_by_support={keys[0]: "fit-core"}, approved_seeds=(420101,))
+    spec = DecisionSpec(module_id="A-T", decision_id="distribution:A-T:base", axis="distribution",
+                        selection_rule=SELECTION_RULE_GLOBAL_BETTER, candidates=(cand_a, cand_b))
+    # legacy wins pt0, core wins pt1 => neither globally dominates. legacy has lower mean.
+    legacy_points = [
+        {"sample_id": "pt0:s0", "seed_id": "420101", "point_id": "pt0", "legal": True, "failure": 0, "l_param": 0.10, "e_beta": 0.10, "e_eta": 0.10, "e_gamma": 0.10},
+        {"sample_id": "pt1:s0", "seed_id": "420101", "point_id": "pt1", "legal": True, "failure": 0, "l_param": 0.30, "e_beta": 0.30, "e_eta": 0.30, "e_gamma": 0.30},
+    ]
+    core_points = [
+        {"sample_id": "pt0:s0", "seed_id": "420101", "point_id": "pt0", "legal": True, "failure": 0, "l_param": 0.20, "e_beta": 0.20, "e_eta": 0.20, "e_gamma": 0.20},
+        {"sample_id": "pt1:s0", "seed_id": "420101", "point_id": "pt1", "legal": True, "failure": 0, "l_param": 0.15, "e_beta": 0.15, "e_eta": 0.15, "e_gamma": 0.15},
+    ]
+    evals = {
+        "fit-legacy": FitEvaluation(fit_id="fit-legacy", support_key=keys[0], failed=False, checkpoint_sha256="a"*64, selection_score=0.20, failure_penalty=0.0, point_records=tuple(legacy_points)),
+        "fit-core": FitEvaluation(fit_id="fit-core", support_key=keys[0], failed=False, checkpoint_sha256="b"*64, selection_score=0.175, failure_penalty=0.0, point_records=tuple(core_points)),
+    }
+    return spec, evals
+
+
+def test_global_better_falls_back_to_lowest_l_param_when_no_global_winner():
+    spec, evals = _global_better_spec_and_evals()
+    records = build_selection_trace(module_id="A-T", run_id="r1", specs=(spec,), evaluations_by_fit=evals)
+    winner = next(r["candidate_id"] for r in records if r["selected"])
+    # Neither globally dominates => fallback to lowest mean penalized L_param (legacy 0.20 > core 0.175
+    # is NOT the metric here -- aggregate uses mean l_param: legacy 0.20 vs core 0.175 => core lower).
+    assert winner == "core"
+
+
+def test_global_better_winner_when_one_globally_dominates():
+    keys = (SupportKey(10, 420101),)
+    cand_dom = CandidateSpec(decision_id="distribution:A-T:base", candidate_id="dom", selection_rule=SELECTION_RULE_GLOBAL_BETTER,
+                             tie_break_key=("dom",), support_keys=keys, expected_fit_ids=("fit-dom",),
+                             fit_id_by_support={keys[0]: "fit-dom"}, approved_seeds=(420101,))
+    cand_lose = CandidateSpec(decision_id="distribution:A-T:base", candidate_id="lose", selection_rule=SELECTION_RULE_GLOBAL_BETTER,
+                              tie_break_key=("lose",), support_keys=keys, expected_fit_ids=("fit-lose",),
+                              fit_id_by_support={keys[0]: "fit-lose"}, approved_seeds=(420101,))
+    spec = DecisionSpec(module_id="A-T", decision_id="distribution:A-T:base", axis="distribution",
+                        selection_rule=SELECTION_RULE_GLOBAL_BETTER, candidates=(cand_dom, cand_lose))
+    dom_points = [
+        {"sample_id": f"pt{p}:s0", "seed_id": "420101", "point_id": f"pt{p}", "legal": True, "failure": 0, "l_param": 0.05, "e_beta": 0.05, "e_eta": 0.05, "e_gamma": 0.05}
+        for p in range(3) for _ in range(2)
+    ]
+    lose_points = [
+        {"sample_id": f"pt{p}:s0", "seed_id": "420101", "point_id": f"pt{p}", "legal": True, "failure": 0, "l_param": 0.20, "e_beta": 0.20, "e_eta": 0.20, "e_gamma": 0.20}
+        for p in range(3) for _ in range(2)
+    ]
+    evals = {
+        "fit-dom": FitEvaluation(fit_id="fit-dom", support_key=keys[0], failed=False, checkpoint_sha256="a"*64, selection_score=0.05, failure_penalty=0.0, point_records=tuple(dom_points)),
+        "fit-lose": FitEvaluation(fit_id="fit-lose", support_key=keys[0], failed=False, checkpoint_sha256="b"*64, selection_score=0.20, failure_penalty=0.0, point_records=tuple(lose_points)),
+    }
+    records = build_selection_trace(module_id="A-T", run_id="r1", specs=(spec,), evaluations_by_fit=evals)
+    assert next(r["candidate_id"] for r in records if r["selected"]) == "dom"
+
+
+def test_duplicate_support_seed_within_a_candidate_fails_closed():
+    # build_decision_specs rejects a matrix that maps two fits of one candidate to the
+    # same (n, seed) support key (the frozen matrix never does this).
+    def _row(fit_id, arch, seed):
+        return {"fit_id": fit_id, "rule_id": "A-E1_optimized_supplement", "module": "A-E1",
+                "route": "F2", "n": 10, "loss": "transformed_train_z_huber", "architecture": arch,
+                "optimizer": "stage1", "training_size": 100000, "seed": seed, "fit_kind": "search_stage1",
+                "test_state": "sealed"}
+    # two rows for the same architecture candidate at the same (n=10, seed) => duplicate support
+    dup_matrix = [_row("G3-fit-9000", "m01", 420001), _row("G3-fit-9001", "m01", 420001)]
+    with pytest.raises(ValueError, match="duplicate support"):
+        build_decision_specs("A-E1", dup_matrix)

@@ -477,3 +477,16 @@ def test_bundle_rejects_v1_selection_receipt(tmp_path):
     ledger.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in rows), encoding="utf-8")
     with pytest.raises(ValueError, match="selection receipt"):
         build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_v1_trace_schema(tmp_path):
+    # R2 #5: a v1 selection trace (no support_count) is rejected at the schema gate.
+    kwargs = _bundle_inputs(tmp_path)
+    trace = kwargs["selection_traces"][0]
+    records = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
+    v1_records = [{k: v for k, v in record.items() if k != "support_count"} for record in records]
+    trace.write_bytes(b"".join(
+        (json.dumps(r, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        for r in v1_records))
+    with pytest.raises(ValueError, match="schema"):
+        build_pre_unseal_bundle(**kwargs)

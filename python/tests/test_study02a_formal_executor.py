@@ -121,10 +121,10 @@ def test_run_module_rejects_non_a_e1_modules(tmp_path):
                       artifact_root=tmp_path, cache_root=tmp_path / "cache")
 
 
-def test_d7_d8_placeholders_fail_closed():
-    with pytest.raises(NotImplementedError):
-        fe.build_module_selection(study_root=STUDY_ROOT, run_dir=Path("."), cache_root=Path("."),
-                                  module_id="A-E1", run_id="r1")
+def test_d8_placeholders_remain_fail_closed():
+    # build_module_selection (D7) is now implemented (see test_build_module_selection_*); only
+    # the staged-execution / D8 entry points (placeholder resolution, deferred-spec / predecessor
+    # reconstruction) remain fail-closed until the staged-execution baton lands.
     with pytest.raises(NotImplementedError):
         fe.resolve_selected_placeholders()
     with pytest.raises(NotImplementedError):
