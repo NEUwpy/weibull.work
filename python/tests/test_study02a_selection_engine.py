@@ -31,7 +31,7 @@ from study02a.selection import (  # noqa: E402
     build_decision_specs,
     build_selection_trace,
     candidate_supporting_evidence,
-    point_evidence_sha256,
+    compute_point_evidence_sha256,
 )
 from study02a.formal_contracts import (  # noqa: E402
     SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,
@@ -126,20 +126,24 @@ def _decision(decision_id, candidate_ids, support_keys, *, rule, axis="architect
                         selection_rule=rule, candidates=cands)
 
 
-def _eval(candidate, support_key, score, *, failed=False, point_records=(), fit_id=None):
+def _eval(candidate, support_key, score, *, failed=False, point_records=(), fit_id=None,
+          validation_identity="val-cache-A"):
     fit_id = fit_id if fit_id is not None else candidate.fit_id_by_support[support_key]
     return FitEvaluation(
-        fit_id=fit_id, support_key=support_key, failed=failed,
-        checkpoint_sha256="" if failed else "a" * 64,
+        fit_id=fit_id, module_id="A-T", decision_id=candidate.decision_id,
+        candidate_id=candidate.candidate_id, support_key=support_key, failed=failed,
+        checkpoint_sha256="" if failed else "a" * 64, validation_identity=validation_identity,
         selection_score=score if not failed else 0.0,
         failure_penalty=10.0 if failed else 0.0,
         point_records=tuple(point_records),
     )
 
 
-def _standalone_eval(fit_id, support_key, score):
-    return FitEvaluation(fit_id=fit_id, support_key=support_key, failed=False,
-                         checkpoint_sha256="a" * 64, selection_score=score, failure_penalty=0.0)
+def _standalone_eval(fit_id, support_key, score, *, decision_id="d:A-T:r:n10", candidate_id="a"):
+    return FitEvaluation(fit_id=fit_id, module_id="A-T", decision_id=decision_id,
+                         candidate_id=candidate_id, support_key=support_key, failed=False,
+                         checkpoint_sha256="a" * 64, validation_identity="val-cache-A",
+                         selection_score=score, failure_penalty=0.0)
 
 
 def _evals_for(candidate, scores_by_support):
@@ -177,7 +181,7 @@ def test_lowest_aggregate_picks_argmin_with_id_tiebreak():
         "a": _evals_for(spec.candidates[1], {k: 0.2 for k in keys}),
     }
     by_fit = {e.fit_id: e for cid in evals for e in evals[cid].values()}
-    records = build_selection_trace(module_id="A-T", run_id="run-1", specs=(spec,), evaluations_by_fit=by_fit)
+    records, _diag = build_selection_trace(module_id="A-T", run_id="run-1", specs=(spec,), evaluations_by_fit=by_fit)
     winners = [r["candidate_id"] for r in records if r["selected"]]
     assert winners == ["a"]
 
@@ -198,7 +202,7 @@ def test_fixed_vs_shared_equal_weight_aggregates_per_core_n():
         by_fit[spec.candidates[0].fit_id_by_support[key]] = _eval(spec.candidates[0], key, score)
     for key, score in indep.items():
         by_fit[spec.candidates[1].fit_id_by_support[key]] = _eval(spec.candidates[1], key, score)
-    records = build_selection_trace(module_id="A-T", run_id="run-1", specs=(spec,), evaluations_by_fit=by_fit)
+    records, _diag = build_selection_trace(module_id="A-T", run_id="run-1", specs=(spec,), evaluations_by_fit=by_fit)
     by_cand = {r["candidate_id"]: r for r in records}
     assert by_cand["joint"]["validation_score"] == pytest.approx(0.11)
     assert by_cand["independent"]["validation_score"] == pytest.approx(0.16)
@@ -232,12 +236,15 @@ def test_supporting_evidence_hash_binds_full_context():
 
 def test_point_evidence_sha256_is_order_independent_and_tamper_sensitive():
     records = _point_records(420101, 0.1)
-    h1 = point_evidence_sha256(records)
-    h2 = point_evidence_sha256(list(reversed(records)))
+    kwargs = dict(fit_id="fit-a", module_id="A-T", decision_id="d:A-T:r:n10", candidate_id="a",
+                  support_key=SupportKey(10, 420101), checkpoint_sha256="a" * 64,
+                  validation_identity="val-cache-A", failed=False)
+    h1 = compute_point_evidence_sha256(point_records=records, **kwargs)
+    h2 = compute_point_evidence_sha256(point_records=list(reversed(records)), **kwargs)
     assert h1 == h2
     tampered = [{**records[0], "l_param": records[0]["l_param"] + 0.5, "e_beta": records[0]["e_beta"] + 0.5,
                  "e_eta": records[0]["e_eta"] + 0.5, "e_gamma": records[0]["e_gamma"] + 0.5}] + records[1:]
-    assert point_evidence_sha256(tampered) != h1
+    assert compute_point_evidence_sha256(point_records=tampered, **kwargs) != h1
 
 
 def test_missing_support_fit_fails_closed():
@@ -388,7 +395,7 @@ def _global_better_spec_and_evals():
 
 def test_global_better_falls_back_to_lowest_l_param_when_no_global_winner():
     spec, evals = _global_better_spec_and_evals()
-    records = build_selection_trace(module_id="A-T", run_id="r1", specs=(spec,), evaluations_by_fit=evals)
+    records, _diag = build_selection_trace(module_id="A-T", run_id="r1", specs=(spec,), evaluations_by_fit=evals)
     winner = next(r["candidate_id"] for r in records if r["selected"])
     # Neither globally dominates => fallback to lowest mean penalized L_param (legacy 0.20 > core 0.175
     # is NOT the metric here -- aggregate uses mean l_param: legacy 0.20 vs core 0.175 => core lower).
@@ -406,18 +413,18 @@ def test_global_better_winner_when_one_globally_dominates():
     spec = DecisionSpec(module_id="A-T", decision_id="distribution:A-T:base", axis="distribution",
                         selection_rule=SELECTION_RULE_GLOBAL_BETTER, candidates=(cand_dom, cand_lose))
     dom_points = [
-        {"sample_id": f"pt{p}:s0", "seed_id": "420101", "point_id": f"pt{p}", "legal": True, "failure": 0, "l_param": 0.05, "e_beta": 0.05, "e_eta": 0.05, "e_gamma": 0.05}
-        for p in range(3) for _ in range(2)
+        {"sample_id": f"pt{p}:s{s}", "seed_id": "420101", "point_id": f"pt{p}", "legal": True, "failure": 0, "l_param": 0.05, "e_beta": 0.05, "e_eta": 0.05, "e_gamma": 0.05}
+        for p in range(3) for s in range(2)
     ]
     lose_points = [
-        {"sample_id": f"pt{p}:s0", "seed_id": "420101", "point_id": f"pt{p}", "legal": True, "failure": 0, "l_param": 0.20, "e_beta": 0.20, "e_eta": 0.20, "e_gamma": 0.20}
-        for p in range(3) for _ in range(2)
+        {"sample_id": f"pt{p}:s{s}", "seed_id": "420101", "point_id": f"pt{p}", "legal": True, "failure": 0, "l_param": 0.20, "e_beta": 0.20, "e_eta": 0.20, "e_gamma": 0.20}
+        for p in range(3) for s in range(2)
     ]
     evals = {
         "fit-dom": FitEvaluation(fit_id="fit-dom", support_key=keys[0], failed=False, checkpoint_sha256="a"*64, selection_score=0.05, failure_penalty=0.0, point_records=tuple(dom_points)),
         "fit-lose": FitEvaluation(fit_id="fit-lose", support_key=keys[0], failed=False, checkpoint_sha256="b"*64, selection_score=0.20, failure_penalty=0.0, point_records=tuple(lose_points)),
     }
-    records = build_selection_trace(module_id="A-T", run_id="r1", specs=(spec,), evaluations_by_fit=evals)
+    records, _diag = build_selection_trace(module_id="A-T", run_id="r1", specs=(spec,), evaluations_by_fit=evals)
     assert next(r["candidate_id"] for r in records if r["selected"]) == "dom"
 
 
