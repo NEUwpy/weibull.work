@@ -40,12 +40,14 @@ _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}")
 _CODE_COMMIT_RE = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
 _PREDECESSOR_BY_MODULE = {"A-E1": None, "A-E3": "A-E1", "A-E2": "A-E3"}
 _MATRIX_FIELDS = {"fit_id", "rule_id", "module", "test_state"}
-# v2 selection trace record schema. v1 lacked support_count (the (n, seed) support
-# count), so the exact-field-set check below inherently rejects v1 traces (R2 #5:
-# v1/v2 mixing fails closed at the schema gate). Records are produced by
-# study02a.selection.build_selection_trace from a DecisionSpec -- never assembled
-# by callers -- and carry the per-candidate supporting_evidence_sha256 that binds
-# module/run/decision/candidate/rule/expected_fit_ids/canonical supporting rows.
+# v3 selection trace record schema. v2 lacked rule_diagnostics_sha256, so the
+# exact-field-set check below inherently rejects v1/v2 traces (R3#2: v2/v3 mixing
+# fails closed at the schema gate). Records are produced by
+# study02a.selection.build_selection_trace from a DecisionSpec -- never assembled by
+# callers -- and carry both the per-candidate supporting_evidence_sha256 (binding the
+# point-evidence chain) AND the per-decision rule_diagnostics_sha256 (binding the
+# bootstrap config, CIs, rule result and computed winner). The trace never relies on
+# the `selected` flag alone.
 _SELECTION_RECORD_FIELDS = {
     "module_id",
     "run_id",
@@ -55,11 +57,12 @@ _SELECTION_RECORD_FIELDS = {
     "tie_break_key",
     "selected",
     "supporting_evidence_sha256",
+    "rule_diagnostics_sha256",
     "support_count",
     "seed_count",
     "selection_rule",
 }
-_SELECTION_TRACE_VERSION = "study02-selection-trace-v2"
+_SELECTION_TRACE_VERSION = "study02-selection-trace-v3"
 # Per-decision winner rules. "lowest_aggregate" (ranking) is enforced inside the trace
 # validator (winner == argmin of validation_score). The CI/equal-weight rules are
 # re-derived at pre-unseal from the bound supporting fits; the trace validator only
@@ -395,6 +398,7 @@ def _validate_selection_trace_bytes(
         if not isinstance(record["selected"], bool):
             raise ValueError("Predecessor selection trace selected must be boolean")
         _require_sha256(record["supporting_evidence_sha256"], "Selection trace supporting_evidence_sha256")
+        _require_sha256(record["rule_diagnostics_sha256"], "Selection trace rule_diagnostics_sha256")
         support_count = record["support_count"]
         if isinstance(support_count, bool) or not isinstance(support_count, int) or support_count <= 0:
             raise ValueError("Predecessor selection trace support_count must be a positive integer")
@@ -413,6 +417,13 @@ def _validate_selection_trace_bytes(
         if len(decision_rules) != 1:
             raise ValueError(
                 f"selection trace decision {decision_id} mixes selection rules {sorted(decision_rules)!r}"
+            )
+        # R3#2: every candidate of one decision binds the SAME rule_diagnostics_sha256 (the
+        # decision's diagnostics artifact); a divergence is a tamper.
+        decision_diag = {row["rule_diagnostics_sha256"] for row in decision_rows}
+        if len(decision_diag) != 1:
+            raise ValueError(
+                f"selection trace decision {decision_id} binds divergent rule_diagnostics_sha256 values"
             )
         ranked = sorted(
             decision_rows,
@@ -1099,6 +1110,8 @@ def build_pre_unseal_bundle(
     fit_status_path: Path, ceiling_report_path: Path,
     leakage_audit_path: Path, code_commit: str, effective_config_sha256: str,
     module_run_ids: Mapping[str, str],
+    point_evidence_paths: Mapping[str, Path] | None = None,
+    selection_diagnostics_paths: Sequence[Path] | None = None,
 ) -> dict[str, Any]:
     if not isinstance(code_commit, str) or _CODE_COMMIT_RE.fullmatch(code_commit) is None:
         raise ValueError("code_commit must be a full commit ID")
@@ -1107,9 +1120,12 @@ def build_pre_unseal_bundle(
         raise ValueError("effective_config_sha256 must match the frozen approved config")
     if not module_run_ids:
         raise ValueError("module_run_ids must not be empty")
+    point_evidence_paths = dict(point_evidence_paths or {})
+    selection_diagnostics_paths = list(selection_diagnostics_paths or [])
     paths = [*map(Path, formal_manifests), *map(Path, selection_traces), *map(Path, selection_receipts),
              Path(selection_ledger_path), Path(fit_status_path), Path(ceiling_report_path),
-             Path(leakage_audit_path)]
+             Path(leakage_audit_path), *map(Path, selection_diagnostics_paths),
+             *map(Path, point_evidence_paths.values())]
     resolved = [path.resolve(strict=False) for path in paths]
     if len(set(resolved)) != len(resolved):
         raise ValueError("pre-unseal artifact paths must not alias")
@@ -1172,7 +1188,7 @@ def build_pre_unseal_bundle(
             raise ValueError("selection receipts must have unique declared module ownership")
         trace = traces[module]
         expected = {
-            "receipt_version": "study02-formal-selection-v2", "module_id": module,
+            "receipt_version": "study02-formal-selection-v3", "module_id": module,
             "run_id": module_run_ids[module], "selection_trace_sha256": trace[1],
             "effective_config_sha256": effective_config_sha256, "code_commit": code_commit.lower(),
             "record_count": trace[2], "decision_count": trace[3],
@@ -1250,18 +1266,43 @@ def build_pre_unseal_bundle(
             raise ValueError("fit status contains a duplicate fit_id; fit_id must be globally unique")
         seen_fit_ids.add(row["fit_id"])
         fit_rows_by_module.setdefault(module, []).append(row)
-    # R2 #1/#2/#4: independently rebuild each module's DecisionSpecs from the frozen matrix
-    # (the run's declared scope) and recompute each candidate's supporting evidence from
-    # fit_status. The expected support set comes from the frozen plan -- never reverse-derived
-    # from the actual rows -- so a missing/extra/duplicate/wrong-n/wrong-seed support fit, a
-    # relabelled decision/candidate/route/n, cross-candidate fit reuse, or a tampered
-    # checkpoint/score breaks the supporting_evidence_sha256 and fails closed.
-    from .selection import (  # local import avoids the top-level constants cycle
-        FitEvaluation as _FitEvaluation,
+    # R3#1/#2/#3: independently rebuild each module's DecisionSpecs from the frozen matrix
+    # and recompute, from the verified per-fit point-evidence artifacts + fit_status
+    # scalars, each candidate's supporting_evidence_sha256 AND each decision's
+    # rule_diagnostics_sha256 -- RE-RUNNING the frozen rule (including the non-ranking
+    # rules, with the frozen bootstrap seed 520001 / 2000 reps). The recomputed SHAs and
+    # winner are compared to the selection trace; the trace's ``selected`` flag is NOT
+    # trusted (R3#3).
+    from .selection import (
         SupportKey as _SupportKey,
+        apply_selection_rule as _apply_selection_rule,
         build_decision_specs as _build_decision_specs,
+        build_rule_diagnostics as _build_rule_diagnostics,
         candidate_supporting_evidence as _candidate_supporting_evidence,
+        compute_rule_diagnostics_sha256 as _compute_rule_diagnostics_sha256,
+        load_point_evidence as _load_point_evidence,
     )
+    # Load + integrity-verify every point-evidence artifact (recompute its content SHA).
+    point_evidence_by_fit: dict[str, Any] = {}
+    for fit_id, art_path in point_evidence_paths.items():
+        payload = _load_json_object_bytes(artifact_bytes(Path(art_path)), "point-evidence artifact")
+        evaluation = _load_point_evidence(payload)
+        if evaluation.fit_id != fit_id:
+            raise ValueError(
+                f"point-evidence artifact path keyed by {fit_id!r} carries fit_id {evaluation.fit_id!r}"
+            )
+        if fit_id in point_evidence_by_fit:
+            raise ValueError(f"duplicate point-evidence artifact for fit {fit_id!r}")
+        point_evidence_by_fit[fit_id] = evaluation
+    # Load the published per-decision diagnostics artifacts (canonical JSONL).
+    published_diagnostics: dict[tuple[str, str], dict[str, Any]] = {}
+    for diag_path in selection_diagnostics_paths:
+        for record in _read_jsonl_bytes(artifact_bytes(Path(diag_path)), "selection diagnostics"):
+            key = (str(record.get("module_id")), str(record.get("decision_id")))
+            if key in published_diagnostics:
+                raise ValueError(f"duplicate selection diagnostics record for {key!r}")
+            published_diagnostics[key] = record
+
     frozen_matrix_rows = _open_verified_matrix_evidence(_FROZEN_MATRIX_PATH).rows
     for module, module_fit_rows in fit_rows_by_module.items():
         declared_fit_ids = set(manifests[module]["matrix"]["fit_ids"])
@@ -1300,6 +1341,8 @@ def build_pre_unseal_bundle(
         trace_by_pair = {(rec["decision_id"], rec["candidate_id"]): rec for rec in trace_records[module]}
         rebuilt_pairs: set[tuple[str, str]] = set()
         for spec in specs:
+            evidence_by_candidate: dict[str, dict[str, Any]] = {}
+            evals_by_candidate: dict[str, Any] = {}
             for candidate in spec.candidates:
                 pair = (spec.decision_id, candidate.candidate_id)
                 rebuilt_pairs.add(pair)
@@ -1315,37 +1358,89 @@ def build_pre_unseal_bundle(
                         "frozen plan but missing from the selection trace"
                     )
                 selection = trace_by_pair[pair]
-                evaluations_by_support = {
-                    key: _FitEvaluation(
-                        fit_id=rows_by_support[key]["fit_id"], support_key=key,
-                        failed=rows_by_support[key]["failed"],
-                        checkpoint_sha256=rows_by_support[key]["checkpoint_sha256"],
-                        selection_score=float(rows_by_support[key]["selection_score"]) if rows_by_support[key]["selection_score"] != "" else 0.0,
-                        failure_penalty=float(rows_by_support[key]["failure_penalty"]) if rows_by_support[key]["failure_penalty"] != "" else 0.0,
-                    )
-                    for key in candidate.support_keys
-                }
+                evaluations_by_support = {}
+                for key in candidate.support_keys:
+                    fit_id = candidate.support_for(key)
+                    fit_row = rows_by_support[key]
+                    artifact_eval = point_evidence_by_fit.get(fit_id)
+                    if artifact_eval is None:
+                        raise ValueError(f"missing point-evidence artifact for selection fit {fit_id!r}")
+                    if artifact_eval.checkpoint_sha256 != fit_row["checkpoint_sha256"]:
+                        raise ValueError(
+                            f"point-evidence artifact {fit_id!r} checkpoint disagrees with fit_status"
+                        )
+                    if bool(artifact_eval.failed) != bool(fit_row["failed"]):
+                        raise ValueError(
+                            f"point-evidence artifact {fit_id!r} failed flag disagrees with fit_status"
+                        )
+                    if not artifact_eval.failed:
+                        score = float(fit_row["selection_score"]) if fit_row["selection_score"] != "" else 0.0
+                        if not math.isclose(float(artifact_eval.selection_score), score, rel_tol=1e-12, abs_tol=1e-12):
+                            raise ValueError(
+                                f"point-evidence artifact {fit_id!r} selection_score disagrees with fit_status"
+                            )
+                    else:
+                        penalty = float(fit_row["failure_penalty"]) if fit_row["failure_penalty"] != "" else 0.0
+                        if not math.isclose(float(artifact_eval.failure_penalty), penalty, rel_tol=1e-12, abs_tol=1e-12):
+                            raise ValueError(
+                                f"point-evidence artifact {fit_id!r} failure_penalty disagrees with fit_status"
+                            )
+                    evaluations_by_support[key] = artifact_eval
                 evidence = _candidate_supporting_evidence(
                     module_id=module, run_id=selection["run_id"], candidate=candidate,
                     evaluations_by_support=evaluations_by_support,
                 )
                 if evidence["supporting_evidence_sha256"] != selection["supporting_evidence_sha256"]:
-                    raise ValueError("fit status supporting evidence SHA disagrees with its selection trace")
+                    raise ValueError("recomputed supporting evidence SHA disagrees with selection trace")
                 if not math.isclose(evidence["aggregate_score"], float(selection["validation_score"]), rel_tol=1e-12, abs_tol=1e-12):
-                    raise ValueError("fit status recomputed aggregate score disagrees with its selection trace")
+                    raise ValueError("recomputed aggregate score disagrees with selection trace")
                 if evidence["support_count"] != selection["support_count"]:
-                    raise ValueError("fit status support_count disagrees with its selection trace")
+                    raise ValueError("recomputed support_count disagrees with selection trace")
                 if evidence["seed_count"] != selection["seed_count"]:
-                    raise ValueError("fit status seed_count disagrees with its selection trace")
-                # R2 #4: selected is candidate-level. Every supporting row of this candidate
-                # must carry the SAME selected value, equal to the trace -- no any/all. A
-                # failed fit may belong to the winning candidate (failed+selected allowed).
+                    raise ValueError("recomputed seed_count disagrees with selection trace")
+                # R2#4: selected is candidate-level. Every supporting row of this candidate must
+                # carry the SAME selected value, equal to the trace -- no any/all.
                 row_selected = {bool(rows_by_support[key]["selected"]) for key in candidate.support_keys}
                 if len(row_selected) != 1 or row_selected.pop() is not selection["selected"]:
                     raise ValueError(
                         f"fit status selected membership for {spec.decision_id}/{candidate.candidate_id} "
                         "is inconsistent or disagrees with its selection trace"
                     )
+                evidence_by_candidate[candidate.candidate_id] = evidence
+                evals_by_candidate[candidate.candidate_id] = evaluations_by_support
+            # R3#3: re-run the frozen rule from the verified point evidence, recompute the
+            # diagnostics SHA, and require both the SHA and the recomputed winner to agree
+            # with the trace. The trace ``selected`` flag is NOT trusted.
+            winner, rule_result = _apply_selection_rule(spec, evidence_by_candidate, evals_by_candidate)
+            any_pair = (spec.decision_id, spec.candidates[0].candidate_id)
+            diagnostics = _build_rule_diagnostics(
+                module_id=module, run_id=trace_by_pair[any_pair]["run_id"], spec=spec,
+                evidence_by_candidate=evidence_by_candidate, winner=winner, rule_result=rule_result,
+            )
+            diag_sha = _compute_rule_diagnostics_sha256(diagnostics)
+            trace_diag_sha = trace_by_pair[any_pair]["rule_diagnostics_sha256"]
+            if diag_sha != trace_diag_sha:
+                raise ValueError(
+                    f"recomputed rule diagnostics SHA for {spec.decision_id} disagrees with selection trace"
+                )
+            trace_winner = next(
+                rec["candidate_id"] for rec in trace_records[module]
+                if rec["decision_id"] == spec.decision_id and rec["selected"]
+            )
+            if winner != trace_winner:
+                raise ValueError(
+                    f"recomputed winner {winner!r} for {spec.decision_id} disagrees with trace "
+                    f"selected {trace_winner!r}"
+                )
+            published = published_diagnostics.get((module, spec.decision_id))
+            if published is None:
+                raise ValueError(
+                    f"missing published selection diagnostics artifact for {module}/{spec.decision_id}"
+                )
+            if _compute_rule_diagnostics_sha256(published) != trace_diag_sha:
+                raise ValueError(
+                    f"published diagnostics artifact SHA for {spec.decision_id} disagrees with trace"
+                )
         if set(trace_by_pair) != rebuilt_pairs:
             raise ValueError(
                 "selection trace candidates do not agree with the independently rebuilt DecisionSpec"
@@ -1358,7 +1453,7 @@ def build_pre_unseal_bundle(
     _validate_leakage_audit(leakage)
     artifact_hashes = {str(path): hashlib.sha256(artifact_bytes(path)).hexdigest() for path in paths}
     return {
-        "bundle_version": "study02-pre-unseal-v2",
+        "bundle_version": "study02-pre-unseal-v3",
         "code_commit": code_commit.lower(),
         "effective_config_sha256": effective_config_sha256,
         "module_run_ids": dict(sorted(module_run_ids.items())),
@@ -1433,7 +1528,7 @@ def publish_selection_receipt(
         raise FileExistsError(f"Selection receipt already exists: {receipt_path}")
 
     receipt = {
-        "receipt_version": "study02-formal-selection-v2",
+        "receipt_version": "study02-formal-selection-v3",
         "module_id": module_id,
         "run_id": run_id,
         "selection_trace_sha256": actual_trace_sha,
@@ -1542,7 +1637,7 @@ def _validate_predecessor(
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"Predecessor selection receipt must be valid JSON: {exc}") from exc
     expected_receipt = {
-        "receipt_version": "study02-formal-selection-v2",
+        "receipt_version": "study02-formal-selection-v3",
         "module_id": expected_module,
         "run_id": predecessor.run_id,
         "selection_trace_sha256": actual_digest,

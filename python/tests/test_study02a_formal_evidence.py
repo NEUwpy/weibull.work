@@ -101,13 +101,27 @@ def _status_for(row: Mapping, *, selection_score: float, selected: bool, checkpo
     )
 
 
+def _synth_point_records(fit_id: str, seed: int, base: float) -> tuple[dict, ...]:
+    """Deterministic per-(seed, sample) point records for a synthetic fit (2 points x 2 samples)."""
+    records = []
+    for p in range(2):
+        for s in range(2):
+            l = base + ((seed % 7) + p + s) * 0.001
+            records.append({
+                "sample_id": f"{fit_id}:pt{p}:s{s}", "seed_id": str(seed), "point_id": f"{fit_id}:pt{p}",
+                "legal": True, "failure": 0, "l_param": l, "e_beta": l, "e_eta": l, "e_gamma": l,
+            })
+    return tuple(records)
+
+
 def _selection_fixture(*, run_id: str = "G3-AE1-formal-v1", candidate_scores: dict[str, float] | None = None,
                        checkpoint_shas: dict[str, str] | None = None):
-    """Build a full v2 selection fixture over the A-E1 F2 two-architecture scope.
+    """Build a full v3 selection fixture over the A-E1 F2 two-architecture scope.
 
-    Returns (scope_rows_with_decision, spec, records, evaluations_by_fit). The
-    decision_id/candidate_id are written onto each scope row so fit_status and the
-    authority agree exactly.
+    Returns (scope_rows_with_decision, spec, records, evaluations_by_fit, diagnostics).
+    Each FitEvaluation carries full identity + validation identity + synthetic per-point
+    records (so the point-evidence chain is real). The decision_id/candidate_id are
+    written onto each scope row so fit_status and the authority agree exactly.
     """
     scope_rows, spec = _ae1_f2_scope()
     scores = candidate_scores or {spec.candidates[0].candidate_id: 0.10,
@@ -124,11 +138,14 @@ def _selection_fixture(*, run_id: str = "G3-AE1-formal-v1", candidate_scores: di
             rows_out.append(row)
             checkpoint = shas.get(candidate.candidate_id, SHA_A if idx == 0 else SHA_B)
             evaluations[fit_id] = FitEvaluation(
-                fit_id=fit_id, support_key=key, failed=False, checkpoint_sha256=checkpoint,
+                fit_id=fit_id, module_id="A-E1", decision_id=spec.decision_id,
+                candidate_id=candidate.candidate_id, support_key=key, failed=False,
+                checkpoint_sha256=checkpoint, validation_identity=f"val-cache-{fit_id}",
                 selection_score=score, failure_penalty=0.0,
+                point_records=_synth_point_records(fit_id, int(key.seed), score),
             )
-    records = build_selection_trace(module_id="A-E1", run_id=run_id, specs=(spec,), evaluations_by_fit=evaluations)
-    return rows_out, spec, records, evaluations
+    records, diagnostics = build_selection_trace(module_id="A-E1", run_id=run_id, specs=(spec,), evaluations_by_fit=evaluations)
+    return rows_out, spec, records, evaluations, diagnostics
 
 
 # --------------------------------------------------------------------------
@@ -190,7 +207,7 @@ def test_failed_fit_may_belong_to_winning_candidate():
 
 
 def test_selection_trace_is_deterministic_and_writes_once(tmp_path):
-    rows_out, spec, records, _ = _selection_fixture()
+    rows_out, spec, records, _, _ = _selection_fixture()
     path = tmp_path / "selection_trace.jsonl"
     from study02a.formal_contracts import write_selection_trace
     digest = write_selection_trace(path, records)
@@ -206,7 +223,7 @@ def test_selection_trace_is_deterministic_and_writes_once(tmp_path):
 
 
 def test_supporting_evidence_hash_is_full_context_and_tamper_sensitive():
-    rows_out, spec, records, evaluations = _selection_fixture()
+    rows_out, spec, records, evaluations, _ = _selection_fixture()
     by_cand = {r["candidate_id"]: r for r in records}
     cand = spec.candidates[0]
     evals = {key: evaluations[cand.support_for(key)] for key in cand.support_keys}
@@ -281,7 +298,11 @@ def _json(path: Path, payload: dict):
 
 
 def _bundle_inputs(tmp_path: Path, *, fixture=None):
-    rows_out, spec, records, evaluations = fixture or _selection_fixture()
+    if fixture is None:
+        rows_out, spec, records, evaluations, diagnostics = _selection_fixture()
+    else:
+        rows_out, spec, records, evaluations, diagnostics = fixture
+    from study02a.selection import serialize_point_evidence
     run_id = "G3-AE1-formal-v1"
     fit_ids = [r["fit_id"] for r in rows_out]
     manifest = _json(tmp_path / "manifest.json", {
@@ -303,6 +324,16 @@ def _bundle_inputs(tmp_path: Path, *, fixture=None):
     trace = tmp_path / "selection_trace.jsonl"
     from study02a.formal_contracts import write_selection_trace
     trace_sha = write_selection_trace(trace, records)
+    # Per-fit point-evidence artifacts (R3#1) + per-decision diagnostics artifact (R3#2).
+    point_evidence_paths: dict[str, Path] = {}
+    for fit_id, evaluation in evaluations.items():
+        art_path = tmp_path / f"point_evidence_{fit_id}.json"
+        art_path.write_text(json.dumps(serialize_point_evidence(evaluation), sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+        point_evidence_paths[fit_id] = art_path
+    diagnostics_path = tmp_path / "selection_diagnostics.jsonl"
+    diagnostics_path.write_bytes(b"".join(
+        (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        for record in diagnostics))
     winner_id = next(r["candidate_id"] for r in records if r["selected"])
     fit_status_rows = []
     for row in rows_out:
@@ -320,7 +351,7 @@ def _bundle_inputs(tmp_path: Path, *, fixture=None):
                                                selected=selected, checkpoint_sha=evaluation.checkpoint_sha256))
     fit_status = tmp_path / "fit_status.csv"
     write_fit_status(fit_status, fit_status_rows)
-    receipt_payload = {"receipt_version": "study02-formal-selection-v2", "module_id": "A-E1", "run_id": run_id,
+    receipt_payload = {"receipt_version": "study02-formal-selection-v3", "module_id": "A-E1", "run_id": run_id,
                        "selection_trace_sha256": trace_sha, "effective_config_sha256": EFFECTIVE_SHA,
                        "code_commit": "c" * 40, "record_count": len(records), "decision_count": 1}
     receipt = _json(tmp_path / "selection_receipt.json", receipt_payload)
@@ -337,6 +368,7 @@ def _bundle_inputs(tmp_path: Path, *, fixture=None):
         "fit_status_path": fit_status, "selection_ledger_path": ledger, "ceiling_report_path": ceiling,
         "leakage_audit_path": leakage, "code_commit": "c" * 40, "effective_config_sha256": EFFECTIVE_SHA,
         "module_run_ids": {"A-E1": run_id},
+        "point_evidence_paths": point_evidence_paths, "selection_diagnostics_paths": [diagnostics_path],
     }
 
 
@@ -344,7 +376,7 @@ def test_pre_unseal_bundle_rebuilds_decision_spec_and_binds_evidence(tmp_path):
     kwargs = _bundle_inputs(tmp_path)
     bundle = build_pre_unseal_bundle(**kwargs)
     assert bundle["test_state"] == "sealed"
-    assert bundle["bundle_version"] == "study02-pre-unseal-v2"
+    assert bundle["bundle_version"] == "study02-pre-unseal-v3"
     assert bundle["module_run_ids"] == {"A-E1": "G3-AE1-formal-v1"}
 
 
@@ -390,7 +422,7 @@ def test_bundle_rejects_duplicate_fit_id(tmp_path):
 
 def test_bundle_rejects_cross_candidate_fit_reuse(tmp_path):
     # Hand-build fit_status where one fit_id is duplicated under two candidates.
-    rows_out, spec, records, evaluations = _selection_fixture()
+    rows_out, spec, records, evaluations, _ = _selection_fixture()
     winner_id = next(r["candidate_id"] for r in records if r["selected"])
     fit_status_rows = []
     for row in rows_out:
@@ -412,7 +444,7 @@ def test_bundle_rejects_cross_candidate_fit_reuse(tmp_path):
 def test_bundle_rejects_tampered_checkpoint_score(tmp_path):
     kwargs = _bundle_inputs(tmp_path)
     _rewrite_fit_evidence(kwargs, lambda rows: rows[0].update(selection_score="9.999"))
-    with pytest.raises(ValueError, match="supporting evidence SHA|aggregate"):
+    with pytest.raises(ValueError, match="supporting evidence SHA|aggregate|selection_score disagrees"):
         build_pre_unseal_bundle(**kwargs)
 
 
@@ -426,16 +458,27 @@ def test_bundle_rejects_inconsistent_selected_membership(tmp_path):
 
 
 def test_bundle_allows_failed_seed_in_winning_candidate(tmp_path):
-    # R2 #4: the winning candidate may contain a failed supporting fit (selected=True).
-    rows_out, spec, _, evaluations = _selection_fixture()
+    # R2#4 + R3#6: the winning candidate may contain a failed supporting fit (selected=True);
+    # the failed fit carries the all-illegal point records so failure rate / L_param / pairing
+    # include it. Everything (trace, diagnostics, fit_status, point-evidence artifacts) is
+    # rebuilt from the same evidence so pre-unseal's independent rebuild agrees.
+    rows_out, spec, _, evaluations, _ = _selection_fixture()
     winner = spec.candidates[0]
     failed_fit_id = winner.support_for(winner.support_keys[0])
+    original = evaluations[failed_fit_id]
+    illegal_records = tuple(
+        {**r, "legal": False, "failure": 1, "l_param": 10.0, "e_beta": 10.0, "e_eta": 10.0, "e_gamma": 10.0}
+        for r in original.point_records
+    )
     new_evals = dict(evaluations)
     new_evals[failed_fit_id] = FitEvaluation(
-        fit_id=failed_fit_id, support_key=winner.support_keys[0], failed=True,
-        checkpoint_sha256="", selection_score=0.0, failure_penalty=10.0)
-    new_records = build_selection_trace(module_id="A-E1", run_id="G3-AE1-formal-v1", specs=(spec,), evaluations_by_fit=new_evals)
-    kwargs = _bundle_inputs(tmp_path, fixture=(rows_out, spec, new_records, new_evals))
+        fit_id=failed_fit_id, module_id="A-E1", decision_id=spec.decision_id,
+        candidate_id=winner.candidate_id, support_key=winner.support_keys[0], failed=True,
+        checkpoint_sha256="", validation_identity=original.validation_identity,
+        selection_score=0.0, failure_penalty=10.0, point_records=illegal_records)
+    new_records, new_diagnostics = build_selection_trace(
+        module_id="A-E1", run_id="G3-AE1-formal-v1", specs=(spec,), evaluations_by_fit=new_evals)
+    kwargs = _bundle_inputs(tmp_path, fixture=(rows_out, spec, new_records, new_evals, new_diagnostics))
     bundle = build_pre_unseal_bundle(**kwargs)
     assert bundle["test_state"] == "sealed"
 

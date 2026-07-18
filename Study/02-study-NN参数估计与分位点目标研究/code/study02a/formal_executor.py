@@ -40,6 +40,7 @@ from .config import FrozenConfig, load_frozen_config
 from .formal_config import EffectiveFormalConfig, load_effective_formal_config
 from .formal_contracts import (
     PredecessorTrace,
+    _publish_bytes_no_replace,
     _terminal_ols_slope,
     publish_selection_receipt,
     write_selection_trace,
@@ -49,6 +50,7 @@ from .selection import (
     SupportKey,
     build_decision_specs,
     build_selection_trace,
+    serialize_point_evidence,
 )
 from .formal_data import FormalFixedBatch, FormalSetBatch  # noqa: F401  (type re-export)
 from .evaluation import evaluate_rows, evaluate_rows_per_sample
@@ -447,6 +449,7 @@ class _PreparedFit:
     scaled_training: Any
     scaled_validation: FormalFixedBatch | FormalSetBatch
     validation_metadata: tuple[Mapping[str, Any], ...]
+    validation_identity: str
     model_factory: Callable[[], nn.Module]
     hyperparams: Mapping[str, Any]
     loss_id: str
@@ -462,7 +465,8 @@ def _prepare_fit_inputs(
     Reconstructs the A-E1 training/validation specs exactly as the scheduler did
     (so executor and scheduler agree byte-for-byte) and applies the training-only
     scaler. A-E3/A-E2 add a deferred-spec predecessor path (D8); A-E1 is the
-    currently executable scope.
+    currently executable scope. ``validation_identity`` (the validation dataset hash)
+    binds which validation cache the per-point evidence was scored on (R3#1).
     """
     training_spec, validation_spec = reconstruct_a_e1_specs(plan_row, frozen, effective)
     training_dataset = cache_dataset(training_spec, frozen, effective, cache_root)
@@ -477,7 +481,7 @@ def _prepare_fit_inputs(
     loss_id = resolve_loss_id(str(plan_row["loss"]))
     return _PreparedFit(
         scaled_training, scaled_validation, tuple(validation_dataset.metadata),
-        model_factory, hyperparams, loss_id, is_set,
+        validation_dataset.dataset_hash, model_factory, hyperparams, loss_id, is_set,
     )
 
 
@@ -739,6 +743,7 @@ def build_module_selection(
                     evaluation = _score_fit_from_checkpoint(
                         run_dir=run_dir, cache_root=cache_root, fit_id=fit_id,
                         plan_row=plan_row, frozen=frozen, effective=effective, fit_states=fit_states,
+                        module_id=module_id, decision_id=spec.decision_id, candidate_id=candidate.candidate_id,
                     )
                 if evaluation.support_key != key:
                     raise ValueError(
@@ -747,11 +752,22 @@ def build_module_selection(
                     )
                 evaluations_by_fit[fit_id] = evaluation
 
-    records = build_selection_trace(
+    records, diagnostics_records = build_selection_trace(
         module_id=module_id, run_id=run_id, specs=specs, evaluations_by_fit=evaluations_by_fit,
     )
     trace_path = run_dir / "selection_trace.jsonl"
     trace_sha = write_selection_trace(trace_path, records)
+    # R3#1/#2: publish the per-decision diagnostics artifact and the per-fit point-evidence
+    # artifacts (canonical, no-replace). The trace binds the diagnostics SHA; the supporting
+    # hash binds each fit's point-evidence SHA. Pre-unseal reloads + re-derives from these.
+    diagnostics_path = run_dir / "selection_diagnostics.jsonl"
+    diagnostics_payload = b"".join(_canonical(record) for record in diagnostics_records)
+    _publish_bytes_no_replace(diagnostics_payload, diagnostics_path)
+    point_evidence_paths: dict[str, str] = {}
+    for fit_id, evaluation in evaluations_by_fit.items():
+        artifact_path = run_dir / "outputs" / fit_id / "point_evidence.json"
+        _publish_bytes_no_replace(_canonical(serialize_point_evidence(evaluation)), artifact_path)
+        point_evidence_paths[fit_id] = str(artifact_path)
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     receipt = publish_selection_receipt(
         receipt_path=run_dir / "selection_receipt.json",
@@ -761,7 +777,9 @@ def build_module_selection(
     )
     return {
         "module_id": module_id, "run_id": run_id, "selection_trace_sha256": trace_sha,
-        "decision_count": len(specs), "record_count": len(records), **receipt,
+        "decision_count": len(specs), "record_count": len(records),
+        "selection_diagnostics_path": str(diagnostics_path),
+        "point_evidence_paths": point_evidence_paths, **receipt,
     }
 
 
@@ -777,20 +795,38 @@ def _n_key_of(row: Mapping[str, Any]) -> int | str:
 def _score_fit_from_checkpoint(
     *, run_dir: Path, cache_root: Path, fit_id: str, plan_row: Mapping[str, Any],
     frozen: FrozenConfig, effective: EffectiveFormalConfig, fit_states: Mapping[str, str],
+    module_id: str, decision_id: str, candidate_id: str,
 ) -> FitEvaluation:
     """Score one fit from its integrity-bound checkpoint (the default, no sidecar).
 
     Succeeded fits are loaded, forwarded on their exact scaled validation batch, decoded
-    and scored per-parameter-point; failed fits carry the frozen penalty. A fit that is
-    neither succeeded nor failed (pending / missing) means the decision's support is
-    incomplete and selection fails closed.
+    and scored per-parameter-point; FAILED fits carry the frozen penalty AND the
+    all-illegal point records over their validation cell set, so failure rate, L_param
+    and pairing truly include the failed seed (R3#6). A fit that is neither succeeded
+    nor failed (pending / missing) means the decision's support is incomplete and
+    selection fails closed.
     """
     support_key = SupportKey(n=_n_key_of(plan_row), seed=int(plan_row["seed"]))
     status = fit_states.get(fit_id)
+    prepared = _prepare_fit_inputs(plan_row, frozen, effective, cache_root)
     if status == "failed":
+        # R3#6: synthesize the all-illegal point records over the failed fit's validation
+        # cells so non-ranking rules (failure rate / L_param / pairing) include the failed seed.
+        illegal_records = tuple(
+            {
+                "sample_id": str(meta.get("sample_id", f"val:{i:07d}")),
+                "seed_id": str(plan_row["seed"]),
+                "point_id": str(meta.get("point_id", f"point-{i:07d}")),
+                "legal": False, "failure": 1, "l_param": 10.0,
+                "e_beta": 10.0, "e_eta": 10.0, "e_gamma": 10.0,
+            }
+            for i, meta in enumerate(prepared.validation_metadata)
+        )
         return FitEvaluation(
-            fit_id=fit_id, support_key=support_key, failed=True, checkpoint_sha256="",
-            selection_score=0.0, failure_penalty=10.0,
+            fit_id=fit_id, module_id=module_id, decision_id=decision_id, candidate_id=candidate_id,
+            support_key=support_key, failed=True, checkpoint_sha256="",
+            validation_identity=prepared.validation_identity,
+            selection_score=0.0, failure_penalty=10.0, point_records=illegal_records,
         )
     if status != "succeeded":
         raise ValueError(
@@ -799,15 +835,16 @@ def _score_fit_from_checkpoint(
         )
     checkpoint_path = run_dir / "outputs" / fit_id / "checkpoint.pt"
     checkpoint_bytes = checkpoint_path.read_bytes()
-    prepared = _prepare_fit_inputs(plan_row, frozen, effective, cache_root)
     scalar, point_records = validation_failure_penalized_l_param_points(
         checkpoint_bytes=checkpoint_bytes, model_factory=prepared.model_factory,
         validation_batch=prepared.scaled_validation, validation_metadata=prepared.validation_metadata,
         seed_id=str(plan_row["seed"]), is_set=prepared.is_set,
     )
     return FitEvaluation(
-        fit_id=fit_id, support_key=support_key, failed=False,
+        fit_id=fit_id, module_id=module_id, decision_id=decision_id, candidate_id=candidate_id,
+        support_key=support_key, failed=False,
         checkpoint_sha256=hashlib.sha256(checkpoint_bytes).hexdigest(),
+        validation_identity=prepared.validation_identity,
         selection_score=scalar, failure_penalty=0.0, point_records=point_records,
     )
 

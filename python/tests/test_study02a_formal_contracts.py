@@ -68,7 +68,7 @@ def _trace(tmp_path: Path, module_id: str) -> tuple[Path, str, str]:
             fit_id="fit-candidate-2", support_key=keys[0], failed=False,
             checkpoint_sha256="c" * 64, selection_score=0.25, failure_penalty=0.0),
     }
-    records = build_selection_trace(
+    records, _diagnostics = build_selection_trace(
         module_id=module_id, run_id=run_id, specs=(spec,), evaluations_by_fit=evaluations,
     )
     return path, write_selection_trace(path, records), run_id

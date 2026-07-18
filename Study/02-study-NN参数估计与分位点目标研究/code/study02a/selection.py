@@ -607,6 +607,77 @@ def compute_rule_diagnostics_sha256(diagnostics: Mapping[str, Any]) -> str:
     return hashlib.sha256(_canonical(diagnostics)).hexdigest()
 
 
+# --------------------------------------------------------------------------
+# Per-fit point-evidence artifacts (R3#1): large point records live in a separate
+# immutable artifact; the trace/supporting hash binds the artifact's content SHA.
+# --------------------------------------------------------------------------
+
+_POINT_EVIDENCE_ARTIFACT_VERSION = "study02-point-evidence-v1"
+
+
+def serialize_point_evidence(evaluation: FitEvaluation) -> dict[str, Any]:
+    """Serialize one fit's point evidence to a canonical artifact dict (R3#1).
+
+    The artifact carries the full immutable identity, checkpoint SHA, validation
+    cache/data identity, failed flag, scalar score/penalty, the canonical per-sample
+    point records and their content SHA (``point_evidence_sha256``). It is the unit
+    pre-unseal loads to re-derive the non-ranking rules independently.
+    """
+    records = sorted(
+        (_canonical_point_record(record) for record in evaluation.point_records),
+        key=lambda r: (str(r["seed_id"]), str(r["sample_id"])),
+    )
+    return {
+        "artifact_version": _POINT_EVIDENCE_ARTIFACT_VERSION,
+        "fit_id": evaluation.fit_id, "module_id": evaluation.module_id,
+        "decision_id": evaluation.decision_id, "candidate_id": evaluation.candidate_id,
+        "n": evaluation.support_key.n, "seed": int(evaluation.support_key.seed),
+        "checkpoint_sha256": evaluation.checkpoint_sha256,
+        "validation_identity": evaluation.validation_identity,
+        "failed": bool(evaluation.failed),
+        "selection_score": float(evaluation.selection_score),
+        "failure_penalty": float(evaluation.failure_penalty),
+        "point_evidence_sha256": evaluation.point_evidence_sha256(),
+        "point_records": records,
+    }
+
+
+def load_point_evidence(payload: Mapping[str, Any]) -> FitEvaluation:
+    """Load + integrity-verify a point-evidence artifact (R3#1/##3).
+
+    Recomputes ``point_evidence_sha256`` from the bound identity + checkpoint +
+    validation identity + failed flag + canonical point records and requires it to
+    equal the artifact's stored digest (any tampered record/identity/checkpoint fails
+    closed). Returns the reconstructed :class:`FitEvaluation`. The point records are
+    validated (no duplicate cell, no cross-point sample) before hashing.
+    """
+    if payload.get("artifact_version") != _POINT_EVIDENCE_ARTIFACT_VERSION:
+        raise ValueError("point-evidence artifact version mismatch")
+    required = {"artifact_version", "fit_id", "module_id", "decision_id", "candidate_id", "n", "seed",
+                "checkpoint_sha256", "validation_identity", "failed", "selection_score",
+                "failure_penalty", "point_evidence_sha256", "point_records"}
+    if set(payload) != required:
+        raise ValueError("point-evidence artifact schema must match the frozen fields exactly")
+    support_key = SupportKey(n=payload["n"], seed=int(payload["seed"]))
+    recomputed = compute_point_evidence_sha256(
+        fit_id=payload["fit_id"], module_id=payload["module_id"], decision_id=payload["decision_id"],
+        candidate_id=payload["candidate_id"], support_key=support_key,
+        checkpoint_sha256=payload["checkpoint_sha256"], validation_identity=payload["validation_identity"],
+        failed=payload["failed"], point_records=payload["point_records"],
+    )
+    if recomputed != payload["point_evidence_sha256"]:
+        raise ValueError(
+            f"point-evidence artifact {payload['fit_id']!r} content SHA disagrees with its stored digest"
+        )
+    return FitEvaluation(
+        fit_id=payload["fit_id"], module_id=payload["module_id"], decision_id=payload["decision_id"],
+        candidate_id=payload["candidate_id"], support_key=support_key, failed=bool(payload["failed"]),
+        checkpoint_sha256=payload["checkpoint_sha256"], validation_identity=payload["validation_identity"],
+        selection_score=float(payload["selection_score"]), failure_penalty=float(payload["failure_penalty"]),
+        point_records=tuple(payload["point_records"]),
+    )
+
+
 def build_selection_trace(
     *, module_id: str, run_id: str, specs: Sequence[DecisionSpec],
     evaluations_by_fit: Mapping[str, FitEvaluation],
@@ -692,4 +763,6 @@ __all__ = [
     "candidate_supporting_evidence",
     "compute_point_evidence_sha256",
     "compute_rule_diagnostics_sha256",
+    "load_point_evidence",
+    "serialize_point_evidence",
 ]
