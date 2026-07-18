@@ -275,6 +275,11 @@ def _mean_diff_summary(cand_block: np.ndarray, comp_block: np.ndarray) -> float:
     return float(np.mean(comp_block - cand_block))
 
 
+def _mean_worsening_summary(cand_block: np.ndarray, comp_block: np.ndarray) -> float:
+    """Mean worsening ``candidate - comparator`` over the (resampled) cells (failure rate)."""
+    return float(np.mean(cand_block - comp_block))
+
+
 def _rmse_ratio_summary(cand_block: np.ndarray, comp_block: np.ndarray) -> float:
     """Relative RMSE worsening ``RMSE_candidate / RMSE_comparator - 1`` (R3#4).
 
@@ -344,18 +349,23 @@ def global_better_intervals(
     component errors). Returns the frozen bootstrap config, the failure-rate, paired-``L_param``
     and per-component RELATIVE-RMSE-worsening 95% CIs, and the verdict.
 
-    "Globally better" requires (§5.3, R3#4): failure-rate improvement CI upper <= 1pp, paired
-    ``L_param`` improvement CI lower > 0, and every component's relative RMSE worsening
-    (``RMSE_cand / RMSE_comp - 1``) CI upper <= 5%. The relative-RMSE ratio (not a raw MSE
-    difference) is scale-free; a zero comparator RMSE with any candidate error fails closed.
+    "Globally better" requires (§5.3, R3#4): the candidate's failure-rate WORSENING
+    (``candidate_failure - comparator_failure``) CI upper <= 1pp (the candidate fails no
+    more than 1pp above the comparator), the paired ``L_param`` IMPROVEMENT
+    (``comparator_l_param - candidate_l_param``) CI lower > 0, and every component's
+    relative RMSE worsening (``RMSE_cand / RMSE_comp - 1``) CI upper <= 5%. The
+    relative-RMSE ratio (not a raw MSE difference) is scale-free; a zero comparator RMSE
+    with any candidate error fails closed.
     """
     failure_cand, failure_comp, failure_pt, _, _, _ = _paired_grids(candidate, comparator, field="failure")
     lparam_cand, lparam_comp, lparam_pt, _, _, _ = _paired_grids(candidate, comparator, field="l_param")
+    # failure: candidate minus comparator (worsening) -- non-inferior if its upper <= 1pp.
     failure_ci = _two_level_resample(
         _seed_point_aggregate(failure_cand, failure_pt, sqmean=False),
         _seed_point_aggregate(failure_comp, failure_pt, sqmean=False),
-        summary=_mean_diff_summary, replicates=replicates, seed=seed,
+        summary=_mean_worsening_summary, replicates=replicates, seed=seed,
     )
+    # L_param: comparator minus candidate (improvement) -- better if its lower > 0.
     l_param_ci = _two_level_resample(
         _seed_point_aggregate(lparam_cand, lparam_pt, sqmean=False),
         _seed_point_aggregate(lparam_comp, lparam_pt, sqmean=False),

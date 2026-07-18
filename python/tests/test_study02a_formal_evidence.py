@@ -483,6 +483,97 @@ def test_bundle_allows_failed_seed_in_winning_candidate(tmp_path):
     assert bundle["test_state"] == "sealed"
 
 
+# --------------------------------------------------------------------------
+# R3 attack tests (point-evidence chain + independent rule rebuild).
+# --------------------------------------------------------------------------
+
+
+def test_bundle_rejects_point_evidence_tampered_with_scalars_unchanged(tmp_path):
+    # R3 attack: change a point record (l_param) in the artifact while leaving the fit_status
+    # scalar selection_score + checkpoint untouched. load_point_evidence recomputes the
+    # content SHA from the tampered records and disagrees with the stored digest.
+    kwargs = _bundle_inputs(tmp_path)
+    fit_id = next(iter(kwargs["point_evidence_paths"]))
+    art_path = kwargs["point_evidence_paths"][fit_id]
+    artifact = json.loads(art_path.read_text(encoding="utf-8"))
+    artifact["point_records"][0] = {**artifact["point_records"][0], "l_param": 9.0, "e_beta": 9.0}
+    art_path.write_text(json.dumps(artifact, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="content SHA"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_swapped_point_evidence_across_fits(tmp_path):
+    # R3 attack: swap two fits' point-evidence artifacts. The artifact's identity (fit_id) is
+    # bound into point_evidence_sha256, so a swapped artifact carries the wrong fit_id.
+    kwargs = _bundle_inputs(tmp_path)
+    fit_ids = sorted(kwargs["point_evidence_paths"])
+    if len(fit_ids) < 2:
+        pytest.skip("need >=2 point-evidence artifacts")
+    a, b = fit_ids[0], fit_ids[1]
+    pa, pb = kwargs["point_evidence_paths"][a], kwargs["point_evidence_paths"][b]
+    payload_a = pa.read_text(encoding="utf-8")
+    payload_b = pb.read_text(encoding="utf-8")
+    pa.write_text(payload_b, encoding="utf-8")
+    pb.write_text(payload_a, encoding="utf-8")
+    with pytest.raises(ValueError, match="carries fit_id|disagrees with fit_status"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_point_evidence_with_duplicate_seed_sample_cell(tmp_path):
+    # R3 attack: a point-evidence artifact with a duplicate (seed_id, sample_id) cell is
+    # rejected at load (validate_point_records runs before the content-SHA compare).
+    kwargs = _bundle_inputs(tmp_path)
+    fit_id = next(iter(kwargs["point_evidence_paths"]))
+    art_path = kwargs["point_evidence_paths"][fit_id]
+    artifact = json.loads(art_path.read_text(encoding="utf-8"))
+    artifact["point_records"].append(dict(artifact["point_records"][0]))  # duplicate cell
+    art_path.write_text(json.dumps(artifact, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_forged_non_ranking_winner_synced_across_trace_receipt_fit_status(tmp_path):
+    # R3#3 attack: forge the `selected` flag to a NON-winner across trace + receipt + fit_status
+    # (all consistent with the forgery). Pre-unseal recomputes the winner from the point
+    # evidence and must reject the forgery -- it does NOT trust `selected`.
+    kwargs = _bundle_inputs(tmp_path)
+    trace = kwargs["selection_traces"][0]
+    records = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
+    # flip every record's selected flag (forge the other candidate as winner)
+    for record in records:
+        record["selected"] = not record["selected"]
+    canonical = b"".join(
+        (json.dumps(r, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        for r in records)
+    trace.write_bytes(canonical)
+    # re-sync receipt + ledger to the forged trace
+    receipt = json.loads(kwargs["selection_receipts"][0].read_text(encoding="utf-8"))
+    receipt["selection_trace_sha256"] = hashlib.sha256(canonical).hexdigest()
+    _json(kwargs["selection_receipts"][0], receipt)
+    ledger_entry = {"binding_type": "formal-selection", **receipt,
+                    "receipt_sha256": hashlib.sha256(kwargs["selection_receipts"][0].read_bytes()).hexdigest()}
+    kwargs["selection_ledger_path"].write_text(json.dumps(ledger_entry, sort_keys=True) + "\n", encoding="utf-8")
+    # flip fit_status selected to match the forgery
+    _rewrite_fit_evidence(kwargs, lambda rows: [r.update(selected="False" if r["selected"] == "True" else "True") for r in rows])
+    with pytest.raises(ValueError, match="winner|diagnostics SHA|selected"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+@pytest.mark.parametrize("case", ["missing", "tampered"])
+def test_bundle_rejects_diagnostics_artifact_missing_or_tampered(tmp_path, case):
+    # R3#2 attack: the published diagnostics artifact must be present and hash to the trace SHA.
+    kwargs = _bundle_inputs(tmp_path)
+    if case == "missing":
+        kwargs["selection_diagnostics_paths"] = []
+    else:
+        path = kwargs["selection_diagnostics_paths"][0]
+        diag = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
+        diag["winner"] = "forged-winner"
+        path.write_bytes((json.dumps(diag, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8"))
+    with pytest.raises(ValueError, match="diagnostics"):
+        build_pre_unseal_bundle(**kwargs)
+
+
 @pytest.mark.parametrize("case", ["missing", "tamper", "unsealed", "alias", "ceiling_tamper"])
 def test_pre_unseal_bundle_fails_closed_before_publication(tmp_path, case):
     kwargs = _bundle_inputs(tmp_path)

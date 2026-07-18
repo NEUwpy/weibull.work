@@ -353,13 +353,15 @@ def test_mixed_selection_rule_within_one_decision_is_rejected(tmp_path):
     records = [{
         "module_id": "A-T", "run_id": "r1", "decision_id": "d:A-T:r:n10", "candidate_id": "a",
         "validation_score": ev["aggregate_score"], "tie_break_key": ["a"], "selected": True,
-        "supporting_evidence_sha256": ev["supporting_evidence_sha256"], "support_count": 1,
-        "seed_count": 1, "selection_rule": SELECTION_RULE_LOWEST_AGGREGATE,
+        "supporting_evidence_sha256": ev["supporting_evidence_sha256"],
+        "rule_diagnostics_sha256": "a" * 64,
+        "support_count": 1, "seed_count": 1, "selection_rule": SELECTION_RULE_LOWEST_AGGREGATE,
     }, {
         "module_id": "A-T", "run_id": "r1", "decision_id": "d:A-T:r:n10", "candidate_id": "b",
         "validation_score": ev["aggregate_score"], "tie_break_key": ["b"], "selected": False,
-        "supporting_evidence_sha256": ev["supporting_evidence_sha256"], "support_count": 1,
-        "seed_count": 1, "selection_rule": SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,  # mixed!
+        "supporting_evidence_sha256": ev["supporting_evidence_sha256"],
+        "rule_diagnostics_sha256": "a" * 64,
+        "support_count": 1, "seed_count": 1, "selection_rule": SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,  # mixed!
     }]
     with pytest.raises(ValueError, match="mixes selection rules"):
         write_selection_trace(tmp_path / "mixed.jsonl", records)
@@ -440,3 +442,44 @@ def test_duplicate_support_seed_within_a_candidate_fails_closed():
     dup_matrix = [_row("G3-fit-9000", "m01", 420001), _row("G3-fit-9001", "m01", 420001)]
     with pytest.raises(ValueError, match="duplicate support"):
         build_decision_specs("A-E1", dup_matrix)
+
+
+def test_failed_seed_is_included_in_global_better_rule():
+    # R3#6: a failed seed is NOT silently skipped. Candidate A is all-legal with low L_param;
+    # candidate B has a failed seed (all-illegal records over the same cells). The failure
+    # rate / L_param / RMSE CIs therefore truly include the failure, so A globally dominates B.
+    keys = (SupportKey(10, 420101),)
+    cand_a = CandidateSpec(decision_id="distribution:A-T:base", candidate_id="good", selection_rule=SELECTION_RULE_GLOBAL_BETTER,
+                           tie_break_key=("good",), support_keys=keys, expected_fit_ids=("fit-good",),
+                           fit_id_by_support={keys[0]: "fit-good"}, approved_seeds=(420101,))
+    cand_b = CandidateSpec(decision_id="distribution:A-T:base", candidate_id="flaky", selection_rule=SELECTION_RULE_GLOBAL_BETTER,
+                           tie_break_key=("flaky",), support_keys=keys, expected_fit_ids=("fit-flaky",),
+                           fit_id_by_support={keys[0]: "fit-flaky"}, approved_seeds=(420101,))
+    spec = DecisionSpec(module_id="A-T", decision_id="distribution:A-T:base", axis="distribution",
+                        selection_rule=SELECTION_RULE_GLOBAL_BETTER, candidates=(cand_a, cand_b))
+    good_points = [
+        {"sample_id": f"pt{p}:s{s}", "seed_id": "420101", "point_id": f"pt{p}", "legal": True, "failure": 0,
+         "l_param": 0.05, "e_beta": 0.05, "e_eta": 0.05, "e_gamma": 0.05}
+        for p in range(3) for s in range(2)
+    ]
+    # flaky candidate: the seed failed => every validation cell is illegal (penalty 10).
+    flaky_points = [
+        {"sample_id": f"pt{p}:s{s}", "seed_id": "420101", "point_id": f"pt{p}", "legal": False, "failure": 1,
+         "l_param": 10.0, "e_beta": 10.0, "e_eta": 10.0, "e_gamma": 10.0}
+        for p in range(3) for s in range(2)
+    ]
+    evals = {
+        "fit-good": FitEvaluation(fit_id="fit-good", module_id="A-T", decision_id="distribution:A-T:base",
+                                  candidate_id="good", support_key=keys[0], failed=False, checkpoint_sha256="a" * 64,
+                                  validation_identity="val-A", selection_score=0.05, failure_penalty=0.0, point_records=tuple(good_points)),
+        "fit-flaky": FitEvaluation(fit_id="fit-flaky", module_id="A-T", decision_id="distribution:A-T:base",
+                                   candidate_id="flaky", support_key=keys[0], failed=True, checkpoint_sha256="",
+                                   validation_identity="val-B", selection_score=0.0, failure_penalty=10.0, point_records=tuple(flaky_points)),
+    }
+    records, diagnostics = build_selection_trace(module_id="A-T", run_id="r1", specs=(spec,), evaluations_by_fit=evals)
+    winner = next(r["candidate_id"] for r in records if r["selected"])
+    assert winner == "good"  # the flaky candidate's failure is included => it cannot dominate
+    diag = next(d for d in diagnostics if d["decision_id"] == "distribution:A-T:base")
+    # good vs flaky: good has lower failure rate => non-inferior; good dominates on all 3 CIs.
+    verdict = diag["rule_result"]["verdicts"]["good>vs>flaky"]
+    assert verdict == "globally_better"
