@@ -47,18 +47,20 @@ def _fit(*, epochs=100, curve=None) -> FitResult:
     )
 
 
-def _status(fit_id="G3-fit-0000", *, selected=True, curve=None):
+def _status(fit_id="G3-fit-0000", *, selected=True, curve=None, selection_score=0.5,
+            decision_id="d", candidate_id="candidate-a", seed=420101):
     return build_fit_status_record(
         fit_id=fit_id,
         module_id="A-E1",
         rule_id="A-E1_historical",
         route_id="F2",
         n=10,
-        seed=420101,
-        decision_id="d",
-        candidate_id="candidate-a",
+        seed=seed,
+        decision_id=decision_id,
+        candidate_id=candidate_id,
         selected=selected,
         result=_fit(curve=curve),
+        selection_score=selection_score,
     )
 
 
@@ -74,15 +76,20 @@ def test_fit_status_records_success_and_failure_without_invented_values(tmp_path
         decision_id="d",
         candidate_id="candidate-b",
         selected=False,
+        failure_penalty=10.0,
         failure_message="optimizer failed",
     )
 
     assert success["best_epoch_one_based"] == 100
     assert success["hit_epoch_100"] is True
+    assert success["selection_score"] == 0.5
+    assert success["failure_penalty"] == ""
     assert json.loads(success["validation_curve_json"])[-1] == pytest.approx(0.01)
     assert failure["failed"] is True
     assert failure["checkpoint_sha256"] == ""
     assert failure["validation_score"] == ""
+    assert failure["selection_score"] == ""
+    assert failure["failure_penalty"] == 10.0
     path = tmp_path / "fit_status.csv"
     write_fit_status(path, [success, failure])
     with path.open(encoding="utf-8", newline="") as handle:
@@ -98,6 +105,7 @@ def test_fit_status_rejects_inconsistent_or_nonfinite_diagnostics(tmp_path):
         build_fit_status_record(
             fit_id="fit-bad", module_id="A-E1", rule_id="r", route_id="F1",
             n=5, seed=420101, decision_id="d", candidate_id="c", selected=False, result=bad,
+            selection_score=0.5,
         )
     success = _status()
     success["failure_message"] = "must be empty"
@@ -106,13 +114,19 @@ def test_fit_status_rejects_inconsistent_or_nonfinite_diagnostics(tmp_path):
 
 
 def test_selection_trace_is_deterministic_preserves_ties_and_validates(tmp_path):
+    def cand(decision_id, candidate_id, score, tie_break_key, checkpoint_sha, *, seed=420001):
+        return {
+            "decision_id": decision_id, "candidate_id": candidate_id, "tie_break_key": tie_break_key,
+            "selection_rule": "lowest_aggregate", "approved_seeds": [seed],
+            "supporting_fits": [{
+                "fit_id": f"{candidate_id}-{seed}", "seed": seed, "failed": False,
+                "checkpoint_sha256": checkpoint_sha, "selection_score": score, "failure_penalty": "",
+            }],
+        }
     candidates = [
-        {"decision_id": "d1", "candidate_id": "z", "validation_score": 0.2,
-         "tie_break_key": ["same"], "checkpoint_sha256": SHA_A},
-        {"decision_id": "d1", "candidate_id": "a", "validation_score": 0.2,
-         "tie_break_key": ["same"], "checkpoint_sha256": SHA_B},
-        {"decision_id": "d2", "candidate_id": "x", "validation_score": 0.1,
-         "tie_break_key": [1], "checkpoint_sha256": SHA_A},
+        cand("d1", "z", 0.2, ["same"], SHA_A),
+        cand("d1", "a", 0.2, ["same"], SHA_B),
+        cand("d2", "x", 0.1, [1], SHA_A),
     ]
     records = build_selection_trace_records("A-E1", "run-1", candidates)
     assert [row["candidate_id"] for row in records[:2]] == ["a", "z"]
@@ -127,11 +141,18 @@ def test_selection_trace_is_deterministic_preserves_ties_and_validates(tmp_path)
 
 
 def test_selection_trace_uses_value_order_for_tie_break_and_writer_rejects_wrong_winner(tmp_path):
+    def cand(decision_id, candidate_id, score, tie_break_key, checkpoint_sha, *, seed=420001):
+        return {
+            "decision_id": decision_id, "candidate_id": candidate_id, "tie_break_key": tie_break_key,
+            "selection_rule": "lowest_aggregate", "approved_seeds": [seed],
+            "supporting_fits": [{
+                "fit_id": f"{candidate_id}-{seed}", "seed": seed, "failed": False,
+                "checkpoint_sha256": checkpoint_sha, "selection_score": score, "failure_penalty": "",
+            }],
+        }
     candidates = [
-        {"decision_id": "d", "candidate_id": "a", "validation_score": 1.0,
-         "tie_break_key": [10], "checkpoint_sha256": SHA_A},
-        {"decision_id": "d", "candidate_id": "z", "validation_score": 1.0,
-         "tie_break_key": [2], "checkpoint_sha256": SHA_B},
+        cand("d", "a", 1.0, [10], SHA_A),
+        cand("d", "z", 1.0, [2], SHA_B),
     ]
     records = list(build_selection_trace_records("A-E1", "run-1", candidates))
     assert [row["candidate_id"] for row in records if row["selected"]] == ["z"]
@@ -142,13 +163,19 @@ def test_selection_trace_uses_value_order_for_tie_break_and_writer_rejects_wrong
 
 
 def test_selection_trace_writer_canonicalizes_decision_and_candidate_order(tmp_path):
+    def cand(decision_id, candidate_id, score, tie_break_key, checkpoint_sha, *, seed=420001):
+        return {
+            "decision_id": decision_id, "candidate_id": candidate_id, "tie_break_key": tie_break_key,
+            "selection_rule": "lowest_aggregate", "approved_seeds": [seed],
+            "supporting_fits": [{
+                "fit_id": f"{candidate_id}-{seed}", "seed": seed, "failed": False,
+                "checkpoint_sha256": checkpoint_sha, "selection_score": score, "failure_penalty": "",
+            }],
+        }
     candidates = [
-        {"decision_id": "z-decision", "candidate_id": "b", "validation_score": 2.0,
-         "tie_break_key": [2], "checkpoint_sha256": SHA_A},
-        {"decision_id": "a-decision", "candidate_id": "x", "validation_score": 1.0,
-         "tie_break_key": [1], "checkpoint_sha256": SHA_B},
-        {"decision_id": "z-decision", "candidate_id": "a", "validation_score": 1.0,
-         "tie_break_key": [1], "checkpoint_sha256": SHA_B},
+        cand("z-decision", "b", 2.0, [2], SHA_A),
+        cand("a-decision", "x", 1.0, [1], SHA_B),
+        cand("z-decision", "a", 1.0, [1], SHA_B),
     ]
     records = list(build_selection_trace_records("A-E1", "run-1", candidates))
     first = tmp_path / "first.jsonl"
@@ -160,8 +187,10 @@ def test_selection_trace_writer_canonicalizes_decision_and_candidate_order(tmp_p
 
 def test_selection_trace_writer_rejects_extra_fields(tmp_path):
     records = list(build_selection_trace_records("A-E1", "run-1", [{
-        "decision_id": "d", "candidate_id": "a", "validation_score": 1.0,
-        "tie_break_key": ["a"], "checkpoint_sha256": SHA_A,
+        "decision_id": "d", "candidate_id": "a", "tie_break_key": ["a"],
+        "selection_rule": "lowest_aggregate", "approved_seeds": [420001],
+        "supporting_fits": [{"fit_id": "f-a", "seed": 420001, "failed": False,
+                             "checkpoint_sha256": SHA_A, "selection_score": 1.0, "failure_penalty": ""}],
     }]))
     records[0]["extra"] = "forbidden"
     with pytest.raises(ValueError, match="schema"):
@@ -174,7 +203,7 @@ def test_ceiling_report_groups_and_derives_frozen_last_ten_slope(tmp_path):
     failed = build_fit_status_record(
         fit_id="fit-failed", module_id="A-E1", rule_id="A-E1_historical", route_id="F2",
         n=10, seed=420101, decision_id="d", candidate_id="candidate-a", selected=False,
-        failure_message="failed",
+        failure_penalty=10.0, failure_message="failed",
     )
     report = build_ceiling_hit_report([row, failed])
     group = report["groups"][0]
@@ -281,11 +310,19 @@ def _bundle_inputs(tmp_path: Path):
         },
     })
     trace = tmp_path / "selection_trace.jsonl"
+    status_a = _status(selection_score=0.01)
+    status_b_fit = {
+        "fit_id": "G3-fit-0001", "seed": 420101, "failed": False,
+        "checkpoint_sha256": SHA_B, "selection_score": 0.02, "failure_penalty": "",
+    }
     records = build_selection_trace_records("A-E1", "run-1", [
-        {"decision_id": "d", "candidate_id": "candidate-a", "validation_score": 0.01,
-         "tie_break_key": ["a"], "checkpoint_sha256": SHA_A},
-        {"decision_id": "d", "candidate_id": "candidate-b", "validation_score": 0.02,
-         "tie_break_key": ["b"], "checkpoint_sha256": SHA_B},
+        {"decision_id": "d", "candidate_id": "candidate-a", "tie_break_key": ["a"],
+         "selection_rule": "lowest_aggregate", "approved_seeds": [420101], "supporting_fits": [{
+             "fit_id": status_a["fit_id"], "seed": status_a["seed"], "failed": False,
+             "checkpoint_sha256": SHA_A, "selection_score": 0.01, "failure_penalty": "",
+         }]},
+        {"decision_id": "d", "candidate_id": "candidate-b", "tie_break_key": ["b"],
+         "selection_rule": "lowest_aggregate", "approved_seeds": [420101], "supporting_fits": [status_b_fit]},
     ])
     trace_sha = write_selection_trace(trace, records)
     receipt_payload = {
@@ -303,9 +340,9 @@ def _bundle_inputs(tmp_path: Path):
     }
     ledger.write_text(json.dumps(ledger_entry, sort_keys=True) + "\n", encoding="utf-8")
     fit_status = tmp_path / "fit_status.csv"
-    write_fit_status(fit_status, [_status()])
+    write_fit_status(fit_status, [status_a])
     ceiling = tmp_path / "ceiling_hit_report.json"
-    write_ceiling_hit_report(ceiling, build_ceiling_hit_report([_status()]))
+    write_ceiling_hit_report(ceiling, build_ceiling_hit_report([status_a]))
     leakage = tmp_path / "leakage_audit.json"
     write_leakage_audit(leakage, **_leakage_kwargs())
     return {
@@ -377,7 +414,7 @@ def _add_failed_fit(kwargs, *, selected=False, decision_id="failure-d", candidat
     failed = build_fit_status_record(
         fit_id="G3-fit-0000", module_id="A-E1", rule_id="A-E1_historical", route_id="F2",
         n=10, seed=420101, decision_id=decision_id, candidate_id=candidate_id,
-        selected=selected, failure_message="transparent failure",
+        selected=selected, failure_penalty=10.0, failure_message="transparent failure",
     )
     fit_path.unlink()
     write_fit_status(fit_path, [*rows, failed])
@@ -405,15 +442,25 @@ def test_failed_fit_must_not_be_selected(tmp_path):
 def test_bundle_rejects_failed_fit_when_candidate_exists_in_selection_trace(tmp_path):
     kwargs = _bundle_inputs(tmp_path)
     _add_failed_fit(kwargs)
+
+    def fcand(candidate_id, score, checkpoint_sha, *, seed=420001):
+        return {
+            "decision_id": "failure-d", "candidate_id": candidate_id, "tie_break_key": [candidate_id],
+            "selection_rule": "lowest_aggregate", "approved_seeds": [seed],
+            "supporting_fits": [{
+                "fit_id": f"f-{candidate_id}", "seed": seed, "failed": False,
+                "checkpoint_sha256": checkpoint_sha, "selection_score": score, "failure_penalty": "",
+            }],
+        }
     records = [json.loads(line) for line in kwargs["selection_traces"][0].read_text(encoding="utf-8").splitlines()]
     records.extend(build_selection_trace_records("A-E1", "run-1", [
-        {"decision_id": "failure-d", "candidate_id": "other", "validation_score": 0.1,
-         "tie_break_key": ["a"], "checkpoint_sha256": SHA_A},
-        {"decision_id": "failure-d", "candidate_id": "failure-c", "validation_score": 0.2,
-         "tie_break_key": ["b"], "checkpoint_sha256": SHA_B},
+        fcand("other", 0.1, SHA_A), fcand("failure-c", 0.2, SHA_B),
     ]))
     _sync_trace_receipt_and_ledger(kwargs, records)
-    with pytest.raises(ValueError, match="failed fit status.*selection trace"):
+    # The failed fit (failure-d/failure-c) is bound to a trace candidate whose supporting
+    # evidence was built from a succeeded fit; the recomputed supporting_evidence_sha256
+    # over the failed fit disagrees and the bundle fails closed.
+    with pytest.raises(ValueError, match="supporting evidence SHA"):
         build_pre_unseal_bundle(**kwargs)
 
 
@@ -422,7 +469,7 @@ def test_bundle_rejects_success_validation_score_mismatch_with_trace(tmp_path):
     records = [json.loads(line) for line in kwargs["selection_traces"][0].read_text(encoding="utf-8").splitlines()]
     records[0]["validation_score"] = 0.015
     _sync_trace_receipt_and_ledger(kwargs, records)
-    with pytest.raises(ValueError, match="validation_score"):
+    with pytest.raises(ValueError, match="aggregate score"):
         build_pre_unseal_bundle(**kwargs)
 
 

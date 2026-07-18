@@ -34,29 +34,31 @@ def _write_trace(path: Path, records: list[dict]) -> str:
 
 
 def _trace(tmp_path: Path, module_id: str) -> tuple[Path, str, str]:
+    from study02a.formal_contracts import build_candidate_supporting_evidence
+
     run_id = f"G3-{module_id.replace('-', '')}-formal-v1"
     path = tmp_path / f"{module_id}-selection-trace.jsonl"
+
+    def record(candidate_id: str, score: float, checkpoint: str, selected: bool) -> dict:
+        evidence = build_candidate_supporting_evidence(
+            module_id=module_id, run_id=run_id, decision_id="baseline", candidate_id=candidate_id,
+            supporting_fits=[{
+                "fit_id": f"fit-{candidate_id}", "seed": 420001, "failed": False,
+                "checkpoint_sha256": checkpoint, "selection_score": score, "failure_penalty": "",
+            }],
+            approved_seeds=[420001],
+        )
+        return {
+            "module_id": module_id, "run_id": run_id, "decision_id": "baseline",
+            "candidate_id": candidate_id, "validation_score": evidence["aggregate_score"],
+            "tie_break_key": [score, candidate_id], "selected": selected,
+            "supporting_evidence_sha256": evidence["supporting_evidence_sha256"],
+            "seed_count": evidence["seed_count"], "selection_rule": "lowest_aggregate",
+        }
+
     records = [
-        {
-            "module_id": module_id,
-            "run_id": run_id,
-            "decision_id": "baseline",
-            "candidate_id": "candidate-1",
-            "validation_score": 0.125,
-            "tie_break_key": [0.125, "candidate-1"],
-            "selected": True,
-            "checkpoint_sha256": "b" * 64,
-        },
-        {
-            "module_id": module_id,
-            "run_id": run_id,
-            "decision_id": "baseline",
-            "candidate_id": "candidate-2",
-            "validation_score": 0.25,
-            "tie_break_key": [0.25, "candidate-2"],
-            "selected": False,
-            "checkpoint_sha256": "c" * 64,
-        },
+        record("candidate-1", 0.125, "b" * 64, True),
+        record("candidate-2", 0.25, "c" * 64, False),
     ]
     return path, _write_trace(path, records), run_id
 

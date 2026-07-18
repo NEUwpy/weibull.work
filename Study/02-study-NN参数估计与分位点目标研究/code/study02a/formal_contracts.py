@@ -48,7 +48,35 @@ _SELECTION_RECORD_FIELDS = {
     "validation_score",
     "tie_break_key",
     "selected",
+    "supporting_evidence_sha256",
+    "seed_count",
+    "selection_rule",
+}
+# Per-decision winner rules. "lowest_aggregate" (ranking) is enforced inside the trace
+# validator (winner == argmin of validation_score). The CI/equal-weight rules are
+# re-derived at pre-unseal from the bound supporting fits; the trace validator only
+# checks exactly-one-winner for them.
+SELECTION_RULE_LOWEST_AGGREGATE = "lowest_aggregate"
+SELECTION_RULE_GLOBAL_BETTER = "global_better_rule"
+SELECTION_RULE_SMALLEST_WITHIN_2PCT_CI = "smallest_within_2pct_ci"
+SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT = "fixed_vs_shared_equal_weight"
+_SELECTION_RULES = {
+    SELECTION_RULE_LOWEST_AGGREGATE,
+    SELECTION_RULE_GLOBAL_BETTER,
+    SELECTION_RULE_SMALLEST_WITHIN_2PCT_CI,
+    SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,
+}
+# A candidate's supporting fit row (the multi-seed truth bound into supporting_evidence_sha256).
+# One per approved screening seed. R1 ruling: no single "representative" checkpoint — every
+# supporting fit's checkpoint SHA and recomputed score is bound, and failed fits carry the
+# frozen penalty.
+_SUPPORTING_FIT_FIELDS = {
+    "fit_id",
+    "seed",
+    "failed",
     "checkpoint_sha256",
+    "selection_score",
+    "failure_penalty",
 }
 _FIT_STATUS_FIELDS = (
     "fit_id",
@@ -62,6 +90,8 @@ _FIT_STATUS_FIELDS = (
     "selected",
     "checkpoint_sha256",
     "validation_score",
+    "selection_score",
+    "failure_penalty",
     "actual_epochs",
     "best_epoch_one_based",
     "hit_epoch_100",
@@ -368,7 +398,12 @@ def _validate_selection_trace_bytes(
         _tie_break_sort_key(record["tie_break_key"])
         if not isinstance(record["selected"], bool):
             raise ValueError("Predecessor selection trace selected must be boolean")
-        _require_sha256(record["checkpoint_sha256"], "Selection trace checkpoint_sha256")
+        _require_sha256(record["supporting_evidence_sha256"], "Selection trace supporting_evidence_sha256")
+        seed_count = record["seed_count"]
+        if isinstance(seed_count, bool) or not isinstance(seed_count, int) or seed_count <= 0:
+            raise ValueError("Predecessor selection trace seed_count must be a positive integer")
+        if record["selection_rule"] not in _SELECTION_RULES:
+            raise ValueError("Predecessor selection trace selection_rule is not a frozen rule")
         by_decision.setdefault(decision_id, []).append(record)
     for decision_id, decision_rows in by_decision.items():
         ranked = sorted(
@@ -378,10 +413,13 @@ def _validate_selection_trace_bytes(
             ),
         )
         selected = [row for row in decision_rows if row["selected"]]
-        if len(selected) != 1 or selected[0]["candidate_id"] != ranked[0]["candidate_id"]:
-            raise ValueError(
-                f"selection trace winner for {decision_id} does not equal deterministic frozen rank"
-            )
+        if len(selected) != 1:
+            raise ValueError(f"selection trace decision {decision_id} must select exactly one winner")
+        if ranked[0]["selection_rule"] == SELECTION_RULE_LOWEST_AGGREGATE:
+            if selected[0]["candidate_id"] != ranked[0]["candidate_id"]:
+                raise ValueError(
+                    f"selection trace winner for {decision_id} does not equal deterministic frozen rank"
+                )
     canonical = sorted(
         records,
         key=lambda row: (
@@ -483,9 +521,18 @@ def build_fit_status_record(
     candidate_id: str,
     selected: bool,
     result: Any | None = None,
+    selection_score: float | None = None,
+    failure_penalty: float | None = None,
     failure_message: str | None = None,
 ) -> dict[str, Any]:
-    """Build one validated fit-status row; best_epoch_one_based is explicitly one based."""
+    """Build one validated fit-status row; best_epoch_one_based is explicitly one based.
+
+    ``validation_score`` is the training best validation loss (bound to the curve, used by
+    the ceiling report). ``selection_score`` is the recomputed failure-penalized L_param
+    derived from the checkpoint (used by selection); failed fits leave it empty and carry
+    the frozen ``failure_penalty`` instead. Selection never treats one checkpoint as
+    representing multiple seeds.
+    """
 
     identifiers = {
         "fit_id": _require_identifier(fit_id, "fit_id"),
@@ -505,6 +552,8 @@ def build_fit_status_record(
         if selected:
             raise ValueError("failed fit status cannot be selected")
         message = _require_identifier(failure_message, "failure_message")
+        if isinstance(failure_penalty, bool) or not isinstance(failure_penalty, (int, float)) or not math.isfinite(failure_penalty):
+            raise ValueError("failed fit status requires a finite failure_penalty")
         return {
             **identifiers,
             "n": n,
@@ -512,6 +561,8 @@ def build_fit_status_record(
             "selected": selected,
             "checkpoint_sha256": "",
             "validation_score": "",
+            "selection_score": "",
+            "failure_penalty": float(failure_penalty),
             "actual_epochs": 0,
             "best_epoch_one_based": "",
             "hit_epoch_100": False,
@@ -523,6 +574,10 @@ def build_fit_status_record(
         }
     if failure_message is not None:
         raise ValueError("successful fit status cannot include failure_message")
+    if isinstance(selection_score, bool) or not isinstance(selection_score, (int, float)) or not math.isfinite(selection_score):
+        raise ValueError("successful fit status requires a finite selection_score (recomputed L_param)")
+    if failure_penalty is not None:
+        raise ValueError("successful fit status must not include failure_penalty")
     checkpoint = _require_sha256(getattr(result, "checkpoint_sha256", None), "checkpoint_sha256")
     score = getattr(result, "best_validation_loss", None)
     actual_epochs = getattr(result, "actual_epochs", None)
@@ -555,6 +610,8 @@ def build_fit_status_record(
         "selected": selected,
         "checkpoint_sha256": checkpoint,
         "validation_score": float(score),
+        "selection_score": float(selection_score),
+        "failure_penalty": "",
         "actual_epochs": actual_epochs,
         "best_epoch_one_based": best_epoch + 1,
         "hit_epoch_100": expected_hit,
@@ -582,6 +639,10 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
                 normalized["best_epoch_one_based"] = int(normalized["best_epoch_one_based"])
             if normalized["validation_score"] != "":
                 normalized["validation_score"] = float(normalized["validation_score"])
+            if normalized["selection_score"] != "":
+                normalized["selection_score"] = float(normalized["selection_score"])
+            if normalized["failure_penalty"] != "":
+                normalized["failure_penalty"] = float(normalized["failure_penalty"])
             if normalized["terminal_validation_slope"] != "":
                 normalized["terminal_validation_slope"] = float(normalized["terminal_validation_slope"])
         except (TypeError, ValueError) as exc:
@@ -597,8 +658,10 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
     if normalized["failed"]:
         if normalized["selected"]:
             raise ValueError("failed fit status cannot be selected")
-        if normalized["checkpoint_sha256"] or normalized["validation_score"] != "" or not normalized["failure_message"]:
-            raise ValueError("failed fit status must not invent checkpoint or validation score")
+        if normalized["checkpoint_sha256"] or normalized["validation_score"] != "" or normalized["selection_score"] != "" or not normalized["failure_message"]:
+            raise ValueError("failed fit status must not invent checkpoint, validation score, or selection score")
+        if not math.isfinite(float(normalized["failure_penalty"])):
+            raise ValueError("failed fit status must carry a finite failure_penalty")
         if normalized["actual_epochs"] != 0 or normalized["validation_curve_json"] != "[]":
             raise ValueError("failed fit status must have empty history")
         if normalized["best_epoch_one_based"] != "" or normalized["early_stop_reason"] != "" or normalized[
@@ -608,6 +671,10 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
         return normalized
     if normalized["failure_message"] != "":
         raise ValueError("successful fit status failure_message must be empty")
+    if normalized["failure_penalty"] != "":
+        raise ValueError("successful fit status must not carry failure_penalty")
+    if not math.isfinite(float(normalized["selection_score"])) or float(normalized["selection_score"]) < 0:
+        raise ValueError("successful fit status selection_score must be a finite non-negative L_param")
     try:
         curve = json.loads(normalized["validation_curve_json"])
     except (TypeError, json.JSONDecodeError) as exc:
@@ -650,51 +717,162 @@ def write_fit_status(destination: Path, rows: Sequence[Mapping[str, Any]]) -> st
     return hashlib.sha256(payload).hexdigest()
 
 
+def _canonical_supporting_row(fit: Mapping[str, Any]) -> dict[str, Any]:
+    """One canonical supporting-fit row (all ``_SUPPORTING_FIT_FIELDS`` present).
+
+    Succeeded fits bind their checkpoint SHA and recomputed L_param; failed fits bind
+    the frozen failure_penalty and leave checkpoint/score empty. This is the unit hashed
+    into ``supporting_evidence_sha256``.
+    """
+    failed = bool(fit["failed"])
+    row = {
+        "fit_id": _require_identifier(fit["fit_id"], "supporting fit_id"),
+        "seed": int(fit["seed"]),
+        "failed": failed,
+    }
+    if failed:
+        if fit.get("checkpoint_sha256") or fit.get("selection_score") not in ("", None):
+            raise ValueError("failed supporting fit must not bind checkpoint or selection_score")
+        penalty = fit["failure_penalty"]
+        if isinstance(penalty, bool) or not isinstance(penalty, (int, float)) or not math.isfinite(penalty):
+            raise ValueError("failed supporting fit failure_penalty must be finite")
+        row["checkpoint_sha256"] = ""
+        row["selection_score"] = ""
+        row["failure_penalty"] = float(penalty)
+    else:
+        row["checkpoint_sha256"] = _require_sha256(fit["checkpoint_sha256"], "supporting checkpoint_sha256")
+        score = fit["selection_score"]
+        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score) or score < 0:
+            raise ValueError("supporting selection_score must be a finite non-negative L_param")
+        row["selection_score"] = float(score)
+        row["failure_penalty"] = ""
+    return row
+
+
+def build_candidate_supporting_evidence(
+    *,
+    module_id: str,
+    run_id: str,
+    decision_id: str,
+    candidate_id: str,
+    supporting_fits: Sequence[Mapping[str, Any]],
+    approved_seeds: Sequence[int],
+) -> dict[str, Any]:
+    """Aggregate one candidate's supporting fits over the approved seeds.
+
+    Validates the supporting fits cover exactly the approved seeds (one fit per seed,
+    no duplicates, no missing/extra), computes the frozen failure-penalized aggregate
+    (succeeded -> recomputed L_param, failed -> frozen penalty), and the
+    ``supporting_evidence_sha256`` over the canonical seed-sorted supporting rows. No
+    single checkpoint is allowed to represent multiple seeds.
+    """
+    module_id = _require_identifier(module_id, "module_id")
+    run_id = _require_identifier(run_id, "run_id")
+    decision_id = _require_identifier(decision_id, "decision_id")
+    candidate_id = _require_identifier(candidate_id, "candidate_id")
+    approved = sorted({int(seed) for seed in approved_seeds})
+    if not approved:
+        raise ValueError("approved_seeds must be non-empty")
+    by_seed: dict[int, dict[str, Any]] = {}
+    for fit in supporting_fits:
+        seed = int(fit["seed"])
+        if seed in by_seed:
+            raise ValueError(f"duplicate supporting fit seed {seed} for {decision_id}/{candidate_id}")
+        by_seed[seed] = _canonical_supporting_row(fit)
+    if set(by_seed) != set(approved):
+        raise ValueError(
+            f"supporting fits for {decision_id}/{candidate_id} must cover exactly the approved seeds "
+            f"{approved}; got {sorted(by_seed)}"
+        )
+    canonical_rows = [by_seed[seed] for seed in approved]
+    values = [
+        float(row["failure_penalty"]) if row["failed"] else float(row["selection_score"])
+        for row in canonical_rows
+    ]
+    payload = b"".join(_canonical_json_bytes(row) for row in canonical_rows)
+    return {
+        "module_id": module_id,
+        "run_id": run_id,
+        "decision_id": decision_id,
+        "candidate_id": candidate_id,
+        "supporting_fits": canonical_rows,
+        "aggregate_score": sum(values) / len(values),
+        "supporting_evidence_sha256": hashlib.sha256(payload).hexdigest(),
+        "seed_count": len(canonical_rows),
+    }
+
+
 def build_selection_trace_records(
     module_id: str, run_id: str, candidates: Sequence[Mapping[str, Any]]
 ) -> tuple[dict[str, Any], ...]:
+    """Rank each decision's candidates by aggregate failure-penalized L_param and mark the winner.
+
+    Each candidate carries ``decision_id``, ``candidate_id``, ``tie_break_key``,
+    ``selection_rule``, ``approved_seeds`` and ``supporting_fits`` (one fit per approved
+    seed). The aggregate score and ``supporting_evidence_sha256`` are computed here from
+    the supporting fits (single source of truth), never trusted from the caller. For
+    ``lowest_aggregate`` the winner is the argmin; for the CI/equal-weight rules the
+    caller supplies ``selected_candidate_id`` per decision (the rule is re-derived at
+    pre-unseal from the bound fits) and the builder only records that winner.
+    """
     module_id = _require_identifier(module_id, "module_id")
     run_id = _require_identifier(run_id, "run_id")
     if not candidates:
         raise ValueError("selection candidates must not be empty")
     by_decision: dict[str, list[dict[str, Any]]] = {}
+    decision_rule: dict[str, str] = {}
+    decision_winner: dict[str, str] = {}
     pairs: set[tuple[str, str]] = set()
     for candidate in candidates:
-        try:
-            decision_id = _require_identifier(candidate["decision_id"], "decision_id")
-            candidate_id = _require_identifier(candidate["candidate_id"], "candidate_id")
-            score = candidate["validation_score"]
-            tie_break_key = candidate["tie_break_key"]
-            checkpoint = _require_sha256(candidate["checkpoint_sha256"], "checkpoint_sha256")
-        except KeyError as exc:
-            raise ValueError(f"selection candidate is missing {exc.args[0]}") from exc
+        decision_id = _require_identifier(candidate["decision_id"], "decision_id")
+        candidate_id = _require_identifier(candidate["candidate_id"], "candidate_id")
+        tie_break_key = candidate["tie_break_key"]
+        rule = candidate.get("selection_rule", SELECTION_RULE_LOWEST_AGGREGATE)
+        if rule not in _SELECTION_RULES:
+            raise ValueError(f"unknown selection_rule {rule!r} for {decision_id}/{candidate_id}")
         if (decision_id, candidate_id) in pairs:
             raise ValueError("duplicate selection decision/candidate pair")
         pairs.add((decision_id, candidate_id))
-        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
-            raise ValueError("selection validation_score must be finite")
+        evidence = build_candidate_supporting_evidence(
+            module_id=module_id, run_id=run_id, decision_id=decision_id, candidate_id=candidate_id,
+            supporting_fits=candidate["supporting_fits"], approved_seeds=candidate["approved_seeds"],
+        )
+        if decision_id in decision_rule and decision_rule[decision_id] != rule:
+            raise ValueError(f"selection_rule must be uniform within decision {decision_id}")
+        decision_rule[decision_id] = rule
+        if rule != SELECTION_RULE_LOWEST_AGGREGATE:
+            selected_id = candidate.get("selected_candidate_id")
+            if selected_id is None:
+                raise ValueError(f"rule {rule} for {decision_id} requires selected_candidate_id")
+            _require_identifier(selected_id, "selected_candidate_id")
+            decision_winner[decision_id] = selected_id
         tie_sort = _tie_break_sort_key(tie_break_key)
         by_decision.setdefault(decision_id, []).append({
             "module_id": module_id,
             "run_id": run_id,
             "decision_id": decision_id,
             "candidate_id": candidate_id,
-            "validation_score": float(score),
+            "validation_score": evidence["aggregate_score"],
             "tie_break_key": tie_break_key,
             "selected": False,
-            "checkpoint_sha256": checkpoint,
+            "supporting_evidence_sha256": evidence["supporting_evidence_sha256"],
+            "seed_count": evidence["seed_count"],
+            "selection_rule": rule,
             "_tie_sort": tie_sort,
         })
     records: list[dict[str, Any]] = []
     for decision_id in sorted(by_decision):
-        ranked = sorted(
-            by_decision[decision_id],
-            key=lambda row: (row["validation_score"], row["_tie_sort"], row["candidate_id"]),
-        )
-        ranked[0]["selected"] = True
+        rows = by_decision[decision_id]
+        ranked = sorted(rows, key=lambda row: (row["validation_score"], row["_tie_sort"], row["candidate_id"]))
+        winner = ranked[0]["candidate_id"] if decision_rule[decision_id] == SELECTION_RULE_LOWEST_AGGREGATE else decision_winner[decision_id]
+        marked = False
         for row in ranked:
+            row["selected"] = row["candidate_id"] == winner
+            marked = marked or row["selected"]
             row.pop("_tie_sort")
             records.append(row)
+        if not marked:
+            raise ValueError(f"selection winner {winner!r} not present among {decision_id} candidates")
     return tuple(records)
 
 
@@ -1205,6 +1383,7 @@ def build_pre_unseal_bundle(
     except (UnicodeError, csv.Error) as exc:
         raise ValueError("fit status must be valid UTF-8 CSV") from exc
     seen_fit_rows: set[tuple[str, str, str, str]] = set()
+    candidate_fits: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     for row in normalized_fit_rows:
         module = row["module_id"]
         if module not in manifests:
@@ -1220,26 +1399,48 @@ def build_pre_unseal_bundle(
         if key in seen_fit_rows:
             raise ValueError("fit status contains a duplicate fit/decision/candidate row")
         seen_fit_rows.add(key)
+        candidate_fits.setdefault((module, row["decision_id"], row["candidate_id"]), []).append(row)
+    # Recompute each candidate's supporting evidence from fit_status and bind it to the
+    # trace. Only candidates that appear in the selection trace are bound (historical /
+    # controlled / standalone-diagnostic fits live in fit_status for transparency but are
+    # not selection candidates). A missing/duplicate/tampered supporting fit, an incomplete
+    # seed set, or a changed checkpoint/score on a traced candidate breaks the
+    # supporting_evidence_sha256 and fails closed.
+    for (module, decision_id, candidate_id), rows in candidate_fits.items():
         matches = [
             record for record in trace_records[module]
-            if record["decision_id"] == row["decision_id"]
-            and record["candidate_id"] == row["candidate_id"]
+            if record["decision_id"] == decision_id and record["candidate_id"] == candidate_id
         ]
-        if row["failed"]:
-            if matches:
-                raise ValueError("failed fit status must not have a selection trace edge")
+        if not matches:
+            # Not a traced selection candidate. An all-failed standalone fit is a transparent
+            # diagnostic; a succeeded fit that is not bound to a selection candidate is not allowed.
+            if any(not r["failed"] for r in rows):
+                raise ValueError("fit status succeeded fit is not bound to a selection trace candidate")
             continue
         if len(matches) != 1:
-            raise ValueError("fit status decision/candidate is not uniquely bound to its selection trace")
+            raise ValueError("selection trace has a duplicate decision/candidate record")
         selection = matches[0]
-        if selection["selected"] is not row["selected"]:
-            raise ValueError("fit status selected flag disagrees with its selection trace")
-        if not row["failed"] and selection["checkpoint_sha256"] != row["checkpoint_sha256"]:
-            raise ValueError("fit status checkpoint disagrees with its selection trace")
-        # JSON and CSV numeric tokens are parsed to Python binary64; the evidence edge is exact,
-        # not tolerance-based, so their round-tripped float values must be identical.
-        if float(selection["validation_score"]) != float(row["validation_score"]):
-            raise ValueError("fit status validation_score disagrees with its selection trace")
+        supporting = [
+            {
+                "fit_id": r["fit_id"], "seed": r["seed"], "failed": r["failed"],
+                "checkpoint_sha256": r["checkpoint_sha256"],
+                "selection_score": r["selection_score"],
+                "failure_penalty": r["failure_penalty"],
+            }
+            for r in rows
+        ]
+        evidence = build_candidate_supporting_evidence(
+            module_id=module, run_id=selection["run_id"], decision_id=decision_id, candidate_id=candidate_id,
+            supporting_fits=supporting, approved_seeds=[r["seed"] for r in rows],
+        )
+        if evidence["supporting_evidence_sha256"] != selection["supporting_evidence_sha256"]:
+            raise ValueError("fit status supporting evidence SHA disagrees with its selection trace")
+        if not math.isclose(evidence["aggregate_score"], float(selection["validation_score"]), rel_tol=1e-12, abs_tol=1e-12):
+            raise ValueError("fit status recomputed aggregate score disagrees with its selection trace")
+        if evidence["seed_count"] != selection["seed_count"]:
+            raise ValueError("fit status seed_count disagrees with its selection trace")
+        if any(r["selected"] for r in rows) is not selection["selected"]:
+            raise ValueError("fit status selected membership disagrees with its selection trace")
     ceiling = _load_json_object_bytes(artifact_bytes(Path(ceiling_report_path)), "ceiling report")
     _validate_ceiling_hit_report(ceiling)
     if ceiling != build_ceiling_hit_report(normalized_fit_rows):
