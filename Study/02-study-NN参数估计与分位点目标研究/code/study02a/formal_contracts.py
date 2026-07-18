@@ -40,6 +40,12 @@ _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}")
 _CODE_COMMIT_RE = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
 _PREDECESSOR_BY_MODULE = {"A-E1": None, "A-E3": "A-E1", "A-E2": "A-E3"}
 _MATRIX_FIELDS = {"fit_id", "rule_id", "module", "test_state"}
+# v2 selection trace record schema. v1 lacked support_count (the (n, seed) support
+# count), so the exact-field-set check below inherently rejects v1 traces (R2 #5:
+# v1/v2 mixing fails closed at the schema gate). Records are produced by
+# study02a.selection.build_selection_trace from a DecisionSpec -- never assembled
+# by callers -- and carry the per-candidate supporting_evidence_sha256 that binds
+# module/run/decision/candidate/rule/expected_fit_ids/canonical supporting rows.
 _SELECTION_RECORD_FIELDS = {
     "module_id",
     "run_id",
@@ -49,9 +55,11 @@ _SELECTION_RECORD_FIELDS = {
     "tie_break_key",
     "selected",
     "supporting_evidence_sha256",
+    "support_count",
     "seed_count",
     "selection_rule",
 }
+_SELECTION_TRACE_VERSION = "study02-selection-trace-v2"
 # Per-decision winner rules. "lowest_aggregate" (ranking) is enforced inside the trace
 # validator (winner == argmin of validation_score). The CI/equal-weight rules are
 # re-derived at pre-unseal from the bound supporting fits; the trace validator only
@@ -65,18 +73,6 @@ _SELECTION_RULES = {
     SELECTION_RULE_GLOBAL_BETTER,
     SELECTION_RULE_SMALLEST_WITHIN_2PCT_CI,
     SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,
-}
-# A candidate's supporting fit row (the multi-seed truth bound into supporting_evidence_sha256).
-# One per approved screening seed. R1 ruling: no single "representative" checkpoint — every
-# supporting fit's checkpoint SHA and recomputed score is bound, and failed fits carry the
-# frozen penalty.
-_SUPPORTING_FIT_FIELDS = {
-    "fit_id",
-    "seed",
-    "failed",
-    "checkpoint_sha256",
-    "selection_score",
-    "failure_penalty",
 }
 _FIT_STATUS_FIELDS = (
     "fit_id",
@@ -399,9 +395,14 @@ def _validate_selection_trace_bytes(
         if not isinstance(record["selected"], bool):
             raise ValueError("Predecessor selection trace selected must be boolean")
         _require_sha256(record["supporting_evidence_sha256"], "Selection trace supporting_evidence_sha256")
+        support_count = record["support_count"]
+        if isinstance(support_count, bool) or not isinstance(support_count, int) or support_count <= 0:
+            raise ValueError("Predecessor selection trace support_count must be a positive integer")
         seed_count = record["seed_count"]
         if isinstance(seed_count, bool) or not isinstance(seed_count, int) or seed_count <= 0:
             raise ValueError("Predecessor selection trace seed_count must be a positive integer")
+        if seed_count > support_count:
+            raise ValueError("Predecessor selection trace seed_count cannot exceed support_count")
         if record["selection_rule"] not in _SELECTION_RULES:
             raise ValueError("Predecessor selection trace selection_rule is not a frozen rule")
         by_decision.setdefault(decision_id, []).append(record)
@@ -549,8 +550,10 @@ def build_fit_status_record(
     if not isinstance(selected, bool):
         raise ValueError("selected must be boolean")
     if result is None:
-        if selected:
-            raise ValueError("failed fit status cannot be selected")
+        # R2 #4: ``selected`` is a candidate-level attribute. A failed supporting fit
+        # may belong to the winning candidate, so a failed fit may carry selected=True
+        # (meaning "part of the selected candidate"); pre-unseal enforces that every
+        # supporting row of a candidate agrees with the trace, not that none failed.
         message = _require_identifier(failure_message, "failure_message")
         if isinstance(failure_penalty, bool) or not isinstance(failure_penalty, (int, float)) or not math.isfinite(failure_penalty):
             raise ValueError("failed fit status requires a finite failure_penalty")
@@ -656,8 +659,8 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
     if not all(isinstance(normalized[field], bool) for field in ("failed", "selected", "hit_epoch_100")):
         raise ValueError("fit status boolean fields are invalid")
     if normalized["failed"]:
-        if normalized["selected"]:
-            raise ValueError("failed fit status cannot be selected")
+        # R2 #4: a failed supporting fit may belong to the winning candidate, so
+        # failed+selected is allowed; candidate-level consistency is enforced at pre-unseal.
         if normalized["checkpoint_sha256"] or normalized["validation_score"] != "" or normalized["selection_score"] != "" or not normalized["failure_message"]:
             raise ValueError("failed fit status must not invent checkpoint, validation score, or selection score")
         if not math.isfinite(float(normalized["failure_penalty"])):
@@ -715,165 +718,6 @@ def write_fit_status(destination: Path, rows: Sequence[Mapping[str, Any]]) -> st
     payload = output.getvalue().encode("utf-8")
     _publish_bytes_no_replace(payload, destination)
     return hashlib.sha256(payload).hexdigest()
-
-
-def _canonical_supporting_row(fit: Mapping[str, Any]) -> dict[str, Any]:
-    """One canonical supporting-fit row (all ``_SUPPORTING_FIT_FIELDS`` present).
-
-    Succeeded fits bind their checkpoint SHA and recomputed L_param; failed fits bind
-    the frozen failure_penalty and leave checkpoint/score empty. This is the unit hashed
-    into ``supporting_evidence_sha256``.
-    """
-    failed = bool(fit["failed"])
-    row = {
-        "fit_id": _require_identifier(fit["fit_id"], "supporting fit_id"),
-        "seed": int(fit["seed"]),
-        "failed": failed,
-    }
-    if failed:
-        if fit.get("checkpoint_sha256") or fit.get("selection_score") not in ("", None):
-            raise ValueError("failed supporting fit must not bind checkpoint or selection_score")
-        penalty = fit["failure_penalty"]
-        if isinstance(penalty, bool) or not isinstance(penalty, (int, float)) or not math.isfinite(penalty):
-            raise ValueError("failed supporting fit failure_penalty must be finite")
-        row["checkpoint_sha256"] = ""
-        row["selection_score"] = ""
-        row["failure_penalty"] = float(penalty)
-    else:
-        row["checkpoint_sha256"] = _require_sha256(fit["checkpoint_sha256"], "supporting checkpoint_sha256")
-        score = fit["selection_score"]
-        if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score) or score < 0:
-            raise ValueError("supporting selection_score must be a finite non-negative L_param")
-        row["selection_score"] = float(score)
-        row["failure_penalty"] = ""
-    return row
-
-
-def build_candidate_supporting_evidence(
-    *,
-    module_id: str,
-    run_id: str,
-    decision_id: str,
-    candidate_id: str,
-    supporting_fits: Sequence[Mapping[str, Any]],
-    approved_seeds: Sequence[int],
-) -> dict[str, Any]:
-    """Aggregate one candidate's supporting fits over the approved seeds.
-
-    Validates the supporting fits cover exactly the approved seeds (one fit per seed,
-    no duplicates, no missing/extra), computes the frozen failure-penalized aggregate
-    (succeeded -> recomputed L_param, failed -> frozen penalty), and the
-    ``supporting_evidence_sha256`` over the canonical seed-sorted supporting rows. No
-    single checkpoint is allowed to represent multiple seeds.
-    """
-    module_id = _require_identifier(module_id, "module_id")
-    run_id = _require_identifier(run_id, "run_id")
-    decision_id = _require_identifier(decision_id, "decision_id")
-    candidate_id = _require_identifier(candidate_id, "candidate_id")
-    approved = sorted({int(seed) for seed in approved_seeds})
-    if not approved:
-        raise ValueError("approved_seeds must be non-empty")
-    by_seed: dict[int, dict[str, Any]] = {}
-    for fit in supporting_fits:
-        seed = int(fit["seed"])
-        if seed in by_seed:
-            raise ValueError(f"duplicate supporting fit seed {seed} for {decision_id}/{candidate_id}")
-        by_seed[seed] = _canonical_supporting_row(fit)
-    if set(by_seed) != set(approved):
-        raise ValueError(
-            f"supporting fits for {decision_id}/{candidate_id} must cover exactly the approved seeds "
-            f"{approved}; got {sorted(by_seed)}"
-        )
-    canonical_rows = [by_seed[seed] for seed in approved]
-    values = [
-        float(row["failure_penalty"]) if row["failed"] else float(row["selection_score"])
-        for row in canonical_rows
-    ]
-    payload = b"".join(_canonical_json_bytes(row) for row in canonical_rows)
-    return {
-        "module_id": module_id,
-        "run_id": run_id,
-        "decision_id": decision_id,
-        "candidate_id": candidate_id,
-        "supporting_fits": canonical_rows,
-        "aggregate_score": sum(values) / len(values),
-        "supporting_evidence_sha256": hashlib.sha256(payload).hexdigest(),
-        "seed_count": len(canonical_rows),
-    }
-
-
-def build_selection_trace_records(
-    module_id: str, run_id: str, candidates: Sequence[Mapping[str, Any]]
-) -> tuple[dict[str, Any], ...]:
-    """Rank each decision's candidates by aggregate failure-penalized L_param and mark the winner.
-
-    Each candidate carries ``decision_id``, ``candidate_id``, ``tie_break_key``,
-    ``selection_rule``, ``approved_seeds`` and ``supporting_fits`` (one fit per approved
-    seed). The aggregate score and ``supporting_evidence_sha256`` are computed here from
-    the supporting fits (single source of truth), never trusted from the caller. For
-    ``lowest_aggregate`` the winner is the argmin; for the CI/equal-weight rules the
-    caller supplies ``selected_candidate_id`` per decision (the rule is re-derived at
-    pre-unseal from the bound fits) and the builder only records that winner.
-    """
-    module_id = _require_identifier(module_id, "module_id")
-    run_id = _require_identifier(run_id, "run_id")
-    if not candidates:
-        raise ValueError("selection candidates must not be empty")
-    by_decision: dict[str, list[dict[str, Any]]] = {}
-    decision_rule: dict[str, str] = {}
-    decision_winner: dict[str, str] = {}
-    pairs: set[tuple[str, str]] = set()
-    for candidate in candidates:
-        decision_id = _require_identifier(candidate["decision_id"], "decision_id")
-        candidate_id = _require_identifier(candidate["candidate_id"], "candidate_id")
-        tie_break_key = candidate["tie_break_key"]
-        rule = candidate.get("selection_rule", SELECTION_RULE_LOWEST_AGGREGATE)
-        if rule not in _SELECTION_RULES:
-            raise ValueError(f"unknown selection_rule {rule!r} for {decision_id}/{candidate_id}")
-        if (decision_id, candidate_id) in pairs:
-            raise ValueError("duplicate selection decision/candidate pair")
-        pairs.add((decision_id, candidate_id))
-        evidence = build_candidate_supporting_evidence(
-            module_id=module_id, run_id=run_id, decision_id=decision_id, candidate_id=candidate_id,
-            supporting_fits=candidate["supporting_fits"], approved_seeds=candidate["approved_seeds"],
-        )
-        if decision_id in decision_rule and decision_rule[decision_id] != rule:
-            raise ValueError(f"selection_rule must be uniform within decision {decision_id}")
-        decision_rule[decision_id] = rule
-        if rule != SELECTION_RULE_LOWEST_AGGREGATE:
-            selected_id = candidate.get("selected_candidate_id")
-            if selected_id is None:
-                raise ValueError(f"rule {rule} for {decision_id} requires selected_candidate_id")
-            _require_identifier(selected_id, "selected_candidate_id")
-            decision_winner[decision_id] = selected_id
-        tie_sort = _tie_break_sort_key(tie_break_key)
-        by_decision.setdefault(decision_id, []).append({
-            "module_id": module_id,
-            "run_id": run_id,
-            "decision_id": decision_id,
-            "candidate_id": candidate_id,
-            "validation_score": evidence["aggregate_score"],
-            "tie_break_key": tie_break_key,
-            "selected": False,
-            "supporting_evidence_sha256": evidence["supporting_evidence_sha256"],
-            "seed_count": evidence["seed_count"],
-            "selection_rule": rule,
-            "_tie_sort": tie_sort,
-        })
-    records: list[dict[str, Any]] = []
-    for decision_id in sorted(by_decision):
-        rows = by_decision[decision_id]
-        ranked = sorted(rows, key=lambda row: (row["validation_score"], row["_tie_sort"], row["candidate_id"]))
-        winner = ranked[0]["candidate_id"] if decision_rule[decision_id] == SELECTION_RULE_LOWEST_AGGREGATE else decision_winner[decision_id]
-        marked = False
-        for row in ranked:
-            row["selected"] = row["candidate_id"] == winner
-            marked = marked or row["selected"]
-            row.pop("_tie_sort")
-            records.append(row)
-        if not marked:
-            raise ValueError(f"selection winner {winner!r} not present among {decision_id} candidates")
-    return tuple(records)
 
 
 def write_selection_trace(destination: Path, records: Sequence[Mapping[str, Any]]) -> str:
@@ -1321,7 +1165,7 @@ def build_pre_unseal_bundle(
             raise ValueError("selection receipts must have unique declared module ownership")
         trace = traces[module]
         expected = {
-            "receipt_version": "study02-formal-selection-v1", "module_id": module,
+            "receipt_version": "study02-formal-selection-v2", "module_id": module,
             "run_id": module_run_ids[module], "selection_trace_sha256": trace[1],
             "effective_config_sha256": effective_config_sha256, "code_commit": code_commit.lower(),
             "record_count": trace[2], "decision_count": trace[3],
@@ -1382,8 +1226,8 @@ def build_pre_unseal_bundle(
         normalized_fit_rows = [_validate_fit_status_row(row) for row in fit_rows]
     except (UnicodeError, csv.Error) as exc:
         raise ValueError("fit status must be valid UTF-8 CSV") from exc
-    seen_fit_rows: set[tuple[str, str, str, str]] = set()
-    candidate_fits: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    seen_fit_ids: set[str] = set()
+    fit_rows_by_module: dict[str, list[dict[str, Any]]] = {}
     for row in normalized_fit_rows:
         module = row["module_id"]
         if module not in manifests:
@@ -1395,52 +1239,110 @@ def build_pre_unseal_bundle(
         rule_start, rule_end = _FROZEN_RULE_FIT_RANGES[row["rule_id"]]
         if not rule_start <= fit_number <= rule_end:
             raise ValueError("fit status rule_id and fit_id are cross-labelled")
-        key = (module, row["fit_id"], row["decision_id"], row["candidate_id"])
-        if key in seen_fit_rows:
-            raise ValueError("fit status contains a duplicate fit/decision/candidate row")
-        seen_fit_rows.add(key)
-        candidate_fits.setdefault((module, row["decision_id"], row["candidate_id"]), []).append(row)
-    # Recompute each candidate's supporting evidence from fit_status and bind it to the
-    # trace. Only candidates that appear in the selection trace are bound (historical /
-    # controlled / standalone-diagnostic fits live in fit_status for transparency but are
-    # not selection candidates). A missing/duplicate/tampered supporting fit, an incomplete
-    # seed set, or a changed checkpoint/score on a traced candidate breaks the
-    # supporting_evidence_sha256 and fails closed.
-    for (module, decision_id, candidate_id), rows in candidate_fits.items():
-        matches = [
-            record for record in trace_records[module]
-            if record["decision_id"] == decision_id and record["candidate_id"] == candidate_id
-        ]
-        if not matches:
-            # Not a traced selection candidate. An all-failed standalone fit is a transparent
-            # diagnostic; a succeeded fit that is not bound to a selection candidate is not allowed.
-            if any(not r["failed"] for r in rows):
-                raise ValueError("fit status succeeded fit is not bound to a selection trace candidate")
-            continue
-        if len(matches) != 1:
-            raise ValueError("selection trace has a duplicate decision/candidate record")
-        selection = matches[0]
-        supporting = [
-            {
-                "fit_id": r["fit_id"], "seed": r["seed"], "failed": r["failed"],
-                "checkpoint_sha256": r["checkpoint_sha256"],
-                "selection_score": r["selection_score"],
-                "failure_penalty": r["failure_penalty"],
-            }
-            for r in rows
-        ]
-        evidence = build_candidate_supporting_evidence(
-            module_id=module, run_id=selection["run_id"], decision_id=decision_id, candidate_id=candidate_id,
-            supporting_fits=supporting, approved_seeds=[r["seed"] for r in rows],
-        )
-        if evidence["supporting_evidence_sha256"] != selection["supporting_evidence_sha256"]:
-            raise ValueError("fit status supporting evidence SHA disagrees with its selection trace")
-        if not math.isclose(evidence["aggregate_score"], float(selection["validation_score"]), rel_tol=1e-12, abs_tol=1e-12):
-            raise ValueError("fit status recomputed aggregate score disagrees with its selection trace")
-        if evidence["seed_count"] != selection["seed_count"]:
-            raise ValueError("fit status seed_count disagrees with its selection trace")
-        if any(r["selected"] for r in rows) is not selection["selected"]:
-            raise ValueError("fit status selected membership disagrees with its selection trace")
+        if row["fit_id"] in seen_fit_ids:
+            raise ValueError("fit status contains a duplicate fit_id; fit_id must be globally unique")
+        seen_fit_ids.add(row["fit_id"])
+        fit_rows_by_module.setdefault(module, []).append(row)
+    # R2 #1/#2/#4: independently rebuild each module's DecisionSpecs from the frozen matrix
+    # (the run's declared scope) and recompute each candidate's supporting evidence from
+    # fit_status. The expected support set comes from the frozen plan -- never reverse-derived
+    # from the actual rows -- so a missing/extra/duplicate/wrong-n/wrong-seed support fit, a
+    # relabelled decision/candidate/route/n, cross-candidate fit reuse, or a tampered
+    # checkpoint/score breaks the supporting_evidence_sha256 and fails closed.
+    from .selection import (  # local import avoids the top-level constants cycle
+        FitEvaluation as _FitEvaluation,
+        SupportKey as _SupportKey,
+        build_decision_specs as _build_decision_specs,
+        candidate_supporting_evidence as _candidate_supporting_evidence,
+    )
+    frozen_matrix_rows = _open_verified_matrix_evidence(_FROZEN_MATRIX_PATH).rows
+    for module, module_fit_rows in fit_rows_by_module.items():
+        declared_fit_ids = set(manifests[module]["matrix"]["fit_ids"])
+        scope_rows = [row for row in frozen_matrix_rows if row["fit_id"] in declared_fit_ids]
+        specs = _build_decision_specs(module, scope_rows)
+        authority: dict[str, tuple[str, str, _SupportKey]] = {}
+        for spec in specs:
+            for candidate in spec.candidates:
+                for key in candidate.support_keys:
+                    fit_id = candidate.support_for(key)
+                    if fit_id in authority:
+                        raise ValueError("frozen matrix maps one fit_id to two selection supports")
+                    authority[fit_id] = (spec.decision_id, candidate.candidate_id, key)
+        support_rows_by_candidate: dict[tuple[str, str], dict[_SupportKey, dict[str, Any]]] = {}
+        for row in module_fit_rows:
+            entry = authority.get(row["fit_id"])
+            if entry is None:
+                continue  # non-selection fit (historical/controlled/retrain): transparent
+            decision_id, candidate_id, key = entry
+            if row["decision_id"] != decision_id or row["candidate_id"] != candidate_id:
+                raise ValueError(
+                    f"fit status fit_id {row['fit_id']!r} is relabelled to "
+                    f"{row['decision_id']!r}/{row['candidate_id']!r}; frozen plan expects "
+                    f"{decision_id!r}/{candidate_id!r}"
+                )
+            row_key = _SupportKey(n=row["n"], seed=int(row["seed"]))
+            if row_key != key:
+                raise ValueError(
+                    f"fit status fit_id {row['fit_id']!r} support {row_key!r} disagrees with "
+                    f"frozen expected {key!r}"
+                )
+            bucket = support_rows_by_candidate.setdefault((decision_id, candidate_id), {})
+            if row_key in bucket:
+                raise ValueError(f"fit status has a duplicate support fit for {decision_id}/{candidate_id}/{row_key!r}")
+            bucket[row_key] = row
+        trace_by_pair = {(rec["decision_id"], rec["candidate_id"]): rec for rec in trace_records[module]}
+        rebuilt_pairs: set[tuple[str, str]] = set()
+        for spec in specs:
+            for candidate in spec.candidates:
+                pair = (spec.decision_id, candidate.candidate_id)
+                rebuilt_pairs.add(pair)
+                rows_by_support = support_rows_by_candidate.get(pair, {})
+                if len(rows_by_support) != len(candidate.support_keys):
+                    raise ValueError(
+                        f"fit status for {spec.decision_id}/{candidate.candidate_id} must cover exactly "
+                        f"the {len(candidate.support_keys)} frozen support keys; got {len(rows_by_support)}"
+                    )
+                if pair not in trace_by_pair:
+                    raise ValueError(
+                        f"selection candidate {spec.decision_id}/{candidate.candidate_id} is in the "
+                        "frozen plan but missing from the selection trace"
+                    )
+                selection = trace_by_pair[pair]
+                evaluations_by_support = {
+                    key: _FitEvaluation(
+                        fit_id=rows_by_support[key]["fit_id"], support_key=key,
+                        failed=rows_by_support[key]["failed"],
+                        checkpoint_sha256=rows_by_support[key]["checkpoint_sha256"],
+                        selection_score=float(rows_by_support[key]["selection_score"]) if rows_by_support[key]["selection_score"] != "" else 0.0,
+                        failure_penalty=float(rows_by_support[key]["failure_penalty"]) if rows_by_support[key]["failure_penalty"] != "" else 0.0,
+                    )
+                    for key in candidate.support_keys
+                }
+                evidence = _candidate_supporting_evidence(
+                    module_id=module, run_id=selection["run_id"], candidate=candidate,
+                    evaluations_by_support=evaluations_by_support,
+                )
+                if evidence["supporting_evidence_sha256"] != selection["supporting_evidence_sha256"]:
+                    raise ValueError("fit status supporting evidence SHA disagrees with its selection trace")
+                if not math.isclose(evidence["aggregate_score"], float(selection["validation_score"]), rel_tol=1e-12, abs_tol=1e-12):
+                    raise ValueError("fit status recomputed aggregate score disagrees with its selection trace")
+                if evidence["support_count"] != selection["support_count"]:
+                    raise ValueError("fit status support_count disagrees with its selection trace")
+                if evidence["seed_count"] != selection["seed_count"]:
+                    raise ValueError("fit status seed_count disagrees with its selection trace")
+                # R2 #4: selected is candidate-level. Every supporting row of this candidate
+                # must carry the SAME selected value, equal to the trace -- no any/all. A
+                # failed fit may belong to the winning candidate (failed+selected allowed).
+                row_selected = {bool(rows_by_support[key]["selected"]) for key in candidate.support_keys}
+                if len(row_selected) != 1 or row_selected.pop() is not selection["selected"]:
+                    raise ValueError(
+                        f"fit status selected membership for {spec.decision_id}/{candidate.candidate_id} "
+                        "is inconsistent or disagrees with its selection trace"
+                    )
+        if set(trace_by_pair) != rebuilt_pairs:
+            raise ValueError(
+                "selection trace candidates do not agree with the independently rebuilt DecisionSpec"
+            )
     ceiling = _load_json_object_bytes(artifact_bytes(Path(ceiling_report_path)), "ceiling report")
     _validate_ceiling_hit_report(ceiling)
     if ceiling != build_ceiling_hit_report(normalized_fit_rows):
@@ -1449,7 +1351,7 @@ def build_pre_unseal_bundle(
     _validate_leakage_audit(leakage)
     artifact_hashes = {str(path): hashlib.sha256(artifact_bytes(path)).hexdigest() for path in paths}
     return {
-        "bundle_version": "study02-pre-unseal-v1",
+        "bundle_version": "study02-pre-unseal-v2",
         "code_commit": code_commit.lower(),
         "effective_config_sha256": effective_config_sha256,
         "module_run_ids": dict(sorted(module_run_ids.items())),
@@ -1524,7 +1426,7 @@ def publish_selection_receipt(
         raise FileExistsError(f"Selection receipt already exists: {receipt_path}")
 
     receipt = {
-        "receipt_version": "study02-formal-selection-v1",
+        "receipt_version": "study02-formal-selection-v2",
         "module_id": module_id,
         "run_id": run_id,
         "selection_trace_sha256": actual_trace_sha,
@@ -1633,7 +1535,7 @@ def _validate_predecessor(
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"Predecessor selection receipt must be valid JSON: {exc}") from exc
     expected_receipt = {
-        "receipt_version": "study02-formal-selection-v1",
+        "receipt_version": "study02-formal-selection-v2",
         "module_id": expected_module,
         "run_id": predecessor.run_id,
         "selection_trace_sha256": actual_digest,
@@ -1792,7 +1694,6 @@ __all__ = [
     "build_formal_manifest",
     "build_leakage_audit",
     "build_pre_unseal_bundle",
-    "build_selection_trace_records",
     "publish_selection_receipt",
     "write_ceiling_hit_report",
     "write_fit_status",

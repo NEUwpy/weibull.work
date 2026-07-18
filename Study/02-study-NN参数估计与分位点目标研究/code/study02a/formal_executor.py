@@ -41,7 +41,6 @@ from .formal_config import EffectiveFormalConfig, load_effective_formal_config
 from .formal_contracts import (
     PredecessorTrace,
     _terminal_ols_slope,
-    build_selection_trace_records,
     publish_selection_receipt,
     write_selection_trace,
 )

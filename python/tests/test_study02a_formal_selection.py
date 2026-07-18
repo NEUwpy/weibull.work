@@ -20,7 +20,6 @@ from study02a import formal_executor as fe  # noqa: E402
 from study02a.config import load_frozen_config  # noqa: E402
 from study02a.evaluation import evaluate_rows  # noqa: E402
 from study02a.formal_contracts import (  # noqa: E402
-    build_selection_trace_records,
     publish_selection_receipt,
     write_selection_trace,
 )

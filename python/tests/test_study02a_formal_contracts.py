@@ -34,33 +34,44 @@ def _write_trace(path: Path, records: list[dict]) -> str:
 
 
 def _trace(tmp_path: Path, module_id: str) -> tuple[Path, str, str]:
-    from study02a.formal_contracts import build_candidate_supporting_evidence
+    from study02a.selection import (
+        CandidateSpec,
+        DecisionSpec,
+        FitEvaluation,
+        SupportKey,
+        build_selection_trace,
+    )
+    from study02a.formal_contracts import write_selection_trace
 
     run_id = f"G3-{module_id.replace('-', '')}-formal-v1"
     path = tmp_path / f"{module_id}-selection-trace.jsonl"
+    keys = (SupportKey(10, 420001),)
 
-    def record(candidate_id: str, score: float, checkpoint: str, selected: bool) -> dict:
-        evidence = build_candidate_supporting_evidence(
-            module_id=module_id, run_id=run_id, decision_id="baseline", candidate_id=candidate_id,
-            supporting_fits=[{
-                "fit_id": f"fit-{candidate_id}", "seed": 420001, "failed": False,
-                "checkpoint_sha256": checkpoint, "selection_score": score, "failure_penalty": "",
-            }],
-            approved_seeds=[420001],
+    def candidate(candidate_id: str, score: float, checkpoint: str) -> CandidateSpec:
+        fit_id = f"fit-{candidate_id}"
+        return CandidateSpec(
+            decision_id="baseline", candidate_id=candidate_id, selection_rule="lowest_aggregate",
+            tie_break_key=(candidate_id,), support_keys=keys, expected_fit_ids=(fit_id,),
+            fit_id_by_support={keys[0]: fit_id}, approved_seeds=(420001,),
         )
-        return {
-            "module_id": module_id, "run_id": run_id, "decision_id": "baseline",
-            "candidate_id": candidate_id, "validation_score": evidence["aggregate_score"],
-            "tie_break_key": [score, candidate_id], "selected": selected,
-            "supporting_evidence_sha256": evidence["supporting_evidence_sha256"],
-            "seed_count": evidence["seed_count"], "selection_rule": "lowest_aggregate",
-        }
 
-    records = [
-        record("candidate-1", 0.125, "b" * 64, True),
-        record("candidate-2", 0.25, "c" * 64, False),
-    ]
-    return path, _write_trace(path, records), run_id
+    spec = DecisionSpec(
+        module_id=module_id, decision_id="baseline", axis="architecture",
+        selection_rule="lowest_aggregate",
+        candidates=(candidate("candidate-1", 0.125, "b" * 64), candidate("candidate-2", 0.25, "c" * 64)),
+    )
+    evaluations = {
+        f"fit-{spec.candidates[0].candidate_id}": FitEvaluation(
+            fit_id="fit-candidate-1", support_key=keys[0], failed=False,
+            checkpoint_sha256="b" * 64, selection_score=0.125, failure_penalty=0.0),
+        f"fit-{spec.candidates[1].candidate_id}": FitEvaluation(
+            fit_id="fit-candidate-2", support_key=keys[0], failed=False,
+            checkpoint_sha256="c" * 64, selection_score=0.25, failure_penalty=0.0),
+    }
+    records = build_selection_trace(
+        module_id=module_id, run_id=run_id, specs=(spec,), evaluations_by_fit=evaluations,
+    )
+    return path, write_selection_trace(path, records), run_id
 
 
 def _predecessor_binding(tmp_path: Path, module_id: str) -> dict:

@@ -322,9 +322,13 @@ def candidate_supporting_evidence(
     The supporting fits must cover exactly the candidate's ``support_keys`` (no
     missing/extra/duplicate/wrong-n/wrong-seed fit). The ``supporting_evidence_sha256``
     binds module/run/decision/candidate/rule/expected_fit_ids AND the canonical
-    supporting rows (each carrying its checkpoint sha, score/penalty and
-    ``point_evidence_sha256``), so any relabelling, cross-candidate reuse, or
-    checkpoint/score tampering changes the digest.
+    supporting rows (each carrying its fit_id, n, seed, failed flag, checkpoint sha
+    and score/penalty), so any relabelling, cross-candidate reuse, or
+    checkpoint/score tampering changes the digest. The per-parameter-point evidence
+    (``point_evidence_sha256``) is bound separately to the checkpoint-bound per-fit
+    evidence artifact and consumed by the CI rules at publish time; the
+    ``checkpoint_sha256`` in each row transitively pins it (per-point records are a
+    deterministic function of the checkpoint + its validation cache).
     """
     if set(evaluations_by_support) != set(candidate.support_keys):
         missing = sorted(set(candidate.support_keys) - set(evaluations_by_support), key=lambda k: (str(k.n), k.seed))
@@ -355,14 +359,12 @@ def candidate_supporting_evidence(
             row = {
                 "fit_id": evaluation.fit_id, "n": key.n, "seed": int(key.seed), "failed": True,
                 "checkpoint_sha256": "", "selection_score": "", "failure_penalty": float(evaluation.failure_penalty),
-                "point_evidence_sha256": "",
             }
         else:
             row = {
                 "fit_id": evaluation.fit_id, "n": key.n, "seed": int(key.seed), "failed": False,
                 "checkpoint_sha256": evaluation.checkpoint_sha256,
                 "selection_score": float(evaluation.selection_score), "failure_penalty": "",
-                "point_evidence_sha256": point_evidence_sha256(evaluation.point_records),
             }
         supporting_rows.append(row)
 
