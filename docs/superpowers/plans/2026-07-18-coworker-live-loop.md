@@ -244,4 +244,3 @@ Expected: repo `C:\Web\Weibull`, branch `claude/study02-a-20260715`, state `PREF
 - [ ] **Step 5: Commit hardening and perform final verification**
 
 Commit exact runner/test paths as `test(coworker): harden live-loop recovery`. Then run the full test file, `git diff origin/claude/study02-a-20260715..HEAD --check`, and `git status --short --branch`. Expected: all tests pass; the branch contains only design, plan, and live-loop commits beyond the R4 baseline; the settings file remains uncommitted.
-
