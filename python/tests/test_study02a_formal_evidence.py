@@ -137,12 +137,16 @@ def _selection_fixture(*, run_id: str = "G3-AE1-formal-v1", candidate_scores: di
             row = {**matrix_row, "_decision_id": spec.decision_id, "candidate_id": candidate.candidate_id}
             rows_out.append(row)
             checkpoint = shas.get(candidate.candidate_id, SHA_A if idx == 0 else SHA_B)
+            # selection_score is the independent aggregate of the canonical records (R4#2#9):
+            # the mean per-sample L_param, exactly as the real scoring path produces.
+            point_records = _synth_point_records(fit_id, int(key.seed), score)
+            selection_score = sum(record["l_param"] for record in point_records) / len(point_records)
             evaluations[fit_id] = FitEvaluation(
                 fit_id=fit_id, module_id="A-E1", decision_id=spec.decision_id,
                 candidate_id=candidate.candidate_id, support_key=key, failed=False,
                 checkpoint_sha256=checkpoint, validation_identity=f"val-cache-{fit_id}",
-                selection_score=score, failure_penalty=0.0,
-                point_records=_synth_point_records(fit_id, int(key.seed), score),
+                selection_score=selection_score, failure_penalty=0.0,
+                point_records=point_records,
             )
     records, diagnostics = build_selection_trace(module_id="A-E1", run_id=run_id, specs=(spec,), evaluations_by_fit=evaluations)
     return rows_out, spec, records, evaluations, diagnostics
@@ -369,6 +373,9 @@ def _bundle_inputs(tmp_path: Path, *, fixture=None):
         "leakage_audit_path": leakage, "code_commit": "c" * 40, "effective_config_sha256": EFFECTIVE_SHA,
         "module_run_ids": {"A-E1": run_id},
         "point_evidence_paths": point_evidence_paths, "selection_diagnostics_paths": [diagnostics_path],
+        # R4#1: the independently-rebuilt evaluations (here, the same synthetic evaluations the
+        # publisher used; the real path supplies formal_executor.rebuild_selection_point_provenance).
+        "point_provenance_by_fit": dict(evaluations),
     }
 
 
@@ -489,14 +496,17 @@ def test_bundle_allows_failed_seed_in_winning_candidate(tmp_path):
 
 
 def test_bundle_rejects_point_evidence_tampered_with_scalars_unchanged(tmp_path):
-    # R3 attack: change a point record (l_param) in the artifact while leaving the fit_status
-    # scalar selection_score + checkpoint untouched. load_point_evidence recomputes the
-    # content SHA from the tampered records and disagrees with the stored digest.
+    # R3 attack: change a point record in the artifact while leaving the fit_status scalar
+    # selection_score + checkpoint untouched. The tamper is kept semantically self-consistent
+    # (l_param and all three component errors moved together, so it clears the R4#2 semantic
+    # gate) to exercise the content-SHA path: load_point_evidence recomputes the content SHA
+    # from the tampered records and disagrees with the stored digest.
     kwargs = _bundle_inputs(tmp_path)
     fit_id = next(iter(kwargs["point_evidence_paths"]))
     art_path = kwargs["point_evidence_paths"][fit_id]
     artifact = json.loads(art_path.read_text(encoding="utf-8"))
-    artifact["point_records"][0] = {**artifact["point_records"][0], "l_param": 9.0, "e_beta": 9.0}
+    artifact["point_records"][0] = {
+        **artifact["point_records"][0], "l_param": 9.0, "e_beta": 9.0, "e_eta": 9.0, "e_gamma": 9.0}
     art_path.write_text(json.dumps(artifact, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="content SHA"):
         build_pre_unseal_bundle(**kwargs)
@@ -624,3 +634,133 @@ def test_bundle_rejects_v1_trace_schema(tmp_path):
         for r in v1_records))
     with pytest.raises(ValueError, match="schema"):
         build_pre_unseal_bundle(**kwargs)
+
+
+# --------------------------------------------------------------------------
+# R4 attacks: independent checkpoint provenance at pre-unseal (R4#1) + mandatory gate.
+# --------------------------------------------------------------------------
+
+
+def _forge_evaluation(evaluation: FitEvaluation, factor: float) -> FitEvaluation:
+    """Clone an evaluation scaling every record's L_param and component errors by ``factor``
+    (kept semantically self-consistent) and recomputing the scalar, so the forgery clears the
+    R4#2 semantic gate and any content/supporting/diagnostics hash rebuilt from it is internally
+    consistent -- the only thing that catches it is the independent checkpoint rebuild."""
+    forged_records = tuple(
+        {**r, "l_param": r["l_param"] * factor, "e_beta": r["e_beta"] * factor,
+         "e_eta": r["e_eta"] * factor, "e_gamma": r["e_gamma"] * factor}
+        for r in evaluation.point_records
+    )
+    selection_score = sum(r["l_param"] for r in forged_records) / len(forged_records)
+    return FitEvaluation(
+        fit_id=evaluation.fit_id, module_id=evaluation.module_id, decision_id=evaluation.decision_id,
+        candidate_id=evaluation.candidate_id, support_key=evaluation.support_key, failed=evaluation.failed,
+        checkpoint_sha256=evaluation.checkpoint_sha256, validation_identity=evaluation.validation_identity,
+        selection_score=selection_score, failure_penalty=evaluation.failure_penalty,
+        point_records=forged_records,
+    )
+
+
+def test_bundle_requires_point_provenance_when_evidence_present(tmp_path):
+    # R4#1: the independent checkpoint rebuild is MANDATORY whenever point-evidence artifacts
+    # are present; omitting it fails closed (the rebuild cannot be skipped).
+    kwargs = _bundle_inputs(tmp_path)
+    kwargs["point_provenance_by_fit"] = None
+    with pytest.raises(ValueError, match="requires point_provenance_by_fit"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_forged_records_resynced_across_all_artifacts(tmp_path):
+    # R4#1 attack #1: forge the point records and resync EVERYTHING downstream -- the
+    # point-evidence content SHA, the supporting-evidence SHA, the rule diagnostics, the
+    # selection trace, the receipt, the ledger and the fit_status -- all rebuilt from the
+    # forgery so every artifact-level check passes. Pre-unseal's independent checkpoint
+    # rebuild (the ORIGINAL evaluations, standing in for rebuild_selection_point_provenance)
+    # still disagrees with the forged artifact, so the bundle is rejected. This is the exact
+    # closure the artifact's self-consistent content SHA cannot provide on its own.
+    rows_out, spec, _, evaluations, _ = _selection_fixture()
+    forged = {fit_id: _forge_evaluation(ev, 0.5) for fit_id, ev in evaluations.items()}
+    forged_records, forged_diagnostics = build_selection_trace(
+        module_id="A-E1", run_id="G3-AE1-formal-v1", specs=(spec,), evaluations_by_fit=forged)
+    kwargs = _bundle_inputs(tmp_path, fixture=(rows_out, spec, forged_records, forged, forged_diagnostics))
+    kwargs["point_provenance_by_fit"] = dict(evaluations)  # the independent rebuild (original truth)
+    with pytest.raises(ValueError, match="disagrees with the rebuild"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_provenance_checkpoint_mismatch(tmp_path):
+    # R4 attack #3/#4: the published artifact's checkpoint SHA (or validation identity) does
+    # not match the independent rebuild -- e.g. the checkpoint file was swapped after publish,
+    # or the validation cache identity was relabelled. The rebuild reads the real checkpoint +
+    # frozen validation inputs and disagrees.
+    kwargs = _bundle_inputs(tmp_path)
+    fit_id = next(iter(kwargs["point_provenance_by_fit"]))
+    rebuilt = kwargs["point_provenance_by_fit"][fit_id]
+    kwargs["point_provenance_by_fit"][fit_id] = FitEvaluation(
+        fit_id=rebuilt.fit_id, module_id=rebuilt.module_id, decision_id=rebuilt.decision_id,
+        candidate_id=rebuilt.candidate_id, support_key=rebuilt.support_key, failed=rebuilt.failed,
+        checkpoint_sha256="e" * 64, validation_identity=rebuilt.validation_identity,
+        selection_score=rebuilt.selection_score, failure_penalty=rebuilt.failure_penalty,
+        point_records=rebuilt.point_records,
+    )
+    with pytest.raises(ValueError, match="checkpoint_sha256 disagrees"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_provenance_validation_identity_mismatch(tmp_path):
+    # R4 attack #4 (validation metadata relabel/swap): the rebuilt dataset/cache identity
+    # differs from the artifact's claimed validation_identity -> the records were not scored
+    # on the frozen validation set the plan binds.
+    kwargs = _bundle_inputs(tmp_path)
+    fit_id = next(iter(kwargs["point_provenance_by_fit"]))
+    rebuilt = kwargs["point_provenance_by_fit"][fit_id]
+    kwargs["point_provenance_by_fit"][fit_id] = FitEvaluation(
+        fit_id=rebuilt.fit_id, module_id=rebuilt.module_id, decision_id=rebuilt.decision_id,
+        candidate_id=rebuilt.candidate_id, support_key=rebuilt.support_key, failed=rebuilt.failed,
+        checkpoint_sha256=rebuilt.checkpoint_sha256, validation_identity="val-cache-forged",
+        selection_score=rebuilt.selection_score, failure_penalty=rebuilt.failure_penalty,
+        point_records=rebuilt.point_records,
+    )
+    with pytest.raises(ValueError, match="validation_identity disagrees"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_rejects_failed_fit_records_inconsistent_with_rebuild(tmp_path):
+    # R4 attack #6: a failed fit's published point records do not match the independent rebuild
+    # (the all-illegal records over its frozen validation cells). The rebuild produces the
+    # frozen all-illegal cell set; a published artifact with a different cell set is rejected.
+    rows_out, spec, _, evaluations, _ = _selection_fixture()
+    winner = spec.candidates[0]
+    failed_fit_id = winner.support_for(winner.support_keys[0])
+    original = evaluations[failed_fit_id]
+    illegal_records = tuple(
+        {**r, "legal": False, "failure": 1, "l_param": 10.0, "e_beta": 10.0, "e_eta": 10.0, "e_gamma": 10.0}
+        for r in original.point_records
+    )
+    failed_evals = dict(evaluations)
+    failed_evals[failed_fit_id] = FitEvaluation(
+        fit_id=failed_fit_id, module_id="A-E1", decision_id=spec.decision_id,
+        candidate_id=winner.candidate_id, support_key=winner.support_keys[0], failed=True,
+        checkpoint_sha256="", validation_identity=original.validation_identity,
+        selection_score=0.0, failure_penalty=10.0, point_records=illegal_records)
+    failed_records, failed_diagnostics = build_selection_trace(
+        module_id="A-E1", run_id="G3-AE1-formal-v1", specs=(spec,), evaluations_by_fit=failed_evals)
+    kwargs = _bundle_inputs(tmp_path, fixture=(rows_out, spec, failed_records, failed_evals, failed_diagnostics))
+    # rebuild says the failed fit's records are MISSING one cell (different cell set than published)
+    rebuild = dict(failed_evals)
+    rebuild[failed_fit_id] = FitEvaluation(
+        fit_id=failed_fit_id, module_id="A-E1", decision_id=spec.decision_id,
+        candidate_id=winner.candidate_id, support_key=winner.support_keys[0], failed=True,
+        checkpoint_sha256="", validation_identity=original.validation_identity,
+        selection_score=0.0, failure_penalty=10.0, point_records=illegal_records[:-1])
+    kwargs["point_provenance_by_fit"] = rebuild
+    with pytest.raises(ValueError, match="disagree with the rebuild"):
+        build_pre_unseal_bundle(**kwargs)
+
+
+def test_bundle_passes_when_provenance_matches_published(tmp_path):
+    # R4 attack #7 (positive): legitimate evidence -- the independent rebuild agrees with the
+    # published artifacts field-by-field, so the full pre-unseal succeeds.
+    kwargs = _bundle_inputs(tmp_path)
+    bundle = build_pre_unseal_bundle(**kwargs)
+    assert bundle["test_state"] == "sealed"

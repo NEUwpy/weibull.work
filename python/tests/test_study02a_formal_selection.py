@@ -267,3 +267,89 @@ def test_build_module_selection_includes_failed_seeds_and_remains_consistent(tmp
         module_id="A-E1", run_id=run_id, score_fit=score_fit,
     )
     assert receipt["decision_count"] >= 1
+
+
+def test_point_evidence_provenance_rebuild_from_checkpoint_rejects_forgery():
+    """R4#1 (real checkpoint): the per-fit point evidence derived from a real integrity-bound
+    checkpoint (load -> forward -> decode -> evaluate_rows_per_sample) round-trips through
+    serialize/load and matches an independent re-run of the same single-source scoring path.
+    A mean-preserving forgery (two legal records' values swapped) whose content SHA + scalar
+    are resynchronised to the forgery still loads cleanly, yet is rejected by
+    assert_point_evidence_provenance -- the rebuild reads the real checkpoint, not the artifact,
+    so a records forgery that leaves every artifact-level check consistent is caught at the
+    record level. This is the exact closure the artifact's self-consistent content SHA cannot
+    provide."""
+    import hashlib
+    from study02a.selection import (
+        FitEvaluation, SupportKey, assert_point_evidence_provenance,
+        compute_point_evidence_sha256, load_point_evidence, serialize_point_evidence,
+    )
+
+    batch, _true_beta, _true_eta, _true_gamma = _synthetic_batch(n_samples=32, seed=7)
+    input_dim = int(batch.features.shape[1])
+    factory = lambda: build_mlp(input_dim, [24, 12], "relu", 0.0)
+    fit = fit_candidate(
+        factory, (batch.features, batch.targets), (batch.features, batch.targets),
+        seed=11, max_epochs=3, min_epochs=1, patience=1, batch_size=32,
+        loss_id="transformed_unscaled_mse",
+    )
+    metadata = tuple({"sample_id": f"val:{i:07d}", "point_id": f"pt{i % 2}"} for i in range(32))
+    checkpoint_sha = hashlib.sha256(fit.checkpoint_bytes).hexdigest()
+    scalar, records = fe.validation_failure_penalized_l_param_points(
+        checkpoint_bytes=fit.checkpoint_bytes, model_factory=factory, validation_batch=batch,
+        validation_metadata=metadata, seed_id="420101", is_set=False,
+    )
+    evaluation = FitEvaluation(
+        fit_id="G3-fit-real-0001", module_id="A-E1", decision_id="architecture:A-E1:F2:n10",
+        candidate_id="m01", support_key=SupportKey(12, 420101), failed=False,
+        checkpoint_sha256=checkpoint_sha, validation_identity="val-cache-real",
+        selection_score=scalar, failure_penalty=0.0, point_records=records,
+    )
+    # serialize -> load round-trips (content SHA + scalar-aggregate self-consistent), and an
+    # independent re-run of the scoring path on the same checkpoint agrees field-by-field.
+    artifact = serialize_point_evidence(evaluation)
+    rebuilt_eval = load_point_evidence(artifact)
+    assert_point_evidence_provenance(published=rebuilt_eval, rebuilt=evaluation)
+
+    # forge: swap two legal records' L_param/component values (mean-preserving -> scalar
+    # unchanged), then resync the content SHA so load_point_evidence accepts the forgery.
+    import copy
+    forged = copy.deepcopy(artifact)
+    legal_indices = [i for i, r in enumerate(forged["point_records"]) if r["legal"]]
+    assert len(legal_indices) >= 2, "test requires at least two legal records"
+    i0, i1 = legal_indices[0], legal_indices[1]
+    r0, r1 = forged["point_records"][i0], forged["point_records"][i1]
+    forged["point_records"][i0] = {
+        **r0, "l_param": r1["l_param"], "e_beta": r1["e_beta"], "e_eta": r1["e_eta"], "e_gamma": r1["e_gamma"]}
+    forged["point_records"][i1] = {
+        **r1, "l_param": r0["l_param"], "e_beta": r0["e_beta"], "e_eta": r0["e_eta"], "e_gamma": r0["e_gamma"]}
+    forged["point_evidence_sha256"] = compute_point_evidence_sha256(
+        fit_id=forged["fit_id"], module_id=forged["module_id"], decision_id=forged["decision_id"],
+        candidate_id=forged["candidate_id"], support_key=SupportKey(forged["n"], forged["seed"]),
+        checkpoint_sha256=forged["checkpoint_sha256"], validation_identity=forged["validation_identity"],
+        failed=forged["failed"], point_records=forged["point_records"],
+    )
+    forged_eval = load_point_evidence(forged)  # content SHA resynced -> loads cleanly
+    # but the independent checkpoint rebuild disagrees on the canonical records -> rejected
+    with pytest.raises(ValueError, match="disagree with the rebuild"):
+        assert_point_evidence_provenance(published=forged_eval, rebuilt=evaluation)
+
+
+@pytest.mark.slow
+def test_rebuild_selection_point_provenance_fails_closed_on_incomplete_support(tmp_path):
+    """R4#1 wiring: rebuild_selection_point_provenance derives the module's DecisionSpecs from
+    the frozen matrix and scores every expected supporting fit from its checkpoint. A freshly
+    materialized run (no fits terminal yet) has incomplete support, so the rebuild fails closed
+    -- proving the independent rebuild path is wired and never silently skips a missing fit.
+    Requires a clean ``code/`` tree for materialize."""
+    status = __import__("subprocess").run(
+        ["git", "status", "--porcelain", "--", str((STUDY_ROOT / "code").relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    )
+    assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
+    run_dir, cache_root, run_id = _materialize_ae1(tmp_path)
+    with pytest.raises(ValueError, match="terminal|support"):
+        fe.rebuild_selection_point_provenance(
+            study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+            module_id="A-E1", run_id=run_id,
+        )

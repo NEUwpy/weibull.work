@@ -172,6 +172,61 @@ def test_validate_point_records_rejects_duplicate_and_inconsistent_point():
         validate_point_records(cross_point)
 
 
+# --------------------------------------------------------------------------
+# R4#2: cross-candidate point_id authority + canonical-record semantic validation.
+# --------------------------------------------------------------------------
+
+
+def test_global_better_rejects_cross_candidate_point_id_mismatch():
+    """R4#2 (CROSS_POINT): two candidates paired on the same (seed_id, sample_id) cell must
+    carry the SAME point_id. ``sample_id`` is the stable id of one validation sample (one
+    frozen true-parameter point), so it determines ``point_id``; a relabel that gives one
+    candidate's cell a different parameter-point id than the comparator's would pair two
+    different truths on the same id. This is the minimal counterexample that previously
+    returned CROSS_POINT_ACCEPTED."""
+    from study02a.evaluation import global_better_intervals
+    base = [{"sample_id": f"pt{p}:s{s}", "seed_id": str(seed), "point_id": f"pt{p}",
+             "legal": True, "failure": 0, "l_param": 0.1, "e_beta": 0.1, "e_eta": 0.1, "e_gamma": 0.1}
+            for seed in SEEDS for p in range(2) for s in range(2)]
+    # comparator relabels every cell's parameter point (pt0->ptX, pt1->ptY) on the SAME samples
+    relabeled = [{**r, "point_id": r["point_id"] + "_forged"} for r in base]
+    with pytest.raises(ValueError, match="cross-candidate point_id mismatch"):
+        global_better_intervals(candidate=base, comparator=relabeled)
+
+
+def test_validate_canonical_point_records_rejects_semantic_tamps():
+    """R4#2: the semantic gate (run before any point-evidence SHA is computed) rejects every
+    per-record tamper fail-closed: a relabelled seed, a non-finite value, a negative L_param,
+    a legal/failure inconsistency, an L_param/component-errors inconsistency, an illegal cell
+    not at the frozen penalty, and a missing/extra field."""
+    from study02a.evaluation import validate_canonical_point_records, FROZEN_FAILURE_PENALTY
+    good = {"sample_id": "s0", "seed_id": "420101", "point_id": "pt0", "legal": True, "failure": 0,
+            "l_param": 0.1, "e_beta": 0.1, "e_eta": 0.1, "e_gamma": 0.1}
+    # legal record with unequal component errors is still consistent (rms recomputed).
+    unequal = {**good, "l_param": 0.1, "e_beta": 0.0, "e_eta": 0.17320508075688772, "e_gamma": 0.0}
+    validate_canonical_point_records([good], support_seed=420101)  # no raise
+    validate_canonical_point_records([unequal], support_seed=420101)  # no raise
+    illegal_good = {"sample_id": "s1", "seed_id": "420101", "point_id": "pt0", "legal": False, "failure": 1,
+                    "l_param": FROZEN_FAILURE_PENALTY, "e_beta": FROZEN_FAILURE_PENALTY,
+                    "e_eta": FROZEN_FAILURE_PENALTY, "e_gamma": FROZEN_FAILURE_PENALTY}
+    validate_canonical_point_records([illegal_good], support_seed=420101)  # no raise
+    cases = {
+        "seed_mismatch": ({**good, "seed_id": "420102"}, "support seed"),
+        "nan_l_param": ({**good, "l_param": float("nan")}, "finite"),
+        "inf_e_beta": ({**good, "e_beta": float("inf")}, "finite"),
+        "negative_l_param": ({**good, "l_param": -0.1, "e_beta": -0.1, "e_eta": -0.1, "e_gamma": -0.1}, "non-negative"),
+        "legal_failure_mismatch": ({**good, "failure": 1}, "inconsistent"),
+        "l_param_component_mismatch": ({**good, "l_param": 9.0}, "component errors"),
+        "illegal_not_penalty": ({**illegal_good, "e_beta": 9.0}, "frozen failure penalty"),
+        "missing_field": ({k: v for k, v in good.items() if k != "e_gamma"}, "canonical fields"),
+        "extra_field": ({**good, "rogue": 1}, "canonical fields"),
+        "failure_not_int": ({**good, "failure": True}, "integer 0 or 1"),
+    }
+    for name, (bad_record, message) in cases.items():
+        with pytest.raises(ValueError, match=message):
+            validate_canonical_point_records([bad_record], support_seed=420101)
+
+
 def test_global_better_rejects_mismatched_sample_sets():
     candidate = _grid(SEEDS, POINTS, 2, 0.0)
     comparator = _grid(SEEDS, POINTS, 2, 0.05)[1:]  # drop one sample
