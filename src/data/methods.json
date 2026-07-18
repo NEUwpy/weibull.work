@@ -94,8 +94,10 @@
         "id": "lre",
         "name": "线性回归",
         "shortName": "LRE",
-        "description": "通过最大化相关系数 R 来寻找最佳 γ，进而求出 β 和 η。",
-        "formula": "γ̂ = arg max R(γ)"
+        "slug": "lre",
+        "hasDetail": true,
+        "description": "通过最大化相关系数 R 来寻找最佳 γ，基于 Li (1994) 变换与 Park (2017) Weibull 图思想，OLS 一次给出全部三参数。",
+        "formula": "\\hat{\\gamma} = \\arg\\max \\rho^2(\\gamma), \\ Y = \\ln(-\\ln R), \\ X = \\ln(t-\\gamma)"
       },
       {
         "id": "blre",

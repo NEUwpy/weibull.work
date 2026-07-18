@@ -239,3 +239,19 @@ def test_calculate_api_runs_real_mm_with_identity(helpers):
     assert response["beta"] > 0
     assert response["eta"] > 0
     assert 0.0 <= response["gamma"] < min(sample)
+
+
+def test_calculate_api_runs_real_lre_with_identity(helpers):
+    """真实后端路径：/calculate 的 LRE 调用返回 lre 身份和有限合法参数。"""
+    import numpy as np
+
+    from studies.common.sample import generate_sample
+
+    fixed = generate_sample(2.0, 100.0, 5.0, 30, 0)
+    response = helpers._run_calculation_method("lre", fixed)
+
+    assert response["method"] == "lre"
+    assert response["converged"] is True
+    assert response["beta"] > 0
+    assert response["eta"] > 0
+    assert 0.0 <= response["gamma"] < min(fixed)
