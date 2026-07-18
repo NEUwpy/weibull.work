@@ -117,8 +117,10 @@
         "id": "mm",
         "name": "矩估计",
         "shortName": "MM",
-        "description": "利用均值、方差和偏度方程求解参数。",
-        "formula": "S^2 = η^2 [Γ(1+2/β) - Γ^2(1+1/β)]"
+        "slug": "mm",
+        "hasDetail": true,
+        "description": "Cran (1988) Weibull 矩估计：生存函数幂次积分矩，三参数由低阶样本矩显式解出，无需迭代。快速初估并判断位置参数是否为零。",
+        "formula": "c^* = \\frac{\\ln 2}{\\ln(\\bar{m}_1-\\bar{m}_2)-\\ln(\\bar{m}_2-\\bar{m}_4)}"
       },
       {
         "id": "pwm",

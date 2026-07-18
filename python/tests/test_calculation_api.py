@@ -224,3 +224,18 @@ def test_calculate_api_runs_real_lse_with_identity(helpers):
     assert abs(response["beta"] - 0.8361) < 0.08
     assert abs(response["eta"] - 8.8521) < 0.4
     assert abs(response["gamma"] - 99.9) < 0.5
+
+
+def test_calculate_api_runs_real_mm_with_identity(helpers):
+    """真实后端路径：/calculate 的 MM 调用返回 mm 身份和有限合法参数。"""
+    import numpy as np
+
+    rng = np.random.default_rng(2)
+    sample = (50.0 + 200.0 * np.sort(rng.weibull(1.5, 60))).tolist()
+    response = helpers._run_calculation_method("mm", sample)
+
+    assert response["method"] == "mm"
+    assert response["converged"] is True
+    assert response["beta"] > 0
+    assert response["eta"] > 0
+    assert 0.0 <= response["gamma"] < min(sample)
