@@ -101,3 +101,9 @@ codex 在 `codex/long-task-20260711` 分支上跑了 Study/02（神经网络 Wei
 **未完成（待 Codex 设计确认，详见 `coworker/reports/2026-07-17-study02-g3-d7-d8-claude.md`）：** D7/D8 完整 wiring——`build_module_selection` 的 run_module 集成（A-E1 stage1 排序→解析 `selected_top_*`→stage2→baseline_input F2-vs-V 的分阶段执行）、代表 checkpoint 策略、D8 占位符解析 + deferred-spec 重建 + 前驱链 wiring。诊断测试客观暴露 3 处决策分组 scoping 问题（output_form/distribution 按路由后缀拆成单候选决策；training_size 按 n 拆分）需 Codex 裁定。A-E1 的 architecture/stage2 分组正确。
 
 **结论**：本棒交付了可验证的复现+scoring 基础与设计诊断，但 D7/D8 尚未完整实现——其剩余 wiring 依赖 Codex 对上述设计点的确认。状态：**partial implementation, awaiting Codex design review**（非 APPROVE，formal 未授权）。
+
+### 2026-07-18 R1（Codex REVISE 之后，第二执行者棒）
+
+Codex R1=REVISE 给出完整设计裁决。本棒完成并验证 **R1§2 multi-seed selection evidence schema**（`2f45657`，226 formal tests green）：废除"代表 checkpoint"，每候选绑定完整 supporting fit 集（fit_id/seed/status/checkpoint SHA/重算 L_param/失败惩罚）+ `supporting_evidence_sha256` + `seed_count` + `selection_rule`；`build_candidate_supporting_evidence` 单源聚合；pre-unseal 按候选重组 fit_status 重算 aggregate/sha/seed_count 并对照 trace，缺/重/篡改/seed 不全 fail-closed；success fit 未绑 trace 候选 fail-closed，全失败独立 fit 透明保留。
+
+**R1 其余未完成**（待 Codex R2 + 后续棒）：决策分组按 §3 重写（含**多 n 聚合**——supporting fit key 从 seed 推广到 (n,seed)，n_strategy 按 core n 等权）、global_better/2%+CI/fixed-vs-shared 三条非 ranking 规则、阶段交错（stage1→不可变阶段工件→selected_top_1..4→stage2→一次性最终 receipt）、D8 wiring、完整临时 smoke。`_derive_decision_candidate` 仍 R0 版、`build_module_selection`/D8 占位仍 fail-closed。报告 `coworker/reports/2026-07-18-study02-g3-d7-d8-wiring-claude.md`。A-E1 formal **仍不可启动**。等 Codex R2。
