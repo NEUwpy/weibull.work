@@ -190,3 +190,16 @@ def test_calculate_api_runs_real_wmle_with_identity(helpers):
     assert abs(response["beta"] - 2.29) < 0.06
     assert abs(response["eta"] - 116.0) < 2.5
     assert abs(response["gamma"] - 283.7) < 2.5
+
+
+def test_calculate_api_runs_real_mdm_with_identity(helpers):
+    """真实后端路径：/calculate 的 MDM 调用（默认 offset=0.1）复现 182-046 理想样本。"""
+    # 谢里阳等 (2025) §2 理想样本：W(2, 1000, 1000)、n=7、精确中位秩反算
+    ideal_sample = [1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73]
+    response = helpers._run_calculation_method("mdm", ideal_sample)
+
+    assert response["method"] == "mdm"
+    assert response["converged"] is True
+    assert abs(response["beta"] - 2.0) < 0.05
+    assert abs(response["eta"] - 1000.0) < 15.0
+    assert abs(response["gamma"] - 1000.0) < 15.0
