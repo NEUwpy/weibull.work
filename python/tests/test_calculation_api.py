@@ -255,3 +255,12 @@ def test_calculate_api_runs_real_lre_with_identity(helpers):
     assert response["beta"] > 0
     assert response["eta"] > 0
     assert 0.0 <= response["gamma"] < min(fixed)
+
+
+def test_calculate_api_returns_422_for_degenerate_lre(helpers):
+    """退化 LRE 全等值样本必须经真实 /calculate 路径返回 HTTP 422。"""
+    with pytest.raises(HTTPException) as exc:
+        helpers._run_calculation_method("lre", [5.0, 5.0, 5.0, 5.0, 5.0])
+
+    assert exc.value.status_code == 422
+    assert "lre" in exc.value.detail

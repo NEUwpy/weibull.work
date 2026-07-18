@@ -13,13 +13,15 @@ import numpy as np
 from scipy.optimize import minimize
 from base import WeibullBase
 
+
 class LRE(WeibullBase):
     def run(self):
         """
         LRE 参数估计
         策略：
-        1. 遍历寻找最佳 gamma，使得线性相关系数 R^2 最大。
-        2. 固定 gamma 后，通过最小二乘法求斜率(beta)和截距，进而求 eta。
+        1. 先检查原始样本是否存在有意义的信息（退化检测在优化前）。
+        2. 优化 γ 使相关系数平方 ρ² 最大。
+        3. 固定 γ 后 OLS 回归解 β 和 η。
         """
         # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
         # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
@@ -33,6 +35,14 @@ class LRE(WeibullBase):
             self.last_solution_info = {"status": "insufficient_sample", "n": int(n)}
             return [0, 0, 0, 0, "insufficient_sample"]
 
+        # 进入优化前检查原始样本退化性：全等值或近全等值样本无信息。
+        # 使用尺度相关容差，不依赖优化后的对数变换精度。
+        t_range = float(np.ptp(t))
+        t_scale = max(1.0, float(np.mean(t)), float(np.max(t)))
+        if t_range <= t_scale * 1e-12:
+            self.last_solution_info = {"status": "degenerate_sample"}
+            return [0, 0, 0, 0, "degenerate_sample"]
+
         # @step: 2 | 计算中位秩变换 | 使用 Bernard 近似计算经验生存函数并经双对数变换得到回归因变量
         # @formula: F(t_i) = \frac{i - 0.3}{n + 0.4}, \quad y_i = \ln(-\ln(1 - F(t_i)))
         # @symbols: F(t_i)|F(t_i)|第i个样本的经验累积概率, y_i|y_i|变换后的因变量
@@ -41,14 +51,14 @@ class LRE(WeibullBase):
         F = self._median_ranks()
         y = np.log(-np.log(1 - F))
 
-        # y 方差为零时线性回归无意义（保护，n≥3 的 Bernard 秩正常不会触发）
         y_var = float(np.var(y))
         if y_var <= 0:
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
         # @step: 3 | 优化位置参数 | 以相关系数平方 ρ² 为目标函数在有界区间内搜索最优 γ
-        # @formula: \hat{\gamma} = \arg\max_{\gamma \in [0, 0.999 t_{(1)})} \rho^{2}(\gamma), \quad \rho = \mathrm{corr}(\ln(t-\gamma), y)
+        # @formula: \hat{\gamma} = \arg\max_{\gamma \in [0, 0.999 t_{(1)})} \rho^{2}(\gamma),
+        #   \rho = \mathrm{corr}(\ln(t-\gamma), y)
         # @symbols: \gamma|\gamma|位置参数候选值, \rho|\rho|Pearson 相关系数
         # @inputs: t|t|失效时间数组, y|y_i|变换因变量
         # @outputs: gamma_hat|\hat{\gamma}|最优位置参数
@@ -57,42 +67,56 @@ class LRE(WeibullBase):
             if gamma_val >= t[0] - 1e-5:
                 return 1e10
             try:
-                x = np.log(t - gamma_val)
-            except:
+                x_vals = np.log(t - gamma_val)
+            except Exception:
                 return 1e10
-            correlation = np.corrcoef(x, y)[0, 1]
-            if not np.isfinite(correlation):
+            corr = np.corrcoef(x_vals, y)[0, 1]
+            if not np.isfinite(corr):
                 return 1e10
-            return -(correlation ** 2)
+            return -(corr ** 2)
 
         result = minimize(
             negative_r_squared,
             x0=[0.0],
             bounds=[(0, t[0] * 0.999)],
-            method='L-BFGS-B',
+            method="L-BFGS-B",
         )
+
+        # 优化失败时不能读取未收敛的参数
+        if not result.success:
+            self.last_solution_info = {
+                "status": "optimizer_failed",
+                "message": str(result.message),
+            }
+            return [0, 0, 0, 0, "optimizer_failed"]
+
+        # 目标函数必须有限（-ρ² 在 [-1, 0] 范围内）
+        if not np.isfinite(result.fun):
+            self.last_solution_info = {"status": "degenerate_sample"}
+            return [0, 0, 0, 0, "degenerate_sample"]
 
         gamma_hat = float(result.x[0])
 
-        # 退化保护：γ 位于可行域边界或相关系数无法计算时不可输出伪结果
         if not np.isfinite(gamma_hat) or gamma_hat >= t[0] or gamma_hat < 0:
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        # @step: 4 | OLS 线性回归 | 在最优 γ 下对 (\ln(t-\gamma), y) 做最小二乘拟合
-        # @formula: \hat{\beta} = \frac{\sum(x_i - \bar{x})(y_i - \bar{y})}{\sum(x_i - \bar{x})^2}, \quad \hat{\eta} = e^{-\hat{\alpha}/\hat{\beta}}, \quad \hat{\alpha}= \bar{y} - \hat{\beta}\bar{x}
+        # @step: 4 | OLS 线性回归 | 在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合
+        # @formula: \hat{\beta} = \frac{\sum(x_i-\bar{x})(y_i-\bar{y})}{\sum(x_i-\bar{x})^2},
+        #   \hat{\eta} = e^{-\hat{\alpha}/\hat{\beta}},\ \hat{\alpha}=\bar{y}-\hat{\beta}\bar{x}
         # @symbols: \hat{\beta}|\hat{\beta}|形状参数（回归斜率）, \hat{\eta}|\hat{\eta}|尺度参数（截距反解）
         # @inputs: gamma_hat|\hat{\gamma}|最优γ, t|t|失效时间数组, y|y_i|变换因变量
         # @outputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数
-        x = np.log(t - gamma_hat)
-        x_mean = float(np.mean(x))
+        x_vals = np.log(t - gamma_hat)
+        x_mean = float(np.mean(x_vals))
         y_mean = float(np.mean(y))
 
-        numerator = float(np.sum((x - x_mean) * (y - y_mean)))
-        denominator = float(np.sum((x - x_mean) ** 2))
+        numerator = float(np.sum((x_vals - x_mean) * (y - y_mean)))
+        denominator = float(np.sum((x_vals - x_mean) ** 2))
 
-        # x 方差为零时样本退化（全等值无信息），不能以 β=1 伪结果替代
-        if denominator <= 0:
+        # 尺度相关容差：全等值样本的优化后分母在浮点噪声级（~1e-28）
+        x_scale = max(1.0, abs(float(x_vals[0])))
+        if denominator <= x_scale * 1e-12:
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
@@ -100,14 +124,18 @@ class LRE(WeibullBase):
 
         # @step: 5 | 系数合理性检查 | β ≤ 0 时回归方向与 Weibull 支撑矛盾，不可采纳
         # @symbols: \hat{\beta}|\hat{\beta}|形状参数估计值
-        # @inputs: beta_hat|\hat{\beta}|形状参数, x|x_i|对数寿命, y|y_i|变换因变量
+        # @inputs: beta_hat|\hat{\beta}|形状参数
         # @outputs: status|status|采纳性判定
-        if beta_hat <= 0:
+        if not (np.isfinite(beta_hat) and beta_hat > 0):
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
         intercept = y_mean - beta_hat * x_mean
         eta_hat = math.exp(-intercept / beta_hat)
+
+        if not np.isfinite(eta_hat) or eta_hat <= 0:
+            self.last_solution_info = {"status": "degenerate_sample"}
+            return [0, 0, 0, 0, "degenerate_sample"]
 
         # @step: 6 | 计算拟合优度 R² | 评估模型与数据的拟合程度
         # @formula: R^2 = 1 - \frac{\sum(F_i - \hat{F}_i)^2}{\sum(F_i - \bar{F})^2}

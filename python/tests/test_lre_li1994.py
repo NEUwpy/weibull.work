@@ -133,12 +133,15 @@ def test_lre_not_an_alias():
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-def test_lre_degenerate_sample_fails_explicitly():
-    """全等值样本必须显式失败，禁止返回 β=1, γ=0 伪结果。"""
-    r = run_method("lre", [5.0] * 10)
-    assert r["converged"] is False
-    assert r["beta_hat"] is None
-    assert r["extra"]["raw_status"] == "degenerate_sample"
+@pytest.mark.parametrize("n_eq", [5, 7, 10, 12])
+def test_lre_degenerate_all_equal_fails_for_multiple_sizes(n_eq):
+    """全等值样本（不同样本量 n=5,7,10,12）必须显式失败。"""
+    r = run_method("lre", [5.0] * n_eq)
+    assert r["converged"] is False, f"n={n_eq} should fail"
+    assert r["beta_hat"] is None, f"n={n_eq} beta should be None"
+    assert r["extra"]["raw_status"] == "degenerate_sample", (
+        f"n={n_eq} expected degenerate_sample, got {r['extra']}"
+    )
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
