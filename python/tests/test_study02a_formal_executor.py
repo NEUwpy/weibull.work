@@ -1088,3 +1088,86 @@ def test_formal_resolve_deferred_cli_fail_closed_wrong_order(tmp_path):
         run_study02a.resolve_deferred(
             module="A-E2", run_id="r1", artifact_root=tmp_path,
             predecessor_module="A-E1", predecessor_run_id=pred_run_id)
+
+
+def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
+    """The accredit-build CLI regenerates fit_status/ceiling/leakage from a completed run's
+    per-fit evidence + selection trace and builds the sealed pre-unseal bundle (point provenance
+    rebuilt internally; no training, no test read)."""
+    import run_study02a
+    from study02a.selection import serialize_point_evidence
+    from study02a.formal_contracts import (
+        APPROVED_EFFECTIVE_CONFIG_SHA256, build_ceiling_hit_report, build_fit_status_record,
+        write_fit_status,
+    )
+    spec, evaluations = _d8_three_arch_fixture({"m01": 0.10, "m02": 0.20, "m03": 0.30})
+    run_id = "G3-AE1-build-v1"
+    run_dir = tmp_path / "A-E1" / run_id
+    run_dir.mkdir(parents=True)
+    fit_ids = list(evaluations.keys())
+    winner_id = spec.candidates[0].candidate_id  # m01 wins (lowest aggregate)
+    # selection trace + receipt + ledger + diagnostics
+    records, diagnostics = build_selection_trace(
+        module_id="A-E1", run_id=run_id, specs=(spec,), evaluations_by_fit=evaluations)
+    trace_path = run_dir / "selection_trace.jsonl"
+    trace_sha = write_selection_trace(trace_path, records)
+    publish_selection_receipt(
+        receipt_path=run_dir / "selection_receipt.json", ledger_path=run_dir / "selection_ledger.jsonl",
+        module_id="A-E1", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=EFFECTIVE, code_commit=_D8_CODE_COMMIT)
+    diagnostics_path = run_dir / "selection_diagnostics.jsonl"
+    diagnostics_path.write_bytes(b"".join(
+        (json.dumps(d, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8") for d in diagnostics))
+    # manifest (full formal schema) + plan + per-fit point_evidence + evidence
+    manifest = {
+        "manifest_version": "study02-formal-v1", "module_id": "A-E1", "run_id": run_id,
+        "code_commit": _D8_CODE_COMMIT,
+        "base_protocol": {"id": "A-G2-v1", "sha256": "f82e078051d760d7c9c11ece54b8fae7360c6db1aef3229a97b4fcd92ae01a11"},
+        "base_search": {"id": "A-G2-search-v1", "sha256": "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed889534ed4f6ab5e0ca13"},
+        "amendment": {"id": "A-G3-pilot-amendment-v4", "sha256": "164e72658669dbb57f6dab8b1fc80099bd319f1fa327d5dda60cb61cb929ee38"},
+        "effective_config": {"sha256": APPROVED_EFFECTIVE_CONFIG_SHA256, "max_epochs": 100, "min_epochs": 50, "patience": 40},
+        "matrix": {"path": "experiment_matrix.csv",
+                   "sha256": "fad701af2e2084bf7ce8f678d642410af58057b4ae33029c9150e50971fdf6b1",
+                   "row_count": 820, "rule_ids": ["A-E1_optimized_supplement"], "fit_ids": fit_ids},
+        "role_namespaces": {"training": "study02/formal/training", "validation": "study02/formal/validation"},
+        "seeds": {"screening": [420001, 420002, 420003], "formal": list(range(420101, 420111))},
+        "test_state": "sealed",
+        "predecessor": {"module_id": "none", "run_id": "none", "selection_trace_path": "none",
+                        "selection_trace_sha256": "none", "selection_receipt_path": "none",
+                        "selection_receipt_sha256": "none", "selection_ledger_path": "none"},
+    }
+    (run_dir / "manifest.json").write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
+    plan_lines = []
+    for fit_id, evaluation in evaluations.items():
+        out_dir = run_dir / "outputs" / fit_id
+        out_dir.mkdir(parents=True)
+        (out_dir / "point_evidence.json").write_text(
+            json.dumps(serialize_point_evidence(evaluation), sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+        curve = [0.5, 0.4, 0.3]
+        (out_dir / "evidence.json").write_text(json.dumps({
+            "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id, "run_id": run_id,
+            "checkpoint_sha256": evaluation.checkpoint_sha256, "actual_epochs": 3,
+            "best_epoch_one_based": 3, "hit_epoch_100": False, "early_stop_reason": "patience_exhausted",
+            "terminal_validation_slope": 0.0, "validation_curve": curve, "test_access_count": 0,
+        }, sort_keys=True) + "\n", encoding="utf-8")
+        plan_lines.append(json.dumps({
+            "fit_id": fit_id, "module_id": "A-E1", "rule_id": "A-E1_optimized_supplement",
+            "route": "F2", "n": 10, "seed": int(evaluation.support_key.seed),
+            "distribution": "core_continuous", "n_mode": "fixed_n", "fixed_n": 10, "training_size": 7000,
+        }, sort_keys=True))
+    (run_dir / "plan.jsonl").write_text("\n".join(plan_lines) + "\n", encoding="utf-8")
+
+    # point provenance rebuild stands in for reading bound checkpoints (no training, no test read)
+    monkeypatch.setattr(fe, "rebuild_selection_point_provenance",
+                        lambda *, study_root, run_dir, cache_root, module_id, run_id: dict(evaluations))
+
+    bundle = run_study02a.accredit_build("A-E1", run_id, tmp_path, tmp_path / "cache")
+    assert bundle["bundle_version"] == "study02-pre-unseal-v3"
+    assert bundle["test_state"] == "sealed"
+    assert (run_dir / "pre_unseal_bundle.json").is_file()
+    assert (run_dir / "fit_status.csv").is_file()
+    assert (run_dir / "ceiling_hit_report.json").is_file()
+    leakage = json.loads((run_dir / "leakage_audit.json").read_text(encoding="utf-8"))
+    assert leakage["test_access_count"] == 0
+    assert all(value == 0 for value in leakage["pairwise_intersections"].values())
+    assert set(leakage["parameter_point_counts"]) == {"training", "validation", "calibration", "test"}

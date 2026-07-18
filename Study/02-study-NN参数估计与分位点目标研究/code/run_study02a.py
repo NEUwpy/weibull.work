@@ -21,21 +21,32 @@ for path in (SCRIPT_PATH.parent, REPO_ROOT / "python"):
 
 from study02a.artifacts import write_manifest
 from study02a.config import load_frozen_config
+from study02a import design
 from study02a.matrix import expand_module_matrix
 from study02a.pilot import run_pilot
 from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run
 from study02a.formal_executor import (
+    build_module_pre_unseal_bundle,
     run_module as run_formal_module,
     reconstruct_deferred_specs,
     resolve_a_e1_staged_selection,
 )
-from study02a.formal_contracts import PredecessorTrace
+from study02a.formal_contracts import (
+    PredecessorTrace,
+    build_fit_status_record,
+    write_ceiling_hit_report,
+    write_fit_status,
+    write_leakage_audit,
+    write_pre_unseal_bundle,
+)
 from study02a.formal_state import (
     authorize_test_once,
     initialize_formal_state,
     publish_oracle_approval,
 )
 from study02a.formal_config import load_effective_formal_config
+from study02a.selection import load_point_evidence
+from study02a.training import FitResult
 
 
 def _load_pilot_amendment() -> dict:
@@ -173,6 +184,137 @@ def resolve_deferred(
     return resolved
 
 
+def _canonical_write(path: Path, obj: Mapping[str, Any]) -> None:
+    """Write canonical JSON bytes (LF, sorted, compact) matching the study02a artifact convention."""
+    path.write_bytes(
+        (json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8"))
+
+
+def _training_parameter_cell_ids(plan_rows: list[dict], frozen) -> list[str]:
+    """Faithfully regenerate the unique training parameter-point IDs across the run's training
+    configs via the design module's single-source allocator (the same authority formal_runner uses)."""
+    unique: set[str] = set()
+    seen: set[tuple] = set()
+    for row in plan_rows:
+        distribution = str(row.get("distribution", ""))
+        if not distribution:
+            continue
+        cfg = (distribution, str(row.get("n_mode")), int(row.get("training_size") or 0), row.get("fixed_n"))
+        if cfg in seen:
+            continue
+        seen.add(cfg)
+        try:
+            frame = design.allocate_training_rows(
+                distribution, str(row.get("n_mode")), int(row.get("training_size") or 0),
+                frozen, fixed_n=row.get("fixed_n"))
+        except (ValueError, KeyError):
+            continue
+        unique.update(str(value) for value in frame["parameter_cell_id"].tolist())
+    return sorted(unique)
+
+
+def _accredit_role_parameter_points(module: str, frozen, plan_rows: list[dict]) -> dict[str, list[str]]:
+    """Regenerate the four formal role parameter-point ID sets from the frozen design (disjoint by
+    independent role/module design seeds + role-prefixed IDs; the audit asserts zero intersections)."""
+    formal = frozen.protocol["formal_sizes"]
+    return {
+        "training": _training_parameter_cell_ids(plan_rows, frozen),
+        "validation": list(design.generate_parameter_points(
+            "validation", "core", int(formal["validation"]["parameter_points"]), frozen)["point_id"]),
+        "calibration": list(design.generate_parameter_points(
+            "calibration", "core", int(formal["calibration"]["parameter_points"]), frozen)["point_id"]),
+        "test": list(design.generate_parameter_points(
+            module, "core", int(formal["module_test"]["parameter_points"]), frozen)["point_id"]),
+    }
+
+
+def _accredit_role_namespaces(manifest: Mapping[str, Any]) -> dict[str, str]:
+    """The formal manifest records only training/validation namespaces; the leakage audit needs all
+    four roles. Derive calibration/test from the training namespace pattern (``<prefix>/<role>``)."""
+    manifest_ns = manifest["role_namespaces"]
+    base = str(manifest_ns["training"])
+    prefix = base[: base.rfind("/")]
+    return {role: (str(manifest_ns[role]) if role in manifest_ns else f"{prefix}/{role}")
+            for role in ("training", "validation", "calibration", "test")}
+
+
+def accredit_build(module: str, run_id: str, artifact_root: Path, cache_root: Path) -> dict:
+    """Pre-unseal accreditation build (Task 9 Step 4/5/8): generate the run-level diagnostics a
+    completed module run needs (fit_status.csv, ceiling_hit_report.json, leakage_audit.json) from
+    the run's per-fit evidence + selection trace, then build the pre-unseal bundle.
+
+    The diagnostics are not produced by training/selection; this entry reconstructs them
+    faithfully (per-fit trajectory + selection context + frozen-design role points) so the bundle
+    can accredit the run up to test unseal. Test stays sealed; point provenance is rebuilt inside
+    the bundle builder (R5). No training; no test read.
+    """
+    run_dir = Path(artifact_root) / module / run_id
+    frozen = load_frozen_config(STUDY_ROOT)
+    effective = load_effective_formal_config(STUDY_ROOT)
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+
+    trace_records = [
+        json.loads(line) for line in (run_dir / "selection_trace.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    selected_by_decision = {
+        str(r["decision_id"]): str(r["candidate_id"]) for r in trace_records if r.get("selected")}
+    plan_by_fit: dict[str, dict] = {}
+    for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            plan_by_fit[str(row["fit_id"])] = row
+
+    rows: list[dict] = []
+    point_evidence_paths: dict[str, Path] = {}
+    for fit_dir in sorted((run_dir / "outputs").iterdir()):
+        fit_id = fit_dir.name
+        point_evidence = fit_dir / "point_evidence.json"
+        evidence_path = fit_dir / "evidence.json"
+        if not (point_evidence.exists() and evidence_path.exists()):
+            continue
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        evaluation = load_point_evidence(json.loads(point_evidence.read_text(encoding="utf-8")))
+        plan_row = plan_by_fit[fit_id]
+        selected = selected_by_decision.get(evaluation.decision_id) == evaluation.candidate_id
+        curve = tuple(float(v) for v in evidence["validation_curve"])
+        best_epoch_zero = int(evidence["best_epoch_one_based"]) - 1
+        result = FitResult(
+            predictions=None, checkpoint_sha256=str(evidence["checkpoint_sha256"]),
+            best_validation_loss=curve[best_epoch_zero], best_epoch=best_epoch_zero,
+            actual_epochs=int(evidence["actual_epochs"]), validation_loss_history=curve,
+            early_stop_reason=str(evidence["early_stop_reason"]),
+            hit_epoch_ceiling=bool(evidence["hit_epoch_100"]))
+        rows.append(build_fit_status_record(
+            fit_id=fit_id, module_id=module, rule_id=str(plan_row["rule_id"]), route_id=str(plan_row["route"]),
+            n=int(plan_row["n"]), seed=int(plan_row["seed"]), decision_id=evaluation.decision_id,
+            candidate_id=evaluation.candidate_id, selected=selected, result=result,
+            selection_score=float(evaluation.selection_score)))
+        point_evidence_paths[fit_id] = point_evidence
+
+    fit_status_path = run_dir / "fit_status.csv"
+    write_fit_status(fit_status_path, rows)
+    ceiling_path = run_dir / "ceiling_hit_report.json"
+    write_ceiling_hit_report(ceiling_path, rows)
+    leakage_path = run_dir / "leakage_audit.json"
+    write_leakage_audit(
+        leakage_path, parameter_point_ids=_accredit_role_parameter_points(module, frozen, list(plan_by_fit.values())),
+        role_namespaces=_accredit_role_namespaces(manifest), scaler_source="training_only",
+        feature_selection_source="validation_only", model_selection_source="validation_only", test_access_count=0)
+
+    bundle = build_module_pre_unseal_bundle(
+        study_root=STUDY_ROOT, cache_root=cache_root, run_dirs={module: run_dir},
+        formal_manifests=[run_dir / "manifest.json"],
+        selection_traces=[run_dir / "selection_trace.jsonl"],
+        selection_receipts=[run_dir / "selection_receipt.json"],
+        selection_ledger_path=run_dir / "selection_ledger.jsonl", fit_status_path=fit_status_path,
+        ceiling_report_path=ceiling_path, leakage_audit_path=leakage_path,
+        code_commit=str(manifest["code_commit"]), effective_config_sha256=effective.effective_config_sha256,
+        module_run_ids={module: run_id}, point_evidence_paths=point_evidence_paths,
+        selection_diagnostics_paths=[run_dir / "selection_diagnostics.jsonl"])
+    _canonical_write(run_dir / "pre_unseal_bundle.json", bundle)
+    return bundle
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Study/02 research-A experiment runner")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -234,6 +376,14 @@ def _parser() -> argparse.ArgumentParser:
     deferred.add_argument("--artifact-root", type=Path, required=True)
     deferred.add_argument("--predecessor-module", required=True)
     deferred.add_argument("--predecessor-run-id", required=True)
+    build = commands.add_parser(
+        "formal-accredit-build",
+        help="generate fit_status/ceiling/leakage diagnostics + the sealed pre_unseal_bundle for a completed module run (test stays sealed)",
+    )
+    build.add_argument("--module", choices=("A-E1",), required=True)
+    build.add_argument("--run-id", required=True)
+    build.add_argument("--artifact-root", type=Path, required=True)
+    build.add_argument("--cache-root", type=Path, required=True)
     return parser
 
 
@@ -320,6 +470,8 @@ def main() -> int:
             module=args.module, run_id=args.run_id, artifact_root=args.artifact_root,
             predecessor_module=args.predecessor_module, predecessor_run_id=args.predecessor_run_id,
         )
+    elif args.command == "formal-accredit-build":
+        payload = accredit_build(args.module, args.run_id, args.artifact_root, args.cache_root)
     else:
         raise AssertionError(f"Unreachable command: {args.command}")
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
