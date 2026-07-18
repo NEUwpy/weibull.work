@@ -8,15 +8,18 @@
       "family": "max_adequacy",
       "shared_core": null,
       "classification_source": "src/content/181-004-pdf原文.md",
-      "level": "layer1_in_progress",
-      "calculatorEnabled": false,
-      "missingLayer1": [
-        "paper"
-      ],
+      "level": "layer1_complete",
+      "calculatorEnabled": true,
+      "missingLayer1": [],
       "paper": {
-        "status": "blocked",
-        "evidence": [],
-        "reason": "PAPER_NEEDED：缺少与当前三参数 MLE 实现口径一致的专项论文；181-004 仅提供 Smith (1985)、Hirose (1996) 等文献线索，不单独充当专项依据"
+        "status": "done",
+        "title": "Maximum Likelihood Estimation in the 3-parameter Weibull Distribution: A Look through the Generalized Extreme-value Distribution",
+        "publication": "IEEE Transactions on Dielectrics and Electrical Insulation",
+        "year": 1996,
+        "stable_id": "IEEE TDEI 9(3): 303-310 (1996)",
+        "evidence": [
+          "src/content/182-105-pdf原文.md"
+        ]
       },
       "layer1": {
         "backend": {
@@ -28,7 +31,8 @@
         "tests": {
           "status": "done",
           "evidence": [
-            "python/tests/test_runner.py"
+            "python/tests/test_runner.py",
+            "python/tests/test_mle_hirose1996.py"
           ]
         },
         "calculator": {
@@ -212,11 +216,9 @@
       "family": "max_adequacy",
       "shared_core": null,
       "classification_source": "src/content/181-004-pdf原文.md",
-      "level": "layer1_in_progress",
-      "calculatorEnabled": false,
-      "missingLayer1": [
-        "tests"
-      ],
+      "level": "layer1_complete",
+      "calculatorEnabled": true,
+      "missingLayer1": [],
       "paper": {
         "status": "done",
         "title": "Nearly unbiased estimators for the three-parameter Weibull distribution with greater efficiency than the iterative likelihood method",
@@ -235,9 +237,10 @@
           ]
         },
         "tests": {
-          "status": "todo",
-          "evidence": [],
-          "note": "尚无针对 WMLE 的独立测试断言"
+          "status": "done",
+          "evidence": [
+            "python/tests/test_wmle_cousineau2009.py"
+          ]
         },
         "calculator": {
           "status": "done",
@@ -291,41 +294,50 @@
       "family": "min_adequacy",
       "shared_core": null,
       "classification_source": "src/content/181-004-pdf原文.md",
-      "level": "not_started",
-      "calculatorEnabled": false,
-      "missingLayer1": [
-        "paper",
-        "backend",
-        "tests",
-        "calculator",
-        "theory",
-        "process"
-      ],
+      "level": "layer1_complete",
+      "calculatorEnabled": true,
+      "missingLayer1": [],
       "paper": {
-        "status": "todo",
-        "evidence": []
+        "status": "done",
+        "title": "A Least Square Estimation of Three Parameters of a Weibull Distribution",
+        "publication": "Microelectronics Reliability",
+        "year": 1992,
+        "stable_id": "Microelectron. Reliab. 32(3): 303-305 (1992)",
+        "evidence": [
+          "src/content/182-104-pdf原文.md"
+        ]
       },
       "layer1": {
         "backend": {
-          "status": "todo",
-          "evidence": [],
-          "note": "注册占位，运行时抛 NotImplementedError"
+          "status": "done",
+          "evidence": [
+            "python/methods/lse.py"
+          ]
         },
         "tests": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "python/tests/test_lse_soman1992.py"
+          ]
         },
         "calculator": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "src/hooks/useWeibullCalculation.ts",
+            "python/tests/test_calculation_api.py"
+          ]
         },
         "theory": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "src/content/algorithms/lse.md"
+          ]
         },
         "process": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "python/methods/lse.py"
+          ]
         }
       },
       "layer2": {
@@ -443,7 +455,8 @@
           "status": "done",
           "evidence": [
             "python/tests/test_runner.py",
-            "python/tests/test_mdm_single_source.py"
+            "python/tests/test_mdm_single_source.py",
+            "python/tests/test_mdm_xie2025.py"
           ]
         },
         "calculator": {
@@ -566,18 +579,18 @@
       "family": "lre_group",
       "shared_core": null,
       "classification_source": "src/content/181-004-pdf原文.md",
-      "level": "layer1_in_progress",
-      "calculatorEnabled": false,
-      "missingLayer1": [
-        "paper",
-        "calculator",
-        "theory",
-        "process"
-      ],
+      "level": "layer1_complete",
+      "calculatorEnabled": true,
+      "missingLayer1": [],
       "paper": {
-        "status": "blocked",
-        "evidence": [],
-        "reason": "PAPER_NEEDED：需要 Park (2017) Weibullness test and parameter estimation for the three-parameter Weibull model using the sample correlation coefficient 全文；本地尚未发现"
+        "status": "done",
+        "title": "A General Linear-Regression Analysis Applied to the 3-Parameter Weibull Distribution",
+        "publication": "IEEE Transactions on Reliability",
+        "year": 1994,
+        "stable_id": "IEEE TR 43(4): 616-623 (1994)",
+        "evidence": [
+          "src/content/182-107-pdf原文.md"
+        ]
       },
       "layer1": {
         "backend": {
@@ -589,22 +602,28 @@
         "tests": {
           "status": "done",
           "evidence": [
-            "python/tests/test_runner.py"
+            "python/tests/test_runner.py",
+            "python/tests/test_lre_li1994.py"
           ]
         },
         "calculator": {
-          "status": "todo",
-          "evidence": [],
-          "note": "计算器选择器当前未开放 LRE"
+          "status": "done",
+          "evidence": [
+            "src/hooks/useWeibullCalculation.ts",
+            "python/tests/test_calculation_api.py"
+          ]
         },
         "theory": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "src/content/algorithms/lre.md"
+          ]
         },
         "process": {
-          "status": "todo",
-          "evidence": [],
-          "note": "python/methods/lre.py 尚无 @step 流程标注"
+          "status": "done",
+          "evidence": [
+            "python/methods/lre.py"
+          ]
         }
       },
       "layer2": {
@@ -698,41 +717,50 @@
       "family": "moments",
       "shared_core": null,
       "classification_source": "src/content/181-004-pdf原文.md",
-      "level": "not_started",
-      "calculatorEnabled": false,
-      "missingLayer1": [
-        "paper",
-        "backend",
-        "tests",
-        "calculator",
-        "theory",
-        "process"
-      ],
+      "level": "layer1_complete",
+      "calculatorEnabled": true,
+      "missingLayer1": [],
       "paper": {
-        "status": "todo",
-        "evidence": []
+        "status": "done",
+        "title": "Moment Estimators for the 3-Parameter Weibull Distribution",
+        "publication": "IEEE Transactions on Reliability",
+        "year": 1988,
+        "stable_id": "IEEE TR 37(4): 360-363 (1988)",
+        "evidence": [
+          "src/content/182-102-pdf原文.md"
+        ]
       },
       "layer1": {
         "backend": {
-          "status": "todo",
-          "evidence": [],
-          "note": "注册占位，运行时抛 NotImplementedError"
+          "status": "done",
+          "evidence": [
+            "python/methods/mm.py"
+          ]
         },
         "tests": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "python/tests/test_mm_cran1988.py"
+          ]
         },
         "calculator": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "src/hooks/useWeibullCalculation.ts",
+            "python/tests/test_calculation_api.py"
+          ]
         },
         "theory": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "src/content/algorithms/mm.md"
+          ]
         },
         "process": {
-          "status": "todo",
-          "evidence": []
+          "status": "done",
+          "evidence": [
+            "python/methods/mm.py"
+          ]
         }
       },
       "layer2": {
