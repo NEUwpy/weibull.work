@@ -10,6 +10,7 @@ import pytest
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = SKILL_ROOT.parents[2]
 RUNNER = SKILL_ROOT / "scripts" / "coworker-live.ps1"
 POWERSHELL = shutil.which("powershell.exe") or shutil.which("powershell")
 
@@ -268,3 +269,31 @@ def test_cancel_refuses_task_without_recorded_pid(repo: Path, run_live) -> None:
 
     assert result.returncode != 0
     assert "recorded" in result.stderr.lower()
+
+
+def test_skill_contract_routes_codex_controller_and_guards_executor() -> None:
+    skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "## Live Loop" in skill
+    assert "Codex Controller" in skill
+    assert "Role: executor" in skill
+    assert "references/live-loop.md" in skill
+
+
+def test_documentation_covers_public_actions_and_verdicts() -> None:
+    reference = (SKILL_ROOT / "references" / "live-loop.md").read_text(encoding="utf-8")
+    dispatch = (SKILL_ROOT / "references" / "dispatch.md").read_text(encoding="utf-8")
+    readme = (REPO_ROOT / "coworker" / "README.md").read_text(encoding="utf-8")
+
+    for action in ("preflight", "start", "resume", "status", "collect", "cancel"):
+        assert f"-Action {action}" in reference
+    for verdict in ("APPROVE", "REVISE", "BLOCK"):
+        assert verdict in reference
+    assert "Role: executor" in dispatch
+    assert "runtime" in readme.lower()
+
+
+def test_documentation_ignores_local_runtime_state() -> None:
+    gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+
+    assert "/coworker/runtime/" in gitignore.splitlines()
