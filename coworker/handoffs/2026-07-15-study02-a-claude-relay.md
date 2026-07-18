@@ -115,7 +115,7 @@ Codex R2=REVISE 给出 7 项发现（caller approved_seeds / fit_id 跨候选复
 - **DecisionSpec 引擎**（`selection.py`，`f933953`）：确定性决策/候选/期望 fit/(n,seed) support/approved_seeds/rule/tie-back 派生——**调用方不得传入 expected fits / approved seeds / winner / rule**。R1§3 决策分组修正：output_form 合并为 1 决策 2 候选×50 support、distribution 1×3×15、training_size 1×4×15（R0 误拆已修正）。
 - **v2 schema + 独立 pre-unseal 重建**（`b80e721`）：trace/receipt/bundle v2（v1/v2 混用 schema-gate fail-closed）；移除不安全旧 API；pre-unseal 重开冻结矩阵独立重建 DecisionSpec 并逐候选重算证据；fit_id 全局唯一 + 冻结合同对应；selected 候选级一致性（失败 fit 可属获胜候选，无 any/all）。
 - **规则引擎**（`2833daa`）：两级 bootstrap CI（seed 520001、2000 reps、参数点聚类 + 训练 seed 二级）+ 逐参数点证据；global_better 三 CI / smallest_within_2pct_ci / fixed_vs_shared core-n 等权 / lowest_aggregate。
-- **`build_module_selection` 编排器**（`d2532e2`）：派生→逐 fit checkpoint 评分（no sidecar）→规则→v2 trace+receipt；`score_fit` DI 测试注入。
+- **`build_module_selection` 编排器**（`6a79f10`）：派生→逐 fit checkpoint 评分（no sidecar）→规则→v2 trace+receipt；`score_fit` DI 测试注入。
 - **攻击套件 + mixed-rule 守卫**（`f9fafc7`）：覆盖 R2 全部 7 项与合同攻击清单（缺/多/重复/错 n/错 seed、跨候选 fit 复用、重贴标签、selected 不一致 + 获胜候选含失败 seed、mixed rule、caller winner 拒绝、v1/v2 混用、各规则边界 + 篡改、bootstrap 顺序无关、证据变化→哈希变化）。
 
 **未完成**（明确不在本棒范围，待 Codex R3 + 后续棒）：staged A-E1 执行（stage1→selected_top→stage2→baseline_input 交错）、D8（占位符解析/deferred-spec/A-E3←A-E1、A-E2←A-E3 前驱链）、完整临时 smoke、shared-n fit_status 表示。报告 `coworker/reports/2026-07-18-study02-g3-selection-engine-claude.md`。A-E1 formal **仍不可启动**。等 Codex R3。

@@ -15,7 +15,7 @@
 | `2833daa` | **R2§E 规则引擎**：`evaluate_rows_per_sample` + 两级配对 bootstrap CI（seed 520001、2000 reps、参数点聚类 + 训练 seed 二级单位、顺序无关）+ `global_better_intervals`（三 CI 判定）+ `smallest_within_2pct_ci_choice`（A-E2 训练量）+ 12 项规则单测 |
 | `f933953` | **DecisionSpec 引擎**（`selection.py`）：确定性决策/候选/期望 fit/(n,seed) support/approved_seeds/rule/tie-break 派生；R1§3 决策分组修正（output_form/distribution/training_size 合并）；规则应用（winner 计算非传入）；full-context `supporting_evidence_sha256`；攻击面（缺/多/重复/错 n/错 seed、跨候选复用、期望 fit 不匹配）fail-closed + 15 项引擎测试 |
 | `b80e721` | **v2 schema + 独立 pre-unseal 重建**（`formal_contracts.py`）：`_SELECTION_RECORD_FIELDS` v2（+support_count，v1 混用 schema-gate fail-closed）；receipt/bundle v2；移除不安全旧 API（caller approved_seeds / selected_candidate_id）；pre-unseal 重开冻结矩阵独立重建 DecisionSpec 并逐候选重算证据/selected 一致性；fit_id 全局唯一 + 冻结合同对应；selected 候选级（失败 fit 可属获胜候选）；contracts/evidence 测试重写为 v2 |
-| `d2532e2` | **`build_module_selection` 编排器**（`formal_executor.py`）：派生 specs→逐 fit 评分（checkpoint→逐参数点 L_param，no sidecar）→规则→v2 trace+receipt；`validation_failure_penalized_l_param_points` + `_prepare_fit_inputs` 暴露 validation metadata；`score_fit` DI（测试注入，不启 formal）；2 项编排测试 |
+| `6a79f10` | **`build_module_selection` 编排器**（`formal_executor.py`）：派生 specs→逐 fit 评分（checkpoint→逐参数点 L_param，no sidecar）→规则→v2 trace+receipt；`validation_failure_penalized_l_param_points` + `_prepare_fit_inputs` 暴露 validation metadata；`score_fit` DI（测试注入，不启 formal）；2 项编排测试 |
 | `f9fafc7` | **攻击套件 + mixed-rule 守卫**：trace 校验器加"同决策 selection_rule 唯一"；引擎攻击（相同 fit 跨候选哈希不同、重复 support 拒绝、global_better 回退/支配边界）；evidence v1-trace-schema 拒绝；D8 占位测试修正 |
 
 文档/报告提交：本提交。远端 = 推送后 `origin/claude/study02-a-20260715` tip。纯 Claude 成果：`git log codex/long-task-20260711..claude/study02-a-20260715`。
