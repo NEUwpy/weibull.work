@@ -203,3 +203,24 @@ def test_calculate_api_runs_real_mdm_with_identity(helpers):
     assert abs(response["beta"] - 2.0) < 0.05
     assert abs(response["eta"] - 1000.0) < 15.0
     assert abs(response["gamma"] - 1000.0) < 15.0
+
+
+# Soman & Misra (1992) Example 2（src/content/182-104-pdf原文.md），
+# LSE 基准：c=0.8361, b=8.8521, mu=99.9（MLE 失效区）。
+_SOMAN_EX2 = [102.4378, 114.7585, 103.5102, 101.3378, 141.7785,
+              102.5250, 102.5244, 124.9970, 146.9202, 117.0452,
+              103.5730, 113.6165, 102.2618, 110.0926, 107.1926,
+              125.1443, 100.3264, 102.9202, 100.0017, 107.7962,
+              101.3272, 101.3620, 102.5391, 100.0935, 104.8785,
+              125.1759, 105.1076, 101.6966, 102.4999, 130.1677]
+
+
+def test_calculate_api_runs_real_lse_with_identity(helpers):
+    """真实后端路径：/calculate 的 LSE 调用返回 lse 身份和论文基准参数。"""
+    response = helpers._run_calculation_method("lse", _SOMAN_EX2)
+
+    assert response["method"] == "lse"
+    assert response["converged"] is True
+    assert abs(response["beta"] - 0.8361) < 0.08
+    assert abs(response["eta"] - 8.8521) < 0.4
+    assert abs(response["gamma"] - 99.9) < 0.5

@@ -2,14 +2,15 @@
 
 - 基线：`f13f4d4`
 - 工作分支：`opencode/method-construction-round1`
-- 最后更新：2026-07-18 MDM 完成，LSE 开工
+- 最后更新：2026-07-18 LSE 完成，MM 开工
 
 | 顺序 | 方法 | 状态 | 提交 | 报告 | 阻塞 |
 |---:|---|---|---|---|---|
 | 1 | MLE | completed | 1eb30a5 | coworker/reports/2026-07-18-method-construction-round1-mle-opencode.md | — |
 | 2 | WMLE | completed | 0e504e1 | coworker/reports/2026-07-18-method-construction-round1-wmle-opencode.md | — |
-| 3 | MDM | completed | 见本方法提交 | coworker/reports/2026-07-18-method-construction-round1-mdm-opencode.md | — |
-| 4 | LSE | in_progress | — | — | — |
+| 3 | MDM | completed | 33fe8e1 | coworker/reports/2026-07-18-method-construction-round1-mdm-opencode.md | — |
+| 4 | LSE | completed | 见本方法提交 | coworker/reports/2026-07-18-method-construction-round1-lse-opencode.md | — |
+| 5 | MM | in_progress | — | — | — |
 | 5 | MM | pending | — | — | — |
 | 6 | LRE | pending | — | — | — |
 

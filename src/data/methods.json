@@ -53,8 +53,10 @@
         "id": "lse",
         "name": "最小二乘估计",
         "shortName": "LSE",
-        "description": "最小化 CDF 的残差平方和适用于完全样本和删失样本。",
-        "formula": "arg min ∑ (F(ti)-F̂i)^2"
+        "slug": "lse",
+        "hasDetail": true,
+        "description": "White 顺序统计量期望回归的三参数扩展（Soman & Misra 1992）：对 μ 一维搜索，取 Fisher F 比最大者。适用形状参数 0~3 的 MLE 失效区。",
+        "formula": "\\log(t_i-\\mu) = \\alpha + \\beta X_i, \\quad \\hat{\\mu} = \\arg\\max F(\\mu)"
       },
       {
         "id": "wlse",
