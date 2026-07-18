@@ -134,3 +134,14 @@ Codex R3=REVISE 要求闭合 selection evidence + 非 ranking 规则复核（点
 - **R3 攻击套件 8 项**（`a89efb8`）：点证据篡改/交换、伪造非 ranking winner（trace+receipt+fit_status 同步）、diagnostics 缺失/篡改、重复 (seed,sample)、global_better 失败 seed、尺度反例、零 comparator。
 
 **未完成**（明确不在本棒范围，待 Codex R4 + 后续棒）：staged A-E1 执行、D8（仍 fail-closed）、完整临时 smoke、A-E1 formal 分阶段启动、9d、G4。报告 `coworker/reports/2026-07-18-study02-g3-selection-evidence-r3-claude.md`。**A-E1 formal 未授权**。等 Codex R4。
+
+### 2026-07-18 R4（Codex REVISE 之后，第五执行者棒）
+
+Codex R4=REVISE 给出两个阻塞：(1) pre-unseal 只验证点工件及下游哈希自洽，未从绑定 checkpoint 独立重建点记录（同步重写全部工件仍可能接受非 checkpoint 产生的证据）；(2) 跨候选同 `(seed_id, sample_id)` 异 `point_id` 无 fail-closed（Codex 在 `a325208` 上复现 `CROSS_POINT_ACCEPTED`）。本棒完成并验证（261 formal+selection tests green）：
+
+- **pre-unseal checkpoint 独立重建**（`99f07b3`，R4#1）：抽出版单源 `_derive_and_score_evaluations`（`build_module_selection` 与重建共用），新增 `rebuild_selection_point_provenance`——重读真实 `outputs/{fit_id}/checkpoint.pt` + 从冻结 plan/config/cache 重建 validation inputs + forward/decode/`evaluate_rows_per_sample` 生成 canonical records（succeeded）/ 冻结 cells all-illegal（failed），不信任何 fit_status 标量或发布工件；`build_pre_unseal_bundle` 增**强制** `point_provenance_by_fit`，对每 fit 调 `assert_point_evidence_provenance` 逐字段比较（checkpoint SHA / validation_identity==重建 dataset-cache identity / failed / 标量 / canonical records）。即便伪造点记录并同步重算 content SHA + supporting + diagnostics + trace + receipt + ledger + fit_status，重建仍与之不符 → 拒绝。
+- **CROSS_POINT 跨候选守卫**（`99f07b3`，R4#2）：`_paired_grids` + `_improvement_records` 在配对两候选时校验同 `(seed,sample)` 的 `point_id` 一致（`sample_id` 决定 `point_id`），不符 fail-closed——闭合最小反例。
+- **逐记录语义校验**（`99f07b3`，R4#2）：`validate_canonical_point_records`（精确字段集/类型、`seed_id==冻结 support seed`、finite/非负、`legal↔failure`、`l_param↔e_*`、非法⇒全=冻结 penalty）作为每个 point-evidence SHA 的门；`load_point_evidence` 增 artifact 标量==canonical records 聚合（R4#2#9）。
+- **R4 攻击套件 7 类**（`dd8ae0b`）：真实 checkpoint 端到端（均值保持记录伪造 + content SHA 重同步 → 记录级 rebuild 捕获）、CROSS_POINT、语义守卫参数化、bundle 级伪造全量重同步/强制 provenance/checkpoint 不符/identity 不符/failed-fit cells 不一致/合法通过。
+
+**未改变公开 schema**（artifact v1 / trace v3 / receipt v3 / bundle v3 字段不变；强制 provenance 为输入契约）；**未改冻结科学口径**。**未完成**（明确不在本棒范围，待 Codex R5 + 后续棒）：staged A-E1 执行、D8（仍 fail-closed）、完整临时 smoke、A-E1 formal 分阶段启动、9d、G4。报告 `coworker/reports/2026-07-18-study02-g3-selection-provenance-r4-claude.md`。**A-E1 formal 未授权**。等 Codex R5。
