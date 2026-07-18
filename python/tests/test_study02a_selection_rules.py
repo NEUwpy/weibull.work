@@ -104,9 +104,72 @@ def test_global_better_verdict_and_intervals():
     comparator = _grid(SEEDS, POINTS, 2, 0.05)
     result = global_better_intervals(candidate=candidate, comparator=comparator)
     assert result["verdict"] == "globally_better"
+    assert result["bootstrap_config"] == {"seed": 520001, "replicates": 2000}
     assert result["failure_rate_ci"]["ci_upper"] == 0  # both fully legal
     assert result["l_param_ci"]["ci_lower"] > 0
-    assert all(v <= 0.05 for v in result["component_worsening_ci_upper"].values())
+    # R3#4: relative RMSE ratio CI upper (RMSE_cand/RMSE_comp - 1) <= 5% per component
+    assert all(ci["ci_upper"] <= 0.05 for ci in result["component_rmse_ratio_ci"].values())
+
+
+def test_global_better_uses_relative_rmse_ratio_not_raw_mse_scale_counterexample():
+    """R3#4 + attack: raw MSE difference and relative RMSE can disagree. The protocol
+    uses the scale-free RELATIVE ratio; a candidate whose errors are a large constant
+    offset vs a tiny comparator error worsens on the ratio even when the raw squared
+    difference looks small in absolute terms. Build a case where the candidate has a
+    small constant relative worsening on a component and confirm the ratio CI reflects it."""
+    # comparator e_beta ~ 0.001 (tiny), candidate e_beta ~ 0.002 (double => ratio-1 = 1.0, >> 5%).
+    # Raw MSE diff (cand^2 - comp^2) ~ 3e-6 (looks tiny); relative ratio = 1.0 (clearly worsens).
+    rng_points = 3
+    records_c = []
+    records_o = []
+    for seed in SEEDS:
+        for p in range(rng_points):
+            for s in range(2):
+                sid = f"pt{p}:s{s}"
+                records_c.append({"sample_id": sid, "seed_id": str(seed), "point_id": f"pt{p}",
+                                  "legal": True, "failure": 0, "l_param": 0.001,
+                                  "e_beta": 0.002, "e_eta": 0.001, "e_gamma": 0.001})
+                records_o.append({"sample_id": sid, "seed_id": str(seed), "point_id": f"pt{p}",
+                                  "legal": True, "failure": 0, "l_param": 0.001,
+                                  "e_beta": 0.001, "e_eta": 0.001, "e_gamma": 0.001})
+    result = global_better_intervals(candidate=records_c, comparator=records_o)
+    # beta RMSE ratio-1 = 1.0 (100% worsening) => upper >> 0.05 => NOT globally better
+    assert result["component_rmse_ratio_ci"]["beta"]["ci_upper"] > 0.05
+    assert result["verdict"] != "globally_better"
+
+
+def test_global_better_zero_comparator_rmse_is_fail_closed():
+    """R3#4: when comparator RMSE is exactly 0 and the candidate has any error, the
+    component ratio is +inf (fail-closed) => candidate cannot be 'globally better'."""
+    records_c = []
+    records_o = []
+    for seed in SEEDS:
+        for p in range(3):
+            for s in range(2):
+                sid = f"pt{p}:s{s}"
+                records_c.append({"sample_id": sid, "seed_id": str(seed), "point_id": f"pt{p}",
+                                  "legal": True, "failure": 0, "l_param": 0.001,
+                                  "e_beta": 0.01, "e_eta": 0.0, "e_gamma": 0.0})  # candidate has beta error
+                records_o.append({"sample_id": sid, "seed_id": str(seed), "point_id": f"pt{p}",
+                                  "legal": True, "failure": 0, "l_param": 0.001,
+                                  "e_beta": 0.0, "e_eta": 0.0, "e_gamma": 0.0})  # comparator perfect on beta
+    result = global_better_intervals(candidate=records_c, comparator=records_o)
+    assert result["component_rmse_ratio_ci"]["beta"]["ci_upper"] == float("inf")
+    assert result["verdict"] != "globally_better"
+
+
+def test_validate_point_records_rejects_duplicate_and_inconsistent_point():
+    from study02a.evaluation import validate_point_records
+    base = [{"sample_id": "s0", "seed_id": "1", "point_id": "pt0", "l_param": 0.1}]
+    dup = base + [{"sample_id": "s0", "seed_id": "1", "point_id": "pt0", "l_param": 0.2}]
+    with pytest.raises(ValueError, match="duplicate"):
+        validate_point_records(dup)
+    cross_point = [
+        {"sample_id": "s0", "seed_id": "1", "point_id": "pt0", "l_param": 0.1},
+        {"sample_id": "s0", "seed_id": "2", "point_id": "pt1", "l_param": 0.1},
+    ]
+    with pytest.raises(ValueError, match="multiple parameter points"):
+        validate_point_records(cross_point)
 
 
 def test_global_better_rejects_mismatched_sample_sets():
