@@ -159,6 +159,63 @@ function Test-ProcessAlive {
     return $null -ne (Get-Process -Id $parsed -ErrorAction SilentlyContinue)
 }
 
+function Enter-TaskLock {
+    param([string]$Path)
+
+    for ($attempt = 0; $attempt -lt 2; $attempt++) {
+        try {
+            $stream = [System.IO.File]::Open(
+                $Path,
+                [System.IO.FileMode]::CreateNew,
+                [System.IO.FileAccess]::Write,
+                [System.IO.FileShare]::None
+            )
+            try {
+                $payload = [ordered]@{
+                    pid = $PID
+                    created_at = [DateTime]::UtcNow.ToString('o')
+                } | ConvertTo-Json -Compress
+                $bytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($payload)
+                $stream.Write($bytes, 0, $bytes.Length)
+            }
+            finally {
+                $stream.Dispose()
+            }
+            return
+        }
+        catch [System.IO.IOException] {
+            $ownerPid = $null
+            try {
+                $lockState = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+                $ownerPid = $lockState.pid
+            }
+            catch {
+                $ownerPid = $null
+            }
+            if (Test-ProcessAlive -PidValue $ownerPid) {
+                throw "Controller lock is held by live PID $ownerPid"
+            }
+            Remove-Item -LiteralPath $Path -Force -ErrorAction Stop
+        }
+    }
+    throw "Could not acquire controller lock: $Path"
+}
+
+function Exit-TaskLock {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return }
+    try {
+        $lockState = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+        if ([int]$lockState.pid -eq $PID) {
+            Remove-Item -LiteralPath $Path -Force
+        }
+    }
+    catch {
+        # Never remove a lock that cannot be proven to belong to this process.
+    }
+}
+
 function Get-ClaudeExecutable {
     param([string]$Requested)
 
@@ -235,57 +292,63 @@ function Invoke-Start {
     Assert-TaskId -Value $Id
     $repoRoot = Resolve-RepoPath -Path $RepoPath
     $paths = Get-RuntimePaths -RepoRoot $repoRoot -Id $Id
-    if (Test-Path -LiteralPath $paths.state) {
-        $existing = Read-State -Path $paths.state
-        if ($existing.state -in @('WORKER_STARTING', 'WORKER_RUNNING')) {
-            throw "Task '$Id' already has a worker in state $($existing.state)"
-        }
-        throw "Task '$Id' already has recorded state; use resume or choose another TaskId"
-    }
-
-    $promptPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $PromptFile -MustExist
-    $planPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $Plan -MustExist
-    $handoffPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $Handoff -MustExist
-    $reportPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $Report
-    $reviewPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $Review
-    $claude = Get-ClaudeExecutable -Requested $ClaudeCommand
-
     New-Item -ItemType Directory -Path $paths.root -Force | Out-Null
-    $body = Get-Content -LiteralPath $promptPath -Raw
-    Write-Utf8File -Path $paths.prompt -Content (New-ExecutorPrompt -Body $body)
-    $now = [DateTime]::UtcNow.ToString('o')
-    $state = [pscustomobject][ordered]@{
-        schema_version = 1
-        task_id = $Id
-        repo = $repoRoot
-        branch = (@(Invoke-Git -RepoRoot $repoRoot -Arguments @('branch', '--show-current')))[0]
-        baseline_sha = (@(Invoke-Git -RepoRoot $repoRoot -Arguments @('rev-parse', 'HEAD')))[0]
-        claude_session_id = $null
-        claude_command = $claude
-        worker_pid = $null
-        round = 1
-        mode = 'start'
-        state = 'WORKER_STARTING'
-        prompt_source_path = $promptPath
-        prompt_path = $paths.prompt
-        plan_path = $planPath
-        handoff_path = $handoffPath
-        report_path = $reportPath
-        review_path = $reviewPath
-        stdout_path = $paths.stdout
-        stderr_path = $paths.stderr
-        result_path = $paths.result
-        heartbeat_path = $paths.heartbeat
-        created_at = $now
-        updated_at = $now
-        started_at = $null
-        finished_at = $null
-        exit_code = $null
-        last_error = $null
+    Enter-TaskLock -Path $paths.lock
+    try {
+        if (Test-Path -LiteralPath $paths.state) {
+            $existing = Read-State -Path $paths.state
+            if ($existing.state -in @('WORKER_STARTING', 'WORKER_RUNNING')) {
+                throw "Task '$Id' already has a worker in state $($existing.state)"
+            }
+            throw "Task '$Id' already has recorded state; use resume or choose another TaskId"
+        }
+
+        $promptPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $PromptFile -MustExist
+        $planPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $Plan -MustExist
+        $handoffPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $Handoff -MustExist
+        $reportPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $Report
+        $reviewPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $Review
+        $claude = Get-ClaudeExecutable -Requested $ClaudeCommand
+
+        $body = Get-Content -LiteralPath $promptPath -Raw
+        Write-Utf8File -Path $paths.prompt -Content (New-ExecutorPrompt -Body $body)
+        $now = [DateTime]::UtcNow.ToString('o')
+        $state = [pscustomobject][ordered]@{
+            schema_version = 1
+            task_id = $Id
+            repo = $repoRoot
+            branch = (@(Invoke-Git -RepoRoot $repoRoot -Arguments @('branch', '--show-current')))[0]
+            baseline_sha = (@(Invoke-Git -RepoRoot $repoRoot -Arguments @('rev-parse', 'HEAD')))[0]
+            claude_session_id = $null
+            claude_command = $claude
+            worker_pid = $null
+            round = 1
+            mode = 'start'
+            state = 'WORKER_STARTING'
+            prompt_source_path = $promptPath
+            prompt_path = $paths.prompt
+            plan_path = $planPath
+            handoff_path = $handoffPath
+            report_path = $reportPath
+            review_path = $reviewPath
+            stdout_path = $paths.stdout
+            stderr_path = $paths.stderr
+            result_path = $paths.result
+            heartbeat_path = $paths.heartbeat
+            created_at = $now
+            updated_at = $now
+            started_at = $null
+            finished_at = $null
+            exit_code = $null
+            last_error = $null
+        }
+        Write-StateAtomic -Path $paths.state -State $state
+        $null = Start-WorkerHost -RepoRoot $repoRoot -Id $Id -State $state -Paths $paths
+        Convert-StateToOutput -State $state -WorkerAlive $true -HeartbeatAgeSeconds $null
     }
-    Write-StateAtomic -Path $paths.state -State $state
-    $null = Start-WorkerHost -RepoRoot $repoRoot -Id $Id -State $state -Paths $paths
-    Convert-StateToOutput -State $state -WorkerAlive $true -HeartbeatAgeSeconds $null
+    finally {
+        Exit-TaskLock -Path $paths.lock
+    }
 }
 
 function Invoke-Resume {
@@ -297,23 +360,25 @@ function Invoke-Resume {
     Assert-TaskId -Value $Id
     $repoRoot = Resolve-RepoPath -Path $RepoPath
     $paths = Get-RuntimePaths -RepoRoot $repoRoot -Id $Id
-    $state = Read-State -Path $paths.state
-    if ($state.state -ne 'AWAITING_CODEX_REVIEW') {
-        throw "Task '$Id' cannot resume from state $($state.state)"
-    }
-    if ([string]::IsNullOrWhiteSpace([string]$state.claude_session_id)) {
-        throw 'Cannot resume without a recorded Claude session ID'
-    }
-    $reviewCandidate = if ([string]::IsNullOrWhiteSpace($Review)) { [string]$state.review_path } else { $Review }
-    $reviewPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $reviewCandidate -MustExist
-    $reviewBody = Get-Content -LiteralPath $reviewPath -Raw
-    if ($reviewBody -notmatch '(?im)^\s*(Verdict:\s*)?(REVISE|BLOCK)\b') {
-        throw 'Resume requires a Codex review containing REVISE or BLOCK'
-    }
-    if (-not [string]::IsNullOrWhiteSpace($ClaudeCommand)) {
-        $state.claude_command = Get-ClaudeExecutable -Requested $ClaudeCommand
-    }
-    Write-Utf8File -Path $paths.prompt -Content (New-ExecutorPrompt -Body @"
+    Enter-TaskLock -Path $paths.lock
+    try {
+        $state = Read-State -Path $paths.state
+        if ($state.state -ne 'AWAITING_CODEX_REVIEW') {
+            throw "Task '$Id' cannot resume from state $($state.state)"
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$state.claude_session_id)) {
+            throw 'Cannot resume without a recorded Claude session ID'
+        }
+        $reviewCandidate = if ([string]::IsNullOrWhiteSpace($Review)) { [string]$state.review_path } else { $Review }
+        $reviewPath = Resolve-RepoChild -RepoRoot $repoRoot -Path $reviewCandidate -MustExist
+        $reviewBody = Get-Content -LiteralPath $reviewPath -Raw
+        if ($reviewBody -notmatch '(?im)^\s*(Verdict:\s*)?(REVISE|BLOCK)\b') {
+            throw 'Resume requires a Codex review containing REVISE or BLOCK'
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ClaudeCommand)) {
+            $state.claude_command = Get-ClaudeExecutable -Requested $ClaudeCommand
+        }
+        Write-Utf8File -Path $paths.prompt -Content (New-ExecutorPrompt -Body @"
 Codex Controller review for round $($state.round):
 
 $reviewBody
@@ -321,18 +386,22 @@ $reviewBody
 Revise the existing implementation in the same Claude session. Update the worker
 report at: $($state.report_path)
 "@)
-    $state.round = [int]$state.round + 1
-    $state.mode = 'resume'
-    $state.state = 'WORKER_STARTING'
-    $state.worker_pid = $null
-    $state.review_path = $reviewPath
-    $state.exit_code = $null
-    $state.last_error = $null
-    $state.finished_at = $null
-    $state.updated_at = [DateTime]::UtcNow.ToString('o')
-    Write-StateAtomic -Path $paths.state -State $state
-    $null = Start-WorkerHost -RepoRoot $repoRoot -Id $Id -State $state -Paths $paths
-    Convert-StateToOutput -State $state -WorkerAlive $true -HeartbeatAgeSeconds $null
+        $state.round = [int]$state.round + 1
+        $state.mode = 'resume'
+        $state.state = 'WORKER_STARTING'
+        $state.worker_pid = $null
+        $state.review_path = $reviewPath
+        $state.exit_code = $null
+        $state.last_error = $null
+        $state.finished_at = $null
+        $state.updated_at = [DateTime]::UtcNow.ToString('o')
+        Write-StateAtomic -Path $paths.state -State $state
+        $null = Start-WorkerHost -RepoRoot $repoRoot -Id $Id -State $state -Paths $paths
+        Convert-StateToOutput -State $state -WorkerAlive $true -HeartbeatAgeSeconds $null
+    }
+    finally {
+        Exit-TaskLock -Path $paths.lock
+    }
 }
 
 function Invoke-Worker {
@@ -467,19 +536,26 @@ function Invoke-Cancel {
 
     $repoRoot = Resolve-RepoPath -Path $RepoPath
     $paths = Get-RuntimePaths -RepoRoot $repoRoot -Id $Id
-    $state = Read-State -Path $paths.state
-    if ($null -eq $state.worker_pid -or -not (Test-ProcessAlive -PidValue $state.worker_pid)) {
-        throw 'Task has no live recorded worker PID to cancel'
+    $null = Read-State -Path $paths.state
+    Enter-TaskLock -Path $paths.lock
+    try {
+        $state = Read-State -Path $paths.state
+        if ($null -eq $state.worker_pid -or -not (Test-ProcessAlive -PidValue $state.worker_pid)) {
+            throw 'Task has no live recorded worker PID to cancel'
+        }
+        $recordedPid = [int]$state.worker_pid
+        Stop-Process -Id $recordedPid -Force -ErrorAction Stop
+        $state.state = 'CANCELLED'
+        $state.exit_code = -1
+        $state.last_error = 'Cancelled by Codex Controller'
+        $state.finished_at = [DateTime]::UtcNow.ToString('o')
+        $state.updated_at = $state.finished_at
+        Write-StateAtomic -Path $paths.state -State $state
+        Convert-StateToOutput -State $state -WorkerAlive $false -HeartbeatAgeSeconds $null
     }
-    $recordedPid = [int]$state.worker_pid
-    Stop-Process -Id $recordedPid -Force -ErrorAction Stop
-    $state.state = 'CANCELLED'
-    $state.exit_code = -1
-    $state.last_error = 'Cancelled by Codex Controller'
-    $state.finished_at = [DateTime]::UtcNow.ToString('o')
-    $state.updated_at = $state.finished_at
-    Write-StateAtomic -Path $paths.state -State $state
-    Convert-StateToOutput -State $state -WorkerAlive $false -HeartbeatAgeSeconds $null
+    finally {
+        Exit-TaskLock -Path $paths.lock
+    }
 }
 
 function Invoke-Preflight {

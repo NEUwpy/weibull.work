@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import time
@@ -297,3 +298,108 @@ def test_documentation_ignores_local_runtime_state() -> None:
     gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
 
     assert "/coworker/runtime/" in gitignore.splitlines()
+
+
+def test_recovery_reclaims_stale_controller_lock(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo)
+    runtime = repo / "coworker" / "runtime" / "stale-lock"
+    runtime.mkdir(parents=True)
+    (runtime / "controller.lock").write_text(
+        json.dumps({"pid": 99999999, "created_at": "2000-01-01T00:00:00Z"}),
+        encoding="utf-8",
+    )
+
+    started = run_live("start", repo=repo, task_id="stale-lock", ClaudeCommand=claude, **files)
+
+    assert started.returncode == 0, started.stderr
+    wait_for_state(run_live, repo, "stale-lock", "AWAITING_CODEX_REVIEW")
+    assert not (runtime / "controller.lock").exists()
+
+
+def test_recovery_refuses_live_controller_lock(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo)
+    runtime = repo / "coworker" / "runtime" / "live-lock"
+    runtime.mkdir(parents=True)
+    (runtime / "controller.lock").write_text(
+        json.dumps({"pid": os.getpid(), "created_at": "2000-01-01T00:00:00Z"}),
+        encoding="utf-8",
+    )
+
+    started = run_live("start", repo=repo, task_id="live-lock", ClaudeCommand=claude, **files)
+
+    assert started.returncode != 0
+    assert "lock" in started.stderr.lower()
+    assert not (runtime / "state.json").exists()
+
+
+def test_recovery_state_writes_are_atomic(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo)
+    result = run_live("start", repo=repo, task_id="atomic", ClaudeCommand=claude, **files)
+    assert result.returncode == 0, result.stderr
+    wait_for_state(run_live, repo, "atomic", "AWAITING_CODEX_REVIEW")
+    runtime = repo / "coworker" / "runtime" / "atomic"
+
+    state = json.loads((runtime / "state.json").read_text(encoding="utf-8-sig"))
+
+    assert state["state"] == "AWAITING_CODEX_REVIEW"
+    assert list(runtime.glob("state.json.*.tmp")) == []
+
+
+def test_recovery_collects_after_controller_restart(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo)
+    result = run_live("start", repo=repo, task_id="restart", ClaudeCommand=claude, **files)
+    assert result.returncode == 0, result.stderr
+    wait_for_state(run_live, repo, "restart", "AWAITING_CODEX_REVIEW")
+    files["Report"].write_text("# durable report\n", encoding="utf-8")
+
+    recovered_status = run_live("status", repo=repo, task_id="restart")
+    recovered_collect = run_live("collect", repo=repo, task_id="restart")
+
+    assert json.loads(recovered_status.stdout)["state"] == "AWAITING_CODEX_REVIEW"
+    assert json.loads(recovered_collect.stdout)["claude_session_id"]
+
+
+def test_recovery_refuses_resume_without_review(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo)
+    result = run_live("start", repo=repo, task_id="no-review", ClaudeCommand=claude, **files)
+    assert result.returncode == 0, result.stderr
+    wait_for_state(run_live, repo, "no-review", "AWAITING_CODEX_REVIEW")
+
+    resumed = run_live("resume", repo=repo, task_id="no-review")
+
+    assert resumed.returncode != 0
+    assert "review" in resumed.stderr.lower()
+
+
+def test_recovery_rejects_contract_path_escape(repo: Path, run_live, tmp_path: Path) -> None:
+    files = write_contract_files(repo)
+    outside = tmp_path / "outside.md"
+    outside.write_text("Role: executor\n", encoding="utf-8")
+    files["PromptFile"] = outside
+    claude = write_fake_claude(repo)
+
+    result = run_live("start", repo=repo, task_id="escape", ClaudeCommand=claude, **files)
+
+    assert result.returncode != 0
+    assert "escapes the repository" in result.stderr
+
+
+def test_recovery_preserves_unrelated_dirty_file(repo: Path, run_live) -> None:
+    files = write_contract_files(repo)
+    claude = write_fake_claude(repo)
+    user_file = repo / "unrelated-user-work.txt"
+    user_file.write_text("do not touch\n", encoding="utf-8")
+    before = run_command("git", "status", "--short", cwd=repo).stdout
+
+    result = run_live("start", repo=repo, task_id="preserve", ClaudeCommand=claude, **files)
+    assert result.returncode == 0, result.stderr
+    wait_for_state(run_live, repo, "preserve", "AWAITING_CODEX_REVIEW")
+
+    assert user_file.read_text(encoding="utf-8") == "do not touch\n"
+    assert "?? unrelated-user-work.txt" in before
+    assert "?? unrelated-user-work.txt" in run_command("git", "status", "--short", cwd=repo).stdout
