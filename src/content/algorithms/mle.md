@@ -44,11 +44,21 @@ applicability:
 
 # 相关文献
 references:
+  - id: "182-105"
+    title: "Maximum Likelihood Estimation in the 3-parameter Weibull Distribution: A Look through the Generalized Extreme-value Distribution"
+    author: "Hirose, H."
+    year: "1996"
+    publication: "IEEE Transactions on Dielectrics and Electrical Insulation"
   - id: "182-090"
     title: "Maximum likelihood estimation in a class of nonregular cases"
     author: "Smith, R. L."
     year: "1985"
     publication: "Biometrika"
+  - id: "182-101"
+    title: "Fitting the Three-Parameter Weibull Distribution: Review and Evaluation of Existing and New Methods"
+    author: "Cousineau, D."
+    year: "2009"
+    publication: "IEEE Transactions on Dielectrics and Electrical Insulation"
 ---
 
 # 极大似然估计 (MLE)
@@ -97,10 +107,16 @@ $$
 
 该方程组无解析解，需通过数值方法（如 Nelder-Mead、Newton-Raphson）迭代求解。
 
-## 4. 无界问题
+## 4. 无界问题与非正则边界
 
 当 $\beta < 1$ 且 $\gamma$ 未知时，似然函数可能趋向无穷大。
 
 原因：当 $\gamma \to \min(x_i)$ 时，$x_{\min} - \gamma \to 0$，若 $\beta < 1$，则 $(x_{\min} - \gamma)^{\beta - 1} \to \infty$，导致似然函数无界。
 
-此时 MLE 不存在，需采用其他方法（如约束优化、惩罚项）或改用 WMLE、MDM 等方法。
+Smith (1985) 给出非正则性的完整分类：$\beta > 2$ 时经典渐近理论成立；$1 < \beta \leq 2$ 时 MLE 存在但不渐近正态；$\beta \leq 1$ 时局部极大意义下的 MLE 可能不存在。因此本实现在优化结果 $\hat{\beta} < 1$ 时显式返回"无解"（`unbounded`），不输出伪结果，需改用 WMLE、MDM 等方法。
+
+## 5. 参数发散问题与平台约束
+
+Hirose (1996) 指出：对高度负偏的样本，三参数 MLE 会出现"参数发散"（$\hat{\beta} \to \infty$、$\hat{\gamma} \to -\infty$，而对数似然收敛于 Gumbel 极限）。
+
+本平台面向寿命数据，采用工程约束 $0 \leq \gamma < \min(x_i)$：对此类发散样本，估计将收敛到 $\gamma = 0$ 边界，即两参数威布尔（W2P）的 MLE 解（与 Hirose 1996 第 5.3 节的 W2P 基准一致）。

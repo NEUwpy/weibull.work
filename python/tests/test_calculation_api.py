@@ -157,3 +157,20 @@ def test_wmle_not_invoked_on_any_failure(helpers, monkeypatch):
         helpers._run_calculation_method("lre", [1, 2, 3, 4, 5])
 
     assert wmle_calls == []
+
+
+# Hirose (1996) Table 1 case 2（src/content/182-105-pdf原文.md），
+# Table 2 基准：beta=4.529, eta=6.239, gamma=22.092。
+_HIROSE_CASE2 = [27.15, 29.13, 28.28, 27.74, 28.87, 26.42, 24.46, 30.88, 29.11, 27.31,
+                 27.54, 27.98, 28.49, 26.25, 28.50, 25.61, 29.50, 28.04, 27.94, 26.66]
+
+
+def test_calculate_api_runs_real_mle_with_identity(helpers):
+    """真实后端路径：/calculate 的 MLE 调用返回 mle 身份和论文基准参数。"""
+    response = helpers._run_calculation_method("mle", _HIROSE_CASE2)
+
+    assert response["method"] == "mle"
+    assert response["converged"] is True
+    assert abs(response["beta"] - 4.529) < 0.01
+    assert abs(response["eta"] - 6.239) < 0.01
+    assert abs(response["gamma"] - 22.092) < 0.01
