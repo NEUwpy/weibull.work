@@ -3,6 +3,7 @@ placeholder resolution, tamper/dup/conflict, sealed-test)."""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
 
@@ -166,3 +167,103 @@ def test_derive_decision_candidate_covers_frozen_matrix():
     arch_decisions = {d for d in by_decision if d.startswith("architecture:A-E1:")}
     assert any("F2" in d for d in arch_decisions)
     assert any(":V:" in d or d.endswith(":V:n10") for d in arch_decisions)
+
+
+def _materialize_ae1(tmp_path):
+    from study02a.formal_scheduler import materialize_run
+    artifact_root = tmp_path / "artifacts"
+    cache_root = tmp_path / "cache"
+    run_id = "selection-di-v1"
+    materialize_run(
+        study_root=STUDY_ROOT,
+        matrix_path=STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv",
+        module_id="A-E1", run_id=run_id, artifact_root=artifact_root, cache_root=cache_root,
+        predecessor=None,
+    )
+    return artifact_root / "A-E1" / run_id, cache_root, run_id
+
+
+def test_build_module_selection_emits_v2_trace_and_receipt_with_computed_winners(tmp_path):
+    """build_module_selection (D7): derive specs from the frozen plan, score every
+    expected supporting fit, apply each rule, and publish one v2 trace + receipt.
+    Winners are COMPUTED (lowest_aggregate for A-E1); the score_fit injection stands
+    in for checkpoint scoring so no formal training is launched."""
+    from study02a.selection import FitEvaluation, SupportKey, build_decision_specs
+    from study02a.formal_executor import build_module_selection
+    import hashlib as _hl
+
+    run_dir, cache_root, run_id = _materialize_ae1(tmp_path)
+    plan_rows = [json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+
+    # Synthetic checkpoint-bound scoring: deterministic per-fit score, no formal training.
+    def score_fit(fit_id, plan_row):
+        n = "shared" if plan_row.get("n_mode") == "shared_n" else int(plan_row["fixed_n"])
+        support_key = SupportKey(n=n, seed=int(plan_row["seed"]))
+        score = 0.05 + (int(_hl.sha256(str(fit_id).encode()).hexdigest(), 16) % 1000) / 10000.0
+        return FitEvaluation(fit_id=fit_id, support_key=support_key, failed=False,
+                             checkpoint_sha256=_hl.sha256(str(fit_id).encode()).hexdigest(),
+                             selection_score=score, failure_penalty=0.0)
+
+    receipt = build_module_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+        module_id="A-E1", run_id=run_id, score_fit=score_fit,
+    )
+    assert receipt["module_id"] == "A-E1"
+    assert receipt["run_id"] == run_id
+    assert receipt["decision_count"] >= 1
+    trace_path = run_dir / "selection_trace.jsonl"
+    assert trace_path.is_file()
+    records = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    assert all("support_count" in r for r in records)  # v2 schema
+    # every decision selects exactly one winner, computed not supplied
+    from collections import defaultdict
+    by_decision = defaultdict(list)
+    for r in records:
+        by_decision[r["decision_id"]].append(r)
+    for decision_id, rows in by_decision.items():
+        assert sum(1 for r in rows if r["selected"]) == 1
+        winner = next(r for r in rows if r["selected"])
+        if rows[0]["selection_rule"] == "lowest_aggregate":
+            ranked = sorted(rows, key=lambda r: (r["validation_score"], r["candidate_id"]))
+            assert winner["candidate_id"] == ranked[0]["candidate_id"]
+    # receipt + ledger are immutable
+    assert (run_dir / "selection_receipt.json").is_file()
+    assert (run_dir / "selection_ledger.jsonl").is_file()
+    import pytest as _pt
+    with _pt.raises(FileExistsError):
+        build_module_selection(study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+                               module_id="A-E1", run_id=run_id, score_fit=score_fit)
+
+
+def test_build_module_selection_includes_failed_seeds_and_remains_consistent(tmp_path):
+    """A decision whose winning candidate contains a failed seed still selects that
+    candidate; the failed seed carries the frozen penalty (R2 #4)."""
+    from study02a.selection import FitEvaluation, SupportKey
+    from study02a.formal_executor import build_module_selection
+    import hashlib as _hl
+
+    run_dir, cache_root, run_id = _materialize_ae1(tmp_path)
+    # Mark the first derived decision's first candidate's first support fit as failed.
+    from study02a.selection import build_decision_specs
+    from study02a.matrix import expand_module_matrix as _expand
+    matrix_rows = _expand(FROZEN).to_dict("records")
+    specs = build_decision_specs("A-E1", matrix_rows)
+    first_candidate = specs[0].candidates[0]
+    failed_fit = first_candidate.support_for(first_candidate.support_keys[0])
+
+    def score_fit(fit_id, plan_row):
+        n = "shared" if plan_row.get("n_mode") == "shared_n" else int(plan_row["fixed_n"])
+        support_key = SupportKey(n=n, seed=int(plan_row["seed"]))
+        if fit_id == failed_fit:
+            return FitEvaluation(fit_id=fit_id, support_key=support_key, failed=True,
+                                 checkpoint_sha256="", selection_score=0.0, failure_penalty=10.0)
+        score = 0.05 + (int(_hl.sha256(str(fit_id).encode()).hexdigest(), 16) % 1000) / 10000.0
+        return FitEvaluation(fit_id=fit_id, support_key=support_key, failed=False,
+                             checkpoint_sha256=_hl.sha256(str(fit_id).encode()).hexdigest(),
+                             selection_score=score, failure_penalty=0.0)
+
+    receipt = build_module_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+        module_id="A-E1", run_id=run_id, score_fit=score_fit,
+    )
+    assert receipt["decision_count"] >= 1

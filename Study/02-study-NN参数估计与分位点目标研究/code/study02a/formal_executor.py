@@ -44,8 +44,14 @@ from .formal_contracts import (
     publish_selection_receipt,
     write_selection_trace,
 )
+from .selection import (
+    FitEvaluation,
+    SupportKey,
+    build_decision_specs,
+    build_selection_trace,
+)
 from .formal_data import FormalFixedBatch, FormalSetBatch  # noqa: F401  (type re-export)
-from .evaluation import evaluate_rows
+from .evaluation import evaluate_rows, evaluate_rows_per_sample
 from .formal_runner import (
     FormalDataset,
     FormalDatasetSpec,
@@ -63,6 +69,7 @@ from .formal_scheduler import (
     record_fit_succeeded,
 )
 from .models import build_deepsets, build_mlp
+from .matrix import expand_module_matrix
 from .training import fit_fixed_candidate, fit_set_candidate, load_checkpoint
 
 
@@ -227,6 +234,60 @@ def validation_failure_penalized_l_param(
     return float(evaluate_rows(rows, failure_penalty=10.0)["unconditional_mean_l_param"])
 
 
+def validation_failure_penalized_l_param_points(
+    *, checkpoint_bytes: bytes,
+    model_factory: Callable[[], nn.Module],
+    validation_batch: FormalFixedBatch | FormalSetBatch,
+    validation_metadata: Sequence[Mapping[str, Any]],
+    seed_id: str,
+    is_set: bool,
+) -> tuple[float, tuple[dict, ...]]:
+    """Per-sample failure-penalized evidence derived from the integrity-bound checkpoint.
+
+    Like :func:`validation_failure_penalized_l_param` but returns the per-sample
+    records (stable pairing via ``sample_id``/``point_id`` from the validation
+    cache metadata, plus the fit's ``seed_id``) that the CI rules cluster on, in
+    addition to the scalar mean. The scalar equals the mean of the per-sample
+    ``L_param`` values, matching the frozen ranking metric. This is the
+    no-sidecar, checkpoint-bound per-parameter-point evaluation evidence the
+    decision-rule engine consumes (R2: a scalar selection_score is insufficient
+    to verify a CI).
+    """
+    if len(validation_metadata) != int(location_of_batch(validation_batch)):
+        raise ValueError("validation metadata length must match the validation batch size")
+    state = load_checkpoint(checkpoint_bytes)
+    model = model_factory()
+    model.load_state_dict(state)
+    model.eval()
+    with torch.no_grad():
+        if is_set:
+            prediction = model(validation_batch.values, validation_batch.mask, validation_batch.model_n)
+        else:
+            prediction = model(validation_batch.features)
+    location = validation_batch.location.detach().cpu().numpy().astype(float)
+    scale = validation_batch.scale.detach().cpu().numpy().astype(float)
+    beta_hat, eta_hat, gamma_hat = _decode_param_columns(prediction, location, scale)
+    beta_true, eta_true, gamma_true = _decode_param_columns(validation_batch.targets, location, scale)
+    rows = [
+        {
+            "sample_id": str(validation_metadata[i].get("sample_id", f"val:{i:07d}")),
+            "point_id": str(validation_metadata[i].get("point_id", f"point-{i:07d}")),
+            "seed_id": str(seed_id),
+            "beta_hat": float(beta_hat[i]), "eta_hat": float(eta_hat[i]), "gamma_hat": float(gamma_hat[i]),
+            "beta": float(beta_true[i]), "eta": float(eta_true[i]), "gamma": float(gamma_true[i]),
+            "sample_min": float(location[i]),
+        }
+        for i in range(location.size)
+    ]
+    records = tuple(evaluate_rows_per_sample(rows, failure_penalty=10.0))
+    scalar = float(sum(record["l_param"] for record in records) / len(records)) if records else 10.0
+    return scalar, records
+
+
+def location_of_batch(batch: FormalFixedBatch | FormalSetBatch) -> int:
+    return int(batch.location.shape[0])
+
+
 def _is_selection_dependent(plan_row: Mapping[str, Any]) -> bool:
     """A fit whose architecture/optimizer/loss is a ``selected:`` / ``selected_top_`` placeholder.
 
@@ -379,11 +440,13 @@ class _PreparedFit:
     Both single-fit execution and D7 selection scoring prepare the validation
     batch through this path so the L_param is computed on the exact scaled
     validation set the fit trained against — no drift between training and
-    selection.
+    selection. ``validation_metadata`` carries the per-row stable pairing ids
+    (sample_id / point_id) the CI rules cluster on.
     """
 
     scaled_training: Any
     scaled_validation: FormalFixedBatch | FormalSetBatch
+    validation_metadata: tuple[Mapping[str, Any], ...]
     model_factory: Callable[[], nn.Module]
     hyperparams: Mapping[str, Any]
     loss_id: str
@@ -412,7 +475,10 @@ def _prepare_fit_inputs(
     model_factory = resolve_model_factory(str(plan_row["architecture"]), frozen, input_dim)
     hyperparams = resolve_optimizer_hyperparams(str(plan_row["optimizer"]), frozen)
     loss_id = resolve_loss_id(str(plan_row["loss"]))
-    return _PreparedFit(scaled_training, scaled_validation, model_factory, hyperparams, loss_id, is_set)
+    return _PreparedFit(
+        scaled_training, scaled_validation, tuple(validation_dataset.metadata),
+        model_factory, hyperparams, loss_id, is_set,
+    )
 
 
 def execute_claimed_fit(
@@ -614,29 +680,135 @@ def run_module(
 # ---------------------------------------------------------------------------
 
 def build_module_selection(
-    *, study_root: Path, run_dir: Path, cache_root: Path, module_id: str, run_id: str
+    *, study_root: Path, run_dir: Path, cache_root: Path, module_id: str, run_id: str,
+    score_fit: Callable[[str, Mapping[str, Any]], Any] | None = None,
 ) -> dict[str, Any]:
-    """Build the selection trace/receipt/ledger for a completed module (D7).
+    """Build the v2 selection trace/receipt/ledger for a completed module (D7).
 
-    Ranks each decision's candidates by the frozen ranking rule
-    (``mean_validation_failure_penalized_l_param_across_screening_seeds_ascending``
-    with ``architecture_id_lexicographic`` tie-break) and publishes the immutable
-    selection evidence consumed by downstream modules and by ``selected:*``
-    placeholder resolution.
+    Derives the module's DecisionSpecs deterministically from the frozen plan, scores
+    each expected supporting fit's integrity-bound checkpoint (mean failure-penalized
+    validation ``L_param`` + per-parameter-point evidence, no sidecar), and publishes
+    one immutable selection trace + receipt whose winner each rule COMPUTES (never a
+    caller-supplied winner). ``score_fit(fit_id, plan_row)`` may be supplied to inject
+    bound :class:`~study02a.selection.FitEvaluation` evidence (used by tests); by default
+    each succeeded fit is scored from ``outputs/{fit_id}/checkpoint.pt`` and each failed
+    fit carries the frozen penalty.
 
-    The scoring primitive (:func:`validation_failure_penalized_l_param`) is implemented
-    and verified — it derives a candidate's mean failure-penalized validation L_param
-    from its integrity-bound checkpoint. The remaining wiring (gathering a module's
-    succeeded fits, aggregating across screening seeds with a representative checkpoint,
-    the staged A-E1 execution where stage-2 ``selected_top_*`` fits require the stage-1
-    ranking to be resolved first, and the per-axis decision grouping for
-    output_form/distribution/training_size) is the subject of Codex review; this entry
-    point fails closed until that wiring lands. The frozen metric and failure penalty
-    are unchanged from the protocol.
+    Scope (relay 2026-07-18): the engine path -- derive specs, score, aggregate, apply
+    the rule, emit trace + receipt for the module's concrete screening decisions in one
+    pass. The staged A-E1 execution (stage1 -> selected_top -> stage2 -> baseline_input,
+    interleaved with execution) and D8 (placeholder resolution / deferred-spec / A-E3<-A-E1
+    / A-E2<-A-E3 predecessor wiring) remain fail-closed in ``resolve_selected_placeholders``
+    / ``reconstruct_deferred_specs``. No receipt is published before every decision's rule
+    has been applied and verified (``build_selection_trace`` raises on any inconsistent or
+    incomplete evidence before records are written).
     """
-    raise NotImplementedError(
-        "build_module_selection (D7) wiring is pending Codex review of the staged-execution "
-        "and decision-grouping design; the L_param scoring primitive is implemented and verified"
+    study_root = Path(study_root).resolve()
+    run_dir = Path(run_dir).resolve()
+    cache_root = Path(cache_root).resolve()
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+    plan_rows = [
+        json.loads(line)
+        for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    plan_by_fit = {str(row["fit_id"]): row for row in plan_rows}
+    # DecisionSpecs are derived from the frozen matrix (which carries module/fit_kind/n),
+    # not from plan.jsonl (whose rows rename those fields); the plan rows supply the runtime
+    # per-fit metadata used for scoring. The matrix is the same frozen authority pre-unseal
+    # reopens, so the two derivations agree.
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    specs = build_decision_specs(module_id, matrix_rows)
+    if not specs:
+        raise ValueError(f"build_module_selection derived no selection decisions for module {module_id!r}")
+
+    fit_states: Mapping[str, str] = {}
+    if score_fit is None:
+        fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+
+    evaluations_by_fit: dict[str, FitEvaluation] = {}
+    for spec in specs:
+        for candidate in spec.candidates:
+            for key in candidate.support_keys:
+                fit_id = candidate.support_for(key)
+                plan_row = plan_by_fit[fit_id]
+                if score_fit is not None:
+                    evaluation = score_fit(fit_id, plan_row)
+                else:
+                    evaluation = _score_fit_from_checkpoint(
+                        run_dir=run_dir, cache_root=cache_root, fit_id=fit_id,
+                        plan_row=plan_row, frozen=frozen, effective=effective, fit_states=fit_states,
+                    )
+                if evaluation.support_key != key:
+                    raise ValueError(
+                        f"scored fit {fit_id!r} support {evaluation.support_key!r} disagrees with "
+                        f"frozen expected {key!r}"
+                    )
+                evaluations_by_fit[fit_id] = evaluation
+
+    records = build_selection_trace(
+        module_id=module_id, run_id=run_id, specs=specs, evaluations_by_fit=evaluations_by_fit,
+    )
+    trace_path = run_dir / "selection_trace.jsonl"
+    trace_sha = write_selection_trace(trace_path, records)
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    receipt = publish_selection_receipt(
+        receipt_path=run_dir / "selection_receipt.json",
+        ledger_path=run_dir / "selection_ledger.jsonl",
+        module_id=module_id, run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=effective, code_commit=manifest["code_commit"],
+    )
+    return {
+        "module_id": module_id, "run_id": run_id, "selection_trace_sha256": trace_sha,
+        "decision_count": len(specs), "record_count": len(records), **receipt,
+    }
+
+
+def _n_key_of(row: Mapping[str, Any]) -> int | str:
+    """Recover the SupportKey ``n`` from a plan row (``n_mode``/``fixed_n``) or matrix row (``n``)."""
+    if row.get("n_mode") == "shared_n" or row.get("n") == "shared":
+        return "shared"
+    if row.get("fixed_n") is not None:
+        return int(row["fixed_n"])
+    return int(row["n"])
+
+
+def _score_fit_from_checkpoint(
+    *, run_dir: Path, cache_root: Path, fit_id: str, plan_row: Mapping[str, Any],
+    frozen: FrozenConfig, effective: EffectiveFormalConfig, fit_states: Mapping[str, str],
+) -> FitEvaluation:
+    """Score one fit from its integrity-bound checkpoint (the default, no sidecar).
+
+    Succeeded fits are loaded, forwarded on their exact scaled validation batch, decoded
+    and scored per-parameter-point; failed fits carry the frozen penalty. A fit that is
+    neither succeeded nor failed (pending / missing) means the decision's support is
+    incomplete and selection fails closed.
+    """
+    support_key = SupportKey(n=_n_key_of(plan_row), seed=int(plan_row["seed"]))
+    status = fit_states.get(fit_id)
+    if status == "failed":
+        return FitEvaluation(
+            fit_id=fit_id, support_key=support_key, failed=True, checkpoint_sha256="",
+            selection_score=0.0, failure_penalty=10.0,
+        )
+    if status != "succeeded":
+        raise ValueError(
+            f"build_module_selection expected fit {fit_id!r} to be terminal, but its state is "
+            f"{status!r}; a decision's support must be complete before selection"
+        )
+    checkpoint_path = run_dir / "outputs" / fit_id / "checkpoint.pt"
+    checkpoint_bytes = checkpoint_path.read_bytes()
+    prepared = _prepare_fit_inputs(plan_row, frozen, effective, cache_root)
+    scalar, point_records = validation_failure_penalized_l_param_points(
+        checkpoint_bytes=checkpoint_bytes, model_factory=prepared.model_factory,
+        validation_batch=prepared.scaled_validation, validation_metadata=prepared.validation_metadata,
+        seed_id=str(plan_row["seed"]), is_set=prepared.is_set,
+    )
+    return FitEvaluation(
+        fit_id=fit_id, support_key=support_key, failed=False,
+        checkpoint_sha256=hashlib.sha256(checkpoint_bytes).hexdigest(),
+        selection_score=scalar, failure_penalty=0.0, point_records=point_records,
     )
 
 
@@ -651,6 +823,7 @@ def reconstruct_deferred_specs(*arg: Any, **kw: Any) -> Any:  # pragma: no cover
 
 
 __all__ = [
+    "build_module_selection",
     "execute_claimed_fit",
     "reconstruct_a_e1_specs",
     "resolve_loss_id",
