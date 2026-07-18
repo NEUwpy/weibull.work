@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 import sys
 
@@ -595,3 +596,495 @@ def test_run_module_defers_selection_dependent_fits(tmp_path, monkeypatch):
     assert summary["failed_count"] == 0
     assert summary["selection_required_count"] == 1
     assert summary["selection_required"] == ["G3-fit-0000"]
+
+
+# ---------------------------------------------------------------------------
+# D8 staged A-E1 selection resolver (resolve_a_e1_staged_selection).
+# Real frozen A-E1 matrix (stage1+stage2, F2+V), deterministic synthetic scoring
+# injected via score_fit (no training launched, no test opened). Exercises the full
+# stage1 -> top4 -> stage2 -> winner-retrain -> F2/V baseline -> final aliases chain,
+# the immutable hash-bound append-only staged ledger, idempotent crash recovery, and
+# every fail-closed path. No formal run is launched; no test data is opened.
+# ---------------------------------------------------------------------------
+
+_STAGED_RUN_ID = "G3-AE1-staged-v1"
+
+
+def _staged_score(decision_id: str, candidate_id: str) -> float:
+    """Deterministic per-candidate base score over the real staged decisions.
+
+    stage1 (architecture): m01 best .. m12 worst (so top4 = [m01, m02, m03, m04] on both
+    routes). stage2: F2 winner = selected_top_2:o2, V winner = selected_top_3:o3 (distinct
+    per route so final aliases provably track the winning route)."""
+    if decision_id.startswith("architecture:"):
+        return 0.01 * int(candidate_id[1:])  # m01 -> 0.01 ... m12 -> 0.12
+    route = decision_id.split(":")[2]  # stage2:A-E1:{F2|V}:n10
+    forced = {"F2": "selected_top_2:o2", "V": "selected_top_3:o3"}[route]
+    if candidate_id == forced:
+        return 0.001
+    slot_n = int(candidate_id.split(":")[0].rsplit("_", 1)[-1])
+    opt = candidate_id.split(":")[1]
+    return 0.5 + slot_n * 0.1 + ("o1o2o3".index(opt) // 2) * 0.01
+
+
+def _staged_specs_and_evaluations():
+    """Build the 4 real staged A-E1 decision specs (stage1+stage2 x F2+V) with synthetic
+    checkpoint-bound evaluations, scored by :func:`_staged_score`."""
+    scope = [r for r in MATRIX_ROWS if str(r["module"]) == "A-E1"
+             and str(r["fit_kind"]) in ("search_stage1", "search_stage2")
+             and str(r["route"]) in ("F2", "V")]
+    specs = build_decision_specs("A-E1", scope)
+    assert len(specs) == 4
+    evaluations: dict[str, FitEvaluation] = {}
+    for spec in specs:
+        for cand in spec.candidates:
+            base = float(_staged_score(spec.decision_id, cand.candidate_id))
+            for key in cand.support_keys:
+                fit_id = cand.support_for(key)
+                records = _synth_point_records(fit_id, int(key.seed), base)
+                aggregate = sum(rec["l_param"] for rec in records) / len(records)
+                evaluations[fit_id] = FitEvaluation(
+                    fit_id=fit_id, module_id="A-E1", decision_id=spec.decision_id,
+                    candidate_id=cand.candidate_id, support_key=key, failed=False,
+                    checkpoint_sha256=hashlib.sha256(fit_id.encode("utf-8")).hexdigest(),
+                    validation_identity=f"val-cache-{fit_id}", selection_score=aggregate,
+                    failure_penalty=0.0, point_records=records,
+                )
+    return specs, evaluations
+
+
+def _publish_staged_run(tmp_path: Path, specs, evaluations, *,
+                        run_id=_STAGED_RUN_ID, code_commit=_D8_CODE_COMMIT,
+                        winner_retrain_only_plan=True):
+    """Publish a real staged A-E1 selection trace + receipt + ledger + manifest + plan into
+    ``tmp_path/A-E1/<run_id>`` and return ``(run_dir, trace_sha, records)``."""
+    run_dir = tmp_path / "A-E1" / run_id
+    run_dir.mkdir(parents=True)
+    records, _diag = build_selection_trace(
+        module_id="A-E1", run_id=run_id, specs=tuple(specs), evaluations_by_fit=evaluations,
+    )
+    trace_path = run_dir / "selection_trace.jsonl"
+    trace_sha = write_selection_trace(trace_path, records)
+    publish_selection_receipt(
+        receipt_path=run_dir / "selection_receipt.json",
+        ledger_path=run_dir / "selection_ledger.jsonl",
+        module_id="A-E1", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=EFFECTIVE, code_commit=code_commit,
+    )
+    run_dir.joinpath("manifest.json").write_text(
+        json.dumps({"code_commit": code_commit}, sort_keys=True) + "\n", encoding="utf-8")
+    plan_rows = [r for r in MATRIX_ROWS if str(r["module"]) == "A-E1"]
+    if winner_retrain_only_plan:
+        plan_rows = [r for r in plan_rows if str(r["fit_kind"]) == "winner_retrain"]
+    (run_dir / "plan.jsonl").write_text(
+        "".join(json.dumps(r, sort_keys=True) + "\n" for r in plan_rows), encoding="utf-8")
+    return run_dir, trace_sha, records
+
+
+def _baseline_point_records(n: int, seed: int, base: float):
+    """Route-independent winner-retrain point records so F2 and V pair on (seed_id, sample_id).
+
+    Both routes' winner-retrain fits are evaluated on the same frozen validation parameter
+    points, so sample_id/point_id are derived from the support point (n) + parameter point
+    -- never from the fit_id (which differs per route and would break the paired grid)."""
+    records = []
+    for p in range(2):
+        for s in range(2):
+            value = base + ((seed % 7) + p + s) * 0.001
+            records.append({
+                "sample_id": f"n{n}:pt{p}:rep{s}", "seed_id": str(seed),
+                "point_id": f"n{n}:pt{p}", "legal": True, "failure": 0,
+                "l_param": value, "e_beta": value, "e_eta": value, "e_gamma": value,
+            })
+    return records
+
+
+def _baseline_score_fit(*, f2: float = 0.10, v: float = 0.20):
+    """score_fit for the F2/V winner-retrain baseline; F2 < V on every paired point so F2 is
+    globally better under the frozen relative-RMSE rule."""
+    def score_fit(fit_id, plan_row):
+        route = str(plan_row["route"])
+        n = int(plan_row["n"]); seed = int(plan_row["seed"])
+        base = f2 if route == "F2" else v
+        records = _baseline_point_records(n, seed, base)
+        aggregate = sum(rec["l_param"] for rec in records) / len(records)
+        return FitEvaluation(
+            fit_id=fit_id, module_id="A-E1", decision_id="baseline_input:A-E1:F2_vs_V",
+            candidate_id=route, support_key=SupportKey(n=n, seed=seed), failed=False,
+            checkpoint_sha256=hashlib.sha256(fit_id.encode("utf-8")).hexdigest(),
+            validation_identity=f"val-cache-{fit_id}", selection_score=aggregate,
+            failure_penalty=0.0, point_records=records,
+        )
+    return score_fit
+
+
+def _assert_chained_ledger(run_dir: Path) -> list[dict]:
+    ledger_path = run_dir / fe._STAGED_LEDGER_NAME
+    assert ledger_path.is_file()
+    records = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert records, "staged ledger is empty"
+    previous = fe._ZERO_HASH
+    for record in records:
+        assert record["previous_record_sha256"] == previous  # hash-bound chain from ZERO_HASH
+        # each record's self-hash is recomputed from its core and matches what was written
+        core = {k: record[k] for k in (
+            "record_version", "module_id", "run_id", "code_commit", "effective_config_sha256",
+            "selection_trace_sha256", "stage", "route", "previous_record_sha256", "input",
+            "resolution", "resolution_sha256")}
+        assert hashlib.sha256(fe._canonical(core)).hexdigest() == record["record_sha256"]
+        previous = record["record_sha256"]
+    return records
+
+
+def test_resolve_a_e1_staged_selection_smoke_real_matrix(tmp_path):
+    """Full real-matrix staged smoke: every frozen A-E1 placeholder resolves through the
+    immutable chained ledger; final aliases provably take the winning route's stage2."""
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, trace_sha, _records = _publish_staged_run(tmp_path, specs, evaluations)
+    result = fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit(),
+    )
+    assert result["module_id"] == "A-E1"
+    assert result["selection_trace_sha256"] == trace_sha
+    assert result["pending"] == []  # every stage resolved
+    for route in ("F2", "V"):
+        top4 = result["top4_by_route"][route]
+        assert list(top4) == ["selected_top_1", "selected_top_2", "selected_top_3", "selected_top_4"]
+        # stage1 ranking m01 < m02 < m03 < m04 (lowest_aggregate), independent of route
+        assert (top4["selected_top_1"], top4["selected_top_2"],
+                top4["selected_top_3"], top4["selected_top_4"]) == ("m01", "m02", "m03", "m04")
+        s2 = result["stage2_by_route"][route]
+        assert s2["selected:A-E1_loss"] == "transformed_train_z_huber"  # frozen stage2 loss
+    # stage2 winners are distinct per route (forced by _staged_score)
+    assert result["stage2_by_route"]["F2"] == {
+        "selected:A-E1_loss": "transformed_train_z_huber",
+        "selected:A-E1_architecture": "m02",  # selected_top_2 -> rank-2 architecture
+        "selected:A-E1_optimizer": "o2"}
+    assert result["stage2_by_route"]["V"] == {
+        "selected:A-E1_loss": "transformed_train_z_huber",
+        "selected:A-E1_architecture": "m03",  # selected_top_3 -> rank-3 architecture
+        "selected:A-E1_optimizer": "o3"}
+    # F2 carries the lower (better) winner-retrain aggregate -> global_better_rule selects F2
+    assert result["selected_F2_or_V"] == "F2"
+    # final aliases take the WINNING route's stage2 (F2), not V's
+    assert result["final_aliases"] == result["stage2_by_route"]["F2"]
+    _assert_chained_ledger(run_dir)
+
+
+def test_resolve_a_e1_staged_selection_pending_without_trace(tmp_path):
+    """No selection trace yet -> every stage is pending (a staged run that has not started)."""
+    run_dir = tmp_path / "A-E1" / _STAGED_RUN_ID
+    run_dir.mkdir(parents=True)
+    result = fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache", run_id=_STAGED_RUN_ID)
+    assert result["selection_trace_sha256"] is None
+    assert result["top4_by_route"] == {} and result["stage2_by_route"] == {}
+    assert result["selected_F2_or_V"] is None and result["final_aliases"] is None
+    assert result["pending"] == ["stage1", "stage2", "winner_retrain", "baseline_input", "final_aliases"]
+
+
+def test_resolve_a_e1_staged_selection_idempotent_recovery(tmp_path):
+    """A recovery rerun recomputes each stage, reuses records whose resolution matches, and
+    leaves the ledger chained and line-count stable (no double-consume, no overwrite)."""
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _sha, _rec = _publish_staged_run(tmp_path, specs, evaluations)
+    first = fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit())
+    ledger_path = run_dir / fe._STAGED_LEDGER_NAME
+    lines_after_first = ledger_path.read_text(encoding="utf-8").splitlines()
+    # second call: identical inputs -> idempotent reuse, same record_sha256 chain, no new lines
+    second = fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit())
+    assert second["record_sha256"] == first["record_sha256"]
+    assert second["final_aliases"] == first["final_aliases"]
+    assert ledger_path.read_text(encoding="utf-8").splitlines() == lines_after_first
+
+
+def test_resolve_a_e1_staged_selection_rejects_conflicting_duplicate(tmp_path):
+    """A second, DIFFERENT resolution for an already-published stage/route (a duplicate stage
+    receipt / stale mapping) is rejected -- never silently overwritten."""
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _sha, _rec = _publish_staged_run(tmp_path, specs, evaluations)
+    fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit())
+    ledger_path = run_dir / fe._STAGED_LEDGER_NAME
+    # corrupt the first published record's resolution_sha in place (a stale mapping left by a
+    # conflicting re-resolution); the recomputed record disagrees -> fail closed, no overwrite.
+    lines = ledger_path.read_text(encoding="utf-8").splitlines()
+    first = json.loads(lines[0])
+    first["resolution_sha256"] = "f" * 64
+    lines[0] = json.dumps(first, sort_keys=True)
+    ledger_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate stage receipt|stale mapping"):
+        fe.resolve_a_e1_staged_selection(
+            study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+            run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit())
+
+
+def test_resolve_a_e1_staged_selection_rejects_wrong_support_key(tmp_path):
+    """A winner-retrain evaluation whose support_key disagrees with the frozen expected
+    support (wrong n/seed) is rejected before the baseline is derived."""
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _sha, _rec = _publish_staged_run(tmp_path, specs, evaluations)
+
+    def wrong_score_fit(fit_id, plan_row):
+        return FitEvaluation(
+            fit_id=fit_id, module_id="A-E1", decision_id="baseline_input:A-E1:F2_vs_V",
+            candidate_id=str(plan_row["route"]),
+            support_key=SupportKey(n=999, seed=999),  # disagrees with the frozen support
+            failed=False, checkpoint_sha256=hashlib.sha256(fit_id.encode("utf-8")).hexdigest(),
+            validation_identity=f"val-cache-{fit_id}", selection_score=0.10, failure_penalty=0.0,
+            point_records=_synth_point_records(fit_id, 999, 0.10))
+    with pytest.raises(ValueError, match="support|disagrees"):
+        fe.resolve_a_e1_staged_selection(
+            study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+            run_id=_STAGED_RUN_ID, score_fit=wrong_score_fit)
+
+
+def test_resolve_a_e1_staged_selection_rejects_tampered_trace(tmp_path):
+    """A hand-edited selection trace whose bytes no longer match the receipt-bound SHA is
+    rejected before any staged placeholder resolves."""
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _sha, _rec = _publish_staged_run(tmp_path, specs, evaluations)
+    with (run_dir / "selection_trace.jsonl").open("a", encoding="utf-8") as handle:
+        handle.write('{"tampered": true}\n')  # changes the trace bytes -> SHA mismatch
+    with pytest.raises(ValueError, match="SHA-256"):
+        fe.resolve_a_e1_staged_selection(
+            study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+            run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit())
+
+
+def test_resolve_a_e1_staged_selection_rejects_missing_stage_decision(tmp_path):
+    """A trace that carries stage1 but not stage2 (an incomplete staged run) cannot resolve:
+    invoking the resolver on it fails closed rather than guessing stage2."""
+    scope = [r for r in MATRIX_ROWS if str(r["module"]) == "A-E1"
+             and str(r["fit_kind"]) == "search_stage1" and str(r["route"]) in ("F2", "V")]
+    specs = build_decision_specs("A-E1", scope)  # stage1 only, no stage2
+    evaluations: dict[str, FitEvaluation] = {}
+    for spec in specs:
+        for cand in spec.candidates:
+            base = float(_staged_score(spec.decision_id, cand.candidate_id))
+            for key in cand.support_keys:
+                fit_id = cand.support_for(key)
+                evaluations[fit_id] = FitEvaluation(
+                    fit_id=fit_id, module_id="A-E1", decision_id=spec.decision_id,
+                    candidate_id=cand.candidate_id, support_key=key, failed=False,
+                    checkpoint_sha256=hashlib.sha256(fit_id.encode("utf-8")).hexdigest(),
+                    validation_identity=f"val-cache-{fit_id}",
+                    selection_score=base, failure_penalty=0.0,
+                    point_records=_synth_point_records(fit_id, int(key.seed), base))
+    run_dir, _sha, _rec = _publish_staged_run(tmp_path, specs, evaluations)
+    with pytest.raises(ValueError, match="stage2 decision"):
+        fe.resolve_a_e1_staged_selection(
+            study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+            run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit())
+
+
+def test_formal_staged_cli_wires_resolver(tmp_path, monkeypatch):
+    """The formal-staged CLI command is a real production call point: it derives run_dir from
+    the run authority and forwards to resolve_a_e1_staged_selection (caller never supplies
+    winner/top4/baseline)."""
+    import run_study02a
+    captured: dict[str, object] = {}
+
+    def fake(**kwargs):
+        captured.update(kwargs)
+        return {"module_id": kwargs["module_id"], "pending": ["stage1"]}
+
+    monkeypatch.setattr(run_study02a, "resolve_a_e1_staged_selection", fake)
+    payload = run_study02a.resolve_staged("A-E1", _STAGED_RUN_ID, tmp_path, tmp_path / "cache")
+    assert payload == {"module_id": "A-E1", "pending": ["stage1"]}
+    assert captured["module_id"] == "A-E1" and captured["run_id"] == _STAGED_RUN_ID
+    assert Path(captured["run_dir"]) == tmp_path / "A-E1" / _STAGED_RUN_ID
+    assert captured["study_root"] == run_study02a.STUDY_ROOT
+    assert "score_fit" not in captured  # production never accepts a caller-supplied winner
+
+
+def test_build_module_selection_wires_staged_resolution(tmp_path, monkeypatch):
+    """Production call point: build_module_selection derives the staged A-E1 ledger from its own
+    published trace once every staged decision is present, and returns it under 'staged'.
+
+    score_fit stands in for checkpoint scoring (no training, no materialize); the staged
+    sub-call's production winner-retrain scoring is stubbed to a pending run state (no
+    checkpoints read), proving the wiring fires, resolves stage1/stage2, and reports the
+    downstream baseline as pending without raising."""
+    _specs, evaluations = _staged_specs_and_evaluations()
+    run_dir = tmp_path / "A-E1" / _STAGED_RUN_ID
+    run_dir.mkdir(parents=True)
+    plan_rows = [r for r in MATRIX_ROWS if str(r["module"]) == "A-E1"]
+    (run_dir / "plan.jsonl").write_text(
+        "".join(json.dumps(r, sort_keys=True) + "\n" for r in plan_rows), encoding="utf-8")
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setattr(fe, "_rebuild_authority",
+                        lambda run_dir, cache_root: (None, None, {"fit_states": {}}, []))
+
+    def score_fit(fit_id, plan_row):
+        return evaluations[fit_id]  # pre-built stage1/stage2 evaluation
+
+    receipt = fe.build_module_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        module_id="A-E1", run_id=_STAGED_RUN_ID, score_fit=score_fit)
+    assert receipt["staged"] is not None
+    assert receipt["staged"]["selection_trace_sha256"] == receipt["selection_trace_sha256"]
+    # winner-retrain not executed (stubbed pending) -> baseline/final pending, stages resolved
+    assert "baseline_input" in receipt["staged"]["pending"]
+    assert "final_aliases" in receipt["staged"]["pending"]
+    for route in ("F2", "V"):
+        top4 = receipt["staged"]["top4_by_route"][route]
+        assert set(top4) == {"selected_top_1", "selected_top_2", "selected_top_3", "selected_top_4"}
+        assert top4["selected_top_1"] == "m01"  # stage1 ranking derived from the trace
+        s2 = receipt["staged"]["stage2_by_route"][route]
+        assert s2["selected:A-E1_loss"] == "transformed_train_z_huber"
+    assert (run_dir / "staged_resolution_ledger.jsonl").is_file()
+
+
+# ---------------------------------------------------------------------------
+# Pre-unseal accreditation CLI wiring (Task 9 Step 6/8 + D8 deferred specs).
+# authorize wraps initialize_formal_state + authorize_test_once (stops before consume);
+# resolve-deferred wraps reconstruct_deferred_specs. No training; test stays sealed.
+# ---------------------------------------------------------------------------
+
+_ACCCR_RUN_ID = "G3-AE1-accredit-v1"
+_ACCCR_COMMIT = "c" * 40
+
+
+def _accredit_bundle_inputs(run_dir: Path, *, trace_sha: str = "d" * 64):
+    """Minimal sealed pre-unseal bundle + ceiling + leakage + oracle-review on disk (mirrors the
+    formal_state lifecycle fixture) so the authorize CLI can run end-to-end on a fake run."""
+    run_dir.mkdir(parents=True, exist_ok=True)
+    ceiling = run_dir / "ceiling_hit_report.json"
+    leakage = run_dir / "leakage_audit.json"
+    oracle = run_dir / "oracle_review.json"
+    ceiling.write_bytes(b"ceiling-evidence\n")
+    leakage.write_bytes(b"leakage-evidence\n")
+    oracle.write_bytes(b"oracle-review-evidence\n")
+    bundle = {
+        "bundle_version": "study02-pre-unseal-v1",
+        "code_commit": _ACCCR_COMMIT,
+        "effective_config_sha256": EFFECTIVE.effective_config_sha256,
+        "module_run_ids": {"A-E1": _ACCCR_RUN_ID},
+        "selection_trace_hashes": {"A-E1": trace_sha},
+        "artifact_hashes": {
+            str(ceiling): hashlib.sha256(ceiling.read_bytes()).hexdigest(),
+            str(leakage): hashlib.sha256(leakage.read_bytes()).hexdigest(),
+        },
+        "test_state": "sealed",
+    }
+    bundle_path = run_dir / "pre_unseal_bundle.json"
+    bundle_path.write_bytes(
+        (json.dumps(bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8"))
+    return bundle_path, ceiling, leakage, oracle, trace_sha
+
+
+def _publish_accredit_approval(approval_path: Path, bundle_path: Path, ceiling, leakage, oracle, trace_sha):
+    from study02a.formal_state import publish_oracle_approval
+    publish_oracle_approval(
+        approval_path=approval_path, approval_version="study02-test-unseal-approval-v1",
+        decision="APPROVE test unseal", code_commit=_ACCCR_COMMIT,
+        effective_config_sha256=EFFECTIVE.effective_config_sha256,
+        pre_unseal_bundle_sha256=hashlib.sha256(bundle_path.read_bytes()).hexdigest(),
+        selection_trace_hashes={"A-E1": trace_sha},
+        ceiling_report_sha256=hashlib.sha256(ceiling.read_bytes()).hexdigest(),
+        leakage_audit_sha256=hashlib.sha256(leakage.read_bytes()).hexdigest(),
+        oracle_review_artifact_sha256=hashlib.sha256(oracle.read_bytes()).hexdigest(),
+        issued_at="2026-07-19T10:00:00+08:00",
+    )
+
+
+def test_formal_accredit_authorize_requires_external_approval_then_stops(tmp_path):
+    """The authorize CLI binds an EXTERNAL oracle approval, transitions sealed -> unsealed_once,
+    and stops: consume_test_once is not exposed on the CLI surface (test is never read)."""
+    import run_study02a
+    run_dir = tmp_path / "A-E1" / _ACCCR_RUN_ID
+    bundle_path, ceiling, leakage, oracle, trace_sha = _accredit_bundle_inputs(run_dir)
+    approval_path = run_dir / "approval.json"
+    _publish_accredit_approval(approval_path, bundle_path, ceiling, leakage, oracle, trace_sha)
+    state = run_study02a.accredit_authorize(
+        module="A-E1", run_id=_ACCCR_RUN_ID, artifact_root=tmp_path,
+        approval_path=approval_path, oracle_review_path=oracle, run_family_id="G3-formal",
+        timestamp="2026-07-19T11:00:00+08:00")
+    assert state["state"] == "unsealed_once"
+    assert state["transition_seq"] == 1
+    assert state["test_access_count"] == 1
+    assert state["approval_sha256"] == hashlib.sha256(approval_path.read_bytes()).hexdigest()
+    # consume is deliberately not wired into the CLI
+    assert not hasattr(run_study02a, "consume_test")
+    # repeat authorize fails closed (state is no longer sealed)
+    import pytest as _pt
+    with _pt.raises(Exception):
+        run_study02a.accredit_authorize(
+            module="A-E1", run_id=_ACCCR_RUN_ID, artifact_root=tmp_path,
+            approval_path=approval_path, oracle_review_path=oracle, run_family_id="G3-formal",
+            timestamp="2026-07-19T11:30:00+08:00")
+
+
+def test_formal_resolve_deferred_cli_a_e3_from_a_e1(tmp_path):
+    """The resolve-deferred CLI reconstructs A-E3 concrete dataset specs from a verified A-E1
+    predecessor trace (no training); cache keys match the scheduler's deferred-dataset-v1 plan."""
+    import run_study02a
+    specs, evaluations = _staged_specs_and_evaluations()
+    pred_run_id = "G3-AE1-pred-v1"
+    pred_dir = tmp_path / "A-E1" / pred_run_id
+    pred_dir.mkdir(parents=True)
+    records, _diag = build_selection_trace(
+        module_id="A-E1", run_id=pred_run_id, specs=tuple(specs), evaluations_by_fit=evaluations)
+    trace_path = pred_dir / "selection_trace.jsonl"
+    trace_sha = write_selection_trace(trace_path, records)
+    publish_selection_receipt(
+        receipt_path=pred_dir / "selection_receipt.json", ledger_path=pred_dir / "selection_ledger.jsonl",
+        module_id="A-E1", run_id=pred_run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=EFFECTIVE, code_commit=_D8_CODE_COMMIT)
+    (pred_dir / "manifest.json").write_text(json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+    route, distribution, n_mode, fixed_n, training_size = "selected:F2_or_V", "core_continuous", "fixed_n", 10, 100000
+    t_key = _deferred_cache_key("training", route=route, distribution=distribution, n_mode=n_mode,
+                                fixed_n=fixed_n, training_size=training_size, pred_sha=trace_sha)
+    v_key = _deferred_cache_key("validation", route=route, distribution=distribution, n_mode=n_mode,
+                                fixed_n=fixed_n, training_size=training_size, pred_sha=trace_sha)
+    ae3_dir = tmp_path / "A-E3" / "r1"
+    ae3_dir.mkdir(parents=True)
+    (ae3_dir / "plan.jsonl").write_text(json.dumps({
+        "fit_id": "G3-AE3-0000", "module_id": "A-E3", "route": route, "distribution": distribution,
+        "n_mode": n_mode, "fixed_n": fixed_n, "training_size": training_size,
+        "predecessor_trace_sha256": trace_sha, "training_cache_key": t_key, "validation_cache_key": v_key,
+    }, sort_keys=True) + "\n", encoding="utf-8")
+    resolved = run_study02a.resolve_deferred(
+        module="A-E3", run_id="r1", artifact_root=tmp_path,
+        predecessor_module="A-E1", predecessor_run_id=pred_run_id)
+    assert len(resolved) == 1
+    assert resolved[0]["training_cache_key"] == t_key
+    assert resolved[0]["validation_cache_key"] == v_key
+
+
+def test_formal_resolve_deferred_cli_fail_closed_wrong_order(tmp_path):
+    """A-E2's predecessor must be A-E3, not A-E1 -- the resolve-deferred CLI rejects wrong order."""
+    import pytest as _pt
+    import run_study02a
+    specs, evaluations = _staged_specs_and_evaluations()
+    pred_run_id = "G3-AE1-pred-v1"
+    pred_dir = tmp_path / "A-E1" / pred_run_id
+    pred_dir.mkdir(parents=True)
+    records, _diag = build_selection_trace(
+        module_id="A-E1", run_id=pred_run_id, specs=tuple(specs), evaluations_by_fit=evaluations)
+    trace_path = pred_dir / "selection_trace.jsonl"
+    trace_sha = write_selection_trace(trace_path, records)
+    publish_selection_receipt(
+        receipt_path=pred_dir / "selection_receipt.json", ledger_path=pred_dir / "selection_ledger.jsonl",
+        module_id="A-E1", run_id=pred_run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=EFFECTIVE, code_commit=_D8_CODE_COMMIT)
+    (pred_dir / "manifest.json").write_text(json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+    ae2_dir = tmp_path / "A-E2" / "r1"
+    ae2_dir.mkdir(parents=True)
+    (ae2_dir / "plan.jsonl").write_text(json.dumps({
+        "fit_id": "G3-AE2-0000", "module_id": "A-E2", "route": "selected:F2_or_V",
+        "distribution": "core_continuous", "n_mode": "fixed_n", "fixed_n": 10, "training_size": 100000,
+        "predecessor_trace_sha256": trace_sha, "training_cache_key": "0" * 64, "validation_cache_key": "0" * 64,
+    }, sort_keys=True) + "\n", encoding="utf-8")
+    with _pt.raises(ValueError, match="[Ww]rong predecessor"):
+        run_study02a.resolve_deferred(
+            module="A-E2", run_id="r1", artifact_root=tmp_path,
+            predecessor_module="A-E1", predecessor_run_id=pred_run_id)

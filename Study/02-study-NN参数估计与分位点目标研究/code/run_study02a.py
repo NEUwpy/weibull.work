@@ -24,7 +24,18 @@ from study02a.config import load_frozen_config
 from study02a.matrix import expand_module_matrix
 from study02a.pilot import run_pilot
 from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run
-from study02a.formal_executor import run_module as run_formal_module
+from study02a.formal_executor import (
+    run_module as run_formal_module,
+    reconstruct_deferred_specs,
+    resolve_a_e1_staged_selection,
+)
+from study02a.formal_contracts import PredecessorTrace
+from study02a.formal_state import (
+    authorize_test_once,
+    initialize_formal_state,
+    publish_oracle_approval,
+)
+from study02a.formal_config import load_effective_formal_config
 
 
 def _load_pilot_amendment() -> dict:
@@ -85,6 +96,83 @@ def expand_matrix(output: Path) -> dict:
     return manifest
 
 
+def accredit_authorize(
+    *, module: str, run_id: str, artifact_root: Path,
+    approval_path: Path, oracle_review_path: Path, run_family_id: str, timestamp: str,
+) -> dict:
+    """Pre-unseal accreditation (Task 9 Step 6/8): bind an external oracle approval to a
+    completed module run and transition the approval-bound state machine sealed -> unsealed_once.
+
+    The approval artifact MUST be supplied externally (the oracle/Codex owns the decision);
+    this entry never creates an APPROVE. It initializes the formal state from the run's
+    pre_unseal_bundle.json and authorizes one test access, then stops -- consume_test_once
+    (the actual one-shot test evaluation) is deliberately not wired here.
+    """
+    run_dir = Path(artifact_root) / module / run_id
+    bundle_path = run_dir / "pre_unseal_bundle.json"
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    state_path = run_dir / "formal_state.json"
+    ledger_path = run_dir / "transition_ledger.jsonl"
+    initialize_formal_state(
+        state_path=state_path, bundle_path=bundle_path, run_family_id=run_family_id,
+        code_commit=bundle["code_commit"],
+        effective_config_sha256=bundle["effective_config_sha256"], timestamp=timestamp,
+    )
+    return authorize_test_once(
+        state_path=state_path, bundle_path=bundle_path, approval_path=approval_path,
+        ledger_path=ledger_path, timestamp=timestamp,
+        ceiling_report_path=run_dir / "ceiling_hit_report.json",
+        leakage_audit_path=run_dir / "leakage_audit.json",
+        oracle_review_path=oracle_review_path,
+    )
+
+
+def resolve_deferred(
+    *, module: str, run_id: str, artifact_root: Path,
+    predecessor_module: str, predecessor_run_id: str,
+) -> list[dict]:
+    """Resolve A-E3/A-E2 deferred dataset specs from a verified predecessor trace (Task 9 D8).
+
+    Reads the downstream module's plan.jsonl, builds a PredecessorTrace from the predecessor
+    run's selection trace/receipt/ledger, and reconstructs each deferred plan row's concrete
+    dataset specs (cache-key drift / wrong-order / stale predecessor -> fail-closed). No
+    training; concrete spec resolution only.
+    """
+    if module not in ("A-E3", "A-E2"):
+        raise ValueError("formal-resolve-deferred supports only downstream modules A-E3 and A-E2")
+    run_dir = Path(artifact_root) / module / run_id
+    pred_dir = Path(artifact_root) / predecessor_module / predecessor_run_id
+    frozen = load_frozen_config(STUDY_ROOT)
+    effective = load_effective_formal_config(STUDY_ROOT)
+    trace_path = pred_dir / "selection_trace.jsonl"
+    receipt_path = pred_dir / "selection_receipt.json"
+    receipt_bytes = receipt_path.read_bytes()
+    receipt = json.loads(receipt_bytes.decode("utf-8"))
+    pred_manifest = json.loads((pred_dir / "manifest.json").read_text(encoding="utf-8"))
+    predecessor = PredecessorTrace(
+        module_id=predecessor_module, run_id=predecessor_run_id, trace_path=trace_path,
+        trace_sha256=str(receipt["selection_trace_sha256"]), receipt_path=receipt_path,
+        receipt_sha256=hashlib.sha256(receipt_bytes).hexdigest(),
+        ledger_path=pred_dir / "selection_ledger.jsonl",
+        selection_code_commit=str(pred_manifest["code_commit"]),
+    )
+    plan_rows = [
+        json.loads(line)
+        for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    resolved: list[dict] = []
+    for row in plan_rows:
+        if str(row.get("module_id")) != module:
+            continue
+        training, validation = reconstruct_deferred_specs(row, frozen, effective, predecessor)
+        resolved.append({
+            "fit_id": str(row["fit_id"]), "module_id": module, "route": str(row["route"]),
+            "training_cache_key": training.cache_key, "validation_cache_key": validation.cache_key,
+        })
+    return resolved
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Study/02 research-A experiment runner")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -117,7 +205,50 @@ def _parser() -> argparse.ArgumentParser:
     execute.add_argument("--cache-root", type=Path, required=True)
     execute.add_argument("--max-fits", type=int, default=None, help="stop after N successful fits (default: run to exhaustion)")
     execute.add_argument("--owner-id", default="formal-executor")
+    staged = commands.add_parser(
+        "formal-staged",
+        help="derive the staged A-E1 selection ledger (top4 -> stage2 -> winner-retrain -> F2-vs-V baseline -> aliases) from a completed selection trace",
+    )
+    staged.add_argument("--module", choices=("A-E1",), required=True)
+    staged.add_argument("--run-id", required=True)
+    staged.add_argument("--artifact-root", type=Path, required=True)
+    staged.add_argument("--cache-root", type=Path, required=True)
+    authorize = commands.add_parser(
+        "formal-accredit-authorize",
+        help="bind an external oracle approval to a completed run and authorize one test access (sealed -> unsealed_once); never consumes test",
+    )
+    authorize.add_argument("--module", choices=("A-E1", "A-E3", "A-E2"), required=True)
+    authorize.add_argument("--run-id", required=True)
+    authorize.add_argument("--artifact-root", type=Path, required=True)
+    authorize.add_argument("--approval", type=Path, required=True,
+                           help="external oracle 'APPROVE test unseal' artifact path (oracle-owned; never auto-created)")
+    authorize.add_argument("--oracle-review", type=Path, required=True,
+                           help="oracle review artifact path bound by the approval")
+    authorize.add_argument("--run-family-id", required=True)
+    deferred = commands.add_parser(
+        "formal-resolve-deferred",
+        help="resolve A-E3/A-E2 deferred dataset specs from a verified predecessor trace (no training)",
+    )
+    deferred.add_argument("--module", choices=("A-E3", "A-E2"), required=True)
+    deferred.add_argument("--run-id", required=True)
+    deferred.add_argument("--artifact-root", type=Path, required=True)
+    deferred.add_argument("--predecessor-module", required=True)
+    deferred.add_argument("--predecessor-run-id", required=True)
     return parser
+
+
+def resolve_staged(module: str, run_id: str, artifact_root: Path, cache_root: Path) -> dict:
+    """Derive the staged A-E1 selection ledger from a run's published selection trace.
+
+    Production entry point (D8): reads the module's immutable selection trace + receipt +
+    ledger and appends the staged resolution ledger. Pending stages are computed from the
+    run authority + frozen matrix; the caller never supplies winner/top4/baseline.
+    """
+    run_dir = Path(artifact_root) / module / run_id
+    return resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+        module_id=module, run_id=run_id,
+    )
 
 
 def main() -> int:
@@ -174,6 +305,20 @@ def main() -> int:
             cache_root=args.cache_root,
             owner_id=args.owner_id,
             max_fits=args.max_fits,
+        )
+    elif args.command == "formal-staged":
+        payload = resolve_staged(args.module, args.run_id, args.artifact_root, args.cache_root)
+    elif args.command == "formal-accredit-authorize":
+        payload = accredit_authorize(
+            module=args.module, run_id=args.run_id, artifact_root=args.artifact_root,
+            approval_path=args.approval, oracle_review_path=args.oracle_review,
+            run_family_id=args.run_family_id,
+            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        )
+    elif args.command == "formal-resolve-deferred":
+        payload = resolve_deferred(
+            module=args.module, run_id=args.run_id, artifact_root=args.artifact_root,
+            predecessor_module=args.predecessor_module, predecessor_run_id=args.predecessor_run_id,
         )
     else:
         raise AssertionError(f"Unreachable command: {args.command}")
