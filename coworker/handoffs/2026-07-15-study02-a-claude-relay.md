@@ -119,3 +119,18 @@ Codex R2=REVISE 给出 7 项发现（caller approved_seeds / fit_id 跨候选复
 - **攻击套件 + mixed-rule 守卫**（`f9fafc7`）：覆盖 R2 全部 7 项与合同攻击清单（缺/多/重复/错 n/错 seed、跨候选 fit 复用、重贴标签、selected 不一致 + 获胜候选含失败 seed、mixed rule、caller winner 拒绝、v1/v2 混用、各规则边界 + 篡改、bootstrap 顺序无关、证据变化→哈希变化）。
 
 **未完成**（明确不在本棒范围，待 Codex R3 + 后续棒）：staged A-E1 执行（stage1→selected_top→stage2→baseline_input 交错）、D8（占位符解析/deferred-spec/A-E3←A-E1、A-E2←A-E3 前驱链）、完整临时 smoke、shared-n fit_status 表示。报告 `coworker/reports/2026-07-18-study02-g3-selection-engine-claude.md`。A-E1 formal **仍不可启动**。等 Codex R3。
+
+### 2026-07-18 R3（Codex REVISE 之后，第四执行者棒）
+
+Codex R3=REVISE 要求闭合 selection evidence + 非 ranking 规则复核（点证据入不可变链、trace 绑规则诊断 SHA、pre-unseal 独立重算规则不信 selected、相对 RMSE 比率、点记录成 dict 前拒绝、失败 fit 不跳过）。本棒完成并验证（251 formal+selection tests green）：
+
+- **点证据不可变链**（`507f9b8`/`c4c6365`，R3#1）：每 fit 的逐参数点证据 → 独立工件（`point_evidence.json`），内容 SHA 绑身份+checkpoint+validation identity+failed+canonical records；`candidate_supporting_evidence` 把 `point_evidence_sha256`+validation_identity 绑入 supporting hash → trace → receipt。
+- **trace 绑规则诊断 SHA**（R3#2）：trace v3 schema 加 `rule_diagnostics_sha256`（绑 bootstrap 配置/CI/规则结果/winner）；v2/v3 schema-gate fail-closed；orchestrator 写 per-decision 诊断工件。
+- **pre-unseal 独立重算**（R3#3）：加载+完整性校验点证据工件、交叉核对 fit_status 标量、重建 FitEvaluation、重算 supporting SHA、**重跑规则**（含非 ranking，冻结 seed 520001/2000 reps）+重算 diagnostics SHA + winner，与 trace 对比——**不信** fit_status 的 `selected`。
+- **相对 RMSE 比率**（`fa4c015`，R3#4）：`RMSE_cand/RMSE_comp − 1` 每 replicate，CI upper ≤ 5%；零 comparator → +inf fail-closed；通用两级 bootstrap（summary-based）。
+- **点记录成 dict 前拒绝**（R3#5）：重复 (seed,sample)/同 sample 异 point/cell 不匹配/跨 fit 复用。
+- **失败 fit 不跳过**（R3#6）：失败 fit 携 all-illegal 点记录（同 validation cells），failure rate/L_param/pairing 真实计入。
+- **failure-rate CI 方向修正**（`a89efb8`）：改用候选−比较（恶化方向），候选失败更少时正确判定非劣（旧改善方向在失败不同时误判）。
+- **R3 攻击套件 8 项**（`a89efb8`）：点证据篡改/交换、伪造非 ranking winner（trace+receipt+fit_status 同步）、diagnostics 缺失/篡改、重复 (seed,sample)、global_better 失败 seed、尺度反例、零 comparator。
+
+**未完成**（明确不在本棒范围，待 Codex R4 + 后续棒）：staged A-E1 执行、D8（仍 fail-closed）、完整临时 smoke、A-E1 formal 分阶段启动、9d、G4。报告 `coworker/reports/2026-07-18-study02-g3-selection-evidence-r3-claude.md`。**A-E1 formal 未授权**。等 Codex R4。
