@@ -107,3 +107,15 @@ codex 在 `codex/long-task-20260711` 分支上跑了 Study/02（神经网络 Wei
 Codex R1=REVISE 给出完整设计裁决。本棒完成并验证 **R1§2 multi-seed selection evidence schema**（`2f45657`，226 formal tests green）：废除"代表 checkpoint"，每候选绑定完整 supporting fit 集（fit_id/seed/status/checkpoint SHA/重算 L_param/失败惩罚）+ `supporting_evidence_sha256` + `seed_count` + `selection_rule`；`build_candidate_supporting_evidence` 单源聚合；pre-unseal 按候选重组 fit_status 重算 aggregate/sha/seed_count 并对照 trace，缺/重/篡改/seed 不全 fail-closed；success fit 未绑 trace 候选 fail-closed，全失败独立 fit 透明保留。
 
 **R1 其余未完成**（待 Codex R2 + 后续棒）：决策分组按 §3 重写（含**多 n 聚合**——supporting fit key 从 seed 推广到 (n,seed)，n_strategy 按 core n 等权）、global_better/2%+CI/fixed-vs-shared 三条非 ranking 规则、阶段交错（stage1→不可变阶段工件→selected_top_1..4→stage2→一次性最终 receipt）、D8 wiring、完整临时 smoke。`_derive_decision_candidate` 仍 R0 版、`build_module_selection`/D8 占位仍 fail-closed。报告 `coworker/reports/2026-07-18-study02-g3-d7-d8-wiring-claude.md`。A-E1 formal **仍不可启动**。等 Codex R2。
+
+### 2026-07-18 R2（Codex REVISE 之后，第三执行者棒）
+
+Codex R2=REVISE 给出 7 项发现（caller approved_seeds / fit_id 跨候选复用 / supporting hash 未绑全 context / selected any 模糊 / v1 残留 / 非 ranking 规则可接 caller winner / 测试覆盖单 seed）。本棒完成并验证 **selection evidence + decision-rule engine**（241 formal+selection tests green）：
+
+- **DecisionSpec 引擎**（`selection.py`，`f933953`）：确定性决策/候选/期望 fit/(n,seed) support/approved_seeds/rule/tie-back 派生——**调用方不得传入 expected fits / approved seeds / winner / rule**。R1§3 决策分组修正：output_form 合并为 1 决策 2 候选×50 support、distribution 1×3×15、training_size 1×4×15（R0 误拆已修正）。
+- **v2 schema + 独立 pre-unseal 重建**（`b80e721`）：trace/receipt/bundle v2（v1/v2 混用 schema-gate fail-closed）；移除不安全旧 API；pre-unseal 重开冻结矩阵独立重建 DecisionSpec 并逐候选重算证据；fit_id 全局唯一 + 冻结合同对应；selected 候选级一致性（失败 fit 可属获胜候选，无 any/all）。
+- **规则引擎**（`2833daa`）：两级 bootstrap CI（seed 520001、2000 reps、参数点聚类 + 训练 seed 二级）+ 逐参数点证据；global_better 三 CI / smallest_within_2pct_ci / fixed_vs_shared core-n 等权 / lowest_aggregate。
+- **`build_module_selection` 编排器**（`d2532e2`）：派生→逐 fit checkpoint 评分（no sidecar）→规则→v2 trace+receipt；`score_fit` DI 测试注入。
+- **攻击套件 + mixed-rule 守卫**（`f9fafc7`）：覆盖 R2 全部 7 项与合同攻击清单（缺/多/重复/错 n/错 seed、跨候选 fit 复用、重贴标签、selected 不一致 + 获胜候选含失败 seed、mixed rule、caller winner 拒绝、v1/v2 混用、各规则边界 + 篡改、bootstrap 顺序无关、证据变化→哈希变化）。
+
+**未完成**（明确不在本棒范围，待 Codex R3 + 后续棒）：staged A-E1 执行（stage1→selected_top→stage2→baseline_input 交错）、D8（占位符解析/deferred-spec/A-E3←A-E1、A-E2←A-E3 前驱链）、完整临时 smoke、shared-n fit_status 表示。报告 `coworker/reports/2026-07-18-study02-g3-selection-engine-claude.md`。A-E1 formal **仍不可启动**。等 Codex R3。
