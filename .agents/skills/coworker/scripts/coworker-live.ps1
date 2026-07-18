@@ -125,7 +125,16 @@ function Write-StateAtomic {
     $temporary = "$Path.$([Guid]::NewGuid().ToString('N')).tmp"
     try {
         Write-Utf8File -Path $temporary -Content ($State | ConvertTo-Json -Depth 10)
-        Move-Item -LiteralPath $temporary -Destination $Path -Force
+        for ($attempt = 0; $attempt -lt 20; $attempt++) {
+            try {
+                Move-Item -LiteralPath $temporary -Destination $Path -Force
+                return
+            }
+            catch {
+                if ($attempt -eq 19) { throw }
+                Start-Sleep -Milliseconds 50
+            }
+        }
     }
     finally {
         if (Test-Path -LiteralPath $temporary) {
