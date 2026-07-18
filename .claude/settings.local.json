@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(dir:*)",
       "Bash(findstr:*)",
@@ -164,7 +165,10 @@
       "Bash(read f *)",
       "Bash([ -f \"C:/Web/Weibull/docs/research/09两种神经网络直接估计/$f\" ])",
       "Bash(pip show *)",
-      "Bash(echo \"EXIT_CODE=$?\")"
-    ]
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(set -e)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }
