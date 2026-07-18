@@ -756,11 +756,30 @@ def build_module_selection(
         module_id=module_id, run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
         effective_config=effective, code_commit=manifest["code_commit"],
     )
+    # D8 staged alias derivation (A-E1 only, production call point): once the selection
+    # trace carries every staged decision, derive the immutable staged resolution ledger
+    # (stage1 -> top4 -> stage2 winner -> winner-retrain -> F2-vs-V baseline -> final
+    # aliases) from the same trace authority just published. While any staged decision is
+    # still absent (a partial run -- e.g. only stage-1 fits completed), staged resolution
+    # is SKIPPED, never forced; the resolver is invoked only on a complete staged trace
+    # and appends its own append-only ledger without touching the trace/receipt.
+    staged_summary: dict[str, Any] | None = None
+    if module_id == "A-E1":
+        derived_decision_ids = {spec.decision_id for spec in specs}
+        staged_decision_ids = (
+            {_a_e1_stage1_decision_id(route) for route in _A_E1_OPTIMIZED_ROUTES}
+            | {_a_e1_stage2_decision_id(route) for route in _A_E1_OPTIMIZED_ROUTES}
+        )
+        if staged_decision_ids <= derived_decision_ids:
+            staged_summary = resolve_a_e1_staged_selection(
+                study_root=study_root, run_dir=run_dir, cache_root=cache_root,
+                module_id=module_id, run_id=run_id,
+            )
     return {
         "module_id": module_id, "run_id": run_id, "selection_trace_sha256": trace_sha,
         "decision_count": len(specs), "record_count": len(records),
         "selection_diagnostics_path": str(diagnostics_path),
-        "point_evidence_paths": point_evidence_paths, **receipt,
+        "point_evidence_paths": point_evidence_paths, "staged": staged_summary, **receipt,
     }
 
 
