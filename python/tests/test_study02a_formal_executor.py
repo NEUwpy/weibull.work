@@ -1079,35 +1079,94 @@ def test_formal_resolve_deferred_cli_fail_closed_wrong_order(tmp_path):
             predecessor_module="A-E1", predecessor_run_id=pred_run_id)
 
 
-def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
-    """The accredit-build CLI regenerates fit_status/ceiling/leakage from a completed run's
-    per-fit evidence + selection trace and builds the sealed pre-unseal bundle (point provenance
-    rebuilt internally; no training, no test read)."""
-    import run_study02a
-    from study02a.selection import serialize_point_evidence
-    from study02a.formal_contracts import (
-        APPROVED_EFFECTIVE_CONFIG_SHA256, build_ceiling_hit_report, build_fit_status_record,
-        write_fit_status,
+def _accredit_search_fit_ids():
+    """The frozen A-E1 selection-candidate fit_ids (search_stage1 + search_stage2 = 144) -- the set
+    accredit_build must accredit, derived from the real matrix (never a directory scan)."""
+    return [str(r["fit_id"]) for r in MATRIX_ROWS
+            if str(r["module"]) == "A-E1" and str(r["fit_kind"]) in ("search_stage1", "search_stage2")]
+
+
+def _failed_fit_evaluation(*, fit_id, plan_row, matrix_row):
+    """A failed FitEvaluation with all-illegal point records over synthetic validation cells
+    (mirrors _score_fit_from_checkpoint's failed branch): no checkpoint, frozen penalty 10.0."""
+    seed = int(plan_row["seed"]); n = int(matrix_row["n"])
+    illegal = tuple({
+        "sample_id": f"n{n}:pt{p}", "seed_id": str(seed), "point_id": f"n{n}:pt{p}",
+        "legal": False, "failure": 1, "l_param": 10.0, "e_beta": 10.0, "e_eta": 10.0, "e_gamma": 10.0,
+    } for p in range(2))
+    route = str(plan_row["route"])
+    if str(matrix_row["fit_kind"]) == "search_stage1":
+        decision_id = f"architecture:A-E1:{route}:n{fe._A_E1_SEARCH_N}"; candidate_id = str(plan_row["architecture"])
+    else:
+        decision_id = f"stage2:A-E1:{route}:n{fe._A_E1_SEARCH_N}"
+        candidate_id = f"{plan_row['architecture']}:{plan_row['optimizer']}"
+    return FitEvaluation(
+        fit_id=fit_id, module_id="A-E1", decision_id=decision_id, candidate_id=candidate_id,
+        support_key=SupportKey(n=n, seed=seed), failed=True, checkpoint_sha256="",
+        validation_identity=f"val-cache-{fit_id}", selection_score=0.0, failure_penalty=10.0,
+        point_records=illegal,
     )
-    spec, evaluations = _d8_three_arch_fixture({"m01": 0.10, "m02": 0.20, "m03": 0.30})
-    run_id = "G3-AE1-build-v1"
+
+
+def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id="G3-AE1-build-v1"):
+    """Publish a real-matrix A-E1 selection run into ``tmp_path/A-E1/<run_id>``: a ``_PLAN_FIELDS``
+    plan (n via n_mode/fixed_n, NO ``n`` field), per-fit ``outputs/{fit}/evidence.json`` + scheduler
+    terminal receipts, the full formal manifest, then ``build_module_selection(score_fit=...)``
+    publishes the selection trace/receipt/ledger/diagnostics + the RELOCATED point evidence
+    (``selection/point_evidence/{fit}.json``). No real scheduler/training; the bundle's
+    ``rebuild_selection_point_provenance`` is monkeypatched. Returns ``(run_dir, fit_ids, evaluations)``."""
+    import run_study02a
+    from study02a.formal_contracts import APPROVED_EFFECTIVE_CONFIG_SHA256
     run_dir = tmp_path / "A-E1" / run_id
     run_dir.mkdir(parents=True)
-    fit_ids = list(evaluations.keys())
-    winner_id = spec.candidates[0].candidate_id  # m01 wins (lowest aggregate)
-    # selection trace + receipt + ledger + diagnostics
-    records, diagnostics = build_selection_trace(
-        module_id="A-E1", run_id=run_id, specs=(spec,), evaluations_by_fit=evaluations)
-    trace_path = run_dir / "selection_trace.jsonl"
-    trace_sha = write_selection_trace(trace_path, records)
-    publish_selection_receipt(
-        receipt_path=run_dir / "selection_receipt.json", ledger_path=run_dir / "selection_ledger.jsonl",
-        module_id="A-E1", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
-        effective_config=EFFECTIVE, code_commit=_D8_CODE_COMMIT)
-    diagnostics_path = run_dir / "selection_diagnostics.jsonl"
-    diagnostics_path.write_bytes(b"".join(
-        (json.dumps(d, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8") for d in diagnostics))
-    # manifest (full formal schema) + plan + per-fit point_evidence + evidence
+    search_rows = [r for r in MATRIX_ROWS
+                   if str(r["module"]) == "A-E1" and str(r["fit_kind"]) in ("search_stage1", "search_stage2")]
+    fit_ids = [str(r["fit_id"]) for r in search_rows]
+    base_score = _smoke_score_fit()
+    evaluations_by_fit = {}
+    plan_lines = []
+    for index, r in enumerate(search_rows):
+        fit_id = str(r["fit_id"]); n = int(r["n"]); seed = int(r["seed"])
+        plan_row_obj = _plan_row(
+            plan_index=index, run_id=run_id, fit_id=fit_id, module_id="A-E1",
+            rule_id=str(r["rule_id"]), route=str(r["route"]), distribution="core_continuous",
+            n_mode="fixed_n", fixed_n=n, loss=str(r["loss"]), architecture=str(r["architecture"]),
+            optimizer=str(r["optimizer"]), training_size=int(r["training_size"]), seed=seed,
+            code_commit=_D8_CODE_COMMIT,
+        )
+        score_plan_row = {
+            "fit_id": fit_id, "route": str(r["route"]), "seed": seed,
+            "architecture": str(r["architecture"]), "optimizer": str(r["optimizer"]),
+        }
+        if failed_fit is not None and fit_id == failed_fit:
+            evaluation = _failed_fit_evaluation(fit_id=fit_id, plan_row=score_plan_row, matrix_row=r)
+        else:
+            evaluation = base_score(fit_id, score_plan_row)
+        evaluations_by_fit[fit_id] = evaluation
+        plan_lines.append(json.dumps(plan_row_obj, sort_keys=True))
+        if failed_fit is not None and fit_id == failed_fit:
+            (run_dir / "receipts").mkdir(parents=True, exist_ok=True)
+            (run_dir / "receipts" / f"{fit_id}.failed.json").write_text(json.dumps({
+                "receipt_version": "study02-formal-fit-terminal-v2", "run_id": run_id, "fit_id": fit_id,
+                "state": "failed", "details": {"failure_code": "dead_identity_no_outputs"},
+                "test_access_count": 0,
+            }, sort_keys=True) + "\n", encoding="utf-8")
+        else:
+            (run_dir / "outputs" / fit_id).mkdir(parents=True, exist_ok=True)
+            curve = [100.0 / (i + 1) for i in range(60)]
+            (run_dir / "outputs" / fit_id / "evidence.json").write_text(json.dumps({
+                "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id, "run_id": run_id,
+                "checkpoint_sha256": evaluation.checkpoint_sha256, "actual_epochs": 60,
+                "best_epoch_one_based": 1, "hit_epoch_100": False, "early_stop_reason": "patience_exhausted",
+                "terminal_validation_slope": fe._terminal_ols_slope(tuple(curve)),
+                "validation_curve": curve, "test_access_count": 0,
+            }, sort_keys=True) + "\n", encoding="utf-8")
+            (run_dir / "receipts").mkdir(parents=True, exist_ok=True)
+            (run_dir / "receipts" / f"{fit_id}.succeeded.json").write_text(json.dumps({
+                "receipt_version": "study02-formal-fit-terminal-v2", "run_id": run_id, "fit_id": fit_id,
+                "state": "succeeded", "details": {"output_hashes": {}}, "test_access_count": 0,
+            }, sort_keys=True) + "\n", encoding="utf-8")
+    (run_dir / "plan.jsonl").write_text("".join(line + "\n" for line in plan_lines), encoding="utf-8")
     manifest = {
         "manifest_version": "study02-formal-v1", "module_id": "A-E1", "run_id": run_id,
         "code_commit": _D8_CODE_COMMIT,
@@ -1126,36 +1185,50 @@ def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
                         "selection_receipt_sha256": "none", "selection_ledger_path": "none"},
     }
     (run_dir / "manifest.json").write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
-    plan_lines = []
-    for fit_id, evaluation in evaluations.items():
-        out_dir = run_dir / "outputs" / fit_id
-        out_dir.mkdir(parents=True)
-        (out_dir / "point_evidence.json").write_text(
-            json.dumps(serialize_point_evidence(evaluation), sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
-        curve = [0.5, 0.4, 0.3]
-        (out_dir / "evidence.json").write_text(json.dumps({
-            "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id, "run_id": run_id,
-            "checkpoint_sha256": evaluation.checkpoint_sha256, "actual_epochs": 3,
-            "best_epoch_one_based": 3, "hit_epoch_100": False, "early_stop_reason": "patience_exhausted",
-            "terminal_validation_slope": 0.0, "validation_curve": curve, "test_access_count": 0,
-        }, sort_keys=True) + "\n", encoding="utf-8")
-        plan_lines.append(json.dumps({
-            "fit_id": fit_id, "module_id": "A-E1", "rule_id": "A-E1_optimized_supplement",
-            "route": "F2", "n": 10, "seed": int(evaluation.support_key.seed),
-            "distribution": "core_continuous", "n_mode": "fixed_n", "fixed_n": 10, "training_size": 7000,
-        }, sort_keys=True))
-    (run_dir / "plan.jsonl").write_text("\n".join(plan_lines) + "\n", encoding="utf-8")
-
-    # point provenance rebuild stands in for reading bound checkpoints (no training, no test read)
+    # publish selection via the real engine path -> publishes the RELOCATED point evidence
+    fe.build_module_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        module_id="A-E1", run_id=run_id,
+        score_fit=lambda fit_id, plan_row: evaluations_by_fit[str(fit_id)])
+    # bundle rebuild stands in for reading bound checkpoints (no training, no test read)
     monkeypatch.setattr(fe, "rebuild_selection_point_provenance",
-                        lambda *, study_root, run_dir, cache_root, module_id, run_id: dict(evaluations))
+                        lambda *, study_root, run_dir, cache_root, module_id, run_id: dict(evaluations_by_fit))
+    return run_dir, fit_ids, evaluations_by_fit
 
+
+def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
+    """accredit_build derives the expected selection set from the FROZEN matrix (no directory scan),
+    reads RELOCATED point evidence (selection/point_evidence/{fit}.json -- never outputs/{fit}/),
+    recovers n from n_mode/fixed_n (the plan has no 'n'), and builds the sealed pre-unseal bundle."""
+    import csv
+    import run_study02a
+    from study02a.selection import serialize_point_evidence
+    from study02a.formal_contracts import APPROVED_EFFECTIVE_CONFIG_SHA256
+    run_id = "G3-AE1-build-v1"
+    run_dir, fit_ids, evaluations = _accredit_real_matrix_run(tmp_path, monkeypatch)
+    # contract 1: outputs/{fit_id}/ holds NO point_evidence after selection (it is relocated, so the
+    # scheduler-authority dir stays exactly the frozen expected_outputs).
+    assert not any((run_dir / "outputs" / fid).joinpath("point_evidence.json").exists() for fid in fit_ids)
+    # contract: the selection point-evidence dir holds exactly the 144 expected candidates
+    pe_dir = run_dir / "selection" / "point_evidence"
+    assert sorted(p.stem for p in pe_dir.iterdir()) == sorted(fit_ids)
+    # contract 3: the relocated content is byte-identical to the pre-relocation canonical artifact
+    sample_fit = fit_ids[0]
+    published = json.loads((pe_dir / f"{sample_fit}.json").read_text(encoding="utf-8"))
+    assert published == serialize_point_evidence(evaluations[sample_fit])
     bundle = run_study02a.accredit_build("A-E1", run_id, tmp_path, tmp_path / "cache")
     assert bundle["bundle_version"] == "study02-pre-unseal-v3"
     assert bundle["test_state"] == "sealed"
     assert (run_dir / "pre_unseal_bundle.json").is_file()
-    assert (run_dir / "fit_status.csv").is_file()
     assert (run_dir / "ceiling_hit_report.json").is_file()
+    # contract 6: fit_status covers every selection candidate with n recovered from n_mode/fixed_n
+    # (the plan carries no 'n'); no fit vanishes and no KeyError on plan_row['n'].
+    fit_id_set = set(fit_ids)
+    matrix_n = {str(r["fit_id"]): int(r["n"]) for r in MATRIX_ROWS if str(r["fit_id"]) in fit_id_set}
+    with (run_dir / "fit_status.csv").open(encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert {r["fit_id"] for r in rows} == set(fit_ids)
+    assert all(int(r["n"]) == matrix_n[r["fit_id"]] for r in rows)
     leakage = json.loads((run_dir / "leakage_audit.json").read_text(encoding="utf-8"))
     assert leakage["test_access_count"] == 0
     assert all(value == 0 for value in leakage["pairwise_intersections"].values())
@@ -1180,6 +1253,61 @@ def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
         module="A-E1", run_id=run_id, artifact_root=tmp_path, approval_path=approval_path,
         oracle_review_path=oracle, run_family_id="G3-formal", timestamp="2026-07-19T11:00:00+08:00")
     assert state["state"] == "unsealed_once" and state["test_access_count"] == 1
+
+
+def test_accredit_build_failed_selection_fit_is_not_silently_skipped(tmp_path, monkeypatch):
+    """Contract 7: a selection candidate whose training failed (no evidence.json) is NOT silently
+    dropped from accreditation. Its failure fit_status is generated from the scheduler terminal
+    receipt (failure_code) + the point-evidence failure record (failed flag + frozen penalty)."""
+    import csv
+    import run_study02a
+    run_id = "G3-AE1-build-v1"
+    fit_ids = _accredit_search_fit_ids()
+    failed_fit = fit_ids[0]
+    run_dir, _fit_ids, _evals = _accredit_real_matrix_run(tmp_path, monkeypatch, failed_fit=failed_fit)
+    # the failed fit produced no training evidence.json
+    assert not (run_dir / "outputs" / failed_fit / "evidence.json").is_file()
+    run_study02a.accredit_build("A-E1", run_id, tmp_path, tmp_path / "cache")
+    with (run_dir / "fit_status.csv").open(encoding="utf-8") as fh:
+        rows = {r["fit_id"]: r for r in csv.DictReader(fh)}
+    # every selection candidate is present -- the failed one did not vanish
+    assert set(rows) == set(fit_ids)
+    failed_row = rows[failed_fit]
+    assert failed_row["failed"] in ("True", "true", "1", True)
+    assert failed_row["failure_penalty"] == "10.0"
+    assert failed_row["failure_message"] == "dead_identity_no_outputs"
+    assert failed_row["checkpoint_sha256"] == "" and failed_row["validation_score"] == ""
+
+
+@pytest.mark.parametrize("defect", ["missing", "extra", "unknown_fit", "nested", "wrong_suffix"])
+def test_validate_selection_point_evidence_dir_fail_closed(tmp_path, defect):
+    """Contract 5: the selection point-evidence dir must hold exactly the expected {fit_id}.json;
+    missing/extra/unknown-fit/nested/non-json entries all fail closed."""
+    expected = {"f1", "f2", "f3"}
+    pe_dir = tmp_path / "selection" / "point_evidence"
+    pe_dir.mkdir(parents=True)
+    present = set(expected)
+    if defect == "missing":
+        present.discard("f2")
+    elif defect == "extra":
+        present.add("fX")  # unknown fit_id
+        present  # noqa
+    elif defect == "unknown_fit":
+        present = {"f1", "f2", "fX"}  # f3 replaced by unknown fX
+    for fid in present:
+        (pe_dir / f"{fid}.json").write_text("{}", encoding="utf-8")
+    if defect == "nested":
+        (pe_dir / "subdir").mkdir()
+    elif defect == "wrong_suffix":
+        (pe_dir / "f1.txt").write_text("x", encoding="utf-8")
+        (pe_dir / "f1.json").unlink()
+    if defect == "extra":
+        # add the unknown extra file alongside the full expected set
+        for fid in expected:
+            if not (pe_dir / f"{fid}.json").exists():
+                (pe_dir / f"{fid}.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError):
+        fe._validate_selection_point_evidence_dir(run_dir=tmp_path, expected_fit_ids=set(expected))
 
 
 # ---------------------------------------------------------------------------
@@ -1672,6 +1800,44 @@ def _smoke_score_fit():
 
 
 @pytest.mark.slow
+def test_post_selection_authority_rebuilds_with_relocated_point_evidence(tmp_path, monkeypatch):
+    """Contract 2/8 (focused, fast): after build_module_selection publishes RELOCATED point_evidence
+    (selection/point_evidence/{fit}.json), a full _rebuild_authority()/status_run() replays cleanly
+    POST-SELECTION -- the point_evidence-vs-scheduler blocker is resolved because outputs/{fit_id}/
+    stays exactly the frozen expected_outputs. Real scheduler (materialize+claim+record) with synthetic
+    training; selection is published over the real run via score_fit injection. (The 349-fit
+    test_staged_full_chain_smoke is the full-chain version of this same check.)"""
+    status = __import__("subprocess").run(
+        ["git", "status", "--porcelain", "--", str((STUDY_ROOT / "code").relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True)
+    assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
+    summary = fe.run_a_e1_staged(
+        study_root=STUDY_ROOT, run_id="psel-0001",
+        artifact_root=tmp_path / "artifact", cache_root=tmp_path / "cache",
+        fit_runner=_smoke_fit_runner(), score_fit=_smoke_score_fit(), max_fits=5)
+    assert summary["succeeded_count"] == 5 and summary["complete"] is False  # partial run; no selection yet
+    run_dir = tmp_path / "artifact" / "A-E1" / "psel-0001"
+    # publish selection over the REAL scheduler run -> RELOCATED point_evidence (the 144 candidates)
+    fe.build_module_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        module_id="A-E1", run_id="psel-0001", score_fit=_smoke_score_fit())
+    _search_count = sum(1 for r in MATRIX_ROWS
+                        if str(r["module"]) == "A-E1" and str(r["fit_kind"]) in ("search_stage1", "search_stage2"))
+    pe_dir = run_dir / "selection" / "point_evidence"
+    assert pe_dir.is_dir() and len(list(pe_dir.iterdir())) == _search_count
+    # outputs/{fit_id}/ for every recorded fit holds NO point_evidence (relocated out of the authority dir)
+    assert not any((run_dir / "outputs" / fid).joinpath("point_evidence.json").exists()
+                   for fid in summary["succeeded"])
+    # the REAL post-selection authority replay succeeds and test stayed sealed throughout
+    from study02a.formal_scheduler import status_run, _rebuild_authority
+    stat = status_run(run_dir, cache_root=tmp_path / "cache")
+    assert stat["test_access_count"] == 0
+    _, _, auth_state, events = _rebuild_authority(run_dir, tmp_path / "cache")
+    assert auth_state["test_access_count"] == 0
+    assert all(event["test_access_count"] == 0 for event in events)
+
+
+@pytest.mark.slow
 def test_staged_full_chain_smoke(tmp_path, monkeypatch):
     """Full-chain production-equivalent sealed smoke: run_a_e1_staged drives the REAL staged
     control end-to-end on the frozen A-E1 matrix -- stage1 execute+select -> top4 -> stage2
@@ -1754,19 +1920,28 @@ def test_staged_full_chain_smoke(tmp_path, monkeypatch):
     assert (run_dir / "staged_resolution_ledger.jsonl").is_file()
     # the staged ledger is a hash-bound chain (stage1 -> stage2 -> winner_retrain -> baseline -> final)
     _assert_chained_ledger(run_dir)
-    # test stays sealed throughout. test_access_count is read directly from the scheduler state +
-    # the raw event ledger (the canonical ground truth), NOT via status_run(): a full
-    # _rebuild_authority() AFTER selection currently raises, because build_module_selection
-    # co-locates point_evidence.json in outputs/{fit_id}/ for the 144 selection-candidate fits and
-    # the scheduler's strict per-fit output validation rejects the extra file on replay. That
-    # point_evidence-vs-scheduler conflict is a pre-existing, cross-cutting blocker reported
-    # separately (not a source-of-truth regression); the staged chain above is fully verified.
-    _event_files = sorted((run_dir / "events").iterdir())
-    _state = json.loads((run_dir / "scheduler_state.json").read_text(encoding="utf-8"))
-    _event_tac = {json.loads(f.read_text(encoding="utf-8"))["test_access_count"] for f in _event_files}
-    assert _state["test_access_count"] == 0 and _event_tac == {0}
+    # Contract 2/8: the REAL post-selection sealed-status check. point_evidence was relocated out of
+    # outputs/{fit_id}/ (to selection/point_evidence/{fit}.json), so a full _rebuild_authority() /
+    # status_run() AFTER selection replays cleanly (the scheduler-authority fit dirs stay exactly the
+    # frozen expected_outputs -- no extra point_evidence.json) and confirms test stayed sealed. This
+    # is no longer a scheduler_state.json read workaround; it exercises the real authority replay.
+    from study02a.formal_scheduler import status_run, _rebuild_authority
+    stat = status_run(run_dir, cache_root=tmp_path / "cache")
+    assert stat["test_access_count"] == 0
+    _manifest, _plan, _authority_state, _events = _rebuild_authority(run_dir, tmp_path / "cache")
+    assert _authority_state["test_access_count"] == 0
+    assert all(event["test_access_count"] == 0 for event in _events)
+    # contract 1: outputs/{fit_id}/ holds NO point_evidence (relocated); the selection dir holds the
+    # frozen selection candidates (search_stage1 + search_stage2 = 144), never the fit output dir.
+    assert not any((run_dir / "outputs" / fid).joinpath("point_evidence.json").exists()
+                   for fid in _authority_state["fit_states"])
+    pe_dir = run_dir / "selection" / "point_evidence"
+    _search_count = sum(1 for r in MATRIX_ROWS
+                        if str(r["module"]) == "A-E1" and str(r["fit_kind"]) in ("search_stage1", "search_stage2"))
+    assert pe_dir.is_dir() and all(p.suffix == ".json" for p in pe_dir.iterdir())
+    assert len(list(pe_dir.iterdir())) == _search_count
     telemetry["fit_count"] = summary["succeeded_count"]
-    telemetry["event_count"] = len(_event_files)
-    telemetry["test_access_count"] = _state["test_access_count"]
+    telemetry["event_count"] = len(_events)
+    telemetry["test_access_count"] = _authority_state["test_access_count"]
     telemetry["selected_F2_or_V"] = staged["selected_F2_or_V"]
     print("SLOW_SMOKE_TELEMETRY " + json.dumps(telemetry))

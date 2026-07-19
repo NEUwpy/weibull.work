@@ -30,6 +30,7 @@ from study02a.formal_executor import (
     run_module as run_formal_module,
     reconstruct_deferred_specs,
     resolve_a_e1_staged_selection,
+    _validate_selection_point_evidence_dir,
 )
 from study02a.formal_contracts import (
     PredecessorTrace,
@@ -45,7 +46,7 @@ from study02a.formal_state import (
     publish_oracle_approval,
 )
 from study02a.formal_config import load_effective_formal_config
-from study02a.selection import load_point_evidence
+from study02a.selection import build_decision_specs, load_point_evidence
 from study02a.training import FitResult
 
 
@@ -238,6 +239,52 @@ def _accredit_role_namespaces(manifest: Mapping[str, Any]) -> dict[str, str]:
             for role in ("training", "validation", "calibration", "test")}
 
 
+def _recover_selection_n(plan_row: Mapping[str, Any], fit_id: str) -> int:
+    """Recover a selection candidate's concrete sample size from the formal plan row.
+
+    plan.jsonl carries ``n_mode``/``fixed_n`` (the matrix ``n`` is renamed at plan-build time; the
+    plan has no ``n`` field), so the prior ``int(plan_row["n"])`` was a latent KeyError. A selection
+    candidate must be a concrete-n fit (shared-n is for historical fits only, which are never
+    selection candidates), so shared_n / missing fixed_n fail closed. The value is not written back
+    into the plan (no second source of truth).
+    """
+    if plan_row.get("n_mode") == "shared_n":
+        raise ValueError(f"selection candidate {fit_id} is shared-n; selection requires a concrete n")
+    fixed_n = plan_row.get("fixed_n")
+    if fixed_n is None:
+        raise ValueError(f"selection candidate {fit_id} plan row has no fixed_n")
+    return int(fixed_n)
+
+
+def _fit_terminal_receipt(run_dir: Path, fit_id: str) -> tuple[str, str | None]:
+    """Read a selection fit's scheduler terminal receipt and return ``(state, failure_code)``.
+
+    Exactly one of ``receipts/{fit_id}.succeeded.json`` / ``.failed.json`` must exist (the scheduler
+    authority's terminal-state record; its SHA is event-bound). This is the scheduler terminal
+    state/receipt source accredit_build cross-checks the point-evidence failure record against.
+    Both receipts, neither receipt, a wrong-state receipt, or a failed receipt missing its
+    ``failure_code`` all fail closed. ``failure_code`` is ``None`` for succeeded fits.
+    """
+    succeeded = run_dir / "receipts" / f"{fit_id}.succeeded.json"
+    failed = run_dir / "receipts" / f"{fit_id}.failed.json"
+    if succeeded.is_file() and failed.is_file():
+        raise ValueError(f"selection fit {fit_id} has both succeeded and failed receipts")
+    if succeeded.is_file():
+        receipt = json.loads(succeeded.read_text(encoding="utf-8"))
+        if receipt.get("state") != "succeeded":
+            raise ValueError(f"selection fit {fit_id} succeeded receipt state is not 'succeeded'")
+        return "succeeded", None
+    if failed.is_file():
+        receipt = json.loads(failed.read_text(encoding="utf-8"))
+        if receipt.get("state") != "failed":
+            raise ValueError(f"selection fit {fit_id} failed receipt state is not 'failed'")
+        code = receipt.get("details", {}).get("failure_code")
+        if not isinstance(code, str) or not code.strip():
+            raise ValueError(f"selection fit {fit_id} failure receipt has no failure_code")
+        return "failed", code
+    raise ValueError(f"selection fit {fit_id} has no scheduler terminal receipt")
+
+
 def accredit_build(module: str, run_id: str, artifact_root: Path, cache_root: Path) -> dict:
     """Pre-unseal accreditation build (Task 9 Step 4/5/8): generate the run-level diagnostics a
     completed module run needs (fit_status.csv, ceiling_hit_report.json, leakage_audit.json) from
@@ -264,32 +311,64 @@ def accredit_build(module: str, run_id: str, artifact_root: Path, cache_root: Pa
             row = json.loads(line)
             plan_by_fit[str(row["fit_id"])] = row
 
+    # Expected selection fit_id set from the FROZEN authority (matrix -> DecisionSpecs), NOT a
+    # directory scan of outputs/. Selection candidates are matrix-determined; their point evidence is
+    # a post-selection artifact that lives in selection/point_evidence/, never under outputs/{fit_id}/
+    # (the scheduler-authority training-output dir, which must stay exactly the frozen expected_outputs).
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    specs = build_decision_specs(module, matrix_rows)
+    expected_fit_ids: set[str] = set()
+    for spec in specs:
+        for candidate in spec.candidates:
+            for key in candidate.support_keys:
+                expected_fit_ids.add(candidate.support_for(key))
+
+    # The selection point-evidence dir must hold exactly the expected candidates (no missing/extra/
+    # duplicate/alias/non-file/nested/unknown fit); evidence.json still comes from outputs/{fit_id}/.
+    point_evidence_by_fit = _validate_selection_point_evidence_dir(
+        run_dir=run_dir, expected_fit_ids=expected_fit_ids)
+
     rows: list[dict] = []
     point_evidence_paths: dict[str, Path] = {}
-    for fit_dir in sorted((run_dir / "outputs").iterdir()):
-        fit_id = fit_dir.name
-        point_evidence = fit_dir / "point_evidence.json"
-        evidence_path = fit_dir / "evidence.json"
-        if not (point_evidence.exists() and evidence_path.exists()):
-            continue
-        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
-        evaluation = load_point_evidence(json.loads(point_evidence.read_text(encoding="utf-8")))
+    for fit_id in sorted(expected_fit_ids):
+        evaluation = load_point_evidence(json.loads(point_evidence_by_fit[fit_id].read_text(encoding="utf-8")))
         plan_row = plan_by_fit[fit_id]
         selected = selected_by_decision.get(evaluation.decision_id) == evaluation.candidate_id
-        curve = tuple(float(v) for v in evidence["validation_curve"])
-        best_epoch_zero = int(evidence["best_epoch_one_based"]) - 1
-        result = FitResult(
-            predictions=None, checkpoint_sha256=str(evidence["checkpoint_sha256"]),
-            best_validation_loss=curve[best_epoch_zero], best_epoch=best_epoch_zero,
-            actual_epochs=int(evidence["actual_epochs"]), validation_loss_history=curve,
-            early_stop_reason=str(evidence["early_stop_reason"]),
-            hit_epoch_ceiling=bool(evidence["hit_epoch_100"]))
-        rows.append(build_fit_status_record(
+        n = _recover_selection_n(plan_row, fit_id)
+        common = dict(
             fit_id=fit_id, module_id=module, rule_id=str(plan_row["rule_id"]), route_id=str(plan_row["route"]),
-            n=int(plan_row["n"]), seed=int(plan_row["seed"]), decision_id=evaluation.decision_id,
-            candidate_id=evaluation.candidate_id, selected=selected, result=result,
-            selection_score=float(evaluation.selection_score)))
-        point_evidence_paths[fit_id] = point_evidence
+            n=n, seed=int(plan_row["seed"]), decision_id=evaluation.decision_id,
+            candidate_id=evaluation.candidate_id, selected=selected)
+        # Three independent sources must agree, else fail closed: the scheduler terminal receipt
+        # (state), the point-evidence failure record (evaluation.failed), and the training evidence
+        # file (evidence.json present iff succeeded). No fit may vanish from accreditation because
+        # its evidence.json is absent -- a failed fit gets a failure row, never a silent skip.
+        receipt_state, failure_code = _fit_terminal_receipt(run_dir, fit_id)
+        evidence_path = run_dir / "outputs" / fit_id / "evidence.json"
+        if receipt_state == "succeeded":
+            if evaluation.failed:
+                raise ValueError(f"selection fit {fit_id} scheduler-terminal succeeded but its point evidence is failed")
+            if not evidence_path.is_file():
+                raise ValueError(f"succeeded selection fit {fit_id} has no training evidence.json")
+            evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+            curve = tuple(float(v) for v in evidence["validation_curve"])
+            best_epoch_zero = int(evidence["best_epoch_one_based"]) - 1
+            result = FitResult(
+                predictions=None, checkpoint_sha256=str(evidence["checkpoint_sha256"]),
+                best_validation_loss=curve[best_epoch_zero], best_epoch=best_epoch_zero,
+                actual_epochs=int(evidence["actual_epochs"]), validation_loss_history=curve,
+                early_stop_reason=str(evidence["early_stop_reason"]),
+                hit_epoch_ceiling=bool(evidence["hit_epoch_100"]))
+            rows.append(build_fit_status_record(**common, result=result, selection_score=float(evaluation.selection_score)))
+        else:  # receipt_state == "failed"
+            if not evaluation.failed:
+                raise ValueError(f"selection fit {fit_id} scheduler-terminal failed but its point evidence is not failed")
+            if evidence_path.is_file():
+                raise ValueError(f"failed selection fit {fit_id} unexpectedly has a training evidence.json")
+            rows.append(build_fit_status_record(
+                **common, result=None, failure_penalty=float(evaluation.failure_penalty),
+                failure_message=failure_code))
+        point_evidence_paths[fit_id] = point_evidence_by_fit[fit_id]
 
     fit_status_path = run_dir / "fit_status.csv"
     write_fit_status(fit_status_path, rows)

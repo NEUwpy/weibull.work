@@ -26,6 +26,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -94,6 +95,13 @@ _MLP_PREFIX = "m"
 _DEEP_PREFIX = "d"
 _STAGE_TOP_PREFIX = "selected_top_"
 _SELECTED_PREFIX = "selected:"
+
+# Selection point-evidence (R3#1) lives under run_dir/selection/point_evidence/{fit_id}.json -- a
+# selection-owned dir, NOT under outputs/{fit_id}/ (the scheduler-authority training-output dir, which
+# must stay exactly equal to the frozen expected_outputs). Selection candidates are determined by the
+# frozen matrix, but point evidence is a post-selection artifact: it cannot be a pre-training-success
+# output, so it never belongs in the scheduler-validated fit output dir.
+_SELECTION_POINT_EVIDENCE_REL = ("selection", "point_evidence")
 
 
 def _canonical(value: Any) -> bytes:
@@ -697,6 +705,45 @@ def run_module(
 # Signatures declared so callers fail closed instead of silently no-op'ing.
 # ---------------------------------------------------------------------------
 
+
+def _validate_selection_point_evidence_dir(
+    *, run_dir: Path, expected_fit_ids: set[str]
+) -> dict[str, Path]:
+    """Validate ``run_dir/selection/point_evidence/`` holds exactly one ``{fit_id}.json`` per
+    expected selection candidate.
+
+    The selection point-evidence dir is a post-selection, selection-owned artifact store
+    (NOT under the scheduler-authority ``outputs/{fit_id}/``). It must contain exactly the
+    expected candidate set -- ``missing``/``extra``/``duplicate``/``alias``/``non-file``/
+    ``nested``/``unknown fit`` all fail closed. Returns ``{fit_id: path}`` for the exact set.
+    """
+    directory = run_dir.joinpath(*_SELECTION_POINT_EVIDENCE_REL)
+    if not directory.is_dir():
+        raise ValueError(f"selection point-evidence directory is missing: {directory}")
+    by_fit: dict[str, Path] = {}
+    for entry in sorted(directory.iterdir()):
+        info = entry.lstat()
+        reparse = getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        if stat.S_ISLNK(info.st_mode) or reparse:
+            raise ValueError(f"aliases/reparse points are forbidden in selection point-evidence dir: {entry}")
+        if not stat.S_ISREG(info.st_mode):
+            raise ValueError(f"selection point-evidence dir contains a non-file/nested entry: {entry}")
+        if info.st_nlink != 1:
+            raise ValueError(f"hard-linked selection point-evidence files are forbidden: {entry}")
+        if entry.suffix != ".json":
+            raise ValueError(f"selection point-evidence dir contains a non-json entry: {entry}")
+        fit_id = entry.stem
+        if fit_id in by_fit:
+            raise ValueError(f"duplicate selection point-evidence fit_id: {fit_id}")
+        if fit_id not in expected_fit_ids:
+            raise ValueError(f"selection point-evidence dir contains an unknown fit_id: {fit_id}")
+        by_fit[fit_id] = entry
+    missing = sorted(set(expected_fit_ids) - set(by_fit))
+    if missing:
+        raise ValueError(f"selection point-evidence directory is missing fits: {missing}")
+    return by_fit
+
+
 def build_module_selection(
     *, study_root: Path, run_dir: Path, cache_root: Path, module_id: str, run_id: str,
     score_fit: Callable[[str, Mapping[str, Any]], Any] | None = None,
@@ -744,11 +791,21 @@ def build_module_selection(
     diagnostics_path = run_dir / "selection_diagnostics.jsonl"
     diagnostics_payload = b"".join(_canonical(record) for record in diagnostics_records)
     _publish_bytes_no_replace(diagnostics_payload, diagnostics_path)
+    # R3#1/#2: publish the per-decision diagnostics artifact and the per-fit point-evidence
+    # artifacts (canonical, no-replace). The point-evidence artifacts live in the selection-owned
+    # run_dir/selection/point_evidence/{fit_id}.json dir -- NOT under outputs/{fit_id}/, which must
+    # stay exactly equal to the frozen expected_outputs (the scheduler's authority invariant). The
+    # trace binds the diagnostics SHA; the supporting hash binds each fit's point-evidence SHA.
+    # Pre-unseal reloads + re-derives from these. _publish_bytes_no_replace creates the parent dir.
+    point_evidence_dir = run_dir.joinpath(*_SELECTION_POINT_EVIDENCE_REL)
     point_evidence_paths: dict[str, str] = {}
     for fit_id, evaluation in evaluations_by_fit.items():
-        artifact_path = run_dir / "outputs" / fit_id / "point_evidence.json"
+        artifact_path = point_evidence_dir / f"{fit_id}.json"
         _publish_bytes_no_replace(_canonical(serialize_point_evidence(evaluation)), artifact_path)
         point_evidence_paths[fit_id] = str(artifact_path)
+    # fail-closed: the selection point-evidence dir holds exactly the expected candidates (no
+    # missing/extra/duplicate/alias/non-file/nested/unknown fit).
+    _validate_selection_point_evidence_dir(run_dir=run_dir, expected_fit_ids=set(evaluations_by_fit))
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     receipt = publish_selection_receipt(
         receipt_path=run_dir / "selection_receipt.json",
