@@ -1776,20 +1776,20 @@ def _a_e1_fit_stage(plan_row: Mapping[str, Any]) -> str:
 
 def build_a_e1_stage1_selection(
     *, study_root: Path, run_dir: Path, cache_root: Path,
-    module_id: str = "A-E1", run_id: str,
+    module_id: str = "A-E1", run_id: str, route: str,
     score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
 ) -> dict[str, Any]:
-    """Stage-1 selection receipt (top4 per route) from the stage-1 architecture fits ONLY.
+    """Per-route stage-1 selection receipt (top4) from ONE route's stage-1 architecture fits ONLY.
 
-    The frozen A-E1 matrix is staged: stage-1 architecture fits run first; only after they are
-    terminal can the stage-2 fits (``selected_top_*``) be concretized. This publishes an
-    immutable PARTIAL selection trace + receipt + ledger over the stage-1 (architecture)
-    decisions alone -- it does NOT require stage-2 / winner-retrain evidence to exist, which is
-    what breaks the ``build_module_selection`` deadlock (that builder derives every stage's specs
-    at once and requires them all terminal). ``selected_top_1..4`` per route resolve to the
-    stage-1 rank-1..4 architectures. Production scores from checkpoints; tests inject
-    ``score_fit``. No training is launched and no test role is opened.
+    The frozen A-E1 plan order is route-interleaved (all of F2's stages run before V's), so a
+    route's stage-1 fits are terminal before that route's stage-2 fits are reached -- but NOT
+    before the OTHER route's. Receipts are therefore per-route: this publishes an immutable
+    PARTIAL selection trace + receipt + ledger over the one route's architecture decision and
+    derives its ``selected_top_1..4`` (rank-1..4 architectures). It does NOT require stage-2 /
+    winner-retrain / other-route evidence (the deadlock-free staged authority). Production scores
+    from checkpoints; tests inject ``score_fit``. No training; no test read.
     """
+    _require(route in _A_E1_OPTIMIZED_ROUTES, f"staged A-E1 route must be one of {_A_E1_OPTIMIZED_ROUTES}")
     study_root = Path(study_root).resolve()
     run_dir = Path(run_dir).resolve()
     cache_root = Path(cache_root).resolve()
@@ -1802,12 +1802,12 @@ def build_a_e1_stage1_selection(
     matrix_rows = expand_module_matrix(frozen).to_dict("records")
     stage1_rows = [
         row for row in matrix_rows if str(row["module"]) == "A-E1"
-        and str(row["fit_kind"]) == "search_stage1" and str(row["route"]) in _A_E1_OPTIMIZED_ROUTES]
+        and str(row["fit_kind"]) == "search_stage1" and str(row["route"]) == route]
     specs = tuple(build_decision_specs("A-E1", stage1_rows))
-    expected = {_a_e1_stage1_decision_id(route) for route in _A_E1_OPTIMIZED_ROUTES}
+    expected = {_a_e1_stage1_decision_id(route)}
     _require(
         {spec.decision_id for spec in specs} == expected,
-        "stage1 selection scope must be exactly the two route architecture decisions")
+        f"stage1 selection scope must be exactly the {route!r} architecture decision")
     fit_states: Mapping[str, str] = {}
     if score_fit is None:
         fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
@@ -1822,50 +1822,45 @@ def build_a_e1_stage1_selection(
                 else:
                     _require(
                         fit_states.get(fit_id) == "succeeded",
-                        f"stage1 selection requires every stage1 fit terminal; {fit_id!r} is not succeeded")
+                        f"stage1 selection requires every {route} stage1 fit terminal; {fit_id!r} is not succeeded")
                     evaluation = _score_fit_from_checkpoint(
                         run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=plan_row,
                         frozen=frozen, effective=effective, fit_states=fit_states,
                         module_id="A-E1", decision_id=spec.decision_id, candidate_id=candidate.candidate_id)
                 evaluations[fit_id] = evaluation
-    records, diagnostics_records = build_selection_trace(
+    records, _diagnostics = build_selection_trace(
         module_id="A-E1", run_id=run_id, specs=specs, evaluations_by_fit=evaluations)
-    trace_path = run_dir / "stage1_selection_trace.jsonl"
+    trace_path = run_dir / f"stage1_selection_{route}_trace.jsonl"
     trace_sha = write_selection_trace(trace_path, records)
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     receipt = publish_selection_receipt(
-        receipt_path=run_dir / "stage1_selection_receipt.json",
-        ledger_path=run_dir / "stage1_selection_ledger.jsonl",
+        receipt_path=run_dir / f"stage1_selection_{route}_receipt.json",
+        ledger_path=run_dir / f"stage1_selection_{route}_ledger.jsonl",
         module_id="A-E1", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
         effective_config=effective, code_commit=manifest["code_commit"])
-    evidence_kwargs = dict(
+    top4 = resolve_selected_placeholders(
+        placeholders={f"selected_top_{slot}": _a_e1_stage1_decision_id(route) for slot in range(1, 5)},
         selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
-        selection_receipt_path=run_dir / "stage1_selection_receipt.json",
-        selection_ledger_path=run_dir / "stage1_selection_ledger.jsonl",
+        selection_receipt_path=run_dir / f"stage1_selection_{route}_receipt.json",
+        selection_ledger_path=run_dir / f"stage1_selection_{route}_ledger.jsonl",
         module_id="A-E1", run_id=run_id)
-    top4_by_route = {
-        route: resolve_selected_placeholders(
-            placeholders={f"selected_top_{slot}": _a_e1_stage1_decision_id(route) for slot in range(1, 5)},
-            **evidence_kwargs)
-        for route in _A_E1_OPTIMIZED_ROUTES
-    }
     return {
-        "module_id": "A-E1", "run_id": run_id, "selection_trace_sha256": trace_sha,
-        "top4_by_route": top4_by_route, **receipt,
+        "module_id": "A-E1", "run_id": run_id, "route": route,
+        "selection_trace_sha256": trace_sha, "top4": top4, **receipt,
     }
 
 
 def build_a_e1_stage2_selection(
     *, study_root: Path, run_dir: Path, cache_root: Path,
-    module_id: str = "A-E1", run_id: str, top4_by_route: Mapping[str, Mapping[str, str]],
+    module_id: str = "A-E1", run_id: str, route: str, top4: Mapping[str, str],
     score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
 ) -> dict[str, Any]:
-    """Stage-2 selection receipt (winner architecture/optimizer/loss per route) from stage-2 fits
-    ONLY, given the stage-1 top4. Maps each route's stage-2 winner (``selected_top_{slot}:{opt}``)
-    to the concrete architecture (``top4[slot]``), optimizer, and frozen loss -- the authority the
-    winner-retrain placeholders (``selected:A-E1_*``) resolve against. No future-stage evidence
-    required; no training; no test read.
+    """Per-route stage-2 selection receipt (winner architecture/optimizer/loss) from ONE route's
+    stage-2 fits ONLY, given that route's stage-1 top4. Maps the route's stage-2 winner
+    (``selected_top_{slot}:{opt}``) to the concrete architecture (``top4[slot]``), optimizer, and
+    frozen loss -- the authority that route's winner-retrain placeholders resolve against.
     """
+    _require(route in _A_E1_OPTIMIZED_ROUTES, f"staged A-E1 route must be one of {_A_E1_OPTIMIZED_ROUTES}")
     study_root = Path(study_root).resolve()
     run_dir = Path(run_dir).resolve()
     cache_root = Path(cache_root).resolve()
@@ -1878,12 +1873,12 @@ def build_a_e1_stage2_selection(
     matrix_rows = expand_module_matrix(frozen).to_dict("records")
     stage2_rows = [
         row for row in matrix_rows if str(row["module"]) == "A-E1"
-        and str(row["fit_kind"]) == "search_stage2" and str(row["route"]) in _A_E1_OPTIMIZED_ROUTES]
+        and str(row["fit_kind"]) == "search_stage2" and str(row["route"]) == route]
     specs = tuple(build_decision_specs("A-E1", stage2_rows))
-    expected = {_a_e1_stage2_decision_id(route) for route in _A_E1_OPTIMIZED_ROUTES}
+    expected = {_a_e1_stage2_decision_id(route)}
     _require(
         {spec.decision_id for spec in specs} == expected,
-        "stage2 selection scope must be exactly the two route stage2 decisions")
+        f"stage2 selection scope must be exactly the {route!r} stage2 decision")
     fit_states: Mapping[str, str] = {}
     if score_fit is None:
         fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
@@ -1898,7 +1893,7 @@ def build_a_e1_stage2_selection(
                 else:
                     _require(
                         fit_states.get(fit_id) == "succeeded",
-                        f"stage2 selection requires every stage2 fit terminal; {fit_id!r} is not succeeded")
+                        f"stage2 selection requires every {route} stage2 fit terminal; {fit_id!r} is not succeeded")
                     evaluation = _score_fit_from_checkpoint(
                         run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=plan_row,
                         frozen=frozen, effective=effective, fit_states=fit_states,
@@ -1906,54 +1901,41 @@ def build_a_e1_stage2_selection(
                 evaluations[fit_id] = evaluation
     records, _diagnostics = build_selection_trace(
         module_id="A-E1", run_id=run_id, specs=specs, evaluations_by_fit=evaluations)
-    trace_path = run_dir / "stage2_selection_trace.jsonl"
+    trace_path = run_dir / f"stage2_selection_{route}_trace.jsonl"
     trace_sha = write_selection_trace(trace_path, records)
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     receipt = publish_selection_receipt(
-        receipt_path=run_dir / "stage2_selection_receipt.json",
-        ledger_path=run_dir / "stage2_selection_ledger.jsonl",
+        receipt_path=run_dir / f"stage2_selection_{route}_receipt.json",
+        ledger_path=run_dir / f"stage2_selection_{route}_ledger.jsonl",
         module_id="A-E1", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
         effective_config=effective, code_commit=manifest["code_commit"])
-    by_decision: dict[str, list[dict[str, Any]]] = {}
-    for record in records:
-        by_decision.setdefault(record["decision_id"], []).append(record)
-    winners_by_route: dict[str, dict[str, str]] = {}
-    for route in _A_E1_OPTIMIZED_ROUTES:
-        decision_id = _a_e1_stage2_decision_id(route)
-        winner = next((r for r in by_decision[decision_id] if r["selected"]), None)
-        _require(winner is not None, f"stage2 decision {decision_id!r} has no selected winner")
-        arch_placeholder, optimizer = _parse_stage2_winner_candidate(str(winner["candidate_id"]))
-        top4 = top4_by_route[route]
-        _require(
-            arch_placeholder in top4,
-            f"stage2 winner slot {arch_placeholder!r} is outside the stage1 top4 for route {route!r}")
-        winners_by_route[route] = {
-            "selected:A-E1_loss": _A_E1_STAGE2_FROZEN_LOSS,
-            "selected:A-E1_architecture": top4[arch_placeholder],
-            "selected:A-E1_optimizer": optimizer,
-        }
+    decision_id = _a_e1_stage2_decision_id(route)
+    winner = next((r for r in records if r["decision_id"] == decision_id and r["selected"]), None)
+    _require(winner is not None, f"stage2 decision {decision_id!r} has no selected winner")
+    arch_placeholder, optimizer = _parse_stage2_winner_candidate(str(winner["candidate_id"]))
+    _require(
+        arch_placeholder in top4,
+        f"stage2 winner slot {arch_placeholder!r} is outside the stage1 top4 for route {route!r}")
+    winner_spec = {
+        "selected:A-E1_loss": _A_E1_STAGE2_FROZEN_LOSS,
+        "selected:A-E1_architecture": top4[arch_placeholder],
+        "selected:A-E1_optimizer": optimizer,
+    }
     return {
-        "module_id": "A-E1", "run_id": run_id, "selection_trace_sha256": trace_sha,
-        "winners_by_route": winners_by_route, **receipt,
+        "module_id": "A-E1", "run_id": run_id, "route": route,
+        "selection_trace_sha256": trace_sha, "winner": winner_spec, **receipt,
     }
 
 
-def _resolve_stage2_plan_row(plan_row: Mapping[str, Any], top4_by_route: Mapping[str, Mapping[str, str]]) -> dict[str, Any]:
-    """Concretize a stage2 plan row's ``selected_top_N`` architecture from the stage1 top4."""
+def _resolve_stage2_plan_row(plan_row: Mapping[str, Any], top4: Mapping[str, str]) -> dict[str, Any]:
+    """Concretize a stage2 plan row's ``selected_top_N`` architecture from the route's stage1 top4."""
     arch = str(plan_row["architecture"])
-    route = str(plan_row["route"])
-    top4 = top4_by_route.get(route, {})
-    _require(
-        arch in top4,
-        f"stage2 architecture placeholder {arch!r} is not in the stage1 top4 for route {route!r}")
+    _require(arch in top4, f"stage2 architecture placeholder {arch!r} is not in the stage1 top4")
     return {**plan_row, "architecture": top4[arch]}
 
 
-def _resolve_winner_retrain_plan_row(plan_row: Mapping[str, Any], winners_by_route: Mapping[str, Mapping[str, str]]) -> dict[str, Any]:
-    """Concretize a winner-retrain plan row's selected:A-E1_* placeholders from the stage2 winners."""
-    route = str(plan_row["route"])
-    _require(route in winners_by_route, f"winner-retrain route {route!r} has no stage2 winner")
-    winner = winners_by_route[route]
+def _resolve_winner_retrain_plan_row(plan_row: Mapping[str, Any], winner: Mapping[str, str]) -> dict[str, Any]:
+    """Concretize a winner-retrain plan row's selected:A-E1_* placeholders from the route's stage2 winner."""
     return {
         **plan_row,
         "architecture": winner["selected:A-E1_architecture"],
@@ -1998,8 +1980,8 @@ def run_a_e1_staged(
     plan_order = [str(row["fit_id"]) for row in plan_rows]
     plan_by_fit = {str(row["fit_id"]): row for row in plan_rows}
 
-    stage1: dict[str, Any] | None = None
-    stage2: dict[str, Any] | None = None
+    stage1_by_route: dict[str, dict[str, Any]] = {}
+    stage2_by_route: dict[str, dict[str, Any]] = {}
     succeeded: list[str] = []
     failed: list[dict[str, str]] = []
     while max_fits is None or len(succeeded) < int(max_fits):
@@ -2010,17 +1992,19 @@ def run_a_e1_staged(
         fit_id = pending[0]
         plan_row = plan_by_fit[fit_id]
         stage = _a_e1_fit_stage(plan_row)
+        route = str(plan_row["route"])
         if stage == "stage2":
-            if stage1 is None:
-                stage1 = build_a_e1_stage1_selection(
-                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id)
-            resolved = _resolve_stage2_plan_row(plan_row, stage1["top4_by_route"])
+            # the route's stage1 fits precede its stage2 fits in plan order, so they are terminal now
+            if route not in stage1_by_route:
+                stage1_by_route[route] = build_a_e1_stage1_selection(
+                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id, route=route)
+            resolved = _resolve_stage2_plan_row(plan_row, stage1_by_route[route]["top4"])
         elif stage == "winner_retrain":
-            if stage2 is None:
-                stage2 = build_a_e1_stage2_selection(
+            if route not in stage2_by_route:
+                stage2_by_route[route] = build_a_e1_stage2_selection(
                     study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
-                    top4_by_route=stage1["top4_by_route"])
-            resolved = _resolve_winner_retrain_plan_row(plan_row, stage2["winners_by_route"])
+                    route=route, top4=stage1_by_route[route]["top4"])
+            resolved = _resolve_winner_retrain_plan_row(plan_row, stage2_by_route[route]["winner"])
         else:
             resolved = plan_row
         timestamp = _utc_now()
