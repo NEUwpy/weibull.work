@@ -1179,8 +1179,8 @@ def main():
 
     if args.phase == "analyze":
         build_comparisons()
-        build_root_manifest()
         log("Analyze complete")
+        build_root_manifest()
         return
 
     log("Loading data...")
