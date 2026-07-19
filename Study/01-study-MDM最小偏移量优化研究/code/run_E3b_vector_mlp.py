@@ -1433,6 +1433,77 @@ def decide_acceptance(combo_pooled, random_results=None):
 # Plot generation
 # ============================================================
 
+def plot_model_j1_comparison(model_rows, output_dir=PLOTS_DIR):
+    """Plot all pooled combo-holdout methods ordered by ascending J1."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    matplotlib.rcParams.update({
+        'font.family': 'sans-serif',
+        'font.sans-serif': ['Arial', 'Helvetica', 'DejaVu Sans', 'sans-serif'],
+        'svg.fonttype': 'none',
+        'pdf.fonttype': 42,
+    })
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    allowed_models = {
+        'Default', 'L1', 'L2',
+        'Vector-MLP-L4', 'Vector-MLP-L5', 'Vector-MLP-L6',
+        'Tabular-L6',
+        'L3-oracle', 'L4-oracle', 'L5-oracle', 'L6-hindsight'
+    }
+    by_model = {
+        row['model']: row
+        for row in model_rows
+        if row['model'] in allowed_models
+    }
+    models_present = sorted(by_model, key=lambda model: float(by_model[model]['J1']))
+    j1_vals = [float(by_model[model]['J1']) for model in models_present]
+
+    def model_color(model):
+        if 'Vector' in model:
+            return '#E69F00'
+        if model == 'Tabular-L6':
+            return '#56B4E9'
+        if 'oracle' in model or 'hindsight' in model:
+            return '#009E73'
+        return '#999999'
+
+    colors = [model_color(model) for model in models_present]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.barh(range(len(models_present)), j1_vals, color=colors)
+    ax.set_yticks(range(len(models_present)))
+    ax.set_yticklabels(models_present)
+    ax.set_xlabel(r'Pooled $J_1$ (lower is better)')
+    ax.set_title(r'E3b full-combination holdout: pooled $J_1$')
+    ax.invert_yaxis()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.grid(axis='x', color='#D9D9D9', linewidth=0.6, alpha=0.7)
+    ax.set_axisbelow(True)
+    ax.set_xlim(0, max(j1_vals) + 0.045)
+
+    for bar, value in zip(bars, j1_vals):
+        ax.text(
+            value + 0.003,
+            bar.get_y() + bar.get_height() / 2,
+            f'{value:.4f}',
+            va='center',
+            fontsize=8,
+        )
+
+    fig.tight_layout()
+    output_base = os.path.join(output_dir, 'model_j1_comparison')
+    fig.savefig(f'{output_base}.png', dpi=300, bbox_inches='tight')
+    fig.savefig(f'{output_base}.svg', bbox_inches='tight')
+    fig.savefig(f'{output_base}.pdf', bbox_inches='tight')
+    plt.close(fig)
+    print(f"  Saved plots/model_j1_comparison.{{png,svg,pdf}}")
+
+
 def generate_plots(combo_pooled, seed_results, ablation_results,
                    endpoint_rows, near_opt_summaries):
     """Generate basic diagnostic PNGs for decision-making."""
@@ -1442,34 +1513,10 @@ def generate_plots(combo_pooled, seed_results, ablation_results,
 
     os.makedirs(PLOTS_DIR, exist_ok=True)
 
-    model_order = [
-        'Default', 'L1', 'L2',
-        'Vector-MLP-L4', 'Vector-MLP-L5', 'Vector-MLP-L6',
-        'Tabular-L6',
-        'L3-oracle', 'L4-oracle', 'L5-oracle', 'L6-hindsight'
-    ]
-
     by_model = {r['model']: r for r in combo_pooled}
 
     # Plot 1: Model J1 comparison
-    fig, ax = plt.subplots(figsize=(10, 6))
-    models_present = [m for m in model_order if m in by_model]
-    j1_vals = [by_model[m]['J1'] for m in models_present]
-    colors = ['#E69F00' if 'Vector' in m else '#56B4E9' if m == 'Tabular-L6'
-              else '#009E73' if 'oracle' in m or 'hindsight' in m
-              else '#999999' for m in models_present]
-    bars = ax.barh(range(len(models_present)), j1_vals, color=colors)
-    ax.set_yticks(range(len(models_present)))
-    ax.set_yticklabels(models_present)
-    ax.set_xlabel('J1 (lower is better)')
-    ax.set_title('E3b Combo Holdout Pooled J1 Comparison')
-    ax.invert_yaxis()
-    for i, (m, v) in enumerate(zip(models_present, j1_vals)):
-        ax.text(v + 0.002, i, f'{v:.4f}', va='center', fontsize=8)
-    plt.tight_layout()
-    plt.savefig(os.path.join(PLOTS_DIR, 'model_j1_comparison.png'), dpi=150)
-    plt.close()
-    print(f"  Saved plots/model_j1_comparison.png")
+    plot_model_j1_comparison(combo_pooled)
 
     # Plot 2: Delta distribution comparison
     fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
