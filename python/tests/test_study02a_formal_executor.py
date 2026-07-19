@@ -1247,3 +1247,65 @@ def test_a_e1_fit_stage_classifies_plan_rows():
     assert fe._a_e1_fit_stage({"fit_kind": "search_stage1"}) == "concrete"
     assert fe._a_e1_fit_stage({"fit_kind": "search_stage2"}) == "stage2"
     assert fe._a_e1_fit_stage({"fit_kind": "winner_retrain"}) == "winner_retrain"
+
+
+def test_build_a_e1_stage2_selection_maps_winner_to_concrete(tmp_path):
+    """Stage-2 selection publishes a partial receipt over stage-2 decisions ONLY and maps each
+    route's winner (selected_top_{slot}:{opt}) to the concrete architecture (top4[slot]) +
+    optimizer + frozen loss -- the authority winner-retrain placeholders resolve against."""
+    run_id = "G3-AE1-staged-exec-v1"
+    run_dir = tmp_path / "A-E1" / run_id
+    run_dir.mkdir(parents=True)
+    plan_rows = [r for r in MATRIX_ROWS if str(r["module"]) == "A-E1"]
+    (run_dir / "plan.jsonl").write_text(
+        "".join(json.dumps(r, sort_keys=True) + "\n" for r in plan_rows), encoding="utf-8")
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+    top4 = {f"selected_top_{i}": f"m0{i}" for i in range(1, 5)}
+    top4_by_route = {"F2": top4, "V": dict(top4)}
+
+    def score_fit(fit_id, plan_row):
+        route = str(plan_row["route"]); arch = str(plan_row["architecture"]); opt = str(plan_row["optimizer"])
+        candidate_id = f"{arch}:{opt}"
+        forced = {"F2": "selected_top_2:o2", "V": "selected_top_3:o3"}[route]
+        base = 0.001 if candidate_id == forced else 0.5
+        key = SupportKey(n=int(plan_row["n"]), seed=int(plan_row["seed"]))
+        records = _synth_point_records(fit_id, int(plan_row["seed"]), base)
+        return FitEvaluation(
+            fit_id=fit_id, module_id="A-E1",
+            decision_id=f"stage2:A-E1:{route}:n{fe._A_E1_SEARCH_N}", candidate_id=candidate_id,
+            support_key=key, failed=False, checkpoint_sha256=hashlib.sha256(fit_id.encode("utf-8")).hexdigest(),
+            validation_identity=f"val-cache-{fit_id}",
+            selection_score=sum(rec["l_param"] for rec in records) / len(records),
+            failure_penalty=0.0, point_records=records)
+
+    result = fe.build_a_e1_stage2_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache", run_id=run_id,
+        top4_by_route=top4_by_route, score_fit=score_fit)
+    assert result["winners_by_route"]["F2"] == {
+        "selected:A-E1_loss": "transformed_train_z_huber",
+        "selected:A-E1_architecture": "m02", "selected:A-E1_optimizer": "o2"}
+    assert result["winners_by_route"]["V"] == {
+        "selected:A-E1_loss": "transformed_train_z_huber",
+        "selected:A-E1_architecture": "m03", "selected:A-E1_optimizer": "o3"}
+    records = [json.loads(line) for line in (run_dir / "stage2_selection_trace.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert {r["decision_id"] for r in records} == {"stage2:A-E1:F2:n10", "stage2:A-E1:V:n10"}
+
+
+def test_staged_plan_row_resolvers_concretize_and_fail_closed():
+    """The placeholder resolvers map stage2/winner-retrain rows to concrete plan rows and fail
+    closed when the resolving receipt lacks the needed slot/route."""
+    top4_by_route = {"F2": {"selected_top_1": "m01", "selected_top_2": "m02"}}
+    winners = {"F2": {"selected:A-E1_loss": "transformed_train_z_huber",
+                      "selected:A-E1_architecture": "m02", "selected:A-E1_optimizer": "o2"}}
+    resolved = fe._resolve_stage2_plan_row(
+        {"architecture": "selected_top_2", "route": "F2"}, top4_by_route)
+    assert resolved["architecture"] == "m02"
+    retrained = fe._resolve_winner_retrain_plan_row({"route": "F2"}, winners)
+    assert retrained["architecture"] == "m02" and retrained["optimizer"] == "o2"
+    assert retrained["loss"] == "transformed_train_z_huber"
+    import pytest as _pt
+    with _pt.raises(ValueError, match="top4"):
+        fe._resolve_stage2_plan_row({"architecture": "selected_top_9", "route": "F2"}, top4_by_route)
+    with _pt.raises(ValueError, match="stage2 winner"):
+        fe._resolve_winner_retrain_plan_row({"route": "V"}, winners)
