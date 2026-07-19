@@ -1300,7 +1300,7 @@ def build_root_manifest():
     artifacts_map = {}
     for dirpath, dirnames, filenames in os.walk(STAGE1_DIR):
         for fn in sorted(filenames):
-            if fn == "manifest.json" and dirpath != STAGE1_DIR:
+            if fn == "manifest.json":
                 continue
             fpath = os.path.join(dirpath, fn)
             rel = os.path.relpath(fpath, STAGE1_DIR).replace("\\", "/")
