@@ -1267,7 +1267,8 @@ def _build_multi_seed_summary(df_rep, df_transfer, df_bs, per_n, df_sel):
                 b_label = b_rows.iloc[0]["run_id"]
             else:
                 m_rows = per_n[(per_n["seed"].astype(int) == seed_val) & (per_n["test_n"].astype(int) == tn) &
-                               (per_n["representation"] == rep) & (per_n["family"] == family)]
+                               (per_n["representation"] == rep) & (per_n["family"] == family) &
+                               (per_n["train_n"].astype(str) == str(trn))]
                 s_rows = per_n[(per_n["seed"].astype(int) == seed_val) & (per_n["test_n"].astype(int) == tn) &
                                (per_n["representation"] == rep) & (per_n["family"] == "S")]
                 if len(m_rows) == 0 or len(s_rows) == 0:

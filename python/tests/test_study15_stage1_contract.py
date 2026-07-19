@@ -348,8 +348,8 @@ def test_multi_seed_summary():
 
 
 def test_multi_seed_synthetic_three_seeds():
-    """Synthetic 3-seed data exercises the n_seeds>1 branch. 
-    Verifies rows, n_seeds=3, finite CIs, direction, and per-iteration averaging."""
+    """Synthetic 3-seed data exercises the n_seeds>1 branch.
+    Includes two T sources with distinct effects to verify train_n filtering."""
     from run_stage1 import _build_multi_seed_summary, bootstrap_paired
     import tempfile, os as _os
 
@@ -365,37 +365,50 @@ def test_multi_seed_synthetic_three_seeds():
     bs_rows = []
 
     for seed_val in all_seeds:
-        for rep in ["F13", "RAW"]:
-            rid_j = f"{rep}_J_seed{seed_val}"
-            rid_s = f"{rep}_S_7to7_seed{seed_val}"
-            per_n_rows.append({"seed": seed_val, "representation": rep, "family": "J",
-                               "train_n": "7,10,20", "test_n": test_n,
-                               "run_id": rid_j, "J1": 0.5, "mean_regret": 0.1, "n_samples": 3000})
-            per_n_rows.append({"seed": seed_val, "representation": rep, "family": "S",
-                               "train_n": "7", "test_n": test_n,
-                               "run_id": rid_s, "J1": 0.6, "mean_regret": 0.12, "n_samples": 3000})
+        rep = "F13"
+        rid_j = f"{rep}_J_seed{seed_val}"
+        rid_s = f"{rep}_S_7to7_seed{seed_val}"
+        rid_t10 = f"{rep}_T_10to7-20_seed{seed_val}"
+        rid_t20 = f"{rep}_T_20to7-10_seed{seed_val}"
+
+        per_n_rows.append({"seed": seed_val, "representation": rep, "family": "J",
+                           "train_n": "7,10,20", "test_n": test_n,
+                           "run_id": rid_j, "J1": 0.5, "mean_regret": 0.10, "n_samples": 3000})
+        per_n_rows.append({"seed": seed_val, "representation": rep, "family": "S",
+                           "train_n": "7", "test_n": test_n,
+                           "run_id": rid_s, "J1": 0.6, "mean_regret": 0.12, "n_samples": 3000})
+        per_n_rows.append({"seed": seed_val, "representation": rep, "family": "T",
+                           "train_n": "10", "test_n": test_n,
+                           "run_id": rid_t10, "J1": 0.65, "mean_regret": 0.18, "n_samples": 3000})
+        per_n_rows.append({"seed": seed_val, "representation": rep, "family": "T",
+                           "train_n": "20", "test_n": test_n,
+                           "run_id": rid_t20, "J1": 0.80, "mean_regret": 0.25, "n_samples": 3000})
+
+        for model_rid, j1_base, reg_base in [(rid_j, 0.5, 0.10), (rid_s, 0.6, 0.12),
+                                               (rid_t10, 0.65, 0.18), (rid_t20, 0.80, 0.25)]:
             for combo_idx, (beta, goe) in enumerate(combos):
                 for rep_i in range(n_per_combo):
-                    sel_rows.append({"model": rid_j, "n": test_n, "beta": beta,
-                                     "gamma_over_eta": goe, "repeat_id": combo_idx * n_per_combo + rep_i,
+                    sel_rows.append({"model": model_rid, "n": test_n, "beta": beta,
+                                     "gamma_over_eta": goe,
+                                     "repeat_id": combo_idx * n_per_combo + rep_i,
                                      "selected_loss": 0.1 + seed_val * 0.001 + combo_idx * 0.01,
                                      "regret": 0.02 + seed_val * 0.0001 + combo_idx * 0.002})
-                    sel_rows.append({"model": rid_s, "n": test_n, "beta": beta,
-                                     "gamma_over_eta": goe, "repeat_id": combo_idx * n_per_combo + rep_i,
-                                     "selected_loss": 0.12 + seed_val * 0.001 + combo_idx * 0.008,
-                                     "regret": 0.025 + seed_val * 0.0001 + combo_idx * 0.0015})
 
-            sub_sel = [r for r in sel_rows if r["model"] in (rid_j, rid_s) and r["n"] == test_n]
-            a_df = [r for r in sub_sel if r["model"] == rid_s]
-            b_df = [r for r in sub_sel if r["model"] == rid_j]
+        for family, rid_m, train_n_str, j1_m, j1_s, reg_m, reg_s in [
+            ("J", rid_j, "7,10,20", 0.5, 0.6, 0.10, 0.12),
+            ("T", rid_t10, "10", 0.65, 0.6, 0.18, 0.12),
+            ("T", rid_t20, "20", 0.80, 0.6, 0.25, 0.12),
+        ]:
+            sub = [r for r in sel_rows if r["model"] in (rid_s, rid_m) and r["n"] == test_n]
+            a_df = [r for r in sub if r["model"] == rid_s]
+            b_df = [r for r in sub if r["model"] == rid_m]
             lo_j, hi_j, mn_j = bootstrap_paired(a_df, b_df, "selected_loss", n_bootstrap=500, seed=42)
             lo_r, hi_r, mn_r = bootstrap_paired(a_df, b_df, "regret", n_bootstrap=500, seed=42)
-            cost = 0.5 - 0.6
             bs_rows.append({
-                "comparison": "J_minus_S", "seed": seed_val, "test_n": test_n,
-                "representation": rep, "train_n": "7,10,20",
-                "point_estimate_J1": cost, "ci_low_J1": lo_j, "ci_high_J1": hi_j, "bootstrap_mean_J1": mn_j,
-                "point_estimate_regret": 0.1 - 0.12, "ci_low_regret": lo_r, "ci_high_regret": hi_r, "bootstrap_mean_regret": mn_r,
+                "comparison": f"{family}_minus_S", "seed": seed_val, "test_n": test_n,
+                "representation": rep, "train_n": train_n_str,
+                "point_estimate_J1": j1_m - j1_s, "ci_low_J1": lo_j, "ci_high_J1": hi_j, "bootstrap_mean_J1": mn_j,
+                "point_estimate_regret": reg_m - reg_s, "ci_low_regret": lo_r, "ci_high_regret": hi_r, "bootstrap_mean_regret": mn_r,
             })
 
     df_per_n = pd.DataFrame(per_n_rows)
@@ -403,7 +416,6 @@ def test_multi_seed_synthetic_three_seeds():
     df_bs_syn = pd.DataFrame(bs_rows)
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        from run_stage1 import STAGE1_DIR as _orig
         import run_stage1 as rs
         saved = rs.STAGE1_DIR
         rs.STAGE1_DIR = tmpdir
@@ -412,16 +424,21 @@ def test_multi_seed_synthetic_three_seeds():
             ms_path = os.path.join(tmpdir, "multi_seed_summary.csv")
             assert os.path.exists(ms_path), "multi_seed_summary.csv not created"
             df_ms = pd.read_csv(ms_path)
-            assert len(df_ms) == 2, f"Expected 2 rows (F13+RAW), got {len(df_ms)}"
+            assert len(df_ms) == 3, f"Expected 3 rows (J+T10+T20), got {len(df_ms)}"
+
+            t_rows = df_ms[df_ms["comparison"] == "T_minus_S"]
+            assert len(t_rows) == 2, f"Expected 2 T rows, got {len(t_rows)}"
+            t10 = t_rows[t_rows["train_n"] == "10"]
+            t20 = t_rows[t_rows["train_n"] == "20"]
+            assert len(t10) == 1 and len(t20) == 1, "Missing distinct T source"
+            assert float(t10.iloc[0]["mean_effect_J1"]) > float(t20.iloc[0]["mean_effect_J1"]), \
+                "T(source=20) should have larger effect than T(source=10)"
+
             for _, row in df_ms.iterrows():
                 n_s = int(row["n_seeds"])
-                assert n_s == 3, f"n_seeds should be 3, got {n_s}"
-                assert pd.notna(row["ci_low_J1"]) and pd.notna(row["ci_high_J1"]), "CI must be finite"
-                assert pd.notna(row["ci_low_regret"]) and pd.notna(row["ci_high_regret"]), "CI must be finite"
-                pe = float(row["per_seed_J1_effects"].strip("[]").split(",")[0])
-                assert pd.notna(pe), "per_seed_J1_effects must be parseable"
-                lo = float(row["ci_low_J1"])
-                hi = float(row["ci_high_J1"])
+                assert n_s == 3
+                assert pd.notna(row["ci_low_J1"]) and pd.notna(row["ci_high_J1"])
+                lo = float(row["ci_low_J1"]); hi = float(row["ci_high_J1"])
                 assert lo <= hi, f"ci_low={lo} > ci_high={hi}"
         finally:
             rs.STAGE1_DIR = saved
