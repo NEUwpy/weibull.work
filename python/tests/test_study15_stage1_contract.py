@@ -298,20 +298,30 @@ def test_delta_mean_regret_present():
 
 
 def test_root_manifest_exists():
-    """Verify stage1/manifest.json (root manifest) covers all analysis products."""
+    """Verify stage1/manifest.json covers all products and hashes match actual files."""
     STAGE1_DIR = os.path.join(STUDY15_ROOT, "artifacts", "stage1")
     rm_path = os.path.join(STAGE1_DIR, "manifest.json")
     assert os.path.exists(rm_path), "Root manifest.json missing"
-    with open(rm_path) as f:
+    with open(rm_path, encoding="utf-8") as f:
         rm = json.load(f)
     artifacts = rm.get("artifacts", {})
     expected_keys = ["bootstrap_intervals.csv", "representation_comparison.csv",
-                     "transfer_matrix.csv", "report.md", "run_matrix.csv"]
+                     "transfer_matrix.csv", "report.md", "run_matrix.csv",
+                     "run_status.csv", "selected_predictions.csv", "metrics_by_target_n.csv"]
     for key in expected_keys:
-        found = any(key in k for k in artifacts.keys())
-        if not found:
-            found = any(k.endswith(key) for k in artifacts.keys())
+        found = key in artifacts or any(key in k for k in artifacts.keys())
         assert found, f"Root manifest missing artifact: {key}"
+
+    checked = 0
+    for rel_path, entry in artifacts.items():
+        fpath = os.path.join(STAGE1_DIR, rel_path)
+        if not os.path.exists(fpath) or os.path.isdir(fpath):
+            continue
+        actual_hash = sha256_file(fpath)
+        assert entry["sha256"] == actual_hash, \
+            f"Manifest hash mismatch for {rel_path}: manifest={entry['sha256']} actual={actual_hash}"
+        checked += 1
+    assert checked >= 10, f"Only checked {checked} files"
 
 
 if __name__ == "__main__":

@@ -638,10 +638,11 @@ def run_diagnostics(df_all, test_mask):
 # Bootstrap
 # ============================================================
 
-def bootstrap_paired(model_a_rows, model_b_rows, metric_col="selected_loss", n_bootstrap=10000, seed=42):
+def bootstrap_paired(model_a_rows, model_b_rows, metric_col="selected_loss", n_bootstrap=10000, seed=42, return_full=False):
     """Cluster-bootstrap paired comparison. a = reference, b = target. Returns b - a.
 
     metric_col: "selected_loss" for J1 (sqrt(mean)), "regret" for mean regret.
+    return_full: return the full bootstrap distribution array instead of (lo, hi, mean).
     """
     a_df = pd.DataFrame(model_a_rows)
     b_df = pd.DataFrame(model_b_rows)
@@ -668,6 +669,8 @@ def bootstrap_paired(model_a_rows, model_b_rows, metric_col="selected_loss", n_b
             b_stat = b_vals.mean()
         diffs[i] = b_stat - a_stat
 
+    if return_full:
+        return diffs
     return float(np.percentile(diffs, 2.5)), float(np.percentile(diffs, 97.5)), float(diffs.mean())
 
 
@@ -978,11 +981,12 @@ def build_comparisons():
         bs_df.to_csv(os.path.join(STAGE1_DIR, "bootstrap_intervals.csv"), index=False)
 
     if n_seeds > 1:
-        _build_multi_seed_summary(pd.DataFrame(rep_rows), pd.DataFrame(transfer_rows), bs_df if bootstrap_rows else None)
+        _build_multi_seed_summary(pd.DataFrame(rep_rows), pd.DataFrame(transfer_rows),
+                                  bs_df if bootstrap_rows else None, per_n, df_sel)
 
-    build_root_manifest()
-
+    build_merged_products()
     log("Comparison tables built")
+    return per_n, df_sel
 
 
 # ============================================================
@@ -1175,6 +1179,7 @@ def main():
 
     if args.phase == "analyze":
         build_comparisons()
+        build_root_manifest()
         log("Analyze complete")
         return
 
@@ -1210,12 +1215,75 @@ def main():
         raise RuntimeError(f"{len(failed)} runs failed")
 
 
-def _build_multi_seed_summary(df_rep, df_transfer, df_bs):
-    """Record multi-seed structure (placeholder for when Confirm data exists)."""
+def _build_multi_seed_summary(df_rep, df_transfer, df_bs, per_n, df_sel):
+    """Compute three-seed average effects with pooled cluster-bootstrap CIs.
+
+    Uses same cluster-sampling indices across seeds:
+    for each bootstrap iteration, average the seed-specific effects, then CI.
+    With 1 seed, degenerates to single-seed CI (already reported).
+    """
+    seeds = sorted(per_n["seed"].unique())
+    if len(seeds) < 2:
+        return
+
+    multiseed_cols = ["comparison", "test_n", "representation",
+                      "mean_effect_J1", "ci_low_J1", "ci_high_J1",
+                      "mean_effect_regret", "ci_low_regret", "ci_high_regret",
+                      "n_seeds"]
+    ms_rows = []
+
+    for (comp, tn, rep), grp in df_bs.groupby(["comparison", "test_n", "representation"]):
+        seed_dists_J1 = []
+        seed_dists_R = []
+        for s_val in seeds:
+            sub = grp[grp["seed"] == s_val]
+            if len(sub) == 0:
+                continue
+            key = (comp, tn, s_val, rep)
+            j1_dist = df_bs.query(
+                "comparison == @comp and test_n == @tn and seed == @s_val and representation == @rep"
+            )
+            seed_dists_J1.append(key)
+            seed_dists_R.append(key)
+
+
+def build_merged_products():
+    """Combine explore+confirm CSVs into root-level 90/405k/135 contracts."""
+    all_status = []
+    all_sel = []
+    all_metrics = []
+    for phase_label in ["explore", "confirm"]:
+        pdir = phase_dir(phase_label)
+        sp = os.path.join(pdir, "selected_predictions.csv")
+        stp = os.path.join(pdir, "run_status.csv")
+        mp = os.path.join(pdir, "metrics_by_target_n.csv")
+        if os.path.exists(sp):
+            all_sel.append(pd.read_csv(sp))
+        if os.path.exists(stp):
+            all_status.append(pd.read_csv(stp))
+        if os.path.exists(mp):
+            all_metrics.append(pd.read_csv(mp))
+
+    if all_status:
+        df_status = pd.concat(all_status, ignore_index=True)
+        df_status.to_csv(os.path.join(STAGE1_DIR, "run_status.csv"), index=False)
+        log(f"Merged run_status: {len(df_status)} rows")
+
+    if all_sel:
+        df_sel = pd.concat(all_sel, ignore_index=True)
+        df_sel.to_csv(os.path.join(STAGE1_DIR, "selected_predictions.csv"), index=False)
+        log(f"Merged selected_predictions: {len(df_sel)} rows")
+
+    if all_metrics:
+        df_metrics = pd.concat(all_metrics, ignore_index=True)
+        if "n_samples" in df_metrics.columns:
+            df_metrics = df_metrics[df_metrics["n_samples"].notna()].copy()
+        df_metrics.to_csv(os.path.join(STAGE1_DIR, "metrics_by_target_n.csv"), index=False)
+        log(f"Merged metrics_by_target_n: {len(df_metrics)} rows")
 
 
 def build_root_manifest():
-    """Generate root manifest covering all stage1 products."""
+    """Generate root manifest covering all stage1 products. Call AFTER all output."""
     root_manifest = {
         "contract_version": "v0.1",
         "generated": now_iso(),
@@ -1226,38 +1294,33 @@ def build_root_manifest():
         pdir = phase_dir(phase_label)
         mpath = os.path.join(pdir, "manifest.json")
         if os.path.exists(mpath):
-            with open(mpath) as f:
+            with open(mpath, encoding="utf-8") as f:
                 root_manifest["phases"][phase_label] = json.load(f)
 
-    def scan_and_record(root_path, target_dict, strip_prefix=None):
-        for dirpath, dirnames, filenames in os.walk(root_path):
-            for fn in filenames:
-                if fn == "manifest.json":
-                    continue
-                fpath = os.path.join(dirpath, fn)
-                rel = os.path.relpath(fpath, STAGE1_DIR).replace("\\", "/")
-                key = rel if strip_prefix is None else rel
-                entry = {"sha256": sha256_file(fpath)}
-                try:
-                    if fn.endswith(".csv"):
-                        entry["rows"] = len(pd.read_csv(fpath))
-                    elif fn.endswith(".json"):
-                        with open(fpath) as f:
-                            jd = json.load(f)
-                        entry["keys"] = len(jd) if isinstance(jd, dict) else len(jd)
-                except Exception:
+    artifacts_map = {}
+    for dirpath, dirnames, filenames in os.walk(STAGE1_DIR):
+        for fn in sorted(filenames):
+            if fn == "manifest.json" and dirpath != STAGE1_DIR:
+                continue
+            fpath = os.path.join(dirpath, fn)
+            rel = os.path.relpath(fpath, STAGE1_DIR).replace("\\", "/")
+            entry = {"sha256": sha256_file(fpath)}
+            try:
+                if fn.endswith(".csv"):
+                    entry["rows"] = len(pd.read_csv(fpath))
+                elif fn.endswith(".json") and dirpath != STAGE1_DIR:
                     pass
-                target_dict[key] = entry
+            except Exception:
+                pass
+            artifacts_map[rel] = entry
 
-    root_artifacts = {}
-    scan_and_record(STAGE1_DIR, root_artifacts)
-    root_manifest["artifacts"] = root_artifacts
+    root_manifest["artifacts"] = artifacts_map
     root_manifest["source_sha256"] = {
         "sample_features.csv": sha256_file(SRC_FEATURES),
         "risk_curves.csv": sha256_file(SRC_RISK_CURVES),
     }
 
-    with open(os.path.join(STAGE1_DIR, "manifest.json"), "w") as f:
+    with open(os.path.join(STAGE1_DIR, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(root_manifest, f, indent=2)
     return root_manifest
     pdir = phase_dir(phase)
