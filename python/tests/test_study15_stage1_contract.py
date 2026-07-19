@@ -278,9 +278,9 @@ def test_bootstrap_direction_consistent():
             for _, row in df_bs.iterrows():
                 pev = float(row[pe]) if pd.notna(row.get(pe)) else 0
                 bmv = float(row[bm]) if pd.notna(row.get(bm)) else 0
-                assert pev * bmv >= -1e-12, \
+                assert pev * bmv >= -1e-12, (
                     f"{row['comparison']} {row.get('test_n','?')} {row.get('representation','')}: "
-                    f"{col_prefix} point={pev:.6f} bootstrap_mean={bmv:.6f} — sign mismatch"
+                    f"{col_prefix} point={pev:.6f} bootstrap_mean={bmv:.6f} -- sign mismatch")
 
 
 def test_delta_mean_regret_present():
