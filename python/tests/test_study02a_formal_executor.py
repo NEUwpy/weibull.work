@@ -699,12 +699,18 @@ def _baseline_point_records(n: int, seed: int, base: float):
     return records
 
 
-def _baseline_score_fit(*, f2: float = 0.10, v: float = 0.20):
+def _baseline_score_fit(*, f2: float = 0.10, v: float = 0.20, matrix_by_fit=None):
     """score_fit for the F2/V winner-retrain baseline; F2 < V on every paired point so F2 is
-    globally better under the frozen relative-RMSE rule."""
+    globally better under the frozen relative-RMSE rule.
+
+    ``n`` is NOT in plan.jsonl (the plan carries ``n_mode``/``fixed_n``), so it is read from the
+    authoritative matrix row looked up by ``fit_id`` when ``matrix_by_fit`` is supplied; otherwise
+    the legacy in-plan ``n`` is used (callers that publish a matrix-shaped plan)."""
+    _lookup = matrix_by_fit if matrix_by_fit is not None else fe._authoritative_matrix_by_fit(STUDY_ROOT)
+
     def score_fit(fit_id, plan_row):
         route = str(plan_row["route"])
-        n = int(plan_row["n"]); seed = int(plan_row["seed"])
+        n = int(_lookup[str(fit_id)]["n"]); seed = int(plan_row["seed"])
         base = f2 if route == "F2" else v
         records = _baseline_point_records(n, seed, base)
         aggregate = sum(rec["l_param"] for rec in records) / len(records)
@@ -1287,6 +1293,251 @@ def test_staged_plan_row_resolvers_concretize_and_fail_closed():
         fe._resolve_stage2_plan_row({"architecture": "selected_top_9"}, top4)
 
 
+# ---------------------------------------------------------------------------
+# Source-of-truth fix: fit_kind is read from the authoritative frozen matrix (looked up by
+# fit_id), never from plan.jsonl (which omits it). plan.jsonl is validated against the matrix
+# (exact fit_id correspondence + per-row matrix_row_sha256 binding) and staged receipts are
+# recovered from disk on restart. No direct top4/winner/stage-state injection.
+# ---------------------------------------------------------------------------
+
+def _real_a_e1_plan_rows(tmp_path, *, run_id="G3-AE1-staged-exec-v1", code_commit=_D8_CODE_COMMIT):
+    """Build the REAL A-E1 plan.jsonl rows (the frozen _PLAN_FIELDS schema, NO fit_kind) via the
+    scheduler's own _plan_rows, so tests exercise the true plan shape rather than a matrix-shaped
+    stand-in. ``matrix_row_sha256`` is computed exactly as the scheduler does, so it matches the
+    authoritative matrix row hash."""
+    from study02a.formal_scheduler import _plan_rows, _PLAN_FIELDS
+    matrix_str = [{key: str(value) for key, value in row.items()}
+                  for row in MATRIX_ROWS if str(row["module"]) == "A-E1"]
+    plan = _plan_rows(STUDY_ROOT, matrix_str, "A-E1", run_id, tmp_path / "cache", code_commit, "0" * 64)
+    assert all(set(row) == _PLAN_FIELDS for row in plan) and not any("fit_kind" in row for row in plan)
+    return plan
+
+
+def _write_real_a_e1_run(tmp_path, *, run_id="G3-AE1-staged-exec-v1"):
+    """A run_dir holding a REAL A-E1 plan.jsonl (no fit_kind) + manifest, ready for staged calls."""
+    run_dir = tmp_path / "A-E1" / run_id
+    run_dir.mkdir(parents=True)
+    plan = _real_a_e1_plan_rows(tmp_path, run_id=run_id)
+    (run_dir / "plan.jsonl").write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in plan), encoding="utf-8")
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+    return run_dir, plan
+
+
+def test_authoritative_matrix_and_plan_validation_real_plan_has_no_fit_kind(tmp_path):
+    """The authoritative matrix keys every A-E1 fit uniquely (349) and validates the REAL plan
+    (which carries no fit_kind) by exact fit_id set + per-row matrix_row_sha256. fit_kind is read
+    from the matrix, so the first stage2 / winner-retrain boundaries classify correctly (the old
+    plan-row classifier saw every row as 'concrete')."""
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    a_e1 = [fid for fid, row in matrix_by_fit.items() if str(row["module"]) == "A-E1"]
+    assert len(a_e1) == 349 and len(set(a_e1)) == 349
+    plan = _real_a_e1_plan_rows(tmp_path)
+    assert not any("fit_kind" in row for row in plan)  # the frozen plan schema has no fit_kind
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan, matrix_by_fit=matrix_by_fit, module_id="A-E1")
+    assert set(plan_by_fit) == set(a_e1)
+    # boundaries classify from the matrix, where the plan-row classifier returned 'concrete'
+    assert fe._a_e1_fit_stage(matrix_by_fit["G3-fit-0140"]) == "concrete"      # last F2 stage1 fit
+    assert fe._a_e1_fit_stage(matrix_by_fit["G3-fit-0141"]) == "stage2"        # first F2 stage2 fit
+    assert fe._a_e1_fit_stage(matrix_by_fit["G3-fit-0177"]) == "winner_retrain"  # first F2 winner-retrain
+
+
+@pytest.mark.parametrize("defect", ["missing", "duplicate", "extra", "sha_mismatch", "fit_id_mismatch"])
+def test_validate_plan_against_matrix_fail_closed(tmp_path, defect):
+    """plan/matrix correspondence is fail-closed: a missing fit, a duplicate fit, an extra fit, a
+    matrix_row_sha256 mismatch (stale plan / matrix tamper) and a fit_id<->row mismatch all raise."""
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan = _real_a_e1_plan_rows(tmp_path)
+    if defect == "missing":
+        plan = plan[:-1]
+    elif defect == "duplicate":
+        plan = plan + [dict(plan[0])]
+    elif defect == "extra":
+        bogus = dict(plan[0])
+        bogus = {**bogus, "fit_id": "G3-fit-9999", "matrix_row_sha256": "0" * 64}
+        plan = plan + [bogus]
+    elif defect == "sha_mismatch":
+        plan = [dict(plan[0], matrix_row_sha256="0" * 64)] + plan[1:]
+    elif defect == "fit_id_mismatch":
+        # give the first row a different fit_id than its matrix_row_sha256 binds (sha stays of the
+        # original row -> mismatch on the looked-up matrix row)
+        first = dict(plan[0])
+        first["fit_id"] = "G3-fit-0001"
+        plan = [first] + plan[1:]
+    with pytest.raises(ValueError):
+        fe._validate_plan_against_matrix(plan_rows=plan, matrix_by_fit=matrix_by_fit, module_id="A-E1")
+
+
+def test_authoritative_matrix_rejects_duplicate_fit_id(monkeypatch):
+    """A frozen matrix with a duplicate fit_id cannot become an authority (no unique mapping)."""
+    rows = [{key: str(value) for key, value in row.items()}
+            for row in MATRIX_ROWS if str(row["module"]) == "A-E1"]
+    rows.append(dict(rows[0]))  # duplicate fit_id
+    monkeypatch.setattr(fe, "expand_module_matrix", lambda frozen: __import__("pandas").DataFrame(rows))
+    with pytest.raises(ValueError, match="duplicate fit_id"):
+        fe._authoritative_matrix_by_fit(STUDY_ROOT)
+
+
+def test_staged_path_publishes_stage1_receipt_with_real_plan_no_fit_kind(tmp_path):
+    """With the REAL plan (no fit_kind) the matrix-classified stage2 boundary still publishes the
+    route's stage1 receipt (top4) -- proving the source-of-truth fix triggers staged selection in a
+    full run, where the old plan-row classifier never did. No training; score_fit injected."""
+    run_dir, plan = _write_real_a_e1_run(tmp_path)
+    result = fe._ensure_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id="G3-AE1-staged-exec-v1", route="F2", score_fit=_smoke_score_fit())
+    top4 = result["top4"]
+    assert list(top4) == ["selected_top_1", "selected_top_2", "selected_top_3", "selected_top_4"]
+    assert (top4["selected_top_1"], top4["selected_top_2"]) == ("m01", "m02")
+    assert (run_dir / "stage1_selection_F2_receipt.json").is_file()
+    assert (run_dir / "stage1_selection_F2_trace.jsonl").is_file()
+    assert (run_dir / "stage1_selection_F2_ledger.jsonl").is_file()
+
+
+def test_stage2_and_winner_resolved_rows_carry_no_placeholders(tmp_path):
+    """The runner receives CONCRETE architectures/optimizers/losses: a resolved stage2 row's
+    architecture is the concrete top4 architecture (never ``selected_top_*``), and a resolved
+    winner-retrain row carries no ``selected:A-E1_*`` placeholder."""
+    run_dir, plan = _write_real_a_e1_run(tmp_path)
+    plan_by_fit = {str(row["fit_id"]): row for row in plan}
+    stage1 = fe._ensure_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id="G3-AE1-staged-exec-v1", route="F2", score_fit=_smoke_score_fit())
+    stage2 = fe._ensure_a_e1_stage2_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id="G3-AE1-staged-exec-v1", route="F2", score_fit=_smoke_score_fit(),
+        stage1_by_route={"F2": stage1})
+    # a real stage2 plan row (placeholder architecture) resolves to the concrete winner arch
+    stage2_row = next(r for r in plan if str(r["architecture"]).startswith("selected_top_"))
+    resolved_stage2 = fe._resolve_stage2_plan_row(stage2_row, stage1["top4"])
+    assert not str(resolved_stage2["architecture"]).startswith("selected_top_")
+    # a real winner-retrain plan row resolves to concrete arch/opt/loss (no selected:A-E1_*)
+    winner_row = next(r for r in plan if str(r["architecture"]) == "selected:A-E1_architecture")
+    resolved_winner = fe._resolve_winner_retrain_plan_row(winner_row, stage2["winner"])
+    assert resolved_winner["architecture"] == stage2["winner"]["selected:A-E1_architecture"]
+    assert resolved_winner["optimizer"] != "selected:A-E1_optimizer"
+    assert resolved_winner["loss"] != "selected:A-E1_loss"
+
+
+def test_ensure_stage1_recovers_existing_receipt_on_restart(tmp_path, monkeypatch):
+    """After the stage1 receipt is published, a restart (fresh memory) RECOVERS it: the existing
+    trace/receipt/ledger are re-validated and top4 reused -- ``build_a_e1_stage1_selection`` is NOT
+    called again (no re-scoring, no re-publish, no overwrite)."""
+    run_dir, _plan = _write_real_a_e1_run(tmp_path)
+    run_id = "G3-AE1-staged-exec-v1"
+    first = fe._ensure_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit())
+    receipt_bytes = (run_dir / "stage1_selection_F2_receipt.json").read_bytes()
+    trace_bytes = (run_dir / "stage1_selection_F2_trace.jsonl").read_bytes()
+
+    def _fail_if_called(**kwargs):
+        raise AssertionError("restart must recover the existing stage1 receipt, not rebuild it")
+    monkeypatch.setattr(fe, "build_a_e1_stage1_selection", _fail_if_called)
+    recovered = fe._ensure_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit())
+    assert recovered["top4"] == first["top4"]
+    assert recovered["selection_trace_sha256"] == first["selection_trace_sha256"]
+    # nothing was overwritten
+    assert (run_dir / "stage1_selection_F2_receipt.json").read_bytes() == receipt_bytes
+    assert (run_dir / "stage1_selection_F2_trace.jsonl").read_bytes() == trace_bytes
+
+
+def test_ensure_stage2_recovers_existing_receipt_after_stage2_before_winner(tmp_path, monkeypatch):
+    """Stage-2 complete but winner-retrain not yet reached: a restart recovers BOTH the stage1 top4
+    and the stage2 winner from their receipts (neither builder is called again)."""
+    run_dir, _plan = _write_real_a_e1_run(tmp_path)
+    run_id = "G3-AE1-staged-exec-v1"
+    stage1 = fe._ensure_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit())
+    fe._ensure_a_e1_stage2_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit(), stage1_by_route={"F2": stage1})
+    winner_bytes = (run_dir / "stage2_selection_F2_receipt.json").read_bytes()
+
+    calls = []
+    real_build_s1 = fe.build_a_e1_stage1_selection
+    real_build_s2 = fe.build_a_e1_stage2_selection
+    monkeypatch.setattr(fe, "build_a_e1_stage1_selection",
+                        lambda **kw: calls.append("s1") or real_build_s1(**kw))
+    monkeypatch.setattr(fe, "build_a_e1_stage2_selection",
+                        lambda **kw: calls.append("s2") or real_build_s2(**kw))
+    stage1_by_route: dict = {}  # empty -> simulates a restart (no in-memory cache)
+    recovered = fe._ensure_a_e1_stage2_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit(), stage1_by_route=stage1_by_route)
+    assert calls == []  # nothing rebuilt
+    assert set(stage1_by_route) == {"F2"}  # stage1 top4 was recovered into the cache
+    assert recovered["winner"]["selected:A-E1_architecture"] == "m02"  # F2 forced winner
+    assert (run_dir / "stage2_selection_F2_receipt.json").read_bytes() == winner_bytes
+
+
+@pytest.mark.parametrize("tamper", ["trace", "receipt", "ledger", "delete_receipt"])
+def test_recover_stage1_receipt_fail_closed(tmp_path, tamper):
+    """A stage1 receipt that is tampered (trace/receipt/ledger) or has its receipt deleted while the
+    trace remains cannot be recovered -- the recovery re-validates and fails closed (no silent reuse
+    of an unverified/hand-edited receipt)."""
+    run_dir, _plan = _write_real_a_e1_run(tmp_path)
+    run_id = "G3-AE1-staged-exec-v1"
+    fe._ensure_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit())
+    trace_path = run_dir / "stage1_selection_F2_trace.jsonl"
+    receipt_path = run_dir / "stage1_selection_F2_receipt.json"
+    ledger_path = run_dir / "stage1_selection_F2_ledger.jsonl"
+    if tamper == "trace":
+        trace_path.write_bytes(trace_path.read_bytes() + b'\n{"injected": true}\n')
+    elif tamper == "receipt":
+        # break the receipt<->trace binding (the validated field), not an inert literal
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        receipt["selection_trace_sha256"] = "0" * 64
+        receipt_path.write_text(json.dumps(receipt, sort_keys=True) + "\n", encoding="utf-8")
+    elif tamper == "ledger":
+        # append a second formal-selection binding -> len(bindings) != 1
+        ledger_path.write_bytes(ledger_path.read_bytes() + ledger_path.read_bytes().splitlines()[0] + b"\n")
+    elif tamper == "delete_receipt":
+        receipt_path.unlink()
+    with pytest.raises((ValueError, FileNotFoundError, json.JSONDecodeError)):
+        fe._recover_a_e1_stage1_selection(run_dir=run_dir, run_id=run_id, route="F2")
+
+
+def test_recover_stage2_fails_closed_when_winner_slot_outside_top4(tmp_path):
+    """If the recovered stage2 winner slot is not in the recovered stage1 top4 (a cross-route or
+    stale receipt), recovery fails closed rather than resolving to an unbound architecture."""
+    run_dir, _plan = _write_real_a_e1_run(tmp_path)
+    run_id = "G3-AE1-staged-exec-v1"
+    stage1 = fe._ensure_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit())
+    fe._ensure_a_e1_stage2_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit(), stage1_by_route={"F2": stage1})
+    bogus_top4 = {"selected_top_1": "zzz"}  # lacks the winner's actual slot
+    with pytest.raises(ValueError, match="outside the recovered stage1 top4"):
+        fe._recover_a_e1_stage2_selection(run_dir=run_dir, run_id=run_id, route="F2", top4=bogus_top4)
+
+
+def test_ensure_final_selection_idempotent(tmp_path):
+    """The final selection receipt is idempotent: once it exists, repeated ensure calls re-validate
+    it read-only (reused=True, same trace sha) and never overwrite the artifacts."""
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, trace_sha, _records = _publish_staged_run(tmp_path, specs, evaluations)
+    before = (run_dir / "selection_receipt.json").read_bytes()
+    first = fe._ensure_a_e1_final_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=None)
+    second = fe._ensure_a_e1_final_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=None)
+    assert first.get("reused") is True and second.get("reused") is True
+    assert first["selection_trace_sha256"] == trace_sha == second["selection_trace_sha256"]
+    assert (run_dir / "selection_receipt.json").read_bytes() == before  # unchanged
+
+
 @pytest.mark.slow
 def test_run_a_e1_staged_executes_real_fits_via_scheduler(tmp_path, monkeypatch):
     """Production-equivalent sealed smoke: run_a_e1_staged drives REAL fits through the scheduler
@@ -1341,12 +1592,15 @@ def test_run_a_e1_staged_executes_real_fits_via_scheduler(tmp_path, monkeypatch)
                            "fit_id": fit_id, "run_id": "staged-smoke-0001", "status": "succeeded", "test_access_count": 0}
 
 
-def _smoke_fit_runner():
+def _smoke_fit_runner(seen=None):
     """A fit_runner for run_a_e1_staged that bypasses the infeasible frozen data prep (100000-row
     datasets): trains a tiny real model on a tiny synthetic batch (real canonical checkpoint), then
     writes the production per-fit outputs (checkpoint.pt / fit_status.json / evidence.json via
     _write_outputs) and records the terminal through the PRODUCTION record_fit_succeeded. claim +
-    record stay on the real scheduler path; only the training inputs are synthetic."""
+    record stay on the real scheduler path; only the training inputs are synthetic.
+
+    If ``seen`` is a list, each fit's RESOLVED (architecture, optimizer, loss) is appended -- so the
+    smoke can prove no placeholder (``selected_top_*`` / ``selected:A-E1_*``) ever reaches the runner."""
     import torch
     from study02a.training import fit_candidate, FitResult
     from study02a.models import build_mlp
@@ -1354,6 +1608,9 @@ def _smoke_fit_runner():
 
     def runner(*, study_root, run_dir, cache_root, plan_row, claim, frozen, effective, timestamp):
         fit_id = str(claim["fit_id"])
+        if seen is not None:
+            seen.append({"fit_id": fit_id, "architecture": str(plan_row["architecture"]),
+                         "optimizer": str(plan_row["optimizer"]), "loss": str(plan_row["loss"])})
         warmup = fit_candidate(
             lambda: build_mlp(15, [8], "relu", 0.0),
             (torch.randn(32, 15), torch.randn(32, 3)),
@@ -1380,14 +1637,22 @@ def _smoke_fit_runner():
 
 def _smoke_score_fit():
     """A score_fit covering the three selection fit kinds with deterministic synthetic evidence
-    derived from the frozen plan row (no checkpoint forward, no data prep): stage1 ranks
-    m01<m02<...; stage2 forces distinct per-route winners (F2=selected_top_2:o2, V=selected_top_3:o3);
-    winner-retrain uses route-aligned baseline records (F2 < V) so global_better_rule selects F2."""
+    derived from the frozen plan row's runtime fields (no checkpoint forward, no data prep): stage1
+    ranks m01<m02<...; stage2 forces distinct per-route winners (F2=selected_top_2:o2, V=selected_top_3:o3);
+    winner-retrain uses route-aligned baseline records (F2 < V) so global_better_rule selects F2.
+
+    ``fit_kind`` and ``n`` are NOT in plan.jsonl (the plan renames them; they live in the frozen
+    matrix), so they are read from the authoritative matrix row looked up by ``fit_id`` -- the
+    production ``score_fit(fit_id, plan_row)`` contract is unchanged and only the test side queries
+    the matrix. The rest (route/architecture/optimizer/seed) come from the plan row."""
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+
     def score_fit(fit_id, plan_row):
-        kind = str(plan_row["fit_kind"]); route = str(plan_row["route"])
+        kind = str(matrix_by_fit[str(fit_id)]["fit_kind"]); route = str(plan_row["route"])
         if kind == "winner_retrain":
-            return _baseline_score_fit()(fit_id, plan_row)
-        key = SupportKey(n=int(plan_row["n"]), seed=int(plan_row["seed"]))
+            return _baseline_score_fit(matrix_by_fit=matrix_by_fit)(fit_id, plan_row)
+        n = int(matrix_by_fit[str(fit_id)]["n"])
+        key = SupportKey(n=n, seed=int(plan_row["seed"]))
         if kind == "search_stage1":
             arch = str(plan_row["architecture"]); base = 0.01 * int(arch[1:])
             decision_id = f"architecture:A-E1:{route}:n{fe._A_E1_SEARCH_N}"; candidate_id = arch
@@ -1450,22 +1715,35 @@ def test_staged_full_chain_smoke(tmp_path, monkeypatch):
     monkeypatch.setattr(fe, "build_a_e1_stage2_selection", _timed_s2)
 
     _t0 = time.time()
+    seen_by_runner: list[dict] = []  # resolved (architecture/optimizer/loss) the runner actually received
     summary = fe.run_a_e1_staged(
         study_root=STUDY_ROOT, run_id="sfsm-0001",
         artifact_root=tmp_path / "artifact", cache_root=tmp_path / "cache",
-        fit_runner=_smoke_fit_runner(), score_fit=_smoke_score_fit())
+        fit_runner=_smoke_fit_runner(seen=seen_by_runner), score_fit=_smoke_score_fit())
     telemetry["total_seconds"] = round(time.time() - _t0, 1)
     run_dir = tmp_path / "artifact" / "A-E1" / "sfsm-0001"
 
     # full chain completed: every staged fit terminal
     assert summary["complete"] is True
     assert summary["succeeded_count"] == 349 and summary["failed_count"] == 0
+    # NO placeholder ever reached the runner: every resolved architecture/optimizer/loss is concrete
+    # (no selected_top_* / selected:A-E1_*), proving stage2/winner rows were concretized from receipts
+    placeholder_arches = [s for s in seen_by_runner
+                          if str(s["architecture"]).startswith(("selected_top_", "selected:"))
+                          or str(s["optimizer"]).startswith("selected:")
+                          or str(s["loss"]).startswith("selected:")]
+    assert not placeholder_arches, f"placeholder reached the runner: {placeholder_arches[:3]}"
+    telemetry["runner_saw_fits"] = len(seen_by_runner)
     # per-route stage receipts published at the right stages (immutable, on the real selection path)
     for route in ("F2", "V"):
         assert (run_dir / f"stage1_selection_{route}_receipt.json").is_file()
         assert (run_dir / f"stage2_selection_{route}_receipt.json").is_file()
+        # stage1 precedes stage2 (each route's stage2 winner is bound to its stage1 top4)
+        assert ((run_dir / f"stage1_selection_{route}_receipt.json").stat().st_mtime_ns
+                <= (run_dir / f"stage2_selection_{route}_receipt.json").stat().st_mtime_ns)
     # final module selection trace + staged resolution (F2/V decision + final aliases)
     assert (run_dir / "selection_trace.jsonl").is_file()
+    assert (run_dir / "selection_receipt.json").is_file()
     staged = summary["staged"]
     assert staged is not None
     assert staged["selected_F2_or_V"] in ("F2", "V")
@@ -1474,11 +1752,14 @@ def test_staged_full_chain_smoke(tmp_path, monkeypatch):
         "selected:A-E1_loss", "selected:A-E1_architecture", "selected:A-E1_optimizer"}
     assert staged["final_aliases"] == staged["stage2_by_route"][staged["selected_F2_or_V"]]
     assert (run_dir / "staged_resolution_ledger.jsonl").is_file()
+    # the staged ledger is a hash-bound chain (stage1 -> stage2 -> winner_retrain -> baseline -> final)
+    _assert_chained_ledger(run_dir)
     # test stays sealed throughout
     from study02a.formal_scheduler import status_run
     _stat = status_run(run_dir, cache_root=tmp_path / "cache")
     telemetry["fit_count"] = summary["succeeded_count"]
     telemetry["event_count"] = len(fe._rebuild_authority(run_dir, tmp_path / "cache")[3])
     telemetry["test_access_count"] = _stat["test_access_count"]
+    telemetry["selected_F2_or_V"] = staged["selected_F2_or_V"]
     print("SLOW_SMOKE_TELEMETRY " + json.dumps(telemetry))
     assert _stat["test_access_count"] == 0

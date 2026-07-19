@@ -1741,13 +1741,76 @@ def resolve_a_e1_staged_selection(
     }
 
 
-def _a_e1_fit_stage(plan_row: Mapping[str, Any]) -> str:
-    """Classify an A-E1 plan row into its staged-execution stage.
+def _authoritative_matrix_by_fit(study_root: Path) -> dict[str, dict[str, str]]:
+    """The single authoritative ``fit_id`` -> frozen matrix row map for staged execution.
 
+    ``fit_kind`` / ``module`` / ``n`` live ONLY in the frozen matrix; ``plan.jsonl`` deliberately
+    renames those fields and carries just the runtime training metadata. The matrix is
+    ``expand_module_matrix`` over the frozen config, which ``_matrix_snapshot`` proves is
+    byte-identical to the SHA-256-verified ``experiment_matrix.csv`` (so it is the same frozen
+    authority the scheduler hashed into each plan row's ``matrix_row_sha256``). Rows are stringified
+    exactly as the scheduler does, so the per-row hash correspondence check uses one canonical form.
+    Fail-closed on a duplicate ``fit_id`` (the matrix must key uniquely).
+    """
+    frozen = load_frozen_config(study_root)
+    rows = [{key: str(value) for key, value in row.items()}
+            for row in expand_module_matrix(frozen).to_dict("records")]
+    by_fit: dict[str, dict[str, str]] = {}
+    for row in rows:
+        fit_id = str(row["fit_id"])
+        if fit_id in by_fit:
+            raise ValueError(f"frozen matrix has a duplicate fit_id {fit_id!r}")
+        by_fit[fit_id] = row
+    return by_fit
+
+
+def _validate_plan_against_matrix(
+    *, plan_rows: Sequence[Mapping[str, Any]], matrix_by_fit: Mapping[str, Mapping[str, str]],
+    module_id: str,
+) -> dict[str, Mapping[str, Any]]:
+    """Fail-closed correspondence between one module's ``plan.jsonl`` and the authoritative matrix.
+
+    The plan's ``fit_id`` set must correspond EXACTLY to the module's matrix rows (no missing,
+    duplicate or extra fit), and every plan row's ``matrix_row_sha256`` must equal
+    ``sha256(canonical(authoritative matrix row))`` -- binding each plan row to its frozen matrix
+    row (which carries ``fit_kind``). Returns ``plan_by_fit``; raises on any mismatch (stale plan,
+    matrix tamper, or a plan that drifted from the frozen matrix). This is the single gate a staged
+    run passes before classifying any fit's stage from the matrix.
+    """
+    plan_by_fit: dict[str, Mapping[str, Any]] = {}
+    for row in plan_rows:
+        fit_id = str(row["fit_id"])
+        if fit_id in plan_by_fit:
+            raise ValueError(f"plan.jsonl has a duplicate fit_id {fit_id!r}")
+        plan_by_fit[fit_id] = row
+    plan_fits = set(plan_by_fit)
+    matrix_fits = {fid for fid, row in matrix_by_fit.items() if str(row["module"]) == module_id}
+    missing = sorted(matrix_fits - plan_fits)
+    extra = sorted(plan_fits - matrix_fits)
+    if missing or extra:
+        raise ValueError(
+            f"plan.jsonl fit_id set does not match the {module_id} matrix rows: "
+            f"missing={missing} extra={extra}")
+    for fit_id, row in plan_by_fit.items():
+        matrix_row = matrix_by_fit[fit_id]
+        expected = hashlib.sha256(_canonical(matrix_row)).hexdigest()
+        bound = str(row["matrix_row_sha256"])
+        if bound != expected:
+            raise ValueError(
+                f"plan row {fit_id!r} binds matrix_row_sha256 {bound!r} but the authoritative "
+                f"matrix row hashes to {expected!r} (stale plan or matrix tamper)")
+    return plan_by_fit
+
+
+def _a_e1_fit_stage(matrix_row: Mapping[str, Any]) -> str:
+    """Classify an A-E1 fit into its staged-execution stage from its AUTHORITATIVE matrix row.
+
+    ``fit_kind`` lives in the frozen matrix (never in ``plan.jsonl``, which renames it); the caller
+    passes the fit's matrix row (looked up by ``fit_id`` from ``_authoritative_matrix_by_fit``).
     ``stage2`` / ``winner_retrain`` rows carry placeholders and need a prior-stage receipt to
     concretize before execution; everything else (historical / controlled / ``search_stage1``
     architecture rows) is directly executable."""
-    kind = str(plan_row.get("fit_kind", ""))
+    kind = str(matrix_row["fit_kind"])
     if kind == "search_stage2":
         return "stage2"
     if kind == "winner_retrain":
@@ -1925,6 +1988,164 @@ def _resolve_winner_retrain_plan_row(plan_row: Mapping[str, Any], winner: Mappin
     }
 
 
+def _stage_evidence_paths(run_dir: Path, stage: str, route: str) -> tuple[Path, Path, Path]:
+    """ ``(trace, receipt, ledger)`` paths for one per-route staged selection receipt."""
+    return (
+        run_dir / f"{stage}_selection_{route}_trace.jsonl",
+        run_dir / f"{stage}_selection_{route}_receipt.json",
+        run_dir / f"{stage}_selection_{route}_ledger.jsonl",
+    )
+
+
+def _recover_a_e1_stage1_selection(*, run_dir: Path, run_id: str, route: str) -> dict[str, Any]:
+    """Recover a route's stage1 ``top4`` from its EXISTING immutable trace/receipt/ledger.
+
+    Read-only and fail-closed: validates the trace hash, receipt-trace binding and ledger binding
+    (``_validate_selection_evidence``), checks the decision scope is exactly the route's stage1
+    architecture decision (binding the receipt to the frozen matrix), and re-derives ``top4`` from
+    the validated ranking. No scoring, no re-publish, no overwrite -- the receipt is the authority a
+    restart recovers from. Raises if any artifact is missing/tampered/out-of-scope.
+    """
+    trace_path, receipt_path, ledger_path = _stage_evidence_paths(run_dir, "stage1", route)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    trace_sha = str(receipt["selection_trace_sha256"])
+    records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E1", run_id=run_id,
+    )
+    decision_id = _a_e1_stage1_decision_id(route)
+    _require(
+        {str(record["decision_id"]) for record in records} == {decision_id},
+        f"stage1 receipt for route {route!r} is out of scope: expected decision {decision_id!r}")
+    top4 = resolve_selected_placeholders(
+        placeholders={f"selected_top_{slot}": decision_id for slot in range(1, 5)},
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E1", run_id=run_id,
+    )
+    return {"module_id": "A-E1", "run_id": run_id, "route": route,
+            "selection_trace_sha256": trace_sha, "top4": top4, **dict(receipt)}
+
+
+def _recover_a_e1_stage2_selection(
+    *, run_dir: Path, run_id: str, route: str, top4: Mapping[str, str],
+) -> dict[str, Any]:
+    """Recover a route's stage2 ``winner`` from its EXISTING immutable trace/receipt/ledger.
+
+    Like ``_recover_a_e1_stage1_selection`` for the stage2 decision, then maps the validated winner
+    (``selected_top_{slot}:{opt}``) to the concrete architecture (``top4[slot]``) plus the frozen
+    stage2 loss. ``top4`` is the route's recovered stage1 top4 (itself derived from a validated
+    receipt, never supplied by the orchestrator's caller). Fail-closed on a missing/tampered/
+    out-of-scope receipt or a winner slot outside the recovered stage1 top4.
+    """
+    trace_path, receipt_path, ledger_path = _stage_evidence_paths(run_dir, "stage2", route)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    trace_sha = str(receipt["selection_trace_sha256"])
+    records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E1", run_id=run_id,
+    )
+    decision_id = _a_e1_stage2_decision_id(route)
+    _require(
+        {str(record["decision_id"]) for record in records} == {decision_id},
+        f"stage2 receipt for route {route!r} is out of scope: expected decision {decision_id!r}")
+    winner_record = next(
+        (record for record in records
+         if record["decision_id"] == decision_id and record["selected"]),
+        None,
+    )
+    _require(winner_record is not None, f"stage2 decision {decision_id!r} has no selected winner")
+    arch_placeholder, optimizer = _parse_stage2_winner_candidate(str(winner_record["candidate_id"]))
+    _require(
+        arch_placeholder in top4,
+        f"stage2 winner slot {arch_placeholder!r} is outside the recovered stage1 top4 for "
+        f"route {route!r}")
+    winner = {
+        "selected:A-E1_loss": _A_E1_STAGE2_FROZEN_LOSS,
+        "selected:A-E1_architecture": top4[arch_placeholder],
+        "selected:A-E1_optimizer": optimizer,
+    }
+    return {"module_id": "A-E1", "run_id": run_id, "route": route,
+            "selection_trace_sha256": trace_sha, "winner": winner, **dict(receipt)}
+
+
+def _ensure_a_e1_stage1_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path, run_id: str, route: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+) -> dict[str, Any]:
+    """Ensure the route's stage1 selection receipt exists and return its ``top4``.
+
+    Crash-recoverable: if the receipt already exists (a prior pass or a restart after this stage was
+    reached) it is RE-VALIDATED and its ``top4`` recovered (no re-scoring, no re-publish, no
+    overwrite); otherwise it is published from the route's terminal stage1 architecture fits. The
+    caller never supplies ``top4`` -- it is always derived from a validated receipt.
+    """
+    _require(route in _A_E1_OPTIMIZED_ROUTES, f"staged A-E1 route must be one of {_A_E1_OPTIMIZED_ROUTES}")
+    receipt_path = run_dir / f"stage1_selection_{route}_receipt.json"
+    if receipt_path.exists():
+        return _recover_a_e1_stage1_selection(run_dir=run_dir, run_id=run_id, route=route)
+    return build_a_e1_stage1_selection(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        route=route, score_fit=score_fit)
+
+
+def _ensure_a_e1_stage2_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path, run_id: str, route: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+    stage1_by_route: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Ensure the route's stage2 selection receipt exists and return its ``winner``.
+
+    Crash-recoverable like ``_ensure_a_e1_stage1_selection``. The route's stage1 ``top4`` is ensured
+    first (recovered or built) so the stage2 winner slot can be validated against it; the winner is
+    then recovered (if the stage2 receipt exists) or built. No caller-supplied winner/top4.
+    ``stage1_by_route`` is the orchestrator's within-pass cache; a recovered stage1 top4 is stored
+    back into it so a later winner-retrain fit for the same route does not re-derive it.
+    """
+    _require(route in _A_E1_OPTIMIZED_ROUTES, f"staged A-E1 route must be one of {_A_E1_OPTIMIZED_ROUTES}")
+    if route not in stage1_by_route:
+        stage1_by_route[route] = _ensure_a_e1_stage1_selection(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+            route=route, score_fit=score_fit)
+    top4 = stage1_by_route[route]["top4"]
+    receipt_path = run_dir / f"stage2_selection_{route}_receipt.json"
+    if receipt_path.exists():
+        return _recover_a_e1_stage2_selection(run_dir=run_dir, run_id=run_id, route=route, top4=top4)
+    return build_a_e1_stage2_selection(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        route=route, top4=top4, score_fit=score_fit)
+
+
+def _ensure_a_e1_final_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path, run_id: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+) -> dict[str, Any]:
+    """Ensure the module's final selection trace/receipt/ledger exists; idempotent on restart.
+
+    If the final receipt already exists it is RE-VALIDATED read-only (no re-publish, no overwrite);
+    otherwise it is published from the terminal selection fits via ``build_module_selection``.
+    Repeated calls after completion are idempotent (validate-only).
+    """
+    receipt_path = run_dir / "selection_receipt.json"
+    if receipt_path.exists():
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        trace_sha = str(receipt["selection_trace_sha256"])
+        _validate_selection_evidence(
+            selection_trace_path=run_dir / "selection_trace.jsonl",
+            selection_trace_sha256=trace_sha,
+            selection_receipt_path=receipt_path,
+            selection_ledger_path=run_dir / "selection_ledger.jsonl",
+            module_id="A-E1", run_id=run_id,
+        )
+        return {"module_id": "A-E1", "run_id": run_id, "reused": True,
+                "selection_trace_sha256": trace_sha}
+    return build_module_selection(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E1",
+        run_id=run_id, score_fit=score_fit)
+
+
 def run_a_e1_staged(
     *, study_root: Path, module_id: str = "A-E1", run_id: str,
     artifact_root: Path, cache_root: Path, owner_id: str = "formal-executor",
@@ -1932,17 +2153,27 @@ def run_a_e1_staged(
     fit_runner: Callable[..., Mapping[str, Any]] | None = None,
     score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
 ) -> dict[str, Any]:
-    """Drive the real frozen A-E1 module through its staged execution (deadlock-free).
+    """Drive the real frozen A-E1 module through its staged execution (deadlock-free, crash-recoverable).
+
+    Source of truth: a fit's stage (``concrete`` / ``stage2`` / ``winner_retrain``) is classified
+    from its AUTHORITATIVE frozen matrix row (looked up by ``fit_id``), never from ``plan.jsonl`` --
+    ``fit_kind`` lives in the matrix and the plan deliberately omits it. Before any fit runs, the
+    plan is validated against the matrix (exact ``fit_id`` correspondence + per-row
+    ``matrix_row_sha256`` binding), fail-closed on any missing/duplicate/extra fit or hash mismatch.
 
     Executes every fit in plan order via the existing scheduler journal (claim -> train ->
-    record). Concrete / stage1 rows run directly; stage2 (``selected_top_*``) rows are
-    concretized from the stage1 top4 receipt; winner-retrain (``selected:A-E1_*``) rows from the
-    stage2 winner receipt. Each receipt is published once its stage's fits are terminal (plan
-    ordering guarantees it). After every fit is terminal, the EXISTING ``build_module_selection``
-    -- now unblocked, since every selection fit is done -- publishes the final module trace, and
-    its internal ``resolve_a_e1_staged_selection`` derives the F2/V decision, final aliases and
-    the staged ledger. Adds only the two staged receipts; reuses the scheduler throughout. No
-    test read; test stays sealed; ``test_access_count`` stays 0.
+    record). Concrete / stage1 rows run directly; stage2 (``selected_top_*``) rows are concretized
+    from the stage1 top4 receipt; winner-retrain (``selected:A-E1_*``) rows from the stage2 winner
+    receipt. Each per-route receipt is ENSURED, not rebuilt blindly: if it already exists (a prior
+    pass or a restart) it is re-validated read-only and its top4/winner recovered (no re-scoring,
+    no re-publish, no overwrite); otherwise it is published once its stage's fits are terminal
+    (plan ordering guarantees it). On restart, already-terminal fits are not re-trained and staged
+    state is recovered from the receipts on disk -- the in-memory route dicts are only a
+    within-pass cache. After every fit is terminal, the final module selection trace + F2/V
+    decision + staged ledger are ensured (an existing final receipt is re-validated, so repeated
+    calls after completion are idempotent). ``top4`` / ``winner`` are always derived from a
+    validated receipt, never supplied by the caller. Reuses the scheduler throughout. No test read;
+    test stays sealed; ``test_access_count`` stays 0.
     """
     if module_id != "A-E1":
         raise NotImplementedError(
@@ -1957,13 +2188,23 @@ def run_a_e1_staged(
     run_dir = artifact_root / module_id / run_id
     frozen = load_frozen_config(study_root)
     effective = load_effective_formal_config(study_root)
+
+    # Authoritative fit_id -> matrix row map: fit_kind/module/n live ONLY in the frozen matrix
+    # (plan.jsonl renames them and carries just runtime training metadata). Validated against
+    # plan.jsonl -- exact fit_id correspondence + per-row matrix_row_sha256 binding -- fail-closed
+    # on any missing/duplicate/extra fit or hash mismatch, BEFORE any stage is classified.
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
     plan_rows = [
         json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()]
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id=module_id)
     plan_order = [str(row["fit_id"]) for row in plan_rows]
-    plan_by_fit = {str(row["fit_id"]): row for row in plan_rows}
 
     runner = fit_runner or execute_claimed_fit
+    # Per-route staged receipts are recovered from disk on every pass (a restart re-validates the
+    # existing trace/receipt/ledger and reuses its top4/winner); these dicts are only a within-pass
+    # cache, never the source of truth.
     stage1_by_route: dict[str, dict[str, Any]] = {}
     stage2_by_route: dict[str, dict[str, Any]] = {}
     succeeded: list[str] = []
@@ -1975,20 +2216,21 @@ def run_a_e1_staged(
             break
         fit_id = pending[0]
         plan_row = plan_by_fit[fit_id]
-        stage = _a_e1_fit_stage(plan_row)
+        # Stage is classified from the AUTHORITATIVE matrix row (fit_kind is absent from plan.jsonl).
+        stage = _a_e1_fit_stage(matrix_by_fit[fit_id])
         route = str(plan_row["route"])
         if stage == "stage2":
             # the route's stage1 fits precede its stage2 fits in plan order, so they are terminal now
             if route not in stage1_by_route:
-                stage1_by_route[route] = build_a_e1_stage1_selection(
+                stage1_by_route[route] = _ensure_a_e1_stage1_selection(
                     study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
                     route=route, score_fit=score_fit)
             resolved = _resolve_stage2_plan_row(plan_row, stage1_by_route[route]["top4"])
         elif stage == "winner_retrain":
             if route not in stage2_by_route:
-                stage2_by_route[route] = build_a_e1_stage2_selection(
+                stage2_by_route[route] = _ensure_a_e1_stage2_selection(
                     study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
-                    route=route, top4=stage1_by_route[route]["top4"], score_fit=score_fit)
+                    route=route, score_fit=score_fit, stage1_by_route=stage1_by_route)
             resolved = _resolve_winner_retrain_plan_row(plan_row, stage2_by_route[route]["winner"])
         else:
             resolved = plan_row
@@ -2009,7 +2251,8 @@ def run_a_e1_staged(
 
     # The final module selection + staged resolution require EVERY selection fit terminal. A
     # partial run (max_fits capped, or a smoke) skips them and returns the partial execution
-    # result; the full run produces the final trace + F2/V decision + staged ledger.
+    # result; the full run ensures the final trace + F2/V decision + staged ledger (idempotent on
+    # restart: an existing final receipt is re-validated, never re-published or overwritten).
     final_state = _rebuild_authority(run_dir, cache_root)[2]
     pending_remaining = [fid for fid in plan_order if final_state["fit_states"].get(fid) == "pending"]
     result: dict[str, Any] = {
@@ -2021,9 +2264,9 @@ def run_a_e1_staged(
         "stage2_by_route": {route: {"winner": receipt["winner"]} for route, receipt in stage2_by_route.items()},
     }
     if not pending_remaining:
-        result["final_selection"] = build_module_selection(
-            study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E1",
-            run_id=run_id, score_fit=score_fit)
+        result["final_selection"] = _ensure_a_e1_final_selection(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+            score_fit=score_fit)
         result["staged"] = resolve_a_e1_staged_selection(
             study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E1",
             run_id=run_id, score_fit=score_fit)
