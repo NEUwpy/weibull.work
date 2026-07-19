@@ -1161,6 +1161,10 @@ def main():
 
     if args.phase == "analyze":
         build_comparisons()
+        for phase_label in ["explore", "confirm"]:
+            pdir = phase_dir(phase_label)
+            if os.path.exists(os.path.join(pdir, "run_status.csv")):
+                build_manifest(phase_label, git_info, start_time)
         log("Analyze complete")
         build_root_manifest()
         return
