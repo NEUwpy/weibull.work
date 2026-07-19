@@ -15,13 +15,15 @@ network to github.com; see §6).
 ## 1. Changed files
 
 ```
- Study/02-.../code/run_study02a.py          (modified: +3 CLI subcommands + handlers + diagnostics generators)
- python/tests/test_study02a_formal_executor.py  (modified: +4 accreditation tests)
+ Study/02-.../code/run_study02a.py              (modified: +3 CLI subcommands + handlers + diagnostics generators)
+ Study/02-.../code/study02a/formal_state.py     (modified: bundle version accepted v1 -> v3 to match the production builder; §4)
+ python/tests/test_study02a_formal_executor.py  (modified: +4 accreditation tests, incl. end-to-end build->authorize chaining)
+ python/tests/test_study02a_formal_state.py     (modified: v1 -> v3 bundle fixtures)
  coworker/reports/2026-07-18-study02-g3-pre-unseal-accreditation-claude.md  (this report)
 ```
 
-No change to `formal_state.py`, `formal_contracts.py`, `formal_executor.py`, `formal_scheduler.py`
-(reused as-is), nor to any frozen matrix/config/metric/rule or public trace/receipt/bundle schema.
+No change to `formal_contracts.py`, `formal_executor.py`, `formal_scheduler.py` (reused as-is),
+nor to any frozen matrix/config/metric/rule or public trace/receipt/bundle field schema.
 
 ## 2. Production call points delivered (resolve BLOCK #4)
 
@@ -87,19 +89,17 @@ $ git diff --check                                                       # clean
 $ git diff --name-only -- artifacts configs                              # empty
 ```
 
-## 4. Stop-condition finding for the unified review — pre-unseal bundle version v1 vs v3
+## 4. Resolved: pre-unseal bundle version aligned (v1 -> v3)
 
-`formal_state._validate_bundle` requires `bundle_version == "study02-pre-unseal-v1"` with the
-7-field minimal schema; `formal_contracts.build_pre_unseal_bundle` produces
-`"study02-pre-unseal-v3"` with the **same 7 fields** (`formal_contracts.py:1488`). The field set is
-identical; only the version string differs (the state machine predates the R5 v3 evolution).
-
-Consequence: the `formal-accredit-build` output (v3) cannot flow into `formal-accredit-authorize`
-(formal_state rejects it on the version string) until the versions are aligned. This baton did not
-touch `formal_state.py` (outside its scope). Recommended fix for the review: have `formal_state`
-accept the current `study02-pre-unseal-v3` bundle (one version-string change + update the
-`formal_state` test fixtures, which currently build v1 bundles). Trivial, but it is a contract
-change to an approval-bound module.
+`formal_state._validate_bundle` required `bundle_version == "study02-pre-unseal-v1"` while
+`formal_contracts.build_pre_unseal_bundle` produces `"study02-pre-unseal-v3"` — **identical
+7-field schema**; the v1 string was stale, predating the R5 v3 evolution. This baton aligned
+`formal_state` to accept v3 (the production version) and updated the `formal_state` test fixtures,
+unblocking the build -> authorize chain. The end-to-end chaining is proven by
+`test_formal_accredit_build_generates_sealed_bundle` (build v3 bundle -> external approval ->
+authorize -> `unsealed_once`). This is a one-version-string contract change to an approval-bound
+module; flagged for the unified review to confirm v3 as canonical (revert is trivial if v1 is
+intended to remain a separate minimal contract).
 
 ## 5. Notes / deviations
 
