@@ -1329,6 +1329,38 @@ def _build_multi_seed_summary(df_rep, df_transfer, df_bs, per_n, df_sel):
 
 
 def build_merged_products():
+    """Combine explore+confirm CSVs into root-level 90/405k/135 contracts."""
+    all_status = []
+    all_sel = []
+    all_metrics = []
+    for phase_label in ["explore", "confirm"]:
+        pdir = phase_dir(phase_label)
+        sp = os.path.join(pdir, "selected_predictions.csv")
+        stp = os.path.join(pdir, "run_status.csv")
+        mp = os.path.join(pdir, "metrics_by_target_n.csv")
+        if os.path.exists(sp):
+            all_sel.append(pd.read_csv(sp))
+        if os.path.exists(stp):
+            all_status.append(pd.read_csv(stp))
+        if os.path.exists(mp):
+            all_metrics.append(pd.read_csv(mp))
+
+    if all_status:
+        df_status = pd.concat(all_status, ignore_index=True)
+        df_status.to_csv(os.path.join(STAGE1_DIR, "run_status.csv"), index=False)
+        log(f"Merged run_status: {len(df_status)} rows")
+
+    if all_sel:
+        df_sel = pd.concat(all_sel, ignore_index=True)
+        df_sel.to_csv(os.path.join(STAGE1_DIR, "selected_predictions.csv"), index=False)
+        log(f"Merged selected_predictions: {len(df_sel)} rows")
+
+    if all_metrics:
+        df_metrics = pd.concat(all_metrics, ignore_index=True)
+        if "n_samples" in df_metrics.columns:
+            df_metrics = df_metrics[df_metrics["n_samples"].notna()].copy()
+        df_metrics.to_csv(os.path.join(STAGE1_DIR, "metrics_by_target_n.csv"), index=False)
+        log(f"Merged metrics_by_target_n: {len(df_metrics)} rows")
 
 
 def write_report(phase, git_info, start_time):
@@ -1363,38 +1395,6 @@ def write_report(phase, git_info, start_time):
     report_path = os.path.join(STAGE1_DIR, "report.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
-    """Combine explore+confirm CSVs into root-level 90/405k/135 contracts."""
-    all_status = []
-    all_sel = []
-    all_metrics = []
-    for phase_label in ["explore", "confirm"]:
-        pdir = phase_dir(phase_label)
-        sp = os.path.join(pdir, "selected_predictions.csv")
-        stp = os.path.join(pdir, "run_status.csv")
-        mp = os.path.join(pdir, "metrics_by_target_n.csv")
-        if os.path.exists(sp):
-            all_sel.append(pd.read_csv(sp))
-        if os.path.exists(stp):
-            all_status.append(pd.read_csv(stp))
-        if os.path.exists(mp):
-            all_metrics.append(pd.read_csv(mp))
-
-    if all_status:
-        df_status = pd.concat(all_status, ignore_index=True)
-        df_status.to_csv(os.path.join(STAGE1_DIR, "run_status.csv"), index=False)
-        log(f"Merged run_status: {len(df_status)} rows")
-
-    if all_sel:
-        df_sel = pd.concat(all_sel, ignore_index=True)
-        df_sel.to_csv(os.path.join(STAGE1_DIR, "selected_predictions.csv"), index=False)
-        log(f"Merged selected_predictions: {len(df_sel)} rows")
-
-    if all_metrics:
-        df_metrics = pd.concat(all_metrics, ignore_index=True)
-        if "n_samples" in df_metrics.columns:
-            df_metrics = df_metrics[df_metrics["n_samples"].notna()].copy()
-        df_metrics.to_csv(os.path.join(STAGE1_DIR, "metrics_by_target_n.csv"), index=False)
-        log(f"Merged metrics_by_target_n: {len(df_metrics)} rows")
 
 
 def build_root_manifest():
