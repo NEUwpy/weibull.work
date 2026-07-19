@@ -964,7 +964,7 @@ def _accredit_bundle_inputs(run_dir: Path, *, trace_sha: str = "d" * 64):
     leakage.write_bytes(b"leakage-evidence\n")
     oracle.write_bytes(b"oracle-review-evidence\n")
     bundle = {
-        "bundle_version": "study02-pre-unseal-v1",
+        "bundle_version": "study02-pre-unseal-v3",
         "code_commit": _ACCCR_COMMIT,
         "effective_config_sha256": EFFECTIVE.effective_config_sha256,
         "module_run_ids": {"A-E1": _ACCCR_RUN_ID},
@@ -1171,3 +1171,23 @@ def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
     assert leakage["test_access_count"] == 0
     assert all(value == 0 for value in leakage["pairwise_intersections"].values())
     assert set(leakage["parameter_point_counts"]) == {"training", "validation", "calibration", "test"}
+    # end-to-end chaining: the v3 bundle flows into authorize (formal_state accepts v3) -> unsealed_once
+    from study02a.formal_state import publish_oracle_approval
+    bundle_path = run_dir / "pre_unseal_bundle.json"
+    oracle = run_dir / "oracle_review.json"
+    oracle.write_bytes(b"oracle-review-evidence\n")
+    approval_path = run_dir / "approval.json"
+    publish_oracle_approval(
+        approval_path=approval_path, approval_version="study02-test-unseal-approval-v1",
+        decision="APPROVE test unseal", code_commit=_D8_CODE_COMMIT,
+        effective_config_sha256=APPROVED_EFFECTIVE_CONFIG_SHA256,
+        pre_unseal_bundle_sha256=hashlib.sha256(bundle_path.read_bytes()).hexdigest(),
+        selection_trace_hashes=bundle["selection_trace_hashes"],
+        ceiling_report_sha256=hashlib.sha256((run_dir / "ceiling_hit_report.json").read_bytes()).hexdigest(),
+        leakage_audit_sha256=hashlib.sha256((run_dir / "leakage_audit.json").read_bytes()).hexdigest(),
+        oracle_review_artifact_sha256=hashlib.sha256(oracle.read_bytes()).hexdigest(),
+        issued_at="2026-07-19T10:00:00+08:00")
+    state = run_study02a.accredit_authorize(
+        module="A-E1", run_id=run_id, artifact_root=tmp_path, approval_path=approval_path,
+        oracle_review_path=oracle, run_family_id="G3-formal", timestamp="2026-07-19T11:00:00+08:00")
+    assert state["state"] == "unsealed_once" and state["test_access_count"] == 1

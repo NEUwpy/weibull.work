@@ -32,7 +32,7 @@ def _bundle(tmp_path):
     leakage.write_bytes(b"leakage-evidence\n")
     oracle.write_bytes(b"oracle-review-evidence\n")
     bundle = {
-        "bundle_version": "study02-pre-unseal-v1",
+        "bundle_version": "study02-pre-unseal-v3",
         "code_commit": COMMIT,
         "effective_config_sha256": CONFIG_SHA,
         "module_run_ids": {"A-E1": "run-1"},

@@ -79,7 +79,7 @@ def _validate_hash_map(value: Any, label: str) -> dict[str, str]:
 
 def _validate_bundle(payload: bytes) -> dict[str, Any]:
     bundle = _json_object(payload, "pre-unseal bundle", _BUNDLE_FIELDS)
-    if bundle["bundle_version"] != "study02-pre-unseal-v1" or bundle["test_state"] != "sealed":
+    if bundle["bundle_version"] != "study02-pre-unseal-v3" or bundle["test_state"] != "sealed":
         raise ValueError("pre-unseal bundle must be the sealed v1 contract")
     if not isinstance(bundle["code_commit"], str) or _COMMIT.fullmatch(bundle["code_commit"]) is None:
         raise ValueError("pre-unseal bundle code_commit must be a full commit ID")
