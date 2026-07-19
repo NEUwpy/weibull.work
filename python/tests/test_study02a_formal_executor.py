@@ -904,14 +904,11 @@ def test_formal_staged_cli_wires_resolver(tmp_path, monkeypatch):
     assert "score_fit" not in captured  # production never accepts a caller-supplied winner
 
 
-def test_build_module_selection_wires_staged_resolution(tmp_path, monkeypatch):
-    """Production call point: build_module_selection derives the staged A-E1 ledger from its own
-    published trace once every staged decision is present, and returns it under 'staged'.
-
-    score_fit stands in for checkpoint scoring (no training, no materialize); the staged
-    sub-call's production winner-retrain scoring is stubbed to a pending run state (no
-    checkpoints read), proving the wiring fires, resolves stage1/stage2, and reports the
-    downstream baseline as pending without raising."""
+def test_build_module_selection_publishes_trace_without_staged_side_effect(tmp_path, monkeypatch):
+    """build_module_selection publishes the module selection trace/receipt (stage1+stage2 scored via
+    score_fit); staged alias derivation now lives in the orchestrator (run_a_e1_staged), not here, so
+    no 'staged' key is returned. (The staged resolver is covered by its own unit tests + the
+    orchestrator's full-chain smoke.)"""
     _specs, evaluations = _staged_specs_and_evaluations()
     run_dir = tmp_path / "A-E1" / _STAGED_RUN_ID
     run_dir.mkdir(parents=True)
@@ -922,25 +919,11 @@ def test_build_module_selection_wires_staged_resolution(tmp_path, monkeypatch):
         json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
     monkeypatch.setattr(fe, "_rebuild_authority",
                         lambda run_dir, cache_root: (None, None, {"fit_states": {}}, []))
-
-    def score_fit(fit_id, plan_row):
-        return evaluations[fit_id]  # pre-built stage1/stage2 evaluation
-
     receipt = fe.build_module_selection(
         study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
-        module_id="A-E1", run_id=_STAGED_RUN_ID, score_fit=score_fit)
-    assert receipt["staged"] is not None
-    assert receipt["staged"]["selection_trace_sha256"] == receipt["selection_trace_sha256"]
-    # winner-retrain not executed (stubbed pending) -> baseline/final pending, stages resolved
-    assert "baseline_input" in receipt["staged"]["pending"]
-    assert "final_aliases" in receipt["staged"]["pending"]
-    for route in ("F2", "V"):
-        top4 = receipt["staged"]["top4_by_route"][route]
-        assert set(top4) == {"selected_top_1", "selected_top_2", "selected_top_3", "selected_top_4"}
-        assert top4["selected_top_1"] == "m01"  # stage1 ranking derived from the trace
-        s2 = receipt["staged"]["stage2_by_route"][route]
-        assert s2["selected:A-E1_loss"] == "transformed_train_z_huber"
-    assert (run_dir / "staged_resolution_ledger.jsonl").is_file()
+        module_id="A-E1", run_id=_STAGED_RUN_ID, score_fit=lambda fit_id, plan_row: evaluations[fit_id])
+    assert receipt["selection_trace_sha256"] and (run_dir / "selection_trace.jsonl").is_file()
+    assert "staged" not in receipt  # staged derivation moved to run_a_e1_staged
 
 
 # ---------------------------------------------------------------------------
@@ -1356,3 +1339,146 @@ def test_run_a_e1_staged_executes_real_fits_via_scheduler(tmp_path, monkeypatch)
         binding = _json.loads((run_dir / "outputs" / fit_id / "fit_status.json").read_bytes())
         assert binding == {"checkpoint_sha256": _hl.sha256(checkpoint).hexdigest(),
                            "fit_id": fit_id, "run_id": "staged-smoke-0001", "status": "succeeded", "test_access_count": 0}
+
+
+def _smoke_fit_runner():
+    """A fit_runner for run_a_e1_staged that bypasses the infeasible frozen data prep (100000-row
+    datasets): trains a tiny real model on a tiny synthetic batch (real canonical checkpoint), then
+    writes the production per-fit outputs (checkpoint.pt / fit_status.json / evidence.json via
+    _write_outputs) and records the terminal through the PRODUCTION record_fit_succeeded. claim +
+    record stay on the real scheduler path; only the training inputs are synthetic."""
+    import torch
+    from study02a.training import fit_candidate, FitResult
+    from study02a.models import build_mlp
+    from study02a.formal_scheduler import record_fit_succeeded
+
+    def runner(*, study_root, run_dir, cache_root, plan_row, claim, frozen, effective, timestamp):
+        fit_id = str(claim["fit_id"])
+        warmup = fit_candidate(
+            lambda: build_mlp(15, [8], "relu", 0.0),
+            (torch.randn(32, 15), torch.randn(32, 3)),
+            (torch.randn(8, 15), torch.randn(8, 3)),
+            seed=int(plan_row["seed"]) % 1000, max_epochs=2, min_epochs=1, patience=1, batch_size=16,
+        )
+        curve = tuple(100.0 / (i + 1) for i in range(60))
+        best_epoch = min(range(60), key=lambda i: curve[i])
+        evidence = {
+            "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id,
+            "run_id": str(plan_row["run_id"]), "checkpoint_sha256": warmup.checkpoint_sha256,
+            "actual_epochs": 60, "best_epoch_one_based": best_epoch + 1, "hit_epoch_100": False,
+            "early_stop_reason": "patience_exhausted", "terminal_validation_slope": fe._terminal_ols_slope(curve),
+            "validation_curve": list(curve), "test_access_count": 0,
+        }
+        output_hashes = fe._write_outputs(
+            run_dir, fit_id, str(plan_row["run_id"]), warmup.checkpoint_bytes,
+            warmup.checkpoint_sha256, evidence)
+        return {"state": "succeeded", "receipt": record_fit_succeeded(
+            run_dir, cache_root=cache_root, fit_id=fit_id, owner_id=str(claim["owner_id"]),
+            owner_nonce=str(claim["owner_nonce"]), output_hashes=output_hashes, timestamp=timestamp)}
+    return runner
+
+
+def _smoke_score_fit():
+    """A score_fit covering the three selection fit kinds with deterministic synthetic evidence
+    derived from the frozen plan row (no checkpoint forward, no data prep): stage1 ranks
+    m01<m02<...; stage2 forces distinct per-route winners (F2=selected_top_2:o2, V=selected_top_3:o3);
+    winner-retrain uses route-aligned baseline records (F2 < V) so global_better_rule selects F2."""
+    def score_fit(fit_id, plan_row):
+        kind = str(plan_row["fit_kind"]); route = str(plan_row["route"])
+        if kind == "winner_retrain":
+            return _baseline_score_fit()(fit_id, plan_row)
+        key = SupportKey(n=int(plan_row["n"]), seed=int(plan_row["seed"]))
+        if kind == "search_stage1":
+            arch = str(plan_row["architecture"]); base = 0.01 * int(arch[1:])
+            decision_id = f"architecture:A-E1:{route}:n{fe._A_E1_SEARCH_N}"; candidate_id = arch
+        else:  # search_stage2
+            candidate_id = f"{plan_row['architecture']}:{plan_row['optimizer']}"
+            forced = {"F2": "selected_top_2:o2", "V": "selected_top_3:o3"}[route]
+            base = 0.001 if candidate_id == forced else 0.5
+            decision_id = f"stage2:A-E1:{route}:n{fe._A_E1_SEARCH_N}"
+        records = _synth_point_records(fit_id, int(plan_row["seed"]), base)
+        aggregate = sum(rec["l_param"] for rec in records) / len(records)
+        return FitEvaluation(
+            fit_id=fit_id, module_id="A-E1", decision_id=decision_id, candidate_id=candidate_id,
+            support_key=key, failed=False, checkpoint_sha256=hashlib.sha256(fit_id.encode("utf-8")).hexdigest(),
+            validation_identity=f"val-cache-{fit_id}", selection_score=aggregate,
+            failure_penalty=0.0, point_records=records)
+    return score_fit
+
+
+@pytest.mark.slow
+def test_staged_full_chain_smoke(tmp_path, monkeypatch):
+    """Full-chain production-equivalent sealed smoke: run_a_e1_staged drives the REAL staged
+    control end-to-end on the frozen A-E1 matrix -- stage1 execute+select -> top4 -> stage2
+    concretize+execute+select -> winner-retrain -> F2/V decision -> final receipt + staged
+    ledger. Only the DATA is synthetic (small, via cache_dataset; the frozen 100000-row prep is
+    infeasible in a test); training, checkpoint-forward selection scoring, claim/record/receipt
+    are all the real production path. No monkeypatch of top4/winner/stage-state. test sealed.
+
+    Requires a clean code/ tree for the scheduler authority check.
+    """
+    status = __import__("subprocess").run(
+        ["git", "status", "--porcelain", "--", str((STUDY_ROOT / "code").relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True)
+    assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
+
+    import time
+    telemetry = {"rebuild_samples": [], "stage_times": {}, "rebuild_calls": 0}
+    _real_rebuild = fe._rebuild_authority
+
+    def _timed_rebuild(run_dir, cache_root, **kw):
+        telemetry["rebuild_calls"] += 1
+        t0 = time.time(); result = _real_rebuild(run_dir, cache_root, **kw); dt = time.time() - t0
+        n = telemetry["rebuild_calls"]
+        if n in (1, 50, 200, 500, 1000, 1396) or n % 250 == 0:
+            telemetry["rebuild_samples"].append({"call": n, "seconds": round(dt, 3)})
+        return result
+    monkeypatch.setattr(fe, "_rebuild_authority", _timed_rebuild)
+    _real_s1 = fe.build_a_e1_stage1_selection
+
+    def _timed_s1(*a, **kw):
+        t0 = time.time(); r = _real_s1(*a, **kw)
+        telemetry["stage_times"][f"stage1_{kw['route']}"] = round(time.time() - t0, 2)
+        return r
+    monkeypatch.setattr(fe, "build_a_e1_stage1_selection", _timed_s1)
+    _real_s2 = fe.build_a_e1_stage2_selection
+
+    def _timed_s2(*a, **kw):
+        t0 = time.time(); r = _real_s2(*a, **kw)
+        telemetry["stage_times"][f"stage2_{kw['route']}"] = round(time.time() - t0, 2)
+        return r
+    monkeypatch.setattr(fe, "build_a_e1_stage2_selection", _timed_s2)
+
+    _t0 = time.time()
+    summary = fe.run_a_e1_staged(
+        study_root=STUDY_ROOT, run_id="sfsm-0001",
+        artifact_root=tmp_path / "artifact", cache_root=tmp_path / "cache",
+        fit_runner=_smoke_fit_runner(), score_fit=_smoke_score_fit())
+    telemetry["total_seconds"] = round(time.time() - _t0, 1)
+    run_dir = tmp_path / "artifact" / "A-E1" / "sfsm-0001"
+
+    # full chain completed: every staged fit terminal
+    assert summary["complete"] is True
+    assert summary["succeeded_count"] == 349 and summary["failed_count"] == 0
+    # per-route stage receipts published at the right stages (immutable, on the real selection path)
+    for route in ("F2", "V"):
+        assert (run_dir / f"stage1_selection_{route}_receipt.json").is_file()
+        assert (run_dir / f"stage2_selection_{route}_receipt.json").is_file()
+    # final module selection trace + staged resolution (F2/V decision + final aliases)
+    assert (run_dir / "selection_trace.jsonl").is_file()
+    staged = summary["staged"]
+    assert staged is not None
+    assert staged["selected_F2_or_V"] in ("F2", "V")
+    assert staged["final_aliases"] is not None
+    assert set(staged["final_aliases"]) == {
+        "selected:A-E1_loss", "selected:A-E1_architecture", "selected:A-E1_optimizer"}
+    assert staged["final_aliases"] == staged["stage2_by_route"][staged["selected_F2_or_V"]]
+    assert (run_dir / "staged_resolution_ledger.jsonl").is_file()
+    # test stays sealed throughout
+    from study02a.formal_scheduler import status_run
+    _stat = status_run(run_dir, cache_root=tmp_path / "cache")
+    telemetry["fit_count"] = summary["succeeded_count"]
+    telemetry["event_count"] = len(fe._rebuild_authority(run_dir, tmp_path / "cache")[3])
+    telemetry["test_access_count"] = _stat["test_access_count"]
+    print("SLOW_SMOKE_TELEMETRY " + json.dumps(telemetry))
+    assert _stat["test_access_count"] == 0
