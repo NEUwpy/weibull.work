@@ -69,10 +69,12 @@ cannot run `_rebuild_authority` after selection.
 These constrain the design and shrink the real blast radius:
 
 - **`point_evidence.json` is NOT, and was never, in `expected_outputs`.** `expected_outputs` is frozen per-fit at
-  claim time = `{checkpoint.pt, fit_status.json, evidence.json}` (`formal_executor.py:446-448`). Selection-candidacy
-  is decided only after training, so the scheduler at claim/training time cannot know to expect a 4th file. Making
-  it a 4th `expected_outputs` entry is therefore **not viable** (would require claiming with knowledge of a
-  post-training selection outcome, breaking the claim↔matrix binding).
+  claim time = `{checkpoint.pt, fit_status.json, evidence.json}` (`formal_executor.py:446-448`). The selection
+  candidate IS determined by the frozen matrix (so it is known at claim time), but point evidence is a
+  **post-selection lifecycle** artifact — it cannot be a pre-training-success output that must exist in the fit
+  output dir before training succeeds, so it is not (and cannot be) a frozen `expected_outputs` entry. Making
+  it a 4th `expected_outputs` entry is therefore **not viable** (a selection artifact cannot be required to
+  exist before the training it depends on has produced a checkpoint).
 - **The pre-unseal bundle is path-agnostic.** `build_pre_unseal_bundle(..., point_evidence_paths:
   Mapping[str, Path], ...)` (`formal_contracts.py:1113`) consumes the dict of paths — `load_point_evidence` each
   (`:1284-1297`), `assert_point_evidence_provenance` against the independent checkpoint rebuild (`:1317-1397`), and
