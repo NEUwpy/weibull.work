@@ -1302,3 +1302,57 @@ def test_staged_plan_row_resolvers_concretize_and_fail_closed():
     import pytest as _pt
     with _pt.raises(ValueError, match="top4"):
         fe._resolve_stage2_plan_row({"architecture": "selected_top_9"}, top4)
+
+
+@pytest.mark.slow
+def test_run_a_e1_staged_executes_real_fits_via_scheduler(tmp_path, monkeypatch):
+    """Production-equivalent sealed smoke: run_a_e1_staged drives REAL fits through the scheduler
+    journal on the frozen A-E1 matrix -- real training -> canonical checkpoint -> evidence (no
+    monkeypatch of winner/trace/authority/provenance). A partial run (max_fits) proves the
+    orchestrator integrates with claim/execute/record on real data and test stays sealed. The
+    staged receipts + final trace require the full 349-fit run (formal-launch scope, deliberately
+    out of this relay); the staged mechanism itself is covered by the per-route unit tests above.
+    Requires a clean code/ tree for the scheduler authority check.
+    """
+    status = __import__("subprocess").run(
+        ["git", "status", "--porcelain", "--", str((STUDY_ROOT / "code").relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True)
+    assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
+
+    def fast_fixed(model_factory, train_batch, val_batch, effective, *, seed, loss_id, lr, weight_decay, batch_size, optimizer_id="adamw"):
+        # Real checkpoint + predictions from a 2-epoch warmup, synthetic 60-epoch trajectory so the
+        # evidence satisfies the formal [min,max]-epochs contract without 50-100 real epochs.
+        from study02a.training import FitResult
+        warmup = fit_candidate(
+            model_factory, (train_batch.features, train_batch.targets), (val_batch.features, val_batch.targets),
+            seed=seed, max_epochs=2, min_epochs=1, patience=1,
+            batch_size=min(int(batch_size), 64), loss_id=loss_id, lr=lr, weight_decay=weight_decay, optimizer_id=optimizer_id,
+        )
+        curve = tuple(100.0 / (i + 1) for i in range(60))
+        best_epoch = min(range(60), key=lambda i: curve[i])
+        return FitResult(
+            predictions=warmup.predictions, checkpoint_sha256=warmup.checkpoint_sha256,
+            checkpoint_bytes=warmup.checkpoint_bytes, best_validation_loss=warmup.best_validation_loss,
+            actual_epochs=60, best_epoch=best_epoch, validation_loss_history=curve,
+            early_stop_reason="patience_exhausted", hit_epoch_ceiling=False,
+        )
+    monkeypatch.setattr(fe, "fit_fixed_candidate", fast_fixed)
+
+    summary = fe.run_a_e1_staged(
+        study_root=STUDY_ROOT, run_id="staged-smoke-0001",
+        artifact_root=tmp_path / "artifact", cache_root=tmp_path / "cache", max_fits=3)
+    assert summary["succeeded_count"] == 3 and summary["failed_count"] == 0
+    assert summary["complete"] is False  # partial run; receipts/final trace need the full run
+
+    from study02a.formal_scheduler import status_run
+    run_dir = tmp_path / "artifact" / "A-E1" / "staged-smoke-0001"
+    stat = status_run(run_dir, cache_root=tmp_path / "cache")
+    assert stat["test_access_count"] == 0
+    assert stat["counts"]["succeeded"] == 3
+    # the succeeded fits carry real bound checkpoints + evidence (no monkeypatch of authority)
+    import hashlib as _hl, json as _json
+    for fit_id in summary["succeeded"]:
+        checkpoint = (run_dir / "outputs" / fit_id / "checkpoint.pt").read_bytes()
+        binding = _json.loads((run_dir / "outputs" / fit_id / "fit_status.json").read_bytes())
+        assert binding == {"checkpoint_sha256": _hl.sha256(checkpoint).hexdigest(),
+                           "fit_id": fit_id, "run_id": "staged-smoke-0001", "status": "succeeded", "test_access_count": 0}

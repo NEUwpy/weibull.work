@@ -2022,14 +2022,25 @@ def run_a_e1_staged(
         else:
             failed.append({"fit_id": fit_id, "failure_code": result["failure_code"], "message": result["message"]})
 
-    final_selection = build_module_selection(
-        study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E1", run_id=run_id)
-    return {
+    # The final module selection + staged resolution require EVERY selection fit terminal. A
+    # partial run (max_fits capped, or a smoke) skips them and returns the partial execution
+    # result; the full run produces the final trace + F2/V decision + staged ledger.
+    final_state = _rebuild_authority(run_dir, cache_root)[2]
+    pending_remaining = [fid for fid in plan_order if final_state["fit_states"].get(fid) == "pending"]
+    result: dict[str, Any] = {
         "module_id": "A-E1", "run_id": run_id, "run_dir": str(run_dir),
         "succeeded": succeeded, "failed": failed,
         "succeeded_count": len(succeeded), "failed_count": len(failed),
-        "final_selection": final_selection, "staged": final_selection.get("staged"),
+        "complete": not pending_remaining,
+        "stage1_by_route": {route: {"top4": receipt["top4"]} for route, receipt in stage1_by_route.items()},
+        "stage2_by_route": {route: {"winner": receipt["winner"]} for route, receipt in stage2_by_route.items()},
     }
+    if not pending_remaining:
+        final_selection = build_module_selection(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E1", run_id=run_id)
+        result["final_selection"] = final_selection
+        result["staged"] = final_selection.get("staged")
+    return result
 
 
 __all__ = [
