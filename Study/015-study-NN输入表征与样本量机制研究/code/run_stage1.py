@@ -1087,23 +1087,6 @@ def build_manifest(phase, git_info, start_time):
 
     scan_dir(pdir)
 
-    for fname in os.listdir(STAGE1_DIR):
-        fpath = os.path.join(STAGE1_DIR, fname)
-        if os.path.isfile(fpath) and fname != "manifest.json":
-            key = "../" + fname
-            entry = {"sha256": sha256_file(fpath)}
-            try:
-                if fname.endswith(".csv"):
-                    df = pd.read_csv(fpath)
-                    entry["rows"] = len(df)
-                elif fname.endswith(".json"):
-                    with open(fpath) as f:
-                        jd = json.load(f)
-                    entry["keys"] = len(jd) if isinstance(jd, dict) else len(jd)
-            except Exception:
-                pass
-            manifest["artifacts"][key] = entry
-
     manifest_path = os.path.join(pdir, "manifest.json")
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
