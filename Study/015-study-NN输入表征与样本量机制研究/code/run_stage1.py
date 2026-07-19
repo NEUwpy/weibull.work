@@ -1163,8 +1163,18 @@ def main():
         build_comparisons()
         for phase_label in ["explore", "confirm"]:
             pdir = phase_dir(phase_label)
-            if os.path.exists(os.path.join(pdir, "run_status.csv")):
-                build_manifest(phase_label, git_info, start_time)
+            mpath = os.path.join(pdir, "manifest.json")
+            if os.path.exists(mpath):
+                with open(mpath, encoding="utf-8") as f:
+                    m = json.load(f)
+                artifacts = m.get("artifacts", {})
+                stale_keys = [k for k in artifacts if k.startswith("../")]
+                for k in stale_keys:
+                    del artifacts[k]
+                with open(mpath, "w", encoding="utf-8") as f:
+                    json.dump(m, f, indent=2)
+                if stale_keys:
+                    log(f"Stripped {len(stale_keys)} stale root entries from {phase_label}/manifest.json")
         log("Analyze complete")
         build_root_manifest()
         return
