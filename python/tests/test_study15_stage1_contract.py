@@ -215,13 +215,15 @@ def test_study01_source_csv_unchanged():
 def test_duplicate_run_rejection():
     """Verify fail-closed: re-running without --force raises RuntimeError."""
     import subprocess
+    code_path = os.path.join(STUDY15_CODE_DIR, "run_stage1.py")
     result = subprocess.run(
-        ["python", os.path.join(STUDY15_CODE_DIR, "run_stage1.py"), "--phase", "explore"],
+        [sys.executable, code_path, "--phase", "explore"],
         cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=30
     )
     assert result.returncode != 0, f"Expected failure, got returncode={result.returncode}"
-    assert "already complete" in (result.stderr or "") + (result.stdout or ""), \
-        f"Expected 'already complete' message, got stderr={result.stderr[:200]} stdout={result.stdout[:200]}"
+    combined = (result.stderr or "") + (result.stdout or "")
+    assert "already complete" in combined, \
+        f"Expected 'already complete' message, got: {combined[:300]}"
 
 
 def test_output_recomputability():
