@@ -431,8 +431,8 @@ def test_multi_seed_synthetic_three_seeds():
             t10 = t_rows[t_rows["train_n"] == "10"]
             t20 = t_rows[t_rows["train_n"] == "20"]
             assert len(t10) == 1 and len(t20) == 1, "Missing distinct T source"
-            assert float(t10.iloc[0]["mean_effect_J1"]) > float(t20.iloc[0]["mean_effect_J1"]), \
-                "T(source=20) should have larger effect than T(source=10)"
+            assert float(t20.iloc[0]["mean_effect_J1"]) > float(t10.iloc[0]["mean_effect_J1"]), \
+                "T(source=20, J1=0.80) should have larger effect than T(source=10, J1=0.65)"
 
             for _, row in df_ms.iterrows():
                 n_s = int(row["n_seeds"])
