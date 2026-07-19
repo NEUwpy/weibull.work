@@ -756,30 +756,11 @@ def build_module_selection(
         module_id=module_id, run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
         effective_config=effective, code_commit=manifest["code_commit"],
     )
-    # D8 staged alias derivation (A-E1 only, production call point): once the selection
-    # trace carries every staged decision, derive the immutable staged resolution ledger
-    # (stage1 -> top4 -> stage2 winner -> winner-retrain -> F2-vs-V baseline -> final
-    # aliases) from the same trace authority just published. While any staged decision is
-    # still absent (a partial run -- e.g. only stage-1 fits completed), staged resolution
-    # is SKIPPED, never forced; the resolver is invoked only on a complete staged trace
-    # and appends its own append-only ledger without touching the trace/receipt.
-    staged_summary: dict[str, Any] | None = None
-    if module_id == "A-E1":
-        derived_decision_ids = {spec.decision_id for spec in specs}
-        staged_decision_ids = (
-            {_a_e1_stage1_decision_id(route) for route in _A_E1_OPTIMIZED_ROUTES}
-            | {_a_e1_stage2_decision_id(route) for route in _A_E1_OPTIMIZED_ROUTES}
-        )
-        if staged_decision_ids <= derived_decision_ids:
-            staged_summary = resolve_a_e1_staged_selection(
-                study_root=study_root, run_dir=run_dir, cache_root=cache_root,
-                module_id=module_id, run_id=run_id,
-            )
     return {
         "module_id": module_id, "run_id": run_id, "selection_trace_sha256": trace_sha,
         "decision_count": len(specs), "record_count": len(records),
         "selection_diagnostics_path": str(diagnostics_path),
-        "point_evidence_paths": point_evidence_paths, "staged": staged_summary, **receipt,
+        "point_evidence_paths": point_evidence_paths, **receipt,
     }
 
 
@@ -1948,6 +1929,8 @@ def run_a_e1_staged(
     *, study_root: Path, module_id: str = "A-E1", run_id: str,
     artifact_root: Path, cache_root: Path, owner_id: str = "formal-executor",
     max_fits: int | None = None,
+    fit_runner: Callable[..., Mapping[str, Any]] | None = None,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
 ) -> dict[str, Any]:
     """Drive the real frozen A-E1 module through its staged execution (deadlock-free).
 
@@ -1980,6 +1963,7 @@ def run_a_e1_staged(
     plan_order = [str(row["fit_id"]) for row in plan_rows]
     plan_by_fit = {str(row["fit_id"]): row for row in plan_rows}
 
+    runner = fit_runner or execute_claimed_fit
     stage1_by_route: dict[str, dict[str, Any]] = {}
     stage2_by_route: dict[str, dict[str, Any]] = {}
     succeeded: list[str] = []
@@ -1997,13 +1981,14 @@ def run_a_e1_staged(
             # the route's stage1 fits precede its stage2 fits in plan order, so they are terminal now
             if route not in stage1_by_route:
                 stage1_by_route[route] = build_a_e1_stage1_selection(
-                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id, route=route)
+                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+                    route=route, score_fit=score_fit)
             resolved = _resolve_stage2_plan_row(plan_row, stage1_by_route[route]["top4"])
         elif stage == "winner_retrain":
             if route not in stage2_by_route:
                 stage2_by_route[route] = build_a_e1_stage2_selection(
                     study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
-                    route=route, top4=stage1_by_route[route]["top4"])
+                    route=route, top4=stage1_by_route[route]["top4"], score_fit=score_fit)
             resolved = _resolve_winner_retrain_plan_row(plan_row, stage2_by_route[route]["winner"])
         else:
             resolved = plan_row
@@ -2014,7 +1999,7 @@ def run_a_e1_staged(
             timestamp=timestamp)
         if claim.get("status") != "claimed":
             break  # exhausted or monitor_only (another live owner); caller may retry
-        result = execute_claimed_fit(
+        result = runner(
             study_root=study_root, run_dir=run_dir, cache_root=cache_root, plan_row=resolved,
             claim=claim, frozen=frozen, effective=effective, timestamp=timestamp)
         if result["state"] == "succeeded":
@@ -2036,10 +2021,12 @@ def run_a_e1_staged(
         "stage2_by_route": {route: {"winner": receipt["winner"]} for route, receipt in stage2_by_route.items()},
     }
     if not pending_remaining:
-        final_selection = build_module_selection(
-            study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E1", run_id=run_id)
-        result["final_selection"] = final_selection
-        result["staged"] = final_selection.get("staged")
+        result["final_selection"] = build_module_selection(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E1",
+            run_id=run_id, score_fit=score_fit)
+        result["staged"] = resolve_a_e1_staged_selection(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E1",
+            run_id=run_id, score_fit=score_fit)
     return result
 
 
