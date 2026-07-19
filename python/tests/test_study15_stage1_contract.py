@@ -215,9 +215,14 @@ def test_study01_source_csv_unchanged():
 def test_duplicate_run_rejection():
     """Verify fail-closed: re-running without --force raises RuntimeError."""
     import subprocess
-    code_path = os.path.join(STUDY15_CODE_DIR, "run_stage1.py")
+    code_dir = os.path.join(STUDY15_CODE_DIR, "run_stage1.py")
     result = subprocess.run(
-        [sys.executable, code_path, "--phase", "explore"],
+        [sys.executable, "-c",
+         "import sys, os; os.chdir(r'D:\\weibull'); "
+         "sys.path.insert(0, r'D:\\weibull\\python'); "
+         f"sys.path.insert(0, r'{STUDY15_CODE_DIR}'); "
+         "import run_stage1; run_stage1.main()",
+         "--phase", "explore"],
         cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=30
     )
     assert result.returncode != 0, f"Expected failure, got returncode={result.returncode}"
