@@ -5,7 +5,7 @@
 
 ## 快速结论
 
-第一轮 smoke/pilot 已完成并通过 Codex 条件审查。由于 Hermes/GLM API 不稳定，原一次性 formal batch 改为 staged execution。
+E4 staged execution 已完成到 Step 4：E4a 正式特征组消融已完成并获准主线整合，E4b/E4c reference-only 已完成。E4d selector 外推未启动，E3c 继续延后。
 
 **Step 1 preflight 已完成 (2026-07-10 Hermes)。** Verdict: APPROVE Step 2。
 **Step 2 MC generation 已完成 (2026-07-10 Hermes)。** Codex REVISE（数据 APPROVE，formal package 需补 provenance + fail-closed + tracks 拆分）。
@@ -14,7 +14,7 @@
 **Step 2 R3 REVISE fixes 已应用 (2026-07-10 Hermes)。** 4 项 P1/P2 修复 + 契约测试。
 **Step 3 reference analysis 已完成 (2026-07-10 Hermes)。** E4b/E4c references + diagnostics 已产出。
 
-当前阶段：`S4_FORMAL_E4_RUNNING` — Step 3 已完成，等待 Codex 审查后授权 Step 4+。
+当前阶段：`S6_DONE`（E4a/E4b/E4c 支线收口）— 不代表泛化验证全部完成；E4d/E3c 如需启动，必须另开合同与 gate。
 
 ### 第一轮完成状态
 
@@ -59,8 +59,7 @@
 | `S5_CH7_AUTHORIZED` | Codex 验收 formal E4 后，才允许 Ch7 写作 handoff | Ch7 草稿完成 |
 | `S6_DONE` | E4 支线完成，Ch7 可进入主线整合 | 无 |
 
-当前阶段：`S4_FORMAL_E4_RUNNING` — Step 3 已完成，等待 Codex 审查后授权 Step 4+。
-审查文件：`coworker/reviews/2026-07-10-study01-e4-validation-suite-codex.md`
+当前阶段：`S6_DONE`（E4a/E4b/E4c 支线收口）。E4a 最终审查见 `coworker/reviews/2026-07-11-study01-e4-step4-codex.md`；E4d 未获授权、未启动。
 
 已确认的设计决策：
 1. E4b 使用 Option C（references only，不部署 NN selector 到边界）
@@ -201,7 +200,7 @@ Not allowed:
 
 ## 下一步
 
-### 2026-07-11 当前权威动作
+### 2026-07-19 当前权威状态
 
 - E4a Step 4 已完成：60 runs = 4 feature groups × 5 combo folds × 3 seeds，`pooled_J1` 等全部数值字段无 NaN/Inf。
 - `split_report.csv` 为 45 个唯一 test combos，每折 9 个；`manifest_e4a.json` 标记 `FORMAL/completed`。
@@ -209,6 +208,7 @@ Not allowed:
 - `cost_report.csv` 已合并为 63 rows：E4a 61、E4b 1、E4c 1。E4b/E4c 两行与 `0147baa` 完全一致。
 - 当前不启动 E4d。后续若要执行任一 subset-track，必须先用回归测试修复公共 `cost_report.csv` 覆盖其他轨成本行的问题。
 - 用户已决定不再维持 E4 分支工作流；当前动作是按范围提交 E4 与主文修改，然后 fast-forward 收口到 `main`。
+- E4a 是 main-grid feature ablation；E4b/E4c 是 reference-only landscape。三者均不回答 NN selector 在 boundary/off-grid/continuous-space 的泛化质量。
 
 以下旧的 Step 3 等待指令仅保留作历史过程记录，不再是当前动作。
 

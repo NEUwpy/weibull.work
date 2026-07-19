@@ -3,6 +3,8 @@
 > 日期：2026-07-09  
 > 作用：在 E3b existing-grid 结果已封存后，明确 Ch6 是否可以写、E3c 是否需要立即启动、E4 的触发条件是什么。
 
+> **2026-07-19 状态补注**：本文保留 2026-07-09 的决策过程，但执行状态已推进。E4a 60-run 正式消融已完成并获准主线整合；E4b/E4c reference-only 已完成；E4d selector 外推未启动；E3c 继续延后。故当前仍没有 continuous-space 或真实数据外部泛化结论。
+
 ## 当前决定
 
 **APPROVE Ch6 existing-grid 写作。**

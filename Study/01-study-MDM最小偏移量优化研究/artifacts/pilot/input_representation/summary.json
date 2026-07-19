@@ -1,0 +1,400 @@
+{
+  "status": "PILOT_ONLY",
+  "generated_at_utc": "2026-07-19T06:30:49.256109+00:00",
+  "fold": "combo_fold_1",
+  "seed": 42,
+  "max_iter": 300,
+  "models": [
+    {
+      "pooled_J1": 0.5304030230201544,
+      "mean_selected_loss": 0.28132736682891846,
+      "per_n": {
+        "7": {
+          "J1": 0.6156728483862852,
+          "n_samples": 3000
+        },
+        "10": {
+          "J1": 0.5635183176737617,
+          "n_samples": 3000
+        },
+        "20": {
+          "J1": 0.3838959562034008,
+          "n_samples": 3000
+        }
+      },
+      "model": "summary_features_13",
+      "runtime_seconds": 41.20429949997924,
+      "training_iterations": 59,
+      "input_dimension": 13,
+      "train_samples": 36000,
+      "test_samples": 9000
+    },
+    {
+      "pooled_J1": 0.5244853505815245,
+      "mean_selected_loss": 0.27508488297462463,
+      "per_n": {
+        "7": {
+          "J1": 0.611601722601778,
+          "n_samples": 3000
+        },
+        "10": {
+          "J1": 0.5539862807637429,
+          "n_samples": 3000
+        },
+        "20": {
+          "J1": 0.37986468980410254,
+          "n_samples": 3000
+        }
+      },
+      "model": "summary_features_12_without_n",
+      "runtime_seconds": 35.533986800001,
+      "training_iterations": 79,
+      "input_dimension": 12,
+      "train_samples": 36000,
+      "test_samples": 9000
+    },
+    {
+      "pooled_J1": 0.5314428316091372,
+      "mean_selected_loss": 0.2824314832687378,
+      "per_n": {
+        "7": {
+          "J1": 0.6240574166325356,
+          "n_samples": 3000
+        },
+        "10": {
+          "J1": 0.5592222079660153,
+          "n_samples": 3000
+        },
+        "20": {
+          "J1": 0.38094256543992044,
+          "n_samples": 3000
+        }
+      },
+      "model": "routed_known_n_specialists_12",
+      "runtime_seconds": 26.14220399991609,
+      "training_iterations": 242,
+      "component_iterations": {
+        "7": 54,
+        "10": 89,
+        "20": 99
+      },
+      "input_dimension": 12,
+      "train_samples": 36000,
+      "test_samples": 9000,
+      "model_count": 3
+    },
+    {
+      "pooled_J1": 0.5321707040014538,
+      "mean_selected_loss": 0.28320565819740295,
+      "per_n": {
+        "7": {
+          "J1": 0.6203008665055725,
+          "n_samples": 3000
+        },
+        "10": {
+          "J1": 0.558614957180132,
+          "n_samples": 3000
+        },
+        "20": {
+          "J1": 0.3908875727313424,
+          "n_samples": 3000
+        }
+      },
+      "model": "sorted_raw_masked",
+      "runtime_seconds": 100.56232660001842,
+      "training_iterations": 113,
+      "input_dimension": 41,
+      "train_samples": 36000,
+      "test_samples": 9000
+    }
+  ],
+  "specialist_components": {
+    "7": {
+      "metrics": {
+        "pooled_J1": 0.6240574166325356,
+        "mean_selected_loss": 0.3894476592540741,
+        "per_n": {
+          "7": {
+            "J1": 0.6240574166325356,
+            "n_samples": 3000
+          }
+        },
+        "model": "summary_features_specialist_n7",
+        "runtime_seconds": 4.898875099956058,
+        "training_iterations": 54,
+        "input_dimension": 12,
+        "train_samples": 12000,
+        "test_samples": 3000
+      },
+      "scaler": {
+        "zscore_means": {
+          "x_min": 0.9791867241307031,
+          "x_max": 1.9644992506474022,
+          "range": 0.9853125265166988,
+          "Q1": 1.2141139539893304,
+          "Med": 1.4084542084722633,
+          "Q3": 1.6260118782150506,
+          "IQR": 0.4118979242257204,
+          "x_bar": 1.4331988353798757,
+          "s": 0.3534163888019216
+        },
+        "zscore_stds": {
+          "x_min": 0.419223841829084,
+          "x_max": 0.5537427071138866,
+          "range": 0.49639392465818133,
+          "Q1": 0.4066275643261649,
+          "Med": 0.41136239318120593,
+          "Q3": 0.42832253018254074,
+          "IQR": 0.23749646748695488,
+          "x_bar": 0.39925133036709637,
+          "s": 0.1780533680771843
+        }
+      }
+    },
+    "10": {
+      "metrics": {
+        "pooled_J1": 0.5592222079660153,
+        "mean_selected_loss": 0.31272947788238525,
+        "per_n": {
+          "10": {
+            "J1": 0.5592222079660153,
+            "n_samples": 3000
+          }
+        },
+        "model": "summary_features_specialist_n10",
+        "runtime_seconds": 10.087610999995377,
+        "training_iterations": 89,
+        "input_dimension": 12,
+        "train_samples": 12000,
+        "test_samples": 3000
+      },
+      "scaler": {
+        "zscore_means": {
+          "x_min": 0.9131555461550127,
+          "x_max": 2.092483555400412,
+          "range": 1.1793280092453995,
+          "Q1": 1.1846341940090475,
+          "Med": 1.400418836872558,
+          "Q3": 1.6457417579236786,
+          "IQR": 0.4611075639146311,
+          "x_bar": 1.4340271011413104,
+          "s": 0.3793218714789944
+        },
+        "zscore_stds": {
+          "x_min": 0.41555773438120375,
+          "x_max": 0.590979076759347,
+          "range": 0.5674442020188117,
+          "Q1": 0.40561439547722017,
+          "Med": 0.40227148347282005,
+          "Q3": 0.4228372809295165,
+          "IQR": 0.25127686601625177,
+          "x_bar": 0.39181656296236156,
+          "s": 0.18090753633369802
+        }
+      }
+    },
+    "20": {
+      "metrics": {
+        "pooled_J1": 0.38094256543992044,
+        "mean_selected_loss": 0.14511723816394806,
+        "per_n": {
+          "20": {
+            "J1": 0.38094256543992044,
+            "n_samples": 3000
+          }
+        },
+        "model": "summary_features_specialist_n20",
+        "runtime_seconds": 11.155717899964657,
+        "training_iterations": 99,
+        "input_dimension": 12,
+        "train_samples": 12000,
+        "test_samples": 3000
+      },
+      "scaler": {
+        "zscore_means": {
+          "x_min": 0.8442509258315285,
+          "x_max": 2.2071761099065506,
+          "range": 1.3629251840750225,
+          "Q1": 1.1767477516874838,
+          "Med": 1.4031417814863825,
+          "Q3": 1.654763708551424,
+          "IQR": 0.47801595686393983,
+          "x_bar": 1.4330628569469481,
+          "s": 0.3704200120817551
+        },
+        "zscore_stds": {
+          "x_min": 0.39281568175170783,
+          "x_max": 0.6183224875811604,
+          "range": 0.5922732077330648,
+          "Q1": 0.3861067631775673,
+          "Med": 0.38067731222741313,
+          "Q3": 0.40166251406651104,
+          "IQR": 0.2196992603220728,
+          "x_bar": 0.3770855224964723,
+          "s": 0.15769486322621631
+        }
+      }
+    }
+  },
+  "raw_minus_feature_relative_J1": 0.0033327128703643447,
+  "raw_minus_feature_absolute_J1": 0.0017676809812994243,
+  "without_n_minus_full_feature_relative_J1": -0.011156935729616098,
+  "without_n_minus_full_feature_absolute_J1": -0.005917672438629951,
+  "specialist_minus_unified_without_n_relative_J1": 0.013265348631565416,
+  "specialist_minus_unified_without_n_absolute_J1": 0.006957481027612733,
+  "specialist_minus_full_feature_relative_J1": 0.0019604122598359916,
+  "specialist_minus_full_feature_absolute_J1": 0.0010398085889827824,
+  "interpretation_boundary": "One fold and one seed only; this is an input-representation sensitivity check, not formal multi-fold/multi-seed evidence or a general superiority claim.",
+  "feature_input_fields": [
+    "x_min",
+    "x_max",
+    "range",
+    "Q1",
+    "Med",
+    "Q3",
+    "IQR",
+    "x_bar",
+    "s",
+    "n",
+    "CV",
+    "g1",
+    "g2"
+  ],
+  "feature_input_fields_without_n": [
+    "x_min",
+    "x_max",
+    "range",
+    "Q1",
+    "Med",
+    "Q3",
+    "IQR",
+    "x_bar",
+    "s",
+    "CV",
+    "g1",
+    "g2"
+  ],
+  "raw_input_fields": [
+    "x_sorted_1_z",
+    "x_sorted_2_z",
+    "x_sorted_3_z",
+    "x_sorted_4_z",
+    "x_sorted_5_z",
+    "x_sorted_6_z",
+    "x_sorted_7_z",
+    "x_sorted_8_z",
+    "x_sorted_9_z",
+    "x_sorted_10_z",
+    "x_sorted_11_z",
+    "x_sorted_12_z",
+    "x_sorted_13_z",
+    "x_sorted_14_z",
+    "x_sorted_15_z",
+    "x_sorted_16_z",
+    "x_sorted_17_z",
+    "x_sorted_18_z",
+    "x_sorted_19_z",
+    "x_sorted_20_z",
+    "mask_1",
+    "mask_2",
+    "mask_3",
+    "mask_4",
+    "mask_5",
+    "mask_6",
+    "mask_7",
+    "mask_8",
+    "mask_9",
+    "mask_10",
+    "mask_11",
+    "mask_12",
+    "mask_13",
+    "mask_14",
+    "mask_15",
+    "mask_16",
+    "mask_17",
+    "mask_18",
+    "mask_19",
+    "mask_20",
+    "n"
+  ],
+  "raw_representation": {
+    "description": "sorted raw observations, train-only scalar z-score, right padding to n=20, explicit mask, n",
+    "train_value_mean": 1.433349189135438,
+    "train_value_std": 0.5478097587739985
+  },
+  "feature_scaler": {
+    "zscore_means": {
+      "x_min": 0.9121977320390813,
+      "x_max": 2.0880529719847885,
+      "range": 1.1758552399457067,
+      "Q1": 1.191831966561954,
+      "Med": 1.404004942277068,
+      "Q3": 1.642172448230051,
+      "IQR": 0.4503404816680971,
+      "x_bar": 1.4334295978227114,
+      "s": 0.36771942412089037
+    },
+    "zscore_stds": {
+      "x_min": 0.4130561829966046,
+      "x_max": 0.5965694783822324,
+      "range": 0.5746016455495568,
+      "Q1": 0.3998846812484213,
+      "Med": 0.3983256549408111,
+      "Q3": 0.41793810348880206,
+      "IQR": 0.23816807276929966,
+      "x_bar": 0.3894936370247756,
+      "s": 0.1728628505041499
+    }
+  },
+  "test_combos": [
+    [
+      1.5,
+      0.1,
+      7
+    ],
+    [
+      1.5,
+      0.5,
+      20
+    ],
+    [
+      2.0,
+      0.1,
+      10
+    ],
+    [
+      2.0,
+      1.0,
+      7
+    ],
+    [
+      2.5,
+      0.1,
+      20
+    ],
+    [
+      2.5,
+      1.0,
+      10
+    ],
+    [
+      4.0,
+      0.5,
+      7
+    ],
+    [
+      4.0,
+      1.0,
+      20
+    ],
+    [
+      5.0,
+      0.5,
+      10
+    ]
+  ],
+  "source_caches": [
+    "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E3b_vector_mlp\\sample_features.csv",
+    "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E3b_vector_mlp\\risk_curves.csv"
+  ]
+}

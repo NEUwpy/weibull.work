@@ -154,7 +154,7 @@ E3b 的 near-optimal 诊断进一步支持主结果。对样本 $i$，regret 定
 
 完整的逐样本 relative-regret 及其汇总仍保留在正式 artifact `artifacts/formal/E3b_vector_mlp/near_optimal_diagnostics.csv` 和 `E3b_acceptance_report.md`。由于逐样本 hindsight 最小损失接近零时 relative regret 的均值会对小分母高度敏感，主文表 8 不展示 mean relative regret，避免将该不稳定比值作为主要比较量。
 
-本章不进一步判断 13 个可观测特征中哪些信息组承担主要贡献。现有 fold 1、seed 42 的 `feature_ablation.csv` 只作为 Ch7/E4a 正式消融的 pilot 来源，不在 Ch6 提前写成特征重要性结论。Ch7 将在跨 fold、seed 和 $n$ 的正式合同下比较 full features、`n only`、scale/quantile 与 shape 等特征组，再判断样本内部信息是否稳定超越仅使用 $n$ 的选择器，以及形状信息能否承接第 5 章观察到的 $\beta$ 主效应。
+本章不进一步判断 13 个可观测特征中哪些信息组承担主要贡献。现有 fold 1、seed 42 的 `feature_ablation.csv` 只是 E4a 的 pilot 来源，不在 Ch6 提前写成特征重要性结论。E4a 已在跨 5 folds、3 seeds 的正式合同下完成 full features、`n only`、scale/quantile 与 shape 四组比较；该结果归 Ch7 整合后，再判断样本内部信息是否稳定超越仅使用 $n$ 的选择器，以及形状信息能否承接第 5 章观察到的 $\beta$ 主效应。
 
 ## §7 本章边界
 
@@ -185,5 +185,5 @@ E3b 的 near-optimal 诊断进一步支持主结果。对样本 $i$，regret 定
 【作者备注】
 
 - Ch6 的主文/补充层级已冻结：Figure 8 由可复现的 vector-output MLP 方法流程图承担；原 pooled J1 柱状图与 delta distribution diagnostic plot 均降为补充图。主文定量证据由主结果表、三 seed 稳定性表和分列 exact $P(\delta=0)$、exact $P(\delta=0.50)$、extreme/near-boundary rate 的紧凑表承担。最终补充图号和表格版式仍待投稿版统一冻结。
-- 若后续不启动 E3c/E4，Ch7 和 Discussion 必须把本章结论限定为 existing-grid，不写成连续空间部署推荐。
+- 即使 E4a 与 E4b/E4c reference-only 已完成，只要 E4d/E3c 和真实数据验证未完成，Ch7 和 Discussion 就必须把本章结论限定为 existing-grid，不写成连续空间部署推荐。
 - `Vector-MLP-L6` 超过 L5-oracle 时，正文必须强调 L5 是组级 oracle，不是逐样本上界；避免审稿人误解为层级定义矛盾。

@@ -1,6 +1,6 @@
 # 06 grill-me 论文完善续接记录
 
-> 更新日期：2026-07-11
+> 更新日期：2026-07-19
 > 用途：在新 Codex 窗口、上下文压缩或多 agent 并行时，无损续接 Ch1–Ch6 的 `grill-me` 论文完善工作。本文件是续接摘要，精确公式、数值与证据仍以各正文草稿、`01-证据索引.md`、`02-实验协议.md` 和正式 artifacts 为准。
 
 ## 新窗口最小读取顺序
@@ -20,6 +20,8 @@
 3. 在真参数不可见时，以 NN/Vector-MLP 作为主要求解器，学习“样本可观测特征 → 26 点损失曲线 → 选择 delta”。
 
 NN 是 Ch6 的主要实现方法，但不是论文目的。Ch1–Ch6 完成 formal existing-grid 主体闭环；Ch7 以后负责稳健性、外推边界和真实数据适用性。
+
+当前 E4 状态：E4a 60-run 主网格特征消融已完成并获准主线整合；E4b/E4c boundary/off-grid reference-only 已完成；E4d selector 外推、E3c 连续空间训练和真实数据验证均未完成。因此，“existing-grid 组合留出有效”可以回答，“连续空间或外部泛化有效”仍不能回答。
 
 ## 截至第 61 问的已确认决策
 
@@ -153,15 +155,7 @@ python -m pytest python/tests/test_study01_beta_profile_audit.py python/tests/te
 
 ## 当前共享工作区的所有权边界
 
-当前分支为 `main`，工作区尚未提交。同一共享工作区中已有 Hermes/E4 并行工作，包括但不限于：
-
-- `E4-validation-suite-状态交接.md`
-- `code/run_E4_formal_validation.py`
-- `code/run_E4_mc_generation.py`
-- `artifacts/formal/E4_robustness/`
-- `coworker/reports/2026-07-10-study01-e4-step2-mc-generation-hermes.md`
-
-当前 `git status` 还可见 E4 chunk 的删除/重建状态。这些均不属于本轮 Ch1–Ch6 所有权。新窗口不得回退、删除、覆盖、暂存或提交它们；如需集成，先单独核对 Hermes 分支与交接文档。
+当前分支为 `main`。E4a/E4b/E4c 已完成分支收口，不再按“并行未集成工作”处理；当前未提交改动为本轮状态文档同步。新窗口仍不得把 E4b/E4c reference-only 误写成 E4d selector 泛化结果。
 
 ## 下一窗口的续接点
 
