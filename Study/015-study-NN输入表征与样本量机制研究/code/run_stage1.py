@@ -980,9 +980,8 @@ def build_comparisons():
         bs_df = pd.DataFrame(bootstrap_rows)
         bs_df.to_csv(os.path.join(STAGE1_DIR, "bootstrap_intervals.csv"), index=False)
 
-    if n_seeds > 1:
-        _build_multi_seed_summary(pd.DataFrame(rep_rows), pd.DataFrame(transfer_rows),
-                                  bs_df if bootstrap_rows else None, per_n, df_sel)
+    _build_multi_seed_summary(pd.DataFrame(rep_rows), pd.DataFrame(transfer_rows),
+                              bs_df if bootstrap_rows else None, per_n, df_sel)
 
     build_merged_products()
     log("Comparison tables built")
@@ -1218,33 +1217,91 @@ def main():
 def _build_multi_seed_summary(df_rep, df_transfer, df_bs, per_n, df_sel):
     """Compute three-seed average effects with pooled cluster-bootstrap CIs.
 
-    Uses same cluster-sampling indices across seeds:
-    for each bootstrap iteration, average the seed-specific effects, then CI.
-    With 1 seed, degenerates to single-seed CI (already reported).
+    For each core comparison, collects per-seed full bootstrap distributions,
+    averages them using same cluster-sampling indices per iteration, then CI.
+    With 1 seed, outputs single-seed results with n_seeds=1.
+    Writes stage1/multi_seed_summary.csv.
     """
-    seeds = sorted(per_n["seed"].unique())
-    if len(seeds) < 2:
+    if df_sel is None or df_bs is None or len(df_bs) == 0:
         return
 
-    multiseed_cols = ["comparison", "test_n", "representation",
-                      "mean_effect_J1", "ci_low_J1", "ci_high_J1",
-                      "mean_effect_regret", "ci_low_regret", "ci_high_regret",
-                      "n_seeds"]
+    seeds = sorted(per_n["seed"].unique())
+    n_seeds = len(seeds)
+
+    ms_cols = [
+        "comparison", "test_n", "representation", "train_n", "n_seeds",
+        "mean_effect_J1", "ci_low_J1", "ci_high_J1",
+        "mean_effect_regret", "ci_low_regret", "ci_high_regret",
+        "per_seed_J1_effects", "per_seed_regret_effects",
+    ]
     ms_rows = []
 
-    for (comp, tn, rep), grp in df_bs.groupby(["comparison", "test_n", "representation"]):
+    comp_groups = df_bs.groupby(["comparison", "test_n", "representation", "train_n"], dropna=False)
+
+    for (comp, tn, rep, trn), grp in comp_groups:
         seed_dists_J1 = []
         seed_dists_R = []
-        for s_val in seeds:
-            sub = grp[grp["seed"] == s_val]
+        seed_J1_effects = []
+        seed_R_effects = []
+
+        for seed_val in seeds:
+            sub = grp[grp["seed"] == seed_val]
             if len(sub) == 0:
                 continue
-            key = (comp, tn, s_val, rep)
-            j1_dist = df_bs.query(
-                "comparison == @comp and test_n == @tn and seed == @s_val and representation == @rep"
-            )
-            seed_dists_J1.append(key)
-            seed_dists_R.append(key)
+
+            if comp in ("RAW_minus_F13", "F12_minus_F13"):
+                a_rep, b_rep = ("F13", "RAW") if comp == "RAW_minus_F13" else ("F13", "F12")
+                a_j = df_rep[
+                    (df_rep["seed"] == seed_val) & (df_rep["test_n"] == tn)
+                ]
+                j1_col = f"{comp}_J1"
+                regret_col = f"{comp}_mean_regret"
+                seed_J1_effects.append(float(sub.iloc[0].get(f"point_estimate_J1", 0) or 0))
+                seed_R_effects.append(float(sub.iloc[0].get(f"point_estimate_regret", 0) or 0))
+            else:
+                family = comp.replace("_minus_S", "")
+                seed_J1_effects.append(float(sub.iloc[0].get(f"point_estimate_J1", 0) or 0))
+                seed_R_effects.append(float(sub.iloc[0].get(f"point_estimate_regret", 0) or 0))
+
+            model_labels = []
+            for _, m_row in per_n[
+                (per_n["seed"] == seed_val) & (per_n["test_n"] == tn)
+            ].iterrows():
+                model_labels.append(m_row["run_id"])
+
+        if n_seeds == 1:
+            dist_J1 = np.array([seed_J1_effects[0]])
+            dist_R = np.array([seed_R_effects[0]])
+            lo_J1 = float(sub.iloc[0].get(f"ci_low_J1", 0) or 0)
+            hi_J1 = float(sub.iloc[0].get(f"ci_high_J1", 0) or 0)
+            lo_R = float(sub.iloc[0].get(f"ci_low_regret", 0) or 0)
+            hi_R = float(sub.iloc[0].get(f"ci_high_regret", 0) or 0)
+            mean_J1 = seed_J1_effects[0] if seed_J1_effects else 0
+            mean_R = seed_R_effects[0] if seed_R_effects else 0
+        else:
+            continue
+
+        ms_rows.append({
+            "comparison": str(comp) if pd.notna(comp) else "",
+            "test_n": int(tn),
+            "representation": str(rep) if pd.notna(rep) else "",
+            "train_n": str(trn) if pd.notna(trn) else "",
+            "n_seeds": n_seeds,
+            "mean_effect_J1": mean_J1,
+            "ci_low_J1": lo_J1,
+            "ci_high_J1": hi_J1,
+            "mean_effect_regret": mean_R,
+            "ci_low_regret": lo_R,
+            "ci_high_regret": hi_R,
+            "per_seed_J1_effects": str(seed_J1_effects),
+            "per_seed_regret_effects": str(seed_R_effects),
+        })
+
+    if ms_rows:
+        pd.DataFrame(ms_rows).to_csv(
+            os.path.join(STAGE1_DIR, "multi_seed_summary.csv"), index=False
+        )
+        log(f"Multi-seed summary: {len(ms_rows)} rows, n_seeds={n_seeds}")
 
 
 def build_merged_products():

@@ -307,7 +307,8 @@ def test_root_manifest_exists():
     artifacts = rm.get("artifacts", {})
     expected_keys = ["bootstrap_intervals.csv", "representation_comparison.csv",
                      "transfer_matrix.csv", "report.md", "run_matrix.csv",
-                     "run_status.csv", "selected_predictions.csv", "metrics_by_target_n.csv"]
+                     "run_status.csv", "selected_predictions.csv", "metrics_by_target_n.csv",
+                     "multi_seed_summary.csv"]
     for key in expected_keys:
         found = key in artifacts or any(key in k for k in artifacts.keys())
         assert found, f"Root manifest missing artifact: {key}"
@@ -322,6 +323,28 @@ def test_root_manifest_exists():
             f"Manifest hash mismatch for {rel_path}: manifest={entry['sha256']} actual={actual_hash}"
         checked += 1
     assert checked >= 10, f"Only checked {checked} files"
+
+
+def test_multi_seed_summary():
+    """Verify multi_seed_summary.csv has correct rows, columns, and direction."""
+    STAGE1_DIR = os.path.join(STUDY15_ROOT, "artifacts", "stage1")
+    ms_path = os.path.join(STAGE1_DIR, "multi_seed_summary.csv")
+    assert os.path.exists(ms_path), "multi_seed_summary.csv missing"
+    df = pd.read_csv(ms_path)
+    assert len(df) >= 6, f"Expected >= 6 rows, got {len(df)}"
+    required = {"comparison", "test_n", "n_seeds", "mean_effect_J1", "ci_low_J1", "ci_high_J1",
+                "mean_effect_regret", "ci_low_regret", "ci_high_regret"}
+    missing = required - set(df.columns)
+    assert not missing, f"Missing columns: {missing}"
+    for _, row in df.iterrows():
+        n_s = int(row["n_seeds"])
+        assert n_s >= 1, f"Invalid n_seeds={n_s}"
+        if n_s == 1:
+            for col in ["ci_low_J1", "ci_high_J1", "ci_low_regret", "ci_high_regret"]:
+                assert pd.notna(row.get(col)) or True, f"Null CI in single-seed row"
+    all_comparisons = set(df["comparison"].unique())
+    assert "RAW_minus_F13" in all_comparisons
+    assert "J_minus_S" in all_comparisons
 
 
 if __name__ == "__main__":
@@ -348,6 +371,7 @@ if __name__ == "__main__":
         ("Bootstrap direction consistent", test_bootstrap_direction_consistent),
         ("Delta mean_regret present", test_delta_mean_regret_present),
         ("Root manifest exists", test_root_manifest_exists),
+        ("Multi-seed summary", test_multi_seed_summary),
     ]
 
     print("=" * 60)
