@@ -428,3 +428,154 @@ def test_output_identity_change_after_one_read_snapshot_rejects(tmp_path, monkey
     monkeypatch.setattr(scheduler, "_read_identity_snapshot", mutate_after_read)
     with pytest.raises(ValueError, match="identity changed"):
         scheduler.record_fit_succeeded(run_dir, cache_root=tmp_path / "cache", fit_id=claim["fit_id"], owner_id="worker", owner_nonce="nonce-worker", output_hashes=output_hashes, timestamp="2026-07-13T00:01:00Z")
+
+
+# ---------------------------------------------------------------------------
+# Controller-anchor single-replay checkpoint capture.
+#
+# _validate_controller_anchors used to call _replay(events[:seq+1]) once per
+# anchor (quadratic). It now runs ONE ordered replay that captures the canonical
+# authority-state hash after each event, then compares each signed anchor against
+# checkpoints[seq]. These tests prove the optimization is byte-for-byte
+# equivalent to the old per-prefix replay, and that no tampering is bypassed.
+# ---------------------------------------------------------------------------
+
+
+def _build_mixed_run(tmp_path):
+    """Event log exercising genesis, claim, success, failure, and a trailing
+    live claim (claimed, no receipt yet -- the future-record boundary)."""
+    from study02a.formal_scheduler import claim_next_fit, record_fit_succeeded, record_fit_failed
+    run_dir = Path(_create(tmp_path)["run_dir"]); cache = tmp_path / "cache"
+    c1 = claim_next_fit(run_dir, cache_root=cache, owner_id="w1", owner_nonce="n1", timestamp="2026-07-13T00:00:00Z")
+    record_fit_succeeded(run_dir, cache_root=cache, fit_id=c1["fit_id"], owner_id="w1", owner_nonce="n1", output_hashes=_write_success(run_dir, c1), timestamp="2026-07-13T00:01:00Z")
+    c2 = claim_next_fit(run_dir, cache_root=cache, owner_id="w2", owner_nonce="n2", timestamp="2026-07-13T00:02:00Z")
+    record_fit_failed(run_dir, cache_root=cache, fit_id=c2["fit_id"], owner_id="w2", owner_nonce="n2", failure_code="fit_error", timestamp="2026-07-13T00:03:00Z")
+    c3 = claim_next_fit(run_dir, cache_root=cache, owner_id="w3", owner_nonce="n3", timestamp="2026-07-13T00:04:00Z")
+    record_fit_succeeded(run_dir, cache_root=cache, fit_id=c3["fit_id"], owner_id="w3", owner_nonce="n3", output_hashes=_write_success(run_dir, c3, checkpoint=b"checkpoint-3"), timestamp="2026-07-13T00:05:00Z")
+    claim_next_fit(run_dir, cache_root=cache, owner_id="w4", owner_nonce="n4", timestamp="2026-07-13T00:06:00Z")  # trailing live claim
+    return run_dir, cache
+
+
+def test_single_capture_checkpoint_equals_prefix_replay_for_every_seq(tmp_path):
+    """For a valid sequence spanning genesis/claim/success/failure/live-claim, each
+    checkpoint captured during one ordered replay equals the authority hash of an
+    independent prefix replay at that seq."""
+    from study02a.formal_scheduler import _replay, _rebuild_authority, _canonical, _sha
+    run_dir, cache = _build_mixed_run(tmp_path)
+    manifest, plan, state, events = _rebuild_authority(run_dir, cache)
+    checkpoints = []
+    final = _replay(run_dir, manifest, plan, events, allow_future_records=True, _checkpoints=checkpoints)
+    assert len(checkpoints) == len(events) and len(events) >= 5
+    # capturing checkpoints does not alter the returned state
+    assert final == _replay(run_dir, manifest, plan, events, allow_future_records=True) == state
+    for seq in range(len(events)):
+        prefix = _replay(run_dir, manifest, plan, events[:seq + 1], allow_future_records=True)
+        assert checkpoints[seq] == _sha(_canonical(prefix)), f"checkpoint != prefix replay at seq {seq}"
+
+
+def test_replay_checkpoints_default_none_leaves_return_unchanged(tmp_path):
+    """The _checkpoints knob is opt-in; the default call is byte-for-byte unchanged."""
+    from study02a.formal_scheduler import _replay, _rebuild_authority
+    run_dir, cache = _build_mixed_run(tmp_path)
+    manifest, plan, state, events = _rebuild_authority(run_dir, cache)
+    sink: list[str] = []
+    a = _replay(run_dir, manifest, plan, events, allow_future_records=True)
+    b = _replay(run_dir, manifest, plan, events, allow_future_records=True, _checkpoints=sink)
+    assert a == b == state and len(sink) == len(events)
+
+
+def test_checkpoint_hash_independent_of_allow_future_records(tmp_path):
+    """Whether extra (future) records are tolerated or not is a directory check that
+    never enters the state dict, so the per-seq checkpoint hashes are identical."""
+    from study02a.formal_scheduler import _replay, _rebuild_authority
+    run_dir, cache = _build_mixed_run(tmp_path)
+    manifest, plan, _state, events = _rebuild_authority(run_dir, cache)
+    cp_allow: list[str] = []; cp_deny: list[str] = []
+    _replay(run_dir, manifest, plan, events, allow_future_records=True, _checkpoints=cp_allow)
+    _replay(run_dir, manifest, plan, events, allow_future_records=False, _checkpoints=cp_deny)
+    assert cp_allow == cp_deny
+
+
+def test_strict_prefix_replay_rejects_future_records_at_intermediate_seq(tmp_path):
+    """At an intermediate seq, future claim/receipt files already exist on disk; the
+    strict prefix replay must reject them -- this is exactly why anchor validation
+    needs allow_future_records, and why one full strict replay substitutes for the
+    N lenient per-prefix replays."""
+    from study02a.formal_scheduler import _replay, _rebuild_authority
+    run_dir, cache = _build_mixed_run(tmp_path)
+    manifest, plan, _state, events = _rebuild_authority(run_dir, cache)
+    with pytest.raises(ValueError, match="missing, extra, or unbound"):
+        _replay(run_dir, manifest, plan, events[:2], allow_future_records=False)
+    # ... while the lenient prefix replay (what the anchor semantics require) succeeds:
+    _replay(run_dir, manifest, plan, events[:2], allow_future_records=True)
+
+
+def test_tampered_history_claim_detected_by_single_capture_replay(tmp_path):
+    """The single capture replay still reads and hash-binds every claim; tampering a
+    historical claim is detected (the checkpoint capture never becomes a trusted sidecar)."""
+    from study02a.formal_scheduler import _rebuild_authority, _canonical as _canon
+    run_dir, cache = _build_mixed_run(tmp_path)
+    claim_file = sorted((run_dir / "claims").glob("*.json"))[0]
+    original = claim_file.read_bytes()
+    forged = json.loads(original); forged["owner_id"] = "tampered-owner"
+    claim_file.write_bytes(_canon(forged))
+    with pytest.raises(ValueError):
+        _rebuild_authority(run_dir, cache)
+    claim_file.write_bytes(original)
+    _rebuild_authority(run_dir, cache)  # restored -> passes again
+
+
+def test_tampered_history_receipt_detected_by_single_capture_replay(tmp_path):
+    """Same no-bypass guarantee for a terminal receipt file."""
+    from study02a.formal_scheduler import _rebuild_authority, _canonical as _canon
+    run_dir, cache = _build_mixed_run(tmp_path)
+    receipt_file = sorted((run_dir / "receipts").glob("*.json"))[0]
+    original = receipt_file.read_bytes()
+    forged = json.loads(original); forged["owner_id"] = "tampered-owner"
+    receipt_file.write_bytes(_canon(forged))
+    with pytest.raises(ValueError):
+        _rebuild_authority(run_dir, cache)
+    receipt_file.write_bytes(original)
+    _rebuild_authority(run_dir, cache)
+
+
+def test_anchor_valid_hmac_but_wrong_state_rejected_by_checkpoint(tmp_path):
+    """An anchor re-signed with the real controller key but carrying a wrong state
+    hash passes the HMAC check yet is rejected by the checkpoint comparison -- the
+    new path actively binds each anchor to the captured replay state at its seq."""
+    from study02a.formal_scheduler import _rebuild_authority, _canonical as _canon, _sign_anchor
+    run_dir, cache = _build_mixed_run(tmp_path)
+    anchor_dir = tmp_path / "artifacts" / ".study02-controller" / "runs" / "A-E1" / "G3-AE1-plan-v1" / "anchors"
+    key = (tmp_path / "artifacts" / ".study02-controller" / "keys" / "controller.hmac.key").read_bytes()
+    target = sorted(anchor_dir.glob("*.json"))[-1]
+    anchor = json.loads(target.read_bytes())
+    anchor["state_sha256"] = "f" * 64  # wrong state, valid seq/tail (filename unaffected)
+    core = {k: v for k, v in anchor.items() if k != "hmac_sha256"}
+    anchor["hmac_sha256"] = _sign_anchor(core, key)  # genuine signature over the forged core
+    target.write_bytes(_canon(anchor))
+    with pytest.raises(ValueError, match="tail checkpoint"):
+        _rebuild_authority(run_dir, cache)
+
+
+def test_full_replay_after_simulated_restart_recovers_same_authority(tmp_path):
+    """A fresh _rebuild_authority (no in-memory authority cache exists) re-reads the
+    journal from disk and recovers the identical authority + state."""
+    from study02a.formal_scheduler import _rebuild_authority, _canonical, _sha
+    run_dir, cache = _build_mixed_run(tmp_path)
+    manifest, plan, state, events = _rebuild_authority(run_dir, cache)
+    manifest2, plan2, state2, events2 = _rebuild_authority(run_dir, cache)
+    assert manifest == manifest2 and plan == plan2 and state == state2 and events == events2
+    assert _sha(_canonical(state)) == _sha(_canonical(state2))
+
+
+def test_history_tamper_detected_after_simulated_restart(tmp_path):
+    """Tampering a historical file then re-running a fresh full rebuild (restart)
+    must still fail closed -- checkpoint capture must not let a tampered journal pass."""
+    from study02a.formal_scheduler import _rebuild_authority, _canonical as _canon
+    run_dir, cache = _build_mixed_run(tmp_path)
+    _rebuild_authority(run_dir, cache)  # establishes the run is valid before "restart"
+    claim_file = sorted((run_dir / "claims").glob("*.json"))[0]
+    forged = json.loads(claim_file.read_bytes()); forged["owner_id"] = "post-restart-tamper"
+    claim_file.write_bytes(_canon(forged))
+    with pytest.raises(ValueError):
+        _rebuild_authority(run_dir, cache)

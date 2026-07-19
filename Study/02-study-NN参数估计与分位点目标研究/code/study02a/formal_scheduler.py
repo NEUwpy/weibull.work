@@ -523,16 +523,25 @@ def _receipt_path(run_dir: Path, relative: str) -> Path:
     return path
 
 
-def _replay(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str, Any]], events: Sequence[dict[str, Any]], virtual_records: Mapping[str, tuple[bytes, dict[str, Any]]] | None = None, allow_future_records: bool = False) -> dict[str, Any]:
+def _replay(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str, Any]], events: Sequence[dict[str, Any]], virtual_records: Mapping[str, tuple[bytes, dict[str, Any]]] | None = None, allow_future_records: bool = False, _checkpoints: list[str] | None = None) -> dict[str, Any]:
     authority_sha = manifest["scheduler"]["authority"]["authority_sha256"]
     virtual_records = {} if virtual_records is None else dict(virtual_records)
     fit_states = {row["fit_id"]: "pending" for row in plan}; by_fit = {row["fit_id"]: row for row in plan}
     live: dict[str, Any] | None = None; referenced_claims: set[str] = set(); referenced_receipts: set[str] = set()
+
+    def _snapshot_state(event_count: int, last_event_sha256: str) -> dict[str, Any]:
+        # canonical scheduler state dict -- the single source of truth used both for the
+        # return value and, when ``_checkpoints`` is provided, for the per-event authority
+        # state hashes captured during one ordered replay (a snapshot, not a second state).
+        return {"state_version": "study02-formal-scheduler-state-v2", "run_id": manifest["run_id"], "module_id": manifest["module_id"], "authority_sha256": authority_sha, "plan_sha256": manifest["scheduler"]["authority"]["plan_sha256"], "fit_states": dict(fit_states), "live_claim": live, "event_count": event_count, "last_event_sha256": last_event_sha256, "test_access_count": 0}
+
     for seq, event in enumerate(events):
         payload = event["payload"]; kind = event["event_type"]
         if seq == 0:
             if kind != "run_initialized" or set(payload) != {"run_id", "module_id", "plan_sha256"} or payload != {"run_id": manifest["run_id"], "module_id": manifest["module_id"], "plan_sha256": manifest["scheduler"]["authority"]["plan_sha256"]}:
                 raise ValueError("scheduler genesis payload schema mismatch")
+            if _checkpoints is not None:
+                _checkpoints.append(_sha(_canonical(_snapshot_state(seq + 1, event["event_sha256"]))))
             continue
         if kind == "fit_claimed":
             if set(payload) != {"fit_id", "claim_relative_path", "claim_sha256"} or live is not None or fit_states.get(payload.get("fit_id")) != "pending":
@@ -576,6 +585,8 @@ def _replay(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str,
             referenced_receipts.add(receipt_path.name); fit_states[live["fit_id"]] = terminal; live = None
         else:
             raise ValueError("unknown scheduler event type")
+        if _checkpoints is not None:
+            _checkpoints.append(_sha(_canonical(_snapshot_state(seq + 1, event["event_sha256"]))))
     for dirname, referenced in (("claims", referenced_claims), ("receipts", referenced_receipts)):
         directory = run_dir / dirname
         actual: set[str] = set()
@@ -589,7 +600,7 @@ def _replay(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str,
         available = actual | virtual_names
         if (not allow_future_records and available != referenced) or (allow_future_records and not referenced.issubset(available)) or actual & virtual_names:
             raise ValueError(f"{dirname} contains missing, extra, or unbound immutable records")
-    return {"state_version": "study02-formal-scheduler-state-v2", "run_id": manifest["run_id"], "module_id": manifest["module_id"], "authority_sha256": authority_sha, "plan_sha256": manifest["scheduler"]["authority"]["plan_sha256"], "fit_states": fit_states, "live_claim": live, "event_count": len(events), "last_event_sha256": events[-1]["event_sha256"], "test_access_count": 0}
+    return _snapshot_state(len(events), events[-1]["event_sha256"])
 
 
 def _validate_controller_anchors(run_dir: Path, manifest: Mapping[str, Any], plan: Sequence[dict[str, Any]], events: Sequence[dict[str, Any]], final_state: Mapping[str, Any]) -> None:
@@ -603,12 +614,19 @@ def _validate_controller_anchors(run_dir: Path, manifest: Mapping[str, Any], pla
     paths = [Path(entry.path) for entry in sorted(entries, key=lambda item: item.name)]
     if len(paths) != len(events):
         raise ValueError("controller anchor count does not match the run event count")
+    # One ordered replay captures the canonical authority state hash after each event is
+    # applied, so every signed anchor is compared against the exact state at its seq without
+    # re-reading and re-validating the claim/receipt files for every prefix. Each claim and
+    # receipt file is still read, structurally validated and hash-bound exactly once during
+    # this single replay (no cached sidecar is ever trusted). ``_checkpoints[seq]`` is
+    # byte-for-byte ``_sha(_canonical(_replay(events[:seq+1], allow_future_records=True)))``.
+    checkpoints: list[str] = []
+    _replay(run_dir, manifest, plan, events, allow_future_records=True, _checkpoints=checkpoints)
     previous = _ZERO_HASH
     for seq, (path, event) in enumerate(zip(paths, events)):
         anchor_bytes, anchor = _load_exact(path, _ANCHOR_FIELDS, "controller anchor")
         core = {key: value for key, value in anchor.items() if key != "hmac_sha256"}
-        expected_state = _replay(run_dir, manifest, plan, events[: seq + 1], allow_future_records=True)
-        if path != _anchor_path(run_dir, anchor) or anchor["seq"] != seq or anchor["event_count"] != seq + 1 or anchor["event_tail_sha256"] != event["event_sha256"] or anchor["state_sha256"] != _sha(_canonical(expected_state)) or anchor["authority_sha256"] != final_state["authority_sha256"] or anchor["previous_anchor_sha256"] != previous or anchor["controller_key_id"] != context["key_id"] or not hmac.compare_digest(anchor["hmac_sha256"], _sign_anchor(core, context["key"])):
+        if path != _anchor_path(run_dir, anchor) or anchor["seq"] != seq or anchor["event_count"] != seq + 1 or anchor["event_tail_sha256"] != event["event_sha256"] or anchor["state_sha256"] != checkpoints[seq] or anchor["authority_sha256"] != final_state["authority_sha256"] or anchor["previous_anchor_sha256"] != previous or anchor["controller_key_id"] != context["key_id"] or not hmac.compare_digest(anchor["hmac_sha256"], _sign_anchor(core, context["key"])):
             raise ValueError("controller signed tail checkpoint does not match immutable replay")
         previous = _sha(anchor_bytes)
 
