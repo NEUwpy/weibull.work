@@ -1329,6 +1329,40 @@ def _build_multi_seed_summary(df_rep, df_transfer, df_bs, per_n, df_sel):
 
 
 def build_merged_products():
+
+
+def write_report(phase, git_info, start_time):
+    """Generate stage1/report.md with run summary and evidence status."""
+    pdir = phase_dir(phase)
+    status_path = os.path.join(pdir, "run_status.csv")
+    if not os.path.exists(status_path):
+        return
+    status = pd.read_csv(status_path)
+    completed = int((status["status"] == "completed").sum())
+    failed = int((status["status"] != "completed").sum())
+    lines = [
+        f"# Study1.5 Stage 1 — {phase.upper()} Phase Report",
+        "",
+        f"- **Contract**: v0.1 frozen",
+        f"- **Git**: {git_info}",
+        f"- **Code SHA256**: {sha256_file(os.path.join(STUDY15_ROOT, 'code', 'run_stage1.py'))}",
+        f"- **Start**: {start_time}",
+        f"- **End**: {now_iso()}",
+        f"- **Runs**: {completed}/{completed + failed} completed, {failed} failed",
+        f"- **Source hashes**: features={sha256_file(SRC_FEATURES)}, curves={sha256_file(SRC_RISK_CURVES)}",
+        "",
+        "## Run Summary",
+    ]
+    for fam in ["J", "S", "T", "L"]:
+        sub = status[status["family"] == fam]
+        if len(sub) > 0:
+            lines.append(f"- **{fam}**: {int((sub['status']=='completed').sum())}/{len(sub)} completed")
+    lines.append("")
+    lines.append("## Evidence Status")
+    lines.append(f"- This is **{phase.upper()}** phase evidence.")
+    report_path = os.path.join(STAGE1_DIR, "report.md")
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
     """Combine explore+confirm CSVs into root-level 90/405k/135 contracts."""
     all_status = []
     all_sel = []
