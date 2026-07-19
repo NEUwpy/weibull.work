@@ -1191,3 +1191,59 @@ def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
         module="A-E1", run_id=run_id, artifact_root=tmp_path, approval_path=approval_path,
         oracle_review_path=oracle, run_family_id="G3-formal", timestamp="2026-07-19T11:00:00+08:00")
     assert state["state"] == "unsealed_once" and state["test_access_count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Staged execution state machine (deadlock fix): per-stage selection receipts that do NOT
+# require future-stage evidence. Stage-1 first: publish a partial selection over the stage-1
+# architecture decisions alone and derive top4, so stage-2 (selected_top_*) can concretize.
+# ---------------------------------------------------------------------------
+
+def test_build_a_e1_stage1_selection_publishes_partial_receipt_and_top4(tmp_path):
+    """Stage-1 selection builds an immutable partial trace/receipt/ledger over the stage-1
+    architecture decisions ONLY (no stage-2 / winner-retrain evidence needed) and derives the
+    route top4 -- the deadlock-free staged authority that build_module_selection cannot provide."""
+    run_id = "G3-AE1-staged-exec-v1"
+    run_dir = tmp_path / "A-E1" / run_id
+    run_dir.mkdir(parents=True)
+    plan_rows = [r for r in MATRIX_ROWS if str(r["module"]) == "A-E1"]
+    (run_dir / "plan.jsonl").write_text(
+        "".join(json.dumps(r, sort_keys=True) + "\n" for r in plan_rows), encoding="utf-8")
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+
+    def score_fit(fit_id, plan_row):
+        route = str(plan_row["route"]); arch = str(plan_row["architecture"])
+        decision_id = f"architecture:A-E1:{route}:n{fe._A_E1_SEARCH_N}"
+        base = 0.01 * int(arch[1:])  # m01 best ... m12 worst
+        key = SupportKey(n=int(plan_row["n"]), seed=int(plan_row["seed"]))
+        records = _synth_point_records(fit_id, int(plan_row["seed"]), base)
+        return FitEvaluation(
+            fit_id=fit_id, module_id="A-E1", decision_id=decision_id, candidate_id=arch,
+            support_key=key, failed=False, checkpoint_sha256=hashlib.sha256(fit_id.encode("utf-8")).hexdigest(),
+            validation_identity=f"val-cache-{fit_id}",
+            selection_score=sum(rec["l_param"] for rec in records) / len(records),
+            failure_penalty=0.0, point_records=records)
+
+    result = fe.build_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache", run_id=run_id, score_fit=score_fit)
+    for route in ("F2", "V"):
+        top4 = result["top4_by_route"][route]
+        assert list(top4) == ["selected_top_1", "selected_top_2", "selected_top_3", "selected_top_4"]
+        assert (top4["selected_top_1"], top4["selected_top_2"],
+                top4["selected_top_3"], top4["selected_top_4"]) == ("m01", "m02", "m03", "m04")
+    # the partial trace carries ONLY the two stage-1 architecture decisions (no stage-2)
+    records = [json.loads(line) for line in (run_dir / "stage1_selection_trace.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert {r["decision_id"] for r in records} == {
+        "architecture:A-E1:F2:n10", "architecture:A-E1:V:n10"}
+    assert (run_dir / "stage1_selection_receipt.json").is_file()
+    assert (run_dir / "stage1_selection_ledger.jsonl").is_file()
+
+
+def test_a_e1_fit_stage_classifies_plan_rows():
+    """The stage classifier routes rows to the staged-execution stages."""
+    assert fe._a_e1_fit_stage({"fit_kind": "historical"}) == "concrete"
+    assert fe._a_e1_fit_stage({"fit_kind": "controlled"}) == "concrete"
+    assert fe._a_e1_fit_stage({"fit_kind": "search_stage1"}) == "concrete"
+    assert fe._a_e1_fit_stage({"fit_kind": "search_stage2"}) == "stage2"
+    assert fe._a_e1_fit_stage({"fit_kind": "winner_retrain"}) == "winner_retrain"
