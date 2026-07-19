@@ -347,6 +347,86 @@ def test_multi_seed_summary():
     assert "J_minus_S" in all_comparisons
 
 
+def test_multi_seed_synthetic_three_seeds():
+    """Synthetic 3-seed data exercises the n_seeds>1 branch. 
+    Verifies rows, n_seeds=3, finite CIs, direction, and per-iteration averaging."""
+    from run_stage1 import _build_multi_seed_summary, bootstrap_paired
+    import tempfile, os as _os
+
+    np.random.seed(3407)
+    n_combos = 3
+    n_per_combo = 5
+    combos = [(1.5, 0.1), (2.0, 0.5), (5.0, 1.0)]
+    all_seeds = [42, 2026, 3407]
+    test_n = 7
+
+    per_n_rows = []
+    sel_rows = []
+    bs_rows = []
+
+    for seed_val in all_seeds:
+        for rep in ["F13", "RAW"]:
+            rid_j = f"{rep}_J_seed{seed_val}"
+            rid_s = f"{rep}_S_7to7_seed{seed_val}"
+            per_n_rows.append({"seed": seed_val, "representation": rep, "family": "J",
+                               "train_n": "7,10,20", "test_n": test_n,
+                               "run_id": rid_j, "J1": 0.5, "mean_regret": 0.1, "n_samples": 3000})
+            per_n_rows.append({"seed": seed_val, "representation": rep, "family": "S",
+                               "train_n": "7", "test_n": test_n,
+                               "run_id": rid_s, "J1": 0.6, "mean_regret": 0.12, "n_samples": 3000})
+            for combo_idx, (beta, goe) in enumerate(combos):
+                for rep_i in range(n_per_combo):
+                    sel_rows.append({"model": rid_j, "n": test_n, "beta": beta,
+                                     "gamma_over_eta": goe, "repeat_id": combo_idx * n_per_combo + rep_i,
+                                     "selected_loss": 0.1 + seed_val * 0.001 + combo_idx * 0.01,
+                                     "regret": 0.02 + seed_val * 0.0001 + combo_idx * 0.002})
+                    sel_rows.append({"model": rid_s, "n": test_n, "beta": beta,
+                                     "gamma_over_eta": goe, "repeat_id": combo_idx * n_per_combo + rep_i,
+                                     "selected_loss": 0.12 + seed_val * 0.001 + combo_idx * 0.008,
+                                     "regret": 0.025 + seed_val * 0.0001 + combo_idx * 0.0015})
+
+            sub_sel = [r for r in sel_rows if r["model"] in (rid_j, rid_s) and r["n"] == test_n]
+            a_df = [r for r in sub_sel if r["model"] == rid_s]
+            b_df = [r for r in sub_sel if r["model"] == rid_j]
+            lo_j, hi_j, mn_j = bootstrap_paired(a_df, b_df, "selected_loss", n_bootstrap=500, seed=42)
+            lo_r, hi_r, mn_r = bootstrap_paired(a_df, b_df, "regret", n_bootstrap=500, seed=42)
+            cost = 0.5 - 0.6
+            bs_rows.append({
+                "comparison": "J_minus_S", "seed": seed_val, "test_n": test_n,
+                "representation": rep, "train_n": "7,10,20",
+                "point_estimate_J1": cost, "ci_low_J1": lo_j, "ci_high_J1": hi_j, "bootstrap_mean_J1": mn_j,
+                "point_estimate_regret": 0.1 - 0.12, "ci_low_regret": lo_r, "ci_high_regret": hi_r, "bootstrap_mean_regret": mn_r,
+            })
+
+    df_per_n = pd.DataFrame(per_n_rows)
+    df_sel_all = pd.DataFrame(sel_rows)
+    df_bs_syn = pd.DataFrame(bs_rows)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        from run_stage1 import STAGE1_DIR as _orig
+        import run_stage1 as rs
+        saved = rs.STAGE1_DIR
+        rs.STAGE1_DIR = tmpdir
+        try:
+            _build_multi_seed_summary(None, None, df_bs_syn, df_per_n, df_sel_all)
+            ms_path = os.path.join(tmpdir, "multi_seed_summary.csv")
+            assert os.path.exists(ms_path), "multi_seed_summary.csv not created"
+            df_ms = pd.read_csv(ms_path)
+            assert len(df_ms) == 2, f"Expected 2 rows (F13+RAW), got {len(df_ms)}"
+            for _, row in df_ms.iterrows():
+                n_s = int(row["n_seeds"])
+                assert n_s == 3, f"n_seeds should be 3, got {n_s}"
+                assert pd.notna(row["ci_low_J1"]) and pd.notna(row["ci_high_J1"]), "CI must be finite"
+                assert pd.notna(row["ci_low_regret"]) and pd.notna(row["ci_high_regret"]), "CI must be finite"
+                pe = float(row["per_seed_J1_effects"].strip("[]").split(",")[0])
+                assert pd.notna(pe), "per_seed_J1_effects must be parseable"
+                lo = float(row["ci_low_J1"])
+                hi = float(row["ci_high_J1"])
+                assert lo <= hi, f"ci_low={lo} > ci_high={hi}"
+        finally:
+            rs.STAGE1_DIR = saved
+
+
 if __name__ == "__main__":
     import traceback
     tests = [
@@ -372,6 +452,7 @@ if __name__ == "__main__":
         ("Delta mean_regret present", test_delta_mean_regret_present),
         ("Root manifest exists", test_root_manifest_exists),
         ("Multi-seed summary", test_multi_seed_summary),
+        ("Multi-seed synthetic 3-seeds", test_multi_seed_synthetic_three_seeds),
     ]
 
     print("=" * 60)

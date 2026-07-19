@@ -1219,7 +1219,6 @@ def _build_multi_seed_summary(df_rep, df_transfer, df_bs, per_n, df_sel):
 
     For each core comparison, collects per-seed full bootstrap distributions,
     averages them using same cluster-sampling indices per iteration, then CI.
-    With 1 seed, outputs single-seed results with n_seeds=1.
     Writes stage1/multi_seed_summary.csv.
     """
     if df_sel is None or df_bs is None or len(df_bs) == 0:
@@ -1244,42 +1243,66 @@ def _build_multi_seed_summary(df_rep, df_transfer, df_bs, per_n, df_sel):
         seed_J1_effects = []
         seed_R_effects = []
 
+        if comp in ("RAW_minus_F13", "F12_minus_F13"):
+            a_rep, b_rep = ("F13", "RAW") if comp == "RAW_minus_F13" else ("F13", "F12")
+        else:
+            family = comp.replace("_minus_S", "")
+
         for seed_val in seeds:
             sub = grp[grp["seed"] == seed_val]
             if len(sub) == 0:
                 continue
 
-            if comp in ("RAW_minus_F13", "F12_minus_F13"):
-                a_rep, b_rep = ("F13", "RAW") if comp == "RAW_minus_F13" else ("F13", "F12")
-                a_j = df_rep[
-                    (df_rep["seed"] == seed_val) & (df_rep["test_n"] == tn)
-                ]
-                j1_col = f"{comp}_J1"
-                regret_col = f"{comp}_mean_regret"
-                seed_J1_effects.append(float(sub.iloc[0].get(f"point_estimate_J1", 0) or 0))
-                seed_R_effects.append(float(sub.iloc[0].get(f"point_estimate_regret", 0) or 0))
-            else:
-                family = comp.replace("_minus_S", "")
-                seed_J1_effects.append(float(sub.iloc[0].get(f"point_estimate_J1", 0) or 0))
-                seed_R_effects.append(float(sub.iloc[0].get(f"point_estimate_regret", 0) or 0))
+            seed_J1_effects.append(float(sub.iloc[0].get("point_estimate_J1", 0) or 0))
+            seed_R_effects.append(float(sub.iloc[0].get("point_estimate_regret", 0) or 0))
 
-            model_labels = []
-            for _, m_row in per_n[
-                (per_n["seed"] == seed_val) & (per_n["test_n"] == tn)
-            ].iterrows():
-                model_labels.append(m_row["run_id"])
+            if comp in ("RAW_minus_F13", "F12_minus_F13"):
+                a_rows = per_n[(per_n["seed"].astype(int) == seed_val) & (per_n["test_n"].astype(int) == tn) &
+                               (per_n["representation"] == a_rep) & (per_n["family"] == "J")]
+                b_rows = per_n[(per_n["seed"].astype(int) == seed_val) & (per_n["test_n"].astype(int) == tn) &
+                               (per_n["representation"] == b_rep) & (per_n["family"] == "J")]
+                if len(a_rows) == 0 or len(b_rows) == 0:
+                    continue
+                a_label = a_rows.iloc[0]["run_id"]
+                b_label = b_rows.iloc[0]["run_id"]
+            else:
+                m_rows = per_n[(per_n["seed"].astype(int) == seed_val) & (per_n["test_n"].astype(int) == tn) &
+                               (per_n["representation"] == rep) & (per_n["family"] == family)]
+                s_rows = per_n[(per_n["seed"].astype(int) == seed_val) & (per_n["test_n"].astype(int) == tn) &
+                               (per_n["representation"] == rep) & (per_n["family"] == "S")]
+                if len(m_rows) == 0 or len(s_rows) == 0:
+                    continue
+                a_label = s_rows.iloc[0]["run_id"]
+                b_label = m_rows.iloc[0]["run_id"]
+
+            a_df = df_sel[(df_sel["model"] == a_label) & (df_sel["n"] == tn)]
+            b_df = df_sel[(df_sel["model"] == b_label) & (df_sel["n"] == tn)]
+            if len(a_df) == 0 or len(b_df) == 0:
+                continue
+
+            dist_J1 = bootstrap_paired(a_df.to_dict("records"), b_df.to_dict("records"),
+                                       metric_col="selected_loss", seed=42, return_full=True)
+            dist_R = bootstrap_paired(a_df.to_dict("records"), b_df.to_dict("records"),
+                                      metric_col="regret", seed=42, return_full=True)
+            seed_dists_J1.append(dist_J1)
+            seed_dists_R.append(dist_R)
+
+        if len(seed_dists_J1) == 0:
+            continue
 
         if n_seeds == 1:
-            dist_J1 = np.array([seed_J1_effects[0]])
-            dist_R = np.array([seed_R_effects[0]])
-            lo_J1 = float(sub.iloc[0].get(f"ci_low_J1", 0) or 0)
-            hi_J1 = float(sub.iloc[0].get(f"ci_high_J1", 0) or 0)
-            lo_R = float(sub.iloc[0].get(f"ci_low_regret", 0) or 0)
-            hi_R = float(sub.iloc[0].get(f"ci_high_regret", 0) or 0)
-            mean_J1 = seed_J1_effects[0] if seed_J1_effects else 0
-            mean_R = seed_R_effects[0] if seed_R_effects else 0
+            dist_J1_avg = seed_dists_J1[0]
+            dist_R_avg = seed_dists_R[0]
         else:
-            continue
+            dist_J1_avg = np.mean(np.array(seed_dists_J1), axis=0)
+            dist_R_avg = np.mean(np.array(seed_dists_R), axis=0)
+
+        lo_J1 = float(np.percentile(dist_J1_avg, 2.5))
+        hi_J1 = float(np.percentile(dist_J1_avg, 97.5))
+        lo_R = float(np.percentile(dist_R_avg, 2.5))
+        hi_R = float(np.percentile(dist_R_avg, 97.5))
+        mean_J1 = float(np.mean(seed_J1_effects)) if seed_J1_effects else float(dist_J1_avg.mean())
+        mean_R = float(np.mean(seed_R_effects)) if seed_R_effects else float(dist_R_avg.mean())
 
         ms_rows.append({
             "comparison": str(comp) if pd.notna(comp) else "",
