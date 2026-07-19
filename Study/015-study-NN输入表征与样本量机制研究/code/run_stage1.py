@@ -638,12 +638,16 @@ def run_diagnostics(df_all, test_mask):
 # Bootstrap
 # ============================================================
 
-def bootstrap_paired(model_a_rows, model_b_rows, n_bootstrap=10000, seed=42):
+def bootstrap_paired(model_a_rows, model_b_rows, metric_col="selected_loss", n_bootstrap=10000, seed=42):
+    """Cluster-bootstrap paired comparison. a = reference, b = target. Returns b - a.
+
+    metric_col: "selected_loss" for J1 (sqrt(mean)), "regret" for mean regret.
+    """
     a_df = pd.DataFrame(model_a_rows)
     b_df = pd.DataFrame(model_b_rows)
 
-    a_grp = a_df.groupby(["beta", "gamma_over_eta"])["selected_loss"].apply(list).to_dict()
-    b_grp = b_df.groupby(["beta", "gamma_over_eta"])["selected_loss"].apply(list).to_dict()
+    a_grp = a_df.groupby(["beta", "gamma_over_eta"])[metric_col].apply(list).to_dict()
+    b_grp = b_df.groupby(["beta", "gamma_over_eta"])[metric_col].apply(list).to_dict()
     combo_keys = sorted(a_grp.keys())
     n_combos = len(combo_keys)
 
@@ -656,7 +660,13 @@ def bootstrap_paired(model_a_rows, model_b_rows, n_bootstrap=10000, seed=42):
         idx = rng.integers(0, n_combos, size=n_combos)
         a_vals = np.concatenate([a_flat[combo_keys[j]] for j in idx])
         b_vals = np.concatenate([b_flat[combo_keys[j]] for j in idx])
-        diffs[i] = math.sqrt(b_vals.mean()) - math.sqrt(a_vals.mean())
+        if metric_col == "selected_loss":
+            a_stat = math.sqrt(a_vals.mean())
+            b_stat = math.sqrt(b_vals.mean())
+        else:
+            a_stat = a_vals.mean()
+            b_stat = b_vals.mean()
+        diffs[i] = b_stat - a_stat
 
     return float(np.percentile(diffs, 2.5)), float(np.percentile(diffs, 97.5)), float(diffs.mean())
 
@@ -856,6 +866,7 @@ def build_comparisons():
 
     df_metrics = pd.concat(all_metrics, ignore_index=True)
     df_sel = pd.concat(all_sel, ignore_index=True) if all_sel else None
+    n_seeds = df_metrics["seed"].nunique()
 
     per_n = df_metrics[df_metrics["test_n"].astype(str).str.match(r"^\d+$")].copy()
     if len(per_n) == 0:
@@ -864,27 +875,16 @@ def build_comparisons():
         per_n = per_n[per_n["n_samples"].notna()]
     per_n["test_n"] = per_n["test_n"].astype(str).astype(int)
 
-    def run_id_for(seed, rep, family, tn_str):
-        mask = (
-            (per_n["seed"].astype(int) == int(seed)) &
-            (per_n["representation"] == rep) &
-            (per_n["family"] == family) &
-            (per_n["train_n"].astype(str) == tn_str)
-        )
-        matches = per_n[mask]
-        if len(matches) == 0:
-            return None
-        return matches.iloc[0]["run_id"]
-
     rep_rows = []
     bootstrap_rows = []
     transfer_rows = []
+    multi_seed_rows = []
 
     for (seed, test_n), grp in per_n.groupby(["seed", "test_n"]):
         s = int(seed)
         tn = int(test_n)
 
-        def _bootstrap(a_label, b_label):
+        def _bootstrap(a_label, b_label, metric_col="selected_loss"):
             if df_sel is None:
                 return None, None, None
             a_rows = df_sel[df_sel["model"] == a_label]
@@ -893,7 +893,7 @@ def build_comparisons():
             b_n = b_rows[b_rows["n"] == tn]
             if len(a_n) == 0 or len(b_n) == 0:
                 return None, None, None
-            return bootstrap_paired(a_n.to_dict("records"), b_n.to_dict("records"))
+            return bootstrap_paired(a_n.to_dict("records"), b_n.to_dict("records"), metric_col=metric_col)
 
         f13_j = grp[(grp["representation"] == "F13") & (grp["family"] == "J")]
         raw_j = grp[(grp["representation"] == "RAW") & (grp["family"] == "J")]
@@ -906,21 +906,30 @@ def build_comparisons():
                 continue
             a_j1 = float(a_j.iloc[0]["J1"])
             b_j1 = float(b_j.iloc[0]["J1"])
-            diff = b_j1 - a_j1
-            rel_diff = diff / a_j1 if a_j1 > 1e-12 else None
+            a_regret = float(a_j.iloc[0].get("mean_regret", 0) or 0)
+            b_regret = float(b_j.iloc[0].get("mean_regret", 0) or 0)
+            diff_j1 = b_j1 - a_j1
+            rel_diff = diff_j1 / a_j1 if a_j1 > 1e-12 else None
+            diff_regret = b_regret - a_regret
+
             rep_rows.append({
                 "seed": s, "test_n": tn,
                 f"{a_rep}_J_J1": a_j1, f"{b_rep}_J_J1": b_j1,
-                f"{comp_name}_J1": diff,
+                f"{comp_name}_J1": diff_j1,
                 f"{comp_name}_rel": rel_diff,
-            })
-            lo, hi, mn = _bootstrap(a_j.iloc[0]["run_id"], b_j.iloc[0]["run_id"])
-            bootstrap_rows.append({
-                "comparison": comp_name, "seed": s, "test_n": tn,
-                "point_estimate": diff, "ci_low": lo, "ci_high": hi, "bootstrap_mean": mn,
+                f"{a_rep}_mean_regret": a_regret, f"{b_rep}_mean_regret": b_regret,
+                f"{comp_name}_mean_regret": diff_regret,
             })
 
-        for family, src_col in [("J", "J"), ("L", "L"), ("T", "T")]:
+            lo_j, hi_j, mn_j = _bootstrap(a_j.iloc[0]["run_id"], b_j.iloc[0]["run_id"], "selected_loss")
+            lo_r, hi_r, mn_r = _bootstrap(a_j.iloc[0]["run_id"], b_j.iloc[0]["run_id"], "regret")
+            bootstrap_rows.append({
+                "comparison": comp_name, "seed": s, "test_n": tn,
+                "point_estimate_J1": diff_j1, "ci_low_J1": lo_j, "ci_high_J1": hi_j, "bootstrap_mean_J1": mn_j,
+                "point_estimate_regret": diff_regret, "ci_low_regret": lo_r, "ci_high_regret": hi_r, "bootstrap_mean_regret": mn_r,
+            })
+
+        for family in ["J", "L", "T"]:
             fam_grp = grp[grp["family"] == family]
             for _, f_row in fam_grp.iterrows():
                 rep = f_row["representation"]
@@ -934,29 +943,28 @@ def build_comparisons():
                     continue
                 m_j1 = float(f_row["J1"])
                 s_j1 = float(s_row.iloc[0]["J1"])
-                cost = m_j1 - s_j1
-                rel_cost = cost / s_j1 if s_j1 > 1e-12 else None
+                cost_j1 = m_j1 - s_j1
+                rel_cost = cost_j1 / s_j1 if s_j1 > 1e-12 else None
                 m_regret = float(f_row.get("mean_regret", 0) or 0)
                 s_regret = float(s_row.iloc[0].get("mean_regret", 0) or 0)
                 delta_regret = m_regret - s_regret
 
-                entry = {
+                transfer_rows.append({
                     "seed": s, "family": family, "representation": rep,
                     "test_n": tn, "train_n": f_row["train_n"],
                     "model_J1": m_j1, "specialist_J1": s_j1,
-                    "transfer_cost": cost, "rel_transfer_cost": rel_cost,
+                    "transfer_cost_J1": cost_j1, "rel_transfer_cost": rel_cost,
                     "model_mean_regret": m_regret, "specialist_mean_regret": s_regret,
                     "delta_mean_regret": delta_regret,
-                }
-                transfer_rows.append(entry)
+                })
 
-                lo, hi, mn = _bootstrap(
-                    f_row["run_id"], s_row.iloc[0]["run_id"]
-                )
+                lo_j, hi_j, mn_j = _bootstrap(s_row.iloc[0]["run_id"], f_row["run_id"], "selected_loss")
+                lo_r, hi_r, mn_r = _bootstrap(s_row.iloc[0]["run_id"], f_row["run_id"], "regret")
                 bootstrap_rows.append({
                     "comparison": f"{family}_minus_S", "seed": s, "test_n": tn,
                     "representation": rep, "train_n": f_row["train_n"],
-                    "point_estimate": cost, "ci_low": lo, "ci_high": hi, "bootstrap_mean": mn,
+                    "point_estimate_J1": cost_j1, "ci_low_J1": lo_j, "ci_high_J1": hi_j, "bootstrap_mean_J1": mn_j,
+                    "point_estimate_regret": delta_regret, "ci_low_regret": lo_r, "ci_high_regret": hi_r, "bootstrap_mean_regret": mn_r,
                 })
 
     pd.DataFrame(rep_rows).to_csv(
@@ -966,9 +974,13 @@ def build_comparisons():
         os.path.join(STAGE1_DIR, "transfer_matrix.csv"), index=False
     )
     if bootstrap_rows:
-        pd.DataFrame(bootstrap_rows).to_csv(
-            os.path.join(STAGE1_DIR, "bootstrap_intervals.csv"), index=False
-        )
+        bs_df = pd.DataFrame(bootstrap_rows)
+        bs_df.to_csv(os.path.join(STAGE1_DIR, "bootstrap_intervals.csv"), index=False)
+
+    if n_seeds > 1:
+        _build_multi_seed_summary(pd.DataFrame(rep_rows), pd.DataFrame(transfer_rows), bs_df if bootstrap_rows else None)
+
+    build_root_manifest()
 
     log("Comparison tables built")
 
@@ -1198,7 +1210,56 @@ def main():
         raise RuntimeError(f"{len(failed)} runs failed")
 
 
-def write_report(phase, git_info, start_time):
+def _build_multi_seed_summary(df_rep, df_transfer, df_bs):
+    """Record multi-seed structure (placeholder for when Confirm data exists)."""
+
+
+def build_root_manifest():
+    """Generate root manifest covering all stage1 products."""
+    root_manifest = {
+        "contract_version": "v0.1",
+        "generated": now_iso(),
+        "code_version": sha256_file(os.path.join(STUDY15_ROOT, "code", "run_stage1.py")),
+        "phases": {},
+    }
+    for phase_label in ["explore", "confirm"]:
+        pdir = phase_dir(phase_label)
+        mpath = os.path.join(pdir, "manifest.json")
+        if os.path.exists(mpath):
+            with open(mpath) as f:
+                root_manifest["phases"][phase_label] = json.load(f)
+
+    def scan_and_record(root_path, target_dict, strip_prefix=None):
+        for dirpath, dirnames, filenames in os.walk(root_path):
+            for fn in filenames:
+                if fn == "manifest.json":
+                    continue
+                fpath = os.path.join(dirpath, fn)
+                rel = os.path.relpath(fpath, STAGE1_DIR).replace("\\", "/")
+                key = rel if strip_prefix is None else rel
+                entry = {"sha256": sha256_file(fpath)}
+                try:
+                    if fn.endswith(".csv"):
+                        entry["rows"] = len(pd.read_csv(fpath))
+                    elif fn.endswith(".json"):
+                        with open(fpath) as f:
+                            jd = json.load(f)
+                        entry["keys"] = len(jd) if isinstance(jd, dict) else len(jd)
+                except Exception:
+                    pass
+                target_dict[key] = entry
+
+    root_artifacts = {}
+    scan_and_record(STAGE1_DIR, root_artifacts)
+    root_manifest["artifacts"] = root_artifacts
+    root_manifest["source_sha256"] = {
+        "sample_features.csv": sha256_file(SRC_FEATURES),
+        "risk_curves.csv": sha256_file(SRC_RISK_CURVES),
+    }
+
+    with open(os.path.join(STAGE1_DIR, "manifest.json"), "w") as f:
+        json.dump(root_manifest, f, indent=2)
+    return root_manifest
     pdir = phase_dir(phase)
     status = pd.read_csv(os.path.join(pdir, "run_status.csv"))
     completed = len(status[status["status"] == "completed"])

@@ -264,6 +264,56 @@ def test_required_metrics_present():
         assert not missing, f"Missing columns in run_status: {missing}"
 
 
+def test_bootstrap_direction_consistent():
+    """Verify bootstrap point_estimate and bootstrap_mean have the same sign for all comparisons."""
+    STAGE1_DIR = os.path.join(STUDY15_ROOT, "artifacts", "stage1")
+    bs_path = os.path.join(STAGE1_DIR, "bootstrap_intervals.csv")
+    if not os.path.exists(bs_path):
+        return
+    df_bs = pd.read_csv(bs_path)
+    for col_prefix in ["J1", "regret"]:
+        pe = f"point_estimate_{col_prefix}"
+        bm = f"bootstrap_mean_{col_prefix}"
+        if pe in df_bs.columns and bm in df_bs.columns:
+            for _, row in df_bs.iterrows():
+                pev = float(row[pe]) if pd.notna(row.get(pe)) else 0
+                bmv = float(row[bm]) if pd.notna(row.get(bm)) else 0
+                assert pev * bmv >= -1e-12, \
+                    f"{row['comparison']} {row.get('test_n','?')} {row.get('representation','')}: "
+                    f"{col_prefix} point={pev:.6f} bootstrap_mean={bmv:.6f} — sign mismatch"
+
+
+def test_delta_mean_regret_present():
+    """Verify bootstrap_intervals.csv and transfer_matrix.csv contain regret columns."""
+    STAGE1_DIR = os.path.join(STUDY15_ROOT, "artifacts", "stage1")
+    bs_path = os.path.join(STAGE1_DIR, "bootstrap_intervals.csv")
+    tm_path = os.path.join(STAGE1_DIR, "transfer_matrix.csv")
+    if os.path.exists(bs_path):
+        df_bs = pd.read_csv(bs_path)
+        assert "point_estimate_regret" in df_bs.columns, "Missing regret point_estimate in bootstrap"
+        assert "ci_low_regret" in df_bs.columns, "Missing regret ci_low in bootstrap"
+    if os.path.exists(tm_path):
+        df_tm = pd.read_csv(tm_path)
+        assert "delta_mean_regret" in df_tm.columns, "Missing delta_mean_regret in transfer_matrix"
+
+
+def test_root_manifest_exists():
+    """Verify stage1/manifest.json (root manifest) covers all analysis products."""
+    STAGE1_DIR = os.path.join(STUDY15_ROOT, "artifacts", "stage1")
+    rm_path = os.path.join(STAGE1_DIR, "manifest.json")
+    assert os.path.exists(rm_path), "Root manifest.json missing"
+    with open(rm_path) as f:
+        rm = json.load(f)
+    artifacts = rm.get("artifacts", {})
+    expected_keys = ["bootstrap_intervals.csv", "representation_comparison.csv",
+                     "transfer_matrix.csv", "report.md", "run_matrix.csv"]
+    for key in expected_keys:
+        found = any(key in k for k in artifacts.keys())
+        if not found:
+            found = any(k.endswith(key) for k in artifacts.keys())
+        assert found, f"Root manifest missing artifact: {key}"
+
+
 if __name__ == "__main__":
     import traceback
     tests = [
@@ -285,6 +335,9 @@ if __name__ == "__main__":
         ("Duplicate run rejection", test_duplicate_run_rejection),
         ("Output recomputability", test_output_recomputability),
         ("Required metrics present", test_required_metrics_present),
+        ("Bootstrap direction consistent", test_bootstrap_direction_consistent),
+        ("Delta mean_regret present", test_delta_mean_regret_present),
+        ("Root manifest exists", test_root_manifest_exists),
     ]
 
     print("=" * 60)
