@@ -90,7 +90,7 @@ class TestPerSampleResults:
                 for method in METHODS:
                     subset = self.df[(self.df["method"] == method) & (self.df["n"] == n) & (self.df["repeat_id"] == rid)]
                     if len(subset) > 0:
-                        hashes.add(subset.iloc[0]["sample_hash"])
+                        hashes.add(subset.iloc[0]["sample_content_hash"])
                 assert len(hashes) == 1, f"Sample hash mismatch at n={n} rid={rid}: {hashes}"
 
 
@@ -165,6 +165,6 @@ class TestManifest:
         with open(MANIFEST, "r", encoding="utf-8") as f:
             m = json.load(f)
         required = ["run_id", "seed_namespace", "parameter_grid", "methods",
-                     "file_hashes", "per_method_counts"]
+                     "input_hashes", "output_hashes", "n_failures_per_method"]
         for key in required:
             assert key in m, f"Missing manifest key: {key}"

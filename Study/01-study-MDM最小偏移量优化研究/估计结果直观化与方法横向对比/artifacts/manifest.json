@@ -1,7 +1,7 @@
 {
-  "run_id": "method_comparison_v1",
-  "run_start": "2026-07-20T05:59:37.100079+00:00",
-  "run_end": "2026-07-20T05:59:58.811862+00:00",
+  "run_id": "method_comparison_v2",
+  "run_start": "2026-07-20T06:40:31.709308+00:00",
+  "run_end": "2026-07-20T06:41:26.229620+00:00",
   "seed_namespace": "study01_v1",
   "parameter_grid": {
     "beta": [
@@ -28,11 +28,23 @@
       "lse",
       "lre"
     ],
-    "cached_mdm": [
+    "mdm_cached": [
       "MDM-0.1",
       "MDM-MLP",
       "MDM-L6-oracle"
     ]
+  },
+  "scale_equivariance": {
+    "tolerances": {
+      "beta": 1e-06,
+      "eta_gamma_ratio": 0.001
+    },
+    "results": {
+      "mle": "display",
+      "wmle": "display",
+      "lse": "norm",
+      "lre": "display"
+    }
   },
   "mlp_source": {
     "model": "Vector-MLP-L6",
@@ -40,32 +52,44 @@
     "holdout": "5-fold combo",
     "file": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E3b_vector_mlp\\vector_mlp_results.csv"
   },
-  "file_hashes": {
-    "mc_scan_raw.csv": "29d7dd6d93e2c174e221e8e300946bb629d565f06a651d252163bd4144d74e29",
-    "vector_mlp_results.csv": "5d6243d4a4011bd92fa9c8e4e1ba42aceddbee24b0d1bc83cf5124aca4ad5a64",
-    "L6_per_sample_delta.csv": "db5e94c02eaaec99851a00c3429f07cd4c7f1da72ebd66e7e8f8979c5ea71145",
-    "manifest.json": "0bc94dc8b35277b073dc6f2c2c3dde65827de9567c2f2b274e04f4783474bf18",
-    "sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
-    "runner.py": "8b9faa207fc0ccaea0e0838fa0749ea07cef904c74baaad71b55a64df0110ed4",
-    "mle.py": "80432659e6b934ae8bd08cd1319e121cf82b3eb46a4d6cd58abeeb9c007163f9",
-    "wmle.py": "d4570818e2e137d315f431104d4ff52f784bcc3d6748e7c17f326830f07ec257",
-    "lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
-    "lre.py": "0f22e31cf79aa5862d68f7b3d49e3a113266e191c29a679ca7ef58e7a332354c"
+  "failure_penalty": "L_i(0,0,0) computed from true parameters; for (2,1,1) and (2,1000,1000) both give L_i=3.0",
+  "n_failures_per_method": {
+    "mle": 971,
+    "wmle": 0,
+    "lse": 0,
+    "lre": 0,
+    "MDM-0.1": 0,
+    "MDM-MLP": 0,
+    "MDM-L6-oracle": 0
+  },
+  "total_rows": 21000,
+  "input_hashes": {
+    "mc_scan_raw": "29d7dd6d93e2c174e221e8e300946bb629d565f06a651d252163bd4144d74e29",
+    "vector_mlp_results": "5d6243d4a4011bd92fa9c8e4e1ba42aceddbee24b0d1bc83cf5124aca4ad5a64",
+    "L6_per_sample_delta": "db5e94c02eaaec99851a00c3429f07cd4c7f1da72ebd66e7e8f8979c5ea71145",
+    "shared_data_manifest": "9bf79923787f893edb8569480d3fc1108e01c160a0d07eb368364f884124ec6b",
+    "E3b_manifest": "0a42b02b4ee31af50e63d7ed05e642ba222fa203ed9753593861bb794011ca50",
+    "E2_oracle_manifest": "0bc94dc8b35277b073dc6f2c2c3dde65827de9567c2f2b274e04f4783474bf18",
+    "sample_py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "runner_py": "8b9faa207fc0ccaea0e0838fa0749ea07cef904c74baaad71b55a64df0110ed4",
+    "mle_py": "80432659e6b934ae8bd08cd1319e121cf82b3eb46a4d6cd58abeeb9c007163f9",
+    "wmle_py": "d4570818e2e137d315f431104d4ff52f784bcc3d6748e7c17f326830f07ec257",
+    "lse_py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "lre_py": "0f22e31cf79aa5862d68f7b3d49e3a113266e191c29a679ca7ef58e7a332354c"
+  },
+  "output_hashes": {
+    "per_sample_results.csv": "0c25dcee4ac35dac571fe8f6d0463a7d41dfcb59d250ab7dc3803744060cd24c",
+    "overall_summary.csv": "07607f4bd1a0fd8545d409072a862a0e74310567a4888211c4b90e964495749f",
+    "summary_n7.csv": "dc881ff038af9a896cbb3b40600017abf1ceb6c43d84d5b3779adc81879027ce",
+    "summary_n10.csv": "ddbbf783067ff5611dd506055672dbc12f2dfc01bac54fca3284d662bdfc6a3b",
+    "summary_n20.csv": "f30c561c036474ed67859d577d495e428045c0f65ec5d15697e777c867c2e124",
+    "scale_equivariance_check.csv": "f8972dbffcf4fc91c9ab24853fec645625facee4c6dfa85fada753da679e64a6"
   },
   "phase_times": {
-    "extract_mdm": 1.2113008499145508,
-    "build_mdm": 5.328941345214844,
-    "run_traditional": 0.8616962432861328,
-    "compute_metrics": 0.24266958236694336
+    "extract_mdm": 1.1998348236083984,
+    "build_mdm": 5.0625762939453125,
+    "run_traditional": 44.266188859939575,
+    "compute_metrics": 0.26841235160827637
   },
-  "per_method_counts": {
-    "mle": 3000,
-    "wmle": 3000,
-    "lse": 3000,
-    "lre": 3000,
-    "MDM-0.1": 3000,
-    "MDM-MLP": 3000,
-    "MDM-L6-oracle": 3000
-  },
-  "python_platform": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\估计结果直观化与方法横向对比\\code"
+  "python_platform": "D:\\weibull\\python"
 }
