@@ -283,6 +283,57 @@ def test_bootstrap_direction_consistent():
                     f"{col_prefix} point={pev:.6f} bootstrap_mean={bmv:.6f} -- sign mismatch")
 
 
+def test_2x2_interaction_bootstrap_synthetic():
+    """The interaction uses the same TEST keys and cluster draws in all four cells."""
+    from run_stage1 import bootstrap_2x2_interaction
+
+    cells = {name: [] for name in ["F13_J", "RAW_J", "F13_S", "RAW_S"]}
+    selected_loss = {"F13_J": 1.0, "RAW_J": 4.0, "F13_S": 1.0, "RAW_S": 1.0}
+    regret = {"F13_J": 0.1, "RAW_J": 0.4, "F13_S": 0.1, "RAW_S": 0.1}
+    for beta, goe in [(1.5, 0.1), (2.0, 0.5), (5.0, 1.0)]:
+        for repeat_id in range(5):
+            for name in cells:
+                cells[name].append({
+                    "beta": beta,
+                    "gamma_over_eta": goe,
+                    "n": 7,
+                    "repeat_id": repeat_id,
+                    "selected_loss": selected_loss[name],
+                    "regret": regret[name],
+                })
+
+    j1_dist = bootstrap_2x2_interaction(
+        cells, "selected_loss", n_bootstrap=200, seed=42, return_full=True
+    )
+    regret_dist = bootstrap_2x2_interaction(
+        cells, "regret", n_bootstrap=200, seed=42, return_full=True
+    )
+    assert np.allclose(j1_dist, 1.0), f"Expected J1 interaction=1, got {j1_dist[:3]}"
+    assert np.allclose(regret_dist, 0.3), f"Expected regret interaction=0.3, got {regret_dist[:3]}"
+
+
+def test_training_representation_interaction_output():
+    path = os.path.join(STUDY15_ROOT, "artifacts", "stage1", "training_representation_interaction.csv")
+    assert os.path.exists(path), "Missing training_representation_interaction.csv"
+    df = pd.read_csv(path)
+    assert sorted(df["test_n"].astype(int).tolist()) == [7, 10, 20]
+    required = {
+        "F13_J_J1", "RAW_J_J1", "F13_S_J1", "RAW_S_J1",
+        "RAW_minus_F13_J_J1", "RAW_minus_F13_S_J1", "interaction_J1",
+        "interaction_J1_ci_low", "interaction_J1_ci_high",
+        "interaction_regret", "interaction_regret_ci_low", "interaction_regret_ci_high",
+    }
+    missing = required - set(df.columns)
+    assert not missing, f"Missing interaction columns: {missing}"
+    assert (df["n_seeds"].astype(int) == 3).all()
+    assert (df["interaction_J1_ci_low"] <= df["interaction_J1_ci_high"]).all()
+    recomputed = (
+        (df["RAW_J_J1"] - df["F13_J_J1"])
+        - (df["RAW_S_J1"] - df["F13_S_J1"])
+    )
+    assert np.allclose(recomputed, df["interaction_J1"], atol=1e-12)
+
+
 def test_delta_mean_regret_present():
     """Verify bootstrap_intervals.csv and transfer_matrix.csv contain regret columns."""
     STAGE1_DIR = os.path.join(STUDY15_ROOT, "artifacts", "stage1")
@@ -308,7 +359,7 @@ def test_root_manifest_exists():
     expected_keys = ["bootstrap_intervals.csv", "representation_comparison.csv",
                      "transfer_matrix.csv", "report.md", "run_matrix.csv",
                      "run_status.csv", "selected_predictions.csv", "metrics_by_target_n.csv",
-                     "multi_seed_summary.csv"]
+                     "multi_seed_summary.csv", "training_representation_interaction.csv"]
     for key in expected_keys:
         found = key in artifacts or any(key in k for k in artifacts.keys())
         assert found, f"Root manifest missing artifact: {key}"
@@ -466,6 +517,8 @@ if __name__ == "__main__":
         ("Output recomputability", test_output_recomputability),
         ("Required metrics present", test_required_metrics_present),
         ("Bootstrap direction consistent", test_bootstrap_direction_consistent),
+        ("2x2 interaction bootstrap synthetic", test_2x2_interaction_bootstrap_synthetic),
+        ("Training x representation interaction output", test_training_representation_interaction_output),
         ("Delta mean_regret present", test_delta_mean_regret_present),
         ("Root manifest exists", test_root_manifest_exists),
         ("Multi-seed summary", test_multi_seed_summary),

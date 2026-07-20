@@ -85,6 +85,26 @@ At n=7, F13 joint training significantly outperforms the specialist (CI excludes
 
 At holdout n=7, F12 significantly improves over the specialist (CI excludes zero); F13 is near the specialist. RAW degrades severely. At holdout n=10 and n=20, all three representations show positive transfer cost. **Statistical features enable more transferable structure than padded RAW encoding**, but leave-one-n-out generalization is limited and does not support universal extrapolation to unobserved sample sizes.
 
+### Supplementary 2×2 interaction — representation × training organization
+
+This bounded post-hoc analysis reuses the same 90 frozen models and fixed TEST predictions; no model was retrained. It separates the representation contrast (`RAW−F13`) from the training-organization contrast (joint `J` versus sample-size-specific `S`). The interaction is
+
+\[
+(\mathrm{RAW}_J-\mathrm{F13}_J)-(\mathrm{RAW}_S-\mathrm{F13}_S).
+\]
+
+Positive values mean that RAW is penalized more than F13 by joint training. Intervals use the same paired 15-combination cluster bootstrap and are descriptive because this contrast was specified after the Stage 1 confirmatory results were available.
+
+| test_n | F13 J | RAW J | F13 S | RAW S | interaction in J1 | 95% CI |
+|--------|------:|------:|------:|------:|------------------:|:------:|
+| 7 | 0.640496 | 0.643962 | 0.647358 | 0.646315 | +0.004510 | [+0.000009, +0.009115] |
+| 10 | 0.534961 | 0.539250 | 0.530406 | 0.532026 | +0.002668 | [−0.000252, +0.005530] |
+| 20 | 0.397721 | 0.399409 | 0.385601 | 0.387293 | −0.000004 | [−0.004062, +0.004162] |
+
+The specialist F13 and RAW models are nearly equivalent at every tested n (absolute J1 differences 0.0010–0.0017, with no consistent direction). At n=20, the interaction is essentially zero: the joint-training penalty is the same for F13 and RAW, so it cannot be attributed to feature extraction. At n=10 the interaction is positive but its interval crosses zero. At n=7 the point estimates favor joint training for both representations, but only F13's `J−S` interval excludes zero; the interaction interval only narrowly excludes zero and one of three seed-specific effects is negative, so this is boundary evidence rather than a general interaction claim.
+
+The result therefore does **not** show that switching to RAW would solve the mixed-n training problem. It shows instead that representation choice and training organization are separate design decisions: sample-size-specific training removes most of the observed F13-versus-RAW difference, while joint training has n-dependent benefits and costs regardless of representation.
+
 ---
 
 ## 4. Permitted Conclusions (contract §13)

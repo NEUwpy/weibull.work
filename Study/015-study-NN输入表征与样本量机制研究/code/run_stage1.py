@@ -674,6 +674,68 @@ def bootstrap_paired(model_a_rows, model_b_rows, metric_col="selected_loss", n_b
     return float(np.percentile(diffs, 2.5)), float(np.percentile(diffs, 97.5)), float(diffs.mean())
 
 
+def bootstrap_2x2_interaction(cell_rows, metric_col="selected_loss", n_bootstrap=10000, seed=42,
+                              return_full=False):
+    """Cluster-bootstrap the representation × training-organization interaction.
+
+    cell_rows must map ``F13_J``, ``RAW_J``, ``F13_S`` and ``RAW_S`` to rows
+    from the same fixed TEST keys. The returned contrast is::
+
+        (RAW_J - F13_J) - (RAW_S - F13_S)
+
+    For selected_loss each cell statistic is J1=sqrt(mean(loss)); for regret
+    each cell statistic is the arithmetic mean. All four cells use the same
+    sampled parameter-combination clusters on every bootstrap iteration.
+    """
+    required = ["F13_J", "RAW_J", "F13_S", "RAW_S"]
+    missing = [name for name in required if name not in cell_rows]
+    if missing:
+        raise ValueError(f"Missing 2x2 cells: {missing}")
+
+    sample_keys = ["beta", "gamma_over_eta", "n", "repeat_id"]
+    aligned = None
+    for name in required:
+        df = pd.DataFrame(cell_rows[name])
+        needed = sample_keys + [metric_col]
+        if any(col not in df.columns for col in needed):
+            raise ValueError(f"{name} lacks required columns for {metric_col}")
+        sub = df[needed].rename(columns={metric_col: name})
+        if sub[sample_keys].duplicated().any():
+            raise ValueError(f"{name} contains duplicate TEST keys")
+        aligned = sub if aligned is None else aligned.merge(
+            sub, on=sample_keys, how="inner", validate="one_to_one"
+        )
+
+    expected = len(pd.DataFrame(cell_rows[required[0]]))
+    if len(aligned) != expected or any(len(pd.DataFrame(cell_rows[name])) != expected for name in required):
+        raise ValueError("2x2 cells do not share exactly the same TEST keys")
+
+    combo_cols = ["beta", "gamma_over_eta"]
+    grouped = aligned.groupby(combo_cols, sort=True)
+    combo_keys = list(grouped.groups.keys())
+    if not combo_keys:
+        raise ValueError("No parameter-combination clusters available")
+
+    sums = np.array([[grouped.get_group(key)[name].sum() for name in required] for key in combo_keys])
+    counts = np.array([len(grouped.get_group(key)) for key in combo_keys], dtype=float)
+    rng = np.random.default_rng(seed)
+    indices = rng.integers(0, len(combo_keys), size=(n_bootstrap, len(combo_keys)))
+    sampled_sums = sums[indices].sum(axis=1)
+    sampled_counts = counts[indices].sum(axis=1)
+    stats = sampled_sums / sampled_counts[:, None]
+    if metric_col == "selected_loss":
+        stats = np.sqrt(stats)
+
+    interaction = (stats[:, 1] - stats[:, 0]) - (stats[:, 3] - stats[:, 2])
+    if return_full:
+        return interaction
+    return (
+        float(np.percentile(interaction, 2.5)),
+        float(np.percentile(interaction, 97.5)),
+        float(interaction.mean()),
+    )
+
+
 # ============================================================
 # Phase execution
 # ============================================================
@@ -983,9 +1045,107 @@ def build_comparisons():
     _build_multi_seed_summary(pd.DataFrame(rep_rows), pd.DataFrame(transfer_rows),
                               bs_df if bootstrap_rows else None, per_n, df_sel)
 
+    if df_sel is not None:
+        build_training_representation_interaction(per_n, df_sel)
+
     build_merged_products()
     log("Comparison tables built")
     return per_n, df_sel
+
+
+def build_training_representation_interaction(per_n, df_sel, n_bootstrap=10000):
+    """Build the F13/RAW × joint/specialist interaction table from existing predictions."""
+    required_cells = [("F13", "J"), ("RAW", "J"), ("F13", "S"), ("RAW", "S")]
+    seeds = sorted(int(seed) for seed in per_n["seed"].unique())
+    output_rows = []
+
+    for test_n in sorted(int(n) for n in per_n["test_n"].unique()):
+        seed_records = []
+        seed_dists_j1 = []
+        seed_dists_regret = []
+
+        for seed in seeds:
+            labels = {}
+            metric_rows = {}
+            prediction_rows = {}
+            complete = True
+
+            for representation, family in required_cells:
+                match = per_n[
+                    (per_n["seed"].astype(int) == seed)
+                    & (per_n["test_n"].astype(int) == test_n)
+                    & (per_n["representation"] == representation)
+                    & (per_n["family"] == family)
+                ]
+                if len(match) != 1:
+                    complete = False
+                    break
+                cell = f"{representation}_{family}"
+                labels[cell] = match.iloc[0]["run_id"]
+                metric_rows[cell] = match.iloc[0]
+                prediction_rows[cell] = df_sel[
+                    (df_sel["model"] == labels[cell]) & (df_sel["n"].astype(int) == test_n)
+                ].copy()
+
+            if not complete or any(len(rows) == 0 for rows in prediction_rows.values()):
+                continue
+
+            j1 = {cell: float(row["J1"]) for cell, row in metric_rows.items()}
+            regret = {cell: float(row["mean_regret"]) for cell, row in metric_rows.items()}
+            rep_effect_j = j1["RAW_J"] - j1["F13_J"]
+            rep_effect_s = j1["RAW_S"] - j1["F13_S"]
+            interaction_j1 = rep_effect_j - rep_effect_s
+            rep_effect_j_regret = regret["RAW_J"] - regret["F13_J"]
+            rep_effect_s_regret = regret["RAW_S"] - regret["F13_S"]
+            interaction_regret = rep_effect_j_regret - rep_effect_s_regret
+
+            seed_records.append({
+                "seed": seed,
+                **{f"{cell}_J1": value for cell, value in j1.items()},
+                **{f"{cell}_mean_regret": value for cell, value in regret.items()},
+                "RAW_minus_F13_J_J1": rep_effect_j,
+                "RAW_minus_F13_S_J1": rep_effect_s,
+                "interaction_J1": interaction_j1,
+                "RAW_minus_F13_J_regret": rep_effect_j_regret,
+                "RAW_minus_F13_S_regret": rep_effect_s_regret,
+                "interaction_regret": interaction_regret,
+            })
+            seed_dists_j1.append(bootstrap_2x2_interaction(
+                prediction_rows, "selected_loss", n_bootstrap=n_bootstrap, seed=42, return_full=True
+            ))
+            seed_dists_regret.append(bootstrap_2x2_interaction(
+                prediction_rows, "regret", n_bootstrap=n_bootstrap, seed=42, return_full=True
+            ))
+
+        if not seed_records:
+            continue
+
+        dist_j1 = np.mean(np.asarray(seed_dists_j1), axis=0)
+        dist_regret = np.mean(np.asarray(seed_dists_regret), axis=0)
+        row = {
+            "test_n": test_n,
+            "n_seeds": len(seed_records),
+        }
+        mean_fields = [field for field in seed_records[0] if field != "seed"]
+        for field in mean_fields:
+            row[field] = float(np.mean([record[field] for record in seed_records]))
+        row.update({
+            "interaction_J1_ci_low": float(np.percentile(dist_j1, 2.5)),
+            "interaction_J1_ci_high": float(np.percentile(dist_j1, 97.5)),
+            "interaction_regret_ci_low": float(np.percentile(dist_regret, 2.5)),
+            "interaction_regret_ci_high": float(np.percentile(dist_regret, 97.5)),
+            "per_seed_interaction_J1": str([record["interaction_J1"] for record in seed_records]),
+            "per_seed_interaction_regret": str([record["interaction_regret"] for record in seed_records]),
+        })
+        output_rows.append(row)
+
+    if not output_rows:
+        raise RuntimeError("No complete F13/RAW × J/S interaction cells were found")
+
+    output_path = os.path.join(STAGE1_DIR, "training_representation_interaction.csv")
+    pd.DataFrame(output_rows).to_csv(output_path, index=False)
+    log(f"Training x representation interaction: {len(output_rows)} rows")
+    return pd.DataFrame(output_rows)
 
 
 # ============================================================
@@ -1468,3 +1628,7 @@ def build_root_manifest():
     report_path = os.path.join(STAGE1_DIR, "report.md")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
+
+
+if __name__ == "__main__":
+    main()
