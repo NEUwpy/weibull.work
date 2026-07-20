@@ -1,5 +1,14 @@
 # Coworker 工作区
 
+## Live-loop runtime
+
+`coworker/runtime/` is ignored local transport state for the Codex-controlled
+Claude Code loop. It may contain a task state machine, Claude session ID,
+recorded worker PID, heartbeat, stdout/stderr, and the most recent result. It is
+not formal project evidence and must not contain credentials or environment
+dumps. Keep durable plans, handoffs, worker reports, and Codex verdicts in the
+tracked directories below.
+
 本目录用于 Codex、Hermes、OpenCode、Claude Code 之间的任务流转：规划、分发、回收报告和验收。
 
 它不是项目规则入口。项目唯一权威入口仍是根目录 `README.md`；通用多 agent 工作法由 `.agents/skills/coworker/SKILL.md` 定义，项目特定角色和边界写在 README。本目录只保存具体任务的可追溯材料。

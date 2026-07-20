@@ -1,0 +1,112 @@
+{
+  "assumed_checkpoint_bytes_per_fit": 2097152,
+  "assumed_compressed_bytes_per_result_row": 512,
+  "disk_80_percent_bytes": 47520052019,
+  "disk_free_bytes": 59400065024,
+  "estimated_formal_artifact_bytes": 4225761280,
+  "estimated_formal_result_rows": 768000,
+  "formal_storage_headroom_factor": 2.0,
+  "formal_test_remains_sealed": true,
+  "matrix_fits": 820,
+  "pilot_output_bytes": 39877,
+  "pilot_smoke_fit_seconds": 3.041147899988573,
+  "resource_gate_pass": false,
+  "runtime_gate_pass": false,
+  "runtime_projection": {
+    "benchmark_details": {
+      "batch_time_aggregate": "median",
+      "concurrency_speedup_repetitions": [
+        1.8685034390219106,
+        1.6339741922616475,
+        1.5874971616571492
+      ],
+      "concurrency_workers": 4,
+      "effective_worker_aggregate": "max(1,q25)",
+      "effective_worker_factor": 1.6107356769593983,
+      "measured_repetitions": 5,
+      "measurement_orders": [
+        [
+          32,
+          128,
+          512
+        ],
+        [
+          128,
+          512,
+          32
+        ],
+        [
+          512,
+          32,
+          128
+        ],
+        [
+          32,
+          512,
+          128
+        ],
+        [
+          128,
+          32,
+          512
+        ]
+      ],
+      "seconds_per_batch_repetitions": {
+        "128": [
+          0.006186978598496794,
+          0.006713840719688354,
+          0.019943585037887686,
+          0.022096618750021498,
+          0.016563633522723234
+        ],
+        "32": [
+          0.003759502414774915,
+          0.005871900094696299,
+          0.023846233096588603,
+          0.009778723910985167,
+          0.009565735890150378
+        ],
+        "512": [
+          0.013182164393969508,
+          0.015471356818262862,
+          0.13659643106064212,
+          0.05560873560611843,
+          0.019372923484876414
+        ]
+      },
+      "warmup_epochs": 1
+    },
+    "effective_worker_factor": 1.6107356769593983,
+    "measured_seconds_per_batch": {
+      "128": 0.016563633522723234,
+      "32": 0.009565735890150378,
+      "512": 0.019372923484876414
+    },
+    "parallel_workers": 4,
+    "projected_optimizer_updates": 157582600,
+    "projected_serial_seconds": 5273911.60183907,
+    "projected_wall_seconds": 3274225.3600508096,
+    "projection_by_batch_size": {
+      "128": {
+        "fits": 463,
+        "seconds": 2376056.541561346,
+        "updates": 143450200
+      },
+      "32": {
+        "fits": 30,
+        "seconds": 12569.376959657604,
+        "updates": 1314000
+      },
+      "512": {
+        "fits": 327,
+        "seconds": 248329.88239854167,
+        "updates": 12818400
+      }
+    },
+    "runtime_gate_pass": false,
+    "runtime_headroom_factor": 2.0,
+    "wall_time_limit_seconds": 2592000.0
+  },
+  "serial_fit_hours_from_smoke": 0.6927059105529527,
+  "storage_gate_pass": true
+}

@@ -11,6 +11,8 @@ import inspect
 import time
 from typing import Optional, Dict, Any
 
+import numpy as np
+
 from base import MethodResult
 from methods.registry import resolve_method
 
@@ -64,6 +66,14 @@ def run_method(method_id: str, sample, variant: Optional[str] = None,
         "time": 0.0,
         "extra": None,
     }
+
+    values = np.asarray(sample, dtype=float).reshape(-1)
+    if values.size < 2 or not np.isfinite(values).all():
+        result["extra"] = {"error": "invalid sample: at least two finite observations are required"}
+        return result
+    if float(np.ptp(values)) == 0.0:
+        result["extra"] = {"error": "invalid sample: observations must not all be equal"}
+        return result
 
     try:
         resolved_method_id, method_cls = resolve_method(method_id)

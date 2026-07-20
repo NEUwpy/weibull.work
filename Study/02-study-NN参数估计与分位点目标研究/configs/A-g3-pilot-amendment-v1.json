@@ -1,0 +1,39 @@
+{
+  "amendment_id": "A-G3-pilot-amendment-v1",
+  "purpose": "Freeze representative runtime and full admission gates before G3 pilot v3",
+  "admission": {
+    "deterministic_rtol": 1e-12,
+    "equivariance_rtol": 0.001,
+    "scale_factor": 1000.0,
+    "required_contracts": [
+      "core",
+      "determinism",
+      "scale_equivariance",
+      "translation_equivariance",
+      "failure_propagation"
+    ]
+  },
+  "runtime_benchmark": {
+    "training_rows": 25000,
+    "validation_fraction": 0.1,
+    "epochs": 3,
+    "architecture": "m09",
+    "widths": [256, 128, 64],
+    "activation": "silu",
+    "batch_sizes": [32, 128, 512],
+    "fixed_n": 10,
+    "seed": 420001,
+    "formal_max_epochs": 500,
+    "unknown_training_size": 400000,
+    "unknown_optimizer_batch_size": 128,
+    "parallel_workers": 4,
+    "wall_time_limit_hours": 720,
+    "runtime_headroom_factor": 2.0
+  },
+  "storage_gate": {
+    "assumed_compressed_bytes_per_result_row": 512,
+    "assumed_checkpoint_bytes_per_fit": 2097152,
+    "headroom_factor": 2.0,
+    "max_fraction_of_current_free_disk": 0.8
+  }
+}

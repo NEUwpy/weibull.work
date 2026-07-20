@@ -32,5 +32,16 @@ Read only what the current task needs:
 
 - `references/protocol.md`: role loop, plan shape, report/verdict formats, and anti-bloat rules.
 - `references/dispatch.md`: short handoff prompts and CLI dispatch examples.
+- `references/live-loop.md`: Codex-controlled Claude Code start, polling, review, resume, cancellation, and recovery.
 
 For tiny one-command tasks or pure factual answers, skip the coworker loop.
+
+## Live Loop
+
+When Codex is the controller and the user asks to drive Claude Code, read
+`references/live-loop.md` and use `scripts/coworker-live.ps1`.
+
+If the active assignment says `Role: executor`, do not start or resume a live
+loop. Execute the referenced plan, write the report, and stop for Codex review.
+Only the Codex Controller may issue `APPROVE / REVISE / BLOCK` or call the
+runner's `start`, `resume`, or `cancel` actions.

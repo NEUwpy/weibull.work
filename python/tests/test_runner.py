@@ -117,3 +117,10 @@ def test_r_squared_range():
     r = run_method("mle", FIXED_SAMPLE)
     if r["r_squared"] is not None:
         assert 0 <= r["r_squared"] <= 1.01  # 允许微小浮点误差
+
+
+def test_degenerate_sample_fails_before_method_solver_can_silently_succeed():
+    r = run_method("wmle", [10.0] * 10)
+    assert r["converged"] is False
+    assert r["beta_hat"] is None
+    assert r["extra"] == {"error": "invalid sample: observations must not all be equal"}

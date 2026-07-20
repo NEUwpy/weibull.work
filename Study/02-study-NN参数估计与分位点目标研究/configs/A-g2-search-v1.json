@@ -1,0 +1,182 @@
+{
+  "search_id": "A-G2-search-v1",
+  "controlled_attribution_routes": ["F0eq_hsm", "F0eq_kde_scott1024", "F1eq", "F2", "V"],
+  "optimized_search_routes": ["F2", "V", "S"],
+  "screening_seeds": [420001, 420002, 420003],
+  "formal_seeds": [420101, 420102, 420103, 420104, 420105, 420106, 420107, 420108, 420109, 420110],
+  "preprocessing": {
+    "main_location_anchor": "sample_min",
+    "main_scale_anchor": "iqr_if_positive_else_range_if_positive_else_degenerate_sample",
+    "raw_historical_standardization": "training_column_mean_sd_ddof_0",
+    "main_feature_standardization": "training_column_mean_sd_ddof_0",
+    "zero_sd_column": "map_to_zero"
+  },
+  "feature_contract": {
+    "quantile_method": "numpy_linear",
+    "sd_ddof": 1,
+    "cv": "sd_ddof_1 / abs(mean); degenerate if abs(mean) == 0",
+    "skewness": "scipy.stats.skew(bias=false)",
+    "excess_kurtosis": "scipy.stats.kurtosis(fisher=true,bias=false)",
+    "mad": "median(abs(x - median(x)))",
+    "half_sample_mode": "recursive_shortest_half_interval_with_lower_interval_tie_break",
+    "kde_mode": "scipy_gaussian_kde_scott_on_1024_point_closed_min_max_grid_with_lower_x_tie_break",
+    "mode_ids": ["hsm", "kde_scott1024"]
+  },
+  "route_features": {
+    "H0_hsm": ["raw_min", "raw_max", "raw_median", "raw_mean", "raw_half_sample_mode", "raw_cv", "n"],
+    "H0_kde_scott1024": ["raw_min", "raw_max", "raw_median", "raw_mean", "raw_kde_mode", "raw_cv", "n"],
+    "H1": ["raw_mean", "raw_sd", "raw_median", "raw_skewness", "raw_excess_kurtosis", "n"],
+    "F0eq_hsm": ["z_max", "z_median", "z_mean", "z_half_sample_mode", "z_cv", "n"],
+    "F0eq_kde_scott1024": ["z_max", "z_median", "z_mean", "z_kde_mode", "z_cv", "n"],
+    "F1eq": ["z_mean", "z_sd", "z_median", "z_skewness", "z_excess_kurtosis", "n"],
+    "F2": ["n", "z_max", "z_mean", "z_median", "z_sd", "z_cv", "z_skewness", "z_excess_kurtosis", "z_q10", "z_q25", "z_q75", "z_q90", "z_iqr", "z_mad", "z_half_sample_mode"],
+    "V": ["sorted_z_fixed_n"],
+    "S": ["masked_z_values", "n"]
+  },
+  "historical_reconstruction_recipe": {
+    "architecture": {"widths": [128, 64, 32], "activation": "relu", "dropout": 0.0},
+    "optimizer": {"id": "adam", "lr": 0.001, "batch_size": 32},
+    "training": {"max_epochs": 300, "early_stopping_patience": 30},
+    "loss_id": "raw_train_z_mse",
+    "data_roles": "same_disjoint_role_point_sets_as_main",
+    "claim_label": "Study02_completion_of_unknown_paper_configuration_not_exact_replication"
+  },
+  "targets": {
+    "main": ["log_beta", "log_eta_over_scale", "log_min_minus_gamma_over_scale"],
+    "historical_raw": ["beta", "eta", "gamma"]
+  },
+  "losses": [
+    {"id": "raw_train_z_mse", "target": "historical_raw", "standardize": "training_mean_sd", "loss": "mse"},
+    {"id": "transformed_unscaled_mse", "target": "main", "standardize": "none", "loss": "mse"},
+    {"id": "transformed_train_z_mse", "target": "main", "standardize": "training_mean_sd", "loss": "mse"},
+    {"id": "transformed_train_z_huber", "target": "main", "standardize": "training_mean_sd", "loss": "huber", "delta": 1.0}
+  ],
+  "mlp_stage1_architectures": [
+    {"id": "m01", "widths": [64, 32], "activation": "relu", "dropout": 0.0},
+    {"id": "m02", "widths": [64, 32], "activation": "relu", "dropout": 0.1},
+    {"id": "m03", "widths": [64, 32], "activation": "silu", "dropout": 0.0},
+    {"id": "m04", "widths": [64, 32], "activation": "silu", "dropout": 0.1},
+    {"id": "m05", "widths": [128, 64, 32], "activation": "relu", "dropout": 0.0},
+    {"id": "m06", "widths": [128, 64, 32], "activation": "relu", "dropout": 0.1},
+    {"id": "m07", "widths": [128, 64, 32], "activation": "silu", "dropout": 0.0},
+    {"id": "m08", "widths": [128, 64, 32], "activation": "silu", "dropout": 0.1},
+    {"id": "m09", "widths": [256, 128, 64], "activation": "relu", "dropout": 0.0},
+    {"id": "m10", "widths": [256, 128, 64], "activation": "relu", "dropout": 0.1},
+    {"id": "m11", "widths": [256, 128, 64], "activation": "silu", "dropout": 0.0},
+    {"id": "m12", "widths": [256, 128, 64], "activation": "silu", "dropout": 0.1}
+  ],
+  "deepsets_stage1_architectures": [
+    {"id": "d01", "encoder": [32, 32], "pool": "mean", "head": [64, 32], "activation": "relu"},
+    {"id": "d02", "encoder": [32, 32], "pool": "sum", "head": [64, 32], "activation": "relu"},
+    {"id": "d03", "encoder": [32, 32], "pool": "mean", "head": [128, 64, 32], "activation": "relu"},
+    {"id": "d04", "encoder": [32, 32], "pool": "sum", "head": [128, 64, 32], "activation": "relu"},
+    {"id": "d05", "encoder": [64, 64], "pool": "mean", "head": [64, 32], "activation": "relu"},
+    {"id": "d06", "encoder": [64, 64], "pool": "sum", "head": [64, 32], "activation": "relu"},
+    {"id": "d07", "encoder": [64, 64], "pool": "mean", "head": [128, 64, 32], "activation": "relu"},
+    {"id": "d08", "encoder": [64, 64], "pool": "sum", "head": [128, 64, 32], "activation": "relu"},
+    {"id": "d09", "encoder": [32, 32], "pool": "mean", "head": [64, 32], "activation": "silu"},
+    {"id": "d10", "encoder": [32, 32], "pool": "sum", "head": [64, 32], "activation": "silu"},
+    {"id": "d11", "encoder": [64, 64], "pool": "mean", "head": [128, 64, 32], "activation": "silu"},
+    {"id": "d12", "encoder": [64, 64], "pool": "sum", "head": [128, 64, 32], "activation": "silu"}
+  ],
+  "stage1_optimizer": {"optimizer": "adamw", "lr": 0.001, "weight_decay": 0.0001, "batch_size": 512},
+  "stage2_rule": {
+    "select_top_architectures": 4,
+    "ranking": "mean_validation_failure_penalized_l_param_across_screening_seeds_ascending",
+    "tie_break": "architecture_id_lexicographic",
+    "optimizer_candidates": [
+      {"id": "o1", "optimizer": "adamw", "lr": 0.0003, "weight_decay": 0.0001, "batch_size": 128},
+      {"id": "o2", "optimizer": "adamw", "lr": 0.001, "weight_decay": 0.0, "batch_size": 512},
+      {"id": "o3", "optimizer": "adamw", "lr": 0.003, "weight_decay": 0.0001, "batch_size": 512}
+    ]
+  },
+  "screening_configurations_per_route": 24,
+  "screening_training_runs_per_route": 72,
+  "training": {"max_epochs": 500, "min_epochs": 50, "early_stopping_patience": 40, "checkpoint": "lowest_validation_loss"},
+  "joint_independent_capacity": {
+    "compare_total_trainable_parameters": true,
+    "independent_total_max_ratio": 1.05,
+    "fallback": "nearest_total_not_exceeding_joint",
+    "report_exact_counts": true
+  },
+  "module_matrix_rules": {
+    "A-E1_historical": {
+      "routes": ["H0_hsm", "H0_kde_scott1024", "H1"],
+      "role": "diagnostic_only_not_baseline_selection",
+      "model": "one shared-n model per route with n as input",
+      "training_distribution": "legacy_grid 80 training cells from historical_combo_split",
+      "validation_distribution": "legacy_grid 20 validation cells from historical_combo_split",
+      "training_rows": 7000,
+      "validation_rows": 2000,
+      "recipe": "historical_reconstruction_recipe",
+      "training_seeds": "formal_seeds",
+      "test": "A-E1 module test, once after all three routes are fit",
+      "claim": "historical diagnostic only; excluded from F2-versus-V baseline input selection"
+    },
+    "A-E1_controlled": {
+      "routes": ["F0eq_hsm", "F0eq_kde_scott1024", "F1eq", "F2", "V"],
+      "sample_sizes": "all_core_fixed_n",
+      "training_size": 100000,
+      "architecture": "m05",
+      "optimizer": "stage1_optimizer",
+      "loss": "transformed_train_z_huber",
+      "seeds": "screening_seeds"
+    },
+    "A-E1_optimized_supplement": {
+      "routes": ["F2", "V"],
+      "search_at_n": 10,
+      "search": "full_24_configuration_two_stage_search",
+      "retrain_winner_at": "all_core_fixed_n_with_formal_seeds",
+      "baseline_input_selection": "between F2 and V: apply validation global_better_rule; if neither globally dominates, lowest mean validation failure-penalized l_param; exact tie by route id"
+    },
+    "A-E3_loss": {
+      "input": "A-E1 baseline_input",
+      "n": 10,
+      "training_size": 100000,
+      "architecture": "m05",
+      "optimizer": "stage1_optimizer",
+      "losses": ["raw_train_z_mse", "transformed_unscaled_mse", "transformed_train_z_mse", "transformed_train_z_huber"],
+      "seeds": "screening_seeds",
+      "selection": "lowest mean validation failure-penalized l_param; tie by loss id"
+    },
+    "A-E3_architecture": {
+      "input": "A-E1 baseline_input",
+      "n": 10,
+      "training_size": 100000,
+      "loss": "A-E3_loss winner",
+      "search": "full_24_configuration_two_stage_search",
+      "selection": "lowest mean validation failure-penalized l_param; tie by architecture then optimizer id"
+    },
+    "A-E3_joint_independent": {
+      "input": "A-E1 baseline_input",
+      "sample_sizes": "all_core_fixed_n",
+      "training_size": 100000,
+      "loss_architecture_optimizer": "A-E3 winners",
+      "capacity": "joint_independent_capacity rule",
+      "seeds": "formal_seeds"
+    },
+    "A-E3_fixed_shared": {
+      "fixed": "A-E3 winning fixed-n joint model",
+      "shared_route": "S",
+      "shared_search": "full_24_configuration_two_stage_search on pooled core n",
+      "training_size": 100000,
+      "final_seeds": "formal_seeds"
+    },
+    "A-E2_training_size": {
+      "baseline": "A-E3 winning input-loss-architecture-output-n strategy",
+      "sizes": [7000, 25000, 100000, 400000],
+      "variant_seeds": "screening_seeds",
+      "finalist_retrain": "selected size with formal_seeds",
+      "selection": "smallest size within 2 percent of best mean validation l_param and whose paired CI includes zero difference; otherwise best"
+    },
+    "A-E2_distribution": {
+      "baseline": "A-E3 winner at A-E2 selected size",
+      "distributions": ["legacy_grid", "core_continuous", "extended_wide"],
+      "variant_seeds": "screening_seeds",
+      "finalist_retrain": "selected distribution with formal_seeds",
+      "selection": "core test is not opened; select by core validation global_better_rule, then lowest penalized l_param, tie by distribution id"
+    }
+  },
+  "fit_caps": {"G3": 900, "G4_new": 60, "G5_new": 20},
+  "matrix_required_before_test_unseal": true
+}
