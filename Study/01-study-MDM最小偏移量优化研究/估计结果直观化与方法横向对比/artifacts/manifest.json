@@ -1,7 +1,7 @@
 {
   "run_id": "method_comparison_v2",
-  "run_start": "2026-07-20T06:40:31.709308+00:00",
-  "run_end": "2026-07-20T06:41:26.229620+00:00",
+  "run_start": "2026-07-20T06:53:59.024969+00:00",
+  "run_end": "2026-07-20T06:54:05.148077+00:00",
   "seed_namespace": "study01_v1",
   "parameter_grid": {
     "beta": [
@@ -52,7 +52,10 @@
     "holdout": "5-fold combo",
     "file": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E3b_vector_mlp\\vector_mlp_results.csv"
   },
-  "failure_penalty": "L_i(0,0,0) computed from true parameters; for (2,1,1) and (2,1000,1000) both give L_i=3.0",
+  "failure_penalty": {
+    "convention": "Study01: failed estimates produce zero estimates (beta_hat=eta_hat=gamma_hat=0), which yield L_i per contract eq.3.1",
+    "L_i_for_this_combo": "((0-2)/2)^2 + ((0-eta_true)/eta_true)^2 + ((0-gamma_true)/eta_true)^2 = 1+1+1 = 3.0 at both norm and display scales"
+  },
   "n_failures_per_method": {
     "mle": 971,
     "wmle": 0,
@@ -78,18 +81,19 @@
     "lre_py": "0f22e31cf79aa5862d68f7b3d49e3a113266e191c29a679ca7ef58e7a332354c"
   },
   "output_hashes": {
-    "per_sample_results.csv": "0c25dcee4ac35dac571fe8f6d0463a7d41dfcb59d250ab7dc3803744060cd24c",
+    "per_sample_results.csv": "ade9c855fc720a90ad4246d058b890ffb4271b310a26c54f04d97a3f4ccf8e88",
     "overall_summary.csv": "07607f4bd1a0fd8545d409072a862a0e74310567a4888211c4b90e964495749f",
     "summary_n7.csv": "dc881ff038af9a896cbb3b40600017abf1ceb6c43d84d5b3779adc81879027ce",
     "summary_n10.csv": "ddbbf783067ff5611dd506055672dbc12f2dfc01bac54fca3284d662bdfc6a3b",
     "summary_n20.csv": "f30c561c036474ed67859d577d495e428045c0f65ec5d15697e777c867c2e124",
-    "scale_equivariance_check.csv": "f8972dbffcf4fc91c9ab24853fec645625facee4c6dfa85fada753da679e64a6"
+    "scale_equivariance_check.csv": "f8972dbffcf4fc91c9ab24853fec645625facee4c6dfa85fada753da679e64a6",
+    "manifest.json": "22a0756d01c8cf54971d7063f13bb6f01951eb7e84df06432536c306f45cae6f"
   },
   "phase_times": {
-    "extract_mdm": 1.1998348236083984,
-    "build_mdm": 5.0625762939453125,
-    "run_traditional": 44.266188859939575,
-    "compute_metrics": 0.26841235160827637
+    "extract_mdm": 1.3047492504119873,
+    "build_mdm": 2.8282418251037598,
+    "run_traditional": 0.4636998176574707,
+    "compute_metrics": 0.1343212127685547
   },
   "python_platform": "D:\\weibull\\python"
 }

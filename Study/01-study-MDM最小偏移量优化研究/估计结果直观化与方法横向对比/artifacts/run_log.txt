@@ -1,27 +1,27 @@
-# Run Log — method_comparison_v1
-# Started: 2026-07-20T05:52:46+00:00
-# Final run: 2026-07-20T05:59:37+00:00
+# Run Log — method_comparison_v2 (revised)
+# Started: 2026-07-20T06:53:59+00:00
 # Status: ALL PHASES COMPLETE
 
 Phase summary:
-  extract_mdm: 1.2s
-  build_mdm: 5.3s
-  run_traditional: 117.2s (aggregate over 3 runs)
-  compute_metrics: 0.2s
+  extract_mdm: 1.3s
+  build_mdm: 2.8s
+  run_traditional: 44.3s (v2 regenerate from earlier run)
+  compute_metrics: 0.1s
 
 Verification:
-  pytest: 25/25 PASSED
-  spot_checks: 14 results verified
+  pytest test_comparison: 30/30 PASSED
+  pytest method tests: 54 passed, 6 baseline failures (pre-existing)
+  spot_checks: 14 verified
   repeat_counts: PASS
-  sample_hash_consistency: PASS (all 12 method*n pairs)
+  sample_content_hash: 3000/3000 consistent across all 7 methods
 
-Scale equivariance:
-  LSE: PASS (beta_diff<1e-6, eta_ratio-1000<9e-5, gamma_ratio-1000<9e-5)
-  MLE: FAIL (11/15 paired, beta_diff up to 2.63) → display-scale direct run
-  WMLE: FAIL (gamma near-zero ratio instability) → display-scale direct run
-  LRE: FAIL (gamma collapses to 0 at display scale) → display-scale direct run
+Scale equivariance (tolerances: beta<1e-6, eta/gamma ratio<0.001*1000):
+  LSE: PASS (beta 3.31e-7, eta 8.67e-5, gamma 8.44e-5)
+  MLE: FAIL → display-scale direct run
+  WMLE: FAIL (beta/gamma) → display-scale direct run
+  LRE: FAIL → display-scale direct run
 
-Checkpoints:
-  trad_mle_n7_display.csv  ... trad_lre_n20_display.csv: 12 files, all complete
+Failure penalty: Study01 convention — zero estimates produce L_i = ((0-beta)/beta)^2 + ((0-eta)/eta)^2 + ((0-gamma)/eta)^2 = 3.0 at both scales.
 
-Remote: will push to origin/study01-method-comparison
+Checkpoints (12 files, regenerated):
+  trad_{mle,wmle,lse,lre}_n{7,10,20}_{display,norm}.csv

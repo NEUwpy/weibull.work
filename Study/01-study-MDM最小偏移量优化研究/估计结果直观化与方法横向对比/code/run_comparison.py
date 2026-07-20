@@ -58,7 +58,7 @@ MANIFEST_JSON = os.path.join(ARTIFACTS_DIR, "manifest.json")
 
 ALL_OUTPUT_FILES = [
     PER_SAMPLE_CSV, OVERALL_CSV, SUMMARY_N7_CSV, SUMMARY_N10_CSV, SUMMARY_N20_CSV,
-    SCALE_CHECK_CSV, MANIFEST_JSON,
+    SCALE_CHECK_CSV,
 ]
 
 INPUT_FILES = [
@@ -111,18 +111,6 @@ def sample_content_hash(beta, eta, gamma, n, repeat_id, seed_namespace):
     return hashlib.sha256(
         np.array2string(sample, precision=12, separator=",", threshold=n + 1).encode()
     ).hexdigest()[:16]
-
-
-_PARAM_KEY_CACHE: Dict[Tuple, str] = {}
-
-
-def _param_hash(n, repeat_id):
-    key = (n, repeat_id)
-    if key not in _PARAM_KEY_CACHE:
-        _PARAM_KEY_CACHE[key] = sha256_str(
-            f"{SEED_NAMESPACE}|{BETA_NORM}|{ETA_NORM}|{GAMMA_NORM}|{n}|{repeat_id}"
-        )[:16]
-    return _PARAM_KEY_CACHE[key]
 
 
 def worker_traditional(args):
@@ -238,15 +226,15 @@ class ComparisonRunner:
         df_mlp_est = lookup_delta(df_mdm, df_mlp)
         df_l6_est = lookup_delta(df_mdm, df_l6)
 
-        probe_hashes = {}
+        content_hashes = {}
         for n in N_VALUES:
-            for rid in [0, 42, 999]:
-                probe_hashes[(n, rid)] = sample_content_hash(BETA_NORM, ETA_NORM, GAMMA_NORM, n, rid, SEED_NAMESPACE)
+            for rid in range(N_REPEATS):
+                content_hashes[(n, rid)] = sample_content_hash(BETA_NORM, ETA_NORM, GAMMA_NORM, n, rid, SEED_NAMESPACE)
 
         results = []
         for n in N_VALUES:
             for rid in range(N_REPEATS):
-                p_hash = probe_hashes.get((n, rid), _param_hash(n, rid))
+                p_hash = content_hashes[(n, rid)]
 
                 row_01 = df_01[(df_01["n"] == n) & (df_01["repeat_id"] == rid)]
                 if len(row_01) == 1:
@@ -751,7 +739,10 @@ class ComparisonRunner:
                 "model": "Vector-MLP-L6", "seed": 42, "holdout": "5-fold combo",
                 "file": MLP_CSV,
             },
-            "failure_penalty": "L_i(0,0,0) computed from true parameters; for (2,1,1) and (2,1000,1000) both give L_i=3.0",
+            "failure_penalty": {
+                "convention": "Study01: failed estimates produce zero estimates (beta_hat=eta_hat=gamma_hat=0), which yield L_i per contract eq.3.1",
+                "L_i_for_this_combo": "((0-2)/2)^2 + ((0-eta_true)/eta_true)^2 + ((0-gamma_true)/eta_true)^2 = 1+1+1 = 3.0 at both norm and display scales",
+            },
             "n_failures_per_method": n_failures,
             "total_rows": len(rows),
             "input_hashes": self.file_hashes,
@@ -759,6 +750,9 @@ class ComparisonRunner:
             "phase_times": self.phase_times,
             "python_platform": PLATFORM_DIR,
         }
+        with open(MANIFEST_JSON, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2, ensure_ascii=False)
+        manifest["output_hashes"]["manifest.json"] = sha256_file(MANIFEST_JSON)
         with open(MANIFEST_JSON, "w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=2, ensure_ascii=False)
         log(f"  Manifest saved to {MANIFEST_JSON}")
