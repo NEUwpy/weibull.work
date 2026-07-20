@@ -388,7 +388,7 @@ def test_sha256sums_present_and_consistent():
             n_src += 1
         elif rel.endswith(('run_E3b_RAW_specialist.py', 'config.py', 'sample.py')):
             n_code += 1
-        elif rel.startswith('artifacts/candidate/E3b_RAW_specialist/'):
+        elif 'artifacts/candidate/E3b_RAW_specialist/' in rel:
             n_res += 1
         if not os.path.exists(fp) or _sha256(fp) != h:
             bad += 1

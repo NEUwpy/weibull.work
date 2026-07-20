@@ -1,6 +1,6 @@
 {
   "run_id": "E3b_RAW_specialist_v1",
-  "created_at": "2026-07-20T05:28:41.824437+00:00",
+  "created_at": "2026-07-20T07:33:45.152292+00:00",
   "code_entry": "code/run_E3b_RAW_specialist.py",
   "route_description": "RAW representation + per-n specialist training",
   "comparison_framing": "Difference vs F13 reflects BOTH representation (raw sample vs 13 features) AND training organization (per-n specialist vs joint). Not attributable to RAW alone.",
@@ -8,14 +8,114 @@
   "sklearn_version": "1.7.2",
   "numpy_version": "2.4.6",
   "pandas_version": "3.0.3",
-  "git_commit": "6c955b6e5290c25f3fec297505da6b0991a6b7e5",
-  "git_commit_short": "6c955b6",
+  "git_commit": "5719a9af921d73d3709030a397d8c303408bff3b",
+  "git_commit_short": "5719a9a",
   "git_branch": "study01RAW",
   "workspace_dirty": true,
   "git_status_short": [
-    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/\"",
-    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/code/run_E3b_RAW_specialist.py\"",
-    "?? python/tests/test_study01_e3b_raw_specialist.py"
+    "M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/diagnostics/delta_distribution.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/diagnostics/endpoint_diagnostics.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/diagnostics/near_optimal_diagnostics.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/manifest.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/model_comparison.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold1_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold1_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold1_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold2_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold2_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold2_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold3_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold3_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold3_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold4_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold4_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold4_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold5_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold5_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n10_fold5_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold1_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold1_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold1_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold2_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold2_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold2_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold3_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold3_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold3_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold4_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold4_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold4_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold5_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold5_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n20_fold5_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold1_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold1_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold1_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold2_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold2_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold2_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold3_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold3_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold3_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold4_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold4_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold4_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold5_seed2026.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold5_seed3407.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/models/n7_fold5_seed42.json\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold1_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold1_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold1_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold2_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold2_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold2_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold3_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold3_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold3_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold4_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold4_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold4_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold5_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold5_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n10_fold5_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold1_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold1_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold1_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold2_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold2_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold2_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold3_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold3_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold3_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold4_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold4_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold4_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold5_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold5_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n20_fold5_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold1_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold1_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold1_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold2_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold2_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold2_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold3_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold3_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold3_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold4_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold4_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold4_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold5_seed2026.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold5_seed3407.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/predictions/n7_fold5_seed42.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/raw_specialist_results.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/run_log.txt\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/seed_stability.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/split_report.csv\"",
+    " M \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/summary.json\"",
+    " M coworker/reports/2026-07-20-study01-raw-specialist-execution.md",
+    " M python/tests/test_study01_e3b_raw_specialist.py",
+    "?? \"Study/01-study-MDM\\346\\234\\200\\345\\260\\217\\345\\201\\217\\347\\247\\273\\351\\207\\217\\344\\274\\230\\345\\214\\226\\347\\240\\224\\347\\251\\266/artifacts/candidate/E3b_RAW_specialist/SHA256SUMS\""
   ],
   "base_commit_short": "6c955b6",
   "data_source": {
@@ -169,16 +269,34 @@
       "near_0.02_rate": 0.36233333333333334,
       "near_0.05_rate": 0.41885185185185186
     },
-    "runtimes_s": {
-      "total": 511.3591194152832,
-      "mean": 11.363535987006294,
-      "min": 5.592410087585449,
-      "max": 18.798509120941162
+    "training_stats_all45": {
+      "models": 45,
+      "runtime_s": {
+        "total": 510.17603754997253,
+        "mean": 11.337245278888279,
+        "min": 5.377349615097046,
+        "max": 19.020083904266357
+      },
+      "n_iter": {
+        "mean": 90.4888888888889,
+        "min": 43,
+        "max": 150
+      }
     },
-    "n_iters": {
-      "mean": 90.4888888888889,
-      "min": 43,
-      "max": 150
+    "training_stats_this_run": {
+      "models_trained": 45,
+      "models_skipped_cached": 0,
+      "runtime_s": {
+        "total": 510.17603754997253,
+        "mean": 11.337245278888279,
+        "min": 5.377349615097046,
+        "max": 19.020083904266357
+      },
+      "n_iter": {
+        "mean": 90.4888888888889,
+        "min": 43,
+        "max": 150
+      }
     }
   },
   "comparison_f13": {
@@ -233,10 +351,11 @@
       "seed": 42,
       "input_dim": 7,
       "n_iter": 98,
-      "runtime_s": 11.66252326965332,
+      "runtime_s": 13.037007331848145,
       "J1": 0.6185068900942423,
       "predictions_csv": "predictions/n7_fold1_seed42.csv",
       "predictions_sha256": "71c9d1eba74f0d2c9c452d4d059b1dfa74eb47c745f288ef6593a765e71ad526",
+      "test_sample_keys_sha256": "46a181f0402330abaae680a3c6b78e9a64b7c2188e5ec20ef74411d256d90c27",
       "meta_json": "models/n7_fold1_seed42.json"
     },
     "n7_fold1_seed2026": {
@@ -245,10 +364,11 @@
       "seed": 2026,
       "input_dim": 7,
       "n_iter": 65,
-      "runtime_s": 7.819294691085815,
+      "runtime_s": 8.676472425460815,
       "J1": 0.6285148819631946,
       "predictions_csv": "predictions/n7_fold1_seed2026.csv",
       "predictions_sha256": "52ca2222af87956a01207dfa9c5ceaf635682c7da9dffd8d6c9369b2d3b84618",
+      "test_sample_keys_sha256": "46a181f0402330abaae680a3c6b78e9a64b7c2188e5ec20ef74411d256d90c27",
       "meta_json": "models/n7_fold1_seed2026.json"
     },
     "n7_fold1_seed3407": {
@@ -257,10 +377,11 @@
       "seed": 3407,
       "input_dim": 7,
       "n_iter": 77,
-      "runtime_s": 9.133777618408203,
+      "runtime_s": 10.423325061798096,
       "J1": 0.6211183963791906,
       "predictions_csv": "predictions/n7_fold1_seed3407.csv",
       "predictions_sha256": "fdaac3c41f8456fad4792df10822a5e735a50e650729125574ad2c25b1216cdc",
+      "test_sample_keys_sha256": "46a181f0402330abaae680a3c6b78e9a64b7c2188e5ec20ef74411d256d90c27",
       "meta_json": "models/n7_fold1_seed3407.json"
     },
     "n7_fold2_seed42": {
@@ -269,10 +390,11 @@
       "seed": 42,
       "input_dim": 7,
       "n_iter": 92,
-      "runtime_s": 10.84253454208374,
+      "runtime_s": 11.682554244995117,
       "J1": 0.6728665466315409,
       "predictions_csv": "predictions/n7_fold2_seed42.csv",
       "predictions_sha256": "9d59460bb20316a276c19f0c6ecdaf44ade9e4b86abe8986e022ac1e55a2ff2b",
+      "test_sample_keys_sha256": "1952b3895bdff587260d153808f63d2a0135a48d11bd8f0ebbaa94eb8e84e550",
       "meta_json": "models/n7_fold2_seed42.json"
     },
     "n7_fold2_seed2026": {
@@ -281,10 +403,11 @@
       "seed": 2026,
       "input_dim": 7,
       "n_iter": 56,
-      "runtime_s": 6.881021022796631,
+      "runtime_s": 7.481235027313232,
       "J1": 0.696874473779709,
       "predictions_csv": "predictions/n7_fold2_seed2026.csv",
       "predictions_sha256": "85ee4eab134cceb059fb683fce5b6dfc872eef5773d3a984c2daca1dd032114a",
+      "test_sample_keys_sha256": "1952b3895bdff587260d153808f63d2a0135a48d11bd8f0ebbaa94eb8e84e550",
       "meta_json": "models/n7_fold2_seed2026.json"
     },
     "n7_fold2_seed3407": {
@@ -293,10 +416,11 @@
       "seed": 3407,
       "input_dim": 7,
       "n_iter": 55,
-      "runtime_s": 6.656345367431641,
+      "runtime_s": 7.556807994842529,
       "J1": 0.6808560241060242,
       "predictions_csv": "predictions/n7_fold2_seed3407.csv",
       "predictions_sha256": "d63e67357de26fe1aa85fa0ca420133fb3fc80c53e3e81247010e8ba3cdac379",
+      "test_sample_keys_sha256": "1952b3895bdff587260d153808f63d2a0135a48d11bd8f0ebbaa94eb8e84e550",
       "meta_json": "models/n7_fold2_seed3407.json"
     },
     "n7_fold3_seed42": {
@@ -305,10 +429,11 @@
       "seed": 42,
       "input_dim": 7,
       "n_iter": 55,
-      "runtime_s": 6.9767186641693115,
+      "runtime_s": 6.725457668304443,
       "J1": 0.7042427755183441,
       "predictions_csv": "predictions/n7_fold3_seed42.csv",
       "predictions_sha256": "5ffc4a47ddf2f862bf2d6c8bf61340e7d37a3d93c7abfc79a9c77ebcf65410d1",
+      "test_sample_keys_sha256": "a7586e9d6e87dead122d01d28f280a3bbf65d7b29dbf8a422580ed7d28c59480",
       "meta_json": "models/n7_fold3_seed42.json"
     },
     "n7_fold3_seed2026": {
@@ -317,10 +442,11 @@
       "seed": 2026,
       "input_dim": 7,
       "n_iter": 55,
-      "runtime_s": 7.707301616668701,
+      "runtime_s": 6.679659128189087,
       "J1": 0.7105106045845159,
       "predictions_csv": "predictions/n7_fold3_seed2026.csv",
       "predictions_sha256": "3e1eb45e71b7c44dc5b6b6a5feb7cd5270f1244dca26cc9d878cb61f9cdf0d76",
+      "test_sample_keys_sha256": "a7586e9d6e87dead122d01d28f280a3bbf65d7b29dbf8a422580ed7d28c59480",
       "meta_json": "models/n7_fold3_seed2026.json"
     },
     "n7_fold3_seed3407": {
@@ -329,10 +455,11 @@
       "seed": 3407,
       "input_dim": 7,
       "n_iter": 45,
-      "runtime_s": 5.9013121128082275,
+      "runtime_s": 5.571593284606934,
       "J1": 0.7096724853965062,
       "predictions_csv": "predictions/n7_fold3_seed3407.csv",
       "predictions_sha256": "1fbee5932875e5ad4ebfd3987478c5850d3b92dc13ec1c549e11564c3ea9e8db",
+      "test_sample_keys_sha256": "a7586e9d6e87dead122d01d28f280a3bbf65d7b29dbf8a422580ed7d28c59480",
       "meta_json": "models/n7_fold3_seed3407.json"
     },
     "n7_fold4_seed42": {
@@ -341,10 +468,11 @@
       "seed": 42,
       "input_dim": 7,
       "n_iter": 93,
-      "runtime_s": 11.862546682357788,
+      "runtime_s": 11.169559478759766,
       "J1": 0.6441886784638602,
       "predictions_csv": "predictions/n7_fold4_seed42.csv",
       "predictions_sha256": "2bfa28b89ef3f0da97aa619c27124a22629633a449ea1df2b7731b072db3f3a4",
+      "test_sample_keys_sha256": "bef36cd6c33a346e15d8a2a1c5d01004d26846418b5aa0dd4edfb34cd2c8d05b",
       "meta_json": "models/n7_fold4_seed42.json"
     },
     "n7_fold4_seed2026": {
@@ -353,10 +481,11 @@
       "seed": 2026,
       "input_dim": 7,
       "n_iter": 66,
-      "runtime_s": 8.274121046066284,
+      "runtime_s": 8.308546543121338,
       "J1": 0.642667784406871,
       "predictions_csv": "predictions/n7_fold4_seed2026.csv",
       "predictions_sha256": "e9ea33a8387d2eb11e421dc9702d96070a99137a8307bb0f17e9c68d3d415fdc",
+      "test_sample_keys_sha256": "bef36cd6c33a346e15d8a2a1c5d01004d26846418b5aa0dd4edfb34cd2c8d05b",
       "meta_json": "models/n7_fold4_seed2026.json"
     },
     "n7_fold4_seed3407": {
@@ -365,10 +494,11 @@
       "seed": 3407,
       "input_dim": 7,
       "n_iter": 51,
-      "runtime_s": 6.514930248260498,
+      "runtime_s": 6.135313987731934,
       "J1": 0.6711445799073059,
       "predictions_csv": "predictions/n7_fold4_seed3407.csv",
       "predictions_sha256": "4636d50a7e819b9361a73294f50284f83bfde6a20b938e7fcffc7fb6749c5227",
+      "test_sample_keys_sha256": "bef36cd6c33a346e15d8a2a1c5d01004d26846418b5aa0dd4edfb34cd2c8d05b",
       "meta_json": "models/n7_fold4_seed3407.json"
     },
     "n7_fold5_seed42": {
@@ -377,10 +507,11 @@
       "seed": 42,
       "input_dim": 7,
       "n_iter": 74,
-      "runtime_s": 9.461769104003906,
+      "runtime_s": 9.164573669433594,
       "J1": 0.6607425285685322,
       "predictions_csv": "predictions/n7_fold5_seed42.csv",
       "predictions_sha256": "10305182fbc60b3282fda476daba0158c82fbb48208bf88c0c963446b480c727",
+      "test_sample_keys_sha256": "fbb73bbdaee6c5330433a12944d26ea011ba50f494a8431d5824c4a9a9fec083",
       "meta_json": "models/n7_fold5_seed42.json"
     },
     "n7_fold5_seed2026": {
@@ -389,10 +520,11 @@
       "seed": 2026,
       "input_dim": 7,
       "n_iter": 49,
-      "runtime_s": 6.104440212249756,
+      "runtime_s": 6.089442491531372,
       "J1": 0.6652273748269999,
       "predictions_csv": "predictions/n7_fold5_seed2026.csv",
       "predictions_sha256": "0635e2e7be73bd9f997277e035641d877491277ec47994f17612a4d764f0d770",
+      "test_sample_keys_sha256": "fbb73bbdaee6c5330433a12944d26ea011ba50f494a8431d5824c4a9a9fec083",
       "meta_json": "models/n7_fold5_seed2026.json"
     },
     "n7_fold5_seed3407": {
@@ -401,10 +533,11 @@
       "seed": 3407,
       "input_dim": 7,
       "n_iter": 55,
-      "runtime_s": 7.488039255142212,
+      "runtime_s": 6.669886112213135,
       "J1": 0.6590879587851007,
       "predictions_csv": "predictions/n7_fold5_seed3407.csv",
       "predictions_sha256": "4f9dd7cb2408b37913c55569dae533c06e1019051e4ee5ad2010356421ff1a61",
+      "test_sample_keys_sha256": "fbb73bbdaee6c5330433a12944d26ea011ba50f494a8431d5824c4a9a9fec083",
       "meta_json": "models/n7_fold5_seed3407.json"
     },
     "n10_fold1_seed42": {
@@ -413,10 +546,11 @@
       "seed": 42,
       "input_dim": 10,
       "n_iter": 43,
-      "runtime_s": 5.592410087585449,
+      "runtime_s": 5.377349615097046,
       "J1": 0.5675744988047313,
       "predictions_csv": "predictions/n10_fold1_seed42.csv",
       "predictions_sha256": "3897ccf5ee008d6d20e3e440db4217ee580f33eb1b7a1a474fa6f6378f26d249",
+      "test_sample_keys_sha256": "cf0a2cbaf03dae3b7fed64a6124125c97bbf88442991e88b5cc4f8371924cdec",
       "meta_json": "models/n10_fold1_seed42.json"
     },
     "n10_fold1_seed2026": {
@@ -425,10 +559,11 @@
       "seed": 2026,
       "input_dim": 10,
       "n_iter": 130,
-      "runtime_s": 16.147226095199585,
+      "runtime_s": 15.861797094345093,
       "J1": 0.5581681356350616,
       "predictions_csv": "predictions/n10_fold1_seed2026.csv",
       "predictions_sha256": "c103b008d68aed309834092119a7dd59a0e2084f6d31b065a32d0330f30bf69e",
+      "test_sample_keys_sha256": "cf0a2cbaf03dae3b7fed64a6124125c97bbf88442991e88b5cc4f8371924cdec",
       "meta_json": "models/n10_fold1_seed2026.json"
     },
     "n10_fold1_seed3407": {
@@ -437,10 +572,11 @@
       "seed": 3407,
       "input_dim": 10,
       "n_iter": 105,
-      "runtime_s": 12.741743087768555,
+      "runtime_s": 12.555752515792847,
       "J1": 0.5571112066264882,
       "predictions_csv": "predictions/n10_fold1_seed3407.csv",
       "predictions_sha256": "e6c1d6c1656faee4b8bb48d4026ab89578195f7262ef634faef36cc696b1b1ad",
+      "test_sample_keys_sha256": "cf0a2cbaf03dae3b7fed64a6124125c97bbf88442991e88b5cc4f8371924cdec",
       "meta_json": "models/n10_fold1_seed3407.json"
     },
     "n10_fold2_seed42": {
@@ -449,10 +585,11 @@
       "seed": 42,
       "input_dim": 10,
       "n_iter": 131,
-      "runtime_s": 16.4311101436615,
+      "runtime_s": 15.593407392501831,
       "J1": 0.5184872175193398,
       "predictions_csv": "predictions/n10_fold2_seed42.csv",
       "predictions_sha256": "328cb3a69d318733c7ed2692ef6df2653c4e776abe8a6606509b97f51ba5196c",
+      "test_sample_keys_sha256": "c632ccc238c607c91f03187554a9805dc264fc6a9e63ddc784a66fee0fd2548e",
       "meta_json": "models/n10_fold2_seed42.json"
     },
     "n10_fold2_seed2026": {
@@ -461,10 +598,11 @@
       "seed": 2026,
       "input_dim": 10,
       "n_iter": 141,
-      "runtime_s": 17.322009325027466,
+      "runtime_s": 17.18192958831787,
       "J1": 0.5222914635260495,
       "predictions_csv": "predictions/n10_fold2_seed2026.csv",
       "predictions_sha256": "811186e28186f2914b31bd468cc05d4d412c443c7ad514e28c6c21c65da5b9aa",
+      "test_sample_keys_sha256": "c632ccc238c607c91f03187554a9805dc264fc6a9e63ddc784a66fee0fd2548e",
       "meta_json": "models/n10_fold2_seed2026.json"
     },
     "n10_fold2_seed3407": {
@@ -473,10 +611,11 @@
       "seed": 3407,
       "input_dim": 10,
       "n_iter": 107,
-      "runtime_s": 13.394264221191406,
+      "runtime_s": 12.69729995727539,
       "J1": 0.5218850611890185,
       "predictions_csv": "predictions/n10_fold2_seed3407.csv",
       "predictions_sha256": "713f109509c2842ec48eca329a37953b8657f0f770e2beb99a22462cc67bc6e3",
+      "test_sample_keys_sha256": "c632ccc238c607c91f03187554a9805dc264fc6a9e63ddc784a66fee0fd2548e",
       "meta_json": "models/n10_fold2_seed3407.json"
     },
     "n10_fold3_seed42": {
@@ -485,10 +624,11 @@
       "seed": 42,
       "input_dim": 10,
       "n_iter": 102,
-      "runtime_s": 12.569816827774048,
+      "runtime_s": 12.242600440979004,
       "J1": 0.5459741831288899,
       "predictions_csv": "predictions/n10_fold3_seed42.csv",
       "predictions_sha256": "60e74ff6cea12c7480fad3aa32766f258698ca30c064906dd8ac9552f466ff4b",
+      "test_sample_keys_sha256": "4878c06ec2a7dd642dcf7e9ca9753ce11f9813b02c526caa52ef4d593b363d2d",
       "meta_json": "models/n10_fold3_seed42.json"
     },
     "n10_fold3_seed2026": {
@@ -497,10 +637,11 @@
       "seed": 2026,
       "input_dim": 10,
       "n_iter": 120,
-      "runtime_s": 15.144657850265503,
+      "runtime_s": 14.219581842422485,
       "J1": 0.5470180120265785,
       "predictions_csv": "predictions/n10_fold3_seed2026.csv",
       "predictions_sha256": "d127931062d2801466d40a5e1ed054351bfe5bcb268d7209e5f2ecdbe7a0ea9d",
+      "test_sample_keys_sha256": "4878c06ec2a7dd642dcf7e9ca9753ce11f9813b02c526caa52ef4d593b363d2d",
       "meta_json": "models/n10_fold3_seed2026.json"
     },
     "n10_fold3_seed3407": {
@@ -509,10 +650,11 @@
       "seed": 3407,
       "input_dim": 10,
       "n_iter": 99,
-      "runtime_s": 12.192063331604004,
+      "runtime_s": 11.970363140106201,
       "J1": 0.5559930494101555,
       "predictions_csv": "predictions/n10_fold3_seed3407.csv",
       "predictions_sha256": "bc4b74339c6c05c1a3232a622181d6fa56f40261e702d0a949ad2128c51aa2b1",
+      "test_sample_keys_sha256": "4878c06ec2a7dd642dcf7e9ca9753ce11f9813b02c526caa52ef4d593b363d2d",
       "meta_json": "models/n10_fold3_seed3407.json"
     },
     "n10_fold4_seed42": {
@@ -521,10 +663,11 @@
       "seed": 42,
       "input_dim": 10,
       "n_iter": 71,
-      "runtime_s": 9.225606203079224,
+      "runtime_s": 9.018112659454346,
       "J1": 0.5988776666123171,
       "predictions_csv": "predictions/n10_fold4_seed42.csv",
       "predictions_sha256": "9408a0f19f24e12ecdff35f8d216841410d360f4a8eb993b0de80c2361b1df8b",
+      "test_sample_keys_sha256": "ab07921cdb1a84f9dddda9589ea6c25f197911a700e824154f8e86d59e13ffa6",
       "meta_json": "models/n10_fold4_seed42.json"
     },
     "n10_fold4_seed2026": {
@@ -533,10 +676,11 @@
       "seed": 2026,
       "input_dim": 10,
       "n_iter": 131,
-      "runtime_s": 16.374030351638794,
+      "runtime_s": 15.941087245941162,
       "J1": 0.5928803931904795,
       "predictions_csv": "predictions/n10_fold4_seed2026.csv",
       "predictions_sha256": "60080ca460e51560f97647ad750aef0806341c2792a7db93cdd5337678981be8",
+      "test_sample_keys_sha256": "ab07921cdb1a84f9dddda9589ea6c25f197911a700e824154f8e86d59e13ffa6",
       "meta_json": "models/n10_fold4_seed2026.json"
     },
     "n10_fold4_seed3407": {
@@ -545,10 +689,11 @@
       "seed": 3407,
       "input_dim": 10,
       "n_iter": 77,
-      "runtime_s": 9.812643051147461,
+      "runtime_s": 9.404462337493896,
       "J1": 0.6011880986590671,
       "predictions_csv": "predictions/n10_fold4_seed3407.csv",
       "predictions_sha256": "a9680322c40cb6cb0b8dd4e2473c011a1731c5406b8ea9ed185819203aad4efd",
+      "test_sample_keys_sha256": "ab07921cdb1a84f9dddda9589ea6c25f197911a700e824154f8e86d59e13ffa6",
       "meta_json": "models/n10_fold4_seed3407.json"
     },
     "n10_fold5_seed42": {
@@ -557,10 +702,11 @@
       "seed": 42,
       "input_dim": 10,
       "n_iter": 89,
-      "runtime_s": 11.148112535476685,
+      "runtime_s": 12.829540014266968,
       "J1": 0.5442486774037939,
       "predictions_csv": "predictions/n10_fold5_seed42.csv",
       "predictions_sha256": "5a4e1a23ee6e4ecc9f3ab63daa679f416e8c5f43ea058e9100fe4464607a89f7",
+      "test_sample_keys_sha256": "fc651dbf3dd63edecb093421c7d520b55d5b33d1862594087eeb9fb807d23710",
       "meta_json": "models/n10_fold5_seed42.json"
     },
     "n10_fold5_seed2026": {
@@ -569,10 +715,11 @@
       "seed": 2026,
       "input_dim": 10,
       "n_iter": 79,
-      "runtime_s": 10.082036972045898,
+      "runtime_s": 9.847211599349976,
       "J1": 0.5377636105344041,
       "predictions_csv": "predictions/n10_fold5_seed2026.csv",
       "predictions_sha256": "c4e59ddc81403f0a78dc15ce2c841e3e2613286db30b9cc708a52854f80b14c3",
+      "test_sample_keys_sha256": "fc651dbf3dd63edecb093421c7d520b55d5b33d1862594087eeb9fb807d23710",
       "meta_json": "models/n10_fold5_seed2026.json"
     },
     "n10_fold5_seed3407": {
@@ -581,10 +728,11 @@
       "seed": 3407,
       "input_dim": 10,
       "n_iter": 113,
-      "runtime_s": 13.692403793334961,
+      "runtime_s": 14.31302547454834,
       "J1": 0.535579437623908,
       "predictions_csv": "predictions/n10_fold5_seed3407.csv",
       "predictions_sha256": "f758fe5f611bd4bca758f7054b829df13ede2b5be2818e6ea971197b2c4f6c79",
+      "test_sample_keys_sha256": "fc651dbf3dd63edecb093421c7d520b55d5b33d1862594087eeb9fb807d23710",
       "meta_json": "models/n10_fold5_seed3407.json"
     },
     "n20_fold1_seed42": {
@@ -593,10 +741,11 @@
       "seed": 42,
       "input_dim": 20,
       "n_iter": 112,
-      "runtime_s": 14.075158596038818,
+      "runtime_s": 13.973411321640015,
       "J1": 0.3822714513267121,
       "predictions_csv": "predictions/n20_fold1_seed42.csv",
       "predictions_sha256": "2910d4766cdf737c213a661c0d9805d929d5f968e8fbd8132b03ddd48f7b856e",
+      "test_sample_keys_sha256": "c973cd4aa7a0300d7eeaaba81ddeecfc1deef457c1fb3555b3c2b9a2ef17aa03",
       "meta_json": "models/n20_fold1_seed42.json"
     },
     "n20_fold1_seed2026": {
@@ -605,10 +754,11 @@
       "seed": 2026,
       "input_dim": 20,
       "n_iter": 129,
-      "runtime_s": 16.600770711898804,
+      "runtime_s": 16.10978603363037,
       "J1": 0.3859700970266543,
       "predictions_csv": "predictions/n20_fold1_seed2026.csv",
       "predictions_sha256": "1ba7dc05da3e44b7cb8be04aa026cf8726a4df4b5ea53d6efbdacd20c70b46bb",
+      "test_sample_keys_sha256": "c973cd4aa7a0300d7eeaaba81ddeecfc1deef457c1fb3555b3c2b9a2ef17aa03",
       "meta_json": "models/n20_fold1_seed2026.json"
     },
     "n20_fold1_seed3407": {
@@ -617,10 +767,11 @@
       "seed": 3407,
       "input_dim": 20,
       "n_iter": 116,
-      "runtime_s": 14.948724508285522,
+      "runtime_s": 14.548900842666626,
       "J1": 0.3824613371665688,
       "predictions_csv": "predictions/n20_fold1_seed3407.csv",
       "predictions_sha256": "6dfb53971da17c13035d9082427ac1ac643a398e02fc582020898258d4b89b75",
+      "test_sample_keys_sha256": "c973cd4aa7a0300d7eeaaba81ddeecfc1deef457c1fb3555b3c2b9a2ef17aa03",
       "meta_json": "models/n20_fold1_seed3407.json"
     },
     "n20_fold2_seed42": {
@@ -629,10 +780,11 @@
       "seed": 42,
       "input_dim": 20,
       "n_iter": 133,
-      "runtime_s": 16.92140483856201,
+      "runtime_s": 16.46475100517273,
       "J1": 0.4049600530823551,
       "predictions_csv": "predictions/n20_fold2_seed42.csv",
       "predictions_sha256": "1f5d293a590246d475aafa3de2d6c4eb563e1f10ddc707418ae7acd57748a5b8",
+      "test_sample_keys_sha256": "048a4c1da376dbd39ffdf37648d508cd0faf9565396ef822e776b3521751ab3f",
       "meta_json": "models/n20_fold2_seed42.json"
     },
     "n20_fold2_seed2026": {
@@ -641,10 +793,11 @@
       "seed": 2026,
       "input_dim": 20,
       "n_iter": 80,
-      "runtime_s": 10.31024980545044,
+      "runtime_s": 10.026336193084717,
       "J1": 0.4049375839321055,
       "predictions_csv": "predictions/n20_fold2_seed2026.csv",
       "predictions_sha256": "8ca58118bea62dd189b6cd833f819b12bf37bf0631a562bd9ad8d63beecb732a",
+      "test_sample_keys_sha256": "048a4c1da376dbd39ffdf37648d508cd0faf9565396ef822e776b3521751ab3f",
       "meta_json": "models/n20_fold2_seed2026.json"
     },
     "n20_fold2_seed3407": {
@@ -653,10 +806,11 @@
       "seed": 3407,
       "input_dim": 20,
       "n_iter": 101,
-      "runtime_s": 12.895671367645264,
+      "runtime_s": 12.921778917312622,
       "J1": 0.4059020040211296,
       "predictions_csv": "predictions/n20_fold2_seed3407.csv",
       "predictions_sha256": "de743dfa237442af3f4d7f4f11307346bb435221dc684be5927697722d80c4d8",
+      "test_sample_keys_sha256": "048a4c1da376dbd39ffdf37648d508cd0faf9565396ef822e776b3521751ab3f",
       "meta_json": "models/n20_fold2_seed3407.json"
     },
     "n20_fold3_seed42": {
@@ -665,10 +819,11 @@
       "seed": 42,
       "input_dim": 20,
       "n_iter": 79,
-      "runtime_s": 9.637697458267212,
+      "runtime_s": 10.330766677856445,
       "J1": 0.3714972489408398,
       "predictions_csv": "predictions/n20_fold3_seed42.csv",
       "predictions_sha256": "dd0ee8e7360f153f0ae41ca9061760e4406675ac5e6fc7c5e4c0683682e89e9b",
+      "test_sample_keys_sha256": "c3ae5be56ebfdbba653c5bab4b8aa0fb94fa5db98c662f9db65151390082b434",
       "meta_json": "models/n20_fold3_seed42.json"
     },
     "n20_fold3_seed2026": {
@@ -677,10 +832,11 @@
       "seed": 2026,
       "input_dim": 20,
       "n_iter": 95,
-      "runtime_s": 12.1840238571167,
+      "runtime_s": 12.343558073043823,
       "J1": 0.37300804410398647,
       "predictions_csv": "predictions/n20_fold3_seed2026.csv",
       "predictions_sha256": "04f1ea129c30a165812e32aee6b329a4e1ca61e4ee0a6ddb45e57e1f6fbfd282",
+      "test_sample_keys_sha256": "c3ae5be56ebfdbba653c5bab4b8aa0fb94fa5db98c662f9db65151390082b434",
       "meta_json": "models/n20_fold3_seed2026.json"
     },
     "n20_fold3_seed3407": {
@@ -689,10 +845,11 @@
       "seed": 3407,
       "input_dim": 20,
       "n_iter": 150,
-      "runtime_s": 18.798509120941162,
+      "runtime_s": 19.020083904266357,
       "J1": 0.3764765579942424,
       "predictions_csv": "predictions/n20_fold3_seed3407.csv",
       "predictions_sha256": "8859d0b3bc36fb9a9755ace06dee16b3b2e21a98d0b2e1e9552735c4c7c8410c",
+      "test_sample_keys_sha256": "c3ae5be56ebfdbba653c5bab4b8aa0fb94fa5db98c662f9db65151390082b434",
       "meta_json": "models/n20_fold3_seed3407.json"
     },
     "n20_fold4_seed42": {
@@ -701,10 +858,11 @@
       "seed": 42,
       "input_dim": 20,
       "n_iter": 122,
-      "runtime_s": 15.169686555862427,
+      "runtime_s": 15.34520936012268,
       "J1": 0.4010571199375518,
       "predictions_csv": "predictions/n20_fold4_seed42.csv",
       "predictions_sha256": "a5b86b7740b3cc32ebf06b43075a7e61b37e07e6439043b6cb6a3e926d161d9a",
+      "test_sample_keys_sha256": "129928f2b5f48ce6bcaa352e51b15272f7bf0dbe56b5ceaacd421288006bb5cf",
       "meta_json": "models/n20_fold4_seed42.json"
     },
     "n20_fold4_seed2026": {
@@ -713,10 +871,11 @@
       "seed": 2026,
       "input_dim": 20,
       "n_iter": 97,
-      "runtime_s": 12.317262649536133,
+      "runtime_s": 11.995360851287842,
       "J1": 0.39578381238625804,
       "predictions_csv": "predictions/n20_fold4_seed2026.csv",
       "predictions_sha256": "82be898c1b7e931fcb8539f5575865585006c6f82f97062fa93ddd5453202c22",
+      "test_sample_keys_sha256": "129928f2b5f48ce6bcaa352e51b15272f7bf0dbe56b5ceaacd421288006bb5cf",
       "meta_json": "models/n20_fold4_seed2026.json"
     },
     "n20_fold4_seed3407": {
@@ -725,10 +884,11 @@
       "seed": 3407,
       "input_dim": 20,
       "n_iter": 101,
-      "runtime_s": 12.65713381767273,
+      "runtime_s": 13.045518636703491,
       "J1": 0.40407429580823834,
       "predictions_csv": "predictions/n20_fold4_seed3407.csv",
       "predictions_sha256": "5adb405c8515e8a357461a23b1d1e35dd72eecf90c150b01696992ec6f7f2df1",
+      "test_sample_keys_sha256": "129928f2b5f48ce6bcaa352e51b15272f7bf0dbe56b5ceaacd421288006bb5cf",
       "meta_json": "models/n20_fold4_seed3407.json"
     },
     "n20_fold5_seed42": {
@@ -737,10 +897,11 @@
       "seed": 42,
       "input_dim": 20,
       "n_iter": 104,
-      "runtime_s": 12.97976279258728,
+      "runtime_s": 13.086185693740845,
       "J1": 0.4447072175576409,
       "predictions_csv": "predictions/n20_fold5_seed42.csv",
       "predictions_sha256": "3a6f696a94ab70559c6c040aaaaeac36f0878f1ea3a9963662ae47fec3a22d83",
+      "test_sample_keys_sha256": "461cfbabfe413bfbeebae3ee6d5c9d9ef2c51ac4412f6608aa8c196a78fcd519",
       "meta_json": "models/n20_fold5_seed42.json"
     },
     "n20_fold5_seed2026": {
@@ -749,10 +910,11 @@
       "seed": 2026,
       "input_dim": 20,
       "n_iter": 64,
-      "runtime_s": 8.13557744026184,
+      "runtime_s": 8.24605417251587,
       "J1": 0.4423291180349094,
       "predictions_csv": "predictions/n20_fold5_seed2026.csv",
       "predictions_sha256": "8e53b534995e3f16ecbe3aa830e84b91bb6125b0fe705367272921612e3f660b",
+      "test_sample_keys_sha256": "461cfbabfe413bfbeebae3ee6d5c9d9ef2c51ac4412f6608aa8c196a78fcd519",
       "meta_json": "models/n20_fold5_seed2026.json"
     },
     "n20_fold5_seed3407": {
@@ -761,10 +923,11 @@
       "seed": 3407,
       "input_dim": 20,
       "n_iter": 65,
-      "runtime_s": 8.570676565170288,
+      "runtime_s": 8.293380498886108,
       "J1": 0.4432584853792676,
       "predictions_csv": "predictions/n20_fold5_seed3407.csv",
       "predictions_sha256": "5de17ef595d42d10e954de3ba2178ae62117f3cb7c4d6ce8882cc96b49220d41",
+      "test_sample_keys_sha256": "461cfbabfe413bfbeebae3ee6d5c9d9ef2c51ac4412f6608aa8c196a78fcd519",
       "meta_json": "models/n20_fold5_seed3407.json"
     }
   },
@@ -784,5 +947,14 @@
     "plots/*.png"
   ],
   "boundary": "Writes only to artifacts/candidate/E3b_RAW_specialist/. Never modifies artifacts/formal/E3b_vector_mlp/ or sealed E3/E4.",
-  "integrity_note": "Prediction sha256 recomputed on LF-normalized canonical files (.gitattributes forces eol=lf); stable across platforms."
+  "provenance": {
+    "sha256sums_file": "artifacts/candidate/E3b_RAW_specialist/SHA256SUMS",
+    "sha256sums_format": "GNU `sha256sum -c` compatible; verify from repo root: `sha256sum -c artifacts/candidate/E3b_RAW_specialist/SHA256SUMS`. Covers source data (45 MDM chunks + MC manifest), code (run_E3b_RAW_specialist.py + config.py + sample.py), and every result file. All covered files are LF-normalized; the manifest references SHA256SUMS by path, not by hash, to avoid a hash cycle.",
+    "fingerprints": {
+      "delta_grid_sha256": "15e20abcae3a5f648ac9d4153834d946da27a932abcd16b380361ea6e939deac",
+      "code_sha256": "190c3c103e12a93c377176df5098946b909e0fb386d30cdcae07102266eba371",
+      "per_model_test_keys_sha256": "in each models/*.json (test_sample_keys_sha256)"
+    },
+    "note": "git_commit/git_commit_short above is the exact code commit checked out when the run executed."
+  }
 }
