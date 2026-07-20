@@ -334,6 +334,27 @@ def test_split_matches_formal_e3b():
     print("  [PASS] candidate split == formal E3b split (identical 5-fold holdout)")
 
 
+def test_manifest_hashes_match_files():
+    """Every predictions_sha256 recorded in manifest.json must match the actual
+    (LF-normalized) prediction file on disk."""
+    if not _have_artifacts():
+        print("  [SKIP] no manifest yet"); raise SystemExit
+    import hashlib
+    manifest = json.load(open(os.path.join(CANDIDATE_DIR, "manifest.json"),
+                              encoding='utf-8'))
+    checked = 0
+    for mid, info in manifest['model_files'].items():
+        p = os.path.join(CANDIDATE_DIR, info['predictions_csv'])
+        h = hashlib.sha256()
+        with open(p, 'rb') as f:
+            for b in iter(lambda: f.read(1 << 20), b''):
+                h.update(b)
+        assert h.hexdigest() == info['predictions_sha256'], \
+            f"{mid}: manifest hash != file hash"
+        checked += 1
+    print(f"  [PASS] {checked} manifest prediction hashes match files on disk")
+
+
 def test_no_formal_artifacts_modified():
     """git diff on sealed formal E3/E4 artifact dirs must be clean."""
     for sub in ["E3b_vector_mlp", "E3_sample_adaptive", "shared_data"]:
@@ -361,6 +382,7 @@ if __name__ == '__main__':
         ("Key coverage and uniqueness", test_key_coverage_and_uniqueness),
         ("References match formal E3b", test_references_match_formal_e3b),
         ("Split matches formal E3b", test_split_matches_formal_e3b),
+        ("Manifest hashes match files", test_manifest_hashes_match_files),
         ("No formal artifacts modified", test_no_formal_artifacts_modified),
     ]
     print("=" * 64)
