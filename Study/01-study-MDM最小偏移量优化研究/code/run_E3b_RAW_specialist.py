@@ -540,6 +540,30 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def sha256_file_lf(path):
+    """Line-ending-stable hash: CRLF -> LF before hashing. The committed (in-repo)
+    form of every text file is LF, but a Windows checkout with core.autocrlf=true
+    materializes CRLF. Hashing the LF-normalized bytes makes the fingerprint
+    independent of the checkout's line endings, so SHA256SUMS verifies anywhere.
+    """
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        prev = b''
+        while True:
+            block = f.read(1 << 20)
+            if not block:
+                break
+            # stitch the chunk boundary so a '\r\n' split across reads is handled
+            data = prev + block
+            data = data.replace(b'\r\n', b'\n')
+            # keep a 1-byte tail in case the block ends with '\r'
+            prev = data[-1:] if data.endswith(b'\r') else b''
+            h.update(data[:-1] if prev else data)
+        if prev:
+            h.update(prev)
+    return h.hexdigest()
+
+
 def sha256_bytes(b):
     return hashlib.sha256(b).hexdigest()
 
@@ -575,7 +599,7 @@ def write_sha256sums():
 
     def add(abs_path):
         rel = os.path.relpath(abs_path, PROJECT_ROOT).replace(os.sep, '/')
-        entries.append((rel, sha256_file(abs_path)))
+        entries.append((rel, sha256_file_lf(abs_path)))
 
     # source data: 45 MDM chunks + MC manifest
     for p in list_mdm_chunks():
@@ -648,12 +672,11 @@ def finalize_provenance(manifest):
     # 3. provenance block (execution commit comes from get_git_metadata already in manifest)
     manifest['provenance'] = {
         'sha256sums_file': 'artifacts/candidate/E3b_RAW_specialist/SHA256SUMS',
-        'sha256sums_format': ('GNU `sha256sum -c` compatible; verify from repo root: '
-                              '`sha256sum -c artifacts/candidate/E3b_RAW_specialist/SHA256SUMS`. '
-                              'Covers source data (45 MDM chunks + MC manifest), code '
-                              '(run_E3b_RAW_specialist.py + config.py + sample.py), and every '
-                              'result file. All covered files are LF-normalized; the manifest '
-                              'references SHA256SUMS by path, not by hash, to avoid a hash cycle.'),
+        'sha256sums_format': ('LF-normalized content fingerprints (every entry has CRLF->LF '
+                              'normalized before hashing, so the fingerprint is independent of '
+                              'the checkout line endings). Verify with the contract test '
+                              '(test_sha256sums_present_and_consistent) or any tool that '
+                              'normalizes line endings before hashing.'),
         'fingerprints': {
             'delta_grid_sha256': delta_grid_sha256(),
             'code_sha256': code_sha256(),

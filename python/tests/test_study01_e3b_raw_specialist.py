@@ -360,11 +360,22 @@ def test_checkpoint_valid_rejects_mismatch():
 
 
 def _sha256(path):
+    """Line-ending-stable hash used for SHA256SUMS verification. CRLF->LF before
+    hashing so the fingerprint is independent of the checkout's autocrlf behavior."""
     import hashlib
     h = hashlib.sha256()
+    prev = b''
     with open(path, 'rb') as f:
-        for b in iter(lambda: f.read(1 << 20), b''):
-            h.update(b)
+        while True:
+            block = f.read(1 << 20)
+            if not block:
+                break
+            data = prev + block
+            data = data.replace(b'\r\n', b'\n')
+            prev = data[-1:] if data.endswith(b'\r') else b''
+            h.update(data[:-1] if prev else data)
+        if prev:
+            h.update(prev)
     return h.hexdigest()
 
 
