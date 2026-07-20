@@ -26,7 +26,6 @@ import hashlib
 import json
 import os
 import shutil
-import stat
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -79,7 +78,9 @@ from .formal_runner import (
     fit_training_scaler,
 )
 from .formal_scheduler import (
+    _contained,
     _rebuild_authority,
+    _reject_alias,
     claim_next_fit,
     materialize_run,
     record_fit_failed,
@@ -716,28 +717,31 @@ def _validate_selection_point_evidence_dir(
     (NOT under the scheduler-authority ``outputs/{fit_id}/``). It must contain exactly the
     expected candidate set -- ``missing``/``extra``/``duplicate``/``alias``/``non-file``/
     ``nested``/``unknown fit`` all fail closed. Returns ``{fit_id: path}`` for the exact set.
+
+    Alias-chain: the directory AND every parent (``run_dir/selection``, ``run_dir``) must be
+    real -- no symlink/junction/reparse/hardlink -- and the resolved path must stay within
+    ``run_dir``. Reuses the scheduler's ``_reject_alias`` (path + parents) and ``_contained``
+    (no new framework); per-entry checks mirror the scheduler's
+    ``os.scandir`` + ``is_file(follow_symlinks=False)`` + ``_reject_alias(..., require_file=True)``.
     """
-    directory = run_dir.joinpath(*_SELECTION_POINT_EVIDENCE_REL)
+    relative = Path(*_SELECTION_POINT_EVIDENCE_REL)
+    directory = _contained(run_dir, str(relative))  # resolved path stays within run_dir (no traversal escape)
     if not directory.is_dir():
         raise ValueError(f"selection point-evidence directory is missing: {directory}")
+    _reject_alias(directory)  # dir + all parents (run_dir/selection, run_dir) reject symlink/junction/reparse/hardlink
     by_fit: dict[str, Path] = {}
-    for entry in sorted(directory.iterdir()):
-        info = entry.lstat()
-        reparse = getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
-        if stat.S_ISLNK(info.st_mode) or reparse:
-            raise ValueError(f"aliases/reparse points are forbidden in selection point-evidence dir: {entry}")
-        if not stat.S_ISREG(info.st_mode):
-            raise ValueError(f"selection point-evidence dir contains a non-file/nested entry: {entry}")
-        if info.st_nlink != 1:
-            raise ValueError(f"hard-linked selection point-evidence files are forbidden: {entry}")
-        if entry.suffix != ".json":
-            raise ValueError(f"selection point-evidence dir contains a non-json entry: {entry}")
-        fit_id = entry.stem
+    for entry in sorted(os.scandir(directory), key=lambda e: e.name):
+        if not entry.is_file(follow_symlinks=False):  # reject non-file/nested/broken-symlink before the alias check
+            raise ValueError(f"selection point-evidence dir contains a non-file/nested entry: {entry.name}")
+        path = _reject_alias(Path(entry.path), require_file=True)  # plain file, no symlink/reparse/hardlink (nlink==1)
+        if path.suffix != ".json":
+            raise ValueError(f"selection point-evidence dir contains a non-json entry: {path.name}")
+        fit_id = path.stem
         if fit_id in by_fit:
             raise ValueError(f"duplicate selection point-evidence fit_id: {fit_id}")
         if fit_id not in expected_fit_ids:
             raise ValueError(f"selection point-evidence dir contains an unknown fit_id: {fit_id}")
-        by_fit[fit_id] = entry
+        by_fit[fit_id] = path
     missing = sorted(set(expected_fit_ids) - set(by_fit))
     if missing:
         raise ValueError(f"selection point-evidence directory is missing fits: {missing}")

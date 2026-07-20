@@ -24,7 +24,7 @@ from study02a.config import load_frozen_config
 from study02a import design
 from study02a.matrix import expand_module_matrix
 from study02a.pilot import run_pilot
-from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run
+from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run, _rebuild_authority
 from study02a.formal_executor import (
     build_module_pre_unseal_bundle,
     run_module as run_formal_module,
@@ -290,26 +290,31 @@ def accredit_build(module: str, run_id: str, artifact_root: Path, cache_root: Pa
     completed module run needs (fit_status.csv, ceiling_hit_report.json, leakage_audit.json) from
     the run's per-fit evidence + selection trace, then build the pre-unseal bundle.
 
-    The diagnostics are not produced by training/selection; this entry reconstructs them
-    faithfully (per-fit trajectory + selection context + frozen-design role points) so the bundle
-    can accredit the run up to test unseal. Test stays sealed; point provenance is rebuilt inside
-    the bundle builder (R5). No training; no test read.
+    Authority preflight FIRST: a full ``_rebuild_authority`` replay is the sole source of the
+    manifest, plan and ``fit_states`` -- raw ``manifest.json``/``plan.jsonl``/receipt JSON are never
+    trusted as fact. The replay raises on any tampering (terminal-receipt content vs event
+    ``receipt_sha256``, ``plan_sha256``, event-chain hash, manifest/controller-anchor drift) BEFORE
+    any diagnostic file is written. Each selection fit's point-evidence ``failed`` flag, scheduler
+    ``fit_state`` and terminal-receipt state must then agree (three-way consistency). The
+    diagnostics are not produced by training/selection; this entry reconstructs them faithfully so
+    the bundle can accredit the run up to test unseal. Test stays sealed; point provenance is
+    rebuilt inside the bundle builder (R5). No training; no test read.
     """
     run_dir = Path(artifact_root) / module / run_id
     frozen = load_frozen_config(STUDY_ROOT)
     effective = load_effective_formal_config(STUDY_ROOT)
-    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    # Authority preflight (FIRST): replay-verified manifest/plan/fit_states. Raises on tampering
+    # before any diagnostic is written. Requires a clean scoped code/ tree (same as all scheduler use).
+    authority_manifest, verified_plan, scheduler_state, _events = _rebuild_authority(run_dir, cache_root)
+    manifest = authority_manifest
+    fit_states = scheduler_state["fit_states"]
+    plan_by_fit: dict[str, dict] = {str(row["fit_id"]): row for row in verified_plan}
 
     trace_records = [
         json.loads(line) for line in (run_dir / "selection_trace.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()]
     selected_by_decision = {
         str(r["decision_id"]): str(r["candidate_id"]) for r in trace_records if r.get("selected")}
-    plan_by_fit: dict[str, dict] = {}
-    for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            row = json.loads(line)
-            plan_by_fit[str(row["fit_id"])] = row
 
     # Expected selection fit_id set from the FROZEN authority (matrix -> DecisionSpecs), NOT a
     # directory scan of outputs/. Selection candidates are matrix-determined; their point evidence is
@@ -339,15 +344,24 @@ def accredit_build(module: str, run_id: str, artifact_root: Path, cache_root: Pa
             fit_id=fit_id, module_id=module, rule_id=str(plan_row["rule_id"]), route_id=str(plan_row["route"]),
             n=n, seed=int(plan_row["seed"]), decision_id=evaluation.decision_id,
             candidate_id=evaluation.candidate_id, selected=selected)
-        # Three independent sources must agree, else fail closed: the scheduler terminal receipt
-        # (state), the point-evidence failure record (evaluation.failed), and the training evidence
-        # file (evidence.json present iff succeeded). No fit may vanish from accreditation because
-        # its evidence.json is absent -- a failed fit gets a failure row, never a silent skip.
+        # Three independent sources must agree, else fail closed (before any diagnostic write): the
+        # scheduler fit_state (from the authority replay), the terminal-receipt state (hash-verified by
+        # the replay) and the point-evidence failure record. No fit may vanish -- a failed fit gets a
+        # failure row, never a silent skip.
+        scheduler_fit = fit_states.get(fit_id)
         receipt_state, failure_code = _fit_terminal_receipt(run_dir, fit_id)
         evidence_path = run_dir / "outputs" / fit_id / "evidence.json"
-        if receipt_state == "succeeded":
+        if scheduler_fit not in ("succeeded", "failed"):
+            raise ValueError(
+                f"selection fit {fit_id} is not scheduler-terminal (state={scheduler_fit!r}); "
+                f"accreditation requires a complete terminal run")
+        if receipt_state != scheduler_fit:
+            raise ValueError(
+                f"selection fit {fit_id}: scheduler fit_state {scheduler_fit!r} disagrees with its "
+                f"terminal-receipt state {receipt_state!r}")
+        if scheduler_fit == "succeeded":
             if evaluation.failed:
-                raise ValueError(f"selection fit {fit_id} scheduler-terminal succeeded but its point evidence is failed")
+                raise ValueError(f"selection fit {fit_id}: scheduler succeeded but its point evidence is failed")
             if not evidence_path.is_file():
                 raise ValueError(f"succeeded selection fit {fit_id} has no training evidence.json")
             evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
@@ -360,9 +374,9 @@ def accredit_build(module: str, run_id: str, artifact_root: Path, cache_root: Pa
                 early_stop_reason=str(evidence["early_stop_reason"]),
                 hit_epoch_ceiling=bool(evidence["hit_epoch_100"]))
             rows.append(build_fit_status_record(**common, result=result, selection_score=float(evaluation.selection_score)))
-        else:  # receipt_state == "failed"
+        else:  # scheduler_fit == "failed"
             if not evaluation.failed:
-                raise ValueError(f"selection fit {fit_id} scheduler-terminal failed but its point evidence is not failed")
+                raise ValueError(f"selection fit {fit_id}: scheduler failed but its point evidence is not failed")
             if evidence_path.is_file():
                 raise ValueError(f"failed selection fit {fit_id} unexpectedly has a training evidence.json")
             rows.append(build_fit_status_record(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -1125,6 +1126,7 @@ def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id=
     base_score = _smoke_score_fit()
     evaluations_by_fit = {}
     plan_lines = []
+    plan_row_objs = []
     for index, r in enumerate(search_rows):
         fit_id = str(r["fit_id"]); n = int(r["n"]); seed = int(r["seed"])
         plan_row_obj = _plan_row(
@@ -1144,6 +1146,7 @@ def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id=
             evaluation = base_score(fit_id, score_plan_row)
         evaluations_by_fit[fit_id] = evaluation
         plan_lines.append(json.dumps(plan_row_obj, sort_keys=True))
+        plan_row_objs.append(plan_row_obj)
         if failed_fit is not None and fit_id == failed_fit:
             (run_dir / "receipts").mkdir(parents=True, exist_ok=True)
             (run_dir / "receipts" / f"{fit_id}.failed.json").write_text(json.dumps({
@@ -1193,6 +1196,16 @@ def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id=
     # bundle rebuild stands in for reading bound checkpoints (no training, no test read)
     monkeypatch.setattr(fe, "rebuild_selection_point_provenance",
                         lambda *, study_root, run_dir, cache_root, module_id, run_id: dict(evaluations_by_fit))
+    # authority preflight stands in for the full _rebuild_authority replay: returns the verified
+    # manifest/plan/fit_states (fit_states matching the fixture's terminal receipts) so accredit_build's
+    # processing path is exercised without a multi-hour real-scheduler run. The REAL rebuild's tamper-
+    # detection is covered by the attack tests (which use the unmocked _rebuild_authority).
+    _fit_states = {fid: ("failed" if (failed_fit is not None and fid == failed_fit) else "succeeded")
+                   for fid in fit_ids}
+
+    def _fake_rebuild_authority(run_dir, cache_root, **kw):
+        return manifest, list(plan_row_objs), {"fit_states": dict(_fit_states)}, []
+    monkeypatch.setattr(run_study02a, "_rebuild_authority", _fake_rebuild_authority)
     return run_dir, fit_ids, evaluations_by_fit
 
 
@@ -1308,6 +1321,136 @@ def test_validate_selection_point_evidence_dir_fail_closed(tmp_path, defect):
                 (pe_dir / f"{fid}.json").write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError):
         fe._validate_selection_point_evidence_dir(run_dir=tmp_path, expected_fit_ids=set(expected))
+
+
+def _make_dir_alias(target: Path, link: Path):
+    """Create a directory alias ``link -> target`` and skip (without faking coverage) if the platform
+    can create neither. Tries a POSIX symlink first, then a Windows junction (``mklink /J``, no
+    privilege required); both are reparse/symlink entries that ``_reject_alias`` forbids, so either
+    exercises the directory alias-chain rejection on its platform."""
+    try:
+        os.symlink(target, link); return
+    except (OSError, NotImplementedError):
+        pass
+    if os.name == "nt":
+        import subprocess
+        result = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)],
+                                capture_output=True, text=True)
+        if result.returncode == 0 and link.exists():
+            return
+    pytest.skip("neither symlink nor junction creation available on this platform")
+
+
+def test_point_evidence_dir_rejects_alias_directory(tmp_path):
+    """The selection point_evidence directory ITSELF being a symlink/junction/reparse is rejected
+    (the dir alias-chain check walks the directory + all parents)."""
+    expected = {"f1", "f2", "f3"}
+    target = tmp_path / "real_point_evidence"; target.mkdir(parents=True)
+    for fid in expected:
+        (target / f"{fid}.json").write_text("{}", encoding="utf-8")
+    run_dir = tmp_path / "run"; (run_dir / "selection").mkdir(parents=True)
+    _make_dir_alias(target, run_dir / "selection" / "point_evidence")
+    with pytest.raises(ValueError, match="alias|reparse"):
+        fe._validate_selection_point_evidence_dir(run_dir=run_dir, expected_fit_ids=set(expected))
+
+
+def test_point_evidence_dir_rejects_alias_selection_parent(tmp_path):
+    """A symlink/junction on the ``selection`` PARENT is rejected: _reject_alias walks all parents."""
+    expected = {"f1", "f2", "f3"}
+    target = tmp_path / "real_selection" / "point_evidence"; target.mkdir(parents=True)
+    for fid in expected:
+        (target / f"{fid}.json").write_text("{}", encoding="utf-8")
+    run_dir = tmp_path / "run"; run_dir.mkdir(parents=True)
+    _make_dir_alias(target.parent, run_dir / "selection")
+    with pytest.raises(ValueError, match="alias|reparse"):
+        fe._validate_selection_point_evidence_dir(run_dir=run_dir, expected_fit_ids=set(expected))
+
+
+def test_point_evidence_dir_accepts_real_directory(tmp_path):
+    """Sanity: a plain real directory of the exact expected files passes (no alias)."""
+    expected = {"f1", "f2", "f3"}
+    pe_dir = tmp_path / "selection" / "point_evidence"; pe_dir.mkdir(parents=True)
+    for fid in expected:
+        (pe_dir / f"{fid}.json").write_text("{}", encoding="utf-8")
+    by_fit = fe._validate_selection_point_evidence_dir(run_dir=tmp_path, expected_fit_ids=set(expected))
+    assert set(by_fit) == expected
+
+
+# ---------------------------------------------------------------------------
+# Accreditation authority preflight (Gap 2): the real _rebuild_authority replay is the FIRST thing
+# accredit_build does, so any tampering raises BEFORE any diagnostic file is written.
+# ---------------------------------------------------------------------------
+
+def _accredit_attack_run(tmp_path):
+    """A minimal REAL scheduler run (materialize + 1 succeeded fit via synthetic outputs) for the
+    accreditation authority-preflight attack tests. Self-contained (no cross-test-module import);
+    mirrors test_study02a_formal_scheduler._build_mixed_run / _write_success. Returns (run_dir, cache)."""
+    from study02a.formal_scheduler import materialize_run, claim_next_fit, record_fit_succeeded
+    matrix_path = STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv"
+    run_dir = Path(materialize_run(
+        study_root=STUDY_ROOT, matrix_path=matrix_path, module_id="A-E1", run_id="G3-AE1-attack-v1",
+        artifact_root=tmp_path / "artifacts", cache_root=tmp_path / "cache", predecessor=None)["run_dir"])
+    cache = tmp_path / "cache"
+    claim = claim_next_fit(run_dir, cache_root=cache, owner_id="w1", owner_nonce="n1", timestamp="2026-07-20T00:00:00Z")
+    fit_id, run_id_val = claim["fit_id"], claim["run_id"]
+    ckpt = b"attack-checkpoint"; ckpt_sha = hashlib.sha256(ckpt).hexdigest()
+    curve = [100.0 / (i + 1) for i in range(60)]
+    best_epoch_zero = min(range(len(curve)), key=lambda i: curve[i])
+    evidence = {
+        "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id, "run_id": run_id_val,
+        "checkpoint_sha256": ckpt_sha, "actual_epochs": len(curve),
+        "best_epoch_one_based": best_epoch_zero + 1, "hit_epoch_100": False,
+        "early_stop_reason": "patience_exhausted",
+        "terminal_validation_slope": fe._terminal_ols_slope(tuple(curve)),
+        "validation_curve": curve, "test_access_count": 0,
+    }
+    output_hashes = fe._write_outputs(run_dir, fit_id, run_id_val, ckpt, ckpt_sha, evidence)
+    record_fit_succeeded(run_dir, cache_root=cache, fit_id=fit_id, owner_id="w1", owner_nonce="n1",
+                         output_hashes=output_hashes, timestamp="2026-07-20T00:00:01Z")
+    return run_dir, cache
+
+
+def _assert_no_accredit_diagnostics(run_dir: Path):
+    assert not (run_dir / "fit_status.csv").exists()
+    assert not (run_dir / "ceiling_hit_report.json").exists()
+    assert not (run_dir / "leakage_audit.json").exists()
+    assert not (run_dir / "pre_unseal_bundle.json").exists()
+
+
+def test_accredit_build_rejects_tampered_terminal_receipt(tmp_path):
+    """A terminal receipt rewritten (filename unchanged) flips its hash vs the event's receipt_sha256;
+    the authority preflight (_rebuild_authority) raises before any diagnostic is written."""
+    import run_study02a
+    run_dir, cache = _accredit_attack_run(tmp_path)
+    receipt_file = sorted((run_dir / "receipts").glob("*.succeeded.json"))[0]
+    forged = json.loads(receipt_file.read_text(encoding="utf-8")); forged["owner_id"] = "tampered-owner"
+    receipt_file.write_bytes(fe._canonical(forged))
+    with pytest.raises(ValueError):
+        run_study02a.accredit_build("A-E1", "G3-AE1-attack-v1", tmp_path / "artifacts", cache)
+    _assert_no_accredit_diagnostics(run_dir)
+
+
+def test_accredit_build_rejects_tampered_plan(tmp_path):
+    """plan.jsonl tampered after materialize -> plan_sha256 mismatch -> preflight raises, no diagnostics."""
+    import run_study02a
+    run_dir, cache = _accredit_attack_run(tmp_path)
+    plan_file = run_dir / "plan.jsonl"
+    plan_file.write_bytes(plan_file.read_bytes() + b'{"tampered": true}\n')
+    with pytest.raises(ValueError, match="plan"):
+        run_study02a.accredit_build("A-E1", "G3-AE1-attack-v1", tmp_path / "artifacts", cache)
+    _assert_no_accredit_diagnostics(run_dir)
+
+
+def test_accredit_build_rejects_tampered_event(tmp_path):
+    """A scheduler event rewritten -> event-chain/hash mismatch -> preflight raises, no diagnostics."""
+    import run_study02a
+    run_dir, cache = _accredit_attack_run(tmp_path)
+    event_file = sorted((run_dir / "events").glob("*.json"))[-1]
+    forged = json.loads(event_file.read_text(encoding="utf-8")); forged["payload"]["tampered"] = True
+    event_file.write_bytes(fe._canonical(forged))
+    with pytest.raises(ValueError):
+        run_study02a.accredit_build("A-E1", "G3-AE1-attack-v1", tmp_path / "artifacts", cache)
+    _assert_no_accredit_diagnostics(run_dir)
 
 
 # ---------------------------------------------------------------------------
