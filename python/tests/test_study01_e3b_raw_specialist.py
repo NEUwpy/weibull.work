@@ -334,6 +334,87 @@ def test_split_matches_formal_e3b():
     print("  [PASS] candidate split == formal E3b split (identical 5-fold holdout)")
 
 
+def test_checkpoint_valid_rejects_mismatch():
+    """Hardened checkpoint_valid must accept correct fingerprints and reject every
+    mismatch (test-key set / delta grid / code / row count)."""
+    if not _have_artifacts():
+        print("  [SKIP] no manifest yet"); raise SystemExit
+    from run_E3b_RAW_specialist import (checkpoint_valid, compute_test_keys_sha,
+        delta_grid_sha256, code_sha256)
+    n, fold, seed = 7, 0, 42
+    test_n = 3000  # 3 held-out combos (n=7) x 1000 repeats
+    tks_ok = compute_test_keys_sha(n, fold)
+    tks_wrong = compute_test_keys_sha(n, 1)   # fold-2 key set
+    dgs = delta_grid_sha256()
+    ccs = code_sha256()
+    assert checkpoint_valid(n, fold, seed, test_n, tks_ok, dgs, ccs) is True
+    assert checkpoint_valid(n, fold, seed, test_n, tks_wrong, dgs, ccs) is False, \
+        "wrong test-key fingerprint must be rejected"
+    assert checkpoint_valid(n, fold, seed, test_n, tks_ok, dgs, '0' * 64) is False, \
+        "wrong code fingerprint must be rejected"
+    assert checkpoint_valid(n, fold, seed, test_n, tks_ok, '0' * 64, ccs) is False, \
+        "wrong delta fingerprint must be rejected"
+    assert checkpoint_valid(n, fold, seed, 2999, tks_ok, dgs, ccs) is False, \
+        "wrong test row count must be rejected"
+    print("  [PASS] checkpoint_valid accepts correct, rejects all fingerprint/count mismatches")
+
+
+def _sha256(path):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for b in iter(lambda: f.read(1 << 20), b''):
+            h.update(b)
+    return h.hexdigest()
+
+
+def test_sha256sums_present_and_consistent():
+    """SHA256SUMS exists, is GNU-format, every entry verifies against disk, and it
+    covers source data + code + results."""
+    if not _have_artifacts():
+        print("  [SKIP] no manifest yet"); raise SystemExit
+    sp = os.path.join(CANDIDATE_DIR, "SHA256SUMS")
+    assert os.path.exists(sp), "SHA256SUMS missing"
+    bad = total = 0
+    n_src = n_code = n_res = 0
+    for line in open(sp, encoding='utf-8'):
+        line = line.rstrip('\n')
+        if not line:
+            continue
+        h, _, rel = line.partition('  ')
+        total += 1
+        fp = os.path.join(PROJECT_ROOT, rel.replace('/', os.sep))
+        if 'shared_data' in rel:
+            n_src += 1
+        elif rel.endswith(('run_E3b_RAW_specialist.py', 'config.py', 'sample.py')):
+            n_code += 1
+        elif rel.startswith('artifacts/candidate/E3b_RAW_specialist/'):
+            n_res += 1
+        if not os.path.exists(fp) or _sha256(fp) != h:
+            bad += 1
+    assert bad == 0, f"{bad}/{total} SHA256SUMS entries do not verify"
+    assert n_src == 46, f"expected 46 source entries (45 chunks + manifest), got {n_src}"
+    assert n_code == 3, f"expected 3 code entries, got {n_code}"
+    assert n_res >= 90, f"expected >=90 result entries, got {n_res}"
+    print(f"  [PASS] SHA256SUMS: {total} entries all verify "
+          f"(src={n_src}, code={n_code}, result={n_res})")
+
+
+def test_near_optimal_rows_identifiable():
+    """near_optimal_diagnostics.csv must carry seed/fold/model_id so each of the
+    135000 rows is identifiable (not just 45000 unique sample keys)."""
+    if not _have_artifacts():
+        print("  [SKIP] no manifest yet"); raise SystemExit
+    df = pd.read_csv(os.path.join(CANDIDATE_DIR, "diagnostics",
+                                  "near_optimal_diagnostics.csv"))
+    for col in ('seed', 'fold', 'model_id'):
+        assert col in df.columns, f"near_optimal missing {col}"
+    assert len(df) == 135000, f"expected 135000 rows, got {len(df)}"
+    assert df['model_id'].nunique() == 45, "model_id not unique over 45 models"
+    assert df[['seed', 'fold']].drop_duplicates().shape[0] == 15, "seed x fold not 15"
+    print(f"  [PASS] near_optimal: 135000 rows, 45 model_ids, seed/fold/model_id present")
+
+
 def test_manifest_hashes_match_files():
     """Every predictions_sha256 recorded in manifest.json must match the actual
     (LF-normalized) prediction file on disk."""
@@ -382,6 +463,9 @@ if __name__ == '__main__':
         ("Key coverage and uniqueness", test_key_coverage_and_uniqueness),
         ("References match formal E3b", test_references_match_formal_e3b),
         ("Split matches formal E3b", test_split_matches_formal_e3b),
+        ("checkpoint_valid rejects mismatch", test_checkpoint_valid_rejects_mismatch),
+        ("SHA256SUMS present and consistent", test_sha256sums_present_and_consistent),
+        ("Near-optimal rows identifiable", test_near_optimal_rows_identifiable),
         ("Manifest hashes match files", test_manifest_hashes_match_files),
         ("No formal artifacts modified", test_no_formal_artifacts_modified),
     ]

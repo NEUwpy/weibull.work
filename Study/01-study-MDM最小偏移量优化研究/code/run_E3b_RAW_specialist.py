@@ -466,9 +466,20 @@ def checkpoint_paths(n_val, fold_idx, seed):
             os.path.join(PREDS_DIR, f"{mid}.csv"))
 
 
-def checkpoint_valid(n_val, fold_idx, seed, expected_test_n):
-    """A checkpoint is valid if both files exist, JSON has contract_version,
-    and the predictions CSV has exactly expected_test_n rows with the right n.
+def checkpoint_valid(n_val, fold_idx, seed, expected_test_n,
+                     test_keys_sha, delta_sha, code_sha):
+    """Strictly validate a (n, fold, seed) checkpoint.
+
+    A checkpoint is accepted only if ALL of:
+      - meta JSON + predictions CSV both exist
+      - contract_version, model_id, n, fold, seed, input_dim, test_n_samples match
+      - provenance fingerprints match: test sample-key set, DELTA_GRID, executed code
+      - predictions_sha256 matches the file on disk (tamper/round-trip check)
+      - predictions CSV has expected_test_n rows, all 26 pred_d* columns,
+        unique (beta,gamma/eta,n,repeat_id) keys, and argmin(pred)==selected_delta
+
+    This rejects a file copied from a different fold/seed of the same n, any tampered
+    prediction, and any drift in data/split/delta-grid/code since the checkpoint was made.
     """
     mpath, ppath = checkpoint_paths(n_val, fold_idx, seed)
     if not (os.path.exists(mpath) and os.path.exists(ppath)):
@@ -477,19 +488,46 @@ def checkpoint_valid(n_val, fold_idx, seed, expected_test_n):
         meta = json.load(open(mpath, encoding='utf-8'))
     except Exception:
         return False
+    # full identity + contract fields
     if meta.get('contract_version') != CONTRACT_VERSION:
         return False
-    if meta.get('input_dim') != n_val:
+    if meta.get('model_id') != model_id(n_val, fold_idx, seed):
         return False
-    if meta.get('test_n_samples') != expected_test_n:
+    if meta.get('n') != int(n_val) or meta.get('fold') != int(fold_idx + 1) \
+            or meta.get('seed') != int(seed):
         return False
+    if meta.get('input_dim') != int(n_val):
+        return False
+    if meta.get('test_n_samples') != int(expected_test_n):
+        return False
+    # provenance fingerprints (data/split/delta/code must be unchanged)
+    if meta.get('test_sample_keys_sha256') != test_keys_sha:
+        return False
+    if meta.get('delta_grid_sha256') != delta_sha:
+        return False
+    if meta.get('code_sha256') != code_sha:
+        return False
+    # prediction file tamper check
+    if meta.get('predictions_sha256') != sha256_file(ppath):
+        return False
+    # prediction content checks
     try:
         dfp = pd.read_csv(ppath)
     except Exception:
         return False
     if len(dfp) != expected_test_n:
         return False
-    if int(dfp['n'].iloc[0]) != n_val:
+    pred_cols = [f'pred_d{d}' for d in DELTA_GRID]
+    if not all(c in dfp.columns for c in pred_cols):
+        return False
+    key_cols = ['beta', 'gamma_over_eta', 'n', 'repeat_id']
+    if dfp[key_cols].drop_duplicates().shape[0] != expected_test_n:
+        return False
+    if int(dfp['n'].iloc[0]) != int(n_val):
+        return False
+    best = np.argmin(dfp[pred_cols].values, axis=1)
+    sel_rebuilt = np.array([DELTA_GRID[i] for i in best])
+    if not np.allclose(sel_rebuilt, dfp['selected_delta'].values, atol=1e-9):
         return False
     return True
 
@@ -502,11 +540,144 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def sha256_bytes(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+# ---- Provenance fingerprints (used by checkpoint_valid + manifest + SHA256SUMS) ----
+
+def compute_test_keys_sha(n_val, fold_idx):
+    """Stable fingerprint of the exact test sample-key set for (n, fold).
+
+    Deterministic from the fold grid alone (no data dependency), so save-time and
+    resume-time computations agree and detect any combo/split drift.
+    """
+    fold = get_combo_split()[fold_idx]
+    test_combos_n = sorted(c for c in fold['test_combos'] if c[2] == n_val)
+    key_tuples = sorted((float(b), float(g), int(n), int(rid))
+                        for (b, g, n) in test_combos_n for rid in range(R_MAIN))
+    return sha256_bytes(json.dumps(key_tuples).encode())
+
+
+def delta_grid_sha256():
+    return sha256_bytes(json.dumps(list(DELTA_GRID)).encode())
+
+
+def code_sha256():
+    """Fingerprint of the script file actually executed (binds checkpoints to code)."""
+    return sha256_file(os.path.abspath(__file__))
+
+
+def write_sha256sums():
+    """Write a standalone GNU-style SHA256SUMS covering source data, code, and all
+    result files. Returns (relative_path_of_SHA256SUMS, its_own_sha256, coverage)."""
+    entries = []  # (relpath, hash)
+
+    def add(abs_path):
+        rel = os.path.relpath(abs_path, PROJECT_ROOT).replace(os.sep, '/')
+        entries.append((rel, sha256_file(abs_path)))
+
+    # source data: 45 MDM chunks + MC manifest
+    for p in list_mdm_chunks():
+        add(p)
+    add(MC_MANIFEST_PATH)
+    # code that runs: this script + the two imported contracts it depends on
+    for cp in [os.path.join(STUDY_CODE_DIR, 'run_E3b_RAW_specialist.py'),
+               os.path.join(STUDY_CODE_DIR, 'config.py'),
+               os.path.join(PYTHON_DIR, 'studies', 'common', 'sample.py')]:
+        if os.path.exists(cp):
+            add(cp)
+    # all result files in OUTPUT_DIR (exclude SHA256SUMS itself)
+    for root, _, files in os.walk(OUTPUT_DIR):
+        for fn in files:
+            if fn == 'SHA256SUMS':
+                continue
+            add(os.path.join(root, fn))
+
+    entries.sort(key=lambda e: e[0])
+    content = ''.join(f"{h}  {p}\n" for p, h in entries)
+    out_path = os.path.join(OUTPUT_DIR, 'SHA256SUMS')
+    with open(out_path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(content)
+    coverage = {
+        'source_data_files': sum(1 for p, _ in entries if 'shared_data' in p),
+        'code_files': sum(1 for p, _ in entries if p.endswith(('run_E3b_RAW_specialist.py', 'config.py', 'sample.py'))),
+        'result_files': sum(1 for p, _ in entries if 'artifacts/candidate/E3b_RAW_specialist/' in p),
+        'total_entries': len(entries),
+    }
+    return 'artifacts/candidate/E3b_RAW_specialist/SHA256SUMS', sha256_bytes(content.encode()), coverage
+
+
+def finalize_provenance(manifest):
+    """Last step of a run: LF-normalize every candidate text artifact, recompute
+    prediction hashes on the canonical LF bytes, patch the manifest with a
+    provenance block, rewrite it (LF), then emit SHA256SUMS over the final tree.
+
+    Ordering breaks the hash circularity: the manifest references SHA256SUMS by
+    path/coverage (not by hash), and SHA256SUMS is generated LAST so it covers the
+    already-final manifest. All covered files are LF on disk == in-repo (eol=lf),
+    so fingerprints survive any checkout.
+    """
+    # 1. LF-normalize all text artifacts already written (predictions, models,
+    #    manifest, summary, run_log, diagnostics)
+    for root, _, files in os.walk(OUTPUT_DIR):
+        for fn in files:
+            if fn == 'SHA256SUMS' or not fn.endswith(('.csv', '.json', '.txt')):
+                continue
+            fp = os.path.join(root, fn)
+            with open(fp, 'rb') as f:
+                data = f.read()
+            if b'\r\n' in data:
+                with open(fp, 'wb') as f:
+                    f.write(data.replace(b'\r\n', b'\n'))
+
+    # 2. recompute prediction hashes on the LF files, patch model_files
+    for mid, info in manifest['model_files'].items():
+        info['predictions_sha256'] = sha256_file(
+            os.path.join(OUTPUT_DIR, info['predictions_csv']))
+
+    # 2b. patch each model JSON's predictions_sha256 too, so checkpoint_valid
+    #     (which reads the model JSON) still passes after LF normalization.
+    for mid, info in manifest['model_files'].items():
+        mp = os.path.join(OUTPUT_DIR, info['meta_json'])
+        mmeta = json.load(open(mp, encoding='utf-8'))
+        mmeta['predictions_sha256'] = info['predictions_sha256']
+        with open(mp, 'w', encoding='utf-8', newline='\n') as f:
+            json.dump(mmeta, f, indent=2, ensure_ascii=False)
+
+    # 3. provenance block (execution commit comes from get_git_metadata already in manifest)
+    manifest['provenance'] = {
+        'sha256sums_file': 'artifacts/candidate/E3b_RAW_specialist/SHA256SUMS',
+        'sha256sums_format': ('GNU `sha256sum -c` compatible; verify from repo root: '
+                              '`sha256sum -c artifacts/candidate/E3b_RAW_specialist/SHA256SUMS`. '
+                              'Covers source data (45 MDM chunks + MC manifest), code '
+                              '(run_E3b_RAW_specialist.py + config.py + sample.py), and every '
+                              'result file. All covered files are LF-normalized; the manifest '
+                              'references SHA256SUMS by path, not by hash, to avoid a hash cycle.'),
+        'fingerprints': {
+            'delta_grid_sha256': delta_grid_sha256(),
+            'code_sha256': code_sha256(),
+            'per_model_test_keys_sha256': 'in each models/*.json (test_sample_keys_sha256)',
+        },
+        'note': 'git_commit/git_commit_short above is the exact code commit checked out when the run executed.',
+    }
+
+    # 4. rewrite manifest (LF) in its final form
+    with open(os.path.join(OUTPUT_DIR, 'manifest.json'), 'w',
+              encoding='utf-8', newline='\n') as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False, default=str)
+
+    # 5. generate SHA256SUMS LAST so it covers the final manifest
+    sums_rel, _sums_sha, coverage = write_sha256sums()
+    return sums_rel, coverage
+
+
 def save_checkpoint(n_val, fold_idx, seed, metrics, n_iter, runtime_s,
                     input_scaler_mean, input_scaler_std,
                     target_scaler_mean, target_scaler_std,
                     df_sel, Y_pred, Y_true, keys_df, failure_penalty,
-                    train_n, test_n):
+                    train_n, test_n,
+                    test_keys_sha, delta_sha, code_sha):
     os.makedirs(MODELS_DIR, exist_ok=True)
     os.makedirs(PREDS_DIR, exist_ok=True)
     mid = model_id(n_val, fold_idx, seed)
@@ -548,6 +719,10 @@ def save_checkpoint(n_val, fold_idx, seed, metrics, n_iter, runtime_s,
         'input_scaler_fit': 'train fold of this n only (per-position StandardScaler)',
         'target_scaler_fit': 'train fold of this n only (26-dim StandardScaler)',
         'predictions_sha256': sha256_file(ppath),
+        # provenance fingerprints (verified on resume by checkpoint_valid)
+        'test_sample_keys_sha256': test_keys_sha,
+        'delta_grid_sha256': delta_sha,
+        'code_sha256': code_sha,
     }
     with open(mpath, 'w', encoding='utf-8') as f:
         json.dump(meta, f, indent=2, ensure_ascii=False)
@@ -570,7 +745,11 @@ def run_one(n_val, fold_idx, seed, df_full, raw_map, fold_prep_cache, log):
     expected_test_n = len(test_combos_n) * R_MAIN
 
     mid = model_id(n_val, fold_idx, seed)
-    if checkpoint_valid(n_val, fold_idx, seed, expected_test_n):
+    # Provenance fingerprints (deterministic; bind this checkpoint to its data/split/code)
+    tks = compute_test_keys_sha(n_val, fold_idx)
+    dgs = delta_grid_sha256()
+    ccs = code_sha256()
+    if checkpoint_valid(n_val, fold_idx, seed, expected_test_n, tks, dgs, ccs):
         log(f"  [skip] {mid} (valid checkpoint, test_n={expected_test_n})")
         mpath, ppath = checkpoint_paths(n_val, fold_idx, seed)
         meta = json.load(open(mpath, encoding='utf-8'))
@@ -600,7 +779,7 @@ def run_one(n_val, fold_idx, seed, df_full, raw_map, fold_prep_cache, log):
         n_val, fold_idx, seed, metrics, n_iter, runtime,
         in_sc.mean_, in_sc.scale_, tg_sc.mean_, tg_sc.scale_,
         df_sel, Y_pred, Y_te, keys_te, failure_penalty,
-        len(keys_tr), len(keys_te))
+        len(keys_tr), len(keys_te), tks, dgs, ccs)
     log(f"  [done] {mid}: J1={metrics['J1']:.6f} n_iter={n_iter} "
         f"t={runtime:.1f}s (train={len(keys_tr)}, test={len(keys_te)})")
     return {'skipped': False, 'meta': meta, 'df_sel': df_sel,
@@ -801,13 +980,38 @@ def run_experiment(force_rerun=False):
                     n_iters.append(res['n_iter'])
     df_all_sel = pd.concat(all_sel, ignore_index=True)
 
+    # Training stats — report BOTH the full 45-model population (read from every
+    # checkpoint, stable across cache-resumes) AND this invocation's new training,
+    # so a fully-cached resume no longer reports 0.
+    all_rt = [float(m['runtime_s']) for m in all_meta]
+    all_it = [int(m['n_iter']) for m in all_meta]
+    training_stats_all45 = {
+        'models': len(all_meta),
+        'runtime_s': {'total': float(np.sum(all_rt)), 'mean': float(np.mean(all_rt)),
+                      'min': float(np.min(all_rt)), 'max': float(np.max(all_rt))},
+        'n_iter': {'mean': float(np.mean(all_it)), 'min': int(np.min(all_it)),
+                   'max': int(np.max(all_it))},
+    }
+    training_stats_this_run = {
+        'models_trained': len(runtimes),
+        'models_skipped_cached': len(all_meta) - len(runtimes),
+        'runtime_s': {'total': float(np.sum(runtimes)) if runtimes else 0.0,
+                      'mean': float(np.mean(runtimes)) if runtimes else 0.0,
+                      'min': float(np.min(runtimes)) if runtimes else 0.0,
+                      'max': float(np.max(runtimes)) if runtimes else 0.0},
+        'n_iter': {'mean': float(np.mean(n_iters)) if n_iters else 0.0,
+                   'min': int(np.min(n_iters)) if n_iters else 0,
+                   'max': int(np.max(n_iters)) if n_iters else 0},
+    }
     log(f"\n  Trained this run: {len(runtimes)} models; "
         f"skipped (cached): {len(all_meta) - len(runtimes)}")
+    log(f"  [all 45]  runtime total={training_stats_all45['runtime_s']['total']:.1f}s "
+        f"mean={training_stats_all45['runtime_s']['mean']:.1f}s; "
+        f"n_iter mean={training_stats_all45['n_iter']['mean']:.1f} "
+        f"(min {training_stats_all45['n_iter']['min']}, max {training_stats_all45['n_iter']['max']})")
     if runtimes:
-        log(f"  Runtime: total={sum(runtimes):.1f}s mean={np.mean(runtimes):.1f}s "
-            f"min={np.min(runtimes):.1f}s max={np.max(runtimes):.1f}s")
-        log(f"  n_iter: mean={np.mean(n_iters):.1f} min={np.min(n_iters)} "
-            f"max={np.max(n_iters)}")
+        log(f"  [this run] runtime total={training_stats_this_run['runtime_s']['total']:.1f}s "
+            f"mean={training_stats_this_run['runtime_s']['mean']:.1f}s")
 
     # Verify all 45 models present
     expected_ids = {model_id(n, f, s) for n in SPECIALIST_NS for f in range(5) for s in SEEDS}
@@ -877,17 +1081,26 @@ def run_experiment(force_rerun=False):
     pd.DataFrame(diag_rows).to_csv(
         os.path.join(DIAG_DIR, 'endpoint_diagnostics.csv'), index=False)
 
-    # 3-seed pooled near-optimal
-    all_preds_3seed = []
+    # 3-seed pooled near-optimal (tag every row with seed/fold/model_id so the
+    # 135000-row file is row-identifiable, not just 45000 unique sample keys)
+    tagged_frames = []
     for seed in SEEDS:
         for n_val in SPECIALIST_NS:
             for fold_idx in range(5):
                 _, pp = checkpoint_paths(n_val, fold_idx, seed)
-                all_preds_3seed.append(pd.read_csv(pp))
-    dfp_all = pd.concat(all_preds_3seed, ignore_index=True)
+                d = pd.read_csv(pp)
+                d['seed'] = seed
+                d['fold'] = fold_idx + 1
+                d['n_specialist'] = n_val
+                d['model_id'] = model_id(n_val, fold_idx, seed)
+                tagged_frames.append(d)
+    dfp_all = pd.concat(tagged_frames, ignore_index=True)
     near_3seed = near_optimal_summary(dfp_all)
-    dfp_all[['beta', 'gamma_over_eta', 'n', 'repeat_id', 'selected_delta',
-             'true_loss', 'oracle_min_loss']].to_csv(
+    near_cols = ['model_id', 'seed', 'fold', 'n_specialist',
+                 'beta', 'gamma_over_eta', 'n', 'repeat_id',
+                 'selected_delta', 'selected_delta_idx',
+                 'true_loss', 'oracle_min_loss', 'pred_min']
+    dfp_all[near_cols].to_csv(
         os.path.join(DIAG_DIR, 'near_optimal_diagnostics.csv'), index=False)
 
     # Delta distribution (3-seed pooled)
@@ -1003,13 +1216,8 @@ def run_experiment(force_rerun=False):
             'raw_per_seed': seed_summary,
             'references_j1': ref_j1,
             'near_optimal_3seed': near_3seed,
-            'runtimes_s': {'total': float(sum(runtimes)) if runtimes else 0.0,
-                           'mean': float(np.mean(runtimes)) if runtimes else 0.0,
-                           'min': float(np.min(runtimes)) if runtimes else 0.0,
-                           'max': float(np.max(runtimes)) if runtimes else 0.0},
-            'n_iters': {'mean': float(np.mean(n_iters)) if n_iters else 0.0,
-                        'min': int(np.min(n_iters)) if n_iters else 0,
-                        'max': int(np.max(n_iters)) if n_iters else 0},
+            'training_stats_all45': training_stats_all45,
+            'training_stats_this_run': training_stats_this_run,
         },
         'comparison_f13': {
             'f13_3seed': f13_3seed,
@@ -1027,6 +1235,7 @@ def run_experiment(force_rerun=False):
                 'J1': m['metrics']['J1'],
                 'predictions_csv': f"predictions/{m['model_id']}.csv",
                 'predictions_sha256': m['predictions_sha256'],
+                'test_sample_keys_sha256': m['test_sample_keys_sha256'],
                 'meta_json': f"models/{m['model_id']}.json",
             } for m in all_meta
         },
@@ -1054,14 +1263,21 @@ def run_experiment(force_rerun=False):
         'near_optimal_3seed': near_3seed,
         'seed_table': seed_summary,
         'n_models': len(all_meta),
-        'runtimes': manifest['results']['runtimes_s'],
-        'n_iters': manifest['results']['n_iters'],
+        'training_stats_all45': training_stats_all45,
+        'training_stats_this_run': training_stats_this_run,
     }
     with open(os.path.join(OUTPUT_DIR, 'summary.json'), 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, ensure_ascii=False, default=str)
 
     with open(os.path.join(OUTPUT_DIR, 'run_log.txt'), 'w', encoding='utf-8') as f:
         f.write('\n'.join(buf))
+
+    # Final provenance pass: LF-normalize, recompute prediction hashes on LF
+    # bytes, write SHA256SUMS over the final tree.
+    sums_rel, sums_cov = finalize_provenance(manifest)
+    log(f"\n  Provenance: {sums_rel} ({sums_cov['total_entries']} entries: "
+        f"{sums_cov['source_data_files']} source, {sums_cov['code_files']} code, "
+        f"{sums_cov['result_files']} result)")
 
     elapsed = time.time() - t_start
     log(f"\nDone in {elapsed:.1f}s. Outputs in {OUTPUT_DIR}")
