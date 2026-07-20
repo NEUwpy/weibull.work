@@ -84,8 +84,10 @@ Restored / new slow tests:
   `test_access_count == 0`, `outputs/{fit_id}/` holds no point evidence, `selection/point_evidence/` holds 144.
   This is the blocker-fix verification on a real scheduler (contracts 2 + 8).
 - `test_staged_full_chain_smoke`: final check **restored to the real** `status_run`/`_rebuild_authority` (no
-  `scheduler_state.json` read workaround) — contract 8/9. **Running in background** (~2 h; the focused test
-  above already exercises the same post-selection authority path that the smoke's final line checks).
+  `scheduler_state.json` read workaround) — contract 8/9. **PASSED**: 8019 s (2 h 13 min), 349/349 fits,
+  699 events, `runner_saw_fits: 349` (no placeholder), `selected_F2_or_V: "F2"`, staged ledger chained,
+  **`test_access_count: 0`** read via the real post-selection `status_run`/`_rebuild_authority` (the
+  relocation is what lets that replay succeed).
 
 Existing fast slow tests (`test_smoke_a_e1_one_fit_end_to_end`,
 `test_run_module_defers_selection_dependent_fits`, `test_run_a_e1_staged_executes_real_fits_via_scheduler`):
@@ -117,8 +119,9 @@ G4. point_evidence relocated, scheduler untouched.
   `accredit_build` derives the selection set from the frozen matrix, recovers n from `n_mode`/`fixed_n`, and
   never silently skips a failed fit. Post-selection `_rebuild_authority`/`status_run` pass on a real scheduler
   (focused slow test, 17 s); 356 non-slow tests pass.
-- **349-fit smoke** — restored to the real final check; **running in background** (the focused test already
-  verifies the post-selection authority path its final line checks; result to be reported on completion).
+- **349-fit smoke** — restored to the real final check; **PASSED** (8019 s / 2 h 13 min: 349/349 fits, 699
+  events, no placeholder reached the runner, stage1/stage2/final receipts + chained ledger, `selected_F2_or_V:
+  "F2"`, `test_access_count: 0` read via the real post-selection `status_run`/`_rebuild_authority`).
 - **staged source-of-truth** — FIXED (prior棒 `10d6fcf`).
 - **A-E1 formal — NOT authorized.**
 
