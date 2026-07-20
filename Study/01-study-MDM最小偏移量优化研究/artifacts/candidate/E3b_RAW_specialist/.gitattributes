@@ -1,0 +1,7 @@
+# Candidate data artifacts: force LF line endings so the sha256 fingerprints
+# recorded in manifest.json are stable across platforms and checkouts,
+# independent of core.autocrlf. (Data content is line-ending agnostic; only
+# the byte fingerprint requires a pinned ending.)
+*.csv text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
