@@ -1,0 +1,1308 @@
+{
+  "contract_version": "v0.1",
+  "generated": "2026-07-20T00:23:42+00:00",
+  "code_version": "35112918009B458F4282DDAB236848BAF7F9F67ADAB7E8989FF156A3C7174898",
+  "phases": {
+    "explore": {
+      "contract_version": "v0.1",
+      "contract_date": "2026-07-19",
+      "code_version": "9E85C6A16099ADD6409E8B21F6C39BC3DE829B7FA7F20BE39A7DEEF1C9C3C384",
+      "git_commit": "306e7f55448b2a67a9d590c5be1598f78f46d2d8-dirty",
+      "start_time": "2026-07-19T17:10:51+00:00",
+      "end_time": "2026-07-19T17:23:37+00:00",
+      "phase": "explore",
+      "python_versions": {
+        "python": "3.11.15",
+        "numpy": "2.4.6",
+        "pandas": "3.0.3",
+        "scikit-learn": "1.9.0",
+        "scipy": "1.17.1"
+      },
+      "source_files": {
+        "sample_features.csv": {
+          "path": "D:\\weibull\\Study\\01-study-MDM\u6700\u5c0f\u504f\u79fb\u91cf\u4f18\u5316\u7814\u7a76\\artifacts\\formal\\E3b_vector_mlp\\sample_features.csv",
+          "sha256": "75BB9A0619F1E04FC8E1CD80451FD5C5A199953F67793740EDAD06A5EA909E32"
+        },
+        "risk_curves.csv": {
+          "path": "D:\\weibull\\Study\\01-study-MDM\u6700\u5c0f\u504f\u79fb\u91cf\u4f18\u5316\u7814\u7a76\\artifacts\\formal\\E3b_vector_mlp\\risk_curves.csv",
+          "sha256": "4B3AD2A3121AF616F991B6D91CF15EDE1B3F8670F9B97B6BAF5527DA9AC71CA5"
+        }
+      },
+      "contracts": {
+        "seed_namespace": "study01_v1",
+        "split": "repeat_id % 5 == 0 -> TEST",
+        "representations": {
+          "F13": [
+            "x_min",
+            "x_max",
+            "range",
+            "Q1",
+            "Med",
+            "Q3",
+            "IQR",
+            "x_bar",
+            "s",
+            "n",
+            "CV",
+            "g1",
+            "g2"
+          ],
+          "F12": [
+            "x_min",
+            "x_max",
+            "range",
+            "Q1",
+            "Med",
+            "Q3",
+            "IQR",
+            "x_bar",
+            "s",
+            "CV",
+            "g1",
+            "g2"
+          ],
+          "RAW": "40-dim sorted+mask"
+        },
+        "model_specs": {
+          "F13": {
+            "input_dim": 13,
+            "hidden": [
+              256,
+              128,
+              64
+            ],
+            "params": 46426
+          },
+          "F12": {
+            "input_dim": 12,
+            "hidden": [
+              258,
+              128,
+              64
+            ],
+            "params": 46452
+          },
+          "RAW": {
+            "input_dim": 40,
+            "hidden": [
+              215,
+              128,
+              64
+            ],
+            "params": 46409
+          }
+        },
+        "training": {
+          "output_dim": 26,
+          "activation": "relu",
+          "solver": "adam",
+          "alpha": 0.0001,
+          "lr": 0.001,
+          "batch_size": 256,
+          "max_iter": 300,
+          "validation_fraction": 0.15,
+          "n_iter_no_change": 20,
+          "early_stopping": true
+        },
+        "numerical_environment": {
+          "OMP_NUM_THREADS": "1",
+          "OPENBLAS_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1",
+          "NUMEXPR_NUM_THREADS": "1",
+          "VECLIB_MAXIMUM_THREADS": "1"
+        },
+        "seeds": {
+          "explore": [
+            42
+          ],
+          "confirm": [
+            2026,
+            3407
+          ]
+        },
+        "run_matrix": {
+          "total_runs": 90,
+          "explore_runs": 30,
+          "confirm_runs": 60,
+          "J_runs": 3,
+          "S_runs": 9,
+          "T_runs": 9,
+          "L_runs": 9,
+          "run_matrix_hash": "CF494E014647298611B0840460285DD9A66B8E9CA887AB944982AE5BE9E5CCAE"
+        }
+      },
+      "artifacts": {
+        "curves/F12_J_seed42_curves.npz": {
+          "sha256": "4CE79EC6A4D4F3CBF7E756A6E42015F79656B50B9E2BD1B12DD219FB1DE79B3C",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold10_seed42_curves.npz": {
+          "sha256": "BE4D80061099D3B0E8184CBFE436A35651CD329474C084FB107484FA827AFF23",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold20_seed42_curves.npz": {
+          "sha256": "962C954C40BFDA5CC16F63AC411B00020CCEF9AC864A7290327E99294FB6F5BF",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold7_seed42_curves.npz": {
+          "sha256": "1C236145978D401913D55ED90F74E3112244A75BCA99630A4BBEE558ACCE219A",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_10to10_seed42_curves.npz": {
+          "sha256": "569E091576A52D084E7C7849B4C673E413EDBA3FC9B1CC29132ADFCC55DDFF84",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_20to20_seed42_curves.npz": {
+          "sha256": "402302568997D20FA0544B26B3C01FCC026AE7A0F3479C9ECA8700279BD0D9F0",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_7to7_seed42_curves.npz": {
+          "sha256": "8B9EF42B3F7C56925BC393A094B876DB4A0F36DE2462915157162D0B501B0B99",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_10to7-20_seed42_curves.npz": {
+          "sha256": "35DFCD205866F067F83A80CBFACBF35423EDEC3DDD3A7F355B876E765D11F8BA",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_20to7-10_seed42_curves.npz": {
+          "sha256": "543C77EBAE11FD46FCA95982D6B4E44C221EECB8D532C30DD859D45D8081B0DD",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_7to10-20_seed42_curves.npz": {
+          "sha256": "FC64A57F22F8368F60746CD8759ECB8D07D6A2B402BCEE96E83AEB6E75E710D3",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_J_seed42_curves.npz": {
+          "sha256": "E402586BF948B2574B2215DF0C48EC56753A05198BE7CCE9AD307FB6D8254214",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold10_seed42_curves.npz": {
+          "sha256": "CBFA23E83576C9D86311C43CBDF110336C3D627FD85C86F7E3CDBC1A51A8DDA4",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold20_seed42_curves.npz": {
+          "sha256": "6CB98A5FADB06323DC248B228D7A98650DF0E0FE9077F6EE19FEE659A97A5AFA",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold7_seed42_curves.npz": {
+          "sha256": "4DFECD83E28B52D17D8E723181F688987FFD8B436BD86BD8067F5130E7D44F3A",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_10to10_seed42_curves.npz": {
+          "sha256": "AB6A53A8E7CED8FC6D773B7E8A08EDD9AB862FB2F0F74A6ECE82F5510F335358",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_20to20_seed42_curves.npz": {
+          "sha256": "EB8C57D95B666CD831D629CBAF26D1A18BB86CC502D97AA740515A24933F990E",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_7to7_seed42_curves.npz": {
+          "sha256": "3EAACE240A4019EBC0B8C2A0F9844B678AACC96E0F42523A6A6BE056F27273F1",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_10to7-20_seed42_curves.npz": {
+          "sha256": "C02E1B92AA25802D92E2ABE206C3D172F635EA9AEAEBB2A56F9021BA77F2142B",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_20to7-10_seed42_curves.npz": {
+          "sha256": "C693E9D51BDD7F4636A0E5995F3FAA023A13A707C9C658286F49BAEAC87A8E1A",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_7to10-20_seed42_curves.npz": {
+          "sha256": "AE033110C56FDE14688AEBB9F164D3A20AC498FE628E2ABEF0715BECA474E914",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_J_seed42_curves.npz": {
+          "sha256": "4954CEE0E4251B3BDB697636B846E5727EDCA5EBFE9EE8309A2B93F8641D9964",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold10_seed42_curves.npz": {
+          "sha256": "9C16B3ED909450D5156CCCAE399575ABB91B06D1E196FAC1B759EEBA1BD13351",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold20_seed42_curves.npz": {
+          "sha256": "D421DE6E51FB589FCA8D5DD1F967EA8DC44B9EA6AE2E551917C129F305BD9608",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold7_seed42_curves.npz": {
+          "sha256": "327FBB0E52497FBBF0FC142F459FE899F7F4D804C61532CDC0848D712FE10C2E",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_10to10_seed42_curves.npz": {
+          "sha256": "A458D79C60CA95B75CCB2DA4A3AC66F51428DD4B03CB7807C8797CAA2374AD3D",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_20to20_seed42_curves.npz": {
+          "sha256": "61400C3FB44EF064EC1934136C37949FF10DC30601483C38E3439DA849E9B314",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_7to7_seed42_curves.npz": {
+          "sha256": "1E5C92BB769E8F01070C83364BA2C4E24BE9AE9D41FEFD93629C9C5351C2D309",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_10to7-20_seed42_curves.npz": {
+          "sha256": "1A7798BAD5F715ED76371EE310F02868A421EA4B4E8EF2B42EB55E81B4E8A248",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_20to7-10_seed42_curves.npz": {
+          "sha256": "19ED435811D7F4C295DD6A85BC01F6D921A7E7E2DFF8EB0D33B2E0A28535409C",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_7to10-20_seed42_curves.npz": {
+          "sha256": "9E2FD4E8F5805663552A06344D1B9317AB78656D7758608EEE0D07CF130B0A49",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "metrics_by_target_n.csv": {
+          "sha256": "4EC698798C48A1095099C167F13BB864948F78C5E288375DDEF5EF2C0A62552B",
+          "rows": 75
+        },
+        "run_log.txt": {
+          "sha256": "80751C50620C4248DDE6A5B586CF54EC279D3F3C49869A91C1CA2F3D19CA7318",
+          "lines": 74
+        },
+        "run_status.csv": {
+          "sha256": "346FB58CBD2BC487425079939AD1A5DDCED2D0CFD5853053C1C6E5ABE8FCE9A0",
+          "rows": 30
+        },
+        "selected_predictions.csv": {
+          "sha256": "796CE467AE1E832C258CB1A49B2A5771D3E698715B290DB157DE725D584F2BC9",
+          "rows": 135000
+        },
+        "summary.json": {
+          "sha256": "BE9916EBA90FC10CD0C87C66C76A28ACC7914EB3260533648D809A316C931422",
+          "keys": 5
+        }
+      }
+    },
+    "confirm": {
+      "contract_version": "v0.1",
+      "contract_date": "2026-07-19",
+      "code_version": "49307C193263F3B4C691AAF5BB4E0EFEA984FE7F969FB64B4CDD3E04084FDCAF",
+      "git_commit": "2d0e710f3635446d34d28880329ac996c0a292d3-dirty",
+      "start_time": "2026-07-19T21:45:57+00:00",
+      "end_time": "2026-07-19T22:28:09+00:00",
+      "phase": "confirm",
+      "python_versions": {
+        "python": "3.11.15",
+        "numpy": "2.4.6",
+        "pandas": "3.0.3",
+        "scikit-learn": "1.9.0",
+        "scipy": "1.17.1"
+      },
+      "source_files": {
+        "sample_features.csv": {
+          "path": "D:\\weibull\\Study\\01-study-MDM\u6700\u5c0f\u504f\u79fb\u91cf\u4f18\u5316\u7814\u7a76\\artifacts\\formal\\E3b_vector_mlp\\sample_features.csv",
+          "sha256": "75BB9A0619F1E04FC8E1CD80451FD5C5A199953F67793740EDAD06A5EA909E32"
+        },
+        "risk_curves.csv": {
+          "path": "D:\\weibull\\Study\\01-study-MDM\u6700\u5c0f\u504f\u79fb\u91cf\u4f18\u5316\u7814\u7a76\\artifacts\\formal\\E3b_vector_mlp\\risk_curves.csv",
+          "sha256": "4B3AD2A3121AF616F991B6D91CF15EDE1B3F8670F9B97B6BAF5527DA9AC71CA5"
+        }
+      },
+      "contracts": {
+        "seed_namespace": "study01_v1",
+        "split": "repeat_id % 5 == 0 -> TEST",
+        "representations": {
+          "F13": [
+            "x_min",
+            "x_max",
+            "range",
+            "Q1",
+            "Med",
+            "Q3",
+            "IQR",
+            "x_bar",
+            "s",
+            "n",
+            "CV",
+            "g1",
+            "g2"
+          ],
+          "F12": [
+            "x_min",
+            "x_max",
+            "range",
+            "Q1",
+            "Med",
+            "Q3",
+            "IQR",
+            "x_bar",
+            "s",
+            "CV",
+            "g1",
+            "g2"
+          ],
+          "RAW": "40-dim sorted+mask"
+        },
+        "model_specs": {
+          "F13": {
+            "input_dim": 13,
+            "hidden": [
+              256,
+              128,
+              64
+            ],
+            "params": 46426
+          },
+          "F12": {
+            "input_dim": 12,
+            "hidden": [
+              258,
+              128,
+              64
+            ],
+            "params": 46452
+          },
+          "RAW": {
+            "input_dim": 40,
+            "hidden": [
+              215,
+              128,
+              64
+            ],
+            "params": 46409
+          }
+        },
+        "training": {
+          "output_dim": 26,
+          "activation": "relu",
+          "solver": "adam",
+          "alpha": 0.0001,
+          "lr": 0.001,
+          "batch_size": 256,
+          "max_iter": 300,
+          "validation_fraction": 0.15,
+          "n_iter_no_change": 20,
+          "early_stopping": true
+        },
+        "numerical_environment": {
+          "OMP_NUM_THREADS": "1",
+          "OPENBLAS_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1",
+          "NUMEXPR_NUM_THREADS": "1",
+          "VECLIB_MAXIMUM_THREADS": "1"
+        },
+        "seeds": {
+          "explore": [
+            42
+          ],
+          "confirm": [
+            2026,
+            3407
+          ]
+        },
+        "run_matrix": {
+          "total_runs": 90,
+          "explore_runs": 30,
+          "confirm_runs": 60,
+          "J_runs": 3,
+          "S_runs": 9,
+          "T_runs": 9,
+          "L_runs": 9,
+          "run_matrix_hash": "CF494E014647298611B0840460285DD9A66B8E9CA887AB944982AE5BE9E5CCAE"
+        }
+      },
+      "artifacts": {
+        "curves/F12_J_seed2026_curves.npz": {
+          "sha256": "D44AC3F9B984E79A5BD4777042CB2DB90563AC67A9B9839E932473750C134A50",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_J_seed3407_curves.npz": {
+          "sha256": "9DC81FE0FAE399671E7C61F53BD0A00191F530005A2EF847403C638CF2B35548",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold10_seed2026_curves.npz": {
+          "sha256": "9A0DC40CEDB3BB0BB57AE2CFAF17824440BE7F2DF9E9640AB6780DF329702A6D",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold10_seed3407_curves.npz": {
+          "sha256": "C52C2921A7A9799AFB6A2F576A9AE7E5B22AFB02BFCC1924CCAAD2A1F897D589",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold20_seed2026_curves.npz": {
+          "sha256": "ED59E4AB268A1B2AAE0454EA3B26F63103AA4302D78BCBF1632B8AACEFDCED66",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold20_seed3407_curves.npz": {
+          "sha256": "2E475301E65F08587C51909BA7909F1BC243ECE1F283F153B9F2A835B2C5B851",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold7_seed2026_curves.npz": {
+          "sha256": "1F2DA151DD3722ABA614CA19564061711F88B8CCA85DED1DF10B7E608176B01B",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_L_hold7_seed3407_curves.npz": {
+          "sha256": "C188654BD46DBC3F19A8C9490845BFBE237F0715C69D9D1B76046ED24919E9AD",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_10to10_seed2026_curves.npz": {
+          "sha256": "16BDE20DF1B397472B16C1C6BB71ADD58EBF7204AD3B2E4E773B348077732E15",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_10to10_seed3407_curves.npz": {
+          "sha256": "D38E0E3341255CA95D453FA3688555981BB9C32008F896D3C6007BE25F8369DC",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_20to20_seed2026_curves.npz": {
+          "sha256": "8C24055099D8C3781F71A6AF3655B628A5C6ABC40C9A722EF4E82036FFC0219C",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_20to20_seed3407_curves.npz": {
+          "sha256": "728399AB64F904AFFFECB1D4CFEC67692AF932F7944691239F271B7546EC0B44",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_7to7_seed2026_curves.npz": {
+          "sha256": "4A836A3F40EC9462D37A12E775C40A7B320EB03054AE466EBC00A89021740260",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_S_7to7_seed3407_curves.npz": {
+          "sha256": "80AB141206B77E6FA080F8E7D9BC696BC37B2C92144C7A294EE7CDA333449423",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_10to7-20_seed2026_curves.npz": {
+          "sha256": "DAA0A1F535622D11EAF6E076EA47D56CE03FBDC08A35C6750E533A29993A9DAE",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_10to7-20_seed3407_curves.npz": {
+          "sha256": "FA0ED5693D06F9B9237AB4551835B906146A5D61967B02D57B0BE6EA6BC1A1EA",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_20to7-10_seed2026_curves.npz": {
+          "sha256": "CC27C2ECE01990A7E844F6B0CA6E365503F115AEA2604B0964F8B36FFF3EDA52",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_20to7-10_seed3407_curves.npz": {
+          "sha256": "5C30C8DEE12F6EAEE9AD752A30E41BE03B57AA614814865AC3174E5071316426",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_7to10-20_seed2026_curves.npz": {
+          "sha256": "D7F45F298B1EB7BDD698EF53FCFDA044DE5A4993D208D11442E5582E152D3B39",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F12_T_7to10-20_seed3407_curves.npz": {
+          "sha256": "CD76D5FFFE8AF55466A1848DE4BB2F0215D5F8EA05851A5B94D5A5BF72AB9227",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_J_seed2026_curves.npz": {
+          "sha256": "8E8F6CB8EAF0F835CCC9CDC17861FA181657037C7EAB287F5302AA476EE5ABE1",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_J_seed3407_curves.npz": {
+          "sha256": "B3C3E9FB920434CC4E083478521B520404C3E4E217D1649D7B27BC5A39E04B3D",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold10_seed2026_curves.npz": {
+          "sha256": "5CE0AC31FA70E1294E24DEC35C82A08485ED016123C5D757A4751A75E4541311",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold10_seed3407_curves.npz": {
+          "sha256": "4E49F1D3D6085C0C648C0F0E74BC977636E8F10BD5D6B6E7A030572DCD29D20D",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold20_seed2026_curves.npz": {
+          "sha256": "1DE22910C05552A686DF0AB460977E9874832A9CC0EAA7810ECC5CEFFEA842CD",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold20_seed3407_curves.npz": {
+          "sha256": "9BA252B65180F374890202A7F990B944736A23CF1EC86343090631D263F508F7",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold7_seed2026_curves.npz": {
+          "sha256": "18A6D8B40BEC0ABEB3DB0669B2F82DDECCB70B0606F44882D1401B62D6667909",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_L_hold7_seed3407_curves.npz": {
+          "sha256": "2DFDBFDFFC95CE818B158C611472114C8C68873E69422776552E1D81EE016C7D",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_10to10_seed2026_curves.npz": {
+          "sha256": "F4C47E68E6495EDAD9895B9C14365FB8816AAEDB360B8ACE538083C8992F35BC",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_10to10_seed3407_curves.npz": {
+          "sha256": "B77332B648FD081FCB6D2F081376660F0A978A12211DDF973EB415D6BCEDF668",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_20to20_seed2026_curves.npz": {
+          "sha256": "A417B2CFD61DF7A8CBA0FE3543A6268F23A6973E382C9F1C2EDEEF6760952F9F",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_20to20_seed3407_curves.npz": {
+          "sha256": "593DA37A37708E098D64F1E1DF7AD78177C9146A2111993377436C88DE63CB79",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_7to7_seed2026_curves.npz": {
+          "sha256": "4F6C87E39281A7F9C1E3AA8E61A21ADED99935783BD387AD5C62B12A148825C0",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_S_7to7_seed3407_curves.npz": {
+          "sha256": "BF0AF21070A7A3F50503102BCF3A51BC41F6B98853D34D6694E70528F76BDFFB",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_10to7-20_seed2026_curves.npz": {
+          "sha256": "74E8811874F1519E809A5B9879FDBBB8EB67E69E53429394FB3EA9E0F5536D49",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_10to7-20_seed3407_curves.npz": {
+          "sha256": "9504B23683D7CA1AE343FAA9699661CEF05F212525F4687D23EF86829BAD8A14",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_20to7-10_seed2026_curves.npz": {
+          "sha256": "BD7B1EBB003D12D7F10BFD1702A01F51C330E6DA0B85BD4A03E9D28FCEB5CD24",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_20to7-10_seed3407_curves.npz": {
+          "sha256": "F4F716443BC18D5E53A8E92DC61792E3195C1266BF0D8F405CDE95DCA51917F9",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_7to10-20_seed2026_curves.npz": {
+          "sha256": "A5B01D4B2AFC3B0F826A621A570040BDF9A514029F3FB8B79CB9F05A470FB64E",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/F13_T_7to10-20_seed3407_curves.npz": {
+          "sha256": "6A55F03E79DD1AD4AF196F6E3CA8D36B23EC0247140A0262F6F71094169A4028",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_J_seed2026_curves.npz": {
+          "sha256": "E54ECBEEC17D83CEAD24962BBD00415984DCD5CCC643ACB030752900E28352F8",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_J_seed3407_curves.npz": {
+          "sha256": "175A92E55436782BB41CEA5F9E6F5819B7F0A520C85182ED525D7B12B2B4C68B",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold10_seed2026_curves.npz": {
+          "sha256": "ACBD40F5320FF923ED84208A60647F37F4B46FB84E985C99672354689EA64D83",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold10_seed3407_curves.npz": {
+          "sha256": "2FE5D18E8F40707E6624AFCB42118D46C20071484D363AB472463BD2163143F1",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold20_seed2026_curves.npz": {
+          "sha256": "D77DE9E5D0CA6BFA5C35E57D4182936B0335436DD67E85F89B6E85B4F410E7B4",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold20_seed3407_curves.npz": {
+          "sha256": "2EE2BB70F2CA18601D0AB8C137D58819EDEDD4809CF1EC34292AFEF37940B85F",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold7_seed2026_curves.npz": {
+          "sha256": "62BB4B71B657788C859F59145BDEDE70AF077FF7D38A6E4C368319236C635282",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_L_hold7_seed3407_curves.npz": {
+          "sha256": "9FB3307920E384D55F103EB93C90877C82AC654C74D15660DE94B7EA5E0DA1D3",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_10to10_seed2026_curves.npz": {
+          "sha256": "D236279EDE568D6E4C7E06B2CC0CB3A6FC4A459B6CF69F52BD10E1255CAA042D",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_10to10_seed3407_curves.npz": {
+          "sha256": "07275A8124DF3EF14204C554AD351CE129EB23121DA5E2D0ED398C30F2277620",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_20to20_seed2026_curves.npz": {
+          "sha256": "0B3A9EACDF88C1473B0C5921D08E9D5318101E8EBF73F710ACB0D5E5964799C6",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_20to20_seed3407_curves.npz": {
+          "sha256": "FCC660E76EF8A9515A0C6F3881E5E615924467B849C5DE8D105FEF096828CC54",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_7to7_seed2026_curves.npz": {
+          "sha256": "85887B4975D44B896AE2B202EA8D3CEE87E3819A4CFB1C891B5C53ED686ED066",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_S_7to7_seed3407_curves.npz": {
+          "sha256": "2B3AFE320EC900193AE88F7542973E2253202E577185F9107D5765135C2813A8",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_10to7-20_seed2026_curves.npz": {
+          "sha256": "5716953CABBBE5FE0D17A954DBB37DEE478DAE0F22751097114DE876F2227594",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_10to7-20_seed3407_curves.npz": {
+          "sha256": "88E82555AB6B559C73A0D8E652AE44479D64E1381634E5A95943353110D78312",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_20to7-10_seed2026_curves.npz": {
+          "sha256": "9D18B73B1331F16EB7B36F9B81E44C049E3CEB1D681F150CB55B67C2D58449FF",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_20to7-10_seed3407_curves.npz": {
+          "sha256": "C4E91B55572AA8C8C08910519BA71A0DBDD249333A0E7A913C1ECC96775CCC6B",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_7to10-20_seed2026_curves.npz": {
+          "sha256": "100A3EE573845946A0E7DB6EF15A7C7C102BB9C11E677B14903B4BA3ECD14A84",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "curves/RAW_T_7to10-20_seed3407_curves.npz": {
+          "sha256": "0E06BE49549C7CE5872AC09052DD36498545647C4AFF8C78C822127C78B9F01F",
+          "arrays": [
+            "Y_pred",
+            "Y_true"
+          ]
+        },
+        "metrics_by_target_n.csv": {
+          "sha256": "0E48C7678722FB9568A6C0C77B6E3E22DE716A38B93FFEB80E6C1841EF703D14",
+          "rows": 150
+        },
+        "run_log.txt": {
+          "sha256": "23FED489060C43254D9264C47E2AA2D59D1A9A098D0D42D35735522AEC831A29",
+          "lines": 131
+        },
+        "run_status.csv": {
+          "sha256": "124E1C8508DA0D43937DEC11C343BE03EA2BE7150B2F5E38625FC7731DBF6FA9",
+          "rows": 60
+        },
+        "selected_predictions.csv": {
+          "sha256": "96DE58B4AE3F0933D5A03C8127CFA0F868C3BC90B2CFC16D0E08F5850EA53EAC",
+          "rows": 270000
+        },
+        "summary.json": {
+          "sha256": "C348FDD584BB49F83B3A685F0D87BBD7DD75D776F6D2D496080DE18D09E744BB",
+          "keys": 5
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "bootstrap_intervals.csv": {
+      "sha256": "55293AEC9B64E0F8D1463472B4FF1262C6CFC4E035C79CE93500A3C952243E40",
+      "rows": 126
+    },
+    "metrics_by_target_n.csv": {
+      "sha256": "D24EB384E7D43200DD17F89524B29889553A9B8EAA957FE48CF656036ECD2557",
+      "rows": 135
+    },
+    "multi_seed_summary.csv": {
+      "sha256": "7D6274B62C75071A444D0777D8F47548EEE4587A13F50C63A29B1D3A8246ED02",
+      "rows": 42
+    },
+    "n_probe_metrics.json": {
+      "sha256": "824C4DC01204A8E0036A230C4011DAB910AF5AC305DA572230F67D527AADAD35"
+    },
+    "n_probe_predictions.csv": {
+      "sha256": "708649216915EA8771F76DE2DA684F9440A1F264DB2B1344F7C9CE5AB5EA81B1",
+      "rows": 9000
+    },
+    "report.md": {
+      "sha256": "EF4056B45529B1BE35360ACDD259435E285184766BB50B341007CF059CB52C39"
+    },
+    "representation_comparison.csv": {
+      "sha256": "F0FAF210FA3A9ACEF0D6D03DBC22A6825EBE1936838E7C3E4757E792D47924A2",
+      "rows": 18
+    },
+    "run_log.txt": {
+      "sha256": "F1FF8EC1EC3FAB0DF15013D48A996F2E0B22850222FF66DBE1067CD46E64CD7D"
+    },
+    "run_matrix.csv": {
+      "sha256": "CF494E014647298611B0840460285DD9A66B8E9CA887AB944982AE5BE9E5CCAE",
+      "rows": 90
+    },
+    "run_status.csv": {
+      "sha256": "6E1CF928C9046E9F9F2392864E2D9027E1F6EC15200CF44FEF8BA8308EDD0021",
+      "rows": 90
+    },
+    "selected_predictions.csv": {
+      "sha256": "5D9294F28BA2869849AF65B171281E4EBF5D85D858A371058BACF42C724E7803",
+      "rows": 405000
+    },
+    "transfer_matrix.csv": {
+      "sha256": "0C4DC960E75DAC78DEDBABC0DC7D885C8D15F23C7D3C8AA51C03872EB8250F04",
+      "rows": 108
+    },
+    "confirm/metrics_by_target_n.csv": {
+      "sha256": "0E48C7678722FB9568A6C0C77B6E3E22DE716A38B93FFEB80E6C1841EF703D14",
+      "rows": 150
+    },
+    "confirm/run_log.txt": {
+      "sha256": "23FED489060C43254D9264C47E2AA2D59D1A9A098D0D42D35735522AEC831A29"
+    },
+    "confirm/run_status.csv": {
+      "sha256": "124E1C8508DA0D43937DEC11C343BE03EA2BE7150B2F5E38625FC7731DBF6FA9",
+      "rows": 60
+    },
+    "confirm/selected_predictions.csv": {
+      "sha256": "96DE58B4AE3F0933D5A03C8127CFA0F868C3BC90B2CFC16D0E08F5850EA53EAC",
+      "rows": 270000
+    },
+    "confirm/summary.json": {
+      "sha256": "C348FDD584BB49F83B3A685F0D87BBD7DD75D776F6D2D496080DE18D09E744BB"
+    },
+    "confirm/curves/F12_J_seed2026_curves.npz": {
+      "sha256": "D44AC3F9B984E79A5BD4777042CB2DB90563AC67A9B9839E932473750C134A50"
+    },
+    "confirm/curves/F12_J_seed3407_curves.npz": {
+      "sha256": "9DC81FE0FAE399671E7C61F53BD0A00191F530005A2EF847403C638CF2B35548"
+    },
+    "confirm/curves/F12_L_hold10_seed2026_curves.npz": {
+      "sha256": "9A0DC40CEDB3BB0BB57AE2CFAF17824440BE7F2DF9E9640AB6780DF329702A6D"
+    },
+    "confirm/curves/F12_L_hold10_seed3407_curves.npz": {
+      "sha256": "C52C2921A7A9799AFB6A2F576A9AE7E5B22AFB02BFCC1924CCAAD2A1F897D589"
+    },
+    "confirm/curves/F12_L_hold20_seed2026_curves.npz": {
+      "sha256": "ED59E4AB268A1B2AAE0454EA3B26F63103AA4302D78BCBF1632B8AACEFDCED66"
+    },
+    "confirm/curves/F12_L_hold20_seed3407_curves.npz": {
+      "sha256": "2E475301E65F08587C51909BA7909F1BC243ECE1F283F153B9F2A835B2C5B851"
+    },
+    "confirm/curves/F12_L_hold7_seed2026_curves.npz": {
+      "sha256": "1F2DA151DD3722ABA614CA19564061711F88B8CCA85DED1DF10B7E608176B01B"
+    },
+    "confirm/curves/F12_L_hold7_seed3407_curves.npz": {
+      "sha256": "C188654BD46DBC3F19A8C9490845BFBE237F0715C69D9D1B76046ED24919E9AD"
+    },
+    "confirm/curves/F12_S_10to10_seed2026_curves.npz": {
+      "sha256": "16BDE20DF1B397472B16C1C6BB71ADD58EBF7204AD3B2E4E773B348077732E15"
+    },
+    "confirm/curves/F12_S_10to10_seed3407_curves.npz": {
+      "sha256": "D38E0E3341255CA95D453FA3688555981BB9C32008F896D3C6007BE25F8369DC"
+    },
+    "confirm/curves/F12_S_20to20_seed2026_curves.npz": {
+      "sha256": "8C24055099D8C3781F71A6AF3655B628A5C6ABC40C9A722EF4E82036FFC0219C"
+    },
+    "confirm/curves/F12_S_20to20_seed3407_curves.npz": {
+      "sha256": "728399AB64F904AFFFECB1D4CFEC67692AF932F7944691239F271B7546EC0B44"
+    },
+    "confirm/curves/F12_S_7to7_seed2026_curves.npz": {
+      "sha256": "4A836A3F40EC9462D37A12E775C40A7B320EB03054AE466EBC00A89021740260"
+    },
+    "confirm/curves/F12_S_7to7_seed3407_curves.npz": {
+      "sha256": "80AB141206B77E6FA080F8E7D9BC696BC37B2C92144C7A294EE7CDA333449423"
+    },
+    "confirm/curves/F12_T_10to7-20_seed2026_curves.npz": {
+      "sha256": "DAA0A1F535622D11EAF6E076EA47D56CE03FBDC08A35C6750E533A29993A9DAE"
+    },
+    "confirm/curves/F12_T_10to7-20_seed3407_curves.npz": {
+      "sha256": "FA0ED5693D06F9B9237AB4551835B906146A5D61967B02D57B0BE6EA6BC1A1EA"
+    },
+    "confirm/curves/F12_T_20to7-10_seed2026_curves.npz": {
+      "sha256": "CC27C2ECE01990A7E844F6B0CA6E365503F115AEA2604B0964F8B36FFF3EDA52"
+    },
+    "confirm/curves/F12_T_20to7-10_seed3407_curves.npz": {
+      "sha256": "5C30C8DEE12F6EAEE9AD752A30E41BE03B57AA614814865AC3174E5071316426"
+    },
+    "confirm/curves/F12_T_7to10-20_seed2026_curves.npz": {
+      "sha256": "D7F45F298B1EB7BDD698EF53FCFDA044DE5A4993D208D11442E5582E152D3B39"
+    },
+    "confirm/curves/F12_T_7to10-20_seed3407_curves.npz": {
+      "sha256": "CD76D5FFFE8AF55466A1848DE4BB2F0215D5F8EA05851A5B94D5A5BF72AB9227"
+    },
+    "confirm/curves/F13_J_seed2026_curves.npz": {
+      "sha256": "8E8F6CB8EAF0F835CCC9CDC17861FA181657037C7EAB287F5302AA476EE5ABE1"
+    },
+    "confirm/curves/F13_J_seed3407_curves.npz": {
+      "sha256": "B3C3E9FB920434CC4E083478521B520404C3E4E217D1649D7B27BC5A39E04B3D"
+    },
+    "confirm/curves/F13_L_hold10_seed2026_curves.npz": {
+      "sha256": "5CE0AC31FA70E1294E24DEC35C82A08485ED016123C5D757A4751A75E4541311"
+    },
+    "confirm/curves/F13_L_hold10_seed3407_curves.npz": {
+      "sha256": "4E49F1D3D6085C0C648C0F0E74BC977636E8F10BD5D6B6E7A030572DCD29D20D"
+    },
+    "confirm/curves/F13_L_hold20_seed2026_curves.npz": {
+      "sha256": "1DE22910C05552A686DF0AB460977E9874832A9CC0EAA7810ECC5CEFFEA842CD"
+    },
+    "confirm/curves/F13_L_hold20_seed3407_curves.npz": {
+      "sha256": "9BA252B65180F374890202A7F990B944736A23CF1EC86343090631D263F508F7"
+    },
+    "confirm/curves/F13_L_hold7_seed2026_curves.npz": {
+      "sha256": "18A6D8B40BEC0ABEB3DB0669B2F82DDECCB70B0606F44882D1401B62D6667909"
+    },
+    "confirm/curves/F13_L_hold7_seed3407_curves.npz": {
+      "sha256": "2DFDBFDFFC95CE818B158C611472114C8C68873E69422776552E1D81EE016C7D"
+    },
+    "confirm/curves/F13_S_10to10_seed2026_curves.npz": {
+      "sha256": "F4C47E68E6495EDAD9895B9C14365FB8816AAEDB360B8ACE538083C8992F35BC"
+    },
+    "confirm/curves/F13_S_10to10_seed3407_curves.npz": {
+      "sha256": "B77332B648FD081FCB6D2F081376660F0A978A12211DDF973EB415D6BCEDF668"
+    },
+    "confirm/curves/F13_S_20to20_seed2026_curves.npz": {
+      "sha256": "A417B2CFD61DF7A8CBA0FE3543A6268F23A6973E382C9F1C2EDEEF6760952F9F"
+    },
+    "confirm/curves/F13_S_20to20_seed3407_curves.npz": {
+      "sha256": "593DA37A37708E098D64F1E1DF7AD78177C9146A2111993377436C88DE63CB79"
+    },
+    "confirm/curves/F13_S_7to7_seed2026_curves.npz": {
+      "sha256": "4F6C87E39281A7F9C1E3AA8E61A21ADED99935783BD387AD5C62B12A148825C0"
+    },
+    "confirm/curves/F13_S_7to7_seed3407_curves.npz": {
+      "sha256": "BF0AF21070A7A3F50503102BCF3A51BC41F6B98853D34D6694E70528F76BDFFB"
+    },
+    "confirm/curves/F13_T_10to7-20_seed2026_curves.npz": {
+      "sha256": "74E8811874F1519E809A5B9879FDBBB8EB67E69E53429394FB3EA9E0F5536D49"
+    },
+    "confirm/curves/F13_T_10to7-20_seed3407_curves.npz": {
+      "sha256": "9504B23683D7CA1AE343FAA9699661CEF05F212525F4687D23EF86829BAD8A14"
+    },
+    "confirm/curves/F13_T_20to7-10_seed2026_curves.npz": {
+      "sha256": "BD7B1EBB003D12D7F10BFD1702A01F51C330E6DA0B85BD4A03E9D28FCEB5CD24"
+    },
+    "confirm/curves/F13_T_20to7-10_seed3407_curves.npz": {
+      "sha256": "F4F716443BC18D5E53A8E92DC61792E3195C1266BF0D8F405CDE95DCA51917F9"
+    },
+    "confirm/curves/F13_T_7to10-20_seed2026_curves.npz": {
+      "sha256": "A5B01D4B2AFC3B0F826A621A570040BDF9A514029F3FB8B79CB9F05A470FB64E"
+    },
+    "confirm/curves/F13_T_7to10-20_seed3407_curves.npz": {
+      "sha256": "6A55F03E79DD1AD4AF196F6E3CA8D36B23EC0247140A0262F6F71094169A4028"
+    },
+    "confirm/curves/RAW_J_seed2026_curves.npz": {
+      "sha256": "E54ECBEEC17D83CEAD24962BBD00415984DCD5CCC643ACB030752900E28352F8"
+    },
+    "confirm/curves/RAW_J_seed3407_curves.npz": {
+      "sha256": "175A92E55436782BB41CEA5F9E6F5819B7F0A520C85182ED525D7B12B2B4C68B"
+    },
+    "confirm/curves/RAW_L_hold10_seed2026_curves.npz": {
+      "sha256": "ACBD40F5320FF923ED84208A60647F37F4B46FB84E985C99672354689EA64D83"
+    },
+    "confirm/curves/RAW_L_hold10_seed3407_curves.npz": {
+      "sha256": "2FE5D18E8F40707E6624AFCB42118D46C20071484D363AB472463BD2163143F1"
+    },
+    "confirm/curves/RAW_L_hold20_seed2026_curves.npz": {
+      "sha256": "D77DE9E5D0CA6BFA5C35E57D4182936B0335436DD67E85F89B6E85B4F410E7B4"
+    },
+    "confirm/curves/RAW_L_hold20_seed3407_curves.npz": {
+      "sha256": "2EE2BB70F2CA18601D0AB8C137D58819EDEDD4809CF1EC34292AFEF37940B85F"
+    },
+    "confirm/curves/RAW_L_hold7_seed2026_curves.npz": {
+      "sha256": "62BB4B71B657788C859F59145BDEDE70AF077FF7D38A6E4C368319236C635282"
+    },
+    "confirm/curves/RAW_L_hold7_seed3407_curves.npz": {
+      "sha256": "9FB3307920E384D55F103EB93C90877C82AC654C74D15660DE94B7EA5E0DA1D3"
+    },
+    "confirm/curves/RAW_S_10to10_seed2026_curves.npz": {
+      "sha256": "D236279EDE568D6E4C7E06B2CC0CB3A6FC4A459B6CF69F52BD10E1255CAA042D"
+    },
+    "confirm/curves/RAW_S_10to10_seed3407_curves.npz": {
+      "sha256": "07275A8124DF3EF14204C554AD351CE129EB23121DA5E2D0ED398C30F2277620"
+    },
+    "confirm/curves/RAW_S_20to20_seed2026_curves.npz": {
+      "sha256": "0B3A9EACDF88C1473B0C5921D08E9D5318101E8EBF73F710ACB0D5E5964799C6"
+    },
+    "confirm/curves/RAW_S_20to20_seed3407_curves.npz": {
+      "sha256": "FCC660E76EF8A9515A0C6F3881E5E615924467B849C5DE8D105FEF096828CC54"
+    },
+    "confirm/curves/RAW_S_7to7_seed2026_curves.npz": {
+      "sha256": "85887B4975D44B896AE2B202EA8D3CEE87E3819A4CFB1C891B5C53ED686ED066"
+    },
+    "confirm/curves/RAW_S_7to7_seed3407_curves.npz": {
+      "sha256": "2B3AFE320EC900193AE88F7542973E2253202E577185F9107D5765135C2813A8"
+    },
+    "confirm/curves/RAW_T_10to7-20_seed2026_curves.npz": {
+      "sha256": "5716953CABBBE5FE0D17A954DBB37DEE478DAE0F22751097114DE876F2227594"
+    },
+    "confirm/curves/RAW_T_10to7-20_seed3407_curves.npz": {
+      "sha256": "88E82555AB6B559C73A0D8E652AE44479D64E1381634E5A95943353110D78312"
+    },
+    "confirm/curves/RAW_T_20to7-10_seed2026_curves.npz": {
+      "sha256": "9D18B73B1331F16EB7B36F9B81E44C049E3CEB1D681F150CB55B67C2D58449FF"
+    },
+    "confirm/curves/RAW_T_20to7-10_seed3407_curves.npz": {
+      "sha256": "C4E91B55572AA8C8C08910519BA71A0DBDD249333A0E7A913C1ECC96775CCC6B"
+    },
+    "confirm/curves/RAW_T_7to10-20_seed2026_curves.npz": {
+      "sha256": "100A3EE573845946A0E7DB6EF15A7C7C102BB9C11E677B14903B4BA3ECD14A84"
+    },
+    "confirm/curves/RAW_T_7to10-20_seed3407_curves.npz": {
+      "sha256": "0E06BE49549C7CE5872AC09052DD36498545647C4AFF8C78C822127C78B9F01F"
+    },
+    "diagnostics/feature_distribution_by_n.csv": {
+      "sha256": "AE8877E7DBFD46BB128037904B4FC08066EA2AFAADD6200D9FCB22C77FBC3804",
+      "rows": 36
+    },
+    "diagnostics/hindsight_by_n.csv": {
+      "sha256": "F16B2C7EBF02A93645CA11FD84E58CCF96F8FA97D88B27EF7E0C477FD81F1E4D",
+      "rows": 3
+    },
+    "diagnostics/risk_curve_stats_by_n.csv": {
+      "sha256": "9038C33F20809CB8540767E6860F6086A9E1D2AD9B568614ACD3F4BE72F0F85B",
+      "rows": 78
+    },
+    "explore/metrics_by_target_n.csv": {
+      "sha256": "4EC698798C48A1095099C167F13BB864948F78C5E288375DDEF5EF2C0A62552B",
+      "rows": 75
+    },
+    "explore/run_log.txt": {
+      "sha256": "80751C50620C4248DDE6A5B586CF54EC279D3F3C49869A91C1CA2F3D19CA7318"
+    },
+    "explore/run_status.csv": {
+      "sha256": "346FB58CBD2BC487425079939AD1A5DDCED2D0CFD5853053C1C6E5ABE8FCE9A0",
+      "rows": 30
+    },
+    "explore/selected_predictions.csv": {
+      "sha256": "796CE467AE1E832C258CB1A49B2A5771D3E698715B290DB157DE725D584F2BC9",
+      "rows": 135000
+    },
+    "explore/summary.json": {
+      "sha256": "BE9916EBA90FC10CD0C87C66C76A28ACC7914EB3260533648D809A316C931422"
+    },
+    "explore/curves/F12_J_seed42_curves.npz": {
+      "sha256": "4CE79EC6A4D4F3CBF7E756A6E42015F79656B50B9E2BD1B12DD219FB1DE79B3C"
+    },
+    "explore/curves/F12_L_hold10_seed42_curves.npz": {
+      "sha256": "BE4D80061099D3B0E8184CBFE436A35651CD329474C084FB107484FA827AFF23"
+    },
+    "explore/curves/F12_L_hold20_seed42_curves.npz": {
+      "sha256": "962C954C40BFDA5CC16F63AC411B00020CCEF9AC864A7290327E99294FB6F5BF"
+    },
+    "explore/curves/F12_L_hold7_seed42_curves.npz": {
+      "sha256": "1C236145978D401913D55ED90F74E3112244A75BCA99630A4BBEE558ACCE219A"
+    },
+    "explore/curves/F12_S_10to10_seed42_curves.npz": {
+      "sha256": "569E091576A52D084E7C7849B4C673E413EDBA3FC9B1CC29132ADFCC55DDFF84"
+    },
+    "explore/curves/F12_S_20to20_seed42_curves.npz": {
+      "sha256": "402302568997D20FA0544B26B3C01FCC026AE7A0F3479C9ECA8700279BD0D9F0"
+    },
+    "explore/curves/F12_S_7to7_seed42_curves.npz": {
+      "sha256": "8B9EF42B3F7C56925BC393A094B876DB4A0F36DE2462915157162D0B501B0B99"
+    },
+    "explore/curves/F12_T_10to7-20_seed42_curves.npz": {
+      "sha256": "35DFCD205866F067F83A80CBFACBF35423EDEC3DDD3A7F355B876E765D11F8BA"
+    },
+    "explore/curves/F12_T_20to7-10_seed42_curves.npz": {
+      "sha256": "543C77EBAE11FD46FCA95982D6B4E44C221EECB8D532C30DD859D45D8081B0DD"
+    },
+    "explore/curves/F12_T_7to10-20_seed42_curves.npz": {
+      "sha256": "FC64A57F22F8368F60746CD8759ECB8D07D6A2B402BCEE96E83AEB6E75E710D3"
+    },
+    "explore/curves/F13_J_seed42_curves.npz": {
+      "sha256": "E402586BF948B2574B2215DF0C48EC56753A05198BE7CCE9AD307FB6D8254214"
+    },
+    "explore/curves/F13_L_hold10_seed42_curves.npz": {
+      "sha256": "CBFA23E83576C9D86311C43CBDF110336C3D627FD85C86F7E3CDBC1A51A8DDA4"
+    },
+    "explore/curves/F13_L_hold20_seed42_curves.npz": {
+      "sha256": "6CB98A5FADB06323DC248B228D7A98650DF0E0FE9077F6EE19FEE659A97A5AFA"
+    },
+    "explore/curves/F13_L_hold7_seed42_curves.npz": {
+      "sha256": "4DFECD83E28B52D17D8E723181F688987FFD8B436BD86BD8067F5130E7D44F3A"
+    },
+    "explore/curves/F13_S_10to10_seed42_curves.npz": {
+      "sha256": "AB6A53A8E7CED8FC6D773B7E8A08EDD9AB862FB2F0F74A6ECE82F5510F335358"
+    },
+    "explore/curves/F13_S_20to20_seed42_curves.npz": {
+      "sha256": "EB8C57D95B666CD831D629CBAF26D1A18BB86CC502D97AA740515A24933F990E"
+    },
+    "explore/curves/F13_S_7to7_seed42_curves.npz": {
+      "sha256": "3EAACE240A4019EBC0B8C2A0F9844B678AACC96E0F42523A6A6BE056F27273F1"
+    },
+    "explore/curves/F13_T_10to7-20_seed42_curves.npz": {
+      "sha256": "C02E1B92AA25802D92E2ABE206C3D172F635EA9AEAEBB2A56F9021BA77F2142B"
+    },
+    "explore/curves/F13_T_20to7-10_seed42_curves.npz": {
+      "sha256": "C693E9D51BDD7F4636A0E5995F3FAA023A13A707C9C658286F49BAEAC87A8E1A"
+    },
+    "explore/curves/F13_T_7to10-20_seed42_curves.npz": {
+      "sha256": "AE033110C56FDE14688AEBB9F164D3A20AC498FE628E2ABEF0715BECA474E914"
+    },
+    "explore/curves/RAW_J_seed42_curves.npz": {
+      "sha256": "4954CEE0E4251B3BDB697636B846E5727EDCA5EBFE9EE8309A2B93F8641D9964"
+    },
+    "explore/curves/RAW_L_hold10_seed42_curves.npz": {
+      "sha256": "9C16B3ED909450D5156CCCAE399575ABB91B06D1E196FAC1B759EEBA1BD13351"
+    },
+    "explore/curves/RAW_L_hold20_seed42_curves.npz": {
+      "sha256": "D421DE6E51FB589FCA8D5DD1F967EA8DC44B9EA6AE2E551917C129F305BD9608"
+    },
+    "explore/curves/RAW_L_hold7_seed42_curves.npz": {
+      "sha256": "327FBB0E52497FBBF0FC142F459FE899F7F4D804C61532CDC0848D712FE10C2E"
+    },
+    "explore/curves/RAW_S_10to10_seed42_curves.npz": {
+      "sha256": "A458D79C60CA95B75CCB2DA4A3AC66F51428DD4B03CB7807C8797CAA2374AD3D"
+    },
+    "explore/curves/RAW_S_20to20_seed42_curves.npz": {
+      "sha256": "61400C3FB44EF064EC1934136C37949FF10DC30601483C38E3439DA849E9B314"
+    },
+    "explore/curves/RAW_S_7to7_seed42_curves.npz": {
+      "sha256": "1E5C92BB769E8F01070C83364BA2C4E24BE9AE9D41FEFD93629C9C5351C2D309"
+    },
+    "explore/curves/RAW_T_10to7-20_seed42_curves.npz": {
+      "sha256": "1A7798BAD5F715ED76371EE310F02868A421EA4B4E8EF2B42EB55E81B4E8A248"
+    },
+    "explore/curves/RAW_T_20to7-10_seed42_curves.npz": {
+      "sha256": "19ED435811D7F4C295DD6A85BC01F6D921A7E7E2DFF8EB0D33B2E0A28535409C"
+    },
+    "explore/curves/RAW_T_7to10-20_seed42_curves.npz": {
+      "sha256": "9E2FD4E8F5805663552A06344D1B9317AB78656D7758608EEE0D07CF130B0A49"
+    }
+  },
+  "source_sha256": {
+    "sample_features.csv": "75BB9A0619F1E04FC8E1CD80451FD5C5A199953F67793740EDAD06A5EA909E32",
+    "risk_curves.csv": "4B3AD2A3121AF616F991B6D91CF15EDE1B3F8670F9B97B6BAF5527DA9AC71CA5"
+  }
+}
