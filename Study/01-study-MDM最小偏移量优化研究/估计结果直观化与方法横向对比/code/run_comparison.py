@@ -163,6 +163,7 @@ class ComparisonRunner:
             (os.path.join(PLATFORM_DIR, "methods", "wmle.py"), "wmle_py"),
             (os.path.join(PLATFORM_DIR, "methods", "lse.py"), "lse_py"),
             (os.path.join(PLATFORM_DIR, "methods", "lre.py"), "lre_py"),
+            (os.path.join(STUDY_DIR, "run_comparison.py"), "run_comparison_py"),
         ]
         for path, label in python_paths:
             if os.path.exists(path):

@@ -201,7 +201,7 @@ class TestManifest:
             assert key in m
 
     def test_output_hashes_count(self):
-        import json
+        import json, hashlib
         with open(MANIFEST, "r", encoding="utf-8") as f:
             m = json.load(f)
         expected = {"per_sample_results.csv", "overall_summary.csv",
@@ -212,3 +212,20 @@ class TestManifest:
         extra = actual - expected
         assert not missing, f"Missing output hashes: {missing}"
         assert not extra, f"Unexpected output hashes: {extra}"
+
+    def test_output_hashes_verified(self):
+        import json, hashlib
+        with open(MANIFEST, "r", encoding="utf-8") as f:
+            m = json.load(f)
+        for name, expected_hash in m.get("output_hashes", {}).items():
+            path = os.path.join(ARTIFACTS_DIR, name)
+            assert os.path.exists(path), f"{name} not found at {path}"
+            actual = hashlib.sha256(open(path, "rb").read()).hexdigest()
+            assert actual == expected_hash, f"{name}: hash mismatch"
+
+    def test_input_hashes_include_code(self):
+        import json
+        with open(MANIFEST, "r", encoding="utf-8") as f:
+            m = json.load(f)
+        hashes = m.get("input_hashes", {})
+        assert "run_comparison_py" in hashes, "Missing run_comparison.py hash in manifest"
