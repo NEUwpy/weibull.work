@@ -206,7 +206,9 @@ class TestManifest:
             m = json.load(f)
         expected = {"per_sample_results.csv", "overall_summary.csv",
                      "summary_n7.csv", "summary_n10.csv", "summary_n20.csv",
-                     "scale_equivariance_check.csv", "manifest.json"}
+                     "scale_equivariance_check.csv", "run_log.txt"}
         actual = set(m.get("output_hashes", {}).keys())
         missing = expected - actual
+        extra = actual - expected
         assert not missing, f"Missing output hashes: {missing}"
+        assert not extra, f"Unexpected output hashes: {extra}"

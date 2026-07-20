@@ -55,10 +55,11 @@ SUMMARY_N10_CSV = os.path.join(ARTIFACTS_DIR, "summary_n10.csv")
 SUMMARY_N20_CSV = os.path.join(ARTIFACTS_DIR, "summary_n20.csv")
 SCALE_CHECK_CSV = os.path.join(ARTIFACTS_DIR, "scale_equivariance_check.csv")
 MANIFEST_JSON = os.path.join(ARTIFACTS_DIR, "manifest.json")
+RUN_LOG_TXT = os.path.join(ARTIFACTS_DIR, "run_log.txt")
 
 ALL_OUTPUT_FILES = [
     PER_SAMPLE_CSV, OVERALL_CSV, SUMMARY_N7_CSV, SUMMARY_N10_CSV, SUMMARY_N20_CSV,
-    SCALE_CHECK_CSV,
+    SCALE_CHECK_CSV, RUN_LOG_TXT,
 ]
 
 INPUT_FILES = [
@@ -752,9 +753,6 @@ class ComparisonRunner:
         }
         with open(MANIFEST_JSON, "w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=2, ensure_ascii=False)
-        manifest["output_hashes"]["manifest.json"] = sha256_file(MANIFEST_JSON)
-        with open(MANIFEST_JSON, "w", encoding="utf-8") as f:
-            json.dump(manifest, f, indent=2, ensure_ascii=False)
         log(f"  Manifest saved to {MANIFEST_JSON}")
 
     def run(self):
@@ -782,6 +780,15 @@ class ComparisonRunner:
 
         self.verify(all_rows)
         self.spot_check(all_rows)
+
+        with open(RUN_LOG_TXT, "w", encoding="utf-8") as f:
+            f.write(f"# Run Log — method_comparison_v3\n")
+            f.write(f"# Started: {self.start_ts}\n")
+            f.write(f"# Duration: {sum(self.phase_times.values()):.1f}s\n")
+            f.write(f"# Status: COMPLETE\n")
+            for phase, t in self.phase_times.items():
+                f.write(f"#   {phase}: {t:.1f}s\n")
+
         self.write_manifest(all_rows)
 
         total_elapsed = sum(self.phase_times.values())
