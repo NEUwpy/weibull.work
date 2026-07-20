@@ -229,6 +229,23 @@ they are `FileNotFoundError` caused by that sealed test's hardcoded `PROJECT_ROO
 committed). They fail identically on the base commit; my changes neither cause nor affect them. I did
 not modify that sealed test (out of task scope; would alter the sealed-evidence guard).
 
+**Isolated-worktree verification (REVISE item 5).** A fresh detached worktree was created at
+`b5e217f`. Commands and results:
+
+```
+$ git worktree add --detach C:/weibull-study01RAW-verify b5e217f
+$ python C:/weibull-study01RAW-verify/python/tests/test_study01_e3b_raw_specialist.py
+> Results: 18 passed, 0 skipped, 0 failed
+$ python -m pytest C:/weibull-study01RAW-verify/python/tests/test_study01_e3b_raw_specialist.py \
+>     C:/weibull-study01RAW-verify/python/tests/test_study01_e3b_contract.py -v --tb=line
+> test_sha256sums_present_and_consistent PASSED
+> (formal E3b: 9 pre-existing D:\weibull / gitignored mc_scan_raw.csv failures, 11 skipped, unaffected)
+```
+
+SHA256SUMS verifies in the clean checkout (LF-normalized hashes resolve the cross-checkout
+line-ending instability caught by the first isolated worktree attempt). All 18 specialist
+contract tests pass on a clean checkout with no prior run artifacts.
+
 ## 10. Deviations, skipped items, residual risks
 
 - **D:\weibull → C:\weibull**: D: drive absent; the repo is at `C:\weibull`. The first pass used a
