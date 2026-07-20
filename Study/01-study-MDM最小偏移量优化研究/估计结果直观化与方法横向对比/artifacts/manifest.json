@@ -1,0 +1,71 @@
+{
+  "run_id": "method_comparison_v1",
+  "run_start": "2026-07-20T05:59:37.100079+00:00",
+  "run_end": "2026-07-20T05:59:58.811862+00:00",
+  "seed_namespace": "study01_v1",
+  "parameter_grid": {
+    "beta": [
+      2.0
+    ],
+    "eta": [
+      1.0
+    ],
+    "gamma_over_eta": [
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      20
+    ]
+  },
+  "repeats": 1000,
+  "display_scale": 1000.0,
+  "methods": {
+    "traditional": [
+      "mle",
+      "wmle",
+      "lse",
+      "lre"
+    ],
+    "cached_mdm": [
+      "MDM-0.1",
+      "MDM-MLP",
+      "MDM-L6-oracle"
+    ]
+  },
+  "mlp_source": {
+    "model": "Vector-MLP-L6",
+    "seed": 42,
+    "holdout": "5-fold combo",
+    "file": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E3b_vector_mlp\\vector_mlp_results.csv"
+  },
+  "file_hashes": {
+    "mc_scan_raw.csv": "29d7dd6d93e2c174e221e8e300946bb629d565f06a651d252163bd4144d74e29",
+    "vector_mlp_results.csv": "5d6243d4a4011bd92fa9c8e4e1ba42aceddbee24b0d1bc83cf5124aca4ad5a64",
+    "L6_per_sample_delta.csv": "db5e94c02eaaec99851a00c3429f07cd4c7f1da72ebd66e7e8f8979c5ea71145",
+    "manifest.json": "0bc94dc8b35277b073dc6f2c2c3dde65827de9567c2f2b274e04f4783474bf18",
+    "sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "runner.py": "8b9faa207fc0ccaea0e0838fa0749ea07cef904c74baaad71b55a64df0110ed4",
+    "mle.py": "80432659e6b934ae8bd08cd1319e121cf82b3eb46a4d6cd58abeeb9c007163f9",
+    "wmle.py": "d4570818e2e137d315f431104d4ff52f784bcc3d6748e7c17f326830f07ec257",
+    "lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "lre.py": "0f22e31cf79aa5862d68f7b3d49e3a113266e191c29a679ca7ef58e7a332354c"
+  },
+  "phase_times": {
+    "extract_mdm": 1.2113008499145508,
+    "build_mdm": 5.328941345214844,
+    "run_traditional": 0.8616962432861328,
+    "compute_metrics": 0.24266958236694336
+  },
+  "per_method_counts": {
+    "mle": 3000,
+    "wmle": 3000,
+    "lse": 3000,
+    "lre": 3000,
+    "MDM-0.1": 3000,
+    "MDM-MLP": 3000,
+    "MDM-L6-oracle": 3000
+  },
+  "python_platform": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\估计结果直观化与方法横向对比\\code"
+}

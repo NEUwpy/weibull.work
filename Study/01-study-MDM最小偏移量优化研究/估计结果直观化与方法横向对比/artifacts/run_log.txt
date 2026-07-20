@@ -1,0 +1,27 @@
+# Run Log — method_comparison_v1
+# Started: 2026-07-20T05:52:46+00:00
+# Final run: 2026-07-20T05:59:37+00:00
+# Status: ALL PHASES COMPLETE
+
+Phase summary:
+  extract_mdm: 1.2s
+  build_mdm: 5.3s
+  run_traditional: 117.2s (aggregate over 3 runs)
+  compute_metrics: 0.2s
+
+Verification:
+  pytest: 25/25 PASSED
+  spot_checks: 14 results verified
+  repeat_counts: PASS
+  sample_hash_consistency: PASS (all 12 method*n pairs)
+
+Scale equivariance:
+  LSE: PASS (beta_diff<1e-6, eta_ratio-1000<9e-5, gamma_ratio-1000<9e-5)
+  MLE: FAIL (11/15 paired, beta_diff up to 2.63) → display-scale direct run
+  WMLE: FAIL (gamma near-zero ratio instability) → display-scale direct run
+  LRE: FAIL (gamma collapses to 0 at display scale) → display-scale direct run
+
+Checkpoints:
+  trad_mle_n7_display.csv  ... trad_lre_n20_display.csv: 12 files, all complete
+
+Remote: will push to origin/study01-method-comparison
