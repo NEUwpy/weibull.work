@@ -2088,3 +2088,91 @@ def test_staged_full_chain_smoke(tmp_path, monkeypatch):
     telemetry["test_access_count"] = _authority_state["test_access_count"]
     telemetry["selected_F2_or_V"] = staged["selected_F2_or_V"]
     print("SLOW_SMOKE_TELEMETRY " + json.dumps(telemetry))
+
+
+def test_consecutive_failure_guard_raises_at_eight(monkeypatch):
+    """8 consecutive scientific failures raise RuntimeError, matching run_module behaviour."""
+    fit_runner_results = []
+    def _fail_runner(study_root=None, run_dir=None, cache_root=None, plan_row=None,
+                     claim=None, frozen=None, effective=None, timestamp=None):
+        fit_runner_results.append("called")
+        return {"state": "failed", "failure_code": "dead_identity_no_outputs",
+                "message": "synthetic failure for guard test"}
+    monkeypatch.setattr(fe, "_assert_scoped_code_clean", lambda study_root: None)
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        from study02a.formal_scheduler import materialize_run
+        result = materialize_run(
+            study_root=STUDY_ROOT,
+            matrix_path=STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv",
+            module_id="A-E1", run_id="guard-test",
+            artifact_root=root / "artifacts", cache_root=root / "cache", predecessor=None)
+        with pytest.raises(RuntimeError, match="8 consecutive scientific failures"):
+            fe.run_a_e1_staged(
+                study_root=STUDY_ROOT, module_id="A-E1", run_id="guard-test",
+                artifact_root=root / "artifacts", cache_root=root / "cache",
+                max_fits=10, fit_runner=_fail_runner)
+        assert len(fit_runner_results) == 8
+
+
+def test_consecutive_failure_guard_does_not_raise_at_seven(monkeypatch):
+    """7 consecutive failures do NOT trigger the guard; the loop continues."""
+    fit_runner_results = []
+    def _fail_runner(study_root=None, run_dir=None, cache_root=None, plan_row=None,
+                     claim=None, frozen=None, effective=None, timestamp=None):
+        fit_runner_results.append("called")
+        return {"state": "failed", "failure_code": "dead_identity_no_outputs",
+                "message": "synthetic failure for guard test"}
+    monkeypatch.setattr(fe, "_assert_scoped_code_clean", lambda study_root: None)
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        from study02a.formal_scheduler import materialize_run
+        materialize_run(
+            study_root=STUDY_ROOT,
+            matrix_path=STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv",
+            module_id="A-E1", run_id="guard-test-7",
+            artifact_root=root / "artifacts", cache_root=root / "cache", predecessor=None)
+        result = fe.run_a_e1_staged(
+            study_root=STUDY_ROOT, module_id="A-E1", run_id="guard-test-7",
+            artifact_root=root / "artifacts", cache_root=root / "cache",
+            max_fits=7, fit_runner=_fail_runner)
+        assert len(fit_runner_results) == 7
+        assert result["failed_count"] == 7
+        assert result["succeeded_count"] == 0
+
+
+def test_consecutive_failure_guard_counter_resets_on_success(monkeypatch):
+    """A success between failures resets the consecutive counter."""
+    fit_runner_results = []
+    call_count = [0]
+    def _mixed_runner(study_root=None, run_dir=None, cache_root=None, plan_row=None,
+                      claim=None, frozen=None, effective=None, timestamp=None):
+        call_count[0] += 1
+        fit_runner_results.append(call_count[0])
+        # Fail 7 times, succeed on 8th, then continue failing (should reset counter)
+        if call_count[0] == 8:
+            return {"state": "succeeded", "failure_code": None, "message": ""}
+        return {"state": "failed", "failure_code": "dead_identity_no_outputs",
+                "message": "synthetic failure for guard test"}
+    monkeypatch.setattr(fe, "_assert_scoped_code_clean", lambda study_root: None)
+    monkeypatch.setattr(fe, "_utc_now", lambda: "2026-07-21T00:00:00Z")
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        from study02a.formal_scheduler import materialize_run
+        materialize_run(
+            study_root=STUDY_ROOT,
+            matrix_path=STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv",
+            module_id="A-E1", run_id="guard-test-rst",
+            artifact_root=root / "artifacts", cache_root=root / "cache", predecessor=None)
+        # 7 failures + 1 success + 7 more failures = 15 fits, no guard triggered
+        # because the success at position 8 resets the counter
+        result = fe.run_a_e1_staged(
+            study_root=STUDY_ROOT, module_id="A-E1", run_id="guard-test-rst",
+            artifact_root=root / "artifacts", cache_root=root / "cache",
+            max_fits=15, fit_runner=_mixed_runner)
+        assert result["succeeded_count"] == 1
+        assert result["failed_count"] == 14
+        # Total fits attempted should be 15 (no early abort from guard)
