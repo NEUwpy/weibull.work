@@ -2090,45 +2090,29 @@ def test_staged_full_chain_smoke(tmp_path, monkeypatch):
     print("SLOW_SMOKE_TELEMETRY " + json.dumps(telemetry))
 
 
-def test_consecutive_failure_guard_logic_synthetic():
-    """Verify the guard counter logic in isolation.
-    
-    Simulates the while-loop pattern from run_a_e1_staged: success resets counter,
-    7 consecutive failures continue, 8th raises RuntimeError. Does not require
-    scheduler/materialize/authority infrastructure.
-    """
-    _MAX_CONSECUTIVE_FAILURES = 8
-    results = []
-    consecutive_failures = [0]
-
-    def simulate_fit(state):
-        if state == "succeeded":
-            results.append("succeeded")
-            consecutive_failures[0] = 0
-        else:
-            results.append("failed")
-            consecutive_failures[0] += 1
-            if consecutive_failures[0] >= _MAX_CONSECUTIVE_FAILURES:
-                raise RuntimeError(
-                    f"staged A-E1 aborted: {_MAX_CONSECUTIVE_FAILURES} consecutive scientific failures")
-
-    # 7 failures: no raise
+def test_consecutive_failure_guard_raises_at_eight():
+    """7 failures return incremented count; 8th raises RuntimeError."""
+    counter = 0
     for _ in range(7):
-        simulate_fit("failed")
-    assert consecutive_failures[0] == 7
-    assert len(results) == 7
-
-    # 8th failure: raises
+        counter = fe._advance_consecutive_failures(counter, "dead", "test")
+    assert counter == 7
     with pytest.raises(RuntimeError, match="8 consecutive scientific failures"):
-        simulate_fit("failed")
+        fe._advance_consecutive_failures(counter, "dead", "test")
 
-    # Reset: success between failures clears counter
-    results.clear()
-    consecutive_failures[0] = 0
+
+def test_consecutive_failure_guard_counter_resets_on_success():
+    """Caller resets counter to 0 on success; helper only increments on failure."""
+    counter = 0
     for _ in range(3):
-        simulate_fit("failed")
-    simulate_fit("succeeded")  # reset
-    assert consecutive_failures[0] == 0
+        counter = fe._advance_consecutive_failures(counter, "dead", "test")
+    assert counter == 3
+    counter = 0  # caller's success reset
     for _ in range(5):
-        simulate_fit("failed")
-    assert consecutive_failures[0] == 5  # NOT 8, counter was reset
+        counter = fe._advance_consecutive_failures(counter, "dead", "test")
+    assert counter == 5
+
+
+def test_consecutive_failure_guard_respects_custom_label_and_threshold():
+    """Helper supports custom label and max_failures."""
+    with pytest.raises(RuntimeError, match="custom label aborted: 3 consecutive"):
+        fe._advance_consecutive_failures(2, "err", "msg", max_failures=3, label="custom label")

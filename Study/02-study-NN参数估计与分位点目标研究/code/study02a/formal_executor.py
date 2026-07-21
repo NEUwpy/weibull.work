@@ -598,6 +598,13 @@ def execute_claimed_fit(
     }
 
 
+def _advance_consecutive_failures(count: int, failure_code: str, message: str, *, max_failures: int = 8, label: str = "formal execution") -> int:
+    count += 1
+    if count >= max_failures:
+        raise RuntimeError(f"{label} aborted: {max_failures} consecutive scientific failures (last: {failure_code}: {message})")
+    return count
+
+
 def run_module(
     *,
     study_root: Path,
@@ -654,7 +661,6 @@ def run_module(
     failed: list[dict[str, str]] = []
     selection_required: list[str] = []
     consecutive_failures = 0
-    _MAX_CONSECUTIVE_FAILURES = 8  # stop on a systematic scientific failure, not churn
     while max_fits is None or len(succeeded) < int(max_fits):
         # Peek the next pending fit WITHOUT claiming, so a selection-dependent fit is
         # deferred cleanly instead of being claimed and then failed.
@@ -686,12 +692,7 @@ def run_module(
             consecutive_failures = 0
         else:
             failed.append({"fit_id": claim["fit_id"], "failure_code": result["failure_code"], "message": result["message"]})
-            consecutive_failures += 1
-            if consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
-                raise RuntimeError(
-                    f"formal execution aborted: {_MAX_CONSECUTIVE_FAILURES} consecutive scientific failures "
-                    f"(last: {result['failure_code']}: {result['message']})"
-                )
+            consecutive_failures = _advance_consecutive_failures(consecutive_failures, result["failure_code"], result["message"])
 
     return {
         "module_id": module_id, "run_id": run_id, "run_dir": str(run_dir),
@@ -2271,7 +2272,6 @@ def run_a_e1_staged(
     succeeded: list[str] = []
     failed: list[dict[str, str]] = []
     consecutive_failures = 0
-    _MAX_CONSECUTIVE_FAILURES = 8
     while max_fits is None or len(succeeded) < int(max_fits):
         state = _rebuild_authority(run_dir, cache_root)[2]
         pending = [fid for fid in plan_order if state["fit_states"].get(fid) == "pending"]
@@ -2312,12 +2312,9 @@ def run_a_e1_staged(
             consecutive_failures = 0
         else:
             failed.append({"fit_id": fit_id, "failure_code": result["failure_code"], "message": result["message"]})
-            consecutive_failures += 1
-            if consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
-                raise RuntimeError(
-                    f"staged A-E1 aborted: {_MAX_CONSECUTIVE_FAILURES} consecutive scientific failures "
-                    f"(last: {result['failure_code']}: {result['message']})"
-                )
+            consecutive_failures = _advance_consecutive_failures(
+                consecutive_failures, result["failure_code"], result["message"],
+                label="staged A-E1")
 
     # The final module selection + staged resolution require EVERY selection fit terminal. A
     # partial run (max_fits capped, or a smoke) skips them and returns the partial execution
