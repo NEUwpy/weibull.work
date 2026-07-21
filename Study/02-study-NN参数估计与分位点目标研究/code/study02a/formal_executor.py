@@ -2270,6 +2270,8 @@ def run_a_e1_staged(
     stage2_by_route: dict[str, dict[str, Any]] = {}
     succeeded: list[str] = []
     failed: list[dict[str, str]] = []
+    consecutive_failures = 0
+    _MAX_CONSECUTIVE_FAILURES = 8
     while max_fits is None or len(succeeded) < int(max_fits):
         state = _rebuild_authority(run_dir, cache_root)[2]
         pending = [fid for fid in plan_order if state["fit_states"].get(fid) == "pending"]
@@ -2307,8 +2309,15 @@ def run_a_e1_staged(
             claim=claim, frozen=frozen, effective=effective, timestamp=timestamp)
         if result["state"] == "succeeded":
             succeeded.append(fit_id)
+            consecutive_failures = 0
         else:
             failed.append({"fit_id": fit_id, "failure_code": result["failure_code"], "message": result["message"]})
+            consecutive_failures += 1
+            if consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
+                raise RuntimeError(
+                    f"staged A-E1 aborted: {_MAX_CONSECUTIVE_FAILURES} consecutive scientific failures "
+                    f"(last: {result['failure_code']}: {result['message']})"
+                )
 
     # The final module selection + staged resolution require EVERY selection fit terminal. A
     # partial run (max_fits capped, or a smoke) skips them and returns the partial execution

@@ -27,6 +27,7 @@ from study02a.pilot import run_pilot
 from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run, _rebuild_authority
 from study02a.formal_executor import (
     build_module_pre_unseal_bundle,
+    run_a_e1_staged,
     run_module as run_formal_module,
     reconstruct_deferred_specs,
     resolve_a_e1_staged_selection,
@@ -540,15 +541,26 @@ def main() -> int:
                 timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             )
     elif args.command == "formal-execute":
-        payload = run_formal_module(
-            study_root=STUDY_ROOT,
-            module_id=args.module,
-            run_id=args.run_id,
-            artifact_root=args.artifact_root,
-            cache_root=args.cache_root,
-            owner_id=args.owner_id,
-            max_fits=args.max_fits,
-        )
+        if args.module == "A-E1":
+            payload = run_a_e1_staged(
+                study_root=STUDY_ROOT,
+                module_id=args.module,
+                run_id=args.run_id,
+                artifact_root=args.artifact_root,
+                cache_root=args.cache_root,
+                owner_id=args.owner_id,
+                max_fits=args.max_fits,
+            )
+        else:
+            payload = run_formal_module(
+                study_root=STUDY_ROOT,
+                module_id=args.module,
+                run_id=args.run_id,
+                artifact_root=args.artifact_root,
+                cache_root=args.cache_root,
+                owner_id=args.owner_id,
+                max_fits=args.max_fits,
+            )
     elif args.command == "formal-staged":
         payload = resolve_staged(args.module, args.run_id, args.artifact_root, args.cache_root)
     elif args.command == "formal-accredit-authorize":
