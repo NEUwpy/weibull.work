@@ -58,8 +58,8 @@ def test_formal_execute_dispatches_a_e1_to_run_a_e1_staged(monkeypatch):
     kwargs = fake_staged.call_args.kwargs
     assert kwargs["module_id"] == "A-E1"
     assert kwargs["run_id"] == "test-run"
-    assert str(kwargs["artifact_root"]).endswith("artifacts/runs")
-    assert str(kwargs["cache_root"]).endswith("artifacts/cache")
+    assert str(kwargs["artifact_root"]).replace("\\", "/").endswith("artifacts/runs")
+    assert str(kwargs["cache_root"]).replace("\\", "/").endswith("artifacts/cache")
     assert kwargs["owner_id"] == "test-owner"
     assert kwargs["max_fits"] == 10
 
