@@ -31,7 +31,7 @@ Wire `formal-execute --module A-E1` to `run_a_e1_staged()` (the 349-fit staged o
 $ python -m compileall -q code/ python/                # exit 0
 $ verify_frozen_hashes(STUDY_ROOT)                      # OK
 $ python -m pytest python/tests/ -q -m "not slow" -k "study02a"
-364 passed, 248 deselected                             # +2 CLI dispatch tests vs prior 362
+367 passed, 248 deselected                             # +3 production-bound guard + 2 CLI dispatch vs prior 362
 $ git status --short                                    # clean (committed)
 ```
 

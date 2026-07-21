@@ -1,8 +1,8 @@
 # Study02 A-E1 Formal — Codex Preflight Review
 
-**Verdict history: 原始 APPROVE 已被 Codex R2 REVISE 覆盖。当前 verdict：REVISE（operational wiring awaiting review）。A-E1 formal 未经授权。**
+**Verdict history: 原始 APPROVE 已被 R2 REVISE 覆盖 → R3 REVISE。当前 verdict：REVISE（operational wiring R3 awaiting Codex final review）。A-E1 formal 未经授权。**
 
-审查日期：2026-07-21 · 修订：R2
+审查日期：2026-07-21 · 最新修订：R3
 
 ---
 
@@ -20,7 +20,7 @@
 | 项目 | 结果 |
 |------|------|
 | compileall | OK |
-| 非 slow 测试 | 364 passed（含 CLI dispatch + guard 测试） |
+| 非 slow 测试 | 367 passed（含 CLI dispatch + production-bound guard tests） |
 | 349-fit sealed smoke | PASSED（2h13min，不再重跑） |
 | test_access_count | 0 |
 | frozen configs | 全部 hash 验证通过 |
