@@ -1933,29 +1933,44 @@ def _compute_e4d_baselines(df_boundary_feat, df_offgrid_feat,
 
 
 # ============================================================
-# E3b reproduction gate
+# E3b reproduction gate — frozen tolerances (BEFORE any E4 truth)
 # ============================================================
+
+# Per-sample tolerance for seed-42 repro against vector_mlp_results.csv
+E3B_SEED42_DELTA_MATCH_MIN_RATE = 0.90   # categorical selected_delta
+E3B_SEED42_LOSS_REL_TOL = 0.01           # |loss_repro - loss_sealed| / max(loss_sealed, 1e-6)
+
+# Summary tolerance for 3-seed repro against seed_stability.csv
+E3B_POOLED_J1_REL_TOL = 0.005            # 0.5%
+E3B_PERN_J1_REL_TOL = 0.01               # 1%
+E3B_ENDPOINT_RATE_ABS_TOL = 0.02         # 2 percentage points
+
 
 def _e3b_reproduction_gate_check(df_mc):
     """Verify that the training infrastructure reproduces the frozen E3b contract.
 
-    Checks (per the frozen contract, 07-剩余实验目标与规划.md §4.1):
+    Checks (per 07-剩余实验目标与规划.md §4.1):
       1. 5-fold combo partition matches ``split_report.csv``.
-      2. Fold coverage is identical (same combos in each fold).
+      2. Seed-42 per-sample selected_delta and true_loss vs
+         ``vector_mlp_results.csv`` (Vector-MLP-L6 rows only).
+      3. Seeds {42, 2026, 3407} pooled J1, per-n J1, endpoint rate vs
+         ``seed_stability.csv``.
 
-    The per-sample repro against ``tabular_l6_results.csv`` and 3-seed
-    summary repro against ``seed_stability.csv`` are exercised in the
-    contract tests; this gate prints a consistency message for the run log.
+    All tolerances are frozen BEFORE any E4 truth is accessed. Any failure
+    raises ``PreflightError`` — the gate is fail-closed.
     """
     E3B_DIR = os.path.join(ARTIFACTS_DIR, "E3b_vector_mlp")
     split_path = os.path.join(E3B_DIR, "split_report.csv")
-    if not os.path.exists(split_path):
-        log("  [E3b gate] split_report.csv not found — skip fold coverage check")
-        return
+    vmlp_path = os.path.join(E3B_DIR, "vector_mlp_results.csv")
+    stab_path = os.path.join(E3B_DIR, "seed_stability.csv")
 
+    # ── Gate 1: fold partition ──
+    if not os.path.exists(split_path):
+        raise PreflightError(
+            "E3b reproduction gate: split_report.csv not found"
+        )
     ref_split = pd.read_csv(split_path)
     folds = get_combo_split()
-    mismatches = []
     for fold_idx, fold in enumerate(folds):
         fold_name = f"combo_fold_{fold_idx + 1}"
         ref_test = ref_split[ref_split['fold'] == fold_name]
@@ -1970,10 +1985,10 @@ def _e3b_reproduction_gate_check(df_mc):
             (float(b), float(g), int(n)) for (b, g, n) in fold['train_combos']
         )
         if ref_combos != our_test:
-            mismatches.append(
-                f"  fold {fold_name}: test combo mismatch "
-                f"(missing={sorted(ref_combos - our_test)[:3]}, "
-                f"extra={sorted(our_test - ref_combos)[:3]})"
+            raise PreflightError(
+                f"E3b gate fold {fold_name}: test combo mismatch — "
+                f"missing={sorted(ref_combos - our_test)[:3]}, "
+                f"extra={sorted(our_test - ref_combos)[:3]}"
             )
         all_combos = set((float(b), float(g), int(n))
                          for b in BETA_GRID
@@ -1981,16 +1996,253 @@ def _e3b_reproduction_gate_check(df_mc):
                          for n in N_GRID)
         expected_train = all_combos - our_test
         if expected_train != our_train:
-            mismatches.append(
-                f"  fold {fold_name}: train combo mismatch"
+            raise PreflightError(
+                f"E3b gate fold {fold_name}: train combo mismatch"
             )
+    log("  [E3b gate] fold partition vs split_report.csv: PASSED")
 
-    if mismatches:
+    # ── Build main-grid features once (shared across folds) ──
+    df_feat = build_feature_table_from_mc(df_mc)
+    merge_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
+    df_merged = df_mc.merge(df_feat, on=merge_keys, how='left',
+                            suffixes=('', '_feat'))
+    for col in list(df_merged.columns):
+        if col.endswith('_feat'):
+            df_merged.drop(columns=col, inplace=True)
+    df_merged = compute_loss(df_merged)
+
+    # ── Gate 2: seed-42 per-sample reproduction ──
+    if not os.path.exists(vmlp_path):
         raise PreflightError(
-            "E3b reproduction gate FAILED — fold partition differs from frozen:\n"
-            + "\n".join(mismatches)
+            "E3b reproduction gate: vector_mlp_results.csv not found"
         )
-    log("  [E3b gate] 5-fold partition matches frozen split_report.csv")
+    ref_vmlp = pd.read_csv(vmlp_path)
+    ref_l6 = ref_vmlp[ref_vmlp['model'] == 'Vector-MLP-L6'].copy()
+    if len(ref_l6) == 0:
+        raise PreflightError(
+            "E3b reproduction gate: no Vector-MLP-L6 rows in "
+            "vector_mlp_results.csv"
+        )
+
+    all_repro_rows = []
+    seed = 42
+    for fold in folds:
+        fold_name = fold['fold_name']
+        train_combos = set(fold['train_combos'])
+        test_combos = set(fold['test_combos'])
+
+        # Train
+        df_train = df_merged[
+            df_merged.apply(
+                lambda r: (r['beta'], r['gamma_over_eta'], r['n'])
+                in train_combos, axis=1
+            )
+        ].copy()
+        zscore_means, zscore_stds = _fit_zscore_params(df_train)
+        failure_penalty = float(
+            np.nanpercentile(df_train['loss'].dropna(), 99)
+        )
+        df_train['loss_filled'] = df_train['loss'].fillna(failure_penalty)
+        train_samples, Y_train = _pivot_risk_vectors(
+            df_train, 'loss_filled', failure_penalty
+        )
+        X_train = _build_X_from_samples(
+            train_samples, zscore_means, zscore_stds
+        )
+        model, target_scaler = _train_mlp(X_train, Y_train, seed)
+
+        # Evaluate on TEST combos (same as E3b did)
+        df_test = df_merged[
+            df_merged.apply(
+                lambda r: (r['beta'], r['gamma_over_eta'], r['n'])
+                in test_combos, axis=1
+            )
+        ].copy()
+        df_test['loss_filled'] = df_test['loss'].fillna(failure_penalty)
+        test_samples, Y_test = _pivot_risk_vectors(
+            df_test, 'loss_filled', failure_penalty
+        )
+        X_test = _build_X_from_samples(
+            test_samples, zscore_means, zscore_stds
+        )
+        Y_pred = target_scaler.inverse_transform(model.predict(X_test))
+        Y_pred = np.clip(Y_pred, 0, None)
+
+        for i in range(len(test_samples)):
+            best_delta_idx = int(np.argmin(Y_pred[i]))
+            repro_delta = DELTA_GRID[best_delta_idx]
+            repro_loss = float(Y_test[i, best_delta_idx])
+            row = test_samples.iloc[i]
+            all_repro_rows.append({
+                'beta': float(row['beta']),
+                'gamma_over_eta': float(row['gamma_over_eta']),
+                'n': int(row['n']),
+                'repeat_id': int(row['repeat_id']),
+                'selected_delta': repro_delta,
+                'true_loss': repro_loss,
+            })
+
+    df_repro = pd.DataFrame(all_repro_rows)
+
+    # Merge on sample keys
+    merge_on = ['beta', 'gamma_over_eta', 'n', 'repeat_id']
+    df_compare = df_repro.merge(
+        ref_l6, on=merge_on, how='inner',
+        suffixes=('_repro', '_sealed')
+    )
+    if len(df_compare) == 0:
+        raise PreflightError(
+            "E3b gate seed-42: zero overlapping sample keys "
+            "between reproduction and sealed results"
+        )
+
+    # Delta match rate
+    delta_match = df_compare['selected_delta_repro'] == df_compare[
+        'selected_delta_sealed'
+    ]
+    delta_match_rate = float(delta_match.mean())
+    log(
+        f"  [E3b gate] seed-42 delta match: {delta_match_rate:.4f} "
+        f"(threshold {E3B_SEED42_DELTA_MATCH_MIN_RATE})"
+    )
+    if delta_match_rate < E3B_SEED42_DELTA_MATCH_MIN_RATE:
+        raise PreflightError(
+            f"E3b gate seed-42 FAILED: delta match rate "
+            f"{delta_match_rate:.4f} < {E3B_SEED42_DELTA_MATCH_MIN_RATE}"
+        )
+
+    # Loss relative difference
+    sealed_loss = np.maximum(
+        np.abs(df_compare['true_loss_sealed'].values), 1e-6
+    )
+    loss_rel_diff = np.abs(
+        df_compare['true_loss_repro'].values -
+        df_compare['true_loss_sealed'].values
+    ) / sealed_loss
+    loss_rel_diff_median = float(np.median(loss_rel_diff))
+    log(
+        f"  [E3b gate] seed-42 loss rel diff median: {loss_rel_diff_median:.6f} "
+        f"(threshold {E3B_SEED42_LOSS_REL_TOL})"
+    )
+    if loss_rel_diff_median > E3B_SEED42_LOSS_REL_TOL:
+        raise PreflightError(
+            f"E3b gate seed-42 FAILED: median loss rel diff "
+            f"{loss_rel_diff_median:.6f} > {E3B_SEED42_LOSS_REL_TOL}"
+        )
+
+    # ── Gate 3: 3-seed summary reproduction ──
+    if not os.path.exists(stab_path):
+        raise PreflightError(
+            "E3b reproduction gate: seed_stability.csv not found"
+        )
+    ref_stab = pd.read_csv(stab_path)
+    # Pooled evaluation: train all 5 folds per seed, evaluate on test combos
+    summary_rows = []
+    for seed in STABILITY_SEEDS:
+        seed_rows = []
+        for fold in folds:
+            train_combos = set(fold['train_combos'])
+            test_combos = set(fold['test_combos'])
+            df_train = df_merged[
+                df_merged.apply(
+                    lambda r: (r['beta'], r['gamma_over_eta'], r['n'])
+                    in train_combos, axis=1
+                )
+            ].copy()
+            zmeans, zstds = _fit_zscore_params(df_train)
+            fpen = float(np.nanpercentile(df_train['loss'].dropna(), 99))
+            df_train['loss_filled'] = df_train['loss'].fillna(fpen)
+            ts, Yt = _pivot_risk_vectors(df_train, 'loss_filled', fpen)
+            Xt = _build_X_from_samples(ts, zmeans, zstds)
+            m, scl = _train_mlp(Xt, Yt, seed)
+
+            df_test = df_merged[
+                df_merged.apply(
+                    lambda r: (r['beta'], r['gamma_over_eta'], r['n'])
+                    in test_combos, axis=1
+                )
+            ].copy()
+            df_test['loss_filled'] = df_test['loss'].fillna(fpen)
+            tes, Ye = _pivot_risk_vectors(df_test, 'loss_filled', fpen)
+            Xe = _build_X_from_samples(tes, zmeans, zstds)
+            Yp = scl.inverse_transform(m.predict(Xe))
+            Yp = np.clip(Yp, 0, None)
+
+            for i in range(len(tes)):
+                bdi = int(np.argmin(Yp[i]))
+                seed_rows.append({
+                    'seed': seed,
+                    'n': int(tes.iloc[i]['n']),
+                    'selected_delta': DELTA_GRID[bdi],
+                    'true_loss': float(Ye[i, bdi]),
+                })
+        df_sr = pd.DataFrame(seed_rows)
+        pooled_j1 = math.sqrt(df_sr['true_loss'].mean())
+        per_n = {}
+        for nv in sorted(df_sr['n'].unique()):
+            sub = df_sr[df_sr['n'] == nv]
+            per_n[int(nv)] = math.sqrt(sub['true_loss'].mean())
+        ep_rate = float(
+            df_sr['selected_delta'].isin(
+                [0.00, 0.02, 0.48, 0.50]
+            ).mean()
+        )
+        summary_rows.append({
+            'seed': seed,
+            'pooled_J1': pooled_j1,
+            'J1_n7': per_n.get(7, float('nan')),
+            'J1_n10': per_n.get(10, float('nan')),
+            'J1_n20': per_n.get(20, float('nan')),
+            'endpoint_rate': ep_rate,
+        })
+    df_sum = pd.DataFrame(summary_rows)
+    stab_compare = df_sum.merge(
+        ref_stab, on='seed', how='inner',
+        suffixes=('_repro', '_sealed')
+    )
+    if len(stab_compare) != len(STABILITY_SEEDS):
+        raise PreflightError(
+            "E3b gate summary: seed coverage mismatch"
+        )
+
+    for _, srow in stab_compare.iterrows():
+        sd = int(srow['seed'])
+        for metric, label, rel_tol, abs_tol in [
+            ('pooled_J1', 'pooled J1',
+             E3B_POOLED_J1_REL_TOL, None),
+            ('J1_n7', 'per-n J1 n=7',
+             E3B_PERN_J1_REL_TOL, None),
+            ('J1_n10', 'per-n J1 n=10',
+             E3B_PERN_J1_REL_TOL, None),
+            ('J1_n20', 'per-n J1 n=20',
+             E3B_PERN_J1_REL_TOL, None),
+            ('endpoint_rate', 'endpoint rate',
+             None, E3B_ENDPOINT_RATE_ABS_TOL),
+        ]:
+            repro_val = float(srow[f'{metric}_repro'])
+            sealed_val = float(srow[f'{metric}_sealed'])
+            if rel_tol is not None:
+                denom = max(abs(sealed_val), 1e-6)
+                diff = abs(repro_val - sealed_val) / denom
+                ok = diff <= rel_tol
+                detail = f"{diff:.6f} <= {rel_tol}"
+            else:
+                diff = abs(repro_val - sealed_val)
+                ok = diff <= abs_tol
+                detail = f"{diff:.6f} <= {abs_tol}"
+            if not ok:
+                raise PreflightError(
+                    f"E3b gate seed={sd} {label} FAILED: "
+                    f"repro={repro_val:.6f} sealed={sealed_val:.6f} "
+                    f"({detail})"
+                )
+    log(
+        "  [E3b gate] 3-seed summary vs seed_stability.csv: PASSED "
+        f"(pooled J1 ±{E3B_POOLED_J1_REL_TOL}, "
+        f"per-n J1 ±{E3B_PERN_J1_REL_TOL}, "
+        f"endpoint rate ±{E3B_ENDPOINT_RATE_ABS_TOL})"
+    )
+    log("  [E3b gate] FULL GATE PASSED — E3b reproduction confirmed")
 
 
 # ============================================================

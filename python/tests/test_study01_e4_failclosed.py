@@ -433,6 +433,81 @@ class TestGitInfoDirty:
 
 
 # ============================================================
+# E3b reproduction gate tests
+# ============================================================
+
+class TestE3bReproductionGate:
+    """Verify the true E3b reproduction gate per contract §4.1."""
+
+    def test_frozen_tolerances_exist_and_are_positive(self):
+        e4 = _E4_MODULE
+        assert e4.E3B_SEED42_DELTA_MATCH_MIN_RATE > 0.0
+        assert e4.E3B_SEED42_DELTA_MATCH_MIN_RATE <= 1.0
+        assert e4.E3B_SEED42_LOSS_REL_TOL > 0.0
+        assert e4.E3B_POOLED_J1_REL_TOL > 0.0
+        assert e4.E3B_PERN_J1_REL_TOL > 0.0
+        assert e4.E3B_ENDPOINT_RATE_ABS_TOL > 0.0
+
+    def test_fold_partition_matches_frozen_split_report(self):
+        """The existing fold partition must match — this tests the check that
+        already passed during the E4d run."""
+        e4 = _E4_MODULE
+        folds = e4.get_combo_split()
+
+        split_path = (
+            STUDY_ROOT / "artifacts" / "formal" / "E3b_vector_mlp"
+            / "split_report.csv"
+        )
+        if not split_path.exists():
+            pytest.skip("split_report.csv not found")
+        ref_split = pd.read_csv(split_path)
+
+        for fold_idx, fold in enumerate(folds):
+            fold_name = f"combo_fold_{fold_idx + 1}"
+            ref_test = ref_split[ref_split["fold"] == fold_name]
+            ref_combos = set(zip(
+                ref_test["test_beta"],
+                ref_test["test_gamma_over_eta"],
+                ref_test["test_n"],
+            ))
+            our_test = set(
+                (float(b), float(g), int(n))
+                for (b, g, n) in fold["test_combos"]
+            )
+            assert ref_combos == our_test, (
+                f"{fold_name}: combo mismatch"
+            )
+
+    def test_seed_stability_reference_readable(self):
+        """seed_stability.csv must exist and have the expected columns."""
+        stab_path = (
+            STUDY_ROOT / "artifacts" / "formal" / "E3b_vector_mlp"
+            / "seed_stability.csv"
+        )
+        if not stab_path.exists():
+            pytest.skip("seed_stability.csv not found")
+        ref = pd.read_csv(stab_path)
+        assert set(ref['seed']) == {42, 2026, 3407}
+        for col in ['pooled_J1', 'J1_n7', 'J1_n10', 'J1_n20', 'endpoint_rate']:
+            assert col in ref.columns, f"missing column {col}"
+
+    def test_vector_mlp_results_has_l6_rows(self):
+        """vector_mlp_results.csv must contain Vector-MLP-L6 rows."""
+        vmlp_path = (
+            STUDY_ROOT / "artifacts" / "formal" / "E3b_vector_mlp"
+            / "vector_mlp_results.csv"
+        )
+        if not vmlp_path.exists():
+            pytest.skip("vector_mlp_results.csv not found")
+        ref = pd.read_csv(vmlp_path)
+        l6 = ref[ref['model'] == 'Vector-MLP-L6']
+        assert len(l6) > 0, "no Vector-MLP-L6 rows"
+        assert len(l6) == 45000, f"expected 45000 L6 rows, got {len(l6)}"
+        for col in ['selected_delta', 'true_loss']:
+            assert col in l6.columns
+
+
+# ============================================================
 # E4d provenance/fail-closed gate tests
 # ============================================================
 
