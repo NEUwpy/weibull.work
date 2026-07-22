@@ -163,6 +163,63 @@ def preflight_check_inputs(requested_tracks, input_path_map):
         raise PreflightError("\n".join(lines))
 
 
+def write_merged_cost_report(cost_path, new_rows, requested_tracks):
+    """Replace requested-track costs while preserving all other tracks.
+
+    A subset run owns only the tracks named in ``requested_tracks``. Existing
+    rows for those tracks are removed before the current rows are appended;
+    rows for every other track remain untouched. Repeating the same subset run
+    therefore replaces, rather than duplicates, its prior cost rows.
+    """
+    requested = {str(track).strip().lower() for track in requested_tracks}
+    new_cost = pd.DataFrame(new_rows)
+
+    # Validate ownership before reading or touching the shared report.
+    if not new_cost.empty:
+        if 'track' not in new_cost.columns:
+            raise ValueError("New cost rows must include a non-empty 'track'")
+        new_track_raw = new_cost['track']
+        empty_track = (
+            new_track_raw.isna()
+            | new_track_raw.astype(str).str.strip().eq('')
+        )
+        if empty_track.any():
+            raise ValueError("New cost rows must include a non-empty 'track'")
+        new_track = new_track_raw.astype(str).str.strip().str.lower()
+        unexpected_tracks = set(new_track) - requested
+        if unexpected_tracks:
+            raise ValueError(
+                "New cost rows contain tracks that were not requested: "
+                f"{sorted(unexpected_tracks)}"
+            )
+
+    if os.path.exists(cost_path):
+        try:
+            existing_cost = pd.read_csv(cost_path)
+        except pd.errors.EmptyDataError:
+            existing_cost = pd.DataFrame(columns=['track'])
+        if 'track' not in existing_cost.columns:
+            raise ValueError(
+                f"Existing cost report has no 'track' column: {cost_path}"
+            )
+        existing_track = existing_cost['track'].astype(str).str.strip().str.lower()
+        preserved_cost = existing_cost.loc[~existing_track.isin(requested)].copy()
+    else:
+        preserved_cost = pd.DataFrame()
+
+    frames = [df for df in (preserved_cost, new_cost) if not df.empty]
+    if frames:
+        merged_cost = pd.concat(frames, ignore_index=True, sort=False)
+    elif len(preserved_cost.columns) > 0:
+        merged_cost = preserved_cost.reset_index(drop=True)
+    elif len(new_cost.columns) > 0:
+        merged_cost = new_cost.reset_index(drop=True)
+    else:
+        merged_cost = pd.DataFrame(columns=['track'])
+    merged_cost.to_csv(cost_path, index=False)
+    return merged_cost
+
+
 # ============================================================
 # Feature computation (same as E3b)
 # ============================================================
@@ -1062,7 +1119,7 @@ def main():
     # Add detailed E4a cost
     for _, row in cost_e4a.iterrows():
         all_cost_rows.append(dict(row))
-    pd.DataFrame(all_cost_rows).to_csv(cost_path, index=False)
+    write_merged_cost_report(cost_path, all_cost_rows, requested_tracks)
 
     # --- Split report (E4a-specific, only if E4a was requested) ---
     if 'e4a' in requested_tracks:
