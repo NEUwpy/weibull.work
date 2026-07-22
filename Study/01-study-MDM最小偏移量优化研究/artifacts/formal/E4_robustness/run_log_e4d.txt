@@ -1,0 +1,58 @@
+Study/01 Formal E4 Validation Analysis
+Tracks: ['e4d']
+Started: 2026-07-22T16:08:27+00:00
+Git commit: ad96df0
+Total elapsed: 1094.0s (18.2 min)
+
+[23:50:13] ======================================================================
+[23:50:13] Study/01 Formal E4 — Validation Analysis
+[23:50:13] Started: 2026-07-22T15:50:13+00:00
+[23:50:13] Output: C:\weibull\.claude\worktrees\study01xu-exec-2\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\E4_robustness
+[23:50:13] Tracks requested: ['e4d']
+[23:50:13] ======================================================================
+[23:50:13] Loading 45 authoritative main-grid MC chunks...
+[23:50:15]   Loaded: 1170000 rows from 45 chunks
+[23:50:15]   Boundary data: 260000 rows
+[23:50:15]   Off-grid data: 182000 rows
+[23:50:19]   E4d fail-closed/provenance contract: VALIDATED
+[23:50:19] E4a SKIPPED (not in --tracks)
+[23:50:19] E4b SKIPPED (not in --tracks)
+[23:50:19] E4c SKIPPED (not in --tracks)
+[23:50:19] === E4d: Selector Extrapolation (Formal 5-fold × 3-seed) ===
+[23:50:19]   [E3b gate] 5-fold partition matches frozen split_report.csv
+[23:50:19]   Computing features for 45000 unique samples...
+[23:50:26]   Features done in 7.3s
+[23:50:27]   Frozen L1 delta (main-grid global): 0.08
+[23:50:27]   Frozen L2 deltas (main-grid per-n): {7: 0.1, 10: 0.1, 20: 0.08}
+[23:50:34]   combo_fold_1: train=36000 samples, failure_penalty=2.1966
+[23:51:32]     seed=42 J1=0.576732 [29.9s, n_iter=59]
+[23:52:44]     seed=2026 J1=0.565791 [43.7s, n_iter=99]
+[23:53:59]     seed=3407 J1=0.560632 [47.2s, n_iter=92]
+[23:54:05]   combo_fold_2: train=36000 samples, failure_penalty=2.1790
+[23:55:15]     seed=42 J1=0.575064 [41.4s, n_iter=80]
+[23:56:09]     seed=2026 J1=0.576631 [31.6s, n_iter=76]
+[23:56:59]     seed=3407 J1=0.571960 [27.1s, n_iter=60]
+[23:57:06]   combo_fold_3: train=36000 samples, failure_penalty=2.2134
+[23:58:26]     seed=42 J1=0.582775 [57.0s, n_iter=115]
+[23:59:02]     seed=2026 J1=0.567732 [12.9s, n_iter=34]
+[00:00:44]     seed=3407 J1=0.583651 [79.8s, n_iter=157]
+[00:00:51]   combo_fold_4: train=36000 samples, failure_penalty=2.2165
+[00:02:03]     seed=42 J1=0.579568 [48.9s, n_iter=99]
+[00:03:12]     seed=2026 J1=0.574266 [46.3s, n_iter=106]
+[00:04:47]     seed=3407 J1=0.572552 [72.0s, n_iter=142]
+[00:04:53]   combo_fold_5: train=36000 samples, failure_penalty=2.1887
+[00:05:57]     seed=42 J1=0.569053 [41.1s, n_iter=80]
+[00:06:39]     seed=2026 J1=0.568360 [18.9s, n_iter=48]
+[00:07:56]     seed=3407 J1=0.572073 [54.2s, n_iter=108]
+[00:08:26]   Baselines: 40000 rows (Default δ=0.1, L1 δ=0.08)
+[00:08:26]   [E4b_boundary] Vector-MLP-L6: pooled J1=0.603774 (n=150000)
+[00:08:26]   [E4b_boundary] Default: pooled J1=0.686374 (n=10000)
+[00:08:26]   [E4b_boundary] L1: pooled J1=0.670155 (n=10000)
+[00:08:26]   [E4b_boundary] L2: pooled J1=0.668772 (n=4500)
+[00:08:26]   [E4c_offgrid] Vector-MLP-L6: pooled J1=0.526334 (n=105000)
+[00:08:26]   [E4c_offgrid] Default: pooled J1=0.621897 (n=7000)
+[00:08:26]   [E4c_offgrid] L1: pooled J1=0.611756 (n=7000)
+[00:08:26]   [E4c_offgrid] L2: pooled J1=0.676191 (n=1500)
+[00:08:26]   Total training time: 652.1s
+[00:08:27]   Saved: C:\weibull\.claude\worktrees\study01xu-exec-2\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\E4_robustness\E4d_selector_extrapolation.csv
+[00:08:27]   Saved: C:\weibull\.claude\worktrees\study01xu-exec-2\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\E4_robustness\E4d_model_j1_summary.csv
