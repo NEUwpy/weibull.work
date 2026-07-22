@@ -469,8 +469,8 @@ class _PreparedFit:
     (sample_id / point_id) the CI rules cluster on.
     """
 
-    scaled_training: Any
-    scaled_validation: FormalFixedBatch | FormalSetBatch
+    scaled_training: FormalDataset
+    scaled_validation: FormalDataset
     validation_metadata: tuple[Mapping[str, Any], ...]
     validation_identity: str
     model_factory: Callable[[], nn.Module]
@@ -880,7 +880,7 @@ def _score_fit_from_checkpoint(
     checkpoint_bytes = checkpoint_path.read_bytes()
     scalar, point_records = validation_failure_penalized_l_param_points(
         checkpoint_bytes=checkpoint_bytes, model_factory=prepared.model_factory,
-        validation_batch=prepared.scaled_validation, validation_metadata=prepared.validation_metadata,
+        validation_batch=prepared.scaled_validation.batch, validation_metadata=prepared.validation_metadata,
         seed_id=str(plan_row["seed"]), is_set=prepared.is_set,
     )
     return FitEvaluation(

@@ -2116,3 +2116,184 @@ def test_consecutive_failure_guard_respects_custom_label_and_threshold():
     """Helper supports custom label and max_failures."""
     with pytest.raises(RuntimeError, match="custom label aborted: 3 consecutive"):
         fe._advance_consecutive_failures(2, "err", "msg", max_failures=3, label="custom label")
+
+
+# ---------------------------------------------------------------------------
+# R5: Production checkpoint scoring regression (no score_fit mock).
+# Exercises the REAL validation_failure_penalized_l_param_points path that
+# crashed in A-E1-formal-r2 with 'FormalDataset has no attribute location'.
+# ---------------------------------------------------------------------------
+
+
+def _real_checkpoint_and_validation(tmp_path, route, distribution, n_mode, fixed_n, architecture, is_set):
+    """Build real small datasets, train a real checkpoint, return (fit, scaled_validation, validation_dataset)."""
+    from study02a.formal_runner import (
+        _build_training_spec_for_tests, _build_validation_spec_for_tests,
+        _cache_dataset_for_tests, _pilot_for_tests,
+        fit_training_scaler, apply_training_scaler,
+    )
+    from study02a.training import fit_fixed_candidate, fit_set_candidate
+
+    pilot = _pilot_for_tests(rows=20, points=4, repeats=2)
+    training_spec = _build_training_spec_for_tests(
+        route=route, distribution=distribution, n_mode=n_mode, fixed_n=fixed_n,
+        training_rows=7000, frozen_config=FROZEN, effective_config=EFFECTIVE, pilot=pilot,
+    )
+    validation_spec = _build_validation_spec_for_tests(
+        route=route, distribution=distribution, n_mode=n_mode, fixed_n=fixed_n,
+        frozen_config=FROZEN, effective_config=EFFECTIVE, pilot=pilot,
+    )
+    cache_root = tmp_path / "cache"
+    training_dataset = _cache_dataset_for_tests(training_spec, FROZEN, EFFECTIVE, cache_root)
+    validation_dataset = _cache_dataset_for_tests(validation_spec, FROZEN, EFFECTIVE, cache_root)
+    scaler = fit_training_scaler(training_dataset, FROZEN, EFFECTIVE)
+    scaled_training = apply_training_scaler(training_dataset, scaler, training_dataset, FROZEN, EFFECTIVE)
+    scaled_validation = apply_training_scaler(validation_dataset, scaler, training_dataset, FROZEN, EFFECTIVE)
+
+    input_dim = None if is_set else int(scaled_training.batch.features.shape[1])
+    model_factory = fe.resolve_model_factory(architecture, FROZEN, input_dim)
+    hyperparams = fe.resolve_optimizer_hyperparams("stage1", FROZEN)
+
+    if is_set:
+        fit = fit_set_candidate(
+            model_factory, scaled_training.batch, scaled_validation.batch, EFFECTIVE,
+            seed=420001, loss_id="transformed_train_z_huber", lr=hyperparams["lr"],
+            weight_decay=hyperparams["weight_decay"], batch_size=hyperparams["batch_size"],
+            optimizer_id=str(hyperparams["optimizer"]),
+        )
+    else:
+        fit = fit_fixed_candidate(
+            model_factory, scaled_training.batch, scaled_validation.batch, EFFECTIVE,
+            seed=420001, loss_id="transformed_train_z_huber", lr=hyperparams["lr"],
+            weight_decay=hyperparams["weight_decay"], batch_size=hyperparams["batch_size"],
+            optimizer_id=str(hyperparams["optimizer"]),
+        )
+    return fit, scaled_training, scaled_validation, validation_dataset, model_factory
+
+
+def test_production_checkpoint_scoring_fixed_batch(tmp_path):
+    """R5 regression: real checkpoint scoring via validation_failure_penalized_l_param_points
+    with a fixed-batch route. On old code (passing FormalDataset instead of .batch) this raises:
+    AttributeError: 'FormalDataset' object has no attribute 'location'."""
+    fit, scaled_training, scaled_validation, validation_dataset, model_factory = (
+        _real_checkpoint_and_validation(
+            tmp_path, route="F0eq_hsm", distribution="core_continuous",
+            n_mode="fixed_n", fixed_n=15, architecture="m05", is_set=False,
+        )
+    )
+    from study02a.formal_runner import FormalDataset
+    assert isinstance(scaled_validation, FormalDataset)
+    scalar, point_records = fe.validation_failure_penalized_l_param_points(
+        checkpoint_bytes=fit.checkpoint_bytes, model_factory=model_factory,
+        validation_batch=scaled_validation.batch,
+        validation_metadata=tuple(validation_dataset.metadata),
+        seed_id="420001", is_set=False,
+    )
+    assert len(point_records) == len(validation_dataset.metadata)
+    expected_scalar = sum(r["l_param"] for r in point_records) / len(point_records)
+    assert scalar == pytest.approx(expected_scalar)
+    assert fit.checkpoint_sha256 == hashlib.sha256(fit.checkpoint_bytes).hexdigest()
+
+
+def test_production_checkpoint_scoring_set_batch(tmp_path):
+    """R5 regression: real checkpoint scoring with a set-batch (S route) checkpoint."""
+    fit, scaled_training, scaled_validation, validation_dataset, model_factory = (
+        _real_checkpoint_and_validation(
+            tmp_path, route="S", distribution="core_continuous",
+            n_mode="shared_n", fixed_n=None, architecture="d01", is_set=True,
+        )
+    )
+    scalar, point_records = fe.validation_failure_penalized_l_param_points(
+        checkpoint_bytes=fit.checkpoint_bytes, model_factory=model_factory,
+        validation_batch=scaled_validation.batch,
+        validation_metadata=tuple(validation_dataset.metadata),
+        seed_id="420001", is_set=True,
+    )
+    assert len(point_records) == len(validation_dataset.metadata)
+    expected_scalar = sum(r["l_param"] for r in point_records) / len(point_records)
+    assert scalar == pytest.approx(expected_scalar)
+
+
+def test_production_checkpoint_scoring_old_code_raises_attribute_error(tmp_path):
+    """R5: prove the old bug — passing FormalDataset (not .batch) to
+    validation_failure_penalized_l_param_points raises AttributeError."""
+    fit, scaled_training, scaled_validation, validation_dataset, model_factory = (
+        _real_checkpoint_and_validation(
+            tmp_path, route="F0eq_hsm", distribution="core_continuous",
+            n_mode="fixed_n", fixed_n=15, architecture="m05", is_set=False,
+        )
+    )
+    from study02a.formal_runner import FormalDataset
+    assert isinstance(scaled_validation, FormalDataset)
+    with pytest.raises(AttributeError, match="location"):
+        fe.validation_failure_penalized_l_param_points(
+            checkpoint_bytes=fit.checkpoint_bytes, model_factory=model_factory,
+            validation_batch=scaled_validation,
+            validation_metadata=tuple(validation_dataset.metadata),
+            seed_id="420001", is_set=False,
+        )
+
+
+def test_score_fit_from_checkpoint_production_path(tmp_path, monkeypatch):
+    """R5: _score_fit_from_checkpoint end-to-end with real checkpoint scoring.
+    Monkeypatches _prepare_fit_inputs (NOT score_fit) to supply small test datasets."""
+    fit, scaled_training, scaled_validation, validation_dataset, model_factory = (
+        _real_checkpoint_and_validation(
+            tmp_path, route="F0eq_hsm", distribution="core_continuous",
+            n_mode="fixed_n", fixed_n=15, architecture="m05", is_set=False,
+        )
+    )
+    hyperparams = fe.resolve_optimizer_hyperparams("stage1", FROZEN)
+    prepared = fe._PreparedFit(
+        scaled_training=scaled_training, scaled_validation=scaled_validation,
+        validation_metadata=tuple(validation_dataset.metadata),
+        validation_identity=validation_dataset.dataset_hash,
+        model_factory=model_factory, hyperparams=hyperparams,
+        loss_id="transformed_train_z_huber", is_set=False,
+    )
+    monkeypatch.setattr(fe, "_prepare_fit_inputs", lambda *a, **kw: prepared)
+
+    run_dir = tmp_path / "run"
+    fit_id = "G3-fit-test"
+    out_dir = run_dir / "outputs" / fit_id
+    out_dir.mkdir(parents=True)
+    (out_dir / "checkpoint.pt").write_bytes(fit.checkpoint_bytes)
+
+    plan_row = _plan_row(fit_id=fit_id, seed=420001)
+    result = fe._score_fit_from_checkpoint(
+        run_dir=run_dir, cache_root=tmp_path / "cache", plan_row=plan_row, fit_id=fit_id,
+        frozen=FROZEN, effective=EFFECTIVE,
+        fit_states={fit_id: "succeeded"},
+        module_id="A-E1", decision_id="d1", candidate_id="c1",
+    )
+    assert isinstance(result, FitEvaluation)
+    assert result.failed is False
+    assert result.checkpoint_sha256 == hashlib.sha256(fit.checkpoint_bytes).hexdigest()
+    assert result.validation_identity == validation_dataset.dataset_hash
+    assert len(result.point_records) == len(validation_dataset.metadata)
+    expected_scalar = sum(r["l_param"] for r in result.point_records) / len(result.point_records)
+    assert result.selection_score == pytest.approx(expected_scalar)
+
+
+def test_prepared_fit_type_contract(tmp_path):
+    """R5: _PreparedFit.scaled_training and scaled_validation are FormalDataset;
+    the scorer must consume .batch, not the dataset wrapper."""
+    from study02a.formal_runner import FormalDataset
+    fit, scaled_training, scaled_validation, validation_dataset, model_factory = (
+        _real_checkpoint_and_validation(
+            tmp_path, route="F0eq_hsm", distribution="core_continuous",
+            n_mode="fixed_n", fixed_n=15, architecture="m05", is_set=False,
+        )
+    )
+    hyperparams = fe.resolve_optimizer_hyperparams("stage1", FROZEN)
+    prepared = fe._PreparedFit(
+        scaled_training=scaled_training, scaled_validation=scaled_validation,
+        validation_metadata=tuple(validation_dataset.metadata),
+        validation_identity=validation_dataset.dataset_hash,
+        model_factory=model_factory, hyperparams=hyperparams,
+        loss_id="transformed_train_z_huber", is_set=False,
+    )
+    assert isinstance(prepared.scaled_training, FormalDataset)
+    assert isinstance(prepared.scaled_validation, FormalDataset)
+    assert hasattr(prepared.scaled_validation.batch, "location")
+    assert hasattr(prepared.scaled_validation.batch, "targets")
