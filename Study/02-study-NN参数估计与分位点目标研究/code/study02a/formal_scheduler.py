@@ -306,7 +306,7 @@ def _assert_scoped_code_clean(study_root: Path) -> None:
     for relative in scopes:
         result = subprocess.run(
             ["git", "status", "--porcelain", "--untracked-files=all", "--", str(relative)],
-            cwd=repo_root, check=True, capture_output=True, text=True,
+            cwd=repo_root, check=True, capture_output=True, text=True, encoding="utf-8",
         )
         if result.stdout.strip():
             dirty.append(str(relative))

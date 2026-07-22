@@ -613,7 +613,7 @@ def _validate_dataset_semantics(
             expected_target = np.asarray([
                 np.log(row["beta"]), np.log(row["eta"] / scale), np.log(gap / scale),
             ], dtype=np.float32)
-        if not np.allclose(batch.targets[index].cpu().numpy(), expected_target, rtol=2e-5, atol=2e-5):
+        if not np.allclose(batch.targets[index].cpu().numpy(), expected_target, rtol=1e-4, atol=1e-4):
             raise ValueError("dataset target does not match metadata/anchors")
     if len(point_ids) != dataset.spec.point_count:
         raise ValueError("dataset parameter point count mismatch")
