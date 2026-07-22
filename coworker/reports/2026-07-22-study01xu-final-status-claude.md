@@ -1,68 +1,94 @@
 # Study01 Remaining Experiments — Final Status
 
 **Branch**: `study01xu`  
-**Final Commit**: TBD (E4d formal run in progress)  
-**Date**: 2026-07-22  
-**Status**: READY_FOR_INDEPENDENT_REVIEW (pending E4d formal artifact commit)
+**Final Commit**: `5b50eff` artifacts(study01): E4d formal run results  
+**Date**: 2026-07-23  
+**Status**: READY_FOR_INDEPENDENT_REVIEW
 
-## Completed Phases (code + tests)
+Tests: **72/72 passing** (E4 fail-closed 48, delta upper bound 10, real data gate 14)
 
-| Phase | Commit | Description | Tests |
-|-------|--------|-------------|-------|
-| A | `96598de` | Cross-drive path provenance fix | 48/48 |
-| B | `b6f4529` | E4d formal contract (5-fold × 3-seed) | 48/48 |
-| E | `a3fa6cb` | Delta upper-bound audit script (R2) | 10/10 |
-| G | `786f6c3` | Real data admission gate (R3) | 14/14 |
-| H | `13732b1` | Real data holdout pipeline (R3) | — |
-| D | `7b39afd` | E4d output self-check script | — |
+## R1 (E4d Selector Extrapolation): ✓ COMPLETE
 
-## R1 (E4d): Code Ready + Computation Running
+**Commit**: `5b50eff` (artifacts), `b6f4529` (implementation)
 
-- **Implementation**: `run_e4d_formal()` — 15 independent Vector-MLP-L6 models
-- **Smoke test**: 1 fold × 1 seed trained in 36s, J1=0.608 on E4b_boundary
-- **Full run**: Running in background (~15×36s ≈ 9min for training + overhead)
-- **Baselines**: Default δ=0.1, L1 (main-grid global δ=0.08), L2 (main-grid per-n)
-- **Gate**: E3b reproduction gate passes — fold partition matches frozen split_report.csv
+15 independent Vector-MLP-L6 selectors (5 combo folds × 3 stability seeds):
 
-## R2 (Delta Upper Bound): Code Ready, Run Pending
+| Track | Vector-MLP-L6 | Default (δ=0.1) | L1 (δ=0.08) | L2 (per-n) |
+|-------|---------------|-----------------|--------------|------------|
+| E4b_boundary | **0.604** | 0.686 | 0.670 | 0.669 |
+| E4c_offgrid | **0.526** | 0.622 | 0.612 | 0.676 |
 
-- **Implementation**: `run_delta_upper_bound_audit.py`
-- **Extension grid**: 0.52–1.00, step 0.02 (25 deltas)
-- **Cohorts**: Primary (δ=0.50), auxiliary (δ=0.48)
-- **All claims conditioned on original best delta**
+- Model stability: J1 range 0.561–0.584 (max−min = 0.023), tight
+- Training: 652s total (avg 43.5s/model), 295,000 evaluation rows
+- E3b reproduction gate: PASSED
+- E4d self-check: 12/12 PASSED
+- Frozen L1 from main grid: δ=0.08 (not δ=0.1!)
+- L2 per-n: {7: 0.1, 10: 0.1, 20: 0.08}
 
-## R3 (Real Data): Code Ready, Data Pending
+**Conclusions for paper**: The Vector-MLP-L6 selector trained on existing-grid combos generalises to unseen boundary/off-grid parameters with competitive J1. It beats all frozen baselines. Model stability across 5 folds and 3 seeds is excellent (J1 SD < 0.01). The selector does NOT merely default to a constant delta; per-n J1 stratification shows it adapts to sample size.
 
-- **Gate**: `real_data_gate.py` — min 60 lifetimes, Weibull fit R²≥0.70
-- **Pipeline**: `run_real_data_validation.py` — holdout with Default/L2/NN
-- **Blocked on**: Real data download and license verification (needs network + user)
+**Claims NOT supported**: This is a discrete-grid extrapolation diagnostic; it does not prove continuous-space deployment. The 15 CV models are not a single deployment selector.
 
-## S1/S2: Gated on R1–R3 Completion
+## R2 (Delta Upper Bound Audit): Code Ready, Not Run
 
-No code written — these are optional per the frozen contract.
+**Commit**: `a3fa6cb`
 
-## Test Summary
+Implementation ready. Extension grid 0.52–1.00 (25 deltas). Cohort identification by existing best-delta (0.50 primary, 0.48 auxiliary). To run: `python run_delta_upper_bound_audit.py`.
 
+## R3 (Real Data Validation): Code Ready, Data Pending
+
+**Commits**: `786f6c3` (gate), `13732b1` (pipeline)
+
+Gate enforces: min 60 uncensored lifetimes, Weibull fit R²≥0.70, source provenance with SHA256. Pipeline does holdout with Default/L2/NN. Blocked on real data acquisition and license verification.
+
+## S1/S2: Gated (Optional)
+
+Not implemented — gated behind R1–R3 completion per frozen contract.
+
+## Phases Summary
+
+| # | Phase | Status | Commit |
+|---|-------|--------|--------|
+| A | Cross-drive provenance fix | ✓ | `96598de` |
+| B | E4d formal implementation | ✓ | `b6f4529` |
+| C | E4d formal run & seal | ✓ | `5b50eff` |
+| D | E4d self-check | ✓ | `7b39afd` |
+| E | Delta upper-bound impl | ✓ | `a3fa6cb` |
+| F | Delta audit run | PENDING | — |
+| G | Real data gate impl | ✓ | `786f6c3` |
+| H | Real data pipeline impl | ✓ | `13732b1` |
+| I | S1 over-correction | GATED | — |
+| J | S2 worst-case/tail | GATED | — |
+| K | Final report | ✓ | this doc |
+
+## Artifacts Preserved
+
+- Sealed E1/E2/E3/E4a/E4b/E4c: unchanged
+- New E4d: `artifacts/formal/E4_robustness/E4d_selector_extrapolation.csv` (32MB, 295k rows)
+- New E4d: `artifacts/formal/E4_robustness/E4d_model_j1_summary.csv` (15 model-level rows)
+
+## How to Verify
+
+```bash
+# Tests
+python -m pytest python/tests/test_study01_e4_failclosed.py python/tests/test_study01_delta_upper_bound.py python/tests/test_study01_real_data_gate.py -v
+
+# E4d self-check
+python Study/01-study-MDM最小偏移量优化研究/code/check_e4d_outputs.py
+
+# Reproduce E4d (requires existing boundary/offgrid MC data)
+python Study/01-study-MDM最小偏移量优化研究/code/run_E4_formal_validation.py --tracks e4d
+
+# Delta audit (not yet run)
+python Study/01-study-MDM最小偏移量优化研究/code/run_delta_upper_bound_audit.py
+
+# Real data (requires data)
+python Study/01-study-MDM最小偏移量优化研究/code/run_real_data_validation.py <data_dir>
 ```
-test_study01_e4_failclosed.py         48 passed
-test_study01_delta_upper_bound.py     10 passed
-test_study01_real_data_gate.py        14 passed
-─────────────────────────────────────────────
-Total                                 72 passed
-```
 
-## Artifact Locations (existing, unchanged)
+## Remaining Risks
 
-- Main-grid chunks: `artifacts/formal/shared_data/chunks/` (45 files)
-- E4b boundary: `artifacts/formal/E4_robustness/boundary_risk_curves.csv`
-- E4c offgrid: `artifacts/formal/E4_robustness/offgrid_risk_curves.csv`
-- E3b vector MLP: `artifacts/formal/E3b_vector_mlp/` (sealed)
-
-## Remaining Action Items
-
-1. **Wait for E4d formal run to complete** → commit artifacts
-2. **Run E4d self-check** (`check_e4d_outputs.py`) → approve or revise
-3. **Run delta upper-bound audit** (`run_delta_upper_bound_audit.py`)
-4. **Acquire real data** → run admission gate → run holdout validation
-5. **If R1–R3 all pass**: execute optional S1/S2 cache analysis
-6. **Sync Study01 status docs** (`01-证据索引.md`, etc.)
+1. **Network**: Intermittent GitHub connectivity — 32MB artifact commit pending push
+2. **R2 run**: Needs delta audit execution (~5-10 minutes MDM computation)
+3. **R3 data**: Real data acquisition and license verification requires user action
+4. **No single deployment model**: E4d uses 15 CV models — a production model would require separate retraining on all main-grid data
