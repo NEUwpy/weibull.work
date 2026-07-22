@@ -862,3 +862,188 @@ class TestStableProvenancePath:
         # Path form is stable (inside project) or abs:// (outside) — never error
         assert isinstance(record["path"], str)
         assert len(record["path"]) > 0
+
+
+# ============================================================
+# E4d formal contract tests
+# ============================================================
+
+class TestE4dFormalContract:
+    """Verify the E4d formal implementation matches the frozen contract."""
+
+    def test_e3b_fold_partition_matches_frozen_split_report(self):
+        """The 5-fold combo partition must match the sealed split_report.csv."""
+        e4 = _E4_MODULE
+        folds = e4.get_combo_split()
+
+        split_path = (
+            STUDY_ROOT / "artifacts" / "formal" / "E3b_vector_mlp"
+            / "split_report.csv"
+        )
+        if not split_path.exists():
+            pytest.skip("split_report.csv not found")
+        ref_split = pd.read_csv(split_path)
+
+        for fold_idx, fold in enumerate(folds):
+            fold_name = f"combo_fold_{fold_idx + 1}"
+            ref_test = ref_split[ref_split["fold"] == fold_name]
+            ref_combos = set(zip(
+                ref_test["test_beta"],
+                ref_test["test_gamma_over_eta"],
+                ref_test["test_n"],
+            ))
+            our_test = set(
+                (float(b), float(g), int(n))
+                for (b, g, n) in fold["test_combos"]
+            )
+            assert ref_combos == our_test, (
+                f"{fold_name} test combos mismatch: "
+                f"missing={sorted(ref_combos - our_test)[:3]}, "
+                f"extra={sorted(our_test - ref_combos)[:3]}"
+            )
+
+    def test_get_combo_split_produces_5_folds_disjoint_coverage(self):
+        """All 45 combos covered, 5 folds, train/test disjoint."""
+        e4 = _E4_MODULE
+        folds = e4.get_combo_split()
+        assert len(folds) == 5
+
+        all_combos = set(
+            (float(b), float(g), int(n))
+            for b in e4.BETA_GRID
+            for g in e4.GAMMA_OVER_ETA_GRID
+            for n in e4.N_GRID
+        )
+        seen_test = set()
+        seen_train = set()
+        for fold in folds:
+            test = set(
+                (float(b), float(g), int(n))
+                for (b, g, n) in fold["test_combos"]
+            )
+            train = set(
+                (float(b), float(g), int(n))
+                for (b, g, n) in fold["train_combos"]
+            )
+            assert len(test & train) == 0, "train/test overlap in fold"
+            seen_test |= test
+            seen_train |= train
+        assert seen_test == all_combos, "not all combos appear in test folds"
+        assert seen_train == all_combos, "not all combos appear in train folds"
+
+    def test_frozen_baselines_include_default_l1_l2(self):
+        """_compute_e4d_baselines must produce Default, L1, and L2 rows."""
+        e4 = _E4_MODULE
+
+        # Build a dummy risk/loss frame with 2 boundary and 2 offgrid combos
+        def make_risk(combo_list):
+            rows = []
+            for combo in combo_list:
+                combo_id, beta, goe, n_val = combo
+                for rid in range(2):  # 2 repeats only for test speed
+                    for delta in e4.DELTA_GRID[:3]:
+                        rows.append({
+                            "combo_id": combo_id, "beta": float(beta),
+                            "beta_hat": float(beta),
+                            "eta": 1.0, "eta_hat": 1.0,
+                            "gamma": float(goe), "gamma_hat": float(goe),
+                            "gamma_over_eta": float(goe), "n": int(n_val),
+                            "repeat_id": rid, "delta": float(delta),
+                        })
+            return pd.DataFrame(rows)
+
+        boundary_risk = make_risk(e4.E4B_BOUNDARY_COMBOS[:2])
+        offgrid_risk = make_risk(e4.E4C_OFFGRID_COMBOS[:2])
+
+        boundary_feat = e4.build_feature_table_for_combos(
+            e4.E4B_BOUNDARY_COMBOS[:2], boundary_risk
+        )
+        offgrid_feat = e4.build_feature_table_for_combos(
+            e4.E4C_OFFGRID_COMBOS[:2], offgrid_risk
+        )
+
+        boundary_loss = e4.compute_loss(boundary_risk)
+        offgrid_loss = e4.compute_loss(offgrid_risk)
+
+        df_baselines = e4._compute_e4d_baselines(
+            boundary_feat, offgrid_feat,
+            boundary_loss, offgrid_loss,
+            default_delta=0.1, l1_delta=0.1,
+            l2_table={5: 0.2, 7: 0.2, 10: 0.2, 20: 0.2},
+        )
+        models = set(df_baselines["model"].unique())
+        assert "Default" in models
+        assert "L1" in models
+        assert "L2" in models
+
+    def test_model_level_summary_keys(self):
+        """The summary dict must contain all required metric keys."""
+        e4 = _E4_MODULE
+        rows = [
+            {
+                "fold": "combo_fold_1", "seed": 42,
+                "selected_delta": 0.1, "true_loss": 0.04,
+                "oracle_min": 0.03, "regret": 0.01,
+                "n": 7,
+            },
+            {
+                "fold": "combo_fold_1", "seed": 42,
+                "selected_delta": 0.5, "true_loss": 0.09,
+                "oracle_min": 0.03, "regret": 0.06,
+                "n": 10,
+            },
+        ]
+        summary = e4._model_level_summary(rows)
+        assert "pooled_J1" in summary
+        assert "per_n_J1" in summary
+        assert "endpoint_rate" in summary
+        assert "mean_regret" in summary
+        assert "near_0.05" in summary
+        assert 7 in summary["per_n_J1"]
+        assert 10 in summary["per_n_J1"]
+        assert summary["n_samples"] == 2
+
+    def test_fold_train_has_no_eval_combos(self):
+        """Training folds must NEVER contain boundary or offgrid combos as
+        these are evaluation-only truth sets."""
+        e4 = _E4_MODULE
+        folds = e4.get_combo_split()
+        boundary_set = set(
+            (float(b), float(g), int(n))
+            for _, b, g, n in e4.E4B_BOUNDARY_COMBOS
+        )
+        offgrid_set = set(
+            (float(b), float(g), int(n))
+            for _, b, g, n in e4.E4C_OFFGRID_COMBOS
+        )
+        for fold in folds:
+            train_set = set(
+                (float(b), float(g), int(n))
+                for (b, g, n) in fold["train_combos"]
+            )
+            assert train_set.isdisjoint(boundary_set), (
+                f"{fold['fold_name']}: train overlaps boundary"
+            )
+            assert train_set.isdisjoint(offgrid_set), (
+                f"{fold['fold_name']}: train overlaps offgrid"
+            )
+
+    def test_pivot_risk_vectors_output_shape(self):
+        """_pivot_risk_vectors must produce (N_samples, N_DELTAS) output."""
+        e4 = _E4_MODULE
+        import numpy as np
+        df = pd.DataFrame([
+            {"beta": 1.5, "eta": 1.0, "gamma": 0.1, "gamma_over_eta": 0.1,
+             "n": 7, "repeat_id": 0, "delta": d, "loss_filled": 0.1,
+             "n_val": 7, "CV": 0.5, "g1": 0.0, "g2": -0.5,
+             "x_min": 0.1, "x_max": 2.0, "range": 1.9,
+             "Q1": 0.5, "Med": 1.0, "Q3": 1.5, "IQR": 1.0,
+             "x_bar": 1.0, "s": 0.5}
+            for d in e4.DELTA_GRID
+        ])
+        samples, Y = e4._pivot_risk_vectors(df, "loss_filled", 1.0)
+        assert len(samples) == 1, "should have one unique sample"
+        assert Y.shape == (1, e4.N_DELTAS), (
+            f"expected (1, {e4.N_DELTAS}) got {Y.shape}"
+        )
+        assert not np.any(np.isnan(Y)), "no NaN in filled output"

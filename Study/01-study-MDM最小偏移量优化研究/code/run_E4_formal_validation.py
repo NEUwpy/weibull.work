@@ -1652,85 +1652,61 @@ def evaluate_references(df_mc_new, label):
 
 
 # ============================================================
-# E4d: Selector extrapolation diagnostic
+# Shared training helpers (E3b-equivalent contract)
 # ============================================================
 
-def run_e4d(df_mc, df_boundary_feat, df_offgrid_feat,
-            df_boundary_loss, df_offgrid_loss):
-    """Train Vector-MLP-L6 on main grid, evaluate on boundary/offgrid.
+def _pivot_risk_vectors(df, label_col, failure_penalty):
+    """Pivot per-delta rows into 26-dim risk vectors (one per sample).
 
-    This is a diagnostic — not deployment proof.
+    Uses the same pivot contract as the frozen E3b experiment: ``SAMPLE_KEYS``
+    index, ``DELTA_GRID`` columns, filled with *failure_penalty* where no
+    matching delta row exists.
     """
-    log("=== E4d: Selector Extrapolation Diagnostic ===")
+    feat_cols_local = [c for c in SAMPLE_FEATURE_COLS if c not in SAMPLE_KEYS]
+    sample_df = df[SAMPLE_KEYS + feat_cols_local].drop_duplicates(
+        subset=SAMPLE_KEYS).reset_index(drop=True)
+    pivot = df.pivot_table(
+        index=SAMPLE_KEYS, columns='delta',
+        values=label_col, aggfunc='first'
+    ).reset_index()
+    result = pivot[SAMPLE_KEYS].merge(sample_df, on=SAMPLE_KEYS, how='left')
+    Y = np.full((len(pivot), N_DELTAS), np.nan)
+    for j, d in enumerate(DELTA_GRID):
+        if d in pivot.columns:
+            Y[:, j] = pivot[d].values
+    Y = np.where(np.isnan(Y), failure_penalty, Y)
+    return result, Y
 
-    # Build features for main grid
-    df_feat = build_feature_table_from_mc(df_mc)
-    merge_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
-    df_merged = df_mc.merge(df_feat, on=merge_keys, how='left', suffixes=('', '_feat'))
-    for col in list(df_merged.columns):
-        if col.endswith('_feat'):
-            df_merged.drop(columns=col, inplace=True)
-    df_merged = compute_loss(df_merged)
 
-    # Use fold 1 as representative (same as E3b feature ablation baseline)
-    folds = get_combo_split()
-    fold = folds[0]
-    train_combos = set(fold['train_combos'])
-
-    def is_train(row):
-        return (row['beta'], row['gamma_over_eta'], row['n']) in train_combos
-
-    df_train = df_merged[df_merged.apply(is_train, axis=1)].copy()
-
-    # Z-score from train
-    zscore_means = {}
-    zscore_stds = {}
-    for col in FEATURE_COLS_ZSCORE:
-        vals = df_train[col].astype(float)
-        zscore_means[col] = float(vals.mean())
-        zscore_stds[col] = float(vals.std(ddof=0))
-        if zscore_stds[col] < 1e-12:
-            zscore_stds[col] = 1.0
-
-    train_valid = df_train['loss'].dropna()
-    failure_penalty = float(np.nanpercentile(train_valid, 99))
-    df_train['loss_filled'] = df_train['loss'].fillna(failure_penalty)
-
-    # Pivot train to vector
-    def pivot_vector(df, label_col):
-        feat_cols_local = [c for c in SAMPLE_FEATURE_COLS if c not in SAMPLE_KEYS]
-        sample_df = df[SAMPLE_KEYS + feat_cols_local].drop_duplicates(
-            subset=SAMPLE_KEYS).reset_index(drop=True)
-        pivot = df.pivot_table(
-            index=SAMPLE_KEYS, columns='delta',
-            values=label_col, aggfunc='first'
-        ).reset_index()
-        result = pivot[SAMPLE_KEYS].merge(sample_df, on=SAMPLE_KEYS, how='left')
-        Y = np.full((len(pivot), N_DELTAS), np.nan)
-        for j, d in enumerate(DELTA_GRID):
-            if d in pivot.columns:
-                Y[:, j] = pivot[d].values
-        Y = np.where(np.isnan(Y), failure_penalty, Y)
-        return result, Y
-
-    train_samples, Y_train = pivot_vector(df_train, 'loss_filled')
-    log(f"  Train samples: {len(train_samples)}")
-
-    # Build X_train with full features
+def _build_X_from_samples(samples_df, zscore_means, zscore_stds):
+    """Build the 13-dim feature matrix from sample features."""
     cols = []
     for col in FEATURE_COLS_ZSCORE:
-        vals = train_samples[col].astype(float).values
+        vals = samples_df[col].astype(float).values
         cols.append((vals - zscore_means[col]) / max(zscore_stds[col], 1e-12))
     for col in FEATURE_COLS_RAW:
-        cols.append(train_samples[col].astype(float).values)
-    X_train = np.column_stack(cols).astype(np.float32)
+        cols.append(samples_df[col].astype(float).values)
+    return np.column_stack(cols).astype(np.float32) if cols else \
+        np.zeros((len(samples_df), 0), dtype=np.float32)
 
-    # Train with seed 42
-    log("  Training Vector-MLP-L6 (seed=42)...")
-    t0 = time.time()
+
+def _fit_zscore_params(df_train):
+    """Compute per-feature z-score parameters from the training split."""
+    means = {}
+    stds = {}
+    for col in FEATURE_COLS_ZSCORE:
+        vals = df_train[col].astype(float)
+        means[col] = float(vals.mean())
+        stds[col] = float(vals.std(ddof=0))
+        if stds[col] < 1e-12:
+            stds[col] = 1.0
+    return means, stds
+
+
+def _train_mlp(X_train, Y_train, seed):
+    """Train one Vector-MLP-L6 model under the frozen E3b config."""
     target_scaler = StandardScaler()
     Y_train_scaled = target_scaler.fit_transform(Y_train)
-
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=ConvergenceWarning)
         model = MLPRegressor(
@@ -1740,15 +1716,170 @@ def run_e4d(df_mc, df_boundary_feat, df_offgrid_feat,
             max_iter=MLP_MAX_ITER, early_stopping=True,
             validation_fraction=MLP_VALIDATION_FRACTION,
             n_iter_no_change=MLP_N_ITER_NO_CHANGE,
-            random_state=42, batch_size=MLP_BATCH_SIZE,
+            random_state=seed, batch_size=MLP_BATCH_SIZE,
         )
         model.fit(X_train, Y_train_scaled)
+    return model, target_scaler
 
-    train_elapsed = time.time() - t0
-    log(f"  Training done in {train_elapsed:.1f}s, n_iter={model.n_iter_}")
 
-    # Evaluate on boundary and offgrid
-    results = []
+def _evaluate_single_model(model, target_scaler, df_eval_feat, df_eval_loss,
+                           zscore_means, zscore_stds, failure_penalty,
+                           fold_name, seed):
+    """Return per-sample evaluation rows and model-level metrics for one model."""
+    X_eval = _build_X_from_samples(df_eval_feat, zscore_means, zscore_stds)
+    Y_pred = target_scaler.inverse_transform(model.predict(X_eval))
+    Y_pred = np.clip(Y_pred, 0, None)
+
+    rows = []
+    for i in range(len(df_eval_feat)):
+        row = df_eval_feat.iloc[i]
+        beta = float(row['beta'])
+        goe = float(row['gamma_over_eta'])
+        n_val = int(row['n'])
+        rid = int(row['repeat_id'])
+
+        best_delta_idx = int(np.argmin(Y_pred[i]))
+        sel_delta = DELTA_GRID[best_delta_idx]
+
+        match = df_eval_loss[
+            (df_eval_loss['beta'] == beta) &
+            (df_eval_loss['gamma_over_eta'] == goe) &
+            (df_eval_loss['n'] == n_val) &
+            (df_eval_loss['repeat_id'] == rid) &
+            (df_eval_loss['delta'] == sel_delta)
+        ]
+        if len(match) > 0:
+            true_loss = float(match.iloc[0]['loss'])
+            if np.isnan(true_loss):
+                true_loss = failure_penalty
+        else:
+            true_loss = failure_penalty
+
+        # Oracle (hindsight) min — L6-hindsight reference
+        sample_curve = df_eval_loss[
+            (df_eval_loss['beta'] == beta) &
+            (df_eval_loss['gamma_over_eta'] == goe) &
+            (df_eval_loss['n'] == n_val) &
+            (df_eval_loss['repeat_id'] == rid)
+        ]['loss'].values
+        oracle_min = float(np.nanmin(sample_curve)) if len(sample_curve) > 0 else true_loss
+        regret = true_loss - oracle_min
+
+        rows.append({
+            'fold': fold_name,
+            'seed': seed,
+            'beta': beta,
+            'gamma_over_eta': goe,
+            'n': n_val,
+            'repeat_id': rid,
+            'selected_delta': sel_delta,
+            'true_loss': true_loss,
+            'oracle_min': oracle_min,
+            'regret': regret,
+        })
+    return rows
+
+
+def _model_level_summary(rows):
+    """Compute pooled J1, per-n J1, endpoint rate, near-optimal, mean regret."""
+    if not rows:
+        return {}
+    df = pd.DataFrame(rows)
+    j1 = math.sqrt(df['true_loss'].mean())
+    per_n = {}
+    for n_val in sorted(df['n'].unique()):
+        sub = df[df['n'] == n_val]
+        per_n[int(n_val)] = math.sqrt(sub['true_loss'].mean())
+    endpoint_rate = float(
+        df['selected_delta'].isin([0.00, 0.02, 0.48, 0.50]).mean()
+    )
+    near_rates = {}
+    rel_regret = np.where(
+        df['oracle_min'].values > 1e-12,
+        df['regret'].values / df['oracle_min'].values,
+        df['regret'].values,
+    )
+    for eps in NEAR_OPTIMAL_EPS:
+        near_rates[f'near_{eps}'] = float(np.mean(rel_regret <= eps))
+    return {
+        'pooled_J1': j1,
+        'n_samples': len(df),
+        'per_n_J1': per_n,
+        'endpoint_rate': endpoint_rate,
+        'mean_regret': float(df['regret'].mean()),
+        **near_rates,
+    }
+
+
+# ============================================================
+# E4d baselines (frozen from main-grid, not re-fitted on E4 truth)
+# ============================================================
+
+def _compute_main_grid_best_deltas(df_mc):
+    """Compute frozen L1 (global) and L2 (per-n) best deltas from main grid.
+
+    These are computed once from the authoritative main-grid MC data and must
+    NOT be re-derived on boundary/off-grid truth.
+    """
+    df_mc_loss = compute_loss(df_mc)
+    df_valid = df_mc_loss.dropna(subset=['loss'])
+
+    # L1: global best constant delta on main grid
+    global_loss = df_valid.groupby('delta')['loss'].apply(
+        lambda x: np.sqrt(np.nanmean(x)))
+    l1_delta = float(global_loss.idxmin())
+
+    # L2: per-n best delta on main grid
+    l2_table = {}
+    for n_val in sorted(df_valid['n'].unique()):
+        df_n = df_valid[df_valid['n'] == n_val]
+        loss_by_d = df_n.groupby('delta')['loss'].apply(
+            lambda x: np.sqrt(np.nanmean(x)))
+        l2_table[int(n_val)] = float(loss_by_d.idxmin())
+
+    return l1_delta, l2_table
+
+
+def _evaluate_baseline_on_e4samples(sample_keys, df_eval_loss, delta_value,
+                                     ref_name, failure_penalty):
+    """Evaluate a fixed-delta baseline on E4 samples."""
+    rows = []
+    for _, srow in sample_keys.iterrows():
+        beta = float(srow['beta'])
+        goe = float(srow['gamma_over_eta'])
+        n_val = int(srow['n'])
+        rid = int(srow['repeat_id'])
+        match = df_eval_loss[
+            (df_eval_loss['beta'] == beta) &
+            (df_eval_loss['gamma_over_eta'] == goe) &
+            (df_eval_loss['n'] == n_val) &
+            (df_eval_loss['repeat_id'] == rid) &
+            (df_eval_loss['delta'] == delta_value)
+        ]
+        if len(match) > 0:
+            true_loss = float(match.iloc[0]['loss'])
+            if np.isnan(true_loss):
+                true_loss = failure_penalty
+        else:
+            true_loss = failure_penalty
+        rows.append({
+            'model': ref_name,
+            'beta': beta, 'gamma_over_eta': goe, 'n': n_val,
+            'repeat_id': rid, 'selected_delta': delta_value,
+            'true_loss': true_loss,
+        })
+    return rows
+
+
+def _compute_e4d_baselines(df_boundary_feat, df_offgrid_feat,
+                           df_boundary_loss, df_offgrid_loss,
+                           default_delta, l1_delta, l2_table):
+    """Build E4d frozen baselines (Default, L1, L2) on boundary/offgrid.
+
+    L2 is only reported for n in {7, 10, 20}; other n get N/A.
+    """
+    all_rows = []
+    failure_penalty = 1.0  # conservative fallback for missing-match loss
 
     for eval_label, df_eval_feat, df_eval_loss in [
         ("E4b_boundary", df_boundary_feat, df_boundary_loss),
@@ -1756,65 +1887,254 @@ def run_e4d(df_mc, df_boundary_feat, df_offgrid_feat,
     ]:
         if df_eval_feat is None or len(df_eval_feat) == 0:
             continue
+        sample_keys = (
+            df_eval_feat[['beta', 'gamma_over_eta', 'n', 'repeat_id']]
+            .drop_duplicates()
+            .reset_index(drop=True)
+        )
+        # Default baseline (frozen delta=0.1)
+        for row in _evaluate_baseline_on_e4samples(
+            sample_keys, df_eval_loss, default_delta, 'Default', failure_penalty
+        ):
+            row['track'] = eval_label
+            all_rows.append(row)
 
-        # Build X_eval with same z-score params
-        cols = []
-        for col in FEATURE_COLS_ZSCORE:
-            vals = df_eval_feat[col].astype(float).values
-            cols.append((vals - zscore_means[col]) / max(zscore_stds[col], 1e-12))
-        for col in FEATURE_COLS_RAW:
-            cols.append(df_eval_feat[col].astype(float).values)
-        X_eval = np.column_stack(cols).astype(np.float32)
+        # L1 baseline (main-grid global best)
+        for row in _evaluate_baseline_on_e4samples(
+            sample_keys, df_eval_loss, l1_delta, 'L1', failure_penalty
+        ):
+            row['track'] = eval_label
+            all_rows.append(row)
 
-        # Predict
-        Y_pred = target_scaler.inverse_transform(model.predict(X_eval))
-        Y_pred = np.clip(Y_pred, 0, None)
+        # L2 baseline (main-grid per-n best); N/A for non-main-grid n
+        for _, srow in sample_keys.iterrows():
+            n_val = int(srow['n'])
+            beta = float(srow['beta'])
+            goe = float(srow['gamma_over_eta'])
+            rid = int(srow['repeat_id'])
+            if n_val in l2_table:
+                delta_val = l2_table[n_val]
+                match = df_eval_loss[
+                    (df_eval_loss['beta'] == beta) &
+                    (df_eval_loss['gamma_over_eta'] == goe) &
+                    (df_eval_loss['n'] == n_val) &
+                    (df_eval_loss['repeat_id'] == rid) &
+                    (df_eval_loss['delta'] == delta_val)
+                ]
+                true_loss = (float(match.iloc[0]['loss'])
+                             if len(match) > 0 else failure_penalty)
+                all_rows.append({
+                    'track': eval_label, 'model': 'L2',
+                    'beta': beta, 'gamma_over_eta': goe, 'n': n_val,
+                    'repeat_id': rid, 'selected_delta': delta_val,
+                    'true_loss': true_loss,
+                })
+    return pd.DataFrame(all_rows)
 
-        # For each sample, select delta and look up true loss
-        for i in range(len(df_eval_feat)):
-            row = df_eval_feat.iloc[i]
-            beta = float(row['beta'])
-            goe = float(row['gamma_over_eta'])
-            n_val = int(row['n'])
-            rid = int(row['repeat_id'])
 
-            best_delta_idx = int(np.argmin(Y_pred[i]))
-            sel_delta = DELTA_GRID[best_delta_idx]
+# ============================================================
+# E3b reproduction gate
+# ============================================================
 
-            # Look up true loss at selected delta
-            match = df_eval_loss[
-                (df_eval_loss['beta'] == beta) &
-                (df_eval_loss['gamma_over_eta'] == goe) &
-                (df_eval_loss['n'] == n_val) &
-                (df_eval_loss['repeat_id'] == rid) &
-                (df_eval_loss['delta'] == sel_delta)
+def _e3b_reproduction_gate_check(df_mc):
+    """Verify that the training infrastructure reproduces the frozen E3b contract.
+
+    Checks (per the frozen contract, 07-剩余实验目标与规划.md §4.1):
+      1. 5-fold combo partition matches ``split_report.csv``.
+      2. Fold coverage is identical (same combos in each fold).
+
+    The per-sample repro against ``tabular_l6_results.csv`` and 3-seed
+    summary repro against ``seed_stability.csv`` are exercised in the
+    contract tests; this gate prints a consistency message for the run log.
+    """
+    E3B_DIR = os.path.join(ARTIFACTS_DIR, "E3b_vector_mlp")
+    split_path = os.path.join(E3B_DIR, "split_report.csv")
+    if not os.path.exists(split_path):
+        log("  [E3b gate] split_report.csv not found — skip fold coverage check")
+        return
+
+    ref_split = pd.read_csv(split_path)
+    folds = get_combo_split()
+    mismatches = []
+    for fold_idx, fold in enumerate(folds):
+        fold_name = f"combo_fold_{fold_idx + 1}"
+        ref_test = ref_split[ref_split['fold'] == fold_name]
+        ref_combos = set(zip(
+            ref_test['test_beta'], ref_test['test_gamma_over_eta'],
+            ref_test['test_n']
+        ))
+        our_test = set(
+            (float(b), float(g), int(n)) for (b, g, n) in fold['test_combos']
+        )
+        our_train = set(
+            (float(b), float(g), int(n)) for (b, g, n) in fold['train_combos']
+        )
+        if ref_combos != our_test:
+            mismatches.append(
+                f"  fold {fold_name}: test combo mismatch "
+                f"(missing={sorted(ref_combos - our_test)[:3]}, "
+                f"extra={sorted(our_test - ref_combos)[:3]})"
+            )
+        all_combos = set((float(b), float(g), int(n))
+                         for b in BETA_GRID
+                         for g in GAMMA_OVER_ETA_GRID
+                         for n in N_GRID)
+        expected_train = all_combos - our_test
+        if expected_train != our_train:
+            mismatches.append(
+                f"  fold {fold_name}: train combo mismatch"
+            )
+
+    if mismatches:
+        raise PreflightError(
+            "E3b reproduction gate FAILED — fold partition differs from frozen:\n"
+            + "\n".join(mismatches)
+        )
+    log("  [E3b gate] 5-fold partition matches frozen split_report.csv")
+
+
+# ============================================================
+# E4d: Selector extrapolation — formal contract
+# ============================================================
+
+def run_e4d_formal(df_mc, df_boundary_feat, df_offgrid_feat,
+                   df_boundary_loss, df_offgrid_loss,
+                   default_delta=DEFAULT_DELTA):
+    """Train 5-fold × 3-seed Vector-MLP-L6 selectors on main grid,
+    evaluate on boundary/offgrid.
+
+    Contract: 07-剩余实验目标与规划.md §4.1
+      - 15 independent models (5 folds × 3 seeds)
+      - Training: ONLY main-grid train-fold combos
+      - Evaluation: boundary + offgrid (E4 truth only for loss/regret)
+      - Baselines: Default δ=0.1, frozen main-grid L1, main-grid L2 (n∈{7,10,20})
+      - Output: 15 model-level results + per-sample rows
+    """
+    log("=== E4d: Selector Extrapolation (Formal 5-fold × 3-seed) ===")
+
+    # ── E3b reproduction gate ──
+    _e3b_reproduction_gate_check(df_mc)
+
+    # ── Build main-grid features ──
+    df_feat = build_feature_table_from_mc(df_mc)
+    merge_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
+    df_merged = df_mc.merge(df_feat, on=merge_keys, how='left',
+                            suffixes=('', '_feat'))
+    for col in list(df_merged.columns):
+        if col.endswith('_feat'):
+            df_merged.drop(columns=col, inplace=True)
+    df_merged = compute_loss(df_merged)
+
+    # ── Frozen baselines from main grid (before any E4 truth is seen) ──
+    l1_delta, l2_table = _compute_main_grid_best_deltas(df_mc)
+    log(f"  Frozen L1 delta (main-grid global): {l1_delta}")
+    log(f"  Frozen L2 deltas (main-grid per-n): {l2_table}")
+
+    # ── 5-fold combo split ──
+    folds = get_combo_split()
+
+    # ── Train 15 models, evaluate each ──
+    all_rows = []
+    model_summaries = []
+    total_train_elapsed = 0.0
+
+    for fold in folds:
+        fold_name = fold['fold_name']
+        train_combos = set(fold['train_combos'])
+
+        def is_train(row):
+            return (row['beta'], row['gamma_over_eta'], row['n']) in train_combos
+
+        df_train = df_merged[df_merged.apply(is_train, axis=1)].copy()
+        zscore_means, zscore_stds = _fit_zscore_params(df_train)
+
+        train_valid = df_train['loss'].dropna()
+        failure_penalty = float(np.nanpercentile(train_valid, 99))
+        df_train['loss_filled'] = df_train['loss'].fillna(failure_penalty)
+
+        train_samples, Y_train = _pivot_risk_vectors(
+            df_train, 'loss_filled', failure_penalty
+        )
+        X_train = _build_X_from_samples(train_samples, zscore_means, zscore_stds)
+        log(f"  {fold_name}: train={len(train_samples)} samples, "
+            f"failure_penalty={failure_penalty:.4f}")
+
+        for seed in STABILITY_SEEDS:
+            t0 = time.time()
+            model, target_scaler = _train_mlp(X_train, Y_train, seed)
+            train_elapsed = time.time() - t0
+            total_train_elapsed += train_elapsed
+
+            # Evaluate on boundary + offgrid
+            for eval_label, df_eval_feat, df_eval_loss in [
+                ("E4b_boundary", df_boundary_feat, df_boundary_loss),
+                ("E4c_offgrid", df_offgrid_feat, df_offgrid_loss),
+            ]:
+                if df_eval_feat is None or len(df_eval_feat) == 0:
+                    continue
+                rows = _evaluate_single_model(
+                    model, target_scaler, df_eval_feat, df_eval_loss,
+                    zscore_means, zscore_stds, failure_penalty,
+                    fold_name, seed,
+                )
+                for r in rows:
+                    r['track'] = eval_label
+                    r['model'] = 'Vector-MLP-L6'
+                all_rows.extend(rows)
+
+            summary = _model_level_summary(
+                [r for r in all_rows
+                 if r.get('fold') == fold_name and r.get('seed') == seed]
+            )
+            summary['fold'] = fold_name
+            summary['seed'] = seed
+            summary['model'] = 'Vector-MLP-L6'
+            summary['train_elapsed_s'] = train_elapsed
+            summary['n_iter'] = model.n_iter_
+            model_summaries.append(summary)
+
+            log(f"    seed={seed} J1={summary.get('pooled_J1', '?'):.6f} "
+                f"[{train_elapsed:.1f}s, n_iter={model.n_iter_}]")
+
+    if not all_rows:
+        log("  WARNING: No evaluation rows produced — returning empty frame")
+        return pd.DataFrame(), total_train_elapsed, pd.DataFrame(), []
+
+    df_selector = pd.DataFrame(all_rows)
+
+    # ── Baselines ──
+    df_baselines = _compute_e4d_baselines(
+        df_boundary_feat, df_offgrid_feat,
+        df_boundary_loss, df_offgrid_loss,
+        default_delta, l1_delta, l2_table,
+    )
+    log(f"  Baselines: {len(df_baselines)} rows "
+        f"(Default δ={default_delta}, L1 δ={l1_delta})")
+
+    # Combine selector + baselines
+    df_combined = pd.concat(
+        [df_selector, df_baselines], ignore_index=True, sort=False
+    )
+
+    # ── Model-level J1 (15 models, not pseudo-pooled) ──
+    df_model_j1 = pd.DataFrame(model_summaries)
+
+    # ── Track-level summaries ──
+    for track in df_combined['track'].unique():
+        for model_name in df_combined['model'].unique():
+            sub = df_combined[
+                (df_combined['track'] == track) &
+                (df_combined['model'] == model_name)
             ]
-            if len(match) > 0:
-                true_loss = float(match.iloc[0]['loss'])
-                if np.isnan(true_loss):
-                    true_loss = failure_penalty
-            else:
-                true_loss = failure_penalty
-
-            results.append({
-                'track': eval_label,
-                'model': 'Vector-MLP-L6-extrapolation',
-                'beta': beta,
-                'gamma_over_eta': goe,
-                'n': n_val,
-                'repeat_id': rid,
-                'selected_delta': sel_delta,
-                'true_loss': true_loss,
-            })
-
-    df_results = pd.DataFrame(results)
-    if len(df_results) > 0:
-        for track in df_results['track'].unique():
-            sub = df_results[df_results['track'] == track]
+            if len(sub) == 0:
+                continue
             j1 = math.sqrt(sub['true_loss'].mean())
-            log(f"  {track} Vector-MLP-L6 extrapolation J1={j1:.6f}")
+            log(f"  [{track}] {model_name}: pooled J1={j1:.6f} "
+                f"(n={len(sub)})")
 
-    return df_results, train_elapsed
+    log(f"  Total training time: {total_train_elapsed:.1f}s")
+
+    return df_combined, total_train_elapsed, df_model_j1, model_summaries
 
 
 # ============================================================
@@ -2010,32 +2330,41 @@ def main():
     elif 'e4c' not in requested_tracks:
         log("E4c SKIPPED (not in --tracks)")
 
-    # --- E4d: Selector extrapolation diagnostic ---
+    # --- E4d: Selector extrapolation (formal 5-fold × 3-seed) ---
     df_e4d = pd.DataFrame()
+    df_e4d_model_j1 = pd.DataFrame()
     e4d_train_time = 0
     e4d_skip = False
 
     if 'e4d' not in requested_tracks:
         log("E4d SKIPPED (not in --tracks)")
-        # track_status['e4d'] already set to not_requested
     elif df_boundary is not None and df_offgrid is not None:
         try:
-            # Compute loss for boundary/offgrid
             df_boundary_loss = compute_loss(df_boundary)
             df_offgrid_loss = compute_loss(df_offgrid)
 
-            df_e4d, e4d_train_time = run_e4d(
+            df_e4d, e4d_train_time, df_e4d_model_j1, _ = run_e4d_formal(
                 df_mc, df_boundary_feat, df_offgrid_feat,
-                df_boundary_loss, df_offgrid_loss
+                df_boundary_loss, df_offgrid_loss,
             )
+
+            # Write combined per-sample results
             e4d_path = os.path.join(E4_OUTPUT_DIR, "E4d_selector_extrapolation.csv")
             write_e4d_formal_output(df_e4d, e4d_path, e4d_gate)
             log(f"  Saved: {e4d_path}")
+
+            # Write model-level J1 summary (15 models)
+            if len(df_e4d_model_j1) > 0:
+                e4d_j1_path = os.path.join(
+                    E4_OUTPUT_DIR, "E4d_model_j1_summary.csv"
+                )
+                df_e4d_model_j1.to_csv(e4d_j1_path, index=False)
+                log(f"  Saved: {e4d_j1_path}")
+
             all_cost.append({'track': 'E4d', 'elapsed_s': e4d_train_time,
-                           'note': 'selector extrapolation diagnostic'})
+                           'note': 'selector extrapolation (5 fold × 3 seed)'})
             track_status['e4d']['status'] = 'completed'
         except PreflightError:
-            # A contract failure is never downgraded to skipped_error.
             raise
         except Exception as e:
             log(f"  E4d FAILED: {type(e).__name__}: {e}")
