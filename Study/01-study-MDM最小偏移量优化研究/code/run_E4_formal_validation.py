@@ -8,7 +8,8 @@ Handles all 4 tracks:
   E4d: Selector extrapolation diagnostic (train on main grid, evaluate on boundary/offgrid)
 
 Reads:
-  - Existing formal MC data: artifacts/formal/shared_data/mc_scan_raw.csv (for E4a + E4d training)
+  - Existing formal MC chunks: artifacts/formal/shared_data/chunks/chunk_####_mdm.csv
+    (authoritative main-grid source for E4a + E4d training)
   - New boundary MC data: artifacts/formal/E4_robustness/boundary_risk_curves.csv (E4b)
   - New offgrid MC data: artifacts/formal/E4_robustness/offgrid_risk_curves.csv (E4c)
 
@@ -30,6 +31,12 @@ Writes:
 import sys
 import os
 import json
+import hashlib
+import io
+import re
+import copy
+import tempfile
+import importlib.util
 import time
 import math
 import gc
@@ -53,16 +60,40 @@ STUDY_ROOT = os.path.dirname(STUDY_CODE_DIR)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(STUDY_ROOT))
 PYTHON_DIR = os.path.join(PROJECT_ROOT, "python")
 
-sys.path.insert(0, STUDY_CODE_DIR)
-sys.path.insert(0, PYTHON_DIR)
+def _load_local_module(unique_name, path):
+    """Load one repository-local module without basename/sys.path pollution."""
+    spec = importlib.util.spec_from_file_location(unique_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load local module: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
-from config import (
-    BETA_GRID, ETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID,
-    DELTA_GRID, DEFAULT_DELTA, R_MAIN, SEED_NAMESPACE,
-    ARTIFACTS_DIR, SHARED_DATA_DIR
+
+_CONFIG = _load_local_module(
+    '_study01_e4_config', os.path.join(STUDY_CODE_DIR, 'config.py')
 )
-from utils import get_git_info, now_iso
-from studies.common.sample import generate_sample
+_UTILS = _load_local_module(
+    '_study01_e4_utils', os.path.join(STUDY_CODE_DIR, 'utils.py')
+)
+_SAMPLE = _load_local_module(
+    '_study01_e4_sample',
+    os.path.join(PYTHON_DIR, 'studies', 'common', 'sample.py'),
+)
+
+BETA_GRID = _CONFIG.BETA_GRID
+ETA_GRID = _CONFIG.ETA_GRID
+GAMMA_OVER_ETA_GRID = _CONFIG.GAMMA_OVER_ETA_GRID
+N_GRID = _CONFIG.N_GRID
+DELTA_GRID = _CONFIG.DELTA_GRID
+DEFAULT_DELTA = _CONFIG.DEFAULT_DELTA
+R_MAIN = _CONFIG.R_MAIN
+R_ROBUSTNESS = _CONFIG.R_ROBUSTNESS
+SEED_NAMESPACE = _CONFIG.SEED_NAMESPACE
+ARTIFACTS_DIR = _CONFIG.ARTIFACTS_DIR
+SHARED_DATA_DIR = _CONFIG.SHARED_DATA_DIR
+now_iso = _UTILS.now_iso
+generate_sample = _SAMPLE.generate_sample
 
 # ============================================================
 # Output directory
@@ -71,7 +102,8 @@ from studies.common.sample import generate_sample
 E4_OUTPUT_DIR = os.path.join(ARTIFACTS_DIR, "E4_robustness")
 os.makedirs(E4_OUTPUT_DIR, exist_ok=True)
 
-MC_SCAN_PATH = os.path.join(SHARED_DATA_DIR, "mc_scan_raw.csv")
+MAIN_CHUNKS_DIR = os.path.join(SHARED_DATA_DIR, "chunks")
+MC_AGGREGATE_PATH = os.path.join(SHARED_DATA_DIR, "mc_scan_raw.csv")
 MC_MANIFEST_PATH = os.path.join(SHARED_DATA_DIR, "manifest.json")
 BOUNDARY_PATH = os.path.join(E4_OUTPUT_DIR, "boundary_risk_curves.csv")
 OFFGRID_PATH = os.path.join(E4_OUTPUT_DIR, "offgrid_risk_curves.csv")
@@ -139,6 +171,692 @@ def log(msg):
 class PreflightError(Exception):
     """Raised when preflight input validation fails (fail-closed)."""
     pass
+
+
+def get_project_git_info_strict():
+    """Return PROJECT_ROOT short commit plus dirty suffix, or fail closed."""
+    try:
+        commit_result = subprocess.run(
+            ['git', '-C', PROJECT_ROOT, 'rev-parse', '--short', 'HEAD'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if commit_result.returncode != 0:
+            raise PreflightError(
+                "E4d git provenance failed: rev-parse returned nonzero"
+            )
+        commit = commit_result.stdout.strip().lower()
+        if re.fullmatch(r'[0-9a-f]{4,40}', commit) is None:
+            raise PreflightError(
+                f"E4d git provenance returned invalid commit: {commit!r}"
+            )
+        dirty_result = subprocess.run(
+            ['git', '-C', PROJECT_ROOT, 'status', '--porcelain'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if dirty_result.returncode != 0:
+            raise PreflightError(
+                "E4d git provenance failed: status returned nonzero"
+            )
+    except PreflightError:
+        raise
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise PreflightError(f"E4d git provenance unavailable: {exc}") from exc
+    return commit + ('-dirty' if dirty_result.stdout.strip() else '')
+
+
+E4D_CONTRACT_VERSION = "study01-e4d-preflight-v1"
+_E4D_GATE_SENTINEL = object()
+_BOUND_INPUT_SENTINEL = object()
+
+
+class _BoundInputCapability:
+    """Opaque binding between one parsed object identity and byte provenance."""
+    __slots__ = ('_identity', '_value', '_record', '_kind')
+
+    def __init__(self, identity, value, record, kind):
+        if identity is not _BOUND_INPUT_SENTINEL:
+            raise TypeError("_BoundInputCapability cannot be constructed directly")
+        self._identity = identity
+        self._value = value
+        self._record = copy.deepcopy(record)
+        self._kind = str(kind)
+
+    def _require_binding(self, value, kind):
+        if (
+            self._identity is not _BOUND_INPUT_SENTINEL
+            or self._kind != kind
+            or self._value is not value
+        ):
+            raise PreflightError(
+                f"E4d bound input capability/object mismatch [{kind}]"
+            )
+
+    def _export_record(self):
+        return copy.deepcopy(self._record)
+
+
+class _ValidatedE4dGate:
+    """Opaque capability created only after the complete E4d gate passes."""
+    __slots__ = ('_identity', '_provenance', '_generation_git_commit')
+
+    def __init__(self, identity, provenance, generation_git_commit):
+        if identity is not _E4D_GATE_SENTINEL:
+            raise TypeError("_ValidatedE4dGate cannot be constructed directly")
+        self._identity = identity
+        self._provenance = copy.deepcopy(provenance)
+        self._generation_git_commit = str(generation_git_commit)
+
+    @property
+    def generation_git_commit(self):
+        return self._generation_git_commit
+
+    def export_provenance(self):
+        """Return a manifest-safe deep copy; never expose mutable gate state."""
+        exported = copy.deepcopy(self._provenance)
+        # Fail here if a future field stops being JSON serializable.
+        return json.loads(json.dumps(exported))
+
+
+def _require_validated_e4d_gate(gate):
+    if not isinstance(gate, _ValidatedE4dGate) or (
+        gate._identity is not _E4D_GATE_SENTINEL
+    ):
+        raise PreflightError(
+            "E4d formal output requires a genuine validated preflight gate"
+        )
+    return gate
+
+
+def attach_e4d_gate_to_manifest(manifest, gate):
+    """Return a deep-copied manifest with exported gate provenance attached."""
+    _require_validated_e4d_gate(gate)
+    if not isinstance(manifest, dict):
+        raise TypeError("E4 manifest must be a dict")
+    attached = copy.deepcopy(manifest)
+    existing_commit = attached.get('git_commit')
+    if existing_commit not in (None, gate.generation_git_commit):
+        raise PreflightError(
+            "E4 manifest git_commit does not match the validated gate"
+        )
+    attached['git_commit'] = gate.generation_git_commit
+    attached['e4d_preflight_provenance'] = gate.export_provenance()
+    return json.loads(json.dumps(attached))
+
+
+def sha256_file(path, chunk_size=1024 * 1024):
+    """Return a streaming SHA256 digest for one provenance file."""
+    digest = hashlib.sha256()
+    with open(path, 'rb') as file_obj:
+        while True:
+            chunk = file_obj.read(chunk_size)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _record_for_bytes(path, raw_bytes):
+    """Describe the exact bytes parsed by an input loader."""
+    absolute_path = os.path.abspath(path)
+    return {
+        'path': os.path.relpath(absolute_path, PROJECT_ROOT).replace('\\', '/'),
+        'sha256': hashlib.sha256(raw_bytes).hexdigest(),
+        'size_bytes': len(raw_bytes),
+    }
+
+
+def _read_input_bytes(path, label):
+    absolute_path = os.path.abspath(path)
+    if not os.path.isfile(absolute_path):
+        raise PreflightError(f"E4d input missing [{label}]: {absolute_path}")
+    try:
+        with open(absolute_path, 'rb') as file_obj:
+            return file_obj.read()
+    except OSError as exc:
+        raise PreflightError(
+            f"E4d input unreadable [{label}]: {absolute_path}: {exc}"
+        ) from exc
+
+
+def read_csv_with_provenance(path, label):
+    """Parse a CSV and hash the same immutable byte batch (no path re-read)."""
+    raw_bytes = _read_input_bytes(path, label)
+    try:
+        frame = pd.read_csv(io.BytesIO(raw_bytes))
+    except Exception as exc:
+        raise PreflightError(f"E4d CSV parse failed [{label}]: {exc}") from exc
+    record = _record_for_bytes(path, raw_bytes)
+    record['row_count'] = int(len(frame))
+    capability = _BoundInputCapability(
+        _BOUND_INPUT_SENTINEL, frame, record, 'csv'
+    )
+    return frame, capability
+
+
+def read_json_with_provenance(path, label):
+    """Parse JSON and hash the same immutable byte batch (no path re-read)."""
+    raw_bytes = _read_input_bytes(path, label)
+    try:
+        value = json.loads(raw_bytes.decode('utf-8-sig'))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PreflightError(f"E4d JSON parse failed [{label}]: {exc}") from exc
+    record = _record_for_bytes(path, raw_bytes)
+    capability = _BoundInputCapability(
+        _BOUND_INPUT_SENTINEL, value, record, 'json'
+    )
+    return value, capability
+
+
+def _expected_main_chunk_units():
+    """Return the 45 frozen work units in generate_mc_data.py order."""
+    units = []
+    for eta in ETA_GRID:
+        for goe in GAMMA_OVER_ETA_GRID:
+            gamma = goe * eta
+            for beta in BETA_GRID:
+                for n in N_GRID:
+                    units.append({
+                        'beta': float(beta),
+                        'eta': float(eta),
+                        'gamma': float(gamma),
+                        'gamma_over_eta': float(goe),
+                        'n': int(n),
+                    })
+    return units
+
+
+def load_authoritative_main_chunks(
+        chunks_dir=MAIN_CHUNKS_DIR, chunk_paths=None,
+        expected_repeats=R_MAIN):
+    """Load and bind the 45 authoritative main-grid MDM chunks.
+
+    Chunk identity comes from the frozen four-digit filename and must be a
+    one-to-one mapping to the frozen generation work-unit order. Each file is
+    parsed from the exact bytes used for its SHA256 record.
+    """
+    expected_units = _expected_main_chunk_units()
+    expected_ids = set(range(len(expected_units)))
+    if chunk_paths is None:
+        chunks_path = os.path.abspath(chunks_dir)
+        if not os.path.isdir(chunks_path):
+            raise PreflightError(
+                f"E4d authoritative main chunk directory missing: {chunks_path}"
+            )
+        chunk_paths = list(
+            os.path.join(chunks_path, name)
+            for name in os.listdir(chunks_path)
+            if name.startswith('chunk_') and name.endswith('_mdm.csv')
+        )
+
+    by_identity = {}
+    invalid_names = []
+    duplicate_ids = []
+    pattern = re.compile(r'^chunk_(\d{4})_mdm\.csv$')
+    for path in chunk_paths:
+        filename = os.path.basename(os.fspath(path))
+        match = pattern.fullmatch(filename)
+        if match is None:
+            invalid_names.append(filename)
+            continue
+        chunk_id = int(match.group(1))
+        if chunk_id in by_identity:
+            duplicate_ids.append(chunk_id)
+        else:
+            by_identity[chunk_id] = os.fspath(path)
+    if invalid_names:
+        raise PreflightError(
+            f"E4d authoritative chunk filenames are invalid: {sorted(invalid_names)}"
+        )
+    if duplicate_ids:
+        raise PreflightError(
+            "E4d authoritative main chunks contain duplicate identities: "
+            f"{sorted(set(duplicate_ids))}"
+        )
+
+    actual_ids = set(by_identity)
+    missing_ids = sorted(expected_ids - actual_ids)
+    unexpected_ids = sorted(actual_ids - expected_ids)
+    if missing_ids or unexpected_ids:
+        raise PreflightError(
+            "E4d authoritative main chunk identity set is incomplete: "
+            f"missing={missing_ids}, unexpected={unexpected_ids}"
+        )
+
+    expected_rows = int(expected_repeats) * len(DELTA_GRID)
+    frames = []
+    records = []
+    metadata_columns = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n']
+    for chunk_id, expected_unit in enumerate(expected_units):
+        frame, chunk_capability = read_csv_with_provenance(
+            by_identity[chunk_id], f'main_grid_chunk_{chunk_id:04d}'
+        )
+        record = chunk_capability._export_record()
+        missing_columns = [
+            column for column in metadata_columns if column not in frame.columns
+        ]
+        if missing_columns:
+            raise PreflightError(
+                f"E4d chunk {chunk_id:04d} missing metadata columns: "
+                f"{missing_columns}"
+            )
+        if len(frame) != expected_rows:
+            raise PreflightError(
+                f"E4d chunk {chunk_id:04d} row_count={len(frame)}, "
+                f"expected={expected_rows}"
+            )
+        actual_units = frame[metadata_columns].drop_duplicates()
+        if len(actual_units) != 1:
+            raise PreflightError(
+                f"E4d chunk {chunk_id:04d} mixes multiple combo identities"
+            )
+        actual_unit = actual_units.iloc[0].to_dict()
+        mismatches = [
+            column for column in metadata_columns
+            if not np.isclose(
+                float(actual_unit[column]), float(expected_unit[column]),
+                rtol=0.0, atol=1e-12,
+            )
+        ]
+        if mismatches:
+            raise PreflightError(
+                f"E4d chunk {chunk_id:04d} does not match frozen work-unit "
+                f"order; mismatched columns={mismatches}"
+            )
+        record['chunk_id'] = chunk_id
+        record['unit'] = expected_unit
+        frames.append(frame)
+        records.append(record)
+
+    merged = pd.concat(frames, ignore_index=True, sort=False)
+    capability = _BoundInputCapability(
+        _BOUND_INPUT_SENTINEL, merged, records, 'main_grid_chunks'
+    )
+    return merged, capability
+
+
+def _provenance_file_records(path_map):
+    """Build manifest-safe path/hash records, failing closed on missing files."""
+    records = {}
+    for name, path in sorted(path_map.items()):
+        absolute_path = os.path.abspath(path)
+        if not os.path.isfile(absolute_path):
+            raise PreflightError(
+                f"E4d provenance file missing [{name}]: {absolute_path}"
+            )
+        records[name] = {
+            'path': os.path.relpath(absolute_path, PROJECT_ROOT).replace('\\', '/'),
+            'sha256': sha256_file(absolute_path),
+        }
+    return records
+
+
+def _validated_bound_input_capabilities(
+        input_capabilities, df_mc, mc_manifest, df_boundary, df_offgrid):
+    """Validate opaque same-byte capabilities and export their records."""
+    required = {
+        'main_grid_chunks', 'main_grid_mc_manifest',
+        'boundary_risk_curves', 'offgrid_risk_curves',
+    }
+    if not isinstance(input_capabilities, dict) or set(
+        input_capabilities
+    ) != required:
+        raise PreflightError(
+            "E4d bound input capabilities must contain exactly: "
+            f"{sorted(required)}"
+        )
+    bindings = {
+        'main_grid_chunks': (df_mc, 'main_grid_chunks'),
+        'main_grid_mc_manifest': (mc_manifest, 'json'),
+        'boundary_risk_curves': (df_boundary, 'csv'),
+        'offgrid_risk_curves': (df_offgrid, 'csv'),
+    }
+    input_records = {}
+    for name, (value, kind) in bindings.items():
+        capability = input_capabilities[name]
+        if not isinstance(capability, _BoundInputCapability):
+            raise PreflightError(
+                f"E4d input is not an opaque bound capability [{name}]"
+            )
+        capability._require_binding(value, kind)
+        input_records[name] = capability._export_record()
+
+    chunks = input_records['main_grid_chunks']
+    if not isinstance(chunks, list) or len(chunks) != len(
+        _expected_main_chunk_units()
+    ):
+        raise PreflightError(
+            "E4d bound input provenance must contain 45 main-grid chunk records"
+        )
+
+    def validate_record(record, label):
+        if not isinstance(record, dict):
+            raise PreflightError(f"E4d provenance record is invalid [{label}]")
+        digest = record.get('sha256')
+        if not isinstance(digest, str) or re.fullmatch(r'[0-9a-f]{64}', digest) is None:
+            raise PreflightError(
+                f"E4d provenance SHA256 is invalid [{label}]"
+            )
+        if not record.get('path') or int(record.get('size_bytes', 0)) <= 0:
+            raise PreflightError(
+                f"E4d provenance path/size is invalid [{label}]"
+            )
+
+    chunk_ids = []
+    for index, record in enumerate(chunks):
+        validate_record(record, f'main_grid_chunk_{index:04d}')
+        chunk_ids.append(record.get('chunk_id'))
+    if chunk_ids != list(range(len(chunks))):
+        raise PreflightError(
+            "E4d main-grid chunk provenance is not in frozen identity order"
+        )
+    for name in sorted(required - {'main_grid_chunks'}):
+        validate_record(input_records[name], name)
+
+    # Defensive copy: downstream manifest construction cannot mutate the
+    # loader-owned records used for this validation decision.
+    return json.loads(json.dumps(input_records))
+
+
+def _validate_risk_key_contract(df, label, sample_keys, expected_repeats):
+    """Validate unique, complete ``sample key + delta`` risk-curve cells."""
+    if not isinstance(df, pd.DataFrame):
+        raise PreflightError(f"E4d {label} risk table is not a DataFrame")
+    try:
+        expected_repeats = int(expected_repeats)
+    except (TypeError, ValueError) as exc:
+        raise PreflightError(
+            f"E4d {label} expected repeat count must be an integer"
+        ) from exc
+    if expected_repeats <= 0:
+        raise PreflightError(
+            f"E4d {label} expected repeat count must be positive"
+        )
+    required = list(sample_keys) + ['delta']
+    missing = [column for column in required if column not in df.columns]
+    if missing:
+        raise PreflightError(
+            f"E4d {label} risk table missing contract columns: {missing}"
+        )
+    if df.empty:
+        raise PreflightError(f"E4d {label} risk table is empty")
+    if df[required].isna().any().any():
+        null_columns = df[required].columns[df[required].isna().any()].tolist()
+        raise PreflightError(
+            f"E4d {label} risk keys contain nulls in: {null_columns}"
+        )
+
+    normalized = df[required].copy()
+    numeric_columns = [
+        column for column in required if column not in {'combo_id'}
+    ]
+    for column in numeric_columns:
+        try:
+            normalized[column] = pd.to_numeric(
+                normalized[column], errors='raise'
+            )
+        except (TypeError, ValueError) as exc:
+            raise PreflightError(
+                f"E4d {label} risk-key column {column!r} must be numeric"
+            ) from exc
+        if not np.isfinite(normalized[column].to_numpy(dtype=float)).all():
+            raise PreflightError(
+                f"E4d {label} risk-key column {column!r} is non-finite"
+            )
+
+    if 'combo_id' in normalized.columns:
+        normalized['combo_id'] = normalized['combo_id'].astype(str)
+        if normalized['combo_id'].str.strip().eq('').any():
+            raise PreflightError(f"E4d {label} contains blank combo_id values")
+
+    for column in ['n', 'repeat_id']:
+        values = normalized[column].to_numpy(dtype=float)
+        if not np.equal(values, np.floor(values)).all():
+            raise PreflightError(
+                f"E4d {label} risk-key column {column!r} must be integer"
+            )
+        normalized[column] = normalized[column].astype(int)
+    if (normalized['n'] <= 0).any() or (normalized['repeat_id'] < 0).any():
+        raise PreflightError(
+            f"E4d {label} requires n > 0 and repeat_id >= 0"
+        )
+
+    eta_values = normalized['eta'].to_numpy(dtype=float)
+    gamma_values = normalized['gamma'].to_numpy(dtype=float)
+    goe_values = normalized['gamma_over_eta'].to_numpy(dtype=float)
+    if (normalized['beta'] <= 0).any() or (eta_values <= 0).any():
+        raise PreflightError(f"E4d {label} requires beta > 0 and eta > 0")
+    if not np.isclose(
+        gamma_values / eta_values, goe_values, rtol=0.0, atol=1e-12
+    ).all():
+        raise PreflightError(
+            f"E4d {label} has inconsistent gamma and gamma_over_eta metadata"
+        )
+
+    delta_values = normalized['delta'].to_numpy(dtype=float)
+    delta_index = np.full(len(normalized), -1, dtype=np.int16)
+    for index, expected_delta in enumerate(DELTA_GRID):
+        matches = np.isclose(
+            delta_values, float(expected_delta), rtol=0.0, atol=1e-12
+        )
+        delta_index[matches] = index
+    if (delta_index < 0).any():
+        examples = sorted(set(delta_values[delta_index < 0].tolist()))[:5]
+        raise PreflightError(
+            f"E4d {label} contains delta outside frozen DELTA_GRID: {examples}"
+        )
+    normalized['_delta_index'] = delta_index
+
+    full_key = list(sample_keys) + ['_delta_index']
+    duplicate_keys = normalized.duplicated(subset=full_key, keep=False)
+    if duplicate_keys.any():
+        examples = normalized.loc[duplicate_keys, full_key].head(5).to_dict('records')
+        raise PreflightError(
+            f"E4d {label} contains duplicate sample+delta risk keys: {examples}"
+        )
+
+    delta_counts = normalized.groupby(list(sample_keys), dropna=False)[
+        '_delta_index'
+    ].nunique()
+    incomplete = delta_counts[delta_counts != len(DELTA_GRID)]
+    if not incomplete.empty:
+        examples = [tuple(key) if isinstance(key, tuple) else key
+                    for key in incomplete.index[:5]]
+        raise PreflightError(
+            f"E4d {label} samples must contain the exact frozen "
+            f"{len(DELTA_GRID)}-point DELTA_GRID; incomplete keys: {examples}"
+        )
+
+    combo_keys = [key for key in sample_keys if key != 'repeat_id']
+    repeat_sets = normalized[combo_keys + ['repeat_id']].drop_duplicates().groupby(
+        combo_keys, dropna=False
+    )['repeat_id'].agg(lambda values: frozenset(int(v) for v in values))
+    frozen_repeat_ids = frozenset(range(int(expected_repeats)))
+    bad_repeats = repeat_sets[repeat_sets != frozen_repeat_ids]
+    if not bad_repeats.empty:
+        raise PreflightError(
+            f"E4d {label} must contain repeat_id 0..{expected_repeats - 1} "
+            f"for every combo; bad combo count={len(bad_repeats)}"
+        )
+
+
+def _main_combo_set(df_mc):
+    """Validate and return the frozen main-grid combo tuples."""
+    combo_columns = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n']
+    actual = {
+        (float(row.beta), float(row.eta), float(row.gamma),
+         float(row.gamma_over_eta), int(row.n))
+        for row in df_mc[combo_columns].drop_duplicates().itertuples(index=False)
+    }
+    expected = {
+        (float(beta), float(eta), float(goe * eta), float(goe), int(n))
+        for beta, eta, goe, n in product(
+            BETA_GRID, ETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID
+        )
+    }
+    if actual != expected:
+        raise PreflightError(
+            "E4d main-grid combo set does not match frozen config: "
+            f"missing={sorted(expected - actual)[:5]}, "
+            f"unexpected={sorted(actual - expected)[:5]}"
+        )
+    return actual
+
+
+def _eval_combo_set(combo_list):
+    return {
+        (float(beta), 1.0, float(goe), float(goe), int(n))
+        for _, beta, goe, n in combo_list
+    }
+
+
+def _validate_mc_manifest_contract(mc_manifest, main_repeats):
+    """Bind main-grid data validation to its frozen generation manifest."""
+    if not isinstance(mc_manifest, dict):
+        raise PreflightError("E4d MC manifest must be a JSON object")
+    expected_grid = {
+        'beta': [float(value) for value in BETA_GRID],
+        'eta': [float(value) for value in ETA_GRID],
+        'gamma_over_eta': [float(value) for value in GAMMA_OVER_ETA_GRID],
+        'n': [int(value) for value in N_GRID],
+    }
+    manifest_grid = mc_manifest.get('parameter_grid')
+    if manifest_grid != expected_grid:
+        raise PreflightError(
+            "E4d MC manifest parameter_grid does not match frozen config"
+        )
+    if mc_manifest.get('delta_grid') != list(DELTA_GRID):
+        raise PreflightError(
+            "E4d MC manifest delta_grid does not match frozen DELTA_GRID"
+        )
+    try:
+        manifest_repeats = int(mc_manifest.get('repeats', -1))
+        expected_repeats = int(main_repeats)
+    except (TypeError, ValueError) as exc:
+        raise PreflightError(
+            "E4d MC manifest repeats must be an integer"
+        ) from exc
+    if manifest_repeats != expected_repeats:
+        raise PreflightError(
+            "E4d MC manifest repeats does not match the main-grid contract"
+        )
+    if mc_manifest.get('seed_namespace') != SEED_NAMESPACE:
+        raise PreflightError(
+            "E4d MC manifest seed_namespace does not match frozen config"
+        )
+
+
+def validate_e4d_preflight_contract(
+        df_mc, df_boundary, df_offgrid, mc_manifest,
+        input_capabilities, code_paths, main_repeats=R_MAIN,
+        eval_repeats=R_ROBUSTNESS):
+    """Fail closed before E4d and return reusable features plus provenance.
+
+    Training labels are validated exclusively from ``df_mc``. Boundary and
+    off-grid truth are evaluation-only inputs and are never merged into the
+    training frame.
+    """
+    bound_input_records = _validated_bound_input_capabilities(
+        input_capabilities, df_mc, mc_manifest, df_boundary, df_offgrid
+    )
+    generation_git_commit = get_project_git_info_strict()
+    _validate_mc_manifest_contract(mc_manifest, main_repeats)
+    _validate_risk_key_contract(
+        df_mc, 'main_grid', SAMPLE_KEYS, main_repeats
+    )
+    _validate_risk_key_contract(
+        df_boundary, 'boundary', ['combo_id'] + SAMPLE_KEYS, eval_repeats
+    )
+    _validate_risk_key_contract(
+        df_offgrid, 'offgrid', ['combo_id'] + SAMPLE_KEYS, eval_repeats
+    )
+
+    # Reuse the P1b metadata/sample reconstruction contract. These features
+    # are derived from frozen metadata and deterministic sample generation;
+    # estimator truth columns are not used.
+    try:
+        boundary_features = build_feature_table_for_combos(
+            E4B_BOUNDARY_COMBOS, df_boundary
+        )
+        offgrid_features = build_feature_table_for_combos(
+            E4C_OFFGRID_COMBOS, df_offgrid
+        )
+    except ValueError as exc:
+        raise PreflightError(
+            f"E4d boundary/offgrid P1b metadata contract failed: {exc}"
+        ) from exc
+
+    main_combos = _main_combo_set(df_mc)
+    boundary_combos = _eval_combo_set(E4B_BOUNDARY_COMBOS)
+    offgrid_combos = _eval_combo_set(E4C_OFFGRID_COMBOS)
+    overlaps = {
+        'main_boundary': main_combos & boundary_combos,
+        'main_offgrid': main_combos & offgrid_combos,
+        'boundary_offgrid': boundary_combos & offgrid_combos,
+    }
+    nonempty_overlaps = {
+        name: sorted(values)[:5] for name, values in overlaps.items() if values
+    }
+    if nonempty_overlaps:
+        raise PreflightError(
+            "E4d training/evaluation combo sets overlap or are mixed: "
+            f"{nonempty_overlaps}"
+        )
+
+    provenance = {
+        'contract_version': E4D_CONTRACT_VERSION,
+        'status': 'validated',
+        'validated_at': now_iso(),
+        'generation_time': {
+            'git_commit': generation_git_commit,
+            'input_files': bound_input_records,
+            'code_files': _provenance_file_records(code_paths),
+            'data_roles': {
+                'training_labels': ['main_grid'],
+                'evaluation_truth_only': ['boundary', 'offgrid'],
+            },
+            'sample_counts': {
+                'main_grid': int(len(df_mc) // len(DELTA_GRID)),
+                'boundary': int(len(df_boundary) // len(DELTA_GRID)),
+                'offgrid': int(len(df_offgrid) // len(DELTA_GRID)),
+            },
+        },
+        'sealed_release': {
+            'status': 'pending_artifact_commit',
+            'git_commit': None,
+            'rule': (
+                'The commit sealing generated artifacts is recorded after '
+                'generation in the independent execution/review report.'
+            ),
+        },
+    }
+    gate = _ValidatedE4dGate(
+        _E4D_GATE_SENTINEL, provenance, generation_git_commit
+    )
+    return gate, boundary_features, offgrid_features
+
+
+def write_e4d_formal_output(df_results, output_path, gate):
+    """Atomically write E4d output only after the validated contract gate."""
+    _require_validated_e4d_gate(gate)
+    output_path = os.path.abspath(output_path)
+    output_dir = os.path.dirname(output_path)
+    output_name = os.path.basename(output_path)
+    tmp_path = None
+    try:
+        file_descriptor, tmp_path = tempfile.mkstemp(
+            prefix=f'.{output_name}.', suffix='.tmp', dir=output_dir
+        )
+        os.close(file_descriptor)
+        df_results.to_csv(tmp_path, index=False)
+        os.replace(tmp_path, output_path)
+        tmp_path = None
+    finally:
+        try:
+            if tmp_path is not None and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except OSError:
+            # Never mask the original write/replace exception.
+            pass
 
 
 def preflight_check_inputs(requested_tracks, input_path_map):
@@ -1104,10 +1822,12 @@ def main():
     # Pre-validate required inputs for requested tracks (fail-closed)
     # ============================================================
     required_inputs = {
-        'e4a': [MC_SCAN_PATH],
-        'e4b': [BOUNDARY_PATH],
-        'e4c': [OFFGRID_PATH],
-        'e4d': [MC_SCAN_PATH, BOUNDARY_PATH, OFFGRID_PATH],
+        'e4a': [MAIN_CHUNKS_DIR, MC_MANIFEST_PATH],
+        'e4b': [MC_MANIFEST_PATH, BOUNDARY_PATH],
+        'e4c': [MC_MANIFEST_PATH, OFFGRID_PATH],
+        'e4d': [
+            MAIN_CHUNKS_DIR, MC_MANIFEST_PATH, BOUNDARY_PATH, OFFGRID_PATH
+        ],
     }
     try:
         preflight_check_inputs(requested_tracks, required_inputs)
@@ -1135,13 +1855,26 @@ def main():
         else:
             track_status[t] = {'requested': False, 'status': 'not_requested'}
 
-    # --- Load existing MC data ---
-    log("Loading main-grid MC data...")
-    df_mc = pd.read_csv(MC_SCAN_PATH)
-    log(f"  Loaded: {len(df_mc)} rows")
-
-    with open(MC_MANIFEST_PATH) as f:
-        mc_manifest = json.load(f)
+    # --- Load inputs from the same bytes used for their SHA256 records ---
+    try:
+        mc_manifest, mc_manifest_capability = read_json_with_provenance(
+            MC_MANIFEST_PATH, 'main_grid_mc_manifest'
+        )
+        needs_main_grid = bool({'e4a', 'e4d'} & requested_tracks)
+        if needs_main_grid:
+            log("Loading 45 authoritative main-grid MC chunks...")
+            df_mc, main_chunks_capability = load_authoritative_main_chunks()
+            log(
+                f"  Loaded: {len(df_mc)} rows from "
+                f"{len(_expected_main_chunk_units())} chunks"
+            )
+        else:
+            df_mc = pd.DataFrame()
+            main_chunks_capability = None
+    except PreflightError as exc:
+        print(f"ERROR: {exc}")
+        print("Aborting before any formal E4 output is produced.")
+        sys.exit(1)
 
     # --- Check boundary/offgrid data availability ---
     # (Required inputs already validated above for requested tracks.)
@@ -1150,14 +1883,65 @@ def main():
 
     df_boundary = None
     df_offgrid = None
+    boundary_capability = None
+    offgrid_capability = None
 
-    if has_boundary:
-        df_boundary = pd.read_csv(BOUNDARY_PATH)
-        log(f"  Boundary data: {len(df_boundary)} rows")
+    try:
+        if has_boundary:
+            df_boundary, boundary_capability = read_csv_with_provenance(
+                BOUNDARY_PATH, 'boundary_risk_curves'
+            )
+            log(f"  Boundary data: {len(df_boundary)} rows")
 
-    if has_offgrid:
-        df_offgrid = pd.read_csv(OFFGRID_PATH)
-        log(f"  Off-grid data: {len(df_offgrid)} rows")
+        if has_offgrid:
+            df_offgrid, offgrid_capability = read_csv_with_provenance(
+                OFFGRID_PATH, 'offgrid_risk_curves'
+            )
+            log(f"  Off-grid data: {len(df_offgrid)} rows")
+    except PreflightError as exc:
+        print(f"ERROR: {exc}")
+        print("Aborting before any formal E4 output is produced.")
+        sys.exit(1)
+
+    # E4d is fail-closed: validate all risk keys, frozen grids, disjoint data
+    # roles, and generation provenance before any track writes formal output.
+    e4d_gate = None
+    df_boundary_feat = None
+    df_offgrid_feat = None
+    if 'e4d' in requested_tracks:
+        e4d_input_capabilities = {
+            'main_grid_chunks': main_chunks_capability,
+            'main_grid_mc_manifest': mc_manifest_capability,
+            'boundary_risk_curves': boundary_capability,
+            'offgrid_risk_curves': offgrid_capability,
+        }
+        e4d_code_paths = {
+            'e4_formal_validation': os.path.abspath(__file__),
+            'e4_mc_generation': os.path.join(
+                STUDY_CODE_DIR, 'run_E4_mc_generation.py'
+            ),
+            'main_mc_generation': os.path.join(
+                STUDY_CODE_DIR, 'generate_mc_data.py'
+            ),
+            'study01_config': os.path.join(STUDY_CODE_DIR, 'config.py'),
+            'sample_generation': os.path.join(
+                PYTHON_DIR, 'studies', 'common', 'sample.py'
+            ),
+            'mdm_method': os.path.join(PYTHON_DIR, 'methods', 'mdm.py'),
+            'study01_utils': os.path.join(STUDY_CODE_DIR, 'utils.py'),
+        }
+        try:
+            e4d_gate, df_boundary_feat, df_offgrid_feat = (
+                validate_e4d_preflight_contract(
+                    df_mc, df_boundary, df_offgrid, mc_manifest,
+                    e4d_input_capabilities, e4d_code_paths,
+                )
+            )
+        except PreflightError as exc:
+            print(f"ERROR: {exc}")
+            print("Aborting before any formal E4 output is produced.")
+            sys.exit(1)
+        log("  E4d fail-closed/provenance contract: VALIDATED")
 
     # --- E4a: Feature ablation ---
     df_e4a = pd.DataFrame()
@@ -1216,17 +2000,6 @@ def main():
         # track_status['e4d'] already set to not_requested
     elif df_boundary is not None and df_offgrid is not None:
         try:
-            # Build feature tables for boundary and offgrid
-            boundary_combos = [(cid, b, g, n) for cid, b, g, n in E4B_BOUNDARY_COMBOS]
-            offgrid_combos = [(cid, b, g, n) for cid, b, g, n in E4C_OFFGRID_COMBOS]
-
-            df_boundary_feat = build_feature_table_for_combos(
-                boundary_combos, df_boundary
-            )
-            df_offgrid_feat = build_feature_table_for_combos(
-                offgrid_combos, df_offgrid
-            )
-
             # Compute loss for boundary/offgrid
             df_boundary_loss = compute_loss(df_boundary)
             df_offgrid_loss = compute_loss(df_offgrid)
@@ -1236,11 +2009,14 @@ def main():
                 df_boundary_loss, df_offgrid_loss
             )
             e4d_path = os.path.join(E4_OUTPUT_DIR, "E4d_selector_extrapolation.csv")
-            df_e4d.to_csv(e4d_path, index=False)
+            write_e4d_formal_output(df_e4d, e4d_path, e4d_gate)
             log(f"  Saved: {e4d_path}")
             all_cost.append({'track': 'E4d', 'elapsed_s': e4d_train_time,
                            'note': 'selector extrapolation diagnostic'})
             track_status['e4d']['status'] = 'completed'
+        except PreflightError:
+            # A contract failure is never downgraded to skipped_error.
+            raise
         except Exception as e:
             log(f"  E4d FAILED: {type(e).__name__}: {e}")
             e4d_skip = True
@@ -1322,7 +2098,10 @@ def main():
         pd.DataFrame(split_rows).to_csv(split_path, index=False)
 
     # --- Manifest ---
-    git_commit = get_git_info()
+    git_commit = (
+        e4d_gate.generation_git_commit
+        if e4d_gate is not None else get_project_git_info_strict()
+    )
     total_elapsed = time.time() - overall_t0
 
     # Build output_files list dynamically: only files that were actually produced this run
@@ -1372,7 +2151,13 @@ def main():
         "git_commit": git_commit,
         "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "input_data": {
-            "mc_scan_path": MC_SCAN_PATH,
+            "main_grid_source": "artifacts/formal/shared_data/chunks/chunk_####_mdm.csv",
+            "main_grid_chunk_count": (
+                len(_expected_main_chunk_units())
+                if main_chunks_capability is not None else 0
+            ),
+            "main_grid_aggregate_compat_path": MC_AGGREGATE_PATH,
+            "main_grid_aggregate_used": False,
             "mc_manifest": mc_manifest.get("run_id", "unknown"),
             "mc_git_commit": mc_manifest.get("git_commit", "unknown"),
             "boundary_path": BOUNDARY_PATH,
@@ -1432,13 +2217,18 @@ def main():
         "total_elapsed_s": total_elapsed,
         "output_files": output_files_actual,
         "notes": [
-            "E4a uses existing main-grid MC data (read-only).",
+            "E4a/E4d use the 45 authoritative main-grid MDM chunks (read-only, frozen identity order).",
             "E4b/E4c use new MDM risk curves generated by run_E4_mc_generation.py.",
             "E4d is a diagnostic, not a deployment-ready continuous-space proof.",
             "E4b uses Option C: reference-only evaluation at boundary (no NN deployment).",
             "E4c is evaluation-only. Continuous-space training is E3c.",
         ],
     }
+
+    if e4d_gate is not None:
+        manifest = attach_e4d_gate_to_manifest(
+            manifest, e4d_gate
+        )
 
     # output_files_actual already includes E4d outputs if applicable
 
