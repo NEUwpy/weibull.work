@@ -262,24 +262,210 @@ def compute_loss(df):
     return df
 
 
-def build_feature_table_for_combos(combo_list, seed_ns=SEED_NAMESPACE):
-    """Build features for a list of (combo_id, beta, goe, n) tuples.
-    Returns DataFrame with sample keys + features.
+def build_feature_table_for_combos(combo_list, risk_data,
+                                   seed_ns=SEED_NAMESPACE):
+    """Build one feature row for every sample present in ``risk_data``.
+
+    ``combo_list`` freezes the expected combo metadata; it does not define the
+    repeat range. The actual unique ``(combo_id, repeat_id)`` keys in the
+    supplied risk/loss table are authoritative, so 500-repeat, 1000-repeat,
+    and non-contiguous repeat sets are handled without synthesizing samples.
     """
+    required_columns = [
+        'combo_id', 'beta', 'eta', 'gamma', 'gamma_over_eta', 'n',
+        'repeat_id',
+    ]
+    missing_columns = [
+        column for column in required_columns if column not in risk_data.columns
+    ]
+    if missing_columns:
+        raise ValueError(
+            "Risk data missing required sample-key columns: "
+            f"{missing_columns}"
+        )
+    if risk_data.empty:
+        raise ValueError("Risk data contains no sample keys")
+
+    expected_rows = []
+    for combo in combo_list:
+        if len(combo) != 4:
+            raise ValueError(
+                "Each combo must be (combo_id, beta, gamma_over_eta, n)"
+            )
+        combo_id, beta, gamma_over_eta, n = combo
+        expected_rows.append({
+            'combo_id': combo_id,
+            'beta': float(beta),
+            'eta': 1.0,
+            'gamma': float(gamma_over_eta),
+            'gamma_over_eta': float(gamma_over_eta),
+            'n': int(n),
+        })
+    expected = pd.DataFrame(expected_rows)
+    if expected.empty:
+        raise ValueError("Combo list is empty")
+    expected_id_null = expected['combo_id'].isna().any()
+    expected['combo_id'] = expected['combo_id'].astype(str)
+    invalid_expected_ids = (
+        expected_id_null
+        or expected['combo_id'].str.strip().eq('').any()
+        or expected['combo_id'].duplicated().any()
+    )
+    if invalid_expected_ids:
+        raise ValueError("Combo list must contain unique, non-blank combo_id values")
+
+    data = risk_data.copy()
+    if data[required_columns].isna().any().any():
+        null_columns = data[required_columns].columns[
+            data[required_columns].isna().any()
+        ].tolist()
+        raise ValueError(
+            "Risk data contains null sample-key values in columns: "
+            f"{null_columns}"
+        )
+
+    data['combo_id'] = data['combo_id'].astype(str)
+    if data['combo_id'].str.strip().eq('').any():
+        raise ValueError("Risk data contains blank combo_id values")
+
+    numeric_columns = [
+        'beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id',
+    ]
+    for column in numeric_columns:
+        try:
+            data[column] = pd.to_numeric(data[column], errors='raise')
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Risk data column {column!r} must be numeric"
+            ) from exc
+        if not np.isfinite(data[column].to_numpy(dtype=float)).all():
+            raise ValueError(
+                f"Risk data column {column!r} contains non-finite values"
+            )
+
+    for column in ['n', 'repeat_id']:
+        values = data[column].to_numpy(dtype=float)
+        if not np.equal(values, np.floor(values)).all():
+            raise ValueError(
+                f"Risk data column {column!r} must contain integers"
+            )
+        data[column] = data[column].astype(int)
+    if (data['n'] <= 0).any() or (data['repeat_id'] < 0).any():
+        raise ValueError("Risk data requires n > 0 and repeat_id >= 0")
+
+    # Rows repeat across delta by design. A repeated full risk key is corrupt;
+    # a table without delta must contain one row per sample key.
+    risk_key_columns = ['combo_id', 'repeat_id']
+    if 'delta' in data.columns:
+        if data['delta'].isna().any():
+            raise ValueError("Risk data contains null delta values")
+        try:
+            data['delta'] = pd.to_numeric(data['delta'], errors='raise')
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Risk data column 'delta' must be numeric") from exc
+        if not np.isfinite(data['delta'].to_numpy(dtype=float)).all():
+            raise ValueError("Risk data column 'delta' contains non-finite values")
+        risk_key_columns.append('delta')
+    duplicate_risk_keys = data.duplicated(
+        subset=risk_key_columns, keep=False
+    )
+    if duplicate_risk_keys.any():
+        examples = (
+            data.loc[duplicate_risk_keys, risk_key_columns]
+            .head(5)
+            .to_dict('records')
+        )
+        raise ValueError(
+            f"Risk data contains duplicate keys {risk_key_columns}: {examples}"
+        )
+
+    sample_metadata = data[required_columns].drop_duplicates()
+    conflicting_sample_keys = sample_metadata.duplicated(
+        subset=['combo_id', 'repeat_id'], keep=False
+    )
+    if conflicting_sample_keys.any():
+        examples = (
+            sample_metadata.loc[
+                conflicting_sample_keys, ['combo_id', 'repeat_id']
+            ]
+            .drop_duplicates()
+            .head(5)
+            .to_dict('records')
+        )
+        raise ValueError(
+            "Risk data has inconsistent metadata for sample keys: "
+            f"{examples}"
+        )
+
+    expected_ids = set(expected['combo_id'])
+    actual_ids = set(sample_metadata['combo_id'])
+    missing_ids = sorted(expected_ids - actual_ids)
+    unexpected_ids = sorted(actual_ids - expected_ids)
+    if missing_ids or unexpected_ids:
+        raise ValueError(
+            "Risk data combo_id set does not match frozen combo list: "
+            f"missing={missing_ids}, unexpected={unexpected_ids}"
+        )
+
+    actual_combo_metadata = sample_metadata[
+        ['combo_id', 'beta', 'eta', 'gamma', 'gamma_over_eta', 'n']
+    ].drop_duplicates()
+    if actual_combo_metadata['combo_id'].duplicated(keep=False).any():
+        inconsistent_ids = sorted(actual_combo_metadata.loc[
+            actual_combo_metadata['combo_id'].duplicated(keep=False),
+            'combo_id',
+        ].unique())
+        raise ValueError(
+            "Risk data has inconsistent metadata across repeats for combos: "
+            f"{inconsistent_ids}"
+        )
+
+    metadata_check = actual_combo_metadata.merge(
+        expected, on='combo_id', how='outer', suffixes=('_actual', '_expected'),
+        validate='one_to_one', indicator=True,
+    )
+    mismatch_columns = []
+    for column in ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n']:
+        actual_values = metadata_check[f'{column}_actual'].to_numpy(dtype=float)
+        expected_values = metadata_check[
+            f'{column}_expected'
+        ].to_numpy(dtype=float)
+        matches = np.isclose(
+            actual_values, expected_values, rtol=0.0, atol=1e-12
+        )
+        if not matches.all():
+            mismatch_columns.append(column)
+    if not metadata_check['_merge'].eq('both').all() or mismatch_columns:
+        raise ValueError(
+            "Risk data combo metadata does not match frozen combo list; "
+            f"mismatched columns: {mismatch_columns}"
+        )
+
+    combo_order = {
+        str(combo_id): index
+        for index, (combo_id, _, _, _) in enumerate(combo_list)
+    }
+    sample_metadata = sample_metadata.assign(
+        _combo_order=sample_metadata['combo_id'].map(combo_order)
+    ).sort_values(['_combo_order', 'repeat_id']).drop(columns='_combo_order')
+
     records = []
-    for combo_id, beta, goe, n in combo_list:
-        gamma = goe * 1.0  # eta=1.0
-        for rid in range(R_MAIN):
-            sample = generate_sample(beta, 1.0, gamma, n, rid, seed=seed_ns)
-            feats = compute_sample_features(sample)
-            feats['combo_id'] = combo_id
-            feats['beta'] = beta
-            feats['eta'] = 1.0
-            feats['gamma'] = gamma
-            feats['gamma_over_eta'] = goe
-            feats['n'] = n
-            feats['repeat_id'] = rid
-            records.append(feats)
+    for row in sample_metadata.itertuples(index=False):
+        sample = generate_sample(
+            float(row.beta), float(row.eta), float(row.gamma), int(row.n),
+            int(row.repeat_id), seed=seed_ns,
+        )
+        feats = compute_sample_features(sample)
+        feats.update({
+            'combo_id': row.combo_id,
+            'beta': float(row.beta),
+            'eta': float(row.eta),
+            'gamma': float(row.gamma),
+            'gamma_over_eta': float(row.gamma_over_eta),
+            'n': int(row.n),
+            'repeat_id': int(row.repeat_id),
+        })
+        records.append(feats)
     return pd.DataFrame(records)
 
 
@@ -1034,12 +1220,12 @@ def main():
             boundary_combos = [(cid, b, g, n) for cid, b, g, n in E4B_BOUNDARY_COMBOS]
             offgrid_combos = [(cid, b, g, n) for cid, b, g, n in E4C_OFFGRID_COMBOS]
 
-            # Use R from the actual data
-            r_boundary = df_boundary['repeat_id'].max() + 1
-            r_offgrid = df_offgrid['repeat_id'].max() + 1
-
-            df_boundary_feat = build_feature_table_for_combos(boundary_combos)
-            df_offgrid_feat = build_feature_table_for_combos(offgrid_combos)
+            df_boundary_feat = build_feature_table_for_combos(
+                boundary_combos, df_boundary
+            )
+            df_offgrid_feat = build_feature_table_for_combos(
+                offgrid_combos, df_offgrid
+            )
 
             # Compute loss for boundary/offgrid
             df_boundary_loss = compute_loss(df_boundary)
