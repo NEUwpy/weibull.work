@@ -62,6 +62,7 @@ ChunkValidationError = _E4_MC_MODULE.ChunkValidationError
 preflight_check_inputs = _E4_MODULE.preflight_check_inputs
 PreflightError = _E4_MODULE.PreflightError
 get_project_git_info_strict = _E4_MODULE.get_project_git_info_strict
+_stable_provenance_path = _E4_MODULE._stable_provenance_path
 
 
 # ============================================================
@@ -788,3 +789,76 @@ class TestE4dProvenanceGate:
         assert len(frame) == 1_170_000
         assert len(frame[e4.SAMPLE_KEYS].drop_duplicates()) == 45_000
         assert len(combos) == 45
+
+
+# ============================================================
+# Cross-drive / external-path provenance regression tests
+# ============================================================
+
+class TestStableProvenancePath:
+    """Verify that _stable_provenance_path never raises ValueError and
+    produces stable, auditable representations regardless of drive."""
+
+    def test_path_inside_project_returns_relative(self, tmp_path):
+        """A path inside the project root stays relative with forward slashes."""
+        root = str(tmp_path)
+        inner = os.path.join(root, "sub", "file.csv")
+        os.makedirs(os.path.dirname(inner), exist_ok=True)
+        Path(inner).write_text("data")
+        result = _stable_provenance_path(inner, root)
+        assert result == "sub/file.csv"
+        assert "\\" not in result
+
+    def test_path_equals_project_root_returns_dot(self, tmp_path):
+        """A path that equals project_root produces '.' (not empty or error)."""
+        root = str(tmp_path)
+        result = _stable_provenance_path(root, root)
+        assert result == "."
+
+    def test_path_outside_project_same_drive_uses_abs_prefix(self, tmp_path):
+        """A path outside the project but on the same drive uses abs:// fallback
+        (avoids '..' path-traversal ambiguity in provenance records)."""
+        root = str(tmp_path / "project")
+        os.makedirs(root, exist_ok=True)
+        outside = str(tmp_path / "outside" / "data.csv")
+        os.makedirs(os.path.dirname(outside), exist_ok=True)
+        Path(outside).write_text("data")
+        result = _stable_provenance_path(outside, root)
+        assert result.startswith("abs://")
+        assert "data.csv" in result
+        assert ".." not in result
+
+    def test_path_on_different_drive_uses_abs_prefix(self, monkeypatch, tmp_path):
+        """When relpath would raise ValueError (cross-drive), abs:// is used."""
+        root = str(tmp_path)
+        # Simulate a path on a different drive
+        cross_drive = "X:\\remote\\data.csv"
+        # Ensure relpath is actually called and raises for the cross-drive case
+        import ntpath
+        original_relpath = os.path.relpath
+
+        def mock_relpath(path, start):
+            if "X:" in str(path):
+                raise ValueError("path is on mount 'X:', start on mount 'C:'")
+            return original_relpath(path, start)
+
+        monkeypatch.setattr(os.path, "relpath", mock_relpath)
+        result = _stable_provenance_path(cross_drive, root)
+        assert result.startswith("abs://")
+        assert "X:/remote/data.csv" in result
+        assert ".." not in result
+
+    def test_hash_and_size_preserved_regardless_of_path_form(self, tmp_path):
+        """The sha256 and size_bytes in provenance records must not depend on
+        whether the path was recorded as relative or absolute."""
+        e4 = _E4_MODULE
+        path = tmp_path / "test.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        record = e4._record_for_bytes(str(path), path.read_bytes())
+        assert record["sha256"] == hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
+        assert record["size_bytes"] == len(path.read_bytes())
+        # Path form is stable (inside project) or abs:// (outside) — never error
+        assert isinstance(record["path"], str)
+        assert len(record["path"]) > 0

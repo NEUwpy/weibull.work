@@ -295,11 +295,31 @@ def sha256_file(path, chunk_size=1024 * 1024):
     return digest.hexdigest()
 
 
+def _stable_provenance_path(absolute_path, project_root):
+    """Return a stable, auditable path for provenance records.
+
+    - Paths inside *project_root*: project-relative with forward slashes.
+    - Paths outside *project_root*, or on a different Windows drive:
+      absolute path with ``abs://`` prefix (explicit, auditable fallback).
+    """
+    abs_path = os.path.abspath(absolute_path)
+    try:
+        rel = os.path.relpath(abs_path, project_root)
+        # Guard against path traversal (e.g. '../../outside')
+        if not rel.startswith('..'):
+            return rel.replace(os.sep, '/')
+    except ValueError:
+        # Different drive on Windows — relpath raises ValueError
+        pass
+    # Fallback: explicit absolute path marker for audit trail
+    return 'abs://' + abs_path.replace(os.sep, '/')
+
+
 def _record_for_bytes(path, raw_bytes):
     """Describe the exact bytes parsed by an input loader."""
     absolute_path = os.path.abspath(path)
     return {
-        'path': os.path.relpath(absolute_path, PROJECT_ROOT).replace('\\', '/'),
+        'path': _stable_provenance_path(absolute_path, PROJECT_ROOT),
         'sha256': hashlib.sha256(raw_bytes).hexdigest(),
         'size_bytes': len(raw_bytes),
     }
@@ -484,7 +504,7 @@ def _provenance_file_records(path_map):
                 f"E4d provenance file missing [{name}]: {absolute_path}"
             )
         records[name] = {
-            'path': os.path.relpath(absolute_path, PROJECT_ROOT).replace('\\', '/'),
+            'path': _stable_provenance_path(absolute_path, PROJECT_ROOT),
             'sha256': sha256_file(absolute_path),
         }
     return records

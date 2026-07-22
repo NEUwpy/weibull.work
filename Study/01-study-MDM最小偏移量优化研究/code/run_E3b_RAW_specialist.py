@@ -592,13 +592,30 @@ def code_sha256():
     return sha256_file(os.path.abspath(__file__))
 
 
+def _stable_provenance_path(absolute_path, project_root):
+    """Return a stable, auditable path for provenance records.
+
+    - Paths inside *project_root*: project-relative with forward slashes.
+    - Paths outside *project_root*, or on a different Windows drive:
+      absolute path with ``abs://`` prefix (explicit, auditable fallback).
+    """
+    abs_path = os.path.abspath(absolute_path)
+    try:
+        rel = os.path.relpath(abs_path, project_root)
+        if not rel.startswith('..'):
+            return rel.replace(os.sep, '/')
+    except ValueError:
+        pass
+    return 'abs://' + abs_path.replace(os.sep, '/')
+
+
 def write_sha256sums():
     """Write a standalone GNU-style SHA256SUMS covering source data, code, and all
     result files. Returns (relative_path_of_SHA256SUMS, its_own_sha256, coverage)."""
     entries = []  # (relpath, hash)
 
     def add(abs_path):
-        rel = os.path.relpath(abs_path, PROJECT_ROOT).replace(os.sep, '/')
+        rel = _stable_provenance_path(abs_path, PROJECT_ROOT)
         entries.append((rel, sha256_file_lf(abs_path)))
 
     # source data: 45 MDM chunks + MC manifest
