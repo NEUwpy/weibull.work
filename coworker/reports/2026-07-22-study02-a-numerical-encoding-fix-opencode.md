@@ -20,7 +20,8 @@ deterministic defects exposed during production execution on Windows (cp936 loca
    (computed from float64 anchors at build time) against independently re-encoded
    float32 anchors using `rtol=2e-5, atol=2e-5`. For G3-fit-0039 (route F0eq_hsm,
    n=15, screening seed 420001), row index 45258 exhibited a third-target-dimension
-   difference of 0.0012235641479492188 — exceeding 2e-5 but well within 1e-4.
+   difference of 0.0012235641479492188 — exceeding 2e-5 but passing np.allclose with
+   rtol=atol=1e-4 due to its combined relative and absolute tolerance.
 
 ## Old Run Disposition
 
@@ -52,17 +53,19 @@ np.allclose(..., rtol=2e-5, atol=2e-5)
 np.allclose(..., rtol=1e-4, atol=1e-4)
 ```
 
-### test_study02a_formal_runner.py (3 new tests)
+### test_study02a_formal_runner.py (4 new tests)
 
 1. `test_production_g3_fit_0039_full_100k_semantic_validation` (slow): builds the
-   real 100k-row training dataset for G3-fit-0039, verifies row 45258 passes under
-   1e-4, confirms cache_key matches the frozen plan.
+   real 100k-row training dataset for G3-fit-0039, asserts row 45258 passes
+   np.allclose with rtol=atol=1e-4, fails under old rtol=atol=2e-5, third-dim
+   absolute diff equals 0.0012235641479492188, and binds the exact dataset_hash.
 2. `test_semantic_validator_rejects_tampered_target_beyond_tolerance`: perturbs one
    target element by 0.01 → must raise.
 3. `test_semantic_validator_rejects_tampered_anchor_beyond_tolerance`: perturbs one
    anchor scale by 1.5x → must raise.
-4. `test_scoped_code_clean_uses_explicit_utf8_encoding`: source-level assertion that
-   `encoding="utf-8"` is present.
+4. `test_scoped_code_clean_passes_explicit_utf8_to_subprocess`: monkeypatches
+   subprocess.run to capture kwargs, calls real `_assert_scoped_code_clean`, asserts
+   encoding="utf-8", text=True, check=True, capture_output=True, no errors= mode.
 
 ## What Was NOT Changed
 
@@ -78,20 +81,36 @@ np.allclose(..., rtol=1e-4, atol=1e-4)
 | Check | Result |
 |-------|--------|
 | 370 non-slow study02a tests | PASSED |
+| Production 100k slow regression (bound hash) | PASSED (39.8s) |
+| `_assert_scoped_code_clean` cp936/utf8_mode=0 actual call | PASSED |
 | `compileall` | PASSED |
 | `verify_frozen_hashes` | PASSED |
 | `git diff --check` | clean |
-| `_assert_scoped_code_clean` without PYTHONUTF8 (cp936, utf8_mode=0, clean tree) | PASSED |
-| Production 100k dataset for G3-fit-0039 (cache_key `b5a3a9aa...`) | PASSED (108s) |
-| Row 45258 third-dim diff under 1e-4 | confirmed |
 | Attack: target +0.01 → ValueError | PASSED |
 | Attack: scale ×1.5 → ValueError | PASSED |
+| Monkeypatch: encoding/text/check/capture_output/no errors= | PASSED |
 
-## Environment
+### Production 100k Dataset Evidence
 
-- Python: 3.11.15 (Hermes agent venv)
-- numpy 2.1.1, scipy 1.14.1, pandas 2.2.3, torch 2.11.0+cpu
-- OS: Windows (cp936 default locale)
+| Field | Value |
+|-------|-------|
+| dataset_hash | `179534a5bca8ab74e3661801b0f9e329aea6306ce2a9ebcca7fb6e271d94313f` |
+| cache_key | `b5a3a9aa4b56689c06b80758a0c9096c333f39cb00fd62a0e3597774b3c1a2be` |
+| rows | 100000 |
+| row 45258 third-dim absolute diff | 0.0012235641479492188 |
+| np.allclose rtol=atol=1e-4 | True |
+| np.allclose rtol=atol=2e-5 | False |
+| elapsed | 39.8s |
+
+### Pinned Dependency Versions
+
+| Package | Version |
+|---------|---------|
+| Python | 3.11.15 |
+| numpy | 2.1.1 |
+| scipy | 1.14.1 |
+| pandas | 2.2.3 |
+| torch | 2.11.0+cpu |
 
 ## Corrections to Prior Report
 
