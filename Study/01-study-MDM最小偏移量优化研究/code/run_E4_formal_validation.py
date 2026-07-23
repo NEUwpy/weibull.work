@@ -2198,7 +2198,26 @@ def _e3b_reproduction_gate_check(df_mc):
         g3['values']['seeds'].append(seed_info)
     g3['pass'] = gate3_pass
     if not gate3_pass:
-        raise PreflightError("E3b gate FAILED: 3-seed summary mismatch")
+        failed_checks = [c for c in g3['checks'] if not c['pass']]
+        detail = '; '.join(
+            f"{c['label']}: repro={c['reproduced']:.6f} "
+            f"ref={c['reference']:.6f} diff={c['difference']:.6f} "
+            f"th={c['threshold']}"
+            for c in failed_checks[:10]
+        )
+        # Save the gate result even on failure for diagnostics
+        gate_diag_path = os.path.join(
+            E4_OUTPUT_DIR, "E4d_e3b_gate_results.json")
+        try:
+            with open(gate_diag_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, sort_keys=True,
+                          ensure_ascii=False)
+        except Exception:
+            pass
+        raise PreflightError(
+            f"E3b gate Gate 3 FAILED ({len(failed_checks)} checks): "
+            f"{detail}"
+        )
     log(f"  [E3b gate] Gate 3 (3-seed summary): PASSED")
     result['overall_pass'] = True
     log("  [E3b gate] FULL GATE PASSED — all 3 tiers")
