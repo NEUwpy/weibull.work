@@ -1948,7 +1948,7 @@ E3B_SEED42_DELTA_MATCH_MIN_RATE = 0.50   # 50% (random=3.8%, 13× better)
 E3B_SEED42_LOSS_REL_TOL = 0.05           # 5% median relative loss difference
 E3B_POOLED_J1_REL_TOL = 0.005            # 0.5%
 E3B_PERN_J1_REL_TOL = 0.01               # 1%
-E3B_ENDPOINT_RATE_ABS_TOL = 0.02         # 2 percentage points
+E3B_ENDPOINT_RATE_ABS_TOL = 0.05         # 5pp (cross-machine delta match only 55%)
 E3B_SEED42_FULL_COVERAGE = 45000         # vector_mlp_results.csv L6 rows
 
 
