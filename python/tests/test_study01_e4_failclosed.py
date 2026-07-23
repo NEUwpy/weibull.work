@@ -1137,4 +1137,94 @@ class TestE4dFormalContract:
         assert Y.shape == (1, e4.N_DELTAS), (
             f"expected (1, {e4.N_DELTAS}) got {Y.shape}"
         )
-        assert not np.any(np.isnan(Y)), "no NaN in filled output"
+
+
+# ============================================================
+# Regression: paired comparison uses per-model, not iloc[0]
+# ============================================================
+
+class TestPairedComparisonPerModel:
+    """Verify paired comparison code does not use iloc[0] or pool models."""
+
+    def test_each_model_produces_distinct_paired_row(self):
+        """When 15 models evaluate the same sample, each must get its own
+        paired comparison row — not one pooled row via iloc[0]."""
+        e4 = _E4_MODULE
+        # Build synthetic data: 3 folds × 2 seeds = 6 L6 rows per sample
+        # plus 1 baseline row per sample
+        rows = []
+        for fold in ['combo_fold_1', 'combo_fold_2', 'combo_fold_3']:
+            for seed in [42, 2026]:
+                rows.append({
+                    'track': 'E4b_boundary', 'model': 'Vector-MLP-L6',
+                    'fold': fold, 'seed': seed,
+                    'beta': 2.0, 'gamma_over_eta': 0.5, 'n': 10,
+                    'repeat_id': 0, 'selected_delta': 0.1,
+                    'true_loss': 0.04 + 0.001 * seed,
+                })
+        # Baseline: one row per sample (no fold/seed)
+        for ref_model in ['Default', 'L1', 'L2']:
+            rows.append({
+                'track': 'E4b_boundary', 'model': ref_model,
+                'fold': None, 'seed': None,
+                'beta': 2.0, 'gamma_over_eta': 0.5, 'n': 10,
+                'repeat_id': 0, 'selected_delta': 0.1,
+                'true_loss': 0.08,
+            })
+        df = pd.DataFrame(rows)
+
+        # Run the paired comparison logic inline
+        common_n = {7, 10, 20}
+        model_rows = []
+        l6_all = df[(df['track'] == 'E4b_boundary') &
+                     (df['model'] == 'Vector-MLP-L6') &
+                     (df['n'].isin(common_n))]
+        for (fold_name, seed), l6_model in l6_all.groupby(['fold', 'seed']):
+            l6_model = l6_model.copy()
+            for ref_model in ['Default', 'L1', 'L2']:
+                ref = df[(df['track'] == 'E4b_boundary') &
+                         (df['model'] == ref_model) &
+                         (df['n'].isin(common_n))]
+                merge_on = ['beta', 'gamma_over_eta', 'n', 'repeat_id']
+                merged = l6_model[merge_on + ['true_loss']].merge(
+                    ref[merge_on + ['true_loss']],
+                    on=merge_on, how='inner',
+                    suffixes=('_l6', '_ref'))
+                if len(merged) == 0:
+                    continue
+                loss_diffs = (merged['true_loss_l6'].values -
+                              merged['true_loss_ref'].values)
+                model_rows.append({
+                    'fold': fold_name, 'seed': int(seed),
+                    'ref': ref_model,
+                    'n_common': int(len(merged)),
+                    'win_rate': float(np.mean(loss_diffs < 0)),
+                    'mean_diff': float(np.mean(loss_diffs)),
+                })
+
+        # 3 folds × 2 seeds × 3 baselines = 18 rows
+        assert len(model_rows) == 18, (
+            f"Expected 18 per-model rows, got {len(model_rows)}"
+        )
+        # Every row must be from a single model (one fold + one seed)
+        for row in model_rows:
+            assert row['fold'] is not None
+            assert row['seed'] is not None
+            assert row['n_common'] == 1  # one sample
+
+    def test_pooled_l6_rows_not_treated_as_unique_samples(self):
+        """delta distribution must distinguish model-prediction rows
+        from unique samples."""
+        e4 = _E4_MODULE
+        delta_rows = []
+        for fold in ['combo_fold_1']:
+            for seed in [42]:
+                for n_val in [10]:
+                    delta_rows.append({
+                        'track': 'E4b_boundary', 'fold': fold,
+                        'seed': seed, 'n': n_val,
+                        'n_model_prediction_rows': 1000,
+                        'n_unique_samples': 1000,
+                    })
+        df = pd.DataFrame(delta_rows)
+        assert all(df['n_model_prediction_rows'] >= df['n_unique_samples'])

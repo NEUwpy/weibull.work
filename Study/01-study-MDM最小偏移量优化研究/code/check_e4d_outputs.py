@@ -39,7 +39,10 @@ from config import DELTA_GRID, ARTIFACTS_DIR
 E4_DIR = os.path.join(ARTIFACTS_DIR, "E4_robustness")
 E4D_PATH = os.path.join(E4_DIR, "E4d_selector_extrapolation.csv")
 E4D_J1_PATH = os.path.join(E4_DIR, "E4d_model_j1_summary.csv")
-E4D_PAIRED_PATH = os.path.join(E4_DIR, "E4d_paired_comparisons.csv")
+E4D_PAIRED_PATH = os.path.join(
+    E4_DIR, "E4d_paired_comparisons_by_model.csv")
+E4D_PAIRED_AGG_PATH = os.path.join(
+    E4_DIR, "E4d_paired_comparisons_aggregate.csv")
 E4D_DELTA_PATH = os.path.join(E4_DIR, "E4d_delta_distribution.csv")
 E4D_GATE_PATH = os.path.join(E4_DIR, "E4d_e3b_gate_results.json")
 
@@ -131,24 +134,47 @@ def main():
             len(default_deltas) == 1
         )
 
-    # 12. Paired comparisons CSV exists and is non-empty
-    check("E4d_paired_comparisons.csv exists",
+    # 12. Per-model paired comparisons CSV
+    check("E4d_paired_comparisons_by_model.csv exists",
           os.path.exists(E4D_PAIRED_PATH))
     if os.path.exists(E4D_PAIRED_PATH):
         df_paired = pd.read_csv(E4D_PAIRED_PATH)
-        check(f"Paired comparisons non-empty ({len(df_paired)} rows)",
+        check(f"Per-model paired comparisons non-empty ({len(df_paired)} rows)",
               len(df_paired) > 0)
-        for col in ['track', 'reference_model', 'n_common_samples',
-                     'l6_win_rate', 'median_loss_diff']:
-            check(f"Paired comparison has column '{col}'", col in df_paired.columns)
+        for col in ['track', 'fold', 'seed', 'reference_model',
+                     'n_common_samples', 'l6_win_rate', 'median_loss_diff']:
+            check(f"Per-model paired has column '{col}'",
+                  col in df_paired.columns)
+        check("Each row is one model (fold+seed combo)",
+              df_paired[['track', 'fold', 'seed', 'reference_model']]
+              .drop_duplicates().shape[0] == len(df_paired))
 
-    # 13. Delta distribution CSV exists and is non-empty
+    # 13. Aggregate paired comparisons CSV
+    check("E4d_paired_comparisons_aggregate.csv exists",
+          os.path.exists(E4D_PAIRED_AGG_PATH))
+    if os.path.exists(E4D_PAIRED_AGG_PATH):
+        df_paired_agg = pd.read_csv(E4D_PAIRED_AGG_PATH)
+        check(f"Aggregate non-empty ({len(df_paired_agg)} rows)",
+              len(df_paired_agg) > 0)
+        for col in ['l6_win_rate_mean', 'l6_win_rate_sd',
+                     'n_models']:
+            check(f"Aggregate has column '{col}'",
+                  col in df_paired_agg.columns)
+
+    # 14. Delta distribution per track/fold/seed/n
     check("E4d_delta_distribution.csv exists",
           os.path.exists(E4D_DELTA_PATH))
     if os.path.exists(E4D_DELTA_PATH):
         df_delta = pd.read_csv(E4D_DELTA_PATH)
         check(f"Delta distribution non-empty ({len(df_delta)} rows)",
               len(df_delta) > 0)
+        for col in ['fold', 'seed', 'n_model_prediction_rows',
+                     'n_unique_samples']:
+            check(f"Delta distribution has column '{col}'",
+                  col in df_delta.columns)
+        check("n_model_prediction_rows ≥ n_unique_samples",
+              all(df_delta['n_model_prediction_rows'] >=
+                  df_delta['n_unique_samples']))
 
     # 14. Gate results JSON exists and records overall_pass
     check("E4d_e3b_gate_results.json exists",

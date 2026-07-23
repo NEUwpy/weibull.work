@@ -39,7 +39,9 @@ E4_DIR = os.path.join(ARTIFACTS_DIR, "E4_robustness")
 
 E4D_CSV = os.path.join(E4_DIR, "E4d_selector_extrapolation.csv")
 E4D_J1_CSV = os.path.join(E4_DIR, "E4d_model_j1_summary.csv")
-E4D_PAIRED = os.path.join(E4_DIR, "E4d_paired_comparisons.csv")
+E4D_PAIRED = os.path.join(E4_DIR, "E4d_paired_comparisons_by_model.csv")
+E4D_PAIRED_AGG = os.path.join(
+    E4_DIR, "E4d_paired_comparisons_aggregate.csv")
 E4D_DELTA = os.path.join(E4_DIR, "E4d_delta_distribution.csv")
 E4D_GATE = os.path.join(E4_DIR, "E4d_e3b_gate_results.json")
 RUN_LOG = os.path.join(E4_DIR, "run_log_e4d.txt")
@@ -48,7 +50,8 @@ MANIFEST_PATH = os.path.join(E4_DIR, "manifest_e4d.json")
 SUMMARY_PATH = os.path.join(E4_DIR, "summary_e4d.json")
 SHA256_PATH = os.path.join(E4_DIR, "SHA256SUMS_e4d")
 
-ALL_OUTPUTS = [E4D_CSV, E4D_J1_CSV, E4D_PAIRED, E4D_DELTA, E4D_GATE, RUN_LOG]
+ALL_OUTPUTS = [E4D_CSV, E4D_J1_CSV, E4D_PAIRED, E4D_PAIRED_AGG,
+               E4D_DELTA, E4D_GATE, RUN_LOG]
 
 
 def git_show_blob(commit, relpath):

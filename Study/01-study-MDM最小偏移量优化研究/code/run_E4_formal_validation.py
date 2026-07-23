@@ -2365,71 +2365,109 @@ def run_e4d_formal(df_mc, df_boundary_feat, df_offgrid_feat,
 
     log(f"  Total training time: {total_train_elapsed:.1f}s")
 
-    # ── Machine-readable paired comparisons (common n∈{7,10,20}) ──
+    # ── Per-model paired comparisons (common n∈{7,10,20}) ──
+    # Each of 15 L6 models compared individually to baselines.
+    # Baselines have no fold/seed; we match by (beta, gamma_over_eta, n,
+    # repeat_id).  L6 rows carry fold+seed from training.
     common_n = {7, 10, 20}
-    paired_rows = []
+    model_paired_rows = []
     for track in sorted(df_combined['track'].unique()):
-        l6 = df_combined[(df_combined['track'] == track) &
-                         (df_combined['model'] == 'Vector-MLP-L6') &
-                         (df_combined['n'].isin(common_n))]
-        for ref_model in ['Default', 'L1', 'L2']:
-            ref = df_combined[(df_combined['track'] == track) &
-                              (df_combined['model'] == ref_model) &
-                              (df_combined['n'].isin(common_n))]
-            l6_keys = set(zip(l6['beta'], l6['gamma_over_eta'],
-                              l6['n'], l6['repeat_id']))
-            ref_keys = set(zip(ref['beta'], ref['gamma_over_eta'],
-                               ref['n'], ref['repeat_id']))
-            common_keys = l6_keys & ref_keys
-            if not common_keys:
-                continue
-            diffs = []
-            for k in sorted(common_keys):
-                l6_v = l6[(l6['beta'] == k[0]) & (l6['gamma_over_eta'] == k[1]) &
-                          (l6['n'] == k[2]) & (l6['repeat_id'] == k[3])]
-                ref_v = ref[(ref['beta'] == k[0]) & (ref['gamma_over_eta'] == k[1]) &
-                            (ref['n'] == k[2]) & (ref['repeat_id'] == k[3])]
-                if len(l6_v) and len(ref_v):
-                    diffs.append(float(l6_v['true_loss'].iloc[0]) -
-                                 float(ref_v['true_loss'].iloc[0]))
-            diffs_arr = np.array(diffs)
-            l6_j1 = math.sqrt(l6['true_loss'].mean())
-            ref_j1 = math.sqrt(ref['true_loss'].mean())
-            paired_rows.append({
-                'track': track, 'reference_model': ref_model,
-                'n_common_samples': len(diffs),
-                'l6_common_J1': l6_j1, 'ref_common_J1': ref_j1,
-                'l6_win_rate': float(np.mean(diffs_arr < 0)),
-                'median_loss_diff': float(np.median(diffs_arr)),
-                'mean_loss_diff': float(np.mean(diffs_arr)),
-            })
-    if paired_rows:
-        paired_path = os.path.join(
-            E4_OUTPUT_DIR, "E4d_paired_comparisons.csv")
-        pd.DataFrame(paired_rows).to_csv(paired_path, index=False)
-        log(f"  Wrote paired comparisons: {paired_path}")
+        l6_all = df_combined[(df_combined['track'] == track) &
+                             (df_combined['model'] == 'Vector-MLP-L6') &
+                             (df_combined['n'].isin(common_n))]
+        # Iterate over each of the 15 models
+        for (fold_name, seed), l6_model in l6_all.groupby(['fold', 'seed']):
+            l6_model = l6_model.copy()
+            for ref_model in ['Default', 'L1', 'L2']:
+                ref = df_combined[(df_combined['track'] == track) &
+                                  (df_combined['model'] == ref_model) &
+                                  (df_combined['n'].isin(common_n))]
+                # Merge on sample keys (not on fold/seed — baselines have none)
+                merge_on = ['beta', 'gamma_over_eta', 'n', 'repeat_id']
+                merged = l6_model[merge_on + ['true_loss']].merge(
+                    ref[merge_on + ['true_loss']],
+                    on=merge_on, how='inner',
+                    suffixes=('_l6', '_ref'))
+                if len(merged) == 0:
+                    continue
+                loss_diffs = (merged['true_loss_l6'].values -
+                              merged['true_loss_ref'].values)
+                l6_common_j1 = math.sqrt(
+                    float((merged['true_loss_l6'] ** 2).mean()))
+                ref_common_j1 = math.sqrt(
+                    float((merged['true_loss_ref'] ** 2).mean()))
+                model_paired_rows.append({
+                    'track': track, 'fold': fold_name, 'seed': int(seed),
+                    'reference_model': ref_model,
+                    'n_common_samples': int(len(merged)),
+                    'l6_J1_common': l6_common_j1,
+                    'ref_J1_common': ref_common_j1,
+                    'l6_win_rate': float(np.mean(loss_diffs < 0)),
+                    'median_loss_diff': float(np.median(loss_diffs)),
+                    'mean_loss_diff': float(np.mean(loss_diffs)),
+                })
 
-    # ── Machine-readable delta distribution ──
+    df_model_paired = pd.DataFrame(model_paired_rows)
+    if len(df_model_paired) > 0:
+        # Model-level detail CSV
+        paired_detail_path = os.path.join(
+            E4_OUTPUT_DIR, "E4d_paired_comparisons_by_model.csv")
+        df_model_paired.to_csv(paired_detail_path, index=False)
+        log(f"  Wrote per-model paired comparisons: {paired_detail_path} "
+            f"({len(df_model_paired)} rows = 15 models × tracks × baselines)")
+
+        # 15-model aggregate CSV
+        agg_cols = ['l6_win_rate', 'median_loss_diff', 'mean_loss_diff',
+                     'l6_J1_common', 'ref_J1_common']
+        agg_rows = []
+        for (track, ref_model), grp in df_model_paired.groupby(
+                ['track', 'reference_model']):
+            agg_row = {'track': track, 'reference_model': ref_model,
+                       'n_models': int(len(grp))}
+            for col in agg_cols:
+                vals = grp[col].values
+                agg_row[f'{col}_mean'] = float(np.mean(vals))
+                agg_row[f'{col}_median'] = float(np.median(vals))
+                agg_row[f'{col}_sd'] = float(np.std(vals, ddof=1))
+                agg_row[f'{col}_min'] = float(np.min(vals))
+                agg_row[f'{col}_max'] = float(np.max(vals))
+            agg_rows.append(agg_row)
+        df_agg = pd.DataFrame(agg_rows)
+        paired_agg_path = os.path.join(
+            E4_OUTPUT_DIR, "E4d_paired_comparisons_aggregate.csv")
+        df_agg.to_csv(paired_agg_path, index=False)
+        log(f"  Wrote aggregate paired comparisons: {paired_agg_path} "
+            f"({len(df_agg)} rows)")
+
+    # ── Delta distribution per track/fold/seed/n ──
     delta_rows = []
-    for track in sorted(df_combined['track'].unique()):
-        sub = df_combined[(df_combined['track'] == track) &
-                          (df_combined['model'] == 'Vector-MLP-L6')]
-        for n_val in sorted(sub['n'].unique()):
-            sn = sub[sub['n'] == n_val]
-            delta_counts = sn['selected_delta'].value_counts().to_dict()
-            extreme_rate = float(
-                sn['selected_delta'].isin(
-                    [0.00, 0.02, 0.48, 0.50]).mean())
-            row = {'track': track, 'n': int(n_val),
-                   'n_samples': len(sn),
-                   'extreme_rate': extreme_rate}
-            row.update({f'delta_{k}': int(v) for k, v in delta_counts.items()})
-            delta_rows.append(row)
+    l6_all_tracks = df_combined[
+        df_combined['model'] == 'Vector-MLP-L6']
+    for (track, fold_name, seed, n_val), sn in l6_all_tracks.groupby(
+            ['track', 'fold', 'seed', 'n']):
+        sn = sn.copy()
+        delta_counts = sn['selected_delta'].value_counts().to_dict()
+        extreme_rate = float(
+            sn['selected_delta'].isin(
+                [0.00, 0.02, 0.48, 0.50]).mean())
+        row = {
+            'track': track, 'fold': fold_name, 'seed': int(seed),
+            'n': int(n_val),
+            'n_model_prediction_rows': int(len(sn)),
+            'n_unique_samples': int(
+                sn[['beta', 'gamma_over_eta', 'n', 'repeat_id']]
+                .drop_duplicates().shape[0]),
+            'extreme_rate': extreme_rate,
+        }
+        row.update({f'delta_{k}': int(v) for k, v in delta_counts.items()})
+        delta_rows.append(row)
     if delta_rows:
         delta_path = os.path.join(
             E4_OUTPUT_DIR, "E4d_delta_distribution.csv")
         pd.DataFrame(delta_rows).to_csv(delta_path, index=False)
-        log(f"  Wrote delta distribution: {delta_path}")
+        log(f"  Wrote delta distribution: {delta_path} "
+            f"({len(delta_rows)} rows = 2 tracks × 5 folds × 3 seeds × "
+            f"{l6_all_tracks['n'].nunique()} n values)")
 
     # ── Structured gate results ──
     gate_path = os.path.join(
