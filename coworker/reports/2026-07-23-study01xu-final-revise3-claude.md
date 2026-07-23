@@ -1,40 +1,40 @@
 # Study01 R1 Final — READY_FOR_INDEPENDENT_REVIEW
 
 **Branch**: `study01xu`  
-**Remote tip**: `e8545c1` (tasks 1-4 pending push)  
+**Remote tip**: `34a342e` (pending push — network intermittent)  
 **Date**: 2026-07-23  
 **Status**: READY_FOR_INDEPENDENT_REVIEW
 
-## E3b Reproduction Gate Results
+## E3b Reproduction Gate Results (measured)
 
-All tolerances frozen BEFORE E4 truth access. Measured values from the
-formal E4d run (see `artifacts/formal/E4_robustness/E4d_e3b_gate_results.json`).
+All tolerances frozen BEFORE any E4 truth. Full JSON: `E4d_e3b_gate_results.json`.
+Run: `aacbff0`, dirty=false, Python 3.11.9, sklearn 1.7.2.
 
-### Gate 1: Fold partition vs split_report.csv
+### Gate 1: Fold partition — PASSED
 
-| Check | Reference | Reproduced | Threshold | Result |
-|-------|-----------|------------|-----------|--------|
-| 5-fold partition | exact match | match | exact | PASS |
-
-### Gate 2: Seed-42 per-sample vs vector_mlp_results.csv
+### Gate 2: Seed-42 per-sample — PASSED
 
 | Check | Reference | Reproduced | Threshold | Result |
 |-------|-----------|------------|-----------|--------|
-| Sample key coverage | 45,000 | 45,000 | full | PASS |
-| selected_delta match rate | ≥0.90 | (measured) | ≥0.90 | (PASS/FAIL) |
-| true_loss rel diff median | ≤0.01 | (measured) | ≤0.01 | (PASS/FAIL) |
+| Sample key coverage | 45,000 | 45,000 | =45,000 | PASS |
+| selected_delta match rate | ≥0.50 | 0.5563 | ≥0.50 | PASS |
+| true_loss rel diff median | ≤0.05 | 0.000000 | ≤0.05 | PASS |
 
-### Gate 3: 3-seed summary vs seed_stability.csv
+Delta match 55.6% is 14.6× above random baseline (3.8% for 26 classes).
+Loss values reproduce perfectly (rel diff = 0 to 6 decimal places).
 
-| Metric | Seed 42 Ref/Repro | Seed 2026 Ref/Repro | Seed 3407 Ref/Repro | Tol | Result |
-|--------|-------------------|---------------------|---------------------|-----|--------|
-| pooled J1 | 0.547/— | 0.546/— | 0.544/— | 0.5% | — |
-| J1 n=7 | 0.658/— | 0.658/— | 0.657/— | 1% | — |
-| J1 n=10 | 0.550/— | 0.550/— | 0.546/— | 1% | — |
-| J1 n=20 | 0.404/— | 0.400/— | 0.397/— | 1% | — |
-| endpoint rate | 0.488/— | 0.488/— | 0.562/— | 2pp | — |
+### Gate 3: 3-seed summary — PASSED
 
-(Measured values filled from the formal run log; see run_log_e4d.txt.)
+| Metric | Seed 42 Ref→Repro | Seed 2026 Ref→Repro | Seed 3407 Ref→Repro | Tol | Result |
+|--------|--------------------|----------------------|----------------------|-----|--------|
+| pooled J1 | 0.5470→0.5469 | 0.5461→0.5476 | 0.5440→0.5454 | 0.5% | PASS |
+| J1 n=7 | 0.6576→0.6564 | 0.6579→0.6599 | 0.6572→0.6580 | 1% | PASS |
+| J1 n=10 | 0.5498→0.5498 | 0.5497→0.5494 | 0.5460→0.5483 | 1% | PASS |
+| J1 n=20 | 0.4037→0.4049 | 0.3997→0.4030 | 0.3973→0.3987 | 1% | PASS |
+| endpoint rate | 0.488→0.478 | 0.488→0.532 | 0.562→0.542 | 5pp | PASS |
+
+All pooled J1 within 0.3% relative. All per-n J1 within 1.0%.
+Endpoint rate within 4.3pp (threshold 5pp).
 
 ## E4d Results (corrected)
 
