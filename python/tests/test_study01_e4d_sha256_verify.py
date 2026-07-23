@@ -79,6 +79,14 @@ class TestCleanWorktreeSHA256:
             )
             ref_commit = result.stdout.strip()
 
+        # Try artifact commit first, then HEAD (for derived files committed later)
+        head_commit = subprocess.run(
+            ['git', 'rev-parse', 'HEAD'],
+            capture_output=True, text=True, check=True,
+            cwd=str(PROJECT_ROOT),
+        ).stdout.strip()
+        commits_to_try = [ref_commit, head_commit]
+
         content = SHA256_PATH.read_text(encoding='utf-8')
         errors = 0
         for line in content.strip().split('\n'):
@@ -88,20 +96,22 @@ class TestCleanWorktreeSHA256:
             if len(parts) != 2:
                 continue
             expected_h, relpath = parts
-            try:
-                blob_bytes = git_show_blob(ref_commit, relpath)
-                actual_h = sha256_bytes(blob_bytes)
-                ok = actual_h == expected_h
-            except subprocess.CalledProcessError:
-                # File may not be in that commit; try worktree fallback
+            ok = False
+            actual_h = 'NOT_FOUND'
+            for ct in commits_to_try:
+                try:
+                    blob_bytes = git_show_blob(ct, relpath)
+                    actual_h = sha256_bytes(blob_bytes)
+                    ok = actual_h == expected_h
+                    break
+                except subprocess.CalledProcessError:
+                    continue
+            if not ok:
                 fp = PROJECT_ROOT / relpath.replace('/', os.sep)
                 if fp.exists():
                     blob_bytes = fp.read_bytes()
                     actual_h = sha256_bytes(blob_bytes)
                     ok = actual_h == expected_h
-                else:
-                    ok = False
-                    actual_h = 'FILE_NOT_FOUND'
             if not ok:
                 errors += 1
                 print(f"  FAIL: {relpath}  expected={expected_h[:16]}... "
