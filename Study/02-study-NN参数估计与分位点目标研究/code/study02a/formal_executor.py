@@ -23,6 +23,7 @@ accident. See ``.superpowers/sdd/task-9c3-brief.md``.
 from __future__ import annotations
 
 import hashlib
+import math
 import json
 import os
 import shutil
@@ -835,6 +836,20 @@ def _n_key_of(row: Mapping[str, Any]) -> int | str:
     return int(row["n"])
 
 
+def _require_finite_evaluation(fit_id: str, scalar: float, point_records: tuple) -> None:
+    """R6 fail-closed: selection_score and all point numerics must be finite before aggregation."""
+    if not math.isfinite(scalar):
+        raise ValueError(f"fit {fit_id!r} selection_score is non-finite ({scalar})")
+    for record in point_records:
+        for field in ("l_param", "e_beta", "e_eta", "e_gamma"):
+            value = record[field]
+            if not math.isfinite(value):
+                raise ValueError(
+                    f"fit {fit_id!r} point record {record.get('sample_id', '?')} "
+                    f"has non-finite {field} ({value})"
+                )
+
+
 def _score_fit_from_checkpoint(
     *, run_dir: Path, cache_root: Path, fit_id: str, plan_row: Mapping[str, Any],
     frozen: FrozenConfig, effective: EffectiveFormalConfig, fit_states: Mapping[str, str],
@@ -883,6 +898,7 @@ def _score_fit_from_checkpoint(
         validation_batch=prepared.scaled_validation.batch, validation_metadata=prepared.validation_metadata,
         seed_id=str(plan_row["seed"]), is_set=prepared.is_set,
     )
+    _require_finite_evaluation(fit_id, scalar, point_records)
     return FitEvaluation(
         fit_id=fit_id, module_id=module_id, decision_id=decision_id, candidate_id=candidate_id,
         support_key=support_key, failed=False,
