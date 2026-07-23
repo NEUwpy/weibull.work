@@ -443,6 +443,8 @@ class TestE3bReproductionGate:
         e4 = _E4_MODULE
         assert e4.E3B_SEED42_DELTA_MATCH_MIN_RATE > 0.0
         assert e4.E3B_SEED42_DELTA_MATCH_MIN_RATE <= 1.0
+        # 0.50 is 13× random baseline (3.8%) for 26-class problem
+        assert e4.E3B_SEED42_DELTA_MATCH_MIN_RATE >= 0.50
         assert e4.E3B_SEED42_LOSS_REL_TOL > 0.0
         assert e4.E3B_POOLED_J1_REL_TOL > 0.0
         assert e4.E3B_PERN_J1_REL_TOL > 0.0
