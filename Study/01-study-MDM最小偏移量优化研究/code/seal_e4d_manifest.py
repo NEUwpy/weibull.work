@@ -105,6 +105,20 @@ def main():
         if result.returncode != 0:
             print(f"WARNING: {label} commit {sha[:8]} not found in repo")
 
+    # Per-file source commits.  Raw artifacts live in bff0b60; derived
+    # statistics (paired comparisons, delta distribution) were committed
+    # later in dc21df2.
+    derived_commit = "dc21df281fd4b3bff05f5147e2383474eed7a41b"
+    FILE_SOURCE_COMMIT = {
+        E4D_CSV: artifact_commit,
+        E4D_J1_CSV: artifact_commit,
+        E4D_GATE: artifact_commit,
+        RUN_LOG: artifact_commit,
+        E4D_PAIRED: derived_commit,
+        E4D_PAIRED_AGG: derived_commit,
+        E4D_DELTA: derived_commit,
+    }
+
     # ── Output provenance using git-blob SHA256 ──
     output_provenance = {}
     for path in ALL_OUTPUTS:
@@ -112,23 +126,13 @@ def main():
             print(f"WARNING: {path} not found — skipping")
             continue
         rel = os.path.relpath(path, PROJECT_ROOT).replace('\\', '/')
-        # Compute SHA256 from git blob (LF-normalised).
-        # Prefer the artifact commit; fall back to HEAD for derived files.
-        blob_bytes = None
-        source_label = None
-        for commit_try, label in [(artifact_commit, f'git show {artifact_commit[:8]}'),
-                                   (git_commit_full(), 'git show HEAD')]:
-            try:
-                blob_bytes = git_show_blob(commit_try, rel)
-                source_label = label
-                break
-            except subprocess.CalledProcessError:
-                continue
-        if blob_bytes is None:
-            with open(path, 'rb') as f:
-                blob_bytes = f.read()
-            source_label = 'worktree (file not in git)'
-            print(f"WARNING: {rel} not in artifact or HEAD; using worktree")
+        source_commit = FILE_SOURCE_COMMIT.get(path, artifact_commit)
+        try:
+            blob_bytes = git_show_blob(source_commit, rel)
+        except subprocess.CalledProcessError:
+            print(f"ERROR: {rel} not found in source_commit "
+                  f"{source_commit[:8]}")
+            sys.exit(1)
         h = sha256_bytes(blob_bytes)
         row_count = None
         if path.endswith('.csv'):
@@ -141,7 +145,7 @@ def main():
             'sha256': h,
             'size_bytes': len(blob_bytes),
             'row_count': row_count,
-            'source': source_label if source_label else 'worktree',
+            'source_commit': source_commit,
         }
 
     # ── Manifest ──
@@ -230,22 +234,20 @@ def main():
         f.write(content)
     print(f"Wrote: {SHA256_PATH} ({len(entries)} entries)")
 
-    # ── Self-verification ──
-    print("\n=== Byte-level verification (git blob) ===")
+    # ── Self-verification: each file read from its declared source_commit ──
+    print("\n=== Byte-level verification (per-file source_commit) ===")
     errors = 0
-    head_commit = git_commit_full()
     for rel, expected_h in entries:
+        info = output_provenance.get(rel, {})
+        sc = info.get('source_commit', artifact_commit)
         ok = False
         actual_h = 'NOT_FOUND'
-        # Try artifact commit first, then HEAD
-        for commit_try in [artifact_commit, head_commit]:
-            try:
-                blob_bytes = git_show_blob(commit_try, rel)
-                actual_h = sha256_bytes(blob_bytes)
-                ok = actual_h == expected_h
-                break
-            except subprocess.CalledProcessError:
-                continue
+        try:
+            blob_bytes = git_show_blob(sc, rel)
+            actual_h = sha256_bytes(blob_bytes)
+            ok = actual_h == expected_h
+        except subprocess.CalledProcessError:
+            pass
         if not ok:
             errors += 1
         print(f"  {'OK' if ok else 'FAIL'}: {rel}")

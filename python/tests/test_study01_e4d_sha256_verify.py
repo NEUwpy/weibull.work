@@ -10,12 +10,13 @@ Run:
 
 import sys
 import os
+import io
+import json
 import hashlib
 import subprocess
-import tempfile
-import shutil
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -64,28 +65,13 @@ class TestCleanWorktreeSHA256:
         if not SHA256_PATH.exists():
             pytest.skip("SHA256SUMS_e4d not found")
 
-        # Read artifact commit from manifest (files live there)
+        # Each file must be verified from its manifest-declared source_commit
         import json
-        ref_commit = None
-        if MANIFEST_PATH.exists():
-            with open(MANIFEST_PATH, 'r', encoding='utf-8') as f:
-                m = json.load(f)
-            ref_commit = m.get('commits', {}).get('raw_artifact_commit')
-        if not ref_commit:
-            result = subprocess.run(
-                ['git', 'rev-parse', 'HEAD'],
-                capture_output=True, text=True, check=True,
-                cwd=str(PROJECT_ROOT),
-            )
-            ref_commit = result.stdout.strip()
-
-        # Try artifact commit first, then HEAD (for derived files committed later)
-        head_commit = subprocess.run(
-            ['git', 'rev-parse', 'HEAD'],
-            capture_output=True, text=True, check=True,
-            cwd=str(PROJECT_ROOT),
-        ).stdout.strip()
-        commits_to_try = [ref_commit, head_commit]
+        if not MANIFEST_PATH.exists():
+            pytest.skip("manifest_e4d.json not found")
+        with open(MANIFEST_PATH, 'r', encoding='utf-8') as f:
+            m = json.load(f)
+        output_prov = m.get('output_provenance', {})
 
         content = SHA256_PATH.read_text(encoding='utf-8')
         errors = 0
@@ -96,22 +82,29 @@ class TestCleanWorktreeSHA256:
             if len(parts) != 2:
                 continue
             expected_h, relpath = parts
+            file_info = output_prov.get(relpath, {})
+            source_commit = file_info.get('source_commit')
+            if not source_commit:
+                errors += 1
+                print(f"  FAIL: {relpath} — no source_commit in manifest")
+                continue
+            expected_row_count = file_info.get('row_count')
             ok = False
             actual_h = 'NOT_FOUND'
-            for ct in commits_to_try:
-                try:
-                    blob_bytes = git_show_blob(ct, relpath)
-                    actual_h = sha256_bytes(blob_bytes)
-                    ok = actual_h == expected_h
-                    break
-                except subprocess.CalledProcessError:
-                    continue
-            if not ok:
-                fp = PROJECT_ROOT / relpath.replace('/', os.sep)
-                if fp.exists():
-                    blob_bytes = fp.read_bytes()
-                    actual_h = sha256_bytes(blob_bytes)
-                    ok = actual_h == expected_h
+            try:
+                blob_bytes = git_show_blob(source_commit, relpath)
+                actual_h = sha256_bytes(blob_bytes)
+                ok = actual_h == expected_h
+                # Also verify row_count for CSVs
+                if ok and expected_row_count is not None:
+                    import io
+                    df = pd.read_csv(io.BytesIO(blob_bytes))
+                    if int(len(df)) != int(expected_row_count):
+                        ok = False
+                        print(f"  row_count mismatch: expected "
+                              f"{expected_row_count}, got {len(df)}")
+            except subprocess.CalledProcessError:
+                pass
             if not ok:
                 errors += 1
                 print(f"  FAIL: {relpath}  expected={expected_h[:16]}... "
