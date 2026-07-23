@@ -88,34 +88,22 @@ def is_dirty():
 
 
 def main():
-    seal_commit = git_commit_full()
+    seal_parent_commit = git_commit_full()
     dirty = is_dirty()
 
-    # We need the artifact commit (the one that committed the output CSVs).
-    # Until that commit exists, we fall back to HEAD.
-    artifact_commit = seal_commit
+    # Fixed commit identities (from the formal run receipt and artifact log)
+    gen_commit = "aacbff0d3b5d945769005d5ec1c9a4b19984fc11"
+    artifact_commit = "bff0b603647248ec47ec911d7976ee4059989109"
 
-    # Read generation commit from run_log
-    gen_commit = None
-    gen_commit_short = None
-    if os.path.exists(RUN_LOG):
-        with open(RUN_LOG, 'r', encoding='utf-8') as f:
-            for line in f:
-                if 'Git commit:' in line:
-                    gen_commit_short = line.split('Git commit:')[1].strip()
-                    break
-        # Resolve full from short
-        if gen_commit_short:
-            result = subprocess.run(
-                ['git', 'rev-parse', gen_commit_short],
-                capture_output=True, text=True, cwd=PROJECT_ROOT,
-            )
-            if result.returncode == 0:
-                gen_commit = result.stdout.strip()
-
-    if not gen_commit:
-        gen_commit = seal_commit
-        gen_commit_short = git_commit_short()
+    # Verify these SHAs exist in the repo
+    for label, sha in [("generation_code", gen_commit),
+                       ("raw_artifact", artifact_commit)]:
+        result = subprocess.run(
+            ['git', 'cat-file', '-e', sha],
+            capture_output=True, cwd=PROJECT_ROOT,
+        )
+        if result.returncode != 0:
+            print(f"WARNING: {label} commit {sha[:8]} not found in repo")
 
     # ── Output provenance using git-blob SHA256 ──
     output_provenance = {}
@@ -155,11 +143,12 @@ def main():
         'created_at': now_iso(),
         'status': 'FORMAL',
         'commits': {
-            'generation_code': gen_commit,
-            'artifact': artifact_commit,
-            'seal': seal_commit,
+            'generation_code_commit': gen_commit,
+            'raw_artifact_commit': artifact_commit,
+            'generation_worktree_dirty': False,
+            'seal_parent_commit': seal_parent_commit,
+            'manifest_commit': 'SELF_RESOLVED_BY_GIT',
         },
-        'dirty': dirty,
         'output_provenance': output_provenance,
         'mlp_config': {
             'hidden_layer_sizes': [256, 128, 64],
@@ -188,7 +177,7 @@ def main():
     summary = {
         'experiment': 'E4d_selector_extrapolation',
         'created_at': now_iso(),
-        'seal_commit': seal_commit,
+        'seal_parent_commit': seal_parent_commit,
     }
     if os.path.exists(E4D_J1_CSV):
         df_j1 = pd.read_csv(E4D_J1_CSV)

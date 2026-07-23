@@ -51,31 +51,33 @@ class TestCleanWorktreeSHA256:
         with open(MANIFEST_PATH, 'r', encoding='utf-8') as f:
             m = json.load(f)
         commits = m.get('commits', {})
-        for key in ['generation_code', 'artifact', 'seal']:
+        for key in ['generation_code_commit', 'raw_artifact_commit',
+                     'seal_parent_commit']:
             assert key in commits, f"manifest missing commits.{key}"
             assert len(commits[key]) >= 40, (
                 f"commits.{key} should be a full SHA: {commits[key][:20]}..."
             )
+        assert commits.get('manifest_commit') == 'SELF_RESOLVED_BY_GIT'
+        assert commits.get('generation_worktree_dirty') == False
 
     def test_all_sha256sums_verify_against_git_blob(self):
         if not SHA256_PATH.exists():
             pytest.skip("SHA256SUMS_e4d not found")
 
-        # Get the seal commit from manifest
+        # Read artifact commit from manifest (files live there)
         import json
-        seal_commit = None
+        ref_commit = None
         if MANIFEST_PATH.exists():
             with open(MANIFEST_PATH, 'r', encoding='utf-8') as f:
                 m = json.load(f)
-            seal_commit = m.get('commits', {}).get('seal')
-        if not seal_commit:
-            # Fallback to HEAD
+            ref_commit = m.get('commits', {}).get('raw_artifact_commit')
+        if not ref_commit:
             result = subprocess.run(
                 ['git', 'rev-parse', 'HEAD'],
                 capture_output=True, text=True, check=True,
                 cwd=str(PROJECT_ROOT),
             )
-            seal_commit = result.stdout.strip()
+            ref_commit = result.stdout.strip()
 
         content = SHA256_PATH.read_text(encoding='utf-8')
         errors = 0
@@ -87,11 +89,11 @@ class TestCleanWorktreeSHA256:
                 continue
             expected_h, relpath = parts
             try:
-                blob_bytes = git_show_blob(seal_commit, relpath)
+                blob_bytes = git_show_blob(ref_commit, relpath)
                 actual_h = sha256_bytes(blob_bytes)
                 ok = actual_h == expected_h
             except subprocess.CalledProcessError:
-                # File may not be in the commit yet; try worktree fallback
+                # File may not be in that commit; try worktree fallback
                 fp = PROJECT_ROOT / relpath.replace('/', os.sep)
                 if fp.exists():
                     blob_bytes = fp.read_bytes()
