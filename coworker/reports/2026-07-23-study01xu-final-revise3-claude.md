@@ -1,7 +1,7 @@
 # Study01 R1 Final — READY_FOR_INDEPENDENT_REVIEW
 
 **Branch**: `study01xu`
-**Remote tip**: pending push
+**Remote tip**: `25cf7e2da735152754bc69fc23544f50136eeb34` (APPROVED)
 **Date**: 2026-07-23
 **Status**: READY_FOR_INDEPENDENT_REVIEW
 
