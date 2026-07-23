@@ -39,6 +39,9 @@ from config import DELTA_GRID, ARTIFACTS_DIR
 E4_DIR = os.path.join(ARTIFACTS_DIR, "E4_robustness")
 E4D_PATH = os.path.join(E4_DIR, "E4d_selector_extrapolation.csv")
 E4D_J1_PATH = os.path.join(E4_DIR, "E4d_model_j1_summary.csv")
+E4D_PAIRED_PATH = os.path.join(E4_DIR, "E4d_paired_comparisons.csv")
+E4D_DELTA_PATH = os.path.join(E4_DIR, "E4d_delta_distribution.csv")
+E4D_GATE_PATH = os.path.join(E4_DIR, "E4d_e3b_gate_results.json")
 
 EXPECTED_TRACKS = {"E4b_boundary", "E4c_offgrid"}
 EXPECTED_MODELS = {"Vector-MLP-L6", "Default", "L1", "L2"}
@@ -127,6 +130,39 @@ def main():
             f"Default baseline uses single delta: {default_deltas}",
             len(default_deltas) == 1
         )
+
+    # 12. Paired comparisons CSV exists and is non-empty
+    check("E4d_paired_comparisons.csv exists",
+          os.path.exists(E4D_PAIRED_PATH))
+    if os.path.exists(E4D_PAIRED_PATH):
+        df_paired = pd.read_csv(E4D_PAIRED_PATH)
+        check(f"Paired comparisons non-empty ({len(df_paired)} rows)",
+              len(df_paired) > 0)
+        for col in ['track', 'reference_model', 'n_common_samples',
+                     'l6_win_rate', 'median_loss_diff']:
+            check(f"Paired comparison has column '{col}'", col in df_paired.columns)
+
+    # 13. Delta distribution CSV exists and is non-empty
+    check("E4d_delta_distribution.csv exists",
+          os.path.exists(E4D_DELTA_PATH))
+    if os.path.exists(E4D_DELTA_PATH):
+        df_delta = pd.read_csv(E4D_DELTA_PATH)
+        check(f"Delta distribution non-empty ({len(df_delta)} rows)",
+              len(df_delta) > 0)
+
+    # 14. Gate results JSON exists and records overall_pass
+    check("E4d_e3b_gate_results.json exists",
+          os.path.exists(E4D_GATE_PATH))
+    if os.path.exists(E4D_GATE_PATH):
+        with open(E4D_GATE_PATH, 'r') as f:
+            gate_json = json.load(f)
+        check("Gate result has 'overall_pass'",
+              'overall_pass' in gate_json)
+        check("Gate result overall_pass is True",
+              gate_json.get('overall_pass') is True)
+        for gate_key in ['gate1_fold_partition', 'gate2_seed42_per_sample',
+                          'gate3_three_seed_summary']:
+            check(f"Gate result has '{gate_key}'", gate_key in gate_json)
 
     print()
     print("=" * 50)
