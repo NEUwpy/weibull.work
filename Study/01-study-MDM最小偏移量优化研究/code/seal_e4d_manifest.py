@@ -112,15 +112,23 @@ def main():
             print(f"WARNING: {path} not found — skipping")
             continue
         rel = os.path.relpath(path, PROJECT_ROOT).replace('\\', '/')
-        # Compute SHA256 from git blob (LF-normalised)
-        try:
-            blob_bytes = git_show_blob(artifact_commit, rel)
-        except subprocess.CalledProcessError:
-            # Fallback: file not in git yet; use worktree bytes
+        # Compute SHA256 from git blob (LF-normalised).
+        # Prefer the artifact commit; fall back to HEAD for derived files.
+        blob_bytes = None
+        source_label = None
+        for commit_try, label in [(artifact_commit, f'git show {artifact_commit[:8]}'),
+                                   (git_commit_full(), 'git show HEAD')]:
+            try:
+                blob_bytes = git_show_blob(commit_try, rel)
+                source_label = label
+                break
+            except subprocess.CalledProcessError:
+                continue
+        if blob_bytes is None:
             with open(path, 'rb') as f:
                 blob_bytes = f.read()
-            print(f"WARNING: {rel} not in git at {artifact_commit[:8]}; "
-                  f"using worktree bytes")
+            source_label = 'worktree (file not in git)'
+            print(f"WARNING: {rel} not in artifact or HEAD; using worktree")
         h = sha256_bytes(blob_bytes)
         row_count = None
         if path.endswith('.csv'):
@@ -133,7 +141,7 @@ def main():
             'sha256': h,
             'size_bytes': len(blob_bytes),
             'row_count': row_count,
-            'source': f'git show {artifact_commit[:8]}' if blob_bytes else 'worktree',
+            'source': source_label if source_label else 'worktree',
         }
 
     # ── Manifest ──
@@ -222,25 +230,22 @@ def main():
         f.write(content)
     print(f"Wrote: {SHA256_PATH} ({len(entries)} entries)")
 
-    # ── Self-verification: read via git show and verify every entry ──
+    # ── Self-verification ──
     print("\n=== Byte-level verification (git blob) ===")
     errors = 0
+    head_commit = git_commit_full()
     for rel, expected_h in entries:
-        try:
-            blob_bytes = git_show_blob(artifact_commit, rel)
-            actual_h = sha256_bytes(blob_bytes)
-            ok = actual_h == expected_h
-        except subprocess.CalledProcessError:
-            # Not in git yet — try worktree
-            fp = os.path.join(PROJECT_ROOT, rel.replace('/', os.sep))
-            if os.path.exists(fp):
-                with open(fp, 'rb') as f:
-                    blob_bytes = f.read()
+        ok = False
+        actual_h = 'NOT_FOUND'
+        # Try artifact commit first, then HEAD
+        for commit_try in [artifact_commit, head_commit]:
+            try:
+                blob_bytes = git_show_blob(commit_try, rel)
                 actual_h = sha256_bytes(blob_bytes)
                 ok = actual_h == expected_h
-            else:
-                ok = False
-                actual_h = 'FILE_NOT_FOUND'
+                break
+            except subprocess.CalledProcessError:
+                continue
         if not ok:
             errors += 1
         print(f"  {'OK' if ok else 'FAIL'}: {rel}")
