@@ -1,0 +1,114 @@
+{
+  "contract_version": "P6-v1.0-FROZEN",
+  "freeze_date": "2026-07-25",
+  "freeze_commit": "00b282d",
+  "branch": "study01xu",
+  "dataset": {
+    "dataset_id": "nist-6061-t6-fatigue",
+    "data_dir": "artifacts/formal/real_data/nist-6061-t6-fatigue",
+    "source_url": "https://itl.nist.gov/div898/handbook/eda/section4/eda4291.htm",
+    "original_file": "BIRNSAUN.DAT",
+    "original_sha256": "7814c533818517d8b824c56213abac2b4076786a13a66d85a8481a32bbccf127",
+    "lifetimes_csv_sha256": "43c85155bdfeafd21e2366610e88a3f4e1a09e36466fb22d34729dc60418ee12",
+    "n_total": 101,
+    "n_uncensored": 101,
+    "license": "NIST Public Domain (17 U.S.C. § 105)",
+    "license_url": "https://www.nist.gov/open/license"
+  },
+  "admission_gate": {
+    "min_uncensored_lifetimes": 60,
+    "weibull_fit_min_n": 10,
+    "weibull_fit_min_r2": 0.70,
+    "fit_method": "OLS",
+    "gate_passed": true,
+    "gate_r_squared": 0.9950815406199613,
+    "gate_beta_hat": 4.032862721220554,
+    "gate_eta_hat": 1545.2575986537206
+  },
+  "experimental_design": {
+    "train_n_values": [7, 10, 20],
+    "repeats_per_n": 500,
+    "sampling": "without_replacement",
+    "holdout": "complement_of_train",
+    "base_seed": 20260725,
+    "seed_namespace": "real_data_holdout_rng_seed",
+    "seed_derivation": "base_seed + train_n * 10000 + repeat_index",
+    "rng": "numpy.random.default_rng"
+  },
+  "methods": {
+    "default": {
+      "delta": 0.1,
+      "estimator": "MDM(data).run(offset=0.1)",
+      "implementation": "python/methods/mdm.py"
+    },
+    "l2": {
+      "delta_by_n": {
+        "7": 0.10,
+        "10": 0.10,
+        "20": 0.08
+      },
+      "source": "E1/E2 cross-fit selected_deltas.csv, majority vote per n across 5 folds",
+      "implementation": "MDM(data).run(offset=delta_l2_n)"
+    },
+    "nn": {
+      "n_models": 15,
+      "folds": 5,
+      "seeds": [42, 2026, 3407],
+      "contract_ref": "artifacts/formal/E4_robustness/manifest_e4d.json",
+      "architecture": "MLP",
+      "hidden_layers": [256, 128, 64],
+      "input_features": 13,
+      "output_dim": 26,
+      "scaler_source": "main_grid_train_folds_only",
+      "training_data": "main_grid_train_combos_only",
+      "no_cherry_picking": true
+    }
+  },
+  "evaluation": {
+    "primary_metric": "holdout_ecdf_max_distance",
+    "primary_metric_definition": "max_x |F_model_CDF(x) - F_holdout_ECDF(x)|",
+    "auxiliary_metrics": [
+      "support_set_violation_rate",
+      "parameter_distance_beta",
+      "parameter_distance_eta",
+      "paired_win_rate_default_vs_l2",
+      "paired_win_rate_nn_vs_l2",
+      "paired_win_rate_nn_vs_default"
+    ],
+    "large_sample_ref": "OLS_weibull_on_all_101",
+    "large_sample_is_ground_truth": false,
+    "aggregation": {
+      "nn_per_model_first": true,
+      "nn_then_cross_model_distribution": true,
+      "no_pseudo_pvalues": true,
+      "no_repeats_as_independent": true
+    }
+  },
+  "output": {
+    "dir": "artifacts/formal/real_data/nist-6061-t6-fatigue",
+    "files": [
+      "real_holdout_results.csv",
+      "real_holdout_summary.json",
+      "real_nn_model_stability.csv",
+      "real_data_manifest.json",
+      "run_log.txt"
+    ]
+  },
+  "stop_conditions": [
+    "gate_failure",
+    "sha256_mismatch",
+    "missing_input",
+    "existing_artifact_overwrite",
+    "data_leakage_to_training_or_scaler",
+    "fewer_than_15_selectors"
+  ],
+  "out_of_scope": [
+    "method_comparison_results",
+    "engineering_life_quantiles",
+    "pseudo_pvalues",
+    "true_parameter_claims",
+    "new_data_sources",
+    "continuous_space_generalization",
+    "deployment_claims"
+  ]
+}
