@@ -585,12 +585,10 @@ def main() -> int:
     elif args.command == "formal-accredit-build":
         payload = accredit_build(args.module, args.run_id, args.artifact_root, args.cache_root)
     elif args.command == "formal-consume-test":
-        payload = consume_g3_test(
-            study_root=STUDY_ROOT,
-            artifact_root=args.artifact_root,
-            cache_root=args.cache_root,
-            code_commit=_git_sha(),
-            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        raise SystemExit(
+            "FATAL: formal-consume-test is BLOCKED. The unified G3 bundle/approval/manifest "
+            "control plane (R3) must be verified and Codex-APPROVED before test consumption. "
+            "This CLI entry refuses to execute until the G3 accreditation path is complete."
         )
     else:
         raise AssertionError(f"Unreachable command: {args.command}")
