@@ -1,4 +1,4 @@
-# Study01 P7 — Executor Report (Real Data Pipeline Implementation)
+﻿# Study01 P7 — Executor Report (Real Data Pipeline Implementation)
 
 **Report type**: P7 implementation report (REVISE v3 — 13 total issues addressed across 3 review rounds)
 **Date**: 2026-07-25
@@ -14,12 +14,13 @@
 ```
 Branch:      study01xu
 Base:        origin/study01xu @ cc1269c
-Tip:         06cfd02a (P7 REVISE v3)
+Production:  06cfd02a (P7 REVISE v3 implementation)
 P6 APPROVE:  bbac203
 P7 v1:       d840331, c0fbd08 (SUPERSEDED)
 P7 REVISE:   079b979 (SUPERSEDED)
 P7 REVISE v2: 3a52ff9, 3947235 (SUPERSEDED)
-P7 REVISE v3: 06cfd02a (current — 4 additional issues fixed)
+P7 REVISE v3: 06cfd02a (SUPERSEDED)
+Current tip:  c5e3309 (verification — test fix + report sync, 124 tests)
 ```
 
 ## Commit Summary
@@ -133,7 +134,7 @@ pytest python/tests/test_study01_real_data_gate.py \
 ### Result
 
 ```
-124 passed in 9.35s
+124 passed in ~44s
 ```
 
 ### P7 Test Breakdown (REVISED)
@@ -173,8 +174,8 @@ pytest python/tests/test_study01_real_data_gate.py \
 |-----------|-------|
 | `test_study01_real_data_gate.py` | 16 |
 | `test_study01_p6_frozen_contract.py` | 20 |
-| `test_study01_p7_pipeline.py` | 71 |
-| **Total** | **107** |
+| `test_study01_p7_pipeline.py` | 88 |
+| **Total** | **124** |
 
 ## Smoke Run Evidence
 
