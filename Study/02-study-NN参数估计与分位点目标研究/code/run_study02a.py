@@ -47,7 +47,7 @@ from study02a.formal_state import (
     publish_oracle_approval,
 )
 from study02a.formal_config import load_effective_formal_config
-from study02a.formal_test_consumer import consume_test_evaluation
+from study02a.formal_test_consumer import consume_g3_test
 from study02a.selection import build_decision_specs, load_point_evidence
 from study02a.training import FitResult
 
@@ -481,14 +481,10 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--cache-root", type=Path, required=True)
     consume = commands.add_parser(
         "formal-consume-test",
-        help="one-shot test evaluation after oracle approval (unsealed_once -> consumed); exactly one test access, no retry",
+        help="unified G3 test evaluation: derive cohort from frozen authorities, evaluate all checkpoints + traditional methods, consume (no caller-supplied winner/module)",
     )
-    consume.add_argument("--module", choices=("A-E1", "A-E3", "A-E2"), required=True)
-    consume.add_argument("--run-id", required=True)
     consume.add_argument("--artifact-root", type=Path, required=True)
     consume.add_argument("--cache-root", type=Path, required=True)
-    consume.add_argument("--winner-fit-id", required=True,
-                         help="fit_id of the selected winner whose checkpoint is evaluated on test")
     return parser
 
 
@@ -589,12 +585,11 @@ def main() -> int:
     elif args.command == "formal-accredit-build":
         payload = accredit_build(args.module, args.run_id, args.artifact_root, args.cache_root)
     elif args.command == "formal-consume-test":
-        payload = consume_test_evaluation(
-            run_dir=args.artifact_root / args.module / args.run_id,
+        payload = consume_g3_test(
             study_root=STUDY_ROOT,
+            artifact_root=args.artifact_root,
             cache_root=args.cache_root,
-            module_id=args.module,
-            winner_fit_id=args.winner_fit_id,
+            code_commit=_git_sha(),
             timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         )
     else:

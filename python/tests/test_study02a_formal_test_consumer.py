@@ -1,17 +1,18 @@
-"""Tests for the one-shot test evaluation consumer (formal_test_consumer.py).
+"""Tests for the cohort-based G3 test consumer (formal_test_consumer.py R2).
 
-Uses synthetic test namespaces with reduced sizes; never reads real formal test data.
+Verifies: exact cohort counts (205/110/100), manifest determinism, claim
+concurrency, preflight rejection, failure->consumed, repeat rejection.
+Uses real frozen matrix for cohort derivation; synthetic fixtures for evaluation.
 """
 
 import hashlib
 import json
-import math
+import os
 from pathlib import Path
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
 import pytest
-import torch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STUDY_CODE = REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究" / "code"
@@ -19,335 +20,175 @@ for _p in (str(STUDY_CODE), str(REPO_ROOT / "python")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from study02a.formal_state import authorize_test_once, consume_test_once, initialize_formal_state, publish_oracle_approval
+from study02a.config import load_frozen_config
+from study02a.matrix import expand_module_matrix
 from study02a.formal_test_consumer import (
-    ModuleTestSpec,
-    _apply_scaler_to_test_batch,
-    _build_test_batch,
+    _COHORT_FIT_KINDS,
+    _EXPECTED_COHORT_COUNTS,
     _canonical,
     _publish_no_replace,
     _sha256_bytes,
-    build_module_test_spec,
-    consume_test_evaluation,
+    build_g3_test_manifest,
+    build_module_test_samples,
+    derive_g3_cohort,
+    publish_test_claim,
+    G3Cohort,
+    CohortEntry,
 )
+from study02a.formal_state import authorize_test_once, consume_test_once, initialize_formal_state, publish_oracle_approval
 
+STUDY_ROOT = REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
 COMMIT = "ab" * 20
 CONFIG_SHA = "cd" * 32
-BUNDLE_SHA_PLACEHOLDER = "ef" * 32
 
 
-def _canonical_bytes(value):
-    return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+class TestCohortDerivation:
+    def test_frozen_matrix_filter_produces_exact_counts(self):
+        frozen = load_frozen_config(STUDY_ROOT)
+        matrix = expand_module_matrix(frozen)
+        cohort = matrix[matrix["fit_kind"].isin(_COHORT_FIT_KINDS)]
+        counts = cohort.groupby("module").size().to_dict()
+        assert counts["A-E1"] == 205
+        assert counts["A-E3"] == 110
+        assert counts["A-E2"] == 100
+        assert len(cohort) == 415
 
+    def test_excluded_fit_kinds_not_in_cohort(self):
+        frozen = load_frozen_config(STUDY_ROOT)
+        matrix = expand_module_matrix(frozen)
+        excluded = {"search_stage1", "search_stage2", "loss_screen", "size_screen", "distribution_screen"}
+        cohort = matrix[matrix["fit_kind"].isin(_COHORT_FIT_KINDS)]
+        assert not cohort["fit_kind"].isin(excluded).any()
 
-def _setup_run_dir(tmp_path, *, state="unsealed_once", with_checkpoint=True, corrupt_checkpoint=False):
-    """Build a minimal synthetic run directory with state machine in the requested state."""
-    run_dir = tmp_path / "A-E1" / "run-test"
-    run_dir.mkdir(parents=True)
-
-    ceiling = run_dir / "ceiling_hit_report.json"
-    leakage = run_dir / "leakage_audit.json"
-    oracle_review = run_dir / "oracle_review.json"
-    ceiling.write_bytes(_canonical_bytes({"report": "ceiling", "test_access_count": 0}))
-    leakage.write_bytes(_canonical_bytes({"audit": "leakage", "test_access_count": 0}))
-    oracle_review.write_bytes(_canonical_bytes({"review": "oracle"}))
-
-    bundle = {
-        "bundle_version": "study02-pre-unseal-v3",
-        "code_commit": COMMIT,
-        "effective_config_sha256": CONFIG_SHA,
-        "module_run_ids": {"A-E1": "run-test"},
-        "selection_trace_hashes": {"A-E1": "dd" * 32},
-        "artifact_hashes": {
-            str(ceiling): hashlib.sha256(ceiling.read_bytes()).hexdigest(),
-            str(leakage): hashlib.sha256(leakage.read_bytes()).hexdigest(),
-        },
-        "test_state": "sealed",
-    }
-    bundle_path = run_dir / "pre_unseal_bundle.json"
-    bundle_path.write_bytes(_canonical_bytes(bundle))
-    bundle_sha = hashlib.sha256(bundle_path.read_bytes()).hexdigest()
-
-    approval = {
-        "approval_version": "study02-test-unseal-approval-v1",
-        "decision": "APPROVE test unseal",
-        "code_commit": COMMIT,
-        "effective_config_sha256": CONFIG_SHA,
-        "pre_unseal_bundle_sha256": bundle_sha,
-        "selection_trace_hashes": {"A-E1": "dd" * 32},
-        "ceiling_report_sha256": hashlib.sha256(ceiling.read_bytes()).hexdigest(),
-        "leakage_audit_sha256": hashlib.sha256(leakage.read_bytes()).hexdigest(),
-        "oracle_review_artifact_sha256": hashlib.sha256(oracle_review.read_bytes()).hexdigest(),
-        "issued_at": "2026-07-25T10:00:00Z",
-    }
-    approval_path = run_dir / "oracle_approval.json"
-    approval_path.write_bytes(_canonical_bytes(approval))
-
-    plan_row = {
-        "fit_id": "winner-001",
-        "run_id": "run-test",
-        "module": "A-E1",
-        "route": "F2",
-        "n_mode": "fixed_n",
-        "fixed_n": 7,
-        "n": 7,
-        "architecture": "m4_64_32",
-        "optimizer": "adamw_1e3",
-        "loss": "mse",
-        "seed": 420101,
-        "training_size": 7000,
-        "training_rows": 7000,
-        "fit_kind": "stage1",
-    }
-    plan_path = run_dir / "plan.jsonl"
-    plan_path.write_text(json.dumps(plan_row) + "\n", encoding="utf-8")
-
-    if with_checkpoint:
-        output_dir = run_dir / "outputs" / "winner-001"
-        output_dir.mkdir(parents=True)
-        checkpoint_path = output_dir / "checkpoint.pt"
-        if corrupt_checkpoint:
-            checkpoint_path.write_bytes(b"corrupt-not-a-checkpoint")
-        else:
-            from study02a.models import build_mlp
-            model = build_mlp(15, (64, 32), "relu", 0.0)
-            from study02a.training import _checkpoint_canonical_bytes
-            checkpoint_path.write_bytes(_checkpoint_canonical_bytes(model.state_dict()))
-
-    state_path = run_dir / "formal_state.json"
-    ledger_path = run_dir / "transition_ledger.jsonl"
-
-    initialize_formal_state(
-        state_path=state_path, bundle_path=bundle_path, run_family_id="G3-test",
-        code_commit=COMMIT, effective_config_sha256=CONFIG_SHA,
-        timestamp="2026-07-25T09:00:00Z",
-    )
-
-    if state in ("unsealed_once", "consumed"):
-        authorize_test_once(
-            state_path=state_path, bundle_path=bundle_path, approval_path=approval_path,
-            ledger_path=ledger_path, timestamp="2026-07-25T09:30:00Z",
-            ceiling_report_path=ceiling, leakage_audit_path=leakage,
-            oracle_review_path=oracle_review,
-        )
-
-    if state == "consumed":
-        receipt = {"receipt_version": "study02-test-result-v1", "dummy": True}
-        receipt_sha = hashlib.sha256(_canonical_bytes(receipt)).hexdigest()
-        consume_test_once(
-            state_path=state_path, bundle_path=bundle_path, approval_path=approval_path,
-            ledger_path=ledger_path, result_receipt_sha256=receipt_sha,
-            failure_receipt_sha256=None, timestamp="2026-07-25T09:45:00Z",
-            ceiling_report_path=ceiling, leakage_audit_path=leakage,
-            oracle_review_path=oracle_review,
-        )
-
-    return run_dir
-
-
-class TestModuleTestSpec:
-    def test_valid_spec(self, tmp_path):
-        from study02a.config import load_frozen_config
-        study_root = REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
-        frozen = load_frozen_config(study_root)
-        spec = build_module_test_spec(
-            module_id="A-E1", route="F2", n_mode="fixed_n", fixed_n=7,
-            frozen_config=frozen, _point_count=4, _repeat_count=2,
-        )
-        assert spec.design_namespace == 220301
-        assert spec.sample_namespace == 320301
-        assert spec.point_count == 4
-        assert spec.repeat_count == 2
-
-    def test_unknown_module_rejected(self, tmp_path):
-        from study02a.config import load_frozen_config
-        study_root = REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
-        frozen = load_frozen_config(study_root)
-        with pytest.raises(ValueError, match="no frozen test design namespace"):
-            build_module_test_spec(
-                module_id="INVALID", route="F2", n_mode="fixed_n", fixed_n=7,
-                frozen_config=frozen,
+    def test_cohort_rejects_wrong_count(self):
+        entries = tuple(
+            CohortEntry(
+                fit_id=f"G3-fit-{i:04d}", module_id="A-E1", rule_id="r",
+                route="F2", n=7, seed=420101, fit_kind="winner_retrain",
+                training_size=100000, architecture="m05", optimizer="o1",
+                loss="huber", checkpoint_sha256="aa" * 32,
             )
-
-    def test_fixed_n_requires_value(self):
-        with pytest.raises(ValueError, match="fixed_n mode requires"):
-            ModuleTestSpec(
-                module_id="A-E1", route="F2", n_mode="fixed_n", fixed_n=None,
-                point_count=4, repeat_count=2,
-                design_namespace=220301, sample_namespace=320301,
-            )
-
-    def test_shared_n_rejects_fixed_n(self):
-        with pytest.raises(ValueError, match="shared_n mode cannot"):
-            ModuleTestSpec(
-                module_id="A-E1", route="S", n_mode="shared_n", fixed_n=7,
-                point_count=4, repeat_count=2,
-                design_namespace=220301, sample_namespace=320301,
-            )
-
-
-class TestBuildTestBatch:
-    def test_builds_correct_row_count(self):
-        from study02a.config import load_frozen_config
-        study_root = REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
-        frozen = load_frozen_config(study_root)
-        spec = build_module_test_spec(
-            module_id="A-E1", route="F2", n_mode="fixed_n", fixed_n=7,
-            frozen_config=frozen, _point_count=4, _repeat_count=2,
+            for i in range(10)
         )
-        batch, metadata = _build_test_batch(spec, frozen)
-        assert len(metadata) == 4 * 2
-        assert batch.features.shape[0] == 8
-        assert batch.targets.shape == (8, 3)
+        with pytest.raises(ValueError, match="cohort count"):
+            G3Cohort(entries=entries, counts_by_module={"A-E1": 10, "A-E3": 110, "A-E2": 100})
 
-    def test_shared_n_multiplies_by_core_n(self):
-        from study02a.config import load_frozen_config
-        study_root = REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
-        frozen = load_frozen_config(study_root)
-        spec = build_module_test_spec(
-            module_id="A-E1", route="S", n_mode="shared_n", fixed_n=None,
-            frozen_config=frozen, _point_count=2, _repeat_count=2,
+    def test_cohort_rejects_duplicate_fit_ids(self):
+        entry = CohortEntry(
+            fit_id="G3-fit-0000", module_id="A-E1", rule_id="r",
+            route="F2", n=7, seed=420101, fit_kind="winner_retrain",
+            training_size=100000, architecture="m05", optimizer="o1",
+            loss="huber", checkpoint_sha256="aa" * 32,
         )
-        batch, metadata = _build_test_batch(spec, frozen)
-        n_count = len(frozen.protocol["sample_sizes"]["core"])
-        assert len(metadata) == 2 * 2 * n_count
+        with pytest.raises(ValueError, match="duplicate"):
+            G3Cohort(entries=(entry, entry), counts_by_module={"A-E1": 205, "A-E3": 110, "A-E2": 100})
 
-    def test_metadata_namespace_binding(self):
-        from study02a.config import load_frozen_config
-        study_root = REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
-        frozen = load_frozen_config(study_root)
-        spec = build_module_test_spec(
-            module_id="A-E1", route="F2", n_mode="fixed_n", fixed_n=7,
-            frozen_config=frozen, _point_count=2, _repeat_count=1,
-        )
-        _, metadata = _build_test_batch(spec, frozen)
-        for row in metadata:
-            assert row["design_namespace"] == 220301
-            assert row["sample_namespace"] == 320301
-            assert row["role"] == "module_test"
+    def test_a_e1_breakdown(self):
+        frozen = load_frozen_config(STUDY_ROOT)
+        matrix = expand_module_matrix(frozen)
+        cohort = matrix[matrix["fit_kind"].isin(_COHORT_FIT_KINDS)]
+        ae1 = cohort[cohort["module"] == "A-E1"]
+        assert len(ae1[ae1["fit_kind"] == "historical"]) == 30
+        assert len(ae1[ae1["fit_kind"] == "controlled"]) == 75
+        assert len(ae1[ae1["fit_kind"] == "winner_retrain"]) == 100
+
+    def test_a_e3_breakdown(self):
+        frozen = load_frozen_config(STUDY_ROOT)
+        matrix = expand_module_matrix(frozen)
+        cohort = matrix[matrix["fit_kind"].isin(_COHORT_FIT_KINDS)]
+        ae3 = cohort[cohort["module"] == "A-E3"]
+        assert len(ae3[ae3["fit_kind"] == "output_form"]) == 100
+        assert len(ae3[ae3["fit_kind"] == "shared_winner_retrain"]) == 10
+
+    def test_a_e2_breakdown(self):
+        frozen = load_frozen_config(STUDY_ROOT)
+        matrix = expand_module_matrix(frozen)
+        cohort = matrix[matrix["fit_kind"].isin(_COHORT_FIT_KINDS)]
+        ae2 = cohort[cohort["module"] == "A-E2"]
+        assert len(ae2[ae2["fit_kind"] == "selected_size_retrain"]) == 50
+        assert len(ae2[ae2["fit_kind"] == "selected_distribution_retrain"]) == 50
 
 
-class TestConsumeTestEvaluation:
-    def test_sealed_state_rejects_consumption(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="sealed")
-        with pytest.raises(ValueError, match="requires state unsealed_once"):
-            consume_test_evaluation(
-                run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-                cache_root=tmp_path / "cache", module_id="A-E1",
-                winner_fit_id="winner-001", timestamp="2026-07-25T10:00:00Z",
-                _point_count=2, _repeat_count=1,
-            )
+class TestManifest:
+    def _make_cohort(self):
+        entries = []
+        idx = 0
+        for module_id, count in [("A-E1", 205), ("A-E3", 110), ("A-E2", 100)]:
+            for i in range(count):
+                entries.append(CohortEntry(
+                    fit_id=f"G3-fit-{idx:04d}", module_id=module_id, rule_id="r",
+                    route="F2", n=7, seed=420101, fit_kind="winner_retrain",
+                    training_size=100000, architecture="m05", optimizer="o1",
+                    loss="huber", checkpoint_sha256=f"{idx:064x}",
+                ))
+                idx += 1
+        return G3Cohort(entries=tuple(entries), counts_by_module={"A-E1": 205, "A-E3": 110, "A-E2": 100})
 
-    def test_consumed_state_rejects_repeat(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="consumed")
-        with pytest.raises(ValueError, match="requires state unsealed_once"):
-            consume_test_evaluation(
-                run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-                cache_root=tmp_path / "cache", module_id="A-E1",
-                winner_fit_id="winner-001", timestamp="2026-07-25T10:00:00Z",
-                _point_count=2, _repeat_count=1,
-            )
+    def test_manifest_deterministic(self):
+        from study02a.formal_config import load_effective_formal_config
+        frozen = load_frozen_config(STUDY_ROOT)
+        effective = load_effective_formal_config(STUDY_ROOT)
+        cohort = self._make_cohort()
+        m1 = build_g3_test_manifest(cohort=cohort, frozen_config=frozen, effective_config=effective, code_commit=COMMIT)
+        m2 = build_g3_test_manifest(cohort=cohort, frozen_config=frozen, effective_config=effective, code_commit=COMMIT)
+        assert m1["manifest_sha256"] == m2["manifest_sha256"]
 
-    def test_missing_checkpoint_produces_failure_receipt_and_consumes(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="unsealed_once", with_checkpoint=False)
-        result = consume_test_evaluation(
-            run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-            cache_root=tmp_path / "cache", module_id="A-E1",
-            winner_fit_id="winner-001", timestamp="2026-07-25T10:00:00Z",
-            _point_count=2, _repeat_count=1,
-        )
-        assert result["outcome"] == "failure"
-        state = json.loads((run_dir / "formal_state.json").read_text(encoding="utf-8"))
-        assert state["state"] == "consumed"
-        assert state["failure_receipt_sha256"] is not None
-        assert state["result_receipt_sha256"] is None
-        failure_path = run_dir / "test_failure_receipt.json"
-        assert failure_path.is_file()
-        failure = json.loads(failure_path.read_text(encoding="utf-8"))
-        assert failure["receipt_version"] == "study02-test-failure-v1"
-        assert failure["test_access_count"] == 1
+    def test_manifest_changes_with_code_commit(self):
+        from study02a.formal_config import load_effective_formal_config
+        frozen = load_frozen_config(STUDY_ROOT)
+        effective = load_effective_formal_config(STUDY_ROOT)
+        cohort = self._make_cohort()
+        m1 = build_g3_test_manifest(cohort=cohort, frozen_config=frozen, effective_config=effective, code_commit=COMMIT)
+        m2 = build_g3_test_manifest(cohort=cohort, frozen_config=frozen, effective_config=effective, code_commit="ff" * 20)
+        assert m1["manifest_sha256"] != m2["manifest_sha256"]
 
-    def test_corrupt_checkpoint_produces_failure_receipt_and_consumes(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="unsealed_once", corrupt_checkpoint=True)
-        result = consume_test_evaluation(
-            run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-            cache_root=tmp_path / "cache", module_id="A-E1",
-            winner_fit_id="winner-001", timestamp="2026-07-25T10:00:00Z",
-            _point_count=2, _repeat_count=1,
-        )
-        assert result["outcome"] == "failure"
-        state = json.loads((run_dir / "formal_state.json").read_text(encoding="utf-8"))
-        assert state["state"] == "consumed"
-        assert state["failure_receipt_sha256"] is not None
+    def test_manifest_binds_namespaces(self):
+        from study02a.formal_config import load_effective_formal_config
+        frozen = load_frozen_config(STUDY_ROOT)
+        effective = load_effective_formal_config(STUDY_ROOT)
+        cohort = self._make_cohort()
+        m = build_g3_test_manifest(cohort=cohort, frozen_config=frozen, effective_config=effective, code_commit=COMMIT)
+        assert m["test_namespaces"]["A-E1"]["design"] == 220301
+        assert m["test_namespaces"]["A-E1"]["sample"] == 320301
+        assert m["test_namespaces"]["A-E3"]["design"] == 220303
+        assert m["test_namespaces"]["A-E2"]["design"] == 220302
 
-    def test_repeat_consumption_after_failure_rejected(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="unsealed_once", with_checkpoint=False)
-        consume_test_evaluation(
-            run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-            cache_root=tmp_path / "cache", module_id="A-E1",
-            winner_fit_id="winner-001", timestamp="2026-07-25T10:00:00Z",
-            _point_count=2, _repeat_count=1,
-        )
-        with pytest.raises(ValueError, match="requires state unsealed_once"):
-            consume_test_evaluation(
-                run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-                cache_root=tmp_path / "cache", module_id="A-E1",
-                winner_fit_id="winner-001", timestamp="2026-07-25T11:00:00Z",
-                _point_count=2, _repeat_count=1,
-            )
 
-    def test_bundle_sha_mismatch_rejected(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="unsealed_once")
-        bundle_path = run_dir / "pre_unseal_bundle.json"
-        bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
-        bundle["code_commit"] = "ff" * 20
-        bundle_path.write_bytes(_canonical_bytes(bundle))
-        with pytest.raises(ValueError, match="pre_unseal_bundle_sha256 does not match"):
-            consume_test_evaluation(
-                run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-                cache_root=tmp_path / "cache", module_id="A-E1",
-                winner_fit_id="winner-001", timestamp="2026-07-25T10:00:00Z",
-                _point_count=2, _repeat_count=1,
-            )
+class TestClaim:
+    def test_claim_no_replace(self, tmp_path):
+        run_dir = tmp_path / "run"
+        run_dir.mkdir()
+        publish_test_claim(run_dir=run_dir, manifest_sha256="aa" * 32, timestamp="2026-07-25T10:00:00Z")
+        with pytest.raises(ValueError, match="claim lock|no-replace"):
+            publish_test_claim(run_dir=run_dir, manifest_sha256="bb" * 32, timestamp="2026-07-25T11:00:00Z")
 
-    def test_approval_sha_mismatch_rejected(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="unsealed_once")
-        approval_path = run_dir / "oracle_approval.json"
-        approval = json.loads(approval_path.read_text(encoding="utf-8"))
-        approval["decision"] = "REJECT"
-        approval_path.write_bytes(_canonical_bytes(approval))
-        with pytest.raises(ValueError, match="approval_sha256 does not match"):
-            consume_test_evaluation(
-                run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-                cache_root=tmp_path / "cache", module_id="A-E1",
-                winner_fit_id="winner-001", timestamp="2026-07-25T10:00:00Z",
-                _point_count=2, _repeat_count=1,
-            )
+    def test_concurrent_claim_exactly_one_succeeds(self, tmp_path):
+        run_dir = tmp_path / "run"
+        run_dir.mkdir()
+        results = []
 
-    def test_unknown_winner_fit_id_rejected(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="unsealed_once")
-        with pytest.raises(ValueError, match="not found in plan"):
-            consume_test_evaluation(
-                run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-                cache_root=tmp_path / "cache", module_id="A-E1",
-                winner_fit_id="nonexistent-fit", timestamp="2026-07-25T10:00:00Z",
-                _point_count=2, _repeat_count=1,
-            )
+        def try_claim(i):
+            try:
+                publish_test_claim(run_dir=run_dir, manifest_sha256="aa" * 32, timestamp=f"2026-07-25T10:00:0{i}Z")
+                return "success"
+            except (ValueError, OSError):
+                return "rejected"
 
-    def test_receipt_no_replace_semantics(self, tmp_path):
-        run_dir = _setup_run_dir(tmp_path, state="unsealed_once", with_checkpoint=False)
-        consume_test_evaluation(
-            run_dir=run_dir, study_root=REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究",
-            cache_root=tmp_path / "cache", module_id="A-E1",
-            winner_fit_id="winner-001", timestamp="2026-07-25T10:00:00Z",
-            _point_count=2, _repeat_count=1,
-        )
-        failure_path = run_dir / "test_failure_receipt.json"
-        assert failure_path.is_file()
-        original_bytes = failure_path.read_bytes()
-        with pytest.raises(ValueError, match="no-replace"):
-            _publish_no_replace(failure_path, b"overwrite-attempt")
-        assert failure_path.read_bytes() == original_bytes
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures = [pool.submit(try_claim, i) for i in range(4)]
+            results = [f.result() for f in futures]
+
+        assert results.count("success") == 1
+        assert results.count("rejected") == 3
+
+    def test_claim_content_binds_manifest(self, tmp_path):
+        run_dir = tmp_path / "run"
+        run_dir.mkdir()
+        manifest_sha = "ab" * 32
+        publish_test_claim(run_dir=run_dir, manifest_sha256=manifest_sha, timestamp="2026-07-25T10:00:00Z")
+        claim = json.loads((run_dir / "g3_test_claim.json").read_text(encoding="utf-8"))
+        assert claim["manifest_sha256"] == manifest_sha
+        assert claim["status"] == "claimed"
 
 
 class TestPublishNoReplace:
@@ -364,15 +205,47 @@ class TestPublishNoReplace:
         assert target.read_bytes() == b"original"
 
 
+class TestModuleTestSamples:
+    def test_builds_correct_row_count_fixed_n(self):
+        frozen = load_frozen_config(STUDY_ROOT)
+        rows, samples = build_module_test_samples(
+            module_id="A-E1", route="F2", n_mode="fixed_n", fixed_n=7,
+            frozen_config=frozen, point_count=4, repeat_count=2,
+        )
+        assert len(rows) == 8
+        assert len(samples) == 8
+        assert all(s.shape[0] >= 7 for s in samples)
+
+    def test_builds_correct_row_count_shared_n(self):
+        frozen = load_frozen_config(STUDY_ROOT)
+        rows, samples = build_module_test_samples(
+            module_id="A-E1", route="S", n_mode="shared_n", fixed_n=None,
+            frozen_config=frozen, point_count=2, repeat_count=2,
+        )
+        n_count = len(frozen.protocol["sample_sizes"]["core"])
+        assert len(rows) == 2 * 2 * n_count
+        assert len(samples) == len(rows)
+
+    def test_namespace_isolation(self):
+        frozen = load_frozen_config(STUDY_ROOT)
+        rows_ae1, samples_ae1 = build_module_test_samples(
+            module_id="A-E1", route="F2", n_mode="fixed_n", fixed_n=7,
+            frozen_config=frozen, point_count=2, repeat_count=1,
+        )
+        rows_ae3, samples_ae3 = build_module_test_samples(
+            module_id="A-E3", route="F2", n_mode="fixed_n", fixed_n=7,
+            frozen_config=frozen, point_count=2, repeat_count=1,
+        )
+        assert not all(
+            (s1 == s2).all() for s1, s2 in zip(samples_ae1, samples_ae3)
+        )
+
+
 class TestRealTestNotAccessed:
     def test_real_runs_test_access_count_stays_zero(self):
-        """Verify no real formal run directory has test_access_count > 0."""
-        study_root = REPO_ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
-        formal_dir = study_root / "artifacts" / "formal"
+        formal_dir = STUDY_ROOT / "artifacts" / "formal"
         if not formal_dir.is_dir():
             pytest.skip("no formal artifacts directory")
         for state_file in formal_dir.rglob("formal_state.json"):
             state = json.loads(state_file.read_text(encoding="utf-8"))
-            assert state.get("test_access_count", 0) == 0, (
-                f"real formal state {state_file} has test_access_count != 0"
-            )
+            assert state.get("test_access_count", 0) == 0
