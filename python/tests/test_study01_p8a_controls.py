@@ -215,21 +215,16 @@ class TestP8aSmokeRun:
                     f"Missing output: {fname}"
                 )
 
-    def test_smoke_no_formal_dir_contamination(self):
-        """Smoke run to temp dir must not touch formal output dir."""
+    def test_formal_outputs_exist_after_p8a_run(self):
+        """After P8a formal run, all 5 contracted output files must exist."""
         formal_dir = str(STUDY_ROOT / "artifacts" / "formal" / "real_data"
                          / "nist-6061-t6-fatigue")
-        formal_files_before = set()
-        for fname in ['real_holdout_results.csv', 'real_holdout_summary.json',
-                      'real_nn_model_stability.csv', 'real_data_manifest.json',
-                      'run_log.txt']:
-            if os.path.exists(os.path.join(formal_dir, fname)):
-                formal_files_before.add(fname)
-        # Formal dir should have NO output files before P8a formal run
-        assert len(formal_files_before) == 0, (
-            f"Formal output files already exist: {formal_files_before}. "
-            f"P8a formal run has not been executed yet."
-        )
+        expected_files = ['real_holdout_results.csv', 'real_holdout_summary.json',
+                          'real_nn_model_stability.csv', 'real_data_manifest.json',
+                          'run_log.txt']
+        for fname in expected_files:
+            path = os.path.join(formal_dir, fname)
+            assert os.path.exists(path), f"P8a output missing after formal run: {fname}"
 
 
 # ═══════════════════════════════════════════════════════════════
