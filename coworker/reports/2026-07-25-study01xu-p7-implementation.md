@@ -4,8 +4,8 @@
 **Date**: 2026-07-25
 **Branch**: `study01xu`
 **Executor**: Claude Code
-**Status**: P7 REVISED v3 — READY_FOR_INDEPENDENT_REVIEW
-**Next phase**: P8a (formal comparison run) — NOT started
+**Status**: P7 APPROVED ✅ (Codex independent review passed @ d619a40)
+**Next phase**: P8a (formal comparison run) — executing
 
 ---
 
@@ -14,13 +14,12 @@
 ```
 Branch:      study01xu
 Base:        origin/study01xu @ cc1269c
-Production:  06cfd02a (P7 REVISE v3 implementation)
 P6 APPROVE:  bbac203
 P7 v1:       d840331, c0fbd08 (SUPERSEDED)
 P7 REVISE:   079b979 (SUPERSEDED)
 P7 REVISE v2: 3a52ff9, 3947235 (SUPERSEDED)
 P7 REVISE v3: 06cfd02a (SUPERSEDED)
-Current tip:  c5e3309 (verification — test fix + report sync, 124 tests)
+P7 APPROVE:  d619a40 (Codex independent review passed, 124 tests)
 ```
 
 ## Commit Summary
@@ -34,7 +33,10 @@ Current tip:  c5e3309 (verification — test fix + report sync, 124 tests)
 | 5 | `079b979` | **P7 REVISE v1**: fix 6 issue groups, 124 tests (SUPERSEDED) |
 | 6 | `3a52ff9` | **P7 REVISE v2**: NN model-first, deep input gate, remove 6th file, manifest fixes (SUPERSEDED) |
 | 7 | `3947235` | **P7 REVISE v2**: executor report update (SUPERSEDED) |
-| 8 | `06cfd02a` | **P7 REVISE v3**: summary write order, chunk identity mapping, support_set_violation NaN, 3 regression tests — **124 tests pass** |
+| 8 | `06cfd02a` | **P7 REVISE v3**: summary write order, chunk identity mapping, support_set_violation NaN, 3 regression tests — 124 tests pass (SUPERSEDED) |
+| 9 | `0eba10b` | **P7 REVISE v3**: executor report sync (SUPERSEDED) |
+| 10 | `c5e3309` | **P7 test fix**: vacuous cross-model distribution test — non-empty assertion with disk JSON verification |
+| 11 | `d619a40` | **P7 final**: monkeypatch cross-model test + report consistency — **Codex APPROVE, 124 tests** |
 
 ## REVISION SUMMARY (Codex REVISE, 6 issues)
 
@@ -153,7 +155,7 @@ pytest python/tests/test_study01_real_data_gate.py \
 | `TestGuardNoBypass` | 5 | **NEW**: Guard active, main raises, no bypass in signature, CLI no bypass/skip-nn flags |
 | `TestOutputProtectionFailClosed` | 2 | **NEW**: Clean dir ok, existing file raises |
 | `TestPreflightFailClosed` | 3 | **NEW**: Real data passes, bad chunks raises |
-| `TestNNPredictionFailure` | 2 | **NEW**: Failed row recorded, delta is NaN not 0.1 |
+| `TestNNPredictionFailure` | 3 | **NEW**: Failed row recorded, delta is NaN not 0.1, support-set NaN |
 | `TestSummaryCompleteness` | 4 | **NEW**: Primary stats, complete-case, paired wins, dist helper |
 | `TestManifestCompleteness` | 4 | **NEW**: Config hash, versions, NN training info, porcelain |
 | `test_config_hash_deterministic` | 1 | **NEW**: Hash is deterministic SHA256 |
@@ -166,7 +168,15 @@ pytest python/tests/test_study01_real_data_gate.py \
 | `TestFailClosedValidation` | 2 | **NEW**: Missing BIRNSAUN terminates, output conflict before computation |
 | `TestContractCompliance` | 5 | L2 CSV, E4d manifest, main chunks, NIST dir, guard active |
 | `TestNoLeakageConstraint` | 2 | Features exclude true params, delta grid frozen |
-| **Total P7** | **71** | |
+| `TestNNModelFirstAggregation` | 2 | **NEW**: NN primary is model-first, complete-case is model-first |
+| `TestDeepPreflightValidation` | 3 | **NEW**: 45 chunks validated, corrupted chunk terminates, wrong L2 delta terminates |
+| `TestNoSixthOutputFile` | 2 | **NEW**: Only 5 output files, cross-model distribution in summary JSON |
+| `TestFrozenConfigSHA256` | 4 | **NEW**: Config file exists, SHA256 deterministic, manifest includes, independently verifiable |
+| `TestOutputSafetyContractedFiles` | 2 | **NEW**: Only contracted files checked, contracted file triggers |
+| `TestCrossModelDistributionInDiskJSON` | 1 | **NEW**: Distribution survives production write path |
+| `TestChunkIdentityMapping` | 1 | **NEW**: Swapped chunks blocked |
+| `TestSupportSetViolationNaN` | 1 | **NEW**: Violation rate not negative with NaN |
+| **Total P7** | **88** | |
 
 ### Combined with P6 Tests
 
@@ -227,6 +237,17 @@ The `_P6_PLACEHOLDER_GUARD` remains `True` and will be removed only after P7 pas
 | No new branch or worktree created | ✅ Confirmed |
 | Smoke run → temp directory only | ✅ Confirmed |
 
-## Status: READY_FOR_INDEPENDENT_REVIEW
+## Status: APPROVED ✅ (Codex Independent Review)
 
-P7 pipeline is fully implemented, tested (124 tests pass), and the `_P6_PLACEHOLDER_GUARD` remains active. All contract requirements are satisfied. The implementation is ready for independent review (Codex) with verdict APPROVE / REVISE / BLOCK before proceeding to P8a formal run.
+P7 pipeline passed independent review at tip `d619a40`. Verdict: **APPROVE**.
+
+### P7 Codex APPROVE Record
+
+- **Review tip**: `d619a40` (fix(study01): P7 final fixes — monkeypatch cross-model test + report consistency)
+- **Tests**: 124 passed (16 gate + 20 P6 contract + 88 P7 pipeline)
+- **APPROVE date**: 2026-07-25
+- **APPROVE scope**: P7 implementation — pipeline, tests, and execution readiness only
+- **Explicit exclusion**: P7 APPROVE does NOT cover P8a results; it only authorizes entering P8a formal run
+- **Guard status**: `_P6_PLACEHOLDER_GUARD=True` (remains active until P8b)
+
+The implementation is approved. Proceeding to P8a formal run per frozen P6 contract.
