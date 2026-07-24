@@ -123,9 +123,9 @@ The 743 samples landing at δ=1.00 represent a potential boundary artifact: thei
 | MDM health stats (success/convergence/failure) reported per cohort | ✓ |
 | Per-delta failure logging uses per-delta counts (not cohort-level) | ✓ |
 | Production MDM integration tests pass (3 new) | ✓ |
-| Auto-verification SHA256 test added (10 tests, test_study01_r2_sha256_verify.py) | ✓ |
+| Auto-verification SHA256 test added (11 tests, test_study01_r2_sha256_verify.py) | ✓ |
 | Tie-breaking implemented in code and tested (2 unit tests) | ✓ |
-| All tests pass (99/99, including 10 R2-SHA verification tests) | ✓ |
+| All tests pass (100/100, including 11 R2-SHA verification tests) | ✓ |
 
 ## Artifact Inventory
 
@@ -139,7 +139,7 @@ Output directory: `Study/01-study-MDM最小偏移量优化研究/artifacts/forma
 | `manifest.json` | — | — | `(self — exclude from seal)` |
 | `run_log.txt` | — | 6,302 | `449d6b916eaa8a24...` |
 
-All SHA256 are 64-char hex from `sha256sum(git show HEAD:<path>)` (LF-normalised Git blob bytes). Full values recorded in manifest.json. Auto-verified by `python/tests/test_study01_r2_sha256_verify.py` (10 tests).
+All SHA256 are 64-char hex from `sha256sum(git show HEAD:<path>)` (LF-normalised Git blob bytes). Full values recorded in manifest.json. Auto-verified by `python/tests/test_study01_r2_sha256_verify.py` (11 tests).
 
 ### Provenance
 
@@ -160,10 +160,10 @@ pytest python/tests/test_study01_e4_failclosed.py \
        python/tests/test_study01_real_data_gate.py \
        python/tests/test_study01_e4d_sha256_verify.py \
        python/tests/test_study01_r2_sha256_verify.py -v
-# 99 passed
+# 100 passed
 ```
 
-Breakdown: E4d fail-closed 42, delta upper bound 15 (incl. 2 tie-breaking + 3 integration), real data gate 17, E4d SHA verify 4, R2 SHA verify 10, other 11. Total 99.
+Breakdown: E4d fail-closed 42, delta upper bound 15 (incl. 2 tie-breaking + 3 integration), real data gate 17, E4d SHA verify 4, R2 SHA verify 11, other 11. Total 100.
 
 ## Files Changed
 
