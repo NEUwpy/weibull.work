@@ -1,10 +1,10 @@
 # Study01 P7 — Executor Report (Real Data Pipeline Implementation)
 
-**Report type**: P7 implementation report (REVISED per Codex REVISE — 6 issue groups fixed)
+**Report type**: P7 implementation report (REVISE v2 — 4 additional issues fixed)
 **Date**: 2026-07-25
 **Branch**: `study01xu`
 **Executor**: Claude Code
-**Status**: P7 REVISED — READY_FOR_INDEPENDENT_REVIEW
+**Status**: P7 REVISED v2 — READY_FOR_INDEPENDENT_REVIEW
 **Next phase**: P8a (formal comparison run) — NOT started
 
 ---
@@ -14,10 +14,11 @@
 ```
 Branch:      study01xu
 Base:        origin/study01xu @ cc1269c
-Tip:         c0fbd08 (after P7 commits)
-P6 APPROVE:  bbac203 (record + progress sync)
-P7 Pipeline: d840331 (implementation)
-P7 Tests:    c0fbd08 (66 new tests)
+Tip:         (pending commit — REVISE v2)
+P6 APPROVE:  bbac203
+P7 v1:       d840331, c0fbd08 (SUPERSEDED)
+P7 REVISE:   079b979 (6 issues fixed)
+P7 REVISE v2:(pending — 4 additional issues fixed)
 ```
 
 ## Commit Summary
