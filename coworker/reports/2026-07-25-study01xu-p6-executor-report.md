@@ -1,10 +1,10 @@
 # Study01 P6 — Executor Report (Freeze Phase)
 
-**Report type**: P6 executor report
+**Report type**: P6 executor report (REVISED per Codex review)
 **Date**: 2026-07-25
 **Branch**: `study01xu`
 **Executor**: Claude Code
-**Status**: P6 FREEZE COMPLETE — READY FOR INDEPENDENT REVIEW
+**Status**: P6 REVISED — AWAITING RE-REVIEW
 **Next phase**: P7 (real data pipeline implementation) — NOT started
 
 ---
@@ -14,17 +14,20 @@
 ```
 Branch:   study01xu
 Base:     origin/study01xu @ 7d6e99f2519a9b079d50cf838e14b271cff14255
-Tip:      to be committed after this report
-Commits:  3 new commits since R2 P5b APPROVE
+Initial freeze tip: 701d9a6
+Revised tip:        (to be sealed after fix commit)
+Commits:  5 commits since R2 P5b APPROVE (4 original + 1 fix pending)
 ```
 
 ## Commit Summary
 
 | # | Commit | Responsibility |
 |---|--------|---------------|
-| 1 | `95ccb28` | **P5b closure**: Record Codex APPROVE verdict, 5 scientific resolutions (R2 formally passes, δ≤0.50 insufficient for endpoint cohort, 94.66% migration, δ=1.00 has 743 grid-edge samples, no further extension in this round) |
-| 2 | `00b282d` | **P6 preflight audit**: Document all placeholder gaps in run_real_data_validation.py (MDM tuple bug, missing L2/NN/ECDF/support-set), add fail-closed RuntimeError guard + 2 contract tests |
-| 3 | *(this commit)* | **P6 freeze**: Data source (NIST 6061-T6), frozen contract doc + JSON config, contract self-tests (13 tests), executor report |
+| 1 | `95ccb28` | **P5b closure**: Record Codex APPROVE verdict, 5 scientific resolutions |
+| 2 | `00b282d` | **P6 preflight audit**: Placeholder gaps documented, fail-closed guard + tests |
+| 3 | `701d9a6` | **P6 initial freeze**: Data + contract v1.0 (SUPERSEDED by revision) |
+| 4 | `ac9ade1` | **Progress update**: Status table marking P5b/P6 complete |
+| 5 | *(pending)* | **P6 revision**: Fix metric, failure, aggregation, conversion, license, provenance |
 
 ## Data Source: NIST 6061-T6 (Birnbaum & Saunders 1958)
 
@@ -114,8 +117,8 @@ pytest python/tests/test_study01_real_data_gate.py \
 | Test file | Tests | Coverage |
 |-----------|-------|----------|
 | `test_study01_real_data_gate.py` | 16 | Gate logic, source validation, Weibull helpers, fail-closed guard |
-| `test_study01_p6_frozen_contract.py` | 13 | SHA256 verification, gate re-run, E4d manifest, L2 delta, config consistency |
-| **Total** | **29** | |
+| `test_study01_p6_frozen_contract.py` | 20 | SHA256, gate re-run, E4d manifest, L2 delta, metric formula, failure handling, NN aggregation, conversion script, license, median |
+| **Total** | **36** | |
 
 ## Changed Files
 
