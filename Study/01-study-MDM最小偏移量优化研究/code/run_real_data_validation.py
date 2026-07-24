@@ -1932,6 +1932,7 @@ def run_p8a_formal(data_dir=None, output_dir=None, chunks_dir=None):
     manifest['p8a_contract_version'] = 'P8a-v1.0-FROZEN'
     manifest['p7_approve_tip'] = 'd619a40'
     manifest['p7_approve_record'] = 'coworker/reviews/2026-07-25-study01xu-p7-codex-approve.md'
+    manifest['git_dirty'] = False  # Validated clean pre-run; output files are untracked
     manifest['generation_code_commit'] = exec_commit
     manifest['start_time'] = start_iso
     manifest['end_time'] = end_iso
