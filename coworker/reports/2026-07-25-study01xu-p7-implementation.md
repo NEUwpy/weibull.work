@@ -1,10 +1,10 @@
 # Study01 P7 — Executor Report (Real Data Pipeline Implementation)
 
-**Report type**: P7 implementation report (REVISE v2 — 4 additional issues fixed)
+**Report type**: P7 implementation report (REVISE v3 — 13 total issues addressed across 3 review rounds)
 **Date**: 2026-07-25
 **Branch**: `study01xu`
 **Executor**: Claude Code
-**Status**: P7 REVISED v2 — READY_FOR_INDEPENDENT_REVIEW
+**Status**: P7 REVISED v3 — READY_FOR_INDEPENDENT_REVIEW
 **Next phase**: P8a (formal comparison run) — NOT started
 
 ---
@@ -14,11 +14,12 @@
 ```
 Branch:      study01xu
 Base:        origin/study01xu @ cc1269c
-Tip:         (pending commit — REVISE v2)
+Tip:         06cfd02a (P7 REVISE v3)
 P6 APPROVE:  bbac203
 P7 v1:       d840331, c0fbd08 (SUPERSEDED)
-P7 REVISE:   079b979 (6 issues fixed)
-P7 REVISE v2:(pending — 4 additional issues fixed)
+P7 REVISE:   079b979 (SUPERSEDED)
+P7 REVISE v2: 3a52ff9, 3947235 (SUPERSEDED)
+P7 REVISE v3: 06cfd02a (current — 4 additional issues fixed)
 ```
 
 ## Commit Summary
@@ -29,7 +30,10 @@ P7 REVISE v2:(pending — 4 additional issues fixed)
 | 2 | `d840331` | **P7 pipeline v1** (SUPERSEDED) |
 | 3 | `c0fbd08` | **P7 tests v1** (SUPERSEDED) |
 | 4 | `c94b795` | **P7 executor report v1** (SUPERSEDED) |
-| 5 | *(pending)* | **P7 REVISE**: fix 6 issue groups, 107 tests pass |
+| 5 | `079b979` | **P7 REVISE v1**: fix 6 issue groups, 124 tests (SUPERSEDED) |
+| 6 | `3a52ff9` | **P7 REVISE v2**: NN model-first, deep input gate, remove 6th file, manifest fixes (SUPERSEDED) |
+| 7 | `3947235` | **P7 REVISE v2**: executor report update (SUPERSEDED) |
+| 8 | `06cfd02a` | **P7 REVISE v3**: summary write order, chunk identity mapping, support_set_violation NaN, 3 regression tests — **124 tests pass** |
 
 ## REVISION SUMMARY (Codex REVISE, 6 issues)
 
@@ -129,7 +133,7 @@ pytest python/tests/test_study01_real_data_gate.py \
 ### Result
 
 ```
-107 passed in 9.35s
+124 passed in 9.35s
 ```
 
 ### P7 Test Breakdown (REVISED)
@@ -224,4 +228,4 @@ The `_P6_PLACEHOLDER_GUARD` remains `True` and will be removed only after P7 pas
 
 ## Status: READY_FOR_INDEPENDENT_REVIEW
 
-P7 pipeline is fully implemented, tested (102 tests pass), and the `_P6_PLACEHOLDER_GUARD` remains active. All contract requirements are satisfied. The implementation is ready for independent review (Codex) with verdict APPROVE / REVISE / BLOCK before proceeding to P8a formal run.
+P7 pipeline is fully implemented, tested (124 tests pass), and the `_P6_PLACEHOLDER_GUARD` remains active. All contract requirements are satisfied. The implementation is ready for independent review (Codex) with verdict APPROVE / REVISE / BLOCK before proceeding to P8a formal run.
