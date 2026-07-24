@@ -9,6 +9,7 @@ import sys
 import os
 import json
 import hashlib
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -23,12 +24,12 @@ sys.path.insert(0, str(STUDY_CODE_DIR))
 
 
 def test_p6_frozen_config_exists():
-    """P6 frozen config JSON must exist."""
+    """P6 frozen config JSON must exist with revised version."""
     config_path = REAL_DATA_DIR / "p6_frozen_config.json"
     assert config_path.exists(), f"Missing: {config_path}"
     with open(config_path, 'r', encoding='utf-8') as f:
         cfg = json.load(f)
-    assert cfg["contract_version"] == "P6-v1.0-FROZEN"
+    assert cfg["contract_version"] == "P6-v1.1-FROZEN-REVISED"
 
 
 def test_p6_frozen_contract_exists():
@@ -42,6 +43,9 @@ def test_data_source_files_exist():
     assert (NIST_DIR / "source.json").exists(), "Missing source.json"
     assert (NIST_DIR / "lifetimes.csv").exists(), "Missing lifetimes.csv"
     assert (NIST_DIR / "BIRNSAUN.DAT").exists(), "Missing BIRNSAUN.DAT"
+    assert (NIST_DIR / "convert_birnsaun_to_lifetimes.py").exists(), (
+        "Missing conversion script"
+    )
 
 
 def test_lifetimes_csv_sha256_matches_contract():
@@ -175,3 +179,89 @@ def test_frozen_config_consistent_with_contract():
     assert cfg["methods"]["nn"]["seeds"] == [42, 2026, 3407]
     assert cfg["experimental_design"]["train_n_values"] == [7, 10, 20]
     assert cfg["experimental_design"]["repeats_per_n"] == 500
+    # Revised contract checks
+    assert cfg["evaluation"]["tie_tolerance"] == 1e-9
+    assert "one_sided_KS_distance" in cfg["evaluation"]["primary_metric"]
+    assert "failure_handling" in cfg
+    assert cfg["failure_handling"]["imputation"] == "D = 1 for failed repeats, marked failed=True"
+    assert cfg["evaluation"]["aggregation"]["no_median_model"] is True
+    # License should NOT claim U.S. government work under §105
+    assert "not a nist-authored" in cfg["dataset"]["data_status"].lower()
+
+
+def test_source_json_median_corrected():
+    """source.json median must be 1416 (not 1419)."""
+    with open(NIST_DIR / "source.json", 'r', encoding='utf-8') as f:
+        src = json.load(f)
+    assert src["value_range"]["median"] == 1416.0, (
+        f"Median should be 1416, got {src['value_range']['median']}"
+    )
+
+
+def test_source_json_license_not_claims_us_gov_work():
+    """source.json must NOT claim §105 U.S. government work for third-party data."""
+    with open(NIST_DIR / "source.json", 'r', encoding='utf-8') as f:
+        src = json.load(f)
+    assert "17 U.S.C. § 105" not in src.get("license_name", ""), (
+        "Third-party data hosted by NIST must not be labeled as U.S. government work"
+    )
+
+
+def test_conversion_script_reproduces_lifetimes_csv():
+    """Running convert_birnsaun_to_lifetimes.py must reproduce lifetimes.csv."""
+    import subprocess
+    script = str(NIST_DIR / "convert_birnsaun_to_lifetimes.py")
+    result = subprocess.run(
+        ["python", script],
+        capture_output=True, text=True, timeout=30,
+        cwd=str(NIST_DIR)
+    )
+    assert result.returncode == 0, (
+        f"Conversion script failed:\n{result.stderr}"
+    )
+    assert "SHA256 verified" in result.stdout, (
+        "Conversion script did not verify output SHA256"
+    )
+
+
+def test_contract_defines_failure_handling():
+    """Contract must define estimation failure handling before any comparison."""
+    with open(REAL_DATA_DIR / "p6_frozen_config.json", 'r', encoding='utf-8') as f:
+        cfg = json.load(f)
+    fh = cfg["failure_handling"]
+    assert "detection" in fh
+    assert len(fh["detection"]) >= 4
+    assert "imputation" in fh
+    assert "primary_analysis" in fh
+    assert "complete_case_sensitivity" in fh
+    assert "prohibition" in fh
+
+
+def test_contract_metric_is_one_sided_ks():
+    """Primary metric must be one-sided KS, not vague 'all points' form."""
+    with open(REAL_DATA_DIR / "p6_frozen_config.json", 'r', encoding='utf-8') as f:
+        cfg = json.load(f)
+    definition = cfg["evaluation"]["primary_metric_definition"]
+    assert "i/m" in definition, "Missing right-continuous ECDF term i/m"
+    assert "(i-1)/m" in definition, "Missing left-continuous ECDF term (i-1)/m"
+    assert "y_(i)" in definition or "y_{(i)}" in definition, (
+        "Missing sorted holdout notation y_(i)"
+    )
+
+
+def test_nn_aggregation_no_median_model():
+    """NN aggregation must NOT define a single 'median model'."""
+    with open(REAL_DATA_DIR / "p6_frozen_config.json", 'r', encoding='utf-8') as f:
+        cfg = json.load(f)
+    agg = cfg["evaluation"]["aggregation"]
+    assert agg["no_median_model"] is True
+    assert "per-model" in agg["nn_step1_per_model"].lower() or \
+           "per_model" in agg["nn_step1_per_model"]
+    assert "distribution" in agg["nn_step2_cross_model"].lower()
+
+
+def test_tie_tolerance_frozen():
+    """Tie tolerance must be frozen at 1e-9."""
+    with open(REAL_DATA_DIR / "p6_frozen_config.json", 'r', encoding='utf-8') as f:
+        cfg = json.load(f)
+    assert cfg["evaluation"]["tie_tolerance"] == 1e-9

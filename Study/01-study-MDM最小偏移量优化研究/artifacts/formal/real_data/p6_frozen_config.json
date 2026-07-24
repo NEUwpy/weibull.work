@@ -1,19 +1,28 @@
 {
-  "contract_version": "P6-v1.0-FROZEN",
+  "contract_version": "P6-v1.1-FROZEN-REVISED",
   "freeze_date": "2026-07-25",
-  "freeze_commit": "00b282d",
+  "revision_date": "2026-07-25",
+  "revision_reason": "Codex REVISE — 6 issues: metric formula, failure handling, NN aggregation, conversion script, license language, provenance alignment",
   "branch": "study01xu",
   "dataset": {
     "dataset_id": "nist-6061-t6-fatigue",
     "data_dir": "artifacts/formal/real_data/nist-6061-t6-fatigue",
     "source_url": "https://itl.nist.gov/div898/handbook/eda/section4/eda4291.htm",
+    "original_paper": "Birnbaum, Z. W. and Saunders, S. C. (1958), JASA, 53(281), pp. 151-160",
     "original_file": "BIRNSAUN.DAT",
     "original_sha256": "7814c533818517d8b824c56213abac2b4076786a13a66d85a8481a32bbccf127",
     "lifetimes_csv_sha256": "43c85155bdfeafd21e2366610e88a3f4e1a09e36466fb22d34729dc60418ee12",
+    "conversion_script": "convert_birnsaun_to_lifetimes.py",
     "n_total": 101,
     "n_uncensored": 101,
-    "license": "NIST Public Domain (17 U.S.C. § 105)",
-    "license_url": "https://www.nist.gov/open/license"
+    "n_complete_failures": 101,
+    "n_censored": 0,
+    "data_status": "NIST-hosted factual fatigue-life measurements from third-party research (Birnbaum & Saunders 1958); not a NIST-authored U.S. government work",
+    "license_note": "Factual data values are not subject to copyright. NIST hosts the data as part of a publicly accessible reference work. Cite both the NIST page and Birnbaum & Saunders (1958).",
+    "nist_policy_ref": "https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications",
+    "lifetime_median": 1416,
+    "lifetime_min": 370,
+    "lifetime_max": 2440
   },
   "admission_gate": {
     "min_uncensored_lifetimes": 60,
@@ -64,22 +73,41 @@
       "no_cherry_picking": true
     }
   },
+  "failure_handling": {
+    "detection": [
+      "MDM.run() status == False or exception",
+      "beta_hat <= 0 or not finite",
+      "eta_hat <= 0 or not finite",
+      "gamma_hat >= min(train_sample)",
+      "gamma_hat < 0"
+    ],
+    "imputation": "D = 1 for failed repeats, marked failed=True",
+    "primary_analysis": "all 500 repeats including D=1 failures",
+    "complete_case_sensitivity": "separate column, labeled sensitivity check, never primary",
+    "prohibition": "silently dropping failed rows via dropna() is forbidden"
+  },
   "evaluation": {
-    "primary_metric": "holdout_ecdf_max_distance",
-    "primary_metric_definition": "max_x |F_model_CDF(x) - F_holdout_ECDF(x)|",
+    "primary_metric": "one_sided_KS_distance",
+    "primary_metric_definition": "D = max_i { |F(y_(i)) - i/m|, |F(y_(i)) - (i-1)/m| } for sorted holdout y_(i), i=1..m, with fitted Weibull CDF F",
+    "tie_tolerance": 1e-9,
     "auxiliary_metrics": [
+      "estimation_failure_rate",
       "support_set_violation_rate",
       "parameter_distance_beta",
       "parameter_distance_eta",
       "paired_win_rate_default_vs_l2",
       "paired_win_rate_nn_vs_l2",
-      "paired_win_rate_nn_vs_default"
+      "paired_win_rate_nn_vs_default",
+      "tie_rate"
     ],
     "large_sample_ref": "OLS_weibull_on_all_101",
     "large_sample_is_ground_truth": false,
     "aggregation": {
-      "nn_per_model_first": true,
-      "nn_then_cross_model_distribution": true,
+      "nn_step1_per_model": "per-model: each NN model paired with Default/L2 on same 500 splits → 15 model-level means, medians, win rates",
+      "nn_step2_cross_model": "report distribution (min, Q1, median, Q3, max, mean±SD) of the 15 model-level values",
+      "nn_primary": "median of 15 model-level median-D values",
+      "no_median_model": true,
+      "no_pooling_before_per_model": "must not pool 7500 predictions before per-model aggregation",
       "no_pseudo_pvalues": true,
       "no_repeats_as_independent": true
     }

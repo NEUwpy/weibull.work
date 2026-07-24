@@ -1,10 +1,12 @@
 # Study01 P6 — Real Data Holdout Validation Contract (FROZEN)
 
-**Contract version**: P6-v1.0-FROZEN
+**Contract version**: P6-v1.1-FROZEN-REVISED
 **Freeze date**: 2026-07-25
+**Revision date**: 2026-07-25 (Codex REVISE, 6 issues addressed)
 **Branch**: `study01xu`
-**Freeze commit**: `00b282d` (post-P6-preflight-audit)
-**Status**: FROZEN — no changes permitted before P7 implementation + P8a run
+**Contract content commit**: *(to be sealed after this revision)*
+**Pre-revision freeze commit**: `701d9a6`
+**Status**: FROZEN (REVISED per Codex review) — no changes permitted before P7 implementation + P8a run
 **Per**: `07-剩余实验目标与规划.md` §4.3, phases P6–P8b
 
 ---
@@ -27,10 +29,12 @@
 
 | Field | Value |
 |-------|-------|
-| License | NIST Public Domain (U.S. Government work, 17 U.S.C. § 105) |
-| License URL | `https://www.nist.gov/open/license` |
-| Redistribution | Permitted; data values are factual and not copyrightable |
-| Storage in repo | Stored as `lifetimes.csv` and `BIRNSAUN.DAT` in `artifacts/formal/real_data/nist-6061-t6-fatigue/` |
+| Data status | Factual fatigue-life measurements publicly hosted by NIST; originally collected and reported by Birnbaum & Saunders (1958), not NIST employees |
+| Hosting | NIST/SEMATECH e-Handbook of Statistical Methods — a U.S. government-hosted reference work |
+| License | NIST hosts the data as part of a publicly accessible reference; factual data values are not subject to copyright. The data are third-party historical measurements, not a NIST-authored U.S. government work. |
+| NIST policy ref | `https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications` |
+| Redistribution | Permitted for research use; cite both the NIST page and the original Birnbaum & Saunders (1958) paper |
+| Storage in repo | Stored as `lifetimes.csv`, `BIRNSAUN.DAT`, and `convert_birnsaun_to_lifetimes.py` in `artifacts/formal/real_data/nist-6061-t6-fatigue/` |
 
 ### 1.3 Data Characteristics
 
@@ -71,11 +75,21 @@
 
 ### 1.7 Conversion: BIRNSAUN.DAT → lifetimes.csv
 
-**Deterministic, tested conversion**:
-1. Parse all numeric tokens from BIRNSAUN.DAT (skip header lines).
-2. Extract 101 integer values.
-3. Write single-column CSV with header `failure_time`.
-4. SHA256 of resulting `lifetimes.csv` (LF-normalized): `43c85155bdfeafd21e2366610e88a3f4e1a09e36466fb22d34729dc60418ee12`
+**Deterministic, tested conversion** via `convert_birnsaun_to_lifetimes.py`:
+
+1. Read `BIRNSAUN.DAT` as ASCII text.
+2. Parse the data block after the `---...` separator line: each data line is a single integer.
+3. Extract exactly 101 integer values in file order.
+4. Write single-column CSV with header `failure_time`, Unix line endings.
+5. Verify output SHA256 against frozen expected value.
+6. SHA256 of resulting `lifetimes.csv`: `43c85155bdfeafd21e2366610e88a3f4e1a09e36466fb22d34729dc60418ee12`
+
+**Reproducibility test**:
+```bash
+python convert_birnsaun_to_lifetimes.py
+# Must print: "SHA256 verified: 43c85155..."
+```
+The script raises `RuntimeError` on SHA256 mismatch, making the conversion self-verifying.
 
 ---
 
@@ -203,19 +217,57 @@ These values are from main-grid pooled optimization and are frozen. They are **n
 
 ---
 
-## 5. Evaluation Metrics (FROZEN)
+## 5. Estimation Failure Handling (FROZEN)
 
-### 5.1 Primary Metric: Holdout ECDF Distance
+MDM estimation on small real data samples can fail or return illegal parameters
+(e.g., γ̂ ≥ min(sample), β̂ ≤ 0, η̂ ≤ 0, non-finite values, or MDM status ≠ True).
+The following rules are frozen and must be applied BEFORE viewing any results.
+
+### 5.1 Failure Detection
+
+A repeat is classified as **failed** for a given method if ANY of:
+- MDM.run() returns `status == False` or raises an exception
+- β̂ ≤ 0, η̂ ≤ 0, or not finite
+- γ̂ ≥ min(train_sample) (support-set violation in training data itself)
+- γ̂ < 0 (illegal location parameter)
+
+### 5.2 Failure Imputation
+
+| Scenario | D value | Recorded |
+|----------|---------|----------|
+| Estimation failure | D = 1 (worst possible) | Marked as `failed=True` |
+| Legal estimate | Computed KS D | Marked as `failed=False` |
+
+### 5.3 Reporting
+
+- **Failure rate**: reported separately per method, per train_n. Not pooled across conditions.
+- **Primary analysis**: all 500 repeats (including D=1 failures).
+- **Complete-case sensitivity**: same metrics re-computed on `failed==False` subset only, reported as sensitivity check in a separate column/table. Must be explicitly labeled "complete-case sensitivity" and never presented as the primary result.
+- **Prohibition**: silently dropping failed rows (e.g., via `dropna()`) before computing summary statistics is forbidden. Failure rows must propagate through the pipeline with `failed=True` and `D=1`.
+
+---
+
+## 6. Evaluation Metrics (FROZEN)
+
+### 5.1 Primary Metric: Holdout ECDF Distance (One-Sided KS Form)
+
+For a holdout sample of size *m* with sorted values y_(1) ≤ y_(2) ≤ ... ≤ y_(m),
+and fitted Weibull CDF F(y) = 1 − exp(−((y − γ̂)/η̂)^β̂):
 
 ```
-D_max = max_x | F_hat_model(x) - F_hat_holdout(x) |
+D = max_i { |F(y_(i)) − i/m|,  |F(y_(i)) − (i−1)/m| }
 ```
 
 where:
-- `F_hat_model(x)` = Weibull CDF(β̂, η̂, γ̂) evaluated at all unique observation points
-- `F_hat_holdout(x)` = empirical CDF of the holdout sample
-- `x` ranges over all unique points in model + holdout combined
-- Smaller is better
+- i = 1, 2, ..., m (1-indexed ranks)
+- F(y_(i)) is the fitted Weibull CDF evaluated at each sorted holdout value
+- i/m is the right-continuous ECDF at y_(i)
+- (i−1)/m is the left-continuous ECDF at y_(i)
+- Smaller D is better (bounded in [0, 1])
+
+This is the standard one-sample Kolmogorov–Smirnov distance. It evaluates
+the fitted parametric CDF against the holdout empirical CDF without relying
+on arbitrary interpolation between data points.
 
 ### 5.2 Auxiliary Metrics
 
@@ -228,13 +280,29 @@ where:
 | M6 | Paired win rate (NN vs L2) | Fraction of repeats where NN median-model D_max < L2 D_max |
 | M7 | Paired win rate (NN vs Default) | Fraction of repeats where NN median-model D_max < Default D_max |
 
-### 5.3 Aggregation Rules
+### 6.3 Aggregation Rules
 
-- **Within-repeat**: 15 selector predictions → first aggregate by model (median across 500 repeats for that model), then report distribution across 15 models.
-- **Cross-repeat**: Each repeat is one paired observation for Default vs L2 vs NN.
-- **NO**: treating 15 × 500 = 7,500 predictions as independent observations.
-- **NO**: pseudo p-values or significance tests treating repeated splits as independent samples.
-- **NO**: calling the full-sample fit "true parameters."
+**Per-model (within each of 15 NN selectors)**:
+- Each NN model is paired with Default and L2 on the **same 500 splits**.
+- For each model, compute across its 500 repeats: mean D, median D, and within-model paired win rate vs Default and vs L2.
+- This yields 15 model-level values for each metric.
+
+**Cross-model distribution**:
+- Report the distribution of the 15 model-level values: min, Q1, median, Q3, max and mean ± SD.
+- The primary NN result is the **median of the 15 model-level median-D values**, with the inter-quartile range across models.
+- Win rates are similarly reported as the distribution of the 15 model-level win rates.
+
+**Tie tolerance**:
+- Win/loss/tie for paired comparisons uses tolerance ε = 1e-9 on D difference.
+- |D_A − D_B| < ε → tie (neither wins).
+- Win rate = (wins) / (wins + losses + ties). Tie rate reported separately.
+
+**Prohibitions**:
+- **NO** "median model" — the contract does not define a single representative model.
+- **NO** treating 15 × 500 = 7,500 predictions as independent observations.
+- **NO** pooling all 7,500 repeats before computing any statistic.
+- **NO** pseudo p-values or significance tests treating repeated splits as independent samples.
+- **NO** calling the full-sample fit "true parameters."
 
 ---
 
