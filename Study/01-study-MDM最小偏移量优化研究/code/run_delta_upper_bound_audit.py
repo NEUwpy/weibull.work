@@ -169,6 +169,9 @@ def identify_cohort_samples(df_mc_loss):
 def run_mdm_for_sample(sample, delta):
     """Run the production MDM on one sample for one delta value.
 
+    MDM.run() returns a 5-tuple (beta, eta, gamma, r_squared, status).
+    This is the production contract — do not treat it as a dict.
+
     Returns a dict with parameter estimates and convergence info, or
     failure/skip flags with NaN estimates.
     """
@@ -180,14 +183,14 @@ def run_mdm_for_sample(sample, delta):
     try:
         mdm = MDM(sample)
         t0 = time.perf_counter()
-        mdm_result = mdm.run(offset=delta)
+        beta_hat, eta_hat, gamma_hat, r_squared, converged = mdm.run(offset=delta)
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         result.update({
-            'beta_hat': float(mdm_result.get('beta', np.nan)),
-            'eta_hat': float(mdm_result.get('eta', np.nan)),
-            'gamma_hat': float(mdm_result.get('gamma', np.nan)),
-            'r_squared': float(mdm_result.get('r_squared', np.nan)),
-            'converged': bool(mdm_result.get('converged', False)),
+            'beta_hat': float(beta_hat),
+            'eta_hat': float(eta_hat),
+            'gamma_hat': float(gamma_hat),
+            'r_squared': float(r_squared),
+            'converged': bool(converged),
             'time_ms': elapsed_ms,
             'status': 'success',
         })
@@ -292,6 +295,50 @@ def merge_and_analyze(df_original, df_extended, cohort_delta, best_per_sample):
 
     # Compute loss
     df_combined = compute_loss(df_combined)
+
+    # ── Fail-closed: verify every sample has full extended coverage ──
+    # Contract §4.2 requires a complete 0.52-1.00 scan per cohort sample.
+    # Silently dropping NaN rows would fabricate 0% migration, so we MUST
+    # confirm that every sample has exactly N_EXTENDED valid rows BEFORE
+    # any dropna-based analysis proceeds.  Missing points → fail closed.
+    N_EXTENDED = len(EXTENSION_GRID)   # 25
+    N_ORIG = len(DELTA_GRID)           # 27
+
+    def _sample_loss_rows(df, key_tuple):
+        """Return (n_orig_valid, n_ext_valid) for one sample key."""
+        beta_k, eta_k, gamma_k, goe_k, n_k, rid_k = key_tuple
+        mask = (
+            (df['beta'] == float(beta_k)) &
+            np.isclose(df['gamma_over_eta'], float(goe_k)) &
+            (df['n'] == int(n_k)) &
+            (df['repeat_id'] == int(rid_k))
+        )
+        sub = df.loc[mask]
+        sub_orig = sub.loc[sub['delta'] <= 0.50]
+        sub_ext = sub.loc[sub['delta'] > 0.50]
+        n_orig_ok = sub_orig['loss'].notna().sum()
+        n_ext_ok = sub_ext['loss'].notna().sum()
+        return n_orig_ok, n_ext_ok
+
+    missing = []
+    for key_tuple in sorted(cohort_key_set):
+        n_orig_ok, n_ext_ok = _sample_loss_rows(df_combined, key_tuple)
+        if n_ext_ok < N_EXTENDED:
+            missing.append((key_tuple, n_orig_ok, n_ext_ok))
+
+    if missing:
+        detail = '\n'.join(
+            f"  β={k[0]:.3f} γ/η={k[3]:.3f} n={k[4]} r={k[5]}  "
+            f"orig_ok={n_orig}/{N_ORIG}  ext_ok={n_ext}/{N_EXTENDED}"
+            for k, n_orig, n_ext in missing[:15]
+        )
+        raise RuntimeError(
+            f"Cohort δ={cohort_delta}: {len(missing)}/{len(cohort_key_set)} "
+            f"samples missing extended-MDM coverage "
+            f"(need {N_EXTENDED} valid points each).\n{detail}"
+            + (f"\n  ... and {len(missing) - 15} more" if len(missing) > 15 else "")
+        )
+
     df_valid = df_combined.dropna(subset=['loss'])
 
     # Per-sample analysis
@@ -349,8 +396,12 @@ def merge_and_analyze(df_original, df_extended, cohort_delta, best_per_sample):
     return df_results
 
 
-def summarize_cohort(df_results, cohort_delta):
-    """Compute cohort-level summary statistics."""
+def summarize_cohort(df_results, cohort_delta, df_extended=None):
+    """Compute cohort-level summary statistics.
+
+    If df_extended is provided, also report MDM health: success/failure
+    counts, convergence, and per-delta coverage.
+    """
     if len(df_results) == 0:
         return {'cohort_delta': cohort_delta, 'n_samples': 0}
 
@@ -372,6 +423,25 @@ def summarize_cohort(df_results, cohort_delta):
             df_results['loss_improvement'].median()
         ),
     }
+
+    # ── MDM health from extended runs ──
+    if df_extended is not None and len(df_extended) > 0:
+        df_c = df_extended[df_extended['cohort'] == cohort_delta]
+        n_ext_rows = len(df_c)
+        if n_ext_rows > 0:
+            sc = df_c['status'].value_counts().to_dict()
+            n_success = sc.get('success', 0)
+            n_converged = int(df_c['converged'].sum())
+            summary['mdm_extended_rows'] = n_ext_rows
+            summary['mdm_success_rows'] = n_success
+            summary['mdm_converged_rows'] = n_converged
+            summary['mdm_success_rate'] = (
+                n_success / n_ext_rows if n_ext_rows > 0 else 0.0
+            )
+            # Non-success statuses
+            for st, cnt in sorted(sc.items()):
+                if st != 'success':
+                    summary[f'mdm_status_{st}'] = cnt
 
     if n_migrated > 0:
         summary.update({
@@ -453,7 +523,43 @@ def main():
     else:
         df_extended_all = pd.DataFrame()
 
-    # ── 4. Save extended results ──
+    # ── 4. Health report: status counts per cohort and delta ──
+    log("Step 4: Extended-MDM health report...")
+    if len(df_extended_all) > 0:
+        for cohort_delta in TARGET_COHORT_DELTAS:
+            df_c = df_extended_all[df_extended_all['cohort'] == cohort_delta]
+            if len(df_c) == 0:
+                continue
+            status_counts = df_c['status'].value_counts().to_dict()
+            n_total = len(df_c)
+            n_success = status_counts.get('success', 0)
+            n_failure = n_total - n_success
+            converged = df_c['converged'].sum()
+            log(f"  Cohort δ={cohort_delta}: {len(df_c)} rows, "
+                f"success={n_success}/{n_total} "
+                f"({n_success / max(n_total, 1) * 100:.1f}%), "
+                f"converged={converged}")
+            if n_failure > 0:
+                # Report per-delta breakdown of failures
+                fail_by_delta = (
+                    df_c[df_c['status'] != 'success']
+                    .groupby('delta')['status']
+                    .apply(lambda x: list(x)[:3])
+                    .to_dict()
+                )
+                for d in sorted(fail_by_delta.keys()):
+                    statuses = set(fail_by_delta[d])
+                    n_d = len(df_c[df_c['delta'] == d])
+                    n_fd = n_d - status_counts.get('success', 0)
+                    log(f"    δ={d:.2f}: {n_fd}/{n_d} failures, "
+                        f"sample: {statuses}")
+            if status_counts:
+                # Non-success statuses
+                for st, cnt in sorted(status_counts.items()):
+                    if st != 'success':
+                        log(f"    status={st}: {cnt} rows")
+
+    # ── 5. Save extended results ──
     ext_path = os.path.join(OUTPUT_DIR, "extended_results.csv")
     if len(df_extended_all) > 0:
         df_extended_all.to_csv(ext_path, index=False)
@@ -462,7 +568,7 @@ def main():
         log("  WARNING: No extended results produced")
 
     # ── 5. Merge and analyze per cohort ──
-    log("Step 4: Merging and analyzing per-cohort...")
+    log("Step 5: Merging and analyzing per-cohort...")
     all_cohort_results = []
     cohort_summaries = []
 
@@ -481,7 +587,7 @@ def main():
         if len(df_cohort) > 0:
             all_cohort_results.append(df_cohort)
 
-        summary = summarize_cohort(df_cohort, target_delta)
+        summary = summarize_cohort(df_cohort, target_delta, df_extended_all)
         cohort_summaries.append(summary)
 
         log(

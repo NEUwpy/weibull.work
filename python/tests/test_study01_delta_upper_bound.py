@@ -24,6 +24,7 @@ import pytest
 
 # Path setup
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PYTHON_DIR = PROJECT_ROOT / "python"
 STUDY_ROOT = next((PROJECT_ROOT / "Study").glob("01-study-MDM*"))
 STUDY_CODE_DIR = STUDY_ROOT / "code"
 _COLLECTION_SYS_PATH = list(sys.path)
@@ -31,6 +32,8 @@ _RELATED_MODULE_PREFIXES = (
     "run_delta_upper_bound_audit", "config", "utils",
     "studies", "methods",
 )
+# Note: methods/studies are cleaned up after _AUDIT_MODULE import but
+# integration tests re-import them on first use.
 _COLLECTION_RELATED_MODULES = {
     name: module for name, module in sys.modules.items()
     if name in _RELATED_MODULE_PREFIXES
@@ -38,6 +41,7 @@ _COLLECTION_RELATED_MODULES = {
 }
 try:
     sys.path.insert(0, str(STUDY_CODE_DIR))
+    sys.path.insert(0, str(PYTHON_DIR))          # for methods.mdm etc.
     _AUDIT_MODULE = importlib.import_module("run_delta_upper_bound_audit")
 finally:
     sys.path[:] = _COLLECTION_SYS_PATH
@@ -144,13 +148,14 @@ class TestMergeAndAnalyze:
                 "r_squared": 0.99, "converged": True,
                 "time_ms": 1.0, "status": "success",
             })
-        # Extended data: delta=0.52 has even smaller deviation → lower loss
+        # Extended data: ALL 25 extension deltas required (fail-closed contract).
+        # delta=0.52 has even smaller deviation → lower loss (migration).
         ext_rows = []
-        for delta in audit.EXTENSION_GRID[:3]:
+        for delta in audit.EXTENSION_GRID:
             if abs(delta - better_delta) < 0.001:
-                beta_hat = 2.01  # even smaller → even lower loss
+                beta_hat = 2.01  # even smaller → even lower loss — migration
             else:
-                beta_hat = 4.0
+                beta_hat = 4.0   # large deviation → large loss — no better
             ext_rows.append({
                 "beta": 2.0, "eta": 1.0, "gamma": 0.8,
                 "gamma_over_eta": 0.8, "n": 10, "repeat_id": 0,
@@ -237,3 +242,108 @@ class TestConditionalClaims:
         s = audit.summarize_cohort(df, 0.50)
         assert s['n_migrated'] == 0
         assert s['migration_rate'] == 0.0
+
+
+# ============================================================
+# Production MDM integration — prevent tuple-vs-dict bugs
+# ============================================================
+
+class TestProductionMDMInterface:
+    """Verify that the audit script correctly calls the REAL production MDM.
+
+    All prior tests use synthetic DataFrames and never invoke MDM.run().
+    This class guards against the bug where MDM.run() returns a 5-tuple
+    but the audit script calls .get() on it as if it were a dict.
+
+    Module-levele cleanup may have removed methods/studies from sys.modules
+    after the audit module import, so each test re-establishes the import
+    path when needed.
+    """
+
+    @staticmethod
+    def _ensure_imports():
+        """Re-establish methods/studies in sys.path if the module-level
+        cleanup removed them."""
+        if str(PYTHON_DIR) not in sys.path:
+            sys.path.insert(0, str(PYTHON_DIR))
+
+    def test_real_mdm_run_returns_tuple_not_dict(self):
+        """MDM.run() returns (beta, eta, gamma, r_squared, status) — a 5-tuple."""
+        self._ensure_imports()
+        from methods.mdm import MDM
+        from studies.common.sample import generate_sample
+
+        sample = generate_sample(beta=2.0, eta=1.0, gamma=0.5, n=10,
+                                 repeat_id=0, seed=42)
+        mdm = MDM(sample)
+        result = mdm.run(offset=0.52)
+
+        assert isinstance(result, tuple), (
+            f"MDM.run() must be a tuple, got {type(result).__name__}"
+        )
+        assert len(result) == 5, (
+            f"MDM.run() must return 5 elements, got {len(result)}"
+        )
+        beta, eta, gamma, r_squared, status = result
+        assert isinstance(beta, (int, float)), f"beta must be numeric, got {type(beta)}"
+        assert isinstance(eta, (int, float)), f"eta must be numeric, got {type(eta)}"
+        assert isinstance(gamma, (int, float)), f"gamma must be numeric, got {type(gamma)}"
+        assert isinstance(r_squared, (int, float)), f"r_squared must be numeric, got {type(r_squared)}"
+        assert status is True, f"status must be True, got {status}"
+
+    def test_audit_run_mdm_for_sample_produces_valid_rows(self):
+        """The audit script's run_mdm_for_sample must work with real MDM."""
+        self._ensure_imports()
+        from methods.mdm import MDM  # noqa: F401 — verify availability
+        from studies.common.sample import generate_sample
+
+        audit = _AUDIT_MODULE
+
+        sample = generate_sample(beta=2.0, eta=1.0, gamma=0.5, n=10,
+                                 repeat_id=0, seed=42)
+        result = audit.run_mdm_for_sample(sample, delta=0.70)
+
+        assert isinstance(result, dict)
+        assert result['status'] == 'success', (
+            f"Expected status='success', got {result['status']!r}"
+        )
+        assert result['converged'] is True
+        # Parameters must be finite (not NaN, not inf)
+        for key in ['beta_hat', 'eta_hat', 'gamma_hat', 'r_squared']:
+            val = result[key]
+            assert not np.isnan(val), f"{key} is NaN"
+            assert not np.isinf(val), f"{key} is inf"
+        # Gamma must be >= 0 (Weibull constraint)
+        assert result['gamma_hat'] >= 0, f"gamma must be >= 0, got {result['gamma_hat']}"
+        # r_squared must be in [0, 1]
+        assert 0 <= result['r_squared'] <= 1, (
+            f"r_squared must be [0, 1], got {result['r_squared']}"
+        )
+        # time_ms must be positive
+        assert result['time_ms'] > 0, f"time_ms must be > 0, got {result['time_ms']}"
+
+    def test_extension_grid_sample_runs_all_25_deltas(self):
+        """A real sample must complete all 25 extension deltas successfully."""
+        self._ensure_imports()
+        from studies.common.sample import generate_sample
+
+        audit = _AUDIT_MODULE
+
+        sample = generate_sample(beta=2.0, eta=1.0, gamma=0.5, n=10,
+                                 repeat_id=0, seed=42)
+        results = []
+        for delta in audit.EXTENSION_GRID:
+            result = audit.run_mdm_for_sample(sample, delta)
+            results.append(result)
+
+        n_success = sum(1 for r in results if r['status'] == 'success')
+        assert n_success == 25, (
+            f"All 25 extension deltas must succeed, got {n_success}/25 success"
+        )
+        # No NaN parameters in successful runs
+        for i, r in enumerate(results):
+            if r['status'] == 'success':
+                for key in ['beta_hat', 'eta_hat', 'gamma_hat', 'r_squared']:
+                    assert not np.isnan(r[key]), (
+                        f"delta={audit.EXTENSION_GRID[i]:.2f} {key} is NaN"
+                    )
