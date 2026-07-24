@@ -373,8 +373,11 @@ def merge_and_analyze(df_original, df_extended, cohort_delta, best_per_sample):
         extended_best_delta = float(sample_df.loc[extended_best_idx, 'delta'])
         extended_best_loss = float(sample_df.loc[extended_best_idx, 'loss'])
 
-        migrated = extended_best_delta > 0.50
         loss_improvement = orig_best_loss - extended_best_loss
+        # Tie-breaking: negligible improvement (≤1e-12) = no migration.
+        # Two δ=0.50-endpoint samples have improvement ≈1.4e-16
+        # (floating-point noise).  This rule is frozen and tested.
+        migrated = (extended_best_delta > 0.50) and (loss_improvement > 1e-12)
 
         results.append({
             'beta': beta, 'gamma_over_eta': goe, 'n': n_val,

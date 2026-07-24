@@ -3,8 +3,8 @@
 **Branch**: `study01xu` (mainline, no worktree)
 **Execution tip**: `da5e77e628d6afcdb9b59648e5d502a250eb4f91` (seal corrected in follow-up — this report)
 **Generation code tip**: `76906a986e38ab81638ca7c380ac05b1f55d043d`
-**Seal method**: SHA256 from git blob bytes (`git ls-tree` → `git cat-file blob` → `sha256sum`); verified against reviewer independent computation
-**Tie-breaking**: `loss_improvement > 1e-12` (2 floating-point ties removed, 2,802 → 2,800 migrated)
+**Seal method**: SHA256 from LF-normalised git blob bytes (after CRLF→LF), verified to match reviewer independent computation
+**Tie-breaking**: `migrated = (extended_best_delta > 0.50) AND (loss_improvement > 1e-12)` — frozen in `merge_and_analyze()`, tested
 **Date**: 2026-07-24 (re-run ~14:26 UTC; sealed ~15:30 UTC)
 **Status**: P5a COMPLETE (REVISED) — AWAITING P5b INDEPENDENT REVIEW
 
@@ -68,14 +68,17 @@ All 79,425 extended-MDM runs succeeded with convergence. No status=`failure`, no
 |--------|---------------|---------------|
 | N samples | 2,958 | 219 |
 | N migrated | **2,800** | 3 |
-| Migration rate | **94.7%** | 1.4% |
-| Mean loss improvement | **0.0310** | 0.0006 |
-
-Tie-breaking: 2 of 2,802 "migrated" samples had loss_improvement ≈ 1.4×10⁻¹⁶ (floating-point noise). Frozen rule: `loss_improvement > 1e-12`; equal loss prefers smaller δ. After correction: 2,800/2,958 (94.66% → 94.7%).
-| Median loss improvement | **0.0115** | 0.0000 |
-| Mean rel improvement | 32.9% | 0.5% |
+| Migration rate | **94.7%** (94.66%) | 1.4% |
+| Full-cohort mean loss improvement | **0.0310** | 0.0006 |
+| Full-cohort median loss improvement | **0.0115** | 0.0000 |
+| Full-cohort mean rel improvement | 32.9% | 0.5% |
+| Migrated-ONLY mean loss improvement | **0.0328** | 0.0421 |
+| Migrated-ONLY median loss improvement | **0.0134** | 0.0171 |
+| Migrated-ONLY mean rel improvement | 34.7% | 39.1% |
 | Migrated mean new δ | 0.772 | 0.787 |
 | Migrated median new δ | 0.76 | 0.78 |
+
+Tie-breaking (frozen in code at `merge_and_analyze()`): `migrated = (extended_best_delta > 0.50) AND (loss_improvement > 1e-12)`. Two δ=0.50-endpoint samples have improvement ≈1.4×10⁻¹⁶ — correctly classified as non-migrated by the code alone, no CSV post-processing needed.
 
 ### Selected Delta Distribution (δ=0.50 cohort, extended best)
 

@@ -245,6 +245,121 @@ class TestConditionalClaims:
 
 
 # ============================================================
+# Tie-breaking: loss_improvement <= 1e-12 is not migration
+# ============================================================
+
+class TestTieBreaking:
+    def test_tiny_improvement_does_not_count_as_migration(self):
+        """loss_improvement ≈ 1e-16 must NOT flag migrated=True.
+
+        Construct a scenario where the extended grid has a strictly better
+        delta (δ=0.52, loss=0) vs the original best (δ=0.50, loss=1e-16).
+        The improvement is real but below the 1e-12 threshold → not migration.
+        """
+        audit = _AUDIT_MODULE
+
+        cohort_delta = 0.50
+        # Original: best at δ=0.50 with negligible gamma noise → loss ≈ 1e-16
+        orig_rows = []
+        for delta in audit.DELTA_GRID:
+            if abs(delta - 0.50) < 0.001:
+                # tiny gamma deviation → loss ~ 1e-16
+                gh = 0.8 + 1e-8
+            else:
+                gh = 5.0  # far off → huge loss
+            orig_rows.append({
+                "beta": 2.0, "eta": 1.0, "gamma": 0.8,
+                "gamma_over_eta": 0.8, "n": 10, "repeat_id": 99,
+                "delta": delta,
+                "beta_hat": 2.0, "eta_hat": 1.0, "gamma_hat": gh,
+                "r_squared": 0.99, "converged": True,
+                "time_ms": 1.0, "status": "success",
+            })
+        # Extended: δ=0.52 has perfect params → loss = 0 (better by 1e-16)
+        ext_rows = []
+        for delta in audit.EXTENSION_GRID:
+            if abs(delta - 0.52) < 0.001:
+                gh = 0.8  # perfect → loss = 0
+            else:
+                gh = 5.0
+            ext_rows.append({
+                "beta": 2.0, "eta": 1.0, "gamma": 0.8,
+                "gamma_over_eta": 0.8, "n": 10, "repeat_id": 99,
+                "delta": delta,
+                "beta_hat": 2.0, "eta_hat": 1.0, "gamma_hat": gh,
+                "r_squared": 0.99, "converged": True,
+                "time_ms": 1.0, "status": "success",
+                "cohort": cohort_delta,
+            })
+
+        df_orig = audit.compute_loss(pd.DataFrame(orig_rows))
+        df_ext = pd.DataFrame(ext_rows)
+        best = pd.DataFrame([{
+            "beta": 2.0, "eta": 1.0, "gamma": 0.8,
+            "gamma_over_eta": 0.8, "n": 10,
+            "repeat_id": 99, "best_delta": cohort_delta,
+        }])
+
+        result = audit.merge_and_analyze(df_orig, df_ext, cohort_delta, best)
+        assert len(result) == 1
+        assert result.iloc[0]['extended_best_delta'] == 0.52, (
+            "δ=0.52 is mathematically best (loss=0 vs loss=1e-16 at δ=0.50)"
+        )
+        assert result.iloc[0]['migrated'] == False, (  # noqa: E712
+            f"improvement {result.iloc[0]['loss_improvement']:.2e} ≤ 1e-12 "
+            "must NOT count as migration"
+        )
+        # Verify the improvement is tiny
+        assert result.iloc[0]['loss_improvement'] <= 1e-12, (
+            f"loss_improvement {result.iloc[0]['loss_improvement']:.2e} ≤ 1e-12"
+        )
+        assert result.iloc[0]['loss_improvement'] > 0, (
+            "loss_improvement must exist (>0), just below threshold"
+        )
+
+    def test_real_improvement_still_counts_as_migration(self):
+        """loss_improvement >> 1e-12 must still be counted."""
+        audit = _AUDIT_MODULE
+        cohort_delta = 0.50
+        # Use existing merge test data but verify the migrated flag logic.
+        # Re-use the data from test_conditioned_on_original_cohort_delta
+        # where improvement is real (not noise).
+        better_delta = audit.EXTENSION_GRID[0]  # 0.52
+        orig_rows = []
+        for delta in audit.DELTA_GRID:
+            beta_hat = 2.1 if abs(delta - cohort_delta) < 0.001 else 4.0
+            orig_rows.append({
+                "beta": 2.0, "eta": 1.0, "gamma": 0.8,
+                "gamma_over_eta": 0.8, "n": 10, "repeat_id": 88,
+                "delta": delta, "beta_hat": beta_hat, "eta_hat": 1.0,
+                "gamma_hat": 0.8, "r_squared": 0.99, "converged": True,
+                "time_ms": 1.0, "status": "success",
+            })
+        ext_rows = []
+        for delta in audit.EXTENSION_GRID:
+            beta_hat = 2.01 if abs(delta - better_delta) < 0.001 else 4.0
+            ext_rows.append({
+                "beta": 2.0, "eta": 1.0, "gamma": 0.8,
+                "gamma_over_eta": 0.8, "n": 10, "repeat_id": 88,
+                "delta": delta, "beta_hat": beta_hat, "eta_hat": 1.0,
+                "gamma_hat": 0.8, "r_squared": 0.99, "converged": True,
+                "time_ms": 1.0, "status": "success",
+                "cohort": cohort_delta,
+            })
+        df_orig = audit.compute_loss(pd.DataFrame(orig_rows))
+        df_ext = pd.DataFrame(ext_rows)
+        best = pd.DataFrame([{
+            "beta": 2.0, "eta": 1.0, "gamma": 0.8,
+            "gamma_over_eta": 0.8, "n": 10, "repeat_id": 88,
+            "best_delta": cohort_delta,
+        }])
+        result = audit.merge_and_analyze(df_orig, df_ext, cohort_delta, best)
+        assert len(result) == 1
+        assert result.iloc[0]['migrated'] == True  # noqa: E712
+        assert result.iloc[0]['loss_improvement'] > 1e-12
+
+
+# ============================================================
 # Production MDM integration — prevent tuple-vs-dict bugs
 # ============================================================
 
