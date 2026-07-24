@@ -659,7 +659,11 @@ def aggregate_per_model(df_results):
         median_D = float(np.median(D_vals))
         std_D = float(np.std(D_vals, ddof=1)) if n_total > 1 else 0.0
 
-        ss_violation_rate = float(grp['support_set_violation'].mean())
+        # Support-set violation: only compute rate on known (0/1) values
+        ss_vals = grp['support_set_violation'].values
+        ss_known = ss_vals[np.isfinite(ss_vals)]  # exclude NaN
+        n_ss_unknown = int(np.sum(~np.isfinite(ss_vals)))
+        ss_violation_rate = float(np.mean(ss_known)) if len(ss_known) > 0 else float('nan')
 
         param_dist_beta_vals = grp['param_dist_beta'].values
         param_dist_eta_vals = grp['param_dist_eta'].values
@@ -677,6 +681,7 @@ def aggregate_per_model(df_results):
             'median_D': median_D,
             'std_D': std_D,
             'mean_support_set_violation_rate': ss_violation_rate,
+            'n_support_set_unknown': n_ss_unknown,
             'mean_param_dist_beta': float(np.mean(finite_beta)) if len(finite_beta) > 0 else float('nan'),
             'mean_param_dist_eta': float(np.mean(finite_eta)) if len(finite_eta) > 0 else float('nan'),
         })
@@ -696,7 +701,7 @@ def cross_model_distribution(model_agg_df):
 
     dist_rows = []
     metrics = ['median_D', 'mean_D', 'failure_rate',
-               'mean_support_set_violation_rate',
+               'mean_support_set_violation_rate', 'n_support_set_unknown',
                'mean_param_dist_beta', 'mean_param_dist_eta']
 
     for train_n, grp in nn_df.groupby('train_n'):
@@ -964,8 +969,20 @@ def validate_preflight(data_dir, chunks_dir):
             f"expected 'main_grid_train_combos_only'"
         )
 
-    # 4. All 45 main-grid chunks — full structural validation
-    expected_units = list(product(BETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID))
+    # 4. All 45 main-grid chunks — full structural + identity validation
+    # Build expected parameter-unit order (same as _expected_main_chunk_units in E4d)
+    expected_units = []
+    for eta in ETA_GRID:
+        for goe in GAMMA_OVER_ETA_GRID:
+            gamma = goe * eta
+            for beta in BETA_GRID:
+                for n_val in N_GRID:
+                    expected_units.append({
+                        'beta': float(beta), 'eta': float(eta),
+                        'gamma': float(gamma), 'gamma_over_eta': float(goe),
+                        'n': int(n_val),
+                    })
+
     pattern = re.compile(r'^chunk_(\d{4})_mdm\.csv$')
     chunk_map = {}
     for name in os.listdir(chunks_dir):
@@ -1001,18 +1018,24 @@ def validate_preflight(data_dir, chunks_dir):
             raise RuntimeError(
                 f"Chunk {chunk_id:04d}: {len(df)} rows, expected {expected_rows_per_chunk}"
             )
-        # Parameter unit: exactly one combo per chunk
+        # Chunk identity → frozen parameter unit mapping
+        expected_unit = expected_units[chunk_id]
         meta = df[['beta', 'eta', 'gamma_over_eta', 'n']].drop_duplicates()
         if len(meta) != 1:
             raise RuntimeError(
                 f"Chunk {chunk_id:04d}: expected 1 combo, got {len(meta)}"
             )
+        actual = meta.iloc[0]
+        for key in ['beta', 'gamma_over_eta', 'n']:
+            if abs(float(actual[key]) - expected_unit[key]) > 1e-9:
+                raise RuntimeError(
+                    f"Chunk {chunk_id:04d}: {key} mismatch — "
+                    f"expected {expected_unit[key]}, got {float(actual[key])}"
+                )
         # Delta grid matches
         chunk_deltas = sorted(df['delta'].unique())
         if chunk_deltas != DELTA_GRID:
-            raise RuntimeError(
-                f"Chunk {chunk_id:04d}: delta grid mismatch"
-            )
+            raise RuntimeError(f"Chunk {chunk_id:04d}: delta grid mismatch")
         # Repeat IDs are 0..R_MAIN-1
         chunk_repeats = sorted(df['repeat_id'].unique())
         if chunk_repeats != list(range(R_MAIN)):
@@ -1020,6 +1043,13 @@ def validate_preflight(data_dir, chunks_dir):
                 f"Chunk {chunk_id:04d}: repeat_id set mismatch "
                 f"(min={min(chunk_repeats)}, max={max(chunk_repeats)}, "
                 f"n_unique={len(chunk_repeats)})"
+            )
+        # Each (repeat_id, delta) pair appears exactly once
+        n_pairs = len(df[['repeat_id', 'delta']].drop_duplicates())
+        if n_pairs != len(df):
+            raise RuntimeError(
+                f"Chunk {chunk_id:04d}: duplicate (repeat_id, delta) pairs — "
+                f"{len(df)} rows but only {n_pairs} unique pairs"
             )
 
 
@@ -1261,7 +1291,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
 
                     if nn_pred_failed:
                         # Prediction failure → record as failed, D=1
-                        # support_set_violation=-1: unknown (no γ̂ exists)
+                        # support_set_violation=NaN: unknown (no γ̂ exists)
                         all_rows.append({
                             'train_n': train_n, 'repeat_index': rep_idx,
                             'method': 'nn', 'model_id': model_id,
@@ -1271,7 +1301,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
                             'r_squared': float('nan'), 'mdm_status': 0,
                             'D': FAILURE_D, 'failed': True,
                             'failure_reason': nn_pred_reason,
-                            'support_set_violation': -1,
+                            'support_set_violation': float('nan'),
                             'param_dist_beta': float('inf'),
                             'param_dist_eta': float('inf'),
                         })
@@ -1570,6 +1600,10 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
         'nn_tie_rate_distributions': nn_tie_dist,
     }
 
+    # ── Finalize summary (all additions must happen BEFORE writing to disk) ──
+    if len(df_nn_dist) > 0:
+        summary['nn_cross_model_distribution'] = df_nn_dist.to_dict(orient='records')
+
     # ── Step 12: Write outputs ──
     log("Step 12: Writing outputs...")
 
@@ -1578,7 +1612,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     df_results.to_csv(results_path, index=False)
     log(f"  Saved: {results_path} ({len(df_results)} rows)")
 
-    # real_holdout_summary.json
+    # real_holdout_summary.json (summary is fully built above)
     summary_path = os.path.join(output_dir, 'real_holdout_summary.json')
     with open(summary_path, 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, sort_keys=True, ensure_ascii=False)
@@ -1622,11 +1656,6 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
                     nn_model_rows.loc[idx_val, 'tie_rate_vs_l2'] = float(tl.iloc[0]['tie_rate'])
     nn_model_rows.to_csv(stability_path, index=False)
     log(f"  Saved: {stability_path} ({len(nn_model_rows)} rows)")
-
-    # Embed NN cross-model distribution in summary (NOT a separate 6th file)
-    if len(df_nn_dist) > 0:
-        summary['nn_cross_model_distribution'] = df_nn_dist.to_dict(orient='records')
-        log(f"  NN cross-model distribution: {len(df_nn_dist)} rows → embedded in summary")
 
     # real_data_manifest.json
     git_commit, git_dirty = get_git_info()

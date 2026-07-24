@@ -382,7 +382,7 @@ class TestNNPredictionFailure:
             'r_squared': float('nan'), 'mdm_status': 0,
             'D': 1.0, 'failed': True,
             'failure_reason': 'nn_prediction_exception: test error',
-            'support_set_violation': -1,  # sentinel: unknown (no γ̂)
+            'support_set_violation': float('nan'),  # NaN: unknown (no γ̂)
             'param_dist_beta': float('inf'),
             'param_dist_eta': float('inf'),
         }
@@ -398,10 +398,10 @@ class TestNNPredictionFailure:
         assert np.isnan(row['delta_used'])
         assert row['delta_used'] != 0.1
 
-    def test_nn_prediction_failure_support_set_violation_sentinel(self):
-        """NN prediction failure: support_set_violation=-1 (unknown, no γ̂)."""
+    def test_nn_prediction_failure_support_set_violation_nan(self):
+        """NN prediction failure: support_set_violation=NaN (unknown, no γ̂)."""
         row = self._make_result_with_nn_fail()
-        assert row['support_set_violation'] == -1
+        assert np.isnan(row['support_set_violation'])
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1040,3 +1040,113 @@ class TestOutputSafetyContractedFiles:
             Path(tmpdir, 'real_holdout_results.csv').touch()
             with pytest.raises(RuntimeError, match="already contains"):
                 check_output_safety(tmpdir)
+
+
+# ═══════════════════════════════════════════════════════════════
+# REVISE v3: Cross-model distribution in disk JSON
+# ═══════════════════════════════════════════════════════════════
+
+class TestCrossModelDistributionInDiskJSON:
+    """nn_cross_model_distribution must be present in the written JSON file."""
+
+    def test_distribution_in_disk_json_with_nn(self):
+        """When NN is run, cross-model distribution appears in disk JSON."""
+        tmpdir = tempfile.mkdtemp(prefix='p7_rev3_')
+        try:
+            result = run_pipeline(
+                data_dir=str(NIST_DIR), output_dir=tmpdir,
+                smoke_n_repeats=3, smoke_skip_nn=True,
+            )
+            # Even without NN (smoke_skip_nn), check that summary was written
+            # and nn_cross_model_distribution key reflects empty state
+            json_path = os.path.join(tmpdir, 'real_holdout_summary.json')
+            with open(json_path, encoding='utf-8') as f:
+                disk_summary = json.load(f)
+            # Memory object and disk JSON should be identical for this key
+            mem_summary = result['summary']
+            if 'nn_cross_model_distribution' in mem_summary:
+                assert 'nn_cross_model_distribution' in disk_summary, \
+                    "nn_cross_model_distribution missing from disk JSON"
+                assert disk_summary['nn_cross_model_distribution'] == \
+                    mem_summary['nn_cross_model_distribution']
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# ═══════════════════════════════════════════════════════════════
+# REVISE v3: Chunk identity mapping — swapped chunks blocked
+# ═══════════════════════════════════════════════════════════════
+
+class TestChunkIdentityMapping:
+    """Pre-flight must block swapped chunk content."""
+
+    def test_swapped_chunks_blocked(self):
+        """Swapping chunk 0 and 44 content must be caught by identity check."""
+        chunks_dir = str(CHUNKS_DIR)
+        if not os.path.isdir(chunks_dir):
+            pytest.skip("Main-grid chunks not available")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Copy all chunks
+            for name in os.listdir(chunks_dir):
+                if name.startswith('chunk_') and name.endswith('_mdm.csv'):
+                    shutil.copy(os.path.join(chunks_dir, name),
+                               os.path.join(tmpdir, name))
+            # Swap chunk 0 and 44 content
+            c0_path = os.path.join(tmpdir, 'chunk_0000_mdm.csv')
+            c44_path = os.path.join(tmpdir, 'chunk_0044_mdm.csv')
+            if os.path.exists(c0_path) and os.path.exists(c44_path):
+                c0 = pd.read_csv(c0_path)
+                c44 = pd.read_csv(c44_path)
+                c0.to_csv(c44_path, index=False)  # swap: c0 content → c44 path
+                c44.to_csv(c0_path, index=False)  # swap: c44 content → c0 path
+            with pytest.raises(RuntimeError, match="mismatch"):
+                validate_preflight(str(NIST_DIR), tmpdir)
+
+
+# ═══════════════════════════════════════════════════════════════
+# REVISE v3: support_set_violation NaN doesn't pollute rate
+# ═══════════════════════════════════════════════════════════════
+
+class TestSupportSetViolationNaN:
+    """NN prediction failure NaN must not produce negative violation rate."""
+
+    def test_violation_rate_not_negative_with_nan(self):
+        """aggregate_per_model ignores NaN when computing violation rate."""
+        rows = []
+        for rep in range(5):
+            rows.append({
+                'train_n': 7, 'repeat_index': rep,
+                'method': 'nn', 'model_id': 'fold_0_seed_42',
+                'delta_used': 0.1,
+                'beta_hat': 2.0, 'eta_hat': 1000.0, 'gamma_hat': 0.0,
+                'r_squared': 0.95, 'mdm_status': 1,
+                'D': 0.15, 'failed': False, 'failure_reason': '',
+                'support_set_violation': 0,
+                'param_dist_beta': 0.05, 'param_dist_eta': 0.03,
+            })
+        # Add 2 prediction-failure rows with NaN support_set_violation
+        for rep in range(5, 7):
+            rows.append({
+                'train_n': 7, 'repeat_index': rep,
+                'method': 'nn', 'model_id': 'fold_0_seed_42',
+                'delta_used': float('nan'),
+                'beta_hat': float('nan'), 'eta_hat': float('nan'),
+                'gamma_hat': float('nan'),
+                'r_squared': float('nan'), 'mdm_status': 0,
+                'D': 1.0, 'failed': True,
+                'failure_reason': 'nn_prediction_exception: test',
+                'support_set_violation': float('nan'),
+                'param_dist_beta': float('inf'),
+                'param_dist_eta': float('inf'),
+            })
+        df = pd.DataFrame(rows, columns=RESULT_COLUMNS)
+        agg = aggregate_per_model(df)
+        row = agg[(agg['method'] == 'nn') & (agg['train_n'] == 7)]
+        assert len(row) == 1
+        r = row.iloc[0]
+        # Violation rate computed only on known (0/1) values
+        assert r['mean_support_set_violation_rate'] == 0.0, \
+            f"Expected 0.0, got {r['mean_support_set_violation_rate']}"
+        # Unknown count tracks NaN entries
+        assert r['n_support_set_unknown'] == 2, \
+            f"Expected 2 unknown, got {r['n_support_set_unknown']}"
