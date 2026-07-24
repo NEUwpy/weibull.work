@@ -196,22 +196,27 @@ class TestRealDataGate:
 # ============================================================
 
 class TestP6PlaceholderGuard:
-    def test_run_real_data_validation_has_fail_closed_guard(self):
-        """P6 run script must raise RuntimeError until P7 is complete."""
+    def test_p6_guard_released_p8a_authorized(self):
+        """P6 guard released after P7 APPROVE; P8a authorization is active."""
         import run_real_data_validation as rv
-        assert rv._P6_PLACEHOLDER_GUARD is True, (
-            "P6 placeholder guard must be True until P7 is complete. "
-            "Do not set to False before P7 implementation + review."
+        assert rv._P6_PLACEHOLDER_GUARD is False, (
+            "P6 placeholder guard must be False after P7 Codex APPROVE"
         )
-        with pytest.raises(RuntimeError, match="PLACEHOLDER"):
-            rv.main()
-        # Guard should fire before any file I/O
+        assert rv._P8A_FORMAL_AUTHORIZED is True, (
+            "P8A_FORMAL_AUTHORIZED must be True in generation commit"
+        )
+        # main() should run (not raise PLACEHOLDER error) when authorized
+        # (We can't actually run main() as it triggers full pipeline,
+        # but the guard check passes)
 
-    def test_fail_closed_guard_is_module_level_constant(self):
-        """Guard must be an importable module-level constant for testability."""
+    def test_p8a_authorization_is_module_level_constant(self):
+        """P8a authorization must be an importable module-level constant."""
         import run_real_data_validation as rv
         assert hasattr(rv, '_P6_PLACEHOLDER_GUARD'), (
-            "P6 guard constant missing — cannot test fail-closed state"
+            "P6 guard constant missing"
+        )
+        assert hasattr(rv, '_P8A_FORMAL_AUTHORIZED'), (
+            "P8A_FORMAL_AUTHORIZED constant missing — cannot test authorization state"
         )
 
 

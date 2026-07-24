@@ -156,11 +156,14 @@ def test_source_json_required_fields():
     assert src['n_uncensored'] == 101
 
 
-def test_p6_placeholder_guard_active():
-    """P6 run script must still have active fail-closed guard."""
+def test_p8a_authorization_active():
+    """P6 guard released after P7 APPROVE; P8a authorization active."""
     import run_real_data_validation as rv
-    assert rv._P6_PLACEHOLDER_GUARD is True, (
-        "P6 placeholder guard must remain active until P7 complete"
+    assert rv._P6_PLACEHOLDER_GUARD is False, (
+        "P6 placeholder guard must be released after P7 Codex APPROVE"
+    )
+    assert rv._P8A_FORMAL_AUTHORIZED is True, (
+        "P8A_FORMAL_AUTHORIZED must be True in generation commit"
     )
 
 

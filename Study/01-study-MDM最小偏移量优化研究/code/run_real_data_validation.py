@@ -127,13 +127,26 @@ DEFAULT_OUTPUT_DIR = os.path.join(
 )
 
 # ═══════════════════════════════════════════════════════════════
-# Fail-closed guard
+# P8a authorization (narrow, auditable — only in generation commit)
 # ═══════════════════════════════════════════════════════════════
 
-# This guard MUST remain True until P7 passes independent review.
-# Tests bypass it by calling internal functions directly, not main().
-# P8a formal run will set this to False after P7 review.
-_P6_PLACEHOLDER_GUARD = True
+# P6 placeholder guard: RELEASED after P7 Codex APPROVE (d619a40).
+# This guard served its purpose during P7 implementation to prevent
+# accidental formal execution. Now set to False.
+_P6_PLACEHOLDER_GUARD = False
+
+# P8a formal authorization: NARROW, AUDITABLE, SINGLE-COMMIT scope.
+# Set to True ONLY in the P8a generation commit. This authorizes
+# exactly one formal run against the frozen P6 contract.
+# Tests call run_pipeline() directly and are not affected.
+# There is NO CLI flag, NO bypass_guard parameter, NO hidden entry point.
+_P8A_FORMAL_AUTHORIZED = True
+
+# P7 APPROVE record that must exist before P8a formal run.
+_P7_APPROVE_RECORD = os.path.join(
+    PROJECT_ROOT, "coworker", "reviews",
+    "2026-07-25-study01xu-p7-codex-approve.md"
+)
 
 log_lines = []
 
@@ -1760,30 +1773,228 @@ def _dist_summary(values):
 
 
 # ═══════════════════════════════════════════════════════════════
+# P8a formal run: environment validation + transactional output
+# ═══════════════════════════════════════════════════════════════
+
+def validate_p8a_environment():
+    """Verify P8a pre-conditions before formal run. Raises RuntimeError on failure.
+
+    Checks:
+      1. Git tree is clean (no uncommitted changes).
+      2. P7 Codex APPROVE record exists.
+      3. P6 frozen contract exists.
+    Returns the short execution commit hash.
+    """
+    # 1. Git tree must be clean
+    commit, dirty = get_git_info()
+    if dirty:
+        raise RuntimeError(
+            "P8a formal run requires a clean git tree. "
+            "Uncommitted changes detected via 'git status --porcelain'.\n"
+            "Commit or stash changes before running the formal experiment."
+        )
+    if commit == "UNKNOWN":
+        raise RuntimeError(
+            "P8a formal run requires a known git commit. "
+            "Could not determine HEAD commit."
+        )
+
+    # 2. P7 APPROVE record must exist
+    if not os.path.exists(_P7_APPROVE_RECORD):
+        raise RuntimeError(
+            f"P7 Codex APPROVE record not found at: {_P7_APPROVE_RECORD}\n"
+            "P8a formal run requires P7 independent review approval."
+        )
+
+    # 3. P6 frozen contract must exist
+    p6_contract = os.path.join(
+        ARTIFACTS_DIR, "real_data", "P6_FROZEN_CONTRACT.md"
+    )
+    if not os.path.exists(p6_contract):
+        raise RuntimeError(f"P6 frozen contract not found: {p6_contract}")
+
+    log(f"P8a environment validated: commit={commit}, tree=clean, "
+        f"P7_APPROVE=present, P6_contract=present")
+    return commit
+
+
+def run_p8a_formal(data_dir=None, output_dir=None, chunks_dir=None):
+    """P8a formal run with transactional output (scratch -> promote).
+
+    Protocol:
+      1. Validate environment (git clean, P7 APPROVE, P6 contract).
+      2. Fail-closed: formal output must not already exist.
+      3. Create unique scratch directory under output_dir/scratch/.
+      4. Run pipeline to scratch.
+      5. Verify all 5 output files exist in scratch.
+      6. Promote files from scratch to formal dir.
+      7. Clean up scratch.
+
+    If the run fails, scratch preserves partial results for diagnosis
+    but formal dir remains uncontaminated.
+    """
+    if not _P8A_FORMAL_AUTHORIZED:
+        raise RuntimeError(
+            "P8A_FORMAL_AUTHORIZED is False. "
+            "P8a formal run requires explicit authorization in the generation commit."
+        )
+
+    if data_dir is None:
+        data_dir = os.path.join(ARTIFACTS_DIR, "real_data", "nist-6061-t6-fatigue")
+    if output_dir is None:
+        output_dir = DEFAULT_OUTPUT_DIR
+    if chunks_dir is None:
+        chunks_dir = os.path.join(SHARED_DATA_DIR, "chunks")
+
+    # ── Environment validation ──
+    log("=" * 70)
+    log("P8a Formal Run — Environment Validation")
+    log("=" * 70)
+    exec_commit = validate_p8a_environment()
+
+    # ── Fail-closed: formal output must not exist ──
+    log("Checking formal output safety...")
+    check_output_safety(output_dir)
+    log("  Formal output dir is clean.")
+
+    # ── Create scratch directory ──
+    run_ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    scratch_dir = os.path.join(output_dir, 'scratch', f'run_{run_ts}')
+    os.makedirs(scratch_dir, exist_ok=True)
+    log(f"Scratch directory: {scratch_dir}")
+
+    # ── Run pipeline to scratch ──
+    t_start = time.time()
+    start_iso = now_iso()
+    log(f"Formal run start: {start_iso}")
+    log(f"Execution commit: {exec_commit}")
+
+    try:
+        result = run_pipeline(
+            data_dir=data_dir,
+            output_dir=scratch_dir,
+            chunks_dir=chunks_dir,
+        )
+    except Exception:
+        elapsed = time.time() - t_start
+        log(f"P8a formal run FAILED after {elapsed:.0f}s")
+        log(f"Scratch directory preserved: {scratch_dir}")
+        raise
+
+    t_end = time.time()
+    elapsed = t_end - t_start
+    end_iso = now_iso()
+    log(f"Formal run end: {end_iso}")
+    log(f"Elapsed: {elapsed:.0f}s ({elapsed/60:.1f} min)")
+
+    # ── Verify scratch outputs ──
+    expected_files = [
+        'real_holdout_results.csv',
+        'real_holdout_summary.json',
+        'real_nn_model_stability.csv',
+        'real_data_manifest.json',
+        'run_log.txt',
+    ]
+    for fname in expected_files:
+        fpath = os.path.join(scratch_dir, fname)
+        if not os.path.exists(fpath):
+            raise RuntimeError(
+                f"Scratch verification failed: missing {fname} in {scratch_dir}"
+            )
+    log("Scratch outputs verified: all 5 files present.")
+
+    # ── Promote: move files from scratch to formal dir ──
+    log("Promoting outputs from scratch to formal directory...")
+    for fname in expected_files:
+        src = os.path.join(scratch_dir, fname)
+        dst = os.path.join(output_dir, fname)
+        os.rename(src, dst)
+        log(f"  Promoted: {fname}")
+
+    # ── Clean up scratch ──
+    try:
+        os.rmdir(scratch_dir)
+        log("Scratch directory cleaned.")
+    except OSError:
+        log(f"  (scratch dir not empty, leaving: {scratch_dir})")
+
+    # ── Re-read manifest and add P8a provenance fields ──
+    manifest_path = os.path.join(output_dir, 'real_data_manifest.json')
+    with open(manifest_path, 'r', encoding='utf-8') as f:
+        manifest = json.load(f)
+
+    # Augment manifest with P8a-specific fields
+    manifest['experiment'] = 'real_data_holdout_validation_p8a_formal'
+    manifest['p8a_contract_version'] = 'P8a-v1.0-FROZEN'
+    manifest['p7_approve_tip'] = 'd619a40'
+    manifest['p7_approve_record'] = 'coworker/reviews/2026-07-25-study01xu-p7-codex-approve.md'
+    manifest['generation_code_commit'] = exec_commit
+    manifest['start_time'] = start_iso
+    manifest['end_time'] = end_iso
+    manifest['elapsed_seconds'] = round(elapsed, 1)
+    manifest['recovery_attempts'] = 0
+    manifest['p8a_authorization'] = {
+        'guard': '_P8A_FORMAL_AUTHORIZED',
+        'scope': 'single_generation_commit',
+        'bypass_exists': False,
+    }
+
+    # Compute output file hashes
+    output_hashes = {}
+    for fname in expected_files:
+        fpath = os.path.join(output_dir, fname)
+        with open(fpath, 'rb') as f:
+            raw = f.read()
+        raw_lf = raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+        output_hashes[fname] = hashlib.sha256(raw_lf).hexdigest()
+    manifest['output_hashes'] = output_hashes
+
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, indent=2, sort_keys=True, ensure_ascii=False)
+    log("Manifest augmented with P8a provenance fields.")
+
+    log("=" * 70)
+    log("P8a formal run COMPLETE.")
+    log(f"Output: {output_dir}")
+    log(f"Execution commit: {exec_commit}")
+    log(f"Elapsed: {elapsed:.0f}s")
+    log("=" * 70)
+
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════
 # CLI entry point
 # ═══════════════════════════════════════════════════════════════
 
 def main():
     """CLI entry point for real data holdout validation.
 
-    The _P6_PLACEHOLDER_GUARD prevents ANY execution until P7 passes
-    independent review. There is NO public bypass.
-    Tests call run_pipeline() directly with a temp output_dir.
+    P8a formal run: requires _P8A_FORMAL_AUTHORIZED=True (narrow, auditable).
+    There is NO CLI bypass flag, NO hidden parameter, NO test-only entry point.
+    Tests call run_pipeline() directly without going through main().
     """
-    if _P6_PLACEHOLDER_GUARD:
+    if '--help' in sys.argv or '-h' in sys.argv:
+        print("Usage: python run_real_data_validation.py")
+        print()
+        print("P8a formal real data holdout validation.")
+        print("No CLI flags. The formal run is fully automated against")
+        print("the frozen P6 contract and P8a execution contract.")
+        print()
+        print("Tests call run_pipeline() directly — there is no test-only")
+        print("entry point or bypass flag on this path.")
+        return
+
+    if not _P8A_FORMAL_AUTHORIZED:
         raise RuntimeError(
-            "run_real_data_validation.py: P6 PLACEHOLDER guard is still active. "
-            "P7 pipeline is implemented but pending independent review.\n"
+            "run_real_data_validation.py: P8a formal authorization is not active.\n"
+            "The _P8A_FORMAL_AUTHORIZED guard must be True in the generation commit.\n"
             "There is NO CLI bypass. Tests call run_pipeline() directly.\n"
-            "See: coworker/reports/2026-07-25-study01xu-p6-preflight-audit.md\n"
-            "Per frozen contract: P7 must pass independent review before P8a formal run."
+            "See: P8A_EXECUTION_CONTRACT.md and "
+            "coworker/reviews/2026-07-25-study01xu-p7-codex-approve.md"
         )
 
-    data_dir = os.path.join(
-        ARTIFACTS_DIR, "real_data", "nist-6061-t6-fatigue"
-    )
-
-    return run_pipeline(data_dir=data_dir)
+    return run_p8a_formal()
 
 
 if __name__ == '__main__':

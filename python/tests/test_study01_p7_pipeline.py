@@ -287,17 +287,31 @@ class TestP99FailurePenalty:
 # ═══════════════════════════════════════════════════════════════
 
 class TestGuardNoBypass:
-    """CLI cannot bypass the guard. Tests call run_pipeline() directly."""
+    """P6 guard released. P8a authorization is narrow and auditable."""
 
-    def test_guard_active(self):
+    def test_p6_guard_released(self):
         from run_real_data_validation import _P6_PLACEHOLDER_GUARD
-        assert _P6_PLACEHOLDER_GUARD is True
+        assert _P6_PLACEHOLDER_GUARD is False, (
+            "P6 placeholder guard must be False after P7 Codex APPROVE"
+        )
 
-    def test_main_raises_runtime_error(self):
-        """main() raises RuntimeError (guard active, no bypass arg)."""
-        from run_real_data_validation import main
-        with pytest.raises(RuntimeError, match="PLACEHOLDER"):
-            main()
+    def test_p8a_authorized(self):
+        from run_real_data_validation import _P8A_FORMAL_AUTHORIZED
+        assert _P8A_FORMAL_AUTHORIZED is True, (
+            "P8A_FORMAL_AUTHORIZED must be True in generation commit"
+        )
+
+    def test_main_checks_p8a_authorization(self):
+        """main() checks _P8A_FORMAL_AUTHORIZED, not _P6_PLACEHOLDER_GUARD."""
+        import run_real_data_validation as rv
+        # Simulate unauthorized state: should raise
+        original = rv._P8A_FORMAL_AUTHORIZED
+        try:
+            rv._P8A_FORMAL_AUTHORIZED = False
+            with pytest.raises(RuntimeError, match="P8a formal authorization"):
+                rv.main()
+        finally:
+            rv._P8A_FORMAL_AUTHORIZED = original
 
     def test_no_bypass_guard_in_main_signature(self):
         """main() has no bypass_guard parameter."""
@@ -821,9 +835,10 @@ class TestContractCompliance:
         for fname in required:
             assert (NIST_DIR / fname).exists(), f"Missing: {fname}"
 
-    def test_placeholder_guard_active(self):
-        from run_real_data_validation import _P6_PLACEHOLDER_GUARD
-        assert _P6_PLACEHOLDER_GUARD
+    def test_p8a_authorization_active(self):
+        from run_real_data_validation import _P6_PLACEHOLDER_GUARD, _P8A_FORMAL_AUTHORIZED
+        assert not _P6_PLACEHOLDER_GUARD, "P6 guard must be released"
+        assert _P8A_FORMAL_AUTHORIZED, "P8a must be authorized"
 
 
 class TestNoLeakageConstraint:
