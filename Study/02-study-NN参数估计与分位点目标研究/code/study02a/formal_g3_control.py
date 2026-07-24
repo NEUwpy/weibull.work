@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -527,28 +528,38 @@ def initialize_g3_formal_state(
 
 def authorize_g3_test_once(
     *, state_path: Path, bundle_path: Path, approval_path: Path,
-    manifest_path: Path, ledger_path: Path, timestamp: str,
+    manifest_path: Path, oracle_review_path: Path, ledger_path: Path,
+    timestamp: str, stale_lock_max_age_seconds: int = 3600,
 ) -> dict[str, Any]:
     """Transition the unified G3 state: sealed -> unsealed_once.
 
-    Concurrent-safe (file lock), crash-recoverable (journal), and consistent
-    (state + ledger written atomically under lock). Reads and verifies actual
-    manifest/bundle/approval bytes from disk — never trusts caller-supplied dicts.
+    Follows the exact formal_state.py model: file lock with stale detection,
+    journal with ledger-prefix/before-after-state verification, atomic state
+    write under lock. All inputs verified from actual disk bytes before any
+    journal replay is allowed.
     """
     import os
+    import time
 
-    lock_path = state_path.with_suffix(".lock")
-    journal_path = state_path.with_suffix(".journal")
+    lock_path = state_path.with_name(state_path.name + ".lock")
+    journal_path = state_path.with_name(state_path.name + ".journal")
 
     try:
         fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.close(fd)
     except FileExistsError:
-        raise ValueError("another process holds the G3 state lock")
+        lock_age = time.time() - lock_path.stat().st_mtime
+        if lock_age > stale_lock_max_age_seconds:
+            lock_path.unlink()
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+        else:
+            raise ValueError(
+                f"G3 state is locked (age {lock_age:.0f}s < {stale_lock_max_age_seconds}s): {lock_path}"
+            )
 
     try:
-        if journal_path.is_file():
-            return _recover_g3_journal(journal_path, state_path, ledger_path)
+        _recover_g3_journal(journal_path, state_path, ledger_path)
 
         state_bytes = state_path.read_bytes()
         state = json.loads(state_bytes.decode("utf-8"))
@@ -604,6 +615,12 @@ def authorize_g3_test_once(
         if approval.get("frozen_matrix_sha256") != FROZEN_MATRIX_SHA256:
             raise ValueError("G3 approval matrix SHA mismatch")
 
+        if not oracle_review_path.is_file():
+            raise ValueError(f"oracle review artifact not found: {oracle_review_path}")
+        oracle_review_sha = _sha256_file(oracle_review_path)
+        if approval.get("oracle_review_artifact_sha256") != oracle_review_sha:
+            raise ValueError("G3 approval oracle_review_artifact_sha256 does not match artifact on disk")
+
         approval_sha = _sha256_bytes(approval_bytes)
 
         after = {**state, "state": "unsealed_once", "transition_seq": 1,
@@ -624,14 +641,20 @@ def authorize_g3_test_once(
             "test_access_count": 1,
             "timestamp": timestamp,
         }
-        event_line = json.dumps(event, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
 
-        journal = {"after_state_bytes": after_bytes.decode("utf-8"), "event_line": event_line}
-        journal_path.write_bytes(_canonical(journal))
+        ledger_bytes_before = ledger_path.read_bytes() if ledger_path.is_file() else b""
+        journal_record = {
+            "event": event,
+            "ledger_size_before": len(ledger_bytes_before),
+            "ledger_sha_before": _sha256_bytes(ledger_bytes_before),
+        }
+        journal_path.write_bytes(_canonical(journal_record))
 
         state_path.write_bytes(after_bytes)
-        with open(ledger_path, "a", encoding="utf-8") as f:
-            f.write(event_line)
+
+        event_bytes = _canonical(event)
+        with open(ledger_path, "ab") as f:
+            f.write(event_bytes)
 
         journal_path.unlink()
         return after
@@ -640,22 +663,75 @@ def authorize_g3_test_once(
         lock_path.unlink(missing_ok=True)
 
 
-def _recover_g3_journal(journal_path: Path, state_path: Path, ledger_path: Path) -> dict[str, Any]:
-    """Recover from a crash mid-transition by replaying the journal."""
+def _recover_g3_journal(journal_path: Path, state_path: Path, ledger_path: Path) -> None:
+    """Recover from a crash mid-transition using the formal_state.py model.
+
+    Verifies ledger prefix (size + SHA), checks before/after state SHA.
+    Never unconditionally trusts the journal.
+    """
+    if not journal_path.is_file():
+        return
     journal_bytes = journal_path.read_bytes()
     journal = json.loads(journal_bytes.decode("utf-8"))
-    after_bytes = journal["after_state_bytes"].encode("utf-8")
-    event_line = journal["event_line"]
+    if journal_bytes != _canonical(journal):
+        raise ValueError("G3 journal is non-canonical")
 
-    state_path.write_bytes(after_bytes)
+    event = journal.get("event")
+    if not isinstance(event, dict):
+        raise ValueError("G3 journal event must be a dict")
+    required_event_fields = {
+        "transition_version", "run_family_id", "transition", "seq",
+        "before_state_sha256", "after_state_sha256", "approval_sha256",
+        "g3_pre_unseal_bundle_sha256", "g3_test_manifest_sha256",
+        "test_access_count", "timestamp",
+    }
+    if set(event) != required_event_fields:
+        raise ValueError("G3 journal event schema mismatch")
 
-    ledger_content = ledger_path.read_text(encoding="utf-8") if ledger_path.is_file() else ""
-    if event_line not in ledger_content:
-        with open(ledger_path, "a", encoding="utf-8") as f:
-            f.write(event_line)
+    size_before = journal.get("ledger_size_before")
+    if not isinstance(size_before, int) or isinstance(size_before, bool) or size_before < 0:
+        raise ValueError("G3 journal ledger_size_before is invalid")
+    sha_before = journal.get("ledger_sha_before")
+    if not isinstance(sha_before, str) or len(sha_before) != 64:
+        raise ValueError("G3 journal ledger_sha_before is invalid")
 
+    ledger_bytes = ledger_path.read_bytes() if ledger_path.is_file() else b""
+    if len(ledger_bytes) < size_before:
+        raise ValueError("G3 journal ledger prefix conflicts: ledger shorter than recorded snapshot")
+    if _sha256_bytes(ledger_bytes[:size_before]) != sha_before:
+        raise ValueError("G3 journal ledger prefix conflicts: SHA mismatch with recorded snapshot")
+
+    state_bytes = state_path.read_bytes()
+    state_sha = _sha256_bytes(state_bytes)
+
+    if state_sha == event["before_state_sha256"]:
+        if len(ledger_bytes) != size_before:
+            raise ValueError("G3 journal before-state requires unchanged ledger snapshot")
+        journal_path.unlink()
+        return
+
+    if state_sha != event["after_state_sha256"]:
+        raise ValueError("G3 journal matches neither before nor after state — corruption")
+
+    event_bytes = _canonical(event)
+    suffix = ledger_bytes[size_before:]
+    if suffix == event_bytes:
+        journal_path.unlink()
+        return
+    if not event_bytes.startswith(suffix):
+        raise ValueError("G3 journal after-state ledger tail conflicts with exact event")
+
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    if ledger_path.is_file() and size_before > 0:
+        with open(ledger_path, "r+b") as f:
+            f.truncate(size_before)
+            f.flush()
+            os.fsync(f.fileno())
+    elif ledger_path.is_file():
+        ledger_path.unlink()
+    with open(ledger_path, "ab") as f:
+        f.write(event_bytes)
     journal_path.unlink()
-    return json.loads(after_bytes.decode("utf-8"))
 
 
 __all__ = [

@@ -181,6 +181,44 @@ class TestG3Schemas:
         )
         return manifest, bundle, chain
 
+    def _setup_authorized(self, tmp_path):
+        """Full setup: manifest + bundle + state + approval + oracle_review. Returns paths."""
+        manifest, bundle, chain = self._make_bundle_and_state(tmp_path)
+        out_dir = tmp_path / "g3"
+        out_dir.mkdir(exist_ok=True)
+        manifest_path = publish_g3_test_manifest(manifest, out_dir)
+        bundle_path = publish_g3_bundle(bundle, out_dir)
+        state_path = out_dir / "g3_formal_state.json"
+        ledger_path = out_dir / "g3_transition_ledger.jsonl"
+        initialize_g3_formal_state(state_path=state_path, bundle=bundle, run_family_id="G3", timestamp="T1")
+
+        oracle_review_path = out_dir / "oracle_review.json"
+        oracle_review_path.write_bytes(_canonical({"review": "oracle", "verdict": "APPROVE"}))
+        oracle_review_sha = _sha256_bytes(oracle_review_path.read_bytes())
+
+        approval_path = out_dir / "g3_oracle_approval.json"
+        approval = {
+            "approval_version": _APPROVAL_VERSION,
+            "decision": "APPROVE G3 test unseal",
+            "code_commit": COMMIT,
+            "effective_config_sha256": CONFIG_SHA,
+            "frozen_matrix_sha256": FROZEN_MATRIX_SHA256,
+            "g3_pre_unseal_bundle_sha256": bundle["bundle_sha256"],
+            "g3_test_manifest_sha256": manifest["manifest_sha256"],
+            "selection_trace_hashes": bundle["selection_trace_hashes"],
+            "oracle_review_artifact_sha256": oracle_review_sha,
+            "issued_at": "T2",
+        }
+        approval_path.write_bytes(_canonical(approval))
+
+        return {
+            "manifest": manifest, "bundle": bundle, "chain": chain,
+            "manifest_path": manifest_path, "bundle_path": bundle_path,
+            "state_path": state_path, "ledger_path": ledger_path,
+            "approval_path": approval_path, "oracle_review_path": oracle_review_path,
+            "out_dir": out_dir,
+        }
+
     def test_manifest_version(self, tmp_path):
         manifest, _, _ = self._make_bundle_and_state(tmp_path)
         assert manifest["manifest_version"] == _MANIFEST_VERSION
@@ -195,136 +233,116 @@ class TestG3Schemas:
         assert bundle["g3_test_manifest_sha256"] == manifest["manifest_sha256"]
 
     def test_state_lifecycle_sealed_to_unsealed(self, tmp_path):
-        manifest, bundle, chain = self._make_bundle_and_state(tmp_path)
-        out_dir = tmp_path / "g3"
-        out_dir.mkdir()
-
-        manifest_path = publish_g3_test_manifest(manifest, out_dir)
-        bundle_path = publish_g3_bundle(bundle, out_dir)
-        state_path = out_dir / "g3_formal_state.json"
-        ledger_path = out_dir / "g3_transition_ledger.jsonl"
-
-        initialize_g3_formal_state(
-            state_path=state_path, bundle=bundle,
-            run_family_id="G3-formal", timestamp="2026-07-25T09:00:00Z",
-        )
-        state = json.loads(state_path.read_text(encoding="utf-8"))
-        assert state["state"] == "sealed"
-        assert state["state_version"] == _STATE_VERSION
-        assert state["test_access_count"] == 0
-
-        approval_path = out_dir / "g3_oracle_approval.json"
-        publish_g3_approval(
-            approval_path=approval_path, bundle=bundle,
-            oracle_review_sha256="or" * 32, issued_at="2026-07-25T10:00:00Z",
-        )
-
+        ctx = self._setup_authorized(tmp_path)
         after = authorize_g3_test_once(
-            state_path=state_path, bundle_path=bundle_path,
-            approval_path=approval_path, manifest_path=manifest_path,
-            ledger_path=ledger_path, timestamp="2026-07-25T10:30:00Z",
+            state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+            approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+            oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+            timestamp="T3",
         )
         assert after["state"] == "unsealed_once"
         assert after["test_access_count"] == 1
         assert after["transition_seq"] == 1
         assert after["approval_sha256"] is not None
-        assert ledger_path.is_file()
-        assert not state_path.with_suffix(".journal").exists()
-        assert not state_path.with_suffix(".lock").exists()
+        assert ctx["ledger_path"].is_file()
+        assert not ctx["state_path"].with_name(ctx["state_path"].name + ".journal").exists()
+        assert not ctx["state_path"].with_name(ctx["state_path"].name + ".lock").exists()
 
     def test_repeat_authorize_rejected(self, tmp_path):
-        manifest, bundle, chain = self._make_bundle_and_state(tmp_path)
-        out_dir = tmp_path / "g3"
-        out_dir.mkdir()
-        manifest_path = publish_g3_test_manifest(manifest, out_dir)
-        bundle_path = publish_g3_bundle(bundle, out_dir)
-        state_path = out_dir / "g3_formal_state.json"
-        ledger_path = out_dir / "g3_transition_ledger.jsonl"
-        initialize_g3_formal_state(state_path=state_path, bundle=bundle, run_family_id="G3", timestamp="T1")
-        approval_path = out_dir / "g3_oracle_approval.json"
-        publish_g3_approval(approval_path=approval_path, bundle=bundle, oracle_review_sha256="or" * 32, issued_at="T2")
-        authorize_g3_test_once(state_path=state_path, bundle_path=bundle_path, approval_path=approval_path, manifest_path=manifest_path, ledger_path=ledger_path, timestamp="T3")
+        ctx = self._setup_authorized(tmp_path)
+        authorize_g3_test_once(
+            state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+            approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+            oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+            timestamp="T3",
+        )
         with pytest.raises(ValueError, match="must be sealed"):
-            authorize_g3_test_once(state_path=state_path, bundle_path=bundle_path, approval_path=approval_path, manifest_path=manifest_path, ledger_path=ledger_path, timestamp="T4")
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T4",
+            )
 
     def test_wrong_approval_decision_rejected(self, tmp_path):
-        manifest, bundle, chain = self._make_bundle_and_state(tmp_path)
-        out_dir = tmp_path / "g3"
-        out_dir.mkdir()
-        manifest_path = publish_g3_test_manifest(manifest, out_dir)
-        bundle_path = publish_g3_bundle(bundle, out_dir)
-        state_path = out_dir / "g3_formal_state.json"
-        ledger_path = out_dir / "g3_transition_ledger.jsonl"
-        initialize_g3_formal_state(state_path=state_path, bundle=bundle, run_family_id="G3", timestamp="T1")
-        approval_path = out_dir / "g3_oracle_approval.json"
-        bad_approval = {
-            "approval_version": _APPROVAL_VERSION,
-            "decision": "REJECT",
-            "code_commit": COMMIT,
-            "effective_config_sha256": CONFIG_SHA,
-            "frozen_matrix_sha256": FROZEN_MATRIX_SHA256,
-            "g3_pre_unseal_bundle_sha256": bundle["bundle_sha256"],
-            "g3_test_manifest_sha256": bundle["g3_test_manifest_sha256"],
-            "selection_trace_hashes": bundle["selection_trace_hashes"],
-            "oracle_review_artifact_sha256": "or" * 32,
-            "issued_at": "T2",
-        }
-        approval_path.write_bytes(_canonical(bad_approval))
+        ctx = self._setup_authorized(tmp_path)
+        bad_approval = json.loads(ctx["approval_path"].read_text(encoding="utf-8"))
+        bad_approval["decision"] = "REJECT"
+        ctx["approval_path"].write_bytes(_canonical(bad_approval))
         with pytest.raises(ValueError, match="APPROVE G3 test unseal"):
-            authorize_g3_test_once(state_path=state_path, bundle_path=bundle_path, approval_path=approval_path, manifest_path=manifest_path, ledger_path=ledger_path, timestamp="T3")
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3",
+            )
+        state = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
+        assert state["state"] == "sealed"
 
     def test_old_bundle_version_rejected(self, tmp_path):
-        manifest, bundle, chain = self._make_bundle_and_state(tmp_path)
-        out_dir = tmp_path / "g3"
-        out_dir.mkdir()
-        manifest_path = publish_g3_test_manifest(manifest, out_dir)
-        old_bundle = {**bundle, "bundle_version": "study02-pre-unseal-v3"}
-        old_bytes = _canonical(old_bundle)
-        old_bundle["bundle_sha256"] = _sha256_bytes(old_bytes)
-        bundle_path = out_dir / "g3_pre_unseal_bundle.json"
-        bundle_path.write_bytes(_canonical(old_bundle))
-        state_path = out_dir / "g3_formal_state.json"
-        ledger_path = out_dir / "g3_transition_ledger.jsonl"
-        initialize_g3_formal_state(state_path=state_path, bundle=old_bundle, run_family_id="G3", timestamp="T1")
-        approval_path = out_dir / "g3_oracle_approval.json"
-        publish_g3_approval(approval_path=approval_path, bundle=old_bundle, oracle_review_sha256="or" * 32, issued_at="T2")
+        ctx = self._setup_authorized(tmp_path)
+        tampered = json.loads(ctx["bundle_path"].read_text(encoding="utf-8"))
+        tampered["bundle_version"] = "study02-pre-unseal-v3"
+        ctx["bundle_path"].write_bytes(_canonical(tampered))
         with pytest.raises(ValueError, match="bundle version"):
-            authorize_g3_test_once(state_path=state_path, bundle_path=bundle_path, approval_path=approval_path, manifest_path=manifest_path, ledger_path=ledger_path, timestamp="T3")
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3",
+            )
 
-    def test_bundle_sha_mismatch_rejected(self, tmp_path):
-        manifest, bundle, chain = self._make_bundle_and_state(tmp_path)
-        out_dir = tmp_path / "g3"
-        out_dir.mkdir()
-        manifest_path = publish_g3_test_manifest(manifest, out_dir)
-        bundle_path = publish_g3_bundle(bundle, out_dir)
-        state_path = out_dir / "g3_formal_state.json"
-        ledger_path = out_dir / "g3_transition_ledger.jsonl"
-        initialize_g3_formal_state(state_path=state_path, bundle=bundle, run_family_id="G3", timestamp="T1")
-        tampered_bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
-        tampered_bundle["code_commit"] = "ff" * 20
-        bundle_path.write_bytes(_canonical(tampered_bundle))
-        approval_path = out_dir / "g3_oracle_approval.json"
-        publish_g3_approval(approval_path=approval_path, bundle=bundle, oracle_review_sha256="or" * 32, issued_at="T2")
-        with pytest.raises(ValueError, match="bundle.*SHA mismatch|self-SHA mismatch"):
-            authorize_g3_test_once(state_path=state_path, bundle_path=bundle_path, approval_path=approval_path, manifest_path=manifest_path, ledger_path=ledger_path, timestamp="T3")
+    def test_bundle_tamper_rejected(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        tampered = json.loads(ctx["bundle_path"].read_text(encoding="utf-8"))
+        tampered["code_commit"] = "ff" * 20
+        ctx["bundle_path"].write_bytes(_canonical(tampered))
+        with pytest.raises(ValueError, match="self-SHA mismatch|SHA mismatch"):
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3",
+            )
+        state = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
+        assert state["state"] == "sealed"
+
+    def test_oracle_review_sha_mismatch_rejected(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        ctx["oracle_review_path"].write_bytes(b"tampered-oracle-review")
+        with pytest.raises(ValueError, match="oracle_review_artifact_sha256"):
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3",
+            )
+        state = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
+        assert state["state"] == "sealed"
+
+    def test_missing_oracle_review_rejected(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        ctx["oracle_review_path"].unlink()
+        with pytest.raises(ValueError, match="oracle review artifact not found"):
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3",
+            )
 
     def test_concurrent_authorize_exactly_one_succeeds(self, tmp_path):
         from concurrent.futures import ThreadPoolExecutor
-        manifest, bundle, chain = self._make_bundle_and_state(tmp_path)
-        out_dir = tmp_path / "g3"
-        out_dir.mkdir()
-        manifest_path = publish_g3_test_manifest(manifest, out_dir)
-        bundle_path = publish_g3_bundle(bundle, out_dir)
-        state_path = out_dir / "g3_formal_state.json"
-        ledger_path = out_dir / "g3_transition_ledger.jsonl"
-        initialize_g3_formal_state(state_path=state_path, bundle=bundle, run_family_id="G3", timestamp="T1")
-        approval_path = out_dir / "g3_oracle_approval.json"
-        publish_g3_approval(approval_path=approval_path, bundle=bundle, oracle_review_sha256="or" * 32, issued_at="T2")
+        ctx = self._setup_authorized(tmp_path)
 
-        results = []
         def try_authorize(i):
             try:
-                authorize_g3_test_once(state_path=state_path, bundle_path=bundle_path, approval_path=approval_path, manifest_path=manifest_path, ledger_path=ledger_path, timestamp=f"T3-{i}")
+                authorize_g3_test_once(
+                    state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                    approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                    oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                    timestamp=f"T3-{i}",
+                )
                 return "success"
             except (ValueError, OSError):
                 return "rejected"
@@ -336,25 +354,95 @@ class TestG3Schemas:
         assert results.count("success") == 1
         assert results.count("rejected") == 3
 
-    def test_crash_recovery_journal_replay(self, tmp_path):
-        manifest, bundle, chain = self._make_bundle_and_state(tmp_path)
-        out_dir = tmp_path / "g3"
-        out_dir.mkdir()
-        manifest_path = publish_g3_test_manifest(manifest, out_dir)
-        bundle_path = publish_g3_bundle(bundle, out_dir)
-        state_path = out_dir / "g3_formal_state.json"
-        ledger_path = out_dir / "g3_transition_ledger.jsonl"
-        initialize_g3_formal_state(state_path=state_path, bundle=bundle, run_family_id="G3", timestamp="T1")
-        approval_path = out_dir / "g3_oracle_approval.json"
-        publish_g3_approval(approval_path=approval_path, bundle=bundle, oracle_review_sha256="or" * 32, issued_at="T2")
+    def test_stale_lock_recovered(self, tmp_path):
+        import time as _time
+        ctx = self._setup_authorized(tmp_path)
+        lock_path = ctx["state_path"].with_name(ctx["state_path"].name + ".lock")
+        lock_path.write_bytes(b"")
+        old_time = _time.time() - 7200
+        import os as _os
+        _os.utime(str(lock_path), (old_time, old_time))
+        after = authorize_g3_test_once(
+            state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+            approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+            oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+            timestamp="T3", stale_lock_max_age_seconds=3600,
+        )
+        assert after["state"] == "unsealed_once"
 
-        state_bytes = state_path.read_bytes()
+    def test_fresh_lock_rejected(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        lock_path = ctx["state_path"].with_name(ctx["state_path"].name + ".lock")
+        lock_path.write_bytes(b"")
+        with pytest.raises(ValueError, match="locked"):
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3", stale_lock_max_age_seconds=3600,
+            )
+        state = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
+        assert state["state"] == "sealed"
+
+    def test_forged_journal_rejected(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        journal_path = ctx["state_path"].with_name(ctx["state_path"].name + ".journal")
+        forged = {
+            "event": {
+                "transition_version": "study02-g3-formal-transition-v1",
+                "run_family_id": "G3", "transition": "authorize_g3_test_once", "seq": 1,
+                "before_state_sha256": "aa" * 32, "after_state_sha256": "bb" * 32,
+                "approval_sha256": "cc" * 32, "g3_pre_unseal_bundle_sha256": "dd" * 32,
+                "g3_test_manifest_sha256": "ee" * 32, "test_access_count": 1, "timestamp": "T-forged",
+            },
+            "ledger_size_before": 0,
+            "ledger_sha_before": _sha256_bytes(b""),
+        }
+        journal_path.write_bytes(_canonical(forged))
+        with pytest.raises(ValueError, match="neither before nor after"):
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3",
+            )
+        state = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
+        assert state["state"] == "sealed"
+
+    def test_journal_with_tampered_ledger_prefix_rejected(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        ctx["ledger_path"].write_bytes(b"tampered-ledger-content\n")
+        journal_path = ctx["state_path"].with_name(ctx["state_path"].name + ".journal")
+        state_bytes = ctx["state_path"].read_bytes()
+        forged = {
+            "event": {
+                "transition_version": "study02-g3-formal-transition-v1",
+                "run_family_id": "G3", "transition": "authorize_g3_test_once", "seq": 1,
+                "before_state_sha256": _sha256_bytes(state_bytes), "after_state_sha256": "bb" * 32,
+                "approval_sha256": "cc" * 32, "g3_pre_unseal_bundle_sha256": "dd" * 32,
+                "g3_test_manifest_sha256": "ee" * 32, "test_access_count": 1, "timestamp": "T-forged",
+            },
+            "ledger_size_before": 0,
+            "ledger_sha_before": _sha256_bytes(b""),
+        }
+        journal_path.write_bytes(_canonical(forged))
+        with pytest.raises(ValueError, match="ledger prefix conflicts|unchanged ledger snapshot"):
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3",
+            )
+
+    def test_crash_recovery_after_state_write(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        state_bytes = ctx["state_path"].read_bytes()
         state = json.loads(state_bytes.decode("utf-8"))
-        approval_bytes = approval_path.read_bytes()
+        approval_bytes = ctx["approval_path"].read_bytes()
         approval_sha = _sha256_bytes(approval_bytes)
-        bundle_content = {k: v for k, v in bundle.items() if k != "bundle_sha256"}
+        bundle_content = {k: v for k, v in ctx["bundle"].items() if k != "bundle_sha256"}
         bundle_sha = _sha256_bytes(_canonical(bundle_content))
-        manifest_content = {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+        manifest_content = {k: v for k, v in ctx["manifest"].items() if k != "manifest_sha256"}
         manifest_sha = _sha256_bytes(_canonical(manifest_content))
 
         after = {**state, "state": "unsealed_once", "transition_seq": 1,
@@ -370,26 +458,51 @@ class TestG3Schemas:
             "g3_test_manifest_sha256": manifest_sha,
             "test_access_count": 1, "timestamp": "T3",
         }
-        event_line = json.dumps(event, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
-        journal = {"after_state_bytes": after_bytes.decode("utf-8"), "event_line": event_line}
-        journal_path = state_path.with_suffix(".journal")
-        journal_path.write_bytes(_canonical(journal))
+        ctx["state_path"].write_bytes(after_bytes)
+        journal_path = ctx["state_path"].with_name(ctx["state_path"].name + ".journal")
+        journal_record = {
+            "event": event,
+            "ledger_size_before": 0,
+            "ledger_sha_before": _sha256_bytes(b""),
+        }
+        journal_path.write_bytes(_canonical(journal_record))
 
-        recovered = authorize_g3_test_once(
-            state_path=state_path, bundle_path=bundle_path,
-            approval_path=approval_path, manifest_path=manifest_path,
-            ledger_path=ledger_path, timestamp="T4",
-        )
-        assert recovered["state"] == "unsealed_once"
+        with pytest.raises(ValueError, match="must be sealed"):
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T4",
+            )
         assert not journal_path.exists()
-        assert ledger_path.is_file()
-        assert event_line in ledger_path.read_text(encoding="utf-8")
+        assert ctx["ledger_path"].is_file()
+        ledger_content = ctx["ledger_path"].read_text(encoding="utf-8")
+        assert "authorize_g3_test_once" in ledger_content
+        final_state = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
+        assert final_state["state"] == "unsealed_once"
+
+    def test_four_way_sha_consistency(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        manifest_sha = ctx["manifest"]["manifest_sha256"]
+        bundle_data = json.loads(ctx["bundle_path"].read_text(encoding="utf-8"))
+        state_data = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
+        approval_data = json.loads(ctx["approval_path"].read_text(encoding="utf-8"))
+        manifest_data = json.loads(ctx["manifest_path"].read_text(encoding="utf-8"))
+
+        assert bundle_data["g3_test_manifest_sha256"] == manifest_sha
+        assert state_data["g3_test_manifest_sha256"] == manifest_sha
+        assert approval_data["g3_test_manifest_sha256"] == manifest_sha
+        assert manifest_data["manifest_sha256"] == manifest_sha
+        assert state_data["g3_pre_unseal_bundle_sha256"] == bundle_data["bundle_sha256"]
+        assert approval_data["g3_pre_unseal_bundle_sha256"] == bundle_data["bundle_sha256"]
 
     def test_manifest_no_replace(self, tmp_path):
         manifest, _, _ = self._make_bundle_and_state(tmp_path)
         out_dir = tmp_path / "g3"
         out_dir.mkdir()
         publish_g3_test_manifest(manifest, out_dir)
+        with pytest.raises(ValueError, match="no-replace"):
+            publish_g3_test_manifest(manifest, out_dir)
         with pytest.raises(ValueError, match="no-replace"):
             publish_g3_test_manifest(manifest, out_dir)
 
