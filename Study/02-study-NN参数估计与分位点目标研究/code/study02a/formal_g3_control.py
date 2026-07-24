@@ -191,8 +191,14 @@ def derive_g3_cohort_resolved(
         run_dir = _run_dir_for_module(chain, module_id)
         checkpoint_path = run_dir / "outputs" / fit_id / "checkpoint.pt"
         receipt_path = run_dir / "outputs" / fit_id / "fit_status.json"
-        checkpoint_sha = _sha256_file(checkpoint_path) if checkpoint_path.is_file() else ""
-        receipt_sha = _sha256_file(receipt_path) if receipt_path.is_file() else ""
+        if not checkpoint_path.is_file():
+            raise ValueError(f"cohort fit {fit_id} ({module_id}/{fit_kind}) checkpoint missing: {checkpoint_path}")
+        if not receipt_path.is_file():
+            raise ValueError(f"cohort fit {fit_id} ({module_id}/{fit_kind}) terminal receipt missing: {receipt_path}")
+        checkpoint_sha = _sha256_file(checkpoint_path)
+        receipt_sha = _sha256_file(receipt_path)
+        if not checkpoint_sha or not receipt_sha:
+            raise ValueError(f"cohort fit {fit_id} has empty checkpoint or receipt SHA")
 
         _reject_unresolved(route, "route", fit_id)
         _reject_unresolved(loss, "loss", fit_id)
@@ -229,38 +235,56 @@ def _run_dir_for_module(chain: G3RunChain, module_id: str) -> Path:
 
 
 def _load_resolutions(chain: G3RunChain) -> dict[str, dict[str, str]]:
-    """Load placeholder resolutions from selection/staged evidence in run dirs."""
+    """Load placeholder resolutions from verified selection/staged evidence.
+
+    Every resolution must come from a verified trace/receipt/ledger file.
+    No defaults, no exception swallowing, no guessed values.
+    """
     resolutions: dict[str, dict[str, str]] = {"A-E1": {}, "A-E3": {}, "A-E2": {}}
 
     staged_ledger = chain.ae1_run_dir / "staged_resolution_ledger.jsonl"
-    if staged_ledger.is_file():
-        for line in staged_ledger.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            record = json.loads(line)
-            aliases = record.get("final_aliases") or {}
-            for key, value in aliases.items():
-                resolutions["A-E1"][key] = str(value)
-            route_result = record.get("route_result") or {}
-            if isinstance(route_result, dict):
-                for key, value in route_result.items():
-                    if key.startswith("selected:"):
-                        resolutions["A-E1"][key] = str(value)
+    if not staged_ledger.is_file():
+        raise ValueError(f"A-E1 staged_resolution_ledger.jsonl not found: {staged_ledger}")
+    for line in staged_ledger.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        aliases = record.get("final_aliases") or {}
+        for key, value in aliases.items():
+            resolutions["A-E1"][key] = str(value)
+        route_result = record.get("route_result") or {}
+        if isinstance(route_result, dict):
+            for key, value in route_result.items():
+                if key.startswith("selected:"):
+                    resolutions["A-E1"][key] = str(value)
+        staged_receipt = record.get("staged_receipt") or {}
+        if isinstance(staged_receipt, dict):
+            for key, value in staged_receipt.items():
+                if key.startswith("selected:"):
+                    resolutions["A-E1"][key] = str(value)
 
     for module_id, run_dir in [("A-E3", chain.ae3_run_dir), ("A-E2", chain.ae2_run_dir)]:
         selection_dir = run_dir / "selection"
-        if selection_dir.is_dir():
-            for trace_file in sorted(selection_dir.glob("selection_trace*.json")):
-                try:
-                    records = json.loads(trace_file.read_text(encoding="utf-8"))
-                    if isinstance(records, dict) and "records" in records:
-                        records = records["records"]
-                    if isinstance(records, list):
-                        for rec in records:
-                            if isinstance(rec, dict) and rec.get("selected"):
-                                pass
-                except (json.JSONDecodeError, UnicodeError):
-                    pass
+        if not selection_dir.is_dir():
+            raise ValueError(f"{module_id} selection directory not found: {selection_dir}")
+        trace_files = sorted(selection_dir.glob("selection_trace*.json"))
+        if not trace_files:
+            raise ValueError(f"{module_id} has no selection trace files in {selection_dir}")
+        for trace_file in trace_files:
+            trace_bytes = trace_file.read_bytes()
+            records = json.loads(trace_bytes.decode("utf-8"))
+            if isinstance(records, dict) and "records" in records:
+                records = records["records"]
+            if not isinstance(records, list):
+                raise ValueError(f"{module_id} selection trace {trace_file.name} is not a record list")
+            for rec in records:
+                if not isinstance(rec, dict):
+                    raise ValueError(f"{module_id} selection trace record is not a dict")
+                if rec.get("selected") is True:
+                    candidate_id = str(rec.get("candidate_id", ""))
+                    decision_id = str(rec.get("decision_id", ""))
+                    if candidate_id:
+                        resolutions[module_id][f"selected:{decision_id}"] = candidate_id
 
     return resolutions
 
@@ -272,7 +296,10 @@ def _resolve_field(value: str, field_name: str, module_id: str, resolutions: dic
         resolved = resolutions.get(mod, {}).get(value)
         if resolved:
             return resolved
-    return value
+    raise ValueError(
+        f"cannot resolve {field_name} placeholder {value!r} for module {module_id}; "
+        f"no verified trace/receipt/ledger provides this resolution"
+    )
 
 
 def _resolve_training_size(value: int, module_id: str, fit_kind: str, resolutions: dict) -> int:
@@ -281,21 +308,23 @@ def _resolve_training_size(value: int, module_id: str, fit_kind: str, resolution
     resolved = resolutions.get(module_id, {}).get("selected_training_size")
     if resolved and resolved.isdigit():
         return int(resolved)
-    if fit_kind == "selected_size_retrain":
-        return 100000
-    if fit_kind == "selected_distribution_retrain":
-        return 100000
-    return value
+    raise ValueError(
+        f"cannot resolve training_size for module {module_id} fit_kind {fit_kind}; "
+        f"matrix value is {value} and no verified selection provides the resolved size"
+    )
 
 
 def _resolve_distribution(module_id: str, fit_kind: str, resolutions: dict) -> str:
+    if fit_kind == "historical":
+        return "legacy_grid"
     if fit_kind == "selected_distribution_retrain":
         resolved = resolutions.get(module_id, {}).get("selected:A-E2_distribution")
         if resolved:
             return resolved
-        return "core_continuous"
-    if fit_kind in ("historical",):
-        return "legacy_grid"
+        raise ValueError(
+            f"cannot resolve distribution for {module_id}/{fit_kind}; "
+            f"no verified selection provides selected:A-E2_distribution"
+        )
     return "core_continuous"
 
 
@@ -498,77 +527,135 @@ def initialize_g3_formal_state(
 
 def authorize_g3_test_once(
     *, state_path: Path, bundle_path: Path, approval_path: Path,
-    ledger_path: Path, timestamp: str,
+    manifest_path: Path, ledger_path: Path, timestamp: str,
 ) -> dict[str, Any]:
     """Transition the unified G3 state: sealed -> unsealed_once.
 
-    Validates approval binds the bundle, bundle is intact, state is sealed.
+    Concurrent-safe (file lock), crash-recoverable (journal), and consistent
+    (state + ledger written atomically under lock). Reads and verifies actual
+    manifest/bundle/approval bytes from disk — never trusts caller-supplied dicts.
     """
-    state_bytes = state_path.read_bytes()
-    state = json.loads(state_bytes.decode("utf-8"))
-    if state_bytes != _canonical(state):
-        raise ValueError("G3 state is non-canonical")
-    if state.get("state_version") != _STATE_VERSION:
-        raise ValueError(f"G3 state version must be {_STATE_VERSION}, got {state.get('state_version')!r}")
-    if state.get("state") != "sealed":
-        raise ValueError(f"G3 state must be sealed, got {state.get('state')!r}")
-    if state.get("test_access_count") != 0:
-        raise ValueError("G3 test_access_count must be 0 before authorization")
+    import os
 
-    bundle_bytes = bundle_path.read_bytes()
-    bundle = json.loads(bundle_bytes.decode("utf-8"))
-    if bundle_bytes != _canonical(bundle):
-        raise ValueError("G3 bundle is non-canonical")
-    if bundle.get("bundle_version") != _BUNDLE_VERSION:
-        raise ValueError(f"G3 bundle version must be {_BUNDLE_VERSION}, got {bundle.get('bundle_version')!r}")
-    bundle_content = {k: v for k, v in bundle.items() if k != "bundle_sha256"}
-    bundle_sha = _sha256_bytes(_canonical(bundle_content))
-    if bundle.get("bundle_sha256") != bundle_sha:
-        raise ValueError("G3 bundle self-SHA mismatch")
-    if state.get("g3_pre_unseal_bundle_sha256") != bundle_sha:
-        raise ValueError("G3 bundle SHA mismatch with state")
+    lock_path = state_path.with_suffix(".lock")
+    journal_path = state_path.with_suffix(".journal")
 
-    approval_bytes = approval_path.read_bytes()
-    approval = json.loads(approval_bytes.decode("utf-8"))
-    if approval_bytes != _canonical(approval):
-        raise ValueError("G3 approval is non-canonical")
-    if approval.get("approval_version") != _APPROVAL_VERSION:
-        raise ValueError(f"G3 approval version must be {_APPROVAL_VERSION}")
-    if approval.get("decision") != "APPROVE G3 test unseal":
-        raise ValueError(f"G3 approval decision must be 'APPROVE G3 test unseal'")
-    if approval.get("g3_pre_unseal_bundle_sha256") != bundle_sha:
-        raise ValueError("G3 approval does not bind this bundle")
-    if approval.get("g3_test_manifest_sha256") != bundle.get("g3_test_manifest_sha256"):
-        raise ValueError("G3 approval manifest SHA mismatch with bundle")
-    if approval.get("code_commit") != bundle.get("code_commit"):
-        raise ValueError("G3 approval code_commit mismatch")
-    if approval.get("frozen_matrix_sha256") != FROZEN_MATRIX_SHA256:
-        raise ValueError("G3 approval matrix SHA mismatch")
+    try:
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.close(fd)
+    except FileExistsError:
+        raise ValueError("another process holds the G3 state lock")
 
-    approval_sha = _sha256_bytes(approval_bytes)
+    try:
+        if journal_path.is_file():
+            return _recover_g3_journal(journal_path, state_path, ledger_path)
 
-    after = {**state, "state": "unsealed_once", "transition_seq": 1,
-             "approval_sha256": approval_sha, "test_access_count": 1,
-             "updated_at": timestamp}
-    state_path.write_bytes(_canonical(after))
+        state_bytes = state_path.read_bytes()
+        state = json.loads(state_bytes.decode("utf-8"))
+        if state_bytes != _canonical(state):
+            raise ValueError("G3 state is non-canonical")
+        if state.get("state_version") != _STATE_VERSION:
+            raise ValueError(f"G3 state version must be {_STATE_VERSION}, got {state.get('state_version')!r}")
+        if state.get("state") != "sealed":
+            raise ValueError(f"G3 state must be sealed, got {state.get('state')!r}")
+        if state.get("test_access_count") != 0:
+            raise ValueError("G3 test_access_count must be 0 before authorization")
 
-    event = {
-        "transition_version": "study02-g3-formal-transition-v1",
-        "run_family_id": state["run_family_id"],
-        "transition": "authorize_g3_test_once",
-        "seq": 1,
-        "before_state_sha256": _sha256_bytes(state_bytes),
-        "after_state_sha256": _sha256_bytes(_canonical(after)),
-        "approval_sha256": approval_sha,
-        "g3_pre_unseal_bundle_sha256": bundle_sha,
-        "g3_test_manifest_sha256": bundle["g3_test_manifest_sha256"],
-        "test_access_count": 1,
-        "timestamp": timestamp,
-    }
-    with open(ledger_path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(event, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+        bundle_bytes = bundle_path.read_bytes()
+        bundle = json.loads(bundle_bytes.decode("utf-8"))
+        if bundle_bytes != _canonical(bundle):
+            raise ValueError("G3 bundle is non-canonical")
+        if bundle.get("bundle_version") != _BUNDLE_VERSION:
+            raise ValueError(f"G3 bundle version must be {_BUNDLE_VERSION}, got {bundle.get('bundle_version')!r}")
+        bundle_content = {k: v for k, v in bundle.items() if k != "bundle_sha256"}
+        bundle_sha = _sha256_bytes(_canonical(bundle_content))
+        if bundle.get("bundle_sha256") != bundle_sha:
+            raise ValueError("G3 bundle self-SHA mismatch")
+        if state.get("g3_pre_unseal_bundle_sha256") != bundle_sha:
+            raise ValueError("G3 bundle SHA mismatch with state")
 
-    return after
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+        if manifest_bytes != _canonical(manifest):
+            raise ValueError("G3 manifest is non-canonical")
+        manifest_content = {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+        manifest_sha = _sha256_bytes(_canonical(manifest_content))
+        if manifest.get("manifest_sha256") != manifest_sha:
+            raise ValueError("G3 manifest self-SHA mismatch")
+        if bundle.get("g3_test_manifest_sha256") != manifest_sha:
+            raise ValueError("G3 bundle does not bind this manifest")
+        if state.get("g3_test_manifest_sha256") != manifest_sha:
+            raise ValueError("G3 state does not bind this manifest")
+
+        approval_bytes = approval_path.read_bytes()
+        approval = json.loads(approval_bytes.decode("utf-8"))
+        if approval_bytes != _canonical(approval):
+            raise ValueError("G3 approval is non-canonical")
+        if approval.get("approval_version") != _APPROVAL_VERSION:
+            raise ValueError(f"G3 approval version must be {_APPROVAL_VERSION}")
+        if approval.get("decision") != "APPROVE G3 test unseal":
+            raise ValueError("G3 approval decision must be 'APPROVE G3 test unseal'")
+        if approval.get("g3_pre_unseal_bundle_sha256") != bundle_sha:
+            raise ValueError("G3 approval does not bind this bundle")
+        if approval.get("g3_test_manifest_sha256") != manifest_sha:
+            raise ValueError("G3 approval manifest SHA mismatch")
+        if approval.get("code_commit") != bundle.get("code_commit"):
+            raise ValueError("G3 approval code_commit mismatch")
+        if approval.get("frozen_matrix_sha256") != FROZEN_MATRIX_SHA256:
+            raise ValueError("G3 approval matrix SHA mismatch")
+
+        approval_sha = _sha256_bytes(approval_bytes)
+
+        after = {**state, "state": "unsealed_once", "transition_seq": 1,
+                 "approval_sha256": approval_sha, "test_access_count": 1,
+                 "updated_at": timestamp}
+        after_bytes = _canonical(after)
+
+        event = {
+            "transition_version": "study02-g3-formal-transition-v1",
+            "run_family_id": state["run_family_id"],
+            "transition": "authorize_g3_test_once",
+            "seq": 1,
+            "before_state_sha256": _sha256_bytes(state_bytes),
+            "after_state_sha256": _sha256_bytes(after_bytes),
+            "approval_sha256": approval_sha,
+            "g3_pre_unseal_bundle_sha256": bundle_sha,
+            "g3_test_manifest_sha256": manifest_sha,
+            "test_access_count": 1,
+            "timestamp": timestamp,
+        }
+        event_line = json.dumps(event, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+
+        journal = {"after_state_bytes": after_bytes.decode("utf-8"), "event_line": event_line}
+        journal_path.write_bytes(_canonical(journal))
+
+        state_path.write_bytes(after_bytes)
+        with open(ledger_path, "a", encoding="utf-8") as f:
+            f.write(event_line)
+
+        journal_path.unlink()
+        return after
+
+    finally:
+        lock_path.unlink(missing_ok=True)
+
+
+def _recover_g3_journal(journal_path: Path, state_path: Path, ledger_path: Path) -> dict[str, Any]:
+    """Recover from a crash mid-transition by replaying the journal."""
+    journal_bytes = journal_path.read_bytes()
+    journal = json.loads(journal_bytes.decode("utf-8"))
+    after_bytes = journal["after_state_bytes"].encode("utf-8")
+    event_line = journal["event_line"]
+
+    state_path.write_bytes(after_bytes)
+
+    ledger_content = ledger_path.read_text(encoding="utf-8") if ledger_path.is_file() else ""
+    if event_line not in ledger_content:
+        with open(ledger_path, "a", encoding="utf-8") as f:
+            f.write(event_line)
+
+    journal_path.unlink()
+    return json.loads(after_bytes.decode("utf-8"))
 
 
 __all__ = [
