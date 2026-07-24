@@ -1,0 +1,142 @@
+{
+  "config": {
+    "base_seed": 20260725,
+    "default_delta": 0.1,
+    "delta_grid": [
+      0.0,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.12,
+      0.14,
+      0.16,
+      0.18,
+      0.2,
+      0.22,
+      0.24,
+      0.26,
+      0.28,
+      0.3,
+      0.32,
+      0.34,
+      0.36,
+      0.38,
+      0.4,
+      0.42,
+      0.44,
+      0.46,
+      0.48,
+      0.5
+    ],
+    "delta_grid_n_points": 26,
+    "failure_D": 1.0,
+    "l2_deltas": {
+      "10": 0.1,
+      "20": 0.08,
+      "7": 0.1
+    },
+    "n_repeats": 500,
+    "tie_tolerance": 1e-09,
+    "train_n_values": [
+      7,
+      10,
+      20
+    ]
+  },
+  "config_hash": "b115cf62b8a6642c0f12a4e89e8d16e120a44dabcb9c659e37b87c920d72cb8f",
+  "contract_content_commit": "2ee23a8",
+  "contract_version": "P6-v1.1-FROZEN-REVISED",
+  "created_at": "2026-07-24T21:43:53+00:00",
+  "data_source": {
+    "BIRNSAUN_DAT_sha256": "7814c533818517d8b824c56213abac2b4076786a13a66d85a8481a32bbccf127",
+    "lifetimes_csv_sha256": "43c85155bdfeafd21e2366610e88a3f4e1a09e36466fb22d34729dc60418ee12"
+  },
+  "dataset_id": "nist-6061-t6-fatigue",
+  "elapsed_seconds": 1529.7,
+  "end_time": "2026-07-24T21:43:53+00:00",
+  "execution_commit": "3330523",
+  "experiment": "real_data_holdout_validation_p8a_formal",
+  "frozen_config_sha256": "be6d88bd761c849bb91209099f3a305978f91ce79705eb0fe2bd4b6d3aba0d28",
+  "gate": {
+    "beta_hat": 4.032862721220554,
+    "eta_hat": 1545.2575986537206,
+    "passed": true,
+    "r_squared": 0.9950815406199613
+  },
+  "generation_code_commit": "3330523",
+  "git_dirty": false,
+  "nn_training": {
+    "failure_penalty_method": "per_fold_P99_of_training_loss",
+    "folds": 5,
+    "hidden_layers": [
+      256,
+      128,
+      64
+    ],
+    "n_selectors": 15,
+    "per_fold_p99": {
+      "fold_0": 2.1966165833640767,
+      "fold_1": 2.1790071459434843,
+      "fold_2": 2.2134078791958562,
+      "fold_3": 2.2164518091978156,
+      "fold_4": 2.1886868050536483
+    },
+    "seeds": [
+      42,
+      2026,
+      3407
+    ]
+  },
+  "output_hashes": {
+    "real_data_manifest.json": "a4b282ac1e4a20268d524b50d12d8295420e05ef187befbb3f9345309a8212c6",
+    "real_holdout_results.csv": "82b05bfea41c44d61d22d104d547b8b9a6569ee442bfc96fae3527e45b51c712",
+    "real_holdout_summary.json": "01675a1e67a65bc198b3b9983ef4c7ec60d6295b7399d9d7de383aeefa38d89e",
+    "real_nn_model_stability.csv": "e0816244d7e09fa9643624577bdf00cfc48575aa94c8168d1685df91f54241b9",
+    "run_log.txt": "387fe458fe0d6ab5798acac9a899a9bbbd8a877c1c3f0277f174b5994f5126fe"
+  },
+  "output_schema": {
+    "actual_rows": 25500,
+    "expected_rows": 25500,
+    "primary_key": [
+      "train_n",
+      "repeat_index",
+      "method",
+      "model_id"
+    ],
+    "real_holdout_results_columns": [
+      "train_n",
+      "repeat_index",
+      "method",
+      "model_id",
+      "delta_used",
+      "beta_hat",
+      "eta_hat",
+      "gamma_hat",
+      "r_squared",
+      "mdm_status",
+      "D",
+      "failed",
+      "failure_reason",
+      "support_set_violation",
+      "param_dist_beta",
+      "param_dist_eta"
+    ]
+  },
+  "p7_approve_record": "coworker/reviews/2026-07-25-study01xu-p7-codex-approve.md",
+  "p7_approve_tip": "d619a40",
+  "p8a_authorization": {
+    "bypass_exists": false,
+    "guard": "_P8A_FORMAL_AUTHORIZED",
+    "scope": "single_generation_commit"
+  },
+  "p8a_contract_version": "P8a-v1.0-FROZEN",
+  "recovery_attempts": 0,
+  "start_time": "2026-07-24T21:18:24+00:00",
+  "versions": {
+    "numpy": "2.4.6",
+    "python": "3.11.9",
+    "scikit_learn": "1.7.2"
+  }
+}
