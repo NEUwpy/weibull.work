@@ -550,7 +550,8 @@ def main():
                 for d in sorted(fail_by_delta.keys()):
                     statuses = set(fail_by_delta[d])
                     n_d = len(df_c[df_c['delta'] == d])
-                    n_fd = n_d - status_counts.get('success', 0)
+                    # Per-delta counts (NOT cohort-level status_counts)
+                    n_fd = len(df_c[(df_c['delta'] == d) & (df_c['status'] != 'success')])
                     log(f"    δ={d:.2f}: {n_fd}/{n_d} failures, "
                         f"sample: {statuses}")
             if status_counts:

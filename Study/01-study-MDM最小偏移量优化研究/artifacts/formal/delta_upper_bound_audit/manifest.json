@@ -7,7 +7,7 @@
   },
   "contract": "All improvement claims are conditional on the original best delta being in the target cohort. No whole-grid sufficiency claims are supported without a full population extension.",
   "created_at": "2026-07-24T15:15:03+00:00",
-  "execution_commit": "76906a986e38ab81638ca7c380ac05b1f55d043d",
+  "execution_commit": "da5e77e628d6afcdb9b59648e5d502a250eb4f91",
   "experiment": "delta_upper_bound_audit",
   "extension_grid": [
     0.52,
@@ -38,26 +38,28 @@
   ],
   "files": {
     "cohort_summary.csv": {
-      "bytes": 971,
-      "sha256": "0979024c6b0c3ddcabfd342234b9767a576e7100"
+      "bytes": 859,
+      "sha256": "8bf5af44d9878c014fd90dd679e06cd344c7aa4513b87f33586d51b437de6dee"
     },
     "extended_results.csv": {
       "bytes": 11075690,
-      "sha256": "4881d6a80a3f6575f9dc3eccb6618f467718fccf"
+      "sha256": "cd46f721536545688fc0dc64a2782dfe323acd32ee5d9382e4e8985b93a0f288"
     },
     "merged_curves.csv": {
-      "bytes": 352248,
-      "sha256": "ffe4be0a3d3b7e47beb784d5b3ce3319885c4b74"
+      "bytes": 335844,
+      "sha256": "603003a63d1bc0713f7374f121cda81dfc319fbbcea42006b7bad8adb156d828"
     },
     "run_log.txt": {
       "bytes": 6394,
-      "sha256": "f948d8122fffaa0d0f6c905491e4222a0106c051"
+      "sha256": "449d6b916eaa8a24b1e84d45d1e5046f7919c7e44f7d32a06b0be73f63f06b60"
     }
   },
-  "generation_code_commit": "76906a986e38ab81638ca7c380ac05b1f55d043d",
+  "generation_code_commit": "da5e77e628d6afcdb9b59648e5d502a250eb4f91",
   "input_chunks": {
+    "algorithm": "SHA256 of concatenated per-file SHA256 hex strings, each from git show <commit>:<path>",
+    "commit": "c70c5d48c00d3ae045b289a71471fec3583023b5",
     "count": 45,
-    "sha256": "00e490b641266dd624234b285edc98f0cf1686421c5518b43fad9052422e4dd7"
+    "sha256": "6181e17246931d18cbf78d80bbae16f9f434aa8aceb5dbca5d59b4399a705ee8"
   },
   "manifest_sha256": "(self — exclude from seal)",
   "original_grid": [
@@ -89,12 +91,14 @@
     0.5
   ],
   "python_version": "3.11.9",
+  "sealed_at": "2026-07-24T15:42:52+00:00",
   "sha256_source": "git blob (LF-normalised), verified with git show HEAD:<path> | git hash-object --stdin",
   "sklearn_version": "1.7.2",
   "target_cohorts": [
     0.5,
     0.48
   ],
+  "tie_breaking_rule": "loss_improvement > 1e-12; equal-loss prefers smaller delta",
   "updated_at": "2026-07-24T15:15:00+00:00",
   "workspace_dirty": false
 }

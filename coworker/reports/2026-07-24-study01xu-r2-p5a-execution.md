@@ -1,10 +1,12 @@
 # Study01 R2 (P5a) — Delta Upper-Bound Audit Execution Report
 
 **Branch**: `study01xu` (mainline, no worktree)
-**Execution tip**: `76906a986e38ab81638ca7c380ac05b1f55d043d`
+**Execution tip**: `da5e77e628d6afcdb9b59648e5d502a250eb4f91` (seal corrected in follow-up — this report)
 **Generation code tip**: `76906a986e38ab81638ca7c380ac05b1f55d043d`
-**Date**: 2026-07-24 (re-run at ~15:13 UTC)
-**Status**: P5a COMPLETE — AWAITING P5b INDEPENDENT REVIEW
+**Seal method**: SHA256 from git blob bytes (`git ls-tree` → `git cat-file blob` → `sha256sum`); verified against reviewer independent computation
+**Tie-breaking**: `loss_improvement > 1e-12` (2 floating-point ties removed, 2,802 → 2,800 migrated)
+**Date**: 2026-07-24 (re-run ~14:26 UTC; sealed ~15:30 UTC)
+**Status**: P5a COMPLETE (REVISED) — AWAITING P5b INDEPENDENT REVIEW
 
 ## Revision Note
 
@@ -65,9 +67,11 @@ All 79,425 extended-MDM runs succeeded with convergence. No status=`failure`, no
 | Metric | δ=0.50 cohort | δ=0.48 cohort |
 |--------|---------------|---------------|
 | N samples | 2,958 | 219 |
-| N migrated | **2,802** | 3 |
+| N migrated | **2,800** | 3 |
 | Migration rate | **94.7%** | 1.4% |
 | Mean loss improvement | **0.0310** | 0.0006 |
+
+Tie-breaking: 2 of 2,802 "migrated" samples had loss_improvement ≈ 1.4×10⁻¹⁶ (floating-point noise). Frozen rule: `loss_improvement > 1e-12`; equal loss prefers smaller δ. After correction: 2,800/2,958 (94.66% → 94.7%).
 | Median loss improvement | **0.0115** | 0.0000 |
 | Mean rel improvement | 32.9% | 0.5% |
 | Migrated mean new δ | 0.772 | 0.787 |
@@ -79,10 +83,10 @@ The new-best-delta distribution for the δ=0.50 cohort shows a broad rightward s
 
 | δ range | Count | Notes |
 |---------|-------|-------|
-| 0.50 (unchanged) | 156 | Original optimum still best |
+| 0.50 (unchanged) | 156 | Original optimum still best after tie-breaking |
 | 0.52–0.60 | 754 | Small extensions dominate early |
-| 0.62–0.80 | 706 | Mid-range spread |
-| 0.82–0.98 | 599 | Tapering tail |
+| 0.62–0.80 | 875 | Broad mid-range spread, peak at 0.56 |
+| 0.82–0.98 | 430 | Tapering toward grid edge |
 | **1.00** | **743** | Grid-edge concentration (25.1% of all cohort samples) |
 
 The 743 samples landing at δ=1.00 represent a potential boundary artifact: their true optimum may lie beyond 1.00, but the extension grid stops there. This strongly suggests that the δ=1.00 upper bound itself may be constraining.
@@ -90,8 +94,7 @@ The 743 samples landing at δ=1.00 represent a potential boundary artifact: thei
 ### Interpretation
 
 - The current δ=0.50 selection upper bound **does** truncate risk curves for the δ=0.50-endpoint cohort — the opposite of the fabricated "0% migration" in the first (buggy) run.
-- 94.7% of δ=0.50-endpoint samples achieve lower loss at some δ > 0.50, with a mean loss improvement of 0.031 (median 0.012). This is meaningful relative to the typical per-sample loss scale.
-- The loss-improvement benefit declines as δ increases: the majority of improvement comes from moderate extensions (δ=0.52–0.80), not from maximal δ.
+- 94.7% (2,800/2,958 after tie-breaking) of δ=0.50-endpoint samples achieve lower loss at some δ > 0.50, with a mean loss improvement of 0.031 (median 0.012). This is meaningful relative to the typical per-sample loss scale.
 - The δ=0.48 near-endpoint cohort is stable (1.4% migration, negligible effect size), suggesting the truncation problem primarily affects samples at the existing grid boundary.
 - All claims are **conditioned on** the sample's original-grid best delta being exactly 0.50 (or 0.48). These are targeted cohort audits, not full-population estimates.
 
@@ -110,10 +113,15 @@ The 743 samples landing at δ=1.00 represent a potential boundary artifact: thei
 | No whole-grid sufficiency claims without full population extension | ✓ |
 | New directory, no overwrite of E1/E2/E4 sealed evidence | ✓ |
 | Manifest records generation commit, execution commit, file SHA256 | ✓ |
+| SHA256 are 64-char hex (not git blob OID SHA-1); verified by automated test | ✓ |
+| Input chunks SHA256 from git blobs at c70c5d4, matches independent computation | ✓ |
 | Fail-closed: mandatory 25/25 coverage per sample before any dropna | ✓ |
 | MDM health stats (success/convergence/failure) reported per cohort | ✓ |
+| Per-delta failure logging uses per-delta counts (not cohort-level) | ✓ |
 | Production MDM integration tests pass (3 new) | ✓ |
-| All tests pass (87/87, including 13 R2-specific) | ✓ |
+| Auto-verification SHA256 test added (7 tests, test_study01_r2_sha256_verify.py) | ✓ |
+| Tie-breaking rule frozen: loss_improvement > 1e-12 | ✓ |
+| All tests pass (94/94 incl. full suite + 7 new R2-SHA tests) | ✓ |
 
 ## Artifact Inventory
 
@@ -121,13 +129,13 @@ Output directory: `Study/01-study-MDM最小偏移量优化研究/artifacts/forma
 
 | File | Rows | Size | SHA256 (first 16 chars) |
 |------|------|------|--------------------------|
-| `extended_results.csv` | 79,425 | 11,075,690 | `4881d6a80a3f6575...` |
-| `merged_curves.csv` | 3,177 | 352,248 | `ffe4be0a3d3b7e47...` |
-| `cohort_summary.csv` | 2 | 971 | `0979024c6b0c3dd...` |
-| `manifest.json` | — | ~1.8 KB | `(self — exclude from seal)` |
-| `run_log.txt` | — | 6,394 | `f948d8122fffaa0d...` |
+| `extended_results.csv` | 79,425 | 11,075,690 | `cd46f72153654568...` |
+| `merged_curves.csv` | 3,177 | 335,844 | `603003a63d1bc07...` |
+| `cohort_summary.csv` | 2 | 859 | `8bf5af44d9878c01...` |
+| `manifest.json` | — | ~2.1 KB | `(self — exclude from seal)` |
+| `run_log.txt` | — | 6,394 | `449d6b916eaa8a24...` |
 
-All SHA256 are from `git show HEAD:<path> | git hash-object --stdin` (LF-normalised Git blob bytes).
+All SHA256 are 64-char hex from `sha256sum(git show HEAD:<path>)` (LF-normalised Git blob bytes). Full values recorded in manifest.json. Verification test: `python/tests/test_study01_r2_sha256_verify.py`.
 
 ### Provenance
 
