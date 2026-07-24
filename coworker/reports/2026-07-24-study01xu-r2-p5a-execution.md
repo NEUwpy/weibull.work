@@ -89,7 +89,7 @@ The new-best-delta distribution for the δ=0.50 cohort shows a broad rightward s
 |---------|-------|-------|
 | 0.50 (unchanged) | 158 | Original optimum still best after tie-breaking |
 | 0.52–0.60 | 752 | Small extensions dominate early |
-| 0.62–0.80 | 875 | Broad mid-range spread, peak at 0.56 |
+| 0.62–0.80 | 875 | Broad mid-range spread |
 | 0.82–0.98 | 430 | Tapering toward grid edge |
 | **1.00** | **743** | Grid-edge concentration (25.1% of all cohort samples) |
 

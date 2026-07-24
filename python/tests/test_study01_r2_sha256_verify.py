@@ -150,3 +150,33 @@ def test_tie_breaking_rule_field():
     assert "1e-12" in rule or "1e-12" in m.get("tie_breaking", ""), (
         f"tie_breaking_rule must mention 1e-12 threshold, got: {rule!r}"
     )
+
+
+def test_audit_script_at_analysis_commit_contains_tie_breaking():
+    """The audit script at analysis_code_commit must contain the frozen rule.
+
+    This closes the provenance chain: manifest → commit → code.
+    If analysis_code_commit points to a commit that does NOT have the
+    tie-breaking logic, the manifest cannot independently reproduce the
+    derived results (merged_curves.csv, cohort_summary.csv).
+    """
+    m = _load_manifest()
+    analysis_commit = m.get("analysis_code_commit")
+    assert analysis_commit, "manifest must have analysis_code_commit"
+
+    script_path = "Study/01-study-MDM最小偏移量优化研究/code/run_delta_upper_bound_audit.py"
+    blob = subprocess.run(
+        ["git", "show", f"{analysis_commit}:{script_path}"],
+        capture_output=True, cwd=str(PROJECT_ROOT)
+    ).stdout
+    source = blob.decode("utf-8", errors="replace")
+
+    # The frozen rule must be present in the source at this commit
+    assert "loss_improvement > 1e-12" in source, (
+        f"audit script at {analysis_commit[:8]} must contain "
+        f"'loss_improvement > 1e-12' (frozen tie-breaking rule)"
+    )
+    assert "migrated = (extended_best_delta > 0.50)" in source, (
+        f"audit script at {analysis_commit[:8]} must contain "
+        f"the full migration criterion"
+    )
