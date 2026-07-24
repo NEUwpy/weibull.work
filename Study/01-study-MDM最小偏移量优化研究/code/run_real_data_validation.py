@@ -154,7 +154,11 @@ log_lines = []
 def log(msg):
     ts = datetime.now().strftime('%H:%M:%S')
     line = f"[{ts}] {msg}"
-    print(line, flush=True)
+    # Encode-replace to survive GBK terminals on Windows
+    try:
+        print(line, flush=True)
+    except UnicodeEncodeError:
+        print(line.encode('ascii', errors='replace').decode('ascii'), flush=True)
     log_lines.append(line)
 
 
@@ -1180,7 +1184,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
             f.write(f"# Dataset Ineligible\n\n{gate.reason}\n")
         log(f"  Saved: {gate_path}")
         return None
-    log(f"  GATE PASSED: R²={gate.diagnostics['r_squared']:.4f}")
+    log(f"  GATE PASSED: R^2={gate.diagnostics['r_squared']:.4f}")
 
     # ── Step 2: Load data ──
     log("Step 2: Loading lifetimes...")
@@ -1193,7 +1197,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     # ── Step 3: Large-sample reference fit ──
     log("Step 3: Computing large-sample reference fit...")
     beta_ref, eta_ref, gamma_ref = compute_reference_fit(lifetimes)
-    log(f"  β_ref={beta_ref:.4f}, η_ref={eta_ref:.2f}, γ_ref={gamma_ref}")
+    log(f"  beta_ref={beta_ref:.4f}, eta_ref={eta_ref:.2f}, gamma_ref={gamma_ref}")
 
     # ── Step 4: Generate splits (shared by all methods) ──
     log("Step 4: Generating train/holdout splits...")
