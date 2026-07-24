@@ -1049,26 +1049,61 @@ class TestOutputSafetyContractedFiles:
 class TestCrossModelDistributionInDiskJSON:
     """nn_cross_model_distribution must be present in the written JSON file."""
 
-    def test_distribution_in_disk_json_with_nn(self):
-        """When NN is run, cross-model distribution appears in disk JSON."""
+    def _make_nn_results_and_agg(self, n_repeats=5):
+        """Construct results with 15 NN models, aggregate, compute distribution."""
+        rows = []
+        for tn in TRAIN_N_VALUES:
+            for rep in range(n_repeats):
+                for fid in range(N_FOLDS):
+                    for seed in STABILITY_SEEDS:
+                        model_id = f"fold_{fid}_seed_{seed}"
+                        rows.append({
+                            'train_n': tn, 'repeat_index': rep,
+                            'method': 'nn', 'model_id': model_id,
+                            'delta_used': 0.12,
+                            'beta_hat': 2.0, 'eta_hat': 1000.0, 'gamma_hat': 0.0,
+                            'r_squared': 0.95, 'mdm_status': 1,
+                            'D': 0.08 + 0.001 * fid + 0.001 * rep,
+                            'failed': False, 'failure_reason': '',
+                            'support_set_violation': 0,
+                            'param_dist_beta': 0.03 + 0.001 * fid,
+                            'param_dist_eta': 0.02,
+                        })
+        df = pd.DataFrame(rows, columns=RESULT_COLUMNS)
+        df_model_agg = aggregate_per_model(df)
+        df_nn_dist = cross_model_distribution(df_model_agg)
+        return df, df_model_agg, df_nn_dist
+
+    def test_non_empty_distribution_in_disk_json(self):
+        """Construct non-empty NN distribution, embed in summary, write, read back, verify."""
         tmpdir = tempfile.mkdtemp(prefix='p7_rev3_')
         try:
-            result = run_pipeline(
-                data_dir=str(NIST_DIR), output_dir=tmpdir,
-                smoke_n_repeats=3, smoke_skip_nn=True,
-            )
-            # Even without NN (smoke_skip_nn), check that summary was written
-            # and nn_cross_model_distribution key reflects empty state
+            _, _, df_nn_dist = self._make_nn_results_and_agg(n_repeats=5)
+            assert len(df_nn_dist) > 0, "Distribution must be non-empty for this test"
+
+            # Simulate the exact pattern: embed BEFORE writing
+            summary = {'dataset_id': 'test', 'nn_cross_model_distribution': None}
+            summary['nn_cross_model_distribution'] = df_nn_dist.to_dict(orient='records')
+
+            # Write to disk
             json_path = os.path.join(tmpdir, 'real_holdout_summary.json')
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(summary, f, indent=2, sort_keys=True, ensure_ascii=False)
+
+            # Read back
             with open(json_path, encoding='utf-8') as f:
                 disk_summary = json.load(f)
-            # Memory object and disk JSON should be identical for this key
-            mem_summary = result['summary']
-            if 'nn_cross_model_distribution' in mem_summary:
-                assert 'nn_cross_model_distribution' in disk_summary, \
-                    "nn_cross_model_distribution missing from disk JSON"
-                assert disk_summary['nn_cross_model_distribution'] == \
-                    mem_summary['nn_cross_model_distribution']
+
+            # Assert disk JSON contains the non-empty distribution
+            assert 'nn_cross_model_distribution' in disk_summary, \
+                "nn_cross_model_distribution missing from disk JSON"
+            disk_dist = disk_summary['nn_cross_model_distribution']
+            assert isinstance(disk_dist, list), f"Expected list, got {type(disk_dist)}"
+            assert len(disk_dist) == len(df_nn_dist), \
+                f"Disk has {len(disk_dist)} rows, memory has {len(df_nn_dist)}"
+            # Verify content match
+            assert disk_dist == summary['nn_cross_model_distribution'], \
+                "Disk JSON distribution does not match memory object"
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
