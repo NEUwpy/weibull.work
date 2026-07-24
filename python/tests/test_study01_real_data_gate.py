@@ -204,8 +204,8 @@ class TestP6PlaceholderGuard:
             "Do not set to False before P7 implementation + review."
         )
         with pytest.raises(RuntimeError, match="PLACEHOLDER"):
-            rv.main("/nonexistent/path")
-        # Guard should fire before any file I/O, so non-existent path is OK
+            rv.main()
+        # Guard should fire before any file I/O
 
     def test_fail_closed_guard_is_module_level_constant(self):
         """Guard must be an importable module-level constant for testability."""

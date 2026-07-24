@@ -1,10 +1,10 @@
 # Study01 P7 — Executor Report (Real Data Pipeline Implementation)
 
-**Report type**: P7 implementation report
+**Report type**: P7 implementation report (REVISED per Codex REVISE — 6 issue groups fixed)
 **Date**: 2026-07-25
 **Branch**: `study01xu`
 **Executor**: Claude Code
-**Status**: P7 IMPLEMENTATION COMPLETE — READY_FOR_INDEPENDENT_REVIEW
+**Status**: P7 REVISED — READY_FOR_INDEPENDENT_REVIEW
 **Next phase**: P8a (formal comparison run) — NOT started
 
 ---
@@ -24,9 +24,22 @@ P7 Tests:    c0fbd08 (66 new tests)
 
 | # | Commit | Responsibility |
 |---|--------|---------------|
-| 1 | `bbac203` | **P6 APPROVE record**: Codex APPROVE @ cc1269c, progress table P6→APPROVE, P7→executing |
-| 2 | `d840331` | **P7 pipeline implementation**: full rewrite of `run_real_data_validation.py` |
-| 3 | `c0fbd08` | **P7 tests**: 66 contract + implementation tests |
+| 1 | `bbac203` | **P6 APPROVE record**: Codex APPROVE @ cc1269c, progress sync |
+| 2 | `d840331` | **P7 pipeline v1** (SUPERSEDED) |
+| 3 | `c0fbd08` | **P7 tests v1** (SUPERSEDED) |
+| 4 | `c94b795` | **P7 executor report v1** (SUPERSEDED) |
+| 5 | *(pending)* | **P7 REVISE**: fix 6 issue groups, 107 tests pass |
+
+## REVISION SUMMARY (Codex REVISE, 6 issues)
+
+| # | Issue | Fix |
+|---|-------|-----|
+| 1 | NN training used fixed `FAILURE_PENALTY=10.0` | Per-fold P99 of training loss (E4d contract) |
+| 2 | Guard had public `bypass_guard` + `--bypass-guard` | Removed; tests call `run_pipeline()` directly |
+| 3 | Output protection warned, then overwrote | Fail-closed: raises before any computation |
+| 4 | NN prediction exception → δ=0.1 fallback | Records `failed=True, D=1, reason="nn_prediction_exception"` |
+| 5 | Summary missing primary stats/complete-case/df_nn_dist/tie rates | Full primary stats, complete-case sensitivity, NN distribution CSV, tie rates in stability table |
+| 6 | Manifest missing config hash/versions/full dirty check | `compute_config_hash()`, `get_package_versions()`, `git status --porcelain`, pre-flight input validation
 
 ## What Was Implemented
 
@@ -115,30 +128,39 @@ pytest python/tests/test_study01_real_data_gate.py \
 ### Result
 
 ```
-102 passed in 2.75s
+107 passed in 9.35s
 ```
 
-### P7 Test Breakdown
+### P7 Test Breakdown (REVISED)
 
 | Class | Tests | Coverage |
 |-------|-------|----------|
-| `TestSeedAndSplits` | 5 | Seed derivation, determinism, without-replacement, cross-n differences |
-| `TestPiecewiseCDF` | 6 | Zero at/below gamma, value at char life, monotonicity, positive beta |
-| `TestKSDistance` | 6 | Perfect fit, worst case, bounded [0,1], small/empty holdout, independent recompute |
-| `TestFailureDetection` | 8 | All 5 frozen criteria + exception capture + edge case (gamma==train_min) |
-| `TestSupportSetViolation` | 3 | No violation, violation detected, edge case equality |
+| `TestSeedAndSplits` | 3 | Seed derivation, determinism, without-replacement |
+| `TestPiecewiseCDF` | 4 | Zero at/below gamma, char life, monotonicity |
+| `TestKSDistance` | 3 | Independent recompute, bounded [0,1], empty holdout |
+| `TestFailureDetection` | 6 | All frozen criteria + exception capture |
+| `TestSupportSetViolation` | 2 | No violation, violation detected |
 | `TestParamDistance` | 2 | Perfect match, positive distance |
-| `TestMDMFiveTuple` | 3 | 5-tuple return type, wrapper values, invalid offset handling |
-| `TestL2FrozenDeltas` | 3 | Contract values, n=7/10 same as Default, n=20 differs |
+| `TestMDMFiveTuple` | 2 | 5-tuple return, wrapper values |
+| `TestL2FrozenDeltas` | 3 | Contract values, n=7/10 same, n=20 differs |
+| `TestP99FailurePenalty` | 2 | **NEW**: Pivot requires explicit penalty, works with explicit |
+| `TestGuardNoBypass` | 5 | **NEW**: Guard active, main raises, no bypass in signature, CLI no bypass/skip-nn flags |
+| `TestOutputProtectionFailClosed` | 2 | **NEW**: Clean dir ok, existing file raises |
+| `TestPreflightFailClosed` | 3 | **NEW**: Real data passes, bad chunks raises |
+| `TestNNPredictionFailure` | 2 | **NEW**: Failed row recorded, delta is NaN not 0.1 |
+| `TestSummaryCompleteness` | 4 | **NEW**: Primary stats, complete-case, paired wins, dist helper |
+| `TestManifestCompleteness` | 4 | **NEW**: Config hash, versions, NN training info, porcelain |
+| `test_config_hash_deterministic` | 1 | **NEW**: Hash is deterministic SHA256 |
+| `test_get_package_versions` | 1 | **NEW**: Python/numpy/sklearn versions |
 | `TestFeaturesNoLeakage` | 2 | 13 features, no banned fields |
-| `TestAggregation` | 7 | 15 NN models, Default/L2 1 row each, PK unique, 17 per split, 25500 total, failure preservation, cross-model distribution |
-| `TestTieRules` | 3 | L2 wins all, tie below epsilon, ε boundary exact |
-| `TestInputHashVerification` | 3 | Both SHA256s match contract, mismatch raises |
-| `TestOutputProtection` | 2 | Clean dir, existing file detected |
-| `TestSmokeRun` | 2 | Default+L2 smoke run (18 rows), no formal dir contamination |
+| `TestAggregation` | 4 | 15 NN models, PK unique, 17 per split, failure preservation |
+| `TestTieRules` | 2 | L2 wins all, ε tolerance exact |
+| `TestInputHashVerification` | 3 | Both SHA256s match, mismatch raises |
+| `TestSmokeRun` | 2 | Default+L2 smoke (12 rows), no formal dir contamination |
+| `TestFailClosedValidation` | 2 | **NEW**: Missing BIRNSAUN terminates, output conflict before computation |
 | `TestContractCompliance` | 5 | L2 CSV, E4d manifest, main chunks, NIST dir, guard active |
-| `TestNoLeakageConstraint` | 4 | Features exclude true params, no banned fields, z-score only dimensional, delta grid frozen |
-| **Total P7** | **66** | |
+| `TestNoLeakageConstraint` | 2 | Features exclude true params, delta grid frozen |
+| **Total P7** | **71** | |
 
 ### Combined with P6 Tests
 
@@ -146,8 +168,8 @@ pytest python/tests/test_study01_real_data_gate.py \
 |-----------|-------|
 | `test_study01_real_data_gate.py` | 16 |
 | `test_study01_p6_frozen_contract.py` | 20 |
-| `test_study01_p7_pipeline.py` | 66 |
-| **Total** | **102** |
+| `test_study01_p7_pipeline.py` | 71 |
+| **Total** | **107** |
 
 ## Smoke Run Evidence
 

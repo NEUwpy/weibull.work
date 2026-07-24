@@ -108,7 +108,8 @@ MLP_N_ITER_NO_CHANGE = 20
 STABILITY_SEEDS = [42, 2026, 3407]
 N_FOLDS = 5
 N_DELTAS = len(DELTA_GRID)
-FAILURE_PENALTY = 10.0  # J1 penalty for failed MDM estimates in training data
+# FAILURE_PENALTY is computed per-fold as P99 of training loss (E4d contract).
+# No fixed constant — see train_all_nn_selectors().
 
 # Output columns for real_holdout_results.csv
 RESULT_COLUMNS = [
@@ -145,7 +146,11 @@ def log(msg):
 
 
 def get_git_info():
-    """Return (short_commit, is_dirty) for PROJECT_ROOT."""
+    """Return (short_commit, is_dirty) for PROJECT_ROOT.
+
+    Uses 'git status --porcelain' for complete dirty detection covering
+    unstaged, staged, and untracked files.
+    """
     try:
         r = subprocess.run(
             ['git', 'rev-parse', '--short', 'HEAD'],
@@ -153,7 +158,7 @@ def get_git_info():
         )
         commit = r.stdout.strip() if r.returncode == 0 else "UNKNOWN"
         r2 = subprocess.run(
-            ['git', 'diff', '--stat'],
+            ['git', 'status', '--porcelain'],
             capture_output=True, text=True, cwd=PROJECT_ROOT, timeout=10
         )
         dirty = bool(r2.stdout.strip())
@@ -448,8 +453,13 @@ def compute_loss(df):
     return df
 
 
-def _pivot_risk_vectors(df, label_col='loss', failure_penalty=FAILURE_PENALTY):
-    """Pivot per-delta rows into 26-dim risk vectors (one per sample)."""
+def _pivot_risk_vectors(df, label_col='loss', failure_penalty=None):
+    """Pivot per-delta rows into 26-dim risk vectors (one per sample).
+
+    failure_penalty is required — use per-fold P99 of training loss (E4d contract).
+    """
+    if failure_penalty is None:
+        raise ValueError("failure_penalty is required (use per-fold P99 of training loss)")
     sample_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
     feat_cols_local = [c for c in SAMPLE_FEATURE_COLS if c not in sample_keys]
     sample_df = df[sample_keys + feat_cols_local].drop_duplicates(
@@ -567,8 +577,16 @@ def train_all_nn_selectors(chunks_dir):
         # Fit z-score params on train fold only
         zscore_means, zscore_stds = _fit_zscore_params(df_train)
 
-        # Pivot to 26-dim risk vectors
-        samples_df, Y_train = _pivot_risk_vectors(df_train)
+        # Per-fold P99 failure penalty (E4d contract, NOT a fixed constant)
+        train_valid_loss = df_train['loss'].dropna()
+        failure_penalty = float(np.nanpercentile(train_valid_loss, 99))
+        df_train['loss_filled'] = df_train['loss'].fillna(failure_penalty)
+        log(f"    failure_penalty (P99)={failure_penalty:.4f}")
+
+        # Pivot to 26-dim risk vectors using loss_filled
+        samples_df, Y_train = _pivot_risk_vectors(
+            df_train, label_col='loss_filled', failure_penalty=failure_penalty
+        )
 
         # Build X matrix
         X_train = _build_X_from_samples(samples_df, zscore_means, zscore_stds)
@@ -590,6 +608,7 @@ def train_all_nn_selectors(chunks_dir):
                 'target_scaler': target_scaler,
                 'zscore_means': zscore_means,
                 'zscore_stds': zscore_stds,
+                'failure_penalty': failure_penalty,
             })
 
     log(f"Trained {len(selectors)} NN selectors ({N_FOLDS} folds × "
@@ -864,10 +883,9 @@ def verify_input_hashes(data_dir):
 # ═══════════════════════════════════════════════════════════════
 
 def check_output_safety(output_dir):
-    """Check that we won't overwrite existing formal artifacts.
+    """Fail-closed: raise RuntimeError if output_dir already contains P7 output files.
 
-    Returns list of existing files that would be overwritten.
-    Raises RuntimeError if output_dir already contains any P7 output files.
+    Must be called BEFORE any heavy computation (training, estimation).
     """
     expected_files = [
         'real_holdout_results.csv',
@@ -881,7 +899,118 @@ def check_output_safety(output_dir):
         fpath = os.path.join(output_dir, fname)
         if os.path.exists(fpath):
             existing.append(fpath)
+    if existing:
+        raise RuntimeError(
+            f"Output directory {output_dir} already contains P7 output files. "
+            f"Refusing to overwrite formal artifacts: {existing}. "
+            f"Move or remove them before re-running, or use a different output_dir."
+        )
     return existing
+
+
+def validate_preflight(data_dir, chunks_dir):
+    """Fail-closed pre-flight validation. Raises RuntimeError on any failure.
+
+    Checks:
+      - BIRNSAUN.DAT is present (not just lifetimes.csv)
+      - L2 delta table exists and has required structure
+      - E4d manifest exists and declares 15 models
+      - 45 main-grid chunks exist with valid structure
+    """
+    # BIRNSAUN.DAT must exist
+    birnsaun_path = os.path.join(data_dir, "BIRNSAUN.DAT")
+    if not os.path.exists(birnsaun_path):
+        raise RuntimeError(f"Missing BIRNSAUN.DAT in {data_dir}")
+
+    # L2 delta table
+    l2_path = os.path.join(
+        ARTIFACTS_DIR, "E1_E2_crossfit", "selected_deltas.csv"
+    )
+    if not os.path.exists(l2_path):
+        raise RuntimeError(f"Missing L2 delta table: {l2_path}")
+    df_l2 = pd.read_csv(l2_path)
+    l2_n7 = df_l2[(df_l2['layer'] == 'L2') & (df_l2['n'] == 7.0)]
+    if len(l2_n7) == 0:
+        raise RuntimeError("L2 delta table missing n=7 entries")
+
+    # E4d manifest
+    e4d_path = os.path.join(
+        ARTIFACTS_DIR, "E4_robustness", "manifest_e4d.json"
+    )
+    if not os.path.exists(e4d_path):
+        raise RuntimeError(f"Missing E4d manifest: {e4d_path}")
+    with open(e4d_path, encoding='utf-8') as f:
+        e4d = json.load(f)
+    if e4d.get('training_contract', {}).get('total_models') != 15:
+        raise RuntimeError("E4d manifest does not declare 15 models")
+
+    # 45 main-grid chunks
+    pattern = re.compile(r'^chunk_(\d{4})_mdm\.csv$')
+    chunk_ids = set()
+    for name in os.listdir(chunks_dir):
+        m = pattern.fullmatch(name)
+        if m:
+            chunk_ids.add(int(m.group(1)))
+    expected_ids = set(range(45))
+    if chunk_ids != expected_ids:
+        missing = expected_ids - chunk_ids
+        extra = chunk_ids - expected_ids
+        msg = f"Main-grid chunk identity mismatch: expected 45 chunks (0-44)"
+        if missing:
+            msg += f", missing={sorted(missing)}"
+        if extra:
+            msg += f", unexpected={sorted(extra)}"
+        raise RuntimeError(msg)
+
+    # Verify chunk structure: each chunk must have required columns
+    required_cols = {'beta', 'eta', 'gamma', 'gamma_over_eta', 'n',
+                     'repeat_id', 'delta', 'beta_hat', 'eta_hat', 'gamma_hat'}
+    for cid in sorted(chunk_ids)[:3]:  # spot-check first 3
+        chunk_path = os.path.join(chunks_dir, f"chunk_{cid:04d}_mdm.csv")
+        df = pd.read_csv(chunk_path)
+        missing_cols = required_cols - set(df.columns)
+        if missing_cols:
+            raise RuntimeError(
+                f"Chunk {cid:04d} missing columns: {missing_cols}"
+            )
+
+
+def compute_config_hash():
+    """Deterministic hash of all frozen configuration parameters."""
+    config_dict = {
+        'base_seed': BASE_SEED,
+        'train_n_values': TRAIN_N_VALUES,
+        'n_repeats': N_REPEATS,
+        'l2_deltas': {str(k): v for k, v in L2_DELTAS.items()},
+        'default_delta': DEFAULT_DELTA,
+        'tie_tolerance': TIE_TOLERANCE,
+        'failure_D': FAILURE_D,
+        'delta_grid': DELTA_GRID,
+        'n_folds': N_FOLDS,
+        'stability_seeds': STABILITY_SEEDS,
+        'mlp_hidden_layers': list(MLP_HIDDEN_LAYERS),
+        'mlp_max_iter': MLP_MAX_ITER,
+        'mlp_batch_size': MLP_BATCH_SIZE,
+        'mlp_alpha': MLP_ALPHA,
+        'mlp_lr': MLP_LR,
+        'mlp_validation_fraction': MLP_VALIDATION_FRACTION,
+        'mlp_n_iter_no_change': MLP_N_ITER_NO_CHANGE,
+        'feature_cols_zscore': FEATURE_COLS_ZSCORE,
+        'feature_cols_raw': FEATURE_COLS_RAW,
+        'contract_version': 'P6-v1.1-FROZEN-REVISED',
+    }
+    canonical = json.dumps(config_dict, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+
+def get_package_versions():
+    """Return dict with Python, numpy, sklearn versions."""
+    import sklearn
+    return {
+        'python': sys.version.split()[0],
+        'numpy': np.__version__,
+        'scikit_learn': sklearn.__version__,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -918,12 +1047,24 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     log(f"Train n: {TRAIN_N_VALUES}")
     log("=" * 70)
 
-    # ── Step 0: Verify inputs ──
-    log("Step 0: Verifying input hashes...")
+    # ── Step 0: Fail-closed pre-flight ──
+    log("Step 0: Pre-flight validation (fail-closed)...")
+
+    # 0a: Verify input hashes
     hash_results = verify_input_hashes(data_dir)
     for k, v in hash_results.items():
         status = "MATCH" if v.get('match') else "MISSING/MISMATCH"
-        log(f"  {k}: {status}")
+        log(f"  SHA256 {k}: {status}")
+        if k == 'BIRNSAUN.DAT' and v.get('missing'):
+            raise RuntimeError(f"Missing BIRNSAUN.DAT in {data_dir}")
+
+    # 0b: Validate all required inputs exist and have correct structure
+    validate_preflight(data_dir, chunks_dir)
+    log("  Pre-flight: all inputs valid")
+
+    # 0c: Fail-closed output protection — BEFORE any computation
+    check_output_safety(output_dir)
+    log("  Output safety: no conflicts")
 
     # ── Step 1: Gate check ──
     log("Step 1: Running admission gate...")
@@ -964,6 +1105,11 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
         t0 = time.time()
         nn_selectors = train_all_nn_selectors(chunks_dir)
         log(f"  NN training complete in {time.time() - t0:.1f}s")
+        # Fail-closed: must have exactly 15 selectors
+        if len(nn_selectors) != 15:
+            raise RuntimeError(
+                f"Expected 15 NN selectors, got {len(nn_selectors)}"
+            )
     else:
         log("Step 5: NN training SKIPPED (smoke_skip_nn=True)")
 
@@ -1043,11 +1189,31 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
             if nn_selectors is not None:
                 for sel in nn_selectors:
                     model_id = f"fold_{sel['fold_idx']}_seed_{sel['seed']}"
+                    nn_pred_failed = False
+                    nn_pred_reason = None
                     try:
                         nn_delta = predict_nn_delta(sel, feats)
                     except Exception as e:
-                        nn_delta = DEFAULT_DELTA  # fallback
-                        log(f"    WARNING: NN prediction failed for {model_id}: {e}")
+                        nn_pred_failed = True
+                        nn_pred_reason = f"nn_prediction_exception: {str(e)[:200]}"
+                        nn_delta = float('nan')
+
+                    if nn_pred_failed:
+                        # Prediction failure → record as failed, D=1
+                        all_rows.append({
+                            'train_n': train_n, 'repeat_index': rep_idx,
+                            'method': 'nn', 'model_id': model_id,
+                            'delta_used': float('nan'),
+                            'beta_hat': float('nan'), 'eta_hat': float('nan'),
+                            'gamma_hat': float('nan'),
+                            'r_squared': float('nan'), 'mdm_status': 0,
+                            'D': FAILURE_D, 'failed': True,
+                            'failure_reason': nn_pred_reason,
+                            'support_set_violation': 1,
+                            'param_dist_beta': float('inf'),
+                            'param_dist_eta': float('inf'),
+                        })
+                        continue
 
                     beta_nn, eta_nn, gamma_nn, r2_nn, status_nn, exc_nn = \
                         run_mdm_estimation(train_sample, nn_delta)
@@ -1088,7 +1254,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     df_results = pd.DataFrame(all_rows, columns=RESULT_COLUMNS)
     log(f"  Total result rows: {len(df_results)}")
 
-    # ── Step 7: Verify expected row count ──
+    # ── Step 7: Verify expected row count (fail-closed) ──
     n_methods_per_split = 2  # default + l2
     if nn_selectors is not None:
         n_methods_per_split += len(nn_selectors)  # 15 NN models
@@ -1096,20 +1262,31 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
                         for tn in TRAIN_N_VALUES)
     log(f"  Expected rows: {expected_rows}, actual: {len(df_results)}")
     if len(df_results) != expected_rows:
-        log(f"  WARNING: Row count mismatch!")
+        raise RuntimeError(
+            f"Row count mismatch: expected {expected_rows}, got {len(df_results)}"
+        )
+
+    # Verify primary key uniqueness (fail-closed)
+    pk_cols = ['train_n', 'repeat_index', 'method', 'model_id']
+    n_dups = int(df_results.duplicated(subset=pk_cols).sum())
+    if n_dups > 0:
+        raise RuntimeError(
+            f"Found {n_dups} duplicate primary keys in results"
+        )
+    log(f"  Primary key uniqueness: OK ({len(df_results)} rows)")
 
     # ── Step 8: Per-model aggregation ──
-    log("Step 7: Computing per-model aggregation...")
+    log("Step 8: Computing per-model aggregation...")
     df_model_agg = aggregate_per_model(df_results)
     log(f"  Model-level rows: {len(df_model_agg)}")
 
     # ── Step 9: Cross-model distribution (NN only) ──
-    log("Step 8: Computing cross-model distribution...")
+    log("Step 9: Computing cross-model distribution...")
     df_nn_dist = cross_model_distribution(df_model_agg)
     log(f"  NN distribution rows: {len(df_nn_dist)}")
 
     # ── Step 10: Paired win rates ──
-    log("Step 9: Computing paired win rates...")
+    log("Step 10: Computing paired win rates...")
 
     # Default vs L2
     default_l2_wins = compute_paired_wins(df_results, 'l2', 'default')
@@ -1117,6 +1294,8 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     # NN vs Default and NN vs L2: per-model then distribution
     nn_vs_default_rates = []
     nn_vs_l2_rates = []
+    nn_vs_default_tie_rates = []
+    nn_vs_l2_tie_rates = []
     if nn_selectors is not None:
         for sel in nn_selectors:
             model_id = f"fold_{sel['fold_idx']}_seed_{sel['seed']}"
@@ -1126,6 +1305,9 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
                     nn_vs_default_rates.append({
                         'model_id': model_id, 'train_n': train_n,
                         'win_rate': w[train_n]['win_rate'],
+                    })
+                    nn_vs_default_tie_rates.append({
+                        'model_id': model_id, 'train_n': train_n,
                         'tie_rate': w[train_n]['tie_rate'],
                     })
                 w2 = compute_nn_paired_wins(df_results, model_id, 'l2')
@@ -1133,14 +1315,93 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
                     nn_vs_l2_rates.append({
                         'model_id': model_id, 'train_n': train_n,
                         'win_rate': w2[train_n]['win_rate'],
+                    })
+                    nn_vs_l2_tie_rates.append({
+                        'model_id': model_id, 'train_n': train_n,
                         'tie_rate': w2[train_n]['tie_rate'],
                     })
 
     df_nn_vs_default = pd.DataFrame(nn_vs_default_rates) if nn_vs_default_rates else pd.DataFrame()
     df_nn_vs_l2 = pd.DataFrame(nn_vs_l2_rates) if nn_vs_l2_rates else pd.DataFrame()
+    df_nn_vs_default_ties = pd.DataFrame(nn_vs_default_tie_rates) if nn_vs_default_tie_rates else pd.DataFrame()
+    df_nn_vs_l2_ties = pd.DataFrame(nn_vs_l2_tie_rates) if nn_vs_l2_tie_rates else pd.DataFrame()
 
-    # ── Step 11: Summary ──
-    log("Step 10: Building summary...")
+    # ── Step 11: Build summary ──
+    log("Step 11: Building summary...")
+
+    # Per-method, per-n primary D stats & failure rates
+    primary_stats = {}
+    for method in ['default', 'l2', 'nn']:
+        primary_stats[method] = {}
+        for train_n in TRAIN_N_VALUES:
+            mask = (df_results['train_n'] == train_n) & (df_results['method'] == method)
+            subset = df_results[mask]
+            if len(subset) == 0:
+                continue
+            D_vals = subset['D'].values
+            n_failed = int(subset['failed'].sum())
+            n_total = len(subset)
+            primary_stats[method][str(train_n)] = {
+                'n_total': n_total,
+                'n_failed': n_failed,
+                'failure_rate': n_failed / n_total,
+                'mean_D': float(np.mean(D_vals)),
+                'median_D': float(np.median(D_vals)),
+                'std_D': float(np.std(D_vals, ddof=1)) if n_total > 1 else 0.0,
+                'Q1_D': float(np.percentile(D_vals, 25)),
+                'Q3_D': float(np.percentile(D_vals, 75)),
+            }
+
+    # Complete-case sensitivity (failed==False subset only)
+    complete_case = {}
+    for method in ['default', 'l2', 'nn']:
+        complete_case[method] = {}
+        for train_n in TRAIN_N_VALUES:
+            mask = (df_results['train_n'] == train_n) & \
+                   (df_results['method'] == method) & \
+                   (~df_results['failed'])
+            subset = df_results[mask]
+            if len(subset) == 0:
+                continue
+            D_vals = subset['D'].values
+            n_cc = len(subset)
+            complete_case[method][str(train_n)] = {
+                'n_complete_case': n_cc,
+                'mean_D': float(np.mean(D_vals)),
+                'median_D': float(np.median(D_vals)),
+                'std_D': float(np.std(D_vals, ddof=1)) if n_cc > 1 else 0.0,
+            }
+
+    # NN win rate & tie rate distributions
+    nn_win_dist = {}
+    nn_tie_dist = {}
+    for label, df_w, df_t in [
+        ('vs_default', df_nn_vs_default, df_nn_vs_default_ties),
+        ('vs_l2', df_nn_vs_l2, df_nn_vs_l2_ties),
+    ]:
+        nn_win_dist[label] = {}
+        nn_tie_dist[label] = {}
+        for train_n in TRAIN_N_VALUES:
+            if len(df_w) > 0:
+                rates_w = df_w[df_w['train_n'] == train_n]['win_rate']
+                if len(rates_w) > 0:
+                    nn_win_dist[label][str(train_n)] = _dist_summary(rates_w)
+            if len(df_t) > 0:
+                rates_t = df_t[df_t['train_n'] == train_n]['tie_rate']
+                if len(rates_t) > 0:
+                    nn_tie_dist[label][str(train_n)] = _dist_summary(rates_t)
+
+    # Default vs L2
+    dl2_wins = {}
+    for tn, v in default_l2_wins.items():
+        dl2_wins[str(tn)] = {
+            'win_rate_l2_over_default': v['win_rate'],
+            'tie_rate': v['tie_rate'],
+            'wins': v['wins'],
+            'losses': v['losses'],
+            'ties': v['ties'],
+        }
+
     summary = {
         'dataset_id': 'nist-6061-t6-fatigue',
         'created_at': now_iso(),
@@ -1152,50 +1413,15 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
             'eta': float(eta_ref),
             'gamma': float(gamma_ref),
         },
-        'default_vs_l2_win_rates': {
-            str(tn): {
-                'win_rate_l2_over_default': v['win_rate'],
-                'tie_rate': v['tie_rate'],
-            }
-            for tn, v in default_l2_wins.items()
-        },
+        'primary_stats': primary_stats,
+        'complete_case_sensitivity': complete_case,
+        'default_vs_l2_paired': dl2_wins,
+        'nn_win_rate_distributions': nn_win_dist,
+        'nn_tie_rate_distributions': nn_tie_dist,
     }
 
-    # Add NN win rate distributions
-    if len(df_nn_vs_default) > 0:
-        for train_n in TRAIN_N_VALUES:
-            rates = df_nn_vs_default[df_nn_vs_default['train_n'] == train_n]['win_rate']
-            if len(rates) > 0:
-                summary[f'nn_vs_default_win_rate_n{train_n}'] = {
-                    'min': float(rates.min()), 'Q1': float(rates.quantile(0.25)),
-                    'median': float(rates.median()), 'Q3': float(rates.quantile(0.75)),
-                    'max': float(rates.max()),
-                    'mean': float(rates.mean()),
-                    'std': float(rates.std(ddof=1)) if len(rates) > 1 else 0.0,
-                }
-
-    if len(df_nn_vs_l2) > 0:
-        for train_n in TRAIN_N_VALUES:
-            rates = df_nn_vs_l2[df_nn_vs_l2['train_n'] == train_n]['win_rate']
-            if len(rates) > 0:
-                summary[f'nn_vs_l2_win_rate_n{train_n}'] = {
-                    'min': float(rates.min()), 'Q1': float(rates.quantile(0.25)),
-                    'median': float(rates.median()), 'Q3': float(rates.quantile(0.75)),
-                    'max': float(rates.max()),
-                    'mean': float(rates.mean()),
-                    'std': float(rates.std(ddof=1)) if len(rates) > 1 else 0.0,
-                }
-
     # ── Step 12: Write outputs ──
-    log("Step 11: Writing outputs...")
-
-    # Check for existing formal artifacts
-    existing = check_output_safety(output_dir)
-    if existing:
-        log(f"  WARNING: {len(existing)} existing output files found:")
-        for f in existing:
-            log(f"    {f}")
-        log("  These will be OVERWRITTEN.")
+    log("Step 12: Writing outputs...")
 
     # real_holdout_results.csv
     results_path = os.path.join(output_dir, 'real_holdout_results.csv')
@@ -1212,29 +1438,58 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     stability_path = os.path.join(output_dir, 'real_nn_model_stability.csv')
     nn_model_rows = df_model_agg[df_model_agg['method'] == 'nn'].copy()
     if len(nn_model_rows) > 0:
-        # Add win rates to model-level rows
-        for _, row in nn_model_rows.iterrows():
-            mid = row['model_id']
-            tn = row['train_n']
+        # Add win/tie rates to model-level rows
+        for idx_val in nn_model_rows.index:
+            mid = nn_model_rows.loc[idx_val, 'model_id']
+            tn = nn_model_rows.loc[idx_val, 'train_n']
             if len(df_nn_vs_default) > 0:
                 vd = df_nn_vs_default[
                     (df_nn_vs_default['model_id'] == mid) &
                     (df_nn_vs_default['train_n'] == tn)
                 ]
                 if len(vd) > 0:
-                    nn_model_rows.loc[_, 'win_rate_vs_default'] = float(vd.iloc[0]['win_rate'])
+                    nn_model_rows.loc[idx_val, 'win_rate_vs_default'] = float(vd.iloc[0]['win_rate'])
             if len(df_nn_vs_l2) > 0:
                 vl = df_nn_vs_l2[
                     (df_nn_vs_l2['model_id'] == mid) &
                     (df_nn_vs_l2['train_n'] == tn)
                 ]
                 if len(vl) > 0:
-                    nn_model_rows.loc[_, 'win_rate_vs_l2'] = float(vl.iloc[0]['win_rate'])
+                    nn_model_rows.loc[idx_val, 'win_rate_vs_l2'] = float(vl.iloc[0]['win_rate'])
+            if len(df_nn_vs_default_ties) > 0:
+                td = df_nn_vs_default_ties[
+                    (df_nn_vs_default_ties['model_id'] == mid) &
+                    (df_nn_vs_default_ties['train_n'] == tn)
+                ]
+                if len(td) > 0:
+                    nn_model_rows.loc[idx_val, 'tie_rate_vs_default'] = float(td.iloc[0]['tie_rate'])
+            if len(df_nn_vs_l2_ties) > 0:
+                tl = df_nn_vs_l2_ties[
+                    (df_nn_vs_l2_ties['model_id'] == mid) &
+                    (df_nn_vs_l2_ties['train_n'] == tn)
+                ]
+                if len(tl) > 0:
+                    nn_model_rows.loc[idx_val, 'tie_rate_vs_l2'] = float(tl.iloc[0]['tie_rate'])
     nn_model_rows.to_csv(stability_path, index=False)
     log(f"  Saved: {stability_path} ({len(nn_model_rows)} rows)")
 
+    # real_nn_cross_model_distribution.csv
+    if len(df_nn_dist) > 0:
+        dist_path = os.path.join(output_dir, 'real_nn_cross_model_distribution.csv')
+        df_nn_dist.to_csv(dist_path, index=False)
+        log(f"  Saved: {dist_path} ({len(df_nn_dist)} rows)")
+
     # real_data_manifest.json
     git_commit, git_dirty = get_git_info()
+    config_hash = compute_config_hash()
+    versions = get_package_versions()
+    # Collect per-fold P99 values
+    p99_values = {}
+    if nn_selectors:
+        for sel in nn_selectors:
+            key = f"fold_{sel['fold_idx']}"
+            if key not in p99_values:
+                p99_values[key] = sel.get('failure_penalty')
     manifest = {
         'experiment': 'real_data_holdout_validation_p7',
         'created_at': now_iso(),
@@ -1242,6 +1497,8 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
         'contract_content_commit': '2ee23a8',
         'execution_commit': git_commit,
         'git_dirty': git_dirty,
+        'config_hash': config_hash,
+        'versions': versions,
         'dataset_id': 'nist-6061-t6-fatigue',
         'data_source': {
             'BIRNSAUN_DAT_sha256': hash_results.get('BIRNSAUN.DAT', {}).get('sha256'),
@@ -1253,6 +1510,14 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
             'beta_hat': gate.diagnostics['beta_hat'],
             'eta_hat': gate.diagnostics['eta_hat'],
         },
+        'nn_training': {
+            'n_selectors': len(nn_selectors) if nn_selectors else 0,
+            'folds': N_FOLDS,
+            'seeds': STABILITY_SEEDS,
+            'hidden_layers': list(MLP_HIDDEN_LAYERS),
+            'failure_penalty_method': 'per_fold_P99_of_training_loss',
+            'per_fold_p99': p99_values if p99_values else None,
+        },
         'config': {
             'base_seed': BASE_SEED,
             'train_n_values': TRAIN_N_VALUES,
@@ -1260,16 +1525,14 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
             'default_delta': DEFAULT_DELTA,
             'l2_deltas': L2_DELTAS,
             'tie_tolerance': TIE_TOLERANCE,
-            'failure_penalty_D': FAILURE_D,
-            'nn_n_selectors': len(nn_selectors) if nn_selectors else 0,
-            'nn_folds': N_FOLDS,
-            'nn_seeds': STABILITY_SEEDS,
+            'failure_D': FAILURE_D,
             'delta_grid_n_points': N_DELTAS,
             'delta_grid': DELTA_GRID,
         },
         'output_schema': {
             'real_holdout_results_columns': RESULT_COLUMNS,
             'expected_rows': expected_rows,
+            'actual_rows': len(df_results),
             'primary_key': ['train_n', 'repeat_index', 'method', 'model_id'],
         },
     }
@@ -1299,55 +1562,49 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     }
 
 
+def _dist_summary(values):
+    """Helper: return {min, Q1, median, Q3, max, mean, std} for a numeric array."""
+    vals = np.asarray(values, dtype=float)
+    vals = vals[np.isfinite(vals)]
+    if len(vals) == 0:
+        return None
+    return {
+        'min': float(np.min(vals)),
+        'Q1': float(np.percentile(vals, 25)),
+        'median': float(np.median(vals)),
+        'Q3': float(np.percentile(vals, 75)),
+        'max': float(np.max(vals)),
+        'mean': float(np.mean(vals)),
+        'std': float(np.std(vals, ddof=1)) if len(vals) > 1 else 0.0,
+    }
+
+
 # ═══════════════════════════════════════════════════════════════
 # CLI entry point
 # ═══════════════════════════════════════════════════════════════
 
-def main(data_dir=None, n_repeats=None, output_dir=None, bypass_guard=False):
+def main():
     """CLI entry point for real data holdout validation.
 
-    The _P6_PLACEHOLDER_GUARD prevents accidental execution of incomplete
-    code. It is bypassed only during P7 testing (bypass_guard=True) or
-    after P7 independent review (set _P6_PLACEHOLDER_GUARD=False).
+    The _P6_PLACEHOLDER_GUARD prevents ANY execution until P7 passes
+    independent review. There is NO public bypass.
+    Tests call run_pipeline() directly with a temp output_dir.
     """
-    if _P6_PLACEHOLDER_GUARD and not bypass_guard:
+    if _P6_PLACEHOLDER_GUARD:
         raise RuntimeError(
             "run_real_data_validation.py: P6 PLACEHOLDER guard is still active. "
             "P7 pipeline is implemented but pending independent review.\n"
-            "Tests may bypass this guard with bypass_guard=True.\n"
+            "There is NO CLI bypass. Tests call run_pipeline() directly.\n"
             "See: coworker/reports/2026-07-25-study01xu-p6-preflight-audit.md\n"
             "Per frozen contract: P7 must pass independent review before P8a formal run."
         )
 
-    if data_dir is None:
-        data_dir = os.path.join(
-            ARTIFACTS_DIR, "real_data", "nist-6061-t6-fatigue"
-        )
-
-    return run_pipeline(
-        data_dir=data_dir,
-        output_dir=output_dir,
-        smoke_n_repeats=n_repeats if n_repeats != N_REPEATS else None,
+    data_dir = os.path.join(
+        ARTIFACTS_DIR, "real_data", "nist-6061-t6-fatigue"
     )
+
+    return run_pipeline(data_dir=data_dir)
 
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(
-        description="Study/01 Real Data Holdout Validation — P7 Pipeline")
-    parser.add_argument('--data-dir', default=None,
-                        help='Path to dataset directory')
-    parser.add_argument('--output-dir', default=None,
-                        help='Output directory (default: artifacts/formal/real_data/<id>)')
-    parser.add_argument('--n-repeats', type=int, default=None,
-                        help=f'Number of repeats (default: {N_REPEATS})')
-    parser.add_argument('--bypass-guard', action='store_true',
-                        help='Bypass the P6 placeholder guard (for testing)')
-    parser.add_argument('--skip-nn', action='store_true',
-                        help='Skip NN training (for smoke testing)')
-    args = parser.parse_args()
-
-    n_repeats = args.n_repeats if args.n_repeats is not None else N_REPEATS
-
-    main(data_dir=args.data_dir, n_repeats=n_repeats,
-         output_dir=args.output_dir, bypass_guard=args.bypass_guard)
+    main()
