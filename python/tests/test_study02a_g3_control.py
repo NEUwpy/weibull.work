@@ -354,32 +354,35 @@ class TestG3Schemas:
         assert results.count("success") == 1
         assert results.count("rejected") == 3
 
-    def test_stale_lock_recovered(self, tmp_path):
+    def test_stale_lock_fail_closed(self, tmp_path):
+        """Even old locks are NOT auto-preempted. Fail-closed."""
         import time as _time
-        ctx = self._setup_authorized(tmp_path)
-        lock_path = ctx["state_path"].with_name(ctx["state_path"].name + ".lock")
-        lock_path.write_bytes(b"")
-        old_time = _time.time() - 7200
         import os as _os
-        _os.utime(str(lock_path), (old_time, old_time))
-        after = authorize_g3_test_once(
-            state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
-            approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
-            oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
-            timestamp="T3", stale_lock_max_age_seconds=3600,
-        )
-        assert after["state"] == "unsealed_once"
-
-    def test_fresh_lock_rejected(self, tmp_path):
         ctx = self._setup_authorized(tmp_path)
         lock_path = ctx["state_path"].with_name(ctx["state_path"].name + ".lock")
-        lock_path.write_bytes(b"")
+        lock_path.write_bytes(b'{"holder": "dead-process", "pid": 99999}')
+        old_time = _time.time() - 7200
+        _os.utime(str(lock_path), (old_time, old_time))
         with pytest.raises(ValueError, match="locked"):
             authorize_g3_test_once(
                 state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
                 approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
                 oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
-                timestamp="T3", stale_lock_max_age_seconds=3600,
+                timestamp="T3",
+            )
+        state = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
+        assert state["state"] == "sealed"
+
+    def test_fresh_lock_rejected(self, tmp_path):
+        ctx = self._setup_authorized(tmp_path)
+        lock_path = ctx["state_path"].with_name(ctx["state_path"].name + ".lock")
+        lock_path.write_bytes(b'{"holder": "active", "pid": 12345}')
+        with pytest.raises(ValueError, match="locked"):
+            authorize_g3_test_once(
+                state_path=ctx["state_path"], bundle_path=ctx["bundle_path"],
+                approval_path=ctx["approval_path"], manifest_path=ctx["manifest_path"],
+                oracle_review_path=ctx["oracle_review_path"], ledger_path=ctx["ledger_path"],
+                timestamp="T3",
             )
         state = json.loads(ctx["state_path"].read_text(encoding="utf-8"))
         assert state["state"] == "sealed"
