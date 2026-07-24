@@ -3,7 +3,7 @@
 > Date: 2026-07-23
 > Executor: OpenCode (qwen3.8-max-preview)
 > Branch: `codex/study02-a-preflight-20260721`
-> Fix commit: `c7333b69`
+> Fix commits: `c7333b69` (evaluation + executor gate) + `47bbaa23` (selection-layer gate + attack tests)
 
 ## Context
 
@@ -15,19 +15,33 @@ had non-finite L_param (59 Inf, 2 NaN). Root cause: `_decode_param_columns` uses
 
 ## Changes Made
 
-### evaluation.py
+### evaluation.py (c7333b69)
 
 In both `evaluate_rows` and `evaluate_rows_per_sample`: after computing component
 errors and L_param for a row that passes `_legal()`, check finiteness of all
 component errors and L_param. If any is non-finite (overflow from huge-but-finite
-estimates), demote the row to failure penalty 10. `np.errstate(over="ignore",
-invalid="ignore")` suppresses the expected overflow warning without clipping.
+estimates, or non-finite decoded estimates), demote the row to failure penalty 10.
+`np.errstate(over="ignore", invalid="ignore")` suppresses the expected overflow
+warning without clipping results.
 
-### formal_executor.py
+### formal_executor.py (c7333b69)
 
 Added `_require_finite_evaluation(fit_id, scalar, point_records)` fail-closed gate
 called before FitEvaluation enters selection aggregation. Raises ValueError if
 selection_score or any point record numeric field is non-finite.
+
+### selection.py (47bbaa23)
+
+Added `_validate_evaluation_finite(evaluation)` called in
+`candidate_supporting_evidence` for every evaluation BEFORE any aggregate, hash,
+or ranking computation. Validates:
+- succeeded fit: selection_score finite
+- failed fit: failure_penalty finite
+- all point record numeric fields (l_param, e_beta, e_eta, e_gamma) finite
+- aggregate result itself finite (post-computation check)
+
+Both the `score_fit` callback path and the default checkpoint scorer path are
+protected by this gate.
 
 ### What Was NOT Changed
 
@@ -54,7 +68,7 @@ selection_score or any point record numeric field is non-finite.
 | authority_sha256 | 8c5ff931...7725 |
 
 Note: `_rebuild_authority` code-drift check is expected to fail (current code is
-`c7333b69`, r2 manifest binds `3beb9f11`). This does not affect checkpoint integrity.
+`47bbaa23`, r2 manifest binds `3beb9f11`). This does not affect checkpoint integrity.
 
 ## 141-Checkpoint Read-Only Scoring Results
 
@@ -67,20 +81,41 @@ Note: `_rebuild_authority` code-drift check is expected to fail (current code is
 | Total point records | 1,480,800 |
 | Failure records (penalty=10) | 42,833 (2.9%) |
 | Fits with >0 failure records | 30/141 |
-| selection_score range | [0.201045, 6.57e307] |
+| selection_score range | [0.20104490530132632, 6.568274390921318e150] |
 | Elapsed | 1600.4s |
 | Results SHA256 | 08099d03abe2dfa9fe00b0e519f40b94af7dd1c485863c529a8c3f46d4740fc0 |
 
-The 42,833 failure records are validation samples where the model's exp-decode
-overflowed to Inf, correctly demoted to penalty=10 by the R6 fix. The 30 affected
-fits are predominantly early-training checkpoints with unstable weights.
+The 42,833 failure records are validation samples where the decoded estimate was
+non-finite (exp-decode overflow to Inf) or where the resulting component error or
+L_param computation produced a non-finite value. All were correctly demoted to
+penalty=10 by the R6 fix. No inference is made about which training epoch or
+checkpoint stability caused them.
+
+## In-Memory Stage1 Selection Build (F2 route, read-only)
+
+Using the 141 real r2 checkpoints, the F2 route stage1 selection was built
+entirely in memory (no artifacts written to r2):
+
+| Metric | Value |
+|--------|-------|
+| Route | F2 |
+| Decision | architecture:A-E1:F2:n10 |
+| Candidates | 12 (m01-m12) |
+| All aggregates finite | True |
+| Winner | m10 (aggregate=0.274154) |
+| Top4 | [m10, m06, m02, m12] |
+| Selection rule | lowest_aggregate |
+| Scoring elapsed | 650.6s |
+
+V route stage1 fits (G3-fit-0227..0262) are in the pending 208 and cannot be
+scored from r2.
 
 ## Verification
 
 | Check | Result |
 |-------|--------|
-| 384 non-slow study02a tests | PASSED |
-| 13 evaluation tests (incl. 10 R6) | PASSED |
+| 392 non-slow study02a tests | PASSED |
+| 21 evaluation tests (incl. 9 R6 + 8 R6 REVISE) | PASSED |
 | compileall | PASSED |
 | verify_frozen_hashes | PASSED |
 | git diff --check | clean |
