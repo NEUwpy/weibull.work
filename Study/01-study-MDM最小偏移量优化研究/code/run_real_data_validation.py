@@ -218,6 +218,20 @@ def run_holdout_validation(all_lifetimes, n_repeats, train_n,
 
 # ── Main ──
 
+# ── Fail-closed guard: this script is PLACEHOLDER until P7 is complete ──
+# Per 2026-07-25 P6 preflight audit (coworker/reports/2026-07-25-study01xu-p6-preflight-audit.md):
+#   - MDM.run() returns 5-tuple, not dict (same bug as R2 BLOCK, commit 5059ce2)
+#   - L2 delta lookup not implemented
+#   - NN 15-selector pipeline not implemented
+#   - ECDF distance from model CDF to holdout ECDF not computed
+#   - Support-set violation check not implemented
+#   - Model-level aggregation for 15 selectors not implemented
+# This guard MUST remain until P7 implementation is complete and independently
+# reviewed. Removing it before P7 completion would allow placeholder code to
+# produce misleading formal results.
+_P6_PLACEHOLDER_GUARD = True  # Set to False ONLY after P7 implementation + review
+
+
 def main(data_dir, n_repeats=100, train_n=30, rng_seed=42):
     """Run real data holdout validation.
 
@@ -227,6 +241,17 @@ def main(data_dir, n_repeats=100, train_n=30, rng_seed=42):
         train_n: number of lifetimes to use for training in each split
         rng_seed: random seed for reproducibility
     """
+    if _P6_PLACEHOLDER_GUARD:
+        raise RuntimeError(
+            "run_real_data_validation.py is PLACEHOLDER code and must not be "
+            "used as formal R3 evidence before P7 implementation is complete.\n"
+            "See: coworker/reports/2026-07-25-study01xu-p6-preflight-audit.md\n"
+            "Per frozen contract 07-剩余实验目标与规划.md §3: P7 (implementation) "
+            "must complete before P8a (formal run).\n"
+            "This guard prevents accidental execution of incomplete pipeline "
+            "that would silently produce NaN-filled results."
+        )
+
     log("=" * 70)
     log("Study/01 Real Data Holdout Validation (R3)")
     log(f"Started: {now_iso()}")

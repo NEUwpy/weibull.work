@@ -191,6 +191,30 @@ class TestRealDataGate:
 # Weibull helpers
 # ============================================================
 
+# ============================================================
+# Fail-closed guard
+# ============================================================
+
+class TestP6PlaceholderGuard:
+    def test_run_real_data_validation_has_fail_closed_guard(self):
+        """P6 run script must raise RuntimeError until P7 is complete."""
+        import run_real_data_validation as rv
+        assert rv._P6_PLACEHOLDER_GUARD is True, (
+            "P6 placeholder guard must be True until P7 is complete. "
+            "Do not set to False before P7 implementation + review."
+        )
+        with pytest.raises(RuntimeError, match="PLACEHOLDER"):
+            rv.main("/nonexistent/path")
+        # Guard should fire before any file I/O, so non-existent path is OK
+
+    def test_fail_closed_guard_is_module_level_constant(self):
+        """Guard must be an importable module-level constant for testability."""
+        import run_real_data_validation as rv
+        assert hasattr(rv, '_P6_PLACEHOLDER_GUARD'), (
+            "P6 guard constant missing — cannot test fail-closed state"
+        )
+
+
 class TestWeibullHelpers:
     def test_weibull_cdf_endpoints(self):
         """CDF(0) ≈ 0, CDF(∞) → 1."""
