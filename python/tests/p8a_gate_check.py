@@ -102,7 +102,7 @@ for name, ok in checks:
 # 10. E4d manifest
 print("10. E4d manifest:")
 e4d_path = os.path.join(ARTIFACTS_DIR, "E4_robustness", "manifest_e4d.json")
-with open(e4d_path) as f:
+with open(e4d_path, encoding='utf-8') as f:
     e4d = json.load(f)
 tc = e4d.get("training_contract", {})
 checks2 = [
