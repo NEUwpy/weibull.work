@@ -4,7 +4,7 @@
 **Freeze date**: 2026-07-25
 **Revision date**: 2026-07-25 (Codex REVISE, 6 issues addressed)
 **Branch**: `study01xu`
-**Contract content commit**: `123355f` (fix: metric, failure, aggregation, conversion, license)
+**Contract content commit**: `2ee23a8` (fix: REVISE v2 — KS name, piecewise CDF, median-model removal, provenance cleanup)
 **Pre-revision freeze commit**: `701d9a6`
 **Status**: FROZEN (REVISED per Codex review) — no changes permitted before P7 implementation + P8a run
 **Per**: `07-剩余实验目标与规划.md` §4.3, phases P6–P8b
