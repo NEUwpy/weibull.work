@@ -14,9 +14,9 @@
 ```
 Branch:   study01xu
 Base:     origin/study01xu @ 7d6e99f2519a9b079d50cf838e14b271cff14255
-Tip:      5681943 (provenance stamp)
-Contract: 123355f (substantive content)
-Commits:  7 commits since R2 P5b APPROVE
+Tip:      6904029
+Contract: 2ee23a8 (final content)
+Commits:  9 commits since R2 P5b APPROVE
 ```
 
 ## Commit Summary
@@ -29,7 +29,9 @@ Commits:  7 commits since R2 P5b APPROVE
 | 4 | `ac9ade1` | **Progress update** |
 | 5 | `123355f` | **fix**: metric, failure, aggregation, conversion, license (Codex REVISE) |
 | 6 | `0452836` | **docs**: provenance alignment, executor report, progress table |
-| 7 | `5681943` | **docs**: stamp contract commit hash in frozen docs |
+| 7 | `5681943` | **docs**: stamp commit hashes in frozen docs |
+| 8 | `2ee23a8` | **fix**: REVISE v2 — KS name, piecewise CDF, median-model removal |
+| 9 | `6904029` | **docs**: stamp final contract content commit |
 
 ## Data Source: NIST 6061-T6 (Birnbaum & Saunders 1958)
 
@@ -111,7 +113,7 @@ pytest python/tests/test_study01_real_data_gate.py \
 ### Result
 
 ```
-29 passed in 1.44s
+36 passed in 1.60s
 ```
 
 ### Breakdown
@@ -133,11 +135,13 @@ new: Study/.../artifacts/formal/real_data/
     ├── nist-6061-t6-fatigue/
     │   ├── source.json                                                 (provenance manifest)
     │   ├── lifetimes.csv                                               (101 failure times)
-    │   └── BIRNSAUN.DAT                                                (original NIST file)
+    │   ├── BIRNSAUN.DAT                                                (original NIST file)
+	    │   └── convert_birnsaun_to_lifetimes.py                            (deterministic conversion script)
     ├── P6_FROZEN_CONTRACT.md                                           (human-readable contract)
     └── p6_frozen_config.json                                           (machine-readable config)
-new: python/tests/test_study01_p6_frozen_contract.py                    (13 contract self-tests)
+new: python/tests/test_study01_p6_frozen_contract.py                    (20 contract self-tests)
 new: coworker/reports/2026-07-25-study01xu-p6-executor-report.md        (this file)
+modified: Study/.../07-剩余实验目标与规划.md                              (progress table update)
 ```
 
 ## Deviations

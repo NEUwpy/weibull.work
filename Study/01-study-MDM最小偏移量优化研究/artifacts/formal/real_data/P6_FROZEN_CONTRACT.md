@@ -249,7 +249,7 @@ A repeat is classified as **failed** for a given method if ANY of:
 
 ## 6. Evaluation Metrics (FROZEN)
 
-### 5.1 Primary Metric: Holdout ECDF Distance (One-Sided KS Form)
+### 6.1 Primary Metric: Holdout ECDF Distance (One-Sample Two-Sided KS Distance)
 
 For a holdout sample of size *m* with sorted values y_(1) ≤ y_(2) ≤ ... ≤ y_(m),
 and fitted Weibull CDF F(y) = 1 − exp(−((y − γ̂)/η̂)^β̂):
