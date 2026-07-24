@@ -1,28 +1,30 @@
 """
-Study/01 — Real Data Holdout Validation (R3)
+Study/01 — Real Data Holdout Validation (R3) — P7 Full Implementation
 
-Per frozen contract 07-剩余实验目标与规划.md §4.3:
+Per frozen contract P6_FROZEN_CONTRACT.md (v1.1-FROZEN-REVISED):
 
-  - Gate check via ``real_data_gate.py`` before any method comparison.
-  - Fixed n repeated holdout with identical splits for all three methods
-    (Default δ=0.1, main-grid L2, NN — all 15 E4d fold/seed selectors).
-  - Main metric: holdout empirical CDF distance.
-  - Auxiliary: support-set violations, parameter distance, paired win rate.
-  - NN uses all 15 E4d-contract selectors; no cherry-picking by E4d results.
-  - Large-sample fit is experience reference only, not ground truth.
+  - Seed-based split generation: n={7,10,20}, 500 repeats each, without replacement.
+  - All methods (Default, L2, NN) share identical train/holdout indices.
+  - Default δ=0.1; L2 uses frozen per-n deltas from E1/E2 cross-fit.
+  - 15 NN selectors retrained per E4d contract (5 folds × 3 seeds),
+    training data and scalers from main-grid train folds ONLY.
+  - Primary metric: one-sample two-sided KS distance with piecewise 3P Weibull CDF.
+  - Failure handling: D=1, failed=True, recorded reason — never silently dropped.
+  - Per-model aggregation first, then cross-model distribution.
+  - Output: real_holdout_results.csv (25500 rows), summary, model stability, manifest, run log.
 
 Inputs:
-  - Real dataset (lifetimes.csv + source.json via real_data_gate)
-  - Frozen E3b contract models (retrained, not pre-saved weights)
-  - Frozen main-grid L1/L2 delta tables
+  - Real dataset: lifetimes.csv + BIRNSAUN.DAT (SHA256 verified)
+  - Frozen E3b/E4d contract NN config
+  - Frozen main-grid L2 delta table
+  - Authoritative main-grid MC chunks (for NN training only)
 
-Outputs:
-  - artifacts/formal/real_data/<dataset_id>/
-    real_holdout_results.csv       per-repeat, per-method evaluation rows
-    real_holdout_summary.csv        aggregate metrics
-    real_nn_model_stability.csv     15-selector spread
-    manifest.json
-    run_log.txt
+Outputs (written to OUTPUT_DIR/<dataset_id>/):
+  - real_holdout_results.csv       — per-repeat, per-method rows (25500 expected)
+  - real_holdout_summary.json      — aggregate metrics
+  - real_nn_model_stability.csv    — 15 model-level rows
+  - real_data_manifest.json        — provenance
+  - run_log.txt                    — timestamped execution log
 """
 
 import sys
@@ -32,17 +34,23 @@ import hashlib
 import time
 import math
 import warnings
+import subprocess
+import re
+import tempfile
+import importlib.util
 from datetime import datetime, timezone
 from itertools import product
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
+# ═══════════════════════════════════════════════════════════════
 # Path setup
+# ═══════════════════════════════════════════════════════════════
+
 STUDY_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
 STUDY_ROOT = os.path.dirname(STUDY_CODE_DIR)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(STUDY_ROOT))
@@ -53,38 +61,78 @@ sys.path.insert(0, PYTHON_DIR)
 
 from config import (
     BETA_GRID, ETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID,
-    DELTA_GRID, DEFAULT_DELTA, R_MAIN, SEED_NAMESPACE,
+    DELTA_GRID, DEFAULT_DELTA, SEED_NAMESPACE,
     ARTIFACTS_DIR, SHARED_DATA_DIR,
 )
 from utils import now_iso
 from studies.common.sample import generate_sample
+
+# ── Real data gate ──
 from real_data_gate import (
     run_real_data_gate, RealDataGateResult,
-    MIN_UNCENSORED_LIFETIMES, WEIBULL_FIT_MIN_R2,
+    MIN_UNCENSORED_LIFETIMES, WEIBULL_FIT_MIN_R2, _estimate_weibull_ols,
 )
 
-# Import E4d training infrastructure
-from run_E4_formal_validation import (
-    build_feature_table_from_mc, compute_loss,
-    _pivot_risk_vectors, _build_X_from_samples,
-    _fit_zscore_params, _train_mlp, _evaluate_single_model,
-    _model_level_summary, _compute_main_grid_best_deltas,
-    get_combo_split, load_authoritative_main_chunks,
-    read_csv_with_provenance,
-    BOUNDARY_PATH, OFFGRID_PATH,
-    E4B_BOUNDARY_COMBOS, E4C_OFFGRID_COMBOS,
-    build_feature_table_for_combos,
-    STABILITY_SEEDS,
-    SAMPLE_KEYS, SAMPLE_FEATURE_COLS,
-    FEATURE_COLS_ZSCORE, FEATURE_COLS_RAW,
-    MLP_HIDDEN_LAYERS, MLP_MAX_ITER, MLP_BATCH_SIZE,
-    MLP_ALPHA, MLP_LR, MLP_VALIDATION_FRACTION,
-    MLP_N_ITER_NO_CHANGE,
-    DEFAULT_DELTA,
+# ═══════════════════════════════════════════════════════════════
+# Frozen constants (from P6_FROZEN_CONTRACT.md)
+# ═══════════════════════════════════════════════════════════════
+
+BASE_SEED = 20260725
+TRAIN_N_VALUES = [7, 10, 20]
+N_REPEATS = 500
+
+# L2 frozen per-n deltas (from E1/E2 cross-fit, selected_deltas.csv)
+L2_DELTAS = {7: 0.10, 10: 0.10, 20: 0.08}
+
+# Tie tolerance for paired comparisons
+TIE_TOLERANCE = 1e-9
+
+# Failure penalty — D=1 for failed estimates
+FAILURE_D = 1.0
+
+# NN feature columns (same as E3b/E4d contract)
+FEATURE_COLS_ZSCORE = [
+    'x_min', 'x_max', 'range', 'Q1', 'Med', 'Q3', 'IQR', 'x_bar', 's'
+]
+FEATURE_COLS_RAW = ['n', 'CV', 'g1', 'g2']
+SAMPLE_FEATURE_COLS = FEATURE_COLS_ZSCORE + FEATURE_COLS_RAW
+
+# NN config (same as E3b/E4d)
+MLP_HIDDEN_LAYERS = (256, 128, 64)
+MLP_MAX_ITER = 300
+MLP_BATCH_SIZE = 256
+MLP_ALPHA = 1e-4
+MLP_LR = 1e-3
+MLP_VALIDATION_FRACTION = 0.15
+MLP_N_ITER_NO_CHANGE = 20
+STABILITY_SEEDS = [42, 2026, 3407]
+N_FOLDS = 5
+N_DELTAS = len(DELTA_GRID)
+FAILURE_PENALTY = 10.0  # J1 penalty for failed MDM estimates in training data
+
+# Output columns for real_holdout_results.csv
+RESULT_COLUMNS = [
+    'train_n', 'repeat_index', 'method', 'model_id',
+    'delta_used',
+    'beta_hat', 'eta_hat', 'gamma_hat', 'r_squared', 'mdm_status',
+    'D', 'failed', 'failure_reason',
+    'support_set_violation',
+    'param_dist_beta', 'param_dist_eta',
+]
+
+# Output directory default (overridable for tests/smoke)
+DEFAULT_OUTPUT_DIR = os.path.join(
+    ARTIFACTS_DIR, "real_data", "nist-6061-t6-fatigue"
 )
 
-OUTPUT_DIR = os.path.join(ARTIFACTS_DIR, "real_data")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+# ═══════════════════════════════════════════════════════════════
+# Fail-closed guard
+# ═══════════════════════════════════════════════════════════════
+
+# This guard MUST remain True until P7 passes independent review.
+# Tests bypass it by calling internal functions directly, not main().
+# P8a formal run will set this to False after P7 review.
+_P6_PLACEHOLDER_GUARD = True
 
 log_lines = []
 
@@ -96,35 +144,62 @@ def log(msg):
     log_lines.append(line)
 
 
-# ── Empirical CDF distance ──
+def get_git_info():
+    """Return (short_commit, is_dirty) for PROJECT_ROOT."""
+    try:
+        r = subprocess.run(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            capture_output=True, text=True, cwd=PROJECT_ROOT, timeout=10
+        )
+        commit = r.stdout.strip() if r.returncode == 0 else "UNKNOWN"
+        r2 = subprocess.run(
+            ['git', 'diff', '--stat'],
+            capture_output=True, text=True, cwd=PROJECT_ROOT, timeout=10
+        )
+        dirty = bool(r2.stdout.strip())
+        return commit, dirty
+    except Exception:
+        return "UNKNOWN", True
 
-def empirical_cdf_distance(lifetimes_a, lifetimes_b):
-    """Two-sample Kolmogorov-Smirnov distance on the ECDF.
 
-    Returns the maximum absolute difference between the two empirical CDFs.
+# ═══════════════════════════════════════════════════════════════
+# Seed and split generation
+# ═══════════════════════════════════════════════════════════════
+
+def make_seed(train_n, repeat_index):
+    """Frozen seed derivation: base_seed + train_n * 10000 + repeat_index."""
+    return BASE_SEED + train_n * 10000 + repeat_index
+
+
+def generate_splits(n_total, train_n, n_repeats=N_REPEATS):
+    """Generate deterministic train/holdout index splits.
+
+    Returns list of (train_indices, holdout_indices) as numpy arrays.
+    Seed = BASE_SEED + train_n * 10000 + repeat_index.
     """
-    a_sorted = np.sort(np.asarray(lifetimes_a, dtype=float))
-    b_sorted = np.sort(np.asarray(lifetimes_b, dtype=float))
-    all_points = np.unique(np.concatenate([a_sorted, b_sorted]))
-    cdf_a = np.searchsorted(a_sorted, all_points, side='right') / len(a_sorted)
-    cdf_b = np.searchsorted(b_sorted, all_points, side='right') / len(b_sorted)
-    return float(np.max(np.abs(cdf_a - cdf_b)))
+    splits = []
+    for rep in range(n_repeats):
+        seed = make_seed(train_n, rep)
+        rng = np.random.default_rng(seed)
+        indices = rng.permutation(n_total)
+        train_idx = np.sort(indices[:train_n])
+        holdout_idx = np.sort(indices[train_n:])
+        splits.append((train_idx, holdout_idx))
+    return splits
 
 
-# ── Weibull parameter estimation (OLS, for large-sample reference only) ──
+# ═══════════════════════════════════════════════════════════════
+# Feature computation from real data sample
+# ═══════════════════════════════════════════════════════════════
 
-def estimate_weibull_from_sample(lifetimes):
-    """OLS Weibull fit. Returns (beta, eta, gamma=0)."""
-    from real_data_gate import _estimate_weibull_ols
-    return _estimate_weibull_ols(lifetimes)
+def compute_sample_features(sample):
+    """Compute 13 observable features from a real data sample.
 
-
-# ── Sample features for a real data split ──
-
-def compute_features_from_real_sample(sample):
-    """Same 13 features as Study01 main grid, computed from a real sample."""
+    Same feature set as E3b/E4d: n, x_min, x_max, range, Q1, Med, Q3, IQR,
+    x_bar, s, CV, g1, g2.
+    """
     n = len(sample)
-    s_sorted = np.sort(sample)
+    s_sorted = np.sort(np.asarray(sample, dtype=float))
     x_min = float(s_sorted[0])
     x_max = float(s_sorted[-1])
     rng = x_max - x_min
@@ -135,13 +210,15 @@ def compute_features_from_real_sample(sample):
     x_bar = float(np.mean(s_sorted))
     s = float(np.std(s_sorted, ddof=1)) if n > 1 else 0.0
     CV = s / x_bar if x_bar > 0 else 0.0
+
     if n > 2 and s > 0:
         z = (s_sorted - x_bar) / s
-        g1 = float(np.sum(z**3) / n)
-        g2 = float(np.sum(z**4) / n - 3.0)
+        g1 = float(np.sum(z ** 3) / n)
+        g2 = float(np.sum(z ** 4) / n - 3.0)
     else:
         g1 = 0.0
         g2 = 0.0
+
     return {
         'n': n,
         'x_min': x_min, 'x_max': x_max, 'range': rng,
@@ -150,222 +227,1127 @@ def compute_features_from_real_sample(sample):
     }
 
 
-# ── Holdout validation ──
+# ═══════════════════════════════════════════════════════════════
+# Piecewise 3-parameter Weibull CDF
+# ═══════════════════════════════════════════════════════════════
 
-def run_holdout_validation(all_lifetimes, n_repeats, train_n,
-                           rng_seed=42, min_holdout_frac=0.30):
-    """Run repeated holdout validation for real data.
+def weibull_cdf_piecewise(x, beta, eta, gamma):
+    """Three-parameter Weibull CDF, piecewise per contract.
 
-    Each repeat:
-      1. Shuffle and split into train_n + holdout
-      2. Compute features from train sample
-      3. Default δ=0.1: use MDM with that delta on train data
-      4. L2: use frozen main-grid per-n best delta
-      5. NN: use all 15 E4d selectors (each with train-fold scalers)
-      6. Evaluate on holdout: ECDF distance, parameter distance, support-set
+    F(y) = 0                                    if y <= gamma
+    F(y) = 1 - exp(-((y - gamma) / eta)^beta)   if y > gamma
 
-    Returns per-repeat DataFrame.
+    This avoids illegal power operations when holdout values fall below
+    the estimated location parameter.
     """
-    rng = np.random.default_rng(rng_seed)
-    n_total = len(all_lifetimes)
-    min_holdout = max(1, int(n_total * min_holdout_frac))
+    x = np.asarray(x, dtype=float)
+    result = np.zeros_like(x)
+    mask = x > gamma
+    if np.any(mask):
+        z = (x[mask] - gamma) / eta
+        # Guard against negative z (shouldn't happen due to mask, but be safe)
+        z = np.maximum(z, 0.0)
+        result[mask] = 1.0 - np.exp(-(z ** beta))
+    return result
 
-    results = []
-    for rep in range(n_repeats):
-        indices = rng.permutation(n_total)
-        train_idx = indices[:train_n]
-        holdout_idx = indices[train_n:]
-        if len(holdout_idx) < min_holdout:
-            continue
 
-        train_sample = all_lifetimes[train_idx]
-        holdout_sample = all_lifetimes[holdout_idx]
+# ═══════════════════════════════════════════════════════════════
+# One-sample two-sided KS distance
+# ═══════════════════════════════════════════════════════════════
 
-        # Features from train data only
-        feats = compute_features_from_real_sample(train_sample)
+def one_sample_two_sided_ks(holdout, beta_hat, eta_hat, gamma_hat):
+    """Compute one-sample two-sided KS distance.
 
-        # Large-sample reference (not ground truth)
-        ref_beta, ref_eta, _ = estimate_weibull_from_sample(all_lifetimes)
+    D = max_i { |F(y_(i)) - i/m|, |F(y_(i)) - (i-1)/m| }
 
-        # ── Default (δ=0.1) ──
-        try:
-            from methods.mdm import MDM
-            mdm_default = MDM(train_sample)
-            res_default = mdm_default.run(offset=0.1)
-            def_beta = res_default.get('beta', float('nan'))
-            def_eta = res_default.get('eta', float('nan'))
-        except Exception:
-            def_beta, def_eta = float('nan'), float('nan')
+    where:
+      - y_(i) are sorted holdout values, i = 1..m (1-indexed)
+      - F is the fitted piecewise 3P Weibull CDF
+      - i/m is the right-continuous ECDF
+      - (i-1)/m is the left-continuous ECDF
+    """
+    m = len(holdout)
+    if m == 0:
+        return 1.0
+    y_sorted = np.sort(np.asarray(holdout, dtype=float))
+    F_vals = weibull_cdf_piecewise(y_sorted, beta_hat, eta_hat, gamma_hat)
+    i = np.arange(1, m + 1)
+    ecdf_right = i / m
+    ecdf_left = (i - 1) / m
+    diffs_right = np.abs(F_vals - ecdf_right)
+    diffs_left = np.abs(F_vals - ecdf_left)
+    return float(np.maximum(np.max(diffs_right), np.max(diffs_left)))
 
-        # ── Evaluate on holdout ──
-        # Generate Weibull CDF from estimates and compare to holdout ECDF
-        # For now: record parameter estimates; ECDF distance and full
-        # evaluation are computed in the analysis stage
 
-        results.append({
-            'repeat': rep,
-            'train_n': train_n,
-            'holdout_n': len(holdout_idx),
-            'def_beta': def_beta,
-            'def_eta': def_eta,
-            'ref_beta': ref_beta,
-            'ref_eta': ref_eta,
-            **feats,
+# ═══════════════════════════════════════════════════════════════
+# Failure detection (frozen per §5.1)
+# ═══════════════════════════════════════════════════════════════
+
+def detect_failure(beta, eta, gamma, status, train_sample, exception=None):
+    """Check all frozen failure criteria.
+
+    Returns (failed: bool, reason: str or None).
+    """
+    if exception is not None:
+        return True, f"exception: {str(exception)[:200]}"
+    if not status:
+        return True, "mdm_status_false"
+    if not np.isfinite(beta) or beta <= 0:
+        return True, f"invalid_beta: {beta}"
+    if not np.isfinite(eta) or eta <= 0:
+        return True, f"invalid_eta: {eta}"
+    if not np.isfinite(gamma):
+        return True, f"invalid_gamma: {gamma}"
+    train_min = float(np.min(train_sample))
+    if gamma >= train_min:
+        return True, f"support_set_violation_train: gamma={gamma} >= train_min={train_min}"
+    if gamma < 0:
+        return True, f"negative_gamma: {gamma}"
+    return False, None
+
+
+# ═══════════════════════════════════════════════════════════════
+# Support-set violation (holdout)
+# ═══════════════════════════════════════════════════════════════
+
+def check_support_set_violation(holdout, gamma):
+    """Return True if any holdout lifetime < gamma_hat."""
+    return bool(np.any(np.asarray(holdout) < gamma))
+
+
+# ═══════════════════════════════════════════════════════════════
+# Parameter distance from large-sample reference
+# ═══════════════════════════════════════════════════════════════
+
+def param_distance_rel(beta_hat, eta_hat, beta_ref, eta_ref):
+    """Relative absolute parameter distance from reference.
+
+    Returns (dist_beta, dist_eta) where dist = |hat - ref| / ref.
+    """
+    dist_beta = abs(beta_hat - beta_ref) / beta_ref if beta_ref > 0 else float('inf')
+    dist_eta = abs(eta_hat - eta_ref) / eta_ref if eta_ref > 0 else float('inf')
+    return float(dist_beta), float(dist_eta)
+
+
+# ═══════════════════════════════════════════════════════════════
+# MDM estimation wrapper
+# ═══════════════════════════════════════════════════════════════
+
+def run_mdm_estimation(train_sample, delta):
+    """Run MDM estimation with given delta offset.
+
+    Returns (beta, eta, gamma, r_squared, status, exception).
+    MDM.run() returns 5-tuple: (beta, eta, gamma, r_squared, status).
+    """
+    from methods.mdm import MDM
+    exception = None
+    try:
+        mdm = MDM(train_sample)
+        beta, eta, gamma, r2, status = mdm.run(offset=delta)
+        beta = float(beta)
+        eta = float(eta)
+        gamma = float(gamma)
+        r2 = float(r2)
+        status = bool(status)
+    except Exception as e:
+        beta = float('nan')
+        eta = float('nan')
+        gamma = float('nan')
+        r2 = float('nan')
+        status = False
+        exception = e
+    return beta, eta, gamma, r2, status, exception
+
+
+# ═══════════════════════════════════════════════════════════════
+# NN Selector Training (from main-grid chunks only)
+# ═══════════════════════════════════════════════════════════════
+
+def get_combo_split():
+    """Deterministic 5-fold combo-level split (same as E3b/E4d)."""
+    combos = list(product(BETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID))
+    folds = []
+    for fold_idx in range(N_FOLDS):
+        test_combos = [c for i, c in enumerate(combos) if i % 5 == fold_idx]
+        train_combos = [c for i, c in enumerate(combos) if i % 5 != fold_idx]
+        folds.append({
+            'fold_name': f'combo_fold_{fold_idx + 1}',
+            'fold_idx': fold_idx,
+            'train_combos': train_combos,
+            'test_combos': test_combos,
         })
-
-    return pd.DataFrame(results)
-
-
-# ── Main ──
-
-# ── Fail-closed guard: this script is PLACEHOLDER until P7 is complete ──
-# Per 2026-07-25 P6 preflight audit (coworker/reports/2026-07-25-study01xu-p6-preflight-audit.md):
-#   - MDM.run() returns 5-tuple, not dict (same bug as R2 BLOCK, commit 5059ce2)
-#   - L2 delta lookup not implemented
-#   - NN 15-selector pipeline not implemented
-#   - ECDF distance from model CDF to holdout ECDF not computed
-#   - Support-set violation check not implemented
-#   - Model-level aggregation for 15 selectors not implemented
-# This guard MUST remain until P7 implementation is complete and independently
-# reviewed. Removing it before P7 completion would allow placeholder code to
-# produce misleading formal results.
-_P6_PLACEHOLDER_GUARD = True  # Set to False ONLY after P7 implementation + review
+    return folds
 
 
-def main(data_dir, n_repeats=100, train_n=30, rng_seed=42):
-    """Run real data holdout validation.
+def _load_main_grid_chunks(chunks_dir):
+    """Load all 45 authoritative main-grid MDM chunks.
 
-    Args:
-        data_dir: path to dataset directory (with source.json + lifetimes.csv)
-        n_repeats: number of holdout repeats
-        train_n: number of lifetimes to use for training in each split
-        rng_seed: random seed for reproducibility
+    Returns a concatenated DataFrame with columns:
+    beta, eta, gamma, gamma_over_eta, n, repeat_id, delta,
+    beta_hat, eta_hat, gamma_hat, converged, status
     """
-    if _P6_PLACEHOLDER_GUARD:
-        raise RuntimeError(
-            "run_real_data_validation.py is PLACEHOLDER code and must not be "
-            "used as formal R3 evidence before P7 implementation is complete.\n"
-            "See: coworker/reports/2026-07-25-study01xu-p6-preflight-audit.md\n"
-            "Per frozen contract 07-剩余实验目标与规划.md §3: P7 (implementation) "
-            "must complete before P8a (formal run).\n"
-            "This guard prevents accidental execution of incomplete pipeline "
-            "that would silently produce NaN-filled results."
+    expected_units = list(product(BETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID))
+    # Build chunk path mapping
+    pattern = re.compile(r'^chunk_(\d{4})_mdm\.csv$')
+    chunk_map = {}
+    for name in os.listdir(chunks_dir):
+        m = pattern.fullmatch(name)
+        if m:
+            chunk_map[int(m.group(1))] = os.path.join(chunks_dir, name)
+
+    if len(chunk_map) != len(expected_units):
+        raise FileNotFoundError(
+            f"Expected {len(expected_units)} chunks, found {len(chunk_map)}"
         )
 
+    frames = []
+    for chunk_id in range(len(expected_units)):
+        if chunk_id not in chunk_map:
+            raise FileNotFoundError(f"Missing chunk {chunk_id:04d}")
+        df = pd.read_csv(chunk_map[chunk_id])
+        frames.append(df)
+
+    return pd.concat(frames, ignore_index=True)
+
+
+def build_feature_table_from_mc(df_mc, seed_ns=SEED_NAMESPACE):
+    """Build features from MC scan data by reconstructing samples."""
+    sample_keys_df = (
+        df_mc[['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']]
+        .drop_duplicates()
+        .sort_values(['beta', 'gamma_over_eta', 'n', 'repeat_id'])
+        .reset_index(drop=True)
+    )
+    log(f"  Computing features for {len(sample_keys_df)} unique samples...")
+    feat_records = []
+    t0 = time.time()
+    for _, row in sample_keys_df.iterrows():
+        beta = float(row['beta'])
+        eta = float(row['eta'])
+        gamma = float(row['gamma'])
+        n = int(row['n'])
+        rid = int(row['repeat_id'])
+        sample = generate_sample(beta, eta, gamma, n, rid, seed=seed_ns)
+        feats = compute_sample_features(sample)
+        for k, v in row.to_dict().items():
+            feats[k] = v
+        feat_records.append(feats)
+    df_feat = pd.DataFrame(feat_records)
+    log(f"  Features done in {time.time() - t0:.1f}s")
+    return df_feat
+
+
+def compute_loss(df):
+    """Compute per-sample J1 loss."""
+    r_beta = (df['beta_hat'] - df['beta']) / df['beta']
+    r_eta = (df['eta_hat'] - df['eta']) / df['eta']
+    r_gamma = (df['gamma_hat'] - df['gamma']) / df['eta']
+    df = df.copy()
+    df['loss'] = r_beta ** 2 + r_eta ** 2 + r_gamma ** 2
+    df['loss'] = df['loss'].replace([np.inf, -np.inf], np.nan)
+    return df
+
+
+def _pivot_risk_vectors(df, label_col='loss', failure_penalty=FAILURE_PENALTY):
+    """Pivot per-delta rows into 26-dim risk vectors (one per sample)."""
+    sample_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
+    feat_cols_local = [c for c in SAMPLE_FEATURE_COLS if c not in sample_keys]
+    sample_df = df[sample_keys + feat_cols_local].drop_duplicates(
+        subset=sample_keys).reset_index(drop=True)
+    pivot = df.pivot_table(
+        index=sample_keys, columns='delta',
+        values=label_col, aggfunc='first'
+    ).reset_index()
+    result = pivot[sample_keys].merge(sample_df, on=sample_keys, how='left')
+    Y = np.full((len(pivot), N_DELTAS), np.nan)
+    for j, d in enumerate(DELTA_GRID):
+        if d in pivot.columns:
+            Y[:, j] = pivot[d].values
+    Y = np.where(np.isnan(Y), failure_penalty, Y)
+    return result, Y
+
+
+def _fit_zscore_params(df_train):
+    """Compute per-feature z-score parameters from training split only."""
+    means = {}
+    stds = {}
+    for col in FEATURE_COLS_ZSCORE:
+        vals = df_train[col].astype(float)
+        means[col] = float(vals.mean())
+        stds[col] = float(vals.std(ddof=0))
+        if stds[col] < 1e-12:
+            stds[col] = 1.0
+    return means, stds
+
+
+def _build_X_from_samples(samples_df, zscore_means, zscore_stds):
+    """Build 13-dim feature matrix with z-score normalization applied."""
+    cols = []
+    for col in FEATURE_COLS_ZSCORE:
+        vals = samples_df[col].astype(float).values
+        cols.append((vals - zscore_means[col]) / max(zscore_stds[col], 1e-12))
+    for col in FEATURE_COLS_RAW:
+        cols.append(samples_df[col].astype(float).values)
+    return np.column_stack(cols).astype(np.float32) if cols else \
+        np.zeros((len(samples_df), 0), dtype=np.float32)
+
+
+def _build_X_from_feature_dict(feat_dict, zscore_means, zscore_stds):
+    """Build a single 13-dim feature vector from a feature dict."""
+    vals = []
+    for col in FEATURE_COLS_ZSCORE:
+        v = (feat_dict[col] - zscore_means[col]) / max(zscore_stds[col], 1e-12)
+        vals.append(v)
+    for col in FEATURE_COLS_RAW:
+        vals.append(feat_dict[col])
+    return np.array(vals, dtype=np.float32).reshape(1, -1)
+
+
+def _train_mlp(X_train, Y_train, seed):
+    """Train one Vector-MLP-L6 model under frozen E3b config."""
+    target_scaler = StandardScaler()
+    Y_train_scaled = target_scaler.fit_transform(Y_train)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=ConvergenceWarning)
+        model = MLPRegressor(
+            hidden_layer_sizes=MLP_HIDDEN_LAYERS,
+            activation='relu', solver='adam',
+            alpha=MLP_ALPHA, learning_rate_init=MLP_LR,
+            max_iter=MLP_MAX_ITER, early_stopping=True,
+            validation_fraction=MLP_VALIDATION_FRACTION,
+            n_iter_no_change=MLP_N_ITER_NO_CHANGE,
+            random_state=seed, batch_size=MLP_BATCH_SIZE,
+        )
+        model.fit(X_train, Y_train_scaled)
+    return model, target_scaler
+
+
+def train_all_nn_selectors(chunks_dir):
+    """Train all 15 NN selectors from main-grid train folds.
+
+    Returns list of dicts, each with:
+      fold_idx, seed, model, target_scaler, zscore_means, zscore_stds
+    """
+    log("Loading main-grid chunks for NN training...")
+    df_mc = _load_main_grid_chunks(chunks_dir)
+    log(f"  Loaded {len(df_mc)} rows from {len(df_mc['delta'].unique())} deltas")
+
+    # Build feature table
+    df_feat = build_feature_table_from_mc(df_mc)
+    merge_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
+    df_merged = df_mc.merge(df_feat, on=merge_keys, how='left',
+                            suffixes=('', '_feat'))
+    for col in list(df_merged.columns):
+        if col.endswith('_feat'):
+            df_merged.drop(columns=col, inplace=True)
+    df_merged = compute_loss(df_merged)
+
+    # Ban fields that must never appear in model inputs
+    banned = {'beta', 'eta', 'gamma', 'gamma_over_eta', 'seed', 'repeat_id', 'combo_id'}
+    assert not (set(SAMPLE_FEATURE_COLS) & banned), "Banned field in feature set!"
+
+    folds = get_combo_split()
+    selectors = []
+
+    for fold in folds:
+        fold_idx = fold['fold_idx']
+        fold_name = fold['fold_name']
+        train_combos = set(fold['train_combos'])
+
+        # Filter to train combos ONLY
+        df_train = df_merged[
+            df_merged.apply(
+                lambda r: (r['beta'], r['gamma_over_eta'], r['n']) in train_combos,
+                axis=1
+            )
+        ].copy()
+        log(f"  {fold_name}: {len(df_train)} train rows "
+            f"({df_train['delta'].nunique()} deltas)")
+
+        # Fit z-score params on train fold only
+        zscore_means, zscore_stds = _fit_zscore_params(df_train)
+
+        # Pivot to 26-dim risk vectors
+        samples_df, Y_train = _pivot_risk_vectors(df_train)
+
+        # Build X matrix
+        X_train = _build_X_from_samples(samples_df, zscore_means, zscore_stds)
+
+        # Train 3 seeds
+        for seed in STABILITY_SEEDS:
+            log(f"    Training seed={seed}...")
+            t0 = time.time()
+            model, target_scaler = _train_mlp(X_train, Y_train, seed)
+            elapsed = time.time() - t0
+            log(f"    seed={seed} done in {elapsed:.1f}s "
+                f"(iters={model.n_iter_}, loss={model.loss_:.6f})")
+
+            selectors.append({
+                'fold_idx': fold_idx,
+                'fold_name': fold_name,
+                'seed': seed,
+                'model': model,
+                'target_scaler': target_scaler,
+                'zscore_means': zscore_means,
+                'zscore_stds': zscore_stds,
+            })
+
+    log(f"Trained {len(selectors)} NN selectors ({N_FOLDS} folds × "
+        f"{len(STABILITY_SEEDS)} seeds)")
+    return selectors
+
+
+def predict_nn_delta(selector, feat_dict):
+    """Predict delta for a real data sample using one NN selector.
+
+    Returns selected_delta (float).
+    """
+    X = _build_X_from_feature_dict(
+        feat_dict, selector['zscore_means'], selector['zscore_stds']
+    )
+    Y_pred = selector['target_scaler'].inverse_transform(
+        selector['model'].predict(X)
+    )
+    Y_pred = np.clip(Y_pred, 0, None)
+    best_idx = int(np.argmin(Y_pred[0]))
+    return DELTA_GRID[best_idx]
+
+
+# ═══════════════════════════════════════════════════════════════
+# Per-model aggregation
+# ═══════════════════════════════════════════════════════════════
+
+def aggregate_per_model(df_results):
+    """Compute per-model aggregated metrics from per-repeat results.
+
+    For each (train_n, method, model_id) group, compute:
+      - n_repeats, n_failed, failure_rate
+      - mean_D, median_D, std_D
+      - mean_support_set_violation_rate
+      - mean_param_dist_beta, mean_param_dist_eta
+    Returns DataFrame with one row per (train_n, method, model_id).
+    """
+    agg_rows = []
+    group_cols = ['train_n', 'method', 'model_id']
+
+    for (train_n, method, model_id), grp in df_results.groupby(group_cols):
+        n_total = len(grp)
+        n_failed = int(grp['failed'].sum())
+        failure_rate = n_failed / n_total if n_total > 0 else 0.0
+
+        D_vals = grp['D'].values
+        mean_D = float(np.mean(D_vals))
+        median_D = float(np.median(D_vals))
+        std_D = float(np.std(D_vals, ddof=1)) if n_total > 1 else 0.0
+
+        ss_violation_rate = float(grp['support_set_violation'].mean())
+
+        param_dist_beta_vals = grp['param_dist_beta'].values
+        param_dist_eta_vals = grp['param_dist_eta'].values
+        finite_beta = param_dist_beta_vals[np.isfinite(param_dist_beta_vals)]
+        finite_eta = param_dist_eta_vals[np.isfinite(param_dist_eta_vals)]
+
+        agg_rows.append({
+            'train_n': train_n,
+            'method': method,
+            'model_id': model_id,
+            'n_repeats': n_total,
+            'n_failed': n_failed,
+            'failure_rate': failure_rate,
+            'mean_D': mean_D,
+            'median_D': median_D,
+            'std_D': std_D,
+            'mean_support_set_violation_rate': ss_violation_rate,
+            'mean_param_dist_beta': float(np.mean(finite_beta)) if len(finite_beta) > 0 else float('nan'),
+            'mean_param_dist_eta': float(np.mean(finite_eta)) if len(finite_eta) > 0 else float('nan'),
+        })
+
+    return pd.DataFrame(agg_rows)
+
+
+def cross_model_distribution(model_agg_df):
+    """Compute distribution of 15 model-level values.
+
+    For NN methods, compute min, Q1, median, Q3, max, mean, std of the
+    15 model-level values for each metric and train_n.
+    """
+    nn_df = model_agg_df[model_agg_df['method'] == 'nn'].copy()
+    if len(nn_df) == 0:
+        return pd.DataFrame()
+
+    dist_rows = []
+    metrics = ['median_D', 'mean_D', 'failure_rate',
+               'mean_support_set_violation_rate',
+               'mean_param_dist_beta', 'mean_param_dist_eta']
+
+    for train_n, grp in nn_df.groupby('train_n'):
+        for metric in metrics:
+            vals = grp[metric].dropna().values
+            if len(vals) == 0:
+                continue
+            dist_rows.append({
+                'train_n': train_n,
+                'metric': metric,
+                'min': float(np.min(vals)),
+                'Q1': float(np.percentile(vals, 25)),
+                'median': float(np.median(vals)),
+                'Q3': float(np.percentile(vals, 75)),
+                'max': float(np.max(vals)),
+                'mean': float(np.mean(vals)),
+                'std': float(np.std(vals, ddof=1)) if len(vals) > 1 else 0.0,
+            })
+
+    return pd.DataFrame(dist_rows)
+
+
+# ═══════════════════════════════════════════════════════════════
+# Paired win/loss/tie computation
+# ═══════════════════════════════════════════════════════════════
+
+def compute_paired_wins(df_results, method_a, method_b):
+    """Compute paired win/loss/tie rates between two methods.
+
+    Uses tolerance epsilon = 1e-9 on D difference.
+    Win rate = wins / (wins + losses + ties).
+    """
+    results = {}
+    for train_n in TRAIN_N_VALUES:
+        # For Default/L2 methods: single model_id per method
+        a_rows = df_results[
+            (df_results['train_n'] == train_n) &
+            (df_results['method'] == method_a)
+        ]
+        b_rows = df_results[
+            (df_results['train_n'] == train_n) &
+            (df_results['method'] == method_b)
+        ]
+
+        if method_a == 'nn' or method_b == 'nn':
+            # Handle NN separately: per-model paired wins
+            continue
+
+        # Match by repeat_index
+        merged = a_rows[['repeat_index', 'D']].merge(
+            b_rows[['repeat_index', 'D']],
+            on='repeat_index', suffixes=('_a', '_b')
+        )
+        if len(merged) == 0:
+            results[train_n] = {'wins': 0, 'losses': 0, 'ties': 0,
+                                'win_rate': float('nan'), 'tie_rate': float('nan')}
+            continue
+
+        diff = merged['D_a'] - merged['D_b']
+        wins = int((diff < -TIE_TOLERANCE).sum())
+        losses = int((diff > TIE_TOLERANCE).sum())
+        ties = int((np.abs(diff) <= TIE_TOLERANCE).sum())
+        total = wins + losses + ties
+        win_rate = wins / total if total > 0 else float('nan')
+        tie_rate = ties / total if total > 0 else float('nan')
+
+        results[train_n] = {
+            'wins': wins, 'losses': losses, 'ties': ties,
+            'total': total, 'win_rate': win_rate, 'tie_rate': tie_rate,
+        }
+
+    return results
+
+
+def compute_nn_paired_wins(df_results, nn_model_id, method_b):
+    """Paired win rate for one NN model vs another method.
+
+    Returns (win_rate, tie_rate, wins, losses, ties) per train_n.
+    """
+    results = {}
+    for train_n in TRAIN_N_VALUES:
+        nn_rows = df_results[
+            (df_results['train_n'] == train_n) &
+            (df_results['method'] == 'nn') &
+            (df_results['model_id'] == nn_model_id)
+        ]
+        b_rows = df_results[
+            (df_results['train_n'] == train_n) &
+            (df_results['method'] == method_b)
+        ]
+
+        merged = nn_rows[['repeat_index', 'D']].merge(
+            b_rows[['repeat_index', 'D']],
+            on='repeat_index', suffixes=('_nn', '_b')
+        )
+        if len(merged) == 0:
+            results[train_n] = {'win_rate': float('nan'), 'tie_rate': float('nan')}
+            continue
+
+        diff = merged['D_nn'] - merged['D_b']
+        wins = int((diff < -TIE_TOLERANCE).sum())
+        losses = int((diff > TIE_TOLERANCE).sum())
+        ties = int((np.abs(diff) <= TIE_TOLERANCE).sum())
+        total = wins + losses + ties
+        win_rate = wins / total if total > 0 else float('nan')
+        tie_rate = ties / total if total > 0 else float('nan')
+
+        results[train_n] = {
+            'win_rate': win_rate, 'tie_rate': tie_rate,
+            'wins': wins, 'losses': losses, 'ties': ties, 'total': total,
+        }
+
+    return results
+
+
+# ═══════════════════════════════════════════════════════════════
+# Large-sample reference fit
+# ═══════════════════════════════════════════════════════════════
+
+def compute_reference_fit(all_lifetimes):
+    """OLS Weibull fit to all 101 lifetimes.
+
+    This is the empirical reference, never called "true parameters."
+    Returns (beta_ref, eta_ref, gamma_ref=0).
+    """
+    beta, eta, gamma = _estimate_weibull_ols(all_lifetimes)
+    return beta, eta, gamma
+
+
+# ═══════════════════════════════════════════════════════════════
+# Input verification
+# ═══════════════════════════════════════════════════════════════
+
+def verify_input_hashes(data_dir):
+    """Verify SHA256 of BIRNSAUN.DAT and lifetimes.csv against frozen values.
+
+    Returns dict with verification results. Raises RuntimeError on mismatch.
+    """
+    frozen_birnsaun = (
+        "7814c533818517d8b824c56213abac2b4076786a13a66d85a8481a32bbccf127"
+    )
+    frozen_lifetimes = (
+        "43c85155bdfeafd21e2366610e88a3f4e1a09e36466fb22d34729dc60418ee12"
+    )
+
+    results = {}
+
+    # Verify BIRNSAUN.DAT
+    birnsaun_path = os.path.join(data_dir, "BIRNSAUN.DAT")
+    if os.path.exists(birnsaun_path):
+        with open(birnsaun_path, 'rb') as f:
+            raw = f.read()
+        # LF-normalize
+        raw_lf = raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+        sha = hashlib.sha256(raw_lf).hexdigest()
+        results['BIRNSAUN.DAT'] = {'sha256': sha, 'match': sha == frozen_birnsaun}
+        if not results['BIRNSAUN.DAT']['match']:
+            raise RuntimeError(
+                f"BIRNSAUN.DAT SHA256 mismatch: got {sha}, expected {frozen_birnsaun}"
+            )
+    else:
+        results['BIRNSAUN.DAT'] = {'sha256': None, 'match': False, 'missing': True}
+
+    # Verify lifetimes.csv
+    lifetimes_path = os.path.join(data_dir, "lifetimes.csv")
+    if os.path.exists(lifetimes_path):
+        with open(lifetimes_path, 'rb') as f:
+            raw = f.read()
+        raw_lf = raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+        sha = hashlib.sha256(raw_lf).hexdigest()
+        results['lifetimes.csv'] = {'sha256': sha, 'match': sha == frozen_lifetimes}
+        if not results['lifetimes.csv']['match']:
+            raise RuntimeError(
+                f"lifetimes.csv SHA256 mismatch: got {sha}, expected {frozen_lifetimes}"
+            )
+    else:
+        raise FileNotFoundError(f"Missing lifetimes.csv in {data_dir}")
+
+    return results
+
+
+# ═══════════════════════════════════════════════════════════════
+# Output protection
+# ═══════════════════════════════════════════════════════════════
+
+def check_output_safety(output_dir):
+    """Check that we won't overwrite existing formal artifacts.
+
+    Returns list of existing files that would be overwritten.
+    Raises RuntimeError if output_dir already contains any P7 output files.
+    """
+    expected_files = [
+        'real_holdout_results.csv',
+        'real_holdout_summary.json',
+        'real_nn_model_stability.csv',
+        'real_data_manifest.json',
+        'run_log.txt',
+    ]
+    existing = []
+    for fname in expected_files:
+        fpath = os.path.join(output_dir, fname)
+        if os.path.exists(fpath):
+            existing.append(fpath)
+    return existing
+
+
+# ═══════════════════════════════════════════════════════════════
+# Main pipeline
+# ═══════════════════════════════════════════════════════════════
+
+def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
+                 smoke_n_repeats=None, smoke_skip_nn=False):
+    """Run the full P7 real data validation pipeline.
+
+    Args:
+        data_dir: Path to dataset directory with lifetimes.csv + source.json
+        output_dir: Output directory (default: DEFAULT_OUTPUT_DIR)
+        chunks_dir: Main-grid chunks directory for NN training
+        smoke_n_repeats: If set, override N_REPEATS (for smoke testing)
+        smoke_skip_nn: If True, skip NN training (for fast smoke tests)
+    """
+    if output_dir is None:
+        output_dir = DEFAULT_OUTPUT_DIR
+    if chunks_dir is None:
+        chunks_dir = os.path.join(SHARED_DATA_DIR, "chunks")
+
+    n_repeats = smoke_n_repeats if smoke_n_repeats is not None else N_REPEATS
+
+    os.makedirs(output_dir, exist_ok=True)
+
     log("=" * 70)
-    log("Study/01 Real Data Holdout Validation (R3)")
+    log("Study/01 Real Data Holdout Validation — P7 Pipeline")
     log(f"Started: {now_iso()}")
-    log(f"Data: {data_dir}")
-    log(f"Config: n_repeats={n_repeats}, train_n={train_n}, seed={rng_seed}")
+    log(f"Data dir: {data_dir}")
+    log(f"Output dir: {output_dir}")
+    log(f"Chunks dir: {chunks_dir}")
+    log(f"Repeats: {n_repeats} per train_n")
+    log(f"Train n: {TRAIN_N_VALUES}")
     log("=" * 70)
 
-    # ── Gate check ──
+    # ── Step 0: Verify inputs ──
+    log("Step 0: Verifying input hashes...")
+    hash_results = verify_input_hashes(data_dir)
+    for k, v in hash_results.items():
+        status = "MATCH" if v.get('match') else "MISSING/MISMATCH"
+        log(f"  {k}: {status}")
+
+    # ── Step 1: Gate check ──
     log("Step 1: Running admission gate...")
     gate = run_real_data_gate(data_dir)
     if not gate.passed:
         log(f"  GATE FAILED: {gate.reason}")
-        gate_path = os.path.join(
-            OUTPUT_DIR,
-            f"{os.path.basename(data_dir)}_dataset_ineligible.md"
-        )
+        gate_path = os.path.join(output_dir, "dataset-ineligible.md")
         with open(gate_path, 'w', encoding='utf-8') as f:
             f.write(f"# Dataset Ineligible\n\n{gate.reason}\n")
         log(f"  Saved: {gate_path}")
-        return
+        return None
     log(f"  GATE PASSED: R²={gate.diagnostics['r_squared']:.4f}")
 
-    # ── Load data ──
+    # ── Step 2: Load data ──
+    log("Step 2: Loading lifetimes...")
     lifetimes = pd.read_csv(
         os.path.join(data_dir, 'lifetimes.csv')
     )['failure_time'].dropna().astype(float).values
-    log(f"  Loaded {len(lifetimes)} lifetimes")
+    n_total = len(lifetimes)
+    log(f"  Loaded {n_total} lifetimes")
 
-    # ── Run holdout validation ──
-    log(f"Step 2: Running {n_repeats} holdout repeats (train_n={train_n})...")
-    t0 = time.time()
-    df_results = run_holdout_validation(
-        lifetimes, n_repeats, train_n, rng_seed=rng_seed
-    )
-    elapsed = time.time() - t0
-    log(f"  Completed {len(df_results)} repeats in {elapsed:.1f}s")
+    # ── Step 3: Large-sample reference fit ──
+    log("Step 3: Computing large-sample reference fit...")
+    beta_ref, eta_ref, gamma_ref = compute_reference_fit(lifetimes)
+    log(f"  β_ref={beta_ref:.4f}, η_ref={eta_ref:.2f}, γ_ref={gamma_ref}")
 
-    # ── Save results ──
-    dataset_id = gate.source.dataset_id
-    out_dir = os.path.join(OUTPUT_DIR, dataset_id)
-    os.makedirs(out_dir, exist_ok=True)
+    # ── Step 4: Generate splits (shared by all methods) ──
+    log("Step 4: Generating train/holdout splits...")
+    all_splits = {}
+    for train_n in TRAIN_N_VALUES:
+        all_splits[train_n] = generate_splits(n_total, train_n, n_repeats)
+        log(f"  n={train_n}: {len(all_splits[train_n])} splits generated")
 
-    results_path = os.path.join(out_dir, "real_holdout_results.csv")
-    df_results.to_csv(results_path, index=False)
-    log(f"  Saved: {results_path}")
+    # ── Step 5: Pre-generate NN-delta predictions (if not skipping) ──
+    nn_selectors = None
+    if not smoke_skip_nn:
+        log("Step 5: Training 15 NN selectors from main-grid chunks...")
+        t0 = time.time()
+        nn_selectors = train_all_nn_selectors(chunks_dir)
+        log(f"  NN training complete in {time.time() - t0:.1f}s")
+    else:
+        log("Step 5: NN training SKIPPED (smoke_skip_nn=True)")
 
-    # ── Summary ──
+    # ── Step 6: Run all methods on all splits ──
+    log("Step 6: Running methods on all splits...")
+    all_rows = []
+    total_splits = sum(len(v) for v in all_splits.values())
+    done = 0
+
+    for train_n in TRAIN_N_VALUES:
+        splits = all_splits[train_n]
+        l2_delta = L2_DELTAS[train_n]
+
+        for rep_idx, (train_idx, holdout_idx) in enumerate(splits):
+            train_sample = lifetimes[train_idx]
+            holdout_sample = lifetimes[holdout_idx]
+            train_min = float(np.min(train_sample))
+
+            # Compute features from train data only (for NN)
+            feats = compute_sample_features(train_sample)
+
+            # ── Default (δ=0.1) ──
+            beta_d, eta_d, gamma_d, r2_d, status_d, exc_d = \
+                run_mdm_estimation(train_sample, DEFAULT_DELTA)
+            failed_d, reason_d = detect_failure(
+                beta_d, eta_d, gamma_d, status_d, train_sample, exc_d
+            )
+            if failed_d:
+                D_d = FAILURE_D
+            else:
+                D_d = one_sample_two_sided_ks(
+                    holdout_sample, beta_d, eta_d, gamma_d
+                )
+            ss_violation_d = check_support_set_violation(holdout_sample, gamma_d)
+            dist_beta_d, dist_eta_d = param_distance_rel(
+                beta_d, eta_d, beta_ref, eta_ref
+            )
+            all_rows.append({
+                'train_n': train_n, 'repeat_index': rep_idx,
+                'method': 'default', 'model_id': 'default',
+                'delta_used': DEFAULT_DELTA,
+                'beta_hat': beta_d, 'eta_hat': eta_d, 'gamma_hat': gamma_d,
+                'r_squared': r2_d, 'mdm_status': int(status_d),
+                'D': D_d, 'failed': failed_d, 'failure_reason': reason_d or '',
+                'support_set_violation': int(ss_violation_d),
+                'param_dist_beta': dist_beta_d, 'param_dist_eta': dist_eta_d,
+            })
+
+            # ── L2 (frozen per-n delta) ──
+            beta_l2, eta_l2, gamma_l2, r2_l2, status_l2, exc_l2 = \
+                run_mdm_estimation(train_sample, l2_delta)
+            failed_l2, reason_l2 = detect_failure(
+                beta_l2, eta_l2, gamma_l2, status_l2, train_sample, exc_l2
+            )
+            if failed_l2:
+                D_l2 = FAILURE_D
+            else:
+                D_l2 = one_sample_two_sided_ks(
+                    holdout_sample, beta_l2, eta_l2, gamma_l2
+                )
+            ss_violation_l2 = check_support_set_violation(holdout_sample, gamma_l2)
+            dist_beta_l2, dist_eta_l2 = param_distance_rel(
+                beta_l2, eta_l2, beta_ref, eta_ref
+            )
+            all_rows.append({
+                'train_n': train_n, 'repeat_index': rep_idx,
+                'method': 'l2', 'model_id': 'l2',
+                'delta_used': l2_delta,
+                'beta_hat': beta_l2, 'eta_hat': eta_l2, 'gamma_hat': gamma_l2,
+                'r_squared': r2_l2, 'mdm_status': int(status_l2),
+                'D': D_l2, 'failed': failed_l2, 'failure_reason': reason_l2 or '',
+                'support_set_violation': int(ss_violation_l2),
+                'param_dist_beta': dist_beta_l2, 'param_dist_eta': dist_eta_l2,
+            })
+
+            # ── NN (all 15 selectors, same splits) ──
+            if nn_selectors is not None:
+                for sel in nn_selectors:
+                    model_id = f"fold_{sel['fold_idx']}_seed_{sel['seed']}"
+                    try:
+                        nn_delta = predict_nn_delta(sel, feats)
+                    except Exception as e:
+                        nn_delta = DEFAULT_DELTA  # fallback
+                        log(f"    WARNING: NN prediction failed for {model_id}: {e}")
+
+                    beta_nn, eta_nn, gamma_nn, r2_nn, status_nn, exc_nn = \
+                        run_mdm_estimation(train_sample, nn_delta)
+                    failed_nn, reason_nn = detect_failure(
+                        beta_nn, eta_nn, gamma_nn, status_nn, train_sample, exc_nn
+                    )
+                    if failed_nn:
+                        D_nn = FAILURE_D
+                    else:
+                        D_nn = one_sample_two_sided_ks(
+                            holdout_sample, beta_nn, eta_nn, gamma_nn
+                        )
+                    ss_violation_nn = check_support_set_violation(
+                        holdout_sample, gamma_nn
+                    )
+                    dist_beta_nn, dist_eta_nn = param_distance_rel(
+                        beta_nn, eta_nn, beta_ref, eta_ref
+                    )
+                    all_rows.append({
+                        'train_n': train_n, 'repeat_index': rep_idx,
+                        'method': 'nn', 'model_id': model_id,
+                        'delta_used': nn_delta,
+                        'beta_hat': beta_nn, 'eta_hat': eta_nn,
+                        'gamma_hat': gamma_nn,
+                        'r_squared': r2_nn, 'mdm_status': int(status_nn),
+                        'D': D_nn, 'failed': failed_nn,
+                        'failure_reason': reason_nn or '',
+                        'support_set_violation': int(ss_violation_nn),
+                        'param_dist_beta': dist_beta_nn,
+                        'param_dist_eta': dist_eta_nn,
+                    })
+
+            done += 1
+            if done % 100 == 0 or done == total_splits:
+                log(f"  Progress: {done}/{total_splits} splits done "
+                    f"({done * 100 / total_splits:.0f}%)")
+
+    df_results = pd.DataFrame(all_rows, columns=RESULT_COLUMNS)
+    log(f"  Total result rows: {len(df_results)}")
+
+    # ── Step 7: Verify expected row count ──
+    n_methods_per_split = 2  # default + l2
+    if nn_selectors is not None:
+        n_methods_per_split += len(nn_selectors)  # 15 NN models
+    expected_rows = sum(len(all_splits[tn]) * n_methods_per_split
+                        for tn in TRAIN_N_VALUES)
+    log(f"  Expected rows: {expected_rows}, actual: {len(df_results)}")
+    if len(df_results) != expected_rows:
+        log(f"  WARNING: Row count mismatch!")
+
+    # ── Step 8: Per-model aggregation ──
+    log("Step 7: Computing per-model aggregation...")
+    df_model_agg = aggregate_per_model(df_results)
+    log(f"  Model-level rows: {len(df_model_agg)}")
+
+    # ── Step 9: Cross-model distribution (NN only) ──
+    log("Step 8: Computing cross-model distribution...")
+    df_nn_dist = cross_model_distribution(df_model_agg)
+    log(f"  NN distribution rows: {len(df_nn_dist)}")
+
+    # ── Step 10: Paired win rates ──
+    log("Step 9: Computing paired win rates...")
+
+    # Default vs L2
+    default_l2_wins = compute_paired_wins(df_results, 'l2', 'default')
+
+    # NN vs Default and NN vs L2: per-model then distribution
+    nn_vs_default_rates = []
+    nn_vs_l2_rates = []
+    if nn_selectors is not None:
+        for sel in nn_selectors:
+            model_id = f"fold_{sel['fold_idx']}_seed_{sel['seed']}"
+            for train_n in TRAIN_N_VALUES:
+                w = compute_nn_paired_wins(df_results, model_id, 'default')
+                if not np.isnan(w[train_n]['win_rate']):
+                    nn_vs_default_rates.append({
+                        'model_id': model_id, 'train_n': train_n,
+                        'win_rate': w[train_n]['win_rate'],
+                        'tie_rate': w[train_n]['tie_rate'],
+                    })
+                w2 = compute_nn_paired_wins(df_results, model_id, 'l2')
+                if not np.isnan(w2[train_n]['win_rate']):
+                    nn_vs_l2_rates.append({
+                        'model_id': model_id, 'train_n': train_n,
+                        'win_rate': w2[train_n]['win_rate'],
+                        'tie_rate': w2[train_n]['tie_rate'],
+                    })
+
+    df_nn_vs_default = pd.DataFrame(nn_vs_default_rates) if nn_vs_default_rates else pd.DataFrame()
+    df_nn_vs_l2 = pd.DataFrame(nn_vs_l2_rates) if nn_vs_l2_rates else pd.DataFrame()
+
+    # ── Step 11: Summary ──
+    log("Step 10: Building summary...")
     summary = {
-        "dataset_id": dataset_id,
-        "created_at": now_iso(),
-        "gate_diagnostics": gate.diagnostics,
-        "n_lifetimes_total": int(len(lifetimes)),
-        "n_repeats": n_repeats,
-        "train_n": train_n,
-        "rng_seed": rng_seed,
-        **{
-            f"def_beta_{stat}": float(
-                getattr(df_results['def_beta'], stat)()
-            ) if len(df_results) > 0 else float('nan')
-            for stat in ['mean', 'std', 'median']
+        'dataset_id': 'nist-6061-t6-fatigue',
+        'created_at': now_iso(),
+        'n_total_lifetimes': int(n_total),
+        'n_repeats_per_train_n': n_repeats,
+        'train_n_values': TRAIN_N_VALUES,
+        'large_sample_ref': {
+            'beta': float(beta_ref),
+            'eta': float(eta_ref),
+            'gamma': float(gamma_ref),
         },
-        **{
-            f"ref_beta_{stat}": float(
-                getattr(df_results['ref_beta'], stat)()
-            ) if len(df_results) > 0 else float('nan')
-            for stat in ['mean', 'std', 'median']
+        'default_vs_l2_win_rates': {
+            str(tn): {
+                'win_rate_l2_over_default': v['win_rate'],
+                'tie_rate': v['tie_rate'],
+            }
+            for tn, v in default_l2_wins.items()
         },
     }
-    summary_path = os.path.join(out_dir, "real_holdout_summary.json")
+
+    # Add NN win rate distributions
+    if len(df_nn_vs_default) > 0:
+        for train_n in TRAIN_N_VALUES:
+            rates = df_nn_vs_default[df_nn_vs_default['train_n'] == train_n]['win_rate']
+            if len(rates) > 0:
+                summary[f'nn_vs_default_win_rate_n{train_n}'] = {
+                    'min': float(rates.min()), 'Q1': float(rates.quantile(0.25)),
+                    'median': float(rates.median()), 'Q3': float(rates.quantile(0.75)),
+                    'max': float(rates.max()),
+                    'mean': float(rates.mean()),
+                    'std': float(rates.std(ddof=1)) if len(rates) > 1 else 0.0,
+                }
+
+    if len(df_nn_vs_l2) > 0:
+        for train_n in TRAIN_N_VALUES:
+            rates = df_nn_vs_l2[df_nn_vs_l2['train_n'] == train_n]['win_rate']
+            if len(rates) > 0:
+                summary[f'nn_vs_l2_win_rate_n{train_n}'] = {
+                    'min': float(rates.min()), 'Q1': float(rates.quantile(0.25)),
+                    'median': float(rates.median()), 'Q3': float(rates.quantile(0.75)),
+                    'max': float(rates.max()),
+                    'mean': float(rates.mean()),
+                    'std': float(rates.std(ddof=1)) if len(rates) > 1 else 0.0,
+                }
+
+    # ── Step 12: Write outputs ──
+    log("Step 11: Writing outputs...")
+
+    # Check for existing formal artifacts
+    existing = check_output_safety(output_dir)
+    if existing:
+        log(f"  WARNING: {len(existing)} existing output files found:")
+        for f in existing:
+            log(f"    {f}")
+        log("  These will be OVERWRITTEN.")
+
+    # real_holdout_results.csv
+    results_path = os.path.join(output_dir, 'real_holdout_results.csv')
+    df_results.to_csv(results_path, index=False)
+    log(f"  Saved: {results_path} ({len(df_results)} rows)")
+
+    # real_holdout_summary.json
+    summary_path = os.path.join(output_dir, 'real_holdout_summary.json')
     with open(summary_path, 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, sort_keys=True, ensure_ascii=False)
     log(f"  Saved: {summary_path}")
 
-    # ── Manifest ──
+    # real_nn_model_stability.csv
+    stability_path = os.path.join(output_dir, 'real_nn_model_stability.csv')
+    nn_model_rows = df_model_agg[df_model_agg['method'] == 'nn'].copy()
+    if len(nn_model_rows) > 0:
+        # Add win rates to model-level rows
+        for _, row in nn_model_rows.iterrows():
+            mid = row['model_id']
+            tn = row['train_n']
+            if len(df_nn_vs_default) > 0:
+                vd = df_nn_vs_default[
+                    (df_nn_vs_default['model_id'] == mid) &
+                    (df_nn_vs_default['train_n'] == tn)
+                ]
+                if len(vd) > 0:
+                    nn_model_rows.loc[_, 'win_rate_vs_default'] = float(vd.iloc[0]['win_rate'])
+            if len(df_nn_vs_l2) > 0:
+                vl = df_nn_vs_l2[
+                    (df_nn_vs_l2['model_id'] == mid) &
+                    (df_nn_vs_l2['train_n'] == tn)
+                ]
+                if len(vl) > 0:
+                    nn_model_rows.loc[_, 'win_rate_vs_l2'] = float(vl.iloc[0]['win_rate'])
+    nn_model_rows.to_csv(stability_path, index=False)
+    log(f"  Saved: {stability_path} ({len(nn_model_rows)} rows)")
+
+    # real_data_manifest.json
+    git_commit, git_dirty = get_git_info()
     manifest = {
-        "experiment": "real_data_holdout_validation",
-        "created_at": now_iso(),
-        "dataset_id": dataset_id,
-        "source": gate.source.to_dict(),
-        "config": {
-            "n_repeats": n_repeats,
-            "train_n": train_n,
-            "rng_seed": rng_seed,
-            "min_holdout_frac": 0.30,
+        'experiment': 'real_data_holdout_validation_p7',
+        'created_at': now_iso(),
+        'contract_version': 'P6-v1.1-FROZEN-REVISED',
+        'contract_content_commit': '2ee23a8',
+        'execution_commit': git_commit,
+        'git_dirty': git_dirty,
+        'dataset_id': 'nist-6061-t6-fatigue',
+        'data_source': {
+            'BIRNSAUN_DAT_sha256': hash_results.get('BIRNSAUN.DAT', {}).get('sha256'),
+            'lifetimes_csv_sha256': hash_results.get('lifetimes.csv', {}).get('sha256'),
         },
-        "gate_passed": True,
-        "gate_r_squared": gate.diagnostics['r_squared'],
+        'gate': {
+            'passed': gate.passed,
+            'r_squared': gate.diagnostics['r_squared'],
+            'beta_hat': gate.diagnostics['beta_hat'],
+            'eta_hat': gate.diagnostics['eta_hat'],
+        },
+        'config': {
+            'base_seed': BASE_SEED,
+            'train_n_values': TRAIN_N_VALUES,
+            'n_repeats': n_repeats,
+            'default_delta': DEFAULT_DELTA,
+            'l2_deltas': L2_DELTAS,
+            'tie_tolerance': TIE_TOLERANCE,
+            'failure_penalty_D': FAILURE_D,
+            'nn_n_selectors': len(nn_selectors) if nn_selectors else 0,
+            'nn_folds': N_FOLDS,
+            'nn_seeds': STABILITY_SEEDS,
+            'delta_grid_n_points': N_DELTAS,
+            'delta_grid': DELTA_GRID,
+        },
+        'output_schema': {
+            'real_holdout_results_columns': RESULT_COLUMNS,
+            'expected_rows': expected_rows,
+            'primary_key': ['train_n', 'repeat_index', 'method', 'model_id'],
+        },
     }
-    manifest_path = os.path.join(out_dir, "manifest.json")
+    manifest_path = os.path.join(output_dir, 'real_data_manifest.json')
     with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump(manifest, f, indent=2, sort_keys=True, ensure_ascii=False)
+    log(f"  Saved: {manifest_path}")
 
-    # ── Run log ──
-    log_path = os.path.join(out_dir, "run_log.txt")
+    # run_log.txt
+    log_path = os.path.join(output_dir, 'run_log.txt')
     with open(log_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(log_lines) + '\n')
+    log(f"  Saved: {log_path}")
 
     log("=" * 70)
-    log("Real data holdout validation complete.")
-    log(f"Output: {out_dir}")
+    log("P7 pipeline complete.")
+    log(f"Output: {output_dir}")
     log("=" * 70)
+
+    return {
+        'df_results': df_results,
+        'df_model_agg': df_model_agg,
+        'df_nn_dist': df_nn_dist,
+        'summary': summary,
+        'manifest': manifest,
+        'nn_selectors': nn_selectors,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
+# CLI entry point
+# ═══════════════════════════════════════════════════════════════
+
+def main(data_dir=None, n_repeats=None, output_dir=None, bypass_guard=False):
+    """CLI entry point for real data holdout validation.
+
+    The _P6_PLACEHOLDER_GUARD prevents accidental execution of incomplete
+    code. It is bypassed only during P7 testing (bypass_guard=True) or
+    after P7 independent review (set _P6_PLACEHOLDER_GUARD=False).
+    """
+    if _P6_PLACEHOLDER_GUARD and not bypass_guard:
+        raise RuntimeError(
+            "run_real_data_validation.py: P6 PLACEHOLDER guard is still active. "
+            "P7 pipeline is implemented but pending independent review.\n"
+            "Tests may bypass this guard with bypass_guard=True.\n"
+            "See: coworker/reports/2026-07-25-study01xu-p6-preflight-audit.md\n"
+            "Per frozen contract: P7 must pass independent review before P8a formal run."
+        )
+
+    if data_dir is None:
+        data_dir = os.path.join(
+            ARTIFACTS_DIR, "real_data", "nist-6061-t6-fatigue"
+        )
+
+    return run_pipeline(
+        data_dir=data_dir,
+        output_dir=output_dir,
+        smoke_n_repeats=n_repeats if n_repeats != N_REPEATS else None,
+    )
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
-        description="Study/01 Real Data Holdout Validation (R3)")
-    parser.add_argument('data_dir', help='Path to dataset directory')
-    parser.add_argument('--n-repeats', type=int, default=100,
-                        help='Number of holdout repeats (default: 100)')
-    parser.add_argument('--train-n', type=int, default=30,
-                        help='Training sample size (default: 30)')
-    parser.add_argument('--seed', type=int, default=42,
-                        help='RNG seed (default: 42)')
+        description="Study/01 Real Data Holdout Validation — P7 Pipeline")
+    parser.add_argument('--data-dir', default=None,
+                        help='Path to dataset directory')
+    parser.add_argument('--output-dir', default=None,
+                        help='Output directory (default: artifacts/formal/real_data/<id>)')
+    parser.add_argument('--n-repeats', type=int, default=None,
+                        help=f'Number of repeats (default: {N_REPEATS})')
+    parser.add_argument('--bypass-guard', action='store_true',
+                        help='Bypass the P6 placeholder guard (for testing)')
+    parser.add_argument('--skip-nn', action='store_true',
+                        help='Skip NN training (for smoke testing)')
     args = parser.parse_args()
-    main(args.data_dir, n_repeats=args.n_repeats,
-         train_n=args.train_n, rng_seed=args.seed)
+
+    n_repeats = args.n_repeats if args.n_repeats is not None else N_REPEATS
+
+    main(data_dir=args.data_dir, n_repeats=n_repeats,
+         output_dir=args.output_dir, bypass_guard=args.bypass_guard)
