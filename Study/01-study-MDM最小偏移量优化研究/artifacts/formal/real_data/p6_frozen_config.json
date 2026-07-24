@@ -4,7 +4,6 @@
   "revision_date": "2026-07-25",
   "revision_reason": "Codex REVISE — 6 issues: metric formula, failure handling, NN aggregation, conversion script, license language, provenance alignment",
   "contract_content_commit": "123355f",
-  "provenance_seal_commit": "0452836",
   "branch": "study01xu",
   "dataset": {
     "dataset_id": "nist-6061-t6-fatigue",
@@ -89,8 +88,8 @@
     "prohibition": "silently dropping failed rows via dropna() is forbidden"
   },
   "evaluation": {
-    "primary_metric": "one_sided_KS_distance",
-    "primary_metric_definition": "D = max_i { |F(y_(i)) - i/m|, |F(y_(i)) - (i-1)/m| } for sorted holdout y_(i), i=1..m, with fitted Weibull CDF F",
+    "primary_metric": "one_sample_two_sided_ks_distance",
+    "primary_metric_definition": "D = max_i { |F(y_(i)) - i/m|, |F(y_(i)) - (i-1)/m| } for sorted holdout y_(i), i=1..m. F(y)=0 for y<=gamma_hat; F(y)=1-exp[-((y-gamma_hat)/eta_hat)^beta_hat] for y>gamma_hat.",
     "tie_tolerance": 1e-9,
     "auxiliary_metrics": [
       "estimation_failure_rate",

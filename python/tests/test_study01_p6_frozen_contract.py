@@ -181,7 +181,7 @@ def test_frozen_config_consistent_with_contract():
     assert cfg["experimental_design"]["repeats_per_n"] == 500
     # Revised contract checks
     assert cfg["evaluation"]["tie_tolerance"] == 1e-9
-    assert "one_sided_KS_distance" in cfg["evaluation"]["primary_metric"]
+    assert "one_sample_two_sided_ks_distance" in cfg["evaluation"]["primary_metric"]
     assert "failure_handling" in cfg
     assert cfg["failure_handling"]["imputation"] == "D = 1 for failed repeats, marked failed=True"
     assert cfg["evaluation"]["aggregation"]["no_median_model"] is True
@@ -207,14 +207,25 @@ def test_source_json_license_not_claims_us_gov_work():
     )
 
 
-def test_conversion_script_reproduces_lifetimes_csv():
-    """Running convert_birnsaun_to_lifetimes.py must reproduce lifetimes.csv."""
-    import subprocess
+def test_conversion_script_reproduces_lifetimes_csv(tmp_path):
+    """Running convert_birnsaun_to_lifetimes.py must reproduce lifetimes.csv.
+
+    Uses tmp_path to avoid overwriting the formal lifetimes.csv artifact.
+    """
+    import shutil
     script = str(NIST_DIR / "convert_birnsaun_to_lifetimes.py")
+    # Copy BIRNSAUN.DAT to temp dir; script reads from its own dir by default,
+    # so we run from NIST_DIR and let it write to tmp_path via env override.
+    # Strategy: run from tmp_path with a copy of BIRNSAUN.DAT.
+    dat_src = NIST_DIR / "BIRNSAUN.DAT"
+    dat_dst = tmp_path / "BIRNSAUN.DAT"
+    shutil.copy2(str(dat_src), str(dat_dst))
+    script_dst = tmp_path / "convert_birnsaun_to_lifetimes.py"
+    shutil.copy2(script, str(script_dst))
     result = subprocess.run(
-        ["python", script],
+        [sys.executable, str(script_dst)],
         capture_output=True, text=True, timeout=30,
-        cwd=str(NIST_DIR)
+        cwd=str(tmp_path)
     )
     assert result.returncode == 0, (
         f"Conversion script failed:\n{result.stderr}"
@@ -222,6 +233,9 @@ def test_conversion_script_reproduces_lifetimes_csv():
     assert "SHA256 verified" in result.stdout, (
         "Conversion script did not verify output SHA256"
     )
+    # Verify the output CSV exists in tmp_path
+    csv_out = tmp_path / "lifetimes.csv"
+    assert csv_out.exists(), "Conversion script did not produce lifetimes.csv"
 
 
 def test_contract_defines_failure_handling():
@@ -237,8 +251,8 @@ def test_contract_defines_failure_handling():
     assert "prohibition" in fh
 
 
-def test_contract_metric_is_one_sided_ks():
-    """Primary metric must be one-sided KS, not vague 'all points' form."""
+def test_contract_metric_is_one_sample_two_sided_ks():
+    """Primary metric must be one-sample two-sided KS with piecewise CDF."""
     with open(REAL_DATA_DIR / "p6_frozen_config.json", 'r', encoding='utf-8') as f:
         cfg = json.load(f)
     definition = cfg["evaluation"]["primary_metric_definition"]
@@ -246,6 +260,14 @@ def test_contract_metric_is_one_sided_ks():
     assert "(i-1)/m" in definition, "Missing left-continuous ECDF term (i-1)/m"
     assert "y_(i)" in definition or "y_{(i)}" in definition, (
         "Missing sorted holdout notation y_(i)"
+    )
+    assert ("y<=" in definition.replace(" ", "") or
+            "y <=" in definition or
+            "y \\leq" in definition), (
+        "Missing piecewise CDF: must define F(y)=0 for y <= gamma_hat"
+    )
+    assert "exp" in definition, (
+        "Missing Weibull CDF exponential term"
     )
 
 

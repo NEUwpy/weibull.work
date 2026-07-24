@@ -5,7 +5,6 @@
 **Revision date**: 2026-07-25 (Codex REVISE, 6 issues addressed)
 **Branch**: `study01xu`
 **Contract content commit**: `123355f` (fix: metric, failure, aggregation, conversion, license)
-**Provenance seal commit**: `0452836` (seal: provenance alignment, 36 tests)
 **Pre-revision freeze commit**: `701d9a6`
 **Status**: FROZEN (REVISED per Codex review) — no changes permitted before P7 implementation + P8a run
 **Per**: `07-剩余实验目标与规划.md` §4.3, phases P6–P8b
@@ -261,14 +260,17 @@ D = max_i { |F(y_(i)) − i/m|,  |F(y_(i)) − (i−1)/m| }
 
 where:
 - i = 1, 2, ..., m (1-indexed ranks)
-- F(y_(i)) is the fitted Weibull CDF evaluated at each sorted holdout value
+- F is the fitted three-parameter Weibull CDF, evaluated piecewise:
+  ```
+  F(y) = 0,                                    y ≤ γ̂
+  F(y) = 1 − exp(−((y − γ̂) / η̂)^β̂),           y > γ̂
+  ```
+  This avoids illegal power operations when holdout values fall below the estimated location parameter.
 - i/m is the right-continuous ECDF at y_(i)
 - (i−1)/m is the left-continuous ECDF at y_(i)
 - Smaller D is better (bounded in [0, 1])
 
-This is the standard one-sample Kolmogorov–Smirnov distance. It evaluates
-the fitted parametric CDF against the holdout empirical CDF without relying
-on arbitrary interpolation between data points.
+This is the standard one-sample, two-sided Kolmogorov–Smirnov distance.
 
 ### 5.2 Auxiliary Metrics
 
@@ -278,8 +280,8 @@ on arbitrary interpolation between data points.
 | M3 | Parameter distance (β) | \|β̂ − β_ref\| / β_ref |
 | M4 | Parameter distance (η) | \|η̂ − η_ref\| / η_ref |
 | M5 | Paired win rate (Default vs L2) | Fraction of repeats where L2 D_max < Default D_max |
-| M6 | Paired win rate (NN vs L2) | Fraction of repeats where NN median-model D_max < L2 D_max |
-| M7 | Paired win rate (NN vs Default) | Fraction of repeats where NN median-model D_max < Default D_max |
+| M6 | Paired win rate (NN vs L2) | For each of 15 NN models: fraction of its 500 repeats where D_NN < D_L2. Report distribution (min, Q1, median, Q3, max) of these 15 model-level win rates. |
+| M7 | Paired win rate (NN vs Default) | For each of 15 NN models: fraction of its 500 repeats where D_NN < D_Default. Report distribution of these 15 model-level win rates. |
 
 ### 6.3 Aggregation Rules
 

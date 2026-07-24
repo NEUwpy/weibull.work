@@ -1,10 +1,10 @@
 # Study01 P6 — Executor Report (Freeze Phase)
 
-**Report type**: P6 executor report (REVISED per Codex review)
+**Report type**: P6 executor report (REVISED v2 per Codex review)
 **Date**: 2026-07-25
 **Branch**: `study01xu`
 **Executor**: Claude Code
-**Status**: P6 REVISED — AWAITING RE-REVIEW
+**Status**: P6 REVISED v2 — AWAITING RE-REVIEW
 **Next phase**: P7 (real data pipeline implementation) — NOT started
 
 ---
@@ -14,20 +14,22 @@
 ```
 Branch:   study01xu
 Base:     origin/study01xu @ 7d6e99f2519a9b079d50cf838e14b271cff14255
-Initial freeze tip: 701d9a6
-Revised tip:        (to be sealed after fix commit)
-Commits:  5 commits since R2 P5b APPROVE (4 original + 1 fix pending)
+Tip:      5681943 (provenance stamp)
+Contract: 123355f (substantive content)
+Commits:  7 commits since R2 P5b APPROVE
 ```
 
 ## Commit Summary
 
 | # | Commit | Responsibility |
 |---|--------|---------------|
-| 1 | `95ccb28` | **P5b closure**: Record Codex APPROVE verdict, 5 scientific resolutions |
-| 2 | `00b282d` | **P6 preflight audit**: Placeholder gaps documented, fail-closed guard + tests |
-| 3 | `701d9a6` | **P6 initial freeze**: Data + contract v1.0 (SUPERSEDED by revision) |
-| 4 | `ac9ade1` | **Progress update**: Status table marking P5b/P6 complete |
-| 5 | *(pending)* | **P6 revision**: Fix metric, failure, aggregation, conversion, license, provenance |
+| 1 | `95ccb28` | **P5b closure**: Record Codex APPROVE, 5 scientific resolutions |
+| 2 | `00b282d` | **P6 preflight audit**: Placeholder gaps, fail-closed guard |
+| 3 | `701d9a6` | **P6 initial freeze v1.0** (SUPERSEDED) |
+| 4 | `ac9ade1` | **Progress update** |
+| 5 | `123355f` | **fix**: metric, failure, aggregation, conversion, license (Codex REVISE) |
+| 6 | `0452836` | **docs**: provenance alignment, executor report, progress table |
+| 7 | `5681943` | **docs**: stamp contract commit hash in frozen docs |
 
 ## Data Source: NIST 6061-T6 (Birnbaum & Saunders 1958)
 
@@ -39,7 +41,7 @@ The **NIST/SEMATECH e-Handbook §1.4.2.9.1** 6061-T6 aluminum fatigue life datas
 |-----------|--------|
 | **Authority** | ✅ NIST (U.S. federal agency), well-established reference |
 | **Stable URL** | ✅ `https://itl.nist.gov/div898/handbook/eda/section4/eda4291.htm` |
-| **License** | ✅ NIST Public Domain (U.S. Government work, 17 U.S.C. § 105) |
+| **License** | ✅ NIST-hosted factual data from third-party research (Birnbaum & Saunders 1958); factual data values are not copyrightable |
 | **Complete failures** | ✅ 101/101 fatigue ruptures, zero censoring/runouts |
 | **≥60 observations** | ✅ 101 > 60 |
 | **Homogeneous material** | ✅ All 6061-T6 aluminum alloy sheeting |
