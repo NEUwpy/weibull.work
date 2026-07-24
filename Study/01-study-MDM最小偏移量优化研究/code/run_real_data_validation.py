@@ -62,7 +62,7 @@ sys.path.insert(0, PYTHON_DIR)
 from config import (
     BETA_GRID, ETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID,
     DELTA_GRID, DEFAULT_DELTA, SEED_NAMESPACE,
-    ARTIFACTS_DIR, SHARED_DATA_DIR,
+    ARTIFACTS_DIR, SHARED_DATA_DIR, R_MAIN,
 )
 from utils import now_iso
 from studies.common.sample import generate_sample
@@ -911,68 +911,129 @@ def check_output_safety(output_dir):
 def validate_preflight(data_dir, chunks_dir):
     """Fail-closed pre-flight validation. Raises RuntimeError on any failure.
 
-    Checks:
-      - BIRNSAUN.DAT is present (not just lifetimes.csv)
-      - L2 delta table exists and has required structure
-      - E4d manifest exists and declares 15 models
-      - 45 main-grid chunks exist with valid structure
+    Checks (in order, least expensive first):
+      1. BIRNSAUN.DAT present
+      2. L2 delta table: exists, has n=7/10/20 with correct majority-vote deltas
+      3. E4d manifest: exists, 5 folds × 3 seeds = 15 models, training contract
+      4. All 45 main-grid chunks: identity, row count (R_MAIN × 26),
+         metadata columns, delta grid, repeat structure
     """
-    # BIRNSAUN.DAT must exist
+    # 1. BIRNSAUN.DAT
     birnsaun_path = os.path.join(data_dir, "BIRNSAUN.DAT")
     if not os.path.exists(birnsaun_path):
         raise RuntimeError(f"Missing BIRNSAUN.DAT in {data_dir}")
 
-    # L2 delta table
-    l2_path = os.path.join(
-        ARTIFACTS_DIR, "E1_E2_crossfit", "selected_deltas.csv"
-    )
+    # 2. L2 delta table — verify all n=7/10/20 have correct deltas
+    l2_path = os.path.join(ARTIFACTS_DIR, "E1_E2_crossfit", "selected_deltas.csv")
     if not os.path.exists(l2_path):
         raise RuntimeError(f"Missing L2 delta table: {l2_path}")
     df_l2 = pd.read_csv(l2_path)
-    l2_n7 = df_l2[(df_l2['layer'] == 'L2') & (df_l2['n'] == 7.0)]
-    if len(l2_n7) == 0:
-        raise RuntimeError("L2 delta table missing n=7 entries")
+    for n_val, expected_delta in L2_DELTAS.items():
+        l2_rows = df_l2[(df_l2['layer'] == 'L2') & (df_l2['n'] == float(n_val))]
+        if len(l2_rows) < 3:
+            raise RuntimeError(
+                f"L2 table: expected >=3 fold rows for n={n_val}, got {len(l2_rows)}"
+            )
+        # Majority vote: the frozen delta should be the most common value
+        delta_counts = l2_rows['delta_star'].value_counts()
+        majority_delta = float(delta_counts.index[0])
+        if abs(majority_delta - expected_delta) > 1e-9:
+            raise RuntimeError(
+                f"L2 table n={n_val}: majority delta={majority_delta}, "
+                f"expected frozen={expected_delta}"
+            )
 
-    # E4d manifest
-    e4d_path = os.path.join(
-        ARTIFACTS_DIR, "E4_robustness", "manifest_e4d.json"
-    )
+    # 3. E4d manifest
+    e4d_path = os.path.join(ARTIFACTS_DIR, "E4_robustness", "manifest_e4d.json")
     if not os.path.exists(e4d_path):
         raise RuntimeError(f"Missing E4d manifest: {e4d_path}")
     with open(e4d_path, encoding='utf-8') as f:
         e4d = json.load(f)
-    if e4d.get('training_contract', {}).get('total_models') != 15:
-        raise RuntimeError("E4d manifest does not declare 15 models")
+    tc = e4d.get('training_contract', {})
+    if tc.get('total_models') != 15:
+        raise RuntimeError(f"E4d manifest: total_models={tc.get('total_models')}, expected 15")
+    if tc.get('folds') != N_FOLDS:
+        raise RuntimeError(f"E4d manifest: folds={tc.get('folds')}, expected {N_FOLDS}")
+    if sorted(tc.get('seeds', [])) != sorted(STABILITY_SEEDS):
+        raise RuntimeError(
+            f"E4d manifest: seeds={tc.get('seeds')}, expected {STABILITY_SEEDS}"
+        )
+    if tc.get('training_data') != 'main_grid_train_combos_only':
+        raise RuntimeError(
+            f"E4d manifest: training_data={tc.get('training_data')}, "
+            f"expected 'main_grid_train_combos_only'"
+        )
 
-    # 45 main-grid chunks
+    # 4. All 45 main-grid chunks — full structural validation
+    expected_units = list(product(BETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID))
     pattern = re.compile(r'^chunk_(\d{4})_mdm\.csv$')
-    chunk_ids = set()
+    chunk_map = {}
     for name in os.listdir(chunks_dir):
         m = pattern.fullmatch(name)
         if m:
-            chunk_ids.add(int(m.group(1)))
-    expected_ids = set(range(45))
-    if chunk_ids != expected_ids:
-        missing = expected_ids - chunk_ids
-        extra = chunk_ids - expected_ids
-        msg = f"Main-grid chunk identity mismatch: expected 45 chunks (0-44)"
+            chunk_map[int(m.group(1))] = os.path.join(chunks_dir, name)
+
+    expected_ids = set(range(len(expected_units)))
+    actual_ids = set(chunk_map.keys())
+    if actual_ids != expected_ids:
+        missing = sorted(expected_ids - actual_ids)
+        extra = sorted(actual_ids - expected_ids)
+        msg = f"Chunk identity mismatch: expected 45 chunks (0-44)"
         if missing:
-            msg += f", missing={sorted(missing)}"
+            msg += f", missing={missing}"
         if extra:
-            msg += f", unexpected={sorted(extra)}"
+            msg += f", unexpected={extra}"
         raise RuntimeError(msg)
 
-    # Verify chunk structure: each chunk must have required columns
     required_cols = {'beta', 'eta', 'gamma', 'gamma_over_eta', 'n',
                      'repeat_id', 'delta', 'beta_hat', 'eta_hat', 'gamma_hat'}
-    for cid in sorted(chunk_ids)[:3]:  # spot-check first 3
-        chunk_path = os.path.join(chunks_dir, f"chunk_{cid:04d}_mdm.csv")
+    expected_rows_per_chunk = R_MAIN * len(DELTA_GRID)  # 1000 × 26 = 26000
+
+    for chunk_id in sorted(actual_ids):
+        chunk_path = chunk_map[chunk_id]
         df = pd.read_csv(chunk_path)
-        missing_cols = required_cols - set(df.columns)
-        if missing_cols:
+        # Column check
+        missing = required_cols - set(df.columns)
+        if missing:
+            raise RuntimeError(f"Chunk {chunk_id:04d} missing columns: {missing}")
+        # Row count
+        if len(df) != expected_rows_per_chunk:
             raise RuntimeError(
-                f"Chunk {cid:04d} missing columns: {missing_cols}"
+                f"Chunk {chunk_id:04d}: {len(df)} rows, expected {expected_rows_per_chunk}"
             )
+        # Parameter unit: exactly one combo per chunk
+        meta = df[['beta', 'eta', 'gamma_over_eta', 'n']].drop_duplicates()
+        if len(meta) != 1:
+            raise RuntimeError(
+                f"Chunk {chunk_id:04d}: expected 1 combo, got {len(meta)}"
+            )
+        # Delta grid matches
+        chunk_deltas = sorted(df['delta'].unique())
+        if chunk_deltas != DELTA_GRID:
+            raise RuntimeError(
+                f"Chunk {chunk_id:04d}: delta grid mismatch"
+            )
+        # Repeat IDs are 0..R_MAIN-1
+        chunk_repeats = sorted(df['repeat_id'].unique())
+        if chunk_repeats != list(range(R_MAIN)):
+            raise RuntimeError(
+                f"Chunk {chunk_id:04d}: repeat_id set mismatch "
+                f"(min={min(chunk_repeats)}, max={max(chunk_repeats)}, "
+                f"n_unique={len(chunk_repeats)})"
+            )
+
+
+def compute_frozen_config_sha256():
+    """Return SHA256 of the frozen p6_frozen_config.json file bytes (LF-normalized)."""
+    config_path = os.path.join(
+        ARTIFACTS_DIR, "real_data", "p6_frozen_config.json"
+    )
+    if not os.path.exists(config_path):
+        return None
+    with open(config_path, 'rb') as f:
+        raw = f.read()
+    raw_lf = raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+    return hashlib.sha256(raw_lf).hexdigest()
 
 
 def compute_config_hash():
@@ -1200,6 +1261,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
 
                     if nn_pred_failed:
                         # Prediction failure → record as failed, D=1
+                        # support_set_violation=-1: unknown (no γ̂ exists)
                         all_rows.append({
                             'train_n': train_n, 'repeat_index': rep_idx,
                             'method': 'nn', 'model_id': model_id,
@@ -1209,7 +1271,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
                             'r_squared': float('nan'), 'mdm_status': 0,
                             'D': FAILURE_D, 'failed': True,
                             'failure_reason': nn_pred_reason,
-                            'support_set_violation': 1,
+                            'support_set_violation': -1,
                             'param_dist_beta': float('inf'),
                             'param_dist_eta': float('inf'),
                         })
@@ -1330,8 +1392,11 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     log("Step 11: Building summary...")
 
     # Per-method, per-n primary D stats & failure rates
+    # Default and L2: pooled across 500 repeats (contract allows)
+    # NN: model-first — per-model first, then distribution of 15 model-level values
     primary_stats = {}
-    for method in ['default', 'l2', 'nn']:
+
+    for method in ['default', 'l2']:
         primary_stats[method] = {}
         for train_n in TRAIN_N_VALUES:
             mask = (df_results['train_n'] == train_n) & (df_results['method'] == method)
@@ -1352,10 +1417,78 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
                 'Q3_D': float(np.percentile(D_vals, 75)),
             }
 
-    # Complete-case sensitivity (failed==False subset only)
+    # NN: model-first aggregation — compute per-model stats, then distribution
+    primary_stats['nn'] = {}
     complete_case = {}
-    for method in ['default', 'l2', 'nn']:
-        complete_case[method] = {}
+    nn_model_primary = {}  # model_id -> {train_n: {mean_D, median_D, failure_rate, ...}}
+    nn_model_cc = {}       # model_id -> {train_n: {mean_D, median_D, ...}}
+
+    if nn_selectors is not None:
+        for sel in nn_selectors:
+            model_id = f"fold_{sel['fold_idx']}_seed_{sel['seed']}"
+            nn_model_primary[model_id] = {}
+            nn_model_cc[model_id] = {}
+            for train_n in TRAIN_N_VALUES:
+                mask = (df_results['train_n'] == train_n) & \
+                       (df_results['method'] == 'nn') & \
+                       (df_results['model_id'] == model_id)
+                subset = df_results[mask]
+                if len(subset) == 0:
+                    continue
+                D_vals = subset['D'].values
+                n_total = len(subset)
+                n_failed = int(subset['failed'].sum())
+                nn_model_primary[model_id][str(train_n)] = {
+                    'n_total': n_total,
+                    'n_failed': n_failed,
+                    'failure_rate': n_failed / n_total,
+                    'mean_D': float(np.mean(D_vals)),
+                    'median_D': float(np.median(D_vals)),
+                    'std_D': float(np.std(D_vals, ddof=1)) if n_total > 1 else 0.0,
+                    'Q1_D': float(np.percentile(D_vals, 25)),
+                    'Q3_D': float(np.percentile(D_vals, 75)),
+                }
+                # Complete-case for this model
+                cc_mask = mask & (~df_results['failed'])
+                cc_subset = df_results[cc_mask]
+                if len(cc_subset) > 0:
+                    cc_D_vals = cc_subset['D'].values
+                    nn_model_cc[model_id][str(train_n)] = {
+                        'n_complete_case': int(len(cc_subset)),
+                        'mean_D': float(np.mean(cc_D_vals)),
+                        'median_D': float(np.median(cc_D_vals)),
+                        'std_D': float(np.std(cc_D_vals, ddof=1)) if len(cc_subset) > 1 else 0.0,
+                    }
+
+        # Cross-model distribution of per-model primary stats
+        for train_n in TRAIN_N_VALUES:
+            tn_str = str(train_n)
+            model_medians = []
+            model_means = []
+            model_failure_rates = []
+            for model_id in nn_model_primary:
+                if tn_str in nn_model_primary[model_id]:
+                    model_medians.append(nn_model_primary[model_id][tn_str]['median_D'])
+                    model_means.append(nn_model_primary[model_id][tn_str]['mean_D'])
+                    model_failure_rates.append(nn_model_primary[model_id][tn_str]['failure_rate'])
+
+            primary_stats['nn'][tn_str] = {
+                'n_models': len(model_medians),
+                'n_repeats_per_model': n_repeats,
+                'model_median_D': _dist_summary(np.array(model_medians)) if model_medians else None,
+                'model_mean_D': _dist_summary(np.array(model_means)) if model_means else None,
+                'model_failure_rate': _dist_summary(np.array(model_failure_rates)) if model_failure_rates else None,
+                'primary_nn_result': (
+                    float(np.median(model_medians)) if model_medians else None
+                ),
+            }
+
+    # Complete-case sensitivity
+    # Default/L2: pooled (contract allows)
+    # NN: model-first
+    complete_case['default'] = {}
+    complete_case['l2'] = {}
+    for method in ['default', 'l2']:
         for train_n in TRAIN_N_VALUES:
             mask = (df_results['train_n'] == train_n) & \
                    (df_results['method'] == method) & \
@@ -1371,6 +1504,23 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
                 'median_D': float(np.median(D_vals)),
                 'std_D': float(np.std(D_vals, ddof=1)) if n_cc > 1 else 0.0,
             }
+
+    complete_case['nn'] = {}
+    if nn_selectors is not None:
+        for train_n in TRAIN_N_VALUES:
+            tn_str = str(train_n)
+            cc_medians = []
+            cc_means = []
+            for model_id in nn_model_cc:
+                if tn_str in nn_model_cc[model_id]:
+                    cc_medians.append(nn_model_cc[model_id][tn_str]['median_D'])
+                    cc_means.append(nn_model_cc[model_id][tn_str]['mean_D'])
+            if cc_medians:
+                complete_case['nn'][tn_str] = {
+                    'n_models_with_complete_cases': len(cc_medians),
+                    'model_median_D': _dist_summary(np.array(cc_medians)),
+                    'model_mean_D': _dist_summary(np.array(cc_means)) if cc_means else None,
+                }
 
     # NN win rate & tie rate distributions
     nn_win_dist = {}
@@ -1473,15 +1623,15 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
     nn_model_rows.to_csv(stability_path, index=False)
     log(f"  Saved: {stability_path} ({len(nn_model_rows)} rows)")
 
-    # real_nn_cross_model_distribution.csv
+    # Embed NN cross-model distribution in summary (NOT a separate 6th file)
     if len(df_nn_dist) > 0:
-        dist_path = os.path.join(output_dir, 'real_nn_cross_model_distribution.csv')
-        df_nn_dist.to_csv(dist_path, index=False)
-        log(f"  Saved: {dist_path} ({len(df_nn_dist)} rows)")
+        summary['nn_cross_model_distribution'] = df_nn_dist.to_dict(orient='records')
+        log(f"  NN cross-model distribution: {len(df_nn_dist)} rows → embedded in summary")
 
     # real_data_manifest.json
     git_commit, git_dirty = get_git_info()
     config_hash = compute_config_hash()
+    frozen_config_sha256 = compute_frozen_config_sha256()
     versions = get_package_versions()
     # Collect per-fold P99 values
     p99_values = {}
@@ -1498,6 +1648,7 @@ def run_pipeline(data_dir, output_dir=None, chunks_dir=None,
         'execution_commit': git_commit,
         'git_dirty': git_dirty,
         'config_hash': config_hash,
+        'frozen_config_sha256': frozen_config_sha256,
         'versions': versions,
         'dataset_id': 'nist-6061-t6-fatigue',
         'data_source': {
