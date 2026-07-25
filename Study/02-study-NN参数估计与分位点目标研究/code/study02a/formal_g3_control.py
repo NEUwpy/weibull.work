@@ -998,10 +998,10 @@ def derive_g3_cohort_from_authority(
             raise ValueError(f"cohort fit {fit_id} checkpoint missing: {checkpoint_path}")
         checkpoint_sha = _sha256_file(checkpoint_path)
 
-        receipt_files = list((run_dir / "receipts").glob(f"*{fit_id}*.succeeded.json"))
-        if not receipt_files:
-            raise ValueError(f"cohort fit {fit_id} scheduler terminal receipt missing in {run_dir / 'receipts'}")
-        terminal_receipt_sha = _sha256_file(receipt_files[0])
+        receipt_path = run_dir / "receipts" / f"{fit_id}.succeeded.json"
+        if not receipt_path.is_file():
+            raise ValueError(f"cohort fit {fit_id} scheduler terminal receipt missing: {receipt_path}")
+        terminal_receipt_sha = _sha256_file(receipt_path)
 
         plan_row = plans_by_module[module_id].get(fit_id)
         distribution = str(plan_row["distribution"]) if plan_row and "distribution" in plan_row else "core_continuous"
@@ -1136,7 +1136,13 @@ _A_E3_ALIAS_MAP = {
 
 
 def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]) -> None:
-    """Resolve A-E3 aliases from verified selection trace/receipt/ledger at run root."""
+    """Resolve A-E3 aliases from verified selection trace/receipt/ledger at run root.
+
+    Resolves both routes:
+    - selected:F2_or_V route: stage1 ranking → stage2 winner → architecture + optimizer
+    - S/shared route: stage1:S:shared ranking → stage2:S:shared winner → S_architecture + S_optimizer
+    Also resolves loss and output_form winner (selected:A-E3_baseline).
+    """
     from .formal_executor import _validate_selection_evidence
 
     trace_path = run_dir / "selection_trace.jsonl"
@@ -1158,21 +1164,32 @@ def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]
             continue
         decision_id = str(rec["decision_id"])
         candidate_id = str(rec["candidate_id"])
+
         if decision_id == "loss:A-E3:selected:F2_or_V:n10":
             out["selected:A-E3_loss"] = candidate_id
         elif decision_id == "stage2:A-E3:selected:F2_or_V:n10":
-            parts = candidate_id.partition(":")
-            if parts[1] == ":":
-                out["selected:A-E3_architecture"] = parts[0]
-                out["selected:A-E3_optimizer"] = parts[2]
+            arch_part, sep, opt_part = candidate_id.partition(":")
+            if sep == ":":
+                out["selected:A-E3_architecture"] = arch_part
+                out["selected:A-E3_optimizer"] = opt_part
             else:
                 out["selected:A-E3_architecture"] = candidate_id
-        elif decision_id == "architecture:A-E3:selected:F2_or_V:n10":
-            if "selected:A-E3_architecture" not in out:
-                out["selected:A-E3_architecture"] = candidate_id
+        elif decision_id == "stage2:A-E3:S:shared":
+            arch_part, sep, opt_part = candidate_id.partition(":")
+            if sep == ":":
+                out["selected:S_architecture"] = arch_part
+                out["selected:S_optimizer"] = opt_part
+            else:
+                out["selected:S_architecture"] = candidate_id
+        elif decision_id == "output_form:A-E3:selected:F2_or_V":
+            out["selected:A-E3_baseline"] = candidate_id
 
     if "selected:A-E3_loss" not in out:
         raise ValueError("A-E3 selection has no verified loss winner")
+    if "selected:A-E3_architecture" not in out:
+        raise ValueError("A-E3 selection has no verified F2/V architecture winner")
+    if "selected:A-E3_baseline" not in out:
+        raise ValueError("A-E3 selection has no verified output_form/baseline winner")
 
 
 def _resolve_a_e2_from_selection(run_dir: Path, run_id: str, out: dict[str, str]) -> None:
@@ -1243,6 +1260,21 @@ def _resolve_or_fail(value: str, field: str, module_id: str, fit_id: str, resolu
     )
 
 
+def _assert_cohort_fully_resolved(cohort: tuple[ResolvedCohortEntry, ...]) -> None:
+    """Final scan: any selected:*, selected_top_*, training_size<=0 fails closed."""
+    for entry in cohort:
+        for field_name in ("route", "architecture", "optimizer", "loss", "distribution"):
+            value = getattr(entry, field_name)
+            if value.startswith("selected:") or value.startswith("selected_top_"):
+                raise ValueError(
+                    f"cohort fit {entry.fit_id} has unresolved {field_name}={value!r} after resolution"
+                )
+        if entry.training_size <= 0:
+            raise ValueError(
+                f"cohort fit {entry.fit_id} has training_size={entry.training_size} after resolution"
+            )
+
+
 def build_g3_accreditation(
     *, ae2_run_dir: Path, artifact_root: Path, cache_root: Path,
     study_root: Path, code_commit: str, output_dir: Path, timestamp: str,
@@ -1275,15 +1307,12 @@ def build_g3_accreditation(
     selection_trace_shas = {}
     ceiling_report_shas = {}
     leakage_audit_shas = {}
+    staged_ledger_shas = {}
     for module_id, run_dir in [("A-E1", chain.ae1_run_dir), ("A-E3", chain.ae3_run_dir), ("A-E2", chain.ae2_run_dir)]:
-        trace_path = run_dir / "selection" / "selection_trace.jsonl"
+        trace_path = run_dir / "selection_trace.jsonl"
         if not trace_path.is_file():
-            staged = run_dir / "staged_resolution_ledger.jsonl"
-            if not staged.is_file():
-                raise ValueError(f"{module_id}: neither selection_trace.jsonl nor staged_resolution_ledger.jsonl found")
-            selection_trace_shas[module_id] = _sha256_file(staged)
-        else:
-            selection_trace_shas[module_id] = _sha256_file(trace_path)
+            raise ValueError(f"{module_id}: selection_trace.jsonl required at run root: {trace_path}")
+        selection_trace_shas[module_id] = _sha256_file(trace_path)
 
         ceiling_path = run_dir / "ceiling_hit_report.json"
         if not ceiling_path.is_file():
@@ -1295,12 +1324,22 @@ def build_g3_accreditation(
             raise ValueError(f"{module_id}: leakage_audit.json required: {leakage_path}")
         leakage_audit_shas[module_id] = _sha256_file(leakage_path)
 
+    staged_path = chain.ae1_run_dir / "staged_resolution_ledger.jsonl"
+    if not staged_path.is_file():
+        raise ValueError(f"A-E1: staged_resolution_ledger.jsonl required: {staged_path}")
+    staged_ledger_shas["A-E1"] = _sha256_file(staged_path)
+
     bundle = build_g3_pre_unseal_bundle(
         manifest=manifest, chain=chain,
         selection_trace_shas=selection_trace_shas,
         ceiling_report_shas=ceiling_report_shas,
         leakage_audit_shas=leakage_audit_shas,
     )
+    bundle["staged_ledger_hashes"] = staged_ledger_shas
+    bundle_content = {k: v for k, v in bundle.items() if k != "bundle_sha256"}
+    bundle["bundle_sha256"] = _sha256_bytes(_canonical(bundle_content))
+
+    _assert_cohort_fully_resolved(cohort)
 
     output_dir = Path(output_dir)
     manifest_path = publish_g3_test_manifest(manifest, output_dir)
