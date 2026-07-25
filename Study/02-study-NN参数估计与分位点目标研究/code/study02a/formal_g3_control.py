@@ -860,25 +860,29 @@ def verify_g3_chain_authority(
 ) -> G3Authority:
     """Call _rebuild_authority on all three runs; verify no live claims.
 
-    Each run must pass full replay: manifest, plan, events, scheduler state.
-    Any live (non-terminal) claim fails closed.
+    Each run must pass full replay: manifest, plan, events, scheduler state,
+    controller anchors. Any live claim fails closed.
     """
     from .formal_scheduler import _rebuild_authority
 
     ae1_manifest, ae1_plan, ae1_state, ae1_events = _rebuild_authority(
-        chain.ae1_run_dir, cache_root, validate_controller=False,
+        chain.ae1_run_dir, cache_root,
     )
     ae3_manifest, ae3_plan, ae3_state, ae3_events = _rebuild_authority(
-        chain.ae3_run_dir, cache_root, validate_controller=False,
+        chain.ae3_run_dir, cache_root,
     )
     ae2_manifest, ae2_plan, ae2_state, ae2_events = _rebuild_authority(
-        chain.ae2_run_dir, cache_root, validate_controller=False,
+        chain.ae2_run_dir, cache_root,
     )
 
     for module_id, state in [("A-E1", ae1_state), ("A-E3", ae3_state), ("A-E2", ae2_state)]:
-        active_claim = state.get("active_claim")
-        if active_claim is not None:
-            raise ValueError(f"{module_id} has a live claim: {active_claim}")
+        live_claim = state.get("live_claim")
+        if live_claim is not None:
+            raise ValueError(f"{module_id} has a live claim: {live_claim}")
+
+    _verify_chain_consistency(
+        ae1_manifest, ae3_manifest, ae2_manifest, chain,
+    )
 
     return G3Authority(
         ae1_manifest=ae1_manifest, ae1_plan=ae1_plan, ae1_state=ae1_state, ae1_events=ae1_events,
@@ -887,13 +891,68 @@ def verify_g3_chain_authority(
     )
 
 
+def _verify_chain_consistency(
+    ae1_manifest: dict, ae3_manifest: dict, ae2_manifest: dict, chain: G3RunChain,
+) -> None:
+    """Verify module/run/predecessor, code commit, effective config, matrix authority consistency."""
+    if ae1_manifest.get("module_id") != "A-E1":
+        raise ValueError(f"A-E1 manifest module_id is {ae1_manifest.get('module_id')!r}")
+    if ae3_manifest.get("module_id") != "A-E3":
+        raise ValueError(f"A-E3 manifest module_id is {ae3_manifest.get('module_id')!r}")
+    if ae2_manifest.get("module_id") != "A-E2":
+        raise ValueError(f"A-E2 manifest module_id is {ae2_manifest.get('module_id')!r}")
+
+    if ae1_manifest.get("run_id") != chain.ae1_run_id:
+        raise ValueError("A-E1 manifest run_id mismatch with chain")
+    if ae3_manifest.get("run_id") != chain.ae3_run_id:
+        raise ValueError("A-E3 manifest run_id mismatch with chain")
+    if ae2_manifest.get("run_id") != chain.ae2_run_id:
+        raise ValueError("A-E2 manifest run_id mismatch with chain")
+
+    code_commits = {
+        ae1_manifest.get("code_commit"),
+        ae3_manifest.get("code_commit"),
+        ae2_manifest.get("code_commit"),
+    }
+    if len(code_commits) != 1:
+        raise ValueError(f"three runs have inconsistent code_commit: {code_commits}")
+
+    config_shas = {
+        ae1_manifest.get("effective_config", {}).get("sha256"),
+        ae3_manifest.get("effective_config", {}).get("sha256"),
+        ae2_manifest.get("effective_config", {}).get("sha256"),
+    }
+    if len(config_shas) != 1:
+        raise ValueError(f"three runs have inconsistent effective_config: {config_shas}")
+    if config_shas.pop() != APPROVED_EFFECTIVE_CONFIG_SHA256:
+        raise ValueError("effective_config_sha256 does not match frozen approved config")
+
+    matrix_shas = {
+        ae1_manifest.get("matrix", {}).get("sha256"),
+        ae3_manifest.get("matrix", {}).get("sha256"),
+        ae2_manifest.get("matrix", {}).get("sha256"),
+    }
+    if len(matrix_shas) != 1:
+        raise ValueError(f"three runs have inconsistent matrix SHA: {matrix_shas}")
+    if matrix_shas.pop() != FROZEN_MATRIX_SHA256:
+        raise ValueError("matrix SHA does not match FROZEN_MATRIX_SHA256")
+
+    ae3_pred = ae3_manifest.get("predecessor", {})
+    if ae3_pred.get("module_id") != "A-E1" or ae3_pred.get("run_id") != chain.ae1_run_id:
+        raise ValueError("A-E3 predecessor does not point to A-E1 chain run")
+    ae2_pred = ae2_manifest.get("predecessor", {})
+    if ae2_pred.get("module_id") != "A-E3" or ae2_pred.get("run_id") != chain.ae3_run_id:
+        raise ValueError("A-E2 predecessor does not point to A-E3 chain run")
+
+
 def derive_g3_cohort_from_authority(
     *, frozen_config: FrozenConfig, chain: G3RunChain, authority: G3Authority,
 ) -> tuple[ResolvedCohortEntry, ...]:
     """Derive the 415-entry cohort verified against replay authority.
 
     Every fit must be terminal succeeded in the replay state, with checkpoint
-    and receipt SHAs matching the event record. Non-succeeded or missing fails closed.
+    and scheduler terminal receipt SHAs verified. Non-succeeded or missing fails closed.
+    Distribution comes from the verified plan row, not hardcoded.
     """
     matrix = expand_module_matrix(frozen_config)
     cohort_rows = matrix[matrix["fit_kind"].isin(_COHORT_FIT_KINDS)]
@@ -902,6 +961,11 @@ def derive_g3_cohort_from_authority(
         "A-E1": authority.ae1_state.get("fit_states", {}),
         "A-E3": authority.ae3_state.get("fit_states", {}),
         "A-E2": authority.ae2_state.get("fit_states", {}),
+    }
+    plans_by_module = {
+        "A-E1": {str(row["fit_id"]): row for row in authority.ae1_plan},
+        "A-E3": {str(row["fit_id"]): row for row in authority.ae3_plan},
+        "A-E2": {str(row["fit_id"]): row for row in authority.ae2_plan},
     }
     run_dirs = {
         "A-E1": chain.ae1_run_dir,
@@ -930,13 +994,17 @@ def derive_g3_cohort_from_authority(
 
         run_dir = run_dirs[module_id]
         checkpoint_path = run_dir / "outputs" / fit_id / "checkpoint.pt"
-        receipt_path = run_dir / "outputs" / fit_id / "fit_status.json"
         if not checkpoint_path.is_file():
             raise ValueError(f"cohort fit {fit_id} checkpoint missing: {checkpoint_path}")
-        if not receipt_path.is_file():
-            raise ValueError(f"cohort fit {fit_id} terminal receipt missing: {receipt_path}")
         checkpoint_sha = _sha256_file(checkpoint_path)
-        receipt_sha = _sha256_file(receipt_path)
+
+        receipt_files = list((run_dir / "receipts").glob(f"*{fit_id}*.succeeded.json"))
+        if not receipt_files:
+            raise ValueError(f"cohort fit {fit_id} scheduler terminal receipt missing in {run_dir / 'receipts'}")
+        terminal_receipt_sha = _sha256_file(receipt_files[0])
+
+        plan_row = plans_by_module[module_id].get(fit_id)
+        distribution = str(plan_row["distribution"]) if plan_row and "distribution" in plan_row else "core_continuous"
 
         route = str(row["route"])
         loss = str(row["loss"])
@@ -946,10 +1014,10 @@ def derive_g3_cohort_from_authority(
 
         entries.append(ResolvedCohortEntry(
             fit_id=fit_id, module_id=module_id, rule_id=str(row["rule_id"]),
-            route=route, distribution="core_continuous", n=n, seed=seed,
+            route=route, distribution=distribution, n=n, seed=seed,
             fit_kind=fit_kind, training_size=training_size,
             architecture=architecture, optimizer=optimizer, loss=loss,
-            checkpoint_sha256=checkpoint_sha, terminal_receipt_sha256=receipt_sha,
+            checkpoint_sha256=checkpoint_sha, terminal_receipt_sha256=terminal_receipt_sha,
             comparison_role=_comparison_role(fit_kind),
         ))
         counts[module_id] = counts.get(module_id, 0) + 1
@@ -967,9 +1035,10 @@ def resolve_g3_placeholders_from_evidence(
 ) -> tuple[ResolvedCohortEntry, ...]:
     """Resolve all selected:*/selected_top_*/training_size=-1 from verified selection evidence.
 
-    Uses the A-E1 staged ledger and module selection traces. No defaults, no glob.
+    Uses _validate_selection_evidence and resolve_selected_placeholders from formal_executor.
+    A-E1 uses staged receipt/ledger. No defaults, no glob, no raw JSON trust.
     """
-    from .formal_contracts import _validate_selection_trace_bytes
+    from .formal_executor import _validate_selection_evidence, resolve_selected_placeholders
 
     resolutions: dict[str, dict[str, str]] = {"A-E1": {}, "A-E3": {}, "A-E2": {}}
 
@@ -986,10 +1055,25 @@ def resolve_g3_placeholders_from_evidence(
 
     for module_id, run_dir in [("A-E3", chain.ae3_run_dir), ("A-E2", chain.ae2_run_dir)]:
         trace_path = run_dir / "selection" / "selection_trace.jsonl"
+        receipt_path = run_dir / "selection" / "selection_receipt.json"
+        ledger_path = run_dir / "selection" / "selection_ledger.jsonl"
         if not trace_path.is_file():
             raise ValueError(f"{module_id} selection_trace.jsonl required: {trace_path}")
-        trace_bytes = trace_path.read_bytes()
-        records = _validate_selection_trace_bytes(trace_bytes, module_id, str(run_dir.name))
+        if not receipt_path.is_file():
+            raise ValueError(f"{module_id} selection_receipt.json required: {receipt_path}")
+        if not ledger_path.is_file():
+            raise ValueError(f"{module_id} selection_ledger.jsonl required: {ledger_path}")
+
+        trace_sha = _sha256_file(trace_path)
+        run_id = str(run_dir.name)
+        records = _validate_selection_evidence(
+            selection_trace_path=trace_path,
+            selection_trace_sha256=trace_sha,
+            selection_receipt_path=receipt_path,
+            selection_ledger_path=ledger_path,
+            module_id=module_id,
+            run_id=run_id,
+        )
         for rec in records:
             if rec.get("selected") is True:
                 candidate_id = str(rec["candidate_id"])
@@ -1011,9 +1095,11 @@ def resolve_g3_placeholders_from_evidence(
                 )
             training_size = int(resolved_size)
 
+        distribution = _resolve_distribution_for_entry(entry, resolutions)
+
         resolved_entries.append(ResolvedCohortEntry(
             fit_id=entry.fit_id, module_id=entry.module_id, rule_id=entry.rule_id,
-            route=route, distribution=entry.distribution, n=entry.n, seed=entry.seed,
+            route=route, distribution=distribution, n=entry.n, seed=entry.seed,
             fit_kind=entry.fit_kind, training_size=training_size,
             architecture=architecture, optimizer=optimizer, loss=loss,
             checkpoint_sha256=entry.checkpoint_sha256,
@@ -1021,6 +1107,27 @@ def resolve_g3_placeholders_from_evidence(
             comparison_role=entry.comparison_role,
         ))
     return tuple(resolved_entries)
+
+
+def _resolve_distribution_for_entry(entry: ResolvedCohortEntry, resolutions: dict) -> str:
+    """Resolve distribution from fit_kind and verified evidence. No defaults."""
+    if entry.fit_kind == "historical":
+        return "legacy_grid"
+    if entry.fit_kind == "controlled":
+        return "core_continuous"
+    if entry.fit_kind in ("winner_retrain", "output_form", "shared_winner_retrain"):
+        return "core_continuous"
+    if entry.fit_kind == "selected_size_retrain":
+        return "core_continuous"
+    if entry.fit_kind == "selected_distribution_retrain":
+        resolved = resolutions.get(entry.module_id, {}).get("selected:A-E2_distribution")
+        if resolved:
+            return resolved
+        raise ValueError(
+            f"fit {entry.fit_id} requires selected:A-E2_distribution resolution; "
+            f"no verified A-E2 distribution selection evidence found"
+        )
+    raise ValueError(f"fit {entry.fit_id} has unknown fit_kind {entry.fit_kind!r} for distribution resolution")
 
 
 def _resolve_or_fail(value: str, field: str, module_id: str, fit_id: str, resolutions: dict) -> str:
@@ -1038,12 +1145,13 @@ def _resolve_or_fail(value: str, field: str, module_id: str, fit_id: str, resolu
 
 def build_g3_accreditation(
     *, ae2_run_dir: Path, artifact_root: Path, cache_root: Path,
-    study_root: Path, code_commit: str,
+    study_root: Path, code_commit: str, output_dir: Path,
 ) -> dict[str, Any]:
     """Minimal production entry: chain → authority → cohort → manifest → bundle → state.
 
     Does NOT authorize, unseal, or generate test data. Produces sealed bundle + state
-    ready for external oracle approval.
+    persisted to output_dir with no-replace semantics and mutual SHA binding.
+    Returns only after all artifacts are on disk and verified.
     """
     from .config import load_frozen_config
     from .formal_config import load_effective_formal_config
@@ -1062,33 +1170,63 @@ def build_g3_accreditation(
     )
 
     selection_trace_shas = {}
+    ceiling_report_shas = {}
+    leakage_audit_shas = {}
     for module_id, run_dir in [("A-E1", chain.ae1_run_dir), ("A-E3", chain.ae3_run_dir), ("A-E2", chain.ae2_run_dir)]:
         trace_path = run_dir / "selection" / "selection_trace.jsonl"
-        if trace_path.is_file():
-            selection_trace_shas[module_id] = _sha256_file(trace_path)
-        else:
+        if not trace_path.is_file():
             staged = run_dir / "staged_resolution_ledger.jsonl"
-            if staged.is_file():
-                selection_trace_shas[module_id] = _sha256_file(staged)
-            else:
-                selection_trace_shas[module_id] = "0" * 64
+            if not staged.is_file():
+                raise ValueError(f"{module_id}: neither selection_trace.jsonl nor staged_resolution_ledger.jsonl found")
+            selection_trace_shas[module_id] = _sha256_file(staged)
+        else:
+            selection_trace_shas[module_id] = _sha256_file(trace_path)
+
+        ceiling_path = run_dir / "ceiling_hit_report.json"
+        if not ceiling_path.is_file():
+            raise ValueError(f"{module_id}: ceiling_hit_report.json required: {ceiling_path}")
+        ceiling_report_shas[module_id] = _sha256_file(ceiling_path)
+
+        leakage_path = run_dir / "leakage_audit.json"
+        if not leakage_path.is_file():
+            raise ValueError(f"{module_id}: leakage_audit.json required: {leakage_path}")
+        leakage_audit_shas[module_id] = _sha256_file(leakage_path)
 
     bundle = build_g3_pre_unseal_bundle(
         manifest=manifest, chain=chain,
         selection_trace_shas=selection_trace_shas,
-        ceiling_report_shas={m: "0" * 64 for m in _MODULE_ORDER},
-        leakage_audit_shas={m: "0" * 64 for m in _MODULE_ORDER},
+        ceiling_report_shas=ceiling_report_shas,
+        leakage_audit_shas=leakage_audit_shas,
     )
 
+    output_dir = Path(output_dir)
+    manifest_path = publish_g3_test_manifest(manifest, output_dir)
+    bundle_path = publish_g3_bundle(bundle, output_dir)
+
+    state_path = output_dir / "g3_formal_state.json"
+    initialize_g3_formal_state(
+        state_path=state_path, bundle=bundle,
+        run_family_id="G3-formal", timestamp=manifest.get("code_commit", "")[:8],
+    )
+
+    state_bytes = state_path.read_bytes()
+    state = json.loads(state_bytes.decode("utf-8"))
+    if state.get("g3_pre_unseal_bundle_sha256") != bundle.get("bundle_sha256"):
+        raise ValueError("persisted state does not bind persisted bundle SHA")
+    if state.get("g3_test_manifest_sha256") != manifest.get("manifest_sha256"):
+        raise ValueError("persisted state does not bind persisted manifest SHA")
+
     return {
-        "chain": chain,
-        "manifest": manifest,
-        "bundle": bundle,
+        "status": "sealed_ready_for_approval",
+        "manifest_path": str(manifest_path),
+        "bundle_path": str(bundle_path),
+        "state_path": str(state_path),
+        "manifest_sha256": manifest["manifest_sha256"],
+        "bundle_sha256": bundle["bundle_sha256"],
         "cohort_total": len(cohort),
         "cohort_counts": dict(sorted(
             {m: sum(1 for e in cohort if e.module_id == m) for m in _MODULE_ORDER}.items()
         )),
-        "status": "sealed_ready_for_approval",
     }
 
 

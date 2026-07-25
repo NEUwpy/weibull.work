@@ -621,8 +621,8 @@ class TestProductionAuthority:
             ae1_authority_sha256="a1" * 32, ae3_authority_sha256="a3" * 32,
             ae2_authority_sha256="a2" * 32,
         )
-        fake_state = {"fit_states": {fit_id: "succeeded"}, "active_claim": None}
-        empty_state = {"fit_states": {}, "active_claim": None}
+        fake_state = {"fit_states": {fit_id: "succeeded"}, "live_claim": None}
+        empty_state = {"fit_states": {}, "live_claim": None}
         authority = G3Authority(
             ae1_manifest={}, ae1_plan=[], ae1_state=fake_state, ae1_events=[],
             ae3_manifest={}, ae3_plan=[], ae3_state=empty_state, ae3_events=[],
