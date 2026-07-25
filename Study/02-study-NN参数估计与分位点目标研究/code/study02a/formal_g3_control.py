@@ -1032,53 +1032,19 @@ def derive_g3_cohort_from_authority(
 
 def resolve_g3_placeholders_from_evidence(
     *, chain: G3RunChain, cohort: tuple[ResolvedCohortEntry, ...],
+    code_commit: str, effective_config_sha256: str,
 ) -> tuple[ResolvedCohortEntry, ...]:
     """Resolve all selected:*/selected_top_*/training_size=-1 from verified selection evidence.
 
-    Uses _validate_selection_evidence and resolve_selected_placeholders from formal_executor.
-    A-E1 uses staged receipt/ledger. No defaults, no glob, no raw JSON trust.
+    A-E1: verified staged ledger (hash chain + field binding) → final_aliases + baseline_input.
+    A-E3/A-E2: _validate_selection_evidence on run-root trace/receipt/ledger → explicit alias mapping.
+    No defaults, no glob, no raw JSON trust, no selected:{decision_id} guessing.
     """
-    from .formal_executor import _validate_selection_evidence, resolve_selected_placeholders
-
     resolutions: dict[str, dict[str, str]] = {"A-E1": {}, "A-E3": {}, "A-E2": {}}
 
-    staged_ledger = chain.ae1_run_dir / "staged_resolution_ledger.jsonl"
-    if not staged_ledger.is_file():
-        raise ValueError(f"A-E1 staged_resolution_ledger.jsonl required: {staged_ledger}")
-    for line in staged_ledger.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        record = json.loads(line)
-        aliases = record.get("final_aliases") or {}
-        for key, value in aliases.items():
-            resolutions["A-E1"][key] = str(value)
-
-    for module_id, run_dir in [("A-E3", chain.ae3_run_dir), ("A-E2", chain.ae2_run_dir)]:
-        trace_path = run_dir / "selection" / "selection_trace.jsonl"
-        receipt_path = run_dir / "selection" / "selection_receipt.json"
-        ledger_path = run_dir / "selection" / "selection_ledger.jsonl"
-        if not trace_path.is_file():
-            raise ValueError(f"{module_id} selection_trace.jsonl required: {trace_path}")
-        if not receipt_path.is_file():
-            raise ValueError(f"{module_id} selection_receipt.json required: {receipt_path}")
-        if not ledger_path.is_file():
-            raise ValueError(f"{module_id} selection_ledger.jsonl required: {ledger_path}")
-
-        trace_sha = _sha256_file(trace_path)
-        run_id = str(run_dir.name)
-        records = _validate_selection_evidence(
-            selection_trace_path=trace_path,
-            selection_trace_sha256=trace_sha,
-            selection_receipt_path=receipt_path,
-            selection_ledger_path=ledger_path,
-            module_id=module_id,
-            run_id=run_id,
-        )
-        for rec in records:
-            if rec.get("selected") is True:
-                candidate_id = str(rec["candidate_id"])
-                decision_id = str(rec["decision_id"])
-                resolutions[module_id][f"selected:{decision_id}"] = candidate_id
+    _resolve_a_e1_from_staged_ledger(chain.ae1_run_dir, chain.ae1_run_id, code_commit, effective_config_sha256, resolutions["A-E1"])
+    _resolve_a_e3_from_selection(chain.ae3_run_dir, chain.ae3_run_id, resolutions["A-E3"])
+    _resolve_a_e2_from_selection(chain.ae2_run_dir, chain.ae2_run_id, resolutions["A-E2"])
 
     resolved_entries: list[ResolvedCohortEntry] = []
     for entry in cohort:
@@ -1107,6 +1073,140 @@ def resolve_g3_placeholders_from_evidence(
             comparison_role=entry.comparison_role,
         ))
     return tuple(resolved_entries)
+
+
+def _resolve_a_e1_from_staged_ledger(
+    run_dir: Path, run_id: str, code_commit: str, effective_config_sha256: str,
+    out: dict[str, str],
+) -> None:
+    """Read and verify A-E1 staged resolution ledger; extract final_aliases + baseline_input."""
+    from .formal_executor import _read_staged_ledger, _build_stage_record, _ZERO_HASH
+
+    ledger_path = run_dir / "staged_resolution_ledger.jsonl"
+    if not ledger_path.is_file():
+        raise ValueError(f"A-E1 staged_resolution_ledger.jsonl required: {ledger_path}")
+    records = _read_staged_ledger(run_dir)
+    if not records:
+        raise ValueError("A-E1 staged resolution ledger is empty")
+
+    previous_sha = _ZERO_HASH
+    for record in records:
+        if record.get("previous_record_sha256") != previous_sha:
+            raise ValueError(
+                f"A-E1 staged ledger hash chain broken: expected previous={previous_sha}, "
+                f"got {record.get('previous_record_sha256')}"
+            )
+        core = {k: v for k, v in record.items() if k != "record_sha256"}
+        expected_sha = _sha256_bytes(_canonical(core))
+        if record.get("record_sha256") != expected_sha:
+            raise ValueError(f"A-E1 staged ledger record SHA mismatch at stage={record.get('stage')}")
+        if record.get("module_id") != "A-E1":
+            raise ValueError(f"A-E1 staged record module_id is {record.get('module_id')!r}")
+        if record.get("run_id") != run_id:
+            raise ValueError(f"A-E1 staged record run_id mismatch")
+        if record.get("code_commit") != code_commit.lower():
+            raise ValueError(f"A-E1 staged record code_commit mismatch")
+        if record.get("effective_config_sha256") != effective_config_sha256:
+            raise ValueError(f"A-E1 staged record effective_config_sha256 mismatch")
+        previous_sha = record["record_sha256"]
+
+    for record in records:
+        stage = record.get("stage")
+        resolution = record.get("resolution", {})
+        if stage == "final_aliases":
+            for key in ("selected:A-E1_loss", "selected:A-E1_architecture", "selected:A-E1_optimizer"):
+                if key not in resolution:
+                    raise ValueError(f"A-E1 final_aliases missing {key}")
+                out[key] = str(resolution[key])
+        elif stage == "baseline_input":
+            if "selected:F2_or_V" not in resolution:
+                raise ValueError("A-E1 baseline_input missing selected:F2_or_V")
+            out["selected:F2_or_V"] = str(resolution["selected:F2_or_V"])
+
+    if "selected:F2_or_V" not in out:
+        raise ValueError("A-E1 staged ledger has no baseline_input record with selected:F2_or_V")
+    if "selected:A-E1_architecture" not in out:
+        raise ValueError("A-E1 staged ledger has no final_aliases record")
+
+
+_A_E3_ALIAS_MAP = {
+    "loss:A-E3:selected:F2_or_V:n10": "selected:A-E3_loss",
+    "stage2:A-E3:selected:F2_or_V:n10": "selected:A-E3_architecture",
+}
+
+
+def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]) -> None:
+    """Resolve A-E3 aliases from verified selection trace/receipt/ledger at run root."""
+    from .formal_executor import _validate_selection_evidence
+
+    trace_path = run_dir / "selection_trace.jsonl"
+    receipt_path = run_dir / "selection_receipt.json"
+    ledger_path = run_dir / "selection_ledger.jsonl"
+    for p, name in [(trace_path, "selection_trace.jsonl"), (receipt_path, "selection_receipt.json"), (ledger_path, "selection_ledger.jsonl")]:
+        if not p.is_file():
+            raise ValueError(f"A-E3 {name} required at run root: {p}")
+
+    trace_sha = _sha256_file(trace_path)
+    records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+
+    for rec in records:
+        if rec.get("selected") is not True:
+            continue
+        decision_id = str(rec["decision_id"])
+        candidate_id = str(rec["candidate_id"])
+        if decision_id == "loss:A-E3:selected:F2_or_V:n10":
+            out["selected:A-E3_loss"] = candidate_id
+        elif decision_id == "stage2:A-E3:selected:F2_or_V:n10":
+            parts = candidate_id.partition(":")
+            if parts[1] == ":":
+                out["selected:A-E3_architecture"] = parts[0]
+                out["selected:A-E3_optimizer"] = parts[2]
+            else:
+                out["selected:A-E3_architecture"] = candidate_id
+        elif decision_id == "architecture:A-E3:selected:F2_or_V:n10":
+            if "selected:A-E3_architecture" not in out:
+                out["selected:A-E3_architecture"] = candidate_id
+
+    if "selected:A-E3_loss" not in out:
+        raise ValueError("A-E3 selection has no verified loss winner")
+
+
+def _resolve_a_e2_from_selection(run_dir: Path, run_id: str, out: dict[str, str]) -> None:
+    """Resolve A-E2 aliases from verified selection trace/receipt/ledger at run root."""
+    from .formal_executor import _validate_selection_evidence
+
+    trace_path = run_dir / "selection_trace.jsonl"
+    receipt_path = run_dir / "selection_receipt.json"
+    ledger_path = run_dir / "selection_ledger.jsonl"
+    for p, name in [(trace_path, "selection_trace.jsonl"), (receipt_path, "selection_receipt.json"), (ledger_path, "selection_ledger.jsonl")]:
+        if not p.is_file():
+            raise ValueError(f"A-E2 {name} required at run root: {p}")
+
+    trace_sha = _sha256_file(trace_path)
+    records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E2", run_id=run_id,
+    )
+
+    for rec in records:
+        if rec.get("selected") is not True:
+            continue
+        decision_id = str(rec["decision_id"])
+        candidate_id = str(rec["candidate_id"])
+        if decision_id == "training_size:A-E2:selected:A-E3_baseline":
+            out["selected_training_size"] = candidate_id
+        elif decision_id == "distribution:A-E2:selected:A-E3_baseline":
+            out["selected:A-E2_distribution"] = candidate_id
+
+    if "selected_training_size" not in out:
+        raise ValueError("A-E2 selection has no verified training_size winner")
+    if "selected:A-E2_distribution" not in out:
+        raise ValueError("A-E2 selection has no verified distribution winner")
 
 
 def _resolve_distribution_for_entry(entry: ResolvedCohortEntry, resolutions: dict) -> str:
@@ -1145,7 +1245,7 @@ def _resolve_or_fail(value: str, field: str, module_id: str, fit_id: str, resolu
 
 def build_g3_accreditation(
     *, ae2_run_dir: Path, artifact_root: Path, cache_root: Path,
-    study_root: Path, code_commit: str, output_dir: Path,
+    study_root: Path, code_commit: str, output_dir: Path, timestamp: str,
 ) -> dict[str, Any]:
     """Minimal production entry: chain → authority → cohort → manifest → bundle → state.
 
@@ -1162,7 +1262,10 @@ def build_g3_accreditation(
     chain = resolve_g3_predecessor_chain(ae2_run_dir=ae2_run_dir, artifact_root=artifact_root)
     authority = verify_g3_chain_authority(chain=chain, cache_root=cache_root)
     cohort = derive_g3_cohort_from_authority(frozen_config=frozen, chain=chain, authority=authority)
-    cohort = resolve_g3_placeholders_from_evidence(chain=chain, cohort=cohort)
+    cohort = resolve_g3_placeholders_from_evidence(
+        chain=chain, cohort=cohort,
+        code_commit=code_commit, effective_config_sha256=effective.effective_config_sha256,
+    )
 
     manifest = build_g3_test_manifest(
         cohort=cohort, chain=chain, frozen_config=frozen,
@@ -1206,7 +1309,7 @@ def build_g3_accreditation(
     state_path = output_dir / "g3_formal_state.json"
     initialize_g3_formal_state(
         state_path=state_path, bundle=bundle,
-        run_family_id="G3-formal", timestamp=manifest.get("code_commit", "")[:8],
+        run_family_id="G3-formal", timestamp=timestamp,
     )
 
     state_bytes = state_path.read_bytes()
