@@ -13,8 +13,10 @@
 
 ```
 Branch:              study01xu
-Final tip:           5803c72 (seal: verify and seal P8a derived outputs)
-Generation commit:   3330523 (fix: handle GBK encoding errors in log() for Windows terminals)
+P8b REVISE tip:      (this commit — fixes applied, no re-run)
+Previous final tip:  b66a549 (SUPERSEDED — report statistics incorrect)
+Artifact commit:     7946108 (raw outputs — UNCHANGED, not re-generated)
+Generation commit:   3330523 (code at formal run time)
 P7 APPROVE tip:      d619a40
 P6 content commit:   2ee23a8
 ```
@@ -27,15 +29,14 @@ P6 content commit:   2ee23a8
 | 2 | `8f232bf` | **test/fix**: freeze P8a formal execution controls |
 | 3 | `43ff11a` | **test**: add P8a unified gate check script |
 | 4 | `09fc676` | **fix**: use utf-8 encoding in gate check script for E4d manifest |
-| 5 | `3330523` | **fix**: handle GBK encoding errors in log() for Windows terminals |
-| 6 | `7946108` | **run**: generate P8a formal raw artifacts |
-| 7 | `5803c72` | **seal**: verify and seal P8a derived outputs |
+| 5 | `3330523` | **fix**: handle GBK encoding errors → **GENERATION CODE COMMIT** |
+| 6 | `7946108` | **run**: generate P8a formal raw artifacts (25,500 rows) |
+| 7 | `b66a549` | **docs**: P8a executor report v1 (SUPERSEDED — report errors) |
+| 8 | *(this commit)* | **fix/docs**: P8b REVISE — correct report, close auth, fix manifest seal, fix GBK test |
 
-**Generation code commit**: `3330523` (commit #5 — the exact commit from which the formal run was launched)
-
-**Artifact commit**: `7946108` (commit #6 — formal outputs committed)
-
-**Seal/report commit**: `5803c72` (commit #7 — verification + this report will be the next commit)
+**Generation code commit**: `3330523` — unchanged, no re-run.
+**Artifact commit**: `7946108` — raw outputs unchanged. CSV, summary JSON, stability CSV, run log are bit-identical to the original formal run.
+**Changed in REVISE**: manifest (`recovery_attempts`, output_hashes), new `SHA256SUMS_p8a`, report corrections, test updates, authorization closed.
 
 ## Exact Run Command and Timing
 
@@ -125,121 +126,153 @@ All 10 pre-flight gates passed before formal execution:
 
 ## Core Results Summary
 
+*All values independently recomputed from `real_holdout_results.csv` using `numpy.median()` and paired-difference logic; not taken from the summary JSON or any production aggregation function.*
+
 ### Primary Metric: Holdout KS Distance D (median across 500 repeats)
 
 | Method | n=7 | n=10 | n=20 |
 |--------|-----|------|------|
-| Default (δ=0.1) | 0.1595 | 0.0954 | 0.0692 |
-| L2 (per-n frozen δ) | 0.1595 | 0.0954 | 0.0714 |
-| NN (median of 15 models) | 0.1725 | 0.1045 | 0.0763 |
-
-*Values independently recomputed from raw CSV.*
+| Default (δ=0.1) | 0.1881 | 0.1630 | 0.1276 |
+| L2 (per-n frozen δ) | 0.1881 | 0.1630 | 0.1263 |
+| NN (median of 15 model-level medians) | 0.2024 | 0.1727 | 0.1361 |
 
 ### Default vs L2 Paired Wins
 
-| Train n | L2 wins | Default wins | Ties | L2 win rate |
-|---------|---------|-------------|------|-------------|
-| 7 | 258 | 242 | 0 | 0.516 |
-| 10 | 253 | 247 | 0 | 0.506 |
-| 20 | 239 | 261 | 0 | 0.478 |
+n=7 and n=10 have δ=0.10 for both methods, so they are identical — all 500 pairs are ties.
 
-*n=7 and n=10 have same δ (0.10) for both methods → near-even split. n=20 L2 uses δ=0.08 vs Default 0.10.*
+| Train n | L2 wins | Default wins | Ties |
+|---------|---------|-------------|------|
+| 7 | 0 | 0 | 500 |
+| 10 | 0 | 0 | 500 |
+| 20 | 211 | 190 | 99 |
+
+At n=20, L2 δ=0.08 vs Default δ=0.10: L2 wins 211, Default wins 190, 99 ties.
 
 ### NN Cross-Model Distribution (median D, 15 models)
 
 | Train n | Min | Q1 | Median | Q3 | Max | Mean ± SD |
 |---------|-----|-----|--------|-----|-----|-----------|
-| 7 | 0.1657 | 0.1699 | 0.1725 | 0.1771 | 0.1929 | 0.1742 ± 0.0073 |
-| 10 | 0.0988 | 0.1024 | 0.1045 | 0.1071 | 0.1154 | 0.1050 ± 0.0046 |
-| 20 | 0.0724 | 0.0742 | 0.0763 | 0.0790 | 0.0834 | 0.0768 ± 0.0034 |
+| 7 | 0.1936 | 0.1976 | 0.2024 | 0.2104 | 0.2218 | 0.2043 ± 0.0088 |
+| 10 | 0.1680 | 0.1706 | 0.1727 | 0.1763 | 0.1839 | 0.1735 ± 0.0048 |
+| 20 | 0.1338 | 0.1359 | 0.1361 | 0.1371 | 0.1432 | 0.1370 ± 0.0029 |
 
 ### 15-Model Stability
 
 Model-to-model variation (SD of 15 model-level median-D values):
-- n=7: SD = 0.0073 (CV = 4.2%)
-- n=10: SD = 0.0046 (CV = 4.4%)
-- n=20: SD = 0.0034 (CV = 4.4%)
+- n=7: SD = 0.0088 (CV = 4.3%)
+- n=10: SD = 0.0048 (CV = 2.7%)
+- n=20: SD = 0.0029 (CV = 2.1%)
 
-The 15 NN selectors show consistent within-fold/seed stability. Model choice has small but measurable impact on holdout KS distance.
+The 15 NN selectors show adequate within-contract stability. Model choice has measurable but limited impact on holdout KS distance.
 
 ### NN vs Default Paired Win Rates (15-model distribution)
 
 | Train n | Min | Median | Max |
 |---------|-----|--------|-----|
-| 7 | 0.314 | 0.380 | 0.486 |
-| 10 | 0.302 | 0.376 | 0.442 |
-| 20 | 0.290 | 0.350 | 0.458 |
+| 7 | 0.038 | 0.204 | **0.512** |
+| 10 | 0.068 | 0.234 | 0.432 |
+| 20 | 0.214 | 0.338 | 0.400 |
 
-NN selectors do NOT consistently outperform Default (δ=0.1) on this dataset. All 15 models have win rates below 0.5 vs Default.
+At n=7, one model achieves a 51.2% win rate vs Default; the median model wins 20.4% of repeats. At n=10 and n=20, all 15 models have win rates below 0.5.
+
+### Auxiliary: Holdout Support-Set Violation Rate
+
+| Method | n=7 | n=10 | n=20 |
+|--------|-----|------|------|
+| Default (δ=0.1) | 0.764 | 0.754 | 0.724 |
+| L2 (per-n frozen δ) | 0.764 | 0.754 | 0.680 |
+| NN (median of 15 models) | 0.908 | 0.904 | 0.802 |
+
+Support-set violation rates are high across all methods, particularly for NN selectors. The fitted γ̂ frequently exceeds the smallest holdout observation. This is an important auxiliary result per frozen contract §5.2 (M2).
 
 ## Failure Rate
 
-**Zero estimation failures** across all 25,500 method applications. All MLE solutions converged with legal parameters on the NIST 6061-T6 data. The admission gate R²=0.9951 indicates strong Weibull fit to the full dataset.
+**Zero MDM estimation failures** across all 25,500 method applications. All MDM runs converged with legal parameters on the NIST 6061-T6 data. The admission gate R²=0.9951 indicates strong Weibull fit to the full dataset.
+
+Note: "No estimation failures" means MDM did not fail to converge. The high support-set violation rates (above) are a separate auxiliary metric — they reflect the fitted model's γ̂ relative to holdout data, not MDM convergence failure.
 
 ## Input/Output SHA256 Verification
 
+### Input Hashes
+
 | File | SHA256 (LF-normalized) | Verified |
 |------|------------------------|----------|
-| BIRNSAUN.DAT | `7814c533...` | ✓ Match |
-| lifetimes.csv | `43c85155...` | ✓ Match |
-| p6_frozen_config.json | `be6d88bd...` | ✓ Match |
-| real_holdout_results.csv | (in manifest) | ✓ |
-| real_holdout_summary.json | (in manifest) | ✓ |
-| real_nn_model_stability.csv | (in manifest) | ✓ |
-| real_data_manifest.json | (in manifest) | ✓ |
-| run_log.txt | (in manifest) | ✓ |
+| BIRNSAUN.DAT | `7814c533818517d8b824c56213abac2b4076786a13a66d85a8481a32bbccf127` | ✓ Match |
+| lifetimes.csv | `43c85155bdfeafd21e2366610e88a3f4e1a09e36466fb22d34729dc60418ee12` | ✓ Match |
+| p6_frozen_config.json | `be6d88bd761c849b...` | ✓ Match (in manifest) |
+
+### Output Hashes (from SHA256SUMS_p8a seal file)
+
+The manifest's `output_hashes` covers the 4 data files. The manifest itself is not self-hashed; its final SHA256 is bound externally in `SHA256SUMS_p8a` alongside the other 4 files to avoid the self-reference problem (manifest is rewritten after hash computation).
+
+| File | SHA256 (LF-normalized) | Source |
+|------|------------------------|--------|
+| real_holdout_results.csv | `82b05bfe...` | manifest + SHA256SUMS_p8a |
+| real_holdout_summary.json | `01675a1e...` | manifest + SHA256SUMS_p8a |
+| real_nn_model_stability.csv | `e0816244...` | manifest + SHA256SUMS_p8a |
+| run_log.txt | `387fe458...` | manifest + SHA256SUMS_p8a |
+| real_data_manifest.json | `ef2f0bdb...` | SHA256SUMS_p8a only |
 
 ## Recovery, Re-run, or Deviations
 
 | Item | Status |
 |------|--------|
-| Recovery attempts | **0** (first attempt succeeded after encoding fix) |
-| First attempt | Failed: GBK encoding error on `R²` character in log message |
-| Fix applied | Added `errors='replace'` fallback in `log()`, replaced `²` → `^2` |
-| Second attempt | **Succeeded** — all outputs complete and verified |
-| Deviations from contract | **None** |
-| Code changes during run | **None** (all fixes committed and pushed before formal run at `3330523`) |
-| Git tree at generation | **Clean** |
+| Total attempts | **2** |
+| **Attempt 1** | **Failed** — GBK encoding error on `²` character in log message at gate phase (1s elapsed). Scratch directory preserved. |
+| Fix applied | Committed `3330523`: `errors='replace'` fallback in `log()`, `²` → `^2`, `β/η/γ` → ASCII |
+| **Attempt 2** | **Succeeded** — from clean tree at `3330523`, 1529.7s elapsed, all outputs verified |
+| Recovery attempts | **1** (attempt 1 failed → code fixed → attempt 2 succeeded) |
+| Deviations from P6 contract | **None** |
+| Code changes during run | **None** (all fixes committed and pushed before generation commit `3330523`) |
+| Git tree at generation | **Clean** (verified at `3330523`) |
+| Exact run command | `python -c "import sys; sys.path.insert(0, 'Study/01-study-MDM.../code'); from run_real_data_validation import run_p8a_formal; run_p8a_formal()"` (path abbreviated for display; the code directory is `Study/01-study-MDM最小偏移量优化研究/code/`) |
 
 ## Not Executed
 
-- ❌ P8b: Independent review of real data results (next phase)
+- ❌ P8b: Independent review (Codex) — **in progress (REVISE issued, this is the response)**
 - ❌ P9: Optional S1/S2 supplemental diagnostics
 - ❌ P10: Overall acceptance and status sync
 - ❌ Engineering life quantile metrics (out of scope per contract)
 - ❌ Pseudo p-values or significance tests on repeated splits
 - ❌ New datasets, seeds, models, or metrics beyond frozen contract
+- ❌ P8a formal re-run (not needed — raw artifacts are correct, only report/seal/manifest needed fixing)
 
 ## Scientific Statements
 
-1. **Default vs L2**: On this single NIST 6061-T6 dataset, the frozen per-n L2 deltas (n=7: 0.10, n=10: 0.10, n=20: 0.08) perform nearly identically to Default (δ=0.1). This is expected because the L2 deltas differ from 0.1 only at n=20 (δ=0.08), and at n=20 the difference in median D is small (0.0692 vs 0.0714).
+1. **Default vs L2**: At n=7 and n=10 both methods use δ=0.10, producing identical results (500 ties). At n=20, L2 δ=0.08 vs Default δ=0.10 yields L2 wins 211, Default wins 190, ties 99. L2's advantage at n=20 is modest.
 
-2. **NN selector performance**: The 15 NN selectors retrained under the frozen E3b/E4d contract do NOT demonstrate superior holdout KS distance compared to the simple Default δ=0.1 or L2 on this dataset. This is a legitimate negative result that should be reported as-is.
+2. **NN selector performance**: The 15 NN selectors do NOT demonstrate consistent superiority over Default (δ=0.1) on this dataset. At n=7 the best model achieves 51.2% win rate vs Default; the median model wins only 20.4%. At n=10 and n=20 all 15 models have win rates below 0.5. The NN method's higher support-set violation rates (median 0.80–0.91) are a notable auxiliary concern.
 
-3. **Model stability**: The 15 NN selectors (5 folds × 3 seeds) show good stability (CV ~4% for median D), suggesting the training procedure produces consistent models even though individual predictions differ.
+3. **Model stability**: The 15 NN selectors show adequate stability (CV 2–4% for median D). Model choice has limited impact on aggregate metrics.
 
-4. **Caveats**:
+4. **Support-set violations**: Violation rates are high across all methods (0.68–0.91), particularly for NN selectors. This reflects the difficulty of estimating a 3-parameter Weibull location parameter from small samples — γ̂ often exceeds some holdout observations.
+
+5. **Caveats**:
    - Results are from a single real dataset (NIST 6061-T6, n=101) and do not constitute external generalization evidence.
    - Repeated splits (500 per n) are correlated; win rates are not independent observations.
    - The full-sample OLS Weibull fit (β=4.03, η=1545.3) is an empirical reference, not "true parameters."
    - 15 NN models are stability replicates, not independent predictors.
    - No pseudo p-values or significance claims are made.
+   - All estimates are MDM (minimum displacement method), not MLE.
 
 ## Hard Boundaries
 
 | Boundary | Status |
 |----------|--------|
-| `_P8A_FORMAL_AUTHORIZED` in generation commit | ✓ Yes (commit `3330523`) |
+| `_P8A_FORMAL_AUTHORIZED` = True in generation commit `3330523` | ✓ Verified |
+| `_P8A_FORMAL_AUTHORIZED` = False in final tip (sealed state) | ✓ Verified |
 | No CLI bypass or hidden entry points | ✓ Confirmed |
 | No amendment of P6 scientific contract | ✓ Confirmed |
-| E1/E2/E3/E4/R1/R2 artifacts unchanged | ✓ Confirmed (verified by independent audit) |
+| E1/E2/E3/E4/R1/R2 artifacts unchanged | ✓ Confirmed |
 | No data leakage (real data → training/scaler) | ✓ Confirmed |
 | 15 selectors, no cherry-picking | ✓ Confirmed |
 | Per-model aggregation before cross-model | ✓ Confirmed |
 | No "median model" or pooled pseudo-inference | ✓ Confirmed |
 | Git tree clean at generation time | ✓ Confirmed |
-| Transactional scratch→promote output protocol | ✓ Executed successfully |
-| Results not altered post-hoc | ✓ Confirmed (independent recompute matches) |
+| Transactional scratch→promote output protocol | ✓ Executed |
+| Manifest self-hash excluded (SHA256SUMS_p8a seal) | ✓ Fixed in REVISE |
+| Raw artifacts NOT re-generated | ✓ Confirmed (CSV/stability/summary/log bit-identical to `7946108`) |
+| P8a formal run NOT re-executed | ✓ Confirmed |
 
 ## Explicit Declaration
 

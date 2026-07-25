@@ -136,11 +136,12 @@ DEFAULT_OUTPUT_DIR = os.path.join(
 _P6_PLACEHOLDER_GUARD = False
 
 # P8a formal authorization: NARROW, AUDITABLE, SINGLE-COMMIT scope.
-# Set to True ONLY in the P8a generation commit. This authorizes
+# Set to True ONLY in the P8a generation commit (3330523). This authorizes
 # exactly one formal run against the frozen P6 contract.
+# After P8a formal run completed and sealed, set back to False.
 # Tests call run_pipeline() directly and are not affected.
 # There is NO CLI flag, NO bypass_guard parameter, NO hidden entry point.
-_P8A_FORMAL_AUTHORIZED = True
+_P8A_FORMAL_AUTHORIZED = False
 
 # P7 APPROVE record that must exist before P8a formal run.
 _P7_APPROVE_RECORD = os.path.join(
@@ -1937,26 +1938,55 @@ def run_p8a_formal(data_dir=None, output_dir=None, chunks_dir=None):
     manifest['start_time'] = start_iso
     manifest['end_time'] = end_iso
     manifest['elapsed_seconds'] = round(elapsed, 1)
-    manifest['recovery_attempts'] = 0
+    manifest['recovery_attempts'] = 1  # First attempt failed (GBK encoding), second succeeded
     manifest['p8a_authorization'] = {
         'guard': '_P8A_FORMAL_AUTHORIZED',
         'scope': 'single_generation_commit',
         'bypass_exists': False,
     }
 
-    # Compute output file hashes
+    # Compute output file hashes (EXCLUDING manifest — it is being rewritten now,
+    # so its own hash cannot be self-consistent. The manifest's final hash is bound
+    # externally in SHA256SUMS_p8a below.)
+    sealable_files = [
+        'real_holdout_results.csv',
+        'real_holdout_summary.json',
+        'real_nn_model_stability.csv',
+        'run_log.txt',
+    ]
     output_hashes = {}
-    for fname in expected_files:
+    for fname in sealable_files:
         fpath = os.path.join(output_dir, fname)
         with open(fpath, 'rb') as f:
             raw = f.read()
         raw_lf = raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
         output_hashes[fname] = hashlib.sha256(raw_lf).hexdigest()
     manifest['output_hashes'] = output_hashes
+    manifest['output_hashes_note'] = (
+        'SHA256 of the 4 data files at promotion time (LF-normalized). '
+        'The manifest file itself is not self-hashed; its final SHA256 is '
+        'recorded in SHA256SUMS_p8a alongside the other 4 files.'
+    )
 
     with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump(manifest, f, indent=2, sort_keys=True, ensure_ascii=False)
+
+    # Write external seal: SHA256SUMS_p8a binds all 5 final files including manifest
+    seal_path = os.path.join(output_dir, 'SHA256SUMS_p8a')
+    all_files = sealable_files + ['real_data_manifest.json']
+    with open(seal_path, 'w', encoding='utf-8') as f:
+        f.write(f'# P8a formal output SHA256 sums (LF-normalized)\n')
+        f.write(f'# Generated: {now_iso()}\n')
+        f.write(f'# Generation commit: {exec_commit}\n')
+        for fname in all_files:
+            fpath = os.path.join(output_dir, fname)
+            with open(fpath, 'rb') as fh:
+                raw = fh.read()
+            raw_lf = raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+            h = hashlib.sha256(raw_lf).hexdigest()
+            f.write(f'{h}  {fname}\n')
     log("Manifest augmented with P8a provenance fields.")
+    log(f"External seal written: {seal_path}")
 
     log("=" * 70)
     log("P8a formal run COMPLETE.")

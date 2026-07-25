@@ -197,17 +197,14 @@ class TestRealDataGate:
 
 class TestP6PlaceholderGuard:
     def test_p6_guard_released_p8a_authorized(self):
-        """P6 guard released after P7 APPROVE; P8a authorization is active."""
+        """P6 guard released after P7 APPROVE; P8a authorization sealed closed."""
         import run_real_data_validation as rv
         assert rv._P6_PLACEHOLDER_GUARD is False, (
             "P6 placeholder guard must be False after P7 Codex APPROVE"
         )
-        assert rv._P8A_FORMAL_AUTHORIZED is True, (
-            "P8A_FORMAL_AUTHORIZED must be True in generation commit"
+        assert rv._P8A_FORMAL_AUTHORIZED is False, (
+            "P8A_FORMAL_AUTHORIZED must be False in final sealed state"
         )
-        # main() should run (not raise PLACEHOLDER error) when authorized
-        # (We can't actually run main() as it triggers full pipeline,
-        # but the guard check passes)
 
     def test_p8a_authorization_is_module_level_constant(self):
         """P8a authorization must be an importable module-level constant."""

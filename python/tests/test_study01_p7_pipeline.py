@@ -297,8 +297,10 @@ class TestGuardNoBypass:
 
     def test_p8a_authorized(self):
         from run_real_data_validation import _P8A_FORMAL_AUTHORIZED
-        assert _P8A_FORMAL_AUTHORIZED is True, (
-            "P8A_FORMAL_AUTHORIZED must be True in generation commit"
+        # Authorization closed after P8a formal run sealed.
+        # Was True only in generation commit 3330523.
+        assert _P8A_FORMAL_AUTHORIZED is False, (
+            "P8A_FORMAL_AUTHORIZED must be False in final sealed state"
         )
 
     def test_main_checks_p8a_authorization(self):
@@ -838,7 +840,7 @@ class TestContractCompliance:
     def test_p8a_authorization_active(self):
         from run_real_data_validation import _P6_PLACEHOLDER_GUARD, _P8A_FORMAL_AUTHORIZED
         assert not _P6_PLACEHOLDER_GUARD, "P6 guard must be released"
-        assert _P8A_FORMAL_AUTHORIZED, "P8a must be authorized"
+        assert not _P8A_FORMAL_AUTHORIZED, "P8a authorization must be closed in sealed state"
 
 
 class TestNoLeakageConstraint:

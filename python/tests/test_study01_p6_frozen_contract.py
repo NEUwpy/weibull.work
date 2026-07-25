@@ -156,14 +156,14 @@ def test_source_json_required_fields():
     assert src['n_uncensored'] == 101
 
 
-def test_p8a_authorization_active():
-    """P6 guard released after P7 APPROVE; P8a authorization active."""
+def test_p8a_authorization_closed_after_seal():
+    """P6 guard released after P7 APPROVE; P8a authorization sealed closed."""
     import run_real_data_validation as rv
     assert rv._P6_PLACEHOLDER_GUARD is False, (
         "P6 placeholder guard must be released after P7 Codex APPROVE"
     )
-    assert rv._P8A_FORMAL_AUTHORIZED is True, (
-        "P8A_FORMAL_AUTHORIZED must be True in generation commit"
+    assert rv._P8A_FORMAL_AUTHORIZED is False, (
+        "P8A_FORMAL_AUTHORIZED must be False in final sealed state"
     )
 
 
@@ -225,10 +225,12 @@ def test_conversion_script_reproduces_lifetimes_csv(tmp_path):
     shutil.copy2(str(dat_src), str(dat_dst))
     script_dst = tmp_path / "convert_birnsaun_to_lifetimes.py"
     shutil.copy2(script, str(script_dst))
+    env = os.environ.copy()
+    env['PYTHONIOENCODING'] = 'utf-8'
     result = subprocess.run(
         [sys.executable, str(script_dst)],
-        capture_output=True, text=True, timeout=30,
-        cwd=str(tmp_path)
+        capture_output=True, text=True, encoding='utf-8',
+        timeout=30, cwd=str(tmp_path), env=env,
     )
     assert result.returncode == 0, (
         f"Conversion script failed:\n{result.stderr}"

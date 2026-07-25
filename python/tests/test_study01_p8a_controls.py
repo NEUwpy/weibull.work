@@ -40,9 +40,23 @@ class TestP8aAuthorization:
         """P6 placeholder guard was released after P7 APPROVE."""
         assert rv._P6_PLACEHOLDER_GUARD is False
 
-    def test_p8a_formal_authorized(self):
-        """_P8A_FORMAL_AUTHORIZED is True in generation commit."""
-        assert rv._P8A_FORMAL_AUTHORIZED is True
+    def test_p8a_authorization_closed_after_seal(self):
+        """_P8A_FORMAL_AUTHORIZED is False in final tip (sealed after P8a complete)."""
+        assert rv._P8A_FORMAL_AUTHORIZED is False, (
+            "P8a authorization must be closed after formal run sealed"
+        )
+
+    def test_p8a_was_authorized_in_generation_commit(self):
+        """_P8A_FORMAL_AUTHORIZED was True in generation commit 3330523."""
+        import subprocess
+        result = subprocess.run(
+            ['git', 'show', '3330523:Study/01-study-MDM最小偏移量优化研究/code/run_real_data_validation.py'],
+            capture_output=True, text=True, encoding='utf-8',
+            cwd=str(PROJECT_ROOT), timeout=10
+        )
+        assert '_P8A_FORMAL_AUTHORIZED = True' in result.stdout, (
+            "Generation commit 3330523 must have _P8A_FORMAL_AUTHORIZED = True"
+        )
 
     def test_p7_approve_record_path_exists(self):
         """P7 APPROVE record path is set and the file exists."""
@@ -51,14 +65,9 @@ class TestP8aAuthorization:
         )
 
     def test_main_raises_when_unauthorized(self):
-        """main() raises RuntimeError when _P8A_FORMAL_AUTHORIZED is False."""
-        original = rv._P8A_FORMAL_AUTHORIZED
-        try:
-            rv._P8A_FORMAL_AUTHORIZED = False
-            with pytest.raises(RuntimeError, match="P8a formal authorization"):
-                rv.main()
-        finally:
-            rv._P8A_FORMAL_AUTHORIZED = original
+        """main() raises RuntimeError when _P8A_FORMAL_AUTHORIZED is False (sealed state)."""
+        with pytest.raises(RuntimeError, match="P8a formal authorization"):
+            rv.main()
 
     def test_main_help_does_not_trigger_pipeline(self):
         """--help prints usage and returns without running pipeline."""
