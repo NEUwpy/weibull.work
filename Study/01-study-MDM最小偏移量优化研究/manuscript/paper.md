@@ -55,7 +55,7 @@ MDM的基本思想是：对于给定的样本，在参数空间中搜索使"伪�
 | L5 | 按β, γ/η, n | 全部真参数（不可知） | oracle参照 |
 | L6 | 逐样本 | 固定26点δ网格上的完备事后扫描 | 事后参照 |
 
-L1和L2是仅使用已知信息的可部署层级；L3-L5需要真参数信息，只能作为oracle参照和训练标签来源；L6是给定26点离散δ网格内的逐样本事后最优参照——每一级更高的oracle都携带L6不具备的组内聚合，因此L6的pooled J₁不是任何可部署方法的"理论上限"。
+L1和L2是仅使用已知信息的可部署层级；L3-L5需要真参数信息，只能作为oracle参照和训练标签来源；L6是固定26点δ网格上的逐样本hindsight argmin参照——每个样本独立取自己的hindsight最优δ，但这一选择使用了部署时不可见的逐样本真实损失。
 
 ### 2.4 主指标
 
@@ -160,7 +160,7 @@ scale_quantile子集已保留full的大部分表现（差异约0.005）。shape-
 
 NIST 6061-T6铝合金疲劳寿命数据包含101个完整失效寿命（无删失），来源于Birnbaum & Saunders (1958)[5]。Weibull OLS拟合的R²=0.995。
 
-实验设计：从101个寿命中无放回抽取train_n∈{7,10,20}，共500次重复。每次重复使用Default（δ=0.1）、L2（冻结per-n δ）和15个NN selector进行MDM估计，主指标为单侧两样本KS距离D（拟合三参数Weibull CDF与holdout ECDF之间的距离，越小越好）。
+实验设计：从101个寿命中无放回抽取train_n∈{7,10,20}，共500次重复。每次重复使用Default（δ=0.1）、L2（冻结per-n δ）和15个NN selector进行MDM估计，主指标为one-sample two-sided KS distance D（拟合三参数Weibull CDF与holdout ECDF之间的距离，D越小越好）。
 
 **主结果（Figure 9）：**
 
