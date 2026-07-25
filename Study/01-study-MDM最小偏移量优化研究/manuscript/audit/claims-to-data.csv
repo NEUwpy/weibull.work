@@ -1,0 +1,32 @@
+section,claim,figure,source_file,value_in_text,value_in_source,match
+§1,"δ=0.1是经验值，需要系统研究",,182-046原文,,待文献核实,
+§2.1,"δ改变搜索判据而非后处理修正",Fig.1,formal/E1_baseline/,,,✓
+§2.3,"L1-L6六级框架定义",Table 1,02-实验协议.md,,,✓
+§2.4,"J₁定义公式",,02-实验协议.md,,,✓
+§3.1,"Default J₁=0.6332",Fig.2,formal/E1_baseline/summary.json,0.6332,0.633219,✓
+§3.1,"L1最优δ*=0.08，J₁=0.6325",Fig.2,formal/E1_baseline/summary.json,0.6325,0.632541,✓
+§3.2,"L3 J₁=0.585",Fig.4,formal/E2_oracle_layers/summary.json,0.585,0.585068,✓
+§3.2,"L4 J₁=0.582",Fig.4,formal/E2_oracle_layers/summary.json,0.582,0.582090,✓
+§3.2,"L5 J₁=0.571",Fig.4,formal/E2_oracle_layers/summary.json,0.571,0.571170,✓
+§3.2,"L6 J₁=0.495",Fig.4,formal/E2_oracle_layers/summary.json,0.495,0.494530,✓
+§3.3,"Vector-MLP J₁=0.547",,formal/E3b_vector_mlp/summary.json,0.547,0.547003,✓
+§3.3,"三seed: 42=0.547, 2026=0.546, 3407=0.544",,formal/E3b_vector_mlp/seed_stability.csv,0.547/0.546/0.544,0.547003/0.546133/0.544009,✓
+§3.4,"E4a Full J₁=0.546",Fig.6,formal/E4_robustness/E4a_feature_ablation.csv,0.546,0.5456,✓
+§3.4,"E4a -Spread J₁=0.551",Fig.6,formal/E4_robustness/E4a_feature_ablation.csv,0.551,0.5506,✓
+§3.4,"E4a -Shape J₁=0.582",Fig.6,formal/E4_robustness/E4a_feature_ablation.csv,0.582,0.5816,✓
+§3.4,"E4a n_only J₁=0.638",Fig.6,formal/E4_robustness/E4a_feature_ablation.csv,0.638,0.6378,✓
+§3.4,"R2: 2800/2958=94.66%迁移",Fig.8,R2产物,94.66%,94.66%,✓
+§3.4,"R2: 743样本在δ=1.00边界",Fig.8,R2产物,743,743,✓
+§3.5,"Default n=7 D=0.1881",Fig.9,formal/real_data/.../real_holdout_results.csv,0.1881,0.1881,✓
+§3.5,"Default n=10 D=0.1630",Fig.9,formal/real_data/.../real_holdout_results.csv,0.1630,0.1630,✓
+§3.5,"Default n=20 D=0.1276",Fig.9,formal/real_data/.../real_holdout_results.csv,0.1276,0.1276,✓
+§3.5,"NN n=7 median=0.2024",Fig.9,formal/real_data/.../real_holdout_results.csv,0.2024,0.2024,✓
+§3.5,"NN n=10 median=0.1727",Fig.9,formal/real_data/.../real_holdout_results.csv,0.1727,0.1727,✓
+§3.5,"NN n=20 median=0.1361",Fig.9,formal/real_data/.../real_holdout_results.csv,0.1361,0.1361,✓
+§3.5,"n=7/10: all 500 ties",Fig.9,formal/real_data/.../real_holdout_results.csv,500/0/0,500/0/0,✓
+§3.5,"n=20: L2 211, Default 190, ties 99",Fig.9,formal/real_data/.../real_holdout_results.csv,211/190/99,211/190/99,✓
+§3.5,"NN win rate n=7: 0.038-0.512 (med 0.204)",Fig.9,formal/real_data/.../real_holdout_results.csv,0.038/0.204/0.512,0.038/0.204/0.512,✓
+§3.5,"NN win rate n=10: 0.068-0.432 (med 0.234)",Fig.9,formal/real_data/.../real_holdout_results.csv,0.068/0.234/0.432,0.068/0.234/0.432,✓
+§3.5,"NN win rate n=20: 0.214-0.400 (med 0.338)",Fig.9,formal/real_data/.../real_holdout_results.csv,0.214/0.338/0.400,0.214/0.338/0.400,✓
+§3.5,"Default sv n=7: 0.764",Fig.9,formal/real_data/.../real_holdout_results.csv,0.764,0.764,✓
+§3.5,"NN sv n=7 median: 0.908",Fig.9,formal/real_data/.../real_holdout_results.csv,0.908,0.908,✓
