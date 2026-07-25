@@ -13,8 +13,9 @@
 
 ```
 Baseline (P8b APPROVE):  1d11a6a
-Final tip:               3efea8e
-Branch in worktree:      study01xu-p10
+Final tip:               (this commit)
+Branch:                  study01xu
+Worktree:                .claude/worktrees/study01-p10 -> pushed to study01xu
 ```
 
 ## Complete Commit Chain
@@ -22,9 +23,11 @@ Branch in worktree:      study01xu-p10
 | # | Commit | Responsibility |
 |---|--------|---------------|
 | 1 | `052356e` | **docs**: record P8b Codex APPROVE and fix non-blocking doc issues |
-| 2 | `4bd308a` | **docs**: P10 Study01 final evidence summary and closure |
-| 3 | `53cbdb5` | **docs**: sync Study01 status, evidence index, submission tracker, changelog |
-| 4 | `3efea8e` | **fix**: replace Unicode check marks with ASCII [OK] in audit script |
+| 2 | `4bd308a` | **docs**: P10 Study01 evidence summary table |
+| 3 | `53cbdb5` | **docs**: sync status, evidence index, submission tracker, changelog |
+| 4 | `3efea8e` | **fix**: Unicode→ASCII in audit script |
+| 5 | `73398f0` | **docs**: P10 final closure executor report (SUPERSEDED — 6 issues) |
+| 6 | *(this commit)* | **fix/docs**: P10 REVISE — correct E3b layer, R2 conclusion, provenance, closing language |
 
 All commits based on `1d11a6a`. No formal artifacts modified.
 
@@ -101,13 +104,13 @@ compileall                       → OK
 
 ## P10 Final Conclusions
 
-1. **Study01 is formally closed.** All required experiments (E1–E4, R1–R3/P6–P8) are complete and independently reviewed. P8b Codex APPROVE at `1d11a6a` is the final gate.
+1. **Study01 正式实验与证据链已闭环。** 所有必做实验（E1–E4, R1–R3/P6–P8）均已完成并独立审查通过。P8b Codex APPROVE at `1d11a6a` 是最终实验闸门。论文写作（G5）、图表整理和投稿（G6–G7）仍未完成，整个 Study01 项目尚未关闭。
 
-2. **P9 is optional.** S1/S2 supplemental diagnostics are not required for Study01 closure. They can be done later under a separate optional contract.
+2. **P9 is optional.** S1/S2 补充诊断不是 Study01 闭环的必要条件。
 
-3. **Next step is paper writing.** The P10 evidence summary table maps claims to experiments, artifacts, boundaries, and paper chapters. Ch1–Ch6 drafts are complete; Ch7 now has P6–P8 real-data evidence; Ch8–Ch9 remain to be written.
+3. **Next step is paper writing.** P10 证据总表将每项主张映射到实验、产物、边界和章节。Ch1–Ch6 初稿完成；Ch7 已有 P6–P8 证据；Ch8–Ch9 待写。
 
-4. **Evidence boundaries are explicit.** Claims about continuous parameter space deployment, arbitrary-n generalization, "single production model," and multi-dataset external validation are explicitly listed as unsupported by current evidence.
+4. **Evidence boundaries are explicit.** 连续参数空间部署、任意 n 泛化、"唯一生产模型"和多数据集外部验证均被明确列为当前证据不支持的主张。
 
 ## Deviations and Residual Risks
 
@@ -127,4 +130,4 @@ compileall                       → OK
 
 ## Status: READY_FOR_INDEPENDENT_REVIEW
 
-Study01 is complete. All formal experiments are sealed with provenance. The evidence chain is documented. P9 is optional. The project is ready to transition to paper writing.
+Study01 正式实验与证据链已闭环。所有正式产物均已封存带 provenance。证据链已文档化。P9 为可选。论文写作（G5–G7）是下一步，但整个 Study01 项目尚未完成。
