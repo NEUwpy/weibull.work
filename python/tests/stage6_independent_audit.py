@@ -31,24 +31,24 @@ print("=" * 60)
 # A. Row count
 print("\n--- A. Row Count ---")
 assert len(df) == 25500, f"Expected 25500, got {len(df)}"
-print(f"Rows: {len(df)} ✓")
+print(f"Rows: {len(df)} [OK]")
 
 # B. Train_n values
 assert sorted(df['train_n'].unique()) == [7, 10, 20]
-print(f"train_n: [7, 10, 20] ✓")
+print(f"train_n: [7, 10, 20] [OK]")
 
 # C. repeat_index: 0-499 for each train_n
 for tn in [7, 10, 20]:
     reps = sorted(df[df['train_n'] == tn]['repeat_index'].unique())
     assert reps == list(range(500)), f"n={tn}: bad repeat_index"
-print("repeat_index: 0-499 per n ✓")
+print("repeat_index: 0-499 per n [OK]")
 
 # D. Methods and counts
 for method in ['default', 'l2']:
     for tn in [7, 10, 20]:
         mask = (df['train_n'] == tn) & (df['method'] == method)
         assert mask.sum() == 500, f"{method} n={tn}: {mask.sum()} rows"
-print("Default/L2: 500 rows per n each ✓")
+print("Default/L2: 500 rows per n each [OK]")
 
 # E. NN: 15 models x 500 per n
 nn_df = df[df['method'] == 'nn']
@@ -58,17 +58,17 @@ for tn in [7, 10, 20]:
     for mid in nn_ids:
         mask = (nn_df['train_n'] == tn) & (nn_df['model_id'] == mid)
         assert mask.sum() == 500, f"NN {mid} n={tn}: {mask.sum()} rows"
-print(f"NN: 15 models x 500 per n = 22500 ✓")
+print(f"NN: 15 models x 500 per n = 22500 [OK]")
 
 # F. Primary key uniqueness
 pk = ['train_n', 'repeat_index', 'method', 'model_id']
 assert df.duplicated(subset=pk).sum() == 0
-print("PK unique ✓")
+print("PK unique [OK]")
 
 # G. D in [0,1], all finite
 assert df['D'].between(0, 1).all()
 assert df['D'].notna().all()
-print(f"D in [0,1], all finite ✓ (min={df['D'].min():.4f}, max={df['D'].max():.4f})")
+print(f"D in [0,1], all finite [OK] (min={df['D'].min():.4f}, max={df['D'].max():.4f})")
 
 # H. failed
 n_failed = int(df['failed'].sum())
@@ -78,7 +78,7 @@ failed_rows = df[df['failed'] == True]
 if len(failed_rows) > 0:
     assert (failed_rows['D'] == 1.0).all()
     assert (failed_rows['failure_reason'].notna() & (failed_rows['failure_reason'] != '')).all()
-    print("  Failed rows: D=1, failure_reason non-empty ✓")
+    print("  Failed rows: D=1, failure_reason non-empty [OK]")
 else:
     print("  No failed rows (all estimations succeeded)")
 
@@ -90,7 +90,7 @@ for method, n_val, expected_delta in [
     mask = (df['train_n'] == n_val) & (df['method'] == method)
     deltas = df.loc[mask, 'delta_used']
     assert (deltas == expected_delta).all(), f"{method} n={n_val}: delta mismatch"
-print("delta_used consistent ✓")
+print("delta_used consistent [OK]")
 
 # J. NN prediction failure: support_set_violation is NaN
 nn_failed = df[(df['method'] == 'nn') & (df['failed'] == True)]
@@ -98,14 +98,14 @@ if len(nn_failed) > 0:
     ss_viol = nn_failed['support_set_violation']
     assert ss_viol.isna().all() or (ss_viol != ss_viol).all(), \
         "NN failed rows: support_set_violation should be NaN"
-    print(f"NN failures ({len(nn_failed)}): support_set_violation=NaN ✓")
+    print(f"NN failures ({len(nn_failed)}): support_set_violation=NaN [OK]")
 
 # K. Stability CSV: 45 rows
 nn_stab = stab[stab['method'] == 'nn']
 assert len(nn_stab) == 45, f"Expected 45 NN stability rows, got {len(nn_stab)}"
 assert sorted(nn_stab['train_n'].unique()) == [7, 10, 20]
 assert len(nn_stab['model_id'].unique()) == 15
-print(f"Stability: 45 rows (15 models x 3 n) ✓")
+print(f"Stability: 45 rows (15 models x 3 n) [OK]")
 
 # L. Manifest provenance
 assert manifest['experiment'] == 'real_data_holdout_validation_p8a_formal'
@@ -115,7 +115,7 @@ assert len(manifest['output_hashes']) == 4, (
     "Manifest output_hashes should cover 4 data files (manifest excluded to avoid self-hash)"
 )
 assert 'generation_code_commit' in manifest
-print(f"Manifest: experiment={manifest['experiment']}, dirty=False, 4 data hashes in manifest + 5 in seal ✓")
+print(f"Manifest: experiment={manifest['experiment']}, dirty=False, 4 data hashes in manifest + 5 in seal [OK]")
 
 # M. Summary: independent recompute of Default median D
 print("\n--- M. Independent Stats Recompute ---")
@@ -131,12 +131,12 @@ for method in ['default', 'l2']:
             f"{method} n={tn}: median mismatch ({ps['median_D']} vs {ind_median})"
         assert abs(ps['mean_D'] - ind_mean) < 1e-9, \
             f"{method} n={tn}: mean mismatch"
-print("Default/L2: independent recompute matches summary ✓")
+print("Default/L2: independent recompute matches summary [OK]")
 
 # N. NN cross-model distribution
 nn_dist = summary.get('nn_cross_model_distribution', [])
 assert len(nn_dist) > 0, "nn_cross_model_distribution empty"
-print(f"NN cross-model distribution: {len(nn_dist)} rows ✓")
+print(f"NN cross-model distribution: {len(nn_dist)} rows [OK]")
 
 # O. NN model-first: independently verify ALL 15 model-level medians
 #    and their cross-model distribution (min/Q1/median/Q3/max/mean/SD)
@@ -189,8 +189,8 @@ for tn in [7, 10, 20]:
     print(f"  n={tn}: {len(ind_medians)} models verified, "
           f"min={dist_min:.4f} Q1={dist_q1:.4f} median={dist_median:.4f} "
           f"Q3={dist_q3:.4f} max={dist_max:.4f} mean={dist_mean:.4f} "
-          f"sd={dist_sd:.4f} ✓")
-print("NN model-first: all 15 models + full distribution verified ✓")
+          f"sd={dist_sd:.4f} [OK]")
+print("NN model-first: all 15 models + full distribution verified [OK]")
 
 # P. Verify E1/E2/E3/E4 artifacts not overwritten
 old_artifacts = [
@@ -202,7 +202,7 @@ artifacts_base = os.path.join(DIR, '..', '..')
 for art in old_artifacts:
     path = os.path.join(artifacts_base, art)
     assert os.path.exists(path), f"Old artifact missing: {art}"
-print("E1/E2/E3/E4/R1/R2 artifacts untouched ✓")
+print("E1/E2/E3/E4/R1/R2 artifacts untouched [OK]")
 
 # Q. Verify SHA256SUMS_p8a seal file against actual file bytes
 print("Verifying SHA256SUMS_p8a seal...")
@@ -227,7 +227,7 @@ for fname in expected_seal_files:
     actual_sha = hashlib.sha256(raw_lf).hexdigest()
     assert seal_hashes[fname] == actual_sha, \
         f"Seal mismatch for {fname}: seal={seal_hashes[fname][:16]}... actual={actual_sha[:16]}..."
-print(f"SHA256SUMS_p8a: {len(seal_hashes)} files verified, all match ✓")
+print(f"SHA256SUMS_p8a: {len(seal_hashes)} files verified, all match [OK]")
 
 # R. Verify formal dir has output files + seal + source files
 formal_files = set(os.listdir(DIR))
@@ -235,7 +235,7 @@ expected = {'real_holdout_results.csv', 'real_holdout_summary.json',
             'real_nn_model_stability.csv', 'real_data_manifest.json',
             'run_log.txt', 'SHA256SUMS_p8a'}
 assert expected <= formal_files, f"Missing output files: {expected - formal_files}"
-print("Formal dir: all 5 output files present ✓")
+print("Formal dir: all 5 output files present [OK]")
 
 print("\n" + "=" * 60)
 if errors:
