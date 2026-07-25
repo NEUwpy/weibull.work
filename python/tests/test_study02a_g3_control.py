@@ -544,3 +544,134 @@ class TestCohortCounts:
         cohort = matrix[matrix["fit_kind"].isin(_COHORT_FIT_KINDS)]
         counts = cohort.groupby("module").size().to_dict()
         assert counts == _EXPECTED_COHORT_COUNTS
+
+
+def _build_real_run(tmp_path, module_id="A-E1", run_id="G3-test-run"):
+    """Create a minimal REAL scheduler run (materialize + 1 succeeded fit)."""
+    import hashlib as _hashlib
+    from study02a.formal_scheduler import materialize_run, claim_next_fit, record_fit_succeeded
+    import study02a.formal_executor as fe
+
+    matrix_path = STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv"
+    if not matrix_path.is_file():
+        pytest.skip("G3 matrix not available")
+    artifact_root = tmp_path / "artifacts"
+    cache_root = tmp_path / "cache"
+    try:
+        result = materialize_run(
+            study_root=STUDY_ROOT, matrix_path=matrix_path, module_id=module_id,
+            run_id=run_id, artifact_root=artifact_root, cache_root=cache_root, predecessor=None,
+        )
+    except ValueError as exc:
+        if "dirty" in str(exc):
+            pytest.skip("Study02 code tree is dirty (commit first)")
+        raise
+    run_dir = Path(result["run_dir"])
+    claim = claim_next_fit(run_dir, cache_root=cache_root, owner_id="w1", owner_nonce="n1", timestamp="T1")
+    fit_id = claim["fit_id"]
+    ckpt = b"test-checkpoint-bytes"
+    ckpt_sha = _hashlib.sha256(ckpt).hexdigest()
+    curve = [100.0 / (i + 1) for i in range(60)]
+    evidence = {
+        "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id, "run_id": run_id,
+        "checkpoint_sha256": ckpt_sha, "actual_epochs": 60,
+        "best_epoch_one_based": 60, "hit_epoch_100": False,
+        "early_stop_reason": "patience_exhausted",
+        "terminal_validation_slope": fe._terminal_ols_slope(tuple(curve)),
+        "validation_curve": curve, "test_access_count": 0,
+    }
+    output_hashes = fe._write_outputs(run_dir, fit_id, run_id, ckpt, ckpt_sha, evidence)
+    record_fit_succeeded(run_dir, cache_root=cache_root, fit_id=fit_id, owner_id="w1", owner_nonce="n1",
+                         output_hashes=output_hashes, timestamp="T2")
+    return run_dir, cache_root, fit_id
+
+
+class TestProductionAuthority:
+    def test_rebuild_authority_called_and_rejects_tampered_plan(self, tmp_path):
+        from study02a.formal_scheduler import _rebuild_authority
+        run_dir, cache_root, fit_id = _build_real_run(tmp_path)
+        _rebuild_authority(run_dir, cache_root, validate_controller=False)
+        plan_file = run_dir / "plan.jsonl"
+        plan_file.write_bytes(plan_file.read_bytes() + b'{"tampered": true}\n')
+        with pytest.raises(ValueError, match="plan"):
+            _rebuild_authority(run_dir, cache_root, validate_controller=False)
+
+    def test_rebuild_authority_rejects_tampered_receipt(self, tmp_path):
+        from study02a.formal_scheduler import _rebuild_authority
+        import study02a.formal_executor as fe
+        run_dir, cache_root, fit_id = _build_real_run(tmp_path)
+        receipt_file = sorted((run_dir / "receipts").glob("*.succeeded.json"))[0]
+        forged = json.loads(receipt_file.read_text(encoding="utf-8"))
+        forged["owner_id"] = "tampered"
+        receipt_file.write_bytes(fe._canonical(forged))
+        with pytest.raises(ValueError):
+            _rebuild_authority(run_dir, cache_root, validate_controller=False)
+
+    def test_derive_cohort_rejects_non_succeeded_fit(self, tmp_path):
+        from study02a.formal_g3_control import (
+            G3RunChain, G3Authority, derive_g3_cohort_from_authority,
+        )
+        from study02a.config import load_frozen_config
+        frozen = load_frozen_config(STUDY_ROOT)
+        run_dir, cache_root, fit_id = _build_real_run(tmp_path)
+        chain = G3RunChain(
+            ae1_run_id="r1", ae1_run_dir=run_dir,
+            ae3_run_id="r3", ae3_run_dir=run_dir,
+            ae2_run_id="r2", ae2_run_dir=run_dir,
+            ae1_authority_sha256="a1" * 32, ae3_authority_sha256="a3" * 32,
+            ae2_authority_sha256="a2" * 32,
+        )
+        fake_state = {"fit_states": {fit_id: "succeeded"}, "active_claim": None}
+        empty_state = {"fit_states": {}, "active_claim": None}
+        authority = G3Authority(
+            ae1_manifest={}, ae1_plan=[], ae1_state=fake_state, ae1_events=[],
+            ae3_manifest={}, ae3_plan=[], ae3_state=empty_state, ae3_events=[],
+            ae2_manifest={}, ae2_plan=[], ae2_state=empty_state, ae2_events=[],
+        )
+        with pytest.raises(ValueError, match="not terminal succeeded"):
+            derive_g3_cohort_from_authority(frozen_config=frozen, chain=chain, authority=authority)
+
+    def test_resolve_placeholders_rejects_unresolved(self, tmp_path):
+        from study02a.formal_g3_control import _resolve_or_fail
+        resolutions = {"A-E1": {}, "A-E3": {}, "A-E2": {}}
+        with pytest.raises(ValueError, match="unresolved"):
+            _resolve_or_fail("selected:A-E1_architecture", "architecture", "A-E1", "G3-fit-0001", resolutions)
+        with pytest.raises(ValueError, match="unresolved"):
+            _resolve_or_fail("selected_top_1", "architecture", "A-E1", "G3-fit-0002", resolutions)
+
+    def test_resolve_placeholders_succeeds_with_evidence(self, tmp_path):
+        from study02a.formal_g3_control import _resolve_or_fail
+        resolutions = {"A-E1": {"selected:A-E1_architecture": "m05"}, "A-E3": {}, "A-E2": {}}
+        assert _resolve_or_fail("selected:A-E1_architecture", "architecture", "A-E1", "G3-fit-0001", resolutions) == "m05"
+        assert _resolve_or_fail("m05", "architecture", "A-E1", "G3-fit-0002", resolutions) == "m05"
+
+    def test_verify_authority_rejects_live_claim(self, tmp_path):
+        from study02a.formal_g3_control import (
+            G3RunChain, G3Authority, verify_g3_chain_authority,
+        )
+        from study02a.formal_scheduler import materialize_run, claim_next_fit
+        matrix_path = STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv"
+        if not matrix_path.is_file():
+            pytest.skip("G3 matrix not available")
+        artifact_root = tmp_path / "artifacts"
+        cache_root = tmp_path / "cache"
+        try:
+            result = materialize_run(
+                study_root=STUDY_ROOT, matrix_path=matrix_path, module_id="A-E1",
+                run_id="G3-live-claim", artifact_root=artifact_root, cache_root=cache_root, predecessor=None,
+            )
+        except ValueError as exc:
+            if "dirty" in str(exc):
+                pytest.skip("Study02 code tree is dirty (commit first)")
+            raise
+        run_dir = Path(result["run_dir"])
+        claim_next_fit(run_dir, cache_root=cache_root, owner_id="w1", owner_nonce="n1", timestamp="T1")
+        chain = G3RunChain(
+            ae1_run_id="G3-live-claim", ae1_run_dir=run_dir,
+            ae3_run_id="G3-live-claim", ae3_run_dir=run_dir,
+            ae2_run_id="G3-live-claim", ae2_run_dir=run_dir,
+            ae1_authority_sha256="a1" * 32, ae3_authority_sha256="a3" * 32,
+            ae2_authority_sha256="a2" * 32,
+        )
+        with pytest.raises(ValueError, match="live claim"):
+            verify_g3_chain_authority(chain=chain, cache_root=cache_root)

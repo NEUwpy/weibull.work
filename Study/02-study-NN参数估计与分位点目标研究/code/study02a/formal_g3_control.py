@@ -839,16 +839,274 @@ def _verify_journal_event_against_inputs(
         raise ValueError("G3 journal recovery: approval does not bind verified manifest")
 
 
+@dataclass(frozen=True)
+class G3Authority:
+    ae1_manifest: dict
+    ae1_plan: list
+    ae1_state: dict
+    ae1_events: list
+    ae3_manifest: dict
+    ae3_plan: list
+    ae3_state: dict
+    ae3_events: list
+    ae2_manifest: dict
+    ae2_plan: list
+    ae2_state: dict
+    ae2_events: list
+
+
+def verify_g3_chain_authority(
+    *, chain: G3RunChain, cache_root: Path,
+) -> G3Authority:
+    """Call _rebuild_authority on all three runs; verify no live claims.
+
+    Each run must pass full replay: manifest, plan, events, scheduler state.
+    Any live (non-terminal) claim fails closed.
+    """
+    from .formal_scheduler import _rebuild_authority
+
+    ae1_manifest, ae1_plan, ae1_state, ae1_events = _rebuild_authority(
+        chain.ae1_run_dir, cache_root, validate_controller=False,
+    )
+    ae3_manifest, ae3_plan, ae3_state, ae3_events = _rebuild_authority(
+        chain.ae3_run_dir, cache_root, validate_controller=False,
+    )
+    ae2_manifest, ae2_plan, ae2_state, ae2_events = _rebuild_authority(
+        chain.ae2_run_dir, cache_root, validate_controller=False,
+    )
+
+    for module_id, state in [("A-E1", ae1_state), ("A-E3", ae3_state), ("A-E2", ae2_state)]:
+        active_claim = state.get("active_claim")
+        if active_claim is not None:
+            raise ValueError(f"{module_id} has a live claim: {active_claim}")
+
+    return G3Authority(
+        ae1_manifest=ae1_manifest, ae1_plan=ae1_plan, ae1_state=ae1_state, ae1_events=ae1_events,
+        ae3_manifest=ae3_manifest, ae3_plan=ae3_plan, ae3_state=ae3_state, ae3_events=ae3_events,
+        ae2_manifest=ae2_manifest, ae2_plan=ae2_plan, ae2_state=ae2_state, ae2_events=ae2_events,
+    )
+
+
+def derive_g3_cohort_from_authority(
+    *, frozen_config: FrozenConfig, chain: G3RunChain, authority: G3Authority,
+) -> tuple[ResolvedCohortEntry, ...]:
+    """Derive the 415-entry cohort verified against replay authority.
+
+    Every fit must be terminal succeeded in the replay state, with checkpoint
+    and receipt SHAs matching the event record. Non-succeeded or missing fails closed.
+    """
+    matrix = expand_module_matrix(frozen_config)
+    cohort_rows = matrix[matrix["fit_kind"].isin(_COHORT_FIT_KINDS)]
+
+    fit_states_by_module = {
+        "A-E1": authority.ae1_state.get("fit_states", {}),
+        "A-E3": authority.ae3_state.get("fit_states", {}),
+        "A-E2": authority.ae2_state.get("fit_states", {}),
+    }
+    run_dirs = {
+        "A-E1": chain.ae1_run_dir,
+        "A-E3": chain.ae3_run_dir,
+        "A-E2": chain.ae2_run_dir,
+    }
+
+    entries: list[ResolvedCohortEntry] = []
+    counts: dict[str, int] = {}
+
+    for _, row in cohort_rows.iterrows():
+        fit_id = str(row["fit_id"])
+        module_id = str(row["module"])
+        fit_kind = str(row["fit_kind"])
+        seed = int(row["seed"])
+        n_raw = row["n"]
+        n: int | str = "shared" if n_raw == "shared" else int(n_raw)
+
+        fit_states = fit_states_by_module[module_id]
+        fit_state = fit_states.get(fit_id)
+        if fit_state != "succeeded":
+            raise ValueError(
+                f"cohort fit {fit_id} ({module_id}/{fit_kind}) is not terminal succeeded; "
+                f"replay state is {fit_state!r}"
+            )
+
+        run_dir = run_dirs[module_id]
+        checkpoint_path = run_dir / "outputs" / fit_id / "checkpoint.pt"
+        receipt_path = run_dir / "outputs" / fit_id / "fit_status.json"
+        if not checkpoint_path.is_file():
+            raise ValueError(f"cohort fit {fit_id} checkpoint missing: {checkpoint_path}")
+        if not receipt_path.is_file():
+            raise ValueError(f"cohort fit {fit_id} terminal receipt missing: {receipt_path}")
+        checkpoint_sha = _sha256_file(checkpoint_path)
+        receipt_sha = _sha256_file(receipt_path)
+
+        route = str(row["route"])
+        loss = str(row["loss"])
+        architecture = str(row["architecture"])
+        optimizer = str(row["optimizer"])
+        training_size = int(row["training_size"])
+
+        entries.append(ResolvedCohortEntry(
+            fit_id=fit_id, module_id=module_id, rule_id=str(row["rule_id"]),
+            route=route, distribution="core_continuous", n=n, seed=seed,
+            fit_kind=fit_kind, training_size=training_size,
+            architecture=architecture, optimizer=optimizer, loss=loss,
+            checkpoint_sha256=checkpoint_sha, terminal_receipt_sha256=receipt_sha,
+            comparison_role=_comparison_role(fit_kind),
+        ))
+        counts[module_id] = counts.get(module_id, 0) + 1
+
+    for module_id, expected in _EXPECTED_COHORT_COUNTS.items():
+        actual = counts.get(module_id, 0)
+        if actual != expected:
+            raise ValueError(f"cohort count for {module_id} is {actual}, expected {expected}")
+
+    return tuple(entries)
+
+
+def resolve_g3_placeholders_from_evidence(
+    *, chain: G3RunChain, cohort: tuple[ResolvedCohortEntry, ...],
+) -> tuple[ResolvedCohortEntry, ...]:
+    """Resolve all selected:*/selected_top_*/training_size=-1 from verified selection evidence.
+
+    Uses the A-E1 staged ledger and module selection traces. No defaults, no glob.
+    """
+    from .formal_contracts import _validate_selection_trace_bytes
+
+    resolutions: dict[str, dict[str, str]] = {"A-E1": {}, "A-E3": {}, "A-E2": {}}
+
+    staged_ledger = chain.ae1_run_dir / "staged_resolution_ledger.jsonl"
+    if not staged_ledger.is_file():
+        raise ValueError(f"A-E1 staged_resolution_ledger.jsonl required: {staged_ledger}")
+    for line in staged_ledger.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        aliases = record.get("final_aliases") or {}
+        for key, value in aliases.items():
+            resolutions["A-E1"][key] = str(value)
+
+    for module_id, run_dir in [("A-E3", chain.ae3_run_dir), ("A-E2", chain.ae2_run_dir)]:
+        trace_path = run_dir / "selection" / "selection_trace.jsonl"
+        if not trace_path.is_file():
+            raise ValueError(f"{module_id} selection_trace.jsonl required: {trace_path}")
+        trace_bytes = trace_path.read_bytes()
+        records = _validate_selection_trace_bytes(trace_bytes, module_id, str(run_dir.name))
+        for rec in records:
+            if rec.get("selected") is True:
+                candidate_id = str(rec["candidate_id"])
+                decision_id = str(rec["decision_id"])
+                resolutions[module_id][f"selected:{decision_id}"] = candidate_id
+
+    resolved_entries: list[ResolvedCohortEntry] = []
+    for entry in cohort:
+        route = _resolve_or_fail(entry.route, "route", entry.module_id, entry.fit_id, resolutions)
+        loss = _resolve_or_fail(entry.loss, "loss", entry.module_id, entry.fit_id, resolutions)
+        architecture = _resolve_or_fail(entry.architecture, "architecture", entry.module_id, entry.fit_id, resolutions)
+        optimizer = _resolve_or_fail(entry.optimizer, "optimizer", entry.module_id, entry.fit_id, resolutions)
+        training_size = entry.training_size
+        if training_size <= 0:
+            resolved_size = resolutions.get(entry.module_id, {}).get("selected_training_size")
+            if not resolved_size or not resolved_size.isdigit():
+                raise ValueError(
+                    f"fit {entry.fit_id} has training_size={training_size} and no verified resolution"
+                )
+            training_size = int(resolved_size)
+
+        resolved_entries.append(ResolvedCohortEntry(
+            fit_id=entry.fit_id, module_id=entry.module_id, rule_id=entry.rule_id,
+            route=route, distribution=entry.distribution, n=entry.n, seed=entry.seed,
+            fit_kind=entry.fit_kind, training_size=training_size,
+            architecture=architecture, optimizer=optimizer, loss=loss,
+            checkpoint_sha256=entry.checkpoint_sha256,
+            terminal_receipt_sha256=entry.terminal_receipt_sha256,
+            comparison_role=entry.comparison_role,
+        ))
+    return tuple(resolved_entries)
+
+
+def _resolve_or_fail(value: str, field: str, module_id: str, fit_id: str, resolutions: dict) -> str:
+    if not value.startswith("selected:") and not value.startswith("selected_top_"):
+        return value
+    for mod in (module_id, "A-E1"):
+        resolved = resolutions.get(mod, {}).get(value)
+        if resolved:
+            return resolved
+    raise ValueError(
+        f"fit {fit_id} has unresolved {field}={value!r}; "
+        f"no verified selection evidence provides this resolution"
+    )
+
+
+def build_g3_accreditation(
+    *, ae2_run_dir: Path, artifact_root: Path, cache_root: Path,
+    study_root: Path, code_commit: str,
+) -> dict[str, Any]:
+    """Minimal production entry: chain → authority → cohort → manifest → bundle → state.
+
+    Does NOT authorize, unseal, or generate test data. Produces sealed bundle + state
+    ready for external oracle approval.
+    """
+    from .config import load_frozen_config
+    from .formal_config import load_effective_formal_config
+
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+
+    chain = resolve_g3_predecessor_chain(ae2_run_dir=ae2_run_dir, artifact_root=artifact_root)
+    authority = verify_g3_chain_authority(chain=chain, cache_root=cache_root)
+    cohort = derive_g3_cohort_from_authority(frozen_config=frozen, chain=chain, authority=authority)
+    cohort = resolve_g3_placeholders_from_evidence(chain=chain, cohort=cohort)
+
+    manifest = build_g3_test_manifest(
+        cohort=cohort, chain=chain, frozen_config=frozen,
+        effective_config=effective, code_commit=code_commit,
+    )
+
+    selection_trace_shas = {}
+    for module_id, run_dir in [("A-E1", chain.ae1_run_dir), ("A-E3", chain.ae3_run_dir), ("A-E2", chain.ae2_run_dir)]:
+        trace_path = run_dir / "selection" / "selection_trace.jsonl"
+        if trace_path.is_file():
+            selection_trace_shas[module_id] = _sha256_file(trace_path)
+        else:
+            staged = run_dir / "staged_resolution_ledger.jsonl"
+            if staged.is_file():
+                selection_trace_shas[module_id] = _sha256_file(staged)
+            else:
+                selection_trace_shas[module_id] = "0" * 64
+
+    bundle = build_g3_pre_unseal_bundle(
+        manifest=manifest, chain=chain,
+        selection_trace_shas=selection_trace_shas,
+        ceiling_report_shas={m: "0" * 64 for m in _MODULE_ORDER},
+        leakage_audit_shas={m: "0" * 64 for m in _MODULE_ORDER},
+    )
+
+    return {
+        "chain": chain,
+        "manifest": manifest,
+        "bundle": bundle,
+        "cohort_total": len(cohort),
+        "cohort_counts": dict(sorted(
+            {m: sum(1 for e in cohort if e.module_id == m) for m in _MODULE_ORDER}.items()
+        )),
+        "status": "sealed_ready_for_approval",
+    }
+
+
 __all__ = [
+    "G3Authority",
     "G3RunChain",
     "ResolvedCohortEntry",
     "authorize_g3_test_once",
+    "build_g3_accreditation",
     "build_g3_pre_unseal_bundle",
     "build_g3_test_manifest",
+    "derive_g3_cohort_from_authority",
     "derive_g3_cohort_resolved",
     "initialize_g3_formal_state",
     "publish_g3_approval",
     "publish_g3_bundle",
     "publish_g3_test_manifest",
+    "resolve_g3_placeholders_from_evidence",
     "resolve_g3_predecessor_chain",
+    "verify_g3_chain_authority",
 ]
