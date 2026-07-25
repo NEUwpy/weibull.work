@@ -65,13 +65,11 @@ This is recorded as a provenance deviation: the formal run was launched via a ba
 
 | Test file | Tests | Result |
 |-----------|-------|--------|
-| `test_study01_real_data_gate.py` | 15 | 15 passed |
+| `test_study01_real_data_gate.py` | 16 | 16 passed |
 | `test_study01_p6_frozen_contract.py` | 20 | 20 passed |
-| `test_study01_p7_pipeline.py` | 88 | 88 passed |
-| `test_study01_p8a_controls.py` | 28 | 28 passed, 1 skipped |
-| **Total** | **151** | **151 passed, 1 skipped** |
-
-*GBK encoding issue in `test_conversion_script_reproduces_lifetimes_csv` fixed in REVISE via `encoding='utf-8'` in subprocess call.*
+| `test_study01_p7_pipeline.py` | 89 | 89 passed |
+| `test_study01_p8a_controls.py` | 28 | 28 passed |
+| **Total** | **153** | **153 passed, 0 failed, 0 skipped** |
 
 ## Gate Check Results
 
@@ -213,7 +211,7 @@ Note: "No estimation failures" means MDM did not fail to converge. The high supp
 
 ### Output Hashes (from SHA256SUMS_p8a seal file)
 
-The manifest's `output_hashes` covers 4 data files (CSV, summary JSON, stability CSV, run log). The manifest itself is excluded from `output_hashes` to avoid the self-reference problem (the manifest is rewritten after hash computation). All 5 files — including the manifest — are bound by the external `SHA256SUMS_p8a` seal file.
+The manifest's `output_hashes` records 4 data files (CSV, summary JSON, stability CSV, run log). The manifest itself is excluded from `output_hashes` to avoid the self-reference problem. All 5 files — including the manifest — are bound by the external `SHA256SUMS_p8a` seal file, which is the authoritative hash registry for this experiment.
 
 | File | SHA256 (LF-normalized) | Source |
 |------|------------------------|--------|

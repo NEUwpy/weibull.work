@@ -115,7 +115,7 @@ assert len(manifest['output_hashes']) == 4, (
     "Manifest output_hashes should cover 4 data files (manifest excluded to avoid self-hash)"
 )
 assert 'generation_code_commit' in manifest
-print(f"Manifest: experiment={manifest['experiment']}, dirty=False, 5 hashes ✓")
+print(f"Manifest: experiment={manifest['experiment']}, dirty=False, 4 data hashes in manifest + 5 in seal ✓")
 
 # M. Summary: independent recompute of Default median D
 print("\n--- M. Independent Stats Recompute ---")
