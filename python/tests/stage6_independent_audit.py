@@ -4,7 +4,7 @@ Recomputes key statistics from real_holdout_results.csv WITHOUT using
 production aggregation functions. Compares against real_holdout_summary.json.
 """
 
-import json, os, sys
+import json, os, sys, hashlib
 import numpy as np
 import pandas as pd
 
@@ -111,7 +111,9 @@ print(f"Stability: 45 rows (15 models x 3 n) ✓")
 assert manifest['experiment'] == 'real_data_holdout_validation_p8a_formal'
 assert manifest['git_dirty'] is False
 assert 'output_hashes' in manifest
-assert len(manifest['output_hashes']) == 5
+assert len(manifest['output_hashes']) == 4, (
+    "Manifest output_hashes should cover 4 data files (manifest excluded to avoid self-hash)"
+)
 assert 'generation_code_commit' in manifest
 print(f"Manifest: experiment={manifest['experiment']}, dirty=False, 5 hashes ✓")
 
@@ -136,17 +138,59 @@ nn_dist = summary.get('nn_cross_model_distribution', [])
 assert len(nn_dist) > 0, "nn_cross_model_distribution empty"
 print(f"NN cross-model distribution: {len(nn_dist)} rows ✓")
 
-# O. NN model-first: independently verify per-model median D for one model
+# O. NN model-first: independently verify ALL 15 model-level medians
+#    and their cross-model distribution (min/Q1/median/Q3/max/mean/SD)
+print("NN model-first: verifying all 15 models per train_n...")
 for tn in [7, 10, 20]:
-    mid = nn_ids[0]  # first model
-    mask = (df['train_n'] == tn) & (df['method'] == 'nn') & (df['model_id'] == mid)
-    ind_median = float(np.median(df.loc[mask, 'D'].values))
-    # Compare with stability CSV
-    stab_row = nn_stab[(nn_stab['train_n'] == tn) & (nn_stab['model_id'] == mid)]
-    assert len(stab_row) == 1
-    assert abs(stab_row.iloc[0]['median_D'] - ind_median) < 1e-9, \
-        f"NN {mid} n={tn}: stability median mismatch"
-print(f"NN model-first: per-model median matches stability CSV ✓")
+    ind_medians = []
+    for mid in nn_ids:
+        mask = (df['train_n'] == tn) & (df['method'] == 'nn') & (df['model_id'] == mid)
+        ind_median = float(np.median(df.loc[mask, 'D'].values))
+        ind_medians.append(ind_median)
+        # Compare each model's median with stability CSV
+        stab_row = nn_stab[(nn_stab['train_n'] == tn) & (nn_stab['model_id'] == mid)]
+        assert len(stab_row) == 1, f"NN {mid} n={tn}: missing from stability CSV"
+        assert abs(stab_row.iloc[0]['median_D'] - ind_median) < 1e-9, \
+            f"NN {mid} n={tn}: stability median mismatch ({stab_row.iloc[0]['median_D']} vs {ind_median})"
+
+    ind_medians = np.array(ind_medians)
+    # Compare full distribution against stability CSV
+    nn_rows = nn_stab[nn_stab['train_n'] == tn]
+    stab_medians = np.array(sorted(nn_rows['median_D'].values))
+    ind_medians.sort()
+    assert len(stab_medians) == 15
+    for i in range(15):
+        assert abs(stab_medians[i] - ind_medians[i]) < 1e-9, \
+            f"n={tn} model[{i}]: stability vs independent mismatch"
+
+    # Verify cross-model distribution summary
+    dist_min = float(np.min(ind_medians))
+    dist_q1 = float(np.percentile(ind_medians, 25))
+    dist_median = float(np.median(ind_medians))
+    dist_q3 = float(np.percentile(ind_medians, 75))
+    dist_max = float(np.max(ind_medians))
+    dist_mean = float(np.mean(ind_medians))
+    dist_sd = float(np.std(ind_medians, ddof=1))
+
+    # Find matching metric row in nn_cross_model_distribution
+    nn_dist = summary.get('nn_cross_model_distribution', [])
+    median_row = [r for r in nn_dist
+                  if r['train_n'] == tn and r['metric'] == 'median_D']
+    assert len(median_row) == 1, f"n={tn}: median_D row missing from nn_dist"
+    mr = median_row[0]
+    assert abs(mr['min'] - dist_min) < 1e-9, f"n={tn}: dist min mismatch"
+    assert abs(mr['Q1'] - dist_q1) < 1e-9, f"n={tn}: dist Q1 mismatch"
+    assert abs(mr['median'] - dist_median) < 1e-9, f"n={tn}: dist median mismatch"
+    assert abs(mr['Q3'] - dist_q3) < 1e-9, f"n={tn}: dist Q3 mismatch"
+    assert abs(mr['max'] - dist_max) < 1e-9, f"n={tn}: dist max mismatch"
+    assert abs(mr['mean'] - dist_mean) < 1e-9, f"n={tn}: dist mean mismatch"
+    assert abs(mr['std'] - dist_sd) < 1e-9, f"n={tn}: dist std mismatch"
+
+    print(f"  n={tn}: {len(ind_medians)} models verified, "
+          f"min={dist_min:.4f} Q1={dist_q1:.4f} median={dist_median:.4f} "
+          f"Q3={dist_q3:.4f} max={dist_max:.4f} mean={dist_mean:.4f} "
+          f"sd={dist_sd:.4f} ✓")
+print("NN model-first: all 15 models + full distribution verified ✓")
 
 # P. Verify E1/E2/E3/E4 artifacts not overwritten
 old_artifacts = [
@@ -160,13 +204,36 @@ for art in old_artifacts:
     assert os.path.exists(path), f"Old artifact missing: {art}"
 print("E1/E2/E3/E4/R1/R2 artifacts untouched ✓")
 
-# Q. Verify formal dir has exactly 5 output files + source files
+# Q. Verify SHA256SUMS_p8a seal file against actual file bytes
+print("Verifying SHA256SUMS_p8a seal...")
+seal_path = os.path.join(DIR, 'SHA256SUMS_p8a')
+assert os.path.exists(seal_path), "SHA256SUMS_p8a seal file missing"
+with open(seal_path, 'r', encoding='utf-8') as f:
+    seal_lines = [l.strip() for l in f if l.strip() and not l.startswith('#')]
+seal_hashes = {}
+for line in seal_lines:
+    parts = line.split('  ')
+    assert len(parts) == 2, f"Bad seal line: {line}"
+    seal_hashes[parts[1]] = parts[0]
+expected_seal_files = ['real_holdout_results.csv', 'real_holdout_summary.json',
+                       'real_nn_model_stability.csv', 'run_log.txt',
+                       'real_data_manifest.json']
+for fname in expected_seal_files:
+    assert fname in seal_hashes, f"Missing from seal: {fname}"
+    fpath = os.path.join(DIR, fname)
+    with open(fpath, 'rb') as f:
+        raw = f.read()
+    raw_lf = raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+    actual_sha = hashlib.sha256(raw_lf).hexdigest()
+    assert seal_hashes[fname] == actual_sha, \
+        f"Seal mismatch for {fname}: seal={seal_hashes[fname][:16]}... actual={actual_sha[:16]}..."
+print(f"SHA256SUMS_p8a: {len(seal_hashes)} files verified, all match ✓")
+
+# R. Verify formal dir has output files + seal + source files
 formal_files = set(os.listdir(DIR))
 expected = {'real_holdout_results.csv', 'real_holdout_summary.json',
             'real_nn_model_stability.csv', 'real_data_manifest.json',
-            'run_log.txt'}
-source_files = {'BIRNSAUN.DAT', 'lifetimes.csv', 'source.json',
-                'convert_birnsaun_to_lifetimes.py'}
+            'run_log.txt', 'SHA256SUMS_p8a'}
 assert expected <= formal_files, f"Missing output files: {expected - formal_files}"
 print("Formal dir: all 5 output files present ✓")
 

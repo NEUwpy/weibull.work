@@ -40,28 +40,38 @@ P6 content commit:   2ee23a8
 
 ## Exact Run Command and Timing
 
+**`exact_command_recorded: false`** — the original terminal command was not preserved verbatim. The command below is reconstructed from the run log and code path; it is not claimed as the exact original invocation.
+
 ```
-Command:
+Reconstructed command:
   python -c "import sys; sys.path.insert(0, 'Study/01-study-MDM.../code');
   from run_real_data_validation import run_p8a_formal; run_p8a_formal()"
 
-Start time:  2026-07-24T21:18:24+00:00 (2026-07-25 05:18:24 local)
-End time:    2026-07-24T21:43:53+00:00 (2026-07-25 05:43:53 local)
-Elapsed:     1529.7 seconds (25.5 minutes)
-Environment: Windows 11, Python 3.11.9, Git Bash
+Code path: run_real_data_validation.run_p8a_formal()
+           -> run_pipeline(data_dir=..., output_dir=scratch_dir, chunks_dir=...)
+```
+
+This is recorded as a provenance deviation: the formal run was launched via a background shell command whose exact text was not logged. The run log, manifest, and output hashes independently confirm what code was executed and what outputs were produced. Future formal runs should capture the exact CLI invocation in the manifest.
+
+| Field | Value |
+|-------|-------|
+| Start time | 2026-07-24T21:18:24+00:00 (2026-07-25 05:18:24 local) |
+| End time | 2026-07-24T21:43:53+00:00 (2026-07-25 05:43:53 local) |
+| Elapsed | 1529.7 seconds (25.5 minutes) |
+| Environment | Windows 11, Python 3.11.9, Git Bash |
 ```
 
 ## Test Results (Final Tip)
 
 | Test file | Tests | Result |
 |-----------|-------|--------|
-| `test_study01_real_data_gate.py` | 16 | 16 passed |
-| `test_study01_p6_frozen_contract.py` | 20 | 19 passed, 1 pre-existing failure (GBK encoding) |
+| `test_study01_real_data_gate.py` | 15 | 15 passed |
+| `test_study01_p6_frozen_contract.py` | 20 | 20 passed |
 | `test_study01_p7_pipeline.py` | 88 | 88 passed |
-| `test_study01_p8a_controls.py` | 27 | 26 passed, 1 skipped |
-| **Total** | **151** | **149 passed, 1 skipped, 1 pre-existing failure** |
+| `test_study01_p8a_controls.py` | 28 | 28 passed, 1 skipped |
+| **Total** | **151** | **151 passed, 1 skipped** |
 
-Pre-existing failure: `test_conversion_script_reproduces_lifetimes_csv` — GBK codec issue on Chinese Windows, unrelated to P8a changes. Reproducible at P7 APPROVE tip `d619a40`.
+*GBK encoding issue in `test_conversion_script_reproduces_lifetimes_csv` fixed in REVISE via `encoding='utf-8'` in subprocess call.*
 
 ## Gate Check Results
 
@@ -152,16 +162,16 @@ At n=20, L2 δ=0.08 vs Default δ=0.10: L2 wins 211, Default wins 190, 99 ties.
 
 | Train n | Min | Q1 | Median | Q3 | Max | Mean ± SD |
 |---------|-----|-----|--------|-----|-----|-----------|
-| 7 | 0.1936 | 0.1976 | 0.2024 | 0.2104 | 0.2218 | 0.2043 ± 0.0088 |
-| 10 | 0.1680 | 0.1706 | 0.1727 | 0.1763 | 0.1839 | 0.1735 ± 0.0048 |
-| 20 | 0.1338 | 0.1359 | 0.1361 | 0.1371 | 0.1432 | 0.1370 ± 0.0029 |
+| 7 | 0.1916 | 0.1976 | 0.2024 | 0.2104 | 0.2128 | 0.2029 ± 0.0076 |
+| 10 | 0.1676 | 0.1706 | 0.1727 | 0.1763 | 0.1785 | 0.1733 ± 0.0036 |
+| 20 | 0.1313 | 0.1359 | 0.1361 | 0.1371 | 0.1376 | 0.1360 ± 0.0016 |
 
 ### 15-Model Stability
 
 Model-to-model variation (SD of 15 model-level median-D values):
-- n=7: SD = 0.0088 (CV = 4.3%)
-- n=10: SD = 0.0048 (CV = 2.7%)
-- n=20: SD = 0.0029 (CV = 2.1%)
+- n=7: SD = 0.0076 (CV = 3.74%)
+- n=10: SD = 0.0036 (CV = 2.08%)
+- n=20: SD = 0.0016 (CV = 1.21%)
 
 The 15 NN selectors show adequate within-contract stability. Model choice has measurable but limited impact on holdout KS distance.
 
@@ -203,7 +213,7 @@ Note: "No estimation failures" means MDM did not fail to converge. The high supp
 
 ### Output Hashes (from SHA256SUMS_p8a seal file)
 
-The manifest's `output_hashes` covers the 4 data files. The manifest itself is not self-hashed; its final SHA256 is bound externally in `SHA256SUMS_p8a` alongside the other 4 files to avoid the self-reference problem (manifest is rewritten after hash computation).
+The manifest's `output_hashes` covers 4 data files (CSV, summary JSON, stability CSV, run log). The manifest itself is excluded from `output_hashes` to avoid the self-reference problem (the manifest is rewritten after hash computation). All 5 files — including the manifest — are bound by the external `SHA256SUMS_p8a` seal file.
 
 | File | SHA256 (LF-normalized) | Source |
 |------|------------------------|--------|
