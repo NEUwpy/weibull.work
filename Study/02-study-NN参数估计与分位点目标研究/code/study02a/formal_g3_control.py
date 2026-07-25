@@ -32,7 +32,7 @@ from .formal_contracts import (
 from .matrix import expand_module_matrix
 
 _MANIFEST_VERSION = "study02-g3-test-manifest-v2"
-_BUNDLE_VERSION = "study02-g3-pre-unseal-v1"
+_BUNDLE_VERSION = "study02-g3-pre-unseal-v2"
 _APPROVAL_VERSION = "study02-g3-test-unseal-approval-v1"
 _STATE_VERSION = "study02-g3-formal-state-v1"
 
@@ -426,8 +426,9 @@ def build_g3_pre_unseal_bundle(
     selection_trace_shas: Mapping[str, str],
     ceiling_report_shas: Mapping[str, str],
     leakage_audit_shas: Mapping[str, str],
+    staged_ledger_shas: Mapping[str, str],
 ) -> dict[str, Any]:
-    """Build the unified G3 pre-unseal bundle (v1). Binds manifest + three modules."""
+    """Build the unified G3 pre-unseal bundle (v2). Binds manifest + three modules + staged ledger."""
     manifest_sha = manifest.get("manifest_sha256")
     if not manifest_sha:
         raise ValueError("manifest missing manifest_sha256")
@@ -449,6 +450,7 @@ def build_g3_pre_unseal_bundle(
             "A-E2": chain.ae2_authority_sha256,
         },
         "selection_trace_hashes": dict(sorted(selection_trace_shas.items())),
+        "staged_ledger_hashes": dict(sorted(staged_ledger_shas.items())),
         "ceiling_report_hashes": dict(sorted(ceiling_report_shas.items())),
         "leakage_audit_hashes": dict(sorted(leakage_audit_shas.items())),
         "test_state": "sealed",
@@ -1079,35 +1081,85 @@ def _resolve_a_e1_from_staged_ledger(
     run_dir: Path, run_id: str, code_commit: str, effective_config_sha256: str,
     out: dict[str, str],
 ) -> None:
-    """Read and verify A-E1 staged resolution ledger; extract final_aliases + baseline_input."""
-    from .formal_executor import _read_staged_ledger, _build_stage_record, _ZERO_HASH
+    """Read and verify A-E1 staged resolution ledger; extract final_aliases + baseline_input.
 
-    ledger_path = run_dir / "staged_resolution_ledger.jsonl"
-    if not ledger_path.is_file():
-        raise ValueError(f"A-E1 staged_resolution_ledger.jsonl required: {ledger_path}")
+    First validates root selection_trace/receipt/ledger via _validate_selection_evidence,
+    then verifies every staged record binds the verified trace SHA, correct record_version,
+    resolution_sha256, full field set, unique stages, order, and predecessor references.
+    """
+    from .formal_executor import _validate_selection_evidence, _read_staged_ledger, _ZERO_HASH
+
+    trace_path = run_dir / "selection_trace.jsonl"
+    receipt_path = run_dir / "selection_receipt.json"
+    ledger_path = run_dir / "selection_ledger.jsonl"
+    for p, name in [(trace_path, "selection_trace.jsonl"), (receipt_path, "selection_receipt.json"), (ledger_path, "selection_ledger.jsonl")]:
+        if not p.is_file():
+            raise ValueError(f"A-E1 {name} required at run root: {p}")
+
+    verified_trace_sha = _sha256_file(trace_path)
+    _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=verified_trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E1", run_id=run_id,
+    )
+
+    staged_path = run_dir / "staged_resolution_ledger.jsonl"
+    if not staged_path.is_file():
+        raise ValueError(f"A-E1 staged_resolution_ledger.jsonl required: {staged_path}")
     records = _read_staged_ledger(run_dir)
     if not records:
         raise ValueError("A-E1 staged resolution ledger is empty")
 
+    _STAGED_REQUIRED_FIELDS = {
+        "record_version", "module_id", "run_id", "code_commit",
+        "effective_config_sha256", "selection_trace_sha256", "stage", "route",
+        "previous_record_sha256", "input", "resolution", "resolution_sha256",
+        "record_sha256",
+    }
+    _VALID_STAGES = {"stage1", "stage2", "winner_retrain", "baseline_input", "final_aliases"}
+    _STAGED_RECORD_VERSION = "study02-staged-resolution-v1"
+
     previous_sha = _ZERO_HASH
+    seen_stages: list[str] = []
     for record in records:
-        if record.get("previous_record_sha256") != previous_sha:
+        if set(record) != _STAGED_REQUIRED_FIELDS:
+            raise ValueError(f"A-E1 staged record has unexpected field set: {set(record)}")
+        if record.get("record_version") != _STAGED_RECORD_VERSION:
+            raise ValueError(f"A-E1 staged record_version is {record.get('record_version')!r}")
+        if record.get("selection_trace_sha256") != verified_trace_sha:
             raise ValueError(
-                f"A-E1 staged ledger hash chain broken: expected previous={previous_sha}, "
-                f"got {record.get('previous_record_sha256')}"
+                f"A-E1 staged record selection_trace_sha256 does not match verified root trace SHA"
             )
-        core = {k: v for k, v in record.items() if k != "record_sha256"}
-        expected_sha = _sha256_bytes(_canonical(core))
-        if record.get("record_sha256") != expected_sha:
-            raise ValueError(f"A-E1 staged ledger record SHA mismatch at stage={record.get('stage')}")
         if record.get("module_id") != "A-E1":
             raise ValueError(f"A-E1 staged record module_id is {record.get('module_id')!r}")
         if record.get("run_id") != run_id:
-            raise ValueError(f"A-E1 staged record run_id mismatch")
+            raise ValueError("A-E1 staged record run_id mismatch")
         if record.get("code_commit") != code_commit.lower():
-            raise ValueError(f"A-E1 staged record code_commit mismatch")
+            raise ValueError("A-E1 staged record code_commit mismatch")
         if record.get("effective_config_sha256") != effective_config_sha256:
-            raise ValueError(f"A-E1 staged record effective_config_sha256 mismatch")
+            raise ValueError("A-E1 staged record effective_config_sha256 mismatch")
+
+        stage = record.get("stage")
+        if stage not in _VALID_STAGES:
+            raise ValueError(f"A-E1 staged record has invalid stage: {stage!r}")
+        seen_stages.append(stage)
+
+        if record.get("previous_record_sha256") != previous_sha:
+            raise ValueError(
+                f"A-E1 staged ledger hash chain broken at stage={stage}: "
+                f"expected previous={previous_sha}, got {record.get('previous_record_sha256')}"
+            )
+
+        resolution = record.get("resolution", {})
+        resolution_sha = _sha256_bytes(_canonical(dict(resolution)))
+        if record.get("resolution_sha256") != resolution_sha:
+            raise ValueError(f"A-E1 staged record resolution_sha256 mismatch at stage={stage}")
+
+        core = {k: v for k, v in record.items() if k != "record_sha256"}
+        expected_sha = _sha256_bytes(_canonical(core))
+        if record.get("record_sha256") != expected_sha:
+            raise ValueError(f"A-E1 staged record SHA mismatch at stage={stage}")
+
         previous_sha = record["record_sha256"]
 
     for record in records:
@@ -1117,11 +1169,17 @@ def _resolve_a_e1_from_staged_ledger(
             for key in ("selected:A-E1_loss", "selected:A-E1_architecture", "selected:A-E1_optimizer"):
                 if key not in resolution:
                     raise ValueError(f"A-E1 final_aliases missing {key}")
-                out[key] = str(resolution[key])
+                value = str(resolution[key])
+                if value.startswith("selected:") or value.startswith("selected_top_"):
+                    raise ValueError(f"A-E1 final_aliases {key} is still a placeholder: {value!r}")
+                out[key] = value
         elif stage == "baseline_input":
             if "selected:F2_or_V" not in resolution:
                 raise ValueError("A-E1 baseline_input missing selected:F2_or_V")
-            out["selected:F2_or_V"] = str(resolution["selected:F2_or_V"])
+            value = str(resolution["selected:F2_or_V"])
+            if value not in ("F2", "V"):
+                raise ValueError(f"A-E1 baseline_input selected:F2_or_V must be F2 or V, got {value!r}")
+            out["selected:F2_or_V"] = value
 
     if "selected:F2_or_V" not in out:
         raise ValueError("A-E1 staged ledger has no baseline_input record with selected:F2_or_V")
@@ -1138,12 +1196,10 @@ _A_E3_ALIAS_MAP = {
 def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]) -> None:
     """Resolve A-E3 aliases from verified selection trace/receipt/ledger at run root.
 
-    Resolves both routes:
-    - selected:F2_or_V route: stage1 ranking → stage2 winner → architecture + optimizer
-    - S/shared route: stage1:S:shared ranking → stage2:S:shared winner → S_architecture + S_optimizer
-    Also resolves loss and output_form winner (selected:A-E3_baseline).
+    Uses resolve_selected_placeholders to resolve selected_top_N → concrete architecture
+    for both routes (selected:F2_or_V and S/shared).
     """
-    from .formal_executor import _validate_selection_evidence
+    from .formal_executor import _validate_selection_evidence, resolve_selected_placeholders
 
     trace_path = run_dir / "selection_trace.jsonl"
     receipt_path = run_dir / "selection_receipt.json"
@@ -1159,6 +1215,26 @@ def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]
         module_id="A-E3", run_id=run_id,
     )
 
+    evidence_kwargs = dict(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+
+    fv_stage1_dec = "architecture:A-E3:selected:F2_or_V:n10"
+    fv_stage2_dec = "stage2:A-E3:selected:F2_or_V:n10"
+    s_stage1_dec = "architecture:A-E3:S:shared"
+    s_stage2_dec = "stage2:A-E3:S:shared"
+
+    fv_top4 = resolve_selected_placeholders(
+        placeholders={f"selected_top_{slot}": fv_stage1_dec for slot in range(1, 5)},
+        **evidence_kwargs,
+    )
+    s_top4 = resolve_selected_placeholders(
+        placeholders={f"selected_top_{slot}": s_stage1_dec for slot in range(1, 5)},
+        **evidence_kwargs,
+    )
+
     for rec in records:
         if rec.get("selected") is not True:
             continue
@@ -1167,20 +1243,24 @@ def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]
 
         if decision_id == "loss:A-E3:selected:F2_or_V:n10":
             out["selected:A-E3_loss"] = candidate_id
-        elif decision_id == "stage2:A-E3:selected:F2_or_V:n10":
-            arch_part, sep, opt_part = candidate_id.partition(":")
-            if sep == ":":
-                out["selected:A-E3_architecture"] = arch_part
-                out["selected:A-E3_optimizer"] = opt_part
-            else:
-                out["selected:A-E3_architecture"] = candidate_id
-        elif decision_id == "stage2:A-E3:S:shared":
-            arch_part, sep, opt_part = candidate_id.partition(":")
-            if sep == ":":
-                out["selected:S_architecture"] = arch_part
-                out["selected:S_optimizer"] = opt_part
-            else:
-                out["selected:S_architecture"] = candidate_id
+        elif decision_id == fv_stage2_dec:
+            arch_placeholder, sep, optimizer = candidate_id.partition(":")
+            if sep != ":" or not optimizer:
+                raise ValueError(f"A-E3 F2/V stage2 winner {candidate_id!r} is not slot:optimizer")
+            concrete_arch = fv_top4.get(arch_placeholder)
+            if not concrete_arch:
+                raise ValueError(f"A-E3 F2/V stage2 winner references {arch_placeholder!r} not in top4")
+            out["selected:A-E3_architecture"] = concrete_arch
+            out["selected:A-E3_optimizer"] = optimizer
+        elif decision_id == s_stage2_dec:
+            arch_placeholder, sep, optimizer = candidate_id.partition(":")
+            if sep != ":" or not optimizer:
+                raise ValueError(f"A-E3 S/shared stage2 winner {candidate_id!r} is not slot:optimizer")
+            concrete_arch = s_top4.get(arch_placeholder)
+            if not concrete_arch:
+                raise ValueError(f"A-E3 S/shared stage2 winner references {arch_placeholder!r} not in top4")
+            out["selected:S_architecture"] = concrete_arch
+            out["selected:S_optimizer"] = optimizer
         elif decision_id == "output_form:A-E3:selected:F2_or_V":
             out["selected:A-E3_baseline"] = candidate_id
 
@@ -1188,8 +1268,14 @@ def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]
         raise ValueError("A-E3 selection has no verified loss winner")
     if "selected:A-E3_architecture" not in out:
         raise ValueError("A-E3 selection has no verified F2/V architecture winner")
+    if "selected:A-E3_optimizer" not in out:
+        raise ValueError("A-E3 selection has no verified F2/V optimizer winner")
     if "selected:A-E3_baseline" not in out:
         raise ValueError("A-E3 selection has no verified output_form/baseline winner")
+    if "selected:S_architecture" not in out:
+        raise ValueError("A-E3 selection has no verified S/shared architecture winner")
+    if "selected:S_optimizer" not in out:
+        raise ValueError("A-E3 selection has no verified S/shared optimizer winner")
 
 
 def _resolve_a_e2_from_selection(run_dir: Path, run_id: str, out: dict[str, str]) -> None:
@@ -1334,10 +1420,8 @@ def build_g3_accreditation(
         selection_trace_shas=selection_trace_shas,
         ceiling_report_shas=ceiling_report_shas,
         leakage_audit_shas=leakage_audit_shas,
+        staged_ledger_shas=staged_ledger_shas,
     )
-    bundle["staged_ledger_hashes"] = staged_ledger_shas
-    bundle_content = {k: v for k, v in bundle.items() if k != "bundle_sha256"}
-    bundle["bundle_sha256"] = _sha256_bytes(_canonical(bundle_content))
 
     _assert_cohort_fully_resolved(cohort)
 

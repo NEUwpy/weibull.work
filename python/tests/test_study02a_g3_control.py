@@ -178,6 +178,7 @@ class TestG3Schemas:
             selection_trace_shas={"A-E1": "s1" * 32, "A-E3": "s3" * 32, "A-E2": "s2" * 32},
             ceiling_report_shas={"A-E1": "c1" * 32, "A-E3": "c3" * 32, "A-E2": "c2" * 32},
             leakage_audit_shas={"A-E1": "l1" * 32, "A-E3": "l3" * 32, "A-E2": "l2" * 32},
+            staged_ledger_shas={"A-E1": "g1" * 32},
         )
         return manifest, bundle, chain
 
