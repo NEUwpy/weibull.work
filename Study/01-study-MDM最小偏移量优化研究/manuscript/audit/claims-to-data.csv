@@ -1,34 +1,34 @@
 claim_id,section,claim,figure,source_file,source_field,expected_value
-C001,§3.1,Default pooled J1=0.633218947,Fig.2,artifacts/formal/E2_oracle_layers/summary.json,results.ladder[Default].J1_global,0.633218947
-C002,§3.1,L1 pooled J1=0.632913084,Fig.2,artifacts/formal/E2_oracle_layers/summary.json,results.ladder[L1].J1_global,0.632913084
-C003,§3.1,L2 pooled J1=0.632540558,Fig.3,artifacts/formal/E2_oracle_layers/summary.json,results.ladder[L2].J1_global,0.632540558
-C004,§3.2,L3 pooled J1=0.585067506,Fig.4,artifacts/formal/E2_oracle_layers/summary.json,results.ladder[L3].J1_global,0.585067506
-C005,§3.2,L4 pooled J1=0.582090109,Fig.4,artifacts/formal/E2_oracle_layers/summary.json,results.ladder[L4].J1_global,0.582090109
-C006,§3.2,L5 pooled J1=0.571170388,Fig.4,artifacts/formal/E2_oracle_layers/summary.json,results.ladder[L5].J1_global,0.571170388
-C007,§3.2,L6 pooled J1=0.494529731,Fig.4,artifacts/formal/E2_oracle_layers/summary.json,results.ladder[L6].J1_global,0.494529731
-C008,§3.3,Vector-MLP pooled J1=0.547003,Fig.5,artifacts/formal/E3b_vector_mlp/seed_stability.csv,seed=42.pooled_J1,0.547003
-C009,§3.3,Seed 2026 pooled J1=0.546133,,artifacts/formal/E3b_vector_mlp/seed_stability.csv,seed=2026.pooled_J1,0.546133
-C010,§3.3,Seed 3407 pooled J1=0.544009,,artifacts/formal/E3b_vector_mlp/seed_stability.csv,seed=3407.pooled_J1,0.544009
-C011,§3.4,E4a full pooled J1=0.545628,Fig.6,artifacts/formal/E4_robustness/E4a_feature_ablation.csv,feature_group=full.pooled_J1.mean,0.545628
-C012,§3.4,E4a scale_quantile pooled J1=0.550596,Fig.6,artifacts/formal/E4_robustness/E4a_feature_ablation.csv,feature_group=scale_quantile.pooled_J1.mean,0.550596
-C013,§3.4,E4a shape pooled J1=0.581578,Fig.6,artifacts/formal/E4_robustness/E4a_feature_ablation.csv,feature_group=shape.pooled_J1.mean,0.581578
-C014,§3.4,E4a n pooled J1=0.637761,Fig.6,artifacts/formal/E4_robustness/E4a_feature_ablation.csv,feature_group=n.pooled_J1.mean,0.637761
-C015,§3.4,E4d boundary pooled J1=0.603773509338463,Fig.7,artifacts/formal/E4_robustness/summary_e4d.json,per_track_pooled_J1.E4b_boundary.Vector-MLP-L6.J1,0.603773509338463
-C016,§3.4,E4d off-grid pooled J1=0.526333743982320,Fig.7,artifacts/formal/E4_robustness/summary_e4d.json,per_track_pooled_J1.E4c_offgrid.Vector-MLP-L6.J1,0.526333743982320
-C017,§3.4,R2 n_migrated=2800,Fig.8,artifacts/formal/delta_upper_bound_audit/cohort_summary.csv,cohort_delta=0.50.n_migrated,2800
-C018,§3.4,R2 migration_rate=0.946586,Fig.8,artifacts/formal/delta_upper_bound_audit/cohort_summary.csv,cohort_delta=0.50.migration_rate,0.946586
-C019,§3.4,R2 bin delta=0.50 count=158,Fig.8,artifacts/formal/delta_upper_bound_audit/cohort_summary.csv,cohort_delta=0.50.extended_best_delta_distribution[0.50],158
-C020,§3.4,R2 bin delta=1.00 count=743,Fig.8,artifacts/formal/delta_upper_bound_audit/cohort_summary.csv,cohort_delta=0.50.extended_best_delta_distribution[1.0],743
-C021,§3.5,Default n=7 median D=0.1881,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=7.method=default.D.median,0.1881
-C022,§3.5,Default n=10 median D=0.1630,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=10.method=default.D.median,0.1630
-C023,§3.5,Default n=20 median D=0.1276,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=20.method=default.D.median,0.1276
-C024,§3.5,NN n=7 median of 15 medians D=0.2024,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=7.method=nn.model-first.median_of_medians,0.2024
-C025,§3.5,NN n=10 median of 15 medians D=0.1727,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=10.method=nn.model-first.median_of_medians,0.1727
-C026,§3.5,NN n=20 median of 15 medians D=0.1361,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=20.method=nn.model-first.median_of_medians,0.1361
-C027,§3.5,n=20 L2 wins=211 Default wins=190 ties=99,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=20.paired.L2_vs_Default,211/190/99
-C028,§3.5,Default n=7 sv_rate=0.764,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=7.method=default.support_set_violation.mean,0.764
-C029,§3.5,NN n=7 sv_rate median=0.908,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,train_n=7.method=nn.model-first.support_set_violation.median,0.908
-C030,§2.5,Formal grid beta={1.5,2.0,2.5,4.0,5.0},,code/config.py,BETA_GRID,"[1.5,2.0,2.5,4.0,5.0]"
-C031,§2.5,Formal grid gamma_over_eta={0.1,0.5,1.0},,code/config.py,GAMMA_OVER_ETA_GRID,"[0.1,0.5,1.0]"
-C032,§2.5,Formal grid n={7,10,20},,code/config.py,N_GRID,"[7,10,20]"
-C033,§4.6,Study1.5 path,,Study/015-study-NN输入表征与样本量机制研究,,exists
+C001,3.1,Default pooled J1,Fig.2,artifacts/formal/E2_oracle_layers/summary.json,ladder.Default.J1,0.633218947
+C002,3.1,L1 pooled J1,Fig.2,artifacts/formal/E2_oracle_layers/summary.json,ladder.L1.J1,0.632913084
+C003,3.1,L2 pooled J1,Fig.3,artifacts/formal/E2_oracle_layers/summary.json,ladder.L2.J1,0.632540558
+C004,3.2,L3 pooled J1,Fig.4,artifacts/formal/E2_oracle_layers/summary.json,ladder.L3.J1,0.585067506
+C005,3.2,L4 pooled J1,Fig.4,artifacts/formal/E2_oracle_layers/summary.json,ladder.L4.J1,0.582090109
+C006,3.2,L5 pooled J1,Fig.4,artifacts/formal/E2_oracle_layers/summary.json,ladder.L5.J1,0.571170388
+C007,3.2,L6 pooled J1,Fig.4,artifacts/formal/E2_oracle_layers/summary.json,ladder.L6.J1,0.494529731
+C008,3.3,Vector-MLP pooled J1,Fig.5,artifacts/formal/E3b_vector_mlp/seed_stability.csv,seed42.pooled_J1,0.547003
+C009,3.3,Seed 2026 pooled J1,,artifacts/formal/E3b_vector_mlp/seed_stability.csv,seed2026.pooled_J1,0.546133
+C010,3.3,Seed 3407 pooled J1,,artifacts/formal/E3b_vector_mlp/seed_stability.csv,seed3407.pooled_J1,0.544009
+C011,3.4,E4a full pooled J1,Fig.6,artifacts/formal/E4_robustness/E4a_feature_ablation.csv,full.pooled_J1.mean,0.545628
+C012,3.4,E4a scale_quantile pooled J1,Fig.6,artifacts/formal/E4_robustness/E4a_feature_ablation.csv,scale_quantile.pooled_J1.mean,0.550596
+C013,3.4,E4a shape pooled J1,Fig.6,artifacts/formal/E4_robustness/E4a_feature_ablation.csv,shape.pooled_J1.mean,0.581578
+C014,3.4,E4a n pooled J1,Fig.6,artifacts/formal/E4_robustness/E4a_feature_ablation.csv,n.pooled_J1.mean,0.637761
+C015,3.4,E4d boundary pooled J1,Fig.7,artifacts/formal/E4_robustness/summary_e4d.json,E4b_boundary.Vector-MLP-L6.J1,0.603773509338463
+C016,3.4,E4d off-grid pooled J1,Fig.7,artifacts/formal/E4_robustness/summary_e4d.json,E4c_offgrid.Vector-MLP-L6.J1,0.526333743982320
+C017,3.4,R2 n_migrated,Fig.8,artifacts/formal/delta_upper_bound_audit/cohort_summary.csv,cohort_0.50.n_migrated,2800
+C018,3.4,R2 migration_rate,Fig.8,artifacts/formal/delta_upper_bound_audit/cohort_summary.csv,cohort_0.50.migration_rate,0.946586
+C019,3.4,R2 bin d=0.50 count,Fig.8,artifacts/formal/delta_upper_bound_audit/cohort_summary.csv,ext_best_dist_key_0.5,158
+C020,3.4,R2 bin d=1.00 count,Fig.8,artifacts/formal/delta_upper_bound_audit/cohort_summary.csv,ext_best_dist_key_1.0,743
+C021,3.5,Default n=7 median D,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,default_n7.D.median,0.1881
+C022,3.5,Default n=10 median D,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,default_n10.D.median,0.1630
+C023,3.5,Default n=20 median D,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,default_n20.D.median,0.1276
+C024,3.5,NN n=7 median of 15 medians D,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,nn_n7.median_of_medians,0.2024
+C025,3.5,NN n=10 median of 15 medians D,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,nn_n10.median_of_medians,0.1727
+C026,3.5,NN n=20 median of 15 medians D,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,nn_n20.median_of_medians,0.1361
+C027,3.5,n=20 paired L2-211 Default-190 ties-99,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,paired_n20,211-190-99
+C028,3.5,Default n=7 SV rate,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,default_n7.SV.mean,0.764
+C029,3.5,NN n=7 SV rate median of 15,Fig.9,artifacts/formal/real_data/nist-6061-t6-fatigue/real_holdout_results.csv,nn_n7.SV.median_of_15,0.908
+C030,2.5,Formal grid beta,code/config.py,BETA_GRID,1.5-2.0-2.5-4.0-5.0
+C031,2.5,Formal grid gamma_over_eta,code/config.py,GAMMA_OVER_ETA_GRID,0.1-0.5-1.0
+C032,2.5,Formal grid n,code/config.py,N_GRID,7-10-20
+C033,4.6,Study1.5 path exists,Study/015-study-NN输入表征与样本量机制研究,exists
