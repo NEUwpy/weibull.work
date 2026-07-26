@@ -112,7 +112,7 @@ Vector-MLP不直接预测最优δ值，而是预测26维风险曲线。给定小
 
 **L3→L4→L5的相邻改善**分别为0.5%和1.9%，改善幅度明显小于L2→L3的7.5%。L5→L6的差距（13.4%）说明即使完美知道真参数分组，组内不同样本的hindsight最优δ仍存在不可约的离散性。L6是固定26点δ网格上的逐样本hindsight argmin参照——它没有组内聚合损失（每个样本独立取自己的最优δ），但使用了部署时不可见的逐样本真实损失，因此不能作为可部署方法的目标。
 
-β-profile审计（Supplementary S2，300个正式seed样本）确认在正式参数网格内，不同β值的profile曲线几何存在系统性差异。
+β-profile审计（Supplementary S2, 5个β值×3个n×每格20个repeat=300个正式seed样本，每个β合计60个样本）确认在正式参数网格内，不同β值的profile曲线几何存在系统性差异（Spearman ρ约为-0.46至-0.53）。
 
 ### 3.3 样本自适应选择（Vector-MLP-L6）
 
@@ -216,7 +216,7 @@ Yang et al. (2025)[7]提出了基于反向传播神经网络（BPNN）直接估�
 
 这两种路线不是互斥的。未来的工作可以探索将直接参数估计的输出作为MDM的初始化，或在NN架构中嵌入MDM的搜索约束。
 
-*注：本节对Yang et al. (2025)的描述基于该论文的公开摘要和Section snippets。网络层数、激活函数、损失函数形式、训练数据规模和精确数值结果等信息需原文核实后补充。当前比较不依赖该论文的具体数值结果。*
+*注：本节对Yang et al. (2025)[7]的比较基于方法学差异（NN输出目标、与统计模型的耦合方式、可解释性），不依赖该论文的精确数值结果。网络层数、激活函数和训练数据规模等实现细节请参见原文。*
 
 ### 4.5 现有证据的边界
 
@@ -228,7 +228,7 @@ Yang et al. (2025)[7]提出了基于反向传播神经网络（BPNN）直接估�
 
 ### 4.6 输入特征、样本量和联合训练
 
-Study1.5的辅助分析（`Study/01-study-MDM最小偏移量优化研究/样本特征选取与样本量关系/`）使用统一的F13特征集，在分样本量和联合样本量两种条件下训练了90个模型。该分析发现输入表示和训练组织是两个独立的设计维度，但效应量级较小（交互效应的95% bootstrap区间在n=10和n=20时跨零）。这些pilot级别的发现支持了将输入表示和训练组织作为独立问题处理的设计选择，但不构成严格的形式消融证据。
+Study1.5的辅助分析（`Study/015-study-NN输入表征与样本量机制研究/`）覆盖了F13、F12、RAW三种输入表示和J、S、T、L四种训练组织，共训练了90个模型。其交互分析复用了这90个冻结模型（未新增训练），发现输入表示和训练组织是两个独立的设计维度，但效应量级较小：n=10和n=20的交互效应95% bootstrap区间跨零，n=7仅为边界性描述证据。这些pilot级别的发现支持了将输入表示和训练组织作为独立问题处理的设计选择，但不构成严格的形式消融证据，也不支持"改用特定输入表示即可解决混合样本量训练问题"的结论。
 
 ---
 
@@ -260,12 +260,12 @@ Study1.5的辅助分析（`Study/01-study-MDM最小偏移量优化研究/样本�
 
 [2] Murthy, D.N.P., Xie, M., & Jiang, R. (2004). *Weibull Models*. Wiley.
 
-[3] Xie, L., Wu, N., & Yang, X. (2022). A Minimum Discrepancy Method for Weibull Distribution Parameter Estimation. *International Journal of Structural Stability and Dynamics*, 22(14), 2250158.
+[3] Xie, L., Wu, N., & Yang, X. (2023). A Minimum Discrepancy Method for Weibull Distribution Parameter Estimation. *International Journal of Structural Stability and Dynamics*, 23(8), 2350085. https://doi.org/10.1142/S0219455423500852
 
-[4] 谢里阳, 朱文慧, 吴宁祥, 杨小玉. (2025). 基于统计最小差异原理的Weibull分布参数估计方法. *东北大学学报（自然科学版）*, 46(1).
+[4] 谢里阳, 朱文慧, 吴宁祥, 杨小玉. (2025). 基于统计最小差异原理的Weibull分布参数估计方法. *东北大学学报（自然科学版）*, 46(7), 108-112. https://doi.org/10.12068/j.issn.1005-3026.2025.20240194
 
 [5] Birnbaum, Z.W. & Saunders, S.C. (1958). A Statistical Model for Life-Length of Materials. *Journal of the American Statistical Association*, 53(281), 151-160.
 
 [6] NIST/SEMATECH e-Handbook of Statistical Methods, §1.4.2.9.1. https://itl.nist.gov/div898/handbook/eda/section4/eda4291.htm
 
-[7] Yang, X., Xie, L., Chen, J., Zhao, B., & Wang, K. (2025). Estimation of Weibull distribution using the back-propagation neural network for fatigue failure data. [期刊信息待原文核实——当前仅依据公开摘要和section snippets。输入特征数、网络结构、损失函数等细节需原文确认。]
+[7] Yang, X., Xie, L., Chen, J., Zhao, B., & Wang, K. (2025). Estimation of Weibull distribution using the back-propagation neural network for fatigue failure data. *Probabilistic Engineering Mechanics*, 82, 103828. https://doi.org/10.1016/j.probengmech.2025.103828
