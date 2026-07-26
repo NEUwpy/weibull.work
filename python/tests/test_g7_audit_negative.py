@@ -1,110 +1,153 @@
-"""G7 negative audit tests: verify auto_audit fails on specific corruptions.
-Uses temporary fixture copies, never modifies formal files."""
-import os, sys, json, shutil, tempfile, subprocess
-import pytest
+"""Regression tests for the production G7 manuscript audit.
 
-AUDIT_SCRIPT = os.path.join(
-    os.path.dirname(__file__), '..', '..',
-    'Study', '01-study-MDM最小偏移量优化研究',
-    'manuscript', 'audit', 'auto_audit.py'
-)
-AUDIT_DIR = os.path.dirname(AUDIT_SCRIPT)
-CLAIMS_CSV = os.path.join(AUDIT_DIR, 'claims-to-data.csv')
-FC_CSV = os.path.join(AUDIT_DIR, 'figure-checklist.csv')
-RC_CSV = os.path.join(AUDIT_DIR, 'reference-checklist.csv')
-PAPER_MD = os.path.join(os.path.dirname(AUDIT_DIR), 'paper.md')
-SUPP_MD = os.path.join(os.path.dirname(AUDIT_DIR), 'supplementary.md')
+Every negative test mutates a temporary fixture and invokes the same
+``audit_manuscript`` function used by the command-line audit.  Formal evidence
+and manuscript files in the repository are never modified.
+"""
 
-def run_audit(temp_dir):
-    """Run auto_audit in temp_dir context. Returns (returncode, stdout)."""
-    env = os.environ.copy()
-    env['PYTHONIOENCODING'] = 'utf-8'
-    result = subprocess.run(
-        [sys.executable, AUDIT_SCRIPT],
-        capture_output=True, text=True, timeout=60, cwd=temp_dir, env=env
+from __future__ import annotations
+
+import importlib.util
+import shutil
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+STUDY_ROOT = REPO_ROOT / "Study" / "01-study-MDM最小偏移量优化研究"
+AUDIT_DIR = STUDY_ROOT / "manuscript" / "audit"
+AUDIT_SCRIPT = AUDIT_DIR / "auto_audit.py"
+
+
+def _load_audit_module():
+    spec = importlib.util.spec_from_file_location("study01_g7_auto_audit", AUDIT_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+AUDIT = _load_audit_module()
+
+
+def _copy(tmp_path: Path, source: Path) -> Path:
+    destination = tmp_path / source.name
+    shutil.copy2(source, destination)
+    return destination
+
+
+def _assert_rejected(fragment: str, **overrides) -> list[str]:
+    errors = AUDIT.audit_manuscript(run_git_check=False, **overrides)
+    assert errors, "corrupted fixture unexpectedly passed the production audit"
+    assert any(fragment in error for error in errors), (
+        f"expected an error containing {fragment!r}; got:\n"
+        + "\n".join(errors)
     )
-    return result.returncode, result.stdout
+    return errors
 
-class TestAuditNegative:
-    """Each test corrupts a fixture copy and verifies audit fails."""
 
-    def test_swap_L1_with_L2_fails(self):
-        """Changing L1 to L2 value must cause audit failure."""
-        import pandas as pd
-        cd = pd.read_csv(CLAIMS_CSV)
-        # Verify L1 and L2 have different expected values
-        l1_val = cd.loc[cd['claim_id']=='C002', 'expected_value'].values[0]
-        l2_val = cd.loc[cd['claim_id']=='C003', 'expected_value'].values[0]
-        assert abs(float(l1_val) - float(l2_val)) > 0.0001
-        # The audit recomputes L1 from actual artifacts which is 0.632913084
-        # L2 is 0.632540558. If someone swaps them, the recompute check would fail
-        assert abs(float(l1_val) - 0.632913084) < 1e-8
-        assert abs(float(l2_val) - 0.632540558) < 1e-8
-        print(f"L1={l1_val}, L2={l2_val}: audit would catch swap")
+def test_current_package_passes_production_audit():
+    assert AUDIT.audit_manuscript(run_git_check=False) == []
 
-    def test_delete_claim_id_fails(self):
-        """Removing a claim_id must cause audit failure."""
-        import pandas as pd
-        cd = pd.read_csv(CLAIMS_CSV)
-        n_orig = len(cd)
-        cd_dropped = cd[cd['claim_id'] != 'C001'].copy()
-        assert 'C001' not in cd_dropped['claim_id'].values
-        assert len(cd_dropped) == n_orig - 1
-        # The audit checks that expected claim_ids C001-C033 are present
-        print(f"C001 deletion verified: {n_orig} -> {len(cd_dropped)} rows")
 
-    def test_stale_source_path_fails(self):
-        """'R2产物' as source_file must be detected."""
-        stale_path = 'R2产物'
-        assert '...' not in str(CLAIMS_CSV)  # real path doesn't contain stale
-        # The audit checks for stale patterns in source_file column
-        print(f"Stale path '{stale_path}' verified: audit check detects this pattern")
+def test_corrupt_c002_expected_value_is_rejected(tmp_path):
+    claims_path = _copy(tmp_path, AUDIT_DIR / "claims-to-data.csv")
+    claims = pd.read_csv(claims_path, dtype=str, keep_default_na=False)
+    claims.loc[claims["claim_id"] == "C002", "expected_value"] = "0.632540558"
+    claims.to_csv(claims_path, index=False)
 
-    def test_unchecked_figure_status_fails(self):
-        """'未生成' in figure checklist must be detected."""
-        import pandas as pd
-        fc = pd.read_csv(FC_CSV)
-        for col in fc.columns:
-            mask = fc[col].astype(str).str.contains('未生成', na=False)
-            assert not mask.any(), f"'未生成' found in figure checklist: {fc[mask]['fig_number'].values}"
-        print("No '未生成' in figure checklist: audit check passes")
+    _assert_rejected("C002 value mismatch", claims_csv=claims_path)
 
-    def test_delete_ref7_fails(self):
-        """Removing reference [7] must be detected."""
-        import pandas as pd
-        rc = pd.read_csv(RC_CSV)
-        assert '[7]' in rc['ref_number'].values
-        # The audit checks that [3][4][7] all exist with verified status
-        print("Ref [7] exists in checklist: audit would detect removal")
 
-    def test_supp_wrong_beta_count_fails(self):
-        """'每个beta各300个' must not appear in supplementary."""
-        with open(SUPP_MD, encoding='utf-8') as f:
-            txt = f.read()
-        assert '每个beta各300个' not in txt
-        # Fallback: if it were present, the audit would detect it
-        # We verify it's NOT present
-        assert '5×3×20=300' in txt or '5x3x20=300' in txt
-        print("Correct beta count in supplementary: audit would detect stale count")
+def test_delete_required_claim_is_rejected(tmp_path):
+    claims_path = _copy(tmp_path, AUDIT_DIR / "claims-to-data.csv")
+    claims = pd.read_csv(claims_path, dtype=str, keep_default_na=False)
+    claims = claims[claims["claim_id"] != "C001"]
+    claims.to_csv(claims_path, index=False)
 
-    def test_delete_fig7_citation_fails(self):
-        """Removing Figure 7 citation must be detected."""
-        with open(PAPER_MD, encoding='utf-8') as f:
-            txt = f.read()
-        assert 'Figure 7' in txt
-        print("Figure 7 cited in paper: audit would detect missing citation")
+    _assert_rejected("claims registry missing IDs: C001", claims_csv=claims_path)
 
-    def test_L1_L2_not_confused(self):
-        """L1 (0.632913084) and L2 (0.632540558) must be distinct and correct."""
-        # Verify the actual ladder values are distinct
-        import json
-        with open(os.path.join(
-            os.path.dirname(__file__), '..', '..',
-            'Study', '01-study-MDM最小偏移量优化研究',
-            'artifacts', 'formal', 'E2_oracle_layers', 'summary.json'
-        ), encoding='utf-8') as f:
-            lad = {r['layer']: r['J1_global'] for r in json.load(f)['results']['ladder']}
-        assert abs(lad['L1'] - 0.632913084) < 1e-8
-        assert abs(lad['L2'] - 0.632540558) < 1e-8
-        assert abs(lad['L1'] - lad['L2']) > 0.0003  # They are distinct
-        print(f"L1={lad['L1']:.9f}, L2={lad['L2']:.9f}, distinct={abs(lad['L1']-lad['L2']):.6f}")
+
+def test_add_unregistered_claim_is_rejected(tmp_path):
+    claims_path = _copy(tmp_path, AUDIT_DIR / "claims-to-data.csv")
+    claims = pd.read_csv(claims_path, dtype=str, keep_default_na=False)
+    extra = claims.iloc[[0]].copy()
+    extra.loc[:, "claim_id"] = "C999"
+    claims = pd.concat([claims, extra], ignore_index=True)
+    claims.to_csv(claims_path, index=False)
+
+    _assert_rejected("claims registry has unexpected IDs: C999", claims_csv=claims_path)
+
+
+def test_stale_source_path_is_rejected(tmp_path):
+    claims_path = _copy(tmp_path, AUDIT_DIR / "claims-to-data.csv")
+    claims = pd.read_csv(claims_path, dtype=str, keep_default_na=False)
+    claims.loc[claims["claim_id"] == "C017", "source_file"] = "R2产物"
+    claims.to_csv(claims_path, index=False)
+
+    _assert_rejected("C017 source_file mismatch", claims_csv=claims_path)
+
+
+def test_figure_index_pending_status_is_rejected(tmp_path):
+    index_path = _copy(tmp_path, STUDY_ROOT / "manuscript" / "figure-index.md")
+    index_path.write_text(
+        index_path.read_text(encoding="utf-8") + "\nS9 | **需生成**\n",
+        encoding="utf-8",
+    )
+
+    _assert_rejected(
+        'figure-index contains stale status "需生成"', figure_index_md=index_path
+    )
+
+
+def test_submission_checklist_pending_figures_are_rejected(tmp_path):
+    checklist_path = _copy(tmp_path, AUDIT_DIR / "submission-checklist.md")
+    checklist_path.write_text(
+        checklist_path.read_text(encoding="utf-8") + "\n- [ ] S1-S8需生成\n",
+        encoding="utf-8",
+    )
+
+    _assert_rejected(
+        'submission-checklist contains stale status "需生成"',
+        submission_checklist_md=checklist_path,
+    )
+
+
+def test_delete_reference_7_is_rejected(tmp_path):
+    references_path = _copy(tmp_path, AUDIT_DIR / "reference-checklist.csv")
+    references = pd.read_csv(references_path, dtype=str, keep_default_na=False)
+    references = references[references["ref_number"] != "[7]"]
+    references.to_csv(references_path, index=False)
+
+    _assert_rejected(
+        "reference [7] must appear exactly once",
+        reference_checklist_csv=references_path,
+    )
+
+
+def test_wrong_supplementary_beta_count_is_rejected(tmp_path):
+    supplementary_path = _copy(
+        tmp_path, STUDY_ROOT / "manuscript" / "supplementary.md"
+    )
+    text = supplementary_path.read_text(encoding="utf-8")
+    corrected = text.replace("5×3×20=300", "每个beta各300个")
+    assert corrected != text, "fixture setup did not replace the frozen beta count"
+    supplementary_path.write_text(corrected, encoding="utf-8")
+
+    _assert_rejected(
+        "supplementary contains stale per-beta count",
+        supplementary_md=supplementary_path,
+    )
+
+
+def test_delete_figure_7_citation_is_rejected(tmp_path):
+    paper_path = _copy(tmp_path, STUDY_ROOT / "manuscript" / "paper.md")
+    text = paper_path.read_text(encoding="utf-8")
+    corrected = text.replace("Figure 7", "the boundary/off-grid panel")
+    assert corrected != text, "fixture setup did not remove the Figure 7 citation"
+    paper_path.write_text(corrected, encoding="utf-8")
+
+    _assert_rejected("paper does not cite Figure 7", paper_md=paper_path)

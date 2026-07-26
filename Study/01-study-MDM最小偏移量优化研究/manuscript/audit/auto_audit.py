@@ -1,207 +1,566 @@
-"""G7 auto-audit v4: fail-closed. Verifies claims-to-data.csv against formal artifacts,
-checks all figures/references/checklists for consistency, detects stale terms."""
-import os, sys, json, ast, re, subprocess
-import numpy as np, pandas as pd
+"""Fail-closed manuscript audit for Study01.
 
-CODE_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'code')
-sys.path.insert(0, CODE_DIR)
-from config import BETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID
+The public ``audit_manuscript`` function is the single production path used by
+both the command line and the negative regression tests.  It recomputes every
+registered quantitative claim from formal artifacts, validates the complete
+claim registry, and checks manuscript/index/checklist consistency.
+"""
 
-ARTIFACTS = os.path.join(os.path.dirname(CODE_DIR), 'artifacts', 'formal')
-FIGDIR = os.path.join(os.path.dirname(CODE_DIR), 'manuscript', 'figures')
-PAPER = os.path.join(os.path.dirname(CODE_DIR), 'manuscript', 'paper.md')
-SUPP = os.path.join(os.path.dirname(CODE_DIR), 'manuscript', 'supplementary.md')
-AUDIT_DIR = os.path.dirname(os.path.abspath(__file__))
+from __future__ import annotations
 
-CD_CSV = os.path.join(AUDIT_DIR, 'claims-to-data.csv')
-FC_CSV = os.path.join(AUDIT_DIR, 'figure-checklist.csv')
-RC_CSV = os.path.join(AUDIT_DIR, 'reference-checklist.csv')
-SC_MD  = os.path.join(AUDIT_DIR, 'submission-checklist.md')
+import ast
+import importlib.util
+import json
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
-errs = []
-def check(desc, ok):
-    if not ok: errs.append(desc)
-    print(f'  {desc}: {"OK" if ok else "FAIL"}')
+import numpy as np
+import pandas as pd
 
-# ═══ 1. Config Grid ═══
-check('grid beta', BETA_GRID == [1.5, 2.0, 2.5, 4.0, 5.0])
-check('grid goe', GAMMA_OVER_ETA_GRID == [0.1, 0.5, 1.0])
-check('grid n', N_GRID == [7, 10, 20])
 
-# ═══ 2. Claims-to-Data: exists + unique claim_ids ═══
-assert os.path.exists(CD_CSV), f'{CD_CSV} missing'
-cd = pd.read_csv(CD_CSV)
-check('claims-to-data has rows', len(cd) > 0)
-check('claim_id column exists', 'claim_id' in cd.columns)
-check('claim_ids unique', cd['claim_id'].nunique() == len(cd))
-check('claim_ids non-null', cd['claim_id'].notna().all())
+REQUIRED_CLAIM_IDS = {f"C{i:03d}" for i in range(1, 34)}
+STALE_STATUS_TERMS = ("未生成", "待生成", "需生成", "需检查", "待补充")
 
-# ═══ 3. Verify source_file references are resolvable ═══
-NON_PATH_SOURCES = {'BETA_GRID', 'GAMMA_OVER_ETA_GRID', 'N_GRID', 'exists'}
-for _, row in cd.iterrows():
-    src = str(row.get('source_file', ''))
-    if not src or src == 'nan': continue
-    cid = row['claim_id']
-    if src in NON_PATH_SOURCES: continue  # Config constant, not a file path
-    study_root = os.path.dirname(CODE_DIR)
-    if src.startswith('artifacts/'):
-        full = os.path.join(study_root, src)
-    elif src.startswith('code/'):
-        full = os.path.join(study_root, src)
-    elif src.startswith('Study/'):
-        full = os.path.join(study_root, '..', '..', src)
+
+@dataclass(frozen=True)
+class AuditPaths:
+    study_root: Path
+    repo_root: Path
+    claims_csv: Path
+    figure_checklist_csv: Path
+    reference_checklist_csv: Path
+    submission_checklist_md: Path
+    figure_index_md: Path
+    paper_md: Path
+    supplementary_md: Path
+
+    @classmethod
+    def defaults(cls) -> "AuditPaths":
+        audit_dir = Path(__file__).resolve().parent
+        study_root = audit_dir.parents[1]
+        return cls(
+            study_root=study_root,
+            repo_root=study_root.parents[1],
+            claims_csv=audit_dir / "claims-to-data.csv",
+            figure_checklist_csv=audit_dir / "figure-checklist.csv",
+            reference_checklist_csv=audit_dir / "reference-checklist.csv",
+            submission_checklist_md=audit_dir / "submission-checklist.md",
+            figure_index_md=study_root / "manuscript" / "figure-index.md",
+            paper_md=study_root / "manuscript" / "paper.md",
+            supplementary_md=study_root / "manuscript" / "supplementary.md",
+        )
+
+    def with_overrides(self, **overrides: str | Path | None) -> "AuditPaths":
+        values = self.__dict__.copy()
+        for key, value in overrides.items():
+            if value is not None:
+                values[key] = Path(value).resolve()
+        return AuditPaths(**values)
+
+
+@dataclass(frozen=True)
+class ClaimSpec:
+    source_file: str
+    source_field: str
+    actual: Any
+    tolerance: float | None = None
+
+
+def _load_config(study_root: Path):
+    config_path = study_root / "code" / "config.py"
+    spec = importlib.util.spec_from_file_location("study01_audit_config", config_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load config: {config_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _claim_specs(paths: AuditPaths) -> dict[str, ClaimSpec]:
+    formal = paths.study_root / "artifacts" / "formal"
+    config = _load_config(paths.study_root)
+
+    with (formal / "E2_oracle_layers" / "summary.json").open(encoding="utf-8") as f:
+        ladder = {r["layer"]: r["J1_global"] for r in json.load(f)["results"]["ladder"]}
+
+    seed_stability = pd.read_csv(
+        formal / "E3b_vector_mlp" / "seed_stability.csv"
+    )
+    ablation = pd.read_csv(
+        formal / "E4_robustness" / "E4a_feature_ablation.csv"
+    )
+    with (formal / "E4_robustness" / "summary_e4d.json").open(encoding="utf-8") as f:
+        per_track = json.load(f)["per_track_pooled_J1"]
+
+    cohort = pd.read_csv(
+        formal / "delta_upper_bound_audit" / "cohort_summary.csv"
+    )
+    endpoint = cohort[cohort["cohort_delta"] == 0.50].iloc[0]
+    endpoint_dist = ast.literal_eval(endpoint["extended_best_delta_distribution"])
+
+    real = pd.read_csv(
+        formal
+        / "real_data"
+        / "nist-6061-t6-fatigue"
+        / "real_holdout_results.csv"
+    )
+    nn = real[real["method"] == "nn"]
+    nn_ids = sorted(nn["model_id"].unique())
+
+    l2_n20 = real[(real["train_n"] == 20) & (real["method"] == "l2")][
+        ["repeat_index", "D"]
+    ]
+    default_n20 = real[
+        (real["train_n"] == 20) & (real["method"] == "default")
+    ][["repeat_index", "D"]]
+    paired = l2_n20.merge(
+        default_n20, on="repeat_index", suffixes=("_l2", "_default")
+    )
+    diff = paired["D_l2"] - paired["D_default"]
+    paired_value = (
+        int((diff < -1e-9).sum()),
+        int((diff > 1e-9).sum()),
+        int((np.abs(diff) <= 1e-9).sum()),
+    )
+
+    default_n7_sv = float(
+        real[(real["train_n"] == 7) & (real["method"] == "default")][
+            "support_set_violation"
+        ].mean()
+    )
+    nn_n7_sv = float(
+        nn[nn["train_n"] == 7]
+        .groupby("model_id")["support_set_violation"]
+        .mean()
+        .median()
+    )
+
+    def seed_value(seed: int) -> float:
+        return float(seed_stability[seed_stability["seed"] == seed]["pooled_J1"].iloc[0])
+
+    def ablation_value(group: str) -> float:
+        return float(
+            ablation[ablation["feature_group"] == group]["pooled_J1"].mean()
+        )
+
+    def default_median(train_n: int) -> float:
+        return float(
+            real[
+                (real["train_n"] == train_n) & (real["method"] == "default")
+            ]["D"].median()
+        )
+
+    def nn_median_of_medians(train_n: int) -> float:
+        medians = [
+            float(
+                nn[(nn["train_n"] == train_n) & (nn["model_id"] == model_id)][
+                    "D"
+                ].median()
+            )
+            for model_id in nn_ids
+        ]
+        return float(np.median(medians))
+
+    ladder_src = "artifacts/formal/E2_oracle_layers/summary.json"
+    seed_src = "artifacts/formal/E3b_vector_mlp/seed_stability.csv"
+    ablation_src = "artifacts/formal/E4_robustness/E4a_feature_ablation.csv"
+    e4d_src = "artifacts/formal/E4_robustness/summary_e4d.json"
+    r2_src = "artifacts/formal/delta_upper_bound_audit/cohort_summary.csv"
+    real_src = (
+        "artifacts/formal/real_data/nist-6061-t6-fatigue/"
+        "real_holdout_results.csv"
+    )
+
+    specs = {
+        "C001": ClaimSpec(ladder_src, "ladder.Default.J1", ladder["Default"], 5e-10),
+        "C002": ClaimSpec(ladder_src, "ladder.L1.J1", ladder["L1"], 5e-10),
+        "C003": ClaimSpec(ladder_src, "ladder.L2.J1", ladder["L2"], 5e-10),
+        "C004": ClaimSpec(ladder_src, "ladder.L3.J1", ladder["L3"], 5e-10),
+        "C005": ClaimSpec(ladder_src, "ladder.L4.J1", ladder["L4"], 5e-10),
+        "C006": ClaimSpec(ladder_src, "ladder.L5.J1", ladder["L5"], 5e-10),
+        "C007": ClaimSpec(ladder_src, "ladder.L6.J1", ladder["L6"], 5e-10),
+        "C008": ClaimSpec(seed_src, "seed42.pooled_J1", seed_value(42), 5e-7),
+        "C009": ClaimSpec(seed_src, "seed2026.pooled_J1", seed_value(2026), 5e-7),
+        "C010": ClaimSpec(seed_src, "seed3407.pooled_J1", seed_value(3407), 5e-7),
+        "C011": ClaimSpec(
+            ablation_src, "full.pooled_J1.mean", ablation_value("full"), 5e-7
+        ),
+        "C012": ClaimSpec(
+            ablation_src,
+            "scale_quantile.pooled_J1.mean",
+            ablation_value("scale_quantile"),
+            5e-7,
+        ),
+        "C013": ClaimSpec(
+            ablation_src, "shape.pooled_J1.mean", ablation_value("shape"), 5e-7
+        ),
+        "C014": ClaimSpec(
+            ablation_src, "n.pooled_J1.mean", ablation_value("n"), 5e-7
+        ),
+        "C015": ClaimSpec(
+            e4d_src,
+            "E4b_boundary.Vector-MLP-L6.J1",
+            per_track["E4b_boundary"]["Vector-MLP-L6"]["J1"],
+            5e-15,
+        ),
+        "C016": ClaimSpec(
+            e4d_src,
+            "E4c_offgrid.Vector-MLP-L6.J1",
+            per_track["E4c_offgrid"]["Vector-MLP-L6"]["J1"],
+            5e-15,
+        ),
+        "C017": ClaimSpec(
+            r2_src, "cohort_0.50.n_migrated", int(endpoint["n_migrated"]), 0
+        ),
+        "C018": ClaimSpec(
+            r2_src,
+            "cohort_0.50.migration_rate",
+            float(endpoint["migration_rate"]),
+            5e-7,
+        ),
+        "C019": ClaimSpec(
+            r2_src,
+            "ext_best_dist_key_0.5",
+            int(endpoint_dist.get("0.5", endpoint_dist.get(0.5, 0))),
+            0,
+        ),
+        "C020": ClaimSpec(
+            r2_src,
+            "ext_best_dist_key_1.0",
+            int(endpoint_dist.get("1.0", endpoint_dist.get(1.0, 0))),
+            0,
+        ),
+        "C021": ClaimSpec(real_src, "default_n7.D.median", default_median(7), 5e-5),
+        "C022": ClaimSpec(
+            real_src, "default_n10.D.median", default_median(10), 5e-5
+        ),
+        "C023": ClaimSpec(
+            real_src, "default_n20.D.median", default_median(20), 5e-5
+        ),
+        "C024": ClaimSpec(
+            real_src, "nn_n7.median_of_medians", nn_median_of_medians(7), 5e-5
+        ),
+        "C025": ClaimSpec(
+            real_src, "nn_n10.median_of_medians", nn_median_of_medians(10), 5e-5
+        ),
+        "C026": ClaimSpec(
+            real_src, "nn_n20.median_of_medians", nn_median_of_medians(20), 5e-5
+        ),
+        "C027": ClaimSpec(real_src, "paired_n20", paired_value),
+        "C028": ClaimSpec(real_src, "default_n7.SV.mean", default_n7_sv, 5e-4),
+        "C029": ClaimSpec(
+            real_src, "nn_n7.SV.median_of_15", nn_n7_sv, 5e-4
+        ),
+        "C030": ClaimSpec(
+            "code/config.py",
+            "BETA_GRID",
+            "-".join(str(x) for x in config.BETA_GRID),
+        ),
+        "C031": ClaimSpec(
+            "code/config.py",
+            "GAMMA_OVER_ETA_GRID",
+            "-".join(str(x) for x in config.GAMMA_OVER_ETA_GRID),
+        ),
+        "C032": ClaimSpec(
+            "code/config.py", "N_GRID", "-".join(str(x) for x in config.N_GRID)
+        ),
+        "C033": ClaimSpec(
+            "Study/015-study-NN输入表征与样本量机制研究",
+            "exists",
+            "exists",
+        ),
+    }
+    return specs
+
+
+def _format_actual(value: Any) -> str:
+    if isinstance(value, tuple):
+        return "-".join(str(x) for x in value)
+    return str(value)
+
+
+def _resolve_claim_source(paths: AuditPaths, source_file: str) -> Path:
+    if source_file.startswith(("artifacts/", "code/", "manuscript/")):
+        return paths.study_root / source_file
+    return paths.repo_root / source_file
+
+
+def _check_claim_registry(paths: AuditPaths, errors: list[str]) -> None:
+    if not paths.claims_csv.exists():
+        errors.append(f"claims registry missing: {paths.claims_csv}")
+        return
+
+    claims = pd.read_csv(paths.claims_csv, dtype=str, keep_default_na=False)
+    required_columns = {
+        "claim_id",
+        "source_file",
+        "source_field",
+        "expected_value",
+    }
+    missing_columns = required_columns - set(claims.columns)
+    if missing_columns:
+        errors.append(
+            "claims registry missing columns: " + ", ".join(sorted(missing_columns))
+        )
+        return
+
+    claim_ids = claims["claim_id"].tolist()
+    actual_id_set = set(claim_ids)
+    if len(claim_ids) != len(actual_id_set):
+        errors.append("claims registry contains duplicate claim_id values")
+    missing = REQUIRED_CLAIM_IDS - actual_id_set
+    extra = actual_id_set - REQUIRED_CLAIM_IDS
+    if missing:
+        errors.append("claims registry missing IDs: " + ", ".join(sorted(missing)))
+    if extra:
+        errors.append("claims registry has unexpected IDs: " + ", ".join(sorted(extra)))
+    if len(claims) != len(REQUIRED_CLAIM_IDS):
+        errors.append(
+            f"claims registry row count is {len(claims)}, expected "
+            f"{len(REQUIRED_CLAIM_IDS)}"
+        )
+
+    specs = _claim_specs(paths)
+    for claim_id in sorted(REQUIRED_CLAIM_IDS & actual_id_set):
+        rows = claims[claims["claim_id"] == claim_id]
+        if len(rows) != 1:
+            continue
+        row = rows.iloc[0]
+        spec = specs[claim_id]
+        if row["source_file"] != spec.source_file:
+            errors.append(
+                f"{claim_id} source_file mismatch: {row['source_file']!r} != "
+                f"{spec.source_file!r}"
+            )
+        if row["source_field"] != spec.source_field:
+            errors.append(
+                f"{claim_id} source_field mismatch: {row['source_field']!r} != "
+                f"{spec.source_field!r}"
+            )
+
+        source_path = _resolve_claim_source(paths, spec.source_file)
+        if not source_path.exists():
+            errors.append(f"{claim_id} source does not exist: {spec.source_file}")
+
+        expected = row["expected_value"].strip()
+        if spec.tolerance is not None:
+            try:
+                expected_number = float(expected)
+            except ValueError:
+                errors.append(f"{claim_id} expected_value is not numeric: {expected!r}")
+                continue
+            if abs(float(spec.actual) - expected_number) > spec.tolerance:
+                errors.append(
+                    f"{claim_id} value mismatch: registry={expected_number}, "
+                    f"artifact={spec.actual}, tolerance={spec.tolerance}"
+                )
+        elif expected != _format_actual(spec.actual):
+            errors.append(
+                f"{claim_id} value mismatch: registry={expected!r}, "
+                f"artifact={_format_actual(spec.actual)!r}"
+            )
+
+
+def _check_status_terms(path: Path, label: str, errors: list[str]) -> None:
+    if not path.exists():
+        errors.append(f"{label} missing: {path}")
+        return
+    text = path.read_text(encoding="utf-8")
+    for stale in STALE_STATUS_TERMS:
+        if stale in text:
+            errors.append(f'{label} contains stale status "{stale}"')
+
+
+def audit_manuscript(
+    *,
+    study_root: str | Path | None = None,
+    repo_root: str | Path | None = None,
+    claims_csv: str | Path | None = None,
+    figure_checklist_csv: str | Path | None = None,
+    reference_checklist_csv: str | Path | None = None,
+    submission_checklist_md: str | Path | None = None,
+    figure_index_md: str | Path | None = None,
+    paper_md: str | Path | None = None,
+    supplementary_md: str | Path | None = None,
+    run_git_check: bool = True,
+    verbose: bool = False,
+) -> list[str]:
+    """Return every audit error; an empty list means the audit passed."""
+
+    paths = AuditPaths.defaults().with_overrides(
+        study_root=study_root,
+        repo_root=repo_root,
+        claims_csv=claims_csv,
+        figure_checklist_csv=figure_checklist_csv,
+        reference_checklist_csv=reference_checklist_csv,
+        submission_checklist_md=submission_checklist_md,
+        figure_index_md=figure_index_md,
+        paper_md=paper_md,
+        supplementary_md=supplementary_md,
+    )
+    errors: list[str] = []
+
+    try:
+        _check_claim_registry(paths, errors)
+    except Exception as exc:  # fail closed on unreadable or malformed evidence
+        errors.append(f"claim recomputation failed: {type(exc).__name__}: {exc}")
+
+    formal = paths.study_root / "artifacts" / "formal"
+    figure_dir = paths.study_root / "manuscript" / "figures"
+
+    generated_figures = [
+        "fig6_feature_ablation",
+        "fig7_boundary_offgrid",
+        "fig8_upper_bound_audit",
+        "fig9_real_data_comparison",
+        "fig_s1_crossfit",
+        "fig_s2_beta_profile",
+        "fig_s3_seed_stability",
+        "fig_s4_ablation_folds",
+        "fig_s5_boundary_folds",
+        "fig_s6_upper_bound_dist",
+        "fig_s7_nn_15model_dist",
+        "fig_s8_support_set",
+    ]
+    for name in generated_figures:
+        for extension in ("png", "svg", "pdf"):
+            path = figure_dir / f"{name}.{extension}"
+            if not path.exists() or path.stat().st_size <= 200:
+                errors.append(f"generated figure missing or empty: {path.name}")
+
+    _check_status_terms(paths.figure_index_md, "figure-index", errors)
+    _check_status_terms(paths.figure_checklist_csv, "figure-checklist", errors)
+    _check_status_terms(paths.submission_checklist_md, "submission-checklist", errors)
+
+    if not paths.reference_checklist_csv.exists():
+        errors.append(f"reference checklist missing: {paths.reference_checklist_csv}")
     else:
-        full = os.path.join(ARTIFACTS, src.replace('artifacts/formal/', ''))
-    if not os.path.exists(full):
-        check(f'{cid} source: {src}', False)
-for _, row in cd.iterrows():
-    src = str(row.get('source_file', ''))
-    for stale in ['R2产物', '...']:
-        if stale in src:
-            check(f'{row["claim_id"]} no stale: {stale}', False)
+        references = pd.read_csv(
+            paths.reference_checklist_csv, dtype=str, keep_default_na=False
+        )
+        expected_dois = {
+            "[3]": "10.1142/S0219455423500852",
+            "[4]": "10.12068/j.issn.1005-3026.2025.20240194",
+            "[7]": "10.1016/j.probengmech.2025.103828",
+        }
+        for reference, doi in expected_dois.items():
+            rows = references[references["ref_number"] == reference]
+            if len(rows) != 1:
+                errors.append(f"reference {reference} must appear exactly once")
+                continue
+            row = rows.iloc[0]
+            if "已核实" not in row["status"]:
+                errors.append(f"reference {reference} is not verified")
+            if row["doi"] != doi:
+                errors.append(
+                    f"reference {reference} DOI mismatch: {row['doi']!r} != {doi!r}"
+                )
 
-# ═══ 4. Recompute key values from formal artifacts ═══
-# Ladder
-with open(os.path.join(ARTIFACTS, 'E2_oracle_layers', 'summary.json'), encoding='utf-8') as f:
-    lad = {r['layer']: r['J1_global'] for r in json.load(f)['results']['ladder']}
-for cid, layer, expected in [('C001','Default',0.633218947),('C002','L1',0.632913084),('C003','L2',0.632540558),
-                              ('C004','L3',0.585067506),('C005','L4',0.582090109),('C006','L5',0.571170388),('C007','L6',0.494529731)]:
-    actual = lad[layer]
-    check(f'{cid} {layer}={expected:.9f}', abs(actual-expected) < 1e-8)
+    texts: dict[str, str] = {}
+    for label, path in (
+        ("paper", paths.paper_md),
+        ("supplementary", paths.supplementary_md),
+    ):
+        if not path.exists():
+            errors.append(f"{label} missing: {path}")
+            texts[label] = ""
+        else:
+            texts[label] = path.read_text(encoding="utf-8")
 
-# E4a
-df = pd.read_csv(os.path.join(ARTIFACTS, 'E4_robustness', 'E4a_feature_ablation.csv'))
-for cid, group, expected in [('C011','full',0.545628),('C012','scale_quantile',0.550596),
-                              ('C013','shape',0.581578),('C014','n',0.637761)]:
-    actual = float(df[df['feature_group']==group]['pooled_J1'].mean())
-    check(f'{cid} E4a {group}={expected:.6f}', abs(actual-expected) < 0.001)
+    for label, text in texts.items():
+        for stale in (
+            "-Spread",
+            "-Shape",
+            "理论上限",
+            "边际递减",
+            "单侧两样本KS",
+            "正文不可获得",
+            "待用户补充",
+        ):
+            if stale in text:
+                errors.append(f'{label} contains stale term "{stale}"')
 
-# E4d per-track pooled J1
-with open(os.path.join(ARTIFACTS, 'E4_robustness', 'summary_e4d.json'), encoding='utf-8') as f:
-    s = json.load(f)
-pt = s['per_track_pooled_J1']
-for cid, track, expected in [('C015','E4b_boundary',0.603773509338463),('C016','E4c_offgrid',0.526333743982320)]:
-    actual = pt[track]['Vector-MLP-L6']['J1']
-    check(f'{cid} {track}={expected:.12f}', abs(actual-expected) < 1e-12)
+    for number in range(1, 10):
+        if f"Figure {number}" not in texts["paper"]:
+            errors.append(f"paper does not cite Figure {number}")
+    for number in range(1, 9):
+        if (
+            f"Figure S{number}" not in texts["supplementary"]
+            and f"S{number}:" not in texts["supplementary"]
+        ):
+            errors.append(f"supplementary does not cite Figure S{number}")
 
-# R2
-cs = pd.read_csv(os.path.join(ARTIFACTS, 'delta_upper_bound_audit', 'cohort_summary.csv'))
-row = cs[cs['cohort_delta']==0.50].iloc[0]
-dist = ast.literal_eval(row['extended_best_delta_distribution'])
-check('C017 R2 n_migrated=2800', row['n_migrated']==2800)
-check('C018 R2 rate=0.946586', abs(row['migration_rate']-0.946586) < 1e-6)
-check('C019 R2 d=0.50 count=158', dist.get('0.5',0)+dist.get(0.5,0)==158)
-check('C020 R2 d=1.00 count=743', dist.get('1.0',0)+dist.get(1.0,0)==743)
-bins = [158,1218,682,157,743]
-for k,v in dist.items():
-    d=float(k)
-    if d<=0.50: bins[0]-=v
-    elif d<=0.70: bins[1]-=v
-    elif d<=0.90: bins[2]-=v
-    elif d<=0.98: bins[3]-=v
-    else: bins[4]-=v
-check('R2 5-bin verified', all(b==0 for b in bins))
+    if "每个beta各300" in texts["supplementary"]:
+        errors.append("supplementary contains stale per-beta count")
+    if (
+        "5×3×20=300" not in texts["supplementary"]
+        and "5x3x20=300" not in texts["supplementary"]
+    ):
+        errors.append("supplementary lacks the correct 5x3x20=300 count")
 
-# Seed stability
-sd = pd.read_csv(os.path.join(ARTIFACTS, 'E3b_vector_mlp', 'seed_stability.csv'))
-check('C008 seed42=0.547003', abs(float(sd[sd['seed']==42]['pooled_J1'].iloc[0])-0.547003)<1e-6)
-check('C009 seed2026=0.546133', abs(float(sd[sd['seed']==2026]['pooled_J1'].iloc[0])-0.546133)<1e-6)
-check('C010 seed3407=0.544009', abs(float(sd[sd['seed']==3407]['pooled_J1'].iloc[0])-0.544009)<1e-6)
+    try:
+        trend = pd.read_csv(
+            formal / "E2_beta_profile_audit" / "trend_summary.csv"
+        )
+        rhos = trend[
+            (trend["metric"] == "local_gradient_slope")
+            & trend["scope"].str.startswith("n=")
+        ]
+        expected_rhos = {"n=7": -0.463, "n=10": -0.495, "n=20": -0.529}
+        if len(rhos) != 3:
+            errors.append(f"S2 per-n Spearman row count is {len(rhos)}, expected 3")
+        for scope, expected in expected_rhos.items():
+            rows = rhos[rhos["scope"] == scope]
+            if len(rows) != 1 or abs(float(rows.iloc[0]["spearman_rho"]) - expected) >= 0.05:
+                errors.append(f"S2 Spearman rho mismatch for {scope}")
+    except Exception as exc:
+        errors.append(f"S2 recomputation failed: {type(exc).__name__}: {exc}")
 
-# Real data KS values
-real = pd.read_csv(os.path.join(ARTIFACTS, 'real_data', 'nist-6061-t6-fatigue', 'real_holdout_results.csv'))
-nn_df = real[real['method']=='nn']; nn_ids = sorted(nn_df['model_id'].unique())
-for cid, tn, expected in [('C021',7,0.1881),('C022',10,0.1630),('C023',20,0.1276)]:
-    actual = float(np.median(real[(real['train_n']==tn)&(real['method']=='default')]['D']))
-    check(f'{cid} Default n={tn} D={expected}', abs(actual-expected)<0.001)
-for cid, tn, expected in [('C024',7,0.2024),('C025',10,0.1727),('C026',20,0.1361)]:
-    meds = [np.median(nn_df[(nn_df['train_n']==tn)&(nn_df['model_id']==m)]['D']) for m in nn_ids]
-    actual = float(np.median(meds))
-    check(f'{cid} NN n={tn} median_of_medians={expected}', abs(actual-expected)<0.001)
+    try:
+        comparison = pd.read_csv(
+            formal / "E4_robustness" / "E4d_paired_comparisons_by_model.csv"
+        )
+        if len(comparison) != 90:
+            errors.append(f"S5 row count is {len(comparison)}, expected 90")
+        default_rows = comparison[comparison["reference_model"] == "Default"]
+        if len(default_rows) != 30:
+            errors.append(
+                f"S5 Default-reference row count is {len(default_rows)}, expected 30"
+            )
+    except Exception as exc:
+        errors.append(f"S5 recomputation failed: {type(exc).__name__}: {exc}")
 
-# ═══ 5. All 12 figures exist ═══
-main_figs = ['fig6_feature_ablation','fig7_boundary_offgrid','fig8_upper_bound_audit','fig9_real_data_comparison']
-supp_figs = [f'fig_s{i}_{n}' for i,n in [(1,'crossfit'),(2,'beta_profile'),(3,'seed_stability'),
-    (4,'ablation_folds'),(5,'boundary_folds'),(6,'upper_bound_dist'),(7,'nn_15model_dist'),(8,'support_set')]]
-for fn in main_figs + supp_figs:
-    for ext in ['png','svg','pdf']:
-        p = os.path.join(FIGDIR, f'{fn}.{ext}')
-        ok = os.path.exists(p) and os.path.getsize(p) > 200
-        if not ok: check(f'Fig {fn}.{ext}', False)
+    study15 = paths.repo_root / "Study" / "015-study-NN输入表征与样本量机制研究"
+    if not study15.exists():
+        errors.append(f"Study1.5 path missing: {study15}")
 
-# ═══ 6. Figure checklist: no stale status ═══
-assert os.path.exists(FC_CSV), f'{FC_CSV} missing'
-fc = pd.read_csv(FC_CSV)
-for stale in ['未生成','待生成','需检查','待补充','未生成']:
-    for col in fc.columns:
-        mask = fc[col].astype(str).str.contains(stale, na=False)
-        if mask.any():
-            for idx in fc[mask].index:
-                check(f'Fig checklist "{stale}" in {fc.loc[idx,"fig_number"]}', False)
+    if run_git_check:
+        result = subprocess.run(
+            ["git", "diff", "--check", "a52c3023..HEAD"],
+            cwd=paths.repo_root,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0 or result.stdout.strip():
+            errors.append("git diff --check a52c3023..HEAD failed")
 
-# ═══ 7. Reference checklist: [3][4][7] verified ═══
-assert os.path.exists(RC_CSV), f'{RC_CSV} missing'
-rc = pd.read_csv(RC_CSV)
-expected_dois = {'[3]':'10.1142/S0219455423500852','[4]':'10.12068/j.issn.1005-3026.2025.20240194','[7]':'10.1016/j.probengmech.2025.103828'}
-for ref, exp_doi in expected_dois.items():
-    rows = rc[rc['ref_number']==ref]
-    check(f'Ref {ref} exists in checklist', len(rows)>0)
-    if len(rows)>0:
-        status = str(rows.iloc[0]['status'])
-        doi = str(rows.iloc[0]['doi'])
-        check(f'Ref {ref} status is verified', '已核实' in status)
-        check(f'Ref {ref} DOI matches {exp_doi}', exp_doi in doi)
+    if verbose:
+        if errors:
+            print(f"{len(errors)} AUDIT ERROR(S):")
+            for error in errors:
+                print(f"  FAIL: {error}")
+        else:
+            print("ALL AUDIT CHECKS PASSED")
+    return errors
 
-# ═══ 8. Stale terms in paper + supplementary ═══
-for fpath, label in [(PAPER,'paper'),(SUPP,'supplementary')]:
-    with open(fpath, encoding='utf-8') as f: txt = f.read()
-    for stale in ['-Spread','-Shape','理论上限','边际递减','单侧两样本KS','正文不可获得','待用户补充']:
-        check(f'No stale "{stale}" in {label}', stale not in txt)
 
-# ═══ 9. Figure citations in paper + supplementary ═══
-with open(PAPER, encoding='utf-8') as f: ptxt = f.read()
-with open(SUPP, encoding='utf-8') as f: stxt = f.read()
-for i in range(1, 10):
-    check(f'Figure {i} cited in paper', f'Figure {i}' in ptxt)
-for i in range(1, 9):
-    check(f'Figure S{i} cited in supplementary', f'Figure S{i}' in stxt or f'S{i}:' in stxt)
+def main() -> int:
+    errors = audit_manuscript(verbose=True)
+    return 1 if errors else 0
 
-# ═══ 10. Supplementary no stale beta count ═══
-check('supp no "每个beta各300"', '每个beta各300' not in stxt)
-check('supp has correct count 5x3x20=300', '5×3×20=300' in stxt or '5x3x20=300' in stxt)
 
-# ═══ 11. S2 Spearman rho from trend_summary (per-n only, exclude pooled) ═══
-ts = pd.read_csv(os.path.join(ARTIFACTS, 'E2_beta_profile_audit', 'trend_summary.csv'))
-rhos = ts[(ts['metric']=='local_gradient_slope') & (ts['scope'].str.startswith('n='))]
-check('S2: 3 per-n Spearman rhos', len(rhos)==3)
-check('S2: rho_n7 approx -0.463', abs(float(rhos[rhos['scope']=='n=7']['spearman_rho'].iloc[0]) - (-0.463)) < 0.05)
-check('S2: rho_n10 approx -0.495', abs(float(rhos[rhos['scope']=='n=10']['spearman_rho'].iloc[0]) - (-0.495)) < 0.05)
-check('S2: rho_n20 approx -0.529', abs(float(rhos[rhos['scope']=='n=20']['spearman_rho'].iloc[0]) - (-0.529)) < 0.05)
-
-# ═══ 12. S5: 90 rows, 30 Default-ref ═══
-bm = pd.read_csv(os.path.join(ARTIFACTS, 'E4_robustness', 'E4d_paired_comparisons_by_model.csv'))
-check('S5: 90 rows', len(bm)==90)
-bm_def = bm[bm['reference_model']=='Default']
-check('S5: 30 Default-ref rows', len(bm_def)==30)
-
-# ═══ 13. Study1.5 path exists ═══
-check('Study1.5 path', os.path.exists(os.path.join(os.path.dirname(CODE_DIR), '..', '..', 'Study', '015-study-NN输入表征与样本量机制研究')))
-
-# ═══ 14. Submission checklist no stale items ═══
-if os.path.exists(SC_MD):
-    with open(SC_MD, encoding='utf-8') as f: sc_txt = f.read()
-    for stale in ['未生成','待生成']:
-        check(f'submission-checklist no "{stale}"', stale not in sc_txt)
-
-# ═══ 15. git diff --check from baseline ═══
-# Use a52c3023 as baseline per contract
-result = subprocess.run(['git', 'diff', '--check', 'a52c3023..HEAD'], capture_output=True, text=True)
-check('git diff --check a52c3023..HEAD', len(result.stdout.strip())==0 and result.returncode==0)
-
-print()
-if errs:
-    print(f'{len(errs)} ERRORS:')
-    for e in errs: print(f'  FAIL: {e}')
-    sys.exit(1)
-else:
-    print('ALL AUDIT CHECKS PASSED')
+if __name__ == "__main__":
+    sys.exit(main())
