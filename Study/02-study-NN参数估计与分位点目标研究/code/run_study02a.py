@@ -21,35 +21,21 @@ for path in (SCRIPT_PATH.parent, REPO_ROOT / "python"):
 
 from study02a.artifacts import write_manifest
 from study02a.config import load_frozen_config
-from study02a import design
 from study02a.matrix import expand_module_matrix
 from study02a.pilot import run_pilot
-from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run, _rebuild_authority
+from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run
 from study02a.formal_executor import (
-    build_module_pre_unseal_bundle,
     run_a_e1_staged,
     run_module as run_formal_module,
     reconstruct_deferred_specs,
     resolve_a_e1_staged_selection,
-    _validate_selection_point_evidence_dir,
 )
-from study02a.formal_contracts import (
-    PredecessorTrace,
-    build_fit_status_record,
-    write_ceiling_hit_report,
-    write_fit_status,
-    write_leakage_audit,
-    write_pre_unseal_bundle,
-)
-from study02a.formal_state import (
-    authorize_test_once,
-    initialize_formal_state,
-    publish_oracle_approval,
-)
+from study02a.formal_contracts import PredecessorTrace
 from study02a.formal_config import load_effective_formal_config
-from study02a.formal_test_consumer import consume_g3_test
-from study02a.selection import build_decision_specs, load_point_evidence
-from study02a.training import FitResult
+from study02a.formal_g3_control import build_g3_accreditation
+from study02a.formal_accreditation import (
+    build_module_accreditation_diagnostics as _build_module_accreditation_diagnostics,
+)
 
 
 def _load_pilot_amendment() -> dict:
@@ -114,30 +100,11 @@ def accredit_authorize(
     *, module: str, run_id: str, artifact_root: Path,
     approval_path: Path, oracle_review_path: Path, run_family_id: str, timestamp: str,
 ) -> dict:
-    """Pre-unseal accreditation (Task 9 Step 6/8): bind an external oracle approval to a
-    completed module run and transition the approval-bound state machine sealed -> unsealed_once.
-
-    The approval artifact MUST be supplied externally (the oracle/Codex owns the decision);
-    this entry never creates an APPROVE. It initializes the formal state from the run's
-    pre_unseal_bundle.json and authorizes one test access, then stops -- consume_test_once
-    (the actual one-shot test evaluation) is deliberately not wired here.
-    """
-    run_dir = Path(artifact_root) / module / run_id
-    bundle_path = run_dir / "pre_unseal_bundle.json"
-    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
-    state_path = run_dir / "formal_state.json"
-    ledger_path = run_dir / "transition_ledger.jsonl"
-    initialize_formal_state(
-        state_path=state_path, bundle_path=bundle_path, run_family_id=run_family_id,
-        code_commit=bundle["code_commit"],
-        effective_config_sha256=bundle["effective_config_sha256"], timestamp=timestamp,
-    )
-    return authorize_test_once(
-        state_path=state_path, bundle_path=bundle_path, approval_path=approval_path,
-        ledger_path=ledger_path, timestamp=timestamp,
-        ceiling_report_path=run_dir / "ceiling_hit_report.json",
-        leakage_audit_path=run_dir / "leakage_audit.json",
-        oracle_review_path=oracle_review_path,
+    """Permanently block the superseded per-module authorization path."""
+    del module, run_id, artifact_root, approval_path, oracle_review_path, run_family_id, timestamp
+    raise SystemExit(
+        "FATAL: formal-accredit-authorize is permanently BLOCKED. Test authorization belongs "
+        "only to the unified three-module G3 control plane and is outside this preparation task."
     )
 
 
@@ -187,227 +154,28 @@ def resolve_deferred(
     return resolved
 
 
-def _canonical_write(path: Path, obj: Mapping[str, Any]) -> None:
-    """Write canonical JSON bytes (LF, sorted, compact) matching the study02a artifact convention."""
-    path.write_bytes(
-        (json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8"))
-
-
-def _training_parameter_cell_ids(plan_rows: list[dict], frozen) -> list[str]:
-    """Faithfully regenerate the unique training parameter-point IDs across the run's training
-    configs via the design module's single-source allocator (the same authority formal_runner uses)."""
-    unique: set[str] = set()
-    seen: set[tuple] = set()
-    for row in plan_rows:
-        distribution = str(row.get("distribution", ""))
-        if not distribution:
-            continue
-        cfg = (distribution, str(row.get("n_mode")), int(row.get("training_size") or 0), row.get("fixed_n"))
-        if cfg in seen:
-            continue
-        seen.add(cfg)
-        try:
-            frame = design.allocate_training_rows(
-                distribution, str(row.get("n_mode")), int(row.get("training_size") or 0),
-                frozen, fixed_n=row.get("fixed_n"))
-        except (ValueError, KeyError):
-            continue
-        unique.update(str(value) for value in frame["parameter_cell_id"].tolist())
-    return sorted(unique)
-
-
-def _accredit_role_parameter_points(module: str, frozen, plan_rows: list[dict]) -> dict[str, list[str]]:
-    """Regenerate the four formal role parameter-point ID sets from the frozen design (disjoint by
-    independent role/module design seeds + role-prefixed IDs; the audit asserts zero intersections)."""
-    formal = frozen.protocol["formal_sizes"]
-    return {
-        "training": _training_parameter_cell_ids(plan_rows, frozen),
-        "validation": list(design.generate_parameter_points(
-            "validation", "core", int(formal["validation"]["parameter_points"]), frozen)["point_id"]),
-        "calibration": list(design.generate_parameter_points(
-            "calibration", "core", int(formal["calibration"]["parameter_points"]), frozen)["point_id"]),
-        "test": list(design.generate_parameter_points(
-            module, "core", int(formal["module_test"]["parameter_points"]), frozen)["point_id"]),
-    }
-
-
-def _accredit_role_namespaces(manifest: Mapping[str, Any]) -> dict[str, str]:
-    """The formal manifest records only training/validation namespaces; the leakage audit needs all
-    four roles. Derive calibration/test from the training namespace pattern (``<prefix>/<role>``)."""
-    manifest_ns = manifest["role_namespaces"]
-    base = str(manifest_ns["training"])
-    prefix = base[: base.rfind("/")]
-    return {role: (str(manifest_ns[role]) if role in manifest_ns else f"{prefix}/{role}")
-            for role in ("training", "validation", "calibration", "test")}
-
-
-def _recover_selection_n(plan_row: Mapping[str, Any], fit_id: str) -> int:
-    """Recover a selection candidate's concrete sample size from the formal plan row.
-
-    plan.jsonl carries ``n_mode``/``fixed_n`` (the matrix ``n`` is renamed at plan-build time; the
-    plan has no ``n`` field), so the prior ``int(plan_row["n"])`` was a latent KeyError. A selection
-    candidate must be a concrete-n fit (shared-n is for historical fits only, which are never
-    selection candidates), so shared_n / missing fixed_n fail closed. The value is not written back
-    into the plan (no second source of truth).
-    """
-    if plan_row.get("n_mode") == "shared_n":
-        raise ValueError(f"selection candidate {fit_id} is shared-n; selection requires a concrete n")
-    fixed_n = plan_row.get("fixed_n")
-    if fixed_n is None:
-        raise ValueError(f"selection candidate {fit_id} plan row has no fixed_n")
-    return int(fixed_n)
-
-
-def _fit_terminal_receipt(run_dir: Path, fit_id: str) -> tuple[str, str | None]:
-    """Read a selection fit's scheduler terminal receipt and return ``(state, failure_code)``.
-
-    Exactly one of ``receipts/{fit_id}.succeeded.json`` / ``.failed.json`` must exist (the scheduler
-    authority's terminal-state record; its SHA is event-bound). This is the scheduler terminal
-    state/receipt source accredit_build cross-checks the point-evidence failure record against.
-    Both receipts, neither receipt, a wrong-state receipt, or a failed receipt missing its
-    ``failure_code`` all fail closed. ``failure_code`` is ``None`` for succeeded fits.
-    """
-    succeeded = run_dir / "receipts" / f"{fit_id}.succeeded.json"
-    failed = run_dir / "receipts" / f"{fit_id}.failed.json"
-    if succeeded.is_file() and failed.is_file():
-        raise ValueError(f"selection fit {fit_id} has both succeeded and failed receipts")
-    if succeeded.is_file():
-        receipt = json.loads(succeeded.read_text(encoding="utf-8"))
-        if receipt.get("state") != "succeeded":
-            raise ValueError(f"selection fit {fit_id} succeeded receipt state is not 'succeeded'")
-        return "succeeded", None
-    if failed.is_file():
-        receipt = json.loads(failed.read_text(encoding="utf-8"))
-        if receipt.get("state") != "failed":
-            raise ValueError(f"selection fit {fit_id} failed receipt state is not 'failed'")
-        code = receipt.get("details", {}).get("failure_code")
-        if not isinstance(code, str) or not code.strip():
-            raise ValueError(f"selection fit {fit_id} failure receipt has no failure_code")
-        return "failed", code
-    raise ValueError(f"selection fit {fit_id} has no scheduler terminal receipt")
-
-
 def accredit_build(module: str, run_id: str, artifact_root: Path, cache_root: Path) -> dict:
-    """Pre-unseal accreditation build (Task 9 Step 4/5/8): generate the run-level diagnostics a
-    completed module run needs (fit_status.csv, ceiling_hit_report.json, leakage_audit.json) from
-    the run's per-fit evidence + selection trace, then build the pre-unseal bundle.
+    """Permanently block the superseded single-module bundle builder."""
+    del module, run_id, artifact_root, cache_root
+    raise SystemExit(
+        "FATAL: formal-accredit-build is permanently BLOCKED. Use the three-module "
+        "diagnostics-only command followed by formal-g3-accredit-build."
+    )
 
-    Authority preflight FIRST: a full ``_rebuild_authority`` replay is the sole source of the
-    manifest, plan and ``fit_states`` -- raw ``manifest.json``/``plan.jsonl``/receipt JSON are never
-    trusted as fact. The replay raises on any tampering (terminal-receipt content vs event
-    ``receipt_sha256``, ``plan_sha256``, event-chain hash, manifest/controller-anchor drift) BEFORE
-    any diagnostic file is written. Each selection fit's point-evidence ``failed`` flag, scheduler
-    ``fit_state`` and terminal-receipt state must then agree (three-way consistency). The
-    diagnostics are not produced by training/selection; this entry reconstructs them faithfully so
-    the bundle can accredit the run up to test unseal. Test stays sealed; point provenance is
-    rebuilt inside the bundle builder (R5). No training; no test read.
-    """
-    run_dir = Path(artifact_root) / module / run_id
-    frozen = load_frozen_config(STUDY_ROOT)
-    effective = load_effective_formal_config(STUDY_ROOT)
-    # Authority preflight (FIRST): replay-verified manifest/plan/fit_states. Raises on tampering
-    # before any diagnostic is written. Requires a clean scoped code/ tree (same as all scheduler use).
-    authority_manifest, verified_plan, scheduler_state, _events = _rebuild_authority(run_dir, cache_root)
-    manifest = authority_manifest
-    fit_states = scheduler_state["fit_states"]
-    plan_by_fit: dict[str, dict] = {str(row["fit_id"]): row for row in verified_plan}
 
-    trace_records = [
-        json.loads(line) for line in (run_dir / "selection_trace.jsonl").read_text(encoding="utf-8").splitlines()
-        if line.strip()]
-    selected_by_decision = {
-        str(r["decision_id"]): str(r["candidate_id"]) for r in trace_records if r.get("selected")}
-
-    # Expected selection fit_id set from the FROZEN authority (matrix -> DecisionSpecs), NOT a
-    # directory scan of outputs/. Selection candidates are matrix-determined; their point evidence is
-    # a post-selection artifact that lives in selection/point_evidence/, never under outputs/{fit_id}/
-    # (the scheduler-authority training-output dir, which must stay exactly the frozen expected_outputs).
-    matrix_rows = expand_module_matrix(frozen).to_dict("records")
-    specs = build_decision_specs(module, matrix_rows)
-    expected_fit_ids: set[str] = set()
-    for spec in specs:
-        for candidate in spec.candidates:
-            for key in candidate.support_keys:
-                expected_fit_ids.add(candidate.support_for(key))
-
-    # The selection point-evidence dir must hold exactly the expected candidates (no missing/extra/
-    # duplicate/alias/non-file/nested/unknown fit); evidence.json still comes from outputs/{fit_id}/.
-    point_evidence_by_fit = _validate_selection_point_evidence_dir(
-        run_dir=run_dir, expected_fit_ids=expected_fit_ids)
-
-    rows: list[dict] = []
-    point_evidence_paths: dict[str, Path] = {}
-    for fit_id in sorted(expected_fit_ids):
-        evaluation = load_point_evidence(json.loads(point_evidence_by_fit[fit_id].read_text(encoding="utf-8")))
-        plan_row = plan_by_fit[fit_id]
-        selected = selected_by_decision.get(evaluation.decision_id) == evaluation.candidate_id
-        n = _recover_selection_n(plan_row, fit_id)
-        common = dict(
-            fit_id=fit_id, module_id=module, rule_id=str(plan_row["rule_id"]), route_id=str(plan_row["route"]),
-            n=n, seed=int(plan_row["seed"]), decision_id=evaluation.decision_id,
-            candidate_id=evaluation.candidate_id, selected=selected)
-        # Three independent sources must agree, else fail closed (before any diagnostic write): the
-        # scheduler fit_state (from the authority replay), the terminal-receipt state (hash-verified by
-        # the replay) and the point-evidence failure record. No fit may vanish -- a failed fit gets a
-        # failure row, never a silent skip.
-        scheduler_fit = fit_states.get(fit_id)
-        receipt_state, failure_code = _fit_terminal_receipt(run_dir, fit_id)
-        evidence_path = run_dir / "outputs" / fit_id / "evidence.json"
-        if scheduler_fit not in ("succeeded", "failed"):
-            raise ValueError(
-                f"selection fit {fit_id} is not scheduler-terminal (state={scheduler_fit!r}); "
-                f"accreditation requires a complete terminal run")
-        if receipt_state != scheduler_fit:
-            raise ValueError(
-                f"selection fit {fit_id}: scheduler fit_state {scheduler_fit!r} disagrees with its "
-                f"terminal-receipt state {receipt_state!r}")
-        if scheduler_fit == "succeeded":
-            if evaluation.failed:
-                raise ValueError(f"selection fit {fit_id}: scheduler succeeded but its point evidence is failed")
-            if not evidence_path.is_file():
-                raise ValueError(f"succeeded selection fit {fit_id} has no training evidence.json")
-            evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
-            curve = tuple(float(v) for v in evidence["validation_curve"])
-            best_epoch_zero = int(evidence["best_epoch_one_based"]) - 1
-            result = FitResult(
-                predictions=None, checkpoint_sha256=str(evidence["checkpoint_sha256"]),
-                best_validation_loss=curve[best_epoch_zero], best_epoch=best_epoch_zero,
-                actual_epochs=int(evidence["actual_epochs"]), validation_loss_history=curve,
-                early_stop_reason=str(evidence["early_stop_reason"]),
-                hit_epoch_ceiling=bool(evidence["hit_epoch_100"]))
-            rows.append(build_fit_status_record(**common, result=result, selection_score=float(evaluation.selection_score)))
-        else:  # scheduler_fit == "failed"
-            if not evaluation.failed:
-                raise ValueError(f"selection fit {fit_id}: scheduler failed but its point evidence is not failed")
-            if evidence_path.is_file():
-                raise ValueError(f"failed selection fit {fit_id} unexpectedly has a training evidence.json")
-            rows.append(build_fit_status_record(
-                **common, result=None, failure_penalty=float(evaluation.failure_penalty),
-                failure_message=failure_code))
-        point_evidence_paths[fit_id] = point_evidence_by_fit[fit_id]
-
-    fit_status_path = run_dir / "fit_status.csv"
-    write_fit_status(fit_status_path, rows)
-    ceiling_path = run_dir / "ceiling_hit_report.json"
-    write_ceiling_hit_report(ceiling_path, rows)
-    leakage_path = run_dir / "leakage_audit.json"
-    write_leakage_audit(
-        leakage_path, parameter_point_ids=_accredit_role_parameter_points(module, frozen, list(plan_by_fit.values())),
-        role_namespaces=_accredit_role_namespaces(manifest), scaler_source="training_only",
-        feature_selection_source="validation_only", model_selection_source="validation_only", test_access_count=0)
-
-    bundle = build_module_pre_unseal_bundle(
-        study_root=STUDY_ROOT, cache_root=cache_root, run_dirs={module: run_dir},
-        formal_manifests=[run_dir / "manifest.json"],
-        selection_traces=[run_dir / "selection_trace.jsonl"],
-        selection_receipts=[run_dir / "selection_receipt.json"],
-        selection_ledger_path=run_dir / "selection_ledger.jsonl", fit_status_path=fit_status_path,
-        ceiling_report_path=ceiling_path, leakage_audit_path=leakage_path,
-        code_commit=str(manifest["code_commit"]), effective_config_sha256=effective.effective_config_sha256,
-        module_run_ids={module: run_id}, point_evidence_paths=point_evidence_paths,
-        selection_diagnostics_paths=[run_dir / "selection_diagnostics.jsonl"])
-    _canonical_write(run_dir / "pre_unseal_bundle.json", bundle)
-    return bundle
+def diagnostics_build(module: str, run_id: str, artifact_root: Path, cache_root: Path) -> dict:
+    result = _build_module_accreditation_diagnostics(
+        study_root=STUDY_ROOT, module=module, run_id=run_id,
+        artifact_root=artifact_root, cache_root=cache_root,
+    )
+    return {
+        "status": "sealed_diagnostics_ready",
+        "module": module,
+        "run_id": run_id,
+        "fit_status_path": str(result["fit_status_path"]),
+        "ceiling_report_path": str(result["ceiling_path"]),
+        "leakage_audit_path": str(result["leakage_path"]),
+    }
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -473,12 +241,28 @@ def _parser() -> argparse.ArgumentParser:
     deferred.add_argument("--predecessor-run-id", required=True)
     build = commands.add_parser(
         "formal-accredit-build",
-        help="generate fit_status/ceiling/leakage diagnostics + the sealed pre_unseal_bundle for a completed module run (test stays sealed)",
+        help="BLOCKED legacy single-module pre_unseal_bundle builder",
     )
-    build.add_argument("--module", choices=("A-E1",), required=True)
+    build.add_argument("--module", choices=("A-E1", "A-E3", "A-E2"), required=True)
     build.add_argument("--run-id", required=True)
     build.add_argument("--artifact-root", type=Path, required=True)
     build.add_argument("--cache-root", type=Path, required=True)
+    diagnostics = commands.add_parser(
+        "formal-accredit-diagnostics",
+        help="rebuild sealed-only fit/ceiling/leakage diagnostics for one completed G3 module",
+    )
+    diagnostics.add_argument("--module", choices=("A-E1", "A-E3", "A-E2"), required=True)
+    diagnostics.add_argument("--run-id", required=True)
+    diagnostics.add_argument("--artifact-root", type=Path, required=True)
+    diagnostics.add_argument("--cache-root", type=Path, required=True)
+    g3_build = commands.add_parser(
+        "formal-g3-accredit-build",
+        help="replay the completed A-E1/A-E3/A-E2 chain and publish sealed-only unified G3 accreditation",
+    )
+    g3_build.add_argument("--artifact-root", type=Path, required=True)
+    g3_build.add_argument("--cache-root", type=Path, required=True)
+    g3_build.add_argument("--a-e2-run-id", required=True)
+    g3_build.add_argument("--output-dir", type=Path, required=True)
     consume = commands.add_parser(
         "formal-consume-test",
         help="unified G3 test evaluation: derive cohort from frozen authorities, evaluate all checkpoints + traditional methods, consume (no caller-supplied winner/module)",
@@ -584,6 +368,16 @@ def main() -> int:
         )
     elif args.command == "formal-accredit-build":
         payload = accredit_build(args.module, args.run_id, args.artifact_root, args.cache_root)
+    elif args.command == "formal-accredit-diagnostics":
+        payload = diagnostics_build(args.module, args.run_id, args.artifact_root, args.cache_root)
+    elif args.command == "formal-g3-accredit-build":
+        payload = build_g3_accreditation(
+            ae2_run_dir=args.artifact_root / "A-E2" / args.a_e2_run_id,
+            artifact_root=args.artifact_root,
+            cache_root=args.cache_root,
+            study_root=STUDY_ROOT,
+            output_dir=args.output_dir,
+        )
     elif args.command == "formal-consume-test":
         raise SystemExit(
             "FATAL: formal-consume-test is BLOCKED. The unified G3 bundle/approval/manifest "

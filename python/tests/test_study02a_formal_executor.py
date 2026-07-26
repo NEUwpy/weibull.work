@@ -743,6 +743,25 @@ def _assert_chained_ledger(run_dir: Path) -> list[dict]:
     return records
 
 
+def _rewrite_staged_ledger(run_dir: Path, records: list[dict]) -> None:
+    """Rewrite a syntactically and cryptographically valid staged chain for semantic attacks."""
+    previous = fe._ZERO_HASH
+    rebuilt = []
+    for source in records:
+        record = dict(source)
+        record["previous_record_sha256"] = previous
+        record["resolution_sha256"] = hashlib.sha256(
+            fe._canonical(dict(record["resolution"]))
+        ).hexdigest()
+        core = {key: value for key, value in record.items() if key != "record_sha256"}
+        record["record_sha256"] = hashlib.sha256(fe._canonical(core)).hexdigest()
+        previous = record["record_sha256"]
+        rebuilt.append(record)
+    (run_dir / fe._STAGED_LEDGER_NAME).write_bytes(
+        b"".join(fe._canonical(record) for record in rebuilt)
+    )
+
+
 def test_resolve_a_e1_staged_selection_smoke_real_matrix(tmp_path):
     """Full real-matrix staged smoke: every frozen A-E1 placeholder resolves through the
     immutable chained ledger; final aliases provably take the winning route's stage2."""
@@ -777,6 +796,128 @@ def test_resolve_a_e1_staged_selection_smoke_real_matrix(tmp_path):
     # final aliases take the WINNING route's stage2 (F2), not V's
     assert result["final_aliases"] == result["stage2_by_route"]["F2"]
     _assert_chained_ledger(run_dir)
+
+
+def test_g3_reader_accepts_direct_a_e1_staged_happy_path(tmp_path):
+    """The unified G3 reader accepts the real 8-record staged order and concrete aliases."""
+    from study02a.formal_g3_control import _resolve_a_e1_from_staged_ledger
+
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _trace_sha, _records = _publish_staged_run(tmp_path, specs, evaluations)
+    staged = fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit(),
+    )
+    out = {}
+    _resolve_a_e1_from_staged_ledger(
+        run_dir, _STAGED_RUN_ID, _D8_CODE_COMMIT,
+        EFFECTIVE.effective_config_sha256, out, study_root=STUDY_ROOT,
+        cache_root=tmp_path / "cache", frozen_config=FROZEN,
+        baseline_score_fit=_baseline_score_fit(),
+    )
+    assert out["selected:F2_or_V"] == staged["selected_F2_or_V"]
+    assert {key: out[key] for key in staged["final_aliases"]} == staged["final_aliases"]
+
+
+def test_g3_reader_rejects_cryptographically_valid_staged_reorder(tmp_path):
+    """Re-chaining cannot legitimize a route/stage order that differs from the exact contract."""
+    from study02a.formal_g3_control import _resolve_a_e1_from_staged_ledger
+
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _trace_sha, _records = _publish_staged_run(tmp_path, specs, evaluations)
+    fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit(),
+    )
+    records = _assert_chained_ledger(run_dir)
+    records[2], records[3] = records[3], records[2]
+    _rewrite_staged_ledger(run_dir, records)
+    with pytest.raises(ValueError, match="semantic order mismatch"):
+        _resolve_a_e1_from_staged_ledger(
+            run_dir, _STAGED_RUN_ID, _D8_CODE_COMMIT,
+            EFFECTIVE.effective_config_sha256, {}, study_root=STUDY_ROOT,
+            cache_root=tmp_path / "cache", frozen_config=FROZEN,
+            baseline_score_fit=_baseline_score_fit(),
+        )
+
+
+def test_g3_reader_rejects_stage2_predecessor_cross_binding_tamper(tmp_path):
+    """A valid self-hash cannot hide a stage2 record bound to the wrong stage1 record."""
+    from study02a.formal_g3_control import _resolve_a_e1_from_staged_ledger
+
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _trace_sha, _records = _publish_staged_run(tmp_path, specs, evaluations)
+    fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit(),
+    )
+    records = _assert_chained_ledger(run_dir)
+    records[1]["input"] = {**records[1]["input"], "stage1_record_sha256": "f" * 64}
+    _rewrite_staged_ledger(run_dir, records)
+    with pytest.raises(ValueError, match="input/predecessor cross-binding mismatch"):
+        _resolve_a_e1_from_staged_ledger(
+            run_dir, _STAGED_RUN_ID, _D8_CODE_COMMIT,
+            EFFECTIVE.effective_config_sha256, {}, study_root=STUDY_ROOT,
+            cache_root=tmp_path / "cache", frozen_config=FROZEN,
+            baseline_score_fit=_baseline_score_fit(),
+        )
+
+
+def test_g3_reader_rejects_final_alias_cross_binding_tamper(tmp_path):
+    """Final aliases must equal the stage2 resolution of the baseline-selected route."""
+    from study02a.formal_g3_control import _resolve_a_e1_from_staged_ledger
+
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _trace_sha, _records = _publish_staged_run(tmp_path, specs, evaluations)
+    fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit(),
+    )
+    records = _assert_chained_ledger(run_dir)
+    records[-1]["resolution"] = {
+        **records[-1]["resolution"], "selected:A-E1_architecture": "m99",
+    }
+    _rewrite_staged_ledger(run_dir, records)
+    with pytest.raises(ValueError, match="final_aliases do not match"):
+        _resolve_a_e1_from_staged_ledger(
+            run_dir, _STAGED_RUN_ID, _D8_CODE_COMMIT,
+            EFFECTIVE.effective_config_sha256, {}, study_root=STUDY_ROOT,
+            cache_root=tmp_path / "cache", frozen_config=FROZEN,
+            baseline_score_fit=_baseline_score_fit(),
+        )
+
+
+def test_g3_reader_rejects_coherent_baseline_and_final_tamper(tmp_path):
+    """Re-chaining a false V baseline plus matching V final aliases cannot replace replay truth."""
+    from study02a.formal_g3_control import _resolve_a_e1_from_staged_ledger
+
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, _trace_sha, _records = _publish_staged_run(tmp_path, specs, evaluations)
+    fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit(),
+    )
+    records = _assert_chained_ledger(run_dir)
+    v_resolution = dict(records[4]["resolution"])
+    records[6]["resolution"] = {"selected:F2_or_V": "V"}
+    records[7]["resolution"] = v_resolution
+    records[7]["input"] = {
+        **records[7]["input"],
+        "winning_route": "V",
+        "winning_route_stage2": {
+            "loss": v_resolution["selected:A-E1_loss"],
+            "architecture": v_resolution["selected:A-E1_architecture"],
+            "optimizer": v_resolution["selected:A-E1_optimizer"],
+        },
+    }
+    _rewrite_staged_ledger(run_dir, records)
+    with pytest.raises(ValueError, match="baseline winner disagrees"):
+        _resolve_a_e1_from_staged_ledger(
+            run_dir, _STAGED_RUN_ID, _D8_CODE_COMMIT,
+            EFFECTIVE.effective_config_sha256, {}, study_root=STUDY_ROOT,
+            cache_root=tmp_path / "cache", frozen_config=FROZEN,
+            baseline_score_fit=_baseline_score_fit(),
+        )
 
 
 def test_resolve_a_e1_staged_selection_pending_without_trace(tmp_path):
@@ -986,31 +1127,16 @@ def _publish_accredit_approval(approval_path: Path, bundle_path: Path, ceiling, 
     )
 
 
-def test_formal_accredit_authorize_requires_external_approval_then_stops(tmp_path):
-    """The authorize CLI binds an EXTERNAL oracle approval, transitions sealed -> unsealed_once,
-    and stops: consume_test_once is not exposed on the CLI surface (test is never read)."""
+def test_formal_accredit_authorize_is_permanently_blocked(tmp_path):
+    """The superseded per-module API cannot transition sealed state under any inputs."""
     import run_study02a
-    run_dir = tmp_path / "A-E1" / _ACCCR_RUN_ID
-    bundle_path, ceiling, leakage, oracle, trace_sha = _accredit_bundle_inputs(run_dir)
-    approval_path = run_dir / "approval.json"
-    _publish_accredit_approval(approval_path, bundle_path, ceiling, leakage, oracle, trace_sha)
-    state = run_study02a.accredit_authorize(
-        module="A-E1", run_id=_ACCCR_RUN_ID, artifact_root=tmp_path,
-        approval_path=approval_path, oracle_review_path=oracle, run_family_id="G3-formal",
-        timestamp="2026-07-19T11:00:00+08:00")
-    assert state["state"] == "unsealed_once"
-    assert state["transition_seq"] == 1
-    assert state["test_access_count"] == 1
-    assert state["approval_sha256"] == hashlib.sha256(approval_path.read_bytes()).hexdigest()
-    # consume is deliberately not wired into the CLI
-    assert not hasattr(run_study02a, "consume_test")
-    # repeat authorize fails closed (state is no longer sealed)
-    import pytest as _pt
-    with _pt.raises(Exception):
+    with pytest.raises(SystemExit, match="permanently BLOCKED"):
         run_study02a.accredit_authorize(
             module="A-E1", run_id=_ACCCR_RUN_ID, artifact_root=tmp_path,
-            approval_path=approval_path, oracle_review_path=oracle, run_family_id="G3-formal",
-            timestamp="2026-07-19T11:30:00+08:00")
+            approval_path=tmp_path / "approval.json", oracle_review_path=tmp_path / "review.json",
+            run_family_id="G3-formal", timestamp="2026-07-19T11:30:00+08:00")
+    assert not hasattr(run_study02a, "consume_g3_test")
+    assert not any(tmp_path.rglob("formal_state.json"))
 
 
 def test_formal_resolve_deferred_cli_a_e3_from_a_e1(tmp_path):
@@ -1117,6 +1243,7 @@ def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id=
     (``selection/point_evidence/{fit}.json``). No real scheduler/training; the bundle's
     ``rebuild_selection_point_provenance`` is monkeypatched. Returns ``(run_dir, fit_ids, evaluations)``."""
     import run_study02a
+    import study02a.formal_accreditation as formal_accreditation
     from study02a.formal_contracts import APPROVED_EFFECTIVE_CONFIG_SHA256
     run_dir = tmp_path / "A-E1" / run_id
     run_dir.mkdir(parents=True)
@@ -1205,7 +1332,7 @@ def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id=
 
     def _fake_rebuild_authority(run_dir, cache_root, **kw):
         return manifest, list(plan_row_objs), {"fit_states": dict(_fit_states)}, []
-    monkeypatch.setattr(run_study02a, "_rebuild_authority", _fake_rebuild_authority)
+    monkeypatch.setattr(formal_accreditation, "_rebuild_authority", _fake_rebuild_authority)
     return run_dir, fit_ids, evaluations_by_fit
 
 
@@ -1229,10 +1356,13 @@ def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
     sample_fit = fit_ids[0]
     published = json.loads((pe_dir / f"{sample_fit}.json").read_text(encoding="utf-8"))
     assert published == serialize_point_evidence(evaluations[sample_fit])
-    bundle = run_study02a.accredit_build("A-E1", run_id, tmp_path, tmp_path / "cache")
-    assert bundle["bundle_version"] == "study02-pre-unseal-v3"
-    assert bundle["test_state"] == "sealed"
-    assert (run_dir / "pre_unseal_bundle.json").is_file()
+    from study02a.formal_accreditation import build_module_accreditation_diagnostics
+    diagnostics = build_module_accreditation_diagnostics(
+        study_root=STUDY_ROOT, module="A-E1", run_id=run_id,
+        artifact_root=tmp_path, cache_root=tmp_path / "cache",
+    )
+    assert diagnostics["module"] == "A-E1"
+    assert not (run_dir / "pre_unseal_bundle.json").exists()
     assert (run_dir / "ceiling_hit_report.json").is_file()
     # contract 6: fit_status covers every selection candidate with n recovered from n_mode/fixed_n
     # (the plan carries no 'n'); no fit vanishes and no KeyError on plan_row['n'].
@@ -1246,26 +1376,13 @@ def test_formal_accredit_build_generates_sealed_bundle(tmp_path, monkeypatch):
     assert leakage["test_access_count"] == 0
     assert all(value == 0 for value in leakage["pairwise_intersections"].values())
     assert set(leakage["parameter_point_counts"]) == {"training", "validation", "calibration", "test"}
-    # end-to-end chaining: the v3 bundle flows into authorize (formal_state accepts v3) -> unsealed_once
-    from study02a.formal_state import publish_oracle_approval
-    bundle_path = run_dir / "pre_unseal_bundle.json"
-    oracle = run_dir / "oracle_review.json"
-    oracle.write_bytes(b"oracle-review-evidence\n")
-    approval_path = run_dir / "approval.json"
-    publish_oracle_approval(
-        approval_path=approval_path, approval_version="study02-test-unseal-approval-v1",
-        decision="APPROVE test unseal", code_commit=_D8_CODE_COMMIT,
-        effective_config_sha256=APPROVED_EFFECTIVE_CONFIG_SHA256,
-        pre_unseal_bundle_sha256=hashlib.sha256(bundle_path.read_bytes()).hexdigest(),
-        selection_trace_hashes=bundle["selection_trace_hashes"],
-        ceiling_report_sha256=hashlib.sha256((run_dir / "ceiling_hit_report.json").read_bytes()).hexdigest(),
-        leakage_audit_sha256=hashlib.sha256((run_dir / "leakage_audit.json").read_bytes()).hexdigest(),
-        oracle_review_artifact_sha256=hashlib.sha256(oracle.read_bytes()).hexdigest(),
-        issued_at="2026-07-19T10:00:00+08:00")
-    state = run_study02a.accredit_authorize(
-        module="A-E1", run_id=run_id, artifact_root=tmp_path, approval_path=approval_path,
-        oracle_review_path=oracle, run_family_id="G3-formal", timestamp="2026-07-19T11:00:00+08:00")
-    assert state["state"] == "unsealed_once" and state["test_access_count"] == 1
+    # Preparation ends at sealed diagnostics/bundle; the superseded module authorize path is blocked.
+    with pytest.raises(SystemExit, match="permanently BLOCKED"):
+        run_study02a.accredit_authorize(
+            module="A-E1", run_id=run_id, artifact_root=tmp_path,
+            approval_path=run_dir / "approval.json", oracle_review_path=run_dir / "review.json",
+            run_family_id="G3-formal", timestamp="2026-07-19T11:00:00+08:00")
+    assert not (run_dir / "formal_state.json").exists()
 
 
 def test_accredit_build_failed_selection_fit_is_not_silently_skipped(tmp_path, monkeypatch):
@@ -1280,7 +1397,11 @@ def test_accredit_build_failed_selection_fit_is_not_silently_skipped(tmp_path, m
     run_dir, _fit_ids, _evals = _accredit_real_matrix_run(tmp_path, monkeypatch, failed_fit=failed_fit)
     # the failed fit produced no training evidence.json
     assert not (run_dir / "outputs" / failed_fit / "evidence.json").is_file()
-    run_study02a.accredit_build("A-E1", run_id, tmp_path, tmp_path / "cache")
+    from study02a.formal_accreditation import build_module_accreditation_diagnostics
+    build_module_accreditation_diagnostics(
+        study_root=STUDY_ROOT, module="A-E1", run_id=run_id,
+        artifact_root=tmp_path, cache_root=tmp_path / "cache",
+    )
     with (run_dir / "fit_status.csv").open(encoding="utf-8") as fh:
         rows = {r["fit_id"]: r for r in csv.DictReader(fh)}
     # every selection candidate is present -- the failed one did not vanish
@@ -1426,7 +1547,11 @@ def test_accredit_build_rejects_tampered_terminal_receipt(tmp_path):
     forged = json.loads(receipt_file.read_text(encoding="utf-8")); forged["owner_id"] = "tampered-owner"
     receipt_file.write_bytes(fe._canonical(forged))
     with pytest.raises(ValueError):
-        run_study02a.accredit_build("A-E1", "G3-AE1-attack-v1", tmp_path / "artifacts", cache)
+        from study02a.formal_accreditation import build_module_accreditation_diagnostics
+        build_module_accreditation_diagnostics(
+            study_root=STUDY_ROOT, module="A-E1", run_id="G3-AE1-attack-v1",
+            artifact_root=tmp_path / "artifacts", cache_root=cache,
+        )
     _assert_no_accredit_diagnostics(run_dir)
 
 
@@ -1437,7 +1562,11 @@ def test_accredit_build_rejects_tampered_plan(tmp_path):
     plan_file = run_dir / "plan.jsonl"
     plan_file.write_bytes(plan_file.read_bytes() + b'{"tampered": true}\n')
     with pytest.raises(ValueError, match="plan"):
-        run_study02a.accredit_build("A-E1", "G3-AE1-attack-v1", tmp_path / "artifacts", cache)
+        from study02a.formal_accreditation import build_module_accreditation_diagnostics
+        build_module_accreditation_diagnostics(
+            study_root=STUDY_ROOT, module="A-E1", run_id="G3-AE1-attack-v1",
+            artifact_root=tmp_path / "artifacts", cache_root=cache,
+        )
     _assert_no_accredit_diagnostics(run_dir)
 
 
@@ -1449,7 +1578,11 @@ def test_accredit_build_rejects_tampered_event(tmp_path):
     forged = json.loads(event_file.read_text(encoding="utf-8")); forged["payload"]["tampered"] = True
     event_file.write_bytes(fe._canonical(forged))
     with pytest.raises(ValueError):
-        run_study02a.accredit_build("A-E1", "G3-AE1-attack-v1", tmp_path / "artifacts", cache)
+        from study02a.formal_accreditation import build_module_accreditation_diagnostics
+        build_module_accreditation_diagnostics(
+            study_root=STUDY_ROOT, module="A-E1", run_id="G3-AE1-attack-v1",
+            artifact_root=tmp_path / "artifacts", cache_root=cache,
+        )
     _assert_no_accredit_diagnostics(run_dir)
 
 

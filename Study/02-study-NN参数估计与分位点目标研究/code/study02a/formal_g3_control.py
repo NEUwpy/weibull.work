@@ -17,10 +17,12 @@ import hashlib
 import json
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .config import FrozenConfig
+from .formal_accreditation import build_module_accreditation_diagnostics
 from .formal_config import EffectiveFormalConfig
 from .formal_contracts import (
     APPROVED_EFFECTIVE_CONFIG_SHA256,
@@ -526,6 +528,66 @@ def initialize_g3_formal_state(
     }
     _publish_no_replace(state_path, _canonical(state))
     return state
+
+
+def _validate_reusable_g3_formal_state(
+    state: Mapping[str, Any], *, bundle: Mapping[str, Any], manifest: Mapping[str, Any],
+) -> None:
+    """Accept only the exact deterministic sealed genesis state on a builder rerun."""
+    expected_fields = {
+        "state_version", "run_family_id", "state", "transition_seq", "code_commit",
+        "effective_config_sha256", "frozen_matrix_sha256",
+        "g3_pre_unseal_bundle_sha256", "g3_test_manifest_sha256",
+        "approval_sha256", "result_receipt_sha256", "failure_receipt_sha256",
+        "created_at", "updated_at", "test_access_count",
+    }
+    if set(state) != expected_fields:
+        raise ValueError("existing unified G3 state field set conflicts with sealed genesis")
+    expected_values = {
+        "state_version": _STATE_VERSION,
+        "run_family_id": "G3-formal",
+        "state": "sealed",
+        "code_commit": bundle["code_commit"],
+        "effective_config_sha256": bundle["effective_config_sha256"],
+        "frozen_matrix_sha256": FROZEN_MATRIX_SHA256,
+        "g3_pre_unseal_bundle_sha256": bundle["bundle_sha256"],
+        "g3_test_manifest_sha256": manifest["manifest_sha256"],
+        "approval_sha256": None,
+        "result_receipt_sha256": None,
+        "failure_receipt_sha256": None,
+    }
+    for field, expected in expected_values.items():
+        if state.get(field) != expected:
+            raise ValueError(
+                f"existing unified G3 state {field} conflicts with sealed genesis"
+            )
+    for field in ("transition_seq", "test_access_count"):
+        value = state.get(field)
+        if type(value) is not int or value != 0:
+            raise ValueError(
+                f"existing unified G3 state {field} conflicts with sealed genesis"
+            )
+    created_at = state.get("created_at")
+    updated_at = state.get("updated_at")
+    if not isinstance(created_at, str) or updated_at != created_at:
+        raise ValueError(
+            "existing unified G3 state timestamps conflict with sealed genesis"
+        )
+    try:
+        if not created_at.endswith("Z"):
+            raise ValueError
+        parsed = datetime.fromisoformat(created_at[:-1] + "+00:00")
+        if parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+            raise ValueError
+        canonical = parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    except (TypeError, ValueError):
+        raise ValueError(
+            "existing unified G3 state timestamps conflict with sealed genesis"
+        ) from None
+    if created_at != canonical:
+        raise ValueError(
+            "existing unified G3 state timestamps conflict with sealed genesis"
+        )
 
 
 def _atomic_write(path: Path, payload: bytes) -> None:
@@ -1034,7 +1096,8 @@ def derive_g3_cohort_from_authority(
 
 def resolve_g3_placeholders_from_evidence(
     *, chain: G3RunChain, cohort: tuple[ResolvedCohortEntry, ...],
-    code_commit: str, effective_config_sha256: str,
+    code_commit: str, effective_config_sha256: str, frozen_config: FrozenConfig,
+    study_root: Path, cache_root: Path,
 ) -> tuple[ResolvedCohortEntry, ...]:
     """Resolve all selected:*/selected_top_*/training_size=-1 from verified selection evidence.
 
@@ -1044,9 +1107,17 @@ def resolve_g3_placeholders_from_evidence(
     """
     resolutions: dict[str, dict[str, str]] = {"A-E1": {}, "A-E3": {}, "A-E2": {}}
 
-    _resolve_a_e1_from_staged_ledger(chain.ae1_run_dir, chain.ae1_run_id, code_commit, effective_config_sha256, resolutions["A-E1"])
-    _resolve_a_e3_from_selection(chain.ae3_run_dir, chain.ae3_run_id, resolutions["A-E3"])
-    _resolve_a_e2_from_selection(chain.ae2_run_dir, chain.ae2_run_id, resolutions["A-E2"])
+    _resolve_a_e1_from_staged_ledger(
+        chain.ae1_run_dir, chain.ae1_run_id, code_commit, effective_config_sha256,
+        resolutions["A-E1"], study_root=study_root, cache_root=cache_root,
+        frozen_config=frozen_config,
+    )
+    _resolve_a_e3_from_selection(
+        chain.ae3_run_dir, chain.ae3_run_id, resolutions["A-E3"], frozen_config=frozen_config,
+    )
+    _resolve_a_e2_from_selection(
+        chain.ae2_run_dir, chain.ae2_run_id, resolutions["A-E2"], frozen_config=frozen_config,
+    )
 
     resolved_entries: list[ResolvedCohortEntry] = []
     for entry in cohort:
@@ -1079,7 +1150,8 @@ def resolve_g3_placeholders_from_evidence(
 
 def _resolve_a_e1_from_staged_ledger(
     run_dir: Path, run_id: str, code_commit: str, effective_config_sha256: str,
-    out: dict[str, str],
+    out: dict[str, str], *, study_root: Path, cache_root: Path,
+    frozen_config: FrozenConfig, baseline_score_fit=None,
 ) -> None:
     """Read and verify A-E1 staged resolution ledger; extract final_aliases + baseline_input.
 
@@ -1116,12 +1188,26 @@ def _resolve_a_e1_from_staged_ledger(
         "previous_record_sha256", "input", "resolution", "resolution_sha256",
         "record_sha256",
     }
-    _VALID_STAGES = {"stage1", "stage2", "winner_retrain", "baseline_input", "final_aliases"}
+    _EXPECTED_SEQUENCE = (
+        ("stage1", "F2"),
+        ("stage2", "F2"),
+        ("winner_retrain", "F2"),
+        ("stage1", "V"),
+        ("stage2", "V"),
+        ("winner_retrain", "V"),
+        ("baseline_input", None),
+        ("final_aliases", None),
+    )
     _STAGED_RECORD_VERSION = "study02-staged-resolution-v1"
 
     previous_sha = _ZERO_HASH
-    seen_stages: list[str] = []
-    for record in records:
+    if len(records) != len(_EXPECTED_SEQUENCE):
+        raise ValueError(
+            f"A-E1 staged ledger must contain exactly {len(_EXPECTED_SEQUENCE)} records; "
+            f"got {len(records)}"
+        )
+    by_stage_route: dict[tuple[str, str | None], dict[str, Any]] = {}
+    for index, record in enumerate(records):
         if set(record) != _STAGED_REQUIRED_FIELDS:
             raise ValueError(f"A-E1 staged record has unexpected field set: {set(record)}")
         if record.get("record_version") != _STAGED_RECORD_VERSION:
@@ -1140,9 +1226,17 @@ def _resolve_a_e1_from_staged_ledger(
             raise ValueError("A-E1 staged record effective_config_sha256 mismatch")
 
         stage = record.get("stage")
-        if stage not in _VALID_STAGES:
-            raise ValueError(f"A-E1 staged record has invalid stage: {stage!r}")
-        seen_stages.append(stage)
+        route = record.get("route")
+        actual_key = (stage, route)
+        expected_key = _EXPECTED_SEQUENCE[index]
+        if actual_key != expected_key:
+            raise ValueError(
+                f"A-E1 staged ledger semantic order mismatch at index {index}: "
+                f"expected {expected_key!r}, got {actual_key!r}"
+            )
+        if actual_key in by_stage_route:
+            raise ValueError(f"A-E1 staged ledger duplicate stage/route: {actual_key!r}")
+        by_stage_route[actual_key] = record
 
         if record.get("previous_record_sha256") != previous_sha:
             raise ValueError(
@@ -1162,29 +1256,150 @@ def _resolve_a_e1_from_staged_ledger(
 
         previous_sha = record["record_sha256"]
 
-    for record in records:
-        stage = record.get("stage")
-        resolution = record.get("resolution", {})
-        if stage == "final_aliases":
-            for key in ("selected:A-E1_loss", "selected:A-E1_architecture", "selected:A-E1_optimizer"):
-                if key not in resolution:
-                    raise ValueError(f"A-E1 final_aliases missing {key}")
-                value = str(resolution[key])
-                if value.startswith("selected:") or value.startswith("selected_top_"):
-                    raise ValueError(f"A-E1 final_aliases {key} is still a placeholder: {value!r}")
-                out[key] = value
-        elif stage == "baseline_input":
-            if "selected:F2_or_V" not in resolution:
-                raise ValueError("A-E1 baseline_input missing selected:F2_or_V")
-            value = str(resolution["selected:F2_or_V"])
-            if value not in ("F2", "V"):
-                raise ValueError(f"A-E1 baseline_input selected:F2_or_V must be F2 or V, got {value!r}")
-            out["selected:F2_or_V"] = value
+    # Reconstruct stage-1 and stage-2 meanings from the independently verified root
+    # selection evidence, then require the staged ledger to bind those exact meanings.
+    from .formal_executor import (
+        _A_E1_STAGE2_FROZEN_LOSS,
+        _a_e1_stage1_decision_id,
+        _a_e1_stage2_decision_id,
+        _build_a_e1_baseline_candidates,
+        _parse_stage2_winner_candidate,
+        _resolve_a_e1_baseline,
+        _score_a_e1_winner_retrain,
+        resolve_selected_placeholders,
+    )
+    from .formal_config import load_effective_formal_config
 
-    if "selected:F2_or_V" not in out:
-        raise ValueError("A-E1 staged ledger has no baseline_input record with selected:F2_or_V")
-    if "selected:A-E1_architecture" not in out:
-        raise ValueError("A-E1 staged ledger has no final_aliases record")
+    by_decision: dict[str, list[dict[str, Any]]] = {}
+    for trace_record in _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=verified_trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E1", run_id=run_id,
+    ):
+        by_decision.setdefault(str(trace_record["decision_id"]), []).append(trace_record)
+
+    aliases = ("selected:A-E1_loss", "selected:A-E1_architecture", "selected:A-E1_optimizer")
+    route_resolutions: dict[str, dict[str, str]] = {}
+    for route in ("F2", "V"):
+        stage1 = by_stage_route[("stage1", route)]
+        stage2 = by_stage_route[("stage2", route)]
+        retrain = by_stage_route[("winner_retrain", route)]
+        stage1_decision = _a_e1_stage1_decision_id(route)
+        stage2_decision = _a_e1_stage2_decision_id(route)
+        expected_top4 = resolve_selected_placeholders(
+            placeholders={f"selected_top_{slot}": stage1_decision for slot in range(1, 5)},
+            selection_trace_path=trace_path, selection_trace_sha256=verified_trace_sha,
+            selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+            module_id="A-E1", run_id=run_id,
+        )
+        if stage1.get("input", {}).get("decision_id") != stage1_decision:
+            raise ValueError(f"A-E1 stage1:{route} decision_id cross-binding mismatch")
+        if stage1.get("resolution") != expected_top4:
+            raise ValueError(f"A-E1 stage1:{route} top4 resolution disagrees with verified trace")
+
+        selected_stage2 = [r for r in by_decision.get(stage2_decision, ()) if r.get("selected") is True]
+        if len(selected_stage2) != 1:
+            raise ValueError(f"A-E1 {stage2_decision} must have exactly one selected winner")
+        winner_record = selected_stage2[0]
+        placeholder, optimizer = _parse_stage2_winner_candidate(str(winner_record["candidate_id"]))
+        if placeholder not in expected_top4:
+            raise ValueError(f"A-E1 stage2:{route} winner references a slot outside stage1 top4")
+        expected_route_resolution = {
+            "selected:A-E1_loss": _A_E1_STAGE2_FROZEN_LOSS,
+            "selected:A-E1_architecture": expected_top4[placeholder],
+            "selected:A-E1_optimizer": optimizer,
+        }
+        expected_stage2_input = {
+            "decision_id": stage2_decision,
+            "winner_candidate_id": str(winner_record["candidate_id"]),
+            "winner_supporting_evidence_sha256": str(winner_record["supporting_evidence_sha256"]),
+            "stage1_record_sha256": stage1["record_sha256"],
+            "resolved_top_slot": placeholder,
+            "frozen_loss": _A_E1_STAGE2_FROZEN_LOSS,
+        }
+        if stage2.get("input") != expected_stage2_input:
+            raise ValueError(f"A-E1 stage2:{route} input/predecessor cross-binding mismatch")
+        if stage2.get("resolution") != expected_route_resolution:
+            raise ValueError(f"A-E1 stage2:{route} resolution disagrees with verified trace/top4")
+        if retrain.get("input") != {
+            "stage2_record_sha256": stage2["record_sha256"],
+            "placeholder_fields": list(aliases),
+        }:
+            raise ValueError(f"A-E1 winner_retrain:{route} stage2 predecessor mismatch")
+        if retrain.get("resolution") != expected_route_resolution:
+            raise ValueError(f"A-E1 winner_retrain:{route} resolution disagrees with stage2")
+        route_resolutions[route] = expected_route_resolution
+
+    baseline = by_stage_route[("baseline_input", None)]
+    final = by_stage_route[("final_aliases", None)]
+    baseline_resolution = baseline.get("resolution")
+    if not isinstance(baseline_resolution, dict) or set(baseline_resolution) != {"selected:F2_or_V"}:
+        raise ValueError("A-E1 baseline_input resolution must contain only selected:F2_or_V")
+    winner_route = str(baseline_resolution["selected:F2_or_V"])
+    if winner_route not in route_resolutions:
+        raise ValueError(f"A-E1 baseline_input selected:F2_or_V must be F2 or V, got {winner_route!r}")
+    baseline_input = baseline.get("input", {})
+    baseline_candidates = _build_a_e1_baseline_candidates(frozen_config)
+    route_stage2 = {
+        route: (
+            resolution["selected:A-E1_loss"],
+            resolution["selected:A-E1_architecture"],
+            resolution["selected:A-E1_optimizer"],
+        )
+        for route, resolution in route_resolutions.items()
+    }
+    rebuilt_evaluations, pending = _score_a_e1_winner_retrain(
+        study_root=study_root,
+        run_dir=run_dir,
+        cache_root=cache_root,
+        frozen=frozen_config,
+        effective=load_effective_formal_config(study_root),
+        candidates=baseline_candidates,
+        route_stage2=route_stage2,
+        score_fit=baseline_score_fit,
+    )
+    if pending or rebuilt_evaluations is None:
+        raise ValueError("A-E1 winner-retrain authority is incomplete during baseline replay")
+    expected_winner, baseline_evidence, expected_rule_result = _resolve_a_e1_baseline(
+        module_id="A-E1", run_id=run_id, candidates=baseline_candidates,
+        evaluations_by_fit=rebuilt_evaluations,
+    )
+    expected_baseline_input = {
+        "decision_id": "baseline_input:A-E1:F2_vs_V",
+        "candidate_supporting_evidence_sha256": {
+            candidate.candidate_id: baseline_evidence[candidate.candidate_id]["supporting_evidence_sha256"]
+            for candidate in baseline_candidates
+        },
+        "rule_result": dict(expected_rule_result),
+        "winner_retrain_fit_count": len(rebuilt_evaluations),
+    }
+    if winner_route != expected_winner:
+        raise ValueError(
+            f"A-E1 baseline winner disagrees with independent winner-retrain replay: "
+            f"ledger={winner_route!r}, replay={expected_winner!r}"
+        )
+    if baseline_input != expected_baseline_input:
+        raise ValueError("A-E1 baseline input/evidence/rule_result disagrees with independent replay")
+
+    expected_final = route_resolutions[winner_route]
+    expected_final_input = {
+        "baseline_record_sha256": baseline["record_sha256"],
+        "winning_route": winner_route,
+        "winning_route_stage2": {
+            "loss": expected_final["selected:A-E1_loss"],
+            "architecture": expected_final["selected:A-E1_architecture"],
+            "optimizer": expected_final["selected:A-E1_optimizer"],
+        },
+    }
+    if final.get("input") != expected_final_input:
+        raise ValueError("A-E1 final_aliases baseline/stage2 cross-binding mismatch")
+    if final.get("resolution") != expected_final:
+        raise ValueError("A-E1 final_aliases do not match the winning route stage2 resolution")
+    for key, value in expected_final.items():
+        if str(value).startswith(("selected:", "selected_top_")):
+            raise ValueError(f"A-E1 final_aliases {key} is still a placeholder: {value!r}")
+        out[key] = str(value)
+    out["selected:F2_or_V"] = winner_route
 
 
 _A_E3_ALIAS_MAP = {
@@ -1193,7 +1408,20 @@ _A_E3_ALIAS_MAP = {
 }
 
 
-def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]) -> None:
+def _decision_specs_for_module(frozen_config: FrozenConfig, module_id: str):
+    """Rebuild the module's allowed decision/candidate domain from the frozen matrix."""
+    from .selection import build_decision_specs
+
+    rows = expand_module_matrix(frozen_config)
+    return build_decision_specs(
+        module_id,
+        rows[rows["module"] == module_id].to_dict("records"),
+    )
+
+
+def _resolve_a_e3_from_selection(
+    run_dir: Path, run_id: str, out: dict[str, str], *, frozen_config: FrozenConfig,
+) -> None:
     """Resolve A-E3 aliases from verified selection trace/receipt/ledger at run root.
 
     Uses resolve_selected_placeholders to resolve selected_top_N → concrete architecture
@@ -1214,6 +1442,10 @@ def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]
         selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
         module_id="A-E3", run_id=run_id,
     )
+    expected_candidates = {
+        spec.decision_id: {candidate.candidate_id for candidate in spec.candidates}
+        for spec in _decision_specs_for_module(frozen_config, "A-E3")
+    }
 
     evidence_kwargs = dict(
         selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
@@ -1240,6 +1472,8 @@ def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]
             continue
         decision_id = str(rec["decision_id"])
         candidate_id = str(rec["candidate_id"])
+        if decision_id in expected_candidates and candidate_id not in expected_candidates[decision_id]:
+            raise ValueError(f"A-E3 {decision_id} winner {candidate_id!r} is outside the frozen candidates")
 
         if decision_id == "loss:A-E3:selected:F2_or_V:n10":
             out["selected:A-E3_loss"] = candidate_id
@@ -1278,7 +1512,9 @@ def _resolve_a_e3_from_selection(run_dir: Path, run_id: str, out: dict[str, str]
         raise ValueError("A-E3 selection has no verified S/shared optimizer winner")
 
 
-def _resolve_a_e2_from_selection(run_dir: Path, run_id: str, out: dict[str, str]) -> None:
+def _resolve_a_e2_from_selection(
+    run_dir: Path, run_id: str, out: dict[str, str], *, frozen_config: FrozenConfig,
+) -> None:
     """Resolve A-E2 aliases from verified selection trace/receipt/ledger at run root."""
     from .formal_executor import _validate_selection_evidence
 
@@ -1295,12 +1531,18 @@ def _resolve_a_e2_from_selection(run_dir: Path, run_id: str, out: dict[str, str]
         selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
         module_id="A-E2", run_id=run_id,
     )
+    expected_candidates = {
+        spec.decision_id: {candidate.candidate_id for candidate in spec.candidates}
+        for spec in _decision_specs_for_module(frozen_config, "A-E2")
+    }
 
     for rec in records:
         if rec.get("selected") is not True:
             continue
         decision_id = str(rec["decision_id"])
         candidate_id = str(rec["candidate_id"])
+        if decision_id in expected_candidates and candidate_id not in expected_candidates[decision_id]:
+            raise ValueError(f"A-E2 {decision_id} winner {candidate_id!r} is outside the frozen candidates")
         if decision_id == "training_size:A-E2:selected:A-E3_baseline":
             out["selected_training_size"] = candidate_id
         elif decision_id == "distribution:A-E2:selected:A-E3_baseline":
@@ -1361,9 +1603,22 @@ def _assert_cohort_fully_resolved(cohort: tuple[ResolvedCohortEntry, ...]) -> No
             )
 
 
+def _assert_current_code_matches_replay(study_root: Path, code_commit: str) -> None:
+    """Independent production guard in addition to each scheduler replay's own checks."""
+    from .formal_scheduler import _assert_scoped_code_clean, _git_sha
+
+    _assert_scoped_code_clean(study_root)
+    current_commit = _git_sha(study_root).lower()
+    if current_commit != code_commit:
+        raise ValueError(
+            f"current HEAD does not match replay-derived code_commit: "
+            f"HEAD={current_commit}, replay={code_commit}"
+        )
+
+
 def build_g3_accreditation(
     *, ae2_run_dir: Path, artifact_root: Path, cache_root: Path,
-    study_root: Path, code_commit: str, output_dir: Path, timestamp: str,
+    study_root: Path, output_dir: Path,
 ) -> dict[str, Any]:
     """Minimal production entry: chain → authority → cohort → manifest → bundle → state.
 
@@ -1379,10 +1634,31 @@ def build_g3_accreditation(
 
     chain = resolve_g3_predecessor_chain(ae2_run_dir=ae2_run_dir, artifact_root=artifact_root)
     authority = verify_g3_chain_authority(chain=chain, cache_root=cache_root)
+    code_commit = str(authority.ae1_manifest.get("code_commit", "")).lower()
+    if _CODE_COMMIT_RE.fullmatch(code_commit) is None:
+        raise ValueError("replay authority did not provide one valid full code_commit")
+    _assert_current_code_matches_replay(study_root, code_commit)
+
+    # Rebuild each module's diagnostics from replay authority + immutable selection
+    # evidence. Existing exact diagnostics are accepted idempotently; conflicts fail closed.
+
+    diagnostics = {}
+    for module_id, run_id in (
+        ("A-E1", chain.ae1_run_id),
+        ("A-E3", chain.ae3_run_id),
+        ("A-E2", chain.ae2_run_id),
+    ):
+        rebuilt = build_module_accreditation_diagnostics(
+            study_root=study_root, module=module_id, run_id=run_id,
+            artifact_root=artifact_root, cache_root=cache_root,
+        )
+        diagnostics[module_id] = rebuilt
+
     cohort = derive_g3_cohort_from_authority(frozen_config=frozen, chain=chain, authority=authority)
     cohort = resolve_g3_placeholders_from_evidence(
         chain=chain, cohort=cohort,
         code_commit=code_commit, effective_config_sha256=effective.effective_config_sha256,
+        frozen_config=frozen, study_root=study_root, cache_root=cache_root,
     )
 
     manifest = build_g3_test_manifest(
@@ -1400,12 +1676,12 @@ def build_g3_accreditation(
             raise ValueError(f"{module_id}: selection_trace.jsonl required at run root: {trace_path}")
         selection_trace_shas[module_id] = _sha256_file(trace_path)
 
-        ceiling_path = run_dir / "ceiling_hit_report.json"
+        ceiling_path = diagnostics[module_id]["ceiling_path"]
         if not ceiling_path.is_file():
             raise ValueError(f"{module_id}: ceiling_hit_report.json required: {ceiling_path}")
         ceiling_report_shas[module_id] = _sha256_file(ceiling_path)
 
-        leakage_path = run_dir / "leakage_audit.json"
+        leakage_path = diagnostics[module_id]["leakage_path"]
         if not leakage_path.is_file():
             raise ValueError(f"{module_id}: leakage_audit.json required: {leakage_path}")
         leakage_audit_shas[module_id] = _sha256_file(leakage_path)
@@ -1426,21 +1702,34 @@ def build_g3_accreditation(
     _assert_cohort_fully_resolved(cohort)
 
     output_dir = Path(output_dir)
-    manifest_path = publish_g3_test_manifest(manifest, output_dir)
-    bundle_path = publish_g3_bundle(bundle, output_dir)
+    manifest_path = output_dir / "g3_test_manifest.json"
+    expected_manifest_bytes = _canonical(manifest)
+    if manifest_path.exists():
+        if manifest_path.read_bytes() != expected_manifest_bytes:
+            raise ValueError("existing unified G3 manifest conflicts with deterministic rebuild")
+    else:
+        manifest_path = publish_g3_test_manifest(manifest, output_dir)
+    bundle_path = output_dir / "g3_pre_unseal_bundle.json"
+    expected_bundle_bytes = _canonical(bundle)
+    if bundle_path.exists():
+        if bundle_path.read_bytes() != expected_bundle_bytes:
+            raise ValueError("existing unified G3 bundle conflicts with deterministic rebuild")
+    else:
+        bundle_path = publish_g3_bundle(bundle, output_dir)
 
     state_path = output_dir / "g3_formal_state.json"
-    initialize_g3_formal_state(
-        state_path=state_path, bundle=bundle,
-        run_family_id="G3-formal", timestamp=timestamp,
-    )
+    if not state_path.exists():
+        initialize_g3_formal_state(
+            state_path=state_path, bundle=bundle,
+            run_family_id="G3-formal",
+            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        )
 
     state_bytes = state_path.read_bytes()
     state = json.loads(state_bytes.decode("utf-8"))
-    if state.get("g3_pre_unseal_bundle_sha256") != bundle.get("bundle_sha256"):
-        raise ValueError("persisted state does not bind persisted bundle SHA")
-    if state.get("g3_test_manifest_sha256") != manifest.get("manifest_sha256"):
-        raise ValueError("persisted state does not bind persisted manifest SHA")
+    if state_bytes != _canonical(state):
+        raise ValueError("persisted unified G3 state is not canonical")
+    _validate_reusable_g3_formal_state(state, bundle=bundle, manifest=manifest)
 
     return {
         "status": "sealed_ready_for_approval",

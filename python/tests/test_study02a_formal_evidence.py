@@ -168,6 +168,11 @@ def test_fit_status_records_success_and_failure_without_invented_values(tmp_path
         decision_id="d", candidate_id="candidate-b", selected=False, failure_penalty=10.0,
         failure_message="optimizer failed",
     )
+    shared = build_fit_status_record(
+        fit_id="fit-shared", module_id="A-E3", rule_id="A-E3_architecture",
+        route_id="S", n="shared", seed=420103, decision_id="d-shared",
+        candidate_id="d01", selected=True, result=_fit(), selection_score=0.4,
+    )
     assert success["best_epoch_one_based"] == 100
     assert success["selection_score"] == 0.5
     assert success["failure_penalty"] == ""
@@ -175,10 +180,13 @@ def test_fit_status_records_success_and_failure_without_invented_values(tmp_path
     assert failure["checkpoint_sha256"] == ""
     assert failure["selection_score"] == ""
     assert failure["failure_penalty"] == 10.0
+    assert shared["n"] == "shared"
     path = tmp_path / "fit_status.csv"
-    write_fit_status(path, [success, failure])
+    write_fit_status(path, [success, failure, shared])
     with path.open(encoding="utf-8", newline="") as handle:
-        assert len(list(csv.DictReader(handle))) == 2
+        rows = list(csv.DictReader(handle))
+        assert len(rows) == 3
+        assert next(row for row in rows if row["fit_id"] == "fit-shared")["n"] == "shared"
     with pytest.raises(FileExistsError):
         write_fit_status(path, [success])
 
@@ -190,6 +198,19 @@ def test_fit_status_rejects_inconsistent_or_nonfinite_diagnostics(tmp_path):
         build_fit_status_record(
             fit_id="fit-bad", module_id="A-E1", rule_id="r", route_id="F1", n=5, seed=420101,
             decision_id="d", candidate_id="c", selected=False, result=bad, selection_score=0.5,
+        )
+
+
+@pytest.mark.parametrize(
+    ("module_id", "route_id"),
+    [("A-E1", "S"), ("A-E3", "F2"), ("A-E2", "S")],
+)
+def test_fit_status_rejects_shared_n_outside_frozen_a_e3_s(module_id, route_id):
+    with pytest.raises(ValueError, match="only for the frozen A-E3/S"):
+        build_fit_status_record(
+            fit_id="fit-shared-attack", module_id=module_id, rule_id="rule-1",
+            route_id=route_id, n="shared", seed=420101, decision_id="d",
+            candidate_id="c", selected=False, result=_fit(), selection_score=0.5,
         )
 
 
