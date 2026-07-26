@@ -92,9 +92,9 @@ Vector-MLP不直接预测最优δ值，而是预测26维风险曲线。给定小
 
 ### 3.1 固定常数与按样本量查表（L1-L2）
 
-**L1：全局常数。** Default值δ=0.1对应的pooled J₁=0.633219。L1最优全局常数δ*=0.08，对应pooled J₁=0.632913——与Default几乎相同。这说明δ=0.1确实是接近最优的全局常数；但不同参数区域的hindsight最优δ差异显著（0.00-0.50），全局单值无法兼顾所有条件。
+**L1：全局常数。** Default值δ=0.1对应的pooled J₁=0.633219。L1最优全局常数δ*=0.08，对应pooled J₁=0.632913——与Default几乎相同（Figure 2）。这说明δ=0.1确实是接近最优的全局常数；但不同参数区域的hindsight最优δ差异显著（0.00-0.50），全局单值无法兼顾所有条件。
 
-**L2：按样本量n。** E1/E2 cross-fit（fold = repeat_id mod 5）的5折多数投票结果：n=7,10的L2最优δ均为0.10（与Default相同），n=20为0.08。L2 pooled J₁=0.632541，与L1差异<0.001。按n查表的收益在离散网格内极小。
+**L2：按样本量n。** E1/E2 cross-fit（fold = repeat_id mod 5）的5折多数投票结果：n=7,10的L2最优δ均为0.10（与Default相同），n=20为0.08（Figure 3）。L2 pooled J₁=0.632541，与L1差异<0.001。按n查表的收益在离散网格内极小。
 
 ### 3.2 Oracle层级（L3-L6）
 
@@ -108,6 +108,8 @@ Vector-MLP不直接预测最优δ值，而是预测26维风险曲线。给定小
 | L5 (per-β,γ/η,n) | 0.571170 | +1.9% vs L4 |
 | L6 (per-sample hindsight) | 0.494530 | +13.4% vs L5 |
 
+Figure 4 visually presents this oracle ladder.
+
 **L2→L3是最大的单步信息增益**：从仅知道n到知道真实β，J₁从0.632541降至0.585068（约7.5%）。在正式参数网格范围内，β与偏移量最优值的系统关联强于n或γ/η。
 
 **L3→L4→L5的相邻改善**分别为0.5%和1.9%，改善幅度明显小于L2→L3的7.5%。L5→L6的差距（13.4%）说明即使完美知道真参数分组，组内不同样本的hindsight最优δ仍存在不可约的离散性。L6是固定26点δ网格上的逐样本hindsight argmin参照——它没有组内聚合损失（每个样本独立取自己的最优δ），但使用了部署时不可见的逐样本真实损失，因此不能作为可部署方法的目标。
@@ -116,7 +118,7 @@ Vector-MLP不直接预测最优δ值，而是预测26维风险曲线。给定小
 
 ### 3.3 样本自适应选择（Vector-MLP-L6）
 
-Vector-MLP-L6在5折full-combination holdout × 3 seed的设置下，pooled J₁=0.547003。三个seed的分n J₁直接从`seed_stability.csv`获取：
+Vector-MLP-L6在5折full-combination holdout × 3 seed的设置下，pooled J₁=0.547003。方法流程见Figure 5。三个seed的分n J₁直接从`seed_stability.csv`获取：
 
 | Seed | n=7 | n=10 | n=20 | Pooled |
 |------|-----|------|------|--------|
@@ -139,9 +141,9 @@ Vector-MLP-L6在5折full-combination holdout × 3 seed的设置下，pooled J₁
 | shape | 4 | 0.581578 | 0.021119 |
 | n | 1 | 0.637761 | 0.019518 |
 
-scale_quantile子集已保留full的大部分表现（差异约0.005）。shape-only明显弱于full（差异约0.036），但仍优于n-only。仅使用n的模型（J₁=0.637761）甚至弱于L1/L2基线。完整特征集总体最好，但scale_quantile子集证明了10个分布位置/离散度特征已经承载了大部分选择信号。
+scale_quantile子集已保留full的大部分表现（差异约0.005）。shape-only明显弱于full（差异约0.036），但仍优于n-only。仅使用n的模型（J₁=0.637761）甚至弱于L1/L2基线。完整特征集总体最好，但scale_quantile子集证明了10个分布位置/离散度特征已经承载了大部分选择信号（Figure 6）。
 
-**Boundary/Off-grid外推（E4d/R1）。** 15个NN selector在boundary参数组合上的true loss中位数高于off-grid组合。在原有离散网格覆盖范围内（off-grid）预测表现相对稳定；在网格边界之外（boundary）退化明显——这是预期结果，NN selector从未见过boundary参数区域的训练数据。
+**Boundary/Off-grid外推（E4d/R1）。** 15个NN selector的per-track pooled J₁：boundary=0.6038, off-grid=0.5263（Figure 7）。在原有离散网格覆盖范围内（off-grid）预测表现相对稳定；在网格边界之外（boundary）退化明显——这是预期结果，NN selector从未见过boundary参数区域的训练数据。
 
 **δ上界审计（R2）。** 在原最优δ=0.50的2,958个端点cohort样本中，扩展扫描（δ=0.52-1.00）后2,800个（94.66%）迁移至δ>0.50。扩展后最优δ的5-bin分区（从`cohort_summary.csv`的`extended_best_delta_distribution`直接读取）：
 
@@ -154,7 +156,7 @@ scale_quantile子集已保留full的大部分表现（差异约0.005）。shape-
 | δ=1.00（新边界截断） | 743 | 25.1% |
 | **合计** | **2,958** | **100%** |
 
-对于该端点cohort，δ≤0.50的上界明显不足。743个样本（25.1%）的新最优落在新上界δ=1.00——可能仍有边界截断。该结论严格限于原最优为δ=0.50的条件cohort，不能外推为总体参数空间结论。
+对于该端点cohort，δ≤0.50的上界明显不足（Figure 8）。743个样本（25.1%）的新最优落在新上界δ=1.00——可能仍有边界截断。该结论严格限于原最优为δ=0.50的条件cohort，不能外推为总体参数空间结论。
 
 ### 3.5 真实数据验证（NIST 6061-T6）
 

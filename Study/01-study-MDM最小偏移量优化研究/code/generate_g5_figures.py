@@ -186,7 +186,8 @@ def fig_s2():
         ts = pd.read_csv(f)
     rhos = ts[ts['metric']=='local_gradient_slope']['spearman_rho'].values
     rho_str = ', '.join([f'n={ns[i]}: rho={rhos[i]:.3f}' for i in range(len(ns))])
-    fig.text(0.5, 0.01, f'Spearman rho: {rho_str}', ha='center', fontsize=7.5, style='italic')
+    fig.subplots_adjust(bottom=0.18)
+    fig.text(0.5, 0.04, f'Spearman rho: {rho_str}', ha='center', fontsize=7.5, style='italic')
     save(fig, 'fig_s2_beta_profile')
 
 # ═══ S3: Seed Stability ═══
