@@ -33,7 +33,7 @@
 
 **Study/02 当前态**：截至代码 checkpoint `1bdd9906e87b53cd0cd1ad81bcfbb8ed8197a5a1`，R12 准备工作已经收口，现可申请一个全新的 A-E1 formal training/validation 授权；该授权尚未申请或签发，formal 尚未启动，旧 r1/r2 永久 blocked/aborted，test 继续 sealed。准备收口只证明执行与证据合同已就绪，不产生任何 Study/02 研究结论，19 个前置研究问题仍等待全新 formal evidence。
 
-**Study/01 当前态**：正式实验与证据链已经闭环，E1–E4、R1–R3/P6–P8 均完成；Figures 1–9、Supplementary Figures S1–S8、五部分论文初稿、补充材料及 fail-closed 稿件审计已完成。连续参数空间训练、多数据集验证和 $\delta>1.00$ 探索属于后续独立研究，不阻塞当前论文。下一步是确定目标期刊、作者、基金与 CRediT，完成期刊格式适配和投稿。
+**Study/01 当前态**：正式实验与证据链已经闭环，E1–E4、R1–R3/P6–P8 均完成；Figures 1–9、Supplementary Figures S1–S8、五部分论文技术稿、补充材料及 fail-closed 稿件审计已完成。现已在独立论文项目文件夹启动面向可靠性/计算方法国际期刊的中文学术源稿，下一步是完善文献对话并冻结正文，再确定具体期刊、作者、基金与 CRediT，完成英文和期刊格式适配。连续参数空间训练、多数据集验证和 $\delta>1.00$ 探索属于后续独立研究，不阻塞当前论文。
 
 | 大类 | 子方法 | 后端 |
 |------|--------|------|
