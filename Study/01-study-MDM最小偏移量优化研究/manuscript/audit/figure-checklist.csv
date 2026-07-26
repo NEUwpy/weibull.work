@@ -1,18 +1,18 @@
 fig_number,title,section,source_data,claim,file_exists,visual_ok,number_audit,caption_match
-Fig.1,MDM offset mechanism,§2.1,E1 MC W(2,1,1)等价,δ改变搜索判据并系统性改变分布,✓,✓,✓,✓
-Fig.2,L1 global delta risk curve,§3.1,E1 baseline,L1最优δ依赖β和n,✓,✓,✓,✓
-Fig.3,L2 delta by n heterogeneity,§3.1,E1/E2-CF,L2按n查表提升极小,✓,✓,✓,✓
-Fig.4,L3-L6 oracle ladder,§3.2,E2 oracle layers,oracle层级梯度+边际递减,✓,✓,✓,✓
-Fig.5,Vector-MLP workflow,§3.3,E3b,样本自适应方法流程图,✓,✓,✓,✓
-Fig.6,Feature ablation,§3.4,E4a,spread特征组贡献最大,✓,需检查,✓,待补充
-Fig.7,Boundary/off-grid extrapolation,§3.4,E4d/R1,boundary外推退化,未生成,未生成,待生成,待补充
-Fig.8,Delta upper bound audit,§3.4,R2,94.66%迁移至δ>0.50,未生成,未生成,待生成,待补充
-Fig.9,Real data comparison,§3.5,P6-P8,NN未优于Default/L2,未生成,未生成,待生成,待补充
-S1,Cross-fit sensitivity,§3.1-3.2,E1/E2-CF,层级收益非择优偏差,未生成,未生成,待生成,待补充
-S2,Beta-profile audit,§3.2,E2 beta profile,β驱动profile几何,未生成,未生成,待生成,待补充
-S3,Three-seed stability,§3.3,E3b,三seed J₁±0.003,未生成,未生成,待生成,待补充
-S4,Ablation by fold,§3.4,E4a,fold间消融结构一致,未生成,未生成,待生成,待补充
-S5,Boundary by fold/seed,§3.4,E4d,外推退化跨模型一致,未生成,未生成,待生成,待补充
-S6,Upper bound distribution,§3.4,R2,新最优右偏分布,未生成,未生成,待生成,待补充
-S7,NN 15-model distribution,§3.5,P6-P8,45个model-median完整分布,未生成,未生成,待生成,待补充
-S8,Support-set details,§3.5,P6-P8,违规率跨方法比较,未生成,未生成,待生成,待补充
+Fig.1,MDM offset mechanism,§2.1,formal figures/fig_offset_mechanism,delta changes search criterion,exist,OK,OK,OK
+Fig.2,L1 global delta risk curve,§3.1,formal figures/fig2_delta_risk_curve,L1 optimal delta depends on beta and n,exist,OK,OK,OK
+Fig.3,L2 delta by n heterogeneity,§3.1,formal figures/fig_l2_n_heterogeneity,L2 per-n improvement is minimal,exist,OK,OK,OK
+Fig.4,L3-L6 oracle ladder,§3.2,formal figures/fig3_ladder,oracle hierarchy shows precision gradient,exist,OK,OK,OK
+Fig.5,Vector-MLP workflow,§3.3,formal figures/fig_ch6_vector_mlp_workflow,sample-adaptive method overview,exist,OK,OK,OK
+Fig.6,E4a retained-subset comparison,§3.4,manuscript/figures/fig6_feature_ablation,scale_quantile retains most of full performance,generated,OK,OK,OK
+Fig.7,E4d boundary/off-grid extrapolation,§3.4,manuscript/figures/fig7_boundary_offgrid,per-track pooled J1 from summary_e4d.json,generated,OK,OK,OK
+Fig.8,R2 delta upper bound audit,§3.4,manuscript/figures/fig8_upper_bound_audit,94.66 percent migration 5-bin from cohort_summary.csv,generated,OK,OK,OK
+Fig.9,P6-P8 NIST real data,§3.5,manuscript/figures/fig9_real_data_comparison,NN did not outperform Default/L2 on this dataset,generated,OK,OK,OK
+S1,L2 cross-fit sensitivity,Supplementary,manuscript/figures/fig_s1_crossfit,cross-fit confirms structural stability,generated,OK,OK,OK
+S2,Beta-profile audit,Supplementary,manuscript/figures/fig_s2_beta_profile,local_gradient_slope by beta and n from by_beta_n.csv,generated,OK,OK,OK
+S3,Three-seed stability,Supplementary,manuscript/figures/fig_s3_seed_stability,seed values from seed_stability.csv,generated,OK,OK,OK
+S4,E4a by fold,Supplementary,manuscript/figures/fig_s4_ablation_folds,retained-subset structure consistent across folds,generated,OK,OK,OK
+S5,E4d per-model common-sample J1,Supplementary,manuscript/figures/fig_s5_boundary_folds,15 models from by_model.csv with pooled J1 references,generated,OK,OK,OK
+S6,R2 full extended distribution,Supplementary,manuscript/figures/fig_s6_upper_bound_dist,26-bin distribution from cohort_summary.csv,generated,OK,OK,OK
+S7,NN 15-model per-n distribution,Supplementary,manuscript/figures/fig_s7_nn_15model_dist,per-model median D from real_holdout_results.csv,generated,OK,OK,OK
+S8,Support-set violation details,Supplementary,manuscript/figures/fig_s8_support_set,violation rate by method and n,generated,OK,OK,OK
