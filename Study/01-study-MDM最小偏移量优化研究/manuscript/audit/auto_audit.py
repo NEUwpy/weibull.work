@@ -543,6 +543,8 @@ def audit_manuscript(
             cwd=paths.repo_root,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         if result.returncode != 0 or result.stdout.strip():
             errors.append("git diff --check a52c3023..HEAD failed")
