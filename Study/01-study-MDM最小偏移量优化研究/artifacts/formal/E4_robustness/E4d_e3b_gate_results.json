@@ -1,0 +1,275 @@
+{
+  "gate1_fold_partition": {
+    "checks": [
+      {
+        "difference": 0,
+        "label": "5-fold partition vs split_report.csv",
+        "pass": true,
+        "reference": "exact match",
+        "reproduced": "match",
+        "threshold": "exact"
+      }
+    ],
+    "note": "",
+    "pass": true
+  },
+  "gate2_seed42_per_sample": {
+    "checks": [
+      {
+        "difference": 0.056288888888888944,
+        "label": "seed-42 selected_delta match",
+        "pass": true,
+        "reference": 0.5,
+        "reproduced": 0.5562888888888889,
+        "threshold": ">=0.5"
+      },
+      {
+        "difference": -0.04999999999999844,
+        "label": "seed-42 loss rel diff median",
+        "pass": true,
+        "reference": 0.05,
+        "reproduced": 1.5594024698177428e-15,
+        "threshold": "<=0.05"
+      }
+    ],
+    "pass": true,
+    "values": {
+      "coverage_ratio": 1.0,
+      "delta_match_rate": 0.5562888888888889,
+      "loss_rel_diff_median": 1.5594024698177428e-15,
+      "n_matched": 45000,
+      "n_repro": 45000,
+      "n_required": 45000,
+      "n_sealed_l6": 45000
+    }
+  },
+  "gate3_three_seed_summary": {
+    "checks": [
+      {
+        "difference": 0.00026381801758907004,
+        "label": "seed=42 pooled J1",
+        "pass": true,
+        "reference": 0.5470026952112984,
+        "reproduced": 0.5468583860446319,
+        "threshold": "<=0.005"
+      },
+      {
+        "difference": 0.0017031301965906537,
+        "label": "seed=42 per-n J1 n=7",
+        "pass": true,
+        "reference": 0.6575582864599742,
+        "reproduced": 0.6564383790862858,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 2.746164880800983e-05,
+        "label": "seed=42 per-n J1 n=10",
+        "pass": true,
+        "reference": 0.5498150701055643,
+        "reproduced": 0.5497999712771997,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 0.0031082576513592804,
+        "label": "seed=42 per-n J1 n=20",
+        "pass": true,
+        "reference": 0.403678503636136,
+        "reproduced": 0.4049332404337523,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 0.009622222222222199,
+        "label": "seed=42 endpoint rate",
+        "pass": true,
+        "reference": 0.4881111111111111,
+        "reproduced": 0.4784888888888889,
+        "threshold": "<=0.05"
+      },
+      {
+        "difference": 0.002758989730052299,
+        "label": "seed=2026 pooled J1",
+        "pass": true,
+        "reference": 0.5461329970692127,
+        "reproduced": 0.5476397723993693,
+        "threshold": "<=0.005"
+      },
+      {
+        "difference": 0.003056924866591768,
+        "label": "seed=2026 per-n J1 n=7",
+        "pass": true,
+        "reference": 0.6578992547976563,
+        "reproduced": 0.6599104033893595,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 0.000632309416725659,
+        "label": "seed=2026 per-n J1 n=10",
+        "pass": true,
+        "reference": 0.5497350008982776,
+        "reproduced": 0.549387398280506,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 0.008340991540503793,
+        "label": "seed=2026 per-n J1 n=20",
+        "pass": true,
+        "reference": 0.3996795601321904,
+        "reproduced": 0.4030132839621653,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 0.04340000000000005,
+        "label": "seed=2026 endpoint rate",
+        "pass": true,
+        "reference": 0.4884444444444444,
+        "reproduced": 0.5318444444444445,
+        "threshold": "<=0.05"
+      },
+      {
+        "difference": 0.002646242253931472,
+        "label": "seed=3407 pooled J1",
+        "pass": true,
+        "reference": 0.544009131075083,
+        "reproduced": 0.5454487110242584,
+        "threshold": "<=0.005"
+      },
+      {
+        "difference": 0.0012411145898458438,
+        "label": "seed=3407 per-n J1 n=7",
+        "pass": true,
+        "reference": 0.657169547044313,
+        "reproduced": 0.657985169757152,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 0.004249501522722607,
+        "label": "seed=3407 per-n J1 n=10",
+        "pass": true,
+        "reference": 0.5459737464079961,
+        "reproduced": 0.5482938626747235,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 0.0034574009050938386,
+        "label": "seed=3407 per-n J1 n=20",
+        "pass": true,
+        "reference": 0.3973394754488784,
+        "reproduced": 0.39871323731092484,
+        "threshold": "<=0.01"
+      },
+      {
+        "difference": 0.0208666666666667,
+        "label": "seed=3407 endpoint rate",
+        "pass": true,
+        "reference": 0.5624222222222223,
+        "reproduced": 0.5415555555555556,
+        "threshold": "<=0.05"
+      }
+    ],
+    "pass": true,
+    "values": {
+      "seeds": [
+        {
+          "endpoint rate": {
+            "difference": 0.009622222222222199,
+            "pass": true,
+            "reference": 0.4881111111111111,
+            "reproduced": 0.4784888888888889
+          },
+          "per-n J1 n=10": {
+            "difference": 2.746164880800983e-05,
+            "pass": true,
+            "reference": 0.5498150701055643,
+            "reproduced": 0.5497999712771997
+          },
+          "per-n J1 n=20": {
+            "difference": 0.0031082576513592804,
+            "pass": true,
+            "reference": 0.403678503636136,
+            "reproduced": 0.4049332404337523
+          },
+          "per-n J1 n=7": {
+            "difference": 0.0017031301965906537,
+            "pass": true,
+            "reference": 0.6575582864599742,
+            "reproduced": 0.6564383790862858
+          },
+          "pooled J1": {
+            "difference": 0.00026381801758907004,
+            "pass": true,
+            "reference": 0.5470026952112984,
+            "reproduced": 0.5468583860446319
+          },
+          "seed": 42
+        },
+        {
+          "endpoint rate": {
+            "difference": 0.04340000000000005,
+            "pass": true,
+            "reference": 0.4884444444444444,
+            "reproduced": 0.5318444444444445
+          },
+          "per-n J1 n=10": {
+            "difference": 0.000632309416725659,
+            "pass": true,
+            "reference": 0.5497350008982776,
+            "reproduced": 0.549387398280506
+          },
+          "per-n J1 n=20": {
+            "difference": 0.008340991540503793,
+            "pass": true,
+            "reference": 0.3996795601321904,
+            "reproduced": 0.4030132839621653
+          },
+          "per-n J1 n=7": {
+            "difference": 0.003056924866591768,
+            "pass": true,
+            "reference": 0.6578992547976563,
+            "reproduced": 0.6599104033893595
+          },
+          "pooled J1": {
+            "difference": 0.002758989730052299,
+            "pass": true,
+            "reference": 0.5461329970692127,
+            "reproduced": 0.5476397723993693
+          },
+          "seed": 2026
+        },
+        {
+          "endpoint rate": {
+            "difference": 0.0208666666666667,
+            "pass": true,
+            "reference": 0.5624222222222223,
+            "reproduced": 0.5415555555555556
+          },
+          "per-n J1 n=10": {
+            "difference": 0.004249501522722607,
+            "pass": true,
+            "reference": 0.5459737464079961,
+            "reproduced": 0.5482938626747235
+          },
+          "per-n J1 n=20": {
+            "difference": 0.0034574009050938386,
+            "pass": true,
+            "reference": 0.3973394754488784,
+            "reproduced": 0.39871323731092484
+          },
+          "per-n J1 n=7": {
+            "difference": 0.0012411145898458438,
+            "pass": true,
+            "reference": 0.657169547044313,
+            "reproduced": 0.657985169757152
+          },
+          "pooled J1": {
+            "difference": 0.002646242253931472,
+            "pass": true,
+            "reference": 0.544009131075083,
+            "reproduced": 0.5454487110242584
+          },
+          "seed": 3407
+        }
+      ]
+    }
+  },
+  "overall_pass": true
+}

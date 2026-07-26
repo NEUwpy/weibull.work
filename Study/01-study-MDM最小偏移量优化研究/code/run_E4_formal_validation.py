@@ -8,7 +8,8 @@ Handles all 4 tracks:
   E4d: Selector extrapolation diagnostic (train on main grid, evaluate on boundary/offgrid)
 
 Reads:
-  - Existing formal MC data: artifacts/formal/shared_data/mc_scan_raw.csv (for E4a + E4d training)
+  - Existing formal MC chunks: artifacts/formal/shared_data/chunks/chunk_####_mdm.csv
+    (authoritative main-grid source for E4a + E4d training)
   - New boundary MC data: artifacts/formal/E4_robustness/boundary_risk_curves.csv (E4b)
   - New offgrid MC data: artifacts/formal/E4_robustness/offgrid_risk_curves.csv (E4c)
 
@@ -30,6 +31,12 @@ Writes:
 import sys
 import os
 import json
+import hashlib
+import io
+import re
+import copy
+import tempfile
+import importlib.util
 import time
 import math
 import gc
@@ -53,16 +60,40 @@ STUDY_ROOT = os.path.dirname(STUDY_CODE_DIR)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(STUDY_ROOT))
 PYTHON_DIR = os.path.join(PROJECT_ROOT, "python")
 
-sys.path.insert(0, STUDY_CODE_DIR)
-sys.path.insert(0, PYTHON_DIR)
+def _load_local_module(unique_name, path):
+    """Load one repository-local module without basename/sys.path pollution."""
+    spec = importlib.util.spec_from_file_location(unique_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load local module: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
-from config import (
-    BETA_GRID, ETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID,
-    DELTA_GRID, DEFAULT_DELTA, R_MAIN, SEED_NAMESPACE,
-    ARTIFACTS_DIR, SHARED_DATA_DIR
+
+_CONFIG = _load_local_module(
+    '_study01_e4_config', os.path.join(STUDY_CODE_DIR, 'config.py')
 )
-from utils import get_git_info, now_iso
-from studies.common.sample import generate_sample
+_UTILS = _load_local_module(
+    '_study01_e4_utils', os.path.join(STUDY_CODE_DIR, 'utils.py')
+)
+_SAMPLE = _load_local_module(
+    '_study01_e4_sample',
+    os.path.join(PYTHON_DIR, 'studies', 'common', 'sample.py'),
+)
+
+BETA_GRID = _CONFIG.BETA_GRID
+ETA_GRID = _CONFIG.ETA_GRID
+GAMMA_OVER_ETA_GRID = _CONFIG.GAMMA_OVER_ETA_GRID
+N_GRID = _CONFIG.N_GRID
+DELTA_GRID = _CONFIG.DELTA_GRID
+DEFAULT_DELTA = _CONFIG.DEFAULT_DELTA
+R_MAIN = _CONFIG.R_MAIN
+R_ROBUSTNESS = _CONFIG.R_ROBUSTNESS
+SEED_NAMESPACE = _CONFIG.SEED_NAMESPACE
+ARTIFACTS_DIR = _CONFIG.ARTIFACTS_DIR
+SHARED_DATA_DIR = _CONFIG.SHARED_DATA_DIR
+now_iso = _UTILS.now_iso
+generate_sample = _SAMPLE.generate_sample
 
 # ============================================================
 # Output directory
@@ -71,7 +102,8 @@ from studies.common.sample import generate_sample
 E4_OUTPUT_DIR = os.path.join(ARTIFACTS_DIR, "E4_robustness")
 os.makedirs(E4_OUTPUT_DIR, exist_ok=True)
 
-MC_SCAN_PATH = os.path.join(SHARED_DATA_DIR, "mc_scan_raw.csv")
+MAIN_CHUNKS_DIR = os.path.join(SHARED_DATA_DIR, "chunks")
+MC_AGGREGATE_PATH = os.path.join(SHARED_DATA_DIR, "mc_scan_raw.csv")
 MC_MANIFEST_PATH = os.path.join(SHARED_DATA_DIR, "manifest.json")
 BOUNDARY_PATH = os.path.join(E4_OUTPUT_DIR, "boundary_risk_curves.csv")
 OFFGRID_PATH = os.path.join(E4_OUTPUT_DIR, "offgrid_risk_curves.csv")
@@ -141,6 +173,712 @@ class PreflightError(Exception):
     pass
 
 
+def get_project_git_info_strict():
+    """Return PROJECT_ROOT short commit plus dirty suffix, or fail closed."""
+    try:
+        commit_result = subprocess.run(
+            ['git', '-C', PROJECT_ROOT, 'rev-parse', '--short', 'HEAD'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if commit_result.returncode != 0:
+            raise PreflightError(
+                "E4d git provenance failed: rev-parse returned nonzero"
+            )
+        commit = commit_result.stdout.strip().lower()
+        if re.fullmatch(r'[0-9a-f]{4,40}', commit) is None:
+            raise PreflightError(
+                f"E4d git provenance returned invalid commit: {commit!r}"
+            )
+        dirty_result = subprocess.run(
+            ['git', '-C', PROJECT_ROOT, 'status', '--porcelain'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if dirty_result.returncode != 0:
+            raise PreflightError(
+                "E4d git provenance failed: status returned nonzero"
+            )
+    except PreflightError:
+        raise
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise PreflightError(f"E4d git provenance unavailable: {exc}") from exc
+    return commit + ('-dirty' if dirty_result.stdout.strip() else '')
+
+
+E4D_CONTRACT_VERSION = "study01-e4d-preflight-v1"
+_E4D_GATE_SENTINEL = object()
+_BOUND_INPUT_SENTINEL = object()
+
+
+class _BoundInputCapability:
+    """Opaque binding between one parsed object identity and byte provenance."""
+    __slots__ = ('_identity', '_value', '_record', '_kind')
+
+    def __init__(self, identity, value, record, kind):
+        if identity is not _BOUND_INPUT_SENTINEL:
+            raise TypeError("_BoundInputCapability cannot be constructed directly")
+        self._identity = identity
+        self._value = value
+        self._record = copy.deepcopy(record)
+        self._kind = str(kind)
+
+    def _require_binding(self, value, kind):
+        if (
+            self._identity is not _BOUND_INPUT_SENTINEL
+            or self._kind != kind
+            or self._value is not value
+        ):
+            raise PreflightError(
+                f"E4d bound input capability/object mismatch [{kind}]"
+            )
+
+    def _export_record(self):
+        return copy.deepcopy(self._record)
+
+
+class _ValidatedE4dGate:
+    """Opaque capability created only after the complete E4d gate passes."""
+    __slots__ = ('_identity', '_provenance', '_generation_git_commit')
+
+    def __init__(self, identity, provenance, generation_git_commit):
+        if identity is not _E4D_GATE_SENTINEL:
+            raise TypeError("_ValidatedE4dGate cannot be constructed directly")
+        self._identity = identity
+        self._provenance = copy.deepcopy(provenance)
+        self._generation_git_commit = str(generation_git_commit)
+
+    @property
+    def generation_git_commit(self):
+        return self._generation_git_commit
+
+    def export_provenance(self):
+        """Return a manifest-safe deep copy; never expose mutable gate state."""
+        exported = copy.deepcopy(self._provenance)
+        # Fail here if a future field stops being JSON serializable.
+        return json.loads(json.dumps(exported))
+
+
+def _require_validated_e4d_gate(gate):
+    if not isinstance(gate, _ValidatedE4dGate) or (
+        gate._identity is not _E4D_GATE_SENTINEL
+    ):
+        raise PreflightError(
+            "E4d formal output requires a genuine validated preflight gate"
+        )
+    return gate
+
+
+def attach_e4d_gate_to_manifest(manifest, gate):
+    """Return a deep-copied manifest with exported gate provenance attached."""
+    _require_validated_e4d_gate(gate)
+    if not isinstance(manifest, dict):
+        raise TypeError("E4 manifest must be a dict")
+    attached = copy.deepcopy(manifest)
+    existing_commit = attached.get('git_commit')
+    if existing_commit not in (None, gate.generation_git_commit):
+        raise PreflightError(
+            "E4 manifest git_commit does not match the validated gate"
+        )
+    attached['git_commit'] = gate.generation_git_commit
+    attached['e4d_preflight_provenance'] = gate.export_provenance()
+    return json.loads(json.dumps(attached))
+
+
+def sha256_file(path, chunk_size=1024 * 1024):
+    """Return a streaming SHA256 digest for one provenance file."""
+    digest = hashlib.sha256()
+    with open(path, 'rb') as file_obj:
+        while True:
+            chunk = file_obj.read(chunk_size)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _stable_provenance_path(absolute_path, project_root):
+    """Return a stable, auditable path for provenance records.
+
+    - Paths inside *project_root*: project-relative with forward slashes.
+    - Paths outside *project_root*, or on a different Windows drive:
+      absolute path with ``abs://`` prefix (explicit, auditable fallback).
+    """
+    abs_path = os.path.abspath(absolute_path)
+    try:
+        rel = os.path.relpath(abs_path, project_root)
+        # Guard against path traversal (e.g. '../../outside')
+        if not rel.startswith('..'):
+            return rel.replace(os.sep, '/')
+    except ValueError:
+        # Different drive on Windows — relpath raises ValueError
+        pass
+    # Fallback: explicit absolute path marker for audit trail
+    return 'abs://' + abs_path.replace(os.sep, '/')
+
+
+def _record_for_bytes(path, raw_bytes):
+    """Describe the exact bytes parsed by an input loader."""
+    absolute_path = os.path.abspath(path)
+    return {
+        'path': _stable_provenance_path(absolute_path, PROJECT_ROOT),
+        'sha256': hashlib.sha256(raw_bytes).hexdigest(),
+        'size_bytes': len(raw_bytes),
+    }
+
+
+def _read_input_bytes(path, label):
+    absolute_path = os.path.abspath(path)
+    if not os.path.isfile(absolute_path):
+        raise PreflightError(f"E4d input missing [{label}]: {absolute_path}")
+    try:
+        with open(absolute_path, 'rb') as file_obj:
+            return file_obj.read()
+    except OSError as exc:
+        raise PreflightError(
+            f"E4d input unreadable [{label}]: {absolute_path}: {exc}"
+        ) from exc
+
+
+def read_csv_with_provenance(path, label):
+    """Parse a CSV and hash the same immutable byte batch (no path re-read)."""
+    raw_bytes = _read_input_bytes(path, label)
+    try:
+        frame = pd.read_csv(io.BytesIO(raw_bytes))
+    except Exception as exc:
+        raise PreflightError(f"E4d CSV parse failed [{label}]: {exc}") from exc
+    record = _record_for_bytes(path, raw_bytes)
+    record['row_count'] = int(len(frame))
+    capability = _BoundInputCapability(
+        _BOUND_INPUT_SENTINEL, frame, record, 'csv'
+    )
+    return frame, capability
+
+
+def read_json_with_provenance(path, label):
+    """Parse JSON and hash the same immutable byte batch (no path re-read)."""
+    raw_bytes = _read_input_bytes(path, label)
+    try:
+        value = json.loads(raw_bytes.decode('utf-8-sig'))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PreflightError(f"E4d JSON parse failed [{label}]: {exc}") from exc
+    record = _record_for_bytes(path, raw_bytes)
+    capability = _BoundInputCapability(
+        _BOUND_INPUT_SENTINEL, value, record, 'json'
+    )
+    return value, capability
+
+
+def _expected_main_chunk_units():
+    """Return the 45 frozen work units in generate_mc_data.py order."""
+    units = []
+    for eta in ETA_GRID:
+        for goe in GAMMA_OVER_ETA_GRID:
+            gamma = goe * eta
+            for beta in BETA_GRID:
+                for n in N_GRID:
+                    units.append({
+                        'beta': float(beta),
+                        'eta': float(eta),
+                        'gamma': float(gamma),
+                        'gamma_over_eta': float(goe),
+                        'n': int(n),
+                    })
+    return units
+
+
+def load_authoritative_main_chunks(
+        chunks_dir=MAIN_CHUNKS_DIR, chunk_paths=None,
+        expected_repeats=R_MAIN):
+    """Load and bind the 45 authoritative main-grid MDM chunks.
+
+    Chunk identity comes from the frozen four-digit filename and must be a
+    one-to-one mapping to the frozen generation work-unit order. Each file is
+    parsed from the exact bytes used for its SHA256 record.
+    """
+    expected_units = _expected_main_chunk_units()
+    expected_ids = set(range(len(expected_units)))
+    if chunk_paths is None:
+        chunks_path = os.path.abspath(chunks_dir)
+        if not os.path.isdir(chunks_path):
+            raise PreflightError(
+                f"E4d authoritative main chunk directory missing: {chunks_path}"
+            )
+        chunk_paths = list(
+            os.path.join(chunks_path, name)
+            for name in os.listdir(chunks_path)
+            if name.startswith('chunk_') and name.endswith('_mdm.csv')
+        )
+
+    by_identity = {}
+    invalid_names = []
+    duplicate_ids = []
+    pattern = re.compile(r'^chunk_(\d{4})_mdm\.csv$')
+    for path in chunk_paths:
+        filename = os.path.basename(os.fspath(path))
+        match = pattern.fullmatch(filename)
+        if match is None:
+            invalid_names.append(filename)
+            continue
+        chunk_id = int(match.group(1))
+        if chunk_id in by_identity:
+            duplicate_ids.append(chunk_id)
+        else:
+            by_identity[chunk_id] = os.fspath(path)
+    if invalid_names:
+        raise PreflightError(
+            f"E4d authoritative chunk filenames are invalid: {sorted(invalid_names)}"
+        )
+    if duplicate_ids:
+        raise PreflightError(
+            "E4d authoritative main chunks contain duplicate identities: "
+            f"{sorted(set(duplicate_ids))}"
+        )
+
+    actual_ids = set(by_identity)
+    missing_ids = sorted(expected_ids - actual_ids)
+    unexpected_ids = sorted(actual_ids - expected_ids)
+    if missing_ids or unexpected_ids:
+        raise PreflightError(
+            "E4d authoritative main chunk identity set is incomplete: "
+            f"missing={missing_ids}, unexpected={unexpected_ids}"
+        )
+
+    expected_rows = int(expected_repeats) * len(DELTA_GRID)
+    frames = []
+    records = []
+    metadata_columns = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n']
+    for chunk_id, expected_unit in enumerate(expected_units):
+        frame, chunk_capability = read_csv_with_provenance(
+            by_identity[chunk_id], f'main_grid_chunk_{chunk_id:04d}'
+        )
+        record = chunk_capability._export_record()
+        missing_columns = [
+            column for column in metadata_columns if column not in frame.columns
+        ]
+        if missing_columns:
+            raise PreflightError(
+                f"E4d chunk {chunk_id:04d} missing metadata columns: "
+                f"{missing_columns}"
+            )
+        if len(frame) != expected_rows:
+            raise PreflightError(
+                f"E4d chunk {chunk_id:04d} row_count={len(frame)}, "
+                f"expected={expected_rows}"
+            )
+        actual_units = frame[metadata_columns].drop_duplicates()
+        if len(actual_units) != 1:
+            raise PreflightError(
+                f"E4d chunk {chunk_id:04d} mixes multiple combo identities"
+            )
+        actual_unit = actual_units.iloc[0].to_dict()
+        mismatches = [
+            column for column in metadata_columns
+            if not np.isclose(
+                float(actual_unit[column]), float(expected_unit[column]),
+                rtol=0.0, atol=1e-12,
+            )
+        ]
+        if mismatches:
+            raise PreflightError(
+                f"E4d chunk {chunk_id:04d} does not match frozen work-unit "
+                f"order; mismatched columns={mismatches}"
+            )
+        record['chunk_id'] = chunk_id
+        record['unit'] = expected_unit
+        frames.append(frame)
+        records.append(record)
+
+    merged = pd.concat(frames, ignore_index=True, sort=False)
+    capability = _BoundInputCapability(
+        _BOUND_INPUT_SENTINEL, merged, records, 'main_grid_chunks'
+    )
+    return merged, capability
+
+
+def _provenance_file_records(path_map):
+    """Build manifest-safe path/hash records, failing closed on missing files."""
+    records = {}
+    for name, path in sorted(path_map.items()):
+        absolute_path = os.path.abspath(path)
+        if not os.path.isfile(absolute_path):
+            raise PreflightError(
+                f"E4d provenance file missing [{name}]: {absolute_path}"
+            )
+        records[name] = {
+            'path': _stable_provenance_path(absolute_path, PROJECT_ROOT),
+            'sha256': sha256_file(absolute_path),
+        }
+    return records
+
+
+def _validated_bound_input_capabilities(
+        input_capabilities, df_mc, mc_manifest, df_boundary, df_offgrid):
+    """Validate opaque same-byte capabilities and export their records."""
+    required = {
+        'main_grid_chunks', 'main_grid_mc_manifest',
+        'boundary_risk_curves', 'offgrid_risk_curves',
+    }
+    if not isinstance(input_capabilities, dict) or set(
+        input_capabilities
+    ) != required:
+        raise PreflightError(
+            "E4d bound input capabilities must contain exactly: "
+            f"{sorted(required)}"
+        )
+    bindings = {
+        'main_grid_chunks': (df_mc, 'main_grid_chunks'),
+        'main_grid_mc_manifest': (mc_manifest, 'json'),
+        'boundary_risk_curves': (df_boundary, 'csv'),
+        'offgrid_risk_curves': (df_offgrid, 'csv'),
+    }
+    input_records = {}
+    for name, (value, kind) in bindings.items():
+        capability = input_capabilities[name]
+        if not isinstance(capability, _BoundInputCapability):
+            raise PreflightError(
+                f"E4d input is not an opaque bound capability [{name}]"
+            )
+        capability._require_binding(value, kind)
+        input_records[name] = capability._export_record()
+
+    chunks = input_records['main_grid_chunks']
+    if not isinstance(chunks, list) or len(chunks) != len(
+        _expected_main_chunk_units()
+    ):
+        raise PreflightError(
+            "E4d bound input provenance must contain 45 main-grid chunk records"
+        )
+
+    def validate_record(record, label):
+        if not isinstance(record, dict):
+            raise PreflightError(f"E4d provenance record is invalid [{label}]")
+        digest = record.get('sha256')
+        if not isinstance(digest, str) or re.fullmatch(r'[0-9a-f]{64}', digest) is None:
+            raise PreflightError(
+                f"E4d provenance SHA256 is invalid [{label}]"
+            )
+        if not record.get('path') or int(record.get('size_bytes', 0)) <= 0:
+            raise PreflightError(
+                f"E4d provenance path/size is invalid [{label}]"
+            )
+
+    chunk_ids = []
+    for index, record in enumerate(chunks):
+        validate_record(record, f'main_grid_chunk_{index:04d}')
+        chunk_ids.append(record.get('chunk_id'))
+    if chunk_ids != list(range(len(chunks))):
+        raise PreflightError(
+            "E4d main-grid chunk provenance is not in frozen identity order"
+        )
+    for name in sorted(required - {'main_grid_chunks'}):
+        validate_record(input_records[name], name)
+
+    # Defensive copy: downstream manifest construction cannot mutate the
+    # loader-owned records used for this validation decision.
+    return json.loads(json.dumps(input_records))
+
+
+def _validate_risk_key_contract(df, label, sample_keys, expected_repeats):
+    """Validate unique, complete ``sample key + delta`` risk-curve cells."""
+    if not isinstance(df, pd.DataFrame):
+        raise PreflightError(f"E4d {label} risk table is not a DataFrame")
+    try:
+        expected_repeats = int(expected_repeats)
+    except (TypeError, ValueError) as exc:
+        raise PreflightError(
+            f"E4d {label} expected repeat count must be an integer"
+        ) from exc
+    if expected_repeats <= 0:
+        raise PreflightError(
+            f"E4d {label} expected repeat count must be positive"
+        )
+    required = list(sample_keys) + ['delta']
+    missing = [column for column in required if column not in df.columns]
+    if missing:
+        raise PreflightError(
+            f"E4d {label} risk table missing contract columns: {missing}"
+        )
+    if df.empty:
+        raise PreflightError(f"E4d {label} risk table is empty")
+    if df[required].isna().any().any():
+        null_columns = df[required].columns[df[required].isna().any()].tolist()
+        raise PreflightError(
+            f"E4d {label} risk keys contain nulls in: {null_columns}"
+        )
+
+    normalized = df[required].copy()
+    numeric_columns = [
+        column for column in required if column not in {'combo_id'}
+    ]
+    for column in numeric_columns:
+        try:
+            normalized[column] = pd.to_numeric(
+                normalized[column], errors='raise'
+            )
+        except (TypeError, ValueError) as exc:
+            raise PreflightError(
+                f"E4d {label} risk-key column {column!r} must be numeric"
+            ) from exc
+        if not np.isfinite(normalized[column].to_numpy(dtype=float)).all():
+            raise PreflightError(
+                f"E4d {label} risk-key column {column!r} is non-finite"
+            )
+
+    if 'combo_id' in normalized.columns:
+        normalized['combo_id'] = normalized['combo_id'].astype(str)
+        if normalized['combo_id'].str.strip().eq('').any():
+            raise PreflightError(f"E4d {label} contains blank combo_id values")
+
+    for column in ['n', 'repeat_id']:
+        values = normalized[column].to_numpy(dtype=float)
+        if not np.equal(values, np.floor(values)).all():
+            raise PreflightError(
+                f"E4d {label} risk-key column {column!r} must be integer"
+            )
+        normalized[column] = normalized[column].astype(int)
+    if (normalized['n'] <= 0).any() or (normalized['repeat_id'] < 0).any():
+        raise PreflightError(
+            f"E4d {label} requires n > 0 and repeat_id >= 0"
+        )
+
+    eta_values = normalized['eta'].to_numpy(dtype=float)
+    gamma_values = normalized['gamma'].to_numpy(dtype=float)
+    goe_values = normalized['gamma_over_eta'].to_numpy(dtype=float)
+    if (normalized['beta'] <= 0).any() or (eta_values <= 0).any():
+        raise PreflightError(f"E4d {label} requires beta > 0 and eta > 0")
+    if not np.isclose(
+        gamma_values / eta_values, goe_values, rtol=0.0, atol=1e-12
+    ).all():
+        raise PreflightError(
+            f"E4d {label} has inconsistent gamma and gamma_over_eta metadata"
+        )
+
+    delta_values = normalized['delta'].to_numpy(dtype=float)
+    delta_index = np.full(len(normalized), -1, dtype=np.int16)
+    for index, expected_delta in enumerate(DELTA_GRID):
+        matches = np.isclose(
+            delta_values, float(expected_delta), rtol=0.0, atol=1e-12
+        )
+        delta_index[matches] = index
+    if (delta_index < 0).any():
+        examples = sorted(set(delta_values[delta_index < 0].tolist()))[:5]
+        raise PreflightError(
+            f"E4d {label} contains delta outside frozen DELTA_GRID: {examples}"
+        )
+    normalized['_delta_index'] = delta_index
+
+    full_key = list(sample_keys) + ['_delta_index']
+    duplicate_keys = normalized.duplicated(subset=full_key, keep=False)
+    if duplicate_keys.any():
+        examples = normalized.loc[duplicate_keys, full_key].head(5).to_dict('records')
+        raise PreflightError(
+            f"E4d {label} contains duplicate sample+delta risk keys: {examples}"
+        )
+
+    delta_counts = normalized.groupby(list(sample_keys), dropna=False)[
+        '_delta_index'
+    ].nunique()
+    incomplete = delta_counts[delta_counts != len(DELTA_GRID)]
+    if not incomplete.empty:
+        examples = [tuple(key) if isinstance(key, tuple) else key
+                    for key in incomplete.index[:5]]
+        raise PreflightError(
+            f"E4d {label} samples must contain the exact frozen "
+            f"{len(DELTA_GRID)}-point DELTA_GRID; incomplete keys: {examples}"
+        )
+
+    combo_keys = [key for key in sample_keys if key != 'repeat_id']
+    repeat_sets = normalized[combo_keys + ['repeat_id']].drop_duplicates().groupby(
+        combo_keys, dropna=False
+    )['repeat_id'].agg(lambda values: frozenset(int(v) for v in values))
+    frozen_repeat_ids = frozenset(range(int(expected_repeats)))
+    bad_repeats = repeat_sets[repeat_sets != frozen_repeat_ids]
+    if not bad_repeats.empty:
+        raise PreflightError(
+            f"E4d {label} must contain repeat_id 0..{expected_repeats - 1} "
+            f"for every combo; bad combo count={len(bad_repeats)}"
+        )
+
+
+def _main_combo_set(df_mc):
+    """Validate and return the frozen main-grid combo tuples."""
+    combo_columns = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n']
+    actual = {
+        (float(row.beta), float(row.eta), float(row.gamma),
+         float(row.gamma_over_eta), int(row.n))
+        for row in df_mc[combo_columns].drop_duplicates().itertuples(index=False)
+    }
+    expected = {
+        (float(beta), float(eta), float(goe * eta), float(goe), int(n))
+        for beta, eta, goe, n in product(
+            BETA_GRID, ETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID
+        )
+    }
+    if actual != expected:
+        raise PreflightError(
+            "E4d main-grid combo set does not match frozen config: "
+            f"missing={sorted(expected - actual)[:5]}, "
+            f"unexpected={sorted(actual - expected)[:5]}"
+        )
+    return actual
+
+
+def _eval_combo_set(combo_list):
+    return {
+        (float(beta), 1.0, float(goe), float(goe), int(n))
+        for _, beta, goe, n in combo_list
+    }
+
+
+def _validate_mc_manifest_contract(mc_manifest, main_repeats):
+    """Bind main-grid data validation to its frozen generation manifest."""
+    if not isinstance(mc_manifest, dict):
+        raise PreflightError("E4d MC manifest must be a JSON object")
+    expected_grid = {
+        'beta': [float(value) for value in BETA_GRID],
+        'eta': [float(value) for value in ETA_GRID],
+        'gamma_over_eta': [float(value) for value in GAMMA_OVER_ETA_GRID],
+        'n': [int(value) for value in N_GRID],
+    }
+    manifest_grid = mc_manifest.get('parameter_grid')
+    if manifest_grid != expected_grid:
+        raise PreflightError(
+            "E4d MC manifest parameter_grid does not match frozen config"
+        )
+    if mc_manifest.get('delta_grid') != list(DELTA_GRID):
+        raise PreflightError(
+            "E4d MC manifest delta_grid does not match frozen DELTA_GRID"
+        )
+    try:
+        manifest_repeats = int(mc_manifest.get('repeats', -1))
+        expected_repeats = int(main_repeats)
+    except (TypeError, ValueError) as exc:
+        raise PreflightError(
+            "E4d MC manifest repeats must be an integer"
+        ) from exc
+    if manifest_repeats != expected_repeats:
+        raise PreflightError(
+            "E4d MC manifest repeats does not match the main-grid contract"
+        )
+    if mc_manifest.get('seed_namespace') != SEED_NAMESPACE:
+        raise PreflightError(
+            "E4d MC manifest seed_namespace does not match frozen config"
+        )
+
+
+def validate_e4d_preflight_contract(
+        df_mc, df_boundary, df_offgrid, mc_manifest,
+        input_capabilities, code_paths, main_repeats=R_MAIN,
+        eval_repeats=R_ROBUSTNESS):
+    """Fail closed before E4d and return reusable features plus provenance.
+
+    Training labels are validated exclusively from ``df_mc``. Boundary and
+    off-grid truth are evaluation-only inputs and are never merged into the
+    training frame.
+    """
+    bound_input_records = _validated_bound_input_capabilities(
+        input_capabilities, df_mc, mc_manifest, df_boundary, df_offgrid
+    )
+    generation_git_commit = get_project_git_info_strict()
+    _validate_mc_manifest_contract(mc_manifest, main_repeats)
+    _validate_risk_key_contract(
+        df_mc, 'main_grid', SAMPLE_KEYS, main_repeats
+    )
+    _validate_risk_key_contract(
+        df_boundary, 'boundary', ['combo_id'] + SAMPLE_KEYS, eval_repeats
+    )
+    _validate_risk_key_contract(
+        df_offgrid, 'offgrid', ['combo_id'] + SAMPLE_KEYS, eval_repeats
+    )
+
+    # Reuse the P1b metadata/sample reconstruction contract. These features
+    # are derived from frozen metadata and deterministic sample generation;
+    # estimator truth columns are not used.
+    try:
+        boundary_features = build_feature_table_for_combos(
+            E4B_BOUNDARY_COMBOS, df_boundary
+        )
+        offgrid_features = build_feature_table_for_combos(
+            E4C_OFFGRID_COMBOS, df_offgrid
+        )
+    except ValueError as exc:
+        raise PreflightError(
+            f"E4d boundary/offgrid P1b metadata contract failed: {exc}"
+        ) from exc
+
+    main_combos = _main_combo_set(df_mc)
+    boundary_combos = _eval_combo_set(E4B_BOUNDARY_COMBOS)
+    offgrid_combos = _eval_combo_set(E4C_OFFGRID_COMBOS)
+    overlaps = {
+        'main_boundary': main_combos & boundary_combos,
+        'main_offgrid': main_combos & offgrid_combos,
+        'boundary_offgrid': boundary_combos & offgrid_combos,
+    }
+    nonempty_overlaps = {
+        name: sorted(values)[:5] for name, values in overlaps.items() if values
+    }
+    if nonempty_overlaps:
+        raise PreflightError(
+            "E4d training/evaluation combo sets overlap or are mixed: "
+            f"{nonempty_overlaps}"
+        )
+
+    provenance = {
+        'contract_version': E4D_CONTRACT_VERSION,
+        'status': 'validated',
+        'validated_at': now_iso(),
+        'generation_time': {
+            'git_commit': generation_git_commit,
+            'input_files': bound_input_records,
+            'code_files': _provenance_file_records(code_paths),
+            'data_roles': {
+                'training_labels': ['main_grid'],
+                'evaluation_truth_only': ['boundary', 'offgrid'],
+            },
+            'sample_counts': {
+                'main_grid': int(len(df_mc) // len(DELTA_GRID)),
+                'boundary': int(len(df_boundary) // len(DELTA_GRID)),
+                'offgrid': int(len(df_offgrid) // len(DELTA_GRID)),
+            },
+        },
+        'sealed_release': {
+            'status': 'pending_artifact_commit',
+            'git_commit': None,
+            'rule': (
+                'The commit sealing generated artifacts is recorded after '
+                'generation in the independent execution/review report.'
+            ),
+        },
+    }
+    gate = _ValidatedE4dGate(
+        _E4D_GATE_SENTINEL, provenance, generation_git_commit
+    )
+    return gate, boundary_features, offgrid_features
+
+
+def write_e4d_formal_output(df_results, output_path, gate):
+    """Atomically write E4d output only after the validated contract gate."""
+    _require_validated_e4d_gate(gate)
+    output_path = os.path.abspath(output_path)
+    output_dir = os.path.dirname(output_path)
+    output_name = os.path.basename(output_path)
+    tmp_path = None
+    try:
+        file_descriptor, tmp_path = tempfile.mkstemp(
+            prefix=f'.{output_name}.', suffix='.tmp', dir=output_dir
+        )
+        os.close(file_descriptor)
+        df_results.to_csv(tmp_path, index=False)
+        os.replace(tmp_path, output_path)
+        tmp_path = None
+    finally:
+        try:
+            if tmp_path is not None and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except OSError:
+            # Never mask the original write/replace exception.
+            pass
+
+
 def preflight_check_inputs(requested_tracks, input_path_map):
     """Validate that all required input files exist for the requested tracks.
 
@@ -161,6 +899,63 @@ def preflight_check_inputs(requested_tracks, input_path_map):
         for track, path in missing_inputs:
             lines.append(f"  [{track}] {path}")
         raise PreflightError("\n".join(lines))
+
+
+def write_merged_cost_report(cost_path, new_rows, requested_tracks):
+    """Replace requested-track costs while preserving all other tracks.
+
+    A subset run owns only the tracks named in ``requested_tracks``. Existing
+    rows for those tracks are removed before the current rows are appended;
+    rows for every other track remain untouched. Repeating the same subset run
+    therefore replaces, rather than duplicates, its prior cost rows.
+    """
+    requested = {str(track).strip().lower() for track in requested_tracks}
+    new_cost = pd.DataFrame(new_rows)
+
+    # Validate ownership before reading or touching the shared report.
+    if not new_cost.empty:
+        if 'track' not in new_cost.columns:
+            raise ValueError("New cost rows must include a non-empty 'track'")
+        new_track_raw = new_cost['track']
+        empty_track = (
+            new_track_raw.isna()
+            | new_track_raw.astype(str).str.strip().eq('')
+        )
+        if empty_track.any():
+            raise ValueError("New cost rows must include a non-empty 'track'")
+        new_track = new_track_raw.astype(str).str.strip().str.lower()
+        unexpected_tracks = set(new_track) - requested
+        if unexpected_tracks:
+            raise ValueError(
+                "New cost rows contain tracks that were not requested: "
+                f"{sorted(unexpected_tracks)}"
+            )
+
+    if os.path.exists(cost_path):
+        try:
+            existing_cost = pd.read_csv(cost_path)
+        except pd.errors.EmptyDataError:
+            existing_cost = pd.DataFrame(columns=['track'])
+        if 'track' not in existing_cost.columns:
+            raise ValueError(
+                f"Existing cost report has no 'track' column: {cost_path}"
+            )
+        existing_track = existing_cost['track'].astype(str).str.strip().str.lower()
+        preserved_cost = existing_cost.loc[~existing_track.isin(requested)].copy()
+    else:
+        preserved_cost = pd.DataFrame()
+
+    frames = [df for df in (preserved_cost, new_cost) if not df.empty]
+    if frames:
+        merged_cost = pd.concat(frames, ignore_index=True, sort=False)
+    elif len(preserved_cost.columns) > 0:
+        merged_cost = preserved_cost.reset_index(drop=True)
+    elif len(new_cost.columns) > 0:
+        merged_cost = new_cost.reset_index(drop=True)
+    else:
+        merged_cost = pd.DataFrame(columns=['track'])
+    merged_cost.to_csv(cost_path, index=False)
+    return merged_cost
 
 
 # ============================================================
@@ -205,24 +1000,210 @@ def compute_loss(df):
     return df
 
 
-def build_feature_table_for_combos(combo_list, seed_ns=SEED_NAMESPACE):
-    """Build features for a list of (combo_id, beta, goe, n) tuples.
-    Returns DataFrame with sample keys + features.
+def build_feature_table_for_combos(combo_list, risk_data,
+                                   seed_ns=SEED_NAMESPACE):
+    """Build one feature row for every sample present in ``risk_data``.
+
+    ``combo_list`` freezes the expected combo metadata; it does not define the
+    repeat range. The actual unique ``(combo_id, repeat_id)`` keys in the
+    supplied risk/loss table are authoritative, so 500-repeat, 1000-repeat,
+    and non-contiguous repeat sets are handled without synthesizing samples.
     """
+    required_columns = [
+        'combo_id', 'beta', 'eta', 'gamma', 'gamma_over_eta', 'n',
+        'repeat_id',
+    ]
+    missing_columns = [
+        column for column in required_columns if column not in risk_data.columns
+    ]
+    if missing_columns:
+        raise ValueError(
+            "Risk data missing required sample-key columns: "
+            f"{missing_columns}"
+        )
+    if risk_data.empty:
+        raise ValueError("Risk data contains no sample keys")
+
+    expected_rows = []
+    for combo in combo_list:
+        if len(combo) != 4:
+            raise ValueError(
+                "Each combo must be (combo_id, beta, gamma_over_eta, n)"
+            )
+        combo_id, beta, gamma_over_eta, n = combo
+        expected_rows.append({
+            'combo_id': combo_id,
+            'beta': float(beta),
+            'eta': 1.0,
+            'gamma': float(gamma_over_eta),
+            'gamma_over_eta': float(gamma_over_eta),
+            'n': int(n),
+        })
+    expected = pd.DataFrame(expected_rows)
+    if expected.empty:
+        raise ValueError("Combo list is empty")
+    expected_id_null = expected['combo_id'].isna().any()
+    expected['combo_id'] = expected['combo_id'].astype(str)
+    invalid_expected_ids = (
+        expected_id_null
+        or expected['combo_id'].str.strip().eq('').any()
+        or expected['combo_id'].duplicated().any()
+    )
+    if invalid_expected_ids:
+        raise ValueError("Combo list must contain unique, non-blank combo_id values")
+
+    data = risk_data.copy()
+    if data[required_columns].isna().any().any():
+        null_columns = data[required_columns].columns[
+            data[required_columns].isna().any()
+        ].tolist()
+        raise ValueError(
+            "Risk data contains null sample-key values in columns: "
+            f"{null_columns}"
+        )
+
+    data['combo_id'] = data['combo_id'].astype(str)
+    if data['combo_id'].str.strip().eq('').any():
+        raise ValueError("Risk data contains blank combo_id values")
+
+    numeric_columns = [
+        'beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id',
+    ]
+    for column in numeric_columns:
+        try:
+            data[column] = pd.to_numeric(data[column], errors='raise')
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Risk data column {column!r} must be numeric"
+            ) from exc
+        if not np.isfinite(data[column].to_numpy(dtype=float)).all():
+            raise ValueError(
+                f"Risk data column {column!r} contains non-finite values"
+            )
+
+    for column in ['n', 'repeat_id']:
+        values = data[column].to_numpy(dtype=float)
+        if not np.equal(values, np.floor(values)).all():
+            raise ValueError(
+                f"Risk data column {column!r} must contain integers"
+            )
+        data[column] = data[column].astype(int)
+    if (data['n'] <= 0).any() or (data['repeat_id'] < 0).any():
+        raise ValueError("Risk data requires n > 0 and repeat_id >= 0")
+
+    # Rows repeat across delta by design. A repeated full risk key is corrupt;
+    # a table without delta must contain one row per sample key.
+    risk_key_columns = ['combo_id', 'repeat_id']
+    if 'delta' in data.columns:
+        if data['delta'].isna().any():
+            raise ValueError("Risk data contains null delta values")
+        try:
+            data['delta'] = pd.to_numeric(data['delta'], errors='raise')
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Risk data column 'delta' must be numeric") from exc
+        if not np.isfinite(data['delta'].to_numpy(dtype=float)).all():
+            raise ValueError("Risk data column 'delta' contains non-finite values")
+        risk_key_columns.append('delta')
+    duplicate_risk_keys = data.duplicated(
+        subset=risk_key_columns, keep=False
+    )
+    if duplicate_risk_keys.any():
+        examples = (
+            data.loc[duplicate_risk_keys, risk_key_columns]
+            .head(5)
+            .to_dict('records')
+        )
+        raise ValueError(
+            f"Risk data contains duplicate keys {risk_key_columns}: {examples}"
+        )
+
+    sample_metadata = data[required_columns].drop_duplicates()
+    conflicting_sample_keys = sample_metadata.duplicated(
+        subset=['combo_id', 'repeat_id'], keep=False
+    )
+    if conflicting_sample_keys.any():
+        examples = (
+            sample_metadata.loc[
+                conflicting_sample_keys, ['combo_id', 'repeat_id']
+            ]
+            .drop_duplicates()
+            .head(5)
+            .to_dict('records')
+        )
+        raise ValueError(
+            "Risk data has inconsistent metadata for sample keys: "
+            f"{examples}"
+        )
+
+    expected_ids = set(expected['combo_id'])
+    actual_ids = set(sample_metadata['combo_id'])
+    missing_ids = sorted(expected_ids - actual_ids)
+    unexpected_ids = sorted(actual_ids - expected_ids)
+    if missing_ids or unexpected_ids:
+        raise ValueError(
+            "Risk data combo_id set does not match frozen combo list: "
+            f"missing={missing_ids}, unexpected={unexpected_ids}"
+        )
+
+    actual_combo_metadata = sample_metadata[
+        ['combo_id', 'beta', 'eta', 'gamma', 'gamma_over_eta', 'n']
+    ].drop_duplicates()
+    if actual_combo_metadata['combo_id'].duplicated(keep=False).any():
+        inconsistent_ids = sorted(actual_combo_metadata.loc[
+            actual_combo_metadata['combo_id'].duplicated(keep=False),
+            'combo_id',
+        ].unique())
+        raise ValueError(
+            "Risk data has inconsistent metadata across repeats for combos: "
+            f"{inconsistent_ids}"
+        )
+
+    metadata_check = actual_combo_metadata.merge(
+        expected, on='combo_id', how='outer', suffixes=('_actual', '_expected'),
+        validate='one_to_one', indicator=True,
+    )
+    mismatch_columns = []
+    for column in ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n']:
+        actual_values = metadata_check[f'{column}_actual'].to_numpy(dtype=float)
+        expected_values = metadata_check[
+            f'{column}_expected'
+        ].to_numpy(dtype=float)
+        matches = np.isclose(
+            actual_values, expected_values, rtol=0.0, atol=1e-12
+        )
+        if not matches.all():
+            mismatch_columns.append(column)
+    if not metadata_check['_merge'].eq('both').all() or mismatch_columns:
+        raise ValueError(
+            "Risk data combo metadata does not match frozen combo list; "
+            f"mismatched columns: {mismatch_columns}"
+        )
+
+    combo_order = {
+        str(combo_id): index
+        for index, (combo_id, _, _, _) in enumerate(combo_list)
+    }
+    sample_metadata = sample_metadata.assign(
+        _combo_order=sample_metadata['combo_id'].map(combo_order)
+    ).sort_values(['_combo_order', 'repeat_id']).drop(columns='_combo_order')
+
     records = []
-    for combo_id, beta, goe, n in combo_list:
-        gamma = goe * 1.0  # eta=1.0
-        for rid in range(R_MAIN):
-            sample = generate_sample(beta, 1.0, gamma, n, rid, seed=seed_ns)
-            feats = compute_sample_features(sample)
-            feats['combo_id'] = combo_id
-            feats['beta'] = beta
-            feats['eta'] = 1.0
-            feats['gamma'] = gamma
-            feats['gamma_over_eta'] = goe
-            feats['n'] = n
-            feats['repeat_id'] = rid
-            records.append(feats)
+    for row in sample_metadata.itertuples(index=False):
+        sample = generate_sample(
+            float(row.beta), float(row.eta), float(row.gamma), int(row.n),
+            int(row.repeat_id), seed=seed_ns,
+        )
+        feats = compute_sample_features(sample)
+        feats.update({
+            'combo_id': row.combo_id,
+            'beta': float(row.beta),
+            'eta': float(row.eta),
+            'gamma': float(row.gamma),
+            'gamma_over_eta': float(row.gamma_over_eta),
+            'n': int(row.n),
+            'repeat_id': int(row.repeat_id),
+        })
+        records.append(feats)
     return pd.DataFrame(records)
 
 
@@ -671,85 +1652,61 @@ def evaluate_references(df_mc_new, label):
 
 
 # ============================================================
-# E4d: Selector extrapolation diagnostic
+# Shared training helpers (E3b-equivalent contract)
 # ============================================================
 
-def run_e4d(df_mc, df_boundary_feat, df_offgrid_feat,
-            df_boundary_loss, df_offgrid_loss):
-    """Train Vector-MLP-L6 on main grid, evaluate on boundary/offgrid.
+def _pivot_risk_vectors(df, label_col, failure_penalty):
+    """Pivot per-delta rows into 26-dim risk vectors (one per sample).
 
-    This is a diagnostic — not deployment proof.
+    Uses the same pivot contract as the frozen E3b experiment: ``SAMPLE_KEYS``
+    index, ``DELTA_GRID`` columns, filled with *failure_penalty* where no
+    matching delta row exists.
     """
-    log("=== E4d: Selector Extrapolation Diagnostic ===")
+    feat_cols_local = [c for c in SAMPLE_FEATURE_COLS if c not in SAMPLE_KEYS]
+    sample_df = df[SAMPLE_KEYS + feat_cols_local].drop_duplicates(
+        subset=SAMPLE_KEYS).reset_index(drop=True)
+    pivot = df.pivot_table(
+        index=SAMPLE_KEYS, columns='delta',
+        values=label_col, aggfunc='first'
+    ).reset_index()
+    result = pivot[SAMPLE_KEYS].merge(sample_df, on=SAMPLE_KEYS, how='left')
+    Y = np.full((len(pivot), N_DELTAS), np.nan)
+    for j, d in enumerate(DELTA_GRID):
+        if d in pivot.columns:
+            Y[:, j] = pivot[d].values
+    Y = np.where(np.isnan(Y), failure_penalty, Y)
+    return result, Y
 
-    # Build features for main grid
-    df_feat = build_feature_table_from_mc(df_mc)
-    merge_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
-    df_merged = df_mc.merge(df_feat, on=merge_keys, how='left', suffixes=('', '_feat'))
-    for col in list(df_merged.columns):
-        if col.endswith('_feat'):
-            df_merged.drop(columns=col, inplace=True)
-    df_merged = compute_loss(df_merged)
 
-    # Use fold 1 as representative (same as E3b feature ablation baseline)
-    folds = get_combo_split()
-    fold = folds[0]
-    train_combos = set(fold['train_combos'])
-
-    def is_train(row):
-        return (row['beta'], row['gamma_over_eta'], row['n']) in train_combos
-
-    df_train = df_merged[df_merged.apply(is_train, axis=1)].copy()
-
-    # Z-score from train
-    zscore_means = {}
-    zscore_stds = {}
-    for col in FEATURE_COLS_ZSCORE:
-        vals = df_train[col].astype(float)
-        zscore_means[col] = float(vals.mean())
-        zscore_stds[col] = float(vals.std(ddof=0))
-        if zscore_stds[col] < 1e-12:
-            zscore_stds[col] = 1.0
-
-    train_valid = df_train['loss'].dropna()
-    failure_penalty = float(np.nanpercentile(train_valid, 99))
-    df_train['loss_filled'] = df_train['loss'].fillna(failure_penalty)
-
-    # Pivot train to vector
-    def pivot_vector(df, label_col):
-        feat_cols_local = [c for c in SAMPLE_FEATURE_COLS if c not in SAMPLE_KEYS]
-        sample_df = df[SAMPLE_KEYS + feat_cols_local].drop_duplicates(
-            subset=SAMPLE_KEYS).reset_index(drop=True)
-        pivot = df.pivot_table(
-            index=SAMPLE_KEYS, columns='delta',
-            values=label_col, aggfunc='first'
-        ).reset_index()
-        result = pivot[SAMPLE_KEYS].merge(sample_df, on=SAMPLE_KEYS, how='left')
-        Y = np.full((len(pivot), N_DELTAS), np.nan)
-        for j, d in enumerate(DELTA_GRID):
-            if d in pivot.columns:
-                Y[:, j] = pivot[d].values
-        Y = np.where(np.isnan(Y), failure_penalty, Y)
-        return result, Y
-
-    train_samples, Y_train = pivot_vector(df_train, 'loss_filled')
-    log(f"  Train samples: {len(train_samples)}")
-
-    # Build X_train with full features
+def _build_X_from_samples(samples_df, zscore_means, zscore_stds):
+    """Build the 13-dim feature matrix from sample features."""
     cols = []
     for col in FEATURE_COLS_ZSCORE:
-        vals = train_samples[col].astype(float).values
+        vals = samples_df[col].astype(float).values
         cols.append((vals - zscore_means[col]) / max(zscore_stds[col], 1e-12))
     for col in FEATURE_COLS_RAW:
-        cols.append(train_samples[col].astype(float).values)
-    X_train = np.column_stack(cols).astype(np.float32)
+        cols.append(samples_df[col].astype(float).values)
+    return np.column_stack(cols).astype(np.float32) if cols else \
+        np.zeros((len(samples_df), 0), dtype=np.float32)
 
-    # Train with seed 42
-    log("  Training Vector-MLP-L6 (seed=42)...")
-    t0 = time.time()
+
+def _fit_zscore_params(df_train):
+    """Compute per-feature z-score parameters from the training split."""
+    means = {}
+    stds = {}
+    for col in FEATURE_COLS_ZSCORE:
+        vals = df_train[col].astype(float)
+        means[col] = float(vals.mean())
+        stds[col] = float(vals.std(ddof=0))
+        if stds[col] < 1e-12:
+            stds[col] = 1.0
+    return means, stds
+
+
+def _train_mlp(X_train, Y_train, seed):
+    """Train one Vector-MLP-L6 model under the frozen E3b config."""
     target_scaler = StandardScaler()
     Y_train_scaled = target_scaler.fit_transform(Y_train)
-
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=ConvergenceWarning)
         model = MLPRegressor(
@@ -759,15 +1716,170 @@ def run_e4d(df_mc, df_boundary_feat, df_offgrid_feat,
             max_iter=MLP_MAX_ITER, early_stopping=True,
             validation_fraction=MLP_VALIDATION_FRACTION,
             n_iter_no_change=MLP_N_ITER_NO_CHANGE,
-            random_state=42, batch_size=MLP_BATCH_SIZE,
+            random_state=seed, batch_size=MLP_BATCH_SIZE,
         )
         model.fit(X_train, Y_train_scaled)
+    return model, target_scaler
 
-    train_elapsed = time.time() - t0
-    log(f"  Training done in {train_elapsed:.1f}s, n_iter={model.n_iter_}")
 
-    # Evaluate on boundary and offgrid
-    results = []
+def _evaluate_single_model(model, target_scaler, df_eval_feat, df_eval_loss,
+                           zscore_means, zscore_stds, failure_penalty,
+                           fold_name, seed):
+    """Return per-sample evaluation rows and model-level metrics for one model."""
+    X_eval = _build_X_from_samples(df_eval_feat, zscore_means, zscore_stds)
+    Y_pred = target_scaler.inverse_transform(model.predict(X_eval))
+    Y_pred = np.clip(Y_pred, 0, None)
+
+    rows = []
+    for i in range(len(df_eval_feat)):
+        row = df_eval_feat.iloc[i]
+        beta = float(row['beta'])
+        goe = float(row['gamma_over_eta'])
+        n_val = int(row['n'])
+        rid = int(row['repeat_id'])
+
+        best_delta_idx = int(np.argmin(Y_pred[i]))
+        sel_delta = DELTA_GRID[best_delta_idx]
+
+        match = df_eval_loss[
+            (df_eval_loss['beta'] == beta) &
+            (df_eval_loss['gamma_over_eta'] == goe) &
+            (df_eval_loss['n'] == n_val) &
+            (df_eval_loss['repeat_id'] == rid) &
+            (df_eval_loss['delta'] == sel_delta)
+        ]
+        if len(match) > 0:
+            true_loss = float(match.iloc[0]['loss'])
+            if np.isnan(true_loss):
+                true_loss = failure_penalty
+        else:
+            true_loss = failure_penalty
+
+        # Oracle (hindsight) min — L6-hindsight reference
+        sample_curve = df_eval_loss[
+            (df_eval_loss['beta'] == beta) &
+            (df_eval_loss['gamma_over_eta'] == goe) &
+            (df_eval_loss['n'] == n_val) &
+            (df_eval_loss['repeat_id'] == rid)
+        ]['loss'].values
+        oracle_min = float(np.nanmin(sample_curve)) if len(sample_curve) > 0 else true_loss
+        regret = true_loss - oracle_min
+
+        rows.append({
+            'fold': fold_name,
+            'seed': seed,
+            'beta': beta,
+            'gamma_over_eta': goe,
+            'n': n_val,
+            'repeat_id': rid,
+            'selected_delta': sel_delta,
+            'true_loss': true_loss,
+            'oracle_min': oracle_min,
+            'regret': regret,
+        })
+    return rows
+
+
+def _model_level_summary(rows):
+    """Compute pooled J1, per-n J1, endpoint rate, near-optimal, mean regret."""
+    if not rows:
+        return {}
+    df = pd.DataFrame(rows)
+    j1 = math.sqrt(df['true_loss'].mean())
+    per_n = {}
+    for n_val in sorted(df['n'].unique()):
+        sub = df[df['n'] == n_val]
+        per_n[int(n_val)] = math.sqrt(sub['true_loss'].mean())
+    endpoint_rate = float(
+        df['selected_delta'].isin([0.00, 0.02, 0.48, 0.50]).mean()
+    )
+    near_rates = {}
+    rel_regret = np.where(
+        df['oracle_min'].values > 1e-12,
+        df['regret'].values / df['oracle_min'].values,
+        df['regret'].values,
+    )
+    for eps in NEAR_OPTIMAL_EPS:
+        near_rates[f'near_{eps}'] = float(np.mean(rel_regret <= eps))
+    return {
+        'pooled_J1': j1,
+        'n_samples': len(df),
+        'per_n_J1': per_n,
+        'endpoint_rate': endpoint_rate,
+        'mean_regret': float(df['regret'].mean()),
+        **near_rates,
+    }
+
+
+# ============================================================
+# E4d baselines (frozen from main-grid, not re-fitted on E4 truth)
+# ============================================================
+
+def _compute_main_grid_best_deltas(df_mc):
+    """Compute frozen L1 (global) and L2 (per-n) best deltas from main grid.
+
+    These are computed once from the authoritative main-grid MC data and must
+    NOT be re-derived on boundary/off-grid truth.
+    """
+    df_mc_loss = compute_loss(df_mc)
+    df_valid = df_mc_loss.dropna(subset=['loss'])
+
+    # L1: global best constant delta on main grid
+    global_loss = df_valid.groupby('delta')['loss'].apply(
+        lambda x: np.sqrt(np.nanmean(x)))
+    l1_delta = float(global_loss.idxmin())
+
+    # L2: per-n best delta on main grid
+    l2_table = {}
+    for n_val in sorted(df_valid['n'].unique()):
+        df_n = df_valid[df_valid['n'] == n_val]
+        loss_by_d = df_n.groupby('delta')['loss'].apply(
+            lambda x: np.sqrt(np.nanmean(x)))
+        l2_table[int(n_val)] = float(loss_by_d.idxmin())
+
+    return l1_delta, l2_table
+
+
+def _evaluate_baseline_on_e4samples(sample_keys, df_eval_loss, delta_value,
+                                     ref_name, failure_penalty):
+    """Evaluate a fixed-delta baseline on E4 samples."""
+    rows = []
+    for _, srow in sample_keys.iterrows():
+        beta = float(srow['beta'])
+        goe = float(srow['gamma_over_eta'])
+        n_val = int(srow['n'])
+        rid = int(srow['repeat_id'])
+        match = df_eval_loss[
+            (df_eval_loss['beta'] == beta) &
+            (df_eval_loss['gamma_over_eta'] == goe) &
+            (df_eval_loss['n'] == n_val) &
+            (df_eval_loss['repeat_id'] == rid) &
+            (df_eval_loss['delta'] == delta_value)
+        ]
+        if len(match) > 0:
+            true_loss = float(match.iloc[0]['loss'])
+            if np.isnan(true_loss):
+                true_loss = failure_penalty
+        else:
+            true_loss = failure_penalty
+        rows.append({
+            'model': ref_name,
+            'beta': beta, 'gamma_over_eta': goe, 'n': n_val,
+            'repeat_id': rid, 'selected_delta': delta_value,
+            'true_loss': true_loss,
+        })
+    return rows
+
+
+def _compute_e4d_baselines(df_boundary_feat, df_offgrid_feat,
+                           df_boundary_loss, df_offgrid_loss,
+                           default_delta, l1_delta, l2_table):
+    """Build E4d frozen baselines (Default, L1, L2) on boundary/offgrid.
+
+    L2 is only reported for n in {7, 10, 20}; other n get N/A.
+    """
+    all_rows = []
+    failure_penalty = 1.0  # conservative fallback for missing-match loss
 
     for eval_label, df_eval_feat, df_eval_loss in [
         ("E4b_boundary", df_boundary_feat, df_boundary_loss),
@@ -775,65 +1887,598 @@ def run_e4d(df_mc, df_boundary_feat, df_offgrid_feat,
     ]:
         if df_eval_feat is None or len(df_eval_feat) == 0:
             continue
+        sample_keys = (
+            df_eval_feat[['beta', 'gamma_over_eta', 'n', 'repeat_id']]
+            .drop_duplicates()
+            .reset_index(drop=True)
+        )
+        # Default baseline (frozen delta=0.1)
+        for row in _evaluate_baseline_on_e4samples(
+            sample_keys, df_eval_loss, default_delta, 'Default', failure_penalty
+        ):
+            row['track'] = eval_label
+            all_rows.append(row)
 
-        # Build X_eval with same z-score params
-        cols = []
-        for col in FEATURE_COLS_ZSCORE:
-            vals = df_eval_feat[col].astype(float).values
-            cols.append((vals - zscore_means[col]) / max(zscore_stds[col], 1e-12))
-        for col in FEATURE_COLS_RAW:
-            cols.append(df_eval_feat[col].astype(float).values)
-        X_eval = np.column_stack(cols).astype(np.float32)
+        # L1 baseline (main-grid global best)
+        for row in _evaluate_baseline_on_e4samples(
+            sample_keys, df_eval_loss, l1_delta, 'L1', failure_penalty
+        ):
+            row['track'] = eval_label
+            all_rows.append(row)
 
-        # Predict
-        Y_pred = target_scaler.inverse_transform(model.predict(X_eval))
-        Y_pred = np.clip(Y_pred, 0, None)
+        # L2 baseline (main-grid per-n best); N/A for non-main-grid n
+        for _, srow in sample_keys.iterrows():
+            n_val = int(srow['n'])
+            beta = float(srow['beta'])
+            goe = float(srow['gamma_over_eta'])
+            rid = int(srow['repeat_id'])
+            if n_val in l2_table:
+                delta_val = l2_table[n_val]
+                match = df_eval_loss[
+                    (df_eval_loss['beta'] == beta) &
+                    (df_eval_loss['gamma_over_eta'] == goe) &
+                    (df_eval_loss['n'] == n_val) &
+                    (df_eval_loss['repeat_id'] == rid) &
+                    (df_eval_loss['delta'] == delta_val)
+                ]
+                true_loss = (float(match.iloc[0]['loss'])
+                             if len(match) > 0 else failure_penalty)
+                all_rows.append({
+                    'track': eval_label, 'model': 'L2',
+                    'beta': beta, 'gamma_over_eta': goe, 'n': n_val,
+                    'repeat_id': rid, 'selected_delta': delta_val,
+                    'true_loss': true_loss,
+                })
+    return pd.DataFrame(all_rows)
 
-        # For each sample, select delta and look up true loss
-        for i in range(len(df_eval_feat)):
-            row = df_eval_feat.iloc[i]
-            beta = float(row['beta'])
-            goe = float(row['gamma_over_eta'])
-            n_val = int(row['n'])
-            rid = int(row['repeat_id'])
 
-            best_delta_idx = int(np.argmin(Y_pred[i]))
-            sel_delta = DELTA_GRID[best_delta_idx]
+# ============================================================
+# E3b reproduction gate — frozen tolerances (BEFORE any E4 truth)
+# ============================================================
 
-            # Look up true loss at selected delta
-            match = df_eval_loss[
-                (df_eval_loss['beta'] == beta) &
-                (df_eval_loss['gamma_over_eta'] == goe) &
-                (df_eval_loss['n'] == n_val) &
-                (df_eval_loss['repeat_id'] == rid) &
-                (df_eval_loss['delta'] == sel_delta)
-            ]
-            if len(match) > 0:
-                true_loss = float(match.iloc[0]['loss'])
-                if np.isnan(true_loss):
-                    true_loss = failure_penalty
-            else:
-                true_loss = failure_penalty
+# Frozen tolerances (set BEFORE any E4 truth access; rationale documented):
+# - delta_match: 26-class problem; random baseline ~3.8%. Threshold 0.50 is
+#   13× random, accounts for known sklearn MLPRegressor cross-machine
+#   non-determinism (BLAS/MKL threading, solver initialisation).
+# - loss_rel_diff: median relative difference of true_loss values; 5% allows
+#   for floating-point accumulation differences across BLAS backends.
+# - pooled_J1 / per-n J1 / endpoint_rate: aggregated metrics are more stable
+#   than per-sample categorical matches; tighter tolerances apply.
+E3B_SEED42_DELTA_MATCH_MIN_RATE = 0.50   # 50% (random=3.8%, 13× better)
+E3B_SEED42_LOSS_REL_TOL = 0.05           # 5% median relative loss difference
+E3B_POOLED_J1_REL_TOL = 0.005            # 0.5%
+E3B_PERN_J1_REL_TOL = 0.01               # 1%
+E3B_ENDPOINT_RATE_ABS_TOL = 0.05         # 5pp (cross-machine delta match only 55%)
+E3B_SEED42_FULL_COVERAGE = 45000         # vector_mlp_results.csv L6 rows
 
-            results.append({
-                'track': eval_label,
-                'model': 'Vector-MLP-L6-extrapolation',
-                'beta': beta,
-                'gamma_over_eta': goe,
-                'n': n_val,
-                'repeat_id': rid,
-                'selected_delta': sel_delta,
-                'true_loss': true_loss,
+
+def _e3b_reproduction_gate_check(df_mc):
+    """Return a structured dict of gate results. Fail-closed on any violation.
+
+    Returns dict with keys:
+      gate1_fold_partition, gate2_seed42_per_sample,
+      gate3_three_seed_summary, overall_pass
+    Each sub-dict has 'pass', 'checks' (list of {label,ref,repro,diff,
+    threshold,pass}), and 'values' (raw measured dict).
+    """
+
+    def _check(label, ref, repro, diff, threshold, pass_):
+        return {
+            'label': label, 'reference': ref, 'reproduced': repro,
+            'difference': diff, 'threshold': threshold, 'pass': bool(pass_),
+        }
+
+    E3B_DIR = os.path.join(ARTIFACTS_DIR, "E3b_vector_mlp")
+    split_path = os.path.join(E3B_DIR, "split_report.csv")
+    vmlp_path = os.path.join(E3B_DIR, "vector_mlp_results.csv")
+    stab_path = os.path.join(E3B_DIR, "seed_stability.csv")
+
+    result = {
+        'gate1_fold_partition': {'pass': False, 'checks': [], 'note': ''},
+        'gate2_seed42_per_sample': {'pass': False, 'checks': [], 'values': {}},
+        'gate3_three_seed_summary': {'pass': False, 'checks': [], 'values': {}},
+        'overall_pass': False,
+    }
+
+    # ── Gate 1: fold partition ──
+    if not os.path.exists(split_path):
+        raise PreflightError("E3b gate: split_report.csv not found")
+    ref_split = pd.read_csv(split_path)
+    folds = get_combo_split()
+    fold_ok = True
+    for fold_idx, fold in enumerate(folds):
+        fn = f"combo_fold_{fold_idx + 1}"
+        ref_test = ref_split[ref_split['fold'] == fn]
+        rc = set(zip(ref_test['test_beta'],
+                     ref_test['test_gamma_over_eta'], ref_test['test_n']))
+        ot = set((float(b), float(g), int(n)) for (b, g, n) in fold['test_combos'])
+        our_train = set((float(b), float(g), int(n))
+                        for (b, g, n) in fold['train_combos'])
+        all_combos = set((float(b), float(g), int(n))
+                         for b in BETA_GRID for g in GAMMA_OVER_ETA_GRID
+                         for n in N_GRID)
+        if rc != ot or (all_combos - ot) != our_train:
+            fold_ok = False
+    result['gate1_fold_partition']['pass'] = fold_ok
+    result['gate1_fold_partition']['checks'].append(
+        _check('5-fold partition vs split_report.csv', 'exact match',
+               'match' if fold_ok else 'MISMATCH', 0, 'exact', fold_ok))
+    if not fold_ok:
+        raise PreflightError("E3b gate FAILED: fold partition mismatch")
+    log("  [E3b gate] Gate 1 (fold partition): PASSED")
+
+    # ── Build main-grid features once ──
+    df_feat = build_feature_table_from_mc(df_mc)
+    merge_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
+    df_merged = df_mc.merge(df_feat, on=merge_keys, how='left',
+                            suffixes=('', '_feat'))
+    for col in list(df_merged.columns):
+        if col.endswith('_feat'):
+            df_merged.drop(columns=col, inplace=True)
+    df_merged = compute_loss(df_merged)
+
+    # ── Gate 2: seed-42 per-sample ──
+    if not os.path.exists(vmlp_path):
+        raise PreflightError("E3b gate: vector_mlp_results.csv not found")
+    ref_vmlp = pd.read_csv(vmlp_path)
+    ref_l6 = ref_vmlp[ref_vmlp['model'] == 'Vector-MLP-L6'].copy()
+    ref_n = len(ref_l6)
+    if ref_n != E3B_SEED42_FULL_COVERAGE:
+        raise PreflightError(
+            f"E3b gate: expected {E3B_SEED42_FULL_COVERAGE} L6 rows, got {ref_n}"
+        )
+
+    all_repro_rows = []
+    for fold in folds:
+        train_combos = set(fold['train_combos'])
+        test_combos = set(fold['test_combos'])
+        df_train = df_merged[df_merged.apply(
+            lambda r: (r['beta'], r['gamma_over_eta'], r['n'])
+            in train_combos, axis=1)].copy()
+        zmeans, zstds = _fit_zscore_params(df_train)
+        fpen = float(np.nanpercentile(df_train['loss'].dropna(), 99))
+        df_train['loss_filled'] = df_train['loss'].fillna(fpen)
+        ts, Yt = _pivot_risk_vectors(df_train, 'loss_filled', fpen)
+        Xt = _build_X_from_samples(ts, zmeans, zstds)
+        m, scl = _train_mlp(Xt, Yt, 42)
+        df_test = df_merged[df_merged.apply(
+            lambda r: (r['beta'], r['gamma_over_eta'], r['n'])
+            in test_combos, axis=1)].copy()
+        df_test['loss_filled'] = df_test['loss'].fillna(fpen)
+        tes, Ye = _pivot_risk_vectors(df_test, 'loss_filled', fpen)
+        Xe = _build_X_from_samples(tes, zmeans, zstds)
+        Yp = scl.inverse_transform(m.predict(Xe))
+        Yp = np.clip(Yp, 0, None)
+        for i in range(len(tes)):
+            bdi = int(np.argmin(Yp[i]))
+            all_repro_rows.append({
+                'beta': float(tes.iloc[i]['beta']),
+                'gamma_over_eta': float(tes.iloc[i]['gamma_over_eta']),
+                'n': int(tes.iloc[i]['n']),
+                'repeat_id': int(tes.iloc[i]['repeat_id']),
+                'selected_delta': DELTA_GRID[bdi],
+                'true_loss': float(Ye[i, bdi]),
             })
+    df_repro = pd.DataFrame(all_repro_rows)
+    merge_on = ['beta', 'gamma_over_eta', 'n', 'repeat_id']
+    df_compare = df_repro.merge(
+        ref_l6, on=merge_on, how='inner',
+        suffixes=('_repro', '_sealed'))
 
-    df_results = pd.DataFrame(results)
-    if len(df_results) > 0:
-        for track in df_results['track'].unique():
-            sub = df_results[df_results['track'] == track]
+    g2 = result['gate2_seed42_per_sample']
+    g2['values']['n_repro'] = int(len(df_repro))
+    g2['values']['n_sealed_l6'] = ref_n
+    g2['values']['n_matched'] = int(len(df_compare))
+    g2['values']['n_required'] = E3B_SEED42_FULL_COVERAGE
+
+    # Zero or partial overlap = fail closed
+    if len(df_compare) != E3B_SEED42_FULL_COVERAGE:
+        raise PreflightError(
+            f"E3b gate seed-42 FAILED: matched {len(df_compare)} / "
+            f"{E3B_SEED42_FULL_COVERAGE} sample keys (full coverage required)"
+        )
+    g2['values']['coverage_ratio'] = 1.0
+
+    delta_match = df_compare['selected_delta_repro'] == df_compare[
+        'selected_delta_sealed']
+    dmr = float(delta_match.mean())
+    g2['values']['delta_match_rate'] = dmr
+    g2['checks'].append(_check(
+        'seed-42 selected_delta match', E3B_SEED42_DELTA_MATCH_MIN_RATE,
+        dmr, dmr - E3B_SEED42_DELTA_MATCH_MIN_RATE,
+        f'>={E3B_SEED42_DELTA_MATCH_MIN_RATE}',
+        dmr >= E3B_SEED42_DELTA_MATCH_MIN_RATE))
+    if dmr < E3B_SEED42_DELTA_MATCH_MIN_RATE:
+        raise PreflightError(
+            f"E3b gate seed-42 delta match FAILED: {dmr:.4f} < "
+            f"{E3B_SEED42_DELTA_MATCH_MIN_RATE}")
+
+    sealed_loss = np.maximum(np.abs(df_compare['true_loss_sealed'].values), 1e-6)
+    lrd = np.abs(df_compare['true_loss_repro'].values -
+                 df_compare['true_loss_sealed'].values) / sealed_loss
+    lrd_median = float(np.median(lrd))
+    g2['values']['loss_rel_diff_median'] = lrd_median
+    g2['checks'].append(_check(
+        'seed-42 loss rel diff median', E3B_SEED42_LOSS_REL_TOL,
+        lrd_median, lrd_median - E3B_SEED42_LOSS_REL_TOL,
+        f'<={E3B_SEED42_LOSS_REL_TOL}', lrd_median <= E3B_SEED42_LOSS_REL_TOL))
+    if lrd_median > E3B_SEED42_LOSS_REL_TOL:
+        raise PreflightError(
+            f"E3b gate seed-42 loss rel diff FAILED: {lrd_median:.6f} > "
+            f"{E3B_SEED42_LOSS_REL_TOL}")
+    g2['pass'] = True
+    log(f"  [E3b gate] Gate 2 (seed-42): PASSED "
+        f"(coverage={len(df_compare)}/{E3B_SEED42_FULL_COVERAGE}, "
+        f"delta_match={dmr:.4f}, loss_rel_diff={lrd_median:.6f})")
+
+    # ── Gate 3: 3-seed summary ──
+    if not os.path.exists(stab_path):
+        raise PreflightError("E3b gate: seed_stability.csv not found")
+    ref_stab = pd.read_csv(stab_path)
+    summary_rows = []
+    for seed in STABILITY_SEEDS:
+        seed_rows = []
+        for fold in folds:
+            train_combos = set(fold['train_combos'])
+            test_combos = set(fold['test_combos'])
+            df_train = df_merged[df_merged.apply(
+                lambda r: (r['beta'], r['gamma_over_eta'], r['n'])
+                in train_combos, axis=1)].copy()
+            zmeans, zstds = _fit_zscore_params(df_train)
+            fpen = float(np.nanpercentile(df_train['loss'].dropna(), 99))
+            df_train['loss_filled'] = df_train['loss'].fillna(fpen)
+            ts, Yt = _pivot_risk_vectors(df_train, 'loss_filled', fpen)
+            Xt = _build_X_from_samples(ts, zmeans, zstds)
+            m, scl = _train_mlp(Xt, Yt, seed)
+            df_test_2 = df_merged[df_merged.apply(
+                lambda r: (r['beta'], r['gamma_over_eta'], r['n'])
+                in test_combos, axis=1)].copy()
+            df_test_2['loss_filled'] = df_test_2['loss'].fillna(fpen)
+            tes2, Ye2 = _pivot_risk_vectors(df_test_2, 'loss_filled', fpen)
+            Xe2 = _build_X_from_samples(tes2, zmeans, zstds)
+            Yp2 = scl.inverse_transform(m.predict(Xe2))
+            Yp2 = np.clip(Yp2, 0, None)
+            for i in range(len(tes2)):
+                bdi = int(np.argmin(Yp2[i]))
+                seed_rows.append({
+                    'seed': seed, 'n': int(tes2.iloc[i]['n']),
+                    'selected_delta': DELTA_GRID[bdi],
+                    'true_loss': float(Ye2[i, bdi]),
+                })
+        df_sr = pd.DataFrame(seed_rows)
+        per_n = {}
+        for nv in sorted(df_sr['n'].unique()):
+            per_n[int(nv)] = math.sqrt(
+                df_sr[df_sr['n'] == nv]['true_loss'].mean())
+        summary_rows.append({
+            'seed': seed,
+            'pooled_J1': math.sqrt(df_sr['true_loss'].mean()),
+            'J1_n7': per_n.get(7, float('nan')),
+            'J1_n10': per_n.get(10, float('nan')),
+            'J1_n20': per_n.get(20, float('nan')),
+            'endpoint_rate': float(df_sr['selected_delta'].isin(
+                [0.00, 0.02, 0.48, 0.50]).mean()),
+        })
+    df_sum = pd.DataFrame(summary_rows)
+    sc = df_sum.merge(ref_stab, on='seed', how='inner',
+                      suffixes=('_repro', '_sealed'))
+    if len(sc) != len(STABILITY_SEEDS):
+        raise PreflightError("E3b gate summary: seed coverage mismatch")
+
+    g3 = result['gate3_three_seed_summary']
+    g3['values']['seeds'] = []
+    gate3_pass = True
+    checks_map = [
+        ('pooled_J1', 'pooled J1', E3B_POOLED_J1_REL_TOL, None),
+        ('J1_n7', 'per-n J1 n=7', E3B_PERN_J1_REL_TOL, None),
+        ('J1_n10', 'per-n J1 n=10', E3B_PERN_J1_REL_TOL, None),
+        ('J1_n20', 'per-n J1 n=20', E3B_PERN_J1_REL_TOL, None),
+        ('endpoint_rate', 'endpoint rate', None, E3B_ENDPOINT_RATE_ABS_TOL),
+    ]
+    for _, srow in sc.iterrows():
+        sd = int(srow['seed'])
+        seed_info = {'seed': sd}
+        for metric, label, rel_tol, abs_tol in checks_map:
+            rv = float(srow[f'{metric}_repro'])
+            sv = float(srow[f'{metric}_sealed'])
+            if rel_tol is not None:
+                d = abs(rv - sv) / max(abs(sv), 1e-6)
+                ok = d <= rel_tol
+                th = f'<={rel_tol}'
+            else:
+                d = abs(rv - sv)
+                ok = d <= abs_tol
+                th = f'<={abs_tol}'
+            g3['checks'].append(_check(
+                f'seed={sd} {label}', sv, rv, d, th, ok))
+            seed_info[label] = {'reference': sv, 'reproduced': rv,
+                                'difference': d, 'pass': ok}
+            if not ok:
+                gate3_pass = False
+        g3['values']['seeds'].append(seed_info)
+    g3['pass'] = gate3_pass
+    if not gate3_pass:
+        failed_checks = [c for c in g3['checks'] if not c['pass']]
+        detail = '; '.join(
+            f"{c['label']}: repro={c['reproduced']:.6f} "
+            f"ref={c['reference']:.6f} diff={c['difference']:.6f} "
+            f"th={c['threshold']}"
+            for c in failed_checks[:10]
+        )
+        # Save the gate result even on failure for diagnostics
+        gate_diag_path = os.path.join(
+            E4_OUTPUT_DIR, "E4d_e3b_gate_results.json")
+        try:
+            with open(gate_diag_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, sort_keys=True,
+                          ensure_ascii=False)
+        except Exception:
+            pass
+        raise PreflightError(
+            f"E3b gate Gate 3 FAILED ({len(failed_checks)} checks): "
+            f"{detail}"
+        )
+    log(f"  [E3b gate] Gate 3 (3-seed summary): PASSED")
+    result['overall_pass'] = True
+    log("  [E3b gate] FULL GATE PASSED — all 3 tiers")
+    return result
+
+
+# ============================================================
+# E4d: Selector extrapolation — formal contract
+# ============================================================
+
+def run_e4d_formal(df_mc, df_boundary_feat, df_offgrid_feat,
+                   df_boundary_loss, df_offgrid_loss,
+                   default_delta=DEFAULT_DELTA):
+    """Train 5-fold × 3-seed Vector-MLP-L6 selectors on main grid,
+    evaluate on boundary/offgrid.
+
+    Contract: 07-剩余实验目标与规划.md §4.1
+      - 15 independent models (5 folds × 3 seeds)
+      - Training: ONLY main-grid train-fold combos
+      - Evaluation: boundary + offgrid (E4 truth only for loss/regret)
+      - Baselines: Default δ=0.1, frozen main-grid L1, main-grid L2 (n∈{7,10,20})
+      - Output: 15 model-level results + per-sample rows
+    """
+    log("=== E4d: Selector Extrapolation (Formal 5-fold × 3-seed) ===")
+
+    # ── E3b reproduction gate ──
+    gate_result = _e3b_reproduction_gate_check(df_mc)
+
+    # ── Build main-grid features ──
+    df_feat = build_feature_table_from_mc(df_mc)
+    merge_keys = ['beta', 'eta', 'gamma', 'gamma_over_eta', 'n', 'repeat_id']
+    df_merged = df_mc.merge(df_feat, on=merge_keys, how='left',
+                            suffixes=('', '_feat'))
+    for col in list(df_merged.columns):
+        if col.endswith('_feat'):
+            df_merged.drop(columns=col, inplace=True)
+    df_merged = compute_loss(df_merged)
+
+    # ── Frozen baselines from main grid (before any E4 truth is seen) ──
+    l1_delta, l2_table = _compute_main_grid_best_deltas(df_mc)
+    log(f"  Frozen L1 delta (main-grid global): {l1_delta}")
+    log(f"  Frozen L2 deltas (main-grid per-n): {l2_table}")
+
+    # ── 5-fold combo split ──
+    folds = get_combo_split()
+
+    # ── Train 15 models, evaluate each ──
+    all_rows = []
+    model_summaries = []
+    total_train_elapsed = 0.0
+
+    for fold in folds:
+        fold_name = fold['fold_name']
+        train_combos = set(fold['train_combos'])
+
+        def is_train(row):
+            return (row['beta'], row['gamma_over_eta'], row['n']) in train_combos
+
+        df_train = df_merged[df_merged.apply(is_train, axis=1)].copy()
+        zscore_means, zscore_stds = _fit_zscore_params(df_train)
+
+        train_valid = df_train['loss'].dropna()
+        failure_penalty = float(np.nanpercentile(train_valid, 99))
+        df_train['loss_filled'] = df_train['loss'].fillna(failure_penalty)
+
+        train_samples, Y_train = _pivot_risk_vectors(
+            df_train, 'loss_filled', failure_penalty
+        )
+        X_train = _build_X_from_samples(train_samples, zscore_means, zscore_stds)
+        log(f"  {fold_name}: train={len(train_samples)} samples, "
+            f"failure_penalty={failure_penalty:.4f}")
+
+        for seed in STABILITY_SEEDS:
+            t0 = time.time()
+            model, target_scaler = _train_mlp(X_train, Y_train, seed)
+            train_elapsed = time.time() - t0
+            total_train_elapsed += train_elapsed
+
+            # Evaluate on boundary + offgrid
+            for eval_label, df_eval_feat, df_eval_loss in [
+                ("E4b_boundary", df_boundary_feat, df_boundary_loss),
+                ("E4c_offgrid", df_offgrid_feat, df_offgrid_loss),
+            ]:
+                if df_eval_feat is None or len(df_eval_feat) == 0:
+                    continue
+                rows = _evaluate_single_model(
+                    model, target_scaler, df_eval_feat, df_eval_loss,
+                    zscore_means, zscore_stds, failure_penalty,
+                    fold_name, seed,
+                )
+                for r in rows:
+                    r['track'] = eval_label
+                    r['model'] = 'Vector-MLP-L6'
+                all_rows.extend(rows)
+
+            summary = _model_level_summary(
+                [r for r in all_rows
+                 if r.get('fold') == fold_name and r.get('seed') == seed]
+            )
+            summary['fold'] = fold_name
+            summary['seed'] = seed
+            summary['model'] = 'Vector-MLP-L6'
+            summary['train_elapsed_s'] = train_elapsed
+            summary['n_iter'] = model.n_iter_
+            model_summaries.append(summary)
+
+            log(f"    seed={seed} J1={summary.get('pooled_J1', '?'):.6f} "
+                f"[{train_elapsed:.1f}s, n_iter={model.n_iter_}]")
+
+    if not all_rows:
+        log("  WARNING: No evaluation rows produced — returning empty frame")
+        return pd.DataFrame(), total_train_elapsed, pd.DataFrame(), []
+
+    df_selector = pd.DataFrame(all_rows)
+
+    # ── Baselines ──
+    df_baselines = _compute_e4d_baselines(
+        df_boundary_feat, df_offgrid_feat,
+        df_boundary_loss, df_offgrid_loss,
+        default_delta, l1_delta, l2_table,
+    )
+    log(f"  Baselines: {len(df_baselines)} rows "
+        f"(Default δ={default_delta}, L1 δ={l1_delta})")
+
+    # Combine selector + baselines
+    df_combined = pd.concat(
+        [df_selector, df_baselines], ignore_index=True, sort=False
+    )
+
+    # ── Model-level J1 (15 models, not pseudo-pooled) ──
+    df_model_j1 = pd.DataFrame(model_summaries)
+
+    # ── Track-level summaries ──
+    for track in df_combined['track'].unique():
+        for model_name in df_combined['model'].unique():
+            sub = df_combined[
+                (df_combined['track'] == track) &
+                (df_combined['model'] == model_name)
+            ]
+            if len(sub) == 0:
+                continue
             j1 = math.sqrt(sub['true_loss'].mean())
-            log(f"  {track} Vector-MLP-L6 extrapolation J1={j1:.6f}")
+            log(f"  [{track}] {model_name}: pooled J1={j1:.6f} "
+                f"(n={len(sub)})")
 
-    return df_results, train_elapsed
+    log(f"  Total training time: {total_train_elapsed:.1f}s")
+
+    # ── Per-model paired comparisons (common n∈{7,10,20}) ──
+    # Each of 15 L6 models compared individually to baselines.
+    # Baselines have no fold/seed; we match by (beta, gamma_over_eta, n,
+    # repeat_id).  L6 rows carry fold+seed from training.
+    common_n = {7, 10, 20}
+    model_paired_rows = []
+    for track in sorted(df_combined['track'].unique()):
+        l6_all = df_combined[(df_combined['track'] == track) &
+                             (df_combined['model'] == 'Vector-MLP-L6') &
+                             (df_combined['n'].isin(common_n))]
+        # Iterate over each of the 15 models
+        for (fold_name, seed), l6_model in l6_all.groupby(['fold', 'seed']):
+            l6_model = l6_model.copy()
+            for ref_model in ['Default', 'L1', 'L2']:
+                ref = df_combined[(df_combined['track'] == track) &
+                                  (df_combined['model'] == ref_model) &
+                                  (df_combined['n'].isin(common_n))]
+                # Merge on sample keys (not on fold/seed — baselines have none)
+                merge_on = ['beta', 'gamma_over_eta', 'n', 'repeat_id']
+                merged = l6_model[merge_on + ['true_loss']].merge(
+                    ref[merge_on + ['true_loss']],
+                    on=merge_on, how='inner',
+                    suffixes=('_l6', '_ref'))
+                if len(merged) == 0:
+                    continue
+                loss_diffs = (merged['true_loss_l6'].values -
+                              merged['true_loss_ref'].values)
+                l6_common_j1 = math.sqrt(
+                    float((merged['true_loss_l6'] ** 2).mean()))
+                ref_common_j1 = math.sqrt(
+                    float((merged['true_loss_ref'] ** 2).mean()))
+                model_paired_rows.append({
+                    'track': track, 'fold': fold_name, 'seed': int(seed),
+                    'reference_model': ref_model,
+                    'n_common_samples': int(len(merged)),
+                    'l6_J1_common': l6_common_j1,
+                    'ref_J1_common': ref_common_j1,
+                    'l6_win_rate': float(np.mean(loss_diffs < 0)),
+                    'median_loss_diff': float(np.median(loss_diffs)),
+                    'mean_loss_diff': float(np.mean(loss_diffs)),
+                })
+
+    df_model_paired = pd.DataFrame(model_paired_rows)
+    if len(df_model_paired) > 0:
+        # Model-level detail CSV
+        paired_detail_path = os.path.join(
+            E4_OUTPUT_DIR, "E4d_paired_comparisons_by_model.csv")
+        df_model_paired.to_csv(paired_detail_path, index=False)
+        log(f"  Wrote per-model paired comparisons: {paired_detail_path} "
+            f"({len(df_model_paired)} rows = 15 models × tracks × baselines)")
+
+        # 15-model aggregate CSV
+        agg_cols = ['l6_win_rate', 'median_loss_diff', 'mean_loss_diff',
+                     'l6_J1_common', 'ref_J1_common']
+        agg_rows = []
+        for (track, ref_model), grp in df_model_paired.groupby(
+                ['track', 'reference_model']):
+            agg_row = {'track': track, 'reference_model': ref_model,
+                       'n_models': int(len(grp))}
+            for col in agg_cols:
+                vals = grp[col].values
+                agg_row[f'{col}_mean'] = float(np.mean(vals))
+                agg_row[f'{col}_median'] = float(np.median(vals))
+                agg_row[f'{col}_sd'] = float(np.std(vals, ddof=1))
+                agg_row[f'{col}_min'] = float(np.min(vals))
+                agg_row[f'{col}_max'] = float(np.max(vals))
+            agg_rows.append(agg_row)
+        df_agg = pd.DataFrame(agg_rows)
+        paired_agg_path = os.path.join(
+            E4_OUTPUT_DIR, "E4d_paired_comparisons_aggregate.csv")
+        df_agg.to_csv(paired_agg_path, index=False)
+        log(f"  Wrote aggregate paired comparisons: {paired_agg_path} "
+            f"({len(df_agg)} rows)")
+
+    # ── Delta distribution per track/fold/seed/n ──
+    delta_rows = []
+    l6_all_tracks = df_combined[
+        df_combined['model'] == 'Vector-MLP-L6']
+    for (track, fold_name, seed, n_val), sn in l6_all_tracks.groupby(
+            ['track', 'fold', 'seed', 'n']):
+        sn = sn.copy()
+        delta_counts = sn['selected_delta'].value_counts().to_dict()
+        extreme_rate = float(
+            sn['selected_delta'].isin(
+                [0.00, 0.02, 0.48, 0.50]).mean())
+        row = {
+            'track': track, 'fold': fold_name, 'seed': int(seed),
+            'n': int(n_val),
+            'n_model_prediction_rows': int(len(sn)),
+            'n_unique_samples': int(
+                sn[['beta', 'gamma_over_eta', 'n', 'repeat_id']]
+                .drop_duplicates().shape[0]),
+            'extreme_rate': extreme_rate,
+        }
+        row.update({f'delta_{k}': int(v) for k, v in delta_counts.items()})
+        delta_rows.append(row)
+    if delta_rows:
+        delta_path = os.path.join(
+            E4_OUTPUT_DIR, "E4d_delta_distribution.csv")
+        pd.DataFrame(delta_rows).to_csv(delta_path, index=False)
+        log(f"  Wrote delta distribution: {delta_path} "
+            f"({len(delta_rows)} rows = 2 tracks × 5 folds × 3 seeds × "
+            f"{l6_all_tracks['n'].nunique()} n values)")
+
+    # ── Structured gate results ──
+    gate_path = os.path.join(
+        E4_OUTPUT_DIR, "E4d_e3b_gate_results.json")
+    with open(gate_path, 'w', encoding='utf-8') as f:
+        json.dump(gate_result, f, indent=2, sort_keys=True,
+                  ensure_ascii=False)
+    log(f"  Wrote gate results: {gate_path}")
+
+    return (df_combined, total_train_elapsed, df_model_j1,
+            model_summaries, gate_result)
 
 
 # ============================================================
@@ -861,10 +2506,12 @@ def main():
     # Pre-validate required inputs for requested tracks (fail-closed)
     # ============================================================
     required_inputs = {
-        'e4a': [MC_SCAN_PATH],
-        'e4b': [BOUNDARY_PATH],
-        'e4c': [OFFGRID_PATH],
-        'e4d': [MC_SCAN_PATH, BOUNDARY_PATH, OFFGRID_PATH],
+        'e4a': [MAIN_CHUNKS_DIR, MC_MANIFEST_PATH],
+        'e4b': [MC_MANIFEST_PATH, BOUNDARY_PATH],
+        'e4c': [MC_MANIFEST_PATH, OFFGRID_PATH],
+        'e4d': [
+            MAIN_CHUNKS_DIR, MC_MANIFEST_PATH, BOUNDARY_PATH, OFFGRID_PATH
+        ],
     }
     try:
         preflight_check_inputs(requested_tracks, required_inputs)
@@ -892,13 +2539,26 @@ def main():
         else:
             track_status[t] = {'requested': False, 'status': 'not_requested'}
 
-    # --- Load existing MC data ---
-    log("Loading main-grid MC data...")
-    df_mc = pd.read_csv(MC_SCAN_PATH)
-    log(f"  Loaded: {len(df_mc)} rows")
-
-    with open(MC_MANIFEST_PATH) as f:
-        mc_manifest = json.load(f)
+    # --- Load inputs from the same bytes used for their SHA256 records ---
+    try:
+        mc_manifest, mc_manifest_capability = read_json_with_provenance(
+            MC_MANIFEST_PATH, 'main_grid_mc_manifest'
+        )
+        needs_main_grid = bool({'e4a', 'e4d'} & requested_tracks)
+        if needs_main_grid:
+            log("Loading 45 authoritative main-grid MC chunks...")
+            df_mc, main_chunks_capability = load_authoritative_main_chunks()
+            log(
+                f"  Loaded: {len(df_mc)} rows from "
+                f"{len(_expected_main_chunk_units())} chunks"
+            )
+        else:
+            df_mc = pd.DataFrame()
+            main_chunks_capability = None
+    except PreflightError as exc:
+        print(f"ERROR: {exc}")
+        print("Aborting before any formal E4 output is produced.")
+        sys.exit(1)
 
     # --- Check boundary/offgrid data availability ---
     # (Required inputs already validated above for requested tracks.)
@@ -907,14 +2567,65 @@ def main():
 
     df_boundary = None
     df_offgrid = None
+    boundary_capability = None
+    offgrid_capability = None
 
-    if has_boundary:
-        df_boundary = pd.read_csv(BOUNDARY_PATH)
-        log(f"  Boundary data: {len(df_boundary)} rows")
+    try:
+        if has_boundary:
+            df_boundary, boundary_capability = read_csv_with_provenance(
+                BOUNDARY_PATH, 'boundary_risk_curves'
+            )
+            log(f"  Boundary data: {len(df_boundary)} rows")
 
-    if has_offgrid:
-        df_offgrid = pd.read_csv(OFFGRID_PATH)
-        log(f"  Off-grid data: {len(df_offgrid)} rows")
+        if has_offgrid:
+            df_offgrid, offgrid_capability = read_csv_with_provenance(
+                OFFGRID_PATH, 'offgrid_risk_curves'
+            )
+            log(f"  Off-grid data: {len(df_offgrid)} rows")
+    except PreflightError as exc:
+        print(f"ERROR: {exc}")
+        print("Aborting before any formal E4 output is produced.")
+        sys.exit(1)
+
+    # E4d is fail-closed: validate all risk keys, frozen grids, disjoint data
+    # roles, and generation provenance before any track writes formal output.
+    e4d_gate = None
+    df_boundary_feat = None
+    df_offgrid_feat = None
+    if 'e4d' in requested_tracks:
+        e4d_input_capabilities = {
+            'main_grid_chunks': main_chunks_capability,
+            'main_grid_mc_manifest': mc_manifest_capability,
+            'boundary_risk_curves': boundary_capability,
+            'offgrid_risk_curves': offgrid_capability,
+        }
+        e4d_code_paths = {
+            'e4_formal_validation': os.path.abspath(__file__),
+            'e4_mc_generation': os.path.join(
+                STUDY_CODE_DIR, 'run_E4_mc_generation.py'
+            ),
+            'main_mc_generation': os.path.join(
+                STUDY_CODE_DIR, 'generate_mc_data.py'
+            ),
+            'study01_config': os.path.join(STUDY_CODE_DIR, 'config.py'),
+            'sample_generation': os.path.join(
+                PYTHON_DIR, 'studies', 'common', 'sample.py'
+            ),
+            'mdm_method': os.path.join(PYTHON_DIR, 'methods', 'mdm.py'),
+            'study01_utils': os.path.join(STUDY_CODE_DIR, 'utils.py'),
+        }
+        try:
+            e4d_gate, df_boundary_feat, df_offgrid_feat = (
+                validate_e4d_preflight_contract(
+                    df_mc, df_boundary, df_offgrid, mc_manifest,
+                    e4d_input_capabilities, e4d_code_paths,
+                )
+            )
+        except PreflightError as exc:
+            print(f"ERROR: {exc}")
+            print("Aborting before any formal E4 output is produced.")
+            sys.exit(1)
+        log("  E4d fail-closed/provenance contract: VALIDATED")
 
     # --- E4a: Feature ablation ---
     df_e4a = pd.DataFrame()
@@ -963,41 +2674,42 @@ def main():
     elif 'e4c' not in requested_tracks:
         log("E4c SKIPPED (not in --tracks)")
 
-    # --- E4d: Selector extrapolation diagnostic ---
+    # --- E4d: Selector extrapolation (formal 5-fold × 3-seed) ---
     df_e4d = pd.DataFrame()
+    df_e4d_model_j1 = pd.DataFrame()
     e4d_train_time = 0
     e4d_skip = False
 
     if 'e4d' not in requested_tracks:
         log("E4d SKIPPED (not in --tracks)")
-        # track_status['e4d'] already set to not_requested
     elif df_boundary is not None and df_offgrid is not None:
         try:
-            # Build feature tables for boundary and offgrid
-            boundary_combos = [(cid, b, g, n) for cid, b, g, n in E4B_BOUNDARY_COMBOS]
-            offgrid_combos = [(cid, b, g, n) for cid, b, g, n in E4C_OFFGRID_COMBOS]
-
-            # Use R from the actual data
-            r_boundary = df_boundary['repeat_id'].max() + 1
-            r_offgrid = df_offgrid['repeat_id'].max() + 1
-
-            df_boundary_feat = build_feature_table_for_combos(boundary_combos)
-            df_offgrid_feat = build_feature_table_for_combos(offgrid_combos)
-
-            # Compute loss for boundary/offgrid
             df_boundary_loss = compute_loss(df_boundary)
             df_offgrid_loss = compute_loss(df_offgrid)
 
-            df_e4d, e4d_train_time = run_e4d(
+            df_e4d, e4d_train_time, df_e4d_model_j1, _, _ = run_e4d_formal(
                 df_mc, df_boundary_feat, df_offgrid_feat,
-                df_boundary_loss, df_offgrid_loss
+                df_boundary_loss, df_offgrid_loss,
             )
+
+            # Write combined per-sample results
             e4d_path = os.path.join(E4_OUTPUT_DIR, "E4d_selector_extrapolation.csv")
-            df_e4d.to_csv(e4d_path, index=False)
+            write_e4d_formal_output(df_e4d, e4d_path, e4d_gate)
             log(f"  Saved: {e4d_path}")
+
+            # Write model-level J1 summary (15 models)
+            if len(df_e4d_model_j1) > 0:
+                e4d_j1_path = os.path.join(
+                    E4_OUTPUT_DIR, "E4d_model_j1_summary.csv"
+                )
+                df_e4d_model_j1.to_csv(e4d_j1_path, index=False)
+                log(f"  Saved: {e4d_j1_path}")
+
             all_cost.append({'track': 'E4d', 'elapsed_s': e4d_train_time,
-                           'note': 'selector extrapolation diagnostic'})
+                           'note': 'selector extrapolation (5 fold × 3 seed)'})
             track_status['e4d']['status'] = 'completed'
+        except PreflightError:
+            raise
         except Exception as e:
             log(f"  E4d FAILED: {type(e).__name__}: {e}")
             e4d_skip = True
@@ -1062,7 +2774,7 @@ def main():
     # Add detailed E4a cost
     for _, row in cost_e4a.iterrows():
         all_cost_rows.append(dict(row))
-    pd.DataFrame(all_cost_rows).to_csv(cost_path, index=False)
+    write_merged_cost_report(cost_path, all_cost_rows, requested_tracks)
 
     # --- Split report (E4a-specific, only if E4a was requested) ---
     if 'e4a' in requested_tracks:
@@ -1079,7 +2791,10 @@ def main():
         pd.DataFrame(split_rows).to_csv(split_path, index=False)
 
     # --- Manifest ---
-    git_commit = get_git_info()
+    git_commit = (
+        e4d_gate.generation_git_commit
+        if e4d_gate is not None else get_project_git_info_strict()
+    )
     total_elapsed = time.time() - overall_t0
 
     # Build output_files list dynamically: only files that were actually produced this run
@@ -1129,7 +2844,13 @@ def main():
         "git_commit": git_commit,
         "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "input_data": {
-            "mc_scan_path": MC_SCAN_PATH,
+            "main_grid_source": "artifacts/formal/shared_data/chunks/chunk_####_mdm.csv",
+            "main_grid_chunk_count": (
+                len(_expected_main_chunk_units())
+                if main_chunks_capability is not None else 0
+            ),
+            "main_grid_aggregate_compat_path": MC_AGGREGATE_PATH,
+            "main_grid_aggregate_used": False,
             "mc_manifest": mc_manifest.get("run_id", "unknown"),
             "mc_git_commit": mc_manifest.get("git_commit", "unknown"),
             "boundary_path": BOUNDARY_PATH,
@@ -1189,13 +2910,18 @@ def main():
         "total_elapsed_s": total_elapsed,
         "output_files": output_files_actual,
         "notes": [
-            "E4a uses existing main-grid MC data (read-only).",
+            "E4a/E4d use the 45 authoritative main-grid MDM chunks (read-only, frozen identity order).",
             "E4b/E4c use new MDM risk curves generated by run_E4_mc_generation.py.",
             "E4d is a diagnostic, not a deployment-ready continuous-space proof.",
             "E4b uses Option C: reference-only evaluation at boundary (no NN deployment).",
             "E4c is evaluation-only. Continuous-space training is E3c.",
         ],
     }
+
+    if e4d_gate is not None:
+        manifest = attach_e4d_gate_to_manifest(
+            manifest, e4d_gate
+        )
 
     # output_files_actual already includes E4d outputs if applicable
 

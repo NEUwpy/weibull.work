@@ -1,0 +1,110 @@
+[05:18:24] ======================================================================
+[05:18:24] P8a Formal Run — Environment Validation
+[05:18:24] ======================================================================
+[05:18:24] P8a environment validated: commit=3330523, tree=clean, P7_APPROVE=present, P6_contract=present
+[05:18:24] Checking formal output safety...
+[05:18:24]   Formal output dir is clean.
+[05:18:24] Scratch directory: C:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\real_data\nist-6061-t6-fatigue\scratch\run_20260725_051824
+[05:18:24] Formal run start: 2026-07-24T21:18:24+00:00
+[05:18:24] Execution commit: 3330523
+[05:18:24] ======================================================================
+[05:18:24] Study/01 Real Data Holdout Validation — P7 Pipeline
+[05:18:24] Started: 2026-07-24T21:18:24+00:00
+[05:18:24] Data dir: C:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\real_data\nist-6061-t6-fatigue
+[05:18:24] Output dir: C:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\real_data\nist-6061-t6-fatigue\scratch\run_20260725_051824
+[05:18:24] Chunks dir: C:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\shared_data\chunks
+[05:18:24] Repeats: 500 per train_n
+[05:18:24] Train n: [7, 10, 20]
+[05:18:24] ======================================================================
+[05:18:24] Step 0: Pre-flight validation (fail-closed)...
+[05:18:24]   SHA256 BIRNSAUN.DAT: MATCH
+[05:18:24]   SHA256 lifetimes.csv: MATCH
+[05:18:25]   Pre-flight: all inputs valid
+[05:18:25]   Output safety: no conflicts
+[05:18:25] Step 1: Running admission gate...
+[05:18:25]   GATE PASSED: R^2=0.9951
+[05:18:25] Step 2: Loading lifetimes...
+[05:18:25]   Loaded 101 lifetimes
+[05:18:25] Step 3: Computing large-sample reference fit...
+[05:18:25]   beta_ref=4.0329, eta_ref=1545.26, gamma_ref=0.0
+[05:18:25] Step 4: Generating train/holdout splits...
+[05:18:25]   n=7: 500 splits generated
+[05:18:25]   n=10: 500 splits generated
+[05:18:25]   n=20: 500 splits generated
+[05:18:25] Step 5: Training 15 NN selectors from main-grid chunks...
+[05:18:25] Loading main-grid chunks for NN training...
+[05:18:26]   Loaded 1170000 rows from 26 deltas
+[05:18:27]   Computing features for 45000 unique samples...
+[05:18:34]   Features done in 7.8s
+[05:18:41]   combo_fold_1: 936000 train rows (26 deltas)
+[05:18:41]     failure_penalty (P99)=2.1966
+[05:18:42]     Training seed=42...
+[05:19:10]     seed=42 done in 28.6s (iters=59, loss=0.090502)
+[05:19:10]     Training seed=2026...
+[05:19:51]     seed=2026 done in 40.6s (iters=99, loss=0.070698)
+[05:19:51]     Training seed=3407...
+[05:20:35]     seed=3407 done in 44.1s (iters=92, loss=0.077384)
+[05:20:41]   combo_fold_2: 936000 train rows (26 deltas)
+[05:20:41]     failure_penalty (P99)=2.1790
+[05:20:41]     Training seed=42...
+[05:21:20]     seed=42 done in 39.1s (iters=80, loss=0.085571)
+[05:21:20]     Training seed=2026...
+[05:21:50]     seed=2026 done in 29.9s (iters=76, loss=0.082011)
+[05:21:50]     Training seed=3407...
+[05:22:16]     seed=3407 done in 25.7s (iters=60, loss=0.113200)
+[05:22:22]   combo_fold_3: 936000 train rows (26 deltas)
+[05:22:22]     failure_penalty (P99)=2.2134
+[05:22:22]     Training seed=42...
+[05:23:17]     seed=42 done in 54.9s (iters=115, loss=0.067302)
+[05:23:17]     Training seed=2026...
+[05:23:29]     seed=2026 done in 11.4s (iters=34, loss=0.140493)
+[05:23:29]     Training seed=3407...
+[05:24:44]     seed=3407 done in 75.4s (iters=157, loss=0.113343)
+[05:24:50]   combo_fold_4: 936000 train rows (26 deltas)
+[05:24:50]     failure_penalty (P99)=2.2165
+[05:24:51]     Training seed=42...
+[05:25:38]     seed=42 done in 47.0s (iters=99, loss=0.066793)
+[05:25:38]     Training seed=2026...
+[05:26:21]     seed=2026 done in 43.3s (iters=106, loss=0.113758)
+[05:26:21]     Training seed=3407...
+[05:27:29]     seed=3407 done in 68.3s (iters=142, loss=0.069793)
+[05:27:35]   combo_fold_5: 936000 train rows (26 deltas)
+[05:27:35]     failure_penalty (P99)=2.1887
+[05:27:36]     Training seed=42...
+[05:28:14]     seed=42 done in 38.3s (iters=80, loss=0.078863)
+[05:28:14]     Training seed=2026...
+[05:28:31]     seed=2026 done in 17.3s (iters=48, loss=0.123739)
+[05:28:31]     Training seed=3407...
+[05:29:22]     seed=3407 done in 50.9s (iters=108, loss=0.072765)
+[05:29:22] Trained 15 NN selectors (5 folds × 3 seeds)
+[05:29:22]   NN training complete in 657.0s
+[05:29:22] Step 6: Running methods on all splits...
+[05:30:20]   Progress: 100/1500 splits done (7%)
+[05:31:19]   Progress: 200/1500 splits done (13%)
+[05:32:17]   Progress: 300/1500 splits done (20%)
+[05:33:15]   Progress: 400/1500 splits done (27%)
+[05:34:13]   Progress: 500/1500 splits done (33%)
+[05:35:10]   Progress: 600/1500 splits done (40%)
+[05:36:08]   Progress: 700/1500 splits done (47%)
+[05:37:06]   Progress: 800/1500 splits done (53%)
+[05:38:04]   Progress: 900/1500 splits done (60%)
+[05:39:02]   Progress: 1000/1500 splits done (67%)
+[05:40:00]   Progress: 1100/1500 splits done (73%)
+[05:40:57]   Progress: 1200/1500 splits done (80%)
+[05:41:55]   Progress: 1300/1500 splits done (87%)
+[05:42:54]   Progress: 1400/1500 splits done (93%)
+[05:43:52]   Progress: 1500/1500 splits done (100%)
+[05:43:52]   Total result rows: 25500
+[05:43:52]   Expected rows: 25500, actual: 25500
+[05:43:52]   Primary key uniqueness: OK (25500 rows)
+[05:43:52] Step 8: Computing per-model aggregation...
+[05:43:52]   Model-level rows: 51
+[05:43:52] Step 9: Computing cross-model distribution...
+[05:43:52]   NN distribution rows: 21
+[05:43:52] Step 10: Computing paired win rates...
+[05:43:53] Step 11: Building summary...
+[05:43:53] Step 12: Writing outputs...
+[05:43:53]   Saved: C:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\real_data\nist-6061-t6-fatigue\scratch\run_20260725_051824\real_holdout_results.csv (25500 rows)
+[05:43:53]   Saved: C:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\real_data\nist-6061-t6-fatigue\scratch\run_20260725_051824\real_holdout_summary.json
+[05:43:53]   Saved: C:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\real_data\nist-6061-t6-fatigue\scratch\run_20260725_051824\real_nn_model_stability.csv (45 rows)
+[05:43:53]   Saved: C:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\real_data\nist-6061-t6-fatigue\scratch\run_20260725_051824\real_data_manifest.json
