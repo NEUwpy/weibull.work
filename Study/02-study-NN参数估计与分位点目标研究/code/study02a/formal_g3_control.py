@@ -1340,14 +1340,6 @@ def _resolve_a_e1_from_staged_ledger(
         raise ValueError(f"A-E1 baseline_input selected:F2_or_V must be F2 or V, got {winner_route!r}")
     baseline_input = baseline.get("input", {})
     baseline_candidates = _build_a_e1_baseline_candidates(frozen_config)
-    route_stage2 = {
-        route: (
-            resolution["selected:A-E1_loss"],
-            resolution["selected:A-E1_architecture"],
-            resolution["selected:A-E1_optimizer"],
-        )
-        for route, resolution in route_resolutions.items()
-    }
     rebuilt_evaluations, pending = _score_a_e1_winner_retrain(
         study_root=study_root,
         run_dir=run_dir,
@@ -1355,7 +1347,7 @@ def _resolve_a_e1_from_staged_ledger(
         frozen=frozen_config,
         effective=load_effective_formal_config(study_root),
         candidates=baseline_candidates,
-        route_stage2=route_stage2,
+        run_id=run_id,
         score_fit=baseline_score_fit,
     )
     if pending or rebuilt_evaluations is None:
