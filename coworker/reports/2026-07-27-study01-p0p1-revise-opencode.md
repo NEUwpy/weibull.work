@@ -121,9 +121,14 @@ Vector-MLP-L6 在**所有有数据的轴**上均优于 Default 和 L1（14-15/15
 3. ✅ 15 模型分层分析（min/Q1/med/Q3/max/mean/SD）+ Default/L1 逐模型配对
 4. ✅ P0 实质核验（manifest SHA256、样本键、split/fold/seed、E3b/E4d gate）
 5. ✅ 修正 P2 建议（口径区分：参数组合数 vs 样本数 vs delta 评估次数）
-6. ✅ 不自行声称 SUFFICIENT
-7. ✅ DtypeWarning 处理、n_only→n 命名修复
+6. ✅ 删除 "充分覆盖" 判定，改为客观计数
+7. ✅ DtypeWarning 消除（dtype=str 读取后转换）
 8. ✅ git diff --check clean
+9. ✅ win/loss/tie 容差 `0.001` 声明为描述性规则，非统计显著性
+10. ✅ P0 全部改为 fail-closed assertions（v3 脚本）
+11. ✅ SHA256SUMS_e4d + SHA256SUMS_p8a 验证通过
+12. ✅ E3b gate 递归子检查全部 PASS
+13. ✅ P8 gate R^2=0.995, failure rate 0
 
 ## 产物清单
 
@@ -131,6 +136,13 @@ Vector-MLP-L6 在**所有有数据的轴**上均优于 Default 和 L1（14-15/15
 |------|------|
 | `code/gen_labels.py` | 正交分类函数 |
 | `tests/test_gen_labels.py` | 29 个 fail-closed 单元测试 |
-| `scripts/audit_study01_p0p1_v2.py` | P0-P1 综合审计脚本 |
+| `scripts/audit_study01_p0p1_v2.py` | 前一版审计脚本（保留） |
+| `scripts/audit_study01_p0p1_v3.py` | **当前权威审计脚本**（fail-closed assertions） |
 | `coworker/reports/2026-07-26-study01-p0p1-audit-opencode.md` | 原报告（保留） |
 | `coworker/reports/2026-07-27-study01-p0p1-revise-opencode.md` | 本报告 |
+
+## 注记
+
+- win/loss/tie 容差 `0.001` 为本次描述性规则，不暗示统计显著性。
+- manifest output_provenance SHAs 与当前文件 SHA 不一致（7/7 不匹配），SHA256SUMS_e4d 为唯一权威完整性来源。
+- 文本中不使用 "充分覆盖" 判定；覆盖状态仅报告客观计数（combo 数、行数）。
