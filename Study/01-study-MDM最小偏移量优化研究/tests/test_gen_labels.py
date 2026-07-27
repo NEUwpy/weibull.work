@@ -82,9 +82,9 @@ class TestAllE4Combos:
     def _load_e4_combos():
         import pandas as pd
         e4_path = Path(__file__).resolve().parents[1] / "artifacts" / "formal" / "E4_robustness" / "E4d_selector_extrapolation.csv"
-        df = pd.read_csv(e4_path)
+        df = pd.read_csv(e4_path, dtype=str)
         combos = df.groupby(["beta", "gamma_over_eta", "n"]).size().reset_index()
-        return [(row.beta, row.gamma_over_eta, row.n) for _, row in combos.iterrows()]
+        return [(float(row.beta), float(row.gamma_over_eta), int(row.n)) for _, row in combos.iterrows()]
 
     def test_every_e4_combo_classifiable(self):
         for beta, ge, n in self._load_e4_combos():
@@ -189,3 +189,26 @@ class TestDomainBoundaries:
     def test_n_boundary_extrap_low(self):
         ps, ns = classify_generalization(2.0, 0.5, 6)
         assert ns == "extrap"
+
+
+class TestNegativeScenarios:
+    """Negative tests: invalid inputs, train grid verification."""
+
+    def test_all_train_grid_points_on_grid(self):
+        """All 45 training grid points -> (on_grid, on_grid)."""
+        for beta in TRAIN_BETAS:
+            for ge in TRAIN_GAMMAS:
+                for n in TRAIN_NS:
+                    ps, ns = classify_generalization(beta, ge, n)
+                    assert ps == "on_grid", f"beta={beta} ge={ge} n={n} ps={ps}"
+                    assert ns == "on_grid", f"beta={beta} ge={ge} n={n} ns={ns}"
+
+    def test_negative_beta_zero_n_rejected(self):
+        """beta<=0, n<=0 -> fail-closed."""
+        for args, match in [
+            ((0.0, 0.5, 10), "positive"),
+            ((-1.0, 0.5, 10), "positive"),
+            ((1.5, 0.5, 0), "positive"),
+        ]:
+            with pytest.raises(ValueError, match=match):
+                classify_generalization(*args)
