@@ -47,8 +47,9 @@ def _run_one_sample(beta, ge, n, repeat_id, eta=ETA):
     """Run MDM on one sample across all 26 deltas. Returns list of dict rows."""
     gamma = ge * eta
     seed_str = f"{SEED_NAMESPACE}:{beta:.2f}:{ge:.2f}:{n}:{repeat_id}"
-    sample = generate_sample({"beta": beta, "eta": eta, "gamma": gamma, "n": n,
-                               "seed": seed_str})
+    seed_hash = hash(seed_str) % (2**31)
+    sample = generate_sample(beta=beta, eta=eta, gamma=gamma, n=n,
+                              repeat_id=repeat_id, seed=seed_hash)
 
     rows = []
     for delta in DELTA_GRID:
@@ -56,8 +57,6 @@ def _run_one_sample(beta, ge, n, repeat_id, eta=ETA):
         try:
             estimator = MDM(sample.tolist())
             result = estimator.run(trace=False, offset=delta)
-            if hasattr(result, "to_list"):
-                result = result.to_list()
             bh, eh, gh, r2 = float(result[0]), float(result[1]), float(result[2]), float(result[3])
             conv = bool(result[4]) if len(result) > 4 else True
             elapsed = (time.perf_counter() - t0) * 1000
