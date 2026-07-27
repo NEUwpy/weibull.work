@@ -780,8 +780,8 @@ def build_module_selection(
     frozen = load_frozen_config(study_root)
     effective = load_effective_formal_config(study_root)
     specs, evaluations_by_fit = _derive_and_score_evaluations(
-        run_dir=run_dir, cache_root=cache_root, module_id=module_id, frozen=frozen,
-        effective=effective, score_fit=score_fit,
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id=module_id,
+        run_id=run_id, frozen=frozen, effective=effective, score_fit=score_fit,
     )
     if not specs:
         raise ValueError(f"build_module_selection derived no selection decisions for module {module_id!r}")
@@ -909,8 +909,8 @@ def _score_fit_from_checkpoint(
 
 
 def _derive_and_score_evaluations(
-    *, run_dir: Path, cache_root: Path, module_id: str, frozen: FrozenConfig,
-    effective: EffectiveFormalConfig,
+    *, study_root: Path, run_dir: Path, cache_root: Path, module_id: str, run_id: str,
+    frozen: FrozenConfig, effective: EffectiveFormalConfig,
     score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
 ) -> tuple[tuple, dict[str, FitEvaluation]]:
     """Single-source derivation + scoring of one module's selection fits (R4#1).
@@ -923,12 +923,14 @@ def _derive_and_score_evaluations(
     may inject ``score_fit`` to stand in for checkpoint scoring without launching training.
     Returns ``(specs, evaluations_by_fit)``.
     """
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
     plan_rows = [
         json.loads(line)
         for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    plan_by_fit = {str(row["fit_id"]): row for row in plan_rows}
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id=module_id)
     # DecisionSpecs are derived from the frozen matrix (which carries module/fit_kind/n), not
     # from plan.jsonl (whose rows rename those fields); the plan rows supply the runtime
     # per-fit metadata used for scoring. The matrix is the same frozen authority pre-unseal
@@ -947,9 +949,15 @@ def _derive_and_score_evaluations(
                 if score_fit is not None:
                     evaluation = score_fit(fit_id, plan_row)
                 else:
+                    scoring_row = (
+                        _resolve_a_e1_scoring_plan_row(
+                            run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+                            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit)
+                        if module_id == "A-E1" else plan_row
+                    )
                     evaluation = _score_fit_from_checkpoint(
                         run_dir=run_dir, cache_root=cache_root, fit_id=fit_id,
-                        plan_row=plan_row, frozen=frozen, effective=effective, fit_states=fit_states,
+                        plan_row=scoring_row, frozen=frozen, effective=effective, fit_states=fit_states,
                         module_id=module_id, decision_id=spec.decision_id, candidate_id=candidate.candidate_id,
                     )
                 if evaluation.support_key != key:
@@ -974,17 +982,18 @@ def rebuild_selection_point_provenance(
     fit is rebuilt as the all-illegal records over its frozen validation cells. No fit_status
     scalar and no published artifact is trusted -- the returned :class:`FitEvaluation` map is
     the independently reconstructed truth pre-unseal compares the published artifacts against.
-    ``run_id`` is accepted for interface symmetry but the rebuild reads ``run_dir`` directly.
+    ``run_id`` is forwarded to the scoring resolver so each A-E1 staged placeholder can be
+    concretized from its route's on-disk verified stage1/stage2 receipts; checkpoint bytes
+    themselves are read from ``run_dir`` directly.
     """
     study_root = Path(study_root).resolve()
     run_dir = Path(run_dir).resolve()
     cache_root = Path(cache_root).resolve()
-    del run_id  # the rebuild reads run_dir/outputs/{fit_id}/checkpoint.pt directly
     frozen = load_frozen_config(study_root)
     effective = load_effective_formal_config(study_root)
     specs, evaluations_by_fit = _derive_and_score_evaluations(
-        run_dir=run_dir, cache_root=cache_root, module_id=module_id, frozen=frozen,
-        effective=effective, score_fit=None,
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id=module_id,
+        run_id=run_id, frozen=frozen, effective=effective, score_fit=None,
     )
     if not specs:
         raise ValueError(f"rebuild_selection_point_provenance derived no selection decisions for module {module_id!r}")
@@ -1518,34 +1527,31 @@ def _build_a_e1_baseline_candidates(frozen: FrozenConfig) -> list[CandidateSpec]
     return candidates
 
 
-def _a_e1_winner_retrain_plan_rows(
-    run_dir: Path, candidates: Sequence[CandidateSpec],
-) -> dict[str, Mapping[str, Any]]:
-    wanted = {fit_id for candidate in candidates for fit_id in candidate.expected_fit_ids}
+def _score_a_e1_winner_retrain(
+    *, study_root: Path, run_dir: Path, cache_root: Path, frozen: FrozenConfig,
+    effective: EffectiveFormalConfig, candidates: Sequence[CandidateSpec],
+    run_id: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+) -> tuple[dict[str, FitEvaluation] | None, bool]:
+    """Score the F2/V winner-retrain fits. Returns ``(evaluations_by_fit, pending)``.
+
+    The full A-E1 plan is read and validated against the frozen matrix first
+    (``_validate_plan_against_matrix``); the winner-retrain subset is taken from that validated
+    ``plan_by_fit`` (never passed to the validator as a subset). ``score_fit`` (tests) injects bound
+    evaluations without launching training. The production default scores each winner-retrain
+    checkpoint with the route's RESOLVED architecture/optimizer/loss, recovered from the route's
+    on-disk verified stage1/stage2 receipts via ``_resolve_a_e1_scoring_plan_row`` (the placeholders
+    cannot build a model until stage2 resolves them); a winner-retrain fit that has not yet
+    succeeded leaves the baseline ``pending`` rather than forcing a partial comparison.
+    """
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
     plan_rows = [
         json.loads(line)
         for line in (Path(run_dir) / "plan.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    return {str(row["fit_id"]): row for row in plan_rows if str(row["fit_id"]) in wanted}
-
-
-def _score_a_e1_winner_retrain(
-    *, study_root: Path, run_dir: Path, cache_root: Path, frozen: FrozenConfig,
-    effective: EffectiveFormalConfig, candidates: Sequence[CandidateSpec],
-    route_stage2: Mapping[str, tuple[str, str, str]],
-    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
-) -> tuple[dict[str, FitEvaluation] | None, bool]:
-    """Score the F2/V winner-retrain fits. Returns ``(evaluations_by_fit, pending)``.
-
-    ``score_fit`` (tests) injects bound evaluations without launching training. The production
-    default scores each winner-retrain checkpoint with the route's RESOLVED architecture /
-    optimizer / loss (the placeholders cannot build a model until stage2 resolves them); a
-    winner-retrain fit that has not yet succeeded leaves the baseline ``pending`` rather than
-    forcing a partial comparison.
-    """
-    del study_root
-    plan_by_fit = _a_e1_winner_retrain_plan_rows(run_dir, candidates)
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E1")
     if score_fit is not None:
         evaluations: dict[str, FitEvaluation] = {}
         for candidate in candidates:
@@ -1562,13 +1568,13 @@ def _score_a_e1_winner_retrain(
     fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
     evaluations = {}
     for candidate in candidates:
-        loss, architecture, optimizer = route_stage2[candidate.candidate_id]
         for key in candidate.support_keys:
             fit_id = candidate.support_for(key)
             if fit_states.get(fit_id) != "succeeded":
                 return None, True  # winner-retrain not executed yet -> baseline pending
-            resolved_row = dict(plan_by_fit[fit_id], architecture=architecture,
-                                optimizer=optimizer, loss=loss)
+            resolved_row = _resolve_a_e1_scoring_plan_row(
+                run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+                matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit)
             evaluations[fit_id] = _score_fit_from_checkpoint(
                 run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=resolved_row,
                 frozen=frozen, effective=effective, fit_states=fit_states, module_id="A-E1",
@@ -1770,7 +1776,7 @@ def resolve_a_e1_staged_selection(
                             res["selected:A-E1_optimizer"]) for route, res in stage2_by_route.items()}
     evaluations_by_fit, pending = _score_a_e1_winner_retrain(
         study_root=study_root, run_dir=run_dir, cache_root=cache_root, frozen=frozen,
-        effective=effective, candidates=baseline_candidates, route_stage2=route_stage2,
+        effective=effective, candidates=baseline_candidates, run_id=run_id,
         score_fit=score_fit,
     )
     winner_route: str | None = None
@@ -1974,13 +1980,18 @@ def build_a_e1_stage1_selection(
 
 def build_a_e1_stage2_selection(
     *, study_root: Path, run_dir: Path, cache_root: Path,
-    module_id: str = "A-E1", run_id: str, route: str, top4: Mapping[str, str],
+    module_id: str = "A-E1", run_id: str, route: str,
     score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
 ) -> dict[str, Any]:
     """Per-route stage-2 selection receipt (winner architecture/optimizer/loss) from ONE route's
-    stage-2 fits ONLY, given that route's stage-1 top4. Maps the route's stage-2 winner
-    (``selected_top_{slot}:{opt}``) to the concrete architecture (``top4[slot]``), optimizer, and
-    frozen loss -- the authority that route's winner-retrain placeholders resolve against.
+    stage-2 fits ONLY. Maps the route's stage-2 winner (``selected_top_{slot}:{opt}``) to the
+    concrete architecture (the route's verified stage1 top4[slot]), optimizer, and frozen loss --
+    the authority that route's winner-retrain placeholders resolve against.
+
+    Scoring reads the route's stage1 top4 from its OWN on-disk verified receipt
+    (``_recover_a_e1_stage1_selection``); the caller never supplies top4. Each scored fit's plan
+    row is resolved from that verified authority before checkpoint scoring, so no placeholder
+    reaches ``resolve_model_factory``.
     """
     _require(route in _A_E1_OPTIMIZED_ROUTES, f"staged A-E1 route must be one of {_A_E1_OPTIMIZED_ROUTES}")
     study_root = Path(study_root).resolve()
@@ -1988,10 +1999,12 @@ def build_a_e1_stage2_selection(
     cache_root = Path(cache_root).resolve()
     frozen = load_frozen_config(study_root)
     effective = load_effective_formal_config(study_root)
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
     plan_rows = [
         json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()]
-    plan_by_fit = {str(row["fit_id"]): row for row in plan_rows}
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E1")
     matrix_rows = expand_module_matrix(frozen).to_dict("records")
     stage2_rows = [
         row for row in matrix_rows if str(row["module"]) == "A-E1"
@@ -2009,15 +2022,17 @@ def build_a_e1_stage2_selection(
         for candidate in spec.candidates:
             for key in candidate.support_keys:
                 fit_id = candidate.support_for(key)
-                plan_row = plan_by_fit[fit_id]
                 if score_fit is not None:
-                    evaluation = score_fit(fit_id, plan_row)
+                    evaluation = score_fit(fit_id, plan_by_fit[fit_id])
                 else:
                     _require(
                         fit_states.get(fit_id) == "succeeded",
                         f"stage2 selection requires every {route} stage2 fit terminal; {fit_id!r} is not succeeded")
+                    resolved_row = _resolve_a_e1_scoring_plan_row(
+                        run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+                        matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit)
                     evaluation = _score_fit_from_checkpoint(
-                        run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=plan_row,
+                        run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=resolved_row,
                         frozen=frozen, effective=effective, fit_states=fit_states,
                         module_id="A-E1", decision_id=spec.decision_id, candidate_id=candidate.candidate_id)
                 evaluations[fit_id] = evaluation
@@ -2035,6 +2050,7 @@ def build_a_e1_stage2_selection(
     winner = next((r for r in records if r["decision_id"] == decision_id and r["selected"]), None)
     _require(winner is not None, f"stage2 decision {decision_id!r} has no selected winner")
     arch_placeholder, optimizer = _parse_stage2_winner_candidate(str(winner["candidate_id"]))
+    top4 = _recover_a_e1_stage1_selection(run_dir=run_dir, run_id=run_id, route=route)["top4"]
     _require(
         arch_placeholder in top4,
         f"stage2 winner slot {arch_placeholder!r} is outside the stage1 top4 for route {route!r}")
@@ -2064,6 +2080,50 @@ def _resolve_winner_retrain_plan_row(plan_row: Mapping[str, Any], winner: Mappin
         "optimizer": winner["selected:A-E1_optimizer"],
         "loss": winner["selected:A-E1_loss"],
     }
+
+
+def _resolve_a_e1_scoring_plan_row(
+    *, run_dir: Path, run_id: str, fit_id: str,
+    matrix_by_fit: Mapping[str, Mapping[str, str]],
+    plan_by_fit: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Resolve an A-E1 plan row's staged placeholders from on-disk verified evidence BEFORE
+    checkpoint scoring.
+
+    The plan row is read ONLY from ``plan_by_fit[fit_id]`` (the plan the caller already validated
+    against the frozen matrix); callers cannot supply a second copy of the scientific fields. Each
+    fit self-proves its plan<->matrix SHA binding and route, then classifies by the authoritative
+    matrix ``fit_kind``:
+      concrete        -> plan row unchanged
+      stage2          -> recover the route's verified stage1 top4 -> _resolve_stage2_plan_row
+      winner_retrain  -> recover stage1 top4 + stage2 winner -> _resolve_winner_retrain_plan_row
+    Reads ONLY ``run_dir/stage{1,2}_selection_{route}_*`` via the fail-closed ``_recover_a_e1_*``
+    helpers (no in-process cache, no publish). Fails closed on a missing/tampered/out-of-scope/
+    cross-route receipt, an unbound plan<->matrix row, or a winner slot outside the recovered top4.
+    """
+    fit_id = str(fit_id)
+    if fit_id not in plan_by_fit:
+        raise ValueError(f"_resolve_a_e1_scoring_plan_row: fit_id {fit_id!r} is not in the validated plan")
+    if fit_id not in matrix_by_fit:
+        raise ValueError(f"_resolve_a_e1_scoring_plan_row: fit_id {fit_id!r} is not in the authoritative matrix")
+    plan_row = dict(plan_by_fit[fit_id])
+    matrix_row = matrix_by_fit[fit_id]
+    _require(
+        hashlib.sha256(_canonical(matrix_row)).hexdigest() == str(plan_row["matrix_row_sha256"]),
+        f"plan row {fit_id!r} matrix_row_sha256 does not bind the authoritative matrix row")
+    route = str(matrix_row["route"])
+    _require(
+        str(plan_row.get("route")) == route,
+        f"plan row {fit_id!r} route {plan_row.get('route')!r} disagrees with matrix route {route!r}")
+    stage = _a_e1_fit_stage(matrix_row)
+    if stage == "concrete":
+        return plan_row
+    stage1 = _recover_a_e1_stage1_selection(run_dir=run_dir, run_id=run_id, route=route)
+    if stage == "stage2":
+        return _resolve_stage2_plan_row(plan_row, stage1["top4"])
+    winner = _recover_a_e1_stage2_selection(
+        run_dir=run_dir, run_id=run_id, route=route, top4=stage1["top4"])["winner"]
+    return _resolve_winner_retrain_plan_row(plan_row, winner)
 
 
 def _stage_evidence_paths(run_dir: Path, stage: str, route: str) -> tuple[Path, Path, Path]:
@@ -2193,7 +2253,7 @@ def _ensure_a_e1_stage2_selection(
         return _recover_a_e1_stage2_selection(run_dir=run_dir, run_id=run_id, route=route, top4=top4)
     return build_a_e1_stage2_selection(
         study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
-        route=route, top4=top4, score_fit=score_fit)
+        route=route, score_fit=score_fit)
 
 
 def _ensure_a_e1_final_selection(
