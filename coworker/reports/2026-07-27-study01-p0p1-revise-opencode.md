@@ -1,21 +1,23 @@
-# Study01 P0-P1 REVISE 审计与证据重分析报告
+# Study01 P0-P1 最终审计与证据重分析报告
 
 > 执行者：OpenCode
 > 日期：2026-07-27
 > 分支：study01xu
-> 状态：READY_FOR_INDEPENDENT_REVIEW
+> 最终执行提交：`study01xu@be8d7b81`
+> 独立复核：Codex `APPROVE P0–P1`
+> 后续状态：P2 最小补点设计已转入 `02-实验协议.md` v2.1；P2 尚未执行
 
 ## P0. 实质核验
 
 ### 0.1 Manifest SHA256 验证
 
-11 个正式 manifest 全部存在，SHA256 已记录（见 `scripts/audit_study01_p0p1_v2.py` 输出）。
+11 个正式 manifest 全部存在。`output_provenance` 中 7 项预期 SHA256 与对应文件逐项匹配；`SHA256SUMS_e4d` 7/7、`SHA256SUMS_p8a` 5/5 通过。
 
 ### 0.2 样本键验证
 
-- 每 fold×seed 有 17,000 个唯一 `(beta,ge,n,repeat)` 键
+- 每 fold×seed 有 17,000 个唯一基础 `(beta,ge,n,repeat)` 键
 - 15 个模型使用完全相同的样本键集（fold/seed cross 一致性通过）
-- 重复键 = 15（每键对应 15 个模型的预测），符合预期
+- 加入模型标识后共有 255,000 个完整键，全部唯一
 
 ### 0.3 Model Count
 
@@ -25,10 +27,12 @@
 
 | Gate | 状态 |
 |------|------|
-| gate1_fold_partition | — |
-| gate2_seed42_per_sample | — |
-| gate3_three_seed_summary | — |
+| gate1_fold_partition | PASS |
+| gate2_seed42_per_sample | PASS |
+| gate3_three_seed_summary | PASS |
 | **overall_pass** | **PASS** |
+
+审计器递归检查 gate 报告中的 dict/list 嵌套结构；所有 `.pass` 与 `overall_pass` 均为真。
 
 ### 0.5 E3b 输入产物
 
@@ -50,7 +54,7 @@
 
 正交分解 `parameter_state ∈ {on_grid, interp, extrap} × n_state ∈ {on_grid, interp, extrap}`，9 种状态组合。
 
-代码：`code/gen_labels.py`，fail-closed 单元测试：`tests/test_gen_labels.py`（29 tests passed）。
+代码：`code/gen_labels.py`；最终 fail-closed 审计入口为 `scripts/audit_study01_p0p1_v4.py`。分类及负向场景共 31 tests passed。
 
 ### 1.2 E4d 正交分类分布
 
@@ -84,40 +88,41 @@
 
 | 纯轴 | combos | 证据状态 |
 |------|--------|----------|
-| pure_p_interp (p=interp, n=on_grid) | 1 combo | 不足 |
-| **pure_n_interp** (p=on_grid, n=interp) | **0** | **完全缺失** |
-| pure_p_extrap (p=extrap, n=on_grid) | 11 combos | 可覆盖 |
-| pure_n_extrap (p=on_grid, n=extrap) | 4 combos | 可覆盖 |
+| pure_p_interp (p=interp, n=on_grid) | 1 combo | 客观计数：1 |
+| **pure_n_interp** (p=on_grid, n=interp) | **0** | **证据缺口：必须补点** |
+| pure_p_extrap (p=extrap, n=on_grid) | 11 combos | 客观计数：11 |
+| pure_n_extrap (p=on_grid, n=extrap) | 4 combos | 客观计数：4 |
 
 ### 1.5 与 Default/L1 配对比较结论
 
 Vector-MLP-L6 在**所有有数据的轴**上均优于 Default 和 L1（14-15/15 模型级 wins）。仅在 `p_on_grid_n_extrap` 轴上有 1/15 模型对 L1 为 tie。
 
-## P2 修正建议
+## P2 冻结设计
 
 ### 必须（否则无法回答 pure_n_interp）
 
-**n=15 纯样本量插值**：
-- 参数空间：45 个训练网格组合（`beta∈{1.5,2.0,2.5,4.0,5.0} × gamma/eta∈{0.1,0.5,1.0}`）
+**P2-NI：n=15 纯样本量插值**：
+- 参数空间：15 个训练网格参数对（`beta∈{1.5,2.0,2.5,4.0,5.0} × gamma/eta∈{0.1,0.5,1.0}`）
 - 样本量：`n=15`（单值）
 - **口径区分**：15 个参数组合 × 1 个 n 值 = **15 个组合**；每个组合 1000 repeats = **15,000 个抽样样本**；每个样本运行 26 个 delta 值 = **390,000 次 MDM 评估**
-- 复用现有 `code/generate_mc_data.py`，不新增 LSE/LRE/WMLE
+- `eta=1`，`gamma=(gamma/eta)×eta`
 
-### 建议（增强 pure_p_interp 独立性）
+### 同轮执行（增强 pure_p_interp 独立性）
 
-**参数插值补点**：
-- 6-8 个新参数组合，参数在域内但不在训练格点上
-- 每个组合在 `n∈{7,10,20}` 三个样本量下各 1000 repeats
-- 总计 6-8 个参数对 × 3 个 n = **18-24 个组合**，18,000-24,000 个抽样样本
+**P2-PI：参数插值补点**：
+- `beta∈{1.75,2.25,3.25,4.50}`
+- `gamma/eta∈{0.30,0.75}`
+- 每个参数对在 `n∈{7,10,20}` 三个已训练样本量下各 1000 repeats
+- 总计 8 个参数对 × 3 个 n = **24 个组合**，24,000 个抽样样本，624,000 次 MDM 评估
 
-### 不需要补
+两个轨道合计 **39 个组合、39,000 个抽样样本、1,014,000 次 MDM 评估**，seed namespace 固定为 `study01_p2_v1`。点位由训练格点中点机械确定，禁止按结果追加点位。
 
-**pure_p_extrap、pure_n_extrap、混合轴**：E4b_boundary + E4c_offgrid 已有充分覆盖。
+**本轮不补** pure_p_extrap、pure_n_extrap 和混合轴；这是一项范围冻结，不解释为这些轴已经获得连续空间充分覆盖。
 
 ## 修复项
 
 1. ✅ 分类改为正交 parameter_state × n_state（9 种组合）
-2. ✅ fail-closed 单元测试 29 passed
+2. ✅ fail-closed 分类及负向场景测试 31 passed
 3. ✅ 15 模型分层分析（min/Q1/med/Q3/max/mean/SD）+ Default/L1 逐模型配对
 4. ✅ P0 实质核验（manifest SHA256、样本键、split/fold/seed、E3b/E4d gate）
 5. ✅ 修正 P2 建议（口径区分：参数组合数 vs 样本数 vs delta 评估次数）
@@ -135,14 +140,16 @@ Vector-MLP-L6 在**所有有数据的轴**上均优于 Default 和 L1（14-15/15
 | 路径 | 说明 |
 |------|------|
 | `code/gen_labels.py` | 正交分类函数 |
-| `tests/test_gen_labels.py` | 29 个 fail-closed 单元测试 |
+| `tests/test_gen_labels.py` | 正交分类与 fail-closed 单元测试 |
 | `scripts/audit_study01_p0p1_v2.py` | 前一版审计脚本（保留） |
-| `scripts/audit_study01_p0p1_v3.py` | **当前权威审计脚本**（fail-closed assertions） |
+| `scripts/audit_study01_p0p1_v3.py` | 前一版 fail-closed 审计脚本（保留） |
+| `scripts/audit_study01_p0p1_v4.py` | **当前权威审计脚本** |
 | `coworker/reports/2026-07-26-study01-p0p1-audit-opencode.md` | 原报告（保留） |
 | `coworker/reports/2026-07-27-study01-p0p1-revise-opencode.md` | 本报告 |
 
 ## 注记
 
 - win/loss/tie 容差 `0.001` 为本次描述性规则，不暗示统计显著性。
-- manifest output_provenance SHAs 与当前文件 SHA 不一致（7/7 不匹配），SHA256SUMS_e4d 为唯一权威完整性来源。
+- manifest `output_provenance` 的 7 项 SHA256 与当前文件逐项匹配；同时独立验证 `SHA256SUMS_e4d` 7/7 和 `SHA256SUMS_p8a` 5/5。
 - 文本中不使用 "充分覆盖" 判定；覆盖状态仅报告客观计数（combo 数、行数）。
+- `P1_EVIDENCE=GAP_REQUIRES_P2` 是科学证据状态而非完整性失败，因此审计正常退出；`P0_INTEGRITY=PASS`。

@@ -33,7 +33,7 @@
 
 **Study/02 当前态**：截至代码 checkpoint `1bdd9906e87b53cd0cd1ad81bcfbb8ed8197a5a1`，R12 准备工作已经收口。A-E1 formal r3 曾在授权 commit `39d630507128706286b103717eb2717ccdeb4666` 上完成 3 个 fit，随后因无关 Study01 merge 推进本地 HEAD 而触发 authority drift，现与旧 r1/r2 一并永久 `blocked/aborted`，产物仅作失败现场保留、不得续跑或拼接。下一步是在稳定 formal 分支的最终 clean commit 上重新申请全新 r4 授权并从零启动；test 继续 sealed。准备收口和失败 run 均不产生 Study/02 研究结论，19 个前置研究问题仍等待全新 formal evidence。
 
-**Study/01 当前态**：既有 E1–E4、R1–R3/P6–P8 正式实验、Figures 1–9、Supplementary Figures S1–S8、五部分技术稿及 fail-closed 审计继续保持完成和封存。中文学术源稿 v0.2 复核后，论文决定启动有限扩展验证：重整 E4 消融/泛化证据，新增 Direct-MLP 与代表性传统方法公平比较、工程寿命分位点评价和一个预先判定为训练域匹配的真实案例。当前处于协议冻结阶段，v0.2 是扩展验证前稿；不启动大规模连续空间重训，不删除既有 NIST 6061-T6 负结果。
+**Study/01 当前态**：既有 E1–E4、R1–R3/P6–P8 正式实验、Figures 1–9、Supplementary Figures S1–S8、五部分技术稿及 fail-closed 审计继续保持完成和封存。扩展验证 P0–P1 已获 Codex APPROVE（`be8d7b81`）：完整性通过，现有证据确认纯样本量插值为零覆盖、纯参数插值仅 1 个组合。P2 已冻结 39 个最小正交补点（15 个 `n=15` 组合 + 24 个参数插值组合），尚未运行；P2 批准前不进入 Direct-MLP。中文学术源稿 v0.2 是扩展验证前稿；不启动大规模连续空间重训，不删除既有 NIST 6061-T6 负结果。
 
 | 大类 | 子方法 | 后端 |
 |------|--------|------|
