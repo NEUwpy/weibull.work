@@ -23,6 +23,7 @@ accident. See ``.superpowers/sdd/task-9c3-brief.md``.
 from __future__ import annotations
 
 import hashlib
+import math
 import json
 import os
 import shutil
@@ -469,8 +470,8 @@ class _PreparedFit:
     (sample_id / point_id) the CI rules cluster on.
     """
 
-    scaled_training: Any
-    scaled_validation: FormalFixedBatch | FormalSetBatch
+    scaled_training: FormalDataset
+    scaled_validation: FormalDataset
     validation_metadata: tuple[Mapping[str, Any], ...]
     validation_identity: str
     model_factory: Callable[[], nn.Module]
@@ -598,6 +599,13 @@ def execute_claimed_fit(
     }
 
 
+def _advance_consecutive_failures(count: int, failure_code: str, message: str, *, max_failures: int = 8, label: str = "formal execution") -> int:
+    count += 1
+    if count >= max_failures:
+        raise RuntimeError(f"{label} aborted: {max_failures} consecutive scientific failures (last: {failure_code}: {message})")
+    return count
+
+
 def run_module(
     *,
     study_root: Path,
@@ -654,7 +662,6 @@ def run_module(
     failed: list[dict[str, str]] = []
     selection_required: list[str] = []
     consecutive_failures = 0
-    _MAX_CONSECUTIVE_FAILURES = 8  # stop on a systematic scientific failure, not churn
     while max_fits is None or len(succeeded) < int(max_fits):
         # Peek the next pending fit WITHOUT claiming, so a selection-dependent fit is
         # deferred cleanly instead of being claimed and then failed.
@@ -686,12 +693,7 @@ def run_module(
             consecutive_failures = 0
         else:
             failed.append({"fit_id": claim["fit_id"], "failure_code": result["failure_code"], "message": result["message"]})
-            consecutive_failures += 1
-            if consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
-                raise RuntimeError(
-                    f"formal execution aborted: {_MAX_CONSECUTIVE_FAILURES} consecutive scientific failures "
-                    f"(last: {result['failure_code']}: {result['message']})"
-                )
+            consecutive_failures = _advance_consecutive_failures(consecutive_failures, result["failure_code"], result["message"])
 
     return {
         "module_id": module_id, "run_id": run_id, "run_dir": str(run_dir),
@@ -834,6 +836,20 @@ def _n_key_of(row: Mapping[str, Any]) -> int | str:
     return int(row["n"])
 
 
+def _require_finite_evaluation(fit_id: str, scalar: float, point_records: tuple) -> None:
+    """R6 fail-closed: selection_score and all point numerics must be finite before aggregation."""
+    if not math.isfinite(scalar):
+        raise ValueError(f"fit {fit_id!r} selection_score is non-finite ({scalar})")
+    for record in point_records:
+        for field in ("l_param", "e_beta", "e_eta", "e_gamma"):
+            value = record[field]
+            if not math.isfinite(value):
+                raise ValueError(
+                    f"fit {fit_id!r} point record {record.get('sample_id', '?')} "
+                    f"has non-finite {field} ({value})"
+                )
+
+
 def _score_fit_from_checkpoint(
     *, run_dir: Path, cache_root: Path, fit_id: str, plan_row: Mapping[str, Any],
     frozen: FrozenConfig, effective: EffectiveFormalConfig, fit_states: Mapping[str, str],
@@ -879,9 +895,10 @@ def _score_fit_from_checkpoint(
     checkpoint_bytes = checkpoint_path.read_bytes()
     scalar, point_records = validation_failure_penalized_l_param_points(
         checkpoint_bytes=checkpoint_bytes, model_factory=prepared.model_factory,
-        validation_batch=prepared.scaled_validation, validation_metadata=prepared.validation_metadata,
+        validation_batch=prepared.scaled_validation.batch, validation_metadata=prepared.validation_metadata,
         seed_id=str(plan_row["seed"]), is_set=prepared.is_set,
     )
+    _require_finite_evaluation(fit_id, scalar, point_records)
     return FitEvaluation(
         fit_id=fit_id, module_id=module_id, decision_id=decision_id, candidate_id=candidate_id,
         support_key=support_key, failed=False,
@@ -2270,6 +2287,7 @@ def run_a_e1_staged(
     stage2_by_route: dict[str, dict[str, Any]] = {}
     succeeded: list[str] = []
     failed: list[dict[str, str]] = []
+    consecutive_failures = 0
     while max_fits is None or len(succeeded) < int(max_fits):
         state = _rebuild_authority(run_dir, cache_root)[2]
         pending = [fid for fid in plan_order if state["fit_states"].get(fid) == "pending"]
@@ -2307,8 +2325,12 @@ def run_a_e1_staged(
             claim=claim, frozen=frozen, effective=effective, timestamp=timestamp)
         if result["state"] == "succeeded":
             succeeded.append(fit_id)
+            consecutive_failures = 0
         else:
             failed.append({"fit_id": fit_id, "failure_code": result["failure_code"], "message": result["message"]})
+            consecutive_failures = _advance_consecutive_failures(
+                consecutive_failures, result["failure_code"], result["message"],
+                label="staged A-E1")
 
     # The final module selection + staged resolution require EVERY selection fit terminal. A
     # partial run (max_fits capped, or a smoke) skips them and returns the partial execution

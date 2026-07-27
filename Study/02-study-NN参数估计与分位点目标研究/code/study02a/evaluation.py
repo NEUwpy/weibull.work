@@ -60,7 +60,11 @@ def evaluate_rows(rows: Sequence[Mapping], failure_penalty: float = 10.0) -> dic
             row["beta_hat"], row["eta_hat"], row["gamma_hat"],
             row["beta"], row["eta"], row["gamma"],
         )
-        loss = float(math.sqrt(sum(value * value for value in errors.values()) / 3.0))
+        with np.errstate(over="ignore", invalid="ignore"):
+            loss = float(math.sqrt(sum(value * value for value in errors.values()) / 3.0))
+        if not (math.isfinite(loss) and all(math.isfinite(v) for v in errors.values())):
+            unconditional_losses.append(float(failure_penalty))
+            continue
         conditional_losses.append(loss)
         unconditional_losses.append(loss)
         for name, value in errors.items():
@@ -551,7 +555,14 @@ def evaluate_rows_per_sample(rows: Sequence[Mapping], *, failure_penalty: float 
                 row["beta_hat"], row["eta_hat"], row["gamma_hat"],
                 row["beta"], row["eta"], row["gamma"],
             )
-            l_param = float(math.sqrt(sum(value * value for value in errors.values()) / 3.0))
+            with np.errstate(over="ignore", invalid="ignore"):
+                l_param = float(math.sqrt(sum(value * value for value in errors.values()) / 3.0))
+            if not (math.isfinite(l_param)
+                    and math.isfinite(float(errors["beta"]))
+                    and math.isfinite(float(errors["eta"]))
+                    and math.isfinite(float(errors["gamma"]))):
+                legal = False
+        if legal:
             records.append({
                 "sample_id": sample_id, "seed_id": seed_id, "point_id": point_id,
                 "legal": True, "failure": 0, "l_param": l_param,

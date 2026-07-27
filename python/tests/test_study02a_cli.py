@@ -34,3 +34,54 @@ def test_pilot_cli_never_opens_test_data(tmp_path):
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["test_state"] == "sealed"
     assert manifest["total_samples"] == 4
+
+
+def test_formal_execute_dispatches_a_e1_to_run_a_e1_staged(monkeypatch):
+    from unittest.mock import MagicMock
+    script_dir = SCRIPT.parent
+    if str(script_dir) not in sys.path:
+        sys.path.insert(0, str(script_dir))
+    import run_study02a
+    fake_staged = MagicMock(return_value={"dispatch": "run_a_e1_staged"})
+    fake_module = MagicMock(return_value={"dispatch": "run_formal_module"})
+    monkeypatch.setattr(run_study02a, "run_a_e1_staged", fake_staged)
+    monkeypatch.setattr(run_study02a, "run_formal_module", fake_module)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["run_study02a.py", "formal-execute", "--module", "A-E1", "--run-id", "test-run",
+         "--artifact-root", "artifacts/runs", "--cache-root", "artifacts/cache",
+         "--max-fits", "10", "--owner-id", "test-owner"],
+    )
+    run_study02a.main()
+    fake_staged.assert_called_once()
+    fake_module.assert_not_called()
+    kwargs = fake_staged.call_args.kwargs
+    assert kwargs["module_id"] == "A-E1"
+    assert kwargs["run_id"] == "test-run"
+    assert str(kwargs["artifact_root"]).replace("\\", "/").endswith("artifacts/runs")
+    assert str(kwargs["cache_root"]).replace("\\", "/").endswith("artifacts/cache")
+    assert kwargs["owner_id"] == "test-owner"
+    assert kwargs["max_fits"] == 10
+
+
+def test_formal_execute_dispatches_a_e3_a_e2_to_run_module(monkeypatch):
+    from unittest.mock import MagicMock
+    script_dir = SCRIPT.parent
+    if str(script_dir) not in sys.path:
+        sys.path.insert(0, str(script_dir))
+    import run_study02a
+    for mod in ("A-E3", "A-E2"):
+        fake_staged = MagicMock(return_value={"dispatch": "run_a_e1_staged"})
+        fake_module = MagicMock(return_value={"dispatch": "run_formal_module"})
+        monkeypatch.setattr(run_study02a, "run_a_e1_staged", fake_staged)
+        monkeypatch.setattr(run_study02a, "run_formal_module", fake_module)
+        monkeypatch.setattr(
+            "sys.argv",
+            ["run_study02a.py", "formal-execute", "--module", mod, "--run-id", "test-run",
+             "--artifact-root", ".", "--cache-root", "."],
+        )
+        run_study02a.main()
+        fake_staged.assert_not_called()
+        fake_module.assert_called_once()
+        call_kwargs = fake_module.call_args.kwargs
+        assert call_kwargs["module_id"] == mod

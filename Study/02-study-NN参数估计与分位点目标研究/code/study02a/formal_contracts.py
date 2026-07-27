@@ -534,7 +534,7 @@ def build_fit_status_record(
     module_id: str,
     rule_id: str,
     route_id: str,
-    n: int,
+    n: int | str,
     seed: int,
     decision_id: str,
     candidate_id: str,
@@ -561,8 +561,10 @@ def build_fit_status_record(
         "decision_id": _require_identifier(decision_id, "decision_id"),
         "candidate_id": _require_identifier(candidate_id, "candidate_id"),
     }
-    if isinstance(n, bool) or not isinstance(n, int) or n <= 0:
-        raise ValueError("n must be a positive integer")
+    if n != "shared" and (isinstance(n, bool) or not isinstance(n, int) or n <= 0):
+        raise ValueError("n must be a positive integer or the frozen shared-n marker")
+    if n == "shared" and (identifiers["module_id"] != "A-E3" or identifiers["route_id"] != "S"):
+        raise ValueError("n='shared' is valid only for the frozen A-E3/S route")
     if isinstance(seed, bool) or not isinstance(seed, int):
         raise ValueError("seed must be an integer")
     if not isinstance(selected, bool):
@@ -654,7 +656,9 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
                 if normalized[field].lower() not in {"true", "false"}:
                     raise ValueError(f"fit status {field} must be boolean")
                 normalized[field] = normalized[field].lower() == "true"
-            for field in ("n", "seed", "actual_epochs"):
+            if normalized["n"] != "shared":
+                normalized["n"] = int(normalized["n"])
+            for field in ("seed", "actual_epochs"):
                 normalized[field] = int(normalized[field])
             if normalized["best_epoch_one_based"] != "":
                 normalized["best_epoch_one_based"] = int(normalized["best_epoch_one_based"])
@@ -670,8 +674,16 @@ def _validate_fit_status_row(row: Mapping[str, Any]) -> dict[str, Any]:
             raise ValueError(f"fit status contains an invalid scalar: {exc}") from exc
     for field in ("fit_id", "module_id", "rule_id", "route_id", "decision_id", "candidate_id"):
         _require_identifier(normalized[field], f"fit status {field}")
-    if isinstance(normalized["n"], bool) or not isinstance(normalized["n"], int) or normalized["n"] <= 0:
-        raise ValueError("fit status n must be a positive integer")
+    if normalized["n"] != "shared" and (
+        isinstance(normalized["n"], bool)
+        or not isinstance(normalized["n"], int)
+        or normalized["n"] <= 0
+    ):
+        raise ValueError("fit status n must be a positive integer or the frozen shared-n marker")
+    if normalized["n"] == "shared" and (
+        normalized["module_id"] != "A-E3" or normalized["route_id"] != "S"
+    ):
+        raise ValueError("fit status n='shared' is valid only for the frozen A-E3/S route")
     if isinstance(normalized["seed"], bool) or not isinstance(normalized["seed"], int):
         raise ValueError("fit status seed must be an integer")
     if not all(isinstance(normalized[field], bool) for field in ("failed", "selected", "hit_epoch_100")):

@@ -600,3 +600,99 @@ def test_cache_rejects_self_consistent_wrong_dtype_payload(configs, tmp_path: Pa
     )
     with pytest.raises(ValueError, match="frozen design rows"):
         cache_dataset(spec, frozen, effective, design_root)
+
+
+@pytest.mark.slow
+def test_production_g3_fit_0039_full_100k_semantic_validation(configs, tmp_path: Path) -> None:
+    """Regression: G3-fit-0039 (route=F0eq_hsm, n=15, screening seed 420001) row 45258
+    triggered a 0.0012235641479492188 third-dimension target/anchor float32 quantization
+    mismatch under the old 2e-5 tolerance. The full 100k production dataset must build and
+    pass semantic validation with rtol=atol=1e-4."""
+    frozen, effective = configs
+    spec = build_training_spec(
+        route="F0eq_hsm", distribution="core_continuous", n_mode="fixed_n", fixed_n=15,
+        training_rows=100000, frozen_config=frozen, effective_config=effective,
+    )
+    assert spec.cache_key == "b5a3a9aa4b56689c06b80758a0c9096c333f39cb00fd62a0e3597774b3c1a2be"
+    dataset = cache_dataset(spec, frozen, effective, tmp_path)
+    assert len(dataset.metadata) == 100000
+    assert dataset.dataset_hash == "179534a5bca8ab74e3661801b0f9e329aea6306ce2a9ebcca7fb6e271d94313f"
+    row_45258 = dataset.metadata[45258]
+    assert row_45258["point_id"] == "training:core_continuous:0045258"
+    batch = dataset.batch
+    location = float(batch.location[45258].item())
+    scale = float(batch.scale[45258].item())
+    gap = location - float(row_45258["gamma"])
+    expected = np.asarray([
+        np.log(row_45258["beta"]), np.log(row_45258["eta"] / scale), np.log(gap / scale),
+    ], dtype=np.float32)
+    actual = batch.targets[45258].cpu().numpy()
+    assert np.allclose(actual, expected, rtol=1e-4, atol=1e-4)
+    assert not np.allclose(actual, expected, rtol=2e-5, atol=2e-5)
+    assert abs(float(actual[2]) - float(expected[2])) == pytest.approx(0.0012235641479492188, abs=1e-10)
+
+
+def test_semantic_validator_rejects_tampered_target_beyond_tolerance(configs) -> None:
+    """Attack: perturbing a single target element by more than 1e-4 must fail closed."""
+    frozen, effective = configs
+    guard = pilot_for_tests(rows=6, points=3, repeats=2)
+    spec = build_training_spec(
+        route="F0eq_hsm", distribution="core_continuous", n_mode="fixed_n", fixed_n=15,
+        training_rows=7000, frozen_config=frozen, effective_config=effective,
+        _pilot_for_tests=guard,
+    )
+    dataset = build_dataset(spec, frozen, effective)
+    formal_runner._validate_dataset_semantics(dataset, require_raw=True, frozen_config=frozen)
+    tampered_batch = FormalFixedBatch(
+        features=dataset.batch.features.clone(),
+        targets=dataset.batch.targets.clone(),
+        location=dataset.batch.location.clone(),
+        scale=dataset.batch.scale.clone(),
+    )
+    tampered_batch.targets[2, 2] += 0.01
+    tampered_dataset = replace(dataset, batch=tampered_batch)
+    with pytest.raises(ValueError, match="target does not match"):
+        formal_runner._validate_dataset_semantics(tampered_dataset, require_raw=True, frozen_config=frozen)
+
+
+def test_semantic_validator_rejects_tampered_anchor_beyond_tolerance(configs) -> None:
+    """Attack: perturbing a single anchor scale by more than 1e-4 relative must fail closed."""
+    frozen, effective = configs
+    guard = pilot_for_tests(rows=6, points=3, repeats=2)
+    spec = build_training_spec(
+        route="F0eq_hsm", distribution="core_continuous", n_mode="fixed_n", fixed_n=15,
+        training_rows=7000, frozen_config=frozen, effective_config=effective,
+        _pilot_for_tests=guard,
+    )
+    dataset = build_dataset(spec, frozen, effective)
+    tampered_batch = FormalFixedBatch(
+        features=dataset.batch.features.clone(),
+        targets=dataset.batch.targets.clone(),
+        location=dataset.batch.location.clone(),
+        scale=dataset.batch.scale.clone(),
+    )
+    tampered_batch.scale[0] *= 1.5
+    tampered_dataset = replace(dataset, batch=tampered_batch)
+    with pytest.raises(ValueError, match="target does not match"):
+        formal_runner._validate_dataset_semantics(tampered_dataset, require_raw=True, frozen_config=frozen)
+
+
+def test_scoped_code_clean_passes_explicit_utf8_to_subprocess(monkeypatch) -> None:
+    """_assert_scoped_code_clean must call subprocess.run with encoding='utf-8',
+    text=True, check=True, capture_output=True, and no errors= mode."""
+    import subprocess as _subprocess
+    from study02a.formal_scheduler import _assert_scoped_code_clean
+    captured: list[dict] = []
+    original_run = _subprocess.run
+    def spy_run(*args, **kwargs):
+        captured.append(kwargs)
+        return original_run(*args, **kwargs)
+    monkeypatch.setattr(_subprocess, "run", spy_run)
+    _assert_scoped_code_clean(STUDY_ROOT)
+    assert len(captured) >= 1
+    for call_kwargs in captured:
+        assert call_kwargs["encoding"] == "utf-8"
+        assert call_kwargs["text"] is True
+        assert call_kwargs["check"] is True
+        assert call_kwargs["capture_output"] is True
+        assert "errors" not in call_kwargs

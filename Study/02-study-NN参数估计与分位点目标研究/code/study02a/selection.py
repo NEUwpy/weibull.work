@@ -341,6 +341,28 @@ def _equal_weight_per_n_aggregate(evaluations: Sequence[FitEvaluation]) -> float
     return sum(per_n_means) / len(per_n_means)
 
 
+def _validate_evaluation_finite(evaluation: "FitEvaluation") -> None:
+    """R6 fail-closed: every numeric field in a FitEvaluation must be finite before aggregation."""
+    if evaluation.failed:
+        if not math.isfinite(float(evaluation.failure_penalty)):
+            raise ValueError(
+                f"fit {evaluation.fit_id!r} failure_penalty is non-finite ({evaluation.failure_penalty})"
+            )
+    else:
+        if not math.isfinite(float(evaluation.selection_score)):
+            raise ValueError(
+                f"fit {evaluation.fit_id!r} selection_score is non-finite ({evaluation.selection_score})"
+            )
+    for record in evaluation.point_records:
+        for field in ("l_param", "e_beta", "e_eta", "e_gamma"):
+            value = record[field]
+            if not math.isfinite(float(value)):
+                raise ValueError(
+                    f"fit {evaluation.fit_id!r} point record {record.get('sample_id', '?')} "
+                    f"has non-finite {field} ({value})"
+                )
+
+
 def _mean_aggregate(evaluations: Sequence[FitEvaluation]) -> float:
     values = [
         float(ev.failure_penalty) if ev.failed else float(ev.selection_score) for ev in evaluations
@@ -374,10 +396,16 @@ def candidate_supporting_evidence(
             f"exactly the candidate support keys; missing={missing!r} extra={extra!r}"
         )
     evaluations = [evaluations_by_support[key] for key in candidate.support_keys]
+    for evaluation in evaluations:
+        _validate_evaluation_finite(evaluation)
     if candidate.selection_rule == SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT:
         aggregate = _equal_weight_per_n_aggregate(evaluations)
     else:
         aggregate = _mean_aggregate(evaluations)
+    if not math.isfinite(aggregate):
+        raise ValueError(
+            f"aggregate score for {candidate.candidate_id!r} is non-finite ({aggregate})"
+        )
 
     supporting_rows: list[dict[str, Any]] = []
     for key, evaluation in zip(candidate.support_keys, evaluations):
