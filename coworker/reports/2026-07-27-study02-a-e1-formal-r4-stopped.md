@@ -88,7 +88,7 @@ manifest 关键绑定：
 ## 后续（Codex 裁决）
 
 - r4 永久 **blocked/aborted**；177 个 checkpoint **仅作历史诊断证据保留，不得迁移到 r5**，不得复用其 checkpoint/journal/receipt/fit 状态。
-- 在稳定分支 `codex/study02-formal-r4-20260726`（固定 `1891b0974076f499c6323316f8d2c20788531f30`）上从零启动 r5 需**新的显式授权**；修复后必须经 Codex 代码复审与重新授权。
+- r5 **不得**在固定 `1891b097` 的 r4 分支（`codex/study02-formal-r4-20260726`）上启动——该分支锁定 r3 archive commit，不含本次修复。应以**包含经 Codex 批准修复的新精确 commit 创建独立的 r5 稳定分支**，重新显式授权后从零启动。
 - 修复方向：让所有 A-E1 production checkpoint scoring 路径使用从磁盘 verified staged trace/receipt/ledger 独立恢复的 concrete plan context，覆盖 stage2 / winner-retrain / final module selection / `rebuild_selection_point_provenance` / pre-unseal。修复分支：`codex/study02-a-e1-stage2-scoring-r1-20260727`。
 - 修复后代码**不得用于恢复/评分/写入 r4**；r4 仅只读取证。
 - test 始终 sealed；不进入 A-E3/A-E2、approval、unseal、consumer、9d、G4。

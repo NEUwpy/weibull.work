@@ -2876,22 +2876,36 @@ def _stage_arch_matched_a_e1_run(tmp_path, monkeypatch, *, run_id):
     """Set up a REAL A-E1 run_dir with all 349 fits' outputs + stage1/stage2 receipts,
     WITHOUT the O(N^2) scheduler claim/record loop.
 
-    Uses ``materialize_run`` (real scheduler authority setup), publishes stage1/stage2 receipts
-    via smoke ``score_fit`` (no checkpoint scoring), then trains + writes ``outputs/{fit_id}/``
-    for every fit through the REAL ``_prepare_fit_inputs`` + ``resolve_model_factory`` +
-    ``_write_outputs`` (reusing ``_arch_matched_fit_runner``'s fixed_n-keyed cache). No
-    ``claim_next_fit`` / ``record_fit_succeeded`` -- the scheduler journal is not driven, so
-    the per-fit O(N) ``_next_state`` event replay (the run_a_e1_staged bottleneck) is avoided.
+    WHAT RUNS REAL (scientific checkpoint-scoring path):
+      ``_prepare_fit_inputs`` + ``resolve_model_factory`` + ``_write_outputs`` run REAL
+      (unmocked) for every fit -- each fit's checkpoint is trained THROUGH the resolved
+      model_factory on the (pilot-scaled) real validation batch, so dims and forward
+      scoring match the production path. The pilot only shrinks the data source; it does
+      not mock any of these helpers.
 
-    Returns ``(run_dir, plan_rows)``. The caller should monkeypatch ``_rebuild_authority`` to
-    return all-succeeded ``fit_states`` (via ``_mock_rebuild_authority_all_succeeded``) before
-    calling ``rebuild_selection_point_provenance`` / ``build_module_selection`` -- they query
-    ``fit_states`` through ``_rebuild_authority``.
+    WHAT IS STUBBED (scheduler authority -- NOT scientific):
+      ``_rebuild_authority`` is stubbed later by the caller via
+      ``_mock_rebuild_authority_all_succeeded``. The REAL ``run_a_e1_staged`` /
+      scheduler journal (``claim_next_fit`` / ``record_fit_succeeded`` / event replay)
+      is NEVER driven here -- ``materialize_run`` only writes the manifest/plan/initial
+      state; per-fit outputs are written directly via ``_write_outputs``. This bypasses
+      the per-fit O(N) ``_next_state`` event replay (the run_a_e1_staged bottleneck) and
+    the O(N^2) total scheduler replay. The authority/tamper-detection coverage lives in
+    the attack tests (which use the unmocked ``_rebuild_authority``).
 
-    Codex scope: ``_prepare_fit_inputs`` + ``resolve_model_factory`` run REAL (unmocked); only
-    the data source is shrunk (pilot) and the scheduler authority replay is bypassed. This
-    mirrors the existing ``_accredit_real_matrix_run`` pattern (test file ~:1244) which also
-    writes outputs directly and stubs the authority."""
+    Uses ``materialize_run`` (real scheduler authority setup), publishes stage1/stage2
+    receipts via smoke ``score_fit`` (no checkpoint scoring), then trains + writes
+    ``outputs/{fit_id}/`` for every fit through the REAL ``_prepare_fit_inputs`` +
+    ``resolve_model_factory`` + ``_write_outputs`` (reusing ``_arch_matched_fit_runner``'s
+    fixed_n-keyed cache).
+
+    Returns ``(run_dir, plan_rows)``. The caller should monkeypatch ``_rebuild_authority``
+    to return all-succeeded ``fit_states`` (via ``_mock_rebuild_authority_all_succeeded``)
+    before calling ``rebuild_selection_point_provenance`` / ``build_module_selection`` --
+    they query ``fit_states`` through ``_rebuild_authority``.
+
+    This mirrors the existing ``_accredit_real_matrix_run`` pattern (test file ~:1244)
+    which also writes outputs directly and stubs the authority."""
     _install_small_data_pilot(monkeypatch)
     from study02a.formal_scheduler import materialize_run
 
@@ -2964,14 +2978,26 @@ def _stage_arch_matched_a_e1_run(tmp_path, monkeypatch, *, run_id):
 def _mock_rebuild_authority_all_succeeded(monkeypatch, plan_rows):
     """Monkeypatch ``fe._rebuild_authority`` to return all-succeeded ``fit_states`` for the
     plan's fits. Used after ``_stage_arch_matched_a_e1_run`` so that
-    ``rebuild_selection_point_provenance`` / ``build_module_selection`` can query fit_states
-    without driving the O(N) scheduler event replay.
+    ``rebuild_selection_point_provenance`` / ``build_module_selection`` /
+    ``build_a_e1_stage2_selection`` can query ``fit_states`` without driving the O(N)
+    scheduler event replay.
+
+    STUB BOUNDARY (what this mock does and does NOT touch):
+      - DOES: return ``{fit_id: "succeeded"}`` for every plan fit, so the scoring entry's
+        ``fit_states.get(fit_id)`` lookup is O(1) and every fit is treated as terminal-
+        succeeded (the checkpoint is on disk from ``_stage_arch_matched_a_e1_run``). This
+        is scheduler bookkeeping, not a scientific input.
+      - DOES NOT: replace or short-circuit the scientific checkpoint-scoring path. The
+        REAL ``_prepare_fit_inputs`` + ``resolve_model_factory`` + checkpoint load +
+        ``validation_failure_penalized_l_param_points`` forward scoring still run end-to-end
+        for every scored fit -- the scored ``selection_score`` / ``checkpoint_sha256`` /
+        ``point_records`` come from the real forward pass on the real (pilot-scaled)
+        validation batch, NOT from this stub. ``_rebuild_authority``'s own tamper-detection
+        correctness is covered by the attack tests (which leave it unmocked).
 
     Precedent: the existing test file mocks ``_rebuild_authority`` at ~:1074 and ~:2136, and
     ``_accredit_real_matrix_run`` (~:1326) stubs the authority for the same reason -- the
-    scheduler replay is authority/tamper infrastructure, not the scientific scoring path
-    (``_prepare_fit_inputs`` + ``resolve_model_factory`` + ``validation_failure_penalized_
-    l_param_points``), which still runs for real."""
+    scheduler replay is authority/tamper infrastructure, not the scientific scoring path."""
     fit_states = {str(row["fit_id"]): "succeeded" for row in plan_rows}
 
     def _fast_rebuild(run_dir, cache_root, *, validate_controller=True):
@@ -3125,3 +3151,174 @@ def test_rebuild_selection_point_provenance_resolves_stage2_placeholder(tmp_path
     assert math.isfinite(float(ev.selection_score))
     checkpoint_bytes = (run_dir / "outputs" / stage2_fit / "checkpoint.pt").read_bytes()
     assert ev.checkpoint_sha256 == hashlib.sha256(checkpoint_bytes).hexdigest()
+
+
+# -- Group 4: full-route production scoring (SLOW) ---------------------------
+# Drives the REAL ``build_a_e1_stage2_selection`` (the original r4 crash entry) over the
+# FULL F2 stage2 support (36 fits) with ``score_fit=None``.  Every fit is scored through
+# the real checkpoint-load + forward path; only ``_rebuild_authority`` is stubbed (scheduler
+# authority), per the Codex revision-1 scope.
+
+
+@pytest.mark.slow
+def test_build_a_e1_stage2_selection_full_route_production_scoring(tmp_path, monkeypatch):
+    """R4 stop-fix #10 (FULL ROUTE): ``build_a_e1_stage2_selection(route="F2", score_fit=None)``
+    -- the original r4 crash entry -- over the FULL F2 stage2 support (36 fits = 4 top4
+    architectures x 3 optimizers x 3 seeds). Every fit is scored through the REAL
+    checkpoint-load + forward path (no ``score_fit`` mock), after recovering the route's
+    stage1 top4 from its on-disk verified receipt and writing a matching checkpoint for
+    each fit's resolved architecture.
+
+    Fixture construction (how each F2 stage2 fit gets a matching checkpoint):
+      1. ``_install_small_data_pilot`` shrinks the data source (pilot) so the REAL
+         ``_prepare_fit_inputs`` / ``resolve_model_factory`` chain finishes in seconds;
+         cache_keys stay consistent between plan (``_write_real_a_e1_run`` ->
+         ``_plan_rows``) and reconstruction (``reconstruct_a_e1_specs``) because both
+         route through the patched pilot spec builders.
+      2. ``_write_real_a_e1_run`` writes the REAL ``_PLAN_FIELDS`` plan (no ``fit_kind``)
+         + manifest.
+      3. ``build_a_e1_stage1_selection(route="F2", score_fit=_smoke_score_fit())``
+         publishes ONLY the F2 stage1 receipt (the stage1 top4 authority).  No stage2
+         receipt is pre-published (``publish_selection_receipt`` is no-replace; the
+         production call below publishes it).
+      4. Recover F2 stage1 top4 from that receipt (``_recover_a_e1_stage1_selection``).
+      5. For every F2 stage2 fit (matrix ``fit_kind==search_stage2`` & ``route==F2``):
+         resolve its ``selected_top_N`` placeholder via ``_resolve_a_e1_scoring_plan_row``
+         (which reads the stage1 receipt from disk) -> concrete ``m0X`` architecture ->
+         ``_prepare_fit_inputs`` on the resolved row -> train a small checkpoint through
+         the resolved ``model_factory`` (``_train_checkpoint_through_prepared``) ->
+         ``fe._write_outputs`` to ``outputs/{fit_id}/``. A ``(route, arch, fixed_n)`` cache
+         keys checkpoint reuse across fits sharing a resolved architecture (4 unique
+         checkpoints across 36 fits).
+
+    WHAT RUNS REAL: ``_validate_plan_against_matrix``, ``_resolve_a_e1_scoring_plan_row``,
+      ``_prepare_fit_inputs``, ``resolve_model_factory``, checkpoint load, forward scoring
+      (``validation_failure_penalized_l_param_points``), trace/receipt/ledger publication.
+    WHAT IS STUBBED: ``_rebuild_authority`` (avoids the multi-hour scheduler claim/record
+      replay); see ``_mock_rebuild_authority_all_succeeded`` for the stub boundary.
+
+    Requires a clean ``code/`` tree for the ``materialize_run`` authority check.
+    """
+    import math
+    status = __import__("subprocess").run(
+        ["git", "status", "--porcelain", "--", str((STUDY_ROOT / "code").relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True)
+    assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
+
+    # 1. Pilot data source: _prepare_fit_inputs + resolve_model_factory stay REAL but fast.
+    _install_small_data_pilot(monkeypatch)
+    run_id = "r4-stage2-full-0001"
+    cache_root = tmp_path / "cache"
+
+    # 2. Real plan (pilot cache_keys) + manifest. _write_real_a_e1_run calls _plan_rows,
+    # which derives training/validation_cache_key from the patched pilot spec builders.
+    run_dir, plan = _write_real_a_e1_run(tmp_path, run_id=run_id)
+
+    # 3. Publish ONLY the F2 stage1 receipt (setup -- not the production scoring path).
+    # No stage2 receipt exists; build_a_e1_stage2_selection publishes it (no-replace).
+    fe.build_a_e1_stage1_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+        run_id=run_id, route="F2", score_fit=_smoke_score_fit())
+    # Sanity: stage2 receipt is NOT pre-published.
+    assert not (run_dir / "stage2_selection_F2_receipt.json").exists()
+
+    # 4. Recover F2 stage1 top4 (the authority each stage2 placeholder resolves against).
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan, matrix_by_fit=matrix_by_fit, module_id="A-E1")
+    f2_top4 = fe._recover_a_e1_stage1_selection(
+        run_dir=run_dir, run_id=run_id, route="F2")["top4"]
+    f2_stage2_fits = [fid for fid, row in matrix_by_fit.items()
+                      if str(row["module"]) == "A-E1"
+                      and str(row["fit_kind"]) == "search_stage2"
+                      and str(row["route"]) == "F2"]
+    assert f2_stage2_fits, "expected F2 stage2 fits in the frozen matrix"
+    assert len(f2_stage2_fits) == 36  # 4 top4 archs x 3 optimizers x 3 seeds
+
+    # 5. For each F2 stage2 fit: placeholder -> concrete arch (via real receipt resolver) ->
+    #    REAL _prepare_fit_inputs -> train small matching checkpoint -> _write_outputs.
+    # fixed_n-aware cache key (same as _arch_matched_fit_runner) reuses one checkpoint per
+    # resolved architecture (4 unique across 36 fits, all sharing fixed_n=10).
+    ckpt_cache: dict[tuple[str, str, object], tuple[bytes, str]] = {}
+    for fit_id in f2_stage2_fits:
+        resolved_row = fe._resolve_a_e1_scoring_plan_row(
+            run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit)
+        assert not str(resolved_row["architecture"]).startswith("selected_top_")
+        key = ("F2", str(resolved_row["architecture"]), resolved_row.get("fixed_n"))
+        if key not in ckpt_cache:
+            prepared = fe._prepare_fit_inputs(resolved_row, FROZEN, EFFECTIVE, cache_root)
+            ckpt_bytes, ckpt_sha, _ev = _train_checkpoint_through_prepared(
+                prepared, seed=resolved_row["seed"], run_id=run_id, fit_id=fit_id)
+            ckpt_cache[key] = (ckpt_bytes, ckpt_sha)
+        ckpt_bytes, ckpt_sha = ckpt_cache[key]
+        curve = tuple(100.0 / (i + 1) for i in range(60))
+        best_epoch = min(range(60), key=lambda i: curve[i])
+        evidence = {
+            "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id,
+            "run_id": run_id, "checkpoint_sha256": ckpt_sha,
+            "actual_epochs": 60, "best_epoch_one_based": best_epoch + 1, "hit_epoch_100": False,
+            "early_stop_reason": "patience_exhausted",
+            "terminal_validation_slope": fe._terminal_ols_slope(curve),
+            "validation_curve": list(curve), "test_access_count": 0,
+        }
+        fe._write_outputs(run_dir, fit_id, run_id, ckpt_bytes, ckpt_sha, evidence)
+
+    # 6. Stub _rebuild_authority (avoid O(N^2) scheduler replay); scientific scoring REAL.
+    _mock_rebuild_authority_all_succeeded(monkeypatch, plan)
+
+    # 7. Spy on _score_fit_from_checkpoint to capture which fits were scored (wraps the REAL
+    #    function -- the real forward scoring still runs; this only observes).
+    real_score_from_ckpt = fe._score_fit_from_checkpoint
+    scored_evaluations: dict[str, FitEvaluation] = {}
+
+    def _score_spy(**kwargs):
+        evaluation = real_score_from_ckpt(**kwargs)
+        scored_evaluations[str(kwargs["fit_id"])] = evaluation
+        return evaluation
+    monkeypatch.setattr(fe, "_score_fit_from_checkpoint", _score_spy)
+
+    # 8. PRODUCTION CALL: the original r4 crash entry, score_fit=None (no score_fit mock).
+    result = fe.build_a_e1_stage2_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+        run_id=run_id, route="F2", score_fit=None)
+
+    # (1) Every expected F2 stage2 fit was scored through the REAL forward path (the spy
+    #     captured all of them; the set is exactly the frozen support, no more, no less).
+    assert set(scored_evaluations) == set(f2_stage2_fits), (
+        f"scored {len(scored_evaluations)} fits, expected {len(f2_stage2_fits)}; "
+        f"missing={set(f2_stage2_fits) - set(scored_evaluations)}; "
+        f"extra={set(scored_evaluations) - set(f2_stage2_fits)}")
+    for fit_id, evaluation in scored_evaluations.items():
+        assert evaluation.failed is False
+        assert math.isfinite(float(evaluation.selection_score))
+        checkpoint_bytes = (run_dir / "outputs" / fit_id / "checkpoint.pt").read_bytes()
+        assert evaluation.checkpoint_sha256 == hashlib.sha256(checkpoint_bytes).hexdigest()
+        # the resolved architecture (recovered via _resolve_a_e1_scoring_plan_row) is concrete
+        resolved_arch = fe._resolve_a_e1_scoring_plan_row(
+            run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit)["architecture"]
+        assert not str(resolved_arch).startswith("selected_top_")
+
+    # (2) Winner selected:A-E1_architecture is concrete (not selected_top_*) and bound to
+    #     the recovered stage1 top4. selected_top_* would mean the placeholder leaked past
+    #     _resolve_a_e1_scoring_plan_row into resolve_model_factory (the r4 crash).
+    winner = result["winner"]
+    winner_arch = str(winner["selected:A-E1_architecture"])
+    assert not winner_arch.startswith("selected_top_"), (
+        f"winner architecture is still a placeholder: {winner_arch!r}")
+    assert winner_arch in set(f2_top4.values()), (
+        f"winner arch {winner_arch!r} not in recovered F2 top4 {dict(f2_top4)!r}")
+    assert winner["selected:A-E1_loss"] == "transformed_train_z_huber"  # frozen stage2 loss
+    assert str(winner["selected:A-E1_optimizer"]) in {"o1", "o2", "o3"}
+
+    # (3) The published stage2_selection_F2 trace/receipt/ledger re-validate via the
+    #     fail-closed _recover_a_e1_stage2_selection and return the SAME winner + trace sha.
+    trace_path = run_dir / "stage2_selection_F2_trace.jsonl"
+    receipt_path = run_dir / "stage2_selection_F2_receipt.json"
+    ledger_path = run_dir / "stage2_selection_F2_ledger.jsonl"
+    assert trace_path.is_file() and receipt_path.is_file() and ledger_path.is_file()
+    recovered = fe._recover_a_e1_stage2_selection(
+        run_dir=run_dir, run_id=run_id, route="F2", top4=f2_top4)
+    assert recovered["winner"] == winner
+    assert recovered["selection_trace_sha256"] == result["selection_trace_sha256"]
