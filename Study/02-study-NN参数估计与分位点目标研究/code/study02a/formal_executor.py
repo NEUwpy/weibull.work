@@ -1964,6 +1964,271 @@ def resolve_a_e1_staged_selection(
     }
 
 
+def resolve_a_e3_staged_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path,
+    module_id: str = "A-E3", run_id: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
+    predecessor: Mapping[str, Any] | PredecessorTrace | None = None,
+) -> dict[str, Any]:
+    """Production staged A-E3 resolver (D8/C4).
+
+    Derives every frozen A-E3 placeholder from the validated module selection trace +
+    the A-E1 predecessor binding through an immutable, hash-bound, append-only staged
+    ledger (``run_dir/staged_resolution_ledger.jsonl``). The caller supplies only the run
+    authority (``run_dir``) + frozen matrix; every placeholder is DERIVED from validated
+    evidence, never passed.
+
+    The 9-record canonical chain (section E) binds:
+      1. ``loss``              -> ``selected:A-E3_loss`` (loss-screen winner from the trace).
+      2. ``stage1:F2_or_V``    -> F2_or_V ``selected_top_1..4`` (architecture ranking).
+      3. ``stage2:F2_or_V``    -> ``selected:A-E3_{architecture,optimizer}`` (stage2 winner).
+      4. ``stage1:S``          -> S ``selected_top_1..4``.
+      5. ``stage2:S``          -> ``selected:S_{architecture,optimizer}``.
+      6. ``output_form``       -> ``selected:A-E3_baseline`` (joint vs independent winner).
+      7. ``shared_winner_retrain:S`` -> aliases (``selected:A-E3_loss`` + ``selected:S_*``).
+      8. ``baseline_route``    -> ``selected:F2_or_V`` = predecessor's resolved baseline route
+         (``V`` for the r5 design). Its input cryptographically binds the A-E1 predecessor's
+         ``selection_staged_ledger_sha256`` so A-E3 cannot rest on a swapped predecessor ledger.
+      9. ``final_aliases``     -> every published A-E3 alias (loss + F2_or_V arch/opt + S arch/opt
+         + baseline + F2_or_V route).
+
+    Every record's ``selection_trace_sha256`` binds the A-E3 final selection trace; the chain
+    threads ``previous_record_sha256`` from ``_ZERO_HASH``. The ledger is append-only and
+    crash-recoverable (mirrors A-E1): a recovery rerun recomputes each stage, reuses records
+    whose resolution matches, and fails closed on a conflicting duplicate. No real fit is
+    launched; no test role is opened (``test_access_count`` stays 0). ``score_fit`` /
+    ``predecessor`` are accepted for API symmetry; the authority is the validated final trace +
+    the run manifest's predecessor section (bound at materialize time).
+    """
+    study_root = Path(study_root).resolve()
+    run_dir = Path(run_dir).resolve()
+    cache_root = Path(cache_root).resolve()
+    _ = cache_root  # authority comes from the validated trace + manifest; cache is unused
+    if module_id != "A-E3":
+        raise NotImplementedError(
+            f"staged resolution of module {module_id!r} is not implemented; only A-E3"
+        )
+    pending_all = ["loss", "stage1", "stage2", "output_form",
+                   "shared_winner_retrain", "baseline_route", "final_aliases"]
+    if not (run_dir / "selection_trace.jsonl").exists():
+        return {
+            "module_id": module_id, "run_id": run_id,
+            "staged_ledger_path": str(_staged_ledger_path(run_dir)),
+            "selection_trace_sha256": None, "top4_by_token": {}, "stage2_by_token": {},
+            "selected_F2_or_V": None, "selected_baseline": None, "final_aliases": None,
+            "record_sha256": {}, "pending": pending_all,
+        }
+    frozen = load_frozen_config(study_root)
+    _ = frozen  # matrix-derived facts live in the validated trace; frozen is unused here
+    effective = load_effective_formal_config(study_root)
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    code_commit = str(manifest["code_commit"])
+    predecessor_section = manifest["predecessor"]
+    predecessor_staged_ledger_sha = str(predecessor_section["selection_staged_ledger_sha256"])
+    predecessor_resolved_route = str(predecessor_section["resolved_baseline_route"])
+    _require(
+        predecessor_resolved_route in {"F2", "V"},
+        f"manifest predecessor resolved_baseline_route must be 'F2' or 'V' "
+        f"(got {predecessor_resolved_route!r})")
+    receipt = json.loads((run_dir / "selection_receipt.json").read_text(encoding="utf-8"))
+    trace_sha = str(receipt["selection_trace_sha256"])
+    trace_records = _validate_selection_evidence(
+        selection_trace_path=run_dir / "selection_trace.jsonl",
+        selection_trace_sha256=trace_sha,
+        selection_receipt_path=run_dir / "selection_receipt.json",
+        selection_ledger_path=run_dir / "selection_ledger.jsonl",
+        module_id=module_id, run_id=run_id,
+    )
+    by_decision: dict[str, list[dict[str, Any]]] = {}
+    for record in trace_records:
+        by_decision.setdefault(record["decision_id"], []).append(record)
+
+    def _require_decision(decision_id: str) -> None:
+        _require(
+            decision_id in by_decision,
+            f"A-E3 selection trace is missing the decision {decision_id!r}")
+
+    def _winner(decision_id: str) -> dict[str, Any]:
+        records = by_decision[decision_id]
+        winner = next((r for r in records if r["selected"]), None)
+        _require(winner is not None, f"decision {decision_id!r} has no selected winner")
+        return winner
+
+    def _ranking(decision_id: str) -> list[dict[str, Any]]:
+        return sorted(
+            by_decision[decision_id],
+            key=lambda r: (float(r["validation_score"]), _tie_break_sort_key(r["tie_break_key"]),
+                           str(r["candidate_id"])))
+
+    # ``selection_trace_sha256`` (bound on every record) and ``previous_record_sha256`` (chained
+    # from _ZERO_HASH) are filled in by the _publish closure below. Idempotent reuse inside
+    # ``_append_stage_record`` walks the existing records in the same deterministic order, so a
+    # recovery rerun never reorders or re-chains an already-published ledger.
+    previous_sha = _ZERO_HASH
+    record_shas: dict[str, str] = {}
+    top4_by_token: dict[str, dict[str, str]] = {}
+    stage2_by_token: dict[str, dict[str, str]] = {}
+    stage_record_shas: dict[str, str] = {}
+
+    def _publish(stage: str, route: str | None, input_payload: Mapping[str, Any],
+                 resolution: Mapping[str, Any]) -> dict[str, Any]:
+        nonlocal previous_sha
+        record = _build_stage_record(
+            module_id=module_id, run_id=run_id, code_commit=code_commit,
+            effective_config_sha256=effective.effective_config_sha256,
+            selection_trace_sha256=trace_sha, stage=stage, route=route,
+            previous_record_sha256=previous_sha, input_payload=input_payload, resolution=resolution,
+        )
+        published = _append_stage_record(run_dir, record)
+        previous_sha = published["record_sha256"]
+        key = f"{stage}:{route if route else ''}"
+        record_shas[key] = published["record_sha256"]
+        stage_record_shas[key] = published["record_sha256"]
+        return published
+
+    # --- (1) loss -> selected:A-E3_loss ----------------------------------------
+    _require_decision(_A_E3_LOSS_DECISION_ID)
+    loss_winner = _winner(_A_E3_LOSS_DECISION_ID)
+    loss_id = str(loss_winner["candidate_id"])
+    loss_resolution = {"selected:A-E3_loss": loss_id}
+    loss_input = {
+        "decision_id": _A_E3_LOSS_DECISION_ID,
+        "winner_candidate_id": loss_id,
+        "winner_supporting_evidence_sha256": str(loss_winner["supporting_evidence_sha256"]),
+    }
+    loss_record = _publish("loss", None, loss_input, loss_resolution)
+
+    # --- (2-5) per-token stage1 (top4) + stage2 (winner) -----------------------
+    for token in (_A_E3_FV_TOKEN, _A_E3_S_TOKEN):
+        stage1_dec = _a_e3_stage1_decision_id(token)
+        stage2_dec = _a_e3_stage2_decision_id(token)
+        _require_decision(stage1_dec)
+        _require_decision(stage2_dec)
+        # Derive the token's top4 from the validated trace (same partial-trace discipline as
+        # the per-token stage1 builder; the staged ledger binds the FINAL trace, not the
+        # per-token partial receipts, but the rankings agree because both come from the same
+        # frozen matrix + scored fits).
+        stage1_records = _ranking(stage1_dec)
+        top4 = {
+            f"selected_top_{slot}": str(stage1_records[slot - 1]["candidate_id"])
+            for slot in range(1, min(5, len(stage1_records) + 1))
+        }
+        _require(
+            len(top4) == 4,
+            f"A-E3 stage1 decision {stage1_dec!r} must select exactly 4 architectures "
+            f"(got {len(top4)})")
+        top4_by_token[token] = top4
+        stage1_input = {
+            "decision_id": stage1_dec,
+            "ranking": [
+                {"candidate_id": str(r["candidate_id"]),
+                 "validation_score": float(r["validation_score"]),
+                 "selected": bool(r["selected"]),
+                 "supporting_evidence_sha256": str(r["supporting_evidence_sha256"])}
+                for r in stage1_records
+            ],
+        }
+        stage1_record = _publish("stage1", token, stage1_input, top4)
+
+        stage2_winner = _winner(stage2_dec)
+        arch_placeholder, optimizer = _parse_stage2_winner_candidate(
+            str(stage2_winner["candidate_id"]))
+        _require(
+            arch_placeholder in top4,
+            f"A-E3 stage2 winner slot {arch_placeholder!r} is outside the {token!r} top4")
+        architecture = top4[arch_placeholder]
+        arch_key, opt_key = _a_e3_stage2_winner_keys(token)
+        winner_resolution = {arch_key: architecture, opt_key: optimizer}
+        stage2_by_token[token] = winner_resolution
+        stage2_input = {
+            "decision_id": stage2_dec,
+            "winner_candidate_id": str(stage2_winner["candidate_id"]),
+            "winner_supporting_evidence_sha256": str(
+                stage2_winner["supporting_evidence_sha256"]),
+            "stage1_record_sha256": stage1_record["record_sha256"],
+            "resolved_top_slot": arch_placeholder,
+        }
+        _publish("stage2", token, stage2_input, winner_resolution)
+
+    # --- (6) output_form -> selected:A-E3_baseline -----------------------------
+    _require_decision(_A_E3_OUTPUT_FORM_DECISION_ID)
+    output_form_winner = _winner(_A_E3_OUTPUT_FORM_DECISION_ID)
+    baseline_alias = str(output_form_winner["candidate_id"])
+    output_form_resolution = {"selected:A-E3_baseline": baseline_alias}
+    output_form_input = {
+        "decision_id": _A_E3_OUTPUT_FORM_DECISION_ID,
+        "winner_candidate_id": baseline_alias,
+        "winner_supporting_evidence_sha256": str(
+            output_form_winner["supporting_evidence_sha256"]),
+    }
+    output_form_record = _publish("output_form", None, output_form_input, output_form_resolution)
+
+    # --- (7) shared_winner_retrain:S -> aliases (loss + S stage2 winner) -------
+    arch_key_s, opt_key_s = _a_e3_stage2_winner_keys(_A_E3_S_TOKEN)
+    s_winner = stage2_by_token[_A_E3_S_TOKEN]
+    shared_resolution = {
+        "selected:A-E3_loss": loss_id,
+        arch_key_s: s_winner[arch_key_s],
+        opt_key_s: s_winner[opt_key_s],
+    }
+    shared_input = {
+        "loss_record_sha256": loss_record["record_sha256"],
+        "stage2_S_record_sha256": stage_record_shas[f"stage2:{_A_E3_S_TOKEN}"],
+        "placeholder_fields": [
+            "selected:A-E3_loss", arch_key_s, opt_key_s],
+    }
+    _publish("shared_winner_retrain", _A_E3_S_TOKEN, shared_input, shared_resolution)
+
+    # --- (8) baseline_route -> selected:F2_or_V = predecessor resolved route ---
+    # Cryptographically binds the A-E1 predecessor's staged-ledger SHA: an A-E3 run cannot
+    # rest on a swapped A-E1 staged ledger because this record's input carries the verified
+    # SHA from the run manifest (validated at materialize time).
+    baseline_resolution = {"selected:F2_or_V": predecessor_resolved_route}
+    baseline_input = {
+        "predecessor_module_id": str(predecessor_section["module_id"]),
+        "predecessor_run_id": str(predecessor_section["run_id"]),
+        "predecessor_selection_trace_sha256": str(
+            predecessor_section["selection_trace_sha256"]),
+        "predecessor_staged_ledger_sha256": predecessor_staged_ledger_sha,
+        "predecessor_resolved_baseline_route": predecessor_resolved_route,
+    }
+    baseline_record = _publish("baseline_route", None, baseline_input, baseline_resolution)
+
+    # --- (9) final_aliases -> every published A-E3 alias -----------------------
+    arch_key_fv, opt_key_fv = _a_e3_stage2_winner_keys(_A_E3_FV_TOKEN)
+    fv_winner = stage2_by_token[_A_E3_FV_TOKEN]
+    final_aliases = {
+        "selected:A-E3_loss": loss_id,
+        arch_key_fv: fv_winner[arch_key_fv],
+        opt_key_fv: fv_winner[opt_key_fv],
+        arch_key_s: s_winner[arch_key_s],
+        opt_key_s: s_winner[opt_key_s],
+        "selected:A-E3_baseline": baseline_alias,
+        "selected:F2_or_V": predecessor_resolved_route,
+    }
+    final_input = {
+        "baseline_record_sha256": baseline_record["record_sha256"],
+        "loss_record_sha256": loss_record["record_sha256"],
+        "stage2_F2_or_V_record_sha256": stage_record_shas[f"stage2:{_A_E3_FV_TOKEN}"],
+        "stage2_S_record_sha256": stage_record_shas[f"stage2:{_A_E3_S_TOKEN}"],
+        "output_form_record_sha256": output_form_record["record_sha256"],
+    }
+    _publish("final_aliases", None, final_input, final_aliases)
+
+    return {
+        "module_id": module_id, "run_id": run_id,
+        "staged_ledger_path": str(_staged_ledger_path(run_dir)),
+        "selection_trace_sha256": trace_sha,
+        "top4_by_token": top4_by_token,
+        "stage2_by_token": stage2_by_token,
+        "selected_F2_or_V": predecessor_resolved_route,
+        "selected_baseline": baseline_alias,
+        "final_aliases": final_aliases,
+        "record_sha256": record_shas,
+        "pending": [],
+    }
+
+
 def _authoritative_matrix_by_fit(study_root: Path) -> dict[str, dict[str, str]]:
     """The single authoritative ``fit_id`` -> frozen matrix row map for staged execution.
 
@@ -3419,6 +3684,170 @@ def run_a_e1_staged(
     return result
 
 
+def run_a_e3_staged(
+    *, study_root: Path, module_id: str = "A-E3", run_id: str,
+    artifact_root: Path, cache_root: Path, owner_id: str = "formal-executor",
+    max_fits: int | None = None,
+    fit_runner: Callable[..., Mapping[str, Any]] | None = None,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
+    predecessor: Mapping[str, Any] | PredecessorTrace | None,
+) -> dict[str, Any]:
+    """Drive the real frozen A-E3 module through its staged execution (deadlock-free, crash-recoverable).
+
+    Mirrors :func:`run_a_e1_staged` for A-E3. Source of truth: a fit's stage
+    (``concrete`` / ``stage2`` / ``output_form`` / ``shared_winner_retrain``) is classified from its
+    AUTHORITATIVE frozen matrix row (looked up by ``fit_id``), never from ``plan.jsonl``. Before
+    any fit runs, the plan is validated against the matrix (exact ``fit_id`` correspondence +
+    per-row ``matrix_row_sha256`` binding), fail-closed on any mismatch. The A-E1 predecessor is
+    bound at ``materialize_run`` time: its trace/receipt/ledger/staged-ledger SHAs are verified
+    and ``resolved_baseline_route`` (V for the r5 design) is extracted, so every A-E3
+    ``selected:F2_or_V`` route placeholder resolves to a cryptographically bound value (not a
+    re-read).
+
+    Executes every fit in plan order via the existing scheduler journal (claim -> train ->
+    record). Concrete rows (``loss_screen`` / ``search_stage1``) run directly; ``search_stage2``
+    rows are concretized from the route token's stage1 top4 receipt; ``output_form`` rows from
+    the global loss receipt + the F2_or_V stage2 winner + the predecessor route;
+    ``shared_winner_retrain`` rows from the global loss receipt + the S stage2 winner. Each
+    prerequisite receipt is ENSURED, not rebuilt blindly: if it already exists it is re-validated
+    read-only (no re-scoring, no re-publish, no overwrite); otherwise it is published once its
+    stage's fits are terminal (plan ordering guarantees it). On restart, already-terminal fits
+    are not re-trained and staged state is recovered from the receipts on disk -- the in-memory
+    token dicts are only a within-pass cache. After every fit is terminal, the final module
+    selection trace + 9-record staged ledger are ensured (idempotent on restart).
+
+    Reuses the scheduler throughout (``materialize_run`` / ``claim_next_fit`` /
+    ``record_fit_succeeded`` / ``_rebuild_authority``) and the C2/C3 A-E3 helpers
+    (``_a_e3_fit_stage`` / ``_resolve_a_e3_scoring_plan_row`` / ``_ensure_a_e3_*`` /
+    ``build_a_e3_*``). No test read; test stays sealed; ``test_access_count`` stays 0.
+    """
+    if module_id != "A-E3":
+        raise NotImplementedError(
+            f"staged execution of module {module_id!r} is not implemented; only A-E3")
+    if predecessor is None:
+        raise ValueError("A-E3 staged execution requires a predecessor (A-E1 staged run)")
+    study_root = Path(study_root).resolve()
+    artifact_root = Path(artifact_root).resolve()
+    cache_root = Path(cache_root).resolve()
+    matrix_path = (study_root / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv").resolve()
+    # The scheduler's _validate_predecessor (C1) verifies the predecessor trace/receipt/ledger +
+    # staged-ledger SHA + chain, and extracts resolved_baseline_route, BEFORE any claim. A bad
+    # predecessor fails closed at materialize.
+    materialize_run(
+        study_root=study_root, matrix_path=matrix_path, module_id=module_id, run_id=run_id,
+        artifact_root=artifact_root, cache_root=cache_root, predecessor=predecessor)
+    run_dir = artifact_root / module_id / run_id
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id=module_id)
+    plan_order = [str(row["fit_id"]) for row in plan_rows]
+
+    # Resolve the predecessor route ONCE from the manifest (C1 binding). Every A-E3 fit's
+    # ``selected:F2_or_V`` placeholder resolves against this value, threaded through the
+    # scoring plan-row resolver.
+    predecessor_resolved_route = _a_e3_resolved_baseline_route_from_manifest(run_dir)
+
+    runner = fit_runner or execute_claimed_fit
+    # Per-token staged receipts are recovered from disk on every pass; these dicts are only a
+    # within-pass cache (disk is the source of truth, mirroring run_a_e1_staged).
+    stage1_by_token: dict[str, dict[str, Any]] = {}
+    stage2_by_token: dict[str, dict[str, Any]] = {}
+    loss_receipt: dict[str, Any] | None = None
+    succeeded: list[str] = []
+    failed: list[dict[str, str]] = []
+    consecutive_failures = 0
+    while max_fits is None or len(succeeded) < int(max_fits):
+        state = _rebuild_authority(run_dir, cache_root)[2]
+        pending = [fid for fid in plan_order if state["fit_states"].get(fid) == "pending"]
+        if not pending:
+            break
+        fit_id = pending[0]
+        matrix_row = matrix_by_fit[fit_id]
+        matrix_route = str(matrix_row["route"])
+        stage = _a_e3_fit_stage(matrix_row)
+        # Ensure the prerequisite stage receipt(s) BEFORE claiming, so the scoring plan-row
+        # resolver can recover the verified placeholders from disk. Plan order guarantees the
+        # prerequisite stage's fits are terminal at this point (deadlock-free staged authority).
+        if stage == "stage2":
+            token = _a_e3_route_token(matrix_route)
+            if token not in stage1_by_token:
+                stage1_by_token[token] = _ensure_a_e3_stage1_selection(
+                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+                    token=token, score_fit=score_fit)
+        elif stage == "output_form":
+            if loss_receipt is None:
+                loss_receipt = _ensure_a_e3_loss_selection(
+                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+                    score_fit=score_fit)
+            if _A_E3_FV_TOKEN not in stage2_by_token:
+                stage2_by_token[_A_E3_FV_TOKEN] = _ensure_a_e3_stage2_selection(
+                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+                    token=_A_E3_FV_TOKEN, score_fit=score_fit, stage1_by_token=stage1_by_token)
+        elif stage == "shared_winner_retrain":
+            if loss_receipt is None:
+                loss_receipt = _ensure_a_e3_loss_selection(
+                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+                    score_fit=score_fit)
+            if _A_E3_S_TOKEN not in stage2_by_token:
+                stage2_by_token[_A_E3_S_TOKEN] = _ensure_a_e3_stage2_selection(
+                    study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+                    token=_A_E3_S_TOKEN, score_fit=score_fit, stage1_by_token=stage1_by_token)
+        # Resolve the scoring row from on-disk verified evidence (the runner sees ONLY concrete
+        # fields; no placeholder reaches resolve_model_factory).
+        resolved = _resolve_a_e3_scoring_plan_row(
+            run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+            predecessor_resolved_route=predecessor_resolved_route)
+        timestamp = _utc_now()
+        claim = claim_next_fit(
+            run_dir, cache_root=cache_root, owner_id=owner_id,
+            owner_nonce=hashlib.sha256(f"{owner_id}:{timestamp}".encode("utf-8")).hexdigest()[:32],
+            timestamp=timestamp)
+        if claim.get("status") != "claimed":
+            break  # exhausted or monitor_only (another live owner); caller may retry
+        result = runner(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, plan_row=resolved,
+            claim=claim, frozen=frozen, effective=effective, timestamp=timestamp)
+        if result["state"] == "succeeded":
+            succeeded.append(fit_id)
+            consecutive_failures = 0
+        else:
+            failed.append({"fit_id": fit_id, "failure_code": result["failure_code"], "message": result["message"]})
+            consecutive_failures = _advance_consecutive_failures(
+                consecutive_failures, result["failure_code"], result["message"],
+                label="staged A-E3")
+
+    # The final module selection + 9-record staged ledger require EVERY fit terminal. A partial
+    # run (max_fits capped, or a smoke) skips them and returns the partial execution result; the
+    # full run ensures the final trace + staged ledger (idempotent on restart).
+    final_state = _rebuild_authority(run_dir, cache_root)[2]
+    pending_remaining = [fid for fid in plan_order if final_state["fit_states"].get(fid) == "pending"]
+    result: dict[str, Any] = {
+        "module_id": "A-E3", "run_id": run_id, "run_dir": str(run_dir),
+        "succeeded": succeeded, "failed": failed,
+        "succeeded_count": len(succeeded), "failed_count": len(failed),
+        "complete": not pending_remaining,
+        "stage1_by_token": {token: {"top4": receipt["top4"]}
+                            for token, receipt in stage1_by_token.items()},
+        "stage2_by_token": {token: {"winner": receipt["winner"]}
+                            for token, receipt in stage2_by_token.items()},
+    }
+    if not pending_remaining:
+        result["final_selection"] = _ensure_a_e3_final_selection(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+            score_fit=score_fit)
+        result["staged"] = resolve_a_e3_staged_selection(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E3",
+            run_id=run_id, score_fit=score_fit, predecessor=predecessor)
+    return result
+
+
 __all__ = [
     "build_a_e1_stage1_selection",
     "build_a_e1_stage2_selection",
@@ -3437,7 +3866,9 @@ __all__ = [
     "resolve_model_factory",
     "resolve_optimizer_hyperparams",
     "resolve_a_e1_staged_selection",
+    "resolve_a_e3_staged_selection",
     "resolve_selected_placeholders",
     "run_a_e1_staged",
+    "run_a_e3_staged",
     "run_module",
 ]

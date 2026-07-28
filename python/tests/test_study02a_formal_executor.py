@@ -2729,16 +2729,43 @@ def test_checkpoint_architecture_mismatch_fails_via_real_state_dict(tmp_path):
 def _train_checkpoint_through_prepared(prepared, *, seed, run_id, fit_id):
     """Train a real checkpoint THROUGH the prepared model_factory (so dims match the production
     scoring path) on a small subset of the real scaled dataset, and return the production
-    (checkpoint_bytes, checkpoint_sha256, evidence) triple."""
-    sub_n = min(32, int(prepared.scaled_training.batch.features.shape[0]))
-    sub_v = min(8, int(prepared.scaled_validation.batch.features.shape[0]))
-    warmup = fit_candidate(
-        prepared.model_factory,
-        (prepared.scaled_training.batch.features[:sub_n], prepared.scaled_training.batch.targets[:sub_n]),
-        (prepared.scaled_validation.batch.features[:sub_v], prepared.scaled_validation.batch.targets[:sub_v]),
-        seed=int(seed) % 1000, max_epochs=2, min_epochs=1, patience=1, batch_size=16,
-        loss_id=prepared.loss_id,
-    )
+    (checkpoint_bytes, checkpoint_sha256, evidence) triple.
+
+    Dispatches on the prepared batch type: fixed-width (MLP/F2/V routes) uses
+    :func:`fit_candidate`; set (DeepSets/S route) calls the private
+    ``_fit_deterministic_candidate`` directly with the set batch's
+    ``(values, mask, model_n)`` inputs and the DeepSets forward, so the checkpoint
+    architecture/dims match the production scoring path for the S route too."""
+    from study02a.training import _fit_deterministic_candidate
+    from study02a.formal_data import FormalSetBatch
+    train_batch = prepared.scaled_training.batch
+    val_batch = prepared.scaled_validation.batch
+    if isinstance(train_batch, FormalSetBatch):
+        sub_n = min(32, int(train_batch.values.shape[0]))
+        sub_v = min(8, int(val_batch.values.shape[0]))
+        val_values = val_batch.values[:sub_v]
+        val_mask = val_batch.mask[:sub_v]
+        val_model_n = val_batch.model_n[:sub_v]
+        warmup = _fit_deterministic_candidate(
+            prepared.model_factory,
+            (train_batch.values[:sub_n], train_batch.mask[:sub_n], train_batch.model_n[:sub_n]),
+            train_batch.targets[:sub_n],
+            val_batch.targets[:sub_v],
+            lambda model, inputs: model(inputs[0], inputs[1], inputs[2]),
+            lambda model: model(val_values, val_mask, val_model_n),
+            seed=int(seed) % 1000, max_epochs=2, min_epochs=1, patience=1, batch_size=16,
+            loss_id=prepared.loss_id, lr=1e-3, weight_decay=1e-4,
+        )
+    else:
+        sub_n = min(32, int(train_batch.features.shape[0]))
+        sub_v = min(8, int(val_batch.features.shape[0]))
+        warmup = fit_candidate(
+            prepared.model_factory,
+            (train_batch.features[:sub_n], train_batch.targets[:sub_n]),
+            (val_batch.features[:sub_v], val_batch.targets[:sub_v]),
+            seed=int(seed) % 1000, max_epochs=2, min_epochs=1, patience=1, batch_size=16,
+            loss_id=prepared.loss_id,
+        )
     curve = tuple(100.0 / (i + 1) for i in range(60))
     best_epoch = min(range(60), key=lambda i: curve[i])
     evidence = {
@@ -3965,10 +3992,12 @@ def _a_e3_staged_score_fit():
     return score_fit
 
 
-def _build_all_a_e3_staged_receipts(run_dir: Path, cache_root: Path, score_fit):
+def _build_all_a_e3_staged_receipts(
+    run_dir: Path, cache_root: Path, score_fit, *, run_id: str = _A_E3_STAGED_RUN_ID,
+):
     """Publish all 6 A-E3 staged receipts in A.1 order; returns a dict of the build results."""
     common = dict(study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
-                  run_id=_A_E3_STAGED_RUN_ID, score_fit=score_fit)
+                  run_id=run_id, score_fit=score_fit)
     loss = fe.build_a_e3_loss_selection(**common)
     s1_fv = fe.build_a_e3_stage1_selection(token=fe._A_E3_FV_TOKEN, **common)
     s2_fv = fe.build_a_e3_stage2_selection(token=fe._A_E3_FV_TOKEN, **common)
@@ -4189,3 +4218,317 @@ def test_g13_a_e3_recover_fail_closed_on_duplicate_ledger_binding(tmp_path):
         handle.write(binding_line + "\n")
     with pytest.raises(ValueError, match="exactly one binding"):
         _a_e3_recover("output_form", None, run_dir=run_dir)
+
+
+# ---------------------------------------------------------------------------
+# C4 A-E3 staged driver (run_a_e3_staged) + staged-ledger resolver
+# (resolve_a_e3_staged_selection). G.12 interrupt/idempotent re-entry,
+# G.14 publish -> rebuild provenance parity.
+#
+# Production-bound: real _prepare_fit_inputs + resolve_model_factory +
+# _score_fit_from_checkpoint over pilot data; the scheduler journal is bypassed
+# only at the output-staging layer (_stage_a_e3_staged_outputs writes outputs/
+# directly, mirroring _stage_arch_matched_a_e1_run); _rebuild_authority is
+# stubbed all-succeeded so the staged driver's loop sees every fit terminal and
+# proceeds to the final selection + 9-record staged ledger. The scientific
+# scoring path (checkpoint load + forward + L_param) runs REAL end-to-end.
+# ---------------------------------------------------------------------------
+
+
+def _stage_a_e3_staged_outputs(
+    tmp_path: Path, monkeypatch, *, run_id: str, predecessor,
+):
+    """Stage a REAL A-E3 run_dir with all 266 fits' outputs + the 6 staged receipts,
+    WITHOUT the O(N^2) scheduler claim/record loop.
+
+    Mirrors :func:`_stage_arch_matched_a_e1_run` for A-E3:
+      * ``materialize_run`` with the predecessor (real scheduler authority setup,
+        predecessor binding validated at materialize time).
+      * Publish the 6 staged receipts (loss / stage1_FV / stage2_FV / stage1_S /
+        stage2_S / output_form) via the deterministic ``_a_e3_staged_score_fit``.
+      * Train + write ``outputs/{fit_id}/`` for every fit through the REAL
+        ``_prepare_fit_inputs`` + ``resolve_model_factory`` + ``_write_outputs``.
+
+    Returns ``(run_dir, plan_rows)``. The caller should stub ``_rebuild_authority``
+    via ``_mock_rebuild_authority_all_succeeded`` before driving
+    ``run_a_e3_staged`` / ``rebuild_selection_point_provenance``.
+    """
+    _install_small_data_pilot(monkeypatch)
+    from study02a.formal_scheduler import materialize_run
+
+    # 1. Real scheduler authority setup with predecessor (C1 binding validated here).
+    matrix_path = (STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv").resolve()
+    materialize_run(
+        study_root=STUDY_ROOT, matrix_path=matrix_path, module_id="A-E3", run_id=run_id,
+        artifact_root=tmp_path / "artifact", cache_root=tmp_path / "cache", predecessor=predecessor)
+    run_dir = tmp_path / "artifact" / "A-E3" / run_id
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+
+    # 2. Publish the 6 staged receipts (deterministic score_fit, no checkpoint scoring,
+    #    no scheduler claim/record). Needed for placeholder resolution in step 4.
+    cache_root = tmp_path / "cache"
+    _build_all_a_e3_staged_receipts(run_dir, cache_root, _a_e3_staged_score_fit(), run_id=run_id)
+
+    # 3. Recover the predecessor-resolved route (V) from the manifest (C1 binding).
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    predecessor_resolved_route = fe._a_e3_resolved_baseline_route_from_manifest(run_dir)
+
+    # 4. Train + write outputs for every fit via the REAL _prepare_fit_inputs +
+    #    resolve_model_factory + _write_outputs. No claim/record -> no O(N^2) replay.
+    ckpt_cache: dict[tuple, tuple[bytes, str]] = {}
+    for plan_row in plan_rows:
+        fit_id = str(plan_row["fit_id"])
+        resolved = fe._resolve_a_e3_scoring_plan_row(
+            run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+            predecessor_resolved_route=predecessor_resolved_route)
+        # Same fixed_n-aware cache key as _arch_matched_fit_runner (input_dim depends on
+        # route + fixed_n; two fits with the same arch but different fixed_n are NOT
+        # interchangeable).
+        key = (str(resolved["route"]), str(resolved["architecture"]), resolved.get("fixed_n"))
+        if key not in ckpt_cache:
+            prepared = fe._prepare_fit_inputs(resolved, FROZEN, EFFECTIVE, cache_root, run_dir=run_dir)
+            ckpt_bytes, ckpt_sha, _ = _train_checkpoint_through_prepared(
+                prepared, seed=resolved["seed"], run_id=run_id, fit_id=fit_id)
+            ckpt_cache[key] = (ckpt_bytes, ckpt_sha)
+        ckpt_bytes, ckpt_sha = ckpt_cache[key]
+        curve = tuple(100.0 / (i + 1) for i in range(60))
+        best_epoch = min(range(60), key=lambda i: curve[i])
+        evidence = {
+            "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id,
+            "run_id": run_id, "checkpoint_sha256": ckpt_sha,
+            "actual_epochs": 60, "best_epoch_one_based": best_epoch + 1, "hit_epoch_100": False,
+            "early_stop_reason": "patience_exhausted",
+            "terminal_validation_slope": fe._terminal_ols_slope(curve),
+            "validation_curve": list(curve), "test_access_count": 0,
+        }
+        fe._write_outputs(run_dir, fit_id, run_id, ckpt_bytes, ckpt_sha, evidence)
+
+    return run_dir, plan_rows
+
+
+@pytest.mark.slow
+def test_g12_a_e3_staged_driver_idempotent_reentry(tmp_path, monkeypatch):
+    """G.12: run_a_e3_staged is crash-recoverable and idempotent on re-entry.
+
+    Production-bound: real _prepare_fit_inputs + resolve_model_factory +
+    _score_fit_from_checkpoint over pilot data; the scheduler claim/record loop is
+    bypassed only at output staging (all 266 outputs pre-written); _rebuild_authority
+    is stubbed all-succeeded so the loop sees no pending fits and proceeds to the
+    final selection + 9-record staged ledger.
+
+    Contract under test (the task's "interrupt/resume" idempotence guarantees):
+      1. ``run_a_e3_staged(max_fits=None)`` completes: all 266 fits terminal, the 6
+         per-stage receipts are ensured, the final module selection trace is published,
+         and the 9-record staged ledger chain (loss -> stage1_FV -> stage2_FV ->
+         stage1_S -> stage2_S -> output_form -> shared_winner_retrain -> baseline_route
+         -> final_aliases) is appended.
+      2. Re-entering ``run_a_e3_staged(max_fits=None)`` does NOT re-claim any fit, does
+         NOT re-publish any stage receipt (same selection_trace_sha256), and does NOT
+         duplicate or overwrite any staged-ledger record (exact-match reuse, no
+         conflicting duplicate).
+      3. The 9-record chain is hash-bound from _ZERO_HASH, every record binds the A-E3
+         final selection trace SHA, and the baseline_route record's input carries the
+         A-E1 predecessor's staged_ledger_sha256 (cryptographic binding).
+    """
+    import shutil as _shutil
+    status = __import__("subprocess").run(
+        ["git", "status", "--porcelain", "--", str((STUDY_ROOT / "code").relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True)
+    assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
+
+    artifact_root = tmp_path / "artifact"
+    # Publish the V-winning A-E1 predecessor UNDER the same artifact_root so the
+    # predecessor paths pass _predecessor_scope's artifact-root containment check.
+    pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = \
+        _publish_v_winning_a_e1_predecessor(artifact_root)
+    predecessor = _build_a_e1_pred_trace(pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)
+    run_id = "g12-ae3-0001"
+    run_dir, plan_rows = _stage_a_e3_staged_outputs(
+        tmp_path, monkeypatch, run_id=run_id, predecessor=predecessor)
+    _mock_rebuild_authority_all_succeeded(monkeypatch, plan_rows)
+
+    # Phase 1: complete the staged driver. The loop finds every fit terminal (stub) and
+    # ensures the final selection + staged ledger.
+    summary = fe.run_a_e3_staged(
+        study_root=STUDY_ROOT, run_id=run_id, artifact_root=artifact_root,
+        cache_root=tmp_path / "cache", predecessor=predecessor,
+        score_fit=_a_e3_staged_score_fit())
+    assert summary["complete"] is True
+    assert summary["module_id"] == "A-E3"
+    assert summary["succeeded_count"] == 0  # no new claims (every fit already terminal per stub)
+    assert summary["failed_count"] == 0
+    assert "final_selection" in summary and "staged" in summary
+
+    staged = summary["staged"]
+    assert staged["pending"] == []
+    assert staged["selected_F2_or_V"] == "V"  # predecessor-resolved route (r5 design)
+    assert set(staged["final_aliases"]) == {
+        "selected:A-E3_loss", "selected:A-E3_architecture", "selected:A-E3_optimizer",
+        "selected:S_architecture", "selected:S_optimizer",
+        "selected:A-E3_baseline", "selected:F2_or_V"}
+    assert staged["final_aliases"]["selected:F2_or_V"] == "V"
+
+    # Capture every artifact's SHA after the first pass.
+    final_trace_sha_1 = summary["final_selection"]["selection_trace_sha256"]
+    stage_receipt_shas_1 = {}
+    for name in ("loss", "output_form"):
+        stage_receipt_shas_1[name] = hashlib.sha256(
+            (run_dir / f"{name}_selection_receipt.json").read_bytes()).hexdigest()
+    for token in (fe._A_E3_FV_TOKEN, fe._A_E3_S_TOKEN):
+        for stage in ("stage1", "stage2"):
+            stage_receipt_shas_1[f"{stage}_{token}"] = hashlib.sha256(
+                (run_dir / f"{stage}_selection_{token}_receipt.json").read_bytes()).hexdigest()
+    staged_ledger_records_1 = _assert_chained_ledger(run_dir)
+    assert len(staged_ledger_records_1) == 9
+    # The 9-record chain follows the canonical A-E3 sequence (FC _STAGED_LEDGER_SEQUENCES).
+    canonical_stages = [(r["stage"], r.get("route")) for r in staged_ledger_records_1]
+    assert canonical_stages == [
+        ("loss", None),
+        ("stage1", "F2_or_V"), ("stage2", "F2_or_V"),
+        ("stage1", "S"), ("stage2", "S"),
+        ("output_form", None),
+        ("shared_winner_retrain", "S"),
+        ("baseline_route", None),
+        ("final_aliases", None),
+    ]
+    # The baseline_route record's input cryptographically binds the predecessor staged ledger SHA.
+    baseline_route_record = next(
+        r for r in staged_ledger_records_1 if r["stage"] == "baseline_route")
+    assert baseline_route_record["input"]["predecessor_staged_ledger_sha256"] == staged_ledger_sha
+    assert baseline_route_record["resolution"] == {"selected:F2_or_V": "V"}
+
+    # Phase 2: re-enter run_a_e3_staged. Nothing should be re-claimed or re-published.
+    summary_reentry = fe.run_a_e3_staged(
+        study_root=STUDY_ROOT, run_id=run_id, artifact_root=artifact_root,
+        cache_root=tmp_path / "cache", predecessor=predecessor,
+        score_fit=_a_e3_staged_score_fit())
+    assert summary_reentry["complete"] is True
+    assert summary_reentry["succeeded_count"] == 0
+    assert summary_reentry["final_selection"]["selection_trace_sha256"] == final_trace_sha_1
+    # Every stage receipt is byte-identical (ensure helpers re-validated, not republished).
+    for key, sha_1 in stage_receipt_shas_1.items():
+        if key in ("loss", "output_form"):
+            path = run_dir / f"{key}_selection_receipt.json"
+        else:
+            stage, token = key.split("_", 1)
+            path = run_dir / f"{stage}_selection_{token}_receipt.json"
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == sha_1, f"stage receipt {key!r} changed"
+    # The staged ledger is unchanged (idempotent exact-match reuse, no duplicate).
+    staged_ledger_records_2 = _assert_chained_ledger(run_dir)
+    assert len(staged_ledger_records_2) == 9
+    assert [r["record_sha256"] for r in staged_ledger_records_2] == \
+        [r["record_sha256"] for r in staged_ledger_records_1]
+    # The A-E1 predecessor artifacts are untouched (no cross-module tamper).
+    assert hashlib.sha256(staged_ledger_path.read_bytes()).hexdigest() == staged_ledger_sha
+
+
+@pytest.mark.slow
+def test_g14_a_e3_publish_and_rebuild_provenance(tmp_path, monkeypatch):
+    """G.14: publish (run_a_e3_staged -> build_module_selection) and rebuild
+    (rebuild_selection_point_provenance) -- both via the REAL production scoring path
+    (score_fit=None) -- produce identical concrete context for every A-E3 selection fit:
+    same resolved architecture/optimizer/loss (captured from _resolve_a_e3_scoring_plan_row),
+    same checkpoint_sha256 / validation_identity / selection_score. Mirrors the A-E1
+    publish/rebuild parity test for the A-E3 module.
+
+    Production-bound: real _prepare_fit_inputs + resolve_model_factory +
+    _score_fit_from_checkpoint over pilot data. No mock of score_fit /
+    resolve_model_factory / _prepare_fit_inputs.
+    """
+    status = __import__("subprocess").run(
+        ["git", "status", "--porcelain", "--", str((STUDY_ROOT / "code").relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True)
+    assert not status.stdout.strip(), "code/ must be clean for the scheduler authority check"
+
+    artifact_root = tmp_path / "artifact"
+    pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = \
+        _publish_v_winning_a_e1_predecessor(artifact_root)
+    predecessor = _build_a_e1_pred_trace(pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)
+    run_id = "g14-ae3-0001"
+    run_dir, plan_rows = _stage_a_e3_staged_outputs(
+        tmp_path, monkeypatch, run_id=run_id, predecessor=predecessor)
+    _apply_a_e1_test_overrides(monkeypatch, plan_rows)  # pilot + all-succeeded _rebuild_authority
+
+    real_resolve = fe._resolve_a_e3_scoring_plan_row
+    real_score = fe._score_fit_from_checkpoint
+    publish_resolutions: dict[str, dict[str, str]] = {}
+    publish_evals: dict[str, FitEvaluation] = {}
+    rebuild_resolutions: dict[str, dict[str, str]] = {}
+    rebuild_evals: dict[str, FitEvaluation] = {}
+
+    resolved_baseline_route = fe._a_e3_resolved_baseline_route_from_manifest(run_dir)
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+
+    def _make_resolve_spy(sink):
+        def spy(*, run_dir, run_id, fit_id, matrix_by_fit, plan_by_fit,
+                predecessor_resolved_route):
+            row = real_resolve(
+                run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+                matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+                predecessor_resolved_route=predecessor_resolved_route)
+            sink[str(fit_id)] = {
+                "route": str(row["route"]),
+                "architecture": str(row["architecture"]),
+                "optimizer": str(row["optimizer"]),
+                "loss": str(row["loss"])}
+            return row
+        return spy
+
+    def _make_score_spy(sink):
+        def spy(**kwargs):
+            evaluation = real_score(**kwargs)
+            sink[str(kwargs["fit_id"])] = evaluation
+            return evaluation
+        return spy
+
+    # Phase 1: publish via run_a_e3_staged (drives build_module_selection with score_fit=None
+    # for the final selection). Capture resolved rows + evaluations.
+    monkeypatch.setattr(fe, "_resolve_a_e3_scoring_plan_row", _make_resolve_spy(publish_resolutions))
+    monkeypatch.setattr(fe, "_score_fit_from_checkpoint", _make_score_spy(publish_evals))
+    fe.run_a_e3_staged(
+        study_root=STUDY_ROOT, run_id=run_id, artifact_root=artifact_root,
+        cache_root=tmp_path / "cache", predecessor=predecessor)
+    monkeypatch.undo()
+    _apply_a_e1_test_overrides(monkeypatch, plan_rows)
+
+    # Phase 2: rebuild via rebuild_selection_point_provenance (score_fit=None).
+    monkeypatch.setattr(fe, "_resolve_a_e3_scoring_plan_row", _make_resolve_spy(rebuild_resolutions))
+    monkeypatch.setattr(fe, "_score_fit_from_checkpoint", _make_score_spy(rebuild_evals))
+    rebuilt = fe.rebuild_selection_point_provenance(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        module_id="A-E3", run_id=run_id)
+    monkeypatch.undo()
+
+    # Every A-E3 selection fit (loss_screen + search_stage1 + search_stage2 + output_form)
+    # is scored on both paths and produces identical concrete context + evaluations.
+    selection_fits = [
+        fid for fid, row in matrix_by_fit.items()
+        if str(row["module"]) == "A-E3"
+        and str(row["fit_kind"]) in ("loss_screen", "search_stage1", "search_stage2", "output_form")
+    ]
+    assert selection_fits, "expected A-E3 selection fits in the frozen matrix"
+    assert len(selection_fits) == 256  # 12 loss + 72 stage1 + 72 stage2 + 100 output_form
+    assert set(publish_evals) == set(selection_fits)
+    assert set(rebuild_evals) == set(selection_fits)
+    for fit_id in selection_fits:
+        assert publish_resolutions[fit_id] == rebuild_resolutions[fit_id], (
+            f"resolved context drifted for A-E3 fit {fit_id}: "
+            f"publish={publish_resolutions[fit_id]} rebuild={rebuild_resolutions[fit_id]}")
+        # No placeholder reaches the scoring row on either path.
+        for field in ("architecture", "optimizer", "loss"):
+            assert not str(publish_resolutions[fit_id][field]).startswith(("selected:", "selected_top_"))
+        pe = publish_evals[fit_id]
+        re_ = rebuild_evals[fit_id]
+        assert pe.checkpoint_sha256 == re_.checkpoint_sha256
+        assert pe.validation_identity == re_.validation_identity
+        assert float(pe.selection_score) == pytest.approx(float(re_.selection_score))
+    # The rebuilt evaluations match the return value of rebuild_selection_point_provenance.
+    assert set(rebuilt) == set(selection_fits)
+
