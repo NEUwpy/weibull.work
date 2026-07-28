@@ -20,22 +20,199 @@ import run_E4_formal_validation as e4  # noqa: E402
 from config import STUDY_ROOT  # noqa: E402
 from p2_config import (  # noqa: E402
     OUTPUT_DIR_NAME,
+    P2_APPROVED_PARENT_COMMIT,
     P2_FORMAL_AUTHORIZED,
+    P2_TOTAL_COMBOS,
     REPEATS,
     SEED_NAMESPACE,
     build_p2_combos,
 )
 from run_p2_evaluate import (  # noqa: E402
+    apply_failure_contract,
     evaluate_baselines,
     load_p2_risk_data,
+    write_csv_atomic,
+    write_json_atomic,
 )
-from run_p2_generate import run_smoke as generate_smoke  # noqa: E402
+from run_p2_generate import (  # noqa: E402
+    _git,
+    _input_hashes,
+    _sha256_file,
+    _write_text_atomic,
+    run_smoke as generate_smoke,
+)
 
 P2_DIR = Path(STUDY_ROOT) / "artifacts" / "formal" / OUTPUT_DIR_NAME
 
 
 class P2VectorError(RuntimeError):
     """Fail-closed Vector-MLP error."""
+
+
+def _read_and_verify_sha256sums(root: Path) -> set[str]:
+    sums_path = root / "SHA256SUMS"
+    if not sums_path.is_file():
+        raise P2VectorError(f"missing SHA256SUMS: {root}")
+    entries: dict[str, str] = {}
+    for line in sums_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        parts = line.split(maxsplit=1)
+        if (
+            len(parts) != 2
+            or len(parts[0]) != 64
+            or any(ch not in "0123456789abcdef" for ch in parts[0].lower())
+        ):
+            raise P2VectorError(f"malformed SHA256SUMS line: {line[:80]}")
+        digest, relative = parts
+        relative = relative.strip()
+        relative_path = Path(relative)
+        if relative_path.is_absolute() or ".." in relative_path.parts:
+            raise P2VectorError(f"unsafe SHA256SUMS path: {relative}")
+        if relative in entries:
+            raise P2VectorError(f"duplicate SHA256SUMS entry: {relative}")
+        entries[relative] = digest
+    for relative, expected in entries.items():
+        path = root / relative
+        if not path.is_file() or _sha256_file(path) != expected:
+            raise P2VectorError(f"SHA256 mismatch or missing file: {relative}")
+    return set(entries)
+
+
+def validate_evaluation_preflight(
+    p2_dir: Path,
+    *,
+    formal: bool,
+) -> dict:
+    """Bind evaluation to the generation context, clean HEAD, and sealed inputs."""
+    p2_dir = p2_dir.resolve()
+    if formal:
+        if p2_dir != P2_DIR.resolve():
+            raise P2VectorError("formal evaluation must use the frozen P2 directory")
+        if not P2_FORMAL_AUTHORIZED:
+            raise P2VectorError("P2 formal evaluation is sealed")
+        if not P2_APPROVED_PARENT_COMMIT:
+            raise P2VectorError("approved parent commit is not bound")
+        if _git("rev-parse", "HEAD^") != P2_APPROVED_PARENT_COMMIT:
+            raise P2VectorError(
+                "evaluation HEAD is not the direct child of the approved parent"
+            )
+    context_path = p2_dir / "run_context.json"
+    manifest_path = p2_dir / "manifest.json"
+    if not context_path.is_file() or not manifest_path.is_file():
+        raise P2VectorError("generation context or manifest missing")
+    context = json.loads(context_path.read_text(encoding="utf-8"))
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    head = _git("rev-parse", "HEAD")
+    if _git("status", "--porcelain"):
+        raise P2VectorError("worktree must be fully clean before evaluation")
+    if context.get("generation_commit") != head:
+        raise P2VectorError("evaluation HEAD differs from generation commit")
+    if context.get("input_hashes") != _input_hashes():
+        raise P2VectorError("evaluation input code/config hashes changed")
+    if manifest.get("generation_commit") != head:
+        raise P2VectorError("manifest generation commit mismatch")
+    if context.get("approved_parent_commit", "") != P2_APPROVED_PARENT_COMMIT:
+        raise P2VectorError("generation approved-parent binding mismatch")
+    expected_combos = P2_TOTAL_COMBOS if formal else int(
+        manifest.get("combo_counts", {}).get("total", -1)
+    )
+    if int(manifest.get("combo_counts", {}).get("total", -1)) != expected_combos:
+        raise P2VectorError("generation combo count mismatch")
+    chunk_paths = {
+        f"chunks/{item['path']}" for item in manifest.get("chunks", [])
+    }
+    expected_generation = {
+        "run_context.json",
+        "progress.json",
+        "manifest.json",
+        *chunk_paths,
+    }
+    sealed = _read_and_verify_sha256sums(p2_dir)
+    if sealed != expected_generation:
+        raise P2VectorError("generation SHA256SUMS exact file set mismatch")
+    actual = {
+        path.relative_to(p2_dir).as_posix()
+        for path in p2_dir.rglob("*")
+        if path.is_file()
+    }
+    if actual != expected_generation | {"SHA256SUMS"}:
+        raise P2VectorError("unknown, stale, or partial file in generation directory")
+    return {"context": context, "manifest": manifest, "sealed": sorted(sealed)}
+
+
+def _seal_complete_outputs(root: Path, expected_relative: set[str]) -> None:
+    actual = {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and path.resolve() != (root / "SHA256SUMS").resolve()
+    }
+    if actual != expected_relative:
+        missing = sorted(expected_relative - actual)
+        extra = sorted(actual - expected_relative)
+        raise P2VectorError(
+            f"final output set mismatch; missing={missing}, extra={extra}"
+        )
+    lines = [
+        f"{_sha256_file(root / relative)}  {relative}"
+        for relative in sorted(expected_relative)
+    ]
+    _write_text_atomic(root / "SHA256SUMS", "\n".join(lines) + "\n")
+    if _read_and_verify_sha256sums(root) != expected_relative:
+        raise P2VectorError("final SHA256 seal verification failed")
+
+
+def write_complete_evaluation(
+    output_dir: Path,
+    rows: pd.DataFrame,
+    model_summary: pd.DataFrame,
+    baseline_rows: pd.DataFrame,
+    summary: dict,
+    *,
+    generation_root: Path | None = None,
+) -> None:
+    """Atomically write all evaluation products, then seal their exact file set."""
+    output_dir = output_dir.resolve()
+    generation_root = (
+        output_dir if generation_root is None else generation_root.resolve()
+    )
+    generation_files = {
+        path.relative_to(output_dir).as_posix()
+        for path in generation_root.rglob("*")
+        if path.is_file() and path.name != "SHA256SUMS"
+    }
+    if generation_root != output_dir:
+        generation_files.add(
+            (generation_root / "SHA256SUMS").relative_to(output_dir).as_posix()
+        )
+    names = {
+        "p2_vector_per_sample.csv",
+        "p2_vector_model_summary.csv",
+        "p2_baseline_per_sample.csv",
+        "p2_evaluation_summary.json",
+    }
+    existing = {
+        path.relative_to(output_dir).as_posix()
+        for path in output_dir.rglob("*")
+        if path.is_file()
+        and path.resolve() != (output_dir / "SHA256SUMS").resolve()
+    }
+    if existing != generation_files:
+        raise P2VectorError("pre-write output set mismatch")
+    for name in names:
+        if (output_dir / name).exists():
+            raise P2VectorError(f"refusing to overwrite evaluation output: {name}")
+    write_csv_atomic(output_dir / "p2_vector_per_sample.csv", rows)
+    write_csv_atomic(output_dir / "p2_vector_model_summary.csv", model_summary)
+    write_csv_atomic(output_dir / "p2_baseline_per_sample.csv", baseline_rows)
+    summary = dict(summary)
+    summary["final_seal"] = {
+        "generation_commit": _git("rev-parse", "HEAD"),
+        "approved_parent_commit": P2_APPROVED_PARENT_COMMIT,
+        "files_excluding_SHA256SUMS": len(generation_files | names),
+    }
+    write_json_atomic(output_dir / "p2_evaluation_summary.json", summary)
+    _seal_complete_outputs(output_dir, generation_files | names)
 
 
 def production_contract() -> dict:
@@ -255,6 +432,7 @@ def _track_rows(
             row["sample_sha256"] = hash_lookup.loc[key]
             row["track"] = track
             row["model"] = "Vector-MLP-L6"
+            row["failure_penalty"] = penalty
             realized = realized_lookup.get(
                 (
                     float(row["beta"]),
@@ -264,22 +442,18 @@ def _track_rows(
                     float(row["selected_delta"]),
                 )
             )
-            row["failed"] = (
-                realized is None
-                or getattr(realized, "status", "") != "success"
-                or not np.isfinite(getattr(realized, "loss", np.nan))
-            )
             if realized is None:
-                row["failure_reason"] = "missing_selected_delta"
-            elif row["failed"]:
-                row["failure_reason"] = (
-                    str(getattr(realized, "failure_reason", ""))
-                    or "non_finite_realized_loss"
+                resolved = apply_failure_contract(
+                    None, "failed", "missing_selected_delta", penalty
                 )
             else:
-                row["failure_reason"] = ""
-            if row["failed"]:
-                row["true_loss"] = penalty
+                resolved = apply_failure_contract(
+                    getattr(realized, "loss", np.nan),
+                    getattr(realized, "status", ""),
+                    getattr(realized, "failure_reason", ""),
+                    penalty,
+                )
+            row.update(resolved)
         rows.extend(evaluated)
     return rows
 
@@ -398,6 +572,7 @@ def run_smoke(output_dir: Path) -> dict:
     output_dir.mkdir(parents=True, exist_ok=False)
     generation_dir = output_dir / "generation"
     generate_smoke(generation_dir)
+    validate_evaluation_preflight(generation_dir, formal=False)
     risk = load_p2_risk_data(
         p2_dir=generation_dir,
         combos=build_p2_combos()[:1],
@@ -409,13 +584,17 @@ def run_smoke(output_dir: Path) -> dict:
         seeds=e4.STABILITY_SEEDS[:1],
         run_reproduction_gate=False,
     )
-    baselines, baseline_summary = evaluate_baselines(risk)
-    rows.to_csv(output_dir / "vector_per_sample.csv", index=False)
-    model_summary.to_csv(output_dir / "vector_model_summary.csv", index=False)
-    baselines.to_csv(output_dir / "baseline_per_sample.csv", index=False)
+    baselines, baseline_summary = evaluate_baselines(
+        risk, summary["training_receipts"]
+    )
     summary["baseline_summary"] = baseline_summary
-    (output_dir / "summary.json").write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    write_complete_evaluation(
+        output_dir,
+        rows,
+        model_summary,
+        baselines,
+        summary,
+        generation_root=generation_dir,
     )
     return {
         "vector_rows": len(rows),
@@ -439,17 +618,21 @@ def main() -> int:
         raise P2VectorError(
             "P2 formal evaluation is sealed; request exact-commit authorization"
         )
+    validate_evaluation_preflight(P2_DIR, formal=True)
     risk = load_p2_risk_data()
     rows, model_summary, summary = run_vector_evaluation(
         risk, run_reproduction_gate=True
     )
-    baseline_rows, baseline_summary = evaluate_baselines(risk)
-    rows.to_csv(P2_DIR / "p2_vector_per_sample.csv", index=False)
-    model_summary.to_csv(P2_DIR / "p2_vector_model_summary.csv", index=False)
-    baseline_rows.to_csv(P2_DIR / "p2_baseline_per_sample.csv", index=False)
+    baseline_rows, baseline_summary = evaluate_baselines(
+        risk, summary["training_receipts"]
+    )
     summary["baseline_summary"] = baseline_summary
-    (P2_DIR / "p2_evaluation_summary.json").write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    write_complete_evaluation(
+        P2_DIR,
+        rows,
+        model_summary,
+        baseline_rows,
+        summary,
     )
     return 0
 

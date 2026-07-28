@@ -74,6 +74,18 @@ def _verify_sums(sums_path, expected_count, resolve_dir=None):
 # ============================================================
 print("=== P0.1 Manifest SHA256 ===")
 for path in sorted(ARTIFACT.rglob("manifest*.json"), key=lambda p: str(p)):
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("valid_evidence") is False:
+        if payload.get("status") != "INVALID_NONDETERMINISTIC_SEED":
+            integrity_fail(
+                f"{path.relative_to(ARTIFACT)} has unrecognized invalid status"
+            )
+        else:
+            print(
+                f"  {path.relative_to(ARTIFACT)}: "
+                "INVALID_NONDETERMINISTIC_SEED (excluded from evidence)"
+            )
+        continue
     print(f"  {path.relative_to(ARTIFACT)}: {_sha256(path)}")
 
 # ============================================================

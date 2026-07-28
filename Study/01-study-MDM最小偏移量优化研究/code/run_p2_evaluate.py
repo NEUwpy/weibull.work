@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import os
@@ -33,6 +32,36 @@ class P2EvaluationError(RuntimeError):
     """Fail-closed evaluation error."""
 
 
+def apply_failure_contract(
+    loss: float | None,
+    status: str,
+    failure_reason: str,
+    failure_penalty: float,
+) -> dict:
+    """Apply the single P2 per-model failure contract used by every method."""
+    if not np.isfinite(failure_penalty) or failure_penalty < 0:
+        raise P2EvaluationError("failure_penalty must be finite and non-negative")
+    numeric_loss = float(loss) if loss is not None else np.nan
+    reason = (
+        "" if failure_reason is None or pd.isna(failure_reason)
+        else str(failure_reason)
+    )
+    status_value = "" if status is None or pd.isna(status) else str(status)
+    failed = (
+        status_value != "success"
+        or not np.isfinite(numeric_loss)
+        or bool(reason)
+    )
+    if failed and not reason:
+        reason = "missing_or_non_finite_loss"
+    return {
+        "failed": bool(failed),
+        "failure_reason": reason,
+        "true_loss_complete_case": numeric_loss if not failed else np.nan,
+        "true_loss": failure_penalty if failed else numeric_loss,
+    }
+
+
 def load_p2_risk_data(
     p2_dir: Path = P2_DIR,
     combos: list[tuple[str, float, float, int]] | None = None,
@@ -60,8 +89,6 @@ def evaluate_fixed_delta(
     failure_penalty: float,
 ) -> pd.DataFrame:
     """Return one realized-loss row per P2 sample."""
-    if not np.isfinite(failure_penalty) or failure_penalty < 0:
-        raise P2EvaluationError("failure_penalty must be finite and non-negative")
     sample_keys = [
         "track",
         "combo_id",
@@ -83,18 +110,18 @@ def evaluate_fixed_delta(
         how="left",
         validate="one_to_one",
     )
-    failed = (
-        rows["loss"].isna()
-        | rows["status"].ne("success")
-        | rows["failure_reason"].fillna("").astype(str).str.len().gt(0)
+    resolved = rows.apply(
+        lambda row: apply_failure_contract(
+            row.get("loss"),
+            row.get("status", ""),
+            row.get("failure_reason", ""),
+            failure_penalty,
+        ),
+        axis=1,
+        result_type="expand",
     )
-    rows["failed"] = failed
-    rows["failure_reason"] = rows["failure_reason"].fillna("")
-    rows.loc[rows["loss"].isna(), "failure_reason"] = rows.loc[
-        rows["loss"].isna(), "failure_reason"
-    ].replace("", "missing_or_non_finite_loss")
-    rows["true_loss_complete_case"] = rows["loss"]
-    rows["true_loss"] = rows["loss"].where(~failed, failure_penalty)
+    for column in resolved.columns:
+        rows[column] = resolved[column]
     rows["selected_delta"] = float(delta)
     rows["model"] = model
     return rows
@@ -108,54 +135,89 @@ def summarize_rows(rows: pd.DataFrame) -> dict:
     if missing:
         raise P2EvaluationError(f"summary missing columns: {missing}")
     records = []
-    for (track, model), group in rows.groupby(["track", "model"], sort=True):
+    grouping = ["track", "model"]
+    if {"fold", "seed"}.issubset(rows.columns):
+        grouping.extend(["fold", "seed"])
+    for keys, group in rows.groupby(grouping, sort=True):
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        identity = dict(zip(grouping, keys))
         complete = group.loc[~group["failed"], "true_loss_complete_case"].dropna()
-        records.append(
-            {
-                "track": track,
-                "model": model,
-                "n_samples": int(len(group)),
-                "n_failed": int(group["failed"].sum()),
-                "failure_rate": float(group["failed"].mean()),
-                "pooled_J1": math.sqrt(float(group["true_loss"].mean())),
-                "complete_case_J1": (
-                    math.sqrt(float(complete.mean())) if len(complete) else None
-                ),
-            }
-        )
+        record = {
+            **identity,
+            "n_samples": int(len(group)),
+            "n_failed": int(group["failed"].sum()),
+            "failure_rate": float(group["failed"].mean()),
+            "pooled_J1": math.sqrt(float(group["true_loss"].mean())),
+            "complete_case_J1": (
+                math.sqrt(float(complete.mean())) if len(complete) else None
+            ),
+        }
+        if "seed" in record:
+            record["seed"] = int(record["seed"])
+        records.append(record)
     return {"rows": records}
 
 
 def evaluate_baselines(
-    risk_data: pd.DataFrame, failure_penalty: float = 1.0
+    risk_data: pd.DataFrame,
+    model_penalties: list[dict],
 ) -> tuple[pd.DataFrame, dict]:
-    rows = pd.concat(
-        [
-            evaluate_fixed_delta(
-                risk_data, DEFAULT_DELTA, "Default", failure_penalty
-            ),
-            evaluate_fixed_delta(risk_data, L1_DELTA, "L1", failure_penalty),
-        ],
-        ignore_index=True,
-    )
+    if not model_penalties:
+        raise P2EvaluationError("model_penalties must contain fold/seed receipts")
+    blocks = []
+    seen = set()
+    for receipt in model_penalties:
+        fold = str(receipt["fold"])
+        seed = int(receipt["seed"])
+        penalty = float(receipt["failure_penalty"])
+        identity = (fold, seed)
+        if identity in seen:
+            raise P2EvaluationError(f"duplicate model penalty: {identity}")
+        seen.add(identity)
+        for delta, model in ((DEFAULT_DELTA, "Default"), (L1_DELTA, "L1")):
+            block = evaluate_fixed_delta(
+                risk_data, delta, model, penalty
+            )
+            block["fold"] = fold
+            block["seed"] = seed
+            block["failure_penalty"] = penalty
+            blocks.append(block)
+    rows = pd.concat(blocks, ignore_index=True)
     return rows, summarize_rows(rows)
 
 
-def _write_json_atomic(path: Path, value: dict) -> None:
+def write_json_atomic(path: Path, value: dict) -> None:
     temp = path.with_suffix(path.suffix + ".tmp")
-    temp.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.replace(temp, path)
+    if temp.exists():
+        raise P2EvaluationError(f"stale partial file exists: {temp}")
+    try:
+        temp.write_text(
+            json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        os.replace(temp, path)
+    finally:
+        if temp.exists():
+            temp.unlink()
+
+
+def write_csv_atomic(path: Path, frame: pd.DataFrame) -> None:
+    temp = path.with_suffix(path.suffix + ".tmp")
+    if temp.exists():
+        raise P2EvaluationError(f"stale partial file exists: {temp}")
+    try:
+        frame.to_csv(temp, index=False)
+        os.replace(temp, path)
+    finally:
+        if temp.exists():
+            temp.unlink()
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--failure-penalty", type=float, default=1.0)
-    args = parser.parse_args()
-    data = load_p2_risk_data()
-    rows, summary = evaluate_baselines(data, args.failure_penalty)
-    rows.to_csv(P2_DIR / "p2_baseline_per_sample.csv", index=False)
-    _write_json_atomic(P2_DIR / "p2_baseline_summary.json", summary)
-    return 0
+    raise P2EvaluationError(
+        "standalone baseline evaluation is disabled; use "
+        "run_p2_vector_mlp.py so all methods share per-model P99 penalties"
+    )
 
 
 if __name__ == "__main__":

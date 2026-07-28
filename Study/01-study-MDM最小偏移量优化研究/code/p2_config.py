@@ -31,6 +31,7 @@ INVALID_V1_OUTPUT_DIR_NAME = "extended_validation/p2_generalization"
 
 # Formal execution remains sealed until Codex binds an exact clean commit.
 P2_FORMAL_AUTHORIZED = False
+P2_APPROVED_PARENT_COMMIT = ""
 P2_RUN_ID = "study01-p2-v2"
 
 # Vector-MLP reconstruction

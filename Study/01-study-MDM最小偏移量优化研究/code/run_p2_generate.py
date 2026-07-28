@@ -28,6 +28,7 @@ from p2_config import (  # noqa: E402
     DELTA_GRID,
     ETA,
     OUTPUT_DIR_NAME,
+    P2_APPROVED_PARENT_COMMIT,
     P2_FORMAL_AUTHORIZED,
     P2_RUN_ID,
     P2_TOTAL_COMBOS,
@@ -80,6 +81,25 @@ def _now_iso() -> str:
 
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_text_atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_suffix(path.suffix + ".tmp")
+    if temp.exists():
+        raise P2GenerationError(f"stale partial file exists: {temp}")
+    try:
+        temp.write_text(text, encoding="utf-8")
+        os.replace(temp, path)
+    finally:
+        if temp.exists():
+            temp.unlink()
+
+
+def _write_json_atomic(path: Path, value: dict) -> None:
+    _write_text_atomic(
+        path, json.dumps(value, ensure_ascii=False, indent=2)
+    )
 
 
 def _sample_sha256(sample: np.ndarray) -> str:
@@ -289,6 +309,8 @@ def _input_hashes() -> dict[str, str]:
     paths = {
         "p2_config": CODE_DIR / "p2_config.py",
         "generator": Path(__file__),
+        "baseline_evaluator": CODE_DIR / "run_p2_evaluate.py",
+        "vector_evaluator": CODE_DIR / "run_p2_vector_mlp.py",
         "mdm": Path(PLATFORM_ROOT) / "methods" / "mdm.py",
         "sample": Path(PLATFORM_ROOT) / "studies" / "common" / "sample.py",
         "e4_production": CODE_DIR / "run_E4_formal_validation.py",
@@ -312,6 +334,7 @@ def _new_run_context(command: list[str]) -> dict:
     return {
         "run_id": P2_RUN_ID,
         "generation_commit": _git("rev-parse", "HEAD"),
+        "approved_parent_commit": P2_APPROVED_PARENT_COMMIT,
         "exact_command": command,
         "started_at": _now_iso(),
         "worktree_dirty_before": False,
@@ -340,24 +363,49 @@ def _load_or_create_context(output_dir: Path, command: list[str]) -> dict:
         )
     output_dir.mkdir(parents=True, exist_ok=True)
     context = _new_run_context(command)
-    context_path.write_text(
-        json.dumps(context, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    _write_json_atomic(context_path, context)
     return context
+
+
+def _assert_smoke_output_safe(output_dir: Path) -> None:
+    resolved = output_dir.resolve()
+    formal = FORMAL_DIR.resolve()
+    project = PROJECT_ROOT.resolve()
+    if (
+        resolved == formal
+        or formal in resolved.parents
+        or resolved in formal.parents
+        or resolved == project
+        or project in resolved.parents
+    ):
+        raise P2GenerationError(
+            "smoke output must be outside the repository and formal output tree"
+        )
 
 
 def run_generation(
     output_dir: Path = FORMAL_DIR,
     combos: list[tuple[str, float, float, int]] | None = None,
     repeats: int = REPEATS,
-    require_authorization: bool = True,
+    smoke: bool = False,
     command: list[str] | None = None,
 ) -> list[dict]:
     """Generate or resume validated chunks."""
-    if require_authorization and not P2_FORMAL_AUTHORIZED:
-        raise P2GenerationError(
-            "P2 formal execution is sealed; request exact-commit authorization"
-        )
+    if smoke:
+        _assert_smoke_output_safe(output_dir)
+    else:
+        if output_dir.resolve() != FORMAL_DIR.resolve():
+            raise P2GenerationError("formal generation must use the frozen formal directory")
+        if not P2_FORMAL_AUTHORIZED:
+            raise P2GenerationError(
+                "P2 formal execution is sealed; request exact-commit authorization"
+            )
+        if not P2_APPROVED_PARENT_COMMIT:
+            raise P2GenerationError("approved parent commit is not bound")
+        if _git("rev-parse", "HEAD^") != P2_APPROVED_PARENT_COMMIT:
+            raise P2GenerationError(
+                "formal execution HEAD is not the direct child of the approved parent"
+            )
     combos = list(build_p2_combos() if combos is None else combos)
     command = list(sys.argv if command is None else command)
     context = _load_or_create_context(output_dir, command)
@@ -397,9 +445,7 @@ def run_generation(
             "completed": receipts,
             "updated_at": _now_iso(),
         }
-        progress_path.write_text(
-            json.dumps(progress, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        _write_json_atomic(progress_path, progress)
     return receipts
 
 
@@ -436,27 +482,24 @@ def seal_outputs(
         "chunks": receipts,
     }
     manifest_path = output_dir / "manifest.json"
-    manifest_path.write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    _write_json_atomic(manifest_path, manifest)
     paths = [output_dir / "run_context.json", output_dir / "progress.json", manifest_path]
     paths.extend(output_dir / "chunks" / r["path"] for r in receipts)
     lines = [
         f"{_sha256_file(path)}  {path.relative_to(output_dir).as_posix()}"
         for path in sorted(paths)
     ]
-    (output_dir / "SHA256SUMS").write_text(
-        "\n".join(lines) + "\n", encoding="utf-8"
-    )
+    _write_text_atomic(output_dir / "SHA256SUMS", "\n".join(lines) + "\n")
     return manifest
 
 
 def run_smoke(output_dir: Path) -> dict:
+    _assert_smoke_output_safe(output_dir)
     receipts = run_generation(
         output_dir=output_dir,
         combos=build_p2_combos()[:1],
         repeats=2,
-        require_authorization=False,
+        smoke=True,
         command=["run_p2_generate.py", "--smoke", str(output_dir)],
     )
     return seal_outputs(output_dir, receipts, expected_combos=1, repeats=2)
