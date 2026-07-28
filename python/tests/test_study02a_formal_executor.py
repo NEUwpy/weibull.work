@@ -3638,3 +3638,245 @@ def test_c1_validate_staged_resolution_ledger_accepts_a_e3_nine_record_chain(tmp
     # And the full _validate_predecessor path accepts it as an A-E2 predecessor binding.
     # (Synthesizing a complete A-E3 selection trace/receipt/ledger is C4-C5 scope; the FC
     # validator's acceptance of the staged ledger alone is the C1 control-plane contract.)
+
+
+# ---------------------------------------------------------------------------
+# C2 A-E3 fit-stage classifier + scoring plan-row resolver + reconstruct +
+# dispatch. The concrete branch + route resolution is fully wired here; the
+# stage2 / output_form / shared_winner_retrain branches call _recover_a_e3_*
+# (C3 stubs that raise NotImplementedError) -- tested separately.
+# ---------------------------------------------------------------------------
+
+
+def _real_a_e3_plan_rows(
+    tmp_path: Path, predecessor_trace_sha: str, *,
+    run_id: str = "G3-AE3-staged-exec-v1", code_commit: str = _D8_CODE_COMMIT,
+) -> list[dict]:
+    """Build the REAL A-E3 plan.jsonl rows (the frozen _PLAN_FIELDS schema, NO fit_kind) via the
+    scheduler's own _plan_rows, bound to a verified A-E1 predecessor trace SHA.
+
+    Mirrors :func:`_real_a_e1_plan_rows`; the predecessor trace SHA threads through the
+    deferred-dataset-v1 cache key exactly as the scheduler does at materialize time."""
+    from study02a.formal_scheduler import _plan_rows, _PLAN_FIELDS
+    matrix_str = [{key: str(value) for key, value in row.items()}
+                  for row in MATRIX_ROWS if str(row["module"]) == "A-E3"]
+    plan = _plan_rows(STUDY_ROOT, matrix_str, "A-E3", run_id, tmp_path / "cache", code_commit,
+                      predecessor_trace_sha)
+    assert all(set(row) == _PLAN_FIELDS for row in plan) and not any("fit_kind" in row for row in plan)
+    return plan
+
+
+def test_a_e3_fit_stage_classifies_every_fit_kind_from_the_matrix():
+    """C2 _a_e3_fit_stage: the four A-E3 stages are classified from the authoritative matrix
+    fit_kind (never from plan.jsonl, which omits it). Route is NOT used to classify."""
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    ae3 = {fid: row for fid, row in matrix_by_fit.items() if str(row["module"]) == "A-E3"}
+    assert len(ae3) == 266
+    by_stage: dict[str, list[str]] = {}
+    for fid, row in ae3.items():
+        by_stage.setdefault(fe._a_e3_fit_stage(row), []).append(fid)
+    # The four stages of section A.1, classified by fit_kind alone.
+    assert set(by_stage) == {"concrete", "stage2", "output_form", "shared_winner_retrain"}
+    # concrete: loss_screen (12) + search_stage1 F2_or_V (36) + search_stage1 S (36) = 84
+    assert len(by_stage["concrete"]) == 84
+    # stage2: F2_or_V (36) + S (36) = 72
+    assert len(by_stage["stage2"]) == 72
+    # output_form: joint (50) + independent_capacity_matched (50) = 100
+    assert len(by_stage["output_form"]) == 100
+    # shared_winner_retrain: 10
+    assert len(by_stage["shared_winner_retrain"]) == 10
+    # Sanity: every concrete row has a concrete architecture (no selected:/selected_top_ prefix).
+    for fid in by_stage["concrete"]:
+        arch = str(ae3[fid]["architecture"])
+        assert not arch.startswith(("selected:", "selected_top_")), f"{fid}: {arch}"
+
+
+@pytest.mark.parametrize("placeholder,resolved,expected", [
+    ("selected:F2_or_V", "V", "V"),
+    ("selected:F2_or_V", "F2", "F2"),
+    ("selected:F2_or_V:joint", "V", "V:joint"),
+    ("selected:F2_or_V:independent_capacity_matched", "V", "V:independent_capacity_matched"),
+    ("S", "V", "S"),
+    ("S", "F2", "S"),
+])
+def test_a_e3_resolve_scoring_route_and_stem(placeholder, resolved, expected):
+    """C2 route resolution: the scoring row preserves the :output_form suffix; the dataset-spec
+    stem strips it (Flag K.1). S is always S."""
+    assert fe._a_e3_resolve_scoring_route(placeholder, resolved) == expected
+    stem = expected.split(":")[0]
+    assert fe._a_e3_resolved_route_stem(placeholder, resolved) == stem
+    # The token is the safe filename segment derived from the route stem.
+    if placeholder == "S":
+        assert fe._a_e3_route_token(placeholder) == "S"
+    else:
+        assert fe._a_e3_route_token(placeholder) == "F2_or_V"
+
+
+def test_resolve_a_e3_scoring_plan_row_parses_concrete_route_from_real_a_e1_trace(tmp_path):
+    """G.9: a concrete A-E3 fit's scoring row resolves the route placeholder to V (parsed from a
+    real A-E1 staged predecessor via _validate_predecessor), with concrete arch/opt/loss, for
+    BOTH the F2_or_V route stem (resolves to V) and the S route stem (stays S). No placeholder
+    reaches the runner. No real r5 dir is read."""
+    from study02a import formal_contracts as fc
+    # Publish a real A-E1 staged run with V as the baseline winner.
+    pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    trace = _build_a_e1_pred_trace(pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)
+    predecessor_manifest = fc._validate_predecessor("A-E3", trace)
+    assert predecessor_manifest["resolved_baseline_route"] == "V"
+    resolved_baseline_route = predecessor_manifest["resolved_baseline_route"]
+
+    # Build the REAL A-E3 plan (predecessor_trace_sha256 = the verified A-E1 trace SHA).
+    plan_rows = _real_a_e3_plan_rows(tmp_path, trace_sha)
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    ae3_run_dir = tmp_path / "A-E3" / "G3-AE3-staged-exec-v1"  # unused for the concrete branch
+
+    # (1) F2_or_V concrete fits (loss_screen + search_stage1) resolve route -> V.
+    fv_concrete = next(
+        fid for fid, row in matrix_by_fit.items()
+        if str(row["module"]) == "A-E3" and fe._a_e3_fit_stage(row) == "concrete"
+        and str(row["route"]) == "selected:F2_or_V")
+    resolved = fe._resolve_a_e3_scoring_plan_row(
+        run_dir=ae3_run_dir, run_id="G3-AE3-staged-exec-v1", fit_id=fv_concrete,
+        matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+        predecessor_resolved_route=resolved_baseline_route)
+    assert resolved["route"] == "V"
+    assert not str(resolved["architecture"]).startswith(("selected:", "selected_top_"))
+    assert not str(resolved["optimizer"]).startswith("selected:")
+    assert not str(resolved["loss"]).startswith("selected:")
+    # The plan row is otherwise unchanged (only the route was resolved).
+    fv_original = dict(plan_by_fit[fv_concrete])
+    for key in ("architecture", "optimizer", "loss", "seed", "training_size", "distribution"):
+        assert resolved[key] == fv_original[key]
+
+    # (2) S concrete fits (search_stage1) keep route = S.
+    s_concrete = next(
+        fid for fid, row in matrix_by_fit.items()
+        if str(row["module"]) == "A-E3" and fe._a_e3_fit_stage(row) == "concrete"
+        and str(row["route"]) == "S")
+    resolved_s = fe._resolve_a_e3_scoring_plan_row(
+        run_dir=ae3_run_dir, run_id="G3-AE3-staged-exec-v1", fit_id=s_concrete,
+        matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+        predecessor_resolved_route=resolved_baseline_route)
+    assert resolved_s["route"] == "S"
+    assert not str(resolved_s["architecture"]).startswith(("selected:", "selected_top_"))
+
+
+def test_resolve_a_e3_scoring_plan_row_fail_closed_on_unbound_plan_or_matrix(tmp_path):
+    """G.9 negative: the resolver fail-closes on a fit_id absent from the plan/matrix, an unbound
+    matrix_row_sha256, or a route that disagrees with the matrix (mirrors the A-E1 fail-closed
+    contract)."""
+    pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    plan_rows = _real_a_e3_plan_rows(tmp_path, trace_sha)
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    ae3_run_dir = tmp_path / "A-E3" / "G3-AE3-staged-exec-v1"
+    concrete = next(
+        fid for fid, row in matrix_by_fit.items()
+        if str(row["module"]) == "A-E3" and fe._a_e3_fit_stage(row) == "concrete")
+
+    # Absent fit_id.
+    with pytest.raises(ValueError, match="not in the validated plan"):
+        fe._resolve_a_e3_scoring_plan_row(
+            run_dir=ae3_run_dir, run_id="r", fit_id="G3-fit-9999",
+            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+            predecessor_resolved_route="V")
+
+    # Unbound matrix_row_sha256.
+    tampered_plan = dict(plan_by_fit)
+    tampered_row = dict(plan_by_fit[concrete])
+    tampered_row["matrix_row_sha256"] = "0" * 64
+    tampered_plan[concrete] = tampered_row
+    with pytest.raises(ValueError, match="matrix_row_sha256"):
+        fe._resolve_a_e3_scoring_plan_row(
+            run_dir=ae3_run_dir, run_id="r", fit_id=concrete,
+            matrix_by_fit=matrix_by_fit, plan_by_fit=tampered_plan,
+            predecessor_resolved_route="V")
+
+    # Route disagrees with matrix.
+    tampered_plan2 = dict(plan_by_fit)
+    tampered_row2 = dict(plan_by_fit[concrete])
+    tampered_row2["route"] = "S"  # matrix route is selected:F2_or_V
+    tampered_plan2[concrete] = tampered_row2
+    with pytest.raises(ValueError, match="disagrees with matrix route"):
+        fe._resolve_a_e3_scoring_plan_row(
+            run_dir=ae3_run_dir, run_id="r", fit_id=concrete,
+            matrix_by_fit=matrix_by_fit, plan_by_fit=tampered_plan2,
+            predecessor_resolved_route="V")
+
+
+@pytest.mark.parametrize("stage_kind", ["search_stage2", "output_form", "shared_winner_retrain"])
+def test_resolve_a_e3_scoring_plan_row_non_concrete_branches_are_c3_stubs(tmp_path, stage_kind):
+    """C2 staging: the stage2 / output_form / shared_winner_retrain branches call _recover_a_e3_*
+    (C3 stubs that raise NotImplementedError) so no placeholder silently passes. C3 replaces the
+    stubs with real receipt readers."""
+    pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    plan_rows = _real_a_e3_plan_rows(tmp_path, trace_sha)
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    ae3_run_dir = tmp_path / "A-E3" / "G3-AE3-staged-exec-v1"
+    fit_id = next(
+        fid for fid, row in matrix_by_fit.items()
+        if str(row["module"]) == "A-E3" and str(row["fit_kind"]) == stage_kind)
+    with pytest.raises(NotImplementedError, match="C3"):
+        fe._resolve_a_e3_scoring_plan_row(
+            run_dir=ae3_run_dir, run_id="r", fit_id=fit_id,
+            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+            predecessor_resolved_route="V")
+
+
+def test_a_e3_placeholder_never_reaches_runner_backstop():
+    """G.11: the resolve_model_factory / resolve_optimizer_hyperparams / resolve_loss_id guards
+    are the final fail-closed backstop -- any selected: / selected_top_ placeholder that escapes
+    the resolver raises NotImplementedError before any model is built. Direct backstop test."""
+    # Architecture placeholders.
+    with pytest.raises(NotImplementedError, match="selection-trace resolution"):
+        fe.resolve_model_factory("selected_top_1", FROZEN, 15)
+    with pytest.raises(NotImplementedError, match="selection-trace resolution"):
+        fe.resolve_model_factory("selected:A-E3_architecture", FROZEN, 15)
+    with pytest.raises(NotImplementedError, match="selection-trace resolution"):
+        fe.resolve_model_factory("selected:S_architecture", FROZEN, 15)
+    # Optimizer placeholder.
+    with pytest.raises(NotImplementedError, match="selection-trace resolution"):
+        fe.resolve_optimizer_hyperparams("selected:A-E3_optimizer", FROZEN)
+    # Loss placeholder.
+    with pytest.raises(NotImplementedError, match="selection-trace resolution"):
+        fe.resolve_loss_id("selected:A-E3_loss")
+
+
+def test_reconstruct_a_e3_specs_builds_concrete_specs_with_resolved_route(tmp_path):
+    """C2 reconstruct_a_e3_specs: the concrete dataset spec uses the RESOLVED route stem (V) and
+    transparently reuses the A-E1 V cache entry; the deferred cache key (placeholder route) is
+    validated against the plan row via reconstruct_deferred_specs. No r5 dir read."""
+    from study02a import formal_contracts as fc
+    pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    trace = _build_a_e1_pred_trace(pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)
+    fc._validate_predecessor("A-E3", trace)  # asserts the predecessor binding is valid
+
+    plan_rows = _real_a_e3_plan_rows(tmp_path, trace_sha)
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    # A concrete F2_or_V fit: deferred cache key uses selected:F2_or_V, concrete spec uses V.
+    concrete = next(
+        fid for fid, row in matrix_by_fit.items()
+        if str(row["module"]) == "A-E3" and fe._a_e3_fit_stage(row) == "concrete"
+        and str(row["route"]) == "selected:F2_or_V")
+    original_row = plan_by_fit[concrete]
+    training, validation = fe.reconstruct_a_e3_specs(
+        original_row, FROZEN, EFFECTIVE, trace, "V")
+    # Concrete spec route is V (not the placeholder); cache key differs from the deferred plan key.
+    assert training.route == "V"
+    assert validation.route == "V"
+    assert training.cache_key != original_row["training_cache_key"]
+    # An S concrete fit: concrete spec route is S, same as the (concrete) matrix route.
+    s_concrete = next(
+        fid for fid, row in matrix_by_fit.items()
+        if str(row["module"]) == "A-E3" and fe._a_e3_fit_stage(row) == "concrete"
+        and str(row["route"]) == "S")
+    s_training, _ = fe.reconstruct_a_e3_specs(
+        plan_by_fit[s_concrete], FROZEN, EFFECTIVE, trace, "S")
+    assert s_training.route == "S"
