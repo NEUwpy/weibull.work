@@ -85,6 +85,37 @@ def _write_rows(path: Path, rows):
         writer.writerows(rows)
 
 
+def _fake_generation_package(root: Path) -> None:
+    (root / "chunks").mkdir(parents=True)
+    files = {
+        "run_context.json": {
+            "generation_commit": "abc123",
+            "approved_parent_commit": "",
+            "input_hashes": {"fixture": "hash"},
+        },
+        "progress.json": {"completed": [{"combo_id": "fixture"}]},
+        "manifest.json": {
+            "generation_commit": "abc123",
+            "combo_counts": {"total": 1},
+            "chunks": [{"path": "fixture.csv"}],
+        },
+    }
+    for name, payload in files.items():
+        (root / name).write_text(json.dumps(payload), encoding="utf-8")
+    (root / "chunks" / "fixture.csv").write_text("x\n1\n", encoding="utf-8")
+    relative_files = [
+        "run_context.json",
+        "progress.json",
+        "manifest.json",
+        "chunks/fixture.csv",
+    ]
+    lines = [
+        f"{hashlib.sha256((root / name).read_bytes()).hexdigest()}  {name}"
+        for name in relative_files
+    ]
+    (root / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 class TestJ1:
     def test_formula_has_no_divide_by_three(self):
         loss = cfg.compute_j1_squared(2.5, 2.0, 1.5, 1.0, 0.8, 0.5)
@@ -173,7 +204,7 @@ class TestOutputProtection:
     def test_formal_generation_is_sealed(self):
         assert cfg.P2_FORMAL_AUTHORIZED is False
         with pytest.raises(generator.P2GenerationError, match="sealed"):
-            generator.run_generation(combos=[], require_authorization=True)
+            generator.run_generation(combos=[])
 
     def test_nonempty_output_without_context_is_rejected(self, tmp_path):
         (tmp_path / "foreign.txt").write_text("x", encoding="utf-8")
@@ -182,7 +213,29 @@ class TestOutputProtection:
                 output_dir=tmp_path,
                 combos=[],
                 repeats=1,
-                require_authorization=False,
+                smoke=True,
+            )
+
+    @pytest.mark.parametrize(
+        "unsafe",
+        [
+            generator.FORMAL_DIR,
+            generator.FORMAL_DIR / "nested",
+            generator.FORMAL_DIR.parent,
+            generator.PROJECT_ROOT / "p2-smoke",
+        ],
+    )
+    def test_smoke_cannot_target_formal_or_repository_paths(self, unsafe):
+        with pytest.raises(generator.P2GenerationError, match="outside"):
+            generator.run_smoke(unsafe)
+
+    def test_internal_smoke_flag_cannot_bypass_formal_directory(self):
+        with pytest.raises(generator.P2GenerationError, match="outside"):
+            generator.run_generation(
+                output_dir=generator.FORMAL_DIR,
+                combos=[],
+                repeats=1,
+                smoke=True,
             )
 
 
@@ -200,6 +253,156 @@ class TestFailureContract:
         assert rows.iloc[0]["failed"]
         assert rows.iloc[0]["true_loss"] == 7.0
         assert rows.iloc[0]["failure_reason"] == "synthetic_failure"
+
+    def test_all_methods_share_each_model_penalty(self):
+        risk = pd.DataFrame(_valid_rows(repeats=1))
+        for delta in (cfg.DEFAULT_DELTA, cfg.L1_DELTA):
+            mask = np.isclose(risk["delta"], delta)
+            risk.loc[mask, "status"] = "failed"
+            risk.loc[mask, "failure_reason"] = "synthetic_failure"
+            risk.loc[mask, ["beta_hat", "eta_hat", "gamma_hat"]] = np.nan
+        risk = e4.compute_loss(risk)
+        receipts = [
+            {"fold": "combo_fold_1", "seed": 42, "failure_penalty": 2.5},
+            {"fold": "combo_fold_2", "seed": 2026, "failure_penalty": 7.0},
+        ]
+        rows, summary = evaluator.evaluate_baselines(risk, receipts)
+        assert len(rows) == 4
+        for (fold, seed), group in rows.groupby(["fold", "seed"]):
+            expected = next(
+                item["failure_penalty"]
+                for item in receipts
+                if item["fold"] == fold and item["seed"] == seed
+            )
+            assert set(group["true_loss"]) == {expected}
+            assert set(group["failure_penalty"]) == {expected}
+            assert group["failed"].all()
+        assert len(summary["rows"]) == 4
+
+    def test_shared_failure_resolver_matches_vector_contract(self):
+        resolved = evaluator.apply_failure_contract(
+            np.nan, "failed", "synthetic_failure", 3.25
+        )
+        assert resolved["failed"] is True
+        assert resolved["failure_reason"] == "synthetic_failure"
+        assert np.isnan(resolved["true_loss_complete_case"])
+        assert resolved["true_loss"] == 3.25
+        source = (CODE_DIR / "run_p2_vector_mlp.py").read_text(encoding="utf-8")
+        assert "apply_failure_contract(" in source
+        assert 'row["true_loss"] = penalty' not in source
+
+
+class TestEvaluationSeal:
+    def test_evaluation_preflight_binds_context_hashes_and_exact_files(
+        self, tmp_path, monkeypatch
+    ):
+        _fake_generation_package(tmp_path)
+        monkeypatch.setattr(
+            vector,
+            "_git",
+            lambda *args: "" if args == ("status", "--porcelain") else "abc123",
+        )
+        monkeypatch.setattr(
+            vector, "_input_hashes", lambda: {"fixture": "hash"}
+        )
+        receipt = vector.validate_evaluation_preflight(tmp_path, formal=False)
+        assert receipt["context"]["generation_commit"] == "abc123"
+        assert len(receipt["sealed"]) == 4
+
+    @pytest.mark.parametrize("mutation", ["context", "hash", "extra"])
+    def test_evaluation_preflight_rejects_drift(
+        self, tmp_path, monkeypatch, mutation
+    ):
+        _fake_generation_package(tmp_path)
+        monkeypatch.setattr(
+            vector,
+            "_git",
+            lambda *args: "" if args == ("status", "--porcelain") else "abc123",
+        )
+        monkeypatch.setattr(
+            vector, "_input_hashes", lambda: {"fixture": "hash"}
+        )
+        if mutation == "context":
+            context = json.loads(
+                (tmp_path / "run_context.json").read_text(encoding="utf-8")
+            )
+            context["generation_commit"] = "drift"
+            (tmp_path / "run_context.json").write_text(
+                json.dumps(context), encoding="utf-8"
+            )
+        elif mutation == "hash":
+            (tmp_path / "chunks" / "fixture.csv").write_text(
+                "corrupt", encoding="utf-8"
+            )
+        else:
+            (tmp_path / "foreign.bin").write_bytes(b"x")
+        with pytest.raises(vector.P2VectorError):
+            vector.validate_evaluation_preflight(tmp_path, formal=False)
+
+    def test_complete_outputs_are_atomic_and_fully_sealed(
+        self, tmp_path, monkeypatch
+    ):
+        generation = tmp_path / "generation"
+        generation.mkdir()
+        (generation / "manifest.json").write_text("{}", encoding="utf-8")
+        digest = hashlib.sha256(
+            (generation / "manifest.json").read_bytes()
+        ).hexdigest()
+        (generation / "SHA256SUMS").write_text(
+            f"{digest}  manifest.json\n", encoding="utf-8"
+        )
+        monkeypatch.setattr(vector, "_git", lambda *args: "abc123")
+        frame = pd.DataFrame([{"x": 1}])
+        vector.write_complete_evaluation(
+            tmp_path,
+            frame,
+            frame,
+            frame,
+            {"ok": True},
+            generation_root=generation,
+        )
+        sealed = vector._read_and_verify_sha256sums(tmp_path)
+        assert sealed == {
+            "generation/manifest.json",
+            "generation/SHA256SUMS",
+            "p2_vector_per_sample.csv",
+            "p2_vector_model_summary.csv",
+            "p2_baseline_per_sample.csv",
+            "p2_evaluation_summary.json",
+        }
+        assert not list(tmp_path.rglob("*.tmp"))
+
+    def test_unknown_output_blocks_final_seal(self, tmp_path, monkeypatch):
+        generation = tmp_path / "generation"
+        generation.mkdir()
+        (generation / "manifest.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "foreign.txt").write_text("x", encoding="utf-8")
+        monkeypatch.setattr(vector, "_git", lambda *args: "abc123")
+        frame = pd.DataFrame([{"x": 1}])
+        with pytest.raises(vector.P2VectorError, match="output set mismatch"):
+            vector.write_complete_evaluation(
+                tmp_path,
+                frame,
+                frame,
+                frame,
+                {"ok": True},
+                generation_root=generation,
+            )
+
+
+class TestInvalidV1Tombstone:
+    def test_v1_manifests_are_machine_readable_invalid(self):
+        invalid_dir = (
+            CODE_DIR.parent
+            / "artifacts"
+            / "formal"
+            / cfg.INVALID_V1_OUTPUT_DIR_NAME
+        )
+        for name in ("manifest.json", "evaluation_manifest.json"):
+            payload = json.loads((invalid_dir / name).read_text(encoding="utf-8"))
+            assert payload["status"] == "INVALID_NONDETERMINISTIC_SEED"
+            assert payload["valid_evidence"] is False
+            assert payload["replacement_run_id"] == cfg.P2_RUN_ID
 
 
 class TestProductionContract:
