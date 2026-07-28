@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：截至代码 checkpoint `1bdd9906e87b53cd0cd1ad81bcfbb8ed8197a5a1`，R12 准备工作已经收口。A-E1 formal r3 曾在授权 commit `39d630507128706286b103717eb2717ccdeb4666` 上完成 3 个 fit，随后因无关 Study01 merge 推进本地 HEAD 而触发 authority drift，现与旧 r1/r2 一并永久 `blocked/aborted`，产物仅作失败现场保留、不得续跑或拼接。下一步是在稳定 formal 分支的最终 clean commit 上重新申请全新 r4 授权并从零启动；test 继续 sealed。准备收口和失败 run 均不产生 Study/02 研究结论，19 个前置研究问题仍等待全新 formal evidence。
+**Study/02 当前态**：A-E1 formal r5 已在授权 commit 上 APPROVE 并 frozen 为 A-E3 的 predecessor（V 路获胜、8-record staged ledger 已绑定）。A-E3 orchestration r1 代码就绪：`formal-execute --module A-E3` 与 `formal-staged --module A-E3` 已接通真实 `run_a_e3_staged` / `resolve_a_e3_staged_selection`，predecessor 绑定（含 staged_ledger SHA）、6 staged receipts、`build_module_selection(A-E3)` checkpoint-forward 评分、9-record staged ledger 与 A-E2 predecessor 校验均在 sealed smoke 中端到端跑通。**但 A-E3 formal 尚未授权**：未申请、未启动真实 A-E3/A-E2 formal run，未进入 approval / unseal / consume / 9d / G4。test 继续 sealed，19 个前置研究问题仍等待 formal evidence。
 
 **Study/01 当前态**：正式实验与证据链已经闭环，E1–E4、R1–R3/P6–P8 均完成；Figures 1–9、Supplementary Figures S1–S8、五部分论文技术稿、补充材料及 fail-closed 稿件审计已完成。现已在独立论文项目文件夹启动面向可靠性/计算方法国际期刊的中文学术源稿，下一步是完善文献对话并冻结正文，再确定具体期刊、作者、基金与 CRediT，完成英文和期刊格式适配。连续参数空间训练、多数据集验证和 $\delta>1.00$ 探索属于后续独立研究，不阻塞当前论文。
 

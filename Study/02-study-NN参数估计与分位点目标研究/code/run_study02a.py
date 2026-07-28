@@ -26,9 +26,11 @@ from study02a.pilot import run_pilot
 from study02a.formal_scheduler import claim_next_fit, materialize_run, status_run
 from study02a.formal_executor import (
     run_a_e1_staged,
+    run_a_e3_staged,
     run_module as run_formal_module,
     reconstruct_deferred_specs,
     resolve_a_e1_staged_selection,
+    resolve_a_e3_staged_selection,
 )
 from study02a.formal_contracts import PredecessorTrace, _PUBLISHES_STAGED_LEDGER
 from study02a.formal_config import load_effective_formal_config
@@ -108,6 +110,46 @@ def accredit_authorize(
     )
 
 
+def _build_predecessor_trace(
+    artifact_root: Path, predecessor_module: str, predecessor_run_id: str,
+) -> PredecessorTrace:
+    """Build a PredecessorTrace from a predecessor run's on-disk artifacts.
+
+    Reads the predecessor's selection_trace/receipt/ledger + manifest code_commit +
+    staged_resolution_ledger SHA (when the predecessor module publishes one, per
+    ``_PUBLISHES_STAGED_LEDGER``). Mirrors the assembly historically embedded in
+    ``resolve_deferred``; reused by the formal-execute A-E3 arm so the predecessor binding
+    is byte-identical across CLI entry points. The staged-ledger SHA is the control-plane v2
+    binding: a downstream run rests on a predecessor file that cannot be swapped after the
+    downstream plan is built. If the staged ledger file is missing, the fields stay ``None``
+    and ``_validate_predecessor`` fail-closes later (preserving the strict-order contract: a
+    wrong-order predecessor still raises "Wrong predecessor module" first).
+    """
+    pred_dir = Path(artifact_root) / predecessor_module / predecessor_run_id
+    receipt_path = pred_dir / "selection_receipt.json"
+    receipt_bytes = receipt_path.read_bytes()
+    receipt = json.loads(receipt_bytes.decode("utf-8"))
+    pred_manifest = json.loads((pred_dir / "manifest.json").read_text(encoding="utf-8"))
+    staged_ledger_path: Path | None = None
+    staged_ledger_sha256: str | None = None
+    if predecessor_module in _PUBLISHES_STAGED_LEDGER:
+        conventional = pred_dir / "staged_resolution_ledger.jsonl"
+        if conventional.is_file():
+            staged_ledger_path = conventional
+            staged_ledger_sha256 = hashlib.sha256(conventional.read_bytes()).hexdigest()
+    return PredecessorTrace(
+        module_id=predecessor_module, run_id=predecessor_run_id,
+        trace_path=pred_dir / "selection_trace.jsonl",
+        trace_sha256=str(receipt["selection_trace_sha256"]),
+        receipt_path=receipt_path,
+        receipt_sha256=hashlib.sha256(receipt_bytes).hexdigest(),
+        ledger_path=pred_dir / "selection_ledger.jsonl",
+        selection_code_commit=str(pred_manifest["code_commit"]),
+        staged_ledger_path=staged_ledger_path,
+        staged_ledger_sha256=staged_ledger_sha256,
+    )
+
+
 def resolve_deferred(
     *, module: str, run_id: str, artifact_root: Path,
     predecessor_module: str, predecessor_run_id: str,
@@ -122,36 +164,10 @@ def resolve_deferred(
     if module not in ("A-E3", "A-E2"):
         raise ValueError("formal-resolve-deferred supports only downstream modules A-E3 and A-E2")
     run_dir = Path(artifact_root) / module / run_id
-    pred_dir = Path(artifact_root) / predecessor_module / predecessor_run_id
     frozen = load_frozen_config(STUDY_ROOT)
     effective = load_effective_formal_config(STUDY_ROOT)
-    trace_path = pred_dir / "selection_trace.jsonl"
-    receipt_path = pred_dir / "selection_receipt.json"
-    receipt_bytes = receipt_path.read_bytes()
-    receipt = json.loads(receipt_bytes.decode("utf-8"))
-    pred_manifest = json.loads((pred_dir / "manifest.json").read_text(encoding="utf-8"))
-    staged_ledger_path = None
-    staged_ledger_sha256 = None
-    if predecessor_module in _PUBLISHES_STAGED_LEDGER:
-        # Control-plane v2: bind the predecessor's staged_resolution_ledger SHA so the
-        # deferred-dataset specs rest on a predecessor file that cannot be swapped after the
-        # downstream plan is built. If the file is missing, leave the fields ``None`` and let
-        # ``_validate_predecessor`` raise after the wrong-module / trace / receipt / ledger
-        # checks (preserves the strict-order fail-closed contract: a wrong-order predecessor
-        # still raises "Wrong predecessor module" first).
-        conventional = pred_dir / "staged_resolution_ledger.jsonl"
-        if conventional.is_file():
-            staged_ledger_path = conventional
-            staged_ledger_sha256 = hashlib.sha256(conventional.read_bytes()).hexdigest()
-    predecessor = PredecessorTrace(
-        module_id=predecessor_module, run_id=predecessor_run_id, trace_path=trace_path,
-        trace_sha256=str(receipt["selection_trace_sha256"]), receipt_path=receipt_path,
-        receipt_sha256=hashlib.sha256(receipt_bytes).hexdigest(),
-        ledger_path=pred_dir / "selection_ledger.jsonl",
-        selection_code_commit=str(pred_manifest["code_commit"]),
-        staged_ledger_path=staged_ledger_path,
-        staged_ledger_sha256=staged_ledger_sha256,
-    )
+    predecessor = _build_predecessor_trace(
+        Path(artifact_root), predecessor_module, predecessor_run_id)
     plan_rows = [
         json.loads(line)
         for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
@@ -225,11 +241,14 @@ def _parser() -> argparse.ArgumentParser:
     execute.add_argument("--cache-root", type=Path, required=True)
     execute.add_argument("--max-fits", type=int, default=None, help="stop after N successful fits (default: run to exhaustion)")
     execute.add_argument("--owner-id", default="formal-executor")
+    execute.add_argument(
+        "--predecessor-run-id", default=None,
+        help="predecessor A-E1 staged run ID (required for A-E3 formal-execute; ignored for A-E1)")
     staged = commands.add_parser(
         "formal-staged",
-        help="derive the staged A-E1 selection ledger (top4 -> stage2 -> winner-retrain -> F2-vs-V baseline -> aliases) from a completed selection trace",
+        help="derive the staged A-E1/A-E3 selection ledger from a completed selection trace",
     )
-    staged.add_argument("--module", choices=("A-E1",), required=True)
+    staged.add_argument("--module", choices=("A-E1", "A-E3"), required=True)
     staged.add_argument("--run-id", required=True)
     staged.add_argument("--artifact-root", type=Path, required=True)
     staged.add_argument("--cache-root", type=Path, required=True)
@@ -288,13 +307,20 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def resolve_staged(module: str, run_id: str, artifact_root: Path, cache_root: Path) -> dict:
-    """Derive the staged A-E1 selection ledger from a run's published selection trace.
+    """Derive the staged A-E1/A-E3 selection ledger from a run's published selection trace.
 
-    Production entry point (D8): reads the module's immutable selection trace + receipt +
+    Production entry point (D8/C5): reads the module's immutable selection trace + receipt +
     ledger and appends the staged resolution ledger. Pending stages are computed from the
-    run authority + frozen matrix; the caller never supplies winner/top4/baseline.
+    run authority + frozen matrix; the caller never supplies winner/top4/baseline. A-E3 reads
+    its predecessor binding from the manifest (bound at materialize time), so no predecessor
+    argument is required here.
     """
     run_dir = Path(artifact_root) / module / run_id
+    if module == "A-E3":
+        return resolve_a_e3_staged_selection(
+            study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+            module_id=module, run_id=run_id,
+        )
     return resolve_a_e1_staged_selection(
         study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
         module_id=module, run_id=run_id,
@@ -356,6 +382,23 @@ def main() -> int:
                 cache_root=args.cache_root,
                 owner_id=args.owner_id,
                 max_fits=args.max_fits,
+            )
+        elif args.module == "A-E3":
+            if not args.predecessor_run_id:
+                raise SystemExit(
+                    "FATAL: --predecessor-run-id is required for A-E3 formal-execute (the "
+                    "completed A-E1 staged run that binds this A-E3 run's predecessor trace)")
+            predecessor = _build_predecessor_trace(
+                args.artifact_root, "A-E1", args.predecessor_run_id)
+            payload = run_a_e3_staged(
+                study_root=STUDY_ROOT,
+                module_id=args.module,
+                run_id=args.run_id,
+                artifact_root=args.artifact_root,
+                cache_root=args.cache_root,
+                owner_id=args.owner_id,
+                max_fits=args.max_fits,
+                predecessor=predecessor,
             )
         else:
             payload = run_formal_module(
