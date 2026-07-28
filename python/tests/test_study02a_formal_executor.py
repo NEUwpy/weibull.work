@@ -194,7 +194,14 @@ def _d8_three_arch_fixture(candidate_scores):
 
 def _publish_d8_evidence(tmp_path: Path, spec, evaluations, *,
                          module_id="A-E1", run_id=_D8_RUN_ID, code_commit=_D8_CODE_COMMIT):
-    """Publish a real selection trace + receipt + ledger for one decision; return their paths/sha."""
+    """Publish a real selection trace + receipt + ledger for one decision; return their paths/sha.
+
+    For A-E1 (the only staged-ledger-publishing module this fixture exercises), also publish a
+    minimal cryptographically-valid 8-record ``staged_resolution_ledger.jsonl`` referencing the
+    verified trace SHA so the control-plane v2 predecessor binding has a complete chain to bind.
+    The staged-ledger CONTENT is independent of the single decision in ``spec`` (the validator
+    only checks SHA binding + canonical order, not that the trace's decisions cover every stage).
+    """
     records, _diagnostics = build_selection_trace(
         module_id=module_id, run_id=run_id, specs=(spec,), evaluations_by_fit=evaluations,
     )
@@ -206,12 +213,94 @@ def _publish_d8_evidence(tmp_path: Path, spec, evaluations, *,
         module_id=module_id, run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
         effective_config=EFFECTIVE, code_commit=code_commit,
     )
-    return {
+    result = {
         "trace_path": trace_path, "trace_sha256": trace_sha,
         "receipt_path": tmp_path / "selection_receipt.json",
         "ledger_path": tmp_path / "selection_ledger.jsonl",
         "module_id": module_id, "run_id": run_id, "records": records, "spec": spec,
     }
+    staged = _publish_minimal_staged_ledger(
+        tmp_path=tmp_path, module_id=module_id, run_id=run_id, trace_sha256=trace_sha,
+        code_commit=code_commit, effective_config_sha256=EFFECTIVE.effective_config_sha256,
+    )
+    if staged is not None:
+        result["staged_ledger_path"] = staged
+        result["staged_ledger_sha256"] = hashlib.sha256(staged.read_bytes()).hexdigest()
+    return result
+
+
+# Minimal (stage, route) sequences for the staged-ledger fixture (mirrors the FC
+# ``_STAGED_LEDGER_SEQUENCES`` constant). Only A-E1 is exercised through this fixture; A-E3
+# staged-ledger publishing is wired in C4 (``resolve_a_e3_staged_selection``).
+_D8_STAGED_FIXTURE_SEQUENCES = {
+    "A-E1": (
+        ("stage1", "F2"), ("stage2", "F2"), ("winner_retrain", "F2"),
+        ("stage1", "V"), ("stage2", "V"), ("winner_retrain", "V"),
+        ("baseline_input", None), ("final_aliases", None),
+    ),
+}
+
+
+def _publish_minimal_staged_ledger(
+    *, tmp_path: Path, module_id: str, run_id: str, trace_sha256: str,
+    code_commit: str, effective_config_sha256: str,
+) -> Path | None:
+    """Publish a cryptographically valid staged_resolution_ledger for an A-E1 predecessor.
+
+    Mirrors ``formal_executor._build_stage_record`` byte-for-byte (canonical JSON, record_sha
+    self-hash, hash-bound chain from ``_ZERO_HASH``). The validator in FC is the single
+    authority. Returns ``None`` when the module does not publish a staged ledger."""
+    from study02a.formal_contracts import _canonical_json_bytes, _STAGED_LEDGER_RECORD_VERSION
+
+    sequence = _D8_STAGED_FIXTURE_SEQUENCES.get(module_id)
+    if sequence is None:
+        return None
+    staged_ledger_path = tmp_path / "staged_resolution_ledger.jsonl"
+    zero = "0" * 64
+    records: list[dict] = []
+    previous_sha = zero
+    lowered_commit = str(code_commit).lower()
+    for stage, route in sequence:
+        if stage == "baseline_input":
+            resolution = {"selected:F2_or_V": "V"}
+        elif stage == "final_aliases":
+            resolution = {
+                "selected:A-E1_loss": "transformed_train_z_huber",
+                "selected:A-E1_architecture": "m12",
+                "selected:A-E1_optimizer": "o3",
+            }
+        elif stage.startswith("stage"):
+            resolution = {
+                "selected_top_1": "m01", "selected_top_2": "m02",
+                "selected_top_3": "m03", "selected_top_4": "m04",
+            }
+        else:
+            resolution = {
+                "selected:A-E1_loss": "transformed_train_z_huber",
+                "selected:A-E1_architecture": "m12",
+                "selected:A-E1_optimizer": "o3",
+            }
+        resolution_sha = hashlib.sha256(_canonical_json_bytes(dict(resolution))).hexdigest()
+        core = {
+            "record_version": _STAGED_LEDGER_RECORD_VERSION,
+            "module_id": module_id,
+            "run_id": run_id,
+            "code_commit": lowered_commit,
+            "effective_config_sha256": effective_config_sha256,
+            "selection_trace_sha256": trace_sha256,
+            "stage": stage,
+            "route": route,
+            "previous_record_sha256": previous_sha,
+            "input": {"fixture": "d8_evidence"},
+            "resolution": dict(resolution),
+            "resolution_sha256": resolution_sha,
+        }
+        record_sha = hashlib.sha256(_canonical_json_bytes(core)).hexdigest()
+        record = {**core, "record_sha256": record_sha}
+        records.append(record)
+        previous_sha = record_sha
+    staged_ledger_path.write_bytes(b"".join(_canonical_json_bytes(record) for record in records))
+    return staged_ledger_path
 
 
 def _d8_evidence_kwargs(ev):
@@ -317,6 +406,8 @@ def _d8_predecessor_trace(ev):
         trace_sha256=ev["trace_sha256"], receipt_path=ev["receipt_path"],
         receipt_sha256=hashlib.sha256(ev["receipt_path"].read_bytes()).hexdigest(),
         ledger_path=ev["ledger_path"], selection_code_commit=_D8_CODE_COMMIT,
+        staged_ledger_path=ev.get("staged_ledger_path"),
+        staged_ledger_sha256=ev.get("staged_ledger_sha256"),
     )
 
 
@@ -412,7 +503,10 @@ def test_build_module_pre_unseal_bundle_rebuilds_provenance_internally(tmp_path,
         "test_state": "sealed",
         "predecessor": {"module_id": "none", "run_id": "none", "selection_trace_path": "none",
                         "selection_trace_sha256": "none", "selection_receipt_path": "none",
-                        "selection_receipt_sha256": "none", "selection_ledger_path": "none"},
+                        "selection_receipt_sha256": "none", "selection_ledger_path": "none",
+                        "selection_staged_ledger_path": "none",
+                        "selection_staged_ledger_sha256": "none",
+                        "resolved_baseline_route": "none"},
     }
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(_json.dumps(manifest_payload, sort_keys=True) + "\n", encoding="utf-8")
@@ -1162,6 +1256,11 @@ def test_formal_resolve_deferred_cli_a_e3_from_a_e1(tmp_path):
         module_id="A-E1", run_id=pred_run_id, trace_path=trace_path, trace_sha256=trace_sha,
         effective_config=EFFECTIVE, code_commit=_D8_CODE_COMMIT)
     (pred_dir / "manifest.json").write_text(json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+    # Control-plane v2: publish a staged ledger so the CLI binds its SHA through PredecessorTrace.
+    _publish_minimal_staged_ledger(
+        tmp_path=pred_dir, module_id="A-E1", run_id=pred_run_id, trace_sha256=trace_sha,
+        code_commit=_D8_CODE_COMMIT, effective_config_sha256=EFFECTIVE.effective_config_sha256,
+    )
     route, distribution, n_mode, fixed_n, training_size = "selected:F2_or_V", "core_continuous", "fixed_n", 10, 100000
     t_key = _deferred_cache_key("training", route=route, distribution=distribution, n_mode=n_mode,
                                 fixed_n=fixed_n, training_size=training_size, pred_sha=trace_sha)
@@ -1314,7 +1413,10 @@ def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id=
         "test_state": "sealed",
         "predecessor": {"module_id": "none", "run_id": "none", "selection_trace_path": "none",
                         "selection_trace_sha256": "none", "selection_receipt_path": "none",
-                        "selection_receipt_sha256": "none", "selection_ledger_path": "none"},
+                        "selection_receipt_sha256": "none", "selection_ledger_path": "none",
+                        "selection_staged_ledger_path": "none",
+                        "selection_staged_ledger_sha256": "none",
+                        "resolved_baseline_route": "none"},
     }
     (run_dir / "manifest.json").write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
     # publish selection via the real engine path -> publishes the RELOCATED point evidence
@@ -3322,3 +3424,217 @@ def test_build_a_e1_stage2_selection_full_route_production_scoring(tmp_path, mon
         run_dir=run_dir, run_id=run_id, route="F2", top4=f2_top4)
     assert recovered["winner"] == winner
     assert recovered["selection_trace_sha256"] == result["selection_trace_sha256"]
+
+
+# ---------------------------------------------------------------------------
+# C1 control-plane predecessor binding (PredecessorTrace + _validate_predecessor +
+# _validate_staged_resolution_ledger). The staged-ledger SHA + chain bind the A-E1
+# predecessor's ``staged_resolution_ledger.jsonl`` (the on-disk authority for
+# ``selected:F2_or_V``) so a downstream run rests on a file the predecessor cannot swap after
+# materialize. Every variant mutates one binding and asserts _validate_predecessor fail-closes
+# BEFORE any claim/training. No real r5 sealed dir is read; every predecessor is published
+# into a tmp_path artifact root via the production A-E1 staged resolver (V-winning score_fit
+# so ``selected:F2_or_V`` -> V, the A-E1 r5 outcome the design freezes).
+# ---------------------------------------------------------------------------
+
+
+def _publish_v_winning_a_e1_predecessor(tmp_path: Path):
+    """Publish a real A-E1 staged run with V as the baseline winner, returning
+    ``(run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)``.
+
+    The staged ledger is the real 8-record chain from ``resolve_a_e1_staged_selection``;
+    ``selected:F2_or_V`` resolves to V (the A-E1 r5 outcome the design freezes)."""
+    specs, evaluations = _staged_specs_and_evaluations()
+    run_dir, trace_sha, _records = _publish_staged_run(tmp_path, specs, evaluations)
+    fe.resolve_a_e1_staged_selection(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=tmp_path / "cache",
+        run_id=_STAGED_RUN_ID, score_fit=_baseline_score_fit(f2=0.20, v=0.10),  # V wins
+    )
+    staged_ledger_path = run_dir / fe._STAGED_LEDGER_NAME
+    staged_ledger_sha = hashlib.sha256(staged_ledger_path.read_bytes()).hexdigest()
+    return run_dir, trace_sha, staged_ledger_path, staged_ledger_sha
+
+
+def _build_a_e1_pred_trace(
+    run_dir: Path, trace_sha: str, staged_ledger_path: Path | None,
+    staged_ledger_sha: str | None, **overrides,
+) -> PredecessorTrace:
+    """Build an A-E1 PredecessorTrace bound to the published A-E1 staged run, with overrides."""
+    fields: dict = dict(
+        module_id="A-E1",
+        run_id=_STAGED_RUN_ID,
+        trace_path=run_dir / "selection_trace.jsonl",
+        trace_sha256=trace_sha,
+        receipt_path=run_dir / "selection_receipt.json",
+        receipt_sha256=hashlib.sha256((run_dir / "selection_receipt.json").read_bytes()).hexdigest(),
+        ledger_path=run_dir / "selection_ledger.jsonl",
+        selection_code_commit=_D8_CODE_COMMIT,
+        staged_ledger_path=staged_ledger_path,
+        staged_ledger_sha256=staged_ledger_sha,
+    )
+    fields.update(overrides)
+    return PredecessorTrace(**fields)
+
+
+def test_c1_predecessor_binding_accepts_real_a_e1_staged_ledger(tmp_path):
+    """C1 happy path: a real A-E1 staged run (V winner) is accepted as an A-E3 predecessor;
+    the manifest binds the staged-ledger SHA + extracts resolved_baseline_route=V."""
+    from study02a import formal_contracts as fc
+    run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    trace = _build_a_e1_pred_trace(run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)
+    manifest = fc._validate_predecessor("A-E3", trace)
+    assert manifest["module_id"] == "A-E1"
+    assert manifest["selection_trace_sha256"] == trace_sha
+    assert manifest["selection_staged_ledger_path"] == str(staged_ledger_path)
+    assert manifest["selection_staged_ledger_sha256"] == staged_ledger_sha
+    assert manifest["resolved_baseline_route"] == "V"
+
+
+def test_c1_predecessor_binding_rejects_missing_predecessor(tmp_path):
+    """G.1: A-E3 with no predecessor raises at _validate_predecessor (caught at materialize)."""
+    from study02a import formal_contracts as fc
+    with pytest.raises(ValueError, match="predecessor selection trace metadata"):
+        fc._validate_predecessor("A-E3", None)
+
+
+def test_c1_predecessor_binding_rejects_wrong_predecessor_module(tmp_path):
+    """G.2: A-E3 requires an A-E1 predecessor; an A-E3-as-predecessor (or A-E2) is rejected."""
+    from study02a import formal_contracts as fc
+    run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    wrong_trace = _build_a_e1_pred_trace(
+        run_dir, trace_sha, staged_ledger_path, staged_ledger_sha, module_id="A-E3",
+    )
+    with pytest.raises(ValueError, match="[Ww]rong predecessor module"):
+        fc._validate_predecessor("A-E3", wrong_trace)
+
+
+def test_c1_predecessor_binding_rejects_wrong_predecessor_run_id(tmp_path):
+    """G.3: a predecessor trace whose run_id disagrees with the verified run is rejected."""
+    from study02a import formal_contracts as fc
+    run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    cross_run_trace = _build_a_e1_pred_trace(
+        run_dir, trace_sha, staged_ledger_path, staged_ledger_sha, run_id="G3-AE1-cross-run-v1",
+    )
+    with pytest.raises(ValueError, match="run_id|trace"):
+        fc._validate_predecessor("A-E3", cross_run_trace)
+
+
+def test_c1_predecessor_binding_rejects_tampered_predecessor_trace(tmp_path):
+    """G.4: a byte-flip in the selection trace changes its SHA; _validate_predecessor rejects."""
+    from study02a import formal_contracts as fc
+    run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    trace_path = run_dir / "selection_trace.jsonl"
+    with trace_path.open("a", encoding="utf-8") as handle:
+        handle.write('{"tampered": true}\n')  # changes the trace bytes -> SHA mismatch
+    trace = _build_a_e1_pred_trace(run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)
+    with pytest.raises(ValueError, match="SHA-256"):
+        fc._validate_predecessor("A-E3", trace)
+
+
+def test_c1_predecessor_binding_rejects_tampered_predecessor_staged_ledger(tmp_path):
+    """G.5: a byte-flip in the staged_resolution_ledger changes its SHA; binding rejects."""
+    from study02a import formal_contracts as fc
+    run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    # tamper: append a stray byte line so the file SHA drifts from the declared SHA.
+    with staged_ledger_path.open("a", encoding="utf-8") as handle:
+        handle.write('{"tampered": true}\n')
+    trace = _build_a_e1_pred_trace(run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)
+    with pytest.raises(ValueError, match="staged_resolution_ledger SHA-256 mismatch"):
+        fc._validate_predecessor("A-E3", trace)
+
+
+def test_c1_predecessor_binding_rejects_stale_predecessor_trace_sha(tmp_path):
+    """G.6: a predecessor trace whose declared SHA differs from the verified one is rejected."""
+    from study02a import formal_contracts as fc
+    run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    # declare a stale/cross-run SHA (not the verified trace SHA)
+    stale_sha = "e" * 64
+    trace = _build_a_e1_pred_trace(
+        run_dir, stale_sha, staged_ledger_path, staged_ledger_sha,
+    )
+    with pytest.raises(ValueError, match="SHA-256"):
+        fc._validate_predecessor("A-E3", trace)
+
+
+def test_c1_predecessor_binding_rejects_missing_predecessor_staged_ledger(tmp_path):
+    """G.7: an A-E1 predecessor that omits the staged_ledger fields is rejected (A-E1 publishes)."""
+    from study02a import formal_contracts as fc
+    run_dir, trace_sha, _staged_ledger_path, _staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    trace = _build_a_e1_pred_trace(run_dir, trace_sha, None, None)
+    with pytest.raises(ValueError, match="staged_resolution_ledger binding required"):
+        fc._validate_predecessor("A-E3", trace)
+
+
+def test_c1_predecessor_binding_rejects_staged_ledger_breaks_chain(tmp_path):
+    """G.8: a re-chained-but-reordered A-E1 staged ledger is a semantic tamper; validator rejects."""
+    from study02a import formal_contracts as fc
+    run_dir, trace_sha, staged_ledger_path, _staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    # Swap two records and re-break+rebuild the chain so it is cryptographically valid but
+    # semantically out of order (the exact attack _validate_staged_resolution_ledger must catch).
+    records = _assert_chained_ledger(run_dir)
+    records[2], records[3] = records[3], records[2]
+    _rewrite_staged_ledger(run_dir, records)
+    new_sha = hashlib.sha256(staged_ledger_path.read_bytes()).hexdigest()
+    trace = _build_a_e1_pred_trace(run_dir, trace_sha, staged_ledger_path, new_sha)
+    with pytest.raises(ValueError, match="semantic order mismatch|hash chain broken"):
+        fc._validate_predecessor("A-E3", trace)
+
+
+def test_c1_validate_staged_resolution_ledger_accepts_a_e3_nine_record_chain(tmp_path):
+    """G.15-partial: an A-E3 final selection's 9-record staged ledger validates as an A-E2
+    predecessor (chain shape + record_sha self-consistency over the canonical A-E3 sequence).
+    Full A-E3 staged-ledger publishing is wired in C4; this proves the FC validator already
+    accepts the canonical A-E3 chain shape so A-E2 binding will work once A-E3 publishes."""
+    from study02a import formal_contracts as fc
+    from study02a.formal_contracts import _canonical_json_bytes, _STAGED_LEDGER_RECORD_VERSION
+    staged_ledger_path = tmp_path / "staged_resolution_ledger.jsonl"
+    trace_sha = "a" * 64  # verified trace SHA placeholder; the validator only checks binding equality
+    zero = "0" * 64
+    sequence = (
+        ("loss", None),
+        ("stage1", "F2_or_V"), ("stage2", "F2_or_V"),
+        ("stage1", "S"), ("stage2", "S"),
+        ("output_form", None),
+        ("shared_winner_retrain", "S"),
+        ("baseline_route", None),
+        ("final_aliases", None),
+    )
+    records: list[dict] = []
+    previous_sha = zero
+    for stage, route in sequence:
+        resolution = {f"{stage}:{route or 'none'}": "placeholder"}
+        resolution_sha = hashlib.sha256(_canonical_json_bytes(dict(resolution))).hexdigest()
+        core = {
+            "record_version": _STAGED_LEDGER_RECORD_VERSION,
+            "module_id": "A-E3",
+            "run_id": "G3-AE3-pred-v1",
+            "code_commit": _D8_CODE_COMMIT.lower(),
+            "effective_config_sha256": EFFECTIVE.effective_config_sha256,
+            "selection_trace_sha256": trace_sha,
+            "stage": stage,
+            "route": route,
+            "previous_record_sha256": previous_sha,
+            "input": {"fixture": "c1_a_e3_pred"},
+            "resolution": dict(resolution),
+            "resolution_sha256": resolution_sha,
+        }
+        record_sha = hashlib.sha256(_canonical_json_bytes(core)).hexdigest()
+        record = {**core, "record_sha256": record_sha}
+        records.append(record)
+        previous_sha = record_sha
+    staged_ledger_path.write_bytes(b"".join(_canonical_json_bytes(record) for record in records))
+    declared_sha = hashlib.sha256(staged_ledger_path.read_bytes()).hexdigest()
+    result = fc._validate_staged_resolution_ledger(
+        staged_ledger_path=staged_ledger_path,
+        staged_ledger_sha256=declared_sha,
+        expected_trace_sha=trace_sha,
+        predecessor_module="A-E3",
+        run_id="G3-AE3-pred-v1",
+        code_commit=_D8_CODE_COMMIT.lower(),
+        effective_config_sha256=EFFECTIVE.effective_config_sha256,
+    )
+    assert len(result["records"]) == 9
+    assert result["baseline_route"] is None  # A-E3 has no baseline_input stage
+    # And the full _validate_predecessor path accepts it as an A-E2 predecessor binding.
+    # (Synthesizing a complete A-E3 selection trace/receipt/ledger is C4-C5 scope; the FC
+    # validator's acceptance of the staged ledger alone is the C1 control-plane contract.)

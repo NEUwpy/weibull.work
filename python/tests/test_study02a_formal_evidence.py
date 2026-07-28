@@ -344,7 +344,9 @@ def _bundle_inputs(tmp_path: Path, *, fixture=None):
         "test_state": "sealed",
         "predecessor": {"module_id": "none", "run_id": "none", "selection_trace_path": "none",
                         "selection_trace_sha256": "none", "selection_receipt_path": "none",
-                        "selection_receipt_sha256": "none", "selection_ledger_path": "none"},
+                        "selection_receipt_sha256": "none", "selection_ledger_path": "none",
+                        "selection_staged_ledger_path": "none", "selection_staged_ledger_sha256": "none",
+                        "resolved_baseline_route": "none"},
     })
     trace = tmp_path / "selection_trace.jsonl"
     from study02a.formal_contracts import write_selection_trace

@@ -428,10 +428,18 @@ def _predecessor_scope(predecessor: Any, artifact_root: Path) -> Mapping[str, An
     if value is None:
         raise ValueError("predecessor evidence must be a mapping or immutable dataclass")
     root = _resolved(artifact_root)
-    for field in ("trace_path", "receipt_path", "ledger_path"):
+    # Control-plane v2: ``staged_ledger_path`` is optional (None for A-E1 root + legacy
+    # callers); validate scope/alias only when present. ``trace_path``/``receipt_path``/
+    # ``ledger_path`` remain required, so the loop below stays fail-closed for those.
+    for field in ("trace_path", "receipt_path", "ledger_path", "staged_ledger_path"):
         if field not in value:
+            if field == "staged_ledger_path":
+                continue
             raise ValueError(f"predecessor evidence is missing {field}")
-        original = Path(value[field]).absolute()
+        raw = value.get(field)
+        if field == "staged_ledger_path" and raw is None:
+            continue
+        original = Path(raw).absolute()
         _reject_alias(original, require_file=True)
         path = original.resolve(strict=True)
         try:

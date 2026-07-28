@@ -38,7 +38,52 @@ APPROVED_BASE_SEARCH_SHA256 = "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed88953
 APPROVED_EFFECTIVE_CONFIG_SHA256 = "44fba47c7af66166e1d3f11890299a8bb5c352ac1abf3447cd00cfd3acf97449"
 _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}")
 _CODE_COMMIT_RE = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
+# 64-character zero SHA-256 sentinel anchoring the first record of every staged-ledger
+# hash chain (mirrors ``formal_executor._ZERO_HASH`` / ``formal_scheduler._ZERO_HASH`` so FC
+# stays the single authority for staged-ledger validation without importing either module).
+_ZERO_HASH_FC = "0" * 64
 _PREDECESSOR_BY_MODULE = {"A-E1": None, "A-E3": "A-E1", "A-E2": "A-E3"}
+# Control-plane v2: modules that publish a ``staged_resolution_ledger.jsonl`` whose SHA a
+# downstream run must bind through PredecessorTrace (the on-disk authority for the
+# module's deferred placeholders + final aliases). A-E1 publishes its 8-record chain
+# (``resolve_a_e1_staged_selection``); A-E3 publishes its 9-record chain once its staged
+# resolver is wired. The single authority for staged-ledger validation lives in FC
+# (``_validate_staged_resolution_ledger``); G3 calls FC, never the reverse.
+_PUBLISHES_STAGED_LEDGER = {"A-E1", "A-E3"}
+_STAGED_LEDGER_RECORD_VERSION = "study02-staged-resolution-v1"
+_STAGED_LEDGER_REQUIRED_FIELDS = {
+    "record_version", "module_id", "run_id", "code_commit",
+    "effective_config_sha256", "selection_trace_sha256", "stage", "route",
+    "previous_record_sha256", "input", "resolution", "resolution_sha256",
+    "record_sha256",
+}
+# Per-module canonical (stage, route) sequence for the staged resolution ledger. A-E1's
+# 8-record chain is frozen (mirrors ``formal_g3_control._resolve_a_e1_from_staged_ledger``
+# at FC1191-read-time); A-E3's 9-record chain is per the A-E3 orchestration design (section
+# E). Semantic-order deviations are a tamper even when the hash chain is re-broken-and-rebuilt.
+_STAGED_LEDGER_SEQUENCES: dict[str, tuple[tuple[str, str | None], ...]] = {
+    "A-E1": (
+        ("stage1", "F2"),
+        ("stage2", "F2"),
+        ("winner_retrain", "F2"),
+        ("stage1", "V"),
+        ("stage2", "V"),
+        ("winner_retrain", "V"),
+        ("baseline_input", None),
+        ("final_aliases", None),
+    ),
+    "A-E3": (
+        ("loss", None),
+        ("stage1", "F2_or_V"),
+        ("stage2", "F2_or_V"),
+        ("stage1", "S"),
+        ("stage2", "S"),
+        ("output_form", None),
+        ("shared_winner_retrain", "S"),
+        ("baseline_route", None),
+        ("final_aliases", None),
+    ),
+}
 _MATRIX_FIELDS = {"fit_id", "rule_id", "module", "test_state"}
 # v3 selection trace record schema. v2 lacked rule_diagnostics_sha256, so the
 # exact-field-set check below inherently rejects v1/v2 traces (R3#2: v2/v3 mixing
@@ -130,6 +175,12 @@ class PredecessorTrace:
     receipt_sha256: str
     ledger_path: Path
     selection_code_commit: str
+    # Control-plane v2 (optional; required when the predecessor module publishes a staged
+    # resolution ledger -- see ``_PUBLISHES_STAGED_LEDGER``). Defaults to ``None`` so A-E1
+    # root (no predecessor) and legacy callers remain valid; ``_validate_predecessor``
+    # fail-closes when a staged-ledger-publishing predecessor omits them.
+    staged_ledger_path: Path | None = None
+    staged_ledger_sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1111,6 +1162,8 @@ def _validate_formal_manifest_snapshot(
     predecessor = _require_exact_fields(manifest["predecessor"], {
         "module_id", "run_id", "selection_trace_path", "selection_trace_sha256",
         "selection_receipt_path", "selection_receipt_sha256", "selection_ledger_path",
+        "selection_staged_ledger_path", "selection_staged_ledger_sha256",
+        "resolved_baseline_route",
     }, "formal manifest predecessor")
     if any(not isinstance(predecessor[field], str) or not predecessor[field] for field in predecessor):
         raise ValueError("formal manifest predecessor fields must be non-empty strings")
@@ -1620,6 +1673,7 @@ def _coerce_predecessor(value: Mapping[str, Any] | PredecessorTrace) -> Predeces
         return value
     if not isinstance(value, Mapping):
         raise ValueError("Downstream formal module requires predecessor selection trace metadata")
+    staged_ledger_path = value.get("staged_ledger_path")
     try:
         return PredecessorTrace(
             module_id=value["module_id"],
@@ -1630,9 +1684,127 @@ def _coerce_predecessor(value: Mapping[str, Any] | PredecessorTrace) -> Predeces
             receipt_sha256=value["receipt_sha256"],
             ledger_path=Path(value["ledger_path"]),
             selection_code_commit=value["selection_code_commit"],
+            staged_ledger_path=None if staged_ledger_path is None else Path(staged_ledger_path),
+            staged_ledger_sha256=value.get("staged_ledger_sha256"),
         )
     except (KeyError, TypeError) as exc:
         raise ValueError("Incomplete predecessor selection trace metadata") from exc
+
+
+def _validate_staged_resolution_ledger(
+    *,
+    staged_ledger_path: Path,
+    staged_ledger_sha256: str,
+    expected_trace_sha: str,
+    predecessor_module: str,
+    run_id: str,
+    code_commit: str,
+    effective_config_sha256: str,
+) -> dict[str, Any]:
+    """Validate a predecessor module's ``staged_resolution_ledger.jsonl`` (single FC authority).
+
+    Lifts the A-E1 staged-ledger verification discipline currently embedded in
+    ``formal_g3_control._resolve_a_e1_from_staged_ledger`` into the formal-contracts module so
+    every downstream (A-E3 executor, G3 reader, future A-E2) shares one authority. Pure
+    validation -- never calls into G3, never reads selection-trace bytes (the caller passes the
+    already-verified ``expected_trace_sha``). Verifies:
+
+    * the path SHA-256 matches ``staged_ledger_sha256`` (no swap after binding).
+    * each record matches the frozen 13-field schema, ``record_version``, ``module_id``,
+      ``run_id``, ``code_commit``, ``effective_config_sha256``, ``selection_trace_sha256``
+      (every record binds the verified root trace SHA).
+    * the (stage, route) sequence matches the per-module canonical order
+      (``_STAGED_LEDGER_SEQUENCES``); a re-chained-but-reordered ledger is a tamper.
+    * ``previous_record_sha256`` chains from ``_ZERO_HASH``, ``resolution_sha256`` /
+      ``record_sha256`` self-consistency.
+
+    Returns ``{"records": [...], "baseline_route": <str|None>}`` -- ``baseline_route`` is the
+    A-E1 ``baseline_input.resolution["selected:F2_or_V"]`` value (the deferred route the A-E3
+    executor resolves from the bound file, not from a re-read); ``None`` for A-E3 (no
+    baseline_input stage) or when the record is absent in a partial ledger.
+    """
+    expected_sequence = _STAGED_LEDGER_SEQUENCES.get(predecessor_module)
+    if expected_sequence is None:
+        raise ValueError(
+            f"staged resolution ledger validation has no canonical sequence for predecessor "
+            f"module {predecessor_module!r}"
+        )
+    declared_sha = _require_sha256(staged_ledger_sha256, "Predecessor staged_resolution_ledger SHA-256")
+    ledger_bytes = _safe_one_read(staged_ledger_path, "Predecessor staged_resolution_ledger")
+    actual_sha = hashlib.sha256(ledger_bytes).hexdigest()
+    if actual_sha != declared_sha:
+        raise ValueError("Predecessor staged_resolution_ledger SHA-256 mismatch")
+    records = _read_jsonl_bytes(ledger_bytes, "Predecessor staged_resolution_ledger")
+    if len(records) != len(expected_sequence):
+        raise ValueError(
+            f"{predecessor_module} staged ledger must contain exactly {len(expected_sequence)} "
+            f"records; got {len(records)}"
+        )
+    lowered_code_commit = str(code_commit).lower()
+    baseline_route: str | None = None
+    seen: set[tuple[str, str | None]] = set()
+    for index, record in enumerate(records):
+        if set(record) != _STAGED_LEDGER_REQUIRED_FIELDS:
+            raise ValueError(f"{predecessor_module} staged record has unexpected field set: {set(record)}")
+        if record.get("record_version") != _STAGED_LEDGER_RECORD_VERSION:
+            raise ValueError(
+                f"{predecessor_module} staged record_version is {record.get('record_version')!r}"
+            )
+        if record.get("selection_trace_sha256") != expected_trace_sha:
+            raise ValueError(
+                f"{predecessor_module} staged record selection_trace_sha256 does not match the "
+                f"verified root trace SHA"
+            )
+        if record.get("module_id") != predecessor_module:
+            raise ValueError(
+                f"{predecessor_module} staged record module_id is {record.get('module_id')!r}"
+            )
+        if record.get("run_id") != run_id:
+            raise ValueError(f"{predecessor_module} staged record run_id mismatch")
+        if record.get("code_commit") != lowered_code_commit:
+            raise ValueError(f"{predecessor_module} staged record code_commit mismatch")
+        if record.get("effective_config_sha256") != effective_config_sha256:
+            raise ValueError(
+                f"{predecessor_module} staged record effective_config_sha256 mismatch"
+            )
+        stage = record.get("stage")
+        route = record.get("route")
+        actual_key = (stage, route)
+        expected_key = expected_sequence[index]
+        if actual_key != expected_key:
+            raise ValueError(
+                f"{predecessor_module} staged ledger semantic order mismatch at index {index}: "
+                f"expected {expected_key!r}, got {actual_key!r}"
+            )
+        if actual_key in seen:
+            raise ValueError(f"{predecessor_module} staged ledger duplicate stage/route: {actual_key!r}")
+        seen.add(actual_key)
+        previous_sha = _ZERO_HASH_FC if index == 0 else records[index - 1]["record_sha256"]
+        if record.get("previous_record_sha256") != previous_sha:
+            raise ValueError(
+                f"{predecessor_module} staged ledger hash chain broken at stage={stage}: "
+                f"expected previous={previous_sha}, got {record.get('previous_record_sha256')}"
+            )
+        resolution = record.get("resolution", {})
+        resolution_sha = hashlib.sha256(_canonical_json_bytes(dict(resolution))).hexdigest()
+        if record.get("resolution_sha256") != resolution_sha:
+            raise ValueError(
+                f"{predecessor_module} staged record resolution_sha256 mismatch at stage={stage}"
+            )
+        core = {key: value for key, value in record.items() if key != "record_sha256"}
+        expected_record_sha = hashlib.sha256(_canonical_json_bytes(core)).hexdigest()
+        if record.get("record_sha256") != expected_record_sha:
+            raise ValueError(
+                f"{predecessor_module} staged record SHA mismatch at stage={stage}"
+            )
+        if predecessor_module == "A-E1" and stage == "baseline_input":
+            resolution_value = resolution.get("selected:F2_or_V")
+            if resolution_value not in ("F2", "V"):
+                raise ValueError(
+                    "A-E1 staged baseline_input.resolution['selected:F2_or_V'] must be F2 or V"
+                )
+            baseline_route = resolution_value
+    return {"records": records, "baseline_route": baseline_route}
 
 
 def _validate_predecessor(
@@ -1651,6 +1823,9 @@ def _validate_predecessor(
             "selection_receipt_path": "none",
             "selection_receipt_sha256": "none",
             "selection_ledger_path": "none",
+            "selection_staged_ledger_path": "none",
+            "selection_staged_ledger_sha256": "none",
+            "resolved_baseline_route": "none",
         }
 
     predecessor = _coerce_predecessor(value)
@@ -1710,6 +1885,38 @@ def _validate_predecessor(
     }
     if same_run[0] != expected_ledger_entry:
         raise ValueError("Formal selection ledger binding does not match predecessor receipt")
+
+    # Control-plane v2: when the predecessor module publishes a staged_resolution_ledger
+    # (A-E1, A-E3), bind its on-disk SHA + chain through this predecessor trace. The staged
+    # ledger is the ONLY on-disk authority for the predecessor's deferred placeholders +
+    # final aliases; without this binding, a downstream run rests on an unbound file the
+    # predecessor could swap after materialize. Fail-closed BEFORE any claim/training.
+    staged_ledger_path = "none"
+    staged_ledger_sha = "none"
+    resolved_baseline_route = "none"
+    if expected_module in _PUBLISHES_STAGED_LEDGER:
+        if predecessor.staged_ledger_path is None or predecessor.staged_ledger_sha256 is None:
+            raise ValueError(
+                f"Predecessor staged_resolution_ledger binding required for module {module_id} "
+                f"(predecessor {expected_module} publishes a staged ledger)"
+            )
+        staged_path = Path(predecessor.staged_ledger_path)
+        staged_ledger_sha = _require_sha256(
+            predecessor.staged_ledger_sha256, "Predecessor staged_resolution_ledger SHA-256"
+        )
+        staged_result = _validate_staged_resolution_ledger(
+            staged_ledger_path=staged_path,
+            staged_ledger_sha256=staged_ledger_sha,
+            expected_trace_sha=actual_digest,
+            predecessor_module=expected_module,
+            run_id=predecessor.run_id,
+            code_commit=predecessor.selection_code_commit.lower(),
+            effective_config_sha256=APPROVED_EFFECTIVE_CONFIG_SHA256,
+        )
+        staged_ledger_path = str(staged_path)
+        # ``staged_ledger_sha`` stays as the declared SHA (== actual SHA, verified above).
+        if staged_result["baseline_route"] is not None:
+            resolved_baseline_route = staged_result["baseline_route"]
     return {
         "module_id": predecessor.module_id,
         "run_id": predecessor.run_id,
@@ -1718,6 +1925,9 @@ def _validate_predecessor(
         "selection_receipt_path": str(receipt_path),
         "selection_receipt_sha256": actual_receipt_sha,
         "selection_ledger_path": str(ledger_path),
+        "selection_staged_ledger_path": staged_ledger_path,
+        "selection_staged_ledger_sha256": staged_ledger_sha,
+        "resolved_baseline_route": resolved_baseline_route,
     }
 
 

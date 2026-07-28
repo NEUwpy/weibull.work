@@ -30,7 +30,7 @@ from study02a.formal_executor import (
     reconstruct_deferred_specs,
     resolve_a_e1_staged_selection,
 )
-from study02a.formal_contracts import PredecessorTrace
+from study02a.formal_contracts import PredecessorTrace, _PUBLISHES_STAGED_LEDGER
 from study02a.formal_config import load_effective_formal_config
 from study02a.formal_g3_control import build_g3_accreditation
 from study02a.formal_accreditation import (
@@ -130,12 +130,27 @@ def resolve_deferred(
     receipt_bytes = receipt_path.read_bytes()
     receipt = json.loads(receipt_bytes.decode("utf-8"))
     pred_manifest = json.loads((pred_dir / "manifest.json").read_text(encoding="utf-8"))
+    staged_ledger_path = None
+    staged_ledger_sha256 = None
+    if predecessor_module in _PUBLISHES_STAGED_LEDGER:
+        # Control-plane v2: bind the predecessor's staged_resolution_ledger SHA so the
+        # deferred-dataset specs rest on a predecessor file that cannot be swapped after the
+        # downstream plan is built. If the file is missing, leave the fields ``None`` and let
+        # ``_validate_predecessor`` raise after the wrong-module / trace / receipt / ledger
+        # checks (preserves the strict-order fail-closed contract: a wrong-order predecessor
+        # still raises "Wrong predecessor module" first).
+        conventional = pred_dir / "staged_resolution_ledger.jsonl"
+        if conventional.is_file():
+            staged_ledger_path = conventional
+            staged_ledger_sha256 = hashlib.sha256(conventional.read_bytes()).hexdigest()
     predecessor = PredecessorTrace(
         module_id=predecessor_module, run_id=predecessor_run_id, trace_path=trace_path,
         trace_sha256=str(receipt["selection_trace_sha256"]), receipt_path=receipt_path,
         receipt_sha256=hashlib.sha256(receipt_bytes).hexdigest(),
         ledger_path=pred_dir / "selection_ledger.jsonl",
         selection_code_commit=str(pred_manifest["code_commit"]),
+        staged_ledger_path=staged_ledger_path,
+        staged_ledger_sha256=staged_ledger_sha256,
     )
     plan_rows = [
         json.loads(line)
