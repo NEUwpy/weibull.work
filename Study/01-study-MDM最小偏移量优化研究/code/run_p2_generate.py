@@ -1,255 +1,491 @@
-"""P2 MC data generation with checkpoint/resume at combo level.
+"""Generate the frozen Study01 P2 risk curves.
 
-Generates 39 combos x 26 deltas x 1000 repeats = 1,014,000 MDM estimates.
-Output: artifacts/formal/extended_validation/p2_generalization/
-
-Usage:
-    python run_p2_generate.py          # full run (checkpoint/resume)
-    python run_p2_generate.py --status # show progress
+The formal entry point is sealed by ``P2_FORMAL_AUTHORIZED``.  Smoke runs use
+temporary output and never write the formal directory.
 """
 
-import os, sys, csv, json, time, argparse, hashlib
-from pathlib import Path
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
 from datetime import datetime, timezone
+from pathlib import Path
+
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, r"D:\weibull\python")
+CODE_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(CODE_DIR))
 
-from p2_config import (
-    build_p2_combos, P2_TOTAL_COMBOS, P2_NI_COMBOS, P2_PI_COMBOS,
-    DELTA_GRID, REPEATS, SEED_NAMESPACE, ETA, OUTPUT_DIR_NAME,
-    DEFAULT_DELTA, L1_DELTA,
+from config import PLATFORM_ROOT, STUDY_ROOT  # noqa: E402
+from p2_config import (  # noqa: E402
+    DELTA_GRID,
+    ETA,
+    OUTPUT_DIR_NAME,
+    P2_FORMAL_AUTHORIZED,
+    P2_RUN_ID,
+    P2_TOTAL_COMBOS,
+    REPEATS,
+    SEED_NAMESPACE,
+    build_p2_combos,
 )
-from config import STUDY_ROOT
 
-from methods.mdm import MDM
-from studies.common.sample import generate_sample
+sys.path.insert(0, PLATFORM_ROOT)
+from methods.mdm import MDM  # noqa: E402
+from studies.common.sample import generate_sample  # noqa: E402
 
-# Output directory
-P2_DIR = Path(STUDY_ROOT) / "artifacts" / "formal" / OUTPUT_DIR_NAME
-CHUNKS_DIR = P2_DIR / "chunks"
-PROGRESS_PATH = P2_DIR / "progress.json"
-MANIFEST_PATH = P2_DIR / "manifest.json"
+PROJECT_ROOT = Path(STUDY_ROOT).parents[1]
+FORMAL_DIR = Path(STUDY_ROOT) / "artifacts" / "formal" / OUTPUT_DIR_NAME
+CHUNKS_DIR = FORMAL_DIR / "chunks"
+PROGRESS_PATH = FORMAL_DIR / "progress.json"
+RUN_CONTEXT_PATH = FORMAL_DIR / "run_context.json"
+MANIFEST_PATH = FORMAL_DIR / "manifest.json"
+SHA256SUMS_PATH = FORMAL_DIR / "SHA256SUMS"
 
 MDM_FIELDS = [
-    "track", "beta", "eta", "gamma", "gamma_over_eta", "n", "repeat_id", "delta",
-    "beta_hat", "eta_hat", "gamma_hat", "r_squared", "converged",
-    "time_ms", "status",
+    "track",
+    "combo_id",
+    "beta",
+    "eta",
+    "gamma",
+    "gamma_over_eta",
+    "n",
+    "repeat_id",
+    "sample_sha256",
+    "delta",
+    "beta_hat",
+    "eta_hat",
+    "gamma_hat",
+    "r_squared",
+    "converged",
+    "time_ms",
+    "status",
+    "failure_reason",
 ]
 
 
-def _now_iso():
+class P2GenerationError(RuntimeError):
+    """Fail-closed P2 generation error."""
+
+
+def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _run_one_sample(beta, ge, n, repeat_id, eta=ETA):
-    """Run MDM on one sample across all 26 deltas. Returns list of dict rows."""
-    gamma = ge * eta
-    seed_int = _derive_seed(beta, ge, n, repeat_id)
-    sample = generate_sample(beta=beta, eta=eta, gamma=gamma, n=n,
-                              repeat_id=repeat_id, seed=seed_int)
-
-    rows = []
-    for delta in DELTA_GRID:
-        t0 = time.perf_counter()
-        try:
-            estimator = MDM(sample.tolist())
-            result = estimator.run(trace=False, offset=delta)
-            bh, eh, gh, r2 = float(result[0]), float(result[1]), float(result[2]), float(result[3])
-            conv = bool(result[4]) if len(result) > 4 else True
-            elapsed = (time.perf_counter() - t0) * 1000
-            ok_val = (np.isfinite(bh) and np.isfinite(eh) and np.isfinite(gh)
-                      and bh > 0 and eh > 0 and gh < np.min(sample) and conv)
-            rows.append({
-                "beta": beta, "eta": eta, "gamma": gamma, "gamma_over_eta": ge,
-                "n": n, "repeat_id": repeat_id, "delta": delta,
-                "beta_hat": bh, "eta_hat": eh, "gamma_hat": gh,
-                "r_squared": r2, "converged": conv,
-                "time_ms": round(elapsed, 3), "status": "ok" if ok_val else "fail",
-            })
-        except Exception:
-            elapsed = (time.perf_counter() - t0) * 1000
-            rows.append({
-                "beta": beta, "eta": eta, "gamma": gamma, "gamma_over_eta": ge,
-                "n": n, "repeat_id": repeat_id, "delta": delta,
-                "beta_hat": np.nan, "eta_hat": np.nan, "gamma_hat": np.nan,
-                "r_squared": np.nan, "converged": False,
-                "time_ms": round(elapsed, 3), "status": "error",
-            })
-    return rows
-
-
-def _combo_id(track, beta, ge, n):
-    return f"{track}_{beta:.2f}_{ge:.2f}_{n}"
-
-
-def _chunk_path(track, beta, ge, n):
-    fn = f"{_combo_id(track, beta, ge, n)}.csv"
-    return CHUNKS_DIR / fn
-
-
-import hashlib as _hashlib
-
-def _derive_seed(beta, ge, n, repeat_id):
-    """Deterministic seed from combo key + repeat_id using SHA-256."""
-    key = f"{SEED_NAMESPACE}:{beta:.6f}:{ge:.6f}:{n}:{repeat_id}"
-    digest = _hashlib.sha256(key.encode()).digest()
-    return int.from_bytes(digest[:4], "big")
+def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def run_generation():
-    """Main generation loop with checkpoint/resume."""
-    CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
-    combos = build_p2_combos()
+def _sample_sha256(sample: np.ndarray) -> str:
+    rounded = np.round(np.asarray(sample, dtype=float), 12)
+    return hashlib.sha256(rounded.tobytes()).hexdigest()
 
-    # Load progress
-    completed = set()
-    if PROGRESS_PATH.is_file():
-        progress = json.loads(PROGRESS_PATH.read_text(encoding="utf-8"))
-        completed = set(progress.get("completed_combo_ids", []))
 
-    total = P2_TOTAL_COMBOS
-    done_count = len(completed)
-    print(f"P2 Generation: {done_count}/{total} combos completed, "
-          f"{total - done_count} remaining")
+def reconstruct_sample(beta: float, ge: float, n: int, repeat_id: int) -> np.ndarray:
+    """Use the shared deterministic namespace contract directly."""
+    return generate_sample(
+        beta=float(beta),
+        eta=ETA,
+        gamma=float(ge) * ETA,
+        n=int(n),
+        repeat_id=int(repeat_id),
+        seed=SEED_NAMESPACE,
+    )
 
-    t_start = time.time()
-    new_completed = 0
 
-    for track, beta, ge, n in combos:
-        cid = _combo_id(track, beta, ge, n)
-        if cid in completed:
-            continue
+def _combo_id(track: str, beta: float, ge: float, n: int) -> str:
+    return f"{track}_{beta:.2f}_{ge:.2f}_{int(n)}"
 
-        chunk_path = _chunk_path(track, beta, ge, n)
-        if chunk_path.is_file():
-            completed.add(cid)
-            continue
 
-        print(f"  [{new_completed + 1}/{total - done_count}] {cid}")
-        gamma = ge * ETA
-        all_rows = []
-        for repeat_id in range(REPEATS):
-            rows = _run_one_sample(beta, ge, n, repeat_id)
-            for r in rows:
-                r["track"] = track
-            all_rows.extend(rows)
+def _chunk_path(
+    track: str, beta: float, ge: float, n: int, chunks_dir: Path = CHUNKS_DIR
+) -> Path:
+    return chunks_dir / f"{_combo_id(track, beta, ge, n)}.csv"
 
-        chunk_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(chunk_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=MDM_FIELDS)
+
+def _failure_reason(result: tuple, values: tuple[float, ...], sample: np.ndarray) -> str:
+    beta_hat, eta_hat, gamma_hat, _ = values
+    converged = bool(result[4]) if len(result) > 4 else True
+    if not converged:
+        return "not_converged"
+    if not np.isfinite(values).all():
+        return "non_finite"
+    if beta_hat <= 0 or eta_hat <= 0:
+        return "non_positive_beta_or_eta"
+    if gamma_hat >= float(np.min(sample)):
+        return "support_set_violation"
+    return ""
+
+
+def _run_one_sample(
+    track: str, beta: float, ge: float, n: int, repeat_id: int
+) -> list[dict]:
+    gamma = ge * ETA
+    combo_id = _combo_id(track, beta, ge, n)
+    sample = reconstruct_sample(beta, ge, n, repeat_id)
+    sample_hash = _sample_sha256(sample)
+    rows = []
+    for delta in DELTA_GRID:
+        started = time.perf_counter()
+        try:
+            result = MDM(sample.tolist()).run(trace=False, offset=delta)
+            values = tuple(float(result[i]) for i in range(4))
+            reason = _failure_reason(result, values, sample)
+            beta_hat, eta_hat, gamma_hat, r_squared = values
+            converged = bool(result[4]) if len(result) > 4 else True
+            status = "success" if not reason else "failed"
+        except Exception as exc:  # preserve the reason; do not silently drop it
+            beta_hat = eta_hat = gamma_hat = r_squared = np.nan
+            converged = False
+            status = "failed"
+            reason = f"{type(exc).__name__}:{str(exc)[:160]}"
+        rows.append(
+            {
+                "track": track,
+                "combo_id": combo_id,
+                "beta": beta,
+                "eta": ETA,
+                "gamma": gamma,
+                "gamma_over_eta": ge,
+                "n": n,
+                "repeat_id": repeat_id,
+                "sample_sha256": sample_hash,
+                "delta": delta,
+                "beta_hat": beta_hat,
+                "eta_hat": eta_hat,
+                "gamma_hat": gamma_hat,
+                "r_squared": r_squared,
+                "converged": converged,
+                "time_ms": round((time.perf_counter() - started) * 1000, 3),
+                "status": status,
+                "failure_reason": reason,
+            }
+        )
+    return rows
+
+
+def validate_chunk(
+    path: Path,
+    expected_combo: tuple[str, float, float, int],
+    repeats: int = REPEATS,
+    expected_sha256: str | None = None,
+) -> dict:
+    """Validate one checkpoint from bytes through reconstructed sample hashes."""
+    import pandas as pd
+
+    if not path.is_file():
+        raise P2GenerationError(f"missing chunk: {path}")
+    if expected_sha256 and _sha256_file(path) != expected_sha256:
+        raise P2GenerationError(f"chunk SHA256 mismatch: {path.name}")
+    frame = pd.read_csv(path, keep_default_na=False)
+    missing = sorted(set(MDM_FIELDS) - set(frame.columns))
+    if missing:
+        raise P2GenerationError(f"{path.name}: missing columns {missing}")
+    expected_rows = repeats * len(DELTA_GRID)
+    if len(frame) != expected_rows:
+        raise P2GenerationError(
+            f"{path.name}: rows={len(frame)}, expected={expected_rows}"
+        )
+    track, beta, ge, n = expected_combo
+    expected_id = _combo_id(track, beta, ge, n)
+    metadata = frame[
+        ["track", "combo_id", "beta", "eta", "gamma_over_eta", "n"]
+    ].drop_duplicates()
+    if len(metadata) != 1:
+        raise P2GenerationError(f"{path.name}: mixed combo metadata")
+    actual = metadata.iloc[0]
+    if (
+        actual["track"] != track
+        or actual["combo_id"] != expected_id
+        or not np.isclose(float(actual["beta"]), beta, atol=1e-12, rtol=0)
+        or not np.isclose(float(actual["eta"]), ETA, atol=1e-12, rtol=0)
+        or not np.isclose(float(actual["gamma_over_eta"]), ge, atol=1e-12, rtol=0)
+        or int(actual["n"]) != n
+    ):
+        raise P2GenerationError(f"{path.name}: combo metadata mismatch")
+    if frame.duplicated(["repeat_id", "delta"]).any():
+        raise P2GenerationError(f"{path.name}: duplicate repeat/delta keys")
+    if set(frame["repeat_id"].astype(int)) != set(range(repeats)):
+        raise P2GenerationError(f"{path.name}: repeat set mismatch")
+    if set(np.round(frame["delta"].astype(float), 12)) != set(
+        np.round(DELTA_GRID, 12)
+    ):
+        raise P2GenerationError(f"{path.name}: delta grid mismatch")
+    counts = frame.groupby("repeat_id")["delta"].nunique()
+    if not (counts == len(DELTA_GRID)).all():
+        raise P2GenerationError(f"{path.name}: incomplete risk curve")
+    sample_hashes = frame.groupby("repeat_id")["sample_sha256"].nunique()
+    if not (sample_hashes == 1).all():
+        raise P2GenerationError(f"{path.name}: inconsistent sample hashes")
+    recorded = frame.groupby("repeat_id")["sample_sha256"].first()
+    for repeat_id, digest in recorded.items():
+        expected = _sample_sha256(reconstruct_sample(beta, ge, n, int(repeat_id)))
+        if digest != expected:
+            raise P2GenerationError(
+                f"{path.name}: sample hash mismatch at repeat {repeat_id}"
+            )
+    allowed_status = {"success", "failed"}
+    if not set(frame["status"]).issubset(allowed_status):
+        raise P2GenerationError(f"{path.name}: invalid status values")
+    failed = frame["status"] != "success"
+    if (frame.loc[failed, "failure_reason"].astype(str).str.len() == 0).any():
+        raise P2GenerationError(f"{path.name}: failed row missing failure_reason")
+    return {
+        "path": path.name,
+        "sha256": _sha256_file(path),
+        "rows": int(len(frame)),
+        "samples": int(frame["repeat_id"].nunique()),
+        "failures": int(failed.sum()),
+    }
+
+
+def _write_chunk_atomic(
+    combo: tuple[str, float, float, int],
+    chunks_dir: Path,
+    repeats: int,
+) -> dict:
+    track, beta, ge, n = combo
+    final_path = _chunk_path(track, beta, ge, n, chunks_dir)
+    temp_path = final_path.with_suffix(final_path.suffix + ".tmp")
+    if temp_path.exists():
+        raise P2GenerationError(f"stale partial chunk exists: {temp_path}")
+    rows: list[dict] = []
+    for repeat_id in range(repeats):
+        rows.extend(_run_one_sample(track, beta, ge, n, repeat_id))
+    chunks_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        with temp_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=MDM_FIELDS)
             writer.writeheader()
-            writer.writerows(all_rows)
-
-        completed.add(cid)
-        new_completed += 1
-
-        # Save progress after each combo
-        progress = {
-            "completed_combo_ids": sorted(completed),
-            "total_combos": total,
-            "updated_at": _now_iso(),
-        }
-        PROGRESS_PATH.write_text(json.dumps(progress, ensure_ascii=False, indent=2),
-                                  encoding="utf-8")
-
-    elapsed = time.time() - t_start
-    print(f"P2 Generation complete: {len(completed)}/{total} combos, "
-          f"{new_completed} new in {elapsed:.0f}s")
+            writer.writerows(rows)
+        receipt = validate_chunk(temp_path, combo, repeats=repeats)
+        os.replace(temp_path, final_path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+    receipt["path"] = final_path.name
+    receipt["sha256"] = _sha256_file(final_path)
+    return receipt
 
 
-def _git_sha():
-    import subprocess
-    result = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
-                            text=True, cwd=STUDY_ROOT)
+def _git(*args: str) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
     return result.stdout.strip()
 
 
-def write_manifest():
-    """Write manifest after generation is complete."""
-    combos = build_p2_combos()
-    # Verify all chunks exist
-    missing = []
-    for track, beta, ge, n in combos:
-        cp = _chunk_path(track, beta, ge, n)
-        if not cp.is_file():
-            missing.append(_combo_id(track, beta, ge, n))
-    if missing:
-        print(f"WARNING: {len(missing)} chunks missing, manifest incomplete")
-        for m in missing:
-            print(f"  {m}")
-        return
+def _input_hashes() -> dict[str, str]:
+    paths = {
+        "p2_config": CODE_DIR / "p2_config.py",
+        "generator": Path(__file__),
+        "mdm": Path(PLATFORM_ROOT) / "methods" / "mdm.py",
+        "sample": Path(PLATFORM_ROOT) / "studies" / "common" / "sample.py",
+        "e4_production": CODE_DIR / "run_E4_formal_validation.py",
+    }
+    return {
+        name: _sha256_file(path)
+        for name, path in paths.items()
+        if path.is_file()
+    }
 
+
+def _new_run_context(command: list[str]) -> dict:
+    tracked_dirty = _git("status", "--porcelain", "--untracked-files=no")
+    if tracked_dirty:
+        raise P2GenerationError(
+            "tracked worktree must be clean before formal execution"
+        )
+    import pandas
+    import sklearn
+
+    return {
+        "run_id": P2_RUN_ID,
+        "generation_commit": _git("rev-parse", "HEAD"),
+        "exact_command": command,
+        "started_at": _now_iso(),
+        "tracked_dirty_before": False,
+        "versions": {
+            "python": platform.python_version(),
+            "numpy": np.__version__,
+            "pandas": pandas.__version__,
+            "sklearn": sklearn.__version__,
+        },
+        "input_hashes": _input_hashes(),
+    }
+
+
+def _load_or_create_context(output_dir: Path, command: list[str]) -> dict:
+    context_path = output_dir / "run_context.json"
+    if context_path.exists():
+        context = json.loads(context_path.read_text(encoding="utf-8"))
+        if context.get("generation_commit") != _git("rev-parse", "HEAD"):
+            raise P2GenerationError("generation commit changed during resume")
+        if context.get("input_hashes") != _input_hashes():
+            raise P2GenerationError("input code/config hashes changed during resume")
+        return context
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise P2GenerationError(
+            f"non-empty output has no valid run context: {output_dir}"
+        )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    context = _new_run_context(command)
+    context_path.write_text(
+        json.dumps(context, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return context
+
+
+def run_generation(
+    output_dir: Path = FORMAL_DIR,
+    combos: list[tuple[str, float, float, int]] | None = None,
+    repeats: int = REPEATS,
+    require_authorization: bool = True,
+    command: list[str] | None = None,
+) -> list[dict]:
+    """Generate or resume validated chunks."""
+    if require_authorization and not P2_FORMAL_AUTHORIZED:
+        raise P2GenerationError(
+            "P2 formal execution is sealed; request exact-commit authorization"
+        )
+    combos = list(build_p2_combos() if combos is None else combos)
+    command = list(sys.argv if command is None else command)
+    context = _load_or_create_context(output_dir, command)
+    chunks_dir = output_dir / "chunks"
+    progress_path = output_dir / "progress.json"
+    completed: dict[str, dict] = {}
+    if progress_path.exists():
+        progress = json.loads(progress_path.read_text(encoding="utf-8"))
+        if progress.get("generation_commit") != context["generation_commit"]:
+            raise P2GenerationError("progress generation commit mismatch")
+        completed = {
+            item["combo_id"]: item for item in progress.get("completed", [])
+        }
+    receipts = []
+    for index, combo in enumerate(combos, start=1):
+        combo_id = _combo_id(*combo)
+        path = _chunk_path(*combo, chunks_dir=chunks_dir)
+        if path.exists():
+            expected_sha = completed.get(combo_id, {}).get("sha256")
+            receipt = validate_chunk(
+                path, combo, repeats=repeats, expected_sha256=expected_sha
+            )
+        else:
+            if combo_id in completed:
+                raise P2GenerationError(
+                    f"progress claims missing checkpoint: {combo_id}"
+                )
+            print(f"[{index}/{len(combos)}] generating {combo_id}")
+            receipt = _write_chunk_atomic(combo, chunks_dir, repeats)
+        receipt["combo_id"] = combo_id
+        receipts.append(receipt)
+        progress = {
+            "run_id": P2_RUN_ID,
+            "generation_commit": context["generation_commit"],
+            "expected_combos": len(combos),
+            "repeats": repeats,
+            "completed": receipts,
+            "updated_at": _now_iso(),
+        }
+        progress_path.write_text(
+            json.dumps(progress, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    return receipts
+
+
+def seal_outputs(
+    output_dir: Path,
+    receipts: list[dict],
+    expected_combos: int,
+    repeats: int,
+) -> dict:
+    if len(receipts) != expected_combos:
+        raise P2GenerationError(
+            f"cannot seal: {len(receipts)}/{expected_combos} combos"
+        )
+    context = json.loads((output_dir / "run_context.json").read_text(encoding="utf-8"))
     manifest = {
-        "manifest_version": "study01-p2-generation-v1",
-        "run_id": "P2_mc_generation_v1",
-        "code_commit": _git_sha(),
+        "manifest_version": "study01-p2-generation-v2",
+        "run_id": P2_RUN_ID,
+        "authorization_baseline": context["generation_commit"],
+        "generation_commit": context["generation_commit"],
         "created_at": _now_iso(),
-        "combo_counts": {"P2-NI": P2_NI_COMBOS, "P2-PI": P2_PI_COMBOS,
-                         "total": P2_TOTAL_COMBOS},
-        "repeats_per_combo": REPEATS,
+        "combo_counts": {
+            "P2-NI": sum(r["combo_id"].startswith("P2-NI") for r in receipts),
+            "P2-PI": sum(r["combo_id"].startswith("P2-PI") for r in receipts),
+            "total": len(receipts),
+        },
+        "repeats_per_combo": repeats,
         "delta_grid": DELTA_GRID,
         "eta": ETA,
         "seed_namespace": SEED_NAMESPACE,
-        "mdm_python_file": "python/methods/mdm.py",
-        "output_dir": str(P2_DIR),
-        "combo_ids": sorted(_combo_id(t, b, g, n) for t, b, g, n in combos),
+        "exact_command": context["exact_command"],
+        "versions": context["versions"],
+        "tracked_dirty_before": context["tracked_dirty_before"],
+        "input_hashes": context["input_hashes"],
+        "chunks": receipts,
     }
-    MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2),
-                              encoding="utf-8")
-    print(f"Manifest written: {MANIFEST_PATH}")
+    manifest_path = output_dir / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    paths = [output_dir / "run_context.json", output_dir / "progress.json", manifest_path]
+    paths.extend(output_dir / "chunks" / r["path"] for r in receipts)
+    lines = [
+        f"{_sha256_file(path)}  {path.relative_to(output_dir).as_posix()}"
+        for path in sorted(paths)
+    ]
+    (output_dir / "SHA256SUMS").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
+    return manifest
 
 
-def write_sha256sums():
-    """Write SHA256SUMS for all chunk files."""
-    if not MANIFEST_PATH.is_file():
-        print("Manifest not found, skipping SHA256SUMS")
-        return
-    sums_path = P2_DIR / "SHA256SUMS"
-    lines = []
-    for track, beta, ge, n in build_p2_combos():
-        cp = _chunk_path(track, beta, ge, n)
-        if cp.is_file():
-            sha = _sha256_file(cp)
-            lines.append(f"{sha}  {cp.relative_to(P2_DIR.parent).as_posix()}")
-    # Also hash manifest and progress
-    for extra in [MANIFEST_PATH, PROGRESS_PATH]:
-        if extra.is_file():
-            sha = _sha256_file(extra)
-            lines.append(f"{sha}  {extra.relative_to(P2_DIR.parent).as_posix()}")
-    lines.sort()
-    sums_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"SHA256SUMS written: {sums_path}")
+def run_smoke(output_dir: Path) -> dict:
+    receipts = run_generation(
+        output_dir=output_dir,
+        combos=build_p2_combos()[:1],
+        repeats=2,
+        require_authorization=False,
+        command=["run_p2_generate.py", "--smoke", str(output_dir)],
+    )
+    return seal_outputs(output_dir, receipts, expected_combos=1, repeats=2)
 
 
-def status():
-    """Show generation progress."""
-    combos = build_p2_combos()
-    done = sum(1 for t, b, g, n in combos if _chunk_path(t, b, g, n).is_file())
-    for track in ["P2-NI", "P2-PI"]:
-        td = sum(1 for t, b, g, n in combos if t == track
-                 and _chunk_path(t, b, g, n).is_file())
-        tc = sum(1 for t, b, g, n in combos if t == track)
-        print(f"  {track}: {td}/{tc}")
-    print(f"  Total: {done}/{P2_TOTAL_COMBOS}")
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--status", action="store_true")
+    parser.add_argument("--smoke", type=Path)
+    args = parser.parse_args()
+    if args.status:
+        if not FORMAL_DIR.exists():
+            print("P2 v2 formal output: 0/39")
+            return 0
+        valid = 0
+        for combo in build_p2_combos():
+            path = _chunk_path(*combo)
+            if path.exists():
+                validate_chunk(path, combo)
+                valid += 1
+        print(f"P2 v2 formal output: {valid}/{P2_TOTAL_COMBOS}")
+        return 0
+    if args.smoke is not None:
+        run_smoke(args.smoke.resolve())
+        return 0
+    receipts = run_generation()
+    seal_outputs(FORMAL_DIR, receipts, P2_TOTAL_COMBOS, REPEATS)
+    return 0
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--status", action="store_true")
-    parser.add_argument("--manifest", action="store_true")
-    parser.add_argument("--sha256sums", action="store_true")
-    args = parser.parse_args()
-
-    if args.status:
-        status()
-    elif args.manifest:
-        write_manifest()
-    elif args.sha256sums:
-        write_sha256sums()
-    else:
-        run_generation()
-        write_manifest()
-        write_sha256sums()
+    raise SystemExit(main())

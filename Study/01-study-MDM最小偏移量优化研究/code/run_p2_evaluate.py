@@ -1,217 +1,162 @@
-"""P2 evaluation: reconstruct frozen Vector-MLP models, evaluate on P2 data.
+"""Shared P2 evaluation helpers and fixed-delta baselines."""
 
-No training. Models from E3b checkpoints. P2 data never enters scaler fit.
-Computes Vector-MLP predictions + Default/L1 baselines on same P2 samples.
-"""
+from __future__ import annotations
 
-import sys, os, json, csv, hashlib, time, math, warnings, gc, io, pickle
+import argparse
+import json
+import math
+import os
+import sys
 from pathlib import Path
-from datetime import datetime, timezone
-from itertools import product
+
 import numpy as np
 import pandas as pd
 
-warnings.filterwarnings("ignore")
+CODE_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(CODE_DIR))
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, r"D:\weibull\python")
-
-from p2_config import (
-    build_p2_combos, P2_NI_COMBOS, P2_PI_COMBOS, P2_TOTAL_COMBOS,
-    DELTA_GRID, REPEATS, SEED_NAMESPACE, ETA, OUTPUT_DIR_NAME,
-    DEFAULT_DELTA, L1_DELTA, VECTOR_MLP_FOLDS, VECTOR_MLP_SEEDS,
-    compute_j1, compute_j1_squared,
+from p2_config import (  # noqa: E402
+    DEFAULT_DELTA,
+    L1_DELTA,
+    OUTPUT_DIR_NAME,
+    REPEATS,
+    build_p2_combos,
 )
-from config import STUDY_ROOT, BETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID
-from studies.common.sample import generate_sample
+from config import STUDY_ROOT  # noqa: E402
+from run_p2_generate import _chunk_path, validate_chunk  # noqa: E402
+import run_E4_formal_validation as e4  # noqa: E402
 
-# ── Paths ──
-STUDY_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
-STUDY_ROOT_DIR = os.path.dirname(STUDY_CODE_DIR)
-ARTIFACTS_DIR = os.path.join(STUDY_ROOT_DIR, "artifacts", "formal")
-P2_DIR = os.path.join(ARTIFACTS_DIR, OUTPUT_DIR_NAME)
-CHUNKS_DIR = os.path.join(P2_DIR, "chunks")
-E3B_DIR = os.path.join(ARTIFACTS_DIR, "E3b_vector_mlp")
-E4_DIR = os.path.join(ARTIFACTS_DIR, "E4_robustness")
-P2_OUT_DIR = P2_DIR  # Same dir for outputs
-
-# ── Feature extraction (same 13 features as E3b) ──
-from scipy import stats as sp_stats
+P2_DIR = Path(STUDY_ROOT) / "artifacts" / "formal" / OUTPUT_DIR_NAME
 
 
-def extract_features(sample):
-    """Extract 13 deployment-observable statistics from a sample (same as E3b)."""
-    x = np.sort(sample)
-    n = len(x)
-    feat = [
-        np.min(x), np.max(x), np.ptp(x),
-        np.percentile(x, 25), np.median(x), np.percentile(x, 75),
-        np.ptp(x) / 2.0 if np.ptp(x) < 1e-12 else (np.percentile(x, 75) - np.percentile(x, 25)),
-        np.mean(x), np.std(x, ddof=0),
-        float(n),
-        np.std(x, ddof=0) / (abs(np.mean(x)) + 1e-12),
-        sp_stats.skew(x, bias=False) if n >= 3 else 0.0,
-        sp_stats.kurtosis(x, fisher=True, bias=False) if n >= 4 else 0.0,
+class P2EvaluationError(RuntimeError):
+    """Fail-closed evaluation error."""
+
+
+def load_p2_risk_data(
+    p2_dir: Path = P2_DIR,
+    combos: list[tuple[str, float, float, int]] | None = None,
+    repeats: int = REPEATS,
+) -> pd.DataFrame:
+    combos = list(build_p2_combos() if combos is None else combos)
+    frames = []
+    for combo in combos:
+        path = _chunk_path(*combo, chunks_dir=p2_dir / "chunks")
+        validate_chunk(path, combo, repeats=repeats)
+        frames.append(pd.read_csv(path))
+    if not frames:
+        raise P2EvaluationError("no P2 risk data")
+    data = pd.concat(frames, ignore_index=True, sort=False)
+    expected = len(combos) * repeats * len(e4.DELTA_GRID)
+    if len(data) != expected:
+        raise P2EvaluationError(f"P2 rows={len(data)}, expected={expected}")
+    return e4.compute_loss(data)
+
+
+def evaluate_fixed_delta(
+    risk_data: pd.DataFrame,
+    delta: float,
+    model: str,
+    failure_penalty: float,
+) -> pd.DataFrame:
+    """Return one realized-loss row per P2 sample."""
+    if not np.isfinite(failure_penalty) or failure_penalty < 0:
+        raise P2EvaluationError("failure_penalty must be finite and non-negative")
+    sample_keys = [
+        "track",
+        "combo_id",
+        "beta",
+        "eta",
+        "gamma",
+        "gamma_over_eta",
+        "n",
+        "repeat_id",
+        "sample_sha256",
     ]
-    return np.array(feat, dtype=np.float64)
+    samples = risk_data[sample_keys].drop_duplicates()
+    selected = risk_data[np.isclose(risk_data["delta"], delta)].copy()
+    if selected.duplicated(sample_keys).any():
+        raise P2EvaluationError(f"{model}: duplicate selected-delta rows")
+    rows = samples.merge(
+        selected[sample_keys + ["loss", "status", "failure_reason"]],
+        on=sample_keys,
+        how="left",
+        validate="one_to_one",
+    )
+    failed = (
+        rows["loss"].isna()
+        | rows["status"].ne("success")
+        | rows["failure_reason"].fillna("").astype(str).str.len().gt(0)
+    )
+    rows["failed"] = failed
+    rows["failure_reason"] = rows["failure_reason"].fillna("")
+    rows.loc[rows["loss"].isna(), "failure_reason"] = rows.loc[
+        rows["loss"].isna(), "failure_reason"
+    ].replace("", "missing_or_non_finite_loss")
+    rows["true_loss_complete_case"] = rows["loss"]
+    rows["true_loss"] = rows["loss"].where(~failed, failure_penalty)
+    rows["selected_delta"] = float(delta)
+    rows["model"] = model
+    return rows
 
 
-def _sha256_file(path):
-    return hashlib.sha256(open(path, "rb").read()).hexdigest()
+def summarize_rows(rows: pd.DataFrame) -> dict:
+    if rows.empty:
+        raise P2EvaluationError("cannot summarize empty evaluation rows")
+    required = {"track", "model", "true_loss", "failed"}
+    missing = sorted(required - set(rows.columns))
+    if missing:
+        raise P2EvaluationError(f"summary missing columns: {missing}")
+    records = []
+    for (track, model), group in rows.groupby(["track", "model"], sort=True):
+        complete = group.loc[~group["failed"], "true_loss_complete_case"].dropna()
+        records.append(
+            {
+                "track": track,
+                "model": model,
+                "n_samples": int(len(group)),
+                "n_failed": int(group["failed"].sum()),
+                "failure_rate": float(group["failed"].mean()),
+                "pooled_J1": math.sqrt(float(group["true_loss"].mean())),
+                "complete_case_J1": (
+                    math.sqrt(float(complete.mean())) if len(complete) else None
+                ),
+            }
+        )
+    return {"rows": records}
 
 
-def _now_iso():
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+def evaluate_baselines(
+    risk_data: pd.DataFrame, failure_penalty: float = 1.0
+) -> tuple[pd.DataFrame, dict]:
+    rows = pd.concat(
+        [
+            evaluate_fixed_delta(
+                risk_data, DEFAULT_DELTA, "Default", failure_penalty
+            ),
+            evaluate_fixed_delta(risk_data, L1_DELTA, "L1", failure_penalty),
+        ],
+        ignore_index=True,
+    )
+    return rows, summarize_rows(rows)
 
 
-def _load_p2_data():
-    """Load all P2 chunk data into a single DataFrame."""
-    dfs = []
-    for track, beta, ge, n in build_p2_combos():
-        fp = os.path.join(CHUNKS_DIR, f"P2-{track.split('-')[1]}_{beta:.2f}_{ge:.2f}_{n}.csv")
-        fp2 = os.path.join(CHUNKS_DIR, f"{track}_{beta:.2f}_{ge:.2f}_{n}.csv")
-        for path in [fp, fp2]:
-            if os.path.isfile(path):
-                df = pd.read_csv(path)
-                df["track"] = track
-                dfs.append(df)
-                break
-    return pd.concat(dfs, ignore_index=True)
+def _write_json_atomic(path: Path, value: dict) -> None:
+    temp = path.with_suffix(path.suffix + ".tmp")
+    temp.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temp, path)
 
 
-def _compute_loss_row(row):
-    """J1 squared component for one row. Returns (j1_sq, legal, failure_reason)."""
-    bh, eh, gh = row["beta_hat"], row["eta_hat"], row["gamma_hat"]
-    beta, eta_val, gamma = row["beta"], row["eta"], row["gamma"]
-    conv = row.get("converged", True)
-    if isinstance(conv, str):
-        conv = conv.lower() in ("true", "1", "yes")
-    status = row.get("status", "ok")
-    if isinstance(status, str) and status.lower() in ("fail", "error"):
-        return np.nan, False, f"status={status}"
-    if not all(np.isfinite([bh, eh, gh])):
-        return np.nan, False, "non_finite"
-    if bh <= 0 or eh <= 0:
-        return np.nan, False, "non_positive_params"
-    if not conv:
-        return np.nan, False, "not_converged"
-    j1_sq = compute_j1_squared(bh, beta, eh, eta_val, gh, gamma)
-    return j1_sq, True, ""
-
-
-def _find_optimal_delta(mdm_data, combo_key):
-    """Find delta that minimizes J1 from MDM scan data (Default=0.1, L1=0.08)."""
-    b, ge, n = combo_key
-    sub = mdm_data[(mdm_data["beta"] == b) & (mdm_data["gamma_over_eta"] == ge) & (mdm_data["n"] == n)]
-    if len(sub) == 0:
-        return 0.1, 0.08, {}
-
-    # Default: delta=0.1
-    d10 = sub[sub["delta"] == 0.1]
-    l10_vals = []
-    for _, row in d10.iterrows():
-        loss, ok = _compute_loss_row(row)
-        if ok:
-            l10_vals.append(loss)
-    j1_default = float(np.sqrt(np.mean(np.square(l10_vals)))) if l10_vals else 10.0
-
-    # L1: delta=0.08
-    d08 = sub[sub["delta"] == 0.08]
-    l08_vals = []
-    for _, row in d08.iterrows():
-        loss, ok = _compute_loss_row(row)
-        if ok:
-            l08_vals.append(loss)
-    j1_l1 = float(np.sqrt(np.mean(np.square(l08_vals)))) if l08_vals else 10.0
-
-    return j1_default, j1_l1, {}
-
-
-def evaluate_p2():
-    """Main P2 evaluation: Vector-MLP + Default/L1 on all P2 combos."""
-    print("P2 Evaluation: loading data...")
-    p2_data = _load_p2_data()
-    print(f"  Loaded {len(p2_data)} rows from P2 chunks")
-
-    # Get unique combo keys from data
-    combo_keys = p2_data.groupby(["track", "beta", "gamma_over_eta", "n"]).size().reset_index()
-    print(f"  {len(combo_keys)} unique combos")
-
-    # For each combo, compute Default/L1 and Vector-MLP aggregated results
-    results = []
-    for _, ck in combo_keys.iterrows():
-        track, beta, ge, n_ = ck["track"], ck["beta"], ck["gamma_over_eta"], ck["n"]
-
-        # Default/L1 per-sample loss (from MDM delta grid)
-        sub = p2_data[(p2_data["track"] == track) & (p2_data["beta"] == beta)
-                      & (p2_data["gamma_over_eta"] == ge) & (p2_data["n"] == n_)]
-
-        # Compute Default (delta=0.1) and L1 (delta=0.08) per-sample J1 squared
-        default_j1_sq = []
-        l1_j1_sq = []
-        failures = {"default_failed": 0, "l1_failed": 0}
-        for _, row in sub.iterrows():
-            if abs(float(row["delta"]) - 0.1) < 0.001:
-                j1_sq, ok, reason = _compute_loss_row(row)
-                if ok:
-                    default_j1_sq.append(j1_sq)
-                else:
-                    failures["default_failed"] += 1
-            if abs(float(row["delta"]) - 0.08) < 0.001:
-                j1_sq, ok, reason = _compute_loss_row(row)
-                if ok:
-                    l1_j1_sq.append(j1_sq)
-                else:
-                    failures["l1_failed"] += 1
-
-        j1_default = float(np.sqrt(np.mean(default_j1_sq))) if default_j1_sq else None
-        j1_l1 = float(np.sqrt(np.mean(l1_j1_sq))) if l1_j1_sq else None
-
-        results.append({
-            "track": track, "beta": beta, "gamma_over_eta": ge, "n": n_,
-            "n_samples": len(sub) // 26 if len(sub) >= 26 else len(sub),
-            "default_J1": j1_default,
-            "l1_J1": j1_l1,
-        })
-
-    result_df = pd.DataFrame(results)
-
-    # Write per-combo summary
-    result_df.to_csv(os.path.join(P2_OUT_DIR, "p2_per_combo_summary.csv"), index=False)
-
-    # Write per-track summary
-    for track in ["P2-NI", "P2-PI"]:
-        td = result_df[result_df["track"] == track]
-        n_combos = len(td)
-        def_j1 = td["default_J1"].mean() if td["default_J1"].notna().any() else None
-        l1_j1 = td["l1_J1"].mean() if td["l1_J1"].notna().any() else None
-        print(f"  {track}: {n_combos} combos, Default J1={def_j1:.4f}" if def_j1 else f"  {track}: {n_combos} combos")
-        if l1_j1:
-            print(f"    L1 J1={l1_j1:.4f}")
-
-    # Write manifest
-    manifest = {
-        "manifest_version": "study01-p2-evaluation-v1",
-        "run_id": "P2_evaluation_v1",
-        "code_commit": _git_sha(),
-        "created_at": _now_iso(),
-        "combo_counts": {"P2-NI": P2_NI_COMBOS, "P2-PI": P2_PI_COMBOS},
-        "evaluated": f"Default (delta=0.1) and L1 (delta=0.08) baselines",
-        "p2_data_source": str(CHUNKS_DIR),
-    }
-    with open(os.path.join(P2_OUT_DIR, "evaluation_manifest.json"), "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
-
-    print(f"P2 Evaluation complete. Results: {P2_OUT_DIR}")
-    return result_df
-
-
-def _git_sha():
-    import subprocess
-    result = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
-                            text=True, cwd=STUDY_ROOT)
-    return result.stdout.strip()
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--failure-penalty", type=float, default=1.0)
+    args = parser.parse_args()
+    data = load_p2_risk_data()
+    rows, summary = evaluate_baselines(data, args.failure_penalty)
+    rows.to_csv(P2_DIR / "p2_baseline_per_sample.csv", index=False)
+    _write_json_atomic(P2_DIR / "p2_baseline_summary.json", summary)
+    return 0
 
 
 if __name__ == "__main__":
-    evaluate_p2()
+    raise SystemExit(main())

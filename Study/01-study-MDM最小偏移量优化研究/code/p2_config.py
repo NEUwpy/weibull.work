@@ -24,8 +24,14 @@ DELTA_GRID = [round(0.00 + 0.02 * i, 2) for i in range(26)]
 # Seed namespace
 SEED_NAMESPACE = "study01_p2_v1"
 
-# Output
-OUTPUT_DIR_NAME = "extended_validation/p2_generalization"
+# Output.  The original ``p2_generalization`` directory is a preserved,
+# invalid v1 run produced with Python's process-randomized ``hash()``.
+OUTPUT_DIR_NAME = "extended_validation/p2_generalization_v2"
+INVALID_V1_OUTPUT_DIR_NAME = "extended_validation/p2_generalization"
+
+# Formal execution remains sealed until Codex binds an exact clean commit.
+P2_FORMAL_AUTHORIZED = False
+P2_RUN_ID = "study01-p2-v2"
 
 # Vector-MLP reconstruction
 VECTOR_MLP_FOLDS = 5

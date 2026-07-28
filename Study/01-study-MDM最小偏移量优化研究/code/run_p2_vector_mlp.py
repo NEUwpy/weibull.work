@@ -1,249 +1,458 @@
-"""P2 Vector-MLP evaluation: rebuild 15 models from E3b config, evaluate on P2 data.
+"""P2 Vector-MLP adapter over the frozen E4d production implementation."""
 
-Uses the EXACT same production path as E4d: 13 features, full-combo folds,
-3 seeds, train-fold-only scaler, P99 failure penalty, MLP(256,128,64).
-P2 data NEVER enters training, scaler fit, or seed selection.
-"""
+from __future__ import annotations
 
-import sys, os, json, time, math, warnings, gc, hashlib
+import argparse
+import json
+import math
+import os
+import sys
+import time
 from pathlib import Path
-from datetime import datetime, timezone
-from itertools import product
+
 import numpy as np
 import pandas as pd
 
-warnings.filterwarnings("ignore")
+CODE_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(CODE_DIR))
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, r"D:\weibull\python")
-
-from p2_config import (
-    build_p2_combos, P2_NI_COMBOS, P2_PI_COMBOS, P2_TOTAL_COMBOS,
-    DELTA_GRID, REPEATS, SEED_NAMESPACE, ETA, OUTPUT_DIR_NAME,
-    DEFAULT_DELTA, L1_DELTA, VECTOR_MLP_FOLDS, VECTOR_MLP_SEEDS,
-    compute_j1, compute_j1_squared,
+import run_E4_formal_validation as e4  # noqa: E402
+from config import STUDY_ROOT  # noqa: E402
+from p2_config import (  # noqa: E402
+    OUTPUT_DIR_NAME,
+    P2_FORMAL_AUTHORIZED,
+    REPEATS,
+    SEED_NAMESPACE,
+    build_p2_combos,
 )
-from config import STUDY_ROOT, BETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID
-from studies.common.sample import generate_sample
+from run_p2_evaluate import (  # noqa: E402
+    evaluate_baselines,
+    load_p2_risk_data,
+)
+from run_p2_generate import run_smoke as generate_smoke  # noqa: E402
 
-from scipy import stats as sp_stats
-from sklearn.neural_network import MLPRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.exceptions import ConvergenceWarning
-
-# ── MLP config (identical to E4d) ──
-MLP_HIDDEN = (256, 128, 64)
-MLP_MAX_ITER = 300
-MLP_BATCH = 256
-MLP_ALPHA = 1e-4
-MLP_LR = 1e-3
-
-# ── Paths ──
-STUDY_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
-STUDY_ROOT_DIR = os.path.dirname(STUDY_CODE_DIR)
-ARTIFACTS_DIR = os.path.join(STUDY_ROOT_DIR, "artifacts", "formal")
-P2_DIR = os.path.join(ARTIFACTS_DIR, OUTPUT_DIR_NAME)
-CHUNKS_DIR = os.path.join(P2_DIR, "chunks")
-SHARED_DIR = os.path.join(ARTIFACTS_DIR, "shared_data")
-E3B_DIR = os.path.join(ARTIFACTS_DIR, "E3b_vector_mlp")
+P2_DIR = Path(STUDY_ROOT) / "artifacts" / "formal" / OUTPUT_DIR_NAME
 
 
-def _sha256_file(path):
-    return hashlib.sha256(open(path, "rb").read()).hexdigest()
+class P2VectorError(RuntimeError):
+    """Fail-closed Vector-MLP error."""
 
 
-def _now_iso():
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+def production_contract() -> dict:
+    """Expose values from the production module; do not duplicate constants."""
+    return {
+        "feature_columns": list(e4.SAMPLE_FEATURE_COLS),
+        "zscore_columns": list(e4.FEATURE_COLS_ZSCORE),
+        "raw_columns": list(e4.FEATURE_COLS_RAW),
+        "hidden_layers": tuple(e4.MLP_HIDDEN_LAYERS),
+        "max_iter": int(e4.MLP_MAX_ITER),
+        "batch_size": int(e4.MLP_BATCH_SIZE),
+        "alpha": float(e4.MLP_ALPHA),
+        "learning_rate": float(e4.MLP_LR),
+        "validation_fraction": float(e4.MLP_VALIDATION_FRACTION),
+        "n_iter_no_change": int(e4.MLP_N_ITER_NO_CHANGE),
+        "seeds": list(e4.STABILITY_SEEDS),
+        "folds": [
+            {
+                "fold_name": fold["fold_name"],
+                "train_combos": [list(item) for item in fold["train_combos"]],
+                "test_combos": [list(item) for item in fold["test_combos"]],
+            }
+            for fold in e4.get_combo_split()
+        ],
+    }
 
 
-def extract_features(sample):
-    """13 deployment-observable statistics (identical to E3b/E4d)."""
-    x = np.sort(sample)
-    n = len(x)
-    q25, q50, q75 = np.percentile(x, [25, 50, 75])
-    return np.array([
-        np.min(x), np.max(x), np.ptp(x), q25, q50, q75,
-        q75 - q25, np.mean(x), np.std(x, ddof=0), float(n),
-        np.std(x, ddof=0) / (abs(np.mean(x)) + 1e-12),
-        sp_stats.skew(x, bias=False) if n >= 3 else 0.0,
-        sp_stats.kurtosis(x, fisher=True, bias=False) if n >= 4 else 0.0,
-    ], dtype=np.float64)
+def verify_production_contract() -> dict:
+    contract = production_contract()
+    if len(contract["feature_columns"]) != 13:
+        raise P2VectorError("production feature count is not 13")
+    if len(contract["folds"]) != 5 or contract["seeds"] != [42, 2026, 3407]:
+        raise P2VectorError("production fold/seed contract changed")
+    split_path = (
+        Path(STUDY_ROOT)
+        / "artifacts"
+        / "formal"
+        / "E4_robustness"
+        / "split_report.csv"
+    )
+    if not split_path.is_file():
+        raise P2VectorError("E4 split_report.csv missing")
+    reference = pd.read_csv(split_path)
+    for fold in e4.get_combo_split():
+        name = fold["fold_name"]
+        actual = set(
+            tuple(item)
+            for item in reference.loc[
+                reference["fold"] == name,
+                ["test_beta", "test_gamma_over_eta", "test_n"],
+            ].itertuples(index=False, name=None)
+        )
+        expected = set(tuple(item) for item in fold["test_combos"])
+        if actual != expected:
+            raise P2VectorError(f"fold mismatch versus split_report: {name}")
+    return contract
 
 
-def _load_shared_data():
-    """Load main grid training data from shared_data chunks."""
-    shared_chunks = os.path.join(SHARED_DIR, "chunks")
-    if not os.path.isdir(shared_chunks):
-        # Try merged file
-        merged = os.path.join(SHARED_DIR, "mc_scan_raw.csv")
-        if os.path.isfile(merged):
-            return pd.read_csv(merged)
-        raise FileNotFoundError(f"No shared data at {SHARED_DIR}")
-
-    dfs = []
-    for fn in sorted(os.listdir(shared_chunks)):
-        if fn.endswith("_mdm.csv"):
-            dfs.append(pd.read_csv(os.path.join(shared_chunks, fn)))
-    return pd.concat(dfs, ignore_index=True)
+def load_main_grid() -> pd.DataFrame:
+    data, _ = e4.load_authoritative_main_chunks()
+    return data
 
 
-def run_vector_mlp_evaluation(smoke_only=True):
-    """Run Vector-MLP P2 evaluation.
+def prepare_main_training(df_mc: pd.DataFrame) -> pd.DataFrame:
+    features = e4.build_feature_table_from_mc(df_mc)
+    merged = df_mc.merge(
+        features,
+        on=e4.SAMPLE_KEYS,
+        how="left",
+        suffixes=("", "_feature"),
+        validate="many_to_one",
+    )
+    merged = merged.drop(
+        columns=[c for c in merged.columns if c.endswith("_feature")]
+    )
+    merged = e4.compute_loss(merged)
+    if merged[e4.SAMPLE_FEATURE_COLS].isna().any().any():
+        raise P2VectorError("main-grid production features contain missing values")
+    return merged
 
-    If smoke_only=True, only evaluate 1 combo to validate the pipeline.
-    """
-    print("Loading training data from shared_data...")
-    train_data = _load_shared_data()
-    print(f"  Loaded {len(train_data)} rows")
 
-    # Load P2 data
-    print("Loading P2 test data...")
-    p2_dfs = []
-    combos = build_p2_combos()
-    if smoke_only:
-        combos = combos[:1]  # Just 1 combo for smoke
-    for track, beta, ge, n in combos:
-        fp = os.path.join(CHUNKS_DIR, f"{track}_{beta:.2f}_{ge:.2f}_{n}.csv")
-        if os.path.isfile(fp):
-            p2_dfs.append(pd.read_csv(fp))
-    p2_data = pd.concat(p2_dfs, ignore_index=True)
-    print(f"  Loaded {len(p2_data)} P2 test rows ({len(combos)} combos)")
+def prepare_p2_features(
+    p2_risk: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    combos = [
+        (f"{track}_{beta:.2f}_{ge:.2f}_{n}", beta, ge, n)
+        for track, beta, ge, n in build_p2_combos()
+        if (
+            (p2_risk["track"] == track)
+            & np.isclose(p2_risk["beta"], beta)
+            & np.isclose(p2_risk["gamma_over_eta"], ge)
+            & (p2_risk["n"] == n)
+        ).any()
+    ]
+    if not combos:
+        raise P2VectorError("P2 risk data does not match frozen combos")
+    risk = p2_risk.copy()
+    risk["combo_id"] = risk.apply(
+        lambda row: (
+            f"{row['track']}_{float(row['beta']):.2f}_"
+            f"{float(row['gamma_over_eta']):.2f}_{int(row['n'])}"
+        ),
+        axis=1,
+    )
+    features = e4.build_feature_table_for_combos(
+        combos, risk, seed_ns=SEED_NAMESPACE
+    )
+    hash_table = (
+        risk[
+            [
+                "combo_id",
+                "repeat_id",
+                "sample_sha256",
+            ]
+        ]
+        .drop_duplicates()
+        .copy()
+    )
+    features = features.merge(
+        hash_table,
+        on=["combo_id", "repeat_id"],
+        how="left",
+        validate="one_to_one",
+    )
+    if features["sample_sha256"].isna().any():
+        raise P2VectorError("P2 features missing sample SHA256")
+    return features, risk
 
-    # Train 15 models on main grid, evaluate on P2
-    results = []
-    for fold in range(VECTOR_MLP_FOLDS):
-        for seed in VECTOR_MLP_SEEDS:
-            t0 = time.time()
-            model_id = f"fold{fold}_seed{seed}"
 
-            # Train fold/test split based on repeat_id mod 5
-            train_mask = train_data["repeat_id"] % VECTOR_MLP_FOLDS != fold
-            test_mask = ~train_mask
+def _training_fold(
+    main_training: pd.DataFrame, fold: dict
+) -> tuple[pd.DataFrame, dict, dict, float, np.ndarray, np.ndarray]:
+    train_combos = set(tuple(item) for item in fold["train_combos"])
+    combo_keys = list(
+        zip(
+            main_training["beta"],
+            main_training["gamma_over_eta"],
+            main_training["n"],
+        )
+    )
+    mask = np.fromiter(
+        (tuple(item) in train_combos for item in combo_keys),
+        dtype=bool,
+        count=len(combo_keys),
+    )
+    train = main_training.loc[mask].copy()
+    means, stds = e4._fit_zscore_params(train)
+    valid = train["loss"].dropna()
+    if valid.empty:
+        raise P2VectorError(f"{fold['fold_name']}: no valid training losses")
+    penalty = float(np.nanpercentile(valid, 99))
+    train["loss_filled"] = train["loss"].fillna(penalty)
+    samples, targets = e4._pivot_risk_vectors(
+        train, "loss_filled", penalty
+    )
+    if len(samples) != 36_000 or targets.shape != (36_000, len(e4.DELTA_GRID)):
+        raise P2VectorError(
+            f"{fold['fold_name']}: unexpected production training shape "
+            f"{len(samples)} / {targets.shape}"
+        )
+    inputs = e4._build_X_from_samples(samples, means, stds)
+    return train, means, stds, penalty, inputs, targets
 
-            train_df = train_data[train_mask]
-            # Features for training
-            train_features = []
-            train_losses = []
-            for _, row in train_df.iterrows():
-                try:
-                    sample = generate_sample(
-                        beta=row["beta"], eta=row["eta"], gamma=row["gamma"],
-                        n=int(row["n"]), repeat_id=int(row["repeat_id"]),
-                        seed=42001 + int(row["repeat_id"]))
-                    feat = extract_features(sample)
-                    # Build 26-dim risk curve (true loss per delta)
-                    curve = []
-                    for delta in DELTA_GRID:
-                        sub = train_df[(train_df["beta"] == row["beta"]) &
-                                       (train_df["gamma_over_eta"] == row["gamma_over_eta"]) &
-                                       (train_df["n"] == row["n"]) &
-                                       (train_df["repeat_id"] == row["repeat_id"])]
-                        if len(sub) > 0:
-                            r = sub[sub["delta"] == delta].iloc[0] if len(sub[sub["delta"] == delta]) > 0 else None
-                            if r is not None and r["status"] == "ok":
-                                j1_sq = compute_j1_squared(
-                                    float(r["beta_hat"]), float(r["beta"]),
-                                    float(r["eta_hat"]), float(r["eta"]),
-                                    float(r["gamma_hat"]), float(r["gamma"]))
-                                curve.append(j1_sq)
-                            else:
-                                curve.append(np.nan)
-                        else:
-                            curve.append(np.nan)
-                    train_features.append(feat)
-                    train_losses.append(curve)
-                except Exception:
-                    continue
 
-            if len(train_features) == 0:
-                print(f"  {model_id}: no training data, skipping")
-                continue
-
-            X_train = np.array(train_features)
-            Y_train = np.array(train_losses)
-
-            # P99 failure penalty from training
-            valid_mask = ~np.isnan(Y_train).all(axis=1)
-            if valid_mask.sum() > 0:
-                train_valid = Y_train[valid_mask]
-                failure_penalty = float(np.nanpercentile(train_valid, 99))
-            else:
-                failure_penalty = 10.0
-
-            # Fill NaN with failure penalty
-            Y_train_filled = np.where(np.isnan(Y_train), failure_penalty, Y_train)
-
-            # Train feature scaler on training data only
-            feat_scaler = StandardScaler()
-            X_train_scaled = feat_scaler.fit_transform(X_train)
-
-            # Train target scaler
-            target_scaler = StandardScaler()
-            Y_train_scaled = target_scaler.fit_transform(Y_train_filled)
-
-            # Train MLP
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=ConvergenceWarning)
-                model = MLPRegressor(
-                    hidden_layer_sizes=MLP_HIDDEN, activation="relu",
-                    solver="adam", alpha=MLP_ALPHA, learning_rate_init=MLP_LR,
-                    max_iter=MLP_MAX_ITER, early_stopping=True,
-                    validation_fraction=0.1, n_iter_no_change=10,
-                    random_state=seed, batch_size=MLP_BATCH,
+def _track_rows(
+    model,
+    target_scaler,
+    p2_features: pd.DataFrame,
+    p2_loss: pd.DataFrame,
+    means: dict,
+    stds: dict,
+    penalty: float,
+    fold_name: str,
+    seed: int,
+) -> list[dict]:
+    rows: list[dict] = []
+    for track in sorted(p2_loss["track"].unique()):
+        loss_track = p2_loss[p2_loss["track"] == track]
+        lookup_columns = [
+            "beta", "gamma_over_eta", "n", "repeat_id", "delta",
+        ]
+        if loss_track.duplicated(lookup_columns).any():
+            raise P2VectorError(f"{track}: duplicate realized-loss keys")
+        realized_lookup = {
+            (
+                float(row.beta),
+                float(row.gamma_over_eta),
+                int(row.n),
+                int(row.repeat_id),
+                float(row.delta),
+            ): row
+            for row in loss_track.itertuples(index=False)
+        }
+        combo_ids = set(loss_track["combo_id"].unique())
+        feat_track = p2_features[p2_features["combo_id"].isin(combo_ids)]
+        evaluated = e4._evaluate_single_model_indexed(
+            model,
+            target_scaler,
+            feat_track,
+            loss_track,
+            means,
+            stds,
+            penalty,
+            fold_name,
+            seed,
+        )
+        hash_lookup = feat_track.set_index(
+            ["beta", "gamma_over_eta", "n", "repeat_id"]
+        )["sample_sha256"]
+        for row in evaluated:
+            key = (
+                row["beta"],
+                row["gamma_over_eta"],
+                row["n"],
+                row["repeat_id"],
+            )
+            row["sample_sha256"] = hash_lookup.loc[key]
+            row["track"] = track
+            row["model"] = "Vector-MLP-L6"
+            realized = realized_lookup.get(
+                (
+                    float(row["beta"]),
+                    float(row["gamma_over_eta"]),
+                    int(row["n"]),
+                    int(row["repeat_id"]),
+                    float(row["selected_delta"]),
                 )
-                model.fit(X_train_scaled, Y_train_scaled)
+            )
+            row["failed"] = (
+                realized is None
+                or getattr(realized, "status", "") != "success"
+                or not np.isfinite(getattr(realized, "loss", np.nan))
+            )
+            if realized is None:
+                row["failure_reason"] = "missing_selected_delta"
+            elif row["failed"]:
+                row["failure_reason"] = (
+                    str(getattr(realized, "failure_reason", ""))
+                    or "non_finite_realized_loss"
+                )
+            else:
+                row["failure_reason"] = ""
+            if row["failed"]:
+                row["true_loss"] = penalty
+        rows.extend(evaluated)
+    return rows
 
-            elapsed = time.time() - t0
-            print(f"  {model_id}: trained in {elapsed:.0f}s")
 
-            # Evaluate on P2 data
-            p2_features = []
-            p2_keys = []
-            for _, row in p2_data.iterrows():
-                try:
-                    sample = generate_sample(
-                        beta=row["beta"], eta=row["eta"], gamma=row["gamma"],
-                        n=int(row["n"]), repeat_id=int(row["repeat_id"]),
-                        seed=42001 + int(row["repeat_id"]))
-                    feat = extract_features(sample)
-                    p2_features.append(feat)
-                    p2_keys.append((row["beta"], row["gamma_over_eta"], row["n"], row["repeat_id"]))
-                except Exception:
-                    continue
+def _model_summaries(rows: pd.DataFrame) -> pd.DataFrame:
+    records = []
+    for (track, fold, seed), group in rows.groupby(
+        ["track", "fold", "seed"], sort=True
+    ):
+        records.append(
+            {
+                "track": track,
+                "fold": fold,
+                "seed": int(seed),
+                "model": "Vector-MLP-L6",
+                "n_samples": int(len(group)),
+                "n_failed": int(group["failed"].sum()),
+                "failure_rate": float(group["failed"].mean()),
+                "pooled_J1": math.sqrt(float(group["true_loss"].mean())),
+                "endpoint_rate": float(
+                    group["selected_delta"].isin([0.00, 0.02, 0.48, 0.50]).mean()
+                ),
+                "mean_regret": float(group["regret"].mean()),
+            }
+        )
+    return pd.DataFrame(records)
 
-            if len(p2_features) == 0:
-                continue
 
-            X_p2 = np.array(p2_features)
-            X_p2_scaled = feat_scaler.transform(X_p2)
-            Y_p2_pred = target_scaler.inverse_transform(model.predict(X_p2_scaled))
-            Y_p2_pred = np.clip(Y_p2_pred, 0, None)
+def _cross_model_summary(model_summary: pd.DataFrame) -> dict:
+    output = {}
+    for track, group in model_summary.groupby("track", sort=True):
+        values = group["pooled_J1"].to_numpy(dtype=float)
+        output[track] = {
+            "n_models": int(len(values)),
+            "min": float(np.min(values)),
+            "Q1": float(np.quantile(values, 0.25)),
+            "median": float(np.median(values)),
+            "Q3": float(np.quantile(values, 0.75)),
+            "max": float(np.max(values)),
+            "mean": float(np.mean(values)),
+            "SD": float(np.std(values, ddof=1)) if len(values) > 1 else 0.0,
+        }
+    return output
 
-            # Best delta per sample
-            best_idx = np.argmin(Y_p2_pred, axis=1)
-            pred_losses = Y_p2_pred[np.arange(len(Y_p2_pred)), best_idx]
-            j1 = compute_j1(pred_losses[pred_losses < failure_penalty])
-            results.append({
-                "fold": fold, "seed": seed, "model_id": model_id,
-                "n_test_samples": len(pred_losses),
-                "j1": j1, "failure_penalty": failure_penalty,
-                "elapsed_s": elapsed,
-            })
 
-    if results:
-        df = pd.DataFrame(results)
-        df.to_csv(os.path.join(P2_DIR, "p2_vector_mlp_results.csv"), index=False)
-        j1s = df["j1"].values
-        print(f"\nVector-MLP P2 results ({len(results)} models):")
-        print(f"  J1: min={np.min(j1s):.4f} med={np.median(j1s):.4f} max={np.max(j1s):.4f}")
-    else:
-        print("No results produced")
+def run_vector_evaluation(
+    p2_risk: pd.DataFrame,
+    folds: list[dict] | None = None,
+    seeds: list[int] | None = None,
+    run_reproduction_gate: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    verify_production_contract()
+    main_grid = load_main_grid()
+    if run_reproduction_gate:
+        gate = e4._e3b_reproduction_gate_check(main_grid)
+        if not gate.get("overall_pass"):
+            raise P2VectorError("live E3b reproduction gate failed")
+    main_training = prepare_main_training(main_grid)
+    p2_features, p2_loss = prepare_p2_features(p2_risk)
+    folds = list(e4.get_combo_split() if folds is None else folds)
+    seeds = list(e4.STABILITY_SEEDS if seeds is None else seeds)
+    all_rows = []
+    training_receipts = []
+    for fold in folds:
+        _, means, stds, penalty, inputs, targets = _training_fold(
+            main_training, fold
+        )
+        for seed in seeds:
+            started = time.time()
+            model, target_scaler = e4._train_mlp(inputs, targets, seed)
+            rows = _track_rows(
+                model,
+                target_scaler,
+                p2_features,
+                p2_loss,
+                means,
+                stds,
+                penalty,
+                fold["fold_name"],
+                seed,
+            )
+            all_rows.extend(rows)
+            training_receipts.append(
+                {
+                    "fold": fold["fold_name"],
+                    "seed": seed,
+                    "failure_penalty": penalty,
+                    "n_train_samples": int(len(inputs)),
+                    "n_iter": int(model.n_iter_),
+                    "elapsed_s": time.time() - started,
+                }
+            )
+    per_sample = pd.DataFrame(all_rows)
+    expected = (
+        p2_features[["combo_id", "repeat_id"]].drop_duplicates().shape[0]
+        * len(folds)
+        * len(seeds)
+    )
+    if len(per_sample) != expected:
+        raise P2VectorError(
+            f"Vector rows={len(per_sample)}, expected={expected}"
+        )
+    key_columns = ["track", "fold", "seed", "beta", "gamma_over_eta", "n", "repeat_id"]
+    if per_sample.duplicated(key_columns).any():
+        raise P2VectorError("duplicate Vector-MLP per-sample keys")
+    model_summary = _model_summaries(per_sample)
+    summary = {
+        "production_contract": production_contract(),
+        "training_receipts": training_receipts,
+        "cross_model_distribution": _cross_model_summary(model_summary),
+    }
+    return per_sample, model_summary, summary
+
+
+def run_smoke(output_dir: Path) -> dict:
+    output_dir.mkdir(parents=True, exist_ok=False)
+    generation_dir = output_dir / "generation"
+    generate_smoke(generation_dir)
+    risk = load_p2_risk_data(
+        p2_dir=generation_dir,
+        combos=build_p2_combos()[:1],
+        repeats=2,
+    )
+    rows, model_summary, summary = run_vector_evaluation(
+        risk,
+        folds=e4.get_combo_split()[:1],
+        seeds=e4.STABILITY_SEEDS[:1],
+        run_reproduction_gate=False,
+    )
+    baselines, baseline_summary = evaluate_baselines(risk)
+    rows.to_csv(output_dir / "vector_per_sample.csv", index=False)
+    model_summary.to_csv(output_dir / "vector_model_summary.csv", index=False)
+    baselines.to_csv(output_dir / "baseline_per_sample.csv", index=False)
+    summary["baseline_summary"] = baseline_summary
+    (output_dir / "summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return {
+        "vector_rows": len(rows),
+        "model_rows": len(model_summary),
+        "baseline_rows": len(baselines),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--smoke", type=Path)
+    parser.add_argument("--full", action="store_true")
+    args = parser.parse_args()
+    if args.smoke is not None:
+        receipt = run_smoke(args.smoke.resolve())
+        print(json.dumps(receipt, ensure_ascii=False, indent=2))
+        return 0
+    if not args.full:
+        parser.error("choose --smoke PATH or --full")
+    if not P2_FORMAL_AUTHORIZED:
+        raise P2VectorError(
+            "P2 formal evaluation is sealed; request exact-commit authorization"
+        )
+    risk = load_p2_risk_data()
+    rows, model_summary, summary = run_vector_evaluation(
+        risk, run_reproduction_gate=True
+    )
+    baseline_rows, baseline_summary = evaluate_baselines(risk)
+    rows.to_csv(P2_DIR / "p2_vector_per_sample.csv", index=False)
+    model_summary.to_csv(P2_DIR / "p2_vector_model_summary.csv", index=False)
+    baseline_rows.to_csv(P2_DIR / "p2_baseline_per_sample.csv", index=False)
+    summary["baseline_summary"] = baseline_summary
+    (P2_DIR / "p2_evaluation_summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return 0
 
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--smoke", action="store_true", default=True)
-    parser.add_argument("--full", action="store_true")
-    args = parser.parse_args()
-    run_vector_mlp_evaluation(smoke_only=not args.full)
+    raise SystemExit(main())

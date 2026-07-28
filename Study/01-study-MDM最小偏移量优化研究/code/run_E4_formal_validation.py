@@ -1780,6 +1780,63 @@ def _evaluate_single_model(model, target_scaler, df_eval_feat, df_eval_loss,
     return rows
 
 
+def _evaluate_single_model_indexed(
+        model, target_scaler, df_eval_feat, df_eval_loss,
+        zscore_means, zscore_stds, failure_penalty, fold_name, seed):
+    """Vectorized equivalent of :func:`_evaluate_single_model`.
+
+    The historical helper performs a boolean scan of the complete loss table
+    for every sample.  This indexed implementation preserves the frozen
+    selection and realized-loss semantics while making larger external
+    evaluation sets tractable.  It does not alter the historical E4 outputs.
+    """
+    X_eval = _build_X_from_samples(
+        df_eval_feat, zscore_means, zscore_stds
+    )
+    Y_pred = target_scaler.inverse_transform(model.predict(X_eval))
+    Y_pred = np.clip(Y_pred, 0, None)
+    best_delta_idx = np.argmin(Y_pred, axis=1)
+
+    sample_keys = ['beta', 'gamma_over_eta', 'n', 'repeat_id']
+    selected = df_eval_feat[sample_keys].copy().reset_index(drop=True)
+    selected['selected_delta'] = [
+        DELTA_GRID[int(index)] for index in best_delta_idx
+    ]
+
+    loss_table = df_eval_loss[sample_keys + ['delta', 'loss']].copy()
+    if loss_table.duplicated(sample_keys + ['delta']).any():
+        raise ValueError("Evaluation loss table contains duplicate sample/delta keys")
+    selected = selected.merge(
+        loss_table,
+        left_on=sample_keys + ['selected_delta'],
+        right_on=sample_keys + ['delta'],
+        how='left',
+        validate='one_to_one',
+    )
+    selected['true_loss'] = selected['loss'].fillna(failure_penalty)
+
+    oracle = (
+        loss_table.groupby(sample_keys, as_index=False, dropna=False)['loss']
+        .min()
+        .rename(columns={'loss': 'oracle_min'})
+    )
+    selected = selected.merge(
+        oracle, on=sample_keys, how='left', validate='one_to_one'
+    )
+    selected['oracle_min'] = selected['oracle_min'].fillna(
+        selected['true_loss']
+    )
+    selected['regret'] = selected['true_loss'] - selected['oracle_min']
+    selected['fold'] = fold_name
+    selected['seed'] = seed
+    return selected[
+        [
+            'fold', 'seed', 'beta', 'gamma_over_eta', 'n', 'repeat_id',
+            'selected_delta', 'true_loss', 'oracle_min', 'regret',
+        ]
+    ].to_dict('records')
+
+
 def _model_level_summary(rows):
     """Compute pooled J1, per-n J1, endpoint rate, near-optimal, mean regret."""
     if not rows:
