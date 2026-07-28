@@ -69,6 +69,29 @@ def validate_p2_counts():
     return True
 
 
+# J1 formula (from 02-实验协议.md §4.1):
+# J1 = sqrt(mean_i[(beta_hat_i-beta_i)/beta_i)^2 + ((eta_hat_i-eta_i)/eta_i)^2 + ((gamma_hat_i-gamma_i)/eta_i)^2])
+# NO division by 3. Pooled from all per-sample squared errors.
+
+
+def compute_j1(loss_components):
+    """Compute J1 from per-sample squared error components.
+    
+    loss_components: array of e_b^2 + e_e^2 + e_g^2 per sample
+    Returns J1 = sqrt(mean(loss_components))
+    """
+    import numpy as np
+    return float(np.sqrt(np.mean(loss_components)))
+
+
+def compute_j1_squared(bh, beta, eh, eta_val, gh, gamma):
+    """Compute per-sample squared error component for J1."""
+    e_b = (bh - beta) / beta
+    e_e = (eh - eta_val) / eta_val
+    e_g = (gh - gamma) / eta_val
+    return e_b**2 + e_e**2 + e_g**2
+
+
 # Default and L1 delta values for reference comparison
 DEFAULT_DELTA = 0.1
 L1_DELTA = 0.08

@@ -46,10 +46,9 @@ def _now_iso():
 def _run_one_sample(beta, ge, n, repeat_id, eta=ETA):
     """Run MDM on one sample across all 26 deltas. Returns list of dict rows."""
     gamma = ge * eta
-    seed_str = f"{SEED_NAMESPACE}:{beta:.2f}:{ge:.2f}:{n}:{repeat_id}"
-    seed_hash = hash(seed_str) % (2**31)
+    seed_int = _derive_seed(beta, ge, n, repeat_id)
     sample = generate_sample(beta=beta, eta=eta, gamma=gamma, n=n,
-                              repeat_id=repeat_id, seed=seed_hash)
+                              repeat_id=repeat_id, seed=seed_int)
 
     rows = []
     for delta in DELTA_GRID:
@@ -90,7 +89,13 @@ def _chunk_path(track, beta, ge, n):
     return CHUNKS_DIR / fn
 
 
-def _sha256_file(path):
+import hashlib as _hashlib
+
+def _derive_seed(beta, ge, n, repeat_id):
+    """Deterministic seed from combo key + repeat_id using SHA-256."""
+    key = f"{SEED_NAMESPACE}:{beta:.6f}:{ge:.6f}:{n}:{repeat_id}"
+    digest = _hashlib.sha256(key.encode()).digest()
+    return int.from_bytes(digest[:4], "big")
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 

@@ -20,6 +20,7 @@ from p2_config import (
     build_p2_combos, P2_NI_COMBOS, P2_PI_COMBOS, P2_TOTAL_COMBOS,
     DELTA_GRID, REPEATS, SEED_NAMESPACE, ETA, OUTPUT_DIR_NAME,
     DEFAULT_DELTA, L1_DELTA, VECTOR_MLP_FOLDS, VECTOR_MLP_SEEDS,
+    compute_j1, compute_j1_squared,
 )
 from config import STUDY_ROOT, BETA_GRID, GAMMA_OVER_ETA_GRID, N_GRID
 from studies.common.sample import generate_sample
@@ -79,22 +80,23 @@ def _load_p2_data():
 
 
 def _compute_loss_row(row):
-    """J1 component for one row: sqrt(mean of squared relative errors)."""
+    """J1 squared component for one row. Returns (j1_sq, legal, failure_reason)."""
     bh, eh, gh = row["beta_hat"], row["eta_hat"], row["gamma_hat"]
     beta, eta_val, gamma = row["beta"], row["eta"], row["gamma"]
-    # Legality: finite, positive, converged
     conv = row.get("converged", True)
     if isinstance(conv, str):
         conv = conv.lower() in ("true", "1", "yes")
     status = row.get("status", "ok")
     if isinstance(status, str) and status.lower() in ("fail", "error"):
-        return np.nan, False
-    if (not all(np.isfinite([bh, eh, gh])) or bh <= 0 or eh <= 0 or not conv):
-        return np.nan, False
-    e_b = (bh - beta) / beta
-    e_e = (eh - eta_val) / eta_val
-    e_g = (gh - gamma) / eta_val
-    return math.sqrt((e_b**2 + e_e**2 + e_g**2) / 3.0), True
+        return np.nan, False, f"status={status}"
+    if not all(np.isfinite([bh, eh, gh])):
+        return np.nan, False, "non_finite"
+    if bh <= 0 or eh <= 0:
+        return np.nan, False, "non_positive_params"
+    if not conv:
+        return np.nan, False, "not_converged"
+    j1_sq = compute_j1_squared(bh, beta, eh, eta_val, gh, gamma)
+    return j1_sq, True, ""
 
 
 def _find_optimal_delta(mdm_data, combo_key):
@@ -144,21 +146,26 @@ def evaluate_p2():
         sub = p2_data[(p2_data["track"] == track) & (p2_data["beta"] == beta)
                       & (p2_data["gamma_over_eta"] == ge) & (p2_data["n"] == n_)]
 
-        # Compute Default (delta=0.1) and L1 (delta=0.08) per-sample J1 components
-        default_losses = []
-        l1_losses = []
+        # Compute Default (delta=0.1) and L1 (delta=0.08) per-sample J1 squared
+        default_j1_sq = []
+        l1_j1_sq = []
+        failures = {"default_failed": 0, "l1_failed": 0}
         for _, row in sub.iterrows():
-            if abs(row["delta"] - 0.1) < 0.001:
-                loss, ok = _compute_loss_row(row)
+            if abs(float(row["delta"]) - 0.1) < 0.001:
+                j1_sq, ok, reason = _compute_loss_row(row)
                 if ok:
-                    default_losses.append(loss)
-            if abs(row["delta"] - 0.08) < 0.001:
-                loss, ok = _compute_loss_row(row)
+                    default_j1_sq.append(j1_sq)
+                else:
+                    failures["default_failed"] += 1
+            if abs(float(row["delta"]) - 0.08) < 0.001:
+                j1_sq, ok, reason = _compute_loss_row(row)
                 if ok:
-                    l1_losses.append(loss)
+                    l1_j1_sq.append(j1_sq)
+                else:
+                    failures["l1_failed"] += 1
 
-        j1_default = float(np.sqrt(np.mean(np.square(default_losses)))) if default_losses else None
-        j1_l1 = float(np.sqrt(np.mean(np.square(l1_losses)))) if l1_losses else None
+        j1_default = float(np.sqrt(np.mean(default_j1_sq))) if default_j1_sq else None
+        j1_l1 = float(np.sqrt(np.mean(l1_j1_sq))) if l1_j1_sq else None
 
         results.append({
             "track": track, "beta": beta, "gamma_over_eta": ge, "n": n_,
