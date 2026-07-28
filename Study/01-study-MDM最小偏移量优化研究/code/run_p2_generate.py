@@ -301,10 +301,10 @@ def _input_hashes() -> dict[str, str]:
 
 
 def _new_run_context(command: list[str]) -> dict:
-    tracked_dirty = _git("status", "--porcelain", "--untracked-files=no")
-    if tracked_dirty:
+    worktree_status = _git("status", "--porcelain")
+    if worktree_status:
         raise P2GenerationError(
-            "tracked worktree must be clean before formal execution"
+            "worktree must be fully clean before formal execution"
         )
     import pandas
     import sklearn
@@ -314,7 +314,7 @@ def _new_run_context(command: list[str]) -> dict:
         "generation_commit": _git("rev-parse", "HEAD"),
         "exact_command": command,
         "started_at": _now_iso(),
-        "tracked_dirty_before": False,
+        "worktree_dirty_before": False,
         "versions": {
             "python": platform.python_version(),
             "numpy": np.__version__,
@@ -431,7 +431,7 @@ def seal_outputs(
         "seed_namespace": SEED_NAMESPACE,
         "exact_command": context["exact_command"],
         "versions": context["versions"],
-        "tracked_dirty_before": context["tracked_dirty_before"],
+        "worktree_dirty_before": context["worktree_dirty_before"],
         "input_hashes": context["input_hashes"],
         "chunks": receipts,
     }
