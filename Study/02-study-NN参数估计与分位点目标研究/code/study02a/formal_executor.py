@@ -2557,51 +2557,218 @@ def _ensure_a_e1_final_selection(
 
 
 # ---------------------------------------------------------------------------
-# A-E3 staged-selection recovery + scoring plan-row resolver.
+# A-E3 staged-selection recovery (per-token stage1/stage2 + global loss/output_form).
 #
-# The recover helpers are STUBS in C2: they raise ``NotImplementedError`` so
-# the stage2 / output_form / shared_winner_retrain branches of
-# ``_resolve_a_e3_scoring_plan_row`` fail closed until C3 provides the real
-# per-stage receipt readers (mirroring ``_recover_a_e1_*``). The concrete
-# branch + route resolution is fully implemented in C2.
+# Mirrors ``_recover_a_e1_stage{1,2}_selection`` but keyed by the A-E3 route token
+# (``F2_or_V`` / ``S``) for stage1/stage2 and token-less (global) for the single loss /
+# output_form decisions. The recover helpers are read-only and fail-closed: they
+# re-validate the immutable trace/receipt/ledger and assert the decision scope before
+# deriving any placeholder. C3 replaces the C2 ``NotImplementedError`` stubs.
 # ---------------------------------------------------------------------------
+
+# Frozen A-E3 stage parameters (from the authoritative matrix).
+_A_E3_FV_SEARCH_N = 10                 # F2_or_V search_stage1/stage2 use core n=10
+_A_E3_S_N_PART = "shared"              # S route uses shared-n DeepSets
+_A_E3_LOSS_DECISION_ID = f"loss:A-E3:{_A_E3_BASELINE_PLACEHOLDER}:n{_A_E3_FV_SEARCH_N}"
+_A_E3_OUTPUT_FORM_DECISION_ID = f"output_form:A-E3:{_A_E3_BASELINE_PLACEHOLDER}"
+
+
+def _a_e3_route_for_token(token: str) -> str:
+    """Map an A-E3 stage token to its matrix route stem (``F2_or_V`` -> placeholder)."""
+    if token == _A_E3_FV_TOKEN:
+        return _A_E3_BASELINE_PLACEHOLDER
+    if token == _A_E3_S_TOKEN:
+        return _A_E3_S_TOKEN
+    raise ValueError(f"unknown A-E3 stage token: {token!r}")
+
+
+def _a_e3_stage1_decision_id(token: str) -> str:
+    """The single architecture decision id recovered/built by an A-E3 stage1 receipt."""
+    if token == _A_E3_FV_TOKEN:
+        return f"architecture:A-E3:{_A_E3_BASELINE_PLACEHOLDER}:n{_A_E3_FV_SEARCH_N}"
+    if token == _A_E3_S_TOKEN:
+        return f"architecture:A-E3:{_A_E3_S_TOKEN}:{_A_E3_S_N_PART}"
+    raise ValueError(f"unknown A-E3 stage1 token: {token!r}")
+
+
+def _a_e3_stage2_decision_id(token: str) -> str:
+    """The single stage2 decision id recovered/built by an A-E3 stage2 receipt."""
+    if token == _A_E3_FV_TOKEN:
+        return f"stage2:A-E3:{_A_E3_BASELINE_PLACEHOLDER}:n{_A_E3_FV_SEARCH_N}"
+    if token == _A_E3_S_TOKEN:
+        return f"stage2:A-E3:{_A_E3_S_TOKEN}:{_A_E3_S_N_PART}"
+    raise ValueError(f"unknown A-E3 stage2 token: {token!r}")
+
+
+def _a_e3_stage2_winner_keys(token: str) -> tuple[str, str]:
+    """The ``(arch_key, opt_key)`` placeholders a stage2 winner carries, namespaced by token.
+
+    ``F2_or_V`` -> ``selected:A-E3_architecture`` / ``selected:A-E3_optimizer`` (the A-E3
+    baseline aliases consumed by output_form fits); ``S`` -> ``selected:S_architecture`` /
+    ``selected:S_optimizer`` (the S-route aliases consumed by shared_winner_retrain fits).
+    """
+    if token == _A_E3_FV_TOKEN:
+        return "selected:A-E3_architecture", "selected:A-E3_optimizer"
+    if token == _A_E3_S_TOKEN:
+        return "selected:S_architecture", "selected:S_optimizer"
+    raise ValueError(f"unknown A-E3 stage2 token: {token!r}")
+
+
+def _a_e3_stage_evidence_paths(
+    run_dir: Path, stage: str, token: str | None,
+) -> tuple[Path, Path, Path]:
+    """``(trace, receipt, ledger)`` paths for one A-E3 staged selection receipt.
+
+    Per-token stages (``stage1`` / ``stage2``) carry the token in the filename, mirroring
+    :func:`_stage_evidence_paths` for A-E1; the global loss / output_form stages omit it
+    (one receipt each, no route namespace).
+    """
+    if token is None:
+        return (
+            run_dir / f"{stage}_selection_trace.jsonl",
+            run_dir / f"{stage}_selection_receipt.json",
+            run_dir / f"{stage}_selection_ledger.jsonl",
+        )
+    return (
+        run_dir / f"{stage}_selection_{token}_trace.jsonl",
+        run_dir / f"{stage}_selection_{token}_receipt.json",
+        run_dir / f"{stage}_selection_{token}_ledger.jsonl",
+    )
 
 
 def _recover_a_e3_stage1_selection(*, run_dir: Path, run_id: str, token: str) -> dict[str, Any]:
-    """Recover an A-E3 route token's stage1 ``top4`` from its existing immutable receipt.
+    """Recover an A-E3 route token's stage1 ``top4`` from its EXISTING immutable receipt.
 
-    C2 stub: the real reader (mirroring :func:`_recover_a_e1_stage1_selection`) is provided by
-    C3 alongside the stage builders. Until then this raises so the stage2 / output_form /
-    shared_winner_retrain branches fail closed rather than silently passing a placeholder.
+    Read-only and fail-closed (mirrors :func:`_recover_a_e1_stage1_selection`): validates the
+    trace hash, receipt-trace binding and ledger binding (``_validate_selection_evidence``),
+    checks the decision scope is exactly the token's architecture decision, and re-derives
+    ``top4`` from the validated ranking. No scoring, no re-publish, no overwrite -- the
+    receipt is the authority a restart recovers from. Raises if any artifact is missing,
+    tampered or out-of-scope.
     """
-    raise NotImplementedError("C3: _recover_a_e3_stage1_selection is not yet implemented")
+    trace_path, receipt_path, ledger_path = _a_e3_stage_evidence_paths(run_dir, "stage1", token)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    trace_sha = str(receipt["selection_trace_sha256"])
+    records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+    decision_id = _a_e3_stage1_decision_id(token)
+    _require(
+        {str(record["decision_id"]) for record in records} == {decision_id},
+        f"A-E3 stage1 receipt for token {token!r} is out of scope: expected decision {decision_id!r}")
+    top4 = resolve_selected_placeholders(
+        placeholders={f"selected_top_{slot}": decision_id for slot in range(1, 5)},
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+    return {"module_id": "A-E3", "run_id": run_id, "token": token,
+            "selection_trace_sha256": trace_sha, "top4": top4, **dict(receipt)}
 
 
 def _recover_a_e3_stage2_selection(
     *, run_dir: Path, run_id: str, token: str, top4: Mapping[str, str],
 ) -> dict[str, Any]:
-    """Recover an A-E3 route token's stage2 ``winner`` from its existing immutable receipt.
+    """Recover an A-E3 route token's stage2 ``winner`` from its EXISTING immutable receipt.
 
-    C2 stub: the real reader (mirroring :func:`_recover_a_e1_stage2_selection`) is provided by C3.
+    Mirrors :func:`_recover_a_e1_stage2_selection`: validates the receipt, finds the selected
+    winner, maps its ``selected_top_{slot}:{opt}`` candidate to the concrete architecture
+    (``top4[slot]``) plus optimizer, and namespaces the placeholders by token (``A-E3`` for
+    ``F2_or_V``; ``S`` for ``S``). ``top4`` is the token's recovered stage1 top4 (itself
+    derived from a validated receipt, never caller-supplied). Fail-closed on missing,
+    tampered, out-of-scope evidence or a winner slot outside the recovered top4.
     """
-    raise NotImplementedError("C3: _recover_a_e3_stage2_selection is not yet implemented")
+    trace_path, receipt_path, ledger_path = _a_e3_stage_evidence_paths(run_dir, "stage2", token)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    trace_sha = str(receipt["selection_trace_sha256"])
+    records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+    decision_id = _a_e3_stage2_decision_id(token)
+    _require(
+        {str(record["decision_id"]) for record in records} == {decision_id},
+        f"A-E3 stage2 receipt for token {token!r} is out of scope: expected decision {decision_id!r}")
+    winner_record = next(
+        (record for record in records
+         if record["decision_id"] == decision_id and record["selected"]),
+        None,
+    )
+    _require(winner_record is not None, f"A-E3 stage2 decision {decision_id!r} has no selected winner")
+    arch_placeholder, optimizer = _parse_stage2_winner_candidate(str(winner_record["candidate_id"]))
+    _require(
+        arch_placeholder in top4,
+        f"A-E3 stage2 winner slot {arch_placeholder!r} is outside the recovered stage1 top4 "
+        f"for token {token!r}")
+    arch_key, opt_key = _a_e3_stage2_winner_keys(token)
+    winner = {arch_key: top4[arch_placeholder], opt_key: optimizer}
+    return {"module_id": "A-E3", "run_id": run_id, "token": token,
+            "selection_trace_sha256": trace_sha, "winner": winner, **dict(receipt)}
 
 
 def _recover_a_e3_loss_selection(*, run_dir: Path, run_id: str) -> dict[str, Any]:
-    """Recover the A-E3 ``selected:A-E3_loss`` resolution from the loss selection receipt.
+    """Recover the global A-E3 ``selected:A-E3_loss`` from the loss selection receipt.
 
-    C2 stub: the real reader is provided by C3 (the global loss-selection receipt has no route
-    token; it carries the lowest-aggregate loss id over the loss_screen fits).
+    The loss decision is global (no route token): the frozen matrix has a single
+    ``loss:A-E3:selected:F2_or_V:n10`` decision over the 4 loss-screen candidates
+    (``lowest_aggregate``), and its winner is the A-E3-wide loss id that every downstream
+    output_form / shared_winner_retrain fit resolves against. Read-only + fail-closed like
+    the stage1/stage2 recovers.
     """
-    raise NotImplementedError("C3: _recover_a_e3_loss_selection is not yet implemented")
+    trace_path, receipt_path, ledger_path = _a_e3_stage_evidence_paths(run_dir, "loss", None)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    trace_sha = str(receipt["selection_trace_sha256"])
+    records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+    _require(
+        {str(record["decision_id"]) for record in records} == {_A_E3_LOSS_DECISION_ID},
+        f"A-E3 loss receipt is out of scope: expected decision {_A_E3_LOSS_DECISION_ID!r}")
+    winner_record = next(
+        (record for record in records
+         if record["decision_id"] == _A_E3_LOSS_DECISION_ID and record["selected"]),
+        None,
+    )
+    _require(winner_record is not None, "A-E3 loss decision has no selected winner")
+    return {"module_id": "A-E3", "run_id": run_id,
+            "selection_trace_sha256": trace_sha,
+            "selected:A-E3_loss": str(winner_record["candidate_id"]), **dict(receipt)}
 
 
 def _recover_a_e3_output_form_selection(*, run_dir: Path, run_id: str) -> dict[str, Any]:
-    """Recover the A-E3 ``selected:A-E3_baseline`` resolution from the output_form receipt.
+    """Recover the global A-E3 ``selected:A-E3_baseline`` from the output_form receipt.
 
-    C2 stub: the real reader is provided by C3.
+    The output_form decision is global (no route token): the frozen matrix has a single
+    ``output_form:A-E3:selected:F2_or_V`` decision over the ``joint`` /
+    ``independent_capacity_matched`` candidates (``fixed_vs_shared_equal_weight``), and its
+    winner is the A-E3 baseline output form (the ``selected:A-E3_baseline`` alias).
+    Read-only + fail-closed.
     """
-    raise NotImplementedError("C3: _recover_a_e3_output_form_selection is not yet implemented")
+    trace_path, receipt_path, ledger_path = _a_e3_stage_evidence_paths(run_dir, "output_form", None)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    trace_sha = str(receipt["selection_trace_sha256"])
+    records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+    _require(
+        {str(record["decision_id"]) for record in records} == {_A_E3_OUTPUT_FORM_DECISION_ID},
+        f"A-E3 output_form receipt is out of scope: expected decision {_A_E3_OUTPUT_FORM_DECISION_ID!r}")
+    winner_record = next(
+        (record for record in records
+         if record["decision_id"] == _A_E3_OUTPUT_FORM_DECISION_ID and record["selected"]),
+        None,
+    )
+    _require(winner_record is not None, "A-E3 output_form decision has no selected winner")
+    return {"module_id": "A-E3", "run_id": run_id,
+            "selection_trace_sha256": trace_sha,
+            "selected:A-E3_baseline": str(winner_record["candidate_id"]), **dict(receipt)}
 
 
 def _resolve_a_e3_scoring_plan_row(
@@ -2625,12 +2792,13 @@ def _resolve_a_e3_scoring_plan_row(
       - output_form     -> recover loss + F2_or_V stage2 winner -> ``_resolve_a_e3_output_form_plan_row``.
       - shared_winner_retrain -> recover loss + S stage2 winner -> ``_resolve_a_e3_shared_retrain_plan_row``.
 
-    The stage2 / output_form / shared_winner_retrain branches call ``_recover_a_e3_*`` (C3
-    provides the real readers); C2 fully implements the concrete branch + route resolution.
+    The stage2 / output_form / shared_winner_retrain branches call the ``_recover_a_e3_*``
+    readers, each re-validating its own immutable trace/receipt/ledger before deriving any
+    placeholder.
 
     Fails closed on: a fit_id absent from the validated plan or matrix, an unbound
     plan<->matrix row SHA, a route that disagrees with the matrix, an unknown route placeholder,
-    or a missing/tampered stage receipt (once C3 wires the recover helpers).
+    or a missing/tampered/out-of-scope stage receipt.
     """
     fit_id = str(fit_id)
     if fit_id not in plan_by_fit:
@@ -2651,8 +2819,9 @@ def _resolve_a_e3_scoring_plan_row(
     stage = _a_e3_fit_stage(matrix_row)
     if stage == "concrete":
         return resolved_row
-    # The non-concrete branches recover on-disk verified evidence (C3 provides the readers).
-    # Until then they fail closed so no placeholder can reach resolve_model_factory.
+    # The non-concrete branches recover on-disk verified evidence via the C3 readers;
+    # each fails closed (missing/tampered/out-of-scope receipt) so no placeholder can
+    # reach resolve_model_factory.
     if stage == "stage2":
         token = _a_e3_route_token(matrix_route)
         top4 = _recover_a_e3_stage1_selection(run_dir=run_dir, run_id=run_id, token=token)["top4"]
@@ -2673,6 +2842,449 @@ def _resolve_a_e3_scoring_plan_row(
         return _resolve_a_e3_shared_retrain_plan_row(
             resolved_row, resolved_route, loss_resolution, s_stage2["winner"])
     raise ValueError(f"unknown A-E3 fit stage {stage!r} for fit {fit_id!r}")
+
+
+# ---------------------------------------------------------------------------
+# A-E3 staged-selection builders (per-token stage1/stage2 + global loss/output_form).
+#
+# Mirror ``build_a_e1_stage{1,2}_selection``: each publishes an immutable PARTIAL selection
+# trace + receipt + ledger over its stage's decision(s), derives its placeholders from the
+# validated ranking, and reuses the A-E1 plan-row resolver helpers (``_resolve_stage2_plan_row``)
+# so the scoring row a fit's checkpoint is scored against never carries a placeholder. The
+# global loss/output_form builders score every fit through ``_resolve_a_e3_scoring_plan_row``
+# (which itself recovers the prerequisite receipts), so production scoring only ever sees a
+# fully-concrete row. Production scores from checkpoints; tests inject ``score_fit``.
+# ---------------------------------------------------------------------------
+
+
+def _a_e3_score_stage_candidates(
+    *, specs: Sequence[DecisionSpec], plan_by_fit: Mapping[str, Mapping[str, Any]],
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+    run_dir: Path, cache_root: Path, run_id: str,
+    matrix_by_fit: Mapping[str, Mapping[str, str]], frozen: FrozenConfig,
+    effective: EffectiveFormalConfig, fit_states: Mapping[str, str],
+    resolved_route: str, label: str,
+) -> dict[str, FitEvaluation]:
+    """Shared scoring loop for every A-E3 staged-selection builder.
+
+    Production (``score_fit is None``) resolves each fit's scoring row via
+    ``_resolve_a_e3_scoring_plan_row`` -- which recovers any prerequisite receipts from disk --
+    before checkpoint scoring, so no placeholder reaches ``_score_fit_from_checkpoint``. Tests
+    inject ``score_fit`` to stand in for checkpoint scoring. Each fit must be terminal
+    (``succeeded``) on the production path.
+    """
+    evaluations: dict[str, FitEvaluation] = {}
+    for spec in specs:
+        for candidate in spec.candidates:
+            for key in candidate.support_keys:
+                fit_id = candidate.support_for(key)
+                plan_row = plan_by_fit[fit_id]
+                if score_fit is not None:
+                    evaluation = score_fit(fit_id, plan_row)
+                else:
+                    _require(
+                        fit_states.get(fit_id) == "succeeded",
+                        f"{label} requires every fit terminal; {fit_id!r} is not succeeded")
+                    scoring_row = _resolve_a_e3_scoring_plan_row(
+                        run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+                        matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+                        predecessor_resolved_route=resolved_route)
+                    evaluation = _score_fit_from_checkpoint(
+                        run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=scoring_row,
+                        frozen=frozen, effective=effective, fit_states=fit_states,
+                        module_id="A-E3", decision_id=spec.decision_id, candidate_id=candidate.candidate_id)
+                evaluations[fit_id] = evaluation
+    return evaluations
+
+
+def build_a_e3_stage1_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path,
+    module_id: str = "A-E3", run_id: str, token: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
+) -> dict[str, Any]:
+    """Per-token A-E3 stage-1 selection receipt (top4) from ONE token's stage-1 architecture fits.
+
+    Mirrors :func:`build_a_e1_stage1_selection` for A-E3. The frozen matrix partitions A-E3
+    stage-1 architecture fits by route stem (``selected:F2_or_V`` core-n MLP; ``S`` shared-n
+    DeepSets); each token's stage-1 fits are terminal before that token's stage-2 fits are
+    reached, so receipts are per-token. Publishes an immutable PARTIAL selection trace +
+    receipt + ledger over the one token's architecture decision and derives its
+    ``selected_top_1..4`` (rank-1..4 architectures). It does NOT require stage-2 /
+    output_form / other-token evidence (the deadlock-free staged authority). Production scores
+    from checkpoints; tests inject ``score_fit``. No training; no test read.
+    """
+    study_root = Path(study_root).resolve()
+    run_dir = Path(run_dir).resolve()
+    cache_root = Path(cache_root).resolve()
+    route_stem = _a_e3_route_for_token(token)
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    stage1_rows = [
+        row for row in matrix_rows if str(row["module"]) == "A-E3"
+        and str(row["fit_kind"]) == "search_stage1" and str(row["route"]) == route_stem]
+    specs = tuple(build_decision_specs("A-E3", stage1_rows))
+    expected = {_a_e3_stage1_decision_id(token)}
+    _require(
+        {spec.decision_id for spec in specs} == expected,
+        f"A-E3 stage1 selection scope must be exactly the {token!r} architecture decision")
+    fit_states: Mapping[str, str] = {}
+    resolved_route = ""
+    if score_fit is None:
+        fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+        resolved_route = _a_e3_resolved_baseline_route_from_manifest(run_dir)
+    evaluations = _a_e3_score_stage_candidates(
+        specs=specs, plan_by_fit=plan_by_fit, score_fit=score_fit,
+        run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        matrix_by_fit=matrix_by_fit, frozen=frozen, effective=effective,
+        fit_states=fit_states, resolved_route=resolved_route,
+        label=f"A-E3 stage1 ({token})")
+    records, _diagnostics = build_selection_trace(
+        module_id="A-E3", run_id=run_id, specs=specs, evaluations_by_fit=evaluations)
+    trace_path, receipt_path, ledger_path = _a_e3_stage_evidence_paths(run_dir, "stage1", token)
+    trace_sha = write_selection_trace(trace_path, records)
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    receipt = publish_selection_receipt(
+        receipt_path=receipt_path, ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=effective, code_commit=manifest["code_commit"])
+    top4 = resolve_selected_placeholders(
+        placeholders={f"selected_top_{slot}": _a_e3_stage1_decision_id(token) for slot in range(1, 5)},
+        selection_trace_path=trace_path, selection_trace_sha256=trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id)
+    return {
+        "module_id": "A-E3", "run_id": run_id, "token": token,
+        "selection_trace_sha256": trace_sha, "top4": top4, **receipt,
+    }
+
+
+def build_a_e3_stage2_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path,
+    module_id: str = "A-E3", run_id: str, token: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
+) -> dict[str, Any]:
+    """Per-token A-E3 stage-2 selection receipt (winner) from ONE token's stage-2 fits ONLY.
+
+    Mirrors :func:`build_a_e1_stage2_selection`. Maps the token's stage-2 winner
+    (``selected_top_{slot}:{opt}``) to the concrete architecture (the token's verified stage1
+    top4[slot]) and optimizer, namespaced by token (``selected:A-E3_*`` for ``F2_or_V``;
+    ``selected:S_*`` for ``S``) -- the authority that token's output_form /
+    shared_winner_retrain placeholders resolve against.
+
+    Scoring reads the token's stage1 top4 from its OWN on-disk verified receipt
+    (:func:`_recover_a_e3_stage1_selection`); the caller never supplies top4. Each scored
+    fit's plan row is resolved from that verified authority before checkpoint scoring, so no
+    placeholder reaches ``resolve_model_factory``.
+    """
+    study_root = Path(study_root).resolve()
+    run_dir = Path(run_dir).resolve()
+    cache_root = Path(cache_root).resolve()
+    route_stem = _a_e3_route_for_token(token)
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    stage2_rows = [
+        row for row in matrix_rows if str(row["module"]) == "A-E3"
+        and str(row["fit_kind"]) == "search_stage2" and str(row["route"]) == route_stem]
+    specs = tuple(build_decision_specs("A-E3", stage2_rows))
+    expected = {_a_e3_stage2_decision_id(token)}
+    _require(
+        {spec.decision_id for spec in specs} == expected,
+        f"A-E3 stage2 selection scope must be exactly the {token!r} stage2 decision")
+    fit_states: Mapping[str, str] = {}
+    resolved_route = ""
+    if score_fit is None:
+        fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+        resolved_route = _a_e3_resolved_baseline_route_from_manifest(run_dir)
+    evaluations = _a_e3_score_stage_candidates(
+        specs=specs, plan_by_fit=plan_by_fit, score_fit=score_fit,
+        run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        matrix_by_fit=matrix_by_fit, frozen=frozen, effective=effective,
+        fit_states=fit_states, resolved_route=resolved_route,
+        label=f"A-E3 stage2 ({token})")
+    records, _diagnostics = build_selection_trace(
+        module_id="A-E3", run_id=run_id, specs=specs, evaluations_by_fit=evaluations)
+    trace_path, receipt_path, ledger_path = _a_e3_stage_evidence_paths(run_dir, "stage2", token)
+    trace_sha = write_selection_trace(trace_path, records)
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    receipt = publish_selection_receipt(
+        receipt_path=receipt_path, ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=effective, code_commit=manifest["code_commit"])
+    decision_id = _a_e3_stage2_decision_id(token)
+    winner_record = next(
+        (record for record in records if record["decision_id"] == decision_id and record["selected"]),
+        None)
+    _require(winner_record is not None, f"A-E3 stage2 decision {decision_id!r} has no selected winner")
+    arch_placeholder, optimizer = _parse_stage2_winner_candidate(str(winner_record["candidate_id"]))
+    top4 = _recover_a_e3_stage1_selection(run_dir=run_dir, run_id=run_id, token=token)["top4"]
+    _require(
+        arch_placeholder in top4,
+        f"A-E3 stage2 winner slot {arch_placeholder!r} is outside the stage1 top4 for token {token!r}")
+    arch_key, opt_key = _a_e3_stage2_winner_keys(token)
+    winner = {arch_key: top4[arch_placeholder], opt_key: optimizer}
+    return {
+        "module_id": "A-E3", "run_id": run_id, "token": token,
+        "selection_trace_sha256": trace_sha, "winner": winner, **receipt,
+    }
+
+
+def build_a_e3_loss_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path,
+    module_id: str = "A-E3", run_id: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
+) -> dict[str, Any]:
+    """Global A-E3 loss selection receipt (``selected:A-E3_loss``) from the loss-screen fits.
+
+    The frozen matrix has one A-E3 loss decision (``loss:A-E3:selected:F2_or_V:n10``) over the
+    4 loss-screen candidates (``lowest_aggregate``). The winner is the A-E3-wide loss id that
+    every downstream output_form / shared_winner_retrain fit resolves against. Production scores
+    from checkpoints; tests inject ``score_fit``. No training; no test read.
+    """
+    study_root = Path(study_root).resolve()
+    run_dir = Path(run_dir).resolve()
+    cache_root = Path(cache_root).resolve()
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    loss_rows = [
+        row for row in matrix_rows if str(row["module"]) == "A-E3"
+        and str(row["fit_kind"]) == "loss_screen"]
+    specs = tuple(build_decision_specs("A-E3", loss_rows))
+    _require(
+        {spec.decision_id for spec in specs} == {_A_E3_LOSS_DECISION_ID},
+        f"A-E3 loss selection scope must be exactly {_A_E3_LOSS_DECISION_ID!r}")
+    fit_states: Mapping[str, str] = {}
+    resolved_route = ""
+    if score_fit is None:
+        fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+        resolved_route = _a_e3_resolved_baseline_route_from_manifest(run_dir)
+    evaluations = _a_e3_score_stage_candidates(
+        specs=specs, plan_by_fit=plan_by_fit, score_fit=score_fit,
+        run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        matrix_by_fit=matrix_by_fit, frozen=frozen, effective=effective,
+        fit_states=fit_states, resolved_route=resolved_route,
+        label="A-E3 loss")
+    records, _diagnostics = build_selection_trace(
+        module_id="A-E3", run_id=run_id, specs=specs, evaluations_by_fit=evaluations)
+    trace_path, receipt_path, ledger_path = _a_e3_stage_evidence_paths(run_dir, "loss", None)
+    trace_sha = write_selection_trace(trace_path, records)
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    receipt = publish_selection_receipt(
+        receipt_path=receipt_path, ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=effective, code_commit=manifest["code_commit"])
+    winner_record = next(
+        (record for record in records
+         if record["decision_id"] == _A_E3_LOSS_DECISION_ID and record["selected"]),
+        None)
+    _require(winner_record is not None, "A-E3 loss decision has no selected winner")
+    return {
+        "module_id": "A-E3", "run_id": run_id,
+        "selection_trace_sha256": trace_sha,
+        "selected:A-E3_loss": str(winner_record["candidate_id"]), **receipt,
+    }
+
+
+def build_a_e3_output_form_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path,
+    module_id: str = "A-E3", run_id: str, predecessor_resolved_route: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
+) -> dict[str, Any]:
+    """Global A-E3 output_form selection receipt (``selected:A-E3_baseline``) from output_form fits.
+
+    The frozen matrix has one A-E3 output_form decision (``output_form:A-E3:selected:F2_or_V``)
+    over the ``joint`` / ``independent_capacity_matched`` candidates
+    (``fixed_vs_shared_equal_weight``). Each output_form fit's scoring row is resolved from
+    the verified loss + F2_or_V stage2 winner + predecessor route (via
+    :func:`_resolve_a_e3_scoring_plan_row`) before checkpoint scoring, so no placeholder reaches
+    ``resolve_model_factory``. The winner is the A-E3 baseline output form (the
+    ``selected:A-E3_baseline`` alias). Production scores from checkpoints; tests inject
+    ``score_fit``.
+    """
+    study_root = Path(study_root).resolve()
+    run_dir = Path(run_dir).resolve()
+    cache_root = Path(cache_root).resolve()
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    output_form_rows = [
+        row for row in matrix_rows if str(row["module"]) == "A-E3"
+        and str(row["fit_kind"]) == "output_form"]
+    specs = tuple(build_decision_specs("A-E3", output_form_rows))
+    _require(
+        {spec.decision_id for spec in specs} == {_A_E3_OUTPUT_FORM_DECISION_ID},
+        f"A-E3 output_form selection scope must be exactly {_A_E3_OUTPUT_FORM_DECISION_ID!r}")
+    fit_states: Mapping[str, str] = {}
+    if score_fit is None:
+        fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+    evaluations = _a_e3_score_stage_candidates(
+        specs=specs, plan_by_fit=plan_by_fit, score_fit=score_fit,
+        run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        matrix_by_fit=matrix_by_fit, frozen=frozen, effective=effective,
+        fit_states=fit_states, resolved_route=str(predecessor_resolved_route),
+        label="A-E3 output_form")
+    records, _diagnostics = build_selection_trace(
+        module_id="A-E3", run_id=run_id, specs=specs, evaluations_by_fit=evaluations)
+    trace_path, receipt_path, ledger_path = _a_e3_stage_evidence_paths(run_dir, "output_form", None)
+    trace_sha = write_selection_trace(trace_path, records)
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    receipt = publish_selection_receipt(
+        receipt_path=receipt_path, ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id, trace_path=trace_path, trace_sha256=trace_sha,
+        effective_config=effective, code_commit=manifest["code_commit"])
+    winner_record = next(
+        (record for record in records
+         if record["decision_id"] == _A_E3_OUTPUT_FORM_DECISION_ID and record["selected"]),
+        None)
+    _require(winner_record is not None, "A-E3 output_form decision has no selected winner")
+    return {
+        "module_id": "A-E3", "run_id": run_id,
+        "selection_trace_sha256": trace_sha,
+        "selected:A-E3_baseline": str(winner_record["candidate_id"]), **receipt,
+    }
+
+
+# ---------------------------------------------------------------------------
+# A-E3 crash-recoverable ensure helpers (mirror ``_ensure_a_e1_*``).
+#
+# Each is idempotent on restart: if the receipt already exists it is RE-VALIDATED read-only
+# (no re-scoring, no re-publish, no overwrite) and its placeholder(s) recovered; otherwise it
+# is published from the stage's terminal fits. ``stage1_by_token`` / ``stage2_by_token`` are
+# the orchestrator's within-pass caches (never the source of truth -- disk is).
+# ---------------------------------------------------------------------------
+
+
+def _ensure_a_e3_stage1_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path, run_id: str, token: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+) -> dict[str, Any]:
+    """Ensure the token's A-E3 stage1 selection receipt exists and return its ``top4``.
+
+    Crash-recoverable (mirrors :func:`_ensure_a_e1_stage1_selection`). The caller never
+    supplies ``top4`` -- it is always derived from a validated receipt.
+    """
+    receipt_path = run_dir / f"stage1_selection_{token}_receipt.json"
+    if receipt_path.exists():
+        return _recover_a_e3_stage1_selection(run_dir=run_dir, run_id=run_id, token=token)
+    return build_a_e3_stage1_selection(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        token=token, score_fit=score_fit)
+
+
+def _ensure_a_e3_stage2_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path, run_id: str, token: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+    stage1_by_token: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Ensure the token's A-E3 stage2 selection receipt exists and return its ``winner``.
+
+    Crash-recoverable (mirrors :func:`_ensure_a_e1_stage2_selection`). The token's stage1
+    ``top4`` is ensured first so the stage2 winner slot can be validated against it.
+    ``stage1_by_token`` is the orchestrator's within-pass cache; a recovered stage1 top4 is
+    stored back into it so a later fit for the same token does not re-derive it.
+    """
+    if token not in stage1_by_token:
+        stage1_by_token[token] = _ensure_a_e3_stage1_selection(
+            study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+            token=token, score_fit=score_fit)
+    top4 = stage1_by_token[token]["top4"]
+    receipt_path = run_dir / f"stage2_selection_{token}_receipt.json"
+    if receipt_path.exists():
+        return _recover_a_e3_stage2_selection(run_dir=run_dir, run_id=run_id, token=token, top4=top4)
+    return build_a_e3_stage2_selection(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        token=token, score_fit=score_fit)
+
+
+def _ensure_a_e3_loss_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path, run_id: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+) -> dict[str, Any]:
+    """Ensure the global A-E3 loss selection receipt exists and return its resolution.
+
+    Idempotent on restart: an existing receipt is re-validated and its ``selected:A-E3_loss``
+    recovered (no re-publish); otherwise it is published from the loss-screen fits.
+    """
+    receipt_path = run_dir / "loss_selection_receipt.json"
+    if receipt_path.exists():
+        return _recover_a_e3_loss_selection(run_dir=run_dir, run_id=run_id)
+    return build_a_e3_loss_selection(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        score_fit=score_fit)
+
+
+def _ensure_a_e3_output_form_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path, run_id: str,
+    predecessor_resolved_route: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+) -> dict[str, Any]:
+    """Ensure the global A-E3 output_form selection receipt exists and return its resolution.
+
+    Idempotent on restart: an existing receipt is re-validated and its
+    ``selected:A-E3_baseline`` recovered (no re-publish); otherwise it is published from the
+    output_form fits (which requires the prerequisite loss + F2_or_V stage2 receipts on disk).
+    """
+    receipt_path = run_dir / "output_form_selection_receipt.json"
+    if receipt_path.exists():
+        return _recover_a_e3_output_form_selection(run_dir=run_dir, run_id=run_id)
+    return build_a_e3_output_form_selection(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        predecessor_resolved_route=predecessor_resolved_route, score_fit=score_fit)
+
+
+def _ensure_a_e3_final_selection(
+    *, study_root: Path, run_dir: Path, cache_root: Path, run_id: str,
+    score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None,
+) -> dict[str, Any]:
+    """Ensure the A-E3 final module selection trace/receipt/ledger exists; idempotent on restart.
+
+    Mirrors :func:`_ensure_a_e1_final_selection`. If the final receipt already exists it is
+    RE-VALIDATED read-only (no re-publish, no overwrite); otherwise it is published from the
+    terminal selection fits via :func:`build_module_selection`. Repeated calls after
+    completion are idempotent (validate-only).
+    """
+    receipt_path = run_dir / "selection_receipt.json"
+    if receipt_path.exists():
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        trace_sha = str(receipt["selection_trace_sha256"])
+        _validate_selection_evidence(
+            selection_trace_path=run_dir / "selection_trace.jsonl",
+            selection_trace_sha256=trace_sha,
+            selection_receipt_path=receipt_path,
+            selection_ledger_path=run_dir / "selection_ledger.jsonl",
+            module_id="A-E3", run_id=run_id,
+        )
+        return {"module_id": "A-E3", "run_id": run_id, "reused": True,
+                "selection_trace_sha256": trace_sha}
+    return build_module_selection(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E3",
+        run_id=run_id, score_fit=score_fit)
 
 
 def run_a_e1_staged(
@@ -2810,6 +3422,10 @@ def run_a_e1_staged(
 __all__ = [
     "build_a_e1_stage1_selection",
     "build_a_e1_stage2_selection",
+    "build_a_e3_loss_selection",
+    "build_a_e3_output_form_selection",
+    "build_a_e3_stage1_selection",
+    "build_a_e3_stage2_selection",
     "build_module_pre_unseal_bundle",
     "build_module_selection",
     "execute_claimed_fit",

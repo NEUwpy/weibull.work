@@ -3808,10 +3808,13 @@ def test_resolve_a_e3_scoring_plan_row_fail_closed_on_unbound_plan_or_matrix(tmp
 
 
 @pytest.mark.parametrize("stage_kind", ["search_stage2", "output_form", "shared_winner_retrain"])
-def test_resolve_a_e3_scoring_plan_row_non_concrete_branches_are_c3_stubs(tmp_path, stage_kind):
-    """C2 staging: the stage2 / output_form / shared_winner_retrain branches call _recover_a_e3_*
-    (C3 stubs that raise NotImplementedError) so no placeholder silently passes. C3 replaces the
-    stubs with real receipt readers."""
+def test_resolve_a_e3_scoring_plan_row_non_concrete_branches_fail_closed_without_receipt(tmp_path, stage_kind):
+    """C3 fail-closed: with the C2 stubs replaced by real receipt readers, the stage2 /
+    output_form / shared_winner_retrain branches attempt to recover on-disk verified evidence
+    and fail closed when the prerequisite receipt is absent (no placeholder silently passes).
+
+    Mirrors G.13 at the resolver level: each non-concrete branch raises because its
+    ``_recover_a_e3_*`` reader cannot find the expected trace/receipt/ledger on disk."""
     pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = _publish_v_winning_a_e1_predecessor(tmp_path)
     plan_rows = _real_a_e3_plan_rows(tmp_path, trace_sha)
     matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
@@ -3821,7 +3824,9 @@ def test_resolve_a_e3_scoring_plan_row_non_concrete_branches_are_c3_stubs(tmp_pa
     fit_id = next(
         fid for fid, row in matrix_by_fit.items()
         if str(row["module"]) == "A-E3" and str(row["fit_kind"]) == stage_kind)
-    with pytest.raises(NotImplementedError, match="C3"):
+    # No stage receipt published -> the recover reader fails closed (FileNotFoundError on the
+    # absent receipt). The point: a placeholder can never silently pass the resolver.
+    with pytest.raises((FileNotFoundError, ValueError)):
         fe._resolve_a_e3_scoring_plan_row(
             run_dir=ae3_run_dir, run_id="r", fit_id=fit_id,
             matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
@@ -3880,3 +3885,307 @@ def test_reconstruct_a_e3_specs_builds_concrete_specs_with_resolved_route(tmp_pa
     s_training, _ = fe.reconstruct_a_e3_specs(
         plan_by_fit[s_concrete], FROZEN, EFFECTIVE, trace, "S")
     assert s_training.route == "S"
+
+
+# ---------------------------------------------------------------------------
+# C3 A-E3 staged-selection builders + recover helpers (G.10 stage-order real,
+# G.13 recover fail-closed). The builders publish the per-token stage1/stage2 +
+# global loss/output_form receipts in the A.1 frozen order; the recover helpers
+# re-validate those receipts read-only and fail-closed on missing/tampered/
+# stale/out-of-scope/duplicate evidence. Production-bound: self-built V-winning
+# A-E1 predecessor (no real r5 dir read); deterministic score_fit injection.
+# ---------------------------------------------------------------------------
+
+_A_E3_STAGED_RUN_ID = "G3-AE3-staged-exec-v1"
+
+
+def _publish_a_e3_staged_dir(tmp_path: Path, predecessor_trace_sha: str):
+    """Create an A-E3 run_dir with the REAL plan.jsonl + a minimal manifest.json bound to the
+    predecessor trace SHA. Returns the run_dir (no receipts published yet)."""
+    run_dir = tmp_path / "A-E3" / _A_E3_STAGED_RUN_ID
+    run_dir.mkdir(parents=True)
+    plan_rows = _real_a_e3_plan_rows(tmp_path, predecessor_trace_sha, run_id=_A_E3_STAGED_RUN_ID)
+    (run_dir / "plan.jsonl").write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in plan_rows), encoding="utf-8")
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+    return run_dir
+
+
+def _a_e3_staged_score_fit():
+    """Deterministic score_fit for A-E3 staged selections covering all 6 decisions.
+
+    loss: ``transformed_train_z_mse`` wins (lowest). stage1 F2_or_V/S: rank by architecture
+    number (top4 = m01..m04 / d01..d04). stage2 F2_or_V: ``selected_top_1:o1`` wins (-> m01).
+    stage2 S: ``selected_top_2:o2`` wins (-> d02). output_form: ``joint`` wins (lower
+    aggregate than ``independent_capacity_matched``)."""
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    # rank losses so ``transformed_train_z_mse`` wins (lowest base).
+    loss_bases = {
+        "transformed_train_z_mse": 0.01, "transformed_train_z_huber": 0.02,
+        "transformed_unscaled_mse": 0.03, "raw_train_z_mse": 0.04,
+    }
+
+    def score_fit(fit_id, plan_row):
+        row = matrix_by_fit[str(fit_id)]
+        kind = str(row["fit_kind"]); route = str(row["route"])
+        n_raw = str(row["n"])
+        n_key: int | str = "shared" if n_raw == "shared" else int(n_raw)
+        key = SupportKey(n=n_key, seed=int(plan_row["seed"]))
+        if kind == "loss_screen":
+            loss = str(row["loss"])
+            base = loss_bases[loss]
+            decision_id = fe._A_E3_LOSS_DECISION_ID; candidate_id = loss
+        elif kind == "search_stage1":
+            arch = str(row["architecture"])
+            base = 0.001 * int(arch[1:])
+            token = fe._a_e3_route_token(route)
+            decision_id = fe._a_e3_stage1_decision_id(token); candidate_id = arch
+        elif kind == "search_stage2":
+            arch_ph = str(row["architecture"]); opt = str(row["optimizer"])
+            candidate_id = f"{arch_ph}:{opt}"
+            token = fe._a_e3_route_token(route)
+            decision_id = fe._a_e3_stage2_decision_id(token)
+            forced = {"F2_or_V": "selected_top_1:o1", "S": "selected_top_2:o2"}[token]
+            base = 0.001 if candidate_id == forced else 0.5
+        elif kind == "output_form":
+            candidate_id = route.rpartition(":")[2]
+            base = 0.01 if candidate_id == "joint" else 0.02
+            decision_id = fe._A_E3_OUTPUT_FORM_DECISION_ID
+        else:
+            raise ValueError(f"unexpected A-E3 fit_kind for staged selection: {kind!r}")
+        records = _synth_point_records(str(fit_id), int(plan_row["seed"]), base)
+        aggregate = sum(rec["l_param"] for rec in records) / len(records)
+        return FitEvaluation(
+            fit_id=str(fit_id), module_id="A-E3", decision_id=decision_id, candidate_id=candidate_id,
+            support_key=key, failed=False,
+            checkpoint_sha256=hashlib.sha256(str(fit_id).encode("utf-8")).hexdigest(),
+            validation_identity=f"val-cache-{fit_id}", selection_score=aggregate,
+            failure_penalty=0.0, point_records=records)
+    return score_fit
+
+
+def _build_all_a_e3_staged_receipts(run_dir: Path, cache_root: Path, score_fit):
+    """Publish all 6 A-E3 staged receipts in A.1 order; returns a dict of the build results."""
+    common = dict(study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+                  run_id=_A_E3_STAGED_RUN_ID, score_fit=score_fit)
+    loss = fe.build_a_e3_loss_selection(**common)
+    s1_fv = fe.build_a_e3_stage1_selection(token=fe._A_E3_FV_TOKEN, **common)
+    s2_fv = fe.build_a_e3_stage2_selection(token=fe._A_E3_FV_TOKEN, **common)
+    s1_s = fe.build_a_e3_stage1_selection(token=fe._A_E3_S_TOKEN, **common)
+    s2_s = fe.build_a_e3_stage2_selection(token=fe._A_E3_S_TOKEN, **common)
+    output_form = fe.build_a_e3_output_form_selection(
+        predecessor_resolved_route="V", **common)
+    return {"loss": loss, "s1_fv": s1_fv, "s2_fv": s2_fv,
+            "s1_s": s1_s, "s2_s": s2_s, "output_form": output_form}
+
+
+def test_g10_a_e3_staged_builders_publish_receipts_in_a1_order(tmp_path):
+    """G.10: A-E3 stage builders publish per-token stage1/stage2 + global loss/output_form
+    receipts in the A.1 frozen order, each over the right decision scope, with deterministic
+    winners and NO placeholder reaching the production scoring row. Self-built V-winning A-E1
+    predecessor; no real r5 dir read."""
+    pred_run_dir, trace_sha, _spath, _ssha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    run_dir = _publish_a_e3_staged_dir(tmp_path, trace_sha)
+    score_fit = _a_e3_staged_score_fit()
+    receipts = _build_all_a_e3_staged_receipts(run_dir, tmp_path / "cache", score_fit)
+
+    # (1) Each stage receipt file exists at the A.1-mandated path with its trace + ledger.
+    for name in ("loss", "output_form"):
+        for ext in ("_receipt.json", "_trace.jsonl", "_ledger.jsonl"):
+            assert (run_dir / f"{name}_selection{ext}").is_file(), name + ext
+    for token in (fe._A_E3_FV_TOKEN, fe._A_E3_S_TOKEN):
+        for stage in ("stage1", "stage2"):
+            for ext in ("_receipt.json", "_trace.jsonl", "_ledger.jsonl"):
+                assert (run_dir / f"{stage}_selection_{token}{ext}").is_file(), f"{stage}/{token}{ext}"
+
+    # (2) Deterministic winners prove the receipts carry verified (not placeholder) resolutions.
+    assert receipts["loss"]["selected:A-E3_loss"] == "transformed_train_z_mse"
+    for slot in range(1, 5):
+        assert f"selected_top_{slot}" in receipts["s1_fv"]["top4"]
+        assert f"selected_top_{slot}" in receipts["s1_s"]["top4"]
+    assert tuple(receipts["s1_fv"]["top4"][f"selected_top_{i}"] for i in range(1, 5)) \
+        == ("m01", "m02", "m03", "m04")
+    assert tuple(receipts["s1_s"]["top4"][f"selected_top_{i}"] for i in range(1, 5)) \
+        == ("d01", "d02", "d03", "d04")
+    assert receipts["s2_fv"]["winner"] == \
+        {"selected:A-E3_architecture": "m01", "selected:A-E3_optimizer": "o1"}
+    assert receipts["s2_s"]["winner"] == \
+        {"selected:S_architecture": "d02", "selected:S_optimizer": "o2"}
+    assert receipts["output_form"]["selected:A-E3_baseline"] == "joint"
+
+    # (3) No placeholder reaches the production scoring row: resolve a sample fit from each
+    # non-concrete stage and assert its row is fully concrete.
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=[json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+                   if line.strip()],
+        matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    _placeholders = ("selected:", "selected_top_")
+
+    def _resolved(fit_id):
+        return fe._resolve_a_e3_scoring_plan_row(
+            run_dir=run_dir, run_id=_A_E3_STAGED_RUN_ID, fit_id=str(fit_id),
+            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+            predecessor_resolved_route="V")
+
+    stage2_fit = next(fid for fid, row in matrix_by_fit.items()
+                      if str(row["module"]) == "A-E3" and str(row["fit_kind"]) == "search_stage2"
+                      and str(row["route"]) == "selected:F2_or_V")
+    r2 = _resolved(stage2_fit)
+    assert r2["route"] == "V"
+    assert not str(r2["architecture"]).startswith(_placeholders)
+
+    of_fit = next(fid for fid, row in matrix_by_fit.items()
+                  if str(row["module"]) == "A-E3" and str(row["fit_kind"]) == "output_form"
+                  and str(row["route"]) == "selected:F2_or_V:joint")
+    rof = _resolved(of_fit)
+    assert rof["route"] == "V:joint"
+    for field in ("architecture", "optimizer", "loss"):
+        assert not str(rof[field]).startswith(_placeholders), field
+
+    shared_fit = next(fid for fid, row in matrix_by_fit.items()
+                      if str(row["module"]) == "A-E3" and str(row["fit_kind"]) == "shared_winner_retrain")
+    rsh = _resolved(shared_fit)
+    assert rsh["route"] == "S"
+    for field in ("architecture", "optimizer", "loss"):
+        assert not str(rsh[field]).startswith(_placeholders), field
+
+
+def test_g10_a_e3_staged_builders_are_idempotent_on_restart(tmp_path):
+    """G.10 (idempotence): re-calling the builders after the receipts exist REPUBLISHES would
+    fail (canonical no-replace); the ensure helpers RE-VALIDATE read-only instead, returning the
+    same placeholder resolutions. This mirrors the A-E1 staged crash-recovery contract."""
+    pred_run_dir, trace_sha, _spath, _ssha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    run_dir = _publish_a_e3_staged_dir(tmp_path, trace_sha)
+    cache_root = tmp_path / "cache"
+    score_fit = _a_e3_staged_score_fit()
+    first = _build_all_a_e3_staged_receipts(run_dir, cache_root, score_fit)
+
+    # The ensure helpers recover (not rebuild) when the receipt already exists.
+    common = dict(study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+                  run_id=_A_E3_STAGED_RUN_ID, score_fit=score_fit)
+    stage1_by_token: dict[str, dict] = {}
+    loss2 = fe._ensure_a_e3_loss_selection(**common)
+    s1_fv2 = fe._ensure_a_e3_stage1_selection(token=fe._A_E3_FV_TOKEN, **common)
+    s2_fv2 = fe._ensure_a_e3_stage2_selection(
+        token=fe._A_E3_FV_TOKEN, stage1_by_token=stage1_by_token, **common)
+    s1_s2 = fe._ensure_a_e3_stage1_selection(token=fe._A_E3_S_TOKEN, **common)
+    s2_s2 = fe._ensure_a_e3_stage2_selection(
+        token=fe._A_E3_S_TOKEN, stage1_by_token=stage1_by_token, **common)
+    of2 = fe._ensure_a_e3_output_form_selection(predecessor_resolved_route="V", **common)
+
+    # Recovered resolutions agree with the first-pass published ones.
+    assert loss2["selected:A-E3_loss"] == first["loss"]["selected:A-E3_loss"]
+    assert s1_fv2["top4"] == first["s1_fv"]["top4"]
+    assert s2_fv2["winner"] == first["s2_fv"]["winner"]
+    assert s1_s2["top4"] == first["s1_s"]["top4"]
+    assert s2_s2["winner"] == first["s2_s"]["winner"]
+    assert of2["selected:A-E3_baseline"] == first["output_form"]["selected:A-E3_baseline"]
+    # Trace SHAs are unchanged (the receipts were NOT republished).
+    assert loss2["selection_trace_sha256"] == first["loss"]["selection_trace_sha256"]
+    assert s1_fv2["selection_trace_sha256"] == first["s1_fv"]["selection_trace_sha256"]
+    assert of2["selection_trace_sha256"] == first["output_form"]["selection_trace_sha256"]
+
+
+@pytest.mark.parametrize("stage,token", [
+    ("stage1", "F2_or_V"), ("stage1", "S"),
+    ("stage2", "F2_or_V"), ("stage2", "S"),
+    ("loss", None), ("output_form", None),
+])
+def test_g13_a_e3_recover_fail_closed_on_missing_receipt(tmp_path, stage, token):
+    """G.13 (missing): each ``_recover_a_e3_*`` fail-closes when its receipt is absent (no
+    silent recovery from placeholder). Directly calls the recover helpers."""
+    pred_run_dir, trace_sha, _spath, _ssha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    run_dir = _publish_a_e3_staged_dir(tmp_path, trace_sha)
+    kwargs = {"run_dir": run_dir, "run_id": _A_E3_STAGED_RUN_ID}
+    if token is not None:
+        kwargs["token"] = token
+    if stage == "stage2":
+        kwargs["top4"] = {}  # never reached (receipt read fails first)
+    recover = {
+        "stage1": fe._recover_a_e3_stage1_selection, "stage2": fe._recover_a_e3_stage2_selection,
+        "loss": fe._recover_a_e3_loss_selection, "output_form": fe._recover_a_e3_output_form_selection,
+    }[stage]
+    with pytest.raises((FileNotFoundError, ValueError)):
+        recover(**kwargs)
+
+
+def _a_e3_recover(stage: str, token: str | None, *, run_dir: Path):
+    kwargs = {"run_dir": run_dir, "run_id": _A_E3_STAGED_RUN_ID}
+    if token is not None:
+        kwargs["token"] = token
+    if stage == "stage1":
+        return fe._recover_a_e3_stage1_selection(**kwargs)
+    if stage == "stage2":
+        # stage2 recover needs the token's stage1 top4 (itself recovered from disk).
+        top4 = fe._recover_a_e3_stage1_selection(**kwargs)["top4"]
+        return fe._recover_a_e3_stage2_selection(**kwargs, top4=top4)
+    if stage == "loss":
+        return fe._recover_a_e3_loss_selection(**kwargs)
+    return fe._recover_a_e3_output_form_selection(**kwargs)
+
+
+def test_g13_a_e3_recover_fail_closed_on_tampered_trace(tmp_path):
+    """G.13 (tampered): a byte-flip in a stage1 trace changes its SHA; the recover helper
+    rejects (hash mismatch), even though the receipt still declares the original SHA."""
+    pred_run_dir, trace_sha, _spath, _ssha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    run_dir = _publish_a_e3_staged_dir(tmp_path, trace_sha)
+    _build_all_a_e3_staged_receipts(run_dir, tmp_path / "cache", _a_e3_staged_score_fit())
+    trace_path = run_dir / "stage1_selection_F2_or_V_trace.jsonl"
+    with trace_path.open("a", encoding="utf-8") as handle:
+        handle.write('{"tampered": true}\n')
+    with pytest.raises(ValueError, match="SHA-256"):
+        _a_e3_recover("stage1", "F2_or_V", run_dir=run_dir)
+
+
+def test_g13_a_e3_recover_fail_closed_on_stale_trace_sha(tmp_path):
+    """G.13 (stale): a receipt that declares a stale/cross-run trace SHA (not the verified
+    trace SHA) is rejected at the receipt-trace binding check."""
+    pred_run_dir, trace_sha, _spath, _ssha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    run_dir = _publish_a_e3_staged_dir(tmp_path, trace_sha)
+    _build_all_a_e3_staged_receipts(run_dir, tmp_path / "cache", _a_e3_staged_score_fit())
+    receipt_path = run_dir / "loss_selection_receipt.json"
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["selection_trace_sha256"] = "e" * 64  # stale/cross-run SHA
+    receipt_path.write_text(json.dumps(receipt, sort_keys=True) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="SHA-256"):
+        _a_e3_recover("loss", None, run_dir=run_dir)
+
+
+def test_g13_a_e3_recover_fail_closed_on_out_of_scope_receipt(tmp_path):
+    """G.13 (out-of-scope): a receipt whose decision scope disagrees with the recovered
+    stage/token is rejected. A stage1 F2_or_V receipt copied into the stage1 S path has the
+    wrong decision id; the S recover rejects it."""
+    import shutil
+    pred_run_dir, trace_sha, _spath, _ssha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    run_dir = _publish_a_e3_staged_dir(tmp_path, trace_sha)
+    _build_all_a_e3_staged_receipts(run_dir, tmp_path / "cache", _a_e3_staged_score_fit())
+    # Copy the F2_or_V stage1 receipt into the S path -- the decision_id inside is
+    # architecture:A-E3:selected:F2_or_V:n10, but the S recover expects architecture:A-E3:S:shared.
+    for ext in ("_trace.jsonl", "_receipt.json", "_ledger.jsonl"):
+        shutil.copy(
+            run_dir / f"stage1_selection_F2_or_V{ext}",
+            run_dir / f"stage1_selection_S{ext}")
+    with pytest.raises(ValueError, match="out of scope"):
+        _a_e3_recover("stage1", "S", run_dir=run_dir)
+
+
+def test_g13_a_e3_recover_fail_closed_on_duplicate_ledger_binding(tmp_path):
+    """G.13 (duplicate): a ledger with two formal-selection bindings for the same module/run
+    is rejected (exactly one binding is required)."""
+    pred_run_dir, trace_sha, _spath, _ssha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    run_dir = _publish_a_e3_staged_dir(tmp_path, trace_sha)
+    _build_all_a_e3_staged_receipts(run_dir, tmp_path / "cache", _a_e3_staged_score_fit())
+    ledger_path = run_dir / "output_form_selection_ledger.jsonl"
+    # Append the first binding line again -> two identical formal-selection bindings.
+    lines = [line for line in ledger_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    binding_records = [json.loads(line) for line in lines
+                       if json.loads(line).get("binding_type") == "formal-selection"]
+    assert len(binding_records) == 1, "precondition: exactly one binding before tamper"
+    binding_line = next(line for line in lines
+                        if json.loads(line).get("binding_type") == "formal-selection")
+    with ledger_path.open("a", encoding="utf-8") as handle:
+        handle.write(binding_line + "\n")
+    with pytest.raises(ValueError, match="exactly one binding"):
+        _a_e3_recover("output_form", None, run_dir=run_dir)
