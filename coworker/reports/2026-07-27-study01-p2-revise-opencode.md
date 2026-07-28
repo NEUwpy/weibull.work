@@ -1,109 +1,130 @@
-# Study01 P2 REVISE 执行报告
+# Study01 P2 v2 修正与预授权执行报告
 
-> 执行者：OpenCode
-> 日期：2026-07-27
-> 分支：study01xu
-> 审查基线：5ebda36150002d6fdb27901f40ac853b9a927def
-> 最终 tip：0312201b
-> 状态：READY_FOR_P2_RERUN_AUTHORIZATION
+> 日期：2026-07-28
+>
+> 分支：`study01xu`
+>
+> 审查起点：`88a40747`
+>
+> 生产实现提交：`fbbe2726`
+>
+> clean-worktree 加固提交：`50422747`
+>
+> 状态：`READY_FOR_P2_RERUN_AUTHORIZATION`
 
-## 修订链
+## 1. 本轮结论
 
-| Commit | 职责 |
-|--------|------|
-| `5ebda361` | P2 v1 执行报告（包含 INVALID chunks） |
-| `0cfdaf83` | **fix**: J1 公式修正（删除 /3）+ seed 改用 SHA256 替代 hash() |
-| `0312201b` | **feat**: Vector-MLP 评价实现 + 21 fail-closed 测试 |
+P2 v2 已完成正式重跑前的生产实现、fail-closed 检查和真实生产路径 smoke。39 个组合的正式计算尚未启动；P3 Direct-MLP 未启动。
 
-## P2 v1 失效说明
+P2 v1 不可作为研究证据：旧生成器使用 Python `hash()` 派生 seed，跨进程不稳定。旧 v1 状态统一为 `INVALID_NONDETERMINISTIC_SEED`。39 个未跟踪 chunks 已从仓库工作区隔离到：
 
-39 个 chunks（位于 `artifacts/formal/extended_validation/p2_generalization/chunks/`，未 git tracked）标记为 **INVALID_NONDETERMINISTIC_SEED**。
+`D:\weibull-local-artifacts\study01-p2-invalid-v1-5ebda361\chunks`
 
-原因：生成脚本 `run_p2_generate.py` 使用 Python `hash()` 函数派生种子，在独立 Python 进程中不可复现。已通过 SHA256 修正。
+仓库中既有 v1 manifest/summary 只保留为失效历史记录，不得进入论文、图表或 v2 续跑。
 
-## 修正内容
+## 2. v2 生产实现
 
-### 1. J1 公式
+### 2.1 确定性生成与输出保护
 
-**修正前**（错误）：
-```
-J1 = sqrt(mean((e_b^2 + e_e^2 + e_g^2) / 3))
-```
-**修正后**（与协议 §4.1 一致）：
-```
-J1 = sqrt(mean(e_b^2 + e_e^2 + e_g^2))
-e_b = (beta_hat - beta) / beta
-e_e = (eta_hat - eta) / eta
-e_g = (gamma_hat - gamma) / eta
-```
-新增 `compute_j1()` 和 `compute_j1_squared()` 函数于 `p2_config.py`。
+- seed namespace 保持冻结值 `study01_p2_v1`，但样本由共享 `generate_sample()` 生产入口确定性生成；
+- v2 输出目录独立为 `extended_validation/p2_generalization_v2`；
+- 每个 chunk 必须满足精确 schema、26,000 行、1000 个 repeat、26 个 delta、无重复键；
+- 每个 repeat 的样本 SHA256 均由真实样本内容复算，禁止只哈希参数键；
+- 失败行必须包含失败原因；
+- chunk 采用临时文件后原子替换，checkpoint 续跑前复核上下文和文件哈希；
+- 正式启动要求完整 worktree clean，记录 exact command、generation commit、版本和输入文件 SHA256；
+- `P2_FORMAL_AUTHORIZED=False`，无公开绕过入口。
 
-### 2. Seed namespace
+### 2.2 评价公式
 
-**修正前**：`seed = hash("study01_p2_v1:...") % (2**31)`
-**修正后**：`seed = int.from_bytes(SHA256("study01_p2_v1:...").digest()[:4], "big")`
+逐样本损失与 E4 正式入口一致：
 
-跨进程确定性已在测试中验证。
-
-### 3. Vector-MLP P2 评价
-
-新增 `code/run_p2_vector_mlp.py`：
-- 使用 E3b/E4d 完全相同的生产路径：
-  - 13 个部署可观测统计量
-  - full-combo 5 fold 划分（repeat_id mod 5）
-  - 3 seeds [42, 2026, 3407]
-  - train-fold-only scaler（StandardScaler）
-  - P99 failure penalty
-  - MLP(256,128,64), max_iter=300, batch=256, alpha=1e-4, lr=1e-3
-  - 26-dim risk curve target
-- P2 数据仅用于 forward pass（不进入 scaler/training/seed）
-- 支持 `--smoke`（1 combo）和 `--full`（39 combos）
-
-### 4. fail-closed 测试（21 new）
-
-- J1 公式验证（perfect, beta/eta/gamma only, pooled, no-/3）
-- Seed 确定性（same/different input, int type, no hash() in source）
-- 失败处理合同（status field, penalty 存在）
-- Model-first vs pooled 区分
-- P2 config pinned（15/24/39/39000/1014000）
-
-## 测试结果
-
-```
-P2 config tests: 20 passed
-P2 REVISE tests: 21 passed
-Classification tests: 31 passed
-P0_INTEGRITY: PASS
-compileall: OK
-git diff --check: clean
+```text
+L_i = e_beta^2 + e_eta^2 + e_gamma^2
+J1 = sqrt(mean_i(L_i))
 ```
 
-## P2 正式重跑命令
+其中：
 
-```bash
-# 1. 生成（39 combos, ~12h）
-python code/run_p2_generate.py
-
-# 2. Default/L1 评价（~30s）
-python code/run_p2_evaluate.py
-
-# 3. Vector-MLP 评价（smoke: ~10min, full: ~3h）
-python code/run_p2_vector_mlp.py --full
+```text
+e_beta = (beta_hat-beta)/beta
+e_eta  = (eta_hat-eta)/eta
+e_gamma = (gamma_hat-gamma)/eta
 ```
 
-## 预计成本
+不除以 3；pooled J1 从全部逐样本 `L_i` 直接计算，不对组合级 J1 作算术平均。失败惩罚与 complete-case 结果分别记录。
 
-| 阶段 | combos | 预计时间 |
-|------|--------|----------|
-| P2 生成 | 39 | ~12h |
-| Default/L1 评价 | 39 | ~30s |
-| Vector-MLP 训练+评价 | 39 | ~3h |
+### 2.3 Vector-MLP 单一生产路径
 
-## 禁止事项确认
+`run_p2_vector_mlp.py` 不再复制一套近似实现，而是调用 `run_E4_formal_validation.py` 的正式入口：
 
-- [x] 未启动第二次正式全量运行
-- [x] P2 v1 chunks 保持未跟踪状态（未删除、未覆盖、未冒充正式产物）
-- [x] 未修改 main
-- [x] 未覆盖 E1–E4 正式产物
-- [x] 未根据结果增删组合
-- [x] 未自评 APPROVE
+- full-combo 5 folds 与 3 seeds；
+- 13 个部署可观测特征；
+- train-fold-only z-score；
+- 26 维风险曲线目标；
+- 每折训练损失 P99 失败惩罚；
+- MLP `(256,128,64)` 正式训练函数；
+- P2 只作 forward pass，不进入 scaler、训练、调参或 seed 选择；
+- 结果先按模型汇总，再给出 15 模型分布。
+
+为避免逐个 P2 样本反复扫描完整风险表，E4 正式模块新增索引版 evaluator。专项测试确认其输出与历史 evaluator 在相同输入上逐项完全一致，原正式结果和旧入口未改写。
+
+## 3. 真实生产路径 smoke
+
+输出位于仓库外：
+
+`D:\weibull-local-artifacts\study01-p2-smoke-fbbe2726-r2`
+
+冻结规模：
+
+- P2-NI 1 个组合：`beta=1.5, gamma/eta=0.1, n=15`；
+- 2 repeats；
+- `combo_fold_1 × seed 42`；
+- 不是伪造小模型，而是实际读取 45 个主网格 chunk、构造 45,000 个主网格样本特征，并用其中 36,000 个 train-fold 样本调用正式 MLP 训练入口。
+
+结果：
+
+| 项目 | 结果 |
+|---|---:|
+| 训练模型 | 1 |
+| 模型训练迭代 | 59 |
+| 模型训练时间 | 56.04 s |
+| Vector-MLP 逐样本行 | 2 |
+| Default/L1 逐样本行 | 4 |
+| 生成或评价失败 | 0 |
+| Vector-MLP smoke pooled J1 | 0.336716 |
+| Default smoke pooled J1 | 0.277544 |
+| L1 smoke pooled J1 | 0.284397 |
+
+这些数值仅验证代码路径和口径，不构成性能结论。
+
+## 4. 验证
+
+- P2 config + REVISE 专项：`39 passed`；
+- E4 fail-closed/repeat/SHA、E3b 合同、分类与 P2 联合回归：`148 passed`；
+- P0 完整性审计：`P0_INTEGRITY=PASS`；
+- P1 仍为：`GAP_REQUIRES_P2 (pure_n_interp=0)`；
+- v1 chunks：隔离目录 39 个，原工作区 0 个；
+- 正式生成入口：在未授权状态 fail-closed；
+- `git diff --check`：clean。
+
+测试警告仅包括既有大 CSV dtype 提示和小样本训练测试的 batch-size clipping，不影响正式合同。
+
+## 5. 正式运行前授权条件
+
+只有同时满足下列条件才可启动 39 组合正式 v2：
+
+1. Codex 对本轮精确 clean tip 给出独立 `APPROVE`；
+2. 授权记录明确绑定该 tip、P2 v2 输出目录和冻结的 39 个组合；
+3. 解封动作形成单一、可审计的小提交，并再次核对输入哈希与 clean worktree；
+4. 正式运行完成后重新封存，停在 `READY_FOR_INDEPENDENT_REVIEW`；
+5. 不复用 v1 chunks，不进入 P3，不按结果追加点位。
+
+## 6. 禁止事项确认
+
+- [x] 未启动 P2 v2 正式 39 组合运行；
+- [x] 未把 v1 结果冒充 v2 或研究证据；
+- [x] 未覆盖 E1–E4 正式产物；
+- [x] 未修改组合、repeats、delta 网格或训练配置；
+- [x] 未进入 Direct-MLP；
+- [x] 未自评 `APPROVE`。
