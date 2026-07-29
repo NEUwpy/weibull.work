@@ -668,29 +668,57 @@ def test_capsule_files_for_verify_rejects_extra_capsule_path():
 
 @pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
 def test_r5_verify_does_not_read_working_tree(monkeypatch):
-    """R5: the historical verifier never reads the working tree for the
-    3 capsule files. Access interception: if the verifier opens any of the
-    3 WT paths, the test fails immediately. No production files are
-    moved, modified, or hidden."""
+    """R6: the historical verifier never reads the working tree for the
+    3 capsule files. Guard intercepts builtins.open + Path.open +
+    Path.read_bytes (NOT io.open — that breaks Python internals).
+    Self-proof: actively read a forbidden path → AssertionError,
+    then verify_historical_authority PASS."""
 
     from study02a.legacy_authority_capsule import get_legacy_authority_capsule
 
     capsule = get_legacy_authority_capsule()
     forbidden = {str((ROOT / entry["repo_path"]).resolve()) for entry in capsule["files"]}
     _real_open = open
+    _real_path_open = Path.open
+    _real_path_read_bytes = Path.read_bytes
+
+    def _check(path_str):
+        if path_str in forbidden:
+            raise AssertionError(
+                f"historical verifier attempted to open working-tree file {path_str} "
+                "(capsule must use git objects only)")
 
     def _guarded_open(file, *args, **kwargs):
         try:
-            resolved = str(Path(file).resolve())
-        except (OSError, ValueError):
-            resolved = str(file)
-        if resolved in forbidden:
-            raise AssertionError(
-                f"historical verifier attempted to open working-tree file {resolved} "
-                "(capsule must use git objects only)")
+            _check(str(Path(file).resolve()))
+        except (OSError, ValueError, TypeError):
+            pass
         return _real_open(file, *args, **kwargs)
 
+    def _guarded_path_open(self, *args, **kwargs):
+        try:
+            _check(str(self.resolve()))
+        except (OSError, ValueError):
+            pass
+        return _real_path_open(self, *args, **kwargs)
+
+    def _guarded_path_read_bytes(self):
+        try:
+            _check(str(self.resolve()))
+        except (OSError, ValueError):
+            pass
+        return _real_path_read_bytes(self)
+
     monkeypatch.setattr("builtins.open", _guarded_open)
+    monkeypatch.setattr(Path, "open", _guarded_path_open)
+    monkeypatch.setattr(Path, "read_bytes", _guarded_path_read_bytes)
+
+    # Self-proof: actively read a forbidden path → must raise AssertionError
+    first_forbidden = next(iter(forbidden))
+    with pytest.raises(AssertionError, match="working-tree"):
+        Path(first_forbidden).read_bytes()
+
+    # Real verification must still PASS (verifier uses git objects + mask)
     manifest, _plan, state, _events = verify_historical_authority(_R5_RUN_DIR, _R5_CACHE_ROOT)
     assert manifest["run_id"] == "A-E1-formal-r5-20260727-222417"
     assert state["live_claim"] is None
