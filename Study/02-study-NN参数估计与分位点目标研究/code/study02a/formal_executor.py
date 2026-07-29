@@ -513,6 +513,13 @@ def _predecessor_trace_from_manifest(run_dir: Path) -> PredecessorTrace:
     pred_manifest = json.loads(pred_manifest_path.read_text(encoding="utf-8"))
     staged_path = predecessor.get("selection_staged_ledger_path")
     staged_sha = predecessor.get("selection_staged_ledger_sha256")
+    scoped_code = predecessor.get("scoped_code_sha256")
+    authority_sha = predecessor.get("authority_sha256")
+    if manifest.get("manifest_version") == "study02-formal-v2" and str(predecessor.get("module_id")) != "none":
+        if scoped_code in (None, "none"):
+            raise ValueError("v2 manifest predecessor missing scoped_code_sha256 for non-none predecessor")
+        if authority_sha in (None, "none"):
+            raise ValueError("v2 manifest predecessor missing authority_sha256 for non-none predecessor")
     return PredecessorTrace(
         module_id=str(predecessor["module_id"]),
         run_id=str(predecessor["run_id"]),
@@ -524,6 +531,8 @@ def _predecessor_trace_from_manifest(run_dir: Path) -> PredecessorTrace:
         selection_code_commit=str(pred_manifest["code_commit"]),
         staged_ledger_path=None if staged_path in (None, "none") else Path(staged_path),
         staged_ledger_sha256=None if staged_sha in (None, "none") else str(staged_sha),
+        scoped_code_sha256=None if scoped_code in (None, "none") else str(scoped_code),
+        authority_sha256=None if authority_sha in (None, "none") else str(authority_sha),
     )
 
 
