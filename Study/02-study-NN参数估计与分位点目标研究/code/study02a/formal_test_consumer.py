@@ -510,7 +510,17 @@ def evaluate_nn_checkpoint(
         architecture = _resolve_architecture_from_authority(run_dir, entry)
 
     input_dim = None if is_set else int(batch.features.shape[1])
-    model_factory = resolve_model_factory(architecture, frozen_config, input_dim)
+    # Reconstruct the output_form contract from the entry route so the test consumer
+    # rebuilds the exact model factory (joint 3-output MLP vs capacity-selected
+    # IndependentContainer) the checkpoint was trained against. The capacity
+    # selection is deterministic in (architecture, input_dim, frozen), so no
+    # evidence.json read is needed to rebuild structurally; the bound evidence
+    # records the same selection for audit.
+    from .output_form_contract import output_form_from_route
+    output_form = output_form_from_route(str(entry.route))
+    model_factory = resolve_model_factory(
+        architecture, frozen_config, input_dim, output_form=output_form,
+    )
     state_dict = load_checkpoint(checkpoint_bytes)
     model = model_factory()
     model.load_state_dict(state_dict)
@@ -575,8 +585,16 @@ def evaluate_nn_checkpoint(
 
 
 def _resolve_architecture_from_authority(run_dir: Path, entry: CohortEntry) -> str:
-    """Resolve a selected: architecture placeholder from the run's selection evidence."""
+    """Resolve a selected: architecture placeholder from the run's selection evidence.
+
+    Reads the module's ``staged_resolution_ledger.jsonl`` ``final_aliases`` record
+    (the on-disk authority for deferred placeholders) and resolves the architecture
+    alias matching the entry's module -- ``selected:A-E1_architecture`` for A-E1,
+    ``selected:A-E3_architecture`` for A-E3. Falls back to the legacy
+    ``selection/selection_trace*.json`` scan if no staged ledger is present.
+    """
     staged_ledger = run_dir / "staged_resolution_ledger.jsonl"
+    module_alias_key = f"selected:{entry.module_id}_architecture"
     if staged_ledger.is_file():
         for line in staged_ledger.read_text(encoding="utf-8").splitlines():
             if not line.strip():
@@ -584,6 +602,10 @@ def _resolve_architecture_from_authority(run_dir: Path, entry: CohortEntry) -> s
             record = json.loads(line)
             aliases = record.get("final_aliases") or record.get("aliases")
             if isinstance(aliases, dict):
+                arch = aliases.get(module_alias_key)
+                if arch:
+                    return str(arch)
+                # Legacy fallback for A-E1-only consumers.
                 arch = aliases.get("selected:A-E1_architecture")
                 if arch:
                     return str(arch)

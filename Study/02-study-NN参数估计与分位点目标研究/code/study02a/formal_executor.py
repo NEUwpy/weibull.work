@@ -89,6 +89,10 @@ from .formal_scheduler import (
 )
 from .models import build_deepsets, build_mlp
 from .matrix import expand_module_matrix
+from .output_form_contract import (
+    build_output_form_aware_factory,
+    output_form_from_route,
+)
 from .training import fit_fixed_candidate, fit_set_candidate, load_checkpoint
 
 
@@ -133,14 +137,41 @@ def _historical_widths(architecture_id: str, recipe: Mapping[str, Any]) -> tuple
 
 
 def resolve_model_factory(
-    architecture_id: str, frozen: FrozenConfig, input_dim: int | None
+    architecture_id: str, frozen: FrozenConfig, input_dim: int | None,
+    *,
+    output_form: str | None = None,
 ) -> Callable[[], nn.Module]:
     """Resolve a frozen architecture id to a deterministic model factory.
 
     ``selected:*`` and ``selected_top_N`` ids require a completed selection trace
     (D7/D8) and fail closed here.
+
+    When ``output_form`` is set (an A-E3 ``output_form`` row's route suffix), the
+    factory is routed through the SHA-bound :mod:`output_form_contract`:
+
+    * ``"joint"`` / ``None`` -> the standard 3-output MLP (shared trunk).
+    * ``"independent_capacity_matched"`` -> a capacity-selected
+      :class:`~study02a.models.IndependentContainer` (three single-output MLP
+      subnetworks), structurally distinct from the joint model so the two
+      output_form arms are a contrastive control.
+
+    The capacity selection (which m0X architecture the independent container is
+    built from) is deterministic in ``(architecture_id, input_dim, frozen)``; the
+    selection metadata is available via :func:`build_output_form_aware_factory` for
+    evidence recording.
     """
     _require(isinstance(architecture_id, str) and architecture_id, "architecture id is required")
+    if output_form is not None and output_form not in {"joint", "independent_capacity_matched"}:
+        raise ValueError(f"unknown output_form value: {output_form!r}")
+    if output_form == "independent_capacity_matched":
+        _require(
+            input_dim is not None and int(input_dim) > 0,
+            "independent_capacity_matched requires a positive input_dim",
+        )
+        factory, _metadata = build_output_form_aware_factory(
+            architecture_id, output_form, frozen, int(input_dim),
+        )
+        return factory
     if architecture_id.startswith(_SELECTED_PREFIX) or architecture_id.startswith(_STAGE_TOP_PREFIX):
         raise NotImplementedError(
             f"architecture {architecture_id!r} requires selection-trace resolution (D7/D8, deferred)"
@@ -577,7 +608,10 @@ class _PreparedFit:
     batch through this path so the L_param is computed on the exact scaled
     validation set the fit trained against — no drift between training and
     selection. ``validation_metadata`` carries the per-row stable pairing ids
-    (sample_id / point_id) the CI rules cluster on.
+    (sample_id / point_id) the CI rules cluster on. ``output_form_evidence`` carries
+    the A-E3 output-form capacity-selection metadata (joint/independent architecture
+    ids, exact parameter counts, capacity selection) for recording in the fit's
+    evidence; ``None`` for non-output-form fits.
     """
 
     scaled_training: FormalDataset
@@ -588,6 +622,7 @@ class _PreparedFit:
     hyperparams: Mapping[str, Any]
     loss_id: str
     is_set: bool
+    output_form_evidence: Mapping[str, Any] | None = None
 
 
 def _prepare_fit_inputs(
@@ -630,12 +665,26 @@ def _prepare_fit_inputs(
     scaled_validation = apply_training_scaler(validation_dataset, scaler, training_dataset, frozen, effective)
     is_set = str(plan_row["route"]) == "S"
     input_dim = None if is_set else int(scaled_training.batch.features.shape[1])
-    model_factory = resolve_model_factory(str(plan_row["architecture"]), frozen, input_dim)
+    output_form = output_form_from_route(str(plan_row["route"]))
+    if output_form is None:
+        # No output_form suffix -> the standard architecture resolver (MLP, DeepSets,
+        # historical, etc.). The output_form contract is not engaged.
+        model_factory = resolve_model_factory(str(plan_row["architecture"]), frozen, input_dim)
+        output_form_evidence = None
+    else:
+        # output_form suffix present (joint/independent_capacity_matched) -> route
+        # through the SHA-bound output_form contract. The architecture is always an
+        # m-prefix MLP id for output_form fits (F2_or_V route), so the contract
+        # module's MLP-only lookup is correct here.
+        model_factory, output_form_evidence = build_output_form_aware_factory(
+            str(plan_row["architecture"]), output_form, frozen, int(input_dim),
+        )
     hyperparams = resolve_optimizer_hyperparams(str(plan_row["optimizer"]), frozen)
     loss_id = resolve_loss_id(str(plan_row["loss"]))
     return _PreparedFit(
         scaled_training, scaled_validation, tuple(validation_dataset.metadata),
         validation_dataset.dataset_hash, model_factory, hyperparams, loss_id, is_set,
+        output_form_evidence=output_form_evidence,
     )
 
 
@@ -717,6 +766,8 @@ def execute_claimed_fit(
         "validation_curve": curve,
         "test_access_count": 0,
     }
+    if prepared.output_form_evidence is not None:
+        evidence["output_form"] = dict(prepared.output_form_evidence)
     output_hashes = _write_outputs(
         run_dir, fit_id, str(plan_row["run_id"]), fit.checkpoint_bytes, fit.checkpoint_sha256, evidence,
     )

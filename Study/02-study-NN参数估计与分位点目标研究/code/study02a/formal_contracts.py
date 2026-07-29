@@ -36,6 +36,18 @@ APPROVED_BASE_PROTOCOL_SHA256 = "f82e078051d760d7c9c11ece54b8fae7360c6db1aef3229
 APPROVED_BASE_SEARCH_ID = "A-G2-search-v1"
 APPROVED_BASE_SEARCH_SHA256 = "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed889534ed4f6ab5e0ca13"
 APPROVED_EFFECTIVE_CONFIG_SHA256 = "44fba47c7af66166e1d3f11890299a8bb5c352ac1abf3447cd00cfd3acf97449"
+# A-E3 output-form contract (R3-A): SHA-256 of the canonical JSON of the
+# ``_CONTRACT`` dict in ``study02a.output_form_contract``. This is the frozen
+# authority binding the joint-vs-independent model contract so the two
+# ``output_form`` candidates are contrastive controls (different model structures,
+# not just a route-suffix label). The SHA is mirrored into
+# ``output_form_contract.CONTRACT_SHA256`` and validated at every factory load; the
+# A-E3 executor records it in every output_form fit's evidence so scoring / rebuild /
+# test-consumer paths uniquely reconstruct the correct model factory. Adding this
+# constant does NOT modify the A-E1 r5 effective config or manifest schema: the
+# effective_config validation above is unchanged, and the manifest schema
+# (``_validate_formal_manifest_snapshot``) is unchanged.
+APPROVED_A_E3_OUTPUT_FORM_CONTRACT_SHA256 = "1e343255eaa1e9b32217427c7989d798bebba59fd72e6fe15a51166f0d3e1253"
 _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}")
 _CODE_COMMIT_RE = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
 # 64-character zero SHA-256 sentinel anchoring the first record of every staged-ledger

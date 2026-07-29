@@ -1,21 +1,29 @@
 """Blocker reproducer tests for de25710 (Study/02 A-E3 orchestration R1).
 
-DIAGNOSTIC ONLY: these tests prove the three blockers (A / B / C) exist in the
-production code at de25710. They do NOT fix anything; they assert the current
-failure behaviour so a reviewer can see each defect independently of any sealed
-run. Each test name carries ``blocker_reproducer`` so they can be selected
-together::
+These tests document the three blockers (A / B / C) identified at de25710.
+Blocker A was resolved by R3-A (output-form contract, branch
+``codex/study02-a-e3-orchestration-r1-20260728``): the test below was rewritten
+from a negative reproducer (asserting the bug) into a positive confirmation that
+joint and ``independent_capacity_matched`` are now contrastive controls. Blockers
+B / C remain negative reproducers that assert the current failure behaviour so a
+reviewer can see each defect independently of any sealed run. Each test name
+carries ``blocker_reproducer`` so they can be selected together::
 
     python -m pytest python/tests -k "blocker_reproducer" -q
 
 Blockers (cross-referenced in coworker/reports/2026-07-28-study02-a-e3-orchestration-r1.md)
 ---------------------------------------------------------------------------------------
-* A (scientific contract ambiguity): the joint vs ``independent_capacity_matched``
-  A-E3 candidates share the same architecture placeholder; the production
-  resolver is architecture-only; ``build_mlp`` hardcodes ``output_dim=3``; and
-  ``select_independent_capacity`` is never imported by ``formal_executor``.
-  The two arms of the output_form decision are therefore not a contrastive
-  control at de25710.
+* A (scientific contract ambiguity) -- RESOLVED BY R3-A: at de25710 the joint vs
+  ``independent_capacity_matched`` A-E3 candidates shared the same architecture
+  placeholder, the production resolver was architecture-only, ``build_mlp``
+  hardcoded ``output_dim=3``, and ``select_independent_capacity`` was never
+  imported by ``formal_executor``. R3-A adds a SHA-bound output-form contract:
+  ``resolve_model_factory`` now takes an ``output_form`` kwarg, the
+  ``independent_capacity_matched`` arm builds a capacity-selected
+  ``IndependentContainer`` (three single-output MLP subnetworks), and
+  ``select_independent_capacity`` is wired in via ``output_form_contract``. The
+  two arms are now a real contrastive control; see
+  ``test_r3_a_fixed_joint_vs_independent_now_contrastive`` below.
 * B (no n_strategy decision): the decision engine derives an ``output_form``
   decision for A-E3 but no ``n_strategy`` decision, and ``shared_winner_retrain``
   fits are singletons that never compete -- the capacity axis is silently
@@ -51,12 +59,22 @@ if str(ROOT / "python") not in sys.path:
 
 from study02a import formal_executor as fe  # noqa: E402
 from study02a import formal_g3_control as g3c  # noqa: E402
+from study02a import output_form_contract as ofc  # noqa: E402
 from study02a import training as training_module  # noqa: E402
 from study02a.config import load_frozen_config  # noqa: E402
 from study02a.formal_config import load_effective_formal_config  # noqa: E402
 from study02a.matrix import expand_module_matrix  # noqa: E402
-from study02a.models import build_mlp  # noqa: E402
+from study02a.models import (  # noqa: E402
+    IndependentContainer,
+    build_independent_container,
+    build_mlp,
+    trainable_parameter_count,
+)
 from study02a.selection import _FIT_KIND_AXIS, build_decision_specs  # noqa: E402
+from study02a.training import (  # noqa: E402
+    _checkpoint_canonical_bytes,
+    select_independent_capacity,
+)
 
 
 FROZEN = load_frozen_config(STUDY_ROOT)
@@ -72,23 +90,31 @@ _COMMIT_D2A056F = "d2a056fdfe650af9f2992f8ea85f8b2daab2fbb3"
 
 
 # ============================================================================
-# Reproducer #1 -- Blocker A: joint vs independent_capacity_matched are not
-# contrastive controls. The matrix emits both arms under the same architecture
-# placeholder (matrix.py:58-59); resolve_model_factory dispatches on
-# architecture alone (formal_executor.py:135-163); build_mlp hardcodes
-# output_dim=3 (models.py:31-32); select_independent_capacity (training.py:54)
-# is never imported by formal_executor. So the two arms would train an
-# identical model and the "independent_capacity_matched" candidate carries no
-# distinguishing capacity.
+# Reproducer #1 -- Blocker A (RESOLVED BY R3-A): at de25710 the joint vs
+# ``independent_capacity_matched`` A-E3 arms were NOT contrastive controls -- the
+# matrix emitted both under one architecture placeholder, ``resolve_model_factory``
+# dispatched on architecture alone, ``build_mlp`` hardcoded ``output_dim=3``, and
+# ``select_independent_capacity`` was dead code from the executor's perspective.
+# R3-A (output-form contract) fixed all four defects: the resolver grew an
+# ``output_form`` kwarg, the independent arm builds a capacity-selected
+# ``IndependentContainer`` (three single-output MLP subnetworks), and
+# ``select_independent_capacity`` is wired in via the SHA-bound
+# ``output_form_contract`` module. The test below was inverted from the negative
+# reproducer into a positive confirmation that the two arms are now a real
+# contrastive control. (Comprehensive coverage lives in
+# ``test_study02a_a_e3_output_form_contract.py``.)
 # ============================================================================
 
 
-def test_blocker_reproducer_joint_vs_independent_same_model():
-    """Blocker A: the joint and independent_capacity_matched A-E3 arms share
-    the same architecture placeholder, the production resolver is
-    architecture-only, and the capacity specialisation hook
-    (select_independent_capacity) is absent from the production executor. The
-    two output_form candidates are NOT a contrastive control at de25710."""
+def test_r3_a_fixed_joint_vs_independent_now_contrastive():
+    """Blocker A (R3-A fixed): the joint and ``independent_capacity_matched``
+    A-E3 arms now select structurally distinct model contracts. The matrix still
+    emits both arms under one architecture placeholder and differs only in the
+    route suffix, but R3-A made that suffix load-bearing: ``resolve_model_factory``
+    takes an ``output_form`` kwarg, the independent arm routes through the
+    SHA-bound ``output_form_contract`` to a capacity-selected
+    ``IndependentContainer``, and ``select_independent_capacity`` is wired into
+    the executor's import graph. The two arms are now a contrastive control."""
 
     joint_rows = [
         r for r in MATRIX_ROWS
@@ -102,15 +128,16 @@ def test_blocker_reproducer_joint_vs_independent_same_model():
     ]
     assert joint_rows and indep_rows, "A-E3 output_form matrix rows not found"
 
-    # (1) Both arms reference the SAME architecture placeholder; they differ
-    # only in the route suffix, which no production path consumes.
+    # (1) Matrix layer unchanged: both arms still share ONE architecture
+    # placeholder -- the distinguishing carrier is the route suffix (R3-A made
+    # the suffix load-bearing rather than adding a new matrix column).
     joint_arch = {r["architecture"] for r in joint_rows}
     indep_arch = {r["architecture"] for r in indep_rows}
     assert joint_arch == indep_arch == {"selected:A-E3_architecture"}
 
     # (2) For matching (n, seed) cells the two arms are identical apart from
-    # route suffix and fit_id -- every other plan field is the same, so the
-    # matrix itself does not distinguish them at any layer the executor reads.
+    # route / fit_id -- so the SAME sample + seed feeds both arms and the
+    # contrast is purely the output_form contract (a clean control).
     joint_by_key = {(r["n"], r["seed"]): r for r in joint_rows}
     indep_by_key = {(r["n"], r["seed"]): r for r in indep_rows}
     common_keys = set(joint_by_key) & set(indep_by_key)
@@ -126,42 +153,94 @@ def test_blocker_reproducer_joint_vs_independent_same_model():
         f"{joint_row} vs {indep_row}"
     )
 
-    # (3) resolve_model_factory's signature is architecture-only -- route and
-    # output_form never reach it. Verified by parameter list AND by source
-    # inspection so the assertion is not coincidental.
+    # (3) R3-A: resolve_model_factory now takes ``output_form`` and the source
+    # consumes it (inverts de25710's architecture-only signature).
     signature_params = set(inspect.signature(fe.resolve_model_factory).parameters)
-    assert signature_params == {"architecture_id", "frozen", "input_dim"}, signature_params
+    assert "output_form" in signature_params, signature_params
     resolver_source = inspect.getsource(fe.resolve_model_factory)
-    assert "route" not in resolver_source, "resolver unexpectedly reads route"
-    assert "output_form" not in resolver_source, "resolver unexpectedly reads output_form"
+    assert "output_form" in resolver_source, (
+        "resolve_model_factory unexpectedly ignores output_form"
+    )
+    # And the route -> output_form parser is the bridge the executor uses.
+    assert ofc.output_form_from_route("selected:F2_or_V:independent_capacity_matched") \
+        == "independent_capacity_matched"
+    assert ofc.output_form_from_route("selected:F2_or_V:joint") == "joint"
+    assert ofc.output_form_from_route("V") is None
 
-    # (4) The shared placeholder fails closed IDENTICALLY for both arms --
-    # neither joint nor independent can resolve a distinct concrete model
-    # through the production path.
-    with pytest.raises(NotImplementedError):
-        fe.resolve_model_factory("selected:A-E3_architecture", FROZEN, input_dim=15)
-
-    # (5) build_mlp hardcodes output_dim=3 (no parameter); the per-quantile
-    # capacity of the independent arm cannot be expressed at this layer even
-    # after a concrete architecture resolves.
-    assert "output_dim" not in inspect.signature(build_mlp).parameters
-    model = build_mlp(4, [8], "relu", 0.0)
-    last_linear = [m for m in model.modules() if isinstance(m, torch.nn.Linear)][-1]
-    assert last_linear.out_features == 3, (
-        f"build_mlp output_dim is hardcoded to 3, got {last_linear.out_features}"
+    # (4) R3-A: with a concrete arch, joint and independent resolve to
+    # DIFFERENT models -- different type, different parameter count, different
+    # state_dict key namespace, different checkpoint bytes (inverts de25710's
+    # "both arms fail closed identically / would train the same model").
+    input_dim = 15
+    joint_factory = fe.resolve_model_factory(
+        "m05", FROZEN, input_dim, output_form="joint",
+    )
+    indep_factory = fe.resolve_model_factory(
+        "m05", FROZEN, input_dim, output_form="independent_capacity_matched",
+    )
+    joint_model = joint_factory()
+    indep_model = indep_factory()
+    assert type(joint_model).__name__ == "Sequential"
+    assert isinstance(indep_model, IndependentContainer)
+    assert type(joint_model) is not type(indep_model)
+    joint_params = trainable_parameter_count(joint_model)
+    indep_params = trainable_parameter_count(indep_model)
+    assert joint_params != indep_params, (
+        f"joint vs independent param counts must differ: {joint_params} vs {indep_params}"
+    )
+    joint_keys = set(joint_model.state_dict().keys())
+    indep_keys = set(indep_model.state_dict().keys())
+    assert joint_keys.isdisjoint(indep_keys), (
+        "joint and independent state_dict keys must be disjoint namespaces"
+    )
+    assert all(k.startswith("subnetworks.") for k in indep_keys), indep_keys
+    joint_bytes = _checkpoint_canonical_bytes(joint_model.state_dict())
+    indep_bytes = _checkpoint_canonical_bytes(indep_model.state_dict())
+    assert joint_bytes != indep_bytes, (
+        "joint and independent checkpoint bytes must differ"
     )
 
-    # (6) select_independent_capacity is defined in training.py but is absent
-    # from the production executor's import and call graph -- the capacity
-    # hook is dead code from the formal_executor perspective, so nothing
-    # downstream of resolve_model_factory specialises the independent arm.
-    assert hasattr(training_module, "select_independent_capacity"), (
-        "select_independent_capacity must exist in training.py for this assertion"
+    # (5) R3-A: build_mlp is STILL the 3-output joint arm (unchanged); the
+    # per-quantile capacity of the independent arm is now expressed via
+    # build_independent_container (three single-output subnetworks).
+    assert "output_dim" not in inspect.signature(build_mlp).parameters
+    joint_last = [m for m in build_mlp(4, [8], "relu", 0.0).modules()
+                  if isinstance(m, torch.nn.Linear)][-1]
+    assert joint_last.out_features == 3, "build_mlp is the 3-output joint arm"
+    indep_container = build_independent_container(4, [8], "relu", 0.0)
+    assert len(indep_container.subnetworks) == 3
+    sub_last_features = [
+        [m for m in sub.modules() if isinstance(m, torch.nn.Linear)][-1].out_features
+        for sub in indep_container.subnetworks
+    ]
+    assert sub_last_features == [1, 1, 1], (
+        f"each independent subnetwork must be single-output, got {sub_last_features}"
+    )
+
+    # (6) R3-A: select_independent_capacity is now wired into the executor's
+    # import graph via the output_form_contract module (inverts de25710's dead
+    # code). The strongest proof is end-to-end: the only way resolve_model_factory
+    # returns an IndependentContainer is via the contract module's capacity
+    # selection, which calls select_independent_capacity.
+    assert hasattr(training_module, "select_independent_capacity")
+    assert hasattr(ofc, "select_independent_capacity"), (
+        "output_form_contract must import select_independent_capacity"
     )
     executor_source = inspect.getsource(fe)
-    assert "select_independent_capacity" not in executor_source, (
-        "select_independent_capacity is unexpectedly wired into formal_executor"
+    assert "output_form_contract" in executor_source, (
+        "formal_executor must import from the output_form_contract module"
     )
+    assert "build_output_form_aware_factory" in executor_source, (
+        "formal_executor must wire the contract-aware factory builder"
+    )
+    assert "output_form_from_route" in executor_source, (
+        "formal_executor must wire the route -> output_form parser"
+    )
+    # And the independent arm's parameter count is the capacity-selected total
+    # (3x a single-output subnetwork of the SELECTED m0X arch, not the joint's).
+    single_indep_arch = ofc.resolve_independent_capacity("m05", input_dim, FROZEN)
+    assert single_indep_arch["independent_trainable_parameters"] == indep_params
+    assert single_indep_arch["independent_architecture_id"] != "m05" or indep_params != joint_params
 
 
 # ============================================================================

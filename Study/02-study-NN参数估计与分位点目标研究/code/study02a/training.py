@@ -52,11 +52,34 @@ def compute_loss(
 
 
 def select_independent_capacity(joint_count: int, candidate_counts: Mapping[str, int]) -> tuple[str, int]:
-    ceiling = 1.05 * int(joint_count)
-    eligible = [(identifier, int(count)) for identifier, count in candidate_counts.items() if int(count) <= ceiling]
-    if not eligible:
-        raise ValueError("No independent candidate satisfies the frozen capacity ceiling")
-    return min(eligible, key=lambda item: (abs(item[1] - joint_count), item[0]))
+    """Select the independent candidate whose total trainable parameters satisfy the frozen rule.
+
+    Protocol §3.4 (``A-g2-search-v1.json`` ``joint_independent_capacity``):
+    1. Primary: candidate total <= ``joint_count * 1.05`` and closest to ``joint_count``;
+       tie broken by architecture id ascending.
+    2. Fallback (no candidate under the 105 % ceiling): the candidate nearest to
+       ``joint_count`` whose total does not exceed ``joint_count`` (tie: arch id).
+    3. Hard fail: if every candidate exceeds ``joint_count`` the capacity contract is
+       unsatisfiable; the caller records a scientific failure for the independent arm.
+    """
+    joint = int(joint_count)
+    ceiling = 1.05 * joint
+    eligible = [
+        (identifier, int(count)) for identifier, count in candidate_counts.items()
+        if int(count) <= ceiling
+    ]
+    if eligible:
+        return min(eligible, key=lambda item: (abs(item[1] - joint), item[0]))
+    fallback = [
+        (identifier, int(count)) for identifier, count in candidate_counts.items()
+        if int(count) <= joint
+    ]
+    if fallback:
+        return min(fallback, key=lambda item: (abs(item[1] - joint), item[0]))
+    raise ValueError(
+        "No independent candidate satisfies the frozen capacity contract "
+        "(every candidate's total trainable parameters exceed the joint model's)"
+    )
 
 
 @dataclass(frozen=True)
