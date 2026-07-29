@@ -12,7 +12,7 @@
 
 ## 当前状态快照
 
-> **快照日期**: 2026-07-26 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+> **快照日期**: 2026-07-29 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
 
 | 层级 | 技术 |
 |------|------|
@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：A-E1 formal r5 已在授权 commit 上 APPROVE 并 frozen 为 A-E3 的 predecessor（V 路获胜、8-record staged ledger 已绑定）。A-E3 orchestration R3 修复完成（`cdb689f`/`47100dd`/`1667fd1`）：output-form 合同（joint=Sequential vs independent=IndependentContainer，capacity-selected，SHA-bound）、n_strategy 决策（10-record staged ledger，record 9 fixed/shared winner）、versioned cross-commit authority（v1 r5 可重放 / v2 per-module authority triple）。`formal-execute --module A-E3` 与 `formal-staged --module A-E3` 已接通真实 `run_a_e3_staged` / `resolve_a_e3_staged_selection`，sealed smoke（G.16）端到端验证 joint + independent + fixed + shared 全经过真实 model factory + checkpoint-forward + selection。non-slow 603/0 全过。**但 A-E3 formal 尚未授权**：需 Codex R3 代码复审通过后授权；未启动真实 A-E3/A-E2 formal run，未进入 approval / unseal / consume / 9d / G4。test 继续 sealed，19 个前置研究问题仍等待 formal evidence。
+**Study/02 当前态**：A-E1 formal r5 已 APPROVE 并 frozen 为 A-E3 的 predecessor（V 路获胜、8-record staged ledger 已绑定）。A-E3 orchestration **R7 code APPROVE**（tip `9ef028ce`，661 non-slow passed / 1 expected skip）：output-form contract v2（确定性 width 缩放；joint=Sequential vs independent=IndependentContainer，capacity-selected，SHA-bound）、n_strategy 决策（fixed vs shared，10-record staged ledger，record 9 winner）、versioned cross-commit authority（schema v1/v2 + content-addressed historical verifier + legacy capsule）、G3/pre-unseal/A-E2 integration。`formal-execute --module A-E3` 与 `formal-staged --module A-E3` 已接通真实 `run_a_e3_staged` / `resolve_a_e3_staged_selection`，sealed smoke（G.16）端到端验证 joint + independent + fixed + shared 全经过真实 model factory + checkpoint-forward + selection。**但 A-E3 formal 尚未授权**：下一步为 exact-commit preflight 通过 + 用户显式授权后才进入 A-E3 formal run；未启动真实 A-E3/A-E2 formal run，未进入 approval / unseal / consume / 9d / G4。test 继续 sealed，`test_access_count=0`，19 个前置研究问题仍等待 formal evidence。
 
 **Study/01 当前态**：正式实验与证据链已经闭环，E1–E4、R1–R3/P6–P8 均完成；Figures 1–9、Supplementary Figures S1–S8、五部分论文技术稿、补充材料及 fail-closed 稿件审计已完成。现已在独立论文项目文件夹启动面向可靠性/计算方法国际期刊的中文学术源稿，下一步是完善文献对话并冻结正文，再确定具体期刊、作者、基金与 CRediT，完成英文和期刊格式适配。连续参数空间训练、多数据集验证和 $\delta>1.00$ 探索属于后续独立研究，不阻塞当前论文。
 
