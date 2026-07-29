@@ -36,18 +36,32 @@ APPROVED_BASE_PROTOCOL_SHA256 = "f82e078051d760d7c9c11ece54b8fae7360c6db1aef3229
 APPROVED_BASE_SEARCH_ID = "A-G2-search-v1"
 APPROVED_BASE_SEARCH_SHA256 = "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed889534ed4f6ab5e0ca13"
 APPROVED_EFFECTIVE_CONFIG_SHA256 = "44fba47c7af66166e1d3f11890299a8bb5c352ac1abf3447cd00cfd3acf97449"
-# A-E3 output-form contract (R3-A): SHA-256 of the canonical JSON of the
-# ``_CONTRACT`` dict in ``study02a.output_form_contract``. This is the frozen
-# authority binding the joint-vs-independent model contract so the two
-# ``output_form`` candidates are contrastive controls (different model structures,
-# not just a route-suffix label). The SHA is mirrored into
-# ``output_form_contract.CONTRACT_SHA256`` and validated at every factory load; the
-# A-E3 executor records it in every output_form fit's evidence so scoring / rebuild /
-# test-consumer paths uniquely reconstruct the correct model factory. Adding this
-# constant does NOT modify the A-E1 r5 effective config or manifest schema: the
-# effective_config validation above is unchanged, and the manifest schema
-# (``_validate_formal_manifest_snapshot``) is unchanged.
+# A-E3 output-form contract v1 (R3-A): SHA-256 of the canonical JSON of the
+# ``_CONTRACT_V1`` dict in ``study02a.output_form_contract``. v1 is RETAINED ONLY
+# FOR SHA AUDIT -- it is NOT used for formal execution. The v1 selector picked the
+# independent arm from the frozen m01..m12 candidate set, which had no feasible
+# candidate for joint=m01 (the smallest architecture), so v1 recorded a scientific
+# failure for the independent arm. R4-2 supersedes that with a deterministic
+# width-scaling derivation that always has a feasible candidate (the all-1s
+# widths). Mirrored into ``output_form_contract.CONTRACT_V1_SHA256``; recorded in
+# evidence for audit so a future reader can verify the v1 contract dict has not
+# been tampered with. Adding this constant does NOT modify the A-E1 r5 effective
+# config or manifest schema: the effective_config validation above is unchanged,
+# and the manifest schema (``_validate_formal_manifest_snapshot``) is unchanged.
 APPROVED_A_E3_OUTPUT_FORM_CONTRACT_SHA256 = "1e343255eaa1e9b32217427c7989d798bebba59fd72e6fe15a51166f0d3e1253"
+# A-E3 output-form contract v2 (R4-2): SHA-256 of the canonical JSON of the
+# ``_CONTRACT`` dict (the ACTIVE formal contract = ``_CONTRACT_V2``) in
+# ``study02a.output_form_contract``. v2 replaces the m01..m12 candidate-set
+# selector with a deterministic width-scaling derivation: for joint widths W with
+# M=max(W), enumerate k=1..M widths(k)=tuple(max(1,floor(w*k/M)) for w in W),
+# dedupe; the all-1s candidate (k=1) is always present so every frozen joint
+# architecture + input_dim has a feasible independent candidate (the independent
+# fit is never a scientific failure for capacity reasons). Selection picks the
+# derived candidate with total <= joint * 1.05 closest to joint (tie: widths
+# tuple lexicographic ascending). v1 (above) is retained only for SHA audit; v2
+# is the sole contract used for formal execution and is mirrored into
+# ``output_form_contract.CONTRACT_SHA256`` (= ``CONTRACT_V2_SHA256``).
+APPROVED_A_E3_OUTPUT_FORM_CONTRACT_V2_SHA256 = "d41cd07ec6dee6fef7107471e71b2dd2c050f797db6a9a324ff469982a81b7ec"
 _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}")
 _CODE_COMMIT_RE = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
 # 64-character zero SHA-256 sentinel anchoring the first record of every staged-ledger

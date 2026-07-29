@@ -225,11 +225,14 @@ def test_r3_a_fixed_joint_vs_independent_now_contrastive():
     assert "output_form_from_route" in executor_source, (
         "formal_executor must wire the route -> output_form parser"
     )
-    # And the independent arm's parameter count is the capacity-selected total
-    # (3x a single-output subnetwork of the SELECTED m0X arch, not the joint's).
+    # And the independent arm's parameter count is the capacity-selected total.
+    # Under v2 (R4-2) the independent widths are DERIVED from the joint widths
+    # via the deterministic width-scaling rule; the recorded independent widths
+    # differ from the joint widths (a smaller derived candidate is always
+    # feasible), so the independent model is structurally distinct from joint.
     single_indep_arch = ofc.resolve_independent_capacity("m05", input_dim, FROZEN)
     assert single_indep_arch["independent_trainable_parameters"] == indep_params
-    assert single_indep_arch["independent_architecture_id"] != "m05" or indep_params != joint_params
+    assert single_indep_arch["independent_widths"] != single_indep_arch["joint_widths"]
 
 
 # ============================================================================
