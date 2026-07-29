@@ -3,7 +3,21 @@
 > 分支：`codex/study02-a-e3-orchestration-r1-20260728`
 > Base tip（C4）：`52bc41a85db29dda22e12647ba21c2b5edf7e693`
 > C5 未 commit（待 Codex review 后由 NEUwpy commit + push）
-> 状态：**READY FOR CODEX REVIEW**
+> 状态：**CODEX BLOCKED — 不批准 commit/push**
+
+---
+
+### CODEX BLOCK 注记（2026-07-29 加）
+
+**de25710 BLOCK**。R1 工作树（C5 CLI wiring + sealed smoke + 文档）已被 Codex 审查认定为**不可合并**：C5 自身的接线正确，但它所依赖的 C1–C4 已 Frozen 了 3 个 science/contract blocker。3 个 blocker 已被 4 个诊断 reproducer test 钉死（`python/tests/test_study02a_a_e3_blocker_reproducers.py`，`python -m pytest -k "blocker_reproducer" -q` → 4 passed），证明问题在 de25710 真实存在而非审查猜测。
+
+- **Blocker A — SCIENTIFIC CONTRACT AMBIGUITY（joint vs independent 无效对照）**：`A-E3_joint_independent` matrix 行（`matrix.py:58-59`）的 joint 与 independent_capacity_matched 两 arm 共用同一 architecture placeholder `selected:A-E3_architecture`；`resolve_model_factory`（`formal_executor.py:135-163`）仅按 architecture 分发，signature 不含 route/output_form；`build_mlp`（`models.py:31-32`）hardcoded `output_dim=3`；`select_independent_capacity`（`training.py:54`）定义存在但 production executor 从不导入/调用。两 arm 训练的是结构上完全相同的模型，independent arm 没有任何 capacity 特化——A-E3 output_form 决策不是对比性实验，**违反 module_matrix_rules capacity clause 的科学契约**。
+- **Blocker B — 无 n_strategy decision（capacity axis 静默丢失）**：`_FIT_KIND_AXIS`（`selection.py:81-88`）无任何 fit_kind → `n_strategy` 映射；`build_decision_specs("A-E3", ...)` 只产生 `output_form:A-E3:selected:F2_or_V`（joint vs independent）一个 capacity 类决策，不产生任何 `n_strategy` 决策；`shared_winner_retrain` fit 不在 `_FIT_KIND_AXIS`，never competes。fixed-n vs shared-n 这一冻结决策轴在 A-E3 selection plan 中完全消失。
+- **Blocker C — r5 不可重放 + 跨 commit 拒**：(a) C1（fc12674）把 formal manifest predecessor 段从 r5/d2a056f 的 7-key 扩为 10-key（新加 `selection_staged_ledger_path` / `selection_staged_ledger_sha256` / `resolved_baseline_route`），并由 `_require_exact_fields`（`FC:1162-1167`）exact-match 校验——r5 sealed manifest 在 de25710 下 replay 立刻 fail。(b) `_verify_chain_consistency`（`formal_g3_control.py:976-982`）要求三模块 manifest 的 `code_commit` set 长度恰为 1——任何跨 commit 的 3-run chain（如 A-E1=d2a056f, A-E3/A-E2=de25710）直接被拒，无法在同一 authority 下重放。
+
+**A 是科学正确性问题（不可仅靠测试接线掩盖），B/C 是控制面契约问题**。B 与 C 的修复设计见 R2 报告 `coworker/reports/2026-07-29-study02-a-e3-r2-design.md`。R1 的接线、sealed smoke、文档保持作为历史记录，下方原文未改；新读者请将本注记视作对下方"READY FOR CODEX REVIEW / 无 breaking schema / git diff --check clean"等措辞的**前置订正**（详见下方 §3 / §5 的 inline correction）。
+
+---
 
 ## 1. 目标与范围
 
@@ -24,7 +38,9 @@ C5 闭合 A-E3 orchestration r1 的最后一环：CLI wiring + sealed smoke + �
 
 ## 3. 控制面 schema 变化
 
-**无 breaking schema 变化**。C5 是 CLI wiring 层，不新增 artifact 字段：
+> **CODEX 订正（2026-07-29）**：原 "无 breaking schema 变化" 措辞**不成立**，仅对 C5 vs C4 的 diff 成立。C1（fc12674）相对 r5/d2a056f 是**破坏性 schema 变化**：formal manifest predecessor 段从 7-key 扩为 10-key，由 `_require_exact_fields`（`FC:1162-1167`）exact-match 强制——r5 sealed-run manifest 在 de25710 下**无法 replay**（见 Blocker C reproducer）。下方原文保留作为历史措辞，但"无 breaking schema"应读作"无 C5-vs-C4 breaking schema；C1-vs-r5 为 breaking，已 block"。
+
+**~~无 breaking schema 变化~~**（见上方订正；C5 自身相对 C4 不新增 artifact 字段）：
 
 - `PredecessorTrace` staged_ledger 字段（`staged_ledger_path` / `staged_ledger_sha256`）在 C1 已加入；C5 只是通过 `_build_predecessor_trace` 在 CLI 路径填充它们（assembly 逻辑从 `resolve_deferred` 提取复用，行为等价）。
 - A-E3 manifest 的 `predecessor` 段（含 `selection_staged_ledger_path` / `selection_staged_ledger_sha256` / `resolved_baseline_route`）由 `materialize_run` 在 C1 已实现的 `_validate_predecessor` 产生；C5 不改 manifest schema。
@@ -110,6 +126,8 @@ python -m pytest test_g16_a_e3_sealed_smoke_production_equivalent -q
 ```
 git diff --check → clean（无 whitespace error）
 ```
+
+> **CODEX 订正（2026-07-29）**：`git diff --check` 只检查 whitespace（trailing whitespace / tab-vs-space / merge marker），**不检查科学正确性、契约一致性、schema 兼容性**。"clean" 在这里仅意味着 diff 无空白错误，**不构成 R1 无 blocker 的证据**。3 个 blocker（A/B/C）全部在 `git diff --check clean` 的情况下存在——已由 reproducer tests 钉死。
 
 ## 6. Sealed smoke 替代范围（G.16）
 

@@ -1,0 +1,398 @@
+"""Blocker reproducer tests for de25710 (Study/02 A-E3 orchestration R1).
+
+DIAGNOSTIC ONLY: these tests prove the three blockers (A / B / C) exist in the
+production code at de25710. They do NOT fix anything; they assert the current
+failure behaviour so a reviewer can see each defect independently of any sealed
+run. Each test name carries ``blocker_reproducer`` so they can be selected
+together::
+
+    python -m pytest python/tests -k "blocker_reproducer" -q
+
+Blockers (cross-referenced in coworker/reports/2026-07-28-study02-a-e3-orchestration-r1.md)
+---------------------------------------------------------------------------------------
+* A (scientific contract ambiguity): the joint vs ``independent_capacity_matched``
+  A-E3 candidates share the same architecture placeholder; the production
+  resolver is architecture-only; ``build_mlp`` hardcodes ``output_dim=3``; and
+  ``select_independent_capacity`` is never imported by ``formal_executor``.
+  The two arms of the output_form decision are therefore not a contrastive
+  control at de25710.
+* B (no n_strategy decision): the decision engine derives an ``output_form``
+  decision for A-E3 but no ``n_strategy`` decision, and ``shared_winner_retrain``
+  fits are singletons that never compete -- the capacity axis is silently
+  absent from the A-E3 selection plan.
+* C (schema / cross-commit replay blockers):
+  - ``_require_exact_fields`` rejects the r5-era 7-key predecessor段 under
+    de25710's 10-key validator (r5 sealed runs cannot replay without migration);
+  - ``_verify_chain_consistency`` (called by ``verify_g3_chain_authority``)
+    rejects any 3-run chain whose ``code_commit`` set is not a single element.
+
+Constraints honoured: no production code is changed; no real r5 / A-E3 sealed
+run dir is read (all fixtures are synthetic or use the frozen matrix only).
+"""
+
+from __future__ import annotations
+
+import inspect
+from pathlib import Path
+import sys
+import types
+
+import pytest
+import torch
+
+
+ROOT = Path(__file__).resolve().parents[2]
+STUDY_ROOT = ROOT / "Study" / "02-study-NN参数估计与分位点目标研究"
+STUDY_CODE = STUDY_ROOT / "code"
+if str(STUDY_CODE) not in sys.path:
+    sys.path.insert(0, str(STUDY_CODE))
+if str(ROOT / "python") not in sys.path:
+    sys.path.insert(0, str(ROOT / "python"))
+
+from study02a import formal_executor as fe  # noqa: E402
+from study02a import formal_g3_control as g3c  # noqa: E402
+from study02a import training as training_module  # noqa: E402
+from study02a.config import load_frozen_config  # noqa: E402
+from study02a.formal_config import load_effective_formal_config  # noqa: E402
+from study02a.matrix import expand_module_matrix  # noqa: E402
+from study02a.models import build_mlp  # noqa: E402
+from study02a.selection import _FIT_KIND_AXIS, build_decision_specs  # noqa: E402
+
+
+FROZEN = load_frozen_config(STUDY_ROOT)
+EFFECTIVE = load_effective_formal_config(STUDY_ROOT)
+MATRIX_ROWS = expand_module_matrix(FROZEN).to_dict("records")
+FROZEN_MATRIX_PATH = STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv"
+
+# Real commit ids referenced by the R1 report (looked up via ``git rev-parse``);
+# used only as string literals in the cross-commit reproducer -- no sealed run
+# dir is opened.
+_COMMIT_DE25710 = "de25710f752f11c89ce521e4852ffbe25e4dfda6"
+_COMMIT_D2A056F = "d2a056fdfe650af9f2992f8ea85f8b2daab2fbb3"
+
+
+# ============================================================================
+# Reproducer #1 -- Blocker A: joint vs independent_capacity_matched are not
+# contrastive controls. The matrix emits both arms under the same architecture
+# placeholder (matrix.py:58-59); resolve_model_factory dispatches on
+# architecture alone (formal_executor.py:135-163); build_mlp hardcodes
+# output_dim=3 (models.py:31-32); select_independent_capacity (training.py:54)
+# is never imported by formal_executor. So the two arms would train an
+# identical model and the "independent_capacity_matched" candidate carries no
+# distinguishing capacity.
+# ============================================================================
+
+
+def test_blocker_reproducer_joint_vs_independent_same_model():
+    """Blocker A: the joint and independent_capacity_matched A-E3 arms share
+    the same architecture placeholder, the production resolver is
+    architecture-only, and the capacity specialisation hook
+    (select_independent_capacity) is absent from the production executor. The
+    two output_form candidates are NOT a contrastive control at de25710."""
+
+    joint_rows = [
+        r for r in MATRIX_ROWS
+        if r["module"] == "A-E3" and r["fit_kind"] == "output_form"
+        and r["route"].endswith(":joint")
+    ]
+    indep_rows = [
+        r for r in MATRIX_ROWS
+        if r["module"] == "A-E3" and r["fit_kind"] == "output_form"
+        and r["route"].endswith(":independent_capacity_matched")
+    ]
+    assert joint_rows and indep_rows, "A-E3 output_form matrix rows not found"
+
+    # (1) Both arms reference the SAME architecture placeholder; they differ
+    # only in the route suffix, which no production path consumes.
+    joint_arch = {r["architecture"] for r in joint_rows}
+    indep_arch = {r["architecture"] for r in indep_rows}
+    assert joint_arch == indep_arch == {"selected:A-E3_architecture"}
+
+    # (2) For matching (n, seed) cells the two arms are identical apart from
+    # route suffix and fit_id -- every other plan field is the same, so the
+    # matrix itself does not distinguish them at any layer the executor reads.
+    joint_by_key = {(r["n"], r["seed"]): r for r in joint_rows}
+    indep_by_key = {(r["n"], r["seed"]): r for r in indep_rows}
+    common_keys = set(joint_by_key) & set(indep_by_key)
+    assert common_keys, "no shared (n, seed) cells between joint and independent arms"
+    sample_key = next(iter(common_keys))
+    joint_row = dict(joint_by_key[sample_key])
+    indep_row = dict(indep_by_key[sample_key])
+    for field in ("route", "fit_id"):
+        joint_row.pop(field, None)
+        indep_row.pop(field, None)
+    assert joint_row == indep_row, (
+        f"joint vs independent rows differ beyond route/fit_id: "
+        f"{joint_row} vs {indep_row}"
+    )
+
+    # (3) resolve_model_factory's signature is architecture-only -- route and
+    # output_form never reach it. Verified by parameter list AND by source
+    # inspection so the assertion is not coincidental.
+    signature_params = set(inspect.signature(fe.resolve_model_factory).parameters)
+    assert signature_params == {"architecture_id", "frozen", "input_dim"}, signature_params
+    resolver_source = inspect.getsource(fe.resolve_model_factory)
+    assert "route" not in resolver_source, "resolver unexpectedly reads route"
+    assert "output_form" not in resolver_source, "resolver unexpectedly reads output_form"
+
+    # (4) The shared placeholder fails closed IDENTICALLY for both arms --
+    # neither joint nor independent can resolve a distinct concrete model
+    # through the production path.
+    with pytest.raises(NotImplementedError):
+        fe.resolve_model_factory("selected:A-E3_architecture", FROZEN, input_dim=15)
+
+    # (5) build_mlp hardcodes output_dim=3 (no parameter); the per-quantile
+    # capacity of the independent arm cannot be expressed at this layer even
+    # after a concrete architecture resolves.
+    assert "output_dim" not in inspect.signature(build_mlp).parameters
+    model = build_mlp(4, [8], "relu", 0.0)
+    last_linear = [m for m in model.modules() if isinstance(m, torch.nn.Linear)][-1]
+    assert last_linear.out_features == 3, (
+        f"build_mlp output_dim is hardcoded to 3, got {last_linear.out_features}"
+    )
+
+    # (6) select_independent_capacity is defined in training.py but is absent
+    # from the production executor's import and call graph -- the capacity
+    # hook is dead code from the formal_executor perspective, so nothing
+    # downstream of resolve_model_factory specialises the independent arm.
+    assert hasattr(training_module, "select_independent_capacity"), (
+        "select_independent_capacity must exist in training.py for this assertion"
+    )
+    executor_source = inspect.getsource(fe)
+    assert "select_independent_capacity" not in executor_source, (
+        "select_independent_capacity is unexpectedly wired into formal_executor"
+    )
+
+
+# ============================================================================
+# Reproducer #2 -- Blocker B: no n_strategy decision is derived for A-E3.
+# _FIT_KIND_AXIS (selection.py:81-88) maps no fit_kind to the n_strategy
+# axis; build_decision_specs therefore produces output_form but no
+# n_strategy decision, and shared_winner_retrain fits never compete.
+# ============================================================================
+
+
+def test_blocker_reproducer_no_n_strategy_decision_for_a_e3():
+    """Blocker B: build_decision_specs('A-E3', ...) derives the output_form
+    decision (joint vs independent_capacity_matched) but NO n_strategy
+    decision, and shared_winner_retrain fits never appear in any decision's
+    support. The capacity axis (fixed n vs shared) is silently dropped from
+    the A-E3 selection plan at de25710."""
+
+    decisions = build_decision_specs("A-E3", MATRIX_ROWS)
+    decision_ids = [d.decision_id for d in decisions]
+
+    # (1) No n_strategy decision is derived for A-E3.
+    n_strategy_decisions = [did for did in decision_ids if "n_strategy" in did]
+    assert not n_strategy_decisions, (
+        f"unexpected n_strategy decision(s) for A-E3: {n_strategy_decisions}"
+    )
+
+    # (2) The joint vs independent output_form decision IS derived -- this is
+    # the only A-E3 capacity-shaped decision in the plan.
+    output_form_decisions = [d for d in decisions if d.axis == "output_form"]
+    assert len(output_form_decisions) == 1, (
+        f"expected exactly one output_form decision, got {len(output_form_decisions)}"
+    )
+    output_form = output_form_decisions[0]
+    assert output_form.decision_id == "output_form:A-E3:selected:F2_or_V"
+    candidate_ids = {c.candidate_id for c in output_form.candidates}
+    assert candidate_ids == {"joint", "independent_capacity_matched"}, candidate_ids
+
+    # (3) shared_winner_retrain is NOT a competitive fit_kind (absent from
+    # _FIT_KIND_AXIS), so the shared-n retrain fits never enter a decision.
+    assert "shared_winner_retrain" not in _FIT_KIND_AXIS, (
+        "shared_winner_retrain unexpectedly promoted to a competitive axis"
+    )
+
+    # (4) Cross-check at the matrix level: shared_winner_retrain fit_ids for
+    # A-E3 exist in the frozen plan but never appear in any decision's
+    # expected_fit_ids (they are singletons, not competing candidates).
+    shared_retrain_fits = {
+        r["fit_id"] for r in MATRIX_ROWS
+        if r["module"] == "A-E3" and r["fit_kind"] == "shared_winner_retrain"
+    }
+    assert shared_retrain_fits, "A-E3 shared_winner_retrain rows missing from matrix"
+    all_supported_fits: set[str] = set()
+    for decision in decisions:
+        for candidate in decision.candidates:
+            all_supported_fits.update(candidate.expected_fit_ids)
+    overlap = shared_retrain_fits & all_supported_fits
+    assert not overlap, (
+        f"shared_winner_retrain fits unexpectedly compete in a decision: {sorted(overlap)}"
+    )
+
+
+# ============================================================================
+# Reproducer #3 -- Blocker C (r5 replay): de25710 C1 (commit fc12674) expanded
+# the formal manifest predecessor schema from r5's 7 keys to 10 keys (added
+# selection_staged_ledger_path / selection_staged_ledger_sha256 /
+# resolved_baseline_route) and enforces it via _require_exact_fields
+# (formal_contracts.py:1162-1167). An r5-era sealed-run manifest cannot
+# replay under the de25710 validator.
+# ============================================================================
+
+
+# r5-era predecessor段 schema (7 keys; what d2a056f's FC accepted).
+_R5_PREDECESSOR_FIELDS = {
+    "module_id", "run_id",
+    "selection_trace_path", "selection_trace_sha256",
+    "selection_receipt_path", "selection_receipt_sha256",
+    "selection_ledger_path",
+}
+
+# de25710 predecessor段 schema (10 keys; FC:1162-1167).
+_DE25710_PREDECESSOR_FIELDS = {
+    "module_id", "run_id",
+    "selection_trace_path", "selection_trace_sha256",
+    "selection_receipt_path", "selection_receipt_sha256",
+    "selection_ledger_path",
+    "selection_staged_ledger_path", "selection_staged_ledger_sha256",
+    "resolved_baseline_route",
+}
+
+
+def _build_valid_a_e1_manifest() -> dict:
+    """Build a fully valid A-E1 formal manifest (predecessor=None) using the
+    frozen matrix + effective config. The schema check exercised here is
+    module-independent (every manifest's predecessor段 has the same 10-key
+    shape), so A-E1 is the minimal vehicle for the r5 replay reproducer."""
+    from study02a.formal_contracts import build_formal_manifest
+
+    return build_formal_manifest(
+        effective_config=EFFECTIVE,
+        module_id="A-E1",
+        run_id="G3-AE1-formal-v1",
+        code_commit="a" * 40,
+        matrix_path=FROZEN_MATRIX_PATH,
+        rule_ids=("A-E1_historical",),
+        fit_ids=("G3-fit-0000",),
+        role_namespaces={
+            "training": "study02/formal/train",
+            "validation": "study02/formal/validation",
+        },
+        screening_seeds=(420001, 420002, 420003),
+        formal_seeds=tuple(range(420101, 420111)),
+        predecessor=None,
+    )
+
+
+def test_blocker_reproducer_r5_manifest_7key_predecessor_fails_under_de25710_validator():
+    """Blocker C (r5 replay): de25710's _validate_formal_manifest_snapshot
+    enforces a 10-key predecessor段 via _require_exact_fields. r5 sealed runs
+    wrote a 7-key predecessor段; under de25710's exact-match validator those
+    manifests cannot replay (and the build path emits the 10-key shape, so the
+    schema change is bidirectional)."""
+
+    from study02a.formal_contracts import (
+        _require_exact_fields,
+        _validate_formal_manifest_snapshot,
+    )
+
+    # (1) Document the schema delta: de25710 adds exactly three keys to the
+    # r5 predecessor schema.
+    added_by_de25710 = _DE25710_PREDECESSOR_FIELDS - _R5_PREDECESSOR_FIELDS
+    assert added_by_de25710 == {
+        "selection_staged_ledger_path",
+        "selection_staged_ledger_sha256",
+        "resolved_baseline_route",
+    }
+
+    # (2) Direct: a 7-key r5 predecessor段 fails the live de25710 exact-match
+    # check (this is the precise line FC:1162-1167 runs on every manifest).
+    r5_predecessor = {field: "x" for field in _R5_PREDECESSOR_FIELDS}
+    with pytest.raises(ValueError, match="formal manifest predecessor schema"):
+        _require_exact_fields(
+            r5_predecessor, _DE25710_PREDECESSOR_FIELDS, "formal manifest predecessor"
+        )
+
+    # (3) End-to-end: build a real valid de25710 manifest, downgrade its
+    # predecessor段 to the r5 7-key shape, and confirm the snapshot validator
+    # itself rejects it (not just the low-level helper). Proves the snapshot
+    # path enforces the new schema and blocks replay of any pre-C1 manifest.
+    manifest = _build_valid_a_e1_manifest()
+    assert set(manifest["predecessor"]) == _DE25710_PREDECESSOR_FIELDS, (
+        f"build_formal_manifest emits predecessor schema "
+        f"{set(manifest['predecessor'])}; expected de25710 10-key set"
+    )
+    manifest["predecessor"] = {
+        field: manifest["predecessor"][field] for field in _R5_PREDECESSOR_FIELDS
+    }
+    with pytest.raises(ValueError, match="formal manifest predecessor schema"):
+        _validate_formal_manifest_snapshot(
+            manifest,
+            module_id=manifest["module_id"],
+            run_id=manifest["run_id"],
+            code_commit=manifest["code_commit"],
+            effective_config_sha256=manifest["effective_config"]["sha256"],
+        )
+
+
+# ============================================================================
+# Reproducer #4 -- Blocker C (cross-commit): verify_g3_chain_authority
+# (formal_g3_control.py:922-955) calls _verify_chain_consistency, which
+# requires the three module manifests' code_commit set to have length
+# exactly 1 (formal_g3_control.py:976-982). A chain where A-E1 was sealed
+# under d2a056f and A-E3/A-E2 under de25710 is rejected -- proving the guard
+# blocks mixed-commit replays even when each individual manifest is valid.
+# ============================================================================
+
+
+def test_blocker_reproducer_verify_g3_chain_authority_rejects_cross_commit():
+    """Blocker C (cross-commit): _verify_chain_consistency (called by
+    verify_g3_chain_authority) requires the three module manifests'
+    code_commit set to have length exactly 1. A chain whose A-E1 manifest
+    carries d2a056f and whose A-E3/A-E2 manifests carry de25710 cannot
+    replay under a single authority."""
+
+    shared_config_sha = "c" * 64
+    shared_matrix_sha = "m" * 64
+
+    def _minimal_manifest(
+        module_id: str, run_id: str, code_commit: str,
+        predecessor_module: str | None, predecessor_run: str | None,
+    ) -> dict:
+        # Only the fields _verify_chain_consistency reads before / at the
+        # code_commit check are populated; the remaining manifest content is
+        # irrelevant to this blocker (the guard fires before any later check).
+        return {
+            "module_id": module_id,
+            "run_id": run_id,
+            "code_commit": code_commit,
+            "effective_config": {"sha256": shared_config_sha},
+            "matrix": {"sha256": shared_matrix_sha},
+            "predecessor": {
+                "module_id": predecessor_module,
+                "run_id": predecessor_run,
+            },
+        }
+
+    ae1_manifest = _minimal_manifest("A-E1", "r5", _COMMIT_D2A056F, None, None)
+    ae3_manifest = _minimal_manifest(
+        "A-E3", "ae3-run", _COMMIT_DE25710, "A-E1", "r5",
+    )
+    ae2_manifest = _minimal_manifest(
+        "A-E2", "ae2-run", _COMMIT_DE25710, "A-E3", "ae3-run",
+    )
+    chain = types.SimpleNamespace(
+        ae1_run_id="r5",
+        ae3_run_id="ae3-run",
+        ae2_run_id="ae2-run",
+    )
+
+    # The three code_commits are {d2a056f, de25710, de25710} -> len 2 != 1.
+    code_commits = {
+        ae1_manifest["code_commit"],
+        ae3_manifest["code_commit"],
+        ae2_manifest["code_commit"],
+    }
+    assert len(code_commits) == 2, (
+        f"fixture invariant: expected 2 distinct commits, got {len(code_commits)}"
+    )
+
+    # _verify_chain_consistency is the exact branch verify_g3_chain_authority
+    # exercises after rebuilding each module's authority (we bypass the
+    # rebuild because no real sealed run dir is available; the consistency
+    # check itself is the blocker).
+    with pytest.raises(ValueError, match="inconsistent code_commit"):
+        g3c._verify_chain_consistency(ae1_manifest, ae3_manifest, ae2_manifest, chain)
