@@ -12,11 +12,11 @@
 >
 > 负向测试提交：`cf366696`
 >
-> 状态：`READY_FOR_P2_RERUN_AUTHORIZATION`
+> 状态：`READY_FOR_INDEPENDENT_REVIEW`（2026-07-30 修订）
 
 ## 1. 本轮结论
 
-独立审查对 `73771dc2` 给出 `REVISE` 后，五项允许修改均已完成：关闭 smoke 绕过、统一逐模型失败惩罚、评价前重新绑定上下文、评价产物原子写入并最终统一封存，以及为 v1 增加机器可读墓碑。P2 v2 已重新完成真实生产路径 smoke。39 个组合的正式计算尚未启动；P3 Direct-MLP 未启动。
+独立审查对 `73771dc2` 给出 `REVISE` 后，五项允许修改均已完成：关闭 smoke 绕过、统一逐模型失败惩罚、评价前重新绑定上下文、评价产物原子写入并最终统一封存，以及为 v1 增加机器可读墓碑。P2 v2 已完成真实生产路径 smoke（预授权阶段），随后获得授权并完成 39 组合正式生成与评价（详见 §6）。P3 Direct-MLP 未启动。
 
 P2 v1 不可作为研究证据：旧生成器使用 Python `hash()` 派生 seed，跨进程不稳定。旧 v1 状态统一为 `INVALID_NONDETERMINISTIC_SEED`。39 个未跟踪 chunks 已从仓库工作区隔离到：
 
@@ -36,7 +36,7 @@ P2 v1 不可作为研究证据：旧生成器使用 Python `hash()` 派生 seed�
 - chunk 采用临时文件后原子替换，checkpoint 续跑前复核上下文和文件哈希；
 - 正式启动要求完整 worktree clean，记录 exact command、generation commit、版本和输入文件 SHA256；
 - smoke 强制写到仓库及 formal tree 之外；正式目录、其父子目录和任意仓库内路径均被拒绝；
-- `P2_FORMAL_AUTHORIZED=False`，`P2_APPROVED_PARENT_COMMIT` 为空，无公开绕过入口。
+- `P2_FORMAL_AUTHORIZED=False`，`P2_APPROVED_PARENT_COMMIT` 已冻结为 `5156fd31...`（预授权时为空，正式运行前由授权提交绑定）。
 
 ### 2.2 评价公式
 
@@ -114,6 +114,8 @@ e_gamma = (gamma_hat-gamma)/eta
 
 ## 4. 验证
 
+### 4.1 预授权阶段（smoke，2026-07-28）
+
 - P2 config + REVISE 专项：`53 passed`；
 - P2 config/REVISE/分类：`84 passed`；
 - E4 fail-closed/repeat/SHA、E3b 合同、分类与 P2 联合回归：`162 passed`；
@@ -126,6 +128,13 @@ e_gamma = (gamma_hat-gamma)/eta
 - `git diff --check`：clean。
 
 测试警告仅包括既有大 CSV dtype 提示和小样本训练测试的 batch-size clipping，不影响正式合同。
+
+### 4.2 正式运行后阶段（2026-07-30 修订）
+
+- P2 专项（config + revise）：`33 passed`，0 failed，0 skipped（夹具已更新为引用冻结 `P2_APPROVED_PARENT_COMMIT`）；
+- P0 完整性审计：`P0_INTEGRITY=PASS`；
+- `git diff --check`：clean；
+- `git lfs fsck`：OK。
 
 ## 5. 正式运行前授权条件
 
@@ -252,7 +261,7 @@ e_gamma = (gamma_hat-gamma)/eta
 `READY_FOR_INDEPENDENT_REVIEW`
 
 - 正式运行、评价、封存和机械核验全部完成。
-- P2_FORMAL_AUTHORED 已恢复为 False。
+- P2_FORMAL_AUTHORIZED 已恢复为 False。
 - 未经 Codex 独立审查，不进入 P3 Direct-MLP，不修改论文结论。
 
 ## 7. 禁止事项确认（更新）

@@ -1,11 +1,21 @@
 # Study01 P2 最小正交泛化补点 — 执行报告
 
+> **⚠️ 历史失效文档**
+>
+> 本报告记录的是 P2 v1 执行过程。P2 v1 因使用 Python `hash()` 派生样本 seed（跨进程不稳定），
+> 已被标记为 `INVALID_NONDETERMINISTIC_SEED`，**不再作为有效研究证据**。
+>
+> 本报告已被 P2 v2 修正与执行报告取代：
+> [`2026-07-27-study01-p2-revise-opencode.md`](2026-07-27-study01-p2-revise-opencode.md)
+>
+> 本文件仅作历史记录保留，不删除。
+
 > 执行者：OpenCode
 > 日期：2026-07-27
 > 分支：study01xu
 > 授权基线：b2d99a81
 > 最终 tip：d994482d
-> 状态：READY_FOR_INDEPENDENT_REVIEW
+> 状态：~~READY_FOR_INDEPENDENT_REVIEW~~ → INVALID_NONDETERMINISTIC_SEED（已被 P2 v2 取代）
 
 ## 提交链
 
