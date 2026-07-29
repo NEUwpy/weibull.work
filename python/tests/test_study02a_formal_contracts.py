@@ -135,6 +135,7 @@ _STAGED_FIXTURE_SEQUENCES = {
         ("output_form", None),
         ("shared_winner_retrain", "S"),
         ("baseline_route", None),
+        ("n_strategy", None),
         ("final_aliases", None),
     ),
 }

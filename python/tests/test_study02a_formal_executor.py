@@ -3627,9 +3627,10 @@ def test_c1_predecessor_binding_rejects_staged_ledger_breaks_chain(tmp_path):
         fc._validate_predecessor("A-E3", trace)
 
 
-def test_c1_validate_staged_resolution_ledger_accepts_a_e3_nine_record_chain(tmp_path):
-    """G.15-partial: an A-E3 final selection's 9-record staged ledger validates as an A-E2
+def test_c1_validate_staged_resolution_ledger_accepts_a_e3_ten_record_chain(tmp_path):
+    """G.15-partial: an A-E3 final selection's 10-record staged ledger validates as an A-E2
     predecessor (chain shape + record_sha self-consistency over the canonical A-E3 sequence).
+    R3-B: the chain is now 10 records (record 9 ``n_strategy`` + record 10 ``final_aliases``).
     Full A-E3 staged-ledger publishing is wired in C4; this proves the FC validator already
     accepts the canonical A-E3 chain shape so A-E2 binding will work once A-E3 publishes."""
     from study02a import formal_contracts as fc
@@ -3644,6 +3645,7 @@ def test_c1_validate_staged_resolution_ledger_accepts_a_e3_nine_record_chain(tmp
         ("output_form", None),
         ("shared_winner_retrain", "S"),
         ("baseline_route", None),
+        ("n_strategy", None),
         ("final_aliases", None),
     )
     records: list[dict] = []
@@ -3680,7 +3682,7 @@ def test_c1_validate_staged_resolution_ledger_accepts_a_e3_nine_record_chain(tmp
         code_commit=_D8_CODE_COMMIT.lower(),
         effective_config_sha256=EFFECTIVE.effective_config_sha256,
     )
-    assert len(result["records"]) == 9
+    assert len(result["records"]) == 10
     assert result["baseline_route"] is None  # A-E3 has no baseline_input stage
     # And the full _validate_predecessor path accepts it as an A-E2 predecessor binding.
     # (Synthesizing a complete A-E3 selection trace/receipt/ledger is C4-C5 scope; the FC
@@ -4250,7 +4252,7 @@ def test_g13_a_e3_recover_fail_closed_on_duplicate_ledger_binding(tmp_path):
 # only at the output-staging layer (_stage_a_e3_staged_outputs writes outputs/
 # directly, mirroring _stage_arch_matched_a_e1_run); _rebuild_authority is
 # stubbed all-succeeded so the staged driver's loop sees every fit terminal and
-# proceeds to the final selection + 9-record staged ledger. The scientific
+# proceeds to the final selection + 10-record staged ledger. The scientific
 # scoring path (checkpoint load + forward + L_param) runs REAL end-to-end.
 # ---------------------------------------------------------------------------
 
@@ -4339,19 +4341,19 @@ def test_g12_a_e3_staged_driver_idempotent_reentry(tmp_path, monkeypatch):
     _score_fit_from_checkpoint over pilot data; the scheduler claim/record loop is
     bypassed only at output staging (all 266 outputs pre-written); _rebuild_authority
     is stubbed all-succeeded so the loop sees no pending fits and proceeds to the
-    final selection + 9-record staged ledger.
+    final selection + 10-record staged ledger.
 
     Contract under test (the task's "interrupt/resume" idempotence guarantees):
       1. ``run_a_e3_staged(max_fits=None)`` completes: all 266 fits terminal, the 6
          per-stage receipts are ensured, the final module selection trace is published,
-         and the 9-record staged ledger chain (loss -> stage1_FV -> stage2_FV ->
+         and the 10-record staged ledger chain (loss -> stage1_FV -> stage2_FV ->
          stage1_S -> stage2_S -> output_form -> shared_winner_retrain -> baseline_route
          -> final_aliases) is appended.
       2. Re-entering ``run_a_e3_staged(max_fits=None)`` does NOT re-claim any fit, does
          NOT re-publish any stage receipt (same selection_trace_sha256), and does NOT
          duplicate or overwrite any staged-ledger record (exact-match reuse, no
          conflicting duplicate).
-      3. The 9-record chain is hash-bound from _ZERO_HASH, every record binds the A-E3
+      3. The 10-record chain is hash-bound from _ZERO_HASH, every record binds the A-E3
          final selection trace SHA, and the baseline_route record's input carries the
          A-E1 predecessor's staged_ledger_sha256 (cryptographic binding).
     """
@@ -4387,11 +4389,21 @@ def test_g12_a_e3_staged_driver_idempotent_reentry(tmp_path, monkeypatch):
     staged = summary["staged"]
     assert staged["pending"] == []
     assert staged["selected_F2_or_V"] == "V"  # predecessor-resolved route (r5 design)
+    # R3-B: final_aliases now carries selected:A-E3_n_strategy + a concrete baseline tuple
+    # under selected:A-E3_baseline (directly consumable by A-E2), plus the original flat
+    # token-namespaced aliases unchanged.
+    assert "selected:A-E3_n_strategy" in staged["final_aliases"]
+    assert staged["final_aliases"]["selected:A-E3_n_strategy"] in {"fixed", "shared"}
     assert set(staged["final_aliases"]) == {
         "selected:A-E3_loss", "selected:A-E3_architecture", "selected:A-E3_optimizer",
         "selected:S_architecture", "selected:S_optimizer",
-        "selected:A-E3_baseline", "selected:F2_or_V"}
+        "selected:A-E3_baseline", "selected:F2_or_V",
+        "selected:A-E3_n_strategy"}
     assert staged["final_aliases"]["selected:F2_or_V"] == "V"
+    baseline_tuple = staged["final_aliases"]["selected:A-E3_baseline"]
+    assert isinstance(baseline_tuple, dict)
+    assert set(baseline_tuple) == {"route", "loss", "architecture", "optimizer", "output_form"}
+    assert baseline_tuple["loss"] == staged["final_aliases"]["selected:A-E3_loss"]
 
     # Capture every artifact's SHA after the first pass.
     final_trace_sha_1 = summary["final_selection"]["selection_trace_sha256"]
@@ -4404,8 +4416,9 @@ def test_g12_a_e3_staged_driver_idempotent_reentry(tmp_path, monkeypatch):
             stage_receipt_shas_1[f"{stage}_{token}"] = hashlib.sha256(
                 (run_dir / f"{stage}_selection_{token}_receipt.json").read_bytes()).hexdigest()
     staged_ledger_records_1 = _assert_chained_ledger(run_dir)
-    assert len(staged_ledger_records_1) == 9
-    # The 9-record chain follows the canonical A-E3 sequence (FC _STAGED_LEDGER_SEQUENCES).
+    assert len(staged_ledger_records_1) == 10
+    # The 10-record chain follows the canonical A-E3 sequence (FC _STAGED_LEDGER_SEQUENCES):
+    # R3-B adds record 9 (n_strategy) before record 10 (final_aliases).
     canonical_stages = [(r["stage"], r.get("route")) for r in staged_ledger_records_1]
     assert canonical_stages == [
         ("loss", None),
@@ -4414,6 +4427,7 @@ def test_g12_a_e3_staged_driver_idempotent_reentry(tmp_path, monkeypatch):
         ("output_form", None),
         ("shared_winner_retrain", "S"),
         ("baseline_route", None),
+        ("n_strategy", None),
         ("final_aliases", None),
     ]
     # The baseline_route record's input cryptographically binds the predecessor staged ledger SHA.
@@ -4440,7 +4454,7 @@ def test_g12_a_e3_staged_driver_idempotent_reentry(tmp_path, monkeypatch):
         assert hashlib.sha256(path.read_bytes()).hexdigest() == sha_1, f"stage receipt {key!r} changed"
     # The staged ledger is unchanged (idempotent exact-match reuse, no duplicate).
     staged_ledger_records_2 = _assert_chained_ledger(run_dir)
-    assert len(staged_ledger_records_2) == 9
+    assert len(staged_ledger_records_2) == 10
     assert [r["record_sha256"] for r in staged_ledger_records_2] == \
         [r["record_sha256"] for r in staged_ledger_records_1]
     # The A-E1 predecessor artifacts are untouched (no cross-module tamper).
@@ -4558,7 +4572,7 @@ def test_g14_a_e3_publish_and_rebuild_provenance(tmp_path, monkeypatch):
 #
 # Production-equivalent integration: real materialize_run (predecessor binding),
 # real _ensure_a_e3_* / build_a_e3_* stage builders, real build_module_selection
-# (A-E3) final selection, real resolve_a_e3_staged_selection (9-record ledger),
+# (A-E3) final selection, real resolve_a_e3_staged_selection (10-record ledger),
 # real _validate_predecessor / _validate_staged_resolution_ledger, real
 # _score_fit_from_checkpoint (checkpoint-forward over pilot data).
 #
@@ -4613,11 +4627,11 @@ def _build_a_e3_pred_trace(
 def test_g15_a_e3_final_selection_accepted_as_a_e2_predecessor(tmp_path, monkeypatch):
     """G.15: a self-built A-E3 final selection (NOT a real r5 run) is accepted by
     ``_validate_predecessor("A-E2", trace)`` as an A-E2 predecessor, including the
-    control-plane v2 staged_ledger binding (A-E3 publishes a 9-record staged ledger).
+    control-plane v2 staged_ledger binding (A-E3 publishes a 10-record staged ledger).
 
     Production-bound: real materialize_run (predecessor binding), real
     _ensure_a_e3_* / build_a_e3_* stage builders, real build_module_selection (A-E3),
-    real resolve_a_e3_staged_selection (9-record ledger). Substitutions: pilot data source
+    real resolve_a_e3_staged_selection (10-record ledger). Substitutions: pilot data source
     (_install_small_data_pilot), scheduler authority (_mock_rebuild_authority_all_succeeded),
     and deterministic score_fit injection for the 6 staged receipts + the final selection
     (this is the focused predecessor-acceptance test; the sealed smoke below exercises the
@@ -4646,7 +4660,7 @@ def test_g15_a_e3_final_selection_accepted_as_a_e2_predecessor(tmp_path, monkeyp
     assert ae3_trace.staged_ledger_sha256 is not None
 
     # _validate_predecessor("A-E2", trace) accepts the self-built A-E3 final selection,
-    # including the staged_ledger binding (A-E3 publishes a 9-record staged ledger).
+    # including the staged_ledger binding (A-E3 publishes a 10-record staged ledger).
     binding = fc._validate_predecessor("A-E2", ae3_trace)
     assert binding["module_id"] == "A-E3"
     assert binding["run_id"] == run_id
@@ -4667,7 +4681,7 @@ def test_g16_a_e3_sealed_smoke_production_equivalent(tmp_path, monkeypatch):
       * ``_ensure_a_e3_*`` / ``build_a_e3_*`` stage builders (6 staged receipts).
       * ``build_module_selection("A-E3")`` final selection via ``_score_fit_from_checkpoint``
         (checkpoint-forward scoring over the pilot validation batch -- score_fit=None).
-      * ``resolve_a_e3_staged_selection`` (9-record staged ledger chain from _ZERO_HASH).
+      * ``resolve_a_e3_staged_selection`` (10-record staged ledger chain from _ZERO_HASH).
       * ``_validate_predecessor("A-E2", trace)`` + ``_validate_staged_resolution_ledger``.
 
     Explicit substitutions (documented non-scientific layers):
@@ -4724,12 +4738,12 @@ def test_g16_a_e3_sealed_smoke_production_equivalent(tmp_path, monkeypatch):
     }
     assert decision_ids == expected_decisions
 
-    # The staged ledger is the 9-record canonical chain from _ZERO_HASH.
+    # The staged ledger is the 10-record canonical chain from _ZERO_HASH (R3-B: + n_strategy).
     staged = summary["staged"]
     assert staged["pending"] == []
     assert staged["selected_F2_or_V"] == "V"  # predecessor-resolved route (r5 design)
     staged_records = _assert_chained_ledger(run_dir)
-    assert len(staged_records) == 9
+    assert len(staged_records) == 10
     canonical_stages = [(r["stage"], r.get("route")) for r in staged_records]
     assert canonical_stages == [
         ("loss", None),
@@ -4738,6 +4752,7 @@ def test_g16_a_e3_sealed_smoke_production_equivalent(tmp_path, monkeypatch):
         ("output_form", None),
         ("shared_winner_retrain", "S"),
         ("baseline_route", None),
+        ("n_strategy", None),
         ("final_aliases", None),
     ]
     # The baseline_route record cryptographically binds the A-E1 predecessor's staged ledger.
@@ -4746,7 +4761,7 @@ def test_g16_a_e3_sealed_smoke_production_equivalent(tmp_path, monkeypatch):
     assert baseline_route_record["input"]["predecessor_staged_ledger_sha256"] == staged_ledger_sha
     assert baseline_route_record["resolution"] == {"selected:F2_or_V": "V"}
 
-    # _validate_staged_resolution_ledger (FC single authority) accepts the 9-record chain.
+    # _validate_staged_resolution_ledger (FC single authority) accepts the 10-record chain.
     ae3_receipt = json.loads((run_dir / "selection_receipt.json").read_text(encoding="utf-8"))
     ae3_manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     staged_ledger_result = fc._validate_staged_resolution_ledger(
@@ -4759,7 +4774,7 @@ def test_g16_a_e3_sealed_smoke_production_equivalent(tmp_path, monkeypatch):
         code_commit=str(ae3_manifest["code_commit"]),
         effective_config_sha256=EFFECTIVE.effective_config_sha256,
     )
-    assert len(staged_ledger_result["records"]) == 9
+    assert len(staged_ledger_result["records"]) == 10
     assert staged_ledger_result["baseline_route"] is None  # A-E3 has no baseline_input stage
 
     # _validate_predecessor("A-E2", trace) accepts the self-built A-E3 final selection

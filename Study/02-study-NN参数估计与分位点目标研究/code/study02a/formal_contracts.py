@@ -58,8 +58,9 @@ _PREDECESSOR_BY_MODULE = {"A-E1": None, "A-E3": "A-E1", "A-E2": "A-E3"}
 # Control-plane v2: modules that publish a ``staged_resolution_ledger.jsonl`` whose SHA a
 # downstream run must bind through PredecessorTrace (the on-disk authority for the
 # module's deferred placeholders + final aliases). A-E1 publishes its 8-record chain
-# (``resolve_a_e1_staged_selection``); A-E3 publishes its 9-record chain once its staged
-# resolver is wired. The single authority for staged-ledger validation lives in FC
+# (``resolve_a_e1_staged_selection``); A-E3 publishes its 10-record chain once its staged
+# resolver is wired (R3-B: record 9 ``n_strategy`` + record 10 ``final_aliases``). The
+# single authority for staged-ledger validation lives in FC
 # (``_validate_staged_resolution_ledger``); G3 calls FC, never the reverse.
 _PUBLISHES_STAGED_LEDGER = {"A-E1", "A-E3"}
 _STAGED_LEDGER_RECORD_VERSION = "study02-staged-resolution-v1"
@@ -71,8 +72,11 @@ _STAGED_LEDGER_REQUIRED_FIELDS = {
 }
 # Per-module canonical (stage, route) sequence for the staged resolution ledger. A-E1's
 # 8-record chain is frozen (mirrors ``formal_g3_control._resolve_a_e1_from_staged_ledger``
-# at FC1191-read-time); A-E3's 9-record chain is per the A-E3 orchestration design (section
-# E). Semantic-order deviations are a tamper even when the hash chain is re-broken-and-rebuilt.
+# at FC1191-read-time); A-E3's 10-record chain is per the A-E3 orchestration design (R3-B:
+# record 9 ``n_strategy`` resolves the fixed-vs-shared winner from dedicated cohort evidence
+# constructed outside the matrix decision path; record 10 ``final_aliases`` carries the
+# concrete baseline tuple consumed by A-E2). Semantic-order deviations are a tamper even
+# when the hash chain is re-broken-and-rebuilt.
 _STAGED_LEDGER_SEQUENCES: dict[str, tuple[tuple[str, str | None], ...]] = {
     "A-E1": (
         ("stage1", "F2"),
@@ -93,6 +97,7 @@ _STAGED_LEDGER_SEQUENCES: dict[str, tuple[tuple[str, str | None], ...]] = {
         ("output_form", None),
         ("shared_winner_retrain", "S"),
         ("baseline_route", None),
+        ("n_strategy", None),
         ("final_aliases", None),
     ),
 }

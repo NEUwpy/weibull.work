@@ -41,6 +41,7 @@ from .config import FrozenConfig, load_frozen_config
 from .formal_config import EffectiveFormalConfig, load_effective_formal_config
 from .formal_contracts import (
     APPROVED_EFFECTIVE_CONFIG_SHA256,
+    SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,
     SELECTION_RULE_GLOBAL_BETTER,
     _CODE_COMMIT_RE,
     _PREDECESSOR_BY_MODULE,
@@ -60,6 +61,8 @@ from .selection import (
     DecisionSpec,
     FitEvaluation,
     SupportKey,
+    _equal_weight_per_n_aggregate,
+    _validate_evaluation_finite,
     apply_selection_rule,
     build_decision_specs,
     build_selection_trace,
@@ -2015,13 +2018,416 @@ def resolve_a_e1_staged_selection(
     }
 
 
+# ---------------------------------------------------------------------------
+# R3-B: dedicated n_strategy evidence (fixed vs shared).
+#
+# The n_strategy decision is NOT a matrix decision (``shared_winner_retrain`` is not in
+# ``_FIT_KIND_AXIS``; reproducer #2 stays negative). It is constructed from two dedicated
+# cohorts scored outside ``build_decision_specs``:
+#
+#   * fixed cohort  = 5 core n x 10 formal seeds (50 cells); each cell's checkpoint is the
+#     output_form winner candidate's fit at (core_n, formal_seed), scored on its fixed-n
+#     validation cell (re-using the single-source ``_score_fit_from_checkpoint`` path).
+#   * shared cohort = 10 shared_winner_retrain checkpoints x 5 core-n validation subsets
+#     (50 cells); each shared DeepSets checkpoint is scored on each core-n subset of the
+#     shared_n validation batch (sliced where ``batch.n == core_n``).
+#
+# Both cohorts share the SAME 5 x 10 = 50-cell support grid (``SupportKey(core_n,
+# formal_seed)``), so the frozen ``fixed_vs_shared_equal_weight`` rule
+# (``_equal_weight_per_n_aggregate``) pairs them cell-for-cell. Failed fits are NOT skipped
+# (they carry the frozen penalty + all-illegal point records over their validation cell).
+# ---------------------------------------------------------------------------
+
+
+def _a_e3_core_n_values(frozen: FrozenConfig) -> tuple[int, ...]:
+    """The frozen 5 core sample sizes (``protocol.sample_sizes.core``).
+
+    Used as the equal-weight aggregation axis for the n_strategy decision. Read from the
+    frozen config (never hardcoded) so a protocol bump flows through.
+    """
+    return tuple(int(n) for n in frozen.protocol["sample_sizes"]["core"])
+
+
+def _shared_core_n_validation_identity(shared_validation_identity: str, core_n: int) -> str:
+    """Deterministic per-core-n validation identity for the shared cohort.
+
+    The shared_n validation batch mixes all 5 core n; slicing it by ``batch.n == core_n``
+    yields a per-core-n subset whose content identity is the shared cache key plus the
+    ``:n{core_n}`` filter. This is the identity bound into each shared-cohort cell's
+    point-evidence SHA, so pre-unseal rebuilds reconstruct the same digest.
+    """
+    return f"{shared_validation_identity}:n{int(core_n)}"
+
+
+def _score_shared_fit_on_core_n_subset(
+    *, run_dir: Path, cache_root: Path, fit_id: str, plan_row: Mapping[str, Any],
+    frozen: FrozenConfig, effective: EffectiveFormalConfig, fit_states: Mapping[str, str],
+    core_n: int, module_id: str, decision_id: str, candidate_id: str,
+) -> FitEvaluation:
+    """Score one shared DeepSets checkpoint on one core-n validation subset.
+
+    Builds the shared_n validation batch via the single-source ``_prepare_fit_inputs`` path
+    and slices it where ``batch.n == core_n``. The sliced sub-batch is forwarded through
+    the loaded checkpoint and scored per-parameter-point. A failed shared fit carries the
+    frozen penalty + all-illegal point records over its core-n subset (R3#6: failures are
+    not skipped). Returns a :class:`FitEvaluation` keyed by ``SupportKey(core_n, seed)``.
+    """
+    prepared = _prepare_fit_inputs(plan_row, frozen, effective, cache_root, run_dir=run_dir)
+    full_batch = prepared.scaled_validation.batch
+    # The shared validation batch carries the true set size per row in ``batch.n``. Select
+    # the rows whose set size equals this core_n -- this is the per-core-n validation subset
+    # the shared model is scored on for the n_strategy comparison.
+    n_values = full_batch.n
+    selection = torch.nonzero(n_values == float(int(core_n)), as_tuple=False).flatten()
+    if selection.numel() == 0:
+        raise ValueError(
+            f"shared validation batch for fit {fit_id!r} has no rows at core_n={core_n}"
+        )
+    sub_indices = selection.tolist()
+    sub_metadata = tuple(prepared.validation_metadata[i] for i in sub_indices)
+    sub_identity = _shared_core_n_validation_identity(prepared.validation_identity, core_n)
+    support_key = SupportKey(n=int(core_n), seed=int(plan_row["seed"]))
+    status = fit_states.get(fit_id)
+    if status == "failed":
+        illegal_records = tuple(
+            {
+                "sample_id": str(meta.get("sample_id", f"val:{i:07d}")),
+                "seed_id": str(plan_row["seed"]),
+                "point_id": str(meta.get("point_id", f"point-{i:07d}")),
+                "legal": False, "failure": 1, "l_param": 10.0,
+                "e_beta": 10.0, "e_eta": 10.0, "e_gamma": 10.0,
+            }
+            for i, meta in enumerate(sub_metadata)
+        )
+        return FitEvaluation(
+            fit_id=fit_id, module_id=module_id, decision_id=decision_id, candidate_id=candidate_id,
+            support_key=support_key, failed=True, checkpoint_sha256="",
+            validation_identity=sub_identity,
+            selection_score=0.0, failure_penalty=10.0, point_records=illegal_records,
+        )
+    if status != "succeeded":
+        raise ValueError(
+            f"n_strategy shared cohort requires fit {fit_id!r} terminal; its state is "
+            f"{status!r}"
+        )
+    checkpoint_path = run_dir / "outputs" / fit_id / "checkpoint.pt"
+    checkpoint_bytes = checkpoint_path.read_bytes()
+    sub_batch = FormalSetBatch(
+        values=full_batch.values.index_select(0, selection),
+        mask=full_batch.mask.index_select(0, selection),
+        n=full_batch.n.index_select(0, selection),
+        model_n=full_batch.model_n.index_select(0, selection),
+        targets=full_batch.targets.index_select(0, selection),
+        location=full_batch.location.index_select(0, selection),
+        scale=full_batch.scale.index_select(0, selection),
+    )
+    scalar, point_records = validation_failure_penalized_l_param_points(
+        checkpoint_bytes=checkpoint_bytes, model_factory=prepared.model_factory,
+        validation_batch=sub_batch, validation_metadata=sub_metadata,
+        seed_id=str(plan_row["seed"]), is_set=True,
+    )
+    _require_finite_evaluation(fit_id, scalar, point_records)
+    return FitEvaluation(
+        fit_id=fit_id, module_id=module_id, decision_id=decision_id, candidate_id=candidate_id,
+        support_key=support_key, failed=False,
+        checkpoint_sha256=hashlib.sha256(checkpoint_bytes).hexdigest(),
+        validation_identity=sub_identity,
+        selection_score=scalar, failure_penalty=0.0, point_records=point_records,
+    )
+
+
+def _output_form_winner_candidate_from_trace(*, run_dir: Path, run_id: str) -> str:
+    """Recover the output_form winner candidate id (``joint`` / ``independent_capacity_matched``).
+
+    The output_form selection receipt is the on-disk authority (re-validated read-only via
+    ``_recover_a_e3_output_form_selection``). The winner drives the fixed cohort's per-cell
+    checkpoint selection (the 50 fits of the winning candidate).
+    """
+    record = _recover_a_e3_output_form_selection(run_dir=run_dir, run_id=run_id)
+    return str(record["selected:A-E3_baseline"])
+
+
+def _build_a_e3_n_strategy_fixed_evaluations(
+    *, study_root: Path, run_dir: Path, cache_root: Path, frozen: FrozenConfig,
+    effective: EffectiveFormalConfig, matrix_by_fit: Mapping[str, Mapping[str, str]],
+    plan_by_fit: Mapping[str, Mapping[str, Any]], fit_states: Mapping[str, str],
+    output_form_winner_candidate: str, predecessor_resolved_route: str,
+    module_id: str, run_id: str,
+    score_n_strategy_cell: Callable[[str, int, int, str], FitEvaluation] | None = None,
+) -> dict[SupportKey, FitEvaluation]:
+    """Build the fixed cohort's 50 per-cell evaluations (5 core n x 10 formal seeds).
+
+    Each cell scores the output_form WINNING candidate's fit at (core_n, formal_seed) via
+    the single-source ``_score_fit_from_checkpoint`` path. ``score_n_strategy_cell`` (tests)
+    injects a synthetic evaluation without checkpoint scoring.
+    """
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    output_form_rows = [
+        row for row in matrix_rows
+        if str(row["module"]) == "A-E3" and str(row["fit_kind"]) == "output_form"
+    ]
+    output_form_spec = next(
+        (spec for spec in build_decision_specs("A-E3", output_form_rows)
+         if spec.decision_id == _A_E3_OUTPUT_FORM_DECISION_ID),
+        None,
+    )
+    if output_form_spec is None:
+        raise ValueError(
+            f"matrix has no A-E3 output_form decision {_A_E3_OUTPUT_FORM_DECISION_ID!r}")
+    winner_candidate = next(
+        (c for c in output_form_spec.candidates if c.candidate_id == output_form_winner_candidate),
+        None,
+    )
+    if winner_candidate is None:
+        raise ValueError(
+            f"output_form winner candidate {output_form_winner_candidate!r} is not in the "
+            f"output_form decision's candidate set")
+    evaluations: dict[SupportKey, FitEvaluation] = {}
+    for key in winner_candidate.support_keys:
+        fit_id = winner_candidate.support_for(key)
+        if score_n_strategy_cell is not None:
+            evaluation = score_n_strategy_cell(fit_id, int(key.n), int(key.seed), _A_E3_N_STRATEGY_FIXED)
+        else:
+            scoring_row = _resolve_a_e3_scoring_plan_row(
+                run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+                matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+                predecessor_resolved_route=predecessor_resolved_route)
+            evaluation = _score_fit_from_checkpoint(
+                run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=scoring_row,
+                frozen=frozen, effective=effective, fit_states=fit_states,
+                module_id=module_id, decision_id=_A_E3_N_STRATEGY_DECISION_ID,
+                candidate_id=_A_E3_N_STRATEGY_FIXED,
+            )
+        if evaluation.support_key != key:
+            raise ValueError(
+                f"fixed-cohort evaluation for {fit_id!r} support {evaluation.support_key!r} "
+                f"disagrees with frozen expected {key!r}")
+        evaluations[key] = evaluation
+    return evaluations
+
+
+def _build_a_e3_n_strategy_shared_evaluations(
+    *, study_root: Path, run_dir: Path, cache_root: Path, frozen: FrozenConfig,
+    effective: EffectiveFormalConfig, matrix_by_fit: Mapping[str, Mapping[str, str]],
+    plan_by_fit: Mapping[str, Mapping[str, Any]], fit_states: Mapping[str, str],
+    module_id: str, run_id: str,
+    score_n_strategy_cell: Callable[[str, int, int, str], FitEvaluation] | None = None,
+) -> dict[SupportKey, FitEvaluation]:
+    """Build the shared cohort's 50 per-cell evaluations (10 shared x 5 core-n validations).
+
+    Each of the 10 ``shared_winner_retrain`` checkpoints is scored on each of the 5 core-n
+    validation subsets (sliced from the shared_n batch where ``batch.n == core_n``). The
+    resulting support grid is 5 core n x 10 formal seeds -- identical to the fixed cohort's
+    grid, so the two pair cell-for-cell under ``fixed_vs_shared_equal_weight``.
+    """
+    matrix_rows = expand_module_matrix(frozen).to_dict("records")
+    shared_rows = [
+        row for row in matrix_rows
+        if str(row["module"]) == "A-E3" and str(row["fit_kind"]) == "shared_winner_retrain"
+    ]
+    if not shared_rows:
+        raise ValueError("matrix has no A-E3 shared_winner_retrain rows")
+    core_n_values = _a_e3_core_n_values(frozen)
+    evaluations: dict[SupportKey, FitEvaluation] = {}
+    for row in shared_rows:
+        fit_id = str(row["fit_id"])
+        formal_seed = int(row["seed"])
+        for core_n in core_n_values:
+            key = SupportKey(n=int(core_n), seed=formal_seed)
+            if score_n_strategy_cell is not None:
+                evaluation = score_n_strategy_cell(fit_id, int(core_n), formal_seed, _A_E3_N_STRATEGY_SHARED)
+            else:
+                plan_row = plan_by_fit[fit_id]
+                evaluation = _score_shared_fit_on_core_n_subset(
+                    run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=plan_row,
+                    frozen=frozen, effective=effective, fit_states=fit_states,
+                    core_n=int(core_n), module_id=module_id,
+                    decision_id=_A_E3_N_STRATEGY_DECISION_ID, candidate_id=_A_E3_N_STRATEGY_SHARED,
+                )
+            if evaluation.support_key != key:
+                raise ValueError(
+                    f"shared-cohort evaluation for {fit_id!r} support {evaluation.support_key!r} "
+                    f"disagrees with frozen expected {key!r}")
+            evaluations[key] = evaluation
+    return evaluations
+
+
+def _n_strategy_candidate_supporting_evidence(
+    *, module_id: str, run_id: str, decision_id: str, candidate_id: str,
+    selection_rule: str, support_keys: Sequence[SupportKey],
+    evaluations_by_support: Mapping[SupportKey, FitEvaluation],
+) -> dict[str, Any]:
+    """Aggregate one n_strategy candidate's cohort evidence + supporting_evidence_sha256.
+
+    Mirrors :func:`candidate_supporting_evidence` from selection.py but for the dedicated
+    n_strategy structure (no ``CandidateSpec``; the support grid is the shared 5 core n x
+    10 formal seeds). Uses :func:`_equal_weight_per_n_aggregate` for the aggregate score;
+    binds each cell's ``point_evidence_sha256`` into the supporting hash so any swapped
+    artifact, relabel, or tampered checkpoint/score/validation-subset fails closed.
+    """
+    if set(evaluations_by_support) != set(support_keys):
+        missing = sorted(set(support_keys) - set(evaluations_by_support), key=lambda k: (str(k.n), k.seed))
+        extra = sorted(set(evaluations_by_support) - set(support_keys), key=lambda k: (str(k.n), k.seed))
+        raise ValueError(
+            f"n_strategy evidence for {decision_id}/{candidate_id} must cover exactly the "
+            f"support grid; missing={missing!r} extra={extra!r}")
+    evaluations = [evaluations_by_support[key] for key in support_keys]
+    for evaluation in evaluations:
+        _validate_evaluation_finite(evaluation)
+    aggregate = _equal_weight_per_n_aggregate(evaluations)
+    if not math.isfinite(aggregate):
+        raise ValueError(
+            f"n_strategy aggregate score for {candidate_id!r} is non-finite ({aggregate})")
+    supporting_rows: list[dict[str, Any]] = []
+    for key, evaluation in zip(support_keys, evaluations):
+        if evaluation.support_key != key:
+            raise ValueError(
+                f"n_strategy evaluation keyed by {evaluation.support_key!r} disagrees with "
+                f"expected support {key!r}")
+        point_sha = evaluation.point_evidence_sha256()
+        supporting_rows.append({
+            "fit_id": evaluation.fit_id, "n": key.n, "seed": int(key.seed),
+            "failed": bool(evaluation.failed),
+            "checkpoint_sha256": evaluation.checkpoint_sha256,
+            "validation_identity": evaluation.validation_identity,
+            "selection_score": float(evaluation.selection_score),
+            "failure_penalty": float(evaluation.failure_penalty),
+            "point_evidence_sha256": point_sha,
+        })
+    canonical_payload = _canonical({
+        "module_id": module_id, "run_id": run_id, "decision_id": decision_id,
+        "candidate_id": candidate_id, "selection_rule": selection_rule,
+        "supporting_rows": supporting_rows,
+    })
+    return {
+        "module_id": module_id, "run_id": run_id, "decision_id": decision_id,
+        "candidate_id": candidate_id, "selection_rule": selection_rule,
+        "supporting_rows": supporting_rows,
+        "aggregate_score": aggregate,
+        "supporting_evidence_sha256": hashlib.sha256(canonical_payload).hexdigest(),
+        "support_count": len(supporting_rows),
+        "seed_count": len({int(key.seed) for key in support_keys}),
+    }
+
+
+def _resolve_a_e3_n_strategy(
+    *, study_root: Path, run_dir: Path, cache_root: Path, frozen: FrozenConfig,
+    effective: EffectiveFormalConfig, matrix_by_fit: Mapping[str, Mapping[str, str]],
+    plan_by_fit: Mapping[str, Mapping[str, Any]], fit_states: Mapping[str, str],
+    output_form_winner_candidate: str, predecessor_resolved_route: str,
+    module_id: str, run_id: str,
+    score_n_strategy_cell: Callable[[str, int, int, str], FitEvaluation] | None = None,
+) -> tuple[str, dict[str, dict[str, Any]], Mapping[str, Any]]:
+    """Apply the frozen ``fixed_vs_shared_equal_weight`` rule to the n_strategy cohorts.
+
+    Builds both cohorts' per-cell evaluations (5 core n x 10 formal seeds each), aggregates
+    each under core-n equal-weight mean L_param, and ranks by aggregate ascending (the
+    frozen rule). Returns ``(winner_candidate_id, evidence_by_candidate, rule_result)``.
+
+    The winner is COMPUTED by the frozen rule over the dedicated cohort evidence, never
+    supplied. ``rule_result`` carries the ranked order for the staged-ledger record (enough
+    for pre-unseal to re-derive the winner). ``score_n_strategy_cell`` (tests) injects
+    synthetic per-cell evaluations; production (None) scores from bound checkpoints.
+    """
+    fixed_evals = _build_a_e3_n_strategy_fixed_evaluations(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, frozen=frozen,
+        effective=effective, matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+        fit_states=fit_states, output_form_winner_candidate=output_form_winner_candidate,
+        predecessor_resolved_route=predecessor_resolved_route,
+        module_id=module_id, run_id=run_id, score_n_strategy_cell=score_n_strategy_cell,
+    )
+    shared_evals = _build_a_e3_n_strategy_shared_evaluations(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, frozen=frozen,
+        effective=effective, matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+        fit_states=fit_states, module_id=module_id, run_id=run_id,
+        score_n_strategy_cell=score_n_strategy_cell,
+    )
+    # Both cohorts share the SAME 5 core n x 10 formal seeds support grid. Assert this so
+    # a future matrix change that desynchronises the grids fails closed here (the
+    # fixed_vs_shared rule is only defined for pairable support).
+    if set(fixed_evals) != set(shared_evals):
+        missing = sorted(set(fixed_evals) - set(shared_evals), key=lambda k: (str(k.n), k.seed))
+        extra = sorted(set(shared_evals) - set(fixed_evals), key=lambda k: (str(k.n), k.seed))
+        raise ValueError(
+            f"n_strategy fixed/shared cohort support grids disagree; missing={missing!r} "
+            f"extra={extra!r}")
+    support_keys = tuple(sorted(fixed_evals, key=lambda k: (str(k.n), int(k.seed))))
+    evidence_by_candidate: dict[str, dict[str, Any]] = {}
+    for candidate_id, evaluations_by_support in (
+        (_A_E3_N_STRATEGY_FIXED, fixed_evals),
+        (_A_E3_N_STRATEGY_SHARED, shared_evals),
+    ):
+        evidence_by_candidate[candidate_id] = _n_strategy_candidate_supporting_evidence(
+            module_id=module_id, run_id=run_id, decision_id=_A_E3_N_STRATEGY_DECISION_ID,
+            candidate_id=candidate_id, selection_rule=SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,
+            support_keys=support_keys, evaluations_by_support=evaluations_by_support,
+        )
+    # Rank by aggregate score ascending, tie-break by candidate id (frozen deterministic).
+    ranked = sorted(
+        _A_E3_N_STRATEGY_CANDIDATES,
+        key=lambda cid: (float(evidence_by_candidate[cid]["aggregate_score"]), cid),
+    )
+    winner = ranked[0]
+    rule_result = {"reason": "fixed_vs_shared_equal_weight", "ranked": ranked}
+    return winner, evidence_by_candidate, rule_result
+
+
+def rebuild_a_e3_n_strategy_provenance(
+    *, study_root: Path, run_dir: Path, cache_root: Path, module_id: str = "A-E3", run_id: str,
+) -> dict[str, Any]:
+    """R3-B pre-unseal: independently rebuild the n_strategy winner from bound checkpoints.
+
+    Mirrors :func:`rebuild_selection_point_provenance` for the dedicated n_strategy decision.
+    Reloads the output_form winner candidate from its on-disk receipt, re-scores the fixed
+    cohort (50 output_form winner checkpoints on their fixed-n validation cells) and the
+    shared cohort (10 shared_winner_retrain checkpoints x 5 core-n validation subsets) from
+    ``outputs/{fit_id}/checkpoint.pt``, re-aggregates both under
+    ``fixed_vs_shared_equal_weight``, and recomputes the winner + supporting evidence SHAs.
+
+    No fit_status scalar, no published artifact, no staged-ledger record is trusted -- the
+    returned map is the independently reconstructed truth pre-unseal compares the published
+    n_strategy record against. Fail-closed if any expected fit is not terminal, any
+    checkpoint is missing, or any scoring non-finite.
+    """
+    study_root = Path(study_root).resolve()
+    run_dir = Path(run_dir).resolve()
+    cache_root = Path(cache_root).resolve()
+    frozen = load_frozen_config(study_root)
+    effective = load_effective_formal_config(study_root)
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id=module_id)
+    fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+    predecessor_resolved_route = _a_e3_resolved_baseline_route_from_manifest(run_dir)
+    output_form_winner_candidate = _output_form_winner_candidate_from_trace(
+        run_dir=run_dir, run_id=run_id)
+    winner, evidence_by_candidate, rule_result = _resolve_a_e3_n_strategy(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, frozen=frozen,
+        effective=effective, matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+        fit_states=fit_states, output_form_winner_candidate=output_form_winner_candidate,
+        predecessor_resolved_route=predecessor_resolved_route,
+        module_id=module_id, run_id=run_id, score_n_strategy_cell=None,
+    )
+    return {
+        "module_id": module_id, "run_id": run_id,
+        "decision_id": _A_E3_N_STRATEGY_DECISION_ID,
+        "winner": winner,
+        "evidence_by_candidate": evidence_by_candidate,
+        "rule_result": dict(rule_result),
+    }
+
+
 def resolve_a_e3_staged_selection(
     *, study_root: Path, run_dir: Path, cache_root: Path,
     module_id: str = "A-E3", run_id: str,
     score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
     predecessor: Mapping[str, Any] | PredecessorTrace | None = None,
+    score_n_strategy_cell: Callable[[str, int, int, str], FitEvaluation] | None = None,
 ) -> dict[str, Any]:
-    """Production staged A-E3 resolver (D8/C4).
+    """Production staged A-E3 resolver (D8/C4 + R3-B n_strategy).
 
     Derives every frozen A-E3 placeholder from the validated module selection trace +
     the A-E1 predecessor binding through an immutable, hash-bound, append-only staged
@@ -2029,7 +2435,7 @@ def resolve_a_e3_staged_selection(
     authority (``run_dir``) + frozen matrix; every placeholder is DERIVED from validated
     evidence, never passed.
 
-    The 9-record canonical chain (section E) binds:
+    The 10-record canonical chain binds:
       1. ``loss``              -> ``selected:A-E3_loss`` (loss-screen winner from the trace).
       2. ``stage1:F2_or_V``    -> F2_or_V ``selected_top_1..4`` (architecture ranking).
       3. ``stage2:F2_or_V``    -> ``selected:A-E3_{architecture,optimizer}`` (stage2 winner).
@@ -2040,8 +2446,14 @@ def resolve_a_e3_staged_selection(
       8. ``baseline_route``    -> ``selected:F2_or_V`` = predecessor's resolved baseline route
          (``V`` for the r5 design). Its input cryptographically binds the A-E1 predecessor's
          ``selection_staged_ledger_sha256`` so A-E3 cannot rest on a swapped predecessor ledger.
-      9. ``final_aliases``     -> every published A-E3 alias (loss + F2_or_V arch/opt + S arch/opt
-         + baseline + F2_or_V route).
+      9. ``n_strategy``        -> ``selected:A-E3_n_strategy`` in {fixed, shared}. R3-B: a
+         dedicated decision (OUTSIDE the matrix ``build_decision_specs`` path) over the fixed
+         cohort (output_form winner checkpoints, 5 core n x 10 formal seeds) vs the shared
+         cohort (shared_winner_retrain checkpoints, 10 x 5 core-n validation subsets), under
+         the frozen ``fixed_vs_shared_equal_weight`` rule (core-n equal-weight aggregate).
+      10. ``final_aliases``    -> the concrete baseline tuple consumed by A-E2 (route / loss /
+         architecture / optimizer / output_form) chosen by the n_strategy winner, plus
+         ``selected:A-E3_n_strategy`` and the flat aliases for back-compat.
 
     Every record's ``selection_trace_sha256`` binds the A-E3 final selection trace; the chain
     threads ``previous_record_sha256`` from ``_ZERO_HASH``. The ledger is append-only and
@@ -2049,18 +2461,18 @@ def resolve_a_e3_staged_selection(
     whose resolution matches, and fails closed on a conflicting duplicate. No real fit is
     launched; no test role is opened (``test_access_count`` stays 0). ``score_fit`` /
     ``predecessor`` are accepted for API symmetry; the authority is the validated final trace +
-    the run manifest's predecessor section (bound at materialize time).
+    the run manifest's predecessor section (bound at materialize time). ``score_n_strategy_cell``
+    (tests) injects synthetic per-cell n_strategy evaluations.
     """
     study_root = Path(study_root).resolve()
     run_dir = Path(run_dir).resolve()
     cache_root = Path(cache_root).resolve()
-    _ = cache_root  # authority comes from the validated trace + manifest; cache is unused
     if module_id != "A-E3":
         raise NotImplementedError(
             f"staged resolution of module {module_id!r} is not implemented; only A-E3"
         )
     pending_all = ["loss", "stage1", "stage2", "output_form",
-                   "shared_winner_retrain", "baseline_route", "final_aliases"]
+                   "shared_winner_retrain", "baseline_route", "n_strategy", "final_aliases"]
     if not (run_dir / "selection_trace.jsonl").exists():
         return {
             "module_id": module_id, "run_id": run_id,
@@ -2070,7 +2482,6 @@ def resolve_a_e3_staged_selection(
             "record_sha256": {}, "pending": pending_all,
         }
     frozen = load_frozen_config(study_root)
-    _ = frozen  # matrix-derived facts live in the validated trace; frozen is unused here
     effective = load_effective_formal_config(study_root)
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     code_commit = str(manifest["code_commit"])
@@ -2245,24 +2656,101 @@ def resolve_a_e3_staged_selection(
     }
     baseline_record = _publish("baseline_route", None, baseline_input, baseline_resolution)
 
-    # --- (9) final_aliases -> every published A-E3 alias -----------------------
+    # --- (9) n_strategy -> selected:A-E3_n_strategy ----------------------------
+    # R3-B: dedicated n_strategy decision (fixed vs shared). Constructed OUTSIDE the matrix
+    # build_decision_specs path (no fit_kind -> n_strategy mapping; reproducer #2 stays
+    # negative). Two cohorts share the 5 core n x 10 formal seeds support grid:
+    #   * fixed  = output_form winner candidate's 50 checkpoints, scored on their fixed-n
+    #     validation cells (re-uses the single-source _score_fit_from_checkpoint path).
+    #   * shared = 10 shared_winner_retrain checkpoints x 5 core-n validation subsets
+    #     (each shared DeepSets checkpoint scored on each core-n slice of the shared_n
+    #     validation batch where batch.n == core_n).
+    # Aggregated under the frozen fixed_vs_shared_equal_weight rule (core-n equal-weight
+    # mean failure-penalized L_param). Failed fits carry the penalty + all-illegal records
+    # (R3#6: never skipped). The winner is COMPUTED by the rule, never supplied; the input
+    # binds both cohorts' supporting_evidence_sha256 + the rule_result + the prerequisite
+    # record SHAs so pre-unseal can re-derive the winner independently.
+    matrix_by_fit = _authoritative_matrix_by_fit(study_root)
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    plan_by_fit = _validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id=module_id)
+    fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+    n_strategy_winner, n_strategy_evidence, n_strategy_rule_result = _resolve_a_e3_n_strategy(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, frozen=frozen,
+        effective=effective, matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+        fit_states=fit_states,
+        output_form_winner_candidate=baseline_alias,
+        predecessor_resolved_route=predecessor_resolved_route,
+        module_id=module_id, run_id=run_id, score_n_strategy_cell=score_n_strategy_cell,
+    )
+    n_strategy_resolution = {"selected:A-E3_n_strategy": n_strategy_winner}
+    n_strategy_input = {
+        "decision_id": _A_E3_N_STRATEGY_DECISION_ID,
+        "selection_rule": SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,
+        "candidate_supporting_evidence_sha256": {
+            candidate_id: n_strategy_evidence[candidate_id]["supporting_evidence_sha256"]
+            for candidate_id in _A_E3_N_STRATEGY_CANDIDATES
+        },
+        "candidate_aggregate_scores": {
+            candidate_id: float(n_strategy_evidence[candidate_id]["aggregate_score"])
+            for candidate_id in _A_E3_N_STRATEGY_CANDIDATES
+        },
+        "rule_result": dict(n_strategy_rule_result),
+        "output_form_record_sha256": output_form_record["record_sha256"],
+        "baseline_route_record_sha256": baseline_record["record_sha256"],
+        "shared_winner_retrain_record_sha256": stage_record_shas[f"shared_winner_retrain:{_A_E3_S_TOKEN}"],
+        "fixed_cohort_support_count": int(n_strategy_evidence[_A_E3_N_STRATEGY_FIXED]["support_count"]),
+        "shared_cohort_support_count": int(n_strategy_evidence[_A_E3_N_STRATEGY_SHARED]["support_count"]),
+    }
+    n_strategy_record = _publish("n_strategy", None, n_strategy_input, n_strategy_resolution)
+
+    # --- (10) final_aliases -> concrete baseline tuple + n_strategy ------------
+    # R3-B: final_aliases carries a CONCRETE baseline tuple directly consumable by A-E2
+    # (route / loss / architecture / optimizer / output_form), chosen by the n_strategy
+    # winner. The original token-namespaced aliases (F2_or_V arch/opt + S arch/opt) are
+    # preserved unchanged so downstream code reading them is unaffected. The concrete tuple
+    # under ``selected:A-E3_baseline`` is the authority A-E2 consumes.
     arch_key_fv, opt_key_fv = _a_e3_stage2_winner_keys(_A_E3_FV_TOKEN)
     fv_winner = stage2_by_token[_A_E3_FV_TOKEN]
+    if n_strategy_winner == _A_E3_N_STRATEGY_FIXED:
+        baseline_tuple = {
+            "route": predecessor_resolved_route,
+            "loss": loss_id,
+            "architecture": fv_winner[arch_key_fv],
+            "optimizer": fv_winner[opt_key_fv],
+            "output_form": baseline_alias,
+        }
+    elif n_strategy_winner == _A_E3_N_STRATEGY_SHARED:
+        baseline_tuple = {
+            "route": _A_E3_S_TOKEN,
+            "loss": loss_id,
+            "architecture": s_winner[arch_key_s],
+            "optimizer": s_winner[opt_key_s],
+            "output_form": "N/A",  # DeepSets has no joint/independent output_form
+        }
+    else:  # pragma: no cover - defensive (_resolve_a_e3_n_strategy returns only fixed/shared)
+        raise ValueError(f"n_strategy winner {n_strategy_winner!r} is not fixed/shared")
     final_aliases = {
+        "selected:A-E3_n_strategy": n_strategy_winner,
+        "selected:A-E3_baseline": baseline_tuple,
         "selected:A-E3_loss": loss_id,
         arch_key_fv: fv_winner[arch_key_fv],
         opt_key_fv: fv_winner[opt_key_fv],
         arch_key_s: s_winner[arch_key_s],
         opt_key_s: s_winner[opt_key_s],
-        "selected:A-E3_baseline": baseline_alias,
         "selected:F2_or_V": predecessor_resolved_route,
     }
     final_input = {
-        "baseline_record_sha256": baseline_record["record_sha256"],
+        "n_strategy_record_sha256": n_strategy_record["record_sha256"],
+        "baseline_route_record_sha256": baseline_record["record_sha256"],
         "loss_record_sha256": loss_record["record_sha256"],
         "stage2_F2_or_V_record_sha256": stage_record_shas[f"stage2:{_A_E3_FV_TOKEN}"],
         "stage2_S_record_sha256": stage_record_shas[f"stage2:{_A_E3_S_TOKEN}"],
         "output_form_record_sha256": output_form_record["record_sha256"],
+        "n_strategy_winner": n_strategy_winner,
+        "baseline_tuple": dict(baseline_tuple),
     }
     _publish("final_aliases", None, final_input, final_aliases)
 
@@ -2274,7 +2762,9 @@ def resolve_a_e3_staged_selection(
         "stage2_by_token": stage2_by_token,
         "selected_F2_or_V": predecessor_resolved_route,
         "selected_baseline": baseline_alias,
+        "selected_n_strategy": n_strategy_winner,
         "final_aliases": final_aliases,
+        "n_strategy_evidence": n_strategy_evidence,
         "record_sha256": record_shas,
         "pending": [],
     }
@@ -2887,6 +3377,19 @@ _A_E3_FV_SEARCH_N = 10                 # F2_or_V search_stage1/stage2 use core n
 _A_E3_S_N_PART = "shared"              # S route uses shared-n DeepSets
 _A_E3_LOSS_DECISION_ID = f"loss:A-E3:{_A_E3_BASELINE_PLACEHOLDER}:n{_A_E3_FV_SEARCH_N}"
 _A_E3_OUTPUT_FORM_DECISION_ID = f"output_form:A-E3:{_A_E3_BASELINE_PLACEHOLDER}"
+
+# R3-B: dedicated n_strategy decision (fixed vs shared). This decision_id is NOT derived
+# from the frozen matrix ``build_decision_specs`` path (the matrix's ``fit_kind`` axis does
+# not map ``shared_winner_retrain`` to ``n_strategy`` -- reproducer #2 stays negative). It
+# is a dedicated evidence structure constructed from the output-form winner checkpoints
+# (fixed cohort) and the shared_winner_retrain checkpoints (shared cohort), aggregated under
+# the frozen ``fixed_vs_shared_equal_weight`` rule. The two candidates share the SAME 5 core
+# n x 10 formal seeds support grid (50 cells each), so the equal-weight-per-n aggregation
+# pairs them cell-for-cell.
+_A_E3_N_STRATEGY_DECISION_ID = "n_strategy:A-E3:F2_or_V_vs_S"
+_A_E3_N_STRATEGY_FIXED = "fixed"
+_A_E3_N_STRATEGY_SHARED = "shared"
+_A_E3_N_STRATEGY_CANDIDATES = (_A_E3_N_STRATEGY_FIXED, _A_E3_N_STRATEGY_SHARED)
 
 
 def _a_e3_route_for_token(token: str) -> str:
@@ -3741,6 +4244,7 @@ def run_a_e3_staged(
     max_fits: int | None = None,
     fit_runner: Callable[..., Mapping[str, Any]] | None = None,
     score_fit: Callable[[str, Mapping[str, Any]], FitEvaluation] | None = None,
+    score_n_strategy_cell: Callable[[str, int, int, str], FitEvaluation] | None = None,
     predecessor: Mapping[str, Any] | PredecessorTrace | None,
 ) -> dict[str, Any]:
     """Drive the real frozen A-E3 module through its staged execution (deadlock-free, crash-recoverable).
@@ -3765,7 +4269,7 @@ def run_a_e3_staged(
     stage's fits are terminal (plan ordering guarantees it). On restart, already-terminal fits
     are not re-trained and staged state is recovered from the receipts on disk -- the in-memory
     token dicts are only a within-pass cache. After every fit is terminal, the final module
-    selection trace + 9-record staged ledger are ensured (idempotent on restart).
+    selection trace + 10-record staged ledger are ensured (idempotent on restart).
 
     Reuses the scheduler throughout (``materialize_run`` / ``claim_next_fit`` /
     ``record_fit_succeeded`` / ``_rebuild_authority``) and the C2/C3 A-E3 helpers
@@ -3874,7 +4378,7 @@ def run_a_e3_staged(
                 consecutive_failures, result["failure_code"], result["message"],
                 label="staged A-E3")
 
-    # The final module selection + 9-record staged ledger require EVERY fit terminal. A partial
+    # The final module selection + 10-record staged ledger require EVERY fit terminal. A partial
     # run (max_fits capped, or a smoke) skips them and returns the partial execution result; the
     # full run ensures the final trace + staged ledger (idempotent on restart).
     final_state = _rebuild_authority(run_dir, cache_root)[2]
@@ -3895,7 +4399,8 @@ def run_a_e3_staged(
             score_fit=score_fit)
         result["staged"] = resolve_a_e3_staged_selection(
             study_root=study_root, run_dir=run_dir, cache_root=cache_root, module_id="A-E3",
-            run_id=run_id, score_fit=score_fit, predecessor=predecessor)
+            run_id=run_id, score_fit=score_fit, predecessor=predecessor,
+            score_n_strategy_cell=score_n_strategy_cell)
     return result
 
 
@@ -3909,6 +4414,7 @@ __all__ = [
     "build_module_pre_unseal_bundle",
     "build_module_selection",
     "execute_claimed_fit",
+    "rebuild_a_e3_n_strategy_provenance",
     "rebuild_selection_point_provenance",
     "reconstruct_a_e1_specs",
     "reconstruct_a_e3_specs",
