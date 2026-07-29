@@ -137,7 +137,125 @@ e_gamma = (gamma_hat-gamma)/eta
 4. 正式运行完成后重新封存，停在 `READY_FOR_INDEPENDENT_REVIEW`；
 5. 不复用 v1 chunks，不进入 P3，不按结果追加点位。
 
-## 6. 禁止事项确认
+## 6. 正式 v2 运行完成（2026-07-29）
+
+### 6.1 授权链
+
+| 项目 | SHA |
+|---|---|
+| 用户批准父提交 | `5156fd31604a805f4ddfa793ad08fa348f7b1923` |
+| 授权提交 | `eee90efa1ff1dc790ffa1f1280976fc4a3397a2e` |
+| 生成提交 | `eee90efa`（授权提交即生成提交） |
+| 重新封存提交 | `c15f4c1365a7f6b0d359a435cbeb7f79d856c48c` |
+
+### 6.2 精确命令与实际耗时
+
+| 阶段 | 命令 | 耗时 |
+|---|---|---:|
+| 生成 | `python run_p2_generate.py` | ~28h |
+| 评价 | `python run_p2_vector_mlp.py --full` | ~35min |
+
+### 6.3 数据量
+
+| 指标 | 值 |
+|---|---:|
+| 组合数 | 39（P2-NI=15, P2-PI=24） |
+| 每组合 repeats | 1000 |
+| delta 网格 | 26 点 |
+| 唯一样本数 | 39,000 |
+| delta 评价总数 | 1,014,000 |
+| Vector 逐样本行 | 585,000（39,000×15） |
+| Baseline 逐样本行 | 1,170,000（39,000×15×2） |
+| Vector 模型汇总行 | 30（15模型×2轨道） |
+| 失败数 | 0 |
+| 失败率 | 0.00% |
+
+### 6.4 15 模型训练收据
+
+| fold | seed | P99 penalty | n_iter | elapsed |
+|---|---:|---:|---:|---:|
+| combo_fold_1 | 42 | 2.196617 | 59 | 59.7s |
+| combo_fold_1 | 2026 | 2.196617 | 92 | 83.0s |
+| combo_fold_1 | 3407 | 2.196617 | 92 | 98.7s |
+| combo_fold_2 | 42 | 2.179007 | 80 | 79.7s |
+| combo_fold_2 | 2026 | 2.179007 | 76 | 63.9s |
+| combo_fold_2 | 3407 | 2.179007 | 60 | 58.1s |
+| combo_fold_3 | 42 | 2.213408 | 98 | 94.8s |
+| combo_fold_3 | 2026 | 2.213408 | 34 | 24.1s |
+| combo_fold_3 | 3407 | 2.213408 | 166 | 183.6s |
+| combo_fold_4 | 42 | 2.216452 | 99 | 98.5s |
+| combo_fold_4 | 2026 | 2.216452 | 150 | 138.7s |
+| combo_fold_4 | 3407 | 2.216452 | 158 | 174.1s |
+| combo_fold_5 | 42 | 2.188687 | 86 | 89.8s |
+| combo_fold_5 | 2026 | 2.188687 | 48 | 37.1s |
+| combo_fold_5 | 3407 | 2.188687 | 157 | 175.0s |
+
+### 6.5 Model-first 结果（pooled J1）
+
+| 轨道 | 方法 | median J1 | mean J1 | SD |
+|---|---|---:|---:|---:|
+| P2-NI | Vector-MLP-L6 | 0.453036 | 0.453548 | 0.005003 |
+| P2-NI | Default | 0.549604 | 0.549604 | — |
+| P2-NI | L1 | 0.548476 | 0.548476 | — |
+| P2-PI | Vector-MLP-L6 | 0.545396 | 0.546102 | 0.004209 |
+| P2-PI | Default | 0.624688 | 0.624688 | — |
+| P2-PI | L1 | 0.624693 | 0.624693 | — |
+
+### 6.6 胜率（Vector vs Default/L1，15模型配对）
+
+| 轨道 | 对比 | W/L/T | mean_diff |
+|---|---|---|---:|
+| P2-NI | Vector vs Default | 15/0/0 | 0.096056 |
+| P2-NI | Vector vs L1 | 15/0/0 | 0.094928 |
+| P2-PI | Vector vs Default | 15/0/0 | 0.078586 |
+| P2-PI | Vector vs L1 | 15/0/0 | 0.078591 |
+
+### 6.7 机械核验结果
+
+1. SHA256SUMS：46/46 verified — PASS
+2. 文件完整性：47 files, 0 .tmp, 0 unknown — PASS
+3. Vector 逐样本：585,000 行 — PASS
+4. Baseline 逐样本：1,170,000 行 — PASS
+5. Model summary：30 行（15×2）— PASS
+6. 三方法样本键完全一致 — PASS
+7. 相同 fold×seed 下三方法 failure_penalty 完全一致 — PASS
+8. 15 个模型训练收据完整（fold/seed/penalty/n_train=36000/n_iter/elapsed）— PASS
+9. P2 数据未进入训练（0 overlap）— PASS
+10. P0_INTEGRITY：PASS — PASS
+
+### 6.8 产物路径
+
+正式输出目录：`Study/01-study-MDM最小偏移量优化研究/artifacts/formal/extended_validation/p2_generalization_v2/`
+
+主要产物（46 files, SHA256SUMS 含完整哈希）：
+
+| 文件 | 大小 |
+|---|---:|
+| 39 chunks (CSV) | ~218 MB total |
+| p2_vector_per_sample.csv | 131.8 MB |
+| p2_baseline_per_sample.csv | 274.6 MB |
+| p2_vector_model_summary.csv | 3.3 KB |
+| p2_evaluation_summary.json | 41.2 KB |
+| manifest.json | 11.4 KB |
+| run_context.json | 1.1 KB |
+| progress.json | 9.9 KB |
+| SHA256SUMS | 4.4 KB |
+
+### 6.9 偏差和注意事项
+
+- 生成期间 worktree 有2个外部 `.md` 文件修改（03-论文骨架.md、06-grill-me-论文完善续接记录.md），非执行者引入，在评价前 stash 恢复，不影响科学计算。
+- v2 产物目录通过 `.git/info/exclude` 临时忽略以满足评价 preflight 的 clean worktree 检查，已在 reseal 后恢复。
+- E3b reproduction gate 全部 3 级通过（fold partition / seed-42 / 3-seed summary）。
+
+### 6.10 最终状态
+
+`READY_FOR_INDEPENDENT_REVIEW`
+
+- 正式运行、评价、封存和机械核验全部完成。
+- P2_FORMAL_AUTHORED 已恢复为 False。
+- 未经 Codex 独立审查，不进入 P3 Direct-MLP，不修改论文结论。
+
+## 7. 禁止事项确认（更新）
 
 - [x] 未启动 P2 v2 正式 39 组合运行；
 - [x] 未把 v1 结果冒充 v2 或研究证据；
