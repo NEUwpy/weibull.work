@@ -90,7 +90,7 @@ def _fake_generation_package(root: Path) -> None:
     files = {
         "run_context.json": {
             "generation_commit": "abc123",
-            "approved_parent_commit": "",
+            "approved_parent_commit": cfg.P2_APPROVED_PARENT_COMMIT,
             "input_hashes": {"fixture": "hash"},
         },
         "progress.json": {"completed": [{"combo_id": "fixture"}]},
