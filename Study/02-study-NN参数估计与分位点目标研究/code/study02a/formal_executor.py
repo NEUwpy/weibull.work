@@ -2397,6 +2397,7 @@ def _resolve_a_e3_n_strategy(
 
 def rebuild_a_e3_n_strategy_provenance(
     *, study_root: Path, run_dir: Path, cache_root: Path, module_id: str = "A-E3", run_id: str,
+    score_n_strategy_cell: Callable[[str, int, int, str], FitEvaluation] | None = None,
 ) -> dict[str, Any]:
     """R3-B pre-unseal: independently rebuild the n_strategy winner from bound checkpoints.
 
@@ -2411,6 +2412,11 @@ def rebuild_a_e3_n_strategy_provenance(
     returned map is the independently reconstructed truth pre-unseal compares the published
     n_strategy record against. Fail-closed if any expected fit is not terminal, any
     checkpoint is missing, or any scoring non-finite.
+
+    ``score_n_strategy_cell`` (tests) injects synthetic per-cell evaluations without
+    checkpoint scoring; when it is supplied the scheduler-authority rebuild is skipped
+    (fit_states are unused under injection). Production (``None``) scores from bound
+    checkpoints via the full ``_rebuild_authority`` path.
     """
     study_root = Path(study_root).resolve()
     run_dir = Path(run_dir).resolve()
@@ -2423,7 +2429,13 @@ def rebuild_a_e3_n_strategy_provenance(
         if line.strip()]
     plan_by_fit = _validate_plan_against_matrix(
         plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id=module_id)
-    fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+    if score_n_strategy_cell is None:
+        fit_states = _rebuild_authority(run_dir, cache_root)[2]["fit_states"]
+    else:
+        # Under per-cell injection the scheduler fit_states are never consulted (each
+        # evaluation comes from the injection); skip the authority rebuild so tests do not
+        # require a sealed scheduler fixture. Production never takes this branch.
+        fit_states = {}
     predecessor_resolved_route = _a_e3_resolved_baseline_route_from_manifest(run_dir)
     output_form_winner_candidate = _output_form_winner_candidate_from_trace(
         run_dir=run_dir, run_id=run_id)
@@ -2432,7 +2444,7 @@ def rebuild_a_e3_n_strategy_provenance(
         effective=effective, matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
         fit_states=fit_states, output_form_winner_candidate=output_form_winner_candidate,
         predecessor_resolved_route=predecessor_resolved_route,
-        module_id=module_id, run_id=run_id, score_n_strategy_cell=None,
+        module_id=module_id, run_id=run_id, score_n_strategy_cell=score_n_strategy_cell,
     )
     return {
         "module_id": module_id, "run_id": run_id,
