@@ -2,7 +2,7 @@
 
 > 本目录是面向发表论文的整理工作区。它不是 `docs/research/01`、`02`、`03`、`04` 的简单复制，也不是汇报 PPT 材料的存放处。
 >
-> **当前状态（2026-07-28）**：既有正式实验与技术证据包保持封存。扩展验证 P0–P1 已获 Codex APPROVE（`be8d7b81`）。P2 v1 因使用 Python `hash()` 派生样本 seed，已标记为 `INVALID_NONDETERMINISTIC_SEED`，不得作为证据；其未跟踪 chunks 已隔离到仓库外。P2 v2 已完成确定性生成、Default/L1 评价和复用 E4d 生产训练路径的 Vector-MLP 评价实现，真实生产路径 smoke 通过，正式 39 组合重跑仍封存并等待精确提交授权。权威计划见 `07-剩余实验目标与规划.md`，协议见 `02-实验协议.md`；P2 独立批准前不推进 Direct-MLP，也不冻结论文结论。
+> **当前状态（2026-07-29）**：既有正式实验与技术证据包保持封存。扩展验证 P0–P1 已获 Codex APPROVE（`be8d7b81`）。P2 v1 因使用 Python `hash()` 派生样本 seed，已标记为 `INVALID_NONDETERMINISTIC_SEED`，不得作为证据；其未跟踪 chunks 已隔离到仓库外。P2 v2 已于 2026-07-29 完成正式 39 组合生成与评价（授权提交 `eee90efa`，reseal `c15f4c13`），Vector-MLP 在 P2-NI/P2-PI 两轨道 15 模型全胜 Default/L1，0 failures，SHA256SUMS 46/46、P0_INTEGRITY=PASS，当前 `READY_FOR_INDEPENDENT_REVIEW`。权威计划见 `07-剩余实验目标与规划.md`，协议见 `02-实验协议.md`；P2 独立批准前不推进 Direct-MLP，也不冻结论文结论。
 
 ## 这个目录要解决什么
 
