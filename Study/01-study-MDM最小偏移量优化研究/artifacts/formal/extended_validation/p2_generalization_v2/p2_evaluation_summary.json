@@ -1,0 +1,2027 @@
+{
+  "production_contract": {
+    "feature_columns": [
+      "x_min",
+      "x_max",
+      "range",
+      "Q1",
+      "Med",
+      "Q3",
+      "IQR",
+      "x_bar",
+      "s",
+      "n",
+      "CV",
+      "g1",
+      "g2"
+    ],
+    "zscore_columns": [
+      "x_min",
+      "x_max",
+      "range",
+      "Q1",
+      "Med",
+      "Q3",
+      "IQR",
+      "x_bar",
+      "s"
+    ],
+    "raw_columns": [
+      "n",
+      "CV",
+      "g1",
+      "g2"
+    ],
+    "hidden_layers": [
+      256,
+      128,
+      64
+    ],
+    "max_iter": 300,
+    "batch_size": 256,
+    "alpha": 0.0001,
+    "learning_rate": 0.001,
+    "validation_fraction": 0.15,
+    "n_iter_no_change": 20,
+    "seeds": [
+      42,
+      2026,
+      3407
+    ],
+    "folds": [
+      {
+        "fold_name": "combo_fold_1",
+        "train_combos": [
+          [
+            1.5,
+            0.1,
+            10
+          ],
+          [
+            1.5,
+            0.1,
+            20
+          ],
+          [
+            1.5,
+            0.5,
+            7
+          ],
+          [
+            1.5,
+            0.5,
+            10
+          ],
+          [
+            1.5,
+            1.0,
+            7
+          ],
+          [
+            1.5,
+            1.0,
+            10
+          ],
+          [
+            1.5,
+            1.0,
+            20
+          ],
+          [
+            2.0,
+            0.1,
+            7
+          ],
+          [
+            2.0,
+            0.1,
+            20
+          ],
+          [
+            2.0,
+            0.5,
+            7
+          ],
+          [
+            2.0,
+            0.5,
+            10
+          ],
+          [
+            2.0,
+            0.5,
+            20
+          ],
+          [
+            2.0,
+            1.0,
+            10
+          ],
+          [
+            2.0,
+            1.0,
+            20
+          ],
+          [
+            2.5,
+            0.1,
+            7
+          ],
+          [
+            2.5,
+            0.1,
+            10
+          ],
+          [
+            2.5,
+            0.5,
+            7
+          ],
+          [
+            2.5,
+            0.5,
+            10
+          ],
+          [
+            2.5,
+            0.5,
+            20
+          ],
+          [
+            2.5,
+            1.0,
+            7
+          ],
+          [
+            2.5,
+            1.0,
+            20
+          ],
+          [
+            4.0,
+            0.1,
+            7
+          ],
+          [
+            4.0,
+            0.1,
+            10
+          ],
+          [
+            4.0,
+            0.1,
+            20
+          ],
+          [
+            4.0,
+            0.5,
+            10
+          ],
+          [
+            4.0,
+            0.5,
+            20
+          ],
+          [
+            4.0,
+            1.0,
+            7
+          ],
+          [
+            4.0,
+            1.0,
+            10
+          ],
+          [
+            5.0,
+            0.1,
+            7
+          ],
+          [
+            5.0,
+            0.1,
+            10
+          ],
+          [
+            5.0,
+            0.1,
+            20
+          ],
+          [
+            5.0,
+            0.5,
+            7
+          ],
+          [
+            5.0,
+            0.5,
+            20
+          ],
+          [
+            5.0,
+            1.0,
+            7
+          ],
+          [
+            5.0,
+            1.0,
+            10
+          ],
+          [
+            5.0,
+            1.0,
+            20
+          ]
+        ],
+        "test_combos": [
+          [
+            1.5,
+            0.1,
+            7
+          ],
+          [
+            1.5,
+            0.5,
+            20
+          ],
+          [
+            2.0,
+            0.1,
+            10
+          ],
+          [
+            2.0,
+            1.0,
+            7
+          ],
+          [
+            2.5,
+            0.1,
+            20
+          ],
+          [
+            2.5,
+            1.0,
+            10
+          ],
+          [
+            4.0,
+            0.5,
+            7
+          ],
+          [
+            4.0,
+            1.0,
+            20
+          ],
+          [
+            5.0,
+            0.5,
+            10
+          ]
+        ]
+      },
+      {
+        "fold_name": "combo_fold_2",
+        "train_combos": [
+          [
+            1.5,
+            0.1,
+            7
+          ],
+          [
+            1.5,
+            0.1,
+            20
+          ],
+          [
+            1.5,
+            0.5,
+            7
+          ],
+          [
+            1.5,
+            0.5,
+            10
+          ],
+          [
+            1.5,
+            0.5,
+            20
+          ],
+          [
+            1.5,
+            1.0,
+            10
+          ],
+          [
+            1.5,
+            1.0,
+            20
+          ],
+          [
+            2.0,
+            0.1,
+            7
+          ],
+          [
+            2.0,
+            0.1,
+            10
+          ],
+          [
+            2.0,
+            0.5,
+            7
+          ],
+          [
+            2.0,
+            0.5,
+            10
+          ],
+          [
+            2.0,
+            0.5,
+            20
+          ],
+          [
+            2.0,
+            1.0,
+            7
+          ],
+          [
+            2.0,
+            1.0,
+            20
+          ],
+          [
+            2.5,
+            0.1,
+            7
+          ],
+          [
+            2.5,
+            0.1,
+            10
+          ],
+          [
+            2.5,
+            0.1,
+            20
+          ],
+          [
+            2.5,
+            0.5,
+            10
+          ],
+          [
+            2.5,
+            0.5,
+            20
+          ],
+          [
+            2.5,
+            1.0,
+            7
+          ],
+          [
+            2.5,
+            1.0,
+            10
+          ],
+          [
+            4.0,
+            0.1,
+            7
+          ],
+          [
+            4.0,
+            0.1,
+            10
+          ],
+          [
+            4.0,
+            0.1,
+            20
+          ],
+          [
+            4.0,
+            0.5,
+            7
+          ],
+          [
+            4.0,
+            0.5,
+            20
+          ],
+          [
+            4.0,
+            1.0,
+            7
+          ],
+          [
+            4.0,
+            1.0,
+            10
+          ],
+          [
+            4.0,
+            1.0,
+            20
+          ],
+          [
+            5.0,
+            0.1,
+            10
+          ],
+          [
+            5.0,
+            0.1,
+            20
+          ],
+          [
+            5.0,
+            0.5,
+            7
+          ],
+          [
+            5.0,
+            0.5,
+            10
+          ],
+          [
+            5.0,
+            1.0,
+            7
+          ],
+          [
+            5.0,
+            1.0,
+            10
+          ],
+          [
+            5.0,
+            1.0,
+            20
+          ]
+        ],
+        "test_combos": [
+          [
+            1.5,
+            0.1,
+            10
+          ],
+          [
+            1.5,
+            1.0,
+            7
+          ],
+          [
+            2.0,
+            0.1,
+            20
+          ],
+          [
+            2.0,
+            1.0,
+            10
+          ],
+          [
+            2.5,
+            0.5,
+            7
+          ],
+          [
+            2.5,
+            1.0,
+            20
+          ],
+          [
+            4.0,
+            0.5,
+            10
+          ],
+          [
+            5.0,
+            0.1,
+            7
+          ],
+          [
+            5.0,
+            0.5,
+            20
+          ]
+        ]
+      },
+      {
+        "fold_name": "combo_fold_3",
+        "train_combos": [
+          [
+            1.5,
+            0.1,
+            7
+          ],
+          [
+            1.5,
+            0.1,
+            10
+          ],
+          [
+            1.5,
+            0.5,
+            7
+          ],
+          [
+            1.5,
+            0.5,
+            10
+          ],
+          [
+            1.5,
+            0.5,
+            20
+          ],
+          [
+            1.5,
+            1.0,
+            7
+          ],
+          [
+            1.5,
+            1.0,
+            20
+          ],
+          [
+            2.0,
+            0.1,
+            7
+          ],
+          [
+            2.0,
+            0.1,
+            10
+          ],
+          [
+            2.0,
+            0.1,
+            20
+          ],
+          [
+            2.0,
+            0.5,
+            10
+          ],
+          [
+            2.0,
+            0.5,
+            20
+          ],
+          [
+            2.0,
+            1.0,
+            7
+          ],
+          [
+            2.0,
+            1.0,
+            10
+          ],
+          [
+            2.5,
+            0.1,
+            7
+          ],
+          [
+            2.5,
+            0.1,
+            10
+          ],
+          [
+            2.5,
+            0.1,
+            20
+          ],
+          [
+            2.5,
+            0.5,
+            7
+          ],
+          [
+            2.5,
+            0.5,
+            20
+          ],
+          [
+            2.5,
+            1.0,
+            7
+          ],
+          [
+            2.5,
+            1.0,
+            10
+          ],
+          [
+            2.5,
+            1.0,
+            20
+          ],
+          [
+            4.0,
+            0.1,
+            10
+          ],
+          [
+            4.0,
+            0.1,
+            20
+          ],
+          [
+            4.0,
+            0.5,
+            7
+          ],
+          [
+            4.0,
+            0.5,
+            10
+          ],
+          [
+            4.0,
+            1.0,
+            7
+          ],
+          [
+            4.0,
+            1.0,
+            10
+          ],
+          [
+            4.0,
+            1.0,
+            20
+          ],
+          [
+            5.0,
+            0.1,
+            7
+          ],
+          [
+            5.0,
+            0.1,
+            20
+          ],
+          [
+            5.0,
+            0.5,
+            7
+          ],
+          [
+            5.0,
+            0.5,
+            10
+          ],
+          [
+            5.0,
+            0.5,
+            20
+          ],
+          [
+            5.0,
+            1.0,
+            10
+          ],
+          [
+            5.0,
+            1.0,
+            20
+          ]
+        ],
+        "test_combos": [
+          [
+            1.5,
+            0.1,
+            20
+          ],
+          [
+            1.5,
+            1.0,
+            10
+          ],
+          [
+            2.0,
+            0.5,
+            7
+          ],
+          [
+            2.0,
+            1.0,
+            20
+          ],
+          [
+            2.5,
+            0.5,
+            10
+          ],
+          [
+            4.0,
+            0.1,
+            7
+          ],
+          [
+            4.0,
+            0.5,
+            20
+          ],
+          [
+            5.0,
+            0.1,
+            10
+          ],
+          [
+            5.0,
+            1.0,
+            7
+          ]
+        ]
+      },
+      {
+        "fold_name": "combo_fold_4",
+        "train_combos": [
+          [
+            1.5,
+            0.1,
+            7
+          ],
+          [
+            1.5,
+            0.1,
+            10
+          ],
+          [
+            1.5,
+            0.1,
+            20
+          ],
+          [
+            1.5,
+            0.5,
+            10
+          ],
+          [
+            1.5,
+            0.5,
+            20
+          ],
+          [
+            1.5,
+            1.0,
+            7
+          ],
+          [
+            1.5,
+            1.0,
+            10
+          ],
+          [
+            2.0,
+            0.1,
+            7
+          ],
+          [
+            2.0,
+            0.1,
+            10
+          ],
+          [
+            2.0,
+            0.1,
+            20
+          ],
+          [
+            2.0,
+            0.5,
+            7
+          ],
+          [
+            2.0,
+            0.5,
+            20
+          ],
+          [
+            2.0,
+            1.0,
+            7
+          ],
+          [
+            2.0,
+            1.0,
+            10
+          ],
+          [
+            2.0,
+            1.0,
+            20
+          ],
+          [
+            2.5,
+            0.1,
+            10
+          ],
+          [
+            2.5,
+            0.1,
+            20
+          ],
+          [
+            2.5,
+            0.5,
+            7
+          ],
+          [
+            2.5,
+            0.5,
+            10
+          ],
+          [
+            2.5,
+            1.0,
+            7
+          ],
+          [
+            2.5,
+            1.0,
+            10
+          ],
+          [
+            2.5,
+            1.0,
+            20
+          ],
+          [
+            4.0,
+            0.1,
+            7
+          ],
+          [
+            4.0,
+            0.1,
+            20
+          ],
+          [
+            4.0,
+            0.5,
+            7
+          ],
+          [
+            4.0,
+            0.5,
+            10
+          ],
+          [
+            4.0,
+            0.5,
+            20
+          ],
+          [
+            4.0,
+            1.0,
+            10
+          ],
+          [
+            4.0,
+            1.0,
+            20
+          ],
+          [
+            5.0,
+            0.1,
+            7
+          ],
+          [
+            5.0,
+            0.1,
+            10
+          ],
+          [
+            5.0,
+            0.5,
+            7
+          ],
+          [
+            5.0,
+            0.5,
+            10
+          ],
+          [
+            5.0,
+            0.5,
+            20
+          ],
+          [
+            5.0,
+            1.0,
+            7
+          ],
+          [
+            5.0,
+            1.0,
+            20
+          ]
+        ],
+        "test_combos": [
+          [
+            1.5,
+            0.5,
+            7
+          ],
+          [
+            1.5,
+            1.0,
+            20
+          ],
+          [
+            2.0,
+            0.5,
+            10
+          ],
+          [
+            2.5,
+            0.1,
+            7
+          ],
+          [
+            2.5,
+            0.5,
+            20
+          ],
+          [
+            4.0,
+            0.1,
+            10
+          ],
+          [
+            4.0,
+            1.0,
+            7
+          ],
+          [
+            5.0,
+            0.1,
+            20
+          ],
+          [
+            5.0,
+            1.0,
+            10
+          ]
+        ]
+      },
+      {
+        "fold_name": "combo_fold_5",
+        "train_combos": [
+          [
+            1.5,
+            0.1,
+            7
+          ],
+          [
+            1.5,
+            0.1,
+            10
+          ],
+          [
+            1.5,
+            0.1,
+            20
+          ],
+          [
+            1.5,
+            0.5,
+            7
+          ],
+          [
+            1.5,
+            0.5,
+            20
+          ],
+          [
+            1.5,
+            1.0,
+            7
+          ],
+          [
+            1.5,
+            1.0,
+            10
+          ],
+          [
+            1.5,
+            1.0,
+            20
+          ],
+          [
+            2.0,
+            0.1,
+            10
+          ],
+          [
+            2.0,
+            0.1,
+            20
+          ],
+          [
+            2.0,
+            0.5,
+            7
+          ],
+          [
+            2.0,
+            0.5,
+            10
+          ],
+          [
+            2.0,
+            1.0,
+            7
+          ],
+          [
+            2.0,
+            1.0,
+            10
+          ],
+          [
+            2.0,
+            1.0,
+            20
+          ],
+          [
+            2.5,
+            0.1,
+            7
+          ],
+          [
+            2.5,
+            0.1,
+            20
+          ],
+          [
+            2.5,
+            0.5,
+            7
+          ],
+          [
+            2.5,
+            0.5,
+            10
+          ],
+          [
+            2.5,
+            0.5,
+            20
+          ],
+          [
+            2.5,
+            1.0,
+            10
+          ],
+          [
+            2.5,
+            1.0,
+            20
+          ],
+          [
+            4.0,
+            0.1,
+            7
+          ],
+          [
+            4.0,
+            0.1,
+            10
+          ],
+          [
+            4.0,
+            0.5,
+            7
+          ],
+          [
+            4.0,
+            0.5,
+            10
+          ],
+          [
+            4.0,
+            0.5,
+            20
+          ],
+          [
+            4.0,
+            1.0,
+            7
+          ],
+          [
+            4.0,
+            1.0,
+            20
+          ],
+          [
+            5.0,
+            0.1,
+            7
+          ],
+          [
+            5.0,
+            0.1,
+            10
+          ],
+          [
+            5.0,
+            0.1,
+            20
+          ],
+          [
+            5.0,
+            0.5,
+            10
+          ],
+          [
+            5.0,
+            0.5,
+            20
+          ],
+          [
+            5.0,
+            1.0,
+            7
+          ],
+          [
+            5.0,
+            1.0,
+            10
+          ]
+        ],
+        "test_combos": [
+          [
+            1.5,
+            0.5,
+            10
+          ],
+          [
+            2.0,
+            0.1,
+            7
+          ],
+          [
+            2.0,
+            0.5,
+            20
+          ],
+          [
+            2.5,
+            0.1,
+            10
+          ],
+          [
+            2.5,
+            1.0,
+            7
+          ],
+          [
+            4.0,
+            0.1,
+            20
+          ],
+          [
+            4.0,
+            1.0,
+            10
+          ],
+          [
+            5.0,
+            0.5,
+            7
+          ],
+          [
+            5.0,
+            1.0,
+            20
+          ]
+        ]
+      }
+    ]
+  },
+  "training_receipts": [
+    {
+      "fold": "combo_fold_1",
+      "seed": 42,
+      "failure_penalty": 2.1966165833640767,
+      "n_train_samples": 36000,
+      "n_iter": 59,
+      "elapsed_s": 59.67992448806763
+    },
+    {
+      "fold": "combo_fold_1",
+      "seed": 2026,
+      "failure_penalty": 2.1966165833640767,
+      "n_train_samples": 36000,
+      "n_iter": 92,
+      "elapsed_s": 83.04355835914612
+    },
+    {
+      "fold": "combo_fold_1",
+      "seed": 3407,
+      "failure_penalty": 2.1966165833640767,
+      "n_train_samples": 36000,
+      "n_iter": 92,
+      "elapsed_s": 98.71936893463135
+    },
+    {
+      "fold": "combo_fold_2",
+      "seed": 42,
+      "failure_penalty": 2.1790071459434843,
+      "n_train_samples": 36000,
+      "n_iter": 80,
+      "elapsed_s": 79.68859887123108
+    },
+    {
+      "fold": "combo_fold_2",
+      "seed": 2026,
+      "failure_penalty": 2.1790071459434843,
+      "n_train_samples": 36000,
+      "n_iter": 76,
+      "elapsed_s": 63.92325496673584
+    },
+    {
+      "fold": "combo_fold_2",
+      "seed": 3407,
+      "failure_penalty": 2.1790071459434843,
+      "n_train_samples": 36000,
+      "n_iter": 60,
+      "elapsed_s": 58.101967573165894
+    },
+    {
+      "fold": "combo_fold_3",
+      "seed": 42,
+      "failure_penalty": 2.2134078791958562,
+      "n_train_samples": 36000,
+      "n_iter": 98,
+      "elapsed_s": 94.84678196907043
+    },
+    {
+      "fold": "combo_fold_3",
+      "seed": 2026,
+      "failure_penalty": 2.2134078791958562,
+      "n_train_samples": 36000,
+      "n_iter": 34,
+      "elapsed_s": 24.074233770370483
+    },
+    {
+      "fold": "combo_fold_3",
+      "seed": 3407,
+      "failure_penalty": 2.2134078791958562,
+      "n_train_samples": 36000,
+      "n_iter": 166,
+      "elapsed_s": 183.5566098690033
+    },
+    {
+      "fold": "combo_fold_4",
+      "seed": 42,
+      "failure_penalty": 2.2164518091978156,
+      "n_train_samples": 36000,
+      "n_iter": 99,
+      "elapsed_s": 98.45230603218079
+    },
+    {
+      "fold": "combo_fold_4",
+      "seed": 2026,
+      "failure_penalty": 2.2164518091978156,
+      "n_train_samples": 36000,
+      "n_iter": 150,
+      "elapsed_s": 138.70099449157715
+    },
+    {
+      "fold": "combo_fold_4",
+      "seed": 3407,
+      "failure_penalty": 2.2164518091978156,
+      "n_train_samples": 36000,
+      "n_iter": 158,
+      "elapsed_s": 174.10048580169678
+    },
+    {
+      "fold": "combo_fold_5",
+      "seed": 42,
+      "failure_penalty": 2.1886868050536483,
+      "n_train_samples": 36000,
+      "n_iter": 86,
+      "elapsed_s": 89.75924873352051
+    },
+    {
+      "fold": "combo_fold_5",
+      "seed": 2026,
+      "failure_penalty": 2.1886868050536483,
+      "n_train_samples": 36000,
+      "n_iter": 48,
+      "elapsed_s": 37.146939754486084
+    },
+    {
+      "fold": "combo_fold_5",
+      "seed": 3407,
+      "failure_penalty": 2.1886868050536483,
+      "n_train_samples": 36000,
+      "n_iter": 157,
+      "elapsed_s": 174.98190569877625
+    }
+  ],
+  "cross_model_distribution": {
+    "P2-NI": {
+      "n_models": 15,
+      "min": 0.445571647102848,
+      "Q1": 0.4500559845694151,
+      "median": 0.4530355117040398,
+      "Q3": 0.45657866110809947,
+      "max": 0.46216197275176557,
+      "mean": 0.45354838707150635,
+      "SD": 0.005002787683585989
+    },
+    "P2-PI": {
+      "n_models": 15,
+      "min": 0.5380128521558194,
+      "Q1": 0.5435498326680339,
+      "median": 0.5453958169938843,
+      "Q3": 0.5486876096218408,
+      "max": 0.5536087552847724,
+      "mean": 0.5461017081992029,
+      "SD": 0.004208736304257708
+    }
+  },
+  "baseline_summary": {
+    "rows": [
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_1",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_1",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_1",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_2",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_2",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_2",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_3",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_3",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_3",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_4",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_4",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_4",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_5",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_5",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "Default",
+        "fold": "combo_fold_5",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5496042384242688,
+        "complete_case_J1": 0.5496042384242688
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_1",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_1",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_1",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_2",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_2",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_2",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_3",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_3",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_3",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_4",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_4",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_4",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_5",
+        "seed": 42,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_5",
+        "seed": 2026,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-NI",
+        "model": "L1",
+        "fold": "combo_fold_5",
+        "seed": 3407,
+        "n_samples": 15000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.5484764139335143,
+        "complete_case_J1": 0.5484764139335143
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_1",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_1",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_1",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_2",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_2",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_2",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_3",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_3",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_3",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_4",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_4",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_4",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_5",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_5",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "Default",
+        "fold": "combo_fold_5",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246877684166015,
+        "complete_case_J1": 0.6246877684166015
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_1",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_1",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_1",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_2",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_2",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_2",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_3",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_3",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_3",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_4",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_4",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_4",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_5",
+        "seed": 42,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_5",
+        "seed": 2026,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      },
+      {
+        "track": "P2-PI",
+        "model": "L1",
+        "fold": "combo_fold_5",
+        "seed": 3407,
+        "n_samples": 24000,
+        "n_failed": 0,
+        "failure_rate": 0.0,
+        "pooled_J1": 0.6246925509887559,
+        "complete_case_J1": 0.6246925509887559
+      }
+    ]
+  },
+  "final_seal": {
+    "generation_commit": "eee90efa1ff1dc790ffa1f1280976fc4a3397a2e",
+    "approved_parent_commit": "5156fd31604a805f4ddfa793ad08fa348f7b1923",
+    "files_excluding_SHA256SUMS": 46
+  }
+}
