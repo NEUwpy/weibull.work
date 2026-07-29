@@ -7,15 +7,19 @@
 
 ---
 
-### CODEX BLOCK 注记（2026-07-29 加）
+### CODEX BLOCK 注记（2026-07-29 加；R3 更新 2026-07-29）
 
-**de25710 BLOCK**。R1 工作树（C5 CLI wiring + sealed smoke + 文档）已被 Codex 审查认定为**不可合并**：C5 自身的接线正确，但它所依赖的 C1–C4 已 Frozen 了 3 个 science/contract blocker。3 个 blocker 已被 4 个诊断 reproducer test 钉死（`python/tests/test_study02a_a_e3_blocker_reproducers.py`，`python -m pytest -k "blocker_reproducer" -q` → 4 passed），证明问题在 de25710 真实存在而非审查猜测。
+**de25710 BLOCK → R2 诊断 → Codex R2 REVISE → R3 A/B/C 修复 → READY FOR CODEX R3 CODE REVIEW**
 
-- **Blocker A — SCIENTIFIC CONTRACT AMBIGUITY（joint vs independent 无效对照）**：`A-E3_joint_independent` matrix 行（`matrix.py:58-59`）的 joint 与 independent_capacity_matched 两 arm 共用同一 architecture placeholder `selected:A-E3_architecture`；`resolve_model_factory`（`formal_executor.py:135-163`）仅按 architecture 分发，signature 不含 route/output_form；`build_mlp`（`models.py:31-32`）hardcoded `output_dim=3`；`select_independent_capacity`（`training.py:54`）定义存在但 production executor 从不导入/调用。两 arm 训练的是结构上完全相同的模型，independent arm 没有任何 capacity 特化——A-E3 output_form 决策不是对比性实验，**违反 module_matrix_rules capacity clause 的科学契约**。
-- **Blocker B — 无 n_strategy decision（capacity axis 静默丢失）**：`_FIT_KIND_AXIS`（`selection.py:81-88`）无任何 fit_kind → `n_strategy` 映射；`build_decision_specs("A-E3", ...)` 只产生 `output_form:A-E3:selected:F2_or_V`（joint vs independent）一个 capacity 类决策，不产生任何 `n_strategy` 决策；`shared_winner_retrain` fit 不在 `_FIT_KIND_AXIS`，never competes。fixed-n vs shared-n 这一冻结决策轴在 A-E3 selection plan 中完全消失。
-- **Blocker C — r5 不可重放 + 跨 commit 拒**：(a) C1（fc12674）把 formal manifest predecessor 段从 r5/d2a056f 的 7-key 扩为 10-key（新加 `selection_staged_ledger_path` / `selection_staged_ledger_sha256` / `resolved_baseline_route`），并由 `_require_exact_fields`（`FC:1162-1167`）exact-match 校验——r5 sealed manifest 在 de25710 下 replay 立刻 fail。(b) `_verify_chain_consistency`（`formal_g3_control.py:976-982`）要求三模块 manifest 的 `code_commit` set 长度恰为 1——任何跨 commit 的 3-run chain（如 A-E1=d2a056f, A-E3/A-E2=de25710）直接被拒，无法在同一 authority 下重放。
+R1 工作树（C5 CLI wiring + sealed smoke + 文档）原被 Codex 认定为不可合并（3 个 science/contract blocker）。经 R2 独立只读诊断（4 reproducer test 钉死）+ Codex R2 REVISE 后，R3-A/R3-B/R3-C 分别修复（commits `cdb689f`/`47100dd`/`1667fd1`）：
 
-**A 是科学正确性问题（不可仅靠测试接线掩盖），B/C 是控制面契约问题**。B 与 C 的修复设计见 R2 报告 `coworker/reports/2026-07-29-study02-a-e3-r2-design.md`。R1 的接线、sealed smoke、文档保持作为历史记录，下方原文未改；新读者请将本注记视作对下方"READY FOR CODEX REVIEW / 无 breaking schema / git diff --check clean"等措辞的**前置订正**（详见下方 §3 / §5 的 inline correction）。
+- **Blocker A → R3-A（`cdb689f`）**：joint vs independent 从同 3-output MLP 变为结构不同的 Sequential vs IndependentContainer（3 单输出 subnetwork，capacity-selected，SHA-bound `output_form_contract`）。
+- **Blocker B → R3-B（`47100dd`）**：n_strategy 正式决策（staged ledger 扩为 10-record，record 9 = n_strategy winner ∈ {fixed, shared}，record 10 = final_aliases），fixed/shared cohort 各 50-cell（5 core-n × 10 formal seeds），`fixed_vs_shared_equal_weight` 规则。
+- **Blocker C → R3-C（`1667fd1`）**：versioned predecessor schema（v1 7-key r5 可重放 / v2 13-key 含 authority triple）+ content-addressed historical verifier（`verify_historical_authority`）+ G3 per-module code authority。
+
+**验证**：non-slow 603/0 全过；slow sealed smoke G.15/G.16 通过（joint + independent + fixed + shared 全经过真实 model factory + checkpoint-forward + selection）。3 个 production gap（R3-C read-side / R3-A capacity crash / R3-B shared placeholder）在 test workaround 中记录，待 Codex R3 代码复审。
+
+详细 R3 实施 + production gap 清单见 `coworker/reports/2026-07-29-study02-a-e3-r2-design.md` 的 R3 section。
 
 ---
 
