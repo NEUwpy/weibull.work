@@ -241,6 +241,33 @@ _LEGACY_AUTHORITY_CAPSULE_DATA: dict[str, Any] = {
 }
 
 
+def _validate_mask_canonical(lf_blob: bytes, positions: Sequence[int]) -> None:
+    """Reject non-canonical masks before application.
+
+    A canonical mask is: a tuple of non-bool non-negative ints, strictly
+    ascending (no duplicates, no reordering), each within ``[0, len(lf_blob))``,
+    and each pointing at an LF byte (``0x0a``). Duplicates, out-of-range
+    positions, reorders, and non-LF positions are all fail-closed — the
+    final reconstructed SHA check alone is NOT sufficient because some
+    modifications are silently equivalent under ``set(positions)``.
+    """
+    if not isinstance(positions, tuple):
+        raise ValueError("mask positions must be a tuple")
+    prev = -1
+    for pos in positions:
+        if isinstance(pos, bool) or not isinstance(pos, int):
+            raise ValueError("mask position must be a non-bool int")
+        if pos < 0:
+            raise ValueError("mask position must be non-negative")
+        if pos >= len(lf_blob):
+            raise ValueError(f"mask position {pos} is out of range (blob length {len(lf_blob)})")
+        if pos <= prev:
+            raise ValueError(f"mask positions must be strictly ascending; {pos} <= {prev}")
+        if lf_blob[pos] != 0x0a:
+            raise ValueError(f"mask position {pos} does not point to an LF byte (got 0x{lf_blob[pos]:02x})")
+        prev = pos
+
+
 def _apply_lf_to_crlf_mask(lf_blob: bytes, positions: Sequence[int]) -> bytes:
     """Reconstruct mixed-newline bytes from an LF blob and a position mask.
 
@@ -250,7 +277,11 @@ def _apply_lf_to_crlf_mask(lf_blob: bytes, positions: Sequence[int]) -> bytes:
     normalization for files whose original line endings were a mix of CRLF
     and lone LF (and is a no-op on CR-only or pure-LF blobs, which have no
     mixed-newline ambiguity to begin with).
+
+    The mask is validated canonical (strictly ascending, no duplicates,
+    in-range, at-LF) before application — non-canonical masks fail closed.
     """
+    _validate_mask_canonical(lf_blob, positions)
     out = bytearray()
     pos_set = set(positions)
     for index, byte in enumerate(lf_blob):
@@ -292,8 +323,13 @@ def _validate_capsule_shape(capsule: Mapping[str, Any]) -> None:
 
 
 def get_legacy_authority_capsule() -> dict[str, Any]:
-    """Return the validated legacy authority capsule (immutable, r5-only)."""
-    capsule = dict(_LEGACY_AUTHORITY_CAPSULE_DATA)
+    """Return the validated legacy authority capsule (immutable, r5-only).
+
+    Returns a deep copy so callers cannot mutate the module-level canonical
+    capsule (nested dicts/tuples are not shared).
+    """
+    import copy
+    capsule = copy.deepcopy(_LEGACY_AUTHORITY_CAPSULE_DATA)
     _validate_capsule_shape(capsule)
     return capsule
 

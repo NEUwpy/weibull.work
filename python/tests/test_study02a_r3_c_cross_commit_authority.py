@@ -668,33 +668,64 @@ def test_capsule_files_for_verify_rejects_extra_capsule_path():
 
 @pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
 def test_r5_verify_does_not_read_working_tree(monkeypatch):
-    """R4 REVISE: the historical verifier never reads the working tree for the
-    3 capsule files. Renaming/moving the working-tree files must NOT affect
-    verification -- the capsule reads only git objects + the embedded mask."""
+    """R5: the historical verifier never reads the working tree for the
+    3 capsule files. Access interception: if the verifier opens any of the
+    3 WT paths, the test fails immediately. No production files are
+    moved, modified, or hidden."""
 
-    import os
     from study02a.legacy_authority_capsule import get_legacy_authority_capsule
 
     capsule = get_legacy_authority_capsule()
-    # Move each working-tree file aside; restore in finally.
-    moved: list[tuple[Path, Path]] = []
-    try:
-        for entry in capsule["files"]:
-            wt_path = ROOT / entry["repo_path"]
-            if wt_path.is_file():
-                tmp_path = wt_path.with_suffix(wt_path.suffix + ".capsule-test-bak")
-                wt_path.replace(tmp_path)
-                moved.append((wt_path, tmp_path))
-        # With the WT files moved aside, r5 verification must still PASS via
-        # the capsule (which reads only git objects + mask).
-        manifest, plan, state, events = verify_historical_authority(_R5_RUN_DIR, _R5_CACHE_ROOT)
-        assert manifest["run_id"] == "A-E1-formal-r5-20260727-222417"
-        assert state["live_claim"] is None
-    finally:
-        # Restore the original working-tree files (do not leave WT dirty).
-        for original, backup in moved:
-            if backup.is_file() and not original.is_file():
-                backup.replace(original)
+    forbidden = {str((ROOT / entry["repo_path"]).resolve()) for entry in capsule["files"]}
+    _real_open = open
+
+    def _guarded_open(file, *args, **kwargs):
+        try:
+            resolved = str(Path(file).resolve())
+        except (OSError, ValueError):
+            resolved = str(file)
+        if resolved in forbidden:
+            raise AssertionError(
+                f"historical verifier attempted to open working-tree file {resolved} "
+                "(capsule must use git objects only)")
+        return _real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", _guarded_open)
+    manifest, _plan, state, _events = verify_historical_authority(_R5_RUN_DIR, _R5_CACHE_ROOT)
+    assert manifest["run_id"] == "A-E1-formal-r5-20260727-222417"
+    assert state["live_claim"] is None
+
+
+@pytest.mark.parametrize("attack", ["duplicate", "out_of_range", "reordered", "non_lf"])
+def test_r5_mask_canonical_validation_rejects_non_canonical(attack):
+    """R5: _apply_lf_to_crlf_mask rejects non-canonical masks (duplicate/
+    out-of-range/reordered/non-LF). Not just relying on final SHA check."""
+    from study02a.legacy_authority_capsule import _apply_lf_to_crlf_mask
+    lf_blob = b"a\nb\nc\nd\n"  # 8 bytes, LF at positions 1,3,5,7
+    if attack == "duplicate":
+        positions = (1, 1, 3)  # duplicate position 1
+    elif attack == "out_of_range":
+        positions = (1, 3, 99)  # position 99 out of range
+    elif attack == "reordered":
+        positions = (3, 1, 5)  # not ascending
+    elif attack == "non_lf":
+        positions = (0, 1, 3)  # position 0 is 'a' not LF
+    with pytest.raises(ValueError, match="mask position"):
+        _apply_lf_to_crlf_mask(lf_blob, positions)
+
+
+def test_r5_capsule_get_returns_deep_copy_not_shared():
+    """R5: get_legacy_authority_capsule returns a deep copy; mutating the
+    returned value does not affect the module-level canonical capsule."""
+    from study02a.legacy_authority_capsule import get_legacy_authority_capsule
+    c1 = get_legacy_authority_capsule()
+    original_sealed = c1["files"][0]["sealed_sha256"]
+    original_run_id = c1["run_id"]
+    c1["files"][0]["sealed_sha256"] = "tampered"
+    c1["run_id"] = "tampered"
+    c2 = get_legacy_authority_capsule()
+    assert c2["files"][0]["sealed_sha256"] == original_sealed
+    assert c2["run_id"] == original_run_id
 
 
 @pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
