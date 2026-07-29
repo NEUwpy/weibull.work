@@ -1,4 +1,4 @@
-"""R3-C / R4-5 versioned cross-commit authority tests.
+"""R3-C / R4-5 / R4 REVISE versioned cross-commit authority tests.
 
 Tests the content-addressed historical verifier (``verify_historical_authority``)
 against:
@@ -9,12 +9,17 @@ against:
 4. The version-dispatched predecessor schema (v1 7-key vs v2 13-key).
 5. R4-5 sealed-bytes verification (authority_sha256 self-hash, frozen config/matrix
    cross-consistency, plan SHA, matrix-row binding, terminal condition).
+6. R4 REVISE legacy authority capsule: r5 now PASSES via the capsule, and any
+   capsule tamper (missing/extra file, path change, mask tamper, hash tamper,
+   wrong authority, wrong commit) fails closed.
 
-R4-5 STOP CONDITION: the real r5 run has 3 scoped code files whose sealed SHA-256
-was computed over bytes with MIXED line endings (neither pure LF nor pure CRLF).
-Git stores LF-normalized blobs, so these cannot be reconstructed from git objects
-without a working-tree fallback (which R4-5 forbids). The historical verifier
-fail-closes at the scoped-code gate and reports the exact path + hashes.
+R4 REVISE: the real r5 run has 3 scoped code files whose sealed SHA-256 was
+computed over bytes with MIXED line endings (neither pure LF nor pure CRLF).
+Git stores LF-normalized blobs, so these cannot be reconstructed from git
+objects alone. A versioned, immutable, run-scoped legacy authority capsule
+records the newline-position mask relative to the d2a056f LF blob; the verifier
+reconstructs the original bytes from the git blob + mask and verifies the SHA.
+The capsule never reads the working tree.
 
 Constraints: no real sealed run directory is modified; the r5 manifest is read
 exactly once and its bytes are never written.
@@ -124,37 +129,40 @@ def _list_unrecoverable_scoped_files(sealed_files: dict[str, str]) -> list[str]:
 
 
 # ============================================================================
-# 1. Real r5 read-only historical verification (R4-5 stop condition).
+# 1. Real r5 read-only historical verification (R4 REVISE: capsule PASS path).
 # ============================================================================
 
 
 @pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
-def test_r4_5_historical_verifier_rejects_r5_mixed_line_endings():
-    """R4-5 STOP CONDITION: the real A-E1 r5 sealed run at d2a056f has 3 scoped
-    code files whose sealed SHA-256 was computed over bytes with MIXED line
-    endings (a mix of CRLF and lone LF). Git stores LF-normalized blobs, so
-    neither the LF form (git blob as-is) nor the CRLF form (LF->CRLF) can
-    deterministically reconstruct the sealed bytes.
+def test_r5_historical_verifier_passes_with_legacy_authority_capsule():
+    """R4 REVISE: the real A-E1 r5 sealed run at d2a056f now PASSES the full
+    historical verifier chain via the legacy authority capsule. The capsule
+    reconstructs the 3 scoped files whose sealed SHA-256 was computed over bytes
+    with MIXED line endings (a mix of CRLF and lone LF) directly from the
+    d2a056f git LF blobs + an embedded newline-position mask.
 
-    The historical verifier fail-closes at the scoped-code gate and reports the
-    exact path + sealed/LF/CRLF hashes. Per R4-5, no working-tree fallback is
-    permitted -- sealed bytes cannot be substituted from the current file."""
+    This is theCodex R4 REVISE final stop condition: verify_historical_authority
+    returns successfully (349 terminal fits, 0 pending, 699 events, all
+    controller anchors validated, scoped code reconstructed without ever reading
+    the working tree)."""
 
-    with pytest.raises(ValueError, match="scoped blob hash mismatch") as exc_info:
-        verify_historical_authority(_R5_RUN_DIR, _R5_CACHE_ROOT)
-    message = str(exc_info.value)
-    # The failure must name one of the 3 known unrecoverable files.
-    assert (
-        "studies/mdm_delta/generate_curve_study_data.py" in message
-        or "studies/mle/simulate.py" in message
-        or "studies/wmle/simulate.py" in message
-    ), f"unexpected mismatch path in error: {message}"
+    manifest, plan, state, events = verify_historical_authority(_R5_RUN_DIR, _R5_CACHE_ROOT)
+    assert manifest["run_id"] == "A-E1-formal-r5-20260727-222417"
+    assert manifest["module_id"] == "A-E1"
+    assert manifest["manifest_version"] == "study02-formal-v1"
+    assert manifest["scheduler"]["fit_count"] == len(plan) == 349
+    assert len(events) == 699
+    assert state["live_claim"] is None
+    assert state["test_access_count"] == 0
+    fit_state_counts = {n: sum(v == n for v in state["fit_states"].values()) for n in ("pending", "claimed", "succeeded", "failed")}
+    assert fit_state_counts == {"pending": 0, "claimed": 0, "succeeded": 349, "failed": 0}
 
 
 @pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
 def test_r4_5_r5_has_exactly_3_unrecoverable_scoped_files():
     """Exactly 3 r5 scoped files cannot be recovered from d2a056f git blobs via
-    LF or CRLF. Documents the stop-condition path set for audit."""
+    LF or CRLF alone -- these are the files the capsule reconstructs. Documents
+    the capsule path set for audit (capsule must bind exactly these 3 paths)."""
 
     r5_manifest = _load_r5_manifest()
     sealed_files = r5_manifest["scheduler"]["authority"]["scoped_code_files"]
@@ -444,3 +452,293 @@ def test_r3_c_real_r5_manifest_is_v1_with_7_key_predecessor():
     assert r5_manifest["manifest_version"] == "study02-formal-v1"
     from study02a.formal_contracts import _PREDECESSOR_SCHEMA_V1_FIELDS
     assert set(r5_manifest["predecessor"]) == _PREDECESSOR_SCHEMA_V1_FIELDS
+
+
+# ============================================================================
+# 6. R4 REVISE: legacy authority capsule binding + fail-closed attack tests.
+# ============================================================================
+
+
+def test_capsule_schema_and_binding_fields():
+    """The capsule exposes a stable schema and binds exactly the r5 run identity."""
+
+    from study02a.legacy_authority_capsule import (
+        get_legacy_authority_capsule, capsule_binding_matches,
+        _CAPSULE_SCHEMA_VERSION, _CAPSULE_TOP_FIELDS, _CAPSULE_FILE_FIELDS,
+    )
+
+    capsule = get_legacy_authority_capsule()
+    assert capsule["schema_version"] == _CAPSULE_SCHEMA_VERSION == "study02-legacy-authority-capsule-v1"
+    assert set(capsule) == _CAPSULE_TOP_FIELDS
+    assert len(capsule["files"]) == 3
+    for entry in capsule["files"]:
+        assert set(entry) == _CAPSULE_FILE_FIELDS
+    # Binding matches the real r5 identity.
+    r5_manifest = _load_r5_manifest() if _r5_available() else None
+    if r5_manifest is not None:
+        authority = r5_manifest["scheduler"]["authority"]
+        assert capsule_binding_matches(
+            capsule,
+            run_id=r5_manifest["run_id"],
+            manifest_version=r5_manifest["manifest_version"],
+            code_commit=authority["code_commit"],
+            authority_sha256=authority["authority_sha256"],
+            scoped_code_sha256=authority["scoped_code_sha256"],
+        )
+
+
+def test_capsule_rejects_wrong_run_id():
+    """A wrong run_id fails the binding check (capsule is r5-only)."""
+    from study02a.legacy_authority_capsule import get_legacy_authority_capsule, capsule_binding_matches
+    capsule = get_legacy_authority_capsule()
+    assert not capsule_binding_matches(
+        capsule,
+        run_id="A-E1-formal-r6-forged",
+        manifest_version=capsule["manifest_version"],
+        code_commit=capsule["code_commit"],
+        authority_sha256=capsule["authority_sha256"],
+        scoped_code_sha256=capsule["scoped_code_sha256"],
+    )
+
+
+def test_capsule_rejects_wrong_commit():
+    """A wrong code_commit fails the binding check."""
+    from study02a.legacy_authority_capsule import get_legacy_authority_capsule, capsule_binding_matches
+    capsule = get_legacy_authority_capsule()
+    assert not capsule_binding_matches(
+        capsule,
+        run_id=capsule["run_id"],
+        manifest_version=capsule["manifest_version"],
+        code_commit="0" * 40,
+        authority_sha256=capsule["authority_sha256"],
+        scoped_code_sha256=capsule["scoped_code_sha256"],
+    )
+
+
+def test_capsule_rejects_wrong_authority_sha():
+    """A wrong authority_sha256 fails the binding check."""
+    from study02a.legacy_authority_capsule import get_legacy_authority_capsule, capsule_binding_matches
+    capsule = get_legacy_authority_capsule()
+    assert not capsule_binding_matches(
+        capsule,
+        run_id=capsule["run_id"],
+        manifest_version=capsule["manifest_version"],
+        code_commit=capsule["code_commit"],
+        authority_sha256="0" * 64,
+        scoped_code_sha256=capsule["scoped_code_sha256"],
+    )
+
+
+def test_capsule_rejects_wrong_manifest_version():
+    """A wrong manifest_version fails the binding check (capsule is v1-only)."""
+    from study02a.legacy_authority_capsule import get_legacy_authority_capsule, capsule_binding_matches
+    capsule = get_legacy_authority_capsule()
+    assert not capsule_binding_matches(
+        capsule,
+        run_id=capsule["run_id"],
+        manifest_version="study02-formal-v2",
+        code_commit=capsule["code_commit"],
+        authority_sha256=capsule["authority_sha256"],
+        scoped_code_sha256=capsule["scoped_code_sha256"],
+    )
+
+
+def _forged_capsule(**top_overrides):
+    """Return a deep copy of the capsule with top-level fields overwritten.
+
+    Used to test fail-closed behavior on binding tampering. Each forger mutates
+    a single field; reconstruction-time checks (git_lf_sha256 / mask /
+    sealed_sha256 chain) catch the rest.
+    """
+    from study02a.legacy_authority_capsule import get_legacy_authority_capsule
+    capsule = get_legacy_authority_capsule()
+    forged = {**capsule, **top_overrides}
+    return forged
+
+
+def test_capsule_rejects_missing_file_entry(monkeypatch):
+    """A capsule with a missing file entry fails at shape validation."""
+    from study02a.legacy_authority_capsule import _validate_capsule_shape
+    capsule = _forged_capsule()
+    forged = {**capsule, "files": capsule["files"][:2]}  # only 2 files
+    with pytest.raises(ValueError, match="must bind exactly 3 files"):
+        _validate_capsule_shape(forged)
+
+
+def test_capsule_rejects_extra_file_entry():
+    """A capsule with an extra file entry fails at shape validation."""
+    from study02a.legacy_authority_capsule import _validate_capsule_shape
+    capsule = _forged_capsule()
+    extra = {**capsule["files"][0], "scoped_path": "studies/extra/forged.py"}
+    forged = {**capsule, "files": (*capsule["files"], extra)}
+    with pytest.raises(ValueError, match="must bind exactly 3 files"):
+        _validate_capsule_shape(forged)
+
+
+def test_capsule_rejects_tampered_mask():
+    """A tampered mask fails because the reconstructed SHA-256 will not match the
+    sealed SHA. We DROP the first mask position so one CRLF is not reconstructed
+    -- the bytes differ and the sealed hash check fails closed."""
+
+    from study02a.legacy_authority_capsule import reconstruct_capsule_file_bytes
+    capsule = _forged_capsule()
+    entry = capsule["files"][0]
+    # Drop the first mask position; one CRLF in the original bytes will not be
+    # reconstructed, so the bytes differ from the sealed bytes.
+    forged_mask = entry["lf_to_crlf_positions"][1:]
+    forged_entry = {**entry, "lf_to_crlf_positions": forged_mask}
+    forged_files = (forged_entry, *capsule["files"][1:])
+    forged = {**capsule, "files": forged_files}
+    repo_root = STUDY_ROOT.parents[1]
+    with pytest.raises(ValueError, match="reconstructed hash mismatch"):
+        reconstruct_capsule_file_bytes(forged, repo_root, entry["scoped_path"])
+
+
+def test_capsule_rejects_tampered_sealed_sha():
+    """A tampered sealed_sha256 in the capsule fails at hash verification."""
+    from study02a.legacy_authority_capsule import reconstruct_capsule_file_bytes
+    capsule = _forged_capsule()
+    entry = capsule["files"][0]
+    forged_sealed = ("f" if entry["sealed_sha256"][0] != "f" else "e") + entry["sealed_sha256"][1:]
+    forged_entry = {**entry, "sealed_sha256": forged_sealed}
+    forged_files = (forged_entry, *capsule["files"][1:])
+    forged = {**capsule, "files": forged_files}
+    repo_root = STUDY_ROOT.parents[1]
+    with pytest.raises(ValueError, match="reconstructed hash mismatch"):
+        reconstruct_capsule_file_bytes(forged, repo_root, entry["scoped_path"])
+
+
+def test_capsule_rejects_tampered_git_lf_sha():
+    """A tampered git_lf_sha256 in the capsule fails at the LF blob hash check."""
+    from study02a.legacy_authority_capsule import reconstruct_capsule_file_bytes
+    capsule = _forged_capsule()
+    entry = capsule["files"][0]
+    forged_lf = ("f" if entry["git_lf_sha256"][0] != "f" else "e") + entry["git_lf_sha256"][1:]
+    forged_entry = {**entry, "git_lf_sha256": forged_lf}
+    forged_files = (forged_entry, *capsule["files"][1:])
+    forged = {**capsule, "files": forged_files}
+    repo_root = STUDY_ROOT.parents[1]
+    with pytest.raises(ValueError, match="git LF blob hash mismatch"):
+        reconstruct_capsule_file_bytes(forged, repo_root, entry["scoped_path"])
+
+
+def test_capsule_rejects_path_change():
+    """Changing a capsule file's scoped_path fails because it no longer matches
+    the entry the caller asked for."""
+    from study02a.legacy_authority_capsule import reconstruct_capsule_file_bytes
+    capsule = _forged_capsule()
+    entry = capsule["files"][0]
+    forged_entry = {**entry, "scoped_path": "studies/forged/path.py"}
+    forged_files = (forged_entry, *capsule["files"][1:])
+    forged = {**capsule, "files": forged_files}
+    repo_root = STUDY_ROOT.parents[1]
+    # Asking for the original path now fails: it is no longer bound.
+    with pytest.raises(ValueError, match="has no entry for"):
+        reconstruct_capsule_file_bytes(forged, repo_root, entry["scoped_path"])
+
+
+def test_capsule_files_for_verify_rejects_sealed_files_drift():
+    """capsule_files_for_verify fails when the sealed_files dict has a different
+    sealed SHA for one of the capsule paths (hash drift between the capsule and
+    the manifest)."""
+    from study02a.legacy_authority_capsule import capsule_files_for_verify
+    capsule = _forged_capsule()
+    repo_root = STUDY_ROOT.parents[1]
+    entry = capsule["files"][0]
+    # Build sealed_files with a forged SHA for the first capsule path.
+    forged_sha = ("a" if entry["sealed_sha256"][0] != "a" else "b") + entry["sealed_sha256"][1:]
+    sealed_files = {entry["scoped_path"]: forged_sha}
+    for other in capsule["files"][1:]:
+        sealed_files[other["scoped_path"]] = other["sealed_sha256"]
+    with pytest.raises(ValueError, match="sealed_sha256 mismatch"):
+        capsule_files_for_verify(capsule, repo_root, sealed_files)
+
+
+def test_capsule_files_for_verify_rejects_extra_capsule_path():
+    """capsule_files_for_verify fails when the capsule binds a path that is not
+    present in sealed_files (extra path)."""
+    from study02a.legacy_authority_capsule import capsule_files_for_verify
+    capsule = _forged_capsule()
+    repo_root = STUDY_ROOT.parents[1]
+    # sealed_files is missing the first capsule path.
+    sealed_files = {f["scoped_path"]: f["sealed_sha256"] for f in capsule["files"][1:]}
+    with pytest.raises(ValueError, match="absent from sealed scoped_code_files"):
+        capsule_files_for_verify(capsule, repo_root, sealed_files)
+
+
+@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
+def test_r5_verify_does_not_read_working_tree(monkeypatch):
+    """R4 REVISE: the historical verifier never reads the working tree for the
+    3 capsule files. Renaming/moving the working-tree files must NOT affect
+    verification -- the capsule reads only git objects + the embedded mask."""
+
+    import os
+    from study02a.legacy_authority_capsule import get_legacy_authority_capsule
+
+    capsule = get_legacy_authority_capsule()
+    # Move each working-tree file aside; restore in finally.
+    moved: list[tuple[Path, Path]] = []
+    try:
+        for entry in capsule["files"]:
+            wt_path = ROOT / entry["repo_path"]
+            if wt_path.is_file():
+                tmp_path = wt_path.with_suffix(wt_path.suffix + ".capsule-test-bak")
+                wt_path.replace(tmp_path)
+                moved.append((wt_path, tmp_path))
+        # With the WT files moved aside, r5 verification must still PASS via
+        # the capsule (which reads only git objects + mask).
+        manifest, plan, state, events = verify_historical_authority(_R5_RUN_DIR, _R5_CACHE_ROOT)
+        assert manifest["run_id"] == "A-E1-formal-r5-20260727-222417"
+        assert state["live_claim"] is None
+    finally:
+        # Restore the original working-tree files (do not leave WT dirty).
+        for original, backup in moved:
+            if backup.is_file() and not original.is_file():
+                backup.replace(original)
+
+
+@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
+def test_r5_verify_aggregate_scoped_sha_matches_manifest():
+    """R4 REVISE: the capsule path produces the exact sealed aggregate
+    scoped_code_sha256 when 3 capsule-reconstructed SHAs join the 57 git-LF/CRLF
+    SHAs. Verified end-to-end by verify_historical_authority succeeding."""
+
+    # verify_historical_authority raises if the aggregate SHA mismatches, so a
+    # successful return is the proof. This test is a named regression guard.
+    manifest, _plan, _state, _events = verify_historical_authority(_R5_RUN_DIR, _R5_CACHE_ROOT)
+    authority = manifest["scheduler"]["authority"]
+    # Recompute the aggregate from capsule + git and assert it matches the sealed.
+    from study02a.legacy_authority_capsule import get_legacy_authority_capsule, capsule_files_for_verify
+    capsule = get_legacy_authority_capsule()
+    sealed_files = authority["scoped_code_files"]
+    capsule_files = capsule_files_for_verify(capsule, ROOT, sealed_files)
+    # For non-capsule files, derive the matched SHA (LF or CRLF) the same way the
+    # verifier does.
+    repo_root = STUDY_ROOT.parents[1]
+    code_tree_posix = (STUDY_ROOT.relative_to(repo_root) / "code").as_posix()
+    shared_tree_posix = "python/studies"
+    scoped_to_repo: dict[str, str] = {}
+    all_repo_paths: list[str] = []
+    seen: set[str] = set()
+    for scoped_prefix, tree_posix in (("study02", code_tree_posix), ("studies", shared_tree_posix)):
+        for relative_posix, _blob in _git_list_py_blobs(repo_root, _R5_COMMIT, tree_posix):
+            scoped_key = f"{scoped_prefix}/{relative_posix}"
+            repo_path = f"{tree_posix}/{relative_posix}"
+            scoped_to_repo[scoped_key] = repo_path
+            if repo_path not in seen:
+                seen.add(repo_path)
+                all_repo_paths.append(repo_path)
+    contents = _git_read_paths_batch(repo_root, _R5_COMMIT, all_repo_paths)
+    matched_files: dict[str, str] = {}
+    for scoped_key, sealed_hash in sealed_files.items():
+        if scoped_key in capsule_files:
+            matched_files[scoped_key] = capsule_files[scoped_key]
+            continue
+        content = contents[scoped_to_repo[scoped_key]]
+        lf_hash = _sha(content)
+        if lf_hash == sealed_hash:
+            matched_files[scoped_key] = lf_hash
+        else:
+            matched_files[scoped_key] = _sha(_crlf_normalize(content))
+    recomputed = _sha(_canonical(matched_files))
+    assert recomputed == authority["scoped_code_sha256"]

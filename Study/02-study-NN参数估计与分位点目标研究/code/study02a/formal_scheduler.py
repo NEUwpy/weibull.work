@@ -360,6 +360,7 @@ def _crlf_normalize(content: bytes) -> bytes:
 def _verify_scoped_code_against_git(
     study_root: Path, code_commit: str,
     sealed_files: Mapping[str, str], sealed_scoped_sha: str,
+    *, capsule: Mapping[str, Any] | None = None,
 ) -> None:
     """Verify sealed ``scoped_code_files`` against git blobs at ``code_commit``.
 
@@ -379,8 +380,17 @@ def _verify_scoped_code_against_git(
     reconstructed from the LF-normalized git blob and fail closed -- per R4-5 they
     MUST NOT be substituted from the current working tree.
 
+    Legacy authority capsule (R4 REVISE): for the uniquely-bound A-E1 r5 run at
+    d2a056f, the 3 scoped files whose sealed bytes had MIXED line endings are
+    reconstructed from the d2a056f git LF blob + the immutable capsule mask. The
+    capsule path is gated on a strict run-binding match (run_id + manifest_version
+    + code_commit + authority_sha256 + scoped_code_sha256); any mismatch means the
+    capsule does not apply and the existing LF/CRLF path runs unchanged. The capsule
+    NEVER reads the working tree -- only git objects + the embedded mask.
+
     The aggregate ``scoped_code_sha256`` is recomputed from the matched per-file
-    hashes and must equal ``sealed_scoped_sha``.
+    hashes (capsule-reconstructed SHA for capsule files, LF/CRLF SHA for the rest)
+    and must equal ``sealed_scoped_sha``.
     """
     study_root = _resolved(study_root)
     repo_root = study_root.parents[1]
@@ -409,9 +419,32 @@ def _verify_scoped_code_against_git(
             f"historical scoped path-set drift at {code_commit}: "
             f"sealed_only={sorted(sealed_only)[:5]}, git_only={sorted(git_only)[:5]}"
         )
+    # R4 REVISE: legacy authority capsule path. The capsule binds the 3 r5
+    # mixed-newline scoped files; if (and only if) the caller has determined the
+    # current run matches the capsule binding (run_id + manifest_version +
+    # code_commit + authority_sha256 + scoped_code_sha256 -- checked in
+    # verify_historical_authority before calling here), the 3 files are
+    # reconstructed from git LF blobs + the immutable mask. A None capsule means
+    # no binding applies; the existing LF/CRLF path runs for every file.
+    capsule_files: dict[str, str] = {}
+    if capsule is not None:
+        from .legacy_authority_capsule import capsule_files_for_verify
+        capsule_files = capsule_files_for_verify(capsule, repo_root, dict(sealed_files))
     contents = _git_read_paths_batch(repo_root, code_commit, all_repo_paths)
     matched_files: dict[str, str] = {}
     for scoped_key, sealed_hash in sealed_files.items():
+        if scoped_key in capsule_files:
+            # R4 REVISE: reconstructed via capsule mask. capsule_files_for_verify
+            # already fail-closed the mask + SHA chain (git_lf_sha256 -> mask ->
+            # sealed_sha256); accept the matched SHA.
+            if capsule_files[scoped_key] != sealed_hash:
+                raise ValueError(
+                    f"historical capsule reconstructed SHA disagrees with sealed for "
+                    f"{scoped_key!r}: recon={capsule_files[scoped_key][:16]}, "
+                    f"sealed={sealed_hash[:16]}"
+                )
+            matched_files[scoped_key] = capsule_files[scoped_key]
+            continue
         repo_path = scoped_to_repo[scoped_key]
         content = contents[repo_path]
         lf_hash = _sha(content)
@@ -946,13 +979,27 @@ def verify_historical_authority(
     * canonical/versioned manifest bytes + exact scheduler/authority schema;
     * ``authority_sha256`` self-hash (the authority dict is sealed/intact);
     * frozen config/matrix hash cross-consistency (authority == manifest == constant);
-    * commit/scoped code blobs from git objects at ``code_commit`` (LF or CRLF only,
-      NO working-tree fallback -- fail-closed if neither deterministic form matches);
     * plan canonical bytes/SHA + matrix-row binding (each plan row's
       ``matrix_row_sha256`` matches the frozen matrix row);
     * events/claims/receipts/controller anchors + fit identity (full replay, the
       identical discipline to ``_rebuild_authority``);
+    * commit/scoped code blobs from git objects at ``code_commit`` (LF or CRLF only,
+      NO working-tree fallback -- fail-closed if neither deterministic form matches);
     * all output SHAs.
+
+    R4 REVISE -- live-claim rejection BEFORE the generic non-terminal judgment and
+    BEFORE scoped-code verification: a sealed predecessor with an outstanding live
+    claim is rejected with an explicit ``"live claim"`` error message, regardless of
+    what the (more general) non-terminal check would otherwise report. This forces
+    the failure mode the chain verifier (and any caller) relies on.
+
+    R4 REVISE -- legacy authority capsule: for the uniquely-bound A-E1 r5 sealed run
+    at d2a056f, the 3 scoped files whose sealed SHA-256 was computed over bytes with
+    MIXED line endings are reconstructed from the d2a056f git LF blob + the
+    immutable capsule mask (see ``legacy_authority_capsule``). The capsule is used
+    ONLY when every binding field matches (run_id + manifest_version + code_commit +
+    authority_sha256 + scoped_code_sha256). Other runs use the existing LF/CRLF
+    path unchanged; the capsule NEVER reads the working tree.
 
     Accepts ONLY terminal sealed predecessors: ``live_claim is None`` AND every fit
     state is terminal (``succeeded``/``failed``); ``pending``/``claimed`` fail closed.
@@ -1003,18 +1050,6 @@ def verify_historical_authority(
     sealed_scoped_sha = authority["scoped_code_sha256"]
     sealed_study_root = Path(authority["study_root"])
 
-    # R4-5: content-addressed scoped code verification. Reads git blobs from the
-    # object database ONLY (git cat-file --batch). Each file is accepted if its LF
-    # hash (git blob as stored) or its deterministic CRLF hash (LF->CRLF) matches the
-    # sealed hash. NO working-tree fallback: a file whose neither form matches fails
-    # closed and historical verify stops (mixed-line-ending files cannot be recovered
-    # from the LF-normalized git blob and must NOT be substituted from the worktree).
-    repo_root = _resolved(sealed_study_root).parents[1]
-    _git_commit_exists(repo_root, sealed_commit)
-    _verify_scoped_code_against_git(
-        sealed_study_root, sealed_commit, sealed_scoped_files, sealed_scoped_sha,
-    )
-
     # R4-5: plan canonical bytes/SHA verified directly from sealed bytes. Does NOT
     # call _authority/_plan_rows. ``_validate_plan`` checks that the plan is canonical
     # JSONL, the schema of each row matches _PLAN_FIELDS, and ``sha(plan_bytes)``
@@ -1052,13 +1087,25 @@ def verify_historical_authority(
         raise ValueError("scheduler state differs from full immutable event replay")
     if validate_controller:
         _validate_controller_anchors(run_dir, manifest, plan, events, state)
-    # R4-5: historical terminal condition. Accepts ONLY terminal sealed predecessors:
-    # no live claim AND every fit state is succeeded/failed (no pending/claimed).
+
+    # R4 REVISE: live-claim rejection BEFORE the generic non-terminal judgment and
+    # BEFORE the (potentially expensive) scoped-code verification. A sealed
+    # predecessor with an outstanding live claim is not a terminal sealed run no
+    # matter what its fit_states look like, and the error must say "live claim"
+    # explicitly so a downstream caller cannot misread it as a generic non-terminal
+    # state. This also lets the scoped-code verifier assume a terminal sealed run.
     if state.get("live_claim") is not None:
+        live_claim = state["live_claim"] or {}
         raise ValueError(
-            "historical verifier requires a terminal sealed run (no live claim): "
+            f"historical verifier rejects a sealed predecessor with a live claim "
+            f"(run_id={state.get('run_id')}, "
+            f"fit_id={live_claim.get('fit_id')}, "
+            f"owner_id={live_claim.get('owner_id')}); "
             f"live_claim={state['live_claim']}"
         )
+    # R4-5: terminal fit-state condition. Every fit must be succeeded/failed (no
+    # pending/claimed). Checked AFTER the explicit live-claim rejection above so the
+    # error message always names the precise terminal violation.
     non_terminal = {
         fit_id: status for fit_id, status in state["fit_states"].items()
         if status not in ("succeeded", "failed")
@@ -1068,6 +1115,47 @@ def verify_historical_authority(
             f"historical verifier requires all fits to be terminal "
             f"(succeeded/failed); non_terminal={non_terminal}"
         )
+
+    # R4-5: content-addressed scoped code verification. Reads git blobs from the
+    # object database ONLY (git cat-file --batch). Each file is accepted if its LF
+    # hash (git blob as stored) or its deterministic CRLF hash (LF->CRLF) matches the
+    # sealed hash. NO working-tree fallback: a file whose neither form matches fails
+    # closed and historical verify stops (mixed-line-ending files cannot be recovered
+    # from the LF-normalized git blob and must NOT be substituted from the worktree).
+    #
+    # R4 REVISE: the A-E1 r5 sealed run at d2a056f has 3 scoped files whose sealed
+    # SHA-256 was computed over bytes with MIXED line endings. A versioned, immutable,
+    # run-scoped legacy authority capsule reconstructs these 3 files from the d2a056f
+    # git LF blob + an embedded newline-position mask. The capsule is used ONLY when
+    # every binding field matches (run_id + manifest_version + code_commit +
+    # authority_sha256 + scoped_code_sha256); any mismatch leaves the existing
+    # LF/CRLF path unchanged (which fails closed for the 3 r5 files but is correct
+    # for every other run). The capsule NEVER reads the working tree.
+    repo_root = _resolved(sealed_study_root).parents[1]
+    _git_commit_exists(repo_root, sealed_commit)
+    capsule: Mapping[str, Any] | None = None
+    try:
+        from .legacy_authority_capsule import (
+            get_legacy_authority_capsule, capsule_binding_matches,
+        )
+        candidate = get_legacy_authority_capsule()
+        if capsule_binding_matches(
+            candidate,
+            run_id=manifest["run_id"],
+            manifest_version=manifest["manifest_version"],
+            code_commit=sealed_commit,
+            authority_sha256=authority["authority_sha256"],
+            scoped_code_sha256=sealed_scoped_sha,
+        ):
+            capsule = candidate
+    except ValueError:
+        # Capsule shape itself is malformed -- fail closed (do not silently fall
+        # through to the LF/CRLF path, which would mask a tampered capsule).
+        raise
+    _verify_scoped_code_against_git(
+        sealed_study_root, sealed_commit, sealed_scoped_files, sealed_scoped_sha,
+        capsule=capsule,
+    )
     return manifest, plan, state, events
 
 
