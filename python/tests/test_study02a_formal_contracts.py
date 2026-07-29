@@ -100,6 +100,11 @@ def _predecessor_binding(tmp_path: Path, module_id: str) -> dict:
         "receipt_sha256": binding["receipt_sha256"],
         "ledger_path": ledger_path,
         "selection_code_commit": "b" * 40,
+        # R3-C v2: predecessor authority triple (the predecessor module's sealed
+        # formal-run authority). Synthetic test fixtures use fixed dummy SHAs;
+        # the real path reads these from the predecessor manifest's scheduler.authority.
+        "scoped_code_sha256": "d" * 64,
+        "authority_sha256": "e" * 64,
     }
     # Control-plane v2: A-E1 and A-E3 predecessors publish a staged_resolution_ledger; the
     # downstream manifest binds its SHA. Publish a syntactically + cryptographically valid

@@ -1,41 +1,30 @@
 """Blocker reproducer tests for de25710 (Study/02 A-E3 orchestration R1).
 
 These tests document the three blockers (A / B / C) identified at de25710.
-Blocker A was resolved by R3-A (output-form contract, branch
-``codex/study02-a-e3-orchestration-r1-20260728``): the test below was rewritten
-from a negative reproducer (asserting the bug) into a positive confirmation that
-joint and ``independent_capacity_matched`` are now contrastive controls. Blockers
-B / C remain negative reproducers that assert the current failure behaviour so a
-reviewer can see each defect independently of any sealed run. Each test name
-carries ``blocker_reproducer`` so they can be selected together::
+Blocker A was resolved by R3-A (output-form contract). Blocker C was resolved
+by R3-C (versioned cross-commit authority). Blocker B remains a negative
+reproducer. Each test name carries ``blocker_reproducer`` so they can be
+selected together::
 
     python -m pytest python/tests -k "blocker_reproducer" -q
 
 Blockers (cross-referenced in coworker/reports/2026-07-28-study02-a-e3-orchestration-r1.md)
 ---------------------------------------------------------------------------------------
-* A (scientific contract ambiguity) -- RESOLVED BY R3-A: at de25710 the joint vs
-  ``independent_capacity_matched`` A-E3 candidates shared the same architecture
-  placeholder, the production resolver was architecture-only, ``build_mlp``
-  hardcoded ``output_dim=3``, and ``select_independent_capacity`` was never
-  imported by ``formal_executor``. R3-A adds a SHA-bound output-form contract:
-  ``resolve_model_factory`` now takes an ``output_form`` kwarg, the
-  ``independent_capacity_matched`` arm builds a capacity-selected
-  ``IndependentContainer`` (three single-output MLP subnetworks), and
-  ``select_independent_capacity`` is wired in via ``output_form_contract``. The
-  two arms are now a real contrastive control; see
+* A (scientific contract ambiguity) -- RESOLVED BY R3-A: see
   ``test_r3_a_fixed_joint_vs_independent_now_contrastive`` below.
 * B (no n_strategy decision): the decision engine derives an ``output_form``
-  decision for A-E3 but no ``n_strategy`` decision, and ``shared_winner_retrain``
-  fits are singletons that never compete -- the capacity axis is silently
-  absent from the A-E3 selection plan.
-* C (schema / cross-commit replay blockers):
-  - ``_require_exact_fields`` rejects the r5-era 7-key predecessor段 under
-    de25710's 10-key validator (r5 sealed runs cannot replay without migration);
-  - ``_verify_chain_consistency`` (called by ``verify_g3_chain_authority``)
-    rejects any 3-run chain whose ``code_commit`` set is not a single element.
+  decision for A-E3 but no ``n_strategy`` decision -- remains a negative reproducer.
+* C (schema / cross-commit replay blockers) -- RESOLVED BY R3-C:
+  - ``_validate_formal_manifest_snapshot`` now dispatches predecessor schema by
+    ``manifest_version`` (v1 7-key r5 legacy accepted; v2 13-key with authority
+    triple for new runs); see ``test_r3_c_fixed_version_dispatched_predecessor_*``.
+  - ``_verify_chain_consistency`` removed the single-code_commit gate and replaced
+    it with per-module independent authority + predecessor authority continuity;
+    see ``test_r3_c_fixed_cross_commit_chain_passes_per_module_authority``.
 
-Constraints honoured: no production code is changed; no real r5 / A-E3 sealed
-run dir is read (all fixtures are synthetic or use the frozen matrix only).
+Constraints honoured: no production code is changed beyond the R3-A/R3-B/R3-C
+implementation; no real r5 / A-E3 sealed run dir is modified (r5 is read-only
+in the dedicated historical-verifier test).
 """
 
 from __future__ import annotations
@@ -303,16 +292,19 @@ def test_blocker_reproducer_no_n_strategy_decision_for_a_e3():
 
 
 # ============================================================================
-# Reproducer #3 -- Blocker C (r5 replay): de25710 C1 (commit fc12674) expanded
-# the formal manifest predecessor schema from r5's 7 keys to 10 keys (added
-# selection_staged_ledger_path / selection_staged_ledger_sha256 /
-# resolved_baseline_route) and enforces it via _require_exact_fields
-# (formal_contracts.py:1162-1167). An r5-era sealed-run manifest cannot
-# replay under the de25710 validator.
+# Reproducer #3 -- Blocker C (r5 replay): RESOLVED BY R3-C. de25710 C1 expanded
+# the formal manifest predecessor schema from r5's 7 keys to 10 keys without
+# versioning, so _require_exact_fields rejected r5's 7-key段. R3-C introduced
+# version-dispatched predecessor schemas: ``study02-formal-v1`` (7-key, r5
+# legacy) and ``study02-formal-v2`` (13-key = 10 C1 + authority triple). The
+# snapshot validator dispatches on ``manifest_version``; v1/v2 field mixing
+# fails closed. The test below was rewritten from a negative reproducer (7-key
+# rejected) into a positive confirmation that v1 7-key now replays, plus
+# negative coverage for schema mixing.
 # ============================================================================
 
 
-# r5-era predecessor段 schema (7 keys; what d2a056f's FC accepted).
+# r5-era predecessor段 schema (7 keys; sealed at d2a056f, immutable).
 _R5_PREDECESSOR_FIELDS = {
     "module_id", "run_id",
     "selection_trace_path", "selection_trace_sha256",
@@ -320,22 +312,21 @@ _R5_PREDECESSOR_FIELDS = {
     "selection_ledger_path",
 }
 
-# de25710 predecessor段 schema (10 keys; FC:1162-1167).
-_DE25710_PREDECESSOR_FIELDS = {
+# R3-C v2 predecessor段 schema (13 keys = 10 C1 + authority triple).
+_V2_PREDECESSOR_FIELDS = {
     "module_id", "run_id",
     "selection_trace_path", "selection_trace_sha256",
     "selection_receipt_path", "selection_receipt_sha256",
     "selection_ledger_path",
     "selection_staged_ledger_path", "selection_staged_ledger_sha256",
     "resolved_baseline_route",
+    "code_commit", "scoped_code_sha256", "authority_sha256",
 }
 
 
 def _build_valid_a_e1_manifest() -> dict:
-    """Build a fully valid A-E1 formal manifest (predecessor=None) using the
-    frozen matrix + effective config. The schema check exercised here is
-    module-independent (every manifest's predecessor段 has the same 10-key
-    shape), so A-E1 is the minimal vehicle for the r5 replay reproducer."""
+    """Build a fully valid A-E1 v2 formal manifest (predecessor=None) using the
+    frozen matrix + effective config."""
     from study02a.formal_contracts import build_formal_manifest
 
     return build_formal_manifest(
@@ -356,102 +347,145 @@ def _build_valid_a_e1_manifest() -> dict:
     )
 
 
-def test_blocker_reproducer_r5_manifest_7key_predecessor_fails_under_de25710_validator():
-    """Blocker C (r5 replay): de25710's _validate_formal_manifest_snapshot
-    enforces a 10-key predecessor段 via _require_exact_fields. r5 sealed runs
-    wrote a 7-key predecessor段; under de25710's exact-match validator those
-    manifests cannot replay (and the build path emits the 10-key shape, so the
-    schema change is bidirectional)."""
+def _to_v1_a_e1_manifest(v2_manifest: dict) -> dict:
+    """Downgrade a v2 A-E1 manifest to the r5-era v1 shape (7-key predecessor)."""
+    v1 = dict(v2_manifest)
+    v1["manifest_version"] = "study02-formal-v1"
+    v1_predecessor = dict(v2_manifest["predecessor"])
+    v1["predecessor"] = {
+        key: v1_predecessor[key] for key in _R5_PREDECESSOR_FIELDS
+    }
+    return v1
 
-    from study02a.formal_contracts import (
-        _require_exact_fields,
-        _validate_formal_manifest_snapshot,
+
+def test_r3_c_fixed_version_dispatched_predecessor_schema_accepts_v1_and_v2():
+    """Blocker C (R3-C fixed): _validate_formal_manifest_snapshot now dispatches
+    on manifest_version. v1 (study02-formal-v1) accepts the r5-era 7-key
+    predecessor段; v2 (study02-formal-v2) requires the 13-key段 with authority
+    triple. Schema mixing (v1 version + v2 fields, or vice versa) fails closed."""
+
+    from study02a.formal_contracts import _validate_formal_manifest_snapshot
+
+    v2_manifest = _build_valid_a_e1_manifest()
+
+    # (1) R3-C: build_formal_manifest emits v2 with the 13-key predecessor段.
+    assert v2_manifest["manifest_version"] == "study02-formal-v2"
+    assert set(v2_manifest["predecessor"]) == _V2_PREDECESSOR_FIELDS, (
+        f"v2 predecessor fields: {set(v2_manifest['predecessor'])}"
     )
 
-    # (1) Document the schema delta: de25710 adds exactly three keys to the
-    # r5 predecessor schema.
-    added_by_de25710 = _DE25710_PREDECESSOR_FIELDS - _R5_PREDECESSOR_FIELDS
-    assert added_by_de25710 == {
-        "selection_staged_ledger_path",
-        "selection_staged_ledger_sha256",
-        "resolved_baseline_route",
-    }
-
-    # (2) Direct: a 7-key r5 predecessor段 fails the live de25710 exact-match
-    # check (this is the precise line FC:1162-1167 runs on every manifest).
-    r5_predecessor = {field: "x" for field in _R5_PREDECESSOR_FIELDS}
-    with pytest.raises(ValueError, match="formal manifest predecessor schema"):
-        _require_exact_fields(
-            r5_predecessor, _DE25710_PREDECESSOR_FIELDS, "formal manifest predecessor"
-        )
-
-    # (3) End-to-end: build a real valid de25710 manifest, downgrade its
-    # predecessor段 to the r5 7-key shape, and confirm the snapshot validator
-    # itself rejects it (not just the low-level helper). Proves the snapshot
-    # path enforces the new schema and blocks replay of any pre-C1 manifest.
-    manifest = _build_valid_a_e1_manifest()
-    assert set(manifest["predecessor"]) == _DE25710_PREDECESSOR_FIELDS, (
-        f"build_formal_manifest emits predecessor schema "
-        f"{set(manifest['predecessor'])}; expected de25710 10-key set"
+    # (2) v2 manifest passes the snapshot validator (13-key段 accepted).
+    _validate_formal_manifest_snapshot(
+        v2_manifest,
+        module_id=v2_manifest["module_id"],
+        run_id=v2_manifest["run_id"],
+        code_commit=v2_manifest["code_commit"],
+        effective_config_sha256=v2_manifest["effective_config"]["sha256"],
     )
-    manifest["predecessor"] = {
-        field: manifest["predecessor"][field] for field in _R5_PREDECESSOR_FIELDS
-    }
+
+    # (3) R3-C: a v1 manifest (r5-era 7-key段) is ACCEPTED -- the original blocker
+    # is resolved. r5 sealed at d2a056f with this exact 7-key shape.
+    v1_manifest = _to_v1_a_e1_manifest(v2_manifest)
+    assert v1_manifest["manifest_version"] == "study02-formal-v1"
+    assert set(v1_manifest["predecessor"]) == _R5_PREDECESSOR_FIELDS
+    _validate_formal_manifest_snapshot(
+        v1_manifest,
+        module_id=v1_manifest["module_id"],
+        run_id=v1_manifest["run_id"],
+        code_commit=v1_manifest["code_commit"],
+        effective_config_sha256=v1_manifest["effective_config"]["sha256"],
+    )
+
+    # (4) Schema mixing: v1 version + v2 13-key段 is rejected (r5-era version
+    # cannot carry the new fields -- mixing fails closed).
+    mixed_v1_fields = dict(v1_manifest)
+    mixed_v1_fields["predecessor"] = dict(v2_manifest["predecessor"])
     with pytest.raises(ValueError, match="formal manifest predecessor schema"):
         _validate_formal_manifest_snapshot(
-            manifest,
-            module_id=manifest["module_id"],
-            run_id=manifest["run_id"],
-            code_commit=manifest["code_commit"],
-            effective_config_sha256=manifest["effective_config"]["sha256"],
+            mixed_v1_fields,
+            module_id=mixed_v1_fields["module_id"],
+            run_id=mixed_v1_fields["run_id"],
+            code_commit=mixed_v1_fields["code_commit"],
+            effective_config_sha256=mixed_v1_fields["effective_config"]["sha256"],
+        )
+
+    # (5) Schema mixing: v2 version + v1 7-key段 is rejected.
+    mixed_v2_fields = dict(v2_manifest)
+    mixed_v2_fields["predecessor"] = dict(v1_manifest["predecessor"])
+    with pytest.raises(ValueError, match="formal manifest predecessor schema"):
+        _validate_formal_manifest_snapshot(
+            mixed_v2_fields,
+            module_id=mixed_v2_fields["module_id"],
+            run_id=mixed_v2_fields["run_id"],
+            code_commit=mixed_v2_fields["code_commit"],
+            effective_config_sha256=mixed_v2_fields["effective_config"]["sha256"],
         )
 
 
 # ============================================================================
-# Reproducer #4 -- Blocker C (cross-commit): verify_g3_chain_authority
-# (formal_g3_control.py:922-955) calls _verify_chain_consistency, which
-# requires the three module manifests' code_commit set to have length
-# exactly 1 (formal_g3_control.py:976-982). A chain where A-E1 was sealed
-# under d2a056f and A-E3/A-E2 under de25710 is rejected -- proving the guard
-# blocks mixed-commit replays even when each individual manifest is valid.
+# Reproducer #4 -- Blocker C (cross-commit): RESOLVED BY R3-C.
+# verify_g3_chain_authority / _verify_chain_consistency previously required all
+# three module manifests to share one code_commit (len(set) == 1). R3-C removed
+# that gate and replaced it with per-module independent code authority +
+# predecessor authority continuity: each downstream's predecessor段 must bind the
+# exact authority triple of its predecessor module's sealed manifest. The test
+# below was rewritten from a negative reproducer (cross-commit rejected) into a
+# positive confirmation that mixed-commit chains now pass, plus negative
+# coverage for a forged predecessor authority triple.
 # ============================================================================
 
 
-def test_blocker_reproducer_verify_g3_chain_authority_rejects_cross_commit():
-    """Blocker C (cross-commit): _verify_chain_consistency (called by
-    verify_g3_chain_authority) requires the three module manifests'
-    code_commit set to have length exactly 1. A chain whose A-E1 manifest
-    carries d2a056f and whose A-E3/A-E2 manifests carry de25710 cannot
-    replay under a single authority."""
+def test_r3_c_fixed_cross_commit_chain_passes_per_module_authority():
+    """Blocker C (R3-C fixed): _verify_chain_consistency no longer requires
+    three manifests to share one code_commit. A chain where A-E1 was sealed
+    under d2a056f and A-E3/A-E2 under de25710 is ACCEPTED, as long as each
+    downstream's predecessor段 binds the correct predecessor authority triple."""
 
-    shared_config_sha = "c" * 64
-    shared_matrix_sha = "m" * 64
+    shared_config_sha = EFFECTIVE.effective_config_sha256
+    from study02a.formal_contracts import FROZEN_MATRIX_SHA256
+    shared_matrix_sha = FROZEN_MATRIX_SHA256
 
-    def _minimal_manifest(
+    def _authority_triple(code_commit: str) -> dict[str, str]:
+        return {
+            "code_commit": code_commit,
+            "scoped_code_sha256": "e" * 64,
+            "authority_sha256": "f" * 64,
+        }
+
+    def _manifest_with_authority(
         module_id: str, run_id: str, code_commit: str,
         predecessor_module: str | None, predecessor_run: str | None,
+        predecessor_triple: dict[str, str] | None,
     ) -> dict:
-        # Only the fields _verify_chain_consistency reads before / at the
-        # code_commit check are populated; the remaining manifest content is
-        # irrelevant to this blocker (the guard fires before any later check).
         return {
             "module_id": module_id,
             "run_id": run_id,
             "code_commit": code_commit,
             "effective_config": {"sha256": shared_config_sha},
             "matrix": {"sha256": shared_matrix_sha},
-            "predecessor": {
-                "module_id": predecessor_module,
-                "run_id": predecessor_run,
-            },
+            "predecessor": (
+                {"module_id": "none", "run_id": "none"}
+                if predecessor_module is None
+                else {
+                    "module_id": predecessor_module,
+                    "run_id": predecessor_run,
+                    **predecessor_triple,
+                }
+            ),
+            "scheduler": {"authority": _authority_triple(code_commit)},
         }
 
-    ae1_manifest = _minimal_manifest("A-E1", "r5", _COMMIT_D2A056F, None, None)
-    ae3_manifest = _minimal_manifest(
-        "A-E3", "ae3-run", _COMMIT_DE25710, "A-E1", "r5",
+    ae1_triple = _authority_triple(_COMMIT_D2A056F)
+    ae3_triple = _authority_triple(_COMMIT_DE25710)
+
+    ae1_manifest = _manifest_with_authority(
+        "A-E1", "r5", _COMMIT_D2A056F, None, None, None,
     )
-    ae2_manifest = _minimal_manifest(
-        "A-E2", "ae2-run", _COMMIT_DE25710, "A-E3", "ae3-run",
+    ae3_manifest = _manifest_with_authority(
+        "A-E3", "ae3-run", _COMMIT_DE25710, "A-E1", "r5", ae1_triple,
+    )
+    ae2_manifest = _manifest_with_authority(
+        "A-E2", "ae2-run", _COMMIT_DE25710, "A-E3", "ae3-run", ae3_triple,
     )
     chain = types.SimpleNamespace(
         ae1_run_id="r5",
@@ -459,7 +493,6 @@ def test_blocker_reproducer_verify_g3_chain_authority_rejects_cross_commit():
         ae2_run_id="ae2-run",
     )
 
-    # The three code_commits are {d2a056f, de25710, de25710} -> len 2 != 1.
     code_commits = {
         ae1_manifest["code_commit"],
         ae3_manifest["code_commit"],
@@ -469,9 +502,26 @@ def test_blocker_reproducer_verify_g3_chain_authority_rejects_cross_commit():
         f"fixture invariant: expected 2 distinct commits, got {len(code_commits)}"
     )
 
-    # _verify_chain_consistency is the exact branch verify_g3_chain_authority
-    # exercises after rebuilding each module's authority (we bypass the
-    # rebuild because no real sealed run dir is available; the consistency
-    # check itself is the blocker).
-    with pytest.raises(ValueError, match="inconsistent code_commit"):
-        g3c._verify_chain_consistency(ae1_manifest, ae3_manifest, ae2_manifest, chain)
+    # R3-C: mixed-commit chain PASSES (the old blocker is resolved).
+    g3c._verify_chain_consistency(ae1_manifest, ae3_manifest, ae2_manifest, chain)
+
+    # Negative: a forged predecessor authority triple is rejected. A-E3's
+    # predecessor段 claims A-E1's authority is all-"a"*64 but A-E1's sealed
+    # manifest has a different triple.
+    forged_ae3 = _manifest_with_authority(
+        "A-E3", "ae3-run", _COMMIT_DE25710, "A-E1", "r5",
+        {"code_commit": _COMMIT_D2A056F, "scoped_code_sha256": "a" * 64, "authority_sha256": "a" * 64},
+    )
+    with pytest.raises(ValueError, match="predecessor authority discontinuity"):
+        g3c._verify_chain_consistency(ae1_manifest, forged_ae3, ae2_manifest, chain)
+
+    # Negative: missing authority triple fields (v1段 under v2 expectations) rejected.
+    missing_triple_ae3 = dict(ae3_manifest)
+    missing_triple_ae3["predecessor"] = {
+        "module_id": "A-E1",
+        "run_id": "r5",
+    }
+    with pytest.raises(ValueError, match="missing authority triple field"):
+        g3c._verify_chain_consistency(
+            ae1_manifest, missing_triple_ae3, ae2_manifest, chain,
+        )

@@ -63,6 +63,31 @@ _PREDECESSOR_BY_MODULE = {"A-E1": None, "A-E3": "A-E1", "A-E2": "A-E3"}
 # single authority for staged-ledger validation lives in FC
 # (``_validate_staged_resolution_ledger``); G3 calls FC, never the reverse.
 _PUBLISHES_STAGED_LEDGER = {"A-E1", "A-E3"}
+# R3-C: versioned predecessor schema dispatched by ``manifest_version``.
+# * v1 (``study02-formal-v1``): the r5-era 7-key段. A-E1 r5 is sealed at d2a056f with
+#   this shape and its bytes are immutable (never rewritten).
+# * v2 (``study02-formal-v2``): the 13-key段 = 10 C1 keys (staged-ledger binding) +
+#   authority triple ``{code_commit, scoped_code_sha256, authority_sha256}`` binding
+#   the predecessor module's sealed formal-run authority. A-E3 and all new runs use v2.
+# The intermediate C1 10-key段 (``study02-formal-v1`` version + staged-ledger keys but
+# no authority triple) is neither valid v1 nor valid v2 and is rejected as schema
+# mixing. ``build_formal_manifest`` always emits v2; v1 is accepted only for sealed
+# historical manifests (content-addressed historical verifier).
+_PREDECESSOR_SCHEMA_V1_FIELDS = frozenset({
+    "module_id", "run_id",
+    "selection_trace_path", "selection_trace_sha256",
+    "selection_receipt_path", "selection_receipt_sha256",
+    "selection_ledger_path",
+})
+_PREDECESSOR_SCHEMA_V2_FIELDS = frozenset({
+    "module_id", "run_id",
+    "selection_trace_path", "selection_trace_sha256",
+    "selection_receipt_path", "selection_receipt_sha256",
+    "selection_ledger_path",
+    "selection_staged_ledger_path", "selection_staged_ledger_sha256",
+    "resolved_baseline_route",
+    "code_commit", "scoped_code_sha256", "authority_sha256",
+})
 _STAGED_LEDGER_RECORD_VERSION = "study02-staged-resolution-v1"
 _STAGED_LEDGER_REQUIRED_FIELDS = {
     "record_version", "module_id", "run_id", "code_commit",
@@ -198,6 +223,16 @@ class PredecessorTrace:
     # fail-closes when a staged-ledger-publishing predecessor omits them.
     staged_ledger_path: Path | None = None
     staged_ledger_sha256: str | None = None
+    # R3-C v2 authority triple: the predecessor module's sealed formal-run authority
+    # (``code_commit`` reuses ``selection_code_commit`` since selection and formal sealing
+    # share one commit; ``scoped_code_sha256`` and ``authority_sha256`` come from the
+    # predecessor manifest's ``scheduler.authority`` block). Required for v2 manifests
+    # with a real predecessor; ``None`` for the A-E1 root (no predecessor) and v1-era
+    # historical manifests. The v2 snapshot validator and G3 chain continuity check
+    # consume these to bind each downstream to its predecessor's exact code authority
+    # without requiring all modules to share one commit.
+    scoped_code_sha256: str | None = None
+    authority_sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1101,8 +1136,11 @@ def _validate_formal_manifest_snapshot(
         "amendment", "effective_config", "matrix", "code_commit", "role_namespaces",
         "seeds", "test_state", "predecessor",
     }, "formal manifest")
-    if manifest["manifest_version"] != "study02-formal-v1":
-        raise ValueError("formal manifest version mismatch")
+    if manifest["manifest_version"] not in ("study02-formal-v1", "study02-formal-v2"):
+        raise ValueError(
+            f"formal manifest version unsupported: {manifest['manifest_version']!r} "
+            f"(expected study02-formal-v1 or study02-formal-v2)"
+        )
     if manifest["module_id"] != module_id or manifest["run_id"] != run_id:
         raise ValueError("formal manifest module/run ownership mismatch")
     if manifest["code_commit"] != code_commit.lower():
@@ -1176,14 +1214,31 @@ def _validate_formal_manifest_snapshot(
         raise ValueError("formal manifest screening seeds mismatch")
     if seeds["formal"] != list(APPROVED_FORMAL_SEEDS):
         raise ValueError("formal manifest formal seeds mismatch")
-    predecessor = _require_exact_fields(manifest["predecessor"], {
-        "module_id", "run_id", "selection_trace_path", "selection_trace_sha256",
-        "selection_receipt_path", "selection_receipt_sha256", "selection_ledger_path",
-        "selection_staged_ledger_path", "selection_staged_ledger_sha256",
-        "resolved_baseline_route",
-    }, "formal manifest predecessor")
+    # R3-C: dispatch predecessor schema by manifest_version. v1 (study02-formal-v1)
+    # accepts the r5-era 7-key段; v2 (study02-formal-v2) requires the 13-key段 with
+    # the authority triple. The intermediate C1 10-key段 matches neither set under
+    # either version and is rejected as schema mixing.
+    manifest_version = manifest["manifest_version"]
+    if manifest_version == "study02-formal-v1":
+        predecessor_fields = _PREDECESSOR_SCHEMA_V1_FIELDS
+    else:
+        predecessor_fields = _PREDECESSOR_SCHEMA_V2_FIELDS
+    predecessor = _require_exact_fields(
+        manifest["predecessor"], predecessor_fields, "formal manifest predecessor"
+    )
     if any(not isinstance(predecessor[field], str) or not predecessor[field] for field in predecessor):
         raise ValueError("formal manifest predecessor fields must be non-empty strings")
+    # v2 authority triple integrity: for a real predecessor the code_commit must be a
+    # full commit SHA and the scoped/authority SHAs must be 64-char hex; for the root
+    # module (A-E1, all "none") these stay "none". This blocks forged authority triples
+    # at the snapshot gate before any replay.
+    if manifest_version == "study02-formal-v2" and predecessor["module_id"] != "none":
+        if _CODE_COMMIT_RE.fullmatch(predecessor["code_commit"]) is None:
+            raise ValueError("v2 predecessor code_commit must be a full commit SHA")
+        if _SHA256_RE.fullmatch(predecessor["scoped_code_sha256"]) is None:
+            raise ValueError("v2 predecessor scoped_code_sha256 must be a SHA-256")
+        if _SHA256_RE.fullmatch(predecessor["authority_sha256"]) is None:
+            raise ValueError("v2 predecessor authority_sha256 must be a SHA-256")
 
 
 def build_pre_unseal_bundle(
@@ -1703,6 +1758,8 @@ def _coerce_predecessor(value: Mapping[str, Any] | PredecessorTrace) -> Predeces
             selection_code_commit=value["selection_code_commit"],
             staged_ledger_path=None if staged_ledger_path is None else Path(staged_ledger_path),
             staged_ledger_sha256=value.get("staged_ledger_sha256"),
+            scoped_code_sha256=value.get("scoped_code_sha256"),
+            authority_sha256=value.get("authority_sha256"),
         )
     except (KeyError, TypeError) as exc:
         raise ValueError("Incomplete predecessor selection trace metadata") from exc
@@ -1843,6 +1900,10 @@ def _validate_predecessor(
             "selection_staged_ledger_path": "none",
             "selection_staged_ledger_sha256": "none",
             "resolved_baseline_route": "none",
+            # v2 authority triple: "none" for the root module (no predecessor).
+            "code_commit": "none",
+            "scoped_code_sha256": "none",
+            "authority_sha256": "none",
         }
 
     predecessor = _coerce_predecessor(value)
@@ -1934,6 +1995,20 @@ def _validate_predecessor(
         # ``staged_ledger_sha`` stays as the declared SHA (== actual SHA, verified above).
         if staged_result["baseline_route"] is not None:
             resolved_baseline_route = staged_result["baseline_route"]
+    # R3-C v2: bind the predecessor's sealed formal-run authority triple. Fail-closed
+    # if the caller did not supply ``scoped_code_sha256`` / ``authority_sha256`` -- a
+    # downstream run cannot establish predecessor authority continuity without them.
+    if predecessor.scoped_code_sha256 is None or predecessor.authority_sha256 is None:
+        raise ValueError(
+            f"Predecessor authority triple (scoped_code_sha256, authority_sha256) is required "
+            f"for v2 module {module_id} (predecessor {expected_module})"
+        )
+    predecessor_scoped_sha = _require_sha256(
+        predecessor.scoped_code_sha256, "Predecessor scoped_code_sha256"
+    )
+    predecessor_authority_sha = _require_sha256(
+        predecessor.authority_sha256, "Predecessor authority_sha256"
+    )
     return {
         "module_id": predecessor.module_id,
         "run_id": predecessor.run_id,
@@ -1945,6 +2020,12 @@ def _validate_predecessor(
         "selection_staged_ledger_path": staged_ledger_path,
         "selection_staged_ledger_sha256": staged_ledger_sha,
         "resolved_baseline_route": resolved_baseline_route,
+        # v2 authority triple: binds the predecessor's sealed code/scoped/authority SHA
+        # so the G3 chain can verify predecessor authority continuity across commits
+        # without requiring all modules to share one code_commit.
+        "code_commit": predecessor.selection_code_commit.lower(),
+        "scoped_code_sha256": predecessor_scoped_sha,
+        "authority_sha256": predecessor_authority_sha,
     }
 
 
@@ -1981,7 +2062,7 @@ def _build_formal_manifest_with_matrix_evidence(
     predecessor_manifest = _validate_predecessor(module_id, predecessor)
 
     return {
-        "manifest_version": "study02-formal-v1",
+        "manifest_version": "study02-formal-v2",
         "module_id": module_id,
         "run_id": run_id,
         "base_protocol": {

@@ -922,23 +922,31 @@ class G3Authority:
 def verify_g3_chain_authority(
     *, chain: G3RunChain, cache_root: Path,
 ) -> G3Authority:
-    """Call _rebuild_authority on all three runs; verify no live claims.
+    """Content-addressed verification of all three sealed runs (R3-C).
 
-    Each run must pass full replay: manifest, plan, events, scheduler state,
-    controller anchors. Any live claim fails closed.
+    Each run is verified via ``verify_historical_authority``: scoped code blobs are
+    read from the git object database at each manifest's sealed ``code_commit``
+    (no checkout, no worktree, no requirement that current HEAD match any sealed
+    commit). Each run must pass full replay: manifest, plan, events, scheduler
+    state, controller anchors. The historical verifier also enforces terminal
+    sealed status (no live claim) for every predecessor. Active runs still use
+    ``_rebuild_authority`` (current-HEAD strict) outside this function.
     """
-    from .formal_scheduler import _rebuild_authority
+    from .formal_scheduler import verify_historical_authority
 
-    ae1_manifest, ae1_plan, ae1_state, ae1_events = _rebuild_authority(
+    ae1_manifest, ae1_plan, ae1_state, ae1_events = verify_historical_authority(
         chain.ae1_run_dir, cache_root,
     )
-    ae3_manifest, ae3_plan, ae3_state, ae3_events = _rebuild_authority(
+    ae3_manifest, ae3_plan, ae3_state, ae3_events = verify_historical_authority(
         chain.ae3_run_dir, cache_root,
     )
-    ae2_manifest, ae2_plan, ae2_state, ae2_events = _rebuild_authority(
+    ae2_manifest, ae2_plan, ae2_state, ae2_events = verify_historical_authority(
         chain.ae2_run_dir, cache_root,
     )
 
+    # verify_historical_authority already enforces no-live-claim per module; the
+    # explicit re-check below is defense-in-depth against any future caller that
+    # might bypass the historical verifier.
     for module_id, state in [("A-E1", ae1_state), ("A-E3", ae3_state), ("A-E2", ae2_state)]:
         live_claim = state.get("live_claim")
         if live_claim is not None:
@@ -958,7 +966,16 @@ def verify_g3_chain_authority(
 def _verify_chain_consistency(
     ae1_manifest: dict, ae3_manifest: dict, ae2_manifest: dict, chain: G3RunChain,
 ) -> None:
-    """Verify module/run/predecessor, code commit, effective config, matrix authority consistency."""
+    """Verify module/run/predecessor, per-module code authority, effective config, matrix.
+
+    R3-C: the old ``len(code_commits) == 1`` gate is removed. Each module carries its
+    own independent code authority (bound in its manifest's ``scheduler.authority``).
+    Cross-commit chains are valid as long as predecessor authority continuity holds:
+    each downstream's predecessor段 must bind the exact authority triple
+    (``code_commit``, ``scoped_code_sha256``, ``authority_sha256``) of the predecessor
+    module's sealed manifest. Forged authority triples or stale predecessor bindings
+    fail closed here.
+    """
     if ae1_manifest.get("module_id") != "A-E1":
         raise ValueError(f"A-E1 manifest module_id is {ae1_manifest.get('module_id')!r}")
     if ae3_manifest.get("module_id") != "A-E3":
@@ -973,13 +990,10 @@ def _verify_chain_consistency(
     if ae2_manifest.get("run_id") != chain.ae2_run_id:
         raise ValueError("A-E2 manifest run_id mismatch with chain")
 
-    code_commits = {
-        ae1_manifest.get("code_commit"),
-        ae3_manifest.get("code_commit"),
-        ae2_manifest.get("code_commit"),
-    }
-    if len(code_commits) != 1:
-        raise ValueError(f"three runs have inconsistent code_commit: {code_commits}")
+    # R3-C: per-module independent code authority. Each manifest binds its own
+    # code_commit (content-addressed by verify_historical_authority); cross-commit
+    # chains are valid. The old single-commit gate is replaced by predecessor
+    # authority continuity checks below.
 
     config_shas = {
         ae1_manifest.get("effective_config", {}).get("sha256"),
@@ -1007,6 +1021,53 @@ def _verify_chain_consistency(
     ae2_pred = ae2_manifest.get("predecessor", {})
     if ae2_pred.get("module_id") != "A-E3" or ae2_pred.get("run_id") != chain.ae3_run_id:
         raise ValueError("A-E2 predecessor does not point to A-E3 chain run")
+
+    # R3-C predecessor authority continuity: each downstream predecessor段 must bind
+    # the exact authority triple of its predecessor module's sealed manifest. This is
+    # the cross-commit linkage -- it proves the downstream was sealed against the
+    # specific predecessor authority, not a swapped or forged one. v1 manifests
+    # without the triple fields are rejected here (v1/v2 mixing fails closed).
+    _assert_predecessor_authority_continuity("A-E3", ae3_pred, ae1_manifest)
+    _assert_predecessor_authority_continuity("A-E2", ae2_pred, ae3_manifest)
+
+
+def _assert_predecessor_authority_continuity(
+    downstream_module: str,
+    predecessor_section: Mapping[str, Any],
+    predecessor_manifest: Mapping[str, Any],
+) -> None:
+    """Verify the downstream's predecessor段 binds the predecessor's sealed authority.
+
+    Extracts the authority triple (``code_commit``, ``scoped_code_sha256``,
+    ``authority_sha256``) from the predecessor manifest's ``scheduler.authority``
+    block and compares it against the triple bound in the downstream's predecessor
+    section. A mismatch means the downstream was sealed against a different
+    predecessor authority (swap, stale binding, or forgery) and fails closed.
+    """
+    if predecessor_manifest.get("module_id") != predecessor_section.get("module_id"):
+        raise ValueError(
+            f"{downstream_module} predecessor authority continuity: predecessor段 "
+            f"module_id {predecessor_section.get('module_id')!r} does not match "
+            f"the chained predecessor manifest module_id "
+            f"{predecessor_manifest.get('module_id')!r}"
+        )
+    predecessor_authority = predecessor_manifest.get("scheduler", {}).get("authority", {})
+    triple_fields = ("code_commit", "scoped_code_sha256", "authority_sha256")
+    for field in triple_fields:
+        bound_value = predecessor_section.get(field)
+        sealed_value = predecessor_authority.get(field)
+        if bound_value is None:
+            raise ValueError(
+                f"{downstream_module} predecessor段 is missing authority triple field "
+                f"{field!r} (v1/v2 schema mixing is rejected)"
+            )
+        if sealed_value is None or bound_value != sealed_value:
+            raise ValueError(
+                f"{downstream_module} predecessor authority discontinuity: {field} "
+                f"bound={bound_value!r} but predecessor manifest authority has "
+                f"{sealed_value!r}"
+            )
+
 
 
 def derive_g3_cohort_from_authority(
@@ -1626,10 +1687,20 @@ def build_g3_accreditation(
 
     chain = resolve_g3_predecessor_chain(ae2_run_dir=ae2_run_dir, artifact_root=artifact_root)
     authority = verify_g3_chain_authority(chain=chain, cache_root=cache_root)
-    code_commit = str(authority.ae1_manifest.get("code_commit", "")).lower()
-    if _CODE_COMMIT_RE.fullmatch(code_commit) is None:
-        raise ValueError("replay authority did not provide one valid full code_commit")
-    _assert_current_code_matches_replay(study_root, code_commit)
+    # R3-C: per-module code authority is verified content-addressed inside
+    # verify_g3_chain_authority (each manifest's sealed code_commit is read from git
+    # objects). The accreditation runs at the current HEAD, which may differ from any
+    # sealed predecessor commit (cross-commit chain). We still require the scoped
+    # scientific code tree to be clean (no uncommitted edits) so the accreditation
+    # logic itself runs on committed code, but we no longer require HEAD to match any
+    # one sealed code_commit.
+    from .formal_scheduler import _assert_scoped_code_clean, _git_sha
+    _assert_scoped_code_clean(study_root)
+    # The G3 accreditation artifacts (manifest, bundle, state) bind the CURRENT HEAD
+    # as their code_commit -- they are produced by the accreditation code running here,
+    # not by any one sealed predecessor. Per-module predecessor authority is verified
+    # content-addressed inside verify_g3_chain_authority above.
+    code_commit = _git_sha(study_root)
 
     # Rebuild each module's diagnostics from replay authority + immutable selection
     # evidence. Existing exact diagnostics are accepted idempotently; conflicts fail closed.

@@ -117,13 +117,16 @@ def _build_predecessor_trace(
 
     Reads the predecessor's selection_trace/receipt/ledger + manifest code_commit +
     staged_resolution_ledger SHA (when the predecessor module publishes one, per
-    ``_PUBLISHES_STAGED_LEDGER``). Mirrors the assembly historically embedded in
+    ``_PUBLISHES_STAGED_LEDGER``) + the R3-C v2 authority triple
+    (``scoped_code_sha256`` / ``authority_sha256``) from the predecessor manifest's
+    ``scheduler.authority`` block. Mirrors the assembly historically embedded in
     ``resolve_deferred``; reused by the formal-execute A-E3 arm so the predecessor binding
     is byte-identical across CLI entry points. The staged-ledger SHA is the control-plane v2
     binding: a downstream run rests on a predecessor file that cannot be swapped after the
     downstream plan is built. If the staged ledger file is missing, the fields stay ``None``
     and ``_validate_predecessor`` fail-closes later (preserving the strict-order contract: a
-    wrong-order predecessor still raises "Wrong predecessor module" first).
+    wrong-order predecessor still raises "Wrong predecessor module" first). Likewise, if the
+    manifest lacks ``scheduler.authority`` the triple fields stay ``None`` and v2 fail-closes.
     """
     pred_dir = Path(artifact_root) / predecessor_module / predecessor_run_id
     receipt_path = pred_dir / "selection_receipt.json"
@@ -137,6 +140,13 @@ def _build_predecessor_trace(
         if conventional.is_file():
             staged_ledger_path = conventional
             staged_ledger_sha256 = hashlib.sha256(conventional.read_bytes()).hexdigest()
+    # R3-C v2: read the predecessor's sealed formal-run authority triple from its manifest's
+    # ``scheduler.authority`` block. Production runs always write this block (the formal
+    # scheduler seals it); missing keys fall through to ``None`` so ``_validate_predecessor``
+    # v2 fail-closes with a precise error rather than a ``KeyError`` at this assembly point.
+    authority_block = pred_manifest.get("scheduler", {}).get("authority", {})
+    scoped_code_sha256 = authority_block.get("scoped_code_sha256")
+    authority_sha256 = authority_block.get("authority_sha256")
     return PredecessorTrace(
         module_id=predecessor_module, run_id=predecessor_run_id,
         trace_path=pred_dir / "selection_trace.jsonl",
@@ -147,6 +157,8 @@ def _build_predecessor_trace(
         selection_code_commit=str(pred_manifest["code_commit"]),
         staged_ledger_path=staged_ledger_path,
         staged_ledger_sha256=staged_ledger_sha256,
+        scoped_code_sha256=scoped_code_sha256,
+        authority_sha256=authority_sha256,
     )
 
 

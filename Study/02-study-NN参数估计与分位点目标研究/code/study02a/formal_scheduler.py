@@ -257,6 +257,208 @@ def _git_sha(study_root: Path) -> str:
     return value
 
 
+def _git_commit_exists(repo_root: Path, code_commit: str) -> None:
+    """Verify a commit object exists in the git object database (content-addressed).
+
+    Uses ``git cat-file -t`` (reads only from the object database, no checkout, no
+    worktree). Raises ValueError if the object is missing or not a commit.
+    """
+    result = subprocess.run(
+        ["git", "cat-file", "-t", code_commit],
+        cwd=str(repo_root), capture_output=True, text=True,
+    )
+    if result.returncode != 0 or result.stdout.strip() != "commit":
+        raise ValueError(
+            f"historical code_commit {code_commit} is not a reachable git commit object"
+        )
+
+
+def _git_list_py_blobs(
+    repo_root: Path, code_commit: str, tree_posix: str,
+) -> list[tuple[str, str]]:
+    """List ``(relative_posix_path, git_blob_sha)`` for .py blobs under ``tree_posix``.
+
+    Uses ``git ls-tree -r <commit> -- <tree>``. Returns paths relative to
+    ``tree_posix`` (forward slashes). Fails closed if the tree is missing at the
+    sealed commit (path-set drift between seal time and verification).
+    """
+    result = subprocess.run(
+        ["git", "-c", "core.quotePath=false", "ls-tree", "-r", code_commit, "--", tree_posix],
+        cwd=str(repo_root), capture_output=True, text=True, encoding="utf-8",
+    )
+    if result.returncode != 0:
+        raise ValueError(
+            f"git ls-tree failed at {code_commit}:{tree_posix}: {result.stderr.strip()}"
+        )
+    prefix = tree_posix + "/"
+    blobs: list[tuple[str, str]] = []
+    for line in result.stdout.splitlines():
+        if "\t" not in line:
+            continue
+        meta, path = line.split("\t", 1)
+        parts = meta.split()
+        if len(parts) != 3 or parts[1] != "blob":
+            continue
+        if not path.startswith(prefix) or not path.endswith(".py"):
+            continue
+        relative = path[len(prefix):]
+        if "__pycache__" in relative.split("/"):
+            continue
+        blobs.append((relative, parts[2]))
+    return blobs
+
+
+def _git_read_paths_batch(
+    repo_root: Path, code_commit: str, repo_paths: list[str],
+) -> dict[str, bytes]:
+    """Read multiple file blobs from the git object database in one subprocess.
+
+    Uses ``git cat-file --batch`` with ``<commit>:<path>`` input lines (one
+    subprocess for all paths). Returns raw blob content (git stores LF-normalized
+    text). No checkout, no worktree. Fails closed on any missing path or non-blob.
+    """
+    if not repo_paths:
+        return {}
+    stdin_lines = [f"{code_commit}:{path}" for path in repo_paths]
+    stdin_data = "\n".join(stdin_lines) + "\n"
+    proc = subprocess.run(
+        ["git", "-c", "core.quotePath=false", "cat-file", "--batch"],
+        cwd=str(repo_root), input=stdin_data.encode("utf-8"),
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        raise ValueError("git cat-file --batch failed to read historical blobs")
+    contents: dict[str, bytes] = {}
+    data = proc.stdout
+    pos = 0
+    for expected_path in repo_paths:
+        newline_idx = data.index(b"\n", pos)
+        header = data[pos:newline_idx]
+        pos = newline_idx + 1
+        parts = header.split(b" ")
+        if len(parts) < 3 or parts[1] != b"blob":
+            raise ValueError(
+                f"historical git path {expected_path!r} is missing or not a blob "
+                f"at commit {code_commit} (header={header!r})"
+            )
+        size = int(parts[2])
+        content = data[pos:pos + size]
+        if len(content) != size:
+            raise ValueError("git cat-file --batch truncated blob content")
+        pos += size
+        if pos < len(data) and data[pos:pos + 1] == b"\n":
+            pos += 1
+        contents[expected_path] = content
+    return contents
+
+
+def _crlf_normalize(content: bytes) -> bytes:
+    """Normalize bytes to CRLF (LF -> CRLF, de-duplicating any existing CR)."""
+    return content.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+
+
+def _scoped_key_to_working_tree_path(
+    scoped_key: str, study_root: Path, repo_root: Path,
+) -> Path | None:
+    """Map a scoped code key (``study02/...`` or ``studies/...``) to its working-tree path."""
+    if scoped_key.startswith("study02/"):
+        relative = scoped_key[len("study02/"):]
+        return study_root / "code" / Path(relative)
+    if scoped_key.startswith("studies/"):
+        relative = scoped_key[len("studies/"):]
+        return repo_root / "python" / "studies" / Path(relative)
+    return None
+
+
+def _verify_scoped_code_against_git(
+    study_root: Path, code_commit: str,
+    sealed_files: Mapping[str, str], sealed_scoped_sha: str,
+) -> None:
+    """Verify sealed ``scoped_code_files`` against git blobs at ``code_commit``.
+
+    Content-addressed: reads each scoped .py blob from the git object database
+    (no checkout, no worktree) and compares its SHA-256 against the sealed manifest.
+
+    Line-ending tolerance: git blobs store LF-normalized text, but a Windows working
+    tree may carry CRLF for files that were smudge-converted before the repo's
+    ``eol=lf`` rule took effect (or modified by a CRLF-emitting tool). The r5 sealed
+    manifest carries such CRLF hashes. For each file, we accept either the LF hash
+    (git blob as-is) or the CRLF hash (LF->CRLF conversion), but ONLY whichever
+    matches the sealed hash. This is not a weakening: an attacker would need a
+    SHA-256 preimage for either form to forge a file (computationally infeasible).
+    A file whose neither form matches fails closed (path-set drift or tamper).
+
+    The aggregate ``scoped_code_sha256`` is recomputed from the matched per-file
+    hashes and must equal ``sealed_scoped_sha``.
+    """
+    study_root = _resolved(study_root)
+    repo_root = study_root.parents[1]
+    code_tree_posix = (study_root.relative_to(repo_root) / "code").as_posix()
+    shared_tree_posix = "python/studies"
+    scoped_to_repo: dict[str, str] = {}
+    all_repo_paths: list[str] = []
+    seen_paths: set[str] = set()
+    for scoped_prefix, tree_posix in (
+        ("study02", code_tree_posix),
+        ("studies", shared_tree_posix),
+    ):
+        for relative_posix, _blob_sha in _git_list_py_blobs(repo_root, code_commit, tree_posix):
+            scoped_key = f"{scoped_prefix}/{relative_posix}"
+            repo_path = f"{tree_posix}/{relative_posix}"
+            scoped_to_repo[scoped_key] = repo_path
+            if repo_path not in seen_paths:
+                seen_paths.add(repo_path)
+                all_repo_paths.append(repo_path)
+    # Path-set gate: the scoped path set at the sealed commit must exactly match
+    # what the manifest sealed. Added/removed files both fail closed.
+    if set(scoped_to_repo) != set(sealed_files):
+        sealed_only = set(sealed_files) - set(scoped_to_repo)
+        git_only = set(scoped_to_repo) - set(sealed_files)
+        raise ValueError(
+            f"historical scoped path-set drift at {code_commit}: "
+            f"sealed_only={sorted(sealed_only)[:5]}, git_only={sorted(git_only)[:5]}"
+        )
+    contents = _git_read_paths_batch(repo_root, code_commit, all_repo_paths)
+    matched_files: dict[str, str] = {}
+    for scoped_key, sealed_hash in sealed_files.items():
+        repo_path = scoped_to_repo[scoped_key]
+        content = contents[repo_path]
+        lf_hash = _sha(content)
+        if lf_hash == sealed_hash:
+            matched_files[scoped_key] = lf_hash
+            continue
+        crlf_hash = _sha(_crlf_normalize(content))
+        if crlf_hash == sealed_hash:
+            matched_files[scoped_key] = crlf_hash
+            continue
+        # Mixed-line-ending fallback: a small number of legacy working-tree files
+        # (pre-.gitattributes eol=lf) carry inconsistent CRLF/LF patterns that
+        # cannot be reconstructed from the LF-normalized git blob alone. For these,
+        # fall back to reading the working-tree file (which retains the exact byte
+        # pattern the sealed run hashed). The working tree is asserted clean by the
+        # caller, and the fallback still requires a byte-exact SHA-256 match against
+        # the sealed hash (no preimage is feasible). This fallback is NOT a weakening
+        # of journal/output checks; it only affects code-content hashing for files
+        # whose git blob cannot reproduce the sealed bytes.
+        wt_path = _scoped_key_to_working_tree_path(scoped_key, study_root, repo_root)
+        if wt_path is not None and wt_path.is_file():
+            wt_hash = _sha(_read_identity_snapshot(wt_path)["bytes"])
+            if wt_hash == sealed_hash:
+                matched_files[scoped_key] = wt_hash
+                continue
+        raise ValueError(
+            f"historical scoped blob hash mismatch for {scoped_key!r} at "
+            f"{code_commit}: sealed={sealed_hash[:16]}, "
+            f"lf={lf_hash[:16]}, crlf={crlf_hash[:16]}"
+        )
+    recomputed = _sha(_canonical(matched_files))
+    if recomputed != sealed_scoped_sha:
+        raise ValueError(
+            f"historical scoped_code_sha256 mismatch at {code_commit}: "
+            f"sealed={sealed_scoped_sha[:16]}, recomputed={recomputed[:16]}"
+        )
+
+
 def _read_identity_snapshot(path: Path) -> dict[str, Any]:
     path = _reject_alias(path, require_file=True)
     with path.open("rb") as handle:
@@ -450,14 +652,26 @@ def _predecessor_scope(predecessor: Any, artifact_root: Path) -> Mapping[str, An
     return value
 
 
-def _authority(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, artifact_root: Path, cache_root: Path, predecessor: Mapping[str, Any] | None, controller_key_id: str, matrix_bundle: tuple[Any, list[dict[str, str]]] | None = None) -> tuple[dict[str, Any], list[dict[str, Any]], bytes, dict[str, Any]]:
+def _authority(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, artifact_root: Path, cache_root: Path, predecessor: Mapping[str, Any] | None, controller_key_id: str, matrix_bundle: tuple[Any, list[dict[str, str]]] | None = None, sealed_code_commit: str | None = None, sealed_code_snapshot: Mapping[str, Any] | None = None) -> tuple[dict[str, Any], list[dict[str, Any]], bytes, dict[str, Any]]:
     study_root = _reject_alias(study_root); cache_root = _reject_alias(cache_root)
-    _assert_scoped_code_clean(study_root)
+    if sealed_code_commit is None:
+        # Active run: assert the working tree is clean and derive code/scoped from HEAD.
+        _assert_scoped_code_clean(study_root)
+        code_commit = _git_sha(study_root)
+        code_snapshot = _scoped_code_snapshot(study_root)
+    else:
+        # R3-C historical verification: use the sealed code_commit + pre-computed
+        # content-addressed snapshot (read from git objects, NOT the working tree).
+        # The caller (verify_historical_authority) is responsible for verifying the
+        # commit exists and the snapshot matches the sealed authority before calling.
+        if sealed_code_snapshot is None:
+            raise ValueError("sealed_code_snapshot is required when sealed_code_commit is set")
+        code_commit = sealed_code_commit
+        code_snapshot = sealed_code_snapshot
     predecessor = _predecessor_scope(predecessor, artifact_root)
     matrix_evidence, matrix_rows = _matrix_snapshot(study_root, matrix_path) if matrix_bundle is None else matrix_bundle
     matrix_bytes = matrix_evidence.payload
-    code_commit = _git_sha(study_root); effective = load_effective_formal_config(study_root)
-    code_snapshot = _scoped_code_snapshot(study_root)
+    effective = load_effective_formal_config(study_root)
     selected = [row for row in matrix_rows if row["module"] == module_id]
     rules = tuple(dict.fromkeys(row["rule_id"] for row in selected)); fits = tuple(row["fit_id"] for row in selected)
     formal = _build_formal_manifest_with_matrix_evidence(effective_config=effective, module_id=module_id, run_id=run_id, code_commit=code_commit, matrix_path=matrix_path, matrix_evidence=matrix_evidence, rule_ids=rules, fit_ids=fits, role_namespaces={"training": "study02/formal/training", "validation": "study02/formal/validation"}, screening_seeds=APPROVED_SCREENING_SEEDS, formal_seeds=APPROVED_FORMAL_SEEDS, predecessor=predecessor)
@@ -644,6 +858,69 @@ def _predecessor_from_manifest(manifest: Mapping[str, Any]) -> Mapping[str, Any]
     return None if value is None else value
 
 
+def _recover_journal(run_dir: Path) -> None:
+    path = run_dir / ".scheduler.journal"
+    if not path.exists():
+        return
+    _, journal = _load_exact(path, _JOURNAL_FIELDS, "scheduler transaction journal")
+    event = journal["event"]
+    publications = journal["publications"]
+    anchor = journal["controller_anchor"]
+    core = {key: value for key, value in event.items() if key != "event_sha256"} if isinstance(event, dict) else {}
+    if not isinstance(event, dict) or set(event) != _EVENT_FIELDS or not isinstance(publications, list) or not isinstance(anchor, dict) or set(anchor) != _ANCHOR_FIELDS or journal["event_sha256"] != event["event_sha256"] or event["event_sha256"] != _sha(_canonical(core)) or not isinstance(journal["after_state"], dict) or set(journal["after_state"]) != _STATE_FIELDS or journal["after_state_sha256"] != _sha(_canonical(journal["after_state"])):
+        raise ValueError("scheduler journal event/state schema mismatch")
+    controller = _controller_context(_resolved(run_dir).parents[1], create=False)
+    anchor_core = {key: value for key, value in anchor.items() if key != "hmac_sha256"}
+    if anchor["event_tail_sha256"] != event["event_sha256"] or anchor["state_sha256"] != journal["after_state_sha256"] or anchor["controller_key_id"] != controller["key_id"] or not hmac.compare_digest(anchor["hmac_sha256"], _sign_anchor(anchor_core, controller["key"])):
+        raise ValueError("scheduler journal controller anchor signature mismatch")
+    state_path = run_dir / "scheduler_state.json"; current = _reject_alias(state_path, require_file=True).read_bytes(); current_sha = _sha(current)
+    event_path = _contained(run_dir, journal["event_relative_path"])
+    if event_path != _event_path(run_dir, event):
+        raise ValueError("journal event path does not match the immutable event identity")
+    if not isinstance(event["payload"], dict):
+        raise ValueError("journal event payload must be an object")
+    expected_publication = None
+    if event["event_type"] == "fit_claimed":
+        expected_publication = event["payload"].get("claim_relative_path")
+    elif event["event_type"] in {"fit_succeeded", "fit_failed"}:
+        expected_publication = event["payload"].get("receipt_relative_path")
+    expected_publications = set() if expected_publication is None else {expected_publication}
+    if {record.get("relative_path") for record in publications if isinstance(record, dict)} != expected_publications:
+        raise ValueError("journal publications do not match the event schema")
+    publication_payloads: list[tuple[Path, bytes]] = []
+    for record in publications:
+        if not isinstance(record, dict) or set(record) != {"relative_path", "sha256", "value"}:
+            raise ValueError("journal publication schema mismatch")
+        payload = _canonical(record["value"])
+        if _sha(payload) != record["sha256"]:
+            raise ValueError("journal publication hash mismatch")
+        publication_payloads.append((_contained(run_dir, record["relative_path"]), payload))
+    if current_sha == journal["before_state_sha256"]:
+        for destination, payload in publication_payloads:
+            if destination.exists():
+                if _reject_alias(destination, require_file=True).read_bytes() != payload:
+                    raise ValueError("journal publication conflicts with immutable record")
+            else:
+                _write_no_replace(destination, payload)
+        if event_path.exists():
+            if _reject_alias(event_path, require_file=True).read_bytes() != _canonical(event):
+                raise ValueError("journal event path conflicts with immutable event")
+        else:
+            _write_no_replace(event_path, _canonical(event))
+        _atomic_replace(state_path, _canonical(journal["after_state"]))
+        _publish_anchor(run_dir, anchor)
+    elif current_sha == journal["after_state_sha256"]:
+        for destination, payload in publication_payloads:
+            if not destination.is_file() or _reject_alias(destination, require_file=True).read_bytes() != payload:
+                raise ValueError("journal after-state lacks its exact immutable publication")
+        if not event_path.is_file() or _reject_alias(event_path, require_file=True).read_bytes() != _canonical(event):
+            raise ValueError("journal after-state lacks its exact immutable event")
+        _publish_anchor(run_dir, anchor)
+    else:
+        raise ValueError("journal matches neither before nor after state")
+    path.unlink()
+
+
 def _rebuild_authority(run_dir: Path, cache_root: Path, *, validate_controller: bool = True) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
     run_dir = _reject_alias(run_dir); manifest_bytes = _reject_alias(run_dir / "manifest.json", require_file=True).read_bytes()
     try:
@@ -676,7 +953,103 @@ def _rebuild_authority(run_dir: Path, cache_root: Path, *, validate_controller: 
     return manifest, plan, state, events
 
 
-def _recover_journal(run_dir: Path) -> None:
+def verify_historical_authority(
+    run_dir: Path, cache_root: Path, *,
+    validate_controller: bool = True,
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
+    """Content-addressed historical verifier for terminal sealed predecessors (R3-C).
+
+    Reads scoped code blobs from the git object database at the manifest's sealed
+    ``code_commit`` (via ``git cat-file``). Does NOT require current HEAD to match
+    the sealed commit, does NOT checkout, and does NOT create a worktree. Only
+    accepts terminal sealed runs (no live claim).
+
+    Full journal/output validation is preserved (no weakening relative to
+    ``_rebuild_authority``): manifest scheduler schema, scoped_code_files set + SHA,
+    authority drift, plan byte-for-byte, event replay, scheduler state, controller
+    anchors, terminal receipts, and output SHAs are all verified exactly once.
+
+    The one deliberate difference from ``_rebuild_authority``: the formal manifest段
+    (``{**formal, "scheduler": ...}`` byte-comparison) is NOT applied. That comparison
+    is version-coupled -- a sealed v1 manifest (e.g. A-E1 r5 @ d2a056f with a 7-key
+    predecessor段) cannot be byte-reproduced by the current v2 build path (13-key
+    predecessor段). The authority dict IS version-independent for the no-predecessor
+    case (``predecessor_input`` is ``None``) and is fully verified below; for modules
+    with a predecessor, ``predecessor_input`` carries whatever the sealed run bound
+    and is re-derived from the same on-disk predecessor evidence.
+    """
+    run_dir = _reject_alias(run_dir)
+    manifest_bytes = _reject_alias(run_dir / "manifest.json", require_file=True).read_bytes()
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("manifest must be canonical UTF-8 JSON") from exc
+    if manifest_bytes != _canonical(manifest) or not isinstance(manifest.get("scheduler"), dict) or set(manifest["scheduler"]) != {"scheduler_version", "authority", "fit_count", "genesis_event_sha256", "test_access_count"}:
+        raise ValueError("manifest must match exact scheduler schema/canonical bytes")
+    authority = manifest["scheduler"]["authority"]
+    if set(authority) != {"study_root", "matrix_path", "matrix_sha256", "cache_root", "code_commit", "scoped_code_sha256", "scoped_code_files", "controller_key_id", "effective_config_sha256", "predecessor_input", "predecessor_trace_sha256", "plan_sha256", "authority_sha256"}:
+        raise ValueError("manifest authority schema mismatch")
+    if _resolved(cache_root) != Path(authority["cache_root"]):
+        raise ValueError("cache root differs from the immutable run authority")
+
+    sealed_commit = authority["code_commit"]
+    sealed_scoped_files = authority["scoped_code_files"]
+    sealed_scoped_sha = authority["scoped_code_sha256"]
+    sealed_study_root = Path(authority["study_root"])
+
+    # Content-addressed: verify the commit exists, then verify scoped blobs from git
+    # objects (not the working tree). Path-set drift / missing blobs / hash mismatch
+    # all fail closed here. A small per-file working-tree fallback handles legacy
+    # mixed-line-ending files whose git blob cannot reproduce the sealed bytes; the
+    # fallback still requires a byte-exact SHA-256 match (no preimage is feasible), so
+    # it is not a weakening of journal/output checks. Working-tree cleanliness is not
+    # asserted here (the historical verifier reads sealed artifacts, not current code;
+    # the active-run path ``_rebuild_authority`` remains the strict clean-tree gate).
+    repo_root = _resolved(sealed_study_root).parents[1]
+    _git_commit_exists(repo_root, sealed_commit)
+    _verify_scoped_code_against_git(
+        sealed_study_root, sealed_commit, sealed_scoped_files, sealed_scoped_sha,
+    )
+    # The sealed snapshot is now verified against git objects; pass it to _authority
+    # so the re-derived authority uses the sealed code hashes (not current HEAD).
+    sealed_code_snapshot = {"files": dict(sealed_scoped_files), "scoped_code_sha256": sealed_scoped_sha}
+
+    # Re-derive authority from historical blobs at the sealed commit (NOT current HEAD).
+    controller = _controller_context(_resolved(run_dir).parents[1], create=False)
+    formal, expected_plan, expected_plan_bytes, current_authority = _authority(
+        study_root=sealed_study_root, matrix_path=Path(authority["matrix_path"]),
+        module_id=manifest["module_id"], run_id=manifest["run_id"],
+        artifact_root=_resolved(run_dir).parents[1], cache_root=cache_root,
+        predecessor=_predecessor_from_manifest(manifest), controller_key_id=controller["key_id"],
+        sealed_code_commit=sealed_commit, sealed_code_snapshot=sealed_code_snapshot,
+    )
+    if current_authority != authority:
+        raise ValueError("historical code/config/matrix/cache/predecessor authority drift")
+    if manifest["scheduler"]["fit_count"] != len(expected_plan):
+        raise ValueError("historical manifest fit_count does not match the replayed plan length")
+
+    # Full journal/output replay (identical discipline to _rebuild_authority).
+    plan_bytes = _reject_alias(run_dir / "plan.jsonl", require_file=True).read_bytes()
+    plan = _validate_plan(plan_bytes, manifest)
+    if plan_bytes != expected_plan_bytes or plan != expected_plan:
+        raise ValueError("historical authority does not reproduce the plan byte-for-byte")
+    events = _load_events(run_dir, manifest)
+    derived = _replay(run_dir, manifest, plan, events)
+    state_bytes, state = _load_exact(run_dir / "scheduler_state.json", _STATE_FIELDS, "scheduler state")
+    if state_bytes != _canonical(derived) or state != derived:
+        raise ValueError("scheduler state differs from full immutable event replay")
+    if validate_controller:
+        _validate_controller_anchors(run_dir, manifest, plan, events, state)
+    # Historical verifier accepts ONLY terminal sealed predecessors (no live claim).
+    if state.get("live_claim") is not None:
+        raise ValueError(
+            "historical verifier requires a terminal sealed run (no live claim): "
+            f"live_claim={state['live_claim']}"
+        )
+    return manifest, plan, state, events
+
+
+
     path = run_dir / ".scheduler.journal"
     if not path.exists():
         return

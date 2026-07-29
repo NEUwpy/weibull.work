@@ -146,6 +146,15 @@ def test_run_module_rejects_non_a_e1_modules(tmp_path):
 
 _D8_RUN_ID = "G3-AE1-formal-v1"
 _D8_CODE_COMMIT = "c" * 40
+# R3-C v2 authority triple: synthetic SHA-256 values for the predecessor's sealed
+# formal-run authority (scoped_code_sha256 + authority_sha256). The fixtures underlying
+# these helpers publish a staged-only manifest (no ``scheduler.authority`` block), so the
+# values cannot be read from disk; instead they are deterministic synthetic SHA-256s that
+# satisfy ``_validate_predecessor`` v2 (non-None + SHA-256 format). Production runs read the
+# real values from the predecessor manifest's ``scheduler.authority`` block (see
+# ``run_study02a._build_predecessor_trace``); these constants are fixture-only.
+_D8_SCOPED_CODE_SHA256 = "a" * 64
+_D8_AUTHORITY_SHA256 = "b" * 64
 
 
 def _synth_point_records(fit_id: str, seed: int, base: float):
@@ -408,6 +417,8 @@ def _d8_predecessor_trace(ev):
         ledger_path=ev["ledger_path"], selection_code_commit=_D8_CODE_COMMIT,
         staged_ledger_path=ev.get("staged_ledger_path"),
         staged_ledger_sha256=ev.get("staged_ledger_sha256"),
+        scoped_code_sha256=_D8_SCOPED_CODE_SHA256,
+        authority_sha256=_D8_AUTHORITY_SHA256,
     )
 
 
@@ -489,7 +500,7 @@ def test_build_module_pre_unseal_bundle_rebuilds_provenance_internally(tmp_path,
     fit_ids = list(evaluations.keys())
     winner_id = next(r["candidate_id"] for r in ev["records"] if r["selected"])
     manifest_payload = {
-        "manifest_version": "study02-formal-v1", "module_id": "A-E1", "run_id": _D8_RUN_ID,
+        "manifest_version": "study02-formal-v2", "module_id": "A-E1", "run_id": _D8_RUN_ID,
         "code_commit": _D8_CODE_COMMIT,
         "base_protocol": {"id": "A-G2-v1", "sha256": "f82e078051d760d7c9c11ece54b8fae7360c6db1aef3229a97b4fcd92ae01a11"},
         "base_search": {"id": "A-G2-search-v1", "sha256": "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed889534ed4f6ab5e0ca13"},
@@ -506,7 +517,8 @@ def test_build_module_pre_unseal_bundle_rebuilds_provenance_internally(tmp_path,
                         "selection_receipt_sha256": "none", "selection_ledger_path": "none",
                         "selection_staged_ledger_path": "none",
                         "selection_staged_ledger_sha256": "none",
-                        "resolved_baseline_route": "none"},
+                        "resolved_baseline_route": "none",
+                        "code_commit": "none", "scoped_code_sha256": "none", "authority_sha256": "none"},
     }
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(_json.dumps(manifest_payload, sort_keys=True) + "\n", encoding="utf-8")
@@ -1275,7 +1287,16 @@ def test_formal_resolve_deferred_cli_a_e3_from_a_e1(tmp_path):
         receipt_path=pred_dir / "selection_receipt.json", ledger_path=pred_dir / "selection_ledger.jsonl",
         module_id="A-E1", run_id=pred_run_id, trace_path=trace_path, trace_sha256=trace_sha,
         effective_config=EFFECTIVE, code_commit=_D8_CODE_COMMIT)
-    (pred_dir / "manifest.json").write_text(json.dumps({"code_commit": _D8_CODE_COMMIT}, sort_keys=True) + "\n", encoding="utf-8")
+    (pred_dir / "manifest.json").write_text(json.dumps({
+        "code_commit": _D8_CODE_COMMIT,
+        # R3-C v2: the CLI's ``_build_predecessor_trace`` reads the authority triple from the
+        # predecessor manifest's ``scheduler.authority`` block. Synthetic SHA-256s stand in for
+        # the sealed formal-run authority (this fixture publishes a staged-only predecessor).
+        "scheduler": {"authority": {
+            "scoped_code_sha256": _D8_SCOPED_CODE_SHA256,
+            "authority_sha256": _D8_AUTHORITY_SHA256,
+        }},
+    }, sort_keys=True) + "\n", encoding="utf-8")
     # Control-plane v2: publish a staged ledger so the CLI binds its SHA through PredecessorTrace.
     _publish_minimal_staged_ledger(
         tmp_path=pred_dir, module_id="A-E1", run_id=pred_run_id, trace_sha256=trace_sha,
@@ -1419,7 +1440,7 @@ def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id=
     (run_dir / "plan.jsonl").write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in plan_row_objs), encoding="utf-8")
     manifest = {
-        "manifest_version": "study02-formal-v1", "module_id": "A-E1", "run_id": run_id,
+        "manifest_version": "study02-formal-v2", "module_id": "A-E1", "run_id": run_id,
         "code_commit": _D8_CODE_COMMIT,
         "base_protocol": {"id": "A-G2-v1", "sha256": "f82e078051d760d7c9c11ece54b8fae7360c6db1aef3229a97b4fcd92ae01a11"},
         "base_search": {"id": "A-G2-search-v1", "sha256": "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed889534ed4f6ab5e0ca13"},
@@ -1436,7 +1457,8 @@ def _accredit_real_matrix_run(tmp_path, monkeypatch, *, failed_fit=None, run_id=
                         "selection_receipt_sha256": "none", "selection_ledger_path": "none",
                         "selection_staged_ledger_path": "none",
                         "selection_staged_ledger_sha256": "none",
-                        "resolved_baseline_route": "none"},
+                        "resolved_baseline_route": "none",
+                        "code_commit": "none", "scoped_code_sha256": "none", "authority_sha256": "none"},
     }
     (run_dir / "manifest.json").write_text(json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8")
     # publish selection via the real engine path -> publishes the RELOCATED point evidence
@@ -3506,7 +3528,15 @@ def _build_a_e1_pred_trace(
     run_dir: Path, trace_sha: str, staged_ledger_path: Path | None,
     staged_ledger_sha: str | None, **overrides,
 ) -> PredecessorTrace:
-    """Build an A-E1 PredecessorTrace bound to the published A-E1 staged run, with overrides."""
+    """Build an A-E1 PredecessorTrace bound to the published A-E1 staged run, with overrides.
+
+    The R3-C v2 authority triple (``scoped_code_sha256`` / ``authority_sha256``) defaults to
+    the fixture's synthetic SHA-256s: the staged-only predecessor manifest published by
+    ``_publish_staged_run`` has no ``scheduler.authority`` block to read from, so synthetic
+    values stand in for the sealed formal-run authority (``_validate_predecessor`` v2 only
+    checks non-None + SHA-256 format). Tests that need to bind specific authority values
+    (e.g. continuity-mismatch fail-closed cases) override them via ``**overrides``.
+    """
     fields: dict = dict(
         module_id="A-E1",
         run_id=_STAGED_RUN_ID,
@@ -3518,6 +3548,8 @@ def _build_a_e1_pred_trace(
         selection_code_commit=_D8_CODE_COMMIT,
         staged_ledger_path=staged_ledger_path,
         staged_ledger_sha256=staged_ledger_sha,
+        scoped_code_sha256=_D8_SCOPED_CODE_SHA256,
+        authority_sha256=_D8_AUTHORITY_SHA256,
     )
     fields.update(overrides)
     return PredecessorTrace(**fields)
@@ -4597,7 +4629,14 @@ def _build_a_e3_pred_trace(
     Mirrors :func:`_build_a_e1_pred_trace` for A-E3: reads the selection trace SHA from the
     published receipt, the receipt/ledger SHAs from disk, and the code_commit from the run
     manifest. ``staged_ledger_path`` / ``staged_ledger_sha`` default to the on-disk
-    ``staged_resolution_ledger.jsonl`` when present (A-E3 publishes one)."""
+    ``staged_resolution_ledger.jsonl`` when present (A-E3 publishes one).
+
+    The R3-C v2 authority triple (``scoped_code_sha256`` / ``authority_sha256``) is read from
+    the run manifest's ``scheduler.authority`` block when present (real formal runs seal it
+    via the scheduler); otherwise the fixture's synthetic SHA-256s stand in so
+    ``_validate_predecessor`` v2 accept-paths exercise (the staged-only manifest published by
+    the staged driver has no authority block). Tests can override either via ``**overrides``.
+    """
     receipt_path = run_dir / "selection_receipt.json"
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
@@ -4607,6 +4646,11 @@ def _build_a_e3_pred_trace(
             staged_ledger_path = None
     if staged_ledger_sha is None and staged_ledger_path is not None:
         staged_ledger_sha = hashlib.sha256(staged_ledger_path.read_bytes()).hexdigest()
+    authority_block = manifest.get("scheduler", {}).get("authority", {})
+    scoped_code_sha256 = authority_block.get(
+        "scoped_code_sha256", _D8_SCOPED_CODE_SHA256)
+    authority_sha256 = authority_block.get(
+        "authority_sha256", _D8_AUTHORITY_SHA256)
     fields: dict = dict(
         module_id="A-E3",
         run_id=run_id,
@@ -4618,6 +4662,8 @@ def _build_a_e3_pred_trace(
         selection_code_commit=str(manifest["code_commit"]),
         staged_ledger_path=staged_ledger_path,
         staged_ledger_sha256=staged_ledger_sha,
+        scoped_code_sha256=scoped_code_sha256,
+        authority_sha256=authority_sha256,
     )
     fields.update(overrides)
     return PredecessorTrace(**fields)
