@@ -1,4 +1,4 @@
-"""R3-C versioned cross-commit authority tests.
+"""R3-C / R4-5 versioned cross-commit authority tests.
 
 Tests the content-addressed historical verifier (``verify_historical_authority``)
 against:
@@ -7,6 +7,14 @@ against:
 2. Forged / missing git objects (fail-closed).
 3. Forged scoped_code_files hashes (fail-closed).
 4. The version-dispatched predecessor schema (v1 7-key vs v2 13-key).
+5. R4-5 sealed-bytes verification (authority_sha256 self-hash, frozen config/matrix
+   cross-consistency, plan SHA, matrix-row binding, terminal condition).
+
+R4-5 STOP CONDITION: the real r5 run has 3 scoped code files whose sealed SHA-256
+was computed over bytes with MIXED line endings (neither pure LF nor pure CRLF).
+Git stores LF-normalized blobs, so these cannot be reconstructed from git objects
+without a working-tree fallback (which R4-5 forbids). The historical verifier
+fail-closes at the scoped-code gate and reports the exact path + hashes.
 
 Constraints: no real sealed run directory is modified; the r5 manifest is read
 exactly once and its bytes are never written.
@@ -30,7 +38,12 @@ if str(ROOT / "python") not in sys.path:
     sys.path.insert(0, str(ROOT / "python"))
 
 from study02a.formal_scheduler import (  # noqa: E402
+    _canonical,
+    _crlf_normalize,
     _git_commit_exists,
+    _git_list_py_blobs,
+    _git_read_paths_batch,
+    _sha,
     _verify_scoped_code_against_git,
     verify_historical_authority,
 )
@@ -47,29 +60,175 @@ def _r5_available() -> bool:
     return (_R5_RUN_DIR / "manifest.json").is_file()
 
 
+def _load_r5_manifest() -> dict:
+    return json.loads((_R5_RUN_DIR / "manifest.json").read_bytes().decode("utf-8"))
+
+
+def _build_lf_scoped_files_from_git() -> dict[str, str]:
+    """Build a ``scoped_code_files`` dict where every per-file hash is the LF form
+    of the git blob at ``_R5_COMMIT``. Used to isolate aggregate-level tests from
+    the 3 mixed-line-ending files whose sealed hash is neither LF nor CRLF."""
+
+    repo_root = STUDY_ROOT.parents[1]
+    code_tree_posix = (STUDY_ROOT.relative_to(repo_root) / "code").as_posix()
+    shared_tree_posix = "python/studies"
+    scoped_to_repo: dict[str, str] = {}
+    all_repo_paths: list[str] = []
+    seen: set[str] = set()
+    for scoped_prefix, tree_posix in (
+        ("study02", code_tree_posix),
+        ("studies", shared_tree_posix),
+    ):
+        for relative_posix, _blob_sha in _git_list_py_blobs(repo_root, _R5_COMMIT, tree_posix):
+            scoped_key = f"{scoped_prefix}/{relative_posix}"
+            repo_path = f"{tree_posix}/{relative_posix}"
+            scoped_to_repo[scoped_key] = repo_path
+            if repo_path not in seen:
+                seen.add(repo_path)
+                all_repo_paths.append(repo_path)
+    contents = _git_read_paths_batch(repo_root, _R5_COMMIT, all_repo_paths)
+    return {key: _sha(contents[path]) for key, path in scoped_to_repo.items()}
+
+
+def _list_unrecoverable_scoped_files(sealed_files: dict[str, str]) -> list[str]:
+    """Return the scoped keys whose sealed hash matches neither the LF git blob
+    nor its deterministic CRLF reconstruction at ``_R5_COMMIT``."""
+
+    repo_root = STUDY_ROOT.parents[1]
+    code_tree_posix = (STUDY_ROOT.relative_to(repo_root) / "code").as_posix()
+    shared_tree_posix = "python/studies"
+    scoped_to_repo: dict[str, str] = {}
+    all_repo_paths: list[str] = []
+    seen: set[str] = set()
+    for scoped_prefix, tree_posix in (
+        ("study02", code_tree_posix),
+        ("studies", shared_tree_posix),
+    ):
+        for relative_posix, _blob_sha in _git_list_py_blobs(repo_root, _R5_COMMIT, tree_posix):
+            scoped_key = f"{scoped_prefix}/{relative_posix}"
+            repo_path = f"{tree_posix}/{relative_posix}"
+            scoped_to_repo[scoped_key] = repo_path
+            if repo_path not in seen:
+                seen.add(repo_path)
+                all_repo_paths.append(repo_path)
+    contents = _git_read_paths_batch(repo_root, _R5_COMMIT, all_repo_paths)
+    unrecoverable: list[str] = []
+    for scoped_key, sealed_hash in sealed_files.items():
+        content = contents[scoped_to_repo[scoped_key]]
+        if _sha(content) == sealed_hash:
+            continue
+        if _sha(_crlf_normalize(content)) == sealed_hash:
+            continue
+        unrecoverable.append(scoped_key)
+    return unrecoverable
+
+
 # ============================================================================
-# 1. Real r5 read-only historical verification (content-addressed).
+# 1. Real r5 read-only historical verification (R4-5 stop condition).
 # ============================================================================
 
 
 @pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
-def test_r3_c_historical_verifier_accepts_real_r5_at_d2a056f():
-    """The content-addressed historical verifier accepts the real A-E1 r5 sealed
-    run at commit d2a056f. Scoped code blobs are read from the git object
-    database (no checkout); the full journal (plan, events, anchors, receipts,
-    output SHAs) is replayed; the run is terminal sealed (no live claim)."""
+def test_r4_5_historical_verifier_rejects_r5_mixed_line_endings():
+    """R4-5 STOP CONDITION: the real A-E1 r5 sealed run at d2a056f has 3 scoped
+    code files whose sealed SHA-256 was computed over bytes with MIXED line
+    endings (a mix of CRLF and lone LF). Git stores LF-normalized blobs, so
+    neither the LF form (git blob as-is) nor the CRLF form (LF->CRLF) can
+    deterministically reconstruct the sealed bytes.
 
-    manifest, plan, state, events = verify_historical_authority(
-        _R5_RUN_DIR, _R5_CACHE_ROOT,
+    The historical verifier fail-closes at the scoped-code gate and reports the
+    exact path + sealed/LF/CRLF hashes. Per R4-5, no working-tree fallback is
+    permitted -- sealed bytes cannot be substituted from the current file."""
+
+    with pytest.raises(ValueError, match="scoped blob hash mismatch") as exc_info:
+        verify_historical_authority(_R5_RUN_DIR, _R5_CACHE_ROOT)
+    message = str(exc_info.value)
+    # The failure must name one of the 3 known unrecoverable files.
+    assert (
+        "studies/mdm_delta/generate_curve_study_data.py" in message
+        or "studies/mle/simulate.py" in message
+        or "studies/wmle/simulate.py" in message
+    ), f"unexpected mismatch path in error: {message}"
+
+
+@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
+def test_r4_5_r5_has_exactly_3_unrecoverable_scoped_files():
+    """Exactly 3 r5 scoped files cannot be recovered from d2a056f git blobs via
+    LF or CRLF. Documents the stop-condition path set for audit."""
+
+    r5_manifest = _load_r5_manifest()
+    sealed_files = r5_manifest["scheduler"]["authority"]["scoped_code_files"]
+    unrecoverable = _list_unrecoverable_scoped_files(sealed_files)
+    assert set(unrecoverable) == {
+        "studies/mdm_delta/generate_curve_study_data.py",
+        "studies/mle/simulate.py",
+        "studies/wmle/simulate.py",
+    }
+
+
+@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
+def test_r4_5_r5_authority_sha256_self_hash_is_valid():
+    """The r5 sealed authority_sha256 matches the self-hash of the authority dict
+    (minus authority_sha256). This is the sealed-bytes integrity guarantee that
+    R4-5 uses in place of re-running _authority/_plan_rows."""
+
+    from study02a.formal_scheduler import _canonical, _sha
+
+    r5_manifest = _load_r5_manifest()
+    authority = r5_manifest["scheduler"]["authority"]
+    authority_without_sha = {k: v for k, v in authority.items() if k != "authority_sha256"}
+    assert authority["authority_sha256"] == _sha(_canonical(authority_without_sha))
+
+
+@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
+def test_r4_5_r5_frozen_config_matrix_cross_consistency():
+    """The r5 sealed authority's matrix_sha256 and effective_config_sha256 agree
+    with the manifest block AND with the frozen repository constants."""
+
+    from study02a.formal_contracts import (
+        APPROVED_EFFECTIVE_CONFIG_SHA256,
+        FROZEN_MATRIX_SHA256,
     )
 
-    assert manifest["module_id"] == "A-E1"
-    assert manifest["code_commit"] == _R5_COMMIT
-    assert manifest["scheduler"]["authority"]["code_commit"] == _R5_COMMIT
+    r5_manifest = _load_r5_manifest()
+    authority = r5_manifest["scheduler"]["authority"]
+    assert authority["matrix_sha256"] == r5_manifest["matrix"]["sha256"]
+    assert authority["matrix_sha256"] == FROZEN_MATRIX_SHA256
+    assert authority["effective_config_sha256"] == r5_manifest["effective_config"]["sha256"]
+    assert authority["effective_config_sha256"] == APPROVED_EFFECTIVE_CONFIG_SHA256
+
+
+@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
+def test_r4_5_r5_plan_sha_and_matrix_row_binding():
+    """The r5 sealed plan bytes hash to the authority's plan_sha256, and every
+    plan row's matrix_row_sha256 matches the frozen matrix row for its fit_id.
+    No _plan_rows / _authority re-derivation is needed."""
+
+    r5_manifest = _load_r5_manifest()
+    authority = r5_manifest["scheduler"]["authority"]
+    plan_bytes = (_R5_RUN_DIR / "plan.jsonl").read_bytes()
+    assert _sha(plan_bytes) == authority["plan_sha256"]
+    plan = [json.loads(line) for line in plan_bytes.decode("utf-8").splitlines()]
+    assert r5_manifest["scheduler"]["fit_count"] == len(plan)
+
+    from study02a.formal_contracts import _open_verified_matrix_evidence
+
+    matrix_evidence = _open_verified_matrix_evidence(Path(authority["matrix_path"]))
+    matrix_rows_by_fit = {row["fit_id"]: row for row in matrix_evidence.rows}
+    for row in plan:
+        matrix_row = matrix_rows_by_fit[row["fit_id"]]
+        assert row["matrix_row_sha256"] == _sha(_canonical(matrix_row))
+
+
+@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
+def test_r4_5_r5_scheduler_state_is_terminal():
+    """The r5 scheduler state is terminal: no live_claim and every fit state is
+    succeeded (no pending/claimed). The R4-5 terminal condition would accept
+    this state (the only reason historical verify fails is the scoped-code gate)."""
+
+    state_bytes = (_R5_RUN_DIR / "scheduler_state.json").read_bytes()
+    state = json.loads(state_bytes.decode("utf-8"))
     assert state["live_claim"] is None
-    # r5 sealed 349 fits, all succeeded, 699 events (genesis + 2*349 terminal).
-    assert manifest["scheduler"]["fit_count"] == len(plan)
-    assert len(events) == 699
     fit_states = set(state["fit_states"].values())
     assert fit_states == {"succeeded"}, f"unexpected non-succeeded states: {fit_states}"
 
@@ -94,24 +253,34 @@ def test_r3_c_git_commit_exists_accepts_d2a056f():
 
 
 # ============================================================================
-# 3. Forged scoped_code_files / path-set drift (fail-closed).
+# 3. Forged scoped_code_files / path-set drift / aggregate SHA (fail-closed).
 # ============================================================================
 
 
-@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
-def test_r3_c_verify_scoped_code_rejects_forged_hash():
+def test_r3_c_verify_scoped_code_rejects_forged_aggregate_sha():
     """``_verify_scoped_code_against_git`` rejects a forged scoped_code_sha256
-    that doesn't match any blob at the sealed commit."""
+    that doesn't match the per-file hashes. Uses LF hashes from git blobs so that
+    all per-file checks pass and only the aggregate check is isolated."""
 
-    r5_manifest = json.loads((_R5_RUN_DIR / "manifest.json").read_bytes().decode("utf-8"))
-    sealed_files = dict(r5_manifest["scheduler"]["authority"]["scoped_code_files"])
-    # Forge a wrong aggregate SHA (flip one character).
-    forged_sha = ("1" if r5_manifest["scheduler"]["authority"]["scoped_code_sha256"][0] != "1"
-                  else "2") + r5_manifest["scheduler"]["authority"]["scoped_code_sha256"][1:]
+    correct_files = _build_lf_scoped_files_from_git()
+    correct_sha = _sha(_canonical(correct_files))
+    forged_sha = ("1" if correct_sha[0] != "1" else "2") + correct_sha[1:]
     with pytest.raises(ValueError, match="scoped_code_sha256 mismatch"):
         _verify_scoped_code_against_git(
-            STUDY_ROOT, _R5_COMMIT, sealed_files, forged_sha,
+            STUDY_ROOT, _R5_COMMIT, correct_files, forged_sha,
         )
+
+
+def test_r3_c_verify_scoped_code_accepts_correct_lf_hashes():
+    """``_verify_scoped_code_against_git`` accepts the git-blob LF hashes with
+    the correctly recomputed aggregate. This proves the LF-only path works when
+    no mixed-line-ending files are present."""
+
+    correct_files = _build_lf_scoped_files_from_git()
+    correct_sha = _sha(_canonical(correct_files))
+    _verify_scoped_code_against_git(
+        STUDY_ROOT, _R5_COMMIT, correct_files, correct_sha,
+    )  # no exception.
 
 
 @pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
@@ -119,7 +288,7 @@ def test_r3_c_verify_scoped_code_rejects_path_set_drift():
     """``_verify_scoped_code_against_git`` rejects when the sealed path set
     doesn't match the git tree at the sealed commit (added/removed file)."""
 
-    r5_manifest = json.loads((_R5_RUN_DIR / "manifest.json").read_bytes().decode("utf-8"))
+    r5_manifest = _load_r5_manifest()
     sealed_files = dict(r5_manifest["scheduler"]["authority"]["scoped_code_files"])
     sealed_sha = r5_manifest["scheduler"]["authority"]["scoped_code_sha256"]
     # Add a fictitious path to the sealed set (path-set drift).
@@ -131,20 +300,15 @@ def test_r3_c_verify_scoped_code_rejects_path_set_drift():
         )
 
 
-@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
 def test_r3_c_verify_scoped_code_rejects_forged_blob_hash():
     """``_verify_scoped_code_against_git`` rejects when a single file's sealed
-    hash is forged (doesn't match the git blob's LF or CRLF form)."""
+    hash is forged (doesn't match the git blob's LF or CRLF form). Uses LF hashes
+    from git blobs as the base so only the forged file fails."""
 
-    r5_manifest = json.loads((_R5_RUN_DIR / "manifest.json").read_bytes().decode("utf-8"))
-    sealed_files = dict(r5_manifest["scheduler"]["authority"]["scoped_code_files"])
-    # Forge one file's hash.
-    first_key = next(iter(sealed_files))
-    forged_files = dict(sealed_files)
+    correct_files = _build_lf_scoped_files_from_git()
+    first_key = next(iter(correct_files))
+    forged_files = dict(correct_files)
     forged_files[first_key] = "f" * 64
-    # Recompute the aggregate to isolate the failure to the per-file check.
-    import hashlib
-    from study02a.formal_scheduler import _sha, _canonical
     forged_aggregate = _sha(_canonical(forged_files))
     with pytest.raises(ValueError, match="blob hash mismatch"):
         _verify_scoped_code_against_git(
@@ -152,8 +316,66 @@ def test_r3_c_verify_scoped_code_rejects_forged_blob_hash():
         )
 
 
+@pytest.mark.skipif(not _r5_available(), reason="real r5 sealed run not available")
+def test_r4_5_no_working_tree_fallback_in_scoped_verifier():
+    """R4-5: ``_verify_scoped_code_against_git`` does NOT read the working tree.
+    Even though the 3 unrecoverable files exist in the working tree and their WT
+    hash matches the sealed hash, the verifier must fail closed (no fallback).
+    This test confirms the source code contains no working-tree read path."""
+
+    import inspect
+
+    source = inspect.getsource(_verify_scoped_code_against_git)
+    assert "wt_path" not in source, "working-tree path leak in scoped verifier"
+    assert "_read_identity_snapshot" not in source, "working-tree read in scoped verifier"
+    assert "_scoped_key_to_working_tree_path" not in source, "working-tree helper in scoped verifier"
+
+
+def test_r4_5_scoped_key_to_working_tree_helper_is_removed():
+    """R4-5: the ``_scoped_key_to_working_tree_path`` helper has been removed
+    from ``formal_scheduler`` (it was only used by the working-tree fallback)."""
+
+    import study02a.formal_scheduler as fs
+
+    assert not hasattr(fs, "_scoped_key_to_working_tree_path")
+
+
 # ============================================================================
-# 4. Version-dispatched predecessor schema (v1 r5 vs v2 new).
+# 4. R4-5: verify_historical_authority does NOT call _authority/_plan_rows.
+# ============================================================================
+
+
+def test_r4_5_historical_verifier_source_has_no_authority_call():
+    """R4-5: ``verify_historical_authority`` source code does not call
+    ``_authority`` or ``_plan_rows`` (current production code must not be used
+    to re-derive or "execute" historical state)."""
+
+    import inspect
+
+    source = inspect.getsource(verify_historical_authority)
+    # The function may reference these names in comments/docstrings; check that
+    # it does not *call* them (no parenthesised invocation as a statement).
+    assert "= _authority(" not in source, "verify_historical_authority calls _authority()"
+    assert "_plan_rows(" not in source, "verify_historical_authority calls _plan_rows()"
+
+
+def test_r4_5_historical_verifier_source_verifies_sealed_bytes():
+    """R4-5: ``verify_historical_authority`` source code contains the sealed-bytes
+    verification checks required by R4-5."""
+
+    import inspect
+
+    source = inspect.getsource(verify_historical_authority)
+    assert "authority_sha256" in source and "self-hash" in source.lower() or "self_hash" in source.lower()
+    assert "FROZEN_MATRIX_SHA256" in source
+    assert "APPROVED_EFFECTIVE_CONFIG_SHA256" in source
+    assert "matrix_row_sha256" in source
+    assert "non_terminal" in source
+    assert "live_claim" in source
+
+
+# ============================================================================
+# 5. Version-dispatched predecessor schema (v1 r5 vs v2 new).
 # ============================================================================
 
 
@@ -218,7 +440,7 @@ def test_r3_c_real_r5_manifest_is_v1_with_7_key_predecessor():
     """The real A-E1 r5 manifest is v1 with the 7-key predecessor段. This is a
     read-only regression guard: R3-C must never rewrite r5's bytes."""
 
-    r5_manifest = json.loads((_R5_RUN_DIR / "manifest.json").read_bytes().decode("utf-8"))
+    r5_manifest = _load_r5_manifest()
     assert r5_manifest["manifest_version"] == "study02-formal-v1"
     from study02a.formal_contracts import _PREDECESSOR_SCHEMA_V1_FIELDS
     assert set(r5_manifest["predecessor"]) == _PREDECESSOR_SCHEMA_V1_FIELDS
