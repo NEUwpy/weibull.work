@@ -2219,7 +2219,7 @@ def _build_a_e3_n_strategy_shared_evaluations(
     *, study_root: Path, run_dir: Path, cache_root: Path, frozen: FrozenConfig,
     effective: EffectiveFormalConfig, matrix_by_fit: Mapping[str, Mapping[str, str]],
     plan_by_fit: Mapping[str, Mapping[str, Any]], fit_states: Mapping[str, str],
-    module_id: str, run_id: str,
+    predecessor_resolved_route: str, module_id: str, run_id: str,
     score_n_strategy_cell: Callable[[str, int, int, str], FitEvaluation] | None = None,
 ) -> dict[SupportKey, FitEvaluation]:
     """Build the shared cohort's 50 per-cell evaluations (10 shared x 5 core-n validations).
@@ -2228,6 +2228,16 @@ def _build_a_e3_n_strategy_shared_evaluations(
     validation subsets (sliced from the shared_n batch where ``batch.n == core_n``). The
     resulting support grid is 5 core n x 10 formal seeds -- identical to the fixed cohort's
     grid, so the two pair cell-for-cell under ``fixed_vs_shared_equal_weight``.
+
+    R4-3: production scoring (``score_n_strategy_cell is None``) resolves each shared fit's
+    plan row through ``_resolve_a_e3_scoring_plan_row`` BEFORE checkpoint scoring -- exactly
+    like the fixed cohort. The resolver's ``shared_winner_retrain`` branch recovers the loss +
+    S stage2 winner from the on-disk receipts (``_recover_a_e3_loss_selection`` +
+    ``_recover_a_e3_stage2_selection`` -> ``_resolve_a_e3_shared_retrain_plan_row``), so the
+    concrete route/loss/architecture/optimizer consumed by ``_prepare_fit_inputs`` /
+    ``resolve_model_factory`` never carries a ``selected:S_*`` / ``selected:A-E3_loss``
+    placeholder. A missing/tampered/stage-S receipt fails closed here rather than silently
+    forwarding a placeholder to the model factory.
     """
     matrix_rows = expand_module_matrix(frozen).to_dict("records")
     shared_rows = [
@@ -2246,9 +2256,12 @@ def _build_a_e3_n_strategy_shared_evaluations(
             if score_n_strategy_cell is not None:
                 evaluation = score_n_strategy_cell(fit_id, int(core_n), formal_seed, _A_E3_N_STRATEGY_SHARED)
             else:
-                plan_row = plan_by_fit[fit_id]
+                scoring_row = _resolve_a_e3_scoring_plan_row(
+                    run_dir=run_dir, run_id=run_id, fit_id=fit_id,
+                    matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+                    predecessor_resolved_route=predecessor_resolved_route)
                 evaluation = _score_shared_fit_on_core_n_subset(
-                    run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=plan_row,
+                    run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=scoring_row,
                     frozen=frozen, effective=effective, fit_states=fit_states,
                     core_n=int(core_n), module_id=module_id,
                     decision_id=_A_E3_N_STRATEGY_DECISION_ID, candidate_id=_A_E3_N_STRATEGY_SHARED,
@@ -2348,7 +2361,8 @@ def _resolve_a_e3_n_strategy(
     shared_evals = _build_a_e3_n_strategy_shared_evaluations(
         study_root=study_root, run_dir=run_dir, cache_root=cache_root, frozen=frozen,
         effective=effective, matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
-        fit_states=fit_states, module_id=module_id, run_id=run_id,
+        fit_states=fit_states, predecessor_resolved_route=predecessor_resolved_route,
+        module_id=module_id, run_id=run_id,
         score_n_strategy_cell=score_n_strategy_cell,
     )
     # Both cohorts share the SAME 5 core n x 10 formal seeds support grid. Assert this so

@@ -3915,6 +3915,58 @@ def test_resolve_a_e3_scoring_plan_row_non_concrete_branches_fail_closed_without
             predecessor_resolved_route="V")
 
 
+@pytest.mark.parametrize("attack", ["missing", "stale", "tampered"])
+def test_resolve_a_e3_scoring_plan_row_shared_branch_fail_closed_on_s_receipt_attack(tmp_path, attack):
+    """R4-3 attack: the ``shared_winner_retrain`` branch of ``_resolve_a_e3_scoring_plan_row``
+    fails closed when the prerequisite S stage receipt is missing/stale/tampered.
+
+    R4-3 routes the shared cohort through ``_resolve_a_e3_scoring_plan_row`` (the same
+    resolver the fixed cohort uses), so this is the resolver-level attack surface that any
+    shared-cohort production score must clear BEFORE its checkpoint is forwarded. The branch
+    recovers the global loss + S stage1 top4 + S stage2 winner from on-disk verified
+    receipts; each attack desynchronises the receipt/trace/ledger binding so the resolver
+    raises rather than resolving ``selected:S_architecture`` / ``selected:S_optimizer`` /
+    ``selected:A-E3_loss`` to an attacker-chosen value.
+
+    Vectors (against the S stage2 receipt -- the receipt whose winner selects the S
+    architecture/optimizer the shared cohort forwards):
+      * missing  -- delete the stage2_selection_S receipt/trace/ledger.
+      * stale    -- replace the receipt's selection_trace_sha256 with a cross-run SHA.
+      * tampered -- append a record to the stage2_selection_S trace (SHA mismatch).
+    """
+    pred_run_dir, trace_sha, _spath, _ssha = _publish_v_winning_a_e1_predecessor(tmp_path)
+    run_dir = _publish_a_e3_staged_dir(tmp_path, trace_sha)
+    _build_all_a_e3_staged_receipts(run_dir, tmp_path / "cache", _a_e3_staged_score_fit())
+    plan_rows = [
+        json.loads(line) for line in (run_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()]
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan_rows, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    shared_fit = next(
+        fid for fid, row in matrix_by_fit.items()
+        if str(row["module"]) == "A-E3" and str(row["fit_kind"]) == "shared_winner_retrain")
+
+    if attack == "missing":
+        for ext in ("_receipt.json", "_trace.jsonl", "_ledger.jsonl"):
+            (run_dir / f"stage2_selection_S{ext}").unlink()
+    elif attack == "stale":
+        receipt_path = run_dir / "stage2_selection_S_receipt.json"
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        receipt["selection_trace_sha256"] = "e" * 64  # stale/cross-run SHA
+        receipt_path.write_text(json.dumps(receipt, sort_keys=True) + "\n", encoding="utf-8")
+    elif attack == "tampered":
+        trace_path = run_dir / "stage2_selection_S_trace.jsonl"
+        with trace_path.open("a", encoding="utf-8") as handle:
+            handle.write('{"tampered": true}\n')
+
+    with pytest.raises((FileNotFoundError, ValueError)):
+        fe._resolve_a_e3_scoring_plan_row(
+            run_dir=run_dir, run_id=_A_E3_STAGED_RUN_ID, fit_id=shared_fit,
+            matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+            predecessor_resolved_route="V")
+
+
 def test_a_e3_placeholder_never_reaches_runner_backstop():
     """G.11: the resolve_model_factory / resolve_optimizer_hyperparams / resolve_loss_id guards
     are the final fail-closed backstop -- any selected: / selected_top_ placeholder that escapes
@@ -4354,41 +4406,6 @@ def _stage_a_e3_staged_outputs(
             smallest_id = min(candidate_counts, key=lambda k: candidate_counts[k])
             return (smallest_id, candidate_counts[smallest_id])
     monkeypatch.setattr(_ofc, "select_independent_capacity", _smoke_select_independent_capacity)
-
-    # R3-B production gap workaround: ``_build_a_e3_n_strategy_shared_evaluations`` passes the
-    # UNRESOLVED plan row (``plan_by_fit[fit_id]`` with ``selected:S_architecture`` placeholder)
-    # to ``_score_shared_fit_on_core_n_subset``, which then calls ``_prepare_fit_inputs`` ->
-    # ``resolve_model_factory`` -> raises ``NotImplementedError`` on the placeholder. The FIXED
-    # cohort correctly calls ``_resolve_a_e3_scoring_plan_row`` first (line 2191-2194); the
-    # shared cohort skips this step. Wrap the shared scorer to resolve placeholders so both
-    # cohorts exercise the real ``_score_fit_from_checkpoint`` / ``_prepare_fit_inputs`` chain.
-    _orig_score_shared_on_core_n = fe._score_shared_fit_on_core_n_subset
-
-    def _score_shared_resolved_plan_row(
-        *, run_dir: Path, cache_root: Path, fit_id: str,
-        plan_row: Mapping[str, Any], frozen, effective, fit_states,
-        core_n: int, module_id: str, decision_id: str, candidate_id: str,
-    ) -> FitEvaluation:
-        if str(plan_row.get("architecture", "")).startswith(("selected:", "selected_top_")):
-            _matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
-            _plan_rows = [
-                json.loads(line) for line in (Path(run_dir) / "plan.jsonl").read_text(
-                    encoding="utf-8").splitlines()
-                if line.strip()]
-            _plan_by_fit = fe._validate_plan_against_matrix(
-                plan_rows=_plan_rows, matrix_by_fit=_matrix_by_fit, module_id="A-E3")
-            _pred_route = fe._a_e3_resolved_baseline_route_from_manifest(run_dir)
-            plan_row = fe._resolve_a_e3_scoring_plan_row(
-                run_dir=run_dir, run_id=str(plan_row["run_id"]), fit_id=fit_id,
-                matrix_by_fit=_matrix_by_fit, plan_by_fit=_plan_by_fit,
-                predecessor_resolved_route=_pred_route)
-        return _orig_score_shared_on_core_n(
-            run_dir=run_dir, cache_root=cache_root, fit_id=fit_id, plan_row=plan_row,
-            frozen=frozen, effective=effective, fit_states=fit_states,
-            core_n=core_n, module_id=module_id, decision_id=decision_id,
-            candidate_id=candidate_id,
-        )
-    monkeypatch.setattr(fe, "_score_shared_fit_on_core_n_subset", _score_shared_resolved_plan_row)
 
     # 1. Real scheduler authority setup with predecessor (C1 binding validated here).
     matrix_path = (STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix" / "experiment_matrix.csv").resolve()
