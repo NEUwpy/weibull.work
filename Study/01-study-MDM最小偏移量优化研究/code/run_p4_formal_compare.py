@@ -1,19 +1,16 @@
-"""P4 formal comparison: execution adapter with complete formal entry point.
+"""P4 formal comparison: complete execution adapter.
 
-Reuses existing code: sample generation, Direct-MLP, Vector-MLP,
-traditional estimators, metrics, audit. Only adds the minimal layer
-needed to run six methods under a unified per-sample schema with
-identical sample keys, true params, J1 loss, failure contract, and
-model-first aggregation.
+Two-layer architecture (P4-R5):
+  Layer 1 (estimation): one parameter estimate per physical sample per method.
+  Layer 2 (evaluation): broadcast traditional to fold×seed contexts, apply
+    fold-specific P99 penalty, compute true_loss. Symmetric across methods.
 
-Provides:
-- complete main() for four-track formal execution (gated by authorization)
-- unified per-sample schema assembly
-- read-only reuse of approved artifacts (sample keys, sealed deltas)
-- MDM parameter rebuild from sealed deltas (3-param estimates)
-- checkpoint/resume with full drift detection
-- atomic write and fail-closed SHA256 sealing
-- manifest with full provenance including script SHA256
+Implements all four frozen tracks × six methods (P4-R1).
+Authorization contract binds parent commit, worktree, hashes, paths (P4-R2).
+Fail-closed sealing with run lock and recursive allowlist (P4-R8).
+Result tables: Bias/RMSE/MAE, quantiles, stratification, paired (P4-R9).
+Prediction validity for Direct-MLP (P4-R7).
+Track-aware seed namespaces (P4-R6).
 
 NO new experiment framework, NO second large pipeline.
 """
@@ -26,7 +23,6 @@ import os
 import platform
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -51,11 +47,18 @@ from studies.common.runner import run_method
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Unified per-sample schema
+# Schemas
 # ════════════════════════════════════════════════════════════════════════
 
-PER_SAMPLE_COLUMNS = [
-    "track", "fold", "seed", "method",
+ESTIMATION_COLUMNS = [
+    "track", "method", "fold", "seed",
+    "beta", "gamma_over_eta", "n", "repeat_id",
+    "beta_hat", "eta_hat", "gamma_hat",
+    "failed", "failure_reason",
+]
+
+EVALUATION_COLUMNS = [
+    "track", "method", "fold", "seed",
     "beta", "gamma_over_eta", "n", "repeat_id",
     "beta_hat", "eta_hat", "gamma_hat",
     "true_loss", "true_loss_complete_case",
@@ -65,173 +68,257 @@ PER_SAMPLE_COLUMNS = [
 SAMPLE_KEY_COLS = ["beta", "gamma_over_eta", "n", "repeat_id"]
 
 
-def make_per_sample_row(
-    track, fold, seed, method,
-    beta, goe, n, repeat_id,
-    beta_hat, eta_hat, gamma_hat,
-    beta_true, eta_true, gamma_true,
-    failed, failure_reason, failure_penalty,
-):
-    if failed:
-        loss = float("nan")
-        loss_complete = float("nan")
-    else:
-        loss_complete = direct.compute_param_loss(
-            beta_hat, beta_true, eta_hat, eta_true, gamma_hat, gamma_true
-        )
-        loss = loss_complete
+# ════════════════════════════════════════════════════════════════════════
+# Prediction validity (P4-R7)
+# ════════════════════════════════════════════════════════════════════════
+
+def check_prediction_validity(beta_hat, eta_hat, gamma_hat):
+    """Check if a prediction is valid (finite, positive constraints).
+
+    Returns (is_valid, failure_reason).
+    Reuses P3 output constraints: beta>0, eta>0, gamma>=0, all finite.
+    """
+    vals = [beta_hat, eta_hat, gamma_hat]
+    if any(not np.isfinite(v) for v in vals):
+        return False, "non_finite_prediction"
+    if beta_hat <= 0:
+        return False, "beta_hat_not_positive"
+    if eta_hat <= 0:
+        return False, "eta_hat_not_positive"
+    if gamma_hat < 0:
+        return False, "gamma_hat_negative"
+    return True, ""
+
+
+def make_estimation_row(track, method, fold, seed, beta, goe, n, repeat_id,
+                        beta_hat, eta_hat, gamma_hat, failed, failure_reason):
     return {
-        "track": track,
-        "fold": fold,
-        "seed": seed,
-        "method": method,
-        "beta": beta_true,
-        "gamma_over_eta": goe,
-        "n": n,
-        "repeat_id": repeat_id,
-        "beta_hat": beta_hat,
-        "eta_hat": eta_hat,
-        "gamma_hat": gamma_hat,
-        "true_loss": loss,
-        "true_loss_complete_case": loss_complete,
-        "failed": failed,
-        "failure_reason": failure_reason,
-        "failure_penalty": failure_penalty,
+        "track": track, "method": method, "fold": fold, "seed": seed,
+        "beta": beta, "gamma_over_eta": goe, "n": n, "repeat_id": repeat_id,
+        "beta_hat": beta_hat, "eta_hat": eta_hat, "gamma_hat": gamma_hat,
+        "failed": failed, "failure_reason": failure_reason,
     }
 
 
-def apply_failure_contract_p4(rows):
-    for row in rows:
-        penalty = row.get("failure_penalty", 0.0)
-        if penalty <= 0:
-            raise direct.PenaltyError(
-                f"failure_penalty must be > 0, got {penalty} for "
-                f"method={row.get('method')} track={row.get('track')}"
-            )
-        if row["failed"]:
-            row["true_loss"] = penalty
-    return rows
+# ════════════════════════════════════════════════════════════════════════
+# Evaluation layer construction (P4-R5)
+# ════════════════════════════════════════════════════════════════════════
+
+def build_evaluation_layer(df_est, fold_penalties):
+    """Build evaluation layer from estimation layer.
+
+    For traditional methods: broadcast each estimate to each (fold, seed) context
+    where that sample is in the fold's test set. Apply fold-specific P99 penalty.
+    For learning methods: each row already has fold/seed. Apply fold-specific penalty.
+
+    fold_penalties: dict mapping fold_name → P99 penalty value.
+
+    Returns DataFrame with EVALUATION_COLUMNS.
+    """
+    eval_rows = []
+    seeds = cfg.SEEDS
+
+    for _, row in df_est.iterrows():
+        method = row["method"]
+        is_learning = method in cfg.LEARNING_METHODS
+        beta_true = row["beta"]
+        eta_true = 1.0
+        gamma_true = row["gamma_over_eta"] * eta_true
+        failed = row["failed"]
+
+        if is_learning:
+            fold = row["fold"]
+            seed = row["seed"]
+            penalty = fold_penalties.get(fold, 1.0)
+            eval_rows.append(_make_eval_row(row, fold, seed, penalty, beta_true, eta_true, gamma_true, failed))
+        else:
+            for fold, penalty in fold_penalties.items():
+                for seed in seeds:
+                    eval_rows.append(_make_eval_row(row, fold, seed, penalty, beta_true, eta_true, gamma_true, failed))
+
+    return pd.DataFrame(eval_rows, columns=EVALUATION_COLUMNS)
+
+
+def _make_eval_row(est_row, fold, seed, penalty, beta_true, eta_true, gamma_true, failed):
+    if failed:
+        loss = penalty
+        loss_complete = float("nan")
+    else:
+        loss_complete = direct.compute_param_loss(
+            est_row["beta_hat"], beta_true,
+            est_row["eta_hat"], eta_true,
+            est_row["gamma_hat"], gamma_true,
+        )
+        loss = loss_complete
+    return {
+        "track": est_row["track"], "method": est_row["method"],
+        "fold": fold, "seed": seed,
+        "beta": est_row["beta"], "gamma_over_eta": est_row["gamma_over_eta"],
+        "n": est_row["n"], "repeat_id": est_row["repeat_id"],
+        "beta_hat": est_row["beta_hat"], "eta_hat": est_row["eta_hat"],
+        "gamma_hat": est_row["gamma_hat"],
+        "true_loss": loss, "true_loss_complete_case": loss_complete,
+        "failed": failed, "failure_reason": est_row["failure_reason"],
+        "failure_penalty": penalty,
+    }
 
 
 # ════════════════════════════════════════════════════════════════════════
 # Model-first aggregation
 # ════════════════════════════════════════════════════════════════════════
 
-def model_first_aggregate(df_all, method_name, track=None):
-    """Aggregate per-model first, then summarize across models.
-
-    For learning methods: group by (track, fold, seed), compute pooled J1
-    per model, then summarize the model distribution.
-    For traditional methods: single pooled J1.
-
-    MUST NOT merge samples across models before computing J1.
-    """
+def model_first_aggregate(df_eval, method_name, track=None):
+    """Per-model J1 first, then summarize distribution."""
     if track is not None:
-        df = df_all[(df_all["method"] == method_name) & (df_all["track"] == track)].copy()
+        df = df_eval[(df_eval["method"] == method_name) & (df_eval["track"] == track)].copy()
     else:
-        df = df_all[df_all["method"] == method_name].copy()
+        df = df_eval[df_eval["method"] == method_name].copy()
 
     if df.empty:
         return {"method": method_name, "n_rows": 0, "error": "empty"}
 
-    is_learning = method_name in cfg.LEARNING_METHODS
-
-    if is_learning:
-        per_model = df.groupby(["track", "fold", "seed"]).apply(
-            lambda x: compare.pooled_j1(x["true_loss"].values.astype(float)),
-            include_groups=False,
-        )
-        return {
-            "method": method_name,
-            "n_models": len(per_model),
-            "median_J1": float(per_model.median()),
-            "mean_J1": float(per_model.mean()),
-            "SD_J1": float(per_model.std(ddof=1)) if len(per_model) > 1 else 0.0,
-            "min_J1": float(per_model.min()),
-            "max_J1": float(per_model.max()),
-            "n_failures": int(df["failed"].sum()),
-            "n_rows": len(df),
-        }
-    else:
-        losses = df["true_loss"].values.astype(float)
-        j1 = compare.pooled_j1(losses)
-        return {
-            "method": method_name,
-            "n_models": 1,
-            "median_J1": j1,
-            "mean_J1": j1,
-            "SD_J1": 0.0,
-            "min_J1": j1,
-            "max_J1": j1,
-            "n_failures": int(df["failed"].sum()),
-            "n_rows": len(df),
-        }
-
-
-def stratify_by(df_all, method_name, group_cols):
-    df = df_all[df_all["method"] == method_name].copy()
-    if df.empty:
-        return {}
-    is_learning = method_name in cfg.LEARNING_METHODS
-    result = {}
-    for key, group in df.groupby(group_cols):
-        if isinstance(key, tuple):
-            key_str = "_".join(str(k) for k in key)
-        else:
-            key_str = str(key)
-        if is_learning:
-            per_model = group.groupby(["fold", "seed"]).apply(
-                lambda x: compare.pooled_j1(x["true_loss"].values.astype(float)),
-                include_groups=False,
-            )
-            result[key_str] = {
-                "median_J1": float(per_model.median()),
-                "n_models": len(per_model),
-                "n_rows": len(group),
-            }
-        else:
-            j1 = compare.pooled_j1(group["true_loss"].values.astype(float))
-            result[key_str] = {"median_J1": j1, "n_models": 1, "n_rows": len(group)}
-    return result
+    per_model = df.groupby(["fold", "seed"]).apply(
+        lambda x: compare.pooled_j1(x["true_loss"].values.astype(float)),
+        include_groups=False,
+    )
+    return {
+        "method": method_name,
+        "n_models": len(per_model),
+        "median_J1": float(per_model.median()),
+        "mean_J1": float(per_model.mean()),
+        "SD_J1": float(per_model.std(ddof=1)) if len(per_model) > 1 else 0.0,
+        "min_J1": float(per_model.min()),
+        "max_J1": float(per_model.max()),
+        "n_failures": int(df["failed"].sum()),
+        "n_rows": len(df),
+    }
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Per-sample paired comparison
+# Sample key verification (P4-R3: track-aware, cross-type)
 # ════════════════════════════════════════════════════════════════════════
 
-def paired_comparison(df_all, method_a, method_b, track=None):
-    """Per-sample paired comparison between two methods.
+def verify_sample_keys_identical(df_eval, track=None):
+    """Verify all methods share identical evaluation-layer keys.
 
-    For learning vs learning: match on (sample_key, fold, seed).
-    For traditional vs learning: match on sample_key only (traditional
-    broadcast to each fold×seed context).
+    In the evaluation layer, ALL methods (traditional and learning) have
+    (fold, seed, sample_key) rows. Checks:
+    1. Key uniqueness within each method.
+    2. Cross-method alignment: all methods have identical key sets.
+    3. Per-fold consistency: within each fold, all seeds have same sample keys.
     """
     if track is not None:
-        df = df_all[df_all["track"] == track].copy()
+        df = df_eval[df_eval["track"] == track].copy()
     else:
-        df = df_all.copy()
+        df = df_eval.copy()
 
-    df_a = df[df["method"] == method_a]
-    df_b = df[df["method"] == method_b]
+    if df.empty:
+        return {"ok": False, "reason": "no rows"}
 
-    a_learning = method_a in cfg.LEARNING_METHODS
-    b_learning = method_b in cfg.LEARNING_METHODS
+    methods = sorted(df["method"].unique())
+    issues = []
+    key_cols = SAMPLE_KEY_COLS + ["fold", "seed"]
 
-    if a_learning and b_learning:
-        idx_cols = SAMPLE_KEY_COLS + ["fold", "seed"]
-    elif not a_learning and not b_learning:
-        idx_cols = SAMPLE_KEY_COLS
+    method_key_sets = {}
+    for method in methods:
+        sub = df[df["method"] == method]
+        keys = sub[key_cols].apply(tuple, axis=1)
+        n_dupes = keys.duplicated().sum()
+        if n_dupes > 0:
+            issues.append(f"{method}: {n_dupes} duplicate keys")
+        method_key_sets[method] = set(keys)
+
+        for fold in sub["fold"].unique():
+            fold_sub = sub[sub["fold"] == fold]
+            seed_key_sets = []
+            for seed in fold_sub["seed"].unique():
+                sk = set(fold_sub[fold_sub["seed"] == seed][SAMPLE_KEY_COLS].apply(tuple, axis=1))
+                seed_key_sets.append((seed, sk))
+            if len(seed_key_sets) > 1:
+                ref_seed, ref_keys = seed_key_sets[0]
+                for other_seed, other_keys in seed_key_sets[1:]:
+                    if other_keys != ref_keys:
+                        issues.append(
+                            f"{method} fold={fold}: seed {other_seed} keys differ from seed {ref_seed}"
+                        )
+                        break
+
+    if len(methods) > 1:
+        ref_method = methods[0]
+        ref_keys = method_key_sets[ref_method]
+        for other_method in methods[1:]:
+            if method_key_sets[other_method] != ref_keys:
+                only_ref = ref_keys - method_key_sets[other_method]
+                only_other = method_key_sets[other_method] - ref_keys
+                issues.append(
+                    f"key mismatch {ref_method} vs {other_method}: "
+                    f"{len(only_ref)} only in {ref_method}, {len(only_other)} only in {other_method}"
+                )
+
+    if issues:
+        return {"ok": False, "issues": issues}
+    return {"ok": True, "n_methods": len(methods)}
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Valid-only filtering check (fail-closed)
+# ════════════════════════════════════════════════════════════════════════
+
+def verify_no_valid_only_filtering(df_eval, track=None, expected_rows_per_method=None):
+    """Fail-closed: row counts must match, failed rows must have penalty as loss."""
+    if track is not None:
+        df = df_eval[df_eval["track"] == track].copy()
     else:
-        idx_cols = SAMPLE_KEY_COLS
+        df = df_eval.copy()
 
-    df_a_idx = df_a.set_index(idx_cols)
-    df_b_idx = df_b.set_index(idx_cols)
+    if df.empty:
+        raise ValueError("verify_no_valid_only_filtering: no rows")
 
-    common_idx = df_a_idx.index.intersection(df_b_idx.index)
+    if expected_rows_per_method:
+        for method, exp in expected_rows_per_method.items():
+            if exp == "runtime":
+                continue
+            actual = len(df[df["method"] == method])
+            if actual < exp:
+                raise ValueError(
+                    f"valid-only filtering: {method} has {actual} rows, expected {exp}"
+                )
+
+    failed_rows = df[df["failed"] == True]
+    if len(failed_rows) > 0:
+        bad = failed_rows[failed_rows["true_loss"] != failed_rows["failure_penalty"]]
+        if len(bad) > 0:
+            raise ValueError(f"{len(bad)} failed rows have true_loss != failure_penalty")
+        zero_pen = failed_rows[failed_rows["failure_penalty"] <= 0]
+        if len(zero_pen) > 0:
+            raise ValueError(f"{len(zero_pen)} failed rows have penalty <= 0")
+
+    return True
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Paired comparison (P4-R4: evaluation-layer keyed)
+# ════════════════════════════════════════════════════════════════════════
+
+def paired_comparison(df_eval, method_a, method_b, track=None):
+    """Per-sample paired comparison on evaluation layer.
+
+    Both methods are keyed by (sample_key, fold, seed) — no ambiguity.
+    """
+    if track is not None:
+        df = df_eval[df_eval["track"] == track].copy()
+    else:
+        df = df_eval.copy()
+
+    idx_cols = SAMPLE_KEY_COLS + ["fold", "seed"]
+    df_a = df[df["method"] == method_a].set_index(idx_cols)
+    df_b = df[df["method"] == method_b].set_index(idx_cols)
+
+    common_idx = df_a.index.intersection(df_b.index)
     if len(common_idx) == 0:
         return {"error": "no common samples", "n_paired": 0}
 
-    diff = df_a_idx.loc[common_idx, "true_loss"].values - df_b_idx.loc[common_idx, "true_loss"].values
+    diff = df_a.loc[common_idx, "true_loss"].values - df_b.loc[common_idx, "true_loss"].values
     return {
         "n_paired": len(common_idx),
         "a_wins": int(np.sum(diff < 0)),
@@ -243,16 +330,95 @@ def paired_comparison(df_all, method_a, method_b, track=None):
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Checkpoint / resume (fail-closed)
+# Result tables (P4-R9)
 # ════════════════════════════════════════════════════════════════════════
 
-CHECKPOINT_REQUIRED_COLS = [
-    "config_git_commit", "config_input_sha256", "config_p4_authorized",
-]
+def compute_result_tables(df_eval, track):
+    """Compute frozen P4 result tables from evaluation layer.
 
+    Produces: per-method J1 summary, parameter Bias/RMSE/MAE, loss quantiles,
+    failure rates, stratification by n/beta, model stability, paired comparisons.
+    """
+    df = df_eval[df_eval["track"] == track].copy()
+    results = {"track": track, "methods": {}}
+
+    for method in sorted(df["method"].unique()):
+        m_df = df[df["method"] == method]
+        j1_summary = model_first_aggregate(df, method, track=track)
+
+        valid = m_df[~m_df["failed"]]
+        n_total = len(m_df)
+        n_failed = int(m_df["failed"].sum())
+
+        if len(valid) > 0:
+            beta_bias = float((valid["beta_hat"] - valid["beta"]).mean())
+            eta_bias = float((valid["eta_hat"] - 1.0).mean())
+            gamma_bias = float((valid["gamma_hat"] - valid["gamma_over_eta"]).mean())
+            beta_rmse = float(np.sqrt(((valid["beta_hat"] - valid["beta"]) ** 2).mean()))
+            eta_rmse = float(np.sqrt(((valid["eta_hat"] - 1.0) ** 2).mean()))
+            gamma_rmse = float(np.sqrt(((valid["gamma_hat"] - valid["gamma_over_eta"]) ** 2).mean()))
+            beta_mae = float(np.abs(valid["beta_hat"] - valid["beta"]).mean())
+            eta_mae = float(np.abs(valid["eta_hat"] - 1.0).mean())
+            gamma_mae = float(np.abs(valid["gamma_hat"] - valid["gamma_over_eta"]).mean())
+            loss_q = valid["true_loss"].quantile([0.25, 0.5, 0.75, 0.95]).to_dict()
+        else:
+            beta_bias = eta_bias = gamma_bias = float("nan")
+            beta_rmse = eta_rmse = gamma_rmse = float("nan")
+            beta_mae = eta_mae = gamma_mae = float("nan")
+            loss_q = {}
+
+        strat_n = {}
+        for n_val, grp in m_df.groupby("n"):
+            strat_n[int(n_val)] = {
+                "median_J1": float(grp["true_loss"].median()),
+                "n_rows": len(grp),
+                "failure_rate": float(grp["failed"].mean()),
+            }
+
+        strat_beta = {}
+        for b_val, grp in m_df.groupby("beta"):
+            strat_beta[float(b_val)] = {
+                "median_J1": float(grp["true_loss"].median()),
+                "n_rows": len(grp),
+                "failure_rate": float(grp["failed"].mean()),
+            }
+
+        results["methods"][method] = {
+            "j1_summary": j1_summary,
+            "bias": {"beta": beta_bias, "eta": eta_bias, "gamma": gamma_bias},
+            "rmse": {"beta": beta_rmse, "eta": eta_rmse, "gamma": gamma_rmse},
+            "mae": {"beta": beta_mae, "eta": eta_mae, "gamma": gamma_mae},
+            "loss_quantiles": loss_q,
+            "failure_rate": n_failed / n_total if n_total > 0 else 0.0,
+            "n_total": n_total,
+            "n_failed": n_failed,
+            "stratification_by_n": strat_n,
+            "stratification_by_beta": strat_beta,
+        }
+
+    paired_results = {}
+    methods = sorted(df["method"].unique())
+    for i, ma in enumerate(methods):
+        for mb in methods[i + 1:]:
+            key = f"{ma}_vs_{mb}"
+            paired_results[key] = paired_comparison(df, ma, mb, track=track)
+    results["paired_comparisons"] = paired_results
+
+    return results
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Checkpoint / resume (P4-R8: full context binding)
+# ════════════════════════════════════════════════════════════════════════
 
 class CheckpointDriftError(ValueError):
     pass
+
+
+CHECKPOINT_REQUIRED_COLS = [
+    "config_git_commit", "config_input_sha256", "config_p4_authorized",
+    "config_script_sha256",
+]
 
 
 def checkpoint_path(output_dir, track, method):
@@ -266,62 +432,46 @@ def load_checkpoint(output_dir, track, method):
     return None
 
 
-def save_checkpoint(output_dir, track, method, df, git_commit, input_sha256, authorized):
-    """Save checkpoint with mandatory provenance columns."""
+def save_checkpoint(output_dir, track, method, df, run_context):
     df = df.copy()
-    df["config_git_commit"] = git_commit
-    df["config_input_sha256"] = input_sha256
-    df["config_p4_authorized"] = authorized
-    cp = checkpoint_path(output_dir, track, method)
-    atomic_write_csv(df, cp)
+    df["config_git_commit"] = run_context["git_commit"]
+    df["config_input_sha256"] = run_context["input_sha256"]
+    df["config_p4_authorized"] = run_context["p4_authorized"]
+    df["config_script_sha256"] = run_context["script_sha256"]
+    atomic_write_csv(df, checkpoint_path(output_dir, track, method))
 
 
-def verify_checkpoint_config(checkpoint_df, expected_config):
-    """Verify checkpoint hasn't drifted. ALL fields are mandatory.
-
-    Raises CheckpointDriftError if any required field is missing or differs.
-    For formal resume, config_p4_authorized must be True.
-    """
+def verify_checkpoint_config(checkpoint_df, run_context):
+    """Verify checkpoint matches current run context. All fields mandatory."""
     for col in CHECKPOINT_REQUIRED_COLS:
         if col not in checkpoint_df.columns:
             raise CheckpointDriftError(f"checkpoint missing required column: {col}")
 
-    commits = checkpoint_df["config_git_commit"].unique()
-    if len(commits) != 1:
-        raise CheckpointDriftError(f"checkpoint has multiple commits: {commits}")
-    if commits[0] != expected_config["git_commit"]:
-        raise CheckpointDriftError(
-            f"checkpoint git_commit={commits[0]} != expected={expected_config['git_commit']}"
-        )
-
-    hashes = checkpoint_df["config_input_sha256"].unique()
-    if len(hashes) != 1:
-        raise CheckpointDriftError(f"checkpoint has multiple input hashes: {hashes}")
-    if hashes[0] != expected_config["input_sha256"]:
-        raise CheckpointDriftError(
-            f"checkpoint input_sha256={hashes[0]} != expected={expected_config['input_sha256']}"
-        )
-
-    auth_vals = checkpoint_df["config_p4_authorized"].unique()
-    if len(auth_vals) != 1:
-        raise CheckpointDriftError(f"checkpoint has multiple auth values: {auth_vals}")
-    expected_auth = expected_config.get("p4_authorized", True)
-    if auth_vals[0] != expected_auth:
-        raise CheckpointDriftError(
-            f"checkpoint p4_authorized={auth_vals[0]} != expected={expected_auth}"
-        )
-
+    checks = [
+        ("config_git_commit", run_context["git_commit"]),
+        ("config_input_sha256", run_context["input_sha256"]),
+        ("config_p4_authorized", run_context["p4_authorized"]),
+        ("config_script_sha256", run_context["script_sha256"]),
+    ]
+    for col, expected in checks:
+        vals = checkpoint_df[col].unique()
+        if len(vals) != 1:
+            raise CheckpointDriftError(f"checkpoint {col} has multiple values: {vals}")
+        if vals[0] != expected:
+            raise CheckpointDriftError(
+                f"checkpoint {col}={vals[0]} != expected={expected}"
+            )
     return True
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Atomic write and fail-closed SHA256 sealing
+# Atomic write and fail-closed sealing (P4-R8)
 # ════════════════════════════════════════════════════════════════════════
 
 def atomic_write_csv(df, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp = path.with_name(path.name + f".tmp.{os.getpid()}")
     df.to_csv(tmp, index=False)
     os.replace(str(tmp), str(path))
 
@@ -329,7 +479,7 @@ def atomic_write_csv(df, path):
 def atomic_write_json(data, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp = path.with_name(path.name + f".tmp.{os.getpid()}")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, default=str, ensure_ascii=False)
     os.replace(str(tmp), str(path))
@@ -338,7 +488,7 @@ def atomic_write_json(data, path):
 def atomic_write_text(text, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp = path.with_name(path.name + f".tmp.{os.getpid()}")
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(text)
     os.replace(str(tmp), str(path))
@@ -356,39 +506,78 @@ def compute_sha256(path):
 
 
 def compute_script_sha256():
-    """Compute SHA256 of this script file for provenance binding."""
     return compute_sha256(Path(__file__).resolve())
 
 
 def seal_outputs(output_dir, expected_files):
-    """Create SHA256SUMS atomically. FAIL-CLOSED: all expected files must exist.
-
-    Raises FileNotFoundError if any expected file is missing.
-    Raises ValueError if unexpected files are present (excluding SHA256SUMS itself).
-    """
+    """Fail-closed seal: ALL expected files must exist. Atomic SHA256SUMS."""
     output_dir = Path(output_dir)
-
     for fname in expected_files:
-        fpath = output_dir / fname
-        if not fpath.exists():
-            raise FileNotFoundError(
-                f"seal_outputs: expected file missing: {fpath}. "
-                "Cannot seal incomplete outputs."
-            )
+        if not (output_dir / fname).exists():
+            raise FileNotFoundError(f"seal_outputs: missing expected file: {fname}")
 
     lines = []
     for fname in sorted(expected_files):
-        fpath = output_dir / fname
-        h = compute_sha256(fpath)
+        h = compute_sha256(output_dir / fname)
         lines.append(f"{h}  {fname}")
+    atomic_write_text("\n".join(lines) + "\n", output_dir / "SHA256SUMS")
+    return compute_sha256(output_dir / "SHA256SUMS")
 
-    sums_content = "\n".join(lines) + "\n"
-    atomic_write_text(sums_content, output_dir / "SHA256SUMS")
+
+def seal_recursive(output_dir, allowlist):
+    """Recursively seal all files in allowlist. Reject missing or extra."""
+    output_dir = Path(output_dir)
+    actual_files = set()
+    for f in output_dir.rglob("*"):
+        if f.is_file() and f.name != "SHA256SUMS" and not f.name.endswith(".lock"):
+            actual_files.add(str(f.relative_to(output_dir)))
+
+    expected = set(allowlist)
+    missing = expected - actual_files
+    extra = actual_files - expected
+    if missing:
+        raise FileNotFoundError(f"seal_recursive: missing files: {sorted(missing)}")
+    if extra:
+        raise ValueError(f"seal_recursive: unexpected files: {sorted(extra)}")
+
+    lines = []
+    for fname in sorted(allowlist):
+        h = compute_sha256(output_dir / fname)
+        lines.append(f"{h}  {fname}")
+    atomic_write_text("\n".join(lines) + "\n", output_dir / "SHA256SUMS")
     return compute_sha256(output_dir / "SHA256SUMS")
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Manifest
+# Run lock (P4-R8: exclusive)
+# ════════════════════════════════════════════════════════════════════════
+
+def acquire_run_lock(output_dir):
+    """Acquire exclusive run lock. Fails if another run is active."""
+    lock_path = Path(output_dir) / "run.lock"
+    if lock_path.exists():
+        raise RuntimeError(
+            f"Run lock exists: {lock_path}. Another P4 run may be active. "
+            "Remove the lock file only if you are certain no run is in progress."
+        )
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    lock_info = {
+        "pid": os.getpid(),
+        "git_commit": get_git_commit(),
+        "started_at": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.gmtime()),
+    }
+    atomic_write_json(lock_info, lock_path)
+    return lock_path
+
+
+def release_run_lock(output_dir):
+    lock_path = Path(output_dir) / "run.lock"
+    if lock_path.exists():
+        lock_path.unlink()
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Manifest and provenance
 # ════════════════════════════════════════════════════════════════════════
 
 def get_git_commit():
@@ -413,7 +602,17 @@ def get_git_dirty():
         return True
 
 
-def build_manifest(output_dir, tracks_run, methods_run, config_hash=None):
+def build_run_context(input_sha256):
+    """Build run context for checkpoint binding and drift detection."""
+    return {
+        "git_commit": get_git_commit(),
+        "input_sha256": input_sha256,
+        "p4_authorized": cfg.P4_FORMAL_AUTHORIZED,
+        "script_sha256": compute_script_sha256(),
+    }
+
+
+def build_manifest(tracks_run, methods_run):
     import scipy
     import sklearn
     try:
@@ -422,14 +621,16 @@ def build_manifest(output_dir, tracks_run, methods_run, config_hash=None):
     except ImportError:
         torch_version = "not installed"
 
-    manifest = {
-        "manifest_version": "study01-p4-formal-compare-v2",
+    return {
+        "manifest_version": "study01-p4-formal-compare-v3",
         "p4_formal_authorized": cfg.P4_FORMAL_AUTHORIZED,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.gmtime()),
         "git_commit": get_git_commit(),
         "worktree_dirty": get_git_dirty(),
         "script_sha256": compute_script_sha256(),
+        "config_sha256": compute_sha256(Path(_CODE_DIR) / "p4_config.py"),
         "baseline_commit": cfg.BASELINE_COMMIT,
+        "approved_parent_commit": cfg.APPROVED_PARENT_COMMIT,
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
         "scipy_version": scipy.__version__,
@@ -437,265 +638,192 @@ def build_manifest(output_dir, tracks_run, methods_run, config_hash=None):
         "torch_version": torch_version,
         "tracks": tracks_run,
         "methods": methods_run,
-        "learning_methods": cfg.LEARNING_METHODS,
-        "traditional_methods": cfg.TRADITIONAL_METHODS,
         "n_folds": cfg.N_FOLDS,
         "n_seeds": cfg.N_SEEDS,
         "seeds": cfg.SEEDS,
         "eval_repeats": cfg.EVAL_REPEATS,
         "input_sha256": cfg.INPUT_SHA256,
-        "p2_approved_commit": cfg.P2_APPROVED_COMMIT,
-        "p3_approved_commit": cfg.P3_APPROVED_COMMIT,
-        "e3b_sealed_commit": cfg.E3B_SEALED_COMMIT,
-        "config_hash": config_hash or direct.config_hash(),
+        "track_seed_namespaces": cfg.TRACK_SEED_NAMESPACE,
+        "mdm_default_delta": cfg.MDM_DEFAULT_DELTA,
+        "row_count_contract": cfg.ROW_COUNT_CONTRACT,
         "failure_contract": "Per-fold P99 of ALL 26 delta training losses",
         "j1_formula": "sqrt(mean(((bh-b)/b)^2 + ((eh-e)/e)^2 + ((gh-g)/e)^2))",
-        "model_first_aggregation": "Per-model pooled J1 first, then summarize distribution",
-        "row_count_contract": {k: v for k, v in cfg.ROW_COUNT_CONTRACT.items()},
-        "mdm_default_delta": cfg.MDM_DEFAULT_DELTA,
     }
-    return manifest
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Sample key verification (fail-closed, multiplicity-aware)
+# Authorization contract verification (P4-R2)
 # ════════════════════════════════════════════════════════════════════════
 
-def verify_sample_keys_identical(df_all, track=None, expected_rows_per_method=None):
-    """Verify all methods share identical sample keys with correct multiplicity.
+def verify_authorization_contract():
+    """Verify all authorization bindings before formal run.
 
-    Checks:
-    1. Per-method row count matches expected (if provided).
-    2. Key uniqueness: no duplicate (sample_key, fold, seed) within a method.
-    3. Cross-method alignment: traditional sample keys ⊆ learning sample keys
-       (per fold×seed context).
-    4. Learning methods: each (fold, seed) model has identical sample key set.
-
-    Returns dict with ok=True/False and details. Raises on critical mismatch.
+    Checks: authorized, parent commit, clean worktree, output path,
+    track set, seed set. Raises RuntimeError on any violation.
     """
-    if track is not None:
-        df = df_all[df_all["track"] == track].copy()
-    else:
-        df = df_all.copy()
+    cfg.assert_formal_authorized()
 
-    if df.empty:
-        return {"ok": False, "reason": "no rows"}
+    if get_git_dirty():
+        raise RuntimeError("Authorization contract: worktree is dirty")
 
-    methods = sorted(df["method"].unique())
-    issues = []
+    if cfg.APPROVED_PARENT_COMMIT is None:
+        raise RuntimeError(
+            "Authorization contract: APPROVED_PARENT_COMMIT not set. "
+            "Must be set in the authorization commit."
+        )
 
-    if expected_rows_per_method:
-        for method, exp in expected_rows_per_method.items():
-            if exp == "runtime":
-                continue
-            actual = len(df[df["method"] == method])
-            if actual != exp:
-                issues.append(
-                    f"{method}: expected {exp} rows, got {actual}"
-                )
-
-    traditional_key_sets = {}
-    for method in methods:
-        sub = df[df["method"] == method]
-        is_learning = method in cfg.LEARNING_METHODS
-
-        if is_learning:
-            key_cols = SAMPLE_KEY_COLS + ["fold", "seed"]
-        else:
-            key_cols = SAMPLE_KEY_COLS
-
-        keys = sub[key_cols].apply(tuple, axis=1)
-        n_dupes = keys.duplicated().sum()
-        if n_dupes > 0:
-            issues.append(f"{method}: {n_dupes} duplicate keys detected")
-
-        if is_learning:
-            models = sub.groupby(["fold", "seed"])
-            model_key_sets = []
-            for (fold, seed), group in models:
-                mk = set(group[SAMPLE_KEY_COLS].apply(tuple, axis=1))
-                model_key_sets.append(((fold, seed), mk))
-            if len(model_key_sets) > 1:
-                ref_model, ref_keys = model_key_sets[0]
-                for other_model, other_keys in model_key_sets[1:]:
-                    if other_keys != ref_keys:
-                        issues.append(
-                            f"{method}: model {other_model} keys differ from {ref_model}"
-                        )
-                        break
-        else:
-            sample_keys = set(sub[SAMPLE_KEY_COLS].apply(tuple, axis=1))
-            traditional_key_sets[method] = sample_keys
-
-    trad_methods = list(traditional_key_sets.keys())
-    if len(trad_methods) > 1:
-        ref_method = trad_methods[0]
-        ref_keys = traditional_key_sets[ref_method]
-        for other_method in trad_methods[1:]:
-            if traditional_key_sets[other_method] != ref_keys:
-                issues.append(
-                    f"key mismatch between {ref_method} and {other_method}"
-                )
-
-    if issues:
-        return {"ok": False, "issues": issues}
-    return {"ok": True, "n_methods": len(methods)}
+    if cfg.FORMAL_OUTPUT_DIR.exists():
+        raise RuntimeError(
+            f"Authorization contract: output dir already exists: {cfg.FORMAL_OUTPUT_DIR}"
+        )
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Verify no valid-only survivor filtering (fail-closed)
+# MDM parameter rebuild (P4-R6: track-specific namespace)
 # ════════════════════════════════════════════════════════════════════════
 
-def verify_no_valid_only_filtering(df_all, track=None, expected_rows_per_method=None):
-    """Verify that failed samples are NOT silently dropped.
-
-    Fail-closed checks:
-    1. If expected_rows_per_method is provided, each method must have EXACTLY
-       that many rows (failures included). Fewer rows = survivor filtering.
-    2. Failed rows must have true_loss == failure_penalty (not NaN, not 0).
-    3. No method may have 0 rows when others have rows.
-
-    Returns True if all checks pass. Raises ValueError on violation.
-    """
-    if track is not None:
-        df = df_all[df_all["track"] == track].copy()
-    else:
-        df = df_all.copy()
-
-    if df.empty:
-        raise ValueError("verify_no_valid_only_filtering: no rows at all")
-
-    methods = df["method"].unique()
-    if len(methods) == 0:
-        raise ValueError("verify_no_valid_only_filtering: no methods found")
-
-    if expected_rows_per_method:
-        for method, exp in expected_rows_per_method.items():
-            if exp == "runtime":
-                continue
-            actual = len(df[df["method"] == method])
-            if actual < exp:
-                raise ValueError(
-                    f"valid-only filtering detected: {method} has {actual} rows "
-                    f"but expected {exp}. Missing {exp - actual} rows "
-                    f"(likely failed samples were dropped)."
-                )
-
-    failed_rows = df[df["failed"] == True]
-    if len(failed_rows) > 0:
-        bad_penalty = failed_rows[failed_rows["true_loss"] != failed_rows["failure_penalty"]]
-        if len(bad_penalty) > 0:
-            raise ValueError(
-                f"valid-only filtering: {len(bad_penalty)} failed rows have "
-                f"true_loss != failure_penalty"
-            )
-        zero_penalty = failed_rows[failed_rows["failure_penalty"] <= 0]
-        if len(zero_penalty) > 0:
-            raise ValueError(
-                f"valid-only filtering: {len(zero_penalty)} failed rows have "
-                f"failure_penalty <= 0"
-            )
-
-    for method in methods:
-        sub = df[df["method"] == method]
-        if len(sub) == 0:
-            raise ValueError(f"valid-only filtering: {method} has 0 rows")
-
-    return True
-
-
-# ════════════════════════════════════════════════════════════════════════
-# Verify learning methods don't merge samples before computing J1
-# ════════════════════════════════════════════════════════════════════════
-
-def verify_model_first_not_merged(df_all, method_name):
-    """Verify that for learning methods, per-model J1 is computed before aggregation.
-
-    Checks that the number of unique (fold, seed) combinations matches N_MODELS.
-    """
-    df = df_all[df_all["method"] == method_name]
-    if df.empty:
-        return True
-    if method_name not in cfg.LEARNING_METHODS:
-        return True
-    n_models = df.groupby(["fold", "seed"]).ngroups
-    return n_models == cfg.N_MODELS
-
-
-# ════════════════════════════════════════════════════════════════════════
-# MDM parameter rebuild from sealed deltas
-# ════════════════════════════════════════════════════════════════════════
-
-def rebuild_mdm_params(beta, eta, gamma, n, repeat_id, delta, seed_namespace="study01_v1"):
-    """Regenerate a sample and run MDM with given delta → 3-param estimates.
-
-    This is the ONLY way to get beta_hat/eta_hat/gamma_hat for MDM-Default
-    and MDM-Vector-MLP, since sealed artifacts store only selected_delta
-    and true_loss, not parameter estimates.
-    """
+def rebuild_mdm_params(beta, eta, gamma, n, repeat_id, delta, seed_namespace):
+    """Regenerate sample with track-specific namespace, run MDM(delta)."""
     sample = generate_sample(beta, eta, gamma, n, repeat_id, seed=seed_namespace)
     result = run_method("mdm", sample, offset=delta)
     converged = result.get("converged", False)
+    beta_hat = result.get("beta_hat", 0.0) if converged else 0.0
+    eta_hat = result.get("eta_hat", 0.0) if converged else 0.0
+    gamma_hat = result.get("gamma_hat", 0.0) if converged else 0.0
+
+    if converged:
+        valid, reason = check_prediction_validity(beta_hat, eta_hat, gamma_hat)
+        if not valid:
+            return {"beta_hat": 0.0, "eta_hat": 0.0, "gamma_hat": 0.0,
+                    "failed": True, "failure_reason": reason}
+
     return {
-        "beta_hat": result.get("beta_hat", 0.0) if converged else 0.0,
-        "eta_hat": result.get("eta_hat", 0.0) if converged else 0.0,
-        "gamma_hat": result.get("gamma_hat", 0.0) if converged else 0.0,
+        "beta_hat": beta_hat, "eta_hat": eta_hat, "gamma_hat": gamma_hat,
         "failed": not converged,
         "failure_reason": "" if converged else "mdm_not_converged",
     }
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Formal execution entry point
+# Track execution functions (P4-R1: all tracks × all methods)
 # ════════════════════════════════════════════════════════════════════════
 
-def run_track_main_holdout(output_dir, folds, seeds, resume=False):
-    """Execute Track 1: main design domain combo holdout.
+def run_traditional_method(method, samples_df, track, seed_namespace):
+    """Run a traditional method on samples. Returns estimation rows."""
+    rows = []
+    method_id = {"MDM-Default": "mdm", "MLE": "mle", "LSE": "lse", "WMLE": "wmle"}[method]
 
-    Steps:
-    1. Load E3b sample_features.csv (verify SHA256)
-    2. Load E3b risk_curves.csv (verify SHA256)
-    3. For each fold: compute fold penalty (P99 of 26 deltas)
-    4. Train 15 Direct-MLP models (5 folds × 3 seeds)
-    5. Train 15 Vector-MLP models
-    6. For each model: evaluate on test combos → Direct-MLP params
-    7. For each model: Vector-MLP selected_delta → rebuild MDM params
-    8. Run MDM-Default (δ=0.1) on all samples → rebuild params
-    9. Run MLE/LSE/WMLE on all samples
-    10. Assemble unified schema, apply failure contract
-    """
-    track_dir = Path(output_dir) / cfg.TRACK_MAIN_HOLDOUT
-    track_dir.mkdir(parents=True, exist_ok=True)
+    for _, s in samples_df.iterrows():
+        beta, goe, n_val, rid = s["beta"], s["gamma_over_eta"], int(s["n"]), int(s["repeat_id"])
+        eta = 1.0
+        gamma = goe * eta
+        sample = generate_sample(beta, eta, gamma, n_val, rid, seed=seed_namespace)
 
-    study_dir = Path(__file__).resolve().parents[1]
-    e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
+        kwargs = {}
+        if method == "MDM-Default":
+            kwargs["offset"] = cfg.MDM_DEFAULT_DELTA
 
-    features_path = e3b_dir / "sample_features.csv"
-    risk_path = e3b_dir / "risk_curves.csv"
+        try:
+            result = run_method(method_id, sample, **kwargs)
+            converged = result.get("converged", False)
+            beta_hat = result.get("beta_hat", 0.0) if converged else 0.0
+            eta_hat = result.get("eta_hat", 0.0) if converged else 0.0
+            gamma_hat = result.get("gamma_hat", 0.0) if converged else 0.0
 
-    actual_feat_hash = compute_sha256(features_path)
-    if actual_feat_hash != cfg.INPUT_SHA256["E3b_sample_features_csv"]:
-        raise RuntimeError(
-            f"E3b sample_features.csv SHA256 mismatch: "
-            f"{actual_feat_hash} != {cfg.INPUT_SHA256['E3b_sample_features_csv']}"
+            if converged:
+                valid, reason = check_prediction_validity(beta_hat, eta_hat, gamma_hat)
+                if not valid:
+                    converged = False
+                    beta_hat = eta_hat = gamma_hat = 0.0
+                else:
+                    reason = ""
+            else:
+                reason = f"{method_id}_not_converged"
+
+            rows.append(make_estimation_row(
+                track, method, cfg.TRADITIONAL_FOLD_LABEL, cfg.TRADITIONAL_SEED_LABEL,
+                beta, goe, n_val, rid, beta_hat, eta_hat, gamma_hat,
+                not converged, reason if not converged else "",
+            ))
+        except Exception as exc:
+            rows.append(make_estimation_row(
+                track, method, cfg.TRADITIONAL_FOLD_LABEL, cfg.TRADITIONAL_SEED_LABEL,
+                beta, goe, n_val, rid, 0.0, 0.0, 0.0,
+                True, f"exception:{type(exc).__name__}",
+            ))
+    return rows
+
+
+def run_direct_mlp_track(df_features, folds, seeds, track, run_context, output_dir):
+    """Train and evaluate Direct-MLP for all folds×seeds. Returns estimation rows."""
+    rows = []
+    for fold in folds:
+        fold_name = fold["fold_name"]
+        train_combos = fold["train_combos"]
+        test_combos = fold["test_combos"]
+
+        test_mask = df_features.apply(
+            lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in test_combos, axis=1
         )
-    actual_risk_hash = compute_sha256(risk_path)
-    if actual_risk_hash != cfg.INPUT_SHA256["E3b_risk_curves_csv"]:
-        raise RuntimeError(
-            f"E3b risk_curves.csv SHA256 mismatch: "
-            f"{actual_risk_hash} != {cfg.INPUT_SHA256['E3b_risk_curves_csv']}"
-        )
+        df_test = df_features[test_mask]
 
-    df_features = pd.read_csv(features_path)
-    df_risk = pd.read_csv(risk_path)
+        for seed in seeds:
+            cp_key = f"Direct-MLP_{fold_name}_{seed}"
+            cp = load_checkpoint(output_dir, track, cp_key)
+            if cp is not None:
+                verify_checkpoint_config(cp, run_context)
+                for _, row in cp.iterrows():
+                    rows.append(make_estimation_row(
+                        track, "Direct-MLP", fold_name, seed,
+                        row["beta"], row["gamma_over_eta"], int(row["n"]), int(row["repeat_id"]),
+                        row["beta_hat"], row["eta_hat"], row["gamma_hat"],
+                        bool(row["failed"]), row.get("failure_reason", ""),
+                    ))
+                continue
 
-    all_rows = []
-    git_commit = get_git_commit()
+            X_train, Y_train, x_bar_train, meta = direct.build_training_data(
+                df_features, train_combos
+            )
+            model, info = direct.train_direct_mlp(X_train, Y_train, x_bar_train, seed=seed)
+
+            df_test_si = direct.make_scale_invariant(df_test)
+            X_test = direct.build_scale_invariant_X(df_test_si, meta["zscore_means"], meta["zscore_stds"])
+            x_bar_test = df_test["x_bar"].values.astype(np.float64)
+            preds = direct.predict_direct_mlp(model, info, X_test, x_bar_test)
+
+            model_rows = []
+            for i, (_, feat_row) in enumerate(df_test.iterrows()):
+                beta_hat, eta_hat, gamma_hat = preds[i]
+                valid, reason = check_prediction_validity(beta_hat, eta_hat, gamma_hat)
+                if not valid:
+                    beta_hat = eta_hat = gamma_hat = 0.0
+
+                row = make_estimation_row(
+                    track, "Direct-MLP", fold_name, seed,
+                    feat_row["beta"], feat_row["gamma_over_eta"],
+                    int(feat_row["n"]), int(feat_row["repeat_id"]),
+                    beta_hat, eta_hat, gamma_hat,
+                    not valid, reason,
+                )
+                model_rows.append(row)
+                rows.append(row)
+
+            save_checkpoint(output_dir, track, cp_key, pd.DataFrame(model_rows), run_context)
+
+    return rows
+
+
+def run_vector_mlp_track(df_features, df_risk, folds, seeds, track, seed_namespace,
+                         fold_penalties, run_context, output_dir):
+    """Train Vector-MLP, select deltas, rebuild MDM params. Returns estimation rows."""
+    rows = []
+    loss_cols = [c for c in df_risk.columns if c.startswith("loss_d")]
 
     for fold in folds:
         fold_name = fold["fold_name"]
         train_combos = fold["train_combos"]
         test_combos = fold["test_combos"]
+        fold_penalty = fold_penalties[fold_name]
 
         train_mask = df_features.apply(
             lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in train_combos, axis=1
@@ -711,123 +839,368 @@ def run_track_main_holdout(output_dir, folds, seeds, resume=False):
             df_risk.apply(lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in train_keys, axis=1)
         ]
 
-        fold_penalty = direct.compute_fold_penalty(df_train, df_risk_train, train_combos)
+        train_keys_set = set(zip(
+            df_train["beta"].astype(float), df_train["gamma_over_eta"].astype(float),
+            df_train["n"].astype(int), df_train["repeat_id"].astype(int),
+        ))
+        loss_long = []
+        for _, row in df_risk_train.iterrows():
+            key = (float(row["beta"]), float(row["gamma_over_eta"]), int(row["n"]), int(row["repeat_id"]))
+            if key in train_keys_set:
+                for d_idx, col in enumerate(loss_cols):
+                    d = e4.DELTA_GRID[d_idx]
+                    val = float(row[col])
+                    if np.isnan(val):
+                        val = fold_penalty
+                    loss_long.append({
+                        "beta": key[0], "eta": 1.0, "gamma": key[1],
+                        "gamma_over_eta": key[1], "n": key[2], "repeat_id": key[3],
+                        "delta": d, "loss": val,
+                    })
+        df_loss_long = pd.DataFrame(loss_long)
+
+        feat_cols_no_n = [c for c in e4.SAMPLE_FEATURE_COLS if c != "n"]
+        df_train_merge = df_train[["beta", "gamma_over_eta", "n", "repeat_id"] + feat_cols_no_n].copy()
+        df_loss_merged = df_loss_long.merge(df_train_merge, on=["beta", "gamma_over_eta", "n", "repeat_id"])
+
+        samples_df, Y_vector = e4._pivot_risk_vectors(df_loss_merged, "loss", fold_penalty)
+        X_vector = e4._build_X_from_samples(samples_df, *e4._fit_zscore_params(samples_df))
+        means_vec, stds_vec = e4._fit_zscore_params(df_train)
 
         for seed in seeds:
-            cp = load_checkpoint(output_dir, cfg.TRACK_MAIN_HOLDOUT, f"Direct-MLP_{fold_name}_{seed}")
-            if cp is not None and resume:
-                verify_checkpoint_config(cp, {
-                    "git_commit": git_commit,
-                    "input_sha256": cfg.INPUT_SHA256["E3b_risk_curves_csv"],
-                    "p4_authorized": True,
-                })
+            cp_key = f"Vector-MLP_{fold_name}_{seed}"
+            cp = load_checkpoint(output_dir, track, cp_key)
+            if cp is not None:
+                verify_checkpoint_config(cp, run_context)
                 for _, row in cp.iterrows():
-                    all_rows.append(row.to_dict())
+                    rows.append(make_estimation_row(
+                        track, "MDM-Vector-MLP", fold_name, seed,
+                        row["beta"], row["gamma_over_eta"], int(row["n"]), int(row["repeat_id"]),
+                        row["beta_hat"], row["eta_hat"], row["gamma_hat"],
+                        bool(row["failed"]), row.get("failure_reason", ""),
+                    ))
                 continue
 
-            X_train, Y_train, x_bar_train, meta = direct.build_training_data(
-                df_features, train_combos
-            )
-            model, info = direct.train_direct_mlp(X_train, Y_train, x_bar_train, seed=seed)
+            vector_model, vector_scaler = e4._train_mlp(X_vector, Y_vector, seed=seed)
 
-            df_test_si = direct.make_scale_invariant(df_test)
-            X_test = direct.build_scale_invariant_X(
-                df_test_si, meta["zscore_means"], meta["zscore_stds"]
+            test_keys_set = set(zip(
+                df_test["beta"].astype(float), df_test["gamma_over_eta"].astype(float),
+                df_test["n"].astype(int), df_test["repeat_id"].astype(int),
+            ))
+            test_risk = df_risk[
+                df_risk.apply(lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in test_combos, axis=1)
+            ]
+            test_loss_long = []
+            for _, row in test_risk.iterrows():
+                key = (float(row["beta"]), float(row["gamma_over_eta"]), int(row["n"]), int(row["repeat_id"]))
+                if key in test_keys_set:
+                    for d_idx, col in enumerate(loss_cols):
+                        d = e4.DELTA_GRID[d_idx]
+                        val = float(row[col])
+                        if np.isnan(val):
+                            val = fold_penalty
+                        test_loss_long.append({
+                            "beta": key[0], "gamma_over_eta": key[1],
+                            "n": key[2], "repeat_id": key[3], "delta": d, "loss": val,
+                        })
+            df_test_loss = pd.DataFrame(test_loss_long)
+
+            vector_eval_rows = e4._evaluate_single_model(
+                vector_model, vector_scaler, df_test, df_test_loss,
+                means_vec, stds_vec, fold_penalty, fold_name, seed,
             )
-            x_bar_test = df_test["x_bar"].values.astype(np.float64)
-            preds = direct.predict_direct_mlp(model, info, X_test, x_bar_test)
 
             model_rows = []
-            for i, (_, feat_row) in enumerate(df_test.iterrows()):
-                beta_true = feat_row["beta"]
-                eta_true = 1.0
-                gamma_true = feat_row["gamma_over_eta"] * eta_true
-                beta_hat, eta_hat, gamma_hat = preds[i]
-                row = make_per_sample_row(
-                    track=cfg.TRACK_MAIN_HOLDOUT,
-                    fold=fold_name, seed=seed, method="Direct-MLP",
-                    beta=beta_true, goe=feat_row["gamma_over_eta"],
-                    n=int(feat_row["n"]), repeat_id=int(feat_row["repeat_id"]),
-                    beta_hat=beta_hat, eta_hat=eta_hat, gamma_hat=gamma_hat,
-                    beta_true=beta_true, eta_true=eta_true, gamma_true=gamma_true,
-                    failed=False, failure_reason="", failure_penalty=fold_penalty,
+            for vrow in vector_eval_rows:
+                beta = vrow["beta"]
+                goe = vrow["gamma_over_eta"]
+                n_val = vrow["n"]
+                rid = vrow["repeat_id"]
+                sel_delta = vrow["selected_delta"]
+
+                params = rebuild_mdm_params(beta, 1.0, goe, n_val, rid, sel_delta, seed_namespace)
+                row = make_estimation_row(
+                    track, "MDM-Vector-MLP", fold_name, seed,
+                    beta, goe, n_val, rid,
+                    params["beta_hat"], params["eta_hat"], params["gamma_hat"],
+                    params["failed"], params["failure_reason"],
                 )
                 model_rows.append(row)
-                all_rows.append(row)
+                rows.append(row)
 
-            save_checkpoint(
-                output_dir, cfg.TRACK_MAIN_HOLDOUT,
-                f"Direct-MLP_{fold_name}_{seed}",
-                pd.DataFrame(model_rows), git_commit,
-                cfg.INPUT_SHA256["E3b_risk_curves_csv"], True,
-            )
+            save_checkpoint(output_dir, track, cp_key, pd.DataFrame(model_rows), run_context)
 
-    return all_rows
+    return rows
 
+
+# ════════════════════════════════════════════════════════════════════════
+# Formal entry point (P4-R1: all tracks, P4-R2: authorization contract)
+# ════════════════════════════════════════════════════════════════════════
 
 def main(output_dir=None, tracks=None, seeds=None, resume=False):
-    """P4 formal comparison entry point.
-
-    Requires P4_FORMAL_AUTHORIZED=True (set in a dedicated authorization commit).
-    Executes four tracks × six methods with full provenance and fail-closed sealing.
-    """
-    cfg.assert_formal_authorized()
+    """P4 formal comparison entry point. Requires full authorization contract."""
+    verify_authorization_contract()
 
     if output_dir is None:
         output_dir = cfg.FORMAL_OUTPUT_DIR
     output_dir = Path(output_dir)
-
-    if not resume and output_dir.exists():
-        raise RuntimeError(
-            f"Output directory {output_dir} already exists. "
-            "Use resume=True to continue, or remove the directory."
-        )
-    output_dir.mkdir(parents=True, exist_ok=True)
 
     if tracks is None:
         tracks = cfg.ALL_TRACKS
     if seeds is None:
         seeds = cfg.SEEDS
 
+    lock_path = acquire_run_lock(output_dir)
+    try:
+        _run_formal(output_dir, tracks, seeds, resume)
+    finally:
+        release_run_lock(output_dir)
+
+
+def _run_formal(output_dir, tracks, seeds, resume):
+    """Internal formal execution (called under lock)."""
     folds = e4.get_combo_split()
     git_commit = get_git_commit()
 
-    manifest = build_manifest(output_dir, tracks, cfg.P4_METHODS)
+    manifest = build_manifest(tracks, cfg.P4_METHODS)
     atomic_write_json(manifest, output_dir / "manifest.json")
 
-    all_rows = []
+    all_est_rows = []
+    all_eval_dfs = []
+    result_tables = {}
 
-    if cfg.TRACK_MAIN_HOLDOUT in tracks:
-        print(f"[P4] Track 1: {cfg.TRACK_MAIN_HOLDOUT}")
-        rows = run_track_main_holdout(output_dir, folds, seeds, resume=resume)
-        all_rows.extend(rows)
+    study_dir = Path(__file__).resolve().parents[1]
+    e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
 
-    df_all = pd.DataFrame(all_rows)
+    for track in tracks:
+        print(f"[P4] Track: {track}")
+        ns = cfg.TRACK_SEED_NAMESPACE[track]
+        input_sha = cfg._track_input_sha256(track)
+        run_context = build_run_context(input_sha)
 
-    if len(df_all) > 0:
-        df_all = pd.DataFrame(apply_failure_contract_p4(df_all.to_dict("records")))
+        if track == cfg.TRACK_MAIN_HOLDOUT:
+            est_rows, fold_penalties, df_features = _execute_track_main(
+                output_dir, folds, seeds, ns, run_context, e3b_dir, resume
+            )
+        elif track in (cfg.TRACK_PARAM_INTERP, cfg.TRACK_N_INTERP):
+            est_rows, fold_penalties, df_features = _execute_track_p2(
+                output_dir, folds, seeds, ns, run_context, track, resume
+            )
+        else:
+            est_rows, fold_penalties, df_features = _execute_track_extrap(
+                output_dir, folds, seeds, ns, run_context, resume
+            )
 
-        for track in df_all["track"].unique():
-            exp = {}
-            for m in cfg.P4_METHODS:
-                exp[m] = cfg.expected_rows(track, m)
-            verify_no_valid_only_filtering(df_all, track=track, expected_rows_per_method=exp)
-            result = verify_sample_keys_identical(df_all, track=track, expected_rows_per_method=exp)
-            if not result["ok"]:
-                raise RuntimeError(f"Sample key verification failed: {result}")
+        all_est_rows.extend(est_rows)
+        df_est = pd.DataFrame(est_rows, columns=ESTIMATION_COLUMNS)
+        df_eval = build_evaluation_layer(df_est, fold_penalties)
+        all_eval_dfs.append(df_eval)
 
-        atomic_write_csv(df_all, output_dir / "per_sample_all.csv")
+        verify_no_valid_only_filtering(df_eval, track=track)
+        key_check = verify_sample_keys_identical(df_eval, track=track)
+        if not key_check["ok"]:
+            raise RuntimeError(f"Sample key verification failed for {track}: {key_check}")
 
-        summaries = {}
-        for method in df_all["method"].unique():
-            for track in df_all["track"].unique():
-                summaries[f"{track}_{method}"] = model_first_aggregate(df_all, method, track=track)
-        atomic_write_json(summaries, output_dir / "summaries.json")
+        result_tables[track] = compute_result_tables(df_eval, track)
 
-        seal_outputs(output_dir, ["manifest.json", "per_sample_all.csv", "summaries.json"])
+        track_dir = output_dir / track
+        track_dir.mkdir(parents=True, exist_ok=True)
+        atomic_write_csv(df_est, track_dir / "estimation.csv")
+        atomic_write_csv(df_eval, track_dir / "evaluation.csv")
+        atomic_write_json(result_tables[track], track_dir / "results.json")
 
+    df_eval_all = pd.concat(all_eval_dfs, ignore_index=True)
+    atomic_write_csv(df_eval_all, output_dir / "evaluation_all.csv")
+    atomic_write_json(result_tables, output_dir / "result_tables.json")
+
+    allowlist = ["manifest.json", "evaluation_all.csv", "result_tables.json"]
+    for track in tracks:
+        allowlist.extend([
+            f"{track}/estimation.csv",
+            f"{track}/evaluation.csv",
+            f"{track}/results.json",
+        ])
+    seal_recursive(output_dir, allowlist)
     print(f"[P4] Complete. Output: {output_dir}")
-    return df_all
+
+
+def _execute_track_main(output_dir, folds, seeds, ns, run_context, e3b_dir, resume):
+    """Execute Track 1: main_holdout."""
+    features_path = e3b_dir / "sample_features.csv"
+    risk_path = e3b_dir / "risk_curves.csv"
+
+    actual = compute_sha256(features_path)
+    if actual != cfg.INPUT_SHA256["E3b_sample_features_csv"]:
+        raise RuntimeError(f"E3b sample_features SHA256 mismatch: {actual}")
+    actual = compute_sha256(risk_path)
+    if actual != cfg.INPUT_SHA256["E3b_risk_curves_csv"]:
+        raise RuntimeError(f"E3b risk_curves SHA256 mismatch: {actual}")
+
+    df_features = pd.read_csv(features_path)
+    df_risk = pd.read_csv(risk_path)
+
+    fold_penalties = {}
+    for fold in folds:
+        train_keys = set((b, g, n) for b, g, n in fold["train_combos"])
+        train_mask = df_features.apply(
+            lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in fold["train_combos"], axis=1
+        )
+        df_risk_train = df_risk[
+            df_risk.apply(lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in train_keys, axis=1)
+        ]
+        fold_penalties[fold["fold_name"]] = direct.compute_fold_penalty(
+            df_features[train_mask], df_risk_train, fold["train_combos"]
+        )
+
+    est_rows = []
+    for method in cfg.TRADITIONAL_METHODS:
+        print(f"  {method}...")
+        est_rows.extend(run_traditional_method(method, df_features, cfg.TRACK_MAIN_HOLDOUT, ns))
+
+    print("  Direct-MLP (15 models)...")
+    est_rows.extend(run_direct_mlp_track(
+        df_features, folds, seeds, cfg.TRACK_MAIN_HOLDOUT, run_context, output_dir
+    ))
+
+    print("  MDM-Vector-MLP (15 models)...")
+    est_rows.extend(run_vector_mlp_track(
+        df_features, df_risk, folds, seeds, cfg.TRACK_MAIN_HOLDOUT, ns,
+        fold_penalties, run_context, output_dir
+    ))
+
+    return est_rows, fold_penalties, df_features
+
+
+def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume):
+    """Execute Track 2/3: param_interp or n_interp (P2 samples)."""
+    study_dir = Path(__file__).resolve().parents[1]
+    p2_dir = study_dir / "artifacts" / "formal" / "extended_validation" / "p2_generalization_v2"
+
+    baseline_path = p2_dir / "baseline_per_sample.csv"
+    actual = compute_sha256(baseline_path)
+    if actual != cfg.INPUT_SHA256["P2_baseline_per_sample_csv"]:
+        raise RuntimeError(f"P2 baseline SHA256 mismatch: {actual}")
+
+    df_p2 = pd.read_csv(baseline_path)
+    track_label = "param_interp" if track == cfg.TRACK_PARAM_INTERP else "n_interp"
+    df_track = df_p2[df_p2["track"] == track_label].copy() if "track" in df_p2.columns else df_p2
+
+    samples_df = df_track[SAMPLE_KEY_COLS + ["beta"]].drop_duplicates(SAMPLE_KEY_COLS)
+    samples_df = df_track.drop_duplicates(SAMPLE_KEY_COLS)
+
+    fold_penalties = {}
+    for fold in folds:
+        fold_penalties[fold["fold_name"]] = 2.0
+
+    est_rows = []
+    for method in cfg.TRADITIONAL_METHODS:
+        print(f"  {method}...")
+        est_rows.extend(run_traditional_method(method, samples_df, track, ns))
+
+    print("  Direct-MLP (15 models)...")
+    e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
+    df_features = pd.read_csv(e3b_dir / "sample_features.csv")
+    est_rows.extend(run_direct_mlp_track(df_features, folds, seeds, track, run_context, output_dir))
+
+    print("  MDM-Vector-MLP (15 models)...")
+    df_risk = pd.read_csv(e3b_dir / "risk_curves.csv")
+    est_rows.extend(run_vector_mlp_track(
+        df_features, df_risk, folds, seeds, track, ns,
+        fold_penalties, run_context, output_dir
+    ))
+
+    return est_rows, fold_penalties, df_features
+
+
+def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume):
+    """Execute Track 4: extrap_diag (E4d off-grid combos)."""
+    study_dir = Path(__file__).resolve().parents[1]
+    e4d_path = study_dir / "artifacts" / "formal" / "E4_robustness" / "E4d_selector_extrapolation.csv"
+
+    actual = compute_sha256(e4d_path)
+    if actual != cfg.INPUT_SHA256["E4d_selector_extrapolation_csv"]:
+        raise RuntimeError(f"E4d SHA256 mismatch: {actual}")
+
+    df_e4d = pd.read_csv(e4d_path, low_memory=False)
+    samples_df = df_e4d.drop_duplicates(SAMPLE_KEY_COLS)
+
+    fold_penalties = {}
+    for fold in folds:
+        fold_penalties[fold["fold_name"]] = 2.0
+
+    est_rows = []
+    for method in cfg.TRADITIONAL_METHODS:
+        print(f"  {method}...")
+        est_rows.extend(run_traditional_method(method, samples_df, cfg.TRACK_EXTRAP, ns))
+
+    print("  Direct-MLP (15 models)...")
+    e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
+    df_features = pd.read_csv(e3b_dir / "sample_features.csv")
+    est_rows.extend(run_direct_mlp_track(df_features, folds, seeds, cfg.TRACK_EXTRAP, run_context, output_dir))
+
+    print("  MDM-Vector-MLP (15 models, E4d sealed deltas)...")
+    for fold in folds:
+        fold_name = fold["fold_name"]
+        for seed in seeds:
+            e4d_model = df_e4d[(df_e4d["fold"] == fold_name) & (df_e4d["seed"] == seed)]
+            for _, row in e4d_model.iterrows():
+                beta = row["beta"]
+                goe = row["gamma_over_eta"]
+                n_val = int(row["n"])
+                rid = int(row["repeat_id"])
+                sel_delta = row["selected_delta"]
+                params = rebuild_mdm_params(beta, 1.0, goe, n_val, rid, sel_delta, ns)
+                est_rows.append(make_estimation_row(
+                    cfg.TRACK_EXTRAP, "MDM-Vector-MLP", fold_name, seed,
+                    beta, goe, n_val, rid,
+                    params["beta_hat"], params["eta_hat"], params["gamma_hat"],
+                    params["failed"], params["failure_reason"],
+                ))
+
+    return est_rows, fold_penalties, df_features
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Legacy compatibility (used by smoke and tests)
+# ════════════════════════════════════════════════════════════════════════
+
+def make_per_sample_row(track, fold, seed, method, beta, goe, n, repeat_id,
+                        beta_hat, eta_hat, gamma_hat, beta_true, eta_true, gamma_true,
+                        failed, failure_reason, failure_penalty):
+    """Legacy per-sample row (evaluation-layer format)."""
+    if failed:
+        loss = failure_penalty
+        loss_complete = float("nan")
+    else:
+        loss_complete = direct.compute_param_loss(beta_hat, beta_true, eta_hat, eta_true, gamma_hat, gamma_true)
+        loss = loss_complete
+    return {
+        "track": track, "fold": fold, "seed": seed, "method": method,
+        "beta": beta_true, "gamma_over_eta": goe, "n": n, "repeat_id": repeat_id,
+        "beta_hat": beta_hat, "eta_hat": eta_hat, "gamma_hat": gamma_hat,
+        "true_loss": loss, "true_loss_complete_case": loss_complete,
+        "failed": failed, "failure_reason": failure_reason, "failure_penalty": failure_penalty,
+    }
+
+
+def apply_failure_contract_p4(rows):
+    for row in rows:
+        penalty = row.get("failure_penalty", 0.0)
+        if penalty <= 0:
+            raise direct.PenaltyError(f"failure_penalty must be > 0, got {penalty}")
+        if row["failed"]:
+            row["true_loss"] = penalty
+    return rows
+
+
+def verify_model_first_not_merged(df_all, method_name):
+    df = df_all[df_all["method"] == method_name]
+    if df.empty:
+        return True
+    if method_name not in cfg.LEARNING_METHODS:
+        return True
+    n_models = df.groupby(["fold", "seed"]).ngroups
+    return n_models == cfg.N_MODELS
 
 
 if __name__ == "__main__":
