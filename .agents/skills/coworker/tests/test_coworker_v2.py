@@ -399,3 +399,6 @@ def test_duplex_uses_user_owned_visible_windows():
     assert "it never starts an agent process" in text
     assert "Do not inspect its branch, diff" in text
     assert "Do not send routine interim reports" in text
+    assert "Do not switch the mailbox to `auto` unilaterally" in text
+    assert "Only after that confirmation" in text
+    assert "return to `manual` and repeat this handshake" in text

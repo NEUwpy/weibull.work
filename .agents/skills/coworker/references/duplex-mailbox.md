@@ -39,6 +39,21 @@ OpenCode in duplex mode. Doing so turns duplex collaboration back into the
 controller live-loop that this mode replaces. The mailbox script transports
 messages only; it never starts an agent process.
 
+## Startup Handshake
+
+Do not switch the mailbox to `auto` unilaterally.
+
+1. Keep the mailbox in `manual`.
+2. Codex prepares the exact executor bootstrap/resume prompt and tells the user
+   it is ready to enter automatic mode.
+3. The user pastes that prompt into the visible OpenCode window and confirms
+   that its watcher has started.
+4. Only after that confirmation does Codex set the mailbox to `auto` and start
+   its own persistent wait loop.
+
+If either watcher exits, return to `manual` and repeat this handshake. A queued
+message is preserved; it does not authorize one-sided auto mode.
+
 ## Runtime Layout
 
 For repository `<repo>` and task `<task-id>`:
