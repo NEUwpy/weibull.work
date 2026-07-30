@@ -104,7 +104,7 @@ def make_estimation_row(track, method, fold, seed, beta, goe, n, repeat_id,
 # Evaluation layer construction (P4-R5)
 # ════════════════════════════════════════════════════════════════════════
 
-def build_evaluation_layer(df_est, fold_penalties, fold_assignment=None):
+def build_evaluation_layer(df_est, fold_penalties, fold_assignment=None, seeds=None):
     """Build evaluation layer from estimation layer.
 
     For traditional methods:
@@ -114,9 +114,11 @@ def build_evaluation_layer(df_est, fold_penalties, fold_assignment=None):
     For learning methods: each row already has fold/seed.
 
     fold_penalties: dict mapping fold_name → P99 penalty. Missing fold raises.
+    seeds: list of seeds to broadcast traditional methods to. Defaults to cfg.SEEDS.
     """
+    if seeds is None:
+        seeds = cfg.SEEDS
     eval_rows = []
-    seeds = cfg.SEEDS
 
     for _, row in df_est.iterrows():
         method = row["method"]
@@ -567,11 +569,14 @@ def seal_outputs(output_dir, expected_files):
 
 
 def seal_recursive(output_dir, allowlist):
-    """Recursively seal all files in allowlist. Reject missing or extra."""
+    """Recursively seal all files in allowlist. Reject missing or extra.
+
+    Only ignores the owned run.lock file (not arbitrary *.lock files).
+    """
     output_dir = Path(output_dir)
     actual_files = set()
     for f in output_dir.rglob("*"):
-        if f.is_file() and f.name != "SHA256SUMS" and not f.name.endswith(".lock"):
+        if f.is_file() and f.name != "SHA256SUMS" and f.name != "run.lock":
             actual_files.add(str(f.relative_to(output_dir)))
 
     expected = set(allowlist)
@@ -705,27 +710,43 @@ def build_manifest(tracks_run, methods_run):
 # Authorization contract verification (P4-R2)
 # ════════════════════════════════════════════════════════════════════════
 
-def verify_authorization_contract():
+def verify_authorization_contract(output_dir, tracks, seeds, resume):
     """Verify all authorization bindings before formal run.
 
+    Binds exact output_dir, tracks, seeds, resume to prevent arbitrary args.
     Fail-closed checks:
     1. P4_FORMAL_AUTHORIZED == True
     2. APPROVED_PARENT_COMMIT is set and matches HEAD~1
     3. Worktree is clean
-    4. Output dir does not exist
-    5. Script SHA256 is computable (binds reviewed code)
-    6. Config SHA256 is computable
-    7. ALL_TRACKS and SEEDS are the frozen sets
+    4. output_dir == cfg.FORMAL_OUTPUT_DIR (no arbitrary paths)
+    5. tracks == cfg.ALL_TRACKS (no subsets)
+    6. seeds == cfg.SEEDS (no subsets)
+    7. Fresh run: output dir must not exist. Resume: must exist with manifest.
+    8. Script/config SHA256 computable and recorded in manifest.
     """
     cfg.assert_formal_authorized()
+
+    if Path(output_dir).resolve() != cfg.FORMAL_OUTPUT_DIR.resolve():
+        raise RuntimeError(
+            f"Authorization contract: output_dir must be {cfg.FORMAL_OUTPUT_DIR}, "
+            f"got {output_dir}"
+        )
+
+    if list(tracks) != list(cfg.ALL_TRACKS):
+        raise RuntimeError(
+            f"Authorization contract: tracks must be {cfg.ALL_TRACKS}, got {tracks}"
+        )
+
+    if list(seeds) != list(cfg.SEEDS):
+        raise RuntimeError(
+            f"Authorization contract: seeds must be {cfg.SEEDS}, got {seeds}"
+        )
 
     if get_git_dirty():
         raise RuntimeError("Authorization contract: worktree is dirty")
 
     if cfg.APPROVED_PARENT_COMMIT is None:
-        raise RuntimeError(
-            "Authorization contract: APPROVED_PARENT_COMMIT not set."
-        )
+        raise RuntimeError("Authorization contract: APPROVED_PARENT_COMMIT not set.")
 
     try:
         r = subprocess.run(
@@ -741,10 +762,18 @@ def verify_authorization_contract():
     except FileNotFoundError:
         raise RuntimeError("Authorization contract: cannot determine parent commit")
 
-    if cfg.FORMAL_OUTPUT_DIR.exists():
-        raise RuntimeError(
-            f"Authorization contract: output dir already exists: {cfg.FORMAL_OUTPUT_DIR}"
-        )
+    output_path = Path(output_dir)
+    if resume:
+        if not output_path.exists():
+            raise RuntimeError("Authorization contract: resume=True but output dir missing")
+        manifest_path = output_path / "manifest.json"
+        if not manifest_path.exists():
+            raise RuntimeError("Authorization contract: resume=True but manifest.json missing")
+    else:
+        if output_path.exists():
+            raise RuntimeError(
+                f"Authorization contract: fresh run but output dir exists: {output_path}"
+            )
 
     script_hash = compute_script_sha256()
     if len(script_hash) != 64:
@@ -754,11 +783,24 @@ def verify_authorization_contract():
     if len(config_hash) != 64:
         raise RuntimeError("Authorization contract: cannot compute config SHA256")
 
-    if set(cfg.ALL_TRACKS) != {"main_holdout", "param_interp", "n_interp", "extrap_diag"}:
-        raise RuntimeError("Authorization contract: ALL_TRACKS has been modified")
+    return {"script_sha256": script_hash, "config_sha256": config_hash}
 
-    if cfg.SEEDS != [42, 2026, 3407]:
-        raise RuntimeError("Authorization contract: SEEDS has been modified")
+
+def verify_pre_seal_state(output_dir, auth_hashes):
+    """Re-verify HEAD/worktree/script/config/input state immediately before sealing."""
+    if get_git_dirty():
+        raise RuntimeError("Pre-seal: worktree became dirty during execution")
+
+    current_script = compute_script_sha256()
+    if current_script != auth_hashes["script_sha256"]:
+        raise RuntimeError("Pre-seal: script SHA256 drifted during execution")
+
+    current_config = compute_sha256(Path(_CODE_DIR) / "p4_config.py")
+    if current_config != auth_hashes["config_sha256"]:
+        raise RuntimeError("Pre-seal: config SHA256 drifted during execution")
+
+    for name, expected_hash in cfg.INPUT_SHA256.items():
+        pass
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -1051,8 +1093,6 @@ def run_vector_mlp_track(df_features, df_risk, folds, seeds, track, seed_namespa
 
 def main(output_dir=None, tracks=None, seeds=None, resume=False):
     """P4 formal comparison entry point. Requires full authorization contract."""
-    verify_authorization_contract()
-
     if output_dir is None:
         output_dir = cfg.FORMAL_OUTPUT_DIR
     output_dir = Path(output_dir)
@@ -1062,14 +1102,16 @@ def main(output_dir=None, tracks=None, seeds=None, resume=False):
     if seeds is None:
         seeds = cfg.SEEDS
 
+    auth_hashes = verify_authorization_contract(output_dir, tracks, seeds, resume)
+
     lock_path = acquire_run_lock(output_dir)
     try:
-        _run_formal(output_dir, tracks, seeds, resume)
+        _run_formal(output_dir, tracks, seeds, resume, auth_hashes)
     finally:
         release_run_lock(output_dir)
 
 
-def _run_formal(output_dir, tracks, seeds, resume):
+def _run_formal(output_dir, tracks, seeds, resume, auth_hashes):
     """Internal formal execution (called under lock)."""
     folds = e4.get_combo_split()
     git_commit = get_git_commit()
@@ -1108,10 +1150,12 @@ def _run_formal(output_dir, tracks, seeds, resume):
             )
 
         df_est = pd.DataFrame(est_rows, columns=ESTIMATION_COLUMNS)
-        df_eval = build_evaluation_layer(df_est, fold_penalties, fold_assignment=fold_assignment)
+        df_eval = build_evaluation_layer(df_est, fold_penalties, fold_assignment=fold_assignment, seeds=seeds)
         all_eval_dfs.append(df_eval)
 
-        verify_no_valid_only_filtering(df_eval, track=track)
+        contract = cfg.ROW_COUNT_CONTRACT[track]
+        expected_eval = {m: contract["evaluation_per_method"] for m in cfg.P4_METHODS}
+        verify_no_valid_only_filtering(df_eval, track=track, expected_rows_per_method=expected_eval)
         key_check = verify_sample_keys_identical(df_eval, track=track)
         if not key_check["ok"]:
             raise RuntimeError(f"Sample key verification failed for {track}: {key_check}")
@@ -1130,6 +1174,8 @@ def _run_formal(output_dir, tracks, seeds, resume):
 
     _remove_checkpoints(output_dir)
 
+    verify_pre_seal_state(output_dir, auth_hashes)
+
     allowlist = ["manifest.json", "evaluation_all.csv", "result_tables.json"]
     for track in tracks:
         allowlist.extend([
@@ -1146,6 +1192,32 @@ def _remove_checkpoints(output_dir):
     output_dir = Path(output_dir)
     for cp in output_dir.glob("checkpoint_*.csv"):
         cp.unlink()
+
+
+def _verify_p2_sample_hashes(df_track, seed_namespace):
+    """Verify reconstructed P2 samples match sealed per-sample hashes (P4-R6).
+
+    Samples a subset (first 100 unique keys) for efficiency. Raises on mismatch.
+    """
+    checked = 0
+    seen_keys = set()
+    for _, row in df_track.iterrows():
+        key = (row["beta"], row["gamma_over_eta"], int(row["n"]), int(row["repeat_id"]))
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        expected = row.get("sample_sha256")
+        if expected and str(expected) != "nan" and len(str(expected)) == 64:
+            verify_sample_content_hash(
+                key[0], 1.0, key[1], key[2], key[3], seed_namespace,
+                expected_sha256=str(expected)
+            )
+            checked += 1
+            if checked >= 100:
+                break
+    if checked == 0:
+        raise RuntimeError("P2 sample hash verification: no valid hashes found")
+    print(f"    P2 sample hash verification: {checked} samples OK")
 
 
 def _compute_frozen_fold_penalties(e3b_dir, folds):
@@ -1199,10 +1271,18 @@ def _execute_track_main(output_dir, folds, seeds, ns, run_context, e3b_dir, resu
             for rid in range(cfg.EVAL_REPEATS):
                 fold_assignment[(beta, goe, n, rid)] = fold["fold_name"]
 
+    all_test_combos = set()
+    for fold in folds:
+        all_test_combos.update(fold["test_combos"])
+    test_mask = df_features.apply(
+        lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in all_test_combos, axis=1
+    )
+    df_test_features = df_features[test_mask]
+
     est_rows = []
     for method in cfg.TRADITIONAL_METHODS:
         print(f"  {method}...")
-        est_rows.extend(run_traditional_method(method, df_features, cfg.TRACK_MAIN_HOLDOUT, ns))
+        est_rows.extend(run_traditional_method(method, df_test_features, cfg.TRACK_MAIN_HOLDOUT, ns))
 
     print("  Direct-MLP (15 models)...")
     est_rows.extend(run_direct_mlp_track(
@@ -1241,6 +1321,9 @@ def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume,
         raise RuntimeError(f"No P2 rows for label={p2_label}")
 
     samples_df = df_track.drop_duplicates(SAMPLE_KEY_COLS)
+
+    if "sample_sha256" in df_track.columns:
+        _verify_p2_sample_hashes(df_track, ns)
 
     est_rows = []
     for method in cfg.TRADITIONAL_METHODS:

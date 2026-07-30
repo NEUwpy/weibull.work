@@ -958,3 +958,142 @@ class TestProductionPathFixture:
         h1 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_v1")
         h2 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_p2_v1")
         assert h1 != h2
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 23. Production orchestration test (P4-R10)
+# ════════════════════════════════════════════════════════════════════════
+
+class TestProductionOrchestration:
+    """Calls real _execute_track_main with patched estimator/training boundaries.
+
+    Does NOT replace orchestration: build_evaluation_layer, verify_*,
+    compute_result_tables, seal_recursive, checkpoint all run real.
+    """
+
+    def _make_tiny_e3b(self, tmp_path):
+        """Create tiny E3b-like fixture files."""
+        import hashlib
+        combos = [(2.0, 0.5, 10), (3.0, 0.3, 15)]
+        feat_rows = []
+        risk_rows = []
+        for beta, goe, n in combos:
+            for rid in range(3):
+                sample = generate_sample(beta, 1.0, goe, n, rid, seed="study01_v1")
+                feats = e4.compute_sample_features(sample)
+                feat_rows.append({"beta": beta, "eta": 1.0, "gamma": goe,
+                                  "gamma_over_eta": goe, "n": n, "repeat_id": rid, **feats})
+                risk_row = {"beta": beta, "gamma_over_eta": goe, "n": n, "repeat_id": rid}
+                for d in e4.DELTA_GRID:
+                    risk_row[f"loss_d{d}"] = 0.5 + rid * 0.1
+                risk_rows.append(risk_row)
+
+        df_feat = pd.DataFrame(feat_rows)
+        df_risk = pd.DataFrame(risk_rows)
+
+        e3b_dir = tmp_path / "E3b_vector_mlp"
+        e3b_dir.mkdir(parents=True)
+        df_feat.to_csv(e3b_dir / "sample_features.csv", index=False)
+        df_risk.to_csv(e3b_dir / "risk_curves.csv", index=False)
+        return e3b_dir, df_feat, df_risk
+
+    def _make_tiny_folds(self):
+        return [{
+            "fold_name": "combo_fold_1",
+            "train_combos": [(2.0, 0.5, 10)],
+            "test_combos": [(3.0, 0.3, 15)],
+        }]
+
+    def test_execute_track_main_orchestration(self, tmp_path, monkeypatch):
+        """Real _execute_track_main with patched compute produces all 6 methods."""
+        e3b_dir, df_feat, df_risk = self._make_tiny_e3b(tmp_path)
+        folds = self._make_tiny_folds()
+        seeds = [42]
+
+        monkeypatch.setattr(p4, "compute_sha256", lambda p: "a" * 64)
+        monkeypatch.setattr(cfg, "INPUT_SHA256", {
+            "E3b_sample_features_csv": "a" * 64,
+            "E3b_risk_curves_csv": "a" * 64,
+        })
+
+        def fake_train(X, Y, x_bar, seed=42):
+            class FakeModel:
+                def eval(self): pass
+            return FakeModel(), {"n_iter": 1, "x_mean": np.zeros(X.shape[1]),
+                                 "x_std": np.ones(X.shape[1]),
+                                 "z_mean": np.zeros(3), "z_std": np.ones(3)}
+
+        def fake_predict(model, info, X, x_bar):
+            n = X.shape[0]
+            return np.column_stack([np.full(n, 2.5), np.full(n, 1.1), np.full(n, 0.4)])
+
+        monkeypatch.setattr(direct, "train_direct_mlp", fake_train)
+        monkeypatch.setattr(direct, "predict_direct_mlp", fake_predict)
+
+        def fake_train_mlp(X, Y, seed=42):
+            class FakeVec:
+                def predict(self, x): return np.zeros((x.shape[0], 26))
+            return FakeVec(), None
+
+        monkeypatch.setattr(e4, "_train_mlp", fake_train_mlp)
+
+        def fake_eval_model(model, scaler, df_test, df_loss, means, stds, penalty, fold, seed):
+            rows = []
+            for _, r in df_test.iterrows():
+                rows.append({"beta": r["beta"], "gamma_over_eta": r["gamma_over_eta"],
+                             "n": int(r["n"]), "repeat_id": int(r["repeat_id"]),
+                             "selected_delta": 0.1, "true_loss": 0.5})
+            return rows
+
+        monkeypatch.setattr(e4, "_evaluate_single_model", fake_eval_model)
+
+        fold_penalties = {"combo_fold_1": 2.0}
+        run_context = p4.build_run_context("a" * 64)
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+
+        est_rows, fold_assignment = p4._execute_track_main(
+            output_dir, folds, seeds, "study01_v1", run_context, e3b_dir, False,
+            fold_penalties
+        )
+
+        methods_seen = set(r["method"] for r in est_rows)
+        assert methods_seen == set(cfg.P4_METHODS), f"Missing methods: {set(cfg.P4_METHODS) - methods_seen}"
+
+        df_est = pd.DataFrame(est_rows, columns=p4.ESTIMATION_COLUMNS)
+        df_eval = p4.build_evaluation_layer(df_est, fold_penalties, fold_assignment=fold_assignment, seeds=seeds)
+
+        assert len(df_eval) > 0
+        key_check = p4.verify_sample_keys_identical(df_eval, track=cfg.TRACK_MAIN_HOLDOUT)
+        assert key_check["ok"], f"Key check failed: {key_check}"
+
+        results = p4.compute_result_tables(df_eval, cfg.TRACK_MAIN_HOLDOUT)
+        assert len(results["methods"]) == 6
+        assert "paired_comparisons" in results
+
+    def test_authorization_contract_rejects_wrong_output_dir(self):
+        """verify_authorization_contract rejects non-standard output_dir."""
+        import unittest.mock as mock
+        with mock.patch.object(cfg, "P4_FORMAL_AUTHORIZED", True):
+            with pytest.raises(RuntimeError, match="output_dir must be"):
+                p4.verify_authorization_contract(
+                    "/tmp/wrong", cfg.ALL_TRACKS, cfg.SEEDS, False
+                )
+
+    def test_authorization_contract_rejects_track_subset(self):
+        """verify_authorization_contract rejects track subsets."""
+        import unittest.mock as mock
+        with mock.patch.object(cfg, "P4_FORMAL_AUTHORIZED", True):
+            with pytest.raises(RuntimeError, match="tracks must be"):
+                p4.verify_authorization_contract(
+                    cfg.FORMAL_OUTPUT_DIR, ["main_holdout"], cfg.SEEDS, False
+                )
+
+    def test_authorization_contract_rejects_seed_subset(self):
+        """verify_authorization_contract rejects seed subsets."""
+        import unittest.mock as mock
+        with mock.patch.object(cfg, "P4_FORMAL_AUTHORIZED", True):
+            with pytest.raises(RuntimeError, match="seeds must be"):
+                p4.verify_authorization_contract(
+                    cfg.FORMAL_OUTPUT_DIR, cfg.ALL_TRACKS, [42], False
+                )

@@ -133,10 +133,10 @@ ROW_COUNT_CONTRACT = {
         "evaluation_per_method": 225000,
     },
     TRACK_EXTRAP: {
-        "estimation_traditional": "runtime",
-        "estimation_learning_per_model": "runtime",
-        "estimation_learning_total": "runtime",
-        "evaluation_per_method": "runtime",
+        "estimation_traditional": 7000,
+        "estimation_learning_per_model": 7000,
+        "estimation_learning_total": 105000,
+        "evaluation_per_method": 105000,
     },
 }
 
