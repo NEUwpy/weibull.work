@@ -1,20 +1,19 @@
 """P3 Six-method fair comparison.
 
 Runs MDM-Default, MDM-Vector-MLP, Direct-MLP, MLE, LSE, WMLE on the same
-test samples with a per-fold failure contract and per-sample loss.
-
-This is a THIN ORCHESTRATOR: it does not reimplement any estimator, feature
-computation, sample generation, or metric. It calls existing production
-implementations into a unified comparison.
+test samples with per-fold failure contract and per-sample J1 loss.
 
 Per-model fairness contract:
-  - Each fold×seed has its own frozen failure penalty (P99 of training losses)
+  - Each fold×seed has its own frozen failure penalty (P99 of ALL 26 delta
+    losses in the training fold, not just delta=0.1)
   - All six methods on that fold×seed use the same penalty
-  - Sample keys are aligned per method×fold×seed, not just globally
+  - Sample keys are aligned per method×fold×seed
   - No method may silently drop failed samples
 
-P3 only proves the comparison program works. It does NOT produce formal
-rankings — that is P4.
+Vector-MLP integration:
+  Vector-MLP predictions come from a trained model + MC chunk join.
+  The caller provides vector_models with (beta_hat, eta_hat, gamma_hat)
+  extracted from the actual MDM parameter estimates at the selected delta.
 """
 
 from __future__ import annotations
@@ -41,10 +40,6 @@ from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 
 
-# ════════════════════════════════════════════════════════════════════════
-# The six methods
-# ════════════════════════════════════════════════════════════════════════
-
 ALL_SIX_METHODS = [
     "MDM-Default",
     "MDM-Vector-MLP",
@@ -56,31 +51,21 @@ ALL_SIX_METHODS = [
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Traditional method evaluation (MLE, LSE, WMLE, MDM-Default)
+# Traditional method evaluation
 # ════════════════════════════════════════════════════════════════════════
 
 def evaluate_traditional(
-    method_id: str,
-    method_name: str,
-    combos: list[tuple[float, float, int]],
-    repeats: int,
-    fold_name: str,
-    seed: int,
-    failure_penalty: float,
-    seed_namespace: str = "study01_v1",
-) -> list[dict]:
-    """Run one traditional estimator on identical samples.
-
-    Each row carries the fold_name, seed, and failure_penalty so that
-    per-model fairness can be verified.
-    """
+    method_id, method_name, combos, repeats,
+    fold_name, seed, failure_penalty,
+    seed_namespace="study01_v1",
+):
+    """Run one traditional estimator on identical samples."""
     rows = []
     for beta, goe, n in combos:
         eta = 1.0
         gamma = goe * eta
         for rid in range(repeats):
             sample = generate_sample(beta, eta, gamma, n, rid, seed=seed_namespace)
-
             kwargs = {"offset": 0.1} if method_id == "mdm" else {}
             result = run_method(method_id, sample, **kwargs)
 
@@ -114,15 +99,8 @@ def evaluate_traditional(
 # Unified failure contract
 # ════════════════════════════════════════════════════════════════════════
 
-def apply_failure_contract(
-    rows: list[dict],
-) -> list[dict]:
-    """Apply each row's own failure_penalty to its true_loss.
-
-    Each row already carries its per-fold failure_penalty (set by the
-    evaluation functions). Failed rows get that penalty as true_loss;
-    the original loss is preserved in true_loss_complete_case.
-    """
+def apply_failure_contract(rows):
+    """Apply each row's own failure_penalty. Reject penalty <= 0."""
     for row in rows:
         penalty = row.get("failure_penalty", 0.0)
         assert penalty > 0, (
@@ -141,244 +119,192 @@ def apply_failure_contract(
 # Pooled J1 and model-first aggregation
 # ════════════════════════════════════════════════════════════════════════
 
-def pooled_j1(losses: np.ndarray) -> float:
-    """J1 = sqrt(mean(loss)). Same formula as p2_config.compute_j1."""
+def pooled_j1(losses):
     return float(np.sqrt(np.mean(losses)))
 
 
-def model_first_summary(
-    rows: list[dict],
-    method_name: str,
-) -> dict:
-    """Aggregate per fold×seed, then report model-level distribution."""
+def model_first_summary(rows, method_name):
     df = pd.DataFrame(rows)
     if df.empty:
         return {"method": method_name, "n_rows": 0, "error": "empty"}
-
     is_learning = df["fold"].iloc[0] != "" if len(df) > 0 else False
-
     if is_learning:
         per_model = df.groupby(["fold", "seed"])["true_loss"].apply(
             lambda x: pooled_j1(x.values.astype(float))
         )
         return {
-            "method": method_name,
-            "n_models": len(per_model),
+            "method": method_name, "n_models": len(per_model),
             "median_J1": float(per_model.median()),
             "mean_J1": float(per_model.mean()),
             "SD_J1": float(per_model.std(ddof=1)) if len(per_model) > 1 else 0.0,
-            "min_J1": float(per_model.min()),
-            "max_J1": float(per_model.max()),
-            "n_failures": int(df["failed"].sum()),
-            "n_rows": len(df),
+            "min_J1": float(per_model.min()), "max_J1": float(per_model.max()),
+            "n_failures": int(df["failed"].sum()), "n_rows": len(df),
         }
     else:
         j1 = pooled_j1(df["true_loss"].values.astype(float))
         return {
-            "method": method_name,
-            "n_models": 1,
-            "median_J1": j1,
-            "mean_J1": j1,
-            "SD_J1": 0.0,
-            "min_J1": j1,
-            "max_J1": j1,
-            "n_failures": int(df["failed"].sum()),
-            "n_rows": len(df),
+            "method": method_name, "n_models": 1,
+            "median_J1": j1, "mean_J1": j1, "SD_J1": 0.0,
+            "min_J1": j1, "max_J1": j1,
+            "n_failures": int(df["failed"].sum()), "n_rows": len(df),
         }
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Sample key alignment: per method×fold×seed verification
+# Sample key alignment: per method×fold×seed
 # ════════════════════════════════════════════════════════════════════════
 
-def verify_sample_key_alignment(all_rows: list[dict]) -> dict:
-    """Verify sample key alignment per method×fold×seed.
-
-    Checks: complete keys, equal row counts, no duplicates, no missing.
-    Returns a dict with pass/fail and diagnostics.
-    """
+def verify_sample_key_alignment(all_rows):
+    """Verify sample key alignment per method×fold×seed."""
     df = pd.DataFrame(all_rows)
     if df.empty:
         return {"ok": False, "reason": "no rows"}
 
     KEY_COLS = ["beta", "gamma_over_eta", "n", "repeat_id"]
-
-    # Group by method×fold×seed and check key sets match
     groups = df.groupby(["method", "fold", "seed"])
 
-    # Get the reference key set from the first group
     first_name, first_group = next(iter(groups))
     first_keys = first_group[KEY_COLS].apply(tuple, axis=1)
     first_key_set = set(first_keys)
-    first_n = len(first_keys)
-    first_unique = len(first_key_set)
 
-    if first_n != first_unique:
-        return {"ok": False, "reason": f"duplicate keys in {first_name}"}
-
-    # Check all other groups have the same key set
     for (method, fold, seed), group in groups:
         keys = group[KEY_COLS].apply(tuple, axis=1)
         key_set = set(keys)
         if len(keys) != len(key_set):
             return {"ok": False, "reason": f"duplicate keys in {method}/{fold}/{seed}"}
         if key_set != first_key_set:
-            only_here = key_set - first_key_set
-            only_ref = first_key_set - key_set
-            return {
-                "ok": False,
-                "reason": f"key mismatch in {method}/{fold}/{seed}",
-                "only_here": len(only_here),
-                "only_ref": len(only_ref),
-            }
+            return {"ok": False, "reason": f"key mismatch in {method}/{fold}/{seed}"}
+
+    # Check penalty consistency within each fold×seed
+    penalty_groups = df.groupby(["fold", "seed"])["failure_penalty"].nunique()
+    if penalty_groups.max() > 1:
+        return {"ok": False, "reason": "inconsistent failure_penalty within fold×seed"}
 
     return {
         "ok": True,
         "n_methods": df["method"].nunique(),
         "n_groups": len(groups),
-        "n_keys_per_group": first_n,
+        "n_keys_per_group": len(first_keys),
         "methods": sorted(df["method"].unique().tolist()),
     }
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Full comparison driver
+# Full comparison driver with fold×seed coverage check
 # ════════════════════════════════════════════════════════════════════════
 
 def run_fair_comparison(
-    df_features: pd.DataFrame,
-    direct_models: dict,
-    vector_models: dict,
-    df_risk_curves: pd.DataFrame,
-    folds: list[dict] | None = None,
-    repeats: int = 10,
-    seed_namespace: str = "study01_v1",
-    require_all_six: bool = True,
-) -> dict:
-    """Run six-method fair comparison.
+    df_features, direct_models, vector_models, df_risk_curves,
+    folds=None, repeats=10, seeds=None,
+    seed_namespace="study01_v1", require_all_six=True,
+):
+    """Run six-method fair comparison with full fold×seed coverage.
 
     Parameters
     ----------
-    df_features : sample_features DataFrame (13 features + keys)
-    direct_models : {fold_name: [(seed, model, target_scaler, means, stds), ...]}
-    vector_models : {fold_name: [(seed, predictions_df), ...]}
-        where predictions_df has columns: beta, gamma_over_eta, n, repeat_id,
-        beta_hat, eta_hat, gamma_hat, failed, failure_reason
-    df_risk_curves : E3b risk_curves.csv for computing fold penalties
-    folds : list of fold dicts (from e4.get_combo_split()). If None, use all 5.
+    df_features : sample_features DataFrame
+    direct_models : {fold_name: {seed: (model, info, means, stds)}}
+    vector_models : {fold_name: {seed: pd.DataFrame of predictions}}
+    df_risk_curves : risk_curves DataFrame (26 loss_d columns)
+    folds : list of fold dicts
     repeats : MC repeats per combo for traditional methods
-    require_all_six : if True, fail if fewer than 6 methods produce results
+    seeds : list of seeds to evaluate (default: all 3)
     """
     if folds is None:
         folds = e4.get_combo_split()
+    if seeds is None:
+        seeds = cfg.DIRECT_MLP_SEEDS
 
     all_rows = []
     methods_seen = set()
+    fold_seed_coverage = {}  # (fold, seed) → set of methods
 
     for fold in folds:
         fold_name = fold["fold_name"]
         train_combos = fold["train_combos"]
         test_combos = fold["test_combos"]
 
-        # Compute per-fold penalty
+        # Compute per-fold penalty from ALL 26 delta losses
         fold_penalty = direct.compute_fold_penalty(
             df_features, df_risk_curves, train_combos
         )
-        assert fold_penalty > 0, f"Fold penalty must be > 0 for {fold_name}"
+        assert fold_penalty > 0
 
-        for seed in cfg.DIRECT_MLP_SEEDS:
-            # ── MDM-Default ──
-            rows = evaluate_traditional(
-                "mdm", "MDM-Default", test_combos, repeats,
-                fold_name, seed, fold_penalty, seed_namespace,
-            )
-            all_rows.extend(rows)
-            methods_seen.add("MDM-Default")
+        for seed in seeds:
+            key = (fold_name, seed)
+            fold_seed_coverage[key] = set()
 
-            # ── MLE ──
-            rows = evaluate_traditional(
-                "mle", "MLE", test_combos, repeats,
-                fold_name, seed, fold_penalty, seed_namespace,
-            )
-            all_rows.extend(rows)
-            methods_seen.add("MLE")
+            # Traditional methods (4 per fold×seed)
+            for mid, mname in [("mdm", "MDM-Default"), ("mle", "MLE"),
+                               ("lse", "LSE"), ("wmle", "WMLE")]:
+                rows = evaluate_traditional(
+                    mid, mname, test_combos, repeats,
+                    fold_name, seed, fold_penalty, seed_namespace,
+                )
+                all_rows.extend(rows)
+                methods_seen.add(mname)
+                fold_seed_coverage[key].add(mname)
 
-            # ── LSE ──
-            rows = evaluate_traditional(
-                "lse", "LSE", test_combos, repeats,
-                fold_name, seed, fold_penalty, seed_namespace,
-            )
-            all_rows.extend(rows)
-            methods_seen.add("LSE")
+            # Direct-MLP
+            if fold_name in direct_models and seed in direct_models[fold_name]:
+                model, info, means, stds = direct_models[fold_name][seed]
+                mask = df_features.apply(
+                    lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in test_combos, axis=1
+                )
+                df_eval = df_features[mask]
+                rows = direct.evaluate_on_samples(
+                    model, info, df_eval, means, stds,
+                    fold_name, seed, fold_penalty,
+                )
+                all_rows.extend(rows)
+                methods_seen.add("Direct-MLP")
+                fold_seed_coverage[key].add("Direct-MLP")
 
-            # ── WMLE ──
-            rows = evaluate_traditional(
-                "wmle", "WMLE", test_combos, repeats,
-                fold_name, seed, fold_penalty, seed_namespace,
-            )
-            all_rows.extend(rows)
-            methods_seen.add("WMLE")
+            # Vector-MLP
+            if fold_name in vector_models and seed in vector_models[fold_name]:
+                pred_df = vector_models[fold_name][seed]
+                for _, prow in pred_df.iterrows():
+                    loss = direct.compute_param_loss(
+                        prow["beta_hat"], prow["beta"],
+                        prow["eta_hat"], prow.get("eta", prow.get("eta_hat", 1.0)),
+                        prow["gamma_hat"], prow.get("gamma", prow["gamma_hat"] * prow.get("gamma_over_eta", prow["gamma_hat"] / prow.get("eta_hat", 1.0))),
+                    ) if "gamma" in prow else direct.compute_param_loss(
+                        prow["beta_hat"], prow["beta"],
+                        prow["eta_hat"], prow.get("eta", 1.0),
+                        prow["gamma_hat"], prow["gamma_over_eta"] * prow.get("eta", 1.0),
+                    )
+                    all_rows.append({
+                        "fold": fold_name, "seed": seed,
+                        "method": "MDM-Vector-MLP",
+                        "beta": prow["beta"],
+                        "gamma_over_eta": prow["gamma_over_eta"],
+                        "n": prow["n"], "repeat_id": prow["repeat_id"],
+                        "beta_hat": prow["beta_hat"],
+                        "eta_hat": prow["eta_hat"],
+                        "gamma_hat": prow["gamma_hat"],
+                        "true_loss": loss,
+                        "failed": prow.get("failed", False),
+                        "failure_reason": prow.get("failure_reason", ""),
+                        "failure_penalty": fold_penalty,
+                    })
+                methods_seen.add("MDM-Vector-MLP")
+                fold_seed_coverage[key].add("MDM-Vector-MLP")
 
-            # ── Direct-MLP ──
-            if fold_name in direct_models:
-                for ms in direct_models[fold_name]:
-                    if ms[0] == seed:
-                        model, tscaler, means, stds = ms[1], ms[2], ms[3], ms[4]
-                        mask = df_features.apply(
-                            lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in test_combos,
-                            axis=1,
-                        )
-                        df_eval = df_features[mask]
-                        rows = direct.evaluate_on_samples(
-                            model, tscaler, df_eval, means, stds,
-                            fold_name, seed, fold_penalty,
-                        )
-                        all_rows.extend(rows)
-                        methods_seen.add("Direct-MLP")
-                        break
+    # Verify full coverage
+    coverage_gaps = {}
+    for (fn, sd), ms in fold_seed_coverage.items():
+        missing = set(ALL_SIX_METHODS) - ms
+        if missing:
+            coverage_gaps[f"{fn}/{sd}"] = sorted(missing)
 
-            # ── MDM-Vector-MLP ──
-            if fold_name in vector_models:
-                for vs in vector_models[fold_name]:
-                    if vs[0] == seed:
-                        pred_df = vs[1]
-                        for _, prow in pred_df.iterrows():
-                            loss = direct.compute_param_loss(
-                                prow["beta_hat"], prow["beta"],
-                                prow["eta_hat"], prow.get("eta", 1.0),
-                                prow["gamma_hat"], prow.get("gamma", prow["gamma_over_eta"]),
-                            )
-                            all_rows.append({
-                                "fold": fold_name, "seed": seed,
-                                "method": "MDM-Vector-MLP",
-                                "beta": prow["beta"],
-                                "gamma_over_eta": prow["gamma_over_eta"],
-                                "n": prow["n"], "repeat_id": prow["repeat_id"],
-                                "beta_hat": prow["beta_hat"],
-                                "eta_hat": prow["eta_hat"],
-                                "gamma_hat": prow["gamma_hat"],
-                                "true_loss": loss,
-                                "failed": prow.get("failed", False),
-                                "failure_reason": prow.get("failure_reason", ""),
-                                "failure_penalty": fold_penalty,
-                            })
-                        methods_seen.add("MDM-Vector-MLP")
-                        break
-
-    # Apply failure contract
-    all_rows = apply_failure_contract(all_rows)
-
-    # Verify alignment
-    alignment = verify_sample_key_alignment(all_rows)
-
-    # Check all six methods present
     if require_all_six:
-        missing = set(ALL_SIX_METHODS) - methods_seen
-        assert not missing, (
-            f"Missing methods: {missing}. Only saw: {methods_seen}"
+        assert not coverage_gaps, (
+            f"Method coverage gaps: {coverage_gaps}"
         )
 
-    # Model-first summaries
+    all_rows = apply_failure_contract(all_rows)
+    alignment = verify_sample_key_alignment(all_rows)
+
     df_all = pd.DataFrame(all_rows)
     summaries = {}
     for m in df_all["method"].unique():
@@ -391,4 +317,6 @@ def run_fair_comparison(
         "sample_key_alignment": alignment,
         "methods_seen": sorted(methods_seen),
         "n_rows": len(all_rows),
+        "fold_seed_coverage": {str(k): sorted(v) for k, v in fold_seed_coverage.items()},
+        "coverage_gaps": coverage_gaps,
     }

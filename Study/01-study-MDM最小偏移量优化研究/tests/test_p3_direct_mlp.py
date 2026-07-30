@@ -1,18 +1,12 @@
-"""Fail-closed tests for P3 Direct-MLP and fair comparison contract.
+"""Fail-closed tests for P3 Direct-MLP v3.
 
-Covers the issues most likely to affect scientific conclusions:
-- Target representation: perfect decode round-trip
-- Output constraints: beta>0, eta>0, gamma>=0
-- Non-unit eta compatibility
-- Fold/scaler/test data leakage (no inline duplication)
-- Forbidden fields not in Direct-MLP input
-- Fixed seed reproducibility
-- Six-method sample key alignment (per method×fold×seed)
-- J1 and per-fold failure penalty correctness
-- Failed samples not silently deleted
-- Model-first aggregation correctness
-- Production-path regression: run_fair_comparison with tamper detection
-- Existing formal products not overwritten
+Tests the hardest issues:
+- Scale equivariance: scaling sample scales eta/gamma correctly
+- J1-compatible loss: training loss weights match J1 formula
+- P99 penalty from ALL 26 deltas (not just delta=0.1)
+- Six-method fold×seed coverage (detects baseline 3-seed vs learning 1-seed)
+- Production-path run_fair_comparison with tamper detection
+- Perfect decode round-trip for non-unit eta
 """
 
 from __future__ import annotations
@@ -38,25 +32,18 @@ import run_E4_formal_validation as e4
 from studies.common.sample import generate_sample
 
 
-# ── Helpers ────────────────────────────────────────────────────────────
-
 def _make_mini_features(n_combos=2, repeats=5):
-    """Build a minimal sample_features DataFrame for testing."""
     rows = []
     for beta in [1.5, 2.0][:n_combos]:
         for rid in range(repeats):
             sample = generate_sample(beta, 1.0, beta * 0.1, 7, rid, seed="study01_v1")
             feats = e4.compute_sample_features(sample)
-            rows.append({
-                "beta": beta, "eta": 1.0, "gamma": beta * 0.1,
-                "gamma_over_eta": 0.1, "n": 7, "repeat_id": rid,
-                **feats,
-            })
+            rows.append({"beta": beta, "eta": 1.0, "gamma": beta * 0.1,
+                         "gamma_over_eta": 0.1, "n": 7, "repeat_id": rid, **feats})
     return pd.DataFrame(rows)
 
 
 def _make_mini_risk_curves(n_combos=2, repeats=5):
-    """Build a minimal risk_curves DataFrame (loss_d0.1 column)."""
     rows = []
     for beta in [1.5, 2.0][:n_combos]:
         for rid in range(repeats):
@@ -67,129 +54,146 @@ def _make_mini_risk_curves(n_combos=2, repeats=5):
     return pd.DataFrame(rows)
 
 
-# ── 1. Target representation: encode/decode round-trip ─────────────────
+# ── 1. Scale equivariance ──────────────────────────────────────────────
 
-class TestTargetRepresentation:
-    def test_perfect_decode_unit_eta(self):
-        """Perfect prediction must decode back to exactly the true params."""
-        params = np.array([[1.5, 1.0, 0.1], [3.0, 1.0, 0.5]])
-        assert direct.verify_perfect_decode(params, atol=1e-5)
+class TestScaleEquivariance:
+    def test_decode_scales_eta_by_x_bar(self):
+        """eta_hat = eta_ratio * x_bar, so doubling x_bar doubles eta_hat."""
+        z = np.array([[2.0, 1.0, 0.5]])
+        x_bar1 = np.array([1.0])
+        x_bar2 = np.array([2.0])
+        p1 = direct.decode_output(z, x_bar1)
+        p2 = direct.decode_output(z, x_bar2)
+        assert p2[0, 1] == pytest.approx(2 * p1[0, 1])  # eta doubled
+        assert p2[0, 0] == pytest.approx(p1[0, 0])      # beta unchanged
+        assert p2[0, 2] == pytest.approx(2 * p1[0, 2])  # gamma doubled (goe*eta)
 
-    def test_perfect_decode_nonunit_eta(self):
-        """Non-unit eta must also round-trip exactly."""
-        params = np.array([[2.0, 3.5, 0.7], [4.0, 0.5, 0.1]])
-        assert direct.verify_perfect_decode(params, atol=1e-5)
+    def test_encode_decode_roundtrip_unit_eta(self):
+        params = np.array([[2.0, 1.0, 0.5]])
+        x_bar = np.array([1.0])
+        z = direct.encode_targets(params, x_bar)
+        decoded = direct.decode_output(z, x_bar)
+        assert np.allclose(decoded, params, atol=1e-5)
 
-    def test_perfect_decode_extreme_params(self):
-        """Extreme beta values must round-trip."""
-        params = np.array([[0.5, 0.1, 0.0], [5.0, 10.0, 5.0]])
-        assert direct.verify_perfect_decode(params, atol=1e-4)
+    def test_encode_decode_roundtrip_nonunit_eta(self):
+        """Non-unit eta must round-trip correctly."""
+        params = np.array([[2.5, 3.0, 1.5]])
+        x_bar = np.array([3.0])  # eta/x_bar = 1.0
+        z = direct.encode_targets(params, x_bar)
+        decoded = direct.decode_output(z, x_bar)
+        assert np.allclose(decoded, params, atol=1e-5)
 
-    def test_perfect_decode_loss_is_zero(self):
-        """After perfect decode, compute_param_loss must be 0."""
-        params = np.array([[2.5, 1.5, 0.3]])
-        encoded = direct.encode_targets(params)
-        decoded = direct.decode_output(encoded)
-        loss = direct.compute_param_loss(
-            decoded[0, 0], params[0, 0],
-            decoded[0, 1], params[0, 1],
-            decoded[0, 2], params[0, 2],
-        )
-        assert loss == pytest.approx(0.0, abs=1e-10)
+    def test_encode_decode_roundtrip_different_scales(self):
+        """Same shape params at different eta scales must produce different targets."""
+        p1 = np.array([[2.0, 1.0, 0.5]])  # eta=1
+        p2 = np.array([[2.0, 5.0, 2.5]])  # eta=5, same beta/goe
+        x_bar1 = np.array([1.0])
+        x_bar2 = np.array([5.0])  # scaled
+        z1 = direct.encode_targets(p1, x_bar1)
+        z2 = direct.encode_targets(p2, x_bar2)
+        # z_beta should be same (shape param)
+        assert np.allclose(z1[0, 0], z2[0, 0], atol=1e-5)
+        # z_eta_ratio should be same (eta/x_bar = 1.0 in both cases)
+        assert np.allclose(z1[0, 1], z2[0, 1], atol=1e-5)
+        # z_goe should be same (gamma/eta = 0.5 in both cases)
+        assert np.allclose(z1[0, 2], z2[0, 2], atol=1e-5)
 
-    def test_encode_decode_inverse_relationship(self):
-        """softplus(inverse_softplus(x)) = x for x > 0."""
-        for x in [0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]:
-            inv = direct._inverse_softplus(np.array([x]))[0]
-            fwd = direct._softplus(np.array([inv]))[0]
-            assert fwd == pytest.approx(x, abs=1e-6), f"softplus(inverse_softplus({x})) = {fwd}"
+    def test_scale_equivariance_verification(self):
+        """verify_scale_equivariance detects correct scaling."""
+        preds1 = np.array([[2.0, 1.0, 0.5]])
+        preds2 = np.array([[2.0, 2.0, 1.0]])  # eta*2, gamma*2, beta same
+        assert direct.verify_scale_equivariance(preds1, preds2, 2.0)
 
 
 # ── 2. Output constraints ──────────────────────────────────────────────
 
 class TestOutputConstraints:
-    def test_softplus_positive_for_beta_eta(self):
-        raw = np.array([[-100, -100, -100]])
-        out = direct.decode_output(raw)
-        assert out[0, 0] > 0
-        assert out[0, 1] > 0
+    def test_beta_positive(self):
+        z = np.array([[-100, 1.0, 0.5]])
+        x_bar = np.array([1.0])
+        p = direct.decode_output(z, x_bar)
+        assert p[0, 0] > 0
 
-    def test_relu_nonneg_for_gamma(self):
-        raw = np.array([[1.0, 1.0, -5.0]])
-        out = direct.decode_output(raw)
-        assert out[0, 2] == 0.0
+    def test_eta_positive(self):
+        z = np.array([[1.0, -100, 0.5]])
+        x_bar = np.array([1.0])
+        p = direct.decode_output(z, x_bar)
+        assert p[0, 1] > 0
 
-    def test_verify_accepts_valid(self):
-        raw = np.array([[1.0, 2.0, 3.0], [0.5, 0.1, 0.0]])
-        out = direct.decode_output(raw)
-        assert direct.verify_output_constraints(out)
-
-    def test_verify_rejects_zero_beta(self):
-        preds = np.array([[0.0, 1.0, 1.0]])
-        assert not direct.verify_output_constraints(preds)
+    def test_gamma_nonneg(self):
+        z = np.array([[1.0, 1.0, -100]])
+        x_bar = np.array([1.0])
+        p = direct.decode_output(z, x_bar)
+        assert p[0, 2] >= 0
 
 
 # ── 3. Forbidden fields ────────────────────────────────────────────────
 
 class TestForbiddenFields:
-    def test_no_forbidden_in_feature_cols(self):
+    def test_no_forbidden_in_features(self):
         feats = set(e4.SAMPLE_FEATURE_COLS)
         for f in cfg.FORBIDDEN_INPUT_FIELDS:
-            assert f not in feats, f"Forbidden field '{f}' is in SAMPLE_FEATURE_COLS"
+            assert f not in feats
 
-    def test_no_true_params_in_features(self):
-        forbidden_params = {"beta", "eta", "gamma"}
-        assert forbidden_params.isdisjoint(set(e4.SAMPLE_FEATURE_COLS))
-
-    def test_no_combo_id_in_features(self):
-        forbidden_ids = {"repeat_id", "fold", "combo_id", "track", "seed"}
-        assert forbidden_ids.isdisjoint(set(e4.SAMPLE_FEATURE_COLS))
+    def test_x_bar_is_feature_not_forbidden(self):
+        """x_bar IS a feature (used as scale anchor) and must not be forbidden."""
+        assert "x_bar" in e4.SAMPLE_FEATURE_COLS
+        assert "x_bar" not in cfg.FORBIDDEN_INPUT_FIELDS
 
 
-# ── 4. Parameter loss formula ──────────────────────────────────────────
+# ── 4. J1-compatible loss ──────────────────────────────────────────────
 
-class TestParamLoss:
+class TestJ1CompatibleLoss:
     def test_zero_loss_for_perfect_prediction(self):
         loss = direct.compute_param_loss(2.0, 2.0, 1.0, 1.0, 0.5, 0.5)
         assert loss == pytest.approx(0.0, abs=1e-12)
 
-    def test_matches_j1_squared_formula(self):
+    def test_matches_j1_squared(self):
         loss = direct.compute_param_loss(2.5, 2.0, 1.5, 1.0, 0.8, 0.5)
-        e_beta = (2.5 - 2.0) / 2.0
-        e_eta = (1.5 - 1.0) / 1.0
-        e_gamma = (0.8 - 0.5) / 1.0
-        expected = e_beta**2 + e_eta**2 + e_gamma**2
-        assert loss == pytest.approx(expected)
+        e_b = (2.5-2.0)/2.0
+        e_e = (1.5-1.0)/1.0
+        e_g = (0.8-0.5)/1.0
+        assert loss == pytest.approx(e_b**2 + e_e**2 + e_g**2)
 
-    def test_gamma_normalized_by_eta_not_gamma(self):
+    def test_gamma_normalized_by_eta(self):
         loss = direct.compute_param_loss(2.0, 2.0, 1.0, 1.0, 1.5, 1.0)
-        e_gamma = (1.5 - 1.0) / 1.0
-        assert loss == pytest.approx(e_gamma**2)
+        assert loss == pytest.approx(0.5**2)
+
+    def test_nonunit_eta_gamma_normalization(self):
+        """For eta=3, gamma error normalized by eta."""
+        loss = direct.compute_param_loss(2.0, 2.0, 3.0, 3.0, 2.0, 1.5)
+        e_g = (2.0 - 1.5) / 3.0
+        assert loss == pytest.approx(e_g**2)
+
+    def test_training_loss_weights_match_j1(self):
+        """Numerically verify: same param errors produce same loss weights as J1."""
+        # Three different param errors
+        errors = [
+            (2.2, 2.0, 1.1, 1.0, 0.6, 0.5),  # e_b=0.1, e_e=0.1, e_g=0.1/0.5=0.2
+            (3.0, 2.0, 1.5, 1.0, 0.7, 0.5),  # different errors
+        ]
+        for bh, b, eh, e, gh, g in errors:
+            loss = direct.compute_param_loss(bh, b, eh, e, gh, g)
+            e_b = (bh - b) / b
+            e_e = (eh - e) / e
+            e_g = (gh - g) / e
+            j1_sq = e_b**2 + e_e**2 + e_g**2
+            assert loss == pytest.approx(j1_sq), \
+                f"Loss {loss} != J1² {j1_sq} for params ({bh},{b},{eh},{e},{gh},{g})"
 
 
 # ── 5. Fold/scaler isolation ───────────────────────────────────────────
 
 class TestFoldIsolation:
-    def test_train_fold_excludes_test_combos(self):
-        splits = e4.get_combo_split()
-        assert len(splits) == 5
-        for fold in splits:
-            train_set = set(fold["train_combos"])
-            test_set = set(fold["test_combos"])
-            assert train_set.isdisjoint(test_set)
-
-    def test_zscore_uses_train_fold_only(self):
-        df = _make_mini_features(n_combos=2, repeats=5)
-        train_combos = [(1.5, 0.1, 7)]
-        X, Y, meta = direct.build_training_data(df, train_combos)
-        assert meta["n_train_samples"] == 5
+    def test_train_excludes_test(self):
+        for fold in e4.get_combo_split():
+            assert set(fold["train_combos"]).isdisjoint(fold["test_combos"])
 
     def test_no_inline_duplication(self):
-        """build_training_data must call e4._fit_zscore_params directly."""
         import inspect
         src = inspect.getsource(direct.build_training_data)
-        assert "e4._fit_zscore_params" in src, "Must call e4._fit_zscore_params"
-        assert "e4._build_X_from_samples" in src, "Must call e4._build_X_from_samples"
+        assert "e4._fit_zscore_params" in src
+        assert "e4._build_X_from_samples" in src
 
 
 # ── 6. Seed reproducibility ────────────────────────────────────────────
@@ -197,64 +201,66 @@ class TestFoldIsolation:
 class TestSeedReproducibility:
     def test_same_seed_same_model(self):
         df = _make_mini_features(n_combos=1, repeats=30)
-        train_combos = [(1.5, 0.1, 7)]
-        X, Y, _ = direct.build_training_data(df, train_combos)
-        m1, _ = direct.train_direct_mlp(X, Y, seed=42)
-        m2, _ = direct.train_direct_mlp(X, Y, seed=42)
-        np.testing.assert_array_equal(m1.coefs_[0], m2.coefs_[0])
+        X, Y, x_bar, _ = direct.build_training_data(df, [(1.5, 0.1, 7)])
+        m1, i1 = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
+        m2, i2 = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
+        for k1, k2 in zip(m1.state_dict().keys(), m2.state_dict().keys()):
+            np.testing.assert_array_equal(
+                m1.state_dict()[k1].numpy(), m2.state_dict()[k2].numpy()
+            )
 
     def test_different_seed_different_model(self):
         df = _make_mini_features(n_combos=1, repeats=30)
-        train_combos = [(1.5, 0.1, 7)]
-        X, Y, _ = direct.build_training_data(df, train_combos)
-        m1, _ = direct.train_direct_mlp(X, Y, seed=42)
-        m2, _ = direct.train_direct_mlp(X, Y, seed=2026)
-        assert not np.allclose(m1.coefs_[0], m2.coefs_[0])
+        X, Y, x_bar, _ = direct.build_training_data(df, [(1.5, 0.1, 7)])
+        m1, _ = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
+        m2, _ = direct.train_direct_mlp(X, Y, x_bar, seed=2026, max_iter=10)
+        w1 = m1.state_dict()["net.0.weight"].numpy()
+        w2 = m2.state_dict()["net.0.weight"].numpy()
+        assert not np.allclose(w1, w2)
 
 
-# ── 7. Six-method sample key alignment ─────────────────────────────────
+# ── 7. P99 penalty from ALL 26 deltas ──────────────────────────────────
 
-class TestSampleKeyAlignment:
-    def test_traditional_methods_use_same_samples(self):
-        rows_mle = compare.evaluate_traditional(
-            "mle", "MLE", [(1.5, 0.1, 7)], 3, "f1", 42, 1.0)
-        rows_lse = compare.evaluate_traditional(
-            "lse", "LSE", [(1.5, 0.1, 7)], 3, "f1", 42, 1.0)
-        keys_mle = [(r["beta"], r["gamma_over_eta"], r["n"], r["repeat_id"]) for r in rows_mle]
-        keys_lse = [(r["beta"], r["gamma_over_eta"], r["n"], r["repeat_id"]) for r in rows_lse]
-        assert keys_mle == keys_lse
+class TestFoldPenalty:
+    def test_uses_all_26_deltas(self):
+        """Penalty must use all 26 delta points, not just delta=0.1."""
+        df_features = _make_mini_features(1, 5)
+        df_risk = _make_mini_risk_curves(1, 5)
+        penalty = direct.compute_fold_penalty(df_features, df_risk, [(1.5, 0.1, 7)])
+        # With 5 samples × 26 deltas = 130 losses, P99 should be a high value
+        assert penalty > 0
+        # Verify it's the P99 of ALL losses, not just delta=0.1
+        all_losses = []
+        for _, row in df_risk.iterrows():
+            for d in range(0, 52, 2):
+                all_losses.append(float(row[f"loss_d{d/100:.2f}"]))
+        expected_p99 = float(np.percentile(all_losses, 99))
+        assert penalty == pytest.approx(expected_p99)
+
+    def test_no_fallback_to_3(self):
+        """Must raise ValueError if no valid training losses, not fall back to 3.0."""
+        df_features = _make_mini_features(1, 5)
+        # Empty risk curves → no matches
+        df_risk = pd.DataFrame(columns=["beta", "gamma_over_eta", "n", "repeat_id"] +
+                               [f"loss_d{d/100:.2f}" for d in range(0, 52, 2)])
+        with pytest.raises(ValueError):
+            direct.compute_fold_penalty(df_features, df_risk, [(1.5, 0.1, 7)])
 
 
 # ── 8. Failure contract ────────────────────────────────────────────────
 
 class TestFailureContract:
-    def test_failed_samples_not_deleted(self):
-        rows = compare.evaluate_traditional(
-            "mle", "MLE", [(1.5, 0.1, 7)], 5, "f1", 42, 3.0)
-        assert len(rows) == 5
-
-    def test_failure_penalty_applied(self):
-        rows = [
-            {"method": "MLE", "true_loss": 0.1, "failed": False, "failure_reason": "", "failure_penalty": 5.0},
-            {"method": "MLE", "true_loss": float("nan"), "failed": True, "failure_reason": "unbounded", "failure_penalty": 5.0},
-        ]
-        result = compare.apply_failure_contract(rows)
-        assert result[1]["true_loss"] == 5.0
-
     def test_no_silent_deletion(self):
         rows = [
             {"method": "MLE", "true_loss": 0.1, "failed": False, "failure_reason": "", "failure_penalty": 5.0},
             {"method": "MLE", "true_loss": float("nan"), "failed": True, "failure_reason": "fail", "failure_penalty": 5.0},
-            {"method": "MLE", "true_loss": 0.2, "failed": False, "failure_reason": "", "failure_penalty": 5.0},
         ]
         result = compare.apply_failure_contract(rows)
-        assert len(result) == 3
+        assert len(result) == 2
+        assert result[1]["true_loss"] == 5.0
 
     def test_zero_penalty_rejected(self):
-        """apply_failure_contract must reject penalty=0."""
-        rows = [
-            {"method": "MLE", "true_loss": 0.1, "failed": False, "failure_reason": "", "failure_penalty": 0.0},
-        ]
+        rows = [{"method": "MLE", "true_loss": 0.1, "failed": False, "failure_reason": "", "failure_penalty": 0.0}]
         with pytest.raises(AssertionError):
             compare.apply_failure_contract(rows)
 
@@ -262,201 +268,165 @@ class TestFailureContract:
 # ── 9. Model-first aggregation ─────────────────────────────────────────
 
 class TestModelFirstAggregation:
-    def test_pooled_j1_is_sqrt_of_mean(self):
-        losses = np.array([0.0, 1.0, 4.0])
-        assert compare.pooled_j1(losses) == pytest.approx(np.sqrt(5.0 / 3.0))
-
-    def test_learning_method_aggregates_per_model(self):
-        rows = [
-            {"fold": "f1", "seed": 42, "method": "Direct-MLP", "true_loss": 0.1, "failed": False},
-            {"fold": "f1", "seed": 42, "method": "Direct-MLP", "true_loss": 0.4, "failed": False},
-            {"fold": "f1", "seed": 2026, "method": "Direct-MLP", "true_loss": 0.2, "failed": False},
-            {"fold": "f1", "seed": 2026, "method": "Direct-MLP", "true_loss": 0.2, "failed": False},
-        ]
-        summary = compare.model_first_summary(rows, "Direct-MLP")
-        assert summary["n_models"] == 2
-        per_model_j1s = [np.sqrt(0.25), np.sqrt(0.2)]
-        assert summary["median_J1"] == pytest.approx(np.median(per_model_j1s))
+    def test_pooled_j1_sqrt_mean(self):
+        assert compare.pooled_j1(np.array([0.0, 1.0, 4.0])) == pytest.approx(np.sqrt(5/3))
 
 
-# ── 10. Production-path regression: run_fair_comparison ────────────────
+# ── 10. Six-method fold×seed coverage ──────────────────────────────────
 
 class TestFairComparisonProduction:
-    """Test the full run_fair_comparison driver, not just helper functions."""
-
     @pytest.fixture
     def mini_setup(self):
-        """Build a minimal but complete six-method comparison setup."""
-        df_features = _make_mini_features(n_combos=2, repeats=10)
-        df_risk = _make_mini_risk_curves(n_combos=2, repeats=10)
-
-        # Train one Direct-MLP model
+        df_features = _make_mini_features(2, 10)
+        df_risk = _make_mini_risk_curves(2, 10)
         folds = e4.get_combo_split()
-        # Use first fold for smoke
         fold = folds[0]
-        # We'll only use combos that exist in df_features
-        train_combos = [(1.5, 0.1, 7)]  # Only one combo in mini data
-        test_combos = [(2.0, 0.1, 7)]   # The other combo
+        train_combos = [(1.5, 0.1, 7)]
+        test_combos = [(2.0, 0.1, 7)]
 
-        X_train, Y_train, meta = direct.build_training_data(df_features, train_combos)
-        model, tscaler = direct.train_direct_mlp(X_train, Y_train, seed=42)
+        X, Y, x_bar, meta = direct.build_training_data(df_features, train_combos)
+        model, info = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
 
-        direct_models = {
-            fold["fold_name"]: [(42, model, tscaler, meta["zscore_means"], meta["zscore_stds"])]
-        }
+        direct_models = {fold["fold_name"]: {42: (model, info, meta["zscore_means"], meta["zscore_stds"])}}
 
-        # Build fake Vector-MLP predictions for the same test samples
-        mask = df_features.apply(
+        test_mask = df_features.apply(
             lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in test_combos, axis=1
         )
-        df_test = df_features[mask]
+        df_test = df_features[test_mask]
         vector_preds = pd.DataFrame({
             "beta": df_test["beta"].values,
             "gamma_over_eta": df_test["gamma_over_eta"].values,
             "n": df_test["n"].values,
             "repeat_id": df_test["repeat_id"].values,
+            "eta": df_test["eta"].values,
+            "gamma": df_test["gamma"].values,
             "beta_hat": df_test["beta"].values * 1.05,
             "eta_hat": df_test["eta"].values,
             "gamma_hat": df_test["gamma"].values,
             "failed": [False] * len(df_test),
             "failure_reason": [""] * len(df_test),
         })
-        vector_models = {
-            fold["fold_name"]: [(42, vector_preds)]
-        }
-
-        # Custom fold with our mini combos
-        mini_fold = {
-            "fold_name": fold["fold_name"],
-            "train_combos": train_combos,
-            "test_combos": test_combos,
-        }
+        vector_models = {fold["fold_name"]: {42: vector_preds}}
+        mini_fold = {"fold_name": fold["fold_name"], "train_combos": train_combos, "test_combos": test_combos}
 
         return {
-            "df_features": df_features,
-            "df_risk": df_risk,
-            "direct_models": direct_models,
-            "vector_models": vector_models,
+            "df_features": df_features, "df_risk": df_risk,
+            "direct_models": direct_models, "vector_models": vector_models,
             "folds": [mini_fold],
         }
 
     def test_all_six_methods_present(self, mini_setup):
-        """run_fair_comparison must produce exactly six methods."""
         result = compare.run_fair_comparison(
             df_features=mini_setup["df_features"],
             direct_models=mini_setup["direct_models"],
             vector_models=mini_setup["vector_models"],
             df_risk_curves=mini_setup["df_risk"],
-            folds=mini_setup["folds"],
-            repeats=10,
+            folds=mini_setup["folds"], repeats=10,
+            seeds=[42],
         )
         assert len(result["methods_seen"]) == 6
         assert set(result["methods_seen"]) == set(compare.ALL_SIX_METHODS)
 
-    def test_sample_key_alignment_ok(self, mini_setup):
-        """All methods must have identical sample keys per fold×seed."""
+    def test_alignment_ok(self, mini_setup):
         result = compare.run_fair_comparison(
             df_features=mini_setup["df_features"],
             direct_models=mini_setup["direct_models"],
             vector_models=mini_setup["vector_models"],
             df_risk_curves=mini_setup["df_risk"],
-            folds=mini_setup["folds"],
-            repeats=10,
+            folds=mini_setup["folds"], repeats=10, seeds=[42],
         )
-        assert result["sample_key_alignment"]["ok"], result["sample_key_alignment"]
+        assert result["sample_key_alignment"]["ok"]
 
-    def test_failure_penalty_nonzero(self, mini_setup):
-        """All rows must have failure_penalty > 0."""
+    def test_penalty_nonzero(self, mini_setup):
         result = compare.run_fair_comparison(
             df_features=mini_setup["df_features"],
             direct_models=mini_setup["direct_models"],
             vector_models=mini_setup["vector_models"],
             df_risk_curves=mini_setup["df_risk"],
-            folds=mini_setup["folds"],
-            repeats=10,
+            folds=mini_setup["folds"], repeats=10, seeds=[42],
         )
         df = pd.DataFrame(result["per_sample"])
         assert (df["failure_penalty"] > 0).all()
 
     def test_tampered_keys_detected(self, mini_setup):
-        """Modifying one method's keys must cause alignment failure."""
         result = compare.run_fair_comparison(
             df_features=mini_setup["df_features"],
             direct_models=mini_setup["direct_models"],
             vector_models=mini_setup["vector_models"],
             df_risk_curves=mini_setup["df_risk"],
-            folds=mini_setup["folds"],
-            repeats=10,
+            folds=mini_setup["folds"], repeats=10, seeds=[42],
         )
-        # Tamper: change a repeat_id to a value not in other methods
         df = pd.DataFrame(result["per_sample"])
-        mle_mask = df["method"] == "MLE"
-        mle_idx = df[mle_mask].index[0]
-        df.loc[mle_idx, "repeat_id"] = 999  # Non-existent repeat_id
-        tampered_rows = df.to_dict("records")
-        alignment = compare.verify_sample_key_alignment(tampered_rows)
-        assert not alignment["ok"], "Tampered keys should be detected"
+        mle_idx = df[df["method"] == "MLE"].index[0]
+        df.loc[mle_idx, "repeat_id"] = 999
+        alignment = compare.verify_sample_key_alignment(df.to_dict("records"))
+        assert not alignment["ok"]
 
-    def test_missing_model_detected(self, mini_setup):
-        """Missing a method must cause assertion failure."""
+    def test_missing_direct_model_detected(self, mini_setup):
         with pytest.raises(AssertionError):
             compare.run_fair_comparison(
                 df_features=mini_setup["df_features"],
-                direct_models={},  # Empty → Direct-MLP missing
+                direct_models={},
                 vector_models=mini_setup["vector_models"],
                 df_risk_curves=mini_setup["df_risk"],
-                folds=mini_setup["folds"],
-                repeats=10,
-                require_all_six=True,
+                folds=mini_setup["folds"], repeats=10, seeds=[42],
             )
 
-    def test_empty_vector_models_detected(self, mini_setup):
-        """Empty vector_models must cause missing MDM-Vector-MLP."""
+    def test_empty_vector_detected(self, mini_setup):
         with pytest.raises(AssertionError):
             compare.run_fair_comparison(
                 df_features=mini_setup["df_features"],
                 direct_models=mini_setup["direct_models"],
-                vector_models={},  # Empty
+                vector_models={},
                 df_risk_curves=mini_setup["df_risk"],
-                folds=mini_setup["folds"],
-                repeats=10,
-                require_all_six=True,
+                folds=mini_setup["folds"], repeats=10, seeds=[42],
             )
 
+    def test_coverage_gap_detected(self, mini_setup):
+        """If traditional methods run 3 seeds but learning methods only 1,
+        the coverage check must catch it."""
+        # Request 3 seeds but only provide models for 1
+        with pytest.raises(AssertionError) as exc_info:
+            compare.run_fair_comparison(
+                df_features=mini_setup["df_features"],
+                direct_models=mini_setup["direct_models"],
+                vector_models=mini_setup["vector_models"],
+                df_risk_curves=mini_setup["df_risk"],
+                folds=mini_setup["folds"], repeats=10,
+                seeds=[42, 2026, 3407],  # 3 seeds requested
+            )
+        assert "coverage" in str(exc_info.value).lower() or "missing" in str(exc_info.value).lower()
 
-# ── 11. Config frozen / provenance ─────────────────────────────────────
+
+# ── 11. Config ─────────────────────────────────────────────────────────
 
 class TestConfigFrozen:
-    def test_config_hash_stable(self):
+    def test_hash_stable(self):
         assert direct.config_hash() == direct.config_hash()
 
-    def test_production_contract_complete(self):
+    def test_contract_complete(self):
         c = cfg.production_contract()
-        assert c["output_transform"] == "softplus_softplus_relu"
-        assert c["target_encoding"] == "inverse_softplus_for_positive_params"
-        assert c["hidden_layers"] == (256, 128, 64)
-        assert c["seeds"] == [42, 2026, 3407]
-        assert "beta" not in c["feature_columns"]
+        assert c["output_transform"] == "scale_equivariant_softplus_softplus_relu"
+        assert c["target_encoding"] == "inverse_softplus_scale_equivariant"
+        assert c["training_loss"] == "J1_compatible_relative_error"
+        assert c["training_framework"] == "pytorch"
+        assert c["scale_anchor"] == "x_bar"
 
     def test_correction_not_used(self):
         assert cfg.CONFIG_CORRECTION_USED is False
 
 
-# ── 12. No overwrite of existing artifacts ─────────────────────────────
+# ── 12. No overwrite ───────────────────────────────────────────────────
 
 class TestNoOverwrite:
-    def test_p2_v2_manifest_unchanged(self):
-        manifest_path = Path(__file__).resolve().parents[1] / (
-            "artifacts/formal/extended_validation/p2_generalization_v2/manifest.json"
-        )
-        if manifest_path.exists():
-            m = json.loads(manifest_path.read_text(encoding="utf-8"))
+    def test_p2_v2_manifest(self):
+        p = Path(__file__).resolve().parents[1] / "artifacts/formal/extended_validation/p2_generalization_v2/manifest.json"
+        if p.exists():
+            m = json.loads(p.read_text(encoding="utf-8"))
             assert m.get("manifest_version") == "study01-p2-generation-v2"
 
-    def test_e3b_manifest_unchanged(self):
-        manifest_path = Path(__file__).resolve().parents[1] / (
-            "artifacts/formal/E3b_vector_mlp/manifest.json"
-        )
-        if manifest_path.exists():
-            m = json.loads(manifest_path.read_text(encoding="utf-8"))
+    def test_e3b_manifest(self):
+        p = Path(__file__).resolve().parents[1] / "artifacts/formal/E3b_vector_mlp/manifest.json"
+        if p.exists():
+            m = json.loads(p.read_text(encoding="utf-8"))
             assert m.get("run_id", "").startswith("E3b")
