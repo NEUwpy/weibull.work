@@ -299,15 +299,21 @@ def assert_smoke_outside_formal(smoke_path: str):
     formal = FORMAL_OUTPUT_DIR.resolve()
     formal_parent = formal.parent  # artifacts/formal/
 
-    # smoke must not be inside formal_parent
+    # smoke must not be inside formal_parent (smoke is a descendant)
     if smoke == formal_parent or formal_parent in smoke.parents:
         raise RuntimeError(
             f"Smoke path {smoke} is inside formal directory tree {formal_parent}. "
             "Smoke must be completely outside artifacts/formal/."
         )
-    # smoke must not contain the formal dir
-    if formal == smoke or formal in smoke.parents:
+    # smoke must not be formal_parent or an ancestor of formal_parent (smoke contains formal)
+    if smoke == formal_parent or smoke in formal_parent.parents:
         raise RuntimeError(
-            f"Smoke path {smoke} contains formal directory {formal}. "
-            "Smoke must not be a parent of formal output."
+            f"Smoke path {smoke} is equal to or a parent of formal directory {formal_parent}. "
+            "Smoke must not contain or be equal to formal output tree."
+        )
+    # smoke must not be equal to or an ancestor of formal output dir
+    if smoke == formal or smoke in formal.parents:
+        raise RuntimeError(
+            f"Smoke path {smoke} is equal to or a parent of formal output {formal}. "
+            "Smoke must not contain formal output."
         )
