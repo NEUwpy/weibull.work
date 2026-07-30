@@ -37,8 +37,8 @@ print("=" * 60)
 print("\n[1] Building features...")
 folds = e4.get_combo_split()
 fold = folds[0]
-TRAIN_REPEATS = 4000  # 9 combos × 4000 = 36,000 training samples
-TEST_REPEATS = 50     # 9 combos × 50 = 450 test samples
+TRAIN_REPEATS = 1000  # 36 combos × 1000 = 36,000 training samples (full grid)
+TEST_REPEATS = 20     # 9 combos × 20 = 180 test samples (small for smoke)
 
 rows = []
 for beta, goe, n in fold["train_combos"]:
