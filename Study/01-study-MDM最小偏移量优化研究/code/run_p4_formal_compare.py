@@ -577,7 +577,7 @@ def seal_recursive(output_dir, allowlist):
     actual_files = set()
     for f in output_dir.rglob("*"):
         if f.is_file() and f.name != "SHA256SUMS" and f.name != "run.lock":
-            actual_files.add(str(f.relative_to(output_dir)))
+            actual_files.add(f.relative_to(output_dir).as_posix())
 
     expected = set(allowlist)
     missing = expected - actual_files
@@ -783,13 +783,23 @@ def verify_authorization_contract(output_dir, tracks, seeds, resume):
     if len(config_hash) != 64:
         raise RuntimeError("Authorization contract: cannot compute config SHA256")
 
-    return {"script_sha256": script_hash, "config_sha256": config_hash}
+    return {"script_sha256": script_hash, "config_sha256": config_hash, "start_head": get_git_commit()}
 
 
 def verify_pre_seal_state(output_dir, auth_hashes):
-    """Re-verify HEAD/worktree/script/config/input state immediately before sealing."""
+    """Re-verify HEAD/worktree/script/config/input state immediately before sealing.
+
+    Checks: HEAD unchanged, worktree clean, script/config hashes match start,
+    all frozen input files still match their sealed SHA256.
+    """
     if get_git_dirty():
         raise RuntimeError("Pre-seal: worktree became dirty during execution")
+
+    current_head = get_git_commit()
+    if current_head != auth_hashes["start_head"]:
+        raise RuntimeError(
+            f"Pre-seal: HEAD drifted: {current_head} != {auth_hashes['start_head']}"
+        )
 
     current_script = compute_script_sha256()
     if current_script != auth_hashes["script_sha256"]:
@@ -799,8 +809,23 @@ def verify_pre_seal_state(output_dir, auth_hashes):
     if current_config != auth_hashes["config_sha256"]:
         raise RuntimeError("Pre-seal: config SHA256 drifted during execution")
 
+    study_dir = Path(__file__).resolve().parents[1]
+    input_paths = {
+        "E3b_risk_curves_csv": study_dir / "artifacts/formal/E3b_vector_mlp/risk_curves.csv",
+        "E3b_sample_features_csv": study_dir / "artifacts/formal/E3b_vector_mlp/sample_features.csv",
+        "P2_baseline_per_sample_csv": study_dir / "artifacts/formal/extended_validation/p2_generalization_v2/p2_baseline_per_sample.csv",
+        "P2_vector_per_sample_csv": study_dir / "artifacts/formal/extended_validation/p2_generalization_v2/p2_vector_per_sample.csv",
+        "E4d_selector_extrapolation_csv": study_dir / "artifacts/formal/E4_robustness/E4d_selector_extrapolation.csv",
+    }
     for name, expected_hash in cfg.INPUT_SHA256.items():
-        pass
+        path = input_paths.get(name)
+        if path is None or not path.exists():
+            raise RuntimeError(f"Pre-seal: input file missing for {name}")
+        actual = compute_sha256(path)
+        if actual != expected_hash:
+            raise RuntimeError(
+                f"Pre-seal: input {name} SHA256 drifted: {actual[:16]}... != {expected_hash[:16]}..."
+            )
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -1111,10 +1136,36 @@ def main(output_dir=None, tracks=None, seeds=None, resume=False):
         release_run_lock(output_dir)
 
 
+def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
+    """Validate existing manifest before resume. Fail-closed on any drift."""
+    manifest_path = Path(output_dir) / "manifest.json"
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        old_manifest = json.load(f)
+
+    if old_manifest.get("git_commit") != auth_hashes["start_head"]:
+        raise RuntimeError(
+            f"Resume: manifest git_commit={old_manifest.get('git_commit')} "
+            f"!= current HEAD={auth_hashes['start_head']}"
+        )
+    if old_manifest.get("script_sha256") != auth_hashes["script_sha256"]:
+        raise RuntimeError("Resume: manifest script_sha256 drifted")
+    if old_manifest.get("config_sha256") != auth_hashes["config_sha256"]:
+        raise RuntimeError("Resume: manifest config_sha256 drifted")
+    if old_manifest.get("tracks") != list(tracks):
+        raise RuntimeError("Resume: manifest tracks mismatch")
+    if old_manifest.get("seeds") != list(seeds):
+        raise RuntimeError("Resume: manifest seeds mismatch")
+    if old_manifest.get("p4_formal_authorized") is not True:
+        raise RuntimeError("Resume: manifest was not authorized")
+
+
 def _run_formal(output_dir, tracks, seeds, resume, auth_hashes):
     """Internal formal execution (called under lock)."""
     folds = e4.get_combo_split()
     git_commit = get_git_commit()
+
+    if resume:
+        _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds)
 
     manifest = build_manifest(tracks, cfg.P4_METHODS)
     atomic_write_json(manifest, output_dir / "manifest.json")
@@ -1195,29 +1246,46 @@ def _remove_checkpoints(output_dir):
 
 
 def _verify_p2_sample_hashes(df_track, seed_namespace):
-    """Verify reconstructed P2 samples match sealed per-sample hashes (P4-R6).
+    """Verify ALL reconstructed P2 samples match sealed per-sample hashes (P4-R6).
 
-    Samples a subset (first 100 unique keys) for efficiency. Raises on mismatch.
+    Checks every unique sample key. Enforces one consistent hash per key.
+    Returns a receipt dict with count and verification status.
     """
     checked = 0
-    seen_keys = set()
+    mismatches = 0
+    seen_keys = {}
     for _, row in df_track.iterrows():
         key = (row["beta"], row["gamma_over_eta"], int(row["n"]), int(row["repeat_id"]))
-        if key in seen_keys:
-            continue
-        seen_keys.add(key)
         expected = row.get("sample_sha256")
-        if expected and str(expected) != "nan" and len(str(expected)) == 64:
-            verify_sample_content_hash(
-                key[0], 1.0, key[1], key[2], key[3], seed_namespace,
-                expected_sha256=str(expected)
-            )
-            checked += 1
-            if checked >= 100:
-                break
+        if not expected or str(expected) == "nan" or len(str(expected)) != 64:
+            continue
+        expected = str(expected)
+        if key in seen_keys:
+            if seen_keys[key] != expected:
+                raise RuntimeError(
+                    f"P2 sample hash inconsistency for {key}: "
+                    f"{seen_keys[key][:16]}... vs {expected[:16]}..."
+                )
+            continue
+        seen_keys[key] = expected
+        verify_sample_content_hash(
+            key[0], 1.0, key[1], key[2], key[3], seed_namespace,
+            expected_sha256=expected
+        )
+        checked += 1
+
     if checked == 0:
         raise RuntimeError("P2 sample hash verification: no valid hashes found")
+
+    receipt = {
+        "verified_samples": checked,
+        "total_unique_keys": len(seen_keys),
+        "mismatches": mismatches,
+        "seed_namespace": seed_namespace,
+        "status": "all_verified",
+    }
     print(f"    P2 sample hash verification: {checked} samples OK")
+    return receipt
 
 
 def _compute_frozen_fold_penalties(e3b_dir, folds):

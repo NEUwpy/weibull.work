@@ -1097,3 +1097,219 @@ class TestProductionOrchestration:
                 p4.verify_authorization_contract(
                     cfg.FORMAL_OUTPUT_DIR, cfg.ALL_TRACKS, [42], False
                 )
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 24. P4-R2 negative tests: pre-seal drift detection
+# ════════════════════════════════════════════════════════════════════════
+
+class TestPreSealDrift:
+    def test_pre_seal_rejects_head_drift(self):
+        """verify_pre_seal_state rejects HEAD change."""
+        import unittest.mock as mock
+        auth = {"script_sha256": "a" * 64, "config_sha256": "b" * 64, "start_head": "original"}
+        with mock.patch.object(p4, "get_git_dirty", return_value=False):
+            with mock.patch.object(p4, "get_git_commit", return_value="drifted"):
+                with pytest.raises(RuntimeError, match="HEAD drifted"):
+                    p4.verify_pre_seal_state("/tmp", auth)
+
+    def test_pre_seal_rejects_script_drift(self):
+        """verify_pre_seal_state rejects script SHA256 change."""
+        import unittest.mock as mock
+        auth = {"script_sha256": "a" * 64, "config_sha256": "b" * 64, "start_head": "abc"}
+        with mock.patch.object(p4, "get_git_dirty", return_value=False):
+            with mock.patch.object(p4, "get_git_commit", return_value="abc"):
+                with mock.patch.object(p4, "compute_script_sha256", return_value="x" * 64):
+                    with pytest.raises(RuntimeError, match="script SHA256 drifted"):
+                        p4.verify_pre_seal_state("/tmp", auth)
+
+    def test_pre_seal_rejects_dirty_worktree(self):
+        """verify_pre_seal_state rejects dirty worktree."""
+        import unittest.mock as mock
+        auth = {"script_sha256": "a" * 64, "config_sha256": "b" * 64, "start_head": "abc"}
+        with mock.patch.object(p4, "get_git_dirty", return_value=True):
+            with pytest.raises(RuntimeError, match="worktree became dirty"):
+                p4.verify_pre_seal_state("/tmp", auth)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 25. P4-R8 negative tests: resume validation
+# ════════════════════════════════════════════════════════════════════════
+
+class TestResumeValidation:
+    def test_resume_rejects_git_drift(self, tmp_path):
+        """Resume rejects manifest with different git_commit."""
+        manifest = {"git_commit": "old", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        auth = {"start_head": "new", "script_sha256": "a" * 64, "config_sha256": "b" * 64}
+        with pytest.raises(RuntimeError, match="git_commit"):
+            p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+    def test_resume_rejects_script_drift(self, tmp_path):
+        """Resume rejects manifest with different script_sha256."""
+        manifest = {"git_commit": "abc", "script_sha256": "old" + "x" * 60,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64, "config_sha256": "b" * 64}
+        with pytest.raises(RuntimeError, match="script_sha256"):
+            p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+    def test_resume_rejects_unauthorized_manifest(self, tmp_path):
+        """Resume rejects manifest that was not authorized."""
+        manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": False}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64, "config_sha256": "b" * 64}
+        with pytest.raises(RuntimeError, match="not authorized"):
+            p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+    def test_resume_accepts_valid_manifest(self, tmp_path):
+        """Resume accepts manifest matching all bindings."""
+        manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64, "config_sha256": "b" * 64}
+        p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 26. P4-R10: _run_formal orchestration with patched compute
+# ════════════════════════════════════════════════════════════════════════
+
+class TestRunFormalOrchestration:
+    """Calls real _run_formal with all four tracks, patched compute boundaries."""
+
+    def _setup_tiny_artifacts(self, tmp_path, monkeypatch):
+        """Create tiny artifact files and patch SHA256 checks."""
+        e3b_dir = tmp_path / "E3b_vector_mlp"
+        e3b_dir.mkdir(parents=True)
+        p2_dir = tmp_path / "extended_validation" / "p2_generalization_v2"
+        p2_dir.mkdir(parents=True)
+        e4_dir = tmp_path / "E4_robustness"
+        e4_dir.mkdir(parents=True)
+
+        combos = [(2.0, 0.5, 10), (3.0, 0.3, 15)]
+        feat_rows, risk_rows = [], []
+        for beta, goe, n in combos:
+            for rid in range(2):
+                sample = generate_sample(beta, 1.0, goe, n, rid, seed="study01_v1")
+                feats = e4.compute_sample_features(sample)
+                feat_rows.append({"beta": beta, "eta": 1.0, "gamma": goe,
+                                  "gamma_over_eta": goe, "n": n, "repeat_id": rid, **feats})
+                risk_row = {"beta": beta, "gamma_over_eta": goe, "n": n, "repeat_id": rid}
+                for d in e4.DELTA_GRID:
+                    risk_row[f"loss_d{d}"] = 0.5 + rid * 0.1
+                risk_rows.append(risk_row)
+
+        pd.DataFrame(feat_rows).to_csv(e3b_dir / "sample_features.csv", index=False)
+        pd.DataFrame(risk_rows).to_csv(e3b_dir / "risk_curves.csv", index=False)
+
+        p2_rows = []
+        for beta, goe, n in [(1.5, 0.1, 15), (2.5, 0.5, 15)]:
+            for rid in range(2):
+                p2_rows.append({"track": "P2-NI", "beta": beta, "gamma_over_eta": goe,
+                                "n": n, "repeat_id": rid, "sample_sha256": "x" * 64})
+        pd.DataFrame(p2_rows).to_csv(p2_dir / "p2_baseline_per_sample.csv", index=False)
+
+        vec_rows = []
+        for fold_idx in range(1):
+            for seed in [42]:
+                for beta, goe, n in [(1.5, 0.1, 15), (2.5, 0.5, 15)]:
+                    for rid in range(2):
+                        vec_rows.append({"track": "P2-NI", "fold": f"combo_fold_{fold_idx+1}",
+                                         "seed": seed, "beta": beta, "gamma_over_eta": goe,
+                                         "n": n, "repeat_id": rid, "selected_delta": 0.1})
+        pd.DataFrame(vec_rows).to_csv(p2_dir / "p2_vector_per_sample.csv", index=False)
+
+        e4d_rows = []
+        for fold_idx in range(1):
+            for seed in [42]:
+                for beta, goe, n in [(6.0, 0.05, 5), (0.8, 1.5, 30)]:
+                    for rid in range(2):
+                        e4d_rows.append({"track": "E4c_offgrid", "fold": f"combo_fold_{fold_idx+1}",
+                                         "seed": seed, "beta": beta, "gamma_over_eta": goe,
+                                         "n": n, "repeat_id": rid, "selected_delta": 0.2})
+        pd.DataFrame(e4d_rows).to_csv(e4_dir / "E4d_selector_extrapolation.csv", index=False)
+
+        monkeypatch.setattr(p4, "compute_sha256", lambda p: "f" * 64)
+        monkeypatch.setattr(cfg, "INPUT_SHA256", {k: "f" * 64 for k in cfg.INPUT_SHA256})
+
+        return tmp_path
+
+    def test_run_formal_all_tracks(self, tmp_path, monkeypatch):
+        """_run_formal executes all 4 tracks with patched track execution, real seal."""
+        import unittest.mock as mock
+
+        folds = [{"fold_name": "combo_fold_1",
+                  "train_combos": [(2.0, 0.5, 10)],
+                  "test_combos": [(3.0, 0.3, 15)]}]
+
+        def make_tiny_track_est(track, methods=None):
+            if methods is None:
+                methods = cfg.P4_METHODS
+            rows = []
+            for method in methods:
+                is_learning = method in cfg.LEARNING_METHODS
+                if is_learning:
+                    for seed in [42]:
+                        for i in range(2):
+                            rows.append(p4.make_estimation_row(
+                                track, method, "combo_fold_1", seed,
+                                3.0, 0.3, 15, i, 3.1, 1.05, 0.31, False, ""))
+                else:
+                    for i in range(2):
+                        rows.append(p4.make_estimation_row(
+                            track, method, cfg.TRADITIONAL_FOLD_LABEL, cfg.TRADITIONAL_SEED_LABEL,
+                            3.0, 0.3, 15, i, 3.1, 1.05, 0.31, False, ""))
+            return rows
+
+        fold_assignment = {(3.0, 0.3, 15, i): "combo_fold_1" for i in range(2)}
+
+        monkeypatch.setattr(e4, "get_combo_split", lambda: folds)
+        monkeypatch.setattr(p4, "_compute_frozen_fold_penalties", lambda *a: {"combo_fold_1": 2.0})
+        monkeypatch.setattr(p4, "_execute_track_main",
+                            lambda *a, **kw: (make_tiny_track_est(cfg.TRACK_MAIN_HOLDOUT), fold_assignment))
+        monkeypatch.setattr(p4, "_execute_track_p2",
+                            lambda *a, **kw: (make_tiny_track_est(a[5] if len(a) > 5 else cfg.TRACK_PARAM_INTERP), None))
+        monkeypatch.setattr(p4, "_execute_track_extrap",
+                            lambda *a, **kw: (make_tiny_track_est(cfg.TRACK_EXTRAP), None))
+        monkeypatch.setattr(p4, "verify_pre_seal_state", lambda *a, **kw: None)
+        monkeypatch.setattr(p4, "verify_no_valid_only_filtering", lambda *a, **kw: True)
+        monkeypatch.setattr(p4, "verify_sample_keys_identical", lambda *a, **kw: {"ok": True})
+
+        output_dir = tmp_path / "formal_output"
+        output_dir.mkdir(parents=True)
+        auth_hashes = {"script_sha256": "f" * 64, "config_sha256": "f" * 64, "start_head": "abc"}
+
+        p4._run_formal(output_dir, cfg.ALL_TRACKS, [42], False, auth_hashes)
+
+        assert (output_dir / "manifest.json").exists()
+        assert (output_dir / "evaluation_all.csv").exists()
+        assert (output_dir / "result_tables.json").exists()
+        assert (output_dir / "SHA256SUMS").exists()
+        for track in cfg.ALL_TRACKS:
+            assert (output_dir / track / "estimation.csv").exists()
+            assert (output_dir / track / "evaluation.csv").exists()
+            assert (output_dir / track / "results.json").exists()
+
+        sums = (output_dir / "SHA256SUMS").read_text()
+        assert "manifest.json" in sums
+        assert "evaluation_all.csv" in sums
+
+        results = json.loads((output_dir / "result_tables.json").read_text())
+        assert len(results) == 4
+        for track in cfg.ALL_TRACKS:
+            assert track in results
+            assert len(results[track]["methods"]) == 6
+
+    def test_seal_recursive_rejects_stale_lock(self, tmp_path):
+        """seal_recursive rejects unexpected .lock files that aren't run.lock."""
+        p4.atomic_write_csv(pd.DataFrame({"a": [1]}), tmp_path / "data.csv")
+        (tmp_path / "stale.lock").write_text("stale")
+        with pytest.raises(ValueError, match="unexpected"):
+            p4.seal_recursive(tmp_path, ["data.csv"])
