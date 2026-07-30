@@ -7,6 +7,18 @@ J1 formula) is imported from existing modules.
 
 from __future__ import annotations
 
+# ── Full scale-invariant input design (frozen) ─────────────────────────
+# The 9 scale-dependent feature columns (x_min, x_max, range, Q1, Med, Q3,
+# IQR, x_bar, s) are divided by x_bar BEFORE train-fold-only z-score.
+# After normalization, these become dimensionless ratios.
+# n, CV, g1, g2 remain unchanged (already scale-invariant).
+# x_bar itself becomes 1.0 in the network input.
+# The network can only see dimensionless shape information, not absolute scale.
+# x_bar is only used OUTSIDE the network to recover eta_hat and gamma_hat.
+INPUT_SCALE_INVARIANCE = "divide_by_x_bar_before_zscore"
+SCALE_DEPENDENT_FEATURES = ["x_min", "x_max", "range", "Q1", "Med", "Q3", "IQR", "x_bar", "s"]
+SCALE_INVARIANT_FEATURES = ["n", "CV", "g1", "g2"]
+
 # ── Scale-equivariant output design (frozen) ───────────────────────────
 # Network outputs 3 raw values: (z_beta, z_eta_ratio, z_goe)
 # Decode:
@@ -16,9 +28,11 @@ from __future__ import annotations
 #   goe_hat   = relu(z_goe)                 — gamma / eta (dimensionless)
 #   gamma_hat = goe_hat * eta_hat           — derived
 #
-# Scale equivariance: scaling sample by c → x_bar scales by c →
-# eta_hat scales by c → gamma_hat scales by c → beta_hat unchanged.
-# This holds EXACTLY (softplus and relu are element-wise).
+# Full scale invariance: scaling sample by c → all scale cols scale by c,
+# x_bar scales by c → ratios unchanged → network input IDENTICAL →
+# network output IDENTICAL → beta_hat unchanged, eta_ratio unchanged →
+# eta_hat = eta_ratio * (c * x_bar) = c * original_eta_hat ✓
+# gamma_hat = goe_hat * c * original_eta_hat = c * original_gamma_hat ✓
 OUTPUT_TRANSFORM = "scale_equivariant_softplus_softplus_relu"
 OUTPUT_PARAMS = ["beta_hat", "eta_hat", "gamma_hat"]
 OUTPUT_CONSTRAINTS = {"beta_gt_0": True, "eta_gt_0": True, "gamma_ge_0": True}
@@ -105,6 +119,9 @@ PER_SAMPLE_COLUMNS = [
 
 def production_contract():
     return {
+        "input_scale_invariance": INPUT_SCALE_INVARIANCE,
+        "scale_dependent_features": SCALE_DEPENDENT_FEATURES,
+        "scale_invariant_features": SCALE_INVARIANT_FEATURES,
         "output_transform": OUTPUT_TRANSFORM,
         "scale_anchor": SCALE_ANCHOR,
         "output_params": OUTPUT_PARAMS,

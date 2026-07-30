@@ -1,48 +1,42 @@
-"""P3 Direct-MLP: scale-equivariant direct Weibull parameter estimation.
+"""P3 Direct-MLP: fully scale-invariant direct Weibull parameter estimation.
 
 ARCHITECTURE (frozen before testing)
 =====================================
 
-Scale equivariance: the network predicts dimensionless shape parameters and a
-scale ratio, so that scaling a sample by c correctly scales eta_hat by c.
+FULL SCALE INVARIANCE: the network consumes only scale-invariant features.
+The 9 scale-dependent feature columns (x_min, x_max, range, Q1, Med, Q3,
+IQR, x_bar, s) are divided by x_bar BEFORE train-fold-only standardization.
+After normalization, n, CV, g1, g2 remain unchanged.
+x_bar itself becomes 1.0 in the network input, so the network cannot see
+absolute scale. x_bar is only used OUTSIDE the network to recover eta/gamma.
+
+Feature pipeline:
+    raw features → scale_invariant_transform → train-fold z-score → network
 
 Network output (3-dim, raw):
-    z = (z_beta, z_eta_ratio, z_goe)   ← network raw output
+    z = (z_beta, z_eta_ratio, z_goe)
 
 Decode (network → params):
     beta_hat   = softplus(z_beta)               # shape, always > 0
     eta_ratio  = softplus(z_eta_ratio)           # eta / x_bar (dimensionless)
-    eta_hat    = eta_ratio * x_bar               # scale, uses sample feature
+    eta_hat    = eta_ratio * x_bar               # scale, from sample feature
     goe_hat    = relu(z_goe)                     # gamma / eta (dimensionless)
     gamma_hat  = goe_hat * eta_hat               # derived
 
-Scale equivariance proof:
-    If sample is scaled by c, then x_bar → c * x_bar.
-    Network input features (z-scored) change for scale-dependent cols,
-    but the network's output is based on shape info.
-    eta_hat = eta_ratio * (c * x_bar) = c * (eta_ratio * x_bar) = c * eta_hat_original.
-    beta_hat, goe_hat are shape parameters, unaffected by scale.
-    → beta_hat, eta_hat (scaled), gamma_hat (scaled) are all correct.
+Scale invariance proof:
+    If sample is scaled by c:
+    - All 9 scale cols scale by c, x_bar scales by c → ratios unchanged
+    - n, CV, g1, g2 unchanged
+    → Network input is IDENTICAL → network output is IDENTICAL
+    → beta_hat unchanged, eta_ratio unchanged
+    → eta_hat = eta_ratio * (c * x_bar) = c * original_eta_hat ✓
+    → gamma_hat = goe_hat * c * original_eta_hat = c * original_gamma_hat ✓
 
-Training target (encode):
-    Encode true params to network target space:
-    z_beta_target       = inverse_softplus(beta_true)
-    z_eta_ratio_target  = inverse_softplus(eta_true / x_bar)
-    z_goe_target        = gamma_true / eta_true
-
-Training loss (J1-compatible):
-    The network minimizes MSE in the *decoded relative-error* space.
-    After decoding predictions, we compute:
-        loss = (beta_hat - beta_true)² / beta_true²
-             + (eta_hat - eta_true)²  / eta_true²
-             + (gamma_hat - gamma_true)² / eta_true²
-    This is exactly J1² per sample. The PyTorch training loop computes this
-    loss with autograd, so the network's gradient is J1-compatible.
+Training loss (shared j1_loss_torch):
+    L = mean_i [ ((bh-b)/b)^2 + ((eh-e)/e)^2 + ((gh-g)/e)^2 ]
+    gamma denominator = eta_true (NOT gamma_true, NOT eta_hat)
 
 MLP backbone: 256-128-64 (identical to Vector-MLP), ReLU, Adam.
-
-Reuses E4 infrastructure: _fit_zscore_params, _build_X_from_samples,
-get_combo_split, compute_sample_features, generate_sample.
 """
 
 from __future__ import annotations
@@ -58,7 +52,6 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.preprocessing import StandardScaler
 
 _CODE_DIR = Path(__file__).resolve().parent
 if str(_CODE_DIR) not in sys.path:
@@ -69,11 +62,87 @@ import p3_config as cfg
 
 
 # ════════════════════════════════════════════════════════════════════════
+# Custom exceptions for production contracts (replaces assert)
+# ════════════════════════════════════════════════════════════════════════
+
+class SchemaError(ValueError):
+    """Prediction DataFrame or risk curve schema violation."""
+
+
+class CoverageError(ValueError):
+    """Six-method fold×seed coverage violation."""
+
+
+class PenaltyError(ValueError):
+    """Failure penalty computation or application violation."""
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Scale-invariant feature transform
+# ════════════════════════════════════════════════════════════════════════
+
+SCALE_DEPENDENT_COLS = ["x_min", "x_max", "range", "Q1", "Med", "Q3", "IQR", "x_bar", "s"]
+SCALE_INVARIANT_COLS = ["n", "CV", "g1", "g2"]
+assert SCALE_DEPENDENT_COLS == list(e4.FEATURE_COLS_ZSCORE), \
+    "Scale-dependent cols must match E4 z-score cols"
+assert SCALE_INVARIANT_COLS == list(e4.FEATURE_COLS_RAW), \
+    "Scale-invariant cols must match E4 raw cols"
+
+
+def make_scale_invariant(df_features: pd.DataFrame) -> pd.DataFrame:
+    """Divide 9 scale-dependent cols by x_bar, producing dimensionless ratios.
+
+    After this transform:
+    - x_bar itself becomes 1.0 (scale information removed from features)
+    - All 9 scale cols become ratios (x_min/x_bar, s/x_bar, etc.)
+    - n, CV, g1, g2 are unchanged
+
+    The same sample scaled by c produces IDENTICAL output.
+    """
+    df = df_features.copy()
+    x_bar = df["x_bar"].astype(float).values
+    x_bar_safe = np.where(np.abs(x_bar) < 1e-12, 1e-12, x_bar)
+    for col in SCALE_DEPENDENT_COLS:
+        df[col] = df[col].astype(float).values / x_bar_safe
+    return df
+
+
+def fit_scale_invariant_zscore(df_train_si: pd.DataFrame) -> tuple[dict, dict]:
+    """Train-fold-only z-score on scale-invariant features.
+
+    Operates on the OUTPUT of make_scale_invariant.
+    """
+    means, stds = {}, {}
+    for col in SCALE_DEPENDENT_COLS:
+        vals = df_train_si[col].astype(float)
+        m = float(vals.mean())
+        s = float(vals.std(ddof=0))
+        means[col] = m
+        stds[col] = s if s >= 1e-12 else 1.0
+    return means, stds
+
+
+def build_scale_invariant_X(df_si: pd.DataFrame, means: dict, stds: dict) -> np.ndarray:
+    """Build [N, 13] feature matrix from scale-invariant features.
+
+    Column order: 9 z-scored scale-invariant cols, then 4 raw cols.
+    Same order as e4.SAMPLE_FEATURE_COLS.
+    """
+    n = len(df_si)
+    X = np.empty((n, len(e4.SAMPLE_FEATURE_COLS)), dtype=np.float32)
+    for j, col in enumerate(e4.SAMPLE_FEATURE_COLS):
+        vals = df_si[col].astype(float).values
+        if col in SCALE_DEPENDENT_COLS:
+            vals = (vals - means[col]) / stds[col]
+        X[:, j] = vals
+    return X
+
+
+# ════════════════════════════════════════════════════════════════════════
 # Output transforms
 # ════════════════════════════════════════════════════════════════════════
 
 def _softplus(x):
-    """Numerically stable softplus."""
     return torch.where(x > 20, x, torch.log1p(torch.exp(torch.clamp(x, -50, 20))))
 
 
@@ -87,17 +156,7 @@ def _inverse_softplus_np(y: np.ndarray, eps: float = 1e-12) -> np.ndarray:
 
 
 def decode_output(z: np.ndarray, x_bar: np.ndarray) -> np.ndarray:
-    """Decode network raw output to constrained params.
-
-    Parameters
-    ----------
-    z : [N, 3] raw network output (z_beta, z_eta_ratio, z_goe)
-    x_bar : [N] sample mean from features (scale anchor)
-
-    Returns
-    -------
-    [N, 3] with (beta_hat, eta_hat, gamma_hat)
-    """
+    """Decode network raw output to constrained params."""
     beta_hat = _softplus_np(z[:, 0])
     eta_ratio = _softplus_np(z[:, 1])
     eta_hat = eta_ratio * x_bar
@@ -107,36 +166,42 @@ def decode_output(z: np.ndarray, x_bar: np.ndarray) -> np.ndarray:
 
 
 def encode_targets(params: np.ndarray, x_bar: np.ndarray) -> np.ndarray:
-    """Encode true params to network target space.
-
-    Parameters
-    ----------
-    params : [N, 3] true (beta, eta, gamma)
-    x_bar : [N] sample mean from features
-
-    Returns
-    -------
-    [N, 3] encoded targets (z_beta, z_eta_ratio, z_goe)
-    """
-    beta = params[:, 0]
-    eta = params[:, 1]
-    gamma = params[:, 2]
-    goe = gamma / eta  # gamma over eta
-
+    """Encode true params to network target space."""
+    beta, eta, gamma = params[:, 0], params[:, 1], params[:, 2]
     z_beta = _inverse_softplus_np(beta)
     z_eta_ratio = _inverse_softplus_np(eta / x_bar)
-    z_goe = goe  # relu on decode; already >= 0
-
+    z_goe = gamma / eta
     return np.column_stack([z_beta, z_eta_ratio, z_goe])
 
 
 # ════════════════════════════════════════════════════════════════════════
-# PyTorch model (minimal, frozen architecture)
+# Shared J1 loss (used by both training and validation)
+# ════════════════════════════════════════════════════════════════════════
+
+def j1_loss_torch(
+    beta_hat: torch.Tensor, beta_true: torch.Tensor,
+    eta_hat: torch.Tensor, eta_true: torch.Tensor,
+    gamma_hat: torch.Tensor, gamma_true: torch.Tensor,
+) -> torch.Tensor:
+    """J1-compatible per-sample loss (shared by training and validation).
+
+    L_i = ((bh-b)/b)^2 + ((eh-e)/e)^2 + ((gh-g)/e)^2
+
+    gamma denominator is eta_true (NOT gamma_true, NOT eta_hat).
+
+    Returns: scalar mean loss.
+    """
+    e_beta = (beta_hat - beta_true) / beta_true
+    e_eta = (eta_hat - eta_true) / eta_true
+    e_gamma = (gamma_hat - gamma_true) / eta_true
+    return (e_beta ** 2 + e_eta ** 2 + e_gamma ** 2).mean()
+
+
+# ════════════════════════════════════════════════════════════════════════
+# PyTorch model
 # ════════════════════════════════════════════════════════════════════════
 
 class DirectMLP(nn.Module):
-    """256-128-64 MLP with ReLU, outputs 3 raw values."""
-
     def __init__(self, input_dim: int = 13, hidden: tuple = (256, 128, 64)):
         super().__init__()
         layers = []
@@ -158,7 +223,7 @@ def _init_seed(seed: int):
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Training with J1-compatible loss
+# Training with shared J1 loss
 # ════════════════════════════════════════════════════════════════════════
 
 def train_direct_mlp(
@@ -166,28 +231,29 @@ def train_direct_mlp(
     Y_train_raw: np.ndarray,
     x_bar_train: np.ndarray,
     seed: int,
-    max_iter: int = 300,
-    lr: float = 1e-3,
-    batch_size: int = 256,
-    val_fraction: float = 0.15,
-    patience: int = 20,
+    max_iter: int = None,
+    lr: float = None,
+    batch_size: int = None,
+    val_fraction: float = None,
+    patience: int = None,
 ) -> tuple[DirectMLP, dict]:
-    """Train one Direct-MLP with J1-compatible loss.
+    """Train one Direct-MLP with shared J1-compatible loss."""
+    if max_iter is None:
+        max_iter = cfg.DIRECT_MLP_MAX_ITER
+    if lr is None:
+        lr = cfg.DIRECT_MLP_LR
+    if batch_size is None:
+        batch_size = cfg.DIRECT_MLP_BATCH_SIZE
+    if val_fraction is None:
+        val_fraction = cfg.DIRECT_MLP_VALIDATION_FRACTION
+    if patience is None:
+        patience = cfg.DIRECT_MLP_N_ITER_NO_CHANGE
 
-    The loss is computed in decoded parameter space:
-        L = mean_j [ (bh-b)^2/b^2 + (eh-e)^2/e^2 + (gh-g)^2/e^2 ]
-    where j indexes the 3 params. This is J1²/N per sample.
-
-    Returns (model, training_info)
-    """
     _init_seed(seed)
     n = len(X_train)
 
-    # Encode targets
     Z_train = encode_targets(Y_train_raw, x_bar_train)
 
-    # Standardize input features (X is already z-scored by E4 pipeline)
-    # and targets
     x_mean = X_train.mean(axis=0)
     x_std = X_train.std(axis=0)
     x_std[x_std < 1e-12] = 1.0
@@ -199,16 +265,15 @@ def train_direct_mlp(
     X_norm = (X_train - x_mean) / x_std
     Z_norm = (Z_train - z_mean) / z_std
 
-    # Convert to tensors
     X_t = torch.FloatTensor(X_norm)
     x_bar_t = torch.FloatTensor(x_bar_train)
     Y_t = torch.FloatTensor(Y_train_raw)
+    z_std_t = torch.FloatTensor(z_std)
+    z_mean_t = torch.FloatTensor(z_mean)
 
-    # Split train/val
     n_val = max(1, int(n * val_fraction))
     perm = torch.randperm(n)
-    val_idx = perm[:n_val]
-    tr_idx = perm[n_val:]
+    val_idx, tr_idx = perm[:n_val], perm[n_val:]
 
     model = DirectMLP(input_dim=X_train.shape[1])
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=cfg.DIRECT_MLP_ALPHA)
@@ -219,49 +284,38 @@ def train_direct_mlp(
     n_iter = 0
 
     for epoch in range(max_iter):
-        # Train
         model.train()
         train_perm = tr_idx[torch.randperm(len(tr_idx))]
         for start in range(0, len(train_perm), batch_size):
             idx = train_perm[start:start + batch_size]
             optimizer.zero_grad()
-            z_norm_pred = model(X_t[idx])
-            z_pred = z_norm_pred * torch.FloatTensor(z_std) + torch.FloatTensor(z_mean)
+            z_pred = model(X_t[idx]) * z_std_t + z_mean_t
 
-            # Decode predictions
             beta_pred = _softplus(z_pred[:, 0])
-            eta_ratio_pred = _softplus(z_pred[:, 1])
-            eta_pred = eta_ratio_pred * x_bar_t[idx]
-            goe_pred = torch.clamp(z_pred[:, 2], min=0.0)
-            gamma_pred = goe_pred * eta_pred
+            eta_pred = _softplus(z_pred[:, 1]) * x_bar_t[idx]
+            gamma_pred = torch.clamp(z_pred[:, 2], min=0.0) * eta_pred
 
-            # J1-compatible loss (per-sample, then mean)
-            beta_true = Y_t[idx, 0]
-            eta_true = Y_t[idx, 1]
-            gamma_true = Y_t[idx, 2]
-
-            loss = ((beta_pred - beta_true) / beta_true) ** 2 \
-                 + ((eta_pred - eta_true) / eta_true) ** 2 \
-                 + ((gamma_pred - gamma_true) / eta_true) ** 2
-            loss = loss.mean()
-
+            loss = j1_loss_torch(
+                beta_pred, Y_t[idx, 0],
+                eta_pred, Y_t[idx, 1],
+                gamma_pred, Y_t[idx, 2],
+            )
             loss.backward()
             optimizer.step()
 
-        # Validate
+        # Validate with shared J1 loss
         model.eval()
         with torch.no_grad():
-            z_pred = model(X_t[val_idx]) * torch.FloatTensor(z_std) + torch.FloatTensor(z_mean)
+            z_pred = model(X_t[val_idx]) * z_std_t + z_mean_t
             beta_pred = _softplus(z_pred[:, 0])
-            eta_ratio_pred = _softplus(z_pred[:, 1])
-            eta_pred = eta_ratio_pred * x_bar_t[val_idx]
-            goe_pred = torch.clamp(z_pred[:, 2], min=0.0)
-            gamma_pred = goe_pred * eta_pred
+            eta_pred = _softplus(z_pred[:, 1]) * x_bar_t[val_idx]
+            gamma_pred = torch.clamp(z_pred[:, 2], min=0.0) * eta_pred
 
-            val_loss = ((beta_pred - Y_t[val_idx, 0]) / Y_t[val_idx, 0]) ** 2 \
-                     + ((eta_pred - Y_t[val_idx, 1]) / Y_t[val_idx, 1]) ** 2 \
-                     + ((gamma_pred - Y_t[val_idx, 2]) / Y_t[val_idx, 2]) ** 2
-            val_loss = val_loss.mean().item()
+            val_loss = j1_loss_torch(
+                beta_pred, Y_t[val_idx, 0],
+                eta_pred, Y_t[val_idx, 1],
+                gamma_pred, Y_t[val_idx, 2],
+            ).item()
 
         n_iter = epoch + 1
         if val_loss < best_val_loss - 1e-6:
@@ -273,7 +327,6 @@ def train_direct_mlp(
             if no_improve >= patience:
                 break
 
-    # Restore best model
     if best_state is not None:
         model.load_state_dict(best_state)
 
@@ -288,13 +341,8 @@ def train_direct_mlp(
     return model, info
 
 
-def predict_direct_mlp(
-    model: DirectMLP,
-    info: dict,
-    X_eval: np.ndarray,
-    x_bar_eval: np.ndarray,
-) -> np.ndarray:
-    """Predict (beta_hat, eta_hat, gamma_hat) for evaluation samples."""
+def predict_direct_mlp(model, info, X_eval, x_bar_eval):
+    """Predict (beta_hat, eta_hat, gamma_hat)."""
     X_norm = (X_eval - info["x_mean"]) / info["x_std"]
     X_t = torch.FloatTensor(X_norm)
     model.eval()
@@ -305,11 +353,12 @@ def predict_direct_mlp(
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Per-sample loss (identical to J1 parameter normalization)
+# Per-sample loss (numpy version for evaluation)
 # ════════════════════════════════════════════════════════════════════════
 
 def compute_param_loss(beta_hat, beta, eta_hat, eta, gamma_hat, gamma):
-    """J1² per sample: ((bh-b)/b)² + ((eh-e)/e)² + ((gh-g)/e)²"""
+    """J1² per sample: ((bh-b)/b)² + ((eh-e)/e)² + ((gh-g)/e)²
+    gamma denominator = eta (not gamma)."""
     e_beta = (beta_hat - beta) / beta
     e_eta = (eta_hat - eta) / eta
     e_gamma = (gamma_hat - gamma) / eta
@@ -317,28 +366,28 @@ def compute_param_loss(beta_hat, beta, eta_hat, eta, gamma_hat, gamma):
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Build training data using E4's proven functions directly
+# Build training data with scale-invariant features
 # ════════════════════════════════════════════════════════════════════════
 
 def build_training_data(df_features, train_combos):
-    """Build X_train, Y_train, x_bar_train using E4 functions."""
+    """Build X_train (scale-invariant), Y_train, x_bar_train."""
     mask = df_features.apply(
         lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in train_combos, axis=1
     )
     df_train = df_features[mask].copy()
 
-    # Verify no forbidden fields
     for forbidden in cfg.FORBIDDEN_INPUT_FIELDS:
-        assert forbidden not in e4.SAMPLE_FEATURE_COLS, f"Forbidden '{forbidden}' in features"
+        if forbidden in e4.SAMPLE_FEATURE_COLS:
+            raise SchemaError(f"Forbidden field '{forbidden}' in SAMPLE_FEATURE_COLS")
 
-    # Use E4's functions directly
-    means, stds = e4._fit_zscore_params(df_train)
-    X_train = e4._build_X_from_samples(df_train, means, stds)
+    # Scale-invariant transform
+    df_train_si = make_scale_invariant(df_train)
 
-    # Build Y: true (beta, eta, gamma)
+    # Train-fold-only z-score on scale-invariant features
+    means, stds = fit_scale_invariant_zscore(df_train_si)
+    X_train = build_scale_invariant_X(df_train_si, means, stds)
+
     Y_train = df_train[["beta", "eta", "gamma"]].values.astype(np.float64)
-
-    # Extract x_bar for scale-equivariant decode
     x_bar_train = df_train["x_bar"].values.astype(np.float64)
 
     meta = {
@@ -349,23 +398,23 @@ def build_training_data(df_features, train_combos):
     return X_train, Y_train, x_bar_train, meta
 
 
+def build_eval_data(df_features, eval_combos, means, stds):
+    """Build X_eval (scale-invariant) for evaluation combos."""
+    mask = df_features.apply(
+        lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in eval_combos, axis=1
+    )
+    df_eval = df_features[mask].copy()
+    df_eval_si = make_scale_invariant(df_eval)
+    X_eval = build_scale_invariant_X(df_eval_si, means, stds)
+    return X_eval, df_eval
+
+
 # ════════════════════════════════════════════════════════════════════════
-# Per-fold failure penalty (ALL 26 delta points, not just delta=0.1)
+# Per-fold failure penalty (ALL 26 delta points)
 # ════════════════════════════════════════════════════════════════════════
 
 def compute_fold_penalty(df_features, df_risk, train_combos):
-    """Compute P99 penalty from ALL 26 delta points in the training fold.
-
-    Parameters
-    ----------
-    df_features : sample_features DataFrame
-    df_risk : risk_curves DataFrame with loss_d{0.00..0.50} columns
-    train_combos : list of (beta, gamma_over_eta, n)
-
-    Returns
-    -------
-    float: P99 of all valid per-sample losses across all 26 deltas
-    """
+    """P99 penalty from ALL 26 delta points. Raises PenaltyError if empty."""
     mask = df_features.apply(
         lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in train_combos, axis=1
     )
@@ -378,18 +427,16 @@ def compute_fold_penalty(df_features, df_risk, train_combos):
         df_train["repeat_id"].astype(int),
     ))
 
-    # Collect ALL 26 delta losses for training samples
     loss_cols = [c for c in df_risk.columns if c.startswith("loss_d")]
-    assert len(loss_cols) == 26, f"Expected 26 loss columns, got {len(loss_cols)}"
+    if len(loss_cols) != 26:
+        raise SchemaError(
+            f"Expected 26 loss_d columns, got {len(loss_cols)}"
+        )
 
     all_losses = []
     for _, row in df_risk.iterrows():
-        key = (
-            float(row["beta"]),
-            float(row["gamma_over_eta"]),
-            int(row["n"]),
-            int(row["repeat_id"]),
-        )
+        key = (float(row["beta"]), float(row["gamma_over_eta"]),
+               int(row["n"]), int(row["repeat_id"]))
         if key in train_keys:
             for col in loss_cols:
                 val = float(row[col])
@@ -397,7 +444,7 @@ def compute_fold_penalty(df_features, df_risk, train_combos):
                     all_losses.append(val)
 
     if not all_losses:
-        raise ValueError(
+        raise PenaltyError(
             "No valid training losses found for penalty computation. "
             "Cannot fall back to arbitrary penalty."
         )
@@ -406,11 +453,10 @@ def compute_fold_penalty(df_features, df_risk, train_combos):
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Full training loop
+# Training loop
 # ════════════════════════════════════════════════════════════════════════
 
 def train_one_model(df_features, fold, seed):
-    """Train one Direct-MLP model for a given fold and seed."""
     X_train, Y_train, x_bar_train, meta = build_training_data(
         df_features, fold["train_combos"]
     )
@@ -426,8 +472,9 @@ def train_one_model(df_features, fold, seed):
 
 def evaluate_on_samples(model, info, df_eval, means, stds,
                         fold_name, seed, failure_penalty):
-    """Evaluate Direct-MLP on a set of samples."""
-    X_eval = e4._build_X_from_samples(df_eval, means, stds)
+    """Evaluate Direct-MLP on evaluation samples."""
+    df_eval_si = make_scale_invariant(df_eval)
+    X_eval = build_scale_invariant_X(df_eval_si, means, stds)
     x_bar_eval = df_eval["x_bar"].values.astype(np.float64)
     preds = predict_direct_mlp(model, info, X_eval, x_bar_eval)
 
@@ -477,16 +524,35 @@ def verify_output_constraints(preds):
 
 
 def verify_scale_equivariance(preds1, preds2, scale_factor, atol=1e-4):
-    """Verify that scaling input by c scales eta and gamma by c, beta unchanged.
-
-    preds1: predictions on original samples
-    preds2: predictions on scaled samples (x * c)
-    scale_factor: the scaling factor c
-    """
     beta_ok = np.allclose(preds1[:, 0], preds2[:, 0], atol=atol)
     eta_ok = np.allclose(preds1[:, 1] * scale_factor, preds2[:, 1], atol=atol * scale_factor)
     gamma_ok = np.allclose(preds1[:, 2] * scale_factor, preds2[:, 2], atol=atol * scale_factor)
     return bool(beta_ok and eta_ok and gamma_ok)
+
+
+def verify_input_scale_invariance(
+    df_features: pd.DataFrame,
+    means: dict, stds: dict,
+    scale_factor: float = 2.5,
+    atol: float = 1e-6,
+) -> bool:
+    """Verify that scaling a sample by c produces identical network input.
+
+    This tests the FULL feature pipeline (scale-invariant transform + z-score),
+    not just the decoder. If the network sees different inputs for scaled vs
+    unscaled samples, scale equivariance would break.
+    """
+    df_si = make_scale_invariant(df_features)
+    X1 = build_scale_invariant_X(df_si, means, stds)
+
+    # Scale the sample features by c
+    df_scaled = df_features.copy()
+    for col in SCALE_DEPENDENT_COLS:
+        df_scaled[col] = df_scaled[col].astype(float) * scale_factor
+    df_scaled_si = make_scale_invariant(df_scaled)
+    X2 = build_scale_invariant_X(df_scaled_si, means, stds)
+
+    return bool(np.allclose(X1, X2, atol=atol))
 
 
 def config_hash():

@@ -11,9 +11,11 @@ Per-model fairness contract:
   - No method may silently drop failed samples
 
 Vector-MLP integration:
-  Vector-MLP predictions come from a trained model + MC chunk join.
-  The caller provides vector_models with (beta_hat, eta_hat, gamma_hat)
-  extracted from the actual MDM parameter estimates at the selected delta.
+  The caller provides vector_models as a DataFrame with STRICT schema:
+  Required columns: beta, eta, gamma, gamma_over_eta, n, repeat_id,
+                    beta_hat, eta_hat, gamma_hat, failed, failure_reason
+  Missing any required column raises SchemaError. No fallback to
+  eta_hat/gamma_hat/default values in place of true params.
 """
 
 from __future__ import annotations
@@ -48,6 +50,34 @@ ALL_SIX_METHODS = [
     "LSE",
     "WMLE",
 ]
+
+# Strict schema for Vector-MLP prediction DataFrames
+VECTOR_PRED_REQUIRED_COLS = [
+    "beta", "eta", "gamma", "gamma_over_eta", "n", "repeat_id",
+    "beta_hat", "eta_hat", "gamma_hat",
+    "failed", "failure_reason",
+]
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Schema validation
+# ════════════════════════════════════════════════════════════════════════
+
+def validate_vector_pred_schema(pred_df: pd.DataFrame, fold_name: str, seed: int):
+    """Validate that a Vector-MLP prediction DataFrame has strict schema.
+
+    Raises SchemaError if any required column is missing.
+    """
+    if pred_df is None or len(pred_df) == 0:
+        raise direct.SchemaError(
+            f"Vector-MLP predictions empty for {fold_name}/{seed}"
+        )
+    missing = [c for c in VECTOR_PRED_REQUIRED_COLS if c not in pred_df.columns]
+    if missing:
+        raise direct.SchemaError(
+            f"Vector-MLP predictions for {fold_name}/{seed} missing required "
+            f"columns: {missing}. Required: {VECTOR_PRED_REQUIRED_COLS}"
+        )
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -96,17 +126,18 @@ def evaluate_traditional(
 
 
 # ════════════════════════════════════════════════════════════════════════
-# Unified failure contract
+# Unified failure contract (explicit exception, not assert)
 # ════════════════════════════════════════════════════════════════════════
 
 def apply_failure_contract(rows):
-    """Apply each row's own failure_penalty. Reject penalty <= 0."""
+    """Apply each row's own failure_penalty. Raises PenaltyError if <= 0."""
     for row in rows:
         penalty = row.get("failure_penalty", 0.0)
-        assert penalty > 0, (
-            f"failure_penalty must be > 0, got {penalty} for "
-            f"method={row.get('method')} fold={row.get('fold')}"
-        )
+        if penalty <= 0:
+            raise direct.PenaltyError(
+                f"failure_penalty must be > 0, got {penalty} for "
+                f"method={row.get('method')} fold={row.get('fold')}"
+            )
         if row["failed"]:
             row["true_loss_complete_case"] = row["true_loss"]
             row["true_loss"] = penalty
@@ -175,7 +206,6 @@ def verify_sample_key_alignment(all_rows):
         if key_set != first_key_set:
             return {"ok": False, "reason": f"key mismatch in {method}/{fold}/{seed}"}
 
-    # Check penalty consistency within each fold×seed
     penalty_groups = df.groupby(["fold", "seed"])["failure_penalty"].nunique()
     if penalty_groups.max() > 1:
         return {"ok": False, "reason": "inconsistent failure_penalty within fold×seed"}
@@ -200,15 +230,9 @@ def run_fair_comparison(
 ):
     """Run six-method fair comparison with full fold×seed coverage.
 
-    Parameters
-    ----------
-    df_features : sample_features DataFrame
-    direct_models : {fold_name: {seed: (model, info, means, stds)}}
-    vector_models : {fold_name: {seed: pd.DataFrame of predictions}}
-    df_risk_curves : risk_curves DataFrame (26 loss_d columns)
-    folds : list of fold dicts
-    repeats : MC repeats per combo for traditional methods
-    seeds : list of seeds to evaluate (default: all 3)
+    Raises CoverageError if require_all_six and coverage gaps found.
+    Raises PenaltyError if any failure_penalty <= 0.
+    Raises SchemaError if Vector-MLP predictions lack required columns.
     """
     if folds is None:
         folds = e4.get_combo_split()
@@ -217,18 +241,20 @@ def run_fair_comparison(
 
     all_rows = []
     methods_seen = set()
-    fold_seed_coverage = {}  # (fold, seed) → set of methods
+    fold_seed_coverage = {}
 
     for fold in folds:
         fold_name = fold["fold_name"]
         train_combos = fold["train_combos"]
         test_combos = fold["test_combos"]
 
-        # Compute per-fold penalty from ALL 26 delta losses
         fold_penalty = direct.compute_fold_penalty(
             df_features, df_risk_curves, train_combos
         )
-        assert fold_penalty > 0
+        if fold_penalty <= 0:
+            raise direct.PenaltyError(
+                f"Fold penalty must be > 0 for {fold_name}, got {fold_penalty}"
+            )
 
         for seed in seeds:
             key = (fold_name, seed)
@@ -260,45 +286,49 @@ def run_fair_comparison(
                 methods_seen.add("Direct-MLP")
                 fold_seed_coverage[key].add("Direct-MLP")
 
-            # Vector-MLP
+            # Vector-MLP (strict schema, no fallbacks)
             if fold_name in vector_models and seed in vector_models[fold_name]:
                 pred_df = vector_models[fold_name][seed]
+                validate_vector_pred_schema(pred_df, fold_name, seed)
+
                 for _, prow in pred_df.iterrows():
+                    # Use TRUE params from strict schema — no fallbacks
+                    beta_true = float(prow["beta"])
+                    eta_true = float(prow["eta"])
+                    gamma_true = float(prow["gamma"])
+
                     loss = direct.compute_param_loss(
-                        prow["beta_hat"], prow["beta"],
-                        prow["eta_hat"], prow.get("eta", prow.get("eta_hat", 1.0)),
-                        prow["gamma_hat"], prow.get("gamma", prow["gamma_hat"] * prow.get("gamma_over_eta", prow["gamma_hat"] / prow.get("eta_hat", 1.0))),
-                    ) if "gamma" in prow else direct.compute_param_loss(
-                        prow["beta_hat"], prow["beta"],
-                        prow["eta_hat"], prow.get("eta", 1.0),
-                        prow["gamma_hat"], prow["gamma_over_eta"] * prow.get("eta", 1.0),
+                        float(prow["beta_hat"]), beta_true,
+                        float(prow["eta_hat"]), eta_true,
+                        float(prow["gamma_hat"]), gamma_true,
                     )
                     all_rows.append({
                         "fold": fold_name, "seed": seed,
                         "method": "MDM-Vector-MLP",
-                        "beta": prow["beta"],
-                        "gamma_over_eta": prow["gamma_over_eta"],
-                        "n": prow["n"], "repeat_id": prow["repeat_id"],
-                        "beta_hat": prow["beta_hat"],
-                        "eta_hat": prow["eta_hat"],
-                        "gamma_hat": prow["gamma_hat"],
+                        "beta": beta_true,
+                        "gamma_over_eta": float(prow["gamma_over_eta"]),
+                        "n": int(prow["n"]),
+                        "repeat_id": int(prow["repeat_id"]),
+                        "beta_hat": float(prow["beta_hat"]),
+                        "eta_hat": float(prow["eta_hat"]),
+                        "gamma_hat": float(prow["gamma_hat"]),
                         "true_loss": loss,
-                        "failed": prow.get("failed", False),
-                        "failure_reason": prow.get("failure_reason", ""),
+                        "failed": bool(prow["failed"]),
+                        "failure_reason": str(prow.get("failure_reason", "")),
                         "failure_penalty": fold_penalty,
                     })
                 methods_seen.add("MDM-Vector-MLP")
                 fold_seed_coverage[key].add("MDM-Vector-MLP")
 
-    # Verify full coverage
+    # Verify full coverage (explicit exception, not assert)
     coverage_gaps = {}
     for (fn, sd), ms in fold_seed_coverage.items():
         missing = set(ALL_SIX_METHODS) - ms
         if missing:
             coverage_gaps[f"{fn}/{sd}"] = sorted(missing)
 
-    if require_all_six:
-        assert not coverage_gaps, (
+    if require_all_six and coverage_gaps:
+        raise direct.CoverageError(
             f"Method coverage gaps: {coverage_gaps}"
         )
 

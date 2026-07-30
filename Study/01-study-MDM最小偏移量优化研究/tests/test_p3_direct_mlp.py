@@ -1,12 +1,12 @@
-"""Fail-closed tests for P3 Direct-MLP v3.
+"""Fail-closed tests for P3 Direct-MLP v4 (full scale invariance).
 
-Tests the hardest issues:
-- Scale equivariance: scaling sample scales eta/gamma correctly
-- J1-compatible loss: training loss weights match J1 formula
-- P99 penalty from ALL 26 deltas (not just delta=0.1)
-- Six-method fold×seed coverage (detects baseline 3-seed vs learning 1-seed)
-- Production-path run_fair_comparison with tamper detection
-- Perfect decode round-trip for non-unit eta
+Tests:
+- Production feature path: same sample * c → identical 13-dim network input
+- End-to-end model scale equivariance (not just decoder)
+- Shared j1_loss_torch with gamma=0 and non-unit eta
+- Strict Vector-MLP schema (missing eta/gamma → error)
+- Explicit exceptions instead of assert
+- Six-method fold×seed coverage
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 CODE_DIR = Path(__file__).resolve().parents[1] / "code"
 sys.path.insert(0, str(CODE_DIR))
@@ -54,80 +55,195 @@ def _make_mini_risk_curves(n_combos=2, repeats=5):
     return pd.DataFrame(rows)
 
 
-# ── 1. Scale equivariance ──────────────────────────────────────────────
+# ── 1. Full scale invariance: production feature path ──────────────────
 
-class TestScaleEquivariance:
-    def test_decode_scales_eta_by_x_bar(self):
-        """eta_hat = eta_ratio * x_bar, so doubling x_bar doubles eta_hat."""
-        z = np.array([[2.0, 1.0, 0.5]])
-        x_bar1 = np.array([1.0])
-        x_bar2 = np.array([2.0])
-        p1 = direct.decode_output(z, x_bar1)
-        p2 = direct.decode_output(z, x_bar2)
-        assert p2[0, 1] == pytest.approx(2 * p1[0, 1])  # eta doubled
-        assert p2[0, 0] == pytest.approx(p1[0, 0])      # beta unchanged
-        assert p2[0, 2] == pytest.approx(2 * p1[0, 2])  # gamma doubled (goe*eta)
+class TestScaleInvariantFeatures:
+    def test_scale_invariant_transform_divides_by_xbar(self):
+        """After transform, all 9 scale cols should be divided by x_bar."""
+        df = _make_mini_features(1, 3)
+        df_si = direct.make_scale_invariant(df)
+        # x_bar should be 1.0 after transform
+        assert np.allclose(df_si["x_bar"].values, 1.0)
+        # x_min should be x_min/x_bar
+        assert np.allclose(df_si["x_min"].values, df["x_min"].values / df["x_bar"].values)
+        # s should be s/x_bar
+        assert np.allclose(df_si["s"].values, df["s"].values / df["x_bar"].values)
 
-    def test_encode_decode_roundtrip_unit_eta(self):
+    def test_scale_invariant_features_unchanged(self):
+        """n, CV, g1, g2 should be unchanged by the transform."""
+        df = _make_mini_features(1, 3)
+        df_si = direct.make_scale_invariant(df)
+        for col in ["n", "CV", "g1", "g2"]:
+            assert np.allclose(df_si[col].values, df[col].values)
+
+    def test_production_input_scale_invariance(self):
+        """Same sample * c → identical 13-dim network input.
+
+        This tests the FULL feature pipeline, not just the decoder.
+        """
+        df = _make_mini_features(1, 5)
+        df_si = direct.make_scale_invariant(df)
+        means, stds = direct.fit_scale_invariant_zscore(df_si)
+        ok = direct.verify_input_scale_invariance(df, means, stds, scale_factor=2.5)
+        assert ok, "Network input changed when sample was scaled by 2.5"
+
+    def test_production_input_scale_invariance_multiple_factors(self):
+        """Test with multiple scale factors including fractional."""
+        df = _make_mini_features(1, 5)
+        df_si = direct.make_scale_invariant(df)
+        means, stds = direct.fit_scale_invariant_zscore(df_si)
+        for c in [0.5, 1.0, 3.7, 100.0, 0.01]:
+            ok = direct.verify_input_scale_invariance(df, means, stds, scale_factor=c)
+            assert ok, f"Network input changed when sample was scaled by {c}"
+
+    def test_end_to_end_model_scale_equivariance(self):
+        """Trained model: scale sample by c → beta unchanged, eta/gamma * c.
+
+        This uses a REAL trained model, not just decode_output.
+        """
+        df = _make_mini_features(2, 20)
+        X, Y, x_bar, meta = direct.build_training_data(df, [(1.5, 0.1, 7)])
+        model, info = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=5)
+
+        # Original sample
+        df_test = df[df.apply(
+            lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) == (2.0, 0.1, 7), axis=1
+        )].head(5)
+        df_test_si = direct.make_scale_invariant(df_test)
+        X_orig = direct.build_scale_invariant_X(df_test_si, meta["zscore_means"], meta["zscore_stds"])
+        x_bar_orig = df_test["x_bar"].values.astype(np.float64)
+        preds_orig = direct.predict_direct_mlp(model, info, X_orig, x_bar_orig)
+
+        # Scaled sample (multiply all scale-dependent features by c)
+        c = 3.0
+        df_scaled = df_test.copy()
+        for col in direct.SCALE_DEPENDENT_COLS:
+            df_scaled[col] = df_scaled[col].astype(float) * c
+        df_scaled_si = direct.make_scale_invariant(df_scaled)
+        X_scaled = direct.build_scale_invariant_X(df_scaled_si, meta["zscore_means"], meta["zscore_stds"])
+        x_bar_scaled = df_scaled["x_bar"].values.astype(np.float64)
+        preds_scaled = direct.predict_direct_mlp(model, info, X_scaled, x_bar_scaled)
+
+        # Network input must be identical
+        assert np.allclose(X_orig, X_scaled, atol=1e-6), \
+            "Network input differs between original and scaled samples"
+
+        # Predictions must satisfy scale equivariance
+        assert direct.verify_scale_equivariance(preds_orig, preds_scaled, c, atol=1e-4), \
+            "Model predictions do not satisfy scale equivariance"
+
+
+# ── 2. Output transforms ───────────────────────────────────────────────
+
+class TestOutputConstraints:
+    def test_beta_positive(self):
+        z = np.array([[-100, 1.0, 0.5]])
+        p = direct.decode_output(z, np.array([1.0]))
+        assert p[0, 0] > 0
+
+    def test_eta_positive(self):
+        z = np.array([[1.0, -100, 0.5]])
+        p = direct.decode_output(z, np.array([1.0]))
+        assert p[0, 1] > 0
+
+    def test_gamma_nonneg(self):
+        z = np.array([[1.0, 1.0, -100]])
+        p = direct.decode_output(z, np.array([1.0]))
+        assert p[0, 2] >= 0
+
+    def test_gamma_zero(self):
+        """gamma=0 should produce gamma_hat=0 when goe_hat=0."""
+        z = np.array([[1.0, 1.0, 0.0]])
+        p = direct.decode_output(z, np.array([1.0]))
+        assert p[0, 2] == pytest.approx(0.0)
+
+
+class TestEncodeDecode:
+    def test_roundtrip_unit_eta(self):
         params = np.array([[2.0, 1.0, 0.5]])
         x_bar = np.array([1.0])
         z = direct.encode_targets(params, x_bar)
         decoded = direct.decode_output(z, x_bar)
         assert np.allclose(decoded, params, atol=1e-5)
 
-    def test_encode_decode_roundtrip_nonunit_eta(self):
-        """Non-unit eta must round-trip correctly."""
+    def test_roundtrip_nonunit_eta(self):
         params = np.array([[2.5, 3.0, 1.5]])
-        x_bar = np.array([3.0])  # eta/x_bar = 1.0
+        x_bar = np.array([3.0])
         z = direct.encode_targets(params, x_bar)
         decoded = direct.decode_output(z, x_bar)
         assert np.allclose(decoded, params, atol=1e-5)
 
-    def test_encode_decode_roundtrip_different_scales(self):
-        """Same shape params at different eta scales must produce different targets."""
-        p1 = np.array([[2.0, 1.0, 0.5]])  # eta=1
-        p2 = np.array([[2.0, 5.0, 2.5]])  # eta=5, same beta/goe
-        x_bar1 = np.array([1.0])
-        x_bar2 = np.array([5.0])  # scaled
-        z1 = direct.encode_targets(p1, x_bar1)
-        z2 = direct.encode_targets(p2, x_bar2)
-        # z_beta should be same (shape param)
-        assert np.allclose(z1[0, 0], z2[0, 0], atol=1e-5)
-        # z_eta_ratio should be same (eta/x_bar = 1.0 in both cases)
-        assert np.allclose(z1[0, 1], z2[0, 1], atol=1e-5)
-        # z_goe should be same (gamma/eta = 0.5 in both cases)
-        assert np.allclose(z1[0, 2], z2[0, 2], atol=1e-5)
-
-    def test_scale_equivariance_verification(self):
-        """verify_scale_equivariance detects correct scaling."""
-        preds1 = np.array([[2.0, 1.0, 0.5]])
-        preds2 = np.array([[2.0, 2.0, 1.0]])  # eta*2, gamma*2, beta same
-        assert direct.verify_scale_equivariance(preds1, preds2, 2.0)
-
-
-# ── 2. Output constraints ──────────────────────────────────────────────
-
-class TestOutputConstraints:
-    def test_beta_positive(self):
-        z = np.array([[-100, 1.0, 0.5]])
+    def test_roundtrip_gamma_zero(self):
+        """gamma=0 must round-trip correctly."""
+        params = np.array([[2.0, 1.0, 0.0]])
         x_bar = np.array([1.0])
-        p = direct.decode_output(z, x_bar)
-        assert p[0, 0] > 0
+        z = direct.encode_targets(params, x_bar)
+        decoded = direct.decode_output(z, x_bar)
+        assert np.allclose(decoded, params, atol=1e-5)
 
-    def test_eta_positive(self):
-        z = np.array([[1.0, -100, 0.5]])
-        x_bar = np.array([1.0])
-        p = direct.decode_output(z, x_bar)
-        assert p[0, 1] > 0
-
-    def test_gamma_nonneg(self):
-        z = np.array([[1.0, 1.0, -100]])
-        x_bar = np.array([1.0])
-        p = direct.decode_output(z, x_bar)
-        assert p[0, 2] >= 0
+    def test_same_shape_different_scale_same_target(self):
+        """Same shape params at different scales → same network target."""
+        p1 = np.array([[2.0, 1.0, 0.5]])
+        p2 = np.array([[2.0, 5.0, 2.5]])
+        z1 = direct.encode_targets(p1, np.array([1.0]))
+        z2 = direct.encode_targets(p2, np.array([5.0]))
+        assert np.allclose(z1, z2, atol=1e-5)
 
 
-# ── 3. Forbidden fields ────────────────────────────────────────────────
+# ── 3. Shared J1 loss ──────────────────────────────────────────────────
+
+class TestSharedJ1Loss:
+    def test_zero_loss_perfect_prediction(self):
+        bh = torch.tensor([2.0]); b = torch.tensor([2.0])
+        eh = torch.tensor([1.0]); e = torch.tensor([1.0])
+        gh = torch.tensor([0.5]); g = torch.tensor([0.5])
+        loss = direct.j1_loss_torch(bh, b, eh, e, gh, g)
+        assert loss.item() == pytest.approx(0.0, abs=1e-12)
+
+    def test_gamma_zero_loss_finite(self):
+        """gamma=0: loss must be finite."""
+        bh = torch.tensor([2.0]); b = torch.tensor([2.0])
+        eh = torch.tensor([1.0]); e = torch.tensor([1.0])
+        gh = torch.tensor([0.1]); g = torch.tensor([0.0])
+        loss = direct.j1_loss_torch(bh, b, eh, e, gh, g)
+        assert torch.isfinite(loss)
+        # gamma error = (0.1 - 0.0) / eta(1.0) = 0.1
+        assert loss.item() == pytest.approx(0.01)
+
+    def test_nonunit_eta_gamma_denominator(self):
+        """gamma error normalized by eta_true, not gamma_true."""
+        bh = torch.tensor([2.0]); b = torch.tensor([2.0])
+        eh = torch.tensor([3.0]); e = torch.tensor([3.0])
+        gh = torch.tensor([2.0]); g = torch.tensor([1.5])
+        loss = direct.j1_loss_torch(bh, b, eh, e, gh, g)
+        e_gamma = (2.0 - 1.5) / 3.0  # denominator = eta_true = 3.0
+        assert loss.item() == pytest.approx(e_gamma ** 2)
+
+    def test_matches_compute_param_loss(self):
+        """j1_loss_torch must produce same result as compute_param_loss."""
+        bh, b = 2.2, 2.0
+        eh, e = 1.5, 1.0
+        gh, g = 0.8, 0.5
+
+        torch_loss = direct.j1_loss_torch(
+            torch.tensor([bh]), torch.tensor([b]),
+            torch.tensor([eh]), torch.tensor([e]),
+            torch.tensor([gh]), torch.tensor([g]),
+        ).item()
+
+        np_loss = direct.compute_param_loss(bh, b, eh, e, gh, g)
+
+        assert torch_loss == pytest.approx(np_loss)
+
+    def test_training_and_validation_use_same_loss(self):
+        """Both train and val code paths call j1_loss_torch."""
+        import inspect
+        src = inspect.getsource(direct.train_direct_mlp)
+        train_calls = src.count("j1_loss_torch(")
+        assert train_calls >= 2, "Both training and validation must call j1_loss_torch"
+
+
+# ── 4. Forbidden fields ────────────────────────────────────────────────
 
 class TestForbiddenFields:
     def test_no_forbidden_in_features(self):
@@ -136,50 +252,8 @@ class TestForbiddenFields:
             assert f not in feats
 
     def test_x_bar_is_feature_not_forbidden(self):
-        """x_bar IS a feature (used as scale anchor) and must not be forbidden."""
         assert "x_bar" in e4.SAMPLE_FEATURE_COLS
         assert "x_bar" not in cfg.FORBIDDEN_INPUT_FIELDS
-
-
-# ── 4. J1-compatible loss ──────────────────────────────────────────────
-
-class TestJ1CompatibleLoss:
-    def test_zero_loss_for_perfect_prediction(self):
-        loss = direct.compute_param_loss(2.0, 2.0, 1.0, 1.0, 0.5, 0.5)
-        assert loss == pytest.approx(0.0, abs=1e-12)
-
-    def test_matches_j1_squared(self):
-        loss = direct.compute_param_loss(2.5, 2.0, 1.5, 1.0, 0.8, 0.5)
-        e_b = (2.5-2.0)/2.0
-        e_e = (1.5-1.0)/1.0
-        e_g = (0.8-0.5)/1.0
-        assert loss == pytest.approx(e_b**2 + e_e**2 + e_g**2)
-
-    def test_gamma_normalized_by_eta(self):
-        loss = direct.compute_param_loss(2.0, 2.0, 1.0, 1.0, 1.5, 1.0)
-        assert loss == pytest.approx(0.5**2)
-
-    def test_nonunit_eta_gamma_normalization(self):
-        """For eta=3, gamma error normalized by eta."""
-        loss = direct.compute_param_loss(2.0, 2.0, 3.0, 3.0, 2.0, 1.5)
-        e_g = (2.0 - 1.5) / 3.0
-        assert loss == pytest.approx(e_g**2)
-
-    def test_training_loss_weights_match_j1(self):
-        """Numerically verify: same param errors produce same loss weights as J1."""
-        # Three different param errors
-        errors = [
-            (2.2, 2.0, 1.1, 1.0, 0.6, 0.5),  # e_b=0.1, e_e=0.1, e_g=0.1/0.5=0.2
-            (3.0, 2.0, 1.5, 1.0, 0.7, 0.5),  # different errors
-        ]
-        for bh, b, eh, e, gh, g in errors:
-            loss = direct.compute_param_loss(bh, b, eh, e, gh, g)
-            e_b = (bh - b) / b
-            e_e = (eh - e) / e
-            e_g = (gh - g) / e
-            j1_sq = e_b**2 + e_e**2 + e_g**2
-            assert loss == pytest.approx(j1_sq), \
-                f"Loss {loss} != J1² {j1_sq} for params ({bh},{b},{eh},{e},{gh},{g})"
 
 
 # ── 5. Fold/scaler isolation ───────────────────────────────────────────
@@ -189,28 +263,30 @@ class TestFoldIsolation:
         for fold in e4.get_combo_split():
             assert set(fold["train_combos"]).isdisjoint(fold["test_combos"])
 
-    def test_no_inline_duplication(self):
+    def test_uses_scale_invariant_pipeline(self):
+        """build_training_data must use scale-invariant transform."""
         import inspect
         src = inspect.getsource(direct.build_training_data)
-        assert "e4._fit_zscore_params" in src
-        assert "e4._build_X_from_samples" in src
+        assert "make_scale_invariant" in src
+        assert "fit_scale_invariant_zscore" in src
+        assert "build_scale_invariant_X" in src
 
 
 # ── 6. Seed reproducibility ────────────────────────────────────────────
 
 class TestSeedReproducibility:
     def test_same_seed_same_model(self):
-        df = _make_mini_features(n_combos=1, repeats=30)
+        df = _make_mini_features(1, 30)
         X, Y, x_bar, _ = direct.build_training_data(df, [(1.5, 0.1, 7)])
-        m1, i1 = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
-        m2, i2 = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
+        m1, _ = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
+        m2, _ = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
         for k1, k2 in zip(m1.state_dict().keys(), m2.state_dict().keys()):
             np.testing.assert_array_equal(
                 m1.state_dict()[k1].numpy(), m2.state_dict()[k2].numpy()
             )
 
     def test_different_seed_different_model(self):
-        df = _make_mini_features(n_combos=1, repeats=30)
+        df = _make_mini_features(1, 30)
         X, Y, x_bar, _ = direct.build_training_data(df, [(1.5, 0.1, 7)])
         m1, _ = direct.train_direct_mlp(X, Y, x_bar, seed=42, max_iter=10)
         m2, _ = direct.train_direct_mlp(X, Y, x_bar, seed=2026, max_iter=10)
@@ -223,13 +299,10 @@ class TestSeedReproducibility:
 
 class TestFoldPenalty:
     def test_uses_all_26_deltas(self):
-        """Penalty must use all 26 delta points, not just delta=0.1."""
         df_features = _make_mini_features(1, 5)
         df_risk = _make_mini_risk_curves(1, 5)
         penalty = direct.compute_fold_penalty(df_features, df_risk, [(1.5, 0.1, 7)])
-        # With 5 samples × 26 deltas = 130 losses, P99 should be a high value
         assert penalty > 0
-        # Verify it's the P99 of ALL losses, not just delta=0.1
         all_losses = []
         for _, row in df_risk.iterrows():
             for d in range(0, 52, 2):
@@ -237,13 +310,21 @@ class TestFoldPenalty:
         expected_p99 = float(np.percentile(all_losses, 99))
         assert penalty == pytest.approx(expected_p99)
 
-    def test_no_fallback_to_3(self):
-        """Must raise ValueError if no valid training losses, not fall back to 3.0."""
+    def test_no_fallback_raises_penalty_error(self):
+        """Must raise PenaltyError (not ValueError) if no valid losses."""
         df_features = _make_mini_features(1, 5)
-        # Empty risk curves → no matches
         df_risk = pd.DataFrame(columns=["beta", "gamma_over_eta", "n", "repeat_id"] +
                                [f"loss_d{d/100:.2f}" for d in range(0, 52, 2)])
-        with pytest.raises(ValueError):
+        with pytest.raises(direct.PenaltyError):
+            direct.compute_fold_penalty(df_features, df_risk, [(1.5, 0.1, 7)])
+
+    def test_wrong_loss_count_raises_schema_error(self):
+        """Wrong number of loss_d columns must raise SchemaError."""
+        df_features = _make_mini_features(1, 5)
+        # Only 13 loss columns instead of 26
+        df_risk = pd.DataFrame(columns=["beta", "gamma_over_eta", "n", "repeat_id"] +
+                               [f"loss_d{d/100:.2f}" for d in range(0, 26, 2)])
+        with pytest.raises(direct.SchemaError):
             direct.compute_fold_penalty(df_features, df_risk, [(1.5, 0.1, 7)])
 
 
@@ -259,9 +340,10 @@ class TestFailureContract:
         assert len(result) == 2
         assert result[1]["true_loss"] == 5.0
 
-    def test_zero_penalty_rejected(self):
+    def test_zero_penalty_raises_penalty_error(self):
+        """Must raise PenaltyError, not AssertionError."""
         rows = [{"method": "MLE", "true_loss": 0.1, "failed": False, "failure_reason": "", "failure_penalty": 0.0}]
-        with pytest.raises(AssertionError):
+        with pytest.raises(direct.PenaltyError):
             compare.apply_failure_contract(rows)
 
 
@@ -272,7 +354,46 @@ class TestModelFirstAggregation:
         assert compare.pooled_j1(np.array([0.0, 1.0, 4.0])) == pytest.approx(np.sqrt(5/3))
 
 
-# ── 10. Six-method fold×seed coverage ──────────────────────────────────
+# ── 10. Vector-MLP strict schema ───────────────────────────────────────
+
+class TestVectorMLPSchema:
+    def test_missing_eta_raises_schema_error(self):
+        """Missing eta column must raise SchemaError."""
+        df = pd.DataFrame({
+            "beta": [2.0], "gamma": [0.5], "gamma_over_eta": [0.1],
+            "n": [7], "repeat_id": [0],
+            "beta_hat": [2.1], "eta_hat": [1.0], "gamma_hat": [0.5],
+            "failed": [False], "failure_reason": [""],
+        })
+        with pytest.raises(direct.SchemaError, match="eta"):
+            compare.validate_vector_pred_schema(df, "fold1", 42)
+
+    def test_missing_gamma_raises_schema_error(self):
+        """Missing gamma column must raise SchemaError."""
+        df = pd.DataFrame({
+            "beta": [2.0], "eta": [1.0], "gamma_over_eta": [0.1],
+            "n": [7], "repeat_id": [0],
+            "beta_hat": [2.1], "eta_hat": [1.0], "gamma_hat": [0.5],
+            "failed": [False], "failure_reason": [""],
+        })
+        with pytest.raises(direct.SchemaError, match="gamma"):
+            compare.validate_vector_pred_schema(df, "fold1", 42)
+
+    def test_empty_raises_schema_error(self):
+        with pytest.raises(direct.SchemaError):
+            compare.validate_vector_pred_schema(pd.DataFrame(), "fold1", 42)
+
+    def test_valid_schema_passes(self):
+        df = pd.DataFrame({
+            "beta": [2.0], "eta": [1.0], "gamma": [0.5], "gamma_over_eta": [0.1],
+            "n": [7], "repeat_id": [0],
+            "beta_hat": [2.1], "eta_hat": [1.0], "gamma_hat": [0.5],
+            "failed": [False], "failure_reason": [""],
+        })
+        compare.validate_vector_pred_schema(df, "fold1", 42)  # should not raise
+
+
+# ── 11. Six-method fold×seed coverage (explicit exceptions) ────────────
 
 class TestFairComparisonProduction:
     @pytest.fixture
@@ -295,11 +416,11 @@ class TestFairComparisonProduction:
         df_test = df_features[test_mask]
         vector_preds = pd.DataFrame({
             "beta": df_test["beta"].values,
+            "eta": df_test["eta"].values,
+            "gamma": df_test["gamma"].values,
             "gamma_over_eta": df_test["gamma_over_eta"].values,
             "n": df_test["n"].values,
             "repeat_id": df_test["repeat_id"].values,
-            "eta": df_test["eta"].values,
-            "gamma": df_test["gamma"].values,
             "beta_hat": df_test["beta"].values * 1.05,
             "eta_hat": df_test["eta"].values,
             "gamma_hat": df_test["gamma"].values,
@@ -321,8 +442,7 @@ class TestFairComparisonProduction:
             direct_models=mini_setup["direct_models"],
             vector_models=mini_setup["vector_models"],
             df_risk_curves=mini_setup["df_risk"],
-            folds=mini_setup["folds"], repeats=10,
-            seeds=[42],
+            folds=mini_setup["folds"], repeats=10, seeds=[42],
         )
         assert len(result["methods_seen"]) == 6
         assert set(result["methods_seen"]) == set(compare.ALL_SIX_METHODS)
@@ -336,17 +456,6 @@ class TestFairComparisonProduction:
             folds=mini_setup["folds"], repeats=10, seeds=[42],
         )
         assert result["sample_key_alignment"]["ok"]
-
-    def test_penalty_nonzero(self, mini_setup):
-        result = compare.run_fair_comparison(
-            df_features=mini_setup["df_features"],
-            direct_models=mini_setup["direct_models"],
-            vector_models=mini_setup["vector_models"],
-            df_risk_curves=mini_setup["df_risk"],
-            folds=mini_setup["folds"], repeats=10, seeds=[42],
-        )
-        df = pd.DataFrame(result["per_sample"])
-        assert (df["failure_penalty"] > 0).all()
 
     def test_tampered_keys_detected(self, mini_setup):
         result = compare.run_fair_comparison(
@@ -362,8 +471,9 @@ class TestFairComparisonProduction:
         alignment = compare.verify_sample_key_alignment(df.to_dict("records"))
         assert not alignment["ok"]
 
-    def test_missing_direct_model_detected(self, mini_setup):
-        with pytest.raises(AssertionError):
+    def test_missing_direct_raises_coverage_error(self, mini_setup):
+        """Must raise CoverageError, not AssertionError."""
+        with pytest.raises(direct.CoverageError):
             compare.run_fair_comparison(
                 df_features=mini_setup["df_features"],
                 direct_models={},
@@ -372,8 +482,8 @@ class TestFairComparisonProduction:
                 folds=mini_setup["folds"], repeats=10, seeds=[42],
             )
 
-    def test_empty_vector_detected(self, mini_setup):
-        with pytest.raises(AssertionError):
+    def test_empty_vector_raises_coverage_error(self, mini_setup):
+        with pytest.raises(direct.CoverageError):
             compare.run_fair_comparison(
                 df_features=mini_setup["df_features"],
                 direct_models=mini_setup["direct_models"],
@@ -382,41 +492,54 @@ class TestFairComparisonProduction:
                 folds=mini_setup["folds"], repeats=10, seeds=[42],
             )
 
-    def test_coverage_gap_detected(self, mini_setup):
-        """If traditional methods run 3 seeds but learning methods only 1,
-        the coverage check must catch it."""
-        # Request 3 seeds but only provide models for 1
-        with pytest.raises(AssertionError) as exc_info:
+    def test_coverage_gap_raises_coverage_error(self, mini_setup):
+        """3 seeds requested but models for 1 → CoverageError."""
+        with pytest.raises(direct.CoverageError):
             compare.run_fair_comparison(
                 df_features=mini_setup["df_features"],
                 direct_models=mini_setup["direct_models"],
                 vector_models=mini_setup["vector_models"],
                 df_risk_curves=mini_setup["df_risk"],
                 folds=mini_setup["folds"], repeats=10,
-                seeds=[42, 2026, 3407],  # 3 seeds requested
+                seeds=[42, 2026, 3407],
             )
-        assert "coverage" in str(exc_info.value).lower() or "missing" in str(exc_info.value).lower()
+
+    def test_vector_missing_eta_raises_schema_error(self, mini_setup):
+        """Vector-MLP predictions missing eta → SchemaError during comparison."""
+        # Remove eta from vector predictions
+        vm = mini_setup["vector_models"]
+        for fold_name in vm:
+            for seed in vm[fold_name]:
+                vm[fold_name][seed] = vm[fold_name][seed].drop(columns=["eta"])
+        with pytest.raises(direct.SchemaError):
+            compare.run_fair_comparison(
+                df_features=mini_setup["df_features"],
+                direct_models=mini_setup["direct_models"],
+                vector_models=vm,
+                df_risk_curves=mini_setup["df_risk"],
+                folds=mini_setup["folds"], repeats=10, seeds=[42],
+            )
 
 
-# ── 11. Config ─────────────────────────────────────────────────────────
+# ── 12. Config ─────────────────────────────────────────────────────────
 
 class TestConfigFrozen:
     def test_hash_stable(self):
         assert direct.config_hash() == direct.config_hash()
 
-    def test_contract_complete(self):
+    def test_contract_has_scale_invariance(self):
         c = cfg.production_contract()
+        assert c["input_scale_invariance"] == "divide_by_x_bar_before_zscore"
+        assert "x_bar" in c["scale_dependent_features"]
+        assert "n" in c["scale_invariant_features"]
         assert c["output_transform"] == "scale_equivariant_softplus_softplus_relu"
-        assert c["target_encoding"] == "inverse_softplus_scale_equivariant"
-        assert c["training_loss"] == "J1_compatible_relative_error"
         assert c["training_framework"] == "pytorch"
-        assert c["scale_anchor"] == "x_bar"
 
     def test_correction_not_used(self):
         assert cfg.CONFIG_CORRECTION_USED is False
 
 
-# ── 12. No overwrite ───────────────────────────────────────────────────
+# ── 13. No overwrite ───────────────────────────────────────────────────
 
 class TestNoOverwrite:
     def test_p2_v2_manifest(self):

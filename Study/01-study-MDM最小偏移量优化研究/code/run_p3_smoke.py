@@ -29,11 +29,11 @@ import p3_config as cfg
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 
-OUT = Path(r"D:\weibull-local-artifacts\study01-p3-smoke-v3")
+OUT = Path(r"D:\weibull-local-artifacts\study01-p3-smoke-v4")
 OUT.mkdir(parents=True, exist_ok=True)
 
 print("=" * 60)
-print("P3 Direct-MLP Smoke Test v3 (36k train, REAL Vector-MLP, 6 methods)")
+print("P3 Direct-MLP Smoke Test v4 (36k train, full scale invariance, 6 methods)")
 print("=" * 60)
 
 # ── 1. Build features: full main grid for one fold ─────────────────────
@@ -289,6 +289,34 @@ direct_rows = df_all[df_all["method"] == "Direct-MLP"]
 preds = direct_rows[["beta_hat", "eta_hat", "gamma_hat"]].values
 assert direct.verify_output_constraints(preds)
 print(f"  [PASS] Output constraints")
+
+# ── 9b. Verify full model scale equivariance ───────────────────────────
+print("\n  Scale equivariance test:")
+# Pick a few test samples
+df_test_si = direct.make_scale_invariant(df_test_feats)
+X_test_orig = direct.build_scale_invariant_X(df_test_si, meta["zscore_means"], meta["zscore_stds"])
+x_bar_orig = df_test_feats["x_bar"].values.astype(np.float64)
+preds_orig = direct.predict_direct_mlp(direct_model, direct_info, X_test_orig, x_bar_orig)
+
+c = 5.0
+df_test_scaled = df_test_feats.copy()
+for col in direct.SCALE_DEPENDENT_COLS:
+    df_test_scaled[col] = df_test_scaled[col].astype(float) * c
+df_test_scaled_si = direct.make_scale_invariant(df_test_scaled)
+X_test_scaled = direct.build_scale_invariant_X(df_test_scaled_si, meta["zscore_means"], meta["zscore_stds"])
+x_bar_scaled = df_test_scaled["x_bar"].values.astype(np.float64)
+preds_scaled = direct.predict_direct_mlp(direct_model, direct_info, X_test_scaled, x_bar_scaled)
+
+# Network input must be identical
+input_ok = np.allclose(X_test_orig, X_test_scaled, atol=1e-6)
+print(f"    Network input identical after scaling: {input_ok}")
+assert input_ok
+
+# Predictions must satisfy scale equivariance
+equiv_ok = direct.verify_scale_equivariance(preds_orig, preds_scaled, c, atol=1e-4)
+print(f"    Model predictions scale-equivariant: {equiv_ok}")
+assert equiv_ok
+print(f"  [PASS] Full model scale equivariance (c={c})")
 
 # Verify Vector-MLP is NOT random noise (betas should correlate with true betas)
 vec_rows = df_all[df_all["method"] == "MDM-Vector-MLP"]
