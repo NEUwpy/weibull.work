@@ -1195,6 +1195,42 @@ class TestPreSealDrift:
                                 with pytest.raises(RuntimeError, match="approved_parent_commit drifted"):
                                     p4.verify_pre_seal_state(str(tmp_path), auth)
 
+    def test_pre_seal_rejects_config_drift(self, tmp_path):
+        """verify_pre_seal_state rejects config SHA256 drift."""
+        import unittest.mock as mock
+        auth = {"script_sha256": "a" * 64, "config_sha256": "b" * 64,
+                "start_head": "abc", "output_dir": str(tmp_path.resolve()),
+                "tracks": list(cfg.ALL_TRACKS), "seeds": list(cfg.SEEDS),
+                "resume": False, "approved_parent_commit": cfg.APPROVED_PARENT_COMMIT}
+        with mock.patch.object(p4, "get_git_dirty", return_value=False):
+            with mock.patch.object(p4, "get_git_commit", return_value="abc"):
+                with mock.patch.object(p4, "compute_script_sha256", return_value="a" * 64):
+                    with mock.patch.object(p4, "compute_sha256", return_value="WRONG" + "x" * 59):
+                        with mock.patch.dict(cfg.INPUT_SHA256, {}, clear=True):
+                            with pytest.raises(RuntimeError, match="config SHA256 drifted"):
+                                p4.verify_pre_seal_state(str(tmp_path), auth)
+
+    def test_pre_seal_rejects_input_drift(self, tmp_path):
+        """verify_pre_seal_state rejects frozen input file SHA256 drift."""
+        import unittest.mock as mock
+        auth = {"script_sha256": "a" * 64, "config_sha256": "b" * 64,
+                "start_head": "abc", "output_dir": str(tmp_path.resolve()),
+                "tracks": list(cfg.ALL_TRACKS), "seeds": list(cfg.SEEDS),
+                "resume": False, "approved_parent_commit": cfg.APPROVED_PARENT_COMMIT}
+        fake_input = {"E3b_risk_curves_csv": "expected_hash"}
+        def selective_sha(path):
+            p = str(path)
+            if p.endswith("p4_config.py"):
+                return "b" * 64
+            return "wrong_hash"
+        with mock.patch.object(p4, "get_git_dirty", return_value=False):
+            with mock.patch.object(p4, "get_git_commit", return_value="abc"):
+                with mock.patch.object(p4, "compute_script_sha256", return_value="a" * 64):
+                    with mock.patch.object(p4, "compute_sha256", side_effect=selective_sha):
+                        with mock.patch.dict(cfg.INPUT_SHA256, fake_input, clear=True):
+                            with pytest.raises(RuntimeError, match="input.*drifted"):
+                                p4.verify_pre_seal_state(str(tmp_path), auth)
+
 
 # ════════════════════════════════════════════════════════════════════════
 # 25. P4-R8 negative tests: resume validation
@@ -1494,6 +1530,16 @@ class TestResumeUnknownFiles:
         track_dir.mkdir()
         (track_dir / "unknown.bin").write_text("junk")
         with pytest.raises(RuntimeError, match="unknown file in track dir"):
+            p4._validate_resume_manifest(tmp_path, self._valid_auth(), cfg.ALL_TRACKS, cfg.SEEDS)
+
+    def test_resume_rejects_deeply_nested_file(self, tmp_path):
+        """Resume rejects files in nested subdirectories within track dirs."""
+        manifest = self._valid_manifest(tmp_path)
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        nested_dir = tmp_path / "param_interp" / "arbitrary"
+        nested_dir.mkdir(parents=True)
+        (nested_dir / "results.json").write_text("junk")
+        with pytest.raises(RuntimeError, match="nested file in track dir"):
             p4._validate_resume_manifest(tmp_path, self._valid_auth(), cfg.ALL_TRACKS, cfg.SEEDS)
 
     def test_resume_rejects_output_dir_mismatch(self, tmp_path):
@@ -1972,11 +2018,6 @@ class TestMainFourTrack:
 
         monkeypatch.setattr(e4, "_train_mlp", fake_train_mlp_main)
         monkeypatch.setattr(e4, "_evaluate_single_model", fake_eval_model_main)
-
-        orig_verify_pre_seal = p4.verify_pre_seal_state
-        def patched_pre_seal(od, ah):
-            pass
-        monkeypatch.setattr(p4, "verify_pre_seal_state", patched_pre_seal)
 
         p4.main(output_dir=output_dir, tracks=cfg.ALL_TRACKS, seeds=[42], resume=False)
 

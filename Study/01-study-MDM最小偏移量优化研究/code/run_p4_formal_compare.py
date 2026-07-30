@@ -1242,6 +1242,8 @@ def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
         rel = f.relative_to(output_path).as_posix()
         top_dir = rel.split("/")[0] if "/" in rel else rel
         if top_dir in allowed_dirs:
+            if f.parent != output_path / top_dir:
+                raise RuntimeError(f"Resume: nested file in track dir: {rel}")
             fname = f.name
             if fname.startswith("checkpoint_"):
                 raise RuntimeError(f"Resume: checkpoint not allowed in track dir: {rel}")
