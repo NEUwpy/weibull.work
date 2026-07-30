@@ -873,3 +873,88 @@ class TestProductionPathFixture:
             p4.atomic_write_json(results, td / "results.json")
             seal_hash = p4.seal_outputs(td, ["eval.csv", "results.json"])
             assert len(seal_hash) == 64
+
+    def test_run_traditional_method_patched(self, monkeypatch):
+        """run_traditional_method with patched run_method produces valid rows."""
+        import unittest.mock as mock
+
+        call_count = [0]
+        def fake_run_method(method_id, sample, **kwargs):
+            call_count[0] += 1
+            return {"beta_hat": 2.1, "eta_hat": 1.05, "gamma_hat": 0.48,
+                    "converged": True, "r_squared": 0.99}
+
+        def fake_generate_sample(beta, eta, gamma, n, rid, seed=None):
+            return np.sort(np.random.default_rng(rid).weibull(2.0, n))
+
+        monkeypatch.setattr(p4, "run_method", fake_run_method)
+        monkeypatch.setattr(p4, "generate_sample", fake_generate_sample)
+
+        samples_df = pd.DataFrame({
+            "beta": [2.0, 2.0, 3.0],
+            "gamma_over_eta": [0.5, 0.5, 0.3],
+            "n": [10, 10, 15],
+            "repeat_id": [0, 1, 0],
+        })
+        rows = p4.run_traditional_method("MLE", samples_df, "test_track", "study01_v1")
+        assert len(rows) == 3
+        assert call_count[0] == 3
+        assert all(r["method"] == "MLE" for r in rows)
+        assert all(not r["failed"] for r in rows)
+        assert all(r["beta_hat"] == 2.1 for r in rows)
+
+    def test_run_traditional_mdm_default_uses_delta(self, monkeypatch):
+        """MDM-Default passes offset=0.1 to run_method."""
+        captured_kwargs = []
+        def fake_run_method(method_id, sample, **kwargs):
+            captured_kwargs.append(kwargs)
+            return {"beta_hat": 2.0, "eta_hat": 1.0, "gamma_hat": 0.5,
+                    "converged": True}
+
+        def fake_generate_sample(beta, eta, gamma, n, rid, seed=None):
+            return np.array([1.0, 2.0, 3.0])
+
+        monkeypatch.setattr(p4, "run_method", fake_run_method)
+        monkeypatch.setattr(p4, "generate_sample", fake_generate_sample)
+
+        samples_df = pd.DataFrame({
+            "beta": [2.0], "gamma_over_eta": [0.5], "n": [10], "repeat_id": [0],
+        })
+        p4.run_traditional_method("MDM-Default", samples_df, "test", "study01_v1")
+        assert captured_kwargs[0]["offset"] == 0.1
+
+    def test_prediction_validity_in_traditional(self, monkeypatch):
+        """Non-finite predictions from run_method are marked failed."""
+        def fake_run_method(method_id, sample, **kwargs):
+            return {"beta_hat": float("nan"), "eta_hat": 1.0, "gamma_hat": 0.5,
+                    "converged": True}
+
+        def fake_generate_sample(beta, eta, gamma, n, rid, seed=None):
+            return np.array([1.0, 2.0, 3.0])
+
+        monkeypatch.setattr(p4, "run_method", fake_run_method)
+        monkeypatch.setattr(p4, "generate_sample", fake_generate_sample)
+
+        samples_df = pd.DataFrame({
+            "beta": [2.0], "gamma_over_eta": [0.5], "n": [10], "repeat_id": [0],
+        })
+        rows = p4.run_traditional_method("MLE", samples_df, "test", "study01_v1")
+        assert rows[0]["failed"] is True
+        assert "non_finite" in rows[0]["failure_reason"]
+
+    def test_content_hash_probe(self):
+        """verify_sample_content_hash is deterministic and raises on mismatch."""
+        h1 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_v1")
+        h2 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_v1")
+        assert h1 == h2
+        assert len(h1) == 64
+
+        with pytest.raises(RuntimeError, match="mismatch"):
+            p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_v1",
+                                          expected_sha256="0" * 64)
+
+    def test_content_hash_different_namespace(self):
+        """Different namespaces produce different samples."""
+        h1 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_v1")
+        h2 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_p2_v1")
+        assert h1 != h2
