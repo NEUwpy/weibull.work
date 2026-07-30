@@ -1274,8 +1274,15 @@ class TestRunFormalOrchestration:
         monkeypatch.setattr(p4, "_compute_frozen_fold_penalties", lambda *a: {"combo_fold_1": 2.0})
         monkeypatch.setattr(p4, "_execute_track_main",
                             lambda *a, **kw: (make_tiny_track_est(cfg.TRACK_MAIN_HOLDOUT), fold_assignment))
-        monkeypatch.setattr(p4, "_execute_track_p2",
-                            lambda *a, **kw: (make_tiny_track_est(a[5] if len(a) > 5 else cfg.TRACK_PARAM_INTERP), None))
+
+        def fake_track_p2(output_dir, folds_arg, seeds_arg, ns, run_ctx, track, resume_arg, fp):
+            track_dir = Path(output_dir) / track
+            track_dir.mkdir(parents=True, exist_ok=True)
+            p4.atomic_write_json({"status": "all_verified", "verified_samples": 2},
+                                 track_dir / "sample_hash_receipt.json")
+            return make_tiny_track_est(track), None
+
+        monkeypatch.setattr(p4, "_execute_track_p2", fake_track_p2)
         monkeypatch.setattr(p4, "_execute_track_extrap",
                             lambda *a, **kw: (make_tiny_track_est(cfg.TRACK_EXTRAP), None))
         monkeypatch.setattr(p4, "verify_pre_seal_state", lambda *a, **kw: None)
@@ -1376,13 +1383,13 @@ class TestResumeUnknownFiles:
             p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
 
     def test_resume_accepts_checkpoint_files(self, tmp_path):
-        """Resume accepts checkpoint_ files as valid partial state."""
+        """Resume accepts checkpoint_ files with valid enumerated names."""
         manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
                     "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
                     "seeds": list(cfg.SEEDS), "p4_formal_authorized": True,
                     "approved_parent_commit": "parent1"}
         p4.atomic_write_json(manifest, tmp_path / "manifest.json")
-        (tmp_path / "checkpoint_main_holdout_Direct-MLP.csv").write_text("data")
+        (tmp_path / "checkpoint_main_holdout_Direct-MLP_combo_fold_1_42.csv").write_text("data")
         auth = {"start_head": "abc", "script_sha256": "a" * 64,
                 "config_sha256": "b" * 64, "approved_parent_commit": "parent1"}
         result = p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
@@ -1478,7 +1485,7 @@ class TestCompletedSealRejectsResume:
             p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
 
     def test_resume_rejects_invalid_checkpoint_name(self, tmp_path):
-        """Resume rejects checkpoint with invalid name in track dir."""
+        """Resume rejects checkpoint in track subdirectory."""
         manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
                     "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
                     "seeds": list(cfg.SEEDS), "p4_formal_authorized": True,
@@ -1489,7 +1496,7 @@ class TestCompletedSealRejectsResume:
         (track_dir / "checkpoint_bogus_name.csv").write_text("data")
         auth = {"start_head": "abc", "script_sha256": "a" * 64,
                 "config_sha256": "b" * 64, "approved_parent_commit": "parent1"}
-        with pytest.raises(RuntimeError, match="invalid checkpoint name"):
+        with pytest.raises(RuntimeError, match="checkpoint not allowed in track dir"):
             p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
 
 
@@ -1618,3 +1625,71 @@ class TestAdapterWithPathInjection:
         receipt = json.loads(receipt_path.read_text())
         assert receipt["status"] == "all_verified"
         assert receipt["verified_samples"] == 4
+
+    def test_execute_track_extrap_real_adapter(self, tmp_path, monkeypatch):
+        """Real _execute_track_extrap with tiny E4c fixture, patched compute only."""
+        study_dir = tmp_path / "study"
+        study_dir.mkdir()
+        formal_dir = study_dir / "artifacts" / "formal"
+        e4_dir = formal_dir / "E4_robustness"
+        e4_dir.mkdir(parents=True)
+        e3b_dir = formal_dir / "E3b_vector_mlp"
+        e3b_dir.mkdir(parents=True)
+
+        combos = [(6.0, 0.05, 5), (0.8, 1.5, 30)]
+        e4d_rows = []
+        for fold_idx in range(1):
+            for seed in [42]:
+                for beta, goe, n in combos:
+                    for rid in range(2):
+                        e4d_rows.append({"track": "E4c_offgrid", "fold": f"combo_fold_{fold_idx+1}",
+                                         "seed": seed, "beta": beta, "gamma_over_eta": goe,
+                                         "n": n, "repeat_id": rid, "selected_delta": 0.2})
+        pd.DataFrame(e4d_rows).to_csv(e4_dir / "E4d_selector_extrapolation.csv", index=False)
+
+        feat_rows = []
+        for beta, goe, n in [(2.0, 0.5, 10)]:
+            for rid in range(2):
+                sample = generate_sample(beta, 1.0, goe, n, rid, seed="study01_v1")
+                feats = e4.compute_sample_features(sample)
+                feat_rows.append({"beta": beta, "eta": 1.0, "gamma": goe,
+                                  "gamma_over_eta": goe, "n": n, "repeat_id": rid, **feats})
+        pd.DataFrame(feat_rows).to_csv(e3b_dir / "sample_features.csv", index=False)
+
+        e4d_sha = p4.compute_sha256(e4_dir / "E4d_selector_extrapolation.csv")
+        monkeypatch.setitem(cfg.INPUT_SHA256, "E4d_selector_extrapolation_csv", e4d_sha)
+        monkeypatch.setitem(cfg.ROW_COUNT_CONTRACT[cfg.TRACK_EXTRAP], "estimation_traditional", 4)
+        monkeypatch.setattr(p4, "_STUDY_DIR_OVERRIDE", str(study_dir))
+
+        def fake_train(X, Y, x_bar, seed=42):
+            class M:
+                def eval(self): pass
+            return M(), {"n_iter": 1, "x_mean": np.zeros(X.shape[1]),
+                         "x_std": np.ones(X.shape[1]),
+                         "z_mean": np.zeros(3), "z_std": np.ones(3)}
+
+        def fake_predict(model, info, X, x_bar):
+            return np.column_stack([np.full(X.shape[0], 2.5),
+                                    np.full(X.shape[0], 1.1),
+                                    np.full(X.shape[0], 0.4)])
+
+        monkeypatch.setattr(direct, "train_direct_mlp", fake_train)
+        monkeypatch.setattr(direct, "predict_direct_mlp", fake_predict)
+
+        folds = [{"fold_name": "combo_fold_1",
+                  "train_combos": [(2.0, 0.5, 10)],
+                  "test_combos": [(6.0, 0.05, 5), (0.8, 1.5, 30)]}]
+        fold_penalties = {"combo_fold_1": 2.0}
+        run_context = p4.build_run_context(e4d_sha)
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+
+        est_rows, fold_assignment = p4._execute_track_extrap(
+            output_dir, folds, [42], "study01_v1", run_context, False, fold_penalties
+        )
+
+        methods_seen = set(r["method"] for r in est_rows)
+        assert "MDM-Default" in methods_seen
+        assert "Direct-MLP" in methods_seen
+        assert "MDM-Vector-MLP" in methods_seen
+        assert len(est_rows) > 0

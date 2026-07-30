@@ -860,6 +860,14 @@ def verify_pre_seal_state(output_dir, auth_hashes):
     if cfg.APPROVED_PARENT_COMMIT != auth_hashes["approved_parent_commit"]:
         raise RuntimeError("Pre-seal: approved_parent_commit drifted during execution")
 
+    if auth_hashes.get("resume") is not None:
+        manifest_path = Path(output_dir) / "manifest.json"
+        if manifest_path.exists():
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                current_manifest = json.load(f)
+            if current_manifest.get("resume_lineage", False) != auth_hashes["resume"]:
+                raise RuntimeError("Pre-seal: resume mode drifted during execution")
+
 
 # ════════════════════════════════════════════════════════════════════════
 # MDM parameter rebuild (P4-R6: track-specific namespace)
@@ -1228,13 +1236,15 @@ def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
         if top_dir in allowed_dirs:
             fname = f.name
             if fname.startswith("checkpoint_"):
-                if fname not in valid_checkpoint_names:
-                    raise RuntimeError(f"Resume: invalid checkpoint name in track dir: {rel}")
-                continue
+                raise RuntimeError(f"Resume: checkpoint not allowed in track dir: {rel}")
             if fname not in allowed_track_files:
                 raise RuntimeError(f"Resume: unknown file in track dir: {rel}")
             continue
-        if any(rel.startswith(p) for p in allowed_prefixes):
+        if rel.startswith("checkpoint_"):
+            if rel not in valid_checkpoint_names:
+                raise RuntimeError(f"Resume: invalid checkpoint name at root: {rel}")
+            continue
+        if rel in ("manifest.json", "run.lock"):
             continue
         raise RuntimeError(f"Resume: unknown file in output dir: {rel}")
 
@@ -1322,9 +1332,7 @@ def _run_formal(output_dir, tracks, seeds, resume, auth_hashes):
             f"{track}/results.json",
         ])
         if track in (cfg.TRACK_PARAM_INTERP, cfg.TRACK_N_INTERP):
-            receipt_path = output_dir / track / "sample_hash_receipt.json"
-            if receipt_path.exists():
-                allowlist.append(f"{track}/sample_hash_receipt.json")
+            allowlist.append(f"{track}/sample_hash_receipt.json")
     seal_recursive(output_dir, allowlist)
     print(f"[P4] Complete. Output: {output_dir}")
 
@@ -1402,10 +1410,15 @@ def _verify_p2_sample_hashes(df_track, seed_namespace, expected_key_count=None):
             f"{expected_key_count}. Possible missing or extra samples."
         )
 
+    sorted_keys = sorted(seen_keys.keys())
+    key_set_bytes = json.dumps(sorted_keys, sort_keys=True).encode("utf-8")
+    key_set_sha = hashlib.sha256(key_set_bytes).hexdigest()
+
     receipt = {
         "verified_samples": checked,
         "expected_key_count": expected_key_count,
         "total_unique_keys": len(seen_keys),
+        "sample_key_set_sha256": key_set_sha,
         "seed_namespace": seed_namespace,
         "status": "all_verified",
         "source_file_sha256": cfg.INPUT_SHA256.get("P2_baseline_per_sample_csv", "unknown"),
