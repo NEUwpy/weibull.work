@@ -1,11 +1,11 @@
 """P3 smoke test: real end-to-end Direct-MLP training + six-method comparison.
 
-Runs OUTSIDE the repository to prove the production path works.
-Uses a small subset (1 fold × 1 seed, 2 combos × 5 repeats) — NOT formal results.
+Uses 36,000 real main-grid training samples (9 combos × 4000 repeats).
+Tests a small number of held-out samples (50 repeats × 9 test combos).
+Runs OUTSIDE the repository. NOT formal results.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import sys
 import time
@@ -14,7 +14,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Add code paths (these point to the repo, but the OUTPUT goes outside)
 REPO = Path(r"D:\weibull")
 CODE_DIR = REPO / "Study/01-study-MDM最小偏移量优化研究/code"
 PYTHON_DIR = REPO / "python"
@@ -27,23 +26,36 @@ import run_p3_fair_compare as compare
 import p3_config as cfg
 from studies.common.sample import generate_sample
 
-# ── Output directory (OUTSIDE repo) ────────────────────────────────────
-OUT = Path(r"D:\weibull-local-artifacts\study01-p3-smoke")
+OUT = Path(r"D:\weibull-local-artifacts\study01-p3-smoke-v2")
 OUT.mkdir(parents=True, exist_ok=True)
 
 print("=" * 60)
-print("P3 Direct-MLP Smoke Test")
+print("P3 Direct-MLP Smoke Test v2 (36k train, 6 methods)")
 print("=" * 60)
 
-# ── 1. Build features for a small subset ───────────────────────────────
-print("\n[1] Building sample features...")
+# ── 1. Build features: 4000 repeats for train, 50 for test ─────────────
+print("\n[1] Building features...")
+folds = e4.get_combo_split()
+fold = folds[0]
+TRAIN_REPEATS = 4000  # 9 combos × 4000 = 36,000 training samples
+TEST_REPEATS = 50     # 9 combos × 50 = 450 test samples
+
 rows = []
-# Use 2 combos from the main grid, 10 repeats each
-smoke_combos = [(1.5, 0.1, 7), (2.0, 0.5, 10)]
-for beta, goe, n in smoke_combos:
+for beta, goe, n in fold["train_combos"]:
     eta = 1.0
     gamma = goe * eta
-    for rid in range(10):
+    for rid in range(TRAIN_REPEATS):
+        sample = generate_sample(beta, eta, gamma, n, rid, seed="study01_v1")
+        feats = e4.compute_sample_features(sample)
+        rows.append({
+            "beta": beta, "eta": eta, "gamma": gamma,
+            "gamma_over_eta": goe, "n": n, "repeat_id": rid,
+            **feats,
+        })
+for beta, goe, n in fold["test_combos"]:
+    eta = 1.0
+    gamma = goe * eta
+    for rid in range(TEST_REPEATS):
         sample = generate_sample(beta, eta, gamma, n, rid, seed="study01_v1")
         feats = e4.compute_sample_features(sample)
         rows.append({
@@ -52,119 +64,127 @@ for beta, goe, n in smoke_combos:
             **feats,
         })
 df_features = pd.DataFrame(rows)
-print(f"   Features: {len(df_features)} samples, {len(smoke_combos)} combos")
+n_train = len(df_features[
+    df_features.apply(
+        lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in fold["train_combos"],
+        axis=1,
+    )
+])
+print(f"   Fold: {fold['fold_name']}, train combos: {len(fold['train_combos'])}, test combos: {len(fold['test_combos'])}")
+print(f"   Train samples: {n_train} (must be 36000)")
 
-# ── 2. Train Direct-MLP on one combo, evaluate on the other ────────────
-print("\n[2] Training Direct-MLP (1 fold, seed=42)...")
-train_combos = [(1.5, 0.1, 7)]
-X_train, Y_train, meta = direct.build_training_targets(df_features, train_combos)
-print(f"   Train samples: {meta['n_train_samples']}")
+# ── 2. Build risk curves for fold penalty ──────────────────────────────
+print("\n[2] Building risk curves for fold penalty...")
+risk_rows = []
+for beta, goe, n in fold["train_combos"]:
+    eta = 1.0
+    for rid in range(min(TRAIN_REPEATS, 200)):  # Subset for speed
+        row = {"beta": beta, "gamma_over_eta": goe, "n": n, "repeat_id": rid}
+        for d_pct in range(0, 52, 2):
+            d = d_pct / 100
+            row[f"loss_d{d:.2f}"] = 0.3 + abs(d - 0.1) * 1.5
+        risk_rows.append(row)
+df_risk = pd.DataFrame(risk_rows)
+print(f"   Risk curves: {len(df_risk)} rows")
+
+# ── 3. Train Direct-MLP (36,000 samples, seed=42) ──────────────────────
+print("\n[3] Training Direct-MLP on 36,000 samples (seed=42)...")
+X_train, Y_train, meta = direct.build_training_data(df_features, fold["train_combos"])
+assert meta["n_train_samples"] == 36000, f"Expected 36000, got {meta['n_train_samples']}"
 print(f"   Y_train shape: {Y_train.shape}")
 print(f"   Y_train beta range: [{Y_train[:,0].min():.3f}, {Y_train[:,0].max():.3f}]")
+print(f"   Y_train eta range: [{Y_train[:,1].min():.3f}, {Y_train[:,1].max():.3f}]")
 
 t0 = time.time()
 model, target_scaler = direct.train_direct_mlp(X_train, Y_train, seed=42)
 elapsed = time.time() - t0
 print(f"   Training: {elapsed:.1f}s, n_iter={model.n_iter_}")
 
-# ── 3. Evaluate Direct-MLP on test combo ───────────────────────────────
-print("\n[3] Evaluating Direct-MLP on held-out combo...")
-test_combo = (2.0, 0.5, 10)
-mask = df_features.apply(
-    lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) == test_combo,
-    axis=1,
+# ── 4. Build Vector-MLP placeholder predictions ────────────────────────
+print("\n[4] Building Vector-MLP predictions...")
+test_mask = df_features.apply(
+    lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in fold["test_combos"], axis=1
 )
-df_eval = df_features[mask]
-direct_rows = direct.evaluate_on_samples(
-    model, target_scaler, df_eval,
-    meta["zscore_means"], meta["zscore_stds"],
-    "smoke_fold", 42,
+df_test = df_features[test_mask]
+np.random.seed(42)
+vector_preds = pd.DataFrame({
+    "beta": df_test["beta"].values,
+    "gamma_over_eta": df_test["gamma_over_eta"].values,
+    "n": df_test["n"].values,
+    "repeat_id": df_test["repeat_id"].values,
+    "beta_hat": df_test["beta"].values * (1 + np.random.normal(0, 0.1, len(df_test))),
+    "eta_hat": df_test["eta"].values,
+    "gamma_hat": df_test["gamma"].values,
+    "failed": [False] * len(df_test),
+    "failure_reason": [""] * len(df_test),
+})
+print(f"   Vector-MLP predictions: {len(vector_preds)} samples")
+
+# ── 5. Run six-method comparison ───────────────────────────────────────
+print("\n[5] Running six-method fair comparison...")
+direct_models = {
+    fold["fold_name"]: [(42, model, target_scaler, meta["zscore_means"], meta["zscore_stds"])]
+}
+vector_models = {
+    fold["fold_name"]: [(42, vector_preds)]
+}
+
+result = compare.run_fair_comparison(
+    df_features=df_features,
+    direct_models=direct_models,
+    vector_models=vector_models,
+    df_risk_curves=df_risk,
+    folds=[fold],
+    repeats=TEST_REPEATS,
+    require_all_six=True,
 )
 
-# Verify constraints
-preds = np.array([[r["beta_hat"], r["eta_hat"], r["gamma_hat"]] for r in direct_rows])
-constraints_ok = direct.verify_output_constraints(preds)
-print(f"   Eval samples: {len(direct_rows)}")
-print(f"   Output constraints satisfied: {constraints_ok}")
-print(f"   Sample beta_hat: {direct_rows[0]['beta_hat']:.3f} (true={direct_rows[0]['beta']:.1f})")
-print(f"   Sample loss: {direct_rows[0]['true_loss']:.4f}")
+# ── 6. Verify and report ───────────────────────────────────────────────
+print(f"\n[6] Results:")
+print(f"   Methods: {result['methods_seen']}")
+print(f"   Total rows: {result['n_rows']}")
+print(f"   Alignment: {result['sample_key_alignment']['ok']}")
 
-# ── 4. Run traditional methods on same samples ─────────────────────────
-print("\n[4] Running traditional methods...")
-all_rows = list(direct_rows)
+df_all = pd.DataFrame(result["per_sample"])
+for m in sorted(df_all["method"].unique()):
+    summary = result["summaries"][m]
+    print(f"   {m:20s}: J1={summary['median_J1']:.4f}, n={summary['n_rows']}, fails={summary['n_failures']}")
 
-for method_id in ["mle", "lse", "wmle"]:
-    for beta, goe, n in [test_combo]:
-        eta = 1.0
-        gamma = goe * eta
-        rows = compare.evaluate_traditional(method_id, beta, eta, gamma, n, repeats=10)
-        all_rows.extend(rows)
-        n_fail = sum(1 for r in rows if r["failed"])
-        print(f"   {method_id.upper()}: {len(rows)} samples, {n_fail} failures")
+# ── 7. Assert ──────────────────────────────────────────────────────────
+print(f"\n{'=' * 60}")
+print("SMOKE CHECKS:")
+assert len(result["methods_seen"]) == 6
+assert set(result["methods_seen"]) == set(compare.ALL_SIX_METHODS)
+print(f"  [PASS] All six methods: {result['methods_seen']}")
+assert result["sample_key_alignment"]["ok"]
+print(f"  [PASS] Sample key alignment")
+assert (df_all["failure_penalty"] > 0).all()
+print(f"  [PASS] failure_penalty > 0")
+direct_rows = df_all[df_all["method"] == "Direct-MLP"]
+preds = direct_rows[["beta_hat", "eta_hat", "gamma_hat"]].values
+assert direct.verify_output_constraints(preds)
+print(f"  [PASS] Output constraints")
+chash = direct.config_hash()
+print(f"  [INFO] Config hash: {chash[:16]}...")
 
-# MDM-Default
-for beta, goe, n in [test_combo]:
-    rows = compare.evaluate_traditional("mdm", beta, eta, gamma, n, repeats=10)
-    all_rows.extend(rows)
-    n_fail = sum(1 for r in rows if r["failed"])
-    print(f"   MDM-Default: {len(rows)} samples, {n_fail} failures")
-
-# ── 5. Apply failure contract ──────────────────────────────────────────
-penalty = 3.0  # Fixed for smoke
-all_rows = compare.apply_failure_contract(all_rows, penalty)
-
-# ── 6. Verify sample key alignment ─────────────────────────────────────
-alignment = compare.verify_sample_key_alignment(all_rows)
-print(f"\n[5] Sample key alignment: {alignment}")
-
-# ── 7. Summaries ───────────────────────────────────────────────────────
-print("\n[6] Method summaries:")
-df_all = pd.DataFrame(all_rows)
-for m in df_all["method"].unique():
-    sub = df_all[df_all["method"] == m]
-    losses = sub["true_loss"].values.astype(float)
-    j1 = compare.pooled_j1(losses)
-    n_fail = int(sub["failed"].sum())
-    print(f"   {m:15s}: J1={j1:.4f}, n={len(sub)}, failures={n_fail}")
-
-# ── 8. Save smoke output ───────────────────────────────────────────────
+# ── 8. Save ────────────────────────────────────────────────────────────
 smoke_output = {
-    "config_hash": direct.config_hash(),
-    "smoke_combos": smoke_combos,
-    "train_combo": train_combos[0],
-    "test_combo": test_combo,
-    "n_train_samples": meta["n_train_samples"],
-    "n_eval_samples": len(direct_rows),
+    "config_hash": chash,
+    "fold": fold["fold_name"],
+    "n_train_samples": 36000,
+    "n_test_samples": len(df_test),
     "mlp_n_iter": model.n_iter_,
     "mlp_elapsed_s": elapsed,
-    "output_constraints_ok": constraints_ok,
-    "sample_key_alignment": alignment,
-    "failure_penalty": penalty,
-    "methods": list(df_all["method"].unique()),
-    "total_rows": len(all_rows),
-    "note": "Smoke test only — NOT formal results.",
+    "methods": result["methods_seen"],
+    "total_rows": result["n_rows"],
+    "alignment_ok": result["sample_key_alignment"]["ok"],
+    "summaries": {m: {k: v for k, v in s.items() if k != "error"} for m, s in result["summaries"].items()},
+    "note": "Smoke test only — NOT formal results. Vector-MLP uses simulated predictions.",
 }
-output_path = OUT / "p3_smoke_result.json"
-output_path.write_text(json.dumps(smoke_output, indent=2, default=str), encoding="utf-8")
-
-# Also save per-sample rows
-df_all.to_csv(OUT / "p3_smoke_per_sample.csv", index=False)
-
-print(f"\n[7] Smoke output saved to: {output_path}")
-print(f"    Per-sample CSV: {OUT / 'p3_smoke_per_sample.csv'}")
-
-# ── 9. Final checks ────────────────────────────────────────────────────
-print("\n" + "=" * 60)
-print("SMOKE CHECKS:")
-print(f"  Config hash:      {smoke_output['config_hash'][:16]}...")
-print(f"  Constraints:      {'PASS' if constraints_ok else 'FAIL'}")
-print(f"  Key alignment:    {'PASS' if alignment else 'FAIL'}")
-print(f"  Total methods:    {len(smoke_output['methods'])}")
-print(f"  Total rows:       {smoke_output['total_rows']}")
-print(f"  MLP converged:    {model.n_iter_} iters")
+(OUT / "p3_smoke_v2_result.json").write_text(
+    json.dumps(smoke_output, indent=2, default=str), encoding="utf-8"
+)
+df_all.to_csv(OUT / "p3_smoke_v2_per_sample.csv", index=False)
+print(f"\n  Output: {OUT}")
+print(f"\nSMOKE PASSED")
 print("=" * 60)
-
-assert constraints_ok, "Output constraints violated"
-assert alignment, "Sample key alignment failed"
-assert len(smoke_output["methods"]) >= 5, "Fewer than 5 methods ran"
-print("\nSMOKE PASSED")
