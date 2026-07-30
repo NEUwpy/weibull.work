@@ -23,7 +23,7 @@ param(
     [string]$Mode,
 
     [ValidateRange(1, 3600)]
-    [int]$TimeoutSeconds = 55,
+    [int]$TimeoutSeconds = 180,
 
     [ValidateRange(100, 10000)]
     [int]$PollMilliseconds = 500
@@ -301,7 +301,6 @@ if ($Action -eq "wait") {
             }
             Start-Sleep -Milliseconds $PollMilliseconds
         }
-        Update-Status $runtimeRoot "wait_timeout" "none"
         [pscustomobject]@{
             event = "timeout"
             role = $Role

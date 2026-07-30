@@ -19,6 +19,12 @@ Both agents repeat:
 4. Send a Markdown reply to the other inbox.
 5. Return to waiting without ending the long task.
 
+This is a persistent logical task, not a sequence of short chats. A transport
+timeout is only a heartbeat: silently call `wait` again. Do not send a final
+answer, ask whether to keep waiting, inspect Git, run tests, or narrate progress
+because a timeout occurred. Remain active until a real message, a user
+intervention, or a `manual`/`cancel` control event arrives.
+
 The user may inspect the inboxes, archive, `STATUS.md`, or `TRANSCRIPT.md` at
 any time.
 
@@ -82,12 +88,13 @@ Wait for and consume one message:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File $mailbox `
   -Action wait -Repo <repo> -TaskId <task-id> -Role codex `
-  -TimeoutSeconds 55
+  -TimeoutSeconds 180
 ```
 
 The `wait` action returns JSON. On `message`, read `archive_path`; on `timeout`,
-wait again. Short bounded waits let the agent remain responsive to user
-interruption.
+silently wait again inside the same long task. The three-minute bound is a
+transport heartbeat, not an agent stopping condition. A timeout does not update
+semantic task status.
 
 Inspect:
 
@@ -141,7 +148,9 @@ message into its archive before acting, preventing duplicate processing.
 
 ## Reviewer Loop
 
-After receiving an executor report:
+While the executor is working, only wait. Do not inspect its branch, diff,
+tests, logs, or half-written report. After receiving a completed executor
+`report`:
 
 1. Inspect the actual branch, diff, code, tests, artifacts, and provenance.
 2. Write a durable review under `coworker/reviews/`.
@@ -151,6 +160,8 @@ After receiving an executor report:
 6. On `block`, pause unless the review contains a bounded remediation.
 
 Do not reduce review to mailbox contents. The report is a lead, not evidence.
+Treat `note` as informational unless it explicitly requests action. Do not turn
+an interim status note into an unsolicited review.
 
 ## Executor Loop
 
@@ -162,6 +173,10 @@ After receiving a task or review:
 4. Update the durable executor report.
 5. Send a `report` message containing the exact tip and report path.
 6. Return to waiting. Never self-approve.
+
+Do not send routine interim reports. Send a message before completion only when
+blocked, when the frozen contract requires a decision, or when the user
+intervenes.
 
 ## User Control
 
@@ -183,5 +198,7 @@ queued message. Never delete or rewrite messages to recover from an error.
 - Auto mode does not broaden authority. Formal runs, main merges, destructive
   actions, or external side effects remain governed by the initial task.
 - `APPROVE` comes only from the reviewer.
-- Use bounded waits and send the user concise progress at least once per minute.
+- Use three-minute bounded waits and silently repeat on timeout.
+- Do not emit progress merely to prove the watcher is alive.
+- Do not end the long task after any number of consecutive timeouts.
 - If either long task exits, preserve runtime state for explicit recovery.

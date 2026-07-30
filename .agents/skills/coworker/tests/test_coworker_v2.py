@@ -46,12 +46,28 @@ def write_version(path: Path, version: str, updated_at: str):
 def test_skill_and_version_metadata_match():
     skill_text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
     version = json.loads((SKILL / "VERSION.json").read_text(encoding="utf-8"))
-    assert re.search(rf"^version:\s*{re.escape(version['version'])}\s*$", skill_text, re.M)
     assert re.search(
-        rf"^updated_at:\s*{re.escape(version['updated_at'])}\s*$",
+        rf"^\s*version:\s*[\"']?{re.escape(version['version'])}[\"']?\s*$",
         skill_text,
         re.M,
     )
+    assert re.search(
+        rf"^\s*updated_at:\s*[\"']?{re.escape(version['updated_at'])}[\"']?\s*$",
+        skill_text,
+        re.M,
+    )
+
+
+def test_duplex_wait_defaults_to_three_minutes_and_timeout_is_not_semantic():
+    script = MAILBOX.read_text(encoding="utf-8")
+    reference = (SKILL / "references" / "duplex-mailbox.md").read_text(
+        encoding="utf-8"
+    )
+    assert re.search(r"\[int\]\$TimeoutSeconds\s*=\s*180", script)
+    assert 'Update-Status $runtimeRoot "wait_timeout"' not in script
+    assert "-TimeoutSeconds 180" in reference
+    assert "silently wait again inside the same long task" in reference
+    assert "Do not end the long task after any number of consecutive timeouts" in reference
 
 
 def test_referenced_resources_exist():
@@ -265,6 +281,66 @@ def test_role_lock_blocks_second_waiter(tmp_path):
             first.kill()
 
 
+def test_default_three_minute_wait_wakes_immediately_on_message(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    body = tmp_path / "report.md"
+    body.write_text("# completed report\n", encoding="utf-8")
+    ps(MAILBOX, "-Action", "init", "-Repo", repo, "-TaskId", "wake")
+
+    waiter = subprocess.Popen(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(MAILBOX),
+            "-Action",
+            "wait",
+            "-Repo",
+            str(repo),
+            "-TaskId",
+            "wake",
+            "-Role",
+            "codex",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        lock = repo / "coworker" / "runtime" / "wake" / "codex.lock"
+        for _ in range(30):
+            if lock.exists():
+                break
+            time.sleep(0.1)
+        assert lock.exists()
+        ps(
+            MAILBOX,
+            "-Action",
+            "send",
+            "-Repo",
+            repo,
+            "-TaskId",
+            "wake",
+            "-Role",
+            "opencode",
+            "-Type",
+            "report",
+            "-BodyFile",
+            body,
+        )
+        stdout, stderr = waiter.communicate(timeout=5)
+        assert stderr == ""
+        event = json.loads(stdout)
+        assert event["event"] == "message"
+        assert event["file_name"].endswith("-opencode-report.ready.md")
+    finally:
+        if waiter.poll() is None:
+            waiter.kill()
+
+
 def test_resolver_selects_newer_version(tmp_path):
     global_copy = tmp_path / "global"
     project_copy = tmp_path / "project"
@@ -321,3 +397,5 @@ def test_duplex_uses_user_owned_visible_windows():
     assert "Codex must not launch, resume, hide, terminate" in text
     assert "The mailbox script transports" in text
     assert "it never starts an agent process" in text
+    assert "Do not inspect its branch, diff" in text
+    assert "Do not send routine interim reports" in text

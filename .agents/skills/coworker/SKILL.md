@@ -1,7 +1,5 @@
 ---
 name: coworker
-version: 2.1.2
-updated_at: 2026-07-30T23:21:41+08:00
 description: >
   Coordinate multi-agent coding work across Codex, Hermes/MiMo, OpenCode/DeepSeek,
   Claude Code, or similar agents. Use this skill for planning, requirement
@@ -10,6 +8,9 @@ description: >
   messages until approval or user takeover.
   Keep plans concise: clarify goals, boundaries, autonomy, stop conditions, and
   verification instead of writing step-by-step scripts for capable executors.
+metadata:
+  version: "2.1.3"
+  updated_at: "2026-07-31T01:18:07+08:00"
 ---
 
 # Coworker
@@ -56,3 +57,9 @@ For tiny one-command tasks or pure factual answers, skip the coworker loop.
 In duplex mode, read `references/duplex-mailbox.md` completely before starting.
 For iterative reviews, use `references/incremental-review.md`. When more than
 one coworker copy exists, resolve it before acting.
+
+A duplex session is one persistent logical task. Keep waiting after transport
+timeouts; do not end the agent turn merely because no message arrived. Treat
+only a completed report, a blocker, a control change, or a user intervention as
+an event. Never inspect or review the executor's half-finished work while it is
+still implementing.
