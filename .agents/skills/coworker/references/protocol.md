@@ -50,3 +50,11 @@ Use:
 - `BLOCK`: the plan or implementation violates a hard boundary or needs replanning.
 
 Keep review findings concrete and file-specific.
+
+## Iterative Reviews
+
+Use stable finding IDs. The first review is complete; later REVISE rounds
+normally inspect only the last-reviewed-tip to current-tip diff plus targeted
+regressions. Before APPROVE, run a final integrity pass. Read
+`incremental-review.md` for reset triggers that require returning to a full
+review.

@@ -1,9 +1,13 @@
 ---
 name: coworker
+version: 2.1.1
+updated_at: 2026-07-30T23:12:40+08:00
 description: >
   Coordinate multi-agent coding work across Codex, Hermes/MiMo, OpenCode/DeepSeek,
   Claude Code, or similar agents. Use this skill for planning, requirement
-  alignment, handoff, execution reports, secondary review, or final approval.
+  alignment, handoff, execution reports, secondary review, final approval, or a
+  long-running duplex mailbox collaboration where agents exchange Markdown
+  messages until approval or user takeover.
   Keep plans concise: clarify goals, boundaries, autonomy, stop conditions, and
   verification instead of writing step-by-step scripts for capable executors.
 ---
@@ -32,16 +36,23 @@ Read only what the current task needs:
 
 - `references/protocol.md`: role loop, plan shape, report/verdict formats, and anti-bloat rules.
 - `references/dispatch.md`: short handoff prompts and CLI dispatch examples.
-- `references/live-loop.md`: Codex-controlled Claude Code start, polling, review, resume, cancellation, and recovery.
+- `references/duplex-mailbox.md`: two long-running agents exchange visible
+  Markdown messages through watched inboxes until approval, pause, or takeover.
+- `references/incremental-review.md`: preserve first-pass and final-review
+  rigor while reviewing later revisions from the last reviewed tip.
+- `references/version-resolution.md`: resolve and synchronize global and
+  project-local copies without silently using an older skill.
 
 For tiny one-command tasks or pure factual answers, skip the coworker loop.
 
-## Live Loop
+## Collaboration Modes
 
-When Codex is the controller and the user asks to drive Claude Code, read
-`references/live-loop.md` and use `scripts/coworker-live.ps1`.
+- **Manual:** the user carries prompts and reports between agents.
+- **Duplex mailbox:** reviewer and executor remain active as separate long
+  tasks, wait on separate inboxes, and communicate through archived Markdown
+  messages. Use this when the user asks to watch the interaction, avoid manual
+  relaying, or retain the ability to pause and take over.
 
-If the active assignment says `Role: executor`, do not start or resume a live
-loop. Execute the referenced plan, write the report, and stop for Codex review.
-Only the Codex Controller may issue `APPROVE / REVISE / BLOCK` or call the
-runner's `start`, `resume`, or `cancel` actions.
+In duplex mode, read `references/duplex-mailbox.md` completely before starting.
+For iterative reviews, use `references/incremental-review.md`. When more than
+one coworker copy exists, resolve it before acting.
