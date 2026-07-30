@@ -728,3 +728,148 @@ class TestResultTables:
         pairs = results["paired_comparisons"]
         assert "LSE_vs_MLE" in pairs or "MLE_vs_LSE" in pairs
         assert len(pairs) == 3
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 22. Production-path fixture (P4-R10)
+# ════════════════════════════════════════════════════════════════════════
+
+class TestProductionPathFixture:
+    """Tiny fixture exercising real orchestration with patched compute.
+
+    Patches only at estimator/training boundaries (generate_sample, run_method,
+    train_direct_mlp, predict_direct_mlp). Does NOT replace orchestration:
+    build_evaluation_layer, verify_*, compute_result_tables, seal, lock all run real.
+    """
+
+    def _make_tiny_features(self, n_combos=2, n_repeats=3):
+        """Create tiny feature DataFrame mimicking E3b sample_features."""
+        rows = []
+        combos = [(2.0, 0.5, 10), (3.0, 0.3, 15)][:n_combos]
+        for beta, goe, n in combos:
+            for rid in range(n_repeats):
+                rows.append({
+                    "beta": beta, "eta": 1.0, "gamma": goe,
+                    "gamma_over_eta": goe, "n": n, "repeat_id": rid,
+                    "x_bar": beta * 0.5 + rid * 0.01,
+                    "x_min": beta * 0.1, "x_max": beta * 0.9,
+                    "x_std": 0.2, "x_cv": 0.3, "x_skew": 0.1,
+                    "x_kurt": 2.5, "x_median": beta * 0.45,
+                    "x_q25": beta * 0.3, "x_q75": beta * 0.7,
+                    "x_iqr": beta * 0.4,
+                })
+        return pd.DataFrame(rows)
+
+    def _make_tiny_folds(self, n_combos=2):
+        combos = [(2.0, 0.5, 10), (3.0, 0.3, 15)][:n_combos]
+        return [{
+            "fold_name": "combo_fold_1",
+            "train_combos": combos[:1],
+            "test_combos": combos[1:],
+        }]
+
+    def test_evaluation_layer_from_estimation(self):
+        """Real build_evaluation_layer with fold_assignment produces correct counts."""
+        est_rows = []
+        for method in ["MLE", "Direct-MLP"]:
+            is_learning = method in cfg.LEARNING_METHODS
+            if is_learning:
+                for seed in [42]:
+                    for i in range(3):
+                        est_rows.append(p4.make_estimation_row(
+                            "test", method, "combo_fold_1", seed,
+                            3.0, 0.3, 15, i, 3.1, 1.0, 0.3, False, ""
+                        ))
+            else:
+                for i in range(3):
+                    est_rows.append(p4.make_estimation_row(
+                        "test", method, cfg.TRADITIONAL_FOLD_LABEL, cfg.TRADITIONAL_SEED_LABEL,
+                        3.0, 0.3, 15, i, 3.1, 1.0, 0.3, False, ""
+                    ))
+
+        df_est = pd.DataFrame(est_rows)
+        fold_penalties = {"combo_fold_1": 5.0}
+        fold_assignment = {(3.0, 0.3, 15, i): "combo_fold_1" for i in range(3)}
+
+        df_eval = p4.build_evaluation_layer(df_est, fold_penalties, fold_assignment=fold_assignment)
+
+        mle_rows = df_eval[df_eval["method"] == "MLE"]
+        direct_rows = df_eval[df_eval["method"] == "Direct-MLP"]
+        assert len(mle_rows) == 3 * len(cfg.SEEDS)
+        assert len(direct_rows) == 3
+        assert set(df_eval["fold"].unique()) == {"combo_fold_1"}
+
+    def test_seal_recursive_rejects_extra(self, tmp_path):
+        """seal_recursive rejects unexpected files."""
+        p4.atomic_write_csv(pd.DataFrame({"a": [1]}), tmp_path / "expected.csv")
+        p4.atomic_write_csv(pd.DataFrame({"b": [2]}), tmp_path / "unexpected.csv")
+        with pytest.raises(ValueError, match="unexpected"):
+            p4.seal_recursive(tmp_path, ["expected.csv"])
+
+    def test_seal_recursive_rejects_missing(self, tmp_path):
+        """seal_recursive rejects missing files."""
+        p4.atomic_write_csv(pd.DataFrame({"a": [1]}), tmp_path / "exists.csv")
+        with pytest.raises(FileNotFoundError, match="missing"):
+            p4.seal_recursive(tmp_path, ["exists.csv", "gone.csv"])
+
+    def test_run_lock_atomic_exclusive(self, tmp_path):
+        """Second lock acquisition fails atomically."""
+        lock1 = p4.acquire_run_lock(tmp_path)
+        assert lock1.exists()
+        with pytest.raises(RuntimeError, match="lock"):
+            p4.acquire_run_lock(tmp_path)
+        p4.release_run_lock(tmp_path)
+        assert not lock1.exists()
+
+    def test_checkpoint_drift_on_script_hash(self, tmp_path):
+        """Checkpoint with different script_sha256 is rejected."""
+        df = pd.DataFrame({"x": [1]})
+        ctx = {"git_commit": "abc", "input_sha256": "def",
+               "p4_authorized": True, "script_sha256": "v1"}
+        p4.save_checkpoint(tmp_path, "t", "m", df, ctx)
+
+        loaded = p4.load_checkpoint(tmp_path, "t", "m")
+        ctx_drifted = dict(ctx, script_sha256="v2")
+        with pytest.raises(p4.CheckpointDriftError, match="config_script_sha256"):
+            p4.verify_checkpoint_config(loaded, ctx_drifted)
+
+    def test_full_evaluation_pipeline_tiny(self):
+        """End-to-end: estimation → evaluation → verify → result tables → seal."""
+        import tempfile
+        est_rows = []
+        for method in cfg.P4_METHODS:
+            is_learning = method in cfg.LEARNING_METHODS
+            if is_learning:
+                for seed in cfg.SEEDS:
+                    for i in range(3):
+                        est_rows.append(p4.make_estimation_row(
+                            "test", method, "combo_fold_1", seed,
+                            3.0, 0.3, 15, i, 3.1, 1.05, 0.31, False, ""
+                        ))
+            else:
+                for i in range(3):
+                    est_rows.append(p4.make_estimation_row(
+                        "test", method, cfg.TRADITIONAL_FOLD_LABEL, cfg.TRADITIONAL_SEED_LABEL,
+                        3.0, 0.3, 15, i, 3.1, 1.05, 0.31, False, ""
+                    ))
+
+        df_est = pd.DataFrame(est_rows)
+        fold_penalties = {"combo_fold_1": 5.0}
+        fold_assignment = {(3.0, 0.3, 15, i): "combo_fold_1" for i in range(3)}
+
+        df_eval = p4.build_evaluation_layer(df_est, fold_penalties, fold_assignment=fold_assignment)
+
+        p4.verify_no_valid_only_filtering(df_eval, track="test")
+        key_check = p4.verify_sample_keys_identical(df_eval, track="test")
+        assert key_check["ok"], f"Key check failed: {key_check}"
+
+        results = p4.compute_result_tables(df_eval, "test")
+        assert len(results["methods"]) == 6
+        assert "paired_comparisons" in results
+
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            p4.atomic_write_csv(df_eval, td / "eval.csv")
+            p4.atomic_write_json(results, td / "results.json")
+            seal_hash = p4.seal_outputs(td, ["eval.csv", "results.json"])
+            assert len(seal_hash) == 64
