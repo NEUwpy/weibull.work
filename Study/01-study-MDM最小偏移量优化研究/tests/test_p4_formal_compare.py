@@ -1457,3 +1457,164 @@ class TestP2HashDuplicateAndColumn:
         })
         with pytest.raises(RuntimeError, match="expected"):
             p4._verify_p2_sample_hashes(df, "study01_p2_v1", expected_key_count=99)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 30. P4-R8: completed seal rejects resume
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCompletedSealRejectsResume:
+    def test_resume_rejects_completed_seal(self, tmp_path):
+        """Resume rejects output dir that already has SHA256SUMS (completed)."""
+        manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True,
+                    "approved_parent_commit": "parent1"}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        (tmp_path / "SHA256SUMS").write_text("sealed")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64,
+                "config_sha256": "b" * 64, "approved_parent_commit": "parent1"}
+        with pytest.raises(RuntimeError, match="completed/sealed"):
+            p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+    def test_resume_rejects_invalid_checkpoint_name(self, tmp_path):
+        """Resume rejects checkpoint with invalid name in track dir."""
+        manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True,
+                    "approved_parent_commit": "parent1"}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        track_dir = tmp_path / "main_holdout"
+        track_dir.mkdir()
+        (track_dir / "checkpoint_bogus_name.csv").write_text("data")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64,
+                "config_sha256": "b" * 64, "approved_parent_commit": "parent1"}
+        with pytest.raises(RuntimeError, match="invalid checkpoint name"):
+            p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 31. P4-R10: adapter tests with path injection (tiny fixtures)
+# ════════════════════════════════════════════════════════════════════════
+
+class TestAdapterWithPathInjection:
+    """Calls real _execute_track_p2/_execute_track_extrap with tiny CSV fixtures.
+
+    Only patches expensive compute boundaries (generate_sample, model training,
+    method estimation). Does NOT patch verification gates, row counts, key
+    alignment, or seal.
+    """
+
+    def _make_p2_fixture(self, tmp_path, monkeypatch):
+        """Create tiny P2 fixture CSVs and bind their real SHA256."""
+        p2_dir = tmp_path / "p2"
+        p2_dir.mkdir()
+
+        combos = [(1.5, 0.1, 15), (2.5, 0.5, 15)]
+        rows = []
+        for beta, goe, n in combos:
+            for rid in range(2):
+                sample = generate_sample(beta, 1.0, goe, n, rid, seed="study01_p2_v1")
+                sample_bytes = np.asarray(sample, dtype=np.float64).tobytes()
+                import hashlib
+                sha = hashlib.sha256(sample_bytes).hexdigest()
+                rows.append({"track": "P2-NI", "beta": beta, "gamma_over_eta": goe,
+                             "n": n, "repeat_id": rid, "sample_sha256": sha})
+        df_baseline = pd.DataFrame(rows)
+        baseline_path = p2_dir / "p2_baseline_per_sample.csv"
+        df_baseline.to_csv(baseline_path, index=False)
+
+        vec_rows = []
+        for fold_idx in range(1):
+            for seed in [42]:
+                for beta, goe, n in combos:
+                    for rid in range(2):
+                        vec_rows.append({"track": "P2-NI", "fold": f"combo_fold_{fold_idx+1}",
+                                         "seed": seed, "beta": beta, "gamma_over_eta": goe,
+                                         "n": n, "repeat_id": rid, "selected_delta": 0.1})
+        df_vec = pd.DataFrame(vec_rows)
+        vec_path = p2_dir / "p2_vector_per_sample.csv"
+        df_vec.to_csv(vec_path, index=False)
+
+        baseline_sha = p4.compute_sha256(baseline_path)
+        vec_sha = p4.compute_sha256(vec_path)
+
+        monkeypatch.setitem(cfg.INPUT_SHA256, "P2_baseline_per_sample_csv", baseline_sha)
+        monkeypatch.setitem(cfg.INPUT_SHA256, "P2_vector_per_sample_csv", vec_sha)
+        monkeypatch.setitem(cfg.ROW_COUNT_CONTRACT[cfg.TRACK_N_INTERP], "estimation_traditional", 4)
+
+        return p2_dir, baseline_path, vec_path
+
+    def test_execute_track_p2_real_adapter(self, tmp_path, monkeypatch):
+        """Real _execute_track_p2 with tiny fixture, patched compute only."""
+        p2_dir, baseline_path, vec_path = self._make_p2_fixture(tmp_path, monkeypatch)
+
+        study_dir = tmp_path / "study"
+        study_dir.mkdir()
+        formal_dir = study_dir / "artifacts" / "formal"
+        p2_formal = formal_dir / "extended_validation" / "p2_generalization_v2"
+        p2_formal.mkdir(parents=True)
+        import shutil
+        shutil.copy(baseline_path, p2_formal / "p2_baseline_per_sample.csv")
+        shutil.copy(vec_path, p2_formal / "p2_vector_per_sample.csv")
+
+        e3b_dir = formal_dir / "E3b_vector_mlp"
+        e3b_dir.mkdir(parents=True)
+        feat_rows = []
+        for beta, goe, n in [(2.0, 0.5, 10)]:
+            for rid in range(2):
+                sample = generate_sample(beta, 1.0, goe, n, rid, seed="study01_v1")
+                feats = e4.compute_sample_features(sample)
+                feat_rows.append({"beta": beta, "eta": 1.0, "gamma": goe,
+                                  "gamma_over_eta": goe, "n": n, "repeat_id": rid, **feats})
+        pd.DataFrame(feat_rows).to_csv(e3b_dir / "sample_features.csv", index=False)
+        risk_rows = []
+        for beta, goe, n in [(2.0, 0.5, 10)]:
+            for rid in range(2):
+                risk_row = {"beta": beta, "gamma_over_eta": goe, "n": n, "repeat_id": rid}
+                for d in e4.DELTA_GRID:
+                    risk_row[f"loss_d{d}"] = 0.5
+                risk_rows.append(risk_row)
+        pd.DataFrame(risk_rows).to_csv(e3b_dir / "risk_curves.csv", index=False)
+
+        monkeypatch.setattr(p4, "_STUDY_DIR_OVERRIDE", str(study_dir))
+
+        def fake_train(X, Y, x_bar, seed=42):
+            class M:
+                def eval(self): pass
+            return M(), {"n_iter": 1, "x_mean": np.zeros(X.shape[1]),
+                         "x_std": np.ones(X.shape[1]),
+                         "z_mean": np.zeros(3), "z_std": np.ones(3)}
+
+        def fake_predict(model, info, X, x_bar):
+            return np.column_stack([np.full(X.shape[0], 2.5),
+                                    np.full(X.shape[0], 1.1),
+                                    np.full(X.shape[0], 0.4)])
+
+        monkeypatch.setattr(direct, "train_direct_mlp", fake_train)
+        monkeypatch.setattr(direct, "predict_direct_mlp", fake_predict)
+
+        folds = [{"fold_name": "combo_fold_1",
+                  "train_combos": [(2.0, 0.5, 10)],
+                  "test_combos": [(1.5, 0.1, 15), (2.5, 0.5, 15)]}]
+        fold_penalties = {"combo_fold_1": 2.0}
+        run_context = p4.build_run_context(p4.compute_sha256(baseline_path))
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+
+        est_rows, fold_assignment = p4._execute_track_p2(
+            output_dir, folds, [42], "study01_p2_v1", run_context,
+            cfg.TRACK_N_INTERP, False, fold_penalties
+        )
+
+        methods_seen = set(r["method"] for r in est_rows)
+        assert "MDM-Default" in methods_seen
+        assert "Direct-MLP" in methods_seen
+        assert "MDM-Vector-MLP" in methods_seen
+        assert len(est_rows) > 0
+
+        receipt_path = output_dir / cfg.TRACK_N_INTERP / "sample_hash_receipt.json"
+        assert receipt_path.exists()
+        receipt = json.loads(receipt_path.read_text())
+        assert receipt["status"] == "all_verified"
+        assert receipt["verified_samples"] == 4

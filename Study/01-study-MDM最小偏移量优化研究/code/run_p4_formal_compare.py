@@ -42,6 +42,15 @@ import run_p3_direct_mlp as direct
 import run_p3_fair_compare as compare
 import run_E4_formal_validation as e4
 
+_STUDY_DIR_OVERRIDE = None
+
+
+def _get_study_dir():
+    """Return study dir, allowing test injection via _STUDY_DIR_OVERRIDE."""
+    if _STUDY_DIR_OVERRIDE is not None:
+        return Path(_STUDY_DIR_OVERRIDE)
+    return Path(__file__).resolve().parents[1]
+
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 
@@ -818,7 +827,7 @@ def verify_pre_seal_state(output_dir, auth_hashes):
     if current_config != auth_hashes["config_sha256"]:
         raise RuntimeError("Pre-seal: config SHA256 drifted during execution")
 
-    study_dir = Path(__file__).resolve().parents[1]
+    study_dir = _get_study_dir()
     input_paths = {
         "E3b_risk_curves_csv": study_dir / "artifacts/formal/E3b_vector_mlp/risk_curves.csv",
         "E3b_sample_features_csv": study_dir / "artifacts/formal/E3b_vector_mlp/sample_features.csv",
@@ -1195,6 +1204,22 @@ def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
     allowed_prefixes = ("manifest.json", "run.lock", "checkpoint_", "SHA256SUMS")
     allowed_dirs = set(tracks)
     allowed_track_files = {"estimation.csv", "evaluation.csv", "results.json", "sample_hash_receipt.json"}
+
+    if (output_path / "SHA256SUMS").exists():
+        raise RuntimeError(
+            "Resume: SHA256SUMS exists — output is completed/sealed. "
+            "Cannot resume a completed run."
+        )
+
+    valid_checkpoint_names = set()
+    for track in tracks:
+        for method in cfg.LEARNING_METHODS:
+            for fold_idx in range(cfg.N_FOLDS):
+                for seed in seeds:
+                    valid_checkpoint_names.add(
+                        f"checkpoint_{track}_{method}_combo_fold_{fold_idx+1}_{seed}.csv"
+                    )
+
     for f in output_path.rglob("*"):
         if not f.is_file():
             continue
@@ -1203,6 +1228,8 @@ def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
         if top_dir in allowed_dirs:
             fname = f.name
             if fname.startswith("checkpoint_"):
+                if fname not in valid_checkpoint_names:
+                    raise RuntimeError(f"Resume: invalid checkpoint name in track dir: {rel}")
                 continue
             if fname not in allowed_track_files:
                 raise RuntimeError(f"Resume: unknown file in track dir: {rel}")
@@ -1230,7 +1257,7 @@ def _run_formal(output_dir, tracks, seeds, resume, auth_hashes):
         manifest["resume_lineage"] = True
     atomic_write_json(manifest, output_dir / "manifest.json")
 
-    study_dir = Path(__file__).resolve().parents[1]
+    study_dir = _get_study_dir()
     e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
 
     fold_penalties = _compute_frozen_fold_penalties(e3b_dir, folds)
@@ -1473,7 +1500,7 @@ def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume,
     Uses sealed E3b fold penalties (same 5 P99 values for all tracks).
     P2 labels are P2-PI / P2-NI (not param_interp / n_interp).
     """
-    study_dir = Path(__file__).resolve().parents[1]
+    study_dir = _get_study_dir()
     p2_dir = study_dir / "artifacts" / "formal" / "extended_validation" / "p2_generalization_v2"
 
     baseline_path = p2_dir / "p2_baseline_per_sample.csv"
@@ -1489,7 +1516,8 @@ def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume,
 
     samples_df = df_track.drop_duplicates(SAMPLE_KEY_COLS)
 
-    hash_receipt = _verify_p2_sample_hashes(df_track, ns)
+    expected_keys = cfg.ROW_COUNT_CONTRACT[track]["estimation_traditional"]
+    hash_receipt = _verify_p2_sample_hashes(df_track, ns, expected_key_count=expected_keys)
     receipt_dir = Path(output_dir) / track
     receipt_dir.mkdir(parents=True, exist_ok=True)
     atomic_write_json(hash_receipt, receipt_dir / "sample_hash_receipt.json")
@@ -1556,7 +1584,7 @@ def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume,
     Uses shared E3b fold penalties. E4d file contains E4b_boundary and
     E4c_offgrid tracks; we use ONLY E4c_offgrid.
     """
-    study_dir = Path(__file__).resolve().parents[1]
+    study_dir = _get_study_dir()
     e4d_path = study_dir / "artifacts" / "formal" / "E4_robustness" / "E4d_selector_extrapolation.csv"
 
     actual = compute_sha256(e4d_path)
