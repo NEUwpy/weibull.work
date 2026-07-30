@@ -1,7 +1,7 @@
 ---
 name: coworker
-version: 2.1.1
-updated_at: 2026-07-30T23:12:40+08:00
+version: 2.1.2
+updated_at: 2026-07-30T23:21:41+08:00
 description: >
   Coordinate multi-agent coding work across Codex, Hermes/MiMo, OpenCode/DeepSeek,
   Claude Code, or similar agents. Use this skill for planning, requirement

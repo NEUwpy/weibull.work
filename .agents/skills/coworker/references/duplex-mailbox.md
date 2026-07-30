@@ -22,6 +22,17 @@ Both agents repeat:
 The user may inspect the inboxes, archive, `STATUS.md`, or `TRANSCRIPT.md` at
 any time.
 
+## Bootstrap Ownership
+
+Duplex mode uses two user-owned, visible agent windows. The user starts the
+Codex task and pastes one bootstrap prompt into the OpenCode window. After
+that, each agent watches its own inbox.
+
+Codex must not launch, resume, hide, terminate, or otherwise process-control
+OpenCode in duplex mode. Doing so turns duplex collaboration back into the
+controller live-loop that this mode replaces. The mailbox script transports
+messages only; it never starts an agent process.
+
 ## Runtime Layout
 
 For repository `<repo>` and task `<task-id>`:

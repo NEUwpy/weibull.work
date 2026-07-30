@@ -313,3 +313,11 @@ def test_resolver_uses_updated_at_then_detects_conflict(tmp_path):
     )
     assert conflict.returncode == 2
     assert json.loads(conflict.stdout)["event"] == "VERSION_CONFLICT"
+
+
+def test_duplex_uses_user_owned_visible_windows():
+    text = (SKILL / "references" / "duplex-mailbox.md").read_text(encoding="utf-8")
+    assert "two user-owned, visible agent windows" in text
+    assert "Codex must not launch, resume, hide, terminate" in text
+    assert "The mailbox script transports" in text
+    assert "it never starts an agent process" in text
