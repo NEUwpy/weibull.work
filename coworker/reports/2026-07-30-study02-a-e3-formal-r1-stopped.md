@@ -1,9 +1,9 @@
 # Study/02 A-E3 Formal R1 — 停止报告（永久 blocked/aborted）
 
-> 分支：`codex/study02-a-e3-evidence-schema-fix-20260730`（from `cc2a9708`，tip `723e17ce`）
+> 分支：`codex/study02-a-e3-evidence-schema-fix-20260730`（from `cc2a9708`，production fix `723e17ce` 删 `evidence["output_form"]` 写入 + consistency revision `5a9f5fd8` 5 项一致性，tip `5a9f5fd8`）
 > Run：`A-E3-formal-r1-20260729-214640`
 > 状态：**永久 blocked/aborted — r1 不恢复、不迁移、不拼接**
-> 修复分支状态：**awaiting Codex review**（待 review 后由 NEUwpy 决定 commit + push；**A-E3 formal r2 尚未授权**）
+> 修复分支状态：**awaiting Codex 最终复审**（**A-E3 formal r2 尚未授权**；待 Codex 最终复审 → exact-commit preflight → 用户显式授权后才从零启动 r2）
 
 ---
 
@@ -91,7 +91,7 @@ _EVIDENCE_FIELDS = {
 - `_PreparedFit.output_form_evidence` 字段：**删除**（无消费者；`execute_claimed_fit` 与 `_score_fit_from_checkpoint` 均不引用；`_prepare_fit_inputs` 不再保存该 metadata，metadata 在调用处即丢弃）。模型加载/重建不依赖该字段。
 - `_EVIDENCE_FIELDS`：**不变**（仍为 frozen 11-key exact-schema）。
 
-修复后：在 Codex review 通过且用户显式授权 A-E3 formal r2 后，从新 SHA 创建 r2 从零执行（**r2 尚未授权**；不恢复 r1、不迁移 134 checkpoint）。
+修复后：等待 Codex 最终复审通过 → exact-commit preflight → 用户显式授权后从零启动 A-E3 formal r2（**r2 尚未授权**；不恢复 r1、不迁移 134 checkpoint）。
 
 ## 6. 现场 run dir 处置
 
@@ -119,4 +119,4 @@ _EVIDENCE_FIELDS = {
 
 - r1 **永久 blocked/aborted**：代码 REVISE（删 `evidence["output_form"]` 写入 + 删无消费者的 `_PreparedFit.output_form_evidence` 字段 + 修正 `output_form_contract.py` 失真说明 + 删除测试中对 `_assert_scoped_code_clean` 的 monkeypatch 绕过）。
 - r1 run dir 保留为现场。
-- 在 Codex review 通过且用户显式授权后，从新 SHA 创建 A-E3 formal r2 从零执行（**r2 尚未授权**）。
+- 在 Codex 最终复审通过 → exact-commit preflight → 用户显式授权后，从零启动 A-E3 formal r2（**r2 尚未授权**）。
