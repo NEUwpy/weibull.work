@@ -58,3 +58,10 @@ normally inspect only the last-reviewed-tip to current-tip diff plus targeted
 regressions. Before APPROVE, run a final integrity pass. Read
 `incremental-review.md` for reset triggers that require returning to a full
 review.
+
+The first review should surface the main blocking issues together whenever
+practical. Later reviews should primarily verify the requested fixes and check
+for regressions. Do not raise the acceptance standard unless a revision
+introduced a new defect or a newly discovered issue would directly invalidate
+the result. Separate blocking findings from recommendations; recommendations
+do not prevent `APPROVE`.

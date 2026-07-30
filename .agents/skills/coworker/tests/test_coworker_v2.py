@@ -58,6 +58,20 @@ def test_skill_and_version_metadata_match():
     )
 
 
+def test_minimum_sufficient_and_proportional_review_rules_are_present():
+    skill_text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    protocol = (SKILL / "references" / "protocol.md").read_text(encoding="utf-8")
+    assert "Use minimum sufficient evidence" in skill_text
+    assert "does not by itself require production-grade authorization" in skill_text
+    assert "second concrete consumer" in skill_text
+    assert "theoretical extreme or adversarial scenario" in skill_text
+    assert "record the item as a recommendation instead" in skill_text
+    assert "surface the main blocking issues together" in protocol
+    assert "Do not raise the acceptance standard" in protocol
+    assert "recommendations" in protocol
+    assert "do not prevent `APPROVE`" in protocol
+
+
 def test_duplex_wait_defaults_to_three_minutes_and_timeout_is_not_semantic():
     script = MAILBOX.read_text(encoding="utf-8")
     reference = (SKILL / "references" / "duplex-mailbox.md").read_text(

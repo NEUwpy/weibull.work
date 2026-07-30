@@ -9,8 +9,8 @@ description: >
   Keep plans concise: clarify goals, boundaries, autonomy, stop conditions, and
   verification instead of writing step-by-step scripts for capable executors.
 metadata:
-  version: "2.1.4"
-  updated_at: "2026-07-31T01:44:13+08:00"
+  version: "2.2.0"
+  updated_at: "2026-07-31T07:28:38+08:00"
 ---
 
 # Coworker
@@ -22,6 +22,18 @@ Use this skill to run a small planner -> executor -> reviewer loop without turni
 1. **Align before planning.** If the user's goal, scope, or success criteria are unclear, ask until the blocking ambiguity is resolved. Do not silently invent missing requirements.
 2. **Plan as a contract.** State goal, facts, boundaries, executor autonomy, stop conditions, verification, and report format. Do not prescribe implementation minutiae unless the user asks for an exact patch.
 3. **Dispatch by reference.** Do not repeat project rules in every prompt. Send role + plan path + report path, and let the project entry docs and this skill carry the standing protocol.
+
+## Proportionality
+
+- **Use minimum sufficient evidence.** Choose the lightest implementation that makes the result trustworthy, traceable, and rerunnable. Paper use, a “formal” experiment, or a long run does not by itself require production-grade authorization, control planes, attack tests, or a full pipeline. Stop hardening when the result is adequately supported.
+- **Prefer the smallest implementation.** Reuse an existing capability when it fits. Otherwise, build the smallest script needed for the current goal. Consider a shared framework only when a second concrete consumer exists or the user explicitly requests one; do not build one-off infrastructure for hypothetical reuse.
+- **Check review escalation.** Before adding a blocking finding, ask:
+  1. Does it materially affect the research conclusion, result correctness, or basic reproducibility?
+  2. Is it reasonably likely in the actual workflow, rather than a theoretical extreme or adversarial scenario?
+  3. Are existing tests, manual checks, or run records already sufficient?
+  4. Is this fixing a real defect, or merely layering more strictness because the workflow is already strict?
+
+  If the first three questions do not clearly justify blocking, record the item as a recommendation instead.
 
 ## Default Roles
 
