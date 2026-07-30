@@ -783,7 +783,16 @@ def verify_authorization_contract(output_dir, tracks, seeds, resume):
     if len(config_hash) != 64:
         raise RuntimeError("Authorization contract: cannot compute config SHA256")
 
-    return {"script_sha256": script_hash, "config_sha256": config_hash, "start_head": get_git_commit()}
+    return {
+        "script_sha256": script_hash,
+        "config_sha256": config_hash,
+        "start_head": get_git_commit(),
+        "output_dir": str(Path(output_dir).resolve()),
+        "tracks": list(tracks),
+        "seeds": list(seeds),
+        "resume": resume,
+        "approved_parent_commit": cfg.APPROVED_PARENT_COMMIT,
+    }
 
 
 def verify_pre_seal_state(output_dir, auth_hashes):
@@ -826,6 +835,12 @@ def verify_pre_seal_state(output_dir, auth_hashes):
             raise RuntimeError(
                 f"Pre-seal: input {name} SHA256 drifted: {actual[:16]}... != {expected_hash[:16]}..."
             )
+
+    current_output = str(Path(output_dir).resolve())
+    if current_output != auth_hashes["output_dir"]:
+        raise RuntimeError(
+            f"Pre-seal: output_dir drifted: {current_output} != {auth_hashes['output_dir']}"
+        )
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -1137,10 +1152,18 @@ def main(output_dir=None, tracks=None, seeds=None, resume=False):
 
 
 def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
-    """Validate existing manifest before resume. Fail-closed on any drift."""
-    manifest_path = Path(output_dir) / "manifest.json"
+    """Validate existing manifest before resume. Fail-closed on any drift.
+
+    Checks: git_commit, script/config hashes, tracks, seeds, authorization,
+    output_dir, approved_parent_commit. Rejects unknown files in output dir.
+    Returns the old manifest hash for lineage preservation.
+    """
+    output_path = Path(output_dir)
+    manifest_path = output_path / "manifest.json"
     with open(manifest_path, "r", encoding="utf-8") as f:
         old_manifest = json.load(f)
+
+    old_manifest_hash = compute_sha256(manifest_path)
 
     if old_manifest.get("git_commit") != auth_hashes["start_head"]:
         raise RuntimeError(
@@ -1157,6 +1180,23 @@ def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
         raise RuntimeError("Resume: manifest seeds mismatch")
     if old_manifest.get("p4_formal_authorized") is not True:
         raise RuntimeError("Resume: manifest was not authorized")
+    if old_manifest.get("approved_parent_commit") != auth_hashes.get("approved_parent_commit"):
+        raise RuntimeError("Resume: manifest approved_parent_commit mismatch")
+
+    allowed_prefixes = ("manifest.json", "run.lock", "checkpoint_", "SHA256SUMS")
+    allowed_dirs = set(tracks)
+    for f in output_path.rglob("*"):
+        if not f.is_file():
+            continue
+        rel = f.relative_to(output_path).as_posix()
+        top_dir = rel.split("/")[0] if "/" in rel else rel
+        if top_dir in allowed_dirs:
+            continue
+        if any(rel.startswith(p) for p in allowed_prefixes):
+            continue
+        raise RuntimeError(f"Resume: unknown file in output dir: {rel}")
+
+    return old_manifest_hash
 
 
 def _run_formal(output_dir, tracks, seeds, resume, auth_hashes):
@@ -1165,9 +1205,14 @@ def _run_formal(output_dir, tracks, seeds, resume, auth_hashes):
     git_commit = get_git_commit()
 
     if resume:
-        _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds)
+        previous_manifest_sha256 = _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds)
+    else:
+        previous_manifest_sha256 = None
 
     manifest = build_manifest(tracks, cfg.P4_METHODS)
+    if previous_manifest_sha256:
+        manifest["previous_manifest_sha256"] = previous_manifest_sha256
+        manifest["resume_lineage"] = True
     atomic_write_json(manifest, output_dir / "manifest.json")
 
     study_dir = Path(__file__).resolve().parents[1]
@@ -1234,6 +1279,10 @@ def _run_formal(output_dir, tracks, seeds, resume, auth_hashes):
             f"{track}/evaluation.csv",
             f"{track}/results.json",
         ])
+        if track in (cfg.TRACK_PARAM_INTERP, cfg.TRACK_N_INTERP):
+            receipt_path = output_dir / track / "sample_hash_receipt.json"
+            if receipt_path.exists():
+                allowlist.append(f"{track}/sample_hash_receipt.json")
     seal_recursive(output_dir, allowlist)
     print(f"[P4] Complete. Output: {output_dir}")
 
@@ -1248,43 +1297,51 @@ def _remove_checkpoints(output_dir):
 def _verify_p2_sample_hashes(df_track, seed_namespace):
     """Verify ALL reconstructed P2 samples match sealed per-sample hashes (P4-R6).
 
-    Checks every unique sample key. Enforces one consistent hash per key.
-    Returns a receipt dict with count and verification status.
+    STRICT: every unique sample key MUST have exactly one valid 64-char SHA256.
+    No silent skipping of empty/nan/short hashes. Raises on any missing or
+    inconsistent hash. Returns a receipt dict for sealing.
     """
     checked = 0
-    mismatches = 0
     seen_keys = {}
+    missing_hash_keys = []
+
     for _, row in df_track.iterrows():
         key = (row["beta"], row["gamma_over_eta"], int(row["n"]), int(row["repeat_id"]))
-        expected = row.get("sample_sha256")
-        if not expected or str(expected) == "nan" or len(str(expected)) != 64:
-            continue
-        expected = str(expected)
         if key in seen_keys:
-            if seen_keys[key] != expected:
-                raise RuntimeError(
-                    f"P2 sample hash inconsistency for {key}: "
-                    f"{seen_keys[key][:16]}... vs {expected[:16]}..."
-                )
             continue
-        seen_keys[key] = expected
+
+        expected = row.get("sample_sha256")
+        expected_str = str(expected) if expected is not None else ""
+
+        if not expected or expected_str == "nan" or len(expected_str) != 64:
+            missing_hash_keys.append(key)
+            seen_keys[key] = None
+            continue
+
+        seen_keys[key] = expected_str
         verify_sample_content_hash(
             key[0], 1.0, key[1], key[2], key[3], seed_namespace,
-            expected_sha256=expected
+            expected_sha256=expected_str
         )
         checked += 1
 
+    if missing_hash_keys:
+        raise RuntimeError(
+            f"P2 sample hash verification: {len(missing_hash_keys)} keys missing valid "
+            f"SHA256 (e.g. {missing_hash_keys[:3]}). All keys must have sealed hashes."
+        )
+
     if checked == 0:
-        raise RuntimeError("P2 sample hash verification: no valid hashes found")
+        raise RuntimeError("P2 sample hash verification: no samples to verify")
 
     receipt = {
         "verified_samples": checked,
         "total_unique_keys": len(seen_keys),
-        "mismatches": mismatches,
         "seed_namespace": seed_namespace,
         "status": "all_verified",
+        "source_file_sha256": cfg.INPUT_SHA256.get("P2_baseline_per_sample_csv", "unknown"),
     }
-    print(f"    P2 sample hash verification: {checked} samples OK")
+    print(f"    P2 sample hash verification: {checked}/{len(seen_keys)} samples OK")
     return receipt
 
 
@@ -1390,8 +1447,12 @@ def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume,
 
     samples_df = df_track.drop_duplicates(SAMPLE_KEY_COLS)
 
+    hash_receipt = None
     if "sample_sha256" in df_track.columns:
-        _verify_p2_sample_hashes(df_track, ns)
+        hash_receipt = _verify_p2_sample_hashes(df_track, ns)
+        receipt_dir = Path(output_dir) / track
+        receipt_dir.mkdir(parents=True, exist_ok=True)
+        atomic_write_json(hash_receipt, receipt_dir / "sample_hash_receipt.json")
 
     est_rows = []
     for method in cfg.TRADITIONAL_METHODS:

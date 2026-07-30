@@ -1313,3 +1313,89 @@ class TestRunFormalOrchestration:
         (tmp_path / "stale.lock").write_text("stale")
         with pytest.raises(ValueError, match="unexpected"):
             p4.seal_recursive(tmp_path, ["data.csv"])
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 27. P4-R6 negative: partial hash rejection
+# ════════════════════════════════════════════════════════════════════════
+
+class TestP2HashStrictness:
+    def test_rejects_missing_hash(self):
+        """_verify_p2_sample_hashes raises if any key lacks a valid SHA256."""
+        df = pd.DataFrame({
+            "beta": [2.0, 3.0],
+            "gamma_over_eta": [0.5, 0.3],
+            "n": [10, 15],
+            "repeat_id": [0, 0],
+            "sample_sha256": [None, None],
+        })
+        with pytest.raises(RuntimeError, match="missing valid SHA256"):
+            p4._verify_p2_sample_hashes(df, "study01_p2_v1")
+
+    def test_rejects_nan_hash(self):
+        """_verify_p2_sample_hashes raises on nan hash values."""
+        df = pd.DataFrame({
+            "beta": [2.0],
+            "gamma_over_eta": [0.5],
+            "n": [10],
+            "repeat_id": [0],
+            "sample_sha256": [float("nan")],
+        })
+        with pytest.raises(RuntimeError, match="missing valid SHA256"):
+            p4._verify_p2_sample_hashes(df, "study01_p2_v1")
+
+    def test_rejects_short_hash(self):
+        """_verify_p2_sample_hashes raises on non-64-char hash."""
+        df = pd.DataFrame({
+            "beta": [2.0],
+            "gamma_over_eta": [0.5],
+            "n": [10],
+            "repeat_id": [0],
+            "sample_sha256": ["abc123"],
+        })
+        with pytest.raises(RuntimeError, match="missing valid SHA256"):
+            p4._verify_p2_sample_hashes(df, "study01_p2_v1")
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 28. P4-R8 negative: resume rejects unknown files
+# ════════════════════════════════════════════════════════════════════════
+
+class TestResumeUnknownFiles:
+    def test_resume_rejects_unknown_file(self, tmp_path):
+        """Resume rejects unknown files beside the manifest."""
+        manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True,
+                    "approved_parent_commit": "parent1"}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        (tmp_path / "unknown.bin").write_text("junk")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64,
+                "config_sha256": "b" * 64, "approved_parent_commit": "parent1"}
+        with pytest.raises(RuntimeError, match="unknown file"):
+            p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+    def test_resume_accepts_checkpoint_files(self, tmp_path):
+        """Resume accepts checkpoint_ files as valid partial state."""
+        manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True,
+                    "approved_parent_commit": "parent1"}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        (tmp_path / "checkpoint_main_holdout_Direct-MLP.csv").write_text("data")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64,
+                "config_sha256": "b" * 64, "approved_parent_commit": "parent1"}
+        result = p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+        assert len(result) == 64
+
+    def test_resume_rejects_approved_parent_drift(self, tmp_path):
+        """Resume rejects manifest with different approved_parent_commit."""
+        manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True,
+                    "approved_parent_commit": "old_parent"}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64,
+                "config_sha256": "b" * 64, "approved_parent_commit": "new_parent"}
+        with pytest.raises(RuntimeError, match="approved_parent_commit"):
+            p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
