@@ -139,10 +139,12 @@ for _, row in df_risk.iterrows():
             })
 df_loss_long = pd.DataFrame(loss_long)
 
-# Merge features into loss table
+# Merge features into loss table (rename feature n to avoid collision)
+df_train_feats_for_merge = df_train_feats[["beta", "gamma_over_eta", "n", "repeat_id"] + e4.SAMPLE_FEATURE_COLS].copy()
 df_loss_merged = df_loss_long.merge(
-    df_train_feats[["beta", "gamma_over_eta", "n", "repeat_id"] + e4.SAMPLE_FEATURE_COLS],
+    df_train_feats_for_merge,
     on=["beta", "gamma_over_eta", "n", "repeat_id"],
+    suffixes=("", "_feat"),
 )
 
 # Pivot to 26-dim risk vectors
