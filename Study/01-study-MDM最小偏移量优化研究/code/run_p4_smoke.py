@@ -361,8 +361,11 @@ smoke_output = {
     "summaries": {m: {k: v for k, v in s.items() if k != "error"} for m, s in summaries.items()},
     "config_hash": direct.config_hash(),
     "git_commit": p4.get_git_commit(),
+    "script_sha256": p4.compute_script_sha256(),
+    "smoke_script_sha256": p4.compute_sha256(Path(__file__).resolve()),
     "python_version": platform.python_version(),
     "numpy_version": np.__version__,
+    "mdm_default_delta": cfg.MDM_DEFAULT_DELTA,
 }
 p4.atomic_write_json(smoke_output, OUT / "p4_smoke_result.json")
 
