@@ -104,16 +104,16 @@ def make_estimation_row(track, method, fold, seed, beta, goe, n, repeat_id,
 # Evaluation layer construction (P4-R5)
 # ════════════════════════════════════════════════════════════════════════
 
-def build_evaluation_layer(df_est, fold_penalties):
+def build_evaluation_layer(df_est, fold_penalties, fold_assignment=None):
     """Build evaluation layer from estimation layer.
 
-    For traditional methods: broadcast each estimate to each (fold, seed) context
-    where that sample is in the fold's test set. Apply fold-specific P99 penalty.
-    For learning methods: each row already has fold/seed. Apply fold-specific penalty.
+    For traditional methods:
+      - If fold_assignment is provided (Track 1): each sample is broadcast only
+        to its assigned fold's seeds. fold_assignment maps sample_key → fold_name.
+      - If fold_assignment is None (Tracks 2/3/4): broadcast to ALL folds × seeds.
+    For learning methods: each row already has fold/seed.
 
-    fold_penalties: dict mapping fold_name → P99 penalty value.
-
-    Returns DataFrame with EVALUATION_COLUMNS.
+    fold_penalties: dict mapping fold_name → P99 penalty. Missing fold raises.
     """
     eval_rows = []
     seeds = cfg.SEEDS
@@ -129,12 +129,25 @@ def build_evaluation_layer(df_est, fold_penalties):
         if is_learning:
             fold = row["fold"]
             seed = row["seed"]
-            penalty = fold_penalties.get(fold, 1.0)
+            if fold not in fold_penalties:
+                raise ValueError(f"Missing fold penalty for fold={fold}")
+            penalty = fold_penalties[fold]
             eval_rows.append(_make_eval_row(row, fold, seed, penalty, beta_true, eta_true, gamma_true, failed))
         else:
-            for fold, penalty in fold_penalties.items():
+            if fold_assignment is not None:
+                sample_key = (row["beta"], row["gamma_over_eta"], row["n"], row["repeat_id"])
+                assigned_fold = fold_assignment.get(sample_key)
+                if assigned_fold is None:
+                    raise ValueError(f"Traditional sample {sample_key} has no fold assignment")
+                if assigned_fold not in fold_penalties:
+                    raise ValueError(f"Missing fold penalty for fold={assigned_fold}")
+                penalty = fold_penalties[assigned_fold]
                 for seed in seeds:
-                    eval_rows.append(_make_eval_row(row, fold, seed, penalty, beta_true, eta_true, gamma_true, failed))
+                    eval_rows.append(_make_eval_row(row, assigned_fold, seed, penalty, beta_true, eta_true, gamma_true, failed))
+            else:
+                for fold, penalty in fold_penalties.items():
+                    for seed in seeds:
+                        eval_rows.append(_make_eval_row(row, fold, seed, penalty, beta_true, eta_true, gamma_true, failed))
 
     return pd.DataFrame(eval_rows, columns=EVALUATION_COLUMNS)
 
@@ -553,26 +566,34 @@ def seal_recursive(output_dir, allowlist):
 # ════════════════════════════════════════════════════════════════════════
 
 def acquire_run_lock(output_dir):
-    """Acquire exclusive run lock. Fails if another run is active."""
-    lock_path = Path(output_dir) / "run.lock"
-    if lock_path.exists():
-        raise RuntimeError(
-            f"Run lock exists: {lock_path}. Another P4 run may be active. "
-            "Remove the lock file only if you are certain no run is in progress."
-        )
+    """Acquire exclusive run lock atomically (O_CREAT|O_EXCL)."""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    lock_info = {
+    lock_path = Path(output_dir) / "run.lock"
+    try:
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        raise RuntimeError(
+            f"Run lock exists: {lock_path}. Another P4 run may be active."
+        )
+    lock_info = json.dumps({
         "pid": os.getpid(),
         "git_commit": get_git_commit(),
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.gmtime()),
-    }
-    atomic_write_json(lock_info, lock_path)
+    })
+    os.write(fd, lock_info.encode())
+    os.close(fd)
     return lock_path
 
 
 def release_run_lock(output_dir):
     lock_path = Path(output_dir) / "run.lock"
     if lock_path.exists():
+        try:
+            info = json.loads(lock_path.read_text())
+            if info.get("pid") != os.getpid():
+                raise RuntimeError("Cannot release lock owned by another PID")
+        except (json.JSONDecodeError, KeyError):
+            pass
         lock_path.unlink()
 
 
@@ -965,12 +986,13 @@ def _run_formal(output_dir, tracks, seeds, resume):
     manifest = build_manifest(tracks, cfg.P4_METHODS)
     atomic_write_json(manifest, output_dir / "manifest.json")
 
-    all_est_rows = []
-    all_eval_dfs = []
-    result_tables = {}
-
     study_dir = Path(__file__).resolve().parents[1]
     e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
+
+    fold_penalties = _compute_frozen_fold_penalties(e3b_dir, folds)
+
+    all_eval_dfs = []
+    result_tables = {}
 
     for track in tracks:
         print(f"[P4] Track: {track}")
@@ -979,21 +1001,23 @@ def _run_formal(output_dir, tracks, seeds, resume):
         run_context = build_run_context(input_sha)
 
         if track == cfg.TRACK_MAIN_HOLDOUT:
-            est_rows, fold_penalties, df_features = _execute_track_main(
-                output_dir, folds, seeds, ns, run_context, e3b_dir, resume
+            est_rows, fold_assignment = _execute_track_main(
+                output_dir, folds, seeds, ns, run_context, e3b_dir, resume,
+                fold_penalties
             )
         elif track in (cfg.TRACK_PARAM_INTERP, cfg.TRACK_N_INTERP):
-            est_rows, fold_penalties, df_features = _execute_track_p2(
-                output_dir, folds, seeds, ns, run_context, track, resume
+            est_rows, fold_assignment = _execute_track_p2(
+                output_dir, folds, seeds, ns, run_context, track, resume,
+                fold_penalties
             )
         else:
-            est_rows, fold_penalties, df_features = _execute_track_extrap(
-                output_dir, folds, seeds, ns, run_context, resume
+            est_rows, fold_assignment = _execute_track_extrap(
+                output_dir, folds, seeds, ns, run_context, resume,
+                fold_penalties
             )
 
-        all_est_rows.extend(est_rows)
         df_est = pd.DataFrame(est_rows, columns=ESTIMATION_COLUMNS)
-        df_eval = build_evaluation_layer(df_est, fold_penalties)
+        df_eval = build_evaluation_layer(df_est, fold_penalties, fold_assignment=fold_assignment)
         all_eval_dfs.append(df_eval)
 
         verify_no_valid_only_filtering(df_eval, track=track)
@@ -1024,8 +1048,38 @@ def _run_formal(output_dir, tracks, seeds, resume):
     print(f"[P4] Complete. Output: {output_dir}")
 
 
-def _execute_track_main(output_dir, folds, seeds, ns, run_context, e3b_dir, resume):
-    """Execute Track 1: main_holdout."""
+def _compute_frozen_fold_penalties(e3b_dir, folds):
+    """Compute the 5 frozen P99 fold penalties from E3b training data.
+
+    These are reused for ALL tracks and ALL methods.
+    """
+    import run_p3_direct_mlp as direct_mod
+    df_features = pd.read_csv(e3b_dir / "sample_features.csv")
+    df_risk = pd.read_csv(e3b_dir / "risk_curves.csv")
+
+    penalties = {}
+    for fold in folds:
+        train_keys = set((b, g, n) for b, g, n in fold["train_combos"])
+        train_mask = df_features.apply(
+            lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in fold["train_combos"], axis=1
+        )
+        df_risk_train = df_risk[
+            df_risk.apply(lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in train_keys, axis=1)
+        ]
+        penalties[fold["fold_name"]] = direct_mod.compute_fold_penalty(
+            df_features[train_mask], df_risk_train, fold["train_combos"]
+        )
+    return penalties
+
+
+def _execute_track_main(output_dir, folds, seeds, ns, run_context, e3b_dir, resume,
+                        fold_penalties):
+    """Execute Track 1: main_holdout.
+
+    Returns (est_rows, fold_assignment) where fold_assignment maps
+    sample_key → fold_name for traditional broadcast (each sample belongs
+    to exactly one fold's test set).
+    """
     features_path = e3b_dir / "sample_features.csv"
     risk_path = e3b_dir / "risk_curves.csv"
 
@@ -1039,18 +1093,11 @@ def _execute_track_main(output_dir, folds, seeds, ns, run_context, e3b_dir, resu
     df_features = pd.read_csv(features_path)
     df_risk = pd.read_csv(risk_path)
 
-    fold_penalties = {}
+    fold_assignment = {}
     for fold in folds:
-        train_keys = set((b, g, n) for b, g, n in fold["train_combos"])
-        train_mask = df_features.apply(
-            lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in fold["train_combos"], axis=1
-        )
-        df_risk_train = df_risk[
-            df_risk.apply(lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in train_keys, axis=1)
-        ]
-        fold_penalties[fold["fold_name"]] = direct.compute_fold_penalty(
-            df_features[train_mask], df_risk_train, fold["train_combos"]
-        )
+        for beta, goe, n in fold["test_combos"]:
+            for rid in range(cfg.EVAL_REPEATS):
+                fold_assignment[(beta, goe, n, rid)] = fold["fold_name"]
 
     est_rows = []
     for method in cfg.TRADITIONAL_METHODS:
@@ -1068,52 +1115,72 @@ def _execute_track_main(output_dir, folds, seeds, ns, run_context, e3b_dir, resu
         fold_penalties, run_context, output_dir
     ))
 
-    return est_rows, fold_penalties, df_features
+    return est_rows, fold_assignment
 
 
-def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume):
-    """Execute Track 2/3: param_interp or n_interp (P2 samples)."""
+def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume,
+                      fold_penalties):
+    """Execute Track 2/3: param_interp or n_interp (P2 samples).
+
+    Uses sealed E3b fold penalties (same 5 P99 values for all tracks).
+    P2 labels are P2-PI / P2-NI (not param_interp / n_interp).
+    """
     study_dir = Path(__file__).resolve().parents[1]
     p2_dir = study_dir / "artifacts" / "formal" / "extended_validation" / "p2_generalization_v2"
 
-    baseline_path = p2_dir / "baseline_per_sample.csv"
+    baseline_path = p2_dir / "p2_baseline_per_sample.csv"
     actual = compute_sha256(baseline_path)
     if actual != cfg.INPUT_SHA256["P2_baseline_per_sample_csv"]:
         raise RuntimeError(f"P2 baseline SHA256 mismatch: {actual}")
 
     df_p2 = pd.read_csv(baseline_path)
-    track_label = "param_interp" if track == cfg.TRACK_PARAM_INTERP else "n_interp"
-    df_track = df_p2[df_p2["track"] == track_label].copy() if "track" in df_p2.columns else df_p2
+    p2_label = "P2-PI" if track == cfg.TRACK_PARAM_INTERP else "P2-NI"
+    df_track = df_p2[df_p2["track"] == p2_label].copy()
+    if len(df_track) == 0:
+        raise RuntimeError(f"No P2 rows for label={p2_label}")
 
-    samples_df = df_track[SAMPLE_KEY_COLS + ["beta"]].drop_duplicates(SAMPLE_KEY_COLS)
     samples_df = df_track.drop_duplicates(SAMPLE_KEY_COLS)
-
-    fold_penalties = {}
-    for fold in folds:
-        fold_penalties[fold["fold_name"]] = 2.0
 
     est_rows = []
     for method in cfg.TRADITIONAL_METHODS:
         print(f"  {method}...")
         est_rows.extend(run_traditional_method(method, samples_df, track, ns))
 
-    print("  Direct-MLP (15 models)...")
+    print("  Direct-MLP (15 models on P2 samples)...")
     e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
     df_features = pd.read_csv(e3b_dir / "sample_features.csv")
-    est_rows.extend(run_direct_mlp_track(df_features, folds, seeds, track, run_context, output_dir))
-
-    print("  MDM-Vector-MLP (15 models)...")
     df_risk = pd.read_csv(e3b_dir / "risk_curves.csv")
+
+    p2_feat_rows = []
+    for _, s in samples_df.iterrows():
+        beta, goe, n_val = s["beta"], s["gamma_over_eta"], int(s["n"])
+        for rid in range(int(s.get("repeat_id", 0)), int(s.get("repeat_id", 0)) + 1):
+            sample = generate_sample(beta, 1.0, goe, n_val, int(s["repeat_id"]), seed=ns)
+            feats = e4.compute_sample_features(sample)
+            p2_feat_rows.append({"beta": beta, "eta": 1.0, "gamma": goe,
+                                 "gamma_over_eta": goe, "n": n_val,
+                                 "repeat_id": int(s["repeat_id"]), **feats})
+    df_p2_features = pd.DataFrame(p2_feat_rows)
+
+    est_rows.extend(run_direct_mlp_track(
+        df_features, folds, seeds, track, run_context, output_dir
+    ))
+
+    print("  MDM-Vector-MLP (15 models on P2 samples)...")
     est_rows.extend(run_vector_mlp_track(
         df_features, df_risk, folds, seeds, track, ns,
         fold_penalties, run_context, output_dir
     ))
 
-    return est_rows, fold_penalties, df_features
+    return est_rows, None
 
 
-def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume):
-    """Execute Track 4: extrap_diag (E4d off-grid combos)."""
+def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume,
+                          fold_penalties):
+    """Execute Track 4: extrap_diag (E4d off-grid combos).
+
+    Uses shared E3b fold penalties. E4d contains off-grid track only.
+    """
     study_dir = Path(__file__).resolve().parents[1]
     e4d_path = study_dir / "artifacts" / "formal" / "E4_robustness" / "E4d_selector_extrapolation.csv"
 
@@ -1122,18 +1189,16 @@ def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume):
         raise RuntimeError(f"E4d SHA256 mismatch: {actual}")
 
     df_e4d = pd.read_csv(e4d_path, low_memory=False)
+    if "track" in df_e4d.columns:
+        df_e4d = df_e4d[df_e4d["track"] == "off_grid"].copy()
     samples_df = df_e4d.drop_duplicates(SAMPLE_KEY_COLS)
-
-    fold_penalties = {}
-    for fold in folds:
-        fold_penalties[fold["fold_name"]] = 2.0
 
     est_rows = []
     for method in cfg.TRADITIONAL_METHODS:
         print(f"  {method}...")
         est_rows.extend(run_traditional_method(method, samples_df, cfg.TRACK_EXTRAP, ns))
 
-    print("  Direct-MLP (15 models)...")
+    print("  Direct-MLP (15 models on E4d samples)...")
     e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
     df_features = pd.read_csv(e3b_dir / "sample_features.csv")
     est_rows.extend(run_direct_mlp_track(df_features, folds, seeds, cfg.TRACK_EXTRAP, run_context, output_dir))
@@ -1157,7 +1222,7 @@ def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume):
                     params["failed"], params["failure_reason"],
                 ))
 
-    return est_rows, fold_penalties, df_features
+    return est_rows, None
 
 
 # ════════════════════════════════════════════════════════════════════════
