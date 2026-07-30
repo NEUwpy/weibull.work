@@ -131,7 +131,7 @@ e_gamma = (gamma_hat-gamma)/eta
 
 ### 4.2 正式运行后阶段（2026-07-30 修订）
 
-- P2 专项（config + revise）：`33 passed`，0 failed，0 skipped（夹具已更新为引用冻结 `P2_APPROVED_PARENT_COMMIT`）；
+- P2 专项（config + revise）：`53 passed`，0 failed，0 skipped（夹具已更新为引用冻结 `P2_APPROVED_PARENT_COMMIT`）；
 - P0 完整性审计：`P0_INTEGRITY=PASS`；
 - `git diff --check`：clean；
 - `git lfs fsck`：OK。
