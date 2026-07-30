@@ -622,8 +622,9 @@ class _PreparedFit:
     selection. ``validation_metadata`` carries the per-row stable pairing ids
     (sample_id / point_id) the CI rules cluster on. ``output_form_evidence`` carries
     the A-E3 output-form capacity-selection metadata (joint/independent architecture
-    ids, exact parameter counts, capacity selection) for recording in the fit's
-    evidence; ``None`` for non-output-form fits.
+    ids, exact parameter counts, capacity selection) for independent unit verification;
+    it is NOT written to fit evidence v1 (scheduler schema is frozen). ``None`` for
+    non-output-form fits.
     """
 
     scaled_training: FormalDataset
@@ -778,8 +779,10 @@ def execute_claimed_fit(
         "validation_curve": curve,
         "test_access_count": 0,
     }
-    if prepared.output_form_evidence is not None:
-        evidence["output_form"] = dict(prepared.output_form_evidence)
+    # output_form metadata is a deterministic derivative of plan/matrix + frozen
+    # contract SHA + input_dim + checkpoint. Do NOT write it to evidence.json:
+    # scheduler _EVIDENCE_FIELDS is frozen (rejects extra fields). Contract SHA
+    # + factory + capacity derivation remain independently unit-verified.
     output_hashes = _write_outputs(
         run_dir, fit_id, str(plan_row["run_id"]), fit.checkpoint_bytes, fit.checkpoint_sha256, evidence,
     )

@@ -4990,3 +4990,425 @@ def test_g16_a_e3_sealed_smoke_production_equivalent(tmp_path, monkeypatch):
         f"n_strategy winner must be fixed/shared; "
         f"got {n_strategy_resolution['selected:A-E3_n_strategy']!r}")
 
+
+# ===========================================================================
+# A-E3 formal r1 evidence-schema regression (stop-event 20260729-214640)
+# ===========================================================================
+# Production fix (this branch): ``execute_claimed_fit`` no longer writes
+# ``evidence["output_form"]`` (scheduler ``_EVIDENCE_FIELDS`` is frozen; the
+# extra field crashed ``_decode_exact`` at ``record_fit_succeeded`` ->
+# ``_validate_success_files`` for the FIRST independent output_form fit
+# G3-fit-0483, leaving run ``A-E3-formal-r1-20260729-214640`` at 134 succeeded /
+# 131 pending / 1 dead-claimed / 0 failed).  The joint output_form arm
+# (``build_output_form_aware_factory`` returns ``metadata=None`` for joint) was
+# unaffected -- only the independent arm (metadata is a non-None dict) triggered
+# the extra-field write.  These tests prove the fix holds on the REAL scheduler
+# claim -> ``execute_claimed_fit`` -> ``_write_outputs`` ->
+# ``record_fit_succeeded`` -> ``_validate_success_files`` -> ``_decode_exact`` ->
+# ``_rebuild_authority`` path, and that an explicit extra-field attack is still
+# rejected with the exact r1 crash message.
+# -------------------------------------------------------------------------
+
+
+def _r1_regression_prerequisite_outputs(run_dir: Path, fit_id: str, run_id: str) -> dict[str, str]:
+    """Write the canonical 3-file bound triple for a prerequisite fit (fast stub).
+
+    Goes through the REAL ``fe._write_outputs`` (atomic staging + ``os.replace``)
+    so the prerequisite enters the scheduler journal via the same
+    ``record_fit_succeeded`` -> ``_validate_success_files`` -> ``_decode_exact``
+    path as the regression target.  Used for the 134 fits before G3-fit-0483 so
+    ``claim_next_fit`` reaches the r1 crash site through the real plan-order
+    loop.  Training is skipped (synthetic checkpoint + 60-epoch monotone curve);
+    only the scheduler path is exercised."""
+    checkpoint = b"checkpoint-" + fit_id.encode()[:16]
+    checkpoint_sha = hashlib.sha256(checkpoint).hexdigest()
+    curve = [100.0 / (i + 1) for i in range(60)]
+    best_epoch = min(range(60), key=lambda i: curve[i])
+    evidence = {
+        "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id,
+        "run_id": run_id, "checkpoint_sha256": checkpoint_sha,
+        "actual_epochs": 60, "best_epoch_one_based": best_epoch + 1, "hit_epoch_100": False,
+        "early_stop_reason": "patience_exhausted",
+        "terminal_validation_slope": fe._terminal_ols_slope(curve),
+        "validation_curve": curve, "test_access_count": 0,
+    }
+    return fe._write_outputs(run_dir, fit_id, run_id, checkpoint, checkpoint_sha, evidence)
+
+
+def _r1_fast_batch_prerequisites(run_dir, manifest, plan, state, events,
+                                  prereq_rows, owner_id, timestamp_fn):
+    """Write all prerequisite claim+record events in O(N) total time.
+
+    Computes the after-state INCREMENTALLY (no ``_replay``) and calls the REAL
+    ``_commit_transaction`` for each event -- so the event files, claim/receipt
+    publications, anchors, and ``scheduler_state.json`` on disk are byte-identical
+    to what the real ``claim_next_fit`` + ``record_fit_succeeded`` would produce.
+    After this, a real ``_rebuild_authority`` replays all events and validates
+    cleanly (the incremental state matches the full replay state exactly).
+
+    Each prerequisite gets:
+      * a REAL claim event + claim publication (written via ``_commit_transaction``)
+      * a REAL success receipt + success event (written via ``_commit_transaction``)
+      * a REAL ``_write_outputs`` 3-file bound triple (checkpoint + fit_status +
+        evidence, written through the production atomic-staging path)
+
+    The prerequisite evidence is a valid canonical 11-field record (no
+    ``output_form``) -- the bug path is only on the TARGET fit, not here.
+    """
+    import socket
+    from study02a import formal_scheduler
+    authority_sha = state["authority_sha256"]
+    process_id = os.getpid()
+    token = formal_scheduler._process_start_token(process_id)
+    fit_states = dict(state["fit_states"])
+    live_claim = state.get("live_claim")
+    last_sha = events[-1]["event_sha256"]
+    seq = len(events)
+
+    for plan_row in prereq_rows:
+        fit_id = str(plan_row["fit_id"])
+        owner_nonce = f"fast-batch-{seq:08d}"
+        # --- Claim (mirrors claim_next_fit without _rebuild_authority) ---
+        claim = {
+            "claim_version": "study02-formal-claim-v2", "run_id": state["run_id"],
+            "fit_id": fit_id, "owner_id": owner_id, "owner_nonce": owner_nonce,
+            "host_id": socket.gethostname(), "process_id": process_id,
+            "process_start_token": token, "started_at": timestamp_fn(),
+            "expected_outputs": plan_row["expected_outputs"],
+            "predecessor_event_sha256": last_sha,
+            "fit_identity_sha256": formal_scheduler._sha(formal_scheduler._canonical(plan_row)),
+            "authority_sha256": authority_sha, "test_access_count": 0,
+        }
+        claim_rel = f"claims/{fit_id}.{seq:08d}.json"
+        formal_scheduler._claim_path(run_dir, claim_rel)
+        claim_sha = formal_scheduler._sha(formal_scheduler._canonical(claim))
+        claim_event = formal_scheduler._event(
+            "fit_claimed", seq, last_sha, authority_sha,
+            {"fit_id": fit_id, "claim_relative_path": claim_rel, "claim_sha256": claim_sha})
+        live_after_claim = {**claim, "claim_relative_path": claim_rel, "claim_sha256": claim_sha}
+        fit_states[fit_id] = "claimed"
+        claim_after = {
+            "state_version": "study02-formal-scheduler-state-v2", "run_id": state["run_id"],
+            "module_id": state["module_id"], "authority_sha256": authority_sha,
+            "plan_sha256": state["plan_sha256"], "fit_states": dict(fit_states),
+            "live_claim": live_after_claim, "event_count": seq + 1,
+            "last_event_sha256": claim_event["event_sha256"], "test_access_count": 0,
+        }
+        formal_scheduler._commit_transaction(
+            run_dir, state, claim_event, claim_after, [(claim_rel, claim)])
+        state = claim_after; last_sha = claim_event["event_sha256"]; seq += 1
+
+        # --- Write outputs (REAL _write_outputs) ---
+        checkpoint = b"checkpoint-" + fit_id.encode()[:16]
+        checkpoint_sha = hashlib.sha256(checkpoint).hexdigest()
+        curve = [100.0 / (i + 1) for i in range(60)]
+        best_epoch = min(range(60), key=lambda i: curve[i])
+        evidence = {
+            "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id,
+            "run_id": state["run_id"], "checkpoint_sha256": checkpoint_sha,
+            "actual_epochs": 60, "best_epoch_one_based": best_epoch + 1, "hit_epoch_100": False,
+            "early_stop_reason": "patience_exhausted",
+            "terminal_validation_slope": fe._terminal_ols_slope(curve),
+            "validation_curve": curve, "test_access_count": 0,
+        }
+        output_hashes = fe._write_outputs(
+            run_dir, fit_id, state["run_id"], checkpoint, checkpoint_sha, evidence)
+
+        # --- Success receipt (mirrors _terminal without _rebuild_authority) ---
+        receipt = {
+            "receipt_version": "study02-formal-fit-terminal-v2", "run_id": state["run_id"],
+            "fit_id": fit_id, "owner_id": owner_id, "owner_nonce": owner_nonce,
+            "state": "succeeded", "details": {"output_hashes": dict(output_hashes)},
+            "timestamp": timestamp_fn(), "claim_receipt_sha256": claim_sha,
+            "authority_sha256": authority_sha, "test_access_count": 0,
+        }
+        receipt_rel = f"receipts/{fit_id}.succeeded.json"
+        formal_scheduler._receipt_path(run_dir, receipt_rel)
+        receipt_event = formal_scheduler._event(
+            "fit_succeeded", seq, last_sha, authority_sha,
+            {"fit_id": fit_id, "receipt_relative_path": receipt_rel,
+             "receipt_sha256": formal_scheduler._sha(formal_scheduler._canonical(receipt))})
+        fit_states[fit_id] = "succeeded"
+        receipt_after = {
+            "state_version": "study02-formal-scheduler-state-v2", "run_id": state["run_id"],
+            "module_id": state["module_id"], "authority_sha256": authority_sha,
+            "plan_sha256": state["plan_sha256"], "fit_states": dict(fit_states),
+            "live_claim": None, "event_count": seq + 1,
+            "last_event_sha256": receipt_event["event_sha256"], "test_access_count": 0,
+        }
+        formal_scheduler._commit_transaction(
+            run_dir, state, receipt_event, receipt_after, [(receipt_rel, receipt)])
+        state = receipt_after; last_sha = receipt_event["event_sha256"]; seq += 1
+
+    return state
+
+
+@pytest.mark.slow
+def test_a_e3_r1_evidence_schema_fix_independent_output_form_via_real_scheduler(tmp_path, monkeypatch):
+    """A-E3 formal r1 stop-event regression: the production fix (removing
+    ``evidence["output_form"]`` from ``execute_claimed_fit``) lets the r1 crash
+    site G3-fit-0483 (first A-E3 independent output_form fit, matrix position
+    134) traverse the REAL scheduler claim -> ``execute_claimed_fit`` ->
+    ``_write_outputs`` -> ``record_fit_succeeded`` -> ``_validate_success_files``
+    -> ``_decode_exact`` -> ``_rebuild_authority`` path without raising
+    ``fit evidence output must match its exact canonical schema``.
+
+    Production-bound (NOT bypassed for the regression target G3-fit-0483):
+      * Real ``materialize_run`` with A-E1 predecessor (C1 v2 binding).
+      * Real ``claim_next_fit`` for the target (replays all 269 prerequisite events
+        through the real ``_rebuild_authority``).
+      * Real ``execute_claimed_fit`` for G3-fit-0483 -- real ``_prepare_fit_inputs``
+        + ``build_output_form_aware_factory`` (IndependentContainer factory) +
+        real training (pilot data) + ``_write_outputs`` + ``record_fit_succeeded``
+        + ``_validate_success_files`` + ``_decode_exact`` + ``_rebuild_authority``.
+      * The 134 prerequisite fits (positions 0..133) are written via the REAL
+        ``_commit_transaction`` (real event files, real claim/receipt publications,
+        real anchors, real ``scheduler_state.json``) with the after-state computed
+        incrementally to avoid the O(N^2) replay-per-event.  After the batch, the
+        real ``_rebuild_authority`` replays all 269 events and validates cleanly.
+
+    Asserts:
+      1. ``evidence.json`` field set == ``_EVIDENCE_FIELDS`` (no ``output_form``).
+      2. ``build_output_form_aware_factory`` returns the capacity metadata (the
+         R3-A/R4-2 contract/factory verification that was previously written to
+         evidence and is now independently re-derivable from plan/matrix +
+         frozen contract SHA + input_dim).
+      3. The full authority replay after recording is clean (``status_run``
+         succeeds, 135 succeeded / 0 failed, ``test_access_count`` == 0).
+      4. ATTACK: manually adding ``output_form`` to a subsequent fit's evidence
+         -> ``record_fit_succeeded`` raises the exact r1 crash message on the
+         real ``_validate_success_files`` -> ``_decode_exact`` path.
+
+    Workaround: the production fix is uncommitted in the working tree (this test
+    verifies it BEFORE commit).  The scheduler's ``_assert_scoped_code_clean``
+    would reject the dirty tree; it is skipped (the ``scoped_code_sha256`` still
+    binds the working-tree code, so the authority remains meaningful and
+    self-consistent across the materialize/rebuild pair)."""
+    from study02a import formal_scheduler
+    from study02a.formal_scheduler import (
+        materialize_run, claim_next_fit, record_fit_succeeded, status_run,
+        _EVIDENCE_FIELDS)
+    from study02a.models import IndependentContainer
+
+    # The fix is uncommitted; skip the dirty-tree guard (scoped_code_sha256 still
+    # binds the working tree, so the authority is self-consistent).
+    monkeypatch.setattr(
+        formal_scheduler, "_assert_scoped_code_clean", lambda study_root: None)
+    # Cache git/file-snapshot ops (code tree / matrix / HEAD are stable).
+    _snap_cache = {}
+    _rg, _rs, _rm = formal_scheduler._git_sha, formal_scheduler._scoped_code_snapshot, formal_scheduler._matrix_snapshot
+    monkeypatch.setattr(formal_scheduler, "_git_sha", lambda sr: _snap_cache.setdefault("g", _rg(sr)))
+    monkeypatch.setattr(formal_scheduler, "_scoped_code_snapshot", lambda sr: _snap_cache.setdefault("s", _rs(sr)))
+    monkeypatch.setattr(formal_scheduler, "_matrix_snapshot", lambda sr, mp: _snap_cache.setdefault("m", _rm(sr, mp)))
+
+    _install_small_data_pilot(monkeypatch)
+
+    # Real A-E1 predecessor (V winner) under the same artifact_root.
+    artifact_root = tmp_path / "artifact"
+    pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha = \
+        _publish_v_winning_a_e1_predecessor(artifact_root)
+    predecessor = _build_a_e1_pred_trace(
+        pred_run_dir, trace_sha, staged_ledger_path, staged_ledger_sha)
+    run_id = "r1reg-ae3-0001"
+    cache_root = tmp_path / "cache"
+    target_fit = "G3-fit-0483"  # the r1 crash site (first independent output_form)
+
+    # --- 1. Real materialize_run (A-E3 with C1 predecessor binding) ---
+    matrix_path = (STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix"
+                   / "experiment_matrix.csv").resolve()
+    materialize_run(
+        study_root=STUDY_ROOT, matrix_path=matrix_path, module_id="A-E3", run_id=run_id,
+        artifact_root=artifact_root, cache_root=cache_root, predecessor=predecessor)
+    run_dir = artifact_root / "A-E3" / run_id
+    manifest, plan, state, events = formal_scheduler._rebuild_authority(run_dir, cache_root)
+
+    # --- 2. Pre-publish the 6 staged receipts (deterministic score_fit) so the
+    # target's scoring plan-row resolver can recover the loss/stage2 winners. ---
+    _build_all_a_e3_staged_receipts(run_dir, cache_root, _a_e3_staged_score_fit(), run_id=run_id)
+
+    # --- 3. Batch-write the 134 prerequisite claim+record events (O(N) total) ---
+    prereq_rows = [row for row in plan if str(row["fit_id"]) != target_fit][:134]
+    assert len(prereq_rows) == 134, f"expected 134 prerequisites, got {len(prereq_rows)}"
+    assert prereq_rows[-1]["fit_id"] != target_fit
+    # G3-fit-0483 must be the next pending fit after the batch.
+    plan_after = [row for row in plan if row["fit_id"] not in
+                  {str(r["fit_id"]) for r in prereq_rows}]
+    assert str(plan_after[0]["fit_id"]) == target_fit, (
+        f"expected {target_fit} as next pending; got {plan_after[0]['fit_id']}")
+    _r1_fast_batch_prerequisites(
+        run_dir, manifest, plan, state, events, prereq_rows,
+        owner_id="r1-batch", timestamp_fn=fe._utc_now)
+
+    # --- 4. REAL claim_next_fit for the target (replays all 269 events) ---
+    target_ts = fe._utc_now()
+    target_claim = claim_next_fit(
+        run_dir, cache_root=cache_root, owner_id="r1-target",
+        owner_nonce=hashlib.sha256(
+            f"r1-target:{target_ts}".encode("utf-8")).hexdigest()[:32],
+        timestamp=target_ts)
+    assert target_claim["status"] == "claimed", target_claim
+    assert target_claim["fit_id"] == target_fit, (
+        f"expected to claim {target_fit}; got {target_claim.get('fit_id')}")
+
+    # --- 5. Resolve the target's scoring row (recovers loss/stage2 winners) ---
+    matrix_by_fit = fe._authoritative_matrix_by_fit(STUDY_ROOT)
+    plan_by_fit = fe._validate_plan_against_matrix(
+        plan_rows=plan, matrix_by_fit=matrix_by_fit, module_id="A-E3")
+    predecessor_resolved_route = fe._a_e3_resolved_baseline_route_from_manifest(run_dir)
+    resolved_row = fe._resolve_a_e3_scoring_plan_row(
+        run_dir=run_dir, run_id=run_id, fit_id=target_fit,
+        matrix_by_fit=matrix_by_fit, plan_by_fit=plan_by_fit,
+        predecessor_resolved_route=predecessor_resolved_route)
+
+    # --- 6. REAL execute_claimed_fit (the fix under test) ---
+    frozen = load_frozen_config(STUDY_ROOT)
+    effective = load_effective_formal_config(STUDY_ROOT)
+    result = fe.execute_claimed_fit(
+        study_root=STUDY_ROOT, run_dir=run_dir, cache_root=cache_root,
+        plan_row=resolved_row, claim=target_claim, frozen=frozen,
+        effective=effective, timestamp=target_ts)
+    assert result["state"] == "succeeded", (
+        f"target fit did not succeed through real execute_claimed_fit: {result}")
+
+    # ===== Assertions =====
+
+    # --- (1) evidence.json field set == _EVIDENCE_FIELDS (no output_form) ---
+    evidence_path = run_dir / "outputs" / target_fit / "evidence.json"
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    assert set(evidence) == _EVIDENCE_FIELDS, (
+        f"evidence has extra fields: {set(evidence) - _EVIDENCE_FIELDS!r}; "
+        f"missing: {_EVIDENCE_FIELDS - set(evidence)!r}")
+    assert "output_form" not in evidence, (
+        "evidence.json must NOT carry output_form (the r1 bug); the fix removed it")
+
+    # --- (2) contract/factory metadata independently re-derivable ---
+    output_form = fe.output_form_from_route(str(resolved_row["route"]))
+    assert output_form == "independent_capacity_matched", output_form
+    factory, metadata = fe.build_output_form_aware_factory(
+        str(resolved_row["architecture"]), output_form, frozen, 15)
+    model = factory()
+    assert isinstance(model, IndependentContainer), (
+        f"expected IndependentContainer, got {type(model).__name__}")
+    assert metadata is not None, "independent arm metadata must be non-None"
+    expected_keys = {
+        "joint_architecture_id", "joint_widths", "independent_widths",
+        "joint_trainable_parameters", "independent_trainable_parameters",
+        "ceiling", "selection_rule",
+    }
+    assert expected_keys <= set(metadata), (
+        f"metadata missing keys: {expected_keys - set(metadata)!r}")
+    _, metadata_replay = fe.build_output_form_aware_factory(
+        str(resolved_row["architecture"]), output_form, frozen, 15)
+    assert metadata == metadata_replay, (
+        "contract metadata must be deterministic for independent re-verification")
+
+    # --- (3) full authority replay is clean (no drift, tac=0) ---
+    stat = status_run(run_dir, cache_root=cache_root)
+    assert stat["counts"]["succeeded"] == 135, stat
+    assert stat["counts"]["failed"] == 0, stat
+    assert stat["counts"]["pending"] == 131, stat  # 266 total - 135 succeeded
+    assert stat["test_access_count"] == 0, stat
+
+    # --- (4) ATTACK: extra output_form field -> record_fit_succeeded raises ---
+    attack_ts = fe._utc_now()
+    attack_claim = claim_next_fit(
+        run_dir, cache_root=cache_root, owner_id="attack",
+        owner_nonce=hashlib.sha256(
+            f"attack:{attack_ts}".encode("utf-8")).hexdigest()[:32],
+        timestamp=attack_ts)
+    assert attack_claim["status"] == "claimed", attack_claim
+    attack_fit = attack_claim["fit_id"]
+    attack_checkpoint = b"attack-checkpoint"
+    attack_sha = hashlib.sha256(attack_checkpoint).hexdigest()
+    attack_curve = [100.0 / (i + 1) for i in range(60)]
+    attack_evidence = {
+        "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": attack_fit,
+        "run_id": run_id, "checkpoint_sha256": attack_sha,
+        "actual_epochs": 60,
+        "best_epoch_one_based": min(range(60), key=lambda i: attack_curve[i]) + 1,
+        "hit_epoch_100": False, "early_stop_reason": "patience_exhausted",
+        "terminal_validation_slope": fe._terminal_ols_slope(attack_curve),
+        "validation_curve": attack_curve, "test_access_count": 0,
+        # THE ATTACK: this is the exact extra field the r1 bug wrote.
+        "output_form": {"joint_architecture_id": str(resolved_row["architecture"])},
+    }
+    attack_hashes = fe._write_outputs(
+        run_dir, attack_fit, run_id, attack_checkpoint, attack_sha, attack_evidence)
+    with pytest.raises(
+            ValueError,
+            match="fit evidence output must match its exact canonical schema"):
+        record_fit_succeeded(
+            run_dir, cache_root=cache_root, fit_id=attack_fit,
+            owner_id="attack", owner_nonce=attack_claim["owner_nonce"],
+            output_hashes=attack_hashes, timestamp=attack_ts)
+
+
+def test_a_e3_r1_evidence_extra_output_form_field_rejected_by_decode_exact(tmp_path, monkeypatch):
+    """Focused fail-closed attack (fast): the real ``record_fit_succeeded`` ->
+    ``_validate_success_files`` -> ``_decode_exact`` path rejects evidence.json
+    carrying ANY extra field (``output_form`` in particular) with the exact r1
+    crash message ``fit evidence output must match its exact canonical schema``.
+
+    Uses a minimal A-E1 materialize (no predecessor, no staging) -- the evidence
+    schema is frozen scheduler-wide (``_EVIDENCE_FIELDS`` is module-level, not
+    per-module), so an A-E1 fit exercises the same ``_decode_exact`` rejection
+    as an A-E3 independent output_form fit.  The production fix is uncommitted;
+    ``_assert_scoped_code_clean`` is skipped (see the slow regression test for
+    the full rationale)."""
+    from study02a import formal_scheduler
+    from study02a.formal_scheduler import (
+        materialize_run, claim_next_fit, record_fit_succeeded)
+    monkeypatch.setattr(
+        formal_scheduler, "_assert_scoped_code_clean", lambda study_root: None)
+
+    matrix_path = (STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix"
+                   / "experiment_matrix.csv").resolve()
+    result = materialize_run(
+        study_root=STUDY_ROOT, matrix_path=matrix_path, module_id="A-E1",
+        run_id="attack-0001", artifact_root=tmp_path / "artifact",
+        cache_root=tmp_path / "cache", predecessor=None)
+    run_dir = Path(result["run_dir"])
+    cache = tmp_path / "cache"
+
+    claim = claim_next_fit(
+        run_dir, cache_root=cache, owner_id="attack",
+        owner_nonce="nonce-attack-0001", timestamp="2026-07-30T00:00:00Z")
+    assert claim["status"] == "claimed", claim
+    fit_id = claim["fit_id"]
+
+    # Evidence with the r1 extra field -- everything else is a valid canonical
+    # 11-field evidence, so the ONLY rejection reason is the extra ``output_form``.
+    checkpoint = b"checkpoint-attack"
+    checkpoint_sha = hashlib.sha256(checkpoint).hexdigest()
+    curve = [100.0 / (i + 1) for i in range(60)]
+    evidence_with_extra = {
+        "evidence_version": "study02-formal-fit-evidence-v1", "fit_id": fit_id,
+        "run_id": claim["run_id"], "checkpoint_sha256": checkpoint_sha,
+        "actual_epochs": 60,
+        "best_epoch_one_based": min(range(60), key=lambda i: curve[i]) + 1,
+        "hit_epoch_100": False, "early_stop_reason": "patience_exhausted",
+        "terminal_validation_slope": fe._terminal_ols_slope(curve),
+        "validation_curve": curve, "test_access_count": 0,
+        "output_form": {"joint_architecture_id": "m05"},  # THE ATTACK
+    }
+    output_hashes = fe._write_outputs(
+        run_dir, fit_id, claim["run_id"], checkpoint, checkpoint_sha,
+        evidence_with_extra)
+
+    with pytest.raises(
+            ValueError,
+            match="fit evidence output must match its exact canonical schema"):
+        record_fit_succeeded(
+            run_dir, cache_root=cache, fit_id=fit_id, owner_id="attack",
+            owner_nonce="nonce-attack-0001", output_hashes=output_hashes,
+            timestamp="2026-07-30T00:01:00Z")
+
+    # The rejection is solely the extra field: the evidence WITHOUT ``output_form``
+    # is a valid canonical 11-field record (verified by re-encoding and comparing
+    # the field set to ``_EVIDENCE_FIELDS``). The 12-field attack payload has
+    # exactly one extra key, so ``_decode_exact``'s ``set(value) != fields`` check
+    # is the only possible rejection branch.
+    from study02a.formal_scheduler import _EVIDENCE_FIELDS
+    assert set(evidence_with_extra) - _EVIDENCE_FIELDS == {"output_form"}, (
+        "attack evidence must differ from canonical only by the output_form key")
+
