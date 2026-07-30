@@ -842,6 +842,15 @@ def verify_pre_seal_state(output_dir, auth_hashes):
             f"Pre-seal: output_dir drifted: {current_output} != {auth_hashes['output_dir']}"
         )
 
+    if list(cfg.ALL_TRACKS) != auth_hashes["tracks"]:
+        raise RuntimeError("Pre-seal: tracks drifted during execution")
+
+    if list(cfg.SEEDS) != auth_hashes["seeds"]:
+        raise RuntimeError("Pre-seal: seeds drifted during execution")
+
+    if cfg.APPROVED_PARENT_COMMIT != auth_hashes["approved_parent_commit"]:
+        raise RuntimeError("Pre-seal: approved_parent_commit drifted during execution")
+
 
 # ════════════════════════════════════════════════════════════════════════
 # MDM parameter rebuild (P4-R6: track-specific namespace)
@@ -1185,12 +1194,18 @@ def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
 
     allowed_prefixes = ("manifest.json", "run.lock", "checkpoint_", "SHA256SUMS")
     allowed_dirs = set(tracks)
+    allowed_track_files = {"estimation.csv", "evaluation.csv", "results.json", "sample_hash_receipt.json"}
     for f in output_path.rglob("*"):
         if not f.is_file():
             continue
         rel = f.relative_to(output_path).as_posix()
         top_dir = rel.split("/")[0] if "/" in rel else rel
         if top_dir in allowed_dirs:
+            fname = f.name
+            if fname.startswith("checkpoint_"):
+                continue
+            if fname not in allowed_track_files:
+                raise RuntimeError(f"Resume: unknown file in track dir: {rel}")
             continue
         if any(rel.startswith(p) for p in allowed_prefixes):
             continue
@@ -1294,28 +1309,42 @@ def _remove_checkpoints(output_dir):
         cp.unlink()
 
 
-def _verify_p2_sample_hashes(df_track, seed_namespace):
+def _verify_p2_sample_hashes(df_track, seed_namespace, expected_key_count=None):
     """Verify ALL reconstructed P2 samples match sealed per-sample hashes (P4-R6).
 
-    STRICT: every unique sample key MUST have exactly one valid 64-char SHA256.
-    No silent skipping of empty/nan/short hashes. Raises on any missing or
-    inconsistent hash. Returns a receipt dict for sealing.
+    STRICT requirements:
+    - sample_sha256 column MUST exist
+    - Every unique sample key MUST have exactly one valid 64-char SHA256
+    - All rows with the same key MUST have the same hash (consistency)
+    - No silent skipping of empty/nan/short hashes
+    - If expected_key_count is provided, verified count must match
+    Returns a receipt dict for sealing.
     """
+    if "sample_sha256" not in df_track.columns:
+        raise RuntimeError(
+            "P2 sample hash verification: sample_sha256 column missing. "
+            "Cannot proceed without sealed hashes."
+        )
+
     checked = 0
     seen_keys = {}
     missing_hash_keys = []
+    inconsistent_keys = []
 
     for _, row in df_track.iterrows():
         key = (row["beta"], row["gamma_over_eta"], int(row["n"]), int(row["repeat_id"]))
-        if key in seen_keys:
-            continue
-
         expected = row.get("sample_sha256")
         expected_str = str(expected) if expected is not None else ""
 
         if not expected or expected_str == "nan" or len(expected_str) != 64:
-            missing_hash_keys.append(key)
-            seen_keys[key] = None
+            if key not in seen_keys:
+                missing_hash_keys.append(key)
+                seen_keys[key] = None
+            continue
+
+        if key in seen_keys:
+            if seen_keys[key] is not None and seen_keys[key] != expected_str:
+                inconsistent_keys.append(key)
             continue
 
         seen_keys[key] = expected_str
@@ -1331,11 +1360,24 @@ def _verify_p2_sample_hashes(df_track, seed_namespace):
             f"SHA256 (e.g. {missing_hash_keys[:3]}). All keys must have sealed hashes."
         )
 
+    if inconsistent_keys:
+        raise RuntimeError(
+            f"P2 sample hash verification: {len(inconsistent_keys)} keys have "
+            f"inconsistent hashes across rows (e.g. {inconsistent_keys[:3]})."
+        )
+
     if checked == 0:
         raise RuntimeError("P2 sample hash verification: no samples to verify")
 
+    if expected_key_count is not None and checked != expected_key_count:
+        raise RuntimeError(
+            f"P2 sample hash verification: verified {checked} keys but expected "
+            f"{expected_key_count}. Possible missing or extra samples."
+        )
+
     receipt = {
         "verified_samples": checked,
+        "expected_key_count": expected_key_count,
         "total_unique_keys": len(seen_keys),
         "seed_namespace": seed_namespace,
         "status": "all_verified",
@@ -1447,12 +1489,10 @@ def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume,
 
     samples_df = df_track.drop_duplicates(SAMPLE_KEY_COLS)
 
-    hash_receipt = None
-    if "sample_sha256" in df_track.columns:
-        hash_receipt = _verify_p2_sample_hashes(df_track, ns)
-        receipt_dir = Path(output_dir) / track
-        receipt_dir.mkdir(parents=True, exist_ok=True)
-        atomic_write_json(hash_receipt, receipt_dir / "sample_hash_receipt.json")
+    hash_receipt = _verify_p2_sample_hashes(df_track, ns)
+    receipt_dir = Path(output_dir) / track
+    receipt_dir.mkdir(parents=True, exist_ok=True)
+    atomic_write_json(hash_receipt, receipt_dir / "sample_hash_receipt.json")
 
     est_rows = []
     for method in cfg.TRADITIONAL_METHODS:

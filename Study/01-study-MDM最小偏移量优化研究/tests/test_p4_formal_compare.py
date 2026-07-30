@@ -1399,3 +1399,61 @@ class TestResumeUnknownFiles:
                 "config_sha256": "b" * 64, "approved_parent_commit": "new_parent"}
         with pytest.raises(RuntimeError, match="approved_parent_commit"):
             p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+    def test_resume_rejects_nested_unknown_file(self, tmp_path):
+        """Resume rejects unknown files inside track subdirectories."""
+        manifest = {"git_commit": "abc", "script_sha256": "a" * 64,
+                    "config_sha256": "b" * 64, "tracks": list(cfg.ALL_TRACKS),
+                    "seeds": list(cfg.SEEDS), "p4_formal_authorized": True,
+                    "approved_parent_commit": "parent1"}
+        p4.atomic_write_json(manifest, tmp_path / "manifest.json")
+        track_dir = tmp_path / "param_interp"
+        track_dir.mkdir()
+        (track_dir / "unknown.bin").write_text("junk")
+        auth = {"start_head": "abc", "script_sha256": "a" * 64,
+                "config_sha256": "b" * 64, "approved_parent_commit": "parent1"}
+        with pytest.raises(RuntimeError, match="unknown file in track dir"):
+            p4._validate_resume_manifest(tmp_path, auth, cfg.ALL_TRACKS, cfg.SEEDS)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 29. P4-R6 negative: duplicate hash inconsistency + missing column
+# ════════════════════════════════════════════════════════════════════════
+
+class TestP2HashDuplicateAndColumn:
+    def test_rejects_inconsistent_duplicate_hash(self):
+        """Same key with different hashes across rows raises."""
+        h1 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_p2_v1")
+        df = pd.DataFrame({
+            "beta": [2.0, 2.0],
+            "gamma_over_eta": [0.5, 0.5],
+            "n": [10, 10],
+            "repeat_id": [0, 0],
+            "sample_sha256": [h1, "b" * 64],
+        })
+        with pytest.raises(RuntimeError, match="inconsistent"):
+            p4._verify_p2_sample_hashes(df, "study01_p2_v1")
+
+    def test_rejects_missing_column(self):
+        """Raises if sample_sha256 column is absent."""
+        df = pd.DataFrame({
+            "beta": [2.0],
+            "gamma_over_eta": [0.5],
+            "n": [10],
+            "repeat_id": [0],
+        })
+        with pytest.raises(RuntimeError, match="column missing"):
+            p4._verify_p2_sample_hashes(df, "study01_p2_v1")
+
+    def test_rejects_wrong_key_count(self):
+        """Raises if verified count doesn't match expected_key_count."""
+        h1 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_p2_v1")
+        df = pd.DataFrame({
+            "beta": [2.0],
+            "gamma_over_eta": [0.5],
+            "n": [10],
+            "repeat_id": [0],
+            "sample_sha256": [h1],
+        })
+        with pytest.raises(RuntimeError, match="expected"):
+            p4._verify_p2_sample_hashes(df, "study01_p2_v1", expected_key_count=99)
