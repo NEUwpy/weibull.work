@@ -124,6 +124,7 @@ train_keys_set = set(zip(
 ))
 
 # Pivot risk curves to long format for Vector-MLP training
+# Include all SAMPLE_KEYS so _pivot_risk_vectors can find them
 loss_long = []
 for _, row in df_risk.iterrows():
     key = (float(row["beta"]), float(row["gamma_over_eta"]), int(row["n"]), int(row["repeat_id"]))
@@ -134,18 +135,26 @@ for _, row in df_risk.iterrows():
             if np.isnan(val):
                 val = fold_penalty
             loss_long.append({
-                "beta": key[0], "gamma_over_eta": key[1], "n": key[2], "repeat_id": key[3],
+                "beta": key[0], "eta": 1.0, "gamma": key[1] * 1.0,
+                "gamma_over_eta": key[1], "n": key[2], "repeat_id": key[3],
                 "delta": d, "loss": val,
             })
 df_loss_long = pd.DataFrame(loss_long)
 
-# Merge features into loss table (rename feature n to avoid collision)
-df_train_feats_for_merge = df_train_feats[["beta", "gamma_over_eta", "n", "repeat_id"] + e4.SAMPLE_FEATURE_COLS].copy()
+# Merge features into loss table
+# Note: 'n' is both a merge key and a feature col (sample size).
+# Remove it from the feature list to avoid column collision.
+feat_cols_no_n = [c for c in e4.SAMPLE_FEATURE_COLS if c != "n"]
+df_train_feats_for_merge = df_train_feats[
+    ["beta", "gamma_over_eta", "n", "repeat_id"] + feat_cols_no_n
+].copy()
 df_loss_merged = df_loss_long.merge(
     df_train_feats_for_merge,
     on=["beta", "gamma_over_eta", "n", "repeat_id"],
-    suffixes=("", "_feat"),
 )
+# _pivot_risk_vectors internally removes SAMPLE_FEATURE_COLS that are in
+# SAMPLE_KEYS (including 'n'), so no manual n_feat needed.
+
 
 # Pivot to 26-dim risk vectors
 samples_df, Y_vector = e4._pivot_risk_vectors(df_loss_merged, "loss", fold_penalty)
