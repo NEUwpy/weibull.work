@@ -17,10 +17,11 @@ OUTPUT_TRANSFORM = "softplus_softplus_relu"
 OUTPUT_PARAMS = ["beta_hat", "eta_hat", "gamma_hat"]
 OUTPUT_CONSTRAINTS = {"beta_gt_0": True, "eta_gt_0": True, "gamma_ge_0": True}
 
-# ── Training target ────────────────────────────────────────────────────
-# Direct-MLP regresses on TRUE (beta, eta, gamma) — not on risk curves.
-# The per-sample loss uses the same J1 parameter-normalization scale:
-#   ell = ((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2
+# ── Target encoding ────────────────────────────────────────────────────
+# Training targets are inverse-softplus encoded so that a perfect network
+# prediction decodes back to exactly the true params:
+#   softplus(inverse_softplus(beta)) = beta  (exact identity)
+TARGET_ENCODING = "inverse_softplus_for_positive_params"
 TARGET_PARAMS = ["beta", "eta", "gamma"]
 
 # ── Target scaling ─────────────────────────────────────────────────────
@@ -92,6 +93,7 @@ def production_contract() -> dict:
         "output_transform": OUTPUT_TRANSFORM,
         "output_params": OUTPUT_PARAMS,
         "output_constraints": OUTPUT_CONSTRAINTS,
+        "target_encoding": TARGET_ENCODING,
         "target_params": TARGET_PARAMS,
         "target_scaler": TARGET_SCALER,
         "hidden_layers": DIRECT_MLP_HIDDEN_LAYERS,
