@@ -159,9 +159,12 @@ def resolve_model_factory(
       output_form arms are a contrastive control.
 
     The capacity selection (which m0X architecture the independent container is
-    built from) is deterministic in ``(architecture_id, input_dim, frozen)``; the
-    selection metadata is available via :func:`build_output_form_aware_factory` for
-    evidence recording.
+    built from) is deterministic in ``(architecture_id, input_dim, frozen)``;
+    the deterministic capacity metadata is available from
+    :func:`build_output_form_aware_factory` for independent unit verification but
+    is never recorded in fit evidence (the model is rebuilt at load time by
+    re-deriving widths from the same plan/matrix route + frozen contract +
+    ``input_dim``).
     """
     _require(isinstance(architecture_id, str) and architecture_id, "architecture id is required")
     if output_form is not None and output_form not in {"joint", "independent_capacity_matched"}:
@@ -620,11 +623,7 @@ class _PreparedFit:
     batch through this path so the L_param is computed on the exact scaled
     validation set the fit trained against — no drift between training and
     selection. ``validation_metadata`` carries the per-row stable pairing ids
-    (sample_id / point_id) the CI rules cluster on. ``output_form_evidence`` carries
-    the A-E3 output-form capacity-selection metadata (joint/independent architecture
-    ids, exact parameter counts, capacity selection) for independent unit verification;
-    it is NOT written to fit evidence v1 (scheduler schema is frozen). ``None`` for
-    non-output-form fits.
+    (sample_id / point_id) the CI rules cluster on.
     """
 
     scaled_training: FormalDataset
@@ -635,7 +634,6 @@ class _PreparedFit:
     hyperparams: Mapping[str, Any]
     loss_id: str
     is_set: bool
-    output_form_evidence: Mapping[str, Any] | None = None
 
 
 def _prepare_fit_inputs(
@@ -683,13 +681,16 @@ def _prepare_fit_inputs(
         # No output_form suffix -> the standard architecture resolver (MLP, DeepSets,
         # historical, etc.). The output_form contract is not engaged.
         model_factory = resolve_model_factory(str(plan_row["architecture"]), frozen, input_dim)
-        output_form_evidence = None
     else:
         # output_form suffix present (joint/independent_capacity_matched) -> route
         # through the SHA-bound output_form contract. The architecture is always an
         # m-prefix MLP id for output_form fits (F2_or_V route), so the contract
-        # module's MLP-only lookup is correct here.
-        model_factory, output_form_evidence = build_output_form_aware_factory(
+        # module's MLP-only lookup is correct here. The deterministic capacity
+        # metadata returned by build_output_form_aware_factory is intentionally
+        # dropped: it is independently re-derivable from the plan/matrix route +
+        # frozen contract + input_dim (see output_form_contract.py) and is NOT
+        # part of fit evidence (the scheduler _EVIDENCE_FIELDS schema is frozen).
+        model_factory, _metadata = build_output_form_aware_factory(
             str(plan_row["architecture"]), output_form, frozen, int(input_dim),
         )
     hyperparams = resolve_optimizer_hyperparams(str(plan_row["optimizer"]), frozen)
@@ -697,7 +698,6 @@ def _prepare_fit_inputs(
     return _PreparedFit(
         scaled_training, scaled_validation, tuple(validation_dataset.metadata),
         validation_dataset.dataset_hash, model_factory, hyperparams, loss_id, is_set,
-        output_form_evidence=output_form_evidence,
     )
 
 

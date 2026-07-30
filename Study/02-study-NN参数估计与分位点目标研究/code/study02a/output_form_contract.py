@@ -41,9 +41,18 @@ The contract dicts are SHA-bound: :data:`CONTRACT_SHA256` (the active v2 SHA) an
 :data:`CONTRACT_V1_SHA256` are each the SHA-256 of the canonical JSON of their
 contract dict and are validated at every load.
 :data:`formal_contracts.APPROVED_A_E3_OUTPUT_FORM_CONTRACT_V2_SHA256` mirrors the
-v2 SHA for cross-module authority; the A-E3 executor records the v2 SHA in every
-output_form fit's evidence so scoring / rebuild / test-consumer paths uniquely
-reconstruct the correct model factory from the bound evidence.
+v2 SHA for cross-module authority. The capacity-selection metadata returned by
+:func:`build_output_form_aware_factory` (joint/independent architecture ids,
+exact parameter counts, derived widths, v2 contract id + SHA) is NEVER written to
+fit evidence (``evidence.json``); it is a deterministic derivative of the
+authority-bound plan/matrix route + this frozen contract + the route's
+``input_dim``, and the model factory for any A-E3 output_form fit is rebuilt at
+load time by re-deriving widths from the same joint architecture + ``input_dim``
+through :func:`build_output_form_aware_factory` (the checkpoint is then loaded
+against that factory). Independent contract tests call
+:func:`build_output_form_aware_factory` directly to verify the deterministic
+metadata; the production scheduler path neither persists that metadata in fit
+evidence nor relies on it as an authoritative audit record.
 """
 
 from __future__ import annotations
@@ -414,11 +423,15 @@ def resolve_independent_capacity(
     5. Apply :func:`select_independent_capacity` (v2 rule: ``<= joint * 1.05`` and
        closest, tie: widths tuple lexicographic ascending).
 
-    Returns a metadata dict recorded in the fit evidence so scoring / rebuild /
-    test consumer uniquely reconstruct the factory without re-running the
-    selection (the rebuild path re-derives widths deterministically from the same
-    joint architecture + input_dim, so the evidence is a redundant audit record --
-    but it is the authoritative audit record).
+    Returns a metadata dict used by :func:`build_output_form_aware_factory` to
+    build the :class:`IndependentContainer` factory for the cell. The metadata is
+    a deterministic derivative of ``(joint_architecture_id, input_dim, frozen)``
+    and is independently re-derivable at any time by re-running this function
+    (or :func:`build_output_form_aware_factory`); it is NOT written to fit
+    evidence and is NOT an authoritative audit record. The model for an A-E3
+    output_form fit is rebuilt at load time by re-deriving widths from the same
+    authority-bound plan/matrix route + this frozen contract + the route's
+    ``input_dim``; the checkpoint is then loaded against that factory.
 
     v2 NEVER raises for a legitimate frozen joint architecture: the all-1s derived
     candidate is always present and its three-subnetwork total is strictly less
@@ -465,19 +478,25 @@ def resolve_independent_capacity(
 def build_output_form_aware_factory(
     architecture_id: str, output_form: str | None, frozen: Any, input_dim: int,
 ) -> tuple[Callable[[], nn.Module], dict[str, Any] | None]:
-    """Return ``(model_factory, evidence_metadata)`` for one A-E3 output_form cell.
+    """Return ``(model_factory, capacity_metadata)`` for one A-E3 output_form cell.
 
     * ``output_form`` is ``None`` or ``"joint"`` -> the joint 3-output MLP factory;
-      metadata is ``None`` (joint is the default; nothing to record beyond the
-      checkpoint itself).
+      ``capacity_metadata`` is ``None`` (joint is the default; nothing to record
+      beyond the checkpoint itself).
     * ``output_form == "independent_capacity_matched"`` -> the v2 capacity-selected
       :class:`IndependentContainer` factory (widths derived from the joint widths
-      via :func:`derive_independent_widths`); metadata records the joint
-      architecture, derived independent widths, exact parameter counts, the full
-      derived candidate set, and the v2 contract id + SHA so the evidence-binding
-      path (scoring / rebuild / test consumer) reconstructs the exact factory from
-      evidence alone (and can independently re-derive widths from the joint
-      architecture to detect drift).
+      via :func:`derive_independent_widths`); ``capacity_metadata`` records the
+      joint architecture, derived independent widths, exact parameter counts, the
+      full derived candidate set, and the v2 contract id + SHA.
+
+    The returned ``capacity_metadata`` is purely informational (used by the
+    independent contract tests in ``test_study02a_a_e3_output_form_contract.py``
+    to verify deterministic re-derivation). It is NEVER written to fit evidence
+    (``evidence.json``), is NOT an authoritative audit record, and the model
+    cannot be reconstructed from it alone. The model for an A-E3 output_form fit
+    is rebuilt at load time by re-running this factory with the same
+    authority-bound plan/matrix route + this frozen contract + the route's
+    ``input_dim``; the checkpoint is then loaded against the rebuilt model.
 
     The v2 contract SHA is validated on every call (fail-closed on tamper).
     """

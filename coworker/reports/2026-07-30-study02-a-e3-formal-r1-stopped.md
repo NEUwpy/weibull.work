@@ -1,9 +1,9 @@
 # Study/02 A-E3 Formal R1 — 停止报告（永久 blocked/aborted）
 
-> 分支：`codex/study02-a-e3-evidence-schema-fix-20260730`（from `cc2a9708`）
+> 分支：`codex/study02-a-e3-evidence-schema-fix-20260730`（from `cc2a9708`，tip `723e17ce`）
 > Run：`A-E3-formal-r1-20260729-214640`
 > 状态：**永久 blocked/aborted — r1 不恢复、不迁移、不拼接**
-> 修复分支未 commit（待 Codex review 后由 NEUwpy commit + push）
+> 修复分支状态：**awaiting Codex review**（待 review 后由 NEUwpy 决定 commit + push；**A-E3 formal r2 尚未授权**）
 
 ---
 
@@ -86,12 +86,12 @@ _EVIDENCE_FIELDS = {
 # + factory + capacity derivation remain independently unit-verified.
 ```
 
-- `output_form_contract.py`（contract v2 SHA + `derive_independent_widths` + `select_independent_capacity` + `resolve_independent_capacity`）：**不变**。
-- `build_output_form_aware_factory` 返回值（factory + metadata）：**不变**。
-- `_PreparedFit.output_form_evidence` 字段：保留（independent unit verification 仍可从 frozen contract + architecture + input_dim 确定性重建）。
+- `output_form_contract.py`（contract v2 SHA + `derive_independent_widths` + `select_independent_capacity` + `resolve_independent_capacity`）：contract/factory/capacity/SHA **不变**（仅修正 docstring 中"metadata 写入 evidence / 是 authoritative audit record / 可从 evidence alone 重建"等失真说明，改为"模型由 authority-bound plan/matrix route + 冻结 contract + input_dim 确定性重建；checkpoint 按该 factory 加载验证；metadata 不写入 evidence、非 authoritative audit record"）。
+- `build_output_form_aware_factory` 返回值（factory + metadata）：签名与返回 **不变**（独立合同测试 `test_study02a_a_e3_output_form_contract.py` 仍直接调用并验证确定性 metadata）。
+- `_PreparedFit.output_form_evidence` 字段：**删除**（无消费者；`execute_claimed_fit` 与 `_score_fit_from_checkpoint` 均不引用；`_prepare_fit_inputs` 不再保存该 metadata，metadata 在调用处即丢弃）。模型加载/重建不依赖该字段。
 - `_EVIDENCE_FIELDS`：**不变**（仍为 frozen 11-key exact-schema）。
 
-修复后：从新 SHA 创建 A-E3 formal r2，从零执行（不恢复 r1、不迁移 134 checkpoint）。
+修复后：在 Codex review 通过且用户显式授权 A-E3 formal r2 后，从新 SHA 创建 r2 从零执行（**r2 尚未授权**；不恢复 r1、不迁移 134 checkpoint）。
 
 ## 6. 现场 run dir 处置
 
@@ -117,6 +117,6 @@ _EVIDENCE_FIELDS = {
 
 ## 8. Codex 裁决
 
-- r1 **永久 blocked/aborted**：代码 REVISE（删 `evidence["output_form"]` 写入）。
+- r1 **永久 blocked/aborted**：代码 REVISE（删 `evidence["output_form"]` 写入 + 删无消费者的 `_PreparedFit.output_form_evidence` 字段 + 修正 `output_form_contract.py` 失真说明 + 删除测试中对 `_assert_scoped_code_clean` 的 monkeypatch 绕过）。
 - r1 run dir 保留为现场。
-- 修复后从新 SHA 创建 A-E3 formal r2 从零执行。
+- 在 Codex review 通过且用户显式授权后，从新 SHA 创建 A-E3 formal r2 从零执行（**r2 尚未授权**）。

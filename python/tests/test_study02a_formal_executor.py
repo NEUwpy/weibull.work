@@ -5179,22 +5179,17 @@ def test_a_e3_r1_evidence_schema_fix_independent_output_form_via_real_scheduler(
          -> ``record_fit_succeeded`` raises the exact r1 crash message on the
          real ``_validate_success_files`` -> ``_decode_exact`` path.
 
-    Workaround: the production fix is uncommitted in the working tree (this test
-    verifies it BEFORE commit).  The scheduler's ``_assert_scoped_code_clean``
-    would reject the dirty tree; it is skipped (the ``scoped_code_sha256`` still
-    binds the working-tree code, so the authority remains meaningful and
-    self-consistent across the materialize/rebuild pair)."""
+    No production guard is bypassed: ``materialize_run`` runs the real
+    ``_assert_scoped_code_clean`` preflight, so this test must be run on a clean
+    checkout (the r1 fix is committed at branch tip)."""
     from study02a import formal_scheduler
     from study02a.formal_scheduler import (
         materialize_run, claim_next_fit, record_fit_succeeded, status_run,
         _EVIDENCE_FIELDS)
     from study02a.models import IndependentContainer
 
-    # The fix is uncommitted; skip the dirty-tree guard (scoped_code_sha256 still
-    # binds the working tree, so the authority is self-consistent).
-    monkeypatch.setattr(
-        formal_scheduler, "_assert_scoped_code_clean", lambda study_root: None)
-    # Cache git/file-snapshot ops (code tree / matrix / HEAD are stable).
+    # Cache git/file-snapshot ops (code tree / matrix / HEAD are stable); these
+    # caches are performance-only and do not bypass any production guard.
     _snap_cache = {}
     _rg, _rs, _rm = formal_scheduler._git_sha, formal_scheduler._scoped_code_snapshot, formal_scheduler._matrix_snapshot
     monkeypatch.setattr(formal_scheduler, "_git_sha", lambda sr: _snap_cache.setdefault("g", _rg(sr)))
@@ -5352,14 +5347,14 @@ def test_a_e3_r1_evidence_extra_output_form_field_rejected_by_decode_exact(tmp_p
     Uses a minimal A-E1 materialize (no predecessor, no staging) -- the evidence
     schema is frozen scheduler-wide (``_EVIDENCE_FIELDS`` is module-level, not
     per-module), so an A-E1 fit exercises the same ``_decode_exact`` rejection
-    as an A-E3 independent output_form fit.  The production fix is uncommitted;
-    ``_assert_scoped_code_clean`` is skipped (see the slow regression test for
-    the full rationale)."""
+    as an A-E3 independent output_form fit.
+
+    No production guard is bypassed: ``materialize_run`` runs the real
+    ``_assert_scoped_code_clean`` preflight, so this test must be run on a clean
+    checkout (the r1 fix is committed at branch tip)."""
     from study02a import formal_scheduler
     from study02a.formal_scheduler import (
         materialize_run, claim_next_fit, record_fit_succeeded)
-    monkeypatch.setattr(
-        formal_scheduler, "_assert_scoped_code_clean", lambda study_root: None)
 
     matrix_path = (STUDY_ROOT / "artifacts" / "pilot" / "G3-matrix"
                    / "experiment_matrix.csv").resolve()
