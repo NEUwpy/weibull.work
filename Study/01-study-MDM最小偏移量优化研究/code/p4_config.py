@@ -4,6 +4,8 @@ This module holds ONLY P4-specific decisions:
 - Four evaluation tracks (frozen)
 - Six comparison methods (frozen)
 - Run matrix: what can be reused vs what must be computed fresh
+- Row count contract (frozen)
+- Authorization gates (both preflight and formal)
 
 All shared infrastructure (sample generation, Direct-MLP, Vector-MLP,
 traditional estimators, metrics, audit code) is imported from existing modules.
@@ -12,6 +14,9 @@ NO new experiment framework, NO second large pipeline.
 """
 
 from __future__ import annotations
+
+import os
+from pathlib import Path
 
 # ════════════════════════════════════════════════════════════════════════
 # Authorization gate — must remain False until independently authorized
@@ -32,35 +37,18 @@ P4_METHODS = [
     "WMLE",
 ]
 
-# Learning methods (need model-first aggregation: 5 folds × 3 seeds = 15 models)
 LEARNING_METHODS = ["MDM-Vector-MLP", "Direct-MLP"]
-
-# Traditional methods (single-run, no model variance)
 TRADITIONAL_METHODS = ["MDM-Default", "MLE", "LSE", "WMLE"]
+
+MDM_DEFAULT_DELTA = 0.1
 
 # ════════════════════════════════════════════════════════════════════════
 # Frozen evaluation tracks
 # ════════════════════════════════════════════════════════════════════════
 
-# Track 1: Main design domain combo holdout
-#   - 45 main-grid combos, 5-fold combo split holdout
-#   - Same folds and seeds as E3b/E4/P3
-#   - Source: E3b sample_features.csv + risk_curves.csv
 TRACK_MAIN_HOLDOUT = "main_holdout"
-
-# Track 2: Parameter interpolation (P2-PI)
-#   - 24 combos: beta∈{1.75,2.25,3.25,4.50} × goe∈{0.30,0.75} × n∈{7,10,20}
-#   - Source: P2 v2 baseline + vector per-sample (approved, 53932687)
 TRACK_PARAM_INTERP = "param_interp"
-
-# Track 3: Sample size interpolation (P2-NI)
-#   - 15 combos: beta∈{1.5,2.0,2.5,4.0,5.0} × goe∈{0.1,0.5,1.0} × n=15
-#   - Source: P2 v2 baseline + vector per-sample (approved, 53932687)
 TRACK_N_INTERP = "n_interp"
-
-# Track 4: Parameter/sample-size extrapolation diagnostics (E4d)
-#   - 34 off-grid combos from E4d, categorized into param-extrap / n-extrap / multi-axis
-#   - Source: E4d selector_extrapolation.csv (approved, P3b)
 TRACK_EXTRAP = "extrap_diag"
 
 ALL_TRACKS = [TRACK_MAIN_HOLDOUT, TRACK_PARAM_INTERP, TRACK_N_INTERP, TRACK_EXTRAP]
@@ -74,7 +62,6 @@ N_SEEDS = 3
 SEEDS = [42, 2026, 3407]
 N_MODELS = N_FOLDS * N_SEEDS  # 15
 
-# Repeats per combo for evaluation (same as all formal experiments)
 EVAL_REPEATS = 1000
 
 # ════════════════════════════════════════════════════════════════════════
@@ -91,13 +78,55 @@ E3B_SEALED_COMMIT = "bedd65a"
 # ════════════════════════════════════════════════════════════════════════
 
 INPUT_SHA256 = {
-    # Track 1 inputs (E3b sealed)
     "E3b_risk_curves_csv": "4b3ad2a3121af616f991b6d91cf15ede1b3f8670f9b97b6baf5527da9ac71ca5",
     "E3b_sample_features_csv": "75bb9a0619f1e04fc8e1cd80451fd5c5a199953f67793740edad06a5ea909e32",
-    # Track 2/3 inputs (P2 v2 approved)
     "P2_baseline_per_sample_csv": "09f419f02304011556d2640eaf794e00ba8ebf1b7bda2f5574d691d00ec94770",
     "P2_vector_per_sample_csv": "a882034bca1721141f7b4883b4c121efbd4f78f4c66bbc2256477993dc9fab66",
+    "E4d_selector_extrapolation_csv": "eb261ff65a46b7f8eaed0d8cfc4e6c4232b7ba2bfdd71dd5408bb32f4a66692b",
 }
+
+# ════════════════════════════════════════════════════════════════════════
+# Frozen row count contract
+# ════════════════════════════════════════════════════════════════════════
+#
+# Two-layer design:
+#   Layer 1 (estimation): each method produces one parameter estimate per
+#     physical sample (beta, gamma_over_eta, n, repeat_id).
+#     - Traditional methods: 1 row per sample, fold="all", seed="all".
+#     - Learning methods: 1 row per (sample, fold, seed) — 15 models.
+#   Layer 2 (evaluation): pairing broadcasts traditional rows to each
+#     (fold, seed) context; applies per-fold P99 penalty; model-first J1.
+#
+# Track 1 (main_holdout): 45 combos, 5-fold split → 9 test combos/fold
+#   Traditional: 45,000 rows (all samples, run once)
+#   Learning: 9,000 test samples/fold × 15 models = 135,000 rows
+# Track 2 (param_interp): 24 combos × 1000 repeats = 24,000 samples
+#   Traditional: 24,000 rows
+#   Learning: 24,000 × 15 = 360,000 rows
+# Track 3 (n_interp): 15 combos × 1000 repeats = 15,000 samples
+#   Traditional: 15,000 rows
+#   Learning: 15,000 × 15 = 225,000 rows
+# Track 4 (extrap_diag): E4d combos (varying repeats)
+#   Computed at runtime from sealed E4d file; verified against SHA256.
+
+ROW_COUNT_CONTRACT = {
+    TRACK_MAIN_HOLDOUT: {"traditional": 45000, "learning_per_model": 9000, "learning_total": 135000},
+    TRACK_PARAM_INTERP: {"traditional": 24000, "learning_per_model": 24000, "learning_total": 360000},
+    TRACK_N_INTERP: {"traditional": 15000, "learning_per_model": 15000, "learning_total": 225000},
+    TRACK_EXTRAP: {"traditional": "runtime", "learning_per_model": "runtime", "learning_total": "runtime"},
+}
+
+TRADITIONAL_FOLD_LABEL = "all"
+TRADITIONAL_SEED_LABEL = "all"
+
+
+def expected_rows(track, method):
+    """Return expected row count for a track×method cell."""
+    contract = ROW_COUNT_CONTRACT[track]
+    if method in LEARNING_METHODS:
+        return contract["learning_total"]
+    return contract["traditional"]
+
 
 # ════════════════════════════════════════════════════════════════════════
 # Run matrix: track × method → reuse / compute
@@ -106,151 +135,127 @@ INPUT_SHA256 = {
 def run_matrix():
     """Return the track × method reuse/missing matrix.
 
-    For each cell:
-    - sample_key_source: where sample keys come from
-    - true_param_source: where true params come from
-    - reusable_artifact: existing approved artifact (or None)
-    - missing_compute: what must be freshly computed
-    - folds_seeds: learning config (or None for traditional)
-    - penalty_source: where failure penalty comes from
-    - expected_rows: expected per-sample row count
+    Key correction: E3b/P2 artifacts store selected_delta and true_loss but
+    NOT beta_hat/eta_hat/gamma_hat. MDM-Default and MDM-Vector-MLP must
+    REBUILD 3-param estimates by regenerating the same sample and running
+    MDM with the sealed delta.
     """
     matrix = {}
 
-    # ── Track 1: main_holdout × 6 methods ─────────────────────────────
-    # 45 combos × 1000 repeats = 45,000 samples
-    # Traditional: 45,000 rows each
-    # Learning: 15 models × 9 test combos × 1000 repeats = 135,000 rows each
     for method in P4_METHODS:
         is_learning = method in LEARNING_METHODS
+
         if method == "MDM-Default":
-            reusable = "E3b risk_curves.csv loss_d0.10 column (reuse as-is)"
-            missing = "None — read loss_d0.10 from risk_curves.csv"
-            exp_rows = 45000
+            reusable = "E3b sample keys + true params (read-only)"
+            missing = (
+                "Rebuild: regenerate same samples, run MDM(δ=0.1) → beta_hat/eta_hat/gamma_hat. "
+                "E3b risk_curves.csv loss_d0.10 provides J1 but NOT 3-param estimates."
+            )
         elif method == "MDM-Vector-MLP":
-            reusable = "E3b vector_mlp_results (15 models, selected_delta + true_loss)"
-            missing = "None — reuse E3b Vector-MLP per-sample results"
-            exp_rows = 45000  # per model, 15 models total → model-first
+            reusable = "E3b/E4d sealed selected_delta per (fold, seed, sample_key)"
+            missing = (
+                "Rebuild: regenerate same samples, run MDM(sealed selected_delta) → "
+                "beta_hat/eta_hat/gamma_hat. Existing artifacts have loss only."
+            )
         elif method == "Direct-MLP":
-            reusable = None
-            missing = "Train 15 Direct-MLP models (5 folds × 3 seeds), evaluate on test combos"
-            exp_rows = 45000  # per model, 15 models total → model-first
+            reusable = "P3 approved architecture + training code (run_p3_direct_mlp.py)"
+            missing = "Train 15 models (5 folds × 3 seeds), predict → beta_hat/eta_hat/gamma_hat"
         elif method in ("MLE", "LSE", "WMLE"):
-            reusable = None
-            missing = f"Run {method} on 45,000 samples via run_method()"
-            exp_rows = 45000
+            reusable = "Production estimator via run_method()"
+            missing = f"Run {method} on all samples → beta_hat/eta_hat/gamma_hat"
+
+        exp = expected_rows(TRACK_MAIN_HOLDOUT, method)
 
         matrix[(TRACK_MAIN_HOLDOUT, method)] = {
             "sample_key_source": "E3b sample_features.csv: (beta, gamma_over_eta, n, repeat_id)",
-            "true_param_source": "E3b sample_features.csv: beta, eta, gamma columns",
+            "true_param_source": "E3b sample_features.csv: beta, eta=1.0, gamma=goe*eta",
             "reusable_artifact": reusable,
             "missing_compute": missing,
-            "folds_seeds": f"{N_FOLDS} folds × {N_SEEDS} seeds = {N_MODELS} models" if is_learning else None,
+            "folds_seeds": f"{N_FOLDS}×{N_SEEDS}={N_MODELS}" if is_learning else None,
             "penalty_source": "Per-fold P99 of 26-delta training losses (E3b risk_curves.csv)",
-            "expected_rows": exp_rows,
+            "expected_rows": exp,
             "input_sha256": INPUT_SHA256["E3b_risk_curves_csv"],
-            "approved_commit": E3B_SEALED_COMMIT if reusable else BASELINE_COMMIT,
+            "approved_commit": E3B_SEALED_COMMIT,
         }
 
-    # ── Track 2: param_interp (P2-PI) × 6 methods ────────────────────
-    # 24 combos × 1000 repeats = 24,000 samples
     for method in P4_METHODS:
         is_learning = method in LEARNING_METHODS
         if method == "MDM-Default":
-            reusable = "P2 v2 baseline per-sample (Default, P2-PI track)"
-            missing = "None — reuse approved P2 baseline"
-            exp_rows = 24000
+            reusable = "P2 sample keys + true params (read-only)"
+            missing = "Rebuild: run MDM(δ=0.1) on P2-PI samples → 3-param estimates"
         elif method == "MDM-Vector-MLP":
-            reusable = "P2 v2 vector per-sample (P2-PI track, 15 models)"
-            missing = "None — reuse approved P2 vector results"
-            exp_rows = 24000  # per model
+            reusable = "P2 vector sealed selected_delta"
+            missing = "Rebuild: run MDM(sealed delta) on P2-PI samples → 3-param estimates"
         elif method == "Direct-MLP":
-            reusable = None
-            missing = "Evaluate 15 frozen Direct-MLP models on P2-PI samples"
-            exp_rows = 24000  # per model
+            reusable = "P3 training code"
+            missing = "Train 15 models, evaluate on P2-PI samples"
         elif method in ("MLE", "LSE", "WMLE"):
-            reusable = None
-            missing = f"Run {method} on 24,000 P2-PI samples via run_method()"
-            exp_rows = 24000
+            reusable = "Production estimator"
+            missing = f"Run {method} on P2-PI samples"
 
         matrix[(TRACK_PARAM_INTERP, method)] = {
-            "sample_key_source": "P2 baseline: (beta, gamma_over_eta, n, repeat_id) for P2-PI track",
+            "sample_key_source": "P2 baseline: (beta, gamma_over_eta, n, repeat_id) for P2-PI",
             "true_param_source": "P2 baseline: beta, eta, gamma columns",
             "reusable_artifact": reusable,
             "missing_compute": missing,
-            "folds_seeds": f"{N_FOLDS} folds × {N_SEEDS} seeds = {N_MODELS} models" if is_learning else None,
+            "folds_seeds": f"{N_FOLDS}×{N_SEEDS}={N_MODELS}" if is_learning else None,
             "penalty_source": "Per-fold P99 (same frozen folds as main grid)",
-            "expected_rows": exp_rows,
+            "expected_rows": expected_rows(TRACK_PARAM_INTERP, method),
             "input_sha256": INPUT_SHA256["P2_baseline_per_sample_csv"],
-            "approved_commit": P2_APPROVED_COMMIT if reusable else BASELINE_COMMIT,
+            "approved_commit": P2_APPROVED_COMMIT,
         }
 
-    # ── Track 3: n_interp (P2-NI) × 6 methods ────────────────────────
-    # 15 combos × 1000 repeats = 15,000 samples
     for method in P4_METHODS:
         is_learning = method in LEARNING_METHODS
         if method == "MDM-Default":
-            reusable = "P2 v2 baseline per-sample (Default, P2-NI track)"
-            missing = "None — reuse approved P2 baseline"
-            exp_rows = 15000
+            reusable = "P2 sample keys + true params (read-only)"
+            missing = "Rebuild: run MDM(δ=0.1) on P2-NI samples → 3-param estimates"
         elif method == "MDM-Vector-MLP":
-            reusable = "P2 v2 vector per-sample (P2-NI track, 15 models)"
-            missing = "None — reuse approved P2 vector results"
-            exp_rows = 15000  # per model
+            reusable = "P2 vector sealed selected_delta"
+            missing = "Rebuild: run MDM(sealed delta) on P2-NI samples → 3-param estimates"
         elif method == "Direct-MLP":
-            reusable = None
-            missing = "Evaluate 15 frozen Direct-MLP models on P2-NI samples"
-            exp_rows = 15000  # per model
+            reusable = "P3 training code"
+            missing = "Train 15 models, evaluate on P2-NI samples"
         elif method in ("MLE", "LSE", "WMLE"):
-            reusable = None
-            missing = f"Run {method} on 15,000 P2-NI samples via run_method()"
-            exp_rows = 15000
+            reusable = "Production estimator"
+            missing = f"Run {method} on P2-NI samples"
 
         matrix[(TRACK_N_INTERP, method)] = {
-            "sample_key_source": "P2 baseline: (beta, gamma_over_eta, n, repeat_id) for P2-NI track",
+            "sample_key_source": "P2 baseline: (beta, gamma_over_eta, n, repeat_id) for P2-NI",
             "true_param_source": "P2 baseline: beta, eta, gamma columns",
             "reusable_artifact": reusable,
             "missing_compute": missing,
-            "folds_seeds": f"{N_FOLDS} folds × {N_SEEDS} seeds = {N_MODELS} models" if is_learning else None,
+            "folds_seeds": f"{N_FOLDS}×{N_SEEDS}={N_MODELS}" if is_learning else None,
             "penalty_source": "Per-fold P99 (same frozen folds as main grid)",
-            "expected_rows": exp_rows,
+            "expected_rows": expected_rows(TRACK_N_INTERP, method),
             "input_sha256": INPUT_SHA256["P2_baseline_per_sample_csv"],
-            "approved_commit": P2_APPROVED_COMMIT if reusable else BASELINE_COMMIT,
+            "approved_commit": P2_APPROVED_COMMIT,
         }
 
-    # ── Track 4: extrap_diag (E4d) × 6 methods ───────────────────────
-    # 34 off-grid combos, categorized by extrapolation axis
-    # Traditional: run on all 34 combos
-    # Learning: evaluate 15 frozen models on all 34 combos
-    # NOTE: E4d combos have varying repeats (not all 1000)
     for method in P4_METHODS:
         is_learning = method in LEARNING_METHODS
         if method == "MDM-Default":
-            reusable = None  # E4d has Vector-MLP selected_delta but not Default per-sample
-            missing = "Run MDM-Default (delta=0.1) on all E4d off-grid samples"
-            exp_rows = "varies (E4d combos have different repeats)"
+            reusable = "E4d sample keys (read-only)"
+            missing = "Rebuild: run MDM(δ=0.1) on E4d off-grid samples → 3-param estimates"
         elif method == "MDM-Vector-MLP":
-            reusable = "E4d selector_extrapolation.csv (15 models, selected_delta + true_loss)"
-            missing = "Re-evaluate selected_delta → MDM params for 3-param comparison"
-            exp_rows = "varies (E4d combos have different repeats)"
+            reusable = "E4d sealed selected_delta per (fold, seed, sample_key)"
+            missing = "Rebuild: run MDM(sealed delta) on E4d samples → 3-param estimates"
         elif method == "Direct-MLP":
-            reusable = None
-            missing = "Evaluate 15 frozen Direct-MLP models on E4d off-grid samples"
-            exp_rows = "varies (E4d combos have different repeats)"
+            reusable = "P3 training code"
+            missing = "Train 15 models, evaluate on E4d off-grid samples"
         elif method in ("MLE", "LSE", "WMLE"):
-            reusable = None
-            missing = f"Run {method} on all E4d off-grid samples via run_method()"
-            exp_rows = "varies (E4d combos have different repeats)"
+            reusable = "Production estimator"
+            missing = f"Run {method} on E4d off-grid samples"
 
         matrix[(TRACK_EXTRAP, method)] = {
             "sample_key_source": "E4d selector_extrapolation.csv: (beta, gamma_over_eta, n, repeat_id)",
             "true_param_source": "Generated from seed_namespace + combo params (deterministic)",
             "reusable_artifact": reusable,
             "missing_compute": missing,
-            "folds_seeds": f"{N_FOLDS} folds × {N_SEEDS} seeds = {N_MODELS} models" if is_learning else None,
+            "folds_seeds": f"{N_FOLDS}×{N_SEEDS}={N_MODELS}" if is_learning else None,
             "penalty_source": "Per-fold P99 (same frozen folds as main grid)",
-            "expected_rows": exp_rows,
-            "input_sha256": "E4d_selector_extrapolation_csv (compute at runtime)",
+            "expected_rows": "runtime (from sealed E4d file)",
+            "input_sha256": INPUT_SHA256["E4d_selector_extrapolation_csv"],
             "approved_commit": BASELINE_COMMIT,
         }
 
@@ -261,13 +266,9 @@ def run_matrix():
 # Formal output path (must NOT exist until authorized)
 # ════════════════════════════════════════════════════════════════════════
 
-import os
-from pathlib import Path
-
 _STUDY_DIR = Path(__file__).resolve().parents[1]
 FORMAL_OUTPUT_DIR = _STUDY_DIR / "artifacts" / "formal" / "p4_formal_compare"
 
-# Formal subdirectories (must not be created until P4_FORMAL_AUTHORIZED=True)
 FORMAL_SUBDIRS = [
     "main_holdout",
     "param_interp",
@@ -277,11 +278,15 @@ FORMAL_SUBDIRS = [
 
 
 def check_formal_not_authorized():
-    """Raise if P4_FORMAL_AUTHORIZED is True or formal output exists."""
+    """Preflight gate: raise if P4_FORMAL_AUTHORIZED is True or formal output exists.
+
+    Used by smoke and preflight scripts to ensure they cannot accidentally
+    write to formal directories.
+    """
     if P4_FORMAL_AUTHORIZED:
         raise RuntimeError(
-            "P4_FORMAL_AUTHORIZED is True — this gate must remain False "
-            "until independently authorized by Codex."
+            "P4_FORMAL_AUTHORIZED is True — preflight/smoke must not run "
+            "after authorization. Use the formal entry point instead."
         )
     if FORMAL_OUTPUT_DIR.exists():
         raise RuntimeError(
@@ -290,30 +295,35 @@ def check_formal_not_authorized():
         )
 
 
-def assert_smoke_outside_formal(smoke_path: str):
-    """Assert that smoke output path is outside the formal directory tree.
+def assert_formal_authorized():
+    """Formal entry gate: raise if P4_FORMAL_AUTHORIZED is False.
 
-    Checks: not equal to, not contained in, and not parent of formal dir.
+    Called by the formal main() to ensure explicit authorization before
+    any formal computation or output writing.
     """
+    if not P4_FORMAL_AUTHORIZED:
+        raise RuntimeError(
+            "P4_FORMAL_AUTHORIZED is False. Formal P4 run requires explicit "
+            "authorization: set P4_FORMAL_AUTHORIZED=True in a dedicated "
+            "authorization commit approved by Codex."
+        )
+
+
+def assert_smoke_outside_formal(smoke_path: str):
+    """Assert that smoke output path is outside the formal directory tree."""
     smoke = Path(smoke_path).resolve()
     formal = FORMAL_OUTPUT_DIR.resolve()
-    formal_parent = formal.parent  # artifacts/formal/
+    formal_parent = formal.parent
 
-    # smoke must not be inside formal_parent (smoke is a descendant)
     if smoke == formal_parent or formal_parent in smoke.parents:
         raise RuntimeError(
-            f"Smoke path {smoke} is inside formal directory tree {formal_parent}. "
-            "Smoke must be completely outside artifacts/formal/."
+            f"Smoke path {smoke} is inside formal directory tree {formal_parent}."
         )
-    # smoke must not be formal_parent or an ancestor of formal_parent (smoke contains formal)
     if smoke == formal_parent or smoke in formal_parent.parents:
         raise RuntimeError(
-            f"Smoke path {smoke} is equal to or a parent of formal directory {formal_parent}. "
-            "Smoke must not contain or be equal to formal output tree."
+            f"Smoke path {smoke} is equal to or a parent of formal directory {formal_parent}."
         )
-    # smoke must not be equal to or an ancestor of formal output dir
     if smoke == formal or smoke in formal.parents:
         raise RuntimeError(
-            f"Smoke path {smoke} is equal to or a parent of formal output {formal}. "
-            "Smoke must not contain formal output."
+            f"Smoke path {smoke} is equal to or a parent of formal output {formal}."
         )

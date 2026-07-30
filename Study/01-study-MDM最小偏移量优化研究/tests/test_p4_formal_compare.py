@@ -403,25 +403,25 @@ class TestCheckpointDrift:
             verify_checkpoint_config(df, expected)
 
     def test_authorized_drift_detected(self):
-        """Checkpoint with p4_authorized=True must be rejected."""
+        """Checkpoint with p4_authorized=True rejected when expecting False."""
         df = pd.DataFrame({
             "config_git_commit": ["abc123"],
             "config_input_sha256": ["def456"],
             "config_p4_authorized": [True],
         })
-        expected = {"git_commit": "abc123", "input_sha256": "def456"}
+        expected = {"git_commit": "abc123", "input_sha256": "def456", "p4_authorized": False}
         from run_p4_formal_compare import verify_checkpoint_config
         with pytest.raises(Exception, match="p4_authorized"):
             verify_checkpoint_config(df, expected)
 
     def test_matching_checkpoint_passes(self):
-        """Checkpoint with matching config passes."""
+        """Checkpoint with matching config passes (formal resume context)."""
         df = pd.DataFrame({
             "config_git_commit": ["abc123"],
             "config_input_sha256": ["def456"],
-            "config_p4_authorized": [False],
+            "config_p4_authorized": [True],
         })
-        expected = {"git_commit": "abc123", "input_sha256": "def456"}
+        expected = {"git_commit": "abc123", "input_sha256": "def456", "p4_authorized": True}
         from run_p4_formal_compare import verify_checkpoint_config
         assert verify_checkpoint_config(df, expected)
 
@@ -487,3 +487,160 @@ class TestPairedComparison:
         df = pd.DataFrame(rows_a + rows_b)
         result = p4.paired_comparison(df, "MLE", "LSE", track="test_track")
         assert "error" in result
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 13. Negative tests: missing model, fewer samples, duplicates
+# ════════════════════════════════════════════════════════════════════════
+
+class TestNegativeModelIntegrity:
+    def test_missing_model_detected(self):
+        """Learning method with only 14 models (missing one) is detected."""
+        rows = _make_learning_rows(n_per_model=5, method="Direct-MLP")
+        df = pd.DataFrame(rows)
+        df = df[~((df["fold"] == "combo_fold_5") & (df["seed"] == 3407))]
+        assert not p4.verify_model_first_not_merged(df, "Direct-MLP")
+
+    def test_fewer_samples_in_model_detected(self):
+        """One model having fewer samples than others is detected."""
+        rows = _make_learning_rows(n_per_model=5, method="Direct-MLP")
+        df = pd.DataFrame(rows)
+        mask = (df["fold"] == "combo_fold_1") & (df["seed"] == 42) & (df["repeat_id"] >= 3)
+        df = df[~mask]
+        result = p4.verify_sample_keys_identical(df, track="test_track")
+        assert not result["ok"]
+
+    def test_duplicate_samples_detected(self):
+        """Duplicate rows within a method are detected."""
+        rows = _make_test_rows(n=5, method="MLE")
+        rows.append(rows[0].copy())
+        df = pd.DataFrame(rows)
+        result = p4.verify_sample_keys_identical(df, track="test_track")
+        assert not result["ok"]
+        assert any("duplicate" in i for i in result["issues"])
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 14. Negative tests: valid-only filtering with row count contract
+# ════════════════════════════════════════════════════════════════════════
+
+class TestNegativeValidOnlyFiltering:
+    def test_fewer_rows_raises(self):
+        """If a method has fewer rows than expected, raises ValueError."""
+        rows = _make_test_rows(n=8, method="MLE")
+        rows = p4.apply_failure_contract_p4(rows)
+        df = pd.DataFrame(rows)
+        with pytest.raises(ValueError, match="valid-only filtering"):
+            p4.verify_no_valid_only_filtering(
+                df, track="test_track", expected_rows_per_method={"MLE": 10}
+            )
+
+    def test_dropped_failures_detected(self):
+        """Removing failed rows and checking against expected count raises."""
+        rows = _make_test_rows(n=10, failed_count=3, method="MLE")
+        rows = p4.apply_failure_contract_p4(rows)
+        rows_filtered = [r for r in rows if not r["failed"]]
+        df = pd.DataFrame(rows_filtered)
+        with pytest.raises(ValueError, match="valid-only filtering"):
+            p4.verify_no_valid_only_filtering(
+                df, track="test_track", expected_rows_per_method={"MLE": 10}
+            )
+
+    def test_bad_penalty_in_failed_row_raises(self):
+        """Failed row with true_loss != failure_penalty raises."""
+        rows = _make_test_rows(n=5, failed_count=2, method="MLE")
+        rows = p4.apply_failure_contract_p4(rows)
+        rows[0]["true_loss"] = 0.0
+        df = pd.DataFrame(rows)
+        with pytest.raises(ValueError, match="true_loss != failure_penalty"):
+            p4.verify_no_valid_only_filtering(df, track="test_track")
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 15. Negative tests: seal_outputs fail-closed
+# ════════════════════════════════════════════════════════════════════════
+
+class TestNegativeSealOutputs:
+    def test_missing_file_raises(self, tmp_path):
+        """seal_outputs raises FileNotFoundError if expected file missing."""
+        df = pd.DataFrame({"a": [1]})
+        p4.atomic_write_csv(df, tmp_path / "exists.csv")
+        with pytest.raises(FileNotFoundError, match="missing"):
+            p4.seal_outputs(tmp_path, ["exists.csv", "does_not_exist.csv"])
+
+    def test_seal_is_atomic(self, tmp_path):
+        """SHA256SUMS is written atomically (no .tmp left)."""
+        df = pd.DataFrame({"a": [1]})
+        p4.atomic_write_csv(df, tmp_path / "f.csv")
+        p4.seal_outputs(tmp_path, ["f.csv"])
+        assert (tmp_path / "SHA256SUMS").exists()
+        assert not (tmp_path / "SHA256SUMS.tmp").exists()
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 16. Negative tests: checkpoint missing required columns
+# ════════════════════════════════════════════════════════════════════════
+
+class TestNegativeCheckpointMissing:
+    def test_missing_git_commit_col_raises(self):
+        """Checkpoint without config_git_commit column raises."""
+        df = pd.DataFrame({
+            "config_input_sha256": ["abc"],
+            "config_p4_authorized": [True],
+        })
+        expected = {"git_commit": "x", "input_sha256": "abc", "p4_authorized": True}
+        from run_p4_formal_compare import verify_checkpoint_config, CheckpointDriftError
+        with pytest.raises(CheckpointDriftError, match="missing required column"):
+            verify_checkpoint_config(df, expected)
+
+    def test_missing_input_hash_col_raises(self):
+        """Checkpoint without config_input_sha256 column raises."""
+        df = pd.DataFrame({
+            "config_git_commit": ["abc123"],
+            "config_p4_authorized": [True],
+        })
+        expected = {"git_commit": "abc123", "input_sha256": "x", "p4_authorized": True}
+        from run_p4_formal_compare import verify_checkpoint_config, CheckpointDriftError
+        with pytest.raises(CheckpointDriftError, match="missing required column"):
+            verify_checkpoint_config(df, expected)
+
+    def test_missing_authorized_col_raises(self):
+        """Checkpoint without config_p4_authorized column raises."""
+        df = pd.DataFrame({
+            "config_git_commit": ["abc123"],
+            "config_input_sha256": ["def456"],
+        })
+        expected = {"git_commit": "abc123", "input_sha256": "def456", "p4_authorized": True}
+        from run_p4_formal_compare import verify_checkpoint_config, CheckpointDriftError
+        with pytest.raises(CheckpointDriftError, match="missing required column"):
+            verify_checkpoint_config(df, expected)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 17. Formal entry gate
+# ════════════════════════════════════════════════════════════════════════
+
+class TestFormalEntryGate:
+    def test_assert_formal_authorized_raises_when_false(self):
+        """assert_formal_authorized raises when P4_FORMAL_AUTHORIZED=False."""
+        assert cfg.P4_FORMAL_AUTHORIZED is False
+        with pytest.raises(RuntimeError, match="P4_FORMAL_AUTHORIZED is False"):
+            cfg.assert_formal_authorized()
+
+    def test_main_raises_without_authorization(self):
+        """main() raises immediately without authorization."""
+        with pytest.raises(RuntimeError, match="P4_FORMAL_AUTHORIZED is False"):
+            p4.main()
+
+    def test_manifest_includes_script_sha256(self):
+        """Manifest includes script_sha256 for provenance binding."""
+        manifest = p4.build_manifest("/tmp", ["main_holdout"], cfg.P4_METHODS)
+        assert "script_sha256" in manifest
+        assert len(manifest["script_sha256"]) == 64
+
+    def test_manifest_includes_row_count_contract(self):
+        """Manifest includes frozen row_count_contract."""
+        manifest = p4.build_manifest("/tmp", ["main_holdout"], cfg.P4_METHODS)
+        assert "row_count_contract" in manifest
+        assert "mdm_default_delta" in manifest
+        assert manifest["mdm_default_delta"] == 0.1
