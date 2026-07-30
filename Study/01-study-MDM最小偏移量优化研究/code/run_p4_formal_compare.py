@@ -1208,6 +1208,14 @@ def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
         raise RuntimeError("Resume: manifest was not authorized")
     if old_manifest.get("approved_parent_commit") != auth_hashes.get("approved_parent_commit"):
         raise RuntimeError("Resume: manifest approved_parent_commit mismatch")
+    if old_manifest.get("output_dir") != str(output_path.resolve()):
+        raise RuntimeError("Resume: manifest output_dir mismatch")
+    if old_manifest.get("resume_mode") is None:
+        raise RuntimeError("Resume: manifest missing resume_mode field")
+    if old_manifest.get("input_sha256") != cfg.INPUT_SHA256:
+        raise RuntimeError("Resume: manifest input_sha256 mismatch with frozen config")
+    if old_manifest.get("row_count_contract") != cfg.ROW_COUNT_CONTRACT:
+        raise RuntimeError("Resume: manifest row_count_contract mismatch with frozen config")
 
     allowed_prefixes = ("manifest.json", "run.lock", "checkpoint_", "SHA256SUMS")
     allowed_dirs = set(tracks)
@@ -1248,6 +1256,27 @@ def _validate_resume_manifest(output_dir, auth_hashes, tracks, seeds):
             continue
         raise RuntimeError(f"Resume: unknown file in output dir: {rel}")
 
+    for cp_name in valid_checkpoint_names:
+        cp_path = output_path / cp_name
+        if cp_path.exists():
+            cp_df = pd.read_csv(cp_path)
+            track_for_cp = None
+            for t in cfg.ALL_TRACKS:
+                if cp_name.startswith(f"checkpoint_{t}_"):
+                    track_for_cp = t
+                    break
+            input_sha = cfg._track_input_sha256(track_for_cp) if track_for_cp else ""
+            cp_context = {
+                "git_commit": auth_hashes["start_head"],
+                "input_sha256": input_sha,
+                "p4_authorized": True,
+                "script_sha256": auth_hashes["script_sha256"],
+            }
+            try:
+                verify_checkpoint_config(cp_df, cp_context)
+            except CheckpointDriftError as e:
+                raise RuntimeError(f"Resume: checkpoint {cp_name} failed validation: {e}")
+
     return old_manifest_hash
 
 
@@ -1262,6 +1291,8 @@ def _run_formal(output_dir, tracks, seeds, resume, auth_hashes):
         previous_manifest_sha256 = None
 
     manifest = build_manifest(tracks, cfg.P4_METHODS)
+    manifest["output_dir"] = str(Path(output_dir).resolve())
+    manifest["resume_mode"] = resume
     if previous_manifest_sha256:
         manifest["previous_manifest_sha256"] = previous_manifest_sha256
         manifest["resume_lineage"] = True
