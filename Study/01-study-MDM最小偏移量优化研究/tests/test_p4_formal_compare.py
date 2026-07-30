@@ -509,7 +509,7 @@ class TestNegativeValidOnlyFiltering:
         rows = _make_test_rows(n=8, method="MLE")
         rows = p4.apply_failure_contract_p4(rows)
         df = pd.DataFrame(rows)
-        with pytest.raises(ValueError, match="valid-only filtering"):
+        with pytest.raises(ValueError, match="row count mismatch"):
             p4.verify_no_valid_only_filtering(
                 df, track="test_track", expected_rows_per_method={"MLE": 10}
             )
@@ -519,7 +519,7 @@ class TestNegativeValidOnlyFiltering:
         rows = p4.apply_failure_contract_p4(rows)
         rows_filtered = [r for r in rows if not r["failed"]]
         df = pd.DataFrame(rows_filtered)
-        with pytest.raises(ValueError, match="valid-only filtering"):
+        with pytest.raises(ValueError, match="row count mismatch"):
             p4.verify_no_valid_only_filtering(
                 df, track="test_track", expected_rows_per_method={"MLE": 10}
             )
@@ -709,13 +709,18 @@ class TestResultTables:
         assert "MLE" in results["methods"]
         assert "paired_comparisons" in results
         m = results["methods"]["MLE"]
-        assert "bias" in m
-        assert "rmse" in m
-        assert "mae" in m
-        assert "loss_quantiles" in m
+        assert "complete_case_parametrics" in m
+        assert "bias" in m["complete_case_parametrics"]
+        assert "rmse" in m["complete_case_parametrics"]
+        assert "mae" in m["complete_case_parametrics"]
+        assert "loss_quantiles_full_sample" in m
+        assert "P95" in m["loss_quantiles_full_sample"]
+        assert "P99" in m["loss_quantiles_full_sample"]
         assert "failure_rate" in m
+        assert "support_rate" in m
         assert "stratification_by_n" in m
         assert "stratification_by_beta" in m
+        assert "stratification_by_gamma_over_eta" in m
 
     def test_paired_comparisons_all_pairs(self):
         df = _make_eval_df(n_samples=3, methods=["MLE", "LSE", "WMLE"])

@@ -278,7 +278,10 @@ def verify_sample_keys_identical(df_eval, track=None):
 # ════════════════════════════════════════════════════════════════════════
 
 def verify_no_valid_only_filtering(df_eval, track=None, expected_rows_per_method=None):
-    """Fail-closed: row counts must match, failed rows must have penalty as loss."""
+    """Fail-closed: row counts must match EXACTLY, failed rows must have penalty as loss.
+
+    Rejects both deficits (survivor filtering) and extras (contamination).
+    """
     if track is not None:
         df = df_eval[df_eval["track"] == track].copy()
     else:
@@ -292,9 +295,9 @@ def verify_no_valid_only_filtering(df_eval, track=None, expected_rows_per_method
             if exp == "runtime":
                 continue
             actual = len(df[df["method"] == method])
-            if actual < exp:
+            if actual != exp:
                 raise ValueError(
-                    f"valid-only filtering: {method} has {actual} rows, expected {exp}"
+                    f"row count mismatch: {method} has {actual} rows, expected exactly {exp}"
                 )
 
     failed_rows = df[df["failed"] == True]
@@ -349,8 +352,13 @@ def paired_comparison(df_eval, method_a, method_b, track=None):
 def compute_result_tables(df_eval, track):
     """Compute frozen P4 result tables from evaluation layer.
 
-    Produces: per-method J1 summary, parameter Bias/RMSE/MAE, loss quantiles,
-    failure rates, stratification by n/beta, model stability, paired comparisons.
+    Produces:
+    - Model-first J1 summary (per-model pooled J1, then distribution)
+    - Full-sample loss quantiles (P25/P50/P75/P90/P95/P99, includes failures)
+    - Complete-case parameter Bias/RMSE/MAE (explicitly labeled)
+    - Failure/support-set rates
+    - Stratification by n, beta, generalization axis (model-first per stratum)
+    - Paired win/loss/difference
     """
     df = df_eval[df_eval["track"] == track].copy()
     results = {"track": track, "methods": {}}
@@ -359,10 +367,21 @@ def compute_result_tables(df_eval, track):
         m_df = df[df["method"] == method]
         j1_summary = model_first_aggregate(df, method, track=track)
 
-        valid = m_df[~m_df["failed"]]
         n_total = len(m_df)
         n_failed = int(m_df["failed"].sum())
+        support_rate = 1.0 - (n_failed / n_total) if n_total > 0 else 0.0
 
+        all_losses = m_df["true_loss"].values.astype(float)
+        loss_quantiles = {
+            "P25": float(np.percentile(all_losses, 25)),
+            "P50": float(np.percentile(all_losses, 50)),
+            "P75": float(np.percentile(all_losses, 75)),
+            "P90": float(np.percentile(all_losses, 90)),
+            "P95": float(np.percentile(all_losses, 95)),
+            "P99": float(np.percentile(all_losses, 99)),
+        }
+
+        valid = m_df[~m_df["failed"]]
         if len(valid) > 0:
             beta_bias = float((valid["beta_hat"] - valid["beta"]).mean())
             eta_bias = float((valid["eta_hat"] - 1.0).mean())
@@ -373,40 +392,32 @@ def compute_result_tables(df_eval, track):
             beta_mae = float(np.abs(valid["beta_hat"] - valid["beta"]).mean())
             eta_mae = float(np.abs(valid["eta_hat"] - 1.0).mean())
             gamma_mae = float(np.abs(valid["gamma_hat"] - valid["gamma_over_eta"]).mean())
-            loss_q = valid["true_loss"].quantile([0.25, 0.5, 0.75, 0.95]).to_dict()
         else:
             beta_bias = eta_bias = gamma_bias = float("nan")
             beta_rmse = eta_rmse = gamma_rmse = float("nan")
             beta_mae = eta_mae = gamma_mae = float("nan")
-            loss_q = {}
 
-        strat_n = {}
-        for n_val, grp in m_df.groupby("n"):
-            strat_n[int(n_val)] = {
-                "median_J1": float(grp["true_loss"].median()),
-                "n_rows": len(grp),
-                "failure_rate": float(grp["failed"].mean()),
-            }
-
-        strat_beta = {}
-        for b_val, grp in m_df.groupby("beta"):
-            strat_beta[float(b_val)] = {
-                "median_J1": float(grp["true_loss"].median()),
-                "n_rows": len(grp),
-                "failure_rate": float(grp["failed"].mean()),
-            }
+        strat_n = _stratify_model_first(m_df, "n")
+        strat_beta = _stratify_model_first(m_df, "beta")
+        strat_goe = _stratify_model_first(m_df, "gamma_over_eta")
 
         results["methods"][method] = {
             "j1_summary": j1_summary,
-            "bias": {"beta": beta_bias, "eta": eta_bias, "gamma": gamma_bias},
-            "rmse": {"beta": beta_rmse, "eta": eta_rmse, "gamma": gamma_rmse},
-            "mae": {"beta": beta_mae, "eta": eta_mae, "gamma": gamma_mae},
-            "loss_quantiles": loss_q,
+            "loss_quantiles_full_sample": loss_quantiles,
+            "complete_case_parametrics": {
+                "note": "Computed on non-failed rows only",
+                "n_valid": len(valid),
+                "bias": {"beta": beta_bias, "eta": eta_bias, "gamma": gamma_bias},
+                "rmse": {"beta": beta_rmse, "eta": eta_rmse, "gamma": gamma_rmse},
+                "mae": {"beta": beta_mae, "eta": eta_mae, "gamma": gamma_mae},
+            },
             "failure_rate": n_failed / n_total if n_total > 0 else 0.0,
+            "support_rate": support_rate,
             "n_total": n_total,
             "n_failed": n_failed,
             "stratification_by_n": strat_n,
             "stratification_by_beta": strat_beta,
+            "stratification_by_gamma_over_eta": strat_goe,
         }
 
     paired_results = {}
@@ -418,6 +429,24 @@ def compute_result_tables(df_eval, track):
     results["paired_comparisons"] = paired_results
 
     return results
+
+
+def _stratify_model_first(m_df, group_col):
+    """Stratify by a column, computing model-first J1 per stratum."""
+    result = {}
+    for val, grp in m_df.groupby(group_col):
+        per_model = grp.groupby(["fold", "seed"]).apply(
+            lambda x: compare.pooled_j1(x["true_loss"].values.astype(float)),
+            include_groups=False,
+        )
+        key = int(val) if isinstance(val, (np.integer,)) else float(val)
+        result[key] = {
+            "median_J1": float(per_model.median()),
+            "n_models": len(per_model),
+            "n_rows": len(grp),
+            "failure_rate": float(grp["failed"].mean()),
+        }
+    return result
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -679,8 +708,14 @@ def build_manifest(tracks_run, methods_run):
 def verify_authorization_contract():
     """Verify all authorization bindings before formal run.
 
-    Checks: authorized, parent commit, clean worktree, output path,
-    track set, seed set. Raises RuntimeError on any violation.
+    Fail-closed checks:
+    1. P4_FORMAL_AUTHORIZED == True
+    2. APPROVED_PARENT_COMMIT is set and matches HEAD~1
+    3. Worktree is clean
+    4. Output dir does not exist
+    5. Script SHA256 is computable (binds reviewed code)
+    6. Config SHA256 is computable
+    7. ALL_TRACKS and SEEDS are the frozen sets
     """
     cfg.assert_formal_authorized()
 
@@ -689,14 +724,41 @@ def verify_authorization_contract():
 
     if cfg.APPROVED_PARENT_COMMIT is None:
         raise RuntimeError(
-            "Authorization contract: APPROVED_PARENT_COMMIT not set. "
-            "Must be set in the authorization commit."
+            "Authorization contract: APPROVED_PARENT_COMMIT not set."
         )
+
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "HEAD~1"],
+            capture_output=True, text=True, cwd=Path(__file__).resolve().parents[3]
+        )
+        parent = r.stdout.strip()
+        if parent != cfg.APPROVED_PARENT_COMMIT:
+            raise RuntimeError(
+                f"Authorization contract: HEAD~1={parent} != "
+                f"APPROVED_PARENT_COMMIT={cfg.APPROVED_PARENT_COMMIT}"
+            )
+    except FileNotFoundError:
+        raise RuntimeError("Authorization contract: cannot determine parent commit")
 
     if cfg.FORMAL_OUTPUT_DIR.exists():
         raise RuntimeError(
             f"Authorization contract: output dir already exists: {cfg.FORMAL_OUTPUT_DIR}"
         )
+
+    script_hash = compute_script_sha256()
+    if len(script_hash) != 64:
+        raise RuntimeError("Authorization contract: cannot compute script SHA256")
+
+    config_hash = compute_sha256(Path(_CODE_DIR) / "p4_config.py")
+    if len(config_hash) != 64:
+        raise RuntimeError("Authorization contract: cannot compute config SHA256")
+
+    if set(cfg.ALL_TRACKS) != {"main_holdout", "param_interp", "n_interp", "extrap_diag"}:
+        raise RuntimeError("Authorization contract: ALL_TRACKS has been modified")
+
+    if cfg.SEEDS != [42, 2026, 3407]:
+        raise RuntimeError("Authorization contract: SEEDS has been modified")
 
 
 # ════════════════════════════════════════════════════════════════════════
