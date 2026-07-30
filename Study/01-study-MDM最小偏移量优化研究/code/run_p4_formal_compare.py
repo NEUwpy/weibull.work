@@ -775,18 +775,28 @@ def run_traditional_method(method, samples_df, track, seed_namespace):
     return rows
 
 
-def run_direct_mlp_track(df_features, folds, seeds, track, run_context, output_dir):
-    """Train and evaluate Direct-MLP for all folds×seeds. Returns estimation rows."""
+def run_direct_mlp_track(df_train_features, folds, seeds, track,
+                         run_context, output_dir, df_eval_features=None):
+    """Train Direct-MLP on E3b main-grid folds, evaluate on target features.
+
+    df_train_features: E3b sample_features.csv (training source).
+    df_eval_features: if provided, evaluate ALL these samples under every model
+      (Tracks 2/3/4). If None, evaluate per-fold test combos from df_train_features
+      (Track 1 main holdout).
+    """
     rows = []
     for fold in folds:
         fold_name = fold["fold_name"]
         train_combos = fold["train_combos"]
-        test_combos = fold["test_combos"]
 
-        test_mask = df_features.apply(
-            lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in test_combos, axis=1
-        )
-        df_test = df_features[test_mask]
+        if df_eval_features is None:
+            test_combos = fold["test_combos"]
+            test_mask = df_train_features.apply(
+                lambda r: (r["beta"], r["gamma_over_eta"], r["n"]) in test_combos, axis=1
+            )
+            df_eval = df_train_features[test_mask]
+        else:
+            df_eval = df_eval_features
 
         for seed in seeds:
             cp_key = f"Direct-MLP_{fold_name}_{seed}"
@@ -803,17 +813,17 @@ def run_direct_mlp_track(df_features, folds, seeds, track, run_context, output_d
                 continue
 
             X_train, Y_train, x_bar_train, meta = direct.build_training_data(
-                df_features, train_combos
+                df_train_features, train_combos
             )
             model, info = direct.train_direct_mlp(X_train, Y_train, x_bar_train, seed=seed)
 
-            df_test_si = direct.make_scale_invariant(df_test)
-            X_test = direct.build_scale_invariant_X(df_test_si, meta["zscore_means"], meta["zscore_stds"])
-            x_bar_test = df_test["x_bar"].values.astype(np.float64)
-            preds = direct.predict_direct_mlp(model, info, X_test, x_bar_test)
+            df_eval_si = direct.make_scale_invariant(df_eval)
+            X_eval = direct.build_scale_invariant_X(df_eval_si, meta["zscore_means"], meta["zscore_stds"])
+            x_bar_eval = df_eval["x_bar"].values.astype(np.float64)
+            preds = direct.predict_direct_mlp(model, info, X_eval, x_bar_eval)
 
             model_rows = []
-            for i, (_, feat_row) in enumerate(df_test.iterrows()):
+            for i, (_, feat_row) in enumerate(df_eval.iterrows()):
                 beta_hat, eta_hat, gamma_hat = preds[i]
                 valid, reason = check_prediction_validity(beta_hat, eta_hat, gamma_hat)
                 if not valid:
@@ -1106,7 +1116,8 @@ def _execute_track_main(output_dir, folds, seeds, ns, run_context, e3b_dir, resu
 
     print("  Direct-MLP (15 models)...")
     est_rows.extend(run_direct_mlp_track(
-        df_features, folds, seeds, cfg.TRACK_MAIN_HOLDOUT, run_context, output_dir
+        df_features, folds, seeds, cfg.TRACK_MAIN_HOLDOUT, run_context, output_dir,
+        df_eval_features=None
     ))
 
     print("  MDM-Vector-MLP (15 models)...")
@@ -1149,37 +1160,59 @@ def _execute_track_p2(output_dir, folds, seeds, ns, run_context, track, resume,
     print("  Direct-MLP (15 models on P2 samples)...")
     e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
     df_features = pd.read_csv(e3b_dir / "sample_features.csv")
-    df_risk = pd.read_csv(e3b_dir / "risk_curves.csv")
 
     p2_feat_rows = []
     for _, s in samples_df.iterrows():
-        beta, goe, n_val = s["beta"], s["gamma_over_eta"], int(s["n"])
-        for rid in range(int(s.get("repeat_id", 0)), int(s.get("repeat_id", 0)) + 1):
-            sample = generate_sample(beta, 1.0, goe, n_val, int(s["repeat_id"]), seed=ns)
-            feats = e4.compute_sample_features(sample)
-            p2_feat_rows.append({"beta": beta, "eta": 1.0, "gamma": goe,
-                                 "gamma_over_eta": goe, "n": n_val,
-                                 "repeat_id": int(s["repeat_id"]), **feats})
+        beta, goe, n_val, rid = s["beta"], s["gamma_over_eta"], int(s["n"]), int(s["repeat_id"])
+        sample = generate_sample(beta, 1.0, goe, n_val, rid, seed=ns)
+        feats = e4.compute_sample_features(sample)
+        p2_feat_rows.append({"beta": beta, "eta": 1.0, "gamma": goe,
+                             "gamma_over_eta": goe, "n": n_val,
+                             "repeat_id": rid, **feats})
     df_p2_features = pd.DataFrame(p2_feat_rows)
 
     est_rows.extend(run_direct_mlp_track(
-        df_features, folds, seeds, track, run_context, output_dir
+        df_features, folds, seeds, track, run_context, output_dir,
+        df_eval_features=df_p2_features
     ))
 
-    print("  MDM-Vector-MLP (15 models on P2 samples)...")
-    est_rows.extend(run_vector_mlp_track(
-        df_features, df_risk, folds, seeds, track, ns,
-        fold_penalties, run_context, output_dir
-    ))
+    print("  MDM-Vector-MLP (15 models, P2 sealed deltas)...")
+    vector_path = p2_dir / "p2_vector_per_sample.csv"
+    actual_vec = compute_sha256(vector_path)
+    if actual_vec != cfg.INPUT_SHA256["P2_vector_per_sample_csv"]:
+        raise RuntimeError(f"P2 vector SHA256 mismatch: {actual_vec}")
+    df_p2_vec = pd.read_csv(vector_path)
+    df_p2_vec_track = df_p2_vec[df_p2_vec["track"] == p2_label].copy()
+
+    for fold in folds:
+        fold_name = fold["fold_name"]
+        for seed in seeds:
+            model_rows = df_p2_vec_track[
+                (df_p2_vec_track["fold"] == fold_name) & (df_p2_vec_track["seed"] == seed)
+            ]
+            for _, row in model_rows.iterrows():
+                beta = row["beta"]
+                goe = row["gamma_over_eta"]
+                n_val = int(row["n"])
+                rid = int(row["repeat_id"])
+                sel_delta = row["selected_delta"]
+                params = rebuild_mdm_params(beta, 1.0, goe, n_val, rid, sel_delta, ns)
+                est_rows.append(make_estimation_row(
+                    track, "MDM-Vector-MLP", fold_name, seed,
+                    beta, goe, n_val, rid,
+                    params["beta_hat"], params["eta_hat"], params["gamma_hat"],
+                    params["failed"], params["failure_reason"],
+                ))
 
     return est_rows, None
 
 
 def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume,
                           fold_penalties):
-    """Execute Track 4: extrap_diag (E4d off-grid combos).
+    """Execute Track 4: extrap_diag (E4c_offgrid combos).
 
-    Uses shared E3b fold penalties. E4d contains off-grid track only.
+    Uses shared E3b fold penalties. E4d file contains E4b_boundary and
+    E4c_offgrid tracks; we use ONLY E4c_offgrid.
     """
     study_dir = Path(__file__).resolve().parents[1]
     e4d_path = study_dir / "artifacts" / "formal" / "E4_robustness" / "E4d_selector_extrapolation.csv"
@@ -1189,8 +1222,9 @@ def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume,
         raise RuntimeError(f"E4d SHA256 mismatch: {actual}")
 
     df_e4d = pd.read_csv(e4d_path, low_memory=False)
-    if "track" in df_e4d.columns:
-        df_e4d = df_e4d[df_e4d["track"] == "off_grid"].copy()
+    df_e4d = df_e4d[df_e4d["track"] == "E4c_offgrid"].copy()
+    if len(df_e4d) == 0:
+        raise RuntimeError("No E4c_offgrid rows in E4d file")
     samples_df = df_e4d.drop_duplicates(SAMPLE_KEY_COLS)
 
     est_rows = []
@@ -1198,12 +1232,26 @@ def _execute_track_extrap(output_dir, folds, seeds, ns, run_context, resume,
         print(f"  {method}...")
         est_rows.extend(run_traditional_method(method, samples_df, cfg.TRACK_EXTRAP, ns))
 
-    print("  Direct-MLP (15 models on E4d samples)...")
+    print("  Direct-MLP (15 models on E4c_offgrid samples)...")
     e3b_dir = study_dir / "artifacts" / "formal" / "E3b_vector_mlp"
     df_features = pd.read_csv(e3b_dir / "sample_features.csv")
-    est_rows.extend(run_direct_mlp_track(df_features, folds, seeds, cfg.TRACK_EXTRAP, run_context, output_dir))
 
-    print("  MDM-Vector-MLP (15 models, E4d sealed deltas)...")
+    e4d_feat_rows = []
+    for _, s in samples_df.iterrows():
+        beta, goe, n_val, rid = s["beta"], s["gamma_over_eta"], int(s["n"]), int(s["repeat_id"])
+        sample = generate_sample(beta, 1.0, goe, n_val, rid, seed=ns)
+        feats = e4.compute_sample_features(sample)
+        e4d_feat_rows.append({"beta": beta, "eta": 1.0, "gamma": goe,
+                              "gamma_over_eta": goe, "n": n_val,
+                              "repeat_id": rid, **feats})
+    df_e4d_features = pd.DataFrame(e4d_feat_rows)
+
+    est_rows.extend(run_direct_mlp_track(
+        df_features, folds, seeds, cfg.TRACK_EXTRAP, run_context, output_dir,
+        df_eval_features=df_e4d_features
+    ))
+
+    print("  MDM-Vector-MLP (15 models, E4c_offgrid sealed deltas)...")
     for fold in folds:
         fold_name = fold["fold_name"]
         for seed in seeds:
