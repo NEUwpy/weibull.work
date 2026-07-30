@@ -787,6 +787,25 @@ def rebuild_mdm_params(beta, eta, gamma, n, repeat_id, delta, seed_namespace):
     }
 
 
+def verify_sample_content_hash(beta, eta, gamma, n, repeat_id, seed_namespace,
+                               expected_sha256=None):
+    """Verify a reconstructed sample matches its approved artifact hash (P4-R6).
+
+    Generates the sample deterministically and computes its SHA256. If
+    expected_sha256 is provided, raises RuntimeError on mismatch.
+    Returns the computed hash for logging/auditing.
+    """
+    sample = generate_sample(beta, eta, gamma, n, repeat_id, seed=seed_namespace)
+    sample_bytes = np.asarray(sample, dtype=np.float64).tobytes()
+    computed = hashlib.sha256(sample_bytes).hexdigest()
+    if expected_sha256 is not None and computed != expected_sha256:
+        raise RuntimeError(
+            f"Sample content hash mismatch for ({beta},{gamma},{n},{repeat_id}) "
+            f"ns={seed_namespace}: computed={computed[:16]}... != expected={expected_sha256[:16]}..."
+        )
+    return computed
+
+
 # ════════════════════════════════════════════════════════════════════════
 # Track execution functions (P4-R1: all tracks × all methods)
 # ════════════════════════════════════════════════════════════════════════
@@ -1109,6 +1128,8 @@ def _run_formal(output_dir, tracks, seeds, resume):
     atomic_write_csv(df_eval_all, output_dir / "evaluation_all.csv")
     atomic_write_json(result_tables, output_dir / "result_tables.json")
 
+    _remove_checkpoints(output_dir)
+
     allowlist = ["manifest.json", "evaluation_all.csv", "result_tables.json"]
     for track in tracks:
         allowlist.extend([
@@ -1118,6 +1139,13 @@ def _run_formal(output_dir, tracks, seeds, resume):
         ])
     seal_recursive(output_dir, allowlist)
     print(f"[P4] Complete. Output: {output_dir}")
+
+
+def _remove_checkpoints(output_dir):
+    """Remove disposable checkpoint files before final sealing."""
+    output_dir = Path(output_dir)
+    for cp in output_dir.glob("checkpoint_*.csv"):
+        cp.unlink()
 
 
 def _compute_frozen_fold_penalties(e3b_dir, folds):
