@@ -315,6 +315,64 @@ def select_winner(records: list[FitRecord]) -> SelectionResult:
     )
 
 
+def build_outputs_inventory(out: Path, records: list[FitRecord]) -> dict:
+    """Write fits.csv and build the outputs inventory dict.
+
+    Writes fits.csv into ``out`` and computes its SHA256/size.  For each
+    FitRecord, reads the checkpoint file already saved at the expected
+    path inside ``out`` and records its path, byte size, and SHA256.
+    Returns a dict suitable for the ``outputs`` key of manifest.json.
+
+    This is a pure helper extracted from run_search so it can be tested
+    against temporary files without training models.
+    """
+    # Write fits.csv
+    csv_path = out / "fits.csv"
+    csv_lines = ["architecture_id,widths,loss,seed,val_loss,best_epoch,actual_epochs,"
+                 "early_stop,param_count,decoded_rmse,decoded_rel_rmse,decoded_bias,"
+                 "decoded_mae,n_valid,n_total,checkpoint_sha256"]
+    for r in records:
+        csv_lines.append(
+            f"{r.architecture_id},\"{list(r.widths)}\",{r.loss},{r.seed},"
+            f"{r.best_validation_loss:.8f},{r.best_epoch},{r.actual_epochs},"
+            f"{r.early_stop_reason},{r.param_count},"
+            f"{r.decoded_rmse:.6f},{r.decoded_rel_rmse:.6f},"
+            f"{r.decoded_bias:.6f},{r.decoded_mae:.6f},"
+            f"{r.n_valid},{r.n_total},{r.checkpoint_sha256}"
+        )
+    csv_content = "\n".join(csv_lines) + "\n"
+    csv_path.write_text(csv_content, encoding="utf-8")
+    csv_sha256 = hashlib.sha256(csv_content.encode()).hexdigest()
+    csv_size = len(csv_content.encode())
+
+    # Inventory checkpoints
+    checkpoints_inventory = []
+    for r in records:
+        ckpt_name = f"checkpoint_{r.architecture_id}_{r.loss}_seed{r.seed}.pt"
+        ckpt_path = out / ckpt_name
+        ckpt_bytes = ckpt_path.read_bytes()
+        ckpt_size = len(ckpt_bytes)
+        ckpt_sha256 = hashlib.sha256(ckpt_bytes).hexdigest()
+        checkpoints_inventory.append({
+            "name": ckpt_name,
+            "path": str(ckpt_path),
+            "size_bytes": ckpt_size,
+            "sha256": ckpt_sha256,
+            "architecture_id": r.architecture_id,
+            "loss": r.loss,
+            "seed": r.seed,
+        })
+
+    return {
+        "fits.csv": {
+            "path": str(csv_path),
+            "size_bytes": csv_size,
+            "sha256": csv_sha256,
+        },
+        "checkpoints": checkpoints_inventory,
+    }
+
+
 def generate_search_data() -> dict:
     """Generate training (100k) and validation (20k) data with separate seed namespaces."""
     rng = np.random.default_rng(42)
@@ -490,27 +548,12 @@ def run_search(output_dir: str | None = None) -> SelectionResult:
     print(f"\n  Winner: {selection.winner_id}")
     print(f"  Tie-break: {selection.tie_break_applied} — {selection.tie_break_reason}")
 
-    # 4. Write fits.csv first (so manifest can reference its hash)
+    # 4. Build outputs inventory (fits.csv + checkpoints)
+    outputs_inventory = build_outputs_inventory(out, records)
     csv_path = out / "fits.csv"
-    csv_lines = ["architecture_id,widths,loss,seed,val_loss,best_epoch,actual_epochs,"
-                 "early_stop,param_count,decoded_rmse,decoded_rel_rmse,decoded_bias,"
-                 "decoded_mae,n_valid,n_total,checkpoint_sha256"]
-    for r in records:
-        csv_lines.append(
-            f"{r.architecture_id},\"{list(r.widths)}\",{r.loss},{r.seed},"
-            f"{r.best_validation_loss:.8f},{r.best_epoch},{r.actual_epochs},"
-            f"{r.early_stop_reason},{r.param_count},"
-            f"{r.decoded_rmse:.6f},{r.decoded_rel_rmse:.6f},"
-            f"{r.decoded_bias:.6f},{r.decoded_mae:.6f},"
-            f"{r.n_valid},{r.n_total},{r.checkpoint_sha256}"
-        )
-    csv_content = "\n".join(csv_lines) + "\n"
-    csv_path.write_text(csv_content, encoding="utf-8")
-    csv_sha256 = hashlib.sha256(csv_content.encode()).hexdigest()
-    csv_size = len(csv_content.encode())
     print(f"  Fits CSV: {csv_path}")
 
-    # 5. Build outputs inventory and write manifest.json
+    # 5. Write manifest.json
     config = {
         "n_sample": _N_SAMPLE,
         "n_train": _N_TRAIN,
@@ -530,31 +573,6 @@ def run_search(output_dir: str | None = None) -> SelectionResult:
         "lr": 1e-3,
         "weight_decay": 1e-4,
         "batch_size": 512,
-    }
-
-    checkpoints_inventory = []
-    for r in records:
-        ckpt_name = f"checkpoint_{r.architecture_id}_{r.loss}_seed{r.seed}.pt"
-        ckpt_path = out / ckpt_name
-        ckpt_size = ckpt_path.stat().st_size
-        ckpt_sha256 = hashlib.sha256(ckpt_path.read_bytes()).hexdigest()
-        checkpoints_inventory.append({
-            "name": ckpt_name,
-            "path": str(ckpt_path),
-            "size_bytes": ckpt_size,
-            "sha256": ckpt_sha256,
-            "architecture_id": r.architecture_id,
-            "loss": r.loss,
-            "seed": r.seed,
-        })
-
-    outputs_inventory = {
-        "fits.csv": {
-            "path": str(csv_path),
-            "size_bytes": csv_size,
-            "sha256": csv_sha256,
-        },
-        "checkpoints": checkpoints_inventory,
     }
 
     manifest = {
