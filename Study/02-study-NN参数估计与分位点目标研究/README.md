@@ -1,7 +1,7 @@
 # Study 02：面向寿命分位点目标的 NN Weibull 参数估计研究
 
 > 创建日期：2026-07-11
-> 当前状态：R12 准备工作已收口；可申请一个全新的 A-E1 formal training/validation 授权，但尚未授权或启动；test 继续 sealed。
+> 当前状态：转**精简复现路线**（长任务计划见仓库根 `coworker/plans/2026-07-31-study02-lean-prestudy-completion.md`）。A-E1 r5 与 A-E3 r2 的 formal 证据已 APPROVE 并保留为基线；旧 formal 引擎只读冻结，不再扩建 scheduler/lease/authority/unseal/consume/hash-chain/capsule/攻击防护。前置研究 A 的 19 个问题以最小可复现实验回答；test 保持 sealed，不启封/不消费。
 
 ## 目录定位
 
@@ -83,11 +83,11 @@ x_R=F^{-1}(1-R)=\gamma+\eta[-\ln(R)]^{1/\beta}.
 ## 当前边界
 
 - 已确定采用可靠度分位点 \(x_R=F^{-1}(1-R)\)，当前只训练和主张 \(x_{0.95}\)；\(x_{0.90}\) 和 \(x_{0.99}\) 留作后续跨分位点泛化检查。
-- 前置研究 A 的 19 个必答问题及 G2 实验协议已经冻结；R12 只闭合了执行、诊断、证据绑定与 sealed 控制面的准备工作，19 个问题仍没有 formal 结论。
-- 两个旧 A-E1 run（r1、r2）永久 `blocked/aborted`，不得恢复、拼接或作为正式研究证据；未来唯一合法续接点是申请一个全新 A-E1 formal training/validation 授权。
-- 当前没有活动 formal run，也没有 formal 授权；A-E3、A-E2、approval、test unseal 和 test consume 均不得提前进行，test 继续 sealed。
+- 前置研究 A 的 19 个必答问题及 G2 科学实验协议已经冻结；当前以**精简复现路线**（E0–E4 实验组、P0–P6 阶段）回答全部 19 问，最小复现契约见 `03-A-实验计划.md` 与长任务计划。
+- A-E1 r5 与 A-E3 r2 的 formal 证据已 APPROVE 并保留为基线；旧 formal 引擎（formal scheduler、authority、unseal/consume、hash-chain、capsule、攻击防护、lease）**只读冻结，不再扩建**。历史 blocked/aborted run（A-E1 r1–r4、A-E3 r1）仅作只读历史，不得恢复、拼接或冒充证据。
+- test 保持 sealed；前置研究不启封、不消费 test，也不把 validation 结果冒充 held-out test 结论。
 - 尚未决定前置研究最终是内部积累、论文中的基础章节，还是独立成果。
-- 在获得显式新授权并形成正式证据前，不启动正式大规模实验，也不把准备完成或开放问题写成论文结论。
+- 不提前开展 Study/02 分位点主研究，也不把开放问题或局部结果写成论文结论。
 
 ## 环境与复现入口
 

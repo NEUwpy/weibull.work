@@ -12,7 +12,7 @@
 
 ## 当前状态快照
 
-> **快照日期**: 2026-07-29 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+> **快照日期**: 2026-07-31 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
 
 | 层级 | 技术 |
 |------|------|
@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：A-E1 formal r5 已 APPROVE 并 frozen 为 A-E3 的 predecessor（V 路获胜、8-record staged ledger 已绑定）。A-E3 orchestration **R7 code APPROVE**（tip `9ef028ce`，661 non-slow passed / 1 expected skip）：output-form contract v2（确定性 width 缩放；joint=Sequential vs independent=IndependentContainer，capacity-selected，SHA-bound）、n_strategy 决策（fixed vs shared，10-record staged ledger，record 9 winner）、versioned cross-commit authority（schema v1/v2 + content-addressed historical verifier + legacy capsule）、G3/pre-unseal/A-E2 integration。`formal-execute --module A-E3` 与 `formal-staged --module A-E3` 已接通真实 `run_a_e3_staged` / `resolve_a_e3_staged_selection`，sealed smoke（G.16）端到端验证 joint + independent + fixed + shared 全经过真实 model factory + checkpoint-forward + selection。**A-E3 formal r1**（`A-E3-formal-r1-20260729-214640`）**永久 blocked/aborted**：在 G3-fit-0483（第一个 independent output_form fit，matrix position 134）crash（`execute_claimed_fit` 向 evidence.json 写入 `output_form` extra field，scheduler `_EVIDENCE_FIELDS` frozen exact-schema 拒绝）；134 succeeded / 131 pending / 1 dead claimed / 0 failed；HEAD/authority 无 drift、`test_access_count=0`（test sealed）。**r1 不恢复、不迁移 134 checkpoint**（现场 run dir 保留）。evidence-schema 修复分支 `codex/study02-a-e3-evidence-schema-fix-20260730`（tip `723e17ce`，删除 `evidence["output_form"]` 写入；contract/factory/capacity/sha 不变），状态 **awaiting Codex review**；**A-E3 formal r2 尚未授权**。未启动 A-E3 formal r2 / A-E2 formal run，未进入 approval / unseal / consume / 9d / G4。test 继续 sealed，19 个前置研究问题仍等待 formal evidence。
+**Study/02 当前态**：前置研究 A 转**精简复现路线**（长任务计划 `coworker/plans/2026-07-31-study02-lean-prestudy-completion.md`，分支 `codex/study02-lean-prestudy-20260731`），用最小、可复现、足够严谨的实现回答全部 19 个问题；旧 formal 引擎及其产物**只读冻结，不再扩建** formal scheduler/lease/authority/unseal/consume/hash-chain/capsule/攻击防护。既有 formal 证据保留为基线：**A-E1 r5**（`A-E1-formal-r5-20260727-222417`，tip `d2a056f`，349 fits，V 路线，staged ledger 8/8，已 APPROVE/frozen）与 **A-E3 r2**（`A-E3-formal-r2-20260730-111949`，tip `996434b2`，266 fits，`huber + m12 + joint + fixed`，staged ledger 10/10，经 Claude 独立审核 + Codex APPROVE）。执行分 P0–P6：P0 计划/文档重构（进行中，待 Codex 审查）→ P1 E0 复用 A-E1/A-E3 回答 A1/A4/A7/A8/A17/A18 → P2 E1（A5/A6/A13）→ P3 E2（A2/A3/A9/A10/A19）→ P4 E3（A14/A15/A16）→ P5 E4（A11/A12）→ P6 收口（19/19 绑定证据与适用边界）。test 保持 sealed，前置研究不启封/不消费 test。详细状态见 Study/02 `00-A-执行状态.md`。
 
 **Study/01 当前态**：正式实验与证据链已经闭环，E1–E4、R1–R3/P6–P8 均完成；Figures 1–9、Supplementary Figures S1–S8、五部分论文技术稿、补充材料及 fail-closed 稿件审计已完成。现已在独立论文项目文件夹启动面向可靠性/计算方法国际期刊的中文学术源稿，下一步是完善文献对话并冻结正文，再确定具体期刊、作者、基金与 CRediT，完成英文和期刊格式适配。连续参数空间训练、多数据集验证和 $\delta>1.00$ 探索属于后续独立研究，不阻塞当前论文。
 
