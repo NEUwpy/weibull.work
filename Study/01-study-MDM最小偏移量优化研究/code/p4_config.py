@@ -159,7 +159,7 @@ TRADITIONAL_SEED_LABEL = "all"
 #   9. ALL_TRACKS and SEEDS are the frozen sets
 #  10. Exclusive run lock (no concurrent run)
 
-APPROVED_PARENT_COMMIT = "89eb23cc4c03b24c7c5565b2a0a9783e22d0a908"  # Codex-approved P4 pre-run fix tip
+APPROVED_PARENT_COMMIT = "91b2c26b57bfcd779994e68307d37ab0cf9373ba"  # Codex-approved authorization refresh tip (coworker-skill release atop pre-run fix)
 
 
 # ════════════════════════════════════════════════════════════════════════
