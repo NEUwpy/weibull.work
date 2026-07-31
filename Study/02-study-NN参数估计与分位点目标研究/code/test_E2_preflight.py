@@ -74,7 +74,10 @@ def test_seed_stability_uses_same_scale_variance_and_rank():
     records = []
     for point, base in (("p0", 0.1), ("p1", 0.4), ("p2", 0.9)):
         for seed, delta in ((1, 0.0), (2, 0.01)):
-            records.append({"n": 5, "point_id": point, "seed": seed, "row_loss": (base + delta) ** 2})
+            records.append({
+                "n": 5, "point_id": point, "seed": seed, "row_loss": (base + delta) ** 2,
+                "legal": True, "e_beta": base, "e_eta": base, "e_gamma": base,
+            })
     result = E2.seed_stability(records)[0]
     assert 0.0 <= result["seed_variance_share"] < 0.01
     assert result["point_difficulty_rank_spearman_min"] == 1.0
