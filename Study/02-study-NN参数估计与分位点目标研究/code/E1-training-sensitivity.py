@@ -10,7 +10,7 @@ Usage:
 
 from __future__ import annotations
 
-import argparse, hashlib, json, os, sys, time, itertools
+import argparse, csv, gzip, hashlib, json, os, sys, time, itertools
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -35,12 +35,22 @@ FIT_STATE = "fit_state.json"; CHECKPOINT = "checkpoint.pt"
 OUTPUTS = "outputs"; PILOT_PREFIX = "pilot"
 
 
+def config_sha256(config: dict) -> str:
+    """Hash the scientific config while ignoring runtime-only private keys."""
+    public = {k: v for k, v in config.items() if not str(k).startswith("_")}
+    payload = json.dumps(public, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 # ===========================================================================
 # Data generation
 # ===========================================================================
 
 def _sobol(n: int, d: int, seed: int) -> np.ndarray:
-    return qmc.Sobol(d=d, scramble=True, seed=seed).random(n)
+    if int(n) <= 0:
+        return np.empty((0, int(d)), dtype=float)
+    power = int(np.ceil(np.log2(int(n))))
+    return qmc.Sobol(d=d, scramble=True, seed=seed).random_base2(power)[:int(n)]
 
 def _logu(col, lo, hi): return np.exp(np.log(lo) + col * (np.log(hi) - np.log(lo)))
 def _uni(col, lo, hi): return lo + col * (hi - lo)
@@ -165,7 +175,10 @@ def decode_predictions(raw, samples):
 # Training
 # ===========================================================================
 
-def train_one_fit(model, train_feat, train_targ, val_feat, val_targ, config, seed, out_dir):
+def train_one_fit(
+    model, train_feat, train_targ, val_feat, val_targ, config, seed, out_dir, *,
+    arm="smoke",
+):
     seed_everything(seed)
     opt_cfg = config["baseline"]["optimizer"]; epoch_cfg = config["baseline"]["epochs"]
     loss_id = config["baseline"]["loss"]; device = torch.device("cpu")
@@ -209,7 +222,9 @@ def train_one_fit(model, train_feat, train_targ, val_feat, val_targ, config, see
     if best_state is not None: model.load_state_dict(best_state)
     out_dir.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), out_dir / CHECKPOINT)
-    result = {"seed": seed, "best_epoch": best_epoch, "best_val_loss": float(best_val),
+    result = {"seed": seed, "arm": str(arm), "training_rows": int(n_train),
+              "config_sha256": config_sha256(config),
+              "best_epoch": best_epoch, "best_val_loss": float(best_val),
               "train_losses": train_losses, "val_losses": val_losses,
               "n_params": trainable_parameter_count(model),
               "early_stopped": best_epoch < int(epoch_cfg["max"])}
@@ -222,13 +237,30 @@ def train_one_fit(model, train_feat, train_targ, val_feat, val_targ, config, see
 # Resume checks
 # ===========================================================================
 
-def can_resume(out_dir: Path, model: torch.nn.Module, expected_rows: int) -> bool:
+def can_resume(
+    out_dir: Path, model: torch.nn.Module, expected_rows: int, *,
+    expected_seed: int | None = None,
+    expected_arm: str | None = None,
+    expected_config_sha256: str | None = None,
+) -> bool:
     """Return True only if checkpoint+state both exist, parse, match, and load."""
     cp = out_dir / CHECKPOINT; st = out_dir / FIT_STATE
     if not (cp.exists() and st.exists()): return False
     try:
         state = json.loads(st.read_text(encoding="utf-8"))
-        if not all(k in state for k in ("best_epoch", "seed")): return False
+        if not all(k in state for k in (
+            "best_epoch", "seed", "arm", "training_rows", "config_sha256"
+        )):
+            return False
+        if expected_rows >= 0 and int(state["training_rows"]) != int(expected_rows):
+            return False
+        if expected_seed is not None and int(state["seed"]) != int(expected_seed):
+            return False
+        if expected_arm is not None and str(state["arm"]) != str(expected_arm):
+            return False
+        if (expected_config_sha256 is not None
+                and str(state["config_sha256"]) != str(expected_config_sha256)):
+            return False
         checkpoint = torch.load(cp, map_location="cpu")
         model.load_state_dict(checkpoint)
         return True
@@ -240,19 +272,45 @@ def can_resume(out_dir: Path, model: torch.nn.Module, expected_rows: int) -> boo
 # Evaluation + Aggregation
 # ===========================================================================
 
-def compute_l_param(est, true, eta_true):
-    valid = ~np.isnan(est[:, 0])
-    e_beta = (est[valid, 0] - true[valid, 0]) / true[valid, 0]
-    e_eta = (est[valid, 1] - true[valid, 1]) / true[valid, 1]
-    e_gamma = (est[valid, 2] - true[valid, 2]) / eta_true[valid]
-    return float(np.sqrt(np.mean((e_beta**2 + e_eta**2 + e_gamma**2) / 3)))
+def row_squared_composite_loss(est, true, *, failure_penalty=np.nan):
+    """Per-row mean squared normalized parameter error.
+
+    Invalid estimates receive ``failure_penalty**2`` when a finite penalty is
+    supplied; otherwise they remain NaN for conditional summaries.
+    """
+    est = np.asarray(est, dtype=float)
+    true = np.asarray(true, dtype=float)
+    valid = np.isfinite(est).all(axis=1)
+    valid &= est[:, 0] > 0
+    valid &= est[:, 1] > 0
+    out = np.full(len(est), np.nan, dtype=float)
+    if valid.any():
+        e_beta = (est[valid, 0] - true[valid, 0]) / true[valid, 0]
+        e_eta = (est[valid, 1] - true[valid, 1]) / true[valid, 1]
+        e_gamma = (est[valid, 2] - true[valid, 2]) / true[valid, 1]
+        out[valid] = (e_beta**2 + e_eta**2 + e_gamma**2) / 3.0
+    if np.isfinite(failure_penalty):
+        out[~valid] = float(failure_penalty) ** 2
+    return out
+
+
+def l_param_from_row_loss(row_loss):
+    values = np.asarray(row_loss, dtype=float)
+    values = values[np.isfinite(values)]
+    return float(np.sqrt(np.mean(values))) if values.size else float("nan")
+
+
+def compute_l_param(est, true, eta_true=None):
+    del eta_true  # retained for compatibility with the earlier local API
+    return l_param_from_row_loss(row_squared_composite_loss(est, true))
 
 def evaluate_model(model, eval_feat, eval_targ_raw, eval_samples):
     model.eval(); device = torch.device("cpu")
     model = model.to(device); eval_feat = eval_feat.to(device)
     with torch.no_grad(): raw = model(eval_feat).numpy()
     est = decode_predictions(raw, eval_samples)
-    l_param = compute_l_param(est, eval_targ_raw, eval_targ_raw[:, 1])
+    row_loss = row_squared_composite_loss(est, eval_targ_raw)
+    l_param = l_param_from_row_loss(row_loss)
     valid = ~np.isnan(est[:, 0])
     legal = valid & (est[:, 0] > 0) & (est[:, 1] > 0) & (est[:, 2] < np.min(eval_samples, axis=1))
     legality = float(legal.sum() / max(len(eval_samples), 1))
@@ -263,11 +321,11 @@ def evaluate_model(model, eval_feat, eval_targ_raw, eval_samples):
             "beta_bias": float(np.mean(e_beta)), "beta_rmse": float(np.sqrt(np.mean(e_beta**2))),
             "eta_bias": float(np.mean(e_eta)), "eta_rmse": float(np.sqrt(np.mean(e_eta**2))),
             "gamma_bias": float(np.mean(e_gamma)), "gamma_rmse": float(np.sqrt(np.mean(e_gamma**2))),
-            "estimates": est, "pt_ids": None}
+            "estimates": est, "row_loss": row_loss, "pt_ids": None}
 
 
 def bootstrap_ci(values, n_boot=2000, seed=520001):
-    """Cluster bootstrap CI (over parameter points). Percentile 95% CI."""
+    """Ordinary scalar bootstrap retained for small diagnostic tests only."""
     rng = np.random.default_rng(seed)
     boots = np.array([np.mean(rng.choice(values, len(values), replace=True)) for _ in range(n_boot)])
     return float(np.percentile(boots, 2.5)), float(np.percentile(boots, 97.5)), float(np.mean(values))
@@ -278,6 +336,73 @@ def aggregate_seeds(eval_results: list[dict]) -> dict:
     lp = np.array([r["l_param"] for r in eval_results])
     return {"l_param_mean": float(np.mean(lp)), "l_param_sd": float(np.std(lp, ddof=1)),
             "l_param_seeds": lp.tolist(), "n_seeds": len(eval_results)}
+
+
+def _arm_l_param(row_losses: list[np.ndarray], row_idx: np.ndarray, seed_idx: np.ndarray) -> float:
+    return float(np.mean([
+        l_param_from_row_loss(np.asarray(row_losses[int(i)])[row_idx])
+        for i in seed_idx
+    ]))
+
+
+def paired_cluster_effect(
+    reference_losses: list[np.ndarray],
+    alternative_losses: list[np.ndarray],
+    pt_ids: np.ndarray,
+    *,
+    mode: str,
+    n_boot: int = 2000,
+    seed: int = 520001,
+) -> dict:
+    """Paired point-cluster bootstrap with training seed as a second level.
+
+    ``mode='relative_improvement'`` returns ``(reference-alternative)/reference``.
+    ``mode='difference'`` returns ``alternative-reference``.
+    """
+    pt_ids = np.asarray(pt_ids)
+    clusters = np.unique(pt_ids)
+    all_rows = np.arange(len(pt_ids))
+    ref_observed = _arm_l_param(
+        reference_losses, all_rows, np.arange(len(reference_losses)))
+    alt_observed = _arm_l_param(
+        alternative_losses, all_rows, np.arange(len(alternative_losses)))
+
+    def effect(ref_value, alt_value):
+        if mode == "relative_improvement":
+            return (ref_value - alt_value) / max(abs(ref_value), 1e-12)
+        if mode == "difference":
+            return alt_value - ref_value
+        raise ValueError(f"unknown effect mode: {mode}")
+
+    observed = effect(ref_observed, alt_observed)
+    rng = np.random.default_rng(seed)
+    boot = np.empty(int(n_boot), dtype=float)
+    rows_by_cluster = {int(c): np.flatnonzero(pt_ids == c) for c in clusters}
+    for b in range(int(n_boot)):
+        sampled_clusters = rng.choice(clusters, size=len(clusters), replace=True)
+        row_idx = np.concatenate([rows_by_cluster[int(c)] for c in sampled_clusters])
+        ref_seed_idx = rng.integers(0, len(reference_losses), size=len(reference_losses))
+        alt_seed_idx = rng.integers(0, len(alternative_losses), size=len(alternative_losses))
+        boot[b] = effect(
+            _arm_l_param(reference_losses, row_idx, ref_seed_idx),
+            _arm_l_param(alternative_losses, row_idx, alt_seed_idx),
+        )
+    return {
+        "effect": float(observed),
+        "ci_lower": float(np.percentile(boot, 2.5)),
+        "ci_upper": float(np.percentile(boot, 97.5)),
+        "n_parameter_points": int(len(clusters)),
+        "n_bootstrap": int(n_boot),
+        "mode": mode,
+    }
+
+
+def is_plateau(effect: Mapping[str, float], threshold: float = 0.02) -> bool:
+    """Preregistered A5 plateau rule: small gain and CI crosses zero."""
+    return (
+        float(effect["effect"]) < float(threshold)
+        and float(effect["ci_lower"]) <= 0.0 <= float(effect["ci_upper"])
+    )
 
 
 # ===========================================================================
@@ -296,7 +421,7 @@ def _single_method_estimate(method_name: str, sample: np.ndarray):
                                                 float(result[2]), result[3], result[4])
                 if not success or not (np.isfinite(beta) and np.isfinite(eta) and np.isfinite(gamma)):
                     return None
-                if beta <= 0 or eta <= 0: return None
+                if beta <= 0 or eta <= 0 or gamma >= float(np.min(sample)): return None
                 return (beta, eta, gamma)
         elif method_name == "WMLE":
             from methods.wmle import WMLE
@@ -306,7 +431,7 @@ def _single_method_estimate(method_name: str, sample: np.ndarray):
                 gamma_w, beta_w, alpha_w = float(result[0]), float(result[1]), float(result[2])
                 if not (np.isfinite(beta_w) and np.isfinite(alpha_w) and np.isfinite(gamma_w)):
                     return None
-                if beta_w <= 0 or alpha_w <= 0: return None
+                if beta_w <= 0 or alpha_w <= 0 or gamma_w >= float(np.min(sample)): return None
                 return (beta_w, alpha_w, gamma_w)
         elif method_name == "MPS":
             from methods.mps import MPS
@@ -315,7 +440,7 @@ def _single_method_estimate(method_name: str, sample: np.ndarray):
                 beta, eta, gamma = float(result[0]), float(result[1]), float(result[2])
                 if not (np.isfinite(beta) and np.isfinite(eta) and np.isfinite(gamma)):
                     return None
-                if beta <= 0 or eta <= 0: return None
+                if beta <= 0 or eta <= 0 or gamma >= float(np.min(sample)): return None
                 return (beta, eta, gamma)
         elif method_name == "MDM":
             from methods.mdm import MDM
@@ -325,7 +450,7 @@ def _single_method_estimate(method_name: str, sample: np.ndarray):
                                                 float(result[2]), result[3], result[4])
                 if not success or not (np.isfinite(beta) and np.isfinite(eta) and np.isfinite(gamma)):
                     return None
-                if beta <= 0 or eta <= 0: return None
+                if beta <= 0 or eta <= 0 or gamma >= float(np.min(sample)): return None
                 return (beta, eta, gamma)
         elif method_name == "LRE":
             from methods.lre import LRE
@@ -335,7 +460,7 @@ def _single_method_estimate(method_name: str, sample: np.ndarray):
                                                 float(result[2]), result[3], result[4])
                 if not success or not (np.isfinite(beta) and np.isfinite(eta) and np.isfinite(gamma)):
                     return None
-                if beta <= 0 or eta <= 0: return None
+                if beta <= 0 or eta <= 0 or gamma >= float(np.min(sample)): return None
                 return (beta, eta, gamma)
         return None
     except Exception:
@@ -359,6 +484,7 @@ def evaluate_a13_oracle(conf_samples, conf_targets, config):
     clip_beta = (float(core["beta"]["min"]), float(core["beta"]["max"]))
     clip_eta = (float(core["eta"]["min"]), float(core["eta"]["max"]))
     method_names = config["A13_oracle"]["conventional_methods"]
+    failure_penalty = float(config["A13_oracle"]["failure_penalty"])
     results = {}
     for name in method_names:
         raw_est = np.full((conf_samples.shape[0], 3), np.nan)
@@ -372,15 +498,24 @@ def evaluate_a13_oracle(conf_samples, conf_targets, config):
             raw_est[i] = [beta_h, eta_h, gamma_h]
             bc, ec, gc = apply_oracle_clip(beta_h, eta_h, gamma_h, clip_beta, clip_eta)
             clipped_est[i] = [bc, ec, gc]
-        valid_r = ~np.isnan(raw_est[:, 0])
-        valid_c = ~np.isnan(clipped_est[:, 0])
-        lp_raw = compute_l_param(raw_est[valid_r], conf_targets[valid_r], conf_targets[valid_r, 1]) if valid_r.any() else 10.0
-        lp_clip = compute_l_param(clipped_est[valid_c], conf_targets[valid_c], conf_targets[valid_c, 1]) if valid_c.any() else 10.0
+        valid_r = np.isfinite(raw_est).all(axis=1)
+        valid_c = np.isfinite(clipped_est).all(axis=1)
+        raw_conditional = row_squared_composite_loss(raw_est, conf_targets)
+        clipped_conditional = row_squared_composite_loss(clipped_est, conf_targets)
+        raw_unconditional = row_squared_composite_loss(
+            raw_est, conf_targets, failure_penalty=failure_penalty)
+        clipped_unconditional = row_squared_composite_loss(
+            clipped_est, conf_targets, failure_penalty=failure_penalty)
         results[name] = {
-            "raw_l_param": lp_raw, "clipped_l_param": lp_clip,
+            "raw_l_param": l_param_from_row_loss(raw_conditional),
+            "clipped_l_param": l_param_from_row_loss(clipped_conditional),
+            "raw_l_param_unconditional": l_param_from_row_loss(raw_unconditional),
+            "clipped_l_param_unconditional": l_param_from_row_loss(clipped_unconditional),
             "raw_failure_rate": raw_fail / max(conf_samples.shape[0], 1),
             "clipped_failure_rate": clipped_fail / max(conf_samples.shape[0], 1),
             "raw_n_valid": int(valid_r.sum()), "clipped_n_valid": int(valid_c.sum()),
+            "raw_row_loss": raw_unconditional,
+            "clipped_row_loss": clipped_unconditional,
         }
     return results
 
@@ -400,30 +535,67 @@ def _output_dir(base, arm, combo, seed, prefix=""):
     return p
 
 
+def write_confirmation_source(base, results, a13, pt_ids):
+    """Write compact row-level losses needed to reproduce clustered summaries."""
+    path = base / "confirmation_source.csv.gz"
+    with gzip.open(path, "wt", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(
+            handle, fieldnames=["arm", "seed", "row", "parameter_point", "row_loss"])
+        writer.writeheader()
+        for arm, record in results.items():
+            if arm == "A13":
+                continue
+            seed = arm.rsplit("/s", 1)[-1]
+            for row, (point, loss) in enumerate(zip(pt_ids, record["row_loss"])):
+                writer.writerow({
+                    "arm": arm, "seed": seed, "row": row,
+                    "parameter_point": int(point), "row_loss": float(loss),
+                })
+        for method, record in a13.items():
+            for variant in ("raw", "clipped"):
+                for row, (point, loss) in enumerate(zip(
+                    pt_ids, record[f"{variant}_row_loss"]
+                )):
+                    writer.writerow({
+                        "arm": f"A13/{method}/{variant}", "seed": "",
+                        "row": row, "parameter_point": int(point),
+                        "row_loss": float(loss),
+                    })
+    return path
+
+
 def run_pilot(config):
-    """2 fits in pilot/ subtree. Reduced epochs/rows for speed."""
+    """Two representative fits in pilot/ with a 10-epoch diagnostic cap."""
     base = Path(config["output_root"])
     print("=== PILOT ==="); t0 = time.time()
-    val_samples, val_targets, _ = generate_role_data(config, "validation")
+    pilot_config = json.loads(json.dumps(config))
+    pilot_config["baseline"]["epochs"] = {"max": 10, "min": 5, "patience": 5}
+    val_samples, val_targets, _ = generate_role_data(pilot_config, "validation")
     val_feat = torch.tensor(preprocess_v_route(val_samples), dtype=torch.float32)
     val_targ = torch.tensor(prepare_targets(val_samples, val_targets), dtype=torch.float32)
 
     # A5 pilot
-    _, tr_s, tr_t = generate_pool(config, prefix_size=25000)
+    _, tr_s, tr_t = generate_pool(pilot_config, prefix_size=25000)
     tf = torch.tensor(preprocess_v_route(tr_s), dtype=torch.float32)
     tt_t = torch.tensor(prepare_targets(tr_s, tr_t), dtype=torch.float32)
     out = _output_dir(base, "A5", "25000", 720001, PILOT_PREFIX)
-    model = _make_model(config)
-    r = train_one_fit(model, tf, tt_t, val_feat, val_targ, config, 720001, out)
+    model = _make_model(pilot_config)
+    r = train_one_fit(
+        model, tf, tt_t, val_feat, val_targ, pilot_config, 720001, out,
+        arm="pilot/A5/25000",
+    )
     print(f"  A5/25000: epoch={r['best_epoch']} val={r['best_val_loss']:.4f}")
 
     # A6 pilot
-    _, tr_s2, tr_t2 = generate_pool(config, prefix_size=7000)
+    _, tr_s2, tr_t2 = generate_pool(pilot_config, prefix_size=7000)
     tf2 = torch.tensor(preprocess_v_route(tr_s2), dtype=torch.float32)
     tt_t2 = torch.tensor(prepare_targets(tr_s2, tr_t2), dtype=torch.float32)
     out2 = _output_dir(base, "A6", "core_continuous", 720011, PILOT_PREFIX)
-    model2 = _make_model(config)
-    r2 = train_one_fit(model2, tf2, tt_t2, val_feat, val_targ, config, 720011, out2)
+    model2 = _make_model(pilot_config)
+    r2 = train_one_fit(
+        model2, tf2, tt_t2, val_feat, val_targ, pilot_config, 720011, out2,
+        arm="pilot/A6/core_continuous",
+    )
     print(f"  A6/core_continuous: epoch={r2['best_epoch']} val={r2['best_val_loss']:.4f}")
 
     t = time.time() - t0
@@ -435,6 +607,7 @@ def run_full(config):
     """21 fits with valid resume check."""
     base = Path(config["output_root"])
     print("=== FULL (21 fits) ==="); t0 = time.time()
+    cfg_sha = config_sha256(config)
     val_samples, val_targets, _ = generate_role_data(config, "validation")
     val_feat = torch.tensor(preprocess_v_route(val_samples), dtype=torch.float32)
     val_targ = torch.tensor(prepare_targets(val_samples, val_targets), dtype=torch.float32)
@@ -447,10 +620,15 @@ def run_full(config):
         for seed in config["A5_training_seeds"]:
             out = _output_dir(base, "A5", str(size), seed)
             model = _make_model(config)
-            if can_resume(out, model, n_rows):
+            arm = f"A5/{size}"
+            if can_resume(
+                out, model, n_rows, expected_seed=seed, expected_arm=arm,
+                expected_config_sha256=cfg_sha,
+            ):
                 print(f"  A5/{size}/s{seed}: RESUME (valid)")
                 continue
-            r = train_one_fit(model, tf, tt_t, val_feat, val_targ, config, seed, out)
+            r = train_one_fit(
+                model, tf, tt_t, val_feat, val_targ, config, seed, out, arm=arm)
             print(f"  A5/{size}/s{seed}: epoch={r['best_epoch']} val={r['best_val_loss']:.4f}")
 
     for dist_name in config["A6_distributions"]:
@@ -461,10 +639,15 @@ def run_full(config):
         for seed in config["A6_seeds"]:
             out = _output_dir(base, "A6", dist_name, seed)
             model = _make_model(config)
-            if can_resume(out, model, n_rows):
+            arm = f"A6/{dist_name}"
+            if can_resume(
+                out, model, n_rows, expected_seed=seed, expected_arm=arm,
+                expected_config_sha256=cfg_sha,
+            ):
                 print(f"  A6/{dist_name}/s{seed}: RESUME (valid)")
                 continue
-            r = train_one_fit(model, tf, tt_t, val_feat, val_targ, config, seed, out)
+            r = train_one_fit(
+                model, tf, tt_t, val_feat, val_targ, config, seed, out, arm=arm)
             print(f"  A6/{dist_name}/s{seed}: epoch={r['best_epoch']} val={r['best_val_loss']:.4f}")
 
     t = time.time() - t0
@@ -475,6 +658,7 @@ def run_full(config):
 def run_confirmation(config):
     """Evaluate all 21 preregistered arms on conf split. Fails if any fit missing."""
     base = Path(config["output_root"])
+    cfg_sha = config_sha256(config)
     conf_samples, conf_targets, pt_ids = generate_role_data(config, "confirmation")
     conf_feat = torch.tensor(preprocess_v_route(conf_samples), dtype=torch.float32)
 
@@ -483,18 +667,26 @@ def run_confirmation(config):
     for size in config["A5_training_sizes"]:
         for seed in config["A5_training_seeds"]:
             out = _output_dir(base, "A5", str(size), seed)
-            if not can_resume(out, _make_model(config), -1):  # -1 = don't check rows
+            if not can_resume(
+                out, _make_model(config), int(size), expected_seed=seed,
+                expected_arm=f"A5/{size}", expected_config_sha256=cfg_sha,
+            ):
                 missing.append(f"A5/{size}/s{seed}")
     for dist_name in config["A6_distributions"]:
         for seed in config["A6_seeds"]:
             out = _output_dir(base, "A6", dist_name, seed)
-            if not can_resume(out, _make_model(config), -1):
+            if not can_resume(
+                out, _make_model(config), int(config["A6_training_rows"]),
+                expected_seed=seed, expected_arm=f"A6/{dist_name}",
+                expected_config_sha256=cfg_sha,
+            ):
                 missing.append(f"A6/{dist_name}/s{seed}")
 
     if missing:
-        print(f"CONFIRMATION REFUSED: {len(missing)} fit(s) missing/invalid: {missing}")
-        print("No partial confirmation saved.")
-        return
+        raise RuntimeError(
+            f"CONFIRMATION REFUSED: {len(missing)} fit(s) missing/invalid: {missing}. "
+            "No partial confirmation saved."
+        )
 
     print("=== CONFIRMATION ==="); t0 = time.time()
     results = {}
@@ -537,32 +729,89 @@ def run_confirmation(config):
         agg[f"A5/{size}"] = aggregate_seeds(seeds)
     sizes = config["A5_training_sizes"]
     for i in range(len(sizes) - 1):
-        smaller = agg[f"A5/{sizes[i]}"]["l_param_mean"]
-        larger = agg[f"A5/{sizes[i+1]}"]["l_param_mean"]
-        rel_impr = (smaller - larger) / max(smaller, 1e-10)
-        agg[f"A5_plateau_{sizes[i]}_to_{sizes[i+1]}"] = {
-            "rel_improvement": float(rel_impr),
-            "plateau_candidate": float(rel_impr) < 0.02,  # <2% improvement
-        }
+        smaller_losses = [
+            results[f"A5/{sizes[i]}/s{s}"]["row_loss"]
+            for s in config["A5_training_seeds"]
+        ]
+        larger_losses = [
+            results[f"A5/{sizes[i+1]}/s{s}"]["row_loss"]
+            for s in config["A5_training_seeds"]
+        ]
+        effect = paired_cluster_effect(
+            smaller_losses, larger_losses, pt_ids,
+            mode="relative_improvement",
+            n_boot=int(config["metrics"]["bootstrap"]["replicates"]),
+            seed=int(config["metrics"]["bootstrap"]["seed"]) + i,
+        )
+        effect["plateau"] = is_plateau(effect)
+        agg[f"A5_plateau_{sizes[i]}_to_{sizes[i+1]}"] = effect
 
     # A6: paired dist vs core_continuous
-    core_seeds = [results[f"A6/core_continuous/s{s}"]["l_param"] for s in config["A6_seeds"]]
-    core_mean = float(np.mean(core_seeds))
+    core_losses = [
+        results[f"A6/core_continuous/s{s}"]["row_loss"]
+        for s in config["A6_seeds"]
+    ]
     for dist_name in config["A6_distributions"]:
         if dist_name == "core_continuous": continue
-        dist_seeds = [results[f"A6/{dist_name}/s{s}"]["l_param"] for s in config["A6_seeds"]]
-        dist_mean = float(np.mean(dist_seeds))
-        diff = dist_mean - core_mean
-        lo, hi, _ = bootstrap_ci(np.array(dist_seeds) - np.array(core_seeds))
-        agg[f"A6_{dist_name}_vs_core"] = {"l_param_diff": diff, "ci_lower": lo, "ci_upper": hi}
+        dist_losses = [
+            results[f"A6/{dist_name}/s{s}"]["row_loss"]
+            for s in config["A6_seeds"]
+        ]
+        agg[f"A6_{dist_name}_vs_core"] = paired_cluster_effect(
+            core_losses, dist_losses, pt_ids, mode="difference",
+            n_boot=int(config["metrics"]["bootstrap"]["replicates"]),
+            seed=int(config["metrics"]["bootstrap"]["seed"]) + 100,
+        )
 
-    agg["A13"] = a13
+    # A13: range-prior effect and comparison to the preregistered 100k NN arm.
+    comparator = config["A13_oracle"]["nn_comparator"]
+    nn_losses = [
+        results[
+            f"{comparator['arm']}/{comparator['training_size']}/s{seed}"
+        ]["row_loss"]
+        for seed in comparator["seeds"]
+    ]
+    a13_agg = {
+        "nn_comparator": comparator,
+        "nn_l_param_mean": _arm_l_param(
+            nn_losses, np.arange(len(pt_ids)), np.arange(len(nn_losses))),
+        "methods": {},
+    }
+    for method_index, (method, record) in enumerate(a13.items()):
+        raw = [record["raw_row_loss"]]
+        clipped = [record["clipped_row_loss"]]
+        a13_agg["methods"][method] = {
+            "raw_vs_clipped_relative_improvement": paired_cluster_effect(
+                raw, clipped, pt_ids, mode="relative_improvement",
+                n_boot=int(config["metrics"]["bootstrap"]["replicates"]),
+                seed=int(config["metrics"]["bootstrap"]["seed"]) + 200 + method_index,
+            ),
+            "raw_minus_nn": paired_cluster_effect(
+                nn_losses, raw, pt_ids, mode="difference",
+                n_boot=int(config["metrics"]["bootstrap"]["replicates"]),
+                seed=int(config["metrics"]["bootstrap"]["seed"]) + 300 + method_index,
+            ),
+            "clipped_minus_nn": paired_cluster_effect(
+                nn_losses, clipped, pt_ids, mode="difference",
+                n_boot=int(config["metrics"]["bootstrap"]["replicates"]),
+                seed=int(config["metrics"]["bootstrap"]["seed"]) + 400 + method_index,
+            ),
+        }
+    agg["A13"] = a13_agg
+    source_path = write_confirmation_source(base, results, a13, pt_ids)
 
     summary_path = base / "confirmation_summary.json"
     with open(summary_path, "w", encoding="utf-8") as f:
-        json.dump({"results": {k: {kk: vv for kk, vv in v.items() if kk != "estimates"}
+        json.dump({"results": {k: {kk: vv for kk, vv in v.items()
+                                  if kk not in {"estimates", "row_loss", "pt_ids"}}
                                for k, v in results.items() if k != "A13"},
-                   "A13": a13, "aggregation": agg},
+                   "A13": {
+                       method: {k: v for k, v in record.items()
+                                if k not in {"raw_row_loss", "clipped_row_loss"}}
+                       for method, record in a13.items()
+                   },
+                   "aggregation": agg,
+                   "source_table": str(source_path)},
                   f, ensure_ascii=False, indent=2, default=str)
     print(f"Confirmation saved to {summary_path}")
     t = time.time() - t0

@@ -100,7 +100,13 @@ def test_fit_and_resume():
 
     # Valid resume
     model2 = E1._make_model(config)
-    assert E1.can_resume(tmp, model2, 30)
+    assert E1.can_resume(
+        tmp, model2, 30, expected_seed=42, expected_arm="smoke",
+        expected_config_sha256=E1.config_sha256(config),
+    )
+    assert not E1.can_resume(tmp, E1._make_model(config), 31)
+    assert not E1.can_resume(tmp, E1._make_model(config), 30, expected_seed=43)
+    assert not E1.can_resume(tmp, E1._make_model(config), 30, expected_arm="other")
 
     # Invalid resume: corrupt fit_state
     (tmp / E1.FIT_STATE).write_text("corrupt", encoding="utf-8")
@@ -151,6 +157,22 @@ def test_a13_raw_vs_clipped():
     s = np.array([150.0, 280.0, 410.0, 550.0, 680.0, 830.0, 960.0, 1120.0, 1300.0, 1450.0])
     clip_beta = (1.2, 4.0); clip_eta = (100.0, 10000.0)
 
+    # A deliberately out-of-range estimate must change under clipping.
+    out_of_range = (8.0, 20000.0, -100.0)
+    clipped = E1.apply_oracle_clip(*out_of_range, clip_beta, clip_eta)
+    assert clipped != out_of_range
+    assert clipped == (4.0, 10000.0, 0.0)
+
+    # Failure rows remain failures conditionally and receive the fixed
+    # unconditional penalty rather than becoming clipped successes.
+    failed = np.array([[np.nan, np.nan, np.nan]])
+    truth = np.array([[2.0, 1000.0, 100.0]])
+    conditional = E1.row_squared_composite_loss(failed, truth)
+    unconditional = E1.row_squared_composite_loss(
+        failed, truth, failure_penalty=10.0)
+    assert np.isnan(conditional[0])
+    assert unconditional[0] == 100.0
+
     # MLE: should be within core, clipping may not change
     est_mle = E1._single_method_estimate("MLE", s)
     assert est_mle is not None
@@ -169,7 +191,9 @@ def test_a13_raw_vs_clipped():
     res = E1.evaluate_a13_oracle(tiny_samples, tiny_targets, config)
     for name, rd in res.items():
         if name == "MPS": continue
-        assert rd["raw_l_param"] != rd.get("clipped_l_param", -1) or True  # may be equal or different
+        assert "raw_l_param_unconditional" in rd
+        assert "clipped_l_param_unconditional" in rd
+        assert len(rd["raw_row_loss"]) == len(tiny_samples)
         print(f"  {name}: raw_L={rd['raw_l_param']:.4f} clip_L={rd['clipped_l_param']:.4f} raw_fail={rd['raw_failure_rate']:.0f}")
 
     print("PASS test_a13_raw_vs_clipped")
@@ -193,6 +217,38 @@ def test_aggregation_bootstrap():
     vals = np.array([0.270, 0.275, 0.268, 0.273, 0.271])
     lo, hi, mean = E1.bootstrap_ci(vals)
     assert lo < mean < hi, f"CI: {lo} < {mean} < {hi}"
+
+    # Real point-cluster + training-seed bootstrap. There are four clusters,
+    # two repeated rows per cluster, and three model seeds per arm.
+    pt_ids = np.repeat(np.arange(4), 2)
+    reference = [
+        np.full(8, 0.09),
+        np.full(8, 0.10),
+        np.full(8, 0.08),
+    ]
+    alternative = [
+        np.full(8, 0.081),
+        np.full(8, 0.090),
+        np.full(8, 0.072),
+    ]
+    effect = E1.paired_cluster_effect(
+        reference, alternative, pt_ids, mode="relative_improvement",
+        n_boot=200, seed=7,
+    )
+    assert effect["n_parameter_points"] == 4
+    assert effect["effect"] > 0.0
+
+    # Plateau classification requires both conditions, not merely <2%.
+    assert E1.is_plateau({"effect": 0.01, "ci_lower": -0.02, "ci_upper": 0.03})
+    assert not E1.is_plateau({"effect": 0.01, "ci_lower": 0.001, "ci_upper": 0.02})
+    assert not E1.is_plateau({"effect": 0.03, "ci_lower": -0.01, "ci_upper": 0.06})
+
+    config = json.loads((_CODE.parent / "configs/E1-training-sensitivity.json").read_text(encoding="utf-8"))
+    comparator = config["A13_oracle"]["nn_comparator"]
+    assert comparator == {
+        "arm": "A5", "training_size": 100000,
+        "seeds": [720001, 720002, 720003],
+    }
     print(f"  L_param mean={mean:.4f} CI=[{lo:.4f},{hi:.4f}]")
     print("PASS test_aggregation_bootstrap")
 

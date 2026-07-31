@@ -72,6 +72,8 @@
   "A13_oracle": {
     "description": "Range-clipped traditional oracle: clip(β_hat, 1.2, 4.0), clip(η_hat, 100, 10000), ρ_c = clip(γ_hat/η_hat, 0, 1), γ_c = ρ_c * η_c. Original failures remain failures.",
     "conventional_methods": ["MLE", "MPS", "WMLE", "MDM", "LRE"],
+    "nn_comparator": {"arm": "A5", "training_size": 100000, "seeds": [720001, 720002, 720003]},
+    "failure_penalty": 10.0,
     "requires_no_nn_training": true
   },
   "output_root": "C:/weibull-runs/study02/lean/E1-training-sensitivity",
