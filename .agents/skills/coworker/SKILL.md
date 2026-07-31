@@ -9,8 +9,8 @@ description: >
   Keep plans concise: clarify goals, boundaries, autonomy, stop conditions, and
   verification instead of writing step-by-step scripts for capable executors.
 metadata:
-  version: "2.2.0"
-  updated_at: "2026-07-31T07:28:38+08:00"
+  version: "2.3.0"
+  updated_at: "2026-07-31T08:43:27+08:00"
 ---
 
 # Coworker
@@ -76,7 +76,9 @@ only a completed report, a blocker, a control change, or a user intervention as
 an event. Never inspect or review the executor's half-finished work while it is
 still implementing.
 
-Enter duplex auto mode only through the user-mediated startup handshake:
-prepare the executor bootstrap prompt, tell the user that Codex is ready, and
-keep the mailbox in `manual` until the user confirms the executor watcher has
-started. Then switch to `auto` and begin the persistent reviewer wait.
+Start duplex mode with one user relay only. Queue the task, set the mailbox to
+`auto`, present the executor bootstrap prompt, and immediately begin the
+persistent reviewer wait in the same long task. The user pastes that prompt
+once; the executor starts waiting and consumes the queued task immediately.
+Never require “watcher started”, “Codex started”, or another acknowledgement
+round trip.

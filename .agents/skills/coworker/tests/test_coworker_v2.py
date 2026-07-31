@@ -413,6 +413,10 @@ def test_duplex_uses_user_owned_visible_windows():
     assert "it never starts an agent process" in text
     assert "Do not inspect its branch, diff" in text
     assert "Do not send routine interim reports" in text
-    assert "Do not switch the mailbox to `auto` unilaterally" in text
-    assert "Only after that confirmation" in text
-    assert "return to `manual` and repeat this handshake" in text
+    assert "Starting duplex mode requires one user relay" in text
+    assert "immediately starts its own persistent wait loop" in text
+    assert "The user pastes that prompt once" in text
+    assert "Do not ask the user to report “watcher started”" in text
+    assert "perform any second confirmation" in text
+    assert "do not introduce another" in text
+    assert "acknowledgement round trip" in text
