@@ -1,7 +1,7 @@
 # Study 02：面向寿命分位点目标的 NN Weibull 参数估计研究
 
 > 创建日期：2026-07-11
-> 当前状态：转**精简复现路线**（长任务计划见仓库根 `coworker/plans/2026-07-31-study02-lean-prestudy-completion.md`）。A-E1 r5 与 A-E3 r2 的 formal 证据已 APPROVE 并保留为基线；旧 formal 引擎只读冻结，不再扩建 scheduler/lease/authority/unseal/consume/hash-chain/capsule/攻击防护。前置研究 A 的 19 个问题以最小可复现实验回答；test 保持 sealed，不启封/不消费。
+> 当前状态：采用**精简复现路线**（长任务计划见仓库根 `coworker/plans/2026-07-31-study02-lean-prestudy-completion.md`）。P0–P3 已完成，14/19 问已有 answered/partial 证据；当前进入 P4 E3（A14/A15/A16）。A-E1 r5 与 A-E3 r2 的 formal 证据已 APPROVE 并保留为只读基线；旧 formal 引擎不再扩建，formal test 保持 sealed，不启封/不消费。
 
 ## 目录定位
 
