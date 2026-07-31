@@ -1134,6 +1134,44 @@ class TestPreSealDrift:
             with pytest.raises(RuntimeError, match="worktree became dirty"):
                 p4.verify_pre_seal_state("/tmp", auth)
 
+    def test_get_git_dirty_exclude_output_dir(self, tmp_path):
+        """get_git_dirty(exclude=...) ignores paths inside the excluded dir."""
+        import unittest.mock as mock
+
+        # Simulate porcelain output with an untracked output dir (CJK path quoted)
+        porcelain = '?? "some/output_dir/"\n'
+
+        def fake_status(*args, **kwargs):
+            class R:
+                stdout = porcelain
+                returncode = 0
+            return R()
+
+        with mock.patch("subprocess.run", side_effect=fake_status):
+            # exclude a path that matches the porcelain entry when joined to repo root
+            repo_root = Path(__file__).resolve().parents[3]
+            excluded = repo_root / "some" / "output_dir"
+            dirty = p4.get_git_dirty(exclude=str(excluded))
+        assert not dirty, "Output dir should be excluded from dirty check"
+
+    def test_get_git_dirty_exclude_still_detects_other_files(self, tmp_path):
+        """get_git_dirty(exclude=...) still detects dirty files outside the excluded dir."""
+        import unittest.mock as mock
+
+        porcelain = '?? "some/output_dir/"\n M src/lib/dirty.py\n'
+
+        def fake_status(*args, **kwargs):
+            class R:
+                stdout = porcelain
+                returncode = 0
+            return R()
+
+        with mock.patch("subprocess.run", side_effect=fake_status):
+            repo_root = Path(__file__).resolve().parents[3]
+            excluded = repo_root / "some" / "output_dir"
+            dirty = p4.get_git_dirty(exclude=str(excluded))
+        assert dirty, "Non-output dirty file should still be detected"
+
     def test_pre_seal_rejects_output_dir_drift(self, tmp_path):
         """verify_pre_seal_state rejects output_dir drift."""
         import unittest.mock as mock
@@ -1954,7 +1992,7 @@ class TestMainFourTrack:
         monkeypatch.setattr(cfg, "N_MODELS", 1)
         monkeypatch.setattr(p4, "_STUDY_DIR_OVERRIDE", str(study_dir))
 
-        monkeypatch.setattr(p4, "get_git_dirty", lambda: False)
+        monkeypatch.setattr(p4, "get_git_dirty", lambda exclude=None: False)
         monkeypatch.setattr(p4, "get_git_commit", lambda: "test_head")
         monkeypatch.setattr(p4, "compute_script_sha256", lambda: "s" * 64)
 

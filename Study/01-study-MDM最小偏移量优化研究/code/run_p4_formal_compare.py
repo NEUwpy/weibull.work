@@ -655,15 +655,72 @@ def get_git_commit():
         return "unknown"
 
 
-def get_git_dirty():
+def get_git_dirty(exclude=None):
+    """Check if the worktree has uncommitted changes.
+
+    If ``exclude`` is given (a Path or str), porcelain lines whose path is
+    inside that directory are ignored.  This is used by ``verify_pre_seal_state``
+    so the runner's own authorized output does not trip the dirty check while
+    genuine code/config edits outside the output dir are still caught.
+    """
     try:
         r = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True, text=True, cwd=Path(__file__).resolve().parents[3]
         )
-        return len(r.stdout.strip()) > 0
+        lines = r.stdout.strip().splitlines()
+        if exclude is None:
+            return len(lines) > 0
+        exclude_resolved = Path(exclude).resolve()
+        for line in lines:
+            # porcelain format: "XY path" where XY is 2 status chars, path
+            # starts at column 4 (after "XY ").  Quoted paths use C-style
+            # octal escapes for non-ASCII bytes; unquote them for comparison.
+            path_part = line[3:]
+            if path_part.startswith('"') and path_part.endswith('"'):
+                path_part = path_part[1:-1]
+                path_part = _git_unquote(path_part)
+            candidate = Path(Path(__file__).resolve().parents[3]) / path_part
+            try:
+                candidate = candidate.resolve()
+            except Exception:
+                pass
+            if exclude_resolved in candidate.parents or candidate == exclude_resolved:
+                continue
+            return True
+        return False
     except Exception:
         return True
+
+
+def _git_unquote(s):
+    """Unquote git's C-style octal escapes (e.g. \\346\\234\\200 → 真)."""
+    result = bytearray()
+    i = 0
+    while i < len(s):
+        if s[i] == '\\' and i + 3 < len(s) and s[i + 1] in '01234567':
+            # Octal escape: \NNN (3 octal digits)
+            octal = s[i + 1:i + 4]
+            try:
+                result.append(int(octal, 8))
+                i += 4
+                continue
+            except ValueError:
+                pass
+        elif s[i] == '\\' and i + 1 < len(s):
+            # Other escapes: \\ → \, \" → "
+            next_char = s[i + 1]
+            if next_char == '\\':
+                result.append(ord('\\'))
+            elif next_char == '"':
+                result.append(ord('"'))
+            else:
+                result.append(ord(s[i]))
+            i += 2
+            continue
+        result.append(ord(s[i]))
+        i += 1
+    return result.decode('utf-8', errors='replace')
 
 
 def build_run_context(input_sha256):
@@ -810,8 +867,8 @@ def verify_pre_seal_state(output_dir, auth_hashes):
     Checks: HEAD unchanged, worktree clean, script/config hashes match start,
     all frozen input files still match their sealed SHA256.
     """
-    if get_git_dirty():
-        raise RuntimeError("Pre-seal: worktree became dirty during execution")
+    if get_git_dirty(exclude=output_dir):
+        raise RuntimeError("Pre-seal: worktree became dirty during execution (excluding output dir)")
 
     current_head = get_git_commit()
     if current_head != auth_hashes["start_head"]:
