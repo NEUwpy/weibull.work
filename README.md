@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：前置研究 A 采用**精简复现路线**（长任务计划 `coworker/plans/2026-07-31-study02-lean-prestudy-completion.md`，分支 `codex/study02-lean-prestudy-20260731`）；旧 formal 引擎及其产物只读冻结。P0–P4 已完成，17/19 问已有 answered/partial 证据（A4/A8 仍为 partial）；当前进入 P5 E4（A11/A12），随后 P6 收口。E2 的 111,200 条记录不支持“NN 普遍优于传统方法”，但确认分层优势、未见 n 泛化、10-seed 稳定性与总体样本量趋势；E3 的 20,800 条记录确认 NN 的尺度/平移等变性，同时表明强异常值会显著增大误差。formal test namespaces 永封，不启封/不消费。详细状态见 Study/02 `00-A-执行状态.md`。
+**Study/02 当前态**：前置研究 A 的精简复现路线 P0–P5 已完成，全部 19 问已有证据覆盖（A4/A8 为 partial），当前进入 P6 综合与复现终审。结果不支持“NN 普遍优于传统方法”：NN 在部分参数层有优势、跨 seed 稳定并满足尺度/平移等变，但强异常值显著增大误差；NIST 真实数据 CDF 拟合有竞争力，γ 支持边界却经常违规；core conformal 区间覆盖接近标称值，但 boundary 域明显失效。旧 formal 引擎与 test namespaces 永久只读/sealed。详细状态见 Study/02 `00-A-执行状态.md`。
 
 **Study/01 当前态**：正式实验与证据链已经闭环，E1–E4、R1–R3/P6–P8 均完成；Figures 1–9、Supplementary Figures S1–S8、五部分论文技术稿、补充材料及 fail-closed 稿件审计已完成。现已在独立论文项目文件夹启动面向可靠性/计算方法国际期刊的中文学术源稿，下一步是完善文献对话并冻结正文，再确定具体期刊、作者、基金与 CRediT，完成英文和期刊格式适配。连续参数空间训练、多数据集验证和 $\delta>1.00$ 探索属于后续独立研究，不阻塞当前论文。
 
