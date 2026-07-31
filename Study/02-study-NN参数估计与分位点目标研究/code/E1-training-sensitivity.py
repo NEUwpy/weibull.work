@@ -507,8 +507,10 @@ def evaluate_a13_oracle(conf_samples, conf_targets, config):
         clipped_unconditional = row_squared_composite_loss(
             clipped_est, conf_targets, failure_penalty=failure_penalty)
         results[name] = {
-            "raw_l_param": l_param_from_row_loss(raw_conditional),
-            "clipped_l_param": l_param_from_row_loss(clipped_conditional),
+            "raw_l_param": (
+                l_param_from_row_loss(raw_conditional) if valid_r.any() else None),
+            "clipped_l_param": (
+                l_param_from_row_loss(clipped_conditional) if valid_c.any() else None),
             "raw_l_param_unconditional": l_param_from_row_loss(raw_unconditional),
             "clipped_l_param_unconditional": l_param_from_row_loss(clipped_unconditional),
             "raw_failure_rate": raw_fail / max(conf_samples.shape[0], 1),
