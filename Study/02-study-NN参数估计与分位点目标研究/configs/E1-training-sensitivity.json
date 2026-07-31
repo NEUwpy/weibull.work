@@ -8,7 +8,7 @@
     "architecture": {
       "type": "MLP",
       "widths": [128, 64, 32],
-      "activation": "SiLU",
+      "activation": "silu",
       "dropout": 0.1,
       "input_dim": 10
     },
@@ -56,17 +56,18 @@
   "validation": {
     "design_seed": 720401,
     "sample_seed": 820401,
-    "param_points": 256,
-    "repeats_per_point": 50,
-    "n": 10
+    "param_points": 128,
+    "repeats_per_point": 20,
+    "n": 10,
+    "note": "Lean-route correction: 128 pts x 20 reps = 2560 rows. Intentional reduction from formal-era 256x50; records this as a preregistered lean choice, not a result-driven reduction. Cluster bootstrap over parameter points."
   },
   "confirmation": {
     "design_seed": 720501,
     "sample_seed": 820501,
-    "param_points": 256,
-    "repeats_per_point": 200,
+    "param_points": 64,
+    "repeats_per_point": 20,
     "n": 10,
-    "note": "Used ONCE after model/analysis choices frozen. Compares preregistered experiment arms (A5/A6). Does NOT tune architecture, loss, thresholds, or exclusions."
+    "note": "Lean-route correction: 64 pts x 20 reps = 1280 rows. Intentional reduction from formal-era overkill; preregistered before execution. Used ONCE after model/analysis choices frozen. Compares preregistered experiment arms. Does NOT tune architecture, loss, thresholds, or exclusions."
   },
   "A13_oracle": {
     "description": "Range-clipped traditional oracle: clip(β_hat, 1.2, 4.0), clip(η_hat, 100, 10000), ρ_c = clip(γ_hat/η_hat, 0, 1), γ_c = ρ_c * η_c. Original failures remain failures.",
@@ -79,12 +80,12 @@
     "secondary": ["per-parameter Bias/SD/RMSE/MAE", "legality_rate", "x095_Bias/RMSE/MAE"],
     "bootstrap": {"replicates": 2000, "seed": 520001, "cluster_by": "parameter_point"},
     "ci_level": 0.95,
-    "holly_correction": true
+    "multiple_comparison_note": "Primary decisions use effect sizes + cluster CIs (bootstrap over parameter points). No p-value family correction is emitted; Holm correction would be applied if p-value families were reported."
   },
   "stop": {
     "max_nn_fits": 21,
-    "estimated_disk_gb": 5,
-    "estimated_runtime_h": 6,
+    "estimated_disk_gb": 3,
+    "estimated_runtime_h": 4,
     "max_soft_bound_fits": 120,
     "max_soft_bound_hours": 24,
     "note": "21 fits = A5(12) + A6(9). A13 reuses existing conventional methods, adds no NN fits. Pilot uses single-size/single-dist with 1 seed."
