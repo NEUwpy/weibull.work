@@ -13,7 +13,7 @@
 - A-E1 r5：349 fits，V 路线，已批准并冻结。
 - A-E3 r2：266 fits，`huber + m12 + joint + fixed`，已由 Claude 审计并经 Codex APPROVE。
 - 19 个研究问题保持不变；改变的是实验组织与实现规模。
-- test 不参与模型选择，但不再使用 lease、authority、unseal、consume、hash-chain、攻击防护等生产级控制面。
+- formal test namespaces 永久 sealed、不参与模型选择，也不再使用 lease、authority、unseal、consume、hash-chain、攻击防护等生产级控制面；精简路线用独立的 `confirmation` 留出评估集（区别于 training/validation/calibration，选择冻结后评估一次）为 19 个结论提供独立确认。
 
 ## 最小复现契约
 
@@ -30,7 +30,7 @@
 
 ## 阶段与进度
 
-- [ ] P0 计划重构：同步 README、Study README、`00-A`、`01-A`、`02-A`、`03-A`；明确旧 formal 引擎只读冻结、新的精简实验契约和恢复入口。此阶段获 Codex 审查前不得启动新实验。**当前：P0 文档重构已完成并提交 coherent commit，待 Codex 审查；审查通过后勾选并进入 P1。**
+- [ ] P0 计划重构：同步 README、Study README、`00-A`、`01-A`、`02-A`、`03-A`；明确旧 formal 引擎只读冻结、新的精简实验契约和恢复入口。此阶段获 Codex 审查前不得启动新实验。**当前：P0 已实现并提交（tip `d7a8d7ca`），正在 Codex revision 审查；通过后勾选并进入 P1。**
 - [ ] P1 E0 既有证据整理：复用 A-E1/A-E3，回答 A1、A4、A7、A8、A17、A18。
 - [ ] P2 E1 训练设计敏感性：回答 A5、A6、A13。
 - [ ] P3 E2 比较与泛化：回答 A2、A3、A9、A10、A19。

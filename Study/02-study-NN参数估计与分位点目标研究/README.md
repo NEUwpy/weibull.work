@@ -85,7 +85,7 @@ x_R=F^{-1}(1-R)=\gamma+\eta[-\ln(R)]^{1/\beta}.
 - 已确定采用可靠度分位点 \(x_R=F^{-1}(1-R)\)，当前只训练和主张 \(x_{0.95}\)；\(x_{0.90}\) 和 \(x_{0.99}\) 留作后续跨分位点泛化检查。
 - 前置研究 A 的 19 个必答问题及 G2 科学实验协议已经冻结；当前以**精简复现路线**（E0–E4 实验组、P0–P6 阶段）回答全部 19 问，最小复现契约见 `03-A-实验计划.md` 与长任务计划。
 - A-E1 r5 与 A-E3 r2 的 formal 证据已 APPROVE 并保留为基线；旧 formal 引擎（formal scheduler、authority、unseal/consume、hash-chain、capsule、攻击防护、lease）**只读冻结，不再扩建**。历史 blocked/aborted run（A-E1 r1–r4、A-E3 r1）仅作只读历史，不得恢复、拼接或冒充证据。
-- test 保持 sealed；前置研究不启封、不消费 test，也不把 validation 结果冒充 held-out test 结论。
+- test 保持 sealed（formal test namespaces 永封）；前置研究用独立的 `confirmation` 留出评估集（区别于 training/validation/calibration，选择冻结后评估一次）为 19 个结论提供独立确认，不启封/不消费 formal test，也不把 validation 结果冒充 held-out test 结论。
 - 尚未决定前置研究最终是内部积累、论文中的基础章节，还是独立成果。
 - 不提前开展 Study/02 分位点主研究，也不把开放问题或局部结果写成论文结论。
 
