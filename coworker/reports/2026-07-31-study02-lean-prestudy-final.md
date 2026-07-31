@@ -60,4 +60,11 @@ JSON 运行时文件在 Windows 写出时使用 CRLF；Git 根据仓库 `.gitatt
 python -m pytest code/test_E1_preflight.py code/test_E2_preflight.py code/test_E3_preflight.py code/test_E4_preflight.py -q
 ```
 
-并核对 `artifacts/lean/SHA256SUMS` 的 9 个文件。最终实际结果随任务终审记录；若验证失败，不得视为完成。
+综合候选提交 `a53161d052ae4140dc3ca6c679ff21b326d1fda5` 已在独立 detached clean worktree 完成终验：
+
+- E1–E4 全部预检：`22 passed in 7.27s`；
+- `artifacts/lean/SHA256SUMS`：9/9 文件一致；
+- 验证后 worktree：clean；
+- 临时 worktree 已安全移除。
+
+因此前置研究 A 精简路线满足完成条件。最终闭环提交仅记录上述验证结果，不改变代码、配置或实验工件。
