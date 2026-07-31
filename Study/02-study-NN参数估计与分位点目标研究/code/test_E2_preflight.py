@@ -68,3 +68,13 @@ def test_source_writer_accepts_union_of_record_fields(tmp_path):
     E2.write_source(target, [{"a": 1}, {"a": 2, "b": 3}])
     with gzip.open(target, "rt", encoding="utf-8") as handle:
         assert handle.readline().strip() == "a,b"
+
+
+def test_seed_stability_uses_same_scale_variance_and_rank():
+    records = []
+    for point, base in (("p0", 0.1), ("p1", 0.4), ("p2", 0.9)):
+        for seed, delta in ((1, 0.0), (2, 0.01)):
+            records.append({"n": 5, "point_id": point, "seed": seed, "row_loss": (base + delta) ** 2})
+    result = E2.seed_stability(records)[0]
+    assert 0.0 <= result["seed_variance_share"] < 0.01
+    assert result["point_difficulty_rank_spearman_min"] == 1.0

@@ -21,7 +21,7 @@ from typing import Any, Iterable
 
 import numpy as np
 import torch
-from scipy.stats import qmc
+from scipy.stats import qmc, spearmanr
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 STUDY_ROOT = SCRIPT_DIR.parent
@@ -319,11 +319,22 @@ def seed_stability(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if group:
                 values.append((seed, summarize_group(group)["l_param"]))
         scores = np.asarray([value for _, value in values])
-        within = np.mean([
-            np.var([r["row_loss"] for r in records if int(r["n"]) == n and int(r["seed"]) == seed])
-            for seed, _ in values
-        ])
-        between = float(np.var(scores, ddof=1))
+        points = sorted({r["point_id"] for r in records if int(r["n"]) == n})
+        point_seed = np.empty((len(points), len(values)), dtype=float)
+        for i, point in enumerate(points):
+            for j, (seed, _) in enumerate(values):
+                losses = [
+                    r["row_loss"] for r in records
+                    if int(r["n"]) == n and int(r["seed"]) == seed and r["point_id"] == point
+                ]
+                point_seed[i, j] = math.sqrt(float(np.mean(losses)))
+        total_variance = float(np.var(point_seed, ddof=1))
+        between_seed_variance = float(np.var(np.mean(point_seed, axis=0), ddof=1))
+        rank_correlations = [
+            float(spearmanr(point_seed[:, a], point_seed[:, b]).statistic)
+            for a in range(point_seed.shape[1])
+            for b in range(a + 1, point_seed.shape[1])
+        ]
         result.append({
             "n": n,
             "seed_scores": [{"seed": seed, "l_param": score} for seed, score in values],
@@ -331,7 +342,9 @@ def seed_stability(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "sd": float(scores.std(ddof=1)),
             "worst": float(scores.max()),
             "coefficient_of_variation": float(scores.std(ddof=1) / scores.mean()),
-            "seed_variance_share": float(between / max(between + within, 1e-15)),
+            "seed_variance_share": float(between_seed_variance / max(total_variance, 1e-15)),
+            "point_difficulty_rank_spearman_mean": float(np.mean(rank_correlations)),
+            "point_difficulty_rank_spearman_min": float(np.min(rank_correlations)),
             "rank_order": [seed for seed, _ in sorted(values, key=lambda item: item[1])],
         })
     return result
