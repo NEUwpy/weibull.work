@@ -747,7 +747,7 @@ def build_manifest(tracks_run, methods_run):
         "p4_formal_authorized": cfg.P4_FORMAL_AUTHORIZED,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.gmtime()),
         "git_commit": get_git_commit(),
-        "worktree_dirty": get_git_dirty(),
+        "worktree_dirty": get_git_dirty(exclude=cfg.FORMAL_OUTPUT_DIR),
         "script_sha256": compute_script_sha256(),
         "config_sha256": compute_sha256(Path(_CODE_DIR) / "p4_config.py"),
         "baseline_commit": cfg.BASELINE_COMMIT,

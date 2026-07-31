@@ -1172,6 +1172,49 @@ class TestPreSealDrift:
             dirty = p4.get_git_dirty(exclude=str(excluded))
         assert dirty, "Non-output dirty file should still be detected"
 
+    def test_manifest_dirty_excludes_runner_output_dir(self):
+        """Regression (provenance): build_manifest must exclude the runner's own
+        formal output dir so the start manifest records the authorized clean
+        state, while an unrelated dirty path is still reported."""
+        import unittest.mock as mock
+
+        repo_root = Path(__file__).resolve().parents[3]
+        fake_out = repo_root / "tmp" / "_p4_manifest_dirty_test_out"
+
+        def make_status(porcelain):
+            def fake_status(*args, **kwargs):
+                cmd = args[0] if args else []
+
+                class R:
+                    returncode = 0
+                    stdout = ""
+
+                r = R()
+                if "status" in cmd:
+                    r.stdout = porcelain
+                elif "rev-parse" in cmd:
+                    r.stdout = "deadbeefcafebabe\n"
+                return r
+            return fake_status
+
+        # (a) only the formal output dir untracked -> manifest must be clean
+        with mock.patch.object(cfg, "FORMAL_OUTPUT_DIR", fake_out):
+            with mock.patch("subprocess.run", side_effect=make_status(
+                    '?? "tmp/_p4_manifest_dirty_test_out/"\n')):
+                manifest = p4.build_manifest(["main_holdout"], cfg.P4_METHODS)
+        assert manifest["worktree_dirty"] is False, (
+            "Runner output dir must be excluded from manifest worktree_dirty")
+
+        # (b) output dir plus an unrelated dirty path -> manifest must be dirty
+        with mock.patch.object(cfg, "FORMAL_OUTPUT_DIR", fake_out):
+            with mock.patch("subprocess.run", side_effect=make_status(
+                    '?? "tmp/_p4_manifest_dirty_test_out/"\n'
+                    ' M "code/unrelated_dirty.py"\n')):
+                manifest = p4.build_manifest(["main_holdout"], cfg.P4_METHODS)
+        assert manifest["worktree_dirty"] is True, (
+            "Unrelated dirty path must still be reported in manifest")
+
+
     def test_pre_seal_rejects_output_dir_drift(self, tmp_path):
         """verify_pre_seal_state rejects output_dir drift."""
         import unittest.mock as mock
