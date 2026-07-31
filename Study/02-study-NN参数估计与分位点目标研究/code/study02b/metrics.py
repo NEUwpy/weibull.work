@@ -7,20 +7,27 @@ Reuses `python/studies/common/metrics.py` for summary functions
 The D-route predicts x_{0.95} directly, so we do NOT go through the
 parameter space.  This adapter bridges raw (predicted, true) pairs into
 the same summary format that the existing metric aggregators expect.
+
+Protocol §5.1: D predictions are valid only when finite AND greater than
+zero (physically plausible for a positive lifetime quantile).
 """
 
 from __future__ import annotations
 
-import math
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import numpy as np
 
 from studies.common.metrics import (
     summarize_standard_errors,
     summarize_relative_errors,
-    DEFAULT_STANDARD_R_LEVELS,
 )
+
+
+def _intrinsic_valid(predictions: np.ndarray) -> np.ndarray:
+    """Return boolean mask: prediction is finite AND greater than zero."""
+    pred = np.asarray(predictions, dtype=float).ravel()
+    return np.isfinite(pred) & (pred > 0.0)
 
 
 def direct_errors(
@@ -35,6 +42,7 @@ def direct_errors(
 
     Returns:
         dict with keys "absolute" and "relative", each an (N,) array.
+        Relative error is NaN where true_x095 is zero — no RuntimeWarning.
     """
     pred = np.asarray(predictions, dtype=float).ravel()
     true = np.asarray(true_x095, dtype=float).ravel()
@@ -44,7 +52,10 @@ def direct_errors(
             f"got {pred.shape} vs {true.shape}"
         )
     abs_err = pred - true
-    rel_err = np.where(true != 0.0, abs_err / true, np.nan)
+    # Safe division: only divide where true != 0, avoiding RuntimeWarning.
+    rel_err = np.full_like(abs_err, np.nan, dtype=float)
+    nonzero = true != 0.0
+    rel_err[nonzero] = abs_err[nonzero] / true[nonzero]
     return {"absolute": abs_err, "relative": rel_err}
 
 
@@ -56,18 +67,23 @@ def aggregate_direct_metrics(
 ) -> Dict:
     """Compute standard metric summary for direct x_{0.95} predictions.
 
+    Intrinsic validity (protocol §5.1): prediction must be finite AND > 0.
+    A caller-supplied ``valid_mask`` is **combined with** (AND) intrinsic
+    validity — it cannot override the frozen rule.  Supplying a mask is
+    useful for, e.g., excluding rows where the anchor was degenerate.
+
     Args:
         predictions: (N,) array of predicted x_{0.95} values.
         true_x095:  (N,) array of true x_{0.95} values.
-        valid_mask: optional (N,) boolean mask for valid predictions
-            (finite and physically plausible).  If None, all rows are used.
+        valid_mask: optional (N,) boolean array of externally-known invalid
+            rows.  Combined with intrinsic validity via logical AND.
         include_diagnostics: if True, also compute MdAPE / tail diagnostics
             via summarize_relative_errors.
 
     Returns:
         dict with "n_total", "n_valid", "n_failure", "valid_rate",
         "failure_rate", "bias", "sd", "rmse", "mae", "bias_rel",
-        "sd_rel", "rmse_rel", "mae_rel", and optionally diagnostics keys.
+        "sd_rel", "rmse_rel", "mae_rel", and optionally "diagnostics".
     """
     pred = np.asarray(predictions, dtype=float).ravel()
     true = np.asarray(true_x095, dtype=float).ravel()
@@ -77,11 +93,22 @@ def aggregate_direct_metrics(
 
     n_total = len(pred)
 
-    if valid_mask is None:
-        # Default: finite predictions
-        valid_mask = np.isfinite(pred)
+    # Intrinsic validity: finite AND > 0.
+    intrinsic = _intrinsic_valid(pred)
 
-    n_valid = int(valid_mask.sum())
+    if valid_mask is not None:
+        ext = np.asarray(valid_mask, dtype=bool).ravel()
+        if ext.shape != pred.shape:
+            raise ValueError(
+                f"valid_mask shape {ext.shape} does not match "
+                f"predictions shape {pred.shape}"
+            )
+        # Combine: a row must pass BOTH intrinsic and caller-supplied checks.
+        combined = intrinsic & ext
+    else:
+        combined = intrinsic
+
+    n_valid = int(combined.sum())
     n_failure = n_total - n_valid
 
     output: Dict = {
@@ -97,7 +124,7 @@ def aggregate_direct_metrics(
             output["diagnostics"] = summarize_relative_errors(np.array([]))
         return output
 
-    errors = direct_errors(pred[valid_mask], true[valid_mask])
+    errors = direct_errors(pred[combined], true[combined])
     abs_summary = summarize_standard_errors(errors["absolute"])
     rel_errors = errors["relative"]
     rel_errors_finite = rel_errors[np.isfinite(rel_errors)]

@@ -4,13 +4,15 @@ Proves the full chain: generate data → encode targets → train model →
 save checkpoint → load checkpoint → inference → summary.
 
 Runs in ~30 seconds on CPU. Does NOT access any formal test namespace.
+Outputs evidence to C:\\weibull-runs\\study02\\formal-b\\<run-id>.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
-import math
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -28,6 +30,7 @@ if str(_PYTHON) not in sys.path:
     sys.path.insert(0, str(_PYTHON))
 
 from studies.common.sample import generate_sample
+from studies.common.metrics import quantile_true
 from study02a.models import trainable_parameter_count
 from study02a.representations import anchor_sample
 from study02a.training import load_checkpoint
@@ -42,9 +45,7 @@ from study02b.training import build_d_mlp, fit_d_model
 from study02b.metrics import aggregate_direct_metrics
 
 
-def true_x095(beta: float, eta: float, gamma: float) -> float:
-    """Ground-truth x_{0.95} from Weibull parameters."""
-    return gamma + eta * (-math.log(0.95)) ** (1.0 / beta)
+_EXTERNAL_ROOT = Path("C:/weibull-runs/study02/formal-b")
 
 
 def generate_d_training_data(
@@ -75,12 +76,10 @@ def generate_d_training_data(
     samples = []
     x095s = []
     for i in range(total):
-        sample = generate_sample(
-            float(betas[i]), float(etas[i]), float(gammas[i]),
-            n_sample, i, seed=seed + 1000,
-        )
+        b, e, g = float(betas[i]), float(etas[i]), float(gammas[i])
+        sample = generate_sample(b, e, g, n_sample, i, seed=seed + 1000)
         samples.append(sample)
-        x095s.append(true_x095(float(betas[i]), float(etas[i]), float(gammas[i])))
+        x095s.append(quantile_true(b, e, g, 0.95))
 
     # Build features (anchored sorted z-scores) and D-targets
     anchors = [anchor_sample(s) for s in samples]
@@ -120,10 +119,12 @@ def generate_d_training_data(
 def run_pilot(output_dir: str | None = None) -> dict:
     """Run the D-route micro pilot and return a summary dict.
 
-    If output_dir is provided, saves checkpoint.pt and summary.json there.
+    If output_dir is None, auto-generates a run-id under the external
+    runs root and uses that directory.
     """
     if output_dir is None:
-        output_dir = str(Path(__file__).resolve().parent / "pilot_output")
+        run_id = f"B1-pilot-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        output_dir = str(_EXTERNAL_ROOT / run_id)
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -169,12 +170,13 @@ def run_pilot(output_dir: str | None = None) -> dict:
     print(f"  Best epoch: {result.best_epoch}")
     print(f"  Actual epochs: {result.actual_epochs}")
     print(f"  Early stop reason: {result.early_stop_reason}")
-    print(f"  Checkpoint SHA256: {result.checkpoint_sha256[:16]}...")
+    print(f"  Checkpoint SHA256: {result.checkpoint_sha256}")
 
     # 4. Save checkpoint
     print("\n[4/5] Saving checkpoint ...")
     ckpt_path = out / "checkpoint.pt"
     ckpt_path.write_bytes(result.checkpoint_bytes)
+    ckpt_sha256 = hashlib.sha256(result.checkpoint_bytes).hexdigest()
     print(f"  Saved: {ckpt_path} ({len(result.checkpoint_bytes)} bytes)")
 
     # Verify checkpoint loads
@@ -198,32 +200,111 @@ def run_pilot(output_dir: str | None = None) -> dict:
     # Compute metrics
     metrics = aggregate_direct_metrics(pred_x095, data["val_x095"])
     print(f"  n_valid: {metrics['n_valid']}/{metrics['n_total']}")
-    print(f"  RMSE: {metrics.get('rmse', 'N/A'):.4f}" if metrics.get('rmse') else "  RMSE: N/A")
-    print(f"  Rel RMSE: {metrics.get('rmse_rel', 'N/A'):.6f}" if metrics.get('rmse_rel') else "  Rel RMSE: N/A")
-    print(f"  Bias: {metrics.get('bias', 'N/A'):.4f}" if metrics.get('bias') else "  Bias: N/A")
-    print(f"  MAE: {metrics.get('mae', 'N/A'):.4f}" if metrics.get('mae') else "  MAE: N/A")
+    val_rmse = metrics.get('rmse')
+    val_rel_rmse = metrics.get('rmse_rel')
+    val_bias = metrics.get('bias')
+    val_mae = metrics.get('mae')
+    print(f"  RMSE: {val_rmse:.4f}" if val_rmse else "  RMSE: N/A")
+    print(f"  Rel RMSE: {val_rel_rmse:.6f}" if val_rel_rmse else "  Rel RMSE: N/A")
+    print(f"  Bias: {val_bias:.4f}" if val_bias else "  Bias: N/A")
+    print(f"  MAE: {val_mae:.4f}" if val_mae else "  MAE: N/A")
 
-    # Save summary
+    # Save summary.json
+    flat_metrics = {}
+    for k, v in metrics.items():
+        if isinstance(v, dict):
+            continue
+        if isinstance(v, (np.floating, float, int)):
+            flat_metrics[k] = float(v)
+        elif v is not None:
+            flat_metrics[k] = str(v)
+        else:
+            flat_metrics[k] = None
+
     summary = {
-        "pilot": "study02b-d-route-micro",
-        "code_version": "B1-minimal",
-        "n_sample": n_sample,
-        "n_train": len(data["train_features"]),
-        "n_val": len(data["val_features"]),
-        "trainable_params": n_params,
-        "checkpoint_sha256": result.checkpoint_sha256,
-        "best_validation_loss": result.best_validation_loss,
-        "best_epoch": result.best_epoch,
-        "actual_epochs": result.actual_epochs,
-        "early_stop_reason": result.early_stop_reason,
-        "metrics": {k: (
-            float(v) if isinstance(v, (np.floating, float, int))
-            else str(v) if v is not None else None
-        ) for k, v in metrics.items() if not isinstance(v, dict)},
+        "run_id": out.name,
+        "status": "complete",
+        "code_tip": "256b30190dd77fef2659838f97a8cb7c8a8de241",
+        "config": {
+            "n_sample": n_sample,
+            "architecture": [64, 32],
+            "activation": "silu",
+            "dropout": 0.1,
+            "loss": "huber",
+            "lr": 1e-3,
+            "weight_decay": 1e-4,
+            "batch_size": 512,
+            "max_epochs": 500,
+            "min_epochs": 50,
+            "patience": 40,
+            "seed": 42,
+            "n_train": len(data["train_features"]),
+            "n_val": len(data["val_features"]),
+            "param_domain": "core (beta∈[1.2,4], eta∈[100,10000], ρ∈[0,1])",
+            "seed_namespace": 1042,
+        },
+        "training": {
+            "best_validation_loss": result.best_validation_loss,
+            "best_epoch": result.best_epoch,
+            "actual_epochs": result.actual_epochs,
+            "early_stop_reason": result.early_stop_reason,
+            "trainable_params": n_params,
+        },
+        "checkpoint": {
+            "path": str(ckpt_path),
+            "sha256": ckpt_sha256,
+            "size_bytes": len(result.checkpoint_bytes),
+        },
+        "metrics": flat_metrics,
     }
+
     summary_path = out / "summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     print(f"\n  Summary saved: {summary_path}")
+
+    # Write manifest.json
+    manifest = {
+        "version": "1.0",
+        "run_id": out.name,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "status": "complete",
+        "code_tip": "256b30190dd77fef2659838f97a8cb7c8a8de241",
+        "config_sha256": hashlib.sha256(
+            json.dumps(summary["config"], sort_keys=True).encode()
+        ).hexdigest(),
+        "environment": {
+            "python_version": sys.version,
+            "platform": sys.platform,
+        },
+        "inputs": {
+            "n_train": len(data["train_features"]),
+            "n_val": len(data["val_features"]),
+            "n_sample": n_sample,
+            "seed": 42,
+            "seed_namespace": 1042,
+        },
+        "outputs": {
+            "checkpoint": {
+                "path": str(ckpt_path),
+                "sha256": ckpt_sha256,
+                "size_bytes": len(result.checkpoint_bytes),
+            },
+            "summary": {
+                "path": str(summary_path),
+                "sha256": hashlib.sha256(
+                    summary_path.read_bytes()
+                ).hexdigest(),
+            },
+        },
+        "pilot": "study02b-B1-micro",
+    }
+    manifest_path = out / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    print(f"  Manifest saved: {manifest_path}")
 
     print("\n=== Pilot complete ===")
     return summary
