@@ -189,7 +189,12 @@ def _nn_batch(rows: list[dict], samples: list[np.ndarray], route: str):
     for row, sample in zip(rows, samples):
         anchor = anchor_sample(sample)
         features = build_features(route, sample, int(row["n"]))
-        target = encode_targets(row["beta"], row["eta"], row["gamma"], anchor)
+        # Evaluation inference does not consume targets.  E3 may supply a private
+        # legal placeholder when low-end contamination puts min(x) below the
+        # uncontaminated truth gamma; reported/scored truth remains row["gamma"].
+        target = encode_targets(
+            row["beta"], row["eta"], row.get("_encoding_gamma", row["gamma"]), anchor
+        )
         if isinstance(features, SetFeatures):
             examples.append(FormalSetExample(features, target, anchor.location, anchor.scale))
         else:
