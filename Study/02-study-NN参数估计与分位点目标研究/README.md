@@ -1,7 +1,7 @@
 # Study 02：面向寿命分位点目标的 NN Weibull 参数估计研究
 
 > 创建日期：2026-07-11
-> 当前状态：精简复现路线 P0–P5 已完成，19/19 问均有 answered/partial 证据；当前进入 P6 综合、干净复现与终审。A4/A8 保持 partial，不以新增大消融强行改写。A-E1 r5 与 A-E3 r2 保留为只读基线；formal test 保持 sealed。
+> 当前状态：精简复现路线 P0–P6 已完成，19/19 问均有证据覆盖（17 answered + A4/A8 partial）。A4/A8 不以新增大消融强行改写；A-E1 r5 / A-E3 r2 只读保留，formal test 保持 sealed。下一步是否进入分位点主研究由用户另行决定。
 
 ## 目录定位
 
