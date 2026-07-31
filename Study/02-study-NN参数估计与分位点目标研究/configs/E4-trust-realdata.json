@@ -1,0 +1,45 @@
+{
+  "experiment_id": "E4-trust-realdata",
+  "questions": ["A11", "A12"],
+  "source_run": "C:\\weibull-runs\\study02\\artifacts\\A-E3\\A-E3-formal-r2-20260730-111949",
+  "source_commit": "996434b2111ba328adda41d8593d7304a7a32250",
+  "cache_root": "C:\\weibull-runs\\study02\\cache",
+  "output_root": "C:\\weibull-runs\\study02\\lean\\E4-trust-realdata",
+  "real_data": {
+    "lifetimes_csv": "Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\real_data\\nist-6061-t6-fatigue\\lifetimes.csv",
+    "sha256": "43c85155bdfeafd21e2366610e88a3f4e1a09e36466fb22d34729dc60418ee12",
+    "n_total": 101,
+    "split_seed": 620001,
+    "splits": 500,
+    "sample_sizes": [5, 7, 10, 15, 20]
+  },
+  "model": {
+    "rule_id": "A-E3_joint_independent",
+    "route": "selected:F2_or_V:joint",
+    "architecture": "m12"
+  },
+  "traditional_methods": ["mle", "mdm", "lre"],
+  "calibration": {
+    "design_seed": 220514,
+    "sample_seed": 320514,
+    "parameter_points": 64,
+    "repeats_per_point_n": 10
+  },
+  "confirmation": {
+    "design_seed": 220515,
+    "sample_seed": 320515,
+    "core": {"parameter_points": 64, "repeats_per_point_n": 10},
+    "stress_each": {"parameter_points": 32, "repeats_per_point_n": 5}
+  },
+  "sample_sizes": [5, 7, 10, 15, 20],
+  "layers": {
+    "core": {"beta": [1.2, 4.0], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+    "boundary_low": {"beta": [0.6, 1.2], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+    "boundary_high": {"beta": [4.0, 8.0], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+    "location_stress": {"beta": [1.2, 4.0], "eta": [100.0, 10000.0], "rho": [-0.5, 2.0]}
+  },
+  "conformal_levels": [0.9, 0.95],
+  "failure_penalty": 10.0,
+  "bootstrap": {"replicates": 2000, "seed": 520514},
+  "note": "Lean calibration/confirmation and frozen local NIST data. No model selection, training, network access, or formal test access."
+}
