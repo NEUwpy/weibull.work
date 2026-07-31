@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,6 +47,21 @@ from study02b.metrics import aggregate_direct_metrics
 
 
 _EXTERNAL_ROOT = Path("C:/weibull-runs/study02/formal-b")
+
+
+def _git_tip() -> str:
+    """Return the current HEAD SHA, or 'unknown' if git is unavailable."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, timeout=5,
+            cwd=str(Path(__file__).resolve().parents[4]),
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return "unknown"
 
 
 def generate_d_training_data(
@@ -224,7 +240,7 @@ def run_pilot(output_dir: str | None = None) -> dict:
     summary = {
         "run_id": out.name,
         "status": "complete",
-        "code_tip": "256b30190dd77fef2659838f97a8cb7c8a8de241",
+        "code_tip": _git_tip(),
         "config": {
             "n_sample": n_sample,
             "architecture": [64, 32],
@@ -270,7 +286,7 @@ def run_pilot(output_dir: str | None = None) -> dict:
         "run_id": out.name,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "status": "complete",
-        "code_tip": "256b30190dd77fef2659838f97a8cb7c8a8de241",
+        "code_tip": _git_tip(),
         "config_sha256": hashlib.sha256(
             json.dumps(summary["config"], sort_keys=True).encode()
         ).hexdigest(),
