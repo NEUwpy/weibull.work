@@ -9,8 +9,8 @@ description: >
   Keep plans concise: clarify goals, boundaries, autonomy, stop conditions, and
   verification instead of writing step-by-step scripts for capable executors.
 metadata:
-  version: "2.3.0"
-  updated_at: "2026-07-31T08:43:27+08:00"
+  version: "2.4.0"
+  updated_at: "2026-07-31T09:08:58+08:00"
 ---
 
 # Coworker
@@ -21,7 +21,7 @@ Use this skill to run a small planner -> executor -> reviewer loop without turni
 
 1. **Align before planning.** If the user's goal, scope, or success criteria are unclear, ask until the blocking ambiguity is resolved. Do not silently invent missing requirements.
 2. **Plan as a contract.** State goal, facts, boundaries, executor autonomy, stop conditions, verification, and report format. Do not prescribe implementation minutiae unless the user asks for an exact patch.
-3. **Dispatch by reference.** Do not repeat project rules in every prompt. Send role + plan path + report path, and let the project entry docs and this skill carry the standing protocol.
+3. **Dispatch compactly.** Do not repeat project rules in every prompt. Send the role, goal, boundaries, and only the references that already exist. A tracked plan or report path is optional, not a prerequisite for collaboration.
 
 ## Proportionality
 
@@ -34,6 +34,14 @@ Use this skill to run a small planner -> executor -> reviewer loop without turni
   4. Is this fixing a real defect, or merely layering more strictness because the workflow is already strict?
 
   If the first three questions do not clearly justify blocking, record the item as a recommendation instead.
+- **Keep coordination subordinate.** Mailbox messages and their automatic
+  archive are the default record for iterative coordination. Do not create or
+  commit repository files merely to carry a prompt, receipt, revision closure,
+  or approval.
+- **Validate the tool before use.** A change to startup, transport, waiting,
+  reporting, or approval behavior is not ready for normal work until the skill
+  validator, mechanical tests, and a temporary-repository end-to-end duplex
+  check all pass. Do not make the research task serve as the coworker test bed.
 
 ## Default Roles
 

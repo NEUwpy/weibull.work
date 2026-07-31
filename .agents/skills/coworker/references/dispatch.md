@@ -5,7 +5,7 @@
 ```markdown
 Role: executor
 Plan: `<path>`
-Report: `<path>`
+Report: `<optional path; otherwise use the archived mailbox message>`
 
 Follow the coworker protocol. Use implementation autonomy within the plan boundaries. Stop on blocking ambiguity, scope mismatch, or contradiction with the current code.
 ```
@@ -25,7 +25,7 @@ Do not edit files. Report concrete correctness, scope, verification, stale-doc, 
 ```markdown
 Role: final reviewer
 Plan: `<path>`
-Executor report: `<path>`
+Executor report: `<path or archived mailbox message>`
 Secondary review: `<path or none>`
 
 Review the diff and evidence. Return APPROVE, REVISE, or BLOCK with concrete findings.

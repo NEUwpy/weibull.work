@@ -72,6 +72,140 @@ def test_minimum_sufficient_and_proportional_review_rules_are_present():
     assert "do not prevent `APPROVE`" in protocol
 
 
+def test_mailbox_is_default_record_and_does_not_require_tracked_receipts():
+    skill_text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    protocol = (SKILL / "references" / "protocol.md").read_text(encoding="utf-8")
+    duplex = (SKILL / "references" / "duplex-mailbox.md").read_text(
+        encoding="utf-8"
+    )
+    dispatch = (SKILL / "references" / "dispatch.md").read_text(encoding="utf-8")
+    assert "tracked plan or report path is optional" in skill_text
+    assert "Do not create or" in skill_text
+    assert "commit repository files merely to carry" in skill_text
+    assert "archived mailbox message is the default report" in protocol
+    assert "do not make the worktree dirty after claiming" in protocol
+    assert "valid as an archived mailbox verdict" in protocol
+    assert "Do not create an administrative approval commit" in protocol
+    assert "default durable record" in duplex
+    assert "iterative" in duplex
+    assert "coordination" in duplex
+    assert "Prepare the report as a runtime mailbox body" in duplex
+    assert "optional tracked" in duplex
+    assert "Do not create tracked files solely for mailbox transport" in duplex
+    assert "end-to-end dry run in a temporary Git repository" in duplex
+    assert "clean Git worktree with runtime files ignored" in duplex
+    assert "optional path; otherwise use the archived mailbox message" in dispatch
+
+
+def test_one_step_duplex_runtime_keeps_git_clean(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "coworker-test@example.invalid"],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Coworker Test"],
+        cwd=repo,
+        check=True,
+    )
+    (repo / ".gitignore").write_text("coworker/runtime/\n", encoding="utf-8")
+    (repo / "baseline.txt").write_text("baseline\n", encoding="utf-8")
+    subprocess.run(["git", "add", ".gitignore", "baseline.txt"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "baseline"], cwd=repo, check=True)
+
+    task_body = tmp_path / "task.md"
+    report_body = tmp_path / "report.md"
+    task_body.write_text("# task\n", encoding="utf-8")
+    report_body.write_text("# report\n", encoding="utf-8")
+
+    initialized = json.loads(
+        ps(MAILBOX, "-Action", "init", "-Repo", repo, "-TaskId", "one-step").stdout
+    )
+    assert initialized["event"] == "initialized"
+
+    ps(
+        MAILBOX,
+        "-Action",
+        "send",
+        "-Repo",
+        repo,
+        "-TaskId",
+        "one-step",
+        "-Role",
+        "codex",
+        "-Type",
+        "task",
+        "-BodyFile",
+        task_body,
+    )
+    task = json.loads(
+        ps(
+            MAILBOX,
+            "-Action",
+            "wait",
+            "-Repo",
+            repo,
+            "-TaskId",
+            "one-step",
+            "-Role",
+            "opencode",
+            "-TimeoutSeconds",
+            "2",
+        ).stdout
+    )
+    assert task["event"] == "message"
+
+    ps(
+        MAILBOX,
+        "-Action",
+        "send",
+        "-Repo",
+        repo,
+        "-TaskId",
+        "one-step",
+        "-Role",
+        "opencode",
+        "-Type",
+        "report",
+        "-BodyFile",
+        report_body,
+    )
+    report = json.loads(
+        ps(
+            MAILBOX,
+            "-Action",
+            "wait",
+            "-Repo",
+            repo,
+            "-TaskId",
+            "one-step",
+            "-Role",
+            "codex",
+            "-TimeoutSeconds",
+            "2",
+        ).stdout
+    )
+    assert report["event"] == "message"
+
+    state = json.loads(
+        ps(MAILBOX, "-Action", "status", "-Repo", repo, "-TaskId", "one-step").stdout
+    )
+    assert state["mode"] == "auto"
+    assert state["archived_messages"] == 2
+    assert not (repo / "coworker" / "reports").exists()
+    status = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=repo,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    assert status.stdout == ""
+
+
 def test_duplex_wait_defaults_to_three_minutes_and_timeout_is_not_semantic():
     script = MAILBOX.read_text(encoding="utf-8")
     reference = (SKILL / "references" / "duplex-mailbox.md").read_text(

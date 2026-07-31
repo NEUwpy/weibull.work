@@ -75,8 +75,10 @@ For repository `<repo>` and task `<task-id>`:
 └── TRANSCRIPT.md
 ```
 
-Treat `coworker/runtime/` as local transport state and ignore it in Git. Keep
-durable plans, reports, and reviews in the existing tracked directories.
+Treat `coworker/runtime/` as local transport state and ignore it in Git. Its
+archive and `TRANSCRIPT.md` are the default durable record for iterative
+coordination. Add a tracked plan, report, or review only when the user, project
+rules, or a genuine final milestone requires it.
 
 ## Transport
 
@@ -171,8 +173,10 @@ tests, logs, or half-written report. After receiving a completed executor
 `report`:
 
 1. Inspect the actual branch, diff, code, tests, artifacts, and provenance.
-2. Write a durable review under `coworker/reviews/`.
-3. Send the review with type `approve`, `revise`, or `block`.
+2. Write the review as a runtime mailbox body. Add a tracked review only when
+   it is an explicit project deliverable.
+3. Send it with type `approve`, `revise`, or `block`, tied to the exact reviewed
+   tip.
 4. On `revise`, return to waiting.
 5. On `approve`, update status and end the long task.
 6. On `block`, pause unless the review contains a bounded remediation.
@@ -187,9 +191,12 @@ After receiving a task or review:
 
 1. Read the referenced plan and review.
 2. Work within the frozen scope and branch.
-3. Commit small auditable units and verify.
-4. Update the durable executor report.
-5. Send a `report` message containing the exact tip and report path.
+3. Commit coherent auditable units and verify.
+4. Prepare the report as a runtime mailbox body. Update a tracked executor
+   report only at a required deliverable milestone, and do so before checking
+   and claiming a clean tip.
+5. Send a `report` message containing the exact tip and an optional tracked
+   report path.
 6. Return to waiting. Never self-approve.
 
 Do not send routine interim reports. Send a message before completion only when
@@ -216,7 +223,14 @@ queued message. Never delete or rewrite messages to recover from an error.
 - Auto mode does not broaden authority. Formal runs, main merges, destructive
   actions, or external side effects remain governed by the initial task.
 - `APPROVE` comes only from the reviewer.
+- Do not create tracked files solely for mailbox transport, review receipts or
+  approval receipts.
 - Use three-minute bounded waits and silently repeat on timeout.
 - Do not emit progress merely to prove the watcher is alive.
 - Do not end the long task after any number of consecutive timeouts.
 - If either long task exits, preserve runtime state for explicit recovery.
+
+Before releasing a transport or lifecycle change, run the skill validator, the
+mechanical test suite, and an end-to-end dry run in a temporary Git repository.
+The dry run must cover one-step startup, queued-message consumption, the reply
+path, automatic archival, and a clean Git worktree with runtime files ignored.
