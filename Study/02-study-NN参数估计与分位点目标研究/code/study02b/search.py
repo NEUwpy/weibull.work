@@ -59,6 +59,19 @@ _ARCHITECTURES: list[tuple[Sequence[int], str]] = [
 ]
 _LOSSES = ["huber", "mse"]
 _SCREENING_SEEDS = [101, 202, 303]  # exactly 3
+_FROZEN_SCREENING_SEED_SET = {101, 202, 303}
+
+# Frozen groups: exactly these four (architecture_id, loss) pairs
+_FROZEN_GROUPS: set[tuple[str, str]] = {
+    ("a_64_32", "huber"),
+    ("a_64_32", "mse"),
+    ("a_m12", "huber"),
+    ("a_m12", "mse"),
+}
+_FROZEN_WIDTHS: dict[str, Sequence[int]] = {
+    "a_64_32": [64, 32],
+    "a_m12": [128, 64, 32],
+}
 
 _TRAIN_SEED_NS = 2000
 _VAL_SEED_NS = 3000
@@ -171,11 +184,13 @@ class SelectionResult:
 def select_winner(records: list[FitRecord]) -> SelectionResult:
     """Apply the frozen B2 selection rule to 12 fit records.
 
-    1. Compute mean decoded x0.95 relative RMSE per candidate (3 seeds).
-    2. Rank ascending by mean_rel_rmse.
-    3. If the best and second-best differ by < 1% (relative), select the
-       candidate with fewer parameters. If still tied, prefer the one with
-       lexicographically earlier architecture_id.
+    1. Validate the frozen contract: exactly 12 fits, 4 frozen groups,
+       exact {101,202,303} seeds per group, consistent widths/params,
+       finite non-negative metrics.
+    2. Compute mean decoded x0.95 relative RMSE per candidate (3 seeds).
+    3. Rank ascending by mean_rel_rmse.
+    4. If the best and second-best differ by < 1% (relative), select the
+       candidate with fewer parameters; tie-break lexicographic.
     """
     if len(records) != 12:
         raise ValueError(f"B2 search requires exactly 12 fits, got {len(records)}")
@@ -186,8 +201,13 @@ def select_winner(records: list[FitRecord]) -> SelectionResult:
         key = (r.architecture_id, r.loss)
         groups.setdefault(key, []).append(r)
 
-    if len(groups) != 4:
-        raise ValueError(f"Expected 4 candidate groups, got {len(groups)}")
+    # Frozen group identity check
+    actual_groups = set(groups.keys())
+    if actual_groups != _FROZEN_GROUPS:
+        raise ValueError(
+            f"Frozen groups mismatch: expected {sorted(_FROZEN_GROUPS)}, "
+            f"got {sorted(actual_groups)}"
+        )
 
     candidates: list[CandidateMean] = []
     for (arch_id, loss), fits in sorted(groups.items()):
@@ -195,9 +215,53 @@ def select_winner(records: list[FitRecord]) -> SelectionResult:
             raise ValueError(
                 f"Candidate {arch_id}/{loss} has {len(fits)} fits, expected 3"
             )
+
+        # Exact seed set check
+        actual_seeds = {f.seed for f in fits}
+        if actual_seeds != _FROZEN_SCREENING_SEED_SET:
+            raise ValueError(
+                f"Candidate {arch_id}/{loss}: expected seeds "
+                f"{_FROZEN_SCREENING_SEED_SET}, got {actual_seeds}"
+            )
+
+        # Consistent widths within group
+        widths_set = {tuple(f.widths) for f in fits}
+        if len(widths_set) != 1:
+            raise ValueError(
+                f"Candidate {arch_id}/{loss}: inconsistent widths across seeds: "
+                f"{widths_set}"
+            )
+        expected_widths = _FROZEN_WIDTHS.get(arch_id)
+        if expected_widths is not None and list(widths_set.pop()) != list(expected_widths):
+            raise ValueError(
+                f"Candidate {arch_id}/{loss}: widths {list(widths_set)} do not "
+                f"match frozen widths {list(expected_widths)}"
+            )
+
+        # Consistent parameter count within group
+        param_set = {f.param_count for f in fits}
+        if len(param_set) != 1:
+            raise ValueError(
+                f"Candidate {arch_id}/{loss}: inconsistent param_count across seeds: "
+                f"{param_set}"
+            )
+
+        # Finite non-negative metrics
+        for f in fits:
+            if not np.isfinite(f.decoded_rel_rmse) or f.decoded_rel_rmse < 0:
+                raise ValueError(
+                    f"Fit {arch_id}/{loss}/seed{f.seed}: decoded_rel_rmse must be "
+                    f"finite and non-negative, got {f.decoded_rel_rmse}"
+                )
+            if not np.isfinite(f.decoded_rmse) or f.decoded_rmse < 0:
+                raise ValueError(
+                    f"Fit {arch_id}/{loss}/seed{f.seed}: decoded_rmse must be "
+                    f"finite and non-negative, got {f.decoded_rmse}"
+                )
+
         values = [f.decoded_rel_rmse for f in fits]
         mean_val = float(np.mean(values))
-        param_count = fits[0].param_count  # same for all seeds
+        param_count = fits[0].param_count
         candidates.append(CandidateMean(
             architecture_id=arch_id,
             widths=fits[0].widths,
@@ -222,7 +286,6 @@ def select_winner(records: list[FitRecord]) -> SelectionResult:
         rel_diff = abs(best.mean_rel_rmse - second.mean_rel_rmse) / best.mean_rel_rmse
         if rel_diff < 0.01:
             tie_break_applied = True
-            # Among the top candidates within 1%, pick fewest params
             close = [c for c in candidates
                      if abs(c.mean_rel_rmse - best.mean_rel_rmse) / best.mean_rel_rmse < 0.01]
             close.sort(key=lambda c: (c.param_count, c.architecture_id, c.loss))
@@ -427,7 +490,27 @@ def run_search(output_dir: str | None = None) -> SelectionResult:
     print(f"\n  Winner: {selection.winner_id}")
     print(f"  Tie-break: {selection.tie_break_applied} — {selection.tie_break_reason}")
 
-    # 4. Save manifest
+    # 4. Write fits.csv first (so manifest can reference its hash)
+    csv_path = out / "fits.csv"
+    csv_lines = ["architecture_id,widths,loss,seed,val_loss,best_epoch,actual_epochs,"
+                 "early_stop,param_count,decoded_rmse,decoded_rel_rmse,decoded_bias,"
+                 "decoded_mae,n_valid,n_total,checkpoint_sha256"]
+    for r in records:
+        csv_lines.append(
+            f"{r.architecture_id},\"{list(r.widths)}\",{r.loss},{r.seed},"
+            f"{r.best_validation_loss:.8f},{r.best_epoch},{r.actual_epochs},"
+            f"{r.early_stop_reason},{r.param_count},"
+            f"{r.decoded_rmse:.6f},{r.decoded_rel_rmse:.6f},"
+            f"{r.decoded_bias:.6f},{r.decoded_mae:.6f},"
+            f"{r.n_valid},{r.n_total},{r.checkpoint_sha256}"
+        )
+    csv_content = "\n".join(csv_lines) + "\n"
+    csv_path.write_text(csv_content, encoding="utf-8")
+    csv_sha256 = hashlib.sha256(csv_content.encode()).hexdigest()
+    csv_size = len(csv_content.encode())
+    print(f"  Fits CSV: {csv_path}")
+
+    # 5. Build outputs inventory and write manifest.json
     config = {
         "n_sample": _N_SAMPLE,
         "n_train": _N_TRAIN,
@@ -449,6 +532,31 @@ def run_search(output_dir: str | None = None) -> SelectionResult:
         "batch_size": 512,
     }
 
+    checkpoints_inventory = []
+    for r in records:
+        ckpt_name = f"checkpoint_{r.architecture_id}_{r.loss}_seed{r.seed}.pt"
+        ckpt_path = out / ckpt_name
+        ckpt_size = ckpt_path.stat().st_size
+        ckpt_sha256 = hashlib.sha256(ckpt_path.read_bytes()).hexdigest()
+        checkpoints_inventory.append({
+            "name": ckpt_name,
+            "path": str(ckpt_path),
+            "size_bytes": ckpt_size,
+            "sha256": ckpt_sha256,
+            "architecture_id": r.architecture_id,
+            "loss": r.loss,
+            "seed": r.seed,
+        })
+
+    outputs_inventory = {
+        "fits.csv": {
+            "path": str(csv_path),
+            "size_bytes": csv_size,
+            "sha256": csv_sha256,
+        },
+        "checkpoints": checkpoints_inventory,
+    }
+
     manifest = {
         "version": "1.0",
         "run_id": out.name,
@@ -464,31 +572,14 @@ def run_search(output_dir: str | None = None) -> SelectionResult:
         },
         "config": config,
         "selection": selection.to_dict(),
+        "outputs": outputs_inventory,
     }
 
     manifest_path = out / "manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    print(f"\n  Manifest: {manifest_path}")
-
-    # Write fit records CSV
-    csv_path = out / "fits.csv"
-    csv_lines = ["architecture_id,widths,loss,seed,val_loss,best_epoch,actual_epochs,"
-                 "early_stop,param_count,decoded_rmse,decoded_rel_rmse,decoded_bias,"
-                 "decoded_mae,n_valid,n_total,checkpoint_sha256"]
-    for r in records:
-        csv_lines.append(
-            f"{r.architecture_id},\"{list(r.widths)}\",{r.loss},{r.seed},"
-            f"{r.best_validation_loss:.8f},{r.best_epoch},{r.actual_epochs},"
-            f"{r.early_stop_reason},{r.param_count},"
-            f"{r.decoded_rmse:.6f},{r.decoded_rel_rmse:.6f},"
-            f"{r.decoded_bias:.6f},{r.decoded_mae:.6f},"
-            f"{r.n_valid},{r.n_total},{r.checkpoint_sha256}"
-        )
-    csv_path.write_text("\n".join(csv_lines) + "\n", encoding="utf-8")
-
-    print(f"  Fits CSV: {csv_path}")
+    print(f"  Manifest: {manifest_path}")
     print(f"\n=== B2 search complete ===")
     return selection
 
