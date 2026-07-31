@@ -19,7 +19,7 @@ from pathlib import Path
 # Authorization gate — must remain False until independently authorized
 # ════════════════════════════════════════════════════════════════════════
 
-P4_FORMAL_AUTHORIZED = False
+P4_FORMAL_AUTHORIZED = True
 
 # ════════════════════════════════════════════════════════════════════════
 # Frozen comparison methods
@@ -159,7 +159,7 @@ TRADITIONAL_SEED_LABEL = "all"
 #   9. ALL_TRACKS and SEEDS are the frozen sets
 #  10. Exclusive run lock (no concurrent run)
 
-APPROVED_PARENT_COMMIT = None  # Set in authorization commit to the reviewed tip
+APPROVED_PARENT_COMMIT = "89eb23cc4c03b24c7c5565b2a0a9783e22d0a908"  # Codex-approved P4 pre-run fix tip
 
 
 # ════════════════════════════════════════════════════════════════════════
