@@ -3,9 +3,14 @@ name: coworker
 description: >
   Coordinate multi-agent coding work across Codex, Hermes/MiMo, OpenCode/DeepSeek,
   Claude Code, or similar agents. Use this skill for planning, requirement
-  alignment, handoff, execution reports, secondary review, or final approval.
+  alignment, handoff, execution reports, secondary review, final approval, or a
+  long-running duplex mailbox collaboration where agents exchange Markdown
+  messages until approval or user takeover.
   Keep plans concise: clarify goals, boundaries, autonomy, stop conditions, and
   verification instead of writing step-by-step scripts for capable executors.
+metadata:
+  version: "2.4.0"
+  updated_at: "2026-07-31T09:08:58+08:00"
 ---
 
 # Coworker
@@ -16,7 +21,27 @@ Use this skill to run a small planner -> executor -> reviewer loop without turni
 
 1. **Align before planning.** If the user's goal, scope, or success criteria are unclear, ask until the blocking ambiguity is resolved. Do not silently invent missing requirements.
 2. **Plan as a contract.** State goal, facts, boundaries, executor autonomy, stop conditions, verification, and report format. Do not prescribe implementation minutiae unless the user asks for an exact patch.
-3. **Dispatch by reference.** Do not repeat project rules in every prompt. Send role + plan path + report path, and let the project entry docs and this skill carry the standing protocol.
+3. **Dispatch compactly.** Do not repeat project rules in every prompt. Send the role, goal, boundaries, and only the references that already exist. A tracked plan or report path is optional, not a prerequisite for collaboration.
+
+## Proportionality
+
+- **Use minimum sufficient evidence.** Choose the lightest implementation that makes the result trustworthy, traceable, and rerunnable. Paper use, a “formal” experiment, or a long run does not by itself require production-grade authorization, control planes, attack tests, or a full pipeline. Stop hardening when the result is adequately supported.
+- **Prefer the smallest implementation.** Reuse an existing capability when it fits. Otherwise, build the smallest script needed for the current goal. Consider a shared framework only when a second concrete consumer exists or the user explicitly requests one; do not build one-off infrastructure for hypothetical reuse.
+- **Check review escalation.** Before adding a blocking finding, ask:
+  1. Does it materially affect the research conclusion, result correctness, or basic reproducibility?
+  2. Is it reasonably likely in the actual workflow, rather than a theoretical extreme or adversarial scenario?
+  3. Are existing tests, manual checks, or run records already sufficient?
+  4. Is this fixing a real defect, or merely layering more strictness because the workflow is already strict?
+
+  If the first three questions do not clearly justify blocking, record the item as a recommendation instead.
+- **Keep coordination subordinate.** Mailbox messages and their automatic
+  archive are the default record for iterative coordination. Do not create or
+  commit repository files merely to carry a prompt, receipt, revision closure,
+  or approval.
+- **Validate the tool before use.** A change to startup, transport, waiting,
+  reporting, or approval behavior is not ready for normal work until the skill
+  validator, mechanical tests, and a temporary-repository end-to-end duplex
+  check all pass. Do not make the research task serve as the coworker test bed.
 
 ## Default Roles
 
@@ -32,16 +57,36 @@ Read only what the current task needs:
 
 - `references/protocol.md`: role loop, plan shape, report/verdict formats, and anti-bloat rules.
 - `references/dispatch.md`: short handoff prompts and CLI dispatch examples.
-- `references/live-loop.md`: Codex-controlled Claude Code start, polling, review, resume, cancellation, and recovery.
+- `references/duplex-mailbox.md`: two long-running agents exchange visible
+  Markdown messages through watched inboxes until approval, pause, or takeover.
+- `references/incremental-review.md`: preserve first-pass and final-review
+  rigor while reviewing later revisions from the last reviewed tip.
+- `references/version-resolution.md`: resolve and synchronize global and
+  project-local copies without silently using an older skill.
 
 For tiny one-command tasks or pure factual answers, skip the coworker loop.
 
-## Live Loop
+## Collaboration Modes
 
-When Codex is the controller and the user asks to drive Claude Code, read
-`references/live-loop.md` and use `scripts/coworker-live.ps1`.
+- **Manual:** the user carries prompts and reports between agents.
+- **Duplex mailbox:** reviewer and executor remain active as separate long
+  tasks, wait on separate inboxes, and communicate through archived Markdown
+  messages. Use this when the user asks to watch the interaction, avoid manual
+  relaying, or retain the ability to pause and take over.
 
-If the active assignment says `Role: executor`, do not start or resume a live
-loop. Execute the referenced plan, write the report, and stop for Codex review.
-Only the Codex Controller may issue `APPROVE / REVISE / BLOCK` or call the
-runner's `start`, `resume`, or `cancel` actions.
+In duplex mode, read `references/duplex-mailbox.md` completely before starting.
+For iterative reviews, use `references/incremental-review.md`. When more than
+one coworker copy exists, resolve it before acting.
+
+A duplex session is one persistent logical task. Keep waiting after transport
+timeouts; do not end the agent turn merely because no message arrived. Treat
+only a completed report, a blocker, a control change, or a user intervention as
+an event. Never inspect or review the executor's half-finished work while it is
+still implementing.
+
+Start duplex mode with one user relay only. Queue the task, set the mailbox to
+`auto`, present the executor bootstrap prompt, and immediately begin the
+persistent reviewer wait in the same long task. The user pastes that prompt
+once; the executor starts waiting and consumes the queued task immediately.
+Never require “watcher started”, “Codex started”, or another acknowledgement
+round trip.

@@ -33,13 +33,23 @@ Plans are contracts, not scripts. Prefer checkpoints, boundaries, and validation
 
 ## Reports
 
-Executor reports should include:
+The archived mailbox message is the default report for iterative work. A
+tracked report file is optional and should be created only when the user,
+project rules, or a genuine deliverable milestone requires one. Do not create
+a repository file solely to prove that a revision or approval occurred.
+
+Reports should include:
 
 - changed files
 - checks run and exact results
 - skipped checks with reasons
 - blockers
 - deviations from the plan
+
+When a clean Git tip is part of the contract, finish every required tracked
+write before checking cleanliness and requesting review. Send subsequent
+receipts from `coworker/runtime/`; do not make the worktree dirty after claiming
+it is clean.
 
 ## Verdicts
 
@@ -50,3 +60,22 @@ Use:
 - `BLOCK`: the plan or implementation violates a hard boundary or needs replanning.
 
 Keep review findings concrete and file-specific.
+
+## Iterative Reviews
+
+Use stable finding IDs. The first review is complete; later REVISE rounds
+normally inspect only the last-reviewed-tip to current-tip diff plus targeted
+regressions. Before APPROVE, run a final integrity pass. Read
+`incremental-review.md` for reset triggers that require returning to a full
+review.
+
+The first review should surface the main blocking issues together whenever
+practical. Later reviews should primarily verify the requested fixes and check
+for regressions. Do not raise the acceptance standard unless a revision
+introduced a new defect or a newly discovered issue would directly invalidate
+the result. Separate blocking findings from recommendations; recommendations
+do not prevent `APPROVE`.
+
+An approval is valid as an archived mailbox verdict tied to an exact reviewed
+tip. Do not create an administrative approval commit when doing so would merely
+move an authorization parent or trigger another clean-tree/report cycle.
