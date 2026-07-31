@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：前置研究 A 采用**精简复现路线**（长任务计划 `coworker/plans/2026-07-31-study02-lean-prestudy-completion.md`，分支 `codex/study02-lean-prestudy-20260731`），用最小、可复现、足够严谨的实现回答全部 19 个问题；旧 formal 引擎及其产物**只读冻结，不再扩建** formal scheduler/lease/authority/unseal/consume/hash-chain/capsule/攻击防护。既有 formal 证据基线为 **A-E1 r5** 与 **A-E3 r2**。P0–P3 已完成，已回答或限定 14/19 问（A4/A8 仍为 partial）；当前进入 P4 E3（A14/A15/A16），随后 P5 E4（A11/A12）与 P6 收口。E2 已只读复用 60 个 A-E3 checkpoint，在独立 confirmation 上完成 111,200 条比较/泛化记录；结论不支持“NN 普遍优于传统方法”，但确认了分层优势、未见 n 泛化、10-seed 稳定性、合法性与总体样本量趋势。formal test namespaces 永封，不启封/不消费。详细状态见 Study/02 `00-A-执行状态.md`。
+**Study/02 当前态**：前置研究 A 采用**精简复现路线**（长任务计划 `coworker/plans/2026-07-31-study02-lean-prestudy-completion.md`，分支 `codex/study02-lean-prestudy-20260731`）；旧 formal 引擎及其产物只读冻结。P0–P4 已完成，17/19 问已有 answered/partial 证据（A4/A8 仍为 partial）；当前进入 P5 E4（A11/A12），随后 P6 收口。E2 的 111,200 条记录不支持“NN 普遍优于传统方法”，但确认分层优势、未见 n 泛化、10-seed 稳定性与总体样本量趋势；E3 的 20,800 条记录确认 NN 的尺度/平移等变性，同时表明强异常值会显著增大误差。formal test namespaces 永封，不启封/不消费。详细状态见 Study/02 `00-A-执行状态.md`。
 
 **Study/01 当前态**：正式实验与证据链已经闭环，E1–E4、R1–R3/P6–P8 均完成；Figures 1–9、Supplementary Figures S1–S8、五部分论文技术稿、补充材料及 fail-closed 稿件审计已完成。现已在独立论文项目文件夹启动面向可靠性/计算方法国际期刊的中文学术源稿，下一步是完善文献对话并冻结正文，再确定具体期刊、作者、基金与 CRediT，完成英文和期刊格式适配。连续参数空间训练、多数据集验证和 $\delta>1.00$ 探索属于后续独立研究，不阻塞当前论文。
 
