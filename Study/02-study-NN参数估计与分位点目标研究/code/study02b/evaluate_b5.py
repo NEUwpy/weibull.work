@@ -153,16 +153,16 @@ def evaluate_conformal(models, n_cal=5000):
         p_residuals,d_residuals=[],[]
         for i in range(n_cal):
             b,e,g=float(betas[i]),float(etas[i]),float(gammas[i])
-            s=generate_sample(b,e,g,n_val,i,seed=8000)
+            sample=generate_sample(b,e,g,n_val,i,seed=8000)
             x095=quantile_true(b,e,g,0.95)
             # P ensemble prediction
-            p_seeds=[s for (ns,s) in models["P"] if ns==n_val]
-            p_vals=[_infer_p(models["P"][(n_val,s)],s)[0] for s in p_seeds]
+            p_seeds=[seed for (ns,seed) in models["P"] if ns==n_val]
+            p_vals=[_infer_p(models["P"][(n_val,seed)],sample)[0] for seed in p_seeds]
             p_pred=float(np.nanmean(p_vals))
             if np.isfinite(p_pred): p_residuals.append(abs(p_pred-x095))
             # D ensemble prediction
-            d_items=[(s,m,st) for (ns,s),(m,st) in models["D"].items() if ns==n_val]
-            d_vals=[_infer_d(m,st,s) for _,m,st in d_items]
+            d_items=[(seed,m,st) for (ns,seed),(m,st) in models["D"].items() if ns==n_val]
+            d_vals=[_infer_d(m,st,sample) for _,m,st in d_items]
             d_pred=float(np.nanmean(d_vals))
             if np.isfinite(d_pred): d_residuals.append(abs(d_pred-x095))
         # Conformal quantiles
