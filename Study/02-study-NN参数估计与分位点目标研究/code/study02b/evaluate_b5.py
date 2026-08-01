@@ -1,19 +1,17 @@
-"""B5: Boundary stress, contamination, P diagnostics, conformal, NIST holdout.
+"""B5 v2: Complete boundary/conformal/NIST/contamination with validity accounting.
 
-Reuses frozen P/D checkpoints, B4 inference patterns. No new NN fits.
-Outputs to C:\\weibull-runs\\study02\\formal-b\\<B5-run-id>.
+Fixes: contamination experiment, stress validity/failure reporting, conformal
+coverage on B4 core, complete NIST (all T routes, failures, paired uncertainty).
 """
 
 from __future__ import annotations
-
 import csv, hashlib, json, subprocess, sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-
 import numpy as np
 import torch
-from scipy.stats import qmc
+from scipy.stats import qmc, spearmanr
 
 _STUDY_CODE = Path(__file__).resolve().parent.parent
 if str(_STUDY_CODE) not in sys.path: sys.path.insert(0, str(_STUDY_CODE))
@@ -32,31 +30,31 @@ from study02b.training import build_d_mlp
 
 _EXTERNAL_ROOT = Path("C:/weibull-runs/study02/formal-b")
 _B3_MF = Path("C:/weibull-runs/study02/formal-b/B3-training-20260731-121958/manifest.json")
+_B4_CSV = Path("C:/weibull-runs/study02/formal-b/B4-core-20260801-051119/results.csv")
+_B4_NPZ = Path("C:/weibull-runs/study02/formal-b/B4-core-20260801-051119/per_seed_predictions.npz")
+_NIST_CSV = _REPO_ROOT / "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/real_data/nist-6061-t6-fatigue/lifetimes.csv"
 
-_N_VALUES = [5, 7, 10, 15, 20]
+_N_VALUES = [5,7,10,15,20]
 
 def _git_tip():
     return subprocess.run(["git","rev-parse","HEAD"],capture_output=True,text=True,cwd=str(_REPO_ROOT)).stdout.strip() or "unknown"
 
 
-# -- Model loading (reuse B4 pattern) --
+# -- Model loading --
 
 def load_models():
-    b3 = json.loads(_B3_MF.read_text(encoding="utf-8"))
-    ts = b3.get("target_stats",{})
-    p, d, dc = {}, {}, {}
+    b3=json.loads(_B3_MF.read_text(encoding="utf-8")); ts=b3.get("target_stats",{})
+    p,d,dc={},{},{}
     for e in b3["p_checkpoints"]["entries"]:
-        nv,s=e["n"],e["seed"]; state=load_checkpoint(Path(e["path"]).read_bytes())
-        m=build_mlp(nv,[256,128,64],"silu",0.1); m.load_state_dict(state); m.eval(); p[(nv,s)]=m
+        nv,s=e["n"],e["seed"]; st=load_checkpoint(Path(e["path"]).read_bytes())
+        m=build_mlp(nv,[256,128,64],"silu",0.1); m.load_state_dict(st); m.eval(); p[(nv,s)]=m
     for e in b3["d_checkpoints"]:
-        nv,s,w=e["n"],e["seed"],e["widths"]; state=load_checkpoint(Path(e["path"]).read_bytes())
-        m=build_d_mlp(nv,w,"silu",0.1); m.load_state_dict(state); m.eval()
-        st_raw=ts.get(str(nv),{}); st=DTrainingStats(mean=st_raw.get("mean",0),sd=st_raw.get("sd",1))
-        (d if e["group"]=="selected" else dc)[(nv,s)]=(m,st)
+        nv,s,w=e["n"],e["seed"],e["widths"]; st=load_checkpoint(Path(e["path"]).read_bytes())
+        m=build_d_mlp(nv,w,"silu",0.1); m.load_state_dict(st); m.eval()
+        sr=ts.get(str(nv),{}); stats=DTrainingStats(mean=sr.get("mean",0),sd=sr.get("sd",1))
+        (d if e["group"]=="selected" else dc)[(nv,s)]=(m,stats)
     return {"P":p,"D":d,"Dctrl":dc}
 
-
-# -- Inference helpers --
 
 def _infer_p(m, sample):
     a=anchor_sample(sample); z=torch.from_numpy(a.z.astype(np.float32)).unsqueeze(0)
@@ -69,173 +67,238 @@ def _infer_p(m, sample):
 def _infer_d(m, st, sample):
     a=anchor_sample(sample); z=torch.from_numpy(a.z.astype(np.float32)).unsqueeze(0)
     with torch.no_grad(): raw=float(m(z).item())
-    enc=unstandardize_d(np.array([raw]),st)[0]
-    x=decode_d_target(enc,a); return x if np.isfinite(x) and x>0 else np.nan
+    enc=unstandardize_d(np.array([raw]),st)[0]; x=decode_d_target(enc,a)
+    return x if np.isfinite(x) and x>0 else np.nan
 
 
-# -- Stress domains --
+def _ens_mean(arr): return float(np.nanmean(arr)) if len(arr)>0 else np.nan
 
-def _gen_stress_data(domain, n_clusters, n_reps):
-    """Generate stress-domain datasets."""
-    sampler = qmc.Sobol(d=3, scramble=True, seed={"low":142,"high":242,"loc":342}[domain])
-    pts = sampler.random_base2(m={"low":5,"high":5,"loc":5}[domain])  # 32
+
+# -- Stress with full validity accounting --
+
+def evaluate_stress_full(models, domain, n_clusters=32, n_reps=10):
+    print(f"\n  Stress {domain} ...")
+    sampler=qmc.Sobol(d=3,scramble=True,seed={"low":142,"high":242,"loc":342}[domain])
+    pts=sampler.random_base2(m=5)
     if domain=="low": betas=0.6+pts[:,0]*0.6; etas=100+pts[:,1]*9900; gammas=pts[:,2]*etas
-    elif domain=="high": betas=4.0+pts[:,0]*4.0; etas=100+pts[:,1]*9900; gammas=pts[:,2]*etas
+    elif domain=="high": betas=4+pts[:,0]*4; etas=100+pts[:,1]*9900; gammas=pts[:,2]*etas
     else: betas=1.2+pts[:,0]*2.8; etas=100+pts[:,1]*9900; gammas=(-0.5+pts[:,2]*2.5)*etas
-    datasets = {}
+
+    results=defaultdict(list)  # (n,route): [rel_errs]; status: (n,route): [failure_reasons]
+    status=defaultdict(list)
     for ci,(b,e,g) in enumerate(zip(betas,etas,gammas)):
         for ri in range(n_reps):
             for n in _N_VALUES:
-                s=generate_sample(float(b),float(e),float(g),n,ri,seed=6000+100*(list({"low":1,"high":2,"loc":3}.values())[0])+ci)
-                datasets[(ci,ri,n)]={"sample":s,"beta":float(b),"eta":float(e),"gamma":float(g),"true_x095":quantile_true(float(b),float(e),float(g),0.95)}
-    return datasets
+                sample=generate_sample(float(b),float(e),float(g),n,ri,seed=6000+100*({"low":1,"high":2,"loc":3}[domain])+ci)
+                x095=quantile_true(float(b),float(e),float(g),0.95)
+                # P
+                p_seeds=[seed for (ns,seed) in models["P"] if ns==n]
+                p_vals=[_infer_p(models["P"][(n,seed)],sample)[0] for seed in p_seeds]
+                pm=_ens_mean(p_vals)
+                if np.isfinite(pm): results[(n,"P")].append((pm-x095)/x095); status[(n,"P")].append("ok")
+                else: status[(n,"P")].append("invalid")
+                # D
+                d_items=[(seed,m,st) for (ns,seed),(m,st) in models["D"].items() if ns==n]
+                d_vals=[_infer_d(m,st,sample) for _,m,st in d_items]
+                dm=_ens_mean(d_vals)
+                if np.isfinite(dm): results[(n,"D")].append((dm-x095)/x095); status[(n,"D")].append("ok")
+                else: status[(n,"D")].append("invalid")
+                # Traditional
+                for mid,kw,lbl in [("mdm",{"offset":0.1},"MDM"),("mle",{},"MLE"),("lre",{},"LRE")]:
+                    r=run_method(mid,sample,**kw)
+                    bh,eh,gh=r["beta_hat"],r["eta_hat"],r["gamma_hat"]
+                    if bh is None or eh is None or gh is None:
+                        status[(n,lbl)].append("null_params"); continue
+                    st=check_status(float(bh),float(eh),float(gh),b,e,g,converged=r.get("converged",True),sample_min=float(sample.min()))
+                    if st=="failure": status[(n,lbl)].append("invalid"); continue
+                    tv=quantile_true(float(bh),float(eh),float(gh),0.95)
+                    results[(n,lbl)].append((tv-x095)/x095); status[(n,lbl)].append("ok")
 
-def evaluate_stress(models, domain, n_clusters=32, n_reps=10):
-    print(f"\n  Stress: {domain} ({n_clusters*len(_N_VALUES)*n_reps} datasets)")
-    datasets = _gen_stress_data(domain, n_clusters, n_reps)
-    # Evaluate P and D ensemble means
-    p_errs,d_errs=[],[]
-    for (ci,ri,n),td in datasets.items():
-        p_seeds=[s for (ns,s) in models["P"] if ns==n]
-        p_vals=[_infer_p(models["P"][(n,s)],td["sample"])[0] for s in p_seeds]
-        p_mean=float(np.nanmean(p_vals))
-        d_items=[(s,m,st) for (ns,s),(m,st) in models["D"].items() if ns==n]
-        d_vals=[_infer_d(m,st,td["sample"]) for _,m,st in d_items]
-        d_mean=float(np.nanmean(d_vals))
-        if np.isfinite(p_mean): p_errs.append((p_mean-td["true_x095"])/td["true_x095"])
-        if np.isfinite(d_mean): d_errs.append((d_mean-td["true_x095"])/td["true_x095"])
-    ps=summarize_standard_errors(p_errs); ds=summarize_standard_errors(d_errs)
-    i=(ps["rmse"]-ds["rmse"])/ps["rmse"] if ps["rmse"] and ps["rmse"]>0 else 0
-    return {"domain":domain,"P":ps,"D":ds,"I":i}
-
-
-# -- P-route diagnostics --
-
-def evaluate_p_diagnostics(models, datasets):
-    """P-route β/η/γ errors, legality, γ-support violations."""
-    beta_errs,eta_errs,gamma_errs=[],[],[]
-    n_legal,n_total=0,0
-    gamma_violations=0
-    for (ci,ri,n),td in datasets.items():
-        p_seeds=[s for (ns,s) in models["P"] if ns==n]
-        for s in p_seeds:
-            sample = td.sample if hasattr(td, 'sample') else td["sample"]
-            beta = td.beta if hasattr(td, 'beta') else td["beta"]
-            eta = td.eta if hasattr(td, 'eta') else td["eta"]
-            gamma = td.gamma if hasattr(td, 'gamma') else td["gamma"]
-            _,bh,eh,gh,ok=_infer_p(models["P"][(n,s)],sample)
-            n_total+=1
-            if ok:
-                n_legal+=1
-                beta_errs.append((bh-beta)/beta)
-                eta_errs.append((eh-eta)/eta)
-                gamma_errs.append((gh-gamma)/eta)
-                if gh>=sample.min(): gamma_violations+=1
-    return {
-        "beta":summarize_standard_errors(beta_errs),"eta":summarize_standard_errors(eta_errs),
-        "gamma":summarize_standard_errors(gamma_errs),
-        "legal_rate":n_legal/n_total if n_total>0 else 0,
-        "gamma_violations":gamma_violations,"n_total":n_total,
-    }
+    # Summarize
+    summary={}; n_total=n_clusters*n_reps
+    for n in _N_VALUES:
+        for lbl in ["P","D","MDM","MLE","LRE"]:
+            errs=results.get((n,lbl),[]); sts=status.get((n,lbl),[])
+            n_ok=sts.count("ok"); n_fail=len(sts)-n_ok
+            s=summarize_standard_errors(errs); s["n_total"]=n_total; s["n_valid"]=n_ok; s["n_failure"]=n_fail
+            summary[f"{lbl}_n{n}"]=s
+    return summary
 
 
-# -- Conformal calibration --
+# -- Contamination --
 
-def evaluate_conformal(models, n_cal=5000):
-    """Split-conformal 90%/95% calibration by n for P and D."""
-    print("\n  Conformal calibration ...")
-    results={}
+def evaluate_contamination(models):
+    """32 core points 脳 10 reps, n=20: clean + 4 contamination types."""
+    print("\n  Contamination ...")
+    rng=np.random.default_rng(42); n_clusters=32; n_reps=10; n_val=20
+    betas=rng.uniform(1.2,4.0,size=n_clusters); etas=rng.uniform(100,10000,size=n_clusters)
+    gammas=rng.uniform(0,1,size=n_clusters)*etas
+    results={lbl:defaultdict(list) for lbl in ["P","D","MDM"]}
+    for ci,(b,e,g) in enumerate(zip(betas,etas,gammas)):
+        for ri in range(n_reps):
+            clean=generate_sample(float(b),float(e),float(g),n_val,ri,seed=9000+ci)
+            x095=quantile_true(float(b),float(e),float(g),0.95)
+            iqr_val=float(np.quantile(clean,0.75)-np.quantile(clean,0.25))
+            # Contamination conditions
+            high3=clean.copy(); high3[-3:]*=10
+            high10=clean.copy(); high10[-1]*=10
+            low_end=clean.copy(); low_end[0]-=0.5*iqr_val
+            two_sided=clean.copy(); m=n_val//10
+            two_sided[:m]-=0.5*iqr_val; two_sided[-m:]*=10
+            for cond_name,cond_sample in [("clean",clean),("high3",high3),("high10",high10),("low_end",low_end),("two_sided",two_sided)]:
+                # P
+                p_seeds=[seed for (ns,seed) in models["P"] if ns==n_val]
+                p_vals=[_infer_p(models["P"][(n_val,seed)],cond_sample)[0] for seed in p_seeds]
+                pm=_ens_mean(p_vals)
+                if np.isfinite(pm): results["P"][cond_name].append((pm-x095)/x095)
+                # D
+                d_items=[(seed,m,st) for (ns,seed),(m,st) in models["D"].items() if ns==n_val]
+                d_vals=[_infer_d(m,st,cond_sample) for _,m,st in d_items]
+                dm=_ens_mean(d_vals)
+                if np.isfinite(dm): results["D"][cond_name].append((dm-x095)/x095)
+                # MDM
+                r=run_method("mdm",cond_sample,offset=0.1)
+                if r["beta_hat"] and r["eta_hat"] and r["gamma_hat"]:
+                    st=check_status(float(r["beta_hat"]),float(r["eta_hat"]),float(r["gamma_hat"]),b,e,g,sample_min=float(cond_sample.min()))
+                    if st=="success": results["MDM"][cond_name].append((quantile_true(float(r["beta_hat"]),float(r["eta_hat"]),float(r["gamma_hat"]),0.95)-x095)/x095)
+
+    summary={}
+    for lbl in ["P","D","MDM"]:
+        for cond in ["clean","high3","high10","low_end","two_sided"]:
+            errs=results[lbl].get(cond,[]); s=summarize_standard_errors(errs)
+            s["n_valid"]=len(errs); s["n_total"]=n_clusters*n_reps
+            summary[f"{lbl}_{cond}"]=s
+    return summary
+
+
+# -- Conformal with coverage on B4 core --
+
+def evaluate_conformal_full(models):
+    """Calibrate on fresh data, evaluate coverage/width/Spearman on B4 core."""
+    print("\n  Conformal full ...")
+    # Calibrate per-n thresholds
+    thresholds={}
+    rng_cal=np.random.default_rng(7000)
     for n_val in _N_VALUES:
-        # Generate calibration data
-        rng=np.random.default_rng(7000+n_val)
-        betas=rng.uniform(1.2,4.0,size=n_cal); etas=rng.uniform(100,10000,size=n_cal)
-        gammas=rng.uniform(0,1,size=n_cal)*etas
-        p_residuals,d_residuals=[],[]
-        for i in range(n_cal):
+        betas=rng_cal.uniform(1.2,4.0,size=5000); etas=rng_cal.uniform(100,10000,size=5000)
+        gammas=rng_cal.uniform(0,1,size=5000)*etas
+        p_res,d_res=[],[]
+        for i in range(5000):
             b,e,g=float(betas[i]),float(etas[i]),float(gammas[i])
             sample=generate_sample(b,e,g,n_val,i,seed=8000)
             x095=quantile_true(b,e,g,0.95)
-            # P ensemble prediction
             p_seeds=[seed for (ns,seed) in models["P"] if ns==n_val]
             p_vals=[_infer_p(models["P"][(n_val,seed)],sample)[0] for seed in p_seeds]
-            p_pred=float(np.nanmean(p_vals))
-            if np.isfinite(p_pred): p_residuals.append(abs(p_pred-x095))
-            # D ensemble prediction
+            pm=_ens_mean(p_vals)
+            if np.isfinite(pm): p_res.append(abs(pm-x095))
             d_items=[(seed,m,st) for (ns,seed),(m,st) in models["D"].items() if ns==n_val]
             d_vals=[_infer_d(m,st,sample) for _,m,st in d_items]
-            d_pred=float(np.nanmean(d_vals))
-            if np.isfinite(d_pred): d_residuals.append(abs(d_pred-x095))
-        # Conformal quantiles
-        results[str(n_val)]={
-            "P_q90":float(np.quantile(p_residuals,0.9)) if p_residuals else np.nan,
-            "P_q95":float(np.quantile(p_residuals,0.95)) if p_residuals else np.nan,
-            "D_q90":float(np.quantile(d_residuals,0.9)) if d_residuals else np.nan,
-            "D_q95":float(np.quantile(d_residuals,0.95)) if d_residuals else np.nan,
-            "n_cal_P":len(p_residuals),"n_cal_D":len(d_residuals),
-        }
-    return results
+            dm=_ens_mean(d_vals)
+            if np.isfinite(dm): d_res.append(abs(dm-x095))
+        thresholds[str(n_val)]={"P_q90":float(np.quantile(p_res,0.9)),"P_q95":float(np.quantile(p_res,0.95)),
+                                "D_q90":float(np.quantile(d_res,0.9)),"D_q95":float(np.quantile(d_res,0.95))}
+
+    # Evaluate on B4 core
+    b4_data=np.load(_B4_NPZ,allow_pickle=True)
+    p_seeds_b4=b4_data["p_seeds"]; d_seeds_b4=b4_data["d_seeds"]; b4_data.close()
+    keys_raw=np.load(_B4_NPZ,allow_pickle=True)["keys"]
+    # Load B4 true values
+    true_x095={}
+    with open(_B4_CSV,newline="",encoding="utf-8") as f:
+        for row in csv.DictReader(f): true_x095[(int(row["cluster"]),int(row["replicate"]),int(row["n"]))]=float(row["true_x095"])
+
+    coverage={}; widths={}; spearman_data=defaultdict(list)
+    for n_val in _N_VALUES:
+        th=thresholds[str(n_val)]
+        for route in ["P","D"]:
+            cov90=cov95=0; n_total=0; width_vals=[]; abs_errs=[]
+            for i,k in enumerate(keys_raw):
+                parts=str(k).split("_")
+                if len(parts)!=3: continue
+                ci,ri,n=int(parts[0]),int(parts[1]),int(parts[2])
+                if n!=n_val: continue
+                td=true_x095.get((ci,ri,n))
+                if td is None: continue
+                if route=="P":
+                    vals=p_seeds_b4[i]; vals=vals[np.isfinite(vals)]
+                    pred=_ens_mean(vals) if len(vals)>0 else np.nan
+                else:
+                    vals=d_seeds_b4[i]; vals=vals[np.isfinite(vals)]
+                    pred=_ens_mean(vals) if len(vals)>0 else np.nan
+                if not np.isfinite(pred): continue
+                n_total+=1; ae=abs(pred-td)
+                q90=th[f"{route}_q90"]; q95=th[f"{route}_q95"]
+                if ae<=q90: cov90+=1
+                if ae<=q95: cov95+=1
+                width_vals.append(q95)
+                abs_errs.append(ae)
+            coverage[f"{route}_n{n_val}"]={"cov90":cov90/n_total if n_total else np.nan,"cov95":cov95/n_total if n_total else np.nan,"n":n_total}
+            widths[f"{route}_n{n_val}"]=float(np.mean(width_vals)) if width_vals else np.nan
+            if len(width_vals)>2:
+                rho,_=spearmanr(width_vals,abs_errs)
+                spearman_data[f"{route}_n{n_val}"]=float(rho)
+
+    return {"thresholds":thresholds,"coverage":coverage,"widths":widths,"spearman":dict(spearman_data)}
 
 
-# -- NIST 6061-T6 --
+# -- NIST complete --
 
-def evaluate_nist(models):
-    """NIST 6061-T6: 500 deterministic splits per n, pinball loss + exceedance."""
-    print("\n  NIST 6061-T6 ...")
-    # Load NIST data (101 lifetimes)
-    nist_path = _REPO_ROOT / "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/real_data/nist-6061-t6-fatigue/lifetimes.csv"
-    if not nist_path.exists():
-        print("  WARNING: NIST data not found, skipping")
-        return None
-    data = np.loadtxt(nist_path, delimiter=",", skiprows=1)
-    if data.ndim==0: data=np.array([float(data)])
-    n_total=len(data)
-
+def evaluate_nist_full(models):
+    """500 splits per n, all routes P/D/MDM/MLE/LRE, pinball/exceedance/failures."""
+    print("\n  NIST full ...")
+    data=np.loadtxt(_NIST_CSV,delimiter=",",skiprows=1); n_total=len(data)
     results={}
     for n_val in _N_VALUES:
-        pinball_p,pinball_d,pinball_mdm=[],[],[]
-        exceed_p,exceed_d,exceed_mdm=[],[],[]
+        rows=defaultdict(list)
         for split in range(500):
             rng=np.random.default_rng(9000+n_val*1000+split)
             idx=rng.choice(n_total,size=n_val,replace=False)
-            train=data[idx]
-            holdout=np.setdiff1d(data,train)
+            train=data[idx]; holdout=np.setdiff1d(data,train)
             if len(holdout)==0: continue
-            # P prediction
-            p_preds=[]; p_seeds=[seed for (ns,seed) in models["P"] if ns==n_val]
-            for seed in p_seeds:
-                v=_infer_p(models["P"][(n_val,seed)],train)[0]
-                if np.isfinite(v): p_preds.append(v)
-            p_pred=float(np.nanmean(p_preds)) if p_preds else np.nan
-            # D prediction
-            d_preds=[]; d_items=[(seed,m,st) for (ns,seed),(m,st) in models["D"].items() if ns==n_val]
-            for _,m,st in d_items:
-                v=_infer_d(m,st,train)
-                if np.isfinite(v): d_preds.append(v)
-            d_pred=float(np.nanmean(d_preds)) if d_preds else np.nan
-            # MDM
-            mdm_r=run_method("mdm",train,offset=0.1)
-            if mdm_r["beta_hat"] and mdm_r["eta_hat"] and mdm_r["gamma_hat"]:
-                mdm_pred=quantile_true(float(mdm_r["beta_hat"]),float(mdm_r["eta_hat"]),float(mdm_r["gamma_hat"]),0.95)
-            else: mdm_pred=np.nan
-            # Pinball loss τ=0.05
+            # Evaluate all routes
+            preds={}
+            # P
+            p_seeds=[seed for (ns,seed) in models["P"] if ns==n_val]
+            p_vals=[_infer_p(models["P"][(n_val,seed)],train)[0] for seed in p_seeds]
+            preds["P"]=_ens_mean(p_vals)
+            # D
+            d_items=[(seed,m,st) for (ns,seed),(m,st) in models["D"].items() if ns==n_val]
+            d_vals=[_infer_d(m,st,train) for _,m,st in d_items]
+            preds["D"]=_ens_mean(d_vals)
+            # T routes
+            for mid,kw,lbl in [("mdm",{"offset":0.1},"MDM"),("mle",{},"MLE"),("lre",{},"LRE")]:
+                r=run_method(mid,train,**kw); bh,eh,gh=r["beta_hat"],r["eta_hat"],r["gamma_hat"]
+                ok=False
+                if bh is not None and eh is not None and gh is not None:
+                    st=check_status(float(bh),float(eh),float(gh),0,0,0,converged=r.get("converged",True),sample_min=float(train.min()))
+                    ok=(st=="success")
+                preds[lbl]=quantile_true(float(bh),float(eh),float(gh),0.95) if ok else np.nan
+
+            tau=0.05
+            def pb(p,h): return (tau-1)*(h-p) if h<p else tau*(h-p)
             for h in holdout:
-                tau=0.05
-                def pb(p,h): return (tau-1)*(h-p) if h<p else tau*(h-p)
-                if np.isfinite(p_pred): pinball_p.append(pb(p_pred,h))
-                if np.isfinite(d_pred): pinball_d.append(pb(d_pred,h))
-                if np.isfinite(mdm_pred): pinball_mdm.append(pb(mdm_pred,h))
-            # Exceedance
-            if np.isfinite(p_pred): exceed_p.append(float(np.mean(holdout>p_pred)))
-            if np.isfinite(d_pred): exceed_d.append(float(np.mean(holdout>d_pred)))
-            if np.isfinite(mdm_pred): exceed_mdm.append(float(np.mean(holdout>mdm_pred)))
-        results[str(n_val)]={
-            "pinball_P":float(np.mean(pinball_p)) if pinball_p else np.nan,
-            "pinball_D":float(np.mean(pinball_d)) if pinball_d else np.nan,
-            "pinball_MDM":float(np.mean(pinball_mdm)) if pinball_mdm else np.nan,
-            "exceedance_P":float(np.mean(exceed_p)) if exceed_p else np.nan,
-            "exceedance_D":float(np.mean(exceed_d)) if exceed_d else np.nan,
-            "exceedance_MDM":float(np.mean(exceed_mdm)) if exceed_mdm else np.nan,
-        }
+                row={"split":split,"holdout_val":float(h)}
+                for lbl in ["P","D","MDM","MLE","LRE"]:
+                    pv=preds.get(lbl,np.nan)
+                    if np.isfinite(pv):
+                        row[f"{lbl}_pinball"]=pb(pv,h)
+                        row[f"{lbl}_exceed"]=1.0 if h>pv else 0.0
+                        row[f"{lbl}_valid"]=1
+                    else:
+                        row[f"{lbl}_pinball"]=np.nan; row[f"{lbl}_exceed"]=np.nan; row[f"{lbl}_valid"]=0
+                for k,v in row.items(): rows[k].append(v)
+
+        summary={}
+        for lbl in ["P","D","MDM","MLE","LRE"]:
+            pb_vals=[v for v in rows.get(f"{lbl}_pinball",[]) if np.isfinite(v)]
+            exc_vals=[v for v in rows.get(f"{lbl}_exceed",[]) if np.isfinite(v)]
+            n_valid=sum(rows.get(f"{lbl}_valid",[])); n_total_rows=len(rows.get(f"{lbl}_valid",[]))
+            summary[lbl]={
+                "pinball_mean":float(np.mean(pb_vals)) if pb_vals else np.nan,
+                "exceedance_mean":float(np.mean(exc_vals)) if exc_vals else np.nan,
+                "n_valid":n_valid,"n_total_rows":n_total_rows,"failure_rate":(n_total_rows-n_valid)/n_total_rows if n_total_rows else 0,
+            }
+        results[str(n_val)]=summary
     return results
 
 
@@ -243,55 +306,45 @@ def evaluate_nist(models):
 
 def run_b5(output_dir=None):
     if output_dir is None:
-        output_dir = str(_EXTERNAL_ROOT / f"B5-boundary-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
+        output_dir=str(_EXTERNAL_ROOT/f"B5-v2-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
     out=Path(output_dir); out.mkdir(parents=True,exist_ok=True)
     code_tip=_git_tip()
-    print(f"=== B5 Boundary & Holdout ==="); print(f"Output: {out}")
+    print(f"=== B5 v2 ==="); print(f"Output: {out}")
 
-    print("\n[1] Loading models ...")
     models=load_models()
-    print(f"  P:{len(models['P'])} D:{len(models['D'])} Dctrl:{len(models['Dctrl'])}")
+    print(f"Models: P={len(models['P'])} D={len(models['D'])} Dctrl={len(models['Dctrl'])}")
 
-    # Stress domains
-    print("\n[2] Stress domains ...")
-    stress={}
-    for dom in ["low","high","loc"]:
-        stress[dom]=evaluate_stress(models,dom)
-        print(f"  {dom}: P_rmse={stress[dom]['P'].get('rmse',np.nan):.4f} D_rmse={stress[dom]['D'].get('rmse',np.nan):.4f} I={stress[dom]['I']:.4f}")
+    # 1. Stress
+    print("\n[1] Stress domains ...")
+    stress={}; stress["low"]=evaluate_stress_full(models,"low"); stress["high"]=evaluate_stress_full(models,"high"); stress["loc"]=evaluate_stress_full(models,"loc")
 
-    # P diagnostics on core data (reuse B4 core design)
-    print("\n[3] P-route diagnostics on core ...")
-    from study02b.evaluate_b4 import generate_test_data
-    core_datasets=generate_test_data()
-    p_diag=evaluate_p_diagnostics(models,core_datasets)
-    print(f"  Legal: {p_diag['legal_rate']:.4f} ({p_diag['n_total']} estimates)")
-    print(f"  Beta RMSE: {p_diag['beta'].get('rmse',np.nan):.4f}")
-    print(f"  Eta RMSE: {p_diag['eta'].get('rmse',np.nan):.4f}")
-    print(f"  Gamma violations: {p_diag['gamma_violations']}")
+    # 2. Contamination
+    print("\n[2] Contamination ...")
+    contam=evaluate_contamination(models)
 
-    # Conformal
-    print("\n[4] Conformal calibration ...")
-    conf=evaluate_conformal(models)
-    for nv in _N_VALUES:
-        c=conf[str(nv)]
-        print(f"  n={nv}: P_q90={c['P_q90']:.2f} D_q90={c['D_q90']:.2f} P_q95={c['P_q95']:.2f} D_q95={c['D_q95']:.2f}")
+    # 3. Conformal
+    print("\n[3] Conformal ...")
+    conf=evaluate_conformal_full(models)
 
-    # NIST
-    print("\n[5] NIST 6061-T6 ...")
-    nist=evaluate_nist(models)
+    # 4. NIST
+    print("\n[4] NIST ...")
+    nist=evaluate_nist_full(models)
 
     # Manifest
-    manifest={
-        "version":"1.0","run_id":out.name,
-        "generated_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "status":"complete","code_tip":code_tip,
-        "stress":stress,"p_diagnostics":p_diag,"conformal":conf,"nist":nist,
-    }
+    b4_csv_sha=hashlib.sha256(_B4_CSV.read_bytes()).hexdigest()
+    b4_npz_sha=hashlib.sha256(_B4_NPZ.read_bytes()).hexdigest()
+    nist_csv_sha=hashlib.sha256(_NIST_CSV.read_bytes()).hexdigest()
+    manifest={"version":"2.0","run_id":out.name,"generated_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "status":"complete","code_tip":code_tip,
+              "config_sha256":hashlib.sha256(json.dumps({"n_values":_N_VALUES},sort_keys=True).encode()).hexdigest(),
+              "environment":{"python_version":sys.version,"platform":sys.platform},
+              "input_hashes":{"b4_results_csv":b4_csv_sha,"b4_per_seed_npz":b4_npz_sha,"nist_lifetimes_csv":nist_csv_sha},
+              "stress":stress,"contamination":contam,"conformal":conf,"nist":nist}
     mf_path=out/"manifest.json"
     mf_path.write_text(json.dumps(manifest,indent=2,ensure_ascii=False,default=str),encoding="utf-8")
     mf_sha=hashlib.sha256(mf_path.read_bytes()).hexdigest()
     print(f"\n  Manifest: {mf_path}\n  SHA256: {mf_sha}")
-    print(f"\n=== B5 complete ===")
+    print(f"\n=== B5 v2 complete ===")
     return manifest
 
 if __name__=="__main__": run_b5()
