@@ -284,91 +284,61 @@ def run_b4(output_dir: str | None = None) -> dict:
 
     # --- Bootstrap D vs P ---
     print(f"\n[5/5] Bootstrap ({_N_BOOTSTRAP} reps) with paired seed resampling ...")
-
-    # Pre-compute per-row and per-seed P/D errors (not collapsed)
-    # For each dataset: 10 P seeds, 10 D seeds
-    # Point estimate: RMSE over all rows within each n, equal weight
     rng = np.random.default_rng(42)
 
-    def _per_n_rmse_d_vs_p(ci_mask, ri_mask, p_dict, d_dict):
-        """RMSE within one n: RMSE = sqrt(mean((d_mean - true)^2)) etc.
-        Returns (rmse_d, rmse_p) for this n subset."""
-        d_errs = []; p_errs = []
-        for ci in ci_mask:
-            for ri in ri_mask:
-                key = (ci, ri, n_val)
-                d_vals = d_dict.get(key, np.array([np.nan]))
-                p_vals = p_dict.get(key, np.array([np.nan]))
-                td = datasets.get(key)
-                if td is None: continue
-                d_mean = float(np.nanmean(d_vals))
-                p_mean = float(np.nanmean(p_vals))
-                if np.isfinite(d_mean):
-                    d_errs.append(d_mean - td.true_x095)
-                if np.isfinite(p_mean):
-                    p_errs.append(p_mean - td.true_x095)
-        # Absolute RMSE (not relative) then divided by true mean later
-        return d_errs, p_errs
+    # Use the pre-computed per-row relative errors (ensemble mean)
+    # route_errs already has rel_err = (pred - true) / true for each dataset
 
-    # Point estimate: equal weight across n
+    # Point estimate: RMSE of relative errors within each n, equal weight
     point_per_n = {}
     for n_val in _N_VALUES:
-        ci_all = list(range(_N_CLUSTERS))
-        ri_all = list(range(_N_REPLICATES))
-        d_errs, p_errs = _per_n_rmse_d_vs_p(ci_all, ri_all, d_seed, p_seed)
-        d_rmse_abs = np.sqrt(np.mean(np.array(d_errs)**2)) if d_errs else np.nan
-        p_rmse_abs = np.sqrt(np.mean(np.array(p_errs)**2)) if p_errs else np.nan
-        # Convert to approximate "relative" by dividing by grand mean true_x095 for this n
-        true_vals = [datasets[(ci, ri, n_val)].true_x095 for ci in ci_all for ri in ri_all]
-        mean_true = np.mean(true_vals)
+        d_rel = [route_errs["D"].get((ci, ri, n_val), np.nan)
+                 for ci in range(_N_CLUSTERS) for ri in range(_N_REPLICATES)]
+        p_rel = [route_errs["P"].get((ci, ri, n_val), np.nan)
+                 for ci in range(_N_CLUSTERS) for ri in range(_N_REPLICATES)]
+        d_valid = [e for e in d_rel if np.isfinite(e)]
+        p_valid = [e for e in p_rel if np.isfinite(e)]
         point_per_n[n_val] = {
-            "d_rmse": d_rmse_abs / mean_true, "p_rmse": p_rmse_abs / mean_true,
+            "d_rmse": float(np.sqrt(np.mean(np.array(d_valid)**2))) if d_valid else np.nan,
+            "p_rmse": float(np.sqrt(np.mean(np.array(p_valid)**2))) if p_valid else np.nan,
         }
 
-    # Pool: equal weight per n
     pooled_d = float(np.mean([point_per_n[n]["d_rmse"] for n in _N_VALUES]))
     pooled_p = float(np.mean([point_per_n[n]["p_rmse"] for n in _N_VALUES]))
     point_i = (pooled_p - pooled_d) / pooled_p if pooled_p > 0 else 0.0
 
-    # Bootstrap
+    # Bootstrap: resample clusters, then seeds within each cluster
     boot_i = []
     all_ci = list(range(_N_CLUSTERS))
-    all_ri = list(range(_N_REPLICATES))
     for b in range(_N_BOOTSTRAP):
-        # Resample clusters
         ci_boot = list(rng.choice(all_ci, size=_N_CLUSTERS, replace=True))
-        # Within each cluster, resample replicates
-        ri_boot = list(rng.choice(all_ri, size=_N_REPLICATES, replace=True))
-        # Paired seed resampling: for each dataset, resample seed indices for P and D
-        # (same seed indices for both routes = paired)
         per_n_vals = []
         for n_val in _N_VALUES:
             d_errs_b = []; p_errs_b = []
             for ci in ci_boot:
-                for ri in ri_boot:
+                for ri in range(_N_REPLICATES):
                     key = (ci, ri, n_val)
                     td = datasets.get(key)
                     if td is None: continue
-                    # Paired seed resample: pick random seed indices (with replacement)
+                    # Paired seed resample
                     d_arr = d_seed.get(key, np.array([np.nan]))
                     p_arr = p_seed.get(key, np.array([np.nan]))
-                    n_seeds = min(len(d_arr), len(p_arr))
-                    if n_seeds == 0: continue
-                    seed_idx = rng.choice(n_seeds, size=n_seeds, replace=True)
-                    d_mean = float(np.nanmean(d_arr[seed_idx]))
-                    p_mean = float(np.nanmean(p_arr[seed_idx]))
-                    if np.isfinite(d_mean):
-                        d_errs_b.append(d_mean - td.true_x095)
-                    if np.isfinite(p_mean):
-                        p_errs_b.append(p_mean - td.true_x095)
-            d_rmse_b = np.sqrt(np.mean(np.array(d_errs_b)**2)) if d_errs_b else np.nan
-            p_rmse_b = np.sqrt(np.mean(np.array(p_errs_b)**2)) if p_errs_b else np.nan
-            true_vals_n = [datasets[(ci, ri, n_val)].true_x095 for ci in ci_boot for ri in ri_boot]
-            mean_true_n = np.mean(true_vals_n)
-            per_n_vals.append((d_rmse_b / mean_true_n, p_rmse_b / mean_true_n))
-        # Equal weight per n
-        bd = float(np.mean([v[0] for v in per_n_vals if np.isfinite(v[0])]))
-        bp = float(np.mean([v[1] for v in per_n_vals if np.isfinite(v[1])]))
+                    n_s = min(len(d_arr), len(p_arr))
+                    if n_s == 0: continue
+                    idx = rng.choice(n_s, size=n_s, replace=True)
+                    d_mean = float(np.nanmean(d_arr[idx]))
+                    p_mean = float(np.nanmean(p_arr[idx]))
+                    if np.isfinite(d_mean) and td.true_x095 != 0:
+                        d_errs_b.append((d_mean - td.true_x095) / td.true_x095)
+                    if np.isfinite(p_mean) and td.true_x095 != 0:
+                        p_errs_b.append((p_mean - td.true_x095) / td.true_x095)
+            d_rmse_n = float(np.sqrt(np.mean(np.array(d_errs_b)**2))) if d_errs_b else np.nan
+            p_rmse_n = float(np.sqrt(np.mean(np.array(p_errs_b)**2))) if p_errs_b else np.nan
+            if np.isfinite(d_rmse_n) and np.isfinite(p_rmse_n):
+                per_n_vals.append((d_rmse_n, p_rmse_n))
+        if not per_n_vals: continue
+        bd = float(np.mean([v[0] for v in per_n_vals]))
+        bp = float(np.mean([v[1] for v in per_n_vals]))
         if bp > 0 and np.isfinite(bd) and np.isfinite(bp):
             boot_i.append((bp - bd) / bp)
 
