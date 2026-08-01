@@ -12,7 +12,7 @@
 
 ## 当前状态快照
 
-> **快照日期**: 2026-07-31 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+> **快照日期**: 2026-08-01 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
 
 | 层级 | 技术 |
 |------|------|
@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：前置研究 A 已完成，19/19 问有证据覆盖（17 answered + A4/A8 partial），正式成果见 Study/02 `06-A-前置研究报告.md`。主研究 B 的 B1–B6 已全部完成并 APPROVE（分支 `codex/study02-quantile-formal-20260731`，B6 tip `2e0e842d`）；正式结论见 Study/02 `05-B-正式实验报告.md`，证据哈希见 `04-B-证据索引.md`。核心结果：core pooled \(x_{0.95}\) 相对 RMSE 改善率 I=0.3926 [0.3444,0.4347]（NN 直接路线 D 相对 NN 参数路线 P，supported and material），但优势分层且非全域；旧 A formal 引擎与 test namespaces 永久只读，不作为 B 的控制面。
+**Study/02 当前态**：前置研究 A 已完成，19/19 问有证据覆盖（17 answered + A4/A8 partial），正式成果见 Study/02 `06-A-前置研究报告.md`。主研究 B 的 B1–B6 已全部完成并 APPROVE（分支 `codex/study02-quantile-formal-20260731`；B6 实现/证据 tip `2e0e842d`，最终报告/文档 tip `<B6_FINAL_TIP>`）；正式结论见 Study/02 `05-B-正式实验报告.md`，证据哈希见 `04-B-证据索引.md`。核心结果：core pooled \(x_{0.95}\) 相对 RMSE 改善率 I=0.3926 [0.3444,0.4347]（NN 直接路线 D 相对 NN 参数路线 P，supported and material），但优势分层且非全域（D 非总体精度最优，core 上 MDM/LRE 更优）；旧 A formal 引擎与 test namespaces 永久只读，不作为 B 的控制面。
 
 **Study/01 当前态**：正式实验与证据链已经闭环，E1–E4、R1–R3/P6–P8 均完成；Figures 1–9、Supplementary Figures S1–S8、五部分论文技术稿、补充材料及 fail-closed 稿件审计已完成。现已在独立论文项目文件夹启动面向可靠性/计算方法国际期刊的中文学术源稿，下一步是完善文献对话并冻结正文，再确定具体期刊、作者、基金与 CRediT，完成英文和期刊格式适配。连续参数空间训练、多数据集验证和 $\delta>1.00$ 探索属于后续独立研究，不阻塞当前论文。
 
