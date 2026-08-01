@@ -182,15 +182,11 @@ def evaluate_nist(models):
     """NIST 6061-T6: 500 deterministic splits per n, pinball loss + exceedance."""
     print("\n  NIST 6061-T6 ...")
     # Load NIST data (101 lifetimes)
-    nist_path = _REPO_ROOT / "data" / "NIST" / "6061-T6.csv"
+    nist_path = _REPO_ROOT / "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/real_data/nist-6061-t6-fatigue/lifetimes.csv"
     if not nist_path.exists():
-        # Try alternative path
-        alt = _REPO_ROOT / "public" / "data" / "nist_6061_t6.csv"
-        if alt.exists(): nist_path = alt
-        else:
-            print("  WARNING: NIST data not found, skipping")
-            return None
-    data = np.loadtxt(nist_path, delimiter=",", skiprows=1, usecols=0)
+        print("  WARNING: NIST data not found, skipping")
+        return None
+    data = np.loadtxt(nist_path, delimiter=",", skiprows=1)
     if data.ndim==0: data=np.array([float(data)])
     n_total=len(data)
 
@@ -205,13 +201,13 @@ def evaluate_nist(models):
             holdout=np.setdiff1d(data,train)
             if len(holdout)==0: continue
             # P prediction
-            p_preds=[]; p_seeds=[s for (ns,s) in models["P"] if ns==n_val]
-            for s in p_seeds:
-                v=_infer_p(models["P"][(n_val,s)],train)[0]
+            p_preds=[]; p_seeds=[seed for (ns,seed) in models["P"] if ns==n_val]
+            for seed in p_seeds:
+                v=_infer_p(models["P"][(n_val,seed)],train)[0]
                 if np.isfinite(v): p_preds.append(v)
             p_pred=float(np.nanmean(p_preds)) if p_preds else np.nan
             # D prediction
-            d_preds=[]; d_items=[(s,m,st) for (ns,s),(m,st) in models["D"].items() if ns==n_val]
+            d_preds=[]; d_items=[(seed,m,st) for (ns,seed),(m,st) in models["D"].items() if ns==n_val]
             for _,m,st in d_items:
                 v=_infer_d(m,st,train)
                 if np.isfinite(v): d_preds.append(v)
