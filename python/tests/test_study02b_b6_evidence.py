@@ -77,6 +77,27 @@ def test_b4_d_vs_traditional():
     assert dvt["LRE"]["t_better"] is True and dvt["LRE"]["d_better"] is False
 
 
+def test_b4_controlled_attribution():
+    """B3 controlled attribution: P vs Dctrl (matched m12 backbone); D (selected
+    [64,32]) explains little beyond Dctrl. Values quoted in 04-B/05-B."""
+    b4 = _load(B4_CORE)
+    pr = b4["per_route"]
+    assert abs(pr["P"]["rmse"] - 0.6943) < 0.0005
+    assert abs(pr["Dctrl"]["rmse"] - 0.3296) < 0.0005
+    assert abs(pr["D"]["rmse"] - 0.3290) < 0.0005
+    # Dctrl (m12 [256,128,64], 5 seeds) vs D selected ([64,32], 10 seeds)
+    b3 = _load(B3)
+    groups = {}
+    for e in b3["d_checkpoints"]:
+        groups.setdefault(e["group"], {"widths": set(), "seeds": set()})
+        groups[e["group"]]["widths"].add(tuple(e["widths"]))
+        groups[e["group"]]["seeds"].add(e["seed"])
+    assert groups["controlled"]["widths"] == {(256, 128, 64)}
+    assert groups["selected"]["widths"] == {(64, 32)}
+    assert len(groups["controlled"]["seeds"]) == 5
+    assert len(groups["selected"]["seeds"]) == 10
+
+
 def test_b5_v6_stress_bh_corrected():
     b5 = _load(B5_V6)
     bh = b5["stress"]["_bh"]

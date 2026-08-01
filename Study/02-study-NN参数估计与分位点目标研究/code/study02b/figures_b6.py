@@ -4,8 +4,9 @@ Analysis-only; reads only approved run manifests. Generates exactly three
 figures that materially support B1-B7:
   1. core_error_vs_n  - pooled core relative RMSE of D vs P by n (B2)
   2. core_effect_by_n - per-n improvement I with 95% CI + pooled (B1/B2)
-  3. stress_tradeoff  - stress D availability and paired-loss effect vs core
-                        coverage, i.e. boundary/calibration tradeoff (B6/B7)
+  3. stress_tradeoff  - D valid availability by stress domain x n vs core D
+                        cov95 (reference), i.e. boundary/calibration tradeoff
+                        (B6/B7); shows availability loss, not paired-loss effect
 Input manifests and output figure SHA256 are recorded in SHA256SUMS.
 """
 
