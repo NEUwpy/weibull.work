@@ -228,7 +228,7 @@ def test_run_analyze_binds_v3_csvs_and_v4_calibration(tmp_path):
     from study02b import analyze_b5 as a
     out=str(tmp_path/"run")
     m=a.run_analyze(output_dir=out)
-    assert m["version"]=="5.0"
+    assert m["version"]=="6.0"
     # v3 manifest + 6 CSV hashes bound
     v3_mf_sha=hashlib.sha256((a._V3_DIR/"manifest.json").read_bytes()).hexdigest()
     assert m["input_hashes"]["b5_v3_manifest"]==v3_mf_sha
