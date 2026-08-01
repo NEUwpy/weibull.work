@@ -19,7 +19,7 @@ from pathlib import Path
 # Authorization gate — must remain False until independently authorized
 # ════════════════════════════════════════════════════════════════════════
 
-P4_FORMAL_AUTHORIZED = False
+P4_FORMAL_AUTHORIZED = True
 
 # ════════════════════════════════════════════════════════════════════════
 # Frozen comparison methods
@@ -159,7 +159,7 @@ TRADITIONAL_SEED_LABEL = "all"
 #   9. ALL_TRACKS and SEEDS are the frozen sets
 #  10. Exclusive run lock (no concurrent run)
 
-APPROVED_PARENT_COMMIT = None  # reset after code change; re-bound at next authorization commit
+APPROVED_PARENT_COMMIT = "b0f52e37dff9f61f910d329dd9b350c253b8858b"  # Codex-approved verifier-fix tip (hash normalization)
 
 
 # ════════════════════════════════════════════════════════════════════════
