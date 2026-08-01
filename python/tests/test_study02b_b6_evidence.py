@@ -98,6 +98,19 @@ def test_b4_controlled_attribution():
     assert len(groups["selected"]["seeds"]) == 10
 
 
+def test_b6_report_summary_language():
+    """05-B summary must not use sample-size as a selection rule and must
+    qualify the D claim as NN-route-over-P, not overall-most-accurate."""
+    report = (STUDY / "05-B-正式实验报告.md").read_text(encoding="utf-8")
+    # forbidden: sample-size-based selection rule (n5 is strongest D gain,
+    # n7/n10 inconclusive, so sample size does not select D)
+    assert "样本量足够" not in report
+    assert "样本量允许" not in report
+    # required qualifications in the summary section
+    assert "相对参数路线 P 更优的 NN 路线" in report
+    assert "不是总体精度最优的方法" in report
+
+
 def test_b5_v6_stress_bh_corrected():
     b5 = _load(B5_V6)
     bh = b5["stress"]["_bh"]
