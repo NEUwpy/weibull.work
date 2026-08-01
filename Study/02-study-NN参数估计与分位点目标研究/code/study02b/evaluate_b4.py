@@ -150,12 +150,12 @@ def _infer_p(model, sample):
     z = torch.from_numpy(anchor.z.astype(np.float32)).unsqueeze(0)
     with torch.no_grad():
         raw = model(z)
-    b, e, g = decode_model_output(
+    decoded = decode_model_output(
         raw,
         torch.tensor([anchor.location], dtype=torch.float32),
         torch.tensor([anchor.scale], dtype=torch.float32),
     )
-    bf, ef, gf = float(b[0]), float(e[0]), float(g[0])
+    bf, ef, gf = float(decoded[0, 0]), float(decoded[0, 1]), float(decoded[0, 2])
     if bf <= 0 or ef <= 0 or not all(np.isfinite([bf, ef, gf])):
         return np.nan
     return quantile_true(bf, ef, gf, 0.95)
