@@ -86,12 +86,30 @@ def _git_tip() -> str:
     return "unknown"
 
 
-def build_p_index() -> list[dict]:
-    """Build a read-only P checkpoint index from the verified A formal artifacts.
+_P_PLAN_PATH = _P_CHECKPOINT_BASE.parent / "plan.jsonl"
 
-    Returns a list of dicts with fit_id, path, sha256, and where discoverable,
-    n and seed values. Does NOT access A test data.
+
+def _load_a_plan() -> dict[str, dict]:
+    """Load A-E1 r5 plan.jsonl and return fit_id → row index."""
+    index: dict[str, dict] = {}
+    with open(_P_PLAN_PATH, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            fid = row.get("fit_id")
+            if fid:
+                index[fid] = row
+    return index
+
+
+def build_p_index() -> list[dict]:
+    """Build a read-only P checkpoint index from A plan + verified artifacts.
+
+    Resolves each G3-fit-0299..0348 row from the immutable A plan.jsonl
+    to record n (fixed_n), seed, plan-row SHA256, and checkpoint hash/path.
     """
+    plan = _load_a_plan()
     index = []
     for fit_num in range(_P_FIT_START, _P_FIT_END + 1):
         fit_id = f"G3-fit-{fit_num:04d}"
@@ -99,27 +117,31 @@ def build_p_index() -> list[dict]:
         ckpt_bytes = ckpt_path.read_bytes()
         ckpt_sha = hashlib.sha256(ckpt_bytes).hexdigest()
         ckpt_size = len(ckpt_bytes)
-        # n inference: input_dim = n (sorted sample values)
-        # The model input_dim is embedded in the state dict first Linear layer
-        state = load_checkpoint(ckpt_bytes)
-        # Find the first Linear layer's in_features
-        input_dim = None
-        for name, param in state.items():
-            if "0.weight" in name and param.ndim == 2:
-                input_dim = param.shape[1]
-                break
+
+        plan_row = plan.get(fit_id, {})
+        n_val = plan_row.get("fixed_n")
+        seed_val = plan_row.get("seed")
+        plan_line = json.dumps(plan_row, sort_keys=True, ensure_ascii=False) if plan_row else "{}"
+        plan_row_sha256 = hashlib.sha256(plan_line.encode("utf-8")).hexdigest()
+
         index.append({
             "fit_id": fit_id,
             "path": str(ckpt_path),
             "sha256": ckpt_sha,
             "size_bytes": ckpt_size,
-            "input_dim": input_dim,
+            "n": n_val,
+            "seed": seed_val,
+            "plan_row_sha256": plan_row_sha256,
+            "route": plan_row.get("route"),
+            "architecture": plan_row.get("architecture"),
+            "loss": plan_row.get("loss"),
+            "code_commit": plan_row.get("code_commit"),
         })
     return index
 
 
 def generate_b3_data(n_sample: int) -> dict:
-    """Generate training (100k) and validation (20k) data for a given n.
+    """Generate training (100k) and validation (20k) data for a given n."
 
     Separate seed namespaces for training and validation.
     """
@@ -167,6 +189,23 @@ def generate_b3_data(n_sample: int) -> dict:
         "val_features": val_features,
         "val_targets": val_targets,
         "target_stats": stats,
+    }
+
+
+def compute_target_stats_for_n(n_sample: int) -> dict:
+    """Recompute the deterministic per-n target_stats without model fitting.
+
+    Uses the same seed/namespace as generate_b3_data, so the resulting
+    DTrainingStats (mean, sd) are bit-identical to those used during B3
+    training.  B4 uses these to unstandardize D predictions before
+    decoding through sample anchors.
+    """
+    data = generate_b3_data(n_sample)
+    stats = data["target_stats"]
+    return {
+        "n": n_sample,
+        "mean": stats.mean,
+        "sd": stats.sd,
     }
 
 
@@ -414,6 +453,9 @@ def run_b3(output_dir: str | None = None) -> dict:
             "entries": p_index,
         },
         "d_checkpoints": d_inventory,
+        "target_stats": {
+            str(n): compute_target_stats_for_n(n) for n in _N_VALUES
+        },
         "failures": failures,
     }
 
