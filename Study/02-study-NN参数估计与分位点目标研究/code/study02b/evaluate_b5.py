@@ -119,14 +119,18 @@ def evaluate_p_diagnostics(models, datasets):
     for (ci,ri,n),td in datasets.items():
         p_seeds=[s for (ns,s) in models["P"] if ns==n]
         for s in p_seeds:
-            _,bh,eh,gh,ok=_infer_p(models["P"][(n,s)],td["sample"])
+            sample = td.sample if hasattr(td, 'sample') else td["sample"]
+            beta = td.beta if hasattr(td, 'beta') else td["beta"]
+            eta = td.eta if hasattr(td, 'eta') else td["eta"]
+            gamma = td.gamma if hasattr(td, 'gamma') else td["gamma"]
+            _,bh,eh,gh,ok=_infer_p(models["P"][(n,s)],sample)
             n_total+=1
             if ok:
                 n_legal+=1
-                beta_errs.append((bh-td["beta"])/td["beta"])
-                eta_errs.append((eh-td["eta"])/td["eta"])
-                gamma_errs.append((gh-td["gamma"])/td["eta"])
-                if gh>=td["sample"].min(): gamma_violations+=1
+                beta_errs.append((bh-beta)/beta)
+                eta_errs.append((eh-eta)/eta)
+                gamma_errs.append((gh-gamma)/eta)
+                if gh>=sample.min(): gamma_violations+=1
     return {
         "beta":summarize_standard_errors(beta_errs),"eta":summarize_standard_errors(eta_errs),
         "gamma":summarize_standard_errors(gamma_errs),
