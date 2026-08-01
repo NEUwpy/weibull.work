@@ -959,6 +959,21 @@ class TestProductionPathFixture:
         h2 = p4.verify_sample_content_hash(2.0, 1.0, 0.5, 10, 0, "study01_p2_v1")
         assert h1 != h2
 
+    def test_verify_sample_content_hash_matches_real_sealed_p2_hash(self):
+        """Regression (P4-R6): the verifier must round to 12 decimals like P2
+        sealing, so a real sealed P2 sample verifies exactly (this was the
+        param_interp failure key)."""
+        expected = "3bf916ab717158d87d68d3dbd704d528ee74fa9e98e337397eb0616fae168b4a"
+        computed = p4.verify_sample_content_hash(
+            1.75, 1.0, 0.3, 7, 0, "study01_p2_v1", expected_sha256=expected)
+        assert computed == expected
+
+    def test_verify_sample_content_hash_fails_closed_on_mismatch(self):
+        """A wrong sealed hash must raise (fail-closed)."""
+        with pytest.raises(RuntimeError, match="Sample content hash mismatch"):
+            p4.verify_sample_content_hash(
+                1.75, 1.0, 0.3, 7, 0, "study01_p2_v1", expected_sha256="f" * 64)
+
 
 # ════════════════════════════════════════════════════════════════════════
 # 23. Production orchestration test (P4-R10)
@@ -1749,7 +1764,7 @@ class TestAdapterWithPathInjection:
         for beta, goe, n in combos:
             for rid in range(2):
                 sample = generate_sample(beta, 1.0, goe, n, rid, seed="study01_p2_v1")
-                sample_bytes = np.asarray(sample, dtype=np.float64).tobytes()
+                sample_bytes = np.round(np.asarray(sample, dtype=np.float64), 12).tobytes()
                 import hashlib
                 sha = hashlib.sha256(sample_bytes).hexdigest()
                 rows.append({"track": "P2-NI", "beta": beta, "gamma_over_eta": goe,
@@ -1970,7 +1985,7 @@ class TestMainFourTrack:
             for beta, goe, n in p2_combos:
                 for rid in range(2):
                     sample = generate_sample(beta, 1.0, goe, n, rid, seed="study01_p2_v1")
-                    sample_bytes = np.asarray(sample, dtype=np.float64).tobytes()
+                    sample_bytes = np.round(np.asarray(sample, dtype=np.float64), 12).tobytes()
                     sha = _hashlib.sha256(sample_bytes).hexdigest()
                     p2_rows.append({"track": track_label, "beta": beta, "gamma_over_eta": goe,
                                     "n": n, "repeat_id": rid, "sample_sha256": sha})

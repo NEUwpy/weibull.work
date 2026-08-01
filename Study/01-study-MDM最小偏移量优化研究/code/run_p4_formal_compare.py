@@ -961,7 +961,8 @@ def verify_sample_content_hash(beta, eta, gamma, n, repeat_id, seed_namespace,
     Returns the computed hash for logging/auditing.
     """
     sample = generate_sample(beta, eta, gamma, n, repeat_id, seed=seed_namespace)
-    sample_bytes = np.asarray(sample, dtype=np.float64).tobytes()
+    sample_rounded = np.round(np.asarray(sample, dtype=np.float64), 12)
+    sample_bytes = sample_rounded.tobytes()
     computed = hashlib.sha256(sample_bytes).hexdigest()
     if expected_sha256 is not None and computed != expected_sha256:
         raise RuntimeError(
