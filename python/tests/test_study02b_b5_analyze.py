@@ -8,7 +8,34 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 for p in [str(REPO_ROOT/"Study/02-study-NN参数估计与分位点目标研究/code"),str(REPO_ROOT/"python")]:
     if p not in sys.path: sys.path.insert(0, p)
 
-from study02b.analyze_b5 import split_conformal_quantile, _N_VALUES
+from study02b.analyze_b5 import split_conformal_quantile, _N_VALUES, _bh_qvalues, _cluster_bootstrap_paired
+
+
+def test_bh_qvalues_known_vector():
+    """Standard BH: p=[.001,.01,.04,.20] -> q≈[.004,.020,.053333,.20]."""
+    q=_bh_qvalues({"a":.001,"b":.01,"c":.04,"d":.20})
+    assert abs(q["a"]-0.004)<1e-6
+    assert abs(q["b"]-0.020)<1e-6
+    assert abs(q["c"]-(0.04*4/3))<1e-9
+    assert abs(q["d"]-0.20)<1e-9
+
+def test_bh_qvalues_zero_cannot_drag_large_p():
+    """A zero/small p must not force a later large p to q=0 (reverse cumulative min)."""
+    q=_bh_qvalues({"low_n5":0.0,"low_n7":.178,"low_n15":.423,"loc_n10":.56})
+    assert q["low_n5"]==0.0
+    assert q["low_n7"]>0.05     # .178 -> .356, not supported
+    assert q["low_n15"]>0.05    # .423 -> .56, not supported
+    assert q["loc_n10"]>0.05    # .56 -> .56, not supported
+    # q-values must be monotone non-increasing in sorted-p order
+    ps=sorted([.0,.178,.423,.56]); qs=sorted([q["low_n5"],q["low_n7"],q["low_n15"],q["loc_n10"]])
+    assert qs==[q["low_n5"],q["low_n7"],q["low_n15"],q["loc_n10"]]
+
+def test_plus_one_pvalue_no_exact_zero():
+    """Bootstrap p-value must use plus-one correction: never exactly 0 from finite draws."""
+    paired={0:[-1.0,-2.0],1:[-1.5,-2.5]}
+    r=_cluster_bootstrap_paired(paired,2,n_boot=2000,seed=1)
+    assert r["p"]>0.0
+    assert r["p"]<=1.0
 
 
 def test_split_conformal_alpha_0_1():

@@ -1,9 +1,14 @@
-"""B5 v5: Derived analysis from frozen v3 CSVs + accepted v4 calibration manifest.
+"""B5 v6: Derived analysis from frozen v3 CSVs + accepted v4 calibration manifest.
 
-Analysis-only correction. No new fit and no rerun of stress, contamination,
-NIST, P/D inference, or calibration. Reads the frozen v3 row-level CSVs and the
-accepted v4 calibration manifest (corrected split-conformal thresholds), and
-re-derives the preregistered statistics with corrected estimands:
+v6 correction (analysis-only): standard Benjamini-Hochberg adjusted q-values
+(reverse cumulative min from largest rank to smallest) and a plus-one
+finite-resampling correction for bootstrap p-values so a zero/small p cannot
+force later large p-values to q=0. All other v5 derived results unchanged.
+
+No new fit and no rerun of stress, contamination, NIST, P/D inference, or
+calibration. Reads the frozen v3 row-level CSVs and the accepted v4 calibration
+manifest (corrected split-conformal thresholds), and re-derives the
+preregistered statistics with corrected estimands:
 
 - stress: paired squared-relative-error loss difference on common-valid rows,
   cluster-bootstrapped (implied RMSE effect reported); signed bias kept
@@ -70,6 +75,11 @@ def _cluster_bootstrap_paired(paired_diffs, n_clusters, n_boot=2000, seed=42):
     Resamples clusters with replacement and pools the rows of the resampled
     clusters each replicate. Returns the observed mean, bootstrap mean, 95% CI,
     and a two-sided bootstrap p-value for H0: mean difference = 0.
+
+    The p-value uses the plus-one finite-resampling correction
+    (Davison & Hinkley 1997, eq. 4.15): a two-sided tail count is
+    p = 2 * (n_tail + 1) / (n_boot + 1), capped at 1, so an extreme result
+    cannot produce an impossible Monte-Carlo p = 0 from finite draws.
     """
     rng=np.random.default_rng(seed)
     ci_all=list(range(n_clusters))
@@ -83,10 +93,11 @@ def _cluster_bootstrap_paired(paired_diffs, n_clusters, n_boot=2000, seed=42):
     boot=np.array(boot); boot=boot[np.isfinite(boot)]
     if boot.size==0:
         return {"mean":obs,"boot_mean":np.nan,"ci_lo":np.nan,"ci_hi":np.nan,"p":np.nan}
-    p=2.0*min(float(np.mean(boot<=0)),float(np.mean(boot>=0)))
+    n_tail=min(float(np.sum(boot<=0)),float(np.sum(boot>=0)))
+    p=min(2.0*(n_tail+1.0)/(boot.size+1.0),1.0)
     return {"mean":obs,"boot_mean":float(np.mean(boot)),
             "ci_lo":float(np.percentile(boot,2.5)),"ci_hi":float(np.percentile(boot,97.5)),
-            "p":min(p,1.0)}
+            "p":float(p)}
 
 
 def _split_bootstrap_ci(diffs, n_boot=2000, seed=42):
@@ -104,14 +115,22 @@ def _split_bootstrap_ci(diffs, n_boot=2000, seed=42):
 
 
 def _bh_qvalues(pvals):
-    """Benjamini-Hochberg adjusted q-values (monotone), skipping NaN."""
+    """Standard Benjamini-Hochberg adjusted q-values, skipping NaN.
+
+    Sort p-values ascending, compute raw q_i = p_i * m / i for rank i, then
+    enforce monotonicity with a reverse cumulative minimum (iterate from the
+    largest rank to the smallest), cap each at 1, and map back to the original
+    cells. A zero p-value therefore does not drag later (larger) p-values to
+    zero — q values only decrease for successively smaller p-values.
+    """
     finite={k:v for k,v in pvals.items() if v==v}
     keys=sorted(finite,key=lambda k:finite[k])
     m=len(keys)
-    q={}; prev=1.0
-    for i,k in enumerate(keys,1):
-        qv=min(prev,finite[k]*m/i)
-        q[k]=qv; prev=qv
+    raw={k:min(finite[k]*m/(i+1),1.0) for i,k in enumerate(keys)}
+    q={}; running=1.0
+    for k in reversed(keys):
+        running=min(running,raw[k])
+        q[k]=running
     return q
 
 
@@ -360,10 +379,10 @@ def analyze_nist(nist_path):
 
 def run_analyze(output_dir=None):
     if output_dir is None:
-        output_dir=str(_EXTERNAL_ROOT/f"B5-v5-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
+        output_dir=str(_EXTERNAL_ROOT/f"B5-v6-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
     out=Path(output_dir); out.mkdir(parents=True,exist_ok=True)
     code_tip=_git_tip()
-    print(f"=== B5 v5 Derived Analysis (analysis-only) ===\nOutput: {out}")
+    print(f"=== B5 v6 Derived Analysis (analysis-only) ===\nOutput: {out}")
 
     # Accepted v4 calibration manifest (corrected thresholds) — no recalibration
     v4_mf=json.loads(_V4_MANIFEST.read_text(encoding="utf-8"))
@@ -379,7 +398,7 @@ def run_analyze(output_dir=None):
     v3_mf_sha=hashlib.sha256((_V3_DIR/"manifest.json").read_bytes()).hexdigest()
     v3_csvs={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted(_V3_DIR.glob("*.csv"))}
     manifest={
-        "version":"5.0","run_id":out.name,
+        "version":"6.0","run_id":out.name,
         "generated_at":datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "status":"complete","code_tip":code_tip,
         "analysis_type":"derived analysis only — no new fit, no rerun of stress/contamination/NIST/P-D inference or calibration",
@@ -399,7 +418,7 @@ def run_analyze(output_dir=None):
     mf_path.write_text(json.dumps(manifest,indent=2,ensure_ascii=False,default=str),encoding="utf-8")
     mf_sha=hashlib.sha256(mf_path.read_bytes()).hexdigest()
     print(f"\n  Manifest: {mf_path}\n  SHA256: {mf_sha}")
-    print("\n=== B5 v5 complete ===")
+    print("\n=== B5 v6 complete ===")
     return manifest
 
 if __name__=="__main__": run_analyze()
