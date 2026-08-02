@@ -300,3 +300,17 @@ def test_doc_consistency_gate():
                     or "推翻" in line or "artifact" in line or "invalid" in line
                     or "raw" in line or "原 B4" in line), \
                 f"{bad!r} appears without invalid/historical tag: {line!r}"
+
+
+def test_b4_pooled_ci_computed():
+    """R14: the b4 correction must carry a formal pooled equal-per-n I CI
+    (paired hierarchical bootstrap), not just a point estimate."""
+    import json
+    p = Path(r"C:/weibull-runs/study02/b-inc/BINC-20260802-02/b4_correction/b4_correction_summary.json")
+    s = json.loads(p.read_text(encoding="utf-8"))
+    pooled = s["pooled_equal_per_n"]
+    assert "ci_95_lower" in pooled and "ci_95_upper" in pooled
+    lo, hi = pooled["ci_95_lower"], pooled["ci_95_upper"]
+    assert lo < pooled["I"] < hi
+    assert hi < 0  # P better (negative I) confirmed by the CI
+    assert pooled.get("n_bootstrap", 0) >= 1000

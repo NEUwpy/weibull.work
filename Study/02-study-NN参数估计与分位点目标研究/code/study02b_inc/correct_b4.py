@@ -165,6 +165,42 @@ def run(out_dir: Path, n_boot: int = 2000) -> dict:
 
     p_eq = float(np.mean([per_n[str(n)]["P_rmse"] for n in B4_N_VALUES]))
     d_eq = float(np.mean([per_n[str(n)]["D_rmse"] for n in B4_N_VALUES]))
+    i_eq = (p_eq - d_eq) / p_eq if p_eq > 0 else np.nan
+
+    # R14: pooled equal-per-n I 95% CI via paired hierarchical cluster bootstrap
+    # (consistent with the per-n definition): one rep = cluster resample + paired
+    # seed multiset, per-n I averaged over the 5 n.
+    rng2 = np.random.default_rng(C.BOOTSTRAP_SEED + 1)
+    pooled_boot = []
+    for _ in range(n_boot):
+        ci_b = list(rng2.choice(range(64), size=64, replace=True))
+        seed_idx = rng2.choice(10, size=10, replace=True)
+        per_n_vals = []
+        for n in B4_N_VALUES:
+            deb, peb = [], []
+            for ci in ci_b:
+                for ri in range(20):
+                    k = f"{ci}_{ri}_{n}"
+                    r = b4_rows.get(k)
+                    if r is None:
+                        continue
+                    xt = float(r["true_x095"])
+                    dv = d_seeds_raw[key_to_idx[k]]
+                    pv = p_seeds_corr[key_to_idx[k]]
+                    dm = float(np.nanmean(dv[seed_idx[:len(dv)]]))
+                    pm = float(np.nanmean(pv[seed_idx[:len(pv)]]))
+                    if np.isfinite(dm):
+                        deb.append((dm - xt) / xt)
+                    if np.isfinite(pm):
+                        peb.append((pm - xt) / xt)
+            drb, prb = _rmse(deb), _rmse(peb)
+            if prb > 0:
+                per_n_vals.append((prb - drb) / prb)
+        if per_n_vals:
+            pooled_boot.append(float(np.mean(per_n_vals)))
+    pooled_boot = np.array(pooled_boot)
+    pooled_ci = (float(np.percentile(pooled_boot, 2.5)),
+                 float(np.percentile(pooled_boot, 97.5))) if len(pooled_boot) else (np.nan, np.nan)
 
     summary = {
         "version": "1.0", "kind": "b4_correction", "code_tip": _git_tip(),
@@ -176,8 +212,9 @@ def run(out_dir: Path, n_boot: int = 2000) -> dict:
         "input_b4": {"dir": str(B4_DIR), "npz_sha256": hashlib.sha256(
             (B4_DIR / "per_seed_predictions.npz").read_bytes()).hexdigest()},
         "per_n": per_n,
-        "pooled_equal_per_n": {"P_rmse": p_eq, "D_rmse": d_eq,
-                               "I": (p_eq - d_eq) / p_eq if p_eq > 0 else np.nan},
+        "pooled_equal_per_n": {"P_rmse": p_eq, "D_rmse": d_eq, "I": i_eq,
+                               "ci_95_lower": pooled_ci[0], "ci_95_upper": pooled_ci[1],
+                               "n_bootstrap": n_boot},
         "bh_adjustment": {"method": "Benjamini-Hochberg", "alpha": 0.05, "m": m},
     }
     (out_dir / "b4_correction_summary.json").write_text(

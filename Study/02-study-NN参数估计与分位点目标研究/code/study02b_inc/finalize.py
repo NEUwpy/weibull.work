@@ -91,9 +91,10 @@ def _normalized_workload() -> dict:
     These are the observed sequential throughputs used to size the matrix.
     """
     n_missing = C.N_MISSING
-    train_s = (len(n_missing) * len(C.P_FIT_SEEDS) * 110.0
-               + len(n_missing) * len(C.D_FIT_SEEDS) * 45.0
-               + len(n_missing) * len(C.DCTRL_FIT_SEEDS) * 75.0)
+    n_p = len(n_missing) * len(C.P_FIT_SEEDS)          # 140 (new authoritative P fits)
+    n_d = len(n_missing) * len(C.D_FIT_SEEDS)          # 140 (reused valid D fits)
+    n_dc = len(n_missing) * len(C.DCTRL_FIT_SEEDS)     # 70 (reused valid Dctrl fits)
+    train_s = n_p * 110.0 + n_d * 45.0 + n_dc * 75.0
     core_rows = len(C.N_VALUES) * C.CORE_N_CLUSTERS * C.CORE_N_REPLICATES
     n_grid = len(C.PG_BETA) * len(C.PG_RHO) * len(C.PG_N) * C.PG_DRAWS
     eta_sweep = (len(C.PG_ETA_SWEEP["beta"]) * len(C.PG_ETA_SWEEP["rho"])
@@ -101,8 +102,10 @@ def _normalized_workload() -> dict:
     eval_s = (core_rows + n_grid + eta_sweep) * 0.132
     total_s = train_s + eval_s
     return {
-        "training_fits": int(len(n_missing) * (
-            len(C.P_FIT_SEEDS) + len(C.D_FIT_SEEDS) + len(C.DCTRL_FIT_SEEDS))),
+        # R16: separate the authoritative new P fits from reused valid D/Dctrl fits.
+        "authoritative_new_P_fits": n_p,
+        "reused_valid_D_Dctrl_fits": n_d + n_dc,
+        "full_matrix_equivalent_fits": n_p + n_d + n_dc,
         "core_datasets": int(core_rows),
         "grid_datasets": int(n_grid + eta_sweep),
         "train_seconds_est": round(train_s, 1),
@@ -110,9 +113,14 @@ def _normalized_workload() -> dict:
         "total_seconds_est": round(total_s, 1),
         "total_hours_est": round(total_s / 3600.0, 1),
         "measurement_note": (
-            "sequential-equivalent workload from bench_inc.py + pilot "
-            "measured throughput (P 110s, D 45s, Dctrl 75s per fit; "
-            "eval 0.132 s/dataset all-routes)")
+            "full frozen matrix sequential-equivalent (normalized) workload from "
+            "bench_inc.py + pilot measured throughput (P 110s, D 45s, Dctrl 75s "
+            "per fit; eval 0.132 s/dataset all-routes). This is NOT the BINC-02 "
+            "actual wall-clock: it counts all 350 matrix-equivalent fits, of which "
+            "only the 140 P fits are new in BINC-02; the 210 D/Dctrl fits are "
+            "reused valid checkpoints (their compute belongs to the superseded "
+            "BINC-01). Actual BINC-02 wall-clock (training ~92 min + eval + "
+            "analysis) is reported separately in the report/docs."),
     }
 
 
