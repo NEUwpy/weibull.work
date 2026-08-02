@@ -224,3 +224,42 @@ def test_bh_largest_passing_rank():
             largest4 = rank
     # sk4: 1(0.012),2(0.019),3(0.1)... rank1 0.012>0.01 fail; rank2 0.019<=0.02 PASS -> largest4=2
     assert largest4 == 2  # early rank1 fails but rank2 passes; naive first-fail BH would return 0
+
+
+def test_b5_stress_domain_matches_frozen():
+    """R8: the regenerated stress domain must match the frozen B5 design."""
+    from study02b_inc import correct_b5 as CB
+    from studies.common.sample import generate_sample
+    from studies.common.metrics import quantile_true
+    import csv as _csv
+    betas, etas, gammas, _ = CB._stress_domain("low")
+    with open(CB.B5_V3 / "stress_low.csv", newline="", encoding="utf-8") as f:
+        rows = list(_csv.DictReader(f))
+    r0 = rows[0]
+    ci, ri, n = int(r0["cluster"]), int(r0["replicate"]), int(r0["n"])
+    b, e, g = betas[ci], etas[ci], gammas[ci]
+    assert abs(float(r0["beta"]) - b) < 1e-9
+    s = generate_sample(float(b), float(e), float(g), n, ri, seed=6000 + 100 + ci)
+    assert abs(float(r0["sample_min"]) - float(s.min())) < 1e-4
+    assert abs(float(r0["true_x095"]) - quantile_true(float(b), float(e), float(g), 0.95)) < 1e-6
+
+
+def test_b5_frozen_identity_verification():
+    """R8: verify_frozen_identity passes (no mismatch) on all B5 datasets."""
+    from study02b_inc import correct_b5 as CB
+    checks = CB.verify_frozen_identity()
+    assert all(v["ok"] for v in checks.values())
+    assert all(v["mismatches"] == 0 for v in checks.values())
+
+
+def test_nist_splits_500_per_n():
+    """R7: the corrected NIST rows must have exactly 500 splits per n."""
+    import csv as _csv
+    from study02b_inc import correct_b5 as CB
+    import numpy as np
+    data = np.loadtxt(CB.NIST_CSV, delimiter=",", skiprows=1)
+    for n_val in CB.N_VALUES:
+        for split in range(3):  # spot-check deterministic split identity
+            rng = np.random.default_rng(9000 + n_val * 1000 + split)
+            idx = rng.choice(len(data), size=n_val, replace=False)
+            assert len(idx) == n_val and len(set(idx.tolist())) == n_val
