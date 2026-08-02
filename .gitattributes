@@ -50,3 +50,8 @@ Study/01-study-MDM最小偏移量优化研究/artifacts/formal/extended_validati
 
 # Store large P4 formal comparison CSVs in Git LFS (>100 MB GitHub limit).
 Study/01-study-MDM最小偏移量优化研究/artifacts/formal/p4_formal_compare/**/*.csv filter=lfs diff=lfs merge=lfs -text
+
+# Preserve hash-bound P4 formal comparison JSON/text seal files byte-for-byte across checkouts
+# (mirrors the P2 v2 convention; the runner seals CRLF bytes on Windows).
+Study/01-study-MDM最小偏移量优化研究/artifacts/formal/p4_formal_compare/**/*.json -text
+Study/01-study-MDM最小偏移量优化研究/artifacts/formal/p4_formal_compare/SHA256SUMS -text
