@@ -291,8 +291,22 @@ class TestFormalDirectoryProtection:
     def test_p4_not_authorized(self):
         assert cfg.P4_FORMAL_AUTHORIZED is False
 
-    def test_formal_output_dir_does_not_exist(self):
-        assert not cfg.FORMAL_OUTPUT_DIR.exists()
+    def test_sealed_output_dir_exists(self):
+        # Post-run: the sealed formal output directory exists with manifest and seal.
+        assert cfg.FORMAL_OUTPUT_DIR.exists()
+        assert (cfg.FORMAL_OUTPUT_DIR / "manifest.json").exists()
+        assert (cfg.FORMAL_OUTPUT_DIR / "SHA256SUMS").exists()
+
+    def test_preflight_rejects_overwrite_of_sealed_output(self):
+        # Post-run: the preflight gate must reject a re-run/overwrite while the
+        # sealed output directory is present, even though authorization is False.
+        with pytest.raises(RuntimeError, match="already exists"):
+            cfg.check_formal_not_authorized()
+
+    def test_formal_entry_rejects_run_when_not_authorized(self):
+        # Post-run: the formal entry gate refuses to run while not authorized.
+        with pytest.raises(RuntimeError, match="P4_FORMAL_AUTHORIZED is False"):
+            cfg.assert_formal_authorized()
 
     def test_check_formal_not_authorized_raises_if_true(self):
         import unittest.mock as mock
@@ -346,8 +360,13 @@ class TestNoOverwriteExisting:
         h = p4.compute_sha256(rc)
         assert h == cfg.INPUT_SHA256["E3b_risk_curves_csv"]
 
-    def test_p4_formal_dir_not_created(self):
-        assert not cfg.FORMAL_OUTPUT_DIR.exists()
+    def test_p4_sealed_output_present_and_protected(self):
+        # Post-run: the sealed P4 formal output directory exists and the
+        # preflight gate rejects any attempt to overwrite/re-run it.
+        assert cfg.FORMAL_OUTPUT_DIR.exists()
+        assert (cfg.FORMAL_OUTPUT_DIR / "SHA256SUMS").exists()
+        with pytest.raises(RuntimeError, match="already exists"):
+            cfg.check_formal_not_authorized()
 
 
 # ════════════════════════════════════════════════════════════════════════
