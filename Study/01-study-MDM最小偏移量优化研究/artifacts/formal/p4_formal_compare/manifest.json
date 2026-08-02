@@ -1,0 +1,82 @@
+{
+  "manifest_version": "study01-p4-formal-compare-v3",
+  "p4_formal_authorized": true,
+  "created_at": "2026-08-01T08:00:49+0800",
+  "git_commit": "cfb0c6ed7eea5485eb625d41319ebc9d958ca1de",
+  "worktree_dirty": false,
+  "script_sha256": "da5fa7c2d16da5dddc4eaace7647c22f764e11e888ddfbe7a755cbc2e5433d18",
+  "config_sha256": "5e2428eb2eefc4632459da8b213f385cb3f59183326362b6837ac622801d15ee",
+  "baseline_commit": "fde26eaa9613a0e79c8b8cced134d0e240625635",
+  "approved_parent_commit": "b0f52e37dff9f61f910d329dd9b350c253b8858b",
+  "python_version": "3.11.15",
+  "numpy_version": "2.1.1",
+  "scipy_version": "1.14.1",
+  "sklearn_version": "1.9.0",
+  "torch_version": "2.11.0+cpu",
+  "tracks": [
+    "main_holdout",
+    "param_interp",
+    "n_interp",
+    "extrap_diag"
+  ],
+  "methods": [
+    "MDM-Default",
+    "MDM-Vector-MLP",
+    "Direct-MLP",
+    "MLE",
+    "LSE",
+    "WMLE"
+  ],
+  "n_folds": 5,
+  "n_seeds": 3,
+  "seeds": [
+    42,
+    2026,
+    3407
+  ],
+  "eval_repeats": 1000,
+  "input_sha256": {
+    "E3b_risk_curves_csv": "4b3ad2a3121af616f991b6d91cf15ede1b3f8670f9b97b6baf5527da9ac71ca5",
+    "E3b_sample_features_csv": "75bb9a0619f1e04fc8e1cd80451fd5c5a199953f67793740edad06a5ea909e32",
+    "P2_baseline_per_sample_csv": "09f419f02304011556d2640eaf794e00ba8ebf1b7bda2f5574d691d00ec94770",
+    "P2_vector_per_sample_csv": "a882034bca1721141f7b4883b4c121efbd4f78f4c66bbc2256477993dc9fab66",
+    "E4d_selector_extrapolation_csv": "eb261ff65a46b7f8eaed0d8cfc4e6c4232b7ba2bfdd71dd5408bb32f4a66692b"
+  },
+  "track_seed_namespaces": {
+    "main_holdout": "study01_v1",
+    "param_interp": "study01_p2_v1",
+    "n_interp": "study01_p2_v1",
+    "extrap_diag": "study01_v1"
+  },
+  "mdm_default_delta": 0.1,
+  "row_count_contract": {
+    "main_holdout": {
+      "estimation_traditional": 45000,
+      "estimation_learning_per_model": 9000,
+      "estimation_learning_total": 135000,
+      "evaluation_per_method": 135000
+    },
+    "param_interp": {
+      "estimation_traditional": 24000,
+      "estimation_learning_per_model": 24000,
+      "estimation_learning_total": 360000,
+      "evaluation_per_method": 360000
+    },
+    "n_interp": {
+      "estimation_traditional": 15000,
+      "estimation_learning_per_model": 15000,
+      "estimation_learning_total": 225000,
+      "evaluation_per_method": 225000
+    },
+    "extrap_diag": {
+      "estimation_traditional": 7000,
+      "estimation_learning_per_model": 7000,
+      "estimation_learning_total": 105000,
+      "evaluation_per_method": 105000
+    }
+  },
+  "failure_contract": "Per-fold P99 of ALL 26 delta training losses",
+  "j1_formula": "sqrt(mean(((bh-b)/b)^2 + ((eh-e)/e)^2 + ((gh-g)/e)^2))",
+  "output_dir": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\p4_formal_compare",
+  "resume_mode": false
+}
