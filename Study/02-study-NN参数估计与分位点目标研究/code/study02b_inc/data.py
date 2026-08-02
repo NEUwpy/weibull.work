@@ -56,21 +56,18 @@ def _draw_d_params(rng, total):
 
 
 def generate_training_data(route: str, n: int) -> dict:
-    """Generate 100k train + 20k val rows for a route/n.
+    """Generate 100k train + 20k val rows for the D route (B3 scheme).
 
-    route in {"P", "D"}. Both use the same input representation (sorted z).
+    The P route now uses study02b_inc.a_data (A-E1-faithful design + scaler);
+    it must NOT go through this function. Route must be "D".
     """
-    if route not in {"P", "D"}:
-        raise ValueError(f"route must be P or D, got {route}")
+    if route != "D":
+        raise ValueError("generate_training_data supports only the D route; "
+                         "the P route uses study02b_inc.a_data")
     total = C.N_TRAIN + C.N_VAL
-    if route == "P":
-        rng = np.random.default_rng(C.P_PARAM_SEED_BASE + n)
-        betas, etas, gammas = _draw_p_params(rng, total)
-        sample_ns_train, sample_ns_val = C.P_SAMPLE_NS_TRAIN, C.P_SAMPLE_NS_VAL
-    else:
-        rng = np.random.default_rng(n * 100 + 1)  # B3 scheme
-        betas, etas, gammas = _draw_d_params(rng, total)
-        sample_ns_train, sample_ns_val = C.D_SAMPLE_NS_TRAIN, C.D_SAMPLE_NS_VAL
+    rng = np.random.default_rng(n * 100 + 1)  # B3 scheme
+    betas, etas, gammas = _draw_d_params(rng, total)
+    sample_ns_train, sample_ns_val = C.D_SAMPLE_NS_TRAIN, C.D_SAMPLE_NS_VAL
 
     samples, x095s, anchors = [], [], []
     for i in range(total):
@@ -84,23 +81,16 @@ def generate_training_data(route: str, n: int) -> dict:
 
     features = np.array([a.z for a in anchors], dtype=np.float32)
 
-    if route == "D":
-        raw = np.array([
-            encode_d_target(float(x), a) for x, a in zip(x095s, anchors)
-        ], dtype=np.float32)
-        stats = compute_d_stats(raw[:C.N_TRAIN])
-        targets = standardize_d(raw, stats).astype(np.float32).reshape(-1, 1)
-        return {
-            "features": features, "targets": targets,
-            "target_stats": {"mean": stats.mean, "sd": stats.sd},
-            "beta": betas, "eta": etas, "gamma": gammas,
-        }
-    targets = np.array([
-        encode_targets(float(betas[i]), float(etas[i]), float(gammas[i]), anchors[i])
-        for i in range(total)
+    raw = np.array([
+        encode_d_target(float(x), a) for x, a in zip(x095s, anchors)
     ], dtype=np.float32)
-    return {"features": features, "targets": targets,
-            "beta": betas, "eta": etas, "gamma": gammas}
+    stats = compute_d_stats(raw[:C.N_TRAIN])
+    targets = standardize_d(raw, stats).astype(np.float32).reshape(-1, 1)
+    return {
+        "features": features, "targets": targets,
+        "target_stats": {"mean": stats.mean, "sd": stats.sd},
+        "beta": betas, "eta": etas, "gamma": gammas,
+    }
 
 
 def target_stats_for_n(n: int) -> dict:

@@ -224,8 +224,8 @@ def analyze_core(run_dir: Path, n_boot: int, out: Path) -> dict:
         ci_all = list(range(C.CORE_N_CLUSTERS))
         for _ in range(n_boot):
             ci_b = list(rng.choice(ci_all, size=len(ci_all), replace=True))
-            seed_idx_p = rng.choice(len(C.P_FIT_SEEDS), size=len(C.P_FIT_SEEDS), replace=True)
-            seed_idx_d = rng.choice(len(C.D_FIT_SEEDS), size=len(C.D_FIT_SEEDS), replace=True)
+            # PAIRED positional seed-index resample for P and D (approved B4 contract).
+            seed_idx = rng.choice(len(C.P_FIT_SEEDS), size=len(C.P_FIT_SEEDS), replace=True)
             de, pe = [], []
             for ci in ci_b:
                 for ri in range(C.CORE_N_REPLICATES):
@@ -237,8 +237,8 @@ def analyze_core(run_dir: Path, n_boot: int, out: Path) -> dict:
                     if xt == 0:
                         continue
                     dv = npz["d"][idx]; pv = npz["p"][idx]
-                    dm = float(np.nanmean(dv[seed_idx_d[:len(dv)]]))
-                    pm = float(np.nanmean(pv[seed_idx_p[:len(pv)]]))
+                    dm = float(np.nanmean(dv[seed_idx[:len(dv)]]))
+                    pm = float(np.nanmean(pv[seed_idx[:len(pv)]]))
                     if np.isfinite(dm):
                         de.append((dm - xt) / xt)
                     if np.isfinite(pm):
@@ -246,15 +246,6 @@ def analyze_core(run_dir: Path, n_boot: int, out: Path) -> dict:
             dr, pr = _rmse(de), _rmse(pe)
             if pr > 0:
                 boot_i.append((pr - dr) / pr)
-        if not boot_i:
-            found = sum(1 for ci in ci_b for ri in range(C.CORE_N_REPLICATES)
-                        if row_by_key.get((ci, ri, n)) is not None)
-            raise RuntimeError(
-                f"n={n}: boot_i empty; rows={len(rows)}; "
-                f"row_by_key n-count={sum(1 for k in row_by_key if k[2] == n)}; "
-                f"key_to_idx size={len(key_to_idx)}; "
-                f"last rep found_rows={found}/{len(ci_b)*C.CORE_N_REPLICATES} "
-                f"de={len(de)} pe={len(pe)} pr={pr}")
         boot_i = np.array(boot_i)
         lo = float(np.percentile(boot_i, 2.5)); hi = float(np.percentile(boot_i, 97.5))
         per_n_boot[str(n)] = {
@@ -263,17 +254,18 @@ def analyze_core(run_dir: Path, n_boot: int, out: Path) -> dict:
         }
         p_vals_n[n] = 2.0 * min(float(np.mean(boot_i <= 0)), float(np.mean(boot_i >= 0)))
 
-    # BH across 19 n
+    # Standard BH across the n comparisons: find the largest rank i with
+    # p(i) <= alpha*i/m and reject all hypotheses up to i.
     sorted_n = sorted(p_vals_n, key=lambda n: p_vals_n[n])
     m = len(sorted_n)
-    bh = {}
-    significant = True
+    alpha = 0.05
+    largest_reject = 0
     for rank, n in enumerate(sorted_n, 1):
-        if significant and p_vals_n[n] <= 0.05 * rank / m:
-            bh[str(n)] = "supported"
-        else:
-            bh[str(n)] = "not_supported"
-            significant = False
+        if p_vals_n[n] <= alpha * rank / m:
+            largest_reject = rank
+    bh = {str(n): ("supported" if rank <= largest_reject else "not_supported")
+          for rank, n in enumerate(sorted_n, 1)}
+    for n in sorted_n:
         per_n_boot[str(n)]["bh"] = bh[str(n)]
 
     # pooled equal-per-n point estimate
@@ -304,82 +296,111 @@ def analyze_grid(run_dir: Path, n_boot: int, out: Path) -> dict:
     key_to_idx = {str(k): i for i, k in enumerate(npz["keys"])}
     cell_map = {c.cell_index: c for c in C_GRID_CELLS()}
 
-    # Aggregate per cell: mean P/D error, I, and within-cell CI.
+    # Aggregate per cell: per-draw, per-seed predictions.
     from collections import defaultdict
     cells = defaultdict(list)
     for r in rows:
         cells[int(r["cell"])].append(r)
     rng = np.random.default_rng(C.BOOTSTRAP_SEED)
+    n_seeds = len(C.P_FIT_SEEDS)
 
-    per_cell = {}
-    for cell_idx, crows in cells.items():
-        cell = cell_map[cell_idx]
-        de, pe = [], []
-        for r in crows:
+    # Per-cell arrays: P_pred (n_draws, n_seeds), D_pred, true_x095.
+    def _cell_arrays(cidx):
+        crows = sorted(cells[cidx], key=lambda r: int(r["draw"]))
+        n_draws = len(crows)
+        P = np.full((n_draws, n_seeds), np.nan)
+        Dp = np.full((n_draws, n_seeds), np.nan)
+        xt = np.zeros(n_draws)
+        for j, r in enumerate(crows):
             idx = key_to_idx[f"{r['row_idx']}"]
-            xt = float(r["true_x095"])
-            if xt == 0:
-                continue
-            dv = npz["d"][idx]; pv = npz["p"][idx]
-            dm = float(np.nanmean(dv)) if np.isfinite(dv).any() else np.nan
-            pm = float(np.nanmean(pv)) if np.isfinite(pv).any() else np.nan
-            if np.isfinite(dm):
-                de.append((dm - xt) / xt)
-            if np.isfinite(pm):
-                pe.append((pm - xt) / xt)
-        de = np.array(de); pe = np.array(pe)
-        dr, pr = _rmse(de), _rmse(pe)
-        i_point = (pr - dr) / pr if pr > 0 else np.nan
+            P[j] = npz["p"][idx]
+            Dp[j] = npz["d"][idx]
+            xt[j] = float(r["true_x095"])
+        return P, Dp, xt
 
-        # within-cell bootstrap CI over draws (i.i.d.)
-        n_draws = len(de)
-        boot = []
-        if n_draws >= 8:
-            idx_b = rng.integers(0, n_draws, size=(n_boot, n_draws))
-            dr_b = np.sqrt(np.mean(de[idx_b] ** 2, axis=1))
-            pr_b = np.sqrt(np.mean(pe[idx_b] ** 2, axis=1))
-            with np.errstate(divide="ignore", invalid="ignore"):
-                i_b = np.where(pr_b > 0, (pr_b - dr_b) / pr_b, np.nan)
-            boot = i_b[np.isfinite(i_b)]
-        per_cell[str(cell_idx)] = {
-            "beta": cell.beta, "rho": cell.rho, "eta": cell.eta, "n": cell.n,
-            "n_draws": int(n_draws),
-            "P_rmse": pr, "D_rmse": dr, "I": i_point,
-            "ci_lo": float(np.percentile(boot, 2.5)) if len(boot) else np.nan,
-            "ci_hi": float(np.percentile(boot, 97.5)) if len(boot) else np.nan,
+    main_cells = [c for c in cell_map.values() if c.eta == C.PG_ETA and c.cell_index in cells]
+    cell_arrays = {c.cell_index: _cell_arrays(c.cell_index) for c in main_cells}
+
+    # Point estimates (full 360 draws, full 10-seed means).
+    per_cell = {}
+    for cidx, (P, Dp, xt) in cell_arrays.items():
+        with np.errstate(divide="ignore", invalid="ignore"):
+            pe = np.where(xt != 0, (np.nanmean(P, axis=1) - xt) / xt, np.nan)
+            de = np.where(xt != 0, (np.nanmean(Dp, axis=1) - xt) / xt, np.nan)
+        pr = float(np.sqrt(np.nanmean(pe ** 2)))
+        dr = float(np.sqrt(np.nanmean(de ** 2)))
+        per_cell[str(cidx)] = {
+            "beta": cell_map[cidx].beta, "rho": cell_map[cidx].rho,
+            "eta": cell_map[cidx].eta, "n": cell_map[cidx].n,
+            "n_draws": int(len(pe)), "P_rmse": pr, "D_rmse": dr,
+            "I": (pr - dr) / pr if pr > 0 else np.nan,
         }
 
-    # Marginals: I marginal over beta (fix n, rho) and over rho (fix n, beta).
-    def _marginal(fix: dict, over: str):
-        agg = {}
-        for cell_idx, v in per_cell.items():
-            cell = cell_map[int(cell_idx)]
-            ok = all(cell.__dict__[k] == val for k, val in fix.items())
-            if not ok:
-                continue
-            key = float(getattr(cell, over))
-            agg.setdefault(key, []).append(v["I"])
-        return {k: float(np.mean(v)) for k, v in sorted(agg.items())}
+    # Paired bootstrap CI: ONE draw-id multiset + ONE paired seed-id multiset
+    # applied to all cells (preserves common-random-number structure and the
+    # approved B paired-seed contract).
+    boot_store = {cid: [] for cid in cell_arrays}
+    n_draws = max(a[0].shape[0] for a in cell_arrays.values())
+    for _ in range(n_boot):
+        draw_idxs = rng.integers(0, n_draws, size=(n_draws,))
+        seed_idxs = rng.integers(0, n_seeds, size=(n_seeds,))
+        for cid, (P, Dp, xt) in cell_arrays.items():
+            Pm = P[draw_idxs][:, seed_idxs].mean(axis=1)
+            Dm = Dp[draw_idxs][:, seed_idxs].mean(axis=1)
+            xtb = xt[draw_idxs]
+            with np.errstate(divide="ignore", invalid="ignore"):
+                pe = np.where(xtb != 0, (Pm - xtb) / xtb, np.nan)
+                de = np.where(xtb != 0, (Dm - xtb) / xtb, np.nan)
+            pr = float(np.sqrt(np.nanmean(pe ** 2)))
+            dr = float(np.sqrt(np.nanmean(de ** 2)))
+            if np.isfinite(pr) and pr > 0:
+                boot_store[cid].append((pr - dr) / pr)
+    for cid, vals in boot_store.items():
+        vals = np.array(vals)
+        per_cell[str(cid)]["ci_lo"] = float(np.percentile(vals, 2.5)) if len(vals) else np.nan
+        per_cell[str(cid)]["ci_hi"] = float(np.percentile(vals, 97.5)) if len(vals) else np.nan
 
-    n_marginal_beta = {str(n): _marginal({"n": n, "eta": C.PG_ETA}, "beta") for n in C.PG_N}
-    n_marginal_rho = {str(n): _marginal({"n": n, "eta": C.PG_ETA}, "rho") for n in C.PG_N}
+    # Stratum-pooled marginals (R2): pool row-level relative errors within the
+    # stratum, then RMSE and I. Never average cell-level I ratios.
+    def _stratum_pooled(pred_err_key, n, eta, over_key, over_val):
+        sub = [r for r in rows if int(r["n"]) == n and abs(float(r["eta"]) - eta) < 1e-9
+               and (over_key is None or abs(float(r[over_key]) - over_val) < 1e-9)]
+        if not sub:
+            return np.nan
+        pr = _rmse(np.array([_f(r["P_rel_err"]) for r in sub]))
+        dr = _rmse(np.array([_f(r["D_rel_err"]) for r in sub]))
+        return (pr - dr) / pr if pr > 0 else np.nan
 
-    # Variance decomposition per n: between-region (beta/rho) vs within-cell noise.
-    # between-cell variance of cell I vs mean within-cell SE^2.
+    n_marginal_beta = {}
+    n_marginal_rho = {}
+    for n in C.PG_N:
+        n_marginal_beta[str(n)] = {
+            str(float(b)): _stratum_pooled("P_rel_err", n, C.PG_ETA, "beta", float(b))
+            for b in C.PG_BETA}
+        n_marginal_rho[str(n)] = {
+            str(float(rh)): _stratum_pooled("P_rel_err", n, C.PG_ETA, "rho", float(rh))
+            for rh in C.PG_RHO}
+
+    # Descriptive heterogeneity signal (R3): between-cell spread of cell I vs
+    # mean within-cell SE. NOT a formal variance decomposition; does not
+    # "prove" cancellation. Reported as a descriptive signal only.
     variance_decomp = {}
     for n in C.PG_N:
-        cell_vals = {k: v for k, v in per_cell.items()
-                     if cell_map[int(k)].n == n and cell_map[int(k)].eta == C.PG_ETA}
-        i_arr = np.array([v["I"] for v in cell_vals.values()])
-        se_arr = np.array([(v["ci_hi"] - v["ci_lo"]) / 3.92 for v in cell_vals.values()])
-        between_var = float(np.var(i_arr[np.isfinite(i_arr)])) if np.isfinite(i_arr).sum() > 1 else np.nan
-        within_mean_var = float(np.mean(se_arr[np.isfinite(se_arr)] ** 2)) if np.isfinite(se_arr).sum() else np.nan
+        cell_vals = [v for v in per_cell.values()
+                     if v["n"] == n and v["eta"] == C.PG_ETA]
+        i_arr = np.array([v["I"] for v in cell_vals])
+        se_arr = np.array([(v["ci_hi"] - v["ci_lo"]) / 3.92 for v in cell_vals])
+        fin_i = i_arr[np.isfinite(i_arr)]
+        fin_se = se_arr[np.isfinite(se_arr)]
+        between_var = float(np.var(fin_i)) if fin_i.size > 1 else np.nan
+        within_mean_var = float(np.mean(fin_se ** 2)) if fin_se.size else np.nan
         variance_decomp[str(n)] = {
-            "n_cells": len(i_arr),
+            "n_cells": len(cell_vals),
             "between_cell_var": between_var,
             "within_cell_mean_var": within_mean_var,
             "ratio_between_over_within": (between_var / within_mean_var)
                 if within_mean_var and within_mean_var > 0 else np.nan,
+            "note": "descriptive signal only, not a formal variance decomposition",
         }
 
     return {
@@ -387,6 +408,7 @@ def analyze_grid(run_dir: Path, n_boot: int, out: Path) -> dict:
         "n_marginal_beta": n_marginal_beta,
         "n_marginal_rho": n_marginal_rho,
         "variance_decomposition": variance_decomp,
+        "bootstrap_note": "paired draw-id + paired seed-index resample, CRN preserved",
     }
 
 
@@ -412,6 +434,7 @@ def analyze_propagation(run_dir: Path, out: Path) -> dict:
     p_index = M.build_p_index(run_dir)
     n_boot = C.N_BOOTSTRAP
 
+    p_scalers = M.p_scalers(run_dir)
     per_n = {}
     for n in C.N_VALUES:
         # load models for this n once
@@ -423,6 +446,7 @@ def analyze_propagation(run_dir: Path, out: Path) -> dict:
             mods.append(m)
         if not mods:
             continue
+        sc = p_scalers.get(n, {"mean": None, "sd": None})
         rows_n = [r for r in rows if int(r["n"]) == n]
         rbs, res, rgs, rcs, jr = [], [], [], [], []
         n_used = 0
@@ -432,7 +456,13 @@ def analyze_propagation(run_dir: Path, out: Path) -> dict:
             if xt <= 0:
                 continue
             a = anchor_sample(_regen_sample(r))
-            z = torch.from_numpy(a.z.astype(np.float32)).unsqueeze(0)
+            zraw = a.z.astype(np.float32)
+            if sc.get("mean") is not None and len(sc["mean"]) == zraw.shape[0]:
+                mean = np.array(sc["mean"], dtype=np.float32)
+                sd = np.array(sc["sd"], dtype=np.float32)
+                safe = np.where(sd != 0, sd, 1.0)
+                zraw = np.where(sd != 0, (zraw - mean) / safe, 0.0)
+            z = torch.from_numpy(zraw).unsqueeze(0)
             seed_vals = []
             with torch.no_grad():
                 for m in mods:

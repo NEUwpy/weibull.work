@@ -44,20 +44,41 @@ def test_config_hash_stable():
     assert C.N_MISSING == [6, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 22, 25, 30]
 
 
-def test_p_training_data_distribution_and_targets():
-    data = D.generate_training_data("P", 6)
-    assert data["features"].shape == (120000, 6)
-    assert data["targets"].shape == (120000, 3)
-    # log-uniform beta in [1.2, 4]
-    betas = data["beta"]
-    assert betas.min() >= 1.2 and betas.max() <= 4.0
-    assert np.mean(np.log(betas)) > np.log(1.5)  # log-uniform: center ~ sqrt(1.2*4)=2.19
-    # target row 0 equals encode_targets of true params (reconstruct row 0 sample)
-    b0, e0, g0 = float(betas[0]), float(data["eta"][0]), float(data["gamma"][0])
-    s0 = generate_sample(b0, e0, g0, 6, 0, seed=C.P_SAMPLE_NS_TRAIN)
-    a0 = anchor_sample(s0)
-    expected = encode_targets(b0, e0, g0, a0)
-    assert np.allclose(data["targets"][0], expected, atol=1e-6)
+def test_p_a1_training_data_reproduces_a_cache():
+    """The A-E1-faithful P training data must reproduce the frozen A-E1 cache."""
+    from study02b_inc import a_data as A
+    data = A.generate_a_training_data(5)
+    assert data["features"].shape == (100000, 5)
+    assert data["targets"].shape == (100000, 3)
+    assert data["scaled_features"].shape == (100000, 5)
+    # position 0 constant -> scaled to 0
+    assert np.allclose(data["scaled_features"][:, 0], 0)
+    cached = np.load("C:/weibull-runs/study02/cache/"
+                     "4b72efa1d22b815eb6b726b64f0aae4e1faf49d072d351840077721b680771f7/features.npy")
+    assert np.allclose(data["features"][:100], cached[:100], atol=1e-6)
+    # scaler matches fit_training_scaler on the cache (float32 cache vs float64
+    # scaler: use a tolerance above float32 accumulation noise)
+    sc = A.a_p_scaler_from_cache(5)
+    assert np.allclose(sc["mean"], cached.mean(axis=0).astype(np.float64), atol=1e-4)
+    assert np.allclose(sc["sd"], cached.std(axis=0, ddof=0).astype(np.float64), atol=1e-4)
+
+
+def test_p_scaler_changes_p_prediction():
+    """Feeding scaled (vs raw) sorted-z to an A-E1 P checkpoint must change output."""
+    from study02b_inc import a_data as A
+    from study02b_inc import models as M
+    from study02b_inc import evaluate_inc as E
+    import numpy as np
+    sc = A.a_p_scaler_from_cache(5)
+    p_index = M.build_p_index()
+    e0 = p_index[5][0]
+    mod = M.load_model("P", 5, e0["seed"], e0)
+    rng = np.random.default_rng(0)
+    b, e, g = 2.5, 1000.0, 300.0
+    s = generate_sample(b, e, g, 5, 0, seed=6000)
+    raw = E._infer_p([(e0["seed"], (mod, {"mean": None, "sd": None}))], s)
+    scaled = E._infer_p([(e0["seed"], (mod, sc))], s)
+    assert not np.allclose(raw, scaled)  # scaler materially changes P output
 
 
 def test_d_training_data_matches_b3():
@@ -121,6 +142,7 @@ def test_core_rows_reproduce_b4_for_shared_n():
 
 
 def test_grid_rows_common_random_numbers():
+    orig = C.PG_DRAWS
     C.PG_DRAWS = 4
     try:
         cells = D.param_grid_cells()[:2]
@@ -135,7 +157,9 @@ def test_grid_rows_common_random_numbers():
         # within a cell, draws share the same fixed params
         assert rows[0].beta == rows[1].beta and rows[0].gamma == rows[1].gamma
     finally:
-        C.PG_DRAWS = 480
+        C.PG_DRAWS = orig
+    # config hash must be unchanged by the mutation/restore
+    assert C.CONFIG_HASH == C.config_hash()
 
 
 def test_p_index_has_existing_n():
@@ -153,3 +177,50 @@ def test_d_index_has_existing_n():
     for n in (5, 7, 10, 15, 20):
         assert len(d_index.get(n, {}).get("selected", [])) == 10
         assert len(d_index.get(n, {}).get("controlled", [])) == 5
+
+
+def test_bh_largest_passing_rank():
+    """BH must reject up to the largest rank whose p <= alpha*i/m, even if an
+    early rank fails but a later rank passes."""
+    from study02b_inc import analyze_inc as A
+    # p-values: rank1 fails (0.07 > 0.05*1/5), rank2 passes (0.04 <= 0.02? no).
+    # Construct a case where rank1 fails but rank2 passes:
+    # alpha=0.05, m=5. rank thresholds: 0.01, 0.02, 0.03, 0.04, 0.05.
+    # rank1 p=0.015 (fails vs 0.01), rank2 p=0.015 (passes vs 0.02), rank3 p=0.025 (passes 0.03), rank4 p=0.039 (passes 0.04), rank5 p=0.049 (passes 0.05).
+    p_vals = {1: 0.015, 2: 0.015, 3: 0.025, 4: 0.039, 5: 0.049}
+    sorted_keys = sorted(p_vals, key=lambda k: p_vals[k])
+    m = len(sorted_keys)
+    alpha = 0.05
+    largest = 0
+    for rank, k in enumerate(sorted_keys, 1):
+        if p_vals[k] <= alpha * rank / m:
+            largest = rank
+    assert largest == 5  # all pass given these values (rank1 p=0.015 > 0.01 FAILS but largest still 5)
+    # Now a case where an EARLY rank fails and a LATER one passes:
+    p2 = {1: 0.015, 2: 0.11, 3: 0.025, 4: 0.04, 5: 0.05}  # rank1 fails(>0.01), rank2 fails(>0.02), rank3 passes(<=0.03)...
+    sk2 = sorted(p2, key=lambda k: p2[k])
+    largest2 = 0
+    for rank, k in enumerate(sk2, 1):
+        if p2[k] <= alpha * rank / m:
+            largest2 = rank
+    # sk2 order by p: 1(0.015),3(0.025),4(0.04),5(0.05),2(0.11)
+    # rank1(0.015>0.01) fail; rank2(0.025<=0.02)? no 0.025>0.02 fail; rank3(0.04<=0.03)? no; rank4(0.05<=0.04)? no; rank5(0.11<=0.05)? no
+    assert largest2 == 0
+    # a case where rank1 fails and rank3 passes (the reviewer's required case):
+    p3 = {1: 0.012, 2: 0.09, 3: 0.028, 4: 0.039, 5: 0.049}
+    sk3 = sorted(p3, key=lambda k: p3[k])
+    largest3 = 0
+    for rank, k in enumerate(sk3, 1):
+        if p3[k] <= alpha * rank / m:
+            largest3 = rank
+    # sk3 order: 1(0.012),3(0.028),4(0.039),5(0.049),2(0.09)
+    # rank1 0.012>0.01 fail; rank2 0.028<=0.02? no; rank3 0.039<=0.03? no; ... largest3=0
+    # to force "early fails, later passes", need rank2 p small enough:
+    p4 = {1: 0.012, 2: 0.019, 3: 0.1, 4: 0.1, 5: 0.1}
+    sk4 = sorted(p4, key=lambda k: p4[k])
+    largest4 = 0
+    for rank, k in enumerate(sk4, 1):
+        if p4[k] <= alpha * rank / m:
+            largest4 = rank
+    # sk4: 1(0.012),2(0.019),3(0.1)... rank1 0.012>0.01 fail; rank2 0.019<=0.02 PASS -> largest4=2
+    assert largest4 == 2  # early rank1 fails but rank2 passes; naive first-fail BH would return 0

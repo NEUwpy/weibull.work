@@ -2,7 +2,7 @@
 
 > 创建日期：2026-07-11
 > 当前状态：前置研究 A 已完成；主研究 B 的 B1–B6 全部完成并 APPROVE（最终分支 `codex/study02-quantile-formal-20260731`；B6 实现/证据 tip `2e0e842d`，最终报告/文档 tip `b5c5404`）。正式实验结论见 `05-B-正式实验报告.md`，证据哈希与路径见 `04-B-证据索引.md`。
-> **B2 增量实验（2026-08-02）已完成**（分支 `codex/study02-b-incremental-20h-20260802`）：密集 n 响应（n=5..30 共 19 个 n）与 β/ρ 参数边界证据（350 新 fit、core 24,320 + grid 295,920 数据集、normalized ~19.2h）；5 个既有 n 逐点复现 B4，新增发现 n=6/8/9/12 P-better 带与 β 主轴（低 β P 优、高 β D 优）。报告见 `05-B2-增量实验报告.md`，**待 reviewer 审查**。
+> **B-增量实验（2026-08-02）完成，含 R1 修正**（分支 `codex/study02-b-incremental-20h-20260802`）：密集 n 响应（n=5..30 共 19 个 n）与 β/ρ 参数边界证据。**重要修正**：B4/B5 与首版增量未施加 A-E1 P 输入 scaler，使 P 被严重低估；正确 scaler 重算后 **core 上 P 不劣于 D**（pooled I=−0.120，n=5–9/12 P 更优、无任何 n D 更优），B4/B5/C 中"D 相对 P 更优"的结论被推翻。权威运行 `BINC-20260802-02`（P 重训重算，D/Dctrl 复用）。报告见 `05-B-增量实验报告.md`（修正版），**待 reviewer 审查**。
 > C 阶段已完成并 APPROVED（分支 `codex/study02-c-scientific-argument-20260801`）：把 A/B 已有实验结果提升为科学论证；C0/C1–C5 全部通过，C5 经对抗性复核与可复现性稳定（code commit `8cc93147`）。范围冻结与证据缺口审计见 `06-C-论证计划与状态.md`，C2–C4 机制分析与补充证据见 `07-C-机制分析与补充证据.md`（含 2026-08-02 C-增量细化），论文前论证底稿见 `08-C-论文前科学论证报告.md`（C5 最终版，APPROVED，含增量 Claims 细化）。
 > 前置研究成果：`06-A-前置研究报告.md`。
 
@@ -77,7 +77,7 @@ x_R=F^{-1}(1-R)=\gamma+\eta[-\ln(R)]^{1/\beta}.
 | `03-B-执行计划与状态.md` | 主研究 B 的 B0–B6 进度、协作边界、中断恢复和完成定义 |
 | `04-B-证据索引.md` | 主研究 B 的逐题证据索引、运行哈希、fit 计数与 B1–B7 映射 |
 | `05-B-正式实验报告.md` | 主研究 B 的正式研究结论与论文主张边界 |
-| `05-B2-增量实验报告.md` | B2 增量实验（2026-08-02）：密集 n 响应 + β/ρ 参数边界证据、归一化工作量、复现入口 |
+| `05-B-增量实验报告.md` | B-增量实验（2026-08-02）：密集 n 响应 + β/ρ 参数边界证据、归一化工作量、复现入口 |
 | `configs/A-g2-protocol-v1.json` | G2 已冻结的机器可读实验配置 |
 | `configs/A-g2-search-v1.json` | 特征公式、损失、架构、优化器与两阶段搜索规则 |
 | `configs/A-g2-configs.sha256` | G2 两个冻结 JSON 配置的 SHA-256 |
@@ -104,7 +104,7 @@ x_R=F^{-1}(1-R)=\gamma+\eta[-\ln(R)]^{1/\beta}.
 - A formal test namespaces 保持 sealed；B 使用新的 training/validation/calibration/test namespace，数据角色见 `02-B-实验协议.md`，不启封或消费 A test。
 - 主研究 B 只训练并主张 \(x_{0.95}\)，不扩展到删失、截断或多个目标分位点联合训练。
 - B 以最小可复现代码完成研究，不复活或扩建 A 的 formal scheduler、authority、unseal/consume、hash-chain、capsule、攻击防护或 lease。
-- 主研究 B 已完成：core pooled I=0.3926 [0.3444,0.4347]（D 相对 P，supported and material），但优势分层且非全域（n=7/10 不显著、core 上 MDM/LRE 更优、压力层可用率下降）。D 不产生参数结论；NIST 无已知真 x0.95；stress 覆盖无 OOD 保证。详细边界见 `05-B-正式实验报告.md`。
+- 主研究 B 已完成：core pooled I=0.3926 [0.3444,0.4347]（D 相对 P）——**该结论已被 2026-08-02 R1 修正取代**：因 B4 未施加 A-E1 P 输入 scaler，正确评估下 P 不劣于 D（见 `05-B-增量实验报告.md` 修正版）。传统方法（MDM/LRE 更强基线）等不受 P 预处理影响的结论仍需随 P 重算复核。D 不产生参数结论；NIST 无已知真 x0.95；stress 覆盖无 OOD 保证。详细边界见 `05-B-正式实验报告.md`（含修正注）。
 
 ## 环境与复现入口
 

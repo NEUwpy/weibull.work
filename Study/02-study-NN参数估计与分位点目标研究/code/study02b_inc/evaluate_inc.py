@@ -69,15 +69,19 @@ def _git_tip() -> str:
 # Worker process: load all models once, evaluate datasets
 # ---------------------------------------------------------------------------
 
-def _worker_init(run_dir_str: str, p_index_json: str, d_index_json: str, ts_json: str):
+def _worker_init(run_dir_str: str, p_index_json: str, d_index_json: str, ts_json: str,
+                 p_scaler_json: str):
     global _WORKER_MODELS
     p_index = {int(k): v for k, v in json.loads(p_index_json).items()}
     d_index = {int(k): v for k, v in json.loads(d_index_json).items()}
     ts = {int(k): v for k, v in json.loads(ts_json).items()}
+    p_scalers = {int(k): v for k, v in json.loads(p_scaler_json).items()}
 
     models = {"P": {}, "D": {}, "Dctrl": {}}
     for n, entries in p_index.items():
-        models["P"][n] = [(e["seed"], M.load_model("P", n, e["seed"], e)) for e in entries]
+        sc = p_scalers.get(n, {"mean": None, "sd": None})
+        models["P"][n] = [(e["seed"], (M.load_model("P", n, e["seed"], e), sc))
+                          for e in entries]
     for group, key in (("selected", "D"), ("controlled", "Dctrl")):
         for n, grp in d_index.items():
             for e in grp.get(group, []):
@@ -91,11 +95,19 @@ def _worker_init(run_dir_str: str, p_index_json: str, d_index_json: str, ts_json
 
 def _infer_p(entries, sample):
     a = anchor_sample(sample)
-    z = torch.from_numpy(a.z.astype(np.float32)).unsqueeze(0)
+    z = a.z.astype(np.float32)
+    if entries:
+        sc = entries[0][1][1]  # (model, scaler)
+        mean = np.array(sc["mean"], dtype=np.float32)
+        sd = np.array(sc["sd"], dtype=np.float32)
+        if mean.size == z.shape[0] and sd.size == z.shape[0]:
+            safe = np.where(sd != 0, sd, 1.0)
+            z = np.where(sd != 0, (z - mean) / safe, 0.0)
+    zt = torch.from_numpy(z).unsqueeze(0)
     vals = []
-    for _, m in entries:
+    for _, (m, _sc) in entries:
         with torch.no_grad():
-            raw = m(z)
+            raw = m(zt)
         dec = decode_model_output(raw, torch.tensor([a.location]),
                                   torch.tensor([a.scale]))
         bf, ef, gf = float(dec[0, 0]), float(dec[0, 1]), float(dec[0, 2])
@@ -137,10 +149,13 @@ def _worker_eval(job: tuple) -> dict:
 
 
 def _serialize_indexes(run_dir: Path):
+    extras = list(C.SUPERSEDED_RUNS)
     p_index = M.build_p_index(run_dir)
-    d_index = M.build_d_index(run_dir)
-    ts = M.d_target_stats(run_dir)
-    return (str(run_dir), json.dumps(p_index), json.dumps(d_index), json.dumps(ts))
+    d_index = M.build_d_index(run_dir, extras)
+    ts = M.d_target_stats(run_dir, extras)
+    p_sc = M.p_scalers(run_dir)
+    return (str(run_dir), json.dumps(p_index), json.dumps(d_index), json.dumps(ts),
+            json.dumps(p_sc))
 
 
 def _ensure_worker_init(run_dir: Path):

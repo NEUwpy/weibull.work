@@ -115,8 +115,10 @@ def finalize(run_dir: Path) -> dict:
             "n_missing": C.N_MISSING,
             "fit_seeds": {"P": C.P_FIT_SEEDS, "D": C.D_FIT_SEEDS, "Dctrl": C.DCTRL_FIT_SEEDS},
             "seed_namespaces": {
-                "P_train_param": C.P_PARAM_SEED_BASE, "P_sample_train": C.P_SAMPLE_NS_TRAIN,
-                "P_sample_val": C.P_SAMPLE_NS_VAL,
+                "P_a_train_design": C.P_A_TRAIN_DESIGN_NS,
+                "P_a_train_sample": C.P_A_TRAIN_SAMPLE_NS,
+                "P_a_val_design": C.P_A_VAL_DESIGN_NS,
+                "P_a_val_sample": C.P_A_VAL_SAMPLE_NS,
                 "D_train_param": "n*100+1", "D_sample_train": C.D_SAMPLE_NS_TRAIN,
                 "D_sample_val": C.D_SAMPLE_NS_VAL,
                 "core_test": C.CORE_SAMPLE_NS, "grid_test": C.PG_SAMPLE_NS,

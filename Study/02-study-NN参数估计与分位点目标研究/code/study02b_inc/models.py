@@ -25,6 +25,7 @@ from study02a.models import build_mlp
 from study02a.training import load_checkpoint
 from study02b.training import build_d_mlp
 
+from study02b_inc import a_data as A
 from study02b_inc import config as C
 
 
@@ -84,8 +85,13 @@ def build_p_index(run_dir: Path | None = None) -> dict[int, list[dict]]:
     return index
 
 
-def build_d_index(run_dir: Path) -> dict[int, dict[str, list[dict]]]:
-    """n -> {selected/controlled: [checkpoint records]} for D checkpoints."""
+def build_d_index(run_dir: Path, extra_run_dirs: list[Path] | None = None) -> dict[int, dict[str, list[dict]]]:
+    """n -> {selected/controlled: [checkpoint records]} for D checkpoints.
+
+    Reads B3 (5 existing n) + the current run's training manifest + any
+    superseded run dirs whose D/Dctrl are reused (their P is invalid, but the
+    D/Dctrl checkpoints are unchanged and reused read-only).
+    """
     index: dict[int, dict[str, list[dict]]] = {}
 
     # Existing B3 checkpoints
@@ -99,34 +105,64 @@ def build_d_index(run_dir: Path) -> dict[int, dict[str, list[dict]]]:
                 "sha256": e["sha256"], "widths": e["widths"], "source": "B3",
             })
 
-    # Incremental checkpoints in the run dir
-    train_manifest = run_dir / "training" / "manifest.json"
-    if train_manifest.exists():
+    def _merge_manifest(run: Path, source: str):
+        train_manifest = run / "training" / "manifest.json"
+        if not train_manifest.exists():
+            return
         tm = json.loads(train_manifest.read_text(encoding="utf-8"))
         for e in tm.get("checkpoints", []):
+            if e.get("route") not in ("D", "Dctrl"):
+                continue
             n = int(e["n"])
             group = e["group"]
             index.setdefault(n, {}).setdefault(group, []).append({
                 "seed": int(e["seed"]), "path": e.get("checkpoint_path", e.get("path")),
                 "sha256": e.get("checkpoint_sha256", e.get("sha256")),
-                "widths": e["widths"], "source": "inc",
+                "widths": e["widths"], "source": source,
             })
+
+    _merge_manifest(run_dir, "inc")
+    for extra in (extra_run_dirs or []):
+        _merge_manifest(extra, "superseded-reuse")
     return index
 
 
-def d_target_stats(run_dir: Path) -> dict[int, dict]:
-    """n -> {mean, sd} D target stats (B3 for existing, incremental for new)."""
+def d_target_stats(run_dir: Path, extra_run_dirs: list[Path] | None = None) -> dict[int, dict]:
+    """n -> {mean, sd} D target stats (B3, current run, superseded runs)."""
     stats: dict[int, dict] = {}
     if C.B3_MANIFEST_PATH.exists():
         b3 = json.loads(C.B3_MANIFEST_PATH.read_text(encoding="utf-8"))
         for n_str, s in b3.get("target_stats", {}).items():
             stats[int(n_str)] = {"mean": s["mean"], "sd": s["sd"], "source": "B3"}
+    for run in [run_dir] + list(extra_run_dirs or []):
+        train_manifest = run / "training" / "manifest.json"
+        if not train_manifest.exists():
+            continue
+        tm = json.loads(train_manifest.read_text(encoding="utf-8"))
+        src = "inc" if run == run_dir else "superseded-reuse"
+        for n_str, s in tm.get("target_stats", {}).items():
+            stats[int(n_str)] = {"mean": s["mean"], "sd": s["sd"], "source": src}
+    return stats
+
+
+def p_scalers(run_dir: Path) -> dict[int, dict]:
+    """n -> {mean, sd} P input scaler (A-E1 cache for existing, inc manifest for new).
+
+    Existing n reconstruct the A-E1 training scaler from the frozen cache;
+    missing n read the scaler stored by the incremental training manifest.
+    """
+    scalers: dict[int, dict] = {}
+    for n in C.N_EXISTING:
+        try:
+            scalers[n] = A.a_p_scaler_from_cache(n)
+        except KeyError:
+            continue
     train_manifest = run_dir / "training" / "manifest.json"
     if train_manifest.exists():
         tm = json.loads(train_manifest.read_text(encoding="utf-8"))
-        for n_str, s in tm.get("target_stats", {}).items():
-            stats[int(n_str)] = {"mean": s["mean"], "sd": s["sd"], "source": "inc"}
-    return stats
+        for n_str, s in tm.get("p_scalers", {}).items():
+            scalers[int(n_str)] = s
+    return scalers
 
 
 def load_model(route: str, n: int, seed: int, record: dict) -> torch.nn.Module:

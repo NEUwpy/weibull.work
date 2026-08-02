@@ -31,6 +31,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[4]
 EXTERNAL_ROOT = Path("C:/weibull-runs/study02/b-inc")
 
+# The first incremental run (BINC-20260802-01) is SUPERSEDED by the corrected
+# run: its P evidence is invalid (missing the A-E1 input scaler). Its D/Dctrl
+# checkpoints and eval row-level D/traditional outputs are reused read-only.
+SUPERSEDED_RUNS = [Path("C:/weibull-runs/study02/b-inc/BINC-20260802-01")]
+
 # Existing (approved, read-only) artifacts
 P_CHECKPOINT_BASE = Path(
     "C:/weibull-runs/study02/artifacts/A-E1/A-E1-formal-r5-20260727-222417"
@@ -57,14 +62,19 @@ N_MISSING = [n for n in N_VALUES if n not in N_EXISTING]
 N_TRAIN = 100_000
 N_VAL = 20_000
 
-# P (A-E1 core_continuous): log-uniform beta/eta, uniform rho.
+# P follows the A-E1 design EXACTLY (see study02b_inc.a_data): scrambled-Sobol
+# parameter points (design ns 220201 train / 220202 val), sample ns
+# 320201 train / 320202 val, 100k train rows, 256x50 validation rows, and
+# training-only per-position input scaler (zero-sd -> 0). A-E1 ranges below.
 P_BETA_RANGE = (1.2, 4.0)
 P_ETA_RANGE = (100.0, 10000.0)
 P_RHO_RANGE = (0.0, 1.0)
-# New dedicated (deterministic) draw namespaces for the incremental P fits.
-P_PARAM_SEED_BASE = 7100          # per-n: P_PARAM_SEED_BASE + n
-P_SAMPLE_NS_TRAIN = 8100
-P_SAMPLE_NS_VAL = 9100
+P_A_TRAIN_DESIGN_NS = 220201
+P_A_TRAIN_SAMPLE_NS = 320201
+P_A_VAL_DESIGN_NS = 220202
+P_A_VAL_SAMPLE_NS = 320202
+P_A_VAL_POINTS = 256
+P_A_VAL_REPEATS = 50
 
 # D / Dctrl (B3): uniform beta/eta/rho. Seed scheme identical to B3.
 D_PARAM_SEED_BASE = 100            # per-n: n * 100 + 1  (B3 scheme)
@@ -144,16 +154,23 @@ def config_hash() -> str:
             "epochs": P_EPOCHS, "loss": LOSS_P, "lr": LR,
             "weight_decay": WEIGHT_DECAY, "batch_size": BATCH_SIZE,
             "fit_seeds": P_FIT_SEEDS,
-            "beta_range": list(P_BETA_RANGE), "eta_range": list(P_ETA_RANGE),
-            "rho_range": list(P_RHO_RANGE),
-            "param_seed_base": P_PARAM_SEED_BASE,
-            "sample_ns_train": P_SAMPLE_NS_TRAIN, "sample_ns_val": P_SAMPLE_NS_VAL,
+            "a_data": {
+                "train_design_ns": P_A_TRAIN_DESIGN_NS,
+                "train_sample_ns": P_A_TRAIN_SAMPLE_NS,
+                "val_design_ns": P_A_VAL_DESIGN_NS,
+                "val_sample_ns": P_A_VAL_SAMPLE_NS,
+                "val_points": P_A_VAL_POINTS,
+                "val_repeats": P_A_VAL_REPEATS,
+                "scaler": "per-position mean/sd ddof=0, zero-sd->0, training-only",
+            },
         },
         "d": {
             "widths": D_SELECTED_WIDTHS, "epochs": D_EPOCHS, "loss": LOSS_D,
             "fit_seeds": D_FIT_SEEDS, "param_seed_base": D_PARAM_SEED_BASE,
+            "sample_ns_train": D_SAMPLE_NS_TRAIN, "sample_ns_val": D_SAMPLE_NS_VAL,
         },
-        "dctrl": {"widths": DCTRL_WIDTHS, "fit_seeds": DCTRL_FIT_SEEDS},
+        "dctrl": {"widths": DCTRL_WIDTHS, "epochs": D_EPOCHS, "loss": LOSS_D,
+                  "fit_seeds": DCTRL_FIT_SEEDS},
         "core": {
             "n_clusters": CORE_N_CLUSTERS, "n_replicates": CORE_N_REPLICATES,
             "sob_scramble": CORE_SOBOL_SCRAMBLE, "sob_m": CORE_SOBOL_M,

@@ -33,6 +33,7 @@ from study02a.models import build_mlp, trainable_parameter_count
 from study02a.training import fit_candidate
 from study02b.training import build_d_mlp, fit_d_model
 
+from study02b_inc import a_data as A
 from study02b_inc import config as C
 from study02b_inc import data as D
 
@@ -97,17 +98,38 @@ def _worker_fit(job: tuple) -> dict:
     # 12-core CPU (default multi-threaded torch caused ~85% idle). Deterministic
     # given the same thread count; results reproducible within this setting.
     torch.set_num_threads(1)
-    # Dctrl uses the same training data (and target stats) as D.
-    data_route = "D" if route in ("D", "Dctrl") else route
-    key = (data_route, n)
-    if key not in _WORKER_DATA_CACHE:
-        _WORKER_DATA_CACHE[key] = D.generate_training_data(data_route, n)
-    data = _WORKER_DATA_CACHE[key]
 
-    train_x = torch.from_numpy(data["features"][:C.N_TRAIN]).to(torch.float32)
-    train_y = torch.from_numpy(data["targets"][:C.N_TRAIN]).to(torch.float32)
-    val_x = torch.from_numpy(data["features"][C.N_TRAIN:]).to(torch.float32)
-    val_y = torch.from_numpy(data["targets"][C.N_TRAIN:]).to(torch.float32)
+    if route == "P":
+        # A-E1-faithful data + input scaler (per-position mean/sd, zero-sd->0).
+        key = ("P_A", n)
+        if key not in _WORKER_DATA_CACHE:
+            train_data = A.generate_a_training_data(n)
+            val_data = A.generate_a_validation_data(n)
+            mean = np.array(train_data["scaler"]["mean"])
+            sd = np.array(train_data["scaler"]["sd"])
+            train_data["val_scaled"] = A.scale_features(val_data["features"], mean, sd)
+            train_data["val_targets"] = val_data["targets"]
+            train_data["scaler"] = {
+                "n": n, "mean": mean.tolist(), "sd": sd.tolist(), "source": "A-E1-design",
+            }
+            _WORKER_DATA_CACHE[key] = train_data
+        data = _WORKER_DATA_CACHE[key]
+        train_x = torch.from_numpy(data["scaled_features"][:C.N_TRAIN]).to(torch.float32)
+        train_y = torch.from_numpy(data["targets"][:C.N_TRAIN]).to(torch.float32)
+        val_x = torch.from_numpy(data["val_scaled"]).to(torch.float32)
+        val_y = torch.from_numpy(data["val_targets"]).to(torch.float32)
+        scaler = data["scaler"]
+    else:
+        # D/Dctrl use the B3 uniform scheme (unchanged, correct for D).
+        key = ("D", n)
+        if key not in _WORKER_DATA_CACHE:
+            _WORKER_DATA_CACHE[key] = D.generate_training_data("D", n)
+        data = _WORKER_DATA_CACHE[key]
+        train_x = torch.from_numpy(data["features"][:C.N_TRAIN]).to(torch.float32)
+        train_y = torch.from_numpy(data["targets"][:C.N_TRAIN]).to(torch.float32)
+        val_x = torch.from_numpy(data["features"][C.N_TRAIN:]).to(torch.float32)
+        val_y = torch.from_numpy(data["targets"][C.N_TRAIN:]).to(torch.float32)
+        scaler = None
 
     if route == "P":
         mf = lambda: build_mlp(int(n), C.P_WIDTHS, C.ACTIVATION, C.DROPOUT)
@@ -127,6 +149,7 @@ def _worker_fit(job: tuple) -> dict:
             "early_stop_reason": result.early_stop_reason,
             "checkpoint_sha256": result.checkpoint_sha256,
             "checkpoint_bytes": result.checkpoint_bytes,
+            "scaler": scaler,
         }
 
     group = "controlled" if route == "Dctrl" else "selected"
@@ -151,7 +174,7 @@ def _worker_fit(job: tuple) -> dict:
 
 
 def train_inc(run_dir: Path, workers: int = 8, only_n: list[int] | None = None,
-              max_fits: int | None = None) -> dict:
+              max_fits: int | None = None, routes: list[str] | None = None) -> dict:
     run_dir = Path(run_dir)
     train_dir = run_dir / "training"
     train_dir.mkdir(parents=True, exist_ok=True)
@@ -163,12 +186,15 @@ def train_inc(run_dir: Path, workers: int = 8, only_n: list[int] | None = None,
 
     jobs = []
     for n in n_missing:
-        for seed in C.P_FIT_SEEDS:
-            jobs.append(("P", n, seed, tuple(C.P_WIDTHS)))
-        for seed in C.D_FIT_SEEDS:
-            jobs.append(("D", n, seed, tuple(C.D_SELECTED_WIDTHS)))
-        for seed in C.DCTRL_FIT_SEEDS:
-            jobs.append(("Dctrl", n, seed, tuple(C.DCTRL_WIDTHS)))
+        if routes is None or "P" in routes:
+            for seed in C.P_FIT_SEEDS:
+                jobs.append(("P", n, seed, tuple(C.P_WIDTHS)))
+        if routes is None or "D" in routes:
+            for seed in C.D_FIT_SEEDS:
+                jobs.append(("D", n, seed, tuple(C.D_SELECTED_WIDTHS)))
+        if routes is None or "Dctrl" in routes:
+            for seed in C.DCTRL_FIT_SEEDS:
+                jobs.append(("Dctrl", n, seed, tuple(C.DCTRL_WIDTHS)))
     if max_fits:
         jobs = jobs[:max_fits]
 
@@ -177,17 +203,39 @@ def train_inc(run_dir: Path, workers: int = 8, only_n: list[int] | None = None,
     print(f"config_hash: {C.CONFIG_HASH}")
     t0 = time.perf_counter()
 
+    # Prior manifest (for preserving original fit records on resume).
+    prior = {}
+    prior_manifest = train_dir / "manifest.json"
+    if prior_manifest.exists():
+        try:
+            prior = {f"{c['route']}/n{c['n']}/seed{c['seed']}": c
+                     for c in json.loads(prior_manifest.read_text(encoding="utf-8"))["checkpoints"]}
+        except Exception:
+            prior = {}
+
     completed, failed, pending = [], [], []
     for route, n, seed, widths in jobs:
         ckpt_path = train_dir / _ckpt_name(route, n, seed)
         if ckpt_path.exists() and _sidecar_matches(ckpt_path):
-            completed.append({
-                "route": route, "n": n, "seed": seed, "widths": list(widths),
-                "group": ("controlled" if route == "Dctrl" else "selected") if route != "P" else None,
-                "early_stop_reason": "resumed",
-                "checkpoint_sha256": hashlib.sha256(ckpt_path.read_bytes()).hexdigest(),
-                "checkpoint_path": str(ckpt_path),
-            })
+            # Verify checkpoint bytes match the sidecar hash before resuming.
+            side = json.loads((ckpt_path.with_suffix(".json")).read_text(encoding="utf-8"))
+            actual = hashlib.sha256(ckpt_path.read_bytes()).hexdigest()
+            if actual != side.get("checkpoint_sha256"):
+                raise RuntimeError(
+                    f"resume integrity: {ckpt_path} bytes do not match its sidecar hash")
+            key = f"{route}/n{n}/seed{seed}"
+            if key in prior and prior[key].get("best_validation_loss") is not None:
+                rec = dict(prior[key])  # preserve the original fit record
+                rec["checkpoint_sha256"] = actual
+            else:
+                rec = {
+                    "route": route, "n": n, "seed": seed, "widths": list(widths),
+                    "group": ("controlled" if route == "Dctrl" else "selected") if route != "P" else None,
+                    "early_stop_reason": "resumed",
+                    "checkpoint_sha256": actual,
+                    "checkpoint_path": str(ckpt_path),
+                }
+            completed.append(rec)
             print(f"  [skip] {route}/n{n}/seed{seed}")
             continue
         pending.append((route, n, seed, widths))
@@ -206,15 +254,23 @@ def train_inc(run_dir: Path, workers: int = 8, only_n: list[int] | None = None,
     print(f"=== training elapsed {elapsed:.1f}s, {len(completed)} complete, {len(failed)} failed ===")
 
     target_stats = {}
+    p_scalers = {}
     for n in n_missing:
-        ts = D.target_stats_for_n(n)
-        target_stats[str(n)] = {"mean": ts["mean"], "sd": ts["sd"], "source": "inc"}
+        if routes is None or "D" in routes or "Dctrl" in routes:
+            ts = D.target_stats_for_n(n)
+            target_stats[str(n)] = {"mean": ts["mean"], "sd": ts["sd"], "source": "inc"}
+        # P scaler from the first completed P fit for this n (all P fits share it)
+        p_recs = [r for r in completed if r.get("route") == "P" and r.get("n") == n and r.get("scaler")]
+        if p_recs:
+            p_scalers[str(n)] = p_recs[0]["scaler"]
 
-    return _write_manifest(train_dir, completed, target_stats, run_dir, elapsed, failed)
+    return _write_manifest(train_dir, completed, target_stats, run_dir, elapsed, failed,
+                           p_scalers=p_scalers)
 
 
 def _write_manifest(train_dir: Path, completed: list, target_stats: dict,
-                    run_dir: Path, elapsed: float = 0.0, failed: list | None = None) -> dict:
+                    run_dir: Path, elapsed: float = 0.0, failed: list | None = None,
+                    p_scalers: dict | None = None) -> dict:
     failed = failed or []
     inventory = []
     for r in completed:
@@ -252,6 +308,7 @@ def _write_manifest(train_dir: Path, completed: list, target_stats: dict,
         "n_missing": C.N_MISSING,
         "checkpoints": inventory,
         "target_stats": target_stats,
+        "p_scalers": p_scalers or {},
         "failures": failed,
     }
     mf = train_dir / "manifest.json"
@@ -266,9 +323,10 @@ def main():
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--only", type=int, nargs="*", default=None)
     ap.add_argument("--max-fits", type=int, default=None)
+    ap.add_argument("--routes", nargs="*", default=None)
     args = ap.parse_args()
     train_inc(Path(args.run_dir), workers=args.workers,
-              only_n=args.only, max_fits=args.max_fits)
+              only_n=args.only, max_fits=args.max_fits, routes=args.routes)
 
 
 if __name__ == "__main__":
