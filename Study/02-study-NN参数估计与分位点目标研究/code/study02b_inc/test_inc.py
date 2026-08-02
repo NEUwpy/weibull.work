@@ -263,3 +263,40 @@ def test_nist_splits_500_per_n():
             rng = np.random.default_rng(9000 + n_val * 1000 + split)
             idx = rng.choice(len(data), size=n_val, replace=False)
             assert len(idx) == n_val and len(set(idx.tolist())) == n_val
+
+
+def test_split_conformal_quantile_order_statistic():
+    """R11: finite-sample split-conformal uses the ceil((m+1)(1-alpha))-th order
+    statistic, which can differ from plain np.quantile."""
+    from study02b.analyze_b5 import split_conformal_quantile
+    import numpy as np
+    # m=9 residuals: plain 0.9 quantile of [0..8] is 7.2 (linear interp);
+    # order statistic idx = ceil((9+1)*0.9)-1 = 8 -> residuals[8] = 8.
+    res = np.arange(9, dtype=float)
+    q_os = split_conformal_quantile(res, 0.10)
+    q_plain = np.quantile(res, 0.90)
+    assert q_os == 8.0
+    assert abs(q_os - q_plain) > 0.5  # they differ for this finite sample
+    # m=19, alpha=0.05: idx = ceil(20*0.95)-1 = 18 -> residuals[18]
+    res2 = np.arange(19, dtype=float)
+    assert split_conformal_quantile(res2, 0.05) == 18.0
+
+
+def test_doc_consistency_gate():
+    """R12: the authoritative B-INC report must not present the historical-invalid
+    P values (I=0.3926, P 0.6943 vs Dctrl 0.3296, P n5 RMSE 1.455, P NIST 61.4)
+    as current conclusions. Where they appear they must be tagged invalid/historical."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]  # Study/02-study-NN参数估计与分位点目标研究
+    doc = (root / "05-B-增量实验报告.md").read_text(encoding="utf-8")
+    # The current authoritative numbers:
+    assert "I=−0.120" in doc or "I=-0.120" in doc
+    assert "P_better" in doc or "P better" in doc
+    # Invalid values may appear ONLY in an explicitly invalid/historical context:
+    for bad in ["0.3926", "0.6943", "1.455", "61.4"]:
+        if bad in doc:
+            line = next(l for l in doc.splitlines() if bad in l)
+            assert ("伪影" in line or "无效" in line or "被取代" in line or "历史" in line
+                    or "推翻" in line or "artifact" in line or "invalid" in line
+                    or "raw" in line or "原 B4" in line), \
+                f"{bad!r} appears without invalid/historical tag: {line!r}"

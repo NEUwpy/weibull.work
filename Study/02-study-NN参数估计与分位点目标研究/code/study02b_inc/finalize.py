@@ -36,6 +36,52 @@ def _sha(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
+def _corrections_manifest(run_dir: Path) -> dict:
+    """R13: bind the B4/B5 correction summaries, row-level CSVs, input frozen
+    file hashes, row counts/keys and code tips into the top manifest."""
+    out = {}
+    b4 = run_dir / "b4_correction"
+    if b4.exists():
+        b4_sum = b4 / "b4_correction_summary.json"
+        b4_npz = b4 / "b4_corrected_per_seed.npz"
+        entry = {}
+        if b4_sum.exists():
+            s = json.loads(b4_sum.read_text(encoding="utf-8"))
+            entry.update({
+                "summary_sha256": _sha(b4_sum),
+                "code_tip": s.get("code_tip"),
+                "input_b4_npz_sha256": (s.get("input_b4") or {}).get("npz_sha256"),
+                "input_b4_dir": str(C.B4_CORE_MANIFEST_PATH.parent),
+            })
+        if b4_npz.exists():
+            entry["per_seed_npz_sha256"] = _sha(b4_npz)
+        out["b4_core_correction"] = entry
+    b5 = run_dir / "b5_correction"
+    if b5.exists():
+        b5_sum = b5 / "b5_correction_summary.json"
+        nist_csv = b5 / "nist_splits_corrected.csv"
+        entry = {}
+        if b5_sum.exists():
+            s = json.loads(b5_sum.read_text(encoding="utf-8"))
+            entry.update({
+                "summary_sha256": _sha(b5_sum),
+                "code_tip": s.get("code_tip"),
+                "input_b5_dir": str(C.B5_V3_DIR) if hasattr(C, "B5_V3_DIR") else
+                               "C:/weibull-runs/study02/formal-b/B5-v3-20260801-062647",
+                "frozen_identity": s.get("frozen_identity_verification"),
+                "nist_per_n_splits": {k: v.get("n_splits") for k, v in
+                                      (s.get("nist", {}) or {}).get("per_n", {}).items()},
+            })
+        if nist_csv.exists():
+            import csv as _csv
+            with open(nist_csv, newline="", encoding="utf-8") as f:
+                n_rows = sum(1 for _ in _csv.DictReader(f))
+            entry["nist_corrected_rows_csv_sha256"] = _sha(nist_csv)
+            entry["nist_corrected_rows"] = n_rows
+        out["b5_correction"] = entry
+    return out
+
+
 def _normalized_workload() -> dict:
     """Sequential-equivalent hours from frozen matrix + measured throughput.
 
@@ -139,6 +185,7 @@ def finalize(run_dir: Path) -> dict:
         "analysis": None if am is None else {
             "analysis_summary_sha256": _sha(analysis_mf),
         },
+        "corrections": _corrections_manifest(run_dir),
         "normalized_workload_estimate": _normalized_workload(),
     }
 

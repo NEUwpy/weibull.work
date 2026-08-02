@@ -223,7 +223,18 @@ def verify_frozen_identity() -> dict:
     with open(B5_V3 / "contamination.csv", newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             frozen_cont[(int(r["cluster"]), int(r["replicate"]), r["condition"])] = r
+    # Load frozen D model (n=20) + target stats to rerun on regenerated samples
+    # and compare D_pred/D_valid row-by-row (proves sample identity).
+    d_index = M.build_d_index(C.SUPERSEDED_RUNS[0])
+    d20 = d_index.get(20, {}).get("selected", [])
+    d_mods = []
+    ts20 = M.d_target_stats(C.SUPERSEDED_RUNS[0]).get(20, {"mean": 0.0, "sd": 1.0})
+    from study02b.representations import DTrainingStats
+    for e in d20:
+        d_mods.append((e["seed"], (M.load_model("D", 20, e["seed"], e),
+                                   DTrainingStats(mean=ts20["mean"], sd=ts20["sd"]))))
     n_mismatch = 0
+    n_d_mismatch = 0
     for ci, (b, e, g) in enumerate(zip(betas, etas, gammas)):
         for ri in range(10):
             clean = generate_sample(float(b), float(e), float(g), 20, ri, seed=9000 + ci)
@@ -242,14 +253,25 @@ def verify_frozen_identity() -> dict:
                 if fr is None:
                     n_mismatch += 1
                     continue
-                # contamination CSV has no parameter columns; verify true_x095
-                # and the regenerated sample's anchor stats consistency via
-                # the D_valid/D_pred reuse path checked by row-key alignment.
                 if abs(float(fr["true_x095"]) - xt) > 1e-6:
                     n_mismatch += 1
+                # Rerun the frozen D model on the regenerated sample and compare
+                # D_pred/D_valid. Use the frozen B5 _infer_d semantics: a D
+                # prediction is valid only if finite AND > 0 (non-positive -> nan).
+                raw_d = E._infer_d(d_mods, cs)
+                filtered = np.where(raw_d > 0, raw_d, np.nan)
+                d_pred = _ens_mean(list(filtered))
+                d_valid = int(np.isfinite(d_pred) and d_pred > 0)
+                fr_dvalid = int(fr["D_valid"])
+                fr_dpred = float(fr["D_pred"]) if fr["D_pred"] != "" else np.nan
+                if d_valid != fr_dvalid or (np.isfinite(fr_dpred) and
+                                            abs(d_pred - fr_dpred) > 1e-3 * max(1.0, abs(fr_dpred))):
+                    n_d_mismatch += 1
     checks["contamination"] = {
         "frozen_rows": len(frozen_cont), "mismatches": n_mismatch,
-        "ok": n_mismatch == 0}
+        "D_pred_mismatches": n_d_mismatch,
+        "ok": n_mismatch == 0 and n_d_mismatch == 0,
+        "note": "D_pred/D_valid rerun on regenerated samples proves sample identity (frozen CSV lacks parameter columns and sample anchor stats)",}
     failed = [k for k, v in checks.items() if not v["ok"]]
     if failed:
         raise RuntimeError(f"R8 verification failed (frozen identity mismatch): {failed}")
@@ -292,12 +314,16 @@ def correct_conformal(models, out_dir):
             pm = _ens_mean(list(pv))
             if np.isfinite(pm):
                 p_res.append(abs(pm - x095))
+        # Finite-sample split-conformal order statistic (frozen B5 protocol):
+        # q = ceil((m+1)*(1-alpha))-th order statistic of calibration residuals.
+        from study02b.analyze_b5 import split_conformal_quantile
         p_thresh[str(n_val)] = {
-            "P_q90": float(np.quantile(p_res, 0.90)),
-            "P_q95": float(np.quantile(p_res, 0.95)),
+            "P_q90_half_width": split_conformal_quantile(p_res, 0.10),
+            "P_q95_half_width": split_conformal_quantile(p_res, 0.05),
             "n_cal_P": len(p_res),
         }
-    # Core coverage using corrected B4 P per-seed.
+    # Core coverage using corrected B4 P per-seed. Interval is [pred-q, pred+q],
+    # so q is the HALF width and the full absolute width is 2q.
     npz = np.load(CORRECTED_B4_NPZ, allow_pickle=True)
     p_s = npz["p_seeds"]
     keys = [str(k) for k in npz["keys"]]
@@ -308,7 +334,9 @@ def correct_conformal(models, out_dir):
     core_summary = {}
     for n_val in N_VALUES:
         th = p_thresh[str(n_val)]
-        cov90, cov95, n_rows, widths = [], [], 0, []
+        q95 = th["P_q95_half_width"]
+        cov90, cov95, n_rows, full_widths = [], [], 0, []
+        true_vals = []
         for i, k in enumerate(keys):
             parts = k.split("_")
             if len(parts) != 3 or int(parts[2]) != n_val:
@@ -321,16 +349,18 @@ def correct_conformal(models, out_dir):
                 continue
             pred = float(np.mean(vals))
             ae = abs(pred - xt)
-            cov90.append(int(ae <= th["P_q90"]))
-            cov95.append(int(ae <= th["P_q95"]))
-            widths.append(th["P_q95"])
+            cov90.append(int(ae <= th["P_q90_half_width"]))
+            cov95.append(int(ae <= q95))
+            full_widths.append(2.0 * q95)  # full absolute width = 2q
+            true_vals.append(xt)
             n_rows += 1
         core_summary[f"P_n{n_val}"] = {
             "cov90": float(np.mean(cov90)) if cov90 else np.nan,
             "cov95": float(np.mean(cov95)) if cov95 else np.nan,
-            "n": n_rows, "mean_width": float(np.mean(widths)) if widths else np.nan,
-            "std_width": (float(np.mean(widths)) / np.mean([true_x095[k] for k in keys if k.split('_')[2] == str(n_val)])
-                          if widths else np.nan),
+            "n": n_rows,
+            "mean_full_width_95": float(np.mean(full_widths)) if full_widths else np.nan,
+            "normalized_full_width_95": (float(np.mean(full_widths)) / float(np.mean(true_vals))
+                                         if full_widths and true_vals else np.nan),
         }
     # Stress P coverage (regenerate stress samples, corrected P).
     stress_coverage = {}
@@ -351,7 +381,7 @@ def correct_conformal(models, out_dir):
                     rows_n += 1
                     if np.isfinite(pm):
                         avail_n += 1
-                        cov95_n.append(int(abs(pm - xt) <= th["P_q95"]))
+                        cov95_n.append(int(abs(pm - xt) <= th["P_q95_half_width"]))
             cell[str(n_val)] = {"availability": avail_n / rows_n if rows_n else np.nan,
                                 "cond_cov95": float(np.mean(cov95_n)) if cov95_n else np.nan}
         stress_coverage[domain] = cell
