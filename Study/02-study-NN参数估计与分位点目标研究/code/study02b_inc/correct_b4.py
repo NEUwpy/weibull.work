@@ -59,6 +59,15 @@ def _rmse(arr):
     return float(np.sqrt(np.mean(a ** 2))) if a.size else np.nan
 
 
+def _pooled_i_from_per_n(p_rmse_n, d_rmse_n):
+    """R17: equal-per-n pooled functional = ratio of mean per-n RMSEs.
+    NOT mean of per-n I (they differ). Returns (p_eq, d_eq, I_eq)."""
+    p_eq = float(np.mean([v for v in p_rmse_n if np.isfinite(v)]))
+    d_eq = float(np.mean([v for v in d_rmse_n if np.isfinite(v)]))
+    i_eq = (p_eq - d_eq) / p_eq if p_eq > 0 else np.nan
+    return p_eq, d_eq, i_eq
+
+
 def run(out_dir: Path, n_boot: int = 2000) -> dict:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -163,19 +172,21 @@ def run(out_dir: Path, n_boot: int = 2000) -> dict:
     for rank, n in enumerate(sorted_n, 1):
         per_n[str(n)]["bh"] = "supported" if rank <= largest else "not_supported"
 
-    p_eq = float(np.mean([per_n[str(n)]["P_rmse"] for n in B4_N_VALUES]))
-    d_eq = float(np.mean([per_n[str(n)]["D_rmse"] for n in B4_N_VALUES]))
-    i_eq = (p_eq - d_eq) / p_eq if p_eq > 0 else np.nan
+    p_eq, d_eq, i_eq = _pooled_i_from_per_n(
+        [per_n[str(n)]["P_rmse"] for n in B4_N_VALUES],
+        [per_n[str(n)]["D_rmse"] for n in B4_N_VALUES])
 
-    # R14: pooled equal-per-n I 95% CI via paired hierarchical cluster bootstrap
-    # (consistent with the per-n definition): one rep = cluster resample + paired
-    # seed multiset, per-n I averaged over the 5 n.
+    # R14/R17: pooled equal-per-n I 95% CI via paired hierarchical cluster
+    # bootstrap that reproduces the POOLED POINT ESTIMAND exactly:
+    #   p_eq_b = mean_n(P_rmse_n_b), d_eq_b = mean_n(D_rmse_n_b),
+    #   I_eq_b = (p_eq_b - d_eq_b) / p_eq_b
+    # NOT mean-of-per-n-I (which differs when the equal-per-n RMSEs are not equal).
     rng2 = np.random.default_rng(C.BOOTSTRAP_SEED + 1)
     pooled_boot = []
     for _ in range(n_boot):
         ci_b = list(rng2.choice(range(64), size=64, replace=True))
         seed_idx = rng2.choice(10, size=10, replace=True)
-        per_n_vals = []
+        p_rmse_n, d_rmse_n = [], []
         for n in B4_N_VALUES:
             deb, peb = [], []
             for ci in ci_b:
@@ -194,10 +205,11 @@ def run(out_dir: Path, n_boot: int = 2000) -> dict:
                     if np.isfinite(pm):
                         peb.append((pm - xt) / xt)
             drb, prb = _rmse(deb), _rmse(peb)
-            if prb > 0:
-                per_n_vals.append((prb - drb) / prb)
-        if per_n_vals:
-            pooled_boot.append(float(np.mean(per_n_vals)))
+            p_rmse_n.append(prb)
+            d_rmse_n.append(drb)
+        p_eq_b, d_eq_b, i_eq_b = _pooled_i_from_per_n(p_rmse_n, d_rmse_n)
+        if np.isfinite(i_eq_b):
+            pooled_boot.append(i_eq_b)
     pooled_boot = np.array(pooled_boot)
     pooled_ci = (float(np.percentile(pooled_boot, 2.5)),
                  float(np.percentile(pooled_boot, 97.5))) if len(pooled_boot) else (np.nan, np.nan)

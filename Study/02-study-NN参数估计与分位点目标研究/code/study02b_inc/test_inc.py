@@ -314,3 +314,19 @@ def test_b4_pooled_ci_computed():
     assert lo < pooled["I"] < hi
     assert hi < 0  # P better (negative I) confirmed by the CI
     assert pooled.get("n_bootstrap", 0) >= 1000
+
+
+def test_pooled_i_functional_is_ratio_not_mean_of_per_n_i():
+    """R17: the pooled equal-per-n functional is ratio-of-equal-per-n-RMSE,
+    NOT mean-of-per-n-I (they differ)."""
+    from study02b_inc import correct_b4 as CB
+    import numpy as np
+    p_rmse_n = np.array([0.4, 0.2, 0.2])   # P per-n RMSE
+    d_rmse_n = np.array([0.3, 0.3, 0.1])   # D per-n RMSE
+    p_eq, d_eq, i_eq = CB._pooled_i_from_per_n(p_rmse_n, d_rmse_n)
+    # ratio-of-equal-per-n: mean_P = 0.2667, mean_D = 0.2333, I = (0.2667-0.2333)/0.2667 = 0.125
+    assert abs(p_eq - 8.0 / 30.0) < 1e-9
+    assert abs(i_eq - (p_eq - d_eq) / p_eq) < 1e-9
+    # mean-of-per-n-I would be: per-n I = [0.25, -0.5, 0.5], mean = 0.0833
+    mean_per_n_i = np.mean([(p - d) / p for p, d in zip(p_rmse_n, d_rmse_n)])
+    assert abs(i_eq - mean_per_n_i) > 0.02  # they genuinely differ
