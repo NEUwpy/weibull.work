@@ -2,7 +2,7 @@
 
 > 本目录是面向发表论文的整理工作区。它不是 `docs/research/01`、`02`、`03`、`04` 的简单复制，也不是汇报 PPT 材料的存放处。
 >
-> **当前状态（2026-08-04）**：既有正式实验与技术证据包保持封存，不删除、不重跑、不重封存。P4 正式六方法比较（MDM-Default / MDM-Vector-MLP / Direct-MLP / MLE / LSE / WMLE）已在授权 tip `cfb0c6ed` 上完成四轨道正式运行并通过 SHA256SUMS 17/17 封存校验（seal `f00b561d`，产物 `artifacts/formal/p4_formal_compare/`）。本轮完成文档与目录职责整理（分支 `study01-paper-mainline-cleanup`）：论文主线收敛为 E1/E2/E3b 三类核心结果，支撑验证、独立 Research 与待移出材料分层归档。**不运行新实验、不修改外部论文稿 v0.3。**
+> **当前状态（2026-08-04）**：既有正式实验与技术证据包保持封存，不删除、不重跑、不重封存。P4 正式六方法比较（MDM-Default / MDM-Vector-MLP / Direct-MLP / MLE / LSE / WMLE）已在授权 tip `cfb0c6ed` 上完成四轨道正式运行并通过 SHA256SUMS 17/17 封存校验（seal `f00b561d`，产物 `artifacts/formal/p4_formal_compare/`）。论文主线已收敛为 E1/E2/E3b 三类核心结果；支撑验证、独立 Research 与待移出材料已分层归档。外部中文学术源稿 v0.3 为唯一活动论文稿。
 
 ## 这个目录要解决什么
 
@@ -32,7 +32,7 @@
 
 - E1：`delta=0.08` 已接近全局最优，经验值 `delta=0.1` 位于平缓低风险区；L1 相对 Default、L2 相对 L1 的 pooled J1 降幅分别约 `0.048%` / `0.059%`，全局固定规则收益有限。
 - E2：完整参数组合条件选择可降低联合估计误差约 `9.8%`；逐样本事后选择潜在降幅约 `21.9%`（L6 hindsight pooled J1=0.4945）；主要信息增益来自 β 分层，L2→L3 是最主要的单步提升（7.51%）。
-- E3b：Vector-MLP pooled J1=0.547（三 seed 0.547/0.546/0.544），相对 Default/L1/L2 均有降低，落在参数组级规则（L5=0.571）与逐样本事后参照（L6=0.495）之间；该结论限于当前正式离散网格的组合留出评价，不外推为连续空间泛化。
+- E3b：Vector-MLP pooled J1=0.547（三 seed 0.547/0.546/0.544），相对 Default/L1/L2 均有降低，落在参数组级规则（L5=0.571）与逐样本事后参照（L6=0.495）之间（仅为 J1 数值位置；L5 按真参数组合选择，Vector-MLP 逐样本预测风险曲线，决策粒度不同，不能解释为网络拥有比真参数 oracle 更多的信息）；该结论限于当前正式离散网格的组合留出评价，不外推为连续空间泛化。
 
 ## 支撑验证（正文简要报告结论，详细结果进入补充材料）
 
@@ -41,7 +41,7 @@
 | 泛化验证 | 参数插值（P2-PI）、样本量插值（P2-NI，n=15）及边界外推轨道上相对固定规则是否保留收益 | `artifacts/formal/extended_validation/p2_generalization_v2/`、`artifacts/formal/E4_robustness/`（E4d） | 正式证据可用（P2 v2 已获 Codex APPROVE `53932687`） |
 | seed 稳定性与特征消融 | 15 个 fold×seed 模型级分布；特征保留子集（full / scale-quantile / shape / n-only） | `artifacts/formal/E4_robustness/`（E4a） | 正式证据可用 |
 | 与传统估计方法的外部参照 | WMLE、LSE 作为外部参照（同一样本、同一划分比较）；MLE 已封存但不再作为论文证据消费 | `artifacts/formal/p4_formal_compare/` | 正式证据可用（已封存） |
-| 工程寿命分位点 | 由 P4 逐样本三参数估计派生 `x_0.95`（主指标）、`x_0.90`、`x_0.99`，检查参数收益是否传递 | 待从 `artifacts/formal/p4_formal_compare/` 派生 | 未执行（不阻塞写作，由后续 P5 派生，不重跑估计器） |
+| 工程寿命分位点 | 由 P4 逐样本三参数估计派生 `x_0.95`（主指标）、`x_0.90`、`x_0.99`，检查参数收益是否传递 | 待从 `artifacts/formal/p4_formal_compare/` 派生 | 未执行（不阻塞写作，由后续工程分位点分析派生，不重跑估计器） |
 | 域匹配真实案例（后置） | 论文主体接近完成后再做；目前不阻塞写作 | — | 待定（NIST 案例不进入本文） |
 
 ## 传统方法参照与 MLE 处理
@@ -109,8 +109,8 @@ Study/01-study-MDM最小偏移量优化研究/
   code/  tests/                <- 正式代码与合同测试（不移动）
   manuscript/                  <- G7 审计链目标与图表（auto_audit 依赖其路径，不移动）
   mentor反思记录/              <- P4 后 mentor 审查记录
-  Research/                    <- 独立 Research 材料（本轮新建）
-  待移出Study01/               <- 待移出材料（本轮新建）
+  Research/                    <- 独立 Research 材料
+  待移出Study01/               <- 待移出材料
   history/                     <- 历史归档
 ```
 

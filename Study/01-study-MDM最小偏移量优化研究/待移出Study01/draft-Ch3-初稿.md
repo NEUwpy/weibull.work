@@ -52,7 +52,7 @@ $$
 
 层级从上到下，决策时使用的信息量递增，对应的参照精度也逐级提高（**图 2**）。
 
-![Figure 2: 六级框架示意图](artifacts/formal/figures/fig1_framework.png)
+![Figure 2: 六级框架示意图](../artifacts/formal/figures/fig1_framework.png)
 
 **Figure 2.** 信息层级与验证路径。左侧概括 Default–L6 的逻辑关系：Default、L1 和 L2 不需要真参数，L3–L5 是依赖真参数的 oracle 参照，L6 是使用事后逐样本损失的 hindsight 参照；各层级的精确定义以表 1 为准。右侧给出最终论文的验证逻辑：E1 评估简单可部署层级，E2 建立 oracle/hindsight 参照，E3 用样本可观测特征预测 26 点风险曲线并选择 δ，E4 考察稳健性与边界，真实数据再以重复小样本留出验证检验外部适用性。图中不呈现内部实验进度或结果数字。
 
@@ -85,7 +85,7 @@ L3 起需要真 β 或更多真参数信息，因此 L3–L5 不能直接作为�
 
 尺度参数只取 $\eta=1$ 并非忽略尺度效应。Ch2 已证明：对寿命数据及 $(\eta,\gamma)$ 同乘任意 $c>0$，MDM 在固定 δ 下保持 $\hat\beta$ 不变，$\hat\eta$ 和 $\hat\gamma$ 同比例缩放，而 $\ell_i(\delta)$、风险排序和网格最优 δ 不变。因此，在保留 $\gamma/\eta$ 的条件下，$\eta=1$ 是对所有正尺度的合法归一化。对应数值合同由 `python/tests/test_mdm_s49.py::test_default_mdm_is_scale_equivariant_for_fixed_offset` 锁定。
 
-数据溯源：`code/config.py`，`artifacts/formal/E1_baseline/manifest.json`
+数据溯源：`code/config.py`，`../artifacts/formal/E1_baseline/manifest.json`
 
 样本量 n 是本文必须保留的分层视角。它既对应 L2 的直接部署方式（按 n 查表），也决定小样本估计问题的工程语境。因此，后续 E1/E2 的主表可报告 pooled 结果，但正文解释、附表或稳健性检查必须保留按 n 分解的诊断；E3/E4 也应检查不同 n 下样本自适应策略是否表现一致。
 
@@ -99,7 +99,7 @@ $$\delta \in \{0.00, 0.02, 0.04, \ldots, 0.50\}$$
 
 每个参数组合 × 每个 δ 重复 $R = 1000$ 次。E1 和 E2 共用同一批 MC 扫描数据，由统一的数据生成脚本产出（`code/generate_mc_data.py`），两个独立分析脚本按不同粒度聚合。
 
-E1/E2 的全缓存风险曲线和网格 argmin 用于定义层级及展示经验设计风险。为检查“在同一批重复中选点又评价”可能带来的择优偏差，本文另对 L1–L5 进行 5 折 `repeat_id` cross-fitting：每折用 800 个 repeat id 选择各层级 δ，在未参与选点的 200 个 repeat id 上评价，最后汇总所有留出损失。Default 不需选点；L6 是定义上的逐样本 hindsight benchmark，故不伪装为 cross-fitted 部署性能。该审计复用现有 MC 缓存，不重跑 MDM；产物见 `artifacts/formal/E1_E2_crossfit/`。
+E1/E2 的全缓存风险曲线和网格 argmin 用于定义层级及展示经验设计风险。为检查“在同一批重复中选点又评价”可能带来的择优偏差，本文另对 L1–L5 进行 5 折 `repeat_id` cross-fitting：每折用 800 个 repeat id 选择各层级 δ，在未参与选点的 200 个 repeat id 上评价，最后汇总所有留出损失。Default 不需选点；L6 是定义上的逐样本 hindsight benchmark，故不伪装为 cross-fitted 部署性能。该审计复用现有 MC 缓存，不重跑 MDM；产物见 `../artifacts/formal/E1_E2_crossfit/`。
 
 总计算量：45 组合 × 26 δ × 1000 重复 = **117 万次 MDM 估计**，另含 MLE 锚点 4.5 万次。
 

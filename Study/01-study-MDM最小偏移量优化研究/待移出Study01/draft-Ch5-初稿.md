@@ -6,7 +6,7 @@
 
 **图 5** 和 **表 4** 展示了从 Default 到 L6 的完整精度阶梯。
 
-![Figure 5: 阶梯收益](artifacts/formal/figures/fig3_ladder.png)
+![Figure 5: 阶梯收益](../artifacts/formal/figures/fig3_ladder.png)
 
 **Figure 5.** Oracle 层级的精度阶梯。(a) Default–L6 各层级的绝对 $J_1$：灰色=可部署（Default, L1, L2），蓝色=oracle（L3–L5），橙色=hindsight（L6）。(b) 相邻层级的逐级相对 $J_1$ 降幅，定义为 $(J_{1,k-1}-J_{1,k})/J_{1,k-1}$：L2→L3 为 7.51%，是从简单可部署层级进入组级 oracle 的主要信息增益；L3→L4 和 L4→L5 分别为 0.51% 和 1.88%，均低于 L2→L3，但两者不呈单调递减。L5→L6 为 13.42%，但它来自从组级选择转向逐样本事后选择，因而单独标记为 **hindsight gap**，不与 L2→L3 并称为同质的信息增益。Panel A 只承担绝对精度定位，Panel B 区分信息层级收益与 hindsight gap；本图不纳入 MLE 横向锚点。
 
@@ -23,7 +23,7 @@
 | **L6** | 逐样本 | — | 0.4945 | +21.90% | **+13.42%** | hindsight |
 | | | | | | | |
 
-数据溯源：`artifacts/formal/E2_oracle_layers/ladder_L1_L6.csv`，`artifacts/formal/E1_baseline/summary.json`。Figure 5(b) 与表 4 的“改善 vs 上一级”使用同一逐级相对降幅公式。
+数据溯源：`../artifacts/formal/E2_oracle_layers/ladder_L1_L6.csv`，`../artifacts/formal/E1_baseline/summary.json`。Figure 5(b) 与表 4 的“改善 vs 上一级”使用同一逐级相对降幅公式。
 
 ### L1–L5 cross-fit 敏感性
 
@@ -40,7 +40,7 @@
 
 cross-fit 后，L2→L3 改善 7.53%，L3→L4 改善 0.42%，L4→L5 改善 1.83%。L1 的全局选点和 L3 的 5 个 $\beta$ 选点在五折中完全稳定；L2 的 3 个分组中有 2 个完全稳定，L4 为 10/15，L5 为 28/45。相对同批选点/评价，L2、L4 和 L5 的留出 $J_1$ 分别上调 0.030%、0.085% 和 0.132%，最大上调为 0.132%；留出 $J_1$ 依次为 L2=0.632732、L3=0.585068、L4=0.582585、L5=0.571924，L2→L5 的层级顺序保持不变。
 
-cross-fit 溯源：`artifacts/formal/E1_E2_crossfit/model_comparison.csv`、`comparison_vs_same_sample.csv`、`selection_stability.csv`。
+cross-fit 溯源：`../artifacts/formal/E1_E2_crossfit/model_comparison.csv`、`comparison_vs_same_sample.csv`、`selection_stability.csv`。
 
 阶梯呈现一个主要信息增益、两个幅度较低但不单调的后续组级增益，以及一个 hindsight gap：
 
@@ -76,7 +76,7 @@ L4 在 L3 基础上加入 n 信息，为每个 (β, n) 组合分配 δ\*。从 L
 
 L4 的 $\delta^*$ 表（**图 6**）显示，固定 $n$ 改变 $\beta$ 所对应的选点跨度，大于固定 $\beta$ 改变 $n$ 所对应的跨度。
 
-![Figure 6: β×n δ* 热力图](artifacts/formal/figures/fig_l4_beta_n_heatmap.png)
+![Figure 6: β×n δ* 热力图](../artifacts/formal/figures/fig_l4_beta_n_heatmap.png)
 
 **Figure 6.** L4 层级最优 δ\* 的 β×n 结构（数据来自 L4_by_beta_n.csv）。行为形状参数 β（1.5–5.0），列为样本量 n（7/10/20），颜色和数值为该 (β, n) 组合的最优 δ\*。固定 $n$ 改变 $\beta$ 时，三个 $n$ 水平上的 $\delta^*$ 跨度为 0.28/0.38/0.46，平均为 0.37；固定 $\beta$ 改变 $n$ 时，五个 $\beta$ 水平上的跨度为 0.20/0.12/0.04/0.02/0.02，平均为 0.08。前一平均跨度为后一平均跨度的 4.67 倍。该比较只描述正式设计网格中的选点变化，不构成正式方差分解或假设检验。
 
@@ -96,7 +96,7 @@ L6 为每个 MC 重复样本单独选取 $\delta_i^*=\arg\min_{\delta\in D}\ell_
 
 **图 7** 用逐样本选点分布解释 hindsight gap 的来源及其不可部署性，不把该分布当作实际应用中可直接照抄的 $\delta$ 推荐分布。
 
-![Figure 7: L6 分布](artifacts/formal/figures/fig4_l6_distribution.png)
+![Figure 7: L6 分布](../artifacts/formal/figures/fig4_l6_distribution.png)
 
 **Figure 7.** L6 hindsight gap 的逐样本来源。(a) 全样本直方图：47.46% 的样本最优 $\delta^*=0$，6.57% 的样本最优 $\delta^*=0.50$，显示事后选择包含大量端点质量，且两个精确端点的方法含义不同。(b) 分 $\beta$ 的 boxplot：它不重复 Figure 6 对 $\beta$ 主分层的说明，而是显示给定 $\beta$ 后的组内逐样本分布仍不等于一个查表点；例如 $\beta=1.5$ 的中位数为 0.04，但 IQR 延伸至 0.46，而 $\beta=5.0$ 的中位数为 0 且 IQR 仅到 0.04。两面板共同说明 L5→L6 的 13.42% 来自逐样本事后选择空间，不是一张可直接部署的 $\delta$ 查表。
 
@@ -114,7 +114,7 @@ L6 的 J₁ = 0.4945，相比 L5 改善 13.4%——看似可观，但需要谨�
 
 标准 MLE 在同一参数网格上的表现为 J₁ = 1.1009（仅算收敛样本），失败率 30.4%。这一结果仅在此作为绝对精度背景，不进入 Figure 5 或 Table 4，也不与只计收敛样本的 MLE 展开横向排名。本文的实证主线始终是 MDM 内部选择 $\delta$ 能否进一步降低误差。
 
-MLE 背景数据溯源：`artifacts/formal/shared_data/mle_anchor.csv`。
+MLE 背景数据溯源：`../artifacts/formal/shared_data/mle_anchor.csv`。
 
 ## §6 本章小结
 

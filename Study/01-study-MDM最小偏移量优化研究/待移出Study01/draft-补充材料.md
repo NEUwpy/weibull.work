@@ -12,4 +12,4 @@
 
 `extreme/near-boundary rate` 定义为 $P(\hat\delta\in\{0,0.02,0.48,0.50\})$。三个 seed 的 pooled $J_1$ 结论方向一致，但 seed 3407 的边界选择率高于其余两个 seed，表明 selected-loss 稳定不等于具体 $\delta$ 选择分布完全稳定。本表是 Ch6 existing-grid 的补充诊断，不代替 Ch7/E4 的正式边界稳健性检查。
 
-数据溯源：`artifacts/formal/E3b_vector_mlp/seed_stability.csv`。
+数据溯源：`../artifacts/formal/E3b_vector_mlp/seed_stability.csv`。

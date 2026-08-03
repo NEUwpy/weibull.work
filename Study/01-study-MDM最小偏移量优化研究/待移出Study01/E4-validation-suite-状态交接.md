@@ -94,12 +94,12 @@ Loop 不等于无条件自动推进。以下情况必须停下等待 Codex 或�
 
 1. `README.md`
 2. `Study/01-study-MDM最小偏移量优化研究/README.md`
-3. 本文件：`Study/01-study-MDM最小偏移量优化研究/E4-validation-suite-状态交接.md`
+3. 本文件：`Study/01-study-MDM最小偏移量优化研究/待移出Study01/E4-validation-suite-状态交接.md`
 4. `coworker/plans/2026-07-09-study01-e4-validation-suite.md`
 5. `coworker/handoffs/2026-07-09-study01-e4-validation-suite-hermes.md`
 6. `Study/01-study-MDM最小偏移量优化研究/03-论文骨架.md`
-7. `Study/01-study-MDM最小偏移量优化研究/draft-Ch6-初稿.md`
-8. `Study/01-study-MDM最小偏移量优化研究/E3c-E4-后续决策备忘.md`
+7. `Study/01-study-MDM最小偏移量优化研究/待移出Study01/draft-Ch6-初稿.md`
+8. `Study/01-study-MDM最小偏移量优化研究/待移出Study01/E3c-E4-后续决策备忘.md`
 9. 需要查 E3b 证据时读：
    - `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E3b_vector_mlp/summary.json`
    - `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E3b_vector_mlp/model_comparison.csv`
