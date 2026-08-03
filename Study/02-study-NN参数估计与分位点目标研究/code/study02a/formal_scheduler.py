@@ -24,8 +24,8 @@ from typing import Any, Mapping, Sequence
 from .config import load_frozen_config
 from .formal_config import APPROVED_MAX_EPOCHS, APPROVED_MIN_EPOCHS, load_effective_formal_config
 from .formal_contracts import (
-    APPROVED_FORMAL_SEEDS, APPROVED_SCREENING_SEEDS, FROZEN_MATRIX_ROWS,
-    FROZEN_MATRIX_SHA256, _build_formal_manifest_with_matrix_evidence,
+    APPROVED_EFFECTIVE_CONFIG_SHA256, APPROVED_FORMAL_SEEDS, APPROVED_SCREENING_SEEDS,
+    FROZEN_MATRIX_ROWS, FROZEN_MATRIX_SHA256, _build_formal_manifest_with_matrix_evidence,
     _open_verified_matrix_evidence, _terminal_ols_slope,
 )
 from .formal_runner import build_training_spec, build_validation_spec
@@ -257,6 +257,221 @@ def _git_sha(study_root: Path) -> str:
     return value
 
 
+def _git_commit_exists(repo_root: Path, code_commit: str) -> None:
+    """Verify a commit object exists in the git object database (content-addressed).
+
+    Uses ``git cat-file -t`` (reads only from the object database, no checkout, no
+    worktree). Raises ValueError if the object is missing or not a commit.
+    """
+    result = subprocess.run(
+        ["git", "cat-file", "-t", code_commit],
+        cwd=str(repo_root), capture_output=True, text=True,
+    )
+    if result.returncode != 0 or result.stdout.strip() != "commit":
+        raise ValueError(
+            f"historical code_commit {code_commit} is not a reachable git commit object"
+        )
+
+
+def _git_list_py_blobs(
+    repo_root: Path, code_commit: str, tree_posix: str,
+) -> list[tuple[str, str]]:
+    """List ``(relative_posix_path, git_blob_sha)`` for .py blobs under ``tree_posix``.
+
+    Uses ``git ls-tree -r <commit> -- <tree>``. Returns paths relative to
+    ``tree_posix`` (forward slashes). Fails closed if the tree is missing at the
+    sealed commit (path-set drift between seal time and verification).
+    """
+    result = subprocess.run(
+        ["git", "-c", "core.quotePath=false", "ls-tree", "-r", code_commit, "--", tree_posix],
+        cwd=str(repo_root), capture_output=True, text=True, encoding="utf-8",
+    )
+    if result.returncode != 0:
+        raise ValueError(
+            f"git ls-tree failed at {code_commit}:{tree_posix}: {result.stderr.strip()}"
+        )
+    prefix = tree_posix + "/"
+    blobs: list[tuple[str, str]] = []
+    for line in result.stdout.splitlines():
+        if "\t" not in line:
+            continue
+        meta, path = line.split("\t", 1)
+        parts = meta.split()
+        if len(parts) != 3 or parts[1] != "blob":
+            continue
+        if not path.startswith(prefix) or not path.endswith(".py"):
+            continue
+        relative = path[len(prefix):]
+        if "__pycache__" in relative.split("/"):
+            continue
+        blobs.append((relative, parts[2]))
+    return blobs
+
+
+def _git_read_paths_batch(
+    repo_root: Path, code_commit: str, repo_paths: list[str],
+) -> dict[str, bytes]:
+    """Read multiple file blobs from the git object database in one subprocess.
+
+    Uses ``git cat-file --batch`` with ``<commit>:<path>`` input lines (one
+    subprocess for all paths). Returns raw blob content (git stores LF-normalized
+    text). No checkout, no worktree. Fails closed on any missing path or non-blob.
+    """
+    if not repo_paths:
+        return {}
+    stdin_lines = [f"{code_commit}:{path}" for path in repo_paths]
+    stdin_data = "\n".join(stdin_lines) + "\n"
+    proc = subprocess.run(
+        ["git", "-c", "core.quotePath=false", "cat-file", "--batch"],
+        cwd=str(repo_root), input=stdin_data.encode("utf-8"),
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        raise ValueError("git cat-file --batch failed to read historical blobs")
+    contents: dict[str, bytes] = {}
+    data = proc.stdout
+    pos = 0
+    for expected_path in repo_paths:
+        newline_idx = data.index(b"\n", pos)
+        header = data[pos:newline_idx]
+        pos = newline_idx + 1
+        parts = header.split(b" ")
+        if len(parts) < 3 or parts[1] != b"blob":
+            raise ValueError(
+                f"historical git path {expected_path!r} is missing or not a blob "
+                f"at commit {code_commit} (header={header!r})"
+            )
+        size = int(parts[2])
+        content = data[pos:pos + size]
+        if len(content) != size:
+            raise ValueError("git cat-file --batch truncated blob content")
+        pos += size
+        if pos < len(data) and data[pos:pos + 1] == b"\n":
+            pos += 1
+        contents[expected_path] = content
+    return contents
+
+
+def _crlf_normalize(content: bytes) -> bytes:
+    """Normalize bytes to CRLF (LF -> CRLF, de-duplicating any existing CR)."""
+    return content.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+
+
+def _verify_scoped_code_against_git(
+    study_root: Path, code_commit: str,
+    sealed_files: Mapping[str, str], sealed_scoped_sha: str,
+    *, capsule: Mapping[str, Any] | None = None,
+) -> None:
+    """Verify sealed ``scoped_code_files`` against git blobs at ``code_commit``.
+
+    Content-addressed: reads each scoped .py blob from the git object database
+    (``git cat-file``, no checkout, no worktree) and compares its SHA-256 against the
+    sealed manifest. R4-5: there is NO working-tree fallback -- only the git blob
+    (LF-normalized, as git stores it) and its deterministic LF->CRLF reconstruction
+    are tried. A file whose neither form matches the sealed hash fails closed.
+
+    Line-ending tolerance: git blobs store LF-normalized text, but a Windows working
+    tree may carry CRLF for files that were smudge-converted before the repo's
+    ``eol=lf`` rule took effect. For each file we accept either the LF hash (git blob
+    as-is) or the CRLF hash (LF->CRLF conversion), whichever matches the sealed hash.
+    This is not a weakening: an attacker would need a SHA-256 preimage for either form
+    to forge a file (computationally infeasible). Files whose sealed bytes carry
+    mixed/inconsistent line endings (neither pure LF nor pure CRLF) cannot be
+    reconstructed from the LF-normalized git blob and fail closed -- per R4-5 they
+    MUST NOT be substituted from the current working tree.
+
+    Legacy authority capsule (R4 REVISE): for the uniquely-bound A-E1 r5 run at
+    d2a056f, the 3 scoped files whose sealed bytes had MIXED line endings are
+    reconstructed from the d2a056f git LF blob + the immutable capsule mask. The
+    capsule path is gated on a strict run-binding match (run_id + manifest_version
+    + code_commit + authority_sha256 + scoped_code_sha256); any mismatch means the
+    capsule does not apply and the existing LF/CRLF path runs unchanged. The capsule
+    NEVER reads the working tree -- only git objects + the embedded mask.
+
+    The aggregate ``scoped_code_sha256`` is recomputed from the matched per-file
+    hashes (capsule-reconstructed SHA for capsule files, LF/CRLF SHA for the rest)
+    and must equal ``sealed_scoped_sha``.
+    """
+    study_root = _resolved(study_root)
+    repo_root = study_root.parents[1]
+    code_tree_posix = (study_root.relative_to(repo_root) / "code").as_posix()
+    shared_tree_posix = "python/studies"
+    scoped_to_repo: dict[str, str] = {}
+    all_repo_paths: list[str] = []
+    seen_paths: set[str] = set()
+    for scoped_prefix, tree_posix in (
+        ("study02", code_tree_posix),
+        ("studies", shared_tree_posix),
+    ):
+        for relative_posix, _blob_sha in _git_list_py_blobs(repo_root, code_commit, tree_posix):
+            scoped_key = f"{scoped_prefix}/{relative_posix}"
+            repo_path = f"{tree_posix}/{relative_posix}"
+            scoped_to_repo[scoped_key] = repo_path
+            if repo_path not in seen_paths:
+                seen_paths.add(repo_path)
+                all_repo_paths.append(repo_path)
+    # Path-set gate: the scoped path set at the sealed commit must exactly match
+    # what the manifest sealed. Added/removed files both fail closed.
+    if set(scoped_to_repo) != set(sealed_files):
+        sealed_only = set(sealed_files) - set(scoped_to_repo)
+        git_only = set(scoped_to_repo) - set(sealed_files)
+        raise ValueError(
+            f"historical scoped path-set drift at {code_commit}: "
+            f"sealed_only={sorted(sealed_only)[:5]}, git_only={sorted(git_only)[:5]}"
+        )
+    # R4 REVISE: legacy authority capsule path. The capsule binds the 3 r5
+    # mixed-newline scoped files; if (and only if) the caller has determined the
+    # current run matches the capsule binding (run_id + manifest_version +
+    # code_commit + authority_sha256 + scoped_code_sha256 -- checked in
+    # verify_historical_authority before calling here), the 3 files are
+    # reconstructed from git LF blobs + the immutable mask. A None capsule means
+    # no binding applies; the existing LF/CRLF path runs for every file.
+    capsule_files: dict[str, str] = {}
+    if capsule is not None:
+        from .legacy_authority_capsule import capsule_files_for_verify
+        capsule_files = capsule_files_for_verify(capsule, repo_root, dict(sealed_files))
+    contents = _git_read_paths_batch(repo_root, code_commit, all_repo_paths)
+    matched_files: dict[str, str] = {}
+    for scoped_key, sealed_hash in sealed_files.items():
+        if scoped_key in capsule_files:
+            # R4 REVISE: reconstructed via capsule mask. capsule_files_for_verify
+            # already fail-closed the mask + SHA chain (git_lf_sha256 -> mask ->
+            # sealed_sha256); accept the matched SHA.
+            if capsule_files[scoped_key] != sealed_hash:
+                raise ValueError(
+                    f"historical capsule reconstructed SHA disagrees with sealed for "
+                    f"{scoped_key!r}: recon={capsule_files[scoped_key][:16]}, "
+                    f"sealed={sealed_hash[:16]}"
+                )
+            matched_files[scoped_key] = capsule_files[scoped_key]
+            continue
+        repo_path = scoped_to_repo[scoped_key]
+        content = contents[repo_path]
+        lf_hash = _sha(content)
+        if lf_hash == sealed_hash:
+            matched_files[scoped_key] = lf_hash
+            continue
+        crlf_hash = _sha(_crlf_normalize(content))
+        if crlf_hash == sealed_hash:
+            matched_files[scoped_key] = crlf_hash
+            continue
+        # R4-5: fail closed. No working-tree fallback -- if neither the LF git blob
+        # nor its deterministic CRLF reconstruction matches the sealed hash, the
+        # sealed bytes cannot be recovered from git objects (the file likely had
+        # mixed line endings at seal time). Report and stop; do not substitute.
+        raise ValueError(
+            f"historical scoped blob hash mismatch for {scoped_key!r} at "
+            f"{code_commit}: sealed={sealed_hash[:16]}, "
+            f"lf={lf_hash[:16]}, crlf={crlf_hash[:16]}"
+        )
+    recomputed = _sha(_canonical(matched_files))
+    if recomputed != sealed_scoped_sha:
+        raise ValueError(
+            f"historical scoped_code_sha256 mismatch at {code_commit}: "
+            f"sealed={sealed_scoped_sha[:16]}, recomputed={recomputed[:16]}"
+        )
+
+
 def _read_identity_snapshot(path: Path) -> dict[str, Any]:
     path = _reject_alias(path, require_file=True)
     with path.open("rb") as handle:
@@ -428,10 +643,18 @@ def _predecessor_scope(predecessor: Any, artifact_root: Path) -> Mapping[str, An
     if value is None:
         raise ValueError("predecessor evidence must be a mapping or immutable dataclass")
     root = _resolved(artifact_root)
-    for field in ("trace_path", "receipt_path", "ledger_path"):
+    # Control-plane v2: ``staged_ledger_path`` is optional (None for A-E1 root + legacy
+    # callers); validate scope/alias only when present. ``trace_path``/``receipt_path``/
+    # ``ledger_path`` remain required, so the loop below stays fail-closed for those.
+    for field in ("trace_path", "receipt_path", "ledger_path", "staged_ledger_path"):
         if field not in value:
+            if field == "staged_ledger_path":
+                continue
             raise ValueError(f"predecessor evidence is missing {field}")
-        original = Path(value[field]).absolute()
+        raw = value.get(field)
+        if field == "staged_ledger_path" and raw is None:
+            continue
+        original = Path(raw).absolute()
         _reject_alias(original, require_file=True)
         path = original.resolve(strict=True)
         try:
@@ -442,14 +665,26 @@ def _predecessor_scope(predecessor: Any, artifact_root: Path) -> Mapping[str, An
     return value
 
 
-def _authority(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, artifact_root: Path, cache_root: Path, predecessor: Mapping[str, Any] | None, controller_key_id: str, matrix_bundle: tuple[Any, list[dict[str, str]]] | None = None) -> tuple[dict[str, Any], list[dict[str, Any]], bytes, dict[str, Any]]:
+def _authority(*, study_root: Path, matrix_path: Path, module_id: str, run_id: str, artifact_root: Path, cache_root: Path, predecessor: Mapping[str, Any] | None, controller_key_id: str, matrix_bundle: tuple[Any, list[dict[str, str]]] | None = None, sealed_code_commit: str | None = None, sealed_code_snapshot: Mapping[str, Any] | None = None) -> tuple[dict[str, Any], list[dict[str, Any]], bytes, dict[str, Any]]:
     study_root = _reject_alias(study_root); cache_root = _reject_alias(cache_root)
-    _assert_scoped_code_clean(study_root)
+    if sealed_code_commit is None:
+        # Active run: assert the working tree is clean and derive code/scoped from HEAD.
+        _assert_scoped_code_clean(study_root)
+        code_commit = _git_sha(study_root)
+        code_snapshot = _scoped_code_snapshot(study_root)
+    else:
+        # R3-C historical verification: use the sealed code_commit + pre-computed
+        # content-addressed snapshot (read from git objects, NOT the working tree).
+        # The caller (verify_historical_authority) is responsible for verifying the
+        # commit exists and the snapshot matches the sealed authority before calling.
+        if sealed_code_snapshot is None:
+            raise ValueError("sealed_code_snapshot is required when sealed_code_commit is set")
+        code_commit = sealed_code_commit
+        code_snapshot = sealed_code_snapshot
     predecessor = _predecessor_scope(predecessor, artifact_root)
     matrix_evidence, matrix_rows = _matrix_snapshot(study_root, matrix_path) if matrix_bundle is None else matrix_bundle
     matrix_bytes = matrix_evidence.payload
-    code_commit = _git_sha(study_root); effective = load_effective_formal_config(study_root)
-    code_snapshot = _scoped_code_snapshot(study_root)
+    effective = load_effective_formal_config(study_root)
     selected = [row for row in matrix_rows if row["module"] == module_id]
     rules = tuple(dict.fromkeys(row["rule_id"] for row in selected)); fits = tuple(row["fit_id"] for row in selected)
     formal = _build_formal_manifest_with_matrix_evidence(effective_config=effective, module_id=module_id, run_id=run_id, code_commit=code_commit, matrix_path=matrix_path, matrix_evidence=matrix_evidence, rule_ids=rules, fit_ids=fits, role_namespaces={"training": "study02/formal/training", "validation": "study02/formal/validation"}, screening_seeds=APPROVED_SCREENING_SEEDS, formal_seeds=APPROVED_FORMAL_SEEDS, predecessor=predecessor)
@@ -636,38 +871,6 @@ def _predecessor_from_manifest(manifest: Mapping[str, Any]) -> Mapping[str, Any]
     return None if value is None else value
 
 
-def _rebuild_authority(run_dir: Path, cache_root: Path, *, validate_controller: bool = True) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
-    run_dir = _reject_alias(run_dir); manifest_bytes = _reject_alias(run_dir / "manifest.json", require_file=True).read_bytes()
-    try:
-        manifest = json.loads(manifest_bytes.decode("utf-8"))
-    except (UnicodeError, json.JSONDecodeError) as exc:
-        raise ValueError("manifest must be canonical UTF-8 JSON") from exc
-    if manifest_bytes != _canonical(manifest) or not isinstance(manifest.get("scheduler"), dict) or set(manifest["scheduler"]) != {"scheduler_version", "authority", "fit_count", "genesis_event_sha256", "test_access_count"}:
-        raise ValueError("manifest must match exact scheduler schema/canonical bytes")
-    authority = manifest["scheduler"]["authority"]
-    if set(authority) != {"study_root", "matrix_path", "matrix_sha256", "cache_root", "code_commit", "scoped_code_sha256", "scoped_code_files", "controller_key_id", "effective_config_sha256", "predecessor_input", "predecessor_trace_sha256", "plan_sha256", "authority_sha256"}:
-        raise ValueError("manifest authority schema mismatch")
-    if _resolved(cache_root) != Path(authority["cache_root"]):
-        raise ValueError("cache root differs from the immutable run authority")
-    controller = _controller_context(_resolved(run_dir).parents[1], create=False)
-    formal, expected_plan, expected_plan_bytes, current_authority = _authority(study_root=Path(authority["study_root"]), matrix_path=Path(authority["matrix_path"]), module_id=manifest["module_id"], run_id=manifest["run_id"], artifact_root=_resolved(run_dir).parents[1], cache_root=cache_root, predecessor=_predecessor_from_manifest(manifest), controller_key_id=controller["key_id"])
-    if current_authority != authority:
-        raise ValueError("current code/config/matrix/cache/predecessor authority drift")
-    expected_scheduler = {"scheduler_version": "study02-formal-scheduler-v2", "authority": current_authority, "fit_count": len(expected_plan), "genesis_event_sha256": manifest["scheduler"]["genesis_event_sha256"], "test_access_count": 0}
-    if {**formal, "scheduler": expected_scheduler} != manifest:
-        raise ValueError("current authority does not reproduce the exact manifest")
-    plan_bytes = _reject_alias(run_dir / "plan.jsonl", require_file=True).read_bytes(); plan = _validate_plan(plan_bytes, manifest)
-    if plan_bytes != expected_plan_bytes or plan != expected_plan:
-        raise ValueError("current authority does not reproduce the plan byte-for-byte")
-    events = _load_events(run_dir, manifest); derived = _replay(run_dir, manifest, plan, events)
-    state_bytes, state = _load_exact(run_dir / "scheduler_state.json", _STATE_FIELDS, "scheduler state")
-    if state_bytes != _canonical(derived) or state != derived:
-        raise ValueError("scheduler state differs from full immutable event replay")
-    if validate_controller:
-        _validate_controller_anchors(run_dir, manifest, plan, events, state)
-    return manifest, plan, state, events
-
-
 def _recover_journal(run_dir: Path) -> None:
     path = run_dir / ".scheduler.journal"
     if not path.exists():
@@ -729,6 +932,231 @@ def _recover_journal(run_dir: Path) -> None:
     else:
         raise ValueError("journal matches neither before nor after state")
     path.unlink()
+
+
+def _rebuild_authority(run_dir: Path, cache_root: Path, *, validate_controller: bool = True) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
+    run_dir = _reject_alias(run_dir); manifest_bytes = _reject_alias(run_dir / "manifest.json", require_file=True).read_bytes()
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("manifest must be canonical UTF-8 JSON") from exc
+    if manifest_bytes != _canonical(manifest) or not isinstance(manifest.get("scheduler"), dict) or set(manifest["scheduler"]) != {"scheduler_version", "authority", "fit_count", "genesis_event_sha256", "test_access_count"}:
+        raise ValueError("manifest must match exact scheduler schema/canonical bytes")
+    authority = manifest["scheduler"]["authority"]
+    if set(authority) != {"study_root", "matrix_path", "matrix_sha256", "cache_root", "code_commit", "scoped_code_sha256", "scoped_code_files", "controller_key_id", "effective_config_sha256", "predecessor_input", "predecessor_trace_sha256", "plan_sha256", "authority_sha256"}:
+        raise ValueError("manifest authority schema mismatch")
+    if _resolved(cache_root) != Path(authority["cache_root"]):
+        raise ValueError("cache root differs from the immutable run authority")
+    controller = _controller_context(_resolved(run_dir).parents[1], create=False)
+    formal, expected_plan, expected_plan_bytes, current_authority = _authority(study_root=Path(authority["study_root"]), matrix_path=Path(authority["matrix_path"]), module_id=manifest["module_id"], run_id=manifest["run_id"], artifact_root=_resolved(run_dir).parents[1], cache_root=cache_root, predecessor=_predecessor_from_manifest(manifest), controller_key_id=controller["key_id"])
+    if current_authority != authority:
+        raise ValueError("current code/config/matrix/cache/predecessor authority drift")
+    expected_scheduler = {"scheduler_version": "study02-formal-scheduler-v2", "authority": current_authority, "fit_count": len(expected_plan), "genesis_event_sha256": manifest["scheduler"]["genesis_event_sha256"], "test_access_count": 0}
+    if {**formal, "scheduler": expected_scheduler} != manifest:
+        raise ValueError("current authority does not reproduce the exact manifest")
+    plan_bytes = _reject_alias(run_dir / "plan.jsonl", require_file=True).read_bytes(); plan = _validate_plan(plan_bytes, manifest)
+    if plan_bytes != expected_plan_bytes or plan != expected_plan:
+        raise ValueError("current authority does not reproduce the plan byte-for-byte")
+    events = _load_events(run_dir, manifest); derived = _replay(run_dir, manifest, plan, events)
+    state_bytes, state = _load_exact(run_dir / "scheduler_state.json", _STATE_FIELDS, "scheduler state")
+    if state_bytes != _canonical(derived) or state != derived:
+        raise ValueError("scheduler state differs from full immutable event replay")
+    if validate_controller:
+        _validate_controller_anchors(run_dir, manifest, plan, events, state)
+    return manifest, plan, state, events
+
+
+def verify_historical_authority(
+    run_dir: Path, cache_root: Path, *,
+    validate_controller: bool = True,
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
+    """Content-addressed historical verifier for terminal sealed predecessors (R3-C).
+
+    R4-5: verifies ONLY sealed bytes. Does NOT call current production code
+    (``_authority``/``_plan_rows``) to re-derive or "execute" historical state -- the
+    sealed artifacts are verified directly through their content-addressed hashes:
+
+    * canonical/versioned manifest bytes + exact scheduler/authority schema;
+    * ``authority_sha256`` self-hash (the authority dict is sealed/intact);
+    * frozen config/matrix hash cross-consistency (authority == manifest == constant);
+    * plan canonical bytes/SHA + matrix-row binding (each plan row's
+      ``matrix_row_sha256`` matches the frozen matrix row);
+    * events/claims/receipts/controller anchors + fit identity (full replay, the
+      identical discipline to ``_rebuild_authority``);
+    * commit/scoped code blobs from git objects at ``code_commit`` (LF or CRLF only,
+      NO working-tree fallback -- fail-closed if neither deterministic form matches);
+    * all output SHAs.
+
+    R4 REVISE -- live-claim rejection BEFORE the generic non-terminal judgment and
+    BEFORE scoped-code verification: a sealed predecessor with an outstanding live
+    claim is rejected with an explicit ``"live claim"`` error message, regardless of
+    what the (more general) non-terminal check would otherwise report. This forces
+    the failure mode the chain verifier (and any caller) relies on.
+
+    R4 REVISE -- legacy authority capsule: for the uniquely-bound A-E1 r5 sealed run
+    at d2a056f, the 3 scoped files whose sealed SHA-256 was computed over bytes with
+    MIXED line endings are reconstructed from the d2a056f git LF blob + the
+    immutable capsule mask (see ``legacy_authority_capsule``). The capsule is used
+    ONLY when every binding field matches (run_id + manifest_version + code_commit +
+    authority_sha256 + scoped_code_sha256). Other runs use the existing LF/CRLF
+    path unchanged; the capsule NEVER reads the working tree.
+
+    Accepts ONLY terminal sealed predecessors: ``live_claim is None`` AND every fit
+    state is terminal (``succeeded``/``failed``); ``pending``/``claimed`` fail closed.
+
+    The formal manifest段 byte-comparison (``{**formal, "scheduler": ...}``) is NOT
+    applied: it is version-coupled and a sealed v1 manifest cannot be byte-reproduced
+    by the current v2 build path. The sealed authority dict is verified directly via
+    its ``authority_sha256`` self-hash instead, which is version-independent.
+    """
+    run_dir = _reject_alias(run_dir)
+    manifest_bytes = _reject_alias(run_dir / "manifest.json", require_file=True).read_bytes()
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("manifest must be canonical UTF-8 JSON") from exc
+    if manifest_bytes != _canonical(manifest) or not isinstance(manifest.get("scheduler"), dict) or set(manifest["scheduler"]) != {"scheduler_version", "authority", "fit_count", "genesis_event_sha256", "test_access_count"}:
+        raise ValueError("manifest must match exact scheduler schema/canonical bytes")
+    if manifest.get("manifest_version") not in ("study02-formal-v1", "study02-formal-v2"):
+        raise ValueError("historical manifest_version is unsupported")
+    authority = manifest["scheduler"]["authority"]
+    if set(authority) != {"study_root", "matrix_path", "matrix_sha256", "cache_root", "code_commit", "scoped_code_sha256", "scoped_code_files", "controller_key_id", "effective_config_sha256", "predecessor_input", "predecessor_trace_sha256", "plan_sha256", "authority_sha256"}:
+        raise ValueError("manifest authority schema mismatch")
+    if _resolved(cache_root) != Path(authority["cache_root"]):
+        raise ValueError("cache root differs from the immutable run authority")
+
+    # R4-5: authority_sha256 self-hash. Proves the sealed authority dict is intact
+    # (every field, including code/matrix/config/plan/predecessor hashes, is exactly
+    # what was sealed) WITHOUT re-running current _authority/_plan_rows to re-derive it.
+    authority_without_sha = {key: value for key, value in authority.items() if key != "authority_sha256"}
+    if authority["authority_sha256"] != _sha(_canonical(authority_without_sha)):
+        raise ValueError("historical authority_sha256 self-hash mismatch (sealed bytes tampered)")
+
+    # R4-5: frozen config/matrix hash cross-consistency. The sealed authority, the
+    # manifest block, and the frozen repository constant must all agree exactly.
+    if authority["matrix_sha256"] != manifest["matrix"]["sha256"]:
+        raise ValueError("historical authority matrix_sha256 disagrees with manifest matrix sha256")
+    if authority["matrix_sha256"] != FROZEN_MATRIX_SHA256:
+        raise ValueError("historical authority matrix_sha256 disagrees with the frozen matrix constant")
+    if authority["effective_config_sha256"] != manifest["effective_config"]["sha256"]:
+        raise ValueError("historical authority effective_config_sha256 disagrees with manifest")
+    if authority["effective_config_sha256"] != APPROVED_EFFECTIVE_CONFIG_SHA256:
+        raise ValueError("historical authority effective_config_sha256 disagrees with the frozen constant")
+    if str(manifest["code_commit"]).lower() != str(authority["code_commit"]).lower():
+        raise ValueError("historical manifest code_commit disagrees with authority code_commit")
+
+    sealed_commit = authority["code_commit"]
+    sealed_scoped_files = authority["scoped_code_files"]
+    sealed_scoped_sha = authority["scoped_code_sha256"]
+    sealed_study_root = Path(authority["study_root"])
+
+    # R4-5: plan canonical bytes/SHA verified directly from sealed bytes. Does NOT
+    # call _authority/_plan_rows. ``_validate_plan`` checks that the plan is canonical
+    # JSONL, the schema of each row matches _PLAN_FIELDS, and ``sha(plan_bytes)``
+    # equals ``authority["plan_sha256"]`` (content-addressed).
+    plan_bytes = _reject_alias(run_dir / "plan.jsonl", require_file=True).read_bytes()
+    plan = _validate_plan(plan_bytes, manifest)
+    if manifest["scheduler"]["fit_count"] != len(plan):
+        raise ValueError("historical manifest fit_count does not match the plan length")
+
+    # R4-5: matrix-row binding. Read the frozen matrix CSV (its SHA pins it to
+    # ``FROZEN_MATRIX_SHA256`` via ``_open_verified_matrix_evidence``) and verify each
+    # plan row's ``matrix_row_sha256`` equals ``sha(canonical(matrix_row))`` for the
+    # corresponding fit_id. Content-addressed -- no _plan_rows re-derivation.
+    matrix_evidence = _open_verified_matrix_evidence(Path(authority["matrix_path"]))
+    matrix_rows_by_fit = {row["fit_id"]: row for row in matrix_evidence.rows}
+    for row in plan:
+        matrix_row = matrix_rows_by_fit.get(row["fit_id"])
+        if matrix_row is None:
+            raise ValueError(
+                f"historical plan fit_id {row['fit_id']!r} is absent from the frozen matrix"
+            )
+        if row["matrix_row_sha256"] != _sha(_canonical(matrix_row)):
+            raise ValueError(
+                f"historical plan matrix_row_sha256 mismatch for {row['fit_id']!r}"
+            )
+
+    # Full journal/output replay (identical discipline to _rebuild_authority). The
+    # replay verifies that every event/claim/receipt binds to ``authority_sha256`` and
+    # that each claim's ``fit_identity_sha256`` equals ``sha(canonical(plan_row))``;
+    # output SHAs are verified inside ``_validate_success_files``.
+    events = _load_events(run_dir, manifest)
+    derived = _replay(run_dir, manifest, plan, events)
+    state_bytes, state = _load_exact(run_dir / "scheduler_state.json", _STATE_FIELDS, "scheduler state")
+    if state_bytes != _canonical(derived) or state != derived:
+        raise ValueError("scheduler state differs from full immutable event replay")
+    if validate_controller:
+        _validate_controller_anchors(run_dir, manifest, plan, events, state)
+
+    # R4 REVISE: live-claim rejection BEFORE the generic non-terminal judgment and
+    # BEFORE the (potentially expensive) scoped-code verification. A sealed
+    # predecessor with an outstanding live claim is not a terminal sealed run no
+    # matter what its fit_states look like, and the error must say "live claim"
+    # explicitly so a downstream caller cannot misread it as a generic non-terminal
+    # state. This also lets the scoped-code verifier assume a terminal sealed run.
+    if state.get("live_claim") is not None:
+        live_claim = state["live_claim"] or {}
+        raise ValueError(
+            f"historical verifier rejects a sealed predecessor with a live claim "
+            f"(run_id={state.get('run_id')}, "
+            f"fit_id={live_claim.get('fit_id')}, "
+            f"owner_id={live_claim.get('owner_id')}); "
+            f"live_claim={state['live_claim']}"
+        )
+    # R4-5: terminal fit-state condition. Every fit must be succeeded/failed (no
+    # pending/claimed). Checked AFTER the explicit live-claim rejection above so the
+    # error message always names the precise terminal violation.
+    non_terminal = {
+        fit_id: status for fit_id, status in state["fit_states"].items()
+        if status not in ("succeeded", "failed")
+    }
+    if non_terminal:
+        raise ValueError(
+            f"historical verifier requires all fits to be terminal "
+            f"(succeeded/failed); non_terminal={non_terminal}"
+        )
+
+    # R4-5: content-addressed scoped code verification. Reads git blobs from the
+    # object database ONLY (git cat-file --batch). Each file is accepted if its LF
+    # hash (git blob as stored) or its deterministic CRLF hash (LF->CRLF) matches the
+    # sealed hash. NO working-tree fallback: a file whose neither form matches fails
+    # closed and historical verify stops (mixed-line-ending files cannot be recovered
+    # from the LF-normalized git blob and must NOT be substituted from the worktree).
+    #
+    # R4 REVISE: the A-E1 r5 sealed run at d2a056f has 3 scoped files whose sealed
+    # SHA-256 was computed over bytes with MIXED line endings. A versioned, immutable,
+    # run-scoped legacy authority capsule reconstructs these 3 files from the d2a056f
+    # git LF blob + an embedded newline-position mask. The capsule is used ONLY when
+    # every binding field matches (run_id + manifest_version + code_commit +
+    # authority_sha256 + scoped_code_sha256); any mismatch leaves the existing
+    # LF/CRLF path unchanged (which fails closed for the 3 r5 files but is correct
+    # for every other run). The capsule NEVER reads the working tree.
+    repo_root = _resolved(sealed_study_root).parents[1]
+    _git_commit_exists(repo_root, sealed_commit)
+    capsule: Mapping[str, Any] | None = None
+    try:
+        from .legacy_authority_capsule import (
+            get_legacy_authority_capsule, capsule_binding_matches,
+        )
+        candidate = get_legacy_authority_capsule()
+        if capsule_binding_matches(
+            candidate,
+            run_id=manifest["run_id"],
+            manifest_version=manifest["manifest_version"],
+            code_commit=sealed_commit,
+            authority_sha256=authority["authority_sha256"],
+            scoped_code_sha256=sealed_scoped_sha,
+        ):
+            capsule = candidate
+    except ValueError:
+        # Capsule shape itself is malformed -- fail closed (do not silently fall
+        # through to the LF/CRLF path, which would mask a tampered capsule).
+        raise
+    _verify_scoped_code_against_git(
+        sealed_study_root, sealed_commit, sealed_scoped_files, sealed_scoped_sha,
+        capsule=capsule,
+    )
+    return manifest, plan, state, events
 
 
 def _lock_record(owner_nonce: str) -> dict[str, Any]:

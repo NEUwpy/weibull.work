@@ -91,7 +91,7 @@ def _predecessor_binding(tmp_path: Path, module_id: str) -> dict:
         effective_config=load_effective_formal_config(STUDY_ROOT),
         code_commit="b" * 40,
     )
-    return {
+    result = {
         "module_id": module_id,
         "run_id": run_id,
         "trace_path": trace_path,
@@ -100,7 +100,123 @@ def _predecessor_binding(tmp_path: Path, module_id: str) -> dict:
         "receipt_sha256": binding["receipt_sha256"],
         "ledger_path": ledger_path,
         "selection_code_commit": "b" * 40,
+        # R3-C v2: predecessor authority triple (the predecessor module's sealed
+        # formal-run authority). Synthetic test fixtures use fixed dummy SHAs;
+        # the real path reads these from the predecessor manifest's scheduler.authority.
+        "scoped_code_sha256": "d" * 64,
+        "authority_sha256": "e" * 64,
     }
+    # Control-plane v2: A-E1 and A-E3 predecessors publish a staged_resolution_ledger; the
+    # downstream manifest binds its SHA. Publish a syntactically + cryptographically valid
+    # chained ledger through the production primitives (``_build_stage_record`` +
+    # ``_append_stage_record``) so ``_validate_predecessor`` exercises the real path.
+    staged_ledger_path = _publish_valid_staged_ledger(
+        tmp_path=tmp_path,
+        module_id=module_id,
+        run_id=run_id,
+        trace_sha256=trace_sha256,
+    )
+    if staged_ledger_path is not None:
+        result["staged_ledger_path"] = staged_ledger_path
+        result["staged_ledger_sha256"] = _sha256(staged_ledger_path)
+    return result
+
+
+# Per-module canonical (stage, route) sequences for the staged ledger fixture (mirrors the
+# FC ``_STAGED_LEDGER_SEQUENCES`` constant; duplicated here only to keep the contracts test
+# free of import cycles with the executor). Each entry pairs with a minimal placeholder
+# resolution payload that satisfies the chain validator (only A-E1's ``baseline_input``
+# stage requires a specific resolution value: ``selected:F2_or_V`` in {F2, V}).
+_STAGED_FIXTURE_SEQUENCES = {
+    "A-E1": (
+        ("stage1", "F2"), ("stage2", "F2"), ("winner_retrain", "F2"),
+        ("stage1", "V"), ("stage2", "V"), ("winner_retrain", "V"),
+        ("baseline_input", None), ("final_aliases", None),
+    ),
+    "A-E3": (
+        ("loss", None),
+        ("stage1", "F2_or_V"), ("stage2", "F2_or_V"),
+        ("stage1", "S"), ("stage2", "S"),
+        ("output_form", None),
+        ("shared_winner_retrain", "S"),
+        ("baseline_route", None),
+        ("n_strategy", None),
+        ("final_aliases", None),
+    ),
+}
+
+
+def _publish_valid_staged_ledger(
+    *, tmp_path: Path, module_id: str, run_id: str, trace_sha256: str,
+) -> Path | None:
+    """Publish a cryptographically valid staged_resolution_ledger for an A-E1 or A-E3 predecessor.
+
+    Builds each record with the SAME canonical bytes + SHA discipline as the production
+    ``formal_executor._build_stage_record`` (mirrored here so the contracts test stays free of
+    the executor's heavy import chain). The validator in FC is the single authority: it must
+    accept what the real resolver would write. Returns ``None`` for modules that do not publish
+    a staged ledger (so legacy callers stay valid)."""
+    from study02a.formal_config import load_effective_formal_config
+    from study02a.formal_contracts import _canonical_json_bytes, _STAGED_LEDGER_RECORD_VERSION
+
+    sequence = _STAGED_FIXTURE_SEQUENCES.get(module_id)
+    if sequence is None:
+        return None
+    run_dir = tmp_path / module_id / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    effective = load_effective_formal_config(STUDY_ROOT)
+    zero = "0" * 64
+
+    def _record(stage: str, route: str | None, previous_sha: str,
+                input_payload: dict, resolution: dict) -> dict:
+        resolution_sha = hashlib.sha256(_canonical_json_bytes(dict(resolution))).hexdigest()
+        core = {
+            "record_version": _STAGED_LEDGER_RECORD_VERSION,
+            "module_id": module_id,
+            "run_id": run_id,
+            "code_commit": ("b" * 40).lower(),
+            "effective_config_sha256": effective.effective_config_sha256,
+            "selection_trace_sha256": trace_sha256,
+            "stage": stage,
+            "route": route,
+            "previous_record_sha256": previous_sha,
+            "input": dict(input_payload),
+            "resolution": dict(resolution),
+            "resolution_sha256": resolution_sha,
+        }
+        record_sha = hashlib.sha256(_canonical_json_bytes(core)).hexdigest()
+        return {**core, "record_sha256": record_sha}
+
+    records: list[dict] = []
+    previous_sha = zero
+    for stage, route in sequence:
+        if module_id == "A-E1" and stage == "baseline_input":
+            resolution = {"selected:F2_or_V": "V"}
+        elif module_id == "A-E1" and stage == "final_aliases":
+            resolution = {
+                "selected:A-E1_loss": "transformed_train_z_huber",
+                "selected:A-E1_architecture": "m12",
+                "selected:A-E1_optimizer": "o3",
+            }
+        elif module_id == "A-E1" and stage.startswith("stage"):
+            resolution = {
+                "selected_top_1": "m01", "selected_top_2": "m02",
+                "selected_top_3": "m03", "selected_top_4": "m04",
+            }
+        elif module_id == "A-E1":
+            resolution = {
+                "selected:A-E1_loss": "transformed_train_z_huber",
+                "selected:A-E1_architecture": "m12",
+                "selected:A-E1_optimizer": "o3",
+            }
+        else:  # A-E3 placeholder resolutions (chain shape only; A-E3 resolver is wired in C4)
+            resolution = {f"{stage}:{route or 'none'}": "placeholder"}
+        record = _record(stage, route, previous_sha, {"fixture": "test_staged_ledger"}, resolution)
+        records.append(record)
+        previous_sha = record["record_sha256"]
+    staged_ledger_path = run_dir / "staged_resolution_ledger.jsonl"
+    staged_ledger_path.write_bytes(b"".join(_canonical_json_bytes(record) for record in records))
+    return staged_ledger_path
 
 
 def _kwargs(module_id: str, tmp_path: Path) -> dict:

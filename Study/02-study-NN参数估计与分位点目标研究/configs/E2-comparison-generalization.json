@@ -1,0 +1,34 @@
+{
+  "experiment_id": "E2-comparison-generalization",
+  "questions": ["A2", "A3", "A9", "A10", "A19"],
+  "source_run": "C:\\weibull-runs\\study02\\artifacts\\A-E3\\A-E3-formal-r2-20260730-111949",
+  "source_commit": "996434b2111ba328adda41d8593d7304a7a32250",
+  "cache_root": "C:\\weibull-runs\\study02\\cache",
+  "output_root": "C:\\weibull-runs\\study02\\lean\\E2-comparison-generalization",
+  "confirmation": {
+    "design_seed": 220512,
+    "sample_seed": 320512,
+    "core": {"parameter_points": 64, "repeats_per_point_n": 10},
+    "stress_each": {"parameter_points": 32, "repeats_per_point_n": 5},
+    "unseen_n": {"parameter_points": 64, "repeats_per_point_n": 10}
+  },
+  "sample_sizes": {
+    "core": [5, 7, 10, 15, 20],
+    "unseen_interpolation": [6, 8, 12],
+    "unseen_extrapolation": [25, 30, 50]
+  },
+  "layers": {
+    "core": {"beta": [1.2, 4.0], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+    "boundary_low": {"beta": [0.6, 1.2], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+    "boundary_high": {"beta": [4.0, 8.0], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+    "location_stress": {"beta": [1.2, 4.0], "eta": [100.0, 10000.0], "rho": [-0.5, 2.0]}
+  },
+  "models": {
+    "fixed": {"rule_id": "A-E3_joint_independent", "route": "selected:F2_or_V:joint", "architecture": "m12"},
+    "shared": {"rule_id": "A-E3_fixed_shared", "route": "S", "architecture": "d12"}
+  },
+  "traditional_methods": ["mle", "mdm", "lre"],
+  "failure_penalty": 10.0,
+  "bootstrap": {"replicates": 2000, "seed": 520512},
+  "note": "Independent lean confirmation namespace. Reads frozen A-E3 checkpoints and training caches only; does not read or consume formal test namespaces."
+}

@@ -331,7 +331,7 @@ def _bundle_inputs(tmp_path: Path, *, fixture=None):
     run_id = "G3-AE1-formal-v1"
     fit_ids = [r["fit_id"] for r in rows_out]
     manifest = _json(tmp_path / "manifest.json", {
-        "manifest_version": "study02-formal-v1", "module_id": "A-E1", "run_id": run_id, "code_commit": "c" * 40,
+        "manifest_version": "study02-formal-v2", "module_id": "A-E1", "run_id": run_id, "code_commit": "c" * 40,
         "base_protocol": {"id": "A-G2-v1", "sha256": "f82e078051d760d7c9c11ece54b8fae7360c6db1aef3229a97b4fcd92ae01a11"},
         "base_search": {"id": "A-G2-search-v1", "sha256": "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed889534ed4f6ab5e0ca13"},
         "amendment": {"id": "A-G3-pilot-amendment-v4", "sha256": "164e72658669dbb57f6dab8b1fc80099bd319f1fa327d5dda60cb61cb929ee38"},
@@ -344,7 +344,10 @@ def _bundle_inputs(tmp_path: Path, *, fixture=None):
         "test_state": "sealed",
         "predecessor": {"module_id": "none", "run_id": "none", "selection_trace_path": "none",
                         "selection_trace_sha256": "none", "selection_receipt_path": "none",
-                        "selection_receipt_sha256": "none", "selection_ledger_path": "none"},
+                        "selection_receipt_sha256": "none", "selection_ledger_path": "none",
+                        "selection_staged_ledger_path": "none", "selection_staged_ledger_sha256": "none",
+                        "resolved_baseline_route": "none",
+                        "code_commit": "none", "scoped_code_sha256": "none", "authority_sha256": "none"},
     })
     trace = tmp_path / "selection_trace.jsonl"
     from study02a.formal_contracts import write_selection_trace

@@ -1,0 +1,29 @@
+{
+  "experiment_id": "E3-equivariance-robustness",
+  "questions": ["A14", "A15", "A16"],
+  "source_run": "C:\\weibull-runs\\study02\\artifacts\\A-E3\\A-E3-formal-r2-20260730-111949",
+  "source_commit": "996434b2111ba328adda41d8593d7304a7a32250",
+  "cache_root": "C:\\weibull-runs\\study02\\cache",
+  "output_root": "C:\\weibull-runs\\study02\\lean\\E3-equivariance-robustness",
+  "confirmation": {
+    "design_seed": 220513,
+    "sample_seed": 320513,
+    "n": 20,
+    "parameter_points": 32,
+    "repeats_per_point": 5
+  },
+  "core": {"beta": [1.2, 4.0], "eta": [100.0, 10000.0], "rho": [0.0, 1.0]},
+  "model": {
+    "rule_id": "A-E3_joint_independent",
+    "route": "selected:F2_or_V:joint",
+    "architecture": "m12"
+  },
+  "traditional_methods": ["mle", "mdm", "lre"],
+  "scale_factors": [0.001, 1000.0],
+  "translation_eta_multipliers": [-0.5, 0.5, 5.0],
+  "outliers": ["high_3", "high_10", "low_iqr", "bilateral_10pct"],
+  "equivariance_relative_tolerance": 1e-6,
+  "failure_penalty": 10.0,
+  "bootstrap": {"replicates": 2000, "seed": 520513},
+  "note": "Independent paired confirmation. Reads frozen A-E3 checkpoints/training cache only; no formal test access and no training."
+}

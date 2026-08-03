@@ -30,6 +30,7 @@ from .formal_contracts import (
     FROZEN_MATRIX_SHA256,
     _CODE_COMMIT_RE,
     _PREDECESSOR_BY_MODULE,
+    _tie_break_sort_key,
 )
 from .matrix import expand_module_matrix
 
@@ -922,23 +923,31 @@ class G3Authority:
 def verify_g3_chain_authority(
     *, chain: G3RunChain, cache_root: Path,
 ) -> G3Authority:
-    """Call _rebuild_authority on all three runs; verify no live claims.
+    """Content-addressed verification of all three sealed runs (R3-C).
 
-    Each run must pass full replay: manifest, plan, events, scheduler state,
-    controller anchors. Any live claim fails closed.
+    Each run is verified via ``verify_historical_authority``: scoped code blobs are
+    read from the git object database at each manifest's sealed ``code_commit``
+    (no checkout, no worktree, no requirement that current HEAD match any sealed
+    commit). Each run must pass full replay: manifest, plan, events, scheduler
+    state, controller anchors. The historical verifier also enforces terminal
+    sealed status (no live claim) for every predecessor. Active runs still use
+    ``_rebuild_authority`` (current-HEAD strict) outside this function.
     """
-    from .formal_scheduler import _rebuild_authority
+    from .formal_scheduler import verify_historical_authority
 
-    ae1_manifest, ae1_plan, ae1_state, ae1_events = _rebuild_authority(
+    ae1_manifest, ae1_plan, ae1_state, ae1_events = verify_historical_authority(
         chain.ae1_run_dir, cache_root,
     )
-    ae3_manifest, ae3_plan, ae3_state, ae3_events = _rebuild_authority(
+    ae3_manifest, ae3_plan, ae3_state, ae3_events = verify_historical_authority(
         chain.ae3_run_dir, cache_root,
     )
-    ae2_manifest, ae2_plan, ae2_state, ae2_events = _rebuild_authority(
+    ae2_manifest, ae2_plan, ae2_state, ae2_events = verify_historical_authority(
         chain.ae2_run_dir, cache_root,
     )
 
+    # verify_historical_authority already enforces no-live-claim per module; the
+    # explicit re-check below is defense-in-depth against any future caller that
+    # might bypass the historical verifier.
     for module_id, state in [("A-E1", ae1_state), ("A-E3", ae3_state), ("A-E2", ae2_state)]:
         live_claim = state.get("live_claim")
         if live_claim is not None:
@@ -958,7 +967,16 @@ def verify_g3_chain_authority(
 def _verify_chain_consistency(
     ae1_manifest: dict, ae3_manifest: dict, ae2_manifest: dict, chain: G3RunChain,
 ) -> None:
-    """Verify module/run/predecessor, code commit, effective config, matrix authority consistency."""
+    """Verify module/run/predecessor, per-module code authority, effective config, matrix.
+
+    R3-C: the old ``len(code_commits) == 1`` gate is removed. Each module carries its
+    own independent code authority (bound in its manifest's ``scheduler.authority``).
+    Cross-commit chains are valid as long as predecessor authority continuity holds:
+    each downstream's predecessor段 must bind the exact authority triple
+    (``code_commit``, ``scoped_code_sha256``, ``authority_sha256``) of the predecessor
+    module's sealed manifest. Forged authority triples or stale predecessor bindings
+    fail closed here.
+    """
     if ae1_manifest.get("module_id") != "A-E1":
         raise ValueError(f"A-E1 manifest module_id is {ae1_manifest.get('module_id')!r}")
     if ae3_manifest.get("module_id") != "A-E3":
@@ -973,13 +991,10 @@ def _verify_chain_consistency(
     if ae2_manifest.get("run_id") != chain.ae2_run_id:
         raise ValueError("A-E2 manifest run_id mismatch with chain")
 
-    code_commits = {
-        ae1_manifest.get("code_commit"),
-        ae3_manifest.get("code_commit"),
-        ae2_manifest.get("code_commit"),
-    }
-    if len(code_commits) != 1:
-        raise ValueError(f"three runs have inconsistent code_commit: {code_commits}")
+    # R3-C: per-module independent code authority. Each manifest binds its own
+    # code_commit (content-addressed by verify_historical_authority); cross-commit
+    # chains are valid. The old single-commit gate is replaced by predecessor
+    # authority continuity checks below.
 
     config_shas = {
         ae1_manifest.get("effective_config", {}).get("sha256"),
@@ -1007,6 +1022,53 @@ def _verify_chain_consistency(
     ae2_pred = ae2_manifest.get("predecessor", {})
     if ae2_pred.get("module_id") != "A-E3" or ae2_pred.get("run_id") != chain.ae3_run_id:
         raise ValueError("A-E2 predecessor does not point to A-E3 chain run")
+
+    # R3-C predecessor authority continuity: each downstream predecessor段 must bind
+    # the exact authority triple of its predecessor module's sealed manifest. This is
+    # the cross-commit linkage -- it proves the downstream was sealed against the
+    # specific predecessor authority, not a swapped or forged one. v1 manifests
+    # without the triple fields are rejected here (v1/v2 mixing fails closed).
+    _assert_predecessor_authority_continuity("A-E3", ae3_pred, ae1_manifest)
+    _assert_predecessor_authority_continuity("A-E2", ae2_pred, ae3_manifest)
+
+
+def _assert_predecessor_authority_continuity(
+    downstream_module: str,
+    predecessor_section: Mapping[str, Any],
+    predecessor_manifest: Mapping[str, Any],
+) -> None:
+    """Verify the downstream's predecessor段 binds the predecessor's sealed authority.
+
+    Extracts the authority triple (``code_commit``, ``scoped_code_sha256``,
+    ``authority_sha256``) from the predecessor manifest's ``scheduler.authority``
+    block and compares it against the triple bound in the downstream's predecessor
+    section. A mismatch means the downstream was sealed against a different
+    predecessor authority (swap, stale binding, or forgery) and fails closed.
+    """
+    if predecessor_manifest.get("module_id") != predecessor_section.get("module_id"):
+        raise ValueError(
+            f"{downstream_module} predecessor authority continuity: predecessor段 "
+            f"module_id {predecessor_section.get('module_id')!r} does not match "
+            f"the chained predecessor manifest module_id "
+            f"{predecessor_manifest.get('module_id')!r}"
+        )
+    predecessor_authority = predecessor_manifest.get("scheduler", {}).get("authority", {})
+    triple_fields = ("code_commit", "scoped_code_sha256", "authority_sha256")
+    for field in triple_fields:
+        bound_value = predecessor_section.get(field)
+        sealed_value = predecessor_authority.get(field)
+        if bound_value is None:
+            raise ValueError(
+                f"{downstream_module} predecessor段 is missing authority triple field "
+                f"{field!r} (v1/v2 schema mixing is rejected)"
+            )
+        if sealed_value is None or bound_value != sealed_value:
+            raise ValueError(
+                f"{downstream_module} predecessor authority discontinuity: {field} "
+                f"bound={bound_value!r} but predecessor manifest authority has "
+                f"{sealed_value!r}"
+            )
+
 
 
 def derive_g3_cohort_from_authority(
@@ -1101,8 +1163,12 @@ def resolve_g3_placeholders_from_evidence(
 ) -> tuple[ResolvedCohortEntry, ...]:
     """Resolve all selected:*/selected_top_*/training_size=-1 from verified selection evidence.
 
-    A-E1: verified staged ledger (hash chain + field binding) → final_aliases + baseline_input.
-    A-E3/A-E2: _validate_selection_evidence on run-root trace/receipt/ledger → explicit alias mapping.
+    A-E1: verified staged ledger (hash chain + field binding + checkpoint rebuild) → final_aliases.
+    A-E3: verified staged ledger (10-record semantic rebuild + n_strategy checkpoint rebuild)
+    → stage-specific aliases for A-E3's own cohort fits + the n_strategy winner's concrete
+    baseline tuple (consumed by A-E2 as the predecessor baseline; NOT the ordinary
+    output_form winner).
+    A-E2: _validate_selection_evidence on run-root trace/receipt/ledger → explicit alias mapping.
     No defaults, no glob, no raw JSON trust, no selected:{decision_id} guessing.
     """
     resolutions: dict[str, dict[str, str]] = {"A-E1": {}, "A-E3": {}, "A-E2": {}}
@@ -1112,9 +1178,22 @@ def resolve_g3_placeholders_from_evidence(
         resolutions["A-E1"], study_root=study_root, cache_root=cache_root,
         frozen_config=frozen_config,
     )
-    _resolve_a_e3_from_selection(
-        chain.ae3_run_dir, chain.ae3_run_id, resolutions["A-E3"], frozen_config=frozen_config,
+    ae3_baseline = _resolve_a_e3_from_staged_ledger(
+        chain.ae3_run_dir, chain.ae3_run_id, code_commit, effective_config_sha256,
+        resolutions["A-E3"], study_root=study_root, cache_root=cache_root,
+        frozen_config=frozen_config,
     )
+    # A-E2 consumes the A-E3 n_strategy winner's concrete baseline tuple as its predecessor
+    # baseline. The frozen A-E2 matrix references selected:A-E3_{loss,architecture,optimizer,
+    # baseline} -- these resolve to the n_strategy winner's tuple (fixed → F2/V route + fixed
+    # arch/opt/loss; shared → S + DeepSets arch/opt/loss), NOT the A-E3 stage-specific F2/V
+    # aliases (which mean something different inside A-E3's own output_form fits). Seed the
+    # A-E2 resolution namespace before the A-E2 selection resolver runs so both sets of
+    # aliases coexist without overwriting each other.
+    resolutions["A-E2"]["selected:A-E3_loss"] = str(ae3_baseline["loss"])
+    resolutions["A-E2"]["selected:A-E3_architecture"] = str(ae3_baseline["architecture"])
+    resolutions["A-E2"]["selected:A-E3_optimizer"] = str(ae3_baseline["optimizer"])
+    resolutions["A-E2"]["selected:A-E3_baseline"] = str(ae3_baseline["route"])
     _resolve_a_e2_from_selection(
         chain.ae2_run_dir, chain.ae2_run_id, resolutions["A-E2"], frozen_config=frozen_config,
     )
@@ -1504,6 +1583,395 @@ def _resolve_a_e3_from_selection(
         raise ValueError("A-E3 selection has no verified S/shared optimizer winner")
 
 
+_A_E3_STAGED_SEQUENCE = (
+    ("loss", None),
+    ("stage1", "F2_or_V"),
+    ("stage2", "F2_or_V"),
+    ("stage1", "S"),
+    ("stage2", "S"),
+    ("output_form", None),
+    ("shared_winner_retrain", "S"),
+    ("baseline_route", None),
+    ("n_strategy", None),
+    ("final_aliases", None),
+)
+
+
+def _resolve_a_e3_from_staged_ledger(
+    run_dir: Path, run_id: str, code_commit: str, effective_config_sha256: str,
+    out: dict[str, str], *, study_root: Path, cache_root: Path,
+    frozen_config: FrozenConfig, score_n_strategy_cell=None,
+) -> dict[str, str]:
+    """Read and verify the A-E3 staged resolution ledger; rebuild n_strategy; return baseline.
+
+    Mirrors :func:`_resolve_a_e1_from_staged_ledger`. Validates the 10-record chain's shape
+    (field set / record_version / trace SHA binding / semantic order / hash chain /
+    resolution+record self-SHA), cross-binds each record to the independently verified
+    selection trace + stage receipts + the A-E1 predecessor manifest binding, and then
+    INDEPENDENTLY REBUILDS the n_strategy winner from checkpoint scoring
+    (:func:`rebuild_a_e3_n_strategy_provenance`). Record 9 (``n_strategy``) is verified
+    against the rebuilt winner / candidate supporting-evidence SHAs / rule_result, and
+    record 10 (``final_aliases``) is verified against the n_strategy winner's concrete
+    baseline tuple.
+
+    ``out`` is populated with the A-E3 stage-specific aliases (loss / F2_or_V stage2
+    winner arch+opt / S stage2 winner arch+opt / output_form winner / predecessor route /
+    n_strategy winner) -- these are the values A-E3's OWN cohort fits consume. The
+    returned dict is the n_strategy winner's concrete baseline tuple
+    (``route`` / ``loss`` / ``architecture`` / ``optimizer`` / ``output_form``) that A-E2
+    consumes as the A-E3 baseline; it is NOT the ordinary ``output_form`` trace winner
+    (R4-4#6: the n_strategy winner is the authority, not the output_form winner).
+
+    ``score_n_strategy_cell`` (tests) injects synthetic per-cell n_strategy evaluations
+    without checkpoint scoring; production (``None``) rebuilds from bound checkpoints.
+    """
+    from .formal_executor import (
+        _validate_selection_evidence, _read_staged_ledger, _ZERO_HASH,
+        _A_E3_N_STRATEGY_DECISION_ID, _A_E3_N_STRATEGY_FIXED, _A_E3_N_STRATEGY_SHARED,
+        _A_E3_N_STRATEGY_CANDIDATES, _A_E3_LOSS_DECISION_ID, _A_E3_OUTPUT_FORM_DECISION_ID,
+        _A_E3_FV_TOKEN, _A_E3_S_TOKEN,
+        _a_e3_stage1_decision_id, _a_e3_stage2_decision_id, _a_e3_stage2_winner_keys,
+        _parse_stage2_winner_candidate, rebuild_a_e3_n_strategy_provenance,
+        resolve_selected_placeholders,
+    )
+    from .selection import SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT
+
+    trace_path = run_dir / "selection_trace.jsonl"
+    receipt_path = run_dir / "selection_receipt.json"
+    ledger_path = run_dir / "selection_ledger.jsonl"
+    for p, name in [(trace_path, "selection_trace.jsonl"), (receipt_path, "selection_receipt.json"), (ledger_path, "selection_ledger.jsonl")]:
+        if not p.is_file():
+            raise ValueError(f"A-E3 {name} required at run root: {p}")
+
+    verified_trace_sha = _sha256_file(trace_path)
+    trace_records = _validate_selection_evidence(
+        selection_trace_path=trace_path, selection_trace_sha256=verified_trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+
+    staged_path = run_dir / "staged_resolution_ledger.jsonl"
+    if not staged_path.is_file():
+        raise ValueError(f"A-E3 staged_resolution_ledger.jsonl required: {staged_path}")
+    records = _read_staged_ledger(run_dir)
+    if not records:
+        raise ValueError("A-E3 staged resolution ledger is empty")
+
+    _STAGED_REQUIRED_FIELDS = {
+        "record_version", "module_id", "run_id", "code_commit",
+        "effective_config_sha256", "selection_trace_sha256", "stage", "route",
+        "previous_record_sha256", "input", "resolution", "resolution_sha256",
+        "record_sha256",
+    }
+    _STAGED_RECORD_VERSION = "study02-staged-resolution-v1"
+
+    if len(records) != len(_A_E3_STAGED_SEQUENCE):
+        raise ValueError(
+            f"A-E3 staged ledger must contain exactly {len(_A_E3_STAGED_SEQUENCE)} records; "
+            f"got {len(records)}"
+        )
+    by_stage_route: dict[tuple[str, str | None], dict[str, Any]] = {}
+    previous_sha = _ZERO_HASH
+    for index, record in enumerate(records):
+        if set(record) != _STAGED_REQUIRED_FIELDS:
+            raise ValueError(f"A-E3 staged record has unexpected field set: {set(record)}")
+        if record.get("record_version") != _STAGED_RECORD_VERSION:
+            raise ValueError(f"A-E3 staged record_version is {record.get('record_version')!r}")
+        if record.get("selection_trace_sha256") != verified_trace_sha:
+            raise ValueError(
+                "A-E3 staged record selection_trace_sha256 does not match verified root trace SHA"
+            )
+        if record.get("module_id") != "A-E3":
+            raise ValueError(f"A-E3 staged record module_id is {record.get('module_id')!r}")
+        if record.get("run_id") != run_id:
+            raise ValueError("A-E3 staged record run_id mismatch")
+        if record.get("code_commit") != code_commit.lower():
+            raise ValueError("A-E3 staged record code_commit mismatch")
+        if record.get("effective_config_sha256") != effective_config_sha256:
+            raise ValueError("A-E3 staged record effective_config_sha256 mismatch")
+
+        stage = record.get("stage")
+        route = record.get("route")
+        actual_key = (stage, route)
+        expected_key = _A_E3_STAGED_SEQUENCE[index]
+        if actual_key != expected_key:
+            raise ValueError(
+                f"A-E3 staged ledger semantic order mismatch at index {index}: "
+                f"expected {expected_key!r}, got {actual_key!r}"
+            )
+        if actual_key in by_stage_route:
+            raise ValueError(f"A-E3 staged ledger duplicate stage/route: {actual_key!r}")
+        by_stage_route[actual_key] = record
+
+        if record.get("previous_record_sha256") != previous_sha:
+            raise ValueError(
+                f"A-E3 staged ledger hash chain broken at stage={stage}: "
+                f"expected previous={previous_sha}, got {record.get('previous_record_sha256')}"
+            )
+
+        resolution = record.get("resolution", {})
+        resolution_sha = _sha256_bytes(_canonical(dict(resolution)))
+        if record.get("resolution_sha256") != resolution_sha:
+            raise ValueError(f"A-E3 staged record resolution_sha256 mismatch at stage={stage}")
+
+        core = {k: v for k, v in record.items() if k != "record_sha256"}
+        expected_sha = _sha256_bytes(_canonical(core))
+        if record.get("record_sha256") != expected_sha:
+            raise ValueError(f"A-E3 staged record SHA mismatch at stage={stage}")
+
+        previous_sha = record["record_sha256"]
+
+    # Reconstruct each stage's meaning from the independently verified root selection trace.
+    evidence_kwargs = dict(
+        selection_trace_path=trace_path, selection_trace_sha256=verified_trace_sha,
+        selection_receipt_path=receipt_path, selection_ledger_path=ledger_path,
+        module_id="A-E3", run_id=run_id,
+    )
+    by_decision: dict[str, list[dict[str, Any]]] = {}
+    for trace_record in trace_records:
+        by_decision.setdefault(str(trace_record["decision_id"]), []).append(trace_record)
+
+    def _trace_winner(decision_id: str) -> dict[str, Any]:
+        recs = by_decision.get(decision_id, [])
+        winner = next((r for r in recs if r.get("selected") is True), None)
+        if winner is None:
+            raise ValueError(f"A-E3 selection trace decision {decision_id!r} has no selected winner")
+        return winner
+
+    def _ranking(decision_id: str) -> list[dict[str, Any]]:
+        return sorted(
+            by_decision.get(decision_id, []),
+            key=lambda r: (float(r["validation_score"]), _tie_break_sort_key(r["tie_break_key"]),
+                           str(r["candidate_id"])),
+        )
+
+    # (1) loss winner -----------------------------------------------------------
+    loss_winner = _trace_winner(_A_E3_LOSS_DECISION_ID)
+    loss_id = str(loss_winner["candidate_id"])
+    loss_record = by_stage_route[("loss", None)]
+    if loss_record.get("resolution") != {"selected:A-E3_loss": loss_id}:
+        raise ValueError("A-E3 staged loss resolution disagrees with verified trace winner")
+    if loss_record.get("input") != {
+        "decision_id": _A_E3_LOSS_DECISION_ID,
+        "winner_candidate_id": loss_id,
+        "winner_supporting_evidence_sha256": str(loss_winner["supporting_evidence_sha256"]),
+    }:
+        raise ValueError("A-E3 staged loss input/evidence disagrees with verified trace")
+
+    # (2-5) per-token stage1 top4 + stage2 winner -------------------------------
+    token_winners: dict[str, dict[str, str]] = {}
+    token_top4: dict[str, dict[str, str]] = {}
+    for token in (_A_E3_FV_TOKEN, _A_E3_S_TOKEN):
+        stage1_dec = _a_e3_stage1_decision_id(token)
+        stage2_dec = _a_e3_stage2_decision_id(token)
+        stage1_ranking = _ranking(stage1_dec)
+        expected_top4 = {
+            f"selected_top_{slot}": str(stage1_ranking[slot - 1]["candidate_id"])
+            for slot in range(1, min(5, len(stage1_ranking) + 1))
+        }
+        if len(expected_top4) != 4:
+            raise ValueError(
+                f"A-E3 stage1 decision {stage1_dec!r} must select exactly 4 architectures "
+                f"(got {len(expected_top4)})")
+        # resolve_selected_placeholders re-derives the same top4 from the verified trace
+        # (partial-trace discipline) and is the authority the staged ledger must bind.
+        resolve_selected_placeholders(
+            placeholders={f"selected_top_{slot}": stage1_dec for slot in range(1, 5)},
+            **evidence_kwargs,
+        )
+        token_top4[token] = expected_top4
+
+        stage1_record = by_stage_route[("stage1", token)]
+        expected_stage1_input = {
+            "decision_id": stage1_dec,
+            "ranking": [
+                {"candidate_id": str(r["candidate_id"]),
+                 "validation_score": float(r["validation_score"]),
+                 "selected": bool(r["selected"]),
+                 "supporting_evidence_sha256": str(r["supporting_evidence_sha256"])}
+                for r in stage1_ranking
+            ],
+        }
+        if stage1_record.get("input") != expected_stage1_input:
+            raise ValueError(f"A-E3 stage1:{token} input disagrees with verified trace ranking")
+        if stage1_record.get("resolution") != expected_top4:
+            raise ValueError(f"A-E3 stage1:{token} resolution disagrees with verified trace top4")
+
+        stage2_winner = _trace_winner(stage2_dec)
+        arch_placeholder, optimizer = _parse_stage2_winner_candidate(str(stage2_winner["candidate_id"]))
+        if arch_placeholder not in expected_top4:
+            raise ValueError(
+                f"A-E3 stage2:{token} winner slot {arch_placeholder!r} is outside the verified top4")
+        arch_key, opt_key = _a_e3_stage2_winner_keys(token)
+        concrete_arch = expected_top4[arch_placeholder]
+        expected_stage2_resolution = {arch_key: concrete_arch, opt_key: optimizer}
+        token_winners[token] = expected_stage2_resolution
+
+        stage2_record = by_stage_route[("stage2", token)]
+        expected_stage2_input = {
+            "decision_id": stage2_dec,
+            "winner_candidate_id": str(stage2_winner["candidate_id"]),
+            "winner_supporting_evidence_sha256": str(stage2_winner["supporting_evidence_sha256"]),
+            "stage1_record_sha256": stage1_record["record_sha256"],
+            "resolved_top_slot": arch_placeholder,
+        }
+        if stage2_record.get("input") != expected_stage2_input:
+            raise ValueError(f"A-E3 stage2:{token} input/predecessor cross-binding mismatch")
+        if stage2_record.get("resolution") != expected_stage2_resolution:
+            raise ValueError(f"A-E3 stage2:{token} resolution disagrees with verified trace/top4")
+
+    fv_winner = token_winners[_A_E3_FV_TOKEN]
+    s_winner = token_winners[_A_E3_S_TOKEN]
+    fv_arch_key, fv_opt_key = _a_e3_stage2_winner_keys(_A_E3_FV_TOKEN)
+    s_arch_key, s_opt_key = _a_e3_stage2_winner_keys(_A_E3_S_TOKEN)
+
+    # (6) output_form winner ----------------------------------------------------
+    output_form_winner = _trace_winner(_A_E3_OUTPUT_FORM_DECISION_ID)
+    baseline_alias = str(output_form_winner["candidate_id"])
+    output_form_record = by_stage_route[("output_form", None)]
+    if output_form_record.get("resolution") != {"selected:A-E3_baseline": baseline_alias}:
+        raise ValueError("A-E3 output_form resolution disagrees with verified trace winner")
+    if output_form_record.get("input") != {
+        "decision_id": _A_E3_OUTPUT_FORM_DECISION_ID,
+        "winner_candidate_id": baseline_alias,
+        "winner_supporting_evidence_sha256": str(output_form_winner["supporting_evidence_sha256"]),
+    }:
+        raise ValueError("A-E3 output_form input/evidence disagrees with verified trace")
+
+    # (7) shared_winner_retrain:S aliases ---------------------------------------
+    shared_record = by_stage_route[("shared_winner_retrain", "S")]
+    expected_shared_resolution = {
+        "selected:A-E3_loss": loss_id,
+        s_arch_key: s_winner[s_arch_key],
+        s_opt_key: s_winner[s_opt_key],
+    }
+    if shared_record.get("input") != {
+        "loss_record_sha256": loss_record["record_sha256"],
+        "stage2_S_record_sha256": by_stage_route[("stage2", "S")]["record_sha256"],
+        "placeholder_fields": ["selected:A-E3_loss", s_arch_key, s_opt_key],
+    }:
+        raise ValueError("A-E3 shared_winner_retrain:S predecessor cross-binding mismatch")
+    if shared_record.get("resolution") != expected_shared_resolution:
+        raise ValueError("A-E3 shared_winner_retrain:S resolution disagrees with loss/stage2:S")
+
+    # (8) baseline_route -> predecessor resolved route --------------------------
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    predecessor_section = manifest["predecessor"]
+    predecessor_resolved_route = str(predecessor_section["resolved_baseline_route"])
+    if predecessor_resolved_route not in ("F2", "V"):
+        raise ValueError(
+            f"A-E3 manifest predecessor resolved_baseline_route must be F2 or V "
+            f"(got {predecessor_resolved_route!r})")
+    baseline_route_record = by_stage_route[("baseline_route", None)]
+    expected_baseline_input = {
+        "predecessor_module_id": str(predecessor_section["module_id"]),
+        "predecessor_run_id": str(predecessor_section["run_id"]),
+        "predecessor_selection_trace_sha256": str(predecessor_section["selection_trace_sha256"]),
+        "predecessor_staged_ledger_sha256": str(predecessor_section["selection_staged_ledger_sha256"]),
+        "predecessor_resolved_baseline_route": predecessor_resolved_route,
+    }
+    if baseline_route_record.get("input") != expected_baseline_input:
+        raise ValueError("A-E3 baseline_route input disagrees with manifest predecessor binding")
+    if baseline_route_record.get("resolution") != {"selected:F2_or_V": predecessor_resolved_route}:
+        raise ValueError("A-E3 baseline_route resolution disagrees with predecessor route")
+
+    # (9) n_strategy -> independently rebuild winner from checkpoint scoring ----
+    rebuilt = rebuild_a_e3_n_strategy_provenance(
+        study_root=study_root, run_dir=run_dir, cache_root=cache_root, run_id=run_id,
+        score_n_strategy_cell=score_n_strategy_cell,
+    )
+    rebuilt_winner = rebuilt["winner"]
+    rebuilt_evidence = rebuilt["evidence_by_candidate"]
+    rebuilt_rule_result = rebuilt["rule_result"]
+    if rebuilt_winner not in _A_E3_N_STRATEGY_CANDIDATES:
+        raise ValueError(f"A-E3 n_strategy rebuild returned an invalid winner {rebuilt_winner!r}")
+
+    n_strategy_record = by_stage_route[("n_strategy", None)]
+    if n_strategy_record.get("resolution") != {"selected:A-E3_n_strategy": rebuilt_winner}:
+        raise ValueError(
+            f"A-E3 staged n_strategy winner disagrees with independent rebuild: "
+            f"ledger={n_strategy_record.get('resolution')!r}, rebuild={rebuilt_winner!r}")
+    expected_n_strategy_input = {
+        "decision_id": _A_E3_N_STRATEGY_DECISION_ID,
+        "selection_rule": SELECTION_RULE_FIXED_VS_SHARED_EQUAL_WEIGHT,
+        "candidate_supporting_evidence_sha256": {
+            cid: rebuilt_evidence[cid]["supporting_evidence_sha256"]
+            for cid in _A_E3_N_STRATEGY_CANDIDATES
+        },
+        "candidate_aggregate_scores": {
+            cid: float(rebuilt_evidence[cid]["aggregate_score"])
+            for cid in _A_E3_N_STRATEGY_CANDIDATES
+        },
+        "rule_result": dict(rebuilt_rule_result),
+        "output_form_record_sha256": output_form_record["record_sha256"],
+        "baseline_route_record_sha256": baseline_route_record["record_sha256"],
+        "shared_winner_retrain_record_sha256": shared_record["record_sha256"],
+        "fixed_cohort_support_count": int(rebuilt_evidence[_A_E3_N_STRATEGY_FIXED]["support_count"]),
+        "shared_cohort_support_count": int(rebuilt_evidence[_A_E3_N_STRATEGY_SHARED]["support_count"]),
+    }
+    if n_strategy_record.get("input") != expected_n_strategy_input:
+        raise ValueError(
+            "A-E3 staged n_strategy input/evidence/rule_result disagrees with independent rebuild")
+
+    # (10) final_aliases -> concrete baseline tuple from the n_strategy winner --
+    if rebuilt_winner == _A_E3_N_STRATEGY_FIXED:
+        expected_baseline_tuple = {
+            "route": predecessor_resolved_route,
+            "loss": loss_id,
+            "architecture": fv_winner[fv_arch_key],
+            "optimizer": fv_winner[fv_opt_key],
+            "output_form": baseline_alias,
+        }
+    else:  # shared
+        expected_baseline_tuple = {
+            "route": _A_E3_S_TOKEN,
+            "loss": loss_id,
+            "architecture": s_winner[s_arch_key],
+            "optimizer": s_winner[s_opt_key],
+            "output_form": "N/A",
+        }
+    final_record = by_stage_route[("final_aliases", None)]
+    expected_final_resolution = {
+        "selected:A-E3_n_strategy": rebuilt_winner,
+        "selected:A-E3_baseline": expected_baseline_tuple,
+        "selected:A-E3_loss": loss_id,
+        fv_arch_key: fv_winner[fv_arch_key],
+        fv_opt_key: fv_winner[fv_opt_key],
+        s_arch_key: s_winner[s_arch_key],
+        s_opt_key: s_winner[s_opt_key],
+        "selected:F2_or_V": predecessor_resolved_route,
+    }
+    if final_record.get("resolution") != expected_final_resolution:
+        raise ValueError(
+            "A-E3 final_aliases resolution disagrees with the n_strategy winner's baseline tuple")
+    expected_final_input = {
+        "n_strategy_record_sha256": n_strategy_record["record_sha256"],
+        "baseline_route_record_sha256": baseline_route_record["record_sha256"],
+        "loss_record_sha256": loss_record["record_sha256"],
+        "stage2_F2_or_V_record_sha256": by_stage_route[("stage2", "F2_or_V")]["record_sha256"],
+        "stage2_S_record_sha256": by_stage_route[("stage2", "S")]["record_sha256"],
+        "output_form_record_sha256": output_form_record["record_sha256"],
+        "n_strategy_winner": rebuilt_winner,
+        "baseline_tuple": dict(expected_baseline_tuple),
+    }
+    if final_record.get("input") != expected_final_input:
+        raise ValueError(
+            "A-E3 final_aliases input/predecessor cross-binding disagrees with rebuilt n_strategy")
+
+    # Populate the A-E3 stage-specific aliases consumed by A-E3's OWN cohort fits
+    # (output_form fits resolve selected:A-E3_{architecture,optimizer} to the F2/V stage2
+    # winner; shared_winner_retrain fits resolve selected:S_* to the S stage2 winner).
+    out["selected:A-E3_n_strategy"] = rebuilt_winner
+    out["selected:A-E3_loss"] = loss_id
+    out[fv_arch_key] = fv_winner[fv_arch_key]
+    out[fv_opt_key] = fv_winner[fv_opt_key]
+    out[s_arch_key] = s_winner[s_arch_key]
+    out[s_opt_key] = s_winner[s_opt_key]
+    out["selected:A-E3_baseline"] = baseline_alias
+    out["selected:F2_or_V"] = predecessor_resolved_route
+    return expected_baseline_tuple
+
+
 def _resolve_a_e2_from_selection(
     run_dir: Path, run_id: str, out: dict[str, str], *, frozen_config: FrozenConfig,
 ) -> None:
@@ -1626,10 +2094,20 @@ def build_g3_accreditation(
 
     chain = resolve_g3_predecessor_chain(ae2_run_dir=ae2_run_dir, artifact_root=artifact_root)
     authority = verify_g3_chain_authority(chain=chain, cache_root=cache_root)
-    code_commit = str(authority.ae1_manifest.get("code_commit", "")).lower()
-    if _CODE_COMMIT_RE.fullmatch(code_commit) is None:
-        raise ValueError("replay authority did not provide one valid full code_commit")
-    _assert_current_code_matches_replay(study_root, code_commit)
+    # R3-C: per-module code authority is verified content-addressed inside
+    # verify_g3_chain_authority (each manifest's sealed code_commit is read from git
+    # objects). The accreditation runs at the current HEAD, which may differ from any
+    # sealed predecessor commit (cross-commit chain). We still require the scoped
+    # scientific code tree to be clean (no uncommitted edits) so the accreditation
+    # logic itself runs on committed code, but we no longer require HEAD to match any
+    # one sealed code_commit.
+    from .formal_scheduler import _assert_scoped_code_clean, _git_sha
+    _assert_scoped_code_clean(study_root)
+    # The G3 accreditation artifacts (manifest, bundle, state) bind the CURRENT HEAD
+    # as their code_commit -- they are produced by the accreditation code running here,
+    # not by any one sealed predecessor. Per-module predecessor authority is verified
+    # content-addressed inside verify_g3_chain_authority above.
+    code_commit = _git_sha(study_root)
 
     # Rebuild each module's diagnostics from replay authority + immutable selection
     # evidence. Existing exact diagnostics are accepted idempotently; conflicts fail closed.
@@ -1682,6 +2160,15 @@ def build_g3_accreditation(
     if not staged_path.is_file():
         raise ValueError(f"A-E1: staged_resolution_ledger.jsonl required: {staged_path}")
     staged_ledger_shas["A-E1"] = _sha256_file(staged_path)
+
+    # R4-4#4: the G3 bundle binds BOTH predecessor staged ledgers (A-E1 and A-E3). A-E3's
+    # 10-record chain carries the n_strategy winner + final_aliases concrete baseline tuple
+    # that A-E2 consumes; without binding its SHA, a swapped A-E3 staged ledger would go
+    # undetected at unseal time. A-E2 does not publish a staged ledger.
+    staged_path_ae3 = chain.ae3_run_dir / "staged_resolution_ledger.jsonl"
+    if not staged_path_ae3.is_file():
+        raise ValueError(f"A-E3: staged_resolution_ledger.jsonl required: {staged_path_ae3}")
+    staged_ledger_shas["A-E3"] = _sha256_file(staged_path_ae3)
 
     bundle = build_g3_pre_unseal_bundle(
         manifest=manifest, chain=chain,

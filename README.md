@@ -12,7 +12,7 @@
 
 ## 当前状态快照
 
-> **快照日期**: 2026-07-30 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+> **快照日期**: 2026-08-01 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
 
 | 层级 | 技术 |
 |------|------|
@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：截至代码 checkpoint `1bdd9906e87b53cd0cd1ad81bcfbb8ed8197a5a1`，R12 准备工作已经收口。A-E1 formal r3 曾在授权 commit `39d630507128706286b103717eb2717ccdeb4666` 上完成 3 个 fit，随后因无关 Study01 merge 推进本地 HEAD 而触发 authority drift，现与旧 r1/r2 一并永久 `blocked/aborted`，产物仅作失败现场保留、不得续跑或拼接。下一步是在稳定 formal 分支的最终 clean commit 上重新申请全新 r4 授权并从零启动；test 继续 sealed。准备收口和失败 run 均不产生 Study/02 研究结论，19 个前置研究问题仍等待全新 formal evidence。
+**Study/02 当前态**：前置研究 A 已完成，19/19 问有证据覆盖（17 answered + A4/A8 partial），正式成果见 Study/02 `06-A-前置研究报告.md`。主研究 B 的 B1–B6 已全部完成并 APPROVE（分支 `codex/study02-quantile-formal-20260731`；B6 实现/证据 tip `2e0e842d`，最终报告/文档 tip `b5c5404`）；正式结论见 Study/02 `05-B-正式实验报告.md`，证据哈希见 `04-B-证据索引.md`。核心结果：core pooled \(x_{0.95}\) 相对 RMSE 改善率 I=0.3926 [0.3444,0.4347]（NN 直接路线 D 相对 NN 参数路线 P，supported and material），但优势分层且非全域（D 非总体精度最优，core 上 MDM/LRE 更优）；旧 A formal 引擎与 test namespaces 永久只读，不作为 B 的控制面。C 阶段已完成并 APPROVED（分支 `codex/study02-c-scientific-argument-20260801`）：把 A/B 结果提升为科学论证，C0/C1–C5 全部通过（C5 经对抗性复核与可复现性稳定，code commit `8cc93147`），见 Study/02 `06-C-论证计划与状态.md`、`07-C-机制分析与补充证据.md` 与 `08-C-论文前科学论证报告.md`（C5 最终版，APPROVED）。
 
 **Study/01 当前态**：既有 E1–E4、R1–R3/P6–P8 正式实验、Figures 1–9、Supplementary Figures S1–S8、五部分技术稿及 fail-closed 审计继续保持完成和封存。P0–P1 已获 Codex APPROVE（`be8d7b81`）。P2 v1 因非确定性 seed 已失效隔离；P2 v2 的 39 组合正式生成与评价已获 Codex APPROVE（`53932687`）：Vector-MLP 在 P2-NI/P2-PI 两轨道均为 15/15 模型胜出，median J1 相对 Default 分别降低约 17.6% 和 12.7%，0 failures，SHA256SUMS 46/46、P0_INTEGRITY=PASS，Git LFS 新鲜克隆复核通过。P3 Direct-MLP 实现与仓库外真实 smoke 已获 Codex APPROVE 并合并至 main（`fde26eaa`）；P3 仅登记为实现和 smoke 已批准，不构成正式方法比较结果。P4 正式六方法比较（MDM-Default / MDM-Vector-MLP / Direct-MLP / MLE / LSE / WMLE）已在授权 tip `cfb0c6ed` 上完成四轨道正式运行并通过 SHA256SUMS 17/17 封存校验（产物：`artifacts/formal/p4_formal_compare/`），运行后授权已复位为未授权。中文学术源稿 v0.3 已开始按新骨架重写，v0.2 保留为扩展验证前稿；不启动大规模连续空间重训，不删除既有 NIST 6061-T6 负结果。
 

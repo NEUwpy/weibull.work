@@ -36,9 +36,110 @@ APPROVED_BASE_PROTOCOL_SHA256 = "f82e078051d760d7c9c11ece54b8fae7360c6db1aef3229
 APPROVED_BASE_SEARCH_ID = "A-G2-search-v1"
 APPROVED_BASE_SEARCH_SHA256 = "abd6d17b1d2467e1253e0154adba0b6582a3feeb83ed889534ed4f6ab5e0ca13"
 APPROVED_EFFECTIVE_CONFIG_SHA256 = "44fba47c7af66166e1d3f11890299a8bb5c352ac1abf3447cd00cfd3acf97449"
+# A-E3 output-form contract v1 (R3-A): SHA-256 of the canonical JSON of the
+# ``_CONTRACT_V1`` dict in ``study02a.output_form_contract``. v1 is RETAINED ONLY
+# FOR SHA AUDIT -- it is NOT used for formal execution. The v1 selector picked the
+# independent arm from the frozen m01..m12 candidate set, which had no feasible
+# candidate for joint=m01 (the smallest architecture), so v1 recorded a scientific
+# failure for the independent arm. R4-2 supersedes that with a deterministic
+# width-scaling derivation that always has a feasible candidate (the all-1s
+# widths). Mirrored into ``output_form_contract.CONTRACT_V1_SHA256``; recorded in
+# evidence for audit so a future reader can verify the v1 contract dict has not
+# been tampered with. Adding this constant does NOT modify the A-E1 r5 effective
+# config or manifest schema: the effective_config validation above is unchanged,
+# and the manifest schema (``_validate_formal_manifest_snapshot``) is unchanged.
+APPROVED_A_E3_OUTPUT_FORM_CONTRACT_SHA256 = "1e343255eaa1e9b32217427c7989d798bebba59fd72e6fe15a51166f0d3e1253"
+# A-E3 output-form contract v2 (R4-2): SHA-256 of the canonical JSON of the
+# ``_CONTRACT`` dict (the ACTIVE formal contract = ``_CONTRACT_V2``) in
+# ``study02a.output_form_contract``. v2 replaces the m01..m12 candidate-set
+# selector with a deterministic width-scaling derivation: for joint widths W with
+# M=max(W), enumerate k=1..M widths(k)=tuple(max(1,floor(w*k/M)) for w in W),
+# dedupe; the all-1s candidate (k=1) is always present so every frozen joint
+# architecture + input_dim has a feasible independent candidate (the independent
+# fit is never a scientific failure for capacity reasons). Selection picks the
+# derived candidate with total <= joint * 1.05 closest to joint (tie: widths
+# tuple lexicographic ascending). v1 (above) is retained only for SHA audit; v2
+# is the sole contract used for formal execution and is mirrored into
+# ``output_form_contract.CONTRACT_SHA256`` (= ``CONTRACT_V2_SHA256``).
+APPROVED_A_E3_OUTPUT_FORM_CONTRACT_V2_SHA256 = "d41cd07ec6dee6fef7107471e71b2dd2c050f797db6a9a324ff469982a81b7ec"
 _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}")
 _CODE_COMMIT_RE = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
+# 64-character zero SHA-256 sentinel anchoring the first record of every staged-ledger
+# hash chain (mirrors ``formal_executor._ZERO_HASH`` / ``formal_scheduler._ZERO_HASH`` so FC
+# stays the single authority for staged-ledger validation without importing either module).
+_ZERO_HASH_FC = "0" * 64
 _PREDECESSOR_BY_MODULE = {"A-E1": None, "A-E3": "A-E1", "A-E2": "A-E3"}
+# Control-plane v2: modules that publish a ``staged_resolution_ledger.jsonl`` whose SHA a
+# downstream run must bind through PredecessorTrace (the on-disk authority for the
+# module's deferred placeholders + final aliases). A-E1 publishes its 8-record chain
+# (``resolve_a_e1_staged_selection``); A-E3 publishes its 10-record chain once its staged
+# resolver is wired (R3-B: record 9 ``n_strategy`` + record 10 ``final_aliases``). The
+# single authority for staged-ledger validation lives in FC
+# (``_validate_staged_resolution_ledger``); G3 calls FC, never the reverse.
+_PUBLISHES_STAGED_LEDGER = {"A-E1", "A-E3"}
+# R3-C: versioned predecessor schema dispatched by ``manifest_version``.
+# * v1 (``study02-formal-v1``): the r5-era 7-key段. A-E1 r5 is sealed at d2a056f with
+#   this shape and its bytes are immutable (never rewritten).
+# * v2 (``study02-formal-v2``): the 13-key段 = 10 C1 keys (staged-ledger binding) +
+#   authority triple ``{code_commit, scoped_code_sha256, authority_sha256}`` binding
+#   the predecessor module's sealed formal-run authority. A-E3 and all new runs use v2.
+# The intermediate C1 10-key段 (``study02-formal-v1`` version + staged-ledger keys but
+# no authority triple) is neither valid v1 nor valid v2 and is rejected as schema
+# mixing. ``build_formal_manifest`` always emits v2; v1 is accepted only for sealed
+# historical manifests (content-addressed historical verifier).
+_PREDECESSOR_SCHEMA_V1_FIELDS = frozenset({
+    "module_id", "run_id",
+    "selection_trace_path", "selection_trace_sha256",
+    "selection_receipt_path", "selection_receipt_sha256",
+    "selection_ledger_path",
+})
+_PREDECESSOR_SCHEMA_V2_FIELDS = frozenset({
+    "module_id", "run_id",
+    "selection_trace_path", "selection_trace_sha256",
+    "selection_receipt_path", "selection_receipt_sha256",
+    "selection_ledger_path",
+    "selection_staged_ledger_path", "selection_staged_ledger_sha256",
+    "resolved_baseline_route",
+    "code_commit", "scoped_code_sha256", "authority_sha256",
+})
+_STAGED_LEDGER_RECORD_VERSION = "study02-staged-resolution-v1"
+_STAGED_LEDGER_REQUIRED_FIELDS = {
+    "record_version", "module_id", "run_id", "code_commit",
+    "effective_config_sha256", "selection_trace_sha256", "stage", "route",
+    "previous_record_sha256", "input", "resolution", "resolution_sha256",
+    "record_sha256",
+}
+# Per-module canonical (stage, route) sequence for the staged resolution ledger. A-E1's
+# 8-record chain is frozen (mirrors ``formal_g3_control._resolve_a_e1_from_staged_ledger``
+# at FC1191-read-time); A-E3's 10-record chain is per the A-E3 orchestration design (R3-B:
+# record 9 ``n_strategy`` resolves the fixed-vs-shared winner from dedicated cohort evidence
+# constructed outside the matrix decision path; record 10 ``final_aliases`` carries the
+# concrete baseline tuple consumed by A-E2). Semantic-order deviations are a tamper even
+# when the hash chain is re-broken-and-rebuilt.
+_STAGED_LEDGER_SEQUENCES: dict[str, tuple[tuple[str, str | None], ...]] = {
+    "A-E1": (
+        ("stage1", "F2"),
+        ("stage2", "F2"),
+        ("winner_retrain", "F2"),
+        ("stage1", "V"),
+        ("stage2", "V"),
+        ("winner_retrain", "V"),
+        ("baseline_input", None),
+        ("final_aliases", None),
+    ),
+    "A-E3": (
+        ("loss", None),
+        ("stage1", "F2_or_V"),
+        ("stage2", "F2_or_V"),
+        ("stage1", "S"),
+        ("stage2", "S"),
+        ("output_form", None),
+        ("shared_winner_retrain", "S"),
+        ("baseline_route", None),
+        ("n_strategy", None),
+        ("final_aliases", None),
+    ),
+}
 _MATRIX_FIELDS = {"fit_id", "rule_id", "module", "test_state"}
 # v3 selection trace record schema. v2 lacked rule_diagnostics_sha256, so the
 # exact-field-set check below inherently rejects v1/v2 traces (R3#2: v2/v3 mixing
@@ -130,6 +231,22 @@ class PredecessorTrace:
     receipt_sha256: str
     ledger_path: Path
     selection_code_commit: str
+    # Control-plane v2 (optional; required when the predecessor module publishes a staged
+    # resolution ledger -- see ``_PUBLISHES_STAGED_LEDGER``). Defaults to ``None`` so A-E1
+    # root (no predecessor) and legacy callers remain valid; ``_validate_predecessor``
+    # fail-closes when a staged-ledger-publishing predecessor omits them.
+    staged_ledger_path: Path | None = None
+    staged_ledger_sha256: str | None = None
+    # R3-C v2 authority triple: the predecessor module's sealed formal-run authority
+    # (``code_commit`` reuses ``selection_code_commit`` since selection and formal sealing
+    # share one commit; ``scoped_code_sha256`` and ``authority_sha256`` come from the
+    # predecessor manifest's ``scheduler.authority`` block). Required for v2 manifests
+    # with a real predecessor; ``None`` for the A-E1 root (no predecessor) and v1-era
+    # historical manifests. The v2 snapshot validator and G3 chain continuity check
+    # consume these to bind each downstream to its predecessor's exact code authority
+    # without requiring all modules to share one commit.
+    scoped_code_sha256: str | None = None
+    authority_sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1033,8 +1150,11 @@ def _validate_formal_manifest_snapshot(
         "amendment", "effective_config", "matrix", "code_commit", "role_namespaces",
         "seeds", "test_state", "predecessor",
     }, "formal manifest")
-    if manifest["manifest_version"] != "study02-formal-v1":
-        raise ValueError("formal manifest version mismatch")
+    if manifest["manifest_version"] not in ("study02-formal-v1", "study02-formal-v2"):
+        raise ValueError(
+            f"formal manifest version unsupported: {manifest['manifest_version']!r} "
+            f"(expected study02-formal-v1 or study02-formal-v2)"
+        )
     if manifest["module_id"] != module_id or manifest["run_id"] != run_id:
         raise ValueError("formal manifest module/run ownership mismatch")
     if manifest["code_commit"] != code_commit.lower():
@@ -1108,12 +1228,31 @@ def _validate_formal_manifest_snapshot(
         raise ValueError("formal manifest screening seeds mismatch")
     if seeds["formal"] != list(APPROVED_FORMAL_SEEDS):
         raise ValueError("formal manifest formal seeds mismatch")
-    predecessor = _require_exact_fields(manifest["predecessor"], {
-        "module_id", "run_id", "selection_trace_path", "selection_trace_sha256",
-        "selection_receipt_path", "selection_receipt_sha256", "selection_ledger_path",
-    }, "formal manifest predecessor")
+    # R3-C: dispatch predecessor schema by manifest_version. v1 (study02-formal-v1)
+    # accepts the r5-era 7-key段; v2 (study02-formal-v2) requires the 13-key段 with
+    # the authority triple. The intermediate C1 10-key段 matches neither set under
+    # either version and is rejected as schema mixing.
+    manifest_version = manifest["manifest_version"]
+    if manifest_version == "study02-formal-v1":
+        predecessor_fields = _PREDECESSOR_SCHEMA_V1_FIELDS
+    else:
+        predecessor_fields = _PREDECESSOR_SCHEMA_V2_FIELDS
+    predecessor = _require_exact_fields(
+        manifest["predecessor"], predecessor_fields, "formal manifest predecessor"
+    )
     if any(not isinstance(predecessor[field], str) or not predecessor[field] for field in predecessor):
         raise ValueError("formal manifest predecessor fields must be non-empty strings")
+    # v2 authority triple integrity: for a real predecessor the code_commit must be a
+    # full commit SHA and the scoped/authority SHAs must be 64-char hex; for the root
+    # module (A-E1, all "none") these stay "none". This blocks forged authority triples
+    # at the snapshot gate before any replay.
+    if manifest_version == "study02-formal-v2" and predecessor["module_id"] != "none":
+        if _CODE_COMMIT_RE.fullmatch(predecessor["code_commit"]) is None:
+            raise ValueError("v2 predecessor code_commit must be a full commit SHA")
+        if _SHA256_RE.fullmatch(predecessor["scoped_code_sha256"]) is None:
+            raise ValueError("v2 predecessor scoped_code_sha256 must be a SHA-256")
+        if _SHA256_RE.fullmatch(predecessor["authority_sha256"]) is None:
+            raise ValueError("v2 predecessor authority_sha256 must be a SHA-256")
 
 
 def build_pre_unseal_bundle(
@@ -1620,6 +1759,7 @@ def _coerce_predecessor(value: Mapping[str, Any] | PredecessorTrace) -> Predeces
         return value
     if not isinstance(value, Mapping):
         raise ValueError("Downstream formal module requires predecessor selection trace metadata")
+    staged_ledger_path = value.get("staged_ledger_path")
     try:
         return PredecessorTrace(
             module_id=value["module_id"],
@@ -1630,9 +1770,129 @@ def _coerce_predecessor(value: Mapping[str, Any] | PredecessorTrace) -> Predeces
             receipt_sha256=value["receipt_sha256"],
             ledger_path=Path(value["ledger_path"]),
             selection_code_commit=value["selection_code_commit"],
+            staged_ledger_path=None if staged_ledger_path is None else Path(staged_ledger_path),
+            staged_ledger_sha256=value.get("staged_ledger_sha256"),
+            scoped_code_sha256=value.get("scoped_code_sha256"),
+            authority_sha256=value.get("authority_sha256"),
         )
     except (KeyError, TypeError) as exc:
         raise ValueError("Incomplete predecessor selection trace metadata") from exc
+
+
+def _validate_staged_resolution_ledger(
+    *,
+    staged_ledger_path: Path,
+    staged_ledger_sha256: str,
+    expected_trace_sha: str,
+    predecessor_module: str,
+    run_id: str,
+    code_commit: str,
+    effective_config_sha256: str,
+) -> dict[str, Any]:
+    """Validate a predecessor module's ``staged_resolution_ledger.jsonl`` (single FC authority).
+
+    Lifts the A-E1 staged-ledger verification discipline currently embedded in
+    ``formal_g3_control._resolve_a_e1_from_staged_ledger`` into the formal-contracts module so
+    every downstream (A-E3 executor, G3 reader, future A-E2) shares one authority. Pure
+    validation -- never calls into G3, never reads selection-trace bytes (the caller passes the
+    already-verified ``expected_trace_sha``). Verifies:
+
+    * the path SHA-256 matches ``staged_ledger_sha256`` (no swap after binding).
+    * each record matches the frozen 13-field schema, ``record_version``, ``module_id``,
+      ``run_id``, ``code_commit``, ``effective_config_sha256``, ``selection_trace_sha256``
+      (every record binds the verified root trace SHA).
+    * the (stage, route) sequence matches the per-module canonical order
+      (``_STAGED_LEDGER_SEQUENCES``); a re-chained-but-reordered ledger is a tamper.
+    * ``previous_record_sha256`` chains from ``_ZERO_HASH``, ``resolution_sha256`` /
+      ``record_sha256`` self-consistency.
+
+    Returns ``{"records": [...], "baseline_route": <str|None>}`` -- ``baseline_route`` is the
+    A-E1 ``baseline_input.resolution["selected:F2_or_V"]`` value (the deferred route the A-E3
+    executor resolves from the bound file, not from a re-read); ``None`` for A-E3 (no
+    baseline_input stage) or when the record is absent in a partial ledger.
+    """
+    expected_sequence = _STAGED_LEDGER_SEQUENCES.get(predecessor_module)
+    if expected_sequence is None:
+        raise ValueError(
+            f"staged resolution ledger validation has no canonical sequence for predecessor "
+            f"module {predecessor_module!r}"
+        )
+    declared_sha = _require_sha256(staged_ledger_sha256, "Predecessor staged_resolution_ledger SHA-256")
+    ledger_bytes = _safe_one_read(staged_ledger_path, "Predecessor staged_resolution_ledger")
+    actual_sha = hashlib.sha256(ledger_bytes).hexdigest()
+    if actual_sha != declared_sha:
+        raise ValueError("Predecessor staged_resolution_ledger SHA-256 mismatch")
+    records = _read_jsonl_bytes(ledger_bytes, "Predecessor staged_resolution_ledger")
+    if len(records) != len(expected_sequence):
+        raise ValueError(
+            f"{predecessor_module} staged ledger must contain exactly {len(expected_sequence)} "
+            f"records; got {len(records)}"
+        )
+    lowered_code_commit = str(code_commit).lower()
+    baseline_route: str | None = None
+    seen: set[tuple[str, str | None]] = set()
+    for index, record in enumerate(records):
+        if set(record) != _STAGED_LEDGER_REQUIRED_FIELDS:
+            raise ValueError(f"{predecessor_module} staged record has unexpected field set: {set(record)}")
+        if record.get("record_version") != _STAGED_LEDGER_RECORD_VERSION:
+            raise ValueError(
+                f"{predecessor_module} staged record_version is {record.get('record_version')!r}"
+            )
+        if record.get("selection_trace_sha256") != expected_trace_sha:
+            raise ValueError(
+                f"{predecessor_module} staged record selection_trace_sha256 does not match the "
+                f"verified root trace SHA"
+            )
+        if record.get("module_id") != predecessor_module:
+            raise ValueError(
+                f"{predecessor_module} staged record module_id is {record.get('module_id')!r}"
+            )
+        if record.get("run_id") != run_id:
+            raise ValueError(f"{predecessor_module} staged record run_id mismatch")
+        if record.get("code_commit") != lowered_code_commit:
+            raise ValueError(f"{predecessor_module} staged record code_commit mismatch")
+        if record.get("effective_config_sha256") != effective_config_sha256:
+            raise ValueError(
+                f"{predecessor_module} staged record effective_config_sha256 mismatch"
+            )
+        stage = record.get("stage")
+        route = record.get("route")
+        actual_key = (stage, route)
+        expected_key = expected_sequence[index]
+        if actual_key != expected_key:
+            raise ValueError(
+                f"{predecessor_module} staged ledger semantic order mismatch at index {index}: "
+                f"expected {expected_key!r}, got {actual_key!r}"
+            )
+        if actual_key in seen:
+            raise ValueError(f"{predecessor_module} staged ledger duplicate stage/route: {actual_key!r}")
+        seen.add(actual_key)
+        previous_sha = _ZERO_HASH_FC if index == 0 else records[index - 1]["record_sha256"]
+        if record.get("previous_record_sha256") != previous_sha:
+            raise ValueError(
+                f"{predecessor_module} staged ledger hash chain broken at stage={stage}: "
+                f"expected previous={previous_sha}, got {record.get('previous_record_sha256')}"
+            )
+        resolution = record.get("resolution", {})
+        resolution_sha = hashlib.sha256(_canonical_json_bytes(dict(resolution))).hexdigest()
+        if record.get("resolution_sha256") != resolution_sha:
+            raise ValueError(
+                f"{predecessor_module} staged record resolution_sha256 mismatch at stage={stage}"
+            )
+        core = {key: value for key, value in record.items() if key != "record_sha256"}
+        expected_record_sha = hashlib.sha256(_canonical_json_bytes(core)).hexdigest()
+        if record.get("record_sha256") != expected_record_sha:
+            raise ValueError(
+                f"{predecessor_module} staged record SHA mismatch at stage={stage}"
+            )
+        if predecessor_module == "A-E1" and stage == "baseline_input":
+            resolution_value = resolution.get("selected:F2_or_V")
+            if resolution_value not in ("F2", "V"):
+                raise ValueError(
+                    "A-E1 staged baseline_input.resolution['selected:F2_or_V'] must be F2 or V"
+                )
+            baseline_route = resolution_value
+    return {"records": records, "baseline_route": baseline_route}
 
 
 def _validate_predecessor(
@@ -1651,6 +1911,13 @@ def _validate_predecessor(
             "selection_receipt_path": "none",
             "selection_receipt_sha256": "none",
             "selection_ledger_path": "none",
+            "selection_staged_ledger_path": "none",
+            "selection_staged_ledger_sha256": "none",
+            "resolved_baseline_route": "none",
+            # v2 authority triple: "none" for the root module (no predecessor).
+            "code_commit": "none",
+            "scoped_code_sha256": "none",
+            "authority_sha256": "none",
         }
 
     predecessor = _coerce_predecessor(value)
@@ -1710,6 +1977,52 @@ def _validate_predecessor(
     }
     if same_run[0] != expected_ledger_entry:
         raise ValueError("Formal selection ledger binding does not match predecessor receipt")
+
+    # Control-plane v2: when the predecessor module publishes a staged_resolution_ledger
+    # (A-E1, A-E3), bind its on-disk SHA + chain through this predecessor trace. The staged
+    # ledger is the ONLY on-disk authority for the predecessor's deferred placeholders +
+    # final aliases; without this binding, a downstream run rests on an unbound file the
+    # predecessor could swap after materialize. Fail-closed BEFORE any claim/training.
+    staged_ledger_path = "none"
+    staged_ledger_sha = "none"
+    resolved_baseline_route = "none"
+    if expected_module in _PUBLISHES_STAGED_LEDGER:
+        if predecessor.staged_ledger_path is None or predecessor.staged_ledger_sha256 is None:
+            raise ValueError(
+                f"Predecessor staged_resolution_ledger binding required for module {module_id} "
+                f"(predecessor {expected_module} publishes a staged ledger)"
+            )
+        staged_path = Path(predecessor.staged_ledger_path)
+        staged_ledger_sha = _require_sha256(
+            predecessor.staged_ledger_sha256, "Predecessor staged_resolution_ledger SHA-256"
+        )
+        staged_result = _validate_staged_resolution_ledger(
+            staged_ledger_path=staged_path,
+            staged_ledger_sha256=staged_ledger_sha,
+            expected_trace_sha=actual_digest,
+            predecessor_module=expected_module,
+            run_id=predecessor.run_id,
+            code_commit=predecessor.selection_code_commit.lower(),
+            effective_config_sha256=APPROVED_EFFECTIVE_CONFIG_SHA256,
+        )
+        staged_ledger_path = str(staged_path)
+        # ``staged_ledger_sha`` stays as the declared SHA (== actual SHA, verified above).
+        if staged_result["baseline_route"] is not None:
+            resolved_baseline_route = staged_result["baseline_route"]
+    # R3-C v2: bind the predecessor's sealed formal-run authority triple. Fail-closed
+    # if the caller did not supply ``scoped_code_sha256`` / ``authority_sha256`` -- a
+    # downstream run cannot establish predecessor authority continuity without them.
+    if predecessor.scoped_code_sha256 is None or predecessor.authority_sha256 is None:
+        raise ValueError(
+            f"Predecessor authority triple (scoped_code_sha256, authority_sha256) is required "
+            f"for v2 module {module_id} (predecessor {expected_module})"
+        )
+    predecessor_scoped_sha = _require_sha256(
+        predecessor.scoped_code_sha256, "Predecessor scoped_code_sha256"
+    )
+    predecessor_authority_sha = _require_sha256(
+        predecessor.authority_sha256, "Predecessor authority_sha256"
+    )
     return {
         "module_id": predecessor.module_id,
         "run_id": predecessor.run_id,
@@ -1718,6 +2031,15 @@ def _validate_predecessor(
         "selection_receipt_path": str(receipt_path),
         "selection_receipt_sha256": actual_receipt_sha,
         "selection_ledger_path": str(ledger_path),
+        "selection_staged_ledger_path": staged_ledger_path,
+        "selection_staged_ledger_sha256": staged_ledger_sha,
+        "resolved_baseline_route": resolved_baseline_route,
+        # v2 authority triple: binds the predecessor's sealed code/scoped/authority SHA
+        # so the G3 chain can verify predecessor authority continuity across commits
+        # without requiring all modules to share one code_commit.
+        "code_commit": predecessor.selection_code_commit.lower(),
+        "scoped_code_sha256": predecessor_scoped_sha,
+        "authority_sha256": predecessor_authority_sha,
     }
 
 
@@ -1754,7 +2076,7 @@ def _build_formal_manifest_with_matrix_evidence(
     predecessor_manifest = _validate_predecessor(module_id, predecessor)
 
     return {
-        "manifest_version": "study02-formal-v1",
+        "manifest_version": "study02-formal-v2",
         "module_id": module_id,
         "run_id": run_id,
         "base_protocol": {

@@ -1015,6 +1015,7 @@ class TestUnifiedSealedBuilder:
             run_dir.mkdir(parents=True)
             (run_dir / "selection_trace.jsonl").write_bytes(b"{}\n")
         (run_dirs["A-E1"] / "staged_resolution_ledger.jsonl").write_bytes(b"{}\n")
+        (run_dirs["A-E3"] / "staged_resolution_ledger.jsonl").write_bytes(b"{}\n")
 
         chain = G3RunChain(
             ae1_run_id=run_ids["A-E1"], ae1_run_dir=run_dirs["A-E1"],

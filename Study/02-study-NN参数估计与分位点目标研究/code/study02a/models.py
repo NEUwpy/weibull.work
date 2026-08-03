@@ -32,6 +32,40 @@ def build_mlp(input_dim: int, widths: Sequence[int], activation: str, dropout: f
     return _feed_forward(input_dim, widths, 3, activation, dropout)
 
 
+class IndependentContainer(nn.Module):
+    """Three parameter-isolated single-output MLP subnetworks (A-E3 output-form contract).
+
+    Holds a ``ModuleList`` of three independent MLP subnetworks, each built from the
+    SAME frozen hidden spec (one m0X architecture's widths/activation/dropout) but
+    terminating in a ``output_dim=1`` head. ``forward`` concatenates the three scalar
+    outputs column-wise so the raw output shape stays ``(N, 3)`` -- the exact contract
+    :func:`decode_model_output` already consumes -- while the parameters are fully
+    partitioned across the three Weibull outputs (no shared trunk).
+
+    Used by the ``independent_capacity_matched`` arm of the A-E3 output_form decision.
+    The companion ``joint`` arm is a single :func:`build_mlp` (shared trunk, 3-output
+    head); the two are structurally distinct (different state_dict key namespaces,
+    different parameter matrices) so the output_form suffix selects a real model
+    contract, not a label.
+    """
+
+    def __init__(self, input_dim: int, widths: Sequence[int], activation: str, dropout: float) -> None:
+        super().__init__()
+        self.subnetworks = nn.ModuleList(
+            [_feed_forward(input_dim, widths, 1, activation, dropout) for _ in range(3)]
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.cat([subnet(x) for subnet in self.subnetworks], dim=1)
+
+
+def build_independent_container(
+    input_dim: int, widths: Sequence[int], activation: str, dropout: float,
+) -> IndependentContainer:
+    """Build a three-subnetwork independent container (A-E3 output-form contract)."""
+    return IndependentContainer(input_dim, widths, activation, dropout)
+
+
 class DeepSets(nn.Module):
     def __init__(self, encoder: Sequence[int], pool: str, head: Sequence[int], activation: str):
         super().__init__()

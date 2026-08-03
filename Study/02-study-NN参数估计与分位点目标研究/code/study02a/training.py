@@ -51,12 +51,54 @@ def compute_loss(
     raise ValueError(f"Unknown frozen loss: {loss_id}")
 
 
-def select_independent_capacity(joint_count: int, candidate_counts: Mapping[str, int]) -> tuple[str, int]:
-    ceiling = 1.05 * int(joint_count)
-    eligible = [(identifier, int(count)) for identifier, count in candidate_counts.items() if int(count) <= ceiling]
-    if not eligible:
-        raise ValueError("No independent candidate satisfies the frozen capacity ceiling")
-    return min(eligible, key=lambda item: (abs(item[1] - joint_count), item[0]))
+def select_independent_capacity(
+    joint_count: int,
+    candidate_counts: Mapping[Any, int],
+) -> tuple[Any, int]:
+    """Select the independent candidate whose total trainable parameters satisfy the
+    frozen capacity rule.
+
+    Protocol §3.4 (``A-g2-search-v1.json`` ``joint_independent_capacity``):
+    1. Primary: candidate total <= ``joint_count * 1.05`` and closest to ``joint_count``;
+       tie broken by candidate key ascending (architecture id lexicographic for v1
+       string keys, or widths tuple lexicographic for v2 derived-width keys).
+    2. Fallback (no candidate under the 105 % ceiling): the candidate nearest to
+       ``joint_count`` whose total does not exceed ``joint_count`` (tie: candidate key).
+    3. Hard fail: if every candidate exceeds ``joint_count`` the capacity contract is
+       unsatisfiable.
+
+    The selector is key-type agnostic: v1 callers pass ``{architecture_id: count}``
+    (string keys, lexicographic tie-break) and v2 callers pass ``{widths_tuple:
+    count}`` (tuple keys, lexicographic tie-break). Both sort identically under
+    Python's natural ordering.
+
+    v2 note (R4-2): the v2 candidate set is derived from the joint widths via the
+    width-scaling rule (see :func:`study02a.output_form_contract.derive_independent_widths`)
+    and always contains the all-1s widths whose three-subnetwork total is strictly
+    less than the joint count for every non-degenerate joint architecture. The hard
+    fail therefore NEVER fires for a legitimate v2 candidate set: if it ever does,
+    the cause is a contract / infrastructure error (formal preflight blocks), NOT an
+    independent-fit scientific failure.
+    """
+    joint = int(joint_count)
+    ceiling = 1.05 * joint
+    eligible = [
+        (identifier, int(count)) for identifier, count in candidate_counts.items()
+        if int(count) <= ceiling
+    ]
+    if eligible:
+        return min(eligible, key=lambda item: (abs(item[1] - joint), item[0]))
+    fallback = [
+        (identifier, int(count)) for identifier, count in candidate_counts.items()
+        if int(count) <= joint
+    ]
+    if fallback:
+        return min(fallback, key=lambda item: (abs(item[1] - joint), item[0]))
+    raise ValueError(
+        "No independent candidate satisfies the frozen capacity contract "
+        "(v2: the all-1s derived candidate should always be feasible -- this is a "
+        "contract/infrastructure error, not an independent-fit scientific failure)"
+    )
 
 
 @dataclass(frozen=True)
