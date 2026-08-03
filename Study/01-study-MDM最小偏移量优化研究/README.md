@@ -2,7 +2,7 @@
 
 > 本目录是面向发表论文的整理工作区。它不是 `docs/research/01`、`02`、`03`、`04` 的简单复制，也不是汇报 PPT 材料的存放处。
 >
-> **当前状态（2026-07-30）**：既有正式实验与技术证据包保持封存。扩展验证 P0–P1 已获 Codex APPROVE（`be8d7b81`）。P2 v1 因使用 Python `hash()` 派生样本 seed，已标记为 `INVALID_NONDETERMINISTIC_SEED`，不得作为证据；其未跟踪 chunks 已隔离到仓库外。P2 v2 的 39 组合正式生成与评价已获 Codex APPROVE（`53932687`）：Vector-MLP 在 P2-NI/P2-PI 两轨道均为 15/15 模型胜出，median J1 相对 Default 分别降低约 17.6% 和 12.7%，0 failures，SHA256SUMS 46/46、P0_INTEGRITY=PASS，Git LFS 新鲜克隆复核通过。P3 Direct-MLP 实现与仓库外真实 smoke 已获 Codex APPROVE 并合并至 main（`fde26eaa`）：完整尺度不变输入、共享 J1 损失、严格 schema 和显式异常，46 项专项测试和六方法 smoke 全部通过。P3 仅登记为实现和 smoke 已批准，不构成正式方法比较结果。P4 正式六方法比较（MDM-Default / MDM-Vector-MLP / Direct-MLP / MLE / LSE / WMLE）尚未授权运行。权威计划见 `07-剩余实验目标与规划.md`，协议见 `02-实验协议.md`。
+> **当前状态（2026-08-03）**：既有正式实验与技术证据包保持封存。扩展验证 P0–P1 已获 Codex APPROVE（`be8d7b81`）。P2 v1 因使用 Python `hash()` 派生样本 seed，已标记为 `INVALID_NONDETERMINISTIC_SEED`，不得作为证据；其未跟踪 chunks 已隔离到仓库外。P2 v2 的 39 组合正式生成与评价已获 Codex APPROVE（`53932687`）：Vector-MLP 在 P2-NI/P2-PI 两轨道均为 15/15 模型胜出，median J1 相对 Default 分别降低约 17.6% 和 12.7%，0 failures，SHA256SUMS 46/46、P0_INTEGRITY=PASS，Git LFS 新鲜克隆复核通过。P3 Direct-MLP 实现与仓库外真实 smoke 已获 Codex APPROVE 并合并至 main（`fde26eaa`）：完整尺度不变输入、共享 J1 损失、严格 schema 和显式异常，46 项专项测试和六方法 smoke 全部通过。P3 仅登记为实现和 smoke 已批准，不构成正式方法比较结果。P4 正式六方法比较（MDM-Default / MDM-Vector-MLP / Direct-MLP / MLE / LSE / WMLE）已在授权 tip `cfb0c6ed` 上完成四轨道（main_holdout / param_interp / n_interp / extrap_diag）正式运行，并通过 SHA256SUMS 17/17 封存校验（seal `f00b561d`，产物 `artifacts/formal/p4_formal_compare/`），运行后授权已复位为未授权。权威计划见 `07-剩余实验目标与规划.md`，协议见 `02-实验协议.md`。
 
 ## 这个目录要解决什么
 
