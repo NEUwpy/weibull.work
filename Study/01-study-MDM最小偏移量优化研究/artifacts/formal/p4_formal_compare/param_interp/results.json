@@ -1,0 +1,751 @@
+{
+  "track": "param_interp",
+  "methods": {
+    "Direct-MLP": {
+      "j1_summary": {
+        "method": "Direct-MLP",
+        "n_models": 15,
+        "median_J1": 0.3298872402324637,
+        "mean_J1": 0.33049647653368114,
+        "SD_J1": 0.003002380884875247,
+        "min_J1": 0.32643322172218997,
+        "max_J1": 0.3352492303432155,
+        "n_failures": 0,
+        "n_rows": 360000
+      },
+      "loss_quantiles_full_sample": {
+        "P25": 0.029185959059644814,
+        "P50": 0.07178732889347884,
+        "P75": 0.16232472784776525,
+        "P90": 0.25251817473935256,
+        "P95": 0.3133880325423798,
+        "P99": 0.4433636868615129
+      },
+      "complete_case_parametrics": {
+        "note": "Computed on non-failed rows only",
+        "n_valid": 360000,
+        "bias": {
+          "beta": -0.40861490341460277,
+          "eta": -0.05738118306473126,
+          "gamma": 0.03727435811734448
+        },
+        "rmse": {
+          "beta": 0.8347170406742267,
+          "eta": 0.17595188411113033,
+          "gamma": 0.14601162110840676
+        },
+        "mae": {
+          "beta": 0.6129990645607323,
+          "eta": 0.13970103617997912,
+          "gamma": 0.11603146907193564
+        }
+      },
+      "failure_rate": 0.0,
+      "support_rate": 1.0,
+      "n_total": 360000,
+      "n_failed": 0,
+      "stratification_by_n": {
+        "7.0": {
+          "median_J1": 0.3578815623593758,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "10.0": {
+          "median_J1": 0.33572041303414046,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "20.0": {
+          "median_J1": 0.2933632290404822,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_beta": {
+        "1.75": {
+          "median_J1": 0.29925418536791354,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "2.25": {
+          "median_J1": 0.2908895694117577,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "3.25": {
+          "median_J1": 0.34190817550938984,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "4.5": {
+          "median_J1": 0.3803863881053206,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_gamma_over_eta": {
+        "0.3": {
+          "median_J1": 0.3811972978149072,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        },
+        "0.75": {
+          "median_J1": 0.2737654247526145,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        }
+      }
+    },
+    "LSE": {
+      "j1_summary": {
+        "method": "LSE",
+        "n_models": 15,
+        "median_J1": 0.8661315520364194,
+        "mean_J1": 0.8661315520364194,
+        "SD_J1": 0.0,
+        "min_J1": 0.8661315520364194,
+        "max_J1": 0.8661315520364194,
+        "n_failures": 0,
+        "n_rows": 360000
+      },
+      "loss_quantiles_full_sample": {
+        "P25": 0.15178118105879101,
+        "P50": 0.39233344765591494,
+        "P75": 0.9553204376001422,
+        "P90": 1.7350543513557977,
+        "P95": 2.4457875977982373,
+        "P99": 5.067300861152657
+      },
+      "complete_case_parametrics": {
+        "note": "Computed on non-failed rows only",
+        "n_valid": 360000,
+        "bias": {
+          "beta": -0.019139471706316337,
+          "eta": -0.03535353250415104,
+          "gamma": 0.028442668232513905
+        },
+        "rmse": {
+          "beta": 1.9844220941141462,
+          "eta": 0.4489080865849724,
+          "gamma": 0.40090811459988956
+        },
+        "mae": {
+          "beta": 1.4317118269776994,
+          "eta": 0.37685060626144823,
+          "gamma": 0.33102107514375423
+        }
+      },
+      "failure_rate": 0.0,
+      "support_rate": 1.0,
+      "n_total": 360000,
+      "n_failed": 0,
+      "stratification_by_n": {
+        "7.0": {
+          "median_J1": 1.013844245143429,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "10.0": {
+          "median_J1": 0.8817848876593598,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "20.0": {
+          "median_J1": 0.6671782781117584,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_beta": {
+        "1.75": {
+          "median_J1": 0.7670888246501578,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "2.25": {
+          "median_J1": 0.8153632989129869,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "3.25": {
+          "median_J1": 0.911365070664637,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "4.5": {
+          "median_J1": 0.9575523983506483,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_gamma_over_eta": {
+        "0.3": {
+          "median_J1": 0.7141848965032381,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        },
+        "0.75": {
+          "median_J1": 0.995142032311314,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        }
+      }
+    },
+    "MDM-Default": {
+      "j1_summary": {
+        "method": "MDM-Default",
+        "n_models": 15,
+        "median_J1": 0.6246877684166015,
+        "mean_J1": 0.6246877684166013,
+        "SD_J1": 1.1491900087240784e-16,
+        "min_J1": 0.6246877684166015,
+        "max_J1": 0.6246877684166015,
+        "n_failures": 0,
+        "n_rows": 360000
+      },
+      "loss_quantiles_full_sample": {
+        "P25": 0.08708976805206034,
+        "P50": 0.2357472650035995,
+        "P75": 0.5478759893844811,
+        "P90": 0.9737481875223867,
+        "P95": 1.2530304915356074,
+        "P99": 1.7745497805367807
+      },
+      "complete_case_parametrics": {
+        "note": "Computed on non-failed rows only",
+        "n_valid": 360000,
+        "bias": {
+          "beta": -0.7408947527407688,
+          "eta": -0.1749962066245516,
+          "gamma": 0.1598545317205741
+        },
+        "rmse": {
+          "beta": 1.3290660642847807,
+          "eta": 0.3616592190757109,
+          "gamma": 0.3164957954461688
+        },
+        "mae": {
+          "beta": 1.0212998821509247,
+          "eta": 0.2974211828206712,
+          "gamma": 0.2547968717870565
+        }
+      },
+      "failure_rate": 0.0,
+      "support_rate": 1.0,
+      "n_total": 360000,
+      "n_failed": 0,
+      "stratification_by_n": {
+        "7.0": {
+          "median_J1": 0.7359318794258755,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "10.0": {
+          "median_J1": 0.6293209194762884,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "20.0": {
+          "median_J1": 0.48276689321261274,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_beta": {
+        "1.75": {
+          "median_J1": 0.5497253889321114,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "2.25": {
+          "median_J1": 0.5582497540599585,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "3.25": {
+          "median_J1": 0.616710797474117,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "4.5": {
+          "median_J1": 0.752838782988448,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_gamma_over_eta": {
+        "0.3": {
+          "median_J1": 0.6167848515518605,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        },
+        "0.75": {
+          "median_J1": 0.6324919469169362,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        }
+      }
+    },
+    "MDM-Vector-MLP": {
+      "j1_summary": {
+        "method": "MDM-Vector-MLP",
+        "n_models": 15,
+        "median_J1": 0.5453958169938843,
+        "mean_J1": 0.546101708199203,
+        "SD_J1": 0.004208736304257697,
+        "min_J1": 0.5380128521558194,
+        "max_J1": 0.5536087552847724,
+        "n_failures": 0,
+        "n_rows": 360000
+      },
+      "loss_quantiles_full_sample": {
+        "P25": 0.053199779729378095,
+        "P50": 0.139445674640655,
+        "P75": 0.37429073407349644,
+        "P90": 0.8360129312688205,
+        "P95": 1.1564972059938927,
+        "P99": 1.7423042698825142
+      },
+      "complete_case_parametrics": {
+        "note": "Computed on non-failed rows only",
+        "n_valid": 360000,
+        "bias": {
+          "beta": -0.6059539464202494,
+          "eta": -0.17001892488087342,
+          "gamma": 0.15394379912125825
+        },
+        "rmse": {
+          "beta": 1.1789163400935208,
+          "eta": 0.30319942191303323,
+          "gamma": 0.2750686329262114
+        },
+        "mae": {
+          "beta": 0.8841390740699143,
+          "eta": 0.2286649654994656,
+          "gamma": 0.20935935303942635
+        }
+      },
+      "failure_rate": 0.0,
+      "support_rate": 1.0,
+      "n_total": 360000,
+      "n_failed": 0,
+      "stratification_by_n": {
+        "7.0": {
+          "median_J1": 0.6565682213886942,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "10.0": {
+          "median_J1": 0.5500840313851313,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "20.0": {
+          "median_J1": 0.40260968668125363,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_beta": {
+        "1.75": {
+          "median_J1": 0.47742771102288534,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "2.25": {
+          "median_J1": 0.4893670330176216,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "3.25": {
+          "median_J1": 0.5567375380283409,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "4.5": {
+          "median_J1": 0.6432796631046086,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_gamma_over_eta": {
+        "0.3": {
+          "median_J1": 0.5480569665004855,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        },
+        "0.75": {
+          "median_J1": 0.5424891204912056,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        }
+      }
+    },
+    "MLE": {
+      "j1_summary": {
+        "method": "MLE",
+        "n_models": 15,
+        "median_J1": 1.1833245380724196,
+        "mean_J1": 1.183588007075887,
+        "SD_J1": 0.0017678952227827092,
+        "min_J1": 1.1812203700438073,
+        "max_J1": 1.1856901956961943,
+        "n_failures": 101715,
+        "n_rows": 360000
+      },
+      "loss_quantiles_full_sample": {
+        "P25": 0.21127280519696418,
+        "P50": 0.7898492816819902,
+        "P75": 2.1966165833640767,
+        "P90": 2.2164518091978156,
+        "P95": 3.486001855262288,
+        "P99": 8.797433735709285
+      },
+      "complete_case_parametrics": {
+        "note": "Computed on non-failed rows only",
+        "n_valid": 258285,
+        "bias": {
+          "beta": 0.7670007062866454,
+          "eta": 0.01892930138491236,
+          "gamma": -0.029664964936850884
+        },
+        "rmse": {
+          "beta": 2.7686569515387958,
+          "eta": 0.4340641369054371,
+          "gamma": 0.3990369979595326
+        },
+        "mae": {
+          "beta": 1.8033792345101451,
+          "eta": 0.3617920083373397,
+          "gamma": 0.3268318979631765
+        }
+      },
+      "failure_rate": 0.2825416666666667,
+      "support_rate": 0.7174583333333333,
+      "n_total": 360000,
+      "n_failed": 101715,
+      "stratification_by_n": {
+        "7.0": {
+          "median_J1": 1.4640617005942531,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.46425
+        },
+        "10.0": {
+          "median_J1": 1.2084295984449607,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.312375
+        },
+        "20.0": {
+          "median_J1": 0.772652657840592,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.071
+        }
+      },
+      "stratification_by_beta": {
+        "1.75": {
+          "median_J1": 1.2302097167032853,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.4305
+        },
+        "2.25": {
+          "median_J1": 1.1684383608971058,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.31533333333333335
+        },
+        "3.25": {
+          "median_J1": 1.1746598047661485,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.21383333333333332
+        },
+        "4.5": {
+          "median_J1": 1.1586794390153317,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.1705
+        }
+      },
+      "stratification_by_gamma_over_eta": {
+        "0.3": {
+          "median_J1": 1.0384956171127993,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.28125
+        },
+        "0.75": {
+          "median_J1": 1.3122655135475125,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.2838333333333333
+        }
+      }
+    },
+    "WMLE": {
+      "j1_summary": {
+        "method": "WMLE",
+        "n_models": 15,
+        "median_J1": 0.73559165178221,
+        "mean_J1": 0.73559165178221,
+        "SD_J1": 0.0,
+        "min_J1": 0.73559165178221,
+        "max_J1": 0.73559165178221,
+        "n_failures": 0,
+        "n_rows": 360000
+      },
+      "loss_quantiles_full_sample": {
+        "P25": 0.10430295855583045,
+        "P50": 0.2941170350036324,
+        "P75": 0.6763090402883176,
+        "P90": 1.4941593087177485,
+        "P95": 1.990172778320463,
+        "P99": 3.121790912083445
+      },
+      "complete_case_parametrics": {
+        "note": "Computed on non-failed rows only",
+        "n_valid": 360000,
+        "bias": {
+          "beta": -0.07788682879026623,
+          "eta": 0.013452805657605826,
+          "gamma": -0.011975230493620696
+        },
+        "rmse": {
+          "beta": 1.3249250952590446,
+          "eta": 0.41462930290872557,
+          "gamma": 0.3724682254409608
+        },
+        "mae": {
+          "beta": 1.0543225447715252,
+          "eta": 0.33659754493246613,
+          "gamma": 0.3032551694920258
+        }
+      },
+      "failure_rate": 0.0,
+      "support_rate": 1.0,
+      "n_total": 360000,
+      "n_failed": 0,
+      "stratification_by_n": {
+        "7.0": {
+          "median_J1": 0.8156563304509519,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "10.0": {
+          "median_J1": 0.7508488144968943,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        },
+        "20.0": {
+          "median_J1": 0.6278662619371552,
+          "n_models": 15,
+          "n_rows": 120000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_beta": {
+        "1.75": {
+          "median_J1": 0.9133206239938337,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "2.25": {
+          "median_J1": 0.7084770433577551,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "3.25": {
+          "median_J1": 0.6062559863599232,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        },
+        "4.5": {
+          "median_J1": 0.6787780996113862,
+          "n_models": 15,
+          "n_rows": 90000,
+          "failure_rate": 0.0
+        }
+      },
+      "stratification_by_gamma_over_eta": {
+        "0.3": {
+          "median_J1": 0.6048129526536294,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        },
+        "0.75": {
+          "median_J1": 0.846399107186296,
+          "n_models": 15,
+          "n_rows": 180000,
+          "failure_rate": 0.0
+        }
+      }
+    }
+  },
+  "paired_comparisons": {
+    "Direct-MLP_vs_LSE": {
+      "n_paired": 360000,
+      "a_wins": 310696,
+      "b_wins": 49304,
+      "draws": 0,
+      "median_diff": -0.291746028341854,
+      "mean_diff": -0.6409475310935927
+    },
+    "Direct-MLP_vs_MDM-Default": {
+      "n_paired": 360000,
+      "a_wins": 287866,
+      "b_wins": 72134,
+      "draws": 0,
+      "median_diff": -0.13086721024812048,
+      "mean_diff": -0.2809984736698895
+    },
+    "Direct-MLP_vs_MDM-Vector-MLP": {
+      "n_paired": 360000,
+      "a_wins": 247594,
+      "b_wins": 112406,
+      "draws": 0,
+      "median_diff": -0.047240933721257275,
+      "mean_diff": -0.18900727392252342
+    },
+    "Direct-MLP_vs_MLE": {
+      "n_paired": 360000,
+      "a_wins": 322984,
+      "b_wins": 37016,
+      "draws": 0,
+      "median_diff": -0.6664366860663551,
+      "mean_diff": -1.2916471532443965
+    },
+    "Direct-MLP_vs_WMLE": {
+      "n_paired": 360000,
+      "a_wins": 289974,
+      "b_wins": 70026,
+      "draws": 0,
+      "median_diff": -0.1751301801954408,
+      "mean_diff": -0.43185874383225614
+    },
+    "LSE_vs_MDM-Default": {
+      "n_paired": 360000,
+      "a_wins": 95895,
+      "b_wins": 264105,
+      "draws": 0,
+      "median_diff": 0.037295692798320346,
+      "mean_diff": 0.35994905742370314
+    },
+    "LSE_vs_MDM-Vector-MLP": {
+      "n_paired": 360000,
+      "a_wins": 51993,
+      "b_wins": 308007,
+      "draws": 0,
+      "median_diff": 0.09693160783158405,
+      "mean_diff": 0.45194025717106917
+    },
+    "LSE_vs_MLE": {
+      "n_paired": 360000,
+      "a_wins": 288789,
+      "b_wins": 71211,
+      "draws": 0,
+      "median_diff": -0.25130194048556165,
+      "mean_diff": -0.650699622150804
+    },
+    "LSE_vs_WMLE": {
+      "n_paired": 360000,
+      "a_wins": 169440,
+      "b_wins": 190560,
+      "draws": 0,
+      "median_diff": 0.01770579684937039,
+      "mean_diff": 0.20908878726133645
+    },
+    "MDM-Default_vs_MDM-Vector-MLP": {
+      "n_paired": 360000,
+      "a_wins": 74002,
+      "b_wins": 270350,
+      "draws": 15648,
+      "median_diff": 0.03480220711252999,
+      "mean_diff": 0.09199119974736607
+    },
+    "MDM-Default_vs_MLE": {
+      "n_paired": 360000,
+      "a_wins": 303060,
+      "b_wins": 56940,
+      "draws": 0,
+      "median_diff": -0.2987199722280569,
+      "mean_diff": -1.0106486795745073
+    },
+    "MDM-Default_vs_WMLE": {
+      "n_paired": 360000,
+      "a_wins": 222930,
+      "b_wins": 137070,
+      "draws": 0,
+      "median_diff": -0.04554360926591101,
+      "mean_diff": -0.15086027016236656
+    },
+    "MDM-Vector-MLP_vs_MLE": {
+      "n_paired": 360000,
+      "a_wins": 323593,
+      "b_wins": 36407,
+      "draws": 0,
+      "median_diff": -0.4374164427844309,
+      "mean_diff": -1.1026398793218732
+    },
+    "MDM-Vector-MLP_vs_WMLE": {
+      "n_paired": 360000,
+      "a_wins": 257373,
+      "b_wins": 102627,
+      "draws": 0,
+      "median_diff": -0.1000469292052964,
+      "mean_diff": -0.24285146990973275
+    },
+    "MLE_vs_WMLE": {
+      "n_paired": 360000,
+      "a_wins": 90141,
+      "b_wins": 269859,
+      "draws": 0,
+      "median_diff": 0.16545848928805323,
+      "mean_diff": 0.8597884094121405
+    }
+  }
+}
