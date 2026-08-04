@@ -41,7 +41,7 @@ J1 = sqrt(mean_i loss_i(delta_hat_i))
 
 **图 8** 将部署推断与离线训练/评价分开，概括 E3b vector-output MLP 的方法流程。
 
-![Figure 8: E3b vector-output MLP workflow](artifacts/formal/figures/fig_ch6_vector_mlp_workflow.png)
+![Figure 8: E3b vector-output MLP workflow](../artifacts/formal/figures/fig_ch6_vector_mlp_workflow.png)
 
 **Figure 8.** E3b 样本自适应偏移量选择流程。部署路径只使用新寿命样本及其 13 个可观测统计特征；vector-output MLP（13–256–128–64–26）一次性预测 26 个正式候选 $\delta_j=0.02j$ 的损失，再通过 $\hat\delta_i=\arg\min_{\delta_j}\hat\ell_i(\delta_j)$ 选择偏移量。candidate $\delta$、真 $\beta$、真 $\gamma/\eta$、配置 ID、seed 和 `repeat_id` 均不进入模型输入。下方虚线仅表示离线训练标签与评价路径：训练使用 formal MC 的 raw per-sample 26 点损失曲线，评价在所选 $\hat\delta_i$ 上计算真实 selected-loss 并跨样本汇总为 $J_1$。图中不展示结果数字，定量比较以表 5 为准。
 
@@ -61,7 +61,7 @@ E3b 比较以下方法：
 数据溯源如下：
 
 - 代码入口：`code/run_E3b_vector_mlp.py`
-- 产物目录：`artifacts/formal/E3b_vector_mlp/`
+- 产物目录：`../artifacts/formal/E3b_vector_mlp/`
 - 主结果：`model_comparison.csv`
 - 稳定性：`seed_stability.csv`
 - 诊断：`endpoint_diagnostics.csv`、`near_optimal_diagnostics.csv`
@@ -73,7 +73,7 @@ E3b 比较以下方法：
 
 ## §3 主结果：样本特征在当前网格上优于简单可部署层级
 
-E3b 的定量主判断由**表 5**承担。为完整呈现当前实验合同下的比较景观，表中保留 Default、L1–L6 参照及 Vector-MLP-L4/L5/L6 全部 10 行，并继续按 pooled $J_1$ 从低到高排列，使效果差异可以直接读取。数值排序不表示可部署、oracle 与 hindsight 方法具有相同信息边界；该边界由方法命名、`性质`列和正文解释共同限定。完整展示不改变主张权重，正文仍以 L2 为主要可部署对照，以 L5/L6 分别作为组级 oracle 与逐样本 hindsight 边界。原 pooled J1 柱状图 `artifacts/formal/E3b_vector_mlp/plots/model_j1_comparison.png` 保留为补充诊断图，不再与主结果表重复占用主文图位。
+E3b 的定量主判断由**表 5**承担。为完整呈现当前实验合同下的比较景观，表中保留 Default、L1–L6 参照及 Vector-MLP-L4/L5/L6 全部 10 行，并继续按 pooled $J_1$ 从低到高排列，使效果差异可以直接读取。数值排序不表示可部署、oracle 与 hindsight 方法具有相同信息边界；该边界由方法命名、`性质`列和正文解释共同限定。完整展示不改变主张权重，正文仍以 L2 为主要可部署对照，以 L5/L6 分别作为组级 oracle 与逐样本 hindsight 边界。原 pooled J1 柱状图 `../artifacts/formal/E3b_vector_mlp/plots/model_j1_comparison.png` 保留为补充诊断图，不再与主结果表重复占用主文图位。
 
 **Table 5.** E3b combo holdout pooled 结果
 
@@ -124,7 +124,7 @@ E3b 对 `Vector-MLP-L6` 进行了 3 seed 稳定性检查。
 
 三个 seed 的 pooled $J_1$ 位于 0.544009–0.547003，最大差值为 0.002994，相当于三-seed均值的 0.55%；相对 L2=0.632541 的降幅位于 13.52%–14.00%。因此，主 selected-loss 结论在三个训练 seed 下方向一致，且效应幅度变化有限。selected-loss 的跨-seed一致性不等于具体 $\delta$ 选择分布完全稳定；边界选择率在三 seed 间仍有波动，完整数值见 **Supplementary Table S1**。该训练敏感性不推翻主 $J_1$ 结论，但提示后续 E4 若要形成更强部署推荐，必须继续检查网格边缘行为的稳健性。
 
-为避免合并后的 extreme/near-boundary rate 掩盖两个精确端点的不同含义，主文保留**表 7**，分别报告 $P(\hat\delta=0)$、$P(\hat\delta=0.50)$ 和 extreme/near-boundary rate。该表的唯一职责是拆解 primary seed 42 下的边界选择构成；完整的预测 delta 分布图降为补充诊断图（当前源文件为 `artifacts/formal/E3b_vector_mlp/plots/delta_distribution_comparison.png`，最终补充图号待投稿版冻结）。
+为避免合并后的 extreme/near-boundary rate 掩盖两个精确端点的不同含义，主文保留**表 7**，分别报告 $P(\hat\delta=0)$、$P(\hat\delta=0.50)$ 和 extreme/near-boundary rate。该表的唯一职责是拆解 primary seed 42 下的边界选择构成；完整的预测 delta 分布图降为补充诊断图（当前源文件为 `../artifacts/formal/E3b_vector_mlp/plots/delta_distribution_comparison.png`，最终补充图号待投稿版冻结）。
 
 **Table 7.** `Vector-MLP-L6` 网格边缘诊断（primary seed 42）
 
@@ -152,7 +152,7 @@ E3b 的 near-optimal 诊断进一步支持主结果。对样本 $i$，regret 定
 
 该结果表明，模型差异不仅体现在 pooled $J_1$ 上，也体现在接近逐样本 hindsight 最优值的样本比例上：near-5% hit rate 由 L2 的 18.78% 提高至 `Vector-MLP-L6` 的 40.90%。表 8 不直接分解各样本对 pooled $J_1$ 降幅的贡献，因此本章不据此排除少数极端样本的影响；若需作出该判断，应另行报告逐样本损失差的胜率、中位数和分位数。
 
-完整的逐样本 relative-regret 及其汇总仍保留在正式 artifact `artifacts/formal/E3b_vector_mlp/near_optimal_diagnostics.csv` 和 `E3b_acceptance_report.md`。由于逐样本 hindsight 最小损失接近零时 relative regret 的均值会对小分母高度敏感，主文表 8 不展示 mean relative regret，避免将该不稳定比值作为主要比较量。
+完整的逐样本 relative-regret 及其汇总仍保留在正式 artifact `../artifacts/formal/E3b_vector_mlp/near_optimal_diagnostics.csv` 和 `E3b_acceptance_report.md`。由于逐样本 hindsight 最小损失接近零时 relative regret 的均值会对小分母高度敏感，主文表 8 不展示 mean relative regret，避免将该不稳定比值作为主要比较量。
 
 本章不进一步判断 13 个可观测特征中哪些信息组承担主要贡献。现有 fold 1、seed 42 的 `feature_ablation.csv` 只是 E4a 的 pilot 来源，不在 Ch6 提前写成特征重要性结论。E4a 已在跨 5 folds、3 seeds 的正式合同下完成 full features、`n only`、scale/quantile 与 shape 四组比较；该结果归 Ch7 整合后，再判断样本内部信息是否稳定超越仅使用 $n$ 的选择器，以及形状信息能否承接第 5 章观察到的 $\beta$ 主效应。
 

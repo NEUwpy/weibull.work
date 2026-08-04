@@ -71,13 +71,13 @@
 
 ## 【作者备注】Ch4 E1 数据溯源
 
-- δ-risk 曲线数据：`artifacts/formal/E1_baseline/delta_risk_curve.csv`
-- Default vs L1 分组合：`artifacts/formal/E1_baseline/table_default_vs_L1.csv`
-- L2 按 n：`artifacts/formal/E1_baseline/table_L2_by_n.csv`
-- 汇总：`artifacts/formal/E1_baseline/summary.json`
-- manifest：`artifacts/formal/E1_baseline/manifest.json`（run_id: `E1_baseline_v1`, git_commit: `3a35abc`, mdm git_commit: `e4ef9e9`）
+- δ-risk 曲线数据：`../artifacts/formal/E1_baseline/delta_risk_curve.csv`
+- Default vs L1 分组合：`../artifacts/formal/E1_baseline/table_default_vs_L1.csv`
+- L2 按 n：`../artifacts/formal/E1_baseline/table_L2_by_n.csv`
+- 汇总：`../artifacts/formal/E1_baseline/summary.json`
+- manifest：`../artifacts/formal/E1_baseline/manifest.json`（run_id: `E1_baseline_v1`, git_commit: `3a35abc`, mdm git_commit: `e4ef9e9`）
 - Figure 2 绘图脚本：`code/plot_fig2.py`
-- Figure 2 图片：`artifacts/formal/figures/fig2_delta_risk_curve.{svg,pdf,png}`
+- Figure 2 图片：`../artifacts/formal/figures/fig2_delta_risk_curve.{svg,pdf,png}`
 
 > 注：上述脚本/图片命名沿用旧版 Figure 编号；正文 Figure 编号以各章初稿为准。
 
@@ -85,11 +85,11 @@
 
 ## 【作者备注】Ch5 E2 数据溯源
 
-- 阶梯表：`artifacts/formal/E2_oracle_layers/ladder_L1_L6.csv`
-- L3 按 β：`artifacts/formal/E2_oracle_layers/L3_by_beta.csv`
-- L4 按 (β,n)：`artifacts/formal/E2_oracle_layers/L4_by_beta_n.csv`
-- L5 按 (β,γ/η,n)：`artifacts/formal/E2_oracle_layers/L5_by_beta_goe_n.csv`
-- L6 逐样本：`artifacts/formal/E2_oracle_layers/L6_per_sample_delta.csv`
-- MLE 锚点：`artifacts/formal/shared_data/mle_anchor.csv`
+- 阶梯表：`../artifacts/formal/E2_oracle_layers/ladder_L1_L6.csv`
+- L3 按 β：`../artifacts/formal/E2_oracle_layers/L3_by_beta.csv`
+- L4 按 (β,n)：`../artifacts/formal/E2_oracle_layers/L4_by_beta_n.csv`
+- L5 按 (β,γ/η,n)：`../artifacts/formal/E2_oracle_layers/L5_by_beta_goe_n.csv`
+- L6 逐样本：`../artifacts/formal/E2_oracle_layers/L6_per_sample_delta.csv`
+- MLE 锚点：`../artifacts/formal/shared_data/mle_anchor.csv`
 - Figure 3 脚本：`code/plot_fig3_fig4.py`
 - Figure 4 脚本：`code/plot_fig3_fig4.py`

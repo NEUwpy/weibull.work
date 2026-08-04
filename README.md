@@ -12,7 +12,7 @@
 
 ## 当前状态快照
 
-> **快照日期**: 2026-08-01 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+> **快照日期**: 2026-08-04 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
 
 | 层级 | 技术 |
 |------|------|
@@ -33,7 +33,7 @@
 
 **Study/02 当前态**：前置研究 A 已完成，19/19 问有证据覆盖（17 answered + A4/A8 partial），正式成果见 Study/02 `06-A-前置研究报告.md`。主研究 B 的 B1–B6 已全部完成并 APPROVE（分支 `codex/study02-quantile-formal-20260731`；B6 实现/证据 tip `2e0e842d`，最终报告/文档 tip `b5c5404`）；正式结论见 Study/02 `05-B-正式实验报告.md`，证据哈希见 `04-B-证据索引.md`。核心结果：core pooled \(x_{0.95}\) 相对 RMSE 改善率 I=0.3926 [0.3444,0.4347]（NN 直接路线 D 相对 NN 参数路线 P，supported and material），但优势分层且非全域（D 非总体精度最优，core 上 MDM/LRE 更优）；旧 A formal 引擎与 test namespaces 永久只读，不作为 B 的控制面。C 阶段已完成并 APPROVED（分支 `codex/study02-c-scientific-argument-20260801`）：把 A/B 结果提升为科学论证，C0/C1–C5 全部通过（C5 经对抗性复核与可复现性稳定，code commit `8cc93147`），见 Study/02 `06-C-论证计划与状态.md`、`07-C-机制分析与补充证据.md` 与 `08-C-论文前科学论证报告.md`（C5 最终版，APPROVED）。
 
-**Study/01 当前态**：既有 E1–E4、R1–R3/P6–P8 正式实验、Figures 1–9、Supplementary Figures S1–S8、五部分技术稿及 fail-closed 审计继续保持完成和封存。P0–P1 已获 Codex APPROVE（`be8d7b81`）。P2 v1 因非确定性 seed 已失效隔离；P2 v2 的 39 组合正式生成与评价已获 Codex APPROVE（`53932687`）：Vector-MLP 在 P2-NI/P2-PI 两轨道均为 15/15 模型胜出，median J1 相对 Default 分别降低约 17.6% 和 12.7%，0 failures，SHA256SUMS 46/46、P0_INTEGRITY=PASS，Git LFS 新鲜克隆复核通过。P3 Direct-MLP 实现与仓库外真实 smoke 已获 Codex APPROVE 并合并至 main（`fde26eaa`）；P3 仅登记为实现和 smoke 已批准，不构成正式方法比较结果。P4 正式六方法比较（MDM-Default / MDM-Vector-MLP / Direct-MLP / MLE / LSE / WMLE）已在授权 tip `cfb0c6ed` 上完成四轨道正式运行并通过 SHA256SUMS 17/17 封存校验（产物：`artifacts/formal/p4_formal_compare/`），运行后授权已复位为未授权。中文学术源稿 v0.3 已开始按新骨架重写，v0.2 保留为扩展验证前稿；不启动大规模连续空间重训，不删除既有 NIST 6061-T6 负结果。
+**Study/01 当前态**：论文主线已收敛为“三参数 Weibull MDM 框架内偏移量 `delta` 的最优性定义、信息层级与样本自适应选择”，核心实验为 E1（固定全局偏移量及经验 `delta=0.1` 的位置）、E2（不同信息层级下的潜在收益，逐样本事后选择潜在降幅约 21.9%）、E3b（真参数未知时 Vector-MLP 预测 26 点损失曲线并选择偏移量，pooled J1=0.547，介于参数组级规则与逐样本事后参照之间——仅为 J1 数值位置；L5 按真参数组合选择，Vector-MLP 逐样本预测风险曲线，决策粒度不同，不能解释为网络拥有比真参数 oracle 更多的信息）；三类核心结果均已封存可用。支撑验证（泛化 P2、seed 稳定性与特征消融 E4a、传统方法外部参照 WMLE/LSE）正文简述、细节进补充材料；MLE 已封存但不再作为论文证据消费；Direct-MLP 与 MDM 的完整比较属于独立 Research。P4 正式六方法比较已封存（seal `f00b561d`，产物 `artifacts/formal/p4_formal_compare/`）。工程分位点改以 `x_0.95` 为主、`x_0.90/x_0.99` 补充（删除 `x_0.50`），由 P4 逐样本估计派生；真实案例后置、NIST 6061-T6 不进入本文。2026-08-04 完成文档与目录职责整理：重写 README/00/01/02/03/04，新建 `Research/` 与 `待移出Study01/`；外部中文学术源稿 v0.3 为唯一活动论文稿。
 
 | 大类 | 子方法 | 后端 |
 |------|--------|------|

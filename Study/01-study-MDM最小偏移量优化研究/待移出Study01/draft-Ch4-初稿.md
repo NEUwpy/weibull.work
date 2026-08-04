@@ -4,7 +4,7 @@
 
 **图 3**(a) 展示了设计网格 pooled J₁ 随 δ 的变化曲线（基于 45 个参数组合 × R = 1000 的完整 MC 扫描）。因为每个参数组合的重复数相同，45 个 $(\beta,\gamma/\eta,n)$ 设计格点在该指标中等权。本章以下简称的“全局”均指这一正式设计网格下的等权 pooled 口径，不代表真实应用的参数分布。
 
-![Figure 3: δ-risk 曲线](artifacts/formal/figures/fig2_delta_risk_curve.png)
+![Figure 3: δ-risk 曲线](../artifacts/formal/figures/fig2_delta_risk_curve.png)
 
 **Figure 3.** δ 对 MDM 估计精度的影响。(a) 正式设计网格的等权 pooled δ-risk 曲线：J₁ 随偏移量 δ 的变化（45 参数组合 × R = 1000）。蓝色虚线标注该设计测度下的最优 δ\* = 0.08，橙色点线标注 Default δ = 0.10，灰色阴影为平坦区间 [0.06, 0.12]。(b) 分形状参数 β 的 δ-risk 曲线：5 个 β 值对应不同最优 δ（β = 1.5 时 δ\* = 0.36，β = 5.0 时 δ\* = 0.04），揭示全局平坦是不同 β 条件下最优 δ 方向相反、聚合后互相抵消的结果。
 
@@ -33,7 +33,7 @@
 
 **结论**：在正式设计网格及其等权 pooled 口径下，L1 相对 Default、L2 相对 L1 的 pooled $J_1$ 降幅分别为 0.048% 和 0.059%，未呈现与按 $\beta$ 分组的 0.77%–8.11% 变化同量级的改善。全局 δ\*=0.08 ≈ Default 0.1 是不同 β 条件下最优 δ 方向相反、聚合后抵消的结果。
 
-数据溯源：`artifacts/formal/E1_baseline/summary.json`，`table_default_vs_L1.csv`，`table_L2_by_n.csv`
+数据溯源：`../artifacts/formal/E1_baseline/summary.json`，`table_default_vs_L1.csv`，`table_L2_by_n.csv`
 
 ### 选点与评价分离的敏感性审计
 
@@ -47,9 +47,9 @@
 
 L1 在五个训练折中都选择 $δ^*=0.08$，因而 cross-fit 与全缓存结果完全一致。L2 只在一折的 $n=7$ 选点中由 0.10 变为 0.08，使 cross-fit J₁ 比同批选点/评价值高 0.030%。在更严格的留出口径下，L1 相对 Default 改善 0.048%，L2 相对 Default 改善 0.077%，L2 相对 L1 改善 0.029%；这些幅度仍低于按 $\beta$ 分组所见的 0.77%–8.11% 变化。该审计说明上述量级比较并非同批数据择优造成的假象。
 
-cross-fit 溯源：`artifacts/formal/E1_E2_crossfit/model_comparison.csv`、`comparison_vs_same_sample.csv`、`selected_deltas.csv`。
+cross-fit 溯源：`../artifacts/formal/E1_E2_crossfit/model_comparison.csv`、`comparison_vs_same_sample.csv`、`selected_deltas.csv`。
 
-δ-risk 曲线在 δ ∈ [0.06, 0.12] 区间极为平坦，完整 26 点曲线见 `artifacts/formal/E1_baseline/delta_risk_curve.csv`。这一平坦区间解释了为什么原文经验取值 δ = 0.1 仍然有效：在全局聚合层面，0.1 落在了对精度不敏感的平台上。
+δ-risk 曲线在 δ ∈ [0.06, 0.12] 区间极为平坦，完整 26 点曲线见 `../artifacts/formal/E1_baseline/delta_risk_curve.csv`。这一平坦区间解释了为什么原文经验取值 δ = 0.1 仍然有效：在全局聚合层面，0.1 落在了对精度不敏感的平台上。
 
 ## §2 分 n 的 δ-risk 曲线
 
@@ -65,7 +65,7 @@ n = 7 和 n = 10 的最优 δ 均为 0.10（恰好等于 Default），仅 n = 20
 
 **图 4** 不重复图 3 对全局抵消的说明，而是进一步检查：在已按 $n$ 条件化后，导致抵消的 $\beta$ 异质性是否仍然存在。
 
-![Figure 4: L2/n 异质性诊断](artifacts/formal/figures/fig_l2_n_heterogeneity.png)
+![Figure 4: L2/n 异质性诊断](../artifacts/formal/figures/fig_l2_n_heterogeneity.png)
 
 **Figure 4.** 按 $n$ 条件化后仍存在的 $\beta$ 异质性。(a) 按 $n$ 汇总的 $\delta$-risk 曲线（所有 $\beta$ 合并）：$n=7/10/20$ 的最优 $\delta^*$ 分别为 0.10/0.10/0.08；在 L2 口径下，$n=20$ 的 $J_1=0.488235$，比 $n=7$ 的 0.739286 低 33.96%，但最优 $\delta$ 仅由 0.10 移至 0.08。(b) 在每个 $n$ 内部按 $\beta$ 分解：同一 $n$ 下，$\beta=1.5$ 和 $\beta=5.0$ 的最优 $\delta$ 方向相反（如 $n=7$ 时，$\beta=1.5\rightarrow\delta^*=0.30$，$\beta=5.0\rightarrow\delta^*=0.02$）。因此，即使已知 $n$，pooled-by-$n$ 曲线仍会掩盖 $\beta$ 方向相反的选点需求；$n$ 改变 $J_1$ 整体水平达 33.96%，但不足以决定 $\delta^*$ 方向。
 
