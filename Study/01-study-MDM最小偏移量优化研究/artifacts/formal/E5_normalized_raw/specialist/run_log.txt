@@ -1,0 +1,101 @@
+========================================================================
+Study/01 E5b — Normalized-RAW-MLP (formal)
+Output: D:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\E5_normalized_raw\specialist
+========================================================================
+
+[1/7] Loading MC scan chunks...
+  Loaded 1,248,000 rows
+
+[2/7] Integrity + reconstruction + normalization...
+  Integrity: {'expected_rows': 1248000, 'actual_rows': 1248000, 'duplicate_rows': 0, 'unique_combos': 160, 'delta_points': 26, 'repeat_min': 300, 'repeat_max': 300, 'non_success_rate': 0.0}
+  NaN/invalid losses: 0 (0.000%)
+
+[3/7] Preparing 5 folds (failure_penalty per fold)...
+  fold1: train_combos=128 test_combos=32 failure_penalty=2.106271
+  fold2: train_combos=128 test_combos=32 failure_penalty=2.055852
+  fold3: train_combos=128 test_combos=32 failure_penalty=2.023395
+  fold4: train_combos=128 test_combos=32 failure_penalty=2.025034
+  fold5: train_combos=128 test_combos=32 failure_penalty=2.041267
+
+[4/7] Training per-n specialists (4n x 5fold x 3seed)...
+  [done] n7_fold1_seed42: J1=0.727474 n_iter=42 t=4.0s (train=9600, test=2400)
+  [done] n7_fold1_seed2026: J1=0.730690 n_iter=29 t=2.7s (train=9600, test=2400)
+  [done] n7_fold1_seed3407: J1=0.708186 n_iter=43 t=4.0s (train=9600, test=2400)
+  [done] n7_fold2_seed42: J1=0.699531 n_iter=30 t=2.9s (train=9600, test=2400)
+  [done] n7_fold2_seed2026: J1=0.695948 n_iter=31 t=2.9s (train=9600, test=2400)
+  [done] n7_fold2_seed3407: J1=0.692126 n_iter=36 t=3.3s (train=9600, test=2400)
+  [done] n7_fold3_seed42: J1=0.697567 n_iter=45 t=4.4s (train=9600, test=2400)
+  [done] n7_fold3_seed2026: J1=0.703148 n_iter=38 t=3.6s (train=9600, test=2400)
+  [done] n7_fold3_seed3407: J1=0.692474 n_iter=68 t=6.2s (train=9600, test=2400)
+  [done] n7_fold4_seed42: J1=0.677109 n_iter=61 t=5.7s (train=9600, test=2400)
+  [done] n7_fold4_seed2026: J1=0.672028 n_iter=33 t=3.1s (train=9600, test=2400)
+  [done] n7_fold4_seed3407: J1=0.691983 n_iter=44 t=4.1s (train=9600, test=2400)
+  [done] n7_fold5_seed42: J1=0.704081 n_iter=66 t=6.1s (train=9600, test=2400)
+  [done] n7_fold5_seed2026: J1=0.719882 n_iter=58 t=5.4s (train=9600, test=2400)
+  [done] n7_fold5_seed3407: J1=0.715009 n_iter=35 t=3.3s (train=9600, test=2400)
+  [done] n10_fold1_seed42: J1=0.609138 n_iter=63 t=5.9s (train=9600, test=2400)
+  [done] n10_fold1_seed2026: J1=0.608448 n_iter=60 t=5.7s (train=9600, test=2400)
+  [done] n10_fold1_seed3407: J1=0.618871 n_iter=44 t=4.1s (train=9600, test=2400)
+  [done] n10_fold2_seed42: J1=0.640438 n_iter=63 t=5.9s (train=9600, test=2400)
+  [done] n10_fold2_seed2026: J1=0.638113 n_iter=62 t=5.8s (train=9600, test=2400)
+  [done] n10_fold2_seed3407: J1=0.640691 n_iter=50 t=4.7s (train=9600, test=2400)
+  [done] n10_fold3_seed42: J1=0.614800 n_iter=54 t=5.0s (train=9600, test=2400)
+  [done] n10_fold3_seed2026: J1=0.613514 n_iter=43 t=4.1s (train=9600, test=2400)
+  [done] n10_fold3_seed3407: J1=0.623452 n_iter=69 t=6.6s (train=9600, test=2400)
+  [done] n10_fold4_seed42: J1=0.583660 n_iter=44 t=4.1s (train=9600, test=2400)
+  [done] n10_fold4_seed2026: J1=0.577758 n_iter=49 t=4.6s (train=9600, test=2400)
+  [done] n10_fold4_seed3407: J1=0.581188 n_iter=68 t=6.3s (train=9600, test=2400)
+  [done] n10_fold5_seed42: J1=0.585473 n_iter=44 t=4.1s (train=9600, test=2400)
+  [done] n10_fold5_seed2026: J1=0.580372 n_iter=53 t=4.9s (train=9600, test=2400)
+  [done] n10_fold5_seed3407: J1=0.589349 n_iter=39 t=3.6s (train=9600, test=2400)
+  [done] n15_fold1_seed42: J1=0.506512 n_iter=39 t=3.7s (train=9600, test=2400)
+  [done] n15_fold1_seed2026: J1=0.515744 n_iter=34 t=3.2s (train=9600, test=2400)
+  [done] n15_fold1_seed3407: J1=0.506653 n_iter=48 t=4.5s (train=9600, test=2400)
+  [done] n15_fold2_seed42: J1=0.533199 n_iter=39 t=3.8s (train=9600, test=2400)
+  [done] n15_fold2_seed2026: J1=0.527582 n_iter=43 t=4.0s (train=9600, test=2400)
+  [done] n15_fold2_seed3407: J1=0.526388 n_iter=38 t=3.6s (train=9600, test=2400)
+  [done] n15_fold3_seed42: J1=0.565681 n_iter=37 t=3.6s (train=9600, test=2400)
+  [done] n15_fold3_seed2026: J1=0.563856 n_iter=45 t=4.3s (train=9600, test=2400)
+  [done] n15_fold3_seed3407: J1=0.560537 n_iter=52 t=4.9s (train=9600, test=2400)
+  [done] n15_fold4_seed42: J1=0.531685 n_iter=36 t=3.4s (train=9600, test=2400)
+  [done] n15_fold4_seed2026: J1=0.524967 n_iter=44 t=4.1s (train=9600, test=2400)
+  [done] n15_fold4_seed3407: J1=0.536706 n_iter=48 t=4.6s (train=9600, test=2400)
+  [done] n15_fold5_seed42: J1=0.507634 n_iter=47 t=4.5s (train=9600, test=2400)
+  [done] n15_fold5_seed2026: J1=0.508420 n_iter=34 t=3.3s (train=9600, test=2400)
+  [done] n15_fold5_seed3407: J1=0.504917 n_iter=42 t=4.0s (train=9600, test=2400)
+  [done] n20_fold1_seed42: J1=0.460670 n_iter=39 t=3.7s (train=9600, test=2400)
+  [done] n20_fold1_seed2026: J1=0.456822 n_iter=39 t=3.8s (train=9600, test=2400)
+  [done] n20_fold1_seed3407: J1=0.459413 n_iter=40 t=3.8s (train=9600, test=2400)
+  [done] n20_fold2_seed42: J1=0.452915 n_iter=41 t=3.9s (train=9600, test=2400)
+  [done] n20_fold2_seed2026: J1=0.448781 n_iter=43 t=4.1s (train=9600, test=2400)
+  [done] n20_fold2_seed3407: J1=0.458893 n_iter=31 t=2.9s (train=9600, test=2400)
+  [done] n20_fold3_seed42: J1=0.470221 n_iter=38 t=3.6s (train=9600, test=2400)
+  [done] n20_fold3_seed2026: J1=0.474210 n_iter=36 t=3.4s (train=9600, test=2400)
+  [done] n20_fold3_seed3407: J1=0.480681 n_iter=32 t=3.1s (train=9600, test=2400)
+  [done] n20_fold4_seed42: J1=0.514075 n_iter=41 t=4.0s (train=9600, test=2400)
+  [done] n20_fold4_seed2026: J1=0.513037 n_iter=36 t=3.5s (train=9600, test=2400)
+  [done] n20_fold4_seed3407: J1=0.514740 n_iter=38 t=3.6s (train=9600, test=2400)
+  [done] n20_fold5_seed42: J1=0.477591 n_iter=40 t=3.8s (train=9600, test=2400)
+  [done] n20_fold5_seed2026: J1=0.490921 n_iter=39 t=3.8s (train=9600, test=2400)
+  [done] n20_fold5_seed3407: J1=0.480203 n_iter=40 t=3.8s (train=9600, test=2400)
+  All 60 fold models present
+
+[5/7] Final full-development models (deployable, fixed seed)...
+  [final] n7: n_iter=81 t=9.5s train=12000
+  [final] n10: n_iter=56 t=6.5s train=12000
+  [final] n15: n_iter=40 t=4.8s train=12000
+  [final] n20: n_iter=37 t=4.5s train=12000
+
+[6/7] Scale-invariance check (representative samples)...
+  [scale-check] n=7: deltas=[0.0, 0.0, 0.0] norm_diff=2.22e-16 ok=True
+  [scale-check] n=10: deltas=[0.0, 0.0, 0.0] norm_diff=2.22e-16 ok=True
+  [scale-check] n=15: deltas=[0.48, 0.48, 0.48] norm_diff=2.22e-16 ok=True
+  [scale-check] n=20: deltas=[0.28, 0.28, 0.28] norm_diff=6.66e-16 ok=True
+
+[7/7] Aggregation, references, provenance...
+  Normalized-RAW 3-seed: pooled J1 mean=0.584996 (std=0.000399)
+    per-n mean: n7=0.701997, n10=0.607411, n15=0.528428, n20=0.477369
+  Reference Default: J1=0.630409
+  Reference L1: J1=0.624518
+  Reference L2: J1=0.623035
+  Reference L6-hindsight: J1=0.492297

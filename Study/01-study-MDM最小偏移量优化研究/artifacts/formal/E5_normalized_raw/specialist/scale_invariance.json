@@ -1,0 +1,108 @@
+{
+  "method": "same sample scaled by {0.001, 1, 1000}; normalized input and selected delta must match within tolerance",
+  "tolerance": 1e-09,
+  "representative_samples": [
+    {
+      "n": 7,
+      "sample_key": [
+        1.5,
+        1000.0,
+        100.0,
+        0.1,
+        7,
+        0
+      ],
+      "scales": [
+        0.001,
+        1.0,
+        1000.0
+      ],
+      "normalized_input_max_diff": 2.220446049250313e-16,
+      "selected_deltas_per_scale": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normalized_input_consistent": true,
+      "selected_delta_consistent": true,
+      "ok": true
+    },
+    {
+      "n": 10,
+      "sample_key": [
+        1.5,
+        1000.0,
+        100.0,
+        0.1,
+        10,
+        0
+      ],
+      "scales": [
+        0.001,
+        1.0,
+        1000.0
+      ],
+      "normalized_input_max_diff": 2.220446049250313e-16,
+      "selected_deltas_per_scale": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normalized_input_consistent": true,
+      "selected_delta_consistent": true,
+      "ok": true
+    },
+    {
+      "n": 15,
+      "sample_key": [
+        1.5,
+        1000.0,
+        100.0,
+        0.1,
+        15,
+        0
+      ],
+      "scales": [
+        0.001,
+        1.0,
+        1000.0
+      ],
+      "normalized_input_max_diff": 2.220446049250313e-16,
+      "selected_deltas_per_scale": [
+        0.48,
+        0.48,
+        0.48
+      ],
+      "normalized_input_consistent": true,
+      "selected_delta_consistent": true,
+      "ok": true
+    },
+    {
+      "n": 20,
+      "sample_key": [
+        1.5,
+        1000.0,
+        100.0,
+        0.1,
+        20,
+        0
+      ],
+      "scales": [
+        0.001,
+        1.0,
+        1000.0
+      ],
+      "normalized_input_max_diff": 6.661338147750939e-16,
+      "selected_deltas_per_scale": [
+        0.28,
+        0.28,
+        0.28
+      ],
+      "normalized_input_consistent": true,
+      "selected_delta_consistent": true,
+      "ok": true
+    }
+  ],
+  "all_ok": true,
+  "note": "normalized input Z = x/mean(x) is scale-free by construction; this check confirms the full pipeline (scaler+MLP+argmin) introduces no scale dependence."
+}
