@@ -1,0 +1,83 @@
+{
+  "experiment": "E5b Normalized-RAW-MLP (pilot on existing 45-combo cache)",
+  "created_at": "2026-08-04T17:46:56.287991+00:00",
+  "normalized_raw_3seed": {
+    "pooled_J1_mean": 0.5807175285203188,
+    "pooled_J1_std": 0.0020274614434158465,
+    "J1_n7_mean": 0.6802195164053167,
+    "J1_n10_mean": 0.5861917368580042,
+    "J1_n20_mean": 0.4531722953981583
+  },
+  "references_j1": {
+    "Default": 0.6332189473722903,
+    "L1": 0.6329130843027161,
+    "L2": 0.6325405576256966,
+    "L6-hindsight": 0.4945297307934268
+  },
+  "relative_improvement_vs_default": 0.08291195181357112,
+  "seed_table": [
+    {
+      "seed": 42,
+      "pooled_J1": 0.5783563326765014,
+      "J1_n7": 0.6755125202936605,
+      "J1_n10": 0.5836426390691251,
+      "J1_n20": 0.45445819106708807,
+      "n_samples": 45000,
+      "endpoint_rate": 0.4049111111111111,
+      "failure_rate": 0.0
+    },
+    {
+      "seed": 2026,
+      "pooled_J1": 0.5804894158625974,
+      "J1_n7": 0.6784893638809435,
+      "J1_n10": 0.5878480185672573,
+      "J1_n20": 0.45275907053584347,
+      "n_samples": 45000,
+      "endpoint_rate": 0.4030888888888889,
+      "failure_rate": 0.0
+    },
+    {
+      "seed": 3407,
+      "pooled_J1": 0.5833068370218575,
+      "J1_n7": 0.6866566650413461,
+      "J1_n10": 0.5870845529376301,
+      "J1_n20": 0.45229962459154327,
+      "n_samples": 45000,
+      "endpoint_rate": 0.3893333333333333,
+      "failure_rate": 0.0
+    }
+  ],
+  "near_optimal_3seed": {
+    "mean_selected_loss": 0.3372369585306517,
+    "mean_oracle_min": 0.24455965463861917,
+    "mean_regret": 0.09267730389203258,
+    "mean_rel_regret": 6.532533712130847,
+    "near_0.01_rate": 0.284362962962963,
+    "near_0.02_rate": 0.30920740740740743,
+    "near_0.05_rate": 0.35801481481481484
+  },
+  "scale_invariance_all_ok": true,
+  "n_models": 45,
+  "training_stats_all": {
+    "models": 45,
+    "runtime_s": {
+      "total": 970.9399201869965,
+      "mean": 21.576442670822143,
+      "min": 4.38140606880188,
+      "max": 70.26029682159424
+    },
+    "n_iter": {
+      "mean": 54.977777777777774,
+      "min": 26,
+      "max": 112
+    }
+  },
+  "training_stats_this_run": {
+    "models_trained": 45,
+    "models_skipped_cached": 0,
+    "runtime_s": {
+      "total": 970.9399201869965,
+      "mean": 21.576442670822143
+    }
+  }
+}
