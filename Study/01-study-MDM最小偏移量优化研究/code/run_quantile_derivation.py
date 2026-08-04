@@ -221,8 +221,14 @@ def main() -> int:
     ranking = pd.DataFrame(ranking_rows)
 
     # ---- write outputs ------------------------------------------------ #
-    model_df.to_csv(cfg.OUTPUT_DIR / "model_metrics.csv", index=False)
-    ranking.to_csv(cfg.OUTPUT_DIR / "ranking_comparison.csv", index=False)
+    # LF line endings on all outputs so the sealed hashes are stable across
+    # checkouts and platforms (git normalizes text to LF).
+    model_df.to_csv(
+        cfg.OUTPUT_DIR / "model_metrics.csv", index=False, lineterminator="\n"
+    )
+    ranking.to_csv(
+        cfg.OUTPUT_DIR / "ranking_comparison.csv", index=False, lineterminator="\n"
+    )
     payload = {
         "quantile_levels": list(cfg.QUANTILE_LEVELS),
         "main_quantile_level": cfg.MAIN_QUANTILE_LEVEL,
@@ -237,9 +243,10 @@ def main() -> int:
         "stratification_by_n": strat_n,
         "stratification_by_beta": strat_beta,
     }
-    (cfg.OUTPUT_DIR / "summary_quantile.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    with open(
+        cfg.OUTPUT_DIR / "summary_quantile.json", "w", encoding="utf-8", newline=""
+    ) as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
     out_files = ["model_metrics.csv", "ranking_comparison.csv", "summary_quantile.json"]
     manifest = {
@@ -265,30 +272,29 @@ def main() -> int:
         "output_sha256": {f: sha256_file(cfg.OUTPUT_DIR / f) for f in out_files},
         "output_dir": str(cfg.OUTPUT_DIR),
     }
-    (cfg.OUTPUT_DIR / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    with open(cfg.OUTPUT_DIR / "manifest.json", "w", encoding="utf-8", newline="") as fh:
+        fh.write(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     sums = [f"{sha256_file(cfg.OUTPUT_DIR / f)}  {f}" for f in sorted(out_files + ["manifest.json"])]
     with open(cfg.OUTPUT_DIR / "SHA256SUMS", "w", encoding="utf-8", newline="") as fh:
         fh.write("\n".join(sums) + "\n")
-    (cfg.OUTPUT_DIR / "run_log.txt").write_text(
-        "\n".join(
-            [
-                f"started_at: {datetime.now(timezone.utc).isoformat()}",
-                f"duration_sec: {time.time() - t0:.1f}",
-                f"input_rows: {len(eval_all)}",
-                f"scoped_rows: {len(eval_all[eval_all['method'].isin(cfg.METHOD_SCOPE)])}",
-                f"long_rows: {len(long_df)}",
-                f"output_dir: {cfg.OUTPUT_DIR}",
-                f"methods: {sorted(cfg.METHOD_SCOPE)}",
-                f"quantile_levels: {cfg.QUANTILE_LEVELS}",
-                f"git_commit: {manifest['git_commit']}",
-                f"worktree_dirty: {manifest['worktree_dirty']}",
-            ]
+    with open(cfg.OUTPUT_DIR / "run_log.txt", "w", encoding="utf-8", newline="") as fh:
+        fh.write(
+            "\n".join(
+                [
+                    f"started_at: {datetime.now(timezone.utc).isoformat()}",
+                    f"duration_sec: {time.time() - t0:.1f}",
+                    f"input_rows: {len(eval_all)}",
+                    f"scoped_rows: {len(eval_all[eval_all['method'].isin(cfg.METHOD_SCOPE)])}",
+                    f"long_rows: {len(long_df)}",
+                    f"output_dir: {cfg.OUTPUT_DIR}",
+                    f"methods: {sorted(cfg.METHOD_SCOPE)}",
+                    f"quantile_levels: {cfg.QUANTILE_LEVELS}",
+                    f"git_commit: {manifest['git_commit']}",
+                    f"worktree_dirty: {manifest['worktree_dirty']}",
+                ]
+            )
+            + "\n"
         )
-        + "\n",
-        encoding="utf-8",
-    )
 
     print(f"done in {time.time()-t0:.1f}s -> {cfg.OUTPUT_DIR}")
     print(f"model_metrics rows: {len(model_df)}; ranking rows: {len(ranking)}")
