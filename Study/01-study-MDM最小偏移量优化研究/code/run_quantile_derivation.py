@@ -269,7 +269,8 @@ def main() -> int:
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     sums = [f"{sha256_file(cfg.OUTPUT_DIR / f)}  {f}" for f in sorted(out_files + ["manifest.json"])]
-    (cfg.OUTPUT_DIR / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
+    with open(cfg.OUTPUT_DIR / "SHA256SUMS", "w", encoding="utf-8", newline="") as fh:
+        fh.write("\n".join(sums) + "\n")
     (cfg.OUTPUT_DIR / "run_log.txt").write_text(
         "\n".join(
             [
