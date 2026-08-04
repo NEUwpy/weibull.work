@@ -1,0 +1,49 @@
+[21:42:31] ======================================================================
+[21:42:31] Study/01 Candidate: Dimensionless-input Vector-MLP
+[21:42:31] mode = full
+[21:42:31] ======================================================================
+[21:42:31] 
+[1/7] Loading cached main-grid features + risk curves (no MDM rerun)...
+[21:42:32]   df_main: (45000, 51), loss_long: (1170000, 6)
+[21:42:32]   References (pooled J1): Default=0.63322, L1=0.63291, L2=0.63254, L6-hindsight=0.49453
+[21:42:32]   Sealed E3b Vector-MLP-L6 pooled J1 = 0.547003
+[21:42:32]   folds=5, seeds=[42, 2026, 3407]
+[21:42:32] 
+[2/7] Dimensional route (sealed E3b representation, reproduced)...
+[23:04:53]   Dimensional route pooled J1 = 0.547461 (sealed = 0.547003) in 4941.3s
+[23:04:53]   vs sealed E3b (informational): reproduced=0.547461 sealed=0.547003 |diff|=0.000459
+[23:04:53] 
+[3/7] Dimensionless route (candidate, 11 scale-free inputs)...
+[23:21:35]   Dimensionless route pooled J1 = 0.576203 in 1001.5s
+[23:21:35] 
+[4/7] P2 generalization (existing P2 chunks; no MDM rerun)...
+[23:22:05]   P2 features: (39000, 27), rows x delta: 1014000
+[23:22:05]   Training on main grid (5 folds x 3 seeds) and evaluating on P2...
+[23:23:55]   P2 done in 139.6s
+[23:23:55] 
+[5/7] Scale-invariance verification (scales 0.001 / 1 / 1000)...
+[23:24:02]   Scale-invariance: max_feature_rel_diff=3.204e-11, max_curve_rel_diff=0.000e+00, delta_consistent_rate=1.0000
+[23:24:02]   Scale-invariance done in 7.1s
+[23:24:02] 
+[6/7] Saving artifacts...
+[23:24:15]   Saved compact outputs + SHA256SUMS under artifacts\candidate\dimensionless_vector_mlp
+[23:24:15] 
+[7/7] RESULTS
+[23:24:15]   Pooled combo-holdout J1 (lower is better):
+[23:24:15]     Default       = 0.633219
+[23:24:15]     L1            = 0.632913
+[23:24:15]     L2            = 0.632541
+[23:24:15]     L6-hindsight  = 0.494530
+[23:24:15]     dimensional   = 0.547461  (sealed E3b = 0.547003)
+[23:24:15]     dimensionless = 0.576203
+[23:24:15]     delta (dimensionless - dimensional) = 0.028742
+[23:24:15]     delta (dimensionless - Default)    = -0.057016
+[23:24:15]   Model-level distribution (15 models):
+[23:24:15]     dimensional    min=0.52717 med=0.54953 max=0.56164 mean=0.54736 SD=0.01102
+[23:24:15]     dimensionless  min=0.53851 med=0.58088 max=0.60108 mean=0.57583 SD=0.02157
+[23:24:15]   P2 generalization (15 models per track):
+[23:24:15]     P2-NI   dimensionless mean=0.49542 median=0.49556 | dimensional(repro) mean=0.45469 | sealed control mean=0.45355 (dim repro |diff| vs sealed=0.00115)
+[23:24:15]     P2-PI   dimensionless mean=0.55090 median=0.55079 | dimensional(repro) mean=0.54622 | sealed control mean=0.54610 (dim repro |diff| vs sealed=0.00012)
+[23:24:15]   Scale invariance: max_feature_rel_diff=3.204e-11, max_curve_rel_diff=0.000e+00, delta_consistent=1.0000
+[23:24:15]   Total wallclock: 6104.0s
+[23:24:15] DONE
