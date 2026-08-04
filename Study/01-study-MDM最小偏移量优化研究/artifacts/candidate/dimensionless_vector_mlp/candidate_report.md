@@ -21,13 +21,13 @@
 ## 2. 分支、基线、commit 链
 
 - 基线（base）：`main` @ `c8645685`
-- 分支：`study01-dimensionless-candidate`
-- 最终 tip：`<FINAL_TIP>`（提交时回填）
-- commit 链：
+- 分支：`study01-dimensionless-candidate`（已推送 `origin/study01-dimensionless-candidate`）
+- 最终 tip：`b944d6c2`（实质产物与报告所在提交；其后为 tip 回填的 docs 提交）
+- commit 链（自基线的全部提交）：
   - `840a8e5b` feat(candidate): 无量纲输入 Vector-MLP 候选脚本与合同测试
   - `dcfffe77` fix(candidate): 候选产物输出到 artifacts/candidate 而非只读 formal/ 树内
   - `e2020a4b` feat(candidate): 后分析脚本——从候选产物计算 seed 级汇总与对照表
-  - （其后：产物/报告提交，回填）
+  - `b944d6c2` feat(candidate): 无量纲候选正式产物与完整报告
 - 工作区：`D:/weibull/.worktrees/dimensionless-candidate`（独立 worktree，与主工作区隔离；主工作区未提交的 `03-论文骨架.md` 未动）。
 
 ## 3. 修改与新增文件
@@ -152,6 +152,7 @@ dimensionless 三 seed 均稳定高于 dimensional（+0.0274 ~ +0.0304），种�
 - 全量 Study01 测试套件：**276 通过 / 1 失败**。唯一失败 `test_p4_formal_compare.py::test_e3b_risk_curves_intact` 是**行尾字节差异**：主工作区该 CSV 为陈旧 CRLF checkout（eol=lf 规则建立前），新 worktree 按 `.gitattributes`（`*.csv text eol=lf`）得到 LF；二者归一化行尾后**内容逐字节一致**（已对 risk_curves/sample_features/model_comparison/seed_stability 验证）。该失败非本次改动引入，属 worktree 环境与主工作区行尾状态差异。
 
 **Git 状态：** 本报告提交前，worktree 干净（见 §10 提交清单）；主工作区未提交的 `03-论文骨架.md` 未被修改/暂存/提交。
+**manifest 记录说明：** `manifest.json['git_commit']=e2020a4b` 是脚本**保存时**（运行结束 23:24）的 HEAD；运行本身执行的是 `dcfffe77` 的代码（启动 21:42）。二者仅差 `analyze_dimensionless_candidate.py`（新增、不被运行导入），运行行为逐位一致。
 
 ## 10. 大型本地产物位置与 SHA256
 
