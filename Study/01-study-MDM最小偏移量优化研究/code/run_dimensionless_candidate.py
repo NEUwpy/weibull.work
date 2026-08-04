@@ -523,12 +523,21 @@ def compute_reference_results(loss_long):
     fixed_rule("L1", {n_val: l1_delta for n_val in N_GRID})
     fixed_rule("L2", l2_by_n)
 
-    # L6 hindsight: per-sample min realized loss.
+    # L6 hindsight: per-sample min realized loss and the actual endpoint selection
+    # rate (fraction of samples whose argmin delta is one of the extreme deltas).
     hind = loss_long.groupby(["beta", "gamma_over_eta", "n", "repeat_id"])["loss"].min()
     per_n = {}
     for n_val in sorted(loss_long["n"].unique()):
         sub = hind[hind.index.get_level_values("n") == n_val]
         per_n[n_val] = math.sqrt(sub.mean())
+    # Per-sample argmin over the 26-dim curve (tie-broken by smallest delta, matching
+    # np.argmin over the curve as used by the sealed L6-hindsight reference).
+    _sk4 = ["beta", "gamma_over_eta", "n", "repeat_id"]
+    _pivot = loss_long.pivot_table(
+        index=_sk4, columns="delta", values="loss", aggfunc="first"
+    )
+    min_delta = _pivot.idxmin(axis=1)
+    endpoint_rate = float(min_delta.isin(EXTREME_DELTAS).mean())
     out["L6-hindsight"] = {
         "route": "L6-hindsight",
         "pooled_J1": math.sqrt(hind.mean()),
@@ -537,7 +546,7 @@ def compute_reference_results(loss_long):
         "J1_n7": per_n.get(7),
         "J1_n10": per_n.get(10),
         "J1_n20": per_n.get(20),
-        "endpoint_rate": 1.0,  # hindsight always selects the (sample-specific) optimum
+        "endpoint_rate": endpoint_rate,
     }
     return out
 

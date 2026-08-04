@@ -185,6 +185,7 @@ dimensionless 三 seed 均稳定高于 dimensional（+0.0274 ~ +0.0304），种�
 
 - 候选产物默认输出路径曾被错误解析到只读 `artifacts/formal/candidate/`；已在产生任何数据前发现并修复为 `artifacts/candidate/dimensionless_vector_mlp`（误建目录已清理，formal 树无污染）。
 - smoke 结尾保存路径 `relative_to` 断言错误；已修复（输出目录解析为绝对路径）。
+- 参考计算中 L6-hindsight 的端点选择率初版用 `sort_values().first()` 得 0.631；最终校验时以 `pivot.idxmin(axis=1)`（与封存 `argmin` 语义一致）重算得 **0.647422，与封存 E3b 完全一致**，已据此修正 `pooled_comparison.csv` 与 `summary.json` 中该诊断单元格。此修正仅影响 L6 参考的诊断列，不影响任何 J1/分 n/15 模型/P2 数值。
 
 ### 11.4 待 Codex 决定
 
