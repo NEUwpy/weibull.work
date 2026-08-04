@@ -2,7 +2,7 @@
 
 > 本目录是面向发表论文的整理工作区。它不是 `docs/research/01`、`02`、`03`、`04` 的简单复制，也不是汇报 PPT 材料的存放处。
 >
-> **当前状态（2026-08-04）**：既有正式实验与技术证据包保持封存，不删除、不重跑、不重封存。P4 正式六方法比较（MDM-Default / MDM-Vector-MLP / Direct-MLP / MLE / LSE / WMLE）已在授权 tip `cfb0c6ed` 上完成四轨道正式运行并通过 SHA256SUMS 17/17 封存校验（seal `f00b561d`，产物 `artifacts/formal/p4_formal_compare/`）。论文主线已收敛为 E1/E2/E3b 三类核心结果；支撑验证、独立 Research 与待移出材料已分层归档。外部中文学术源稿 v0.3 为唯一活动论文稿。
+> **当前状态（2026-08-05）**：既有正式实验与技术证据包保持封存，不删除、不重跑、不重封存。样本自适应最终方法已迁移为「排序并归一化的完整样本 $Z_n=x/\bar x$ → 按样本量分别训练的 MLP → 预测 26 点损失曲线 → 选择偏移量 → MDM 参数估计」（新正式产物 `artifacts/formal/E5_normalized_raw/`）；旧特征路线（13 统计量、跨 n 联合 Vector-MLP，E3b）保留为历史/Research 材料。论文主线收敛为 E1/E2 潜在空间证据 + 新设计域的样本自适应方法；支撑验证、独立 Research 与待移出材料已分层归档。外部中文学术源稿 v0.3 为唯一活动论文稿。
 
 ## 这个目录要解决什么
 
@@ -26,20 +26,21 @@
 |------|------|--------------|--------------|------|
 | **E1** | 固定全局偏移量及经验值 `delta=0.1` 的位置 | 经验值 `delta=0.1` 是否已接近当前设计测度下的最佳统一常数？L1/L2 固定规则能否带来收益？ | `artifacts/formal/E1_baseline/`、`artifacts/formal/E1_E2_crossfit/` | 正式证据可用（已封存） |
 | **E2** | 不同信息层级下的潜在收益 | 从 L3 到 L6，增加真参数信息能带来多少精度收益？边际递减点在哪里？ | `artifacts/formal/E2_oracle_layers/`、`artifacts/formal/E2_beta_profile_audit/` | 正式证据可用（已封存） |
-| **E3b** | 真参数未知时，Vector-MLP 利用可观测样本特征预测 26 点损失曲线并选择偏移量 | 仅凭样本可观测信息能否逼近 oracle 层级的参照精度？ | `artifacts/formal/E3b_vector_mlp/`、`artifacts/formal/E3_sample_adaptive/` | 正式证据可用（已封存） |
+| **E5（样本自适应，最终方法）** | 真参数未知时，按样本量分别训练的 MLP 以排序并归一化的完整样本 $Z_n$ 预测 26 点损失曲线并选择偏移量 | 仅凭样本可观测信息能否逼近 oracle 层级的参照精度？ | `artifacts/formal/E5_normalized_raw/`（数据）与 `artifacts/formal/E5_normalized_raw/specialist/`（训练与评价） | 正式证据可用（本迁移交付） |
+| ~~E3b~~（历史） | 旧特征路线：13 统计量、跨 n 联合 Vector-MLP 预测 26 点损失曲线 | 历史/Research 证据，不再作为正式输入 | `artifacts/formal/E3b_vector_mlp/`、`artifacts/formal/E3_sample_adaptive/` | 已封存，保留为历史证据 |
 
 三项核心结果的关键数值（以封存口径为准）：
 
-- E1：`delta=0.08` 已接近全局最优，经验值 `delta=0.1` 位于平缓低风险区；L1 相对 Default、L2 相对 L1 的 pooled J1 降幅分别约 `0.048%` / `0.059%`，全局固定规则收益有限。
-- E2：完整参数组合条件选择可降低联合估计误差约 `9.8%`；逐样本事后选择潜在降幅约 `21.9%`（L6 hindsight pooled J1=0.4945）；主要信息增益来自 β 分层，L2→L3 是最主要的单步提升（7.51%）。
-- E3b：Vector-MLP pooled J1=0.547（三 seed 0.547/0.546/0.544），相对 Default/L1/L2 均有降低，落在参数组级规则（L5=0.571）与逐样本事后参照（L6=0.495）之间（仅为 J1 数值位置；L5 按真参数组合选择，Vector-MLP 逐样本预测风险曲线，决策粒度不同，不能解释为网络拥有比真参数 oracle 更多的信息）；该结论限于当前正式离散网格的组合留出评价，不外推为连续空间泛化。
+- E1：`delta=0.08` 已接近全局最优，经验值 `delta=0.1` 位于平缓低风险区；L1 相对 Default、L2 相对 L1 的 pooled J1 降幅分别约 `0.048%` / `0.059%`，全局固定规则收益有限（原始 45 组合设计，封存）。
+- E2：完整参数组合条件选择可降低联合估计误差约 `9.8%`；逐样本事后选择潜在降幅约 `21.9%`（L6 hindsight pooled J1=0.4945）；主要信息增益来自 β 分层，L2→L3 是最主要的单步提升（7.51%）（原始 45 组合设计，封存）。
+- 样本自适应（E5，新设计域：`eta=1000`、`n∈{7,10,15,20}`、160 组合）：以排序并归一化的完整样本 $Z_n=x/\bar x$ 为输入、按样本量分 n 训练；正式结果（同测试样本比较）：pooled J1 = 0.585（三 seed 0.5846/0.5849/0.5855，std 0.0004），Default = 0.630、L1 = 0.625、L2 = 0.623、L6 hindsight = 0.492；相对 Default 改善约 7.2%；分 n J1 = 0.702/0.607/0.528/0.477（n=7/10/15/20），失败率 0%，尺度不变性检查通过。产物 `artifacts/formal/E5_normalized_raw/specialist/`。
 
 ## 支撑验证（正文简要报告结论，详细结果进入补充材料）
 
 | 验证 | 内容 | 正式数据位置 | 状态 |
 |------|------|--------------|------|
 | 泛化验证 | 参数插值（P2-PI）、样本量插值（P2-NI，n=15）及边界外推轨道上相对固定规则是否保留收益 | `artifacts/formal/extended_validation/p2_generalization_v2/`、`artifacts/formal/E4_robustness/`（E4d） | 正式证据可用（P2 v2 已获 Codex APPROVE `53932687`） |
-| seed 稳定性与特征消融 | 15 个 fold×seed 模型级分布；特征保留子集（full / scale-quantile / shape / n-only） | `artifacts/formal/E4_robustness/`（E4a） | 正式证据可用 |
+| seed 稳定性与输入表示性质 | 60 个 fold×seed 模型级分布（4n×5fold×3seed）；尺度不变性检查（同一样本 ×10⁻³/1/10³ 后归一化输入与所选偏移量一致） | `artifacts/formal/E5_normalized_raw/specialist/`（`seed_stability.csv`、`scale_invariance.json`） | 正式证据可用 |
 | 与传统估计方法的外部参照 | WMLE、LSE 作为外部参照（同一样本、同一划分比较）；MLE 已封存但不再作为论文证据消费 | `artifacts/formal/p4_formal_compare/` | 正式证据可用（已封存） |
 | 工程寿命分位点 | 由 P4 逐样本三参数估计派生 `x_0.95`（主指标）、`x_0.90`、`x_0.99`，检查参数收益是否传递 | `artifacts/formal/quantile_derivation/` | 正式证据可用（Codex APPROVE `b9bb815a`）；Vector-MLP 在主设计域保留部分分位点收益（main_holdout −3.6%），但小于参数改善且样本量插值轨道未保留；参数排名≠分位点排名 |
 | 域匹配真实案例（后置） | 论文主体接近完成后再做；目前不阻塞写作 | — | 待定（NIST 案例不进入本文） |
@@ -124,7 +125,7 @@ Study/01-study-MDM最小偏移量优化研究/
 - 本目录应保存论文级整理材料；大规模原始输出不要直接堆进来，除非先说明用途和来源。
 - 替换或重绘已进入论文工作流的图表前，必须先把旧版完整导出包归档到 `history/figures/YYYY-MM-DD-<figure>-<revision>/`，并附来源提交、替换原因和恢复说明；禁止只覆盖或删除旧图。
 - `artifacts/formal/shared_data/mc_scan_raw.csv` 被 `.gitignore` 排除（体积过大）。干净 clone 后需先运行 `python code/generate_mc_data.py --merge-only` 从 tracked chunks 合并出分析输入。tracked chunks 是正式数据源，`mc_scan_raw.csv` 是分析脚本的直接读取对象。
-- 不要把本文写成“用神经网络优化 MDM”的单一 ML 论文；本文主线是偏移量 `delta` 的层级最优性、改善幅度和部署可达性。神经网络/Vector-MLP 是解决样本自适应 `delta` 选择问题的当前主要方法，但不是论文目的本身。
+- 不要把本文写成“用神经网络优化 MDM”的单一 ML 论文；本文主线是偏移量 `delta` 的层级最优性、改善幅度和部署可达性。神经网络（分 n MLP）是解决样本自适应 `delta` 选择问题的当前主要方法，但不是论文目的本身。
 
 ## 与 `docs/research` 的关系
 
