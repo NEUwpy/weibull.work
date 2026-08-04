@@ -41,7 +41,7 @@
 | 泛化验证 | 参数插值（P2-PI）、样本量插值（P2-NI，n=15）及边界外推轨道上相对固定规则是否保留收益 | `artifacts/formal/extended_validation/p2_generalization_v2/`、`artifacts/formal/E4_robustness/`（E4d） | 正式证据可用（P2 v2 已获 Codex APPROVE `53932687`） |
 | seed 稳定性与特征消融 | 15 个 fold×seed 模型级分布；特征保留子集（full / scale-quantile / shape / n-only） | `artifacts/formal/E4_robustness/`（E4a） | 正式证据可用 |
 | 与传统估计方法的外部参照 | WMLE、LSE 作为外部参照（同一样本、同一划分比较）；MLE 已封存但不再作为论文证据消费 | `artifacts/formal/p4_formal_compare/` | 正式证据可用（已封存） |
-| 工程寿命分位点 | 由 P4 逐样本三参数估计派生 `x_0.95`（主指标）、`x_0.90`、`x_0.99`，检查参数收益是否传递 | `artifacts/formal/quantile_derivation/` | 正式产物已生成，等待独立复核；Vector-MLP 在主设计域保留部分分位点收益（main_holdout −3.6%），但小于参数改善且样本量插值轨道未保留；参数排名≠分位点排名 |
+| 工程寿命分位点 | 由 P4 逐样本三参数估计派生 `x_0.95`（主指标）、`x_0.90`、`x_0.99`，检查参数收益是否传递 | `artifacts/formal/quantile_derivation/` | 正式证据可用（Codex APPROVE `b9bb815a`）；Vector-MLP 在主设计域保留部分分位点收益（main_holdout −3.6%），但小于参数改善且样本量插值轨道未保留；参数排名≠分位点排名 |
 | 域匹配真实案例（后置） | 论文主体接近完成后再做；目前不阻塞写作 | — | 待定（NIST 案例不进入本文） |
 
 ## 传统方法参照与 MLE 处理
