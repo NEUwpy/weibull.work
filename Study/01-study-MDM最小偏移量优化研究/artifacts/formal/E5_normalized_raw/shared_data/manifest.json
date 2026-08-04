@@ -1,0 +1,1071 @@
+{
+  "run_id": "E5a_normalized_raw_mc_v1",
+  "created_at": "2026-08-04T20:42:05.084011+00:00",
+  "code_entry": "code/run_E5a_mc_generation.py",
+  "git_commit": "02c6f6b2",
+  "python_version": "3.11.15",
+  "method_versions": {
+    "mdm": {
+      "source": "python/methods/mdm.py",
+      "class": "MDM",
+      "run_signature": "run(offset, gamma_steps=60, rank_method='bernard')"
+    },
+    "sample": {
+      "source": "python/studies/common/sample.py",
+      "function": "generate_sample(beta, eta, gamma, n, repeat_id, seed)"
+    }
+  },
+  "design": {
+    "n_beta": 8,
+    "n_gamma_over_eta": 5,
+    "n_n": 4,
+    "combos": 160,
+    "repeats": 300,
+    "n_samples": 48000,
+    "n_deltas": 26,
+    "n_mdm_fits": 1248000,
+    "beta_grid": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0
+    ],
+    "eta": 1000.0,
+    "gamma_grid": [
+      100.0,
+      250.0,
+      500.0,
+      750.0,
+      1000.0
+    ],
+    "gamma_over_eta_grid": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n_grid": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "delta_grid": [
+      0.0,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.12,
+      0.14,
+      0.16,
+      0.18,
+      0.2,
+      0.22,
+      0.24,
+      0.26,
+      0.28,
+      0.3,
+      0.32,
+      0.34,
+      0.36,
+      0.38,
+      0.4,
+      0.42,
+      0.44,
+      0.46,
+      0.48,
+      0.5
+    ],
+    "default_delta": 0.1,
+    "seed_namespace": "study01_nrmc_v1",
+    "must_include_combo": {
+      "beta": 2.0,
+      "eta": 1000.0,
+      "gamma": 1000.0
+    }
+  },
+  "must_include_combo": {
+    "beta": 2.0,
+    "eta": 1000.0,
+    "gamma": 1000.0
+  },
+  "n_workers": 10,
+  "elapsed_seconds": 1.2517399787902832,
+  "unit_status": [
+    {
+      "combo_idx": 0,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 1,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 2,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 3,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 4,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 5,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 6,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 7,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 8,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 9,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "28eccd8c"
+    },
+    {
+      "combo_idx": 10,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 11,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 12,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 13,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 14,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 15,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 16,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 17,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 18,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 19,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 20,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 21,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 22,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 23,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 24,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 25,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 26,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 27,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 28,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 29,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 30,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 31,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 32,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 33,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 34,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 35,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 36,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 37,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 38,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 39,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 40,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 41,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 42,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 43,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 44,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 45,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 46,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 47,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 48,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 49,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 50,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 51,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 52,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 53,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 54,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 55,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 56,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 57,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 58,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 59,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 60,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 61,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 62,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 63,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 64,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 65,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 66,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 67,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 68,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 69,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 70,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 71,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 72,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 73,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 74,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 75,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 76,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 77,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 78,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 79,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 80,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 81,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 82,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 83,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 84,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 85,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 86,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 87,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 88,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 89,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 90,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 91,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 92,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 93,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 94,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 95,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 96,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 97,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 98,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 99,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 100,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 101,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 102,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 103,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 104,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 105,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 106,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 107,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 108,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 109,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 110,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 111,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 112,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 113,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 114,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 115,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 116,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 117,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 118,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 119,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 120,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 121,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 122,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 123,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 124,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 125,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 126,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 127,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 128,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 129,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 130,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 131,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 132,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 133,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 134,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 135,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 136,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 137,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 138,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 139,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 140,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 141,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 142,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 143,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 144,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 145,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 146,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 147,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 148,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 149,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 150,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 151,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 152,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 153,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 154,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 155,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 156,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 157,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 158,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    },
+    {
+      "combo_idx": 159,
+      "status": "done",
+      "mdm_rows": 7800,
+      "git_commit": "02c6f6b2"
+    }
+  ],
+  "output_files": [
+    "chunks/chunk_XXXX_mdm.csv (分片，正式数据源，gitignore)",
+    "chunks/chunk_XXXX_meta.json (分片元数据，gitignore)",
+    "manifest.json",
+    "data_sha256sums.txt (分片 LF 稳定哈希，纳入 git，可追溯)",
+    "mc_scan_raw.csv (合并后，gitignore)"
+  ],
+  "loss_contract": "((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2 ; 失败候选由训练失败合同处理"
+}

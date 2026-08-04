@@ -1,0 +1,9 @@
+# 归一化样本新设计 MC 数据（逐样本估计，1,248,000 行）不纳入 git。
+# 正式数据源分片 chunks/ 与合并后 mc_scan_raw.csv 均 gitignore；
+# 可追溯哈希记录于 ../specialist/SHA256SUMS（覆盖全部 chunk + manifest）。
+mc_scan_raw.csv
+chunks/
+
+# 后台运行日志
+generation_detached.log*
+generation.log*

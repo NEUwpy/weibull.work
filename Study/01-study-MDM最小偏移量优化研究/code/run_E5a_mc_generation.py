@@ -197,11 +197,13 @@ def validate_chunk(df, idx):
     dups = df.duplicated(subset=['repeat_id', 'delta']).sum()
     if dups:
         raise ChunkValidationError(f"chunk_{idx:04d}: {dups} duplicate (repeat_id, delta) keys")
-    # 元数据匹配
+    # 元数据匹配（unit dict 含 combo_idx 键，meta["unit"] 只存 5 个组合键）
     _mdm_p, meta_p = chunk_paths(idx)
     if os.path.isfile(meta_p):
         meta = json.load(open(meta_p, encoding="utf-8"))
-        if meta["unit"] != unit:
+        unit_compare = {k: unit[k]
+                        for k in ("beta", "eta", "gamma", "gamma_over_eta", "n")}
+        if meta["unit"] != unit_compare:
             raise ChunkValidationError(f"chunk_{idx:04d}: meta unit mismatch")
         if meta["repeats"] != CFG.REPEATS:
             raise ChunkValidationError(f"chunk_{idx:04d}: meta repeats mismatch")
@@ -271,6 +273,49 @@ def merge_chunks():
     return df_all
 
 
+def sha256_file_lf(path):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        prev = b''
+        while True:
+            block = f.read(1 << 20)
+            if not block:
+                break
+            data = prev + block
+            data = data.replace(b'\r\n', b'\n')
+            prev = data[-1:] if data.endswith(b'\r') else b''
+            h.update(data[:-1] if prev else data)
+        if prev:
+            h.update(prev)
+    return h.hexdigest()
+
+
+def write_data_sha256sums():
+    """写 shared_data/data_sha256sums.txt：每个分片与 meta 的 LF 稳定哈希。
+
+    分片（逐样本大文件）gitignore，其可追溯哈希记录于此文件并纳入 git。
+    """
+    combos = build_combos()
+    entries = []
+    for idx in range(len(combos)):
+        mdm_p, meta_p = chunk_paths(idx)
+        if not os.path.isfile(mdm_p) or not os.path.isfile(meta_p):
+            raise ChunkValidationError(f"chunk_{idx:04d} or meta missing for hashing")
+        entries.append((os.path.relpath(mdm_p, CFG.SHARED_DATA_DIR).replace(os.sep, '/'),
+                        sha256_file_lf(mdm_p)))
+        entries.append((os.path.relpath(meta_p, CFG.SHARED_DATA_DIR).replace(os.sep, '/'),
+                        sha256_file_lf(meta_p)))
+    entries.append(('manifest.json', sha256_file_lf(CFG.MC_MANIFEST_PATH)))
+    entries.sort(key=lambda e: e[0])
+    content = ''.join(f"{h}  {p}\n" for p, h in entries)
+    out = os.path.join(CFG.SHARED_DATA_DIR, 'data_sha256sums.txt')
+    with open(out, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(content)
+    print(f"Wrote {out} ({len(entries)} entries)")
+    return out
+
+
 def write_manifest(elapsed_s):
     unit_status = []
     for idx in range(len(build_combos())):
@@ -301,9 +346,10 @@ def write_manifest(elapsed_s):
         "elapsed_seconds": elapsed_s,
         "unit_status": unit_status,
         "output_files": [
-            "chunks/chunk_XXXX_mdm.csv (分片，正式数据源)",
-            "chunks/chunk_XXXX_meta.json (分片元数据)",
+            "chunks/chunk_XXXX_mdm.csv (分片，正式数据源，gitignore)",
+            "chunks/chunk_XXXX_meta.json (分片元数据，gitignore)",
             "manifest.json",
+            "data_sha256sums.txt (分片 LF 稳定哈希，纳入 git，可追溯)",
             "mc_scan_raw.csv (合并后，gitignore)",
         ],
         "loss_contract": ("((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + "
@@ -318,10 +364,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--worker", type=int, default=None)
     parser.add_argument("--merge-only", action="store_true")
+    parser.add_argument("--hash-only", action="store_true",
+                        help="已有分片时只写 data_sha256sums.txt（不重跑、不合并）")
     args = parser.parse_args()
 
     if args.worker is not None:
         worker_main(args.worker)
+        return
+
+    if args.hash_only:
+        if not os.path.isdir(CFG.CHUNKS_DIR):
+            print("*** ABORTING: no chunks dir; run generation first ***")
+            sys.exit(1)
+        write_data_sha256sums()
         return
 
     if args.merge_only:
@@ -385,6 +440,7 @@ def main():
 
     merge_chunks()
     write_manifest(total_elapsed)
+    write_data_sha256sums()
     print(f"\n{'='*70}\nMC GENERATION COMPLETE in {total_elapsed:.0f}s\n{'='*70}")
 
 
