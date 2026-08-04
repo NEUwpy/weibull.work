@@ -87,7 +87,7 @@ $$n,\quad x_{\min}/\bar x,\quad x_{\max}/\bar x,\quad R/\bar x,\quad Q_1/\bar x,
 | dimensionless（候选） | 0.57583 | 0.58088 | 0.02157 | 0.53851 | 0.60108 |
 | 封存 E4a `full`（外部参考） | 0.54563 | 0.54845 | 0.01015 | 0.52610 | 0.55993 |
 
-dimensionless 的 15 模型 SD 约为 dimensional 的两倍（0.0216 vs 0.0110），离散度更大；其最小值（0.5385）仍高于 dimensional 的均值（0.5474）附近，说明在**大多数** fold×seed 上无量纲路线都更差。
+dimensionless 的 15 模型 SD 约为 dimensional 的两倍（0.0216 vs 0.0110），离散度更大；两者取值区间部分重叠（dimensional 0.527–0.562、dimensionless 0.539–0.601），但 dimensional 的中位数（0.5495）明显低于 dimensionless（0.5809），均值（0.5474 vs 0.5758）亦如此——平均而言无量纲路线更差且更分散。
 
 ## 7. 新旧路线 / Default / P2 对比
 
