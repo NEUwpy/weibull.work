@@ -22,12 +22,14 @@
 
 - 基线（base）：`main` @ `c8645685`
 - 分支：`study01-dimensionless-candidate`（已推送 `origin/study01-dimensionless-candidate`）
-- 最终 tip：`b944d6c2`（实质产物与报告所在提交；其后为 tip 回填的 docs 提交）
-- commit 链（自基线的全部提交）：
+- 实质工作最终 tip：`f7303be1`（其后为报告/文档回填提交）
+- commit 链（自基线的全部提交，分支 tip 为 `git rev-parse HEAD`）：
   - `840a8e5b` feat(candidate): 无量纲输入 Vector-MLP 候选脚本与合同测试
   - `dcfffe77` fix(candidate): 候选产物输出到 artifacts/candidate 而非只读 formal/ 树内
   - `e2020a4b` feat(candidate): 后分析脚本——从候选产物计算 seed 级汇总与对照表
   - `b944d6c2` feat(candidate): 无量纲候选正式产物与完整报告
+  - `7c7a5d54` docs(candidate): 回填报告 commit 链与最终 tip、manifest 记录时机说明
+  - `f7303be1` fix(candidate): L6-hindsight 端点选择率改用 argmin 语义，与封存一致
 - 工作区：`D:/weibull/.worktrees/dimensionless-candidate`（独立 worktree，与主工作区隔离；主工作区未提交的 `03-论文骨架.md` 未动）。
 
 ## 3. 修改与新增文件
