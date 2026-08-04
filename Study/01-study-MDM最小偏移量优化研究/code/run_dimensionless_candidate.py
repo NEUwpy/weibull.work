@@ -91,7 +91,9 @@ N_DELTAS = len(DELTA_GRID)
 _ARTIFACTS = Path(ARTIFACTS_DIR)
 E3B_DIR = _ARTIFACTS / "E3b_vector_mlp"
 P2_DIR = _ARTIFACTS / "extended_validation" / "p2_generalization_v2"
-OUT_DIR = _ARTIFACTS / "candidate" / "dimensionless_vector_mlp"
+# Candidate outputs live in artifacts/candidate/ (sibling of formal/), NOT inside
+# the read-only formal/ tree.
+OUT_DIR = _ARTIFACTS.parent / "candidate" / "dimensionless_vector_mlp"
 LOCAL_DIR = OUT_DIR / "local_outputs"
 MODEL_DIR = LOCAL_DIR / "models"
 
