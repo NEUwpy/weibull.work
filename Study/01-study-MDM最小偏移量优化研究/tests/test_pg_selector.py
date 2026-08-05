@@ -503,6 +503,43 @@ def test_paired_bootstrap_deterministic():
     assert c["n_blocks"] == 60 and math.isfinite(c["ci_low"])
 
 
+def test_contract_version_mode():
+    """Full package must carry an unambiguous Phase B contract version."""
+    assert PG.contract_version("pilot") == "PG_selector_phaseA_v1"
+    assert PG.contract_version("full") == "PG_selector_phaseB_v1"
+    assert PG.contract_version("pilot") != PG.contract_version("full")
+
+
+def test_derive_summary_by_beta():
+    """Per-true-beta PG vs Default J1 (and difference), per variant."""
+    rows = []
+    n = 40
+    for tb in (1.5, 4.0):
+        for i in range(n):
+            rows.append({
+                "estimator": "WMLE", "family": "PG-beta",
+                "mapping": "interpolated", "true_beta": tb,
+                "n": 7, "repeat_id": i % 5,
+                "one_step_loss": 0.04 if tb == 1.5 else 0.09,
+                "terminal_loss": 0.06, "default_loss": 0.0625,
+                "one_step_delta": 0.1, "terminal_delta": 0.1,
+            })
+    df = pd.DataFrame(rows)
+    out = PG.derive_summary_by_beta(df)
+    # only the present combo is derived: 1 estimator x 1 family x 1 mapping
+    # x 2 variants x 2 true betas = 4 rows
+    assert len(out) == 4
+    assert all({"estimator", "family", "mapping", "variant", "true_beta",
+                "PG_J1", "Default_J1", "J1_diff"} <= set(r) for r in out)
+    rec = next(r for r in out if r["true_beta"] == 1.5
+               and r["variant"] == "one_step")
+    assert math.isclose(rec["PG_J1"], math.sqrt(0.04))
+    assert math.isclose(rec["Default_J1"], math.sqrt(0.0625))
+    assert math.isclose(rec["J1_diff"], math.sqrt(0.04) - math.sqrt(0.0625))
+    # a negative diff means PG better than Default at that beta
+    assert rec["J1_diff"] < 0
+
+
 def test_compute_paired_bootstrap_covers_one_step_and_terminal():
     """Every variant gets a bootstrap row; one-step is present for all 12."""
     subset = _make_subset()

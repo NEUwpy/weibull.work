@@ -154,6 +154,12 @@ def resolve_mode(repeat_max):
     return "full" if repeat_max >= CFG.REPEATS else "pilot"
 
 
+def contract_version(mode):
+    """Unambiguous contract version per mode (full != pilot)."""
+    return ("PG_selector_phaseA_v1" if mode == "pilot"
+            else "PG_selector_phaseB_v1")
+
+
 # ============================================================
 # Data loading (reused 160-combo scan, pilot subset)
 # ============================================================
@@ -658,6 +664,36 @@ def compute_paired_bootstrap(df_all, n_boot=2000, seed=2026):
     return rows
 
 
+def derive_summary_by_beta(df_all):
+    """Per-true-beta PG J1, Default J1 and their difference, per variant.
+
+    Required because the pooled negative result is not literally uniform across
+    beta strata (e.g. the best overall one-step rule improves at beta=1.5 but is
+    worse for beta=2.0..5.0).  `Default_J1` is the Default (delta=0.1) J1 within
+    the same true-beta stratum.  `J1_diff > 0` means PG is worse than Default.
+    """
+    rows = []
+    for estimator in ESTIMATORS:
+        for family in FAMILY_CELL_COLS:
+            for mapping in MAPPINGS:
+                for variant, lcol in (("one_step", "one_step_loss"),
+                                      ("terminal", "terminal_loss")):
+                    sub = df_all[(df_all["estimator"] == estimator)
+                                 & (df_all["family"] == family)
+                                 & (df_all["mapping"] == mapping)]
+                    for b, g in sub.groupby("true_beta"):
+                        rows.append({
+                            "estimator": estimator, "family": family,
+                            "mapping": mapping, "variant": variant,
+                            "true_beta": float(b), "n": int(len(g)),
+                            "PG_J1": j1_from_loss(g[lcol]),
+                            "Default_J1": j1_from_loss(g["default_loss"]),
+                            "J1_diff": j1_from_loss(g[lcol])
+                                       - j1_from_loss(g["default_loss"]),
+                        })
+    return rows
+
+
 # ============================================================
 # Main
 # ============================================================
@@ -884,6 +920,9 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False,
     boot_rows = compute_paired_bootstrap(df_all)
     pd.DataFrame(boot_rows).to_csv(
         os.path.join(out_dir, "paired_bootstrap.csv"), index=False)
+    by_beta = derive_summary_by_beta(df_all)
+    pd.DataFrame(by_beta).to_csv(os.path.join(out_dir, "summary_by_beta.csv"),
+                                 index=False)
 
     log("\n[7/7] Alignment, summary, provenance...")
     key_alignment = check_key_alignment(df_all, n_samples)
@@ -900,9 +939,10 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False,
                            for _, r in fl.iterrows()}
 
     git_meta = PS.git_meta()
+    cver = contract_version(mode)
     summary = {
         "experiment": f"Study/01 {experiment_label(mode)}",
-        "mode": mode, "contract_version": CONTRACT_VERSION,
+        "mode": mode, "contract_version": cver,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "repeat_max": repeat_max, "n_samples": n_samples,
         "run_start_git": run_start,
@@ -919,13 +959,14 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False,
         "provisional_param_diag": prov_rows,
         "beta_cell_correctness": pd.DataFrame(cell_rows).to_dict(orient="records"),
         "paired_bootstrap": pd.DataFrame(boot_rows).to_dict(orient="records"),
+        "summary_by_beta": by_beta,
         "oracle_pilot_j1": oracle_j1,
         "full_design_crossfit_reference": full_design_ref,
         "wmle": {"n_estimates": n_samples, "n_invalid_fallback": n_wmle_fail,
                  "note": ("B2 estimation.csv absent on disk; WMLE recomputed with "
                           "the B2 frozen worker (production wmle.py)")},
         "failure_penalty": float(penalty),
-        **git_meta,
+        "run_end_git": git_meta,
     }
     PS.atomic_write_json(summary, os.path.join(out_dir, "summary.json"))
 
@@ -935,7 +976,7 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False,
     scan_manifest_path = CFG.MC_MANIFEST_PATH
     scan_sums_path = os.path.join(CFG.SHARED_DATA_DIR, "data_sha256sums.txt")
     manifest = {
-        "contract_version": CONTRACT_VERSION,
+        "contract_version": cver,
         "mode": mode, "experiment": experiment_label(mode),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "run_start_git": run_start,
@@ -984,13 +1025,13 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False,
             "variant_summary.csv", "oracle_comparison.csv", "state_counts.csv",
             "clip_diagnostics.csv", "prov_param_diag.csv",
             "prov_err_vs_delta.csv", "beta_cell_correctness.csv",
-            "paired_bootstrap.csv", "key_alignment.json",
+            "paired_bootstrap.csv", "summary_by_beta.csv", "key_alignment.json",
             f"{output_filenames()['results']} (gitignored)",
             f"{output_filenames()['wmle']} (gitignored)",
             "SHA256SUMS", "SHA256SUMS.local_not_in_git",
         ],
         "phase_boundary": phase_boundary(mode),
-        **git_meta,
+        "run_end_git": git_meta,
     }
     PS.atomic_write_json(manifest, os.path.join(out_dir, "manifest.json"))
 
@@ -1006,6 +1047,7 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False,
               os.path.join(out_dir, "prov_err_vs_delta.csv"),
               os.path.join(out_dir, "beta_cell_correctness.csv"),
               os.path.join(out_dir, "paired_bootstrap.csv"),
+              os.path.join(out_dir, "summary_by_beta.csv"),
               os.path.join(out_dir, "key_alignment.json")):
         PS.lf_normalize(p)
 
@@ -1070,6 +1112,49 @@ def check_key_alignment(df_all, n_samples):
     }
 
 
+def repackage():
+    """Post-hoc closure of an existing package WITHOUT rerunning any estimation.
+
+    Derives `summary_by_beta.csv` from the existing per-sample trace and fixes
+    the final-package metadata: the mode-appropriate contract version (Phase B
+    for full) and a nested `run_end_git` (the flattened end fields are removed in
+    favour of `run_start_git` as the execution provenance).  Reseals the SHA
+    ledgers.  Intended to finalize outputs already produced by a completed run.
+    """
+    out_dir = OUT_DIR
+    results_path = os.path.join(out_dir, output_filenames()["results"])
+    summary_path = os.path.join(out_dir, "summary.json")
+    manifest_path = os.path.join(out_dir, "manifest.json")
+    for p in (results_path, summary_path, manifest_path):
+        if not os.path.exists(p):
+            raise SystemExit(f"repackage requires existing outputs; missing {p}")
+    df_all = pd.read_csv(results_path)
+    summary = json.load(open(summary_path, encoding="utf-8"))
+    manifest = json.load(open(manifest_path, encoding="utf-8"))
+    mode = summary.get("mode", resolve_mode(CFG.REPEATS))
+    by_beta = derive_summary_by_beta(df_all)
+    pd.DataFrame(by_beta).to_csv(os.path.join(out_dir, "summary_by_beta.csv"),
+                                 index=False)
+    for d in (summary, manifest):
+        d["contract_version"] = contract_version(mode)
+        d["run_end_git"] = PS.git_meta()
+        d.pop("git_commit", None)
+        d.pop("git_branch", None)
+        d.pop("git_commit_short", None)
+        d.pop("workspace_dirty", None)
+    summary["summary_by_beta"] = by_beta
+    if "summary_by_beta.csv" not in manifest.get("output_files", []):
+        manifest.setdefault("output_files", []).append("summary_by_beta.csv")
+    PS.atomic_write_json(summary, summary_path)
+    PS.atomic_write_json(manifest, manifest_path)
+    for p in (summary_path, manifest_path,
+              os.path.join(out_dir, "summary_by_beta.csv")):
+        PS.lf_normalize(p)
+    n_tracked, n_local = PS.write_sha256sums(out_dir)
+    print(f"repackage: mode={mode}, {len(by_beta)} per-beta rows, "
+          f"SHA256SUMS tracked={n_tracked} local_not_in_git={n_local}")
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--full", action="store_true",
@@ -1077,8 +1162,15 @@ if __name__ == "__main__":
     ap.add_argument("--pilot-repeats", type=int, default=PILOT_REPEATS)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--force-rerun", action="store_true")
+    ap.add_argument("--repackage", action="store_true",
+                    help="finalize existing outputs without rerunning "
+                         "(derive summary_by_beta, fix contract version and "
+                         "run_end_git, reseal)")
     args = ap.parse_args()
-    repeats = CFG.REPEATS if args.full else args.pilot_repeats
-    mode = "full" if args.full else "pilot"
-    run_experiment(repeat_max=repeats, workers=args.workers,
-                   force_rerun=args.force_rerun, mode=mode)
+    if args.repackage:
+        repackage()
+    else:
+        repeats = CFG.REPEATS if args.full else args.pilot_repeats
+        mode = "full" if args.full else "pilot"
+        run_experiment(repeat_max=repeats, workers=args.workers,
+                       force_rerun=args.force_rerun, mode=mode)
