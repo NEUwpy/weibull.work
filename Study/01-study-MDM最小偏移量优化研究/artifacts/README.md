@@ -11,6 +11,14 @@
 
 E6 的主要事实源依次为 `summary.json`、`crossfit_layers.csv`、`model_comparison.csv`、`seed_stability.csv`、`split_report.csv`、`representation_check.json`、`manifest.json` 和 `SHA256SUMS`。
 
+## 负向支撑实验（当前论文直接使用，作对照）
+
+| 目录 | 用途 |
+|---|---|
+| `formal/pg_selector/` | 参数引导（plug-in）负向支撑实验最终包：`variant_summary.csv`、`paired_bootstrap.csv`、`summary_by_beta.csv`、`beta_cell_correctness.csv`、`prov_err_vs_delta.csv`、`summary.json`、`manifest.json`（Phase B 合同版本、run-start 溯源、WMLE worker/生产与扫描数据源哈希） |
+
+PG 直接 plug-in 总体不能恢复 L3–L5 收益（最优单步 0.6507 vs Default 0.6304；配对 CI 全部为正）；结论作为界定主方法必要性的负向支撑证据，不与 Dimensional-RAW 排名。
+
 ## 候选或 Research
 
 | 目录 | 当前定位 |
