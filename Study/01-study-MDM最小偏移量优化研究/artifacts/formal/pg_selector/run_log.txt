@@ -1,0 +1,36 @@
+========================================================================
+Study/01 Phase A — parameter-guided offset selector (pilot)
+Output: D:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\pg_selector
+repeat_max=100 (samples = 160 x 100 x 26 deltas)
+========================================================================
+
+[1/7] Loading reused 160-combo scan (pilot subset)...
+  416,000 scan rows; 16000 unique samples; deltas=[np.float64(0.0), np.float64(0.02), np.float64(0.04), np.float64(0.06), np.float64(0.08), np.float64(0.1), np.float64(0.12), np.float64(0.14), np.float64(0.16), np.float64(0.18), np.float64(0.2), np.float64(0.22), np.float64(0.24), np.float64(0.26), np.float64(0.28), np.float64(0.3), np.float64(0.32), np.float64(0.34), np.float64(0.36), np.float64(0.38), np.float64(0.4), np.float64(0.42), np.float64(0.44), np.float64(0.46), np.float64(0.48), np.float64(0.5)]
+  failure_penalty (p99, not triggered): 2.055209
+
+[2/7] Building estimate lookup + MDM-0.1 initial estimates...
+  MDM-0.1 initial estimates: 16000; invalid=0
+
+[3/7] WMLE initial estimates on the pilot subset...
+  WMLE pilot: 16000 estimates, 1 invalid/fallback
+
+[4/7] Same-sample oracle L1–L5 cross-fit on the pilot subset...
+  oracle Default: J1=0.637545
+  oracle L1: J1=0.630545
+  oracle L2: J1=0.628635
+  oracle L3: J1=0.598132
+  oracle L4: J1=0.596906
+  oracle L5: J1=0.594774
+
+[5/7] PG selector evaluation (2 estimators x 3 families x 2 mappings)...
+  done PG-beta/nearest_grid
+  done PG-beta/interpolated
+  done PG-beta-n/nearest_grid
+  done PG-beta-n/interpolated
+  done PG-full/nearest_grid
+  done PG-full/interpolated
+  per-sample rows: 192,000 (16000 samples x variants)
+
+[6/7] Aggregating...
+
+[7/7] Alignment, summary, provenance...

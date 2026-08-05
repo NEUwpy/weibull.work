@@ -1,0 +1,78 @@
+{
+  "contract_version": "PG_selector_phaseA_v1",
+  "created_at": "2026-08-05T16:18:55.586352+00:00",
+  "code_entry": "code/run_pg_selector.py",
+  "code_sha256": {
+    "analyze_E1_E2_crossfit.py": "9c8e9b303a875e1e409ff77780a8914551faae3886eed223f01d76bfe21ebd6d",
+    "dim_raw_config.py": "33baacb643da791c1658fc27d024207ecf3d0615f6cac38f76406895e67e4b14",
+    "paper_support.py": "f3fa090cc3506868a50af16642b75bd70997a4ef3b10ad5bf4160a54c8143d54",
+    "run_E6b_dimensional_raw_specialist.py": "9ec5b97f4749ca55fe41770f91fc37cbd65276e0af2fde5e29a1f9f27238012e",
+    "run_pg_selector.py": "4cf7ec0faa3a46ef033f5fb8ddf6c5d588785bef76a19ab45000d21ca1ca372c"
+  },
+  "design": {
+    "split": "repeat_id mod 5 cross-fit; curves from training folds only",
+    "families": {
+      "PG-beta": [
+        "beta"
+      ],
+      "PG-beta-n": [
+        "beta",
+        "n"
+      ],
+      "PG-full": [
+        "beta",
+        "gamma_over_eta",
+        "n"
+      ]
+    },
+    "oracle_ref": {
+      "PG-beta": "L3",
+      "PG-beta-n": "L4",
+      "PG-full": "L5"
+    },
+    "initial_estimators": [
+      "MDM-0.1",
+      "WMLE"
+    ],
+    "mappings": [
+      "nearest_grid",
+      "interpolated"
+    ],
+    "max_updates": 10,
+    "stop_rules": [
+      "delta unchanged (fixed point / stable)",
+      "cycle (previously-seen delta reappears)",
+      "10 updates reached",
+      "invalid initial estimate -> delta=0.1"
+    ],
+    "cycle_handling": "never averaged; convergence never forced",
+    "clip_rule": "clip only outside training support; every event recorded",
+    "interpolate": "loss curves, never selected delta values",
+    "J1": "sqrt(mean_i(L_i)), three-parameter loss, NO /3"
+  },
+  "data_source": {
+    "reused": "artifacts/formal/E5_normalized_raw/shared_data/ (160-combo new design; pilot subset repeats < repeat_max)",
+    "wmle_cache_note": "B2 artifacts/formal/E6_dimensional_raw/traditional_ref/estimation.csv absent on disk; genuinely insufficient -> WMLE recomputed on the pilot subset only (production wmle.py, B2 worker)"
+  },
+  "output_files": [
+    "summary.json",
+    "manifest.json",
+    "run_log.txt",
+    "variant_summary.csv",
+    "oracle_comparison.csv",
+    "state_counts.csv",
+    "clip_diagnostics.csv",
+    "prov_param_diag.csv",
+    "prov_err_vs_delta.csv",
+    "key_alignment.json",
+    "pilot_results.csv (gitignored)",
+    "wmle_pilot_estimates.csv (gitignored)",
+    "SHA256SUMS",
+    "SHA256SUMS.local_not_in_git"
+  ],
+  "phase_boundary": "Phase A pilot only.  Full 48,000-sample run is Phase B (--full) and is NOT executed until review.",
+  "git_commit": "c0d557fce5896d034603957d78732694474dd6ca",
+  "git_commit_short": "c0d557fc",
+  "git_branch": "codex/study01-parameter-guided-selector",
+  "workspace_dirty": true
+}
