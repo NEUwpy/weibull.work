@@ -17,7 +17,7 @@ import pandas as pd
 PROJECT_ROOT = r"D:\weibull"
 STUDY15_ROOT = os.path.join(
     PROJECT_ROOT,
-    "Study", "015-study-NN输入表征与样本量机制研究"
+    "Research", "03-NN输入表征与样本量机制"
 )
 STUDY01_ROOT = os.path.join(
     PROJECT_ROOT,

@@ -1,0 +1,117 @@
+{
+  "schema_version": "research-relocation-v1",
+  "date": "2026-08-05",
+  "policy": {
+    "preserve_all_material": true,
+    "rewrite_sealed_artifacts": false,
+    "study02_a_physical_move": false,
+    "preserve_user_modified_study01_skeleton": true
+  },
+  "verification_requirements": [
+    "use git mv and preserve source-file bytes unless an entry explicitly says current documentation may be updated",
+    "recompute per-unit relative-path content and Git-blob aggregates after every move",
+    "do not claim an existing manifest is valid when its current bytes do not match the recorded hashes"
+  ],
+  "moves": [
+    {
+      "old": "docs/research/01对如何评判参数估计准确性的研究",
+      "new": "Research/01-参数估计评价指标/history/早期七轮研究",
+      "maturity": "NEEDS_REVIEW",
+      "role": "HISTORICAL"
+    },
+    {
+      "old": "Study/01-study-MDM最小偏移量优化研究/Research/评价指标与其他估计路线/调研-评价指标",
+      "new": "Research/01-参数估计评价指标/Study01-J1决策",
+      "maturity": "COMPLETE",
+      "role": "SUPPORTING"
+    },
+    {
+      "old": "docs/research/02对MDM方法有解性的证明",
+      "new": "Research/02-MDM根存在条件与稳健求解",
+      "maturity": "COMPLETE",
+      "role": "SUPPORTING"
+    },
+    {
+      "old": "Study/015-study-NN输入表征与样本量机制研究",
+      "new": "Research/03-NN输入表征与样本量机制",
+      "maturity": "COMPLETE",
+      "role": "SUPPORTING",
+      "content_policy": "sealed-byte-preserve",
+      "verification": "root/explore/confirm manifests must remain valid; preserve manifest-bound run_stage1.py bytes"
+    },
+    {
+      "old": "Study/01-study-MDM最小偏移量优化研究/Research/神经网络输入表示与样本量",
+      "new": "Research/03-NN输入表征与样本量机制/history/Study01早期研究",
+      "maturity": "NEEDS_REVIEW",
+      "role": "HISTORICAL"
+    },
+    {
+      "old": "docs/research/09两种神经网络直接估计",
+      "new": "Research/04-直接NN参数估计/history/E09-旧直接估计范式比较",
+      "maturity": "NEEDS_REVIEW",
+      "role": "SUPERSEDED",
+      "content_policy": "byte-preserving-history",
+      "verification": "preserve historical scripts, artifacts and claims as one unsplit old-protocol package"
+    },
+    {
+      "old": "Study/01-study-MDM最小偏移量优化研究/Research/评价指标与其他估计路线/估计结果直观化与方法横向对比",
+      "new": "Research/05-传统估计方法横向比较/Study01-当前横向比较",
+      "maturity": "NEEDS_REVIEW",
+      "role": "INDEPENDENT",
+      "content_policy": "current-blob-preserve",
+      "verification": "existing manifest is not byte-self-consistent: run log matches current bytes; six CSV hashes match only deterministic LF-to-CRLF reconstruction; do not reseal"
+    },
+    {
+      "old": "docs/research/05对MDM方法估计量的特性探究",
+      "new": "Research/06-MDM估计量特性与截尾扩展",
+      "maturity": "NEEDS_REVIEW",
+      "role": "INDEPENDENT"
+    },
+    {
+      "old": "docs/research/06具有渐近无害保证的等变残差修正估计器",
+      "new": "Research/07-等变残差修正",
+      "maturity": "INCUBATING",
+      "role": "INDEPENDENT"
+    },
+    {
+      "old": "docs/research/07截尾小样本下面向分位寿命的学习型偏差修正框架",
+      "new": "Research/08-截尾分位寿命修正",
+      "maturity": "INCUBATING",
+      "role": "INDEPENDENT"
+    },
+    {
+      "old": "docs/research/03对MDM方法最佳偏移量的研究",
+      "new": "Research/archive/Study01前史/03-MDM最佳偏移量早期研究",
+      "maturity": "COMPLETE",
+      "role": "SUPERSEDED"
+    },
+    {
+      "old": "docs/research/04基于神经网络的MDM偏移量自适应选取",
+      "new": "Research/archive/Study01前史/04-NN自适应偏移量早期整合路线",
+      "maturity": "NEEDS_REVIEW",
+      "role": "SUPERSEDED",
+      "content_policy": "byte-preserving-history",
+      "verification": "move the complete historical package together; do not repair hard-coded old paths or contradictory historical status in place"
+    },
+    {
+      "old": "docs/research/08威布尔加权极大似然估计中权重的学习化及其截尾推广",
+      "new": "Research/archive/待澄清/08-WMLE权重学习化旧提示词",
+      "maturity": "INCUBATING",
+      "role": "HISTORICAL"
+    },
+    {
+      "old": "Study/01-study-MDM最小偏移量优化研究/Research/README.md",
+      "new": "Research/archive/Study01前史/README-旧Study01-Research入口.md",
+      "maturity": "NEEDS_REVIEW",
+      "role": "HISTORICAL",
+      "content_policy": "byte-preserving-history",
+      "verification": "preserve the former Study01-local Research entry as historical context; current Study01 links must point to project-level Research"
+    }
+  ],
+  "indexed_without_move": [
+    "Study/02-study-NN参数估计与分位点目标研究/06-A-前置研究报告.md",
+    "Study/01-study-MDM最小偏移量优化研究/code/p3_config.py",
+    "Study/01-study-MDM最小偏移量优化研究/code/p4_config.py",
+    "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/p4_formal_compare"
+  ]
+}
