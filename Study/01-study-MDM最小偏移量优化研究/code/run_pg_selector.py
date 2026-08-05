@@ -1,5 +1,5 @@
 """
-Study/01 Phase A — parameter-guided MDM offset selector (non-neural route)
+Study/01 parameter-guided MDM offset selector (Phase A pilot / Phase B full)
 
 Frozen scientific contract (task study01-param-guided-01, Phase A):
 
@@ -56,13 +56,17 @@ Output: artifacts/formal/pg_selector/
   summary.json, manifest.json, run_log.txt
   variant_summary.csv, oracle_comparison.csv, state_counts.csv,
   clip_diagnostics.csv, prov_param_diag.csv, prov_err_vs_delta.csv,
+  beta_cell_correctness.csv, paired_bootstrap.csv,
   key_alignment.json, SHA256SUMS, SHA256SUMS.local_not_in_git
-  pilot_results.csv (gitignored per-sample traces), wmle_pilot_estimates.csv
-  (gitignored per-sample WMLE on the pilot subset)
+  pg_results.csv (gitignored per-sample traces), wmle_estimates.csv
+  (gitignored per-sample WMLE estimates)
+
+Output names are mode-independent (generic); the mode is recorded in the
+summary/manifest metadata so a full package cannot be mistaken for the pilot.
 
 Usage:
     python code/run_pg_selector.py                # pilot (repeats 0..99)
-    python code/run_pg_selector.py --full         # Phase B full run (NOT Phase A)
+    python code/run_pg_selector.py --full         # Phase B full 48,000-sample
     python code/run_pg_selector.py --pilot-repeats N --workers 8
 """
 
@@ -118,6 +122,36 @@ BETA_GRID = list(CFG.BETA_GRID)
 GOE_GRID = list(CFG.GAMMA_OVER_ETA_GRID)
 N_GRID = list(CFG.N_GRID)
 FOLDS = 5
+
+
+# ============================================================
+# Mode / output naming (self-describing packages)
+# ============================================================
+
+def output_filenames():
+    """Generic, mode-independent output names.
+
+    A 48,000-sample (Phase B) package must not be mistaken for the pilot by
+    filename; the mode lives in the summary/manifest metadata instead.
+    """
+    return {"results": "pg_results.csv", "wmle": "wmle_estimates.csv"}
+
+
+def experiment_label(mode):
+    return ("parameter-guided offset selector - pilot (Phase A, bounded repeats)"
+            if mode == "pilot" else
+            "parameter-guided offset selector - full (Phase B, 48,000-sample)")
+
+
+def phase_boundary(mode):
+    return ("Phase A pilot only (bounded repeats); full 48,000-sample run deferred"
+            if mode == "pilot" else
+            "Phase B full 48,000-sample run; final package replaced the pilot "
+            "package at this location")
+
+
+def resolve_mode(repeat_max):
+    return "full" if repeat_max >= CFG.REPEATS else "pilot"
 
 
 # ============================================================
@@ -435,6 +469,9 @@ def evaluate_fold(fold, subset, est_lookup, initial_maps, family, mapping):
     for _, r in test_keys.iterrows():
         key = sample_key_tuple(r)
         est_lookup_key = est_lookup[key]
+        # Default (delta=0.1) loss for this same sample, used for paired
+        # PG-vs-Default robustness (fold-independent).
+        l_default, _v_default = loss_at(est_lookup_key, DEFAULT_DELTA)
         for estimator in ESTIMATORS:
             init = initial_maps[estimator][key]
             traj = run_trajectory(init, lookup, make_mdm_at(est_lookup, key))
@@ -453,6 +490,7 @@ def evaluate_fold(fold, subset, est_lookup, initial_maps, family, mapping):
                 "one_step_loss": l_one, "one_step_valid": bool(v_one),
                 "terminal_delta": traj["terminal_delta"],
                 "terminal_loss": l_term, "terminal_valid": bool(v_term),
+                "default_loss": l_default,
                 "init_valid": bool(init.get("valid")),
                 "fallback_reason": init.get("failure_reason", ""),
                 "est_beta": float(init["beta_est"]) if init.get("valid") else math.nan,
@@ -491,6 +529,135 @@ def variant_metrics(df, loss_col, valid_col):
     return out
 
 
+def beta_cell_matches(est_beta, true_beta):
+    """Whether the provisional estimate routes to the true beta's grid cell."""
+    return nearest_grid_value(est_beta, BETA_GRID) == nearest_grid_value(
+        true_beta, BETA_GRID)
+
+
+def paired_bootstrap(df, loss_col, seed=2026, n_boot=2000):
+    """Deterministic paired repeat-block bootstrap: PG vs Default J1 difference.
+
+    Clusters by `repeat_id` (repeat block = the samples sharing one repeat_id
+    across all combos).  Resample blocks with replacement (fixed seed), recompute
+    the pooled J1 for PG and Default over the resampled union, and report the
+    2.5/97.5 percentile interval of the J1 difference (positive = PG worse).
+    Also reports the fraction of repeat blocks where PG's block-level J1 is worse
+    than Default's.  `df` must have `repeat_id`, `default_loss` and `loss_col`.
+    """
+    d = df[["repeat_id", loss_col, "default_loss"]].dropna().copy()
+    pg = d[loss_col].to_numpy(float)
+    de = d["default_loss"].to_numpy(float)
+    block_ids = d["repeat_id"].to_numpy(int)
+    uniq = np.unique(block_ids)
+    n_blocks = len(uniq)
+    # per-block sums and counts
+    pg_sum = np.array([pg[block_ids == u].sum() for u in uniq])
+    de_sum = np.array([de[block_ids == u].sum() for u in uniq])
+    cnt = np.array([(block_ids == u).sum() for u in uniq])
+    j1 = lambda s, c: np.sqrt(s / c)        # noqa: E731  (scalar or array)
+    obs = float(j1(pg.sum(), len(pg)) - j1(de.sum(), len(de)))
+    n_worse = int(np.sum(j1(pg_sum, cnt) > j1(de_sum, cnt)))
+    rng = np.random.default_rng(seed)
+    diffs = np.empty(n_boot)
+    for b in range(n_boot):
+        idx = rng.integers(0, n_blocks, size=n_blocks)
+        diffs[b] = float(j1(pg_sum[idx].sum(), cnt[idx].sum()) - j1(
+            de_sum[idx].sum(), cnt[idx].sum()))
+    lo, hi = np.percentile(diffs, [2.5, 97.5])
+    return {"observed_j1_diff": float(obs), "ci_low": float(lo),
+            "ci_high": float(hi), "n_boot": int(n_boot), "seed": int(seed),
+            "n_blocks": int(n_blocks), "n_blocks_pg_worse": int(n_worse),
+            "frac_blocks_pg_worse": float(n_worse / n_blocks)}
+
+
+def compute_prov_err_bins(df_all):
+    """Stratified provisional-beta-error bins (estimator/family/mapping/variant).
+
+    Relationship of provisional-parameter error to the selected delta is only
+    interpretable within one estimator/family/mapping and separated by
+    one-step vs terminal, so the table carries all four dimensions.
+    """
+    err_bin_rows = []
+    for estimator in ESTIMATORS:
+        for family in FAMILY_CELL_COLS:
+            for mapping in MAPPINGS:
+                for variant, dcol in (("one_step", "one_step_delta"),
+                                      ("terminal", "terminal_delta")):
+                    lcol = dcol.replace("delta", "loss")
+                    sub = df_all[(df_all["estimator"] == estimator)
+                                 & (df_all["family"] == family)
+                                 & (df_all["mapping"] == mapping)].copy()
+                    sub["abs_beta_err"] = (sub["est_beta"] - sub["true_beta"]).abs()
+                    sub = sub.dropna(subset=["abs_beta_err", dcol])
+                    if not len(sub):
+                        continue
+                    sub["err_bin"] = pd.qcut(sub["abs_beta_err"], 4,
+                                             labels=["q1", "q2", "q3", "q4"],
+                                             duplicates="drop")
+                    for b, g in sub.groupby("err_bin", observed=True):
+                        err_bin_rows.append({
+                            "estimator": estimator, "family": family,
+                            "mapping": mapping, "variant": variant,
+                            "err_bin": str(b),
+                            "err_low": float(g["abs_beta_err"].min()),
+                            "err_high": float(g["abs_beta_err"].max()),
+                            "n": int(len(g)),
+                            "mean_selected_delta": float(g[dcol].mean()),
+                            "mean_loss": float(g[lcol].mean()),
+                            "J1": j1_from_loss(g[lcol]),
+                        })
+    return err_bin_rows
+
+
+def compute_beta_cell_correctness(df_all):
+    """Nearest-beta-cell correctness (does the estimate route to the true cell?).
+
+    One row per sample (per estimator).  Reports the overall correct rate and
+    the rate with counts by true beta, so a paper can state how often noisy or
+    biased provisional beta estimates misroute a sample to the wrong cell.
+    """
+    cell_rows = []
+    for estimator in ESTIMATORS:
+        sub = df_all[df_all["estimator"] == estimator].dropna(
+            subset=["est_beta", "true_beta"])
+        sub = sub.drop_duplicates(subset=SAMPLE_KEYS)
+        if len(sub) == 0:
+            continue
+        est_cell = sub["est_beta"].apply(
+            lambda v: nearest_grid_value(v, BETA_GRID))
+        true_cell = sub["true_beta"].apply(
+            lambda v: nearest_grid_value(v, BETA_GRID))
+        ok = (est_cell == true_cell).astype(float)
+        cell_rows.append({"estimator": estimator, "true_beta": "ALL",
+                          "n": int(len(sub)), "n_correct": int(ok.sum()),
+                          "correct_rate": float(ok.mean())})
+        for b, g in sub.groupby("true_beta"):
+            gok = (est_cell.loc[g.index] == true_cell.loc[g.index]).astype(float)
+            cell_rows.append({"estimator": estimator, "true_beta": float(b),
+                              "n": int(len(g)), "n_correct": int(gok.sum()),
+                              "correct_rate": float(gok.mean())})
+    return cell_rows
+
+
+def compute_paired_bootstrap(df_all, n_boot=2000, seed=2026):
+    """PG vs Default paired bootstrap for every variant (one-step + terminal)."""
+    rows = []
+    for estimator in ESTIMATORS:
+        for family in FAMILY_CELL_COLS:
+            for mapping in MAPPINGS:
+                sub = df_all[(df_all["estimator"] == estimator)
+                             & (df_all["family"] == family)
+                             & (df_all["mapping"] == mapping)]
+                for variant, lcol in (("one_step", "one_step_loss"),
+                                      ("terminal", "terminal_loss")):
+                    rows.append({"estimator": estimator, "family": family,
+                                 "mapping": mapping, "variant": variant,
+                                 **paired_bootstrap(sub, lcol, seed=seed,
+                                                    n_boot=n_boot)})
+    return rows
+
+
 # ============================================================
 # Main
 # ============================================================
@@ -504,15 +671,23 @@ def log_lines():
     return _log, buf
 
 
-def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
+def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False,
+                   mode=None):
+    mode = mode or resolve_mode(repeat_max)
+    # Run-start provenance is captured BEFORE any output is written, so
+    # workspace_dirty reflects the pre-run tree (not the files we are about to
+    # create/overwrite).
+    run_start = PS.git_meta()
     out_dir = OUT_DIR
     os.makedirs(out_dir, exist_ok=True)
     log, buf = log_lines()
     log("=" * 72)
-    log("Study/01 Phase A — parameter-guided offset selector (pilot)")
+    log(f"Study/01 {experiment_label(mode)}")
+    log(f"mode={mode}  repeat_max={repeat_max}  "
+        f"(samples = 160 x {repeat_max} x {len(DELTA_GRID)} deltas)")
+    log(f"run_start: branch={run_start['git_branch']} "
+        f"commit={run_start['git_commit'][:8]} clean={not run_start['workspace_dirty']}")
     log(f"Output: {out_dir}")
-    log(f"repeat_max={repeat_max} (samples = 160 x {repeat_max} x "
-        f"{len(DELTA_GRID)} deltas)")
     log("=" * 72)
     t_start = time.time()
 
@@ -541,9 +716,9 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
     log(f"  MDM-0.1 initial estimates: {len(initial_maps['MDM-0.1'])}; "
         f"invalid={n_invalid_mdm01}")
 
-    log("\n[3/7] WMLE initial estimates on the pilot subset...")
-    wmle_df = compute_wmle_pilot(subset[SAMPLE_KEYS].drop_duplicates(),
-                                 workers=workers, force_rerun=force_rerun)
+    log(f"\n[3/7] WMLE initial estimates ({n_samples} samples)...")
+    wmle_df = compute_wmle(subset[SAMPLE_KEYS].drop_duplicates(),
+                           workers=workers, force_rerun=force_rerun)
     initial_maps["WMLE"] = {}
     wmle_valid = 0
     for _, r in wmle_df.iterrows():
@@ -559,7 +734,7 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
             "n": int(r["n"]), "valid": valid,
             "failure_reason": str(r["failure_reason"]) if not valid else "",
         }
-    log(f"  WMLE pilot: {len(initial_maps['WMLE'])} estimates, "
+    log(f"  WMLE estimates: {len(initial_maps['WMLE'])}; "
         f"{len(initial_maps['WMLE']) - wmle_valid} invalid/fallback")
     n_wmle_fail = len(initial_maps["WMLE"]) - wmle_valid
 
@@ -587,7 +762,7 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
                 all_rows.append(df)
             log(f"  done {family}/{mapping}")
     df_all = pd.concat(all_rows, ignore_index=True)
-    df_all.to_csv(os.path.join(out_dir, "pilot_results.csv"), index=False)
+    df_all.to_csv(os.path.join(out_dir, output_filenames()["results"]), index=False)
     log(f"  per-sample rows: {len(df_all):,} "
         f"({len(df_all) // len(ESTIMATORS) // len(FAMILY_CELL_COLS) // len(MAPPINGS)} "
         f"samples x variants)")
@@ -698,26 +873,17 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
     pd.DataFrame(prov_rows).to_csv(os.path.join(out_dir, "prov_param_diag.csv"),
                                    index=False)
 
-    err_bin_rows = []
-    for estimator in ESTIMATORS:
-        sub = df_all[df_all["estimator"] == estimator].copy()
-        sub["abs_beta_err"] = (sub["est_beta"] - sub["true_beta"]).abs()
-        sub = sub.dropna(subset=["abs_beta_err"])
-        if len(sub):
-            sub["err_bin"] = pd.qcut(sub["abs_beta_err"], 4,
-                                     labels=["q1", "q2", "q3", "q4"])
-            for b, g in sub.groupby("err_bin", observed=True):
-                err_bin_rows.append({
-                    "estimator": estimator, "err_bin": str(b),
-                    "err_low": float(g["abs_beta_err"].min()),
-                    "err_high": float(g["abs_beta_err"].max()),
-                    "n": int(len(g)),
-                    "mean_selected_delta": float(g["terminal_delta"].mean()),
-                    "mean_terminal_loss": float(g["terminal_loss"].mean()),
-                    "mean_J1_terminal": j1_from_loss(g["terminal_loss"]),
-                })
+    # provisional-error vs selected delta (stratified) / beta-cell correctness /
+    # paired PG-vs-Default bootstrap — see module-level compute_* helpers.
+    err_bin_rows = compute_prov_err_bins(df_all)
     pd.DataFrame(err_bin_rows).to_csv(os.path.join(out_dir, "prov_err_vs_delta.csv"),
                                       index=False)
+    cell_rows = compute_beta_cell_correctness(df_all)
+    pd.DataFrame(cell_rows).to_csv(
+        os.path.join(out_dir, "beta_cell_correctness.csv"), index=False)
+    boot_rows = compute_paired_bootstrap(df_all)
+    pd.DataFrame(boot_rows).to_csv(
+        os.path.join(out_dir, "paired_bootstrap.csv"), index=False)
 
     log("\n[7/7] Alignment, summary, provenance...")
     key_alignment = check_key_alignment(df_all, n_samples)
@@ -735,10 +901,11 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
 
     git_meta = PS.git_meta()
     summary = {
-        "experiment": "Study/01 Phase A — parameter-guided offset selector (pilot)",
-        "contract_version": CONTRACT_VERSION,
+        "experiment": f"Study/01 {experiment_label(mode)}",
+        "mode": mode, "contract_version": CONTRACT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "repeat_max": repeat_max, "n_samples": n_samples,
+        "run_start_git": run_start,
         "design_interpretation": (
             "plug-in: cell curves are the L3/L4/L5 training-fold conditional-mean "
             "curves on the true-parameter grid; a sample's provisional estimate "
@@ -750,22 +917,37 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
         "state_counts": df_state.to_dict(orient="records"),
         "clip_diagnostics": df_clip.to_dict(orient="records"),
         "provisional_param_diag": prov_rows,
+        "beta_cell_correctness": pd.DataFrame(cell_rows).to_dict(orient="records"),
+        "paired_bootstrap": pd.DataFrame(boot_rows).to_dict(orient="records"),
         "oracle_pilot_j1": oracle_j1,
         "full_design_crossfit_reference": full_design_ref,
-        "wmle": {"n_pilot": n_samples, "n_invalid_fallback": n_wmle_fail,
-                 "note": ("B2 estimation.csv absent on disk; WMLE recomputed on "
-                          "the pilot subset with the B2 frozen worker")},
+        "wmle": {"n_estimates": n_samples, "n_invalid_fallback": n_wmle_fail,
+                 "note": ("B2 estimation.csv absent on disk; WMLE recomputed with "
+                          "the B2 frozen worker (production wmle.py)")},
         "failure_penalty": float(penalty),
         **git_meta,
     }
     PS.atomic_write_json(summary, os.path.join(out_dir, "summary.json"))
 
+    # bind the actual WMLE worker and the reused sealed scan source
+    wmle_worker_path = os.path.join(STUDY_CODE_DIR, "run_b2_traditional_ref.py")
+    wmle_prod_path = os.path.join(PYTHON_DIR, "methods", "wmle.py")
+    scan_manifest_path = CFG.MC_MANIFEST_PATH
+    scan_sums_path = os.path.join(CFG.SHARED_DATA_DIR, "data_sha256sums.txt")
     manifest = {
         "contract_version": CONTRACT_VERSION,
+        "mode": mode, "experiment": experiment_label(mode),
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "run_start_git": run_start,
         "code_entry": "code/run_pg_selector.py",
         "code_sha256": PS.code_sha256(sys.modules[__name__], CFG, CROSSFIT,
                                       E6, PS),
+        "wmle_worker_sha256": {
+            os.path.basename(wmle_worker_path):
+                PS.sha256_file_lf(wmle_worker_path)},
+        "wmle_prod_sha256": {
+            os.path.basename(wmle_prod_path):
+                PS.sha256_file_lf(wmle_prod_path)},
         "design": {
             "split": "repeat_id mod 5 cross-fit; curves from training folds only",
             "families": FAMILY_CELL_COLS,
@@ -780,31 +962,40 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
             "clip_rule": "clip only outside training support; every event recorded",
             "interpolate": "loss curves, never selected delta values",
             "J1": "sqrt(mean_i(L_i)), three-parameter loss, NO /3",
+            "primary": "one-step selection; terminal iteration is a diagnostic "
+                       "of feedback deterioration (frozen Phase B decision)",
         },
         "data_source": {
             "reused": "artifacts/formal/E5_normalized_raw/shared_data/ "
-                      "(160-combo new design; pilot subset repeats < repeat_max)",
+                      "(160-combo new design; repeats < repeat_max)",
+            "scan_manifest": {
+                "path": scan_manifest_path,
+                "sha256": PS.sha256_file_lf(scan_manifest_path)},
+            "scan_data_checksums": {
+                "path": scan_sums_path,
+                "sha256": PS.sha256_file_lf(scan_sums_path)},
             "wmle_cache_note": ("B2 artifacts/formal/E6_dimensional_raw/"
                                 "traditional_ref/estimation.csv absent on disk; "
-                                "genuinely insufficient -> WMLE recomputed on the "
-                                "pilot subset only (production wmle.py, B2 worker)"),
+                                "genuinely insufficient -> WMLE recomputed with "
+                                "the frozen B2 worker (production wmle.py)"),
         },
         "output_files": [
             "summary.json", "manifest.json", "run_log.txt",
             "variant_summary.csv", "oracle_comparison.csv", "state_counts.csv",
             "clip_diagnostics.csv", "prov_param_diag.csv",
-            "prov_err_vs_delta.csv", "key_alignment.json",
-            "pilot_results.csv (gitignored)", "wmle_pilot_estimates.csv (gitignored)",
+            "prov_err_vs_delta.csv", "beta_cell_correctness.csv",
+            "paired_bootstrap.csv", "key_alignment.json",
+            f"{output_filenames()['results']} (gitignored)",
+            f"{output_filenames()['wmle']} (gitignored)",
             "SHA256SUMS", "SHA256SUMS.local_not_in_git",
         ],
-        "phase_boundary": ("Phase A pilot only.  Full 48,000-sample run is Phase B "
-                           "(--full) and is NOT executed until review."),
+        "phase_boundary": phase_boundary(mode),
         **git_meta,
     }
     PS.atomic_write_json(manifest, os.path.join(out_dir, "manifest.json"))
 
     with open(os.path.join(out_dir, ".gitignore"), "w", encoding="utf-8") as f:
-        f.write("pilot_results.csv\nwmle_pilot_estimates.csv\n")
+        f.write(f"{output_filenames()['results']}\n{output_filenames()['wmle']}\n")
     for p in (os.path.join(out_dir, "summary.json"),
               os.path.join(out_dir, "manifest.json"),
               os.path.join(out_dir, "variant_summary.csv"),
@@ -813,6 +1004,8 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
               os.path.join(out_dir, "clip_diagnostics.csv"),
               os.path.join(out_dir, "prov_param_diag.csv"),
               os.path.join(out_dir, "prov_err_vs_delta.csv"),
+              os.path.join(out_dir, "beta_cell_correctness.csv"),
+              os.path.join(out_dir, "paired_bootstrap.csv"),
               os.path.join(out_dir, "key_alignment.json")):
         PS.lf_normalize(p)
 
@@ -826,10 +1019,14 @@ def run_experiment(repeat_max=PILOT_REPEATS, workers=8, force_rerun=False):
     return summary, manifest
 
 
-def compute_wmle_pilot(sample_keys, workers=8, force_rerun=False):
-    """WMLE on the pilot samples with the B2 frozen worker (same sample keys)."""
+def compute_wmle(sample_keys, workers=8, force_rerun=False):
+    """WMLE estimates with the B2 frozen worker (same sample keys).
+
+    Cache path is the generic `wmle_estimates.csv` (mode-independent; verified
+    against the exact requested sample-key set before reuse).
+    """
     from run_b2_traditional_ref import _estimate_one
-    est_path = os.path.join(OUT_DIR, "wmle_pilot_estimates.csv")
+    est_path = os.path.join(OUT_DIR, output_filenames()["wmle"])
     if os.path.exists(est_path) and not force_rerun:
         df = pd.read_csv(est_path)
         got = set(map(tuple, df[SAMPLE_KEYS].values))
@@ -876,11 +1073,12 @@ def check_key_alignment(df_all, n_samples):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--full", action="store_true",
-                    help="Phase B: full 48,000-sample run (not Phase A)")
+                    help="Phase B: full 48,000-sample run")
     ap.add_argument("--pilot-repeats", type=int, default=PILOT_REPEATS)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--force-rerun", action="store_true")
     args = ap.parse_args()
     repeats = CFG.REPEATS if args.full else args.pilot_repeats
+    mode = "full" if args.full else "pilot"
     run_experiment(repeat_max=repeats, workers=args.workers,
-                   force_rerun=args.force_rerun)
+                   force_rerun=args.force_rerun, mode=mode)

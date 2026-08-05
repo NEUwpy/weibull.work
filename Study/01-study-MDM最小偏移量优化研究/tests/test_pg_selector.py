@@ -388,3 +388,146 @@ def test_is_valid_estimate_frozen():
     assert not PG.is_valid_estimate(2.0, 1000.0, -0.1)      # gamma < 0
     assert not PG.is_valid_estimate(None, 1000.0, 500.0)    # missing
     assert not PG.is_valid_estimate(math.inf, 1000.0, 500.0)  # non-finite
+
+
+# ============================================================
+# REVISE round: corrected semantics
+# ============================================================
+
+def test_mode_self_describing_outputs():
+    """A full package must not be mistaken for the pilot by filename."""
+    fn = PG.output_filenames()
+    for name in fn.values():
+        assert "pilot" not in name
+    assert fn["results"] == "pg_results.csv" and fn["wmle"] == "wmle_estimates.csv"
+    assert "pilot" in PG.experiment_label("pilot")
+    assert "48,000" in PG.experiment_label("full")
+    assert "deferred" in PG.phase_boundary("pilot")
+    assert "replaced the pilot" in PG.phase_boundary("full")
+    assert PG.resolve_mode(99) == "pilot" and PG.resolve_mode(300) == "full"
+
+
+def test_run_start_provenance_captured_before_writes():
+    """git metadata is captured at run start, before any output is written."""
+    meta = PG.PS.git_meta()
+    for k in ("git_commit", "git_commit_short", "git_branch", "workspace_dirty"):
+        assert k in meta
+    src = open(os.path.join(STUDY_CODE_DIR, "run_pg_selector.py"),
+               encoding="utf-8").read()
+    start_idx = src.index("run_start = PS.git_meta()")
+    makedirs_idx = src.index('os.makedirs(out_dir, exist_ok=True)')
+    assert start_idx < makedirs_idx, \
+        "run-start git metadata must be captured before any output is written"
+
+
+def test_prov_err_bins_stratified():
+    """Provisional-error relationship is stratified by estimator/family/mapping
+    and separated by one-step vs terminal."""
+    subset = _make_subset()
+    n_samples = subset[PG.SAMPLE_KEYS].drop_duplicates().shape[0]
+    penalty = float(np.nanpercentile(subset["loss"].dropna(), 99))
+    est_lookup = PG.build_estimate_lookup(subset, penalty)
+    initial_maps = {"MDM-0.1": {}, "WMLE": {}}
+    for r in subset[subset["delta"] == PG.DEFAULT_DELTA].itertuples(index=False):
+        key = (float(r.beta), float(r.eta), float(r.gamma),
+               float(r.gamma_over_eta), int(r.n), int(r.repeat_id))
+        initial_maps["MDM-0.1"][key] = PG.initial_from_scan(
+            est_lookup, key, PG.DEFAULT_DELTA)
+        initial_maps["WMLE"][key] = {"beta_est": float(r.beta_hat),
+                                     "goe_est": PG.goe_of(r.beta_hat, r.eta_hat,
+                                                          r.gamma_hat),
+                                     "n": int(r.n), "valid": True,
+                                     "failure_reason": ""}
+    dfs = [PG.evaluate_fold(f, subset, est_lookup, initial_maps, fam, mp)
+           for fam in PG.FAMILY_CELL_COLS for mp in PG.MAPPINGS
+           for f in range(PG.FOLDS)]
+    df_all = pd.concat(dfs, ignore_index=True)
+    # synthetic est_beta = true_beta + 0.3 is constant -> perturb so the error
+    # bins have unique edges (real data has continuous errors)
+    df_all["est_beta"] = df_all["est_beta"] + \
+        np.random.default_rng(1).normal(0.0, 0.05, len(df_all))
+    rows = PG.compute_prov_err_bins(df_all)
+    assert rows and all({"estimator", "family", "mapping", "variant",
+                         "err_bin"} <= set(r) for r in rows)
+    groups = {(r["estimator"], r["family"], r["mapping"], r["variant"])
+              for r in rows}
+    n_expected = (len(PG.ESTIMATORS) * len(PG.FAMILY_CELL_COLS)
+                  * len(PG.MAPPINGS) * 2)
+    assert len(groups) == n_expected
+    # each group has exactly 4 quantile bins
+    assert all(sum(1 for r in rows if r["estimator"] == e and r["family"] == f
+                   and r["mapping"] == m and r["variant"] == v) == 4
+               for e in PG.ESTIMATORS for f in PG.FAMILY_CELL_COLS
+               for m in PG.MAPPINGS for v in ("one_step", "terminal"))
+
+
+def test_beta_cell_correctness():
+    """Nearest-beta-cell routing: correct rate overall and by true beta."""
+    df = pd.DataFrame({
+        "estimator": ["WMLE"] * 8,
+        "beta": [2.0] * 8, "eta": [1000.0] * 8, "gamma": [500.0] * 8,
+        "gamma_over_eta": [0.5] * 8, "n": [7] * 8, "repeat_id": range(8),
+        "est_beta": [2.1, 1.9, 4.2, 3.9, 5.1, 2.4, 1.4, 4.7],
+        "true_beta": [2.0, 2.0, 4.0, 4.0, 5.0, 2.5, 1.5, 5.0],
+    })
+    rows = PG.compute_beta_cell_correctness(df)
+    all_row = next(r for r in rows if r["true_beta"] == "ALL")
+    assert all_row["estimator"] == "WMLE" and all_row["n"] == 8
+    # expected correct routes: 2.1->2, 1.9->2 (both true 2.0 cell 2.0): correct
+    # 4.2->4, 3.9->4 (true 4.0): correct; 5.1->5 (true 5.0): correct;
+    # 2.4->2.5 (true 2.5): correct; 1.4->1.5 (true 1.5): correct;
+    # 4.7->4.5 (true 5.0): INCORRECT  -> 7/8 correct
+    assert all_row["n_correct"] == 7 and math.isclose(all_row["correct_rate"], 7 / 8)
+    # per-true-beta counts present for every beta in the data
+    for tb in (1.5, 2.0, 2.5, 4.0, 5.0):
+        assert any(r["true_beta"] == tb for r in rows)
+
+
+def test_paired_bootstrap_deterministic():
+    """Paired repeat-block bootstrap is deterministic and brackets the observed."""
+    rng = np.random.default_rng(0)
+    n = 600
+    df = pd.DataFrame({
+        "repeat_id": np.repeat(np.arange(60), 10),
+        "default_loss": rng.gamma(1.0, 0.05, n),
+        "one_step_loss": rng.gamma(1.0, 0.05, n) + 0.02,  # PG slightly worse
+    })
+    a = PG.paired_bootstrap(df, "one_step_loss", seed=2026, n_boot=2000)
+    b = PG.paired_bootstrap(df, "one_step_loss", seed=2026, n_boot=2000)
+    assert a == b                       # fixed seed -> reproducible
+    assert a["n_blocks"] == 60
+    assert a["observed_j1_diff"] > 0    # PG worse than Default by construction
+    assert a["ci_low"] <= a["observed_j1_diff"] <= a["ci_high"]
+    # different seed should differ somewhere (not required, but sanity on seeding)
+    c = PG.paired_bootstrap(df, "one_step_loss", seed=1, n_boot=2000)
+    assert c["n_blocks"] == 60 and math.isfinite(c["ci_low"])
+
+
+def test_compute_paired_bootstrap_covers_one_step_and_terminal():
+    """Every variant gets a bootstrap row; one-step is present for all 12."""
+    subset = _make_subset()
+    n_samples = subset[PG.SAMPLE_KEYS].drop_duplicates().shape[0]
+    penalty = float(np.nanpercentile(subset["loss"].dropna(), 99))
+    est_lookup = PG.build_estimate_lookup(subset, penalty)
+    initial_maps = {"MDM-0.1": {}, "WMLE": {}}
+    for r in subset[subset["delta"] == PG.DEFAULT_DELTA].itertuples(index=False):
+        key = (float(r.beta), float(r.eta), float(r.gamma),
+               float(r.gamma_over_eta), int(r.n), int(r.repeat_id))
+        initial_maps["MDM-0.1"][key] = PG.initial_from_scan(
+            est_lookup, key, PG.DEFAULT_DELTA)
+        initial_maps["WMLE"][key] = {"beta_est": float(r.beta_hat),
+                                     "goe_est": PG.goe_of(r.beta_hat, r.eta_hat,
+                                                          r.gamma_hat),
+                                     "n": int(r.n), "valid": True,
+                                     "failure_reason": ""}
+    dfs = [PG.evaluate_fold(f, subset, est_lookup, initial_maps, fam, mp)
+           for fam in PG.FAMILY_CELL_COLS for mp in PG.MAPPINGS
+           for f in range(PG.FOLDS)]
+    df_all = pd.concat(dfs, ignore_index=True)
+    rows = PG.compute_paired_bootstrap(df_all, n_boot=50)
+    assert len(rows) == len(PG.ESTIMATORS) * len(PG.FAMILY_CELL_COLS) * \
+        len(PG.MAPPINGS) * 2
+    one_steps = [r for r in rows if r["variant"] == "one_step"]
+    assert len(one_steps) == 12
+    assert all("ci_low" in r and "ci_high" in r and "observed_j1_diff" in r
+               for r in rows)
