@@ -72,6 +72,23 @@ def test_minimum_sufficient_and_proportional_review_rules_are_present():
     assert "do not prevent `APPROVE`" in protocol
 
 
+def test_research_mentor_checkpoints_are_explicit_and_proportional():
+    skill_text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    protocol = (SKILL / "references" / "protocol.md").read_text(encoding="utf-8")
+    dispatch = (SKILL / "references" / "dispatch.md").read_text(encoding="utf-8")
+    assert "use `$mentor` as an independent perspective" in skill_text
+    assert "not as a continuous supervisor" in skill_text
+    assert "If several triggers describe the same transition" in skill_text
+    assert "Skip mentor review for routine implementation" in skill_text
+    assert "do not advance until `$mentor` says" in skill_text
+    assert "Do not build an automatic supervision system" in skill_text
+    assert "Mentor checkpoints:" in protocol
+    assert "Merge overlapping triggers into one review" in protocol
+    assert "does not transfer ownership" in protocol
+    assert "Mentor checkpoints:" in dispatch
+    assert "Do not invoke the mentor for routine implementation steps" in dispatch
+
+
 def test_mailbox_is_default_record_and_does_not_require_tracked_receipts():
     skill_text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
     protocol = (SKILL / "references" / "protocol.md").read_text(encoding="utf-8")

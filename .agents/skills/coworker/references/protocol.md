@@ -24,12 +24,17 @@ Executor autonomy:
 
 Stop conditions:
 
+Mentor checkpoints:
+- Required at: `<research transitions only, or none>`
+
 Verification:
 
 Report:
 ```
 
 Plans are contracts, not scripts. Prefer checkpoints, boundaries, and validation over imagined future steps. Treat executor agents as competent.
+
+For long-running research or evidence-driven work, name only the transitions where `$mentor` is required. Suitable checkpoints include freezing the overall research plan, accepting a direction-changing subtask, interpreting decisive evidence, and entering the next research stage. Merge overlapping triggers into one review and omit routine implementation steps. A required checkpoint pauses progression until the mentor allows continuation or the minimum necessary correction is resolved; it does not transfer ownership of the task to the mentor.
 
 ## Reports
 

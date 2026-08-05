@@ -1,0 +1,36 @@
+{
+  "contract_version": "B3_quantiles_v1",
+  "created_at": "2026-08-05T05:08:22.425945+00:00",
+  "code_entry": "code/run_b3_quantiles.py",
+  "code_sha256": {
+    "dim_raw_config.py": "33baacb643da791c1658fc27d024207ecf3d0615f6cac38f76406895e67e4b14",
+    "paper_support.py": "f3fa090cc3506868a50af16642b75bd70997a4ef3b10ad5bf4160a54c8143d54",
+    "run_b3_quantiles.py": "a25b487113606ee3ee974c07ad2cfdfc7cdd73dbce617dcf4ef77a9277ee700f"
+  },
+  "source": {
+    "Dimensional-RAW": "E6 specialist/raw_specialist_results.csv (out-of-fold selected delta per seed)",
+    "Default": "MC scan at delta=0.1",
+    "L6": "MC scan at per-sample argmin delta",
+    "WMLE/LSE": "B2 traditional_ref/estimation.csv",
+    "mdm_params": "reused shared_data MC scan (no MDM rerun)"
+  },
+  "formula": "x_R = gamma + eta * (-ln(R))^(1/beta)",
+  "metric": "relative error (x_hat - x)/x; Bias/RMSE/MAE/P95; failure_rate on invalid estimates",
+  "provenance_note": "code_sha256 binds the committed content of the entry script and material dependencies; git_commit records the runtime HEAD at generation (see branch commit chain for the implementation commits). SHA256SUMS covers git-tracked files only; SHA256SUMS.local_not_in_git lists gitignored/local raw files.  Dimensional-RAW three-seed model-first mean is in per_method[method].three_seed_mean.",
+  "output_files": [
+    "summary.json",
+    "summary.csv",
+    "summary_by_n.csv",
+    "manifest.json",
+    "SHA256SUMS",
+    "SHA256SUMS.local_not_in_git",
+    "per_sample.csv (gitignored)"
+  ],
+  "elapsed_s": 35.911827087402344,
+  "git_commit": "04f0bac32c96ed40efe543e69a13f686c242631e",
+  "git_commit_short": "04f0bac3",
+  "git_branch": "study01-e6-paper-evidence",
+  "workspace_dirty": true,
+  "sha256_tracked_entries": 4,
+  "sha256_local_not_in_git_entries": 1
+}

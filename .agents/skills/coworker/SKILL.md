@@ -9,8 +9,8 @@ description: >
   Keep plans concise: clarify goals, boundaries, autonomy, stop conditions, and
   verification instead of writing step-by-step scripts for capable executors.
 metadata:
-  version: "2.4.0"
-  updated_at: "2026-07-31T09:08:58+08:00"
+  version: "2.5.0"
+  updated_at: "2026-08-02T22:37:40+08:00"
 ---
 
 # Coworker
@@ -22,6 +22,15 @@ Use this skill to run a small planner -> executor -> reviewer loop without turni
 1. **Align before planning.** If the user's goal, scope, or success criteria are unclear, ask until the blocking ambiguity is resolved. Do not silently invent missing requirements.
 2. **Plan as a contract.** State goal, facts, boundaries, executor autonomy, stop conditions, verification, and report format. Do not prescribe implementation minutiae unless the user asks for an exact patch.
 3. **Dispatch compactly.** Do not repeat project rules in every prompt. Send the role, goal, boundaries, and only the references that already exist. A tracked plan or report path is optional, not a prerequisite for collaboration.
+
+## Research Mentor Checkpoints
+
+For long-running research or evidence-driven work, use `$mentor` as an independent perspective at important transitions, not as a continuous supervisor. Invoke it when freezing the overall research plan, reviewing a direction-changing subtask plan, accepting a key subtask result, interpreting decisive evidence, moving to the next research stage, or when the user explicitly requests convergence or mentor review.
+
+- Put required mentor checkpoints in the task contract or handoff. If several triggers describe the same transition, invoke `$mentor` once.
+- Skip mentor review for routine implementation, mechanical reruns, and ordinary fixes that do not change the research direction or evidence conclusion.
+- When the user requires a checkpoint, do not advance until `$mentor` says the work can continue or its minimum necessary correction is resolved.
+- Let `$mentor` pause a transition without taking over the task. Do not build an automatic supervision system, scheduler, or control plane around it.
 
 ## Proportionality
 
