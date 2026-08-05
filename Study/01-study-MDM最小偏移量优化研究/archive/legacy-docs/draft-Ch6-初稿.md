@@ -41,7 +41,7 @@ J1 = sqrt(mean_i loss_i(delta_hat_i))
 
 **图 8** 将部署推断与离线训练/评价分开，概括 E3b vector-output MLP 的方法流程。
 
-![Figure 8: E3b vector-output MLP workflow](../artifacts/formal/figures/fig_ch6_vector_mlp_workflow.png)
+![Figure 8: E3b vector-output MLP workflow](../../artifacts/formal/figures/fig_ch6_vector_mlp_workflow.png)
 
 **Figure 8.** E3b 样本自适应偏移量选择流程。部署路径只使用新寿命样本及其 13 个可观测统计特征；vector-output MLP（13–256–128–64–26）一次性预测 26 个正式候选 $\delta_j=0.02j$ 的损失，再通过 $\hat\delta_i=\arg\min_{\delta_j}\hat\ell_i(\delta_j)$ 选择偏移量。candidate $\delta$、真 $\beta$、真 $\gamma/\eta$、配置 ID、seed 和 `repeat_id` 均不进入模型输入。下方虚线仅表示离线训练标签与评价路径：训练使用 formal MC 的 raw per-sample 26 点损失曲线，评价在所选 $\hat\delta_i$ 上计算真实 selected-loss 并跨样本汇总为 $J_1$。图中不展示结果数字，定量比较以表 5 为准。
 

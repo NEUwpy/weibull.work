@@ -15,9 +15,10 @@ from pathlib import Path
 import pandas as pd
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-STUDY_ROOT = REPO_ROOT / "Study" / "01-study-MDM最小偏移量优化研究"
-AUDIT_DIR = STUDY_ROOT / "manuscript" / "audit"
+AUDIT_DIR = Path(__file__).resolve().parent
+LEGACY_MANUSCRIPT_ROOT = AUDIT_DIR.parent
+STUDY_ROOT = LEGACY_MANUSCRIPT_ROOT.parents[1]
+REPO_ROOT = STUDY_ROOT.parents[1]
 AUDIT_SCRIPT = AUDIT_DIR / "auto_audit.py"
 
 
@@ -92,7 +93,7 @@ def test_stale_source_path_is_rejected(tmp_path):
 
 
 def test_figure_index_pending_status_is_rejected(tmp_path):
-    index_path = _copy(tmp_path, STUDY_ROOT / "manuscript" / "figure-index.md")
+    index_path = _copy(tmp_path, LEGACY_MANUSCRIPT_ROOT / "figure-index.md")
     index_path.write_text(
         index_path.read_text(encoding="utf-8") + "\nS9 | **需生成**\n",
         encoding="utf-8",
@@ -130,7 +131,7 @@ def test_delete_reference_7_is_rejected(tmp_path):
 
 def test_wrong_supplementary_beta_count_is_rejected(tmp_path):
     supplementary_path = _copy(
-        tmp_path, STUDY_ROOT / "manuscript" / "supplementary.md"
+        tmp_path, LEGACY_MANUSCRIPT_ROOT / "supplementary.md"
     )
     text = supplementary_path.read_text(encoding="utf-8")
     corrected = text.replace("5×3×20=300", "每个beta各300个")
@@ -144,7 +145,7 @@ def test_wrong_supplementary_beta_count_is_rejected(tmp_path):
 
 
 def test_delete_figure_7_citation_is_rejected(tmp_path):
-    paper_path = _copy(tmp_path, STUDY_ROOT / "manuscript" / "paper.md")
+    paper_path = _copy(tmp_path, LEGACY_MANUSCRIPT_ROOT / "paper.md")
     text = paper_path.read_text(encoding="utf-8")
     corrected = text.replace("Figure 7", "the boundary/off-grid panel")
     assert corrected != text, "fixture setup did not remove the Figure 7 citation"

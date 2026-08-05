@@ -1,9 +1,8 @@
-"""Fail-closed manuscript audit for Study01.
+"""Archived G7 manuscript audit for Study01.
 
-The public ``audit_manuscript`` function is the single production path used by
-both the command line and the negative regression tests.  It recomputes every
-registered quantitative claim from formal artifacts, validates the complete
-claim registry, and checks manuscript/index/checklist consistency.
+The public ``audit_manuscript`` function preserves the old feature-route
+claims-to-data checks after the manuscript package moved under ``archive/``.
+It is not the audit path for the current Dimensional-RAW paper.
 """
 
 from __future__ import annotations
@@ -40,7 +39,8 @@ class AuditPaths:
     @classmethod
     def defaults(cls) -> "AuditPaths":
         audit_dir = Path(__file__).resolve().parent
-        study_root = audit_dir.parents[1]
+        legacy_manuscript_root = audit_dir.parent
+        study_root = legacy_manuscript_root.parents[1]
         return cls(
             study_root=study_root,
             repo_root=study_root.parents[1],
@@ -48,9 +48,9 @@ class AuditPaths:
             figure_checklist_csv=audit_dir / "figure-checklist.csv",
             reference_checklist_csv=audit_dir / "reference-checklist.csv",
             submission_checklist_md=audit_dir / "submission-checklist.md",
-            figure_index_md=study_root / "manuscript" / "figure-index.md",
-            paper_md=study_root / "manuscript" / "paper.md",
-            supplementary_md=study_root / "manuscript" / "supplementary.md",
+            figure_index_md=legacy_manuscript_root / "figure-index.md",
+            paper_md=legacy_manuscript_root / "paper.md",
+            supplementary_md=legacy_manuscript_root / "supplementary.md",
         )
 
     def with_overrides(self, **overrides: str | Path | None) -> "AuditPaths":
@@ -283,7 +283,9 @@ def _format_actual(value: Any) -> str:
 
 
 def _resolve_claim_source(paths: AuditPaths, source_file: str) -> Path:
-    if source_file.startswith(("artifacts/", "code/", "manuscript/")):
+    if source_file.startswith("manuscript/"):
+        return paths.paper_md.parent / source_file.removeprefix("manuscript/")
+    if source_file.startswith(("artifacts/", "code/")):
         return paths.study_root / source_file
     return paths.repo_root / source_file
 
@@ -385,7 +387,7 @@ def audit_manuscript(
     figure_index_md: str | Path | None = None,
     paper_md: str | Path | None = None,
     supplementary_md: str | Path | None = None,
-    run_git_check: bool = True,
+    run_git_check: bool = False,
     verbose: bool = False,
 ) -> list[str]:
     """Return every audit error; an empty list means the audit passed."""
@@ -409,7 +411,7 @@ def audit_manuscript(
         errors.append(f"claim recomputation failed: {type(exc).__name__}: {exc}")
 
     formal = paths.study_root / "artifacts" / "formal"
-    figure_dir = paths.study_root / "manuscript" / "figures"
+    figure_dir = paths.paper_md.parent / "figures"
 
     generated_figures = [
         "fig6_feature_ablation",

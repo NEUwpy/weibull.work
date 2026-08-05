@@ -52,7 +52,7 @@ $$
 
 层级从上到下，决策时使用的信息量递增，对应的参照精度也逐级提高（**图 2**）。
 
-![Figure 2: 六级框架示意图](../artifacts/formal/figures/fig1_framework.png)
+![Figure 2: 六级框架示意图](../../artifacts/formal/figures/fig1_framework.png)
 
 **Figure 2.** 信息层级与验证路径。左侧概括 Default–L6 的逻辑关系：Default、L1 和 L2 不需要真参数，L3–L5 是依赖真参数的 oracle 参照，L6 是使用事后逐样本损失的 hindsight 参照；各层级的精确定义以表 1 为准。右侧给出最终论文的验证逻辑：E1 评估简单可部署层级，E2 建立 oracle/hindsight 参照，E3 用样本可观测特征预测 26 点风险曲线并选择 δ，E4 考察稳健性与边界，真实数据再以重复小样本留出验证检验外部适用性。图中不呈现内部实验进度或结果数字。
 
