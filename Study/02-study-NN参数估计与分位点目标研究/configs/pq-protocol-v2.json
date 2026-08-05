@@ -63,7 +63,7 @@
     "order": ["smoke", "freeze_v2", "seed42", "provisional", "seed2026", "seed3407", "final"]
   },
   "inference": {
-    "primary": "(n, fold) design-unit x seed clustered multi-way paired resampling (stratified by n, seeds blocked within fold)",
+    "primary": "fold x seed crossed paired resampling (fold resampled within n strata; seed resampled globally with replacement)",
     "n_design_units": 20,
     "secondary": "per-sample bootstrap under fixed models (Monte Carlo interval only)",
     "removed": "60-cell uncorrected significant counts",

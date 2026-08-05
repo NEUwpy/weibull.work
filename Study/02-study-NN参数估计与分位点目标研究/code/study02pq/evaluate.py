@@ -5,8 +5,8 @@
 推断层级（协议 v2 §6.2，Codex R1 REVISE 修正）：
 - 主推断：设计单元 (n, fold) × seed 聚类。模型级配对差值 d_{n,f,s} =
   mean_样本(rel_sq_Q - rel_sq_P) 先在 cell 内求样本均值（每个模型 2400 个 held-out
-  配对样本），再按 n 分层、对 fold 重采样、seed 块内保持（同一 fold 的三个 seed 不拆开），
-  得到 pooled 效应与 95% CI。单元数 = 20（4 n × 5 fold）。
+  配对样本），再按 n 分层对 fold 有放回重采样，并全局对 seed 有放回重采样，
+  得到 pooled 效应与 95% CI。单元数 = 20（4 n × 5 fold），训练 seed 数 = 3。
 - 次要：逐样本 bootstrap 只在固定模型条件下给出 cell 内 Monte Carlo 区间，不作主推断。
 - 不再报告未经多重校正的 60-cell "显著数量"。
 

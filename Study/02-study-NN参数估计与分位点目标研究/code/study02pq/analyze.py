@@ -1,7 +1,7 @@
 """Study/02 P-Q v2 分析：主推断（设计单元×seed 聚类）+ 分层报告。
 
 读取 artifacts/pq_v2/evidence/*.npz，计算模型级配对差值，按协议 v2 §6.2 做主推断
-（(n, fold) 设计单元分层重采样、seed 块内保持），输出 per-n/seed/fold/pooled 报告。
+（按 n 分层重采样 fold，并全局重采样 seed），输出 per-n/seed/fold/pooled 报告。
 不再输出 60-cell 未经校正的"显著数量"。
 """
 
