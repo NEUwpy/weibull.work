@@ -20,8 +20,10 @@ import pandas as pd
 STUDY02_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, STUDY02_CODE_DIR)
 
-# 显式 v2 目录（与活动 CFG.ARTIFACT_DIR=pq_v3 解耦；Codex R4-04）
-_V2_ARTIFACT = os.path.join(os.path.dirname(STUDY02_CODE_DIR), "artifacts", "pq_v2")
+# 显式 v2 目录（与活动 CFG.ARTIFACT_DIR=pq_v3 解耦；Codex R4-04）。
+# STUDY02_CODE_DIR = .../code/study02pq；两次 dirname = Study02 根。
+_STUDY02_ROOT = os.path.dirname(os.path.dirname(STUDY02_CODE_DIR))
+_V2_ARTIFACT = os.path.join(_STUDY02_ROOT, "artifacts", "pq_v2")
 V2_PREDICTIONS_DIR = os.path.join(_V2_ARTIFACT, "predictions")
 V2_EVIDENCE_DIR = os.path.join(_V2_ARTIFACT, "evidence")
 
