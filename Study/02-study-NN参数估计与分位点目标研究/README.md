@@ -1,13 +1,14 @@
 # Study 02：NN 三参数 Weibull 输出下，参数精度损失 P vs 目标分位点损失 Q 对 \(x_{0.95}\) 估计的受控对照
 
 > 创建日期：2026-07-11
-> 当前修订：2026-08-05（v2 最终，Codex R3 APPROVE）
+> 当前修订：2026-08-05（r4 primary：direct-P + Codex 授权解码器）
 > 当前分支：`codex/study02-pq-controlled-20260805-r1`
 > 职责：本目录是 Study02 当前唯一研究主线。旧直接标量分位点 D 路线与旧前置研究 A 已整体
 > 归档/移入前置实验区，详见 `已归档/README.md` 与 `前置实验/README.md`。
-> 协议 v2：合法化 = location-scale decode（γ̂<min(X) 结构性）、P 损失 γ 项 = log-gap、
-> 主推断 = (n,fold)×seed 聚类、压缩逐样本证据 tracked、专用环境锁；v1 = preliminary/
-> superseded（`artifacts/pq/` 保留）。见 `01-PQ-冻结协议.md` §11。
+> 协议 v3/r4：P = **approved direct-P**、共享 **domain-explicit 解码器**
+> `γ̂=min(X)(δ+(1-2δ)·sigmoid(o₃))`（结构性 0<γ̂<min(X)，Codex 合同决策 000003）、
+> 主推断 fold×seed 交叉、压缩逐样本证据 tracked（精确键 dtype）。v1 = preliminary/superseded
+> （`artifacts/pq/`）；v2/P_loggap = sensitivity（`artifacts/pq_v2/`，不进入 r4 主结论）。
 
 ## 当前研究问题（冻结）
 
@@ -35,7 +36,7 @@ L_Q=\operatorname{mean}\left[\left(\frac{\hat{x}_{0.95}-x_{0.95}}{x_{0.95}}\righ
 ## 设计对齐
 
 本实验对齐远端 `main` 中已封存的 **Study01 Dimensional-RAW** 权威设计（数据、输入表示、
-划分、训练设置），详见 `01-PQ-冻结协议.md`（v2，配置 `configs/pq-protocol-v2.json`，
+划分、训练设置），详见 `01-PQ-冻结协议.md`（v3/r4，配置 `configs/pq-protocol-v3.json`，
 环境锁 `configs/pq-environment-v2.json`）：
 
 - `beta = {1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5}`；`eta = 1000`；`gamma = {100, 250, 500, 750, 1000}`
@@ -57,7 +58,7 @@ batch 顺序、scaler、checkpoint 选择等均逐 fit 配对验证）。
 | `01-PQ-冻结协议.md` | P–Q 受控对照冻结协议（含配置与 SHA 绑定） |
 | `02-PQ-执行状态.md` | 实验进度、运行 ID、下一步 |
 | `03-PQ-证据索引.md` | 证据、manifest、SHA 清单与路径 |
-| `04-PQ-结果报告.md` | seed 42 临时方向报告与三 seed 最终结果 |
+| `04-PQ-结果报告.md` | r4 primary 最终结果（direct-P vs Q） |
 | `05-PQ-论文逻辑骨架.md` | 论文逻辑骨架（8 问） |
 | `06-PQ-缺口与审查记录.md` | 缺口、已知限制、审查记录 |
 | `已归档/` | 旧 D 路线归档（`直接标量分位点D路线/`）与总索引 |
@@ -82,6 +83,8 @@ batch 顺序、scaler、checkpoint 选择等均逐 fit 配对验证）。
 - 旧 D 路线（直接标量分位点网络）**不再训练**；旧前置研究 A 的 formal 引擎只读冻结。
 - 数据、样本与划分对齐 Study01 Dimensional-RAW；横向可比性表述为数据/输入/划分/训练设置
   对齐，不声称与 sklearn 的逐步优化轨迹完全相同。
+- r4 P 为 **approved direct-P**；解码器依赖冻结正位置域（γ∈[100,1000]），不声称负位置问题
+  成立；v2/P_loggap 为 sensitivity 证据，不进入 r4 主结论。
 
 ## 环境与复现
 
