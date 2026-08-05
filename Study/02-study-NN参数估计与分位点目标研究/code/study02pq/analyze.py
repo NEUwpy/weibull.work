@@ -128,6 +128,7 @@ def main():
     clean_p, clean_q = [], []   # 配对移除 Q 边缘行后的样本（两侧同去）
     total_se_p = total_se_q = 0.0
     edge_se_p = edge_se_q = 0.0
+    n_total = 0
     for n in CFG.N_GRID:
         for fold_idx in range(CFG.N_FOLDS):
             for seed in seeds:
@@ -140,6 +141,7 @@ def main():
                 cell_rows.append({"n": n, "fold": fold_idx + 1, "seed": seed,
                                   "p_edge_rows": n_p, "q_edge_rows": n_q,
                                   "n_test": int(len(ep["rel_err_sq"]))})
+                n_total += int(len(ep["rel_err_sq"]))
                 total_se_p += float(np.sum(ep["rel_err_sq"]))
                 total_se_q += float(np.sum(eq["rel_err_sq"]))
                 edge_se_p += float(np.sum(ep["rel_err_sq"][p_edge]))
@@ -149,12 +151,18 @@ def main():
     n_edge_p = int(sum(r["p_edge_rows"] for r in cell_rows))
     c_p = np.concatenate(clean_p); c_q = np.concatenate(clean_q)
     clean_prrmse = EVAL.rrmse(c_p); clean_qrrmse = EVAL.rrmse(c_q)
+    # 完整配对证据总行数 = 144,000；保留行 = 总行 - Q 边缘配对行（143,955）
+    n_retained = int(len(c_p))
+    assert n_total == 144000, f"n_total_rows {n_total} != 144000"
+    assert n_retained == n_total - n_edge_q, \
+        f"n_retained {n_retained} != n_total {n_total} - n_edge_q {n_edge_q}"
     boundary_diag = {
         "threshold": threshold,
         "desc": "gamma_hat/min_x >= threshold at decoder upper edge; Q quantile-only objective "
                 "parameter-boundary behavior, NOT an illegal fit (0 < gamma_hat < min(X) still holds)",
         "n_edge_rows_q": n_edge_q, "n_edge_rows_p": n_edge_p,
-        "n_total_rows": int(len(c_p)),
+        "n_total_rows": n_total,
+        "n_retained_rows_after_pairwise_exclusion": n_retained,
         "q_edge_error_share": float(edge_se_q / total_se_q) if total_se_q > 0 else None,
         "p_edge_error_share": float(edge_se_p / total_se_p) if total_se_p > 0 else None,
         "cells_with_q_edge": [r for r in cell_rows if r["q_edge_rows"] > 0],

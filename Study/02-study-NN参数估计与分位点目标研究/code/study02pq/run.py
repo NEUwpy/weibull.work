@@ -308,7 +308,8 @@ def write_aggregates(seeds, master, run_label=""):
         "data_integrity": DATA.verify_integrity(master),
         "output_files": ["per_fit_metrics.csv", "pairing_report.csv",
                          "splits_manifest.json", "SHA256SUMS",
-                         "analysis/<summary_v3.json, by_n_seed_descriptive.csv, failure_counts.json>",
+                         "analysis/<summary_v3.json, by_n_seed_descriptive.csv, "
+                         "failure_counts.json, boundary_diagnostic.json>",
                          "run_all_seeds.log",
                          "evidence/<fit_id>.npz", "fit_metadata/<fit_id>.json"],
     }

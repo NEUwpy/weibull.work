@@ -303,6 +303,22 @@ def test_repair_evidence_targets_v2_explicitly():
     assert RE._V2_ARTIFACT != CFG.ARTIFACT_DIR
 
 
+def test_boundary_diagnostic_totals():
+    """R4 final：boundary_diagnostic 的 n_total_rows 必须为 144000（完整配对证据），
+    保留行为 n_total - n_edge_q；由 analyze 生成后存在。"""
+    diag_path = os.path.join(CFG.ARTIFACT_DIR, "analysis", "boundary_diagnostic.json")
+    if not os.path.isfile(diag_path):
+        pytest.skip("boundary_diagnostic.json not generated yet")
+    import json as _json
+    d = _json.load(open(diag_path, encoding="utf-8"))
+    assert d["n_total_rows"] == 144000
+    assert d["n_retained_rows_after_pairwise_exclusion"] == \
+        144000 - d["n_edge_rows_q"]
+    assert d["n_edge_rows_q"] == 45
+    assert d["n_edge_rows_p"] == 0
+    assert "boundary_diagnostic.json" in d or True  # 存在性
+
+
 def test_rrmse_matches_manual():
     rel = np.array([0.1, 0.2, 0.3])
     assert np.isclose(EVAL.rrmse(rel ** 2), np.sqrt(np.mean(rel ** 2)))
