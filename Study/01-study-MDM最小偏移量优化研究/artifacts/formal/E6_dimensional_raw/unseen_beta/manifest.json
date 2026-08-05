@@ -1,8 +1,13 @@
 {
   "contract_version": "B1_unseen_beta_v1",
-  "created_at": "2026-08-05T04:08:28.672191+00:00",
+  "created_at": "2026-08-05T04:47:58.115366+00:00",
   "code_entry": "code/run_b1_unseen_beta.py",
-  "code_sha256": "run_E6b_dimensional_raw_specialist.py:9ec5b97f4749ca55fe41770f91fc37cbd65276e0af2fde5e29a1f9f27238012e; paper_support.py:aba1564691430a28ed93bc2061181009ee94e9b8e4309c3509a79f87d80aca6a",
+  "code_sha256": {
+    "dim_raw_config.py": "33baacb643da791c1658fc27d024207ecf3d0615f6cac38f76406895e67e4b14",
+    "paper_support.py": "224210378242130915c0dbe992a04c387e5b9a177ee0ddcf60c967d7133200ca",
+    "run_E6b_dimensional_raw_specialist.py": "9ec5b97f4749ca55fe41770f91fc37cbd65276e0af2fde5e29a1f9f27238012e",
+    "run_b1_unseen_beta.py": "655887632090f0bd001be9211bdb878810b30bac35450f65c69f05d59eedfcdd"
+  },
   "data_source": "artifacts/formal/E5_normalized_raw/shared_data (reused; no MDM rerun, no data regeneration)",
   "training_contract": {
     "representation": "sorted raw sample X_n (dimensional)",
@@ -98,6 +103,9 @@
       "gamma": 1000.0
     }
   },
+  "provenance_note": "code_sha256 binds the committed content of the entry script and material dependencies; git_commit records the runtime HEAD at generation (see branch commit chain for the implementation commits). SHA256SUMS covers git-tracked files only; SHA256SUMS.local_not_in_git lists gitignored/local raw files.",
+  "sha256_tracked_entries": 6,
+  "sha256_local_not_in_git_entries": 97,
   "output_files": [
     "summary.json",
     "beta_holdout.csv",
@@ -106,11 +114,12 @@
     "split_report.csv",
     "manifest.json",
     "SHA256SUMS",
+    "SHA256SUMS.local_not_in_git",
     "results/*.csv (gitignored)"
   ],
-  "elapsed_s": 1684.349186182022,
-  "git_commit": "9a7570b318bf355a9266420d3b3e31aa9c75fef0",
-  "git_commit_short": "9a7570b3",
+  "elapsed_s": 47.02945590019226,
+  "git_commit": "2a77e505ba10bc6f82abdb018110479fa140f77a",
+  "git_commit_short": "2a77e505",
   "git_branch": "study01-e6-paper-evidence",
   "workspace_dirty": true
 }

@@ -44,6 +44,8 @@ import dim_raw_config as CFG
 import paper_support as PS
 import run_E6b_dimensional_raw_specialist as E6
 
+_THIS = sys.modules[__name__]
+
 CONTRACT_VERSION = "B1_unseen_beta_v1"
 SEEDS = CFG.STABILITY_SEEDS
 OUT_DIR = PS.UNSEEN_BETA_DIR
@@ -195,10 +197,16 @@ def summarize(long_df):
     return pd.DataFrame(beta_rows), pd.DataFrame(n_rows)
 
 
-def three_seed_stats(beta_df, model):
-    """Across the 8 held-out betas, the three-seed pooled-J1 distribution."""
-    sub = beta_df[beta_df["model"] == model]
-    pooled = (sub.groupby("seed")["J1"].mean().sort_index())
+def three_seed_stats(long_df, model):
+    """Across the 8 held-out betas, the three-seed pooled-J1 distribution.
+
+    Frozen J1 = sqrt(mean(sample loss)): pool the ROW-LEVEL losses once per
+    seed (across all held-out betas), then summarize the three-seed
+    distribution.  Averaging per-beta J1 would violate the frozen definition.
+    """
+    sub = long_df[long_df["model"] == model]
+    pooled = sub.groupby("seed")["true_loss"].apply(
+        lambda losses: math.sqrt(float(losses.mean()))).sort_index()
     return {
         "pooled_J1_mean": float(pooled.mean()),
         "pooled_J1_std": float(pooled.std(ddof=0)),
@@ -262,9 +270,14 @@ def main(force_rerun=False):
     comp = pd.DataFrame(comp_rows)
     comp.to_csv(os.path.join(OUT_DIR, "model_comparison.csv"), index=False)
 
-    dim_3seed = three_seed_stats(beta_df, "Dimensional-RAW")
-    default_j1 = float(comp[comp["model"] == "Default"]["J1"].mean())
-    l6_j1 = float(comp[comp["model"] == "L6"]["J1"].mean())
+    dim_3seed = three_seed_stats(long_df, "Dimensional-RAW")
+    # Pooled over all row-level losses (frozen definition), not mean of
+    # per-beta J1.  Default/L6 rows are seed-invariant; the pooled value is
+    # unaffected by the per-seed replication.
+    default_j1 = PS.j1_from_loss(
+        long_df[long_df["model"] == "Default"]["true_loss"])
+    l6_j1 = PS.j1_from_loss(
+        long_df[long_df["model"] == "L6"]["true_loss"])
     rel_improve = (default_j1 - dim_3seed["pooled_J1_mean"]) / default_j1
 
     log(f"\n  Dimensional-RAW 3-seed pooled J1 = {dim_3seed['pooled_J1_mean']:.6f} "
@@ -326,11 +339,12 @@ def main(force_rerun=False):
     }
     PS.atomic_write_json(summary, os.path.join(OUT_DIR, "summary.json"))
 
+    n_tracked, n_local = PS.write_sha256sums(OUT_DIR)
     manifest = {
         "contract_version": CONTRACT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "code_entry": "code/run_b1_unseen_beta.py",
-        "code_sha256": PS.code_sha256(E6, PS),
+        "code_sha256": PS.code_sha256(_THIS, PS, CFG, E6),
         "data_source": "artifacts/formal/E5_normalized_raw/shared_data "
                        "(reused; no MDM rerun, no data regeneration)",
         "training_contract": {
@@ -341,9 +355,19 @@ def main(force_rerun=False):
             "failure_penalty": "p99 of valid train-fold loss",
         },
         "design": CFG.design_summary(),
+        "provenance_note": ("code_sha256 binds the committed content of the "
+                            "entry script and material dependencies; "
+                            "git_commit records the runtime HEAD at generation "
+                            "(see branch commit chain for the implementation "
+                            "commits). SHA256SUMS covers git-tracked files "
+                            "only; SHA256SUMS.local_not_in_git lists "
+                            "gitignored/local raw files."),
+        "sha256_tracked_entries": n_tracked,
+        "sha256_local_not_in_git_entries": n_local,
         "output_files": ["summary.json", "beta_holdout.csv", "by_n.csv",
                          "model_comparison.csv", "split_report.csv",
                          "manifest.json", "SHA256SUMS",
+                         "SHA256SUMS.local_not_in_git",
                          "results/*.csv (gitignored)"],
         "elapsed_s": float(time.time() - t_start),
         **PS.git_meta(),
@@ -361,9 +385,8 @@ def main(force_rerun=False):
               os.path.join(OUT_DIR, "model_comparison.csv"),
               os.path.join(OUT_DIR, "split_report.csv")):
         PS.lf_normalize(p)
-    n_entries = PS.write_sha256sums(OUT_DIR)
     log(f"\nDone in {time.time()-t_start:.1f}s. Outputs in {OUT_DIR} "
-        f"(SHA256SUMS: {n_entries} entries)")
+        f"(SHA256SUMS tracked: {n_tracked}, local_not_in_git: {n_local})")
 
 
 if __name__ == "__main__":

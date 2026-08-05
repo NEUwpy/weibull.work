@@ -60,6 +60,8 @@ for p in (STUDY_CODE_DIR, PYTHON_DIR):
 import dim_raw_config as CFG
 import paper_support as PS
 
+_THIS = sys.modules[__name__]
+
 OUT_DIR = PS.PAPER_DIR
 SPECIALIST = os.path.join(PS.E6_DIR, "specialist")
 
@@ -104,9 +106,9 @@ def save_fig(fig, name):
 # ============================================================
 
 def fig1_method_structure():
-    fig, ax = plt.subplots(figsize=(9.0, 5.0))
+    fig, ax = plt.subplots(figsize=(9.6, 5.6))
     ax.set_xlim(0, 10)
-    ax.set_ylim(0, 6)
+    ax.set_ylim(-0.45, 6.0)
     ax.axis("off")
 
     def box(x, y, w, h, text, fc="#eef3fb", ec="#2a78d6", fs=9.5):
@@ -123,41 +125,45 @@ def fig1_method_structure():
                                      linewidth=1.6, color="#52514e"))
 
     # Training lane (top) vs application (bottom)
-    ax.text(0.35, 5.55, "训练时（Monte Carlo 真值提供标签）", fontsize=9,
+    ax.text(0.35, 5.62, "训练时（Monte Carlo 真值提供标签）", fontsize=9,
             color=MUTED, ha="left", style="italic")
-    ax.text(0.35, 1.10, "应用时（只输入当前样本）", fontsize=9,
+    ax.text(0.35, 1.12, "应用时（只输入当前样本）", fontsize=9,
             color=MUTED, ha="left", style="italic")
 
-    # Row 1 (training): label from MC
-    box(1.6, 4.5, 2.6, 0.9, "已知真参数\n(β, η, γ)", fc="#f5f5f4", ec="#c3c2b7")
+    # Row 1 (training): label from MC (mathtext for the math symbols)
+    box(1.6, 4.5, 2.6, 0.9, r"已知真参数 $(\beta,\ \eta,\ \gamma)$",
+        fc="#f5f5f4", ec="#c3c2b7")
     arrow(2.9, 4.05, 2.9, 3.35)
-    box(2.9, 2.9, 2.6, 0.9, "蒙特卡洛抽样\n生成排序原始样本 X_n", fc="#f5f5f4",
+    box(2.9, 2.9, 2.6, 0.9, "蒙特卡洛抽样\n生成排序原始样本 $X_n$", fc="#f5f5f4",
         ec="#c3c2b7")
     arrow(2.9, 2.45, 5.3, 2.45)
-    box(5.3, 2.9, 2.6, 0.9, "MDM 在 26 个候选 δ\n计算损失曲线（标签）",
+    box(5.3, 2.9, 2.6, 0.9, "MDM 在 26 个候选 $\\delta$\n计算损失曲线（标签）",
         fc="#f5f5f4", ec="#c3c2b7")
 
     # Main pipeline (application row)
-    box(1.6, 1.9, 2.6, 0.9, "X_n = sort(x₁…x_n)\n（有量纲排序原始样本）",
+    box(1.6, 1.9, 2.6, 0.9,
+        r"$X_n = \mathrm{sort}(x_1,\dots,x_n)$" + "\n（有量纲排序原始样本）",
         fc="#eef3fb", ec="#2a78d6")
     arrow(2.9, 1.45, 2.9, 0.75)
-    box(2.9, 0.3, 2.6, 0.9, "per-n MLP\n(256–128–64, ReLU)", fc="#eef3fb",
-        ec="#2a78d6")
+    box(2.9, 0.3, 2.6, 0.9, r"per-$n$ MLP" + "\n(256-128-64, ReLU)",
+        fc="#eef3fb", ec="#2a78d6")
     arrow(4.2, 0.75, 4.9, 0.75)
-    box(5.3, 0.3, 2.6, 0.9, "预测 26 点损失曲线\nℓ̂(δ₁…δ₂₆ | X_n)",
+    box(5.3, 0.3, 2.6, 0.9, r"预测 26 点损失曲线 $\hat\ell(\delta_1,\dots,\delta_{26})$",
         fc="#eef3fb", ec="#2a78d6")
     arrow(6.6, 0.75, 7.3, 0.75)
-    box(8.0, 0.3, 1.7, 0.9, "δ̂ = argmin ℓ̂", fc="#eef3fb", ec="#2a78d6")
+    box(8.0, 0.3, 1.8, 0.9, r"$\hat\delta = \arg\min \hat\ell$",
+        fc="#eef3fb", ec="#2a78d6")
     arrow(8.0, 0.75, 8.0, 1.45)
-    box(8.0, 1.9, 2.6, 0.9, "MDM(β̂, η̂, γ̂ | δ̂)", fc="#eef3fb", ec="#2a78d6")
+    box(8.0, 1.9, 2.6, 0.9, r"MDM$(\hat\beta,\ \hat\eta,\ \hat\gamma \mid \hat\delta)$",
+        fc="#eef3fb", ec="#2a78d6")
 
     # label link: training label feeds MLP target
     arrow(5.3, 2.45, 5.3, 0.75)
     ax.text(5.45, 1.6, "26 维损失标签", fontsize=8, color=MUTED, rotation=90,
             va="center")
 
-    ax.set_title("方法结构：按样本量分别训练 MLP，以排序原始样本选择偏移量 δ",
-                 fontsize=11, color=INK, pad=12)
+    ax.set_title("方法结构：按样本量分别训练 MLP，以排序原始样本选择偏移量 "
+                 "$\\delta$", fontsize=11, color=INK, pad=12)
     return save_fig(fig, "fig1_method_structure.png")
 
 
@@ -173,7 +179,7 @@ def fig2_overall_delta_risk(df_full):
     fig, ax = plt.subplots(figsize=(6.4, 4.2))
     ax.plot(curve.index, curve.values, color=COLORS["Dimensional-RAW"],
             lw=2.0, marker="o", ms=4)
-    ax.set_xlabel("偏移量 δ")
+    ax.set_xlabel(r"偏移量 $\delta$")
     ax.set_ylabel("pooled $J_1$")
     ax.set_xticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5])
     style_ax(ax)
@@ -181,17 +187,18 @@ def fig2_overall_delta_risk(df_full):
     d_min = float(curve.idxmin())
     j_min = float(curve.min())
     j_10 = float(curve.loc[0.10])
+    ax.set_ylim(0.60, 0.70)
     ax.scatter([d_min], [j_min], s=46, zorder=5, color=INK, marker="x")
-    ax.annotate(f"最小值 δ={d_min:.2f}\n$J_1$={j_min:.4f}",
-                xy=(d_min, j_min), xytext=(d_min + 0.06, j_min + 0.006),
-                fontsize=8, color=INK,
+    ax.annotate(f"最小值 $\\delta$={d_min:.2f}\n$J_1$={j_min:.4f}",
+                xy=(d_min, j_min), xytext=(0.02, 0.606),
+                fontsize=8, color=INK, ha="left",
                 arrowprops=dict(arrowstyle="->", lw=0.9, color=MUTED))
     ax.scatter([0.10], [j_10], s=46, zorder=5, color=COLORS["Default"],
                marker="s")
-    ax.annotate("经验值 δ=0.10\n$J_1$=0.6304", xy=(0.10, j_10),
-                xytext=(0.12, j_10 - 0.010), fontsize=8, color=INK,
+    ax.annotate("经验值 $\\delta$=0.10\n$J_1$=0.6304", xy=(0.10, j_10),
+                xytext=(0.155, 0.648), fontsize=8, color=INK,
                 arrowprops=dict(arrowstyle="->", lw=0.9, color=MUTED))
-    ax.set_title("整体 δ–风险曲线（160 组合，48,000 样本）", fontsize=10.5,
+    ax.set_title("整体 $\\delta$–风险曲线（160 组合，48,000 样本）", fontsize=10.5,
                  color=INK)
     return save_fig(fig, "fig2_overall_delta_risk.png")
 
@@ -457,7 +464,8 @@ def table3_support_verification(e6_summary, b1_path, b2_path, b3_path):
     if os.path.exists(b3_path):
         b3 = json.load(open(b3_path, encoding="utf-8"))
         d95 = b3["per_method"]["Default"]["per_seed"]["-1"]["x0.95"]
-        r95 = b3["per_method"]["Dimensional-RAW"]["per_seed"]["42"]["x0.95"]
+        # DIM-RAW uses the three-seed model-first mean (never a single seed)
+        r95 = b3["per_method"]["Dimensional-RAW"]["three_seed_mean"]["x0.95"]
         w95 = b3["per_method"]["WMLE"]["per_seed"]["-1"]["x0.95"]
         rows.append({
             "问题": "参数收益能否传递到工程寿命",
@@ -636,10 +644,16 @@ def main():
 
     log("\n[6/7] Index + provenance...")
     write_index()
+    out_files = sorted(
+        f for f in os.listdir(OUT_DIR)
+        if f.endswith((".png", ".md")) or f.endswith(".csv"))
+    output_files = ["README.md", "manifest.json", "SHA256SUMS"] + [
+        f for f in out_files if f != "README.md"]
     manifest = {
         "generator": "code/generate_paper_figures.py",
+        "code_entry": "code/generate_paper_figures.py",
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "code_sha256": PS.code_sha256(PS),
+        "code_sha256": PS.code_sha256(_THIS, PS, CFG),
         "matplotlib": matplotlib.__version__,
         "palette": "validated categorical slots (light): "
                    "blue/orange/aqua/magenta/green",
@@ -649,19 +663,25 @@ def main():
             "b2": "artifacts/formal/E6_dimensional_raw/traditional_ref",
             "b3": "artifacts/formal/E6_dimensional_raw/quantiles",
         },
-        "output_files": ["README.md", "manifest.json", "SHA256SUMS"] + sorted(
-            f for f in os.listdir(OUT_DIR)
-            if f.endswith((".png", ".md")) or f.endswith(".csv")),
+        "provenance_note": ("code_sha256 binds the committed content of the "
+                            "generator and its material dependencies; "
+                            "git_commit records the runtime HEAD at "
+                            "generation. SHA256SUMS covers git-tracked files "
+                            "only; SHA256SUMS.local_not_in_git lists any "
+                            "local-only files."),
+        "output_files": output_files,
         "elapsed_s": float(time.time() - t_start),
         **PS.git_meta(),
     }
+    n_tracked, n_local = PS.write_sha256sums(OUT_DIR)
+    manifest["sha256_tracked_entries"] = n_tracked
+    manifest["sha256_local_not_in_git_entries"] = n_local
     PS.atomic_write_json(manifest, os.path.join(OUT_DIR, "manifest.json"))
     for p in (os.path.join(OUT_DIR, "README.md"),
               os.path.join(OUT_DIR, "manifest.json")):
         PS.lf_normalize(p)
-    n_entries = PS.write_sha256sums(OUT_DIR)
     log(f"\nDone in {time.time()-t_start:.1f}s. Outputs in {OUT_DIR} "
-        f"(SHA256SUMS: {n_entries} entries)")
+        f"(SHA256SUMS tracked: {n_tracked}, local_not_in_git: {n_local})")
 
 
 if __name__ == "__main__":

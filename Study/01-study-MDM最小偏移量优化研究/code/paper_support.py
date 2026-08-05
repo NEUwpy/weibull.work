@@ -145,9 +145,11 @@ def per_n_breakdown(df, loss_col="true_loss", valid_col="is_valid"):
 
 def param_bias_rmse_mae(df, beta_true_col="beta", eta_true_col="eta",
                         gamma_true_col="gamma"):
-    """Bias/RMSE/MAE per parameter on complete-case rows (df already filtered).
+    """Bias/RMSE/MAE per parameter (absolute errors on the passed rows).
 
-    Uses the frozen Study01 scaling: gamma relative error divides by eta.
+    The caller decides the row set (all-sample vs complete-case).  Errors are
+    absolute in the parameter's own units, matching the Study01 per-parameter
+    Bias/RMSE convention.
     """
     out = {}
     for name, true_col, hat_col in (
@@ -198,19 +200,44 @@ def sha256_file_lf(path):
 
 
 def code_sha256(*modules):
-    digests = []
+    """Per-file SHA256 for the entry script and its material dependencies.
+
+    Returns {basename: sha256} so a manifest's `code_sha256` binds the exact
+    committed content of every script that produced the artifacts.  Callers
+    pass the entry module first, then each imported material dependency.
+    """
+    digests = {}
     for m in modules:
         p = os.path.abspath(m.__file__)
-        digests.append(f"{os.path.basename(p)}:{sha256_file_lf(p)}")
-    return "; ".join(digests)
+        digests[os.path.basename(p)] = sha256_file_lf(p)
+    return {k: digests[k] for k in sorted(digests)}
+
+
+def git_check_ignore(abs_path):
+    """True when `abs_path` matches a .gitignore rule (local-only file)."""
+    try:
+        r = subprocess.run(["git", "check-ignore", "-q", abs_path],
+                           cwd=PROJECT_ROOT, stderr=subprocess.DEVNULL)
+        return r.returncode == 0
+    except Exception:
+        return False
 
 
 def write_sha256sums(out_dir, exclude_endings=(".gitignore",)):
-    """LF-normalized SHA256SUMS for immutable scientific outputs in out_dir."""
-    entries = []
+    """Split LF-normalized checksum ledgers for an output dir.
+
+    - `SHA256SUMS`             covers only files that are NOT gitignored, so a
+                               fresh clone can verify the tracked package.
+    - `SHA256SUMS.local_not_in_git` covers gitignored/local-only raw files
+                               (explicitly labeled; not part of the tracked
+                               package).
+
+    Returns (n_tracked, n_local).
+    """
+    tracked, local = [], []
     for root, _, files in os.walk(out_dir):
         for fn in files:
-            if fn == "SHA256SUMS":
+            if fn in ("SHA256SUMS", "SHA256SUMS.local_not_in_git"):
                 continue
             if fn.endswith(exclude_endings):
                 continue
@@ -218,13 +245,20 @@ def write_sha256sums(out_dir, exclude_endings=(".gitignore",)):
                 continue
             abs_path = os.path.join(root, fn)
             rel = os.path.relpath(abs_path, out_dir).replace(os.sep, "/")
-            entries.append((rel, sha256_file_lf(abs_path)))
-    entries.sort(key=lambda e: e[0])
-    content = "".join(f"{h}  {p}\n" for p, h in entries)
-    with open(os.path.join(out_dir, "SHA256SUMS"), "w", encoding="utf-8",
-              newline="\n") as f:
-        f.write(content)
-    return len(entries)
+            h = sha256_file_lf(abs_path)
+            (local if git_check_ignore(abs_path) else tracked).append((rel, h))
+
+    def _write(name, entries):
+        entries = sorted(entries, key=lambda e: e[0])
+        content = "".join(f"{h}  {p}\n" for p, h in entries)
+        with open(os.path.join(out_dir, name), "w", encoding="utf-8",
+                  newline="\n") as f:
+            f.write(content)
+        return len(entries)
+
+    n_tracked = _write("SHA256SUMS", tracked)
+    n_local = _write("SHA256SUMS.local_not_in_git", local)
+    return n_tracked, n_local
 
 
 def atomic_write_json(data, path):

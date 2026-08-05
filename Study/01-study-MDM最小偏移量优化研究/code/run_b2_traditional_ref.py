@@ -49,6 +49,8 @@ import paper_support as PS
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 
+_THIS = sys.modules[__name__]
+
 CONTRACT_VERSION = "B2_traditional_ref_v1"
 METHODS = ["WMLE", "LSE"]
 METHOD_IDS = {"WMLE": "wmle", "LSE": "lse"}
@@ -118,8 +120,12 @@ def _estimate_one(args):
             failed, reason = True, "location_negative"
 
     if failed:
+        # Frozen same-sample treatment: the failure is NOT dropped.  The
+        # stored (zero) estimate enters the primary all-sample J1 and the
+        # parameter summaries through the frozen row-loss formula.
         bh = eh = gh = 0.0
-        loss = float("nan")
+        loss = ((bh - beta) / beta) ** 2 + ((eh - eta) / eta) ** 2 \
+            + ((gh - gamma) / eta) ** 2
         valid = False
     else:
         loss = ((bh - beta) / beta) ** 2 + ((eh - eta) / eta) ** 2 \
@@ -139,35 +145,57 @@ def _estimate_one(args):
 # ============================================================
 
 def compute_summary(df):
-    """Per-method pooled / per-n J1 (complete case) and failure rate."""
+    """Per-method pooled / per-n J1 and failure rate.
+
+    Primary `J1` is the all-sample pooled J1 over the frozen row-loss
+    (failures included through their stored zero-estimate loss).  A labeled
+    complete-case J1 is kept as sensitivity only.
+    """
     rows = []
     for method, g in df.groupby("method"):
         n_total = int(len(g))
         n_fail = int(g["failed"].sum())
         valid = g[g["valid"]]
-        pooled = PS.j1_from_loss(valid["loss"]) if len(valid) else float("nan")
-        r = {"method": method, "J1": pooled, "n_total": n_total,
-             "n_failed": n_fail, "n_valid": int(len(valid)),
+        pooled_all = PS.j1_from_loss(g["loss"])
+        pooled_cc = (PS.j1_from_loss(valid["loss"]) if len(valid)
+                     else float("nan"))
+        r = {"method": method, "J1": pooled_all,
+             "J1_complete_case": pooled_cc,
+             "n_total": n_total, "n_failed": n_fail,
+             "n_valid": int(len(valid)),
              "failure_rate": float(n_fail / n_total)}
         for nv, ng in g.groupby("n"):
             nv_valid = ng[ng["valid"]]
-            r[f"J1_n{int(nv)}"] = (PS.j1_from_loss(nv_valid["loss"])
-                                   if len(nv_valid) else float("nan"))
+            r[f"J1_n{int(nv)}"] = PS.j1_from_loss(ng["loss"])
+            r[f"J1_n{int(nv)}_cc"] = (PS.j1_from_loss(nv_valid["loss"])
+                                      if len(nv_valid) else float("nan"))
             r[f"failure_n{int(nv)}"] = float(ng["failed"].mean())
         rows.append(r)
     return pd.DataFrame(rows)
 
 
 def compute_param_metrics(df):
+    """Per-method parameter Bias/RMSE/MAE.
+
+    Primary metrics use ALL rows (failures included with their stored zero
+    estimates, same-sample treatment); complete-case metrics are labeled `_cc`
+    and reported alongside.
+    """
     rows = []
     for method, g in df.groupby("method"):
         valid = g[g["valid"]]
-        metrics = PS.param_bias_rmse_mae(valid)
-        row = {"method": method, "n_valid": int(len(valid))}
-        for name, m in metrics.items():
+        all_metrics = PS.param_bias_rmse_mae(g)
+        cc_metrics = PS.param_bias_rmse_mae(valid)
+        row = {"method": method, "n_total": int(len(g)),
+               "n_valid": int(len(valid))}
+        for name, m in all_metrics.items():
             row[f"bias_{name}"] = m["bias"]
             row[f"rmse_{name}"] = m["rmse"]
             row[f"mae_{name}"] = m["mae"]
+        for name, m in cc_metrics.items():
+            row[f"bias_{name}_cc"] = m["bias"]
+            row[f"rmse_{name}_cc"] = m["rmse"]
+            row[f"mae_{name}_cc"] = m["mae"]
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -237,8 +265,10 @@ def main(force_rerun=False, workers=8):
         "seed_namespace": SEED_NS,
         "design": CFG.design_summary(),
         "sample_key_verification": key_check,
-        "failure_handling": ("complete-case J1/Bias/RMSE; failure_rate reported "
-                             "separately; never dropped"),
+        "failure_handling": ("primary all-sample J1/Bias/RMSE uses the frozen "
+                             "row-loss including failures (zero estimates); "
+                             "complete-case labeled J1_complete_case kept as "
+                             "sensitivity; failure_rate reported separately"),
         "summary": summary_df.to_dict(orient="records"),
         "param_metrics": param_df.to_dict(orient="records"),
         "elapsed_s": float(time.time() - t_start),
@@ -248,16 +278,27 @@ def main(force_rerun=False, workers=8):
     PS.atomic_write_json(summary, os.path.join(OUT_DIR, "summary.json"))
     PS.atomic_write_json(key_check, os.path.join(
         OUT_DIR, "sample_key_verification.json"))
+    n_tracked, n_local = PS.write_sha256sums(OUT_DIR)
     manifest = {
         "contract_version": CONTRACT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "code_entry": "code/run_b2_traditional_ref.py",
-        "code_sha256": PS.code_sha256(PS),
+        "code_sha256": PS.code_sha256(_THIS, PS, CFG),
         "estimators": "python/methods/wmle.py + python/methods/lse.py via "
                       "studies/common/runner.run_method (reused production impl)",
+        "provenance_note": ("code_sha256 binds the committed content of the "
+                            "entry script and material dependencies; "
+                            "git_commit records the runtime HEAD at generation "
+                            "(see branch commit chain for the implementation "
+                            "commits). SHA256SUMS covers git-tracked files "
+                            "only; SHA256SUMS.local_not_in_git lists "
+                            "gitignored/local raw files."),
+        "sha256_tracked_entries": n_tracked,
+        "sha256_local_not_in_git_entries": n_local,
         "output_files": ["summary.json", "summary.csv", "param_metrics.csv",
                          "sample_key_verification.json", "manifest.json",
-                         "SHA256SUMS", "estimation.csv (gitignored)"],
+                         "SHA256SUMS", "SHA256SUMS.local_not_in_git",
+                         "estimation.csv (gitignored)"],
         "elapsed_s": float(time.time() - t_start),
         **PS.git_meta(),
     }
@@ -271,9 +312,8 @@ def main(force_rerun=False, workers=8):
               os.path.join(OUT_DIR, "param_metrics.csv"),
               os.path.join(OUT_DIR, "sample_key_verification.json")):
         PS.lf_normalize(p)
-    n_entries = PS.write_sha256sums(OUT_DIR)
     log(f"\nDone in {time.time()-t_start:.1f}s. Outputs in {OUT_DIR} "
-        f"(SHA256SUMS: {n_entries} entries)")
+        f"(SHA256SUMS tracked: {n_tracked}, local_not_in_git: {n_local})")
 
 
 if __name__ == "__main__":

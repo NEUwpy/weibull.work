@@ -45,6 +45,8 @@ for p in (STUDY_CODE_DIR, PYTHON_DIR):
 import dim_raw_config as CFG
 import paper_support as PS
 
+_THIS = sys.modules[__name__]
+
 CONTRACT_VERSION = "B3_quantiles_v1"
 QUANTILE_R = {"x0.90": 0.90, "x0.95": 0.95, "x0.99": 0.99}
 OUT_DIR = PS.QUANTILES_DIR
@@ -234,6 +236,7 @@ def main(force_rerun=False):
 
     log("[4/4] Metrics + provenance...")
     metric_frames = []
+    metric_by_n_frames = []
     for method, g in df.groupby("method"):
         for seed, sg in g.groupby("seed"):
             rows = []
@@ -248,8 +251,24 @@ def main(force_rerun=False):
             mdf["method"] = method
             mdf["seed"] = int(seed)
             metric_frames.append(mdf)
+            # per-n metrics (pooled across the 5 gamma/eta levels for each n)
+            for nv, ng in sg.groupby("n"):
+                for qname, R in QUANTILE_R.items():
+                    qn = pd.DataFrame({
+                        "method": method, "seed": seed, "n": int(nv),
+                        "true_x": ng[f"true_{qname}"],
+                        "est_x": ng[f"est_{qname}"], "valid": ng["valid"]})
+                    m = quantile_metrics(qn, qname, R)
+                    rec = {"method": method, "seed": int(seed), "n": int(nv),
+                           "quantile": qname}
+                    rec.update({k: m[k] for k in (
+                        "bias", "rmse", "mae", "p95_abs_rel",
+                        "failure_rate", "n_valid", "n_total")})
+                    metric_by_n_frames.append(rec)
     metrics_df = pd.concat(metric_frames, ignore_index=True)
     metrics_df.to_csv(os.path.join(OUT_DIR, "summary.csv"), index=False)
+    metrics_by_n = pd.DataFrame(metric_by_n_frames)
+    metrics_by_n.to_csv(os.path.join(OUT_DIR, "summary_by_n.csv"), index=False)
 
     summary = {"experiment": "B3 engineering quantiles",
                "contract_version": CONTRACT_VERSION,
@@ -266,18 +285,31 @@ def main(force_rerun=False):
                 "n_valid": row["n_valid"], "n_total": row["n_total"]}
                 for _, row in sg.iterrows()}
             per_seed[int(seed)] = rec
-        summary["per_method"][method] = {
+        entry = {
             "role": ("deterministic" if method not in ("Dimensional-RAW",)
                      else "per-seed MLP selection"),
             "per_seed": per_seed,
         }
+        if method == "Dimensional-RAW":
+            # model-first three-seed mean across the per-seed metrics
+            qnames = list(QUANTILE_R)
+            three_mean = {}
+            for q in qnames:
+                vals = [per_seed[s][q] for s in SEEDS]
+                three_mean[q] = {
+                    metric: float(np.mean([v[metric] for v in vals]))
+                    for metric in ("bias", "rmse", "mae", "p95_abs_rel",
+                                   "failure_rate")}
+            entry["three_seed_mean"] = three_mean
+            entry["n_seeds"] = len(SEEDS)
+        summary["per_method"][method] = entry
     PS.atomic_write_json(summary, os.path.join(OUT_DIR, "summary.json"))
 
     manifest = {
         "contract_version": CONTRACT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "code_entry": "code/run_b3_quantiles.py",
-        "code_sha256": PS.code_sha256(PS),
+        "code_sha256": PS.code_sha256(_THIS, PS, CFG),
         "source": {
             "Dimensional-RAW": "E6 specialist/raw_specialist_results.csv "
                                "(out-of-fold selected delta per seed)",
@@ -289,22 +321,36 @@ def main(force_rerun=False):
         "formula": "x_R = gamma + eta * (-ln(R))^(1/beta)",
         "metric": "relative error (x_hat - x)/x; Bias/RMSE/MAE/P95; "
                   "failure_rate on invalid estimates",
-        "output_files": ["summary.json", "summary.csv", "manifest.json",
-                         "SHA256SUMS", "per_sample.csv (gitignored)"],
+        "provenance_note": ("code_sha256 binds the committed content of the "
+                            "entry script and material dependencies; "
+                            "git_commit records the runtime HEAD at generation "
+                            "(see branch commit chain for the implementation "
+                            "commits). SHA256SUMS covers git-tracked files "
+                            "only; SHA256SUMS.local_not_in_git lists "
+                            "gitignored/local raw files.  Dimensional-RAW "
+                            "three-seed model-first mean is in "
+                            "per_method[method].three_seed_mean."),
+        "output_files": ["summary.json", "summary.csv", "summary_by_n.csv",
+                         "manifest.json", "SHA256SUMS",
+                         "SHA256SUMS.local_not_in_git",
+                         "per_sample.csv (gitignored)"],
         "elapsed_s": float(time.time() - t_start),
         **PS.git_meta(),
     }
+    n_tracked, n_local = PS.write_sha256sums(OUT_DIR)
+    manifest["sha256_tracked_entries"] = n_tracked
+    manifest["sha256_local_not_in_git_entries"] = n_local
     PS.atomic_write_json(manifest, os.path.join(OUT_DIR, "manifest.json"))
     with open(os.path.join(OUT_DIR, ".gitignore"), "w", encoding="utf-8") as f:
         f.write("per_sample.csv\nrun_b3_detached*\n")
 
     for p in (os.path.join(OUT_DIR, "summary.json"),
               os.path.join(OUT_DIR, "manifest.json"),
-              os.path.join(OUT_DIR, "summary.csv")):
+              os.path.join(OUT_DIR, "summary.csv"),
+              os.path.join(OUT_DIR, "summary_by_n.csv")):
         PS.lf_normalize(p)
-    n_entries = PS.write_sha256sums(OUT_DIR)
     log(f"\nDone in {time.time()-t_start:.1f}s. Outputs in {OUT_DIR} "
-        f"(SHA256SUMS: {n_entries} entries)")
+        f"(SHA256SUMS tracked: {n_tracked}, local_not_in_git: {n_local})")
 
 
 if __name__ == "__main__":
