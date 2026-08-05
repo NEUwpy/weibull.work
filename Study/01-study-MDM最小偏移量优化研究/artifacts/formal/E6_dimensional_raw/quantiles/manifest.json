@@ -1,0 +1,27 @@
+{
+  "contract_version": "B3_quantiles_v1",
+  "created_at": "2026-08-05T03:43:40.922172+00:00",
+  "code_entry": "code/run_b3_quantiles.py",
+  "code_sha256": "paper_support.py:aba1564691430a28ed93bc2061181009ee94e9b8e4309c3509a79f87d80aca6a",
+  "source": {
+    "Dimensional-RAW": "E6 specialist/raw_specialist_results.csv (out-of-fold selected delta per seed)",
+    "Default": "MC scan at delta=0.1",
+    "L6": "MC scan at per-sample argmin delta",
+    "WMLE/LSE": "B2 traditional_ref/estimation.csv",
+    "mdm_params": "reused shared_data MC scan (no MDM rerun)"
+  },
+  "formula": "x_R = gamma + eta * (-ln(R))^(1/beta)",
+  "metric": "relative error (x_hat - x)/x; Bias/RMSE/MAE/P95; failure_rate on invalid estimates",
+  "output_files": [
+    "summary.json",
+    "summary.csv",
+    "manifest.json",
+    "SHA256SUMS",
+    "per_sample.csv (gitignored)"
+  ],
+  "elapsed_s": 18.560715436935425,
+  "git_commit": "812a4d5389b09a6cdd50847eff3b499e171d7146",
+  "git_commit_short": "812a4d53",
+  "git_branch": "study01-e6-paper-evidence",
+  "workspace_dirty": true
+}
