@@ -339,7 +339,7 @@ def main(force_rerun=False):
     }
     PS.atomic_write_json(summary, os.path.join(OUT_DIR, "summary.json"))
 
-    n_tracked, n_local = PS.write_sha256sums(OUT_DIR)
+    n_tracked, n_local = PS.count_sha256(OUT_DIR)
     manifest = {
         "contract_version": CONTRACT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -385,6 +385,8 @@ def main(force_rerun=False):
               os.path.join(OUT_DIR, "model_comparison.csv"),
               os.path.join(OUT_DIR, "split_report.csv")):
         PS.lf_normalize(p)
+    # ledgers LAST so they include the just-written manifest
+    n_tracked, n_local = PS.write_sha256sums(OUT_DIR)
     log(f"\nDone in {time.time()-t_start:.1f}s. Outputs in {OUT_DIR} "
         f"(SHA256SUMS tracked: {n_tracked}, local_not_in_git: {n_local})")
 

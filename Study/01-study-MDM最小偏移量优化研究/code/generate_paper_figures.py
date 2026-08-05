@@ -673,13 +673,15 @@ def main():
         "elapsed_s": float(time.time() - t_start),
         **PS.git_meta(),
     }
-    n_tracked, n_local = PS.write_sha256sums(OUT_DIR)
+    n_tracked, n_local = PS.count_sha256(OUT_DIR)
     manifest["sha256_tracked_entries"] = n_tracked
     manifest["sha256_local_not_in_git_entries"] = n_local
     PS.atomic_write_json(manifest, os.path.join(OUT_DIR, "manifest.json"))
     for p in (os.path.join(OUT_DIR, "README.md"),
               os.path.join(OUT_DIR, "manifest.json")):
         PS.lf_normalize(p)
+    # ledgers LAST so they include the just-written manifest
+    n_tracked, n_local = PS.write_sha256sums(OUT_DIR)
     log(f"\nDone in {time.time()-t_start:.1f}s. Outputs in {OUT_DIR} "
         f"(SHA256SUMS tracked: {n_tracked}, local_not_in_git: {n_local})")
 

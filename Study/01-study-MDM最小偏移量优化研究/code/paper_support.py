@@ -261,6 +261,28 @@ def write_sha256sums(out_dir, exclude_endings=(".gitignore",)):
     return n_tracked, n_local
 
 
+def count_sha256(out_dir):
+    """Count tracked vs local-only entries without writing ledgers.
+
+    Used to record the counts inside a manifest BEFORE the manifest is written;
+    write_sha256sums must then run LAST so the ledgers include the manifest.
+    """
+    n_tracked = n_local = 0
+    for root, _, files in os.walk(out_dir):
+        for fn in files:
+            if fn in ("SHA256SUMS", "SHA256SUMS.local_not_in_git"):
+                continue
+            if fn.endswith(".gitignore") or fn.endswith(
+                    (".log", ".err", "run_log.txt")):
+                continue
+            abs_path = os.path.join(root, fn)
+            if git_check_ignore(abs_path):
+                n_local += 1
+            else:
+                n_tracked += 1
+    return n_tracked, n_local
+
+
 def atomic_write_json(data, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"
