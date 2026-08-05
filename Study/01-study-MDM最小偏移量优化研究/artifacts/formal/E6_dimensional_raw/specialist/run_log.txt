@@ -1,0 +1,119 @@
+========================================================================
+Study/01 E6b — Dimensional-RAW per-n specialist (final method)
+Output: D:\weibull\Study\01-study-MDM最小偏移量优化研究\artifacts\formal\E6_dimensional_raw\specialist
+========================================================================
+
+[1/8] Loading MC scan chunks (reused 160-combo design)...
+  Loaded 1,248,000 rows
+
+[2/8] Integrity + raw sample reconstruction...
+  Integrity: {'expected_rows': 1248000, 'actual_rows': 1248000, 'unique_combos': 160, 'non_success_rate': 0.0}
+  NaN/invalid losses: 0 (0.000%)
+
+[3/8] Preparing 5 combo folds...
+  fold1: train=128 test=32 penalty=2.106271
+  fold2: train=128 test=32 penalty=2.055852
+  fold3: train=128 test=32 penalty=2.023395
+  fold4: train=128 test=32 penalty=2.025034
+  fold5: train=128 test=32 penalty=2.041267
+
+[4/8] Training per-n specialists (4n x 5fold x 3seed)...
+  [done] n7_fold1_seed42: J1=0.660959 n_iter=48 t=8.4s (train=9600, test=2400)
+  [done] n7_fold1_seed2026: J1=0.667107 n_iter=28 t=4.9s (train=9600, test=2400)
+  [done] n7_fold1_seed3407: J1=0.693004 n_iter=37 t=6.0s (train=9600, test=2400)
+  [done] n7_fold2_seed42: J1=0.661653 n_iter=46 t=7.4s (train=9600, test=2400)
+  [done] n7_fold2_seed2026: J1=0.671616 n_iter=37 t=6.2s (train=9600, test=2400)
+  [done] n7_fold2_seed3407: J1=0.648090 n_iter=104 t=16.8s (train=9600, test=2400)
+  [done] n7_fold3_seed42: J1=0.704753 n_iter=46 t=7.7s (train=9600, test=2400)
+  [done] n7_fold3_seed2026: J1=0.702853 n_iter=49 t=12.0s (train=9600, test=2400)
+  [done] n7_fold3_seed3407: J1=0.708943 n_iter=57 t=10.4s (train=9600, test=2400)
+  [done] n7_fold4_seed42: J1=0.714083 n_iter=85 t=14.2s (train=9600, test=2400)
+  [done] n7_fold4_seed2026: J1=0.720958 n_iter=29 t=5.1s (train=9600, test=2400)
+  [done] n7_fold4_seed3407: J1=0.714113 n_iter=49 t=8.9s (train=9600, test=2400)
+  [done] n7_fold5_seed42: J1=0.690788 n_iter=71 t=12.3s (train=9600, test=2400)
+  [done] n7_fold5_seed2026: J1=0.688325 n_iter=29 t=5.6s (train=9600, test=2400)
+  [done] n7_fold5_seed3407: J1=0.699689 n_iter=39 t=6.8s (train=9600, test=2400)
+  [done] n10_fold1_seed42: J1=0.577564 n_iter=103 t=19.7s (train=9600, test=2400)
+  [done] n10_fold1_seed2026: J1=0.576759 n_iter=81 t=13.8s (train=9600, test=2400)
+  [done] n10_fold1_seed3407: J1=0.577899 n_iter=92 t=15.5s (train=9600, test=2400)
+  [done] n10_fold2_seed42: J1=0.570287 n_iter=112 t=18.5s (train=9600, test=2400)
+  [done] n10_fold2_seed2026: J1=0.555901 n_iter=169 t=33.4s (train=9600, test=2400)
+  [done] n10_fold2_seed3407: J1=0.562516 n_iter=90 t=18.1s (train=9600, test=2400)
+  [done] n10_fold3_seed42: J1=0.571719 n_iter=53 t=10.0s (train=9600, test=2400)
+  [done] n10_fold3_seed2026: J1=0.565277 n_iter=46 t=9.7s (train=9600, test=2400)
+  [done] n10_fold3_seed3407: J1=0.568312 n_iter=101 t=19.5s (train=9600, test=2400)
+  [done] n10_fold4_seed42: J1=0.577752 n_iter=113 t=22.3s (train=9600, test=2400)
+  [done] n10_fold4_seed2026: J1=0.569959 n_iter=63 t=15.6s (train=9600, test=2400)
+  [done] n10_fold4_seed3407: J1=0.572832 n_iter=101 t=19.6s (train=9600, test=2400)
+  [done] n10_fold5_seed42: J1=0.597515 n_iter=113 t=18.8s (train=9600, test=2400)
+  [done] n10_fold5_seed2026: J1=0.600656 n_iter=113 t=18.9s (train=9600, test=2400)
+  [done] n10_fold5_seed3407: J1=0.594547 n_iter=92 t=15.5s (train=9600, test=2400)
+  [done] n15_fold1_seed42: J1=0.518379 n_iter=94 t=15.6s (train=9600, test=2400)
+  [done] n15_fold1_seed2026: J1=0.509301 n_iter=116 t=18.8s (train=9600, test=2400)
+  [done] n15_fold1_seed3407: J1=0.503183 n_iter=92 t=14.9s (train=9600, test=2400)
+  [done] n15_fold2_seed42: J1=0.473881 n_iter=69 t=12.0s (train=9600, test=2400)
+  [done] n15_fold2_seed2026: J1=0.470526 n_iter=73 t=11.8s (train=9600, test=2400)
+  [done] n15_fold2_seed3407: J1=0.476386 n_iter=75 t=12.4s (train=9600, test=2400)
+  [done] n15_fold3_seed42: J1=0.487483 n_iter=91 t=16.3s (train=9600, test=2400)
+  [done] n15_fold3_seed2026: J1=0.471379 n_iter=75 t=12.7s (train=9600, test=2400)
+  [done] n15_fold3_seed3407: J1=0.499084 n_iter=80 t=16.6s (train=9600, test=2400)
+  [done] n15_fold4_seed42: J1=0.465294 n_iter=72 t=14.1s (train=9600, test=2400)
+  [done] n15_fold4_seed2026: J1=0.477462 n_iter=80 t=13.8s (train=9600, test=2400)
+  [done] n15_fold4_seed3407: J1=0.483493 n_iter=73 t=12.5s (train=9600, test=2400)
+  [done] n15_fold5_seed42: J1=0.481683 n_iter=94 t=16.0s (train=9600, test=2400)
+  [done] n15_fold5_seed2026: J1=0.479000 n_iter=88 t=14.8s (train=9600, test=2400)
+  [done] n15_fold5_seed3407: J1=0.483430 n_iter=73 t=16.6s (train=9600, test=2400)
+  [done] n20_fold1_seed42: J1=0.420315 n_iter=97 t=18.9s (train=9600, test=2400)
+  [done] n20_fold1_seed2026: J1=0.422957 n_iter=117 t=23.4s (train=9600, test=2400)
+  [done] n20_fold1_seed3407: J1=0.424670 n_iter=117 t=24.7s (train=9600, test=2400)
+  [done] n20_fold2_seed42: J1=0.455028 n_iter=154 t=30.9s (train=9600, test=2400)
+  [done] n20_fold2_seed2026: J1=0.453123 n_iter=120 t=20.0s (train=9600, test=2400)
+  [done] n20_fold2_seed3407: J1=0.454994 n_iter=104 t=17.3s (train=9600, test=2400)
+  [done] n20_fold3_seed42: J1=0.413777 n_iter=139 t=23.8s (train=9600, test=2400)
+  [done] n20_fold3_seed2026: J1=0.424790 n_iter=100 t=20.6s (train=9600, test=2400)
+  [done] n20_fold3_seed3407: J1=0.419041 n_iter=104 t=23.9s (train=9600, test=2400)
+  [done] n20_fold4_seed42: J1=0.441461 n_iter=86 t=17.9s (train=9600, test=2400)
+  [done] n20_fold4_seed2026: J1=0.406421 n_iter=92 t=19.0s (train=9600, test=2400)
+  [done] n20_fold4_seed3407: J1=0.430651 n_iter=117 t=26.4s (train=9600, test=2400)
+  [done] n20_fold5_seed42: J1=0.429935 n_iter=131 t=28.3s (train=9600, test=2400)
+  [done] n20_fold5_seed2026: J1=0.424242 n_iter=112 t=27.5s (train=9600, test=2400)
+  [done] n20_fold5_seed3407: J1=0.425597 n_iter=71 t=16.5s (train=9600, test=2400)
+  All 60 fold models present
+
+[5/8] Final full-development models (deployable, fixed seed)...
+  [final] n7: n_iter=47 t=14.3s train=12000
+  [final] n10: n_iter=79 t=19.4s train=12000
+  [final] n15: n_iter=73 t=20.7s train=12000
+  [final] n20: n_iter=126 t=36.6s train=12000
+
+[6/8] Representation check (raw input; scaler train-only)...
+  [repr-check] n=7: mean(x)=1123.32 (raw ~1000-scale, NOT normalized)
+  [repr-check] n=10: mean(x)=1063.14 (raw ~1000-scale, NOT normalized)
+  [repr-check] n=15: mean(x)=1083.28 (raw ~1000-scale, NOT normalized)
+  [repr-check] n=20: mean(x)=954.64 (raw ~1000-scale, NOT normalized)
+  [repr-check] scaler fit on train fold only (per-fold scalers in models/*.json)
+
+[7/8] Cross-fit L1–L6 on the new 160-combo design...
+  [crossfit] Default: J1=0.630409
+  [crossfit] L1: J1=0.625198
+  [crossfit] L2: J1=0.623035
+  [crossfit] L3: J1=0.590526
+  [crossfit] L4: J1=0.588514
+  [crossfit] L5: J1=0.581294
+  [crossfit] L6: J1=0.492297
+
+[8/8] Aggregation, same-test comparison, provenance...
+  Dimensional-RAW 3-seed: pooled J1 mean=0.554275 (std=0.001534)
+  Normalized-RAW candidate control loaded: 144000 rows
+  [compare] Dimensional-RAW-MLP seed=42: pooled J1=0.554483
+  [compare] Default seed=42: pooled J1=0.630409
+  [compare] L6-hindsight seed=42: pooled J1=0.492297
+  [compare] Normalized-RAW-MLP seed=42: pooled J1=0.584553
+  [compare] Dimensional-RAW-MLP seed=2026: pooled J1=0.552302
+  [compare] Default seed=2026: pooled J1=0.630409
+  [compare] L6-hindsight seed=2026: pooled J1=0.492297
+  [compare] Normalized-RAW-MLP seed=2026: pooled J1=0.584914
+  [compare] Dimensional-RAW-MLP seed=3407: pooled J1=0.556041
+  [compare] Default seed=3407: pooled J1=0.630409
+  [compare] L6-hindsight seed=3407: pooled J1=0.492297
+  [compare] Normalized-RAW-MLP seed=3407: pooled J1=0.585520
