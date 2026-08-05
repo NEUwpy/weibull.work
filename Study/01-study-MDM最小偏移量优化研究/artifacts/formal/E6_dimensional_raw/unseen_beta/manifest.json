@@ -1,0 +1,116 @@
+{
+  "contract_version": "B1_unseen_beta_v1",
+  "created_at": "2026-08-05T04:08:28.672191+00:00",
+  "code_entry": "code/run_b1_unseen_beta.py",
+  "code_sha256": "run_E6b_dimensional_raw_specialist.py:9ec5b97f4749ca55fe41770f91fc37cbd65276e0af2fde5e29a1f9f27238012e; paper_support.py:aba1564691430a28ed93bc2061181009ee94e9b8e4309c3509a79f87d80aca6a",
+  "data_source": "artifacts/formal/E5_normalized_raw/shared_data (reused; no MDM rerun, no data regeneration)",
+  "training_contract": {
+    "representation": "sorted raw sample X_n (dimensional)",
+    "scaler": "per-position StandardScaler fit on train fold only",
+    "mlp": {
+      "hidden_layer_sizes": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "seeds": [
+        42,
+        2026,
+        3407
+      ]
+    },
+    "failure_penalty": "p99 of valid train-fold loss"
+  },
+  "design": {
+    "n_beta": 8,
+    "n_gamma_over_eta": 5,
+    "n_n": 4,
+    "combos": 160,
+    "repeats": 300,
+    "n_samples": 48000,
+    "n_deltas": 26,
+    "n_mdm_fits": 1248000,
+    "beta_grid": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0
+    ],
+    "eta": 1000.0,
+    "gamma_grid": [
+      100.0,
+      250.0,
+      500.0,
+      750.0,
+      1000.0
+    ],
+    "gamma_over_eta_grid": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n_grid": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "delta_grid": [
+      0.0,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.12,
+      0.14,
+      0.16,
+      0.18,
+      0.2,
+      0.22,
+      0.24,
+      0.26,
+      0.28,
+      0.3,
+      0.32,
+      0.34,
+      0.36,
+      0.38,
+      0.4,
+      0.42,
+      0.44,
+      0.46,
+      0.48,
+      0.5
+    ],
+    "default_delta": 0.1,
+    "seed_namespace": "study01_nrmc_v1",
+    "must_include_combo": {
+      "beta": 2.0,
+      "eta": 1000.0,
+      "gamma": 1000.0
+    }
+  },
+  "output_files": [
+    "summary.json",
+    "beta_holdout.csv",
+    "by_n.csv",
+    "model_comparison.csv",
+    "split_report.csv",
+    "manifest.json",
+    "SHA256SUMS",
+    "results/*.csv (gitignored)"
+  ],
+  "elapsed_s": 1684.349186182022,
+  "git_commit": "9a7570b318bf355a9266420d3b3e31aa9c75fef0",
+  "git_commit_short": "9a7570b3",
+  "git_branch": "study01-e6-paper-evidence",
+  "workspace_dirty": true
+}
