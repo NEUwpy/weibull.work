@@ -54,7 +54,9 @@ def main():
     primary = EVAL.primary_design_bootstrap(diffs, n_boot=args.n_boot)
     p_rrmse, q_rrmse = EVAL.pooled_rrmse_pair(
         np.concatenate(rel_sq_p_all), np.concatenate(rel_sq_q_all))
-    rel_improve = (q_rrmse - p_rrmse) / p_rrmse
+    # 效应量分母显式（Codex R4-03）：论文主描述用 P 相对 Q 的误差下降
+    p_error_reduction_vs_q = (q_rrmse - p_rrmse) / q_rrmse   # (Q-P)/Q，≈0.0807
+    q_error_excess_vs_p = (q_rrmse - p_rrmse) / p_rrmse       # (Q-P)/P，≈0.0877
 
     # 每 seed 描述（3 seed 太少，不作 CI，只作变异报告）
     seed_means = {}
@@ -77,7 +79,8 @@ def main():
         "protocol": "v3_r4",
         "pooled": {
             "p_rrmse": float(p_rrmse), "q_rrmse": float(q_rrmse),
-            "rel_improve": float(rel_improve),
+            "p_error_reduction_vs_q": float(p_error_reduction_vs_q),  # (Q-P)/Q
+            "q_error_excess_vs_p": float(q_error_excess_vs_p),        # (Q-P)/P
             "mean_diff": primary["pooled_mean"],
             "ci_lo": primary["pooled_ci_lo"], "ci_hi": primary["pooled_ci_hi"],
             "n_design_units": 20,
@@ -118,9 +121,56 @@ def main():
     with open(os.path.join(out, "failure_counts.json"), "w", encoding="utf-8") as f:
         json.dump(failures, f, ensure_ascii=False, indent=1)
 
+    # R4-05 边界诊断：gamma_hat/min_x >= 阈值（解码器上边缘行为，非支撑违规）。
+    # 对每个 cell 计 P/Q 边缘行数、误差占比；配对敏感性（移除 Q 边缘配对行后描述性重算）。
+    threshold = 0.9999
+    cell_rows = []
+    clean_p, clean_q = [], []   # 配对移除 Q 边缘行后的样本（两侧同去）
+    total_se_p = total_se_q = 0.0
+    edge_se_p = edge_se_q = 0.0
+    for n in CFG.N_GRID:
+        for fold_idx in range(CFG.N_FOLDS):
+            for seed in seeds:
+                ep = RUN.load_evidence(TR.fit_id(n, fold_idx, seed, "P"))
+                eq = RUN.load_evidence(TR.fit_id(n, fold_idx, seed, "Q"))
+                p_edge = (ep["gamma_hat"] / ep["min_x"]) >= threshold
+                q_edge = (eq["gamma_hat"] / eq["min_x"]) >= threshold
+                n_p = int(np.sum(p_edge)); n_q = int(np.sum(q_edge))
+                keep = ~q_edge   # 配对敏感性：移除 Q 边缘行（P 同去）
+                cell_rows.append({"n": n, "fold": fold_idx + 1, "seed": seed,
+                                  "p_edge_rows": n_p, "q_edge_rows": n_q,
+                                  "n_test": int(len(ep["rel_err_sq"]))})
+                total_se_p += float(np.sum(ep["rel_err_sq"]))
+                total_se_q += float(np.sum(eq["rel_err_sq"]))
+                edge_se_p += float(np.sum(ep["rel_err_sq"][p_edge]))
+                edge_se_q += float(np.sum(eq["rel_err_sq"][q_edge]))
+                clean_p.append(ep["rel_err_sq"][keep]); clean_q.append(eq["rel_err_sq"][keep])
+    n_edge_q = int(sum(r["q_edge_rows"] for r in cell_rows))
+    n_edge_p = int(sum(r["p_edge_rows"] for r in cell_rows))
+    c_p = np.concatenate(clean_p); c_q = np.concatenate(clean_q)
+    clean_prrmse = EVAL.rrmse(c_p); clean_qrrmse = EVAL.rrmse(c_q)
+    boundary_diag = {
+        "threshold": threshold,
+        "desc": "gamma_hat/min_x >= threshold at decoder upper edge; Q quantile-only objective "
+                "parameter-boundary behavior, NOT an illegal fit (0 < gamma_hat < min(X) still holds)",
+        "n_edge_rows_q": n_edge_q, "n_edge_rows_p": n_edge_p,
+        "n_total_rows": int(len(c_p)),
+        "q_edge_error_share": float(edge_se_q / total_se_q) if total_se_q > 0 else None,
+        "p_edge_error_share": float(edge_se_p / total_se_p) if total_se_p > 0 else None,
+        "cells_with_q_edge": [r for r in cell_rows if r["q_edge_rows"] > 0],
+        "paired_sensitivity_removing_q_edge_rows": {
+            "p_rrmse": float(clean_prrmse), "q_rrmse": float(clean_qrrmse),
+            "p_error_reduction_vs_q": float((clean_qrrmse - clean_prrmse) / clean_qrrmse)
+                                      if clean_qrrmse > 0 else None,
+        },
+    }
+    with open(os.path.join(out, "boundary_diagnostic.json"), "w", encoding="utf-8") as f:
+        json.dump(boundary_diag, f, ensure_ascii=False, indent=1)
+
     print("=== v3/r4 summary (primary: (n,fold)xseed crossed) ===")
     print(f"pooled: P rRMSE={p_rrmse:.4f}  Q rRMSE={q_rrmse:.4f}  "
-          f"rel_improve={rel_improve:.4f}")
+          f"p_error_reduction_vs_q={(q_rrmse - p_rrmse) / q_rrmse:.4f} "
+          f"q_error_excess_vs_p={(q_rrmse - p_rrmse) / p_rrmse:.4f}")
     print(f"  mean_diff={primary['pooled_mean']:.5f}  CI=[{primary['pooled_ci_lo']:.5f},"
           f"{primary['pooled_ci_hi']:.5f}]")
     for n in CFG.N_GRID:

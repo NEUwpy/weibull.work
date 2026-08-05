@@ -291,6 +291,18 @@ def test_evidence_key_schema_exact_identity():
     assert RUN.keys_match(dec, dec2)
 
 
+def test_repair_evidence_targets_v2_explicitly():
+    """R4-04：repair_evidence 的源/目标路径必须显式锁定 v2，不得随活动 v3 配置漂移。"""
+    import repair_evidence as RE
+    assert "pq_v2" in RE._V2_ARTIFACT
+    assert "pq_v3" not in RE._V2_ARTIFACT
+    assert "pq_v2" in RE.V2_PREDICTIONS_DIR and "pq_v2" in RE.V2_EVIDENCE_DIR
+    assert "pq_v3" not in RE.V2_PREDICTIONS_DIR and "pq_v3" not in RE.V2_EVIDENCE_DIR
+    # 活动配置在 r4 primary 下指向 pq_v3，但 repair 目标必须仍是 v2
+    assert "pq_v3" in CFG.ARTIFACT_DIR
+    assert RE._V2_ARTIFACT != CFG.ARTIFACT_DIR
+
+
 def test_rrmse_matches_manual():
     rel = np.array([0.1, 0.2, 0.3])
     assert np.isclose(EVAL.rrmse(rel ** 2), np.sqrt(np.mean(rel ** 2)))

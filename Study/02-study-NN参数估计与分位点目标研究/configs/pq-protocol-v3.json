@@ -1,87 +1,144 @@
 {
-  "protocol_id": "study02-pq-direct-p-v3",
-  "supersedes": ["study02-pq-controlled-v1", "study02-pq-controlled-v2"],
-  "frozen_at": "2026-08-05",
-  "r4_contract": "direct-P primary comparison; Codex contract decision (mailbox 000003)",
-  "baseline_sha": "e37fdf70476d97a81688a9acecd4a538928187fc",
-  "study01_alignment": {
-    "config_path": "Study/01-study-MDM最小偏移量优化研究/code/dim_raw_config.py",
-    "sample_contract_path": "python/studies/common/sample.py",
-    "split_contract_path": "Study/01-study-MDM最小偏移量优化研究/code/run_E6b_dimensional_raw_specialist.py",
-    "split_report_path": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E6_dimensional_raw/specialist/split_report.csv",
-    "shared_data_manifest": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/manifest.json",
-    "shared_data_sha_list": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/data_sha256sums.txt",
-    "seed_namespace": "study01_nrmc_v1"
-  },
-  "design": {
-    "beta_grid": [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
-    "eta": 1000.0,
-    "gamma_grid": [100.0, 250.0, 500.0, 750.0, 1000.0],
-    "n_grid": [7, 10, 15, 20],
-    "repeats_per_combo": 300,
-    "n_combos": 160,
-    "n_samples": 48000,
-    "must_include_combo": {"beta": 2.0, "eta": 1000.0, "gamma": 1000.0}
-  },
-  "split": {
-    "type": "per-n gamma/eta-level holdout (Study01 sealed combo_fold)",
-    "rule": "combo_idx % 5 == fold_idx; combos enumerated product(beta, gamma_over_eta, n)",
-    "n_folds": 5,
-    "test_samples_per_n_fold": 2400,
-    "train_samples_per_n_fold": 9600
-  },
-  "validation": {
-    "fraction": 0.15,
-    "n_val_rows_per_n_fold": 1440,
-    "n_train_rows_per_n_fold": 8160,
-    "salt": "pq_val|{n}|{fold}"
-  },
-  "routes": ["P", "Q"],
-  "training": {
-    "framework": "pytorch",
-    "hidden_layers": [256, 128, 64],
-    "activation": "relu",
-    "optimizer": "adam",
-    "learning_rate": 0.001,
-    "weight_decay": 0.0001,
-    "batch_size": 256,
-    "max_epochs": 300,
-    "early_stopping": true,
-    "validation_fraction": 0.15,
-    "patience": 20,
-    "losses": {
-      "P": "direct: ((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2",
-      "Q": "relative x0.95 squared error through Weibull formula"
-    },
-    "param_transform": "beta=softplus(o1)+1e-6; eta=softplus(o2)+1e-6; gamma=min(X)*(delta+(1-2*delta)*sigmoid(o3)), delta=1e-7, gamma_lower=0.0",
-    "x0p95": "gamma + eta * (-ln(0.95))^(1/beta)",
-    "support_legality": "strict 0 < gamma_hat < min(X) structurally (domain-explicit bounded decoder; relies on frozen positive-gamma domain gamma in [100,1000], min(X)>gamma)",
-    "no_aux": "no log-gap, no auxiliary gamma loss, no straight-through gradient, no route-specific init or decoder"
-  },
-  "seeds": [42, 2026, 3407],
-  "execution": {
-    "n_fits": 120,
-    "per_seed": 40,
-    "order": ["preflight_3seeds", "freeze_v3", "seed42", "seed2026", "seed3407", "analysis"]
-  },
-  "inference": {
-    "primary": "(n, fold) design-unit x seed crossed paired resampling (stratified by n, seeds resampled globally)",
-    "n_design_units": 20,
-    "secondary": "per-sample bootstrap under fixed models (Monte Carlo interval only)",
-    "report": ["effect size", "stratified direction by n", "seed variation", "3-seed limitation"]
-  },
-  "evidence": {
-    "compressed_per_sample": "artifacts/pq_v2/evidence/<fit_id>.npz (tracked, exact-dtype keys)",
-    "fit_metadata": "artifacts/pq_v2/fit_metadata/<fit_id>.json (no model state; determinism contract)",
-    "sha256sums": "tracked files only; text LF-normalized (clean clone portable)",
-    "manifest_binds": ["full git sha", "env lock", "study01 input shas", "sample byte sha", "config/protocol/analysis shas"]
-  },
-  "environment": {
-    "lock_file": "configs/pq-environment-v2.json"
-  },
-  "engineering": {
-    "dedicated_entry": "Study/02-study-NN参数估计与分位点目标研究/code/study02pq/",
-    "no_d_training": true,
-    "no_new_experiments": true
+ "protocol_id": "study02-pq-direct-p-v3",
+ "supersedes": [
+  "study02-pq-controlled-v1",
+  "study02-pq-controlled-v2"
+ ],
+ "frozen_at": "2026-08-05",
+ "r4_contract": "direct-P primary comparison; Codex contract decision (mailbox 000003)",
+ "baseline_sha": "e37fdf70476d97a81688a9acecd4a538928187fc",
+ "study01_alignment": {
+  "config_path": "Study/01-study-MDM最小偏移量优化研究/code/dim_raw_config.py",
+  "sample_contract_path": "python/studies/common/sample.py",
+  "split_contract_path": "Study/01-study-MDM最小偏移量优化研究/code/run_E6b_dimensional_raw_specialist.py",
+  "split_report_path": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E6_dimensional_raw/specialist/split_report.csv",
+  "shared_data_manifest": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/manifest.json",
+  "shared_data_sha_list": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/data_sha256sums.txt",
+  "seed_namespace": "study01_nrmc_v1"
+ },
+ "design": {
+  "beta_grid": [
+   1.5,
+   2.0,
+   2.5,
+   3.0,
+   3.5,
+   4.0,
+   4.5,
+   5.0
+  ],
+  "eta": 1000.0,
+  "gamma_grid": [
+   100.0,
+   250.0,
+   500.0,
+   750.0,
+   1000.0
+  ],
+  "n_grid": [
+   7,
+   10,
+   15,
+   20
+  ],
+  "repeats_per_combo": 300,
+  "n_combos": 160,
+  "n_samples": 48000,
+  "must_include_combo": {
+   "beta": 2.0,
+   "eta": 1000.0,
+   "gamma": 1000.0
   }
+ },
+ "split": {
+  "type": "per-n gamma/eta-level holdout (Study01 sealed combo_fold)",
+  "rule": "combo_idx % 5 == fold_idx; combos enumerated product(beta, gamma_over_eta, n)",
+  "n_folds": 5,
+  "test_samples_per_n_fold": 2400,
+  "train_samples_per_n_fold": 9600
+ },
+ "validation": {
+  "fraction": 0.15,
+  "n_val_rows_per_n_fold": 1440,
+  "n_train_rows_per_n_fold": 8160,
+  "salt": "pq_val|{n}|{fold}"
+ },
+ "routes": [
+  "P",
+  "Q"
+ ],
+ "training": {
+  "framework": "pytorch",
+  "hidden_layers": [
+   256,
+   128,
+   64
+  ],
+  "activation": "relu",
+  "optimizer": "adam",
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "batch_size": 256,
+  "max_epochs": 300,
+  "early_stopping": true,
+  "validation_fraction": 0.15,
+  "patience": 20,
+  "losses": {
+   "P": "direct: ((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2",
+   "Q": "relative x0.95 squared error through Weibull formula"
+  },
+  "param_transform": "beta=softplus(o1)+1e-6; eta=softplus(o2)+1e-6; gamma=min(X)*(delta+(1-2*delta)*sigmoid(o3)), delta=1e-7, gamma_lower=0.0",
+  "x0p95": "gamma + eta * (-ln(0.95))^(1/beta)",
+  "support_legality": "strict 0 < gamma_hat < min(X) structurally (domain-explicit bounded decoder; relies on frozen positive-gamma domain gamma in [100,1000], min(X)>gamma)",
+  "no_aux": "no log-gap, no auxiliary gamma loss, no straight-through gradient, no route-specific init or decoder"
+ },
+ "seeds": [
+  42,
+  2026,
+  3407
+ ],
+ "execution": {
+  "n_fits": 120,
+  "per_seed": 40,
+  "order": [
+   "preflight_3seeds",
+   "freeze_v3",
+   "seed42",
+   "seed2026",
+   "seed3407",
+   "analysis"
+  ]
+ },
+ "inference": {
+  "primary": "(n, fold) design-unit x seed crossed paired resampling (stratified by n, seeds resampled globally)",
+  "n_design_units": 20,
+  "secondary": "per-sample bootstrap under fixed models (Monte Carlo interval only)",
+  "report": [
+   "effect size",
+   "stratified direction by n",
+   "seed variation",
+   "3-seed limitation"
+  ]
+ },
+ "evidence": {
+  "compressed_per_sample": "artifacts/pq_v3/evidence/<fit_id>.npz (tracked, exact-dtype keys)",
+  "fit_metadata": "artifacts/pq_v3/fit_metadata/<fit_id>.json (no model state; determinism contract)",
+  "sha256sums": "tracked files only; text LF-normalized (clean clone portable)",
+  "manifest_binds": [
+   "full git sha",
+   "run code sha",
+   "env lock",
+   "study01 input shas",
+   "sample byte sha",
+   "config/protocol/analysis shas"
+  ]
+ },
+ "environment": {
+  "lock_file": "configs/pq-environment-v2.json"
+ },
+ "engineering": {
+  "dedicated_entry": "Study/02-study-NN参数估计与分位点目标研究/code/study02pq/",
+  "no_d_training": true,
+  "no_new_experiments": true
+ }
 }

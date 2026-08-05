@@ -52,6 +52,10 @@ def _git_full_head():
 
 TEXT_EXTS = {".json", ".csv", ".md", ".txt", ".log", ".sha256"}
 
+# 产出 r4 primary 120 fits 的结果代码 commit（run provenance；Codex R4-01 要求保留）。
+# 该 commit 包含 direct-P + domain-explicit 解码器 + v3 协议冻结 + 120 fits 结果。
+RUN_CODE_SHA = "057744f89207a7681925bd282f6045f458200a78"
+
 
 def _sha256_file(path: str) -> str:
     h = hashlib.sha256()
@@ -281,10 +285,12 @@ def write_aggregates(seeds, master, run_label=""):
     run_log_sha = sha256_file_canonical(run_log) if os.path.isfile(run_log) else None
 
     manifest = {
-        "protocol": "pq-protocol-v2.json",
+        "protocol": os.path.basename(CFG.CONFIG_PATH),  # 由活动配置派生（R4-01）
+        "protocol_version": CFG.PROTOCOL_VERSION,
         "run_label": run_label,
         "git_full_sha": _git_full_head(),
         "git_head_short": _git_full_head()[:7],
+        "run_code_sha": RUN_CODE_SHA,  # 产出 120 fits 的结果代码 commit（run provenance）
         "config_sha256": sha256_file_canonical(CFG.CONFIG_PATH),
         "protocol_sha256": sha256_file_canonical(CFG.PROTOCOL_PATH),
         "env_lock": "configs/pq-environment-v2.json",
@@ -302,7 +308,7 @@ def write_aggregates(seeds, master, run_label=""):
         "data_integrity": DATA.verify_integrity(master),
         "output_files": ["per_fit_metrics.csv", "pairing_report.csv",
                          "splits_manifest.json", "SHA256SUMS",
-                         "analysis/<summary_v2.json, by_n_seed_descriptive.csv, failure_counts.json>",
+                         "analysis/<summary_v3.json, by_n_seed_descriptive.csv, failure_counts.json>",
                          "run_all_seeds.log",
                          "evidence/<fit_id>.npz", "fit_metadata/<fit_id>.json"],
     }
