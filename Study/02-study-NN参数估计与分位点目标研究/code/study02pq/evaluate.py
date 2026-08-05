@@ -44,29 +44,41 @@ def cell_rrmse(rel_sq: np.ndarray) -> float:
 
 def primary_design_bootstrap(cell_diffs_by_nfold, n_boot: int = 2000,
                              level: float = 0.95, rng: np.random.Generator = None):
-    """主推断。cell_diffs_by_nfold: dict {n: {fold: [d_s1, d_s2, d_s3]}}。
+    """主推断：fold × seed 交叉多路配对重采样（Codex R2 修正）。
 
-    每轮：对每个 n，从 5 个 fold 有放回抽 5 个；对被抽中的 (n, fold) 保留其全部 seed 的
-    模型级差值（块）；D* = 所有被抽中差值的均值。同时给出每 n 分层效应。
+    cell_diffs_by_nfold: dict {n: {fold: [d_s1, d_s2, d_s3]}}（每个元素是某
+    (n, fold, seed) 模型的模型级配对差值）。
+
+    每轮：
+      - 按 n 分层：对每个 n 从 5 个 fold 有放回抽 5 个；
+      - 全局重采样 seed：从 3 个 seed 有放回抽 3 个（整体，一次抽样用于所有 cell）；
+      - D* = 所有被抽中 (fold, seed) 差值的均值。
+    同时给出每 n 分层效应（该 n 内按上述 fold×seed 抽样）。
     """
     rng = rng if rng is not None else np.random.default_rng(20260805)
     n_values = sorted(cell_diffs_by_nfold.keys())
-    # 预取：每个 (n, fold) 的 seed 差值数组
     folds = {n: sorted(cell_diffs_by_nfold[n].keys()) for n in n_values}
     diffs = {n: {f: np.asarray(cell_diffs_by_nfold[n][f], dtype=np.float64)
                  for f in folds[n]} for n in n_values}
+    # 每 (n, fold) 的 seed 数（应一致）
+    n_seed = {n: len(next(iter(diffs[n].values()))) for n in n_values}
+    assert len(set(n_seed.values())) == 1, "seed 数不一致"
+    n_seeds = n_seed[n_values[0]]
 
     pooled_star = np.empty(n_boot)
     per_n_star = {n: np.empty(n_boot) for n in n_values}
     for b in range(n_boot):
+        # 全局 seed 重采样（整体，有放回）
+        seed_idx = rng.integers(0, n_seeds, size=n_seeds)
         all_d, per_n_d = [], {}
         for n in n_values:
-            # 有放回抽 5 个 fold（分层）
-            sampled = rng.integers(0, len(folds[n]), size=len(folds[n]))
+            sampled_folds = rng.integers(0, len(folds[n]), size=len(folds[n]))
             n_d = []
-            for fi in sampled:
-                n_d.append(diffs[n][folds[n][fi]])
-            n_arr = np.concatenate(n_d)
+            for fi in sampled_folds:
+                f = folds[n][fi]
+                for si in seed_idx:
+                    n_d.append(diffs[n][f][si])
+            n_arr = np.asarray(n_d, dtype=np.float64)
             all_d.append(n_arr)
             per_n_d[n] = n_arr
         pooled_star[b] = np.mean(np.concatenate(all_d))
@@ -86,6 +98,7 @@ def primary_design_bootstrap(cell_diffs_by_nfold, n_boot: int = 2000,
         "per_n_ci_lo": {n: float(per_n_ci[n][0]) for n in n_values},
         "per_n_ci_hi": {n: float(per_n_ci[n][1]) for n in n_values},
         "n_boot": int(n_boot),
+        "resampling": "fold (stratified by n) x seed (global, with replacement)",
     }
 
 

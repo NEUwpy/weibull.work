@@ -50,12 +50,26 @@ def _git_full_head():
         return "unknown"
 
 
+TEXT_EXTS = {".json", ".csv", ".md", ".txt", ".log", ".sha256"}
+
+
 def _sha256_file(path: str) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for block in iter(lambda: f.read(1 << 20), b""):
             h.update(block)
     return h.hexdigest()
+
+
+def sha256_file_canonical(path: str) -> str:
+    """规范 SHA256：文本文件按 LF 规范化（匹配 git 存储字节，干净 clone/autocrlf=false
+    /git archive 均可复现）；二进制（.npz）按原始字节。Codex R2 修正。"""
+    ext = os.path.splitext(path)[1].lower()
+    with open(path, "rb") as f:
+        data = f.read()
+    if ext in TEXT_EXTS:
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()
 
 
 def ensure_dirs():
@@ -225,31 +239,49 @@ def write_aggregates(seeds, master, run_label=""):
 
     # 环境锁
     env_lock = os.path.join(CFG.STUDY02_ROOT, "configs", "pq-environment-v2.json")
-    # Study01 输入 SHA（协议 §0）
+    # Study01 输入 SHA（协议 §0；文本按 LF 规范）
     s01 = {}
     for key, rel in CFG.STUDY01_ALIGN.items():
         if isinstance(rel, str) and rel.endswith((".py", ".csv", ".json", ".txt")):
             p = CFG.study01_abs_path(rel)
             if os.path.isfile(p):
-                s01[key] = _sha256_file(p)
+                s01[key] = sha256_file_canonical(p)
+
+    # 三个正式分析产物 + 运行日志的规范 SHA
+    analysis_sha = {}
+    adir = os.path.join(CFG.ARTIFACT_DIR, "analysis")
+    if os.path.isdir(adir):
+        for f in sorted(os.listdir(adir)):
+            p = os.path.join(adir, f)
+            if os.path.isfile(p):
+                analysis_sha[f] = sha256_file_canonical(p)
+    run_log = os.path.join(CFG.ARTIFACT_DIR, "run_all_seeds.log")
+    run_log_sha = sha256_file_canonical(run_log) if os.path.isfile(run_log) else None
 
     manifest = {
         "protocol": "pq-protocol-v2.json",
         "run_label": run_label,
         "git_full_sha": _git_full_head(),
         "git_head_short": _git_full_head()[:7],
-        "config_sha256": _sha256_file(CFG.CONFIG_PATH),
-        "protocol_sha256": _sha256_file(CFG.PROTOCOL_PATH),
+        "config_sha256": sha256_file_canonical(CFG.CONFIG_PATH),
+        "protocol_sha256": sha256_file_canonical(CFG.PROTOCOL_PATH),
         "env_lock": "configs/pq-environment-v2.json",
-        "env_lock_sha256": _sha256_file(env_lock) if os.path.isfile(env_lock) else None,
+        "env_lock_sha256": (sha256_file_canonical(env_lock)
+                            if os.path.isfile(env_lock) else None),
         "study01_input_shas": s01,
         "main_sample_bytes_sha": DATA.sample_bytes_sha(master, np.arange(len(master.keys))),
+        "analysis_sha256": analysis_sha,
+        "run_all_seeds_log_sha256": run_log_sha,
+        "sha256_rule": "text files hashed with LF normalization (matches git stored bytes; "
+                       "clean clone / autocrlf=false / git archive reproducible); .npz binary raw",
         "created_at": _now_iso(),
         "seeds": list(seeds),
         "n_fits_expected": len(seeds) * len(CFG.N_GRID) * CFG.N_FOLDS * len(CFG.ROUTES),
         "data_integrity": DATA.verify_integrity(master),
         "output_files": ["per_fit_metrics.csv", "pairing_report.csv",
                          "splits_manifest.json", "SHA256SUMS",
+                         "analysis/<summary_v2.json, by_n_seed_descriptive.csv, failure_counts.json>",
+                         "run_all_seeds.log",
                          "evidence/<fit_id>.npz", "fit_metadata/<fit_id>.json"],
     }
     with open(os.path.join(CFG.ARTIFACT_DIR, "manifest.json"), "w", encoding="utf-8") as f:
@@ -259,27 +291,27 @@ def write_aggregates(seeds, master, run_label=""):
 
 
 def _write_sha256sums():
-    """只列 tracked 文件（干净 clone 可获得）。predictions/*.csv 不入列。"""
+    """只列 tracked 文件（干净 clone 可获得），文本按 LF 规范哈希（Codex R2 修正）。
+    predictions/*.csv 不入列（gitignore）。"""
     lines = []
     names = ["per_fit_metrics.csv", "pairing_report.csv", "splits_manifest.json",
-             "manifest.json"]
+             "manifest.json", "run_all_seeds.log"]
     for name in names:
         path = os.path.join(CFG.ARTIFACT_DIR, name)
         if os.path.isfile(path):
-            lines.append(f"{_sha256_file(path)}  {name}")
+            lines.append(f"{sha256_file_canonical(path)}  {name}")
     for fit in sorted(f[:-5] for f in os.listdir(CFG.CHECKPOINTS_DIR)
                       if f.endswith(".json")):
-        lines.append(f"{_sha256_file(metadata_json_path(fit))}  fit_metadata/{fit}.json")
+        lines.append(f"{sha256_file_canonical(metadata_json_path(fit))}  fit_metadata/{fit}.json")
     for fit in sorted(f[:-4] for f in os.listdir(CFG.EVIDENCE_DIR)
                       if f.endswith(".npz")):
-        lines.append(f"{_sha256_file(evidence_npz_path(fit))}  evidence/{fit}.npz")
-    for name in ("analysis",):
-        adir = os.path.join(CFG.ARTIFACT_DIR, name)
-        if os.path.isdir(adir):
-            for f in sorted(os.listdir(adir)):
-                p = os.path.join(adir, f)
-                if os.path.isfile(p):
-                    lines.append(f"{_sha256_file(p)}  {name}/{f}")
+        lines.append(f"{sha256_file_canonical(evidence_npz_path(fit))}  evidence/{fit}.npz")
+    adir = os.path.join(CFG.ARTIFACT_DIR, "analysis")
+    if os.path.isdir(adir):
+        for f in sorted(os.listdir(adir)):
+            p = os.path.join(adir, f)
+            if os.path.isfile(p):
+                lines.append(f"{sha256_file_canonical(p)}  analysis/{f}")
     with open(os.path.join(CFG.ARTIFACT_DIR, "SHA256SUMS"), "w", encoding="utf-8") as f:
         f.write("\n".join(sorted(lines)) + "\n")
 

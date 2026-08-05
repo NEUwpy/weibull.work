@@ -248,15 +248,27 @@ def test_bootstrap_ci_bounds():
 
 
 def test_primary_design_bootstrap_bounds():
-    """主推断：20 设计单元 × 3 seed，CI 应含 pooled 均值。"""
+    """主推断：20 设计单元 × 3 seed（fold×seed 交叉），CI 应含 pooled 均值。"""
     rng = np.random.default_rng(1)
     diffs = {n: {f: list(rng.normal(0.0, 0.01, 3)) for f in range(1, 6)}
              for n in [7, 10, 15, 20]}
-    m = EVAL.primary_design_bootstrap(diffs, n_boot=200, rng=rng)
+    m = EVAL.primary_design_bootstrap(diffs, n_boot=500, rng=rng)
     assert m["pooled_ci_lo"] <= m["pooled_mean"] <= m["pooled_ci_hi"]
     assert set(m["per_n_mean"].keys()) == {7, 10, 15, 20}
     for n in [7, 10, 15, 20]:
         assert m["per_n_ci_lo"][n] <= m["per_n_mean"][n] <= m["per_n_ci_hi"][n]
+    assert "seed" in m["resampling"]
+
+
+def test_primary_bootstrap_incorporates_seed_variation():
+    """seed 维度有真实变异时，交叉 bootstrap 的 CI 应反映之（比 fold-only 更宽）。"""
+    rng = np.random.default_rng(7)
+    # 3 个 seed 均值明显不同（模拟 seed 不确定性）
+    diffs = {n: {f: [0.0, 0.05, -0.05] for f in range(1, 6)} for n in [7, 10, 15, 20]}
+    m = EVAL.primary_design_bootstrap(diffs, n_boot=500, rng=rng)
+    # 所有 cell 同 fold 但 seed 不同 → pooled 均值为 0，但 seed 变异应使 CI 明显宽于 0
+    assert m["pooled_ci_lo"] < -0.01 and m["pooled_ci_hi"] > 0.01
+    assert m["pooled_ci_lo"] <= 0.0 <= m["pooled_ci_hi"]
 
 
 if __name__ == "__main__":
