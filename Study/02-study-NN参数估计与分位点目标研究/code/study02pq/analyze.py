@@ -74,7 +74,7 @@ def main():
         per_n_rel[n] = (np.concatenate(rp_n), np.concatenate(rq_n))
 
     summary = {
-        "protocol": "v2",
+        "protocol": "v3_r4",
         "pooled": {
             "p_rrmse": float(p_rrmse), "q_rrmse": float(q_rrmse),
             "rel_improve": float(rel_improve),
@@ -94,7 +94,7 @@ def main():
         "per_seed_descriptive": {str(s): seed_means[s] for s in seeds},
         "n_boot": args.n_boot,
     }
-    with open(os.path.join(out, "summary_v2.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(out, "summary_v3.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=1)
 
     # 每 n × seed 描述表（方向）
@@ -118,7 +118,7 @@ def main():
     with open(os.path.join(out, "failure_counts.json"), "w", encoding="utf-8") as f:
         json.dump(failures, f, ensure_ascii=False, indent=1)
 
-    print("=== v2 summary (primary: (n,fold)xseed clustered) ===")
+    print("=== v3/r4 summary (primary: (n,fold)xseed crossed) ===")
     print(f"pooled: P rRMSE={p_rrmse:.4f}  Q rRMSE={q_rrmse:.4f}  "
           f"rel_improve={rel_improve:.4f}")
     print(f"  mean_diff={primary['pooled_mean']:.5f}  CI=[{primary['pooled_ci_lo']:.5f},"
