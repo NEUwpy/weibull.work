@@ -1,4 +1,6 @@
 # Study/02 P-Q v2：完整精度预测 CSV（体积大，gitignore；SHA 不入 SHA256SUMS——
 # 干净 clone 无此文件）。压缩逐样本证据 evidence/*.npz 与 fit_metadata/*.json 均 tracked。
-# run_all_seeds.log 已纳入证据（tracked，入 SHA256SUMS 与 manifest），不再忽略。
+# run_all_seeds.log 已纳入证据（tracked，入 SHA256SUMS 与 manifest），
+# 显式 un-ignore 以覆盖仓库根 .gitignore 的 *.log 规则。
 predictions/
+!run_all_seeds.log
