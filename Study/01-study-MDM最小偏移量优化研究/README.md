@@ -2,7 +2,7 @@
 
 > 本目录是面向发表论文的整理工作区。它不是 `docs/research/01`、`02`、`03`、`04` 的简单复制，也不是汇报 PPT 材料的存放处。
 >
-> **当前状态（2026-08-04）**：既有正式实验与技术证据包保持封存，不删除、不重跑、不重封存。P4 正式六方法比较（MDM-Default / MDM-Vector-MLP / Direct-MLP / MLE / LSE / WMLE）已在授权 tip `cfb0c6ed` 上完成四轨道正式运行并通过 SHA256SUMS 17/17 封存校验（seal `f00b561d`，产物 `artifacts/formal/p4_formal_compare/`）。论文主线已收敛为 E1/E2/E3b 三类核心结果；支撑验证、独立 Research 与待移出材料已分层归档。外部中文学术源稿 v0.3 为唯一活动论文稿。
+> **当前状态（2026-08-05）**：既有正式实验与技术证据包保持封存，不删除、不重跑、不重封存。论文主线收敛为 E1/E2 潜在空间证据 + Dimensional-RAW 样本自适应方法（正式方法，产物 `artifacts/formal/E6_dimensional_raw/`）；旧特征路线（E3b）与归一化候选（Normalized-RAW）保留为历史/候选证据。Dimensional-RAW 的 seed 稳定性与主设计域结果已完成；参数泛化、WMLE/LSE 同条件比较、工程寿命分位点均待按 E6 正式产物重新派生。外部中文学术源稿 v0.3 为唯一活动论文稿。
 
 ## 这个目录要解决什么
 
@@ -40,10 +40,10 @@
 
 | 验证 | 内容 | 正式数据位置 | 状态 |
 |------|------|--------------|------|
-| 泛化验证 | 参数插值（P2-PI）、样本量插值（P2-NI，n=15）及边界外推轨道上相对固定规则是否保留收益 | `artifacts/formal/extended_validation/p2_generalization_v2/`、`artifacts/formal/E4_robustness/`（E4d） | 正式证据可用（P2 v2 已获 Codex APPROVE `53932687`） |
-| seed 稳定性与输入表示尺度性质 | 60 个 fold×seed 模型级分布（4n×5fold×3seed）；输入表示检查（排序原始样本、逐位置标准化仅训练折拟合、有量纲输入不具备单位不变性） | `artifacts/formal/E6_dimensional_raw/specialist/`（`seed_stability.csv`、`representation_check.json`） | 正式证据可用 |
-| 与传统估计方法的外部参照 | WMLE、LSE 作为外部参照（同一样本、同一划分比较）；MLE 已封存但不再作为论文证据消费 | `artifacts/formal/p4_formal_compare/` | 正式证据可用（已封存） |
-| 工程寿命分位点 | 由 P4 逐样本三参数估计派生 `x_0.95`（主指标）、`x_0.90`、`x_0.99`，检查参数收益是否传递 | `artifacts/formal/quantile_derivation/` | 正式证据可用（Codex APPROVE `b9bb815a`）；Vector-MLP 在主设计域保留部分分位点收益（main_holdout −3.6%），但小于参数改善且样本量插值轨道未保留；参数排名≠分位点排名 |
+| 泛化验证 | E6 参数插值、样本量插值/外推与边界外推待按 E6 正式产物重新派生（旧特征路线 P2-PI/P2-NI/E4d 结果为已封存历史证据，不直接支持 E6） | `artifacts/formal/E6_dimensional_raw/`（待派生）；旧 `artifacts/formal/extended_validation/p2_generalization_v2/`、`E4_robustness/`（E4d，历史） | 待按 E6 重新派生 |
+| seed 稳定性与输入表示尺度性质 | 60 个 fold×seed 模型级分布（4n×5fold×3seed）；输入表示检查（排序原始样本、逐位置标准化仅训练折拟合、有量纲输入不具备单位不变性） | `artifacts/formal/E6_dimensional_raw/specialist/`（`seed_stability.csv`、`representation_check.json`） | 正式证据可用（已完成） |
+| 与传统估计方法的外部参照 | E6 的 WMLE/LSE 同条件比较待按正式产物重新派生；旧 P4 结果为已封存历史证据，不直接支持 E6 | `artifacts/formal/E6_dimensional_raw/`（待派生）；旧 `artifacts/formal/p4_formal_compare/`（历史） | 待按 E6 重新派生 |
+| 工程寿命分位点 | E6 的 `x_0.95`/`x_0.90`/`x_0.99` 传递待按正式产物重新派生；旧特征路线分位点派生为已封存历史证据，不直接支持 E6 | `artifacts/formal/E6_dimensional_raw/`（待派生）；旧 `artifacts/formal/quantile_derivation/`（历史） | 待按 E6 重新派生 |
 | 域匹配真实案例（后置） | 论文主体接近完成后再做；目前不阻塞写作 | — | 待定（NIST 案例不进入本文） |
 
 ## 传统方法参照与 MLE 处理

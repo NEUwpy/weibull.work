@@ -1,19 +1,24 @@
 """
 Study/01 E6b — 正式产物 manifest 封存收口（post-hoc provenance 修订）
 
-复核后收口（REVISE 第 4 点）：
+复核后收口（REVISE 第 4 点 + 第 2 轮第 4 点）：
   - 将 manifest 的留出划分改为准确描述：按 n 的 γ/η 水平留出
     （对每个 n，每折留出一个完整 γ/η 水平，测试集覆盖全部 8 个 β；
     未检验未见 β）。
   - 补充 provenance 块：实现提交 d9ea4a35、产物提交 7eda7b32、
-    当前封存提交、运行期 HEAD（1c8b47f9）、LF-normalized 哈希口径。
+    封存准备提交 seal_preparation_commit=54470f67（包含 finalize 脚本与
+    文档，不含最终 manifest/SHA256SUMS）、运行期 HEAD（1c8b47f9）、
+    LF-normalized 哈希口径。
+  - 最终封存包所在提交（包含本 manifest 与 SHA256SUMS 的提交）不写入
+    manifest 自身（manifest 被纳入自身哈希会形成自引用），而记录在执行
+    报告 / 状态文档中。
   - Normalized-RAW 候选对照绑定来源分支/提交（4233856c）及其汇总文件哈希。
   - 重建 SHA256SUMS（仅不可变科学产物，LF-normalized 口径）。
 
 不改训练代码（run_E6b 保持 d9ea4a35 原样，折模型 code_sha256 与其一致，
 无需重训）；只补 manifest 与封存清单。运行后需提交。
 
-用法：python finalize_e6_manifest.py [--seal-commit <short>]
+用法：python finalize_e6_manifest.py
 """
 
 import sys
@@ -32,6 +37,9 @@ import run_E6b_dimensional_raw_specialist as E6
 
 IMPLEMENTATION_COMMIT = "d9ea4a35"
 ARTIFACT_COMMIT = "7eda7b32"
+# 封存准备提交：包含 finalize 脚本与文档，不含最终 manifest/SHA256SUMS。
+# 最终封存包所在提交记录在执行报告/状态文档（不写入 manifest 以避免自引用）。
+SEAL_PREPARATION_COMMIT = "54470f67"
 NORMALIZED_RAW_BRANCH = "study01-normalized-raw-specialist"
 NORMALIZED_RAW_COMMIT = "4233856c"
 NORMALIZED_RAW_SUMMARY_SHA = "83aa3604cf840665816d36862b866e5b3137366cf0f10d3c58a639042c94f640"
@@ -71,11 +79,6 @@ def git_short(ref):
 
 
 def main():
-    seal_commit_arg = None
-    if '--seal-commit' in sys.argv:
-        seal_commit_arg = sys.argv[sys.argv.index('--seal-commit') + 1]
-    seal_commit = seal_commit_arg or git_short('HEAD')
-
     mpath = os.path.join(CFG.SPECIALIST_DIR, 'manifest.json')
     with open(mpath, encoding='utf-8') as f:
         manifest = json.load(f)
@@ -92,14 +95,18 @@ def main():
     manifest['provenance'] = {
         'implementation_code_commit': IMPLEMENTATION_COMMIT,
         'artifact_commit': ARTIFACT_COMMIT,
-        'seal_commit': seal_commit,
+        'seal_preparation_commit': SEAL_PREPARATION_COMMIT,
+        'provenance_parent_commit': SEAL_PREPARATION_COMMIT,
         'runtime_head_commit': manifest.get('git_commit', ''),
         'runtime_workspace_dirty': manifest.get('workspace_dirty', None),
         'hash_basis': 'LF-normalized bytes (CRLF->LF normalized before hashing; '
                       'fingerprints independent of checkout line endings)',
         'hash_note': ('data_sha256sums.txt/SHA256SUMS fingerprints are computed '
                       'over LF-normalized bytes; they match across checkouts but '
-                      'are NOT byte-identical to the current Windows files.'),
+                      'are NOT byte-identical to the current Windows files. '
+                      'The commit containing this manifest and SHA256SUMS itself '
+                      'is recorded in the execution report / status doc, not here, '
+                      'to avoid self-reference.'),
         'no_retrain': ('Fold-model code_sha256 matches the committed implementation '
                        'commit d9ea4a35; manifest provenance is post-hoc, models '
                        'were not retrained.'),
@@ -122,7 +129,7 @@ def main():
     E6.lf_normalize_tree(CFG.SPECIALIST_DIR)
     n = E6.write_sha256sums(CFG.SPECIALIST_DIR, PROJECT_ROOT)
     print(f"Manifest updated (split description + provenance), "
-          f"seal_commit={seal_commit}")
+          f"seal_preparation_commit={SEAL_PREPARATION_COMMIT}")
     print(f"SHA256SUMS rebuilt: {n} entries (immutable artifacts only, "
           f"LF-normalized)")
 

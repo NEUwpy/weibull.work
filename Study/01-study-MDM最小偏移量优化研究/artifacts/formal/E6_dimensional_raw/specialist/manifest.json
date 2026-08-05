@@ -939,11 +939,12 @@
   "provenance": {
     "implementation_code_commit": "d9ea4a35",
     "artifact_commit": "7eda7b32",
-    "seal_commit": "54470f67",
+    "seal_preparation_commit": "54470f67",
+    "provenance_parent_commit": "54470f67",
     "runtime_head_commit": "1c8b47f9ae0a26fe249968c3a1350f799c9a5fdd",
     "runtime_workspace_dirty": true,
     "hash_basis": "LF-normalized bytes (CRLF->LF normalized before hashing; fingerprints independent of checkout line endings)",
-    "hash_note": "data_sha256sums.txt/SHA256SUMS fingerprints are computed over LF-normalized bytes; they match across checkouts but are NOT byte-identical to the current Windows files.",
+    "hash_note": "data_sha256sums.txt/SHA256SUMS fingerprints are computed over LF-normalized bytes; they match across checkouts but are NOT byte-identical to the current Windows files. The commit containing this manifest and SHA256SUMS itself is recorded in the execution report / status doc, not here, to avoid self-reference.",
     "no_retrain": "Fold-model code_sha256 matches the committed implementation commit d9ea4a35; manifest provenance is post-hoc, models were not retrained.",
     "normalized_raw_control": {
       "role": "candidate control, not main evidence",
