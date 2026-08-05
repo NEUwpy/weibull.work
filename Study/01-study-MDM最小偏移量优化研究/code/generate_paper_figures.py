@@ -187,7 +187,8 @@ def fig2_overall_delta_risk(df_full):
     d_min = float(curve.idxmin())
     j_min = float(curve.min())
     j_10 = float(curve.loc[0.10])
-    ax.set_ylim(0.60, 0.70)
+    # Full 26-point range (delta=0 reaches J1~0.948; do not clip the curve).
+    ax.set_ylim(0.60, 0.99)
     ax.scatter([d_min], [j_min], s=46, zorder=5, color=INK, marker="x")
     ax.annotate(f"最小值 $\\delta$={d_min:.2f}\n$J_1$={j_min:.4f}",
                 xy=(d_min, j_min), xytext=(0.02, 0.606),
@@ -196,7 +197,7 @@ def fig2_overall_delta_risk(df_full):
     ax.scatter([0.10], [j_10], s=46, zorder=5, color=COLORS["Default"],
                marker="s")
     ax.annotate("经验值 $\\delta$=0.10\n$J_1$=0.6304", xy=(0.10, j_10),
-                xytext=(0.155, 0.648), fontsize=8, color=INK,
+                xytext=(0.10, 0.72), fontsize=8, color=INK, ha="center",
                 arrowprops=dict(arrowstyle="->", lw=0.9, color=MUTED))
     ax.set_title("整体 $\\delta$–风险曲线（160 组合，48,000 样本）", fontsize=10.5,
                  color=INK)
@@ -464,15 +465,17 @@ def table3_support_verification(e6_summary, b1_path, b2_path, b3_path):
     if os.path.exists(b3_path):
         b3 = json.load(open(b3_path, encoding="utf-8"))
         d95 = b3["per_method"]["Default"]["per_seed"]["-1"]["x0.95"]
-        # DIM-RAW uses the three-seed model-first mean (never a single seed)
-        r95 = b3["per_method"]["Dimensional-RAW"]["three_seed_mean"]["x0.95"]
+        # DIM-RAW uses the three-seed model-first mean +/- SD (never one seed)
+        dim95 = b3["per_method"]["Dimensional-RAW"]
+        r95 = dim95["three_seed_mean"]["x0.95"]
+        r95_sd = dim95["three_seed_std"]["x0.95"]
         w95 = b3["per_method"]["WMLE"]["per_seed"]["-1"]["x0.95"]
         rows.append({
             "问题": "参数收益能否传递到工程寿命",
             "证据": "B3 $x_{0.90},x_{0.95},x_{0.99}$ 派生",
             "结论": (f"传递有限：$x_{{0.95}}$ 相对 RMSE "
-                     f"Dimensional-RAW {r95['rmse']:.4f} ≈ Default "
-                     f"{d95['rmse']:.4f}，WMLE {w95['rmse']:.4f} 最低"),
+                     f"Dimensional-RAW {r95['rmse']:.4f} ± {r95_sd['rmse']:.4f} "
+                     f"≈ Default {d95['rmse']:.4f}，WMLE {w95['rmse']:.4f} 最低"),
         })
 
     out = pd.DataFrame(rows)

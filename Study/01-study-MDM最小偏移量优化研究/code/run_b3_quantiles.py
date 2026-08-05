@@ -291,16 +291,21 @@ def main(force_rerun=False):
             "per_seed": per_seed,
         }
         if method == "Dimensional-RAW":
-            # model-first three-seed mean across the per-seed metrics
+            # model-first three-seed mean AND SD (ddof=0, matching E6/B1)
             qnames = list(QUANTILE_R)
-            three_mean = {}
+            metrics = ("bias", "rmse", "mae", "p95_abs_rel", "failure_rate")
+            three_mean, three_std = {}, {}
             for q in qnames:
                 vals = [per_seed[s][q] for s in SEEDS]
                 three_mean[q] = {
                     metric: float(np.mean([v[metric] for v in vals]))
-                    for metric in ("bias", "rmse", "mae", "p95_abs_rel",
-                                   "failure_rate")}
+                    for metric in metrics}
+                three_std[q] = {
+                    metric: float(np.std([v[metric] for v in vals], ddof=0))
+                    for metric in metrics}
             entry["three_seed_mean"] = three_mean
+            entry["three_seed_std"] = three_std
+            entry["three_seed_std_ddof"] = 0
             entry["n_seeds"] = len(SEEDS)
         summary["per_method"][method] = entry
     PS.atomic_write_json(summary, os.path.join(OUT_DIR, "summary.json"))

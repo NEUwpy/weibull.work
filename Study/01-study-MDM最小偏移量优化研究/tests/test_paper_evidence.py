@@ -283,6 +283,23 @@ def test_b3_three_seed_mean_consistency():
                        ) < 1e-12
 
 
+def test_b3_three_seed_std_exact():
+    """three_seed_std must equal the exact ddof=0 SD of the three per-seed
+    metric values, reported for every metric and quantile."""
+    s = _load_json(os.path.join("artifacts/formal/E6_dimensional_raw",
+                                "quantiles", "summary.json"))
+    entry = s["per_method"]["Dimensional-RAW"]
+    assert entry.get("three_seed_std_ddof") == 0
+    for q in ("x0.90", "x0.95", "x0.99"):
+        ts = entry["three_seed_std"][q]
+        per_seed = [entry["per_seed"][str(seed)][q] for seed in SEEDS]
+        for metric in ("bias", "rmse", "mae", "p95_abs_rel", "failure_rate"):
+            vals = [p[metric] for p in per_seed]
+            expected = float(np.std(vals, ddof=0))
+            assert abs(ts[metric] - expected) < 1e-12, \
+                f"{q}/{metric}: stored {ts[metric]} != expected {expected}"
+
+
 def _lf_sha256(path):
     import hashlib
     h = hashlib.sha256()
