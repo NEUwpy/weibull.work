@@ -56,18 +56,22 @@ def run_smoke():
         p = res["predictions"]
         assert np.all(np.isfinite(p["x95_hat"]))
         assert np.all(p["beta_hat"] > 0) and np.all(p["eta_hat"] > 0)
+        # v2 支撑合法性：gamma_hat < min(X) 对全部 held-out 成立
+        assert np.all(p["gamma_hat"] < p["min_x"])
+        assert res["meta"]["n_support_viol"] == 0
         rrmse = np.sqrt(np.mean(p["rel_err_sq"]))
         assert np.isclose(rrmse, res["meta"]["rrmse_x95"])
     print("[smoke] predictions finite; rrmse matches")
 
-    # 配对 bootstrap CI
+    # 次要固定模型逐样本 MC 区间
     rel_p = rp["predictions"]["rel_err_sq"]
     rel_q = rq["predictions"]["rel_err_sq"]
-    m = EVAL.bootstrap_ci_paired(rel_p, rel_q, n_boot=50)
-    assert m["ci_lo"] <= m["mean_diff"] <= m["ci_hi"]
-    print("[smoke] paired bootstrap OK:", {k: round(v, 4) for k, v in m.items()
-                                            if isinstance(v, float)})
-    print(f"[smoke] P rRMSE={m['p_rrmse']:.4f}  Q rRMSE={m['q_rrmse']:.4f}")
+    m = EVAL.secondary_within_cell_mc(rel_p, rel_q, n_boot=50)
+    assert m["ci_lo"] <= m["mean"] <= m["ci_hi"]
+    print("[smoke] secondary within-cell MC OK:", {k: round(v, 4) for k, v in m.items()
+                                                   if isinstance(v, float)})
+    p_r = np.sqrt(np.mean(rel_p)); q_r = np.sqrt(np.mean(rel_q))
+    print(f"[smoke] P rRMSE={p_r:.4f}  Q rRMSE={q_r:.4f}")
     print("SMOKE PASS")
 
 

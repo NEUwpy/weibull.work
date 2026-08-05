@@ -59,6 +59,9 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     X_tr, P_tr, X95_tr = DATA.make_arrays(master, train_rows)
     X_val, P_val, X95_val = DATA.make_arrays(master, val_rows)
     X_te, P_te, X95_te = DATA.make_arrays(master, test_rows)
+    min_x_tr = DATA.sample_min(master, train_rows)
+    min_x_val = DATA.sample_min(master, val_rows)
+    min_x_te = DATA.sample_min(master, test_rows)
 
     # ---- scaler：仅训练折（train+val）拟合；test 折绝不参与 ----
     scaler = DATA.PerPositionScaler().fit(np.vstack([X_tr, X_val]))
@@ -78,6 +81,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         y_tr = _tensor(X95_tr); y_val = _tensor(X95_val)
 
     X_tr_t = _tensor(X_tr_s); X_val_t = _tensor(X_val_s)
+    min_x_tr_t = _tensor(min_x_tr); min_x_val_t = _tensor(min_x_val)
 
     # ---- batch 顺序（epoch 1 的置换 SHA，确定性） ----
     perm = _epoch_perm(len(X_tr), gen)
@@ -103,9 +107,10 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
             idx = perm[b0:b0 + batch_size]
             xb = X_tr_t[idx]
             yb = y_tr[idx]
+            mxb = min_x_tr_t[idx]
             optimizer.zero_grad()
             out = model(xb)
-            loss = loss_fn(out, yb)
+            loss = loss_fn(out, yb, mxb)
             if not torch.isfinite(loss):
                 nan_flag = True
                 break
@@ -118,7 +123,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         model.eval()
         with torch.no_grad():
             val_out = model(X_val_t)
-            val_loss = float(loss_fn(val_out, y_val))
+            val_loss = float(loss_fn(val_out, y_val, min_x_val_t))
         model.train()
         stopped_epoch = epoch
 
@@ -141,8 +146,9 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     # ---- held-out 评价 ----
     model.eval()
     with torch.no_grad():
+        min_x_te_t = _tensor(min_x_te)
         out_te = model(_tensor(X_te_s))
-        b_hat, e_hat, g_hat = LOSS.decode_params(out_te)
+        b_hat, e_hat, g_hat = LOSS.decode_params(out_te, min_x_te_t)
         x95_hat = LOSS.weibull_quantile(b_hat, e_hat, g_hat)
         x95_hat_np = x95_hat.numpy()
         b_hat_np = b_hat.numpy(); e_hat_np = e_hat.numpy(); g_hat_np = g_hat.numpy()
@@ -151,9 +157,10 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     rrmse = float(np.sqrt(np.mean(rel_err ** 2)))
     n_nonfinite = int(np.sum(~np.isfinite(x95_hat_np)))
     n_illegal = int(np.sum(~(b_hat_np > 0) | ~(e_hat_np > 0) | ~np.isfinite(g_hat_np)))
-    # 支撑集违规（诊断）：gamma_hat >= min(X)
-    min_x = np.array([master.X[r].min() for r in test_rows])
-    n_support_viol = int(np.sum(g_hat_np >= min_x - 1e-12))
+    # 支撑合法性（production test，结构性保证）：gamma_hat < min(X) 必须对所有 held-out 样本成立
+    n_support_viol = int(np.sum(g_hat_np >= min_x_te - 1e-9))
+    assert n_support_viol == 0, \
+        f"support legality violated for {n_support_viol} held-out samples (gamma_hat >= min(X))"
     # 参数相对误差诊断（非成功标准）
     rel_b = (b_hat_np - P_te[:, 0]) / P_te[:, 0]
     rel_e = (e_hat_np - P_te[:, 1]) / P_te[:, 1]
@@ -163,6 +170,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         "keys": master.keys[test_rows],
         "beta_hat": b_hat_np, "eta_hat": e_hat_np, "gamma_hat": g_hat_np,
         "x95_hat": x95_hat_np, "x95_true": X95_te,
+        "min_x": min_x_te,
         "rel_err": rel_err, "rel_err_sq": rel_err ** 2,
         "rel_b": rel_b, "rel_e": rel_e, "rel_g": rel_g,
         "n_support_viol": n_support_viol,
@@ -179,6 +187,8 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         "n_test": int(len(test_rows)),
         "n_nonfinite": n_nonfinite, "n_illegal": n_illegal,
         "n_support_viol": n_support_viol,
+        "support_legality_ok": bool(n_support_viol == 0),
+        "sample_bytes_sha": DATA.sample_bytes_sha(master, test_rows),
         "runtime_s": float(runtime_s),
         "init_param_sha": init_sha,
         "batch_order_sha": batch_order_sha,

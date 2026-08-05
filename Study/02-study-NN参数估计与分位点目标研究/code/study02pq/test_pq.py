@@ -58,10 +58,24 @@ def test_master_integrity():
 # ----------------------------------------------------------------------
 
 def test_decode_params_legal():
-    o = torch.tensor([[-10.0, -10.0, -5.0]], dtype=torch.float64)
-    b, e, g = LOSS.decode_params(o)
-    assert float(b) > 0 and float(e) > 0
-    assert torch.isfinite(g)
+    min_x = torch.tensor([500.0, 1200.0], dtype=torch.float64)
+    o = torch.tensor([[-10.0, -10.0, -5.0], [1.0, 7.0, 0.0]], dtype=torch.float64)
+    b, e, g = LOSS.decode_params(o, min_x)
+    assert torch.all(b > 0) and torch.all(e > 0)
+    assert torch.all(torch.isfinite(g))
+    # 支撑合法性：gamma_hat < min(X) 必须结构性成立
+    assert torch.all(g < min_x)
+
+
+def test_support_legality_gamma_lt_min_across_outputs():
+    """任意 o1/o2/o3（含极大/极小）下 gamma_hat < min(X) 都成立。"""
+    min_x = torch.tensor([517.0, 900.0, 300.0, 1500.0], dtype=torch.float64)
+    o = torch.tensor([[-20.0, -20.0, 20.0],
+                      [20.0, 20.0, -20.0],
+                      [0.0, 0.0, 0.0],
+                      [5.0, 12.0, 3.0]], dtype=torch.float64)
+    b, e, g = LOSS.decode_params(o, min_x)
+    assert torch.all(g < min_x), f"support violated: {g} >= {min_x}"
 
 
 def test_weibull_quantile_known_value():
@@ -73,9 +87,10 @@ def test_weibull_quantile_known_value():
 
 def test_q_loss_gradient_flows_to_all_three_outputs():
     """Q 梯度必须真实经过 Weibull 公式到达三个原始输出（协议 §1.3）。"""
-    o = torch.tensor([[1.0, 7.0, 400.0]], dtype=torch.float64, requires_grad=True)
+    min_x = torch.tensor([517.0], dtype=torch.float64)
+    o = torch.tensor([[1.0, 7.0, -2.0]], dtype=torch.float64, requires_grad=True)
     x95 = torch.tensor([726.48], dtype=torch.float64)
-    b, e, g = LOSS.decode_params(o)
+    b, e, g = LOSS.decode_params(o, min_x)
     x_hat = LOSS.weibull_quantile(b, e, g)
     loss = LOSS.loss_q(x_hat, x95)
     loss.backward()
@@ -90,7 +105,8 @@ def test_p_loss_form():
     g = torch.tensor([500.0, 1000.0])
     tb = torch.tensor([2.0, 3.0]); te = torch.tensor([1000.0, 1000.0])
     tg = torch.tensor([500.0, 1000.0])
-    lp = LOSS.loss_p(b, e, g, tb, te, tg)
+    min_x = torch.tensor([510.0, 1005.0])  # 必须 > gamma
+    lp = LOSS.loss_p(b, e, g, tb, te, tg, min_x)
     assert torch.isfinite(lp)
 
 
@@ -193,6 +209,17 @@ def test_initial_params_equal_across_route():
     assert MODEL.params_sha(m1) == MODEL.params_sha(m2)
 
 
+def test_training_outputs_support_legal():
+    """P/Q 正式拟合的 held-out 输出必须全部满足 gamma_hat < min(X)（production test）。"""
+    master = _small_master()
+    for route in ("P", "Q"):
+        r = TR.train_one_fit(7, 0, 42, route, master, max_epochs=6, patience=2)
+        p = r["predictions"]
+        assert np.all(p["gamma_hat"] < p["min_x"] - 1e-9)
+        assert r["meta"]["n_support_viol"] == 0
+        assert r["meta"]["support_legality_ok"] is True
+
+
 def test_deterministic_rerun_same_fit():
     master = _small_master()
     r1 = TR.train_one_fit(7, 0, 42, "P", master, max_epochs=5, patience=2)
@@ -215,9 +242,21 @@ def test_bootstrap_ci_bounds():
     rng = np.random.default_rng(0)
     rel_p = np.abs(rng.normal(0, 0.1, 500))
     rel_q = rel_p * 1.2
-    m = EVAL.bootstrap_ci_paired(rel_p ** 2, rel_q ** 2, n_boot=100, rng=rng)
-    assert m["ci_lo"] <= m["mean_diff"] <= m["ci_hi"]
-    assert m["mean_diff"] > 0  # Q 更差
+    m = EVAL.secondary_within_cell_mc(rel_p ** 2, rel_q ** 2, n_boot=100, rng=rng)
+    assert m["ci_lo"] <= m["mean"] <= m["ci_hi"]
+    assert m["mean"] > 0  # Q 更差
+
+
+def test_primary_design_bootstrap_bounds():
+    """主推断：20 设计单元 × 3 seed，CI 应含 pooled 均值。"""
+    rng = np.random.default_rng(1)
+    diffs = {n: {f: list(rng.normal(0.0, 0.01, 3)) for f in range(1, 6)}
+             for n in [7, 10, 15, 20]}
+    m = EVAL.primary_design_bootstrap(diffs, n_boot=200, rng=rng)
+    assert m["pooled_ci_lo"] <= m["pooled_mean"] <= m["pooled_ci_hi"]
+    assert set(m["per_n_mean"].keys()) == {7, 10, 15, 20}
+    for n in [7, 10, 15, 20]:
+        assert m["per_n_ci_lo"][n] <= m["per_n_mean"][n] <= m["per_n_ci_hi"][n]
 
 
 if __name__ == "__main__":

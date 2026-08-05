@@ -1,7 +1,8 @@
-"""Study/02 P-Q 冻结配置加载与路径。
+"""Study/02 P-Q v2 冻结配置加载与路径。
 
-加载 configs/pq-protocol-v1.json（FROZEN）。路径全部由本文件绝对位置派生，
-不假设 C/D 盘。Study01 权威输入路径按协议 §0 校验存在性与 SHA（可选）。
+加载 configs/pq-protocol-v2.json（FROZEN）。路径全部由本文件绝对位置派生，
+不假设 C/D 盘。v1（preliminary/superseded）产物保留于 artifacts/pq/；
+v2 产物写入 artifacts/pq_v2/。
 """
 
 from __future__ import annotations
@@ -13,13 +14,15 @@ import os
 STUDY02_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(STUDY02_ROOT))  # 仓库根
 
-CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-protocol-v1.json")
+PROTOCOL_VERSION = "v2"
+CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-protocol-v2.json")
 PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "01-PQ-冻结协议.md")
 
-# P-Q 产物目录
-ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq")
+# v2 产物目录（v1 保留于 artifacts/pq/，preliminary）
+ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq_v2")
 PREDICTIONS_DIR = os.path.join(ARTIFACT_DIR, "predictions")
-CHECKPOINTS_DIR = os.path.join(ARTIFACT_DIR, "checkpoints")
+CHECKPOINTS_DIR = os.path.join(ARTIFACT_DIR, "fit_metadata")   # 无模型 state，故称 fit metadata
+EVIDENCE_DIR = os.path.join(ARTIFACT_DIR, "evidence")          # 压缩逐样本证据（npz，tracked）
 SPLITS_MANIFEST_PATH = os.path.join(ARTIFACT_DIR, "splits_manifest.json")
 
 

@@ -157,6 +157,17 @@ def make_arrays(master: Master, rows: np.ndarray):
     return X, params, x95
 
 
+def sample_min(master: Master, rows: np.ndarray) -> np.ndarray:
+    """逐行 min(X)（location-scale decode 的 location 锚点）。"""
+    return np.array([master.X[int(r)].min() for r in rows], dtype=np.float64)
+
+
+def sample_bytes_sha(master: Master, rows: np.ndarray) -> str:
+    """给定行集合的原始样本字节流 SHA256（主样本字节契约）。"""
+    buf = np.concatenate([master.X[int(r)] for r in rows])
+    return sha_bytes(np.ascontiguousarray(buf, dtype=np.float64).tobytes())
+
+
 class PerPositionScaler:
     """逐位置 StandardScaler；fit 仅用训练折（含其内部 validation 行），
     test 折绝不参与。P/Q 共用同一实例，故参数 SHA 一致。"""
