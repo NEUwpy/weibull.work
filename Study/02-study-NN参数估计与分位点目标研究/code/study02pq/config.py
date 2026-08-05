@@ -14,12 +14,13 @@ import os
 STUDY02_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(STUDY02_ROOT))  # 仓库根
 
-PROTOCOL_VERSION = "v2"
-CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-protocol-v2.json")
+PROTOCOL_VERSION = "v3"
+CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-protocol-v3.json")
 PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "01-PQ-冻结协议.md")
 
-# v2 产物目录（v1 保留于 artifacts/pq/，preliminary）
-ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq_v2")
+# r4 primary 产物目录（v1 保留于 artifacts/pq/，preliminary；
+# v2/P_loggap 保留于 artifacts/pq_v2/，sensitivity，不覆盖）
+ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq_v3")
 PREDICTIONS_DIR = os.path.join(ARTIFACT_DIR, "predictions")
 CHECKPOINTS_DIR = os.path.join(ARTIFACT_DIR, "fit_metadata")   # 无模型 state，故称 fit metadata
 EVIDENCE_DIR = os.path.join(ARTIFACT_DIR, "evidence")          # 压缩逐样本证据（npz，tracked）

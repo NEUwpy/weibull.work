@@ -217,8 +217,44 @@ def test_training_outputs_support_legal():
         r = TR.train_one_fit(7, 0, 42, route, master, max_epochs=6, patience=2)
         p = r["predictions"]
         assert np.all(p["gamma_hat"] < p["min_x"] - 1e-9)
+        assert np.all(p["gamma_hat"] > 0)
         assert r["meta"]["n_support_viol"] == 0
         assert r["meta"]["support_legality_ok"] is True
+
+
+def test_frozen_grid_representability():
+    """r4（Codex 合同）：所有冻结真 gamma 都落在解码器可表示区间 (0, min(X)) 内。"""
+    from itertools import product
+    from studies.common.sample import generate_sample
+    min_s = 1.0
+    max_s = 0.0
+    for b, goe, n in product(CFG.BETA_GRID, CFG.GAMMA_OVER_ETA_GRID, CFG.N_GRID):
+        gamma = goe * CFG.ETA
+        x = generate_sample(float(b), CFG.ETA, float(gamma), int(n), 0,
+                            seed=CFG.SEED_NAMESPACE)
+        mn = float(np.min(x))
+        assert mn > gamma, "min(X) 必须严格 > gamma（冻结正位置域）"
+        s = gamma / mn
+        min_s = min(min_s, s)
+        max_s = max(max_s, s)
+    # 解码器 s ∈ (delta, 1-delta)；全部真 gamma 必须落在其内
+    assert min_s > LOSS.DELTA
+    assert max_s < 1.0 - LOSS.DELTA
+    print(f"representability s range: ({min_s:.6f}, {max_s:.6f}) within "
+          f"({LOSS.DELTA}, {1 - LOSS.DELTA})")
+
+
+def test_direct_p_formula_exact():
+    """r4：P 损失必须是 approved direct 形式（无 log-gap / 辅助项）。"""
+    b = torch.tensor([2.1, 3.0]); e = torch.tensor([1050.0, 1000.0])
+    g = torch.tensor([400.0, 900.0])
+    tb = torch.tensor([2.0, 3.0]); te = torch.tensor([1000.0, 1000.0])
+    tg = torch.tensor([500.0, 1000.0])
+    min_x = torch.tensor([510.0, 1005.0])
+    lp = LOSS.loss_p(b, e, g, tb, te, tg, min_x)
+    manual = (((b - tb) / tb) ** 2 + ((e - te) / te) ** 2 + ((g - tg) / te) ** 2).mean()
+    assert torch.allclose(lp, manual)
+    assert not torch.any(torch.isnan(lp))
 
 
 def test_deterministic_rerun_same_fit():

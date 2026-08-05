@@ -1,14 +1,17 @@
-"""Study/02 P-Q v2 损失与参数合法化（P、Q 共用同一输出变换）。
+"""Study/02 P-Q r4 损失与参数合法化（P、Q 共用同一输出变换）。
 
-协议 v2 §1.1（location-scale decode，参考 study02a/representations.decode_targets）：
+r4（Codex 合同决策 000003）授权共享有界 domain-explicit 解码器：
   beta_hat  = softplus(o1) + eps
   eta_hat   = softplus(o2) + eps
-  gamma_hat = min(X) - eta * (exp(o3) + GAP_FLOOR)
-其中 eta = 设计固定 scale（1000），location = min(X)，GAP_FLOOR = 1e-7（gap 下限，
-保证 float64 下严格 gamma_hat < min(X)，即使 o3 -> -inf）。
-P 损失：β/η 相对平方误差 + γ 的平方 log-gap 误差（对带支撑约束的位置参数，log-gap 是
-自然相对误差尺度，且其梯度在 collapse 区非零，避免 exp 死区陷阱）。
-Q 损失：x0.95 相对平方误差（梯度经 Weibull 公式传播到三个输出）。
+  s         = delta + (1 - 2*delta) * sigmoid(o3)
+  gamma_hat = gamma_lower + (min(X) - gamma_lower) * s，gamma_lower = 0.0
+即 gamma_hat = min(X) * s，s ∈ (delta, 1-delta)。
+结构性支撑合法：gamma_hat <= (1-delta)*min(X) < min(X)（严格，非事后 clipping）。
+依赖冻结正位置域：真 gamma ∈ [100,1000]，所有样本 min(X) > gamma，故每个真 gamma 都在
+(0, min(X)) 内可表示；不声称对负位置问题成立。
+P 损失 = approved direct 形式（((β̂-β)/β)² + ((η̂-η)/η)² + ((γ̂-γ)/η)²）。
+Q 损失 = x0.95 相对平方误差（梯度经 Weibull 公式传播）。
+不加 log-gap / 辅助 γ 损失 / 直通梯度 / route 特定初始化或解码器。
 """
 
 from __future__ import annotations
@@ -19,20 +22,21 @@ import torch.nn.functional as F
 
 from . import config as CFG
 
-GAP_FLOOR = 1e-7  # gap = min(X) - gamma_hat 的相对下限（乘 eta 后 >> ulp）
+GAMMA_LOWER = 0.0
+DELTA = 1e-7  # s 的下/上余量，保证 float64 下 gamma_hat 与 0 和 min(X) 严格分离
 
 
 def decode_params(o: torch.Tensor, min_X: torch.Tensor):
     """o: (..., 3) 原始输出；min_X: (...,) 逐样本 min(X) → 合法三参数。
 
-    返回 (beta_hat, eta_hat, gamma_hat)。gamma_hat < min(X) 由构造严格保证：
-    gap = eta*(exp(o3)+GAP_FLOOR) >= eta*GAP_FLOOR = 1e-4 > min(X) 的 ulp。
+    gamma_hat = min(X)*s，s = delta + (1-2*delta)*sigmoid(o3) ∈ (delta, 1-delta)，
+    故 gamma_hat ∈ (delta*min(X), (1-delta)*min(X))，严格 (0, min(X)) 内。
     """
     eps = CFG.EPS_PARAM
     beta_hat = F.softplus(o[..., 0]) + eps
     eta_hat = F.softplus(o[..., 1]) + eps
-    gap = CFG.ETA * (torch.exp(o[..., 2]) + GAP_FLOOR)
-    gamma_hat = min_X - gap
+    s = DELTA + (1.0 - 2.0 * DELTA) * torch.sigmoid(o[..., 2])
+    gamma_hat = GAMMA_LOWER + (min_X - GAMMA_LOWER) * s
     return beta_hat, eta_hat, gamma_hat
 
 
