@@ -1,10 +1,13 @@
 # Study 02：NN 三参数 Weibull 输出下，参数精度损失 P vs 目标分位点损失 Q 对 \(x_{0.95}\) 估计的受控对照
 
 > 创建日期：2026-07-11
-> 当前修订：2026-08-05（Study02 P–Q 受控对照重组）
+> 当前修订：2026-08-05（v2，Codex R1 REVISE 收口）
 > 当前分支：`codex/study02-pq-controlled-20260805-r1`
 > 职责：本目录是 Study02 当前唯一研究主线。旧直接标量分位点 D 路线与旧前置研究 A 已整体
 > 归档/移入前置实验区，详见 `已归档/README.md` 与 `前置实验/README.md`。
+> 协议 v2：合法化 = location-scale decode（γ̂<min(X) 结构性）、P 损失 γ 项 = log-gap、
+> 主推断 = (n,fold)×seed 聚类、压缩逐样本证据 tracked、专用环境锁；v1 = preliminary/
+> superseded（`artifacts/pq/` 保留）。见 `01-PQ-冻结协议.md` §11。
 
 ## 当前研究问题（冻结）
 
@@ -32,7 +35,8 @@ L_Q=\operatorname{mean}\left[\left(\frac{\hat{x}_{0.95}-x_{0.95}}{x_{0.95}}\righ
 ## 设计对齐
 
 本实验对齐远端 `main` 中已封存的 **Study01 Dimensional-RAW** 权威设计（数据、输入表示、
-划分、训练设置），详见 `01-PQ-冻结协议.md`：
+划分、训练设置），详见 `01-PQ-冻结协议.md`（v2，配置 `configs/pq-protocol-v2.json`，
+环境锁 `configs/pq-environment-v2.json`）：
 
 - `beta = {1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5}`；`eta = 1000`；`gamma = {100, 250, 500, 750, 1000}`
 - `n = {7, 10, 15, 20}`；每 `(beta, eta, gamma, n)` 组合 300 次重复抽样

@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：前置研究 A 已完成，19/19 问有证据覆盖（17 answered + A4/A8 partial），正式成果见 Study/02 `06-A-前置研究报告.md`。主研究 B 的 B1–B6 已全部完成并 APPROVE（分支 `codex/study02-quantile-formal-20260731`；B6 实现/证据 tip `2e0e842d`，最终报告/文档 tip `b5c5404`）；正式结论见 Study/02 `05-B-正式实验报告.md`，证据哈希见 `04-B-证据索引.md`。核心结果：core pooled \(x_{0.95}\) 相对 RMSE 改善率 I=0.3926 [0.3444,0.4347]（NN 直接路线 D 相对 NN 参数路线 P，supported and material），但优势分层且非全域（D 非总体精度最优，core 上 MDM/LRE 更优）；旧 A formal 引擎与 test namespaces 永久只读，不作为 B 的控制面。C 阶段已完成并 APPROVED（分支 `codex/study02-c-scientific-argument-20260801`）：把 A/B 结果提升为科学论证，C0/C1–C5 全部通过（C5 经对抗性复核与可复现性稳定，code commit `8cc93147`），见 Study/02 `06-C-论证计划与状态.md`、`07-C-机制分析与补充证据.md` 与 `08-C-论文前科学论证报告.md`（C5 最终版，APPROVED）。
+**Study/02 当前态**：当前唯一研究主线为 **P–Q 受控对照**（分支 `codex/study02-pq-controlled-20260805-r1`）：在完全相同的数据/三参数 Weibull 输出网络/容量/初始化/划分/训练设置下，比较参数精度损失 P 与目标分位点损失 Q 对 \(x_{0.95}\) 估计的相对表现，数据与划分对齐 Study01 Dimensional-RAW。入口见 Study/02 `README.md`；冻结协议 `01-PQ-冻结协议.md`、结果报告 `04-PQ-结果报告.md`、证据索引 `03-PQ-证据索引.md`（v2，Codex R1 REVISE 后全量重跑）。**旧直接标量分位点 D 路线与旧 B/C 阶段已归档**（`Study/02-…/已归档/直接标量分位点D路线/`；其“D 相对 P 更优”结论已因 R1 漏用 P 输入 scaler 被推翻，不再作为论文证据），**前置研究 A 已移入** `Study/02-…/前置实验/`。不再训练 D；不合并 main。
 
 **Study/01 当前态**：论文主线已收敛为“三参数 Weibull MDM 框架内偏移量 `delta` 的最优性定义、信息层级与样本自适应选择”。核心证据为 E1/E2 潜在空间结果，以及 Dimensional-RAW-MLP：按样本量分别训练 MLP，以排序原始样本预测 26 点损失曲线并选择偏移量。在新 160 组合主设计域（`eta=1000`，`n∈{7,10,15,20}`）内，Dimensional-RAW pooled J1=0.554，较固定 `delta=0.1` 改善约 12.1%，失败率为 0%；结论限于训练单位和尺度范围。旧特征路线 E3b、Normalized-RAW 候选及旧 P2/P4/分位点结果保留为历史或候选证据，不直接支持当前 E6 方法；E6 参数泛化、WMLE/LSE 同条件比较和工程寿命分位点仍待重新派生。MLE 不再作为论文证据消费，Direct-MLP 完整比较属于独立 Research；真实案例后置，NIST 6061-T6 不进入本文。外部中文学术源稿 v0.3 为唯一活动论文稿。
 
