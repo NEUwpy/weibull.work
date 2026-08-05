@@ -21,6 +21,7 @@ from study02pq import config as CFG  # noqa: E402
 from study02pq import data as DATA  # noqa: E402
 from study02pq import evaluate as EVAL  # noqa: E402
 from study02pq import losses as LOSS  # noqa: E402
+from study02pq import run as RUN  # noqa: E402
 from study02pq import model as MODEL  # noqa: E402
 from study02pq import training as TR  # noqa: E402
 
@@ -232,6 +233,27 @@ def test_deterministic_rerun_same_fit():
 # ----------------------------------------------------------------------
 # 评价
 # ----------------------------------------------------------------------
+
+def test_evidence_key_schema_exact_identity():
+    """r4 schema：encode_keys/decode_keys/keys_match 在完整冻结键网格上保持精确身份
+    （分数 beta 与 gamma/eta 不被截断）。"""
+    from itertools import product
+    combos = list(product(CFG.BETA_GRID, CFG.GAMMA_OVER_ETA_GRID, CFG.N_GRID))
+    rows = [(b, g, n, rid) for (b, g, n) in combos for rid in range(CFG.REPEATS)]
+    k4 = np.asarray(rows, dtype=np.float64)
+    enc = RUN.encode_keys(k4)
+    dec = RUN.decode_keys(enc)
+    assert np.array_equal(dec["beta"], k4[:, 0]), "beta 被截断"
+    assert np.array_equal(dec["gamma_over_eta"], k4[:, 1]), "gamma/eta 被截断"
+    assert np.array_equal(dec["n"], k4[:, 2].astype(np.int32))
+    assert np.array_equal(dec["repeat_id"], k4[:, 3].astype(np.int32))
+    # 分数值必须保留
+    assert 1.5 in set(dec["beta"].tolist())
+    assert 2.5 in set(dec["beta"].tolist())
+    assert 0.25 in set(dec["gamma_over_eta"].tolist())
+    dec2 = RUN.decode_keys(RUN.encode_keys(k4))
+    assert RUN.keys_match(dec, dec2)
+
 
 def test_rrmse_matches_manual():
     rel = np.array([0.1, 0.2, 0.3])

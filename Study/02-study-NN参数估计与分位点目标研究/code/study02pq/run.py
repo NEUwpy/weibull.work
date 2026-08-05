@@ -95,6 +95,29 @@ def fit_complete(fit: str) -> bool:
             and os.path.isfile(evidence_npz_path(fit)))
 
 
+def encode_keys(k4: np.ndarray) -> dict:
+    """把 (N,4) master 键数组拆成精确 dtype：beta/gamma_over_eta 为 float64
+    （保留分数值），n/repeat_id 为 int32。r4 证据 schema 修复。"""
+    return {
+        "keys_beta": np.ascontiguousarray(k4[:, 0], dtype=np.float64),
+        "keys_gamma_over_eta": np.ascontiguousarray(k4[:, 1], dtype=np.float64),
+        "keys_n": np.ascontiguousarray(k4[:, 2], dtype=np.int32),
+        "keys_repeat_id": np.ascontiguousarray(k4[:, 3], dtype=np.int32),
+    }
+
+
+def decode_keys(data: dict) -> dict:
+    return {"beta": data["keys_beta"], "gamma_over_eta": data["keys_gamma_over_eta"],
+            "n": data["keys_n"], "repeat_id": data["keys_repeat_id"]}
+
+
+def keys_match(d1: dict, d2: dict) -> bool:
+    for k in ("beta", "gamma_over_eta", "n", "repeat_id"):
+        if not np.array_equal(d1[k], d2[k]):
+            return False
+    return True
+
+
 def save_fit(fit: str, result: dict):
     p = result["predictions"]
     keys = p["keys"]
@@ -109,10 +132,10 @@ def save_fit(fit: str, result: dict):
     })
     # 完整精度 CSV（gitignore，本机计算用）
     df.to_csv(prediction_csv_path(fit), index=False)
-    # 压缩逐样本证据（tracked）
+    # 压缩逐样本证据（tracked）——键以精确 dtype 存储（r4 schema 修复）
     np.savez_compressed(
         evidence_npz_path(fit),
-        keys=keys.astype(np.int32),
+        **encode_keys(keys),
         beta_hat=p["beta_hat"].astype(np.float32),
         eta_hat=p["eta_hat"].astype(np.float32),
         gamma_hat=p["gamma_hat"].astype(np.float32),
@@ -156,11 +179,10 @@ def load_evidence(fit: str) -> dict:
 def load_rel_sq_from_evidence(fit_p: str, fit_q: str) -> tuple[np.ndarray, np.ndarray]:
     ep = load_evidence(fit_p)
     eq = load_evidence(fit_q)
-    kp = ep["keys"].view(np.int32).reshape(-1, 4)
-    kq = eq["keys"].view(np.int32).reshape(-1, 4)
-    # 对齐到相同测试行
-    assert kp.shape == kq.shape and len(kp) == len(kq)
-    assert np.array_equal(kp, kq), f"P/Q evidence keys mismatch for {fit_p}/{fit_q}"
+    kp, kq = decode_keys(ep), decode_keys(eq)
+    assert len(kp["beta"]) == len(kq["beta"])
+    # 对齐到相同测试行（精确键标识，r4 schema）
+    assert keys_match(kp, kq), f"P/Q evidence keys mismatch for {fit_p}/{fit_q}"
     return ep["rel_err_sq"], eq["rel_err_sq"]
 
 

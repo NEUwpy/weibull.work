@@ -46,13 +46,14 @@ def weibull_quantile(beta_hat: torch.Tensor, eta_hat: torch.Tensor,
 def loss_p(beta_hat: torch.Tensor, eta_hat: torch.Tensor, gamma_hat: torch.Tensor,
            beta: torch.Tensor, eta: torch.Tensor, gamma: torch.Tensor,
            min_X: torch.Tensor) -> torch.Tensor:
+    """direct-P（任务 r4 恢复 approved 形式）：
+    rel_b = ((beta_hat-beta)/beta)^2；rel_e = ((eta_hat-eta)/eta)^2；
+    rel_g = ((gamma_hat-gamma)/eta)^2（γ 误差以 η 归一，与 Study01 J1 同形）。
+    """
     rel_b = (beta_hat - beta) / beta
     rel_e = (eta_hat - eta) / eta
-    # γ：平方 log-gap 误差（gap = min(X) - gamma，带支撑约束位置参数的自然相对误差）
-    gap_hat = min_X - gamma_hat
-    gap_true = min_X - gamma
-    log_gap_err = torch.log(gap_hat) - torch.log(gap_true)
-    return (rel_b ** 2 + rel_e ** 2 + log_gap_err ** 2).mean()
+    rel_g = (gamma_hat - gamma) / eta
+    return (rel_b ** 2 + rel_e ** 2 + rel_g ** 2).mean()
 
 
 def loss_q(x95_hat: torch.Tensor, x95: torch.Tensor) -> torch.Tensor:
