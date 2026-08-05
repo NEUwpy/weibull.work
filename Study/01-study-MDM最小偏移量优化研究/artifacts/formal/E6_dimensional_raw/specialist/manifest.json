@@ -121,9 +121,10 @@
     "J1": "sqrt(mean_i(true_loss_i(delta_hat_i)))"
   },
   "split_contract": {
-    "folds": "deterministic 5-fold full-combo holdout over (beta, gamma/eta, n)",
+    "folds": "per-n gamma/eta-level holdout: for each n, each fold holds out one complete gamma/eta level (test covers all 8 betas; train contains all betas under the other gamma/eta levels). Does NOT test unseen betas.",
     "folds_total": 5,
-    "train_test_disjoint": true
+    "train_test_disjoint": true,
+    "note": "The combo enumeration order makes this a per-n gamma/eta-level holdout, not a general arbitrary-combo holdout; unseen-beta generalization is not evaluated by this split."
   },
   "training_contract": {
     "models_total_fold": 60,
@@ -934,5 +935,24 @@
   "git_commit": "1c8b47f9ae0a26fe249968c3a1350f799c9a5fdd",
   "git_commit_short": "1c8b47f9",
   "git_branch": "study01-dimensional-raw-specialist",
-  "workspace_dirty": true
+  "workspace_dirty": true,
+  "provenance": {
+    "implementation_code_commit": "d9ea4a35",
+    "artifact_commit": "7eda7b32",
+    "seal_commit": "54470f67",
+    "runtime_head_commit": "1c8b47f9ae0a26fe249968c3a1350f799c9a5fdd",
+    "runtime_workspace_dirty": true,
+    "hash_basis": "LF-normalized bytes (CRLF->LF normalized before hashing; fingerprints independent of checkout line endings)",
+    "hash_note": "data_sha256sums.txt/SHA256SUMS fingerprints are computed over LF-normalized bytes; they match across checkouts but are NOT byte-identical to the current Windows files.",
+    "no_retrain": "Fold-model code_sha256 matches the committed implementation commit d9ea4a35; manifest provenance is post-hoc, models were not retrained.",
+    "normalized_raw_control": {
+      "role": "candidate control, not main evidence",
+      "branch": "study01-normalized-raw-specialist",
+      "commit": "4233856c",
+      "results_file": "artifacts/formal/E5_normalized_raw/specialist/raw_specialist_results.csv",
+      "summary_file": "artifacts/formal/E5_normalized_raw/specialist/summary.json",
+      "summary_sha256_lf": "83aa3604cf840665816d36862b866e5b3137366cf0f10d3c58a639042c94f640",
+      "model_comparison_sha256_lf": "87bbe58cbe196a653e049053a126da42d621fe747bb1e7d55a596e714a4b041a"
+    }
+  }
 }
