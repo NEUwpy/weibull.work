@@ -6,8 +6,9 @@
 Role: executor
 Plan: `<path>`
 Report: `<optional path; otherwise use the archived mailbox message>`
+Mentor checkpoints: `<required research transitions, or none>`
 
-Follow the coworker protocol. Use implementation autonomy within the plan boundaries. Stop on blocking ambiguity, scope mismatch, or contradiction with the current code.
+Follow the coworker protocol. Use implementation autonomy within the plan boundaries. Stop on blocking ambiguity, scope mismatch, contradiction with the current code, or a required `$mentor` checkpoint. Do not invoke the mentor for routine implementation steps or turn it into continuous supervision.
 ```
 
 ## Secondary Review
