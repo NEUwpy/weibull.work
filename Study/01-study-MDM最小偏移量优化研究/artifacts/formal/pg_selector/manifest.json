@@ -1,13 +1,27 @@
 {
   "contract_version": "PG_selector_phaseA_v1",
-  "created_at": "2026-08-05T16:18:55.586352+00:00",
+  "mode": "full",
+  "experiment": "parameter-guided offset selector - full (Phase B, 48,000-sample)",
+  "created_at": "2026-08-05T16:47:59.425187+00:00",
+  "run_start_git": {
+    "git_commit": "fd777f392ecfaa7816cb12c6b7cef7a20a6c6027",
+    "git_commit_short": "fd777f39",
+    "git_branch": "codex/study01-parameter-guided-selector",
+    "workspace_dirty": false
+  },
   "code_entry": "code/run_pg_selector.py",
   "code_sha256": {
     "analyze_E1_E2_crossfit.py": "9c8e9b303a875e1e409ff77780a8914551faae3886eed223f01d76bfe21ebd6d",
     "dim_raw_config.py": "33baacb643da791c1658fc27d024207ecf3d0615f6cac38f76406895e67e4b14",
     "paper_support.py": "f3fa090cc3506868a50af16642b75bd70997a4ef3b10ad5bf4160a54c8143d54",
     "run_E6b_dimensional_raw_specialist.py": "9ec5b97f4749ca55fe41770f91fc37cbd65276e0af2fde5e29a1f9f27238012e",
-    "run_pg_selector.py": "4cf7ec0faa3a46ef033f5fb8ddf6c5d588785bef76a19ab45000d21ca1ca372c"
+    "run_pg_selector.py": "09e865b18fd94ee80329c3dd10eb8b1765371939436358382c6877adfe7e570c"
+  },
+  "wmle_worker_sha256": {
+    "run_b2_traditional_ref.py": "705c108e947b70cbb43ec1b7a5fac6c043d55982e5b65c9aec3c96ec60023406"
+  },
+  "wmle_prod_sha256": {
+    "wmle.py": "d9ebd4e87d1f6defb26335eca0931099986c4fc69390288b688eb7eb12fa31d4"
   },
   "design": {
     "split": "repeat_id mod 5 cross-fit; curves from training folds only",
@@ -48,11 +62,20 @@
     "cycle_handling": "never averaged; convergence never forced",
     "clip_rule": "clip only outside training support; every event recorded",
     "interpolate": "loss curves, never selected delta values",
-    "J1": "sqrt(mean_i(L_i)), three-parameter loss, NO /3"
+    "J1": "sqrt(mean_i(L_i)), three-parameter loss, NO /3",
+    "primary": "one-step selection; terminal iteration is a diagnostic of feedback deterioration (frozen Phase B decision)"
   },
   "data_source": {
-    "reused": "artifacts/formal/E5_normalized_raw/shared_data/ (160-combo new design; pilot subset repeats < repeat_max)",
-    "wmle_cache_note": "B2 artifacts/formal/E6_dimensional_raw/traditional_ref/estimation.csv absent on disk; genuinely insufficient -> WMLE recomputed on the pilot subset only (production wmle.py, B2 worker)"
+    "reused": "artifacts/formal/E5_normalized_raw/shared_data/ (160-combo new design; repeats < repeat_max)",
+    "scan_manifest": {
+      "path": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E5_normalized_raw\\shared_data\\manifest.json",
+      "sha256": "8b574d70d3cf76ac58454a6638654db37d2fbf85b51d3a54ce034e78fb84ee17"
+    },
+    "scan_data_checksums": {
+      "path": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E5_normalized_raw\\shared_data\\data_sha256sums.txt",
+      "sha256": "000c82a89e9e50c3440c3b92b703d3cf90cb150858deae1f420e8cc7d819ff8e"
+    },
+    "wmle_cache_note": "B2 artifacts/formal/E6_dimensional_raw/traditional_ref/estimation.csv absent on disk; genuinely insufficient -> WMLE recomputed with the frozen B2 worker (production wmle.py)"
   },
   "output_files": [
     "summary.json",
@@ -64,15 +87,17 @@
     "clip_diagnostics.csv",
     "prov_param_diag.csv",
     "prov_err_vs_delta.csv",
+    "beta_cell_correctness.csv",
+    "paired_bootstrap.csv",
     "key_alignment.json",
-    "pilot_results.csv (gitignored)",
-    "wmle_pilot_estimates.csv (gitignored)",
+    "pg_results.csv (gitignored)",
+    "wmle_estimates.csv (gitignored)",
     "SHA256SUMS",
     "SHA256SUMS.local_not_in_git"
   ],
-  "phase_boundary": "Phase A pilot only.  Full 48,000-sample run is Phase B (--full) and is NOT executed until review.",
-  "git_commit": "c0d557fce5896d034603957d78732694474dd6ca",
-  "git_commit_short": "c0d557fc",
+  "phase_boundary": "Phase B full 48,000-sample run; final package replaced the pilot package at this location",
+  "git_commit": "fd777f392ecfaa7816cb12c6b7cef7a20a6c6027",
+  "git_commit_short": "fd777f39",
   "git_branch": "codex/study01-parameter-guided-selector",
   "workspace_dirty": true
 }
