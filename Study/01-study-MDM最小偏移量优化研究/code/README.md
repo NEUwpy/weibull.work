@@ -15,13 +15,17 @@
 
 当前代码调用项目生产 MDM 与共享样本实现，不在 Study01 内另复制估计器。
 
-## 待补验证应复用的能力
+## 写作前支撑验证（B1/B2/B3，已完成）
 
-- 未见 $\beta$：复用 E6 训练函数、现有风险数据和 per-n 模型，不重跑 MDM。
-- 工程分位点：复用现有候选估计并按 E6 的 `selected_delta` 取对应参数。
-- WMLE/LSE：调用 `python/methods/` 当前生产实现，不复制传统估计器。
+| 文件 | 职责 |
+|---|---|
+| `paper_support.py` | 共享的数据读取、Default/L6 基线与指标/溯源工具 |
+| `run_b1_unseen_beta.py` | 未见 $\beta$ 留出验证（8 折，per-n 网络，三 seed） |
+| `run_b2_traditional_ref.py` | WMLE/LSE 同条件外部参照（同一 48,000 样本） |
+| `run_b3_quantiles.py` | $x_{0.90}/x_{0.95}/x_{0.99}$ 工程分位点派生 |
+| `generate_paper_figures.py` | 当前路线论文图表与补充表格生成 |
 
-实现以完成当前问题的最小脚本为准。除非出现第二个明确使用者，不新建通用实验控制框架。
+实现原则不变：复用 E6 训练函数、现有风险数据和 `python/methods/` 生产实现，不重跑 MDM、不复制估计器；以完成当前问题的最小脚本为准，不新建通用实验控制框架。
 
 ## 历史与 Research
 
