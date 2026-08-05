@@ -25,7 +25,6 @@ import sys
 import os
 import json
 import hashlib
-import subprocess
 
 STUDY_CODE_DIR = os.path.dirname(os.path.abspath(__file__))
 STUDY_ROOT = os.path.dirname(STUDY_CODE_DIR)
@@ -69,15 +68,6 @@ def sha256_file_lf(path):
     return h.hexdigest()
 
 
-def git_short(ref):
-    try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "--short", ref],
-            cwd=PROJECT_ROOT, stderr=subprocess.DEVNULL).decode().strip()
-    except Exception:
-        return ref
-
-
 def main():
     mpath = os.path.join(CFG.SPECIALIST_DIR, 'manifest.json')
     with open(mpath, encoding='utf-8') as f:
@@ -96,7 +86,6 @@ def main():
         'implementation_code_commit': IMPLEMENTATION_COMMIT,
         'artifact_commit': ARTIFACT_COMMIT,
         'seal_preparation_commit': SEAL_PREPARATION_COMMIT,
-        'provenance_parent_commit': SEAL_PREPARATION_COMMIT,
         'runtime_head_commit': manifest.get('git_commit', ''),
         'runtime_workspace_dirty': manifest.get('workspace_dirty', None),
         'hash_basis': 'LF-normalized bytes (CRLF->LF normalized before hashing; '

@@ -26,13 +26,13 @@
 |------|------|--------------|--------------|------|
 | **E1** | 固定全局偏移量及经验值 `delta=0.1` 的位置 | 经验值 `delta=0.1` 是否已接近当前设计测度下的最佳统一常数？L1/L2 固定规则能否带来收益？ | `artifacts/formal/E1_baseline/`、`artifacts/formal/E1_E2_crossfit/` | 正式证据可用（已封存） |
 | **E2** | 不同信息层级下的潜在收益 | 从 L3 到 L6，增加真参数信息能带来多少精度收益？边际递减点在哪里？ | `artifacts/formal/E2_oracle_layers/`、`artifacts/formal/E2_beta_profile_audit/` | 正式证据可用（已封存） |
-| **Dimensional-RAW-MLP（样本自适应，最终方法）** | 真参数未知时，按样本量分别训练的 MLP 以排序的原始样本 $X_n=\operatorname{sort}(x)$ 预测 26 点损失曲线并选择偏移量 | 仅凭样本可观测信息能否逼近 oracle 层级的参照精度？ | `artifacts/formal/E6_dimensional_raw/specialist/`（数据复用 `E5_normalized_raw/shared_data/`） | 正式证据可用（本迁移交付） |
+| **Dimensional-RAW-MLP（样本自适应，最终方法）** | 真参数未知时，按样本量分别训练的 MLP 以排序的原始样本 $X_n=\operatorname{sort}(x)$ 预测 26 点损失曲线并选择偏移量 | 仅凭样本可观测信息能否逼近 oracle 层级的参照精度？ | `artifacts/formal/E6_dimensional_raw/specialist/`（数据复用 `E5_normalized_raw/shared_data/`） | 正式证据可用（已复核） |
 | ~~E3b~~（历史） | 旧特征路线：13 统计量、跨 n 联合 Vector-MLP | 历史/Research 证据，不再作为正式输入 | `artifacts/formal/E3b_vector_mlp/`、`artifacts/formal/E3_sample_adaptive/` | 已封存，保留为历史证据 |
 
 三项核心结果的关键数值（以封存口径为准）：
 
 - E1：`delta=0.1` 已接近全局最优统一常数，L1 相对 Default 的 pooled J1 降幅约 `0.8%`（新设计域 cross-fit），全局固定规则收益有限。
-- E2：新 160 组合设计统一 cross-fit：Default 0.6304 / L1 0.6252 / L2 0.6230 / L3 0.5905 / L4 0.5885 / L5 0.5813 / L6 0.4923；L2→L3 为最大单步信息增益（5.2%），逐样本事后选择潜在降幅约 21.9%。
+- E2：新 160 组合设计重算（L1–L5 为 repeat-id cross-fit，L6 为逐样本 hindsight）：Default 0.6304 / L1 0.6252 / L2 0.6230 / L3 0.5905 / L4 0.5885 / L5 0.5813 / L6 0.4923；L2→L3 为最大单步信息增益（5.2%），逐样本事后选择潜在降幅约 21.9%。
 - 样本自适应（Dimensional-RAW，新设计域：`eta=1000`、`n∈{7,10,15,20}`、160 组合）：以排序原始样本为输入、按样本量分 n 训练；正式结果（同测试样本、按 `n` 的 `gamma/eta` 水平留出比较）：pooled J1 = 0.554（三 seed 0.5545/0.5523/0.5560，std 0.0015），Default = 0.630、L6 hindsight = 0.492、归一化候选对照 = 0.585；相对 Default 改善约 12.1%；分 n J1 = 0.690/0.576/0.485/0.430（n=7/10/15/20），失败率 0%；留出划分未检验未见 `beta`；有量纲输入不具备单位不变性，结论限于训练单位与尺度范围。产物 `artifacts/formal/E6_dimensional_raw/specialist/`。
 - 工程证据口径：Dimensional-RAW 路线的参数泛化、工程寿命分位点与传统方法同条件比较均待按 E6 正式产物重新派生；旧特征路线的 P2/分位点/传统方法结果仅作历史线索，不直接支持新路线。
 
