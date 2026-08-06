@@ -146,6 +146,27 @@ def split_fold(master: Master, n: int, fold_idx: int, val_fraction=None):
     return tr_final, val_rows, test_rows
 
 
+def split_repeat_fold(master: Master, n: int, fold_idx: int):
+    """同分布五折：每个参数组合都按 repeat_id 分到 train/val/test。
+
+    test 使用 ``repeat_id % 5 == fold_idx``，validation 使用下一余数，其余为
+    train。对正式 300 repeats，每个组合分别得到 180/60/60 行。
+    """
+    assert 0 <= fold_idx < CFG.N_FOLDS
+    n_mask = master.keys[:, 2].astype(np.int64) == int(n)
+    repeat_mod = master.keys[:, 3].astype(np.int64) % CFG.N_FOLDS
+    test_mask = n_mask & (repeat_mod == fold_idx)
+    val_mask = n_mask & (repeat_mod == ((fold_idx + 1) % CFG.N_FOLDS))
+    train_mask = n_mask & ~test_mask & ~val_mask
+    train_rows = np.flatnonzero(train_mask)
+    val_rows = np.flatnonzero(val_mask)
+    test_rows = np.flatnonzero(test_mask)
+    assert not set(train_rows) & set(val_rows)
+    assert not set(train_rows) & set(test_rows)
+    assert not set(val_rows) & set(test_rows)
+    return train_rows, val_rows, test_rows
+
+
 def make_arrays(master: Master, rows: np.ndarray):
     """按行索引返回 (X, params, x0_95)。X 为 (len(rows), n)。"""
     n = int(master.keys[rows[0]][2]) if len(rows) else 0

@@ -45,6 +45,20 @@ def test_generate_sample_deterministic():
     assert np.isclose(s1[0], 517.7607, atol=1e-3)
 
 
+def test_repeat_stratified_split_covers_every_combo():
+    master = DATA.build_master(beta_grid=[2.0, 3.0], gamma_grid=CFG.GAMMA_GRID,
+                               n_grid=[7], repeats=10)
+    train, val, test = DATA.split_repeat_fold(master, 7, 0)
+    assert (len(train), len(val), len(test)) == (60, 20, 20)
+    assert not set(train) & set(val)
+    assert not set(train) & set(test)
+    assert not set(val) & set(test)
+    for rows, expected_per_combo in ((train, 6), (val, 2), (test, 2)):
+        combos, counts = np.unique(master.keys[rows, :2], axis=0, return_counts=True)
+        assert len(combos) == 10
+        assert np.all(counts == expected_per_combo)
+
+
 def test_master_integrity():
     master = _small_master()
     assert len(master.keys) == 2 * 5 * 2 * 6
@@ -355,6 +369,25 @@ def test_primary_bootstrap_incorporates_seed_variation():
     # 所有 cell 同 fold 但 seed 不同 → pooled 均值为 0，但 seed 变异应使 CI 明显宽于 0
     assert m["pooled_ci_lo"] < -0.01 and m["pooled_ci_hi"] > 0.01
     assert m["pooled_ci_lo"] <= 0.0 <= m["pooled_ci_hi"]
+
+
+def test_warm_start_keeps_epoch_zero_as_candidate():
+    """目标切换 pilot 可从共同 checkpoint 续训，并保留未续训状态。"""
+    master = _small_master()
+    model = MODEL.build_model(7, 42)
+    start_sha = MODEL.params_sha(model)
+    result = TR.train_one_fit(
+        7, 0, 42, "Q", master,
+        max_epochs=1, patience=1,
+        initial_state=model.state_dict(), include_initial=True,
+        return_state=True, learning_rate=0.0,
+    )
+    restored = MODEL.build_model(7, 42)
+    restored.load_state_dict(result["model_state"])
+    assert result["meta"]["warm_started"] is True
+    assert result["meta"]["best_epoch"] == 0
+    assert result["meta"]["init_param_sha"] == start_sha
+    assert MODEL.params_sha(restored) == start_sha
 
 
 if __name__ == "__main__":

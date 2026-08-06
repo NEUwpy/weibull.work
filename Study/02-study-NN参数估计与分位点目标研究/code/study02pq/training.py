@@ -40,7 +40,9 @@ def _epoch_perm(n_rows: int, generator: torch.Generator) -> np.ndarray:
 
 
 def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Master,
-                  max_epochs=None, batch_size=None, patience=None):
+                  max_epochs=None, batch_size=None, patience=None,
+                  initial_state=None, include_initial=False, return_state=False,
+                  learning_rate=None, split_strategy="gamma_holdout"):
     """训练一个 (n, fold, seed, route) 模型并在 held-out 折上评价。
 
     返回 dict（指标、预测 numpy、配对 SHA、元数据）。不写盘；由调用方负责 checkpoint。
@@ -55,7 +57,12 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     gen = torch.Generator().manual_seed(seed)
 
     # ---- 数据行（与 seed/route 无关） ----
-    train_rows, val_rows, test_rows = DATA.split_fold(master, n, fold_idx)
+    if split_strategy == "gamma_holdout":
+        train_rows, val_rows, test_rows = DATA.split_fold(master, n, fold_idx)
+    elif split_strategy == "repeat_stratified":
+        train_rows, val_rows, test_rows = DATA.split_repeat_fold(master, n, fold_idx)
+    else:
+        raise ValueError(f"unknown split_strategy {split_strategy!r}")
     X_tr, P_tr, X95_tr = DATA.make_arrays(master, train_rows)
     X_val, P_val, X95_val = DATA.make_arrays(master, val_rows)
     X_te, P_te, X95_te = DATA.make_arrays(master, test_rows)
@@ -64,13 +71,17 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     min_x_te = DATA.sample_min(master, test_rows)
 
     # ---- scaler：仅训练折（train+val）拟合；test 折绝不参与 ----
-    scaler = DATA.PerPositionScaler().fit(np.vstack([X_tr, X_val]))
+    # 历史 r4 保持原合同；纠偏后的同分布主实验严格只用 train 拟合 scaler。
+    scaler_fit_X = np.vstack([X_tr, X_val]) if split_strategy == "gamma_holdout" else X_tr
+    scaler = DATA.PerPositionScaler().fit(scaler_fit_X)
     X_tr_s = scaler.transform(X_tr)
     X_val_s = scaler.transform(X_val)
     X_te_s = scaler.transform(X_te)
 
     # ---- 模型与损失 ----
     model = MODEL.build_model(n, seed)
+    if initial_state is not None:
+        model.load_state_dict(copy.deepcopy(initial_state))
     init_sha = MODEL.params_sha(model)
     net_sha = MODEL.structure_signature(n)
     loss_fn, target_kind = LOSS.build_route_loss(route)
@@ -87,7 +98,8 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     perm = _epoch_perm(len(X_tr), gen)
     batch_order_sha = DATA.sha_bytes(perm.astype(np.int64).tobytes())
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=CFG.LR, weight_decay=CFG.WEIGHT_DECAY)
+    lr = CFG.LR if learning_rate is None else float(learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=CFG.WEIGHT_DECAY)
     best_val = float("inf")
     best_state = None
     best_epoch = 0
@@ -96,6 +108,15 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     nan_flag = False
     t0 = time.time()
     last_epoch_loss = float("nan")
+
+    # 续训实验把共同起点作为 epoch 0 候选，避免目标切换把已有模型训练坏。
+    if include_initial:
+        model.eval()
+        with torch.no_grad():
+            val_out = model(X_val_t)
+            best_val = float(loss_fn(val_out, y_val, min_x_val_t))
+        best_state = copy.deepcopy(model.state_dict())
+        model.train()
 
     for epoch in range(1, max_epochs + 1):
         if epoch > 1:
@@ -198,5 +219,11 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         "val_rows_sha": DATA.sha_rows(val_rows),
         "test_rows_sha": DATA.sha_rows(test_rows),
         "route_loss": "P" if route == "P" else "Q",
+        "warm_started": bool(initial_state is not None),
+        "learning_rate": lr,
+        "split_strategy": split_strategy,
     }
-    return {"meta": meta, "predictions": predictions}
+    result = {"meta": meta, "predictions": predictions}
+    if return_state:
+        result["model_state"] = copy.deepcopy(model.state_dict())
+    return result
