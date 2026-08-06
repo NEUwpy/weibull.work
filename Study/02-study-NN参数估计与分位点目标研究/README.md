@@ -2,7 +2,7 @@
 
 > 创建日期：2026-07-11
 > 当前修订：2026-08-06（研究问题纠偏：同分布准确性为主；跨 gamma 外推降为补充）
-> 当前分支：`codex/study02-pq-controlled-20260805-r1`
+> 当前分支：`codex/study02-paper-20260806`
 > 职责：本目录是 Study02 当前唯一研究主线。旧直接标量分位点 D 路线与旧前置研究 A 已整体
 > 归档/移入前置实验区，详见 `已归档/README.md` 与 `前置实验/README.md`。
 > 协议 v3/r4：P = **approved direct-P**、共享 **domain-explicit 解码器**
