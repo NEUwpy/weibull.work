@@ -313,9 +313,14 @@ def write_aggregates(seeds, master, run_label=""):
             p = os.path.join(adir, f)
             if os.path.isfile(p):
                 analysis_sha[f] = sha256_file_canonical(p)
+    # S2（2026-08-07）：替换原先预期的 mechanism_*.json 通配符为实际生成的文件
+    # （Codex S2 任务清单：manifest output_files 用真实文件列表重新封存 analysis SHA）。
+    # 仅影响 manifest 输出清单文本；不改变证据生成语义，RUN_CODE_SHA 保持 S1 实现 commit。
     if CFG.PROTOCOL_VERSION == "iid-v1":
         analysis_out = ("analysis/<summary_iid.json, by_n_seed_descriptive.csv, "
-                        "by_region.csv, failure_counts.json, mechanism_*.json>")
+                        "by_region.csv, failure_counts.json, "
+                        "mechanism_summary.json, mechanism_by_region.csv, "
+                        "mechanism_cell_pairs.csv>")
     else:
         analysis_out = ("analysis/<summary_v3.json, by_n_seed_descriptive.csv, "
                         "failure_counts.json, boundary_diagnostic.json>")

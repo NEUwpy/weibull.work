@@ -1,0 +1,172 @@
+{
+ "protocol": "iid-v1",
+ "stage": "S2 mechanism (analysis-only; reuses frozen S1 evidence, no training)",
+ "estimand_note": "decomposition of actual relative x_0.95 error into first-order sensitivity projection proj=s.u and nonlinear remainder; target-aligned vs isoquantile-tangent magnitudes; component-cancellation index; all per held-out prediction",
+ "formulas": {
+  "x_p": "gamma + eta*(-ln p)^(1/beta), p=0.95",
+  "u": "((beta_hat-beta)/beta, (eta_hat-eta)/eta, (gamma_hat-gamma)/eta)",
+  "dx_dbeta": "-eta*a^(1/beta)*ln(a)/beta^2",
+  "dx_deta": "a^(1/beta)",
+  "dx_dgamma": "1",
+  "s_beta": "dx_dbeta*beta/x",
+  "s_eta": "dx_deta*eta/x",
+  "s_gamma": "eta/x",
+  "proj": "s_beta*u_beta + s_eta*u_eta + s_gamma*u_gamma",
+  "nonlinear_remainder": "actual - proj",
+  "align": "|u_par|/|u|, u_par = u.s_hat = proj/|s|",
+  "cancel": "(|c_beta|+|c_eta|+|c_gamma| - |proj|) / (|c_beta|+|c_eta|+|c_gamma|), 0 if denominator 0"
+ },
+ "evidence": {
+  "n_fits": 120,
+  "n_pairs": 60,
+  "n_rows_per_route": 144000,
+  "evidence_dir": "artifacts/pq_iid_main/evidence",
+  "baseline_tip": "928497b9"
+ },
+ "s1_cross_check": {
+  "pooled_p_rrmse_sealed": 0.1663268357515335,
+  "pooled_q_rrmse_sealed": 0.16111166775226593,
+  "rms_actual_recomputed_P": 0.16632683911085178,
+  "rms_actual_recomputed_Q": 0.16111166345260644
+ },
+ "pooled": {
+  "P": {
+   "n_rows": 144000,
+   "rms_actual": 0.16632683911085178,
+   "rms_proj": 0.1655872528201924,
+   "rms_rem": 0.017507632091904174,
+   "mean_proj_times_rem": -3.0519034698306176e-05,
+   "r2_explained": 0.9889202450574969,
+   "corr_proj_actual": 0.9959246081267779,
+   "corr_proj_rem": -0.029859205143926412,
+   "mean_align": 0.4111186499832725,
+   "mean_cancel": 0.3574666627124389,
+   "rms_u_par": 0.09116927147437986,
+   "rms_u_perp": 0.2152409048269044,
+   "rms_u_norm": 0.23375303885056484,
+   "rms_u_beta": 0.21559639498237515,
+   "rms_u_eta": 0.023590053735725213,
+   "rms_u_gamma": 0.08719052131523797,
+   "n_boundary": 0,
+   "boundary_share": 0.0
+  },
+  "Q": {
+   "n_rows": 144000,
+   "rms_actual": 0.16111166345260644,
+   "rms_proj": 6.367612270103443,
+   "rms_rem": 6.357184014307612,
+   "mean_proj_times_rem": -40.46715882301985,
+   "r2_explained": -1555.9533558521737,
+   "corr_proj_actual": 0.22557045310610882,
+   "corr_proj_rem": -0.9995400951713379,
+   "mean_align": 0.2614646287836915,
+   "mean_cancel": 0.3420304846758321,
+   "rms_u_par": 2.646213938142813,
+   "rms_u_perp": 8.739156538513607,
+   "rms_u_norm": 9.131007896780421,
+   "rms_u_beta": 9.077857710282524,
+   "rms_u_eta": 0.9301362012909519,
+   "rms_u_gamma": 0.32039233757779384,
+   "n_boundary": 0,
+   "boundary_share": 0.0
+  },
+  "delta_Q_minus_P": {
+   "rms_actual": -0.005215175658245336,
+   "rms_proj": 6.20202501728325,
+   "rms_rem": 6.339676382215708,
+   "mean_align": -0.14965402119958104,
+   "mean_cancel": -0.015436178036606796,
+   "rms_u_par": 2.5550446666684334,
+   "rms_u_perp": 8.523915633686702,
+   "rms_u_norm": 8.897254857929855
+  }
+ },
+ "design_pair_deltas": {
+  "rms_actual": {
+   "mean_delta": -0.004920204023585149,
+   "ci_lo": -0.006412366631594526,
+   "ci_hi": -0.003488358346918173,
+   "n_boot": 20000,
+   "level": 0.95
+  },
+  "rms_proj": {
+   "mean_delta": 5.764340046782077,
+   "ci_lo": 5.606457279712501,
+   "ci_hi": 5.913901990664665,
+   "n_boot": 20000,
+   "level": 0.95
+  },
+  "rms_rem": {
+   "mean_delta": 5.897519450085693,
+   "ci_lo": 5.739865033076734,
+   "ci_hi": 6.046882942015919,
+   "n_boot": 20000,
+   "level": 0.95
+  },
+  "mean_align": {
+   "mean_delta": -0.14965402119958102,
+   "ci_lo": -0.1542272595529908,
+   "ci_hi": -0.14444823161562495,
+   "n_boot": 20000,
+   "level": 0.95
+  },
+  "mean_cancel": {
+   "mean_delta": -0.015436178036606856,
+   "ci_lo": -0.026465436750689072,
+   "ci_hi": -0.004787232329720468,
+   "n_boot": 20000,
+   "level": 0.95
+  },
+  "rms_u_par": {
+   "mean_delta": 2.328918303661874,
+   "ci_lo": 2.2786031772294515,
+   "ci_hi": 2.3747794521575285,
+   "n_boot": 20000,
+   "level": 0.95
+  },
+  "rms_u_perp": {
+   "mean_delta": 7.832866958622106,
+   "ci_lo": 7.663865266741717,
+   "ci_hi": 7.984205795581817,
+   "n_boot": 20000,
+   "level": 0.95
+  }
+ },
+ "reversal_correlation_descriptive": {
+  "beta": {
+   "delta_rms_proj": -0.8816169279662434,
+   "delta_rms_rem": -0.8812454814208103,
+   "delta_rms_actual": 0.9836234526468322,
+   "delta_mean_align": 0.49971400171256136,
+   "delta_mean_cancel": 0.8100332386916385,
+   "delta_rms_u_par": -0.7319657915030043,
+   "delta_rms_u_perp": -0.8781556358191281
+  },
+  "gamma_over_eta": {
+   "delta_rms_proj": -0.9550260725902111,
+   "delta_rms_rem": -0.9527434718376894,
+   "delta_rms_actual": 0.9891125408675635,
+   "delta_mean_align": -0.9773762939287276,
+   "delta_mean_cancel": 0.9778455547852081,
+   "delta_rms_u_par": -0.972734528619472,
+   "delta_rms_u_perp": -0.9684371067749964
+  },
+  "n": {
+   "delta_rms_proj": 0.892312100841315,
+   "delta_rms_rem": 0.8911699027897529,
+   "delta_rms_actual": 0.9772896920618549,
+   "delta_mean_align": 0.7079045669616882,
+   "delta_mean_cancel": -0.861555371720051,
+   "delta_rms_u_par": 0.9362433236248069,
+   "delta_rms_u_perp": 0.9325693307324786
+  }
+ },
+ "limits": [
+  "analysis-only decomposition; observed association, not causal proof",
+  "design-level paired CIs are descriptive secondary support, not the primary inference",
+  "3 seeds only; training-fold overlap under repeat-stratified splitting",
+  "first-order projection uses sensitivity at true parameters; remainder absorbs second-order and finite-parameter effects and float32 storage of hats",
+  "region-level correlation is over a handful of bins (8 beta, 5 goe, 4 n), unweighted, exploratory"
+ ],
+ "n_boot_design_pairs": 20000
+}
