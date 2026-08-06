@@ -2,9 +2,9 @@
  "protocol_id": "study02-pq-iid-v1",
  "supersedes": [],
  "frozen_at": "2026-08-06",
- "contract": "S0 same-distribution main protocol (freeze candidate). Within each frozen parameter combo, independent repeats only; train/validation/test all cover the same beta x gamma x n grid. P = parameter-precision loss, Q = target x0.95 quantile loss; per-fit paired, only loss route differs. RQ/estimand/inference/matrix in 09-PQ-同分布主协议冻结.md. r4/v3 (gamma/eta-level holdout) retained verbatim as OOD supplement only, not main evidence.",
+ "contract": "S0 same-distribution main protocol (freeze candidate). Within each frozen parameter combo, independent repeats only; train/validation/test all cover the same beta x gamma x n grid. P = parameter-precision loss, Q = target x0.95 reliability-lifetime loss (see x_p_definition: R(x_p)=p, NOT a CDF p-quantile); per-fit paired, only loss route differs. RQ/estimand/inference/matrix in 09-PQ-同分布主协议冻结.md. r4/v3 (gamma/eta-level holdout) retained verbatim as OOD supplement only, not main evidence. R1 REVISE (2026-08-07): S0-001 x_p definition; S0-002 estimand/estimator consistency; S0-003 alignment scope; S0-004 strict protocol validation; cost basis corrected.",
  "split_strategy": "repeat_stratified",
- "run_mode": "PQ_PROTOCOL=iid-v1 (config.py env selector; default stays v3)",
+ "run_mode": "PQ_PROTOCOL=iid-v1 (config.py env selector; default stays v3; unknown values rejected with ValueError)",
  "study01_alignment": {
   "config_path": "Study/01-study-MDM最小偏移量优化研究/code/dim_raw_config.py",
   "sample_contract_path": "python/studies/common/sample.py",
@@ -12,7 +12,29 @@
   "split_report_path": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E6_dimensional_raw/specialist/split_report.csv",
   "shared_data_manifest": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/manifest.json",
   "shared_data_sha_list": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/data_sha256sums.txt",
-  "seed_namespace": "study01_nrmc_v1"
+  "seed_namespace": "study01_nrmc_v1",
+  "alignment_scope": {
+   "identical_to_study01": [
+    "parameter grid (beta, eta, gamma/eta, n, 300 repeats, 160 combos, 48000 samples)",
+    "sample generator contract generate_sample(..., seed=study01_nrmc_v1), namespace, sample key",
+    "raw ascending-sorted input representation; per-position StandardScaler fit on train rows only",
+    "nominal network 256-128-64 ReLU float64",
+    "main budget: max 300 epochs, patience 20, batch 256, lr 1e-3, wd 1e-4, train seeds 42/2026/3407"
+   ],
+   "deliberately_different_from_study01": [
+    "research label/loss: P and Q routes (Study01 has no such contrast; these are the study labels)",
+    "split purpose and scheme: Study01/sklearn uses gamma/eta-level holdout (OOD); this main protocol uses repeat-stratified 5-fold (same-distribution independent repeats)",
+    "optimizer implementation: Study01 sklearn trajectory; this protocol PyTorch Adam trajectory"
+   ],
+   "horizontal_analysis_scope": "cross-study comparison only on shared sample identity (same grid, generator, input) AND comparable metric (both estimate the x_p reliability lifetime); does not assert equivalence of optimizer trajectories or split scheme"
+  }
+ },
+ "x_p_definition": {
+  "meaning": "x_p is the RELIABILITY LIFETIME satisfying the survival function R(x_p)=P(X>x_p)=exp(-((x_p-gamma)/eta)^beta)=p; equivalently the CDF (1-p) quantile. It is NOT the usual CDF p-quantile (which would use -ln(1-p)).",
+  "formula": "x_p = gamma + eta * (-ln p)^(1/beta)",
+  "p_value": 0.95,
+  "m3_levels": [0.90, 0.95, 0.99],
+  "m3_meaning": "M3 levels 0.90/0.95/0.99 are RELIABILITY levels (survival probabilities), not CDF probabilities"
  },
  "design": {
   "beta_grid": [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
@@ -59,10 +81,10 @@
   "patience": 20,
   "losses": {
    "P": "direct: ((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2",
-   "Q": "relative x0.95 squared error through Weibull formula"
+   "Q": "relative x0.95 (reliability lifetime R(x)=0.95) squared error through Weibull formula"
   },
   "param_transform": "beta=softplus(o1)+1e-6; eta=softplus(o2)+1e-6; gamma=min(X)*(delta+(1-2*delta)*sigmoid(o3)), delta=1e-7, gamma_lower=0.0",
-  "x0p95": "gamma + eta * (-ln(0.95))^(1/beta)",
+  "x0p95": "x_p = gamma + eta * (-ln p)^(1/beta), p=0.95; x_p satisfies survival R(x_p)=p (see x_p_definition), i.e. CDF (1-p) quantile, NOT the CDF p-quantile",
   "support_legality": "strict 0 < gamma_hat < min(X) structurally (domain-explicit bounded decoder; relies on frozen positive-gamma domain gamma in [100,1000], min(X)>gamma)",
   "no_aux": "no log-gap, no auxiliary gamma loss, no straight-through gradient, no route-specific init or decoder"
  },
@@ -78,13 +100,16 @@
    "mechanism_M2"
   ],
   "estimated_wall_clock_min": {
-   "M1_120_fits": 20,
-   "basis": "r4 120 fits = 1522 s total (mean 12.7 s/fit) on hermes venv torch 2.12.0+cpu single-thread; iid has 7200 train rows vs r4 9600 (~25% fewer) -> ~9.5 s/fit typical, range 5-20 s"
+   "M1_120_fits": 22,
+   "basis": "r4 120 fits = 1522 s total (mean 12.7 s/fit) on hermes venv torch 2.12.0+cpu single-thread; r4 optimizer-train rows = 8160 (dev 9600 then internal val split 0.15 -> 9600*0.85); iid optimizer-train rows = 7200 (val is a separate repeat class, not carved from train); ratio 7200/8160 ~ 0.88 -> ~11.2 s/fit typical, M1 ~22 min (15-30 depending on early stopping)"
   }
  },
  "inference": {
-  "estimand": "For each (n, fold, seed) model, matched paired contrast d_{n,f,s} = equal-weight mean over its 2400 held-out paired samples of (rel_sq_Q - rel_sq_P). Design target Delta = equal-weight mean over the frozen (n,f,s) grid (4n x 5fold x 3seed = 60 model-level contrasts); finite-population target over the frozen fold/seed grid, not an infinite superpopulation.",
+  "estimand": "Scientific target Delta* = equal-weight mean over the frozen parameter domain (each n, each cell within n) of E[theta_Q(c) - theta_P(c)], where the expectation is over independent fresh held-out repeated samples AND training randomness (weight-init seed, batch order, optimizer trajectory) under the frozen 180/60/60 training protocol. Delta* is a superpopulation-style algorithmic performance gap, NOT a property of the realized fold/seed grid.",
+  "finite_estimate": "The realized 5 folds x 3 seeds x 4 n grid gives d_{n,f,s} (equal-weight mean over 2400 held-out paired samples) and hat_Delta = equal-weight mean over the 60 model-level contrasts. This is a finite Monte Carlo / CV estimate of Delta*: folds are finite replicate draws of the train/test repeat split, seeds are finite draws of training randomness.",
   "primary": "(n, fold) design-unit x seed crossed paired resampling (folds stratified by n with replacement, seeds resampled globally with replacement); B = 200000 for the reported CI, 2000 for smoke/tests",
+  "uncertainty_interpretation": "The crossed fold-x-seed bootstrap is a DESIGN-LEVEL empirical uncertainty approximation of hat_Delta as an estimate of Delta* (variability over which fold/seed realization occurred). Coverage caveats: (a) overlapping training folds (each repeat is train in 3 of 5 folds), (b) only 3 seeds, (c) within-unit per-sample MC noise is absorbed (only the unit mean is resampled). Per-sample bootstrap under fixed models remains a conditional supplement only.",
+  "weighting_note": "Under the fully balanced design every model has the same 2400 held-out samples and every cell the same 60 repeats, so Delta (hat_Delta) equals the pooled per-sample mean difference in rel_sq with identical weighting; rel_change differs from Delta by functional form (ratio of RMS vs linear difference in rel_sq), not by weighting. Both are reported with explicit denominators.",
   "n_design_units": 20,
   "n_model_level_contrasts": 60,
   "held_out_per_model": 2400,

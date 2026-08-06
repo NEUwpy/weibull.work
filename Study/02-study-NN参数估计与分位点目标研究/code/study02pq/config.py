@@ -1,10 +1,12 @@
 """Study/02 P-Q 冻结配置加载与路径。
 
-协议选择（S0 起，2026-08-06）：
+协议选择（S0 起，2026-08-06；R1 REVISE 修复 2026-08-07）：
 - 默认（不设环境变量）→ `configs/pq-protocol-v3.json`（r4 gamma-holdout primary，
   保留为 OOD 补充证据）。
 - `PQ_PROTOCOL=iid-v1` → `configs/pq-iid-protocol-v1.json`（同分布主协议，S0 冻结候选，
   见 `09-PQ-同分布主协议冻结.md`）。
+- 只接受 `v3` / `iid-v1`；任何未知值立即 `ValueError`（不静默回落到 v3），防止变量
+  拼错把正式 iid 运行写回旧 OOD 合同。
 路径全部由本文件绝对位置派生，不假设 C/D 盘。v1（preliminary/superseded）产物保留于
 artifacts/pq/；v2/P_loggap 保留于 artifacts/pq_v2/（sensitivity）；r4 保留于
 artifacts/pq_v3/；同分布主协议写入 artifacts/pq_iid_main/。
@@ -20,7 +22,15 @@ STUDY02_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 PROJECT_ROOT = os.path.dirname(os.path.dirname(STUDY02_ROOT))  # 仓库根
 
 # 协议选择：默认 v3（r4 gamma-holdout）；PQ_PROTOCOL=iid-v1 选同分布主协议（S0 冻结候选）。
+# 只接受 v3 / iid-v1：未知值立即失败，防止变量拼错把正式 iid 运行写回旧 OOD 合同。
+_KNOWN_PROTOCOLS = ("v3", "iid-v1")
 PROTOCOL_ID = os.environ.get("PQ_PROTOCOL", "v3").strip().lower()
+if PROTOCOL_ID not in _KNOWN_PROTOCOLS:
+    raise ValueError(
+        f"PQ_PROTOCOL must be one of {_KNOWN_PROTOCOLS!r}; got {PROTOCOL_ID!r}. "
+        "Unknown protocol ids are rejected (not silently downgraded) so a misspelled "
+        "S1 iid run cannot write into the r4 OOD contract."
+    )
 if PROTOCOL_ID == "iid-v1":
     PROTOCOL_VERSION = "iid-v1"
     CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-iid-protocol-v1.json")

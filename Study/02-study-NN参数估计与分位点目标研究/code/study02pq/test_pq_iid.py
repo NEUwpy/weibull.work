@@ -3,7 +3,9 @@
 覆盖：
 - 冻结配置 `configs/pq-iid-protocol-v1.json` 可被选择加载（PQ_PROTOCOL=iid-v1），
   默认仍为 v3（r4 gamma-holdout），两者产物命名空间互不串扰；
+- **未知 PQ_PROTOCOL 必须显式失败**（R1 S0-004），绝不静默回落到 v3；
 - 冻结配置规模数字与实现/蓝图自洽（120 fits、180/60/60、每模型 2400 held-out）；
+- x_p 显式定义为可靠度寿命点 R(x_p)=p（R1 S0-001），公式锁定 -ln(0.95)；
 - 完整 300 repeats 下 repeat-stratified 五折平衡：每 (n, fold) 每组合恰 180/60/60，
   每折覆盖全部组合，每个 repeat 恰在一次折中作为测试；
 - iid 策略下 P/Q 仍逐 fit 配对（仅 loss route 不同）且支持域合法性成立。
@@ -31,16 +33,23 @@ from study02pq import training as TR  # noqa: E402
 # 冻结配置选择
 # ----------------------------------------------------------------------
 
-def _load_config_in_subprocess(env_extra: dict) -> list[str]:
+_PROTOCOL_CODE = ("from study02pq import config as C; "
+                  "print(C.PROTOCOL_VERSION); print(C.CONFIG_PATH); "
+                  "print(C.ARTIFACT_DIR); print(C.SPLIT_STRATEGY)")
+
+
+def _subprocess_env(env_extra: dict) -> dict:
     env = {k: v for k, v in os.environ.items() if k != "PQ_PROTOCOL"}
     # 包根是 STUDY02_CODE_DIR 的父目录（code/）；子进程用 PYTHONPATH 显式给出
     env["PYTHONPATH"] = os.path.dirname(STUDY02_CODE_DIR)
     env.update(env_extra)
-    code = ("from study02pq import config as C; "
-            "print(C.PROTOCOL_VERSION); print(C.CONFIG_PATH); "
-            "print(C.ARTIFACT_DIR); print(C.SPLIT_STRATEGY)")
+    return env
+
+
+def _load_config_in_subprocess(env_extra: dict) -> list[str]:
     out = subprocess.check_output(
-        [sys.executable, "-c", code], cwd=STUDY02_CODE_DIR, env=env, text=True)
+        [sys.executable, "-c", _PROTOCOL_CODE], cwd=STUDY02_CODE_DIR,
+        env=_subprocess_env(env_extra), text=True)
     return out.strip().splitlines()
 
 
@@ -58,6 +67,16 @@ def test_iid_protocol_selectable_and_isolated():
     assert "pq-iid-protocol-v1.json" in lines[1]
     assert "pq_iid_main" in lines[2]
     assert lines[3] == "repeat_stratified"
+
+
+@pytest.mark.parametrize("bad", ["iid", "IID", "v4", "r4", "", " iid-v1 x", "v3.1"])
+def test_unknown_protocol_rejected(bad):
+    """任何未知 PQ_PROTOCOL 必须显式失败，绝不静默回落（R1 S0-004）。"""
+    proc = subprocess.run(
+        [sys.executable, "-c", _PROTOCOL_CODE], cwd=STUDY02_CODE_DIR,
+        env=_subprocess_env({"PQ_PROTOCOL": bad}), text=True, capture_output=True)
+    assert proc.returncode != 0, f"expected failure for {bad!r}, got rc=0"
+    assert "PQ_PROTOCOL" in (proc.stderr + proc.stdout)
 
 
 def test_iid_frozen_config_integrity():
@@ -83,6 +102,12 @@ def test_iid_frozen_config_integrity():
     assert inf["n_model_level_contrasts"] == 20 * len(cfg["seeds"]) == 60
     assert inf["held_out_per_model"] == s["test_repeats_per_combo"] * 40 == 2400
     assert cfg["split_strategy"] == "repeat_stratified"
+    # R1 S0-001：x_p 显式定义为可靠度寿命点（R(x_p)=p），不是 CDF p-分位点；公式锁定 -ln p。
+    xp = cfg["x_p_definition"]
+    assert xp["p_value"] == 0.95
+    assert "reliability" in xp["meaning"].lower() and "CDF" in xp["meaning"]
+    assert "-ln p" in xp["formula"].replace("(−", "(-") and "1/beta" in xp["formula"]
+    assert xp["m3_levels"] == [0.90, 0.95, 0.99]
 
 
 # ----------------------------------------------------------------------
