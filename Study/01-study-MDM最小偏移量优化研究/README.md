@@ -89,7 +89,7 @@
 
 由 E6 选择结果与共享候选估计派生（不重跑 MDM），见 `artifacts/formal/E6_dimensional_raw/quantiles/`。$x_{0.95}$ 相对 RMSE：Dimensional-RAW 0.2131（三 seed 模型优先均值）、Default 0.2142、L6 0.2123、WMLE 0.1986、LSE 0.2133。参数 $J_1$ 的改善只很小地传递到工程分位点，WMLE 的尾部分位点 RMSE 反而最低；因此不把参数改善预先写作工程寿命改善。分 `n` 明细见 `summary_by_n.csv`。
 
-### 4. 参数引导（plug-in）负向支撑实验
+### 4. 利用初估参数选择偏移量（plug-in）的负向支撑实验
 
 检验“把初步参数估计直接当作真参数选择偏移量”能否恢复 L3–L5 收益（`code/run_pg_selector.py`，`artifacts/formal/pg_selector/`；48,000 样本、repeat-id 五折 cross-fit，条件均值曲线只用训练折）：
 
