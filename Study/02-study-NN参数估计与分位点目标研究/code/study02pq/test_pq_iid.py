@@ -179,3 +179,146 @@ def test_pq_pairing_iid_strategy():
     assert rq["meta"]["split_strategy"] == "repeat_stratified"
     assert rp["meta"]["support_legality_ok"] is True
     assert rq["meta"]["support_legality_ok"] is True
+
+
+# ----------------------------------------------------------------------
+# run.py 接入 iid（S1）：split_strategy 传递与 splits manifest 分派（不启动训练）
+# ----------------------------------------------------------------------
+
+def test_run_forwards_split_strategy_v3(monkeypatch):
+    """run.run_fits_for_seeds 必须把 CFG.SPLIT_STRATEGY 传给 train_one_fit（v3 默认回归安全）。"""
+    import study02pq.run as RUN
+    seen = []
+
+    def fake_train(n, fold_idx, seed, route, master, **kw):
+        seen.append(kw.get("split_strategy"))
+        raise SystemExit  # 只验证传递，不真的训练
+
+    monkeypatch.setattr(RUN, "ensure_dirs", lambda: None)
+    monkeypatch.setattr(RUN.TR, "train_one_fit", fake_train)
+    master = DATA.build_master(beta_grid=[2.0], gamma_grid=[500.0],
+                               n_grid=[7], repeats=5)
+    with pytest.raises(SystemExit):
+        RUN.run_fits_for_seeds([42], master, resume=False)
+    assert seen == ["gamma_holdout"]
+
+
+def test_iid_run_forwards_split_strategy_subprocess():
+    """iid 模式：run_fits_for_seeds 传递 split_strategy=repeat_stratified（subprocess 隔离）。"""
+    code = (
+        "import sys, os\n"
+        "sys.path.insert(0, os.getcwd())\n"
+        "from study02pq import run as RUN, data as DATA, config as CFG\n"
+        "seen = []\n"
+        "def fake(n, fold_idx, seed, route, master, **kw):\n"
+        "    seen.append(kw.get('split_strategy'))\n"
+        "    raise SystemExit\n"
+        "RUN.ensure_dirs = lambda: None\n"
+        "RUN.TR.train_one_fit = fake\n"
+        "m = DATA.build_master(beta_grid=[2.0], gamma_grid=[500.0], "
+        "n_grid=[7], repeats=5)\n"
+        "try:\n"
+        "    RUN.run_fits_for_seeds([42], m, resume=False)\n"
+        "except SystemExit:\n"
+        "    pass\n"
+        "print(CFG.SPLIT_STRATEGY)\n"
+        "print(seen[0])\n"
+    )
+    out = subprocess.check_output(
+        [sys.executable, "-c", code], cwd=STUDY02_CODE_DIR,
+        env=_subprocess_env({"PQ_PROTOCOL": "iid-v1"}), text=True)
+    lines = out.strip().splitlines()
+    # 末尾两行 = CFG.SPLIT_STRATEGY 与 fake 收到的 split_strategy（前面是训练进度行）
+    assert lines[-2:] == ["repeat_stratified", "repeat_stratified"], lines
+
+
+def test_write_splits_manifest_repeat_stratified(tmp_path):
+    """iid 模式：splits manifest 用 split_repeat_fold + repeat 规则（subprocess 隔离）。"""
+    code = (
+        "import sys, os, json; "
+        "sys.path.insert(0, os.getcwd()); "
+        "from study02pq import run as RUN, data as DATA, config as CFG; "
+        "CFG.SPLITS_MANIFEST_PATH = %r; "
+        "CFG.N_GRID = [7]; "
+        "m = DATA.build_master(beta_grid=CFG.BETA_GRID, gamma_grid=CFG.GAMMA_GRID, "
+        "n_grid=[7], repeats=10); "
+        "rec = RUN.write_splits_manifest(m); "
+        "print(json.dumps(rec, ensure_ascii=False))" % (str(tmp_path / "s.json"))
+    )
+    out = subprocess.check_output(
+        [sys.executable, "-c", code], cwd=STUDY02_CODE_DIR,
+        env=_subprocess_env({"PQ_PROTOCOL": "iid-v1"}), text=True)
+    rec = json.loads(out.strip())
+    assert rec["split_strategy"] == "repeat_stratified"
+    assert "repeat_id % 5" in rec["split_rule"]
+    assert rec["validation"]["type"] is not None
+    f = rec["folds"]["n7_f1"]
+    # repeats=10 → 每组合 test 2、val 2、train 6；40 组合 → 80/80/240
+    assert (f["n_train"], f["n_val"], f["n_test"]) == (240, 80, 80), f
+    assert f["n_train"] + f["n_val"] + f["n_test"] == 400
+    assert f["test_sample_bytes_sha"]
+
+
+def test_write_splits_manifest_gamma_holdout(monkeypatch, tmp_path):
+    """v3 默认：splits manifest 仍用 split_fold + combo 规则（回归安全）。"""
+    import study02pq.run as RUN
+    monkeypatch.setattr(CFG, "SPLITS_MANIFEST_PATH", str(tmp_path / "s.json"))
+    monkeypatch.setattr(CFG, "N_GRID", [7])
+    master = DATA.build_master(beta_grid=CFG.BETA_GRID, gamma_grid=CFG.GAMMA_GRID,
+                               n_grid=[7], repeats=6)
+    rec = RUN.write_splits_manifest(master)
+    assert rec["split_strategy"] == "gamma_holdout"
+    assert "combo_idx % 5" in rec["split_rule"]
+    f = rec["folds"]["n7_f1"]
+    # split_fold：test = 1 goe 水平 x 8 beta x 6 = 48；train+val = 4 goe x 8 beta x 6 = 192
+    assert f["n_test"] == 48
+    assert f["n_train"] + f["n_val"] == 192
+
+
+def _meta_base(fit_id, n, fold, seed, route):
+    return {
+        "fit_id": fit_id, "n": n, "fold": fold, "seed": seed, "route": route,
+        "converged": True, "nan_flag": False, "best_epoch": 1, "stopped_epoch": 2,
+        "best_val_loss": 0.1, "last_train_loss": 0.2, "rrmse_x95": 0.3,
+        "n_test": 2400, "n_nonfinite": 0, "n_illegal": 0, "n_support_viol": 0,
+        "support_legality_ok": True, "sample_bytes_sha": "a", "evidence_sha256": "b",
+        "runtime_s": 1.0, "init_param_sha": "i", "batch_order_sha": "bo",
+        "network_sha": "n", "scaler_sha": "s", "train_rows_sha": "tr",
+        "val_rows_sha": "va", "test_rows_sha": "te",
+    }
+
+
+def test_per_fit_metrics_split_strategy_column(monkeypatch, tmp_path):
+    """iid 正式运行元数据含 split_strategy 时，per_fit_metrics 输出该列。"""
+    import study02pq.run as RUN
+    ckpt = tmp_path / "meta"
+    ckpt.mkdir()
+    for route in ("P", "Q"):
+        fit = TR.fit_id(7, 0, 42, route)
+        m = _meta_base(fit, 7, 1, 42, route)
+        m["split_strategy"] = "repeat_stratified"
+        (ckpt / f"{fit}.json").write_text(json.dumps(m), encoding="utf-8")
+    monkeypatch.setattr(CFG, "CHECKPOINTS_DIR", str(ckpt))
+    monkeypatch.setattr(CFG, "N_GRID", [7])
+    monkeypatch.setattr(CFG, "N_FOLDS", 1)
+    df = RUN.per_fit_metrics([42])
+    assert "split_strategy" in df.columns
+    assert set(df["split_strategy"]) == {"repeat_stratified"}
+    assert len(df) == 2
+
+
+def test_per_fit_metrics_old_meta_without_split_strategy(monkeypatch, tmp_path):
+    """r4/v3 旧元数据（无 split_strategy 键）不破坏 v3 聚合（回归安全）。"""
+    import study02pq.run as RUN
+    ckpt = tmp_path / "meta"
+    ckpt.mkdir()
+    for route in ("P", "Q"):
+        fit = TR.fit_id(7, 0, 42, route)
+        (ckpt / f"{fit}.json").write_text(
+            json.dumps(_meta_base(fit, 7, 1, 42, route)), encoding="utf-8")
+    monkeypatch.setattr(CFG, "CHECKPOINTS_DIR", str(ckpt))
+    monkeypatch.setattr(CFG, "N_GRID", [7])
+    monkeypatch.setattr(CFG, "N_FOLDS", 1)
+    df = RUN.per_fit_metrics([42])
+    assert "split_strategy" not in df.columns
+    assert len(df) == 2

@@ -1,6 +1,13 @@
-"""Study/02 P-Q v2 正式运行器：可续接逐 fit 训练、配对验证、汇总与 manifest。
+"""Study/02 P-Q 正式运行器：可续接逐 fit 训练、配对验证、汇总与 manifest。
 
-证据策略（协议 v2 §9，Codex R1 REVISE 修正）：
+协议选择（config.py，S0 起）：默认 v3（r4 gamma-holdout，OOD 补充）；
+`PQ_PROTOCOL=iid-v1` 切到同分布主协议（S0 冻结候选，见
+`09-PQ-同分布主协议冻结.md`）。拆分策略来自 `CFG.SPLIT_STRATEGY`：
+- `repeat_stratified`（iid-v1）→ `data.split_repeat_fold`，splits manifest 用 repeat 规则，
+  scaler 只 fit train 行（training.py 内建）；
+- `gamma_holdout`（v3 默认）→ `data.split_fold`，与 r4 完全一致（回归安全）。
+
+证据策略（协议 §7 / v3 §9，Codex R1 REVISE 修正）：
 - evidence/<fit_id>.npz（float32 压缩逐样本证据，tracked）→ 干净 clone 可获取/校验/重算；
 - fit_metadata/<fit_id>.json（fit 元数据：无模型 state，含确定性命约 + 全部配对 SHA，
   tracked）；
@@ -169,7 +176,8 @@ def run_fits_for_seeds(seeds, master, resume=True):
                         skipped += 1
                         continue
                     print(f"[pq] train {fit} ...", flush=True)
-                    result = TR.train_one_fit(n, fold_idx, seed, route, master)
+                    result = TR.train_one_fit(n, fold_idx, seed, route, master,
+                                              split_strategy=CFG.SPLIT_STRATEGY)
                     save_fit(fit, result)
                     done += 1
     print(f"[pq] done={done} skipped={skipped}")
@@ -191,13 +199,31 @@ def load_rel_sq_from_evidence(fit_p: str, fit_q: str) -> tuple[np.ndarray, np.nd
 
 
 def write_splits_manifest(master):
+    """splits manifest。拆分策略由 CFG.SPLIT_STRATEGY 决定：
+    - repeat_stratified（iid-v1）：`data.split_repeat_fold`，每 (n,fold) 覆盖该 n 全部组合，
+      每折 train 180/val 60/test 60 repeats per combo；
+    - gamma_holdout（v3 默认）：`data.split_fold`，与 r4 完全一致（回归安全）。"""
+    is_iid = CFG.SPLIT_STRATEGY == "repeat_stratified"
+    splitter = DATA.split_repeat_fold if is_iid else DATA.split_fold
     rec = {"generated_at": _now_iso(), "git_head": _git_full_head(),
-           "split_rule": "combo_idx % 5 == fold_idx; combos=product(beta,goe,n)",
-           "validation": {"fraction": CFG.VAL_FRACTION, "salt": CFG.VAL["salt"]},
+           "split_strategy": CFG.SPLIT_STRATEGY,
+           "split_rule": (
+               "repeat_id % 5 == fold_idx (test); "
+               "repeat_id % 5 == (fold_idx+1) % 5 (val); remainder (train); "
+               "per frozen (beta,gamma,n) combo; seed/route independent"
+               if is_iid else
+               "combo_idx % 5 == fold_idx; combos=product(beta,goe,n)"
+           ),
+           "validation": (
+               {"type": "repeat class (fold+1)%5; deterministic; not a random fraction",
+                "fraction": CFG.VAL_FRACTION, "salt": None}
+               if is_iid else
+               {"fraction": CFG.VAL_FRACTION, "salt": CFG.VAL["salt"]}
+           ),
            "folds": {}}
     for n in CFG.N_GRID:
         for fold_idx in range(CFG.N_FOLDS):
-            tr, va, te = DATA.split_fold(master, n, fold_idx)
+            tr, va, te = splitter(master, n, fold_idx)
             rec["folds"][f"n{n}_f{fold_idx + 1}"] = {
                 "train_rows_sha": DATA.sha_rows(tr),
                 "val_rows_sha": DATA.sha_rows(va),
@@ -252,6 +278,9 @@ def per_fit_metrics(seeds) -> pd.DataFrame:
             "support_legality_ok", "sample_bytes_sha", "evidence_sha256",
             "runtime_s", "init_param_sha", "batch_order_sha", "network_sha",
             "scaler_sha", "train_rows_sha", "val_rows_sha", "test_rows_sha"]
+    # S1（iid-v1）meta 含 split_strategy；r4/v3 旧元数据无该键，v3 回归安全不新增列
+    if any("split_strategy" in r for r in rows):
+        cols = cols + ["split_strategy"]
     return pd.DataFrame(rows)[cols]
 
 
@@ -273,7 +302,7 @@ def write_aggregates(seeds, master, run_label=""):
             if os.path.isfile(p):
                 s01[key] = sha256_file_canonical(p)
 
-    # 三个正式分析产物 + 运行日志的规范 SHA
+    # 正式分析产物 + 运行日志的规范 SHA（按活动协议派生输出清单）
     analysis_sha = {}
     adir = os.path.join(CFG.ARTIFACT_DIR, "analysis")
     if os.path.isdir(adir):
@@ -281,6 +310,12 @@ def write_aggregates(seeds, master, run_label=""):
             p = os.path.join(adir, f)
             if os.path.isfile(p):
                 analysis_sha[f] = sha256_file_canonical(p)
+    if CFG.PROTOCOL_VERSION == "iid-v1":
+        analysis_out = ("analysis/<summary_iid.json, by_n_seed_descriptive.csv, "
+                        "by_region.csv, failure_counts.json, mechanism_*.json>")
+    else:
+        analysis_out = ("analysis/<summary_v3.json, by_n_seed_descriptive.csv, "
+                        "failure_counts.json, boundary_diagnostic.json>")
     run_log = os.path.join(CFG.ARTIFACT_DIR, "run_all_seeds.log")
     run_log_sha = sha256_file_canonical(run_log) if os.path.isfile(run_log) else None
 
@@ -308,8 +343,7 @@ def write_aggregates(seeds, master, run_label=""):
         "data_integrity": DATA.verify_integrity(master),
         "output_files": ["per_fit_metrics.csv", "pairing_report.csv",
                          "splits_manifest.json", "SHA256SUMS",
-                         "analysis/<summary_v3.json, by_n_seed_descriptive.csv, "
-                         "failure_counts.json, boundary_diagnostic.json>",
+                         analysis_out,
                          "run_all_seeds.log",
                          "evidence/<fit_id>.npz", "fit_metadata/<fit_id>.json"],
     }
