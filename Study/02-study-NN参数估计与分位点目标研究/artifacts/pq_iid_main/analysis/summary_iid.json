@@ -1,0 +1,166 @@
+{
+ "protocol": "iid-v1",
+ "estimand": "Delta* = equal-weight superpopulation algorithmic performance gap over the frozen parameter domain (each n, each cell within n) of E[theta_Q(c) - theta_P(c)], expectation over independent fresh held-out repeated samples AND training randomness under the frozen 180/60/60 protocol (09-PQ-同分布主协议冻结.md §3.3)",
+ "finite_estimate": {
+  "hat_delta": -0.0017076493240805782,
+  "n_folds": 5,
+  "n_seeds": 3,
+  "n_design_units": 20,
+  "n_model_level_contrasts": 60,
+  "held_out_per_model": 2400,
+  "n_held_out_samples": 144000,
+  "resampling": "fold (stratified by n) x seed (global, with replacement)"
+ },
+ "pooled": {
+  "p_rrmse": 0.1663268357515335,
+  "q_rrmse": 0.16111166775226593,
+  "rel_change": -0.03135494026386836,
+  "rel_change_formula": "(rRMSE_Q - rRMSE_P) / rRMSE_P (09 §3.3; negative => Q better)",
+  "q_improvement_vs_p": 0.03135494026386836,
+  "q_improvement_formula": "(rRMSE_P - rRMSE_Q) / rRMSE_P (positive => Q better; descriptive)",
+  "hat_delta": -0.0017076493240805782,
+  "ci_lo": -0.002251258018728363,
+  "ci_hi": -0.0011924728954604792,
+  "ci_level": 0.95
+ },
+ "per_n": {
+  "7": {
+   "p_rrmse": 0.2097059041261673,
+   "q_rrmse": 0.20322586596012115,
+   "mean_diff": -0.0026758068720993526,
+   "ci_lo": -0.004020297635551414,
+   "ci_hi": -0.0015777664100046472
+  },
+  "10": {
+   "p_rrmse": 0.17629249393939972,
+   "q_rrmse": 0.1690395027399063,
+   "mean_diff": -0.00250469047941798,
+   "ci_lo": -0.003909216450435106,
+   "ci_hi": -0.0011719985182011383
+  },
+  "15": {
+   "p_rrmse": 0.1444014310836792,
+   "q_rrmse": 0.1406131386756897,
+   "mean_diff": -0.0010797184363465445,
+   "ci_lo": -0.0019728775095324007,
+   "ci_hi": -0.00027798779998116616
+  },
+  "20": {
+   "p_rrmse": 0.12145407497882843,
+   "q_rrmse": 0.11908278614282608,
+   "mean_diff": -0.000570381508458437,
+   "ci_lo": -0.000747640980489774,
+   "ci_hi": -0.0004070571039816089
+  }
+ },
+ "per_seed_descriptive": {
+  "42": -0.0014906632294291774,
+  "2026": -0.0017401685689907114,
+  "3407": -0.0018921161738218463
+ },
+ "per_fold_descriptive": {
+  "1": {
+   "mean_diff": -0.002251740527264468,
+   "p_rrmse": 0.16595688462257385,
+   "q_rrmse": 0.15902812778949738
+  },
+  "2": {
+   "mean_diff": -0.0019103164185393312,
+   "p_rrmse": 0.1676020622253418,
+   "q_rrmse": 0.16180278360843658
+  },
+  "3": {
+   "mean_diff": -0.001337033701855726,
+   "p_rrmse": 0.16927261650562286,
+   "q_rrmse": 0.16527608036994934
+  },
+  "4": {
+   "mean_diff": -0.0010876464810210759,
+   "p_rrmse": 0.16397768259048462,
+   "q_rrmse": 0.16062700748443604
+  },
+  "5": {
+   "mean_diff": -0.001951509491722291,
+   "p_rrmse": 0.16476967930793762,
+   "q_rrmse": 0.15873733162879944
+  }
+ },
+ "by_region": {
+  "by_beta": {
+   "1.5": {
+    "mean_diff": -0.01464041104656515,
+    "q_better_cells": 8,
+    "n_cells": 20
+   },
+   "2.0": {
+    "mean_diff": -0.001881343327620082,
+    "q_better_cells": 7,
+    "n_cells": 20
+   },
+   "2.5": {
+    "mean_diff": -0.0006412119031707475,
+    "q_better_cells": 12,
+    "n_cells": 20
+   },
+   "3.0": {
+    "mean_diff": -0.0007075630699176285,
+    "q_better_cells": 10,
+    "n_cells": 20
+   },
+   "3.5": {
+    "mean_diff": 0.0004189904002053641,
+    "q_better_cells": 5,
+    "n_cells": 20
+   },
+   "4.0": {
+    "mean_diff": 0.0009883668364512293,
+    "q_better_cells": 3,
+    "n_cells": 20
+   },
+   "4.5": {
+    "mean_diff": 0.0013360914559798858,
+    "q_better_cells": 2,
+    "n_cells": 20
+   },
+   "5.0": {
+    "mean_diff": 0.001465886061992497,
+    "q_better_cells": 4,
+    "n_cells": 20
+   }
+  },
+  "by_gamma_over_eta": {
+   "0.1": {
+    "mean_diff": -0.01394496008034376,
+    "q_better_cells": 26,
+    "n_cells": 32
+   },
+   "0.25": {
+    "mean_diff": -0.0026589952795697345,
+    "q_better_cells": 13,
+    "n_cells": 32
+   },
+   "0.5": {
+    "mean_diff": 0.005461371522826419,
+    "q_better_cells": 1,
+    "n_cells": 32
+   },
+   "0.75": {
+    "mean_diff": 0.0016216928535087785,
+    "q_better_cells": 7,
+    "n_cells": 32
+   },
+   "1.0": {
+    "mean_diff": 0.000982644363175408,
+    "q_better_cells": 4,
+    "n_cells": 32
+   }
+  }
+ },
+ "coverage_limitations": [
+  "overlapping training folds (each repeat trains in 3 of 5 folds)",
+  "only 3 seeds (seed dimension severely undersampled)",
+  "within-unit per-sample MC noise absorbed (design-level resamples unit means only)"
+ ],
+ "decision_rule": "primary conclusion direction by whether hat_Delta CI contains 0; by-n/seed/fold/region directions are descriptive support only",
+ "n_boot": 200000
+}
