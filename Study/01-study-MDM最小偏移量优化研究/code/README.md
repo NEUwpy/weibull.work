@@ -23,6 +23,7 @@
 | `run_b1_unseen_beta.py` | 未见 $\beta$ 留出验证（8 折，per-n 网络，三 seed） |
 | `run_b2_traditional_ref.py` | WMLE/LSE 同条件外部参照（同一 48,000 样本） |
 | `run_b3_quantiles.py` | $x_{0.90}/x_{0.95}/x_{0.99}$ 工程分位点派生 |
+| `run_pg_selector.py` | 利用初估参数选择偏移量（plug-in）的负向支撑实验：初估参数（MDM-0.1/WMLE）plug-in 到 L3–L5 条件均值曲线选 $\delta$；`--pilot-repeats N` / `--full` / `--repackage` |
 | `generate_paper_figures.py` | 当前路线论文图表与补充表格生成 |
 
 实现原则不变：复用 E6 训练函数、现有风险数据和 `python/methods/` 生产实现，不重跑 MDM、不复制估计器；以完成当前问题的最小脚本为准，不新建通用实验控制框架。

@@ -12,7 +12,7 @@
 
 ## 当前状态快照
 
-> **快照日期**: 2026-08-05 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+> **快照日期**: 2026-08-06 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
 
 | 层级 | 技术 |
 |------|------|
@@ -33,7 +33,7 @@
 
 **Study/02 当前态**：前置研究 A 已完成，19/19 问有证据覆盖（17 answered + A4/A8 partial），正式成果见 Study/02 `06-A-前置研究报告.md`。主研究 B 的 B1–B6 已全部完成并 APPROVE（分支 `codex/study02-quantile-formal-20260731`；B6 实现/证据 tip `2e0e842d`，最终报告/文档 tip `b5c5404`）；正式结论见 Study/02 `05-B-正式实验报告.md`，证据哈希见 `04-B-证据索引.md`。核心结果：core pooled \(x_{0.95}\) 相对 RMSE 改善率 I=0.3926 [0.3444,0.4347]（NN 直接路线 D 相对 NN 参数路线 P，supported and material），但优势分层且非全域（D 非总体精度最优，core 上 MDM/LRE 更优）；旧 A formal 引擎与 test namespaces 永久只读，不作为 B 的控制面。C 阶段已完成并 APPROVED（分支 `codex/study02-c-scientific-argument-20260801`）：把 A/B 结果提升为科学论证，C0/C1–C5 全部通过（C5 经对抗性复核与可复现性稳定，code commit `8cc93147`），见 Study/02 `06-C-论证计划与状态.md`、`07-C-机制分析与补充证据.md` 与 `08-C-论文前科学论证报告.md`（C5 最终版，APPROVED）。
 
-**Study/01 当前态**：论文主线已收敛为“三参数 Weibull MDM 框架内偏移量 `delta` 是否有更合适的选择，以及怎样根据当前样本实现选择”。正式方法为 Dimensional-RAW-MLP：按样本量分别训练 MLP，以排序原始样本预测 26 点损失曲线并选择偏移量。在 160 组合主设计域（`eta=1000`，`n∈{7,10,15,20}`）内，pooled J1=0.5543，较固定 `delta=0.1` 改善 12.08%，失败率为 0%；结论限于已训练样本量以及训练单位和尺度范围。写作前支撑验证已补齐：未见 `beta` 留出（B1，8 折，pooled J1=0.5418、改善 14.06%、失败率 0%）、WMLE/LSE 同条件外部参照（B2，WMLE 0.7288/LSE 0.8725，WMLE 1 例未收敛计入）、`x_0.90/x_0.95/x_0.99` 工程分位点派生（B3，传递有限，WMLE 尾部分位点 RMSE 最低）；真实案例后置。per-n specialist 不定义未训练 `n` 的直接应用；旧特征路线、Normalized-RAW、旧 P2/P4/分位点和 NIST 结果已降为历史、候选或 Research 证据。Study01 活动区已整理为论文所需 `README`、`00`–`04`、证据/代码索引、`artifacts/formal/E6_dimensional_raw/paper/`（图表索引）与 `archive/`；独立支线统一由项目根 `Research/` 管理，外部中文学术源稿 v0.3 是唯一活动正文。
+**Study/01 当前态**：论文主线已收敛为“三参数 Weibull MDM 框架内偏移量 `delta` 是否有更合适的选择，以及怎样根据当前样本实现选择”。正式方法为 Dimensional-RAW-MLP：按样本量分别训练 MLP，以排序原始样本预测 26 点损失曲线并选择偏移量。在 160 组合主设计域（`eta=1000`，`n∈{7,10,15,20}`）内，pooled J1=0.5543，较固定 `delta=0.1` 改善 12.08%，失败率为 0%；结论限于已训练样本量以及训练单位和尺度范围。写作前支撑验证已补齐：未见 `beta` 留出（B1，8 折，pooled J1=0.5418、改善 14.06%、失败率 0%）、WMLE/LSE 同条件外部参照（B2，WMLE 0.7288/LSE 0.8725，WMLE 1 例未收敛计入）、`x_0.90/x_0.95/x_0.99` 工程分位点派生（B3，传递有限，WMLE 尾部分位点 RMSE 最低）；真实案例后置。另完成参数引导（plug-in）负向支撑实验（`artifacts/formal/pg_selector/`，48,000 样本）：把初步参数估计当作真参数沿用 L3–L5 规则总体失败，最优单步 J1=0.6507 vs Default 0.6304，配对 95% CI 全部为正，仅在 `beta=1.5` 有例外；该负结果为本文转向直接预测样本级损失曲线提供比较依据，不与 Dimensional-RAW 排名。per-n specialist 不定义未训练 `n` 的直接应用；旧特征路线、Normalized-RAW、旧 P2/P4/分位点和 NIST 结果已降为历史、候选或 Research 证据。Study01 活动区已整理为论文所需 `README`、`00`–`04`、证据/代码索引、`artifacts/formal/E6_dimensional_raw/paper/`（图表索引）与 `archive/`；独立支线统一由项目根 `Research/` 管理。外部中文学术工作稿以正文 v1.0 和附录 v1.0 分卷维护，v0.3、v0.4 与附录 v0.1 保留未动。
 
 **Study / Research 层级**：`Study/` 当前只保存 Study01、Study02 两个具有独立小论文义务的项目；项目根 [`Research/`](Research/README.md) 保存围绕单一问题的支撑研究、独立研究、孵化方向与历史包。原 Study015 已作为 `COMPLETE + SUPPORTING` 的“NN 输入表征与样本量机制”迁入 Research；旧 `docs/research` 与 Study01 内部 Research 已按 [`RELOCATION.json`](Research/RELOCATION.json) 原字节归位，不删除负面或被取代结果。
 
