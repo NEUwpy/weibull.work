@@ -1,0 +1,99 @@
+{
+ "protocol_id": "study02-pq-s3-boundary-v1",
+ "supersedes": [],
+ "frozen_at": "2026-08-07",
+ "contract": "S3 credibility/generalization/boundary finite paper-oriented extension (frozen by Codex mailbox 000016, S2 APPROVE at 584569f8). Inherits the frozen iid-v1 same-distribution protocol (configs/pq-iid-protocol-v1.json) as the main domain: same Study01 grid/sample identity, generator, input representation, baseline network 256-128-64, P/Q pairing controls, training budget. Only the finite E1/E2/E3 matrix below is authorized; no scheduler/checkpoint framework, no other targets/capacities/contamination/censoring/real data/cross-scale/architecture family. Interpolation and OOD are explicitly secondary boundary checks.",
+ "inherits": "configs/pq-iid-protocol-v1.json",
+ "run_mode": "PQ_PROTOCOL=iid-v1 python -m study02pq.s3_boundary (E1/E2/E3 runners); s3_analyze reads all roots; must NOT write into pq_iid_main/pq_v3/pq_v2/historical roots",
+ "x_p_definition": "x_p = gamma + eta*(-ln p)^(1/beta) with R(x_p)=p RELIABILITY lifetime (survival), i.e. CDF (1-p) quantile; NOT a CDF p-quantile (09-PQ-同分布主协议冻结.md §1.1)",
+ "target_levels": {
+  "meaning": "RELIABILITY levels (survival probabilities)",
+  "train_new": [0.90, 0.99],
+  "reuse_s1": [0.95],
+  "all_eval": [0.90, 0.95, 0.99],
+  "confirmatory": "x0.95 remains the sole confirmatory primary result; x0.90/x0.99 are prespecified robustness results with effect sizes and design-level intervals, NOT a new familywise significance claim"
+ },
+ "capacity": {
+  "baseline": [256, 128, 64],
+  "small": [64, 32],
+  "large": [512, 256, 128],
+  "naming": "sm64 / lg512",
+  "folds_1based": [1, 3],
+  "scope": "iid x0.95 only, all n and all 3 seeds, fixed folds {1,3}; limited-fold robustness check: report route effect, direction across capacity/n/seed, parameter counts and failures; no broad architecture-superiority claim and no formal significance claim from two folds",
+  "baseline_reuse": "256-128-64 reuses corresponding S1 results (pq_iid_main evidence at folds 1,3)"
+ },
+ "interpolation": {
+  "meaning": "within-domain interpolation inside the frozen Study01 beta/gamma grid; secondary boundary check",
+  "beta_midpoints": [1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75],
+  "gamma_over_eta_midpoints": [0.175, 0.375, 0.625, 0.875],
+  "eta": 1000.0,
+  "gamma": [175.0, 375.0, 625.0, 875.0],
+  "repeats_per_combo": 300,
+  "namespace": "study01_nrmc_v1",
+  "n_samples": 33600,
+  "training": "retrain the 120 baseline P/Q fits deterministically in a separate interpolation artifact dir (model states were not saved for S1; do not alter or pretend to reuse S1 model files); verify deterministic identities against S1 initialization/batch/scaler contracts",
+  "evidence_identity_check": "retrained iid-test evidence must be byte-identical to S1 pq_iid_main evidence for the same fit_id (SHA256 equality)"
+ },
+ "artifact_roots": {
+  "target": "artifacts/pq_s3_target",
+  "capacity": "artifacts/pq_s3_capacity",
+  "interp": "artifacts/pq_s3_interp"
+ },
+ "never_overwrite": ["artifacts/pq_iid_main", "artifacts/pq_v3", "artifacts/pq_v2", "artifacts/pq", "historical evidence"],
+ "fit_counts": {
+  "E1_target_levels": 120,
+  "E1_detail": "Q0.90: 4n x 5 folds x 3 seeds = 60; Q0.99: 60; Q0.95 and P reused from S1",
+  "E2_capacity": 96,
+  "E2_detail": "2 capacities x 4 n x 2 folds {1,3} x 3 seeds x 2 routes P/Q",
+  "E3_interpolation": 120,
+  "E3_detail": "4n x 5 folds x 3 seeds x 2 routes P/Q retrained baseline in pq_s3_interp",
+  "total_new_fits": 336,
+  "E4_ood": "no training; reuse sealed r4/v3 gamma-holdout result (iid x0.95 Q better 3.1%; gamma-level OOD P better 8.1%) as a distinct boundary experiment; audit compatibility/state differences; do not pool iid, interpolation and OOD into one estimand"
+ },
+ "evidence_schema": {
+  "fit_id_target": "n{n}_f{fold}_s{seed}_rQ90|rQ99 (r in {P,Q} or Q{target_level})",
+  "fit_id_capacity": "n{n}_f{fold}_s{seed}_r{P|Q}_sm64|_lg512",
+  "fit_id_interp": "n{n}_f{fold}_s{seed}_r{P|Q} (S1 fit_id form, separate root)",
+  "compressed_per_sample": "evidence/<fit_id>.npz (tracked, exact-dtype keys, float32) in each root",
+  "fit_metadata": "fit_metadata/<fit_id>.json (no model state; determinism + pairing SHA)",
+  "predictions_csv": "predictions/<fit_id>.csv (gitignored, local compute only)",
+  "interp_evidence": "interp/<fit_id>.npz in pq_s3_interp (midpoint test samples, keys+hats+x95+rel_sq)",
+  "aggregates": ["per_fit_metrics.csv", "manifest.json", "SHA256SUMS", "run_all_seeds.log"],
+  "analysis": {
+   "target": ["analysis/cross_target_matrix.json", "analysis/target_summary.json", "analysis/sensitivity_by_target.json", "analysis/mechanism_exact_by_target.json"],
+   "capacity": ["analysis/capacity_summary.json"],
+   "interp": ["analysis/interp_summary.json"]
+  },
+  "sha256_rule": "tracked files only; text LF-normalized; .npz binary raw; clean git archive must contain and verify every cited file",
+  "manifest_binds": ["full git sha", "run code sha (== execution commit)", "env lock", "study01 input shas", "config/protocol/analysis shas", "iid inherited config sha"]
+ },
+ "inference": {
+  "e1_e3": "same paired model-level squared-relative-error estimand and fold x seed crossed bootstrap as S1 (evaluate.primary_design_bootstrap / mechanism.design_pair_deltas, B=200000 final) where the design supports it; x0.90/x0.99 effect sizes and design-level intervals reported WITHOUT familywise significance claims",
+  "e2": "effect sizes and stratified descriptive directions appropriate to the two-fold design; no formal significance claim",
+  "report_all": "failures, nonfinite outputs, support violations, decoder-boundary counts; never silently drop fits or rows"
+ },
+ "mechanism_validation": {
+  "sensitivity_norm_per_target": "compute the dimensionless true-parameter sensitivity norm ||s|| for each target p using the S2 normalization (mechanism.row_mechanism R=p); relate target/region effects to sensitivity without claiming causality",
+  "exact_compensation_target_q": "quantify exact component compensation (cancel_exact) and off-target degradation for target-specific Q using the S2 exact decomposition at the model's target level and at other levels",
+  "e4_compatibility_audit": "document iid vs interpolation vs OOD state differences; keep them separate"
+ },
+ "environment": {
+  "lock_file": "configs/pq-environment-v2.json",
+  "verified": "hermes venv Python 3.11.9 / torch 2.12.0+cpu / numpy 2.4.6 / pandas 3.0.3"
+ },
+ "engineering": {
+  "reuse": "existing study02pq pipeline (training/model/losses/evaluate/mechanism/run save paths); minimal new modules only for the frozen matrix",
+  "no_d_training": true,
+  "no_scheduler_authority_ledger": true,
+  "stop_conditions": "stop and report before full execution only if frozen Study01 identity cannot be preserved, P/Q pairing cannot be guaranteed, required interpolation generation changes the main-domain contract, or a code change would modify S1/S2 sealed evidence"
+ },
+ "deliverables": [
+  "11-PQ-可信性与边界协议.md (this protocol)",
+  "minimal implementation + tests + production-path smoke",
+  "all 336 authorized fits or explicit blocker report",
+  "12-PQ-可信性与边界结果.md (question -> experiment -> result -> interpretation -> boundary -> limitation)",
+  "compact machine-readable target/capacity/interpolation analyses + cross-target matrix",
+  "update result report / evidence index / status / blueprint",
+  "coherent commit+push units; final report with baseline/tip, changed files, fit counts/runtime, failures, formulas/estimands, results with intervals, mechanism consistency, clean-archive SHA verification, tests, deviations; end READY FOR CODEX S3 REVIEW; do not self-approve; do not start S4"
+ ]
+}

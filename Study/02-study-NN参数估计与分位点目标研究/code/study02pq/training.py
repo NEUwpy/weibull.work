@@ -27,12 +27,18 @@ from . import model as MODEL
 torch.set_num_threads(1)
 
 
-def fit_id(n: int, fold_idx: int, seed: int, route: str) -> str:
-    return f"n{n}_f{fold_idx + 1}_s{seed}_r{route.upper()}"
+def fit_id(n: int, fold_idx: int, seed: int, route: str, suffix: str = "") -> str:
+    return f"n{n}_f{fold_idx + 1}_s{seed}_r{route.upper()}{suffix}"
 
 
 def _tensor(x: np.ndarray) -> torch.Tensor:
     return torch.tensor(np.ascontiguousarray(x), dtype=torch.float64)
+
+
+def _xR_from_params(params: np.ndarray, R: float) -> np.ndarray:
+    """从真参数 (beta, eta, gamma) 计算 x_R = gamma + eta*(-ln R)^(1/beta)。"""
+    beta, eta, gamma = params[:, 0], params[:, 1], params[:, 2]
+    return gamma + eta * (-np.log(float(R))) ** (1.0 / beta)
 
 
 def _epoch_perm(n_rows: int, generator: torch.Generator) -> np.ndarray:
@@ -42,8 +48,15 @@ def _epoch_perm(n_rows: int, generator: torch.Generator) -> np.ndarray:
 def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Master,
                   max_epochs=None, batch_size=None, patience=None,
                   initial_state=None, include_initial=False, return_state=False,
-                  learning_rate=None, split_strategy="gamma_holdout"):
+                  learning_rate=None, split_strategy="gamma_holdout",
+                  target_R=None, hidden=None, fit_suffix=""):
     """训练一个 (n, fold, seed, route) 模型并在 held-out 折上评价。
+
+    S3 扩展（缺省保持 S1/iid 行为不变）：
+      - target_R：Q 路由的目标可靠度水平（None → CFG.X0_95_R）；'Q90'/'Q99' 等 route
+        由调用方与 target_R 一起传入；
+      - hidden：网络隐藏层（None → CFG.HIDDEN_LAYERS，容量实验用）；
+      - fit_suffix：fit_id 后缀（容量实验，如 '_sm64'；None/'' 保持 S1 fit_id）。
 
     返回 dict（指标、预测 numpy、配对 SHA、元数据）。不写盘；由调用方负责 checkpoint。
     """
@@ -51,6 +64,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     max_epochs = max_epochs or CFG.MAX_EPOCHS
     batch_size = batch_size or CFG.BATCH_SIZE
     patience = patience or CFG.PATIENCE
+    fit_suffix = fit_suffix or ""
 
     # ---- 确定性种子（初始参数 + batch 顺序共用） ----
     torch.manual_seed(seed)
@@ -79,17 +93,22 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     X_te_s = scaler.transform(X_te)
 
     # ---- 模型与损失 ----
-    model = MODEL.build_model(n, seed)
+    model = MODEL.build_model(n, seed, hidden=hidden)
     if initial_state is not None:
         model.load_state_dict(copy.deepcopy(initial_state))
     init_sha = MODEL.params_sha(model)
-    net_sha = MODEL.structure_signature(n)
-    loss_fn, target_kind = LOSS.build_route_loss(route)
+    net_sha = MODEL.structure_signature(n, hidden=hidden)
+    loss_fn, target_kind = LOSS.build_route_loss(route, target_R=target_R)
 
     if target_kind == "params":
         y_tr = _tensor(P_tr); y_val = _tensor(P_val)
-    else:
+    elif target_R is None or target_R == CFG.X0_95_R:
+        # S1/iid 默认：x0.95（make_arrays 预计算的 x0_95 目标；行为不变）
         y_tr = _tensor(X95_tr); y_val = _tensor(X95_val)
+    else:
+        # S3 E1：目标特异可靠度水平 x_R，从真参数解析计算（与 data.x0_95 同式）
+        y_tr = _tensor(_xR_from_params(P_tr, target_R))
+        y_val = _tensor(_xR_from_params(P_val, target_R))
 
     X_tr_t = _tensor(X_tr_s); X_val_t = _tensor(X_val_s)
     min_x_tr_t = _tensor(min_x_tr); min_x_val_t = _tensor(min_x_val)
@@ -198,8 +217,11 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     }
 
     meta = {
-        "fit_id": fit_id(n, fold_idx, seed, route),
+        "fit_id": fit_id(n, fold_idx, seed, route, fit_suffix),
         "n": int(n), "fold": int(fold_idx + 1), "seed": int(seed), "route": route,
+        "target_R": (float(target_R) if (target_R is not None and target_kind != "params")
+                     else None),
+        "hidden_layers": list(hidden) if hidden is not None else list(CFG.HIDDEN_LAYERS),
         "converged": bool(converged), "nan_flag": bool(nan_flag),
         "best_epoch": int(best_epoch), "stopped_epoch": int(stopped_epoch),
         "best_val_loss": float(best_val),

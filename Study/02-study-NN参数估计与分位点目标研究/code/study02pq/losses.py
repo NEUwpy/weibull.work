@@ -64,14 +64,22 @@ def loss_q(x95_hat: torch.Tensor, x95: torch.Tensor) -> torch.Tensor:
     return (((x95_hat - x95) / x95) ** 2).mean()
 
 
-def compute_x95_hat_from_outputs(o: torch.Tensor, min_X: torch.Tensor) -> torch.Tensor:
-    """解码输出并计算 x0.95_hat（供评测与 Q 损失共用）。"""
+def compute_x_hat_from_outputs(o: torch.Tensor, min_X: torch.Tensor,
+                               R: float = CFG.X0_95_R) -> torch.Tensor:
+    """解码输出并计算 x_R_hat（R=可靠度水平；供评测与 Q 损失共用）。"""
     b, e, g = decode_params(o, min_X)
-    return weibull_quantile(b, e, g)
+    return weibull_quantile(b, e, g, R)
 
 
-def build_route_loss(route: str):
-    """返回 (loss_fn, target_kind)。loss_fn(model_out, targets, min_X)。"""
+compute_x95_hat_from_outputs = compute_x_hat_from_outputs  # 别名（R=0.95 默认，S1 兼容）
+
+
+def build_route_loss(route: str, target_R: float | None = None):
+    """返回 (loss_fn, target_kind)。loss_fn(model_out, targets, min_X)。
+
+    route: 'P'（参数精度）或 'Q'（目标可靠度寿命点；'Q90'/'Q99' 等目标特异 Q 路由
+    也识别为 Q）。target_R 提供时 Q 使用该可靠度水平 R；缺省用 CFG.X0_95_R（S1 兼容）。
+    """
     route = route.upper()
     if route == "P":
 
@@ -81,11 +89,12 @@ def build_route_loss(route: str):
             return loss_p(b, e, g, beta, eta, gamma, min_X)
         return loss_fn, "params"
 
-    if route == "Q":
+    if route.startswith("Q"):
+        R = float(target_R) if target_R is not None else CFG.X0_95_R
 
         def loss_fn(model_out, targets, min_X):
-            x95_hat = compute_x95_hat_from_outputs(model_out, min_X)
-            return loss_q(x95_hat, targets)
-        return loss_fn, "x0_95"
+            xr_hat = compute_x_hat_from_outputs(model_out, min_X, R)
+            return loss_q(xr_hat, targets)
+        return loss_fn, "x_R"
 
     raise ValueError(f"unknown route {route!r}")
