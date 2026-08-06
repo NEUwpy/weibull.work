@@ -165,6 +165,104 @@ def test_cancellation_index_zero_denominator_and_extremes():
 
 
 # ----------------------------------------------------------------------
+# 精确无余项分解（S2 R1 REVISE S2-001）
+# ----------------------------------------------------------------------
+
+def test_exact_decomposition_identity_float64():
+    """合成 float64 几何：actual = C_beta + C_eta + C_gamma 机器精度内 exact。"""
+    beta, goe = 2.0, 0.5
+    ev = _make_evidence(beta, goe, [(0.3, -0.2, 0.1), (-0.1, 0.05, 0.2),
+                                    (0.0, 0.0, 0.0)])
+    ev["rel_err"] = (ev["x95_hat"] - ev["x95_true"]) / ev["x95_true"]
+    r = M.row_mechanism(ev)
+    np.testing.assert_allclose(r["C_beta"] + r["C_eta"] + r["C_gamma"],
+                               r["actual"], rtol=1e-9, atol=1e-12)
+    # 逐项公式独立验证
+    a = -np.log(R)
+    t0 = a ** (1.0 / beta)
+    t1 = a ** (1.0 / ev["beta_hat"])
+    gamma = goe * ETA
+    x0 = gamma + ETA * t0
+    np.testing.assert_allclose(r["C_gamma"], (ev["gamma_hat"] - gamma) / x0, atol=1e-12)
+    np.testing.assert_allclose(r["C_eta"],
+                               0.5 * (ev["eta_hat"] - ETA) * (t0 + t1) / x0, atol=1e-12)
+    np.testing.assert_allclose(r["C_beta"],
+                               0.5 * (ETA + ev["eta_hat"]) * (t1 - t0) / x0, atol=1e-12)
+
+
+def test_exact_cancellation_zero_handling_and_range():
+    """cancel_exact 零分母 → 0；一般情形 ∈ [0,1] 且有限。"""
+    beta, goe = 2.0, 0.5
+    # 全零 u：A_exact=0 → cancel_exact=0（不产生 NaN）
+    r0 = M.row_mechanism(_make_evidence(beta, goe, [(0.0, 0.0, 0.0)]))
+    assert np.all(np.isfinite(r0["cancel_exact"]))
+    np.testing.assert_allclose(r0["cancel_exact"], 0.0, atol=1e-12)
+    # 一般大 u：范围与有限性
+    r1 = M.row_mechanism(_make_evidence(beta, goe, [(0.3, -0.2, 0.1)]))
+    assert np.all(np.isfinite(r1["cancel_exact"]))
+    assert np.all((r1["cancel_exact"] >= 0.0) & (r1["cancel_exact"] <= 1.0))
+
+
+# ----------------------------------------------------------------------
+# 真值点敏感度范数 ||s||（S2 R1 REVISE S2-002）
+# ----------------------------------------------------------------------
+
+def test_sensitivity_norm_geometry_and_region_invariance():
+    beta, goe = 2.0, 0.5
+    ev = _make_evidence(beta, goe, [(0.02, -0.01, 0.03)])
+    r = M.row_mechanism(ev)
+    np.testing.assert_allclose(
+        r["s_norm"], np.sqrt(r["s_beta"] ** 2 + r["s_eta"] ** 2 + r["s_gamma"] ** 2),
+        atol=1e-12)
+    # ||s|| 只依赖真值：不同 u 行、不同 n 构造性相同
+    ev2 = _make_evidence(beta, goe, [(0.9, -0.8, 0.5)])
+    ev2["keys_n"] = np.full(len(ev2["keys_n"]), 20, dtype=np.int32)
+    r2 = M.row_mechanism(ev2)
+    np.testing.assert_allclose(r2["s_norm"], r["s_norm"], atol=1e-12)
+    # P/Q 同真值行 pooled mean_s_norm 相等（区域表中 delta_mean_s_norm≈0）
+    sp = M.pooled_stats([r, r2])
+    sq = M.pooled_stats([M.row_mechanism(_make_evidence(beta, goe, [(0.03, -0.02, 0.01)])),
+                         M.row_mechanism(ev2)])
+    np.testing.assert_allclose(sq["mean_s_norm"], sp["mean_s_norm"], rtol=1e-12)
+
+
+# ----------------------------------------------------------------------
+# 均方量标签（S2 R1 REVISE S2-001）：r2_origin 为原点到锚定，非方差版 R^2
+# ----------------------------------------------------------------------
+
+def test_r2_origin_is_origin_anchored_not_variance():
+    actual = np.array([1.0, 2.0, 3.0])
+    rem = np.array([0.5, -0.4, 0.3])
+    r = {
+        "actual": actual, "proj": actual - rem, "rem": rem,
+        "align": np.array([0.5, 0.5, 0.5]),
+        "cancel": np.array([0.2, 0.2, 0.2]),
+        "cancel_exact": np.array([0.2, 0.2, 0.2]),
+        "s_norm": np.array([1.0, 1.0, 1.0]),
+        "u_par": np.array([0.1, 0.1, 0.1]),
+        "u_perp": np.array([0.1, 0.1, 0.1]),
+        "u_norm": np.array([0.2, 0.2, 0.2]),
+        "u_beta": np.array([0.1, 0.1, 0.1]),
+        "u_eta": np.array([0.1, 0.1, 0.1]),
+        "u_gamma": np.array([0.1, 0.1, 0.1]),
+        "C_beta": np.array([0.3, 0.3, 0.3]),
+        "C_eta": np.array([0.4, 0.4, 0.4]),
+        "C_gamma": np.array([0.3, 0.3, 0.3]),
+        "boundary": np.array([0, 0, 0]),
+        "g_over_minx": np.array([0.5, 0.5, 0.5]),
+        "beta": np.array([2.0, 2.0, 2.0]),
+        "goe": np.array([0.5, 0.5, 0.5]),
+        "n": np.array([7, 7, 7]),
+    }
+    s = M.pooled_stats([r])
+    origin = 1.0 - np.mean(rem ** 2) / np.mean(actual ** 2)
+    var_r2 = 1.0 - np.var(rem) / np.var(actual)
+    np.testing.assert_allclose(s["r2_origin"], origin, atol=1e-12)
+    assert not np.isclose(s["r2_origin"], var_r2), \
+        "origin-anchored vs variance-based R^2 must differ when mean(actual)!=0"
+
+
+# ----------------------------------------------------------------------
 # 真实 S1 证据：配对与有限性（subprocess 隔离，抽查一对）
 # ----------------------------------------------------------------------
 
@@ -192,9 +290,16 @@ rp = M.row_mechanism(ep)
 rq = M.row_mechanism(eq)
 assert len(rp["actual"]) == 2400, len(rp["actual"])
 for k in ("actual", "proj", "rem", "u_beta", "u_eta", "u_gamma", "u_par",
-          "u_perp", "align", "cancel", "s_beta", "s_eta", "s_gamma"):
+          "u_perp", "align", "cancel", "cancel_exact", "s_beta", "s_eta",
+          "s_gamma", "s_norm", "C_beta", "C_eta", "C_gamma"):
     assert np.all(np.isfinite(rp[k])) and np.all(np.isfinite(rq[k])), k
 assert np.all((rp["g_over_minx"] > 0) & (rp["g_over_minx"] < 1))
+# 精确分解恒等式（float32 存储容差）与 cancel_exact 范围
+for r in (rp, rq):
+    csum = r["C_beta"] + r["C_eta"] + r["C_gamma"]
+    assert float(np.max(np.abs(csum - r["actual"]))) < 1e-4, \
+        "exact identity failed on real evidence"
+    assert np.all((r["cancel_exact"] >= 0.0) & (r["cancel_exact"] <= 1.0))
 print("OK", len(rp["actual"]))
 """
     env = {k: v for k, v in os.environ.items() if k != "PQ_PROTOCOL"}

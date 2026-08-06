@@ -1,7 +1,7 @@
 {
  "protocol": "iid-v1",
  "stage": "S2 mechanism (analysis-only; reuses frozen S1 evidence, no training)",
- "estimand_note": "decomposition of actual relative x_0.95 error into first-order sensitivity projection proj=s.u and nonlinear remainder; target-aligned vs isoquantile-tangent magnitudes; component-cancellation index; all per held-out prediction",
+ "estimand_note": "per held-out prediction: first-order projection proj=s.u and nonlinear remainder rem (local-linearity diagnostic only); exact no-remainder decomposition actual=C_beta+C_eta+C_gamma with exact cancellation index; target-aligned vs true-point local-tangent magnitudes; true-param sensitivity norm ||s||",
  "formulas": {
   "x_p": "gamma + eta*(-ln p)^(1/beta), p=0.95",
   "u": "((beta_hat-beta)/beta, (eta_hat-eta)/eta, (gamma_hat-gamma)/eta)",
@@ -11,17 +11,26 @@
   "s_beta": "dx_dbeta*beta/x",
   "s_eta": "dx_deta*eta/x",
   "s_gamma": "eta/x",
+  "s_norm": "sqrt(s_beta^2 + s_eta^2 + s_gamma^2)",
   "proj": "s_beta*u_beta + s_eta*u_eta + s_gamma*u_gamma",
   "nonlinear_remainder": "actual - proj",
+  "r2_origin": "1 - mean(rem^2)/mean(actual^2); origin-anchored, NOT variance-based R^2 (equals var-R^2 only if mean(actual)=0)",
+  "C_gamma": "(gamma_hat - gamma)/x",
+  "C_eta": "0.5*(eta_hat-eta)*(t0+t1)/x",
+  "C_beta": "0.5*(eta+eta_hat)*(t1-t0)/x",
+  "exact_identity": "actual == C_beta + C_eta + C_gamma (up to floating precision)",
   "align": "|u_par|/|u|, u_par = u.s_hat = proj/|s|",
-  "cancel": "(|c_beta|+|c_eta|+|c_gamma| - |proj|) / (|c_beta|+|c_eta|+|c_gamma|), 0 if denominator 0"
+  "cancel": "(|c_beta|+|c_eta|+|c_gamma| - |proj|) / (|c_beta|+|c_eta|+|c_gamma|), 0 if denominator 0",
+  "cancel_exact": "(|C_beta|+|C_eta|+|C_gamma| - |C_beta+C_eta+C_gamma|) / (|C_beta|+|C_eta|+|C_gamma|), 0 if denominator 0 (self-consistent within exact decomposition; |C_beta+C_eta+C_gamma| == |actual| up to storage)"
  },
  "evidence": {
   "n_fits": 120,
   "n_pairs": 60,
   "n_rows_per_route": 144000,
   "evidence_dir": "artifacts/pq_iid_main/evidence",
-  "baseline_tip": "928497b9"
+  "baseline_tip": "928497b9",
+  "s1_evidence_reused_as_is": true,
+  "no_training": true
  },
  "s1_cross_check": {
   "pooled_p_rrmse_sealed": 0.1663268357515335,
@@ -36,11 +45,16 @@
    "rms_proj": 0.1655872528201924,
    "rms_rem": 0.017507632091904174,
    "mean_proj_times_rem": -3.0519034698306176e-05,
-   "r2_explained": 0.9889202450574969,
+   "r2_origin": 0.9889202450574969,
    "corr_proj_actual": 0.9959246081267779,
    "corr_proj_rem": -0.029859205143926412,
    "mean_align": 0.4111186499832725,
    "mean_cancel": 0.3574666627124389,
+   "mean_cancel_exact": 0.3518353638392477,
+   "rms_c_beta": 0.11086022149797099,
+   "rms_c_eta": 0.009540344217779769,
+   "rms_c_gamma": 0.14162759121787463,
+   "mean_s_norm": 1.5257889981791588,
    "rms_u_par": 0.09116927147437986,
    "rms_u_perp": 0.2152409048269044,
    "rms_u_norm": 0.23375303885056484,
@@ -48,7 +62,8 @@
    "rms_u_eta": 0.023590053735725213,
    "rms_u_gamma": 0.08719052131523797,
    "n_boundary": 0,
-   "boundary_share": 0.0
+   "boundary_share": 0.0,
+   "identity_max_abs_err": 1.839716761153909e-07
   },
   "Q": {
    "n_rows": 144000,
@@ -56,11 +71,16 @@
    "rms_proj": 6.367612270103443,
    "rms_rem": 6.357184014307612,
    "mean_proj_times_rem": -40.46715882301985,
-   "r2_explained": -1555.9533558521737,
+   "r2_origin": -1555.9533558521737,
    "corr_proj_actual": 0.22557045310610882,
    "corr_proj_rem": -0.9995400951713379,
    "mean_align": 0.2614646287836915,
    "mean_cancel": 0.3420304846758321,
+   "mean_cancel_exact": 0.9149105657704147,
+   "rms_c_beta": 0.490849273589807,
+   "rms_c_eta": 0.81897880582361,
+   "rms_c_gamma": 0.42282153584769905,
+   "mean_s_norm": 1.5257889981791588,
    "rms_u_par": 2.646213938142813,
    "rms_u_perp": 8.739156538513607,
    "rms_u_norm": 9.131007896780421,
@@ -68,7 +88,8 @@
    "rms_u_eta": 0.9301362012909519,
    "rms_u_gamma": 0.32039233757779384,
    "n_boundary": 0,
-   "boundary_share": 0.0
+   "boundary_share": 0.0,
+   "identity_max_abs_err": 1.730366685492868e-07
   },
   "delta_Q_minus_P": {
    "rms_actual": -0.005215175658245336,
@@ -76,10 +97,110 @@
    "rms_rem": 6.339676382215708,
    "mean_align": -0.14965402119958104,
    "mean_cancel": -0.015436178036606796,
+   "mean_cancel_exact": 0.5630752019311671,
+   "mean_s_norm": 0.0,
    "rms_u_par": 2.5550446666684334,
    "rms_u_perp": 8.523915633686702,
    "rms_u_norm": 8.897254857929855
   }
+ },
+ "u_quantiles": {
+  "P": {
+   "u_beta": {
+    "p10": -0.2729334020614624,
+    "p25": -0.18527599175771078,
+    "p50": -0.0758319960700141,
+    "p75": 0.05928310751914978,
+    "p90": 0.21135699408394953,
+    "p99": 0.6519838183720909
+   },
+   "u_eta": {
+    "p10": -0.0303013916015625,
+    "p25": -0.017816696166992187,
+    "p50": -0.00487213134765625,
+    "p75": 0.006441207885742188,
+    "p90": 0.01821199951171875,
+    "p99": 0.06535107543945358
+   },
+   "u_gamma": {
+    "p10": -0.10236852416992187,
+    "p25": -0.04809596538543701,
+    "p50": 0.0019247589111328124,
+    "p75": 0.048365631103515626,
+    "p90": 0.10151416320800782,
+    "p99": 0.23378485595703138
+   },
+   "frac_abs_u_beta_gt_1": 0.0021527777777777778
+  },
+  "Q": {
+   "u_beta": {
+    "p10": 0.9380395627021794,
+    "p25": 2.6242192480299207,
+    "p50": 5.913269917170206,
+    "p75": 9.917941284179687,
+    "p90": 14.710096740722658,
+    "p99": 25.556609471639053
+   },
+   "u_eta": {
+    "p10": -0.9832364042282105,
+    "p25": -0.9660967092514038,
+    "p50": -0.9349529418945313,
+    "p75": -0.8989720268249511,
+    "p90": -0.867280369567871,
+    "p99": -0.8124551406860351
+   },
+   "u_gamma": {
+    "p10": 0.05813357238769532,
+    "p25": 0.167254638671875,
+    "p50": 0.2990120544433594,
+    "p75": 0.3974214172363281,
+    "p90": 0.4690523376464844,
+    "p99": 0.5826280914306642
+   },
+   "frac_abs_u_beta_gt_1": 0.8939166666666667
+  }
+ },
+ "sensitivity_norm_regional": {
+  "beta": {
+   "mean_s_norm_by_region": {
+    "1.5": 2.16484568480459,
+    "2.0": 1.808031145728217,
+    "2.5": 1.5997445883217856,
+    "3.0": 1.4664347281307741,
+    "3.5": 1.375132586992317,
+    "4.0": 1.3094141309755998,
+    "4.5": 1.260281146928994,
+    "5.0": 1.2224279735509913
+   },
+   "corr_mean_s_norm_delta_rms_actual": -0.9520225104618588
+  },
+  "gamma_over_eta": {
+   "mean_s_norm_by_region": {
+    "0.1": 2.5930606331944466,
+    "0.25": 1.8847313549071927,
+    "0.5": 1.3133996605608753,
+    "0.75": 1.012590056939298,
+    "1.0": 0.8251632852939813
+   },
+   "corr_mean_s_norm_delta_rms_actual": -0.8723605942470753
+  },
+  "n": {
+   "mean_s_norm_by_region": {
+    "7.0": 1.5257889981791588,
+    "10.0": 1.5257889981791588,
+    "15.0": 1.5257889981791588,
+    "20.0": 1.5257889981791588
+   },
+   "corr_mean_s_norm_delta_rms_actual": null,
+   "note": "||s|| depends only on true params (not n); correlation undefined by construction (constant across n)"
+  }
+ },
+ "exact_identity_check": {
+  "identity_max_abs_err_P": 1.839716761153909e-07,
+  "identity_max_abs_err_Q": 1.730366685492868e-07,
+  "identity_max_abs_err_cell_max_P": 1.839716761153909e-07,
+  "identity_max_abs_err_cell_max_Q": 1.730366685492868e-07,
+  "note": "max |actual - (C_beta+C_eta+C_gamma)|; float32-stored hats/rel_err dominate the residual (exact identity holds to float precision on float64 geometry)"
  },
  "design_pair_deltas": {
   "rms_actual": {
@@ -117,6 +238,20 @@
    "n_boot": 20000,
    "level": 0.95
   },
+  "mean_cancel_exact": {
+   "mean_delta": 0.563075201931167,
+   "ci_lo": 0.5562823725679842,
+   "ci_hi": 0.5695055618745912,
+   "n_boot": 20000,
+   "level": 0.95
+  },
+  "mean_s_norm": {
+   "mean_delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0,
+   "n_boot": 20000,
+   "level": 0.95
+  },
   "rms_u_par": {
    "mean_delta": 2.328918303661874,
    "ci_lo": 2.2786031772294515,
@@ -139,6 +274,7 @@
    "delta_rms_actual": 0.9836234526468322,
    "delta_mean_align": 0.49971400171256136,
    "delta_mean_cancel": 0.8100332386916385,
+   "delta_mean_cancel_exact": 0.578319547649652,
    "delta_rms_u_par": -0.7319657915030043,
    "delta_rms_u_perp": -0.8781556358191281
   },
@@ -148,6 +284,7 @@
    "delta_rms_actual": 0.9891125408675635,
    "delta_mean_align": -0.9773762939287276,
    "delta_mean_cancel": 0.9778455547852081,
+   "delta_mean_cancel_exact": 0.2556463405644245,
    "delta_rms_u_par": -0.972734528619472,
    "delta_rms_u_perp": -0.9684371067749964
   },
@@ -157,16 +294,20 @@
    "delta_rms_actual": 0.9772896920618549,
    "delta_mean_align": 0.7079045669616882,
    "delta_mean_cancel": -0.861555371720051,
+   "delta_mean_cancel_exact": 0.9296615362950406,
    "delta_rms_u_par": 0.9362433236248069,
    "delta_rms_u_perp": 0.9325693307324786
   }
  },
  "limits": [
   "analysis-only decomposition; observed association, not causal proof",
+  "corr(proj,rem)~-1 is nearly forced algebraically when |proj|>>|actual|; it is a local-linearity diagnostic, not evidence of curvature-caused gain",
+  "exact decomposition is an identity (up to float32 storage); cancel_exact quantifies compensating parameter changes, does not by itself prove causality",
+  "mean ||s|| vs regional delta correlation is exploratory association over a handful of bins (8 beta, 5 goe, 4 n), unweighted; ||s|| is identical across n by construction so the n-correlation is undefined",
+  "u_perp is a true-point local tangent-space approximation, not a global distance to the curved isoquantile manifold (Q is far from truth)",
   "design-level paired CIs are descriptive secondary support, not the primary inference",
   "3 seeds only; training-fold overlap under repeat-stratified splitting",
-  "first-order projection uses sensitivity at true parameters; remainder absorbs second-order and finite-parameter effects and float32 storage of hats",
-  "region-level correlation is over a handful of bins (8 beta, 5 goe, 4 n), unweighted, exploratory"
+  "first-order projection uses sensitivity at true parameters; remainder absorbs second-order and finite-parameter effects and float32 storage of hats"
  ],
  "n_boot_design_pairs": 20000
 }

@@ -14,17 +14,26 @@ held-out 预测（P 与 Q 各 144,000 行）构造：
    `dx/dgamma = 1`（`a=-ln p`），`s_j = (dx/dtheta_j)*(Delta theta_j 对应因子)/x`，
    即 `s_beta = dx_dbeta*beta/x`、`s_eta = dx_deta*eta/x`、`s_gamma = eta/x`，
    使一阶投影 `proj = s.u = (x_hat-x)/x` 的一阶展开；
-3. **分解**：`actual = rel_err`（= 冻结 S1 证据的 (x_hat-x)/x），
-   `first_order = proj`，`nonlinear_remainder = actual - proj`；
-4. **目标对齐 vs 等分位点切向（nuisance）幅值**（协议 M2.3）：
-   `u_par = u.s_hat = proj/|s|`（沿敏感度方向的带符号分量），
-   `u_perp = sqrt(|u|^2 - u_par^2)`（等分位点曲面切向/零空间分量），
-   `align = |u_par|/|u|`（对齐比，0=正交，1=完全对齐）；
-5. **组件抵消指数**（协议 M2.3 "抵消" 的可操作定义，零分母显式处理）：
-   对贡献 `c_j = s_j*u_j`，`A = |c_beta|+|c_eta|+|c_gamma|`，
-   `B = |c_beta+c_eta+c_gamma|`，`cancel = (A-B)/A`（`A>0`），`A=0` 时取 0。
-   `0` = 无抵消（各贡献同向），`1` = 完全抵消（投影=0）。
-6. **参数误差幅值与解码器边界诊断**：逐分量 RMS |u|；`gamma_hat/min_x` 阈值
+3. **一阶分解（局部线性诊断）**：`actual = rel_err`（= 冻结 S1 证据的 (x_hat-x)/x），
+   `proj = s.u` 为一阶投影，`rem = actual - proj` 为非线性余项。**注意**：当
+   `|proj| >> |actual|` 时 `corr(proj,rem) ~ -1` 是代数上近乎必然的（余项 ≈ -proj），
+   故 proj-rem 反相只诊断「真值处一阶 Taylor 远离真值」，本身不构成因果；机制主张
+   需配合精确分解（见 4）与敏感度范数（见 6）。
+4. **精确无余项分解**（对称形式，机器精度内 exact）：
+   `t0 = a^(1/beta)`、`t1 = a^(1/beta_hat)`，
+   `C_gamma = (gamma_hat - gamma)/x`、`C_eta = 0.5*(eta_hat-eta)*(t0+t1)/x`、
+   `C_beta = 0.5*(eta+eta_hat)*(t1-t0)/x`，**exact `actual = C_beta+C_eta+C_gamma`**
+   （up to floating precision）；据此定义**精确分量抵消指数**
+   `cancel_exact = (|C_beta|+|C_eta|+|C_gamma| - |actual|) / (|C_beta|+|C_eta|+|C_gamma|)`
+   （分母 0 时取 0；度量维持目标 x_0.95 所需的参数补偿量，非一阶分量抵消）。
+5. **目标对齐 vs 真值点局部切向分量**（协议 M2.3）：
+   `u_par = proj/|s|`（沿敏感度方向的带符号分量），
+   `u_perp = sqrt(|u|^2 - u_par^2)`（真值点**局部切空间**内正交分量；Q 远离真值时
+   **不是**到弯曲等分位点流形的全局距离，仅为真值点局部切向近似），
+   `align = |u_par|/|u|`（对齐比，0=正交，1=完全对齐）。
+6. **真值点无量纲敏感度范数** `|s| = sqrt(s_beta^2+s_eta^2+s_gamma^2)`（目标误差对参数
+   误差的放大系数；只依赖真值参数，故跨 n 构造性相同）。
+7. **参数误差幅值与解码器边界诊断**：逐分量 RMS |u| 与分位点分布；`gamma_hat/min_x` 阈值
    `>= 0.9999` 的行计数与误差占比（解码器上边缘行为，非支撑违规）。
 
 聚合输出（`artifacts/pq_iid_main/analysis/`，紧凑、无逐行 dump）：
@@ -122,11 +131,23 @@ def row_mechanism(ev: dict, eta_true: float = CFG.ETA, R: float = CFG.X0_95_R) -
     u_eta = (e_hat - eta_true) / eta_true
     u_gamma = (g_hat - gamma) / eta_true
 
-    # 一阶投影 + 非线性残差
+    # 一阶投影 + 非线性余项（局部线性诊断；proj-rem 反相不单独构成因果）
     proj = s_beta * u_beta + s_eta * u_eta + s_gamma * u_gamma
     rem = actual - proj
 
-    # 目标对齐 vs 等分位点切向（nuisance）
+    # 精确无余项分解（对称；actual = C_beta + C_eta + C_gamma up to floating precision）
+    t1 = a ** (1.0 / b_hat)
+    C_gamma = (g_hat - gamma) / x
+    C_eta = 0.5 * (e_hat - eta_true) * (t + t1) / x
+    C_beta = 0.5 * (eta_true + e_hat) * (t1 - t) / x
+    # cancel_exact 在分解自身 float64 算术内自洽（B_exact = |sum C| = |actual| up to
+    # storage）；用 |sum C| 而非 float32 存储的 |actual|，使指数在机器精度内非负。
+    A_exact = np.abs(C_beta) + np.abs(C_eta) + np.abs(C_gamma)
+    B_exact = np.abs(C_beta + C_eta + C_gamma)
+    cancel_exact = np.divide(A_exact - B_exact, A_exact,
+                             out=np.zeros_like(A_exact), where=A_exact > 0.0)
+
+    # 目标对齐 vs 真值点局部切向分量（u_perp 为局部切空间近似，非全局流形距离）
     s_norm = np.sqrt(s_beta ** 2 + s_eta ** 2 + s_gamma ** 2)
     u_par = proj / s_norm  # 带符号沿 s 分量（u.s_hat）
     u_norm = np.sqrt(u_beta ** 2 + u_eta ** 2 + u_gamma ** 2)
@@ -134,7 +155,7 @@ def row_mechanism(ev: dict, eta_true: float = CFG.ETA, R: float = CFG.X0_95_R) -
     align = np.divide(np.abs(u_par), u_norm, out=np.zeros_like(u_par),
                       where=u_norm > 0.0)
 
-    # 组件抵消指数（零分母显式处理）
+    # 一阶分量抵消指数（零分母显式处理）
     c_beta = s_beta * u_beta
     c_eta = s_eta * u_eta
     c_gamma = s_gamma * u_gamma
@@ -150,7 +171,9 @@ def row_mechanism(ev: dict, eta_true: float = CFG.ETA, R: float = CFG.X0_95_R) -
         "beta": beta, "goe": goe, "n": ev["keys_n"].astype(np.int64),
         "actual": actual, "proj": proj, "rem": rem,
         "u_beta": u_beta, "u_eta": u_eta, "u_gamma": u_gamma,
-        "s_beta": s_beta, "s_eta": s_eta, "s_gamma": s_gamma,
+        "s_beta": s_beta, "s_eta": s_eta, "s_gamma": s_gamma, "s_norm": s_norm,
+        "C_beta": C_beta, "C_eta": C_eta, "C_gamma": C_gamma,
+        "cancel_exact": cancel_exact,
         "u_par": u_par, "u_perp": u_perp, "u_norm": u_norm, "align": align,
         "cancel": cancel, "g_over_minx": g_over_minx, "boundary": boundary,
     }
@@ -182,6 +205,8 @@ def cell_stats(r: dict) -> dict:
         "rms_rem": _rms(r["rem"]),
         "mean_align": float(np.mean(r["align"])),
         "mean_cancel": float(np.mean(r["cancel"])),
+        "mean_cancel_exact": float(np.mean(r["cancel_exact"])),
+        "mean_s_norm": float(np.mean(r["s_norm"])),
         "rms_u_par": _rms(r["u_par"]),
         "rms_u_perp": _rms(r["u_perp"]),
         "rms_u_beta": _rms(r["u_beta"]),
@@ -189,29 +214,40 @@ def cell_stats(r: dict) -> dict:
         "rms_u_gamma": _rms(r["u_gamma"]),
         "n_boundary": int(np.sum(r["boundary"])),
         "corr_proj_actual": _corr_or_none(r["proj"], r["actual"]),
+        "identity_max_abs_err": float(np.max(
+            np.abs(r["actual"] - (r["C_beta"] + r["C_eta"] + r["C_gamma"])))),
     }
 
 
 def pooled_stats(rows: list[dict]) -> dict:
     """跨给定行集合的 pooled 机制量（全部样本等权）。"""
     concat = {k: np.concatenate([r[k] for r in rows]) for k in (
-        "actual", "proj", "rem", "align", "cancel",
+        "actual", "proj", "rem", "align", "cancel", "cancel_exact", "s_norm",
         "u_par", "u_perp", "u_norm", "u_beta", "u_eta", "u_gamma",
+        "C_beta", "C_eta", "C_gamma",
         "boundary", "g_over_minx", "beta", "goe", "n")}
     a = concat["actual"]
     p = concat["proj"]
     rem = concat["rem"]
+    c_sum = concat["C_beta"] + concat["C_eta"] + concat["C_gamma"]
     return {
         "n_rows": int(len(a)),
         "rms_actual": _rms(a),
         "rms_proj": _rms(p),
         "rms_rem": _rms(rem),
         "mean_proj_times_rem": float(np.mean(p * rem)),
-        "r2_explained": float(1.0 - np.mean(rem ** 2) / np.mean(a ** 2)),
+        # 原点到锚定的均方"解释"份额；只作局部线性诊断，不作因果量（见 limits）。
+        # 非方差版 R^2：仅当 mean(actual)=0 时才与 1-var(rem)/var(actual) 相等。
+        "r2_origin": float(1.0 - np.mean(rem ** 2) / np.mean(a ** 2)),
         "corr_proj_actual": _corr_or_none(p, a),
         "corr_proj_rem": _corr_or_none(p, rem),
         "mean_align": float(np.mean(concat["align"])),
         "mean_cancel": float(np.mean(concat["cancel"])),
+        "mean_cancel_exact": float(np.mean(concat["cancel_exact"])),
+        "rms_c_beta": _rms(concat["C_beta"]),
+        "rms_c_eta": _rms(concat["C_eta"]),
+        "rms_c_gamma": _rms(concat["C_gamma"]),
+        "mean_s_norm": float(np.mean(concat["s_norm"])),
         "rms_u_par": _rms(concat["u_par"]),
         "rms_u_perp": _rms(concat["u_perp"]),
         "rms_u_norm": _rms(concat["u_norm"]),
@@ -220,6 +256,7 @@ def pooled_stats(rows: list[dict]) -> dict:
         "rms_u_gamma": _rms(concat["u_gamma"]),
         "n_boundary": int(np.sum(concat["boundary"])),
         "boundary_share": float(np.mean(concat["boundary"])),
+        "identity_max_abs_err": float(np.max(np.abs(a - c_sum))),
     }
 
 
@@ -314,6 +351,9 @@ def region_table(rows_p: dict, rows_q: dict, s1_mean_diff: dict) -> pd.DataFrame
                 "p_rms_rem": sp["rms_rem"], "q_rms_rem": sq["rms_rem"],
                 "p_mean_align": sp["mean_align"], "q_mean_align": sq["mean_align"],
                 "p_mean_cancel": sp["mean_cancel"], "q_mean_cancel": sq["mean_cancel"],
+                "p_mean_cancel_exact": sp["mean_cancel_exact"],
+                "q_mean_cancel_exact": sq["mean_cancel_exact"],
+                "p_mean_s_norm": sp["mean_s_norm"], "q_mean_s_norm": sq["mean_s_norm"],
                 "p_rms_u_par": sp["rms_u_par"], "q_rms_u_par": sq["rms_u_par"],
                 "p_rms_u_perp": sp["rms_u_perp"], "q_rms_u_perp": sq["rms_u_perp"],
                 "delta_rms_actual": sq["rms_actual"] - sp["rms_actual"],
@@ -321,6 +361,9 @@ def region_table(rows_p: dict, rows_q: dict, s1_mean_diff: dict) -> pd.DataFrame
                 "delta_rms_rem": sq["rms_rem"] - sp["rms_rem"],
                 "delta_mean_align": sq["mean_align"] - sp["mean_align"],
                 "delta_mean_cancel": sq["mean_cancel"] - sp["mean_cancel"],
+                "delta_mean_cancel_exact": sq["mean_cancel_exact"]
+                - sp["mean_cancel_exact"],
+                "delta_mean_s_norm": sq["mean_s_norm"] - sp["mean_s_norm"],
                 "delta_rms_u_par": sq["rms_u_par"] - sp["rms_u_par"],
                 "delta_rms_u_perp": sq["rms_u_perp"] - sp["rms_u_perp"],
                 "s1_mean_diff": s1_mean_diff.get((rtype, v)),
@@ -337,6 +380,16 @@ def _corr(a: list[float], b: list[float]) -> float | None:
     if len(a) < 3 or np.std(a) == 0.0 or np.std(b) == 0.0:
         return None
     return float(np.corrcoef(a, b)[0, 1])
+
+
+def _quantiles(arr: np.ndarray, qs: tuple = (0.10, 0.25, 0.50, 0.75, 0.90, 0.99)) -> dict:
+    """参数误差分位点（机器可读，供 10-PQ §2.2 引用）。"""
+    qv = np.quantile(np.asarray(arr, dtype=np.float64), qs)
+    return {f"p{int(100 * v)}": float(qv[i]) for i, v in enumerate(qs)}
+
+
+def _cat(rows: dict, key: str) -> np.ndarray:
+    return np.concatenate([r[key] for r in rows.values()])
 
 
 def main() -> int:
@@ -391,8 +444,9 @@ def main() -> int:
     # cell 配对表（60 个 (n,fold,seed) 模型对）
     pair_rec = []
     metrics = ("rms_actual", "rms_proj", "rms_rem", "mean_align", "mean_cancel",
+               "mean_cancel_exact", "mean_s_norm",
                "rms_u_par", "rms_u_perp", "rms_u_beta", "rms_u_eta", "rms_u_gamma",
-               "n_boundary", "corr_proj_actual")
+               "n_boundary", "corr_proj_actual", "identity_max_abs_err")
     for (n, fold_idx, seed) in sorted(stats_p):
         row = {"n": n, "fold": fold_idx + 1, "seed": seed}
         for m in metrics:
@@ -406,7 +460,8 @@ def main() -> int:
 
     # 设计级配对差值 + CI（关键机制量）
     design_keys = ("rms_actual", "rms_proj", "rms_rem", "mean_align",
-                   "mean_cancel", "rms_u_par", "rms_u_perp")
+                   "mean_cancel", "mean_cancel_exact", "mean_s_norm",
+                   "rms_u_par", "rms_u_perp")
     design = design_pair_deltas(stats_p, stats_q, design_keys, n_boot=args.n_boot)
 
     # 区域翻转检验（描述性相关：S1 区域 mean_diff vs 机制量差值）
@@ -418,18 +473,46 @@ def main() -> int:
         rev = {}
         for mech in ("delta_rms_proj", "delta_rms_rem", "delta_rms_actual",
                      "delta_mean_align", "delta_mean_cancel",
-                     "delta_rms_u_par", "delta_rms_u_perp"):
+                     "delta_mean_cancel_exact", "delta_rms_u_par",
+                     "delta_rms_u_perp"):
             mech_v = [r[mech] for r in rows if r["s1_mean_diff"] is not None]
             rev[mech] = _corr(md, mech_v)
         reversal[rtype] = rev
 
+    # S2-002：真值点敏感度范数 ||s|| 与区域 Q-P 目标误差差的相关（探索性）
+    sens = {}
+    for rtype in ("beta", "gamma_over_eta", "n"):
+        sub = region_df[region_df["region"] == rtype].sort_values("value")
+        s_vals = sub["p_mean_s_norm"].tolist()  # P/Q 共享真值 → 相同
+        d_vals = sub["delta_rms_actual"].tolist()
+        sens[rtype] = {
+            "mean_s_norm_by_region": {str(v): s for v, s in
+                                      zip(sub["value"], s_vals)},
+            "corr_mean_s_norm_delta_rms_actual": _corr(s_vals, d_vals),
+        }
+    sens["n"]["note"] = ("||s|| depends only on true params (not n); correlation "
+                         "undefined by construction (constant across n)")
+
+    # S2-004：参数误差分位点（机器可读，供 10-PQ §2.2 引用）
+    u_quantiles = {
+        name: {
+            "u_beta": _quantiles(_cat(rows, "u_beta")),
+            "u_eta": _quantiles(_cat(rows, "u_eta")),
+            "u_gamma": _quantiles(_cat(rows, "u_gamma")),
+            "frac_abs_u_beta_gt_1": float(
+                np.mean(np.abs(_cat(rows, "u_beta")) > 1.0)),
+        }
+        for name, rows in (("P", rows_p), ("Q", rows_q))
+    }
+
     summary = {
         "protocol": "iid-v1",
         "stage": "S2 mechanism (analysis-only; reuses frozen S1 evidence, no training)",
-        "estimand_note": ("decomposition of actual relative x_0.95 error into "
-                          "first-order sensitivity projection proj=s.u and nonlinear "
-                          "remainder; target-aligned vs isoquantile-tangent magnitudes; "
-                          "component-cancellation index; all per held-out prediction"),
+        "estimand_note": ("per held-out prediction: first-order projection proj=s.u and "
+                          "nonlinear remainder rem (local-linearity diagnostic only); "
+                          "exact no-remainder decomposition actual=C_beta+C_eta+C_gamma "
+                          "with exact cancellation index; target-aligned vs true-point "
+                          "local-tangent magnitudes; true-param sensitivity norm ||s||"),
         "formulas": {
             "x_p": "gamma + eta*(-ln p)^(1/beta), p=0.95",
             "u": "((beta_hat-beta)/beta, (eta_hat-eta)/eta, (gamma_hat-gamma)/eta)",
@@ -438,16 +521,29 @@ def main() -> int:
             "dx_dgamma": "1",
             "s_beta": "dx_dbeta*beta/x", "s_eta": "dx_deta*eta/x",
             "s_gamma": "eta/x",
+            "s_norm": "sqrt(s_beta^2 + s_eta^2 + s_gamma^2)",
             "proj": "s_beta*u_beta + s_eta*u_eta + s_gamma*u_gamma",
             "nonlinear_remainder": "actual - proj",
+            "r2_origin": "1 - mean(rem^2)/mean(actual^2); origin-anchored, NOT "
+                         "variance-based R^2 (equals var-R^2 only if mean(actual)=0)",
+            "C_gamma": "(gamma_hat - gamma)/x",
+            "C_eta": "0.5*(eta_hat-eta)*(t0+t1)/x",
+            "C_beta": "0.5*(eta+eta_hat)*(t1-t0)/x",
+            "exact_identity": "actual == C_beta + C_eta + C_gamma (up to floating precision)",
             "align": "|u_par|/|u|, u_par = u.s_hat = proj/|s|",
             "cancel": "(|c_beta|+|c_eta|+|c_gamma| - |proj|) / (|c_beta|+|c_eta|+|c_gamma|), "
                       "0 if denominator 0",
+            "cancel_exact": "(|C_beta|+|C_eta|+|C_gamma| - |C_beta+C_eta+C_gamma|) / "
+                            "(|C_beta|+|C_eta|+|C_gamma|), 0 if denominator 0 "
+                            "(self-consistent within exact decomposition; "
+                            "|C_beta+C_eta+C_gamma| == |actual| up to storage)",
         },
         "evidence": {
             "n_fits": 120, "n_pairs": n_pairs, "n_rows_per_route": n_rows,
             "evidence_dir": "artifacts/pq_iid_main/evidence",
             "baseline_tip": "928497b9",
+            "s1_evidence_reused_as_is": True,
+            "no_training": True,
         },
         "s1_cross_check": {
             "pooled_p_rrmse_sealed": p0, "pooled_q_rrmse_sealed": q0,
@@ -462,21 +558,44 @@ def main() -> int:
                 "rms_rem": sq["rms_rem"] - sp["rms_rem"],
                 "mean_align": sq["mean_align"] - sp["mean_align"],
                 "mean_cancel": sq["mean_cancel"] - sp["mean_cancel"],
+                "mean_cancel_exact": sq["mean_cancel_exact"]
+                - sp["mean_cancel_exact"],
+                "mean_s_norm": sq["mean_s_norm"] - sp["mean_s_norm"],
                 "rms_u_par": sq["rms_u_par"] - sp["rms_u_par"],
                 "rms_u_perp": sq["rms_u_perp"] - sp["rms_u_perp"],
                 "rms_u_norm": sq["rms_u_norm"] - sp["rms_u_norm"],
             },
         },
+        "u_quantiles": u_quantiles,
+        "sensitivity_norm_regional": sens,
+        "exact_identity_check": {
+            "identity_max_abs_err_P": sp["identity_max_abs_err"],
+            "identity_max_abs_err_Q": sq["identity_max_abs_err"],
+            "identity_max_abs_err_cell_max_P": max(
+                s["identity_max_abs_err"] for s in stats_p.values()),
+            "identity_max_abs_err_cell_max_Q": max(
+                s["identity_max_abs_err"] for s in stats_q.values()),
+            "note": ("max |actual - (C_beta+C_eta+C_gamma)|; float32-stored hats/rel_err "
+                     "dominate the residual (exact identity holds to float precision on "
+                     "float64 geometry)"),
+        },
         "design_pair_deltas": design,
         "reversal_correlation_descriptive": reversal,
         "limits": [
             "analysis-only decomposition; observed association, not causal proof",
+            "corr(proj,rem)~-1 is nearly forced algebraically when |proj|>>|actual|; "
+            "it is a local-linearity diagnostic, not evidence of curvature-caused gain",
+            "exact decomposition is an identity (up to float32 storage); cancel_exact "
+            "quantifies compensating parameter changes, does not by itself prove causality",
+            "mean ||s|| vs regional delta correlation is exploratory association over a "
+            "handful of bins (8 beta, 5 goe, 4 n), unweighted; ||s|| is identical across n "
+            "by construction so the n-correlation is undefined",
+            "u_perp is a true-point local tangent-space approximation, not a global "
+            "distance to the curved isoquantile manifold (Q is far from truth)",
             "design-level paired CIs are descriptive secondary support, not the primary inference",
             "3 seeds only; training-fold overlap under repeat-stratified splitting",
             "first-order projection uses sensitivity at true parameters; remainder absorbs "
             "second-order and finite-parameter effects and float32 storage of hats",
-            "region-level correlation is over a handful of bins (8 beta, 5 goe, 4 n), "
-            "unweighted, exploratory",
         ],
         "n_boot_design_pairs": args.n_boot,
     }
@@ -491,8 +610,15 @@ def main() -> int:
           f"delta={sq['rms_proj']-sp['rms_proj']:.6f}")
     print(f"pooled rms_rem:   P={sp['rms_rem']:.6f}  Q={sq['rms_rem']:.6f}  "
           f"delta={sq['rms_rem']-sp['rms_rem']:.6f}")
+    print(f"r2_origin:        P={sp['r2_origin']:.4f}  Q={sq['r2_origin']:.4f}"
+          f"  (origin-anchored, not var-R^2)")
     print(f"pooled mean_align:P={sp['mean_align']:.5f}  Q={sq['mean_align']:.5f}")
     print(f"pooled mean_cancel:P={sp['mean_cancel']:.5f}  Q={sq['mean_cancel']:.5f}")
+    print(f"pooled mean_cancel_exact:P={sp['mean_cancel_exact']:.5f}  "
+          f"Q={sq['mean_cancel_exact']:.5f}")
+    print(f"pooled mean_s_norm:P={sp['mean_s_norm']:.4f}  Q={sq['mean_s_norm']:.4f}")
+    print(f"exact identity max|actual-(C_b+C_e+C_g)|: P={sp['identity_max_abs_err']:.3e}  "
+          f"Q={sq['identity_max_abs_err']:.3e}")
     for m in design_keys:
         d = design[m]
         print(f"  design pair {m}: delta={d['mean_delta']:.6f} "
@@ -501,6 +627,9 @@ def main() -> int:
     for rtype, rev in reversal.items():
         print(f"  {rtype}: " + ", ".join(f"{k}={v:.2f}" if v is not None else f"{k}=NA"
                                          for k, v in rev.items()))
+    print("sensitivity-norm ||s|| vs regional delta_rms_actual (exploratory):")
+    for rtype, d in sens.items():
+        print(f"  {rtype}: corr={d['corr_mean_s_norm_delta_rms_actual']}")
     print("analysis written to", out)
     return 0
 
