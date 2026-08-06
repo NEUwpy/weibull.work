@@ -59,9 +59,12 @@ def _git_full_head():
 
 TEXT_EXTS = {".json", ".csv", ".md", ".txt", ".log", ".sha256"}
 
-# 产出 r4 primary 120 fits 的结果代码 commit（run provenance；Codex R4-01 要求保留）。
-# 该 commit 包含 direct-P + domain-explicit 解码器 + v3 协议冻结 + 120 fits 结果。
-RUN_CODE_SHA = "057744f89207a7681925bd282f6045f458200a78"
+# run provenance：S1（iid-v1）的 clean implementation commit（含 iid 运行路径接入 +
+# analyze.py 分派 + 测试；S0 协议 §7 要求 iid 运行不得沿用 r4 值）。本提交（= 该 SHA）
+# 仅把本常量从 r4 值改为该实现 commit；训练/分析代码与所指 commit 完全一致。
+# 正式 iid 运行在紧接其后的结果提交上执行；manifest/fit_metadata 同时记录 git_full_sha
+# （= 实际执行提交）与 run_code_sha（= 本实现 commit），provenance 完整可查。
+RUN_CODE_SHA = "34f93b170e8268a75cfd96fad06e4ad5831d0b91"
 
 
 def _sha256_file(path: str) -> str:
