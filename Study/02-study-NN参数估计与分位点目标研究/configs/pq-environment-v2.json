@@ -1,0 +1,22 @@
+{
+  "environment_id": "study02-pq-env-v2",
+  "frozen_at": "2026-08-05",
+  "decision": "使用专用 P-Q 环境（非仓库既有 pinned Study02 env）。原因：Study02 requirements.txt
+    锁定的 torch==2.11.0/numpy==2.1.1/pandas==2.2.3 未安装在本机，且本机 pip SSL 被 TLS 拦截
+    （见仓库部署记录），无法离线安装旧 pinned 环境；Codex 审核允许"若使用新环境，建立 P-Q
+    专用锁文件"。P 与 Q 在同一环境同一进程内训练，无版本差异风险。",
+  "python": "3.11.9",
+  "python_full": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "executable": "C:\\Users\\ilove\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+  "packages": {
+    "torch": "2.12.0+cpu",
+    "numpy": "2.4.6",
+    "pandas": "3.0.3",
+    "scipy": "1.17.1",
+    "scikit-learn": "1.7.2"
+  },
+  "torch_build_note": "CPU-only build (no CUDA), MKL backend, AVX2",
+  "relationship_to_study01": "Study01 样本契约 generate_sample 仅用 numpy（PCG64 稳定），
+    与本 env numpy 2.4.6 复现一致（已用确定性测试验证）。"
+}

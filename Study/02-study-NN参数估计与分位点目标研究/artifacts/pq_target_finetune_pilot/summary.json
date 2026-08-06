@@ -1,0 +1,40 @@
+{
+  "status": "descriptive_pilot_not_formal_inference",
+  "design": {
+    "fold": 1,
+    "n_grid": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "seeds": [
+      42,
+      2026,
+      3407
+    ],
+    "common_start": "best P checkpoint",
+    "continuation_epochs": 100,
+    "continuation_learning_rate": 0.0001,
+    "epoch_zero_is_candidate": true
+  },
+  "pooled": {
+    "p_base_rrmse": 0.2324003719555365,
+    "p_continue_rrmse": 0.23074341489613379,
+    "q_finetune_rrmse": 0.24958227940946334,
+    "q_minus_p_base_mse": 0.00828138131015172,
+    "q_minus_p_continue_mse": 0.009048790677294093
+  },
+  "unit_directions": {
+    "q_better_than_p_base": 0,
+    "q_better_than_p_continue": 1,
+    "q_selected_after_epoch_zero": 12,
+    "n_units": 12
+  },
+  "q_parameter_diagnostic": {
+    "beta_hat_median": 3.3992451655060494,
+    "eta_hat_median": 908.1446863305589,
+    "gamma_hat_median": 339.7028381895603,
+    "corr_gamma_hat_min_x": 0.8248894771663086
+  }
+}
