@@ -1,0 +1,122 @@
+{
+ "protocol_id": "study02-pq-iid-v1",
+ "supersedes": [],
+ "frozen_at": "2026-08-06",
+ "contract": "S0 same-distribution main protocol (freeze candidate). Within each frozen parameter combo, independent repeats only; train/validation/test all cover the same beta x gamma x n grid. P = parameter-precision loss, Q = target x0.95 quantile loss; per-fit paired, only loss route differs. RQ/estimand/inference/matrix in 09-PQ-同分布主协议冻结.md. r4/v3 (gamma/eta-level holdout) retained verbatim as OOD supplement only, not main evidence.",
+ "split_strategy": "repeat_stratified",
+ "run_mode": "PQ_PROTOCOL=iid-v1 (config.py env selector; default stays v3)",
+ "study01_alignment": {
+  "config_path": "Study/01-study-MDM最小偏移量优化研究/code/dim_raw_config.py",
+  "sample_contract_path": "python/studies/common/sample.py",
+  "split_contract_path": "Study/01-study-MDM最小偏移量优化研究/code/run_E6b_dimensional_raw_specialist.py",
+  "split_report_path": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E6_dimensional_raw/specialist/split_report.csv",
+  "shared_data_manifest": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/manifest.json",
+  "shared_data_sha_list": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/data_sha256sums.txt",
+  "seed_namespace": "study01_nrmc_v1"
+ },
+ "design": {
+  "beta_grid": [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
+  "eta": 1000.0,
+  "gamma_grid": [100.0, 250.0, 500.0, 750.0, 1000.0],
+  "n_grid": [7, 10, 15, 20],
+  "repeats_per_combo": 300,
+  "n_combos": 160,
+  "n_samples": 48000,
+  "must_include_combo": {"beta": 2.0, "eta": 1000.0, "gamma": 1000.0}
+ },
+ "split": {
+  "type": "repeat-stratified (per-combo repeat_id % 5)",
+  "rule": "test: repeat_id % 5 == fold_idx; val: repeat_id % 5 == (fold_idx+1) % 5; train: remainder. Independent of seed and route.",
+  "n_folds": 5,
+  "train_repeats_per_combo": 180,
+  "val_repeats_per_combo": 60,
+  "test_repeats_per_combo": 60,
+  "train_samples_per_n_fold": 7200,
+  "val_samples_per_n_fold": 2400,
+  "test_samples_per_n_fold": 2400,
+  "all_combos_per_split": true,
+  "every_repeat_tested_exactly_once_across_folds": true,
+  "scaler_fit": "train rows only"
+ },
+ "validation": {
+  "type": "repeat class (fold+1)%5; deterministic; seed/route independent; NOT a random fraction",
+  "fraction": 0.2,
+  "n_val_repeats_per_combo": 60,
+  "salt": null
+ },
+ "routes": ["P", "Q"],
+ "training": {
+  "framework": "pytorch",
+  "hidden_layers": [256, 128, 64],
+  "activation": "relu",
+  "optimizer": "adam",
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "batch_size": 256,
+  "max_epochs": 300,
+  "early_stopping": true,
+  "validation_fraction": 0.2,
+  "patience": 20,
+  "losses": {
+   "P": "direct: ((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2",
+   "Q": "relative x0.95 squared error through Weibull formula"
+  },
+  "param_transform": "beta=softplus(o1)+1e-6; eta=softplus(o2)+1e-6; gamma=min(X)*(delta+(1-2*delta)*sigmoid(o3)), delta=1e-7, gamma_lower=0.0",
+  "x0p95": "gamma + eta * (-ln(0.95))^(1/beta)",
+  "support_legality": "strict 0 < gamma_hat < min(X) structurally (domain-explicit bounded decoder; relies on frozen positive-gamma domain gamma in [100,1000], min(X)>gamma)",
+  "no_aux": "no log-gap, no auxiliary gamma loss, no straight-through gradient, no route-specific init or decoder"
+ },
+ "seeds": [42, 2026, 3407],
+ "execution": {
+  "n_fits": 120,
+  "per_seed": 40,
+  "order": [
+   "smoke_iid",
+   "freeze_s0",
+   "full_120_fits",
+   "analysis",
+   "mechanism_M2"
+  ],
+  "estimated_wall_clock_min": {
+   "M1_120_fits": 20,
+   "basis": "r4 120 fits = 1522 s total (mean 12.7 s/fit) on hermes venv torch 2.12.0+cpu single-thread; iid has 7200 train rows vs r4 9600 (~25% fewer) -> ~9.5 s/fit typical, range 5-20 s"
+  }
+ },
+ "inference": {
+  "estimand": "For each (n, fold, seed) model, matched paired contrast d_{n,f,s} = equal-weight mean over its 2400 held-out paired samples of (rel_sq_Q - rel_sq_P). Design target Delta = equal-weight mean over the frozen (n,f,s) grid (4n x 5fold x 3seed = 60 model-level contrasts); finite-population target over the frozen fold/seed grid, not an infinite superpopulation.",
+  "primary": "(n, fold) design-unit x seed crossed paired resampling (folds stratified by n with replacement, seeds resampled globally with replacement); B = 200000 for the reported CI, 2000 for smoke/tests",
+  "n_design_units": 20,
+  "n_model_level_contrasts": 60,
+  "held_out_per_model": 2400,
+  "secondary": "per-sample bootstrap under fixed models (Monte Carlo interval only, conditional on trained models)",
+  "report": ["effect size", "stratified direction by n", "seed variation", "3-seed limitation"],
+  "no_multiple_correction_significant_counts": true
+ },
+ "evidence": {
+  "namespace": "artifacts/pq_iid_main/",
+  "compressed_per_sample": "artifacts/pq_iid_main/evidence/<fit_id>.npz (tracked, exact-dtype keys, float32)",
+  "fit_metadata": "artifacts/pq_iid_main/fit_metadata/<fit_id>.json (no model state; determinism contract)",
+  "predictions_csv": "artifacts/pq_iid_main/predictions/<fit_id>.csv (gitignored, local compute only)",
+  "aggregates": ["per_fit_metrics.csv", "pairing_report.csv", "splits_manifest.json", "manifest.json", "SHA256SUMS", "run_all_seeds.log"],
+  "analysis": ["summary_iid.json", "by_n_seed_descriptive.csv", "by_region.csv", "failure_counts.json", "mechanism_*.json"],
+  "sha256_rule": "tracked files only; text LF-normalized (clean clone portable); .npz binary raw",
+  "manifest_binds": ["full git sha", "run code sha", "env lock", "study01 input shas", "sample byte sha", "config/protocol/analysis shas"],
+  "fit_id": "n{n}_f{fold}_s{seed}_r{P|Q}",
+  "key_dtypes": "beta/gamma_over_eta float64; n/repeat_id int32; predictions float32"
+ },
+ "environment": {
+  "lock_file": "configs/pq-environment-v2.json"
+ },
+ "engineering": {
+  "dedicated_entry": "Study/02-study-NN参数估计与分位点目标研究/code/study02pq/",
+  "no_d_training": true,
+  "no_scheduler_authority_ledger": true,
+  "reuse": "existing study02pq pipeline + per-sample evidence; minimal new scripts only for explicit science questions"
+ },
+ "mentor_gates": [
+  "S0 protocol freeze (this candidate)",
+  "S1 main result",
+  "S2 mechanism conclusion",
+  "S5 draft complete"
+ ]
+}

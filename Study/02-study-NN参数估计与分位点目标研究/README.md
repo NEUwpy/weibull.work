@@ -39,16 +39,20 @@ L_Q=\operatorname{mean}\left[\left(\frac{\hat{x}_{0.95}-x_{0.95}}{x_{0.95}}\righ
 ## 设计对齐
 
 本实验对齐远端 `main` 中已封存的 **Study01 Dimensional-RAW** 权威设计（数据、输入表示、
-划分、训练设置），详见 `01-PQ-冻结协议.md`（v3/r4，配置 `configs/pq-protocol-v3.json`，
-环境锁 `configs/pq-environment-v2.json`）：
+训练设置）。**同分布主协议**（论文主问题）见 `09-PQ-同分布主协议冻结.md`（配置
+`configs/pq-iid-protocol-v1.json`，`PQ_PROTOCOL=iid-v1`）；**r4/v3 协议**（gamma-holdout
+OOD 补充）见 `01-PQ-冻结协议.md`（配置 `configs/pq-protocol-v3.json`）。两者共享环境锁
+`configs/pq-environment-v2.json`：
 
 - `beta = {1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5}`；`eta = 1000`；`gamma = {100, 250, 500, 750, 1000}`
 - `n = {7, 10, 15, 20}`；每 `(beta, eta, gamma, n)` 组合 300 次重复抽样
 - 共 160 个参数—样本量组合、48,000 个样本；输入为升序排列的有量纲原始样本
 - 每个 `n` 独立网络；每个输入位置的 StandardScaler 仅由训练折拟合
-- 5 折按 γ/η 水平留出（每折留出该 n 下的一个完整 γ/η 水平，测试覆盖全部 8 个 beta）
+- **主协议拆分**：每组合 300 个 repeats 按 `repeat_id % 5` 五折（test 60 / val 60 / train 180），
+  每折覆盖全部 40 个 (β,γ) 组合——同分布独立重复；r4/v3 的“每 n 按 γ/η 水平留出”只作
+  OOD 补充，不作主推断
 - 训练随机种子：`42, 2026, 3407`；隐藏层 `256–128–64`、ReLU、Adam、batch 256、
-  lr 1e-3、weight decay 1e-4、max epochs 300、early stopping、validation 0.15、patience 20
+  lr 1e-3、weight decay 1e-4、max epochs 300、early stopping、patience 20
 
 P 与 Q 使用**同一个 PyTorch 训练实现**，除 loss route 外全部相同（初始化、数据行、
 batch 顺序、scaler、checkpoint 选择等均逐 fit 配对验证）。
@@ -66,10 +70,11 @@ batch 顺序、scaler、checkpoint 选择等均逐 fit 配对验证）。
 | `06-PQ-缺口与审查记录.md` | 缺口、已知限制、审查记录 |
 | `07-PQ-同分布主实验修正.md` | 旧 OOD 主合同纠偏与同分布 pilot 结论 |
 | `08-PQ-论文研究蓝图与阶段清单.md` | 论文科学主线、必要实验、阶段状态与协作边界 |
+| `09-PQ-同分布主协议冻结.md` | **S0 同分布主协议冻结候选**（论文主问题；RQ、estimand、拆分、统计层级、证据 schema、M1–M3 矩阵） |
 | `已归档/` | 旧 D 路线归档（`直接标量分位点D路线/`）与总索引 |
 | `前置实验/` | 旧前置研究 A 文档与主题索引 |
 | `code/study02pq/` | P–Q 专用实现（训练、损失、数据、评测、测试） |
-| `configs/pq-*.json` | P–Q 冻结机器可读配置 |
+| `configs/pq-*.json` | P–Q 冻结机器可读配置（`pq-iid-protocol-v1.json` = 同分布主协议；`pq-protocol-v3.json` = r4 OOD；`pq-environment-v2.json` = 环境锁） |
 
 ## 阅读顺序
 
@@ -83,7 +88,7 @@ batch 顺序、scaler、checkpoint 选择等均逐 fit 配对验证）。
 
 ## 当前边界
 
-- 只训练并主张 \(x_{0.95}\)；不扩展到其他分位点、删失/截断或跨尺度泛化。
+- 主协议只训练并主张 \(x_{0.95}\)；其他分位点仅作为 M3 有限边界实验（目标特异 Q，`x_{0.90}, x_{0.95}, x_{0.99}`，S3 门复核），不扩展到删失/截断或跨尺度泛化。
 - 主分析使用各 seed 独立训练的模型，不用 seed 平均替代主分析。
 - 参数误差只用于诊断 Q 如何达到分位点结果，不作为 Q 的成功标准或正文主张。
 - 旧 D 路线（直接标量分位点网络）**不再训练**；旧前置研究 A 的 formal 引擎只读冻结。

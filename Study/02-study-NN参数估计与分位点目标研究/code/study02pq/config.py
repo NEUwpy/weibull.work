@@ -1,8 +1,13 @@
-"""Study/02 P-Q v2 冻结配置加载与路径。
+"""Study/02 P-Q 冻结配置加载与路径。
 
-加载 configs/pq-protocol-v2.json（FROZEN）。路径全部由本文件绝对位置派生，
-不假设 C/D 盘。v1（preliminary/superseded）产物保留于 artifacts/pq/；
-v2 产物写入 artifacts/pq_v2/。
+协议选择（S0 起，2026-08-06）：
+- 默认（不设环境变量）→ `configs/pq-protocol-v3.json`（r4 gamma-holdout primary，
+  保留为 OOD 补充证据）。
+- `PQ_PROTOCOL=iid-v1` → `configs/pq-iid-protocol-v1.json`（同分布主协议，S0 冻结候选，
+  见 `09-PQ-同分布主协议冻结.md`）。
+路径全部由本文件绝对位置派生，不假设 C/D 盘。v1（preliminary/superseded）产物保留于
+artifacts/pq/；v2/P_loggap 保留于 artifacts/pq_v2/（sensitivity）；r4 保留于
+artifacts/pq_v3/；同分布主协议写入 artifacts/pq_iid_main/。
 """
 
 from __future__ import annotations
@@ -14,13 +19,23 @@ import os
 STUDY02_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(STUDY02_ROOT))  # 仓库根
 
-PROTOCOL_VERSION = "v3"
-CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-protocol-v3.json")
-PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "01-PQ-冻结协议.md")
-
-# r4 primary 产物目录（v1 保留于 artifacts/pq/，preliminary；
-# v2/P_loggap 保留于 artifacts/pq_v2/，sensitivity，不覆盖）
-ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq_v3")
+# 协议选择：默认 v3（r4 gamma-holdout）；PQ_PROTOCOL=iid-v1 选同分布主协议（S0 冻结候选）。
+PROTOCOL_ID = os.environ.get("PQ_PROTOCOL", "v3").strip().lower()
+if PROTOCOL_ID == "iid-v1":
+    PROTOCOL_VERSION = "iid-v1"
+    CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-iid-protocol-v1.json")
+    PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "09-PQ-同分布主协议冻结.md")
+    # 同分布主协议产物命名空间（与 r4 的 pq_v3、v2 的 pq_v2、preliminary 的 pq 隔离）
+    ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq_iid_main")
+    SPLIT_STRATEGY = "repeat_stratified"
+else:
+    PROTOCOL_VERSION = "v3"
+    CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-protocol-v3.json")
+    PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "01-PQ-冻结协议.md")
+    # r4 primary 产物目录（v1 保留于 artifacts/pq/，preliminary；
+    # v2/P_loggap 保留于 artifacts/pq_v2/，sensitivity，不覆盖）
+    ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq_v3")
+    SPLIT_STRATEGY = "gamma_holdout"
 PREDICTIONS_DIR = os.path.join(ARTIFACT_DIR, "predictions")
 CHECKPOINTS_DIR = os.path.join(ARTIFACT_DIR, "fit_metadata")   # 无模型 state，故称 fit metadata
 EVIDENCE_DIR = os.path.join(ARTIFACT_DIR, "evidence")          # 压缩逐样本证据（npz，tracked）
