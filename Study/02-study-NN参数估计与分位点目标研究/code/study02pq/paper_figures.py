@@ -254,7 +254,9 @@ def fig3_robustness(target: dict, cross: dict, capacity: dict, out_dir: str) -> 
     axes[2].set_title("(c) Capacity (folds {1,3}): direction\nnot removed · descriptive only",
                       fontsize=9)
     for i, v in enumerate(rel_c):
-        axes[2].text(xx[i], v - 0.5, f"{v:+.2f}", ha="center", fontsize=8)
+        va, dy = ("bottom", 0.15) if v >= 0 else ("top", -0.15)
+        axes[2].text(xx[i], v + dy, f"{v:+.2f}", ha="center", va=va, fontsize=8)
+    axes[2].set_ylim(min(rel_c) - 1.1, 0.5)  # 注释留在坐标轴内，不与横轴标签接触
 
     fig.suptitle("Fig 3 · Robustness: target-specific Q direction holds across levels and capacity",
                  fontsize=11, y=1.02)
@@ -300,9 +302,11 @@ def fig4_boundary(s1: dict, interp: dict, ood: dict, out_dir: str) -> None:
     axes[1].set_title("(b) Q advantage does not generalize across\ndata contracts (no pooling)",
                       fontsize=9)
     for i, (b, v) in enumerate(zip(bars, eff)):
-        axes[1].text(b.get_x() + b.get_width() / 2, v + (0.3 if v >= 0 else -1.2),
+        va, dy = ("bottom", 0.15) if v >= 0 else ("top", -0.15)
+        axes[1].text(b.get_x() + b.get_width() / 2, v + dy,
                      f"{v:+.2f}%\n({'Q' if v < 0 else 'P'} better)", ha="center",
-                     fontsize=8)
+                     va=va, fontsize=8)
+    axes[1].set_ylim(min(eff) - 2.5, max(eff) + 3.0)  # 上下留白：负值/正值双行注释均在坐标轴内
 
     # (c) 域内中点按 γ/η 分档：仅最低档 Q 仍优
     goe = interp["per_goe_midpoint"]
@@ -316,8 +320,10 @@ def fig4_boundary(s1: dict, interp: dict, ood: dict, out_dir: str) -> None:
     axes[2].set_ylabel("rel_change (Q−P)/P, %")
     axes[2].set_title("(c) Midpoints: Q keeps edge only at\nlowest γ/η (0.175)", fontsize=9)
     for i, v in enumerate(grel):
-        axes[2].text(xx[i], v + (0.6 if v >= 0 else -1.6), f"{v:+.2f}",
-                     ha="center", fontsize=8)
+        va, dy = ("bottom", 0.2) if v >= 0 else ("top", -0.2)
+        axes[2].text(xx[i], v + dy, f"{v:+.2f}", ha="center", va=va, fontsize=8)
+    axes[2].set_xlim(-0.5, len(ks) - 0.5)  # 右端注释不越出坐标轴
+    axes[2].set_ylim(min(grel) - 2.0, max(grel) + 2.2)  # 上下留白，避免贴近上边界/γ-η 标签
 
     fig.suptitle("Fig 4 · Boundary: Q advantage changes across evaluated data contracts",
                  fontsize=11, y=1.02)
