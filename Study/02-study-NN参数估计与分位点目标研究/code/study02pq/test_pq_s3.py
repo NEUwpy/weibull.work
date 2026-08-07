@@ -309,3 +309,62 @@ print('OK')
 ''' % str(tmp_path)
     out = _run_iid(code, env_extra={"PQ_S3_SKIP_MASTER": "1"})
     assert out.splitlines()[-1] == "OK", out
+
+
+# ----------------------------------------------------------------------
+# R2 S3-001 回归：eval_interp 推理输入必须经过调用方传入的 (n, fold) scaler
+# ----------------------------------------------------------------------
+
+def test_eval_interp_applies_caller_scaler():
+    """非恒等 scaler：eval_interp 喂给模型的输入必须 == scaler.transform(X_n)，
+    且 != 原始插值样本。防止注释与实现再次分离（S3-001 blocking 回归）。"""
+    code = r'''
+import sys, os
+sys.path.insert(0, os.getcwd())
+import numpy as np
+import torch
+from torch import nn
+from study02pq import s3_boundary as S3, config as CFG, data as DATA, model as MODEL
+
+CFG.N_GRID = [7]
+master = DATA.build_master(beta_grid=[2.0, 3.0], gamma_grid=CFG.GAMMA_GRID,
+                           n_grid=[7], repeats=6)
+tr, _, _ = DATA.split_repeat_fold(master, 7, 0)
+X_tr, _, _ = DATA.make_arrays(master, tr)
+scaler = DATA.PerPositionScaler().fit(X_tr)
+# 非恒等断言：真实样本 ~eta 量级，mean/scale 不会退化为 (0, 1)
+assert not np.allclose(scaler.mean_, 0.0), scaler.mean_
+assert not np.allclose(scaler.scale_, 1.0), scaler.scale_
+
+keys_i, X_i = S3.build_interp_master()
+idx, X_n, min_x, _ = S3._interp_rows_for_n(keys_i, X_i, 7)
+X_n_s = scaler.transform(X_n)
+assert X_n_s.shape == X_n.shape
+assert not np.allclose(X_n_s, X_n), "scaler must change the input"
+
+class Spy(nn.Module):
+    instances = []
+    def __init__(self):
+        super().__init__()
+        self.last_input = None
+        Spy.instances.append(self)
+    def forward(self, x):
+        self.last_input = x.detach().clone()
+        return torch.zeros(x.shape[0], 3, dtype=x.dtype)
+
+real_build = MODEL.build_model
+MODEL.build_model = lambda n, seed: Spy()
+try:
+    S3.eval_interp({}, 7, 42, keys_i, X_i, scaler)
+finally:
+    MODEL.build_model = real_build
+assert len(Spy.instances) == 1, len(Spy.instances)
+got = Spy.instances[0].last_input
+assert got is not None, "model was never called"
+assert got.dtype == torch.float64 and got.shape == torch.Size(X_n_s.shape)
+assert np.allclose(got.numpy(), X_n_s), "model input != scaler.transform(X_n)"
+assert not np.allclose(got.numpy(), X_n), "model received RAW unscaled interp samples"
+print('OK')
+'''
+    out = _run_iid(code, env_extra={"PQ_S3_SKIP_MASTER": "1"})
+    assert out.splitlines()[-1] == "OK", out

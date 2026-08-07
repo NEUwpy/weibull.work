@@ -217,18 +217,21 @@ def _interp_rows_for_n(keys_i, X_i, n: int):
     return idx, X_n, min_x, n_mask
 
 
-def eval_interp(model_state, n: int, seed: int, keys_i, X_i) -> dict:
+def eval_interp(model_state, n: int, seed: int, keys_i, X_i, scaler) -> dict:
     """用 best state 在插值样本（该 n 的 8400 行）上评价，返回预测数组。
 
-    scaler 按 S1 合同只 fit 该 (n, fold) 的 train 行；此处由调用方传入经过校验的
-    scaler（见 run_e3）。模型结构 = CFG.HIDDEN_LAYERS（E3 基线容量）。
+    scaler 按 S1 合同只 fit 该 (n, fold) 的 train 行，由调用方传入经过校验的
+    scaler（见 run_e3）；推理前必须先 scaler.transform(X_n)，模型只接收标准化
+    输入（与 training 合同一致，否则原始 ~eta 量级输入直接进入网络）。模型结构
+    = CFG.HIDDEN_LAYERS（E3 基线容量）。
     """
     idx, X_n, min_x, _ = _interp_rows_for_n(keys_i, X_i, n)
+    X_n_s = scaler.transform(X_n)
     model = MODEL.build_model(n, seed)
     model.load_state_dict(model_state)
     model.eval()
     with torch.no_grad():
-        out = model(torch.tensor(X_n, dtype=torch.float64))
+        out = model(torch.tensor(X_n_s, dtype=torch.float64))
         b_hat, e_hat, g_hat = LOSS.decode_params(
             out, torch.tensor(min_x, dtype=torch.float64))
         x95_hat = LOSS.weibull_quantile(b_hat, e_hat, g_hat).numpy()
@@ -287,8 +290,10 @@ def run_e3(seeds, resume=True):
                     assert scaler.params_sha() == result["meta"]["scaler_sha"], \
                         f"scaler mismatch for {fit}"
                     RUN.save_fit(fit, result)
-                    # 插值评价（best state；eval_interp 内部按该 n 选择插值行）
-                    ipred = eval_interp(result["model_state"], n, seed, keys_i, X_i)
+                    # 插值评价（best state；scaler 按该 (n, fold) 训练折，eval_interp
+                    # 内部先 transform 再喂模型）
+                    ipred = eval_interp(result["model_state"], n, seed, keys_i, X_i,
+                                        scalers[(n, fold_idx)])
                     assert len(ipred["x95_true"]) == int(
                         ip["repeats_per_combo"]) * len(ip["beta_midpoints"]) * len(
                         ip["gamma"]), len(ipred["x95_true"])
@@ -456,33 +461,37 @@ def _smoke():
     import tempfile
     tmp = tempfile.mkdtemp(prefix="pq_s3_smoke_")
     print(f"[s3/smoke] temp roots -> {tmp}", flush=True)
-    global master
+    global master, ART_ROOTS
     # 缩小设计（与 smoke_iid 一致：beta 2/3, gamma 全, n 7/10, repeats 15）
     small_master = DATA.build_master(beta_grid=[2.0, 3.0], gamma_grid=CFG.GAMMA_GRID,
                                      n_grid=[7, 10], repeats=15)
     _orig_cfg = (CFG.MAX_EPOCHS, CFG.PATIENCE, CFG.N_GRID, CFG.REPEATS)
     CFG.MAX_EPOCHS, CFG.PATIENCE, CFG.N_GRID, CFG.REPEATS = 6, 3, [7, 10], 15
     master = small_master
+    # run_e1/e2/e3 生产路径内部用 ART_ROOTS[...] 自行 _redirect；smoke 必须把
+    # ART_ROOTS 整体指向临时根，否则会写进真实封存根（此前 E1 smoke 曾因此把
+    # 20 fits 写入真实 pq_s3_target，留下需手工删除的“部分运行”残留）。
+    _orig_roots = ART_ROOTS
     try:
+        ART_ROOTS = {"target": os.path.join(tmp, "target"),
+                     "capacity": os.path.join(tmp, "capacity"),
+                     "interp": os.path.join(tmp, "interp")}
+        for r in ART_ROOTS.values():
+            os.makedirs(r, exist_ok=True)
         # E1 smoke：Q0.90+Q0.99（单 seed）
-        root = os.path.join(tmp, "target")
-        os.makedirs(root, exist_ok=True)
-        _redirect(root)
         run_e1([42], resume=True)
         n_e1 = len([f for f in os.listdir(CFG.EVIDENCE_DIR) if f.endswith(".npz")])
         assert n_e1 == 2 * len(CFG.N_GRID) * CFG.N_FOLDS, n_e1  # 2 targets x 2n x 5fold x 1seed
         print(f"[s3/smoke] E1 smoke PASS: {n_e1} target fits (Q0.90 + Q0.99)")
         # E2 smoke：单容量 small（folds 1,3）
-        root = os.path.join(tmp, "capacity")
-        os.makedirs(root, exist_ok=True)
+        root = ART_ROOTS["capacity"]
         _redirect(root)
         _run_e2_smoke([42])
         n_e2 = len([f for f in os.listdir(CFG.EVIDENCE_DIR) if f.endswith(".npz")])
         assert n_e2 == len(CFG.N_GRID) * 2 * 2, n_e2  # 1 cap x 2n x 2fold x 1seed x 2route
         print(f"[s3/smoke] E2 smoke PASS: {n_e2} capacity fits")
         # E3 smoke：基线重训 + 插值评价（单 seed）
-        root = os.path.join(tmp, "interp")
-        os.makedirs(root, exist_ok=True)
+        root = ART_ROOTS["interp"]
         _redirect(root)
         _run_e3_smoke([42])
         n_e3 = len([f for f in os.listdir(CFG.EVIDENCE_DIR) if f.endswith(".npz")])
@@ -493,6 +502,7 @@ def _smoke():
         print(f"[s3/smoke] E3 smoke PASS: {n_e3} baseline retrains + {n_ip} interp evals")
     finally:
         CFG.MAX_EPOCHS, CFG.PATIENCE, CFG.N_GRID, CFG.REPEATS = _orig_cfg
+        ART_ROOTS = _orig_roots
     print("[s3/smoke] SMOKE PASS (s3-boundary)")
 
 
@@ -531,7 +541,8 @@ def _run_e3_smoke(seeds):
                     scaler = scalers[(n, fold_idx)]
                     assert scaler.params_sha() == result["meta"]["scaler_sha"]
                     RUN.save_fit(fit, result)
-                    ipred = eval_interp(result["model_state"], n, seed, keys_i, X_i)
+                    ipred = eval_interp(result["model_state"], n, seed, keys_i, X_i,
+                                        scalers[(n, fold_idx)])
                     np.savez_compressed(os.path.join(CFG.ARTIFACT_DIR, "interp",
                                                      f"{fit}.npz"), **ipred)
 
