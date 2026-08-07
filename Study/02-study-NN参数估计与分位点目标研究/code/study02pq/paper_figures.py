@@ -44,6 +44,7 @@ try:
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.colors import TwoSlopeNorm
 
     HAS_MPL = True
 except Exception:  # pragma: no cover - CI 无 matplotlib 时给出可读报错
@@ -223,8 +224,9 @@ def fig3_robustness(target: dict, cross: dict, capacity: dict, out_dir: str) -> 
                 mat[i, j] = 0.0
             else:
                 mat[i, j] = rv[r][t]
-    vmax = 160
-    im = axes[1].imshow(mat, cmap="RdBu_r", aspect="auto", vmin=-20, vmax=vmax)
+    vmin, vmax = -10, 160
+    norm = TwoSlopeNorm(vcenter=0, vmin=vmin, vmax=vmax)
+    im = axes[1].imshow(mat, cmap="RdBu_r", aspect="auto", norm=norm)
     axes[1].set_xticks(range(3))
     axes[1].set_xticklabels(["$x_{0.90}$", "$x_{0.95}$", "$x_{0.99}$"])
     axes[1].set_yticks(range(4))
@@ -232,21 +234,22 @@ def fig3_robustness(target: dict, cross: dict, capacity: dict, out_dir: str) -> 
     for i in range(4):
         for j in range(3):
             v = mat[i, j]
+            nv = norm(v)
             axes[1].text(j, i, f"{v:+.1f}", ha="center", va="center",
-                         fontsize=8, color="white" if v > vmax * 0.5 else "black")
+                         fontsize=8, color="white" if nv < 0.3 or nv > 0.7 else "black")
     axes[1].set_title("(b) Cross-target rRMSE vs P (%)\nQ best only at its own level (diagonal)",
                       fontsize=9)
     fig.colorbar(im, ax=axes[1], fraction=0.046, pad=0.04, label="rel vs P, %")
 
     # (c) 容量：rel_change%（folds {1,3}，descriptive）
     caps = ["sm64", "baseline", "lg512"]
-    cap_labels = ["small 64-32", "baseline 256-128-64", "large 512-256-128"]
+    cap_labels = ["small\n64-32", "baseline\n256-128-64", "large\n512-256-128"]
     rel_c = [capacity[c]["rel_change_percent"] for c in caps]
     xx = np.arange(3)
     axes[2].bar(xx, rel_c, 0.55, color=[C_BLUE, C_ORANGE, C_GREEN])
     axes[2].axhline(0, color=C_GREY, linestyle="--", linewidth=1)
     axes[2].set_xticks(xx)
-    axes[2].set_xticklabels(cap_labels, fontsize=8)
+    axes[2].set_xticklabels(cap_labels, fontsize=7)
     axes[2].set_ylabel("rel_change (Q−P)/P, %")
     axes[2].set_title("(c) Capacity (folds {1,3}): direction\nnot removed · descriptive only",
                       fontsize=9)
@@ -280,7 +283,8 @@ def fig4_boundary(s1: dict, interp: dict, ood: dict, out_dir: str) -> None:
     axes[0].bar(x - w / 2, [g_p, m_p, o_p], w, label="P", color=C_BLUE)
     axes[0].bar(x + w / 2, [g_q, m_q, o_q], w, label="Q", color=C_ORANGE)
     axes[0].set_xticks(x)
-    axes[0].set_xticklabels(CONTRACT_ORDER, fontsize=8)
+    axes[0].set_xticklabels(["iid grid\n(x0.95)", "midpoints\n(within-domain)",
+                             "γ-holdout\nOOD"], fontsize=8)
     axes[0].set_ylabel("rRMSE at $x_{0.95}$")
     axes[0].set_title("(a) rRMSE under three data contracts", fontsize=9)
     axes[0].legend(frameon=False, fontsize=8)
@@ -315,7 +319,7 @@ def fig4_boundary(s1: dict, interp: dict, ood: dict, out_dir: str) -> None:
         axes[2].text(xx[i], v + (0.6 if v >= 0 else -1.6), f"{v:+.2f}",
                      ha="center", fontsize=8)
 
-    fig.suptitle("Fig 4 · Boundary: Q advantage is grid-specific, OOD reverses to P",
+    fig.suptitle("Fig 4 · Boundary: Q advantage changes across evaluated data contracts",
                  fontsize=11, y=1.02)
     fig.tight_layout()
     _save(fig, "fig4_boundary", out_dir)
