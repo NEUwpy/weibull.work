@@ -1,0 +1,222 @@
+{
+ "0.9": {
+  "target_level": 0.9,
+  "confirmatory_note": "x0.95 reproduces the sealed S1 main result (consistency check); x0.90/x0.99 are prespecified robustness results with effect sizes and design-level intervals, NOT a familywise significance claim",
+  "pooled_rrmse": {
+   "P": 0.13834188673885786,
+   "Q90": 0.13489731277378156
+  },
+  "rel_change_percent": -2.489899513643673,
+  "bootstrap": {
+   "pooled_mean": -0.0009411926328795236,
+   "ci_lo": -0.0012060232320726366,
+   "ci_hi": -0.0006897419859397217,
+   "per_n_mean": {
+    "7": -0.0014798588909309906,
+    "10": -0.0013221894603687096,
+    "15": -0.0006504047865176465,
+    "20": -0.00031231739370074816
+   },
+   "per_n_ci_lo": {
+    "7": -0.0021486439515119304,
+    "10": -0.0020125681595398346,
+    "15": -0.0010618670791046096,
+    "20": -0.0004460464908869368
+   },
+   "per_n_ci_hi": {
+    "7": -0.0009293237446712877,
+    "10": -0.0006378001050677003,
+    "15": -0.00025454108593303716,
+    "20": -0.00021396753437404777
+   },
+   "n_boot": 200000,
+   "level": 0.95,
+   "resampling": "fold (stratified by n) x seed (global, with replacement)"
+  },
+  "direction_by_cell": {
+   "n_pos_cells": 2,
+   "n_neg_cells": 58,
+   "n_zero_cells": 0,
+   "per_n": {
+    "7": {
+     "n_pos": 0,
+     "n_neg": 15
+    },
+    "10": {
+     "n_pos": 1,
+     "n_neg": 14
+    },
+    "15": {
+     "n_pos": 1,
+     "n_neg": 14
+    },
+    "20": {
+     "n_pos": 0,
+     "n_neg": 15
+    }
+   }
+  },
+  "failures_target_route": {
+   "n_fits": 60,
+   "n_nan_train": 0,
+   "n_nonconverged": 0,
+   "n_with_nonfinite_pred": 0,
+   "n_with_illegal_param": 0,
+   "n_with_support_viol": 0
+  },
+  "boundary_counts": {
+   "n_rows": 144000,
+   "n_boundary": 0,
+   "boundary_share": 0.0
+  }
+ },
+ "0.95": {
+  "target_level": 0.95,
+  "confirmatory_note": "x0.95 reproduces the sealed S1 main result (consistency check); x0.90/x0.99 are prespecified robustness results with effect sizes and design-level intervals, NOT a familywise significance claim",
+  "pooled_rrmse": {
+   "P": 0.16632683911353377,
+   "Q95": 0.16111166337036806
+  },
+  "rel_change_percent": -3.13549861884038,
+  "bootstrap": {
+   "pooled_mean": -0.001707649335532556,
+   "ci_lo": -0.002250579562625086,
+   "ci_hi": -0.001193894730236735,
+   "per_n_mean": {
+    "7": -0.002675806951517872,
+    "10": -0.002504690351276607,
+    "15": -0.0010797184729830697,
+    "20": -0.0005703815663526758
+   },
+   "per_n_ci_lo": {
+    "7": -0.004020297866571639,
+    "10": -0.003909216226044835,
+    "15": -0.0019728774788452083,
+    "20": -0.0007476409934147365
+   },
+   "per_n_ci_hi": {
+    "7": -0.0015777663950542005,
+    "10": -0.0011719982899080677,
+    "15": -0.0002865674194166528,
+    "20": -0.0004069054705814811
+   },
+   "n_boot": 200000,
+   "level": 0.95,
+   "resampling": "fold (stratified by n) x seed (global, with replacement)"
+  },
+  "direction_by_cell": {
+   "n_pos_cells": 3,
+   "n_neg_cells": 57,
+   "n_zero_cells": 0,
+   "per_n": {
+    "7": {
+     "n_pos": 0,
+     "n_neg": 15
+    },
+    "10": {
+     "n_pos": 1,
+     "n_neg": 14
+    },
+    "15": {
+     "n_pos": 2,
+     "n_neg": 13
+    },
+    "20": {
+     "n_pos": 0,
+     "n_neg": 15
+    }
+   }
+  },
+  "failures_target_route": {
+   "n_fits": 60,
+   "n_nan_train": 0,
+   "n_nonconverged": 0,
+   "n_with_nonfinite_pred": 0,
+   "n_with_illegal_param": 0,
+   "n_with_support_viol": 0
+  },
+  "boundary_counts": {
+   "n_rows": 144000,
+   "n_boundary": 0,
+   "boundary_share": 0.0
+  },
+  "s1_sealed_cross_check": {
+   "sealed_p_rrmse": 0.1663268357515335,
+   "sealed_q_rrmse": 0.16111166775226593,
+   "recomputed_p_rrmse": 0.16632683911353377,
+   "recomputed_q_rrmse": 0.16111166337036806,
+   "match_within_1e6": true
+  }
+ },
+ "0.99": {
+  "target_level": 0.99,
+  "confirmatory_note": "x0.95 reproduces the sealed S1 main result (consistency check); x0.90/x0.99 are prespecified robustness results with effect sizes and design-level intervals, NOT a familywise significance claim",
+  "pooled_rrmse": {
+   "P": 0.22238974743355827,
+   "Q99": 0.20792452446194762
+  },
+  "rel_change_percent": -6.504446872458597,
+  "bootstrap": {
+   "pooled_mean": -0.006224591890834776,
+   "ci_lo": -0.007488555624918556,
+   "ci_hi": -0.005021004466706228,
+   "per_n_mean": {
+    "7": -0.01185817425289745,
+    "10": -0.00898272642849295,
+    "15": -0.002974080475473947,
+    "20": -0.0010833864064747631
+   },
+   "per_n_ci_lo": {
+    "7": -0.01451483619028251,
+    "10": -0.012606102135117547,
+    "15": -0.005507942220938842,
+    "20": -0.0016659835082164793
+   },
+   "per_n_ci_hi": {
+    "7": -0.00985899778074798,
+    "10": -0.005460027851253652,
+    "15": -0.0007941331623671909,
+    "20": -0.0005150885008160666
+   },
+   "n_boot": 200000,
+   "level": 0.95,
+   "resampling": "fold (stratified by n) x seed (global, with replacement)"
+  },
+  "direction_by_cell": {
+   "n_pos_cells": 3,
+   "n_neg_cells": 57,
+   "n_zero_cells": 0,
+   "per_n": {
+    "7": {
+     "n_pos": 0,
+     "n_neg": 15
+    },
+    "10": {
+     "n_pos": 0,
+     "n_neg": 15
+    },
+    "15": {
+     "n_pos": 1,
+     "n_neg": 14
+    },
+    "20": {
+     "n_pos": 2,
+     "n_neg": 13
+    }
+   }
+  },
+  "failures_target_route": {
+   "n_fits": 60,
+   "n_nan_train": 0,
+   "n_nonconverged": 0,
+   "n_with_nonfinite_pred": 0,
+   "n_with_illegal_param": 0,
+   "n_with_support_viol": 0
+  },
+  "boundary_counts": {
+   "n_rows": 144000,
+   "n_boundary": 0,
+   "boundary_share": 0.0
+  }
+ }
+}
