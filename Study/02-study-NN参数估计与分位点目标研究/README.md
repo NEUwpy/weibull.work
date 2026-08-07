@@ -1,7 +1,8 @@
 # Study 02：NN 三参数 Weibull 输出下，参数精度损失 P vs 目标分位点损失 Q 对 \(x_{0.95}\) 估计的受控对照
 
 > 创建日期：2026-07-11
-> 当前修订：2026-08-07（S3 已获 Codex APPROVE；S4 综合科学报告与论文级图表完成，待 Codex S4 REVIEW）
+> 当前修订：2026-08-07（S4 已 APPROVE；S5A 写作阶段完成——论文初稿、补充材料与引用/完整性审计已产出，
+> 处于 `S5A READY FOR CODEX/MENTOR PRE-REVIEW CHECKPOINT`，未 APPROVE、未投稿）
 > 当前分支：`codex/study02-paper-20260806`
 > 职责：本目录是 Study02 当前唯一研究主线。旧直接标量分位点 D 路线与旧前置研究 A 已整体
 > 归档/移入前置实验区，详见 `已归档/README.md` 与 `前置实验/README.md`。
@@ -84,6 +85,10 @@ batch 顺序、scaler、checkpoint 选择等均逐 fit 配对验证）。
 | `09-PQ-同分布主协议冻结.md` | **S0 同分布主协议冻结候选**（论文主问题；RQ、estimand、拆分、统计层级、证据 schema、M1–M3 矩阵） |
 | `12-PQ-可信性与边界结果.md` | S3 可信性与边界结果（E1 目标水平 / E2 容量 / E3 域内插值 / E4 OOD） |
 | `13-PQ-综合科学报告.md` | **S4 综合科学报告**（问题—设计—主结果—机制—可信性—边界—结论与建议—限制；claim→evidence 表） |
+| `14-PQ-论文初稿.md` | **S5A 论文初稿**（IMRaD，简体中文 + 中英摘要 + 13 条核验文献；嵌入 fig1–fig4） |
+| `15-PQ-补充材料.md` | **S5A 补充材料**（冻结设计表、公式、fit/seed/fold 清单、推断层级、机制恒等式、S3 矩阵、复现路径、限制） |
+| `16-PQ-引用与完整性审计.md` | **S5A 引用与完整性审计**（claim→sealed 抽查、零 orphan、DOI/URL 核验、图数据来源、AI failure-mode 检查） |
+| `16-audit-zero-orphan.py` | S5A 审计脚本：正文引用 ↔ 参考文献零 orphan/多余条目检查 |
 | `figures/pq-paper/` | **S4 论文级图表**（fig1–fig4，PNG+PDF；由 `code/study02pq/paper_figures.py` 从 sealed 证据只读生成） |
 | `已归档/` | 旧 D 路线归档（`直接标量分位点D路线/`）与总索引 |
 | `前置实验/` | 旧前置研究 A 文档与主题索引 |
@@ -101,6 +106,7 @@ batch 顺序、scaler、checkpoint 选择等均逐 fit 配对验证）。
 7. `12-PQ-可信性与边界结果.md`：S3 可信性与边界结果。
 8. `13-PQ-综合科学报告.md`：S4 综合科学报告（论文写作的直接支撑；含 claim→evidence 表与图）。
 9. `05-PQ-论文逻辑骨架.md`：论文逻辑。
+10. `14-PQ-论文初稿.md`：S5A 论文初稿（与 `15-PQ-补充材料.md`、`16-PQ-引用与完整性审计.md` 配套）。
 
 ## 当前边界
 
