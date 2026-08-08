@@ -1,8 +1,8 @@
 # Study 02：NN 三参数 Weibull 输出下，参数精度损失 P vs 目标分位点损失 Q 对 \(x_{0.95}\) 估计的受控对照
 
 > 创建日期：2026-07-11
-> 当前修订：2026-08-08（S1–S4 已完成并获 Codex/mentor 审结；S5A 论文初稿预审修订中——R1/R2 已修订并推送，
-> R3 极窄修订完成，处于 `S5A READY FOR CODEX/MENTOR S5A R4 PRE-REVIEW`，未 APPROVE、未投稿、未合并 main）
+> 当前修订：2026-08-08（S1–S4 已完成并获 Codex/mentor 审结；S5A 论文初稿预审已 APPROVE，
+> 论文与活动支撑报告的证据边界已同步；当前等待用户决定是否进入模拟审稿，未投稿、未合并 main）
 > 当前分支：`codex/study02-paper-20260806`
 > 职责：本目录是 Study02 当前唯一研究主线。旧直接标量分位点 D 路线与旧前置研究 A 已整体
 > 归档/移入前置实验区，详见 `已归档/README.md` 与 `前置实验/README.md`。
