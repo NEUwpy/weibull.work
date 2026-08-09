@@ -1,8 +1,8 @@
 # Study 02：NN 三参数 Weibull 输出下，参数精度损失 P vs 目标分位点损失 Q 对 \(x_{0.95}\) 估计的受控对照
 
 > 创建日期：2026-07-11
-> 当前修订：2026-08-08（S1–S4 已完成并获 Codex/mentor 审结；S5A 论文初稿预审已 APPROVE，
-> 论文与活动支撑报告的证据边界已同步；当前等待用户决定是否进入模拟审稿，未投稿、未合并 main）
+> 当前修订：2026-08-09（S1–S4 与 S5A 预审结果保留；模拟审稿判定 Major Revision，
+> 当前进入 S5B 补证与论文大修，论文状态为 revision in progress；未投稿、未合并 main）
 > 当前分支：`codex/study02-paper-20260806`
 > 职责：本目录是 Study02 当前唯一研究主线。旧直接标量分位点 D 路线与旧前置研究 A 已整体
 > 归档/移入前置实验区，详见 `已归档/README.md` 与 `前置实验/README.md`。
@@ -89,6 +89,7 @@ batch 顺序、scaler、checkpoint 选择等均逐 fit 配对验证）。
 | `15-PQ-补充材料.md` | **S5A 补充材料**（冻结设计表、公式、fit/seed/fold 清单、推断层级、机制恒等式、S3 矩阵、复现路径、限制） |
 | `16-PQ-引用与完整性审计.md` | **S5A 引用与完整性审计**（claim→sealed 抽查、零 orphan、DOI/URL 核验、图数据来源、AI failure-mode 检查） |
 | `16-audit-zero-orphan.py` | S5A 审计脚本：正文引用 ↔ 参考文献零 orphan/多余条目检查 |
+| `17-PQ-S5B审稿大修协议与追踪.md` | **当前活动入口**：Major Revision 合同、880 个新增 fits、审稿意见—修改—证据追踪 |
 | `figures/pq-paper/` | **S4 论文级图表**（fig1–fig4，PNG+PDF；由 `code/study02pq/paper_figures.py` 从 sealed 证据只读生成） |
 | `已归档/` | 旧 D 路线归档（`直接标量分位点D路线/`）与总索引 |
 | `前置实验/` | 旧前置研究 A 文档与主题索引 |

@@ -167,6 +167,26 @@ def split_repeat_fold(master: Master, n: int, fold_idx: int):
     return train_rows, val_rows, test_rows
 
 
+def split_continuous_fold(master: Master, n: int, fold_idx: int):
+    """S5B 连续参数五折：按预先随机排列后的 point_id 取模。
+
+    ``build_continuous_master`` 把 Sobol 参数点按冻结随机排列写入，键的第四列是
+    point_id/rank。因每个参数点只对应一个样本，本拆分不是“同参数重复”的 iid 拆分；
+    train/validation/test 都是从同一连续参数分布独立覆盖的域内样本。
+    """
+    assert 0 <= fold_idx < CFG.N_FOLDS
+    n_mask = master.keys[:, 2].astype(np.int64) == int(n)
+    point_mod = master.keys[:, 3].astype(np.int64) % CFG.N_FOLDS
+    test_rows = np.flatnonzero(n_mask & (point_mod == fold_idx))
+    val_rows = np.flatnonzero(n_mask & (point_mod == ((fold_idx + 1) % CFG.N_FOLDS)))
+    train_rows = np.flatnonzero(n_mask & ~(point_mod == fold_idx)
+                                & ~(point_mod == ((fold_idx + 1) % CFG.N_FOLDS)))
+    assert not set(train_rows) & set(val_rows)
+    assert not set(train_rows) & set(test_rows)
+    assert not set(val_rows) & set(test_rows)
+    return train_rows, val_rows, test_rows
+
+
 def make_arrays(master: Master, rows: np.ndarray):
     """按行索引返回 (X, params, x0_95)。X 为 (len(rows), n)。"""
     n = int(master.keys[rows[0]][2]) if len(rows) else 0

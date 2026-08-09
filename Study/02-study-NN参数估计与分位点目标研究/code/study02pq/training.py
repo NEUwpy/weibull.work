@@ -75,6 +75,8 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         train_rows, val_rows, test_rows = DATA.split_fold(master, n, fold_idx)
     elif split_strategy == "repeat_stratified":
         train_rows, val_rows, test_rows = DATA.split_repeat_fold(master, n, fold_idx)
+    elif split_strategy == "continuous_sobol":
+        train_rows, val_rows, test_rows = DATA.split_continuous_fold(master, n, fold_idx)
     else:
         raise ValueError(f"unknown split_strategy {split_strategy!r}")
     X_tr, P_tr, X95_tr = DATA.make_arrays(master, train_rows)
