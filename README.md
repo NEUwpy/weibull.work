@@ -31,7 +31,7 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：主问题为“在其他条件逐 fit 配对时，把训练目标从参数等权精度 `P_equal` 转向目标可靠度寿命点精度 `Q_param`，能把 \(x_R\)（\(R(x_R)=0.95\)）的 rRMSE 改善多少”。S1–S4 与 S5A 预审结果保留，但 **2026-08-09 模拟审稿给出 Major Revision，论文不再处于 APPROVE 状态**。当前正在执行 S5B：把固定网格主实验从 3 扩为预先冻结的 10 个训练 seed，新增 Study01 同参数边界的连续域内实验、同骨干 `Q_direct` 基线、Study01 MDM-Default 经典参照，并给相对 rRMSE 改善做 crossed fold×seed 配对区间。原 120 fits、中点和 gamma 层级留出证据均不覆盖；四种合同分开报告。协议与追踪见 Study/02 `17-PQ-S5B审稿大修协议与追踪.md`；未投稿、未合并 main。
+**Study/02 当前态**：S5B Major Revision 已完成实验与文稿修订，当前等待独立复审，仍不得标为 APPROVE。冻结网格 10-seed 主实验共 200 个 P/Q 对（400 fits）：`Q_param` 相对 `P_equal` 的 \(x_R\) rRMSE 改善 3.00%（95% CI [2.19%,3.79%]）。同参数边界的连续域内实验中，仅改损失的改善为 0.33%（CI 跨 0），同骨干 `Q_direct` 改善 0.74%；联合中点与 gamma 层级留出均由 P 更优。因此论文主张已收口为“目标对齐收益依赖数据合同与表示”，不再声称普遍更优或已证明训练机制。入口见 Study/02 `17-PQ-S5B审稿大修协议与追踪.md` 与 `14-PQ-论文初稿.md`；未投稿、未合并 main。
 
 **Study/01 当前态**：论文主线已收敛为“三参数 Weibull MDM 框架内偏移量 `delta` 是否有更合适的选择，以及怎样根据当前样本实现选择”。正式方法为 Dimensional-RAW-MLP：按样本量分别训练 MLP，以排序原始样本预测 26 点损失曲线并选择偏移量。在 160 组合主设计域（`eta=1000`，`n∈{7,10,15,20}`）内，pooled J1=0.5543，较固定 `delta=0.1` 改善 12.08%，失败率为 0%；结论限于已训练样本量以及训练单位和尺度范围。写作前支撑验证已补齐：未见 `beta` 留出（B1，8 折，pooled J1=0.5418、改善 14.06%、失败率 0%）、WMLE/LSE 同条件外部参照（B2，WMLE 0.7288/LSE 0.8725，WMLE 1 例未收敛计入）、`x_0.90/x_0.95/x_0.99` 工程分位点派生（B3，传递有限，WMLE 尾部分位点 RMSE 最低）；真实案例后置。per-n specialist 不定义未训练 `n` 的直接应用；旧特征路线、Normalized-RAW、旧 P2/P4/分位点和 NIST 结果已降为历史、候选或 Research 证据。Study01 活动区已整理为论文所需 `README`、`00`–`04`、证据/代码索引、`artifacts/formal/E6_dimensional_raw/paper/`（图表索引）、`Research/` 与 `archive/`；外部中文学术源稿 v0.3 是唯一活动正文。
 

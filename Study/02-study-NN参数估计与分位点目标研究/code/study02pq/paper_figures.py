@@ -6,10 +6,10 @@
     python code/study02pq/paper_figures.py --root . --out figures/pq-paper
 
 输出 4 张图（各 PNG + PDF）：
-  fig1_main_effect  主效应：总体与按 n 的 P/Q rRMSE + Q-P 效应 95% CI
-  fig2_mechanism    机制：精确分解分量、区域敏感度关系、cancel_exact 按目标水平
+  fig1_main_effect  10-seed 主效应：总体与按 n 的 P/Q rRMSE + 相对改善 95% CI
+  fig2_mechanism    结果空间误差补偿结构：精确分解、区域关联、cancel_exact
   fig3_robustness   稳健性：目标水平（confirmatory/robustness）、交叉目标、容量（descriptive）
-  fig4_boundary     边界：iid 网格 / 域内中点 / gamma-holdout OOD 三数据合同分面（禁池化）
+  fig4_boundary     边界：网格 / 连续域内 / 中点 / gamma-holdout OOD（禁池化）
 
 色板为 Okabe-Ito（色盲友好）。图注/坐标含单位与定义。
 """
@@ -36,8 +36,9 @@ C_GREY = "#999999"
 C_BLACK = "#000000"
 
 # 三个数据合同：与 S4 报告/图一致，顺序固定，禁止池化
-CONTRACT_ORDER = ["iid grid (x0.95)", "within-domain midpoints", "gamma-holdout OOD"]
-CONTRACT_COLORS = [C_BLUE, C_ORANGE, C_GREEN]
+CONTRACT_ORDER = ["iid grid", "continuous within-range", "within-domain midpoints",
+                  "gamma-holdout OOD"]
+CONTRACT_COLORS = [C_BLUE, C_SKY, C_ORANGE, C_GREEN]
 
 try:
     import matplotlib
@@ -69,43 +70,44 @@ def _save(fig, name: str, out_dir: str) -> None:
 # ----------------------------------------------------------------------
 # Fig 1 主效应
 # ----------------------------------------------------------------------
-def fig1_main_effect(s1: dict, out_dir: str) -> None:
-    """总体与按 n 的 P/Q rRMSE + Q-P 效应 95% CI（confirmatory, x0.95）。"""
-    pooled = s1["pooled"]
-    per_n = s1["per_n"]
+def fig1_main_effect(s5b: dict, out_dir: str) -> None:
+    """10-seed grid confirmatory rRMSE and relative-improvement intervals."""
+    pooled = s5b["confirmatory"]["grid_P_equal_vs_Q_param"]
+    per_n = s5b["exploratory"]["per_n"]
     n_keys = ["7", "10", "15", "20"]
     n_labels = ["n=7", "n=10", "n=15", "n=20"]
-    p_vals = [per_n[k]["p_rrmse"] for k in n_keys]
-    q_vals = [per_n[k]["q_rrmse"] for k in n_keys]
-    d_vals = [per_n[k]["mean_diff"] for k in n_keys]
-    lo_vals = [per_n[k]["ci_lo"] for k in n_keys]
-    hi_vals = [per_n[k]["ci_hi"] for k in n_keys]
+    grid_n = [per_n[k]["grid_P_vs_Q"] for k in n_keys]
+    p_vals = [v["baseline_rrmse"] for v in grid_n]
+    q_vals = [v["comparison_rrmse"] for v in grid_n]
+    imp_vals = [v["relative_improvement"] * 100 for v in grid_n]
+    lo_vals = [v["relative_improvement_ci95"][0] * 100 for v in grid_n]
+    hi_vals = [v["relative_improvement_ci95"][1] * 100 for v in grid_n]
 
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2))
 
     # (a) rRMSE：按 n + pooled
     x = np.arange(5)
     w = 0.36
-    all_p = p_vals + [pooled["p_rrmse"]]
-    all_q = q_vals + [pooled["q_rrmse"]]
-    axes[0].bar(x - w / 2, all_p, w, label="P (parameter precision)", color=C_BLUE)
-    axes[0].bar(x + w / 2, all_q, w, label="Q (target quantile)", color=C_ORANGE)
+    all_p = p_vals + [pooled["baseline_rrmse"]]
+    all_q = q_vals + [pooled["comparison_rrmse"]]
+    axes[0].bar(x - w / 2, all_p, w, label="$P_{equal}$", color=C_BLUE)
+    axes[0].bar(x + w / 2, all_q, w, label="$Q_{param}$", color=C_ORANGE)
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(n_labels + ["pooled"])
-    axes[0].set_ylabel("rRMSE at $x_{0.95}$ (rel. squared error) · lower better")
+    axes[0].set_ylabel("rRMSE at $x_R$, $R(x_R)=0.95$ · lower better")
     axes[0].legend(frameon=False, fontsize=8)
     axes[0].set_title("(a) P vs Q rRMSE, by sample size and pooled", fontsize=10)
-    # 标注相对变化 (Q−P)/P（与 rel_change 语义一致，负 => Q better）
+    # 标注 Q 相对 P 的改善（正 => Q better）
     for i in range(5):
-        rel = (all_q[i] - all_p[i]) / all_p[i] * 100
-        axes[0].text(x[i], max(all_p[i], all_q[i]) + 0.004, f"{rel:+.1f}%",
+        rel = (all_p[i] - all_q[i]) / all_p[i] * 100
+        axes[0].text(x[i], max(all_p[i], all_q[i]) + 0.004, f"{rel:.1f}%",
                      ha="center", fontsize=7, color=C_BLACK)
 
-    # (b) Q−P 效应（mean_diff）与 95% CI
+    # (b) 直接对应主 estimand 的相对 rRMSE 改善与 95% CI
     cats = n_labels + ["pooled"]
-    means = d_vals + [pooled["hat_delta"]]
-    los = lo_vals + [pooled["ci_lo"]]
-    his = hi_vals + [pooled["ci_hi"]]
+    means = imp_vals + [pooled["relative_improvement"] * 100]
+    los = lo_vals + [pooled["relative_improvement_ci95"][0] * 100]
+    his = hi_vals + [pooled["relative_improvement_ci95"][1] * 100]
     xx = np.arange(5)
     axes[1].errorbar(xx, means, yerr=[np.asarray(means) - np.asarray(los),
                                       np.asarray(his) - np.asarray(means)],
@@ -113,10 +115,10 @@ def fig1_main_effect(s1: dict, out_dir: str) -> None:
     axes[1].axhline(0, color=C_GREY, linestyle="--", linewidth=1)
     axes[1].set_xticks(xx)
     axes[1].set_xticklabels(cats)
-    axes[1].set_ylabel(r"$\Delta$ = mean(rel.sq.err$_Q$ − rel.sq.err$_P$) at $x_{0.95}$")
-    axes[1].set_title("(b) Q−P effect with 95% crossed CI (0 excluded)", fontsize=10)
-    axes[1].set_ylim(-0.005, 0.001)
-    fig.suptitle("Fig 1 · S1 confirmatory: Q lower rRMSE at $x_{0.95}$ (pooled rel −3.14%)",
+    axes[1].set_ylabel(r"rRMSE improvement $(P-Q)/P$, % · positive ⇒ Q better")
+    axes[1].set_title("(b) Relative improvement with 95% crossed CI", fontsize=10)
+    axes[1].set_ylim(0, max(his) + 1.0)
+    fig.suptitle("Fig 1 · Confirmatory frozen-grid result across 10 training seeds",
                  fontsize=11, y=1.02)
     fig.tight_layout()
     _save(fig, "fig1_main_effect", out_dir)
@@ -143,7 +145,7 @@ def fig2_mechanism(mech: dict, sens: dict, me_exact: dict, out_dir: str) -> None
     axes[0].set_xticklabels([r"$|C_{\beta}|$", r"$|C_{\eta}|$", r"$|C_{\gamma}|$",
                              r"$|actual|$"])
     axes[0].set_ylabel("RMS component (log)")
-    axes[0].set_title("(a) Exact decomposition: Q's large components\ncancel into small |actual|",
+    axes[0].set_title("(a) Exact identity: large Q components\ncoincide with stronger cancellation",
                       fontsize=9)
     axes[0].legend(frameon=False, fontsize=8)
 
@@ -159,7 +161,7 @@ def fig2_mechanism(mech: dict, sens: dict, me_exact: dict, out_dir: str) -> None
     axes[1].axhline(0, color=C_GREY, linestyle="--", linewidth=1)
     axes[1].set_xlabel(r"mean $\Vert s \Vert$ (target sensitivity)")
     axes[1].set_ylabel(r"$\Delta$ rms actual (Q−P; <0 ⇒ Q better)")
-    axes[1].set_title("(b) Higher-sensitivity regions gain more\n(exploratory association)",
+    axes[1].set_title("(b) Higher-sensitivity regions show larger Q advantage\n(exploratory association)",
                       fontsize=9)
     axes[1].legend(frameon=False, fontsize=8)
 
@@ -179,7 +181,7 @@ def fig2_mechanism(mech: dict, sens: dict, me_exact: dict, out_dir: str) -> None
                       fontsize=9)
     axes[2].legend(frameon=False, fontsize=8)
 
-    fig.suptitle("Fig 2 · Mechanism: Q works by along-target cancellation, not per-parameter accuracy",
+    fig.suptitle("Fig 2 · Result-space error-compensation structure (not a training-cause test)",
                  fontsize=11, y=1.02)
     fig.tight_layout()
     _save(fig, "fig2_mechanism", out_dir)
@@ -267,65 +269,68 @@ def fig3_robustness(target: dict, cross: dict, capacity: dict, out_dir: str) -> 
 # ----------------------------------------------------------------------
 # Fig 4 边界
 # ----------------------------------------------------------------------
-def fig4_boundary(s1: dict, interp: dict, ood: dict, out_dir: str) -> None:
-    """三数据合同分面：iid 网格 / 域内中点 / gamma-holdout OOD（禁池化）。"""
-    g_p, g_q = s1["pooled"]["p_rrmse"], s1["pooled"]["q_rrmse"]
-    g_rel = s1["pooled"]["rel_change"] * 100  # −3.14% (Q better)
+def fig4_boundary(s5b: dict, interp: dict, ood: dict, out_dir: str) -> None:
+    """四数据合同分面 + 连续域内 Q-direct（不同合同禁池化）。"""
+    grid = s5b["confirmatory"]["grid_P_equal_vs_Q_param"]
+    continuous = s5b["exploratory"]["continuous_P_equal_vs_Q_param"]
+    g_p, g_q = grid["baseline_rrmse"], grid["comparison_rrmse"]
+    g_imp = grid["relative_improvement"] * 100
+    c_p, c_q = continuous["baseline_rrmse"], continuous["comparison_rrmse"]
+    c_imp = continuous["relative_improvement"] * 100
     m_p, m_q = interp["pooled_rrmse"]["P"], interp["pooled_rrmse"]["Q"]
-    m_rel = interp["rel_change_percent"]  # +1.86% (P better)
+    m_imp = -interp["rel_change_percent"]  # 转为 (P-Q)/P；负 => P better
     o_p, o_q = ood["pooled"]["p_rrmse"], ood["pooled"]["q_rrmse"]
     # (Q−P)/P 与 grid/midpoint 同度量；sealed p_error_reduction_vs_q=8.07% 为 (P−Q)/Q
-    o_rel = ood["pooled"]["q_error_excess_vs_p"] * 100  # +8.77% (P better)
+    o_imp = -ood["pooled"]["q_error_excess_vs_p"] * 100  # 转为 (P-Q)/P
 
     fig, axes = plt.subplots(1, 3, figsize=(13.0, 4.2))
 
     # (a) rRMSE across contracts
-    x = np.arange(3)
+    x = np.arange(4)
     w = 0.36
-    axes[0].bar(x - w / 2, [g_p, m_p, o_p], w, label="P", color=C_BLUE)
-    axes[0].bar(x + w / 2, [g_q, m_q, o_q], w, label="Q", color=C_ORANGE)
+    axes[0].bar(x - w / 2, [g_p, c_p, m_p, o_p], w, label="$P_{equal}$", color=C_BLUE)
+    axes[0].bar(x + w / 2, [g_q, c_q, m_q, o_q], w, label="$Q_{param}$", color=C_ORANGE)
     axes[0].set_xticks(x)
-    axes[0].set_xticklabels(["iid grid\n(x0.95)", "midpoints\n(within-domain)",
-                             "γ-holdout\nOOD"], fontsize=8)
-    axes[0].set_ylabel("rRMSE at $x_{0.95}$")
-    axes[0].set_title("(a) rRMSE under three data contracts", fontsize=9)
+    axes[0].set_xticklabels(["iid grid", "continuous\nwithin-range",
+                             "joint\nmidpoints", "γ-holdout\nOOD"], fontsize=7)
+    axes[0].set_ylabel("rRMSE at $x_R$")
+    axes[0].set_title("(a) rRMSE under four separate contracts", fontsize=9)
     axes[0].legend(frameon=False, fontsize=8)
 
     # (b) 效应（Q−P)/P%，负 = Q better；每合同独立，不池化
-    eff = [g_rel, m_rel, o_rel]
-    labels = ["iid grid", "midpoints", "γ-holdout OOD"]
+    eff = [g_imp, c_imp, m_imp, o_imp]
+    labels = ["iid grid", "continuous", "midpoints", "γ-holdout"]
     bars = axes[1].bar(x, eff, 0.55, color=CONTRACT_COLORS)
     axes[1].axhline(0, color=C_BLACK, linewidth=0.8)
     axes[1].set_xticks(x)
     axes[1].set_xticklabels(labels, fontsize=8)
-    axes[1].set_ylabel("effect (Q−P)/P, % · negative ⇒ Q better")
-    axes[1].set_title("(b) Q advantage does not generalize across\ndata contracts (no pooling)",
+    axes[1].set_ylabel("improvement (P−Q)/P, % · positive ⇒ Q better")
+    axes[1].set_title("(b) Target-loss benefit changes across\ndata contracts (no pooling)",
                       fontsize=9)
     for i, (b, v) in enumerate(zip(bars, eff)):
         va, dy = ("bottom", 0.15) if v >= 0 else ("top", -0.15)
         axes[1].text(b.get_x() + b.get_width() / 2, v + dy,
-                     f"{v:+.2f}%\n({'Q' if v < 0 else 'P'} better)", ha="center",
+                     f"{v:+.2f}%\n({'Q' if v > 0 else 'P'} better)", ha="center",
                      va=va, fontsize=8)
     axes[1].set_ylim(min(eff) - 2.5, max(eff) + 3.0)  # 上下留白：负值/正值双行注释均在坐标轴内
 
-    # (c) 域内中点按 γ/η 分档：仅最低档 Q 仍优
-    goe = interp["per_goe_midpoint"]
-    ks = sorted(goe.keys(), key=float)
-    grel = [goe[k]["rel_change_percent"] for k in ks]
-    xx = np.arange(len(ks))
-    axes[2].plot(xx, grel, "o-", color=C_PURPLE, ms=5)
-    axes[2].axhline(0, color=C_GREY, linestyle="--", linewidth=1)
+    # (c) 连续域内：同三输出 P/Q 与单输出 Q-direct，按 n 分层
+    per_n = s5b["exploratory"]["per_n"]
+    ns = ["7", "10", "15", "20"]
+    pp = [per_n[n]["continuous_P_vs_Qdirect"]["baseline_rrmse"] for n in ns]
+    qq = [per_n[n]["continuous_P_vs_Q"]["comparison_rrmse"] for n in ns]
+    dd = [per_n[n]["continuous_P_vs_Qdirect"]["comparison_rrmse"] for n in ns]
+    xx = np.arange(4); width = 0.25
+    axes[2].bar(xx - width, pp, width, color=C_BLUE, label="$P_{equal}$")
+    axes[2].bar(xx, qq, width, color=C_ORANGE, label="$Q_{param}$")
+    axes[2].bar(xx + width, dd, width, color=C_PURPLE, label="$Q_{direct}$")
     axes[2].set_xticks(xx)
-    axes[2].set_xticklabels([f"γ/η {k}" for k in ks], fontsize=8)
-    axes[2].set_ylabel("rel_change (Q−P)/P, %")
-    axes[2].set_title("(c) Midpoints: Q keeps edge only at\nlowest γ/η (0.175)", fontsize=9)
-    for i, v in enumerate(grel):
-        va, dy = ("bottom", 0.2) if v >= 0 else ("top", -0.2)
-        axes[2].text(xx[i], v + dy, f"{v:+.2f}", ha="center", va=va, fontsize=8)
-    axes[2].set_xlim(-0.5, len(ks) - 0.5)  # 右端注释不越出坐标轴
-    axes[2].set_ylim(min(grel) - 2.0, max(grel) + 2.2)  # 上下留白，避免贴近上边界/γ-η 标签
+    axes[2].set_xticklabels([f"n={n}" for n in ns], fontsize=8)
+    axes[2].set_ylabel("continuous-within-range rRMSE")
+    axes[2].set_title("(c) Continuous support: direct scalar head\nadds only a modest improvement", fontsize=9)
+    axes[2].legend(frameon=False, fontsize=7)
 
-    fig.suptitle("Fig 4 · Boundary: Q advantage changes across evaluated data contracts",
+    fig.suptitle("Fig 4 · Boundary: target alignment is conditional on the data contract",
                  fontsize=11, y=1.02)
     fig.tight_layout()
     _save(fig, "fig4_boundary", out_dir)
@@ -347,7 +352,7 @@ def main(argv=None) -> int:
     root = os.path.abspath(a.root)
     art = os.path.join(root, "artifacts")
 
-    s1 = _load_json(os.path.join(art, "pq_iid_main/analysis/summary_iid.json"))
+    s5b = _load_json(os.path.join(art, "pq_s5b_revision/analysis/summary_s5b.json"))
     mech = _load_json(os.path.join(art, "pq_iid_main/analysis/mechanism_summary.json"))
     sens = _load_json(os.path.join(art, "pq_s3_target/analysis/sensitivity_by_target.json"))
     me_exact = _load_json(os.path.join(art, "pq_s3_target/analysis/mechanism_exact_by_target.json"))
@@ -358,10 +363,10 @@ def main(argv=None) -> int:
     ood = _load_json(os.path.join(art, "pq_v3/analysis/summary_v3.json"))
 
     out_dir = os.path.join(root, a.out)
-    fig1_main_effect(s1, out_dir)
+    fig1_main_effect(s5b, out_dir)
     fig2_mechanism(mech, sens, me_exact, out_dir)
     fig3_robustness(target, cross, capacity, out_dir)
-    fig4_boundary(s1, interp, ood, out_dir)
+    fig4_boundary(s5b, interp, ood, out_dir)
 
     made = sorted(f for f in os.listdir(out_dir) if f.endswith(".png"))
     print(f"figures written to {out_dir}: {len(made)} PNG (+ matching PDF)")

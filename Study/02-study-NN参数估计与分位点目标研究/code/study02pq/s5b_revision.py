@@ -423,6 +423,7 @@ def analyze(n_boot: int | None = None) -> dict:
     primary = crossed_bootstrap(grid[..., 0], grid[..., 1], n_boot, boot_seed)
     continuous_pq = crossed_bootstrap(cont[..., 0], cont[..., 1], n_boot, boot_seed + 1)
     continuous_q_qd = crossed_bootstrap(cont[..., 1], cont[..., 2], n_boot, boot_seed + 2)
+    continuous_p_qd = crossed_bootstrap(cont[..., 0], cont[..., 2], n_boot, boot_seed + 3)
 
     ns = list(map(int, cfg["study01_domain"]["n_grid"]))
     per_n = {}
@@ -434,6 +435,9 @@ def analyze(n_boot: int | None = None) -> dict:
             "continuous_P_vs_Q": crossed_bootstrap(
                 cont[ni:ni + 1, ..., 0], cont[ni:ni + 1, ..., 1],
                 n_boot, boot_seed + 20 + ni),
+            "continuous_P_vs_Qdirect": crossed_bootstrap(
+                cont[ni:ni + 1, ..., 0], cont[ni:ni + 1, ..., 2],
+                n_boot, boot_seed + 30 + ni),
         }
     direction = {
         "grid_Q_better_cells": int(np.sum(grid[..., 1] < grid[..., 0])),
@@ -449,6 +453,7 @@ def analyze(n_boot: int | None = None) -> dict:
         "confirmatory": {"grid_P_equal_vs_Q_param": primary},
         "exploratory": {
             "continuous_P_equal_vs_Q_param": continuous_pq,
+            "continuous_P_equal_vs_Q_direct": continuous_p_qd,
             "continuous_Q_param_vs_Q_direct": continuous_q_qd,
             "per_n": per_n,
             "direction_counts": direction,
