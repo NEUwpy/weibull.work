@@ -557,7 +557,7 @@ def make_figure(grid: list[dict], pq: list[dict], pmq: list[dict],
         text(cx, yy - 7 if val >= 0 else yy + 15, f"{val:.4f}", "tick", "middle")
 
     text(width / 2, 825,
-         "No new training. A: 40 truth points/target. B,D: 24 matched cells, descriptive (no CI). C: 200 paired cells; terminal geometry, not SGD causality.",
+         "No new training. B: bars = 24-cell equal-cell rRMSE; dots = 3 seed aggregates. B,D: descriptive (no CI). C: 200 paired cells; not SGD causality.",
          "tick", "middle")
     svg.append('</svg>')
     out.with_suffix(".svg").write_text("\n".join(svg), encoding="utf-8")
@@ -612,8 +612,8 @@ def make_figure(grid: list[dict], pq: list[dict], pmq: list[dict],
     axes[1, 1].axhline(0, color="black", linewidth=.8)
     axes[1, 1].set(ylabel=r"M95 $-$ P mean squared B5 error",
                    title="D  Exact M95 - P MSE decomposition")
-    fig.text(.5, .012, "No new training. A: 40 truth points/target. B,D: 24 matched cells, descriptive (no CI). "
-             "C: 200 paired cells; terminal geometry, not SGD causality.", ha="center", fontsize=8)
+    fig.text(.5, .012, "No new training. B: bars = 24-cell equal-cell rRMSE; dots = 3 seed aggregates. "
+             "B,D: descriptive (no CI). C: 200 paired cells; not SGD causality.", ha="center", fontsize=8)
     fig.tight_layout(rect=(0, .035, 1, 1))
     fig.savefig(out.with_suffix(".png"), dpi=300)
     fig.savefig(out.with_suffix(".pdf"))
