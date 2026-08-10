@@ -43,13 +43,24 @@ held-out 预测（P 与 Q 各 144,000 行）构造：
 - `mechanism_cell_pairs.csv`：60 个 (n,fold,seed) cell 的 P/Q 机制量与配对差
   （供设计级复核）。
 
+另由 ``--paper-core-only`` 写入 `artifacts/pq_paper_core/analysis/`：
+- `mechanism_sensitivity_grid.csv`：40 个冻结参数点在 P 归一化坐标下的逐参数
+  `x_0.95` 敏感度；
+- `mechanism_paper_regions.csv` / `mechanism_paper_cells.csv` /
+  `mechanism_paper_core.json`：当前论文 Fig2 的10-seed最小派生数据（区域收益 +
+  精确补偿），不含多目标或外推合同。
+
 用法（iid 协议下，cwd = code/）：
     PQ_PROTOCOL=iid-v1 python -m study02pq.mechanism --n-boot 20000
+
+只生成当前论文10-seed核心机制派生物（不改写 S2 sealed analysis）：
+    PQ_PROTOCOL=iid-v1 python -m study02pq.mechanism --paper-core-only
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -70,6 +81,19 @@ BOUNDARY_THRESHOLD = 0.9999
 
 # 用于机制量设计级配对差值的交叉 bootstrap rng（与主推断同方案，独立标注为描述性）
 BOOT_RNG_SEED = 20260805
+
+
+def sha256_file(path: str, canonical_text: bool = True) -> str:
+    """项目证据约定：文本按 LF 规范化哈希，二进制按原始字节。"""
+    with open(path, "rb") as f:
+        data = f.read()
+    if canonical_text:
+        data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(data).hexdigest()
+
+
+def _study_rel(path: str) -> str:
+    return os.path.relpath(path, CFG.STUDY02_ROOT).replace("\\", "/")
 
 
 # ----------------------------------------------------------------------
@@ -93,6 +117,166 @@ def analytic_sensitivity(beta: float, eta: float, gamma: float,
     s_eta = dx_deta * eta / x
     s_gamma = dx_dgamma * eta / x
     return x, dx_dbeta, dx_deta, dx_dgamma, s_beta, s_eta, s_gamma
+
+
+def sensitivity_grid_table(beta_grid=None, gamma_over_eta_grid=None,
+                           eta: float = CFG.ETA,
+                           R: float = CFG.X0_95_R) -> pd.DataFrame:
+    """冻结参数网格上的逐参数目标敏感度（P 归一化坐标）。
+
+    ``u=((beta_hat-beta)/beta, (eta_hat-eta)/eta,
+    (gamma_hat-gamma)/eta)`` 与 P 损失坐标一致；在真值处，目标相对误差的一阶项
+    为 ``s.u``。因此 ``s_beta/s_eta/s_gamma`` 是 Q 在该坐标下的局部目标权重，
+    不是人为指定的参数重要性。L1 share 仅用于展示方向组成，不能替代原始幅值。
+    """
+    beta_grid = CFG.BETA_GRID if beta_grid is None else beta_grid
+    gamma_over_eta_grid = (CFG.GAMMA_OVER_ETA_GRID if gamma_over_eta_grid is None
+                           else gamma_over_eta_grid)
+    records = []
+    for beta in beta_grid:
+        for goe in gamma_over_eta_grid:
+            x, _, _, _, sb, se, sg = analytic_sensitivity(
+                float(beta), float(eta), float(goe) * float(eta), R=float(R))
+            vec = np.asarray([sb, se, sg], dtype=np.float64)
+            norm = float(np.linalg.norm(vec))
+            l1 = float(np.sum(np.abs(vec)))
+            records.append({
+                "beta": float(beta),
+                "gamma_over_eta": float(goe),
+                "x_R_over_eta": float(x / eta),
+                "s_beta": float(sb),
+                "s_eta": float(se),
+                "s_gamma": float(sg),
+                "s_norm": norm,
+                "unit_beta": float(sb / norm),
+                "unit_eta": float(se / norm),
+                "unit_gamma": float(sg / norm),
+                "l1_share_beta": float(abs(sb) / l1),
+                "l1_share_eta": float(abs(se) / l1),
+                "l1_share_gamma": float(abs(sg) / l1),
+            })
+    return pd.DataFrame.from_records(records)
+
+
+def paper_core_diagnostics(sensitivity_df: pd.DataFrame,
+                           region_df: pd.DataFrame,
+                           cell_df: pd.DataFrame,
+                           pooled_p: dict, pooled_q: dict) -> dict:
+    """把现有机制证据收口为当前论文 Fig2 使用的最小派生统计。
+
+    这只描述 (i) 解析目标敏感度、(ii) 区域相关、(iii) 精确恒等式下的补偿；
+    不把区域相关或补偿结果解释为已识别的训练动力学因果效应。
+    """
+    vec = sensitivity_df[["s_beta", "s_eta", "s_gamma"]].to_numpy(float)
+    unit = vec / np.linalg.norm(vec, axis=1, keepdims=True)
+    cosine = np.clip(unit @ unit.T, -1.0, 1.0)
+    max_angle = float(np.degrees(np.max(np.arccos(cosine))))
+
+    component_ranges = {}
+    for name in ("s_beta", "s_eta", "s_gamma", "s_norm"):
+        values = sensitivity_df[name].to_numpy(float)
+        component_ranges[name] = {
+            "min": float(np.min(values)),
+            "max": float(np.max(values)),
+            "max_over_min": float(np.max(values) / np.min(values)),
+        }
+
+    region_records = []
+    correlations = {}
+    for region in ("beta", "gamma_over_eta"):
+        sub = region_df[region_df["region"] == region].copy().sort_values("value")
+        sub["q_advantage_abs"] = sub["p_rms_actual"] - sub["q_rms_actual"]
+        sub["q_advantage_relative"] = (
+            sub["q_advantage_abs"] / sub["p_rms_actual"])
+        corr_abs = _corr_or_none(sub["p_mean_s_norm"].to_numpy(float),
+                                 sub["q_advantage_abs"].to_numpy(float))
+        corr_rel = _corr_or_none(sub["p_mean_s_norm"].to_numpy(float),
+                                 sub["q_advantage_relative"].to_numpy(float))
+        correlations[region] = {
+            "pearson_r_s_norm_vs_q_advantage_abs": corr_abs,
+            "pearson_r_s_norm_vs_q_advantage_relative": corr_rel,
+            "n_regions": int(len(sub)),
+        }
+        for row in sub.to_dict("records"):
+            region_records.append({
+                "region": region,
+                "value": float(row["value"]),
+                "n_rows": int(row["n_rows"]),
+                "mean_s_norm": float(row["p_mean_s_norm"]),
+                "p_rms_actual": float(row["p_rms_actual"]),
+                "q_rms_actual": float(row["q_rms_actual"]),
+                "q_advantage_abs": float(row["q_advantage_abs"]),
+                "q_advantage_relative": float(row["q_advantage_relative"]),
+            })
+
+    n_q_more_cancel = int(np.sum(
+        cell_df["q_mean_cancel_exact"] > cell_df["p_mean_cancel_exact"]))
+    return {
+        "protocol": "iid-v1",
+        "stage": "paper-core mechanism derivation (analysis only; no training)",
+        "target": {"R": float(CFG.X0_95_R), "label": "x_0.95"},
+        "sensitivity_coordinate": (
+            "u=((beta_hat-beta)/beta,(eta_hat-eta)/eta,"
+            "(gamma_hat-gamma)/eta); local relative target error = s.u"),
+        "sensitivity_formula": {
+            "s_beta": "(dx_R/dbeta)*beta/x_R",
+            "s_eta": "(dx_R/deta)*eta/x_R",
+            "s_gamma": "(dx_R/dgamma)*eta/x_R",
+            "q_gradient": (
+                "for L_Q=mean(e_i^2), per-sample contribution "
+                "dL_Q/du_ij=(2/m)*e_i*s_ij at truth; e_i=(xhat_R-x_R)/x_R"),
+            "p_gradient": (
+                "for L_P=mean(sum_j u_ij^2), per-sample contribution "
+                "dL_P/du_ij=(2/m)*u_ij"),
+            "local_curvature": (
+                "around truth: H_Q=(2/m)*s_i*s_i^T whereas H_P=(2/m)*I; "
+                "Q includes target-induced cross-parameter terms"),
+        },
+        "pooled_frozen_grid": {
+            "p_rrmse": float(pooled_p["rms_actual"]),
+            "q_rrmse": float(pooled_q["rms_actual"]),
+            "q_relative_improvement": float(
+                (pooled_p["rms_actual"] - pooled_q["rms_actual"])
+                / pooled_p["rms_actual"]),
+        },
+        "sensitivity_grid": {
+            "n_points": int(len(sensitivity_df)),
+            "n_beta": int(sensitivity_df["beta"].nunique()),
+            "n_gamma_over_eta": int(sensitivity_df["gamma_over_eta"].nunique()),
+            "component_ranges": component_ranges,
+            "max_pairwise_direction_angle_degrees": max_angle,
+            "n_distinct_directions": int(sensitivity_df["beta"].nunique()),
+            "fixed_weight_implication": (
+                "Even at one grid point a diagonal weighted-parameter loss lacks Q's "
+                "cross-parameter curvature s*s^T; additionally, both sensitivity "
+                "magnitude and direction vary on the frozen grid. Therefore no single "
+                "fixed diagonal parameter-weight vector exactly reproduces local Q "
+                "geometry over all grid points. This is an algebraic loss-geometry "
+                "statement, not an empirical training-cause estimate."),
+        },
+        "regional_association_exploratory": {
+            "definition": "Q advantage = P rRMSE - Q rRMSE within each region",
+            "correlations": correlations,
+            "records": region_records,
+            "limit": (
+                "Unweighted Pearson association over 8 beta and 5 gamma/eta bins; "
+                "descriptive, not a causal or necessary/sufficient-condition test."),
+        },
+        "exact_compensation_x_0.95": {
+            "identity": "actual=C_beta+C_eta+C_gamma (up to float32 evidence storage)",
+            "mean_cancel_exact_P": float(pooled_p["mean_cancel_exact"]),
+            "mean_cancel_exact_Q": float(pooled_q["mean_cancel_exact"]),
+            "delta_Q_minus_P": float(
+                pooled_q["mean_cancel_exact"] - pooled_p["mean_cancel_exact"]),
+            "n_cell_pairs_Q_gt_P": n_q_more_cancel,
+            "n_cell_pairs": int(len(cell_df)),
+            "identity_max_abs_err_P": float(pooled_p["identity_max_abs_err"]),
+            "identity_max_abs_err_Q": float(pooled_q["identity_max_abs_err"]),
+            "limit": (
+                "The exact identity establishes the result-space compensation pattern; "
+                "it does not by itself identify why optimization reached that solution."),
+        },
+    }
 
 
 # ----------------------------------------------------------------------
@@ -322,6 +506,211 @@ def load_all_rows(seeds) -> tuple[dict, dict, dict, dict]:
     return rows_p, rows_q, stats_p, stats_q
 
 
+def load_s5b_grid_rows() -> tuple[dict, dict, dict, dict, dict]:
+    """只读加载 S5B 冻结网格的 10-seed P/Q evidence（200 个配对单元）。
+
+    前 3 个 seed 复用 ``pq_iid_main``，后 7 个 seed 读取 ``pq_s5b_revision/grid_extra``；
+    路径解析复用 S5B 已冻结实现。该函数只做派生分析，不写 evidence/metadata。
+    """
+    from study02pq import s5b_revision as S5B  # 本地导入，避免常规 S2 路径耦合
+
+    protocol = S5B.load_protocol()
+    seeds = [int(v) for v in protocol["seeds"]["all"]]
+    n_grid = [int(v) for v in protocol["study01_domain"]["n_grid"]]
+    rows_p, rows_q, stats_p, stats_q = {}, {}, {}, {}
+    audit = {
+        "key_identity": {
+            "pairs_checked": 0,
+            "mismatch_pairs": 0,
+            "fields": ["beta", "gamma_over_eta", "n", "point_or_repeat_id"],
+            "comparison": "exact array equality between paired P and Q evidence",
+        },
+        "finite_prediction": {
+            "rows_checked_P": 0, "rows_checked_Q": 0,
+            "nonfinite_prediction_rows_P": 0,
+            "nonfinite_prediction_rows_Q": 0,
+            "nonfinite_mechanism_input_rows_P": 0,
+            "nonfinite_mechanism_input_rows_Q": 0,
+        },
+        "support_legality": {
+            "rule": "beta_hat>0, eta_hat>0, gamma_hat<min_x",
+            "rows_checked_P": 0, "rows_checked_Q": 0,
+            "nonpositive_beta_or_eta_rows_P": 0,
+            "nonpositive_beta_or_eta_rows_Q": 0,
+            "gamma_hat_ge_min_x_rows_P": 0,
+            "gamma_hat_ge_min_x_rows_Q": 0,
+        },
+    }
+
+    def point_id(ev: dict) -> np.ndarray:
+        name = ("keys_point_or_repeat_id" if "keys_point_or_repeat_id" in ev
+                else "keys_repeat_id")
+        return ev[name]
+
+    def update_route_audit(ev: dict, route: str) -> None:
+        x_key = "xR_hat" if "xR_hat" in ev else "x95_hat"
+        n_rows = len(ev[x_key])
+        prediction = np.column_stack([
+            ev[x_key], ev["rel_err"], ev["rel_err_sq"]])
+        mechanism_inputs = np.column_stack([
+            ev[x_key], ev["rel_err"], ev["rel_err_sq"], ev["beta_hat"],
+            ev["eta_hat"], ev["gamma_hat"], ev["min_x"]])
+        audit["finite_prediction"][f"rows_checked_{route}"] += int(n_rows)
+        audit["finite_prediction"][f"nonfinite_prediction_rows_{route}"] += int(
+            np.sum(~np.all(np.isfinite(prediction), axis=1)))
+        audit["finite_prediction"][f"nonfinite_mechanism_input_rows_{route}"] += int(
+            np.sum(~np.all(np.isfinite(mechanism_inputs), axis=1)))
+        audit["support_legality"][f"rows_checked_{route}"] += int(n_rows)
+        audit["support_legality"][f"nonpositive_beta_or_eta_rows_{route}"] += int(
+            np.sum((ev["beta_hat"] <= 0.0) | (ev["eta_hat"] <= 0.0)))
+        audit["support_legality"][f"gamma_hat_ge_min_x_rows_{route}"] += int(
+            np.sum(ev["gamma_hat"] >= ev["min_x"]))
+
+    for n in n_grid:
+        for fold_idx in range(CFG.N_FOLDS):
+            for seed in seeds:
+                ev = {}
+                for route in ("P", "Q"):
+                    path = S5B._evidence_path("grid", n, fold_idx, seed, route)
+                    with np.load(path) as archive:
+                        ev[route] = {k: archive[k] for k in archive.files}
+                ep, eq = ev["P"], ev["Q"]
+                audit["key_identity"]["pairs_checked"] += 1
+                paired = all(np.array_equal(a, b) for a, b in (
+                    (ep["keys_beta"], eq["keys_beta"]),
+                    (ep["keys_gamma_over_eta"], eq["keys_gamma_over_eta"]),
+                    (ep["keys_n"], eq["keys_n"]),
+                    (point_id(ep), point_id(eq)),
+                ))
+                if not paired:
+                    audit["key_identity"]["mismatch_pairs"] += 1
+                update_route_audit(ep, "P")
+                update_route_audit(eq, "Q")
+                key = (n, fold_idx, seed)
+                rp, rq = row_mechanism(ep), row_mechanism(eq)
+                rows_p[key], rows_q[key] = rp, rq
+                stats_p[key], stats_q[key] = cell_stats(rp), cell_stats(rq)
+    if len(rows_p) != 200 or len(rows_q) != 200:
+        raise AssertionError(f"expected 200 S5B grid pairs, got {len(rows_p)}")
+    audit["key_identity"]["all_pair_keys_identical"] = (
+        audit["key_identity"]["mismatch_pairs"] == 0)
+    failure_counts = [
+        audit["key_identity"]["mismatch_pairs"],
+        *[audit["finite_prediction"][f"nonfinite_prediction_rows_{r}"]
+          for r in ("P", "Q")],
+        *[audit["finite_prediction"][f"nonfinite_mechanism_input_rows_{r}"]
+          for r in ("P", "Q")],
+        *[audit["support_legality"][f"nonpositive_beta_or_eta_rows_{r}"]
+          for r in ("P", "Q")],
+        *[audit["support_legality"][f"gamma_hat_ge_min_x_rows_{r}"]
+          for r in ("P", "Q")],
+    ]
+    audit["all_pass"] = all(v == 0 for v in failure_counts)
+    if not audit["all_pass"]:
+        raise AssertionError(f"S5B paper-core evidence audit failed: {audit}")
+    return rows_p, rows_q, stats_p, stats_q, audit
+
+
+def write_paper_core_outputs(out: str) -> dict:
+    """从10-seed冻结网格生成当前论文机制派生物，不触碰任何 sealed 输入。"""
+    os.makedirs(out, exist_ok=True)
+    sensitivity_df = sensitivity_grid_table()
+    rows_p, rows_q, stats_p, stats_q, audit = load_s5b_grid_rows()
+    pooled_p = pooled_stats(list(rows_p.values()))
+    pooled_q = pooled_stats(list(rows_q.values()))
+    region_df = region_table(rows_p, rows_q, {})
+    region_df = region_df[region_df["region"].isin(
+        ["beta", "gamma_over_eta"])]
+    cells = []
+    for (n, fold_idx, seed) in sorted(stats_p):
+        cells.append({
+            "n": int(n), "fold": int(fold_idx + 1), "seed": int(seed),
+            "p_rms_actual": float(stats_p[(n, fold_idx, seed)]["rms_actual"]),
+            "q_rms_actual": float(stats_q[(n, fold_idx, seed)]["rms_actual"]),
+            "p_mean_cancel_exact": float(
+                stats_p[(n, fold_idx, seed)]["mean_cancel_exact"]),
+            "q_mean_cancel_exact": float(
+                stats_q[(n, fold_idx, seed)]["mean_cancel_exact"]),
+        })
+    cell_df = pd.DataFrame(cells)
+    cell_df["delta_rms_actual"] = (
+        cell_df["q_rms_actual"] - cell_df["p_rms_actual"])
+    cell_df["delta_mean_cancel_exact"] = (
+        cell_df["q_mean_cancel_exact"] - cell_df["p_mean_cancel_exact"])
+    core = paper_core_diagnostics(
+        sensitivity_df, region_df, cell_df, pooled_p, pooled_q)
+    core["evidence"] = {
+        "source": "S5B frozen-grid P_equal/Q_param evidence only",
+        "n_training_seeds": 10,
+        "n_cell_pairs": 200,
+        "n_fits": 400,
+        "n_rows_per_route": int(sum(len(r["actual"]) for r in rows_p.values())),
+        "existing_three_seed_dir": "artifacts/pq_iid_main/evidence",
+        "additional_seven_seed_dir": "artifacts/pq_s5b_revision/grid_extra/evidence",
+        "sealed_inputs_modified": False,
+        "training_or_retraining": False,
+    }
+    core["evidence_audit"] = audit
+    output_paths = {
+        "mechanism_sensitivity_grid.csv": os.path.join(
+            out, "mechanism_sensitivity_grid.csv"),
+        "mechanism_paper_regions.csv": os.path.join(
+            out, "mechanism_paper_regions.csv"),
+        "mechanism_paper_cells.csv": os.path.join(
+            out, "mechanism_paper_cells.csv"),
+        "mechanism_paper_core.json": os.path.join(
+            out, "mechanism_paper_core.json"),
+    }
+    sensitivity_df.to_csv(output_paths["mechanism_sensitivity_grid.csv"], index=False)
+    pd.DataFrame(
+        core["regional_association_exploratory"]["records"]
+    ).to_csv(output_paths["mechanism_paper_regions.csv"], index=False)
+    cell_df.to_csv(output_paths["mechanism_paper_cells.csv"], index=False)
+    with open(output_paths["mechanism_paper_core.json"], "w", encoding="utf-8") as f:
+        json.dump(core, f, ensure_ascii=False, indent=1)
+
+    source_paths = {
+        "generation_code": os.path.abspath(__file__),
+        "s5b_protocol_config": os.path.join(
+            CFG.STUDY02_ROOT, "configs", "pq-s5b-revision-v1.json"),
+        "environment_lock": os.path.join(
+            CFG.STUDY02_ROOT, "configs", "pq-environment-v2.json"),
+        "iid_three_seed_manifest": os.path.join(
+            CFG.STUDY02_ROOT, "artifacts", "pq_iid_main", "manifest.json"),
+        "s5b_revision_manifest": os.path.join(
+            CFG.STUDY02_ROOT, "artifacts", "pq_s5b_revision", "manifest.json"),
+    }
+    derived_sha = {name: sha256_file(path) for name, path in output_paths.items()}
+    source_sha = {
+        name: {"path": _study_rel(path), "sha256": sha256_file(path)}
+        for name, path in source_paths.items()
+    }
+    manifest = {
+        "schema_version": 1,
+        "analysis": "Study02 x_0.95 paper-core mechanism derivation",
+        "protocol": "iid-v1 + study02-pq-s5b-revision-v1 grid extension",
+        "generation_command": (
+            "PQ_PROTOCOL=iid-v1 python -m study02pq.mechanism --paper-core-only"),
+        "sha256_rule": "text files canonicalized to LF before SHA256",
+        "bound_sources": source_sha,
+        "derived_outputs_sha256": derived_sha,
+        "evidence_audit": audit,
+        "immutability": {
+            "sealed_inputs_modified": False,
+            "training_or_retraining": False,
+        },
+    }
+    manifest_path = os.path.join(out, "manifest.json")
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=1)
+
+    sha_paths = [*source_paths.values(), *output_paths.values(), manifest_path]
+    with open(os.path.join(out, "SHA256SUMS"), "w", encoding="utf-8", newline="\n") as f:
+        for path in sorted(sha_paths, key=_study_rel):
+            f.write(f"{sha256_file(path)}  {_study_rel(path)}\n")
+    return core
+
+
 def _region_agg(rows: dict, col: str, value: float) -> list[dict]:
     """返回 rows 中 col == value 的**逐行掩码子集**（iid 测试折覆盖全部组合，
     故 β/γ 在 cell 内变化，不能按整 cell 过滤）；各键同掩码对齐，供 pooled_stats。"""
@@ -396,7 +785,29 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n-boot", type=int, default=20000)
     ap.add_argument("--seed", action="append", type=int, default=None)
+    ap.add_argument(
+        "--paper-core-only", action="store_true",
+        help="write 10-seed x0.95 paper-core derivatives without rewriting sealed S2 analysis")
     args = ap.parse_args()
+    if args.paper_core_only:
+        paper_out = os.path.join(
+            os.path.dirname(CFG.ARTIFACT_DIR), "pq_paper_core", "analysis")
+        core = write_paper_core_outputs(paper_out)
+        sens = core["sensitivity_grid"]
+        assoc = core["regional_association_exploratory"]["correlations"]
+        comp = core["exact_compensation_x_0.95"]
+        print("=== paper-core mechanism (10-seed frozen grid; analysis only) ===")
+        print(f"sensitivity points={sens['n_points']}  "
+              f"||s|| max/min={sens['component_ranges']['s_norm']['max_over_min']:.4f}  "
+              f"max angle={sens['max_pairwise_direction_angle_degrees']:.4f} deg")
+        print("regional Pearson r (||s|| vs P-Q rRMSE): "
+              f"beta={assoc['beta']['pearson_r_s_norm_vs_q_advantage_abs']:.4f}  "
+              f"gamma/eta={assoc['gamma_over_eta']['pearson_r_s_norm_vs_q_advantage_abs']:.4f}")
+        print(f"exact cancellation means P={comp['mean_cancel_exact_P']:.6f}  "
+              f"Q={comp['mean_cancel_exact_Q']:.6f}; "
+              f"Q>P cells={comp['n_cell_pairs_Q_gt_P']}/{comp['n_cell_pairs']}")
+        print("paper-core analysis written to", paper_out)
+        return 0
     seeds = [int(s) for s in args.seed] if args.seed else [int(s) for s in CFG.SEEDS]
     out = os.path.join(CFG.ARTIFACT_DIR, "analysis")
     os.makedirs(out, exist_ok=True)
@@ -455,8 +866,8 @@ def main() -> int:
             row[f"delta_{m}"] = stats_q[(n, fold_idx, seed)][m] \
                 - stats_p[(n, fold_idx, seed)][m]
         pair_rec.append(row)
-    pd.DataFrame(pair_rec).to_csv(
-        os.path.join(out, "mechanism_cell_pairs.csv"), index=False)
+    cell_df = pd.DataFrame(pair_rec)
+    cell_df.to_csv(os.path.join(out, "mechanism_cell_pairs.csv"), index=False)
 
     # 设计级配对差值 + CI（关键机制量）
     design_keys = ("rms_actual", "rms_proj", "rms_rem", "mean_align",

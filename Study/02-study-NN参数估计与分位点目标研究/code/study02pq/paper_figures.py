@@ -4,10 +4,11 @@
 用法（Study02 根目录下）：
 
     python code/study02pq/paper_figures.py --root . --out figures/pq-paper
+    python code/study02pq/paper_figures.py --root . --figure fig2
 
-输出 4 张图（各 PNG + PDF）：
+输出 4 张图（各 300 dpi PNG + 矢量 PDF）：
   fig1_main_effect  10-seed 主效应：总体与按 n 的 P/Q rRMSE + 相对改善 95% CI
-  fig2_mechanism    结果空间误差补偿结构：精确分解、区域关联、cancel_exact
+  fig2_mechanism    x0.95 逐参数敏感度、区域收益关联、精确补偿
   fig3_robustness   稳健性：目标水平（confirmatory/robustness）、交叉目标、容量（descriptive）
   fig4_boundary     边界：网格 / 连续域内 / 中点 / gamma-holdout OOD（禁池化）
 
@@ -22,6 +23,7 @@ import os
 import sys
 
 import numpy as np
+import pandas as pd
 
 # ----------------------------------------------------------------------
 # 常量：色盲友好 Okabe-Ito 色板
@@ -62,7 +64,7 @@ def _load_json(path: str) -> dict:
 
 def _save(fig, name: str, out_dir: str) -> None:
     os.makedirs(out_dir, exist_ok=True)
-    fig.savefig(os.path.join(out_dir, f"{name}.png"), dpi=200, bbox_inches="tight")
+    fig.savefig(os.path.join(out_dir, f"{name}.png"), dpi=300, bbox_inches="tight")
     fig.savefig(os.path.join(out_dir, f"{name}.pdf"), bbox_inches="tight")
     plt.close(fig)
 
@@ -127,61 +129,101 @@ def fig1_main_effect(s5b: dict, out_dir: str) -> None:
 # ----------------------------------------------------------------------
 # Fig 2 机制
 # ----------------------------------------------------------------------
-def fig2_mechanism(mech: dict, sens: dict, me_exact: dict, out_dir: str) -> None:
-    """精确分解/抵消、区域敏感度、cancel_exact 按目标水平（S2 + S3 mechanism）。"""
-    pooled = mech["pooled"]
-    fig, axes = plt.subplots(1, 3, figsize=(12.5, 4.2))
+def fig2_mechanism(core: dict, sensitivity: pd.DataFrame,
+                   regions: pd.DataFrame, cells: pd.DataFrame,
+                   out_dir: str) -> None:
+    """当前核心论文 Fig2：只展示冻结网格的 x_0.95 机制证据。"""
+    fig, axes = plt.subplots(1, 3, figsize=(12.8, 4.35))
 
-    # (a) 精确分解分量 |C_beta|,|C_eta|,|C_gamma|,|actual|：P vs Q（log scale）
-    comps = ["beta", "eta", "gamma"]
-    p_c = [pooled["P"][f"rms_c_{c}"] for c in comps] + [pooled["P"]["rms_actual"]]
-    q_c = [pooled["Q"][f"rms_c_{c}"] for c in comps] + [pooled["Q"]["rms_actual"]]
-    x = np.arange(4)
-    w = 0.36
-    axes[0].bar(x - w / 2, p_c, w, label="P", color=C_BLUE)
-    axes[0].bar(x + w / 2, q_c, w, label="Q", color=C_ORANGE)
+    # (a) P 归一化坐标下逐参数敏感度：线为 5 个 gamma/eta 层级中位数，带为全范围。
+    labels = {
+        "s_beta": (r"$s_{\beta}$", C_BLUE, "o", "-"),
+        "s_eta": (r"$s_{\eta}$", C_ORANGE, "s", "--"),
+        "s_gamma": (r"$s_{\gamma}$", C_GREEN, "^", "-."),
+    }
+    betas = np.sort(sensitivity["beta"].unique())
+    for column, (label, color, marker, linestyle) in labels.items():
+        grouped = sensitivity.groupby("beta")[column]
+        median = grouped.median().reindex(betas).to_numpy(float)
+        lo = grouped.min().reindex(betas).to_numpy(float)
+        hi = grouped.max().reindex(betas).to_numpy(float)
+        axes[0].fill_between(betas, lo, hi, color=color, alpha=0.13, linewidth=0)
+        axes[0].plot(betas, median, label=label, color=color, marker=marker,
+                     linestyle=linestyle, linewidth=1.5, markersize=4)
+    grid_diag = core["sensitivity_grid"]
     axes[0].set_yscale("log")
-    axes[0].set_xticks(x)
-    axes[0].set_xticklabels([r"$|C_{\beta}|$", r"$|C_{\eta}|$", r"$|C_{\gamma}|$",
-                             r"$|actual|$"])
-    axes[0].set_ylabel("RMS component (log)")
-    axes[0].set_title("(a) Exact identity: large Q components\ncoincide with stronger cancellation",
-                      fontsize=9)
-    axes[0].legend(frameon=False, fontsize=8)
+    axes[0].set_xlabel(r"shape parameter $\beta$")
+    axes[0].set_ylabel(r"$|s_j|$ in P-normalized coordinates (log scale)")
+    axes[0].set_title("(a) Target sensitivity changes across the frozen grid\n"
+                      "line: median; band: range over $\gamma/\eta$", fontsize=9)
+    axes[0].legend(frameon=False, fontsize=8, ncol=3, loc="lower left")
+    axes[0].text(
+        0.98, 0.98,
+        rf"$\Vert s\Vert$ range {grid_diag['component_ranges']['s_norm']['max_over_min']:.2f}×"
+        "\n" + rf"max direction change {grid_diag['max_pairwise_direction_angle_degrees']:.1f}°",
+        transform=axes[0].transAxes, ha="right", va="top", fontsize=7,
+        bbox={"boxstyle": "round,pad=0.25", "fc": "white", "ec": C_GREY, "alpha": 0.9})
 
-    # (b) 区域：mean ||s||（目标敏感度）vs Δ rms_actual（<0 => Q better）
-    sens95 = sens["0.95"]
-    for rn, color, lbl in [("beta", C_BLUE, "β region"),
-                           ("gamma_over_eta", C_ORANGE, "γ/η region")]:
-        s_reg = sens95["mean_s_norm_by_region"][rn]
-        d_reg = sens95["delta_rms_actual_at_p_by_region"][rn]
-        ks = sorted(s_reg.keys(), key=float)
-        axes[1].scatter([s_reg[k] for k in ks], [d_reg[k] for k in ks],
-                        color=color, s=36, label=lbl)
+    # (b) 完整 10-seed（200 pair）冻结网格的区域关联；正值表示 Q 的区域 rRMSE 更低。
+    styles = {
+        "beta": (C_BLUE, "o", r"$\beta$ regions"),
+        "gamma_over_eta": (C_ORANGE, "s", r"$\gamma/\eta$ regions"),
+    }
+    correlations = core["regional_association_exploratory"]["correlations"]
+    for region, (color, marker, label) in styles.items():
+        sub = regions[regions["region"] == region].sort_values("value")
+        axes[1].scatter(sub["mean_s_norm"], sub["q_advantage_abs"],
+                        color=color, marker=marker, s=36, label=label, zorder=3)
+        for row in sub.itertuples():
+            axes[1].annotate(f"{row.value:g}",
+                             (row.mean_s_norm, row.q_advantage_abs),
+                             xytext=(3, 3), textcoords="offset points", fontsize=6,
+                             color=color)
     axes[1].axhline(0, color=C_GREY, linestyle="--", linewidth=1)
-    axes[1].set_xlabel(r"mean $\Vert s \Vert$ (target sensitivity)")
-    axes[1].set_ylabel(r"$\Delta$ rms actual (Q−P; <0 ⇒ Q better)")
-    axes[1].set_title("(b) Higher-sensitivity regions show larger Q advantage\n(exploratory association)",
-                      fontsize=9)
-    axes[1].legend(frameon=False, fontsize=8)
+    axes[1].set_xlabel(r"regional mean $\Vert s \Vert$")
+    axes[1].set_ylabel("regional Q advantage in rRMSE (P − Q)")
+    axes[1].set_title("(b) Larger target sensitivity is associated with\n"
+                      "larger Q advantage (exploratory)", fontsize=9)
+    axes[1].legend(frameon=False, fontsize=8, loc="lower right")
+    rb = correlations["beta"]["pearson_r_s_norm_vs_q_advantage_abs"]
+    rg = correlations["gamma_over_eta"]["pearson_r_s_norm_vs_q_advantage_abs"]
+    axes[1].text(0.03, 0.97, rf"Pearson $r_\beta$={rb:.2f}, $r_{{\gamma/\eta}}$={rg:.2f}",
+                 transform=axes[1].transAxes, ha="left", va="top", fontsize=7)
 
-    # (c) cancel_exact 按目标水平（pooled P vs 目标特异 Q）
-    lvls = ["0.9", "0.95", "0.99"]
-    qkeys = {"0.9": "Q90", "0.95": "Q95", "0.99": "Q99"}
-    p_ce = [me_exact[l]["pooled"]["P"]["mean_cancel_exact"] for l in lvls]
-    q_ce = [me_exact[l]["pooled"][qkeys[l]]["mean_cancel_exact"] for l in lvls]
-    xx = np.arange(3)
-    axes[2].plot(xx, p_ce, "o-", color=C_BLUE, label="P", ms=5)
-    axes[2].plot(xx, q_ce, "s-", color=C_ORANGE, label="Q (target-specific)", ms=5)
-    axes[2].set_xticks(xx)
-    axes[2].set_xticklabels(["$x_{0.90}$", "$x_{0.95}$", "$x_{0.99}$"])
-    axes[2].set_ylim(0, 1.0)
-    axes[2].set_ylabel("mean cancel_exact")
-    axes[2].set_title("(c) Exact cancellation by target level\n(identity: |C1|+|C2|+|C3| vs |ΣC|)",
-                      fontsize=9)
-    axes[2].legend(frameon=False, fontsize=8)
+    # (c) 200 个 (n,fold,seed) 配对单元的 x0.95 精确补偿指数。
+    p_vals = cells["p_mean_cancel_exact"].to_numpy(float)
+    q_vals = cells["q_mean_cancel_exact"].to_numpy(float)
+    for p_value, q_value in zip(p_vals, q_vals):
+        axes[2].plot([0, 1], [p_value, q_value], color=C_GREY,
+                     alpha=0.22, linewidth=0.7, zorder=1)
+    jitter = np.linspace(-0.055, 0.055, len(cells))
+    axes[2].scatter(jitter, p_vals, color=C_BLUE, marker="o", s=14,
+                    alpha=0.68, label="$P_{equal}$ cells", zorder=2)
+    axes[2].scatter(1 + jitter, q_vals, color=C_ORANGE, marker="s", s=14,
+                    alpha=0.68, label="$Q_{param}$ cells", zorder=2)
+    comp = core["exact_compensation_x_0.95"]
+    axes[2].scatter([0, 1], [comp["mean_cancel_exact_P"],
+                             comp["mean_cancel_exact_Q"]],
+                    color=[C_BLUE, C_ORANGE], edgecolor=C_BLACK,
+                    marker="D", s=55, linewidth=0.7, zorder=4, label="pooled mean")
+    axes[2].set_xticks([0, 1])
+    axes[2].set_xticklabels([r"$P_{equal}$", r"$Q_{param}$"])
+    axes[2].set_xlim(-0.25, 1.25)
+    axes[2].set_ylim(0.25, 1.0)
+    axes[2].set_ylabel(r"mean exact cancellation index at $x_{0.95}$")
+    axes[2].set_title("(c) Q reaches stronger exact parameter-error\n"
+                      "compensation in every paired cell", fontsize=9)
+    axes[2].text(
+        0.5, 0.30,
+        f"{comp['n_cell_pairs_Q_gt_P']}/{comp['n_cell_pairs']} cells; "
+        f"means {comp['mean_cancel_exact_P']:.3f} → {comp['mean_cancel_exact_Q']:.3f}",
+        ha="center", va="bottom", fontsize=7)
 
-    fig.suptitle("Fig 2 · Result-space error-compensation structure (not a training-cause test)",
+    for ax in axes:
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+    fig.suptitle("Fig 2 · Loss geometry and observed result-space mechanism for $x_{0.95}$",
                  fontsize=11, y=1.02)
     fig.tight_layout()
     _save(fig, "fig2_mechanism", out_dir)
@@ -343,6 +385,8 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Study02 S4 paper figures (read-only on sealed evidence)")
     p.add_argument("--root", default=".", help="Study02 root dir (contains artifacts/, code/)")
     p.add_argument("--out", default="figures/pq-paper", help="figure output dir (relative to root)")
+    p.add_argument("--figure", choices=["all", "fig2"], default="all",
+                   help="render all figures or only the current core-mechanism Fig2")
     a = p.parse_args(argv)
 
     if not HAS_MPL:
@@ -352,26 +396,32 @@ def main(argv=None) -> int:
     root = os.path.abspath(a.root)
     art = os.path.join(root, "artifacts")
 
-    s5b = _load_json(os.path.join(art, "pq_s5b_revision/analysis/summary_s5b.json"))
-    mech = _load_json(os.path.join(art, "pq_iid_main/analysis/mechanism_summary.json"))
-    sens = _load_json(os.path.join(art, "pq_s3_target/analysis/sensitivity_by_target.json"))
-    me_exact = _load_json(os.path.join(art, "pq_s3_target/analysis/mechanism_exact_by_target.json"))
-    target = _load_json(os.path.join(art, "pq_s3_target/analysis/target_summary.json"))
-    cross = _load_json(os.path.join(art, "pq_s3_target/analysis/cross_target_matrix.json"))
-    capacity = _load_json(os.path.join(art, "pq_s3_capacity/analysis/capacity_summary.json"))
-    interp = _load_json(os.path.join(art, "pq_s3_interp/analysis/interp_summary.json"))
-    ood = _load_json(os.path.join(art, "pq_v3/analysis/summary_v3.json"))
-
     out_dir = os.path.join(root, a.out)
-    fig1_main_effect(s5b, out_dir)
-    fig2_mechanism(mech, sens, me_exact, out_dir)
-    fig3_robustness(target, cross, capacity, out_dir)
-    fig4_boundary(s5b, interp, ood, out_dir)
+    core_dir = os.path.join(art, "pq_paper_core/analysis")
+    core = _load_json(os.path.join(core_dir, "mechanism_paper_core.json"))
+    sensitivity = pd.read_csv(os.path.join(core_dir, "mechanism_sensitivity_grid.csv"))
+    regions = pd.read_csv(os.path.join(core_dir, "mechanism_paper_regions.csv"))
+    cells = pd.read_csv(os.path.join(core_dir, "mechanism_paper_cells.csv"))
+    made = []
+    if a.figure == "all":
+        s5b = _load_json(os.path.join(art, "pq_s5b_revision/analysis/summary_s5b.json"))
+        target = _load_json(os.path.join(art, "pq_s3_target/analysis/target_summary.json"))
+        cross = _load_json(os.path.join(art, "pq_s3_target/analysis/cross_target_matrix.json"))
+        capacity = _load_json(os.path.join(art, "pq_s3_capacity/analysis/capacity_summary.json"))
+        interp = _load_json(os.path.join(art, "pq_s3_interp/analysis/interp_summary.json"))
+        ood = _load_json(os.path.join(art, "pq_v3/analysis/summary_v3.json"))
+        fig1_main_effect(s5b, out_dir)
+        made.append("fig1_main_effect")
+        fig3_robustness(target, cross, capacity, out_dir)
+        made.append("fig3_robustness")
+        fig4_boundary(s5b, interp, ood, out_dir)
+        made.append("fig4_boundary")
+    fig2_mechanism(core, sensitivity, regions, cells, out_dir)
+    made.append("fig2_mechanism")
 
-    made = sorted(f for f in os.listdir(out_dir) if f.endswith(".png"))
     print(f"figures written to {out_dir}: {len(made)} PNG (+ matching PDF)")
-    for f in made:
-        print("  ", f)
+    for name in made:
+        print("  ", f"{name}.png")
     return 0
 
 

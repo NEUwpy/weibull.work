@@ -55,6 +55,46 @@ def test_analytic_derivatives_match_finite_difference(beta, goe):
     assert db > 0 and de > 0 and dg > 0
 
 
+def test_q_gradient_uses_same_dimensionless_coordinates_as_p_equal():
+    """在 P 的 u 坐标中，目标相对误差对 u 的梯度恰为 s。"""
+    beta, goe, eta = 2.5, 0.5, ETA
+    gamma = goe * eta
+    x, *_, sb, se, sg = M.analytic_sensitivity(beta, eta, gamma)
+    expected = np.asarray([sb, se, sg])
+
+    def relative_target_error(u):
+        b = beta * (1.0 + u[0])
+        e = eta * (1.0 + u[1])
+        g = gamma + eta * u[2]
+        x_hat = g + e * (-np.log(R)) ** (1.0 / b)
+        return (x_hat - x) / x
+
+    h = 1e-6
+    got = []
+    for j in range(3):
+        up, down = np.zeros(3), np.zeros(3)
+        up[j], down[j] = h, -h
+        got.append((relative_target_error(up) - relative_target_error(down)) / (2 * h))
+    np.testing.assert_allclose(got, expected, rtol=1e-6, atol=1e-9)
+
+
+def test_sensitivity_grid_proves_fixed_weight_vector_cannot_match_exactly():
+    """冻结40点中目标敏感度的幅值和方向均变化。"""
+    grid = M.sensitivity_grid_table()
+    assert len(grid) == 40
+    assert grid["beta"].nunique() == 8
+    assert grid["gamma_over_eta"].nunique() == 5
+    vec = grid[["s_beta", "s_eta", "s_gamma"]].to_numpy(float)
+    unit = vec / np.linalg.norm(vec, axis=1, keepdims=True)
+    max_angle = np.degrees(np.max(np.arccos(np.clip(unit @ unit.T, -1.0, 1.0))))
+    norm_ratio = grid["s_norm"].max() / grid["s_norm"].min()
+    assert max_angle > 20.0
+    assert norm_ratio > 5.7
+    np.testing.assert_allclose(
+        grid[["l1_share_beta", "l1_share_eta", "l1_share_gamma"]].sum(axis=1),
+        1.0, atol=1e-12)
+
+
 # ----------------------------------------------------------------------
 # 合成 evidence 构造（由 u 反推 hat）
 # ----------------------------------------------------------------------
@@ -353,3 +393,47 @@ def test_design_pair_deltas_runs_and_finite():
     for m, d in out.items():
         assert d["ci_lo"] <= d["mean_delta"] <= d["ci_hi"]
         assert d["n_boot"] == 2000
+
+
+def test_paper_core_manifest_sha_and_full_evidence_audit():
+    """论文核心派生物绑定代码/协议/环境，且记录全量10-seed证据审计。"""
+    study_root = os.path.dirname(os.path.dirname(STUDY02_CODE_DIR))
+    analysis = os.path.join(study_root, "artifacts", "pq_paper_core", "analysis")
+    manifest_path = os.path.join(analysis, "manifest.json")
+    sha_path = os.path.join(analysis, "SHA256SUMS")
+    if not (os.path.isfile(manifest_path) and os.path.isfile(sha_path)):
+        pytest.skip("paper-core derived artifacts not generated")
+    with open(manifest_path, encoding="utf-8") as f:
+        manifest = json.load(f)
+    assert set(manifest["bound_sources"]) == {
+        "generation_code", "s5b_protocol_config", "environment_lock",
+        "iid_three_seed_manifest", "s5b_revision_manifest"}
+    expected_outputs = {
+        "mechanism_sensitivity_grid.csv", "mechanism_paper_regions.csv",
+        "mechanism_paper_cells.csv", "mechanism_paper_core.json"}
+    assert set(manifest["derived_outputs_sha256"]) == expected_outputs
+    for name, expected in manifest["derived_outputs_sha256"].items():
+        assert M.sha256_file(os.path.join(analysis, name)) == expected
+
+    audit = manifest["evidence_audit"]
+    assert audit["all_pass"] is True
+    assert audit["key_identity"]["pairs_checked"] == 200
+    assert audit["key_identity"]["mismatch_pairs"] == 0
+    assert audit["key_identity"]["all_pair_keys_identical"] is True
+    finite = audit["finite_prediction"]
+    support = audit["support_legality"]
+    for route in ("P", "Q"):
+        assert finite[f"rows_checked_{route}"] == 480000
+        assert finite[f"nonfinite_prediction_rows_{route}"] == 0
+        assert finite[f"nonfinite_mechanism_input_rows_{route}"] == 0
+        assert support[f"rows_checked_{route}"] == 480000
+        assert support[f"nonpositive_beta_or_eta_rows_{route}"] == 0
+        assert support[f"gamma_hat_ge_min_x_rows_{route}"] == 0
+
+    with open(sha_path, encoding="utf-8") as f:
+        entries = [line.strip().split("  ", 1) for line in f if line.strip()]
+    assert len(entries) == 10
+    for expected, relative in entries:
+        path = os.path.join(study_root, *relative.split("/"))
+        assert os.path.isfile(path), relative
+        assert M.sha256_file(path) == expected, relative
