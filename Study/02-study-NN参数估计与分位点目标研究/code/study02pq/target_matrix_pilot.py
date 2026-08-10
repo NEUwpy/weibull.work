@@ -182,6 +182,31 @@ def _matrix_evidence(n: int, fold_idx: int, seed: int) -> dict:
     return _load_npz(ART_ROOT / "evidence" / f"{fit}.npz")
 
 
+def _save_matrix_fit(fit: str, result: dict) -> None:
+    """沿用正式 schema，但以 float64 保存支持域审计所需的 gamma_hat/min_x。
+
+    通用 P/Q 证据为 float32；M95 可能逼近 decoder 上边界，float32 会把仍有约 1e-5
+    正间隙的两数舍入成相等。这里仅提高两个审计字段精度，不改变训练或预测数值。
+    """
+    RUN.save_fit(fit, result)
+    active_root = Path(CFG.ARTIFACT_DIR)
+    ev_path = active_root / "evidence" / f"{fit}.npz"
+    arrays = _load_npz(ev_path)
+    arrays["gamma_hat"] = np.asarray(result["predictions"]["gamma_hat"], dtype=np.float64)
+    arrays["min_x"] = np.asarray(result["predictions"]["min_x"], dtype=np.float64)
+    tmp_ev = ev_path.with_suffix(".tmp.npz")
+    np.savez_compressed(tmp_ev, **arrays)
+    os.replace(tmp_ev, ev_path)
+
+    meta_path = active_root / "fit_metadata" / f"{fit}.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["evidence_sha256"] = _raw_sha(ev_path)
+    meta["matrix_evidence_float64_fields"] = ["gamma_hat", "min_x"]
+    tmp_meta = meta_path.with_suffix(".tmp.json")
+    tmp_meta.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(tmp_meta, meta_path)
+
+
 def _fit_complete_verified(fit: str, implementation: dict[str, str]) -> bool:
     meta_path = ART_ROOT / "fit_metadata" / f"{fit}.json"
     ev_path = ART_ROOT / "evidence" / f"{fit}.npz"
@@ -261,7 +286,7 @@ def run_fits(resume: bool = True) -> None:
                         "matrix_config_sha256": _sha(CONFIG_PATH),
                         "matrix_implementation_sha256": implementation,
                     })
-                    RUN.save_fit(fit, result)
+                    _save_matrix_fit(fit, result)
                     done += 1
         msg = f"[matrix] completed={done} skipped={skipped} expected={len(SEEDS)*len(CFG.N_GRID)*len(FOLDS)}"
         print(msg, flush=True); log.write(msg + "\n")
@@ -281,7 +306,7 @@ def smoke() -> None:
             "matrix_config_sha256": _sha(CONFIG_PATH),
             "matrix_implementation_sha256": _implementation_shas(),
         })
-        RUN.save_fit(TR.fit_id(10, 0, 42, "M95"), result)
+        _save_matrix_fit(TR.fit_id(10, 0, 42, "M95"), result)
         meta = result["meta"]
         for route in ("P", "Q"):
             source = _source_meta(10, 0, 42, route)
@@ -289,6 +314,7 @@ def smoke() -> None:
         assert meta["n_nonfinite"] == meta["n_support_viol"] == 0
         saved = _load_npz(root / "evidence" / "n10_f1_s42_rM95.npz")
         assert len(saved["rel_err_sq"]) == meta["n_test"]
+        assert saved["gamma_hat"].dtype == saved["min_x"].dtype == np.float64
     print("target-matrix production smoke: PASS")
 
 
