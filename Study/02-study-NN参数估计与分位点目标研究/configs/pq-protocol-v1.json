@@ -1,0 +1,74 @@
+{
+  "protocol_id": "study02-pq-controlled-v1",
+  "frozen_at": "2026-08-05",
+  "baseline_sha": "d0278d98af30397f311842cb82bb2a9a7a54f357",
+  "study01_alignment": {
+    "config_path": "Study/01-study-MDM最小偏移量优化研究/code/dim_raw_config.py",
+    "sample_contract_path": "python/studies/common/sample.py",
+    "split_contract_path": "Study/01-study-MDM最小偏移量优化研究/code/run_E6b_dimensional_raw_specialist.py",
+    "split_report_path": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E6_dimensional_raw/specialist/split_report.csv",
+    "shared_data_manifest": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/manifest.json",
+    "shared_data_sha_list": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/data_sha256sums.txt",
+    "seed_namespace": "study01_nrmc_v1"
+  },
+  "design": {
+    "beta_grid": [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
+    "eta": 1000.0,
+    "gamma_grid": [100.0, 250.0, 500.0, 750.0, 1000.0],
+    "n_grid": [7, 10, 15, 20],
+    "repeats_per_combo": 300,
+    "n_combos": 160,
+    "n_samples": 48000,
+    "must_include_combo": {"beta": 2.0, "eta": 1000.0, "gamma": 1000.0}
+  },
+  "split": {
+    "type": "per-n gamma/eta-level holdout (Study01 sealed combo_fold)",
+    "rule": "combo_idx % 5 == fold_idx; combos enumerated product(beta, gamma_over_eta, n)",
+    "n_folds": 5,
+    "test_samples_per_n_fold": 2400,
+    "train_samples_per_n_fold": 9600
+  },
+  "validation": {
+    "fraction": 0.15,
+    "n_val_rows_per_n_fold": 1440,
+    "n_train_rows_per_n_fold": 8160,
+    "salt": "pq_val|{n}|{fold}"
+  },
+  "routes": ["P", "Q"],
+  "training": {
+    "framework": "pytorch",
+    "hidden_layers": [256, 128, 64],
+    "activation": "relu",
+    "optimizer": "adam",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 256,
+    "max_epochs": 300,
+    "early_stopping": true,
+    "validation_fraction": 0.15,
+    "patience": 20,
+    "losses": {
+      "P": "relative parameter precision squared error (beta,eta,gamma/eta)",
+      "Q": "relative x0.95 squared error through Weibull formula"
+    },
+    "param_transform": "beta=softplus(o1)+1e-6; eta=softplus(o2)+1e-6; gamma=o3",
+    "x0p95": "gamma + eta * (-ln(0.95))^(1/beta)"
+  },
+  "seeds": [42, 2026, 3407],
+  "execution": {
+    "n_fits": 120,
+    "n_fits_seed42": 40,
+    "per_seed": 40,
+    "order": ["smoke", "freeze", "seed42", "provisional", "seed2026", "seed3407", "final"]
+  },
+  "evaluation": {
+    "primary": "held-out x0.95 relative RMSE",
+    "paired_bootstrap_samples": 2000,
+    "ci_level": 0.95,
+    "report_by": ["n", "seed", "fold", "pooled"]
+  },
+  "engineering": {
+    "dedicated_entry": "Study/02-study-NN参数估计与分位点目标研究/code/study02pq/",
+    "no_d_training": true
+  }
+}

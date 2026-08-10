@@ -1,0 +1,23 @@
+{
+  "protocol_id": "study02-pq-data-scale-pilot-v1",
+  "status": "screening-only",
+  "purpose": "Test whether more independent training repeats improve Q_param without changing the Study01 parameter domain, network, validation rows, or test rows.",
+  "baseline_train_repeats_per_combo": 180,
+  "train_repeats_per_combo": [180, 360, 720],
+  "base_repeat_block": [0, 300],
+  "max_repeat_id_exclusive": 1200,
+  "fixed_validation": "repeat_id < 300 and repeat_id % 5 == (fold_idx+1)%5; 60 per combo",
+  "fixed_test": "repeat_id < 300 and repeat_id % 5 == fold_idx; 60 per combo",
+  "expanded_train": "same three training residue classes; repeat_id range expanded only for training",
+  "n_grid": [7, 10, 15, 20],
+  "folds_1based": [1, 3],
+  "seed": 42,
+  "routes": ["P", "Q"],
+  "network": [256, 128, 64],
+  "new_fits": 32,
+  "baseline_source": "artifacts/pq_iid_main/evidence",
+  "artifact_namespace": "artifacts/pq_data_scale_pilot",
+  "sha256_rule": "text files LF-normalized; NPZ binary raw",
+  "interpretation": "Descriptive screening only. No formal significance claim and no paper-main replacement.",
+  "stop_rule": "If Q test rRMSE does not improve clearly and monotonically, stop. If it does, confirm only the smallest useful level in a separate frozen run."
+}

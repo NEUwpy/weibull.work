@@ -1,0 +1,147 @@
+"""Study/02 P-Q r4 损失与参数合法化（P、Q 共用同一输出变换）。
+
+r4（Codex 合同决策 000003）授权共享有界 domain-explicit 解码器：
+  beta_hat  = softplus(o1) + eps
+  eta_hat   = softplus(o2) + eps
+  s         = delta + (1 - 2*delta) * sigmoid(o3)
+  gamma_hat = gamma_lower + (min(X) - gamma_lower) * s，gamma_lower = 0.0
+即 gamma_hat = min(X) * s，s ∈ (delta, 1-delta)。
+结构性支撑合法：gamma_hat <= (1-delta)*min(X) < min(X)（严格，非事后 clipping）。
+依赖冻结正位置域：真 gamma ∈ [100,1000]，所有样本 min(X) > gamma，故每个真 gamma 都在
+(0, min(X)) 内可表示；不声称对负位置问题成立。
+P 损失 = approved direct 形式（((β̂-β)/β)² + ((η̂-η)/η)² + ((γ̂-γ)/η)²）。
+Q 损失 = x0.95 相对平方误差（梯度经 Weibull 公式传播）。
+不加 log-gap / 辅助 γ 损失 / 直通梯度 / route 特定初始化或解码器。
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+
+from . import config as CFG
+
+GAMMA_LOWER = 0.0
+DELTA = 1e-7  # s 的下/上余量，保证 float64 下 gamma_hat 与 0 和 min(X) 严格分离
+
+
+def decode_params(o: torch.Tensor, min_X: torch.Tensor):
+    """o: (..., 3) 原始输出；min_X: (...,) 逐样本 min(X) → 合法三参数。
+
+    gamma_hat = min(X)*s，s = delta + (1-2*delta)*sigmoid(o3) ∈ (delta, 1-delta)，
+    故 gamma_hat ∈ (delta*min(X), (1-delta)*min(X))，严格 (0, min(X)) 内。
+    """
+    eps = CFG.EPS_PARAM
+    beta_hat = F.softplus(o[..., 0]) + eps
+    eta_hat = F.softplus(o[..., 1]) + eps
+    s = DELTA + (1.0 - 2.0 * DELTA) * torch.sigmoid(o[..., 2])
+    gamma_hat = GAMMA_LOWER + (min_X - GAMMA_LOWER) * s
+    return beta_hat, eta_hat, gamma_hat
+
+
+def weibull_quantile(beta_hat: torch.Tensor, eta_hat: torch.Tensor,
+                     gamma_hat: torch.Tensor, R: float = CFG.X0_95_R) -> torch.Tensor:
+    """x_R = gamma + eta * (-ln(R))^(1/beta)。可微。"""
+    lnR = torch.tensor(-np.log(R), dtype=torch.float64, device=beta_hat.device)
+    return gamma_hat + eta_hat * lnR ** (1.0 / beta_hat)
+
+
+def loss_p(beta_hat: torch.Tensor, eta_hat: torch.Tensor, gamma_hat: torch.Tensor,
+           beta: torch.Tensor, eta: torch.Tensor, gamma: torch.Tensor,
+           min_X: torch.Tensor) -> torch.Tensor:
+    """direct-P（任务 r4 恢复 approved 形式）：
+    rel_b = ((beta_hat-beta)/beta)^2；rel_e = ((eta_hat-eta)/eta)^2；
+    rel_g = ((gamma_hat-gamma)/eta)^2（γ 误差以 η 归一，与 Study01 J1 同形）。
+    """
+    rel_b = (beta_hat - beta) / beta
+    rel_e = (eta_hat - eta) / eta
+    rel_g = (gamma_hat - gamma) / eta
+    return (rel_b ** 2 + rel_e ** 2 + rel_g ** 2).mean()
+
+
+def loss_q(x95_hat: torch.Tensor, x95: torch.Tensor) -> torch.Tensor:
+    return (((x95_hat - x95) / x95) ** 2).mean()
+
+
+def relative_target_sensitivity_at_truth(
+        beta: torch.Tensor, eta: torch.Tensor, gamma: torch.Tensor,
+        R: float = CFG.X0_95_R) -> torch.Tensor:
+    """返回 P_equal 无量纲坐标中的真值点目标敏感度 ``s_R``。
+
+    坐标为 ``u=((beta_hat-beta)/beta, (eta_hat-eta)/eta,
+    (gamma_hat-gamma)/eta)``，目标为相对可靠度寿命误差
+    ``e=(x_R_hat-x_R)/x_R``。输出末维顺序为 beta/eta/gamma。
+    """
+    a = torch.as_tensor(-np.log(float(R)), dtype=beta.dtype, device=beta.device)
+    t = a ** (1.0 / beta)
+    x_r = gamma + eta * t
+    s_beta = -(eta * t * torch.log(a)) / (beta * x_r)
+    s_eta = eta * t / x_r
+    s_gamma = eta / x_r
+    return torch.stack((s_beta, s_eta, s_gamma), dim=-1)
+
+
+def target_matrix_truth_loss(
+        beta_hat: torch.Tensor, eta_hat: torch.Tensor, gamma_hat: torch.Tensor,
+        beta: torch.Tensor, eta: torch.Tensor, gamma: torch.Tensor,
+        R: float = CFG.X0_95_R) -> torch.Tensor:
+    """真值点完整敏感度矩阵损失 ``u^T(s s^T)u = (s^T u)^2``。
+
+    这是 Q 在真值点的局部二次代理。矩阵按训练行的真参数解析计算，跨参数点变化；
+    它不是全域固定矩阵，也不是动态精确 Q 的另一个实现。
+    """
+    u = torch.stack(((beta_hat - beta) / beta,
+                     (eta_hat - eta) / eta,
+                     (gamma_hat - gamma) / eta), dim=-1)
+    s = relative_target_sensitivity_at_truth(beta, eta, gamma, R)
+    projected = torch.sum(s * u, dim=-1)
+    return torch.mean(projected ** 2)
+
+
+def compute_x_hat_from_outputs(o: torch.Tensor, min_X: torch.Tensor,
+                               R: float = CFG.X0_95_R) -> torch.Tensor:
+    """解码输出并计算 x_R_hat（R=可靠度水平；供评测与 Q 损失共用）。"""
+    b, e, g = decode_params(o, min_X)
+    return weibull_quantile(b, e, g, R)
+
+
+compute_x95_hat_from_outputs = compute_x_hat_from_outputs  # 别名（R=0.95 默认，S1 兼容）
+
+
+def build_route_loss(route: str, target_R: float | None = None):
+    """返回 (loss_fn, target_kind)。loss_fn(model_out, targets, min_X)。
+
+    route: 'P'（参数精度）或 'Q'（目标可靠度寿命点；'Q90'/'Q99' 等目标特异 Q 路由
+    也识别为 Q）。target_R 提供时 Q 使用该可靠度水平 R；缺省用 CFG.X0_95_R（S1 兼容）。
+    """
+    route = route.upper()
+    if route == "P":
+
+        def loss_fn(model_out, targets, min_X):
+            b, e, g = decode_params(model_out, min_X)
+            beta, eta, gamma = targets[..., 0], targets[..., 1], targets[..., 2]
+            return loss_p(b, e, g, beta, eta, gamma, min_X)
+        return loss_fn, "params"
+
+    if route == "M95":
+        if target_R is not None and not np.isclose(float(target_R), CFG.X0_95_R):
+            raise ValueError("M95 is frozen to reliability R=0.95")
+        R = float(target_R) if target_R is not None else CFG.X0_95_R
+
+        def loss_fn(model_out, targets, min_X):
+            b_hat, e_hat, g_hat = decode_params(model_out, min_X)
+            beta, eta, gamma = targets[..., 0], targets[..., 1], targets[..., 2]
+            return target_matrix_truth_loss(
+                b_hat, e_hat, g_hat, beta, eta, gamma, R)
+        return loss_fn, "params"
+
+    if route.startswith("Q"):
+        R = float(target_R) if target_R is not None else CFG.X0_95_R
+
+        def loss_fn(model_out, targets, min_X):
+            xr_hat = compute_x_hat_from_outputs(model_out, min_X, R)
+            return loss_q(xr_hat, targets)
+        return loss_fn, "x_R"
+
+    raise ValueError(f"unknown route {route!r}")

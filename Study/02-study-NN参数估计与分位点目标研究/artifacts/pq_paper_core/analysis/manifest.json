@@ -1,0 +1,71 @@
+{
+ "schema_version": 1,
+ "analysis": "Study02 x_0.95 paper-core mechanism derivation",
+ "protocol": "iid-v1 + study02-pq-s5b-revision-v1 grid extension",
+ "generation_command": "PQ_PROTOCOL=iid-v1 python -m study02pq.mechanism --paper-core-only",
+ "sha256_rule": "text files canonicalized to LF before SHA256",
+ "bound_sources": {
+  "generation_code": {
+   "path": "code/study02pq/mechanism.py",
+   "sha256": "08e2f7ee1b3e1d4d642e263e1470e6ff64d00bca272d6282734ae8b8ea357c17"
+  },
+  "s5b_protocol_config": {
+   "path": "configs/pq-s5b-revision-v1.json",
+   "sha256": "170e702bae1e83abe56c71157e91eefd1da0ff67c0a1873745d98543751cb0e2"
+  },
+  "environment_lock": {
+   "path": "configs/pq-environment-v2.json",
+   "sha256": "9483e2ad5c155fd9c9850d13c7d4d39c304691aafbc27e72208b75c44b72646a"
+  },
+  "iid_three_seed_manifest": {
+   "path": "artifacts/pq_iid_main/manifest.json",
+   "sha256": "3f9d9b1ec8f9c3979ac6449fc72a05347f1da545a57bfd6ec02c26191e21c01f"
+  },
+  "s5b_revision_manifest": {
+   "path": "artifacts/pq_s5b_revision/manifest.json",
+   "sha256": "6122752b3537de28afc2f4d15a178f6c2a32ccaf453e5d19f0433bffb9b028e3"
+  }
+ },
+ "derived_outputs_sha256": {
+  "mechanism_sensitivity_grid.csv": "90356e0447bcafef32b1487e1d951900aa7006d38dd646abc4aecf84603252c0",
+  "mechanism_paper_regions.csv": "f0d775882408d2643d44ba06c4f6cdb33dcd6b2293808ba12b2cf313e3a5280b",
+  "mechanism_paper_cells.csv": "a37f93f88f0fe6ebe36d325091e067ed3a828ef5b469728e209461812f073315",
+  "mechanism_paper_core.json": "97afea96cd3f77fa8723b0e776aa66726596bbd257c9de0f0801a73fbc977f66"
+ },
+ "evidence_audit": {
+  "key_identity": {
+   "pairs_checked": 200,
+   "mismatch_pairs": 0,
+   "fields": [
+    "beta",
+    "gamma_over_eta",
+    "n",
+    "point_or_repeat_id"
+   ],
+   "comparison": "exact array equality between paired P and Q evidence",
+   "all_pair_keys_identical": true
+  },
+  "finite_prediction": {
+   "rows_checked_P": 480000,
+   "rows_checked_Q": 480000,
+   "nonfinite_prediction_rows_P": 0,
+   "nonfinite_prediction_rows_Q": 0,
+   "nonfinite_mechanism_input_rows_P": 0,
+   "nonfinite_mechanism_input_rows_Q": 0
+  },
+  "support_legality": {
+   "rule": "beta_hat>0, eta_hat>0, gamma_hat<min_x",
+   "rows_checked_P": 480000,
+   "rows_checked_Q": 480000,
+   "nonpositive_beta_or_eta_rows_P": 0,
+   "nonpositive_beta_or_eta_rows_Q": 0,
+   "gamma_hat_ge_min_x_rows_P": 0,
+   "gamma_hat_ge_min_x_rows_Q": 0
+  },
+  "all_pass": true
+ },
+ "immutability": {
+  "sealed_inputs_modified": false,
+  "training_or_retraining": false
+ }
+}

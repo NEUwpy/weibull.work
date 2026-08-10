@@ -1,0 +1,66 @@
+{
+ "protocol": "pq-iid-protocol-v1.json",
+ "protocol_version": "iid-v1",
+ "run_label": "aggregate_5a90f1f",
+ "git_full_sha": "5a90f1f7ff50f20304fc997002195785752e52fe",
+ "git_head_short": "5a90f1f",
+ "run_code_sha": "34f93b170e8268a75cfd96fad06e4ad5831d0b91",
+ "config_sha256": "ad1940c9264d0199046d24153cec57fe9a07bfbc618f2d8939f380d06fd17bf0",
+ "protocol_sha256": "1ec5b0ed2461ad2c14f7713c591284bbf856529313507d970251f9288ce902e3",
+ "env_lock": "configs/pq-environment-v2.json",
+ "env_lock_sha256": "9483e2ad5c155fd9c9850d13c7d4d39c304691aafbc27e72208b75c44b72646a",
+ "study01_input_shas": {
+  "config_path": "33baacb643da791c1658fc27d024207ecf3d0615f6cac38f76406895e67e4b14",
+  "sample_contract_path": "3e57ddcf8c3a9f3ea786adb79261221ea79668784f2be95a5dba524652bafac4",
+  "split_contract_path": "9ec5b97f4749ca55fe41770f91fc37cbd65276e0af2fde5e29a1f9f27238012e",
+  "split_report_path": "e1a542b20ec7dace50d02037122b5f5c6b90916da46c16b1edb61e2a16a5911c",
+  "shared_data_manifest": "8b574d70d3cf76ac58454a6638654db37d2fbf85b51d3a54ce034e78fb84ee17",
+  "shared_data_sha_list": "000c82a89e9e50c3440c3b92b703d3cf90cb150858deae1f420e8cc7d819ff8e"
+ },
+ "main_sample_bytes_sha": "b49540faecd9550f78e5b719a6c72028c74b714bd2967197170fa9f8862859fd",
+ "analysis_sha256": {
+  "by_n_seed_descriptive.csv": "70c92d5c3f678547d63a5cf2c4f697b5480b226719222dcb8313f0dc80f015ea",
+  "by_region.csv": "247ccdeb57fd6c0b403e2442675df0225093348efcea185331453f3f4ec5ef25",
+  "failure_counts.json": "cfa1f4152f481228d64252569784c8372e7076a5bf3c1c47ec50129283cd66e9",
+  "mechanism_by_region.csv": "30a6dc32f9142297b3fdf42726ed93e678c3e4488fcbc2c305f7d84c84a3436a",
+  "mechanism_cell_pairs.csv": "9e6653f40e47eb54eb640fd4e8f42d0ff212ee8ecc04c14b98bc0ec5bdad6736",
+  "mechanism_summary.json": "8c79b0ec51e5ee7613a1b64c058543f63d682c456bb907dceef6c4ddee0f4afa",
+  "summary_iid.json": "ba96b69824c85ac219140c62b8c8b69da45c5fdb00d8c9ed9b13583515249297"
+ },
+ "run_all_seeds_log_sha256": "62391e4904469bde6a68acad67cc6dd38380f9610d53c3911f10dbf2e7cfd244",
+ "sha256_rule": "text files hashed with LF normalization (matches git stored bytes; clean clone / autocrlf=false / git archive reproducible); .npz binary raw",
+ "created_at": "2026-08-06T16:51:36.816567+00:00",
+ "seeds": [
+  42,
+  2026,
+  3407
+ ],
+ "n_fits_expected": 120,
+ "data_integrity": {
+  "n_samples": 48000,
+  "n_combos": 160,
+  "repeats_ok": true
+ },
+ "output_files": [
+  "per_fit_metrics.csv",
+  "pairing_report.csv",
+  "splits_manifest.json",
+  "SHA256SUMS",
+  "analysis/<summary_iid.json, by_n_seed_descriptive.csv, by_region.csv, failure_counts.json, mechanism_summary.json, mechanism_by_region.csv, mechanism_cell_pairs.csv>",
+  "run_all_seeds.log",
+  "evidence/<fit_id>.npz",
+  "fit_metadata/<fit_id>.json"
+ ],
+ "s2_analysis_provenance": {
+  "baseline_tip": "928497b90c7d11da7aa77b913c4efa0fa3f502ee",
+  "no_training": true,
+  "analysis_code_commit": "d9d3d293f2e4f26521c5ce65020d4b1ac137034c",
+  "evidence_reused_as_is": true,
+  "analysis_files": {
+   "mechanism_summary.json": "8c79b0ec51e5ee7613a1b64c058543f63d682c456bb907dceef6c4ddee0f4afa",
+   "mechanism_by_region.csv": "30a6dc32f9142297b3fdf42726ed93e678c3e4488fcbc2c305f7d84c84a3436a",
+   "mechanism_cell_pairs.csv": "9e6653f40e47eb54eb640fd4e8f42d0ff212ee8ecc04c14b98bc0ec5bdad6736"
+  },
+  "note": "S2 mechanism analysis (R1 revision) reuses S1 sealed evidence as-is; no retraining, no changes to 120 evidence NPZ or 120 fit metadata. Top-level run provenance fields remain the S1 execution provenance."
+ }
+}

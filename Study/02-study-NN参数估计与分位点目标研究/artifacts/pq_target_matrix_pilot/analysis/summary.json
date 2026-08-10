@@ -1,0 +1,186 @@
+{
+  "contract_id": "pq-target-matrix-pilot-v1",
+  "generated_at": "2026-08-10T13:16:40.824039+00:00",
+  "status": "COMPLETE / NOT PAPER EVIDENCE",
+  "target": {
+    "R": 0.95,
+    "name": "B5"
+  },
+  "design": {
+    "seeds": [
+      42,
+      2026,
+      3407
+    ],
+    "folds_1based": [
+      1,
+      3
+    ],
+    "n_grid": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "n_cells": 24,
+    "new_fits": 24
+  },
+  "rrmse": {
+    "P": 0.1676229422155081,
+    "M95": 0.2004922626895977,
+    "Q": 0.16218219274144582
+  },
+  "mean_cell_mse": {
+    "P": 0.028097450756983573,
+    "M95": 0.040197147398394646,
+    "Q": 0.02630306364242348
+  },
+  "relative_change_percent": {
+    "M95_vs_P": 19.609082169569845,
+    "Q_vs_P": -3.2458262587153897,
+    "M95_vs_Q": 23.62162534651788
+  },
+  "q_mse_gap_recovered_by_M95": -6.743080432996426,
+  "cell_directions": {
+    "M95_better_than_P": 0,
+    "M95_better_than_Q": 0,
+    "n_cells": 24
+  },
+  "by_n": [
+    {
+      "n": 7,
+      "rrmse_P": 0.2079301983353564,
+      "rrmse_M95": 0.23534173259891245,
+      "rrmse_Q": 0.20216011256947328,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    },
+    {
+      "n": 10,
+      "rrmse_P": 0.17572984906545805,
+      "rrmse_M95": 0.21961794606797905,
+      "rrmse_Q": 0.16959942603455863,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    },
+    {
+      "n": 15,
+      "rrmse_P": 0.15381466928841203,
+      "rrmse_M95": 0.18710593309926737,
+      "rrmse_Q": 0.14664159777211025,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    },
+    {
+      "n": 20,
+      "rrmse_P": 0.12089211433042862,
+      "rrmse_M95": 0.1488696948840003,
+      "rrmse_Q": 0.11864156079208799,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    }
+  ],
+  "by_seed": [
+    {
+      "seed": 42,
+      "rrmse_P": 0.16634024574162415,
+      "rrmse_M95": 0.2021861150747608,
+      "rrmse_Q": 0.16227552274151655,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    },
+    {
+      "seed": 2026,
+      "rrmse_P": 0.16848457410279608,
+      "rrmse_M95": 0.19798423774223622,
+      "rrmse_Q": 0.16224927546150103,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    },
+    {
+      "seed": 3407,
+      "rrmse_P": 0.1680363746543177,
+      "rrmse_M95": 0.20128203762826236,
+      "rrmse_Q": 0.16202165984354047,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    }
+  ],
+  "by_fold": [
+    {
+      "fold": 1,
+      "rrmse_P": 0.1659568746761561,
+      "rrmse_M95": 0.20003320810468234,
+      "rrmse_Q": 0.15902812243440756,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    },
+    {
+      "fold": 3,
+      "rrmse_P": 0.16927261226107954,
+      "rrmse_M95": 0.20095026860429463,
+      "rrmse_Q": 0.16527608284272124,
+      "M_better_than_P_cells": 0,
+      "M_better_than_Q_cells": 0
+    }
+  ],
+  "test_diagnostics": {
+    "P": {
+      "mean_P_equal_parameter_loss": 0.054467735989128706,
+      "mean_truth_matrix_loss": 0.027922133532605906
+    },
+    "M95": {
+      "mean_P_equal_parameter_loss": 1.0391605176985454,
+      "mean_truth_matrix_loss": 0.01816647983639952
+    },
+    "Q": {
+      "mean_P_equal_parameter_loss": 83.93504568037022,
+      "mean_truth_matrix_loss": 40.93093391208484
+    }
+  },
+  "analytic_sensitivity": {
+    "B10": {
+      "R": 0.9,
+      "n_grid_points": 40,
+      "s_norm_min": 0.7451150555386485,
+      "s_norm_max": 3.336223533823787,
+      "s_beta_over_s_gamma_range": [
+        0.2869584295687082,
+        0.36591866270508794
+      ],
+      "s_eta_over_s_gamma_range": [
+        0.22307552563691707,
+        0.6375813096953713
+      ]
+    },
+    "B5": {
+      "R": 0.95,
+      "n_grid_points": 40,
+      "s_norm_min": 0.7656955786079788,
+      "s_norm_max": 4.393343883613805,
+      "s_beta_over_s_gamma_range": [
+        0.27335947736648586,
+        0.36786116515033795
+      ],
+      "s_eta_over_s_gamma_range": [
+        0.13805126655628425,
+        0.5520928447661602
+      ]
+    },
+    "B1": {
+      "R": 0.99,
+      "n_grid_points": 40,
+      "s_norm_min": 0.8131552734416956,
+      "s_norm_max": 6.899163369362662,
+      "s_beta_over_s_gamma_range": [
+        0.1428239514757534,
+        0.3677896759547567
+      ],
+      "s_eta_over_s_gamma_range": [
+        0.046571516847019705,
+        0.3985071473196206
+      ]
+    }
+  },
+  "inference_boundary": "descriptive 3-seed x 2-fold pilot; no bootstrap CI or significance claim"
+}

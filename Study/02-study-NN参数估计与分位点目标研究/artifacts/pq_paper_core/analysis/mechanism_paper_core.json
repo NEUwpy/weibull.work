@@ -1,0 +1,254 @@
+{
+ "protocol": "iid-v1",
+ "stage": "paper-core mechanism derivation (analysis only; no training)",
+ "target": {
+  "R": 0.95,
+  "label": "x_0.95"
+ },
+ "sensitivity_coordinate": "u=((beta_hat-beta)/beta,(eta_hat-eta)/eta,(gamma_hat-gamma)/eta); local relative target error = s.u",
+ "sensitivity_formula": {
+  "s_beta": "(dx_R/dbeta)*beta/x_R",
+  "s_eta": "(dx_R/deta)*eta/x_R",
+  "s_gamma": "(dx_R/dgamma)*eta/x_R",
+  "q_gradient": "for L_Q=mean(e_i^2), per-sample contribution dL_Q/du_ij=(2/m)*e_i*s_ij at truth; e_i=(xhat_R-x_R)/x_R",
+  "p_gradient": "for L_P=mean(sum_j u_ij^2), per-sample contribution dL_P/du_ij=(2/m)*u_ij",
+  "local_curvature": "around truth: H_Q=(2/m)*s_i*s_i^T whereas H_P=(2/m)*I; Q includes target-induced cross-parameter terms"
+ },
+ "pooled_frozen_grid": {
+  "p_rrmse": 0.1660586852824852,
+  "q_rrmse": 0.16107521485820003,
+  "q_relative_improvement": 0.030010296756280558
+ },
+ "sensitivity_grid": {
+  "n_points": 40,
+  "n_beta": 8,
+  "n_gamma_over_eta": 5,
+  "component_ranges": {
+   "s_beta": {
+    "min": 0.21130482626529717,
+    "max": 1.1483218775559567,
+    "max_over_min": 5.434432794801464
+   },
+   "s_eta": {
+    "min": 0.1213049628019167,
+    "max": 0.846647604244362,
+    "max_over_min": 6.979496837461496
+   },
+   "s_gamma": {
+    "min": 0.6442913536855206,
+    "max": 4.200775801222475,
+    "max_over_min": 6.519994063544238
+   },
+   "s_norm": {
+    "min": 0.7656955786079788,
+    "max": 4.393343883613805,
+    "max_over_min": 5.7377161451040735
+   }
+  },
+  "max_pairwise_direction_angle_degrees": 20.278962820874693,
+  "n_distinct_directions": 8,
+  "fixed_weight_implication": "Even at one grid point a diagonal weighted-parameter loss lacks Q's cross-parameter curvature s*s^T; additionally, both sensitivity magnitude and direction vary on the frozen grid. Therefore no single fixed diagonal parameter-weight vector exactly reproduces local Q geometry over all grid points. This is an algebraic loss-geometry statement, not an empirical training-cause estimate."
+ },
+ "regional_association_exploratory": {
+  "definition": "Q advantage = P rRMSE - Q rRMSE within each region",
+  "correlations": {
+   "beta": {
+    "pearson_r_s_norm_vs_q_advantage_abs": 0.9461766362727803,
+    "pearson_r_s_norm_vs_q_advantage_relative": 0.9488470753777709,
+    "n_regions": 8
+   },
+   "gamma_over_eta": {
+    "pearson_r_s_norm_vs_q_advantage_abs": 0.8602058799864292,
+    "pearson_r_s_norm_vs_q_advantage_relative": 0.8683431454379148,
+    "n_regions": 5
+   }
+  },
+  "records": [
+   {
+    "region": "beta",
+    "value": 1.5,
+    "n_rows": 60000,
+    "mean_s_norm": 2.1648456848045905,
+    "p_rms_actual": 0.2802870037576269,
+    "q_rms_actual": 0.2542732152326698,
+    "q_advantage_abs": 0.02601378852495706,
+    "q_advantage_relative": 0.09281125480741881
+   },
+   {
+    "region": "beta",
+    "value": 2.0,
+    "n_rows": 60000,
+    "mean_s_norm": 1.8080311457282172,
+    "p_rms_actual": 0.21091120160811633,
+    "q_rms_actual": 0.20701220189377562,
+    "q_advantage_abs": 0.003898999714340712,
+    "q_advantage_relative": 0.01848645157114628
+   },
+   {
+    "region": "beta",
+    "value": 2.5,
+    "n_rows": 60000,
+    "mean_s_norm": 1.5997445883217858,
+    "p_rms_actual": 0.16975876088300243,
+    "q_rms_actual": 0.16797267159950907,
+    "q_advantage_abs": 0.0017860892834933584,
+    "q_advantage_relative": 0.010521337892683662
+   },
+   {
+    "region": "beta",
+    "value": 3.0,
+    "n_rows": 60000,
+    "mean_s_norm": 1.4664347281307741,
+    "p_rms_actual": 0.14633947253703314,
+    "q_rms_actual": 0.14390475531412503,
+    "q_advantage_abs": 0.0024347172229081115,
+    "q_advantage_relative": 0.01663746069804901
+   },
+   {
+    "region": "beta",
+    "value": 3.5,
+    "n_rows": 60000,
+    "mean_s_norm": 1.3751325869923172,
+    "p_rms_actual": 0.12006091010773434,
+    "q_rms_actual": 0.1214282002630992,
+    "q_advantage_abs": -0.001367290155364853,
+    "q_advantage_relative": -0.011388304104457826
+   },
+   {
+    "region": "beta",
+    "value": 4.0,
+    "n_rows": 60000,
+    "mean_s_norm": 1.3094141309756,
+    "p_rms_actual": 0.10692855788977008,
+    "q_rms_actual": 0.11117517817546456,
+    "q_advantage_abs": -0.004246620285694475,
+    "q_advantage_relative": -0.03971455679849537
+   },
+   {
+    "region": "beta",
+    "value": 4.5,
+    "n_rows": 60000,
+    "mean_s_norm": 1.2602811469289945,
+    "p_rms_actual": 0.10342227100890734,
+    "q_rms_actual": 0.10914304070205474,
+    "q_advantage_abs": -0.005720769693147401,
+    "q_advantage_relative": -0.055314678718036414
+   },
+   {
+    "region": "beta",
+    "value": 5.0,
+    "n_rows": 60000,
+    "mean_s_norm": 1.2224279735509913,
+    "p_rms_actual": 0.10383531834062802,
+    "q_rms_actual": 0.11005703345896074,
+    "q_advantage_abs": -0.006221715118332721,
+    "q_advantage_relative": -0.05991906431993215
+   },
+   {
+    "region": "gamma_over_eta",
+    "value": 0.1,
+    "n_rows": 96000,
+    "mean_s_norm": 2.593060633194446,
+    "p_rms_actual": 0.2620577871174168,
+    "q_rms_actual": 0.2352231811159683,
+    "q_advantage_abs": 0.02683460600144849,
+    "q_advantage_relative": 0.10239957490530538
+   },
+   {
+    "region": "gamma_over_eta",
+    "value": 0.25,
+    "n_rows": 96000,
+    "mean_s_norm": 1.8847313549071927,
+    "p_rms_actual": 0.18444091159072332,
+    "q_rms_actual": 0.17724166402721842,
+    "q_advantage_abs": 0.007199247563504901,
+    "q_advantage_relative": 0.03903281273885764
+   },
+   {
+    "region": "gamma_over_eta",
+    "value": 0.5,
+    "n_rows": 96000,
+    "mean_s_norm": 1.313399660560875,
+    "p_rms_actual": 0.13912754184447815,
+    "q_rms_actual": 0.15726656446962595,
+    "q_advantage_abs": -0.0181390226251478,
+    "q_advantage_relative": -0.13037693604494402
+   },
+   {
+    "region": "gamma_over_eta",
+    "value": 0.75,
+    "n_rows": 96000,
+    "mean_s_norm": 1.0125900569392978,
+    "p_rms_actual": 0.09931420642977515,
+    "q_rms_actual": 0.10722513991751194,
+    "q_advantage_abs": -0.00791093348773679,
+    "q_advantage_relative": -0.07965560791477092
+   },
+   {
+    "region": "gamma_over_eta",
+    "value": 1.0,
+    "n_rows": 96000,
+    "mean_s_norm": 0.8251632852939814,
+    "p_rms_actual": 0.07723287274846112,
+    "q_rms_actual": 0.08216793094763021,
+    "q_advantage_abs": -0.00493505819916909,
+    "q_advantage_relative": -0.06389841557806643
+   }
+  ],
+  "limit": "Unweighted Pearson association over 8 beta and 5 gamma/eta bins; descriptive, not a causal or necessary/sufficient-condition test."
+ },
+ "exact_compensation_x_0.95": {
+  "identity": "actual=C_beta+C_eta+C_gamma (up to float32 evidence storage)",
+  "mean_cancel_exact_P": 0.35117760720263125,
+  "mean_cancel_exact_Q": 0.9148673484814394,
+  "delta_Q_minus_P": 0.5636897412788081,
+  "n_cell_pairs_Q_gt_P": 200,
+  "n_cell_pairs": 200,
+  "identity_max_abs_err_P": 2.013532132139062e-07,
+  "identity_max_abs_err_Q": 2.2724766646220473e-07,
+  "limit": "The exact identity establishes the result-space compensation pattern; it does not by itself identify why optimization reached that solution."
+ },
+ "evidence": {
+  "source": "S5B frozen-grid P_equal/Q_param evidence only",
+  "n_training_seeds": 10,
+  "n_cell_pairs": 200,
+  "n_fits": 400,
+  "n_rows_per_route": 480000,
+  "existing_three_seed_dir": "artifacts/pq_iid_main/evidence",
+  "additional_seven_seed_dir": "artifacts/pq_s5b_revision/grid_extra/evidence",
+  "sealed_inputs_modified": false,
+  "training_or_retraining": false
+ },
+ "evidence_audit": {
+  "key_identity": {
+   "pairs_checked": 200,
+   "mismatch_pairs": 0,
+   "fields": [
+    "beta",
+    "gamma_over_eta",
+    "n",
+    "point_or_repeat_id"
+   ],
+   "comparison": "exact array equality between paired P and Q evidence",
+   "all_pair_keys_identical": true
+  },
+  "finite_prediction": {
+   "rows_checked_P": 480000,
+   "rows_checked_Q": 480000,
+   "nonfinite_prediction_rows_P": 0,
+   "nonfinite_prediction_rows_Q": 0,
+   "nonfinite_mechanism_input_rows_P": 0,
+   "nonfinite_mechanism_input_rows_Q": 0
+  },
+  "support_legality": {
+   "rule": "beta_hat>0, eta_hat>0, gamma_hat<min_x",
+   "rows_checked_P": 480000,
+   "rows_checked_Q": 480000,
+   "nonpositive_beta_or_eta_rows_P": 0,
+   "nonpositive_beta_or_eta_rows_Q": 0,
+   "gamma_hat_ge_min_x_rows_P": 0,
+   "gamma_hat_ge_min_x_rows_Q": 0
+  },
+  "all_pass": true
+ }
+}

@@ -1,0 +1,59 @@
+{
+  "status": "descriptive_pilot_not_formal_inference",
+  "design": {
+    "split": "repeat_stratified_same_parameter_support",
+    "fold": 1,
+    "train_validation_test_repeats_per_combo": [
+      180,
+      60,
+      60
+    ],
+    "n_grid": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "seeds": [
+      42,
+      2026,
+      3407
+    ],
+    "n_paired_units": 12
+  },
+  "pooled": {
+    "p_rrmse": 0.1659568746150633,
+    "q_rrmse": 0.1590281224010449,
+    "q_relative_change_vs_p": -0.04175031754538416,
+    "q_minus_p_mse": -0.00225174051759812
+  },
+  "unit_directions": {
+    "q_better": 12,
+    "p_better": 0,
+    "n_units": 12
+  },
+  "by_n": {
+    "7": {
+      "p_rrmse": 0.2024223263192618,
+      "q_rrmse": 0.19734941726210412
+    },
+    "10": {
+      "p_rrmse": 0.17840983216982312,
+      "q_rrmse": 0.1670447343765191
+    },
+    "15": {
+      "p_rrmse": 0.15146944756933933,
+      "q_rrmse": 0.14260226965774
+    },
+    "20": {
+      "p_rrmse": 0.12007862829693036,
+      "q_rrmse": 0.11821011703510909
+    }
+  },
+  "q_parameter_diagnostic": {
+    "beta_hat_median": 21.26300331779479,
+    "eta_hat_median": 66.02525679160945,
+    "gamma_hat_median": 782.1737334828309,
+    "corr_gamma_hat_min_x": 0.9777637007817251
+  }
+}

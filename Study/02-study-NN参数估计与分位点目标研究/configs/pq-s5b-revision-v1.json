@@ -1,0 +1,79 @@
+{
+  "protocol_id": "study02-pq-s5b-revision-v1",
+  "frozen_at": "2026-08-09",
+  "purpose": "Major-revision evidence added after simulated peer review; existing S1-S4 artifacts remain immutable.",
+  "target": {
+    "name": "x_R",
+    "reliability": 0.95,
+    "definition": "R(x_R)=0.95; x_R=gamma+eta*(-ln(0.95))^(1/beta)"
+  },
+  "study01_domain": {
+    "beta_bounds": [1.5, 5.0],
+    "eta": 1000.0,
+    "gamma_over_eta_bounds": [0.1, 1.0],
+    "n_grid": [7, 10, 15, 20]
+  },
+  "seeds": {
+    "all": [42, 2026, 3407, 17, 73, 314, 2718, 4099, 8128, 12011],
+    "existing": [42, 2026, 3407],
+    "new": [17, 73, 314, 2718, 4099, 8128, 12011],
+    "selection": "fixed before S5B outcomes; seven added seeds are not selected from results"
+  },
+  "grid_extension": {
+    "source_protocol": "pq-iid-protocol-v1.json",
+    "routes": ["P_equal", "Q_param"],
+    "new_fits": 280,
+    "reuse_existing_fits": 120,
+    "artifact_namespace": "artifacts/pq_s5b_revision/grid_extra"
+  },
+  "continuous_within_range": {
+    "parameter_design": "first 12000 points of a scrambled Sobol(2) design, linearly mapped to beta and gamma/eta bounds; the same parameter points are used for every n",
+    "sobol_seed": 2026080901,
+    "sample_namespace": "study02_s5b_continuous_v1",
+    "points_per_n": 12000,
+    "split": "point_id mod 5: test=fold, validation=(fold+1) mod 5, remaining train",
+    "n_folds": 5,
+    "rows_per_n_fold": {"train": 7200, "validation": 2400, "test": 2400},
+    "routes": ["P_equal", "Q_param", "Q_direct"],
+    "fits": 600,
+    "artifact_namespace": "artifacts/pq_s5b_revision/continuous"
+  },
+  "training": {
+    "shared_trunk": [256, 128, 64],
+    "activation": "relu",
+    "optimizer": "adam",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 256,
+    "max_epochs": 300,
+    "patience": 20,
+    "input_scaler": "per-position mean/sd fit on training rows only",
+    "P_equal": "three-output legal parameterization; equal-weight direct parameter loss",
+    "Q_param": "same three-output model and decoder as P_equal; relative squared x_R loss",
+    "Q_direct": "same hidden trunk and budget; one scalar head; predicts x_R=min(X)+sample_SD*o; relative squared x_R loss",
+    "route_specific_validation": "checkpoint selection uses each route's own validation loss and is part of the intervention"
+  },
+  "classical_reference": {
+    "method": "Study01 MDM-Default (delta=0.1)",
+    "contract": "same frozen 48000 grid samples",
+    "source": "../01-study-MDM最小偏移量优化研究/artifacts/formal/E6_dimensional_raw/quantiles/summary.csv",
+    "reported_xR_rrmse": 0.21423488318695358,
+    "role": "descriptive external reference; not pooled with neural paired bootstrap"
+  },
+  "inference": {
+    "primary_contract": "frozen-grid P_equal versus Q_param",
+    "primary_effect": "relative rRMSE improvement (rRMSE_P-rRMSE_Q)/rRMSE_P",
+    "secondary_effect": "mean paired squared-relative-error difference Q-P",
+    "bootstrap": "crossed paired resampling: fold within n and global training seed, keeping routes paired",
+    "replicates": 200000,
+    "seed": 2026080902,
+    "multiplicity": "pooled P_equal-Q_param contrast is confirmatory; by-n, region, continuous and Q_direct comparisons are exploratory",
+    "separate_contracts": ["frozen_grid_iid", "continuous_within_range", "midpoint", "gamma_holdout_ood"]
+  },
+  "execution": {
+    "new_fits": 880,
+    "resume": "a fit is skipped only when metadata and compressed evidence both exist and validate",
+    "no_retraining": ["existing 120 iid fits", "S3 midpoint fits", "v3 gamma-holdout fits"],
+    "stop_on": ["nonfinite loss", "nonfinite prediction", "support violation", "sample or pairing identity mismatch"]
+  }
+}
