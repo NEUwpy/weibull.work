@@ -1,0 +1,73 @@
+{
+  "run_id": "risk_landscape_v1",
+  "created_at": "2026-08-10T14:42:06.021593+00:00",
+  "status": "complete",
+  "question": "Is there stable, material conditional method-selection opportunity?",
+  "design": {
+    "beta": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0
+    ],
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "repeats": 300,
+    "samples": 48000,
+    "folds": 5,
+    "seed_namespace": "study01_nrmc_v1",
+    "unit_scale": 1000.0
+  },
+  "primary_methods": [
+    "MDM-0.1",
+    "WMLE",
+    "LSE"
+  ],
+  "diagnostic_methods": [
+    "MLE",
+    "LRE"
+  ],
+  "failure_loss": 3.0,
+  "decision": {
+    "decision": "CONTINUE_TO_OBSERVABLE_SELECTION_RESEARCH",
+    "criteria": {
+      "primary_failure_gate": true,
+      "cell_relative_J1_at_least_3pct": true,
+      "cell_bootstrap_ci_lower_positive": true,
+      "positive_in_at_least_3_of_4_n": true,
+      "at_least_two_methods_with_5_stable_cells": true
+    },
+    "cell_relative_J1_improvement": 0.06070402645990569,
+    "cell_bootstrap_ci95": [
+      0.0484772492566272,
+      0.07297085454315298
+    ],
+    "positive_n_groups": 4,
+    "stable_region_counts": {
+      "WMLE": 78,
+      "MDM-0.1": 72,
+      "LSE": 5
+    },
+    "methods_with_replicated_regions": [
+      "LSE",
+      "MDM-0.1",
+      "WMLE"
+    ]
+  },
+  "elapsed_seconds": 0.3664553165435791
+}

@@ -12,7 +12,7 @@
 
 ## 当前状态快照
 
-> **快照日期**: 2026-08-06 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+> **快照日期**: 2026-08-10 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
 
 | 层级 | 技术 |
 |------|------|
@@ -31,11 +31,13 @@
 
 当前第一轮方法建设已闭环：MLE、WMLE、MDM、LSE、MM、LRE 均完成第一层并在计算器开放，其中 MDM 已达到第二层完成；其余 16 个方法继续保持未开放状态。
 
-**Study/02 当前态**：前置研究 A 已完成，19/19 问有证据覆盖（17 answered + A4/A8 partial），正式成果见 Study/02 `06-A-前置研究报告.md`。主研究 B 的 B1–B6 已全部完成并 APPROVE（分支 `codex/study02-quantile-formal-20260731`；B6 实现/证据 tip `2e0e842d`，最终报告/文档 tip `b5c5404`）；正式结论见 Study/02 `05-B-正式实验报告.md`，证据哈希见 `04-B-证据索引.md`。核心结果：core pooled \(x_{0.95}\) 相对 RMSE 改善率 I=0.3926 [0.3444,0.4347]（NN 直接路线 D 相对 NN 参数路线 P，supported and material），但优势分层且非全域（D 非总体精度最优，core 上 MDM/LRE 更优）；旧 A formal 引擎与 test namespaces 永久只读，不作为 B 的控制面。C 阶段已完成并 APPROVED（分支 `codex/study02-c-scientific-argument-20260801`）：把 A/B 结果提升为科学论证，C0/C1–C5 全部通过（C5 经对抗性复核与可复现性稳定，code commit `8cc93147`），见 Study/02 `06-C-论证计划与状态.md`、`07-C-机制分析与补充证据.md` 与 `08-C-论文前科学论证报告.md`（C5 最终版，APPROVED）。
+**Study/02 当前态**：现行成果位于远端分支 `codex/study02-paper-20260806`（2026-08-10 tip `0834bce0`），核心实验、机制分析和论文工作稿已收口，但尚未投稿、尚未合并 main；main 内旧 Study02 目录不定义当前结论。在 Study01 冻结参数网格、相同三参数输出网络和相同训练配置下，当前只比较训练/验证损失 `P_equal` 与目标寿命损失 `Q_param`。10-seed 主实验共 200 个 P/Q 配对模型单元（400 fits）：目标相对 RMSE 为 0.166059 vs 0.161075，相对改善 3.001%，95% 设计级经验 bootstrap 区间 [2.195%, 3.793%]，10/10 seed 和 184/200 单元方向有利于 Q。该结果支持“明确目标的损失对齐可在当前冻结设计中带来小而稳定的平均收益”，不支持参数整体更准或全域占优；探索性工程审计还显示高估尾部减少、低估比例增加，必须作为风险转移同时报告。
 
-**Study/01 当前态**：论文主线已收敛为“三参数 Weibull MDM 框架内偏移量 `delta` 是否有更合适的选择，以及怎样根据当前样本实现选择”。正式方法为 Dimensional-RAW-MLP：按样本量分别训练 MLP，以排序原始样本预测 26 点损失曲线并选择偏移量。在 160 组合主设计域（`eta=1000`，`n∈{7,10,15,20}`）内，pooled J1=0.5543，较固定 `delta=0.1` 改善 12.08%，失败率为 0%；结论限于已训练样本量以及训练单位和尺度范围。写作前支撑验证已补齐：未见 `beta` 留出（B1，8 折，pooled J1=0.5418、改善 14.06%、失败率 0%）、WMLE/LSE 同条件外部参照（B2，WMLE 0.7288/LSE 0.8725，WMLE 1 例未收敛计入）、`x_0.90/x_0.95/x_0.99` 工程分位点派生（B3，传递有限，WMLE 尾部分位点 RMSE 最低）；真实案例后置。另完成参数引导（plug-in）负向支撑实验（`artifacts/formal/pg_selector/`，48,000 样本）：把初步参数估计当作真参数沿用 L3–L5 规则总体失败，最优单步 J1=0.6507 vs Default 0.6304，配对 95% CI 全部为正，仅在 `beta=1.5` 有例外；该负结果为本文转向直接预测样本级损失曲线提供比较依据，不与 Dimensional-RAW 排名。per-n specialist 不定义未训练 `n` 的直接应用；旧特征路线、Normalized-RAW、旧 P2/P4/分位点和 NIST 结果已降为历史、候选或 Research 证据。Study01 活动区已整理为论文所需 `README`、`00`–`04`、证据/代码索引、`artifacts/formal/E6_dimensional_raw/paper/`（图表索引）与 `archive/`；独立支线统一由项目根 `Research/` 管理。外部中文学术工作稿以正文 v1.0 和附录 v1.0 分卷维护，v0.3、v0.4 与附录 v0.1 保留未动。
+**Study/01 当前态**：论文主线已收敛为“三参数 Weibull MDM 框架内偏移量 `delta` 是否有更合适的选择，以及怎样根据当前样本实现选择”。正式方法为 Dimensional-RAW-MLP：按样本量分别训练 MLP，以排序原始样本预测 26 点损失曲线并选择偏移量。在 160 组合主设计域（`eta=1000`，`n∈{7,10,15,20}`）内，pooled J1=0.5543，较固定 `delta=0.1` 改善 12.08%，失败率为 0%；结论限于已训练样本量以及训练单位和尺度范围。写作前支撑验证已补齐：未见 `beta` 留出（B1，8 折，pooled J1=0.5418、改善 14.06%、失败率 0%）、WMLE/LSE 同条件外部参照（B2，WMLE 0.7288/LSE 0.8725，WMLE 1 例未收敛计入）、`x_0.90/x_0.95/x_0.99` 可靠度寿命派生（B3，传递有限，WMLE 相对 RMSE 最低；`x_R` 满足 `P(T>x_R)=R`）；真实案例后置。另完成参数引导（plug-in）负向支撑实验（`artifacts/formal/pg_selector/`，48,000 样本）：把初步参数估计当作真参数沿用 L3–L5 规则总体失败，最优单步 J1=0.6507 vs Default 0.6304，配对 95% CI 全部为正，仅在 `beta=1.5` 有例外；该负结果为本文转向直接预测样本级损失曲线提供比较依据，不与 Dimensional-RAW 排名。per-n specialist 不定义未训练 `n` 的直接应用；旧特征路线、Normalized-RAW、旧 P2/P4/分位点和 NIST 结果已降为历史、候选或 Research 证据。Study01 活动区已整理为论文所需 `README`、`00`–`04`、证据/代码索引、`artifacts/formal/E6_dimensional_raw/paper/`（图表索引）与 `archive/`；独立支线统一由项目根 `Research/` 管理。外部中文学术工作稿以正文 v1.0 和附录 v1.0 分卷维护，v0.3、v0.4 与附录 v0.1 保留未动。
 
-**Study / Research 层级**：`Study/` 当前只保存 Study01、Study02 两个具有独立小论文义务的项目；项目根 [`Research/`](Research/README.md) 保存围绕单一问题的支撑研究、独立研究、孵化方向与历史包。原 Study015 已作为 `COMPLETE + SUPPORTING` 的“NN 输入表征与样本量机制”迁入 Research；旧 `docs/research` 与 Study01 内部 Research 已按 [`RELOCATION.json`](Research/RELOCATION.json) 原字节归位，不删除负面或被取代结果。
+**Study / Research 层级**：[`Study/README.md`](Study/README.md) 是 Study 层唯一入口，当前登记 Study01、Study02 两个具有独立小论文义务的项目；[`Research/README.md`](Research/README.md) 保存有界验证、支撑研究、独立研究和孵化方向，并定义升级为 Study 的门槛。原 Study015 已作为 `COMPLETE + SUPPORTING` 的“NN 输入表征与样本量机制”迁入 Research；旧 `docs/research` 与 Study01 内部 Research 已按 [`RELOCATION.json`](Research/RELOCATION.json) 原字节归位，不删除负面或被取代结果。
+
+**Research/05 当前态**：传统方法风险地形 v1 已在 Study01 的 160 个设计单元、48,000 个共享样本上完成。primary candidate 为 MDM-0.1、WMLE、LSE；五折交叉评价的真参数 cell 选择相对最佳固定 MDM-0.1 将 pooled J1 从 0.630409 降至 0.592141，改善 6.07%，设计单元 bootstrap 95% 区间 [4.85%, 7.30%]。样本量单独没有选择收益，主要分界来自形状参数；该结果只证明存在机会空间，下一步进入可观测性 Research，尚不建立新 Study。详见 [`Research/05-传统估计方法横向比较/`](Research/05-传统估计方法横向比较/)。
 
 | 大类 | 子方法 | 后端 |
 |------|--------|------|
@@ -48,14 +50,14 @@
 | 构造统计量法 | MVE, LSF | ❌ NOT_IMPLEMENTED |
 | 人工智能方法 | PSO, SVR, ANN | ❌ NOT_IMPLEMENTED（见 AI 模块） |
 
-**AI 方法模块**：
+**AI 产品原型层**：以下表格只描述既有页面/代码资产，不再作为博士研究的推进顺序。当前科学路线见 [`Study/README.md`](Study/README.md)、[`Study/研究规划v0.2.md`](Study/研究规划v0.2.md) 和 [`AI 当前路线图`](docs/AI辅助三参数威布尔参数估计重构当前路线图.md)。
 
 | 模块 | 当前状态 |
 |------|----------|
-| M1 关系建立 | ⚠️ 旧原型存在（R1/R2 两条路线），当前待重构 |
-| M3 直接估计 | 原型已实现（8 种预处理方案、泛化验证） |
-| M2 优化求解 | 待开发 |
-| M4 智能推荐 | 待规划 |
+| M1 关系建立 | 旧原型资产；正式科学结论由 Study01 取代 |
+| M2 优化求解 | 尚无已立项的当前 Study |
+| M3 直接估计 | 旧原型资产；只作比较或迁移材料 |
+| M4 智能推荐 | 旧功能设想；需先证明方法选择机会、可辨识性与回退规则 |
 
 ---
 
@@ -157,7 +159,7 @@ npm run dev
 | `02-B-可信性验证规范.md` | 开发可信性验证模块 |
 | `06-A-架构决策.md` | 需要了解设计原因 |
 | `python/studies/common/README.md` | 开发蒙特卡洛、API 模拟、实验流水线 |
-| `docs/AI辅助三参数威布尔参数估计重构当前路线图.md` | 接手 AI 重构或继续研究 03 |
+| `docs/AI辅助三参数威布尔参数估计重构当前路线图.md` | 把已有 Study/Research 证据转成 AI 能力 |
 | `/help/metrics` | 使用或新增评价指标时（渲染视图；规范源为 `metrics-spec.ts`，可执行实现为 `src/lib/metrics.ts` + `python/studies/common/metrics.py`） |
 | `/help/charts` | 使用或新增图表/表格范式时（渲染视图；规范源为 `charts-spec.ts`，实例源为 `chart-registry.ts`） |
 | `03-维护.md` | 部署或运维 |
@@ -165,7 +167,8 @@ npm run dev
 | `07-用户手册.md` | 编写或核对用户手册内容 |
 | `08-更新日志.md` | 查看版本更新记录 |
 | `Research/README.md` | 查看项目级有界研究、成熟度、与 Study 的关系及历史归档 |
-| `Study/研究规划v0.1.md` | 查看博士研究空间、Study 成果映射与 Research 位置 |
+| `Study/README.md` | 判断 Research / Study 边界、共同原则与当前课题映射 |
+| `Study/研究规划v0.2.md` | 查看博士总体问题、研究空间、后续方向与综合逻辑 |
 
 ---
 
