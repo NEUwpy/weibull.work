@@ -6,11 +6,14 @@
     python code/study02pq/paper_figures.py --root . --out figures/pq-paper
     python code/study02pq/paper_figures.py --root . --figure fig2
 
-输出 4 张图（各 300 dpi PNG + 矢量 PDF）：
+`--all` 输出当前正文 3 张图（各 300 dpi PNG + 矢量 PDF）：
   fig1_main_effect  10-seed 主效应：总体与按 n 的 P/Q rRMSE + 相对改善 95% CI
   fig2_mechanism    x0.95 逐参数敏感度、区域收益关联、精确补偿
-  fig3_robustness   稳健性：目标水平（confirmatory/robustness）、交叉目标、容量（descriptive）
-  fig4_boundary     边界：网格 / 连续域内 / 中点 / gamma-holdout OOD（禁池化）
+  fig3_error_distribution  x0.95 有符号误差、尾部概率与方向性 MSE 再分配
+
+`--figure extras` 才生成退出正文的两张归档探索图：
+  fig3_robustness   目标水平、交叉目标、容量
+  fig4_boundary     网格 / 连续域内 / 中点 / gamma-holdout OOD
 
 色板为 Okabe-Ito（色盲友好）。图注/坐标含单位与定义。
 """
@@ -230,6 +233,149 @@ def fig2_mechanism(core: dict, sensitivity: pd.DataFrame,
 
 
 # ----------------------------------------------------------------------
+# Fig 3 工程误差分布
+# ----------------------------------------------------------------------
+def _load_engineering_errors(art_dir: str) -> tuple[np.ndarray, np.ndarray]:
+    """读取冻结 10-seed P/Q 证据中的相对误差；不修改任何封存文件。"""
+    ns = [7, 10, 15, 20]
+    seeds = [42, 2026, 3407, 17, 73, 314, 2718, 4099, 8128, 12011]
+    p_errors: list[np.ndarray] = []
+    q_errors: list[np.ndarray] = []
+    for n in ns:
+        for fold in range(1, 6):
+            for seed in seeds:
+                base = "pq_iid_main/evidence" if seed in seeds[:3] \
+                    else "pq_s5b_revision/grid_extra/evidence"
+                loaded = []
+                for route in ("P", "Q"):
+                    path = os.path.join(
+                        art_dir, base, f"n{n}_f{fold}_s{seed}_r{route}.npz")
+                    with np.load(path) as evidence:
+                        error = np.asarray(evidence["rel_err"], dtype=np.float64)
+                    if not np.isfinite(error).all():
+                        raise AssertionError(f"non-finite relative error: {path}")
+                    loaded.append(error)
+                if loaded[0].shape != loaded[1].shape:
+                    raise AssertionError(
+                        f"P/Q row-count mismatch: n={n}, fold={fold}, seed={seed}")
+                p_errors.append(loaded[0])
+                q_errors.append(loaded[1])
+    return np.concatenate(p_errors), np.concatenate(q_errors)
+
+
+def fig3_error_distribution(art_dir: str, out_dir: str) -> None:
+    """探索性描述 Q 如何重新分配高估与低估误差。"""
+    p_err, q_err = _load_engineering_errors(art_dir)
+    cells = pd.read_csv(os.path.join(art_dir, "pq_engineering_audit/cell_metrics.csv"))
+    summary = _load_json(os.path.join(art_dir, "pq_engineering_audit/summary.json"))
+    if len(p_err) != 480_000 or len(q_err) != 480_000 or len(cells) != 200:
+        raise AssertionError("expected 480,000 rows per route and 200 paired model cells")
+    # 图中曲线必须与封存审计的点估计逐项一致，避免绘图脚本形成第二套口径。
+    checks = {
+        "mse": (np.mean(p_err**2), np.mean(q_err**2)),
+        "mae": (np.mean(np.abs(p_err)), np.mean(np.abs(q_err))),
+        "over_10pct": (np.mean(p_err > 0.10), np.mean(q_err > 0.10)),
+        "under_10pct": (np.mean(p_err < -0.10), np.mean(q_err < -0.10)),
+    }
+    for name, values in checks.items():
+        sealed = summary["metrics"][name]
+        if not (np.isclose(values[0], sealed["P"], atol=1e-12) and
+                np.isclose(values[1], sealed["Q"], atol=1e-12)):
+            raise AssertionError(f"figure data drift from engineering audit: {name}")
+
+    fig, axes = plt.subplots(2, 2, figsize=(11.8, 8.2))
+
+    # (a) 有符号相对误差 ECDF。使用分位数参数化，避免绘制近百万个重叠点。
+    probs = np.linspace(0.001, 0.999, 1999)
+    for error, color, linestyle, label in (
+            (p_err, C_BLUE, "-", r"$P_{equal}$"),
+            (q_err, C_ORANGE, "--", r"$Q_{param}$")):
+        axes[0, 0].plot(np.quantile(error, probs) * 100, probs * 100,
+                        color=color, linestyle=linestyle, linewidth=1.7, label=label)
+    axes[0, 0].axvline(0, color=C_GREY, linestyle=":", linewidth=1)
+    axes[0, 0].set_xlim(-60, 60)
+    axes[0, 0].set_xlabel(r"signed relative error $(\hat x_{0.95}-x_{0.95})/x_{0.95}$, %")
+    axes[0, 0].set_ylabel("empirical cumulative probability, %")
+    axes[0, 0].set_title("(a) Q shifts the error distribution toward\nunderestimation (exploratory)", fontsize=9)
+    axes[0, 0].legend(frameon=False, fontsize=8, loc="lower right")
+    axes[0, 0].text(
+        0.03, 0.97,
+        f"mean bias: P {p_err.mean()*100:+.2f}%\nQ {q_err.mean()*100:+.2f}%",
+        transform=axes[0, 0].transAxes, ha="left", va="top", fontsize=7,
+        bbox={"boxstyle": "round,pad=0.25", "fc": "white", "ec": C_GREY, "alpha": 0.9})
+
+    # (b) 绝对误差生存曲线；交叉展示“典型误差略差、极端尾部更好”。
+    thresholds = np.linspace(0, 0.60, 121)
+    for error, color, linestyle, label in (
+            (p_err, C_BLUE, "-", r"$P_{equal}$"),
+            (q_err, C_ORANGE, "--", r"$Q_{param}$")):
+        survival = [np.mean(np.abs(error) > threshold) * 100 for threshold in thresholds]
+        axes[0, 1].plot(thresholds * 100, survival, color=color,
+                        linestyle=linestyle, linewidth=1.7, label=label)
+    axes[0, 1].set_xlabel("absolute relative-error threshold, %")
+    axes[0, 1].set_ylabel("predictions exceeding threshold, %")
+    axes[0, 1].set_title("(b) Q is slightly worse at moderate errors\nbut better in the far tail (exploratory)", fontsize=9)
+    axes[0, 1].legend(frameon=False, fontsize=8)
+
+    # (c) 高估/低估的方向性尾部概率；颜色区分路线，线型区分方向。
+    directional_thresholds = np.linspace(0, 0.40, 81)
+    for error, color, route in ((p_err, C_BLUE, "P"), (q_err, C_ORANGE, "Q")):
+        over = [np.mean(error > threshold) * 100 for threshold in directional_thresholds]
+        under = [np.mean(error < -threshold) * 100 for threshold in directional_thresholds]
+        axes[1, 0].plot(directional_thresholds * 100, over, color=color,
+                        linestyle="-", linewidth=1.7, label=f"{route}: overestimate")
+        axes[1, 0].plot(directional_thresholds * 100, under, color=color,
+                        linestyle="--", linewidth=1.7, label=f"{route}: underestimate")
+    axes[1, 0].set_xlabel("one-sided relative-error threshold, %")
+    axes[1, 0].set_ylabel("predictions beyond threshold, %")
+    axes[1, 0].set_title("(c) Under a guaranteed-life interpretation, Q\nreduces overestimation but increases underestimation", fontsize=9)
+    axes[1, 0].legend(frameon=False, fontsize=7, ncol=2)
+
+    # (d) 每个模型单元对 MSE 的方向性贡献变化，保留 200 个配对单元。
+    over_delta = (cells["Q_positive_mse_contribution"] -
+                  cells["P_positive_mse_contribution"]).to_numpy(float) * 1000
+    under_delta = (cells["Q_negative_mse_contribution"] -
+                   cells["P_negative_mse_contribution"]).to_numpy(float) * 1000
+    rng = np.random.default_rng(20260810)
+    for x, values, color, marker in (
+            (0, over_delta, C_BLUE, "o"), (1, under_delta, C_ORANGE, "s")):
+        jitter = rng.uniform(-0.10, 0.10, size=len(values))
+        axes[1, 1].scatter(x + jitter, values, color=color, marker=marker,
+                           s=13, alpha=0.38, edgecolors="none")
+        axes[1, 1].boxplot(
+            values, positions=[x], widths=0.34, showfliers=False, patch_artist=True,
+            boxprops={"facecolor": color, "alpha": 0.18, "edgecolor": color},
+            whiskerprops={"color": color}, capprops={"color": color},
+            medianprops={"color": C_BLACK, "linewidth": 1.2})
+        axes[1, 1].scatter([x], [values.mean()], marker="D", s=42,
+                           color=color, edgecolor=C_BLACK, linewidth=0.6, zorder=4)
+    axes[1, 1].axhline(0, color=C_GREY, linestyle=":", linewidth=1)
+    axes[1, 1].set_xticks([0, 1])
+    axes[1, 1].set_xticklabels(["overestimate\ncontribution", "underestimate\ncontribution"])
+    axes[1, 1].set_ylabel(r"paired change Q−P in MSE contribution, $\times10^{-3}$")
+    axes[1, 1].set_title("(d) Decomposing the 5.91% MSE difference\nshows opposite directional changes", fontsize=9)
+    pos = summary["metrics"]["positive_mse_contribution"]
+    neg = summary["metrics"]["negative_mse_contribution"]
+    axes[1, 1].text(
+        0.02, 0.97,
+        f"overestimate MSE: −{pos['effect']*100:.1f}% ({pos['positive_effect_cells']}/200 cells)\n"
+        f"underestimate MSE: +{-neg['effect']*100:.1f}% ({200-neg['positive_effect_cells']}/200 cells)",
+        transform=axes[1, 1].transAxes, ha="left", va="top", fontsize=7,
+        bbox={"boxstyle": "round,pad=0.25", "fc": "white", "ec": C_GREY, "alpha": 0.9})
+
+    for ax in axes.flat:
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.grid(axis="y", color="#dddddd", linewidth=0.5, alpha=0.55)
+
+    fig.suptitle(
+        "Fig 3 · Exploratory audit: target-aligned training redistributes $x_{0.95}$ error",
+        fontsize=11, y=0.995)
+    fig.tight_layout(rect=(0, 0, 1, 0.975))
+    _save(fig, "fig3_error_distribution", out_dir)
+
+
+# ----------------------------------------------------------------------
 # Fig 3 稳健性
 # ----------------------------------------------------------------------
 def fig3_robustness(target: dict, cross: dict, capacity: dict, out_dir: str) -> None:
@@ -385,8 +531,8 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Study02 S4 paper figures (read-only on sealed evidence)")
     p.add_argument("--root", default=".", help="Study02 root dir (contains artifacts/, code/)")
     p.add_argument("--out", default="figures/pq-paper", help="figure output dir (relative to root)")
-    p.add_argument("--figure", choices=["all", "fig2"], default="all",
-                   help="render all figures or only the current core-mechanism Fig2")
+    p.add_argument("--figure", choices=["all", "fig2", "fig3error", "extras"], default="all",
+                   help="render current paper figures, one core figure, or archived extras")
     a = p.parse_args(argv)
 
     if not HAS_MPL:
@@ -405,19 +551,29 @@ def main(argv=None) -> int:
     made = []
     if a.figure == "all":
         s5b = _load_json(os.path.join(art, "pq_s5b_revision/analysis/summary_s5b.json"))
+        fig1_main_effect(s5b, out_dir)
+        made.append("fig1_main_effect")
+        fig2_mechanism(core, sensitivity, regions, cells, out_dir)
+        made.append("fig2_mechanism")
+        fig3_error_distribution(art, out_dir)
+        made.append("fig3_error_distribution")
+    if a.figure == "extras":
+        s5b = _load_json(os.path.join(art, "pq_s5b_revision/analysis/summary_s5b.json"))
         target = _load_json(os.path.join(art, "pq_s3_target/analysis/target_summary.json"))
         cross = _load_json(os.path.join(art, "pq_s3_target/analysis/cross_target_matrix.json"))
         capacity = _load_json(os.path.join(art, "pq_s3_capacity/analysis/capacity_summary.json"))
         interp = _load_json(os.path.join(art, "pq_s3_interp/analysis/interp_summary.json"))
         ood = _load_json(os.path.join(art, "pq_v3/analysis/summary_v3.json"))
-        fig1_main_effect(s5b, out_dir)
-        made.append("fig1_main_effect")
         fig3_robustness(target, cross, capacity, out_dir)
         made.append("fig3_robustness")
         fig4_boundary(s5b, interp, ood, out_dir)
         made.append("fig4_boundary")
-    fig2_mechanism(core, sensitivity, regions, cells, out_dir)
-    made.append("fig2_mechanism")
+    if a.figure == "fig2":
+        fig2_mechanism(core, sensitivity, regions, cells, out_dir)
+        made.append("fig2_mechanism")
+    if a.figure == "fig3error":
+        fig3_error_distribution(art, out_dir)
+        made.append("fig3_error_distribution")
 
     print(f"figures written to {out_dir}: {len(made)} PNG (+ matching PDF)")
     for name in made:
