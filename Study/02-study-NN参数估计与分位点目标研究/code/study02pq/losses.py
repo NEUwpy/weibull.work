@@ -64,6 +64,41 @@ def loss_q(x95_hat: torch.Tensor, x95: torch.Tensor) -> torch.Tensor:
     return (((x95_hat - x95) / x95) ** 2).mean()
 
 
+def relative_target_sensitivity_at_truth(
+        beta: torch.Tensor, eta: torch.Tensor, gamma: torch.Tensor,
+        R: float = CFG.X0_95_R) -> torch.Tensor:
+    """返回 P_equal 无量纲坐标中的真值点目标敏感度 ``s_R``。
+
+    坐标为 ``u=((beta_hat-beta)/beta, (eta_hat-eta)/eta,
+    (gamma_hat-gamma)/eta)``，目标为相对可靠度寿命误差
+    ``e=(x_R_hat-x_R)/x_R``。输出末维顺序为 beta/eta/gamma。
+    """
+    a = torch.as_tensor(-np.log(float(R)), dtype=beta.dtype, device=beta.device)
+    t = a ** (1.0 / beta)
+    x_r = gamma + eta * t
+    s_beta = -(eta * t * torch.log(a)) / (beta * x_r)
+    s_eta = eta * t / x_r
+    s_gamma = eta / x_r
+    return torch.stack((s_beta, s_eta, s_gamma), dim=-1)
+
+
+def target_matrix_truth_loss(
+        beta_hat: torch.Tensor, eta_hat: torch.Tensor, gamma_hat: torch.Tensor,
+        beta: torch.Tensor, eta: torch.Tensor, gamma: torch.Tensor,
+        R: float = CFG.X0_95_R) -> torch.Tensor:
+    """真值点完整敏感度矩阵损失 ``u^T(s s^T)u = (s^T u)^2``。
+
+    这是 Q 在真值点的局部二次代理。矩阵按训练行的真参数解析计算，跨参数点变化；
+    它不是全域固定矩阵，也不是动态精确 Q 的另一个实现。
+    """
+    u = torch.stack(((beta_hat - beta) / beta,
+                     (eta_hat - eta) / eta,
+                     (gamma_hat - gamma) / eta), dim=-1)
+    s = relative_target_sensitivity_at_truth(beta, eta, gamma, R)
+    projected = torch.sum(s * u, dim=-1)
+    return torch.mean(projected ** 2)
+
+
 def compute_x_hat_from_outputs(o: torch.Tensor, min_X: torch.Tensor,
                                R: float = CFG.X0_95_R) -> torch.Tensor:
     """解码输出并计算 x_R_hat（R=可靠度水平；供评测与 Q 损失共用）。"""
@@ -87,6 +122,18 @@ def build_route_loss(route: str, target_R: float | None = None):
             b, e, g = decode_params(model_out, min_X)
             beta, eta, gamma = targets[..., 0], targets[..., 1], targets[..., 2]
             return loss_p(b, e, g, beta, eta, gamma, min_X)
+        return loss_fn, "params"
+
+    if route == "M95":
+        if target_R is not None and not np.isclose(float(target_R), CFG.X0_95_R):
+            raise ValueError("M95 is frozen to reliability R=0.95")
+        R = float(target_R) if target_R is not None else CFG.X0_95_R
+
+        def loss_fn(model_out, targets, min_X):
+            b_hat, e_hat, g_hat = decode_params(model_out, min_X)
+            beta, eta, gamma = targets[..., 0], targets[..., 1], targets[..., 2]
+            return target_matrix_truth_loss(
+                b_hat, e_hat, g_hat, beta, eta, gamma, R)
         return loss_fn, "params"
 
     if route.startswith("Q"):

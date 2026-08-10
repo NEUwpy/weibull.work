@@ -227,8 +227,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     meta = {
         "fit_id": fit_id(n, fold_idx, seed, route, fit_suffix),
         "n": int(n), "fold": int(fold_idx + 1), "seed": int(seed), "route": route,
-        "target_R": (float(target_R) if (target_R is not None and target_kind != "params")
-                     else None),
+        "target_R": (float(target_R) if target_R is not None and route != "P" else None),
         "hidden_layers": list(hidden) if hidden is not None else list(CFG.HIDDEN_LAYERS),
         "converged": bool(converged), "nan_flag": bool(nan_flag),
         "best_epoch": int(best_epoch), "stopped_epoch": int(stopped_epoch),
@@ -249,7 +248,8 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         "val_rows_sha": DATA.sha_rows(val_rows),
         "test_rows_sha": DATA.sha_rows(test_rows),
         "n_train": int(len(train_rows)), "n_val": int(len(val_rows)),
-        "route_loss": "P" if route == "P" else "Q",
+        "route_loss": ("P" if route == "P" else
+                       "P_matrix_truth" if route.startswith("M") else "Q"),
         "warm_started": bool(initial_state is not None),
         "learning_rate": lr,
         "split_strategy": split_strategy,
