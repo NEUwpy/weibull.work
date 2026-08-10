@@ -11,13 +11,13 @@
 | `fig3_per_n_J1.png` | Dimensional-RAW / Default / L6 按 n 的 J1 | E6 `specialist/summary.json` |
 | `table1_l1_l6.md` | L1–L6 规则/协议/结果 | E6 `specialist/crossfit_layers.csv` |
 | `table2_main_results.md` | 主方法比较 | E6 `specialist/summary.json` |
-| `table3_support_verification.md` | 支撑验证摘要（四问） | E6 + B1 + B2 + B3 汇总 |
+| `table3_support_verification.md` | 旧正文支撑验证摘要表；当前保留为过程材料，不再进入正文 | E6 + B1 + B2 + B3 汇总 |
 
 ## 补充材料
 
 | 文件 | 内容 | 来源 |
 |---|---|---|
-| `supp_fig_seed_stability.png` | 三 seed 稳定性按 n | E6 `specialist/seed_stability.csv` |
+| `supp_fig_seed_stability.png` | 旧 seed 稳定性图；当前保留为过程材料，附录改用表 B2 | E6 `specialist/seed_stability.csv` |
 | `supp_fig_unseen_beta.png` | 未见 β 留出验证 | B1 `unseen_beta/summary.json` |
 | `supp_fig_traditional_per_n.png` | 传统方法参照按 n | B2 `traditional_ref/summary.csv` + E6 |
 | `supp_fig_quantile_rmse.png` | 分位点相对 RMSE | B3 `quantiles/summary.csv` |
