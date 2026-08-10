@@ -8,7 +8,7 @@
 
 `--all` 输出当前正文 3 张图（各 300 dpi PNG + 矢量 PDF）：
   fig1_main_effect  10-seed 主效应：总体与按 n 的 P/Q rRMSE + 相对改善 95% CI
-  fig2_mechanism    目标敏感度、静态 M95 消融、精确补偿与非线性分解
+  fig2_mechanism    P/Q 更新信号、静态 M95 消融与局部近似遗漏量
   fig3_error_distribution  x0.95 有符号误差、尾部概率与方向性 MSE 再分配
 
 `--figure extras` 才生成退出正文的两张归档探索图：
@@ -23,7 +23,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
 
 import numpy as np
@@ -134,16 +133,75 @@ def fig1_main_effect(s5b: dict, out_dir: str) -> None:
 # Fig 2 机制
 # ----------------------------------------------------------------------
 def fig2_mechanism(art_dir: str, out_dir: str) -> None:
-    """发布机制闭环分析生成的 Fig2，避免论文图与封存数值各自重算。"""
-    source = os.path.join(art_dir, "pq_mechanism_closure", "analysis", "mechanism_closure")
-    os.makedirs(out_dir, exist_ok=True)
-    for suffix in (".png", ".pdf"):
-        src = source + suffix
-        if not os.path.exists(src):
-            raise FileNotFoundError(
-                f"missing mechanism-closure figure {src}; run "
-                "python -m study02pq.mechanism_closure first")
-        shutil.copyfile(src, os.path.join(out_dir, "fig2_mechanism" + suffix))
+    """当前核心 Fig2：只保留理解机制所必需的三个面板。"""
+    closure = os.path.join(art_dir, "pq_mechanism_closure", "analysis")
+    summary = _load_json(os.path.join(closure, "summary.json"))
+    pmq = pd.read_csv(os.path.join(closure, "pmq_24_cells.csv"))
+
+    fig, axes = plt.subplots(1, 3, figsize=(12.8, 4.15))
+
+    # (a) 不引入新指标，直接对比两条路线反向传播使用的信号。
+    ax = axes[0]
+    ax.axis("off")
+    ax.set_title("(a) What changes during backpropagation", fontsize=10)
+    boxes = [
+        (0.05, 0.57, 0.90, 0.30, C_BLUE,
+         r"$P_{equal}$", r"$\nabla_u L_P=2u$",
+         "fixed normalized parameter-error rule"),
+        (0.05, 0.12, 0.90, 0.30, C_GREEN,
+         r"$Q_{param}$", r"$\nabla_u L_Q=2e(u)\nabla_u e(u)$",
+         "current B5 sensitivity is recalculated at each prediction"),
+    ]
+    for x, y, w, h, color, label, formula, note in boxes:
+        patch = plt.Rectangle((x, y), w, h, transform=ax.transAxes,
+                              facecolor=color, alpha=0.12, edgecolor=color,
+                              linewidth=1.5)
+        ax.add_patch(patch)
+        ax.text(x + 0.04, y + h - 0.08, label, transform=ax.transAxes,
+                color=color, fontsize=11, fontweight="bold", va="top")
+        ax.text(x + 0.04, y + 0.14, formula, transform=ax.transAxes,
+                fontsize=11, va="center")
+        ax.text(x + 0.04, y + 0.045, note, transform=ax.transAxes,
+                fontsize=7.5, va="bottom", wrap=True)
+
+    # (b) 静态局部矩阵能否替代 Q。
+    routes = ["P", "M95", "Q"]
+    colors = [C_BLUE, C_PURPLE, C_GREEN]
+    means = [np.sqrt(pmq.loc[pmq["route"] == route, "target_mse"].mean())
+             for route in routes]
+    axes[1].bar(routes, means, color=colors, alpha=0.82)
+    for idx, route in enumerate(routes):
+        axes[1].text(idx, means[idx] + 0.006, f"{means[idx]:.3f}",
+                     ha="center", fontsize=8)
+    axes[1].set_ylabel("B5 rRMSE (24-cell equal weight)")
+    axes[1].set_xticks(range(3))
+    axes[1].set_xticklabels(["P\nparameter loss", "M95\nfixed local matrix",
+                             "Q\ndirect B5 loss"], fontsize=8)
+    axes[1].set_title("(b) A truth-point static matrix\ndoes not replace Q", fontsize=10)
+
+    # (c) 局部代理改善为何没有转化为真实 B5 改善。
+    decomp = summary["m95_minus_p_exact_mse_decomposition"]
+    labels = ["local rule\n(better)", "missed error\n(worse)",
+              "actual B5\n(worse)"]
+    values = [decomp["static_local_mse"],
+              decomp["cross_term"] + decomp["nonlinear_remainder_mse"],
+              decomp["target_mse"]]
+    axes[2].bar(labels, values, color=[C_BLUE, C_ORANGE, C_RED], alpha=0.88)
+    axes[2].axhline(0, color=C_BLACK, linewidth=0.8)
+    for idx, value in enumerate(values):
+        axes[2].text(idx, value + (0.0007 if value >= 0 else 0.0008),
+                     f"{value:+.4f}", ha="center",
+                     va="bottom", fontsize=7)
+    axes[2].set_ylabel(r"M95 $-$ P mean squared B5 error")
+    axes[2].set_title("(c) The local rule improves, but what it misses\nis larger", fontsize=10)
+
+    for axis in axes[1:]:
+        axis.spines["top"].set_visible(False)
+        axis.spines["right"].set_visible(False)
+    fig.suptitle("Fig 2 · Why direct target loss is not a fixed parameter weighting",
+                 fontsize=11, y=1.02)
+    fig.tight_layout()
+    _save(fig, "fig2_mechanism", out_dir)
 
 
 # ----------------------------------------------------------------------
