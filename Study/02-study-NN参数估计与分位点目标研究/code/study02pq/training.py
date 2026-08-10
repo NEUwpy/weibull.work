@@ -49,7 +49,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
                   max_epochs=None, batch_size=None, patience=None,
                   initial_state=None, include_initial=False, return_state=False,
                   learning_rate=None, split_strategy="gamma_holdout",
-                  target_R=None, hidden=None, fit_suffix=""):
+                  target_R=None, hidden=None, fit_suffix="", split_rows=None):
     """训练一个 (n, fold, seed, route) 模型并在 held-out 折上评价。
 
     S3 扩展（缺省保持 S1/iid 行为不变）：
@@ -71,7 +71,13 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     gen = torch.Generator().manual_seed(seed)
 
     # ---- 数据行（与 seed/route 无关） ----
-    if split_strategy == "gamma_holdout":
+    if split_rows is not None:
+        if len(split_rows) != 3:
+            raise ValueError("split_rows must be (train_rows, val_rows, test_rows)")
+        train_rows, val_rows, test_rows = (
+            np.asarray(rows, dtype=np.int64) for rows in split_rows
+        )
+    elif split_strategy == "gamma_holdout":
         train_rows, val_rows, test_rows = DATA.split_fold(master, n, fold_idx)
     elif split_strategy == "repeat_stratified":
         train_rows, val_rows, test_rows = DATA.split_repeat_fold(master, n, fold_idx)
@@ -242,6 +248,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         "train_rows_sha": DATA.sha_rows(train_rows),
         "val_rows_sha": DATA.sha_rows(val_rows),
         "test_rows_sha": DATA.sha_rows(test_rows),
+        "n_train": int(len(train_rows)), "n_val": int(len(val_rows)),
         "route_loss": "P" if route == "P" else "Q",
         "warm_started": bool(initial_state is not None),
         "learning_rate": lr,

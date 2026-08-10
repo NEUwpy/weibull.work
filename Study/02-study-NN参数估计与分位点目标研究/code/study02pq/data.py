@@ -167,6 +167,55 @@ def split_repeat_fold(master: Master, n: int, fold_idx: int):
     return train_rows, val_rows, test_rows
 
 
+def split_data_scale_fixed_eval(master: Master, n: int, fold_idx: int,
+                                train_repeats: int, base_repeats: int = 300):
+    """数据量学习曲线拆分：固定原 300 repeats 的 validation/test，只扩训练集。
+
+    基线块 ``repeat_id < base_repeats`` 完全沿用 iid-v1 的五折规则。若需要超过
+    基线每组合 180 条训练行，则从 ``repeat_id >= base_repeats`` 的独立新块中继续
+    选取同一 fold 的三个训练余数类；新块只进入训练，不改变固定 validation/test。
+
+    ``train_repeats`` 是每个 (beta, gamma/eta, n) 组合的目标训练行数；当前冻结
+    pilot 使用 180/360/720，均能由完整五元组块精确构造。
+    """
+    assert 0 <= fold_idx < CFG.N_FOLDS
+    base_train = base_repeats * (CFG.N_FOLDS - 2) // CFG.N_FOLDS
+    if base_repeats % CFG.N_FOLDS != 0:
+        raise ValueError("base_repeats must be divisible by n_folds")
+    if train_repeats < base_train:
+        raise ValueError(f"train_repeats must be >= baseline {base_train}")
+
+    extra_needed = int(train_repeats) - int(base_train)
+    train_classes = CFG.N_FOLDS - 2
+    if extra_needed * CFG.N_FOLDS % train_classes != 0:
+        raise ValueError("extra train repeats must correspond to complete fold blocks")
+    extra_pool_size = extra_needed * CFG.N_FOLDS // train_classes
+    extra_end = int(base_repeats + extra_pool_size)
+
+    n_mask = master.keys[:, 2].astype(np.int64) == int(n)
+    repeat_id = master.keys[:, 3].astype(np.int64)
+    repeat_mod = repeat_id % CFG.N_FOLDS
+    test_class = int(fold_idx)
+    val_class = int((fold_idx + 1) % CFG.N_FOLDS)
+    is_train_class = (repeat_mod != test_class) & (repeat_mod != val_class)
+
+    base_mask = n_mask & (repeat_id < base_repeats)
+    test_rows = np.flatnonzero(base_mask & (repeat_mod == test_class))
+    val_rows = np.flatnonzero(base_mask & (repeat_mod == val_class))
+    train_rows = np.flatnonzero(
+        n_mask & is_train_class & (repeat_id < extra_end)
+    )
+
+    n_combos_for_n = len(CFG.BETA_GRID) * len(CFG.GAMMA_GRID)
+    assert len(train_rows) == n_combos_for_n * int(train_repeats)
+    assert len(val_rows) == n_combos_for_n * (base_repeats // CFG.N_FOLDS)
+    assert len(test_rows) == n_combos_for_n * (base_repeats // CFG.N_FOLDS)
+    assert not set(train_rows) & set(val_rows)
+    assert not set(train_rows) & set(test_rows)
+    assert not set(val_rows) & set(test_rows)
+    return train_rows, val_rows, test_rows
+
+
 def split_continuous_fold(master: Master, n: int, fold_idx: int):
     """S5B 连续参数五折：按预先随机排列后的 point_id 取模。
 
