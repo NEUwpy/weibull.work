@@ -1,0 +1,289 @@
+{
+ "audit_id": "study02-pq-engineering-value-audit-v1",
+ "status": "VERIFIED DERIVED ANALYSIS",
+ "generated_from_git_head": "903c5b6c4564e2d056f214bdc1d1681fe1631888",
+ "scope": "existing frozen-grid 10-seed evidence only; no training",
+ "design": {
+  "n": [
+   7,
+   10,
+   15,
+   20
+  ],
+  "folds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "seeds": [
+   42,
+   2026,
+   3407,
+   17,
+   73,
+   314,
+   2718,
+   4099,
+   8128,
+   12011
+  ],
+  "paired_model_cells": 200,
+  "held_out_rows_per_cell": 2400,
+  "bootstrap": "fold-within-n x global-seed paired crossed bootstrap",
+  "n_boot": 200000,
+  "bootstrap_seed_base": 2026081001
+ },
+ "metrics": {
+  "mse": {
+   "P": 0.02757548695774747,
+   "Q": 0.025945224841615308,
+   "effect": 0.05911997560116098,
+   "effect_ci95": [
+    0.043397706423359945,
+    0.07430329716430019
+   ],
+   "effect_definition": "lower_relative",
+   "positive_effect_cells": 184,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "mae": {
+   "P": 0.11047710095553437,
+   "Q": 0.1122538560433307,
+   "effect": -0.016082564372425487,
+   "effect_ci95": [
+    -0.02338914590968515,
+    -0.00896666561464067
+   ],
+   "effect_definition": "lower_relative",
+   "positive_effect_cells": 43,
+   "total_cells": 200,
+   "positive_effect_seeds": 0
+  },
+  "median_abs_error": {
+   "P": 0.07999811966903508,
+   "Q": 0.08434702321887017,
+   "effect": -0.0543625721182846,
+   "effect_ci95": [
+    -0.06909337286198339,
+    -0.040582510994986214
+   ],
+   "effect_definition": "lower_relative",
+   "positive_effect_cells": 22,
+   "total_cells": 200,
+   "positive_effect_seeds": 0
+  },
+  "q90_abs_error": {
+   "P": 0.2297502538412809,
+   "Q": 0.23680746285617346,
+   "effect": -0.03071687145890129,
+   "effect_ci95": [
+    -0.0383774884489885,
+    -0.023434264018796905
+   ],
+   "effect_definition": "lower_relative",
+   "positive_effect_cells": 34,
+   "total_cells": 200,
+   "positive_effect_seeds": 0
+  },
+  "q95_abs_error": {
+   "P": 0.30564367010816906,
+   "Q": 0.3017112912572918,
+   "effect": 0.012865893311271848,
+   "effect_ci95": [
+    0.0031966391435364755,
+    0.023255536193950405
+   ],
+   "effect_definition": "lower_relative",
+   "positive_effect_cells": 139,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "cvar90_abs_error": {
+   "P": 0.3704210778642446,
+   "Q": 0.35336049851930385,
+   "effect": 0.046057258521323356,
+   "effect_ci95": [
+    0.03700573694775355,
+    0.05561490122950065
+   ],
+   "effect_definition": "lower_relative",
+   "positive_effect_cells": 198,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "within_10pct": {
+   "P": 0.6012666666666666,
+   "Q": 0.5809020833333334,
+   "effect": -0.02036458333333324,
+   "effect_ci95": [
+    -0.025018749999999985,
+    -0.0158645833333334
+   ],
+   "effect_definition": "higher_pp",
+   "positive_effect_cells": 21,
+   "total_cells": 200,
+   "positive_effect_seeds": 0
+  },
+  "within_20pct": {
+   "P": 0.8587958333333333,
+   "Q": 0.8488875,
+   "effect": -0.009908333333333297,
+   "effect_ci95": [
+    -0.012304166666666672,
+    -0.007645833333333463
+   ],
+   "effect_definition": "higher_pp",
+   "positive_effect_cells": 40,
+   "total_cells": 200,
+   "positive_effect_seeds": 0
+  },
+  "over_10pct": {
+   "P": 0.14470208333333331,
+   "Q": 0.13208541666666665,
+   "effect": 0.012616666666666665,
+   "effect_ci95": [
+    0.008333333333333331,
+    0.016885416666666653
+   ],
+   "effect_definition": "lower_pp",
+   "positive_effect_cells": 149,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "over_20pct": {
+   "P": 0.06896458333333333,
+   "Q": 0.06009375,
+   "effect": 0.008870833333333328,
+   "effect_ci95": [
+    0.006497916666666673,
+    0.011235416666666657
+   ],
+   "effect_definition": "lower_pp",
+   "positive_effect_cells": 166,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "under_10pct": {
+   "P": 0.25403125000000004,
+   "Q": 0.2870125,
+   "effect": 0.03298124999999996,
+   "effect_ci95": [
+    0.02530833333333332,
+    0.040275000000000005
+   ],
+   "effect_definition": "q_minus_p",
+   "positive_effect_cells": 167,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "under_20pct": {
+   "P": 0.07223958333333333,
+   "Q": 0.09101875,
+   "effect": 0.018779166666666666,
+   "effect_ci95": [
+    0.0158625,
+    0.02157500000000001
+   ],
+   "effect_definition": "q_minus_p",
+   "positive_effect_cells": 174,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "over_any": {
+   "P": 0.37036250000000004,
+   "Q": 0.35183125,
+   "effect": 0.018531250000000055,
+   "effect_ci95": [
+    0.009383281250000023,
+    0.026964583333333236
+   ],
+   "effect_definition": "lower_pp",
+   "positive_effect_cells": 134,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "signed_bias": {
+   "P": -0.015219529368123891,
+   "Q": -0.027769197464241568,
+   "effect": -0.012549668096117676,
+   "effect_ci95": [
+    -0.015326909929574582,
+    -0.00963289330348544
+   ],
+   "effect_definition": "q_minus_p",
+   "positive_effect_cells": 37,
+   "total_cells": 200,
+   "positive_effect_seeds": 0
+  },
+  "positive_mse_contribution": {
+   "P": 0.017359716113979053,
+   "Q": 0.01373105613308435,
+   "effect": 0.209027610651576,
+   "effect_ci95": [
+    0.17967794562267478,
+    0.23712224326128478
+   ],
+   "effect_definition": "lower_relative",
+   "positive_effect_cells": 189,
+   "total_cells": 200,
+   "positive_effect_seeds": 10
+  },
+  "negative_mse_contribution": {
+   "P": 0.010215770843768417,
+   "Q": 0.012214168708530959,
+   "effect": -0.19561890094486187,
+   "effect_ci95": [
+    -0.2397189681158992,
+    -0.14991540972197914
+   ],
+   "effect_definition": "lower_relative",
+   "positive_effect_cells": 31,
+   "total_cells": 200,
+   "positive_effect_seeds": 0
+  },
+  "rrmse": {
+   "P": 0.1660586852824852,
+   "Q": 0.16107521485820003,
+   "effect": 0.030010296756280558,
+   "effect_ci95": [
+    0.02188888455556806,
+    0.03795846305159986
+   ],
+   "effect_definition": "rrmse_relative"
+  }
+ },
+ "paired_sample_win": {
+  "P": 0.5,
+  "Q": 0.46639583333333334,
+  "effect": -0.03360416666666666,
+  "effect_ci95": [
+   -0.04412708333333332,
+   -0.022924947916666653
+  ],
+  "effect_definition": "higher_pp",
+  "Q_lower_abs_error_rate": 0.46639583333333334
+ },
+ "interpretation_boundary": [
+  "All added metrics are post-hoc engineering audit metrics, not the confirmatory primary estimand.",
+  "The 10% and 20% thresholds are transparent sensitivity thresholds, not validated engineering cost limits.",
+  "Intervals are descriptive design-level empirical bootstrap intervals without multiplicity correction.",
+  "Overestimation is potentially non-conservative only when x_R is used as a guaranteed-life threshold."
+ ],
+ "fallacy_scan": {
+  "coverage": "11/11",
+  "red_flags": [],
+  "cautions": [
+   "post-hoc metrics and multiple comparisons: do not promote them to confirmatory claims",
+   "no domain-specific engineering loss threshold or cost function was supplied",
+   "observed error redistribution does not identify the full training-dynamics cause"
+  ]
+ },
+ "decision": {
+  "has_value": true,
+  "value_type": "engineering trade-off, not broad accuracy dominance",
+  "recommended_use": "compact exploratory result/discussion; do not replace the primary rRMSE result"
+ }
+}
