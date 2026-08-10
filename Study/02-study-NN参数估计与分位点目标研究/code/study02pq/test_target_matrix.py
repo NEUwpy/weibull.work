@@ -143,6 +143,8 @@ def test_resume_rejects_wrong_route(monkeypatch, tmp_path):
 def test_matrix_validator_rejects_corrupt_evidence_sha(monkeypatch, tmp_path):
     import json
     import pytest
+    if LOSS.CFG.PROTOCOL_VERSION != "iid-v1":
+        pytest.skip("matrix evidence path is specific to PQ_PROTOCOL=iid-v1")
     from study02pq import target_matrix_pilot as PILOT
 
     root = tmp_path / "pilot"
