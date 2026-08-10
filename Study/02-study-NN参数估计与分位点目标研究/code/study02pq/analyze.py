@@ -7,7 +7,7 @@ per-n/seed/fold/region/pooled 报告。
 - v3（r4，gamma-holdout OOD 补充）：`summary_v3.json` + `boundary_diagnostic.json`，
   与 r4 完全一致（回归安全）。
 - iid-v1（同分布主协议 S0 冻结候选）：`summary_iid.json` + `by_region.csv`。
-  效应量按 `09-PQ-同分布主协议冻结.md` §3.3：hat_Delta（模型级配对差值等权均值）+
+  效应量按 `protocols/09-PQ-同分布主协议冻结.md` §3.3：hat_Delta（模型级配对差值等权均值）+
   rel_change=(rRMSE_Q-rRMSE_P)/rRMSE_P（分母显式）。主推断区间是设计级经验不确定性
   近似，随报告须附覆盖限制（训练折重叠、仅 3 seeds、单元内 MC 噪声被吸收）。
 
@@ -178,7 +178,7 @@ def _write_iid_outputs(out, diffs, seeds, primary, p_rrmse, q_rrmse,
                        seed_means, per_n_rel, failures, n_boot):
     """同分布主协议（iid-v1）输出：summary_iid.json + by_region.csv。
 
-    效应量按 `09-PQ-同分布主协议冻结.md` §3.3：hat_Delta + rel_change=(Q-P)/P（分母显式）；
+    效应量按 `protocols/09-PQ-同分布主协议冻结.md` §3.3：hat_Delta + rel_change=(Q-P)/P（分母显式）；
     主推断区间是设计级经验不确定性近似。
     """
     # 每 fold 描述（方向；设计级只作描述，不作 CI）
@@ -226,7 +226,7 @@ def _write_iid_outputs(out, diffs, seeds, primary, p_rrmse, q_rrmse,
                      "the frozen parameter domain (each n, each cell within n) of "
                      "E[theta_Q(c) - theta_P(c)], expectation over independent fresh held-out "
                      "repeated samples AND training randomness under the frozen 180/60/60 "
-                     "protocol (09-PQ-同分布主协议冻结.md §3.3)"),
+                     "protocol (protocols/09-PQ-同分布主协议冻结.md §3.3)"),
         "finite_estimate": {
             "hat_delta": primary["pooled_mean"],
             "n_folds": CFG.N_FOLDS,

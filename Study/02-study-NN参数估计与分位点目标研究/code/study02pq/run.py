@@ -2,7 +2,7 @@
 
 协议选择（config.py，S0 起）：默认 v3（r4 gamma-holdout，OOD 补充）；
 `PQ_PROTOCOL=iid-v1` 切到同分布主协议（S0 冻结候选，见
-`09-PQ-同分布主协议冻结.md`）。拆分策略来自 `CFG.SPLIT_STRATEGY`：
+`protocols/09-PQ-同分布主协议冻结.md`）。拆分策略来自 `CFG.SPLIT_STRATEGY`：
 - `repeat_stratified`（iid-v1）→ `data.split_repeat_fold`，splits manifest 用 repeat 规则，
   scaler 只 fit train 行（training.py 内建）；
 - `gamma_holdout`（v3 默认）→ `data.split_fold`，与 r4 完全一致（回归安全）。

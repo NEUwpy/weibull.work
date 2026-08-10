@@ -1,10 +1,10 @@
 """Study02 S5A 审计脚本：正文引用 ↔ 参考文献零 orphan 检查。
 
 用法（Study02 根目录）：
-    python 16-audit-zero-orphan.py
+    python paper/tools/audit_zero_orphan.py
 
 检查项：
-  1. 从 `14-PQ-论文初稿.md` 正文（参考文献之前的全部文本）提取所有 [n] 引用；
+  1. 从 `paper/论文初稿.md` 正文（参考文献之前的全部文本）提取所有 [n] 引用；
   2. 从参考文献段提取 `^[n] ` 条目编号；
   3. 输出双向差集：orphan（正文引用但无条目）与 unused（条目但正文从未引用）。
     两者均为空 => 通过（0 orphan / 0 多余）。
@@ -16,7 +16,7 @@ import re
 import sys
 from pathlib import Path
 
-PAPER = Path(__file__).resolve().parent / "14-PQ-论文初稿.md"
+PAPER = Path(__file__).resolve().parents[1] / "论文初稿.md"
 REF_MARKER = "## 参考文献"
 
 

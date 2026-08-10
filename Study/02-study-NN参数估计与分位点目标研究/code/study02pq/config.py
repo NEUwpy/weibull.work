@@ -4,7 +4,7 @@
 - 默认（不设环境变量）→ `configs/pq-protocol-v3.json`（r4 gamma-holdout primary，
   保留为 OOD 补充证据）。
 - `PQ_PROTOCOL=iid-v1` → `configs/pq-iid-protocol-v1.json`（同分布主协议，S0 冻结候选，
-  见 `09-PQ-同分布主协议冻结.md`）。
+  见 `protocols/09-PQ-同分布主协议冻结.md`）。
 - 只接受 `v3` / `iid-v1`；任何未知值立即 `ValueError`（不静默回落到 v3），防止变量
   拼错把正式 iid 运行写回旧 OOD 合同。
 路径全部由本文件绝对位置派生，不假设 C/D 盘。v1（preliminary/superseded）产物保留于
@@ -34,14 +34,14 @@ if PROTOCOL_ID not in _KNOWN_PROTOCOLS:
 if PROTOCOL_ID == "iid-v1":
     PROTOCOL_VERSION = "iid-v1"
     CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-iid-protocol-v1.json")
-    PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "09-PQ-同分布主协议冻结.md")
+    PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "protocols", "09-PQ-同分布主协议冻结.md")
     # 同分布主协议产物命名空间（与 r4 的 pq_v3、v2 的 pq_v2、preliminary 的 pq 隔离）
     ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq_iid_main")
     SPLIT_STRATEGY = "repeat_stratified"
 else:
     PROTOCOL_VERSION = "v3"
     CONFIG_PATH = os.path.join(STUDY02_ROOT, "configs", "pq-protocol-v3.json")
-    PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "01-PQ-冻结协议.md")
+    PROTOCOL_PATH = os.path.join(STUDY02_ROOT, "protocols", "01-PQ-冻结协议.md")
     # r4 primary 产物目录（v1 保留于 artifacts/pq/，preliminary；
     # v2/P_loggap 保留于 artifacts/pq_v2/，sensitivity，不覆盖）
     ARTIFACT_DIR = os.path.join(STUDY02_ROOT, "artifacts", "pq_v3")

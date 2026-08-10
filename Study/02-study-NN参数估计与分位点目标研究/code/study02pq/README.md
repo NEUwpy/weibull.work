@@ -1,6 +1,6 @@
 # Study/02 P–Q r4 primary 专用实现（窄而清晰，不接入旧 formal 控制面）
 
-协议：`../../01-PQ-冻结协议.md`（v3/r4）；配置：`../../configs/pq-protocol-v3.json`；
+协议：`../../protocols/01-PQ-冻结协议.md`（v3/r4）；配置：`../../configs/pq-protocol-v3.json`；
 环境锁：`../../configs/pq-environment-v2.json`。
 
 ## 模块
