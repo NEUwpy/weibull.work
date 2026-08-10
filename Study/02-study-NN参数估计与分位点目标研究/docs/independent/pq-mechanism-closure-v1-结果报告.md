@@ -1,7 +1,7 @@
 # P/Q 机制闭环结果报告
 
-> 合同：`pq-mechanism-closure-v1`  
-> 状态：`COMPLETE — READY FOR INDEPENDENT REVIEW`  
+> 合同：`pq-mechanism-closure-v1`
+> 状态：`COMPLETE — INDEPENDENT REVIEW PASSED — READY FOR USER REVIEW`
 > 性质：只读复用已封存证据，0 个新 fit，不改写任何原始预测。
 
 ## 1. 要回答的问题
