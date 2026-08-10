@@ -268,7 +268,9 @@ def run_fits(resume: bool = True) -> None:
     implementation = _implementation_shas()
     log_path = ART_ROOT / "run.txt"
     done = skipped = 0
-    with log_path.open("a", encoding="utf-8") as log:
+    # no-resume 是从头重跑：覆盖全部 fit 的同时清空此前中断日志，避免把未封存尝试混入证据。
+    log_mode = "a" if resume else "w"
+    with log_path.open(log_mode, encoding="utf-8") as log:
         for seed in SEEDS:
             for n in CFG.N_GRID:
                 for fold_idx in FOLDS:
