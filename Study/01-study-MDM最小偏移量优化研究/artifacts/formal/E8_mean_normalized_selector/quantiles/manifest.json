@@ -1,0 +1,68 @@
+{
+  "contract_version": "E8_mean_normalized_quantiles_v1",
+  "created_at": "2026-08-18T16:25:42.019239+00:00",
+  "code_entry": "code/derive_mean_normalized_quantiles.py",
+  "code_sha256": {
+    "derive_mean_normalized_quantiles.py": "73ddb4a2cd10dc351a522eed087aca3dfc4a2c667641e747b1c29206cf3ac7df",
+    "dim_raw_config.py": "33baacb643da791c1658fc27d024207ecf3d0615f6cac38f76406895e67e4b14",
+    "paper_support.py": "f3fa090cc3506868a50af16642b75bd70997a4ef3b10ad5bf4160a54c8143d54",
+    "run_b3_quantiles.py": "a25b487113606ee3ee974c07ad2cfdfc7cdd73dbce617dcf4ef77a9277ee700f"
+  },
+  "sources": {
+    "mean_normalized_selected_delta": {
+      "path": "artifacts/formal/E5_normalized_raw/specialist/raw_specialist_results.csv",
+      "sha256_lf": "b67578fe3a6e02c606ce0ba0bf224f4ce8a7acbf48de1fd87ef1739e368ad7db",
+      "formal_source_commit": "ddc75754"
+    },
+    "mdm_parameters": "E5 shared_data 26-delta scan; reused, no MDM rerun",
+    "Default_L6": "re-derived from the same scan",
+    "WMLE_LSE": "unchanged rows reused from E6 quantiles after B2 sample-key receipt and tracked ledgers were verified"
+  },
+  "source_verification": {
+    "old_quantiles": {
+      "ledger": "artifacts/formal/E6_dimensional_raw/quantiles/SHA256SUMS",
+      "entries_verified": 4,
+      "files": [
+        "manifest.json",
+        "summary.csv",
+        "summary.json",
+        "summary_by_n.csv"
+      ]
+    },
+    "traditional_ref": {
+      "ledger": "artifacts/formal/E6_dimensional_raw/traditional_ref/SHA256SUMS",
+      "entries_verified": 5,
+      "files": [
+        "manifest.json",
+        "param_metrics.csv",
+        "sample_key_verification.json",
+        "summary.csv",
+        "summary.json"
+      ]
+    },
+    "traditional_sample_key_receipt": {
+      "n_scan_keys": 48000,
+      "n_grid_keys": 48000,
+      "only_in_scan": 0,
+      "only_in_grid": 0,
+      "match": true
+    },
+    "scan_and_selection_key_sha256": "77f3a5f445e571720c410892231465b9a66b4840b0581f1e946384876f475b8a"
+  },
+  "outputs": [
+    "summary.json",
+    "summary.csv",
+    "summary_by_n.csv",
+    "manifest.json",
+    "SHA256SUMS",
+    "SHA256SUMS.local_not_in_git",
+    "per_sample.csv (gitignored)"
+  ],
+  "elapsed_s": 16.90651559829712,
+  "runtime_start_git": {
+    "git_commit": "f377cca2f3b43fe82f1ac573e978af84decf9182",
+    "git_commit_short": "f377cca2",
+    "git_branch": "codex/study01-equivariant-selector-revision",
+    "workspace_dirty": false
+  }
+}
