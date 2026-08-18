@@ -77,6 +77,12 @@ def model_row(model: str, seed: int, frame: pd.DataFrame,
 
 
 def run() -> dict:
+    start_head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, text=True
+    ).strip()
+    start_dirty = bool(subprocess.check_output(
+        ["git", "status", "--porcelain"], cwd=PROJECT_ROOT, text=True
+    ).strip())
     if not SOURCE_RESULT.is_file():
         raise FileNotFoundError(
             f"Sealed E5 result is required locally: {SOURCE_RESULT}"
@@ -200,12 +206,6 @@ def run() -> dict:
     pd.DataFrame(comparison).to_csv(OUTPUT_DIR / "model_comparison.csv", index=False)
     shutil.copyfile(E6_LAYERS, OUTPUT_DIR / "crossfit_layers.csv")
 
-    start_head = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, text=True
-    ).strip()
-    start_dirty = bool(subprocess.check_output(
-        ["git", "status", "--porcelain"], cwd=PROJECT_ROOT, text=True
-    ).strip())
     files = {
         path.name: sha256_file(path)
         for path in sorted(OUTPUT_DIR.iterdir()) if path.is_file()
