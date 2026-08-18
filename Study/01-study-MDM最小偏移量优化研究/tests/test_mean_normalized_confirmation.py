@@ -17,6 +17,7 @@ import run_E6b_dimensional_raw_specialist as E6
 import run_b1_mean_normalized_unseen_beta as E8B1
 import derive_mean_normalized_quantiles as E8Q
 import check_mean_normalized_e2e_scale as E8S
+import prepare_mean_normalized_main_evidence as E8M
 
 
 def test_mean_normalized_map_is_exact_scale_invariant_and_key_preserving():
@@ -103,4 +104,14 @@ def test_scale_check_is_small_and_uses_production_mdm():
     assert {probe[2] for probe in E8S.PROBES} == set(CFG.N_GRID)
     assert "run_method(" in source
     assert '"mdm"' in source
+    assert "MLPRegressor" not in source
+
+
+def test_main_evidence_is_repackaging_not_an_experiment():
+    source = inspect.getsource(E8M.run)
+    assert E8M.SOURCE_RESULT_SHA256 == (
+        "b67578fe3a6e02c606ce0ba0bf224f4ce8a7acbf48de1fd87ef1739e368ad7db"
+    )
+    assert "PS.default_and_l6" in source
+    assert "run_method" not in source
     assert "MLPRegressor" not in source
