@@ -9,8 +9,11 @@ tables to ../data/derived, and exports PNG/SVG/PDF/TIFF into ../main and
 from __future__ import annotations
 
 import json
+import hashlib
 import math
+import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import matplotlib as mpl
@@ -28,6 +31,7 @@ MAIN_DIR = FIGURE_DIR / "main"
 SUPP_DIR = FIGURE_DIR / "supplementary"
 DERIVED_DIR = FIGURE_DIR / "data" / "derived"
 TABLES_DIR = FIGURE_DIR / "tables"
+PROVENANCE_DIR = FIGURE_DIR / "provenance"
 
 MM = 1 / 25.4
 COLORS = {
@@ -98,18 +102,94 @@ def panel_label(ax, label):
 
 def export_figure(fig, stem: str, folder: Path, *, tiff=True):
     folder.mkdir(parents=True, exist_ok=True)
-    fig.savefig(folder / f"{stem}.svg", bbox_inches="tight", facecolor="white")
+    svg_path = folder / f"{stem}.svg"
+    fig.savefig(svg_path, bbox_inches="tight", facecolor="white")
+    # Matplotlib writes trailing spaces inside multi-line SVG path data.
+    # Normalize text-only whitespace so generated figures pass git diff --check.
+    svg_text = svg_path.read_text(encoding="utf-8")
+    svg_path.write_text(
+        "\n".join(line.rstrip() for line in svg_text.splitlines()) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     fig.savefig(folder / f"{stem}.pdf", bbox_inches="tight", facecolor="white")
     fig.savefig(folder / f"{stem}.png", dpi=300, bbox_inches="tight", facecolor="white")
     if tiff:
-        fig.savefig(folder / f"{stem}.tiff", dpi=600, bbox_inches="tight",
+        # Some Windows image viewers briefly retain a handle to the existing
+        # TIFF.  Render to a sibling file and replace only after PIL closes it.
+        target = folder / f"{stem}.tiff"
+        temporary = folder / f"{stem}.new.tiff"
+        fig.savefig(temporary, dpi=600, bbox_inches="tight",
                     facecolor="white", pil_kwargs={"compression": "tiff_lzw"})
+        temporary.replace(target)
     plt.close(fig)
 
 
 def save_source(df: pd.DataFrame, name: str):
     DERIVED_DIR.mkdir(parents=True, exist_ok=True)
     df.to_csv(DERIVED_DIR / name, index=False, encoding="utf-8")
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_submission_provenance(paths: dict[str, Path]):
+    """Bind the manuscript-side figures to their declared sealed sources."""
+    output_files = []
+    for folder in (MAIN_DIR, SUPP_DIR, DERIVED_DIR, TABLES_DIR):
+        for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+            output_files.append(path)
+
+    source_files = {}
+    for key, folder in paths.items():
+        for name in ("manifest.json", "summary.json", "summary.csv"):
+            path = folder / name
+            if path.is_file():
+                source_files[f"{key}/{name}"] = sha256_file(path)
+
+    try:
+        git_head = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=FIGURE_DIR, text=True
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        git_head = None
+
+    manifest = {
+        "schema_version": 2,
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generator": str(Path(__file__).resolve()),
+        "generator_sha256": sha256_file(Path(__file__).resolve()),
+        "figure_sources_sha256": sha256_file(CONFIG_PATH),
+        "runtime_head_commit": git_head,
+        "method": "Mean-normalized MLP: sort(X)/mean(X), then train-fold-only per-position StandardScaler",
+        "sources": {key: str(folder) for key, folder in paths.items()},
+        "source_file_sha256": source_files,
+        "outputs": {
+            str(path.relative_to(FIGURE_DIR)).replace("\\", "/"): sha256_file(path)
+            for path in output_files
+        },
+        "notes": [
+            "E8 specialist, unseen-beta, and quantile evidence support the formal mean-normalized route.",
+            "E6 traditional_ref supplies unchanged WMLE/LSE comparison values.",
+            "E5 selector_output supplies sealed out-of-fold mean-normalized selections bound by the E8 manifest.",
+        ],
+    }
+    PROVENANCE_DIR.mkdir(parents=True, exist_ok=True)
+    manifest_path = PROVENANCE_DIR / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    checksum_lines = [
+        f"{digest}  {name}" for name, digest in sorted(manifest["outputs"].items())
+    ]
+    (PROVENANCE_DIR / "SHA256SUMS").write_text(
+        "\n".join(checksum_lines) + "\n", encoding="utf-8"
+    )
 
 
 def load_summary(paths):
@@ -270,6 +350,9 @@ def figure_1_method_structure():
     draw_arrow(ax, (0.165, 0.748), (0.215, 0.748), color=COLORS["muted"])
     draw_arrow(ax, (0.360, 0.748), (0.415, 0.833), color=COLORS["l6"])
     draw_arrow(ax, (0.360, 0.748), (0.415, 0.648), color=COLORS["raw"])
+    ax.text(0.385, 0.675, "sample mean\n+ training scaler",
+            fontsize=4.7, color=COLORS["raw"], ha="center", va="center",
+            transform=ax.transAxes)
     draw_arrow(ax, (0.550, 0.833), (0.610, 0.790), color=COLORS["l6"])
     draw_arrow(ax, (0.550, 0.648), (0.610, 0.675), color=COLORS["raw"])
     draw_curve_axes([0.615, 0.640, 0.31, 0.200], show_actual=True,
@@ -1069,6 +1152,122 @@ def supplementary_quantiles(paths):
     export_figure(fig, "supp_fig_quantile_rmse", SUPP_DIR)
 
 
+def write_mean_selector_tables(paths, summary):
+    """Synchronize compact manuscript tables with the E8 evidence package."""
+    TABLES_DIR.mkdir(parents=True, exist_ok=True)
+    comp = pd.DataFrame(summary["model_comparison"])
+    labels = [
+        ("Mean-normalized MLP", "Mean-Normalized-MLP"),
+        (r"Default ($\delta=0.1$)", "Default"),
+        ("L6 (hindsight)", "L6-hindsight"),
+    ]
+    main_rows = []
+    for label, model in labels:
+        sub = comp[comp["model"] == model]
+        main_rows.append({
+            "方法": label,
+            "$J_1$ pooled": float(sub["J1"].mean()),
+            **{f"$n={n}$": float(sub[f"J1_n{n}"].mean()) for n in (7, 10, 15, 20)},
+            "失败率": float(sub["failure_rate"].mean()),
+        })
+    main = pd.DataFrame(main_rows)
+    main.to_csv(TABLES_DIR / "table2_main_results.csv", index=False,
+                encoding="utf-8")
+    lines = [
+        "**表 3：主方法比较（同一留出协议、同一测试样本）**", "",
+        "| 方法 | $J_1$ pooled | $n=7$ | $n=10$ | $n=15$ | $n=20$ | 失败率 |",
+        "|---|---:|---:|---:|---:|---:|---:|",
+    ]
+    for row in main.itertuples(index=False):
+        lines.append(f"| {row[0]} | {row[1]:.4f} | {row[2]:.4f} | "
+                     f"{row[3]:.4f} | {row[4]:.4f} | {row[5]:.4f} | "
+                     f"{100*row[6]:.2f}% |")
+    (TABLES_DIR / "table2_main_results.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8")
+
+    held = pd.read_csv(paths["unseen_beta"] / "beta_holdout.csv")
+    held_table = (held.groupby(["held_out_beta", "model"], as_index=False)["J1"]
+                  .mean().pivot(index="held_out_beta", columns="model", values="J1")
+                  .reset_index())
+    held_table = held_table[["held_out_beta", "Mean-Normalized-MLP", "Default", "L6"]]
+    held_table.columns = ["留出 $\\beta$", "Mean-normalized $J_1$",
+                          "Default $J_1$", "L6 $J_1$"]
+    held_table.to_csv(TABLES_DIR / "supp_table_unseen_beta.csv", index=False,
+                      encoding="utf-8")
+    held_lines = [
+        "**补充表：未见 $\\beta$ 留出验证——每个留出 $\\beta$ 的 pooled $J_1$**",
+        "", "| 留出 $\\beta$ | Mean-normalized $J_1$ | Default $J_1$ | L6 $J_1$ |",
+        "|---:|---:|---:|---:|",
+    ]
+    for row in held_table.itertuples(index=False):
+        held_lines.append(f"| {row[0]:g} | {row[1]:.4f} | {row[2]:.4f} | {row[3]:.4f} |")
+    (TABLES_DIR / "supp_table_unseen_beta.md").write_text(
+        "\n".join(held_lines) + "\n", encoding="utf-8")
+
+    qraw = pd.read_csv(paths["quantiles"] / "summary.csv")
+    qtable = (qraw.groupby(["method", "quantile"], as_index=False)
+              .agg(**{"相对 Bias": ("bias", "mean"),
+                      "相对 RMSE": ("rmse", "mean"),
+                      "相对 MAE": ("mae", "mean"),
+                      "P95(|相对误差|)": ("p95_abs_rel", "mean"),
+                      "失败率": ("failure_rate", "mean")}))
+    qtable = qtable.rename(columns={"method": "方法", "quantile": "分位点"})
+    order = ["Mean-Normalized", "Default", "L6", "WMLE", "LSE"]
+    qtable["方法"] = pd.Categorical(qtable["方法"], order, ordered=True)
+    qtable = qtable.sort_values(["方法", "分位点"]).reset_index(drop=True)
+    qtable["方法"] = qtable["方法"].astype(str).replace(
+        {"Mean-Normalized": "Mean-normalized"})
+    qtable.to_csv(TABLES_DIR / "supp_table_quantiles.csv", index=False,
+                  encoding="utf-8")
+    qlines = [
+        "**补充表：工程寿命分位点 $x_{0.90}/x_{0.95}/x_{0.99}$ 相对误差指标**",
+        "", "| 方法 | 分位点 | 相对 Bias | 相对 RMSE | 相对 MAE | P95(|相对误差|) | 失败率 |",
+        "|---|---|---:|---:|---:|---:|---:|",
+    ]
+    for row in qtable.itertuples(index=False):
+        qlines.append(f"| {row[0]} | {row[1]} | {row[2]:.4f} | {row[3]:.4f} | "
+                      f"{row[4]:.4f} | {row[5]:.4f} | {100*row[6]:.3f}% |")
+    (TABLES_DIR / "supp_table_quantiles.md").write_text(
+        "\n".join(qlines) + "\n", encoding="utf-8")
+
+    unseen = read_json(paths["unseen_beta"] / "summary.json")
+    quant = read_json(paths["quantiles"] / "summary.json")
+    support_rows = [
+        {
+            "问题": "是否依赖一次随机初始化",
+            "证据": "三 seed、60 个 fold×seed 模型",
+            "结论": (f"pooled $J_1$ = {summary['mean_normalized_3seed']['pooled_J1_mean']:.4f} "
+                    f"± {summary['mean_normalized_3seed']['pooled_J1_std']:.4f}"),
+        },
+        {
+            "问题": "未见参数值能否保持收益",
+            "证据": "按 $\\beta$ 水平逐一留出（8 折）",
+            "结论": (f"pooled $J_1$ = {unseen['pooled']['mean_normalized_3seed']['pooled_J1_mean']:.4f}; "
+                    f"相对 Default 降低 {100*unseen['pooled']['relative_improvement_vs_Default']:.1f}%"),
+        },
+        {
+            "问题": "与传统方法相比位于什么水平",
+            "证据": "WMLE/LSE 同一 48,000 样本外部参照",
+            "结论": "Mean-normalized 0.5850；WMLE 0.7288；LSE 0.8725",
+        },
+        {
+            "问题": "参数收益能否传递到工程寿命",
+            "证据": "$x_{0.90},x_{0.95},x_{0.99}$ 重派生",
+            "结论": ("传递有限：相对 RMSE 为 0.1609、0.2134、0.3744；"
+                    "对应 Default 为 0.1607、0.2142、0.3777"),
+        },
+    ]
+    support = pd.DataFrame(support_rows)
+    support.to_csv(TABLES_DIR / "table3_support_verification.csv", index=False,
+                   encoding="utf-8")
+    slines = ["**表 4：支撑验证摘要（细节见补充材料）**", "",
+              "| 问题 | 证据 | 结论 |", "|---|---|---|"]
+    slines.extend(f"| {r['问题']} | {r['证据']} | {r['结论']} |"
+                  for r in support_rows)
+    (TABLES_DIR / "table3_support_verification.md").write_text(
+        "\n".join(slines) + "\n", encoding="utf-8")
+
+
 _PG_FAMILY_LABEL = {"PG-beta": r"$\beta$", "PG-beta-n": r"$\beta,\,n$",
                     "PG-full": r"$\beta,\gamma/\eta,\,n$"}
 _PG_MAPPING_LABEL = {"nearest_grid": "grid", "interpolated": "interp"}
@@ -1280,8 +1479,10 @@ def main():
     supplementary_unseen_beta(paths)
     supplementary_traditional(paths, summary)
     supplementary_quantiles(paths)
+    write_mean_selector_tables(paths, summary)
     supplementary_parameter_guided(paths)
     write_parameter_guided_tables(paths)
+    write_submission_provenance(paths)
     print("Generated 11 submission figures and PG supplementary tables "
           "in PNG/SVG/PDF/TIFF formats.")
 

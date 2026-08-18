@@ -95,22 +95,22 @@ def check_scientific_values():
     main = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
     if main["n"].tolist() != [7, 10, 15, 20]:
         raise AssertionError("Figure 3 sample-size order changed")
-    expected_raw = [0.690140038894862, 0.5760944718696536,
-                    0.48554986410467, 0.43003400364509464]
+    expected_raw = [0.701996875733506, 0.6074111331779682,
+                    0.5284284675375117, 0.47736878886100054]
     for actual, expected in zip(main["raw_mean"], expected_raw):
         assert_close(actual, expected)
-    expected_improvement = [9.586, 12.330, 14.077, 14.988]
+    expected_improvement = [8.032, 7.567, 6.487, 5.628]
     for actual, expected in zip(main["raw_improvement_pct"], expected_improvement):
         assert_close(actual, expected, 0.01)
-    expected_recovered = [47.204, 57.363, 59.714, 61.752]
+    expected_recovered = [39.555, 35.197, 27.522, 23.191]
     for actual, expected in zip(main["recovered_hindsight_gap_pct"], expected_recovered):
         assert_close(actual, expected, 0.01)
 
     paired = pd.read_csv(DERIVED / "fig3_sample_loss_difference_quantiles.csv")
     if paired["n"].tolist() != [7, 10, 15, 20] or not (paired["n_samples"] == 12000).all():
         raise AssertionError("Figure 3 paired-loss sample contract changed")
-    expected_improved = [72.23333333333333, 74.45,
-                         72.76666666666667, 72.54166666666667]
+    expected_improved = [65.79166666666667, 66.58333333333334,
+                         64.0, 59.075]
     for actual, expected in zip(paired["improved_pct"], expected_improved):
         assert_close(actual, expected, 1e-10)
     for row in paired.itertuples():
@@ -122,12 +122,12 @@ def check_scientific_values():
     components = pd.read_csv(TABLES / "supp_table_parameter_error_decomposition.csv")
     if components["parameter"].tolist() != ["beta", "eta", "gamma"]:
         raise AssertionError("Parameter-error decomposition order changed")
-    expected_component_reductions = [18.743, 26.743, 23.785]
+    expected_component_reductions = [13.278, 13.833, 14.911]
     for actual, expected in zip(components["mse_contribution_reduction_pct"],
                                 expected_component_reductions):
         assert_close(actual, expected, 0.01)
     expected_default_rmse = [0.4032024329, 0.3614166461, 0.3228336497]
-    expected_adaptive_rmse = [0.3634570181, 0.3093331989, 0.2818354445]
+    expected_adaptive_rmse = [0.3754803048, 0.3354895792, 0.2977937996]
     for actual, expected in zip(components["default_normalized_rmse"],
                                 expected_default_rmse):
         assert_close(actual, expected, 1e-9)
@@ -166,15 +166,16 @@ def check_scientific_values():
     if (len(landscape) != 160 or landscape["beta"].nunique() != 8 or
             landscape["gamma_over_eta"].nunique() != 5 or landscape["n"].nunique() != 4):
         raise AssertionError("Figure 5 must contain 8 beta x 5 ratio x 4 n cells")
-    if int((landscape["improvement_pct"] < 0).sum()) != 3:
+    if int((landscape["improvement_pct"] < 0).sum()) != 35:
         raise AssertionError("Figure 5 deterioration-cell count changed")
-    assert_close(landscape["improvement_pct"].min(), -4.036964, 1e-5)
+    assert_close(landscape["improvement_pct"].min(), -16.875434, 1e-5)
 
     unseen_main = pd.read_csv(DERIVED / "fig6_unseen_beta_improvement.csv")
     if len(unseen_main) != 8 or unseen_main["held_out_beta"].nunique() != 8:
         raise AssertionError("Figure 6 unseen-parameter panel must contain 8 held-out beta levels")
-    if (unseen_main["minimum"] <= 0).any():
-        raise AssertionError("Figure 6 contains a non-positive held-out-beta improvement")
+    negative = unseen_main[unseen_main["minimum"] <= 0]
+    if negative["held_out_beta"].tolist() != [1.5]:
+        raise AssertionError("Only held-out beta=1.5 should lack improvement")
 
     traditional_main = pd.read_csv(DERIVED / "fig6_traditional_by_n.csv")
     if len(traditional_main) != 16 or traditional_main["method"].nunique() != 4:
@@ -258,7 +259,7 @@ def main():
             "three-parameter normalized error decomposition",
             "representative risk curve and full 26 x 26 offset correspondence",
             "excess-loss quantile monotonicity",
-            "160-cell parameter landscape and three deterioration cells",
+            "160-cell parameter landscape and 35 deterioration cells",
             "eight held-out parameter levels in the main validation composite",
             "four-method traditional comparison in the main validation composite",
             "three-quantile source retained for the main validation composite",

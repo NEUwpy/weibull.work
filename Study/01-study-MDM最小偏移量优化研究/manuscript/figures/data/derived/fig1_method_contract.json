@@ -1,7 +1,7 @@
 {
   "core_conclusion": "the MLP predicts a candidate-loss curve and selects delta; MDM estimates the Weibull parameters",
   "archetype": "two-panel schematic-led method figure",
-  "input": "sorted dimensional raw sample, one network per n",
+  "input": "sorted sample / sample mean, one network per n",
   "preprocessing": "position-wise StandardScaler fitted on training fold only",
   "network": "MLP 256-128-64, ReLU, Adam",
   "output": "predicted loss at 26 candidate delta values",
