@@ -16,6 +16,7 @@ import dim_raw_config as CFG
 import run_E6b_dimensional_raw_specialist as E6
 import run_b1_mean_normalized_unseen_beta as E8B1
 import derive_mean_normalized_quantiles as E8Q
+import check_mean_normalized_e2e_scale as E8S
 
 
 def test_mean_normalized_map_is_exact_scale_invariant_and_key_preserving():
@@ -81,4 +82,25 @@ def test_quantile_derivation_reuses_selection_and_mdm_scan():
     assert "B3.mdm_estimates_for" in source
     assert "PS.default_and_l6" in source
     assert "run_method" not in source
+    assert "MLPRegressor" not in source
+
+
+def test_sealed_deployment_forward_is_scale_invariant():
+    model, model_sha = E8S.load_model(7)
+    assert len(model_sha) == 64
+    sample = np.array([8.0, 2.0, 3.0, 15.0, 6.0, 10.0, 5.0])
+    delta, curve = E8S.select_delta(sample, model)
+    assert delta in CFG.DELTA_GRID
+    for factor in E8S.SCALES:
+        got_delta, got_curve = E8S.select_delta(sample * factor, model)
+        assert got_delta == delta
+        assert np.allclose(got_curve, curve, rtol=0.0, atol=1e-12)
+
+
+def test_scale_check_is_small_and_uses_production_mdm():
+    source = inspect.getsource(E8S.run)
+    assert len(E8S.PROBES) == 4
+    assert {probe[2] for probe in E8S.PROBES} == set(CFG.N_GRID)
+    assert "run_method(" in source
+    assert '"mdm"' in source
     assert "MLPRegressor" not in source
