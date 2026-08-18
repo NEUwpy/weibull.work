@@ -1,0 +1,121 @@
+{
+  "experiment": "E7 scale-invariant ordered-sample input screen",
+  "status": "candidate_screen_only",
+  "created_at": "2026-08-18T15:40:09.578383+00:00",
+  "contract_version": "E7_scale_invariant_input_screen_v1",
+  "representations": {
+    "mean": "ordered X / mean(X)",
+    "sample_sd": "ordered X / sample_sd(X), ddof=1, no centering",
+    "rms": "ordered X / sqrt(mean(X^2))"
+  },
+  "scientific_contract": {
+    "only_change": "representation before train-fold StandardScaler",
+    "reused": "E6 per-n MLP, folds, seeds, 26 targets, failure and J1",
+    "mdm_rerun": false,
+    "confirmation_experiment": false
+  },
+  "default_J1": 0.6304091999323665,
+  "references": {
+    "dimensional_raw_pooled_J1": 0.5542751326094254,
+    "existing_mean_normalized_per_seed": {
+      "42": 0.5845531935428129,
+      "2026": 0.5849135438096444,
+      "3407": 0.5855203298807452
+    }
+  },
+  "results": [
+    {
+      "representation": "mean",
+      "pooled_J1_mean": 0.5849956890777341,
+      "pooled_J1_seed_std_ddof0": 0.0003990814936320978,
+      "relative_improvement_vs_default": 0.07203814738031203,
+      "failure_rate_mean": 0.0,
+      "model_J1_min": 0.44878148845099886,
+      "model_J1_q1": 0.5073883924718129,
+      "model_J1_median": 0.5717194977499391,
+      "model_J1_q3": 0.6485248276481003,
+      "model_J1_max": 0.7306895321733649,
+      "J1_n7_mean": 0.701996875733506,
+      "J1_n7_seed_std_ddof0": 0.0019376925698547653,
+      "J1_n10_mean": 0.6074111331779682,
+      "J1_n10_seed_std_ddof0": 0.0028901180383276446,
+      "J1_n15_mean": 0.5284284675375117,
+      "J1_n15_seed_std_ddof0": 0.0007924787547003111,
+      "J1_n20_mean": 0.4773687888610006,
+      "J1_n20_seed_std_ddof0": 0.0014907830593795931,
+      "difference_vs_dimensional_raw": 0.030720556468308735,
+      "difference_vs_existing_mean_normalized": 0.0
+    },
+    {
+      "representation": "sample_sd",
+      "pooled_J1_mean": 0.5893926174669656,
+      "pooled_J1_seed_std_ddof0": 0.0005204851963071217,
+      "relative_improvement_vs_default": 0.06506342621554607,
+      "failure_rate_mean": 0.0,
+      "model_J1_min": 0.45171394074923804,
+      "model_J1_q1": 0.5035657003331401,
+      "model_J1_median": 0.569694515789714,
+      "model_J1_q3": 0.6530159859407761,
+      "model_J1_max": 0.7439484832625894,
+      "J1_n7_mean": 0.7189895039876975,
+      "J1_n7_seed_std_ddof0": 0.00253030767626188,
+      "J1_n10_mean": 0.6078089843678549,
+      "J1_n10_seed_std_ddof0": 0.001435262552567518,
+      "J1_n15_mean": 0.5258036470446227,
+      "J1_n15_seed_std_ddof0": 0.001697289111708046,
+      "J1_n20_mean": 0.47610411198318925,
+      "J1_n20_seed_std_ddof0": 0.001449646941839599,
+      "difference_vs_dimensional_raw": 0.03511748485754018,
+      "difference_vs_existing_mean_normalized": 0.004396928389231447
+    },
+    {
+      "representation": "rms",
+      "pooled_J1_mean": 0.5853644629966083,
+      "pooled_J1_seed_std_ddof0": 0.0005837863060820257,
+      "relative_improvement_vs_default": 0.07145317190896151,
+      "failure_rate_mean": 0.0,
+      "model_J1_min": 0.4533660863371262,
+      "model_J1_q1": 0.5112442602040768,
+      "model_J1_median": 0.577795962564946,
+      "model_J1_q3": 0.6515632128544366,
+      "model_J1_max": 0.719409471644174,
+      "J1_n7_mean": 0.7019192999826358,
+      "J1_n7_seed_std_ddof0": 0.0014473245825621904,
+      "J1_n10_mean": 0.6066527734663866,
+      "J1_n10_seed_std_ddof0": 0.0010078973065872114,
+      "J1_n15_mean": 0.5300051239463209,
+      "J1_n15_seed_std_ddof0": 0.0024376725283278495,
+      "J1_n20_mean": 0.4785127164358915,
+      "J1_n20_seed_std_ddof0": 0.0006213593711105013,
+      "difference_vs_dimensional_raw": 0.031089330387182867,
+      "difference_vs_existing_mean_normalized": 0.00036877391887413236
+    }
+  ],
+  "invariance": {
+    "scales": [
+      0.001,
+      1.0,
+      1000.0
+    ],
+    "models_checked": 180,
+    "all_delta_consistent": true,
+    "all_curves_consistent_at_1e-10": true,
+    "max_abs_representation_diff": 8.881784197001252e-16,
+    "max_abs_prediction_curve_diff": 3.9968028886505635e-15
+  },
+  "data_integrity": {
+    "expected_rows": 1248000,
+    "actual_rows": 1248000,
+    "unique_combos": 160,
+    "non_success_rate": 0.0
+  },
+  "data_sha256_receipt": {
+    "receipt": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E5_normalized_raw\\shared_data\\data_sha256sums.txt",
+    "entries_verified": 321,
+    "all_match": true
+  },
+  "implementation_sha256": "f67b4c219d58966d9a2813e670e418f556b31ae45af9f21115fc2057f3afcf22",
+  "run_start_git_head": "9b5d988f75f1dcebb2b1134d402f5e6ea1d647f1",
+  "run_start_branch": "codex/study01-equivariant-selector-revision",
+  "runtime_s": 2106.271521091461
+}
