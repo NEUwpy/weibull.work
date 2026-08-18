@@ -206,9 +206,15 @@ def run() -> dict:
     pd.DataFrame(comparison).to_csv(OUTPUT_DIR / "model_comparison.csv", index=False)
     shutil.copyfile(E6_LAYERS, OUTPUT_DIR / "crossfit_layers.csv")
 
+    output_names = (
+        "crossfit_layers.csv",
+        "model_comparison.csv",
+        "seed_stability.csv",
+        "summary.json",
+    )
     files = {
-        path.name: sha256_file(path)
-        for path in sorted(OUTPUT_DIR.iterdir()) if path.is_file()
+        name: PS.sha256_file_lf(OUTPUT_DIR / name)
+        for name in output_names
     }
     manifest = {
         "contract": "E8_mean_normalized_main_evidence_v1",
@@ -216,6 +222,7 @@ def run() -> dict:
         "source_raw_selection_sha256": SOURCE_RESULT_SHA256,
         "e7_candidate_screen": str(E7_SUMMARY.relative_to(STUDY_ROOT)),
         "runtime_start_git": {"head": start_head, "dirty": start_dirty},
+        "hash_policy": "SHA256 of LF-normalized bytes",
         "files": files,
     }
     manifest_path = OUTPUT_DIR / "manifest.json"
@@ -223,7 +230,8 @@ def run() -> dict:
                              encoding="utf-8")
     ledger_names = sorted([*files, "manifest.json"])
     (OUTPUT_DIR / "SHA256SUMS").write_text("".join(
-        f"{sha256_file(OUTPUT_DIR / name)}  {name}\n" for name in ledger_names
+        f"{PS.sha256_file_lf(OUTPUT_DIR / name)}  {name}\n"
+        for name in ledger_names
     ), encoding="ascii")
     return summary
 

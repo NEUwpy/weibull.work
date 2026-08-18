@@ -1,7 +1,11 @@
 """Minimum contract tests for the formal mean-normalized confirmation."""
 
+import hashlib
 import inspect
+import json
 import os
+from pathlib import Path
+import re
 import sys
 
 import numpy as np
@@ -18,6 +22,10 @@ import run_b1_mean_normalized_unseen_beta as E8B1
 import derive_mean_normalized_quantiles as E8Q
 import check_mean_normalized_e2e_scale as E8S
 import prepare_mean_normalized_main_evidence as E8M
+
+
+E8_FORMAL_ROOT = (Path(STUDY_ROOT) / "artifacts" / "formal" /
+                  "E8_mean_normalized_selector")
 
 
 def test_mean_normalized_map_is_exact_scale_invariant_and_key_preserving():
@@ -105,6 +113,8 @@ def test_scale_check_is_small_and_uses_production_mdm():
     assert "run_method(" in source
     assert '"mdm"' in source
     assert "MLPRegressor" not in source
+    assert "sha256_file_lf" in source
+    assert '"hash_policy": "SHA256 of LF-normalized bytes"' in source
 
 
 def test_main_evidence_is_repackaging_not_an_experiment():
@@ -115,3 +125,56 @@ def test_main_evidence_is_repackaging_not_an_experiment():
     assert "PS.default_and_l6" in source
     assert "run_method" not in source
     assert "MLPRegressor" not in source
+    assert "PS.sha256_file_lf" in source
+    assert '"hash_policy": "SHA256 of LF-normalized bytes"' in source
+
+
+def test_all_tracked_e8_ledgers_verify_lf_normalized_files():
+    """Every tracked E8 ledger must bind its current LF-normalized files."""
+    required_packages = {
+        "specialist", "unseen_beta", "quantiles", "scale_equivariance"
+    }
+    ledgers = {
+        path.parent.name: path
+        for path in E8_FORMAL_ROOT.glob("*/SHA256SUMS")
+    }
+    assert required_packages.issubset(ledgers), (
+        f"missing E8 ledgers: {sorted(required_packages - set(ledgers))}"
+    )
+
+    record_pattern = re.compile(r"^([0-9a-f]{64})  ([^\r\n]+)$")
+    for package in sorted(required_packages):
+        ledger = ledgers[package]
+        seen = set()
+        records = ledger.read_text(encoding="utf-8").splitlines()
+        assert records, f"empty ledger: {ledger}"
+        for line in records:
+            match = record_pattern.fullmatch(line)
+            assert match, f"malformed ledger record in {ledger}: {line!r}"
+            expected, relative = match.groups()
+            assert relative not in seen, f"duplicate ledger path: {ledger}:{relative}"
+            seen.add(relative)
+            target = ledger.parent / relative
+            assert target.is_file(), f"missing ledger file: {target}"
+            normalized = target.read_bytes().replace(b"\r\n", b"\n")
+            actual = hashlib.sha256(normalized).hexdigest()
+            assert actual == expected, (
+                f"LF-normalized SHA256 mismatch: {package}/{relative}: "
+                f"{actual} != {expected}"
+            )
+
+    # The two E8 producers revised here also expose per-file hashes inside
+    # their manifests; bind those records to the same LF-normalized contract.
+    for package in ("specialist", "scale_equivariance"):
+        manifest_path = E8_FORMAL_ROOT / package / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert manifest["hash_policy"] == "SHA256 of LF-normalized bytes"
+        for relative, expected in manifest["files"].items():
+            target = manifest_path.parent / relative
+            assert target.is_file(), f"missing manifest file: {target}"
+            normalized = target.read_bytes().replace(b"\r\n", b"\n")
+            actual = hashlib.sha256(normalized).hexdigest()
+            assert actual == expected, (
+                f"manifest LF-normalized SHA256 mismatch: {package}/{relative}: "
+                f"{actual} != {expected}"
+            )

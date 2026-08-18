@@ -57,6 +57,11 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+def sha256_file_lf(path: Path) -> str:
+    """Hash text artifacts using the repository's tracked-file contract."""
+    return sha256_bytes(path.read_bytes().replace(b"\r\n", b"\n"))
+
+
 def git_model_bytes(n: int) -> bytes:
     path = f"{MODEL_RELATIVE_DIR}/n{n}_final.json"
     return subprocess.check_output(
@@ -207,7 +212,7 @@ def run() -> dict:
             "normalized_joint_loss_invariant": True,
         },
         "runtime_start_git": {"head": start_head, "dirty": start_dirty},
-        "files": {"scale_equivariance.csv": sha256_file(csv_path)},
+        "files": {"scale_equivariance.csv": sha256_file_lf(csv_path)},
     }
     result_path = OUTPUT_DIR / "summary.json"
     result_path.write_text(
@@ -220,9 +225,10 @@ def run() -> dict:
         "model_sha256": {str(n): model_cache[n][1] for n in CFG.N_GRID},
         "production_entry": "studies.common.runner.run_method(method_id='mdm')",
         "gamma_steps": 60,
+        "hash_policy": "SHA256 of LF-normalized bytes",
         "files": {
-            "scale_equivariance.csv": sha256_file(csv_path),
-            "summary.json": sha256_file(result_path),
+            "scale_equivariance.csv": sha256_file_lf(csv_path),
+            "summary.json": sha256_file_lf(result_path),
         },
     }
     manifest_path = OUTPUT_DIR / "manifest.json"
@@ -231,7 +237,7 @@ def run() -> dict:
         encoding="utf-8",
     )
     ledger = "".join(
-        f"{sha256_file(OUTPUT_DIR / name)}  {name}\n"
+        f"{sha256_file_lf(OUTPUT_DIR / name)}  {name}\n"
         for name in ("manifest.json", "scale_equivariance.csv", "summary.json")
     )
     (OUTPUT_DIR / "SHA256SUMS").write_text(ledger, encoding="ascii")
