@@ -286,8 +286,8 @@ def figure_1_method_structure():
              "Current sample\n" + r"$x_1,\ldots,x_n$",
              face="white", edge=COLORS["raw"], fontsize=5.9)
     draw_box(ax, (0.185, bottom_y), 0.115, bh,
-             "Sort values\n+ training scaler",
-             face=COLORS["pale_blue"], edge=COLORS["raw"], fontsize=5.7)
+             "Sort values\n/ sample mean\n+ training scaler",
+             face=COLORS["pale_blue"], edge=COLORS["raw"], fontsize=5.3)
     draw_mlp(0.335, 0.185, 0.135, 0.145, trained=True)
     draw_curve_axes([0.520, 0.145, 0.205, 0.18], show_actual=False,
                     mark_minimum=True, title="Predicted loss curve")
@@ -312,7 +312,7 @@ def figure_1_method_structure():
     method_contract = {
         "core_conclusion": "the MLP predicts a candidate-loss curve and selects delta; MDM estimates the Weibull parameters",
         "archetype": "two-panel schematic-led method figure",
-        "input": "sorted dimensional raw sample, one network per n",
+        "input": "sorted sample / sample mean, one network per n",
         "preprocessing": "position-wise StandardScaler fitted on training fold only",
         "network": "MLP 256-128-64, ReLU, Adam",
         "output": "predicted loss at 26 candidate delta values",
@@ -443,7 +443,7 @@ def sample_loss_difference_by_n(paths):
     variability into another result layer.
     """
     _, df_full = load_full_scan()
-    diag = pd.read_csv(paths["specialist"] / "diagnostics" /
+    diag = pd.read_csv(paths["selector_output"] / "diagnostics" /
                        "near_optimal_diagnostics.csv", low_memory=False)
     keys = ["beta", "gamma_over_eta", "n", "repeat_id"]
     default = df_full[np.isclose(pd.to_numeric(df_full["delta"]), 0.10)][
@@ -624,7 +624,7 @@ def figure_3_main_results(paths, summary):
 def selector_mechanism_data(paths):
     """Derive a typical loss curve, delta-confusion matrix, and regret quantiles."""
     _, df_full = load_full_scan()
-    diag = pd.read_csv(paths["specialist"] / "diagnostics" /
+    diag = pd.read_csv(paths["selector_output"] / "diagnostics" /
                        "near_optimal_diagnostics.csv", low_memory=False)
     keys = ["beta", "gamma_over_eta", "n", "repeat_id"]
     valid = df_full[pd.to_numeric(df_full["loss"], errors="coerce").notna()].copy()
@@ -639,7 +639,7 @@ def selector_mechanism_data(paths):
     seed42 = diag[diag["seed"] == 42].copy()
     median_regret = float(seed42["regret"].median())
     typical = seed42.iloc[(seed42["regret"] - median_regret).abs().argmin()]
-    prediction_path = paths["specialist"] / "predictions" / f"{typical['model_id']}.csv"
+    prediction_path = paths["selector_output"] / "predictions" / f"{typical['model_id']}.csv"
     prediction = pd.read_csv(prediction_path, low_memory=False)
     mask = ((prediction["repeat_id"] == int(typical["repeat_id"])) &
             (prediction["n"] == int(typical["n"])) &
@@ -758,7 +758,7 @@ def figure_4_selector_mechanism(paths):
 
 def parameter_landscape_data(paths):
     _, df_full = load_full_scan()
-    raw = pd.read_csv(paths["specialist"] / "raw_specialist_results.csv",
+    raw = pd.read_csv(paths["selector_output"] / "raw_specialist_results.csv",
                       low_memory=False)
     combo = ["beta", "gamma_over_eta", "n"]
     raw_seed = raw.groupby(["seed"] + combo, as_index=False)["true_loss"].mean()
@@ -825,7 +825,7 @@ def figure_5_parameter_landscape(paths):
 
 def figure_6_support_validation(paths, summary):
     held = pd.read_csv(paths["unseen_beta"] / "beta_holdout.csv")
-    raw_held = held[held["model"] == "Dimensional-RAW"][
+    raw_held = held[held["model"] == "Mean-Normalized-MLP"][
         ["held_out_beta", "seed", "J1"]].rename(columns={"J1": "raw_J1"})
     default_held = held[held["model"] == "Default"][
         ["held_out_beta", "seed", "J1"]].rename(columns={"J1": "default_J1"})
@@ -841,7 +841,7 @@ def figure_6_support_validation(paths, summary):
     comp = pd.DataFrame(summary["model_comparison"])
     ns = [7, 10, 15, 20]
     traditional_rows = []
-    for method, model in (("Dimensional-RAW", "Dimensional-RAW-MLP"),
+    for method, model in (("Mean-normalized", "Mean-Normalized-MLP"),
                           ("Default", "Default")):
         sub = comp[comp["model"] == model]
         for n in ns:
@@ -856,7 +856,7 @@ def figure_6_support_validation(paths, summary):
     save_source(traditional, "fig6_traditional_by_n.csv")
 
     qraw = pd.read_csv(paths["quantiles"] / "summary.csv")
-    qorder = ["Dimensional-RAW", "Default", "L6", "WMLE", "LSE"]
+    qorder = ["Mean-Normalized", "Default", "L6", "WMLE", "LSE"]
     quantile = (qraw.groupby(["method", "quantile"], as_index=False)
                 .agg(rmse=("rmse", "mean"), minimum=("rmse", "min"),
                      maximum=("rmse", "max")))
@@ -878,7 +878,7 @@ def figure_6_support_validation(paths, summary):
     panel_label(ax_a, "a")
 
     method_style = {
-        "Dimensional-RAW": (COLORS["raw"], "o", 1.7),
+        "Mean-normalized": (COLORS["raw"], "o", 1.7),
         "Default": (COLORS["default"], "s", 1.1),
         "WMLE": (COLORS["wmle"], "D", 1.1),
         "LSE": (COLORS["lse"], "v", 1.1),
@@ -901,16 +901,16 @@ def figure_6_support_validation(paths, summary):
     qlabels = ["x0.90", "x0.95", "x0.99"]
     x = np.arange(3)
     offsets = dict(zip(qorder, np.linspace(-0.24, 0.24, len(qorder))))
-    qcolors = {"Dimensional-RAW": COLORS["raw"], "Default": COLORS["default"],
+    qcolors = {"Mean-Normalized": COLORS["raw"], "Default": COLORS["default"],
                "L6": COLORS["l6"], "WMLE": COLORS["wmle"], "LSE": COLORS["lse"]}
-    markers = {"Dimensional-RAW": "o", "Default": "s", "L6": "^",
+    markers = {"Mean-Normalized": "o", "Default": "s", "L6": "^",
                "WMLE": "D", "LSE": "v"}
-    main_quantile_methods = ["Dimensional-RAW", "Default", "WMLE"]
+    main_quantile_methods = ["Mean-Normalized", "Default", "WMLE"]
     for method in main_quantile_methods:
         sub = quantile[quantile["method"] == method].set_index("quantile").reindex(qlabels)
         y = sub["rmse"].to_numpy(dtype=float)
         yerr = None
-        if method == "Dimensional-RAW":
+        if method == "Mean-Normalized":
             yerr = np.vstack([y - sub["minimum"].to_numpy(dtype=float),
                               sub["maximum"].to_numpy(dtype=float) - y])
         ax_c.errorbar(x + offsets[method], y, yerr=yerr, fmt=markers[method],
@@ -959,27 +959,25 @@ def supplementary_seed_stability(summary):
 
 
 def supplementary_unseen_beta(paths):
-    summary = read_json(paths["unseen_beta"] / "summary.json")
-    betas = sorted(float(v) for v in summary["per_beta"])
-    rows = []
-    for beta in betas:
-        block = summary["per_beta"][str(beta)]
-        for method in ("Dimensional-RAW", "Default", "L6"):
-            seed_values = list(block[method]["seed_J1"].values())
-            rows.append({"beta": beta, "method": method, "J1": block[method]["J1"],
-                         "seed_min": min(seed_values), "seed_max": max(seed_values)})
-    data = pd.DataFrame(rows)
+    raw = pd.read_csv(paths["unseen_beta"] / "beta_holdout.csv")
+    raw["method"] = raw["model"].replace(
+        {"Mean-Normalized-MLP": "Mean-normalized"})
+    data = (raw.groupby(["held_out_beta", "method"], as_index=False)
+            .agg(J1=("J1", "mean"), seed_min=("J1", "min"),
+                 seed_max=("J1", "max"))
+            .rename(columns={"held_out_beta": "beta"}))
+    betas = sorted(data["beta"].astype(float).unique())
     save_source(data, "supp_unseen_beta.csv")
 
     fig, ax = plt.subplots(figsize=(125 * MM, 72 * MM))
     styles = {
-        "Dimensional-RAW": (COLORS["raw"], "o", "-"),
+        "Mean-normalized": (COLORS["raw"], "o", "-"),
         "Default": (COLORS["default"], "s", "-"),
         "L6": (COLORS["l6"], "^", "--"),
     }
     for method, (color, marker, ls) in styles.items():
         sub = data[data["method"] == method]
-        if method == "Dimensional-RAW":
+        if method == "Mean-normalized":
             ax.fill_between(sub["beta"], sub["seed_min"], sub["seed_max"],
                             color=COLORS["raw_light"], alpha=0.35, linewidth=0)
         ax.plot(sub["beta"], sub["J1"], color=color, marker=marker, ms=4,
@@ -999,7 +997,7 @@ def supplementary_traditional(paths, summary):
     comp = pd.DataFrame(summary["model_comparison"])
     ns = [7, 10, 15, 20]
     rows = []
-    for method, model in (("Dimensional-RAW", "Dimensional-RAW-MLP"),
+    for method, model in (("Mean-normalized", "Mean-Normalized-MLP"),
                           ("Default", "Default"), ("L6", "L6-hindsight")):
         sub = comp[comp["model"] == model]
         for n in ns:
@@ -1014,7 +1012,7 @@ def supplementary_traditional(paths, summary):
 
     fig, ax = plt.subplots(figsize=(125 * MM, 76 * MM))
     style = {
-        "Dimensional-RAW": (COLORS["raw"], "o", 1.8),
+        "Mean-normalized": (COLORS["raw"], "o", 1.8),
         "Default": (COLORS["default"], "s", 1.2),
         "L6": (COLORS["l6"], "^", 1.2),
         "WMLE": (COLORS["wmle"], "D", 1.2),
@@ -1034,7 +1032,7 @@ def supplementary_traditional(paths, summary):
 
 def supplementary_quantiles(paths):
     raw = pd.read_csv(paths["quantiles"] / "summary.csv")
-    order = ["Dimensional-RAW", "Default", "L6", "WMLE", "LSE"]
+    order = ["Mean-Normalized", "Default", "L6", "WMLE", "LSE"]
     agg = (raw.groupby(["method", "quantile"], as_index=False)
            .agg(rmse=("rmse", "mean"), rmse_min=("rmse", "min"),
                 rmse_max=("rmse", "max")))
@@ -1045,9 +1043,9 @@ def supplementary_quantiles(paths):
     q_order = ["x0.90", "x0.95", "x0.99"]
     x = np.arange(len(q_order))
     offsets = dict(zip(order, np.linspace(-0.24, 0.24, len(order))))
-    colors = {"Dimensional-RAW": COLORS["raw"], "Default": COLORS["default"],
+    colors = {"Mean-Normalized": COLORS["raw"], "Default": COLORS["default"],
               "L6": COLORS["l6"], "WMLE": COLORS["wmle"], "LSE": COLORS["lse"]}
-    markers = {"Dimensional-RAW": "o", "Default": "s", "L6": "^",
+    markers = {"Mean-Normalized": "o", "Default": "s", "L6": "^",
                "WMLE": "D", "LSE": "v"}
     fig, ax = plt.subplots(figsize=(125 * MM, 76 * MM))
     for method in order:
@@ -1055,7 +1053,7 @@ def supplementary_quantiles(paths):
         y = sub["rmse"].to_numpy(dtype=float)
         xpos = x + offsets[method]
         yerr = None
-        if method == "Dimensional-RAW":
+        if method == "Mean-Normalized":
             yerr = np.vstack([y - sub["rmse_min"].to_numpy(dtype=float),
                               sub["rmse_max"].to_numpy(dtype=float) - y])
         ax.errorbar(xpos, y, yerr=yerr, fmt=markers[method], ms=4.2,
@@ -1066,7 +1064,7 @@ def supplementary_quantiles(paths):
     ax.set_ylabel("Relative RMSE")
     style_axis(ax)
     ax.legend(ncol=3, loc="upper left", columnspacing=1.0, handletextpad=0.4)
-    ax.text(0.98, 0.03, "Error bars: range across 3 seeds (Dimensional-RAW)",
+    ax.text(0.98, 0.03, "Error bars: range across 3 seeds (mean-normalized)",
             transform=ax.transAxes, ha="right", fontsize=6.0, color=COLORS["muted"])
     export_figure(fig, "supp_fig_quantile_rmse", SUPP_DIR)
 
