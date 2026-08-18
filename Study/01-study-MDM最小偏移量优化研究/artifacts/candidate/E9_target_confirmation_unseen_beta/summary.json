@@ -1,0 +1,65 @@
+{
+  "status": "CANDIDATE_CONFIRMATION",
+  "contract": "E9_target_confirmation_unseen_beta_v1",
+  "selection_rule": "oracle_regret plus three-seed curve ensemble was selected for this confirmation before inspecting unseen-beta results",
+  "split": "leave one complete beta level out; 8 folds",
+  "mdm_rerun": false,
+  "results": [
+    {
+      "target": "absolute",
+      "aggregation": "model_first_rows",
+      "n_rows": 144000,
+      "J1": 0.5829033927394931,
+      "default_J1": 0.6304091999323667,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.07535709694270043,
+      "improved_rate": 0.6338194444444445,
+      "harmed_rate": 0.295375,
+      "exact_oracle_rate": 0.23545833333333333,
+      "within_0.02_oracle_rate": 0.48678472222222224,
+      "spearman_predicted_vs_actual_gain": 0.43860450859120453
+    },
+    {
+      "target": "absolute",
+      "aggregation": "three_seed_curve_ensemble",
+      "n_rows": 48000,
+      "J1": 0.5786343228751226,
+      "default_J1": 0.6304091999323665,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.08212899980330013,
+      "improved_rate": 0.65125,
+      "harmed_rate": 0.28289583333333335,
+      "exact_oracle_rate": 0.23247916666666665,
+      "within_0.02_oracle_rate": 0.5026875,
+      "spearman_predicted_vs_actual_gain": 0.49545950362557883
+    },
+    {
+      "target": "oracle_regret",
+      "aggregation": "model_first_rows",
+      "n_rows": 144000,
+      "J1": 0.5811291058845649,
+      "default_J1": 0.6304091999323667,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.07817159719922995,
+      "improved_rate": 0.6432361111111111,
+      "harmed_rate": 0.28199305555555554,
+      "exact_oracle_rate": 0.24704861111111112,
+      "within_0.02_oracle_rate": 0.4973611111111111,
+      "spearman_predicted_vs_actual_gain": 0.441465534283104
+    },
+    {
+      "target": "oracle_regret",
+      "aggregation": "three_seed_curve_ensemble",
+      "n_rows": 48000,
+      "J1": 0.5771907009552668,
+      "default_J1": 0.6304091999323665,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.08441897577447999,
+      "improved_rate": 0.6541875,
+      "harmed_rate": 0.272875,
+      "exact_oracle_rate": 0.24589583333333334,
+      "within_0.02_oracle_rate": 0.5089166666666667,
+      "spearman_predicted_vs_actual_gain": 0.47854732380154424
+    }
+  ]
+}

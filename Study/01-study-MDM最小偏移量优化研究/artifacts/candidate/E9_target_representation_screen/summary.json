@@ -1,0 +1,115 @@
+{
+  "status": "CANDIDATE_SCREEN_ONLY",
+  "contract": "E9_target_representation_screen_v1",
+  "question": "Does removing decision-irrelevant sample-level target shift improve delta selection?",
+  "invariant_contract": {
+    "input": "ascending sorted X / mean(X), one MLP per n",
+    "folds": "same E8 gamma/eta-level holdout within n",
+    "seeds": [
+      42,
+      2026,
+      3407
+    ],
+    "architecture": [
+      256,
+      128,
+      64
+    ],
+    "decision": "argmin over the same 26 delta points",
+    "true_loss": "unchanged J1 component loss",
+    "mdm_rerun": false
+  },
+  "target_definitions": {
+    "absolute": "L(delta)",
+    "default_residual": "L(delta) - L(0.10)",
+    "oracle_regret": "L(delta) - min_delta L(delta)"
+  },
+  "target_argmin_identity_checked": true,
+  "results": [
+    {
+      "target": "absolute",
+      "aggregation": "model_first_rows",
+      "n_rows": 144000,
+      "J1": 0.5849958252035408,
+      "default_J1": 0.6304091999323667,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.07203793144785653,
+      "improved_rate": 0.6209444444444444,
+      "harmed_rate": 0.31283333333333335,
+      "exact_oracle_rate": 0.22730555555555557,
+      "within_0.02_oracle_rate": 0.46802777777777776,
+      "spearman_predicted_vs_actual_gain": 0.3686301235623683
+    },
+    {
+      "target": "absolute",
+      "aggregation": "three_seed_curve_ensemble",
+      "n_rows": 48000,
+      "J1": 0.5811763783702207,
+      "default_J1": 0.6304091999323665,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.07809661021353709,
+      "improved_rate": 0.6365,
+      "harmed_rate": 0.3016041666666667,
+      "exact_oracle_rate": 0.22958333333333333,
+      "within_0.02_oracle_rate": 0.4825833333333333,
+      "spearman_predicted_vs_actual_gain": 0.4024061629340898
+    },
+    {
+      "target": "default_residual",
+      "aggregation": "model_first_rows",
+      "n_rows": 144000,
+      "J1": 0.5879812468720631,
+      "default_J1": 0.6304091999323667,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.06730224283664554,
+      "improved_rate": 0.5877361111111111,
+      "harmed_rate": 0.2333611111111111,
+      "exact_oracle_rate": 0.2144375,
+      "within_0.02_oracle_rate": 0.47829166666666667,
+      "spearman_predicted_vs_actual_gain": 0.36818573756344014
+    },
+    {
+      "target": "default_residual",
+      "aggregation": "three_seed_curve_ensemble",
+      "n_rows": 48000,
+      "J1": 0.5838041991223596,
+      "default_J1": 0.6304091999323665,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.07392817366086502,
+      "improved_rate": 0.6034583333333333,
+      "harmed_rate": 0.2355625,
+      "exact_oracle_rate": 0.21947916666666667,
+      "within_0.02_oracle_rate": 0.48722916666666666,
+      "spearman_predicted_vs_actual_gain": 0.40228371940393814
+    },
+    {
+      "target": "oracle_regret",
+      "aggregation": "model_first_rows",
+      "n_rows": 144000,
+      "J1": 0.5851138282189586,
+      "default_J1": 0.6304091999323667,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.07185074665513691,
+      "improved_rate": 0.6443194444444444,
+      "harmed_rate": 0.2875902777777778,
+      "exact_oracle_rate": 0.2501527777777778,
+      "within_0.02_oracle_rate": 0.49990972222222224,
+      "spearman_predicted_vs_actual_gain": 0.38278247539025495
+    },
+    {
+      "target": "oracle_regret",
+      "aggregation": "three_seed_curve_ensemble",
+      "n_rows": 48000,
+      "J1": 0.5806200530795598,
+      "default_J1": 0.6304091999323665,
+      "oracle_J1": 0.4922971152637207,
+      "relative_improvement_vs_default": 0.07897909303694872,
+      "improved_rate": 0.6592916666666667,
+      "harmed_rate": 0.2753541666666667,
+      "exact_oracle_rate": 0.2531875,
+      "within_0.02_oracle_rate": 0.5133125,
+      "spearman_predicted_vs_actual_gain": 0.41434989162712726
+    }
+  ],
+  "warning": "This is a candidate screen. A selected variant requires an untouched confirmation split before becoming manuscript evidence."
+}
