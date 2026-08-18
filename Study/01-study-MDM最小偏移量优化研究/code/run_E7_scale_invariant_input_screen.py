@@ -51,6 +51,23 @@ def sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
+def sha256_file_lf(path: str) -> str:
+    """Hash text bytes after CRLF -> LF, matching the existing E6 receipt."""
+    h = hashlib.sha256()
+    with open(path, "rb") as handle:
+        previous = b""
+        while True:
+            block = handle.read(1024 * 1024)
+            if not block:
+                break
+            data = (previous + block).replace(b"\r\n", b"\n")
+            previous = data[-1:] if data.endswith(b"\r") else b""
+            h.update(data[:-1] if previous else data)
+        if previous:
+            h.update(previous)
+    return h.hexdigest()
+
+
 def implementation_sha256() -> str:
     paths = [
         os.path.abspath(__file__),
@@ -105,7 +122,7 @@ def verify_data_sha256sums() -> dict:
             path = os.path.join(CFG.SHARED_DATA_DIR, rel.replace("/", os.sep))
             if not os.path.isfile(path):
                 raise FileNotFoundError(path)
-            actual = sha256_file(path)
+            actual = sha256_file_lf(path)
             if actual != expected:
                 raise RuntimeError(f"SHA256 mismatch: {rel}")
             checked += 1
