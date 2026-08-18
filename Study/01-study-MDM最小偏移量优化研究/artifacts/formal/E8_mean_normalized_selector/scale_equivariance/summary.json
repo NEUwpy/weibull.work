@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "scope": "selector -> selected delta -> production MDM",
+  "model_source_commit": "ddc75754",
+  "representation": "sort(X) / mean(X)",
+  "scales": [
+    0.001,
+    1.0,
+    1000.0
+  ],
+  "n_probes": 4,
+  "n_runs": 12,
+  "checks": {
+    "prediction_curve_invariant_within_2e-12": true,
+    "selected_delta_identical": true,
+    "beta_hat_invariant": true,
+    "eta_hat_equivariant": true,
+    "gamma_hat_equivariant": true,
+    "r_squared_invariant": true,
+    "normalized_joint_loss_invariant": true
+  },
+  "runtime_start_git": {
+    "head": "9be7e8d19d3a39a1840fe746cfa3d9efd8019592",
+    "dirty": false
+  },
+  "files": {
+    "scale_equivariance.csv": "9fc3a9e53ef452f4cc54b6c6ef110aad47fa520dd7ee42d2fe8c7dad18404a36"
+  }
+}
