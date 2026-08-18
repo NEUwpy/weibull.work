@@ -15,6 +15,7 @@ if CODE_DIR not in sys.path:
 import dim_raw_config as CFG
 import run_E6b_dimensional_raw_specialist as E6
 import run_b1_mean_normalized_unseen_beta as E8B1
+import derive_mean_normalized_quantiles as E8Q
 
 
 def test_mean_normalized_map_is_exact_scale_invariant_and_key_preserving():
@@ -64,3 +65,20 @@ def test_confirmation_contract_keeps_frozen_models_and_metric():
     assert CFG.DEFAULT_DELTA == 0.1
     assert E8B1.MODEL_NAME == "Mean-Normalized-MLP"
 
+
+def test_quantile_formula_and_metrics_use_reliability_definition():
+    beta, eta, gamma = 2.0, 1000.0, 250.0
+    reliability = 0.95
+    expected = gamma + eta * (-np.log(reliability)) ** (1.0 / beta)
+    assert np.isclose(E8Q.B3.true_quantile(beta, eta, gamma, reliability), expected)
+    assert E8Q.B3.QUANTILE_R == {"x0.90": 0.90, "x0.95": 0.95,
+                                "x0.99": 0.99}
+
+
+def test_quantile_derivation_reuses_selection_and_mdm_scan():
+    source = inspect.getsource(E8Q.run)
+    assert "SELECTION_EXPECTED_SHA256" in source
+    assert "B3.mdm_estimates_for" in source
+    assert "PS.default_and_l6" in source
+    assert "run_method" not in source
+    assert "MLPRegressor" not in source
