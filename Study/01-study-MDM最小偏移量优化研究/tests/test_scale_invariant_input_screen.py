@@ -103,4 +103,3 @@ def test_aggregation_uses_pooled_losses_not_mean_model_j1():
     expected = np.sqrt(5.0)
     assert np.allclose(result["seed_metrics"]["pooled_J1"], expected)
     assert np.allclose(result["summary"]["pooled_J1_mean"], expected)
-
