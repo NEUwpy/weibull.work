@@ -152,6 +152,7 @@ def pooled_seed_stats(long_df: pd.DataFrame, model: str) -> dict:
 
 
 def run(force_rerun: bool = False) -> dict:
+    runtime_start_git = PS.git_meta()
     if force_rerun and os.path.isdir(RESULTS_DIR):
         shutil.rmtree(RESULTS_DIR)
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -239,7 +240,7 @@ def run(force_rerun: bool = False) -> dict:
         "failure_rate": float(1.0 - adaptive["is_valid"].mean()),
         "boundary": ("discrete 8-point beta grid only; not continuous "
                      "extrapolation; separate model for each trained n"),
-        **PS.git_meta(),
+        "runtime_start_git": runtime_start_git,
     }
     PS.atomic_write_json(summary, os.path.join(OUT_DIR, "summary.json"))
 
@@ -264,7 +265,7 @@ def run(force_rerun: bool = False) -> dict:
                          "SHA256SUMS.local_not_in_git",
                          "results/*.csv (gitignored)"],
         "elapsed_s": float(time.time() - started),
-        **PS.git_meta(),
+        "runtime_start_git": runtime_start_git,
     }
     PS.atomic_write_json(manifest, os.path.join(OUT_DIR, "manifest.json"))
     with open(os.path.join(OUT_DIR, ".gitignore"), "w", encoding="utf-8") as fh:
