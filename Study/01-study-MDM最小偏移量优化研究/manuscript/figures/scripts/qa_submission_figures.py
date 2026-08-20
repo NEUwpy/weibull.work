@@ -95,22 +95,22 @@ def check_scientific_values():
     main = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
     if main["n"].tolist() != [7, 10, 15, 20]:
         raise AssertionError("Figure 3 sample-size order changed")
-    expected_raw = [0.701996875733506, 0.6074111331779682,
-                    0.5284284675375117, 0.47736878886100054]
-    for actual, expected in zip(main["raw_mean"], expected_raw):
+    expected_adaptive = [0.701337127247328, 0.6070629116585652,
+                         0.5293829329592756, 0.47556735574356884]
+    for actual, expected in zip(main["adaptive"], expected_adaptive):
         assert_close(actual, expected)
-    expected_improvement = [8.032, 7.567, 6.487, 5.628]
-    for actual, expected in zip(main["raw_improvement_pct"], expected_improvement):
+    expected_improvement = [8.119, 7.620, 6.318, 5.984]
+    for actual, expected in zip(main["adaptive_improvement_pct"], expected_improvement):
         assert_close(actual, expected, 0.01)
-    expected_recovered = [39.555, 35.197, 27.522, 23.191]
+    expected_recovered = [39.981, 35.443, 26.805, 24.659]
     for actual, expected in zip(main["recovered_hindsight_gap_pct"], expected_recovered):
         assert_close(actual, expected, 0.01)
 
     paired = pd.read_csv(DERIVED / "fig3_sample_loss_difference_quantiles.csv")
     if paired["n"].tolist() != [7, 10, 15, 20] or not (paired["n_samples"] == 12000).all():
         raise AssertionError("Figure 3 paired-loss sample contract changed")
-    expected_improved = [65.79166666666667, 66.58333333333334,
-                         64.0, 59.075]
+    expected_improved = [62.525, 66.00833333333334,
+                         62.15, 58.508333333333326]
     for actual, expected in zip(paired["improved_pct"], expected_improved):
         assert_close(actual, expected, 1e-10)
     for row in paired.itertuples():
@@ -122,12 +122,12 @@ def check_scientific_values():
     components = pd.read_csv(TABLES / "supp_table_parameter_error_decomposition.csv")
     if components["parameter"].tolist() != ["beta", "eta", "gamma"]:
         raise AssertionError("Parameter-error decomposition order changed")
-    expected_component_reductions = [13.278, 13.833, 14.911]
+    expected_component_reductions = [13.555, 13.868, 14.932]
     for actual, expected in zip(components["mse_contribution_reduction_pct"],
                                 expected_component_reductions):
         assert_close(actual, expected, 0.01)
     expected_default_rmse = [0.4032024329, 0.3614166461, 0.3228336497]
-    expected_adaptive_rmse = [0.3754803048, 0.3354895792, 0.2977937996]
+    expected_adaptive_rmse = [0.3748804985, 0.3354213448, 0.2977575681]
     for actual, expected in zip(components["default_normalized_rmse"],
                                 expected_default_rmse):
         assert_close(actual, expected, 1e-9)
@@ -168,12 +168,14 @@ def check_scientific_values():
         raise AssertionError("Figure 5 must contain 8 beta x 5 ratio x 4 n cells")
     if int((landscape["improvement_pct"] < 0).sum()) != 35:
         raise AssertionError("Figure 5 deterioration-cell count changed")
-    assert_close(landscape["improvement_pct"].min(), -16.875434, 1e-5)
+    assert_close(landscape["improvement_pct"].min(), -17.504974, 1e-5)
 
     unseen_main = pd.read_csv(DERIVED / "fig6_unseen_beta_improvement.csv")
     if len(unseen_main) != 8 or unseen_main["held_out_beta"].nunique() != 8:
         raise AssertionError("Figure 6 unseen-parameter panel must contain 8 held-out beta levels")
-    negative = unseen_main[unseen_main["minimum"] <= 0]
+    if set(unseen_main.columns) != {"held_out_beta", "improvement_pct"}:
+        raise AssertionError("Figure 6 unseen-parameter source must use the fixed primary seed")
+    negative = unseen_main[unseen_main["improvement_pct"] <= 0]
     if negative["held_out_beta"].tolist() != [1.5]:
         raise AssertionError("Only held-out beta=1.5 should lack improvement")
 
@@ -182,8 +184,13 @@ def check_scientific_values():
         raise AssertionError("Figure 6 traditional panel must contain 4 n x 4 methods")
 
     quantile_main = pd.read_csv(DERIVED / "fig6_quantile_rmse.csv")
-    if len(quantile_main) != 15 or quantile_main["method"].nunique() != 5:
+    if (len(quantile_main) != 15 or quantile_main["method"].nunique() != 5 or
+            set(quantile_main.columns) != {"method", "quantile", "rmse"}):
         raise AssertionError("Figure 6 quantile source must retain all 3 quantiles x 5 methods")
+
+    main_results = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
+    if "raw_mean" in main_results or "raw_min" in main_results or "raw_max" in main_results:
+        raise AssertionError("Figure 3 must use the fixed primary seed, not a seed aggregate")
 
     seeds = pd.read_csv(DERIVED / "supp_seed_stability.csv")
     if len(seeds) != 15 or seeds["seed"].nunique() != 3:

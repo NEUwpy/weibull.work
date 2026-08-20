@@ -32,6 +32,7 @@ SUPP_DIR = FIGURE_DIR / "supplementary"
 DERIVED_DIR = FIGURE_DIR / "data" / "derived"
 TABLES_DIR = FIGURE_DIR / "tables"
 PROVENANCE_DIR = FIGURE_DIR / "provenance"
+PRIMARY_SEED = 42
 
 MM = 1 / 25.4
 COLORS = {
@@ -174,7 +175,8 @@ def write_submission_provenance(paths: dict[str, Path]):
             for path in output_files
         },
         "notes": [
-            "E8 specialist, unseen-beta, and quantile evidence support the formal mean-normalized route.",
+            "Paper main figures use the fixed primary seed 42; seeds 2026 and 3407 are sensitivity evidence only.",
+            "E8 seed42_primary, specialist, unseen-beta, and quantile evidence support the formal mean-normalized route.",
             "E6 traditional_ref supplies unchanged WMLE/LSE comparison values.",
             "E5 selector_output supplies sealed out-of-fold mean-normalized selections bound by the E8 manifest.",
         ],
@@ -493,24 +495,26 @@ def main_results_by_n(summary):
     ns = [7, 10, 15, 20]
     seeds = pd.DataFrame(summary["seed_table"])
     comp = pd.DataFrame(summary["model_comparison"])
+    primary = seeds[seeds["seed"] == PRIMARY_SEED]
+    if len(primary) != 1:
+        raise AssertionError(f"Expected one primary-seed row, got {len(primary)}")
+    primary = primary.iloc[0]
     rows = []
     for n in ns:
-        raw_values = seeds[f"J1_n{n}"].astype(float).to_numpy()
-        default = float(comp.loc[comp["model"] == "Default", f"J1_n{n}"].mean())
-        l6 = float(comp.loc[comp["model"] == "L6-hindsight", f"J1_n{n}"].mean())
+        raw_value = float(primary[f"J1_n{n}"])
+        default = float(comp.loc[(comp["model"] == "Default") &
+                                 (comp["seed"] == PRIMARY_SEED), f"J1_n{n}"].iloc[0])
+        l6 = float(comp.loc[(comp["model"] == "L6-hindsight") &
+                            (comp["seed"] == PRIMARY_SEED), f"J1_n{n}"].iloc[0])
         rows.append({
             "n": n,
-            "raw_mean": raw_values.mean(),
-            "raw_min": raw_values.min(),
-            "raw_max": raw_values.max(),
+            "adaptive": raw_value,
             "default": default,
             "l6": l6,
-            "raw_improvement_pct": 100 * (1 - raw_values.mean() / default),
-            "raw_improvement_min_pct": 100 * (1 - raw_values.max() / default),
-            "raw_improvement_max_pct": 100 * (1 - raw_values.min() / default),
+            "adaptive_improvement_pct": 100 * (1 - raw_value / default),
             "l6_improvement_pct": 100 * (1 - l6 / default),
             "recovered_hindsight_gap_pct": 100 * (
-                default - raw_values.mean()) / (default - l6),
+                default - raw_value) / (default - l6),
         })
     out = pd.DataFrame(rows)
     save_source(out, "fig3_main_results_by_n.csv")
@@ -518,13 +522,7 @@ def main_results_by_n(summary):
 
 
 def sample_loss_difference_by_n(paths):
-    """Summarize paired sample losses after averaging training-run predictions.
-
-    The trained selectors share the same 48,000 evaluation samples. Averaging
-    their realized losses gives each sample one adaptive-method value, so the
-    main figure describes sample heterogeneity without turning initialization
-    variability into another result layer.
-    """
+    """Summarize paired losses for the fixed primary training seed."""
     _, df_full = load_full_scan()
     diag = pd.read_csv(paths["selector_output"] / "diagnostics" /
                        "near_optimal_diagnostics.csv", low_memory=False)
@@ -533,8 +531,10 @@ def sample_loss_difference_by_n(paths):
         keys + ["loss"]].rename(columns={"loss": "default_loss"})
     if default.duplicated(keys).any():
         raise AssertionError("Default sample losses are not unique")
-    adaptive = (diag.groupby(keys, as_index=False)["true_loss"].mean()
-                .rename(columns={"true_loss": "adaptive_loss"}))
+    adaptive = diag[diag["seed"] == PRIMARY_SEED][keys + ["true_loss"]].copy()
+    adaptive = adaptive.rename(columns={"true_loss": "adaptive_loss"})
+    if adaptive.duplicated(keys).any():
+        raise AssertionError("Primary-seed adaptive sample losses are not unique")
     paired = adaptive.merge(default, on=keys, how="left", validate="one_to_one")
     if paired["default_loss"].isna().any():
         raise AssertionError("Missing Default loss for a paired sample")
@@ -566,9 +566,10 @@ def write_parameter_error_decomposition(df_full, diag):
                             "beta_hat", "eta_hat", "gamma_hat"]
     default = df_full[np.isclose(pd.to_numeric(df_full["delta"]), 0.10)][
         estimate_cols].copy()
-    adaptive = (diag.rename(columns={"selected_delta": "delta"})
+    adaptive = (diag[diag["seed"] == PRIMARY_SEED]
+                .rename(columns={"selected_delta": "delta"})
                 .merge(df_full[estimate_cols], on=keys + ["delta"],
-                       how="left", validate="many_to_one"))
+                       how="left", validate="one_to_one"))
     if adaptive[["beta_hat", "eta_hat", "gamma_hat"]].isna().any().any():
         raise AssertionError("Missing selected parameter estimates")
 
@@ -589,17 +590,10 @@ def write_parameter_error_decomposition(df_full, diag):
         }
 
     default_metrics = summarize(default)
-    adaptive_by_run = {run: summarize(group)
-                       for run, group in adaptive.groupby("seed")}
+    adaptive_metrics_all = summarize(adaptive)
     rows = []
     for parameter in ("beta", "eta", "gamma"):
-        adaptive_metrics = {
-            metric: float(np.mean([
-                result[parameter][metric]
-                for result in adaptive_by_run.values()
-            ]))
-            for metric in ("rmse", "median_abs", "p95_abs", "mse")
-        }
+        adaptive_metrics = adaptive_metrics_all[parameter]
         rows.append({
             "parameter": parameter,
             "default_normalized_rmse": default_metrics[parameter]["rmse"],
@@ -647,20 +641,20 @@ def figure_3_main_results(paths, summary):
 
     ax.fill_between(ns, data["l6"], data["default"],
                     color=COLORS["pale_teal"], alpha=0.90, linewidth=0)
-    ax.plot(ns, data["raw_mean"], color=COLORS["raw"], lw=1.8,
+    ax.plot(ns, data["adaptive"], color=COLORS["raw"], lw=1.8,
             marker="o", ms=4.5)
     ax.plot(ns, data["default"], color=COLORS["default"], lw=1.35,
             marker="s", ms=3.8)
     ax.plot(ns, data["l6"], color=COLORS["l6"], lw=1.25,
             marker="^", ms=4.0, linestyle="--")
     for row in data.itertuples():
-        ax.text(row.n, row.raw_mean + 0.018,
+        ax.text(row.n, row.adaptive + 0.018,
                 f"{row.recovered_hindsight_gap_pct:.0f}%",
                 ha="center", va="bottom", fontsize=6.2,
                 color=COLORS["raw"], weight="bold")
     ax.text(20.55, data["default"].iloc[-1], "Default",
             color=COLORS["default"], fontsize=6.3, va="center")
-    ax.text(20.55, data["raw_mean"].iloc[-1], "Adaptive",
+    ax.text(20.55, data["adaptive"].iloc[-1], "Adaptive",
             color=COLORS["raw"], fontsize=6.3, va="center", weight="bold")
     ax.text(20.55, data["l6"].iloc[-1], "L6 hindsight",
             color=COLORS["l6"], fontsize=6.3, va="center")
@@ -714,14 +708,14 @@ def selector_mechanism_data(paths):
     oracle_idx = valid.groupby(keys)["loss"].idxmin()
     oracle = valid.loc[oracle_idx, keys + ["delta", "loss"]].rename(
         columns={"delta": "oracle_delta", "loss": "oracle_loss"})
-    diag = diag.merge(oracle, on=keys, how="left", validate="many_to_one")
+    diag = diag[diag["seed"] == PRIMARY_SEED].copy()
+    diag = diag.merge(oracle, on=keys, how="left", validate="one_to_one")
     if diag["oracle_delta"].isna().any():
         raise AssertionError("Missing hindsight delta for selector diagnostics")
     diag["regret"] = (diag["true_loss"] - diag["oracle_loss"]).clip(lower=0)
 
-    seed42 = diag[diag["seed"] == 42].copy()
-    median_regret = float(seed42["regret"].median())
-    typical = seed42.iloc[(seed42["regret"] - median_regret).abs().argmin()]
+    median_regret = float(diag["regret"].median())
+    typical = diag.iloc[(diag["regret"] - median_regret).abs().argmin()]
     prediction_path = paths["selector_output"] / "predictions" / f"{typical['model_id']}.csv"
     prediction = pd.read_csv(prediction_path, low_memory=False)
     mask = ((prediction["repeat_id"] == int(typical["repeat_id"])) &
@@ -750,7 +744,7 @@ def selector_mechanism_data(paths):
         "beta": float(typical["beta"]),
         "gamma_over_eta": float(typical["gamma_over_eta"]),
         "repeat_id": int(typical["repeat_id"]),
-        "selection_rule": "closest to median regret among seed-42 test predictions",
+        "selection_rule": "closest to median regret among primary-seed test predictions",
     })
     save_source(curve, "fig4_representative_curve.csv")
 
@@ -844,9 +838,9 @@ def parameter_landscape_data(paths):
     raw = pd.read_csv(paths["selector_output"] / "raw_specialist_results.csv",
                       low_memory=False)
     combo = ["beta", "gamma_over_eta", "n"]
-    raw_seed = raw.groupby(["seed"] + combo, as_index=False)["true_loss"].mean()
-    raw_seed["raw_J1"] = np.sqrt(raw_seed["true_loss"])
-    raw_combo = raw_seed.groupby(combo, as_index=False)["raw_J1"].mean()
+    raw_primary = raw[raw["seed"] == PRIMARY_SEED]
+    raw_combo = raw_primary.groupby(combo, as_index=False)["true_loss"].mean()
+    raw_combo["raw_J1"] = np.sqrt(raw_combo["true_loss"])
 
     default = df_full[np.isclose(df_full["delta"], 0.10)].copy()
     default_combo = default.groupby(combo, as_index=False)["loss"].mean()
@@ -908,6 +902,7 @@ def figure_5_parameter_landscape(paths):
 
 def figure_6_support_validation(paths, summary):
     held = pd.read_csv(paths["unseen_beta"] / "beta_holdout.csv")
+    held = held[held["seed"] == PRIMARY_SEED]
     raw_held = held[held["model"] == "Mean-Normalized-MLP"][
         ["held_out_beta", "seed", "J1"]].rename(columns={"J1": "raw_J1"})
     default_held = held[held["model"] == "Default"][
@@ -915,9 +910,7 @@ def figure_6_support_validation(paths, summary):
     unseen = raw_held.merge(default_held, on=["held_out_beta", "seed"],
                             validate="one_to_one")
     unseen["improvement_pct"] = 100 * (1 - unseen["raw_J1"] / unseen["default_J1"])
-    unseen_summary = unseen.groupby("held_out_beta", as_index=False).agg(
-        mean=("improvement_pct", "mean"), minimum=("improvement_pct", "min"),
-        maximum=("improvement_pct", "max"))
+    unseen_summary = unseen[["held_out_beta", "improvement_pct"]].copy()
     save_source(unseen_summary, "fig6_unseen_beta_improvement.csv")
 
     b2 = pd.read_csv(paths["traditional_ref"] / "summary.csv")
@@ -926,7 +919,7 @@ def figure_6_support_validation(paths, summary):
     traditional_rows = []
     for method, model in (("Mean-normalized", "Mean-Normalized-MLP"),
                           ("Default", "Default")):
-        sub = comp[comp["model"] == model]
+        sub = comp[(comp["model"] == model) & (comp["seed"] == PRIMARY_SEED)]
         for n in ns:
             traditional_rows.append({"method": method, "n": n,
                                      "J1": float(sub[f"J1_n{n}"].mean())})
@@ -940,18 +933,15 @@ def figure_6_support_validation(paths, summary):
 
     qraw = pd.read_csv(paths["quantiles"] / "summary.csv")
     qorder = ["Mean-Normalized", "Default", "L6", "WMLE", "LSE"]
-    quantile = (qraw.groupby(["method", "quantile"], as_index=False)
-                .agg(rmse=("rmse", "mean"), minimum=("rmse", "min"),
-                     maximum=("rmse", "max")))
+    qraw = qraw[(qraw["method"] != "Mean-Normalized") |
+                (qraw["seed"] == PRIMARY_SEED)]
+    quantile = qraw[["method", "quantile", "rmse"]].copy()
     save_source(quantile, "fig6_quantile_rmse.csv")
 
     fig, axes = plt.subplots(1, 3, figsize=(183 * MM, 70 * MM),
                              gridspec_kw={"wspace": 0.42})
     ax_a, ax_b, ax_c = axes
-    ax_a.fill_between(unseen_summary["held_out_beta"], unseen_summary["minimum"],
-                      unseen_summary["maximum"], color=COLORS["raw_light"],
-                      alpha=0.4, linewidth=0)
-    ax_a.plot(unseen_summary["held_out_beta"], unseen_summary["mean"],
+    ax_a.plot(unseen_summary["held_out_beta"], unseen_summary["improvement_pct"],
               color=COLORS["raw"], lw=1.5, marker="o", ms=3.5)
     ax_a.axhline(0, color=COLORS["default"], lw=0.8, linestyle="--")
     ax_a.set_xlabel(r"Held-out $\beta$")
@@ -992,11 +982,7 @@ def figure_6_support_validation(paths, summary):
     for method in main_quantile_methods:
         sub = quantile[quantile["method"] == method].set_index("quantile").reindex(qlabels)
         y = sub["rmse"].to_numpy(dtype=float)
-        yerr = None
-        if method == "Mean-Normalized":
-            yerr = np.vstack([y - sub["minimum"].to_numpy(dtype=float),
-                              sub["maximum"].to_numpy(dtype=float) - y])
-        ax_c.errorbar(x + offsets[method], y, yerr=yerr, fmt=markers[method],
+        ax_c.errorbar(x + offsets[method], y, yerr=None, fmt=markers[method],
                       ms=3.7, color=qcolors[method], lw=0.8, capsize=1.8,
                       label=method)
     ax_c.set_xticks(x, [r"$x_{0.90}$", r"$x_{0.95}$", r"$x_{0.99}$"])
@@ -1027,13 +1013,19 @@ def supplementary_seed_stability(summary):
     for offset, seed in zip(offsets, sorted(data["seed"].unique())):
         vals = [data[(data["group"] == label) & (data["seed"] == seed)]["J1"].iloc[0]
                 for label in labels]
-        ax.scatter(x + offset, vals, s=16, facecolor="white", edgecolor=COLORS["raw"],
-                   lw=0.8, label=f"seed {seed}", zorder=3)
-    means = data.groupby("group", sort=False)["J1"].mean().reindex(labels)
+        is_primary = seed == PRIMARY_SEED
+        ax.scatter(x + offset, vals, s=20 if is_primary else 15,
+                   facecolor=COLORS["raw"] if is_primary else "white",
+                   edgecolor=COLORS["raw"], lw=0.8,
+                   label=f"seed {seed}" + (" (primary)" if is_primary else ""),
+                   zorder=4 if is_primary else 3)
     mins = data.groupby("group", sort=False)["J1"].min().reindex(labels)
     maxs = data.groupby("group", sort=False)["J1"].max().reindex(labels)
-    ax.errorbar(x, means, yerr=np.vstack([means - mins, maxs - means]), fmt="o",
-                color=COLORS["raw"], ms=4, capsize=2.5, lw=1.1, label="mean and range")
+    primary = (data[data["seed"] == PRIMARY_SEED].set_index("group")["J1"]
+               .reindex(labels))
+    ax.errorbar(x, primary, yerr=np.vstack([primary - mins, maxs - primary]),
+                fmt="none", color=COLORS["raw_light"], capsize=2.5, lw=1.1,
+                label="three-seed range")
     ax.set_xticks(x, labels)
     ax.set_ylabel(r"Pooled $J_1$")
     style_axis(ax)
@@ -1046,9 +1038,12 @@ def supplementary_unseen_beta(paths):
     raw["method"] = raw["model"].replace(
         {"Mean-Normalized-MLP": "Mean-normalized"})
     data = (raw.groupby(["held_out_beta", "method"], as_index=False)
-            .agg(J1=("J1", "mean"), seed_min=("J1", "min"),
-                 seed_max=("J1", "max"))
+            .agg(seed_min=("J1", "min"), seed_max=("J1", "max"))
             .rename(columns={"held_out_beta": "beta"}))
+    primary = (raw[raw["seed"] == PRIMARY_SEED]
+               [["held_out_beta", "method", "J1"]]
+               .rename(columns={"held_out_beta": "beta", "J1": "primary_J1"}))
+    data = data.merge(primary, on=["beta", "method"], validate="one_to_one")
     betas = sorted(data["beta"].astype(float).unique())
     save_source(data, "supp_unseen_beta.csv")
 
@@ -1063,14 +1058,14 @@ def supplementary_unseen_beta(paths):
         if method == "Mean-normalized":
             ax.fill_between(sub["beta"], sub["seed_min"], sub["seed_max"],
                             color=COLORS["raw_light"], alpha=0.35, linewidth=0)
-        ax.plot(sub["beta"], sub["J1"], color=color, marker=marker, ms=4,
+        ax.plot(sub["beta"], sub["primary_J1"], color=color, marker=marker, ms=4,
                 lw=1.5, linestyle=ls, label=method)
     ax.set_xlabel(r"Held-out shape parameter, $\beta$")
     ax.set_ylabel(r"Pooled $J_1$")
     ax.set_xticks(betas)
     style_axis(ax)
     ax.legend(loc="upper left")
-    ax.text(0.98, 0.03, "Shading: range across 3 seeds",
+    ax.text(0.98, 0.03, "Line: primary seed 42; shading: three-seed range",
             transform=ax.transAxes, ha="right", fontsize=6.1, color=COLORS["muted"])
     export_figure(fig, "supp_fig_unseen_beta", SUPP_DIR)
 
@@ -1082,7 +1077,7 @@ def supplementary_traditional(paths, summary):
     rows = []
     for method, model in (("Mean-normalized", "Mean-Normalized-MLP"),
                           ("Default", "Default"), ("L6", "L6-hindsight")):
-        sub = comp[comp["model"] == model]
+        sub = comp[(comp["model"] == model) & (comp["seed"] == PRIMARY_SEED)]
         for n in ns:
             rows.append({"method": method, "n": n,
                          "J1": float(sub[f"J1_n{n}"].mean())})
@@ -1116,9 +1111,11 @@ def supplementary_traditional(paths, summary):
 def supplementary_quantiles(paths):
     raw = pd.read_csv(paths["quantiles"] / "summary.csv")
     order = ["Mean-Normalized", "Default", "L6", "WMLE", "LSE"]
-    agg = (raw.groupby(["method", "quantile"], as_index=False)
-           .agg(rmse=("rmse", "mean"), rmse_min=("rmse", "min"),
-                rmse_max=("rmse", "max")))
+    ranges = (raw.groupby(["method", "quantile"], as_index=False)
+              .agg(rmse_min=("rmse", "min"), rmse_max=("rmse", "max")))
+    primary = raw[(raw["method"] != "Mean-Normalized") |
+                  (raw["seed"] == PRIMARY_SEED)][["method", "quantile", "rmse"]]
+    agg = primary.merge(ranges, on=["method", "quantile"], validate="one_to_one")
     agg["method"] = pd.Categorical(agg["method"], order, ordered=True)
     agg = agg.sort_values(["method", "quantile"])
     save_source(agg, "supp_quantile_rmse.csv")
@@ -1147,7 +1144,7 @@ def supplementary_quantiles(paths):
     ax.set_ylabel("Relative RMSE")
     style_axis(ax)
     ax.legend(ncol=3, loc="upper left", columnspacing=1.0, handletextpad=0.4)
-    ax.text(0.98, 0.03, "Error bars: range across 3 seeds (mean-normalized)",
+    ax.text(0.98, 0.03, "Mean-normalized point: primary seed 42; error bars: three-seed range",
             transform=ax.transAxes, ha="right", fontsize=6.0, color=COLORS["muted"])
     export_figure(fig, "supp_fig_quantile_rmse", SUPP_DIR)
 
@@ -1163,7 +1160,7 @@ def write_mean_selector_tables(paths, summary):
     ]
     main_rows = []
     for label, model in labels:
-        sub = comp[comp["model"] == model]
+        sub = comp[(comp["model"] == model) & (comp["seed"] == PRIMARY_SEED)]
         main_rows.append({
             "方法": label,
             "$J_1$ pooled": float(sub["J1"].mean()),
@@ -1186,8 +1183,8 @@ def write_mean_selector_tables(paths, summary):
         "\n".join(lines) + "\n", encoding="utf-8")
 
     held = pd.read_csv(paths["unseen_beta"] / "beta_holdout.csv")
-    held_table = (held.groupby(["held_out_beta", "model"], as_index=False)["J1"]
-                  .mean().pivot(index="held_out_beta", columns="model", values="J1")
+    held_table = (held[held["seed"] == PRIMARY_SEED]
+                  .pivot(index="held_out_beta", columns="model", values="J1")
                   .reset_index())
     held_table = held_table[["held_out_beta", "Mean-Normalized-MLP", "Default", "L6"]]
     held_table.columns = ["留出 $\\beta$", "Mean-normalized $J_1$",
@@ -1205,12 +1202,14 @@ def write_mean_selector_tables(paths, summary):
         "\n".join(held_lines) + "\n", encoding="utf-8")
 
     qraw = pd.read_csv(paths["quantiles"] / "summary.csv")
-    qtable = (qraw.groupby(["method", "quantile"], as_index=False)
-              .agg(**{"相对 Bias": ("bias", "mean"),
-                      "相对 RMSE": ("rmse", "mean"),
-                      "相对 MAE": ("mae", "mean"),
-                      "P95(|相对误差|)": ("p95_abs_rel", "mean"),
-                      "失败率": ("failure_rate", "mean")}))
+    qtable = qraw[(qraw["method"] != "Mean-Normalized") |
+                  (qraw["seed"] == PRIMARY_SEED)].copy()
+    qtable = qtable.rename(columns={"bias": "相对 Bias", "rmse": "相对 RMSE",
+                                    "mae": "相对 MAE",
+                                    "p95_abs_rel": "P95(|相对误差|)",
+                                    "failure_rate": "失败率"})
+    qtable = qtable[["method", "quantile", "相对 Bias", "相对 RMSE",
+                     "相对 MAE", "P95(|相对误差|)", "失败率"]]
     qtable = qtable.rename(columns={"method": "方法", "quantile": "分位点"})
     order = ["Mean-Normalized", "Default", "L6", "WMLE", "LSE"]
     qtable["方法"] = pd.Categorical(qtable["方法"], order, ordered=True)
@@ -1230,30 +1229,38 @@ def write_mean_selector_tables(paths, summary):
     (TABLES_DIR / "supp_table_quantiles.md").write_text(
         "\n".join(qlines) + "\n", encoding="utf-8")
 
-    unseen = read_json(paths["unseen_beta"] / "summary.json")
-    quant = read_json(paths["quantiles"] / "summary.json")
+    primary_main = comp[(comp["model"] == "Mean-Normalized-MLP") &
+                        (comp["seed"] == PRIMARY_SEED)].iloc[0]
+    stability = pd.DataFrame(summary["seed_table"])["pooled_J1"]
+    primary_unseen = held[held["seed"] == PRIMARY_SEED]
+    unseen_model = primary_unseen[primary_unseen["model"] == "Mean-Normalized-MLP"]
+    unseen_default = primary_unseen[primary_unseen["model"] == "Default"]
+    unseen_j1 = float(np.sqrt(np.mean(unseen_model["J1"].to_numpy(dtype=float) ** 2)))
+    unseen_default_j1 = float(np.sqrt(np.mean(unseen_default["J1"].to_numpy(dtype=float) ** 2)))
+    unseen_improvement = 100 * (1 - unseen_j1 / unseen_default_j1)
+    primary_quantile = qtable[qtable["方法"] == "Mean-normalized"]
     support_rows = [
         {
             "问题": "是否依赖一次随机初始化",
-            "证据": "三 seed、60 个 fold×seed 模型",
-            "结论": (f"pooled $J_1$ = {summary['mean_normalized_3seed']['pooled_J1_mean']:.4f} "
-                    f"± {summary['mean_normalized_3seed']['pooled_J1_std']:.4f}"),
+            "证据": "固定 seed 42 为主结果；2026/3407 作初始化敏感性核查",
+            "结论": (f"主结果 pooled $J_1$ = {primary_main['J1']:.4f}; "
+                    f"三 seed 范围 {stability.min():.4f}–{stability.max():.4f}"),
         },
         {
             "问题": "未见参数值能否保持收益",
             "证据": "按 $\\beta$ 水平逐一留出（8 折）",
-            "结论": (f"pooled $J_1$ = {unseen['pooled']['mean_normalized_3seed']['pooled_J1_mean']:.4f}; "
-                    f"相对 Default 降低 {100*unseen['pooled']['relative_improvement_vs_Default']:.1f}%"),
+            "结论": (f"seed 42 pooled $J_1$ = {unseen_j1:.4f}; "
+                    f"相对 Default 降低 {unseen_improvement:.1f}%"),
         },
         {
             "问题": "与传统方法相比位于什么水平",
             "证据": "WMLE/LSE 同一 48,000 样本外部参照",
-            "结论": "Mean-normalized 0.5850；WMLE 0.7288；LSE 0.8725",
+            "结论": "Mean-normalized (seed 42) 0.5846；WMLE 0.7288；LSE 0.8725",
         },
         {
             "问题": "参数收益能否传递到工程寿命",
             "证据": "$x_{0.90},x_{0.95},x_{0.99}$ 重派生",
-            "结论": ("传递有限：相对 RMSE 为 0.1609、0.2134、0.3744；"
+            "结论": ("传递有限：seed 42 相对 RMSE 为 0.1608、0.2136、0.3753；"
                     "对应 Default 为 0.1607、0.2142、0.3777"),
         },
     ]
