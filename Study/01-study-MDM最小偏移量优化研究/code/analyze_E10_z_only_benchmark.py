@@ -71,6 +71,7 @@ DEFAULT_INDEX = int(
 )
 SAMPLE_KEYS = list(E6.SAMPLE_KEYS)
 CANDIDATES = ("ridge", "knn", "extra_trees", "mlp_current", "mlp_wide")
+LEARNING_REPEATS_PER_CELL = (40, 80, 120, 160, 200)
 
 
 def sha256_lf(path: Path) -> str:
@@ -465,12 +466,13 @@ def gap_decomposition(sample_losses: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     return pd.DataFrame(rows), {
         "risk": risk,
         "default_to_l6_R_gap": total,
-        "three_part_identity_abs_error": identity_error,
+        "additive_identity_abs_error": identity_error,
         "z_reference_status": status,
         "interpretation": (
-            "The selected Z-only learner is an achieved empirical risk and "
-            "therefore an upper bound on the design-distribution Z-only optimum; "
-            "it is not the exact Bayes risk."
+            "In population, the risk of any fixed Z-only rule cannot be lower "
+            "than the Z-only Bayes risk. The confirmation value here is a sample "
+            "estimate for one achieved rule, not an exact Bayes risk or a formal "
+            "finite-sample confidence bound on it."
         ),
     }
 
@@ -574,6 +576,66 @@ def mechanism_by_cell(sample_losses: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     return table, pooled
 
 
+def learning_curve(
+    scan: pd.DataFrame,
+    z_map: dict,
+    selected_candidates: dict[int, str],
+) -> tuple[pd.DataFrame, dict]:
+    """Diagnose whether the selected Z-only reference is still data limited."""
+    rows = []
+    for n_value in CFG.N_GRID:
+        keys, x, y = matrices_for_n(scan, z_map, int(n_value))
+        repeat_ids = keys["repeat_id"].to_numpy(dtype=int)
+        confirm = np.isin(repeat_ids, list(CONFIRMATION_REPEATS))
+        candidate = selected_candidates[int(n_value)]
+        for repeats_per_cell in LEARNING_REPEATS_PER_CELL:
+            train = (repeat_ids >= 0) & (repeat_ids < repeats_per_cell)
+            expected_train = 40 * repeats_per_cell
+            if int(train.sum()) != expected_train or int(confirm.sum()) != 4_000:
+                raise RuntimeError("broken learning-curve partition")
+            print(
+                f"[E10 learning] n={n_value} candidate={candidate} "
+                f"repeats_per_cell={repeats_per_cell}", flush=True,
+            )
+            prediction, metadata = fit_predict(
+                candidate, x[train], y[train], x[confirm]
+            )
+            _, losses = selected_loss(prediction, y[confirm])
+            rows.append({
+                "n": int(n_value),
+                "candidate": candidate,
+                "repeats_per_cell": int(repeats_per_cell),
+                "training_samples": int(train.sum()),
+                "confirmation_samples": int(confirm.sum()),
+                "R_mean_loss": float(np.mean(losses)),
+                "J1": j1(losses),
+                "fit_seconds": metadata["fit_seconds"],
+            })
+    table = pd.DataFrame(rows)
+    pooled_rows = []
+    for repeats_per_cell, group in table.groupby("repeats_per_cell", sort=True):
+        # Every n contributes the same 4,000 confirmation samples.
+        risk = float(group["R_mean_loss"].mean())
+        pooled_rows.append({
+            "repeats_per_cell": int(repeats_per_cell),
+            "R_mean_loss": risk,
+            "J1": math.sqrt(risk),
+        })
+    pooled = pd.DataFrame(pooled_rows)
+    r160 = float(pooled.loc[pooled["repeats_per_cell"] == 160, "R_mean_loss"].iloc[0])
+    r200 = float(pooled.loc[pooled["repeats_per_cell"] == 200, "R_mean_loss"].iloc[0])
+    summary = {
+        "pooled": pooled.to_dict(orient="records"),
+        "R_change_160_to_200": r200 - r160,
+        "relative_R_change_160_to_200": (r200 - r160) / r160,
+        "interpretation_boundary": (
+            "Repeated evaluation on the fixed confirmation set is descriptive; "
+            "the curve diagnoses data sensitivity but is not used for model selection."
+        ),
+    }
+    return table, summary
+
+
 def write_report(summary: dict, method_table: pd.DataFrame) -> None:
     pooled = method_table[method_table["n"].astype(str) == "pooled"].set_index("method")
     risk = summary["gap_decomposition"]["risk"]
@@ -608,8 +670,11 @@ def write_report(summary: dict, method_table: pd.DataFrame) -> None:
         f"- Z-only 经验参照状态：`{summary['gap_decomposition']['z_reference_status']}`。",
         "- L5 与 Z-only 使用不同信息，不能排列成单向层级。",
         "- L6 使用真参数与当前样本，是 26 点网格内的完全信息事后参照。",
-        "- Z-only 经验参照只是一个已实现规则，因此只能给 $R_Z^*$ 提供上界；"
-        "L6 给出下界。两者之间不能全部归因于网络能力。",
+        "- Z-only 经验参照只是一个已实现规则。在总体风险意义下，它位于"
+        "$R_Z^*$ 之上；这里报告的是该规则的确认集估计值，不是精确 Bayes 风险或"
+        "严格的有限样本界。",
+        "- L6 给出逐样本的完全信息下界；经验参照与 L6 之间的距离仍混合了"
+        "进一步可学习空间和完全信息差，不能全部归因于其中任何一项。",
         "- 可加差距使用 $R=J_1^2$，不直接加减 $J_1$。",
         "",
         "## 风险值",
@@ -638,6 +703,7 @@ def run() -> dict:
     gaps, gap_summary = gap_decomposition(sample_losses)
     bootstrap = paired_repeat_bootstrap(sample_losses)
     mechanism_cells, mechanism_summary = mechanism_by_cell(sample_losses)
+    learning, learning_summary = learning_curve(scan, z_map, selected_candidates)
 
     validation.to_csv(OUTPUT_DIR / "validation_candidates.csv", index=False, lineterminator="\n")
     methods.to_csv(OUTPUT_DIR / "confirmation_by_method.csv", index=False, lineterminator="\n")
@@ -646,6 +712,7 @@ def run() -> dict:
     mechanism_cells.to_csv(
         OUTPUT_DIR / "mechanism_by_cell.csv", index=False, lineterminator="\n"
     )
+    learning.to_csv(OUTPUT_DIR / "learning_curve.csv", index=False, lineterminator="\n")
     # The row-level confirmation table is needed for independent recomputation
     # but is compact enough to remain a candidate artifact.
     sample_losses.to_csv(
@@ -671,6 +738,7 @@ def run() -> dict:
         "input_integrity": integrity,
         "gap_decomposition": gap_summary,
         "realization_mechanism": mechanism_summary,
+        "learning_curve": learning_summary,
         "runtime_seconds": float(time.time() - started),
         "seed": SEED,
         "candidate_set": list(CANDIDATES),

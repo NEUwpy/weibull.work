@@ -71,7 +71,7 @@ def test_gap_decomposition_is_additive_on_risk_not_j1():
         "l6_loss": [3.0, 1.0],
     })
     rows, summary = E10.gap_decomposition(df)
-    assert summary["three_part_identity_abs_error"] < 1e-15
+    assert summary["additive_identity_abs_error"] < 1e-15
     assert np.isclose(rows.iloc[:4]["R_difference"].sum(), 6.0)
     assert summary["z_reference_status"] == "TIGHTER_ACHIEVED_Z_ONLY_REFERENCE"
 
@@ -98,6 +98,14 @@ def test_confirmation_separates_holdout_protocol_from_model_flexibility():
     gap_source = inspect.getsource(E10.gap_decomposition)
     assert "paper_mlp_to_in_domain_current_architecture" in gap_source
     assert "current_architecture_to_flexible_reference" in gap_source
+
+
+def test_learning_curve_never_trains_on_confirmation_repeats():
+    assert E10.LEARNING_REPEATS_PER_CELL == (40, 80, 120, 160, 200)
+    assert max(E10.LEARNING_REPEATS_PER_CELL) <= min(E10.CONFIRMATION_REPEATS)
+    source = inspect.getsource(E10.learning_curve)
+    assert "repeat_ids < repeats_per_cell" in source
+    assert "descriptive" in source
 
 
 def test_run_requires_explicit_flag_and_writes_candidate_only():
