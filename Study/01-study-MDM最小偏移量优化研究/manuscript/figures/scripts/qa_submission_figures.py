@@ -31,6 +31,7 @@ FIGURES = {
     "supp_fig_parameter_guided": SUPP,
     "supp_fig_parameter_landscape": SUPP,
     "supp_fig_z_only_learning_curve": SUPP,
+    "supp_fig_decision_conditions": SUPP,
 }
 FORMATS = ("png", "svg", "pdf", "tiff")
 
@@ -173,12 +174,41 @@ def check_scientific_values():
         if not values[0] <= values[1] <= values[2]:
             raise AssertionError("Figure 4 excess-loss quantiles are not monotone")
 
-    cells = pd.read_csv(DERIVED / "fig5_within_cell_hindsight.csv")
-    if (len(cells) != 160 or cells["beta"].nunique() != 8 or
-            cells["gamma_over_eta"].nunique() != 5 or cells["n"].nunique() != 4):
-        raise AssertionError("Figure 5 within-cell evidence must contain 160 cells")
-    assert_close(cells["l6_effective_delta_count"].median(), 6.09, 1e-2)
-    risk_path = pd.read_csv(DERIVED / "fig5_z_only_risk_path.csv")
+    profiles = pd.read_csv(DERIVED / "fig5_profile_gradient_curves.csv")
+    if set(profiles["profile_group"]) != {"low", "middle", "high"}:
+        raise AssertionError("Figure 5 must contain three central-cell profile curves")
+    representatives = profiles.groupby("profile_group").first()
+    if representatives["repeat_id"].nunique() != 3:
+        raise AssertionError("Figure 5 profile curves must use three distinct samples")
+    expected_l6 = {"low": 0.14, "middle": 0.04, "high": 0.00}
+    for group, expected in expected_l6.items():
+        assert_close(representatives.loc[group, "l6_delta"], expected, 1e-12)
+
+    conditional = pd.read_csv(DERIVED / "fig5_conditional_excess_loss.csv")
+    if len(conditional) != 3 * 26 or not conditional.groupby("tertile")["delta"].nunique().eq(26).all():
+        raise AssertionError("Figure 5 conditional curves must contain 3 tertiles x 26 offsets")
+    minima = conditional.loc[
+        conditional.groupby("tertile")["mean_excess_over_l6"].idxmin()
+    ]
+    found_minima = dict(zip(minima["tertile"], minima["delta"]))
+    if found_minima != {"low": 0.10, "middle": 0.04, "high": 0.02}:
+        raise AssertionError(f"Figure 5 conditional minima changed: {found_minima}")
+
+    cells = pd.read_csv(DERIVED / "fig5_cell_associations.csv")
+    if (len(cells) != 20 or cells["beta"].nunique() != 3 or
+            cells["gamma_over_eta"].nunique() != 3 or cells["n"].nunique() != 4):
+        raise AssertionError("Figure 5 mechanism evidence must contain 20 predeclared cells")
+    assert_close(cells["rho_g0_l6_delta"].median(), 0.6515246409, 1e-9)
+    assert_close(cells["rho_default_gamma_l6_delta"].median(), -0.7653155735, 1e-9)
+    if not (cells["rho_default_gamma_l6_delta"] < 0).all():
+        raise AssertionError("Default gamma versus L6 offset must be negative in all 20 cells")
+
+    supp_cells = pd.read_csv(DERIVED / "supp_decision_within_cell_hindsight.csv")
+    if (len(supp_cells) != 160 or supp_cells["beta"].nunique() != 8 or
+            supp_cells["gamma_over_eta"].nunique() != 5 or supp_cells["n"].nunique() != 4):
+        raise AssertionError("Supplementary decision evidence must contain 160 cells")
+    assert_close(supp_cells["l6_effective_delta_count"].median(), 6.09, 1e-2)
+    risk_path = pd.read_csv(DERIVED / "supp_decision_z_only_risk_path.csv")
     expected_methods = [
         "Default", "Paper-MLP", "In-domain-current-MLP",
         "Z-only-empirical-reference", "L6-complete-information",
@@ -298,6 +328,7 @@ def main():
             "three-parameter normalized error decomposition",
             "representative risk curve and full 26 x 26 offset correspondence",
             "excess-loss quantile monotonicity",
+            "20-cell MDM profile-gradient mechanism and conditional risk-curve shift",
             "160-cell hindsight-choice diversity and five-condition risk path",
             "Z-only data-size diagnostic",
             "160-cell supplementary parameter landscape and 35 deterioration cells",
@@ -314,10 +345,18 @@ def main():
         "editable_svg_text": True,
         "files": records,
     }
-    (ROOT / "provenance" / "submission_figure_qa.json").write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    report_path = ROOT / "provenance" / "submission_figure_qa.json"
+    report_temporary = ROOT / "provenance" / "submission_figure_qa.new.json"
+    report_temporary.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
-    print("PASS: 13 figures, 52 exports, editable SVG text, scientific values verified")
+    report_temporary.replace(report_path)
+    print(
+        f"PASS: {len(FIGURES)} figures, {len(records)} exports, "
+        "editable SVG text, scientific values verified"
+    )
 
 
 if __name__ == "__main__":

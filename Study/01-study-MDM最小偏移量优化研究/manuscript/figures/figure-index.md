@@ -8,7 +8,7 @@
 | 图 2 | `main/fig2_overall_delta_risk.png` | 经验值 0.1 是否已经接近最佳统一偏移量？ | `fig2_overall_delta_risk()` | E5 shared-data 的 160 组合 Monte Carlo 损失扫描 |
 | 图 3 | `main/fig3_per_n_J1.png` | 各样本量下总体误差改善多少，Default–L6 观测差距有多大，以及改善是否覆盖多数样本？ | `figure_3_main_results()` | E8 `seed42_primary/`、E5 封存 seed-42 折外选择与 shared-data 损失扫描；派生表为 `data/derived/fig3_main_results_by_n.csv` 和 `fig3_sample_loss_difference_quantiles.csv` |
 | 图 4 | `main/fig4_selector_mechanism.png` | 网络预测的风险曲线如何转化为偏移量选择，实际选择与 hindsight 的差距有多大？ | `figure_4_selector_mechanism()` | E5 封存均值归一化折外预测和 shared-data 逐 $\delta$ 损失 |
-| 图 5 | `main/fig5_decision_mechanism.png` | 同一参数条件内的事后最佳偏移量是否会随样本改变，只使用可观测样本时当前方法还有多少改进余地？ | `figure_5_decision_mechanism()` | E10 `mechanism_by_cell.csv`、`confirmation_by_method.csv` 和 `summary.json` |
+| 图 5 | `main/fig5_decision_mechanism.png` | 同一参数条件下，抽样结果为何会改变低风险偏移量？ | `figure_5_decision_mechanism()` | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` 和 `summary.json` |
 | 图 6 | `main/fig6_support_validation.png` | 未见参数、传统估计方法和可靠度寿命三类验证如何限定主结果？ | `figure_6_support_validation()` | E8 `seed42_primary/`、`unseen_beta/`、`quantiles/` 与 E6 `traditional_ref/`；正文面板均使用 seed 42 |
 
 ## 正文表
@@ -28,8 +28,9 @@
 | 图 D1 | `supplementary/supp_fig_unseen_beta.png` | 逐一留出未参与训练的形状参数水平后汇总收益及局部例外如何？ | E8 `unseen_beta/summary.json` 与 `beta_holdout.csv` |
 | 图 E1 | `supplementary/supp_fig_traditional_per_n.png` | 与 WMLE、LSE 的外部参照关系如何？ | E6 `traditional_ref/summary.csv` 与 specialist summary |
 | 图 E2 | `supplementary/supp_fig_quantile_rmse.png` | 参数精度改善是否传递到可靠度寿命？ | E8 `quantiles/summary.csv` |
-| 图 F1 | `supplementary/supp_fig_parameter_landscape.png` | 总体改善在 160 个参数条件中如何分布，哪些单元出现退化？ | E5 shared-data 损失扫描与均值归一化折外预测的逐样本配对汇总 |
-| 图 F2 | `supplementary/supp_fig_z_only_learning_curve.png` | 灵活 $Z$-only 参照的确认风险是否仍对拟合数据量敏感？ | E10 `learning_curve.csv`；固定确认集，不参与选模 |
+| 图 F1 | `supplementary/supp_fig_decision_conditions.png` | 参数条件平均、可观测样本规则与逐样本事后信息的确认风险有何差别？ | E10 `mechanism_by_cell.csv`、`confirmation_by_method.csv` 和 `summary.json` |
+| 图 F2 | `supplementary/supp_fig_parameter_landscape.png` | 总体改善在 160 个参数条件中如何分布，哪些单元出现退化？ | E5 shared-data 损失扫描与均值归一化折外预测的逐样本配对汇总 |
+| 图 F3 | `supplementary/supp_fig_z_only_learning_curve.png` | 灵活 $Z$-only 参照的确认风险是否仍对拟合数据量敏感？ | E10 `learning_curve.csv`；固定确认集，不参与选模 |
 | 表 C1、C2 | `tables/supp_table_parameter_guided.*` | 参数引导 12 个单步/迭代变体的 J1、配对 CI 与最佳规则分 beta 结果 | PG 正式产物 `artifacts/formal/pg_selector/`（`paired_bootstrap.csv`、`summary_by_beta.csv`、`variant_summary.csv`） |
 | 表 D1 | `tables/supp_table_unseen_beta.*` | 每个留出 beta 的结果 | E8 `unseen_beta/beta_holdout.csv` |
 | 表 E1 | `tables/supp_table_traditional.*` | 传统方法参数 Bias/RMSE | E6 `traditional_ref/summary.json` |
@@ -37,6 +38,6 @@
 
 ## 投稿版状态
 
-图 1–6 和附录图 C1、D1、E1、E2、F1、F2 均已重画，并导出 PNG/SVG/PDF/TIFF。正文图固定使用 seed 42；初始化稳定性由附录表 B2 报告，未在正文图中重复显示。制图源数据位于 `data/derived/`，图注和 Markdown 引用见 `captions-and-citations.md`，自动 QA 结果见 `provenance/submission_figure_qa.json`。被替换的 E6 有量纲主路线图表保存在 `archive/replaced/e6-dimensional-raw-20260819/`。
+图 1–6 和附录图 C1、D1、E1、E2、F1–F3 均已重画，并导出 PNG/SVG/PDF/TIFF。正文图固定使用 seed 42；初始化稳定性由附录表 B2 报告，未在正文图中重复显示。制图源数据位于 `data/derived/`，图注和 Markdown 引用见 `captions-and-citations.md`，自动 QA 结果见 `provenance/submission_figure_qa.json`。被替换的 E6 有量纲主路线图表和旧版图 5 均保存在 `archive/replaced/`。
 
-初始七图包完成三轮视觉检查后，又对正文扩充包完成三轮独立检查：先退回 Fig. 2、4、6 的遮挡与层次问题，再修复 Fig. 5 面板标号和 Fig. 6 图例，最后逐图复核。E10 机制图加入后，当前包共含 13 张图、52 个导出文件，均已执行数值和格式检查。
+初始七图包完成三轮视觉检查后，又对正文扩充包完成三轮独立检查。E11 机制图加入后，当前包共含 14 张图、56 个导出文件；旧 E10 条件风险图移入附录，均执行数值和格式检查。

@@ -136,12 +136,15 @@ def export_figure(fig, stem: str, folder: Path, *, tiff=True):
 
 def save_source(df: pd.DataFrame, name: str):
     DERIVED_DIR.mkdir(parents=True, exist_ok=True)
+    target = DERIVED_DIR / name
+    temporary = target.with_name(f"{target.stem}.new{target.suffix}")
     df.to_csv(
-        DERIVED_DIR / name,
+        temporary,
         index=False,
         encoding="utf-8",
         lineterminator="\n",
     )
+    temporary.replace(target)
 
 
 def normalize_generated_text_to_lf(path: Path) -> None:
@@ -203,20 +206,26 @@ def write_submission_provenance(paths: dict[str, Path]):
             "E8 seed42_primary, specialist, unseen-beta, and quantile evidence support the formal mean-normalized route.",
             "E6 traditional_ref supplies unchanged WMLE/LSE comparison values.",
             "E5 selector_output supplies sealed out-of-fold mean-normalized selections bound by the E8 manifest.",
+            "E11 supplies the bounded 20-cell profile-gradient mechanism diagnostic used in Figure 5.",
             "Tracked text outputs are normalized to LF before hashing so repository bytes reproduce the ledger on Windows and Unix checkouts.",
         ],
     }
     PROVENANCE_DIR.mkdir(parents=True, exist_ok=True)
     manifest_path = PROVENANCE_DIR / "manifest.json"
-    with manifest_path.open("w", encoding="utf-8", newline="\n") as handle:
+    manifest_temporary = PROVENANCE_DIR / "manifest.new.json"
+    with manifest_temporary.open("w", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    manifest_temporary.replace(manifest_path)
     checksum_lines = [
         f"{digest}  {name}" for name, digest in sorted(manifest["outputs"].items())
     ]
-    with (PROVENANCE_DIR / "SHA256SUMS").open(
+    checksum_path = PROVENANCE_DIR / "SHA256SUMS"
+    checksum_temporary = PROVENANCE_DIR / "SHA256SUMS.new"
+    with checksum_temporary.open(
         "w", encoding="utf-8", newline="\n"
     ) as handle:
         handle.write("\n".join(checksum_lines) + "\n")
+    checksum_temporary.replace(checksum_path)
 
 
 def load_summary(paths):
@@ -910,14 +919,13 @@ def e10_mechanism_data(paths):
         "n", "candidate", "repeats_per_cell", "training_samples",
         "confirmation_samples", "R_mean_loss", "J1",
     ]].copy()
-    save_source(cell_source, "fig5_within_cell_hindsight.csv")
-    save_source(risk_source, "fig5_z_only_risk_path.csv")
-    save_source(learning_source, "supp_z_only_learning_curve.csv")
     return summary, cell_source, risk_source, learning_source
 
 
-def figure_5_decision_mechanism(paths):
+def supplementary_decision_conditions(paths):
     summary, cells, risk, _ = e10_mechanism_data(paths)
+    save_source(cells, "supp_decision_within_cell_hindsight.csv")
+    save_source(risk, "supp_decision_z_only_risk_path.csv")
     ns = [7, 10, 15, 20]
     fig, (ax_diversity, ax_risk) = plt.subplots(
         1, 2, figsize=(183 * MM, 82 * MM),
@@ -1016,6 +1024,152 @@ def figure_5_decision_mechanism(paths):
     style_axis(ax_risk, ygrid=True)
     panel_label(ax_risk, "b")
     fig.subplots_adjust(bottom=0.24)
+    export_figure(fig, "supp_fig_decision_conditions", SUPP_DIR)
+
+
+def e11_profile_mechanism_data(paths):
+    """Load compact E11 profile diagnostics without re-running MDM."""
+    root = paths["e11_profile_mechanism"]
+    summary = read_json(root / "summary.json")
+    representatives = pd.read_csv(root / "representative_gradient_curves.csv")
+    curves = pd.read_csv(root / "conditional_loss_curves.csv")
+    cells = pd.read_csv(root / "cell_associations.csv")
+
+    conditional = curves[curves["stratifier"] == "default_gamma_hat"].copy()
+    if len(conditional) != 3 * 26:
+        raise AssertionError("E11 default-gamma conditional curves are incomplete")
+    if len(cells) != 20 or set(cells["n"].astype(int)) != {7, 10, 15, 20}:
+        raise AssertionError("E11 cell association table is incomplete")
+
+    save_source(representatives, "fig5_profile_gradient_curves.csv")
+    save_source(conditional, "fig5_conditional_excess_loss.csv")
+    save_source(cells, "fig5_cell_associations.csv")
+    return summary, representatives, conditional, cells
+
+
+def figure_5_decision_mechanism(paths):
+    """Explain how sample realisation moves the MDM profile and low-risk offset."""
+    summary, representatives, conditional, cells = e11_profile_mechanism_data(paths)
+    fig = plt.figure(figsize=(183 * MM, 125 * MM))
+    grid = fig.add_gridspec(
+        2, 2, height_ratios=[1.06, 0.94], width_ratios=[1.34, 0.86],
+        hspace=0.46, wspace=0.34,
+    )
+    ax_profile = fig.add_subplot(grid[0, :])
+    ax_loss = fig.add_subplot(grid[1, 0])
+    ax_rho = fig.add_subplot(grid[1, 1])
+
+    group_order = ["low", "middle", "high"]
+    group_colors = {
+        "low": "#2B6F92",
+        "middle": "#7A7A7A",
+        "high": "#C76A3A",
+    }
+    group_labels = {
+        "low": r"Low $\hat{\gamma}_{0.1}/\eta$",
+        "middle": r"Middle $\hat{\gamma}_{0.1}/\eta$",
+        "high": r"High $\hat{\gamma}_{0.1}/\eta$",
+    }
+
+    # Panel a: same true cell, three observed samples, three empirical profiles.
+    for group in group_order:
+        frame = representatives[representatives["profile_group"] == group].sort_values(
+            "gamma_over_eta"
+        )
+        if frame.empty:
+            raise AssertionError(f"missing E11 representative group: {group}")
+        first = frame.iloc[0]
+        color = group_colors[group]
+        ax_profile.plot(
+            frame["gamma_over_eta"], frame["gradient"], color=color, lw=1.45,
+            label=(
+                f"{group_labels[group]}  "
+                rf"($\delta_{{L6}}={first['l6_delta']:.2f}$)"
+            ),
+        )
+        ax_profile.scatter(
+            [first["l6_gamma_hat_over_eta"]], [first["l6_delta"]],
+            s=25, color=color, edgecolor="white", linewidth=0.65, zorder=5,
+        )
+        ax_profile.plot(
+            [0, first["l6_gamma_hat_over_eta"]],
+            [first["l6_delta"], first["l6_delta"]],
+            color=color, lw=0.6, ls=(0, (2.2, 2.2)), alpha=0.72,
+        )
+    ax_profile.axvline(0.50, color=COLORS["muted"], lw=0.75, ls="--")
+    ax_profile.set_xlim(0, 1.30)
+    ax_profile.set_ylim(-0.08, 0.72)
+    ax_profile.set_xlabel(r"Candidate location, $\gamma/\eta$")
+    ax_profile.set_ylabel(r"Profile gradient, $g(\gamma)$")
+    ax_profile.set_title(
+        r"Random samples move the empirical MDM profile "
+        r"($\beta=3$, $\gamma/\eta=0.5$, $n=10$)", pad=4
+    )
+    ax_profile.legend(loc="upper left", ncol=3, handlelength=2.1,
+                      columnspacing=1.0, fontsize=6.1)
+    ax_profile.text(
+        0.995, 0.04, "circles: realised L6 intersections",
+        transform=ax_profile.transAxes, ha="right", va="bottom",
+        fontsize=5.5, color=COLORS["muted"],
+    )
+    style_axis(ax_profile, ygrid=True)
+    panel_label(ax_profile, "a")
+
+    # Panel b: average excess-loss curve after within-cell stratification.
+    for group in group_order:
+        frame = conditional[conditional["tertile"] == group].sort_values("delta")
+        color = group_colors[group]
+        minimum = frame.loc[frame["mean_excess_over_l6"].idxmin()]
+        ax_loss.plot(
+            frame["delta"], frame["mean_excess_over_l6"], color=color,
+            lw=1.55,
+            label=f"{group_labels[group]}  (min {minimum['delta']:.2f})",
+        )
+        ax_loss.scatter(
+            [minimum["delta"]], [minimum["mean_excess_over_l6"]],
+            s=23, color=color, edgecolor="white", linewidth=0.6, zorder=4,
+        )
+    ax_loss.set_xlabel(r"Offset, $\delta$")
+    ax_loss.set_ylabel("Mean excess loss above L6")
+    ax_loss.set_title("The low-risk region shifts with the realised profile", pad=4)
+    ax_loss.set_xlim(0, 0.50)
+    ax_loss.legend(loc="upper right", fontsize=5.7)
+    style_axis(ax_loss, ygrid=True)
+    panel_label(ax_loss, "b")
+
+    # Panel c: the profile-to-offset association is evaluated within cells.
+    rng = np.random.default_rng(42)
+    ns = [7, 10, 15, 20]
+    positions = np.arange(len(ns))
+    for pos, n_value in zip(positions, ns):
+        values = cells.loc[
+            cells["n"].astype(int) == n_value,
+            "rho_default_gamma_l6_delta",
+        ].to_numpy(dtype=float)
+        jitter = rng.uniform(-0.17, 0.17, size=len(values))
+        ax_rho.scatter(
+            pos + jitter, values, s=14, color=COLORS["raw"], alpha=0.65,
+            edgecolor="white", linewidth=0.35,
+        )
+        ax_rho.hlines(np.median(values), pos - 0.24, pos + 0.24,
+                      color=COLORS["ink"], lw=1.5)
+    primary = summary["primary_result"]
+    ax_rho.axhline(0, color=COLORS["muted"], lw=0.7, ls="--")
+    ax_rho.set_xticks(positions, [str(value) for value in ns])
+    ax_rho.set_xlabel(r"Sample size, $n$")
+    ax_rho.set_ylabel(r"Within-cell Spearman $\rho$")
+    ax_rho.set_ylim(-0.92, 0.08)
+    ax_rho.set_title(r"$\hat{\gamma}_{0.1}/\eta$ versus L6 offset", pad=4)
+    ax_rho.text(
+        0.04, 0.96,
+        f"median = {primary['median_within_cell_spearman_default_gamma_vs_l6_delta']:.3f}\n"
+        f"negative in {100*primary['negative_default_gamma_association_cell_fraction']:.0f}% of cells",
+        transform=ax_rho.transAxes, ha="left", va="top", fontsize=5.8,
+        color=COLORS["muted"],
+    )
+    style_axis(ax_rho, ygrid=True)
+    panel_label(ax_rho, "c")
+
     export_figure(fig, "fig5_decision_mechanism", MAIN_DIR)
 
 
@@ -1092,6 +1246,7 @@ def supplementary_parameter_landscape(paths):
 
 def supplementary_z_only_learning_curve(paths):
     _, _, _, learning = e10_mechanism_data(paths)
+    save_source(learning, "supp_z_only_learning_curve.csv")
     fig, ax = plt.subplots(figsize=(125 * MM, 78 * MM))
     n_colors = {7: "#D88B39", 10: "#6C96B8", 15: "#4A8B76", 20: "#7C6FA5"}
     for n in [7, 10, 15, 20]:
@@ -1705,11 +1860,12 @@ def main():
     supplementary_quantiles(paths)
     supplementary_parameter_landscape(paths)
     supplementary_z_only_learning_curve(paths)
+    supplementary_decision_conditions(paths)
     write_mean_selector_tables(paths, summary)
     supplementary_parameter_guided(paths)
     write_parameter_guided_tables(paths)
     write_submission_provenance(paths)
-    print("Generated 13 submission figures and supplementary tables "
+    print("Generated 14 submission figures and supplementary tables "
           "in PNG/SVG/PDF/TIFF formats.")
 
 

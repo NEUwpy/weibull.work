@@ -37,10 +37,10 @@
 ## 图 5
 
 ```markdown
-![样本实现与条件风险](figures/main/fig5_decision_mechanism.png)
+![样本实现与MDM梯度机制](figures/main/fig5_decision_mechanism.png)
 ```
 
-**图 5  样本实现与条件风险。** **a，** 各样本量下，同一 $(\beta,\gamma/\eta,n)$ 条件内 L6 事后选择的有效偏移量数；文字给出 L5、论文 MLP 和灵活 $Z$-only 经验参照与 L6 的完全一致率。**b，** Default、论文 MLP、同域重训的当前 MLP 结构、灵活 $Z$-only 经验参照和 L6 在 16,000 个独立确认样本上的 $R=J_1^2$。论文 MLP 与同域重训结构之间同时改变了参数覆盖、评价协议和重新拟合；$Z$-only 参照是已实现规则，不是精确 Bayes 风险。
+**图 5  样本实现对 MDM 偏移量的影响。** **a，** 在相同真参数 $(\beta,\gamma/\eta,n)=(3,0.5,10)$ 下，三个确认样本产生的经验梯度曲线及各自 L6 交点；**b，** 在 20 个预设参数单元内按默认偏移量所得 $\hat\gamma_{0.1}/\eta$ 分为低、中、高三组后，26 个候选偏移量相对 L6 的平均超额损失；**c，** 各样本量下，每个参数单元内 $\hat\gamma_{0.1}/\eta$ 与 L6 偏移量的 Spearman 相关。代表样本用于展示曲线形态，统计结论来自 2,000 个独立确认样本。
 
 ## 图 6
 
@@ -57,6 +57,7 @@
 ![传统方法参照](figures/supplementary/supp_fig_traditional_per_n.png)
 ![可靠度寿命误差](figures/supplementary/supp_fig_quantile_rmse.png)
 ![参数引导选择负结果](figures/supplementary/supp_fig_parameter_guided.png)
+![不同决策条件的确认风险](figures/supplementary/supp_fig_decision_conditions.png)
 ![参数空间中的改善分布](figures/supplementary/supp_fig_parameter_landscape.png)
 ![Z-only 经验参照的数据量诊断](figures/supplementary/supp_fig_z_only_learning_curve.png)
 ```
@@ -71,6 +72,8 @@
 
 **表 C1 和表 C2** 参数引导 12 个单步与迭代变体的汇总 $J_1$、相对 Default 的 $J_1$ 差、配对 95% 置信区间，以及最佳单步规则按真 $\beta$ 的分层结果。
 
-**图 F1  参数条件下的效果分布。** 四个面板分别对应 $n=7,10,15,20$，颜色表示均值归一化 MLP 相对固定 $\delta=0.1$ 的 pooled $J_1$ 降幅。勾边标出发生退化的参数组合；160 个组合中 125 个改善，35 个退化。
+**图 F1  不同决策条件下的确认风险。** a，同一参数单元内 L6 事后偏移量的多样性以及 L5、论文 MLP 和灵活 $Z$-only 参照与 L6 的完全一致率；b，Default、论文 MLP、同域重训 MLP、灵活 $Z$-only 参照和 L6 在 16,000 个确认样本上的 $R=J_1^2$。经验参照不是精确 Bayes 风险。
 
-**图 F2  $Z$-only 经验参照的数据量诊断。** 每个参数条件使用 40、80、120、160 和 200 个拟合 repeat 时，固定确认集上的风险。确认集不参与选模；曲线仅用于数据敏感性诊断，不证明已逼近 Bayes 风险。
+**图 F2  参数条件下的效果分布。** 四个面板分别对应 $n=7,10,15,20$，颜色表示均值归一化 MLP 相对固定 $\delta=0.1$ 的 pooled $J_1$ 降幅。勾边标出发生退化的参数组合；160 个组合中 125 个改善，35 个退化。
+
+**图 F3  $Z$-only 经验参照的数据量诊断。** 每个参数条件使用 40、80、120、160 和 200 个拟合 repeat 时，固定确认集上的风险。确认集不参与选模；曲线仅用于数据敏感性诊断，不证明已逼近 Bayes 风险。

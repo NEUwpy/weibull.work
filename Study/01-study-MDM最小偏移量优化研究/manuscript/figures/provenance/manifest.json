@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "created_at_utc": "2026-08-20T06:31:45.326217+00:00",
+  "created_at_utc": "2026-08-20T07:30:51.720532+00:00",
   "generator": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\manuscript\\figures\\scripts\\make_submission_figures.py",
-  "generator_sha256": "3b72a87229a94472cac6001d41d21457092d60f8caa63a86f671b46fcd6f362b",
-  "figure_sources_sha256": "0996c0d30e379acebe8476666a84e1c689b9c75e99dcc21e9961912c1e5f3ba4",
-  "runtime_head_commit": "717bf154a297320cb57fd6f3777ea8f29279b2c3",
+  "generator_sha256": "934ac4599a92c27d4c98f1f5543cd3a4452ab779d16aa754e2e8240ba663dc25",
+  "figure_sources_sha256": "48318ef455562f1bb8d489368d89ee47b269bc31511fb544d88b8a08822206cd",
+  "runtime_head_commit": "cc1921a46d5758d585a40a84635f5d3e65e5fb6b",
   "method": "Mean-normalized MLP: sort(X)/mean(X), then train-fold-only per-position StandardScaler",
   "sources": {
     "mc_scan": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E5_normalized_raw\\shared_data",
@@ -15,7 +15,8 @@
     "traditional_ref": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E6_dimensional_raw\\traditional_ref",
     "quantiles": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E8_mean_normalized_selector\\quantiles",
     "pg_selector": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\pg_selector",
-    "e10_z_only": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E10_z_only_benchmark"
+    "e10_z_only": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E10_z_only_benchmark",
+    "e11_profile_mechanism": "D:\\weibull\\Study\\01-study-MDM最小偏移量优化研究\\artifacts\\formal\\E11_profile_mechanism"
   },
   "source_file_sha256": {
     "mc_scan/manifest.json": "8b574d70d3cf76ac58454a6638654db37d2fbf85b51d3a54ce034e78fb84ee17",
@@ -33,7 +34,8 @@
     "quantiles/summary.csv": "5f8b1514883c5eb29d08ee706ef294234672ce657881c6352e216e48ce527db6",
     "pg_selector/manifest.json": "b0c12a032a1fe08affeb383f1734d9861cc18825d213015c926eb5de0e436b66",
     "pg_selector/summary.json": "c1b20ec612e0d837ade720124a3430b8b046a088780cf83926590a9470812263",
-    "e10_z_only/summary.json": "1fd25a6adce089330b1883132818e0bf346a2913d4ded8ae9a756e63273740bd"
+    "e10_z_only/summary.json": "1fd25a6adce089330b1883132818e0bf346a2913d4ded8ae9a756e63273740bd",
+    "e11_profile_mechanism/summary.json": "200691564fe5415a2663c89ad352fb2af8b9d127b799e5a90c2f236e98315464"
   },
   "outputs": {
     "main/fig1_method_structure.pdf": "c03f2296f055d4074fe776311f540a7dcb69d42f24a842b536b0e415900e51e5",
@@ -52,14 +54,18 @@
     "main/fig4_selector_mechanism.png": "07cac0be10011c6847d3f6b570d24d95bade3100847f98eaf2ad2341a0581566",
     "main/fig4_selector_mechanism.svg": "4ca836407f090aa569f0a44d2bc4116c330b642b6370af3d00112d4388ed18cd",
     "main/fig4_selector_mechanism.tiff": "74f2fc2b9075afe0e28ce667e81580580da2d447ee414c681c7ca35608e91af3",
-    "main/fig5_decision_mechanism.pdf": "f3a8a31dc96c2a1dcf0a38a42c55d26ab8d34a704909e1735c35b8fa74602386",
-    "main/fig5_decision_mechanism.png": "66caafe60cf4e3f34848157bce765804dd2298c36f28d590166a121f3ff194c6",
-    "main/fig5_decision_mechanism.svg": "5fb7004ed7245c4035eb23529a42c19fb9418d44ccaa999346812032e69e00fe",
-    "main/fig5_decision_mechanism.tiff": "9fcb87bd06953c451339927e7b40582e8263bf84d63aec464479bb262513c931",
+    "main/fig5_decision_mechanism.pdf": "0534da3e7a8f5ce93334155d209b1c6b44d89be78c86e544549b79358ae503ad",
+    "main/fig5_decision_mechanism.png": "04031b440d23b2447475952865559a32974c60964c5a53d350481cbf20cd9bba",
+    "main/fig5_decision_mechanism.svg": "eebff8b6b4e2dd4c0d2eae7f3282a41c5275eba4c1a14b69f7352b8420b06e32",
+    "main/fig5_decision_mechanism.tiff": "75d8e7cff32c2dc3b1dd4f5dda93f51116d39d3d3fcbe16e2bf2e160f4fd84a5",
     "main/fig6_support_validation.pdf": "544f46a378b99e49f85e6af722d2d6b84b76f34e7e673988e200000dbd9f2684",
     "main/fig6_support_validation.png": "075c13555a2fe81a342d0f349268d764cdf1928e83fb872272313aae11a88667",
     "main/fig6_support_validation.svg": "53271490721b669be8ae32bb5e5621f8206fbd1eac231656fecc4e929f6ce5bd",
     "main/fig6_support_validation.tiff": "b9a77b28a463b7736a1b8221756748be1849f0670c744f97c79e681446e7a1c5",
+    "supplementary/supp_fig_decision_conditions.pdf": "48bce43911d9ae05244dc85b19041ae5b249607236040208276fa6faa8600dc6",
+    "supplementary/supp_fig_decision_conditions.png": "66caafe60cf4e3f34848157bce765804dd2298c36f28d590166a121f3ff194c6",
+    "supplementary/supp_fig_decision_conditions.svg": "557430f11f3f3d68709c41518cdccd356152b84fe71f31439cbe77a6a4564a83",
+    "supplementary/supp_fig_decision_conditions.tiff": "9fcb87bd06953c451339927e7b40582e8263bf84d63aec464479bb262513c931",
     "supplementary/supp_fig_parameter_guided.pdf": "37ba1d8b0e488049af469d797d32823d45077c5cc0c0f15ffb3dcbdbc2c9c0e1",
     "supplementary/supp_fig_parameter_guided.png": "ab07f6daacc2ddbd58e0127e4d310746fd1c6a73171e31e24a424affccbc7f80",
     "supplementary/supp_fig_parameter_guided.svg": "23c7a0ec0fcfb51cebc7993eb3030a7f9aa211b10022c9574622c41e7e306df9",
@@ -96,11 +102,14 @@
     "data/derived/fig4_delta_confusion.csv": "8cbf3457e22e77de133a156348f4ea61ced8a5ca1444850ce8fd161aaec68bf8",
     "data/derived/fig4_excess_loss_quantiles.csv": "3dbb0e1da9233c83553b271c33772fe430f067202973756b98e550e84637e83a",
     "data/derived/fig4_representative_curve.csv": "0d64a0c8a8a13c07d981679f91c4194ae11c66cb0216e23b9b5d432bd0602a9d",
-    "data/derived/fig5_within_cell_hindsight.csv": "0e4257f5842a9f2be078e365aa434f3f5c5554a2b8c60862d2719d5eddced3ce",
-    "data/derived/fig5_z_only_risk_path.csv": "dbb856cb4fe636d0d98b3e33e15cf30aabc5c5adb9c532d982a80d73179ccb91",
+    "data/derived/fig5_cell_associations.csv": "6b10f85c4a29692c267f2c0cb4141b16de980f99e9fe6d4ae16e76afd92154ed",
+    "data/derived/fig5_conditional_excess_loss.csv": "c7b2a6b06f637a5ec5c149593e48dddc6386015438ebba0002fce64feeb3781b",
+    "data/derived/fig5_profile_gradient_curves.csv": "d4293b866880f216466f7df6a2ee1d7f89de64945b6afcb072adb4ea8f8e776a",
     "data/derived/fig6_quantile_rmse.csv": "cf6d28569c943c5efd1076cca845e8217afc5cc791291c6438af45921b6c6a37",
     "data/derived/fig6_traditional_by_n.csv": "165352f22d1b4befec1003e7fc581af76c2b7365a0d29d369e069c91a9077225",
     "data/derived/fig6_unseen_beta_improvement.csv": "14dcffa0b6fbd892b09776301d43fcb2aad0e7958eef378b5568359d1ff9622f",
+    "data/derived/supp_decision_within_cell_hindsight.csv": "0e4257f5842a9f2be078e365aa434f3f5c5554a2b8c60862d2719d5eddced3ce",
+    "data/derived/supp_decision_z_only_risk_path.csv": "dbb856cb4fe636d0d98b3e33e15cf30aabc5c5adb9c532d982a80d73179ccb91",
     "data/derived/supp_parameter_landscape.csv": "1f4fa2ca80699ff50d80fc95e9e96414da721f3a5744f6af241d7688c03a2819",
     "data/derived/supp_pg_bootstrap.csv": "1700476a536926d8d170ac44e9b84672d662634473e23d4833c1d9fe8014a9ed",
     "data/derived/supp_pg_by_beta.csv": "694e6f62f153e3f64c63de9dcf8ec03f268a890778939b2cd2dc74d557a9c758",
@@ -134,6 +143,7 @@
     "E8 seed42_primary, specialist, unseen-beta, and quantile evidence support the formal mean-normalized route.",
     "E6 traditional_ref supplies unchanged WMLE/LSE comparison values.",
     "E5 selector_output supplies sealed out-of-fold mean-normalized selections bound by the E8 manifest.",
+    "E11 supplies the bounded 20-cell profile-gradient mechanism diagnostic used in Figure 5.",
     "Tracked text outputs are normalized to LF before hashing so repository bytes reproduce the ledger on Windows and Unix checkouts."
   ]
 }
