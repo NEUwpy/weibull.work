@@ -108,10 +108,16 @@ def test_learning_curve_never_trains_on_confirmation_repeats():
     assert "descriptive" in source
 
 
-def test_run_requires_explicit_flag_and_writes_candidate_only():
+def test_run_requires_explicit_flag_and_targets_supporting_formal_evidence():
     assert "artifacts" in E10.OUTPUT_DIR.parts
-    assert "candidate" in E10.OUTPUT_DIR.parts
-    assert "formal" not in E10.OUTPUT_DIR.parts
+    assert "formal" in E10.OUTPUT_DIR.parts
+    assert "candidate" not in E10.OUTPUT_DIR.parts
     source = inspect.getsource(E10.main)
     assert '"--run"' in source
     assert "parser.error" in source
+
+
+def test_sha256_inventory_is_explicit_and_excludes_itself():
+    assert "SHA256SUMS" not in E10.OUTPUT_FILES
+    assert "summary.json" in E10.OUTPUT_FILES
+    assert "confirmation_sample_losses.csv" in E10.OUTPUT_FILES

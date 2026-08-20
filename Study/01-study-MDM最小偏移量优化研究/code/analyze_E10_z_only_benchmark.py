@@ -1,6 +1,7 @@
 """Estimate an empirical Z-only conditional-risk benchmark for Study01.
 
-This is a bounded mechanism experiment, not a replacement production method.
+This is a bounded supporting mechanism experiment, not a replacement
+production method.
 It reuses the frozen 160-cell, 300-repeat, 26-delta loss scan and never reruns
 MDM.  The only predictor input is
 
@@ -54,7 +55,7 @@ import run_E6b_dimensional_raw_specialist as E6
 
 CONTRACT = "E10_z_only_benchmark_v1"
 OUTPUT_DIR = (
-    STUDY_ROOT / "artifacts" / "candidate" / "E10_z_only_benchmark"
+    STUDY_ROOT / "artifacts" / "formal" / "E10_z_only_benchmark"
 )
 PAPER_PREDICTION_DIR = (
     STUDY_ROOT / "artifacts" / "formal" / "E5_normalized_raw" /
@@ -72,10 +73,32 @@ DEFAULT_INDEX = int(
 SAMPLE_KEYS = list(E6.SAMPLE_KEYS)
 CANDIDATES = ("ridge", "knn", "extra_trees", "mlp_current", "mlp_wide")
 LEARNING_REPEATS_PER_CELL = (40, 80, 120, 160, 200)
+OUTPUT_FILES = (
+    "validation_candidates.csv",
+    "confirmation_by_method.csv",
+    "gap_decomposition.csv",
+    "paired_repeat_bootstrap.csv",
+    "mechanism_by_cell.csv",
+    "learning_curve.csv",
+    "confirmation_sample_losses.csv",
+    "summary.json",
+    "candidate_report.md",
+)
 
 
 def sha256_lf(path: Path) -> str:
     return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def write_sha256sums() -> None:
+    """Seal the compact E10 evidence files using the project LF convention."""
+    missing = [name for name in OUTPUT_FILES if not (OUTPUT_DIR / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"cannot seal missing E10 outputs: {missing}")
+    lines = [f"{sha256_lf(OUTPUT_DIR / name)}  {name}" for name in OUTPUT_FILES]
+    (OUTPUT_DIR / "SHA256SUMS").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8", newline="\n"
+    )
 
 
 def git_value(*args: str) -> str:
@@ -642,7 +665,7 @@ def write_report(summary: dict, method_table: pd.DataFrame) -> None:
     lines = [
         "# E10 Z-only 条件风险经验参照",
         "",
-        f"状态：`{summary['status']}`。本结果为机制研究候选证据，不是精确 Bayes 风险。",
+        f"状态：`{summary['status']}`。本结果为有边界的机制支撑证据，不是精确 Bayes 风险。",
         "",
         "## 设计",
         "",
@@ -720,7 +743,7 @@ def run() -> dict:
     )
 
     summary = {
-        "status": "CANDIDATE_MECHANISM_EVIDENCE",
+        "status": "FORMAL_SUPPORTING_MECHANISM_EVIDENCE",
         "contract": CONTRACT,
         "definition": (
             "Current 160-cell equal-weight design; Z=sort(X)/mean(X); "
@@ -757,6 +780,7 @@ def run() -> dict:
         encoding="utf-8", newline="\n",
     )
     write_report(summary, methods)
+    write_sha256sums()
     print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
     return summary
 
