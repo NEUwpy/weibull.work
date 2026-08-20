@@ -50,6 +50,17 @@ def test_selected_loss_uses_curve_argmin_not_class_labels():
     assert losses.tolist() == [10.0, 1.0]
 
 
+def test_safe_n_iter_accepts_estimators_with_none_or_array_counts():
+    class NoneEstimator:
+        n_iter_ = None
+
+    class ArrayEstimator:
+        n_iter_ = np.array([3, 7, 5])
+
+    assert E10.safe_n_iter(NoneEstimator()) == 0
+    assert E10.safe_n_iter(ArrayEstimator()) == 7
+
+
 def test_gap_decomposition_is_additive_on_risk_not_j1():
     df = pd.DataFrame({
         "default_loss": [9.0, 7.0],

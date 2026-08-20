@@ -149,6 +149,15 @@ def _scaled_xy(
     return x_train_s, y_train_s, x_test_s, target_scaler
 
 
+def safe_n_iter(model: object) -> int:
+    """Return an integer iteration count for estimators that expose it."""
+    value = getattr(model, "n_iter_", 0)
+    if value is None:
+        return 0
+    array = np.asarray(value)
+    return int(array.max()) if array.size else 0
+
+
 def fit_predict(
     candidate: str,
     x_train: np.ndarray,
@@ -204,7 +213,7 @@ def fit_predict(
     metadata = {
         "candidate": candidate,
         "fit_seconds": float(time.time() - started),
-        "n_iter": int(getattr(model, "n_iter_", 0)),
+        "n_iter": safe_n_iter(model),
         "only_z_input": True,
     }
     return prediction, metadata
