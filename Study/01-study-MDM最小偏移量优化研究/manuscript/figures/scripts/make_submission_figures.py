@@ -104,17 +104,25 @@ def panel_label(ax, label):
 def export_figure(fig, stem: str, folder: Path, *, tiff=True):
     folder.mkdir(parents=True, exist_ok=True)
     svg_path = folder / f"{stem}.svg"
-    fig.savefig(svg_path, bbox_inches="tight", facecolor="white")
+    svg_temporary = folder / f"{stem}.new.svg"
+    fig.savefig(svg_temporary, bbox_inches="tight", facecolor="white")
     # Matplotlib writes trailing spaces inside multi-line SVG path data.
     # Normalize text-only whitespace so generated figures pass git diff --check.
-    svg_text = svg_path.read_text(encoding="utf-8")
-    svg_path.write_text(
+    svg_text = svg_temporary.read_text(encoding="utf-8")
+    svg_temporary.write_text(
         "\n".join(line.rstrip() for line in svg_text.splitlines()) + "\n",
         encoding="utf-8",
         newline="\n",
     )
-    fig.savefig(folder / f"{stem}.pdf", bbox_inches="tight", facecolor="white")
-    fig.savefig(folder / f"{stem}.png", dpi=300, bbox_inches="tight", facecolor="white")
+    svg_temporary.replace(svg_path)
+    for extension, kwargs in (
+        ("pdf", {}),
+        ("png", {"dpi": 300}),
+    ):
+        target = folder / f"{stem}.{extension}"
+        temporary = folder / f"{stem}.new.{extension}"
+        fig.savefig(temporary, bbox_inches="tight", facecolor="white", **kwargs)
+        temporary.replace(target)
     if tiff:
         # Some Windows image viewers briefly retain a handle to the existing
         # TIFF.  Render to a sibling file and replace only after PIL closes it.
@@ -128,7 +136,22 @@ def export_figure(fig, stem: str, folder: Path, *, tiff=True):
 
 def save_source(df: pd.DataFrame, name: str):
     DERIVED_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_csv(DERIVED_DIR / name, index=False, encoding="utf-8")
+    df.to_csv(
+        DERIVED_DIR / name,
+        index=False,
+        encoding="utf-8",
+        lineterminator="\n",
+    )
+
+
+def normalize_generated_text_to_lf(path: Path) -> None:
+    """Keep tracked text bytes identical before and after Git normalization."""
+    if path.suffix.lower() not in {".csv", ".json", ".md", ".svg", ".txt"}:
+        return
+    raw = path.read_bytes()
+    normalized = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    if normalized != raw:
+        path.write_bytes(normalized)
 
 
 def sha256_file(path: Path) -> str:
@@ -144,6 +167,7 @@ def write_submission_provenance(paths: dict[str, Path]):
     output_files = []
     for folder in (MAIN_DIR, SUPP_DIR, DERIVED_DIR, TABLES_DIR):
         for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+            normalize_generated_text_to_lf(path)
             output_files.append(path)
 
     source_files = {}
@@ -179,19 +203,20 @@ def write_submission_provenance(paths: dict[str, Path]):
             "E8 seed42_primary, specialist, unseen-beta, and quantile evidence support the formal mean-normalized route.",
             "E6 traditional_ref supplies unchanged WMLE/LSE comparison values.",
             "E5 selector_output supplies sealed out-of-fold mean-normalized selections bound by the E8 manifest.",
+            "Tracked text outputs are normalized to LF before hashing so repository bytes reproduce the ledger on Windows and Unix checkouts.",
         ],
     }
     PROVENANCE_DIR.mkdir(parents=True, exist_ok=True)
     manifest_path = PROVENANCE_DIR / "manifest.json"
-    manifest_path.write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+    with manifest_path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     checksum_lines = [
         f"{digest}  {name}" for name, digest in sorted(manifest["outputs"].items())
     ]
-    (PROVENANCE_DIR / "SHA256SUMS").write_text(
-        "\n".join(checksum_lines) + "\n", encoding="utf-8"
-    )
+    with (PROVENANCE_DIR / "SHA256SUMS").open(
+        "w", encoding="utf-8", newline="\n"
+    ) as handle:
+        handle.write("\n".join(checksum_lines) + "\n")
 
 
 def load_summary(paths):
@@ -429,7 +454,13 @@ def figure_2_delta_risk(paths):
 
     layers = pd.read_csv(paths["specialist"] / "crossfit_layers.csv")
     layers["improvement_pct"] = 100 * (1 - layers["J1"] / layers.loc[0, "J1"])
-    save_source(layers, "fig2_information_layers.csv")
+    layers["condition_group"] = np.select(
+        [layers["layer"].isin(["Default", "L1", "L2"]),
+         layers["layer"].isin(["L3", "L4", "L5"])],
+        ["fixed_or_n_conditioned", "parameter_conditioned_average"],
+        default="sample_level_hindsight",
+    )
+    save_source(layers, "fig2_decision_conditions.csv")
 
     fig, (ax, zoom, ladder) = plt.subplots(
         1, 3, figsize=(183 * MM, 72 * MM),
@@ -473,6 +504,9 @@ def figure_2_delta_risk(paths):
     layer_colors = [COLORS["default"], "#AAB7C4", "#91A7BD", "#7696B3",
                     "#5A82A8", COLORS["raw"], COLORS["l6"]]
     y = np.arange(len(layers))
+    ladder.axhspan(-0.45, 2.45, color=COLORS["pale_grey"], zorder=-3)
+    ladder.axhspan(2.55, 5.45, color=COLORS["pale_blue"], alpha=0.65, zorder=-3)
+    ladder.axhspan(5.55, 6.45, color=COLORS["pale_teal"], zorder=-3)
     ladder.hlines(y, layers["J1"].min() - 0.01, layers["J1"],
                   color="#D8D8D8", lw=1.0)
     ladder.scatter(layers["J1"], y, c=layer_colors, s=25, zorder=3)
@@ -480,12 +514,21 @@ def figure_2_delta_risk(paths):
     ladder.invert_yaxis()
     ladder.set_xlabel(r"Pooled $J_1$")
     ladder.set_xlim(layers["J1"].min() - 0.016, layers["J1"].max() + 0.018)
+    ladder.set_ylim(6.55, -0.55)
     style_axis(ladder)
     for yi, row in layers.iterrows():
         if row["layer"] in ("Default", "L3", "L5", "L6"):
             ladder.text(row["J1"] + 0.004, yi, f"{row['J1']:.3f}",
                         va="center", fontsize=5.7, color=COLORS["muted"])
-    ladder.set_title("Information ladder", pad=4)
+    ladder.text(0.99, 0.965, "fixed / sample-size rules", transform=ladder.transAxes,
+                ha="right", va="top", fontsize=5.5, color=COLORS["muted"])
+    ladder.text(0.99, 0.545, "parameter-conditioned averages",
+                transform=ladder.transAxes, ha="right", va="top",
+                fontsize=5.5, color=COLORS["raw"])
+    ladder.text(0.99, 0.105, "sample-level hindsight",
+                transform=ladder.transAxes, ha="right", va="top",
+                fontsize=5.5, color=COLORS["l6"])
+    ladder.set_title("Decision and reference conditions", pad=4)
     panel_label(ladder, "c")
     fig.align_ylabels()
     export_figure(fig, "fig2_overall_delta_risk", MAIN_DIR)
@@ -513,8 +556,7 @@ def main_results_by_n(summary):
             "l6": l6,
             "adaptive_improvement_pct": 100 * (1 - raw_value / default),
             "l6_improvement_pct": 100 * (1 - l6 / default),
-            "recovered_hindsight_gap_pct": 100 * (
-                default - raw_value) / (default - l6),
+            "observed_default_to_hindsight_J1_gap": default - l6,
         })
     out = pd.DataFrame(rows)
     save_source(out, "fig3_main_results_by_n.csv")
@@ -649,9 +691,14 @@ def figure_3_main_results(paths, summary):
             marker="^", ms=4.0, linestyle="--")
     for row in data.itertuples():
         ax.text(row.n, row.adaptive + 0.018,
-                f"{row.recovered_hindsight_gap_pct:.0f}%",
+                f"{row.adaptive_improvement_pct:.1f}%",
                 ha="center", va="bottom", fontsize=6.2,
                 color=COLORS["raw"], weight="bold")
+    ax.text(0.02, 0.04, "shading: observed Default–hindsight gap",
+            transform=ax.transAxes, ha="left", va="bottom", fontsize=5.6,
+            color=COLORS["muted"])
+    ax.text(0.02, 0.965, "% below Default", transform=ax.transAxes,
+            ha="left", va="top", fontsize=5.6, color=COLORS["raw"])
     ax.text(20.55, data["default"].iloc[-1], "Default",
             color=COLORS["default"], fontsize=6.3, va="center")
     ax.text(20.55, data["adaptive"].iloc[-1], "Adaptive",
@@ -833,7 +880,147 @@ def figure_4_selector_mechanism(paths):
     export_figure(fig, "fig4_selector_mechanism", MAIN_DIR)
 
 
+def e10_mechanism_data(paths):
+    """Load compact E10 mechanism evidence without re-running the experiment."""
+    root = paths["e10_z_only"]
+    summary = read_json(root / "summary.json")
+    cells = pd.read_csv(root / "mechanism_by_cell.csv")
+    learning = pd.read_csv(root / "learning_curve.csv")
+
+    method_rows = pd.read_csv(root / "confirmation_by_method.csv")
+    pooled = method_rows[method_rows["n"].astype(str) == "pooled"].copy()
+    method_order = [
+        "Default", "Paper-MLP", "In-domain-current-MLP",
+        "Z-only-empirical-reference", "L6-complete-information",
+    ]
+    pooled["method"] = pd.Categorical(pooled["method"], method_order, ordered=True)
+    risk = pooled[pooled["method"].notna()].sort_values("method").copy()
+    risk["method"] = risk["method"].astype(str)
+    if risk["method"].tolist() != method_order:
+        raise AssertionError("E10 pooled risk method order is incomplete")
+
+    cell_source = cells[[
+        "beta", "gamma_over_eta", "n", "count",
+        "l6_effective_delta_count", "l6_delta_entropy_nats",
+        "l5_l6_delta_match_rate", "paper_l6_delta_match_rate",
+        "z_reference_l6_delta_match_rate",
+    ]].copy()
+    risk_source = risk[["method", "R_mean_loss", "J1", "count"]].copy()
+    learning_source = learning[[
+        "n", "candidate", "repeats_per_cell", "training_samples",
+        "confirmation_samples", "R_mean_loss", "J1",
+    ]].copy()
+    save_source(cell_source, "fig5_within_cell_hindsight.csv")
+    save_source(risk_source, "fig5_z_only_risk_path.csv")
+    save_source(learning_source, "supp_z_only_learning_curve.csv")
+    return summary, cell_source, risk_source, learning_source
+
+
+def figure_5_decision_mechanism(paths):
+    summary, cells, risk, _ = e10_mechanism_data(paths)
+    ns = [7, 10, 15, 20]
+    fig, (ax_diversity, ax_risk) = plt.subplots(
+        1, 2, figsize=(183 * MM, 82 * MM),
+        gridspec_kw={"width_ratios": [0.86, 1.48], "wspace": 0.38},
+    )
+
+    # Panel a: real per-cell distributions, with deterministic horizontal jitter.
+    rng = np.random.default_rng(42)
+    positions = np.arange(len(ns))
+    for pos, n in zip(positions, ns):
+        values = cells.loc[cells["n"] == n, "l6_effective_delta_count"].to_numpy()
+        violin = ax_diversity.violinplot(
+            values, positions=[pos], widths=0.72, showmeans=False,
+            showmedians=False, showextrema=False,
+        )
+        for body in violin["bodies"]:
+            body.set_facecolor(COLORS["pale_teal"])
+            body.set_edgecolor(COLORS["l6"])
+            body.set_alpha(0.95)
+            body.set_linewidth(0.8)
+        jitter = rng.uniform(-0.23, 0.23, size=len(values))
+        ax_diversity.scatter(
+            pos + jitter, values, s=5.5, color=COLORS["l6"], alpha=0.38,
+            linewidths=0, zorder=2,
+        )
+        q1, med, q3 = np.quantile(values, [0.25, 0.50, 0.75])
+        ax_diversity.vlines(pos, q1, q3, color=COLORS["ink"], lw=3.0, zorder=4)
+        ax_diversity.scatter(pos, med, s=16, color="white",
+                             edgecolor=COLORS["ink"], lw=0.8, zorder=5)
+    pooled_median = float(np.median(cells["l6_effective_delta_count"]))
+    match = summary["realization_mechanism"]
+    ax_diversity.set_xticks(positions, [str(n) for n in ns])
+    ax_diversity.set_xlabel(r"Sample size, $n$")
+    ax_diversity.set_ylabel("Effective L6 offset count within a cell")
+    ax_diversity.set_ylim(1.0, max(13.0, cells["l6_effective_delta_count"].max() + 0.5))
+    ax_diversity.text(
+        0.03, 0.96, f"pooled median = {pooled_median:.2f}",
+        transform=ax_diversity.transAxes, ha="left", va="top",
+        fontsize=5.8, color=COLORS["muted"],
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.88,
+              "pad": 1.4},
+    )
+    ax_diversity.text(
+        0.03, 0.83,
+        "Exact match to L6 offset\n"
+        f"L5 {100*match['l5_l6_delta_match_rate']:.1f}%   "
+        f"Paper {100*match['paper_l6_delta_match_rate']:.1f}%   "
+        f"Z ref. {100*match['z_reference_l6_delta_match_rate']:.1f}%",
+        transform=ax_diversity.transAxes, ha="left", va="top",
+        fontsize=5.5, linespacing=1.35, color=COLORS["muted"],
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.88,
+              "pad": 1.4},
+    )
+    ax_diversity.set_title("Within-cell variation in hindsight choices", pad=4)
+    style_axis(ax_diversity, ygrid=True)
+    panel_label(ax_diversity, "a")
+
+    # Panel b: observed confirmation risk path; no Bayes-risk interpretation.
+    risk_labels = [
+        "Default", "Paper MLP\nlevel holdout", "Current MLP\nin-domain",
+        "Flexible Z-only\nreference", "L6 hindsight",
+    ]
+    values = risk["R_mean_loss"].to_numpy()
+    xpos = np.arange(len(values))
+    colors = [COLORS["default"], COLORS["raw"], "#4F789D", "#376C91", COLORS["l6"]]
+    ax_risk.plot(xpos, values, color="#B8B8B8", lw=1.2, zorder=1)
+    ax_risk.scatter(xpos, values, s=38, c=colors, zorder=3,
+                    edgecolor="white", linewidth=0.7)
+    for i, value in enumerate(values):
+        ax_risk.text(i, value + 0.006, f"{value:.3f}", ha="center",
+                     va="bottom", fontsize=5.8, color=COLORS["ink"])
+    for i in range(len(values) - 1):
+        diff = values[i] - values[i + 1]
+        ax_risk.text(i + 0.5, (values[i] + values[i + 1]) / 2 + 0.003,
+                     rf"$\Delta R={diff:.3f}$", ha="center", va="bottom",
+                     fontsize=5.3, color=COLORS["muted"])
+    residual = values[-2] - values[-1]
+    ax_risk.annotate(
+        "unresolved residual\n(not all perfect-information gap)",
+        xy=(3.55, (values[-2] + values[-1]) / 2), xytext=(3.03, 0.272),
+        ha="center", va="center", fontsize=5.4, color=COLORS["muted"],
+        arrowprops={"arrowstyle": "-", "lw": 0.7, "color": COLORS["muted"]},
+    )
+    ax_risk.text(
+        0.02, 0.04,
+        "Paper→in-domain difference also changes coverage/protocol;\n"
+        "the flexible Z-only reference is achieved, not Bayes-optimal.",
+        transform=ax_risk.transAxes, ha="left", va="bottom",
+        fontsize=5.3, color=COLORS["muted"], linespacing=1.25,
+    )
+    ax_risk.set_xticks(xpos, risk_labels)
+    ax_risk.set_ylabel(r"Confirmation risk, $R=J_1^2$")
+    ax_risk.set_ylim(0.225, 0.415)
+    ax_risk.set_xlim(-0.35, 4.35)
+    ax_risk.set_title("Observed risk differences under distinct decision conditions", pad=4)
+    style_axis(ax_risk, ygrid=True)
+    panel_label(ax_risk, "b")
+    fig.subplots_adjust(bottom=0.24)
+    export_figure(fig, "fig5_decision_mechanism", MAIN_DIR)
+
+
 def parameter_landscape_data(paths):
+    """Retain the per-cell effect map as a supplementary diagnostic."""
     _, df_full = load_full_scan()
     raw = pd.read_csv(paths["selector_output"] / "raw_specialist_results.csv",
                       low_memory=False)
@@ -848,11 +1035,11 @@ def parameter_landscape_data(paths):
     out = raw_combo.merge(default_combo[combo + ["default_J1"]], on=combo,
                           validate="one_to_one")
     out["improvement_pct"] = 100 * (1 - out["raw_J1"] / out["default_J1"])
-    save_source(out, "fig5_parameter_landscape.csv")
+    save_source(out, "supp_parameter_landscape.csv")
     return out
 
 
-def figure_5_parameter_landscape(paths):
+def supplementary_parameter_landscape(paths):
     data = parameter_landscape_data(paths)
     ns = [7, 10, 15, 20]
     betas = sorted(data["beta"].unique())
@@ -879,11 +1066,12 @@ def figure_5_parameter_landscape(paths):
             for col_i, beta in enumerate(betas):
                 value = float(pivot.loc[ratio, beta])
                 if value < 0:
-                    ax.add_patch(Rectangle((col_i - 0.48, row_i - 0.48), 0.96, 0.96,
-                                           fill=False, edgecolor=COLORS["accent"],
-                                           linewidth=1.1))
-                    value_label = f"{value:.2f}" if abs(value) < 0.1 else f"{value:.1f}"
-                    ax.text(col_i, row_i, value_label, ha="center", va="center",
+                    ax.add_patch(Rectangle(
+                        (col_i - 0.48, row_i - 0.48), 0.96, 0.96,
+                        fill=False, edgecolor=COLORS["accent"], linewidth=1.1,
+                    ))
+                    label_value = f"{value:.2f}" if abs(value) < 0.1 else f"{value:.1f}"
+                    ax.text(col_i, row_i, label_value, ha="center", va="center",
                             fontsize=5.3, color=COLORS["accent"], weight="bold")
         panel_label(ax, label)
     for ax in axes[-1, :]:
@@ -894,10 +1082,39 @@ def figure_5_parameter_landscape(paths):
     cbar.set_label(r"Reduction in pooled $J_1$ vs default (%)")
     cbar.ax.tick_params(labelsize=6.0)
     n_negative = int((data["improvement_pct"] < 0).sum())
-    fig.text(0.50, 0.01,
-             f"Outlined cells indicate deterioration ({n_negative} of {len(data)} parameter combinations).",
-             ha="center", fontsize=6.1, color=COLORS["muted"])
-    export_figure(fig, "fig5_parameter_landscape", MAIN_DIR)
+    fig.text(
+        0.50, 0.01,
+        f"Outlined cells indicate deterioration ({n_negative} of {len(data)} parameter combinations).",
+        ha="center", fontsize=6.1, color=COLORS["muted"],
+    )
+    export_figure(fig, "supp_fig_parameter_landscape", SUPP_DIR)
+
+
+def supplementary_z_only_learning_curve(paths):
+    _, _, _, learning = e10_mechanism_data(paths)
+    fig, ax = plt.subplots(figsize=(125 * MM, 78 * MM))
+    n_colors = {7: "#D88B39", 10: "#6C96B8", 15: "#4A8B76", 20: "#7C6FA5"}
+    for n in [7, 10, 15, 20]:
+        group = learning[learning["n"] == n].sort_values("training_samples")
+        ax.plot(group["training_samples"], group["R_mean_loss"],
+                marker="o", ms=3.5, lw=1.25, color=n_colors[n], label=rf"$n={n}$")
+    pooled = (learning.groupby("repeats_per_cell", as_index=False)
+              .agg(training_samples=("training_samples", "sum"),
+                   confirmation_samples=("confirmation_samples", "sum"),
+                   R_mean_loss=("R_mean_loss", "mean")))
+    ax.set_xlabel("Training samples across four per-n models")
+    ax.set_ylabel(r"Confirmation risk, $R=J_1^2$")
+    ax.set_title("Data-size diagnostic for the flexible Z-only reference", pad=4)
+    ax.legend(ncol=2, loc="center right")
+    fig.text(
+        0.50, 0.015,
+        "Fixed confirmation set; descriptive only and not used for model selection.",
+        ha="center", va="bottom", fontsize=5.7, color=COLORS["muted"],
+    )
+    fig.subplots_adjust(bottom=0.18)
+    style_axis(ax, ygrid=True)
+    panel_label(ax, "a")
+    export_figure(fig, "supp_fig_z_only_learning_curve", SUPP_DIR)
 
 
 def figure_6_support_validation(paths, summary):
@@ -1480,17 +1697,19 @@ def main():
     figure_2_delta_risk(paths)
     figure_3_main_results(paths, summary)
     figure_4_selector_mechanism(paths)
-    figure_5_parameter_landscape(paths)
+    figure_5_decision_mechanism(paths)
     figure_6_support_validation(paths, summary)
     supplementary_seed_stability(summary)
     supplementary_unseen_beta(paths)
     supplementary_traditional(paths, summary)
     supplementary_quantiles(paths)
+    supplementary_parameter_landscape(paths)
+    supplementary_z_only_learning_curve(paths)
     write_mean_selector_tables(paths, summary)
     supplementary_parameter_guided(paths)
     write_parameter_guided_tables(paths)
     write_submission_provenance(paths)
-    print("Generated 11 submission figures and PG supplementary tables "
+    print("Generated 13 submission figures and supplementary tables "
           "in PNG/SVG/PDF/TIFF formats.")
 
 

@@ -22,13 +22,15 @@ FIGURES = {
     "fig2_overall_delta_risk": MAIN,
     "fig3_per_n_J1": MAIN,
     "fig4_selector_mechanism": MAIN,
-    "fig5_parameter_landscape": MAIN,
+    "fig5_decision_mechanism": MAIN,
     "fig6_support_validation": MAIN,
     "supp_fig_seed_stability": SUPP,
     "supp_fig_unseen_beta": SUPP,
     "supp_fig_traditional_per_n": SUPP,
     "supp_fig_quantile_rmse": SUPP,
     "supp_fig_parameter_guided": SUPP,
+    "supp_fig_parameter_landscape": SUPP,
+    "supp_fig_z_only_learning_curve": SUPP,
 }
 FORMATS = ("png", "svg", "pdf", "tiff")
 
@@ -86,11 +88,19 @@ def check_scientific_values():
     default = curve.loc[(curve["delta"] - 0.10).abs().idxmin()]
     assert_close(default["J1"], 0.6304091999323667)
 
-    layers = pd.read_csv(DERIVED / "fig2_information_layers.csv")
+    layers = pd.read_csv(DERIVED / "fig2_decision_conditions.csv")
     if layers["layer"].tolist() != ["Default", "L1", "L2", "L3", "L4", "L5", "L6"]:
-        raise AssertionError("Figure 2 information ladder order changed")
+        raise AssertionError("Figure 2 decision-reference order changed")
     assert_close(layers.loc[layers["layer"] == "L6", "J1"].iloc[0],
                  0.4922971152637207)
+    expected_groups = [
+        "fixed_or_n_conditioned", "fixed_or_n_conditioned",
+        "fixed_or_n_conditioned", "parameter_conditioned_average",
+        "parameter_conditioned_average", "parameter_conditioned_average",
+        "sample_level_hindsight",
+    ]
+    if layers["condition_group"].tolist() != expected_groups:
+        raise AssertionError("Figure 2 decision-condition grouping changed")
 
     main = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
     if main["n"].tolist() != [7, 10, 15, 20]:
@@ -102,9 +112,10 @@ def check_scientific_values():
     expected_improvement = [8.119, 7.620, 6.318, 5.984]
     for actual, expected in zip(main["adaptive_improvement_pct"], expected_improvement):
         assert_close(actual, expected, 0.01)
-    expected_recovered = [39.981, 35.443, 26.805, 24.659]
-    for actual, expected in zip(main["recovered_hindsight_gap_pct"], expected_recovered):
-        assert_close(actual, expected, 0.01)
+    if "recovered_hindsight_gap_pct" in main.columns:
+        raise AssertionError(
+            "Figure 3 source must not label the Default-L6 gap as recoverable"
+        )
 
     paired = pd.read_csv(DERIVED / "fig3_sample_loss_difference_quantiles.csv")
     if paired["n"].tolist() != [7, 10, 15, 20] or not (paired["n_samples"] == 12000).all():
@@ -162,12 +173,33 @@ def check_scientific_values():
         if not values[0] <= values[1] <= values[2]:
             raise AssertionError("Figure 4 excess-loss quantiles are not monotone")
 
-    landscape = pd.read_csv(DERIVED / "fig5_parameter_landscape.csv")
+    cells = pd.read_csv(DERIVED / "fig5_within_cell_hindsight.csv")
+    if (len(cells) != 160 or cells["beta"].nunique() != 8 or
+            cells["gamma_over_eta"].nunique() != 5 or cells["n"].nunique() != 4):
+        raise AssertionError("Figure 5 within-cell evidence must contain 160 cells")
+    assert_close(cells["l6_effective_delta_count"].median(), 6.09, 1e-2)
+    risk_path = pd.read_csv(DERIVED / "fig5_z_only_risk_path.csv")
+    expected_methods = [
+        "Default", "Paper-MLP", "In-domain-current-MLP",
+        "Z-only-empirical-reference", "L6-complete-information",
+    ]
+    if risk_path["method"].tolist() != expected_methods:
+        raise AssertionError("Figure 5 risk path is incomplete or reordered")
+    expected_risks = [0.3926912312, 0.3395311145, 0.3226679985,
+                      0.3156581752, 0.2406463568]
+    for actual, expected in zip(risk_path["R_mean_loss"], expected_risks):
+        assert_close(actual, expected, 1e-9)
+
+    learning = pd.read_csv(DERIVED / "supp_z_only_learning_curve.csv")
+    if len(learning) != 20 or set(learning["repeats_per_cell"]) != {40, 80, 120, 160, 200}:
+        raise AssertionError("Z-only learning diagnostic must contain 4 n x 5 sizes")
+
+    landscape = pd.read_csv(DERIVED / "supp_parameter_landscape.csv")
     if (len(landscape) != 160 or landscape["beta"].nunique() != 8 or
             landscape["gamma_over_eta"].nunique() != 5 or landscape["n"].nunique() != 4):
-        raise AssertionError("Figure 5 must contain 8 beta x 5 ratio x 4 n cells")
+        raise AssertionError("Supplementary landscape must contain 8 beta x 5 ratio x 4 n cells")
     if int((landscape["improvement_pct"] < 0).sum()) != 35:
-        raise AssertionError("Figure 5 deterioration-cell count changed")
+        raise AssertionError("Supplementary landscape deterioration-cell count changed")
     assert_close(landscape["improvement_pct"].min(), -17.504974, 1e-5)
 
     unseen_main = pd.read_csv(DERIVED / "fig6_unseen_beta_improvement.csv")
@@ -260,13 +292,15 @@ def main():
         "scientific_checks": [
             "26-point delta curve and minimum",
             "default delta J1",
-            "seven-level information ladder",
-            "four per-n main results and recovered hindsight-gap fractions",
+            "seven decision references",
+            "four per-n main results and observed hindsight-gap fractions",
             "48,000 paired sample losses, improved proportions, and quantile monotonicity",
             "three-parameter normalized error decomposition",
             "representative risk curve and full 26 x 26 offset correspondence",
             "excess-loss quantile monotonicity",
-            "160-cell parameter landscape and 35 deterioration cells",
+            "160-cell hindsight-choice diversity and five-condition risk path",
+            "Z-only data-size diagnostic",
+            "160-cell supplementary parameter landscape and 35 deterioration cells",
             "eight held-out parameter levels in the main validation composite",
             "four-method traditional comparison in the main validation composite",
             "three-quantile source retained for the main validation composite",
@@ -283,7 +317,7 @@ def main():
     (ROOT / "provenance" / "submission_figure_qa.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print("PASS: 11 figures, 44 exports, editable SVG text, scientific values verified")
+    print("PASS: 13 figures, 52 exports, editable SVG text, scientific values verified")
 
 
 if __name__ == "__main__":
