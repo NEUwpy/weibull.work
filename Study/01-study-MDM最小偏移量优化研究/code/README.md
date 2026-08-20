@@ -12,6 +12,7 @@
 | `run_E8_scale_equivariance.py` | 检查“选择器→选定 $\delta$→生产 MDM”的端到端尺度等变 |
 | `analyze_E1_E2_crossfit.py` | L1–L5 选点/评价分离 |
 | `analyze_E10_z_only_benchmark.py` | 区分参数条件平均、可观测样本决策和 L6 事后信息的机制诊断 |
+| `analyze_E11_profile_mechanism.py` | 用确认样本连接 MDM 经验梯度曲线、默认位置估计和事后低风险偏移量 |
 
 当前代码调用项目生产 MDM 与共享样本实现，不在 Study01 内另复制估计器。
 
