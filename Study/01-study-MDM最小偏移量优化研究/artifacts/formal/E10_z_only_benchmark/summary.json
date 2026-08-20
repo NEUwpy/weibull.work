@@ -1,0 +1,102 @@
+{
+  "status": "FORMAL_SUPPORTING_MECHANISM_EVIDENCE",
+  "contract": "E10_z_only_benchmark_v1",
+  "definition": "Current 160-cell equal-weight design; Z=sort(X)/mean(X); 26-point conditional expected loss decision.",
+  "partitions": {
+    "fit": [
+      0,
+      159
+    ],
+    "validation": [
+      160,
+      199
+    ],
+    "confirmation": [
+      200,
+      299
+    ]
+  },
+  "selected_candidates_by_n": {
+    "7": "extra_trees",
+    "10": "mlp_wide",
+    "15": "extra_trees",
+    "20": "extra_trees"
+  },
+  "confirmation_samples": 16000,
+  "input_integrity": {
+    "expected_rows": 1248000,
+    "actual_rows": 1248000,
+    "unique_combos": 160,
+    "non_success_rate": 0.0
+  },
+  "gap_decomposition": {
+    "risk": {
+      "default": 0.3926912312367119,
+      "l5": 0.3334834168238351,
+      "paper_mlp": 0.33953111454695273,
+      "in_domain_current_mlp": 0.32266799845982974,
+      "z_reference": 0.3156581752393114,
+      "l6": 0.24064635679405214
+    },
+    "default_to_l6_R_gap": 0.15204487444265977,
+    "additive_identity_abs_error": 0.0,
+    "z_reference_status": "TIGHTER_ACHIEVED_Z_ONLY_REFERENCE",
+    "interpretation": "In population, the risk of any fixed Z-only rule cannot be lower than the Z-only Bayes risk. The confirmation value here is a sample estimate for one achieved rule, not an exact Bayes risk or a formal finite-sample confidence bound on it."
+  },
+  "realization_mechanism": {
+    "l5_l6_delta_match_rate": 0.1255625,
+    "paper_l6_delta_match_rate": 0.230125,
+    "z_reference_l6_delta_match_rate": 0.21775,
+    "median_cell_l6_effective_delta_count": 6.090486008165392
+  },
+  "learning_curve": {
+    "pooled": [
+      {
+        "repeats_per_cell": 40,
+        "R_mean_loss": 0.3233546707853585,
+        "J1": 0.5686428323520473
+      },
+      {
+        "repeats_per_cell": 80,
+        "R_mean_loss": 0.32016844560814217,
+        "J1": 0.5658342916509587
+      },
+      {
+        "repeats_per_cell": 120,
+        "R_mean_loss": 0.3182457605716758,
+        "J1": 0.5641327508412145
+      },
+      {
+        "repeats_per_cell": 160,
+        "R_mean_loss": 0.3170310982549137,
+        "J1": 0.5630551467262453
+      },
+      {
+        "repeats_per_cell": 200,
+        "R_mean_loss": 0.3156581752393114,
+        "J1": 0.5618346511557573
+      }
+    ],
+    "R_change_160_to_200": -0.001372923015602323,
+    "relative_R_change_160_to_200": -0.004330562595150849,
+    "interpretation_boundary": "Repeated evaluation on the fixed confirmation set is descriptive; the curve diagnoses data sensitivity but is not used for model selection."
+  },
+  "runtime_seconds": 216.32487559318542,
+  "seed": 42,
+  "candidate_set": [
+    "ridge",
+    "knn",
+    "extra_trees",
+    "mlp_current",
+    "mlp_wide"
+  ],
+  "source_commit": "65afd4468f8a36e46f55d07010c2a582b114a520",
+  "source_manifest_sha256_lf": "8b574d70d3cf76ac58454a6638654db37d2fbf85b51d3a54ce034e78fb84ee17",
+  "script_sha256_lf": "b14bb007268e2b074c5512c21dc5b003c121e748184ef48304a2cc01b7cc33b4",
+  "limitations": [
+    "The empirical reference is not the exact Bayes risk.",
+    "The parameter-cell prior is uniform over the current discrete design.",
+    "The result does not establish continuous-parameter or new-n generalization.",
+    "Raw X and absolute scale are intentionally excluded."
+  ]
+}
