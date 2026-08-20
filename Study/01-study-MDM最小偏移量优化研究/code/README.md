@@ -6,12 +6,12 @@
 
 | 文件 | 职责 |
 |---|---|
-| `dim_raw_config.py` | 当前 160 组合设计、26 点 $\delta$ 网格和 MLP 配置 |
-| `run_E6a_data_inventory.py` | 核对共享损失数据 |
-| `run_E6b_dimensional_raw_specialist.py` | 当前主方法训练、评价和汇总 |
-| `run_E6b_smoke.py` | 当前方法端到端 smoke |
+| `dim_raw_config.py` | 当前 160 组合设计、26 点 $\delta$ 网格和共享 MLP 配置 |
+| `prepare_mean_normalized_main_evidence.py` | 将 E5 均值归一化折外结果重定位为 E8 正式主方法证据 |
+| `derive_e8_seed42_primary.py` | 派生固定 seed 42 的论文主报告数值 |
+| `run_E8_scale_equivariance.py` | 检查“选择器→选定 $\delta$→生产 MDM”的端到端尺度等变 |
 | `analyze_E1_E2_crossfit.py` | L1–L5 选点/评价分离 |
-| `finalize_e6_manifest.py` | E6 provenance 收口 |
+| `analyze_E10_z_only_benchmark.py` | 区分参数条件平均、可观测样本决策和 L6 事后信息的机制诊断 |
 
 当前代码调用项目生产 MDM 与共享样本实现，不在 Study01 内另复制估计器。
 
@@ -24,9 +24,9 @@
 | `run_b2_traditional_ref.py` | WMLE/LSE 同条件外部参照（同一 48,000 样本） |
 | `run_b3_quantiles.py` | $x_{0.90}/x_{0.95}/x_{0.99}$ 工程分位点派生 |
 | `run_pg_selector.py` | 利用初估参数选择偏移量（plug-in）的负向支撑实验：初估参数（MDM-0.1/WMLE）plug-in 到 L3–L5 条件均值曲线选 $\delta$；`--pilot-repeats N` / `--full` / `--repackage` |
-| `generate_paper_figures.py` | 当前路线论文图表与补充表格生成 |
+| `manuscript/figures/scripts/make_submission_figures.py` | 当前论文 6 张正文图和补充图的唯一绘制入口 |
 
-实现原则不变：复用 E6 训练函数、现有风险数据和 `python/methods/` 生产实现，不重跑 MDM、不复制估计器；以完成当前问题的最小脚本为准，不新建通用实验控制框架。
+实现原则不变：复用已封存的候选损失、已有训练函数和 `python/methods/` 生产实现，不为机制诊断重跑 MDM或复制估计器；以完成当前问题的最小脚本为准，不新建通用实验控制框架。
 
 ## 历史与 Research
 

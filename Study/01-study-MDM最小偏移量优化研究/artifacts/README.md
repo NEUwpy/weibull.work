@@ -6,10 +6,11 @@
 
 | 目录 | 用途 |
 |---|---|
-| `formal/E6_dimensional_raw/specialist/` | Dimensional-RAW 主结果、L1–L6、seed、留出和输入检查 |
-| `formal/E5_normalized_raw/shared_data/` | E6 复用的 160 组合风险数据清单与哈希 |
+| `formal/E8_mean_normalized_selector/` | 均值归一化主方法、seed 42 主报告、未见 $\beta$、可靠度寿命与尺度等变检查 |
+| `formal/E5_normalized_raw/shared_data/` | E8 复用的 160 组合风险数据清单与哈希 |
+| `formal/E10_z_only_benchmark/` | 参数条件、可观测样本规则与 L6 事后信息的机制诊断 |
 
-E6 的主要事实源依次为 `summary.json`、`crossfit_layers.csv`、`model_comparison.csv`、`seed_stability.csv`、`split_report.csv`、`representation_check.json`、`manifest.json` 和 `SHA256SUMS`。
+E8 的主方法事实源为 `specialist/`、`seed42_primary/`、`unseen_beta/`、`quantiles/` 和 `scale_equivariance/` 下的 summary/manifest/SHA256SUMS。E10 机制事实源为 `confirmation_sample_losses.csv`、`confirmation_by_method.csv`、`mechanism_by_cell.csv`、`paired_repeat_bootstrap.csv`、`learning_curve.csv`、`summary.json` 和 `SHA256SUMS`。
 
 ## 负向支撑实验（当前论文直接使用，作对照）
 
@@ -17,17 +18,17 @@ E6 的主要事实源依次为 `summary.json`、`crossfit_layers.csv`、`model_c
 |---|---|
 | `formal/pg_selector/` | 利用初估参数选择偏移量（plug-in）的负向支撑实验最终包：`variant_summary.csv`、`paired_bootstrap.csv`、`summary_by_beta.csv`、`beta_cell_correctness.csv`、`prov_err_vs_delta.csv`、`summary.json`、`manifest.json`（Phase B 合同版本、run-start 溯源、WMLE worker/生产与扫描数据源哈希） |
 
-PG 直接 plug-in 总体不能恢复 L3–L5 收益（最优单步 0.6507 vs Default 0.6304；配对 CI 全部为正）；结论作为界定主方法必要性的负向支撑证据，不与 Dimensional-RAW 排名。
+PG 直接 plug-in 总体不能恢复 L3–L5 收益（最优单步 0.6507 vs Default 0.6304；配对 CI 全部为正）；结论作为主方法的负向支撑证据，不与 Mean-Normalized-MLP 作无协议排名。
 
 ## 候选或 Research
 
 | 目录 | 当前定位 |
 |---|---|
-| `formal/E5_normalized_raw/` | 未采用的归一化 RAW 候选；其中 `shared_data/` 仍是 E6 数据源 |
+| `formal/E6_dimensional_raw/` | 固定尺度下的有量纲 RAW 敏感性/历史对照；`traditional_ref/` 仍被当前论文使用 |
 | `candidate/E3b_RAW_specialist/` | 旧 RAW/Tabular 候选 |
 | `formal/p4_formal_compare/` | Direct-MLP 与旧特征路线比较，属于 Research |
 
-## 历史封存，不支持当前 E6 主张
+## 历史封存，不支持当前 E8/E10 主张
 
 `formal/E1_baseline/`、`E1_E2_crossfit/`、`E2_oracle_layers/`、`E2_beta_profile_audit/`、`E3_sample_adaptive/`、`E3b_vector_mlp/`、`E4_robustness/`、`extended_validation/`、`quantile_derivation/`、`real_data/` 等均保留用于历史复核。旧 P2/P4/分位点和 NIST 数字不得直接写成当前方法的验证结果。
 
