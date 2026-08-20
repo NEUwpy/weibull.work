@@ -66,12 +66,13 @@ def test_gap_decomposition_is_additive_on_risk_not_j1():
         "default_loss": [9.0, 7.0],
         "l5_loss": [6.0, 4.0],
         "paper_mlp_loss": [7.0, 5.0],
+        "in_domain_current_mlp_loss": [6.0, 4.0],
         "z_reference_loss": [5.0, 3.0],
         "l6_loss": [3.0, 1.0],
     })
     rows, summary = E10.gap_decomposition(df)
     assert summary["three_part_identity_abs_error"] < 1e-15
-    assert np.isclose(rows.iloc[:3]["R_difference"].sum(), 6.0)
+    assert np.isclose(rows.iloc[:4]["R_difference"].sum(), 6.0)
     assert summary["z_reference_status"] == "TIGHTER_ACHIEVED_Z_ONLY_REFERENCE"
 
 
@@ -88,6 +89,15 @@ def test_paper_predictions_are_recomputed_against_scan():
     source = inspect.getsource(E10.confirmation_run)
     assert "paper_losses = y_confirm" in source
     assert "paper true loss does not match scan" in source
+
+
+def test_confirmation_separates_holdout_protocol_from_model_flexibility():
+    source = inspect.getsource(E10.confirmation_run)
+    assert '"mlp_current"' in source
+    assert '"in_domain_current_mlp_loss"' in source
+    gap_source = inspect.getsource(E10.gap_decomposition)
+    assert "paper_mlp_to_in_domain_current_architecture" in gap_source
+    assert "current_architecture_to_flexible_reference" in gap_source
 
 
 def test_run_requires_explicit_flag_and_writes_candidate_only():

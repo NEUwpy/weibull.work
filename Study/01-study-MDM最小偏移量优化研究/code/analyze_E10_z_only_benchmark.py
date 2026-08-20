@@ -320,6 +320,17 @@ def confirmation_run(
             candidate, x[development_mask], y[development_mask], x[confirmation_mask]
         )
         z_indices, z_losses = selected_loss(prediction, y[confirmation_mask])
+        if candidate == "mlp_current":
+            in_domain_prediction = prediction
+        else:
+            print(f"[E10 confirm] n={n_value} current-architecture control", flush=True)
+            in_domain_prediction, _ = fit_predict(
+                "mlp_current",
+                x[development_mask], y[development_mask], x[confirmation_mask],
+            )
+        in_domain_indices, in_domain_losses = selected_loss(
+            in_domain_prediction, y[confirmation_mask]
+        )
         confirm_keys = keys.loc[confirmation_mask].reset_index(drop=True)
 
         l5_choices = l5_choices_from_development(keys, y, development_mask)
@@ -359,10 +370,14 @@ def confirmation_run(
                 "default_loss": float(default_losses[i]),
                 "l5_loss": float(l5_losses[i]),
                 "paper_mlp_loss": float(paper_losses[i]),
+                "in_domain_current_mlp_loss": float(in_domain_losses[i]),
                 "z_reference_loss": float(z_losses[i]),
                 "l6_loss": float(l6_losses[i]),
                 "l5_delta": float(CFG.DELTA_GRID[l5_indices[i]]),
                 "paper_mlp_delta": float(CFG.DELTA_GRID[paper_indices[i]]),
+                "in_domain_current_mlp_delta": float(
+                    CFG.DELTA_GRID[in_domain_indices[i]]
+                ),
                 "z_reference_delta": float(CFG.DELTA_GRID[z_indices[i]]),
                 "l6_delta": float(CFG.DELTA_GRID[l6_indices[i]]),
                 "z_reference_candidate": candidate,
@@ -378,6 +393,7 @@ def method_summary(sample_losses: pd.DataFrame) -> pd.DataFrame:
         "Default": "default_loss",
         "L5-parameter-conditional": "l5_loss",
         "Paper-MLP": "paper_mlp_loss",
+        "In-domain-current-MLP": "in_domain_current_mlp_loss",
         "Z-only-empirical-reference": "z_reference_loss",
         "L6-complete-information": "l6_loss",
     }
@@ -404,6 +420,7 @@ def gap_decomposition(sample_losses: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
             "default": "default_loss",
             "l5": "l5_loss",
             "paper_mlp": "paper_mlp_loss",
+            "in_domain_current_mlp": "in_domain_current_mlp_loss",
             "z_reference": "z_reference_loss",
             "l6": "l6_loss",
         }.items()
@@ -414,8 +431,16 @@ def gap_decomposition(sample_losses: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
             "R_difference": risk["default"] - risk["paper_mlp"],
         },
         {
-            "component": "paper_mlp_to_z_reference",
-            "R_difference": risk["paper_mlp"] - risk["z_reference"],
+            "component": "paper_mlp_to_in_domain_current_architecture",
+            "R_difference": (
+                risk["paper_mlp"] - risk["in_domain_current_mlp"]
+            ),
+        },
+        {
+            "component": "current_architecture_to_flexible_reference",
+            "R_difference": (
+                risk["in_domain_current_mlp"] - risk["z_reference"]
+            ),
         },
         {
             "component": "z_reference_to_l6_remaining",
@@ -430,7 +455,7 @@ def gap_decomposition(sample_losses: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     for row in rows:
         row["share_of_default_to_l6"] = row["R_difference"] / total
     identity_error = abs(
-        total - sum(row["R_difference"] for row in rows[:3])
+        total - sum(row["R_difference"] for row in rows[:4])
     )
     status = (
         "TIGHTER_ACHIEVED_Z_ONLY_REFERENCE"
@@ -455,6 +480,12 @@ def paired_repeat_bootstrap(
 ) -> pd.DataFrame:
     comparisons = {
         "z_reference_minus_paper_mlp": ("z_reference_loss", "paper_mlp_loss"),
+        "in_domain_current_mlp_minus_paper_mlp": (
+            "in_domain_current_mlp_loss", "paper_mlp_loss"
+        ),
+        "z_reference_minus_in_domain_current_mlp": (
+            "z_reference_loss", "in_domain_current_mlp_loss"
+        ),
         "paper_mlp_minus_default": ("paper_mlp_loss", "default_loss"),
         "l5_minus_l6": ("l5_loss", "l6_loss"),
         "z_reference_minus_l6": ("z_reference_loss", "l6_loss"),
@@ -481,6 +512,68 @@ def paired_repeat_bootstrap(
     return pd.DataFrame(rows)
 
 
+def _entropy(values: pd.Series) -> float:
+    probabilities = values.value_counts(normalize=True).to_numpy(dtype=float)
+    return float(-(probabilities * np.log(probabilities)).sum())
+
+
+def mechanism_by_cell(sample_losses: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """Quantify realization-level variation without treating argmin as a label."""
+    rows = []
+    for (beta, goe, n_value), group in sample_losses.groupby(
+        ["beta", "gamma_over_eta", "n"], sort=True
+    ):
+        if len(group) != len(CONFIRMATION_REPEATS):
+            raise RuntimeError("mechanism cell must contain 100 confirmation samples")
+        rows.append({
+            "beta": float(beta),
+            "gamma_over_eta": float(goe),
+            "n": int(n_value),
+            "count": int(len(group)),
+            "l5_R": float(group["l5_loss"].mean()),
+            "l6_R": float(group["l6_loss"].mean()),
+            "l5_to_l6_R_gap": float(
+                (group["l5_loss"] - group["l6_loss"]).mean()
+            ),
+            "paper_to_z_reference_R_gain": float(
+                (group["paper_mlp_loss"] - group["z_reference_loss"]).mean()
+            ),
+            "l5_l6_delta_match_rate": float(
+                np.isclose(group["l5_delta"], group["l6_delta"]).mean()
+            ),
+            "paper_l6_delta_match_rate": float(
+                np.isclose(group["paper_mlp_delta"], group["l6_delta"]).mean()
+            ),
+            "z_reference_l6_delta_match_rate": float(
+                np.isclose(group["z_reference_delta"], group["l6_delta"]).mean()
+            ),
+            "l6_delta_entropy_nats": _entropy(group["l6_delta"]),
+            "l6_effective_delta_count": float(
+                math.exp(_entropy(group["l6_delta"]))
+            ),
+        })
+    table = pd.DataFrame(rows)
+    pooled = {
+        "l5_l6_delta_match_rate": float(
+            np.isclose(sample_losses["l5_delta"], sample_losses["l6_delta"]).mean()
+        ),
+        "paper_l6_delta_match_rate": float(
+            np.isclose(
+                sample_losses["paper_mlp_delta"], sample_losses["l6_delta"]
+            ).mean()
+        ),
+        "z_reference_l6_delta_match_rate": float(
+            np.isclose(
+                sample_losses["z_reference_delta"], sample_losses["l6_delta"]
+            ).mean()
+        ),
+        "median_cell_l6_effective_delta_count": float(
+            table["l6_effective_delta_count"].median()
+        ),
+    }
+    return table, pooled
+
+
 def write_report(summary: dict, method_table: pd.DataFrame) -> None:
     pooled = method_table[method_table["n"].astype(str) == "pooled"].set_index("method")
     risk = summary["gap_decomposition"]["risk"]
@@ -503,6 +596,7 @@ def write_report(summary: dict, method_table: pd.DataFrame) -> None:
     ]
     for method in (
         "Default", "L5-parameter-conditional", "Paper-MLP",
+        "In-domain-current-MLP",
         "Z-only-empirical-reference", "L6-complete-information",
     ):
         row = pooled.loc[method]
@@ -522,6 +616,7 @@ def write_report(summary: dict, method_table: pd.DataFrame) -> None:
         "",
         f"- Default: {risk['default']:.8f}",
         f"- Paper MLP: {risk['paper_mlp']:.8f}",
+        f"- In-domain current architecture: {risk['in_domain_current_mlp']:.8f}",
         f"- Z-only empirical reference: {risk['z_reference']:.8f}",
         f"- L6: {risk['l6']:.8f}",
         "",
@@ -542,11 +637,15 @@ def run() -> dict:
     methods = method_summary(sample_losses)
     gaps, gap_summary = gap_decomposition(sample_losses)
     bootstrap = paired_repeat_bootstrap(sample_losses)
+    mechanism_cells, mechanism_summary = mechanism_by_cell(sample_losses)
 
     validation.to_csv(OUTPUT_DIR / "validation_candidates.csv", index=False, lineterminator="\n")
     methods.to_csv(OUTPUT_DIR / "confirmation_by_method.csv", index=False, lineterminator="\n")
     gaps.to_csv(OUTPUT_DIR / "gap_decomposition.csv", index=False, lineterminator="\n")
     bootstrap.to_csv(OUTPUT_DIR / "paired_repeat_bootstrap.csv", index=False, lineterminator="\n")
+    mechanism_cells.to_csv(
+        OUTPUT_DIR / "mechanism_by_cell.csv", index=False, lineterminator="\n"
+    )
     # The row-level confirmation table is needed for independent recomputation
     # but is compact enough to remain a candidate artifact.
     sample_losses.to_csv(
@@ -571,6 +670,7 @@ def run() -> dict:
         "confirmation_samples": int(len(sample_losses)),
         "input_integrity": integrity,
         "gap_decomposition": gap_summary,
+        "realization_mechanism": mechanism_summary,
         "runtime_seconds": float(time.time() - started),
         "seed": SEED,
         "candidate_set": list(CANDIDATES),
