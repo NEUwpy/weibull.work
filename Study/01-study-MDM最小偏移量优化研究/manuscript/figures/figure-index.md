@@ -6,10 +6,10 @@
 |---|---|---|---|---|
 | 图 1 | `main/fig1_method_structure.png` | 网络如何从实际损失曲线学习，并在新样本上预测曲线最低点以选择偏移量？ | `figure_1_method_structure()` | 方法结构图；曲线为流程示意而非数值证据，结构依据 E8 方法合同 |
 | 图 2 | `main/fig2_overall_delta_risk.png` | 经验值 0.1 是否已经接近最佳统一偏移量？ | `fig2_overall_delta_risk()` | E5 shared-data 的 160 组合 Monte Carlo 损失扫描 |
-| 图 3 | `main/fig3_per_n_J1.png` | 各样本量下总体误差改善多少、取得了多少逐样本可实现空间，以及改善是否覆盖多数样本？ | `figure_3_main_results()` | E8 `specialist/summary.json`、E5 封存折外选择与 shared-data 损失扫描；派生表为 `data/derived/fig3_main_results_by_n.csv` 和 `fig3_sample_loss_difference_quantiles.csv` |
+| 图 3 | `main/fig3_per_n_J1.png` | 各样本量下总体误差改善多少、取得了多少逐样本可实现空间，以及改善是否覆盖多数样本？ | `figure_3_main_results()` | E8 `seed42_primary/`、E5 封存 seed-42 折外选择与 shared-data 损失扫描；派生表为 `data/derived/fig3_main_results_by_n.csv` 和 `fig3_sample_loss_difference_quantiles.csv` |
 | 图 4 | `main/fig4_selector_mechanism.png` | 网络预测的风险曲线如何转化为偏移量选择，实际选择与 hindsight 的差距有多大？ | `figure_4_selector_mechanism()` | E5 封存均值归一化折外预测和 shared-data 逐 $\delta$ 损失 |
 | 图 5 | `main/fig5_parameter_landscape.png` | 改善是否只来自少数组合，在哪些参数区域可能退化？ | `figure_5_parameter_landscape()` | E5 shared-data 损失扫描与均值归一化折外预测逐样本配对汇总 |
-| 图 6 | `main/fig6_support_validation.png` | 未见参数、传统估计方法和可靠度寿命三类验证如何限定主结果？ | `figure_6_support_validation()` | E8 `unseen_beta/`、E6 `traditional_ref/`、E8 `quantiles/` |
+| 图 6 | `main/fig6_support_validation.png` | 未见参数、传统估计方法和可靠度寿命三类验证如何限定主结果？ | `figure_6_support_validation()` | E8 `seed42_primary/`、`unseen_beta/`、`quantiles/` 与 E6 `traditional_ref/`；正文面板均使用 seed 42 |
 
 ## 正文表
 
@@ -35,6 +35,6 @@
 
 ## 投稿版状态
 
-图 1–6 和附录图 C1、D1、E1、E2 均已重画，并导出 PNG/SVG/PDF/TIFF。seed 稳定性改由附录表 B2 报告，原图文件保留为过程材料。制图源数据位于 `data/derived/`，图注和 Markdown 引用见 `captions-and-citations.md`，自动 QA 结果见 `provenance/submission_figure_qa.json`。被替换的 E6 有量纲主路线图表保存在 `archive/replaced/e6-dimensional-raw-20260819/`。
+图 1–6 和附录图 C1、D1、E1、E2 均已重画，并导出 PNG/SVG/PDF/TIFF。正文图固定使用 seed 42；初始化稳定性由附录表 B2 报告，未在正文图中重复显示。制图源数据位于 `data/derived/`，图注和 Markdown 引用见 `captions-and-citations.md`，自动 QA 结果见 `provenance/submission_figure_qa.json`。被替换的 E6 有量纲主路线图表保存在 `archive/replaced/e6-dimensional-raw-20260819/`。
 
 初始七图包完成三轮视觉检查后，又对正文扩充包完成三轮独立检查：先退回 Fig. 2、4、6 的遮挡与层次问题，再修复 Fig. 5 面板标号和 Fig. 6 图例，最后逐图复核并对 40 个导出文件执行数值和格式检查。
