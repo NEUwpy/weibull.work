@@ -89,19 +89,21 @@ def check_scientific_values():
     default = curve.loc[(curve["delta"] - 0.10).abs().idxmin()]
     assert_close(default["J1"], 0.6304091999323667)
 
-    layers = pd.read_csv(DERIVED / "fig2_decision_conditions.csv")
-    if layers["layer"].tolist() != ["Default", "L1", "L2", "L3", "L4", "L5", "L6"]:
-        raise AssertionError("Figure 2 decision-reference order changed")
-    assert_close(layers.loc[layers["layer"] == "L6", "J1"].iloc[0],
-                 0.4922971152637207)
-    expected_groups = [
-        "fixed_or_n_conditioned", "fixed_or_n_conditioned",
-        "fixed_or_n_conditioned", "parameter_conditioned_average",
-        "parameter_conditioned_average", "parameter_conditioned_average",
-        "sample_level_hindsight",
-    ]
-    if layers["condition_group"].tolist() != expected_groups:
-        raise AssertionError("Figure 2 decision-condition grouping changed")
+    stages = pd.read_csv(DERIVED / "fig2_three_stage_error_distribution.csv")
+    if stages["method"].tolist() != ["No offset", "Default", "Adaptive"]:
+        raise AssertionError("Figure 2 three-stage comparison order changed")
+    if not (stages["n_samples"] == 48_000).all():
+        raise AssertionError("Figure 2 stages must use the same 48,000 samples")
+    expected_j1 = [0.9481489946404543, 0.6304091999323665,
+                   0.5845531935428129]
+    expected_q95 = [1.873154, 1.124892, 1.083777]
+    for row, j1, q95 in zip(stages.itertuples(), expected_j1, expected_q95):
+        assert_close(row.J1, j1, 1e-12)
+        assert_close(row.q95_sqrt_loss, q95, 1e-6)
+        values = [row.q05_sqrt_loss, row.q25_sqrt_loss, row.q50_sqrt_loss,
+                  row.q75_sqrt_loss, row.q95_sqrt_loss]
+        if values != sorted(values):
+            raise AssertionError("Figure 2 error-magnitude quantiles are not monotone")
 
     main = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
     if main["n"].tolist() != [7, 10, 15, 20]:
@@ -322,7 +324,7 @@ def main():
         "scientific_checks": [
             "26-point delta curve and minimum",
             "default delta J1",
-            "seven decision references",
+            "same-sample no-offset, default, and adaptive error distributions",
             "four per-n main results and observed hindsight-gap fractions",
             "48,000 paired sample losses, improved proportions, and quantile monotonicity",
             "three-parameter normalized error decomposition",

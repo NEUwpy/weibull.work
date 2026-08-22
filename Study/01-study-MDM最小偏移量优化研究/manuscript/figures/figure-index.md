@@ -5,7 +5,7 @@
 | 稿件编号 | 文件 | 回答的问题 | 当前生成函数 | 直接数据或计算依据 |
 |---|---|---|---|---|
 | 图 1 | `main/fig1_method_structure.png` | 网络如何从实际损失曲线学习，并在新样本上预测曲线最低点以选择偏移量？ | `figure_1_method_structure()` | 方法结构图；曲线为流程示意而非数值证据，结构依据 E8 方法合同 |
-| 图 2 | `main/fig2_overall_delta_risk.png` | 经验值 0.1 是否已经接近最佳统一偏移量？ | `fig2_overall_delta_risk()` | E5 shared-data 的 160 组合 Monte Carlo 损失扫描 |
+| 图 2 | `main/fig2_overall_delta_risk.png` | 正偏移量首先改变了什么，继续进行样本自适应选择又增加了什么？ | `figure_2_delta_risk()` | E5 shared-data 的 160 组合 Monte Carlo 损失扫描与 seed 42 折外选择；派生表为 `data/derived/fig2_delta_risk.csv` 和 `fig2_three_stage_error_distribution.csv` |
 | 图 3 | `main/fig3_per_n_J1.png` | 各样本量下总体误差改善多少，Default–L6 观测差距有多大，以及改善是否覆盖多数样本？ | `figure_3_main_results()` | E8 `seed42_primary/`、E5 封存 seed-42 折外选择与 shared-data 损失扫描；派生表为 `data/derived/fig3_main_results_by_n.csv` 和 `fig3_sample_loss_difference_quantiles.csv` |
 | 图 4 | `main/fig4_selector_mechanism.png` | 网络预测的风险曲线如何转化为偏移量选择，实际选择与 hindsight 的差距有多大？ | `figure_4_selector_mechanism()` | E5 封存均值归一化折外预测和 shared-data 逐 $\delta$ 损失 |
 | 图 5 | `main/fig5_decision_mechanism.png` | 同一参数条件下，抽样结果为何会改变低风险偏移量？ | `figure_5_decision_mechanism()` | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` 和 `summary.json` |
@@ -38,6 +38,6 @@
 
 ## 投稿版状态
 
-图 1–6 和附录图 C1、D1、E1、E2、F1–F3 均已重画，并导出 PNG/SVG/PDF/TIFF。正文图固定使用 seed 42；初始化稳定性由附录表 B2 报告，未在正文图中重复显示。制图源数据位于 `data/derived/`，图注和 Markdown 引用见 `captions-and-citations.md`，自动 QA 结果见 `provenance/submission_figure_qa.json`。被替换的 E6 有量纲主路线图表和旧版图 5 均保存在 `archive/replaced/`。
+图 1–6 和附录图 C1、D1、E1、E2、F1–F3 均已重画，并导出 PNG/SVG/PDF/TIFF。正文图固定使用 seed 42；初始化稳定性由附录表 B2 报告，未在正文图中重复显示。制图源数据位于 `data/derived/`，图注和 Markdown 引用见 `captions-and-citations.md`，自动 QA 结果见 `provenance/submission_figure_qa.json`。被替换的 E6 有量纲主路线图表、旧版图 2 与旧版图 5 均保存在 `archive/replaced/`。
 
 初始七图包完成三轮视觉检查后，又对正文扩充包完成三轮独立检查。E11 机制图加入后，当前包共含 14 张图、56 个导出文件；旧 E10 条件风险图移入附录，均执行数值和格式检查。

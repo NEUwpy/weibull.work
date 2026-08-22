@@ -455,25 +455,72 @@ def delta_risk_curve(paths):
     return curve
 
 
+def three_stage_error_distribution(paths):
+    """Summarize the same-sample error distribution for three offset stages."""
+    _, df_full = load_full_scan()
+    keys = ["beta", "eta", "gamma", "gamma_over_eta", "n", "repeat_id"]
+    fixed = df_full.loc[
+        np.isclose(df_full["delta"], 0.0) | np.isclose(df_full["delta"], 0.10),
+        keys + ["delta", "loss"],
+    ].copy()
+    fixed["loss"] = pd.to_numeric(fixed["loss"], errors="coerce")
+    if fixed.duplicated(keys + ["delta"]).any():
+        raise AssertionError("Fixed-offset sample losses are not unique")
+
+    no_offset = fixed.loc[np.isclose(fixed["delta"], 0.0), keys + ["loss"]]
+    default = fixed.loc[np.isclose(fixed["delta"], 0.10), keys + ["loss"]]
+    adaptive = pd.read_csv(paths["selector_output"] / "raw_specialist_results.csv")
+    adaptive = adaptive.loc[
+        adaptive["seed"].eq(PRIMARY_SEED), keys + ["true_loss"]
+    ].rename(columns={"true_loss": "loss"})
+    adaptive["loss"] = pd.to_numeric(adaptive["loss"], errors="coerce")
+
+    expected_keys = set(map(tuple, default[keys].to_numpy()))
+    for name, frame in (("no_offset", no_offset), ("adaptive", adaptive)):
+        if len(frame) != 48_000 or frame.duplicated(keys).any():
+            raise AssertionError(f"{name} must contain 48,000 unique samples")
+        if set(map(tuple, frame[keys].to_numpy())) != expected_keys:
+            raise AssertionError(f"{name} sample keys do not match Default")
+        if frame["loss"].isna().any() or (frame["loss"] < 0).any():
+            raise AssertionError(f"{name} contains invalid losses")
+
+    rows = []
+    for method, label, frame in (
+        ("No offset", r"$\delta=0$", no_offset),
+        ("Default", r"$\delta=0.10$", default),
+        ("Adaptive", "Adaptive", adaptive),
+    ):
+        magnitude = np.sqrt(frame["loss"].to_numpy(dtype=float))
+        q05, q25, q50, q75, q95 = np.quantile(
+            magnitude, [0.05, 0.25, 0.50, 0.75, 0.95]
+        )
+        rows.append({
+            "method": method,
+            "display_label": label,
+            "n_samples": len(frame),
+            "J1": float(np.sqrt(frame["loss"].mean())),
+            "mean_loss": float(frame["loss"].mean()),
+            "q05_sqrt_loss": q05,
+            "q25_sqrt_loss": q25,
+            "q50_sqrt_loss": q50,
+            "q75_sqrt_loss": q75,
+            "q95_sqrt_loss": q95,
+        })
+    out = pd.DataFrame(rows)
+    save_source(out, "fig2_three_stage_error_distribution.csv")
+    return out
+
+
 def figure_2_delta_risk(paths):
     curve = delta_risk_curve(paths)
     d_min = float(curve.loc[curve["J1"].idxmin(), "delta"])
     j_min = float(curve["J1"].min())
     j_default = float(curve.loc[np.isclose(curve["delta"], 0.10), "J1"].iloc[0])
+    stages = three_stage_error_distribution(paths)
 
-    layers = pd.read_csv(paths["specialist"] / "crossfit_layers.csv")
-    layers["improvement_pct"] = 100 * (1 - layers["J1"] / layers.loc[0, "J1"])
-    layers["condition_group"] = np.select(
-        [layers["layer"].isin(["Default", "L1", "L2"]),
-         layers["layer"].isin(["L3", "L4", "L5"])],
-        ["fixed_or_n_conditioned", "parameter_conditioned_average"],
-        default="sample_level_hindsight",
-    )
-    save_source(layers, "fig2_decision_conditions.csv")
-
-    fig, (ax, zoom, ladder) = plt.subplots(
+    fig, (ax, zoom, distribution) = plt.subplots(
         1, 3, figsize=(183 * MM, 72 * MM),
-        gridspec_kw={"width_ratios": [1.30, 0.92, 0.95], "wspace": 0.50},
+        gridspec_kw={"width_ratios": [1.28, 0.92, 1.10], "wspace": 0.50},
     )
     for target in (ax, zoom):
         target.plot(curve["delta"], curve["J1"], color=COLORS["ink"],
@@ -510,35 +557,35 @@ def figure_2_delta_risk(paths):
     zoom.set_title("Low-risk region", pad=4)
     panel_label(zoom, "b")
 
-    layer_colors = [COLORS["default"], "#AAB7C4", "#91A7BD", "#7696B3",
-                    "#5A82A8", COLORS["raw"], COLORS["l6"]]
-    y = np.arange(len(layers))
-    ladder.axhspan(-0.45, 2.45, color=COLORS["pale_grey"], zorder=-3)
-    ladder.axhspan(2.55, 5.45, color=COLORS["pale_blue"], alpha=0.65, zorder=-3)
-    ladder.axhspan(5.55, 6.45, color=COLORS["pale_teal"], zorder=-3)
-    ladder.hlines(y, layers["J1"].min() - 0.01, layers["J1"],
-                  color="#D8D8D8", lw=1.0)
-    ladder.scatter(layers["J1"], y, c=layer_colors, s=25, zorder=3)
-    ladder.set_yticks(y, layers["layer"])
-    ladder.invert_yaxis()
-    ladder.set_xlabel(r"Pooled $J_1$")
-    ladder.set_xlim(layers["J1"].min() - 0.016, layers["J1"].max() + 0.018)
-    ladder.set_ylim(6.55, -0.55)
-    style_axis(ladder)
-    for yi, row in layers.iterrows():
-        if row["layer"] in ("Default", "L3", "L5", "L6"):
-            ladder.text(row["J1"] + 0.004, yi, f"{row['J1']:.3f}",
-                        va="center", fontsize=5.7, color=COLORS["muted"])
-    ladder.text(0.99, 0.965, "fixed / sample-size rules", transform=ladder.transAxes,
-                ha="right", va="top", fontsize=5.5, color=COLORS["muted"])
-    ladder.text(0.99, 0.545, "parameter-conditioned averages",
-                transform=ladder.transAxes, ha="right", va="top",
-                fontsize=5.5, color=COLORS["raw"])
-    ladder.text(0.99, 0.105, "sample-level hindsight",
-                transform=ladder.transAxes, ha="right", va="top",
-                fontsize=5.5, color=COLORS["l6"])
-    ladder.set_title("Decision and reference conditions", pad=4)
-    panel_label(ladder, "c")
+    stage_colors = [COLORS["accent"], COLORS["default"], COLORS["raw"]]
+    y = np.arange(len(stages))
+    for yi, (row, color) in enumerate(zip(stages.itertuples(), stage_colors)):
+        distribution.hlines(yi, row.q05_sqrt_loss, row.q95_sqrt_loss,
+                            color=color, lw=1.1, alpha=0.70, zorder=1)
+        distribution.hlines(yi, row.q25_sqrt_loss, row.q75_sqrt_loss,
+                            color=color, lw=6.0, alpha=0.72, zorder=2)
+        distribution.scatter(row.q50_sqrt_loss, yi, s=25, marker="o",
+                             facecolor="white", edgecolor=color,
+                             linewidth=1.0, zorder=3)
+        distribution.scatter(row.J1, yi, s=29, marker="D",
+                             facecolor=color, edgecolor="white",
+                             linewidth=0.6, zorder=4)
+        distribution.text(row.q95_sqrt_loss + 0.045, yi,
+                          rf"$J_1$ {row.J1:.3f}", va="center",
+                          fontsize=5.8, color=color)
+    distribution.set_yticks(y, stages["display_label"])
+    distribution.invert_yaxis()
+    distribution.set_xlim(0, max(2.10, float(stages["q95_sqrt_loss"].max()) + 0.23))
+    distribution.set_ylim(len(stages) - 0.45, -0.55)
+    distribution.set_xlabel(r"Joint error magnitude, $\sqrt{\ell_i}$")
+    distribution.set_title("Same-sample error distributions", pad=4)
+    distribution.text(
+        0.01, 0.02, "thin: 5–95%   thick: IQR\nopen circle: median   diamond: pooled $J_1$",
+        transform=distribution.transAxes, ha="left", va="bottom",
+        fontsize=5.3, color=COLORS["muted"], linespacing=1.35,
+    )
+    style_axis(distribution, xgrid=True)
+    panel_label(distribution, "c")
     fig.align_ylabels()
     export_figure(fig, "fig2_overall_delta_risk", MAIN_DIR)
 
