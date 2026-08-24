@@ -96,6 +96,8 @@ interface AnalysisCardProps {
   onCalculate?: () => Promise<void>
   onDelete?: () => void
   hideCalculationProcessButton?: boolean
+  hideMdmOptimizationDetailsLink?: boolean
+  lockParameterMode?: boolean
   isMdmOffsetUpdating?: boolean
 }
 
@@ -124,6 +126,8 @@ export default function AnalysisCard({
   onCalculate,
   onDelete,
   hideCalculationProcessButton,
+  hideMdmOptimizationDetailsLink = false,
+  lockParameterMode = false,
   isMdmOffsetUpdating = false
 }: AnalysisCardProps) {
   const [isHovered, setIsHovered] = useState(false)
@@ -540,13 +544,15 @@ export default function AnalysisCard({
                                ? `AI建议 δ=${mdmOptimization.selected_delta.toFixed(2)}`
                                : '估计时自动选择'}
                            </div>
-                           <button
-                             type="button"
-                             onClick={() => router.push(buildMdmOptimizationDetailsHref(failureValues))}
-                             className="mt-1 text-[9px] font-bold text-violet-500 underline underline-offset-2 hover:text-violet-700"
-                           >
-                             查看AI选择过程
-                           </button>
+                           {!hideMdmOptimizationDetailsLink && (
+                             <button
+                               type="button"
+                               onClick={() => router.push(buildMdmOptimizationDetailsHref(failureValues))}
+                               className="mt-1 text-[9px] font-bold text-violet-500 underline underline-offset-2 hover:text-violet-700"
+                             >
+                               查看AI选择过程
+                             </button>
+                           )}
                          </div>
                        )}
                        {!isMdmAiSupported && (
@@ -645,8 +651,8 @@ export default function AnalysisCard({
                                                    <span className="text-base font-black uppercase tracking-wider">参数</span>
                                                  </div>
                                                  <div className="flex bg-slate-100 p-0.5 rounded-full border border-slate-200 h-8">
-                                                    <button onClick={() => is3P && onToggle3P?.()} className={cn("px-2.5 h-full rounded-full text-sm font-black transition-all flex items-center", !is3P ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-500")}>2P</button>
-                                                    <button onClick={() => !is3P && onToggle3P?.()} className={cn("px-2.5 h-full rounded-full text-sm font-black transition-all flex items-center", is3P ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-500")}>3P</button>
+                                                    <button disabled={lockParameterMode} onClick={() => is3P && onToggle3P?.()} className={cn("px-2.5 h-full rounded-full text-sm font-black transition-all flex items-center disabled:cursor-not-allowed", !is3P ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-500")}>2P</button>
+                                                    <button disabled={lockParameterMode} onClick={() => !is3P && onToggle3P?.()} className={cn("px-2.5 h-full rounded-full text-sm font-black transition-all flex items-center disabled:cursor-not-allowed", is3P ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-500")}>3P</button>
                                                  </div>
                                               </div>                                  {/* 内容栏 */}
                                   <div className="flex-1 p-4 flex flex-col overflow-y-auto">

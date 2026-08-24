@@ -9,21 +9,23 @@ import {
   ArrowRight,
   CheckCircle2,
   Gauge,
-  Loader2,
-  Sparkles,
 } from 'lucide-react'
 
 import { AIChartLine } from '@/components/ai/charts/LineChart'
+import AnalysisCard from '@/components/calculator/AnalysisCard'
+import DataEditor from '@/components/calculator/DataEditor'
 import { ChartCard } from '@/components/shared/charts/ChartCard'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
+import { createManualParameterResult, MDM_DEFAULT_OFFSET } from '@/lib/calculator-state'
 import {
   compareMdmOptimization,
   formatSigned,
   isMdmAiSampleSizeSupported,
+  MdmOffsetMode,
   MdmProcessOptimizationResult,
   optimizeMdmOffset,
 } from '@/lib/mdm-process-optimization'
-import { DataPoint, WeibullResult } from '@/lib/weibull'
+import { calculateMedianRanks, DataPoint, WeibullResult } from '@/lib/weibull'
 
 const DEFAULT_SAMPLE = [1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73]
 
@@ -35,8 +37,8 @@ function parseSample(text: string): number[] {
     .filter(Number.isFinite)
 }
 
-function formatSample(values: number[]): string {
-  return values.map(value => String(value)).join('\n')
+function toDataPoints(values: number[]): DataPoint[] {
+  return values.map((value, id) => ({ id, value, status: 'F' }))
 }
 
 function MDMProcessOptimizationContent() {
@@ -46,27 +48,46 @@ function MDMProcessOptimizationContent() {
     const parsed = queryData ? parseSample(queryData) : []
     return parsed.length > 0 ? parsed : DEFAULT_SAMPLE
   }, [queryData])
-  const [sampleInput, setSampleInput] = useState(() => formatSample(initialValues))
+  const [data, setData] = useState<DataPoint[]>(() => toDataPoints(initialValues))
+  const [result, setResult] = useState<WeibullResult>(() => (
+    createManualParameterResult(toDataPoints(initialValues), true, calculateMedianRanks)
+  ))
   const [optimization, setOptimization] = useState<MdmProcessOptimizationResult | null>(null)
-  const [estimate, setEstimate] = useState<WeibullResult | null>(null)
+  const [aiEstimate, setAiEstimate] = useState<WeibullResult | null>(null)
   const [fixedEstimate, setFixedEstimate] = useState<WeibullResult | null>(null)
+  const [mdmOffset, setMdmOffset] = useState(MDM_DEFAULT_OFFSET)
+  const [mdmOffsetMode, setMdmOffsetMode] = useState<MdmOffsetMode>('ai')
+  const [fitMode, setFitMode] = useState<'fit' | 'manual'>('manual')
+  const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const autoRunRef = useRef(false)
+  const handledQueryRef = useRef<string | null>(null)
+  const calculationRequestRef = useRef(0)
 
-  const runOptimization = useCallback(async (text = sampleInput) => {
-    const values = parseSample(text)
+  const clearOptimization = useCallback(() => {
+    setOptimization(null)
+    setAiEstimate(null)
+    setFixedEstimate(null)
+  }, [])
+
+  const runOptimization = useCallback(async (points = data) => {
+    const requestId = ++calculationRequestRef.current
+    const values = points.filter(point => point.status === 'F').map(point => point.value)
+    if (values.length !== points.length) {
+      clearOptimization()
+      setLoading(false)
+      setError('AI 优化偏移量当前仅支持完整失效样本，不能包含悬停数据')
+      return
+    }
     if (!isMdmAiSampleSizeSupported(values.length)) {
-      setOptimization(null)
-      setEstimate(null)
-      setFixedEstimate(null)
+      clearOptimization()
+      setLoading(false)
       setError(`AI 优化偏移量当前支持 n=7、10、15、20；本次输入 n=${values.length}`)
       return
     }
     if (values.some(value => value <= 0)) {
-      setOptimization(null)
-      setEstimate(null)
-      setFixedEstimate(null)
+      clearOptimization()
+      setLoading(false)
       setError('失效时间必须全部大于 0')
       return
     }
@@ -75,39 +96,67 @@ function MDMProcessOptimizationContent() {
     setError(null)
     try {
       const selected = await optimizeMdmOffset(values)
-      const data: DataPoint[] = values.map((value, id) => ({ id, value, status: 'F' }))
       const [calculation, fixedCalculation] = await Promise.all([
         calculateWeibull({
           methodId: 'mdm',
-          data,
+          data: points,
           offset: selected.selected_delta,
         }),
         calculateWeibull({
           methodId: 'mdm',
-          data,
+          data: points,
           offset: selected.default_delta,
         }),
       ])
+      if (requestId !== calculationRequestRef.current) return
       setOptimization(selected)
-      setEstimate(calculation.result)
+      setAiEstimate(calculation.result)
       setFixedEstimate(fixedCalculation.result)
+      setResult(calculation.result)
+      setFitMode('fit')
     } catch (reason) {
-      setOptimization(null)
-      setEstimate(null)
-      setFixedEstimate(null)
+      if (requestId !== calculationRequestRef.current) return
+      clearOptimization()
       setError(reason instanceof Error ? reason.message : String(reason))
     } finally {
-      setLoading(false)
+      if (requestId === calculationRequestRef.current) setLoading(false)
     }
-  }, [sampleInput])
+  }, [clearOptimization, data])
+
+  const runFixedCalculation = useCallback(async (offset: number, points = data) => {
+    const requestId = ++calculationRequestRef.current
+    if (points.length === 0) {
+      setLoading(false)
+      setError('请先输入失效样本')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const calculation = await calculateWeibull({ methodId: 'mdm', data: points, offset })
+      if (requestId !== calculationRequestRef.current) return
+      setResult(calculation.result)
+      setFitMode('fit')
+    } catch (reason) {
+      if (requestId !== calculationRequestRef.current) return
+      setError(reason instanceof Error ? reason.message : String(reason))
+    } finally {
+      if (requestId === calculationRequestRef.current) setLoading(false)
+    }
+  }, [data])
 
   useEffect(() => {
-    if (!queryData || autoRunRef.current) return
-    autoRunRef.current = true
-    void runOptimization(formatSample(initialValues))
+    if (!queryData || handledQueryRef.current === queryData) return
+    handledQueryRef.current = queryData
+    const points = toDataPoints(initialValues)
+    setData(points)
+    setResult(createManualParameterResult(points, true, calculateMedianRanks))
+    setMdmOffsetMode('ai')
+    void runOptimization(points)
   }, [initialValues, queryData, runOptimization])
 
-  const values = parseSample(sampleInput)
+  const values = data.filter(point => point.status === 'F').map(point => point.value)
   const curveData = optimization?.delta_grid.map((delta, index) => ({
     x: delta,
     y: optimization.predicted_loss_curve[index],
@@ -127,8 +176,71 @@ function MDMProcessOptimizationContent() {
       })
     : null
 
+  const handleDataChange = useCallback((newData: DataPoint[]) => {
+    calculationRequestRef.current += 1
+    setData(newData)
+    setResult(previous => {
+      const gamma = previous?.gamma ?? 1000
+      return {
+        ...(previous ?? createManualParameterResult(newData, true, calculateMedianRanks)),
+        points: calculateMedianRanks(newData, gamma),
+        converged: true,
+      }
+    })
+    clearOptimization()
+    setFitMode('manual')
+    setLoading(false)
+    setError(null)
+  }, [clearOptimization])
+
+  const handleParamsUpdate = useCallback((updates: Partial<WeibullResult>, mode: 'fit' | 'manual' = 'manual') => {
+    setResult(previous => {
+      const base = previous ?? createManualParameterResult(data, true, calculateMedianRanks)
+      const gamma = updates.gamma ?? base.gamma
+      return {
+        ...base,
+        ...updates,
+        points: updates.points ?? calculateMedianRanks(data, gamma),
+      }
+    })
+    setFitMode(mode)
+  }, [data])
+
+  const handleMdmOffsetModeChange = useCallback(async (mode: MdmOffsetMode) => {
+    setMdmOffsetMode(mode)
+    if (mode === 'ai') {
+      await runOptimization(data)
+    } else {
+      await runFixedCalculation(mdmOffset, data)
+    }
+  }, [data, mdmOffset, runFixedCalculation, runOptimization])
+
+  const handleMdmOffsetChange = useCallback(async (offset: number) => {
+    setMdmOffset(offset)
+    setMdmOffsetMode('fixed')
+    await runFixedCalculation(offset, data)
+  }, [data, runFixedCalculation])
+
+  const handleCalculate = useCallback(async () => {
+    if (mdmOffsetMode === 'ai') {
+      await runOptimization(data)
+    } else {
+      await runFixedCalculation(mdmOffset, data)
+    }
+  }, [data, mdmOffset, mdmOffsetMode, runFixedCalculation, runOptimization])
+
   return (
-    <section className="mx-auto w-full max-w-[1500px] space-y-6 px-8 py-9 pl-[4.5rem]">
+    <>
+      <DataEditor
+        isOpen={isDataEditorOpen}
+        initialData={data}
+        onClose={() => setIsDataEditorOpen(false)}
+        onSave={newData => {
+          handleDataChange(newData)
+          setIsDataEditorOpen(false)
+        }}
+      />
+      <section className="mx-auto w-full max-w-[1500px] space-y-6 px-8 py-9 pl-[4.5rem]">
       <header className="space-y-3">
         <Link href="/ai/process-optimization" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600">
           <ArrowLeft size={14} /> 返回过程量优化
@@ -146,37 +258,43 @@ function MDMProcessOptimizationContent() {
         <div>当前样本</div><div>排序与尺度处理</div><div>预测26点损失</div><div>选择最低点</div><div>执行MDM</div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="font-black text-slate-800">当前失效样本</h2>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">n={values.length}</span>
+      <div className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="font-black text-slate-800">当前计算卡片</h2>
+            <p className="mt-1 text-xs text-slate-400">样本、参数和 AI 选择结果均以此卡片为准。</p>
           </div>
-          <textarea
-            value={sampleInput}
-            onChange={event => {
-              setSampleInput(event.target.value)
-              setOptimization(null)
-              setEstimate(null)
-              setFixedEstimate(null)
-              setError(null)
-            }}
-            className="mt-3 h-56 w-full resize-none rounded-xl border border-slate-200 p-3 font-mono text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-            aria-label="MDM AI 偏移量优化样本"
-          />
-          <button
-            type="button"
-            onClick={() => void runOptimization()}
-            disabled={loading}
-            className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-violet-600 text-sm font-black text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            {loading ? '正在选择并估计' : 'AI选择偏移量'}
-          </button>
-          <p className="mt-2 text-xs leading-relaxed text-slate-400">支持 n=7、10、15、20 的完整失效样本。</p>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">n={values.length}</span>
         </div>
+        <AnalysisCard
+          id="ai-mdm-process-optimization"
+          index={0}
+          data={data}
+          result={result}
+          methodId="mdm"
+          mdmOffset={mdmOffset}
+          mdmOffsetMode={mdmOffsetMode}
+          mdmOptimization={optimization ?? undefined}
+          color="#7c3aed"
+          fitMode={fitMode}
+          is3P={true}
+          availableLayers={[]}
+          onAdd={() => {}}
+          onMdmOffsetChange={handleMdmOffsetChange}
+          onMdmOffsetModeChange={handleMdmOffsetModeChange}
+          onDataClick={() => setIsDataEditorOpen(true)}
+          onDataChange={handleDataChange}
+          onParamsUpdate={handleParamsUpdate}
+          onCalculate={handleCalculate}
+          hideCalculationProcessButton={true}
+          hideMdmOptimizationDetailsLink={true}
+          lockParameterMode={true}
+          isMdmOffsetUpdating={loading}
+        />
+        <p className="text-xs leading-relaxed text-slate-400">AI过程量优化当前支持 n=7、10、15、20 的三参数完整失效样本。</p>
+      </div>
 
-        <div className="space-y-4">
+      <div className="space-y-4">
           {error && (
             <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               <AlertCircle size={17} className="mt-0.5 shrink-0" /> {error}
@@ -212,7 +330,7 @@ function MDMProcessOptimizationContent() {
                 </div>
               </div>
 
-              {estimate && fixedEstimate && (
+              {aiEstimate && fixedEstimate && (
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="border-b border-slate-100 px-5 py-4">
                     <h2 className="font-black text-slate-800">AI 与固定 δ=0.10 对比</h2>
@@ -254,25 +372,25 @@ function MDMProcessOptimizationContent() {
                           },
                           {
                             label: 'β 估计值',
-                            ai: estimate.beta?.toFixed(4) ?? '—',
+                            ai: aiEstimate.beta?.toFixed(4) ?? '—',
                             fixed: fixedEstimate.beta?.toFixed(4) ?? '—',
-                            difference: estimate.beta != null && fixedEstimate.beta != null
-                              ? formatSigned(estimate.beta - fixedEstimate.beta, 4)
+                            difference: aiEstimate.beta != null && fixedEstimate.beta != null
+                              ? formatSigned(aiEstimate.beta - fixedEstimate.beta, 4)
                               : '—',
                           },
                           {
                             label: 'η 估计值',
-                            ai: estimate.eta?.toFixed(2) ?? '—',
+                            ai: aiEstimate.eta?.toFixed(2) ?? '—',
                             fixed: fixedEstimate.eta?.toFixed(2) ?? '—',
-                            difference: estimate.eta != null && fixedEstimate.eta != null
-                              ? formatSigned(estimate.eta - fixedEstimate.eta, 2)
+                            difference: aiEstimate.eta != null && fixedEstimate.eta != null
+                              ? formatSigned(aiEstimate.eta - fixedEstimate.eta, 2)
                               : '—',
                           },
                           {
                             label: 'γ 估计值',
-                            ai: estimate.gamma.toFixed(2),
+                            ai: aiEstimate.gamma.toFixed(2),
                             fixed: fixedEstimate.gamma.toFixed(2),
-                            difference: formatSigned(estimate.gamma - fixedEstimate.gamma, 2),
+                            difference: formatSigned(aiEstimate.gamma - fixedEstimate.gamma, 2),
                           },
                         ].map(row => (
                           <tr key={row.label}>
@@ -309,26 +427,23 @@ function MDMProcessOptimizationContent() {
                 />
               </ChartCard>
 
-              {estimate && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-center gap-2 text-sm font-black text-slate-800">
-                    <CheckCircle2 size={17} className="text-emerald-500" /> 使用AI建议δ后的MDM结果
+              {aiEstimate && (
+                <div className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 shadow-sm ${
+                  mdmOffsetMode === 'ai' && fitMode === 'fit'
+                    ? 'border-emerald-200 bg-emerald-50/70'
+                    : 'border-amber-200 bg-amber-50/70'
+                }`}>
+                  <div className={`flex items-center gap-2 text-sm font-black ${
+                    mdmOffsetMode === 'ai' && fitMode === 'fit' ? 'text-emerald-800' : 'text-amber-800'
+                  }`}>
+                    <CheckCircle2 size={17} className={mdmOffsetMode === 'ai' && fitMode === 'fit' ? 'text-emerald-500' : 'text-amber-500'} />
+                    {fitMode !== 'fit'
+                      ? '上方参数已手动调整；下方保留最近一次 AI 对比'
+                      : mdmOffsetMode === 'ai'
+                        ? 'AI建议结果已同步到上方计算卡片'
+                        : `上方计算卡片当前显示固定 δ=${mdmOffset.toFixed(2)} 的结果`}
                   </div>
-                  <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                    {[
-                      ['β', estimate.beta],
-                      ['η', estimate.eta],
-                      ['γ', estimate.gamma],
-                    ].map(([label, value]) => (
-                      <div key={label} className="rounded-lg bg-slate-50 p-3">
-                        <div className="text-xs font-bold text-slate-400">{label}</div>
-                        <div className="mt-1 font-mono text-lg font-black text-slate-700">
-                          {typeof value === 'number' ? value.toFixed(label === 'β' ? 4 : 2) : '—'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Link
                       href={`/?${calculatorParams?.toString()}`}
                       className="inline-flex items-center gap-1 rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700"
@@ -350,7 +465,6 @@ function MDMProcessOptimizationContent() {
               输入样本后查看26个候选偏移量的预测损失和AI建议。
             </div>
           )}
-        </div>
       </div>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
@@ -359,7 +473,8 @@ function MDMProcessOptimizationContent() {
         “预计估计准确度变化”由预测损失相对固定δ=0.10的变化换算，不是当前样本可直接观测的真实误差；
         当前样本没有参数真值时不能计算实测准确度，也不保证每个样本在真实误差上都优于固定δ=0.10。
       </div>
-    </section>
+      </section>
+    </>
   )
 }
 

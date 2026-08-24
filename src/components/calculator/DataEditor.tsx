@@ -322,17 +322,19 @@ export default function DataEditor({
                   <File size={16} className="inline mr-2" />
                   单选
                 </button>
-                <button
-                  onClick={() => setMode('multi')}
-                  className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
-                    mode === 'multi'
-                      ? 'bg-white text-emerald-600 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  <Folder size={16} className="inline mr-2" />
-                  多选
-                </button>
+                {onSaveMulti && (
+                  <button
+                    onClick={() => setMode('multi')}
+                    className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
+                      mode === 'multi'
+                        ? 'bg-white text-emerald-600 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <Folder size={16} className="inline mr-2" />
+                    多选
+                  </button>
+                )}
               </div>
               {mode === 'multi' && (
                 <span className="text-sm text-slate-500">
