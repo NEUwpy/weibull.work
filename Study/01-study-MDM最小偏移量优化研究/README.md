@@ -66,7 +66,7 @@
 | Default ($\delta=0.1$) | 0.6304 | 0.7633 | 0.6571 | 0.5651 | 0.5058 |
 | L6 hindsight | 0.4923 | 0.6083 | 0.5159 | 0.4319 | 0.3831 |
 
-论文主结果固定使用 seed 42：pooled $J_1=0.5846$，失败率为 0%，相对 Default 改善 7.2740%。seed 2026 和 3407 只用于初始化敏感性核查；三个 seed 的 pooled $J_1$ 范围为 0.5846—0.5855，标准差为 0.0004，不对三条预测曲线作平均或集成。派生主结果包见 `artifacts/formal/E8_mean_normalized_selector/seed42_primary/`。
+论文主结果固定使用 seed 42：pooled $J_1=0.5846$，失败率为 0%，相对 Default 改善 7.2740%。在保持当前 160 个设计单元等权的配对 repeat-block bootstrap 中，该降幅的 95% CI 为 6.9448%—7.6376%；设计单元重采样的 95% 敏感性范围为 6.0367%—8.4603%，160 个单元中 125 个改善、35 个退化。seed 2026 和 3407 只用于初始化敏感性核查；三个 seed 的 pooled $J_1$ 范围为 0.5846—0.5855，标准差为 0.0004，不对三条预测曲线作平均或集成。派生主结果包见 `artifacts/formal/E8_mean_normalized_selector/seed42_primary/`，不确定性产物见 `artifacts/formal/E8_mean_normalized_selector/main_uncertainty/`。
 
 ### 3. 条件风险与样本实现
 

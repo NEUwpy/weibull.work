@@ -6,7 +6,7 @@
 
 三参数 Weibull 分布的最小差异法（minimum discrepancy method，MDM）通过在位置参数搜索判据中引入偏移量 $\delta$，改善有限样本下估计结果的稳定性。现有方法通常采用经验值 $\delta=0.1$，但在估计稳定性得到改善后，如何进一步选择偏移量以避免不必要的精度损失，尚缺乏系统研究。本文比较统一取值、参数条件规则和逐样本事后参照，用以识别合理偏移量的决定因素。在真参数未知时，按样本量分别训练多层感知机（multilayer perceptron，MLP），以样本均值归一化的排序样本为输入，预测各候选偏移量对应的估计损失，再选择预测损失最小的偏移量。
 
-在预设参数空间和评价准则下，经验值 $\delta=0.1$ 已接近最佳统一常数；逐样本事后参照相对固定规则的误差降幅为 21.9%。在真参数未知的条件下，基于 MLP 的样本自适应选择在未见 $\gamma/\eta$ 水平的留出评价中将三参数联合估计误差降低约 7.3%，且未出现估计失败。机制诊断进一步显示，同一参数条件下的低风险偏移量仍随样本实现而变化；在相同可观测输入下，较灵活的经验规则还能进一步降低风险，但仍不能达到逐样本事后参照。
+在预设参数空间和评价准则下，经验值 $\delta=0.1$ 已接近最佳统一常数；逐样本事后参照相对固定规则的误差降幅为 21.9%。在真参数未知的条件下，基于 MLP 的样本自适应选择在未见 $\gamma/\eta$ 水平的留出评价中将三参数联合估计误差降低 7.27%（配对重采样 95% 置信区间为 6.94%—7.64%），且未出现估计失败。机制诊断进一步显示，同一参数条件下的低风险偏移量仍随样本实现而变化；在相同可观测输入下，较灵活的经验规则还能进一步降低风险，但仍不能达到逐样本事后参照。
 
 进一步验证表明，按形状参数水平逐一留出时，汇总误差降幅仍为 7.3%，但最低形状参数水平下略差于固定偏移量。样本自适应方法的三参数联合估计误差低于同条件下的加权极大似然法和最小二乘法。可靠度寿命分析显示，参数估计误差的改善仅有限地传递到 $x_{0.90}$、$x_{0.95}$ 和 $x_{0.99}$。因此，本文方法的主要作用是改进 MDM 内部的偏移量选择，而不是保证所有派生工程指标同步改善。
 
@@ -20,9 +20,11 @@
 
 最小差异法根据三参数 Weibull 分布构造尺度参数的伪估计量，并以不同样本点所得伪尺度参数之间的差异作为判据[2]。在给定位置参数和形状参数时，若二者更接近真值，各样本点对应的伪尺度参数应更为集中。后续研究指出，有限随机样本反映的最小差异位置未必与确定性曲线的极值点重合，因此在位置参数搜索的梯度判据中引入正偏移量，并以 $\delta=0.1$ 作为经验取值[3]。这一处理明显改善了部分小样本估计的稳定性，但偏移量本身也会改变有限样本估计风险，其合理取值及决定因素仍缺少系统研究。
 
+统计估计中，依据当前数据选择调节参数已有较长的研究历史。既有工作利用 jackknife 或 pilot estimator 估计渐近均方误差，为当前数据集选择稳健回归或最小距离估计器的调节参数[9–11]；近期研究还通过训练—验证双层优化联合更新稳健回归模型和调节参数[12]。神经网络也已用于非参数回归带宽选择[13]，模拟决策方法则可以学习给定观测和候选动作时的条件代价[14]。这些研究说明，数据驱动调参本身并非新问题；但它们没有考察三参数 Weibull MDM 的梯度偏移量，也没有说明总体参数、有限样本实现和事后损失信息分别如何影响该偏移量的风险。
+
 由此，本文研究的问题是：在三参数 Weibull 小样本 MDM 估计中，偏移量 $\delta$ 如何影响有限样本估计风险，其合理取值受哪些因素决定，以及在总体参数未知时能否仅依据观测样本实现有效选择。本文先比较统一规则、参数条件规则和逐样本事后参照，再以样本均值归一化的排序样本为输入，预测各候选偏移量的损失曲线并确定 $\delta$。最后，通过仅使用相同可观测样本的条件风险参照，分析当前网络尚未获得的收益与逐样本事后信息之间的关系。神经网络仅用于选择偏移量，最终的 $\hat\beta$、$\hat\eta$ 和 $\hat\gamma$ 仍由 MDM 计算。
 
-研究以统一的 Monte Carlo 设计比较固定、分组和逐样本偏移量规则，先明确经验值 $0.1$ 的位置以及增加选择信息所能获得的收益，再用样本均值归一化的排序样本预测候选偏移量的损失曲线。参数水平留出、传统估计方法参照和可靠度寿命误差用于检验主结果的适用边界及工程后果，训练稳定性作为可信性检查列于支撑验证。本文不讨论以神经网络直接替代 MDM，也不把离散设计内的留出结果解释为连续参数空间的普遍泛化。
+研究以统一的 Monte Carlo 设计比较固定、分组和逐样本偏移量规则，先明确经验值 $0.1$ 的位置以及增加选择信息所能获得的收益，再用样本均值归一化的排序样本预测候选偏移量的损失曲线。参数水平留出、传统估计方法参照和可靠度寿命误差用于检验主结果的适用边界及工程后果，训练稳定性作为可信性检查列于支撑验证。既有神经网络方法曾直接输出三参数 Weibull 参数[15,16]；本文不以神经网络替代 MDM，也不把离散设计内的留出结果解释为连续参数空间的普遍泛化。
 
 ## 2 方法
 
@@ -213,6 +215,8 @@ $$
 
 所有方法均报告汇总 $J_1$、按 $n$ 分层的 $J_1$ 和失败率。汇总结果按样本等权计算；由于各组合重复次数相同，这也等价于对 160 个组合等权。未收敛结果不从汇总中删除。主方法在正式数据中没有估计失败；WMLE 的 1 次未收敛按预先规定的失败规则计入评价。
 
+主结果的 Monte Carlo 不确定性通过配对重复块 bootstrap 估计。每个重复块在 160 个参数—样本量组合中各含一个样本，重采样时保持方法间配对和组合等权，共进行 20,000 次重采样。该区间以当前 160 个设计单元为条件，反映有限 Monte Carlo 重复带来的误差。另将 160 个设计单元的均值损失作为配对重采样单元，检查汇总改善对设计构成的敏感性；该范围不解释为连续参数总体的置信区间。
+
 ## 3 结果
 ### 3.1 不同信息条件下的偏移量选择
 
@@ -246,7 +250,7 @@ $$
 
 ### 3.3 样本自适应偏移量选择
 
-在按每个 $n$ 的 $\gamma/\eta$ 水平留出评价中，样本自适应方法的汇总 $J_1$ 为 0.584553。相同测试样本上，固定 $\delta=0.1$ 的 $J_1$ 为 0.630409，L6 为 0.492297（表 3）。样本自适应选择相对经验值降低 7.27%，三种方法在该评价中均无估计失败。L6 仅给出同一候选网格内的事后对照，其与 Default 的差距不用来表示现实选择方法可获得的比例。
+在按每个 $n$ 的 $\gamma/\eta$ 水平留出评价中，样本自适应方法的汇总 $J_1$ 为 0.584553。相同测试样本上，固定 $\delta=0.1$ 的 $J_1$ 为 0.630409，L6 为 0.492297（表 3）。样本自适应选择相对经验值降低 7.27%；在保持当前设计和组合等权的配对重复块 bootstrap 中，95% 置信区间为 6.94%—7.64%。三种方法在该评价中均无估计失败。L6 仅给出同一候选网格内的事后对照，其与 Default 的差距不用来表示现实选择方法可获得的比例。
 
 **表 3  样本自适应方法的主比较。三种方法使用同一留出协议和同一测试样本。**
 
@@ -274,7 +278,7 @@ $$
 
 **图 4  从损失曲线预测到偏移量选择。** **a，** 折外测试样本中的中位超额损失代表例；**b，** 全部折外预测中所选偏移量与事后最优偏移量的对应分布；**c，** 不同样本量下相对于事后参照的超额损失中位数、第 90 和第 99 百分位数。
 
-参数组合层面的结果并不均匀。160 个 $(\beta,\gamma/\eta,n)$ 组合中，125 个组合的 $J_1$ 低于固定 $\delta=0.1$，35 个组合发生退化，最大退化为 17.50%。退化较多出现在 $\gamma/\eta$ 网格边界，并在较大样本量下更常见。完整参数空间热图见附录 F，这一分布说明汇总改善不等于每个参数条件均有利。
+参数组合层面的结果并不均匀。160 个 $(\beta,\gamma/\eta,n)$ 组合中，125 个组合的 $J_1$ 低于固定 $\delta=0.1$，35 个组合发生退化，最大退化为 17.50%。对 160 个设计单元均值进行配对重采样时，汇总降幅的 95% 设计构成敏感性范围为 6.04%—8.46%。退化较多出现在 $\gamma/\eta$ 网格边界，并在较大样本量下更常见。完整参数空间热图见附录 F，这一分布说明汇总改善不等于每个参数条件均有利。
 
 为进一步区分参数条件、当前样本和事后信息的作用，在独立的 16,000 个确认样本上进行条件风险诊断。同一 $(\beta,\gamma/\eta,n)$ 条件内，L5 选择的平均低风险偏移量与 L6 的逐样本事后偏移量只有 12.6% 完全一致；各条件内 L6 偏移量的中位有效候选数为 6.09。这表明，低风险偏移量不仅随总体参数改变，同一参数条件下的有限样本实现也会影响选择。
 
@@ -320,7 +324,7 @@ MDM 梯度曲线的诊断进一步说明了这种变化从何而来。在 20 个
 
 条件风险参照同时限定了对 L6 的解释。论文 MLP 与在所有设计单元上重训的同结构 MLP 之间的差距，混合了留出协议、参数覆盖和重拟合影响；继续改用较灵活的 $Z$-only 回归器后，风险还能进一步下降。这说明当前 MLP 尚未用尽可观测样本中的信息。但该经验参照到 L6 的剩余差距仍包含模型和数据限制，无法仅据当前实验将其全部归为不可观测的完全信息。
 
-利用初估参数选择偏移量的负结果说明了本文为何没有采用这种简单的 plug-in 路线。把初步估计当作真参数使用时，最优变体仍劣于固定规则，且迭代一致变差；初步 $\hat\beta$ 落入正确 $\beta$ 网格单元的比例仅为约 17%–20%，这一现象与初估噪声使样本被错误路由的解释一致，但连续插值同样失败、误差分层可能与真 $\beta$ 混杂，因此该解释只作为支持性证据，不构成唯一机制的证明。相比之下，样本到风险曲线的预测不依赖参数初估的准确性，保留了候选偏移量之间的相对损失信息；在已检验方案中，它获得了 plug-in 未能获得的总体收益。
+利用初估参数选择偏移量的负结果说明了本文为何没有采用这种简单的 plug-in 路线。把初步估计当作真参数使用时，最优变体仍劣于固定规则，且迭代一致变差；稳健最小距离估计的调参研究也曾报告 pilot estimator 会显著影响最终选择，而迭代 pilot 未带来明显优势[10,11]。本文中，初步 $\hat\beta$ 落入正确 $\beta$ 网格单元的比例仅为约 17%–20%，这一现象与初估噪声使样本被错误路由的解释一致，但连续插值同样失败、误差分层可能与真 $\beta$ 混杂，因此该解释只作为支持性证据，不构成唯一机制的证明。相比之下，样本到风险曲线的预测不依赖参数初估的准确性，保留了候选偏移量之间的相对损失信息；在已检验方案中，它获得了 plug-in 未能获得的总体收益。
 
 ### 4.3 与传统方法和工程指标的关系
 
@@ -360,7 +364,7 @@ WMLE 和 LSE 不使用 MDM 偏移量，因而为主结果提供了外部尺度�
 
 ## 参考文献
 
-[1] Yang X, Xie L, Liu Y, et al. A review of parameter estimation methods of the three-parameter Weibull distribution. In: *2023 9th International Symposium on System Security, Safety, and Reliability (ISSSR)*. 2023: 20–31.
+[1] Yang X, Xie L, Liu Y, et al. A review of parameter estimation methods of the three-parameter Weibull distribution. In: *2023 9th International Symposium on System Security, Safety, and Reliability (ISSSR)*. 2023: 20–31. doi:10.1109/ISSSR58837.2023.00013.
 
 [2] Xie L, Wu N, Yang X. A minimum discrepancy method for Weibull distribution parameter estimation. *International Journal of Structural Stability and Dynamics*. 2023;23(8):2350085. doi:10.1142/S0219455423500852.
 
@@ -375,3 +379,19 @@ WMLE 和 LSE 不使用 MDM 偏移量，因而为主结果提供了外部尺度�
 [7] Teimouri M, Hoseini SM, Nadarajah S. Comparison of estimation methods for the Weibull distribution. *Statistics*. 2013;47(1):93–109. doi:10.1080/02331888.2011.559657.
 
 [8] Benard A, Bos-Levenbach EC. Het uitzetten van waarnemingen op waarschijnlijkheids-papier. *Statistica Neerlandica*. 1953;7(3):163–173. doi:10.1111/j.1467-9574.1953.tb00821.x.
+
+[9] Kelly G. Adaptive choice of tuning constant for robust regression estimators. *Journal of the Royal Statistical Society: Series D (The Statistician)*. 1996;45(1):35–40. doi:10.2307/2348409.
+
+[10] Warwick J. A data-based method for selecting tuning parameters in minimum distance estimators. *Computational Statistics & Data Analysis*. 2005;48(3):571–585. doi:10.1016/j.csda.2004.03.006.
+
+[11] Warwick J, Jones MC. Choosing a robustness tuning parameter. *Journal of Statistical Computation and Simulation*. 2005;75(7):581–588. doi:10.1080/00949650412331299120.
+
+[12] Zhang C, Zhang T, Yin F, Zoubir AM. Data-adaptive M-estimators for robust regression via bi-level optimization. *Signal Processing*. 2023;210:109063. doi:10.1016/j.sigpro.2023.109063.
+
+[13] Giordano F, Parrella ML. Neural networks for bandwidth selection in local linear regression of time series. *Computational Statistics & Data Analysis*. 2008;52(5):2435–2450. doi:10.1016/j.csda.2007.08.013.
+
+[14] Gorecki M, Macke JH, Deistler M. Amortized Bayesian decision making for simulation-based models. *Transactions on Machine Learning Research*. 2024. OpenReview:BQE4MTAfCE.
+
+[15] Abbasi B, Rabelo L, Hosseinkouchack M. Estimating parameters of the three-parameter Weibull distribution using a neural network. *European Journal of Industrial Engineering*. 2008;2(4):428–445. doi:10.1504/EJIE.2008.018438.
+
+[16] Yang X, Li A, Yang B, et al. Estimation of Weibull distribution using the back-propagation neural network for fatigue failure data. *Probabilistic Engineering Mechanics*. 2025;82:103828. doi:10.1016/j.probengmech.2025.103828.

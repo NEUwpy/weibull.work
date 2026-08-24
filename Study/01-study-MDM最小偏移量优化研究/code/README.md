@@ -8,6 +8,7 @@
 |---|---|
 | `dim_raw_config.py` | 当前 160 组合设计、26 点 $\delta$ 网格和共享 MLP 配置 |
 | `prepare_mean_normalized_main_evidence.py` | 将 E5 均值归一化折外结果重定位为 E8 正式主方法证据 |
+| `analyze_e8_main_uncertainty.py` | 基于 seed 42 与 Default 的配对损失量化 Monte Carlo 不确定性和设计单元异质性 |
 | `derive_e8_seed42_primary.py` | 派生固定 seed 42 的论文主报告数值 |
 | `run_E8_scale_equivariance.py` | 检查“选择器→选定 $\delta$→生产 MDM”的端到端尺度等变 |
 | `analyze_E1_E2_crossfit.py` | L1–L5 选点/评价分离 |

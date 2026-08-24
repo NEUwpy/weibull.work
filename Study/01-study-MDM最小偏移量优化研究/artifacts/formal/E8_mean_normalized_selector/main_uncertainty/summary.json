@@ -1,0 +1,56 @@
+{
+  "contract": "E8_seed42_main_uncertainty_v1",
+  "source": {
+    "selection_file": "artifacts/formal/E5_normalized_raw/specialist/raw_specialist_results.csv",
+    "selection_sha256_raw_bytes": "b67578fe3a6e02c606ce0ba0bf224f4ce8a7acbf48de1fd87ef1739e368ad7db",
+    "paired_key_and_loss_sha256": "e661cfeb08df3bdf9f087457b5f4fa7d3988c195763a923833f1bd8326666459",
+    "primary_seed": 42,
+    "n_samples": 48000
+  },
+  "primary_result": {
+    "adaptive_R": 0.34170243608110124,
+    "default_R": 0.3974157593593665,
+    "adaptive_J1": 0.5845531935428129,
+    "default_J1": 0.6304091999323665,
+    "delta_J1": -0.04585600638955367,
+    "relative_improvement": 0.07274006533291921
+  },
+  "conditional_monte_carlo_uncertainty": {
+    "method": "paired percentile bootstrap of 300 balanced repeat blocks",
+    "bootstrap_replicates": 20000,
+    "rng_seed": 20260824,
+    "relative_improvement_ci95": [
+      0.06944832121510537,
+      0.07637552878911708
+    ],
+    "delta_J1_ci95": [
+      -0.048276426381537514,
+      -0.043688457578548924
+    ],
+    "boundary": "conditional on the frozen 160-cell design and the fixed trained seed-42 selector; does not include representation/model-selection uncertainty or quantify continuous-parameter or real-data generalization"
+  },
+  "design_composition_sensitivity": {
+    "method": "paired percentile bootstrap of 160 design-cell means",
+    "bootstrap_replicates": 20000,
+    "rng_seed": 20260924,
+    "relative_improvement_resampling_range95": [
+      0.060366921560776186,
+      0.08460281292114567
+    ],
+    "boundary": "describes sensitivity to design-cell composition; is not a population confidence interval"
+  },
+  "cell_heterogeneity": {
+    "n_cells": 160,
+    "n_improved": 125,
+    "n_worse": 35,
+    "n_tied": 0,
+    "relative_improvement_quantiles": {
+      "0.0": -0.1750497425568185,
+      "0.25": 0.013947528548173493,
+      "0.5": 0.07400978655257962,
+      "0.75": 0.1264570614957654,
+      "1.0": 0.19981900502485694
+    },
+    "interpretation": "the pooled benefit is not a per-cell guarantee; cell effects describe heterogeneity over the frozen grid"
+  }
+}
