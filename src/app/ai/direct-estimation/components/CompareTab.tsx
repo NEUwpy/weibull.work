@@ -3,7 +3,6 @@
  *
  * 对比维度：
  * 1. 8种方案精度对比
- * 2. M1最优方案 vs M3最优方案精度对比
  * 切换：聚合/三参数 × 绝对/相对
  */
 "use client"
@@ -32,18 +31,12 @@ interface SchemeEntry {
   per_param: Record<string, ParamMetrics>
   aggregate: { total_relative_mse: number }
 }
-interface M1vsM3Entry {
-  mdm: { label: string; per_param: Record<string, ParamMetrics>; aggregate: { total_relative_mse: number }; success_rate: number; avg_time_ms: number }
-  ai_direct: { label: string; per_param: Record<string, ParamMetrics>; aggregate: { total_relative_mse: number }; success_rate: number; avg_time_ms: number }
-}
-
 const PARAMS = ['beta', 'eta'] as const
 const PARAM_LABELS: Record<string, string> = { beta: 'β', eta: 'η' }
 
 export function CompareTab() {
   const [metrics, setMetrics] = useState<Map<string, DirectEstimationMetricsData>>(new Map())
   const [schemeData, setSchemeData] = useState<Record<string, Record<string, SchemeEntry>>>({})
-  const [m1v3Data, setM1v3Data] = useState<Record<string, M1vsM3Entry>>({})
   const [viewMode, setViewMode] = useState<'aggregate' | 'per_param'>('aggregate')
   const [metricMode, setMetricMode] = useState<'absolute' | 'relative'>('absolute')
   const [loading, setLoading] = useState(true)
@@ -71,11 +64,6 @@ export function CompareTab() {
       try {
         const sd = await loadJSON<Record<string, Record<string, SchemeEntry>>>('/ai/data/m3_scheme_comparison.json')
         setSchemeData(sd)
-      } catch {}
-
-      try {
-        const mv = await loadJSON<Record<string, M1vsM3Entry>>('/ai/data/m1_vs_m3_best.json')
-        setM1v3Data(mv)
       } catch {}
 
       setLoading(false)
@@ -205,83 +193,6 @@ export function CompareTab() {
     )
   }
 
-  // M1最优 vs M3最优
-  const renderM1vsM3 = () => {
-    if (Object.keys(m1v3Data).length === 0) return null
-    const showParams = viewMode === 'per_param'
-    const colSpan = showParams ? PARAMS.length + 1 : 1
-    const methods = ['mdm', 'ai_direct'] as const
-
-    return (
-      <div className="space-y-3">
-        <h3 className="text-base font-bold text-slate-800">M1 最优 vs M3 最优</h3>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
-          MDM 在 M3 测试集（β∈{'{0.5,1,2,3,5}'}, η∈{'{100~5000}'}, γ∈{'{0~200}'}）上运行，成功率为 80-84%。
-          AI 直接估计无需迭代，成功率 100%。
-          <span className="block mt-1 text-amber-500">注：MDM 成功率为 S4.9 前历史旧口径数据，S4.9 后默认 MDM 已重写，待重算更新。</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-slate-100">
-                <th className="border border-slate-200 px-3 py-2 text-left font-bold text-slate-600">方法</th>
-                {SAMPLE_SIZES.map(n => (
-                  <th key={n} className="border border-slate-200 px-3 py-2 text-center font-bold text-slate-600" colSpan={colSpan}>n={n}</th>
-                ))}
-              </tr>
-              {showParams && (
-                <tr className="bg-slate-50">
-                  <th className="border border-slate-200 px-3 py-2"></th>
-                  {SAMPLE_SIZES.map(n => (
-                    <React.Fragment key={n}>
-                      {PARAMS.map(p => <th key={p} className="border border-slate-200 px-2 py-1 text-right font-bold text-slate-500 text-xs">{PARAM_LABELS[p]}</th>)}
-                      <th className="border border-slate-200 px-2 py-1 text-right font-bold text-slate-500 text-xs">聚合</th>
-                    </React.Fragment>
-                  ))}
-                </tr>
-              )}
-            </thead>
-            <tbody>
-              {methods.map((method, mi) => {
-                const first = m1v3Data[`n${SAMPLE_SIZES[0]}`]?.[method]
-                if (!first) return null
-                const rowClass = mi === 0 ? 'hover:bg-blue-50' : 'bg-blue-50 hover:bg-blue-100'
-                return (
-                  <tr key={method} className={rowClass}>
-                    <td className="border border-slate-200 px-3 py-2 font-bold text-slate-700">{first.label}</td>
-                    {SAMPLE_SIZES.map(n => {
-                      const entry = m1v3Data[`n${n}`]?.[method]
-                      if (!entry) return <td key={n} colSpan={colSpan} className="border border-slate-200 px-2 py-1 text-center text-slate-400">—</td>
-                      if (showParams) {
-                        return (
-                          <React.Fragment key={n}>
-                            {PARAMS.map(p => (
-                              <td key={p} className="border border-slate-200 px-2 py-1 text-right font-mono text-xs">
-                                {formatVal(metricMode === 'absolute' ? entry.per_param[p]?.mae : entry.per_param[p]?.mre, metricMode)}
-                              </td>
-                            ))}
-                            <td className="border border-slate-200 px-2 py-1 text-right font-mono text-xs font-bold">
-                              {entry.aggregate.total_relative_mse.toFixed(4)}
-                            </td>
-                          </React.Fragment>
-                        )
-                      }
-                      return (
-                        <td key={n} className="border border-slate-200 px-3 py-2 text-right font-mono font-bold text-sm">
-                          {entry.aggregate.total_relative_mse.toFixed(4)}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-  }
-
   // 折线图
   const renderCharts = () => {
     const lineColors: Record<string, string> = {
@@ -340,11 +251,10 @@ export function CompareTab() {
   return (
     <div className="space-y-6">
       <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 text-sm text-cyan-700">
-        方案对比：在同一参数空间下，比较不同预处理方案的估计精度，以及 AI 直接估计与传统 MDM 方法的精度差异。
+        方案对比：在同一参数空间下，比较不同预处理方案的直接估计精度。
       </div>
 
       {renderSchemeComparison()}
-      {renderM1vsM3()}
       {renderOverview()}
       {renderCharts()}
       {renderConclusion()}

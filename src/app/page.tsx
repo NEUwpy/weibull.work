@@ -25,6 +25,13 @@ import {
   parseMdmOffsetOption,
   toggleParameterMode,
 } from '@/lib/calculator-state'
+import {
+  MdmOffsetMode,
+  MdmProcessOptimizationResult,
+  isMdmAiSampleSizeSupported,
+  optimizeMdmOffset,
+  parseMdmOffsetMode,
+} from '@/lib/mdm-process-optimization'
 
 const CHART_COLORS = MULTI_CURVE_COLORS.slice(0, 5)
 
@@ -37,6 +44,8 @@ type CardData = {
   result?: WeibullResult
   methodId?: string // 'mle' | 'rrx' | 'rry' etc.
   mdmOffset: number
+  mdmOffsetMode: MdmOffsetMode
+  mdmOptimization?: MdmProcessOptimizationResult
   color: string
   fitMode?: 'fit' | 'manual' // Track mode: fit (sample based) or manual (param based)
   is3P?: boolean // New: Track 2P vs 3P mode
@@ -57,6 +66,10 @@ function createManualResult(data: DataPoint[], is3P = true): WeibullResult {
 
 function preserveParametersForData(card: CardData, nextData: DataPoint[]): CardData {
   const result = card.result || createManualResult(nextData, card.is3P !== false)
+  const failureCount = nextData.filter(point => point.status === 'F').length
+  const mdmOffsetMode = card.mdmOffsetMode === 'ai' && !isMdmAiSampleSizeSupported(failureCount)
+    ? 'fixed'
+    : card.mdmOffsetMode
   return {
     ...card,
     data: nextData,
@@ -65,6 +78,8 @@ function preserveParametersForData(card: CardData, nextData: DataPoint[]): CardD
       points: calculateMedianRanks(nextData, result.gamma),
     },
     fitMode: 'manual',
+    mdmOffsetMode,
+    mdmOptimization: undefined,
   }
 }
 
@@ -91,6 +106,7 @@ function CalculatorContent() {
 
     const init = async () => {
       const caseId = searchParams.get('caseId')
+      const dataParam = searchParams.get('data')
       let initialData: DataPoint[] = []
       let selectedMethodId: string | undefined = undefined
 
@@ -106,7 +122,13 @@ function CalculatorContent() {
         }
       }
 
-      if (caseId) {
+      if (dataParam) {
+        const parsed = dataParam
+          .split(',')
+          .map(value => Number(value.trim()))
+          .filter(Number.isFinite)
+        initialData = parsed.map((value, id) => ({ id, value, status: 'F' }))
+      } else if (caseId) {
         try {
           const res = await fetch('/api/cases')
           const allCases = await res.json()
@@ -135,6 +157,8 @@ function CalculatorContent() {
         calculateMedianRanks,
       )
 
+      const requestedMdmOffsetMode = parseMdmOffsetMode(searchParams.get('mdmOffsetMode'))
+      const initialFailureCount = initialData.filter(point => point.status === 'F').length
       setCards([
         {
           id: '1',
@@ -147,6 +171,9 @@ function CalculatorContent() {
           last3PGamma: initialResult.gamma,
           methodId: selectedMethodId,
           mdmOffset: parseMdmOffsetOption(searchParams.get('offset')),
+          mdmOffsetMode: requestedMdmOffsetMode === 'ai' && isMdmAiSampleSizeSupported(initialFailureCount)
+            ? 'ai'
+            : 'fixed',
         }
       ])
     }
@@ -167,6 +194,8 @@ function CalculatorContent() {
     let newIs3P = true
     let newLast3PGamma = getDefaultParameters(true).gamma
     let newMdmOffset = MDM_DEFAULT_OFFSET
+    let newMdmOffsetMode: MdmOffsetMode = 'fixed'
+    let newMdmOptimization: MdmProcessOptimizationResult | undefined
 
     if (type === 'blank') {
       newData = undefined
@@ -180,6 +209,8 @@ function CalculatorContent() {
       newFitMode = sourceCard.fitMode || 'manual'
       newLast3PGamma = sourceCard.last3PGamma ?? sourceCard.result?.gamma ?? newLast3PGamma
       newMdmOffset = sourceCard.mdmOffset
+      newMdmOffsetMode = sourceCard.mdmOffsetMode
+      newMdmOptimization = sourceCard.mdmOptimization
 
       if (type === 'data') {
         if (sourceCard.data && sourceCard.data.length > 0) {
@@ -222,6 +253,8 @@ function CalculatorContent() {
       is3P: newIs3P,
       last3PGamma: newLast3PGamma,
       mdmOffset: newMdmOffset,
+      mdmOffsetMode: newMdmOffsetMode,
+      mdmOptimization: newMdmOptimization,
     }
     
     const sourceIndex = cards.findIndex(c => c.id === sourceId)
@@ -250,6 +283,25 @@ function CalculatorContent() {
       return {
         ...card,
         mdmOffset,
+        mdmOptimization: undefined,
+        result: undefined,
+        dataSources: card.dataSources?.map(source => ({
+          ...source,
+          result: undefined,
+          traceData: undefined,
+        })),
+        fitMode: 'manual',
+      }
+    }))
+  }
+
+  const handleMdmOffsetModeChange = (cardId: string, mdmOffsetMode: MdmOffsetMode) => {
+    setCards(prev => prev.map(card => {
+      if (card.id !== cardId || card.mdmOffsetMode === mdmOffsetMode) return card
+      return {
+        ...card,
+        mdmOffsetMode,
+        mdmOptimization: undefined,
         result: undefined,
         dataSources: card.dataSources?.map(source => ({
           ...source,
@@ -333,22 +385,31 @@ function CalculatorContent() {
     }
 
     try {
-      const results = await Promise.all(sources.map(async source => {
+      const calculations = await Promise.all(sources.map(async source => {
+        const failureValues = source.data.filter(point => point.status === 'F').map(point => point.value)
+        const optimization = card.methodId!.toLowerCase() === 'mdm' && card.mdmOffsetMode === 'ai'
+          ? await optimizeMdmOffset(failureValues)
+          : undefined
+        const selectedOffset = optimization?.selected_delta ?? card.mdmOffset
         const { result } = await calculateWeibull({
           methodId: card.methodId!,
           data: source.data,
-          offset: card.methodId!.toLowerCase() === 'mdm' ? card.mdmOffset : undefined,
+          offset: card.methodId!.toLowerCase() === 'mdm' ? selectedOffset : undefined,
         })
         const failure = getEstimateFailure(result)
         if (failure) throw new Error(failure)
-        return result
+        return { result, optimization, selectedOffset }
       }))
+
+      const results = calculations.map(calculation => calculation.result)
+      const primaryOptimization = calculations[0]?.optimization
 
       setCards(prev => prev.map(c => {
         if (c.id !== cardId || !c.dataSources) return c
         return {
           ...c,
           result: results[0],
+          mdmOptimization: primaryOptimization,
           dataSources: c.dataSources.map((source, index) => ({
             ...source,
             result: results[index],
@@ -428,10 +489,15 @@ function CalculatorContent() {
     }
 
     try {
+      const failureValues = card.data.filter(point => point.status === 'F').map(point => point.value)
+      const optimization = card.methodId.toLowerCase() === 'mdm' && card.mdmOffsetMode === 'ai'
+        ? await optimizeMdmOffset(failureValues)
+        : undefined
+      const selectedOffset = optimization?.selected_delta ?? card.mdmOffset
       const { result } = await calculateWeibull({
         methodId: card.methodId,
         data: card.data,
-        offset: card.methodId.toLowerCase() === 'mdm' ? card.mdmOffset : undefined,
+        offset: card.methodId.toLowerCase() === 'mdm' ? selectedOffset : undefined,
       })
       const failure = getEstimateFailure(result)
       if (failure) throw new Error(failure)
@@ -439,6 +505,7 @@ function CalculatorContent() {
       setCards(prev => prev.map(c => c.id === cardId ? {
         ...c,
         result,
+        mdmOptimization: optimization,
         fitMode: 'fit',
         last3PGamma: result.gamma,
       } : c))
@@ -510,6 +577,8 @@ function CalculatorContent() {
             result={card.result}
             methodId={card.methodId}
             mdmOffset={card.mdmOffset}
+            mdmOffsetMode={card.mdmOffsetMode}
+            mdmOptimization={card.mdmOptimization}
             color={card.color}
             fitMode={card.fitMode || 'manual'}
             is3P={!!card.is3P}
@@ -522,6 +591,7 @@ function CalculatorContent() {
             onAdd={(type, sid) => handleAddCard(type as any, sid)}
             onMethodClick={() => handleMethodClick(card.id)}
             onMdmOffsetChange={(offset) => handleMdmOffsetChange(card.id, offset)}
+            onMdmOffsetModeChange={(mode) => handleMdmOffsetModeChange(card.id, mode)}
             onDataClick={() => handleDataClick(card.id)}
             onDataChange={(newData) => handleDataChange(card.id, newData)}
             onParamsUpdate={(updates, mode) => handleParamsUpdate(card.id, updates, mode)}

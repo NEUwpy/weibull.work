@@ -1,7 +1,7 @@
 /**
  * 通用折线图组件 — 用于展示趋势和收敛
  *
- * 复用于：T1(损失曲线), T2(学习率曲线), R2-1(δ收敛轨迹), C2(δ sweep MSE)
+ * 复用于：损失曲线、学习率曲线和候选值扫描曲线
  * 设计：只输出图表，外框由 ChartCard 提供
  */
 "use client"
@@ -33,6 +33,10 @@ interface AIChartLineProps {
   yReferenceLabel?: string
   xDomain?: [number, number]
   yDomain?: [number, number]
+  xReferences?: Array<{ x: number; label: string; color: string }>
+  showDots?: boolean
+  xTickFormatter?: (value: number) => string
+  yTickFormatter?: (value: number) => string
 }
 
 export function AIChartLine({
@@ -45,6 +49,10 @@ export function AIChartLine({
   yReferenceLabel,
   xDomain,
   yDomain,
+  xReferences = [],
+  showDots = false,
+  xTickFormatter,
+  yTickFormatter,
 }: AIChartLineProps) {
   const allData = data || (lines ? lines.flatMap(l => l.data) : [])
   if (allData.length === 0) {
@@ -70,6 +78,7 @@ export function AIChartLine({
             dataKey="x"
             domain={autoXDomain}
             tick={{ fontSize: 10 }}
+            tickFormatter={xTickFormatter}
             label={{ value: xLabel, position: 'bottom', offset: 0, fontSize: 11 }}
           />
           <YAxis
@@ -77,12 +86,13 @@ export function AIChartLine({
             dataKey="y"
             domain={autoYDomain}
             tick={{ fontSize: 10 }}
+            tickFormatter={yTickFormatter}
             label={{ value: yLabel, angle: -90, position: 'insideLeft', fontSize: 11 }}
           />
           <Tooltip
             contentStyle={{ borderRadius: '4px', border: '1px solid #e5e7eb', fontSize: '11px' }}
             formatter={(value: number) => [value.toFixed(6), yLabel]}
-            labelFormatter={(label: number) => `Epoch: ${label}`}
+            labelFormatter={(label: number) => `${xLabel || 'x'}: ${Number(label).toFixed(2)}`}
           />
           {yReference !== undefined && (
             <ReferenceLine
@@ -93,8 +103,25 @@ export function AIChartLine({
               label={yReferenceLabel ? { value: yReferenceLabel, position: 'right', fontSize: 10 } : undefined}
             />
           )}
+          {xReferences.map(reference => (
+            <ReferenceLine
+              key={`${reference.x}-${reference.label}`}
+              x={reference.x}
+              stroke={reference.color}
+              strokeDasharray="4 4"
+              strokeWidth={1.5}
+              label={{ value: reference.label, position: 'top', fill: reference.color, fontSize: 10 }}
+            />
+          ))}
           {data && (
-            <Line type="monotone" dataKey="y" data={data} stroke={color} strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="y"
+              data={data}
+              stroke={color}
+              strokeWidth={2}
+              dot={showDots ? { r: 2.5, strokeWidth: 1 } : false}
+            />
           )}
           {lines && lines.map(line => (
             <Line

@@ -1,5 +1,6 @@
 """test_calculation_api.py — 方法失败时不回退到 WMLE，且响应保持方法身份一致"""
 
+import asyncio
 import sys
 import os
 
@@ -138,6 +139,31 @@ def test_invalid_mdm_offset_is_rejected(helpers, offset):
     """计算入口拒绝非有限值和超出计算器范围的偏移量。"""
     with pytest.raises(ValueError, match="MDM offset"):
         helpers._calculation_kwargs("mdm", offset=offset)
+
+
+def test_ai_process_optimization_endpoint_returns_loss_curve(helpers):
+    """过程量优化接口返回离散预测损失曲线，而不是旧版单值置信度。"""
+    sample = [1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73]
+    response = asyncio.run(
+        helpers.ai_predict_delta(helpers.AIDeltaRequest(data=sample))
+    )
+
+    assert response.model_n == 7
+    assert len(response.delta_grid) == 26
+    assert len(response.predicted_loss_curve) == 26
+    assert response.selected_delta == response.delta_grid[response.selected_index]
+    assert not hasattr(response, "confidence")
+
+
+def test_ai_process_optimization_endpoint_rejects_unsupported_n(helpers):
+    """不支持的样本量必须显式失败，不能套用旧模型或静默回退。"""
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(
+            helpers.ai_predict_delta(helpers.AIDeltaRequest(data=[1, 2, 3, 4, 5]))
+        )
+
+    assert exc.value.status_code == 422
+    assert "仅支持样本量" in exc.value.detail
 
 
 def test_failure_422_detail_includes_requested_method(helpers, monkeypatch):

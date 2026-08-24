@@ -11,6 +11,7 @@
     "check:method-status": "node scripts/generate-method-status.mjs --check",
     "test:method-status": "node --test scripts/tests/method-status.test.mjs",
     "test:calculator-state": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/calculator-state.test.mjs",
+    "test:mdm-process-optimization": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/mdm-process-optimization.test.mjs",
     "predev": "npm run generate:method-status",
     "prebuild": "npm run check:method-status"
   },

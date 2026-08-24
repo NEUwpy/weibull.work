@@ -277,56 +277,15 @@ async def monte_carlo_simulate(req: MonteCarloRequest):
         raise HTTPException(status_code=500, detail=f"Monte Carlo simulation failed: {str(e)}")
 
 # ============================================================
-# AI Methods — 关系建立: MDM 偏移量优化
+# AI Methods — 过程量优化: MDM 偏移量选择
 # ============================================================
 
 import torch
 import torch.nn as nn
-
-class DeltaMLP_N2(nn.Module):
-    """路线 1 模型：样本 → 最优 δ
-    Linear(n,128)→ReLU→BN→Linear(128,64)→ReLU→BN→Linear(64,1)→Sigmoid
-    """
-    def __init__(self, input_dim: int):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, 128),
-            nn.ReLU(),
-            nn.BatchNorm1d(128),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.BatchNorm1d(64),
-            nn.Linear(64, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-
-class DeltaMLP_N1(nn.Module):
-    """路线 2 公共模型：(β,η,γ) 真值 → 最优 δ
-    Linear(3,32)→ReLU→Linear(32,16)→ReLU→Linear(16,1)→Sigmoid
-    """
-    def __init__(self):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(3, 32),
-            nn.ReLU(),
-            nn.Linear(32, 16),
-            nn.ReLU(),
-            nn.Linear(16, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-
-# 模型缓存
-_ai_models_n2 = {}   # 路线 1 模型（按 n 缓存）
-_ai_model_n1 = None  # 路线 2 公共模型
-
+from ai_methods.mdm_process_optimizer import (
+    MDMProcessOptimizationError,
+    select_mdm_offset,
+)
 
 # ============================================================
 # AI Methods — 直接估计: 端到端参数预测
@@ -356,282 +315,39 @@ class DirectEstimationMLP(nn.Module):
 # 直接估计模型缓存
 _ai_direct_models = {}  # 按 n 缓存
 
-def _load_delta_model(n: int):
-    """按样本量 n 加载路线 1 的 N₂ 模型"""
-    if n in _ai_models_n2:
-        return _ai_models_n2[n]
-
-    models_dir = os.path.join(os.path.dirname(__file__), 'models', 'mdm_delta')
-    model_path = os.path.join(models_dir, f'n{n}_model.pth')
-
-    if not os.path.exists(model_path):
-        return None
-
-    checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
-    model = DeltaMLP_N2(input_dim=checkpoint['input_dim'])
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.eval()
-
-    delta_min = checkpoint.get('delta_min', 0.01)
-    delta_max = checkpoint.get('delta_max', 0.50)
-    scaler_params = checkpoint.get('scaler_params', None)
-
-    _ai_models_n2[n] = (model, delta_min, delta_max, scaler_params)
-    return _ai_models_n2[n]
-
-
-def _load_delta_params_model():
-    """加载路线 2 的 N₁ 公共模型（真值→δ）"""
-    global _ai_model_n1
-    if _ai_model_n1 is not None:
-        return _ai_model_n1
-
-    models_dir = os.path.join(os.path.dirname(__file__), 'models', 'mdm_delta')
-    model_path = os.path.join(models_dir, 'delta_from_params.pth')
-
-    if not os.path.exists(model_path):
-        return None
-
-    checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
-    model = DeltaMLP_N1()
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.eval()
-
-    delta_min = checkpoint.get('delta_min', 0.01)
-    delta_max = checkpoint.get('delta_max', 0.50)
-    scaler_params = checkpoint.get('scaler_params', None)
-
-    _ai_model_n1 = (model, delta_min, delta_max, scaler_params)
-    return _ai_model_n1
-
-
 class AIDeltaRequest(BaseModel):
-    """AI 偏移量预测请求"""
+    """MDM 过程量优化请求。"""
     data: List[float]
 
 class AIDeltaResponse(BaseModel):
-    """AI 偏移量预测响应"""
-    optimal_delta: float
+    """当前样本的离散候选偏移量预测损失曲线。"""
     model_n: int
-    confidence: Optional[str] = None
+    delta_grid: List[float]
+    predicted_loss_curve: List[float]
+    selected_index: int
+    selected_delta: float
+    selected_predicted_loss: float
+    default_delta: float
+    default_index: int
+    default_predicted_loss: float
+    model_source_commit: str
+    model_sha256: str
+    representation: str
 
 
-@app.post("/ai/relationship/mdm", response_model=AIDeltaResponse)
+@app.post("/ai/relationship/mdm", response_model=AIDeltaResponse, include_in_schema=False)
+@app.post("/ai/process-optimization/mdm", response_model=AIDeltaResponse)
 async def ai_predict_delta(req: AIDeltaRequest):
     """
-    路线 1：AI 直接预测 MDM 最优偏移量 δ（N₂ 模型）
+    预测 26 个候选 MDM 偏移量的损失曲线并选择离散最低点。
 
-    输入：样本数据（排序后的失效时间）
-    输出：AI 预测的最优偏移量 δ
+    返回的是模型对当前样本的预测损失，用于候选值间比较；不是在未知
+    真参数条件下可观测的真实损失。MDM 参数估计仍由 /calculate 执行。
     """
-    if len(req.data) < 3:
-        raise HTTPException(status_code=400, detail="样本量至少为 3")
-
-    n = len(req.data)
-
-    # 加载 N₂ 模型
-    result = _load_delta_model(n)
-    if result is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"未找到样本量 n={n} 的 N₂ 模型。当前可用模型: {list(_ai_models_n2.keys())}"
-        )
-
-    model, delta_min, delta_max, scaler_params = result
-
-    # 排序
-    sample = sorted(req.data)
-    sample_arr = np.array(sample).reshape(1, -1)
-
-    # 标准化输入
-    if scaler_params:
-        x_mean = np.array(scaler_params['x_mean'])
-        x_std = np.array(scaler_params['x_std'])
-        sample_arr = (sample_arr - x_mean) / x_std
-
-    sample_tensor = torch.FloatTensor(sample_arr)
-
-    # 推理
-    with torch.no_grad():
-        pred = model(sample_tensor).squeeze().item()
-
-    # 缩放到 δ 范围
-    optimal_delta = pred * (delta_max - delta_min) + delta_min
-
-    # 置信度评估（基于是否接近边界）
-    if optimal_delta <= delta_min + 0.01 or optimal_delta >= delta_max - 0.01:
-        confidence = "low"
-    elif optimal_delta <= delta_min + 0.03 or optimal_delta >= delta_max - 0.03:
-        confidence = "medium"
-    else:
-        confidence = "high"
-
-    return AIDeltaResponse(
-        optimal_delta=round(optimal_delta, 4),
-        model_n=n,
-        confidence=confidence
-    )
-
-
-# ============================================================
-# 路线 2：迭代逼近
-# ============================================================
-
-class AIIterateRequest(BaseModel):
-    """路线 2 迭代请求"""
-    data: List[float]
-
-class AIIterateStep(BaseModel):
-    """迭代历史中的单步"""
-    step: int
-    delta: float
-    beta: Optional[float] = None
-    eta: Optional[float] = None
-    gamma: Optional[float] = None
-    mdm_status: str  # "ok" | "no_intersection" | "diverged" | "converged"
-
-class AIIterateResponse(BaseModel):
-    """路线 2 迭代响应"""
-    final_delta: float
-    final_params: Optional[dict] = None  # {beta, eta, gamma}
-    iterations: List[AIIterateStep]
-    converged: bool
-    convergence_reason: str  # "delta_stable" | "max_iterations" | "mdm_failed"
-
-
-@app.post("/ai/relationship/mdm/iterate", response_model=AIIterateResponse)
-async def ai_predict_delta_iterate(req: AIIterateRequest):
-    """
-    路线 2：迭代逼近预测 MDM 最优偏移量 δ
-
-    流程：
-    1. δ₀ = 0.5
-    2. MDM(δₖ) → (β̂ₖ, η̂ₖ, γ̂ₖ)
-    3. N₁(β̂ₖ, η̂ₖ, γ̂ₖ) → δₖ₊₁
-    4. 检验收敛：|δₖ₊₁ - δₖ| < 0.001 或 最大 10 步 或 MDM 失败
-    """
-    if len(req.data) < 3:
-        raise HTTPException(status_code=400, detail="样本量至少为 3")
-
-    # 加载 N₁ 模型
-    n1_result = _load_delta_params_model()
-    if n1_result is None:
-        raise HTTPException(
-            status_code=404,
-            detail="未找到路线 2 的 N₁ 公共模型 (delta_from_params.pth)"
-        )
-
-    n1_model, delta_min, delta_max, scaler_params = n1_result
-
-    # 排序样本
-    sample = sorted(req.data)
-    sample_arr = np.array(sample)
-
-    # 迭代参数
-    delta_current = 0.5
-    max_iterations = 10
-    convergence_threshold = 0.001
-    iterations = []
-    converged = False
-    convergence_reason = "max_iterations"
-    final_params = None
-
-    for step in range(max_iterations):
-        # 运行 MDM
-        try:
-            algo = MDM(sample, rank_method='bernard')
-            mdm_result = algo.run(
-                trace=False,
-                offset=delta_current,
-                gamma_steps=60,
-                rank_method='bernard'
-            )
-        except Exception:
-            iterations.append(AIIterateStep(
-                step=step,
-                delta=round(delta_current, 6),
-                mdm_status="mdm_failed"
-            ))
-            convergence_reason = "mdm_failed"
-            break
-
-        # 检查 MDM 是否有解
-        if mdm_result[4] == "no_intersection":
-            iterations.append(AIIterateStep(
-                step=step,
-                delta=round(delta_current, 6),
-                mdm_status="no_intersection"
-            ))
-            convergence_reason = "mdm_failed"
-            break
-
-        est_beta, est_eta, est_gamma = mdm_result[0], mdm_result[1], mdm_result[2]
-
-        # 检查是否发散
-        if est_beta <= 0 or est_beta > 50 or est_eta <= 0 or est_eta > 1e6:
-            iterations.append(AIIterateStep(
-                step=step,
-                delta=round(delta_current, 6),
-                beta=est_beta,
-                eta=est_eta,
-                gamma=est_gamma,
-                mdm_status="diverged"
-            ))
-            convergence_reason = "mdm_failed"
-            break
-
-        iterations.append(AIIterateStep(
-            step=step,
-            delta=round(delta_current, 6),
-            beta=round(est_beta, 4),
-            eta=round(est_eta, 4),
-            gamma=round(est_gamma, 4),
-            mdm_status="ok"
-        ))
-
-        # 用 N₁ 预测下一个 δ
-        params_arr = np.array([[est_beta, est_eta, est_gamma]])
-
-        # 标准化输入
-        if scaler_params:
-            x_mean = np.array(scaler_params['x_mean'])
-            x_std = np.array(scaler_params['x_std'])
-            params_arr = (params_arr - x_mean) / x_std
-
-        params_tensor = torch.FloatTensor(params_arr)
-        with torch.no_grad():
-            pred = n1_model(params_tensor).squeeze().item()
-
-        delta_new = pred * (delta_max - delta_min) + delta_min
-
-        # 更新最终参数
-        final_params = {
-            "beta": round(est_beta, 4),
-            "eta": round(est_eta, 4),
-            "gamma": round(est_gamma, 4)
-        }
-
-        # 检验收敛
-        if abs(delta_new - delta_current) < convergence_threshold:
-            delta_current = delta_new
-            converged = True
-            convergence_reason = "delta_stable"
-            iterations.append(AIIterateStep(
-                step=step + 1,
-                delta=round(delta_new, 6),
-                mdm_status="converged"
-            ))
-            break
-
-        delta_current = delta_new
-
-    return AIIterateResponse(
-        final_delta=round(delta_current, 6),
-        final_params=final_params,
-        iterations=iterations,
-        converged=converged,
-        convergence_reason=convergence_reason
-    )
+    try:
+        return AIDeltaResponse(**select_mdm_offset(req.data))
+    except MDMProcessOptimizationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 # ============================================================

@@ -23,6 +23,7 @@ import {
   Play,
   LineChart as LineChartIcon,
   Calculator,
+  Sparkles,
   AreaChart as AreaChartIcon,
   FilePlus2
 } from 'lucide-react'
@@ -52,6 +53,12 @@ import {
   MDM_DEFAULT_OFFSET,
   MDM_OFFSET_GRID,
 } from '@/lib/calculator-state'
+import {
+  buildMdmOptimizationDetailsHref,
+  isMdmAiSampleSizeSupported,
+  MdmOffsetMode,
+  MdmProcessOptimizationResult,
+} from '@/lib/mdm-process-optimization'
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
 
@@ -69,6 +76,8 @@ interface AnalysisCardProps {
   result?: WeibullResult
   methodId?: string
   mdmOffset?: number
+  mdmOffsetMode?: MdmOffsetMode
+  mdmOptimization?: MdmProcessOptimizationResult
   color: string
   fitMode: 'fit' | 'manual'
   is3P: boolean
@@ -78,6 +87,7 @@ interface AnalysisCardProps {
   onAdd: (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string, currentData?: DataPoint[]) => void
   onMethodClick?: () => void
   onMdmOffsetChange?: (offset: number) => void
+  onMdmOffsetModeChange?: (mode: MdmOffsetMode) => void
   onToggle3P?: () => void
   onDataClick?: () => void
   onDataChange?: (newData: DataPoint[]) => void
@@ -95,6 +105,8 @@ export default function AnalysisCard({
   result,
   methodId,
   mdmOffset = MDM_DEFAULT_OFFSET,
+  mdmOffsetMode = 'fixed',
+  mdmOptimization,
   color,
   fitMode,
   is3P,
@@ -103,6 +115,7 @@ export default function AnalysisCard({
   onAdd,
   onMethodClick,
   onMdmOffsetChange,
+  onMdmOffsetModeChange,
   onToggle3P,
   onDataClick,
   onDataChange,
@@ -120,6 +133,11 @@ export default function AnalysisCard({
   const [chartMode, setChartMode] = useState<'pdf' | 'cdf'>('pdf')
   const [xAxisRange, setXAxisRange] = useState<{ min: number; max: number; isAuto: boolean }>({ min: 0, max: 0, isAuto: true })
   const [activeSourceIndex, setActiveSourceIndex] = useState(0)  // 多数据源切换索引
+  const failureValues = useMemo(
+    () => (data || []).filter(point => point.status === 'F').map(point => point.value),
+    [data],
+  )
+  const isMdmAiSupported = isMdmAiSampleSizeSupported(failureValues.length)
 
   const [sampleText, setSampleText] = useState("")
   const [simN, setSimN] = useState(20)
@@ -468,23 +486,74 @@ export default function AnalysisCard({
                        className="mt-2 w-full rounded-lg border border-emerald-200 bg-emerald-50/80 p-2 text-left"
                        onClick={(event) => event.stopPropagation()}
                      >
-                       <label htmlFor={`mdm-offset-${id}`} className="mb-1 block text-[10px] font-black text-emerald-700">
-                         固定偏移量 δ
-                       </label>
-                       <select
-                         id={`mdm-offset-${id}`}
-                         value={mdmOffset}
-                         onChange={(event) => onMdmOffsetChange?.(Number(event.target.value))}
-                         className="h-8 w-full rounded-md border border-emerald-200 bg-white px-2 text-xs font-black text-emerald-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                         aria-label="MDM 固定偏移量"
-                       >
-                         {MDM_OFFSET_GRID.map(offset => (
-                           <option key={offset} value={offset}>{offset.toFixed(2)}</option>
-                         ))}
-                        </select>
+                       <div className="mb-1 text-[10px] font-black text-emerald-700">偏移量 δ</div>
+                       <div className="mb-1.5 grid grid-cols-2 rounded-md border border-emerald-200 bg-white p-0.5">
+                         <button
+                           type="button"
+                           onClick={() => onMdmOffsetModeChange?.('fixed')}
+                           className={cn(
+                             'h-6 rounded text-[9px] font-black transition-colors',
+                             mdmOffsetMode === 'fixed'
+                               ? 'bg-emerald-600 text-white'
+                               : 'text-slate-500 hover:bg-emerald-50',
+                           )}
+                         >
+                           固定值
+                         </button>
+                         <button
+                           type="button"
+                           disabled={!isMdmAiSupported}
+                           onClick={() => onMdmOffsetModeChange?.('ai')}
+                           className={cn(
+                             'h-6 rounded text-[9px] font-black transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+                             mdmOffsetMode === 'ai'
+                               ? 'bg-violet-600 text-white'
+                               : 'text-slate-500 hover:bg-violet-50',
+                           )}
+                         >
+                           AI优化
+                         </button>
+                       </div>
+
+                       {mdmOffsetMode === 'fixed' ? (
+                         <select
+                           id={`mdm-offset-${id}`}
+                           value={mdmOffset}
+                           onChange={(event) => onMdmOffsetChange?.(Number(event.target.value))}
+                           className="h-8 w-full rounded-md border border-emerald-200 bg-white px-2 text-xs font-black text-emerald-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                           aria-label="MDM 固定偏移量"
+                         >
+                           {MDM_OFFSET_GRID.map(offset => (
+                             <option key={offset} value={offset}>{offset.toFixed(2)}</option>
+                           ))}
+                         </select>
+                       ) : (
+                         <div className="rounded-md border border-violet-200 bg-white px-2 py-1.5">
+                           <div className="flex items-center gap-1 text-[9px] font-black text-violet-600">
+                             <Sparkles size={10} />
+                             {mdmOptimization
+                               ? `AI建议 δ=${mdmOptimization.selected_delta.toFixed(2)}`
+                               : '估计时自动选择'}
+                           </div>
+                           <button
+                             type="button"
+                             onClick={() => router.push(buildMdmOptimizationDetailsHref(failureValues))}
+                             className="mt-1 text-[9px] font-bold text-violet-500 underline underline-offset-2 hover:text-violet-700"
+                           >
+                             查看AI选择过程
+                           </button>
+                         </div>
+                       )}
+                       {!isMdmAiSupported && (
+                         <div className="mt-1 text-[9px] font-bold text-slate-400">
+                           AI当前支持 n=7、10、15、20
+                         </div>
+                       )}
                         {fitMode !== 'fit' && (
                           <div className="mt-1 text-[9px] font-bold text-amber-600">
-                            {isCalculating || isMdmOffsetUpdating ? '正在自动更新' : '重新估计后生效'}
+                            {isCalculating || isMdmOffsetUpdating
+                              ? (mdmOffsetMode === 'ai' ? '正在选择并估计' : '正在自动更新')
+                              : '重新估计后生效'}
                           </div>
                         )}
                      </div>

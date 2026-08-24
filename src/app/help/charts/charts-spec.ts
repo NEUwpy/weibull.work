@@ -305,22 +305,16 @@ export const CHART_USAGE_MAP_GROUPS: UsageMapGroup[] = [
     ],
   },
   {
-    id: 'm1',
-    title: 'M1 关系建立',
+    id: 'process-optimization',
+    title: '过程量优化',
     accent: 'text-purple-700',
     rows: [
-      { tab: '偏移量精度 (R1)', chart: '散点图', data: 'AI delta vs 最优 delta', src: 'ai ScatterPlot' },
-      { tab: '偏移量精度 (R1)', chart: '直方图', data: 'delta 误差分布', src: 'ai Histogram' },
-      { tab: '三参数精度', chart: '散点图', data: 'beta/eta 估计 vs 真实', src: 'ai ScatterPlot' },
-      { tab: '三参数精度', chart: '直方图', data: '三参数 MSE 分布', src: 'ai Histogram' },
-      { tab: '迭代过程 (R2)', chart: '折线图', data: '迭代收敛轨迹', src: 'ai AIChartLine' },
-      { tab: '方法对比 (R1)', chart: '折线图', data: 'delta Sweep MSE 曲线', src: 'ai AIChartLine' },
-      { tab: '方法对比 (R1)', chart: '热力图', data: '改善率（beta vs n）', src: '内联渲染' },
+      { tab: 'MDM 偏移量优化', chart: '折线图', data: '候选偏移量—预测损失曲线', src: 'ai AIChartLine' },
     ],
   },
   {
-    id: 'm3',
-    title: 'M3 直接估计',
+    id: 'direct-estimation',
+    title: '直接估计',
     accent: 'text-emerald-700',
     rows: [
       { tab: '性能展示', chart: '散点图', data: '真实 vs 预测', src: 'ai ScatterPlot' },
@@ -328,7 +322,6 @@ export const CHART_USAGE_MAP_GROUPS: UsageMapGroup[] = [
       { tab: '性能展示', chart: '直方图', data: '误差频率分布', src: 'ai Histogram' },
       { tab: '可信性验证', chart: '表格', data: '精度汇总表', src: 'HTML table' },
       { tab: '方法对比（方案间）', chart: '折线图', data: '8 方案精度对比', src: 'ai MultiLineChart' },
-      { tab: '方法对比（M1 vs M3）', chart: '折线图', data: '跨模块对比', src: 'ai MultiLineChart' },
     ],
   },
 ]
