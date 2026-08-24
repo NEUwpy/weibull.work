@@ -17,6 +17,8 @@ import { AIChartLine } from '@/components/ai/charts/LineChart'
 import { ChartCard } from '@/components/shared/charts/ChartCard'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
 import {
+  compareMdmOptimization,
+  formatSigned,
   isMdmAiSampleSizeSupported,
   MdmProcessOptimizationResult,
   optimizeMdmOffset,
@@ -47,6 +49,7 @@ function MDMProcessOptimizationContent() {
   const [sampleInput, setSampleInput] = useState(() => formatSample(initialValues))
   const [optimization, setOptimization] = useState<MdmProcessOptimizationResult | null>(null)
   const [estimate, setEstimate] = useState<WeibullResult | null>(null)
+  const [fixedEstimate, setFixedEstimate] = useState<WeibullResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const autoRunRef = useRef(false)
@@ -56,12 +59,14 @@ function MDMProcessOptimizationContent() {
     if (!isMdmAiSampleSizeSupported(values.length)) {
       setOptimization(null)
       setEstimate(null)
+      setFixedEstimate(null)
       setError(`AI 优化偏移量当前支持 n=7、10、15、20；本次输入 n=${values.length}`)
       return
     }
     if (values.some(value => value <= 0)) {
       setOptimization(null)
       setEstimate(null)
+      setFixedEstimate(null)
       setError('失效时间必须全部大于 0')
       return
     }
@@ -71,16 +76,25 @@ function MDMProcessOptimizationContent() {
     try {
       const selected = await optimizeMdmOffset(values)
       const data: DataPoint[] = values.map((value, id) => ({ id, value, status: 'F' }))
-      const calculation = await calculateWeibull({
-        methodId: 'mdm',
-        data,
-        offset: selected.selected_delta,
-      })
+      const [calculation, fixedCalculation] = await Promise.all([
+        calculateWeibull({
+          methodId: 'mdm',
+          data,
+          offset: selected.selected_delta,
+        }),
+        calculateWeibull({
+          methodId: 'mdm',
+          data,
+          offset: selected.default_delta,
+        }),
+      ])
       setOptimization(selected)
       setEstimate(calculation.result)
+      setFixedEstimate(fixedCalculation.result)
     } catch (reason) {
       setOptimization(null)
       setEstimate(null)
+      setFixedEstimate(null)
       setError(reason instanceof Error ? reason.message : String(reason))
     } finally {
       setLoading(false)
@@ -98,10 +112,7 @@ function MDMProcessOptimizationContent() {
     x: delta,
     y: optimization.predicted_loss_curve[index],
   })) || []
-  const predictedReduction = optimization && optimization.default_predicted_loss > 0
-    ? (optimization.default_predicted_loss - optimization.selected_predicted_loss)
-      / optimization.default_predicted_loss * 100
-    : null
+  const comparison = optimization ? compareMdmOptimization(optimization) : null
   const calculatorParams = optimization
     ? new URLSearchParams({
         method: 'mdm',
@@ -147,6 +158,7 @@ function MDMProcessOptimizationContent() {
               setSampleInput(event.target.value)
               setOptimization(null)
               setEstimate(null)
+              setFixedEstimate(null)
               setError(null)
             }}
             className="mt-3 h-56 w-full resize-none rounded-xl border border-slate-200 p-3 font-mono text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
@@ -173,7 +185,7 @@ function MDMProcessOptimizationContent() {
 
           {optimization ? (
             <>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
                   <div className="text-xs font-bold text-violet-500">AI建议偏移量</div>
                   <div className="mt-1 font-mono text-3xl font-black text-violet-700">δ={optimization.selected_delta.toFixed(2)}</div>
@@ -183,13 +195,102 @@ function MDMProcessOptimizationContent() {
                   <div className="mt-1 font-mono text-2xl font-black text-slate-700">δ={optimization.default_delta.toFixed(2)}</div>
                 </div>
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                  <div className="text-xs font-bold text-emerald-600">本次预测损失差异</div>
-                  <div className="mt-1 text-2xl font-black text-emerald-700">
-                    {predictedReduction === null ? '—' : `${predictedReduction.toFixed(1)}%`}
+                  <div className="text-xs font-bold text-emerald-600">预测损失差异</div>
+                  <div className="mt-1 font-mono text-2xl font-black text-emerald-700">
+                    {comparison ? formatSigned(comparison.lossDifference, 4) : '—'}
                   </div>
-                  <div className="text-xs text-emerald-600">相对固定 δ=0.10</div>
+                  <div className="text-xs text-emerald-600">AI损失 − 固定0.10损失</div>
+                </div>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="text-xs font-bold text-emerald-600">预计估计准确度变化</div>
+                  <div className="mt-1 font-mono text-2xl font-black text-emerald-700">
+                    {comparison?.predictedAccuracyChangePercent == null
+                      ? '—'
+                      : formatSigned(comparison.predictedAccuracyChangePercent, 1, '%')}
+                  </div>
+                  <div className="text-xs text-emerald-600">正值表示预计改善</div>
                 </div>
               </div>
+
+              {estimate && fixedEstimate && (
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 px-5 py-4">
+                    <h2 className="font-black text-slate-800">AI 与固定 δ=0.10 对比</h2>
+                    <p className="mt-1 text-xs text-slate-400">差异列统一按 AI − 固定0.10 计算，并显式标注正负号。</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[620px] text-sm">
+                      <thead className="bg-slate-50 text-xs font-bold text-slate-500">
+                        <tr>
+                          <th className="px-5 py-3 text-left">比较项</th>
+                          <th className="px-5 py-3 text-right text-violet-700">AI选择</th>
+                          <th className="px-5 py-3 text-right text-amber-700">固定0.10</th>
+                          <th className="px-5 py-3 text-right">差异（AI − 固定）</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-mono">
+                        {[
+                          {
+                            label: '偏移量 δ',
+                            ai: optimization.selected_delta.toFixed(2),
+                            fixed: optimization.default_delta.toFixed(2),
+                            difference: formatSigned(optimization.selected_delta - optimization.default_delta, 2),
+                          },
+                          {
+                            label: '预测损失',
+                            ai: optimization.selected_predicted_loss.toFixed(4),
+                            fixed: optimization.default_predicted_loss.toFixed(4),
+                            difference: comparison ? formatSigned(comparison.lossDifference, 4) : '—',
+                          },
+                          {
+                            label: '预计准确度变化',
+                            ai: comparison?.predictedAccuracyChangePercent == null
+                              ? '—'
+                              : formatSigned(comparison.predictedAccuracyChangePercent, 1, '%'),
+                            fixed: '+0.0%',
+                            difference: comparison?.predictedAccuracyChangePercent == null
+                              ? '—'
+                              : formatSigned(comparison.predictedAccuracyChangePercent, 1, '%'),
+                          },
+                          {
+                            label: 'β 估计值',
+                            ai: estimate.beta?.toFixed(4) ?? '—',
+                            fixed: fixedEstimate.beta?.toFixed(4) ?? '—',
+                            difference: estimate.beta != null && fixedEstimate.beta != null
+                              ? formatSigned(estimate.beta - fixedEstimate.beta, 4)
+                              : '—',
+                          },
+                          {
+                            label: 'η 估计值',
+                            ai: estimate.eta?.toFixed(2) ?? '—',
+                            fixed: fixedEstimate.eta?.toFixed(2) ?? '—',
+                            difference: estimate.eta != null && fixedEstimate.eta != null
+                              ? formatSigned(estimate.eta - fixedEstimate.eta, 2)
+                              : '—',
+                          },
+                          {
+                            label: 'γ 估计值',
+                            ai: estimate.gamma.toFixed(2),
+                            fixed: fixedEstimate.gamma.toFixed(2),
+                            difference: formatSigned(estimate.gamma - fixedEstimate.gamma, 2),
+                          },
+                        ].map(row => (
+                          <tr key={row.label}>
+                            <td className="px-5 py-3 font-sans font-bold text-slate-600">{row.label}</td>
+                            <td className="px-5 py-3 text-right font-bold text-violet-700">{row.ai}</td>
+                            <td className="px-5 py-3 text-right text-slate-600">{row.fixed}</td>
+                            <td className="px-5 py-3 text-right font-bold text-slate-700">{row.difference}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-3 text-xs leading-relaxed text-slate-500">
+                    预计估计准确度变化由两者预测损失的相对差异换算；β、η、γ 的差异仅表示两套估计结果如何移动，
+                    不表示当前未知真值下的实际参数误差。
+                  </div>
+                </div>
+              )}
 
               <ChartCard title="当前样本的偏移量—预测损失曲线">
                 <AIChartLine
@@ -211,7 +312,7 @@ function MDMProcessOptimizationContent() {
               {estimate && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center gap-2 text-sm font-black text-slate-800">
-                    <CheckCircle2 size={17} className="text-emerald-500" /> 使用建议δ后的MDM结果
+                    <CheckCircle2 size={17} className="text-emerald-500" /> 使用AI建议δ后的MDM结果
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                     {[
@@ -255,7 +356,8 @@ function MDMProcessOptimizationContent() {
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
         <strong>适用边界：</strong> 当前仅支持三参数MDM、完整失效样本及 n=7、10、15、20；
         候选δ限定为0.00–0.50、步长0.02。曲线表示模型预测损失，用于本次候选值之间的比较，
-        不是当前样本可直接观测的真实误差，也不保证每个样本都优于固定δ=0.10。
+        “预计估计准确度变化”由预测损失相对固定δ=0.10的变化换算，不是当前样本可直接观测的真实误差；
+        当前样本没有参数真值时不能计算实测准确度，也不保证每个样本在真实误差上都优于固定δ=0.10。
       </div>
     </section>
   )
