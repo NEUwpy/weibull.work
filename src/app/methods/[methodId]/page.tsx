@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
 import { getMethodCapability } from '@/lib/method-status'
+import { MDM_DEFAULT_OFFSET, parseMdmOffsetOption } from '@/lib/calculator-state'
 import MethodBuildStatus from '@/components/methods/MethodBuildStatus'
 
 // Dynamic imports for heavy visualizers
@@ -131,6 +132,20 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
   const [activeSourceIndex, setActiveSourceIndex] = useState(0)
+  const [mdmOffset, setMdmOffset] = useState(() => (
+    method.id.toLowerCase() === 'mdm'
+      ? parseMdmOffsetOption(searchParams.get('offset'))
+      : MDM_DEFAULT_OFFSET
+  ))
+  const handledDataParamRef = useRef<string | null>(null)
+  const offsetRecalculationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const offsetRecalculationRequestRef = useRef(0)
+
+  useEffect(() => () => {
+    if (offsetRecalculationTimerRef.current) {
+      clearTimeout(offsetRecalculationTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     const betaParam = searchParams.get('trueBeta')
@@ -173,20 +188,40 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
   useEffect(() => {
     const dataParam = searchParams.get('data')
-    if (dataParam) {
-      setActiveTab('lab')
-      try {
-        const parsed = dataParam.split(',').map(Number).filter(n => !isNaN(n))
-        const points: DataPoint[] = parsed.map((v, i) => ({ id: i, value: v, status: 'F' }))
-        setData(points)
-        const calculatedPoints = calculateMedianRanks(points, 0)
-        const res = calculateWeibullParameters(calculatedPoints, 0)
-        setResult(res)
-      } catch(e) {
-        console.error("Failed to parse data", e)
-      }
-    }
-  }, [searchParams])
+    const requestKey = `${method.id}|${dataParam ?? ''}|${searchParams.get('offset') ?? ''}`
+    if (!dataParam || handledDataParamRef.current === requestKey) return
+    handledDataParamRef.current = requestKey
+
+    const parsed = dataParam.split(',').map(Number).filter(n => Number.isFinite(n))
+    const points: DataPoint[] = parsed.map((value, index) => ({ id: index, value, status: 'F' }))
+    if (points.length === 0) return
+
+    const requestedOffset = method.id.toLowerCase() === 'mdm'
+      ? parseMdmOffsetOption(searchParams.get('offset'))
+      : MDM_DEFAULT_OFFSET
+
+    setActiveTab('lab')
+    setData(points)
+    setIs3P(true)
+    setMdmOffset(requestedOffset)
+    setIsCalculating(true)
+
+    calculateWeibull({
+      methodId: method.id,
+      data: points,
+      trace: true,
+      offset: method.id.toLowerCase() === 'mdm' ? requestedOffset : undefined,
+    }).then(({ result: calculatedResult, traceData: calculatedTrace }) => {
+      setResult(calculatedResult)
+      setTraceData(calculatedTrace ?? null)
+      setFitMode('fit')
+    }).catch((error) => {
+      console.error('Failed to calculate URL data', error)
+      alert(`后端计算错误: ${error instanceof Error ? error.message : String(error)}`)
+    }).finally(() => {
+      setIsCalculating(false)
+    })
+  }, [method.id, searchParams])
 
   const handleDataClick = () => {
     setIsDataEditorOpen(true)
@@ -240,6 +275,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
             methodId: method.id,
             data: source.data,
             trace: true,
+            offset: method.id.toLowerCase() === 'mdm' ? mdmOffset : undefined,
           })
 
           updatedSources[i] = {
@@ -260,6 +296,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
       if (updatedSources.length > 0 && updatedSources[0].result) {
         setResult(updatedSources[0].result)
+        setFitMode('fit')
       }
 
     } catch (err: any) {
@@ -291,7 +328,79 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     if (mode) setFitMode(mode)
   }
 
+  const handleMdmOffsetChange = (offset: number) => {
+    if (offset === mdmOffset) return
+    setMdmOffset(offset)
+    setFitMode('manual')
+    setIsCalculating(true)
+
+    const requestId = ++offsetRecalculationRequestRef.current
+    if (offsetRecalculationTimerRef.current) {
+      clearTimeout(offsetRecalculationTimerRef.current)
+    }
+
+    if ((!dataSources || dataSources.length === 0) && data.length === 0) {
+      setIsCalculating(false)
+      return
+    }
+
+    offsetRecalculationTimerRef.current = setTimeout(async () => {
+      try {
+        if (dataSources && dataSources.length > 0) {
+          const updatedSources = await Promise.all(dataSources.map(async source => {
+            const calculation = await calculateWeibull({
+              methodId: method.id,
+              data: source.data,
+              trace: true,
+              offset,
+            })
+            return {
+              ...source,
+              result: calculation.result,
+              traceData: calculation.traceData,
+            }
+          }))
+
+          if (requestId !== offsetRecalculationRequestRef.current) return
+          setDataSources(updatedSources)
+          if (updatedSources[0]?.result) setResult(updatedSources[0].result)
+          if (updatedSources[0]?.traceData) setTraceData(updatedSources[0].traceData)
+        } else if (data.length > 0) {
+          const calculation = await calculateWeibull({
+            methodId: method.id,
+            data,
+            trace: true,
+            offset,
+          })
+
+          if (requestId !== offsetRecalculationRequestRef.current) return
+          setResult(calculation.result)
+          setTraceData(calculation.traceData ?? null)
+        }
+
+        if (requestId === offsetRecalculationRequestRef.current) {
+          setFitMode('fit')
+        }
+      } catch (error) {
+        if (requestId === offsetRecalculationRequestRef.current) {
+          console.error('Failed to recalculate MDM offset', error)
+          alert(`MDM 偏移量重新计算失败: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      } finally {
+        if (requestId === offsetRecalculationRequestRef.current) {
+          setIsCalculating(false)
+        }
+      }
+    }, 180)
+  }
+
   const handleCalculate = async () => {
+    offsetRecalculationRequestRef.current += 1
+    if (offsetRecalculationTimerRef.current) {
+      clearTimeout(offsetRecalculationTimerRef.current)
+      offsetRecalculationTimerRef.current = null
+    }
+
     if (dataSources && dataSources.length > 0) {
       await handleBatchCalculate(dataSources)
       return
@@ -305,6 +414,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         methodId: method.id,
         data,
         trace: true,
+        offset: method.id.toLowerCase() === 'mdm' ? mdmOffset : undefined,
       })
 
       setResult(newResult)
@@ -335,14 +445,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     setResult(prev => prev ? { ...prev, ...updates, points: newPoints } : undefined)
     setIs3P(nextIs3P)
   }
-
-  useEffect(() => {
-    const dataParam = searchParams.get('data')
-    if (dataParam && data.length > 0 && !traceData) {
-      handleCalculate()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   return (
     <>
@@ -504,6 +606,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               data={data}
               result={result}
               methodId={method.id}
+              mdmOffset={mdmOffset}
               color="#4f46e5"
               fitMode={fitMode}
               is3P={is3P}
@@ -515,9 +618,11 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               onParamsUpdate={handleParamsUpdate}
               onToggle3P={handleToggle3P}
               onCalculate={handleCalculate}
+              onMdmOffsetChange={handleMdmOffsetChange}
               onMethodClick={undefined}
               onDataClick={handleDataClick}
               hideCalculationProcessButton={true}
+              isMdmOffsetUpdating={isCalculating && method.id.toLowerCase() === 'mdm'}
             />
 
             {traceData && (
@@ -566,6 +671,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                     traceData={{...traceData, data: data.filter(d => d.status === 'F').map(d => d.value)}}
                     methodId={method.id}
                     dataSources={dataSources}
+                    mdmOffset={mdmOffset}
+                    onMdmOffsetChange={handleMdmOffsetChange}
+                    offsetStale={Math.abs((traceData.target_offset ?? MDM_DEFAULT_OFFSET) - mdmOffset) > 1e-9}
+                    isOffsetUpdating={isCalculating && Math.abs((traceData.target_offset ?? MDM_DEFAULT_OFFSET) - mdmOffset) > 1e-9}
                   />
                 )}
 
@@ -603,6 +712,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               data={data}
               result={result}
               methodId={method.id}
+              mdmOffset={mdmOffset}
               color="#10b981"
               fitMode={fitMode}
               is3P={is3P}
@@ -614,9 +724,11 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               onParamsUpdate={handleParamsUpdate}
               onToggle3P={handleToggle3P}
               onCalculate={handleCalculate}
+              onMdmOffsetChange={handleMdmOffsetChange}
               onMethodClick={undefined}
               onDataClick={handleDataClick}
               hideCalculationProcessButton={true}
+              isMdmOffsetUpdating={isCalculating && method.id.toLowerCase() === 'mdm'}
             />
 
             {result && result.beta !== null && result.eta !== null && (

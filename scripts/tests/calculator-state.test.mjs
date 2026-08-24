@@ -7,6 +7,10 @@ import {
   getDefaultParameters,
   getEstimationModeFailure,
   getEstimateFailure,
+  isMdmOffsetOption,
+  MDM_DEFAULT_OFFSET,
+  MDM_OFFSET_GRID,
+  parseMdmOffsetOption,
   toggleParameterMode,
 } from '../../src/lib/calculator-state.ts'
 
@@ -69,4 +73,22 @@ test('default parameter result is 3P manual-ready and uses current data points',
     points,
     converged: true,
   })
+})
+
+test('MDM offset options use the frozen 0.00 to 0.50 grid', () => {
+  assert.equal(MDM_DEFAULT_OFFSET, 0.1)
+  assert.equal(MDM_OFFSET_GRID.length, 26)
+  assert.equal(MDM_OFFSET_GRID[0], 0)
+  assert.equal(MDM_OFFSET_GRID.at(-1), 0.5)
+  assert.equal(isMdmOffsetOption(0), true)
+  assert.equal(isMdmOffsetOption(0.24), true)
+  assert.equal(isMdmOffsetOption(0.11), false)
+})
+
+test('MDM offset URL values fall back to 0.10 unless they are grid options', () => {
+  assert.equal(parseMdmOffsetOption('0.24'), 0.24)
+  assert.equal(parseMdmOffsetOption(0), 0)
+  assert.equal(parseMdmOffsetOption('0.11'), MDM_DEFAULT_OFFSET)
+  assert.equal(parseMdmOffsetOption('not-a-number'), MDM_DEFAULT_OFFSET)
+  assert.equal(parseMdmOffsetOption(null), MDM_DEFAULT_OFFSET)
 })

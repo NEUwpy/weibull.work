@@ -7,6 +7,7 @@
 
 import { DataPoint, WeibullResult, calculateMedianRanks } from '@/lib/weibull'
 import { getApiBaseUrl } from '@/lib/config'
+import { MDM_DEFAULT_OFFSET, isMdmOffsetOption } from '@/lib/calculator-state'
 
 export interface CalculateOptions {
   methodId: string
@@ -40,7 +41,11 @@ export async function calculateWeibull(options: CalculateOptions): Promise<Calcu
 
   // MDM 方法添加 offset
   if (methodId.toLowerCase() === 'mdm') {
-    requestBody.offset = offset ?? 0.1
+    const selectedOffset = offset ?? MDM_DEFAULT_OFFSET
+    if (!isMdmOffsetOption(selectedOffset)) {
+      throw new Error('MDM 偏移量必须使用 0.00–0.50、步长 0.02 的可选值')
+    }
+    requestBody.offset = selectedOffset
   }
 
   const response = await fetch(`${getApiBaseUrl()}/calculate`, {

@@ -23,6 +23,27 @@ export const DEFAULT_3P_PARAMETERS: CalculatorParameters = {
   gamma: 1000,
 }
 
+export const MDM_DEFAULT_OFFSET = 0.1
+export const MDM_OFFSET_MIN = 0
+export const MDM_OFFSET_MAX = 0.5
+export const MDM_OFFSET_STEP = 0.02
+export const MDM_OFFSET_GRID = Object.freeze(
+  Array.from(
+    { length: Math.round((MDM_OFFSET_MAX - MDM_OFFSET_MIN) / MDM_OFFSET_STEP) + 1 },
+    (_, index) => Number((MDM_OFFSET_MIN + index * MDM_OFFSET_STEP).toFixed(2)),
+  ),
+)
+
+export function isMdmOffsetOption(value: number): boolean {
+  return Number.isFinite(value) && MDM_OFFSET_GRID.some(option => option === value)
+}
+
+export function parseMdmOffsetOption(value: string | number | null | undefined): number {
+  if (value === null || value === undefined || value === '') return MDM_DEFAULT_OFFSET
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return isMdmOffsetOption(parsed) ? parsed : MDM_DEFAULT_OFFSET
+}
+
 export function getDefaultParameters(is3P: boolean): CalculatorParameters {
   return { ...DEFAULT_3P_PARAMETERS, gamma: is3P ? DEFAULT_3P_PARAMETERS.gamma : 0 }
 }

@@ -46,7 +46,12 @@ import {
   calculateMedianRanks
 } from '@/lib/weibull'
 import { getMethodInfo } from '@/lib/methods'
-import { generateWeibullSample, getDefaultParameters } from '@/lib/calculator-state'
+import {
+  generateWeibullSample,
+  getDefaultParameters,
+  MDM_DEFAULT_OFFSET,
+  MDM_OFFSET_GRID,
+} from '@/lib/calculator-state'
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
 
@@ -63,6 +68,7 @@ interface AnalysisCardProps {
   data?: DataPoint[]
   result?: WeibullResult
   methodId?: string
+  mdmOffset?: number
   color: string
   fitMode: 'fit' | 'manual'
   is3P: boolean
@@ -71,6 +77,7 @@ interface AnalysisCardProps {
   dataSources?: DataSource[]
   onAdd: (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string, currentData?: DataPoint[]) => void
   onMethodClick?: () => void
+  onMdmOffsetChange?: (offset: number) => void
   onToggle3P?: () => void
   onDataClick?: () => void
   onDataChange?: (newData: DataPoint[]) => void
@@ -78,6 +85,7 @@ interface AnalysisCardProps {
   onCalculate?: () => Promise<void>
   onDelete?: () => void
   hideCalculationProcessButton?: boolean
+  isMdmOffsetUpdating?: boolean
 }
 
 export default function AnalysisCard({
@@ -86,6 +94,7 @@ export default function AnalysisCard({
   data,
   result,
   methodId,
+  mdmOffset = MDM_DEFAULT_OFFSET,
   color,
   fitMode,
   is3P,
@@ -93,13 +102,15 @@ export default function AnalysisCard({
   dataSources,
   onAdd,
   onMethodClick,
+  onMdmOffsetChange,
   onToggle3P,
   onDataClick,
   onDataChange,
   onParamsUpdate,
   onCalculate,
   onDelete,
-  hideCalculationProcessButton
+  hideCalculationProcessButton,
+  isMdmOffsetUpdating = false
 }: AnalysisCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false)
@@ -445,13 +456,39 @@ export default function AnalysisCard({
             {/* 内容栏 */}
             <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
               {methodId ? (
-                 <div className="flex flex-col items-center gap-2">
+                 <div className="flex w-full flex-col items-center gap-2">
                    <div className="font-black text-slate-700 text-sm sm:text-base leading-tight break-words max-w-full">
                      {methodInfo.name}
                    </div>
                    <div className="px-2 py-0.5 text-xs text-blue-600 bg-blue-50 rounded-full border border-blue-100 font-black tracking-tighter">
                      {methodInfo.short}
                    </div>
+                   {methodId.toLowerCase() === 'mdm' && (
+                     <div
+                       className="mt-2 w-full rounded-lg border border-emerald-200 bg-emerald-50/80 p-2 text-left"
+                       onClick={(event) => event.stopPropagation()}
+                     >
+                       <label htmlFor={`mdm-offset-${id}`} className="mb-1 block text-[10px] font-black text-emerald-700">
+                         固定偏移量 δ
+                       </label>
+                       <select
+                         id={`mdm-offset-${id}`}
+                         value={mdmOffset}
+                         onChange={(event) => onMdmOffsetChange?.(Number(event.target.value))}
+                         className="h-8 w-full rounded-md border border-emerald-200 bg-white px-2 text-xs font-black text-emerald-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                         aria-label="MDM 固定偏移量"
+                       >
+                         {MDM_OFFSET_GRID.map(offset => (
+                           <option key={offset} value={offset}>{offset.toFixed(2)}</option>
+                         ))}
+                        </select>
+                        {fitMode !== 'fit' && (
+                          <div className="mt-1 text-[9px] font-bold text-amber-600">
+                            {isCalculating || isMdmOffsetUpdating ? '正在自动更新' : '重新估计后生效'}
+                          </div>
+                        )}
+                     </div>
+                   )}
                  </div>
               ) : (
                 <div className="w-full border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs py-8">选择</div>
@@ -464,8 +501,13 @@ export default function AnalysisCard({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!methodId || !data) return;
-                      const dataStr = data.map(d => d.value).join(',');
-                      router.push(`/methods/${methodId}?data=${dataStr}`);
+                      const params = new URLSearchParams({
+                        data: data.map(d => d.value).join(','),
+                      });
+                      if (methodId.toLowerCase() === 'mdm') {
+                        params.set('offset', mdmOffset.toFixed(2));
+                      }
+                      router.push(`/methods/${methodId}?${params.toString()}`);
                     }}
                     className="flex-1 h-full bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm"
                   >

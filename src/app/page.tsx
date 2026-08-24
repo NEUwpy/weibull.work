@@ -21,6 +21,8 @@ import {
   getDefaultParameters,
   getEstimateFailure,
   getEstimationModeFailure,
+  MDM_DEFAULT_OFFSET,
+  parseMdmOffsetOption,
   toggleParameterMode,
 } from '@/lib/calculator-state'
 
@@ -34,6 +36,7 @@ type CardData = {
   data?: DataPoint[]
   result?: WeibullResult
   methodId?: string // 'mle' | 'rrx' | 'rry' etc.
+  mdmOffset: number
   color: string
   fitMode?: 'fit' | 'manual' // Track mode: fit (sample based) or manual (param based)
   is3P?: boolean // New: Track 2P vs 3P mode
@@ -143,6 +146,7 @@ function CalculatorContent() {
           is3P: true,
           last3PGamma: initialResult.gamma,
           methodId: selectedMethodId,
+          mdmOffset: parseMdmOffsetOption(searchParams.get('offset')),
         }
       ])
     }
@@ -162,6 +166,7 @@ function CalculatorContent() {
     let newFitMode: 'fit' | 'manual' = 'manual'
     let newIs3P = true
     let newLast3PGamma = getDefaultParameters(true).gamma
+    let newMdmOffset = MDM_DEFAULT_OFFSET
 
     if (type === 'blank') {
       newData = undefined
@@ -174,6 +179,7 @@ function CalculatorContent() {
       newIs3P = sourceCard.is3P !== false
       newFitMode = sourceCard.fitMode || 'manual'
       newLast3PGamma = sourceCard.last3PGamma ?? sourceCard.result?.gamma ?? newLast3PGamma
+      newMdmOffset = sourceCard.mdmOffset
 
       if (type === 'data') {
         if (sourceCard.data && sourceCard.data.length > 0) {
@@ -215,6 +221,7 @@ function CalculatorContent() {
       fitMode: newFitMode,
       is3P: newIs3P,
       last3PGamma: newLast3PGamma,
+      mdmOffset: newMdmOffset,
     }
     
     const sourceIndex = cards.findIndex(c => c.id === sourceId)
@@ -235,6 +242,23 @@ function CalculatorContent() {
   const handleDataClick = (cardId: string) => {
     setActiveCardId(cardId)
     setIsDataEditorOpen(true)
+  }
+
+  const handleMdmOffsetChange = (cardId: string, mdmOffset: number) => {
+    setCards(prev => prev.map(card => {
+      if (card.id !== cardId || card.mdmOffset === mdmOffset) return card
+      return {
+        ...card,
+        mdmOffset,
+        result: undefined,
+        dataSources: card.dataSources?.map(source => ({
+          ...source,
+          result: undefined,
+          traceData: undefined,
+        })),
+        fitMode: 'manual',
+      }
+    }))
   }
 
   const handleMethodSelect = (methodId: string) => {
@@ -313,6 +337,7 @@ function CalculatorContent() {
         const { result } = await calculateWeibull({
           methodId: card.methodId!,
           data: source.data,
+          offset: card.methodId!.toLowerCase() === 'mdm' ? card.mdmOffset : undefined,
         })
         const failure = getEstimateFailure(result)
         if (failure) throw new Error(failure)
@@ -406,6 +431,7 @@ function CalculatorContent() {
       const { result } = await calculateWeibull({
         methodId: card.methodId,
         data: card.data,
+        offset: card.methodId.toLowerCase() === 'mdm' ? card.mdmOffset : undefined,
       })
       const failure = getEstimateFailure(result)
       if (failure) throw new Error(failure)
@@ -483,6 +509,7 @@ function CalculatorContent() {
             data={card.data}
             result={card.result}
             methodId={card.methodId}
+            mdmOffset={card.mdmOffset}
             color={card.color}
             fitMode={card.fitMode || 'manual'}
             is3P={!!card.is3P}
@@ -494,6 +521,7 @@ function CalculatorContent() {
             }
             onAdd={(type, sid) => handleAddCard(type as any, sid)}
             onMethodClick={() => handleMethodClick(card.id)}
+            onMdmOffsetChange={(offset) => handleMdmOffsetChange(card.id, offset)}
             onDataClick={() => handleDataClick(card.id)}
             onDataChange={(newData) => handleDataChange(card.id, newData)}
             onParamsUpdate={(updates, mode) => handleParamsUpdate(card.id, updates, mode)}

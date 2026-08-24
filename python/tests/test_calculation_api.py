@@ -108,6 +108,38 @@ def test_successful_method_preserves_identity(helpers, monkeypatch):
     assert response["converged"] is True
 
 
+def test_custom_mdm_offset_is_forwarded(helpers, monkeypatch):
+    """自定义 MDM 偏移量必须原样传入统一方法调用。"""
+    captured = {}
+
+    def fake_run_method(method_id, data, **kwargs):
+        captured.update(kwargs)
+        return {
+            "method_id": method_id,
+            "method_variant": method_id,
+            "beta_hat": 2.0,
+            "eta_hat": 1000.0,
+            "gamma_hat": 1000.0,
+            "r_squared": 0.99,
+            "converged": True,
+            "time": 0.01,
+            "extra": {},
+        }
+
+    monkeypatch.setattr(helpers, "run_method", fake_run_method)
+
+    helpers._run_calculation_method("mdm", [1, 2, 3, 4, 5], offset=0.24)
+
+    assert captured["offset"] == pytest.approx(0.24)
+
+
+@pytest.mark.parametrize("offset", [-0.02, 0.52, float("nan"), float("inf")])
+def test_invalid_mdm_offset_is_rejected(helpers, offset):
+    """计算入口拒绝非有限值和超出计算器范围的偏移量。"""
+    with pytest.raises(ValueError, match="MDM offset"):
+        helpers._calculation_kwargs("mdm", offset=offset)
+
+
 def test_failure_422_detail_includes_requested_method(helpers, monkeypatch):
     """HTTP 422 的 detail 中包含被请求的方法 ID。"""
     def fake_run_method(method_id, data, **kwargs):

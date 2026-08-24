@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 export interface SigmaBetaCurvePoint {
   beta: number
   sigma: number
+  source?: string
 }
 
 // 曲线数据类型
@@ -59,6 +60,7 @@ interface SigmaBetaChartProps {
   showGammaSlider?: boolean   // γ 滑动条（需要 gammaData），默认 false
   showControls?: boolean      // 显示模式切换和刷新按钮，默认 true
   overlayMode?: boolean       // 多条曲线叠加显示，默认 false
+  showPoints?: boolean        // 是否显示 β 网格采样点，默认 false
 
   // γ 滑动条相关（仅 interactive + showGammaSlider 模式）
   gammaData?: Array<{
@@ -103,6 +105,7 @@ export function SigmaBetaChart({
   showGammaSlider = false,
   showControls = true,
   overlayMode = false,
+  showPoints = false,
   gammaData,
   optimalGamma = 0,
   optimalBeta = 0,
@@ -168,9 +171,28 @@ export function SigmaBetaChart({
   const yDomain = domain?.y || (yScale === 'log' ? [1, 2000] : [0, 1400])
 
   // 决定显示哪些曲线
-  const displayCurves = overlayMode
+  const displayCurves: CurveData[] = overlayMode
     ? curves
     : [{ id: 'current', data: currentCurveData, color: '#3b82f6', strokeWidth: 3 }]
+
+  const shapePointDot = showPoints
+    ? (props: any) => {
+        if (props.payload?.source && props.payload.source !== 'trace_grid') {
+          return <g />
+        }
+        return (
+          <circle
+            className="mdm-shape-sample-point"
+            cx={props.cx}
+            cy={props.cy}
+            r={2.5}
+            fill="#fff"
+            stroke={props.stroke || '#3b82f6'}
+            strokeWidth={1.5}
+          />
+        )
+      }
+    : false
 
   // 过滤有效数据点
   const filterData = (data: SigmaBetaCurvePoint[]) => {
@@ -260,7 +282,7 @@ export function SigmaBetaChart({
               dataKey="sigma"
               stroke={curve.color || '#3b82f6'}
               strokeWidth={curve.strokeWidth || 2}
-              dot={false}
+              dot={shapePointDot}
               name={curve.name || `#${curve.id}`}
               opacity={curve.opacity ?? 1}
               activeDot={{ r: 5 }}
@@ -273,7 +295,7 @@ export function SigmaBetaChart({
             dataKey="sigma"
             stroke="#3b82f6"
             strokeWidth={3}
-            dot={false}
+            dot={shapePointDot}
             activeDot={{ r: 6 }}
           />
         )}

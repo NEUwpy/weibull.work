@@ -1,12 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Union
 import sys
 import os
 import io
 import csv
+import math
 import numpy as np
 
 # Add methods directory to path
@@ -18,6 +19,10 @@ from studies.common.runner import run_method
 from studies.common.simulation import aggregate_simulation_rows, iter_batch_rows, simulate_method
 
 app = FastAPI()
+
+MDM_CALCULATOR_DEFAULT_OFFSET = 0.1
+MDM_CALCULATOR_MIN_OFFSET = 0.0
+MDM_CALCULATOR_MAX_OFFSET = 0.5
 
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
@@ -36,7 +41,11 @@ class CalculationRequest(BaseModel):
     method: str
     data: List[float]
     trace: Optional[bool] = False
-    offset: Optional[float] = None
+    offset: Optional[float] = Field(
+        default=None,
+        ge=MDM_CALCULATOR_MIN_OFFSET,
+        le=MDM_CALCULATOR_MAX_OFFSET,
+    )
     params: Optional[dict] = {}
 
 class Surface3DRequest(BaseModel):
@@ -79,7 +88,15 @@ def _calculation_kwargs(method_id: str, trace: bool = False, offset: Optional[fl
     """构建统一方法调用参数；方法签名差异由 run_method 负责过滤。"""
     kwargs = {"trace": trace}
     if method_id == "mdm":
-        kwargs["offset"] = 0.1 if offset is None else offset
+        selected_offset = MDM_CALCULATOR_DEFAULT_OFFSET if offset is None else float(offset)
+        if not math.isfinite(selected_offset):
+            raise ValueError("MDM offset must be finite")
+        if not MDM_CALCULATOR_MIN_OFFSET <= selected_offset <= MDM_CALCULATOR_MAX_OFFSET:
+            raise ValueError(
+                f"MDM offset must be between {MDM_CALCULATOR_MIN_OFFSET} "
+                f"and {MDM_CALCULATOR_MAX_OFFSET}"
+            )
+        kwargs["offset"] = selected_offset
     return kwargs
 
 

@@ -31,6 +31,7 @@ export interface GradientGammaPoint {
   sigma_min?: number
   best_beta?: number
   best_eta?: number
+  source?: string
 }
 
 // 曲线数据类型
@@ -80,6 +81,7 @@ interface GradientGammaChartProps {
   }
   offsetReference?: number    // δ 参考线值（非交互模式）
   showZeroLine?: boolean      // 是否显示 y=0 参考线，默认 true
+  showPoints?: boolean        // 是否显示曲线采样点，默认 false
   gammaReferenceLines?: GammaReferenceLine[]  // 额外的 γ 参考线
 
   // 样式
@@ -109,6 +111,7 @@ export function GradientGammaChart({
   domain,
   offsetReference,
   showZeroLine = true,
+  showPoints = false,
   gammaReferenceLines = [],
   height = 300,
   showTitle = true,
@@ -157,6 +160,25 @@ export function GradientGammaChart({
 
   // 当前使用的 δ 值
   const currentDelta = interactive ? deltaOffset : (offsetReference ?? 0.2)
+
+  const gradientPointDot = showPoints
+    ? (props: any) => {
+        if (props.payload?.source && props.payload.source !== 'trace_grid') {
+          return <g />
+        }
+        return (
+          <circle
+            className="mdm-gradient-sample-point"
+            cx={props.cx}
+            cy={props.cy}
+            r={2.5}
+            fill="#fff"
+            stroke={props.stroke || '#ef4444'}
+            strokeWidth={1.5}
+          />
+        )
+      }
+    : false
 
   // 默认域名
   const xDomain = domain?.x || (allGammas.length > 0 ? [
@@ -264,7 +286,7 @@ export function GradientGammaChart({
               dataKey="gradient"
               stroke={curve.color || '#ef4444'}
               strokeWidth={curve.strokeWidth || 2}
-              dot={false}
+              dot={gradientPointDot}
               name={curve.name || `#${curve.id}`}
               opacity={curve.opacity ?? 1}
               activeDot={{ r: 5 }}
@@ -277,7 +299,7 @@ export function GradientGammaChart({
             dataKey="gradient"
             stroke="#ef4444"
             strokeWidth={2}
-            dot={false}
+            dot={gradientPointDot}
             activeDot={{ r: 6 }}
           />
         )}
