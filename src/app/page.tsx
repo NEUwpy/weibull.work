@@ -17,6 +17,7 @@ import { calculateWeibull } from '@/hooks/useWeibullCalculation'
 import { isCalculatorEnabled, getEnabledMethodIds } from '@/lib/method-status'
 import {
   createDefaultParameterResult,
+  createManualParameterResult,
   generateWeibullSample,
   getDefaultParameters,
   getEstimateFailure,
@@ -54,18 +55,12 @@ type CardData = {
   dataSources?: DataSource[] // 多选案例时的数据源列表
 }
 
-function createManualResult(data: DataPoint[], is3P = true): WeibullResult {
-  const parameters = getDefaultParameters(is3P)
-  return {
-    ...parameters,
-    rSquared: null,
-    points: calculateMedianRanks(data, parameters.gamma),
-    converged: true,
-  }
-}
-
 function preserveParametersForData(card: CardData, nextData: DataPoint[]): CardData {
-  const result = card.result || createManualResult(nextData, card.is3P !== false)
+  const result = card.result || createManualParameterResult(
+    nextData,
+    card.is3P !== false,
+    calculateMedianRanks,
+  )
   const failureCount = nextData.filter(point => point.status === 'F').length
   const mdmOffsetMode = card.mdmOffsetMode === 'ai' && !isMdmAiSampleSizeSupported(failureCount)
     ? 'fixed'
@@ -89,6 +84,7 @@ function CalculatorContent() {
   const [isMethodSelectorOpen, setIsMethodSelectorOpen] = useState(false)
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
   const [activeCardId, setActiveCardId] = useState<string | null>(null)
+  const [mdmOffsetUpdatingCardIds, setMdmOffsetUpdatingCardIds] = useState<Set<string>>(new Set())
 
   // Global render count to detect infinite loops
   const renderCountRef = React.useRef(0)
@@ -236,7 +232,7 @@ function CalculatorContent() {
     }
 
     if (!newResult) {
-      newResult = createManualResult(newData || [], newIs3P)
+      newResult = createManualParameterResult(newData || [], newIs3P, calculateMedianRanks)
       newFitMode = 'manual'
     }
 
@@ -278,39 +274,49 @@ function CalculatorContent() {
   }
 
   const handleMdmOffsetChange = (cardId: string, mdmOffset: number) => {
+    const currentCard = cards.find(card => card.id === cardId)
+    if (!currentCard || currentCard.mdmOffset === mdmOffset) return
+    const nextCard: CardData = {
+      ...currentCard,
+      mdmOffset,
+      mdmOptimization: undefined,
+      fitMode: 'manual',
+    }
     setCards(prev => prev.map(card => {
-      if (card.id !== cardId || card.mdmOffset === mdmOffset) return card
+      if (card.id !== cardId) return card
       return {
         ...card,
         mdmOffset,
         mdmOptimization: undefined,
-        result: undefined,
-        dataSources: card.dataSources?.map(source => ({
-          ...source,
-          result: undefined,
-          traceData: undefined,
-        })),
         fitMode: 'manual',
       }
     }))
+    if (nextCard.data?.length || nextCard.dataSources?.length) {
+      void recalculateMdmCard(nextCard)
+    }
   }
 
   const handleMdmOffsetModeChange = (cardId: string, mdmOffsetMode: MdmOffsetMode) => {
+    const currentCard = cards.find(card => card.id === cardId)
+    if (!currentCard || currentCard.mdmOffsetMode === mdmOffsetMode) return
+    const nextCard: CardData = {
+      ...currentCard,
+      mdmOffsetMode,
+      mdmOptimization: undefined,
+      fitMode: 'manual',
+    }
     setCards(prev => prev.map(card => {
-      if (card.id !== cardId || card.mdmOffsetMode === mdmOffsetMode) return card
+      if (card.id !== cardId) return card
       return {
         ...card,
         mdmOffsetMode,
         mdmOptimization: undefined,
-        result: undefined,
-        dataSources: card.dataSources?.map(source => ({
-          ...source,
-          result: undefined,
-          traceData: undefined,
-        })),
         fitMode: 'manual',
       }
     }))
+    if (nextCard.data?.length || nextCard.dataSources?.length) {
+      void recalculateMdmCard(nextCard)
+    }
   }
 
   const handleMethodSelect = (methodId: string) => {
@@ -375,8 +381,8 @@ function CalculatorContent() {
   }
 
   // 批量计算所有数据源
-  const handleBatchCalculate = async (cardId: string, sources: DataSource[]) => {
-    const card = cards.find(c => c.id === cardId)
+  const handleBatchCalculate = async (cardId: string, sources: DataSource[], cardOverride?: CardData) => {
+    const card = cardOverride ?? cards.find(c => c.id === cardId)
     if (!card) return sources
 
     if (!card.methodId) {
@@ -439,7 +445,11 @@ function CalculatorContent() {
   const handleParamsUpdate = (cardId: string, updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
     setCards(prev => prev.map(card => {
       if (card.id === cardId) {
-        const baseResult = card.result || createManualResult(card.data || [], card.is3P !== false)
+        const baseResult = card.result || createManualParameterResult(
+          card.data || [],
+          card.is3P !== false,
+          calculateMedianRanks,
+        )
         const newResult = { ...baseResult, ...updates }
         let newPoints = card.result?.points || []
         // Only recalculate points if gamma changed AND points not already provided in updates
@@ -462,10 +472,7 @@ function CalculatorContent() {
     }))
   }
 
-  const handleCalculate = async (cardId: string) => {
-    const card = cards.find(c => c.id === cardId)
-    if (!card) return
-
+  const calculateCardSnapshot = async (card: CardData) => {
     const modeFailure = getEstimationModeFailure(card.is3P !== false)
     if (modeFailure) {
       alert(modeFailure)
@@ -474,7 +481,7 @@ function CalculatorContent() {
 
     // 如果有多数据源，执行批量计算
     if (card.dataSources && card.dataSources.length > 0) {
-      await handleBatchCalculate(cardId, card.dataSources)
+      await handleBatchCalculate(card.id, card.dataSources, card)
       return
     }
 
@@ -502,7 +509,7 @@ function CalculatorContent() {
       const failure = getEstimateFailure(result)
       if (failure) throw new Error(failure)
 
-      setCards(prev => prev.map(c => c.id === cardId ? {
+      setCards(prev => prev.map(c => c.id === card.id ? {
         ...c,
         result,
         mdmOptimization: optimization,
@@ -516,6 +523,25 @@ function CalculatorContent() {
     }
   }
 
+  const recalculateMdmCard = async (card: CardData) => {
+    setMdmOffsetUpdatingCardIds(prev => new Set(prev).add(card.id))
+    try {
+      await calculateCardSnapshot(card)
+    } finally {
+      setMdmOffsetUpdatingCardIds(prev => {
+        const next = new Set(prev)
+        next.delete(card.id)
+        return next
+      })
+    }
+  }
+
+  const handleCalculate = async (cardId: string) => {
+    const card = cards.find(c => c.id === cardId)
+    if (!card) return
+    await calculateCardSnapshot(card)
+  }
+
   const handleDeleteCard = (cardId: string) => {
     if (cards.length <= 1) {
       alert("请至少保留一张卡片。")
@@ -527,7 +553,11 @@ function CalculatorContent() {
   const handleToggle3P = (cardId: string) => {
     setCards(prev => prev.map(card => {
       if (card.id === cardId) {
-        const result = card.result || createManualResult(card.data || [], card.is3P !== false)
+        const result = card.result || createManualParameterResult(
+          card.data || [],
+          card.is3P !== false,
+          calculateMedianRanks,
+        )
         const mode = toggleParameterMode({
           is3P: card.is3P !== false,
           currentGamma: result.gamma,
@@ -598,6 +628,7 @@ function CalculatorContent() {
             onToggle3P={() => handleToggle3P(card.id)}
             onCalculate={() => handleCalculate(card.id)}
             onDelete={() => handleDeleteCard(card.id)}
+            isMdmOffsetUpdating={mdmOffsetUpdatingCardIds.has(card.id)}
           />
         ))}
 

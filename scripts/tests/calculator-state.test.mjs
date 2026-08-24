@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   createDefaultParameterResult,
+  createManualParameterResult,
   generateWeibullSample,
   getDefaultParameters,
   getEstimationModeFailure,
@@ -73,6 +74,21 @@ test('default parameter result is 3P manual-ready and uses current data points',
     points,
     converged: true,
   })
+})
+
+test('manual parameter result always supplies the parameter panel values', () => {
+  const data = [{ id: 0, value: 10, status: 'F' }]
+  const threeParameter = createManualParameterResult(data, true, (_data, gamma) => [{ gamma }])
+  const twoParameter = createManualParameterResult(data, false, (_data, gamma) => [{ gamma }])
+
+  assert.deepEqual(
+    [threeParameter.beta, threeParameter.eta, threeParameter.gamma],
+    [2, 1000, 1000],
+  )
+  assert.deepEqual(
+    [twoParameter.beta, twoParameter.eta, twoParameter.gamma],
+    [2, 1000, 0],
+  )
 })
 
 test('MDM offset options use the frozen 0.00 to 0.50 grid', () => {

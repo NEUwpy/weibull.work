@@ -48,6 +48,7 @@ import {
 } from '@/lib/weibull'
 import { getMethodInfo } from '@/lib/methods'
 import {
+  createManualParameterResult,
   generateWeibullSample,
   getDefaultParameters,
   MDM_DEFAULT_OFFSET,
@@ -86,8 +87,8 @@ interface AnalysisCardProps {
   dataSources?: DataSource[]
   onAdd: (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string, currentData?: DataPoint[]) => void
   onMethodClick?: () => void
-  onMdmOffsetChange?: (offset: number) => void
-  onMdmOffsetModeChange?: (mode: MdmOffsetMode) => void
+  onMdmOffsetChange?: (offset: number) => void | Promise<void>
+  onMdmOffsetModeChange?: (mode: MdmOffsetMode) => void | Promise<void>
   onToggle3P?: () => void
   onDataClick?: () => void
   onDataChange?: (newData: DataPoint[]) => void
@@ -147,8 +148,10 @@ export default function AnalysisCard({
     if (dataSources && dataSources.length > 0 && dataSources[activeSourceIndex]?.result) {
       return dataSources[activeSourceIndex].result
     }
-    return result
-  }, [dataSources, activeSourceIndex, result])
+    if (result) return result
+    const fallbackData = dataSources?.[activeSourceIndex]?.data || data || []
+    return createManualParameterResult(fallbackData, is3P, calculateMedianRanks)
+  }, [dataSources, activeSourceIndex, result, data, is3P])
 
   const menuRef = useRef<HTMLDivElement>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
@@ -490,7 +493,8 @@ export default function AnalysisCard({
                        <div className="mb-1.5 grid grid-cols-2 rounded-md border border-emerald-200 bg-white p-0.5">
                          <button
                            type="button"
-                           onClick={() => onMdmOffsetModeChange?.('fixed')}
+                           disabled={isMdmOffsetUpdating}
+                           onClick={() => { void onMdmOffsetModeChange?.('fixed') }}
                            className={cn(
                              'h-6 rounded text-[9px] font-black transition-colors',
                              mdmOffsetMode === 'fixed'
@@ -502,8 +506,8 @@ export default function AnalysisCard({
                          </button>
                          <button
                            type="button"
-                           disabled={!isMdmAiSupported}
-                           onClick={() => onMdmOffsetModeChange?.('ai')}
+                           disabled={!isMdmAiSupported || isMdmOffsetUpdating}
+                           onClick={() => { void onMdmOffsetModeChange?.('ai') }}
                            className={cn(
                              'h-6 rounded text-[9px] font-black transition-colors disabled:cursor-not-allowed disabled:opacity-40',
                              mdmOffsetMode === 'ai'
@@ -519,7 +523,8 @@ export default function AnalysisCard({
                          <select
                            id={`mdm-offset-${id}`}
                            value={mdmOffset}
-                           onChange={(event) => onMdmOffsetChange?.(Number(event.target.value))}
+                           disabled={isMdmOffsetUpdating}
+                           onChange={(event) => { void onMdmOffsetChange?.(Number(event.target.value)) }}
                            className="h-8 w-full rounded-md border border-emerald-200 bg-white px-2 text-xs font-black text-emerald-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                            aria-label="MDM 固定偏移量"
                          >
@@ -645,8 +650,7 @@ export default function AnalysisCard({
                                                  </div>
                                               </div>                                  {/* 内容栏 */}
                                   <div className="flex-1 p-4 flex flex-col overflow-y-auto">
-                                    {displayResult ? (
-                                      <div className="space-y-3">
+                                    <div className="space-y-3">
                                         <ParamInput label="β 形状" value={displayResult.beta} onChange={(v) => handleParamChange('beta', v)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
                                         <ParamInput label="η 尺度" value={displayResult.eta} onChange={(v) => handleParamChange('eta', v)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
                                         <ParamInput label="γ 位置" value={displayResult.gamma} onChange={(v) => handleParamChange('gamma', v)} readOnly={!is3P || displayResult.converged === false || displayResult.converged === 'unbounded'} color={(!is3P || displayResult.converged === false || displayResult.converged === 'unbounded') ? "text-slate-300" : "text-blue-600"} decimals={3} />
@@ -708,10 +712,7 @@ export default function AnalysisCard({
                                             </div>
                                           </div>
                                         )}
-                                      </div>
-                                    ) : (
-                                      <div className="flex-1 flex items-center justify-center text-xs text-slate-300">无参数</div>
-                                    )}
+                                    </div>
                                   </div>            {/* 底栏 */}
             <div className="h-12 flex items-center gap-2 px-4">
                 <button onClick={handleGenerateSample} className="flex-1 h-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm">

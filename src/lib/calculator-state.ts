@@ -52,7 +52,15 @@ export function createDefaultParameterResult<TData, TPoint>(
   data: TData[],
   calculatePoints: (data: TData[], gamma: number) => TPoint[],
 ) {
-  const parameters = getDefaultParameters(true)
+  return createManualParameterResult(data, true, calculatePoints)
+}
+
+export function createManualParameterResult<TData, TPoint>(
+  data: TData[],
+  is3P: boolean,
+  calculatePoints: (data: TData[], gamma: number) => TPoint[],
+) {
+  const parameters = getDefaultParameters(is3P)
   return {
     ...parameters,
     rSquared: null,
