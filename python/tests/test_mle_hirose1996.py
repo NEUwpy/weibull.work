@@ -128,3 +128,14 @@ def test_mle_identity_never_substituted():
     r = run_method("mle", HIROSE_CASE2)
     assert r["method_id"] == "mle"
     assert r["method_variant"] == "mle"
+
+
+def test_mle_large_location_multistart_avoids_inferior_zero_start_solution():
+    """大位置参数样本存在有限局部极大时，不应被 γ=0 单一起点困住。"""
+    sample = generate_sample(2.0, 1000.0, 3000.0, 15, 13, seed=20260825)
+    r = run_method("mle", sample)
+    assert r["converged"] is True
+    assert r["gamma_hat"] > 1000.0
+    info = r["extra"]["solution_info"]
+    assert info["start_count"] > 1
+    assert info["location_at_zero_boundary"] is False

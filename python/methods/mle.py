@@ -99,51 +99,63 @@ class MLE(WeibullBase):
         # @inputs: beta_init|\beta_0|初始形状参数, eta_init|\eta_0|初始尺度参数, gamma_init|\gamma_0|初始位置参数
         # @outputs: beta_hat|\hat{\beta}|最优形状参数, eta_hat|\hat{\eta}|最优尺度参数, gamma_hat|\hat{\gamma}|最优位置参数
         # @loop: ~15-30次迭代
-        result = minimize(
-            neg_log_likelihood,
-            [beta_init, eta_init, gamma_init],
-            method='Nelder-Mead',
-            callback=callback if trace else None,
-            options={'maxiter': 1000, 'xatol': 1e-4, 'fatol': 1e-8}
-        )
+        # γ=0 的单一起点在位置参数为数千时可能停在二维边界附近的较差局部解。
+        # 对若干尺度归一化的 γ 起点分别线性化初始化 β、η，再选择似然最大的有限局部极大。
+        start_gammas = [0.0, 0.25 * arr[0], 0.5 * arr[0], 0.75 * arr[0], 0.9 * arr[0]]
+        starts = []
+        for gamma_start in start_gammas:
+            try:
+                shifted = arr - gamma_start
+                x_start = np.log(shifted)
+                slope_start, intercept_start = np.polyfit(x_start, y, 1)
+                beta_start = max(0.5, float(slope_start))
+                eta_start = float(np.exp(-intercept_start / slope_start))
+                if np.isfinite(beta_start) and np.isfinite(eta_start) and eta_start > 0:
+                    starts.append(np.array([beta_start, eta_start, gamma_start]))
+            except Exception:
+                continue
 
+        candidates = []
+        saw_unbounded = False
+        for start_index, start in enumerate(starts):
+            result = minimize(
+                neg_log_likelihood,
+                start,
+                method='Nelder-Mead',
+                callback=callback if trace else None,
+                options={'maxiter': 3000, 'xatol': 1e-7, 'fatol': 1e-10},
+            )
+            beta_candidate, eta_candidate, gamma_candidate = result.x
+            final_ll_candidate = -float(result.fun)
+            if (
+                np.isfinite(final_ll_candidate)
+                and final_ll_candidate > -1e10
+                and eta_candidate > 0
+                and 0 <= gamma_candidate < arr[0]
+            ):
+                if beta_candidate < 1.0:
+                    saw_unbounded = True
+                elif result.success:
+                    candidates.append((result, start_index))
+
+        if not candidates:
+            status = "unbounded" if saw_unbounded else "optimizer_failed"
+            if status == "optimizer_failed":
+                self.last_solution_info = {
+                    "status": status,
+                    "strategy": "deterministic_multistart_likelihood",
+                    "start_count": int(len(starts)),
+                }
+            if trace:
+                self.log_step({
+                    "phase": "failed",
+                    "reason": status,
+                })
+            return [0, 0, 0, 0, status]
+
+        result, selected_start = min(candidates, key=lambda item: float(item[0].fun))
         beta_hat, eta_hat, gamma_hat = result.x
-        final_ll = -result.fun
-
-        # 检查对数似然值是否有效
-        if not np.isfinite(final_ll) or final_ll <= -1e10:
-            if trace:
-                self.log_step({
-                    "phase": "failed",
-                    "reason": "invalid_likelihood",
-                    "log_likelihood": final_ll
-                })
-            return [0, 0, 0, 0, False]
-
-        # @step: 6 | 检查无界问题 | 当 β < 1 时似然函数无界，不存在 MLE 解
-        # @formula: \text{If } \hat{\beta} < 1, \text{ 无 MLE 解存在}
-        # @symbols: \hat{\beta}|\hat{\beta}|估计的形状参数
-        # @inputs: beta_hat|\hat{\beta}|形状参数估计值
-        # @outputs: status|status|求解状态（success/unbounded）
-        if beta_hat < 1.0:
-            if trace:
-                self.log_step({
-                    "phase": "failed",
-                    "reason": "unbounded_problem",
-                    "message": "Smith (1985): beta < 1, likelihood function is unbounded, no MLE solution exists",
-                    "beta": beta_hat
-                })
-            return [0, 0, 0, 0, "unbounded"]
-
-        # 检查收敛状态
-        if not result.success:
-            if trace:
-                self.log_step({
-                    "phase": "failed",
-                    "reason": "optimization_failed",
-                    "message": result.message
-                })
-            return [0, 0, 0, 0, False]
+        final_ll = -float(result.fun)
 
         # 成功
         if trace:
@@ -159,6 +171,15 @@ class MLE(WeibullBase):
         # 如果 gamma 收敛到接近 0，固定为 0
         if gamma_hat < 1e-5:
             gamma_hat = 0.0
+
+        self.last_solution_info = {
+            "status": "ok",
+            "strategy": "deterministic_multistart_likelihood",
+            "start_count": int(len(starts)),
+            "selected_start": int(selected_start),
+            "log_likelihood": float(final_ll),
+            "location_at_zero_boundary": bool(gamma_hat == 0.0),
+        }
 
         # @step: 7 | 计算拟合优度 | 评估模型与数据的拟合程度
         # @formula: R^2 = 1 - \frac{\sum(F_i - \hat{F}_i)^2}{\sum(F_i - \bar{F})^2}

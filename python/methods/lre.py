@@ -10,7 +10,7 @@ Linear Regression Estimation
 import math
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize_scalar
 from base import WeibullBase
 
 
@@ -62,7 +62,7 @@ class LRE(WeibullBase):
         # @symbols: \gamma|\gamma|位置参数候选值, \rho|\rho|Pearson 相关系数
         # @inputs: t|t|失效时间数组, y|y_i|变换因变量
         # @outputs: gamma_hat|\hat{\gamma}|最优位置参数
-        # @loop: ~10-30 次 L-BFGS-B 迭代
+        # @loop: 尺度无关的粗网格搜索 + 最优邻域有界精化
         def negative_r_squared(gamma_val):
             if gamma_val >= t[0] - 1e-5:
                 return 1e10
@@ -75,27 +75,39 @@ class LRE(WeibullBase):
                 return 1e10
             return -(corr ** 2)
 
-        result = minimize(
-            negative_r_squared,
-            x0=[0.0],
-            bounds=[(0, t[0] * 0.999)],
-            method="L-BFGS-B",
-        )
+        t_min = float(t[0])
+        min_gap = max(abs(t_min) * 1e-9, 1e-10)
+        upper = t_min - min_gap
+        linear_grid = np.linspace(0.0, upper, 201)
+        geometric_grid = t_min - np.geomspace(min_gap, t_min, 201)
+        gamma_grid = np.unique(np.clip(np.concatenate([linear_grid, geometric_grid]), 0.0, upper))
+        objective_grid = np.array([negative_r_squared(float(gamma)) for gamma in gamma_grid])
 
-        # 优化失败时不能读取未收敛的参数
-        if not result.success:
-            self.last_solution_info = {
-                "status": "optimizer_failed",
-                "message": str(result.message),
-            }
-            return [0, 0, 0, 0, "optimizer_failed"]
-
-        # 目标函数必须有限（-ρ² 在 [-1, 0] 范围内）
-        if not np.isfinite(result.fun):
+        finite = np.isfinite(objective_grid) & (objective_grid < 1e9)
+        if not np.any(finite):
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        gamma_hat = float(result.x[0])
+        best_idx = int(np.argmin(np.where(finite, objective_grid, np.inf)))
+        gamma_hat = float(gamma_grid[best_idx])
+        best_objective = float(objective_grid[best_idx])
+        refined = False
+        lo = float(gamma_grid[max(best_idx - 1, 0)])
+        hi = float(gamma_grid[min(best_idx + 1, len(gamma_grid) - 1)])
+        if hi > lo:
+            result = minimize_scalar(
+                negative_r_squared,
+                bounds=(lo, hi),
+                method="bounded",
+                options={"xatol": max(t_min * 1e-11, 1e-10)},
+            )
+            if result.success and np.isfinite(result.fun) and float(result.fun) <= best_objective:
+                gamma_hat = float(result.x)
+                best_objective = float(result.fun)
+                refined = True
+
+        if gamma_hat < max(t_min * 1e-12, 1e-10):
+            gamma_hat = 0.0
 
         if not np.isfinite(gamma_hat) or gamma_hat >= t[0] or gamma_hat < 0:
             self.last_solution_info = {"status": "degenerate_sample"}
@@ -148,6 +160,9 @@ class LRE(WeibullBase):
             "status": "ok",
             "strategy": "rho_squared_maximization",
             "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": int(len(gamma_grid)),
+            "refined": bool(refined),
+            "rho_squared": float(-best_objective),
             "location_at_zero_boundary": bool(gamma_hat == 0.0),
         }
 

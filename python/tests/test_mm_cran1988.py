@@ -82,10 +82,12 @@ def test_inadmissible_moments_fail_explicitly():
     assert r["beta_hat"] is None
     assert r["extra"]["raw_status"] == "inadmissible_moments"
 
-    # 全等值样本（零差分）同样不可采纳
+    # 全等值样本由统一 runner 在进入具体求解器前拒绝。
     r2 = run_method("mm", [5.0] * 10)
     assert r2["converged"] is False
-    assert r2["extra"]["raw_status"] == "inadmissible_moments"
+    assert r2["extra"] == {
+        "error": "invalid sample: observations must not all be equal"
+    }
 
 
 def test_insufficient_sample_fails_explicitly():

@@ -132,16 +132,27 @@ def test_lre_not_an_alias():
     assert r["extra"] is None or "solution_info" in (r["extra"] or {})
 
 
+def test_lre_large_location_scale_does_not_stick_at_zero_boundary():
+    """γ 为数千时仍应搜索相关系数峰值，不能因零起点的数值步长停在下边界。"""
+    sample = generate_sample(2.0, 1000.0, 3000.0, 15, 0, seed=20260825)
+    r = run_method("lre", sample)
+    assert r["converged"] is True
+    assert r["gamma_hat"] > 1000.0
+    info = r["extra"]["solution_info"]
+    assert info["location_at_zero_boundary"] is False
+    assert info["rho_squared"] > 0.95
+
+
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.parametrize("n_eq", [5, 7, 10, 12])
 def test_lre_degenerate_all_equal_fails_for_multiple_sizes(n_eq):
-    """全等值样本（不同样本量 n=5,7,10,12）必须显式失败。"""
+    """全等值样本由统一 runner 在进入具体求解器前显式拒绝。"""
     r = run_method("lre", [5.0] * n_eq)
     assert r["converged"] is False, f"n={n_eq} should fail"
     assert r["beta_hat"] is None, f"n={n_eq} beta should be None"
-    assert r["extra"]["raw_status"] == "degenerate_sample", (
-        f"n={n_eq} expected degenerate_sample, got {r['extra']}"
-    )
+    assert r["extra"] == {
+        "error": "invalid sample: observations must not all be equal"
+    }
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")

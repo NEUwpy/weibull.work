@@ -400,27 +400,61 @@ class WMLE(WeibullBase):
         # @inputs: gamma_init|\beta^{(0)}|形状初始值, alpha_init|\gamma^{(0)}|位置初始值
         # @outputs: gamma_hat|\hat{\beta}|最优形状参数, alpha_hat|\hat{\gamma}|最优位置参数
         # @loop: 约 50-200 次迭代
-        result = minimize(
-            wmle_objective,
-            x0=np.array([gamma_init, alpha_init]),
-            method='Nelder-Mead',
-            callback=callback if trace else None,
-            options={'maxiter': 500}
-        )
+        # 单一起点在大位置参数尺度下可能停在非零残差的局部极小点。
+        # 保留论文启发式起点，并增加少量确定性起点；仍优化同一组加权方程。
+        starts = [
+            np.array([gamma_init, alpha_init]),
+            np.array([2.0, 0.5 * x_min]),
+            np.array([2.0, 0.1 * x_min]),
+            np.array([1.2, 0.9 * x_min]),
+            np.array([4.0, 0.9 * x_min]),
+        ]
+        candidates = []
+        for start_index, start in enumerate(starts):
+            result = minimize(
+                wmle_objective,
+                x0=start,
+                method='Nelder-Mead',
+                callback=callback if trace else None,
+                options={'maxiter': 1200, 'xatol': 1e-9, 'fatol': 1e-12},
+            )
+            shape_candidate, location_candidate = result.x
+            if (
+                result.success
+                and np.isfinite(result.fun)
+                and float(result.fun) < 1e9
+                and 0 < shape_candidate < SHAPE_UPPER
+                and 0 <= location_candidate < x_min
+            ):
+                candidates.append((result, start_index))
 
-        if not result.success:
+        if not candidates:
             # 优化失败必须显式报错，禁止返回伪造的默认参数
             self.last_solution_info = {
                 "status": "optimizer_failed",
-                "message": str(result.message),
+                "message": "all deterministic starts failed",
+                "start_count": int(len(starts)),
             }
             if trace:
                 self.log_step({
                     "phase": "failed",
                     "reason": "optimizer_failed",
-                    "message": str(result.message),
+                    "message": "all deterministic starts failed",
                 })
             return [0, 0, 0, 0, False]
+
+        min_objective = min(float(item[0].fun) for item in candidates)
+        near_best = [
+            item for item in candidates
+            if float(item[0].fun) <= min_objective + 1e-12
+        ]
+        result, selected_start = min(
+            near_best,
+            key=lambda item: (
+                np.log(float(item[0].x[0]) / gamma_init) ** 2
+                + ((float(item[0].x[1]) - alpha_init) / max(float(x_min), 1.0)) ** 2
+            ),
+        )
 
         gamma_hat = result.x[0]  # Shape (paper's gamma -> System's beta)
         alpha_hat = result.x[1]  # Location (Paper's alpha -> System's gamma)
@@ -441,10 +475,25 @@ class WMLE(WeibullBase):
                 })
             return [0, 0, 0, 0, "shape_at_bound"]
 
+        # WMLE 定义为求解两条加权方程；优化器“成功”但残差未接近零时，
+        # 不能把局部最小点伪装成方程根。
+        if float(result.fun) > 1e-8:
+            self.last_solution_info = {
+                "status": "equation_residual",
+                "objective": float(result.fun),
+                "strategy": "deterministic_multistart_equation_minimization",
+                "start_count": int(len(starts)),
+                "selected_start": int(selected_start),
+            }
+            return [0, 0, 0, 0, "equation_residual"]
+
         # 求解诊断：目标函数残差（论文式(4) 应在根处为 0）与位置边界标记
         self.last_solution_info = {
             "status": "ok",
             "objective": float(result.fun),
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": int(len(starts)),
+            "selected_start": int(selected_start),
             "location_at_zero_boundary": bool(alpha_hat < 1e-6),
         }
 

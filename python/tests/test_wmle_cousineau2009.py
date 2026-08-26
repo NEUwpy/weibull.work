@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "methods"))
 
 from studies.common.runner import run_method
+from studies.common.sample import generate_sample
 from methods import wmle as wmle_module
 from methods.wmle import WMLE, get_weight_j1, get_weight_j2, get_weight_j3
 
@@ -130,12 +131,14 @@ def test_wmle_optimizer_failure_returns_explicit_failure(monkeypatch):
     assert r["extra"]["solution_info"]["status"] == "optimizer_failed"
 
 
-def test_wmle_degenerate_sample_fails_at_shape_bound():
-    """退化样本（零方差）无加权方程根：形状压上界必须显式失败。"""
+def test_wmle_degenerate_sample_is_rejected_by_shared_runner():
+    """退化样本由统一 runner 在进入 WMLE 方程求解前显式拒绝。"""
     r = run_method("wmle", [5.0, 5.0, 5.0, 5.0, 5.0])
     assert r["converged"] is False
     assert r["beta_hat"] is None
-    assert r["extra"]["raw_status"] == "shape_at_bound"
+    assert r["extra"] == {
+        "error": "invalid sample: observations must not all be equal"
+    }
 
 
 def test_wmle_location_boundary_diagnostic_recorded():
@@ -163,3 +166,22 @@ def test_wmle_gamma_estimate_stays_inside_support():
         assert np.isfinite(r["beta_hat"])
         assert np.isfinite(r["eta_hat"])
         assert np.isfinite(r["gamma_hat"])
+
+
+def test_wmle_large_location_multistart_reaches_weighted_equation_root():
+    """大位置参数样本不得停在较差的单起点局部残差。"""
+    sample = generate_sample(2.0, 1000.0, 3000.0, 15, 4, seed=20260825)
+    r = run_method("wmle", sample)
+    assert r["converged"] is True
+    info = r["extra"]["solution_info"]
+    assert info["objective"] < 1e-10
+    assert info["start_count"] > 1
+
+
+def test_wmle_rejects_nonroot_local_minimum():
+    """加权方程残差明显非零时必须显式失败，不能返回伪根。"""
+    sample = generate_sample(2.0, 1000.0, 3000.0, 15, 0, seed=20260825)
+    r = run_method("wmle", sample)
+    assert r["converged"] is False
+    assert r["extra"]["raw_status"] == "equation_residual"
+    assert r["extra"]["solution_info"]["objective"] > 1e-8

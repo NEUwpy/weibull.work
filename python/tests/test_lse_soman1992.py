@@ -147,11 +147,13 @@ def test_lse_insufficient_sample_fails_explicitly():
 
 
 def test_lse_degenerate_sample_fails_explicitly():
-    """全等值样本无信息：显式失败 degenerate_sample。"""
+    """全等值样本由统一 runner 在进入 LSE 求解器前显式拒绝。"""
     r = run_method("lse", [5.0] * 10)
     assert r["converged"] is False
     assert r["beta_hat"] is None
-    assert r["extra"]["raw_status"] == "degenerate_sample"
+    assert r["extra"] == {
+        "error": "invalid sample: observations must not all be equal"
+    }
 
 
 def test_lse_identity_never_substituted():
