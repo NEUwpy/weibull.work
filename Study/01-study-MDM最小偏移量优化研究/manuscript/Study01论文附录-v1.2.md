@@ -46,7 +46,12 @@
 | 可靠度寿命 | `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E8_mean_normalized_selector/quantiles/` |
 | 尺度等变检查 | `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E8_mean_normalized_selector/scale_equivariance/` |
 | 条件风险机制诊断 | `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E10_z_only_benchmark/` |
+| L6 候选上边界核查 | `Study/01-study-MDM最小偏移量优化研究/artifacts/candidate/E12_delta_upper_boundary/` |
 | 绘图代码与派生数据 | `figures/scripts/`、`figures/data/derived/` |
+
+### A.5 L6 候选上边界核查
+
+为检查 $\delta=0.50$ 是否使 L6 事后参照受到明显截断，仅对边界损失仍在下降的样本将候选网格延伸至 1.00。延伸后全样本 L6 $J_1$ 从 0.492297 降至 0.490848，对应风险变化为 0.59%，不改变主要比较的解释。新网格仍有样本在右端取最小损失，因此该核查不用于定义连续 $\delta$ 空间的理论下界。正文仍报告预设 26 点网格的 L6。
 
 ## 附录 B  网络训练、输入表示与稳定性
 

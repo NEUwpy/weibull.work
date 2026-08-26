@@ -1,0 +1,116 @@
+{
+  "status": "CANDIDATE_BOUNDARY_DIAGNOSTIC",
+  "contract": "E12_delta_upper_boundary_v1",
+  "question": "Does delta=0.50 truncate the 26-point L6 hindsight reference?",
+  "design": {
+    "frozen_grid": [
+      0.0,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.12,
+      0.14,
+      0.16,
+      0.18,
+      0.2,
+      0.22,
+      0.24,
+      0.26,
+      0.28,
+      0.3,
+      0.32,
+      0.34,
+      0.36,
+      0.38,
+      0.4,
+      0.42,
+      0.44,
+      0.46,
+      0.48,
+      0.5
+    ],
+    "selection_rule": "loss(delta=0.50) < loss(delta=0.48)",
+    "check_deltas": [
+      0.48,
+      0.5
+    ],
+    "extended_deltas": [
+      0.52,
+      0.54,
+      0.56,
+      0.58,
+      0.6,
+      0.62,
+      0.64,
+      0.66,
+      0.68,
+      0.7,
+      0.72,
+      0.74,
+      0.76,
+      0.78,
+      0.8,
+      0.82,
+      0.84,
+      0.86,
+      0.88,
+      0.9,
+      0.92,
+      0.94,
+      0.96,
+      0.98,
+      1.0
+    ],
+    "seed_namespace": "study01_nrmc_v1",
+    "loss_tie_tolerance": 1e-12,
+    "only_selected_samples_rerun": true
+  },
+  "reconstruction_check": {
+    "samples_checked": 2186,
+    "points_per_sample": 2,
+    "max_absolute_loss_difference": 8.881784197001252e-16,
+    "tolerance": 1e-09
+  },
+  "result": {
+    "sample_counts": {
+      "all_samples": 48000,
+      "selected_at_old_boundary": 2186,
+      "selected_fraction": 0.04554166666666667,
+      "improved_beyond_050": 2063,
+      "best_at_new_upper_boundary_100": 590
+    },
+    "risk": {
+      "default_R": 0.3974157593593665,
+      "default_J1": 0.6304091999323665,
+      "base_l6_R_000_050": 0.24235644969698117,
+      "base_l6_J1_000_050": 0.4922971152637208,
+      "extended_l6_R_000_100": 0.24093162319489542,
+      "extended_l6_J1_000_100": 0.49084786155681215,
+      "absolute_R_reduction": 0.001424826502085752,
+      "relative_R_reduction_vs_base_l6": 0.005879053368982818,
+      "default_to_l6_R_gap_base": 0.15505930966238535,
+      "default_to_l6_R_gap_extended": 0.1564841361644711
+    },
+    "selected_sample_effect": {
+      "mean_loss_reduction": 0.03128621779511283,
+      "median_loss_reduction": 0.012374203059611438,
+      "q1_extended_delta": 0.6,
+      "median_extended_delta": 0.74,
+      "q3_extended_delta": 1.0
+    },
+    "interpretation_guard": "This diagnostic tests truncation of the hindsight reference only. It does not change the trained selector or its 0.00--0.50 deployment grid."
+  },
+  "provenance": {
+    "source_scan": "artifacts/formal/E5_normalized_raw/shared_data/mc_scan_raw.csv",
+    "source_scan_sha256_lf": "4083a3a89725379fc2516a732c80d02e8fa60104a9fed4fc6e579fb04591f396",
+    "analysis_code_sha256_lf": "761fe2090f0e3f7ffa2e0927d44ca87930db58e5af1404943c8ac75ae25cca1f",
+    "git": {
+      "head": "e25c0fde99222c86661e1fda35d3197c70e9e15d",
+      "branch": "main",
+      "worktree_dirty": true
+    },
+    "runtime_seconds": 953.2520767999813
+  }
+}

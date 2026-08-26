@@ -17,7 +17,7 @@
 |---|---|---|---|
 | 表 1 | `tables/table1_mc_design.md` / `.csv` | 明确参数空间、候选偏移量和重复规模 | E8 `specialist/manifest.json` 与共享设计合同 |
 | 表 2 | `tables/table1_l1_l6.md` / `.csv` | 比较固定规则、参数条件平均和逐样本事后参照；源文件名沿用正式产物名 | E8 `specialist/crossfit_layers.csv` |
-| 表 3 | `tables/table2_main_results.md` / `.csv` | 在同一测试样本上比较均值归一化 MLP、Default 和 L6 | E8 `specialist/summary.json` |
+| 表 3 | `tables/table2_main_results.md` / `.csv` | 在同一测试样本上比较均值归一化 MLP、Default 和预设 26 点网格的 L6 | E8 `specialist/summary.json` |
 
 ## 附录图表
 

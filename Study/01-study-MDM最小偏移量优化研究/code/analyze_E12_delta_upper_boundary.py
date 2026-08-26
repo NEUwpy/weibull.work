@@ -47,6 +47,7 @@ EXTENDED_DELTAS = tuple(round(0.52 + 0.02 * i, 2) for i in range(25))
 RUN_DELTAS = CHECK_DELTAS + EXTENDED_DELTAS
 EXPECTED_SAMPLES = 48_000
 EXPECTED_ROWS = EXPECTED_SAMPLES * len(CFG.DELTA_GRID)
+LOSS_TIE_TOL = 1e-12
 
 
 def sha256_lf(path: Path) -> str:
@@ -208,7 +209,10 @@ def derive_sample_summary(
     samples = selected.merge(new_best, on=SAMPLE_KEYS, how="left", validate="one_to_one")
     if samples["new_grid_best_loss"].isna().any():
         raise RuntimeError("at least one selected sample has no successful extended point")
-    use_new = samples["new_grid_best_loss"] < samples["base_l6_loss"]
+    use_new = (
+        samples["new_grid_best_loss"]
+        < samples["base_l6_loss"] - LOSS_TIE_TOL
+    )
     samples["extended_l6_loss"] = np.where(
         use_new, samples["new_grid_best_loss"], samples["base_l6_loss"]
     )
@@ -247,7 +251,9 @@ def derive_sample_summary(
             "all_samples": int(len(replaced)),
             "selected_at_old_boundary": int(len(samples)),
             "selected_fraction": float(len(samples) / len(replaced)),
-            "improved_beyond_050": int((samples["loss_reduction"] > 0).sum()),
+            "improved_beyond_050": int(
+                (samples["loss_reduction"] > LOSS_TIE_TOL).sum()
+            ),
             "best_at_new_upper_boundary_100": int(samples["at_new_upper_boundary"].sum()),
         },
         "risk": {
@@ -314,6 +320,7 @@ def write_outputs(
             "check_deltas": list(CHECK_DELTAS),
             "extended_deltas": list(EXTENDED_DELTAS),
             "seed_namespace": CFG.SEED_NAMESPACE,
+            "loss_tie_tolerance": LOSS_TIE_TOL,
             "only_selected_samples_rerun": True,
         },
         "reconstruction_check": reconstruction,

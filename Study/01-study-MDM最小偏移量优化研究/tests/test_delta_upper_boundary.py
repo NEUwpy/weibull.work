@@ -81,3 +81,19 @@ def test_extended_summary_replaces_only_selected_sample():
     assert np.isclose(summary["risk"]["base_l6_R_000_050"], 0.10)
     assert np.isclose(summary["risk"]["extended_l6_R_000_100"], 0.075)
     assert summary["sample_counts"]["best_at_new_upper_boundary_100"] == 1
+
+
+def test_numerical_tie_is_not_counted_as_boundary_improvement():
+    rows = [_row(0, delta, loss) for delta, loss in (
+        (0.10, 0.30), (0.48, 0.20), (0.50, 0.10)
+    )]
+    scan = pd.DataFrame(rows)
+    scan["loss"] = E12.sample_loss(scan)
+    all_samples, selected = E12.select_boundary_samples(scan)
+    extended = pd.DataFrame([
+        {**{key: selected.iloc[0][key] for key in E12.SAMPLE_KEYS},
+         "delta": 0.52, "loss": 0.10 - 1e-14, "status": "success"},
+    ])
+    samples, _, summary = E12.derive_sample_summary(all_samples, selected, extended)
+    assert samples.iloc[0]["loss_reduction"] == 0.0
+    assert summary["sample_counts"]["improved_beyond_050"] == 0
