@@ -712,6 +712,8 @@ def write_parameter_error_decomposition(df_full, diag):
         return {
             name: {
                 **summarize_standard_errors(values.to_numpy(dtype=float)),
+                "q05": float(np.quantile(values, 0.05)),
+                "q95": float(np.quantile(values, 0.95)),
                 "median_abs": float(np.median(np.abs(values))),
                 "p95_abs": float(np.quantile(np.abs(values), 0.95)),
             }
@@ -738,18 +740,20 @@ def write_parameter_error_decomposition(df_full, diag):
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
 
     standard_rows = []
-    for method, metrics_by_parameter in (
-        (r"Default ($\delta=0.1$)", default_metrics),
-        ("Adaptive", adaptive_metrics_all),
-    ):
-        for parameter in ("beta", "eta", "gamma"):
+    for parameter in ("beta", "eta", "gamma"):
+        for method, metrics_by_parameter in (
+            (r"Default ($\delta=0.1$)", default_metrics),
+            ("Adaptive", adaptive_metrics_all),
+        ):
             metrics = metrics_by_parameter[parameter]
             standard_rows.append({
-                "method": method,
                 "parameter": parameter,
+                "method": method,
                 "normalized_bias": metrics["bias"],
                 "normalized_sd": metrics["sd"],
                 "normalized_rmse": metrics["rmse"],
+                "normalized_q05": metrics["q05"],
+                "normalized_q95": metrics["q95"],
             })
     standard_table = pd.DataFrame(standard_rows)
     standard_table.to_csv(
@@ -759,21 +763,26 @@ def write_parameter_error_decomposition(df_full, diag):
         lineterminator="\n",
     )
     labels = {"beta": r"$\beta$", "eta": r"$\eta$", "gamma": r"$\gamma$"}
+    method_labels = {
+        r"Default ($\delta=0.1$)": r"固定 $\delta=0.1$",
+        "Adaptive": "样本自适应选择",
+    }
     standard_lines = [
         "**表 4  固定偏移量与样本自适应选择的逐参数误差。**",
         "",
-        "| 方法 | 参数 | 标准化 Bias | 标准化 SD | 标准化 RMSE |",
-        "|---|---|---:|---:|---:|",
+        "| 参数 | 方法 | 标准化 Bias | 标准化 SD | 标准化 RMSE | 标准化误差 P5–P95 |",
+        "|---|---|---:|---:|---:|---:|",
     ]
     for row in standard_table.itertuples(index=False):
         standard_lines.append(
-            f"| {row.method} | {labels[row.parameter]} "
+            f"| {labels[row.parameter]} | {method_labels[row.method]} "
             f"| {row.normalized_bias:.4f} | {row.normalized_sd:.4f} "
-            f"| {row.normalized_rmse:.4f} |"
+            f"| {row.normalized_rmse:.4f} "
+            f"| [{row.normalized_q05:.4f}, {row.normalized_q95:.4f}] |"
         )
     standard_lines.extend([
         "",
-        r"> $\beta$ 和 $\eta$ 的误差分别除以其真值，$\gamma$ 的误差除以真尺度参数 $\eta$。",
+        r"> 结果基于同一 48,000 个折外测试样本（160 个参数组合 $\times$ 300 次重复），样本自适应选择采用预先固定的 seed 42 主模型；每个样本在两种规则下均有估计结果，且均无估计失败。各样本等权汇总；$\beta$ 和 $\eta$ 的误差分别除以其真值，$\gamma$ 的误差除以真尺度参数 $\eta$。P5–P95 为标准化带符号误差的第 5—95 百分位区间；由于参数组合真值不同，不直接混合原始估计值计算范围。",
     ])
     (TABLES_DIR / "table4_parameter_metrics.md").write_text(
         "\n".join(standard_lines) + "\n", encoding="utf-8", newline="\n"

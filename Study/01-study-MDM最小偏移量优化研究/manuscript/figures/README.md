@@ -18,7 +18,7 @@
 
 ## Markdown 引用
 
-从同级的当前活动稿 `Study01论文初稿-v1.2.md` 引用正文图：
+从同级的当前活动稿 `Study01论文初稿-v1.3.md` 引用正文图：
 
 ```markdown
 ![样本自适应偏移量选择流程](figures/main/fig1_method_structure.png)

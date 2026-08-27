@@ -168,18 +168,32 @@ def check_scientific_values():
     standard = pd.read_csv(TABLES / "table4_parameter_metrics.csv")
     if len(standard) != 6 or standard[["method", "parameter"]].duplicated().any():
         raise AssertionError("Table 4 must contain 2 methods x 3 parameters")
+    expected_order = [
+        ("beta", "Default ($\\delta=0.1$)"), ("beta", "Adaptive"),
+        ("eta", "Default ($\\delta=0.1$)"), ("eta", "Adaptive"),
+        ("gamma", "Default ($\\delta=0.1$)"), ("gamma", "Adaptive"),
+    ]
+    if list(standard[["parameter", "method"]].itertuples(index=False, name=None)) != expected_order:
+        raise AssertionError("Table 4 must group fixed and adaptive results under each parameter")
     expected_standard = {
-        ("Default ($\\delta=0.1$)", "beta"): (-0.232656, 0.329311, 0.403202),
-        ("Default ($\\delta=0.1$)", "eta"): (-0.199836, 0.301147, 0.361417),
-        ("Default ($\\delta=0.1$)", "gamma"): (0.186821, 0.263289, 0.322834),
-        ("Adaptive", "beta"): (-0.200834, 0.316549, 0.374880),
-        ("Adaptive", "eta"): (-0.182703, 0.281298, 0.335421),
-        ("Adaptive", "gamma"): (0.169951, 0.244494, 0.297758),
+        ("Default ($\\delta=0.1$)", "beta"): (-0.232656, 0.329311, 0.403202, -0.676123, 0.343286),
+        ("Default ($\\delta=0.1$)", "eta"): (-0.199836, 0.301147, 0.361417, -0.662443, 0.310708),
+        ("Default ($\\delta=0.1$)", "gamma"): (0.186821, 0.263289, 0.322834, -0.240619, 0.623562),
+        ("Adaptive", "beta"): (-0.200834, 0.316549, 0.374880, -0.653319, 0.356284),
+        ("Adaptive", "eta"): (-0.182703, 0.281298, 0.335421, -0.639524, 0.293420),
+        ("Adaptive", "gamma"): (0.169951, 0.244494, 0.297758, -0.229722, 0.591435),
     }
     for row in standard.itertuples(index=False):
         expected = expected_standard[(row.method, row.parameter)]
         for actual, target in zip(
-            (row.normalized_bias, row.normalized_sd, row.normalized_rmse), expected
+            (
+                row.normalized_bias,
+                row.normalized_sd,
+                row.normalized_rmse,
+                row.normalized_q05,
+                row.normalized_q95,
+            ),
+            expected,
         ):
             assert_close(actual, target, 1e-6)
 
