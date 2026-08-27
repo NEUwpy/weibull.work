@@ -277,7 +277,7 @@ def draw_arrow(ax, start, end, *, color="#666666", linestyle="-", lw=0.9,
     ax.add_patch(arrow)
 
 
-def figure_1_method_structure():
+def figure_2_adaptive_selection_method():
     """Schematic-led method figure centred on loss-curve learning and selection."""
     fig = plt.figure(figsize=(178 * MM, 102 * MM))
     ax = fig.add_axes([0, 0, 1, 1])
@@ -450,9 +450,9 @@ def figure_1_method_structure():
         "illustrative_curves": "schematic only; not numerical evidence",
     }
     DERIVED_DIR.mkdir(parents=True, exist_ok=True)
-    with (DERIVED_DIR / "fig1_method_contract.json").open("w", encoding="utf-8") as handle:
+    with (DERIVED_DIR / "fig2_method_contract.json").open("w", encoding="utf-8") as handle:
         json.dump(method_contract, handle, ensure_ascii=False, indent=2)
-    export_figure(fig, "fig1_method_structure", MAIN_DIR)
+    export_figure(fig, "fig2_adaptive_selection_method", MAIN_DIR)
 
 
 def delta_risk_curve(paths):
@@ -461,7 +461,7 @@ def delta_risk_curve(paths):
     curve = (df_full.assign(loss=loss).groupby("delta", as_index=False)["loss"].mean())
     curve["J1"] = np.sqrt(curve["loss"])
     curve = curve[["delta", "J1"]].sort_values("delta").reset_index(drop=True)
-    save_source(curve, "fig2_delta_risk.csv")
+    save_source(curve, "fig1_delta_risk.csv")
     return curve
 
 
@@ -508,11 +508,11 @@ def fixed_offset_stability_distribution():
     ).reset_index(drop=True)
     if len(out) != 960:
         raise AssertionError("Stability summary must contain 2 offsets x 3 parameters x 160 cells")
-    save_source(out, "fig2_fixed_offset_stability.csv")
+    save_source(out, "fig1_fixed_offset_stability.csv")
     return out
 
 
-def figure_2_delta_risk(paths):
+def figure_1_offset_baseline(paths):
     curve = delta_risk_curve(paths)
     d_min = float(curve.loc[curve["J1"].idxmin(), "delta"])
     j_min = float(curve["J1"].min())
@@ -618,7 +618,7 @@ def figure_2_delta_risk(paths):
     style_axis(distribution, ygrid=True)
     panel_label(distribution, "c")
     fig.align_ylabels()
-    export_figure(fig, "fig2_overall_delta_risk", MAIN_DIR)
+    export_figure(fig, "fig1_offset_baseline", MAIN_DIR)
 
 
 def main_results_by_n(summary):
@@ -1977,8 +1977,8 @@ def main():
     SUPP_DIR.mkdir(parents=True, exist_ok=True)
     DERIVED_DIR.mkdir(parents=True, exist_ok=True)
 
-    figure_1_method_structure()
-    figure_2_delta_risk(paths)
+    figure_1_offset_baseline(paths)
+    figure_2_adaptive_selection_method()
     figure_3_main_results(paths, summary)
     figure_4_selector_mechanism(paths)
     figure_5_decision_mechanism(paths)

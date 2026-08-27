@@ -4,8 +4,8 @@
 
 | 数据块 | 路径 | 主要用途 |
 |---|---|---|
-| Monte Carlo 损失扫描 | `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/` | 图 2及逐参数表；160 组合、48,000 样本、26 个候选偏移量。图 2 稳定性按组合内 300 次重复计算 |
-| 均值归一化主结果 | `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E8_mean_normalized_selector/specialist/` | 图 1 方法配置依据、图 3–5、主结果表和随机种子结果 |
+| Monte Carlo 损失扫描 | `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/` | 图 1 及逐参数表；160 组合、48,000 样本、26 个候选偏移量。图 1 稳定性按组合内 300 次重复计算 |
+| 均值归一化主结果 | `Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E8_mean_normalized_selector/specialist/` | 图 2 方法配置依据、图 3–5、主结果表和随机种子结果 |
 | 均值归一化折外选择 | `.../E5_normalized_raw/specialist/` | 图 3–5 的逐样本派生数据；源提交与哈希由 E8 manifest 绑定 |
 | 未见 beta 验证 | `.../E8_mean_normalized_selector/unseen_beta/` | 支撑验证表、未见 beta 图表 |
 | 传统方法参照 | `.../E6_dimensional_raw/traditional_ref/` | WMLE/LSE 图表 |

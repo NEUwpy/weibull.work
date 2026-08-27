@@ -6,8 +6,8 @@
 
 | 文件 | 内容 | 来源 |
 |---|---|---|
-| `fig1_method_structure.png` | 方法结构图：排序样本/样本均值→per-n MLP→26 点损失曲线→选 δ→MDM | 03-论文骨架与 E8 方法合同 |
-| `fig2_overall_delta_risk.png` | 整体 δ–风险曲线及组合内重复抽样稳定性 | E5 `shared_data` 26 点损失与 160 组合×300 次重复估计 |
+| `fig1_offset_baseline.png` | 整体 δ–风险曲线及组合内重复抽样稳定性 | E5 `shared_data` 26 点损失与 160 组合×300 次重复估计 |
+| `fig2_adaptive_selection_method.png` | 方法结构图：排序样本/样本均值→per-n MLP→26 点损失曲线→选 δ→MDM | 03-论文骨架与 E8 方法合同 |
 | `fig3_per_n_J1.png` | seed 42 的均值归一化 MLP / Default / L6 按 n 的 J1 | E8 `seed42_primary/summary.json` |
 | `fig4_selector_mechanism.png` | 代表损失曲线、选点对应和超额损失分布 | E5 折外预测与 `shared_data` 损失 |
 | `fig5_decision_mechanism.png` | 同一参数条件下样本实现如何移动经验梯度、低风险区与 L6 偏移量 | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` |

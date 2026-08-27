@@ -5,7 +5,7 @@
 - 默认直接从 `figure_sources.json` 声明的封存数据派生表格和图，再运行 fail-closed QA；
 - 正文和补充图由 `make_submission_figures.py` 生成，正式实验目录中的旧 PNG 不会覆盖投稿图；
 - 使用 `--regenerate-formal` 时，才先调用仓库内正式证据生成程序；
-- `qa_submission_figures.py` 核对 56 个导出文件、矢量文本、图像尺寸和核心数值，并验证图 2 的组合内稳定性分布、图 3 的逐样本配对分布、正文表 4 与附录 B3 的逐参数误差。
+- `qa_submission_figures.py` 核对 56 个导出文件、矢量文本、图像尺寸和核心数值，并验证图 1 的组合内稳定性分布、图 3 的逐样本配对分布、正文表 4 与附录 B3 的逐参数误差。
 
 ```powershell
 python .\figures\scripts\build_figures.py

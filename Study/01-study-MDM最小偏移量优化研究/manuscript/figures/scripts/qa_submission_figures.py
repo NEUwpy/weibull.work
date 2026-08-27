@@ -18,8 +18,8 @@ DERIVED = ROOT / "data" / "derived"
 TABLES = ROOT / "tables"
 
 FIGURES = {
-    "fig1_method_structure": MAIN,
-    "fig2_overall_delta_risk": MAIN,
+    "fig1_offset_baseline": MAIN,
+    "fig2_adaptive_selection_method": MAIN,
     "fig3_per_n_J1": MAIN,
     "fig4_selector_mechanism": MAIN,
     "fig5_decision_mechanism": MAIN,
@@ -80,23 +80,23 @@ def check_exports():
 
 
 def check_scientific_values():
-    curve = pd.read_csv(DERIVED / "fig2_delta_risk.csv")
+    curve = pd.read_csv(DERIVED / "fig1_delta_risk.csv")
     if len(curve) != 26 or curve["delta"].nunique() != 26:
-        raise AssertionError("Figure 2 must contain all 26 candidate offsets")
+        raise AssertionError("Figure 1 must contain all 26 candidate offsets")
     best = curve.loc[curve["J1"].idxmin()]
     assert_close(best["delta"], 0.06, 1e-12)
     assert_close(best["J1"], 0.624518, 5e-7)
     default = curve.loc[(curve["delta"] - 0.10).abs().idxmin()]
     assert_close(default["J1"], 0.6304091999323667)
 
-    stability = pd.read_csv(DERIVED / "fig2_fixed_offset_stability.csv")
+    stability = pd.read_csv(DERIVED / "fig1_fixed_offset_stability.csv")
     if (len(stability) != 960 or set(stability["method"]) != {"No offset", "Default"}
             or set(stability["parameter"]) != {"beta", "eta", "gamma"}):
-        raise AssertionError("Figure 2 stability source must contain 2 offsets x 3 parameters x 160 cells")
+        raise AssertionError("Figure 1 stability source must contain 2 offsets x 3 parameters x 160 cells")
     if not stability.groupby(["parameter", "method"]).size().eq(160).all():
-        raise AssertionError("Figure 2 stability distributions must contain 160 cells each")
+        raise AssertionError("Figure 1 stability distributions must contain 160 cells each")
     if not stability["n_repeats"].eq(300).all():
-        raise AssertionError("Every Figure 2 stability cell must contain 300 repeats")
+        raise AssertionError("Every Figure 1 stability cell must contain 300 repeats")
     expected_medians = {
         ("beta", "No offset"): 0.5869627781,
         ("beta", "Default"): 0.2526457876,
@@ -119,7 +119,7 @@ def check_scientific_values():
         level="parameter"
     ).sum()
     if improved_cells.to_dict() != {"beta": 160, "eta": 160, "gamma": 154}:
-        raise AssertionError(f"Figure 2 stability-direction counts changed: {improved_cells.to_dict()}")
+        raise AssertionError(f"Figure 1 stability-direction counts changed: {improved_cells.to_dict()}")
 
     main = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
     if main["n"].tolist() != [7, 10, 15, 20]:

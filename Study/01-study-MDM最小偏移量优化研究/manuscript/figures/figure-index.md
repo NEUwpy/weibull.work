@@ -4,8 +4,8 @@
 
 | 稿件编号 | 文件 | 回答的问题 | 当前生成函数 | 直接数据或计算依据 |
 |---|---|---|---|---|
-| 图 1 | `main/fig1_method_structure.png` | 网络如何从实际损失曲线学习，并在新样本上预测曲线最低点以选择偏移量？ | `figure_1_method_structure()` | 方法结构图；曲线为流程示意而非数值证据，结构依据 E8 方法合同 |
-| 图 2 | `main/fig2_overall_delta_risk.png` | 正偏移量是否先改善重复抽样稳定性，固定偏移量的联合误差曲线又位于何处？ | `figure_2_delta_risk()` | E5 shared-data 的 160 组合 Monte Carlo 损失扫描；派生表为 `data/derived/fig2_delta_risk.csv` 和 `fig2_fixed_offset_stability.csv`。稳定性在各参数组合内根据 300 次重复分别计算 |
+| 图 1 | `main/fig1_offset_baseline.png` | 正偏移量是否改善重复抽样稳定性，固定偏移量的联合误差曲线又位于何处？ | `figure_1_offset_baseline()` | E5 shared-data 的 160 组合 Monte Carlo 损失扫描；派生表为 `data/derived/fig1_delta_risk.csv` 和 `fig1_fixed_offset_stability.csv`。稳定性在各参数组合内根据 300 次重复分别计算 |
+| 图 2 | `main/fig2_adaptive_selection_method.png` | 网络如何从实际损失曲线学习，并在新样本上预测曲线最低点以选择偏移量？ | `figure_2_adaptive_selection_method()` | 方法结构图；曲线为流程示意而非数值证据，结构依据 E8 方法合同 |
 | 图 3 | `main/fig3_per_n_J1.png` | 各样本量下总体误差改善多少，Default–L6 观测差距有多大，以及改善是否覆盖多数样本？ | `figure_3_main_results()` | E8 `seed42_primary/`、E5 封存 seed-42 折外选择与 shared-data 损失扫描；派生表为 `data/derived/fig3_main_results_by_n.csv` 和 `fig3_sample_loss_difference_quantiles.csv` |
 | 图 4 | `main/fig4_selector_mechanism.png` | 网络预测的风险曲线如何转化为偏移量选择，实际选择与 hindsight 的差距有多大？ | `figure_4_selector_mechanism()` | E5 封存均值归一化折外预测和 shared-data 逐 $\delta$ 损失 |
 | 图 5 | `main/fig5_decision_mechanism.png` | 同一参数条件下，抽样结果为何会改变低风险偏移量？ | `figure_5_decision_mechanism()` | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` 和 `summary.json` |
