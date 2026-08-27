@@ -89,21 +89,37 @@ def check_scientific_values():
     default = curve.loc[(curve["delta"] - 0.10).abs().idxmin()]
     assert_close(default["J1"], 0.6304091999323667)
 
-    stages = pd.read_csv(DERIVED / "fig2_three_stage_error_distribution.csv")
-    if stages["method"].tolist() != ["No offset", "Default", "Adaptive"]:
-        raise AssertionError("Figure 2 three-stage comparison order changed")
-    if not (stages["n_samples"] == 48_000).all():
-        raise AssertionError("Figure 2 stages must use the same 48,000 samples")
-    expected_j1 = [0.9481489946404543, 0.6304091999323665,
-                   0.5845531935428129]
-    expected_q95 = [1.873154, 1.124892, 1.083777]
-    for row, j1, q95 in zip(stages.itertuples(), expected_j1, expected_q95):
-        assert_close(row.J1, j1, 1e-12)
-        assert_close(row.q95_sqrt_loss, q95, 1e-6)
-        values = [row.q05_sqrt_loss, row.q25_sqrt_loss, row.q50_sqrt_loss,
-                  row.q75_sqrt_loss, row.q95_sqrt_loss]
-        if values != sorted(values):
-            raise AssertionError("Figure 2 error-magnitude quantiles are not monotone")
+    stability = pd.read_csv(DERIVED / "fig2_fixed_offset_stability.csv")
+    if (len(stability) != 960 or set(stability["method"]) != {"No offset", "Default"}
+            or set(stability["parameter"]) != {"beta", "eta", "gamma"}):
+        raise AssertionError("Figure 2 stability source must contain 2 offsets x 3 parameters x 160 cells")
+    if not stability.groupby(["parameter", "method"]).size().eq(160).all():
+        raise AssertionError("Figure 2 stability distributions must contain 160 cells each")
+    if not stability["n_repeats"].eq(300).all():
+        raise AssertionError("Every Figure 2 stability cell must contain 300 repeats")
+    expected_medians = {
+        ("beta", "No offset"): 0.5869627781,
+        ("beta", "Default"): 0.2526457876,
+        ("eta", "No offset"): 0.4241470768,
+        ("eta", "Default"): 0.2589089964,
+        ("gamma", "No offset"): 0.3782140687,
+        ("gamma", "Default"): 0.2236345184,
+    }
+    found_medians = stability.groupby(
+        ["parameter", "method"]
+    )["within_cell_normalized_sd"].median()
+    for key, expected in expected_medians.items():
+        assert_close(found_medians.loc[key], expected, 1e-9)
+    paired_stability = stability.pivot(
+        index=["parameter", "beta", "gamma_over_eta", "n"],
+        columns="method",
+        values="within_cell_normalized_sd",
+    )
+    improved_cells = (paired_stability["Default"] < paired_stability["No offset"]).groupby(
+        level="parameter"
+    ).sum()
+    if improved_cells.to_dict() != {"beta": 160, "eta": 160, "gamma": 154}:
+        raise AssertionError(f"Figure 2 stability-direction counts changed: {improved_cells.to_dict()}")
 
     main = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
     if main["n"].tolist() != [7, 10, 15, 20]:
@@ -148,6 +164,38 @@ def check_scientific_values():
     for actual, expected in zip(components["adaptive_normalized_rmse"],
                                 expected_adaptive_rmse):
         assert_close(actual, expected, 1e-9)
+
+    standard = pd.read_csv(TABLES / "table4_parameter_metrics.csv")
+    if len(standard) != 6 or standard[["method", "parameter"]].duplicated().any():
+        raise AssertionError("Table 4 must contain 2 methods x 3 parameters")
+    expected_order = [
+        ("beta", "Default ($\\delta=0.1$)"), ("beta", "Adaptive"),
+        ("eta", "Default ($\\delta=0.1$)"), ("eta", "Adaptive"),
+        ("gamma", "Default ($\\delta=0.1$)"), ("gamma", "Adaptive"),
+    ]
+    if list(standard[["parameter", "method"]].itertuples(index=False, name=None)) != expected_order:
+        raise AssertionError("Table 4 must group fixed and adaptive results under each parameter")
+    expected_standard = {
+        ("Default ($\\delta=0.1$)", "beta"): (-0.232656, 0.329311, 0.403202, -0.676123, 0.343286),
+        ("Default ($\\delta=0.1$)", "eta"): (-0.199836, 0.301147, 0.361417, -0.662443, 0.310708),
+        ("Default ($\\delta=0.1$)", "gamma"): (0.186821, 0.263289, 0.322834, -0.240619, 0.623562),
+        ("Adaptive", "beta"): (-0.200834, 0.316549, 0.374880, -0.653319, 0.356284),
+        ("Adaptive", "eta"): (-0.182703, 0.281298, 0.335421, -0.639524, 0.293420),
+        ("Adaptive", "gamma"): (0.169951, 0.244494, 0.297758, -0.229722, 0.591435),
+    }
+    for row in standard.itertuples(index=False):
+        expected = expected_standard[(row.method, row.parameter)]
+        for actual, target in zip(
+            (
+                row.normalized_bias,
+                row.normalized_sd,
+                row.normalized_rmse,
+                row.normalized_q05,
+                row.normalized_q95,
+            ),
+            expected,
+        ):
+            assert_close(actual, target, 1e-6)
 
     figure3_svg = (MAIN / "fig3_per_n_J1.svg").read_text(encoding="utf-8")
     if "seed" in figure3_svg.lower():
@@ -324,10 +372,10 @@ def main():
         "scientific_checks": [
             "26-point delta curve and minimum",
             "default delta J1",
-            "same-sample no-offset, default, and adaptive error distributions",
+            "within-cell sampling dispersion for no-offset and fixed-offset MDM",
             "four per-n main results and observed hindsight-gap fractions",
             "48,000 paired sample losses, improved proportions, and quantile monotonicity",
-            "three-parameter normalized error decomposition",
+            "three-parameter Bias, SD, RMSE, and tail-error decomposition",
             "representative risk curve and full 26 x 26 offset correspondence",
             "excess-loss quantile monotonicity",
             "20-cell MDM profile-gradient mechanism and conditional risk-curve shift",

@@ -242,6 +242,16 @@ def load_full_scan():
     return paper_support, df_full
 
 
+def load_standard_metric_helpers():
+    """Reuse the repository-wide metric definitions for manuscript summaries."""
+    python_dir = Path(read_json(CONFIG_PATH)["repository_root"]) / "python"
+    if str(python_dir) not in sys.path:
+        sys.path.insert(0, str(python_dir))
+    from studies.common.metrics import summarize_standard_errors
+
+    return summarize_standard_errors
+
+
 def draw_box(ax, xy, width, height, text, *, face, edge, fontsize=6.4,
              linewidth=0.9, radius=0.012):
     x, y = xy
@@ -455,59 +465,50 @@ def delta_risk_curve(paths):
     return curve
 
 
-def three_stage_error_distribution(paths):
-    """Summarize the same-sample error distribution for three offset stages."""
+def fixed_offset_stability_distribution():
+    """Summarize within-cell sampling dispersion for delta=0 and delta=0.10."""
     _, df_full = load_full_scan()
-    keys = ["beta", "eta", "gamma", "gamma_over_eta", "n", "repeat_id"]
+    summarize_standard_errors = load_standard_metric_helpers()
+    cell_keys = ["beta", "gamma_over_eta", "n"]
     fixed = df_full.loc[
         np.isclose(df_full["delta"], 0.0) | np.isclose(df_full["delta"], 0.10),
-        keys + ["delta", "loss"],
+        cell_keys + ["repeat_id", "delta", "eta", "gamma",
+                     "beta_hat", "eta_hat", "gamma_hat"],
     ].copy()
-    fixed["loss"] = pd.to_numeric(fixed["loss"], errors="coerce")
-    if fixed.duplicated(keys + ["delta"]).any():
-        raise AssertionError("Fixed-offset sample losses are not unique")
-
-    no_offset = fixed.loc[np.isclose(fixed["delta"], 0.0), keys + ["loss"]]
-    default = fixed.loc[np.isclose(fixed["delta"], 0.10), keys + ["loss"]]
-    adaptive = pd.read_csv(paths["selector_output"] / "raw_specialist_results.csv")
-    adaptive = adaptive.loc[
-        adaptive["seed"].eq(PRIMARY_SEED), keys + ["true_loss"]
-    ].rename(columns={"true_loss": "loss"})
-    adaptive["loss"] = pd.to_numeric(adaptive["loss"], errors="coerce")
-
-    expected_keys = set(map(tuple, default[keys].to_numpy()))
-    for name, frame in (("no_offset", no_offset), ("adaptive", adaptive)):
-        if len(frame) != 48_000 or frame.duplicated(keys).any():
-            raise AssertionError(f"{name} must contain 48,000 unique samples")
-        if set(map(tuple, frame[keys].to_numpy())) != expected_keys:
-            raise AssertionError(f"{name} sample keys do not match Default")
-        if frame["loss"].isna().any() or (frame["loss"] < 0).any():
-            raise AssertionError(f"{name} contains invalid losses")
+    if len(fixed) != 96_000 or fixed.duplicated(cell_keys + ["repeat_id", "delta"]).any():
+        raise AssertionError("Fixed-offset stability input must contain 96,000 unique rows")
+    if fixed[["beta_hat", "eta_hat", "gamma_hat"]].isna().any().any():
+        raise AssertionError("Fixed-offset stability input contains missing estimates")
 
     rows = []
-    for method, label, frame in (
-        ("No offset", r"$\delta=0$", no_offset),
-        ("Default", r"$\delta=0.10$", default),
-        ("Adaptive", "Adaptive", adaptive),
-    ):
-        magnitude = np.sqrt(frame["loss"].to_numpy(dtype=float))
-        q05, q25, q50, q75, q95 = np.quantile(
-            magnitude, [0.05, 0.25, 0.50, 0.75, 0.95]
-        )
-        rows.append({
-            "method": method,
-            "display_label": label,
-            "n_samples": len(frame),
-            "J1": float(np.sqrt(frame["loss"].mean())),
-            "mean_loss": float(frame["loss"].mean()),
-            "q05_sqrt_loss": q05,
-            "q25_sqrt_loss": q25,
-            "q50_sqrt_loss": q50,
-            "q75_sqrt_loss": q75,
-            "q95_sqrt_loss": q95,
-        })
-    out = pd.DataFrame(rows)
-    save_source(out, "fig2_three_stage_error_distribution.csv")
+    for delta, method in ((0.0, "No offset"), (0.10, "Default")):
+        subset = fixed[np.isclose(fixed["delta"], delta)]
+        if len(subset) != 48_000 or subset.groupby(cell_keys).size().ne(300).any():
+            raise AssertionError(f"{method} must contain 160 cells x 300 repeats")
+        for cell, group in subset.groupby(cell_keys, sort=True):
+            errors = {
+                "beta": (group["beta_hat"] - group["beta"]) / group["beta"],
+                "eta": (group["eta_hat"] - group["eta"]) / group["eta"],
+                "gamma": (group["gamma_hat"] - group["gamma"]) / group["eta"],
+            }
+            for parameter, values in errors.items():
+                metrics = summarize_standard_errors(values.to_numpy(dtype=float))
+                rows.append({
+                    "method": method,
+                    "delta": delta,
+                    "parameter": parameter,
+                    "beta": cell[0],
+                    "gamma_over_eta": cell[1],
+                    "n": cell[2],
+                    "n_repeats": metrics["n"],
+                    "within_cell_normalized_sd": metrics["sd"],
+                })
+    out = pd.DataFrame(rows).sort_values(
+        ["parameter", "beta", "gamma_over_eta", "n", "delta"]
+    ).reset_index(drop=True)
+    if len(out) != 960:
+        raise AssertionError("Stability summary must contain 2 offsets x 3 parameters x 160 cells")
+    save_source(out, "fig2_fixed_offset_stability.csv")
     return out
 
 
@@ -516,7 +517,7 @@ def figure_2_delta_risk(paths):
     d_min = float(curve.loc[curve["J1"].idxmin(), "delta"])
     j_min = float(curve["J1"].min())
     j_default = float(curve.loc[np.isclose(curve["delta"], 0.10), "J1"].iloc[0])
-    stages = three_stage_error_distribution(paths)
+    stability = fixed_offset_stability_distribution()
 
     fig, (ax, zoom, distribution) = plt.subplots(
         1, 3, figsize=(183 * MM, 72 * MM),
@@ -557,34 +558,64 @@ def figure_2_delta_risk(paths):
     zoom.set_title("Low-risk region", pad=4)
     panel_label(zoom, "b")
 
-    stage_colors = [COLORS["accent"], COLORS["default"], COLORS["raw"]]
-    y = np.arange(len(stages))
-    for yi, (row, color) in enumerate(zip(stages.itertuples(), stage_colors)):
-        distribution.hlines(yi, row.q05_sqrt_loss, row.q95_sqrt_loss,
-                            color=color, lw=1.1, alpha=0.70, zorder=1)
-        distribution.hlines(yi, row.q25_sqrt_loss, row.q75_sqrt_loss,
-                            color=color, lw=6.0, alpha=0.72, zorder=2)
-        distribution.scatter(row.q50_sqrt_loss, yi, s=25, marker="o",
-                             facecolor="white", edgecolor=color,
-                             linewidth=1.0, zorder=3)
-        distribution.scatter(row.J1, yi, s=29, marker="D",
-                             facecolor=color, edgecolor="white",
-                             linewidth=0.6, zorder=4)
-        distribution.text(row.q95_sqrt_loss + 0.045, yi,
-                          rf"$J_1$ {row.J1:.3f}", va="center",
-                          fontsize=5.8, color=color)
-    distribution.set_yticks(y, stages["display_label"])
-    distribution.invert_yaxis()
-    distribution.set_xlim(0, max(2.10, float(stages["q95_sqrt_loss"].max()) + 0.23))
-    distribution.set_ylim(len(stages) - 0.45, -0.55)
-    distribution.set_xlabel(r"Joint error magnitude, $\sqrt{\ell_i}$")
-    distribution.set_title("Same-sample error distributions", pad=4)
+    parameters = ["beta", "eta", "gamma"]
+    method_specs = [
+        ("No offset", -0.18, COLORS["accent"]),
+        ("Default", 0.18, COLORS["raw"]),
+    ]
+    for xi, parameter in enumerate(parameters):
+        medians = {}
+        for method, shift, color in method_specs:
+            values = stability.loc[
+                (stability["parameter"] == parameter) &
+                (stability["method"] == method),
+                "within_cell_normalized_sd",
+            ].to_numpy(dtype=float)
+            medians[method] = float(np.median(values))
+            violin = distribution.violinplot(
+                [values], positions=[xi + shift], widths=0.30,
+                showmeans=False, showmedians=False, showextrema=False,
+            )
+            for body in violin["bodies"]:
+                body.set_facecolor(color)
+                body.set_edgecolor(color)
+                body.set_alpha(0.25)
+                body.set_linewidth(0.7)
+            distribution.boxplot(
+                [values], positions=[xi + shift], widths=0.09,
+                showfliers=False, patch_artist=True,
+                medianprops={"color": color, "linewidth": 1.15},
+                boxprops={"facecolor": "white", "edgecolor": color, "linewidth": 0.8},
+                whiskerprops={"color": color, "linewidth": 0.7},
+                capprops={"color": color, "linewidth": 0.7},
+            )
+        reduction = 100 * (1 - medians["Default"] / medians["No offset"])
+        y_top = stability.loc[
+            stability["parameter"] == parameter,
+            "within_cell_normalized_sd",
+        ].quantile(0.985)
+        distribution.text(
+            xi, y_top * 1.08, f"median −{reduction:.0f}%",
+            ha="center", va="bottom", fontsize=5.7, color=COLORS["ink"],
+        )
+    distribution.set_xticks(range(3), [r"$\beta$", r"$\eta$", r"$\gamma$"])
+    distribution.set_xlim(-0.55, 2.55)
+    distribution.set_ylabel("Within-cell normalized SD")
+    distribution.set_title("Within-cell sampling dispersion", pad=4)
+    legend_handles = [
+        mpl.lines.Line2D([], [], color=color, marker="s", linestyle="none",
+                         markersize=5, label=(r"$\delta=0$" if method == "No offset"
+                                               else r"$\delta=0.10$"))
+        for method, _, color in method_specs
+    ]
+    distribution.legend(handles=legend_handles, loc="upper right",
+                        handletextpad=0.3, borderaxespad=0.2)
     distribution.text(
-        0.01, 0.02, "thin: 5–95%   thick: IQR\nopen circle: median   diamond: pooled $J_1$",
+        0.01, 0.02, "violin: 160 parameter cells   box: IQR and median",
         transform=distribution.transAxes, ha="left", va="bottom",
-        fontsize=5.3, color=COLORS["muted"], linespacing=1.35,
+        fontsize=5.3, color=COLORS["muted"],
     )
-    style_axis(distribution, xgrid=True)
+    style_axis(distribution, ygrid=True)
     panel_label(distribution, "c")
     fig.align_ylabels()
     export_figure(fig, "fig2_overall_delta_risk", MAIN_DIR)
@@ -659,6 +690,7 @@ def sample_loss_difference_by_n(paths):
 
 def write_parameter_error_decomposition(df_full, diag):
     """Write the three normalized error components behind the joint loss."""
+    summarize_standard_errors = load_standard_metric_helpers()
     keys = ["beta", "gamma_over_eta", "n", "repeat_id"]
     estimate_cols = keys + ["delta", "eta", "gamma",
                             "beta_hat", "eta_hat", "gamma_hat"]
@@ -679,10 +711,11 @@ def write_parameter_error_decomposition(df_full, diag):
         }
         return {
             name: {
-                "rmse": float(np.sqrt(np.mean(values ** 2))),
+                **summarize_standard_errors(values.to_numpy(dtype=float)),
+                "q05": float(np.quantile(values, 0.05)),
+                "q95": float(np.quantile(values, 0.95)),
                 "median_abs": float(np.median(np.abs(values))),
                 "p95_abs": float(np.quantile(np.abs(values), 0.95)),
-                "mse": float(np.mean(values ** 2)),
             }
             for name, values in errors.items()
         }
@@ -705,11 +738,60 @@ def write_parameter_error_decomposition(df_full, diag):
         })
     table = pd.DataFrame(rows)
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
+
+    standard_rows = []
+    for parameter in ("beta", "eta", "gamma"):
+        for method, metrics_by_parameter in (
+            (r"Default ($\delta=0.1$)", default_metrics),
+            ("Adaptive", adaptive_metrics_all),
+        ):
+            metrics = metrics_by_parameter[parameter]
+            standard_rows.append({
+                "parameter": parameter,
+                "method": method,
+                "normalized_bias": metrics["bias"],
+                "normalized_sd": metrics["sd"],
+                "normalized_rmse": metrics["rmse"],
+                "normalized_q05": metrics["q05"],
+                "normalized_q95": metrics["q95"],
+            })
+    standard_table = pd.DataFrame(standard_rows)
+    standard_table.to_csv(
+        TABLES_DIR / "table4_parameter_metrics.csv",
+        index=False,
+        encoding="utf-8",
+        lineterminator="\n",
+    )
+    labels = {"beta": r"$\beta$", "eta": r"$\eta$", "gamma": r"$\gamma$"}
+    method_labels = {
+        r"Default ($\delta=0.1$)": r"固定 $\delta=0.1$",
+        "Adaptive": "样本自适应选择",
+    }
+    standard_lines = [
+        "**表 4  固定偏移量与样本自适应选择的逐参数误差。**",
+        "",
+        "| 参数 | 方法 | 标准化 Bias | 标准化 SD | 标准化 RMSE | 标准化误差 P5–P95 |",
+        "|---|---|---:|---:|---:|---:|",
+    ]
+    for row in standard_table.itertuples(index=False):
+        standard_lines.append(
+            f"| {labels[row.parameter]} | {method_labels[row.method]} "
+            f"| {row.normalized_bias:.4f} | {row.normalized_sd:.4f} "
+            f"| {row.normalized_rmse:.4f} "
+            f"| [{row.normalized_q05:.4f}, {row.normalized_q95:.4f}] |"
+        )
+    standard_lines.extend([
+        "",
+        r"> 结果基于同一 48,000 个折外测试样本（160 个参数组合 $\times$ 300 次重复），样本自适应选择采用预先固定的 seed 42 主模型；每个样本在两种规则下均有估计结果，且均无估计失败。各样本等权汇总；$\beta$ 和 $\eta$ 的误差分别除以其真值，$\gamma$ 的误差除以真尺度参数 $\eta$。P5–P95 为标准化带符号误差的第 5—95 百分位区间；由于参数组合真值不同，不直接混合原始估计值计算范围。",
+    ])
+    (TABLES_DIR / "table4_parameter_metrics.md").write_text(
+        "\n".join(standard_lines) + "\n", encoding="utf-8", newline="\n"
+    )
+
     table.to_csv(TABLES_DIR / "supp_table_parameter_error_decomposition.csv",
                  index=False, encoding="utf-8")
-    labels = {"beta": r"$\beta$", "eta": r"$\eta$", "gamma": r"$\gamma$"}
     lines = [
-        "**表 B3  联合损失的三参数误差分解。**",
+        "**表 B3  逐参数误差的分布与联合损失贡献。**",
         "",
         "| 参数 | Default 标准化 RMSE | 自适应标准化 RMSE | 均方误差贡献降幅 | Default 绝对误差中位数 | 自适应绝对误差中位数 | Default P95 | 自适应 P95 |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
@@ -1686,7 +1768,7 @@ def write_mean_selector_tables(paths, summary):
     support = pd.DataFrame(support_rows)
     support.to_csv(TABLES_DIR / "table3_support_verification.csv", index=False,
                    encoding="utf-8")
-    slines = ["**表 4：支撑验证摘要（细节见补充材料）**", "",
+    slines = ["**表 5：支撑验证摘要（细节见补充材料）**", "",
               "| 问题 | 证据 | 结论 |", "|---|---|---|"]
     slines.extend(f"| {r['问题']} | {r['证据']} | {r['结论']} |"
                   for r in support_rows)

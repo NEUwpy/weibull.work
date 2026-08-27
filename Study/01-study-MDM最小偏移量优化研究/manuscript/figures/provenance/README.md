@@ -7,13 +7,14 @@
 | 文件 | 内容 | 来源 |
 |---|---|---|
 | `fig1_method_structure.png` | 方法结构图：排序样本/样本均值→per-n MLP→26 点损失曲线→选 δ→MDM | 03-论文骨架与 E8 方法合同 |
-| `fig2_overall_delta_risk.png` | 整体 δ–风险曲线（160 组合 pooled J1） | E5 `shared_data` 26 点损失 |
+| `fig2_overall_delta_risk.png` | 整体 δ–风险曲线及组合内重复抽样稳定性 | E5 `shared_data` 26 点损失与 160 组合×300 次重复估计 |
 | `fig3_per_n_J1.png` | seed 42 的均值归一化 MLP / Default / L6 按 n 的 J1 | E8 `seed42_primary/summary.json` |
 | `fig4_selector_mechanism.png` | 代表损失曲线、选点对应和超额损失分布 | E5 折外预测与 `shared_data` 损失 |
 | `fig5_decision_mechanism.png` | 同一参数条件下样本实现如何移动经验梯度、低风险区与 L6 偏移量 | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` |
 | `fig6_support_validation.png` | 未见参数、传统方法和可靠度寿命的支撑验证 | E8 主结果、B1、B3 与 E6 传统方法参照 |
 | `table1_l1_l6.md` | L1–L6 规则/协议/结果 | E8 `specialist/crossfit_layers.csv` |
 | `table2_main_results.md` | 主方法比较 | E8 `seed42_primary/summary.json` |
+| `table4_parameter_metrics.md` | 固定偏移量与自适应选择的逐参数 Bias、SD、RMSE | E5 折外选择与 `shared_data` 相同样本的参数估计 |
 | `table3_support_verification.md` | 支撑验证摘要（四问） | E8 主结果 + B1 + E6 传统方法 + E8 分位点 |
 
 ## 补充材料
