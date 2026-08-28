@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | 图 1 | `main/fig1_offset_baseline.png` | 正偏移量是否改善重复抽样稳定性，固定偏移量的联合误差曲线又位于何处？ | `figure_1_offset_baseline()` | E5 shared-data 的 160 组合 Monte Carlo 损失扫描；派生表为 `data/derived/fig1_delta_risk.csv` 和 `fig1_fixed_offset_stability.csv`。稳定性在各参数组合内根据 300 次重复分别计算 |
 | 图 2 | `main/fig2_adaptive_selection_method.png` | 网络如何从实际损失曲线学习，并在新样本上预测曲线最低点以选择偏移量？ | `figure_2_adaptive_selection_method()` | 方法结构图；曲线为流程示意而非数值证据，结构依据 E8 方法合同 |
-| 图 3 | `main/fig3_beta_domain_sensitivity.png` | 给定参数域改变时，汇总风险曲线与最佳统一偏移量是否随之改变？ | `code/analyze_E13_beta_domain_sensitivity.py::plot_results()` | E13 `window_risk_curves.csv`、`window_summary.csv`；15 个 $\beta$ 水平上的 11 个固定宽度滑动区间，其他条件固定 |
+| 图 3 | `main/fig3_beta_domain_sensitivity.png` | 给定参数域改变时，最低风险位置是否移动，近优谷底有多宽？ | `code/analyze_E13_beta_domain_sensitivity.py::plot_results()` | E13 `window_risk_curves.csv`、`window_summary.csv`；面板 a 展示 $\beta$–$\gamma/\eta$–$n$ 完整设计与滑动 $\beta$ 区间，面板 b 按参数域显示相对最低 $J_1$ 的增幅、离散最低点和 1% 近优区间 |
 | 图 4 | `main/fig4_per_n_J1.png` | 各样本量下总体误差改善多少，Default–L6 观测差距有多大，以及改善是否覆盖多数样本？ | `figure_3_main_results()` | E8 `seed42_primary/`、E5 封存 seed-42 折外选择与 shared-data 损失扫描；派生表为 `data/derived/fig3_main_results_by_n.csv` 和 `fig3_sample_loss_difference_quantiles.csv` |
 | 图 5 | `main/fig5_selector_mechanism.png` | 网络预测的风险曲线如何转化为偏移量选择，实际选择与 hindsight 的差距有多大？ | `figure_4_selector_mechanism()` | E5 封存均值归一化折外预测和 shared-data 逐 $\delta$ 损失 |
 | 图 6 | `main/fig6_decision_mechanism.png` | 同一参数条件下，抽样结果为何会改变低风险偏移量？ | `figure_5_decision_mechanism()` | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` 和 `summary.json` |

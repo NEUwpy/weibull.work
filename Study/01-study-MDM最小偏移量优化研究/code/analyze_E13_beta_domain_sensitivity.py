@@ -423,7 +423,9 @@ def add_point_estimate_probability(bootstrap: pd.DataFrame, summary: pd.DataFram
 def plot_results(curves: pd.DataFrame, summary: pd.DataFrame) -> None:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
-    from matplotlib.patches import Rectangle
+    from matplotlib.colors import BoundaryNorm
+    from matplotlib.lines import Line2D
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
     mpl.rcParams.update(
         {
@@ -437,72 +439,195 @@ def plot_results(curves: pd.DataFrame, summary: pd.DataFrame) -> None:
         }
     )
     ink, grid = "#26343F", "#D7DEE5"
-    cmap = mpl.colormaps["viridis"]
-    fig = plt.figure(figsize=(10.8, 4.5))
-    gs = fig.add_gridspec(1, 2, width_ratios=[0.94, 1.30], left=0.07, right=0.97,
-                          bottom=0.13, top=0.91, wspace=0.15)
+    accent, reference = "#C8483C", "#596771"
+    fig = plt.figure(figsize=(11.2, 4.8))
+    gs = fig.add_gridspec(
+        1,
+        2,
+        width_ratios=[0.94, 1.46],
+        left=0.055,
+        right=0.955,
+        bottom=0.15,
+        top=0.90,
+        wspace=0.25,
+    )
 
-    ax_a = fig.add_subplot(gs[0, 0])
-    y = np.arange(len(WINDOW_CENTERS))
-    for index, row in summary.iterrows():
-        color = cmap(index / max(1, len(summary) - 1))
-        ax_a.add_patch(
-            Rectangle((row.beta_lower, index - 0.33), WINDOW_WIDTH, 0.66,
-                      facecolor=color, edgecolor=color, alpha=0.65, linewidth=0.7)
+    # Panel a: the complete design grid and one representative beta-domain slab.
+    ax_a = fig.add_subplot(gs[0, 0], projection="3d")
+    beta_grid, ratio_grid, n_grid = np.meshgrid(
+        np.asarray(FULL_BETA_GRID, dtype=float),
+        np.asarray(CFG.GAMMA_OVER_ETA_GRID, dtype=float),
+        np.asarray(CFG.N_GRID, dtype=float),
+        indexing="ij",
+    )
+    ax_a.scatter(
+        beta_grid.ravel(),
+        ratio_grid.ravel(),
+        n_grid.ravel(),
+        s=5.5,
+        color="#AAB4BC",
+        alpha=0.48,
+        depthshade=False,
+        linewidth=0,
+    )
+
+    slab_center = 3.00
+    slab_lower, slab_upper = slab_center - WINDOW_WIDTH / 2, slab_center + WINDOW_WIDTH / 2
+    slab_mask = (beta_grid >= slab_lower - 1e-12) & (beta_grid <= slab_upper + 1e-12)
+    ax_a.scatter(
+        beta_grid[slab_mask],
+        ratio_grid[slab_mask],
+        n_grid[slab_mask],
+        s=12,
+        color="#247BA0",
+        edgecolor="white",
+        linewidth=0.25,
+        alpha=0.96,
+        depthshade=False,
+    )
+    y0, y1 = min(CFG.GAMMA_OVER_ETA_GRID), max(CFG.GAMMA_OVER_ETA_GRID)
+    z0, z1 = min(CFG.N_GRID), max(CFG.N_GRID)
+    slab_faces = []
+    for beta_edge in (slab_lower, slab_upper):
+        slab_faces.append(
+            [(beta_edge, y0, z0), (beta_edge, y1, z0),
+             (beta_edge, y1, z1), (beta_edge, y0, z1)]
         )
-        levels = np.arange(row.beta_lower, row.beta_upper + 0.001, 0.25)
-        ax_a.scatter(levels, np.full_like(levels, index), s=8, color="white",
-                     edgecolor=ink, linewidth=0.35, zorder=3)
+    ax_a.add_collection3d(
+        Poly3DCollection(
+            slab_faces,
+            facecolors="#55A6C9",
+            edgecolors="#247BA0",
+            linewidths=0.8,
+            alpha=0.13,
+        )
+    )
     ax_a.set_xlim(1.42, 5.08)
-    ax_a.set_ylim(-0.7, len(summary) - 0.3)
+    ax_a.set_ylim(0.04, 1.06)
+    ax_a.set_zlim(5.5, 21.5)
     ax_a.set_xticks(np.arange(1.5, 5.01, 0.5))
-    ax_a.set_yticks(y)
-    ax_a.set_yticklabels([f"{c:.2f}" for c in WINDOW_CENTERS])
-    ax_a.set_xlabel(r"形状参数 $\beta$")
-    ax_a.set_ylabel(r"区间中心 $c$")
-    ax_a.set_title("a   固定宽度参数域的平移", loc="left", fontweight="bold")
-    ax_a.spines[["top", "right"]].set_visible(False)
-    ax_a.grid(axis="x", color=grid, linewidth=0.55, zorder=0)
-
-    ax_b = fig.add_subplot(gs[0, 1], projection="3d")
-    best_x, best_y, best_z = [], [], []
-    default_x, default_y, default_z = [], [], []
-    for index, center in enumerate(WINDOW_CENTERS):
-        sub = curves[np.isclose(curves["beta_center"], center)].sort_values("delta")
-        color = cmap(index / max(1, len(WINDOW_CENTERS) - 1))
-        ax_b.plot(sub["delta"], np.full(len(sub), center), sub["J1"],
-                  color=color, lw=1.3)
-        ax_b.scatter(sub["delta"], np.full(len(sub), center), sub["J1"],
-                     color=color, s=4, depthshade=False)
-        best = summary[np.isclose(summary["beta_center"], center)].iloc[0]
-        best_x.append(float(best.best_delta))
-        best_y.append(float(center))
-        best_z.append(float(best.best_J1))
-        default_row = sub[np.isclose(sub["delta"], 0.10)].iloc[0]
-        default_x.append(0.10)
-        default_y.append(float(center))
-        default_z.append(float(default_row.J1))
-    ax_b.plot(best_x, best_y, best_z, color="#C8483C", lw=1.35, marker="o",
-              markersize=4.2, markeredgecolor="white", markeredgewidth=0.45,
-              label="离散最低点")
-    ax_b.plot(default_x, default_y, default_z, color="#6F7B83", lw=1.05,
-              linestyle="--", marker="s", markersize=3.0, label=r"$\delta=0.10$")
-    ax_b.set_xlabel(r"偏移量 $\delta$", labelpad=6)
-    ax_b.set_ylabel(r"$\beta$ 区间中心 $c$", labelpad=7)
-    ax_b.set_zlabel(r"$J_1(\delta\mid B(c))$", labelpad=6)
-    ax_b.set_xlim(0, 0.5)
-    ax_b.set_ylim(min(WINDOW_CENTERS), max(WINDOW_CENTERS))
-    ax_b.set_xticks(np.arange(0, 0.51, 0.1))
-    ax_b.set_yticks(np.arange(2.0, 4.51, 0.5))
-    ax_b.view_init(elev=24, azim=-60)
-    ax_b.set_box_aspect((1.25, 1.05, 0.68))
-    ax_b.text2D(0.02, 0.97, "b   滑动参数域的 26 点风险曲线",
-                transform=ax_b.transAxes, ha="left", va="top", fontweight="bold")
-    ax_b.legend(loc="upper right", bbox_to_anchor=(0.98, 0.94), frameon=False,
-                fontsize=7, handlelength=2.1)
-    for axis in (ax_b.xaxis, ax_b.yaxis, ax_b.zaxis):
+    ax_a.set_yticks(CFG.GAMMA_OVER_ETA_GRID)
+    ax_a.set_zticks(CFG.N_GRID)
+    ax_a.set_xlabel(r"$\beta$", labelpad=3)
+    ax_a.set_ylabel(r"$\gamma/\eta$", labelpad=5)
+    ax_a.set_zlabel(r"$n$", labelpad=2)
+    ax_a.set_title("a   参数空间中的 β 区间", loc="left", fontweight="bold", pad=2)
+    ax_a.view_init(elev=21, azim=-56)
+    ax_a.set_box_aspect((1.35, 0.95, 0.90))
+    ax_a.text2D(
+        0.02,
+        0.78,
+        r"蓝色切片：$B(3.00)=[2.50,3.50]$" "\n" r"覆盖全部 $\gamma/\eta$ 与 $n$",
+        transform=ax_a.transAxes,
+        color=ink,
+        fontsize=6.8,
+        va="top",
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.80, "pad": 1.5},
+    )
+    ax_a.annotate(
+        "区间沿 β 轴平移",
+        xy=(0.77, 0.90),
+        xytext=(0.30, 0.90),
+        xycoords="axes fraction",
+        textcoords="axes fraction",
+        arrowprops={"arrowstyle": "->", "color": accent, "lw": 1.0},
+        color=accent,
+        ha="center",
+        va="center",
+        fontsize=7,
+    )
+    for axis in (ax_a.xaxis, ax_a.yaxis, ax_a.zaxis):
         axis.pane.set_facecolor((1, 1, 1, 0))
         axis.pane.set_edgecolor(grid)
+        axis._axinfo["grid"]["color"] = mpl.colors.to_rgba(grid, 0.65)
+        axis._axinfo["grid"]["linewidth"] = 0.45
+
+    # Panel b: within-domain excess risk makes the width of each flat valley visible.
+    ordered_summary = summary.sort_values("beta_center").reset_index(drop=True)
+    ordered_curves = curves.sort_values(["beta_center", "delta"]).copy()
+    ordered_curves["excess_pct"] = ordered_curves.groupby("beta_center")["J1"].transform(
+        lambda values: 100.0 * (values / values.min() - 1.0)
+    )
+    delta_values = np.asarray(sorted(ordered_curves["delta"].unique()), dtype=float)
+    heat = np.vstack(
+        [
+            ordered_curves[np.isclose(ordered_curves["beta_center"], center)]
+            .sort_values("delta")["excess_pct"]
+            .to_numpy(dtype=float)
+            for center in ordered_summary["beta_center"]
+        ]
+    )
+    delta_step = float(np.diff(delta_values).min())
+    x_edges = np.r_[delta_values - delta_step / 2, delta_values[-1] + delta_step / 2]
+    y_edges = np.arange(len(ordered_summary) + 1, dtype=float) - 0.5
+    levels = [0, 0.25, 0.5, 1, 2, 5, 10, 20, 40, 80]
+    heat_cmap = mpl.colormaps["YlGnBu"]
+    heat_norm = BoundaryNorm(levels, heat_cmap.N, clip=True)
+
+    ax_b = fig.add_subplot(gs[0, 1])
+    mesh = ax_b.pcolormesh(
+        x_edges,
+        y_edges,
+        heat,
+        cmap=heat_cmap,
+        norm=heat_norm,
+        shading="flat",
+        rasterized=True,
+    )
+    row_y = np.arange(len(ordered_summary), dtype=float)
+    ax_b.axvline(0.10, color=reference, lw=1.15, linestyle="--", zorder=4)
+    for y_value, row in zip(row_y, ordered_summary.itertuples(index=False)):
+        ax_b.plot(
+            [row.near_optimal_1pct_lower, row.near_optimal_1pct_upper],
+            [y_value, y_value],
+            color="black",
+            lw=2.0,
+            solid_capstyle="butt",
+            zorder=5,
+        )
+    ax_b.scatter(
+        ordered_summary["best_delta"],
+        row_y,
+        s=27,
+        color=accent,
+        edgecolor="white",
+        linewidth=0.6,
+        zorder=6,
+    )
+    ax_b.set_xlim(-0.01, 0.51)
+    ax_b.set_ylim(-0.5, len(ordered_summary) - 0.5)
+    ax_b.set_xticks(np.arange(0, 0.51, 0.1))
+    ax_b.set_yticks(row_y)
+    ax_b.set_yticklabels(
+        [f"[{row.beta_lower:.2f}, {row.beta_upper:.2f}]" for row in ordered_summary.itertuples(index=False)]
+    )
+    ax_b.set_xlabel(r"偏移量 $\delta$")
+    ax_b.set_ylabel(r"形状参数域 $B(c)$")
+    ax_b.set_title("b   各参数域内的相对风险", loc="left", fontweight="bold")
+    ax_b.spines[["top", "right"]].set_visible(False)
+    ax_b.tick_params(axis="y", labelsize=6.7)
+    cbar = fig.colorbar(mesh, ax=ax_b, pad=0.018, fraction=0.045, aspect=26)
+    cbar.set_label(r"相对本参数域最低 $J_1$ 的增幅 (%)", labelpad=7)
+    cbar.set_ticks(levels)
+    cbar.ax.set_yticklabels([f"{value:g}" for value in levels])
+    cbar.outline.set_linewidth(0.6)
+    legend_handles = [
+        Line2D([0], [0], marker="o", color="none", markerfacecolor=accent,
+               markeredgecolor="white", markeredgewidth=0.6, markersize=5.2,
+               label="离散最低点"),
+        Line2D([0], [0], color="black", lw=2.0, label="最低点以上 1% 内"),
+        Line2D([0], [0], color=reference, lw=1.15, linestyle="--", label=r"$\delta=0.10$"),
+    ]
+    ax_b.legend(
+        handles=legend_handles,
+        loc="upper right",
+        frameon=True,
+        facecolor="white",
+        edgecolor="none",
+        framealpha=0.90,
+        fontsize=6.8,
+        handlelength=2.2,
+    )
 
     for extension in ("png", "pdf", "svg", "tiff"):
         target = OUTPUT_DIR / f"beta_domain_sensitivity.{extension}"
