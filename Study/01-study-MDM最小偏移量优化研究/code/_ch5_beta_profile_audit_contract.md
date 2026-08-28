@@ -17,8 +17,8 @@
 每个样本保存：
 
 - `gradient_at_zero`：$g(0)$；
-- `gradient_at_true_gamma`：由真实 $\gamma=0.5$ 两侧 trace 点线性插值得到的 $g(\gamma)$；
-- `local_gradient_slope`：真实 $\gamma$ 邻域内，以最近 7 个非虚拟 trace 点拟合 $g(\gamma)=a+b\gamma$ 得到的 $b$，作为 $\sigma_{\eta,\min}(\gamma)$ 局部曲率代理；
+- `gradient_at_true_gamma`：由真实 $\gamma=0.5$ 两侧 trace 点线性插值得到的 $\nabla(\gamma)$；
+- `local_gradient_slope`：真实 $\gamma$ 邻域内，以最近 7 个非虚拟 trace 点拟合 $\nabla(\gamma)=a+b\gamma$ 得到的 $b$，作为 $\sigma_{\eta,\min}(\gamma)$ 局部曲率代理；
 - `gamma_hat_d01`：$\delta=0.1$ 的求解位置；
 - `gamma_error_d01`：`gamma_hat_d01 - true_gamma`；
 - `solution_strategy`：内部根、零端截断或右端拟合等求解路径。

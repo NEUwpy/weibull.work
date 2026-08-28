@@ -6,7 +6,7 @@
 
 | 目录 | 内容 |
 |---|---|
-| `main/` | 正文图 1–6 |
+| `main/` | 正文图 1–7 |
 | `supplementary/` | 补充材料图 |
 | `tables/` | 正文与补充材料表格的 Markdown/CSV 版本 |
 | `scripts/` | 投稿图唯一绘制入口和自动质检程序 |
@@ -18,39 +18,42 @@
 
 ## Markdown 引用
 
-从同级的当前活动稿 `Study01论文初稿-v1.3.md` 引用正文图：
+从同级的当前活动稿 `Study01论文初稿-v1.4.md` 引用正文图：
 
 ```markdown
 ![正偏移量与固定基准](figures/main/fig1_offset_baseline.png)
 
 ![样本自适应偏移量选择流程](figures/main/fig2_adaptive_selection_method.png)
 
-![不同样本量下的联合估计误差](figures/main/fig3_per_n_J1.png)
+![固定宽度参数域与统一低风险偏移量](figures/main/fig3_beta_domain_sensitivity.png)
 
-![偏移量选择机制](figures/main/fig4_selector_mechanism.png)
+![不同样本量下的联合估计误差](figures/main/fig4_per_n_J1.png)
 
-![样本实现对MDM偏移量的影响](figures/main/fig5_decision_mechanism.png)
+![偏移量选择机制](figures/main/fig5_selector_mechanism.png)
 
-![支撑验证汇总](figures/main/fig6_support_validation.png)
+![样本实现对MDM偏移量的影响](figures/main/fig6_decision_mechanism.png)
+
+![支撑验证汇总](figures/main/fig7_support_validation.png)
 ```
 
 补充材料图使用 `figures/supplementary/文件名.png`。表格可直接复制 `tables/*.md`，CSV 保留为数值核对源。
 
 ## 当前质量状态
 
-当前活动稿使用 13 张图，另保留一张初始化稳定性复核图，均已按 SCI 投稿图标准完成重画：
+当前活动稿使用 14 张图，另保留一张初始化稳定性复核图，均已按 SCI 投稿图标准完成重画：
 
 - 图 1 同时呈现全局风险曲线、低风险区放大，以及无偏移与固定正偏移量在 160 个参数组合内的重复抽样稳定性；
 - 图 2 分开训练与应用流程，消除了裁切、文字碰撞和职责混淆；
-- 图 3 同时展示 seed 42 在四个样本量下的总体误差、Default–L6 观测差距和样本级改善分布；训练随机性的检查只保留在附录中；
-- 图 4 解释网络如何从预测风险曲线选择偏移量，并给出全样本选择对应关系和超额损失分布；
-- 图 5 用真实 MDM 梯度轨迹、条件超额损失曲线和单元内相关解释同一参数条件下偏移量为何随样本改变；
-- 图 6 用一张复合图概括未见参数、传统估计方法和可靠度寿命三类支撑验证；
+- 图 3 展示固定宽度 $\beta$ 参数域平移后，26 点汇总风险曲线和最佳统一偏移量如何变化；
+- 图 4 同时展示 seed 42 在四个样本量下的总体误差、Default–L6 观测差距和样本级改善分布；训练随机性的检查只保留在附录中；
+- 图 5 解释网络如何从预测风险曲线选择偏移量，并给出全样本选择对应关系和超额损失分布；
+- 图 6 用真实 MDM 梯度轨迹、条件超额损失曲线和单元内相关解释同一参数条件下偏移量为何随样本改变；
+- 图 7 用一张复合图概括未见参数、传统估计方法和可靠度寿命三类支撑验证；
 - 7 张稿件引用的补充图统一了方法颜色、字号、线宽、图例和误差范围定义；原 E10 条件风险图转入附录，seed 稳定性由附录表 B2 报告，另保留一张可复核但不在稿件重复引用的稳定性图；
 - 每张图均导出 PNG、SVG、PDF 和 600 dpi TIFF，SVG 文本保持可编辑；
 - 数值和导出检查由 `scripts/qa_submission_figures.py` 自动完成，结果见 `provenance/submission_figure_qa.json`。
 
-SCI 图像应当“信息丰富而不拥挤”。目前六张正文图依次承担方法、统一规则、核心效果、选择过程、MDM 内部机制和支撑验证，七张稿件引用的补充图保存可追问的分层细节。后续不再为装饰性丰富增加重复面板。
+SCI 图像应当“信息丰富而不拥挤”。目前七张正文图依次承担固定偏移量基准、方法流程、参数域敏感性、核心效果、选择过程、MDM 内部机制和支撑验证，七张稿件引用的补充图保存可追问的分层细节。后续不再为装饰性丰富增加重复面板。
 
 ## 使用原则
 

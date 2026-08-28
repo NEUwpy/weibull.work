@@ -206,7 +206,8 @@ def write_submission_provenance(paths: dict[str, Path]):
             "E8 seed42_primary, specialist, unseen-beta, and quantile evidence support the formal mean-normalized route.",
             "E6 traditional_ref supplies unchanged WMLE/LSE comparison values.",
             "E5 selector_output supplies sealed out-of-fold mean-normalized selections bound by the E8 manifest.",
-            "E11 supplies the bounded 20-cell profile-gradient mechanism diagnostic used in Figure 5.",
+            "E11 supplies the bounded 20-cell profile-gradient mechanism diagnostic used in Figure 6.",
+            "E13 supplies the fixed-width beta-domain sensitivity evidence used in Figure 3.",
             "Tracked text outputs are normalized to LF before hashing so repository bytes reproduce the ledger on Windows and Unix checkouts.",
         ],
     }
@@ -325,8 +326,13 @@ def figure_2_adaptive_selection_method():
         predicted = 0.455 + 1.92 * (delta - 0.235) ** 2 + 0.013 * np.sin(22 * delta)
         if show_actual:
             curve_ax.plot(delta, actual, color=COLORS["l6"], lw=1.55,
+                          marker="o", markersize=1.75,
+                          markerfacecolor="white", markeredgewidth=0.35,
                           label="Actual loss")
         curve_ax.plot(delta, predicted, color=COLORS["raw"], lw=1.55,
+                      marker="o", markersize=1.75,
+                      markerfacecolor=COLORS["raw"], markeredgecolor="white",
+                      markeredgewidth=0.30,
                       linestyle=(0, (3, 1.5)) if show_actual else "-",
                       label="Predicted loss")
         if mark_minimum:
@@ -880,7 +886,7 @@ def figure_3_main_results(paths, summary):
               color=COLORS["muted"], clip_on=False)
     panel_label(gain, "b")
     fig.subplots_adjust(bottom=0.20)
-    export_figure(fig, "fig3_per_n_J1", MAIN_DIR)
+    export_figure(fig, "fig4_per_n_J1", MAIN_DIR)
 
 
 def selector_mechanism_data(paths):
@@ -1015,7 +1021,7 @@ def figure_4_selector_mechanism(paths):
     ax_regret.legend(ncol=3, loc="upper right")
     ax_regret.set_title("Distribution of excess loss", pad=4)
     panel_label(ax_regret, "c")
-    export_figure(fig, "fig4_selector_mechanism", MAIN_DIR)
+    export_figure(fig, "fig5_selector_mechanism", MAIN_DIR)
 
 
 def e10_mechanism_data(paths):
@@ -1210,7 +1216,9 @@ def figure_5_decision_mechanism(paths):
         first = frame.iloc[0]
         color = group_colors[group]
         ax_profile.plot(
-            frame["gamma_over_eta"], frame["gradient"], color=color, lw=1.45,
+            frame["gamma_over_eta"], frame["gradient"], color=color, lw=1.10,
+            marker="o", markersize=2.25, markerfacecolor="white",
+            markeredgecolor=color, markeredgewidth=0.45,
             label=(
                 f"{group_labels[group]}  "
                 rf"($\delta_{{L6}}={first['l6_delta']:.2f}$)"
@@ -1229,7 +1237,7 @@ def figure_5_decision_mechanism(paths):
     ax_profile.set_xlim(0, 1.30)
     ax_profile.set_ylim(-0.08, 0.72)
     ax_profile.set_xlabel(r"Candidate location, $\gamma/\eta$")
-    ax_profile.set_ylabel(r"Profile gradient, $g(\gamma)$")
+    ax_profile.set_ylabel(r"Profile gradient, $\nabla_X(\gamma)$")
     ax_profile.set_title(
         r"Random samples move the empirical MDM profile "
         r"($\beta=3$, $\gamma/\eta=0.5$, $n=10$)", pad=4
@@ -1237,7 +1245,8 @@ def figure_5_decision_mechanism(paths):
     ax_profile.legend(loc="upper left", ncol=3, handlelength=2.1,
                       columnspacing=1.0, fontsize=6.1)
     ax_profile.text(
-        0.995, 0.04, "circles: realised L6 intersections",
+        0.995, 0.04,
+        "small markers: evaluated profile points\nlarge circles: realised L6 intersections",
         transform=ax_profile.transAxes, ha="right", va="bottom",
         fontsize=5.5, color=COLORS["muted"],
     )
@@ -1251,7 +1260,8 @@ def figure_5_decision_mechanism(paths):
         minimum = frame.loc[frame["mean_excess_over_l6"].idxmin()]
         ax_loss.plot(
             frame["delta"], frame["mean_excess_over_l6"], color=color,
-            lw=1.55,
+            lw=0.85, alpha=0.82, marker="o", markersize=2.15,
+            markerfacecolor=color, markeredgecolor="white", markeredgewidth=0.35,
             label=f"{group_labels[group]}  (min {minimum['delta']:.2f})",
         )
         ax_loss.scatter(
@@ -1263,6 +1273,11 @@ def figure_5_decision_mechanism(paths):
     ax_loss.set_title("The low-risk region shifts with the realised profile", pad=4)
     ax_loss.set_xlim(0, 0.50)
     ax_loss.legend(loc="upper right", fontsize=5.7)
+    ax_loss.text(
+        0.98, 0.04, "points: evaluated grid; lines: visual guides",
+        transform=ax_loss.transAxes, ha="right", va="bottom",
+        fontsize=5.2, color=COLORS["muted"],
+    )
     style_axis(ax_loss, ygrid=True)
     panel_label(ax_loss, "b")
 
@@ -1299,7 +1314,7 @@ def figure_5_decision_mechanism(paths):
     style_axis(ax_rho, ygrid=True)
     panel_label(ax_rho, "c")
 
-    export_figure(fig, "fig5_decision_mechanism", MAIN_DIR)
+    export_figure(fig, "fig6_decision_mechanism", MAIN_DIR)
 
 
 def parameter_landscape_data(paths):
@@ -1494,7 +1509,7 @@ def figure_6_support_validation(paths, summary):
     ax_c.legend(loc="upper left", ncol=1, columnspacing=0.7,
                 handletextpad=0.35)
     panel_label(ax_c, "c")
-    export_figure(fig, "fig6_support_validation", MAIN_DIR)
+    export_figure(fig, "fig7_support_validation", MAIN_DIR)
 
 
 def supplementary_seed_stability(summary):
@@ -1994,7 +2009,7 @@ def main():
     supplementary_parameter_guided(paths)
     write_parameter_guided_tables(paths)
     write_submission_provenance(paths)
-    print("Generated 14 submission figures and supplementary tables "
+    print("Generated 15 submission figures and supplementary tables "
           "in PNG/SVG/PDF/TIFF formats.")
 
 

@@ -16,14 +16,16 @@ MAIN = ROOT / "main"
 SUPP = ROOT / "supplementary"
 DERIVED = ROOT / "data" / "derived"
 TABLES = ROOT / "tables"
+E13 = ROOT.parents[1] / "artifacts" / "formal" / "E13_beta_domain_sensitivity"
 
 FIGURES = {
     "fig1_offset_baseline": MAIN,
     "fig2_adaptive_selection_method": MAIN,
-    "fig3_per_n_J1": MAIN,
-    "fig4_selector_mechanism": MAIN,
-    "fig5_decision_mechanism": MAIN,
-    "fig6_support_validation": MAIN,
+    "fig3_beta_domain_sensitivity": MAIN,
+    "fig4_per_n_J1": MAIN,
+    "fig5_selector_mechanism": MAIN,
+    "fig6_decision_mechanism": MAIN,
+    "fig7_support_validation": MAIN,
     "supp_fig_seed_stability": SUPP,
     "supp_fig_unseen_beta": SUPP,
     "supp_fig_traditional_per_n": SUPP,
@@ -110,6 +112,24 @@ def check_scientific_values():
     )["within_cell_normalized_sd"].median()
     for key, expected in expected_medians.items():
         assert_close(found_medians.loc[key], expected, 1e-9)
+
+    domain_summary = pd.read_csv(E13 / "window_summary.csv")
+    if len(domain_summary) != 11:
+        raise AssertionError("Figure 3 must contain 11 fixed-width beta domains")
+    expected_centers = [2.00 + 0.25 * index for index in range(11)]
+    if not domain_summary["beta_center"].round(8).tolist() == expected_centers:
+        raise AssertionError("Figure 3 beta-domain centers changed")
+    expected_best = [0.18, 0.16, 0.14, 0.10, 0.10, 0.08, 0.06, 0.06, 0.06, 0.04, 0.04]
+    if not domain_summary["best_delta"].round(8).tolist() == expected_best:
+        raise AssertionError("Figure 3 discrete best offsets changed")
+    e13_manifest = json.loads((E13 / "manifest.json").read_text(encoding="utf-8"))
+    if e13_manifest["validation"] != {
+        "rows": 780000,
+        "samples": 30000,
+        "parameter_conditions": 300,
+        "failures": 0,
+    }:
+        raise AssertionError("Figure 3 E13 validation contract changed")
     paired_stability = stability.pivot(
         index=["parameter", "beta", "gamma_over_eta", "n"],
         columns="method",
@@ -197,7 +217,7 @@ def check_scientific_values():
         ):
             assert_close(actual, target, 1e-6)
 
-    figure3_svg = (MAIN / "fig3_per_n_J1.svg").read_text(encoding="utf-8")
+    figure3_svg = (MAIN / "fig4_per_n_J1.svg").read_text(encoding="utf-8")
     if "seed" in figure3_svg.lower():
         raise AssertionError("Figure 3 must not display training-seed information")
 
