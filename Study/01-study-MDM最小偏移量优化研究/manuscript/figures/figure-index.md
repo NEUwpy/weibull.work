@@ -6,11 +6,13 @@
 |---|---|---|---|---|
 | 图 1 | `main/fig1_offset_baseline.png` | 正偏移量是否改善重复抽样稳定性，固定偏移量的联合误差曲线又位于何处？ | `figure_1_offset_baseline()` | E5 shared-data 的 160 组合 Monte Carlo 损失扫描；派生表为 `data/derived/fig1_delta_risk.csv` 和 `fig1_fixed_offset_stability.csv`。稳定性在各参数组合内根据 300 次重复分别计算 |
 | 图 2 | `main/fig2_adaptive_selection_method.png` | 网络如何从实际损失曲线学习，并在新样本上预测曲线最低点以选择偏移量？ | `figure_2_adaptive_selection_method()` | 方法结构图；曲线为流程示意而非数值证据，结构依据 E8 方法合同 |
-| 图 3 | `main/fig3_beta_domain_sensitivity.png` | 给定参数域改变时，最低风险位置是否移动，近优谷底有多宽？ | `code/analyze_E13_beta_domain_sensitivity.py::plot_results()` | E13 `window_risk_curves.csv`、`window_summary.csv`；面板 a 展示 $\beta$–$\gamma/\eta$–$n$ 完整设计与滑动 $\beta$ 区间，面板 b 按参数域显示相对最低 $J_1$ 的增幅、离散最低点和 1% 近优区间 |
-| 图 4 | `main/fig4_per_n_J1.png` | 各样本量下总体误差改善多少，Default–L6 观测差距有多大，以及改善是否覆盖多数样本？ | `figure_3_main_results()` | E8 `seed42_primary/`、E5 封存 seed-42 折外选择与 shared-data 损失扫描；派生表为 `data/derived/fig3_main_results_by_n.csv` 和 `fig3_sample_loss_difference_quantiles.csv` |
-| 图 5 | `main/fig5_selector_mechanism.png` | 网络预测的风险曲线如何转化为偏移量选择，实际选择与 hindsight 的差距有多大？ | `figure_4_selector_mechanism()` | E5 封存均值归一化折外预测和 shared-data 逐 $\delta$ 损失 |
-| 图 6 | `main/fig6_decision_mechanism.png` | 同一参数条件下，抽样结果为何会改变低风险偏移量？ | `figure_5_decision_mechanism()` | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` 和 `summary.json` |
-| 图 7 | `main/fig7_support_validation.png` | 未见参数、传统估计方法和可靠度寿命三类验证如何限定主结果？ | `figure_6_support_validation()` | E8 `seed42_primary/`、`unseen_beta/`、`quantiles/` 与 E6 `traditional_ref/`；正文面板均使用 seed 42 |
+| 图 3 | `main/fig3_beta_domain_sensitivity.png` | 给定参数域改变时，最低风险位置是否移动，近优谷底有多宽？ | `scripts/plot_fig3_beta_domain_sensitivity.py` | E13 `window_risk_curves.csv`、`window_summary.csv`；面板 a 展示相邻的 $\beta$ 参数域，面板 b、c 以原始 $J_1$ 展示 11 条实际 26 点风险曲线、离散最低点和 1% 近优区间；插值只用于曲面可视化 |
+| 图 4 | `main/fig4_information_spaces.png` | L1–L5 分别如何划分同一个 160 组合参数空间？ | `scripts/plot_fig4_information_spaces.py` | 当前正式设计的 8 个 $\beta$、5 个 $\gamma/\eta$ 和 4 个 $n$ 水平；派生表 `data/derived/fig4_information_space_cells.csv` 记录每个单元在 L1–L5 下的分组标识。该图只定义空间划分，不编码性能 |
+| 图 5 | `main/fig5_information_level_results.png` | L1–L6 分别带来多少风险下降，该规律在不同样本量下是否一致？ | `scripts/plot_fig5_information_level_results.py` | E6 `paper/table1_l1_l6.csv`；派生表 `data/derived/fig5_information_level_results.csv` 保留 pooled、分 $n$ 的 $J_1$ 及相对 Default 降幅；L6 与 L1–L5 分隔显示 |
+| 图 6 | `main/fig6_per_n_J1.png` | 各样本量下总体误差改善多少，Default–L6 观测差距有多大，以及改善是否覆盖多数样本？ | `figure_6_main_results()` | E8 `seed42_primary/`、E5 封存 seed-42 折外选择与 shared-data 损失扫描；派生表为 `data/derived/fig6_main_results_by_n.csv` 和 `fig6_sample_loss_difference_quantiles.csv` |
+| 图 7 | `main/fig7_selector_mechanism.png` | 网络预测的风险曲线如何转化为偏移量选择，实际选择与 hindsight 的差距有多大？ | `figure_7_selector_mechanism()` | E5 封存均值归一化折外预测和 shared-data 逐 $\delta$ 损失 |
+| 图 8 | `main/fig8_decision_mechanism.png` | 同一参数条件下，抽样结果为何会改变低风险偏移量？ | `figure_8_decision_mechanism()` | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` 和 `summary.json` |
+| 图 9 | `main/fig9_support_validation.png` | 未见参数、传统估计方法和可靠度寿命三类验证如何限定主结果？ | `figure_9_support_validation()` | E8 `seed42_primary/`、`unseen_beta/`、`quantiles/` 与 E6 `traditional_ref/`；正文面板均使用 seed 42 |
 
 ## 正文表
 
@@ -40,6 +42,6 @@
 
 ## 投稿版状态
 
-图 1–7 和附录图 C1、D1、E1、E2、F1–F3 均已导出 PNG/SVG/PDF/TIFF。正文图固定使用 seed 42；初始化稳定性由附录表 B2 报告，未在正文图中重复显示。制图源数据位于 `data/derived/` 与 `artifacts/formal/E13_beta_domain_sensitivity/`，图注和 Markdown 引用见 `captions-and-citations.md`，自动 QA 结果见 `provenance/submission_figure_qa.json`。被替换的 E6 有量纲主路线图表、旧版图 2 与旧版图 5 均保存在 `archive/replaced/`。
+图 1–9 和附录图 C1、D1、E1、E2、F1–F3 均已导出 PNG/SVG/PDF/TIFF。正文图固定使用 seed 42；初始化稳定性由附录表 B2 报告，未在正文图中重复显示。制图源数据位于 `data/derived/` 与 `artifacts/formal/E13_beta_domain_sensitivity/`，图注和 Markdown 引用见 `captions-and-citations.md`，自动 QA 结果见 `provenance/submission_figure_qa.json`。被替换的 E6 有量纲主路线图表、旧版图 2 与旧版图 5 均保存在 `archive/replaced/`。
 
-初始七图包完成三轮视觉检查后，又对正文扩充包完成三轮独立检查。E13 参数域图加入后，当前稿件共引用 14 张图、56 个导出文件；另保留一张不重复引用的初始化稳定性复核图。旧 E10 条件风险图移入附录，均执行数值和格式检查。
+初始七图包完成三轮视觉检查后，又对正文扩充包完成独立检查。L1–L5 空间定义图和层级风险图加入后，当前稿件共引用 16 张图、64 个导出文件；另保留一张不重复引用的初始化稳定性复核图。旧 E10 条件风险图移入附录，均执行数值和格式检查。

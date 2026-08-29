@@ -8,11 +8,13 @@
 |---|---|---|
 | `fig1_offset_baseline.png` | 整体 δ–风险曲线及组合内重复抽样稳定性 | E5 `shared_data` 26 点损失与 160 组合×300 次重复估计 |
 | `fig2_adaptive_selection_method.png` | 方法结构图：排序样本/样本均值→per-n MLP→26 点损失曲线→选 δ→MDM | 03-论文骨架与 E8 方法合同 |
-| `fig3_beta_domain_sensitivity.png` | 完整设计中的滑动 β 区间，以及各参数域的相对风险、离散最低点和 1% 近优区间 | E13 `window_risk_curves.csv`、`window_summary.csv` |
-| `fig4_per_n_J1.png` | seed 42 的均值归一化 MLP / Default / L6 按 n 的 J1 | E8 `seed42_primary/summary.json` |
-| `fig5_selector_mechanism.png` | 代表损失曲线、选点对应和超额损失分布 | E5 折外预测与 `shared_data` 损失 |
-| `fig6_decision_mechanism.png` | 同一参数条件下样本实现如何移动经验梯度、低风险区与 L6 偏移量 | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` |
-| `fig7_support_validation.png` | 未见参数、传统方法和可靠度寿命的支撑验证 | E8 主结果、B1、B3 与 E6 传统方法参照 |
+| `fig3_beta_domain_sensitivity.png` | 两个相邻 β 参数域，以及 11 个参数域的原始 J1 三维地形、俯视图、离散最低点和 1% 近优区间 | E13 `window_risk_curves.csv`、`window_summary.csv` |
+| `fig4_information_spaces.png` | L1–L5 如何把同一 160 组合空间划分为 1、4、8、32 和 160 个分组 | 正式设计水平与 `data/derived/fig4_information_space_cells.csv`；不包含性能值 |
+| `fig5_information_level_results.png` | Default 与 L1–L6 的 pooled 和分 n 风险下降；L6 单独作为事后参照 | E6 `paper/table1_l1_l6.csv` |
+| `fig6_per_n_J1.png` | seed 42 的均值归一化 MLP / Default / L6 按 n 的 J1 | E8 `seed42_primary/summary.json` |
+| `fig7_selector_mechanism.png` | 代表损失曲线、选点对应和超额损失分布 | E5 折外预测与 `shared_data` 损失 |
+| `fig8_decision_mechanism.png` | 同一参数条件下样本实现如何移动经验梯度、低风险区与 L6 偏移量 | E11 `representative_gradient_curves.csv`、`conditional_loss_curves.csv`、`cell_associations.csv` |
+| `fig9_support_validation.png` | 未见参数、传统方法和可靠度寿命的支撑验证 | E8 主结果、B1、B3 与 E6 传统方法参照 |
 | `table1_l1_l6.md` | L1–L6 规则/协议/结果 | E8 `specialist/crossfit_layers.csv` |
 | `table2_main_results.md` | 主方法比较 | E8 `seed42_primary/summary.json` |
 | `table4_parameter_metrics.md` | 固定偏移量与自适应选择的逐参数 Bias、SD、RMSE | E5 折外选择与 `shared_data` 相同样本的参数估计 |

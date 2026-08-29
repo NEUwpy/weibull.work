@@ -175,6 +175,9 @@ def write_submission_provenance(paths: dict[str, Path]):
 
     source_files = {}
     for key, folder in paths.items():
+        if folder.is_file():
+            source_files[key] = sha256_file(folder)
+            continue
         for name in ("manifest.json", "summary.json", "summary.csv"):
             path = folder / name
             if path.is_file():
@@ -192,6 +195,17 @@ def write_submission_provenance(paths: dict[str, Path]):
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "generator": str(Path(__file__).resolve()),
         "generator_sha256": sha256_file(Path(__file__).resolve()),
+        "dedicated_generator_sha256": {
+            "fig3_beta_domain_sensitivity": sha256_file(
+                SCRIPT_DIR / "plot_fig3_beta_domain_sensitivity.py"
+            ),
+            "fig4_information_spaces": sha256_file(
+                SCRIPT_DIR / "plot_fig4_information_spaces.py"
+            ),
+            "fig5_information_level_results": sha256_file(
+                SCRIPT_DIR / "plot_fig5_information_level_results.py"
+            ),
+        },
         "figure_sources_sha256": sha256_file(CONFIG_PATH),
         "runtime_head_commit": git_head,
         "method": "Mean-normalized MLP: sort(X)/mean(X), then train-fold-only per-position StandardScaler",
@@ -206,7 +220,9 @@ def write_submission_provenance(paths: dict[str, Path]):
             "E8 seed42_primary, specialist, unseen-beta, and quantile evidence support the formal mean-normalized route.",
             "E6 traditional_ref supplies unchanged WMLE/LSE comparison values.",
             "E5 selector_output supplies sealed out-of-fold mean-normalized selections bound by the E8 manifest.",
-            "E11 supplies the bounded 20-cell profile-gradient mechanism diagnostic used in Figure 6.",
+            "Figure 4 defines the L1-L5 partitions of the common 160-cell design space; it does not encode performance.",
+            "E6 table1_l1_l6 supplies the pooled and per-n information-level results used in Figure 5.",
+            "E11 supplies the bounded 20-cell profile-gradient mechanism diagnostic used in Figure 8.",
             "E13 supplies the fixed-width beta-domain sensitivity evidence used in Figure 3.",
             "Tracked text outputs are normalized to LF before hashing so repository bytes reproduce the ledger on Windows and Unix checkouts.",
         ],
@@ -461,6 +477,33 @@ def figure_2_adaptive_selection_method():
     export_figure(fig, "fig2_adaptive_selection_method", MAIN_DIR)
 
 
+def figure_3_beta_domain_sensitivity():
+    """Render Figure 3 with its dedicated E13 three-panel renderer."""
+    subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "plot_fig3_beta_domain_sensitivity.py")],
+        cwd=SCRIPT_DIR,
+        check=True,
+    )
+
+
+def figure_4_information_spaces():
+    """Render Figure 4 with its dedicated five-space definition renderer."""
+    subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "plot_fig4_information_spaces.py")],
+        cwd=SCRIPT_DIR,
+        check=True,
+    )
+
+
+def figure_5_information_level_results():
+    """Render Figure 5 with its dedicated L1--L6 result renderer."""
+    subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "plot_fig5_information_level_results.py")],
+        cwd=SCRIPT_DIR,
+        check=True,
+    )
+
+
 def delta_risk_curve(paths):
     _, df_full = load_full_scan()
     loss = pd.to_numeric(df_full["loss"], errors="coerce")
@@ -652,7 +695,7 @@ def main_results_by_n(summary):
             "observed_default_to_hindsight_J1_gap": default - l6,
         })
     out = pd.DataFrame(rows)
-    save_source(out, "fig3_main_results_by_n.csv")
+    save_source(out, "fig6_main_results_by_n.csv")
     return out
 
 
@@ -689,7 +732,7 @@ def sample_loss_difference_by_n(paths):
                for q, value in quantiles.items()},
         })
     out = pd.DataFrame(rows).sort_values("n")
-    save_source(out, "fig3_sample_loss_difference_quantiles.csv")
+    save_source(out, "fig6_sample_loss_difference_quantiles.csv")
     write_parameter_error_decomposition(df_full, diag)
     return out
 
@@ -816,7 +859,7 @@ def write_parameter_error_decomposition(df_full, diag):
         "\n".join(lines), encoding="utf-8")
 
 
-def figure_3_main_results(paths, summary):
+def figure_6_main_results(paths, summary):
     data = main_results_by_n(summary)
     paired = sample_loss_difference_by_n(paths)
     ns = data["n"].to_numpy()
@@ -886,7 +929,7 @@ def figure_3_main_results(paths, summary):
               color=COLORS["muted"], clip_on=False)
     panel_label(gain, "b")
     fig.subplots_adjust(bottom=0.20)
-    export_figure(fig, "fig4_per_n_J1", MAIN_DIR)
+    export_figure(fig, "fig6_per_n_J1", MAIN_DIR)
 
 
 def selector_mechanism_data(paths):
@@ -937,7 +980,7 @@ def selector_mechanism_data(paths):
         "repeat_id": int(typical["repeat_id"]),
         "selection_rule": "closest to median regret among primary-seed test predictions",
     })
-    save_source(curve, "fig4_representative_curve.csv")
+    save_source(curve, "fig7_representative_curve.csv")
 
     confusion = pd.crosstab(diag["oracle_delta"], diag["selected_delta"],
                             normalize="index").reindex(index=deltas, columns=deltas,
@@ -945,7 +988,7 @@ def selector_mechanism_data(paths):
     confusion_long = (confusion.rename_axis("oracle_delta").reset_index()
                       .melt(id_vars="oracle_delta", var_name="selected_delta",
                             value_name="row_percent"))
-    save_source(confusion_long, "fig4_delta_confusion.csv")
+    save_source(confusion_long, "fig7_delta_confusion.csv")
 
     quantiles = []
     for n, group in diag.groupby("n"):
@@ -953,11 +996,11 @@ def selector_mechanism_data(paths):
             quantiles.append({"n": int(n), "quantile": q,
                               "excess_loss": float(group["regret"].quantile(q))})
     regret = pd.DataFrame(quantiles)
-    save_source(regret, "fig4_excess_loss_quantiles.csv")
+    save_source(regret, "fig7_excess_loss_quantiles.csv")
     return curve, confusion, regret
 
 
-def figure_4_selector_mechanism(paths):
+def figure_7_selector_mechanism(paths):
     curve, confusion, regret = selector_mechanism_data(paths)
     fig = plt.figure(figsize=(183 * MM, 112 * MM))
     gs = fig.add_gridspec(2, 2, height_ratios=[1.0, 0.78],
@@ -1021,7 +1064,7 @@ def figure_4_selector_mechanism(paths):
     ax_regret.legend(ncol=3, loc="upper right")
     ax_regret.set_title("Distribution of excess loss", pad=4)
     panel_label(ax_regret, "c")
-    export_figure(fig, "fig5_selector_mechanism", MAIN_DIR)
+    export_figure(fig, "fig7_selector_mechanism", MAIN_DIR)
 
 
 def e10_mechanism_data(paths):
@@ -1176,13 +1219,13 @@ def e11_profile_mechanism_data(paths):
     if len(cells) != 20 or set(cells["n"].astype(int)) != {7, 10, 15, 20}:
         raise AssertionError("E11 cell association table is incomplete")
 
-    save_source(representatives, "fig5_profile_gradient_curves.csv")
-    save_source(conditional, "fig5_conditional_excess_loss.csv")
-    save_source(cells, "fig5_cell_associations.csv")
+    save_source(representatives, "fig8_profile_gradient_curves.csv")
+    save_source(conditional, "fig8_conditional_excess_loss.csv")
+    save_source(cells, "fig8_cell_associations.csv")
     return summary, representatives, conditional, cells
 
 
-def figure_5_decision_mechanism(paths):
+def figure_8_decision_mechanism(paths):
     """Explain how sample realisation moves the MDM profile and low-risk offset."""
     summary, representatives, conditional, cells = e11_profile_mechanism_data(paths)
     fig = plt.figure(figsize=(183 * MM, 125 * MM))
@@ -1314,7 +1357,7 @@ def figure_5_decision_mechanism(paths):
     style_axis(ax_rho, ygrid=True)
     panel_label(ax_rho, "c")
 
-    export_figure(fig, "fig6_decision_mechanism", MAIN_DIR)
+    export_figure(fig, "fig8_decision_mechanism", MAIN_DIR)
 
 
 def parameter_landscape_data(paths):
@@ -1416,7 +1459,7 @@ def supplementary_z_only_learning_curve(paths):
     export_figure(fig, "supp_fig_z_only_learning_curve", SUPP_DIR)
 
 
-def figure_6_support_validation(paths, summary):
+def figure_9_support_validation(paths, summary):
     held = pd.read_csv(paths["unseen_beta"] / "beta_holdout.csv")
     held = held[held["seed"] == PRIMARY_SEED]
     raw_held = held[held["model"] == "Mean-Normalized-MLP"][
@@ -1427,7 +1470,7 @@ def figure_6_support_validation(paths, summary):
                             validate="one_to_one")
     unseen["improvement_pct"] = 100 * (1 - unseen["raw_J1"] / unseen["default_J1"])
     unseen_summary = unseen[["held_out_beta", "improvement_pct"]].copy()
-    save_source(unseen_summary, "fig6_unseen_beta_improvement.csv")
+    save_source(unseen_summary, "fig9_unseen_beta_improvement.csv")
 
     b2 = pd.read_csv(paths["traditional_ref"] / "summary.csv")
     comp = pd.DataFrame(summary["model_comparison"])
@@ -1445,14 +1488,14 @@ def figure_6_support_validation(paths, summary):
             traditional_rows.append({"method": method, "n": n,
                                      "J1": float(row[f"J1_n{n}"])})
     traditional = pd.DataFrame(traditional_rows)
-    save_source(traditional, "fig6_traditional_by_n.csv")
+    save_source(traditional, "fig9_traditional_by_n.csv")
 
     qraw = pd.read_csv(paths["quantiles"] / "summary.csv")
     qorder = ["Mean-Normalized", "Default", "L6", "WMLE", "LSE"]
     qraw = qraw[(qraw["method"] != "Mean-Normalized") |
                 (qraw["seed"] == PRIMARY_SEED)]
     quantile = qraw[["method", "quantile", "rmse"]].copy()
-    save_source(quantile, "fig6_quantile_rmse.csv")
+    save_source(quantile, "fig9_quantile_rmse.csv")
 
     fig, axes = plt.subplots(1, 3, figsize=(183 * MM, 70 * MM),
                              gridspec_kw={"wspace": 0.42})
@@ -1509,7 +1552,7 @@ def figure_6_support_validation(paths, summary):
     ax_c.legend(loc="upper left", ncol=1, columnspacing=0.7,
                 handletextpad=0.35)
     panel_label(ax_c, "c")
-    export_figure(fig, "fig7_support_validation", MAIN_DIR)
+    export_figure(fig, "fig9_support_validation", MAIN_DIR)
 
 
 def supplementary_seed_stability(summary):
@@ -1994,10 +2037,13 @@ def main():
 
     figure_1_offset_baseline(paths)
     figure_2_adaptive_selection_method()
-    figure_3_main_results(paths, summary)
-    figure_4_selector_mechanism(paths)
-    figure_5_decision_mechanism(paths)
-    figure_6_support_validation(paths, summary)
+    figure_3_beta_domain_sensitivity()
+    figure_4_information_spaces()
+    figure_5_information_level_results()
+    figure_6_main_results(paths, summary)
+    figure_7_selector_mechanism(paths)
+    figure_8_decision_mechanism(paths)
+    figure_9_support_validation(paths, summary)
     supplementary_seed_stability(summary)
     supplementary_unseen_beta(paths)
     supplementary_traditional(paths, summary)
@@ -2009,7 +2055,7 @@ def main():
     supplementary_parameter_guided(paths)
     write_parameter_guided_tables(paths)
     write_submission_provenance(paths)
-    print("Generated 15 submission figures and supplementary tables "
+    print("Generated 17 submission figures and supplementary tables "
           "in PNG/SVG/PDF/TIFF formats.")
 
 

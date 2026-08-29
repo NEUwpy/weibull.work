@@ -109,7 +109,7 @@ seed 42 下，除 $\beta=1.5$ 外，其他 7 个留出层均优于 Default；$\b
 
 由 E8 选择结果与共享候选估计派生（不重跑 MDM），见 `artifacts/formal/E8_mean_normalized_selector/quantiles/`。这里 $x_R$ 满足 $P(T>x_R)=R$，下标表示可靠度。Mean-Normalized seed 42 在 $x_{0.90}/x_{0.95}/x_{0.99}$ 上的相对 RMSE 为 0.1608/0.2136/0.3753，Default 为 0.1607/0.2142/0.3777。前者在 $x_{0.90}$ 略差，在 $x_{0.95}$ 和 $x_{0.99}$ 仅小幅改善，说明参数 $J_1$ 收益向可靠度寿命的传递有限。WMLE 在三个可靠度点的相对 RMSE 仍最低。分 `n` 明细见 `summary_by_n.csv`。
 
-### 5. 利用初估参数选择偏移量（plug-in）的负向支撑实验
+### 5. 利用初估参数选择偏移量（plug-in）的补充探索
 
 检验“把初步参数估计直接当作真参数选择偏移量”能否恢复 L3–L5 收益（`code/run_pg_selector.py`，`artifacts/formal/pg_selector/`；48,000 样本、repeat-id 五折 cross-fit，条件均值曲线只用训练折）：
 
@@ -121,7 +121,7 @@ seed 42 下，除 $\beta=1.5$ 外，其他 7 个留出层均优于 Default；$\b
 | 迭代（terminal） | 一致劣于单步，作反馈恶化诊断而非方法候选 |
 | 初步 $\hat\beta$ 正确路由率 | MDM-0.1 19.8%、WMLE 16.5%（诊断性，非唯一机制证明） |
 
-结论：直接 plug-in 总体不能恢复 oracle 收益，为本文转向直接预测样本级损失曲线提供比较依据；在已检验方案中，风险曲线预测获得了 plug-in 未能获得的总体收益。详细方法、变体、CI 与分 $\beta$ 结果见 `manuscript/Study01论文附录-v1.3.md` 的附录 C。
+结论：直接 plug-in 总体不能恢复 oracle 收益。该路线不参与正文主论证，也不与主方法排名；完整方法、变体、CI 与分 $\beta$ 结果仅保留在 `manuscript/Study01论文附录-v1.4.md` 的附录 C，供进一步追问时查阅。
 
 ## 已经证明到哪里
 
@@ -172,7 +172,7 @@ Study/01-study-MDM最小偏移量优化研究/
 5. `02-实验协议.md`：执行剩余验证时读取。
 6. `04-待复核清单.md`：查看写作前还差什么。
 
-当前活动论文正文为 `manuscript/Study01论文初稿-v1.4.md`，配套附录为 `manuscript/Study01论文附录-v1.3.md`；两者独立使用版本号，定稿时按最新版本拼接。`manuscript/figures/` 保存正文与附录图表、绘图程序、派生数据及来源记录。正文 v1.0—v1.3、附录 v1.0—v1.2 保存在 `manuscript/shelve/`，外部原稿与更早版本均保留未动，本目录的 `archive/legacy-manuscript/` 仅为旧稿归档。
+当前活动论文正文为 `manuscript/Study01论文初稿-v1.5.md`，配套附录为 `manuscript/Study01论文附录-v1.4.md`；两者独立使用版本号，定稿时按最新版本拼接。`manuscript/figures/` 保存正文与附录图表、绘图程序、派生数据及来源记录。正文 v1.0—v1.4、附录 v1.0—v1.3 保存在 `manuscript/shelve/`，外部原稿与更早版本均保留未动，本目录的 `archive/legacy-manuscript/` 仅为旧稿归档。
 
 论文审查时，`paper-logic-skeleton` 只用于审查 `03-论文骨架.md` 所表达的中心主张、论证顺序、章节职责、图表必要性以及正文/附录分工；它不代替科学证据核验、文献核对或语言润色。骨架确认后，再据此审查正文与附录是否忠实实现了既定论证。
 

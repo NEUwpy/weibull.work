@@ -22,10 +22,12 @@ FIGURES = {
     "fig1_offset_baseline": MAIN,
     "fig2_adaptive_selection_method": MAIN,
     "fig3_beta_domain_sensitivity": MAIN,
-    "fig4_per_n_J1": MAIN,
-    "fig5_selector_mechanism": MAIN,
-    "fig6_decision_mechanism": MAIN,
-    "fig7_support_validation": MAIN,
+    "fig4_information_spaces": MAIN,
+    "fig5_information_level_results": MAIN,
+    "fig6_per_n_J1": MAIN,
+    "fig7_selector_mechanism": MAIN,
+    "fig8_decision_mechanism": MAIN,
+    "fig9_support_validation": MAIN,
     "supp_fig_seed_stability": SUPP,
     "supp_fig_unseen_beta": SUPP,
     "supp_fig_traditional_per_n": SUPP,
@@ -122,6 +124,30 @@ def check_scientific_values():
     expected_best = [0.18, 0.16, 0.14, 0.10, 0.10, 0.08, 0.06, 0.06, 0.06, 0.04, 0.04]
     if not domain_summary["best_delta"].round(8).tolist() == expected_best:
         raise AssertionError("Figure 3 discrete best offsets changed")
+    domain_curves = pd.read_csv(E13 / "window_risk_curves.csv")
+    expected_deltas = [round(0.02 * index, 2) for index in range(26)]
+    if len(domain_curves) != 11 * 26:
+        raise AssertionError("Figure 3 must contain 11 domains x 26 actual grid points")
+    if domain_curves[["beta_center", "delta"]].duplicated().any():
+        raise AssertionError("Figure 3 contains duplicate domain-delta grid points")
+    for summary_row in domain_summary.itertuples(index=False):
+        curve = domain_curves[
+            (domain_curves["beta_center"] - summary_row.beta_center).abs() < 1e-12
+        ].sort_values("delta")
+        if curve["delta"].round(8).tolist() != expected_deltas:
+            raise AssertionError(
+                f"Figure 3 delta grid changed for beta center {summary_row.beta_center}"
+            )
+        minimum = curve.loc[curve["J1"].idxmin()]
+        assert_close(minimum["delta"], summary_row.best_delta, 1e-12)
+        assert_close(minimum["J1"], summary_row.best_J1, 1e-12)
+        near_optimal = curve[curve["J1"] <= summary_row.best_J1 * 1.01 + 1e-12]
+        assert_close(
+            near_optimal["delta"].min(), summary_row.near_optimal_1pct_lower, 1e-12
+        )
+        assert_close(
+            near_optimal["delta"].max(), summary_row.near_optimal_1pct_upper, 1e-12
+        )
     e13_manifest = json.loads((E13 / "manifest.json").read_text(encoding="utf-8"))
     if e13_manifest["validation"] != {
         "rows": 780000,
@@ -130,6 +156,33 @@ def check_scientific_values():
         "failures": 0,
     }:
         raise AssertionError("Figure 3 E13 validation contract changed")
+
+    information_spaces = pd.read_csv(DERIVED / "fig4_information_space_cells.csv")
+    if len(information_spaces) != 160:
+        raise AssertionError("Figure 4 must contain the 8 x 5 x 4 design cells")
+    if information_spaces[["beta", "gamma_over_eta", "n"]].duplicated().any():
+        raise AssertionError("Figure 4 contains duplicate design cells")
+    if (
+        information_spaces["beta"].nunique(),
+        information_spaces["gamma_over_eta"].nunique(),
+        information_spaces["n"].nunique(),
+    ) != (8, 5, 4):
+        raise AssertionError("Figure 4 design axes changed")
+    expected_group_counts = {
+        "L1_group": 1,
+        "L2_group": 4,
+        "L3_group": 8,
+        "L4_group": 32,
+        "L5_group": 160,
+    }
+    found_group_counts = {
+        column: information_spaces[column].nunique()
+        for column in expected_group_counts
+    }
+    if found_group_counts != expected_group_counts:
+        raise AssertionError(
+            f"Figure 4 information partitions changed: {found_group_counts}"
+        )
     paired_stability = stability.pivot(
         index=["parameter", "beta", "gamma_over_eta", "n"],
         columns="method",
@@ -141,9 +194,30 @@ def check_scientific_values():
     if improved_cells.to_dict() != {"beta": 160, "eta": 160, "gamma": 154}:
         raise AssertionError(f"Figure 1 stability-direction counts changed: {improved_cells.to_dict()}")
 
-    main = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
+    level_results = pd.read_csv(DERIVED / "fig5_information_level_results.csv")
+    if level_results["layer"].tolist() != ["Default", "L1", "L2", "L3", "L4", "L5", "L6"]:
+        raise AssertionError("Figure 5 information levels are incomplete or reordered")
+    expected_level_j1 = {
+        "Default": 0.6304091999323667,
+        "L1": 0.6251984059542767,
+        "L2": 0.6230353862087367,
+        "L3": 0.5905262652903408,
+        "L4": 0.5885139452887720,
+        "L5": 0.5812940624817639,
+        "L6": 0.4922971152637207,
+    }
+    for row in level_results.itertuples(index=False):
+        assert_close(row.pooled_J1, expected_level_j1[row.layer], 1e-10)
+    if not (level_results.loc[level_results["layer"].isin(["L1", "L2"]),
+                              "pooled_reduction_vs_default_pct"] < 2).all():
+        raise AssertionError("Figure 5 L1/L2 reductions changed unexpectedly")
+    if not (level_results.loc[level_results["layer"].isin(["L3", "L4", "L5"]),
+                              "pooled_reduction_vs_default_pct"].between(6, 8)).all():
+        raise AssertionError("Figure 5 L3-L5 reductions changed unexpectedly")
+
+    main = pd.read_csv(DERIVED / "fig6_main_results_by_n.csv")
     if main["n"].tolist() != [7, 10, 15, 20]:
-        raise AssertionError("Figure 3 sample-size order changed")
+        raise AssertionError("Figure 6 sample-size order changed")
     expected_adaptive = [0.701337127247328, 0.6070629116585652,
                          0.5293829329592756, 0.47556735574356884]
     for actual, expected in zip(main["adaptive"], expected_adaptive):
@@ -153,12 +227,12 @@ def check_scientific_values():
         assert_close(actual, expected, 0.01)
     if "recovered_hindsight_gap_pct" in main.columns:
         raise AssertionError(
-            "Figure 3 source must not label the Default-L6 gap as recoverable"
+            "Figure 6 source must not label the Default-L6 gap as recoverable"
         )
 
-    paired = pd.read_csv(DERIVED / "fig3_sample_loss_difference_quantiles.csv")
+    paired = pd.read_csv(DERIVED / "fig6_sample_loss_difference_quantiles.csv")
     if paired["n"].tolist() != [7, 10, 15, 20] or not (paired["n_samples"] == 12000).all():
-        raise AssertionError("Figure 3 paired-loss sample contract changed")
+        raise AssertionError("Figure 6 paired-loss sample contract changed")
     expected_improved = [62.525, 66.00833333333334,
                          62.15, 58.508333333333326]
     for actual, expected in zip(paired["improved_pct"], expected_improved):
@@ -167,7 +241,7 @@ def check_scientific_values():
         values = [row.q01, row.q05, row.q25, row.q50,
                   row.q75, row.q95, row.q99]
         if values != sorted(values):
-            raise AssertionError("Figure 3 paired-loss quantiles are not monotone")
+            raise AssertionError("Figure 6 paired-loss quantiles are not monotone")
 
     components = pd.read_csv(TABLES / "supp_table_parameter_error_decomposition.csv")
     if components["parameter"].tolist() != ["beta", "eta", "gamma"]:
@@ -217,57 +291,57 @@ def check_scientific_values():
         ):
             assert_close(actual, target, 1e-6)
 
-    figure3_svg = (MAIN / "fig4_per_n_J1.svg").read_text(encoding="utf-8")
-    if "seed" in figure3_svg.lower():
-        raise AssertionError("Figure 3 must not display training-seed information")
+    figure6_svg = (MAIN / "fig6_per_n_J1.svg").read_text(encoding="utf-8")
+    if "seed" in figure6_svg.lower():
+        raise AssertionError("Figure 6 must not display training-seed information")
 
-    representative = pd.read_csv(DERIVED / "fig4_representative_curve.csv")
+    representative = pd.read_csv(DERIVED / "fig7_representative_curve.csv")
     if len(representative) != 26 or representative["delta"].nunique() != 26:
-        raise AssertionError("Figure 4 representative case must contain 26 offsets")
+        raise AssertionError("Figure 7 representative case must contain 26 offsets")
     if representative["selected_delta"].nunique() != 1 or representative["oracle_delta"].nunique() != 1:
-        raise AssertionError("Figure 4 representative case has inconsistent selected/oracle offsets")
+        raise AssertionError("Figure 7 representative case has inconsistent selected/oracle offsets")
     if not set(representative[["selected_delta", "oracle_delta"]].iloc[0]).issubset(set(curve["delta"])):
-        raise AssertionError("Figure 4 selected/oracle offsets are outside the candidate grid")
+        raise AssertionError("Figure 7 selected/oracle offsets are outside the candidate grid")
 
-    confusion = pd.read_csv(DERIVED / "fig4_delta_confusion.csv")
+    confusion = pd.read_csv(DERIVED / "fig7_delta_confusion.csv")
     if len(confusion) != 26 * 26 or confusion["oracle_delta"].nunique() != 26 or confusion["selected_delta"].nunique() != 26:
-        raise AssertionError("Figure 4 selection correspondence must contain the full 26 x 26 grid")
+        raise AssertionError("Figure 7 selection correspondence must contain the full 26 x 26 grid")
     row_sums = confusion.groupby("oracle_delta")["row_percent"].sum()
     if not ((row_sums - 100).abs() < 1e-7).all():
-        raise AssertionError("Figure 4 correspondence rows do not sum to 100%")
+        raise AssertionError("Figure 7 correspondence rows do not sum to 100%")
 
-    regret = pd.read_csv(DERIVED / "fig4_excess_loss_quantiles.csv")
+    regret = pd.read_csv(DERIVED / "fig7_excess_loss_quantiles.csv")
     if len(regret) != 12 or set(regret["n"]) != {7, 10, 15, 20} or set(regret["quantile"]) != {0.5, 0.9, 0.99}:
-        raise AssertionError("Figure 4 excess-loss source must contain 4 n x 3 quantiles")
+        raise AssertionError("Figure 7 excess-loss source must contain 4 n x 3 quantiles")
     for _, group in regret.groupby("n"):
         values = group.sort_values("quantile")["excess_loss"].tolist()
         if not values[0] <= values[1] <= values[2]:
-            raise AssertionError("Figure 4 excess-loss quantiles are not monotone")
+            raise AssertionError("Figure 7 excess-loss quantiles are not monotone")
 
-    profiles = pd.read_csv(DERIVED / "fig5_profile_gradient_curves.csv")
+    profiles = pd.read_csv(DERIVED / "fig8_profile_gradient_curves.csv")
     if set(profiles["profile_group"]) != {"low", "middle", "high"}:
-        raise AssertionError("Figure 5 must contain three central-cell profile curves")
+        raise AssertionError("Figure 8 must contain three central-cell profile curves")
     representatives = profiles.groupby("profile_group").first()
     if representatives["repeat_id"].nunique() != 3:
-        raise AssertionError("Figure 5 profile curves must use three distinct samples")
+        raise AssertionError("Figure 8 profile curves must use three distinct samples")
     expected_l6 = {"low": 0.14, "middle": 0.04, "high": 0.00}
     for group, expected in expected_l6.items():
         assert_close(representatives.loc[group, "l6_delta"], expected, 1e-12)
 
-    conditional = pd.read_csv(DERIVED / "fig5_conditional_excess_loss.csv")
+    conditional = pd.read_csv(DERIVED / "fig8_conditional_excess_loss.csv")
     if len(conditional) != 3 * 26 or not conditional.groupby("tertile")["delta"].nunique().eq(26).all():
-        raise AssertionError("Figure 5 conditional curves must contain 3 tertiles x 26 offsets")
+        raise AssertionError("Figure 8 conditional curves must contain 3 tertiles x 26 offsets")
     minima = conditional.loc[
         conditional.groupby("tertile")["mean_excess_over_l6"].idxmin()
     ]
     found_minima = dict(zip(minima["tertile"], minima["delta"]))
     if found_minima != {"low": 0.10, "middle": 0.04, "high": 0.02}:
-        raise AssertionError(f"Figure 5 conditional minima changed: {found_minima}")
+        raise AssertionError(f"Figure 8 conditional minima changed: {found_minima}")
 
-    cells = pd.read_csv(DERIVED / "fig5_cell_associations.csv")
+    cells = pd.read_csv(DERIVED / "fig8_cell_associations.csv")
     if (len(cells) != 20 or cells["beta"].nunique() != 3 or
             cells["gamma_over_eta"].nunique() != 3 or cells["n"].nunique() != 4):
-        raise AssertionError("Figure 5 mechanism evidence must contain 20 predeclared cells")
+        raise AssertionError("Figure 8 mechanism evidence must contain 20 predeclared cells")
     assert_close(cells["rho_g0_l6_delta"].median(), 0.6515246409, 1e-9)
     assert_close(cells["rho_default_gamma_l6_delta"].median(), -0.7653155735, 1e-9)
     if not (cells["rho_default_gamma_l6_delta"] < 0).all():
@@ -284,7 +358,7 @@ def check_scientific_values():
         "Z-only-empirical-reference", "L6-complete-information",
     ]
     if risk_path["method"].tolist() != expected_methods:
-        raise AssertionError("Figure 5 risk path is incomplete or reordered")
+        raise AssertionError("Supplementary decision risk path is incomplete or reordered")
     expected_risks = [0.3926912312, 0.3395311145, 0.3226679985,
                       0.3156581752, 0.2406463568]
     for actual, expected in zip(risk_path["R_mean_loss"], expected_risks):
@@ -302,27 +376,27 @@ def check_scientific_values():
         raise AssertionError("Supplementary landscape deterioration-cell count changed")
     assert_close(landscape["improvement_pct"].min(), -17.504974, 1e-5)
 
-    unseen_main = pd.read_csv(DERIVED / "fig6_unseen_beta_improvement.csv")
+    unseen_main = pd.read_csv(DERIVED / "fig9_unseen_beta_improvement.csv")
     if len(unseen_main) != 8 or unseen_main["held_out_beta"].nunique() != 8:
-        raise AssertionError("Figure 6 unseen-parameter panel must contain 8 held-out beta levels")
+        raise AssertionError("Figure 9 unseen-parameter panel must contain 8 held-out beta levels")
     if set(unseen_main.columns) != {"held_out_beta", "improvement_pct"}:
-        raise AssertionError("Figure 6 unseen-parameter source must use the fixed primary seed")
+        raise AssertionError("Figure 9 unseen-parameter source must use the fixed primary seed")
     negative = unseen_main[unseen_main["improvement_pct"] <= 0]
     if negative["held_out_beta"].tolist() != [1.5]:
         raise AssertionError("Only held-out beta=1.5 should lack improvement")
 
-    traditional_main = pd.read_csv(DERIVED / "fig6_traditional_by_n.csv")
+    traditional_main = pd.read_csv(DERIVED / "fig9_traditional_by_n.csv")
     if len(traditional_main) != 16 or traditional_main["method"].nunique() != 4:
-        raise AssertionError("Figure 6 traditional panel must contain 4 n x 4 methods")
+        raise AssertionError("Figure 9 traditional panel must contain 4 n x 4 methods")
 
-    quantile_main = pd.read_csv(DERIVED / "fig6_quantile_rmse.csv")
+    quantile_main = pd.read_csv(DERIVED / "fig9_quantile_rmse.csv")
     if (len(quantile_main) != 15 or quantile_main["method"].nunique() != 5 or
             set(quantile_main.columns) != {"method", "quantile", "rmse"}):
-        raise AssertionError("Figure 6 quantile source must retain all 3 quantiles x 5 methods")
+        raise AssertionError("Figure 9 quantile source must retain all 3 quantiles x 5 methods")
 
-    main_results = pd.read_csv(DERIVED / "fig3_main_results_by_n.csv")
+    main_results = pd.read_csv(DERIVED / "fig6_main_results_by_n.csv")
     if "raw_mean" in main_results or "raw_min" in main_results or "raw_max" in main_results:
-        raise AssertionError("Figure 3 must use the fixed primary seed, not a seed aggregate")
+        raise AssertionError("Figure 6 must use the fixed primary seed, not a seed aggregate")
 
     seeds = pd.read_csv(DERIVED / "supp_seed_stability.csv")
     if len(seeds) != 15 or seeds["seed"].nunique() != 3:
@@ -391,6 +465,9 @@ def main():
         "exports_verified": len(records),
         "scientific_checks": [
             "26-point delta curve and minimum",
+            "11 x 26 Figure 3 domain-risk grid, discrete minima, and 1% near-optimal ranges",
+            "160-cell Figure 4 design and L1-L5 partition cardinalities",
+            "Figure 5 pooled and per-n L1-L6 risk reductions",
             "default delta J1",
             "within-cell sampling dispersion for no-offset and fixed-offset MDM",
             "four per-n main results and observed hindsight-gap fractions",
