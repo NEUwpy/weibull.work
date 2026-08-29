@@ -7,6 +7,7 @@
 | `test_pg_selector.py` | 利用初估参数选择偏移量（plug-in）的负向支撑实验合同测试（26 项：split 隔离、映射/插值/截断、迭代状态、回退、J1 无 /3、样本键对齐、模式/版本元数据、分 β 派生、配对 bootstrap） |
 | `test_e8_main_uncertainty.py` | E8 seed 42 主结果的配对 bootstrap、单元异质性与正式账本核对 |
 | `test_delta_upper_boundary.py` | E12 候选上边界诊断的损失公式、延伸网格、边界样本选择、平局容差与全样本汇总测试 |
+| `test_e13_beta_domain_sensitivity.py` | E13 固定宽度 $\beta$ 参数域构造、汇总风险和滑动窗口最低点的科学口径测试 |
 | `test_gen_labels.py` | 旧泛化标签工具测试，历史支持 |
 | `test_p2_*` | 旧特征路线 P2 历史测试 |
 | `test_p3_direct_mlp.py`、`test_p4_formal_compare.py` | Direct-MLP/方法比较 Research |
