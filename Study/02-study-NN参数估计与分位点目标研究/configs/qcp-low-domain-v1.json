@@ -1,0 +1,53 @@
+{
+  "protocol_id": "study02-qcp-low-domain-v1",
+  "status": "ACTIVE / USER-DIRECTED RESEARCH DOMAIN",
+  "frozen_at": "2026-08-28",
+  "research_domain": {
+    "name": "low-shape low-location-ratio three-parameter Weibull domain",
+    "beta_grid": [1.0, 1.25, 1.5, 1.75, 2.0],
+    "eta": 1000.0,
+    "gamma_over_eta_grid": [0.05, 0.10, 0.15, 0.20, 0.25],
+    "n_grid": [7, 10, 15, 20],
+    "repeats_per_combo": 300,
+    "reliability_target": 0.95
+  },
+  "data": {
+    "seed_namespace": "study02-qcp-low-domain-v1-20260828",
+    "split_strategy": "repeat_stratified",
+    "train_validation_test_repeats_per_combo": [180, 60, 60],
+    "fresh_evidence_only": true
+  },
+  "training": {
+    "routes": ["P", "Q", "QCP"],
+    "seeds": [42, 2026, 3407, 17, 73, 314, 2718, 4099, 8128, 12011],
+    "folds_1based": [1, 2, 3, 4, 5],
+    "hidden_layers": [256, 128, 64],
+    "max_epochs": 600,
+    "patience": 60,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 256,
+    "dtype": "float64"
+  },
+  "qcp_constraint": {
+    "optimization": "minimize L_Q subject to L_P <= tau_cell",
+    "slack_multiplier": 1.5,
+    "rho": 0.1,
+    "cell_limit": "1.5 * matched P best validation L_P",
+    "checkpoint_rule": "validation P feasibility first, then minimum validation Q"
+  },
+  "evaluation": {
+    "primary": "x0.95 RMSRE",
+    "secondary": [
+      "signed relative bias",
+      "within-truth-cell standard deviation",
+      "RMS truth-cell bias",
+      "MAE",
+      "95th absolute relative-error percentile"
+    ],
+    "contrasts": ["Q-P", "QCP-Q", "QCP-P"],
+    "bootstrap_replicates": 200000,
+    "bootstrap_seed": 2026082801
+  },
+  "artifact_namespace": "artifacts/qcp_low_domain_v1"
+}

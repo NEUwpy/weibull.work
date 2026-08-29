@@ -109,7 +109,27 @@ def compute_x_hat_from_outputs(o: torch.Tensor, min_X: torch.Tensor,
 compute_x95_hat_from_outputs = compute_x_hat_from_outputs  # 别名（R=0.95 默认，S1 兼容）
 
 
-def build_route_loss(route: str, target_R: float | None = None):
+def parameter_target_loss_components(
+        model_out: torch.Tensor, params: torch.Tensor, min_X: torch.Tensor,
+        R: float = CFG.X0_95_R) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return ``(L_Q, L_P)`` from the same three-output prediction.
+
+    This helper keeps the auxiliary-parameter route auditable: Q remains the target
+    loss and P is computed from the same decoded parameters without a second head or
+    route-specific decoder.
+    """
+    b_hat, e_hat, g_hat = decode_params(model_out, min_X)
+    beta, eta, gamma = params[..., 0], params[..., 1], params[..., 2]
+    x_hat = weibull_quantile(b_hat, e_hat, g_hat, R)
+    x_true = weibull_quantile(beta, eta, gamma, R)
+    return (
+        loss_q(x_hat, x_true),
+        loss_p(b_hat, e_hat, g_hat, beta, eta, gamma, min_X),
+    )
+
+
+def build_route_loss(route: str, target_R: float | None = None,
+                     lambda_p: float | None = None):
     """返回 (loss_fn, target_kind)。loss_fn(model_out, targets, min_X)。
 
     route: 'P'（参数精度）或 'Q'（目标可靠度寿命点；'Q90'/'Q99' 等目标特异 Q 路由
@@ -136,6 +156,27 @@ def build_route_loss(route: str, target_R: float | None = None):
                 b_hat, e_hat, g_hat, beta, eta, gamma, R)
         return loss_fn, "params"
 
+    if route == "QP":
+        lam = 0.0 if lambda_p is None else float(lambda_p)
+        if not np.isfinite(lam) or lam < 0.0:
+            raise ValueError(f"lambda_p must be finite and non-negative; got {lambda_p!r}")
+        R = float(target_R) if target_R is not None else CFG.X0_95_R
+
+        def loss_fn(model_out, targets, min_X):
+            q_loss, p_loss = parameter_target_loss_components(
+                model_out, targets, min_X, R)
+            return q_loss + lam * p_loss
+        return loss_fn, "params"
+
+    if route == "QCP":
+        R = float(target_R) if target_R is not None else CFG.X0_95_R
+
+        def loss_fn(model_out, targets, min_X):
+            q_loss, _ = parameter_target_loss_components(
+                model_out, targets, min_X, R)
+            return q_loss
+        return loss_fn, "params"
+
     if route.startswith("Q"):
         R = float(target_R) if target_R is not None else CFG.X0_95_R
 
@@ -145,3 +186,21 @@ def build_route_loss(route: str, target_R: float | None = None):
         return loss_fn, "x_R"
 
     raise ValueError(f"unknown route {route!r}")
+
+
+def build_selection_loss(route: str, target_R: float | None = None,
+                         lambda_p: float | None = None):
+    """Return the validation/checkpoint loss for a route.
+
+    QP deliberately selects checkpoints with Q alone because P is an auxiliary
+    regularizer, not a co-primary endpoint. Existing P/Q/M95 behavior is unchanged.
+    """
+    route = route.upper()
+    if route not in {"QP", "QCP"}:
+        return build_route_loss(route, target_R=target_R, lambda_p=lambda_p)
+    R = float(target_R) if target_R is not None else CFG.X0_95_R
+
+    def loss_fn(model_out, targets, min_X):
+        q_loss, _ = parameter_target_loss_components(model_out, targets, min_X, R)
+        return q_loss
+    return loss_fn, "params"

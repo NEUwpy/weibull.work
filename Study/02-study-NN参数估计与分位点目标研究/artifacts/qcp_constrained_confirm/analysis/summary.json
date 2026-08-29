@@ -1,0 +1,124 @@
+{
+  "protocol_id": "study02-qcp-constrained-confirm-v1",
+  "status": "COMPLETE",
+  "n_qcp_fits": 200,
+  "n_test_rows_per_route": 480000,
+  "constraint_feasible_checkpoints": 200,
+  "constraint_total_checkpoints": 200,
+  "pooled_rrmse": {
+    "P": 0.16605868528719786,
+    "Q": 0.16107521486490967,
+    "QP": 0.15949059578763605,
+    "QCP": 0.15840638422648748
+  },
+  "diagnostics": {
+    "P": {
+      "mae": 0.11047710095553438,
+      "median_absolute_error": 0.07796553522348404,
+      "within_10pct": 0.6012666666666666,
+      "overestimate_gt_10pct": 0.14470208333333334,
+      "underestimate_gt_10pct": 0.25403125,
+      "signed_bias": -0.015219529368123891,
+      "q95_absolute_error": 0.3073461517691612,
+      "global_cvar90_absolute_error": 0.37776294104692837,
+      "mean_parameter_loss": 0.054628014939233464,
+      "mean_exact_cancellation_index": 0.35117760720263136
+    },
+    "Q": {
+      "mae": 0.11225385604333071,
+      "median_absolute_error": 0.08194423839449883,
+      "within_10pct": 0.5809020833333334,
+      "overestimate_gt_10pct": 0.13208541666666668,
+      "underestimate_gt_10pct": 0.2870125,
+      "signed_bias": -0.02776919746424156,
+      "q95_absolute_error": 0.30779901146888733,
+      "global_cvar90_absolute_error": 0.3629071598056083,
+      "mean_parameter_loss": 78.99768349375746,
+      "mean_exact_cancellation_index": 0.9148673484814387
+    },
+    "QP": {
+      "mae": 0.11076998027556104,
+      "median_absolute_error": 0.08081702142953873,
+      "within_10pct": 0.5873104166666666,
+      "overestimate_gt_10pct": 0.13227291666666666,
+      "underestimate_gt_10pct": 0.28041666666666665,
+      "signed_bias": -0.025967009565528595,
+      "q95_absolute_error": 0.30254113674163813,
+      "global_cvar90_absolute_error": 0.35820171144666774,
+      "mean_parameter_loss": 0.05838074324672519,
+      "mean_exact_cancellation_index": 0.3806135236625995
+    },
+    "QCP": {
+      "mae": 0.10938080303106969,
+      "median_absolute_error": 0.07857904583215714,
+      "within_10pct": 0.5969791666666666,
+      "overestimate_gt_10pct": 0.13194375,
+      "underestimate_gt_10pct": 0.27107708333333336,
+      "signed_bias": -0.024817825687387114,
+      "q95_absolute_error": 0.3031390100717544,
+      "global_cvar90_absolute_error": 0.35764235458150506,
+      "mean_parameter_loss": 0.055218255288960266,
+      "mean_exact_cancellation_index": 0.34532413057026734
+    }
+  },
+  "paired_win_rates": {
+    "QCP_abs_error_better_than_QP": 0.5329333333333334,
+    "QCP_abs_error_better_than_Q": 0.5342354166666666,
+    "QCP_abs_error_better_than_P": 0.49805625
+  },
+  "contrasts": {
+    "QCP_minus_QP": {
+      "mean_mse_difference": -0.0003446675809855058,
+      "design_bootstrap_95ci": [
+        -0.0004472782379639246,
+        -0.0002494256686769873
+      ],
+      "relative_rrmse_improvement": 0.00679796545867956,
+      "relative_rrmse_improvement_95ci": [
+        0.004950511300611919,
+        0.00875596720742176
+      ],
+      "favorable_model_cells": 170,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10,
+      "passes": true
+    },
+    "QCP_minus_Q": {
+      "mean_mse_difference": -0.0008526422800672518,
+      "design_bootstrap_95ci": [
+        -0.0010149735117695193,
+        -0.0006949156017346504
+      ],
+      "relative_rrmse_improvement": 0.016568847296962962,
+      "relative_rrmse_improvement_95ci": [
+        0.013359190355617544,
+        0.019849079924445134
+      ],
+      "favorable_model_cells": 197,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10,
+      "passes": true
+    },
+    "QCP_minus_P": {
+      "mean_mse_difference": -0.0024829043956030353,
+      "design_bootstrap_95ci": [
+        -0.002862540720432558,
+        -0.002127256395685204
+      ],
+      "relative_rrmse_improvement": 0.04608190801628807,
+      "relative_rrmse_improvement_95ci": [
+        0.04005370348507663,
+        0.052327678562861475
+      ],
+      "favorable_model_cells": 200,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10,
+      "passes": true
+    }
+  },
+  "co_primary_success": true,
+  "decision": "QCP_CONFIRMED"
+}

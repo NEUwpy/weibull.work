@@ -1,0 +1,54 @@
+{
+  "protocol_id": "study02-pq-regularized-confirm-v1",
+  "status": "USER AND MENTOR APPROVED / FROZEN",
+  "frozen_at": "2026-08-27",
+  "selection_source": "artifacts/pq_regularized_pilot/analysis/lambda_summary.json",
+  "selected_lambda_p": 1.0,
+  "selected_budget": {"max_epochs": 300, "patience": 20},
+  "target": "x0.95 reliability-lifetime relative squared error",
+  "design": {
+    "n_grid": [7, 10, 15, 20],
+    "folds_1based": [1, 2, 3, 4, 5],
+    "seeds": [42, 2026, 3407, 17, 73, 314, 2718, 4099, 8128, 12011],
+    "split_strategy": "repeat_stratified",
+    "train_validation_test_repeats_per_combo": [180, 60, 60],
+    "new_qp_fits": 200,
+    "reused_pq_fits": 400
+  },
+  "route": {
+    "name": "QP",
+    "training_loss": "L_Q + 1.0 * L_P",
+    "checkpoint_loss": "validation L_Q only",
+    "network": [256, 128, 64],
+    "output": "beta, eta, gamma with the same legal decoder as P and Q"
+  },
+  "comparators": {
+    "existing_seeds": "artifacts/pq_iid_main",
+    "added_seeds": "artifacts/pq_s5b_revision/grid_extra",
+    "immutable": true
+  },
+  "pairing": [
+    "same train, validation, and test row identities",
+    "same initialization parameters",
+    "same first-epoch batch order",
+    "same network structure and scaler",
+    "same optimizer and training budget"
+  ],
+  "co_primary_success": [
+    "design-level paired 95% empirical bootstrap interval for mean squared-relative-error difference QP-Q is below zero",
+    "design-level paired 95% empirical bootstrap interval for mean squared-relative-error difference QP-P is below zero"
+  ],
+  "effect_sizes": [
+    "pooled rRMSE for P, Q, and QP",
+    "relative rRMSE improvement of QP over Q and P",
+    "10-seed direction and 200 model-cell direction"
+  ],
+  "bootstrap": {
+    "replicates": 200000,
+    "seed": 2026082701,
+    "scheme": "paired crossed resampling: folds within each n and global training seeds"
+  },
+  "failure_rule": "Any nonfinite loss or prediction, support violation, missing comparator, or pairing mismatch stops analysis.",
+  "artifact_namespace": "artifacts/pq_regularized_confirm",
+  "paper_policy": "Independent result first; manuscript admission requires a separate user decision after result review."
+}

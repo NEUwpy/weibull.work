@@ -1,0 +1,132 @@
+{
+  "protocol_id": "study02-pq-qcp-current-analysis-v1",
+  "status": "COMPLETE",
+  "evidence_level": "post-test three-route sensitivity derived from frozen evidence",
+  "common_budget": {
+    "max_epochs": 600,
+    "patience": 60
+  },
+  "model_cells_per_route": 200,
+  "test_rows_per_route": 480000,
+  "constraint_feasible_checkpoints": 200,
+  "pooled_rrmse": {
+    "P": 0.16432041618048712,
+    "Q": 0.16092061442231365,
+    "QCP": 0.15840638422648748
+  },
+  "diagnostics": {
+    "P": {
+      "mae": 0.10917339943344137,
+      "median_absolute_error": 0.07691449299454689,
+      "within_10pct": 0.60745625,
+      "overestimate_gt_10pct": 0.14285833333333334,
+      "underestimate_gt_10pct": 0.24968541666666666,
+      "signed_bias": -0.015131994738375568,
+      "q95_absolute_error": 0.30428596436977373,
+      "global_cvar90_absolute_error": 0.37409484284526356,
+      "mean_parameter_loss": 0.05384893000335009,
+      "mean_exact_cancellation_index": 0.3322564465257368
+    },
+    "Q": {
+      "mae": 0.11185120902178429,
+      "median_absolute_error": 0.08135615661740303,
+      "within_10pct": 0.5840166666666666,
+      "overestimate_gt_10pct": 0.13250625,
+      "underestimate_gt_10pct": 0.2834770833333333,
+      "signed_bias": -0.027125014063994417,
+      "q95_absolute_error": 0.30802584141492845,
+      "global_cvar90_absolute_error": 0.3631338570971663,
+      "mean_parameter_loss": 71.71416493650949,
+      "mean_exact_cancellation_index": 0.9145458816452118
+    },
+    "QCP": {
+      "mae": 0.10938080303106969,
+      "median_absolute_error": 0.07857904583215714,
+      "within_10pct": 0.5969791666666666,
+      "overestimate_gt_10pct": 0.13194375,
+      "underestimate_gt_10pct": 0.27107708333333336,
+      "signed_bias": -0.024817825687387114,
+      "q95_absolute_error": 0.3031390100717544,
+      "global_cvar90_absolute_error": 0.35764235458150506,
+      "mean_parameter_loss": 0.055218255288960266,
+      "mean_exact_cancellation_index": 0.34532413057026734
+    }
+  },
+  "resource_diagnostics": {
+    "P": {
+      "best_epoch_median": 175.5,
+      "best_epoch_p90": 265.29999999999995,
+      "best_epoch_max": 417,
+      "stopped_at_600_count": 0,
+      "runtime_s_sum": 9046.366129875183,
+      "runtime_s_median": 41.420031905174255
+    },
+    "Q": {
+      "best_epoch_median": 105.0,
+      "best_epoch_p90": 217.49999999999997,
+      "best_epoch_max": 490,
+      "stopped_at_600_count": 0,
+      "runtime_s_sum": 7055.543123960495,
+      "runtime_s_median": 29.593509435653687
+    },
+    "QCP": {
+      "best_epoch_median": 159.5,
+      "best_epoch_p90": 362.29999999999995,
+      "best_epoch_max": 594,
+      "stopped_at_600_count": 3,
+      "runtime_s_sum": 20089.045235157013,
+      "runtime_s_median": 87.18405497074127
+    }
+  },
+  "contrasts": {
+    "Q_minus_P": {
+      "mean_mse_difference": -0.001105755027673558,
+      "mse_difference_95ci": [
+        -0.0015298556728984504,
+        -0.0006731531177717481
+      ],
+      "relative_rrmse_improvement": 0.020690075142209864,
+      "relative_rrmse_improvement_95ci": [
+        0.012801059566258818,
+        0.028105712074027643
+      ],
+      "favorable_model_cells": 172,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10
+    },
+    "QCP_minus_Q": {
+      "mean_mse_difference": -0.0008028615823453601,
+      "mse_difference_95ci": [
+        -0.0009694534521529379,
+        -0.000644095055065228
+      ],
+      "relative_rrmse_improvement": 0.015624040492586746,
+      "relative_rrmse_improvement_95ci": [
+        0.01240720244076081,
+        0.01898296609965859
+      ],
+      "favorable_model_cells": 196,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10
+    },
+    "QCP_minus_P": {
+      "mean_mse_difference": -0.0019086166100189183,
+      "mse_difference_95ci": [
+        -0.0022513008422300456,
+        -0.0015810155912879408
+      ],
+      "relative_rrmse_improvement": 0.03599085306298006,
+      "relative_rrmse_improvement_95ci": [
+        0.030273775291771318,
+        0.04179672187063878
+      ],
+      "favorable_model_cells": 200,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10
+    }
+  },
+  "decision": "P_Q_QCP_CURRENT_NARRATIVE_SUPPORTED"
+}

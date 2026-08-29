@@ -49,7 +49,9 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
                   max_epochs=None, batch_size=None, patience=None,
                   initial_state=None, include_initial=False, return_state=False,
                   learning_rate=None, split_strategy="gamma_holdout",
-                  target_R=None, hidden=None, fit_suffix="", split_rows=None):
+                  target_R=None, hidden=None, fit_suffix="", split_rows=None,
+                  lambda_p=None, p_constraint_limit=None, constraint_rho=None,
+                  record_history=False, evaluate_test=True):
     """训练一个 (n, fold, seed, route) 模型并在 held-out 折上评价。
 
     S3 扩展（缺省保持 S1/iid 行为不变）：
@@ -106,7 +108,23 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         model.load_state_dict(copy.deepcopy(initial_state))
     init_sha = MODEL.params_sha(model)
     net_sha = MODEL.structure_signature(n, hidden=hidden)
-    loss_fn, target_kind = LOSS.build_route_loss(route, target_R=target_R)
+    loss_fn, target_kind = LOSS.build_route_loss(
+        route, target_R=target_R, lambda_p=lambda_p)
+    selection_loss_fn, selection_target_kind = LOSS.build_selection_loss(
+        route, target_R=target_R, lambda_p=lambda_p)
+    if selection_target_kind != target_kind:
+        raise RuntimeError("route objective and checkpoint target kinds must match")
+    if route == "QCP":
+        if p_constraint_limit is None or not np.isfinite(float(p_constraint_limit)) \
+                or float(p_constraint_limit) <= 0.0:
+            raise ValueError("QCP requires a finite positive p_constraint_limit")
+        if constraint_rho is None or not np.isfinite(float(constraint_rho)) \
+                or float(constraint_rho) <= 0.0:
+            raise ValueError("QCP requires a finite positive constraint_rho")
+        p_constraint_limit = float(p_constraint_limit)
+        constraint_rho = float(constraint_rho)
+    elif p_constraint_limit is not None or constraint_rho is not None:
+        raise ValueError("constraint arguments are only valid for route='QCP'")
 
     if target_kind == "params":
         y_tr = _tensor(P_tr); y_val = _tensor(P_val)
@@ -119,6 +137,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         y_val = _tensor(_xR_from_params(P_val, target_R))
 
     X_tr_t = _tensor(X_tr_s); X_val_t = _tensor(X_val_s)
+    P_tr_t = _tensor(P_tr); P_val_t = _tensor(P_val)
     min_x_tr_t = _tensor(min_x_tr); min_x_val_t = _tensor(min_x_val)
 
     # ---- batch 顺序（epoch 1 的置换 SHA，确定性） ----
@@ -130,18 +149,27 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     best_val = float("inf")
     best_state = None
     best_epoch = 0
+    best_val_objective = float("inf")
     patience_counter = 0
     stopped_epoch = 0
     nan_flag = False
     t0 = time.time()
     last_epoch_loss = float("nan")
+    history = []
+    dual_multiplier = 0.0
+    last_train_q = float("nan")
+    last_train_p = float("nan")
+    best_constraint_feasible = route != "QCP"
+    best_val_p_loss = float("nan")
+    best_constraint_violation = float("inf")
 
     # 续训实验把共同起点作为 epoch 0 候选，避免目标切换把已有模型训练坏。
     if include_initial:
         model.eval()
         with torch.no_grad():
             val_out = model(X_val_t)
-            best_val = float(loss_fn(val_out, y_val, min_x_val_t))
+            best_val_objective = float(loss_fn(val_out, y_val, min_x_val_t))
+            best_val = float(selection_loss_fn(val_out, y_val, min_x_val_t))
         best_state = copy.deepcopy(model.state_dict())
         model.train()
 
@@ -150,6 +178,8 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
             perm = _epoch_perm(len(X_tr), gen)
         model.train()
         epoch_loss_sum = 0.0
+        epoch_q_sum = 0.0
+        epoch_p_sum = 0.0
         n_seen = 0
         for b0 in range(0, len(perm), batch_size):
             idx = perm[b0:b0 + batch_size]
@@ -158,7 +188,20 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
             mxb = min_x_tr_t[idx]
             optimizer.zero_grad()
             out = model(xb)
-            loss = loss_fn(out, yb, mxb)
+            if route == "QCP":
+                q_loss, p_loss = LOSS.parameter_target_loss_components(
+                    out, yb, mxb,
+                    CFG.X0_95_R if target_R is None else float(target_R))
+                violation = p_loss - p_constraint_limit
+                dual_t = torch.as_tensor(
+                    dual_multiplier, dtype=q_loss.dtype, device=q_loss.device)
+                active = torch.clamp(
+                    dual_t + constraint_rho * violation, min=0.0)
+                loss = q_loss + (active ** 2 - dual_t ** 2) / (2.0 * constraint_rho)
+                epoch_q_sum += float(q_loss.detach()) * len(idx)
+                epoch_p_sum += float(p_loss.detach()) * len(idx)
+            else:
+                loss = loss_fn(out, yb, mxb)
             if not torch.isfinite(loss):
                 nan_flag = True
                 break
@@ -167,16 +210,87 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
             epoch_loss_sum += float(loss.detach()) * len(idx)
             n_seen += len(idx)
         last_epoch_loss = epoch_loss_sum / max(n_seen, 1)
+        if route == "QCP" and n_seen:
+            last_train_q = epoch_q_sum / n_seen
+            last_train_p = epoch_p_sum / n_seen
+            dual_multiplier = max(
+                0.0, dual_multiplier + constraint_rho *
+                (last_train_p - p_constraint_limit))
 
         model.eval()
         with torch.no_grad():
             val_out = model(X_val_t)
-            val_loss = float(loss_fn(val_out, y_val, min_x_val_t))
+            if route == "QCP":
+                val_q_constraint, val_p_constraint = \
+                    LOSS.parameter_target_loss_components(
+                        val_out, P_val_t, min_x_val_t,
+                        CFG.X0_95_R if target_R is None else float(target_R))
+                val_objective = float(val_q_constraint)
+                val_loss = float(val_q_constraint)
+                current_val_p = float(val_p_constraint)
+            else:
+                val_objective = float(loss_fn(val_out, y_val, min_x_val_t))
+                val_loss = float(selection_loss_fn(val_out, y_val, min_x_val_t))
+                current_val_p = float("nan")
+            if record_history:
+                train_out = model(X_tr_t)
+                train_q, train_p = LOSS.parameter_target_loss_components(
+                    train_out, P_tr_t, min_x_tr_t,
+                    CFG.X0_95_R if target_R is None else float(target_R))
+                if route == "QCP":
+                    val_q, val_p = val_q_constraint, val_p_constraint
+                else:
+                    val_q, val_p = LOSS.parameter_target_loss_components(
+                        val_out, P_val_t, min_x_val_t,
+                        CFG.X0_95_R if target_R is None else float(target_R))
+                history_row = {
+                    "epoch": int(epoch),
+                    "train_objective": float(last_epoch_loss),
+                    "val_objective": val_objective,
+                    "train_q_loss": float(train_q),
+                    "val_q_loss": float(val_q),
+                    "train_p_loss": float(train_p),
+                    "val_p_loss": float(val_p),
+                }
+                if route == "QCP":
+                    history_row.update({
+                        "p_constraint_limit": p_constraint_limit,
+                        "constraint_violation": float(val_p) - p_constraint_limit,
+                        "dual_multiplier": dual_multiplier,
+                    })
+                history.append(history_row)
         model.train()
         stopped_epoch = epoch
 
-        if val_loss < best_val - 1e-12:
+        if route == "QCP":
+            current_violation = current_val_p - p_constraint_limit
+            current_feasible = current_violation <= 1e-12
+            if current_feasible and (
+                    not best_constraint_feasible or val_loss < best_val - 1e-12):
+                best_constraint_feasible = True
+                best_val = val_loss
+                best_val_objective = val_objective
+                best_val_p_loss = current_val_p
+                best_constraint_violation = current_violation
+                best_state = copy.deepcopy(model.state_dict())
+                best_epoch = epoch
+                patience_counter = 0
+            elif not current_feasible and not best_constraint_feasible:
+                if current_violation < best_constraint_violation:
+                    best_constraint_violation = current_violation
+                    best_val = val_loss
+                    best_val_objective = val_objective
+                    best_val_p_loss = current_val_p
+                    best_state = copy.deepcopy(model.state_dict())
+                    best_epoch = epoch
+                patience_counter = 0
+            else:
+                patience_counter += 1
+                if best_constraint_feasible and patience_counter >= patience:
+                    break
+        elif val_loss < best_val - 1e-12:
             best_val = val_loss
+            best_val_objective = val_objective
             best_state = copy.deepcopy(model.state_dict())
             best_epoch = epoch
             patience_counter = 0
@@ -190,6 +304,56 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     runtime_s = time.time() - t0
     converged = not nan_flag and best_state is not None
     model.load_state_dict(best_state if best_state is not None else model.state_dict())
+
+    common_meta = {
+        "fit_id": fit_id(n, fold_idx, seed, route, fit_suffix),
+        "n": int(n), "fold": int(fold_idx + 1), "seed": int(seed), "route": route,
+        "target_R": (float(target_R) if target_R is not None and route != "P" else None),
+        "lambda_p": (float(lambda_p) if route == "QP" and lambda_p is not None else
+                     0.0 if route == "QP" else None),
+        "p_constraint_limit": (p_constraint_limit if route == "QCP" else None),
+        "constraint_rho": (constraint_rho if route == "QCP" else None),
+        "final_dual_multiplier": (dual_multiplier if route == "QCP" else None),
+        "last_train_q_loss": (last_train_q if route == "QCP" else None),
+        "last_train_p_loss": (last_train_p if route == "QCP" else None),
+        "constraint_feasible_at_checkpoint": (best_constraint_feasible
+                                              if route == "QCP" else None),
+        "best_val_p_loss": (best_val_p_loss if route == "QCP" else None),
+        "best_constraint_violation": (best_constraint_violation
+                                      if route == "QCP" else None),
+        "hidden_layers": list(hidden) if hidden is not None else list(CFG.HIDDEN_LAYERS),
+        "converged": bool(converged), "nan_flag": bool(nan_flag),
+        "best_epoch": int(best_epoch), "stopped_epoch": int(stopped_epoch),
+        "best_val_loss": float(best_val),
+        "best_val_objective": float(best_val_objective),
+        "checkpoint_loss": "Q" if route in {"QP", "QCP"} else route,
+        "last_train_loss": float(last_epoch_loss),
+        "runtime_s": float(runtime_s),
+        "init_param_sha": init_sha,
+        "batch_order_sha": batch_order_sha,
+        "network_sha": net_sha,
+        "scaler_sha": scaler.params_sha(),
+        "train_rows_sha": DATA.sha_rows(train_rows),
+        "val_rows_sha": DATA.sha_rows(val_rows),
+        "test_rows_sha": DATA.sha_rows(test_rows),
+        "n_train": int(len(train_rows)), "n_val": int(len(val_rows)),
+        "route_loss": ("P" if route == "P" else
+                       "P_matrix_truth" if route.startswith("M") else
+                       "Q_plus_lambda_P" if route == "QP" else "Q"),
+        "constraint_form": ("Q_min_subject_to_P_limit" if route == "QCP" else None),
+        "warm_started": bool(initial_state is not None),
+        "learning_rate": lr,
+        "split_strategy": split_strategy,
+        "history_recorded": bool(record_history),
+        "test_evaluated": bool(evaluate_test),
+    }
+    if not evaluate_test:
+        result = {"meta": common_meta}
+        if record_history:
+            result["history"] = history
+        if return_state:
+            result["model_state"] = copy.deepcopy(model.state_dict())
+        return result
 
     # ---- held-out 评价 ----
     model.eval()
@@ -225,36 +389,17 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
     }
 
     meta = {
-        "fit_id": fit_id(n, fold_idx, seed, route, fit_suffix),
-        "n": int(n), "fold": int(fold_idx + 1), "seed": int(seed), "route": route,
-        "target_R": (float(target_R) if target_R is not None and route != "P" else None),
-        "hidden_layers": list(hidden) if hidden is not None else list(CFG.HIDDEN_LAYERS),
-        "converged": bool(converged), "nan_flag": bool(nan_flag),
-        "best_epoch": int(best_epoch), "stopped_epoch": int(stopped_epoch),
-        "best_val_loss": float(best_val),
-        "last_train_loss": float(last_epoch_loss),
+        **common_meta,
         "rrmse_x95": rrmse,
         "n_test": int(len(test_rows)),
         "n_nonfinite": n_nonfinite, "n_illegal": n_illegal,
         "n_support_viol": n_support_viol,
         "support_legality_ok": bool(n_support_viol == 0),
         "sample_bytes_sha": DATA.sample_bytes_sha(master, test_rows),
-        "runtime_s": float(runtime_s),
-        "init_param_sha": init_sha,
-        "batch_order_sha": batch_order_sha,
-        "network_sha": net_sha,
-        "scaler_sha": scaler.params_sha(),
-        "train_rows_sha": DATA.sha_rows(train_rows),
-        "val_rows_sha": DATA.sha_rows(val_rows),
-        "test_rows_sha": DATA.sha_rows(test_rows),
-        "n_train": int(len(train_rows)), "n_val": int(len(val_rows)),
-        "route_loss": ("P" if route == "P" else
-                       "P_matrix_truth" if route.startswith("M") else "Q"),
-        "warm_started": bool(initial_state is not None),
-        "learning_rate": lr,
-        "split_strategy": split_strategy,
     }
     result = {"meta": meta, "predictions": predictions}
+    if record_history:
+        result["history"] = history
     if return_state:
         result["model_state"] = copy.deepcopy(model.state_dict())
     return result

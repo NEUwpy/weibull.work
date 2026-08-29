@@ -1,0 +1,237 @@
+{
+  "protocol_id": "study02-qcp-cross-quantile-recovery-v1",
+  "status": "COMPLETE",
+  "manuscript_admission": "ADMITTED_BY_USER_2026-08-29",
+  "evidence_level": "post-test mechanism analysis of frozen predictions",
+  "new_training_fits": 0,
+  "model_cells_per_route": 200,
+  "predictions_per_route": 480000,
+  "primary_reliability_levels": [
+    0.9,
+    0.95,
+    0.99
+  ],
+  "pooled_metrics": {
+    "0.90": {
+      "P": {
+        "rmsre": 0.13656898075056703,
+        "mae": 0.09347817524103134,
+        "signed_relative_bias": -0.013707776882803715,
+        "relative_error_sd": 0.1358792970109134,
+        "within_10pct": 0.6627708333333333
+      },
+      "Q": {
+        "rmsre": 0.18629565302806153,
+        "mae": 0.15390960392222464,
+        "signed_relative_bias": -0.13459570627494796,
+        "relative_error_sd": 0.12880243083692103,
+        "within_10pct": 0.3518895833333333
+      },
+      "QCP": {
+        "rmsre": 0.1333551887390113,
+        "mae": 0.09426447935254358,
+        "signed_relative_bias": -0.022578196550834997,
+        "relative_error_sd": 0.13142994865756127,
+        "within_10pct": 0.6508125
+      }
+    },
+    "0.95": {
+      "P": {
+        "rmsre": 0.1643204162276035,
+        "mae": 0.10917339945358777,
+        "signed_relative_bias": -0.015131994744730199,
+        "relative_error_sd": 0.16362219263980762,
+        "within_10pct": 0.60745625
+      },
+      "Q": {
+        "rmsre": 0.1609206144204703,
+        "mae": 0.1118512090055359,
+        "signed_relative_bias": -0.027125014044287278,
+        "relative_error_sd": 0.158618024696309,
+        "within_10pct": 0.58401875
+      },
+      "QCP": {
+        "rmsre": 0.15840638416568148,
+        "mae": 0.10938080298511825,
+        "signed_relative_bias": -0.02481782575356262,
+        "relative_error_sd": 0.15645017759437435,
+        "within_10pct": 0.5969791666666666
+      }
+    },
+    "0.99": {
+      "P": {
+        "rmsre": 0.21960174662332096,
+        "mae": 0.13676010076334505,
+        "signed_relative_bias": -0.013771507399615418,
+        "relative_error_sd": 0.21916950678403144,
+        "within_10pct": 0.5354375
+      },
+      "Q": {
+        "rmsre": 0.3582009277355454,
+        "mae": 0.23238438129283284,
+        "signed_relative_bias": 0.2113390903502348,
+        "relative_error_sd": 0.28921219462626524,
+        "within_10pct": 0.3503291666666667
+      },
+      "QCP": {
+        "rmsre": 0.20646814606312533,
+        "mae": 0.13532445600937296,
+        "signed_relative_bias": -0.02539824105861519,
+        "relative_error_sd": 0.20490003584644031,
+        "within_10pct": 0.5263104166666667
+      }
+    }
+  },
+  "qcp_vs_q": {
+    "x_0.90": {
+      "qcp_vs_q_relative_rmsre_improvement": 0.2841744475974211,
+      "relative_rmsre_improvement_95ci": [
+        0.27500589957937027,
+        0.29281576858691216
+      ],
+      "favorable_truth_cells": 155
+    },
+    "x_0.95": {
+      "qcp_vs_q_relative_rmsre_improvement": 0.015624040859173967,
+      "relative_rmsre_improvement_95ci": [
+        0.012407202384552053,
+        0.018982965982382458
+      ],
+      "favorable_truth_cells": 119
+    },
+    "x_0.99": {
+      "qcp_vs_q_relative_rmsre_improvement": 0.42359684167105843,
+      "relative_rmsre_improvement_95ci": [
+        0.4187555456929214,
+        0.42855379908456165
+      ],
+      "favorable_truth_cells": 146
+    }
+  },
+  "pairwise_comparisons": {
+    "x_0.90": {
+      "Q_vs_P": {
+        "target": "Q",
+        "comparator": "P",
+        "relative_rmsre_improvement": -0.36411395914506034,
+        "relative_rmsre_improvement_95ci": [
+          -0.3850819437851247,
+          -0.3432140815380057
+        ],
+        "favorable_truth_cells": 8,
+        "total_truth_cells": 160
+      },
+      "QCP_vs_Q": {
+        "target": "QCP",
+        "comparator": "Q",
+        "relative_rmsre_improvement": 0.2841744475974211,
+        "relative_rmsre_improvement_95ci": [
+          0.27500589957937027,
+          0.29281576858691216
+        ],
+        "favorable_truth_cells": 155,
+        "total_truth_cells": 160
+      },
+      "QCP_vs_P": {
+        "target": "QCP",
+        "comparator": "P",
+        "relative_rmsre_improvement": 0.023532371654918265,
+        "relative_rmsre_improvement_95ci": [
+          0.018091644545603157,
+          0.029042576120437962
+        ],
+        "favorable_truth_cells": 74,
+        "total_truth_cells": 160
+      }
+    },
+    "x_0.95": {
+      "Q_vs_P": {
+        "target": "Q",
+        "comparator": "P",
+        "relative_rmsre_improvement": 0.020690075434230085,
+        "relative_rmsre_improvement_95ci": [
+          0.01280105890766135,
+          0.028105712232254755
+        ],
+        "favorable_truth_cells": 42,
+        "total_truth_cells": 160
+      },
+      "QCP_vs_Q": {
+        "target": "QCP",
+        "comparator": "Q",
+        "relative_rmsre_improvement": 0.015624040859173967,
+        "relative_rmsre_improvement_95ci": [
+          0.012407202384552053,
+          0.018982965982382458
+        ],
+        "favorable_truth_cells": 119,
+        "total_truth_cells": 160
+      },
+      "QCP_vs_P": {
+        "target": "QCP",
+        "comparator": "P",
+        "relative_rmsre_improvement": 0.03599085370944025,
+        "relative_rmsre_improvement_95ci": [
+          0.03027377704506299,
+          0.04179672316559679
+        ],
+        "favorable_truth_cells": 76,
+        "total_truth_cells": 160
+      }
+    },
+    "x_0.99": {
+      "Q_vs_P": {
+        "target": "Q",
+        "comparator": "P",
+        "relative_rmsre_improvement": -0.6311387921242776,
+        "relative_rmsre_improvement_95ci": [
+          -0.6526801838553428,
+          -0.6115812463090728
+        ],
+        "favorable_truth_cells": 13,
+        "total_truth_cells": 160
+      },
+      "QCP_vs_Q": {
+        "target": "QCP",
+        "comparator": "Q",
+        "relative_rmsre_improvement": 0.42359684167105843,
+        "relative_rmsre_improvement_95ci": [
+          0.4187555456929214,
+          0.42855379908456165
+        ],
+        "favorable_truth_cells": 146,
+        "total_truth_cells": 160
+      },
+      "QCP_vs_P": {
+        "target": "QCP",
+        "comparator": "P",
+        "relative_rmsre_improvement": 0.05980644854671156,
+        "relative_rmsre_improvement_95ci": [
+          0.05276872284853003,
+          0.06673174688285134
+        ],
+        "favorable_truth_cells": 77,
+        "total_truth_cells": 160
+      }
+    }
+  },
+  "parameter_normalized_rmse": {
+    "P": {
+      "beta": 0.21506500646395468,
+      "eta": 0.012345623216027033,
+      "gamma": 0.08627606032624068
+    },
+    "Q": {
+      "beta": 8.411346136601459,
+      "eta": 0.9280961147624738,
+      "gamma": 0.3194662870351264
+    },
+    "QCP": {
+      "beta": 0.21649376844491516,
+      "eta": 0.024068775201868082,
+      "gamma": 0.08814418627318334
+    }
+  },
+  "verdict": "CROSS_QUANTILE_RECOVERY_SUPPORTED",
+  "interpretation_boundary": "Cross-quantile gains, if present, show downstream recovery at the prespecified life points; they do not establish universal full-distribution dominance."
+}

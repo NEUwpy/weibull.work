@@ -1,0 +1,40 @@
+{
+  "experiment_id": "study02-p-to-q-warmstart-diagnostic-v1",
+  "status": "COMPLETE",
+  "purpose": "diagnose whether limited Q improvement is caused by optimization from random initialization",
+  "scope": "eight already-completed paired units only; seed 42; n=7 folds 1-5 and n=10 folds 1-3",
+  "not_primary_fairness_note": "P->Q uses sequential P budget plus Q fine-tuning budget; diagnostic only",
+  "epoch0_safeguard": true,
+  "units": 8,
+  "pooled": {
+    "P": {
+      "rmsre": 0.3232854391965757,
+      "signed_relative_bias": -0.003522886149935315,
+      "q95_absolute_relative_error": 0.6121307951034304
+    },
+    "Q": {
+      "rmsre": 0.3042008433200002,
+      "signed_relative_bias": -0.09215109788189424,
+      "q95_absolute_relative_error": 0.5023112565279003
+    },
+    "PQwarm": {
+      "rmsre": 0.3153324511518314,
+      "signed_relative_bias": -0.09669613125885308,
+      "q95_absolute_relative_error": 0.5399940542116821
+    }
+  },
+  "relative_rmsre_improvement_vs_P": {
+    "Q_scratch": 0.0590332677030066,
+    "PQ_warm": 0.024600514222072496
+  },
+  "favorable_units_vs_P": {
+    "Q_scratch": 8,
+    "PQ_warm": 6
+  },
+  "favorable_units_warm_vs_scratch_Q": 0,
+  "validation_q_improved_from_p_units": 7,
+  "warm_selected_epoch0_units": 1,
+  "mean_validation_q_relative_improvement_from_p": 0.055791348687250664,
+  "runtime_s": 462.26647329330444,
+  "git_head": "04f331e5dde6b782c555dcd1cfd626e3d3b99633"
+}

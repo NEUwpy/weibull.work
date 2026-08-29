@@ -1,0 +1,39 @@
+{
+  "protocol_id": "study02-qcp-bias-variance-v1",
+  "status": "COMPLETE",
+  "evidence_level": "post-test descriptive decomposition of frozen evidence",
+  "new_training_fits": 0,
+  "truth_cells_per_route": 160,
+  "predictions_per_truth_cell": 3000,
+  "x95_true_range": {
+    "minimum": 238.05126655628425,
+    "maximum": 1552.0928447661602
+  },
+  "routes": {
+    "P": {
+      "signed_relative_bias": -0.01513199473837557,
+      "rms_cell_bias_component": 0.07090500758028408,
+      "within_truth_cell_sd_component": 0.1482352153254139,
+      "pooled_relative_error_sd": 0.16362219255886332,
+      "rmsre": 0.16432041614641793,
+      "decomposition_residual": 3.469446951953614e-18
+    },
+    "Q": {
+      "signed_relative_bias": -0.027125014063994417,
+      "rms_cell_bias_component": 0.06994015232566937,
+      "within_truth_cell_sd_component": 0.14492694442782839,
+      "pooled_relative_error_sd": 0.1586180246395497,
+      "rmsre": 0.16092061436784502,
+      "decomposition_residual": 0.0
+    },
+    "QCP": {
+      "signed_relative_bias": -0.024817825687387118,
+      "rms_cell_bias_component": 0.07000707400376058,
+      "within_truth_cell_sd_component": 0.14209712225793814,
+      "pooled_relative_error_sd": 0.15645017766914135,
+      "rmsre": 0.15840638422915734,
+      "decomposition_residual": 0.0
+    }
+  },
+  "interpretation_boundary": "Within-cell SD is computed at fixed (n,beta,gamma/eta); pooled error SD additionally contains between-cell bias heterogeneity. All values are descriptive post-test evidence."
+}

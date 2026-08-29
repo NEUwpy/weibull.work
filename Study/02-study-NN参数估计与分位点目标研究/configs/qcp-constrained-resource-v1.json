@@ -1,0 +1,13 @@
+{
+  "protocol_id": "study02-qcp-constrained-resource-v1",
+  "status": "EVIDENCE-TRIGGERED / FROZEN BEFORE RUN",
+  "frozen_at": "2026-08-27",
+  "trigger": "Selected constrained pilot had a best epoch of 289 and stopped at the 300-epoch ceiling in one of eight units.",
+  "selected_constraint": {"slack_multiplier": 1.5, "rho": 0.1},
+  "baseline_budget": {"max_epochs": 300, "patience": 20},
+  "extended_budget": {"max_epochs": 600, "patience": 60},
+  "design": {"n_grid": [7, 10, 15, 20], "folds_1based": [1, 3], "seed": 42, "split_strategy": "repeat_stratified", "batch_size": 256},
+  "selection_rule": "Choose extended only if validation Q rRMSE improves at least 0.5% and at least 6 of 8 units are no worse, or if baseline hit the ceiling and pooled extended Q is lower while all checkpoints remain P-feasible.",
+  "test_policy": "No test evaluation or saved test prediction.",
+  "artifact_namespace": "artifacts/qcp_constrained_resource"
+}

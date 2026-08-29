@@ -1,0 +1,61 @@
+{
+  "protocol_id": "study02-pq-regularized-pilot-v1",
+  "status": "USER APPROVED / FROZEN",
+  "frozen_at": "2026-08-27",
+  "research_question": "Can an auxiliary normalized parameter loss select more stable solutions from the Q_param equivalence valley and lower held-out x0.95 error beyond pure Q_param?",
+  "primary_target": "x0.95 reliability-lifetime relative squared error",
+  "routes": {
+    "P": "parameter-only baseline L_P",
+    "Q": "target-only baseline L_Q",
+    "QP": "L_Q + lambda_p * L_P; P is auxiliary only"
+  },
+  "checkpoint_rule": "All QP checkpoints and lambda selection use validation L_Q only, never the combined training objective.",
+  "screening_design": {
+    "split_strategy": "repeat_stratified",
+    "train_repeats_per_combo": 180,
+    "validation_repeats_per_combo": 60,
+    "test_repeats_per_combo": 60,
+    "n_grid": [7, 10, 15, 20],
+    "folds_1based": [1, 3],
+    "seed": 42,
+    "network": [256, 128, 64],
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001
+  },
+  "resource_gate": {
+    "budgets": [
+      {"id": "baseline", "max_epochs": 300, "patience": 20},
+      {"id": "extended", "max_epochs": 600, "patience": 60}
+    ],
+    "routes": ["P", "Q"],
+    "choose_extended_if": "validation x0.95 rRMSE improves by at least 0.5% relative for Q and is no worse in at least 6 of 8 n-fold units, or baseline hits the epoch ceiling and extended is better",
+    "otherwise": "retain baseline budget"
+  },
+  "lambda_gate": {
+    "lambda_p_grid": [0.0, 1e-6, 1e-5, 0.0001, 0.001, 0.01, 0.1, 1.0],
+    "selection": "minimum pooled validation L_Q across the eight n-fold units",
+    "stable_gain_rule": "advance only if selected lambda improves validation x0.95 rRMSE over lambda=0 by at least 0.5% relative and is better in at least 6 of 8 n-fold units",
+    "tie_rule": "within 0.1% relative validation rRMSE of the best candidate, choose the smaller lambda_p"
+  },
+  "screening_test_policy": "Do not evaluate or save test predictions for any resource or lambda candidate.",
+  "diagnostics": [
+    "per-epoch training objective",
+    "per-epoch train and validation L_Q",
+    "per-epoch train and validation L_P",
+    "best epoch and stopped epoch",
+    "finite-loss and Weibull-support legality"
+  ],
+  "formal_gate": {
+    "requires": "separate user and mentor approval after screening",
+    "success": "QP beats Q and P on frozen independent test x0.95 risk; primary paired design-level interval for QP-Q excludes zero in the favorable direction",
+    "fairness": "P, Q, and QP use identical data, initialization, batch order, scaler, network, and selected training budget"
+  },
+  "excluded": [
+    "direct x0.95 output",
+    "multi-quantile auxiliary training in this pilot",
+    "test-set tuning",
+    "paper claim or manuscript update before formal confirmation"
+  ],
+  "artifact_namespace": "artifacts/pq_regularized_pilot"
+}

@@ -1,0 +1,157 @@
+{
+  "protocol_id": "study02-qcp-resolution-distribution-v1",
+  "status": "COMPLETE",
+  "evidence_level": "post-test descriptive analysis of frozen evidence",
+  "predictions_per_route": 480000,
+  "truth_cells": 160,
+  "predictions_per_truth_cell_per_route": 3000,
+  "pooled_metrics": {
+    "P": {
+      "rmsre": 0.16432041614641793,
+      "signed_relative_bias": -0.015131994738375572,
+      "relative_error_sd": 0.16362219255886332,
+      "mae": 0.10917339943344137,
+      "mdape": 0.07691449299454689,
+      "p95_absolute_error": 0.30428596436977373,
+      "within_10pct": 0.60745625,
+      "within_20pct": 0.8620604166666667,
+      "q025_signed_error": -0.26863128021359445,
+      "q975_signed_error": 0.3754514090716838
+    },
+    "Q": {
+      "rmsre": 0.16092061436784502,
+      "signed_relative_bias": -0.027125014063994417,
+      "relative_error_sd": 0.15861802463954972,
+      "mae": 0.11185120902178429,
+      "mdape": 0.08135615661740303,
+      "p95_absolute_error": 0.30802584141492845,
+      "within_10pct": 0.5840166666666666,
+      "within_20pct": 0.8495833333333334,
+      "q025_signed_error": -0.29382722452282906,
+      "q975_signed_error": 0.34144853055477087
+    },
+    "QCP": {
+      "rmsre": 0.15840638422915734,
+      "signed_relative_bias": -0.024817825687387118,
+      "relative_error_sd": 0.15645017766914135,
+      "mae": 0.10938080303106969,
+      "mdape": 0.07857904583215714,
+      "p95_absolute_error": 0.3031390100717544,
+      "within_10pct": 0.5969791666666666,
+      "within_20pct": 0.8542541666666666,
+      "q025_signed_error": -0.285968367010355,
+      "q975_signed_error": 0.3393359243869781
+    }
+  },
+  "pooled_qcp_vs_q_relative_rmsre_improvement": 0.015624040492586746,
+  "favorable_truth_cells": 119,
+  "truth_cell_effect_quantiles": {
+    "min": -0.047619897007460193,
+    "q10": -0.017052814601880514,
+    "q25": -0.00043598935561808556,
+    "q50": 0.01702467297068229,
+    "q75": 0.05284197232748372,
+    "q90": 0.10241867702640961,
+    "max": 0.21712881170642226
+  },
+  "representative_selection_rule": "truth cell whose QCP-vs-Q relative RMSRE improvement is closest to the pooled QCP-vs-Q effect; lexicographic tie-break",
+  "representative_truth_cell": {
+    "n": 7,
+    "beta": 4.5,
+    "gamma_over_eta": 0.75,
+    "qcp_vs_q_relative_rmsre_improvement": 0.016023419532145,
+    "metrics": {
+      "P": {
+        "rmsre": 0.10155329875349609,
+        "signed_relative_bias": -0.06248773877241668,
+        "relative_error_sd": 0.08005220166133498,
+        "mae": 0.08268918616137913,
+        "mdape": 0.07461956515908241,
+        "p95_absolute_error": 0.19374794289469713,
+        "within_10pct": 0.6483333333333333,
+        "within_20pct": 0.956,
+        "q025_signed_error": -0.21297827251255513,
+        "q975_signed_error": 0.09697468429803852
+      },
+      "Q": {
+        "rmsre": 0.10167157770065433,
+        "signed_relative_bias": -0.0583678586729402,
+        "relative_error_sd": 0.0832484401419983,
+        "mae": 0.08193672911170749,
+        "mdape": 0.06946345046162605,
+        "p95_absolute_error": 0.19708294942975044,
+        "within_10pct": 0.6636666666666666,
+        "within_20pct": 0.9543333333333334,
+        "q025_signed_error": -0.21832132451236247,
+        "q975_signed_error": 0.09985045790672308
+      },
+      "QCP": {
+        "rmsre": 0.10004245135666166,
+        "signed_relative_bias": -0.058756970804795854,
+        "relative_error_sd": 0.08096981199987056,
+        "mae": 0.08067686879034348,
+        "mdape": 0.06944466009736061,
+        "p95_absolute_error": 0.19422717615962026,
+        "within_10pct": 0.673,
+        "within_20pct": 0.9613333333333334,
+        "q025_signed_error": -0.21241559758782386,
+        "q975_signed_error": 0.09480476081371315
+      }
+    }
+  },
+  "q_to_qcp_changes": {
+    "rmsre": {
+      "q": 0.16092061436784502,
+      "qcp": 0.15840638422915734,
+      "relative_change": 0.01562404014280267,
+      "display_change": "-0.252 pp (-1.56%)"
+    },
+    "mae": {
+      "q": 0.11185120902178429,
+      "qcp": 0.10938080303106969,
+      "relative_change": 0.02208653811004817,
+      "display_change": "-0.247 pp (-2.21%)"
+    },
+    "mdape": {
+      "q": 0.08135615661740303,
+      "qcp": 0.07857904583215714,
+      "relative_change": 0.03413522590928096,
+      "display_change": "-0.278 pp (-3.41%)"
+    },
+    "p95_absolute_error": {
+      "q": 0.30802584141492845,
+      "qcp": 0.3031390100717544,
+      "relative_change": 0.01586500444484196,
+      "display_change": "-0.489 pp (-1.59%)"
+    },
+    "within_10pct": {
+      "q": 0.5840166666666666,
+      "qcp": 0.5969791666666666,
+      "absolute_change": 0.012962499999999988,
+      "display_change": "+1.30 pp"
+    },
+    "signed_relative_bias": {
+      "q": -0.027125014063994417,
+      "qcp": -0.024817825687387118,
+      "absolute_bias_reduction": 0.08505759190259177,
+      "display_change": "|bias| -8.50%"
+    },
+    "within_cell_sd": {
+      "q": 0.14492694442782839,
+      "qcp": 0.14209712225793814,
+      "relative_change": 0.019525852705046594,
+      "display_change": "-0.283 pp (-1.95%)"
+    },
+    "compensation_index": {
+      "p": 0.3322564465257368,
+      "q": 0.9145458816452118,
+      "qcp": 0.34532413057026734,
+      "excess_over_p_removed": 0.9775580952420178,
+      "display_change": "97.8% excess removed"
+    }
+  },
+  "interpretation": {
+    "primary": "QCP nearly removes Q's excess parameter compensation relative to P, while its additional target-error gain is modest.",
+    "boundary": "The constraint solves parameter plausibility more completely than it solves target error; QCP does not dominate Q in every truth cell."
+  }
+}

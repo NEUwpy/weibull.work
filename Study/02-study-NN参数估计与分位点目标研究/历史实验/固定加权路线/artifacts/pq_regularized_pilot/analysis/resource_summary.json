@@ -1,0 +1,114 @@
+{
+  "protocol_id": "study02-pq-regularized-pilot-v1",
+  "stage": "resource_gate",
+  "config_sha256": "7d795de11366906e8d2356d626ee6cf20353180376dc1261c28407d62dc85b2b",
+  "test_access_count": 0,
+  "n_fits": 32,
+  "by_budget": {
+    "baseline": {
+      "P": {
+        "validation_rrmse": 0.2320811538962687,
+        "best_epochs": [
+          76,
+          68,
+          92,
+          58,
+          78,
+          56,
+          113,
+          70
+        ],
+        "stopped_epochs": [
+          96,
+          88,
+          112,
+          78,
+          98,
+          76,
+          133,
+          90
+        ],
+        "ceiling_hits": 0
+      },
+      "Q": {
+        "validation_rrmse": 0.16047423024460242,
+        "best_epochs": [
+          87,
+          64,
+          44,
+          29,
+          70,
+          116,
+          87,
+          48
+        ],
+        "stopped_epochs": [
+          107,
+          84,
+          64,
+          49,
+          90,
+          136,
+          107,
+          68
+        ],
+        "ceiling_hits": 0
+      }
+    },
+    "extended": {
+      "P": {
+        "validation_rrmse": 0.2305507114830316,
+        "best_epochs": [
+          186,
+          121,
+          138,
+          175,
+          163,
+          147,
+          169,
+          250
+        ],
+        "stopped_epochs": [
+          246,
+          181,
+          198,
+          235,
+          223,
+          207,
+          229,
+          310
+        ],
+        "ceiling_hits": 0
+      },
+      "Q": {
+        "validation_rrmse": 0.1600946903219103,
+        "best_epochs": [
+          87,
+          97,
+          44,
+          70,
+          99,
+          371,
+          168,
+          161
+        ],
+        "stopped_epochs": [
+          147,
+          157,
+          104,
+          130,
+          159,
+          431,
+          228,
+          221
+        ],
+        "ceiling_hits": 0
+      }
+    }
+  },
+  "q_extended_relative_validation_rrmse_gain": 0.002365114461765085,
+  "q_extended_no_worse_units": 8,
+  "q_baseline_ceiling_hit": false,
+  "selected_budget": "baseline",
+  "decision": "advance_to_lambda_gate"
+}

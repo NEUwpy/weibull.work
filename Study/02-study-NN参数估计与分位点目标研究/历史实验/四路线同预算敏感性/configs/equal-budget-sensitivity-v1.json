@@ -1,0 +1,45 @@
+{
+  "protocol_id": "study02-equal-budget-sensitivity-v1",
+  "status": "USER APPROVED / POST-TEST SENSITIVITY FROZEN",
+  "frozen_at": "2026-08-28",
+  "evidence_level": "post-test equal-budget sensitivity analysis; not a first-open confirmatory test",
+  "common_budget": {"max_epochs": 600, "patience": 60},
+  "target": "x0.95 reliability-lifetime relative squared error",
+  "design": {
+    "n_grid": [7, 10, 15, 20],
+    "folds_1based": [1, 2, 3, 4, 5],
+    "seeds": [42, 2026, 3407, 17, 73, 314, 2718, 4099, 8128, 12011],
+    "split_strategy": "repeat_stratified",
+    "train_validation_test_repeats_per_combo": [180, 60, 60],
+    "new_fits_by_route": {"P": 200, "Q": 200, "QP": 200},
+    "reused_qcp_fits": 200
+  },
+  "frozen_route_settings": {
+    "P": "equal normalized parameter loss",
+    "Q": "x0.95 relative squared error",
+    "QP": {"lambda_p": 1.0, "checkpoint_loss": "validation L_Q only"},
+    "QCP": {
+      "source": "artifacts/qcp_constrained_confirm",
+      "slack_multiplier": 1.5,
+      "rho": 0.1,
+      "checkpoint_rule": "validation P feasibility first, then minimum validation Q"
+    }
+  },
+  "pairing": [
+    "same train, validation, and test row identities",
+    "same initialization parameters and first-epoch batch order",
+    "same network, legal decoder, scaler, optimizer, and batch size",
+    "same maximum epochs and patience for all four routes"
+  ],
+  "primary_sensitivity_contrast": "QCP-QP at common 600/60 budget",
+  "additional_contrasts": ["QCP-Q", "QCP-P", "QP-Q", "QP-P"],
+  "bootstrap": {
+    "replicates": 200000,
+    "seed": 2026082801,
+    "scheme": "paired crossed resampling: folds within each n and global training seeds"
+  },
+  "test_access_policy": "Test outcomes were known before this user-requested fairness audit. Report as post-test sensitivity evidence and never as a first-open confirmation.",
+  "failure_rule": "Any nonfinite loss or prediction, support violation, infeasible reused QCP checkpoint, missing unit, pairing mismatch, or evidence hash mismatch stops analysis.",
+  "artifact_namespace": "artifacts/equal_budget_sensitivity"
+}
+

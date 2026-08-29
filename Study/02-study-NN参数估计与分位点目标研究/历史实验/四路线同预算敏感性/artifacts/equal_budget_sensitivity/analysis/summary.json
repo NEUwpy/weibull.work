@@ -1,0 +1,188 @@
+{
+  "protocol_id": "study02-equal-budget-sensitivity-v1",
+  "status": "COMPLETE",
+  "evidence_level": "post-test equal-budget sensitivity analysis; not a first-open confirmatory test",
+  "common_budget": {
+    "max_epochs": 600,
+    "patience": 60
+  },
+  "n_new_fits": 600,
+  "n_reused_qcp_fits": 200,
+  "n_test_rows_per_route": 480000,
+  "constraint_feasible_checkpoints": 200,
+  "pooled_rrmse": {
+    "P": 0.16432041618048712,
+    "Q": 0.16092061442231365,
+    "QP": 0.15850512434272843,
+    "QCP": 0.15840638422648748
+  },
+  "diagnostics": {
+    "P": {
+      "mae": 0.10917339943344137,
+      "median_absolute_error": 0.07691449299454689,
+      "within_10pct": 0.60745625,
+      "overestimate_gt_10pct": 0.14285833333333334,
+      "underestimate_gt_10pct": 0.24968541666666666,
+      "signed_bias": -0.015131994738375568,
+      "q95_absolute_error": 0.30428596436977373,
+      "global_cvar90_absolute_error": 0.37409484284526356,
+      "mean_parameter_loss": 0.05384893000335009,
+      "mean_exact_cancellation_index": 0.3322564465257368
+    },
+    "Q": {
+      "mae": 0.11185120902178429,
+      "median_absolute_error": 0.08135615661740303,
+      "within_10pct": 0.5840166666666666,
+      "overestimate_gt_10pct": 0.13250625,
+      "underestimate_gt_10pct": 0.2834770833333333,
+      "signed_bias": -0.027125014063994417,
+      "q95_absolute_error": 0.30802584141492845,
+      "global_cvar90_absolute_error": 0.3631338570971663,
+      "mean_parameter_loss": 71.71416493650949,
+      "mean_exact_cancellation_index": 0.9145458816452118
+    },
+    "QP": {
+      "mae": 0.10954585238252292,
+      "median_absolute_error": 0.07896212488412857,
+      "within_10pct": 0.5953,
+      "overestimate_gt_10pct": 0.131525,
+      "underestimate_gt_10pct": 0.273175,
+      "signed_bias": -0.02517634554202804,
+      "q95_absolute_error": 0.30238372087478627,
+      "global_cvar90_absolute_error": 0.357449774657997,
+      "mean_parameter_loss": 0.055207726976552594,
+      "mean_exact_cancellation_index": 0.3455838612714495
+    },
+    "QCP": {
+      "mae": 0.10938080303106969,
+      "median_absolute_error": 0.07857904583215714,
+      "within_10pct": 0.5969791666666666,
+      "overestimate_gt_10pct": 0.13194375,
+      "underestimate_gt_10pct": 0.27107708333333336,
+      "signed_bias": -0.024817825687387114,
+      "q95_absolute_error": 0.3031390100717544,
+      "global_cvar90_absolute_error": 0.35764235458150506,
+      "mean_parameter_loss": 0.055218255288960266,
+      "mean_exact_cancellation_index": 0.34532413057026734
+    }
+  },
+  "resource_diagnostics": {
+    "P": {
+      "best_epoch_median": 175.5,
+      "best_epoch_p90": 265.29999999999995,
+      "best_epoch_max": 417,
+      "stopped_at_600_count": 0,
+      "runtime_s_sum": 9046.366129875183,
+      "runtime_s_median": 41.420031905174255
+    },
+    "Q": {
+      "best_epoch_median": 105.0,
+      "best_epoch_p90": 217.49999999999997,
+      "best_epoch_max": 490,
+      "stopped_at_600_count": 0,
+      "runtime_s_sum": 7055.543123960495,
+      "runtime_s_median": 29.593509435653687
+    },
+    "QP": {
+      "best_epoch_median": 126.5,
+      "best_epoch_p90": 231.1,
+      "best_epoch_max": 363,
+      "stopped_at_600_count": 0,
+      "runtime_s_sum": 7800.276646137238,
+      "runtime_s_median": 36.2968635559082
+    },
+    "QCP": {
+      "best_epoch_median": 159.5,
+      "best_epoch_p90": 362.29999999999995,
+      "best_epoch_max": 594,
+      "stopped_at_600_count": 3,
+      "runtime_s_sum": 20089.045235157013,
+      "runtime_s_median": 87.18405497074127
+    }
+  },
+  "contrasts": {
+    "QCP_minus_QP": {
+      "mean_mse_difference": -3.129187919420416e-05,
+      "mse_difference_95ci": [
+        -8.409401125626659e-05,
+        2.51344804397175e-05
+      ],
+      "relative_rrmse_improvement": 0.0006229458930769083,
+      "relative_rrmse_improvement_95ci": [
+        -0.0004989874618415245,
+        0.001678537638455573
+      ],
+      "favorable_model_cells": 111,
+      "total_model_cells": 200,
+      "favorable_seeds": 8,
+      "total_seeds": 10
+    },
+    "QCP_minus_Q": {
+      "mean_mse_difference": -0.0008028615823453601,
+      "mse_difference_95ci": [
+        -0.0009703528843273456,
+        -0.0006442503164677267
+      ],
+      "relative_rrmse_improvement": 0.015624040492586746,
+      "relative_rrmse_improvement_95ci": [
+        0.012401790835514636,
+        0.019003477106228153
+      ],
+      "favorable_model_cells": 196,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10
+    },
+    "QCP_minus_P": {
+      "mean_mse_difference": -0.0019086166100189179,
+      "mse_difference_95ci": [
+        -0.002248643252144621,
+        -0.001582173577872651
+      ],
+      "relative_rrmse_improvement": 0.03599085306298006,
+      "relative_rrmse_improvement_95ci": [
+        0.030286984384063333,
+        0.041766949248668986
+      ],
+      "favorable_model_cells": 200,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10
+    },
+    "QP_minus_Q": {
+      "mean_mse_difference": -0.000771569703151156,
+      "mse_difference_95ci": [
+        -0.0009281018773619244,
+        -0.0006234890688654442
+      ],
+      "relative_rrmse_improvement": 0.015010445294759462,
+      "relative_rrmse_improvement_95ci": [
+        0.012005067212203147,
+        0.01816467522373091
+      ],
+      "favorable_model_cells": 196,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10
+    },
+    "QP_minus_P": {
+      "mean_mse_difference": -0.001877324730824714,
+      "mse_difference_95ci": [
+        -0.0022086256974252903,
+        -0.001550913815665018
+      ],
+      "relative_rrmse_improvement": 0.035389953195902726,
+      "relative_rrmse_improvement_95ci": [
+        0.029700945034571,
+        0.04097454869389116
+      ],
+      "favorable_model_cells": 199,
+      "total_model_cells": 200,
+      "favorable_seeds": 10,
+      "total_seeds": 10
+    }
+  },
+  "primary_sensitivity_direction_favors_qcp": true,
+  "primary_sensitivity_interval_below_zero": false,
+  "decision": "POST_TEST_EQUAL_BUDGET_SENSITIVITY_COMPLETE"
+}

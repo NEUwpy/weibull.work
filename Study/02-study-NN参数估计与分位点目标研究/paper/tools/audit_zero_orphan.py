@@ -4,7 +4,7 @@
     python paper/tools/audit_zero_orphan.py
 
 检查项：
-  1. 从 `paper/论文初稿.md` 正文（参考文献之前的全部文本）提取所有 [n] 引用；
+  1. 从当前论文正文（参考文献之前的全部文本）提取所有 [n] 引用；
   2. 从参考文献段提取 `^[n] ` 条目编号；
   3. 输出双向差集：orphan（正文引用但无条目）与 unused（条目但正文从未引用）。
     两者均为空 => 通过（0 orphan / 0 多余）。
@@ -16,23 +16,25 @@ import re
 import sys
 from pathlib import Path
 
-PAPER = Path(__file__).resolve().parents[1] / "论文初稿.md"
+DEFAULT_PAPER = Path(__file__).resolve().parents[1] / "论文初稿-v2.1-正面叙述精简版.md"
 REF_MARKER = "## 参考文献"
 
 
 def main() -> int:
-    text = PAPER.read_text(encoding="utf-8")
+    paper = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else DEFAULT_PAPER
+    text = paper.read_text(encoding="utf-8")
     if REF_MARKER not in text:
-        print(f"ERROR: '{REF_MARKER}' section not found in {PAPER.name}", file=sys.stderr)
+        print(f"ERROR: '{REF_MARKER}' section not found in {paper.name}", file=sys.stderr)
         return 2
     body = text.split(REF_MARKER)[0]
     refs_section = text.split(REF_MARKER)[1]
 
-    # 正文所有括号组内的纯整数 token（排除 CI 区间、小数、负数、非引用括号）
+    # 只接受整个括号组都是整数引用的形式，例如 [1] 或 [8,9,10]。
+    # 这会排除 CI [0.49%,0.88%] 和数学式 max[0, ...]，避免把其中的 0 当文献号。
     cited: set[int] = set()
     for grp in re.findall(r"\[([^\]]*)\]", body):
-        for tok in re.findall(r"(?<![.\d])(\d{1,2})(?![.\d])", grp):
-            cited.add(int(tok))
+        if re.fullmatch(r"\s*\d{1,2}(?:\s*,\s*\d{1,2})*\s*", grp):
+            cited.update(int(tok) for tok in re.findall(r"\d{1,2}", grp))
 
     refs: set[int] = set(int(m) for m in re.findall(r"^\[(\d{1,2})\]", refs_section, re.M))
 

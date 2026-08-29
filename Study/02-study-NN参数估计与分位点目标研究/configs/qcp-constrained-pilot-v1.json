@@ -1,0 +1,32 @@
+{
+  "protocol_id": "study02-qcp-constrained-pilot-v1",
+  "status": "USER REQUESTED / FROZEN FOR PILOT",
+  "frozen_at": "2026-08-27",
+  "research_question": "Can Q remain the sole optimization and checkpoint target while an adaptive inequality constraint on P reduces parameter compensation and improves validation x0.95 risk?",
+  "optimization_problem": "minimize L_Q(theta) subject to L_P(theta) <= tau",
+  "constraint_solver": "inequality augmented Lagrangian with projected non-negative multiplier",
+  "screening_design": {
+    "split_strategy": "repeat_stratified",
+    "n_grid": [7, 10, 15, 20],
+    "folds_1based": [1, 3],
+    "seed": 42,
+    "max_epochs": 300,
+    "patience": 20,
+    "batch_size": 256
+  },
+  "constraint_grid": {
+    "p_reference": "matched P baseline best validation L_P in pq_regularized_pilot",
+    "tau_formula": "tau_cell = slack_multiplier * matched_P_best_validation_L_P",
+    "slack_multipliers": [1.25, 1.5, 2.0],
+    "rho_grid": [0.03, 0.1]
+  },
+  "selection": {
+    "checkpoint": "minimum validation L_Q",
+    "candidate_feasibility": "validation L_P <= tau in at least 7 of 8 units",
+    "candidate_choice": "lowest pooled validation L_Q among feasible candidates",
+    "promising_gate": "at least 0.5% validation rRMSE improvement over pure Q and at least 6 of 8 units improved"
+  },
+  "comparators": ["pure Q validation control", "lambda=1 weighted QP validation control"],
+  "test_policy": "No test evaluation or saved test prediction in this pilot.",
+  "artifact_namespace": "artifacts/qcp_constrained_pilot"
+}

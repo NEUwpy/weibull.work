@@ -1,0 +1,67 @@
+{
+  "protocol_id": "study02-qcp-constrained-confirm-v1",
+  "status": "USER APPROVED / FROZEN BEFORE TEST OPEN",
+  "frozen_at": "2026-08-27",
+  "selection_source": [
+    "artifacts/qcp_constrained_pilot/analysis/selection.json",
+    "artifacts/qcp_constrained_resource/analysis/summary.json"
+  ],
+  "selected_constraint": {
+    "slack_multiplier": 1.5,
+    "rho": 0.1,
+    "cell_limit": "1.5 * matched P baseline best validation L_P"
+  },
+  "selected_budget": {"max_epochs": 600, "patience": 60},
+  "target": "x0.95 reliability-lifetime relative squared error",
+  "design": {
+    "n_grid": [7, 10, 15, 20],
+    "folds_1based": [1, 2, 3, 4, 5],
+    "seeds": [42, 2026, 3407, 17, 73, 314, 2718, 4099, 8128, 12011],
+    "split_strategy": "repeat_stratified",
+    "train_validation_test_repeats_per_combo": [180, 60, 60],
+    "new_qcp_fits": 200,
+    "reused_pqqp_fits": 600
+  },
+  "route": {
+    "name": "QCP",
+    "optimization": "minimize L_Q subject to L_P <= tau_cell",
+    "solver": "augmented Lagrangian with nonnegative adaptive multiplier",
+    "checkpoint_rule": "first require validation P feasibility, then choose minimum validation Q among feasible epochs",
+    "network": [256, 128, 64],
+    "output": "beta, eta, gamma with the same legal decoder as P, Q, and QP"
+  },
+  "comparators": {
+    "p_q_existing_seeds": "artifacts/pq_iid_main",
+    "p_q_added_seeds": "artifacts/pq_s5b_revision/grid_extra",
+    "qp": "artifacts/pq_regularized_confirm",
+    "immutable": true
+  },
+  "pairing": [
+    "same train, validation, and test row identities",
+    "same initialization parameters",
+    "same first-epoch batch order",
+    "same network structure and scaler",
+    "same optimizer; QCP uses the independently frozen 600/60 resource budget"
+  ],
+  "co_primary_success": [
+    "all 200 selected checkpoints satisfy their validation P constraint",
+    "design-level paired 95% empirical bootstrap interval for QCP-Q mean squared-relative-error difference is below zero",
+    "design-level paired 95% empirical bootstrap interval for QCP-QP mean squared-relative-error difference is below zero"
+  ],
+  "secondary_contrast": "QCP-P",
+  "effect_sizes": [
+    "pooled rRMSE for P, Q, QP, and QCP",
+    "relative rRMSE improvement of QCP over QP, Q, and P",
+    "10-seed and 200 model-cell directions",
+    "MAE, within 10%, 95th absolute-error percentile, CVaR90, signed tails, parameter loss, and cancellation"
+  ],
+  "bootstrap": {
+    "replicates": 200000,
+    "seed": 2026082703,
+    "scheme": "paired crossed resampling: folds within each n and global training seeds"
+  },
+  "test_open_policy": "The configuration, thresholds, solver, budget, contrasts, and success rules are frozen before any QCP test prediction is calculated.",
+  "failure_rule": "Any infeasible selected checkpoint, nonfinite loss or prediction, support violation, missing comparator, or pairing mismatch fails formal confirmation.",
+  "artifact_namespace": "artifacts/qcp_constrained_confirm",
+  "paper_policy": "Report the formal result whether positive or negative; do not retune after test access."
+}
