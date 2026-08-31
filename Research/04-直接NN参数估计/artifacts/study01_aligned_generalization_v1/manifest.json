@@ -1,0 +1,259 @@
+{
+  "run_id": "study01_aligned_generalization_v1",
+  "status": "complete",
+  "generated_at": "2026-08-29T22:46:27.202737+00:00",
+  "git": {
+    "commit": "3167cb43edb8815e716b113845d8dce58895c5ac",
+    "branch": "main",
+    "dirty": true
+  },
+  "training_design": {
+    "beta": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0
+    ],
+    "eta": 1000.0,
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "repeats": 300,
+    "samples": 48000,
+    "delta_grid": [
+      0.0,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.12,
+      0.14,
+      0.16,
+      0.18,
+      0.2,
+      0.22,
+      0.24,
+      0.26,
+      0.28,
+      0.3,
+      0.32,
+      0.34,
+      0.36,
+      0.38,
+      0.4,
+      0.42,
+      0.44,
+      0.46,
+      0.48,
+      0.5
+    ],
+    "seed_namespace": "study01_nrmc_v1",
+    "model_seed": 42
+  },
+  "test_design": {
+    "beta": [
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25,
+      3.5,
+      3.75,
+      4.0,
+      4.25,
+      4.5,
+      4.75,
+      5.0,
+      5.25,
+      5.5,
+      5.75
+    ],
+    "beta_groups": {
+      "0.75": "far_ood",
+      "1.0": "far_ood",
+      "1.25": "near_ood",
+      "1.5": "seen_grid",
+      "1.75": "in_domain_unseen",
+      "2.0": "seen_grid",
+      "2.25": "in_domain_unseen",
+      "2.5": "seen_grid",
+      "2.75": "in_domain_unseen",
+      "3.0": "seen_grid",
+      "3.25": "in_domain_unseen",
+      "3.5": "seen_grid",
+      "3.75": "in_domain_unseen",
+      "4.0": "seen_grid",
+      "4.25": "in_domain_unseen",
+      "4.5": "seen_grid",
+      "4.75": "in_domain_unseen",
+      "5.0": "seen_grid",
+      "5.25": "near_ood",
+      "5.5": "far_ood",
+      "5.75": "far_ood"
+    },
+    "eta": 1000.0,
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "repeats": 300,
+    "seed_namespace": "research04_generalization_v1"
+  },
+  "methods": [
+    "Direct-P",
+    "Adaptive-MDM",
+    "MDM-0.1"
+  ],
+  "model_training": {
+    "7": {
+      "n": 7,
+      "seed": 42,
+      "n_train": 12000,
+      "input": "sorted X / sample mean",
+      "adaptive_target": "26-point Study01 J1-squared loss curve",
+      "direct_target": "three decoded parameters with J1-compatible P loss",
+      "hidden_layers": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "patience": 20,
+      "adaptive_n_iter": 53,
+      "direct_n_iter": 30,
+      "adaptive_seconds": 5.168294200004311,
+      "direct_seconds": 3.362707699998282,
+      "failure_penalty": 2.670433491321633
+    },
+    "10": {
+      "n": 10,
+      "seed": 42,
+      "n_train": 12000,
+      "input": "sorted X / sample mean",
+      "adaptive_target": "26-point Study01 J1-squared loss curve",
+      "direct_target": "three decoded parameters with J1-compatible P loss",
+      "hidden_layers": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "patience": 20,
+      "adaptive_n_iter": 46,
+      "direct_n_iter": 25,
+      "adaptive_seconds": 4.7022013000096194,
+      "direct_seconds": 1.6445218000153545,
+      "failure_penalty": 1.9886662665731452
+    },
+    "15": {
+      "n": 15,
+      "seed": 42,
+      "n_train": 12000,
+      "input": "sorted X / sample mean",
+      "adaptive_target": "26-point Study01 J1-squared loss curve",
+      "direct_target": "three decoded parameters with J1-compatible P loss",
+      "hidden_layers": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "patience": 20,
+      "adaptive_n_iter": 42,
+      "direct_n_iter": 35,
+      "adaptive_seconds": 4.390970400010701,
+      "direct_seconds": 2.321598800015636,
+      "failure_penalty": 1.672285223021418
+    },
+    "20": {
+      "n": 20,
+      "seed": 42,
+      "n_train": 12000,
+      "input": "sorted X / sample mean",
+      "adaptive_target": "26-point Study01 J1-squared loss curve",
+      "direct_target": "three decoded parameters with J1-compatible P loss",
+      "hidden_layers": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "patience": 20,
+      "adaptive_n_iter": 38,
+      "direct_n_iter": 31,
+      "adaptive_seconds": 3.974694200005615,
+      "direct_seconds": 2.0726222000084817,
+      "failure_penalty": 1.4555806554614428
+    }
+  },
+  "validation": {
+    "n_samples": 126000,
+    "n_rows": 378000,
+    "counts_by_beta_group": {
+      "far_ood": 24000,
+      "near_ood": 12000,
+      "seen_grid": 48000,
+      "in_domain_unseen": 42000
+    },
+    "failures_by_method": {
+      "Adaptive-MDM": 36,
+      "Direct-P": 69,
+      "MDM-0.1": 81
+    }
+  },
+  "metrics": {
+    "primary": [
+      "relative Bias",
+      "relative SD",
+      "relative RMSE"
+    ],
+    "summary": "J1 with train-derived failure penalty",
+    "tail": [
+      "P95 joint error",
+      "CVaR95 joint error"
+    ],
+    "quantiles": [
+      0.9,
+      0.95,
+      0.99
+    ]
+  },
+  "code_sha256": "6daedd81cdf053bcf47fc69db49a4c727f32c2855ea5dd33971263c21cc19c1e",
+  "outputs": [
+    "per_sample_results.csv.gz",
+    "method_summary.csv",
+    "cell_summary.csv",
+    "paired_method_differences.csv",
+    "manifest.json"
+  ]
+}

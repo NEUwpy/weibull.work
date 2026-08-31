@@ -1,0 +1,678 @@
+{
+  "run_id": "training_domain_width_v1",
+  "status": "complete",
+  "generated_at": "2026-08-30T04:18:16.284959+00:00",
+  "git": {
+    "commit": "3167cb43edb8815e716b113845d8dce58895c5ac",
+    "branch": "main",
+    "dirty": true
+  },
+  "question": "How do training beta-domain width and training-data budget alter Direct-P common-core accuracy and OOD degradation?",
+  "domain_specs": {
+    "narrow_2.0_3.0": {
+      "label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "min": 2.0,
+      "max": 3.0
+    },
+    "medium_1.5_3.5": {
+      "label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "min": 1.5,
+      "max": 3.5
+    },
+    "wide_1.5_5.0": {
+      "label": "[1.5, 5.0]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0
+      ],
+      "min": 1.5,
+      "max": 5.0
+    }
+  },
+  "budget_policies": {
+    "fixed_total": {
+      "samples_per_n": 12000,
+      "meaning": "constant total training samples; local density falls as domain widens"
+    },
+    "fixed_density": {
+      "repeats_per_beta_gamma_cell": 300,
+      "meaning": "constant local sampling density; total samples grow as domain widens"
+    }
+  },
+  "scenarios": [
+    {
+      "budget_policy": "fixed_total",
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "train_beta_min": 2.0,
+      "train_beta_max": 3.0,
+      "train_beta_width": 1.0,
+      "train_repeats_per_cell": 800,
+      "n_train_per_n": 12000,
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ]
+    },
+    {
+      "budget_policy": "fixed_total",
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "train_beta_min": 1.5,
+      "train_beta_max": 3.5,
+      "train_beta_width": 2.0,
+      "train_repeats_per_cell": 480,
+      "n_train_per_n": 12000,
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ]
+    },
+    {
+      "budget_policy": "fixed_total",
+      "domain_id": "wide_1.5_5.0",
+      "domain_label": "[1.5, 5.0]",
+      "train_beta_min": 1.5,
+      "train_beta_max": 5.0,
+      "train_beta_width": 3.5,
+      "train_repeats_per_cell": 300,
+      "n_train_per_n": 12000,
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0
+      ]
+    },
+    {
+      "budget_policy": "fixed_density",
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "train_beta_min": 2.0,
+      "train_beta_max": 3.0,
+      "train_beta_width": 1.0,
+      "train_repeats_per_cell": 300,
+      "n_train_per_n": 4500,
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ]
+    },
+    {
+      "budget_policy": "fixed_density",
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "train_beta_min": 1.5,
+      "train_beta_max": 3.5,
+      "train_beta_width": 2.0,
+      "train_repeats_per_cell": 300,
+      "n_train_per_n": 7500,
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ]
+    },
+    {
+      "budget_policy": "fixed_density",
+      "domain_id": "wide_1.5_5.0",
+      "domain_label": "[1.5, 5.0]",
+      "train_beta_min": 1.5,
+      "train_beta_max": 5.0,
+      "train_beta_width": 3.5,
+      "train_repeats_per_cell": 300,
+      "n_train_per_n": 12000,
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        4.0,
+        4.5,
+        5.0
+      ]
+    }
+  ],
+  "shared_controls": {
+    "eta": 1000.0,
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "model_seed": 42,
+    "architecture": [
+      256,
+      128,
+      64
+    ],
+    "max_iter": 300,
+    "patience": 20,
+    "input": "sorted X / sample mean",
+    "target": "three decoded parameters with J1-compatible P loss",
+    "training_seed_namespace": "study01_nrmc_v1"
+  },
+  "test_design": {
+    "beta": [
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25,
+      3.5,
+      3.75,
+      4.0,
+      4.25,
+      4.5,
+      4.75,
+      5.0,
+      5.25,
+      5.5,
+      5.75
+    ],
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "repeats": 300,
+    "seed_namespace": "research04_generalization_v1",
+    "shared_with": "study01_aligned_generalization_v1"
+  },
+  "failure_penalty": 2.670433491321633,
+  "model_training": {
+    "narrow_2.0_3.0__reps800__n7": {
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "train_repeats_per_cell": 800,
+      "n_train": 12000,
+      "n": 7,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 39,
+      "best_val_loss": 0.0917297899723053,
+      "seconds": 4.970384899992496
+    },
+    "narrow_2.0_3.0__reps800__n10": {
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "train_repeats_per_cell": 800,
+      "n_train": 12000,
+      "n": 10,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 25,
+      "best_val_loss": 0.07817389070987701,
+      "seconds": 2.0911034000164364
+    },
+    "narrow_2.0_3.0__reps800__n15": {
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "train_repeats_per_cell": 800,
+      "n_train": 12000,
+      "n": 15,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 25,
+      "best_val_loss": 0.06386709958314896,
+      "seconds": 2.0891078999848105
+    },
+    "narrow_2.0_3.0__reps800__n20": {
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "train_repeats_per_cell": 800,
+      "n_train": 12000,
+      "n": 20,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 30,
+      "best_val_loss": 0.05605035275220871,
+      "seconds": 2.4157475999963935
+    },
+    "medium_1.5_3.5__reps480__n7": {
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "train_repeats_per_cell": 480,
+      "n_train": 12000,
+      "n": 7,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 32,
+      "best_val_loss": 0.1398306041955948,
+      "seconds": 2.5785201999824494
+    },
+    "medium_1.5_3.5__reps480__n10": {
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "train_repeats_per_cell": 480,
+      "n_train": 12000,
+      "n": 10,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 27,
+      "best_val_loss": 0.12489213049411774,
+      "seconds": 2.2155447999830358
+    },
+    "medium_1.5_3.5__reps480__n15": {
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "train_repeats_per_cell": 480,
+      "n_train": 12000,
+      "n": 15,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 36,
+      "best_val_loss": 0.10326220095157623,
+      "seconds": 2.8877929000009317
+    },
+    "medium_1.5_3.5__reps480__n20": {
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "train_repeats_per_cell": 480,
+      "n_train": 12000,
+      "n": 20,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 32,
+      "best_val_loss": 0.08648866415023804,
+      "seconds": 2.4993707000103313
+    },
+    "wide_1.5_5.0__reps300__n7": {
+      "n": 7,
+      "seed": 42,
+      "n_train": 12000,
+      "input": "sorted X / sample mean",
+      "adaptive_target": "26-point Study01 J1-squared loss curve",
+      "direct_target": "three decoded parameters with J1-compatible P loss",
+      "hidden_layers": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "patience": 20,
+      "adaptive_n_iter": 53,
+      "direct_n_iter": 30,
+      "adaptive_seconds": 5.168294200004311,
+      "direct_seconds": 3.362707699998282,
+      "failure_penalty": 2.670433491321633,
+      "domain_id": "wide_1.5_5.0",
+      "domain_label": "[1.5, 5.0]",
+      "budget_equivalence": [
+        "fixed_total",
+        "fixed_density"
+      ],
+      "source_model": "Research\\04-直接NN参数估计\\artifacts\\study01_aligned_generalization_v1\\models\\direct_n7_seed42.pt"
+    },
+    "wide_1.5_5.0__reps300__n10": {
+      "n": 10,
+      "seed": 42,
+      "n_train": 12000,
+      "input": "sorted X / sample mean",
+      "adaptive_target": "26-point Study01 J1-squared loss curve",
+      "direct_target": "three decoded parameters with J1-compatible P loss",
+      "hidden_layers": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "patience": 20,
+      "adaptive_n_iter": 46,
+      "direct_n_iter": 25,
+      "adaptive_seconds": 4.7022013000096194,
+      "direct_seconds": 1.6445218000153545,
+      "failure_penalty": 1.9886662665731452,
+      "domain_id": "wide_1.5_5.0",
+      "domain_label": "[1.5, 5.0]",
+      "budget_equivalence": [
+        "fixed_total",
+        "fixed_density"
+      ],
+      "source_model": "Research\\04-直接NN参数估计\\artifacts\\study01_aligned_generalization_v1\\models\\direct_n10_seed42.pt"
+    },
+    "wide_1.5_5.0__reps300__n15": {
+      "n": 15,
+      "seed": 42,
+      "n_train": 12000,
+      "input": "sorted X / sample mean",
+      "adaptive_target": "26-point Study01 J1-squared loss curve",
+      "direct_target": "three decoded parameters with J1-compatible P loss",
+      "hidden_layers": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "patience": 20,
+      "adaptive_n_iter": 42,
+      "direct_n_iter": 35,
+      "adaptive_seconds": 4.390970400010701,
+      "direct_seconds": 2.321598800015636,
+      "failure_penalty": 1.672285223021418,
+      "domain_id": "wide_1.5_5.0",
+      "domain_label": "[1.5, 5.0]",
+      "budget_equivalence": [
+        "fixed_total",
+        "fixed_density"
+      ],
+      "source_model": "Research\\04-直接NN参数估计\\artifacts\\study01_aligned_generalization_v1\\models\\direct_n15_seed42.pt"
+    },
+    "wide_1.5_5.0__reps300__n20": {
+      "n": 20,
+      "seed": 42,
+      "n_train": 12000,
+      "input": "sorted X / sample mean",
+      "adaptive_target": "26-point Study01 J1-squared loss curve",
+      "direct_target": "three decoded parameters with J1-compatible P loss",
+      "hidden_layers": [
+        256,
+        128,
+        64
+      ],
+      "max_iter": 300,
+      "patience": 20,
+      "adaptive_n_iter": 38,
+      "direct_n_iter": 31,
+      "adaptive_seconds": 3.974694200005615,
+      "direct_seconds": 2.0726222000084817,
+      "failure_penalty": 1.4555806554614428,
+      "domain_id": "wide_1.5_5.0",
+      "domain_label": "[1.5, 5.0]",
+      "budget_equivalence": [
+        "fixed_total",
+        "fixed_density"
+      ],
+      "source_model": "Research\\04-直接NN参数估计\\artifacts\\study01_aligned_generalization_v1\\models\\direct_n20_seed42.pt"
+    },
+    "narrow_2.0_3.0__reps300__n7": {
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "train_repeats_per_cell": 300,
+      "n_train": 4500,
+      "n": 7,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 29,
+      "best_val_loss": 0.09290342032909393,
+      "seconds": 0.9327006999810692
+    },
+    "narrow_2.0_3.0__reps300__n10": {
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "train_repeats_per_cell": 300,
+      "n_train": 4500,
+      "n": 10,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 46,
+      "best_val_loss": 0.07919061928987503,
+      "seconds": 1.3996188000019174
+    },
+    "narrow_2.0_3.0__reps300__n15": {
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "train_repeats_per_cell": 300,
+      "n_train": 4500,
+      "n": 15,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 33,
+      "best_val_loss": 0.06295780092477798,
+      "seconds": 0.9696414999780245
+    },
+    "narrow_2.0_3.0__reps300__n20": {
+      "domain_id": "narrow_2.0_3.0",
+      "domain_label": "[2.0, 3.0]",
+      "betas": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "train_repeats_per_cell": 300,
+      "n_train": 4500,
+      "n": 20,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 42,
+      "best_val_loss": 0.059033673256635666,
+      "seconds": 1.2780982000113
+    },
+    "medium_1.5_3.5__reps300__n7": {
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "train_repeats_per_cell": 300,
+      "n_train": 7500,
+      "n": 7,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 24,
+      "best_val_loss": 0.1450662910938263,
+      "seconds": 1.254813900013687
+    },
+    "medium_1.5_3.5__reps300__n10": {
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "train_repeats_per_cell": 300,
+      "n_train": 7500,
+      "n": 10,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 28,
+      "best_val_loss": 0.12809820473194122,
+      "seconds": 1.4705447999876924
+    },
+    "medium_1.5_3.5__reps300__n15": {
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "train_repeats_per_cell": 300,
+      "n_train": 7500,
+      "n": 15,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 32,
+      "best_val_loss": 0.10459423065185547,
+      "seconds": 1.7379861999943387
+    },
+    "medium_1.5_3.5__reps300__n20": {
+      "domain_id": "medium_1.5_3.5",
+      "domain_label": "[1.5, 3.5]",
+      "betas": [
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "train_repeats_per_cell": 300,
+      "n_train": 7500,
+      "n": 20,
+      "seed": 42,
+      "training_seed_namespace": "study01_nrmc_v1",
+      "max_iter": 300,
+      "patience": 20,
+      "n_iter": 40,
+      "best_val_loss": 0.08762414753437042,
+      "seconds": 2.1473284999956377
+    }
+  },
+  "validation": {
+    "n_rows": 756000,
+    "expected_rows": 756000,
+    "failure_counts": {
+      "fixed_density|medium_1.5_3.5": 42,
+      "fixed_density|narrow_2.0_3.0": 2,
+      "fixed_density|wide_1.5_5.0": 69,
+      "fixed_total|medium_1.5_3.5": 100,
+      "fixed_total|narrow_2.0_3.0": 0,
+      "fixed_total|wide_1.5_5.0": 69
+    }
+  },
+  "code_sha256": "7d2fab40c353bc596d6fe76451b669b84de3981640434a9f0ac4f62ac6e4367b"
+}

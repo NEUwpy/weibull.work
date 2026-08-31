@@ -1,0 +1,90 @@
+{
+  "run_id": "scale_equivariance_v1",
+  "status": "PASS",
+  "generated_at": "2026-08-30T05:36:38.694044+00:00",
+  "question": "Do the formal eta=1000 Direct-P models remain scale-equivariant when the complete shared test panel is rescaled?",
+  "audit_type": "paired deterministic scale-equivariance audit; no retraining",
+  "base_eta": 1000.0,
+  "scale_factors": [
+    0.001,
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    1000.0
+  ],
+  "tested_eta": [
+    1.0,
+    10.0,
+    100.0,
+    1000.0,
+    10000.0,
+    1000000.0
+  ],
+  "test_design": {
+    "beta": [
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0,
+      2.25,
+      2.5,
+      2.75,
+      3.0,
+      3.25,
+      3.5,
+      3.75,
+      4.0,
+      4.25,
+      4.5,
+      4.75,
+      5.0,
+      5.25,
+      5.5,
+      5.75
+    ],
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "repeats": 300,
+    "physical_samples_per_scale": 126000,
+    "total_scaled_evaluations": 756000,
+    "seed_namespace": "research04_generalization_v1"
+  },
+  "model_sources": {
+    "7": "Research\\04-直接NN参数估计\\artifacts\\study01_aligned_generalization_v1\\models\\direct_n7_seed42.pt",
+    "10": "Research\\04-直接NN参数估计\\artifacts\\study01_aligned_generalization_v1\\models\\direct_n10_seed42.pt",
+    "15": "Research\\04-直接NN参数估计\\artifacts\\study01_aligned_generalization_v1\\models\\direct_n15_seed42.pt",
+    "20": "Research\\04-直接NN参数估计\\artifacts\\study01_aligned_generalization_v1\\models\\direct_n20_seed42.pt"
+  },
+  "checks": {
+    "tolerance": 1e-08,
+    "max_abs_beta_hat_diff": 0.0,
+    "max_abs_eta_hat_rescaled_diff": 9.094947017729282e-13,
+    "max_abs_gamma_hat_rescaled_diff": 4.547473508864641e-13,
+    "pooled_metric_spread": {
+      "J1": 0.0,
+      "x095_rmse": 2.7755575615628914e-17,
+      "failure_rate": 0.0
+    }
+  },
+  "evidence_boundary": "This verifies numerical scale equivariance for paired rescalings of the current test panel. It is not an independently retrained multi-eta model comparison.",
+  "git": {
+    "commit": "3167cb43edb8815e716b113845d8dce58895c5ac",
+    "branch": "main",
+    "dirty": true
+  },
+  "code_sha256": "46b3615b8ccf556930979c2343dc0c0d14540cf53aa1afc236ebe8f7f0a6f0f5"
+}
