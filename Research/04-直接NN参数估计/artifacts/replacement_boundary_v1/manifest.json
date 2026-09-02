@@ -1,0 +1,88 @@
+{
+  "run_id": "replacement_boundary_v1",
+  "generated_at": "2026-09-02T22:08:20.217030+00:00",
+  "status": "candidate",
+  "purpose": "minimal observable-risk diagnostic for Direct-P fallback",
+  "model_seed": 42,
+  "training_seed_namespace": "study01_nrmc_v1",
+  "validation_seed_namespace": "research04_replacement_boundary_validation_v1",
+  "test_seed_namespace": "research04_generalization_v1",
+  "validation_betas": [
+    1.5,
+    2.0,
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0
+  ],
+  "test_betas": [
+    0.75,
+    1.0,
+    1.25,
+    1.5,
+    1.75,
+    2.0,
+    2.25,
+    2.5,
+    2.75,
+    3.0,
+    3.25,
+    3.5,
+    3.75,
+    4.0,
+    4.25,
+    4.5,
+    4.75,
+    5.0,
+    5.25,
+    5.5,
+    5.75
+  ],
+  "gamma_over_eta": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "n": [
+    7,
+    10,
+    15,
+    20
+  ],
+  "repeats_per_cell": 100,
+  "fallback": "MDM-0.1",
+  "risk_scores": [
+    "support_distance",
+    "neighbor_target_spread",
+    "sample_cv",
+    "max_over_mean",
+    "direct_mdm_disagreement",
+    "combined_support_score"
+  ],
+  "training": {
+    "7": {
+      "n_train": 12000,
+      "n_iter": 30,
+      "best_val_loss": 0.16483119130134583
+    },
+    "10": {
+      "n_train": 12000,
+      "n_iter": 25,
+      "best_val_loss": 0.14129602909088135
+    },
+    "15": {
+      "n_train": 12000,
+      "n_iter": 35,
+      "best_val_loss": 0.11839429289102554
+    },
+    "20": {
+      "n_train": 12000,
+      "n_iter": 31,
+      "best_val_loss": 0.10256648063659668
+    }
+  }
+}
