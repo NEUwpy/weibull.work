@@ -18,10 +18,12 @@
 - 样本量分层已经补齐：$n=7$ 至 20 时两类路线均改善，自适应 MDM 的改善更快，Direct-P 的域内相对优势由 41.3% 收窄到 28.3%。大 $\beta$ 机制诊断显示 MDM 的形状方向敏感度随 $1/\beta^2$ 衰减，且 $\eta$ 与 $\gamma$ 误差呈强负相关补偿。
 - 训练域宽度实验已经补齐：Direct-P 分别在 $\beta\in[2,3]$、$[1.5,3.5]$ 和 $[1.5,5]$ 上训练，并共享 $0.75$ 至 5.75 的正式测试样本。固定总训练样本量时，宽域模型在共同区间 $[2,3]$ 的 $J_1$ 比窄域高 32.3%；固定每个参数单元的样本密度后，宽域使用 2.67 倍总训练量，增幅仍为 31.5%。训练域扩大因而牺牲局部参数精度、改善远点覆盖，主要代价落在 $\beta$ 恢复；$x_{0.95}$ 因参数补偿只小幅变化。完整结果见 [`artifacts/training_domain_width_v1/analysis/report.md`](artifacts/training_domain_width_v1/analysis/report.md)。
 - 三个训练域的点类型已单独汇总：训练网格间距为 0.5，正式测试间距为 0.25，因此每个区间均覆盖训练点、域内非训练点、左右紧邻域外点和更远域外点。代表结果与解释见 [`artifacts/training_domain_width_v1/analysis/point_type_report.md`](artifacts/training_domain_width_v1/analysis/point_type_report.md)。
+- 训练域宽度与位置分离实验进一步使用四个同中心窗口和三个同宽平移窗口，共 48 个冻结 Direct-P 模型条件。四个同中心窗口在共同真实 $\beta\in[2.5,3.5]$ 上比较时，从宽度 1 扩到宽度 5 使 $J_1$ 在固定总量和固定单元密度下分别增加 54.3% 和 52.4%，主要增量仍来自 $\beta$ 恢复；$x_{0.95}$ RMSE 只从 0.1563/0.1598 变为 0.1623/0.1632。同宽窗口向高 $\beta$ 平移时，对齐窗口内相对位置的 $J_1$ 下降，但该比较同时改变真实 $\beta$，只能作为位置相关的描述性证据，不能解释成训练窗口位置的独立因果效应。完整结果、点类型和独立复算见 [`artifacts/training_domain_width_location_v1/`](artifacts/training_domain_width_location_v1/)。
 - 多尺度等变审计已经补齐：四个正式 Direct-P 模型不重新训练，将全部 126,000 个测试样本分别成对缩放到 $\eta=1,10,100,1000,10^4,10^6$，六个尺度的 $J_1=0.4705367$、$x_{0.95}$ RMSE=0.2060071、失败率=0.05476% 均保持不变；参数缩放还原后的最大数值差为 $9.1\times10^{-13}$。结果见 [`artifacts/scale_equivariance_v1/report.md`](artifacts/scale_equivariance_v1/report.md)。
 - 正式中文稿件为 [`03-稿件-直接神经估计与结构保留路线比较-v0.1.md`](03-稿件-直接神经估计与结构保留路线比较-v0.1.md)，包含方法、结果、机制、图题、表题和复现入口。
 - 结果分析与作图入口为 [`code/analyze_study01_aligned_generalization.py`](code/analyze_study01_aligned_generalization.py)；数值表保留为 CSV，图形同时输出 PNG 与 PDF。
 - 训练域宽度实验与作图入口分别为 [`code/run_training_domain_width.py`](code/run_training_domain_width.py) 和 [`code/analyze_training_domain_width.py`](code/analyze_training_domain_width.py)；正式清单位于 [`artifacts/training_domain_width_v1/manifest.json`](artifacts/training_domain_width_v1/manifest.json)。
+- 宽度与位置分离实验入口为 [`code/run_training_domain_width_location.py`](code/run_training_domain_width_location.py)，汇总与独立复算入口分别为 [`code/analyze_training_domain_width_location.py`](code/analyze_training_domain_width_location.py) 和 [`code/verify_training_domain_width_location.py`](code/verify_training_domain_width_location.py)。
 
 ## 原位入口
 
@@ -36,6 +38,6 @@
 
 - 当前正式轮固定一个模型种子 42，能够回答冻结训练协议下的域内插值、方向性外推和训练域宽度权衡，不代表网络初始化的总体稳定性。
 - 尺度审计验证的是 $\eta,\gamma$ 同比例变化下的确定性尺度等变，不覆盖绝对测量噪声、截断阈值或传感器分辨率不随尺度同比例变化的情况。
-- 当前三个训练域是嵌套区间，尚未系统平移同一宽度的区间；因此可以说明当前区间的宽度—覆盖权衡，但不能把宽度效应与区间位置效应完全分离。
-- Bias、SD、RMSE 与 $x_{0.95}$ 指标已经报告；区间覆盖率尚未验证。
+- 同中心扩宽结果已经在共同真实 beta 上分离；同宽平移窗口之间没有跨三者共同的内部真实 beta 区间，因此位置结果仍是按窗口相对位置对齐后的描述，不能脱离真实 beta 的可估计性解释为普遍位置效应。
+- 参数 Bias、SD、RMSE 与 $x_{0.90}$、$x_{0.95}$、$x_{0.99}$ 相对 RMSE 已经报告；区间覆盖率尚未验证。
 - 低 $\beta$ 侧的反转说明 Direct-P 需要训练域检查或 OOD 触发机制；高 $\beta$ 侧未在本轮范围内观察到反转。
