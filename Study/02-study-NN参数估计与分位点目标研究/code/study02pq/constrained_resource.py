@@ -19,7 +19,7 @@ ROOT = Path(CFG.STUDY02_ROOT)
 CONFIG_PATH = ROOT / "configs" / "qcp-constrained-resource-v1.json"
 PROTOCOL_PATH = ROOT / "protocols" / "15-Q主任务P约束训练资源边界合同.md"
 PILOT = ROOT / "artifacts" / "qcp_constrained_pilot"
-P_REF = (ROOT / "历史实验" / "固定加权路线" / "artifacts" /
+P_REF = (ROOT / "归档" / "旧实验" / "固定加权路线" / "artifacts" /
          "pq_regularized_pilot" / "fits" / "resource")
 OUT = ROOT / "artifacts" / "qcp_constrained_resource"
 

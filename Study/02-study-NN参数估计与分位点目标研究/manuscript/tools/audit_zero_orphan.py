@@ -1,7 +1,7 @@
 """Study02 S5A 审计脚本：正文引用 ↔ 参考文献零 orphan 检查。
 
 用法（Study02 根目录）：
-    python paper/tools/audit_zero_orphan.py
+    python manuscript/tools/audit_zero_orphan.py
 
 检查项：
   1. 从当前论文正文（参考文献之前的全部文本）提取所有 [n] 引用；
@@ -16,7 +16,7 @@ import re
 import sys
 from pathlib import Path
 
-DEFAULT_PAPER = Path(__file__).resolve().parents[1] / "论文初稿-v2.1-正面叙述精简版.md"
+DEFAULT_PAPER = Path(__file__).resolve().parents[1] / "Study02论文初稿-v2.3.2.md"
 REF_MARKER = "## 参考文献"
 
 

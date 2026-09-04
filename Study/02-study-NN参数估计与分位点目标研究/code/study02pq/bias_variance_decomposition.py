@@ -19,7 +19,7 @@ ANALYSIS = OUT / "analysis"
 QCP_ROOT = ROOT / "artifacts" / "qcp_constrained_confirm"
 SOURCE_CANDIDATES = (
     ROOT / "artifacts" / "equal_budget_sensitivity",
-    ROOT / "历史实验" / "四路线同预算敏感性" / "artifacts" /
+    ROOT / "归档" / "旧实验" / "四路线同预算敏感性" / "artifacts" /
     "equal_budget_sensitivity",
 )
 PROTOCOL = ROOT / "protocols" / "20-寿命点误差偏差方差分解合同.md"

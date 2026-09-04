@@ -25,7 +25,7 @@ METADATA = OUT / "fit_metadata"
 ANALYSIS = OUT / "analysis"
 IID = ROOT / "artifacts" / "pq_iid_main"
 EXTRA = ROOT / "artifacts" / "pq_s5b_revision" / "grid_extra"
-QP = (ROOT / "历史实验" / "固定加权路线" / "artifacts" /
+QP = (ROOT / "归档" / "旧实验" / "固定加权路线" / "artifacts" /
       "pq_regularized_confirm")
 
 

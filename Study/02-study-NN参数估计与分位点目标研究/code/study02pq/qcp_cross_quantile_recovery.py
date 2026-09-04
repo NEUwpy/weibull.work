@@ -29,7 +29,7 @@ PROTOCOL = ROOT / "protocols" / "23-QCP跨寿命点恢复机制合同.md"
 COMPARISON_PROTOCOL = ROOT / "protocols" / "24-三路线跨寿命点总比较合同.md"
 SOURCE_CANDIDATES = (
     ROOT / "artifacts" / "equal_budget_sensitivity",
-    ROOT / "历史实验" / "四路线同预算敏感性" / "artifacts" /
+    ROOT / "归档" / "旧实验" / "四路线同预算敏感性" / "artifacts" /
     "equal_budget_sensitivity",
 )
 ROUTES = ("P", "Q", "QCP")

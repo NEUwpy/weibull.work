@@ -22,7 +22,7 @@ PROTOCOL_PATH = ROOT / "protocols" / "14-Q主任务P约束增广拉格朗日筛�
 OUT = ROOT / "artifacts" / "qcp_constrained_pilot"
 FITS = OUT / "fits"
 ANALYSIS = OUT / "analysis"
-QP_PILOT = (ROOT / "历史实验" / "固定加权路线" / "artifacts" /
+QP_PILOT = (ROOT / "归档" / "旧实验" / "固定加权路线" / "artifacts" /
             "pq_regularized_pilot" / "fits")
 
 
