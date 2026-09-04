@@ -121,7 +121,7 @@ seed 42 下，除 $\beta=1.5$ 外，其他 7 个留出层均优于 Default；$\b
 | 迭代（terminal） | 一致劣于单步，作反馈恶化诊断而非方法候选 |
 | 初步 $\hat\beta$ 正确路由率 | MDM-0.1 19.8%、WMLE 16.5%（诊断性，非唯一机制证明） |
 
-结论：直接 plug-in 总体不能恢复 oracle 收益。该路线不参与正文主论证，也不与主方法排名；完整方法、变体、CI 与分 $\beta$ 结果仅保留在 `manuscript/Study01论文附录-v1.4.md` 的附录 C，供进一步追问时查阅。
+结论：直接 plug-in 总体不能恢复 oracle 收益。该路线不作为正文独立章节，也不与主方法排名；正文 4.2 简短引用，完整方法、变体、CI 与分 $\beta$ 结果保留在 `manuscript/Study01论文附录-v1.5.md` 的附录 C，供进一步追问时查阅。
 
 ## 已经证明到哪里
 
@@ -172,7 +172,7 @@ Study/01-study-MDM最小偏移量优化研究/
 5. `02-实验协议.md`：执行剩余验证时读取。
 6. `04-待复核清单.md`：查看写作前还差什么。
 
-当前活动论文正文为 `manuscript/Study01论文初稿-v1.5.md`，配套附录为 `manuscript/Study01论文附录-v1.4.md`；两者独立使用版本号，定稿时按最新版本拼接。`manuscript/figures/` 保存正文与附录图表、绘图程序、派生数据及来源记录。正文 v1.0—v1.4、附录 v1.0—v1.3 保存在 `manuscript/shelve/`，外部原稿与更早版本均保留未动，本目录的 `archive/legacy-manuscript/` 仅为旧稿归档。
+当前活动论文正文为 `manuscript/Study01论文初稿-v1.6.md`，配套附录为 `manuscript/Study01论文附录-v1.5.md`；两者独立使用版本号，定稿时按最新版本拼接。`manuscript/figures/` 保存正文与附录图表、绘图程序、派生数据及来源记录。正文 v1.0—v1.5、附录 v1.0—v1.4 保存在 `manuscript/shelve/`，外部原稿与更早版本均保留未动，本目录的 `archive/legacy-manuscript/` 仅为旧稿归档。
 
 论文审查时，`paper-logic-skeleton` 只用于审查 `03-论文骨架.md` 所表达的中心主张、论证顺序、章节职责、图表必要性以及正文/附录分工；它不代替科学证据核验、文献核对或语言润色。骨架确认后，再据此审查正文与附录是否忠实实现了既定论证。
 

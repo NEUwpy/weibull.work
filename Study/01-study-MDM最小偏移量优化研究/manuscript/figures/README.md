@@ -18,7 +18,7 @@
 
 ## Markdown 引用
 
-从当前活动稿 `../Study01论文初稿-v1.5.md` 引用正文图：
+从当前活动稿 `../Study01论文初稿-v1.6.md` 引用正文图：
 
 ```markdown
 ![正偏移量与固定基准](figures/main/fig1_offset_baseline.png)

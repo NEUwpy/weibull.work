@@ -54,7 +54,7 @@ COLORS = {
 
 mpl.rcParams.update({
     "font.family": "sans-serif",
-    "font.sans-serif": ["Arial", "Helvetica", "Microsoft YaHei", "DejaVu Sans", "sans-serif"],
+    "font.sans-serif": ["Microsoft YaHei", "Arial", "DejaVu Sans", "sans-serif"],
     "font.size": 7.2,
     "axes.labelsize": 7.5,
     "axes.titlesize": 8.0,
@@ -101,7 +101,153 @@ def panel_label(ax, label):
             fontsize=8.2, va="bottom", ha="left", color=COLORS["ink"])
 
 
+# Display-only translations: method/data keys and all plotted values stay intact.
+# Longer phrases precede short names so compound labels remain unambiguous.
+CHINESE_LABELS = {
+    "thin: 1st–99th   medium: 5th–95th   thick: IQR   dot: median": "细线：P1–P99；中线：P5–P95；粗线：四分位距；点：中位数",
+    "Outlined cells indicate deterioration (35 of 160 parameter combinations).": "勾边表示退化组合（160 个组合中共 35 个）。",
+    "Fixed confirmation set; descriptive only and not used for model selection.": "固定确认集上的数据量诊断；候选规则已预先选定。",
+    "Reduction in pooled $J_1$ vs default (%)": "相对固定规则的汇总 $J_1$ 降幅（%）",
+    "Risk under each information condition": "不同信息条件下的估计风险",
+    "$J_1$ reduction relative to Default": "相对固定规则的 $J_1$ 降幅",
+    "Reduction relative to Default (%)": "相对固定规则的降幅（%）",
+    "Pooled $J_1$  (lower is better)": "汇总 $J_1$（越小越好）",
+    "Default  fixed ": "固定规则  ",
+    "L1  global": "L1  全局统一",
+    "L6  sample hindsight": "L6  逐样本事后参照",
+    "post hoc reference": "事后参照",
+    "% lower": "% 降幅",
+    "90th percentile": "第 90 百分位数",
+    "99th percentile": "第 99 百分位数",
+    "Median": "中位数",
+    "$J_1$ difference": "$J_1$ 差值",
+    " · grid": " · 最近网格",
+    " · interp": " · 插值",
+    "Offline training: learn the 26-point loss curve": "离线训练：学习 26 点损失曲线",
+    "New-sample estimation: select an offset, then fit with MDM": "新样本估计：选择偏移量，再由 MDM 估计参数",
+    "Trained per-$n$ MLP": "已训练的分 $n$ MLP",
+    "Per-$n$ MLP": "分 $n$ MLP",
+    "hidden: 256–128–64": "隐藏层：256–128–64",
+    "Known parameters": "已知参数",
+    "sample size ": "样本量 ",
+    "simulation only": "模拟阶段",
+    "Monte Carlo sample": "Monte Carlo 样本",
+    "26 MDM fits\n+ loss vs truth": "26 次 MDM 估计\n计算真值损失",
+    "sample mean\n+ training scaler": "均值归一化\n训练折标准化",
+    "Curve-level supervision": "损失曲线监督",
+    "Fit the predicted curve to the actual curve": "由预测曲线与实际曲线的误差训练网络",
+    "schematic curves": "示意曲线",
+    "Current sample": "当前样本",
+    "Sort values\n/ sample mean\n+ training scaler": "排序并除以均值\n训练折标准化",
+    "Predicted loss curve": "预测损失曲线",
+    "MDM at\n": "MDM\n",
+    "Parameter\nestimates": "参数\n估计值",
+    "predicts 26 losses": "预测 26 点损失",
+    "estimates parameters": "估计参数",
+    "Actual loss": "实际损失",
+    "Observed loss": "实际损失",
+    "Predicted loss": "预测损失",
+    "Candidate offset": "候选偏移量",
+    "Full candidate grid": "全部候选偏移量",
+    "Low-risk region": "低风险区域",
+    "Within-cell normalized SD": "组合内标准化 SD",
+    "Within-cell sampling dispersion": "组合内抽样波动",
+    "violin: 160 parameter cells   box: IQR and median": "小提琴：160 个组合；箱体：四分位距及中位数",
+    "shading: observed Default–hindsight gap": "阴影：固定规则与 L6 的观测差距",
+    "% below Default": "相对固定规则的降幅",
+    "Samples improved": "误差降低的样本比例",
+    "positive: adaptive better": "正值：自适应误差较低",
+    "Paired loss difference": "配对损失差",
+    "Rule-selected median-regret case": "中位超额损失样本",
+    "Single-sample loss": "单样本损失",
+    "Offset selection correspondence": "偏移量选择对应分布",
+    "Row percentage (%)": "行内比例（%）",
+    "Excess loss above hindsight": "相对 L6 的超额损失",
+    "Distribution of excess loss": "超额损失分布",
+    "Effective L6 offset count within a cell": "组合内 L6 有效偏移量数",
+    "Exact match to L6 offset": "与 L6 偏移量完全一致",
+    "Within-cell variation in hindsight choices": "组合内事后选点的变化",
+    "Paper MLP\nlevel holdout": "论文 MLP\n参数水平留出",
+    "Current MLP\nin-domain": "同结构 MLP\n同域重训",
+    "Flexible Z-only\nreference": "$Z$-only\n经验参照",
+    "unresolved residual\n(not all perfect-information gap)": "剩余差距\n含学习与事后信息两部分",
+    "Paper→in-domain difference also changes coverage/protocol;\nthe flexible Z-only reference is achieved, not Bayes-optimal.": "同域重训同时改变参数覆盖与评价协议；\n灵活参照表示已实现规则的确认风险。",
+    "Observed risk differences under distinct decision conditions": "不同决策条件下的确认风险",
+    r"Confirmation risk, $R=J_1^2$": r"确认均方损失，$\mathcal{R}=J_1^2$",
+    r"\Delta R=": r"\Delta\mathcal{R}=",
+    "Candidate location": "候选位置",
+    "Profile gradient": "廓线梯度",
+    "Random samples move the empirical MDM profile ": "同参数下的样本梯度曲线 ",
+    "small markers: evaluated profile points\nlarge circles: realised L6 intersections": "小圆点：实际梯度节点\n大圆点：L6 搜索交点",
+    "Mean excess loss above L6": "相对 L6 的平均超额损失",
+    "The low-risk region shifts with the realised profile": "不同样本组的低风险区域",
+    "points: evaluated grid; lines: visual guides": "圆点：候选网格；连线：连接节点",
+    "Within-cell Spearman": "组合内 Spearman",
+    " versus L6 offset": " 与 L6 偏移量",
+    "Shape parameter": "形状参数",
+    "Location-to-scale ratio": "位置—尺度比",
+    "Training samples across four per-n models": "四个分样本量模型的训练样本总数",
+    "Data-size diagnostic for the flexible Z-only reference": "$Z$-only 参照的数据量诊断",
+    "Held-out shape parameter": "留出的形状参数",
+    "Held-out": "留出",
+    "Reduction in $J_1$ vs default (%)": "相对固定规则的 $J_1$ 降幅（%）",
+    "Unseen parameter levels": "未见形状参数水平",
+    "Traditional estimators": "传统方法参照",
+    "Reliability level $R$": "可靠度寿命 $x_R$",
+    "Relative RMSE": "相对 RMSE",
+    "Reliability life": "可靠度寿命",
+    "Line: primary seed 42; shading: three-seed range": "折线：主种子 42；阴影：三个种子的范围",
+    "Mean-normalized point: primary seed 42; error bars: three-seed range": "均值归一化点：主种子 42；误差线：三个种子的范围",
+    "three-seed range": "三个种子的范围",
+    "PG $J_1$ minus Default $J_1$ (positive = worse)": "初估规则减固定规则的 $J_1$ 差（正值：误差更高）",
+    "All 12 one-step rules worse than Default": "12 种单步规则的整体误差均高于固定规则",
+    "only improvement\nat $\\beta=1.5$": "仅在 $\\beta=1.5$\n有所改善",
+    "True shape parameter": "真实形状参数",
+    "Nearest-cell correctness (%)": "最近网格单元正确率（%）",
+    "diagnostic, not causal proof": "初估路由诊断",
+    "L6 hindsight": "L6 事后参照",
+    "Mean-normalized": "均值归一化 MLP",
+    "Mean-Normalized": "均值归一化 MLP",
+    "Default": "固定规则",
+    "Adaptive": "自适应选择",
+    "Sample size": "样本量",
+    "Offset,": "偏移量，",
+    "Selected": "所选",
+    "Hindsight": "事后最优",
+    "Minimum": "最低点",
+    "minimum": "最低点",
+    "default": "固定规则",
+    "actual": "实际",
+    "predicted": "预测",
+    "Loss": "损失",
+    "Low ": "低 ",
+    "Middle ": "中 ",
+    "High ": "高 ",
+    " (min ": " (最低点 ",
+    "pooled median": "汇总中位数",
+    "Pooled": "汇总",
+    "median": "中位数",
+    "negative in ": "负相关单元占 ",
+    "% of cells": "%",
+    "Paper ": "论文 MLP ",
+    "Z ref. ": "$Z$ 参照 ",
+    "select ": "选择 ",
+    " (primary)": "（主结果）",
+    "seed ": "种子 ",
+}
+
+
+def localize_figure(fig):
+    """Translate displayed text only; preserve scientific symbols and data."""
+    for artist in fig.findobj(match=mpl.text.Text):
+        value = artist.get_text()
+        for source, target in sorted(CHINESE_LABELS.items(), key=lambda item: -len(item[0])):
+            value = value.replace(source, target)
+        artist.set_text(value)
+
+
 def export_figure(fig, stem: str, folder: Path, *, tiff=True):
+    localize_figure(fig)
     folder.mkdir(parents=True, exist_ok=True)
     svg_path = folder / f"{stem}.svg"
     svg_temporary = folder / f"{stem}.new.svg"
@@ -1557,7 +1703,7 @@ def figure_9_support_validation(paths, summary):
 
 def supplementary_seed_stability(summary):
     seeds = pd.DataFrame(summary["seed_table"])
-    labels = ["Pooled", "n=7", "n=10", "n=15", "n=20"]
+    labels = ["汇总", "n=7", "n=10", "n=15", "n=20"]
     columns = ["pooled_J1", "J1_n7", "J1_n10", "J1_n15", "J1_n20"]
     rows = []
     for label, col in zip(labels, columns):

@@ -9,6 +9,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+from make_submission_figures import export_figure as export_submission_figure
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 FIGURE_DIR = SCRIPT_DIR.parent
@@ -29,13 +31,13 @@ SOURCE_PATH = (
 LAYERS = ["Default", "L1", "L2", "L3", "L4", "L5", "L6"]
 N_VALUES = [7, 10, 15, 20]
 ROW_LABELS = {
-    "Default": "Default  fixed $\\delta=0.10$",
-    "L1": "L1  global",
+    "Default": "固定 $\\delta=0.10$",
+    "L1": "L1  统一取值",
     "L2": "L2  $n$",
     "L3": "L3  $\\beta$",
     "L4": "L4  $(\\beta,n)$",
     "L5": "L5  $(\\beta,\\gamma/\\eta,n)$",
-    "L6": "L6  sample hindsight",
+    "L6": "L6  逐样本事后",
 }
 COLORS = {
     "Default": "#7A7A7A",
@@ -104,24 +106,14 @@ def write_source_data(results: dict[str, dict[str, float]]) -> None:
 
 
 def export_figure(fig: plt.Figure) -> None:
-    OUTPUT_STEM.parent.mkdir(parents=True, exist_ok=True)
-    for suffix, kwargs in (
-        (".png", {"dpi": 300}),
-        (".svg", {}),
-        (".pdf", {}),
-        (".tiff", {"dpi": 600}),
-    ):
-        final_path = OUTPUT_STEM.with_suffix(suffix)
-        temporary = final_path.with_name(f"{final_path.stem}.new{suffix}")
-        fig.savefig(temporary, bbox_inches="tight", facecolor="white", **kwargs)
-        temporary.replace(final_path)
+    export_submission_figure(fig, OUTPUT_STEM.name, OUTPUT_STEM.parent)
 
 
 def draw_figure(results: dict[str, dict[str, float]]) -> plt.Figure:
     mpl.rcParams.update(
         {
             "font.family": "sans-serif",
-            "font.sans-serif": ["Arial", "Microsoft YaHei", "DejaVu Sans"],
+            "font.sans-serif": ["Microsoft YaHei", "Arial", "DejaVu Sans"],
             "svg.fonttype": "none",
             "pdf.fonttype": 42,
             "font.size": 8.5,
