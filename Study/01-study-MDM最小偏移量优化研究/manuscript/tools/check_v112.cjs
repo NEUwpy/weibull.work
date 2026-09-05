@@ -31,14 +31,14 @@ const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex'
   for(const [i,line] of residual.split('\n').entries())if(/(?<!\\)\$|\\(?:beta|eta|gamma|frac|mathrm|%|_)|!\[\[/.test(line))errors.push({line:i+1,residual:line});
   const captions=[...source.matchAll(/^\*\*(?:图|表) ([A-F]?\d+)  /gm)].map(x=>x[0]);
   if(new Set(captions).size!==captions.length)errors.push('Duplicate figure/table number');
-  const refs=t=>(t.match(/^\[\d+\].*$/gm)||[]);
+  const refs=t=>(t.match(/^\[\d+\].*$/gm)||[]).map(x=>x.replace(/^\[\d+\]\s*/, '')).sort();
   if(JSON.stringify(refs(old))!==JSON.stringify(refs(source)))errors.push('Reference list changed');
   // All previously reported table blocks remain intact; only A4 is newly added.
   const tables=t=>t.replace(/\r\n/g,'\n').match(/^\|.*(?:\n\|.*)*/gm)||[];
   for(const table of tables(old))if(!tables(source).includes(table))errors.push('Existing table changed');
   if(errors.length)throw Error(JSON.stringify({newName,errors}));
   reports.push({file:newName,sha256:sha(path.join(root,newName)),inline_math:inline,display_math:display,
-    math_errors:0,local_links:links.length,tables:tables(source).length,existing_tables_unchanged:true,reference_list_unchanged:true});
+    math_errors:0,local_links:links.length,tables:tables(source).length,existing_tables_unchanged:true,reference_entries_unchanged:true});
  }
  const source=JSON.parse(fs.readFileSync(path.join(root,'figures/figure_sources.json'),'utf8'));
  let restored=0;

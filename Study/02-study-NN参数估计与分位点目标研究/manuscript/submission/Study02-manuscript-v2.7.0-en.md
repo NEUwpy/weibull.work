@@ -8,11 +8,11 @@ Minimizing parameter error need not minimize error in a derived engineering quan
 
 ## 1 Introduction
 
-Reliability analysis requires both a description of the lifetime distribution and estimates of life at specified survival probabilities. The three-parameter Weibull distribution describes lifetime through shape $\beta$, scale $\eta$, and location $\gamma$, but estimating these parameters from small samples remains challenging [1,2,3,4]. Classical estimators [5,6,13,14] and neural approaches [7,12] commonly recover distribution parameters before calculating reliability life points. When the final use concerns a particular life point, the training objective can affect the risk of that derived estimate.
+Reliability analysis requires both a description of the lifetime distribution and estimates of life at specified survival probabilities. The three-parameter Weibull distribution describes lifetime through shape $\beta$, scale $\eta$, and location $\gamma$, but estimating these parameters from small samples remains challenging [1,2,3,4]. Classical estimators [5,6,7,8] and neural approaches [9,10] commonly recover distribution parameters before calculating reliability life points. When the final use concerns a particular life point, the training objective can affect the risk of that derived estimate.
 
 Let $R$ denote survival probability and define the reliability life point by $R(x_R)=R$. We use $x_{0.95}$ as an example: the life point at 95% survival probability corresponds to the 5th percentile of the failure-time distribution. A common supervised objective for a three-output network is the equally weighted sum of three normalized squared parameter errors. Normalization removes physical units, and equal coefficients provide a transparent parameter-recovery reference. These coefficients are a metric convention, however: the actual effects of parameter errors on $x_{0.95}$ depend on the life-point formula, the parameter values, and interactions between errors.
 
-A direct alternative retains the same three parameter outputs, computes $x_{0.95}$ through the Weibull formula, and trains the network on the life-point error. Quantile regression, elicitable target functionals, and task-focused learning all motivate defining objectives around the quantity ultimately used [8,9,10,11,15]. Small-sample work on the two-parameter Weibull distribution has also compared bias and mean squared error for parameter estimators and their plug-in quantile estimators [16]. We examine how training objectives and their associated validation-selection rules change life-point risk for simulation-trained neural estimators in the three-parameter setting [18,19].
+A direct alternative retains the same three parameter outputs, computes $x_{0.95}$ through the Weibull formula, and trains the network on the life-point error. Quantile regression, elicitable target functionals, and task-focused learning all motivate defining objectives around the quantity ultimately used [11,12,13,14,15]. Small-sample work on the two-parameter Weibull distribution has also compared bias and mean squared error for parameter estimators and their plug-in quantile estimators [16]. We examine how training objectives and their associated validation-selection rules change life-point risk for simulation-trained neural estimators in the three-parameter setting [17,18].
 
 Single-point supervision introduces a structural freedom. Three parameters determine a distribution curve, whereas one life point supplies a scalar target. Different parameter combinations can produce the same $x_{0.95}$ but different $x_{0.90}$ and $x_{0.99}$. Direct target optimization may thus permit compensating parameter errors that preserve target accuracy while distorting other life points. Its benefits should be assessed together with this freedom and its downstream costs.
 
@@ -89,7 +89,7 @@ $$
 
 Here $j=(n,k,s)$ identifies sample size, fold, and training seed. The reference was the best validation parameter loss of a matched earlier P model trained with a 300-epoch maximum and patience 20. Thresholds were fixed before reading the test results of the current 600-epoch P models.
 
-Let $g_b=L_{P,b}-\tau_j$ for a batch and $g_{\mathrm{tr}}=L_{P,\mathrm{tr}}-\tau_j$ for an epoch. The latter used the sample-count-weighted mean of batch parameter losses observed during training, rather than a fresh full-training-set evaluation of the fixed end-of-epoch model. Following a nonnegative-multiplier augmented-Lagrangian framework [17], training minimized
+Let $g_b=L_{P,b}-\tau_j$ for a batch and $g_{\mathrm{tr}}=L_{P,\mathrm{tr}}-\tau_j$ for an epoch. The latter used the sample-count-weighted mean of batch parameter losses observed during training, rather than a fresh full-training-set evaluation of the fixed end-of-epoch model. Following a nonnegative-multiplier augmented-Lagrangian framework [19], training minimized
 
 $$
 L_{\mathrm{AL},b}=L_{Q,b}+\frac{[\max\{0,\mu+\rho g_b\}]^2-\mu^2}{2\rho},
@@ -317,31 +317,31 @@ The simulation protocols, training and derived-analysis code, model-level summar
 
 [6] 谢里阳, 朱文慧, 吴宁祥, 杨小玉. (2025). 基于统计最小差异原理的 Weibull 分布参数估计方法. *东北大学学报（自然科学版）*, 46(7), 108–112. https://doi.org/10.12068/j.issn.1005-3026.2025.20240194
 
-[7] Yang, X., Xie, L., Chen, J., Zhao, B., & Wang, K. (2025). Estimation of Weibull distribution using the back-propagation neural network for fatigue failure data. *Probabilistic Engineering Mechanics*, 82, 103828. https://doi.org/10.1016/j.probengmech.2025.103828
+[7] Cousineau, D. (2009). Fitting the three-parameter Weibull distribution: Review and evaluation of existing and new methods. *IEEE Transactions on Dielectrics and Electrical Insulation*, 16(1), 281–288. https://doi.org/10.1109/TDEI.2009.4784578
 
-[8] Koenker, R., & Bassett, G. (1978). Regression Quantiles. *Econometrica*, 46(1), 33–50. https://doi.org/10.2307/1913643
+[8] Nagatsuka, H., Kamakura, T., & Balakrishnan, N. (2013). A consistent method of estimation for the three-parameter Weibull distribution. *Computational Statistics & Data Analysis*, 58, 210–226. https://doi.org/10.1016/j.csda.2012.09.005
 
-[9] Elmachtoub, A.N., & Grigas, P. (2022). Smart “Predict, then Optimize”. *Management Science*, 68(1), 9–26. https://doi.org/10.1287/mnsc.2020.3922
+[9] Yang, X., Xie, L., Chen, J., Zhao, B., & Wang, K. (2025). Estimation of Weibull distribution using the back-propagation neural network for fatigue failure data. *Probabilistic Engineering Mechanics*, 82, 103828. https://doi.org/10.1016/j.probengmech.2025.103828
 
-[10] Wilder, B., Dilkina, B., & Tambe, M. (2019). Melding the Data-Decisions Pipeline: Decision-Focused Learning for Combinatorial Optimization. *AAAI*, 33(01), 1658–1665. https://doi.org/10.1609/aaai.v33i01.33011658
+[10] Abbasi, B., Rabelo, L., & Hosseinkouchack, M. (2008). Estimating parameters of the three-parameter Weibull distribution using a neural network. *European Journal of Industrial Engineering*, 2(4), 428–445. https://doi.org/10.1504/EJIE.2008.018438
 
-[11] Donti, P.L., Amos, B., & Kolter, J.Z. (2017). Task-based End-to-end Model Learning in Stochastic Optimization. *NeurIPS*, 30, 5484–5494. arXiv:1703.04529
+[11] Koenker, R., & Bassett, G. (1978). Regression Quantiles. *Econometrica*, 46(1), 33–50. https://doi.org/10.2307/1913643
 
-[12] Abbasi, B., Rabelo, L., & Hosseinkouchack, M. (2008). Estimating parameters of the three-parameter Weibull distribution using a neural network. *European Journal of Industrial Engineering*, 2(4), 428–445. https://doi.org/10.1504/EJIE.2008.018438
+[12] Elmachtoub, A.N., & Grigas, P. (2022). Smart “Predict, then Optimize”. *Management Science*, 68(1), 9–26. https://doi.org/10.1287/mnsc.2020.3922
 
-[13] Cousineau, D. (2009). Fitting the three-parameter Weibull distribution: Review and evaluation of existing and new methods. *IEEE Transactions on Dielectrics and Electrical Insulation*, 16(1), 281–288. https://doi.org/10.1109/TDEI.2009.4784578
+[13] Wilder, B., Dilkina, B., & Tambe, M. (2019). Melding the Data-Decisions Pipeline: Decision-Focused Learning for Combinatorial Optimization. *AAAI*, 33(01), 1658–1665. https://doi.org/10.1609/aaai.v33i01.33011658
 
-[14] Nagatsuka, H., Kamakura, T., & Balakrishnan, N. (2013). A consistent method of estimation for the three-parameter Weibull distribution. *Computational Statistics & Data Analysis*, 58, 210–226. https://doi.org/10.1016/j.csda.2012.09.005
+[14] Donti, P.L., Amos, B., & Kolter, J.Z. (2017). Task-based End-to-end Model Learning in Stochastic Optimization. *NeurIPS*, 30, 5484–5494. arXiv:1703.04529
 
 [15] Gneiting, T. (2011). Making and Evaluating Point Forecasts. *Journal of the American Statistical Association*, 106(494), 746–762. https://doi.org/10.1198/jasa.2011.r10138
 
 [16] Jokiel-Rokita, A., & Piątek, S. (2024). Estimation of parameters and quantiles of the Weibull distribution. *Statistical Papers*, 65(1), 1–18. https://doi.org/10.1007/s00362-022-01379-9
 
-[17] Nocedal, J., & Wright, S.J. (2006). *Numerical Optimization* (2nd ed., Chapter 17). Springer. https://doi.org/10.1007/978-0-387-40065-5
+[17] Cranmer, K., Brehmer, J., & Louppe, G. (2020). The frontier of simulation-based inference. *Proceedings of the National Academy of Sciences*, 117(48), 30055–30062. https://doi.org/10.1073/pnas.1912789117
 
-[18] Cranmer, K., Brehmer, J., & Louppe, G. (2020). The frontier of simulation-based inference. *Proceedings of the National Academy of Sciences*, 117(48), 30055–30062. https://doi.org/10.1073/pnas.1912789117
+[18] Radev, S.T., Mertens, U.K., Voss, A., Ardizzone, L., & Köthe, U. (2022). BayesFlow: Learning Complex Stochastic Models With Invertible Neural Networks. *IEEE Transactions on Neural Networks and Learning Systems*, 33(4), 1452–1466. https://doi.org/10.1109/TNNLS.2020.3042395
 
-[19] Radev, S.T., Mertens, U.K., Voss, A., Ardizzone, L., & Köthe, U. (2022). BayesFlow: Learning Complex Stochastic Models With Invertible Neural Networks. *IEEE Transactions on Neural Networks and Learning Systems*, 33(4), 1452–1466. https://doi.org/10.1109/TNNLS.2020.3042395
+[19] Nocedal, J., & Wright, S.J. (2006). *Numerical Optimization* (2nd ed., Chapter 17). Springer. https://doi.org/10.1007/978-0-387-40065-5
 
 ## Supplementary material
 

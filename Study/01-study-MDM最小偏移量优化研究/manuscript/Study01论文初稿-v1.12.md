@@ -4,19 +4,19 @@
 
 ## 摘要
 
-三参数 Weibull 分布的最小差异法（MDM）通过正偏移量改善小样本估计的精度与稳定性，但偏移量如何影响联合误差、经验值 0.1 应如何进一步选择，尚需系统研究。本文研究偏移量的有限样本风险，并以归一化排序样本预测 26 个候选偏移量的损失，再由 MDM 在所选偏移量下估计参数。在形状参数 $1.5\leq\beta\leq5.0$、位置尺度比 $0.10\leq\gamma/\eta\leq1.00$ 和样本量 $n\in\{7,10,15,20\}$ 构成的 160 个离散组合中，正偏移降低组合内方差的同时改变条件偏差，经验值 0.1 接近完整设计的最佳统一取值；固定宽度形状参数域由低值向高值平移时，最佳统一偏移量则由 0.18 移至 0.04。相同参数条件下，样本间距与位置结构的变化伴随 MDM 梯度轨迹、搜索交点和低风险偏移量的移动，表明条件平均规则仍不能描述全部样本差异。选定输入表示后，在按位置尺度比水平留出的折外评价中，样本自适应选择将联合误差 $J_1$ 从 0.6304 降至 0.5846，降低 7.27%；改善覆盖四个样本量，三个参数的汇总标准化 RMSE 均下降。以已训练选择器和当前设计为条件的 95% 配对重采样区间为 6.94%—7.64%。结果支持在所评价设计内保留 MDM 的参数求解过程，利用样本信息进一步降低固定偏移量下的联合估计误差。
+三参数 Weibull 分布的最小差异法（MDM）通过正偏移量改善小样本估计的精度与稳定性，但偏移量如何影响联合误差、经验值 0.1 应如何进一步选择，尚需系统研究。本文研究偏移量的有限样本风险，并以归一化排序样本预测 26 个候选偏移量的损失，再由 MDM 在所选偏移量下估计参数。在形状参数 $1.5\leq\beta\leq5.0$、位置尺度比 $0.10\leq\gamma/\eta\leq1.00$ 和样本量 $n\in\{7,10,15,20\}$ 构成的 160 个离散组合中，经验值 0.1 接近完整设计的最佳统一取值；固定宽度形状参数域由低值向高值平移时，最佳统一偏移量则由 0.18 移至 0.04。相同参数条件下，样本间距与位置结构的变化伴随 MDM 梯度轨迹、搜索交点和低风险偏移量的移动，表明条件平均规则仍不能描述全部样本差异。选定输入表示后，在按位置尺度比水平留出的折外评价中，样本自适应选择将联合误差 $J_1$ 从 0.6304 降至 0.5846，降低 7.27%；改善覆盖四个样本量，三个参数的汇总标准化 RMSE 均下降。以已训练选择器和当前设计为条件的 95% 配对重采样区间为 6.94%—7.64%。结果支持在所评价设计内保留 MDM 的参数求解过程，利用样本信息进一步降低固定偏移量下的联合估计误差。
 
 **关键词：** 三参数 Weibull 分布；最小差异法；偏移量选择；小样本参数估计；多层感知机；风险曲线预测
 
 ## 1 引言
 
-三参数 Weibull 分布能够描述具有非零寿命起点的数据，广泛用于寿命与可靠性分析。其位置参数既确定分布的寿命起点，也使样本支持域随待估参数变化，因而增加了参数估计的难度。已有研究提出了极大似然法、矩估计法、最小二乘法及其修正方法。在小样本条件下，极大似然估计可能出现较大偏差或无有限解，其他方法的表现也会随参数条件、样本量和评价标准改变，尚无一种方法在所有条件下始终最优[1,4–7]。
+三参数 Weibull 分布能够描述具有非零寿命起点的数据，广泛用于寿命与可靠性分析。其位置参数既确定分布的寿命起点，也使样本支持域随待估参数变化，因而增加了参数估计的难度。已有研究提出了极大似然法、矩估计法、最小二乘法及其修正方法。在小样本条件下，极大似然估计可能出现较大偏差或无有限解，其他方法的表现也会随参数条件、样本量和评价标准改变，尚无一种方法在所有条件下始终最优[1–5]。
 
-针对三参数 Weibull 的小样本估计，谢里阳等[2]提出了最小差异法。该方法根据各样本点构造尺度参数的伪估计量，通过减小伪估计量之间的差异确定形状参数和位置参数，并在原研究中较极大似然法和最小二乘法表现出更好的准确性和稳健性[2]。后续研究又在位置参数搜索判据中引入正偏移量 $\delta=0.1$，进一步改善了小样本估计的精度和稳定性[3]。该研究指出，随机样本在真参数处未必满足零梯度判据，并以经验偏移量调整搜索位置；$0.1$ 来自 120 个估计案例，更适当的取值与选择方式仍待研究[3]。因此，进一步完善 MDM，需要说明偏移量怎样改变估计误差，并建立超出统一经验常数的选择依据。
+针对三参数 Weibull 的小样本估计，谢里阳等[6]提出了最小差异法。该方法根据各样本点构造尺度参数的伪估计量，通过减小伪估计量之间的差异确定形状参数和位置参数，并在原研究中较极大似然法和最小二乘法表现出更好的准确性和稳健性[6]。后续研究又在位置参数搜索判据中引入正偏移量 $\delta=0.1$，进一步改善了小样本估计的精度和稳定性[7]。该研究指出，随机样本在真参数处未必满足零梯度判据，并以经验偏移量调整搜索位置；$0.1$ 来自 120 个估计案例，更适当的取值与选择方式仍待研究[7]。因此，进一步完善 MDM，需要说明偏移量怎样改变估计误差，并建立超出统一经验常数的选择依据。
 
-统计估计中的调节量常凭经验设定，但更合适的取值往往与当前数据有关。围绕这一问题，早期研究根据当前数据估计均方误差，为稳健回归和最小距离估计选择调节参数[9–11]；后续工作又将训练和验证风险用于调参，或利用神经网络学习非参数回归的带宽[12,13]。近年来，模拟决策方法进一步直接学习给定观测下不同候选决策的条件损失[14]。这些方法都是根据当前数据下不同候选取值的风险，代替完全固定的经验常数。
+统计估计中的调节量常凭经验设定，但更合适的取值往往与当前数据有关。围绕这一问题，早期研究根据当前数据估计均方误差，为稳健回归和最小距离估计选择调节参数[8–10]；后续工作又将训练和验证风险用于调参，或利用神经网络学习非参数回归的带宽[11,12]。近年来，模拟决策方法进一步直接学习给定观测下不同候选决策的条件损失[13]。这些方法都是根据当前数据下不同候选取值的风险，代替完全固定的经验常数。
 
-对于 MDM，关键在于区分两种选择依据：参数条件改变时，适合该条件的平均偏移量可能改变；即使参数条件相同，有限样本的具体实现也可能改变候选偏移量的损失。前者决定统一常数的适用范围，后者关系到能否根据当前样本进一步改善估计。本文围绕这两个问题比较固定规则、参数条件规则与逐样本事后参照，并提出基于归一化排序样本的候选损失曲线预测方法。结果表明，经验值 0.1 在当前宽混合设计中接近最佳统一取值，但统一最低点随参数域移动，同一条件内的低风险偏移量也随样本变化。利用这些样本信息选择偏移量，在所评价离散设计中进一步降低了三个参数的汇总标准化误差；MDM 梯度轨迹的诊断则为理解这种样本差异提供了数值依据。
+针对 MDM 经验偏移量的取值依据与进一步优化问题，本文从参数空间、样本实现和自适应选择三个层面展开研究。通过 Monte Carlo 候选扫描考察统一偏移量对参数空间的依赖，比较不同信息条件下的选择规则，区分总体参数与抽样差异带来的优化空间；结合 MDM 搜索路径和联合误差分析，解释偏移量作用于三参数估计的过程。在此基础上，建立由归一化排序样本预测候选损失曲线的偏移量选择方法，通过参数水平留出评价检验其在总体参数未知时能否进一步提高估计精度。
 
 ## 2 问题定义与方法
 
@@ -32,19 +32,19 @@ F(t)=
 \end{cases}
 $$
 
-其中 $\beta>0$、$\eta>0$，$\gamma$ 为位置参数。给定升序样本 $t_{(1)}\leq\cdots\leq t_{(n)}$，采用中位秩估计[8]
+其中 $\beta>0$、$\eta>0$，$\gamma$ 为位置参数。给定升序样本 $t_{(1)}\leq\cdots\leq t_{(n)}$，采用中位秩估计[14]
 
 $$
 F_i=\frac{i-0.3}{n+0.4},\qquad q_i=-\ln(1-F_i).
 $$
 
-当候选形状参数和位置参数分别为 $\beta$ 和 $\gamma$ 时，第 $i$ 个样本点给出的伪尺度参数为[2]
+当候选形状参数和位置参数分别为 $\beta$ 和 $\gamma$ 时，第 $i$ 个样本点给出的伪尺度参数为[6]
 
 $$
 \eta_i(\beta,\gamma)=\frac{t_{(i)}-\gamma}{q_i^{1/\beta}}.
 $$
 
-若各样本点恰为秩概率 $F_i$ 对应的理论分位点，代入真形状参数与真位置参数后，各 $\eta_i$ 均等于真尺度参数。实际抽样得到的 $t_{(i)}$ 通常偏离这些分位点，因而即使代入真参数，伪尺度参数之间仍存在差异。MDM 利用这种差异随候选参数变化的规律进行估计，但某次样本的差异最小点未必对应真参数[3]。
+若各样本点恰为秩概率 $F_i$ 对应的理论分位点，代入真形状参数与真位置参数后，各 $\eta_i$ 均等于真尺度参数。实际抽样得到的 $t_{(i)}$ 通常偏离这些分位点，因而即使代入真参数，伪尺度参数之间仍存在差异。MDM 利用这种差异随候选参数变化的规律进行估计，但某次样本的差异最小点未必对应真参数[7]。
 
 伪尺度参数之间的差异用样本标准差 $s_\eta(\beta,\gamma)$ 表示。对每个候选 $\gamma$，先求
 
@@ -54,7 +54,7 @@ $$
 S(\gamma)=s_\eta\bigl(\beta^*(\gamma),\gamma\bigr),
 $$
 
-再根据廓线 $S(\gamma)$ 的梯度确定位置参数。沿用前期文献的记号[3]，定义 $\nabla(\gamma)\equiv\mathrm dS(\gamma)/\mathrm d\gamma$。无偏移判据对应 $\nabla(\hat\gamma)=0$；引入正偏移量后，判据写为
+再根据廓线 $S(\gamma)$ 的梯度确定位置参数。沿用前期文献的记号[7]，定义 $\nabla(\gamma)\equiv\mathrm dS(\gamma)/\mathrm d\gamma$。无偏移判据对应 $\nabla(\hat\gamma)=0$；引入正偏移量后，判据写为
 
 $$
 \nabla(\hat\gamma)=\delta.
@@ -69,7 +69,7 @@ $$
 
 对于一个给定样本，上述计算随候选 $\gamma$ 形成一组相互对应的三参数估计：$\beta^*(\gamma)$ 由条件最小差异确定，尺度参数由伪尺度参数的平均值确定。调节 $\delta$ 改变的是梯度判据在这组候选解中的选择位置。它先改变位置估计，再通过形状参数的条件优化和尺度参数的计算，使三个估计量共同变化。因此，偏移量虽只出现在位置参数判据中，其效果需要以三参数联合误差评价。
 
-经验正偏移量的作用可以从重复抽样理解。不同样本形成不同的廓线，零梯度判据在这些廓线上的落点可能较为分散；改用正梯度水平后，估计的抽样离散程度与平均位置都会变化[3]。离散程度下降有利于提高精度，但估计中心也可能偏离真值。合适的偏移量因而取决于这两种变化共同形成的误差，而不能仅由结果是否集中判断。第 3.1 节用重复抽样数据分解这两部分影响。
+经验正偏移量的作用可以从重复抽样理解。不同样本形成不同的廓线，零梯度判据在这些廓线上的落点可能较为分散；改用正梯度水平后，估计的抽样离散程度与平均位置都会变化[7]。离散程度下降有利于提高精度，但估计中心也可能偏离真值。合适的偏移量因而取决于这两种变化共同形成的误差，而不能仅由结果是否集中判断。第 3.1 节用重复抽样数据分解这两部分影响。
 
 在同一参数条件下，抽样得到的次序统计量与间距仍有差异，候选解路径及其相对真值的位置也随之改变。针对该条件选择一个平均误差较低的偏移量，可以改善重复抽样表现；进一步利用当前样本，则可能区分同一条件内不同候选的相对优劣。这两种选择针对同一个参数估计目标，区别在于所利用的信息。交点对样本曲线变化的局部关系见附录 B.7。
 
@@ -199,15 +199,15 @@ $$
 
 ### 3.1 固定偏移量与参数域
 
-正偏移量通过改变条件偏差与抽样方差，影响联合估计精度。由 $\delta=0$ 调至 0.10 时，三参数标准化误差的组合内方差项 $V$ 从 0.7721 降至 0.2062，条件偏差平方项 $B^2$ 则从 0.1269 增至 0.1912。方差项减少 0.5659，超过偏差平方项增加的 0.0643，使联合均方误差从 0.8990 降至 0.3974，$J_1$ 从 0.9481 降至 0.6304（图 2）。这说明，在当前设计中，经验正偏移量的精度收益主要来自抽样离散程度的大幅收窄。逐参数比较也显示，$\beta$、$\eta$ 和 $\gamma$ 的组合内标准化 SD 中位数分别下降 57.0%、39.0% 和 40.9%（附录图 A1）。
+在完整参数设计中，经验偏移量 $\delta=0.10$ 接近最低联合误差：26 点扫描的最低值位于 $\delta=0.06$，$J_1=0.624518$，而 $\delta=0.10$ 的 $J_1=0.630409$，仅高出 0.93%（图 2a）。在这一混合参数空间中，用另一个统一常数替代经验值的改善幅度较小。
 
-方差较小并不意味着联合误差最低。继续增大偏移量至 0.50，方差项进一步降至 0.1176，偏差平方项却增至 0.4628，$J_1$ 回升至 0.7619。26 点扫描中，联合误差最低点位于 $\delta=0.06$，$J_1=0.624518$；$\delta=0.08$ 和 0.10 时分别为 0.624666 和 0.630409。经验值 0.10 比网格最低值高 0.93%，处于当前完整设计的低风险区域。因此，偏移量选择应依据偏差与方差共同决定的联合误差，在原有稳定性改善的基础上寻找更合适的估计落点。
+风险分解解释了该低值区域的形成。由无偏移判据调至 $\delta=0.10$，抽样方差项的降幅超过条件偏差平方项的增幅，$J_1$ 从 0.9481 降至 0.6304；继续增大至 0.50，方差仍下降，但偏差增加使 $J_1$ 回升至 0.7619（图 2b）。组合内偏差与方差的分解及逐参数抽样波动见附录 A.6。
 
 ![偏移量对联合误差及其偏差方差分量的影响](figures/main/fig2_offset_risk_decomposition_v112.png)
 
 **图 2  偏移量对联合估计误差的影响。** **a，** 26 个候选偏移量的汇总 $J_1$；**b，** 相应的联合均方误差 $J_1^2$、条件偏差平方项 $B^2$ 与组合内方差项 $V$。各分量先根据每个参数组合的 300 次重复抽样计算，再对 160 个组合等权汇总。
 
-上述汇总结果仍留下一个问题：经验值接近最低点，是偏移量本身具有普遍适用性，还是不同参数条件混合后的结果？固定宽度参数域的比较用于区分这两种解释。
+统一值的上述表现来自多个参数条件的混合。为考察其对参数空间的依赖，在保持域宽、样本量构成与条件权重不变的情况下，沿形状参数轴平移评价范围。
 
 固定宽度形状参数域的比较显示，统一偏移量随参数域有序移动（图 3）。区间由 $[1.50,2.50]$ 移至 $[4.00,5.00]$ 时，离散最低点由 $\delta=0.18$ 降至 0.04，1% 近优范围由 0.16—0.26 移至 0.04。$\delta=0.10$ 在 $[2.25,3.25]$ 和 $[2.50,3.50]$ 内达到最低风险，在最低与最高两个区间则分别比最低 $J_1$ 高 5.06% 和 9.16%。重复块 bootstrap 的最低点区间支持这一移动方向。统一偏移量因而是针对给定参数域的风险折中。
 
@@ -306,7 +306,7 @@ $J_1$ 给出偏移量选择和规则比较所需的统一目标，逐参数指�
 
 ### 4.1 从统一偏移量到样本自适应选择
 
-偏移量为 MDM 提供了调整有限样本估计表现的自由度。它通过搜索判据选择三参数候选解，改变估计中心与抽样离散程度；图 2 的分解表明，最小抽样方差与最低联合误差对应的偏移量并不相同。统一值需要在所针对的参数范围、样本量构成和条件权重下，按联合误差确定。在当前宽混合设计中，经验值 $\delta=0.1$ 的 $J_1$ 仅比描述性最低点高 0.93%，说明单纯把默认值换成另一个统一常数，能够获得的改善有限。但固定宽度形状参数域平移后，统一最低点由 0.18 移至 0.04，表明这一低风险表现依赖于参数域。对于范围较窄且事先明确的应用域，可依据该域的汇总风险曲线确定统一值。
+统一偏移量对应给定参数空间下的平均估计风险，其适用性随评价范围改变。在当前宽混合设计中，经验值 $\delta=0.1$ 的 $J_1$ 仅比描述性最低点高 0.93%，说明单纯把默认值换成另一个统一常数，能够获得的改善有限。但固定宽度形状参数域平移后，统一最低点由 0.18 移至 0.04，表明这一低风险表现依赖于参数域。对于范围较窄且事先明确的应用域，可依据该域的汇总风险曲线确定统一值。
 
 已知样本量提供的额外选择依据也较有限。在重复编号交叉评价中，统一规则 L1 与按样本量规则 L2 相对 Default 的降幅分别为 0.83% 和 1.17%，按 $n$ 维护多套固定偏移量未带来较大收益。相比之下，参数条件规则呈现更明显的风险差异，同一参数条件内的事后低风险偏移量又随样本变化。这说明进一步选择需要考虑当前样本所反映的分布特征，而仅增加固定规则的数量并不足够。
 
@@ -347,13 +347,13 @@ $$
 
 ## 5 结论
 
-围绕三参数 Weibull 小样本估计中 MDM 偏移量的作用与选择，得到以下结论：
+通过对 MDM 偏移量的参数空间依赖、样本差异与自适应选择进行研究，得到以下结论：
 
-1. 偏移量通过改变梯度判据的搜索落点，联动调整三个参数的估计结果。适当的正偏移能够收窄抽样波动并降低联合误差，而继续增大偏移量可能因偏差增加而损失精度。因此，偏移量优化应以偏差和方差共同决定的估计误差为依据。
+1. 最优统一偏移量随所针对的参数空间改变。经验值 0.1 在宽混合参数空间中接近最优，但不同参数域的低风险取值并不相同。固定经验值的有效性来自对相应参数空间的平均误差折中。
 
-2. 最优统一偏移量与所针对的参数空间及其构成有关，经验值 0.1 的近优表现有赖于相应的评价范围。同一参数条件内，不同样本仍形成不同的候选解路径和损失曲线，因而参数条件平均规则之外还存在利用当前样本进一步选择的空间。
+2. 总体参数相同并不意味着每个样本具有相同的低风险偏移量。抽样差异改变 MDM 的候选解路径及联合损失，逐样本事后选择的联合误差进一步低于参数条件平均规则，表明偏移量的优化空间同时来自参数条件差异和同一条件内的样本差异。
 
-3. 归一化排序样本能够提供有效的偏移量选择信息。通过预测候选损失曲线并选择低损失偏移量，可保留 MDM 的参数求解过程，在总体参数未知时实现样本自适应估计。在所评价设计的折外比较中，联合误差较固定偏移量降低 7.27%，三个参数的汇总标准化 RMSE 均下降，验证了这种选择方式对估计精度的改善。
+3. 基于归一化排序样本的候选损失曲线预测，将样本信息转化为有效的偏移量选择。在所评价参数空间的折外比较中，该方法较固定偏移量降低联合误差 7.27%，改善覆盖四个样本量，三个参数的汇总标准化 RMSE 均下降，实现了保留 MDM 求解过程、无需真参数输入的精度提升。
 
 ## 数据与代码可用性
 
@@ -375,28 +375,28 @@ $$
 
 [1] Yang X, Xie L, Liu Y, et al. A review of parameter estimation methods of the three-parameter Weibull distribution. In: *2023 9th International Symposium on System Security, Safety, and Reliability (ISSSR)*. 2023: 20–31. doi:10.1109/ISSSR58837.2023.00013.
 
-[2] Xie L, Wu N, Yang X. A minimum discrepancy method for Weibull distribution parameter estimation. *International Journal of Structural Stability and Dynamics*. 2023;23(8):2350085. doi:10.1142/S0219455423500852.
+[2] Cohen AC, Whitten B. Modified maximum likelihood and modified moment estimators for the three-parameter Weibull distribution. *Communications in Statistics—Theory and Methods*. 1982;11(23):2631–2656. doi:10.1080/03610928208828412.
 
-[3] 谢里阳, 朱文慧, 吴宁祥, 杨小玉. 基于统计最小差异原理的 Weibull 分布参数估计方法. *东北大学学报（自然科学版）*. 2025;46(7):108–112+130. doi:10.12068/j.issn.1005-3026.2025.20240194.
+[3] Cousineau D. Fitting the three-parameter Weibull distribution: review and evaluation of existing and new methods. *IEEE Transactions on Dielectrics and Electrical Insulation*. 2009;16(1):281–288. doi:10.1109/TDEI.2009.4784578.
 
-[4] Cohen AC, Whitten B. Modified maximum likelihood and modified moment estimators for the three-parameter Weibull distribution. *Communications in Statistics—Theory and Methods*. 1982;11(23):2631–2656. doi:10.1080/03610928208828412.
+[4] Akram M, Hayat A. Comparison of estimators of the Weibull distribution. *Journal of Statistical Theory and Practice*. 2014;8(2):238–259. doi:10.1080/15598608.2014.847771.
 
-[5] Cousineau D. Fitting the three-parameter Weibull distribution: review and evaluation of existing and new methods. *IEEE Transactions on Dielectrics and Electrical Insulation*. 2009;16(1):281–288. doi:10.1109/TDEI.2009.4784578.
+[5] Teimouri M, Hoseini SM, Nadarajah S. Comparison of estimation methods for the Weibull distribution. *Statistics*. 2013;47(1):93–109. doi:10.1080/02331888.2011.559657.
 
-[6] Akram M, Hayat A. Comparison of estimators of the Weibull distribution. *Journal of Statistical Theory and Practice*. 2014;8(2):238–259. doi:10.1080/15598608.2014.847771.
+[6] Xie L, Wu N, Yang X. A minimum discrepancy method for Weibull distribution parameter estimation. *International Journal of Structural Stability and Dynamics*. 2023;23(8):2350085. doi:10.1142/S0219455423500852.
 
-[7] Teimouri M, Hoseini SM, Nadarajah S. Comparison of estimation methods for the Weibull distribution. *Statistics*. 2013;47(1):93–109. doi:10.1080/02331888.2011.559657.
+[7] 谢里阳, 朱文慧, 吴宁祥, 杨小玉. 基于统计最小差异原理的 Weibull 分布参数估计方法. *东北大学学报（自然科学版）*. 2025;46(7):108–112+130. doi:10.12068/j.issn.1005-3026.2025.20240194.
 
-[8] Benard A, Bos-Levenbach EC. Het uitzetten van waarnemingen op waarschijnlijkheids-papier. *Statistica Neerlandica*. 1953;7(3):163–173. doi:10.1111/j.1467-9574.1953.tb00821.x.
+[8] Kelly G. Adaptive choice of tuning constant for robust regression estimators. *Journal of the Royal Statistical Society: Series D (The Statistician)*. 1996;45(1):35–40. doi:10.2307/2348409.
 
-[9] Kelly G. Adaptive choice of tuning constant for robust regression estimators. *Journal of the Royal Statistical Society: Series D (The Statistician)*. 1996;45(1):35–40. doi:10.2307/2348409.
+[9] Warwick J. A data-based method for selecting tuning parameters in minimum distance estimators. *Computational Statistics & Data Analysis*. 2005;48(3):571–585. doi:10.1016/j.csda.2004.03.006.
 
-[10] Warwick J. A data-based method for selecting tuning parameters in minimum distance estimators. *Computational Statistics & Data Analysis*. 2005;48(3):571–585. doi:10.1016/j.csda.2004.03.006.
+[10] Warwick J, Jones MC. Choosing a robustness tuning parameter. *Journal of Statistical Computation and Simulation*. 2005;75(7):581–588. doi:10.1080/00949650412331299120.
 
-[11] Warwick J, Jones MC. Choosing a robustness tuning parameter. *Journal of Statistical Computation and Simulation*. 2005;75(7):581–588. doi:10.1080/00949650412331299120.
+[11] Zhang C, Zhang T, Yin F, Zoubir AM. Data-adaptive M-estimators for robust regression via bi-level optimization. *Signal Processing*. 2023;210:109063. doi:10.1016/j.sigpro.2023.109063.
 
-[12] Zhang C, Zhang T, Yin F, Zoubir AM. Data-adaptive M-estimators for robust regression via bi-level optimization. *Signal Processing*. 2023;210:109063. doi:10.1016/j.sigpro.2023.109063.
+[12] Giordano F, Parrella ML. Neural networks for bandwidth selection in local linear regression of time series. *Computational Statistics & Data Analysis*. 2008;52(5):2435–2450. doi:10.1016/j.csda.2007.08.013.
 
-[13] Giordano F, Parrella ML. Neural networks for bandwidth selection in local linear regression of time series. *Computational Statistics & Data Analysis*. 2008;52(5):2435–2450. doi:10.1016/j.csda.2007.08.013.
+[13] Gorecki M, Macke JH, Deistler M. Amortized Bayesian decision making for simulation-based models. *Transactions on Machine Learning Research*. 2024. OpenReview:BQE4MTAfCE.
 
-[14] Gorecki M, Macke JH, Deistler M. Amortized Bayesian decision making for simulation-based models. *Transactions on Machine Learning Research*. 2024. OpenReview:BQE4MTAfCE.
+[14] Benard A, Bos-Levenbach EC. Het uitzetten van waarnemingen op waarschijnlijkheids-papier. *Statistica Neerlandica*. 1953;7(3):163–173. doi:10.1111/j.1467-9574.1953.tb00821.x.
