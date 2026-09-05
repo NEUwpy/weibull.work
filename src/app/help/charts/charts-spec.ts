@@ -294,6 +294,8 @@ export const CHART_USAGE_MAP_GROUPS: UsageMapGroup[] = [
     title: '参数估计方法（Methods）',
     accent: 'text-blue-700',
     rows: [
+      { tab: '结果分析', chart: '折线图', data: '各参数的有效估计 RMSE 随样本量或偏移量变化', src: 'ai AIChartLine' },
+      { tab: '结果分析', chart: '密度图', data: '已完成组合的有效参数估计分布；失败数在表格单列', src: 'shared DensityChart' },
       { tab: '计算过程', chart: '直方图', data: 'beta/eta/gamma 估计值分布', src: 'Recharts BarChart' },
       { tab: '计算过程', chart: '折线图', data: 'MSE/Std 随偏移量变化', src: 'Recharts LineChart' },
       { tab: '计算过程', chart: '散点图', data: '估计值 vs 真实值', src: 'Recharts ScatterChart' },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { isContentSlug, resolveContentFile } from '@/lib/server/content-files'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -10,11 +11,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing slug parameter' }, { status: 400 })
   }
 
+  if (!isContentSlug(slug)) {
+    return NextResponse.json({ error: 'Invalid algorithm identifier' }, { status: 400 })
+  }
+
   try {
     const contentDir = path.join(process.cwd(), 'src/content/algorithms')
-    const filePath = path.join(contentDir, `${slug}.md`)
+    const filePath = resolveContentFile(contentDir, `${slug}.md`)
 
-    if (!fs.existsSync(filePath)) {
+    if (!filePath) {
       return NextResponse.json({ error: 'Algorithm documentation not found' }, { status: 404 })
     }
 

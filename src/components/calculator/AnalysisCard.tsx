@@ -615,6 +615,7 @@ export default function AnalysisCard({
             <div className="flex-1 p-4 overflow-hidden">
               <div className="relative w-full h-full">
                 <textarea
+                  disabled={isCalculating || isMdmOffsetUpdating}
                   className="w-full h-full text-xs font-mono p-3 bg-slate-50 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 transition-all text-slate-600 leading-relaxed"
                   placeholder="数据..."
                   value={sampleText}

@@ -2,6 +2,7 @@
 
 import sys
 import os
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -11,6 +12,29 @@ from studies.common.runner import run_method
 
 # 使用固定样本，避免随机性
 FIXED_SAMPLE = generate_sample(2.0, 100.0, 5.0, 30, 0)
+
+
+@pytest.mark.parametrize("invalid", [0.0, -2.0, float("inf"), float("nan")])
+def test_invalid_observation_is_rejected_without_silent_filtering(invalid):
+    from base import WeibullBase
+
+    sample = [invalid, 310, 342, 353, 365, 383, 393, 403, 412, 451, 456]
+    result = run_method("wmle", sample)
+    assert result["beta_hat"] is None
+    assert result["converged"] is False
+    assert "invalid sample" in result["extra"]["error"]
+    with pytest.raises(ValueError, match="invalid sample"):
+        WeibullBase(sample)
+
+
+@pytest.mark.parametrize("method", ["pwm", "lm", "tlm", "grey", "gm11", "bayesian", "gibbs", "map"])
+def test_stub_and_aliases_are_unavailable_at_registry_boundary(method):
+    from fastapi import HTTPException
+    from methods.registry import resolve_method
+
+    with pytest.raises(HTTPException) as exc:
+        resolve_method(method)
+    assert exc.value.status_code == 501
 
 
 def test_mle_returns_valid():

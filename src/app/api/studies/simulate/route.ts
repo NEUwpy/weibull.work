@@ -43,8 +43,12 @@ export async function POST(request: Request) {
     const body: MonteCarloRequest = await request.json()
     const { methodId, params } = body
 
+    if (!methodId || !params || typeof params !== 'object') {
+      return NextResponse.json({ error: 'Missing methodId or params' }, { status: 400 })
+    }
+
     // 调用 Python 后端
-    const response = await fetch(`${getApiBaseUrl()}/monte_carlo_simulate`, {
+    const response = await fetch(`${process.env.BACKEND_API_URL || getApiBaseUrl()}/monte_carlo_simulate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -52,9 +56,9 @@ export async function POST(request: Request) {
         beta: params.beta,
         eta: params.eta,
         n: params.n,
-        rep: params.rep || 100,
-        seed: params.seed || 42,
-        gamma: params.gamma || 0,
+        rep: params.rep ?? 100,
+        seed: params.seed ?? 42,
+        gamma: params.gamma ?? 0,
         offset: params.offset
       })
     })
@@ -72,6 +76,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       rows: data.rows as SimulationRow[],
       count: data.count,
+      metrics: data.metrics,
+      success: data.success,
       methodId,
       params
     })

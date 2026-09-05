@@ -113,4 +113,8 @@ def test_iter_batch_rows_keeps_batch_csv_shape():
         "bias_eta",
         "bias_gamma",
         "r_squared",
+        "converged",
+        "status",
+        "error",
+        "sample_min",
     }

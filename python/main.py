@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Union
 import sys
@@ -8,6 +9,7 @@ import os
 import io
 import csv
 import math
+import threading
 import numpy as np
 
 # Add methods directory to path
@@ -23,6 +25,48 @@ app = FastAPI()
 MDM_CALCULATOR_DEFAULT_OFFSET = 0.1
 MDM_CALCULATOR_MIN_OFFSET = 0.0
 MDM_CALCULATOR_MAX_OFFSET = 0.5
+
+# Bounds apply only to interactive API work, not file-based research experiments.
+SIMULATION_MAX_N = 500
+SIMULATION_MAX_ESTIMATES = 1000
+SIMULATION_MAX_OBSERVATIONS = 500_000
+_compute_slots = threading.BoundedSemaphore(2)
+
+
+async def _run_interactive_compute(function, *args, **kwargs):
+    """Offload CPU work without an unbounded queue or blocking the event loop."""
+    if not _compute_slots.acquire(blocking=False):
+        raise HTTPException(status_code=429, detail="计算服务繁忙，请稍后重试", headers={"Retry-After": "2"})
+
+    def run():
+        try:
+            return function(*args, **kwargs)
+        finally:
+            # Release in the worker: a disconnected caller must not free a slot
+            # while its numerical computation is still running.
+            _compute_slots.release()
+
+    return await run_in_threadpool(run)
+
+
+def _validate_simulation_work(beta, eta, gamma, sample_sizes, repetitions, betas=None, offsets=None):
+    if not math.isfinite(beta) or beta <= 0 or not math.isfinite(eta) or eta <= 0:
+        raise HTTPException(status_code=400, detail="beta 和 eta 必须是有限正数")
+    if not math.isfinite(gamma) or gamma < 0:
+        raise HTTPException(status_code=400, detail="现场模拟 gamma 必须有限且不小于 0")
+    if not sample_sizes or any(n < 3 or n > SIMULATION_MAX_N for n in sample_sizes):
+        raise HTTPException(status_code=400, detail=f"现场模拟样本量必须为 3..{SIMULATION_MAX_N}")
+    if not 1 <= repetitions <= SIMULATION_MAX_ESTIMATES:
+        raise HTTPException(status_code=400, detail=f"重复次数必须为 1..{SIMULATION_MAX_ESTIMATES}")
+    if betas is not None and (not betas or any(not math.isfinite(b) or b <= 0 for b in betas)):
+        raise HTTPException(status_code=400, detail="形状参数网格必须包含有限正数")
+    if offsets is not None and (not offsets or any(not math.isfinite(o) or not 0 <= o <= 0.5 for o in offsets)):
+        raise HTTPException(status_code=400, detail="偏移量必须为 0..0.5 的有限数值")
+    combinations = len(betas or [beta]) * len(offsets or [None])
+    if len(sample_sizes) * combinations * repetitions > SIMULATION_MAX_ESTIMATES:
+        raise HTTPException(status_code=400, detail=f"单次请求最多执行 {SIMULATION_MAX_ESTIMATES} 次估计")
+    if sum(sample_sizes) * combinations * repetitions > SIMULATION_MAX_OBSERVATIONS:
+        raise HTTPException(status_code=400, detail="单次请求的总观测数量超过现场模拟上限")
 
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
@@ -138,9 +182,9 @@ _CSV_FLOAT_COLUMNS = {
 def _csv_cell(column: str, value):
     """保持 batch_simulation 历史 CSV 数值格式。"""
     if value is None:
-        return "0" if column in _CSV_FLOAT_COLUMNS else ""
+        return ""
     if column in _CSV_FLOAT_COLUMNS:
-        return f"{float(value):.6f}"
+        return f"{float(value):.6f}" if math.isfinite(float(value)) else ""
     return value
 
 
@@ -150,8 +194,8 @@ async def calculate(req: CalculationRequest):
         raise HTTPException(status_code=400, detail="Insufficient data points")
 
     selected_method_id, _ = resolve_method(req.method)
-    return _run_calculation_method(selected_method_id, req.data,
-                                   trace=req.trace, offset=req.offset)
+    return await _run_interactive_compute(_run_calculation_method, selected_method_id, req.data,
+                                          trace=req.trace, offset=req.offset)
 
 @app.post("/calculate_3d_surface")
 async def calculate_3d_surface(req: Surface3DRequest):
@@ -166,13 +210,14 @@ async def calculate_3d_surface(req: Surface3DRequest):
         raise HTTPException(status_code=400, detail="3D surface only supported for MDM method")
 
     try:
-        return _run_calculation_method("mdm", req.data, trace=True, offset=0.1)
+        return await _run_interactive_compute(_run_calculation_method, "mdm", req.data, trace=True, offset=0.1)
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"3D surface calculation failed: {str(e)}")
 
-@app.post("/batch_simulation")
-async def batch_simulation(req: BatchSimulationRequest):
+def _batch_simulation_response(req: BatchSimulationRequest):
     """
     Batch Monte Carlo simulation for case study.
 
@@ -197,6 +242,7 @@ async def batch_simulation(req: BatchSimulationRequest):
         if req.offsets:
             header.append("offset_value")
         header.extend(["sim_id", "est_beta", "est_eta", "est_gamma", "bias_beta", "bias_eta", "bias_gamma", "r_squared"])
+        header.extend(["converged", "status", "error", "sample_min"])
 
         writer = csv.DictWriter(output, fieldnames=header, extrasaction="ignore", lineterminator="\n")
         writer.writeheader()
@@ -221,8 +267,27 @@ async def batch_simulation(req: BatchSimulationRequest):
             headers={"Content-Disposition": "attachment; filename=batch_simulation.csv"}
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Batch simulation failed: {str(e)}")
+
+
+@app.post("/batch_simulation")
+async def batch_simulation(req: BatchSimulationRequest):
+    resolve_method(req.method)
+    _validate_simulation_work(req.true_beta, req.true_eta, req.true_gamma,
+                              req.sample_sizes, req.num_simulations, req.betas, req.offsets)
+    return await _run_interactive_compute(_batch_simulation_response, req)
+
+
+def _simulate_response(req: MonteCarloRequest, selected_method_id: str):
+    rows = simulate_method(
+        method_id=selected_method_id, beta=req.beta, eta=req.eta, gamma=req.gamma,
+        n=req.n, rep=req.rep, seed=req.seed, offset=req.offset,
+    )
+    metrics = aggregate_simulation_rows(rows)
+    return {"rows": rows, "count": len(rows), "metrics": metrics, "success": True}
 
 @app.post("/monte_carlo_simulate")
 async def monte_carlo_simulate(req: MonteCarloRequest):
@@ -232,41 +297,13 @@ async def monte_carlo_simulate(req: MonteCarloRequest):
     生成 rep 个威布尔分布样本，对每个样本执行参数估计，
     返回与预计算chunk相同格式的JSON数据。
     """
-    # 参数验证
-    errors = []
-    if not req.method:
-        errors.append("缺少参数: method")
-    if req.beta is None or req.beta <= 0:
-        errors.append(f"beta 必须大于 0，当前值: {req.beta}")
-    if req.eta is None or req.eta <= 0:
-        errors.append(f"eta 必须大于 0，当前值: {req.eta}")
-    if req.n is None or req.n < 3:
-        errors.append(f"n (样本量) 必须至少为 3，当前值: {req.n}")
-    if req.rep is None or req.rep < 1:
-        errors.append(f"rep (重复次数) 必须至少为 1，当前值: {req.rep}")
-
-    if errors:
-        raise HTTPException(status_code=400, detail=f"参数验证失败: {'; '.join(errors)}")
+    _validate_simulation_work(req.beta, req.eta, req.gamma, [req.n], req.rep,
+                              offsets=None if req.offset is None else [req.offset])
 
     try:
         selected_method_id, _ = resolve_method(req.method)
 
-        print(f"[MonteCarlo] 开始模拟: method={req.method}, beta={req.beta}, eta={req.eta}, gamma={req.gamma}, n={req.n}, rep={req.rep}")
-
-        rows = simulate_method(
-            method_id=selected_method_id,
-            beta=req.beta,
-            eta=req.eta,
-            gamma=req.gamma,
-            n=req.n,
-            rep=req.rep,
-            seed=req.seed,
-            offset=req.offset,
-        )
-
-        print(f"[MonteCarlo] 完成: method={req.method}, 成功 {len(rows)}/{req.rep} 次")
-        metrics = aggregate_simulation_rows(rows)
-        return {"rows": rows, "count": len(rows), "metrics": metrics, "success": True}
+        return await _run_interactive_compute(_simulate_response, req, selected_method_id)
 
     except HTTPException:
         raise

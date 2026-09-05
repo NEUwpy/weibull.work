@@ -50,6 +50,14 @@ export const chartRegistry: ChartRegistry = {
   // ============================================================
   LineChart: [
     {
+      id: 'methods-analysis-rmse',
+      label: '现场模拟参数 RMSE 趋势',
+      location: 'ResultAnalysisLab',
+      description: '分别展示 β、η、γ 的后端有效估计 RMSE，横轴为样本量或偏移量',
+      dataSource: { type: 'api', endpoint: 'POST /api/studies/simulate' },
+      props: { xLabel: '样本量 n / 偏移量 δ', yLabel: '参数 RMSE', showDots: true },
+    },
+    {
       id: 'mdm-process-optimization-loss-curve',
       label: 'MDM 偏移量预测损失曲线',
       location: '/ai/process-optimization/mdm',
@@ -147,6 +155,14 @@ export const chartRegistry: ChartRegistry = {
   // DensityChart (shared)
   // ============================================================
   DensityChart: [
+    {
+      id: 'methods-analysis-density',
+      label: '现场模拟估计分布',
+      location: 'ResultAnalysisLab',
+      description: '已完成组合的有效估计 KDE 分布，失败数在相邻统计表单列',
+      dataSource: { type: 'api', endpoint: 'POST /api/studies/simulate' },
+      props: { paramId: 'beta', displayDimension: { id: 'sampleSize', name: '样本量', symbol: 'n' }, trueValue: 2, color: 'blue' },
+    },
     {
       id: 'methods-study-density',
       label: '适用范围密度图',

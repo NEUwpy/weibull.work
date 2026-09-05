@@ -11,7 +11,7 @@ from typing import Dict, Iterable, List, Optional
 from methods.registry import resolve_method
 from studies.common.runner import run_method
 from studies.common.sample import generate_sample
-from studies.common.metrics import aggregate_standard_metrics
+from studies.common.metrics import aggregate_standard_metrics, check_status
 
 
 def _canonical_method_id(method_id: str) -> str:
@@ -39,6 +39,19 @@ def _bias(est_value: Optional[float], true_value: float) -> Optional[float]:
     if est_value is None:
         return None
     return est_value - true_value
+
+
+def _diagnostics(estimate: Dict, beta: float, eta: float, gamma: float, sample_min: float) -> Dict:
+    """Keep failed candidates visible and apply the same validity rule as metrics."""
+    values = [estimate[key] for key in ("beta_hat", "eta_hat", "gamma_hat")]
+    status = "failure" if any(value is None for value in values) else check_status(
+        *values, beta, eta, gamma, converged=estimate["converged"], sample_min=sample_min,
+    )
+    extra = estimate.get("extra") or {}
+    error = "" if status == "success" else str(
+        extra.get("error") or extra.get("raw_status") or "invalid or non-converged estimate"
+    )
+    return {"converged": estimate["converged"], "status": status, "error": error, "sample_min": sample_min}
 
 
 def simulate_method(
@@ -80,9 +93,8 @@ def simulate_method(
             "bias_gamma": _bias(est_gamma, gamma),
             "r_squared": estimate["r_squared"],
             "method_id": estimate["method_id"],
-            "converged": estimate["converged"],
             "time": estimate["time"],
-            "sample_min": sample_min,
+            **_diagnostics(estimate, beta, eta, gamma, sample_min),
         })
 
     return rows
@@ -139,6 +151,7 @@ def iter_batch_rows(
                         "bias_eta": _bias(est_eta, true_eta),
                         "bias_gamma": _bias(est_gamma, true_gamma),
                         "r_squared": estimate["r_squared"],
+                        **_diagnostics(estimate, current_true_beta, true_eta, true_gamma, float(min(sample))),
                     }
 
                     if beta_values is not None:

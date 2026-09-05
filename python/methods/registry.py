@@ -12,9 +12,6 @@ from methods.lre import LRE
 from methods.lse import LSE
 from methods.mps import MPS
 from methods.mm import MM
-from methods.pwm import PWM
-from methods.grey_gm11 import GreyGM11
-from methods.bayesian import Bayesian
 from methods.wmle import WMLE
 from methods.mdm import MDM
 
@@ -24,8 +21,7 @@ from methods.mdm import MDM
 IMPLEMENTED = {
     "mle": MLE, "mmle": MMLE, "mps": MPS, "wmle": WMLE,
     "lse": LSE, "mdm": MDM, "lre": LRE,
-    "mm": MM, "pwm": PWM,
-    "grey": GreyGM11, "bayesian": Bayesian,
+    "mm": MM,
 }
 
 # ============================================================
@@ -43,6 +39,7 @@ ALIASES = {
 # 前端有定义但后端尚未实现的方法
 # ============================================================
 NOT_IMPLEMENTED = {
+    "pwm", "grey", "bayesian",
     "construct_stat", "mve", "lsf",
     "ai", "pso", "svr", "ann",
 }
@@ -58,15 +55,14 @@ def resolve_method(method_id: str):
     """
     mid = method_id.lower()
 
+    # Resolve aliases before checking availability, including aliases to stubs.
+    mid = ALIASES.get(mid, mid)
+
     if mid in NOT_IMPLEMENTED:
         raise HTTPException(
             status_code=501,
             detail=f"方法 '{method_id}' 尚未实现，暂不可用。"
         )
-
-    # 先查别名
-    if mid in ALIASES:
-        mid = ALIASES[mid]
 
     if mid in IMPLEMENTED:
         return mid, IMPLEMENTED[mid]

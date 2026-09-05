@@ -67,9 +67,18 @@ def run_method(method_id: str, sample, variant: Optional[str] = None,
         "extra": None,
     }
 
-    values = np.asarray(sample, dtype=float).reshape(-1)
+    try:
+        values = np.asarray(sample, dtype=float).reshape(-1)
+    except (TypeError, ValueError):
+        result["extra"] = {"error": "invalid sample: observations must be numeric"}
+        return result
     if values.size < 2 or not np.isfinite(values).all():
         result["extra"] = {"error": "invalid sample: at least two finite observations are required"}
+        return result
+    if np.any(values <= 0):
+        # The production estimators require positive failure times. Never reuse
+        # the historical silent filtering for a research sample outside this contract.
+        result["extra"] = {"error": "invalid sample: observations must all be greater than zero"}
         return result
     if float(np.ptp(values)) == 0.0:
         result["extra"] = {"error": "invalid sample: observations must not all be equal"}
@@ -83,7 +92,7 @@ def run_method(method_id: str, sample, variant: Optional[str] = None,
         return result
 
     try:
-        instance = method_cls(sample)
+        instance = method_cls(values)
         run_kwargs = _accepted_run_kwargs(instance, kwargs)
         t0 = time.perf_counter()
         raw = instance.run(**run_kwargs)

@@ -322,3 +322,125 @@ def test_calculate_api_returns_422_for_degenerate_lre(helpers):
 
     assert exc.value.status_code == 422
     assert "lre" in exc.value.detail
+
+
+def test_batch_csv_keeps_failed_cells_empty_and_success_numbers(helpers, monkeypatch):
+    import csv
+    import io
+    from studies.common import simulation
+
+    results = iter([
+        {"beta_hat": None, "eta_hat": None, "gamma_hat": None, "r_squared": None,
+         "converged": False, "extra": {"error": "solver failed"}},
+        {"beta_hat": 2.0, "eta_hat": 100.0, "gamma_hat": 5.0, "r_squared": 0.98,
+         "converged": True, "extra": None},
+    ])
+    monkeypatch.setattr(simulation, "run_method", lambda *a, **k: next(results))
+
+    async def request_csv():
+        response = await helpers.batch_simulation(helpers.BatchSimulationRequest(
+            method="mdm", true_beta=2, true_eta=100, true_gamma=5,
+            sample_sizes=[7], num_simulations=2,
+        ))
+        chunks = [chunk async for chunk in response.body_iterator]
+        return b"".join(chunks).decode()
+
+    rows = list(csv.DictReader(io.StringIO(asyncio.run(request_csv()))))
+    assert rows[0]["est_beta"] == rows[0]["bias_beta"] == ""
+    assert rows[0]["converged"] == "False"
+    assert rows[0]["status"] == "failure"
+    assert rows[0]["error"] == "solver failed"
+    assert rows[1]["est_beta"] == "2.000000"
+    assert rows[1]["bias_beta"] == "0.000000"
+    assert rows[1]["status"] == "success"
+    assert rows[1]["error"] == ""
+
+
+@pytest.mark.parametrize("endpoint", ["calculate", "batch_simulation", "monte_carlo_simulate"])
+def test_stub_alias_api_preserves_501(helpers, endpoint):
+    requests = {
+        "calculate": helpers.CalculationRequest(method="lm", data=[1, 2, 3]),
+        "batch_simulation": helpers.BatchSimulationRequest(
+            method="lm", true_beta=2, true_eta=100, true_gamma=5, sample_sizes=[7]),
+        "monte_carlo_simulate": helpers.MonteCarloRequest(method="lm", beta=2, eta=100, n=7),
+    }
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(getattr(helpers, endpoint)(requests[endpoint]))
+    assert exc.value.status_code == 501
+
+
+@pytest.mark.parametrize("override", [
+    {"n": 501}, {"n": 2}, {"rep": 1001}, {"rep": 0},
+    {"beta": float("inf")}, {"eta": 0}, {"gamma": -1},
+    {"offset": 0.51}, {"offset": float("nan")},
+])
+def test_simulation_limits_fail_before_solver(helpers, monkeypatch, override):
+    def unexpected(*args, **kwargs):
+        pytest.fail("invalid request reached solver")
+    monkeypatch.setattr(helpers, "simulate_method", unexpected)
+    req = helpers.MonteCarloRequest(**({"method": "mdm", "beta": 2, "eta": 100, "n": 7} | override))
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(helpers.monte_carlo_simulate(req))
+    assert exc.value.status_code == 400
+
+
+def test_batch_total_work_limit_and_empty_grid(helpers):
+    for sizes, betas, offsets, rep in [([7, 10], [1, 2], [0.1, 0.2], 200), ([], None, None, 1), ([7], [], None, 1)]:
+        req = helpers.BatchSimulationRequest(method="mdm", true_beta=2, true_eta=100, true_gamma=5,
+            sample_sizes=sizes, betas=betas, offsets=offsets, num_simulations=rep)
+        with pytest.raises(HTTPException) as exc:
+            asyncio.run(helpers.batch_simulation(req))
+        assert exc.value.status_code == 400
+
+
+def test_compute_is_offloaded_bounded_and_releases_after_failure(helpers, monkeypatch):
+    import threading
+
+    monkeypatch.setattr(helpers, "_compute_slots", threading.BoundedSemaphore(2))
+    release = threading.Event()
+    started = []
+    main_thread = threading.get_ident()
+
+    def blocked():
+        started.append(threading.get_ident())
+        assert release.wait(timeout=3), "worker was not released"
+        return 42
+
+    async def check():
+        tasks = [asyncio.create_task(helpers._run_interactive_compute(blocked)) for _ in range(2)]
+        try:
+            for _ in range(100):
+                if len(started) == 2:
+                    break
+                await asyncio.sleep(0.01)
+            assert len(started) == 2
+            assert all(thread != main_thread for thread in started)
+            with pytest.raises(HTTPException) as exc:
+                await helpers._run_interactive_compute(lambda: None)
+            assert exc.value.status_code == 429
+            assert exc.value.headers["Retry-After"] == "2"
+        finally:
+            release.set()
+            assert await asyncio.gather(*tasks) == [42, 42]
+
+        def failed():
+            raise ValueError("expected")
+        with pytest.raises(ValueError, match="expected"):
+            await helpers._run_interactive_compute(failed)
+        assert await helpers._run_interactive_compute(lambda: 7) == 7
+
+    asyncio.run(check())
+
+
+def test_simulation_response_preserves_failures_and_shared_metrics(helpers, monkeypatch):
+    from studies.common import simulation
+    monkeypatch.setattr(simulation, "run_method", lambda *a, **k: {
+        "beta_hat": None, "eta_hat": None, "gamma_hat": None, "r_squared": None,
+        "converged": False, "extra": {"error": "solver failed"}, "method_id": "mdm", "time": 0.0,
+    })
+    response = asyncio.run(helpers.monte_carlo_simulate(
+        helpers.MonteCarloRequest(method="mdm", beta=2, eta=100, n=7, rep=2)))
+    assert response["count"] == 2
+    assert response["rows"][0]["est_beta"] is None
+    assert response["rows"][0]["status"] == "failure"
+    assert response["metrics"]["n_failure"] == 2

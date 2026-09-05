@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { FlaskConical, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { expandChunkParameters } from '@/lib/study-chunks'
 import { ChartCard, BoxPlotChart, HeatmapChart, DensityChart } from '@/components/shared/charts'
 
 // ============ Types ============
@@ -288,20 +289,23 @@ export default function GenericStudyViewer({
 
   // 加载 Chunk 信息
   useEffect(() => {
+    const controller = new AbortController()
+    setChunkInfo(null)
     const loadChunkInfo = async () => {
       setIsLoadingChunks(true)
       try {
-        const res = await fetch(`/api/studies/${methodId.toLowerCase()}/chunks`)
+        const res = await fetch(`/api/studies/${methodId.toLowerCase()}/chunks`, { signal: controller.signal })
         if (res.ok) {
           const data = await res.json()
-          setChunkInfo(data)
+          if (!controller.signal.aborted) setChunkInfo(data)
         }
       } catch (err) {
-        console.error('Failed to load chunk info:', err)
+        if (!controller.signal.aborted) console.error('Failed to load chunk info:', err)
       }
-      setIsLoadingChunks(false)
+      if (!controller.signal.aborted) setIsLoadingChunks(false)
     }
     loadChunkInfo()
+    return () => controller.abort()
   }, [methodId])
 
   // 初始化选中值
@@ -402,7 +406,6 @@ export default function GenericStudyViewer({
     const isSimVar = (id: string) => simVariableDimensions.includes(id)
     const isCalcVar = (id: string) => calcVariableDimensions.includes(id)
 
-    const chunks: string[] = []
     const betaValues = getValue('beta', isParamVar('beta'), selectedParamValues, 'beta')
     const etaValues = getValue('eta', isParamVar('eta'), selectedParamValues, 'eta')
     const nValues = getValue('sampleSize', isParamVar('sampleSize'), selectedParamValues, 'n')
@@ -417,30 +420,10 @@ export default function GenericStudyViewer({
       extraParamValues[param.chunkKey] = getValue(param.id, isParamVar(param.id), selectedParamValues, param.chunkKey)
     }
 
-    for (const beta of betaValues) {
-      for (const eta of etaValues) {
-        for (const n of nValues) {
-          for (const rep of repValues) {
-            for (const seed of seedValues) {
-              for (const step of stepValues) {
-                const params: Record<string, number> = { beta, eta, gamma: gammaValue, n, rep, seed, step }
-
-                // 添加额外参数（先处理第一个额外参数的多值情况）
-                for (const param of extraParamDefs) {
-                  const vals = extraParamValues[param.chunkKey]
-                  if (vals && vals.length > 0) {
-                    params[param.chunkKey] = vals[0]
-                  }
-                }
-
-                chunks.push(generateChunkFilename(params, extraChunkKeys))
-              }
-            }
-          }
-        }
-      }
-    }
-    return chunks
+    return expandChunkParameters({
+      beta: betaValues, eta: etaValues, gamma: [gammaValue], n: nValues,
+      rep: repValues, seed: seedValues, step: stepValues, ...extraParamValues,
+    }).map(params => generateChunkFilename(params, extraChunkKeys))
   }, [chunkInfo, paramVariableDimensions, simVariableDimensions, calcVariableDimensions,
       selectedParamValues, selectedSimValues, selectedCalcValues, fixedValues, extraParamDefsKey, extraChunkKeysKey])
 
@@ -464,7 +447,13 @@ export default function GenericStudyViewer({
 
   // 加载数据
   useEffect(() => {
-    if (!chunkInfo) return
+    const controller = new AbortController()
+    setCsvData([])
+    setLoadedChunks([])
+    if (!chunkInfo) {
+      setIsLoadingData(false)
+      return () => controller.abort()
+    }
 
     const loadData = async () => {
       setIsLoadingData(true)
@@ -480,7 +469,7 @@ export default function GenericStudyViewer({
       const results = await Promise.all(
         chunks.map(async (name) => {
           try {
-            const res = await fetch(`${basePath}/${name}`)
+            const res = await fetch(`${basePath}/${name}`, { signal: controller.signal })
             if (!res.ok) return { data: [], filename: name, success: false }
             const text = await res.text()
             const data = parseCsv(text)
@@ -491,6 +480,7 @@ export default function GenericStudyViewer({
         })
       )
 
+      if (controller.signal.aborted) return
       const allData = results.flatMap(r => r.data)
       const chunkInfoList = results.map(r => ({ filename: r.filename, rowCount: r.data.length, success: r.success }))
       setCsvData(allData)
@@ -499,6 +489,7 @@ export default function GenericStudyViewer({
     }
 
     loadData()
+    return () => controller.abort()
   }, [chunkInfo, getRequiredChunks, methodId])
 
   // 参数操作函数

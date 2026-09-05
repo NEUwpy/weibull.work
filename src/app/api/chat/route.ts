@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { getMoonshotClient, hasMoonshotKey } from '@/lib/server/moonshot-client'
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
@@ -8,11 +8,7 @@ import matter from 'gray-matter'
 const configPath = path.join(process.cwd(), 'src/app/api/chat/config.json')
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
 
-// Initialize Moonshot API client
-const client = new OpenAI({
-  apiKey: config.moonshot.apiKey,
-  baseURL: config.moonshot.baseURL
-})
+const getClient = () => getMoonshotClient(config.moonshot.baseURL)
 
 // Helper: Read text file with encoding detection
 function readTextFile(filePath: string): string {
@@ -101,7 +97,7 @@ async function stage1FilterPapers(
   }
 
   try {
-    const response = await client.chat.completions.create({
+    const response = await getClient().chat.completions.create({
       model,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -225,7 +221,7 @@ async function stage2RankSections(
 
   try {
     const response = await Promise.race([
-      client.chat.completions.create({
+      getClient().chat.completions.create({
         model,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -358,7 +354,7 @@ async function stage3GenerateAnswer(
     // Check if using k2.5 model (which supports thinking)
     const useThinking = model === 'kimi-k2.5'
 
-    const response = await client.chat.completions.create({
+    const response = await getClient().chat.completions.create({
       model,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -403,6 +399,9 @@ async function stage3GenerateAnswer(
 
 // Main API handler
 export async function POST(request: NextRequest) {
+  if (!hasMoonshotKey()) {
+    return NextResponse.json({ error: '文献问答暂未配置，请联系管理员。' }, { status: 503 })
+  }
   try {
     const { question, papers, modelKey } = await request.json()
 

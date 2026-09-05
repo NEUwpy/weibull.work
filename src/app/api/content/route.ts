@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { isContentSlug, resolveContentFile } from '@/lib/server/content-files'
 
 function readTextFile(filePath: string): string {
   const buffer = fs.readFileSync(filePath)
@@ -26,11 +27,15 @@ export async function GET(req: NextRequest) {
     return new NextResponse('Missing parameters', { status: 400 })
   }
 
+  if (!isContentSlug(slug) || !['翻译', '原文'].includes(type)) {
+    return new NextResponse('Invalid content identifier', { status: 400 })
+  }
+
   const contentDir = path.join(process.cwd(), 'src/content')
   const fileName = `${slug}-pdf${type}.md`
-  const filePath = path.join(contentDir, fileName)
+  const filePath = resolveContentFile(contentDir, fileName)
 
-  if (!fs.existsSync(filePath)) {
+  if (!filePath) {
     return new NextResponse('File not found', { status: 404 })
   }
 

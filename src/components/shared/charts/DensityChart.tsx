@@ -92,6 +92,7 @@ function generateColors(count: number, baseColor: string): string[] {
   // 预定义的颜色序列
   const colorScales: Record<string, string[]> = {
     blue: ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8', '#1e40af'],
+    indigo: ['#e0e7ff', '#a5b4fc', '#818cf8', '#6366f1', '#4f46e5', '#4338ca'],
     emerald: ['#d1fae5', '#6ee7b7', '#34d399', '#10b981', '#059669', '#047857'],
     amber: ['#fef3c7', '#fcd34d', '#fbbf24', '#f59e0b', '#d97706', '#b45309'],
     purple: ['#ede9fe', '#c4b5fd', '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9'],

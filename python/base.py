@@ -25,7 +25,10 @@ class WeibullBase:
         Status is assumed to be Failure (F) for this mathematical implementation.
         rank_method: 'bernard' or 'exact' - method for calculating median ranks
         """
-        self.data = np.array(sorted([x for x in data if x > 0]))
+        values = np.asarray(data, dtype=float).reshape(-1)
+        if not np.isfinite(values).all() or np.any(values <= 0):
+            raise ValueError("invalid sample: observations must all be finite and greater than zero")
+        self.data = np.sort(values)
         self.n = len(self.data)
         self.trace_data = [] # Store process data for visualization
         self.rank_method = rank_method

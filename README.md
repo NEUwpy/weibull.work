@@ -12,7 +12,9 @@
 
 ## 当前状态快照
 
-> **快照日期**: 2026-09-03 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+> **快照日期**: 2026-09-06 · 以本节为当前状态权威；各分文档的进度表为开发追踪器。
+
+**系统版本**：[v3.00-260906](08-更新日志.md)。本次完成结果分析、失败记录、异步计算和接口安全修复，并同步架构与研究入口；本地测试及生产构建通过，尚未部署。
 
 | 层级 | 技术 |
 |------|------|
@@ -44,9 +46,9 @@
 | 极大化适配法 | MLE, MMLE, MPS, WMLE | ✅ |
 | 极小化适配法 | LSE, MDM | ✅ (WLSE/EIV→LSE 别名) |
 | 线性回归法 | LRE | ✅ (BLRE/RRX/RRY→LRE 别名) |
-| 矩方法 | MM, PWM | ✅ (LM/TLM→PWM 别名) |
-| 灰色估计法 | Grey GM(1,1) | ✅ |
-| 贝叶斯方法 | Bayesian | ✅ (Gibbs/MAP→Bayesian 别名) |
+| 矩方法 | MM, PWM | MM 已实现；PWM 未实现（LM/TLM 别名同为未实现） |
+| 灰色估计法 | Grey GM(1,1) | ❌ NOT_IMPLEMENTED |
+| 贝叶斯方法 | Bayesian | ❌ NOT_IMPLEMENTED（Gibbs/MAP 别名同为未实现） |
 | 构造统计量法 | MVE, LSF | ❌ NOT_IMPLEMENTED |
 | 人工智能方法 | PSO, SVR, ANN | ❌ NOT_IMPLEMENTED（见 AI 模块） |
 
