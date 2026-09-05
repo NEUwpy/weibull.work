@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9">
+  <diagram id="study02" name="Study02 framework">
+    <mxGraphModel page="1" pageWidth="1600" pageHeight="870" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="a" value="(a) Shared prediction pipeline" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=36;fontStyle=1;spacing=12;">
+          <mxGeometry as="geometry" x="35" y="20" width="1530" height="50" />
+        </mxCell>
+        <mxCell id="sample" value="Lifetime sample X&lt;br&gt;Sort and standardize" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#EDF2F5;strokeColor=#647078;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="95" width="330" height="125" />
+        </mxCell>
+        <mxCell id="net" value="Three-output MLP&lt;br&gt;n → 256 → 128 → 64 → 3" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#EDF2F5;strokeColor=#647078;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="420" y="95" width="400" height="125" />
+        </mxCell>
+        <mxCell id="params" value="Decode parameters&lt;br&gt;Shape, scale, location" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#EDF2F5;strokeColor=#647078;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="870" y="95" width="300" height="125" />
+        </mxCell>
+        <mxCell id="life" value="Weibull formula&lt;br&gt;Reliability life points" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#EDF2F5;strokeColor=#647078;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="1220" y="95" width="340" height="125" />
+        </mxCell>
+        <mxCell id="sample_net" edge="1" parent="1" source="sample" target="net" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#43525C;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="net_params" edge="1" parent="1" source="net" target="params" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#43525C;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="params_life" edge="1" parent="1" source="params" target="life" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#43525C;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="infer" value="Inference uses samples only. Truth supplies simulation labels and reference thresholds." vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="235" width="1520" height="65" />
+        </mxCell>
+        <mxCell id="b" value="(b) Training and validation: separately trained procedures" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=36;fontStyle=1;spacing=12;">
+          <mxGeometry as="geometry" x="35" y="310" width="1530" height="55" />
+        </mxCell>
+        <mxCell id="P" value="&lt;b&gt;P  Parameter reference&lt;/b&gt;&lt;br&gt;&lt;br&gt;Train: minimize parameter loss&lt;br&gt;Validate: select lowest parameter loss&lt;br&gt;&lt;br&gt;Reference for parameter recovery" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#737373;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="390" width="480" height="235" />
+        </mxCell>
+        <mxCell id="Q" value="&lt;b&gt;Q  Target supervision (R = 0.95)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Train: minimize target life-point loss&lt;br&gt;Validate: select lowest target loss&lt;br&gt;&lt;br&gt;Test target gains and cross-point costs" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#E5F1F8;strokeColor=#0072B2;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="560" y="390" width="480" height="235" />
+        </mxCell>
+        <mxCell id="QCP" value="&lt;b&gt;QCP  Add parameter constraint&lt;/b&gt;&lt;br&gt;&lt;br&gt;Train: target loss + constraint penalty&lt;br&gt;Validate: lowest target loss if feasible&lt;br&gt;&lt;br&gt;Test retained gains and repair" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#E5F2EC;strokeColor=#178064;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="1080" y="390" width="480" height="235" />
+        </mxCell>
+        <mxCell id="tau" value="QCP threshold: 1.5 × earlier P reference validation loss; feasibility concerns the validation-set mean." vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="640" width="1520" height="55" />
+        </mxCell>
+        <mxCell id="controls" value="Controls  |  QP: fixed weighting  ·  P_QSELECT: common validation  ·  Q_FEAS: feasible selection  ·  QMULTI: three-point loss" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#B7BFC5;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=23;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="725" width="1520" height="85" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

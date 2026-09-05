@@ -123,20 +123,15 @@ def main() -> None:
     xvals = np.array([summary["pooled_rrmse"][r] * 100 for r in routes])
     yvals = np.array([summary["diagnostics"][r]["mean_parameter_loss"] for r in routes])
     markers = {"P": "o", "Q": "^", "QCP": "s"}
-    label_offsets = {"P": (-70, 6), "Q": (-58, -32), "QCP": (8, 8)}
+    label_offsets = {"P": (8, 8), "Q": (-58, -32), "QCP": (8, 8)}
     for route, x, y in zip(routes, xvals, yvals):
         ax.scatter(x, y, s=86, marker=markers[route], c=colors[route],
                    edgecolor="black", linewidth=0.65, zorder=5, label=route)
         ax.annotate(f"{route}\n{x:.2f}%,  $L_P$={y:.3g}", (x, y),
                     xytext=label_offsets[route], textcoords="offset points",
                     fontsize=7.4, ha="left")
-    ax.annotate(r"加入 $L_P$ 约束", xy=(xvals[2], yvals[2]),
-                xytext=(xvals[1], yvals[1]),
-                arrowprops=dict(arrowstyle="-|>", lw=1.6, color=colors["QCP"],
-                                connectionstyle="arc3,rad=-0.12"),
-                color=colors["QCP"], ha="right", va="bottom")
     ax.set_yscale("log")
-    ax.set_xlim(15.78, 16.56)
+    ax.set_xlim(15.78, 16.72)
     ax.set_ylim(0.035, 150)
     ax.set_xlabel(r"$x_{0.95}$ RMSRE (%)")
     ax.set_ylabel(r"平均归一化参数损失 $L_P$（对数尺度）")

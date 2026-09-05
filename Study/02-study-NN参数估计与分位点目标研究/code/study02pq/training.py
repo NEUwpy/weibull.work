@@ -51,7 +51,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
                   learning_rate=None, split_strategy="gamma_holdout",
                   target_R=None, hidden=None, fit_suffix="", split_rows=None,
                   lambda_p=None, p_constraint_limit=None, constraint_rho=None,
-                  record_history=False, evaluate_test=True):
+                  record_history=False, evaluate_test=True, validation_observer=None):
     """训练一个 (n, fold, seed, route) 模型并在 held-out 折上评价。
 
     S3 扩展（缺省保持 S1/iid 行为不变）：
@@ -259,6 +259,9 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
                         "dual_multiplier": dual_multiplier,
                     })
                 history.append(history_row)
+            # Optional validation-only checkpoint audit; never receives test data.
+            if validation_observer is not None:
+                validation_observer(epoch, model, val_out, P_val_t, min_x_val_t)
         model.train()
         stopped_epoch = epoch
 
@@ -326,7 +329,7 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         "best_epoch": int(best_epoch), "stopped_epoch": int(stopped_epoch),
         "best_val_loss": float(best_val),
         "best_val_objective": float(best_val_objective),
-        "checkpoint_loss": "Q" if route in {"QP", "QCP"} else route,
+        "checkpoint_loss": "Q" if route in {"QP", "QCP", "P_QSELECT"} else route,
         "last_train_loss": float(last_epoch_loss),
         "runtime_s": float(runtime_s),
         "init_param_sha": init_sha,
@@ -337,7 +340,8 @@ def train_one_fit(n: int, fold_idx: int, seed: int, route: str, master: DATA.Mas
         "val_rows_sha": DATA.sha_rows(val_rows),
         "test_rows_sha": DATA.sha_rows(test_rows),
         "n_train": int(len(train_rows)), "n_val": int(len(val_rows)),
-        "route_loss": ("P" if route == "P" else
+        "route_loss": ("P" if route in {"P", "P_QSELECT"} else
+                       "mean_Q90_Q95_Q99" if route == "QMULTI" else
                        "P_matrix_truth" if route.startswith("M") else
                        "Q_plus_lambda_P" if route == "QP" else "Q"),
         "constraint_form": ("Q_min_subject_to_P_limit" if route == "QCP" else None),

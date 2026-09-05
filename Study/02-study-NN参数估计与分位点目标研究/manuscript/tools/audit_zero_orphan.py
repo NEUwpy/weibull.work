@@ -16,18 +16,19 @@ import re
 import sys
 from pathlib import Path
 
-DEFAULT_PAPER = Path(__file__).resolve().parents[1] / "Study02论文初稿-v2.3.2.md"
+DEFAULT_PAPER = Path(__file__).resolve().parents[1] / "Study02论文初稿-v2.7.0.md"
 REF_MARKER = "## 参考文献"
 
 
 def main() -> int:
     paper = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else DEFAULT_PAPER
     text = paper.read_text(encoding="utf-8")
-    if REF_MARKER not in text:
+    marker = REF_MARKER if REF_MARKER in text else "## References"
+    if marker not in text:
         print(f"ERROR: '{REF_MARKER}' section not found in {paper.name}", file=sys.stderr)
         return 2
-    body = text.split(REF_MARKER)[0]
-    refs_section = text.split(REF_MARKER)[1]
+    body = text.split(marker)[0]
+    refs_section = text.split(marker)[1]
 
     # 只接受整个括号组都是整数引用的形式，例如 [1] 或 [8,9,10]。
     # 这会排除 CI [0.49%,0.88%] 和数学式 max[0, ...]，避免把其中的 0 当文献号。

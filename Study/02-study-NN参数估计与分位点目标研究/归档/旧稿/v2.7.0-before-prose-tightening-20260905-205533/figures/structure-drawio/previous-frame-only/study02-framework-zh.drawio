@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9">
+  <diagram id="study02" name="Study02 framework">
+    <mxGraphModel page="1" pageWidth="1600" pageHeight="870" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="a" value="(a) 共同预测流程" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=36;fontStyle=1;spacing=12;">
+          <mxGeometry as="geometry" x="35" y="20" width="1530" height="50" />
+        </mxCell>
+        <mxCell id="sample" value="寿命样本 X&lt;br&gt;排序与标准化" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#EDF2F5;strokeColor=#647078;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="95" width="330" height="125" />
+        </mxCell>
+        <mxCell id="net" value="三输出 MLP&lt;br&gt;n → 256 → 128 → 64 → 3" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#EDF2F5;strokeColor=#647078;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="420" y="95" width="400" height="125" />
+        </mxCell>
+        <mxCell id="params" value="合法参数解码&lt;br&gt;形状 · 尺度 · 位置" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#EDF2F5;strokeColor=#647078;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="870" y="95" width="300" height="125" />
+        </mxCell>
+        <mxCell id="life" value="Weibull 公式&lt;br&gt;可靠度寿命点" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#EDF2F5;strokeColor=#647078;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="1220" y="95" width="340" height="125" />
+        </mxCell>
+        <mxCell id="sample_net" edge="1" parent="1" source="sample" target="net" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#43525C;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="net_params" edge="1" parent="1" source="net" target="params" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#43525C;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="params_life" edge="1" parent="1" source="params" target="life" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#43525C;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="infer" value="固定网络推理仅输入样本；真参数用于仿真监督与阈值确定。" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="235" width="1520" height="65" />
+        </mxCell>
+        <mxCell id="b" value="(b) 训练与验证目标：三条路线分别训练" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=36;fontStyle=1;spacing=12;">
+          <mxGeometry as="geometry" x="35" y="310" width="1530" height="55" />
+        </mxCell>
+        <mxCell id="P" value="&lt;b&gt;P  参数恢复参照&lt;/b&gt;&lt;br&gt;&lt;br&gt;训练：最小化参数误差&lt;br&gt;验证：选择参数误差最小者&lt;br&gt;&lt;br&gt;参数恢复基准" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#F0F0F0;strokeColor=#737373;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="390" width="480" height="235" />
+        </mxCell>
+        <mxCell id="Q" value="&lt;b&gt;Q  单点监督（R = 0.95）&lt;/b&gt;&lt;br&gt;&lt;br&gt;训练：最小化目标寿命点误差&lt;br&gt;验证：选择目标误差最小者&lt;br&gt;&lt;br&gt;检验目标收益与跨点代价" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#E5F1F8;strokeColor=#0072B2;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="560" y="390" width="480" height="235" />
+        </mxCell>
+        <mxCell id="QCP" value="&lt;b&gt;QCP  加入参数恢复约束&lt;/b&gt;&lt;br&gt;&lt;br&gt;训练：目标损失 + 参数约束惩罚&lt;br&gt;验证：可行点中目标误差最小者&lt;br&gt;&lt;br&gt;检验收益保留与代价修复" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#E5F2EC;strokeColor=#178064;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="1080" y="390" width="480" height="235" />
+        </mxCell>
+        <mxCell id="tau" value="QCP 阈值：早期 P 参考模型的验证参数损失 × 1.5；可行性针对验证集平均损失。" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="640" width="1520" height="55" />
+        </mxCell>
+        <mxCell id="controls" value="补充对照  |  QP：固定加权    ·    P_QSELECT：共同验证    ·    Q_FEAS：可行选点    ·    QMULTI：三点监督" vertex="1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#B7BFC5;strokeWidth=2;fontColor=#202A32;fontFamily=Microsoft YaHei;fontSize=23;fontStyle=0;spacing=12;">
+          <mxGeometry as="geometry" x="40" y="725" width="1520" height="85" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

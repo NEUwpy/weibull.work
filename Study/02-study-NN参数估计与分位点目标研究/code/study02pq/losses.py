@@ -136,12 +136,22 @@ def build_route_loss(route: str, target_R: float | None = None,
     也识别为 Q）。target_R 提供时 Q 使用该可靠度水平 R；缺省用 CFG.X0_95_R（S1 兼容）。
     """
     route = route.upper()
-    if route == "P":
+    if route in {"P", "P_QSELECT"}:
 
         def loss_fn(model_out, targets, min_X):
             b, e, g = decode_params(model_out, min_X)
             beta, eta, gamma = targets[..., 0], targets[..., 1], targets[..., 2]
             return loss_p(b, e, g, beta, eta, gamma, min_X)
+        return loss_fn, "params"
+
+    if route == "QMULTI":
+        def loss_fn(model_out, targets, min_X):
+            predicted = decode_params(model_out, min_X)
+            truth = (targets[..., 0], targets[..., 1], targets[..., 2])
+            return torch.stack([
+                loss_q(weibull_quantile(*predicted, R), weibull_quantile(*truth, R))
+                for R in (0.90, 0.95, 0.99)
+            ]).mean()
         return loss_fn, "params"
 
     if route == "M95":
@@ -196,7 +206,7 @@ def build_selection_loss(route: str, target_R: float | None = None,
     regularizer, not a co-primary endpoint. Existing P/Q/M95 behavior is unchanged.
     """
     route = route.upper()
-    if route not in {"QP", "QCP"}:
+    if route not in {"QP", "QCP", "P_QSELECT"}:
         return build_route_loss(route, target_R=target_R, lambda_p=lambda_p)
     R = float(target_R) if target_R is not None else CFG.X0_95_R
 
