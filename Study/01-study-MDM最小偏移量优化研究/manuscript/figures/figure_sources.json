@@ -14,8 +14,7 @@
   ],
   "review_only_figures": [
     "fig9_support_validation",
-    "supp_fig_seed_stability",
-    "fig4_information_spaces"
+    "supp_fig_seed_stability"
   ],
   "generator_dependencies": [
     "D:/weibull/Study/01-study-MDM最小偏移量优化研究/code/paper_support.py",
@@ -66,16 +65,17 @@
     "provenance": []
   },
   "manuscript_versions": {
-    "main": "v1.11",
-    "appendix": "v1.9"
+    "main": "v1.12",
+    "appendix": "v1.10"
   },
   "manuscript_figure_mapping": {
     "1": "main/fig1_adaptive_selection_drawio_v111.png",
-    "2": "main/fig2_offset_baseline_combined.png",
-    "3": "main/fig3_beta_domain_sensitivity.png",
-    "4": "main/fig5_information_level_results.png",
-    "5": "main/fig6_per_n_J1.png",
-    "6": "main/fig8_decision_mechanism.png",
+    "2": "main/fig2_offset_risk_decomposition_v112.png",
+    "3": "main/fig3_beta_domain_restored_3d.png",
+    "4": "main/fig4_information_spaces_restored_3d.png",
+    "5": "main/fig5_information_level_results.png",
+    "6": "main/fig6_per_n_J1.png",
+    "7": "main/fig7_sample_path_loss_v112.png",
     "B1": "main/fig7_selector_mechanism.png",
     "C1": "supplementary/supp_fig_parameter_guided.png",
     "D1": "supplementary/supp_fig_unseen_beta_v111.png",
@@ -83,7 +83,8 @@
     "E2": "supplementary/supp_fig_quantile_rmse_v111.png",
     "F1": "supplementary/supp_fig_decision_conditions.png",
     "F2": "supplementary/supp_fig_parameter_landscape_v111.png",
-    "F3": "supplementary/supp_fig_z_only_learning_curve_v111.png"
+    "F3": "supplementary/supp_fig_z_only_learning_curve_v111.png",
+    "A1": "supplementary/supp_fig_offset_sd_v110.png"
   },
   "submission_appendix_figures": [
     "fig7_selector_mechanism",
@@ -129,5 +130,90 @@
     },
     "source_data_unchanged": true,
     "axis_label_correction": "F3: training samples per n model"
+  },
+  "restored_3d_figures": {
+    "commit": "95c797d7",
+    "exports": {
+      "main\\fig3_beta_domain_restored_3d.png": {
+        "git_commit": "95c797d7",
+        "original": "main/fig3_beta_domain_sensitivity.png",
+        "sha256": "bcbc1be8f6d9abcbc58778005c0e40ec08027e32676b861d3a7c9a46d434d9b7"
+      },
+      "main\\fig3_beta_domain_restored_3d.svg": {
+        "git_commit": "95c797d7",
+        "original": "main/fig3_beta_domain_sensitivity.svg",
+        "sha256": "76ea1f95ce47495a12942c718689ae86dceb15d7ce0d12eb4e81902af3b542f8"
+      },
+      "main\\fig3_beta_domain_restored_3d.pdf": {
+        "git_commit": "95c797d7",
+        "original": "main/fig3_beta_domain_sensitivity.pdf",
+        "sha256": "ba19f44a4a6c4c60301ba9fa295d6e4226bd1fe0026223b21d49a1dfe52a69e9"
+      },
+      "main\\fig3_beta_domain_restored_3d.tiff": {
+        "git_commit": "95c797d7",
+        "original": "main/fig3_beta_domain_sensitivity.tiff",
+        "sha256": "0595237c3c391e5cf6b573bbe9f387e7da4f5795fcfca8144c6b998cdbed47ab"
+      },
+      "main\\fig4_information_spaces_restored_3d.png": {
+        "git_commit": "95c797d7",
+        "original": "main/fig4_information_spaces.png",
+        "sha256": "56a3c540779f57704ce4ddb6b71d8b41680c216ce79e771766ef9a009a4bc159"
+      },
+      "main\\fig4_information_spaces_restored_3d.svg": {
+        "git_commit": "95c797d7",
+        "original": "main/fig4_information_spaces.svg",
+        "sha256": "d9ba7558b280b93c777b11f97267e294aae9bbc9ac300915e13c7be06cf91e16"
+      },
+      "main\\fig4_information_spaces_restored_3d.pdf": {
+        "git_commit": "95c797d7",
+        "original": "main/fig4_information_spaces.pdf",
+        "sha256": "c7b6c62e8ded633c5e25bb64dc604631e6996df4c45a205d4f207ca1a50c60ed"
+      },
+      "main\\fig4_information_spaces_restored_3d.tiff": {
+        "git_commit": "95c797d7",
+        "original": "main/fig4_information_spaces.tiff",
+        "sha256": "25c0c379292ef83167c30cf75b8214fdb5bdb64cb270288f37f63d9d2c0a3dc5"
+      }
+    },
+    "policy": "Restore original composition and exports byte-for-byte; no scientific data changes"
+  },
+  "v112_override": {
+    "generator": "scripts/plot_offset_revision_v112.py",
+    "source_data": [
+      "../../artifacts/exploratory/offset_mechanism_scan_20260905/pooled_bias_variance.csv",
+      "../../artifacts/exploratory/offset_mechanism_scan_20260905/cell_bias_variance.csv",
+      "../../artifacts/exploratory/offset_mechanism_scan_20260905/representative_candidate_losses_v112.csv",
+      "../../artifacts/formal/E11_profile_mechanism/representative_gradient_curves.csv",
+      "../../artifacts/formal/E11_profile_mechanism/conditional_loss_curves.csv",
+      "../../artifacts/formal/E11_profile_mechanism/cell_associations.csv"
+    ],
+    "conditional_stratifier": "default_gamma_hat",
+    "sample_labels": {
+      "A": 285,
+      "B": 258,
+      "C": 287
+    },
+    "sample_cell": {
+      "beta": 3,
+      "eta": 1000,
+      "gamma": 500,
+      "n": 10
+    },
+    "previous_assets_preserved": true,
+    "visual_review": "2026-09-06: final PNGs inspected; no clipping/overlap observed; conditional minima checked",
+    "exports_sha256": {
+      "main/fig2_offset_risk_decomposition_v112.pdf": "7722dfa50ea73728682d8c3be3ede0a00a4b3cadf4052dd88ba3c4ce5a46d654",
+      "main/fig2_offset_risk_decomposition_v112.png": "e7b748fa0fb19847346f9286e4163ead803b5f8066bac9ab6d0f85a144f1a484",
+      "main/fig2_offset_risk_decomposition_v112.svg": "78edb7dc4d64c40ef4cb0bd3c9c344e9b9274b7af70d9365550722e970d95b4e",
+      "main/fig2_offset_risk_decomposition_v112.tiff": "0c853c4b62dcf5f4f64aacb7df2794933a860a9c2c38c7605e2d6a87314f5ebc",
+      "main/fig7_sample_path_loss_v112.pdf": "d02b5bae6089d83dbd1b0bfae4d3bd041065e4339e764bb7da8ed7e41b4717f3",
+      "main/fig7_sample_path_loss_v112.png": "8d3f6e7cc1c6b599f4fb9231ef298440f906fcedcda801cc43b0ccd47cd70d6b",
+      "main/fig7_sample_path_loss_v112.svg": "06a20b0d325b3067ca824345ec42e17d3d178b7ac4fccd45e1fdda844fa0f06b",
+      "main/fig7_sample_path_loss_v112.tiff": "5735cf1f3c966e4b67a11ed06a90671af7fbfcd94169cfbe64da5670a13e1154",
+      "supplementary/supp_fig_offset_sd_v110.pdf": "dde528433a8c95a3fe34b1d9431cba47b3acd2a8babec204f22914ec1e97e6f7",
+      "supplementary/supp_fig_offset_sd_v110.png": "910c7020675e90c6b0a40869ffe6666ba821406bd83cf4c1bea874c35cd19224",
+      "supplementary/supp_fig_offset_sd_v110.svg": "3f9dd37b3b84c921d117d25b4cea9bcf6599ec367c8b60fca4211ab3282d1e51",
+      "supplementary/supp_fig_offset_sd_v110.tiff": "7f7d10b61846d15a08c07be41dd683c7a44f05aaa2e7b1b277582c9d577c044b"
+    }
   }
 }

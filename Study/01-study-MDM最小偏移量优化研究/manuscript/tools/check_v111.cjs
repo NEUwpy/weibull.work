@@ -50,6 +50,6 @@ const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
   reports.push({file:name,inline_math:inline,display_math:display,math_errors:0,local_links_checked:links.length,missing_links:0,residual_math_delimiters:0});
  }
  const result={scope:'Annotation cleanup and explanation placement',unchanged,reports};
- fs.writeFileSync(path.join(root,'revision-v1.11-qa.json'),JSON.stringify(result,null,2)+'\n');
+ fs.writeFileSync(path.join(root,'shelve/修订记录/revision-v1.11-qa.json'),JSON.stringify(result,null,2)+'\n');
  console.log(JSON.stringify(result,null,2));
 })().catch(e=>{console.error(e);process.exitCode=1});

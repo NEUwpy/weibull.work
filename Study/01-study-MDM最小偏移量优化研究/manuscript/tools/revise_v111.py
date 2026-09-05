@@ -5,6 +5,10 @@ import os
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Historical prose recipe: the current manuscript also contains restored 3D figures.
+if (ROOT / 'figures/provenance/restored-3d-figures.json').exists():
+    raise SystemExit('Historical revision recipe; current manuscript has later figure restoration.')
+
 def replace_once(text, old, new):
     assert text.count(old) == 1, (old[:90], text.count(old))
     return text.replace(old, new, 1)
