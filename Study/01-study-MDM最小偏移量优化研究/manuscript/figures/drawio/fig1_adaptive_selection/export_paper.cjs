@@ -1,0 +1,22 @@
+const fs=require('node:fs'),path=require('node:path');
+const {pathToFileURL}=require('node:url');
+const {chromium}=require('C:/Users/36089/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{
+ const root=__dirname,stem='fig1_adaptive_selection';
+ const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+ const page=await browser.newPage({viewport:{width:900,height:900},deviceScaleFactor:2});
+ await page.goto(pathToFileURL(path.join(root,stem+'.svg')).href);
+ await page.evaluate(()=>document.fonts.ready);
+ const info=await page.evaluate(()=>{const s=document.querySelector('svg');return {width:s.viewBox.baseVal.width||parseFloat(s.getAttribute('width')),height:s.viewBox.baseVal.height||parseFloat(s.getAttribute('height')),formulas:s.querySelectorAll('mjx-container,.MathJax,.MathJax_SVG').length}});
+ if(!(info.width>0&&info.height>0))throw Error(JSON.stringify(info));
+ const svg=fs.readFileSync(path.join(root,stem+'.svg'),'utf8').replace(/<\?xml[^>]*>/,'').replace(/<!DOCTYPE[^>]*>/,'');
+ const mmHeight=180*info.height/info.width;
+ await page.goto('about:blank');
+ await page.setContent(`<meta charset="utf-8"><style>@page{size:180mm ${mmHeight}mm;margin:0}html,body{margin:0;padding:0;background:white}img{display:block;width:180mm;height:${mmHeight}mm}</style><img src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}">`);
+ await page.evaluate(()=>document.fonts.ready);
+ await page.locator('img').evaluate(i=>i.decode());
+ await page.locator('img').first().screenshot({path:path.join(root,'review-paper-180mm.png')});
+ await page.pdf({path:path.join(root,stem+'.pdf'),preferCSSPageSize:true,printBackground:true});
+ await browser.close();
+ console.log(JSON.stringify({paper_width_mm:180,paper_height_mm:mmHeight,...info}));
+})().catch(e=>{console.error(e);process.exit(1)});

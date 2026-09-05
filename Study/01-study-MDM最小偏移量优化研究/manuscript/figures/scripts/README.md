@@ -1,17 +1,20 @@
 # 制图程序
 
-`build_figures.py` 是论文侧统一入口：
+统一入口为 `build_figures.py`，默认仅从封存证据派生论文图表并执行自动质检。`--regenerate-formal` 会重建正式证据，不属于稿件修订步骤。
 
-- 默认直接从 `figure_sources.json` 声明的封存数据派生表格和图，再运行 fail-closed QA；
-- 正文和补充图由 `make_submission_figures.py` 生成；其中图 3、图 4 和图 5 分别由专用的 `plot_fig3_beta_domain_sensitivity.py`、`plot_fig4_information_spaces.py` 与 `plot_fig5_information_level_results.py` 渲染，并由统一入口调用，正式实验目录中的旧 PNG 不会覆盖投稿图；
-- 使用 `--regenerate-formal` 时，才先调用仓库内正式证据生成程序；
-- `qa_submission_figures.py` 核对 68 个导出文件、矢量文本、图像尺寸和核心数值，并验证图 1 的组合内稳定性分布、图 3 的参数域敏感性、图 4 的 160 单元及 L1–L5 分组基数、图 5 的层级风险、图 6 的逐样本配对分布、正文表 4 与附录 B3 的逐参数误差。
+`make_submission_figures.py` 生成 17 个稳定图像资产；其中正文 v1.9 使用六张、附录 v1.8 使用八张，另外三张只供复核。函数名与文件名前缀沿用旧编号，稿件编号映射由 `../figure_sources.json` 指定。
+
+- `plot_fig3_beta_domain_sensitivity.py`：二维实际格点风险与离散最低点/近优范围。
+- `plot_fig4_information_spaces.py`：附录 A1 的紧凑分组定义，同时保留 160 单元分组基数核对。
+- `plot_fig5_information_level_results.py`：当前正文图 4 的信息条件风险。
+- `qa_submission_figures.py`：检查 68 个导出文件、可编辑 SVG、尺寸及核心数值。自动数值检查使用稳定资产名，不能替代逐张视觉检查。
 
 ```powershell
-python .\figures\scripts\build_figures.py
-python .\figures\scripts\build_figures.py --regenerate-formal
+python .uild_figures.py
 ```
 
-正式主结果的紧凑派生入口为 `code/prepare_mean_normalized_main_evidence.py`。准确路径和数据源由上级目录的 `figure_sources.json` 管理。
+正式实验目录保持只读。修订前生成器和图表保存在 `../archive/replaced/pre-v1.8-20260905/`。
 
-当前投稿图的唯一绘制入口是本目录的 `make_submission_figures.py`；它只读取正式封存数据并在论文侧生成 9 张正文图和 8 张补充/复核图。投稿图全部使用 Python/matplotlib 生成，导出 PNG、SVG、PDF 和 TIFF。正式封存数据保持只读；不要直接修改正式目录中的 PNG。被替换的旧图保存在 `../archive/replaced/`，不直接删除。
+## 通用字号检查（2026-09-05）
+
+运行 `qa_typography.py` 检查全部 SVG 的原生宽度、实际文字字号与修改前快照的 26 个派生 CSV 一致性。`build_figures.py` 仍只依据既有证据导出；当前普通文字下限 8.6 pt、数学字母与上下标下限 6 pt。原参数分组图现为可编辑表 A2，旧图像只供复核。

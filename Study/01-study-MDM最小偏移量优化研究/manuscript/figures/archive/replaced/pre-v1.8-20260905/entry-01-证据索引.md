@@ -1,0 +1,196 @@
+# 01 证据索引
+
+> 当前修订：2026-08-28
+> 职责：把论文可写主张映射到当前正式产物。内部提交号、运行日志和旧路线结果只用于复核，不进入正文或图注。
+
+## 状态说明
+
+| 状态 | 含义 |
+|---|---|
+| 可写 | 当前正式产物足以支持限定后的主张 |
+| 待补 | 设计已明确，但当前正式证据尚未生成或派生 |
+| 历史 | 产物保留，但不能支持当前 Mean-Normalized 方法 |
+| Research | 可独立研究，不属于本文证据链 |
+
+## 论文核心主张
+
+| ID | 可写主张 | 直接证据 | 状态与边界 |
+|---|---|---|---|
+| C1 | 固定 $\delta=0.1$ 相对无偏移判据使 $\beta$、$\eta$ 和 $\gamma$ 的组合内标准化估计 SD 中位数分别下降 57.0%、39.0% 和 40.9% | `artifacts/formal/E5_normalized_raw/shared_data/chunks/`、`manuscript/figures/data/derived/fig1_fixed_offset_stability.csv` | 可写；每个参数组合内基于 300 次重复分别计算，$\beta/\eta$ 为 160/160 个组合下降，$\gamma$ 为 154/160；不同真参数组合不混算 SD |
+| C2 | 总体参数条件与当前样本实现都会影响低风险偏移量 | 同上；`artifacts/formal/E10_z_only_benchmark/mechanism_by_cell.csv` | 可写；L3–L5 是参数条件平均风险参照，L6 是预设候选网格内的事后完全信息参照 |
+| C3 | L6 在当前 26 点网格内相对 Default 的 $J_1$ 降幅为 21.9% | `artifacts/formal/E8_mean_normalized_selector/specialist/summary.json`、`crossfit_layers.csv` | 可写为使用逐样本已实现全部损失时的观测差距；不得称为现实方法的可实现空间 |
+| C4 | 均值归一化的排序样本可以用于预测损失曲线并选择 $\delta$ | `artifacts/formal/E8_mean_normalized_selector/specialist/summary.json`、`model_comparison.csv`、`manifest.json` | 可写；每个 $n$ 独立模型，每个位置的 StandardScaler 只在训练折拟合 |
+| C5 | 固定随机种子 42 的 Mean-Normalized-MLP 相对 Default 将 pooled $J_1$ 改善 7.2740%，配对 repeat-block bootstrap 95% CI 为 6.9448%—7.6376%；三个参数的标准化 Bias 绝对值、SD 和 RMSE 均下降 | `artifacts/formal/E8_mean_normalized_selector/seed42_primary/summary.json`、`main_results.csv`、`artifacts/formal/E8_mean_normalized_selector/main_uncertainty/summary.json`、`manuscript/figures/tables/table4_parameter_metrics.csv` | 可写；同测试样本、当前离散设计；CI 只表示固定设计下的 Monte Carlo 不确定性，逐参数表用于常规指标核验 |
+| C6 | 主结果对另外两个预设随机种子的初始化变化不敏感 | `artifacts/formal/E8_mean_normalized_selector/specialist/seed_stability.csv`、`summary.json` | 可写于可信性核查；正文主结果固定 seed 42，2026/3407 仅作敏感性，不集成预测 |
+| C7 | 随 $n$ 增大，四个已训练样本量下的 $J_1$ 均降低 | `artifacts/formal/E8_mean_normalized_selector/specialist/summary.json`、`model_comparison.csv` | 可写为分层观察；不是未见 $n$ 泛化 |
+| C8 | 当前留出评价覆盖训练未包含的 $\gamma/\eta$ 水平 | `artifacts/formal/E8_mean_normalized_selector/specialist/manifest.json` 及原始 E5 折分收据 | 可写；每折仍覆盖全部 8 个 $\beta$，不支持未见 $\beta$ |
+| C9 | 把初步参数估计直接当作真参数做 plug-in 选择，总体不能恢复 L3–L5 收益 | `artifacts/formal/pg_selector/variant_summary.csv`、`paired_bootstrap.csv` | 附录可写；未采用的补充探索，最优单步变体 0.6507 vs Default 0.6304，配对 95% CI 全部为正；正文 4.2 简短引用附录 C，不与 MLP 跨协议排名 |
+| C10 | 该负结果在 $\beta=1.5$ 存在例外 | `artifacts/formal/pg_selector/summary_by_beta.csv` | 可写；最优规则仅在 $\beta=1.5$ 改善（$J_1$ 差 −0.0104），$\beta=2.0$–5.0 更差 |
+| C11 | 迭代（用新估计重选偏移量）一致劣于单步 | `artifacts/formal/pg_selector/variant_summary.csv` | 可写；terminal $J_1$ 均高于 one-step，作反馈恶化诊断而非方法候选 |
+| C12 | 初步 $\hat\beta$ 落入正确 $\beta$ 网格单元的比例很低，与错误路由削弱 plug-in 的解释一致 | `artifacts/formal/pg_selector/beta_cell_correctness.csv` | 仅附录诊断；MDM-0.1 19.8%、WMLE 16.5%，非唯一机制的证明 |
+| C13 | 同一参数条件内，L5 与 L6 的偏移量仅 12.6% 完全一致，L6 偏移量的中位有效候选数为 6.09 | `artifacts/formal/E10_z_only_benchmark/mechanism_by_cell.csv`、`summary.json` | 可写；只支持当前离散设计内的样本实现差异 |
+| C14 | seed 42 下，四个样本量分别有 62.5%、66.0%、62.2% 和 58.5% 的样本获得更低联合损失，但均存在退化尾部 | `manuscript/figures/data/derived/fig6_sample_loss_difference_quantiles.csv`、`manuscript/figures/scripts/make_submission_figures.py` | 可写；固定主模型与 Default 逐样本配对，不表示逐样本保证 |
+| C15 | seed 42 下的 $J_1$ 改善并非只来自单一参数 | `manuscript/figures/tables/supp_table_parameter_error_decomposition.csv`、`manuscript/figures/scripts/make_submission_figures.py` | 可写于附录；$\beta$、$\eta$、$\gamma$ 的均方误差贡献降幅分别为 13.6%、13.9%、14.9% |
+| C16 | 均值归一化的选择器与生产 MDM 组合后保持尺度等变关系 | `artifacts/formal/E8_mean_normalized_selector/scale_equivariance/summary.json`、`scale_equivariance.csv` | 可写；4 个代表条件×3 个尺度，不代表连续参数空间或未见 $n$ 泛化 |
+| C17 | 均值与 RMS 归一化在候选筛选中几乎并列 | `artifacts/candidate/E7_scale_invariant_input_screen/summary.json` | 可用于交代表示选择；均值 0.5850、RMS 0.5854，选均值不是声称其普遍更优 |
+| C18 | 相同 $Z=\operatorname{sort}(X)/\bar X$ 下的灵活经验规则在 16,000 个未触及确认样本上得到 $J_1=0.5618$，低于同集合论文 MLP 的 0.5827 | `artifacts/formal/E10_z_only_benchmark/confirmation_by_method.csv`、`paired_repeat_bootstrap.csv` | 可写为已实现的经验参照；$R$ 差 $-0.02387$，95% CI $[-0.02540,-0.02237]$；不是精确 Bayes 风险 |
+| C19 | 风险更低的 $Z$-only 参照对 L6 偏移量的精确命中率并不高于论文 MLP | `artifacts/formal/E10_z_only_benchmark/summary.json`、`confirmation_sample_losses.csv` | 可写；0.2178 vs 0.2301，支持以实际风险而非事后格点命中率评价损失曲线预测 |
+| C20 | 同一参数条件内，样本的 MDM 梯度曲线位置与事后低风险偏移量共同变化 | `artifacts/formal/E11_profile_mechanism/sample_metrics.csv`、`cell_associations.csv`、`summary.json` | 可写；20 个预设单元中，$\nabla_X(0)$ 与 L6 偏移量的单元内 Spearman 相关中位数 0.652，19/20 为正 |
+| C21 | 固定 $\delta=0.1$ 时的 $\hat\gamma_{0.1}/\eta$ 可稳定标记这种曲线移动 | `artifacts/formal/E11_profile_mechanism/cell_associations.csv`、`conditional_loss_curves.csv` | 可写；与 L6 偏移量相关中位数 $-0.765$，20/20 为负；低/中/高三分位组的超额损失最低点为 0.10/0.04/0.02；边界解只占 7.1% |
+| C22 | 当前整体误差曲线在 $\delta=0.06$ 处最低，$\delta=0.08$ 与其几乎相同；$\delta=0.1$ 的 $J_1$ 仅高约 0.93%，重新选择统一常数的收益有限 | `artifacts/formal/E5_normalized_raw/shared_data/chunks/`、`artifacts/formal/E8_mean_normalized_selector/specialist/crossfit_layers.csv` | 可写；整体曲线为描述性汇总，L1 为选择/评价分离结果；均限于当前参数范围、样本量构成、组合等权方式与 $J_1$，不定义通用固定常数 |
+| C23 | 160 个设计单元中 125 个改善、35 个退化；单元重采样的汇总降幅 95% 敏感性范围为 6.0367%—8.4603% | `artifacts/formal/E8_mean_normalized_selector/main_uncertainty/cell_effects.csv`、`bootstrap_intervals.csv` | 可写为设计构成敏感性；不是连续参数总体的置信区间，不表示每个单元都改善 |
+| C24 | 原 $\delta\le0.50$ 网格对 L6 存在轻微右截断，将 2,186 个边界仍下降的样本延伸至 $1.00$ 后，全样本 L6 $J_1$ 由 0.492297 降至 0.490848 | `artifacts/candidate/E12_delta_upper_boundary/summary.json`、`selected_sample_summary.csv`、`extended_boundary_losses.csv` | 可写为候选边界敏感性；2,063 个样本实质改善，590 个样本仍在 $1.00$ 取最小值；两个网格均不是无约束最优 |
+| C25 | 固定宽度的 $\beta$ 参数域由 $[1.50,2.50]$ 平移到 $[4.00,5.00]$ 时，最佳统一偏移量由 0.18 依次移至 0.04 | `artifacts/formal/E13_beta_domain_sensitivity/window_summary.csv`、`window_risk_curves.csv`、`bootstrap_best_delta.csv`、`manifest.json` | 可写；11 个宽度均为 1.00 的滑动区间，其他参数条件固定，30,000 个样本、780,000 条损失记录、失败率 0%；只证明统一取值依赖给定参数域，不建立连续或普遍的 $\beta$—$\delta$ 函数关系 |
+
+## 核心数值表
+
+### 统一偏移量的整体误差曲线
+
+来源：`artifacts/formal/E5_normalized_raw/shared_data/chunks/` 中当前 160 组合的共享损失数据。对全部样本按候选 $\delta$ 汇总后：
+
+| $\delta$ | pooled $J_1$ |
+|---:|---:|
+| 0.00 | 0.948149 |
+| 0.06 | 0.624518 |
+| 0.08 | 0.624666 |
+| 0.10 | 0.630409 |
+| 0.12 | 0.638755 |
+
+$\delta=0.06$ 是当前 26 点网格上的描述性最低点；$\delta=0.1$ 比该最低点高 0.9345%。该位置取决于当前参数范围、样本量构成和组合等权方式，不是通用推荐值。由于该曲线使用同一批数据比较候选值，论文同时以 L1 的 repeat-id cross-fit 结果 0.625198 作为选择/评价分离后的验证。
+
+### L1–L6 选择空间
+
+来源：`artifacts/formal/E8_mean_normalized_selector/specialist/crossfit_layers.csv`。
+
+| 规则 | $J_1$ |
+|---|---:|
+| Default | 0.630409 |
+| L1 | 0.625198 |
+| L2 | 0.623035 |
+| L3 | 0.590526 |
+| L4 | 0.588514 |
+| L5 | 0.581294 |
+| L6 | 0.492297 |
+
+L1–L5 使用 repeat-id 五折交叉评价。L1/L2 反映当前设计中统一取值或仅按样本量取值的风险；L3–L5 反映参数条件之间的平均风险差异。L6 则逐样本读取候选网格中的实际最小损失，用于考察同一条件内的样本差异。不要把 L6 描述为模型，也不要将 L5 与 Mean-Normalized 在没有评价协议说明时直接排名。
+
+L6=0.492297 特指正文预设 $0.00$--$0.50$ 网格。E12 延伸至 $1.00$ 的候选敏感性结果为 0.490848，仅用于说明原网格的轻微右截断，不替换正文主表，也不作理论下界。
+
+### Mean-Normalized 主结果
+
+主报告来源：`artifacts/formal/E8_mean_normalized_selector/seed42_primary/summary.json`。完整三种初始化结果保留在 `specialist/seed_stability.csv`，仅用于敏感性核查。
+
+| 指标 | 数值 |
+|---|---:|
+| 主报告随机种子 | 42 |
+| pooled $J_1$ | 0.5845531935 |
+| 相对 Default 改善 | 7.274006533% |
+| 改善的配对 repeat-block bootstrap 95% CI | 6.944832122%—7.637552879% |
+| 160 个设计单元重采样的 95% 敏感性范围 | 6.036692156%—8.460281292% |
+| $n=7$ | 0.7013371272 |
+| $n=10$ | 0.6070629117 |
+| $n=15$ | 0.5293829330 |
+| $n=20$ | 0.4755673557 |
+| 失败率 | 0% |
+
+Default 与 L6 的同测试样本结果分别为 0.630409 和 0.492297。E6 Dimensional-RAW 在同设计中为 0.5543，只作为固定尺度下保留绝对水平信息的敏感性对照；其单位依赖边界不再是正式方法的边界。
+
+## 当前正式设计与方法证据
+
+| 内容 | 文件 |
+|---|---|
+| 参数网格、样本量、候选 $\delta$、网络配置 | `artifacts/formal/E8_mean_normalized_selector/specialist/manifest.json` |
+| 共享风险曲线数据清单与哈希 | `artifacts/formal/E5_normalized_raw/shared_data/manifest.json`、`data_sha256sums.txt` |
+| seed 42 主结果与主报告口径 | `artifacts/formal/E8_mean_normalized_selector/seed42_primary/summary.json`、`main_results.csv`、`manifest.json` |
+| seed 42 主结果的配对不确定性与单元异质性 | `artifacts/formal/E8_mean_normalized_selector/main_uncertainty/summary.json`、`bootstrap_intervals.csv`、`cell_effects.csv` |
+| 留出协议与初始化敏感性 | `artifacts/formal/E8_mean_normalized_selector/specialist/summary.json`、`model_comparison.csv`、`seed_stability.csv` |
+| 均值归一化表示与选择理由 | `artifacts/formal/E8_mean_normalized_selector/specialist/summary.json`、`artifacts/candidate/E7_scale_invariant_input_screen/summary.json` |
+| 端到端尺度等变检查 | `artifacts/formal/E8_mean_normalized_selector/scale_equivariance/summary.json`、`scale_equivariance.csv` |
+| 正式产物哈希 | E8 各子目录 `SHA256SUMS` |
+| $Z$-only 条件风险经验参照与样本实现诊断 | `artifacts/formal/E10_z_only_benchmark/summary.json`、`confirmation_sample_losses.csv`、`gap_decomposition.csv`、`mechanism_by_cell.csv`、`SHA256SUMS` |
+| MDM 梯度曲线与样本实现机制 | `artifacts/formal/E11_profile_mechanism/summary.json`、`sample_metrics.csv`、`cell_associations.csv`、`conditional_loss_curves.csv`、`representative_gradient_curves.csv`、`SHA256SUMS` |
+| 固定宽度 $\beta$ 参数域与最佳统一偏移量 | `artifacts/formal/E13_beta_domain_sensitivity/window_summary.csv`、`window_risk_curves.csv`、`bootstrap_best_delta.csv`、`report.md`、`manifest.json`、`SHA256SUMS` |
+
+### 写作前支撑验证产物（B1/B2/B3）
+
+| 内容 | 文件 |
+|---|---|
+| 未见 $\beta$ 留出验证（8 折；seed 42 主报告，另两 seed 作敏感性） | `artifacts/formal/E8_mean_normalized_selector/seed42_primary/unseen_beta.csv` 及 `unseen_beta/summary.json`、`beta_holdout.csv`、`by_n.csv`、`model_comparison.csv`、`split_report.csv` |
+| WMLE/LSE 同条件外部参照（同一 48,000 样本） | `artifacts/formal/E6_dimensional_raw/traditional_ref/summary.json`、`summary.csv`、`param_metrics.csv`、`sample_key_verification.json`；方法自身数值未改 |
+| 可靠度寿命 $x_{0.90}/x_{0.95}/x_{0.99}$ 派生 | `artifacts/formal/E8_mean_normalized_selector/quantiles/summary.json`、`summary.csv`、`summary_by_n.csv` |
+| 利用初估参数选择偏移量（plug-in）的负向支撑实验 | `pg_selector/variant_summary.csv`、`paired_bootstrap.csv`、`summary_by_beta.csv`、`beta_cell_correctness.csv`、`prov_err_vs_delta.csv`、`summary.json`、`manifest.json`（模式 self-describing、run-start 溯源、WMLE worker/生产与扫描数据源哈希绑定） |
+| 论文正文与附录图表（当前路线） | `manuscript/figures/figure-index.md`（索引）、`main/`、`supplementary/`、`tables/`、`data/derived/`、`scripts/`、`provenance/`；当前正文与附录为 `manuscript/Study01论文初稿-v1.7.md` 和 `manuscript/Study01论文附录-v1.6.md`，正文 v1.0—v1.6 与附录 v1.0—v1.5 保存在 `manuscript/shelve/` |
+| 上述产物的哈希与溯源 | 各目录 `manifest.json`、`SHA256SUMS` |
+
+## 支撑验证
+
+| 问题 | 当前证据 | 状态 | 写作边界 |
+|---|---|---|---|
+| 结果是否依赖单次训练 | seed 42 为固定主报告；另外两个预设种子作初始化敏感性 | 可写 | 正文只报告主模型，完整三 seed 结果见附录 B；不做预测集成 |
+| 未见 $\gamma/\eta$ 水平 | 五折逐水平留出 | 可写 | 是当前离散设计内留出，不是连续外推 |
+| 未见 $\beta$ | `artifacts/formal/E8_mean_normalized_selector/seed42_primary/unseen_beta.csv`（B1，8 折留出，seed 42） | 可写 | 当前离散 8 点 $\beta$ 网格；pooled $J_1=0.5841$，改善 7.3473%，失败率 0%；$\beta=1.5$ 层略差；另两 seed 仅作敏感性 |
+| 未见 $n$ | 当前方法没有对应模型 | 不适用 | 明确为方法边界；若研究需改变架构或另训网络 |
+| WMLE/LSE 同条件参照 | `traditional_ref/summary.json`（B2，同一 48,000 样本） | 可写 | 只作外部坐标，不决定本文主结论 |
+| $x_{0.90}/x_{0.95}/x_{0.99}$ | `artifacts/formal/E8_mean_normalized_selector/seed42_primary/quantiles.csv`（B3，由 seed 42 选择结果派生） | 可写 | Mean-Normalized 为 0.1608/0.2136/0.3753，Default 为 0.1607/0.2142/0.3777；传递有限，WMLE 三点均最低 |
+| 真实数据 | NIST 结果与本文域不匹配 | 后置 | 不进入当前稿；不得删除其封存证据 |
+
+## 当前正式代码
+
+| 文件 | 职责 |
+|---|---|
+| `code/run_E7_scale_invariant_input_screen.py` | 均值/样本标准差/RMS 三种尺度不变输入的候选筛选（不是正式确证） |
+| `code/prepare_mean_normalized_main_evidence.py` | 将已有 E5 均值归一化正式结果整理为 E8 主证据，不重训练、不重跑 MDM |
+| `code/derive_e8_seed42_primary.py` | 从已封存 E8 结果派生 seed 42 的论文主报告包，不重训练、不重跑 MDM |
+| `code/analyze_e8_main_uncertainty.py` | 对 seed 42 与 Default 的同样本损失做配对 repeat-block 和设计单元 bootstrap；不重训练、不重跑 MDM |
+| `code/run_b1_mean_normalized_unseen_beta.py` | E8 未见 $\beta$ 留出验证（B1） |
+| `code/derive_mean_normalized_quantiles.py` | 从 E8 折外选择派生可靠度寿命（B3） |
+| `code/check_mean_normalized_e2e_scale.py` | 均值归一化选择器→生产 MDM 的端到端尺度等变检查 |
+| `code/analyze_E1_E2_crossfit.py` | L1–L5 repeat-id cross-fit 共用实现 |
+| `code/analyze_E13_beta_domain_sensitivity.py` | 复用既有扫描并补充交错 $\beta$ 水平，分析固定宽度参数域平移对统一偏移量的影响 |
+| `code/paper_support.py` | B1/B2/B3 共享的数据读取、Default/L6 基线与指标/溯源工具 |
+| `code/run_b2_traditional_ref.py` | WMLE/LSE 同条件外部参照（B2） |
+| `manuscript/figures/scripts/make_submission_figures.py` | 从当前正式证据生成派生数据及正文/附录投稿图像 |
+| `manuscript/figures/scripts/qa_submission_figures.py` | 核对图像格式、可读性和数值一致性 |
+| `code/run_pg_selector.py` | 利用初估参数选择偏移量（plug-in）的负向支撑实验：`--pilot-repeats N` / `--full` / `--repackage` |
+| `tests/test_scale_invariant_input_screen.py` | E7 候选筛选的表示、数据哈希和结果合同 |
+| `tests/test_mean_normalized_confirmation.py` | E8 主证据、B1、B3 与尺度等变合同 |
+| `tests/test_paper_evidence.py` | B1/B2/B3 与共享基线的合同测试 |
+| `tests/test_pg_selector.py` | 初估参数选择合同测试（26 项） |
+| `code/analyze_E10_z_only_benchmark.py` | 使用当前均值归一化样本估计条件风险经验参照，量化参数条件、样本实现和 L6 事后信息的差距 |
+| `code/analyze_E12_delta_upper_boundary.py` | 仅对原上边界损失仍下降的样本延伸候选网格，量化 L6 右截断敏感性 |
+| `tests/test_z_only_benchmark.py` | E10 数据划分、信息输入、风险分解、学习曲线和封存合同 |
+| `code/analyze_E11_profile_mechanism.py` | 在预设参数单元的确认样本上连接 MDM 经验梯度曲线、默认位置估计与事后低风险偏移量 |
+| `tests/test_profile_mechanism.py` | E11 参数单元、确认分区、真实样本轨迹、条件曲线和封存合同 |
+
+其余代码保留用于历史复现或独立 Research，分类见 `code/README.md`。旧 G5 图表脚本基于旧特征路线，不能直接生成当前论文终稿图。
+
+## 文献证据
+
+| 用途 | 来源 |
+|---|---|
+| MDM 方法、符号和算法 | `src/content/182-030-pdf原文.md`、`src/content/182-030-pdf翻译.md` |
+| 正偏移量与经验值 $\delta=0.1$ 的原始语境 | `src/content/182-046-pdf原文.md` |
+
+正文写作前应再次逐式核对两篇原文，尤其是 MDM 判据、偏移量定义和前作对稳定性的表述。
+
+## 历史与 Research 证据
+
+| 材料 | 位置 | 当前用途 |
+|---|---|---|
+| 旧 13 特征 Vector-MLP | `artifacts/formal/E3b_vector_mlp/`、`E3_sample_adaptive/` | 历史；不支持当前方法 |
+| 旧特征路线泛化 P2 | `artifacts/formal/extended_validation/p2_generalization_v2/` | 历史；不支持 E8 泛化 |
+| 旧六方法 P4 | `artifacts/formal/p4_formal_compare/` | Research/历史；不支持 E8 同条件比较 |
+| 旧路线工程分位点 | `artifacts/formal/quantile_derivation/` | 历史；不支持 E8 分位点主张 |
+| E5 Normalized-RAW | `artifacts/formal/E5_normalized_raw/` | E8 正式主结果的原始训练/选择证据与共享数据来源；E8 证据包记录其提交和哈希 |
+| E6 Dimensional-RAW | `artifacts/formal/E6_dimensional_raw/` | 敏感性/历史对照；固定 $\eta=1000$ 下 pooled $J_1=0.5543$，不是论文主方法 |
+| Direct-MLP | P3/P4 代码与产物，索引见 `../../Research/04-直接NN参数估计/README.md` | 独立 Research；正式产物保持 Study01 原位 |
+| NIST 6061-T6 | `artifacts/formal/real_data/nist-6061-t6-fatigue/` | 封存负结果，不进入本文 |
+| 旧 G7 稿件与审计 | `archive/legacy-manuscript/` | 历史复核，不是活动稿 |
+
+## 正文消费规则
+
+1. 只写入本索引标记为“可写”的主张。
+2. 待补结果完成并独立复核前，只保留占位，不预写方向性结论。
+3. 历史路线或 E6 敏感性的数字不能与 E8 数字拼成同一因果链。
+4. 内部提交号、dirty 状态、授权记录和运行事故不进入论文正文。
+5. 任何图表都应能回指本索引中的正式文件和明确评价协议。

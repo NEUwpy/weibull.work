@@ -1,0 +1,370 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9">
+  <diagram id="study01-fig1" name="样本自适应偏移量选择">
+    <mxGraphModel dx="1280" dy="800" grid="1" gridSize="8" page="0" pageWidth="1280" pageHeight="800" math="1" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="panel_a" value="a  离线训练：学习候选偏移量的损失" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=28;fontStyle=1;align=left;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="28" y="18" width="690" height="48" />
+        </mxCell>
+        <mxCell id="simulated" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#F7F8F9;strokeColor=#ADB8C0;strokeWidth=1.6;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="28" y="155" width="210" height="116" />
+        </mxCell>
+        <mxCell id="simulated_title" value="模拟样本" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="simulated">
+          <mxGeometry as="geometry" x="8" y="12" width="194" height="36" />
+        </mxCell>
+        <mxCell id="simulated_sub" value="\(X_n;\ \beta,\eta,\gamma\)" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#53616B;" vertex="1" parent="simulated">
+          <mxGeometry as="geometry" x="8" y="50" width="194" height="60" />
+        </mxCell>
+        <mxCell id="true_note" value="真参数仅用于标签" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=20;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#6A757D;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="28" y="277" width="210" height="36" />
+        </mxCell>
+        <mxCell id="label_builder" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#F7F8F9;strokeColor=#ADB8C0;strokeWidth=1.6;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="304" y="82" width="250" height="102" />
+        </mxCell>
+        <mxCell id="label_builder_title" value="逐候选运行 MDM" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="label_builder">
+          <mxGeometry as="geometry" x="8" y="12" width="234" height="36" />
+        </mxCell>
+        <mxCell id="label_builder_sub" value="26 点实际联合损失" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#53616B;" vertex="1" parent="label_builder">
+          <mxGeometry as="geometry" x="8" y="50" width="234" height="46" />
+        </mxCell>
+        <mxCell id="train_predictor" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#ECF3F8;strokeColor=#426F94;strokeWidth=2;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="304" y="256" width="250" height="112" />
+        </mxCell>
+        <mxCell id="train_predictor_title" value="损失曲线预测" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#315E82;" vertex="1" parent="train_predictor">
+          <mxGeometry as="geometry" x="8" y="12" width="234" height="36" />
+        </mxCell>
+        <mxCell id="train_predictor_sub" value="均值归一化与标准化&lt;br&gt;分样本量 MLP" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#456477;" vertex="1" parent="train_predictor">
+          <mxGeometry as="geometry" x="8" y="50" width="234" height="56" />
+        </mxCell>
+        <mxCell id="actual" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;fillColor=none;strokeColor=none;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="614" y="70" width="250" height="150" />
+        </mxCell>
+        <mxCell id="actual_title" value="实际损失" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=23;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#53616B;" vertex="1" parent="actual">
+          <mxGeometry as="geometry" x="0" y="0" width="250" height="36" />
+        </mxCell>
+        <mxCell id="actual_axes" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;endArrow=none;startArrow=none;strokeWidth=1.3;strokeColor=#A7B1B8;" edge="1" parent="actual">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="20" y="45" />
+            <mxPoint as="targetPoint" x="230" y="110" />
+            <Array as="points">
+              <mxPoint x="20" y="110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="actual_curve" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;endArrow=none;startArrow=none;strokeWidth=3;strokeColor=#697A84;" edge="1" parent="actual">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="20.0" y="77.3249" />
+            <mxPoint as="targetPoint" x="230.0" y="49.6748547300588" />
+            <Array as="points">
+              <mxPoint x="28.4" y="79.1786953269737" />
+              <mxPoint x="36.8" y="80.90729874354068" />
+              <mxPoint x="45.2" y="82.6802271264491" />
+              <mxPoint x="53.6" y="84.58726442767151" />
+              <mxPoint x="62.0" y="86.61979603926522" />
+              <mxPoint x="70.4" y="88.67259972733315" />
+              <mxPoint x="78.8" y="90.56572080886058" />
+              <mxPoint x="87.2" y="92.08188383143109" />
+              <mxPoint x="95.6" y="93.01166305448201" />
+              <mxPoint x="104.0" y="93.1970210146751" />
+              <mxPoint x="112.4" y="92.56416372511931" />
+              <mxPoint x="120.8" y="91.13888207664084" />
+              <mxPoint x="129.2" y="89.04119004040702" />
+              <mxPoint x="137.6" y="86.46037436279667" />
+              <mxPoint x="146.0" y="83.61564279632486" />
+              <mxPoint x="154.4" y="80.71055190284889" />
+              <mxPoint x="162.8" y="77.89068866113368" />
+              <mxPoint x="171.2" y="75.21340366118085" />
+              <mxPoint x="179.6" y="72.63588820303649" />
+              <mxPoint x="188.0" y="70.02407401168006" />
+              <mxPoint x="196.4" y="67.18050536172314" />
+              <mxPoint x="204.8" y="63.88538913641636" />
+              <mxPoint x="213.2" y="59.94228871874367" />
+              <mxPoint x="221.6" y="55.21896218288913" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="actual_left" value="0" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=18;fontStyle=0;align=left;verticalAlign=middle;spacing=0;fontColor=#6A757D;" vertex="1" parent="actual">
+          <mxGeometry as="geometry" x="12" y="113" width="45" height="30" />
+        </mxCell>
+        <mxCell id="actual_right" value="0.50" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=18;fontStyle=0;align=right;verticalAlign=middle;spacing=0;fontColor=#6A757D;" vertex="1" parent="actual">
+          <mxGeometry as="geometry" x="186" y="113" width="52" height="30" />
+        </mxCell>
+        <mxCell id="actual_axis" value="\(\delta\)" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=20;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="actual">
+          <mxGeometry as="geometry" x="90.0" y="113" width="70" height="30" />
+        </mxCell>
+        <mxCell id="predicted" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;fillColor=none;strokeColor=none;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="614" y="256" width="250" height="150" />
+        </mxCell>
+        <mxCell id="predicted_title" value="预测损失" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=23;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#315E82;" vertex="1" parent="predicted">
+          <mxGeometry as="geometry" x="0" y="0" width="250" height="36" />
+        </mxCell>
+        <mxCell id="predicted_axes" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;endArrow=none;startArrow=none;strokeWidth=1.3;strokeColor=#A7B1B8;" edge="1" parent="predicted">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="20" y="45" />
+            <mxPoint as="targetPoint" x="230" y="110" />
+            <Array as="points">
+              <mxPoint x="20" y="110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="predicted_curve" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;endArrow=none;startArrow=none;strokeWidth=3;strokeColor=#426F94;" edge="1" parent="predicted">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="20.0" y="71.1186" />
+            <mxPoint as="targetPoint" x="230.0" y="60.054507385492755" />
+            <Array as="points">
+              <mxPoint x="28.4" y="73.75857087101207" />
+              <mxPoint x="36.8" y="76.21838820884716" />
+              <mxPoint x="45.2" y="78.58613935706222" />
+              <mxPoint x="53.6" y="80.89978568209197" />
+              <mxPoint x="62.0" y="83.13786830679669" />
+              <mxPoint x="70.4" y="85.2247619919905" />
+              <mxPoint x="78.8" y="87.04919083251656" />
+              <mxPoint x="87.2" y="88.49147247971226" />
+              <mxPoint x="95.6" y="89.45282055442969" />
+              <mxPoint x="104.0" y="89.87953099794649" />
+              <mxPoint x="112.4" y="89.77613069853558" />
+              <mxPoint x="120.8" y="89.20426915133518" />
+              <mxPoint x="129.2" y="88.26762451183774" />
+              <mxPoint x="137.6" y="87.0865195675232" />
+              <mxPoint x="146.0" y="85.7684625230801" />
+              <mxPoint x="154.4" y="84.38182524241802" />
+              <mxPoint x="162.8" y="82.9391034318304" />
+              <mxPoint x="171.2" y="81.39385725529101" />
+              <mxPoint x="179.6" y="79.65208142595893" />
+              <mxPoint x="188.0" y="77.59522097894632" />
+              <mxPoint x="196.4" y="75.10919766147185" />
+              <mxPoint x="204.8" y="72.11234026775976" />
+              <mxPoint x="213.2" y="68.57538059859662" />
+              <mxPoint x="221.6" y="64.52861933726294" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="predicted_left" value="0" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=18;fontStyle=0;align=left;verticalAlign=middle;spacing=0;fontColor=#6A757D;" vertex="1" parent="predicted">
+          <mxGeometry as="geometry" x="12" y="113" width="45" height="30" />
+        </mxCell>
+        <mxCell id="predicted_right" value="0.50" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=18;fontStyle=0;align=right;verticalAlign=middle;spacing=0;fontColor=#6A757D;" vertex="1" parent="predicted">
+          <mxGeometry as="geometry" x="186" y="113" width="52" height="30" />
+        </mxCell>
+        <mxCell id="predicted_axis" value="\(\delta\)" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=20;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="predicted">
+          <mxGeometry as="geometry" x="90.0" y="113" width="70" height="30" />
+        </mxCell>
+        <mxCell id="training_loss" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#ECF3F8;strokeColor=#426F94;strokeWidth=2;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="958" y="164" width="262" height="118" />
+        </mxCell>
+        <mxCell id="training_loss_title" value="曲线预测误差" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#315E82;" vertex="1" parent="training_loss">
+          <mxGeometry as="geometry" x="8" y="12" width="246" height="36" />
+        </mxCell>
+        <mxCell id="training_loss_sub" value="标准化损失曲线间&lt;br&gt;的平方误差" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#456477;" vertex="1" parent="training_loss">
+          <mxGeometry as="geometry" x="8" y="50" width="246" height="62" />
+        </mxCell>
+        <mxCell id="sample_to_targets" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#596773;fontSize=20;exitX=1;exitY=0.27;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="simulated" target="label_builder">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="270" y="186" />
+              <mxPoint x="270" y="133" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sample_to_model" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#426F94;fontSize=20;exitX=1;exitY=0.77;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="simulated" target="train_predictor">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="270" y="244" />
+              <mxPoint x="270" y="312" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sample_only" value="仅样本" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=19;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#426F94;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="240" y="319" width="64" height="32" />
+        </mxCell>
+        <mxCell id="targets_to_curve" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#596773;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="label_builder" target="actual">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="model_to_curve" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#426F94;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="train_predictor" target="predicted">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="actual_to_loss" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#596773;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.25;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="actual" target="training_loss">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="913" y="145" />
+              <mxPoint x="913" y="194" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="predicted_to_loss" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#426F94;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.75;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="predicted" target="training_loss">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="913" y="331" />
+              <mxPoint x="913" y="253" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="update" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#426F94;fontSize=20;exitX=0.85;exitY=1;entryX=0.5;entryY=1;exitPerimeter=1;entryPerimeter=1;dashed=1;dashPattern=6 5;" edge="1" parent="1" source="training_loss" target="train_predictor">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1180" y="420" />
+              <mxPoint x="429" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="update_label" value="更新网络参数" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=20;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#426F94;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="940" y="348" width="210" height="36" />
+        </mxCell>
+        <mxCell id="separator" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;endArrow=none;startArrow=none;strokeWidth=1.3;strokeColor=#D6DDE2;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="28" y="442" />
+            <mxPoint as="targetPoint" x="1252" y="442" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="panel_b" value="b  实际估计：按当前样本选择偏移量" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=28;fontStyle=1;align=left;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="28" y="458" width="760" height="48" />
+        </mxCell>
+        <mxCell id="observed" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#F7F8F9;strokeColor=#ADB8C0;strokeWidth=1.6;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="28" y="552" width="155" height="112" />
+        </mxCell>
+        <mxCell id="observed_title" value="当前样本" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="observed">
+          <mxGeometry as="geometry" x="8" y="12" width="139" height="36" />
+        </mxCell>
+        <mxCell id="observed_sub" value="\(X_n\)" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#53616B;" vertex="1" parent="observed">
+          <mxGeometry as="geometry" x="8" y="50" width="139" height="56" />
+        </mxCell>
+        <mxCell id="normalization" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#F7F8F9;strokeColor=#ADB8C0;strokeWidth=1.6;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="224" y="552" width="183" height="112" />
+        </mxCell>
+        <mxCell id="normalization_title" value="均值归一化" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="normalization">
+          <mxGeometry as="geometry" x="8" y="12" width="167" height="36" />
+        </mxCell>
+        <mxCell id="normalization_sub" value="沿用训练期&lt;br&gt;标准化变换" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#53616B;" vertex="1" parent="normalization">
+          <mxGeometry as="geometry" x="8" y="50" width="167" height="56" />
+        </mxCell>
+        <mxCell id="fixed_predictor" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#ECF3F8;strokeColor=#426F94;strokeWidth=2;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="448" y="552" width="170" height="112" />
+        </mxCell>
+        <mxCell id="fixed_predictor_title" value="已训练 MLP" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#315E82;" vertex="1" parent="fixed_predictor">
+          <mxGeometry as="geometry" x="8" y="12" width="154" height="36" />
+        </mxCell>
+        <mxCell id="fixed_predictor_sub" value="分样本量模型" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#456477;" vertex="1" parent="fixed_predictor">
+          <mxGeometry as="geometry" x="8" y="50" width="154" height="56" />
+        </mxCell>
+        <mxCell id="selection" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;fillColor=none;strokeColor=none;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="650" y="523" width="230" height="169" />
+        </mxCell>
+        <mxCell id="selection_title" value="预测损失与选点" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=23;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#315E82;" vertex="1" parent="selection">
+          <mxGeometry as="geometry" x="0" y="0" width="230" height="36" />
+        </mxCell>
+        <mxCell id="selection_axes" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;endArrow=none;startArrow=none;strokeWidth=1.3;strokeColor=#A7B1B8;" edge="1" parent="selection">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="20" y="45" />
+            <mxPoint as="targetPoint" x="210" y="129" />
+            <Array as="points">
+              <mxPoint x="20" y="129" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="selection_curve" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;endArrow=none;startArrow=none;strokeWidth=3;strokeColor=#426F94;" edge="1" parent="selection">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="20.0" y="79.4064" />
+            <mxPoint as="targetPoint" x="210.0" y="64.37593456142412" />
+            <Array as="points">
+              <mxPoint x="27.6" y="82.99277552288433" />
+              <mxPoint x="35.2" y="86.33441417050935" />
+              <mxPoint x="42.8" y="89.55098176808454" />
+              <mxPoint x="50.4" y="92.69404847378533" />
+              <mxPoint x="58.0" y="95.73446260545965" />
+              <mxPoint x="65.6" y="98.56948798911918" />
+              <mxPoint x="73.2" y="101.047957357381" />
+              <mxPoint x="80.8" y="103.0072833686657" />
+              <mxPoint x="88.4" y="104.31326565884788" />
+              <mxPoint x="96.0" y="104.89294777079525" />
+              <mxPoint x="103.6" y="104.75247943952003" />
+              <mxPoint x="111.2" y="103.97561092256855" />
+              <mxPoint x="118.8" y="102.70318801608146" />
+              <mxPoint x="126.4" y="101.09866809172964" />
+              <mxPoint x="134.0" y="99.3081000313541" />
+              <mxPoint x="141.6" y="97.42436636705844" />
+              <mxPoint x="149.2" y="95.4644423979583" />
+              <mxPoint x="156.8" y="93.36524004492364" />
+              <mxPoint x="164.4" y="90.99905401262345" />
+              <mxPoint x="172.0" y="88.20482849970065" />
+              <mxPoint x="179.6" y="84.82758927596177" />
+              <mxPoint x="187.2" y="80.75638677884345" />
+              <mxPoint x="194.8" y="75.95146043582938" />
+              <mxPoint x="202.4" y="70.4539734393006" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="selection_left" value="0" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=18;fontStyle=0;align=left;verticalAlign=middle;spacing=0;fontColor=#6A757D;" vertex="1" parent="selection">
+          <mxGeometry as="geometry" x="12" y="132" width="45" height="30" />
+        </mxCell>
+        <mxCell id="selection_right" value="0.50" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=18;fontStyle=0;align=right;verticalAlign=middle;spacing=0;fontColor=#6A757D;" vertex="1" parent="selection">
+          <mxGeometry as="geometry" x="166" y="132" width="52" height="30" />
+        </mxCell>
+        <mxCell id="selection_axis" value="\(\delta\)" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=20;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="selection">
+          <mxGeometry as="geometry" x="80.0" y="132" width="70" height="30" />
+        </mxCell>
+        <mxCell id="selection_guide" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;endArrow=none;startArrow=none;strokeWidth=1.6;strokeColor=#B57729;dashed=1;dashPattern=5 4;" edge="1" parent="selection">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="96.0" y="111.89294777079525" />
+            <mxPoint as="targetPoint" x="96.0" y="129" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="selection_min" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;ellipse;fillColor=#B57729;strokeColor=#B57729;" vertex="1" parent="selection">
+          <mxGeometry as="geometry" x="91.0" y="99.89294777079525" width="10" height="10" />
+        </mxCell>
+        <mxCell id="selection_delta" value="\(\hat\delta\)" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#A66A20;" vertex="1" parent="selection">
+          <mxGeometry as="geometry" x="69.0" y="39.892947770795246" width="55" height="36" />
+        </mxCell>
+        <mxCell id="mdm" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#F7F8F9;strokeColor=#ADB8C0;strokeWidth=1.6;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="924" y="552" width="130" height="112" />
+        </mxCell>
+        <mxCell id="mdm_title" value="MDM" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="mdm">
+          <mxGeometry as="geometry" x="8" y="12" width="114" height="36" />
+        </mxCell>
+        <mxCell id="mdm_sub" value="参数拟合" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#53616B;" vertex="1" parent="mdm">
+          <mxGeometry as="geometry" x="8" y="50" width="114" height="56" />
+        </mxCell>
+        <mxCell id="estimates" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;rounded=1;arcSize=12;fillColor=#F7F8F9;strokeColor=#ADB8C0;strokeWidth=1.6;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1096" y="552" width="156" height="112" />
+        </mxCell>
+        <mxCell id="estimates_title" value="参数估计" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;spacing=0;fontColor=#26343C;" vertex="1" parent="estimates">
+          <mxGeometry as="geometry" x="8" y="12" width="140" height="36" />
+        </mxCell>
+        <mxCell id="estimates_sub" value="\(\hat\beta,\hat\eta,\hat\gamma\)" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#53616B;" vertex="1" parent="estimates">
+          <mxGeometry as="geometry" x="8" y="50" width="140" height="56" />
+        </mxCell>
+        <mxCell id="obs_to_norm" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#596773;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="observed" target="normalization">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="norm_to_fixed" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#426F94;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="normalization" target="fixed_predictor">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="fixed_to_curve" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#426F94;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="fixed_predictor" target="selection">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="delta_to_mdm" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#426F94;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="selection" target="mdm">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="mdm_to_estimates" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#596773;fontSize=20;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="mdm" target="estimates">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="raw_sample" value="" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endSize=8;strokeWidth=2;strokeColor=#596773;fontSize=20;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitPerimeter=1;entryPerimeter=1;" edge="1" parent="1" source="observed" target="mdm">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="105.5" y="724" />
+              <mxPoint x="989" y="724" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="raw_note" value="原始样本直接进入 MDM" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=21;fontStyle=0;align=center;verticalAlign=middle;spacing=0;fontColor=#53616B;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="335" y="684" width="460" height="38" />
+        </mxCell>
+        <mxCell id="legend" value="蓝色：损失预测与选点　　虚线：网络参数更新　　曲线为示意" style="html=1;fontFamily=Microsoft YaHei;fontColor=#26343C;whiteSpace=wrap;text;fillColor=none;strokeColor=none;fontSize=20;fontStyle=0;align=left;verticalAlign=middle;spacing=0;fontColor=#6A757D;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="28" y="756" width="1224" height="36" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
