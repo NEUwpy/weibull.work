@@ -8,9 +8,9 @@ const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex'
  const {default:gfm}=await import('remark-gfm');
  const katex=require('katex');
  const reports=[];
- for(const [oldName,newName] of [['Study01论文初稿-v1.11.md','Study01论文初稿-v1.12.md'],['Study01论文附录-v1.9.md','Study01论文附录-v1.10.md']]){
+ for(const [oldName,newName] of [['shelve/正文/Study01论文初稿-v1.11.md','Study01论文初稿-v1.12.md'],['shelve/附录/Study01论文附录-v1.9.md','Study01论文附录-v1.10.md']]){
   const source=fs.readFileSync(path.join(root,newName),'utf8');
-  const old=fs.readFileSync(path.join(root,oldName),'utf8');
+  const old=fs.readFileSync(path.join(root,oldName),'utf8').replace(/\]\(([^)]+)\)/g,(match,url)=>{if(/^(https?:|#|mailto:)/.test(url))return match;return ']('+path.relative(root,path.resolve(path.dirname(path.join(root,oldName)),url)).split(path.sep).join('/')+')';});
   const tree=unified().use(parse).use(math).use(gfm).parse(source);
   const ranges=[],errors=[],links=[];let inline=0,display=0;
   function visit(n){

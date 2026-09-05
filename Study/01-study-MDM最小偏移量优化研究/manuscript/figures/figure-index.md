@@ -10,7 +10,7 @@
 | 图 4 | `main/fig4_information_spaces_restored_3d.png` | L1—L5 参数空间分组；整体、平面、参数线与参数组合 |
 | 图 5 | `main/fig5_information_level_results.png` | 不同信息条件下的估计风险；L1—L6 交叉评价与事后参照 |
 | 图 6 | `main/fig6_per_n_J1.png` | 不同样本量下的总体与逐样本结果；E8 seed 42 折外结果及逐样本配对损失 |
-| 图 7 | `main/fig7_sample_path_loss_v112.png` | 有限样本波动与 MDM 偏移量选择；E11：同三个样本的交点与候选损失，20 单元、2,000 样本的分组与相关 |
+| 图 7 | `main/fig7_sample_columns_v112.png` | 有限样本波动与 MDM 偏移量选择；E11：同三个样本的位置估计路径与候选损失，上下对齐、按样本分列 |
 | 图 A1 | `supplementary/supp_fig_offset_sd_v110.png` | 160 组合的逐参数抽样 SD，原图 2b 内容 |
 | 图 B1 | `main/fig7_selector_mechanism.png` | 从损失曲线预测到偏移量选择；折外曲线预测、行内归一化选点对应与超额损失 |
 | 图 C1 | `supplementary/supp_fig_parameter_guided.png` | 利用初估参数选择偏移量的评价；plug-in 12 变体 |
@@ -19,6 +19,7 @@
 | 图 E2 | `supplementary/supp_fig_quantile_rmse_v111.png` | 可靠度寿命误差；三个可靠度寿命的相对 RMSE |
 | 图 F1 | `supplementary/supp_fig_decision_conditions.png` | 不同决策条件下的确认风险；同域确认风险与信息条件 |
 | 图 F2 | `supplementary/supp_fig_parameter_landscape_v111.png` | 参数条件下的效果分布；160 单元效果分布 |
+| 图 F4 | `supplementary/supp_fig_sample_groups_v110.png` | E11 的 2,000 样本分组损失与组合内相关 |
 | 图 F3 | `supplementary/supp_fig_z_only_learning_curve_v111.png` | $Z$-only 经验参照的数据量诊断；同域经验参照的数据量诊断 |
 
 空间分组图已恢复为正文图 4；附录表 A2 保留完整分组定义。
@@ -46,3 +47,5 @@ v1.9 仅调整叙述与证据位置，图像未改动；完整上一版本快照
 ## v1.12 机理与风险分解
 
 v1.12 完善偏移量调节含义与条件偏差—方差解释；图 2 增加联合风险分解，图 7 对照同样本交点与候选损失，原逐参数 SD 分布移入附录 A.6。原版三维图、信息层级及主自适应比较保留；本轮复用现有数据，没有新增训练或独立确认实验。 当前生成器为 `scripts/plot_offset_revision_v112.py`，覆盖旧图 2、图 7 生成映射；历史生成器不得用于整套覆盖当前图件。
+
+图 7 按作者意见重新分列，当前生成入口为 `scripts/plot_fig7_sample_columns.py`；原分组与相关性移到附录 F4，旧版导出保留。

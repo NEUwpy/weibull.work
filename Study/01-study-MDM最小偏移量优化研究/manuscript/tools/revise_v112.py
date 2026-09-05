@@ -123,4 +123,5 @@ $$
 ''')
     (M/'Study01论文附录-v1.10.md').write_text(a,encoding='utf-8')
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    raise SystemExit('Historical v1.12 recipe: current manuscript includes subsequent author revisions; do not overwrite.')
