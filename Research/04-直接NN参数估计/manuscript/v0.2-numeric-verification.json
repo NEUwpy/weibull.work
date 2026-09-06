@@ -1,0 +1,382 @@
+{
+  "status": "PASS",
+  "numeric_values_checked": 201,
+  "tables_checked": [
+    "2",
+    "3",
+    "4",
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5"
+  ],
+  "local_links_checked": 37,
+  "source_csv_sha256": {
+    "artifacts/traditional_aligned_v1/combined_domain_summary.csv": "e402621168934441c73b8c136c62aeb711d7360b804a276e713e9ec7548a0646",
+    "artifacts/training_domain_width_location_v1/analysis/width_common_beta_summary.csv": "2c42cf8de116f8878ad14f66afc4cd6dd93e6bbc1f6cfc36b88ef6605dfc1e65",
+    "artifacts/traditional_aligned_v1/combined_beta_summary.csv": "959b48c6ff08ef4e492fd829a0c3cd8ee450ee4a76a114ab62f8309a065f2668",
+    "artifacts/study01_aligned_generalization_v1/analysis/n_domain_summary.csv": "704e22b9e283348fda758d2f19354d404e38d80a61f9888c43c10c6a91254783",
+    "artifacts/study01_aligned_generalization_v1/analysis/large_beta_summary.csv": "36856640ffaee24b3fbef7aa3c61dd76c443003cdece7ac17e18d3e3e092edef",
+    "artifacts/training_domain_width_location_v1/analysis/location_aligned_summary.csv": "742f69844ad929e7f56896e407bc6d8d2e92c2456eb1d1e3ac3390f4c6800c2f",
+    "artifacts/scale_equivariance_v1/pooled_scale_summary.csv": "2799f9c1b44da36ff66ba5ad91d01fb3cfdc7886962e948accd9b31490b922bb"
+  },
+  "manuscript_sha256": {
+    "03-稿件-直接神经估计与结构保留路线比较-v0.2.md": "be9fe56c0e427f190d0cf50d32e7f7e041750848aaf6564a224ca72794759510",
+    "03-附录-直接神经估计与结构保留路线比较-v0.2.md": "a5b3f037c7dc260ddff17c573a8825df614f7bb7cde2c09020341f520c375305"
+  },
+  "checks": [
+    "T2/Direct-P/seen_grid",
+    "T2/Direct-P/in_domain_unseen",
+    "T2/Direct-P/near_ood",
+    "T2/Direct-P/far_ood",
+    "T2/Direct-P/failure_percent",
+    "T2/Adaptive-MDM/seen_grid",
+    "T2/Adaptive-MDM/in_domain_unseen",
+    "T2/Adaptive-MDM/near_ood",
+    "T2/Adaptive-MDM/far_ood",
+    "T2/Adaptive-MDM/failure_percent",
+    "T2/MDM-0.1/seen_grid",
+    "T2/MDM-0.1/in_domain_unseen",
+    "T2/MDM-0.1/near_ood",
+    "T2/MDM-0.1/far_ood",
+    "T2/MDM-0.1/failure_percent",
+    "T2/WMLE/seen_grid",
+    "T2/WMLE/in_domain_unseen",
+    "T2/WMLE/near_ood",
+    "T2/WMLE/far_ood",
+    "T2/WMLE/failure_percent",
+    "T2/LSE/seen_grid",
+    "T2/LSE/in_domain_unseen",
+    "T2/LSE/near_ood",
+    "T2/LSE/far_ood",
+    "T2/LSE/failure_percent",
+    "T3/0/n_train_per_n",
+    "T3/0/J1",
+    "T3/0/beta_rmse",
+    "T3/0/x0.95_rmse",
+    "T3/1/n_train_per_n",
+    "T3/1/J1",
+    "T3/1/beta_rmse",
+    "T3/1/x0.95_rmse",
+    "T3/2/n_train_per_n",
+    "T3/2/J1",
+    "T3/2/beta_rmse",
+    "T3/2/x0.95_rmse",
+    "T3/3/n_train_per_n",
+    "T3/3/J1",
+    "T3/3/beta_rmse",
+    "T3/3/x0.95_rmse",
+    "T3/4/n_train_per_n",
+    "T3/4/J1",
+    "T3/4/beta_rmse",
+    "T3/4/x0.95_rmse",
+    "T3/5/n_train_per_n",
+    "T3/5/J1",
+    "T3/5/beta_rmse",
+    "T3/5/x0.95_rmse",
+    "T3/6/n_train_per_n",
+    "T3/6/J1",
+    "T3/6/beta_rmse",
+    "T3/6/x0.95_rmse",
+    "T3/7/n_train_per_n",
+    "T3/7/J1",
+    "T3/7/beta_rmse",
+    "T3/7/x0.95_rmse",
+    "T4/0/x0.95_bias",
+    "T4/0/x0.95_sd",
+    "T4/0/x0.95_rmse",
+    "T4/1/x0.95_bias",
+    "T4/1/x0.95_sd",
+    "T4/1/x0.95_rmse",
+    "T4/2/x0.95_bias",
+    "T4/2/x0.95_sd",
+    "T4/2/x0.95_rmse",
+    "T4/3/x0.95_bias",
+    "T4/3/x0.95_sd",
+    "T4/3/x0.95_rmse",
+    "T4/4/x0.95_bias",
+    "T4/4/x0.95_sd",
+    "T4/4/x0.95_rmse",
+    "T4/5/x0.95_bias",
+    "T4/5/x0.95_sd",
+    "T4/5/x0.95_rmse",
+    "T4/6/x0.95_bias",
+    "T4/6/x0.95_sd",
+    "T4/6/x0.95_rmse",
+    "T4/7/x0.95_bias",
+    "T4/7/x0.95_sd",
+    "T4/7/x0.95_rmse",
+    "TA1/0.75/Direct-P",
+    "TA1/0.75/Adaptive-MDM",
+    "TA1/0.75/MDM-0.1",
+    "TA1/0.75/WMLE",
+    "TA1/0.75/LSE",
+    "TA1/1.00/Direct-P",
+    "TA1/1.00/Adaptive-MDM",
+    "TA1/1.00/MDM-0.1",
+    "TA1/1.00/WMLE",
+    "TA1/1.00/LSE",
+    "TA1/1.25/Direct-P",
+    "TA1/1.25/Adaptive-MDM",
+    "TA1/1.25/MDM-0.1",
+    "TA1/1.25/WMLE",
+    "TA1/1.25/LSE",
+    "TA1/5.25/Direct-P",
+    "TA1/5.25/Adaptive-MDM",
+    "TA1/5.25/MDM-0.1",
+    "TA1/5.25/WMLE",
+    "TA1/5.25/LSE",
+    "TA1/5.50/Direct-P",
+    "TA1/5.50/Adaptive-MDM",
+    "TA1/5.50/MDM-0.1",
+    "TA1/5.50/WMLE",
+    "TA1/5.50/LSE",
+    "TA1/5.75/Direct-P",
+    "TA1/5.75/Adaptive-MDM",
+    "TA1/5.75/MDM-0.1",
+    "TA1/5.75/WMLE",
+    "TA1/5.75/LSE",
+    "TA2/7/1",
+    "TA2/7/2",
+    "TA2/7/3",
+    "TA2/7/4",
+    "TA2/10/1",
+    "TA2/10/2",
+    "TA2/10/3",
+    "TA2/10/4",
+    "TA2/15/1",
+    "TA2/15/2",
+    "TA2/15/3",
+    "TA2/15/4",
+    "TA2/20/1",
+    "TA2/20/2",
+    "TA2/20/3",
+    "TA2/20/4",
+    "TA3/5.00/7/J1",
+    "TA3/5.00/7/beta_bias",
+    "TA3/5.00/7/eta_bias",
+    "TA3/5.00/7/gamma_bias",
+    "TA3/5.00/7/x0.95_rmse",
+    "TA3/5.00/20/J1",
+    "TA3/5.00/20/beta_bias",
+    "TA3/5.00/20/eta_bias",
+    "TA3/5.00/20/gamma_bias",
+    "TA3/5.00/20/x0.95_rmse",
+    "TA3/5.75/7/J1",
+    "TA3/5.75/7/beta_bias",
+    "TA3/5.75/7/eta_bias",
+    "TA3/5.75/7/gamma_bias",
+    "TA3/5.75/7/x0.95_rmse",
+    "TA3/5.75/20/J1",
+    "TA3/5.75/20/beta_bias",
+    "TA3/5.75/20/eta_bias",
+    "TA3/5.75/20/gamma_bias",
+    "TA3/5.75/20/x0.95_rmse",
+    "TA4/0/n_train_per_n",
+    "TA4/0/J1",
+    "TA4/0/x0.95_rmse",
+    "TA4/0/failure_rate",
+    "TA4/1/n_train_per_n",
+    "TA4/1/J1",
+    "TA4/1/x0.95_rmse",
+    "TA4/1/failure_rate",
+    "TA4/2/n_train_per_n",
+    "TA4/2/J1",
+    "TA4/2/x0.95_rmse",
+    "TA4/2/failure_rate",
+    "TA4/3/n_train_per_n",
+    "TA4/3/J1",
+    "TA4/3/x0.95_rmse",
+    "TA4/3/failure_rate",
+    "TA4/4/n_train_per_n",
+    "TA4/4/J1",
+    "TA4/4/x0.95_rmse",
+    "TA4/4/failure_rate",
+    "TA4/5/n_train_per_n",
+    "TA4/5/J1",
+    "TA4/5/x0.95_rmse",
+    "TA4/5/failure_rate",
+    "TA5/0/eta",
+    "TA5/0/n_samples",
+    "TA5/0/J1",
+    "TA5/0/x095_rmse",
+    "TA5/0/failure_rate",
+    "TA5/1/eta",
+    "TA5/1/n_samples",
+    "TA5/1/J1",
+    "TA5/1/x095_rmse",
+    "TA5/1/failure_rate",
+    "TA5/2/eta",
+    "TA5/2/n_samples",
+    "TA5/2/J1",
+    "TA5/2/x095_rmse",
+    "TA5/2/failure_rate",
+    "TA5/3/eta",
+    "TA5/3/n_samples",
+    "TA5/3/J1",
+    "TA5/3/x095_rmse",
+    "TA5/3/failure_rate",
+    "TA5/4/eta",
+    "TA5/4/n_samples",
+    "TA5/4/J1",
+    "TA5/4/x095_rmse",
+    "TA5/4/failure_rate",
+    "TA5/5/eta",
+    "TA5/5/n_samples",
+    "TA5/5/J1",
+    "TA5/5/x095_rmse",
+    "TA5/5/failure_rate"
+  ],
+  "links": [
+    {
+      "file": "03-稿件-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/fig1_domain_risk.png"
+    },
+    {
+      "file": "03-稿件-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/fig2_centered_width.png"
+    },
+    {
+      "file": "03-稿件-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/fig3_parameter_rmse.png"
+    },
+    {
+      "file": "03-稿件-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/fig4_mdm_diagnostic.png"
+    },
+    {
+      "file": "03-稿件-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/fig5_sample_size.png"
+    },
+    {
+      "file": "03-稿件-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "03-附录-直接神经估计与结构保留路线比较-v0.2.md"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "03-稿件-直接神经估计与结构保留路线比较-v0.2.md"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/study01_aligned_generalization_v1/manifest.json"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/study01_aligned_generalization_v1/analysis/domain_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/study01_aligned_generalization_v1/analysis/paired_bootstrap_contrasts.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/traditional_aligned_v1/manifest.json"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/traditional_aligned_v1/combined_domain_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/traditional_aligned_v1/combined_standard_metrics.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/traditional_aligned_v1/failure_reasons.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/training_domain_width_location_v1/manifest.json"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/training_domain_width_location_v1/analysis/width_common_beta_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/training_domain_width_location_v1/independent_verification.json"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/training_domain_width_v1/manifest.json"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/training_domain_width_v1/analysis/common_core_contrasts.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/training_domain_width_v1/analysis/beta_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/scale_equivariance_v1/manifest.json"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/scale_equivariance_v1/pooled_scale_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/replacement_boundary_v1/manifest.json"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/replacement_boundary_v1/report.md"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/traditional_aligned_v1/combined_beta_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/study01_aligned_generalization_v1/analysis/n_domain_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/figS1_n_by_beta.png"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/study01_aligned_generalization_v1/analysis/large_beta_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/figS2_nested_tradeoff.png"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/figS3_nested_extrapolation.png"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/training_domain_width_location_v1/analysis/location_aligned_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/training_domain_width_location_v1/analysis/same_beta_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/scale_equivariance_v1/report.md"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/figS4_input_geometry.png"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "artifacts/study01_aligned_generalization_v1/analysis/sample_geometry_summary.csv"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "code/render_manuscript_figures.py"
+    },
+    {
+      "file": "03-附录-直接神经估计与结构保留路线比较-v0.2.md",
+      "target": "manuscript/figures-v0.2/"
+    }
+  ],
+  "scope": "Rounded table values and local links only; no raw-data or training rerun."
+}

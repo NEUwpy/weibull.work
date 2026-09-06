@@ -1,0 +1,104 @@
+{
+  "backend": "Python/matplotlib",
+  "archetype": "quantitative grid",
+  "contracts": {
+    "fig1_domain_risk": "测试 beta 位置改变方法风险排序；A 点风险，B 条件于冻结模型的配对差及原有 95% CI。",
+    "fig2_centered_width": "中心固定为 3 的训练域扩宽损失共同区间参数精度；A/B 双预算参数风险，C/D 各预算的三个寿命点，未提供 CI。",
+    "fig3_parameter_rmse": "三参数标准化 RMSE 分解总体风险，位置误差明确以真实 eta 标准化。",
+    "fig4_mdm_diagnostic": "参数偏差方向与寿命误差不同比例变化；A/B 为自适应 MDM 统计，C 为解析相对敏感度诊断，非因果识别。",
+    "fig5_sample_size": "已见网格中样本量改变两类风险及配对差；C 使用原有条件 95% CI。",
+    "figS1_n_by_beta": "共同纵轴比较四个样本量下的 beta 风险曲线。",
+    "figS2_nested_tradeoff": "原嵌套训练域的共同区间参数与寿命风险权衡，保留原 CI；寿命面板局部纵轴。",
+    "figS3_nested_extrapolation": "固定总量下三种原嵌套训练域的双侧外推风险；各行共用纵轴及相同 MDM 参照。",
+    "figS4_input_geometry": "低 beta 下均值归一化输入的几何统计改变；中位数和四分位区间来自封存 CSV。"
+  },
+  "sources_relative_to_artifacts": {
+    "study01_aligned_generalization_v1/analysis/beta_summary.csv": {
+      "sha256": "00d67a7add3b5295d207582275a8beea5b5235c1562ac710d6a83843e3000514",
+      "rows": 63,
+      "copy": "source-data/study01_aligned_generalization_v1__beta_summary.csv"
+    },
+    "study01_aligned_generalization_v1/analysis/paired_bootstrap_contrasts.csv": {
+      "sha256": "eb9e51caabf8b53f508ccb8831f30d9ee0663938f7ca2a1e5dcc377b928bfcb1",
+      "rows": 58,
+      "copy": "source-data/study01_aligned_generalization_v1__paired_bootstrap_contrasts.csv"
+    },
+    "training_domain_width_location_v1/analysis/width_common_beta_summary.csv": {
+      "sha256": "2c42cf8de116f8878ad14f66afc4cd6dd93e6bbc1f6cfc36b88ef6605dfc1e65",
+      "rows": 8,
+      "copy": "source-data/training_domain_width_location_v1__width_common_beta_summary.csv"
+    },
+    "study01_aligned_generalization_v1/analysis/mdm_identifiability_sensitivity.csv": {
+      "sha256": "4d7872c824d6a32bb0704ba8a3a84f1edf17c58ebd4a3ce8ce96ca87b44febc9",
+      "rows": 84,
+      "copy": "source-data/study01_aligned_generalization_v1__mdm_identifiability_sensitivity.csv"
+    },
+    "study01_aligned_generalization_v1/analysis/n_domain_summary.csv": {
+      "sha256": "704e22b9e283348fda758d2f19354d404e38d80a61f9888c43c10c6a91254783",
+      "rows": 48,
+      "copy": "source-data/study01_aligned_generalization_v1__n_domain_summary.csv"
+    },
+    "study01_aligned_generalization_v1/analysis/n_beta_summary.csv": {
+      "sha256": "4154ca196c5a99e3676fb8595d259cf0b1e824c7e57f2679bff07e075916f735",
+      "rows": 252,
+      "copy": "source-data/study01_aligned_generalization_v1__n_beta_summary.csv"
+    },
+    "training_domain_width_v1/analysis/common_core_bootstrap.csv": {
+      "sha256": "2e754977e2eb34daeb11c55cc19de74dcf27a23ff656f7eb0d3b95476aba8149",
+      "rows": 12,
+      "copy": "source-data/training_domain_width_v1__common_core_bootstrap.csv"
+    },
+    "training_domain_width_v1/analysis/beta_summary.csv": {
+      "sha256": "c3920c976af462be7f67631b2a714d70b23275d196a52c2eaf2c65d9b5631260",
+      "rows": 126,
+      "copy": "source-data/training_domain_width_v1__beta_summary.csv"
+    },
+    "study01_aligned_generalization_v1/analysis/sample_geometry_summary.csv": {
+      "sha256": "7a6122081a228b68427ac4d3b4651aff2b73b8fc77c6defe36c09d3870b94d7e",
+      "rows": 21,
+      "copy": "source-data/study01_aligned_generalization_v1__sample_geometry_summary.csv"
+    }
+  },
+  "new_training": false,
+  "new_monte_carlo": false,
+  "new_confidence_intervals": false,
+  "centered_width_J1_increase_percent": {
+    "fixed_total": 54.29002832630088,
+    "fixed_density": 52.429602528035126
+  },
+  "aggregation": "Frozen summaries unchanged: beta curves pool n and gamma/eta; n curves pool beta and gamma/eta; width contrasts use the common beta interval. No averaging of RMSEs.",
+  "source_notes": "Joint risk includes failure penalty; parameter/lifetime RMSE uses valid estimates. CI is conditional on frozen fitted models. Geometry bands are IQR, not CI. See manuscript for design and formulas.",
+  "figure_sources": {
+    "fig1_domain_risk": [
+      "study01_aligned_generalization_v1/analysis/beta_summary.csv",
+      "study01_aligned_generalization_v1/analysis/paired_bootstrap_contrasts.csv"
+    ],
+    "fig2_centered_width": [
+      "training_domain_width_location_v1/analysis/width_common_beta_summary.csv"
+    ],
+    "fig3_parameter_rmse": [
+      "study01_aligned_generalization_v1/analysis/beta_summary.csv"
+    ],
+    "fig4_mdm_diagnostic": [
+      "study01_aligned_generalization_v1/analysis/beta_summary.csv",
+      "study01_aligned_generalization_v1/analysis/mdm_identifiability_sensitivity.csv"
+    ],
+    "fig5_sample_size": [
+      "study01_aligned_generalization_v1/analysis/n_domain_summary.csv",
+      "study01_aligned_generalization_v1/analysis/paired_bootstrap_contrasts.csv"
+    ],
+    "figS1_n_by_beta": [
+      "study01_aligned_generalization_v1/analysis/n_beta_summary.csv"
+    ],
+    "figS2_nested_tradeoff": [
+      "training_domain_width_v1/analysis/common_core_bootstrap.csv"
+    ],
+    "figS3_nested_extrapolation": [
+      "training_domain_width_v1/analysis/beta_summary.csv",
+      "study01_aligned_generalization_v1/analysis/beta_summary.csv"
+    ],
+    "figS4_input_geometry": [
+      "study01_aligned_generalization_v1/analysis/sample_geometry_summary.csv"
+    ]
+  }
+}
