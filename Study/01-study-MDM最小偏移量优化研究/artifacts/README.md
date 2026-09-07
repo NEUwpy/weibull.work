@@ -1,18 +1,19 @@
-# Study01 当前产物
+# 当前证据目录
 
-2026-09-07 按作者要求清理旧试错运行。研究判断、试错结果和恢复说明见[认识清单](../07-认识清单与研究快照-20260907.md)。本目录保留当前稿件所需证据及其依赖，不再默认积累已退出主线的实验。
+证据按[实验配置 S01-01—S01-08](../02-实验配置.md)理解，章节消费位置见[证据索引](../01-证据索引.md)。目录名是既有来源标识，不按新编号搬动或重新封存。
 
-| 保留目录 | 用途 |
-|---|---|
-| `formal/E5_normalized_raw/` | 当前 160 单元扫描、源选择结果及模型；E8 和绘图程序仍依赖，不能因命名旧而删除 |
-| `formal/E6_dimensional_raw/` | 传统方法参照、信息层级与当前依赖；有量纲方法只作敏感性对照 |
-| `formal/E8_mean_normalized_selector/` | 当前主结果、seed 42、未见 β、寿命点、尺度等变与不确定性 |
-| `formal/E10_z_only_benchmark/`、`E11_profile_mechanism/`、`E13_beta_domain_sensitivity/` | 条件信息、样本机制及参数域变化证据 |
-| `formal/pg_selector/` | 当前附录使用的 plug-in 负结果 |
-| `candidate/E7_scale_invariant_input_screen/` | 当前表示选择来历及 E8 生成依赖 |
-| `candidate/E12_delta_upper_boundary/` | 当前附录的上界敏感性证据 |
-| 其余少量 E1/E2、figures 与 exploratory 汇总 | 历史认识或图表来源；不当作新任务，数字按原合同解释 |
+| 实际目录 | 当前实验 | 保留用途 |
+|---|---|---|
+| `formal/E5_normalized_raw/` | [共用数据、S01-04](../02-实验配置.md#common) | 160 单元候选扫描、源选择结果、模型与哈希 |
+| `exploratory/offset_mechanism_scan_20260905/` | [S01-01](../02-实验配置.md#s01-01)、S01-05a 图7派生 | 当前正文已使用的风险分解与同样本候选损失；exploratory 是来源名 |
+| `formal/E13_beta_domain_sensitivity/` | [S01-02](../02-实验配置.md#s01-02) | 参数域平移与实际风险格点 |
+| `formal/E6_dimensional_raw/` | [S01-03](../02-实验配置.md#s01-03)、[S01-06b](../02-实验配置.md#s01-06b) | 当前层级表、传统参照及必要依赖；RAW 自身只作敏感性 |
+| `formal/E8_mean_normalized_selector/` | [S01-04](../02-实验配置.md#s01-04)、[S01-06](../02-实验配置.md#s01-06) | seed42 主报告、不确定性、未见 β、寿命及尺度 |
+| `formal/E11_profile_mechanism/`、`formal/E10_z_only_benchmark/` | [S01-05](../02-实验配置.md#s01-05) | 样本轨迹、条件风险与信息参照 |
+| `formal/pg_selector/` | [S01-07](../02-实验配置.md#s01-07) | 初估查表的完整负结果 |
+| `candidate/E12_delta_upper_boundary/` | [S01-08](../02-实验配置.md#s01-08) | 附录的选择性上界诊断 |
+| `candidate/E7_scale_invariant_input_screen/` | [S01-04](../02-实验配置.md#s01-04) | 表示选择来历，不是独立主确证 |
 
-已退出活动目录：旧 `p4_formal_compare`、`extended_validation`、`shared_data`、E3/E3b/E4、旧真实数据和寿命派生、旧上界试验、RAW/E9 候选及 `pilot/`。其中旧 `formal/shared_data` 与保留的 `formal/E5_normalized_raw/shared_data` 是两套设计；当前图表使用后者。
+其余保留的小型旧 E1/E2/figures 包仅供历史追溯，不能代替当前 160 单元结果。旧 shared_data 与当前 E5/shared_data 是不同设计。
 
-试错结果已合并到[紧凑摘要](../snapshots/2026-09-07/retired-results.json)。恢复旧生成数据不是日常维护任务；确有需要时依据清理前 Git 标签和代码重跑，或取回一次性快照。当前保留的正式证据不改数值、不重新封存。
+已退出主线的 P4/P2/E3/E4/E9、pilot 与旧真实数据等不再保留活动运行。试错结果、恢复版本和清理范围见[认识快照](../07-认识清单与研究快照-20260907.md)。当前新增编号不改原数值、文件哈希或模型身份。

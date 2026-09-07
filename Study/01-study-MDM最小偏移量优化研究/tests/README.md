@@ -1,16 +1,18 @@
-# Study01 测试索引
+# 当前证据核验
 
-| 测试 | 当前定位 |
+实验定义见[配置文档](../02-实验配置.md)。测试用于关键口径与已有产物核对，不自动触发完整训练或候选扫描。
+
+| 实验 | 相关已有测试 |
 |---|---|
-| `test_dim_raw_contract.py` | 当前 Dimensional-RAW 方法核心测试 |
-| `test_paper_evidence.py` | B1/B2/B3 写作前支撑验证合同测试（11 项） |
-| `test_pg_selector.py` | 利用初估参数选择偏移量（plug-in）的负向支撑实验合同测试（26 项：split 隔离、映射/插值/截断、迭代状态、回退、J1 无 /3、样本键对齐、模式/版本元数据、分 β 派生、配对 bootstrap） |
-| `test_e8_main_uncertainty.py` | E8 seed 42 主结果的配对 bootstrap、单元异质性与正式账本核对 |
-| `test_delta_upper_boundary.py` | E12 候选上边界诊断的损失公式、延伸网格、边界样本选择、平局容差与全样本汇总测试 |
-| `test_e13_beta_domain_sensitivity.py` | E13 固定宽度 $\beta$ 参数域构造、汇总风险和滑动窗口最低点的科学口径测试 |
-| `test_gen_labels.py` | 旧泛化标签工具测试，历史支持 |
-| `test_p2_*` | 旧特征路线 P2 历史测试 |
-| `test_p3_direct_mlp.py`、`test_p4_formal_compare.py` | Direct-MLP/方法比较 Research |
-| `test_quantile_derivation.py` | 旧特征路线分位点历史测试 |
+| [S01-01](../02-实验配置.md#s01-01) | 当前稿件/图件检查与已保存的风险分解 QA；不把图像格式验收当作科学复算 |
+| [S01-02](../02-实验配置.md#s01-02) | [test_e13_beta_domain_sensitivity.py](test_e13_beta_domain_sensitivity.py) |
+| [S01-03/04](../02-实验配置.md#s01-03) | [test_mean_normalized_confirmation.py](test_mean_normalized_confirmation.py)、[test_e8_seed42_primary.py](test_e8_seed42_primary.py)、[test_e8_main_uncertainty.py](test_e8_main_uncertainty.py) |
+| S01-04 表示来历 | [test_scale_invariant_input_screen.py](test_scale_invariant_input_screen.py) |
+| [S01-05](../02-实验配置.md#s01-05) | [test_profile_mechanism.py](test_profile_mechanism.py)、[test_z_only_benchmark.py](test_z_only_benchmark.py) |
+| [S01-06](../02-实验配置.md#s01-06) | [test_mean_normalized_confirmation.py](test_mean_normalized_confirmation.py)、[test_paper_evidence.py](test_paper_evidence.py)；后者含旧有量纲参照，按其合同理解 |
+| [S01-07](../02-实验配置.md#s01-07) | [test_pg_selector.py](test_pg_selector.py) |
+| [S01-08](../02-实验配置.md#s01-08) | [test_delta_upper_boundary.py](test_delta_upper_boundary.py) |
 
-当前论文的新验证应优先增加少量、针对科学口径的测试：样本键一致、训练/测试不泄漏、指标重算和汇总可回指逐样本结果。无需把单次论文脚本建设成生产控制系统。
+2026-09-07 清理验收已运行 seed42、不确定性、profile、Z-only、E13、E12 六个测试文件，共 30 项通过，详见[当次验证记录](../snapshots/2026-09-07/validation.json)。这不是整个 tests 目录的通过声明。
+
+旧 test_p2/test_p3/test_p4、旧标签与分位点测试属于历史路线，可能需要已退出活动目录的数据；不再作为当前论文默认验收集。环境和代码入口见[代码说明](../code/README.md)。文档重编号主要检查配置事实、链接/锚点、图表映射和现有数值不变，无需为新编号增加算法测试。

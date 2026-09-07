@@ -45,7 +45,7 @@ Research 是验证层，Study 是论文责任层。Research 只有同时满足�
   - 入口：[前置研究报告](../Study/02-study-NN参数估计与分位点目标研究/前置实验/06-A-前置研究报告.md)
   - 状态：`COMPLETE + EMBEDDED`。它是 Study02 参数路线的冻结依据，不是 Study02 的独立论文贡献。
 - **Study01 Direct-MLP/P3/P4 对照**
-  - 代码与封存产物保持在 Study01 原路径，由 `04-直接NN参数估计/README.md` 统一说明。它不参与 Study01 当前论文主论证。
+  - 旧 P4 生成产物已于 2026-09-07 退出活动目录，试错结论与恢复说明见 [Study01 认识快照](../Study/01-study-MDM最小偏移量优化研究/07-认识清单与研究快照-20260907.md)。Research04 当前独立证据保持原位；Study01 当前实验以 [配置文档](../Study/01-study-MDM最小偏移量优化研究/02-实验配置.md)为准。
 
 ## 归档
 

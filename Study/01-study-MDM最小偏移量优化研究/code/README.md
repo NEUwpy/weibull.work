@@ -1,42 +1,32 @@
-# Study01 代码索引
+# 当前代码与复现入口
 
-`code/` 保留当前论文入口及其导入依赖。2026-09-07 已清理退出主线的生成数据，见[认识清单](../07-认识清单与研究快照-20260907.md)。旧实验代码即使暂留，也不是活动任务；运行前须恢复相应旧数据或重新生成。
+按[实验配置](../02-实验配置.md)选择入口。这里区分扫描、训练、派生与作图，避免运行旧主程序时启动另一条实验路线。
 
-## 当前论文核心
+| 实验 | 代码入口 | 实际操作 |
+|---|---|---|
+| [共用配置](../02-实验配置.md#common) | [dim_raw_config.py](dim_raw_config.py)、[paper_support.py](paper_support.py) | 当前网格与共享扫描读取；config.py 是旧网格 |
+| [S01-01](../02-实验配置.md#s01-01) | [scan_offset_bias_variance.py](scan_offset_bias_variance.py) | 从保留扫描派生风险分解，不训练 |
+| [S01-02](../02-实验配置.md#s01-02) | [analyze_E13_beta_domain_sensitivity.py](analyze_E13_beta_domain_sensitivity.py) | 复用原格点；缺新增 β 分片时需补扫描，再汇总 |
+| [S01-03](../02-实验配置.md#s01-03) | [run_E6b_dimensional_raw_specialist.py](run_E6b_dimensional_raw_specialist.py) 的 run_crossfit_layers | 调用 [run_crossfit](analyze_E1_E2_crossfit.py) 处理当前数据；不要运行旧 crossfit main，也无需启动整个 E6 训练 |
+| [S01-04](../02-实验配置.md#s01-04) | [prepare_mean_normalized_main_evidence.py](prepare_mean_normalized_main_evidence.py)、[derive_e8_seed42_primary.py](derive_e8_seed42_primary.py) | 已有源结果整理与固定 seed42 派生；不训练 |
+| S01-04 不确定性 | [analyze_e8_main_uncertainty.py](analyze_e8_main_uncertainty.py) | 配对损失重采样，不训练 |
+| S01-04 表示与训练复现 | [run_E7_scale_invariant_input_screen.py](run_E7_scale_invariant_input_screen.py) | 均值/SD/RMS 表示训练实现；完整 main 会筛多个表示，不作为日常任务 |
+| [S01-05](../02-实验配置.md#s01-05) | [analyze_E11_profile_mechanism.py](analyze_E11_profile_mechanism.py)、[analyze_E10_z_only_benchmark.py](analyze_E10_z_only_benchmark.py) | 前者重建轨迹；后者拟合/选模/重拟合后确认 |
+| [S01-06a](../02-实验配置.md#s01-06a) | [run_b1_mean_normalized_unseen_beta.py](run_b1_mean_normalized_unseen_beta.py) | 归一化模型的 β 留出训练；run_b1_unseen_beta.py 只作为其依赖 |
+| [S01-06b](../02-实验配置.md#s01-06b) | [run_b2_traditional_ref.py](run_b2_traditional_ref.py) | 生产 WMLE/LSE 同样本计算；核对归档实现版本 |
+| [S01-06c](../02-实验配置.md#s01-06c) | [derive_mean_normalized_quantiles.py](derive_mean_normalized_quantiles.py) | 由当前选点派生寿命；旧 run_b3_quantiles.py 不是当前主入口 |
+| [S01-06d](../02-实验配置.md#s01-06d) | [check_mean_normalized_e2e_scale.py](check_mean_normalized_e2e_scale.py) | 历史最终模型的12次端到端尺度检查 |
+| [S01-07](../02-实验配置.md#s01-07) | [run_pg_selector.py](run_pg_selector.py) | --full 为全量已完成路线；--repackage 派生；pilot 不是新任务 |
+| [S01-08](../02-实验配置.md#s01-08) | [analyze_E12_delta_upper_boundary.py](analyze_E12_delta_upper_boundary.py) | 仅选定样本的候选上界补算 |
 
-| 文件 | 职责 |
-|---|---|
-| `dim_raw_config.py` | 当前 160 组合设计、26 点 $\delta$ 网格和共享 MLP 配置 |
-| `prepare_mean_normalized_main_evidence.py` | 将 E5 均值归一化折外结果重定位为 E8 正式主方法证据 |
-| `analyze_e8_main_uncertainty.py` | 基于 seed 42 与 Default 的配对损失量化 Monte Carlo 不确定性和设计单元异质性 |
-| `derive_e8_seed42_primary.py` | 派生固定 seed 42 的论文主报告数值 |
-| `check_mean_normalized_e2e_scale.py` | 检查“选择器→选定 $\delta$→生产 MDM”的端到端尺度等变 |
-| `prepare_mean_normalized_main_evidence.py` 及 E6 已保留层级表 | 当前 160 单元 L1–L5 选点/评价分离；旧 `analyze_E1_E2_crossfit.py` 使用已退役的旧 shared_data，不作为当前默认入口 |
-| `analyze_E10_z_only_benchmark.py` | 区分参数条件平均、可观测样本决策和 L6 事后信息的机制诊断 |
-| `analyze_E11_profile_mechanism.py` | 用确认样本连接 MDM 经验梯度曲线、默认位置估计和事后低风险偏移量 |
-| `analyze_E12_delta_upper_boundary.py` | 仅对原网格上界仍下降的样本延伸 $\delta$ 至 1.00，诊断 L6 离散参照的右截断（候选证据） |
+## 当前环境与使用方式
 
-当前代码调用项目生产 MDM 与共享样本实现，不在 Study01 内另复制估计器。
+2026-09-07 当前证据测试通过的 Python 为 `C:/Users/36089/AppData/Local/hermes/hermes-agent/venv/Scripts/python.exe`，包含 numpy/pandas/scipy/scikit-learn/pytest。项目 `python/.venv` 当时缺 scikit-learn，不能直接用它声称复现环境完整。历史运行版本仍以各 manifest 为准；本地测试通过不等于所有训练都重新复现。
 
-## 写作前支撑验证（B1/B2/B3，已完成）
+这些文件保留旧合同和输出路径，直接执行可能训练或覆盖产物。重跑前核对输入/输出，使用独立输出或隔离工作区；长计算先最小 smoke，工作进程数先按当前机器情况选低值，而非照搬旧 8/16 workers。当前任务不新建统一调度框架。
 
-| 文件 | 职责 |
-|---|---|
-| `paper_support.py` | 共享的数据读取、Default/L6 基线与指标/溯源工具 |
-| `run_b1_unseen_beta.py` | 未见 $\beta$ 留出验证（8 折，per-n 网络，三 seed） |
-| `run_b2_traditional_ref.py` | WMLE/LSE 同条件外部参照（同一 48,000 样本） |
-| `run_b3_quantiles.py` | $x_{0.90}/x_{0.95}/x_{0.99}$ 工程分位点派生 |
-| `run_pg_selector.py` | 利用初估参数选择偏移量（plug-in）的负向支撑实验：初估参数（MDM-0.1/WMLE）plug-in 到 L3–L5 条件均值曲线选 $\delta$；`--pilot-repeats N` / `--full` / `--repackage` |
-| `manuscript/figures/scripts/make_submission_figures.py` | 当前论文 6 张正文图和补充图的唯一绘制入口 |
+## 历史依赖与图表
 
-实现原则不变：复用已封存的候选损失、已有训练函数和 `python/methods/` 生产实现，不为机制诊断重跑 MDM或复制估计器；以完成当前问题的最小脚本为准，不新建通用实验控制框架。
+旧 E3/E4/P2/P3/P4、旧图形程序仍有少量函数被当前代码复用，保留文件不表示路线继续。旧生成数据已清理，恢复说明见[认识快照](../07-认识清单与研究快照-20260907.md)。不要按旧 docstring 的“最终方法”字样覆盖当前配置。
 
-## 历史与 Research
-
-- `run_E3*`、`run_E4*`、旧绘图脚本：旧特征路线历史复现；
-- `run_p2_*`：旧特征路线泛化；
-- `run_p3_*`、`run_p4_*`：Direct-MLP/六方法 Research；
-- `run_quantile_derivation.py`：旧特征路线工程分位点；
-- `generate_g5_figures.py` 和旧 `plot_fig*`：旧 G5 图表，不是当前终稿绘图入口。
-
-旧 P2/P3/P4/E3/E4 复现不再是 Study01 的默认维护义务；试错认识及恢复版本已记录。只保留当前脚本实际需要的导入，避免为删历史代码而重构现有算法。
+当前图件入口在[图表索引](../manuscript/figures/figure-index.md)：图 2 与图 7 已有专用修订程序，旧 make_submission_figures.py 不能单独代表当前全部成图。
