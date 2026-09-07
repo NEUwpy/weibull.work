@@ -98,7 +98,7 @@ I=(\mathrm{RMSRE}_P-\mathrm{RMSRE}_Q)/\mathrm{RMSRE}_P.
 
 QCP 的 200 个所选模型检查点均满足验证集参数约束。
 
-![图B1：共同预算结果与训练轮次](figures/appendix/figB1_common_budget_results.png)
+![图B1：共同预算结果与训练轮次](figures/word/appendix/figB1_common_budget_results.png)
 
 *图B1　A为共同预算预测的平均补偿指数，B为每路线200个模型的最佳检查点轮次分布；箱体为四分位区间，中线为中位数，须线延伸至1.5倍四分位距内的最远点。离群点不在该箱线图中显示；虚线标明当前600轮上限。*
 
@@ -157,7 +157,7 @@ n_{\mathrm{eff},m}(n)=n\left[E_P(n)/E_m(n)\right]^{1/b}.
 
 这里的 $n$ 是每个待估样本中的观测数。等效样本量是基于 P 经验误差曲线的事后描述性换算；$n=20$ 的结果包含轻度曲线外推。
 
-![图B2：样本量规律与 P 等效观测增益](figures/appendix/figB2_sample_size_equivalence.png)
+![图B2：样本量规律与 P 等效观测增益](figures/word/appendix/figB2_sample_size_equivalence.png)
 
 *图B2　A 为四种样本量的 RMSRE 与经验 bootstrap 95% CI；B 为基于 P 四点误差曲线换算的等效新增观测数，用于描述方法收益的量级。*
 
@@ -220,11 +220,11 @@ n_{\mathrm{eff},m}(n)=n\left[E_P(n)/E_m(n)\right]^{1/b}.
 
 ### B.8 较宽可靠度范围与参数误差
 
-![图B3：较宽可靠度范围的描述曲线与参数误差](figures/appendix/figB3_extended_reliability.png)
+![图B3：较宽可靠度范围的描述曲线与参数误差](figures/word/appendix/figB3_extended_reliability.png)
 
 *图B3　A从同一组三参数预测计算 $R=0.50$–0.99 的总体RMSRE，虚线标出三个预设点，箭头标明训练目标。B为三项归一化参数误差的RMSE，纵轴采用对数尺度并以点表示。*
 
-![图B4：目标点收益的参数区域](figures/appendix/figB4_regional_gains.png)
+![图B4：目标点收益的参数区域](figures/word/appendix/figB4_regional_gains.png)
 
 *图B4　四个样本量下，QCP相对P的目标点单元RMSRE改善。所有面板共用以零为中心的发散色标，蓝色为改善、红色为退化；每个等大格子对应一个设计单元。圆圈编号对应表B9的前五个净收益贡献单元。*
 
@@ -331,7 +331,7 @@ M95−P 的设计单元等权均值分解为：
 
 该分解显示，M95 的局部目标变好，但局部近似遗漏的有限误差项更大，使真实 \(x_{0.95}\) 误差反而增加。
 
-![图C1：更新信号与静态代理检验](figures/appendix/figC1_target_sensitivity_mechanism.png)
+![图C1：更新信号与静态代理检验](figures/word/appendix/figC1_target_sensitivity_mechanism.png)
 
 *图C1　A：输出误差空间中P与Q的梯度；B：24个匹配模型单元的P/M95/Q RMSRE；C：局部近似项与遗漏项。B、C使用早期300/20预算。*
 
@@ -353,7 +353,7 @@ M95−P 的设计单元等权均值分解为：
 
 高估侧 MSE 贡献下降 20.9%，低估侧贡献增加 19.6%，净 MSE 下降 5.91%。这些指标属于事后探索性分析，未作多重比较校正；10% 和 20% 为描述性敏感性阈值。当 \(x_{0.95}\) 用作保证寿命阈值时，正误差对应潜在的非保守高估。复算材料位于 `artifacts/pq_engineering_audit/`。
 
-![图D1：历史预算下的有符号误差与尾部分析](figures/appendix/figD1_error_distribution.png)
+![图D1：历史预算下的有符号误差与尾部分析](figures/word/appendix/figD1_error_distribution.png)
 
 *图D1　使用早期 300/20 P/Q 结果，a–c 为总体误差分布，d 为配对模型单元的高估与低估 MSE 贡献。*
 

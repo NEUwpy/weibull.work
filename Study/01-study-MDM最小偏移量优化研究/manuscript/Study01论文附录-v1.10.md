@@ -94,7 +94,7 @@ $$
 
 逐参数 SD 的组合间中位数在 $\delta=0$ 时分别为 0.5870、0.4241 和 0.3782，在 $\delta=0.10$ 时分别为 0.2526、0.2589 和 0.2236。$\beta$ 和 $\eta$ 的 160 个组合均表现为波动减小，$\gamma$ 为 154 个组合。
 
-![固定正偏移量的组合内抽样标准差](figures/supplementary/supp_fig_offset_sd_v110.png)
+![固定正偏移量的组合内抽样标准差](figures/word/supplementary/supp_fig_offset_sd_v110.png)
 
 **图 A1  固定正偏移量与无偏移判据的抽样波动。** 每个分布含 160 个参数组合的组合内标准化估计 SD，每组合含 300 次重复。小提琴表示分布，箱体为四分位距，中线为中位数，须线延伸至 1.5 倍四分位距内的最远观测。
 
@@ -236,7 +236,7 @@ $$
 
 以所选偏移量的实际损失减去 L6 损失，得到逐样本超额损失。$n=7,10,15,20$ 时，其中位数分别为 0.0383、0.0358、0.0385 和 0.0331；第 99 百分位数为 0.8473、0.7656、0.6431 和 0.5220（图 B1c）。总体改善伴随着明显的样本间差异，超额损失分布仍有较长右尾。
 
-![偏移量选择机制](figures/main/fig7_selector_mechanism.png)
+![偏移量选择机制](figures/word/supplementary/fig7_selector_mechanism.png)
 
 **图 B1  从损失曲线预测到偏移量选择。** **a，** 折外测试样本中的中位超额损失代表例；**b，** 全部折外预测中所选偏移量与事后最优偏移量的对应分布；每个事后偏移量对应的一行分别归一化为 100%；**c，** 不同样本量下相对于事后参照的超额损失中位数、第 90 和第 99 百分位数，纵轴为对数尺度。
 
@@ -267,7 +267,7 @@ $$
 | WMLE | PG-full | 插值 | 0.6943 | +0.0639 | [0.0598, 0.0680] | 0.7669 | +0.1365 |
 | WMLE | PG-full | 最近网格 | 0.6940 | +0.0636 | [0.0597, 0.0674] | 0.7606 | +0.1302 |
 
-![利用初估参数选择偏移量的结果](figures/supplementary/supp_fig_parameter_guided.png)
+![利用初估参数选择偏移量的结果](figures/word/supplementary/supp_fig_parameter_guided.png)
 
 **图 C1  利用初估参数选择偏移量的评价。** **a，** 12 种单步变体相对 Default 的 $J_1$ 差及配对重复块 bootstrap 95% 置信区间，正值表示误差更高；**b，** 最佳单步规则按真 $\beta$ 的结果；**c，** MDM-0.1 与 WMLE 初步 $\hat\beta$ 落入最近正确 $\beta$ 网格单元的比例。
 
@@ -305,7 +305,7 @@ $$
 | 4.5 | 0.6557 | 0.7305 | 0.5595 |
 | 5.0 | 0.7113 | 0.7898 | 0.5982 |
 
-![未见形状参数验证](figures/supplementary/supp_fig_unseen_beta_v111.png)
+![未见形状参数验证](figures/word/supplementary/supp_fig_unseen_beta_v111.png)
 
 **图 D1  未见形状参数水平验证。** 逐一留出八个 $\beta$ 水平时，均值归一化 MLP、Default 和 L6 的 $J_1$。折线为主种子 42 的结果，蓝色阴影表示三个随机种子的取值范围。
 
@@ -324,7 +324,7 @@ WMLE 和 LSE 使用与主方法相同的 48,000 个 Monte Carlo 样本。WMLE �
 | WMLE | 0.7288 | 0.002% | -0.3505 | -47.6025 | 46.7441 | 1.4180 | 416.5679 | 374.1931 |
 | LSE | 0.8725 | 0.000% | -0.0799 | -37.5334 | 32.6643 | 2.1619 | 460.5690 | 419.9131 |
 
-![传统方法参照](figures/supplementary/supp_fig_traditional_per_n.png)
+![传统方法参照](figures/word/supplementary/supp_fig_traditional_per_n.png)
 
 **图 E1  传统方法的分样本量参照。** 均值归一化 MLP、Default、L6、WMLE 和 LSE 在 $n=7,10,15,20$ 下的 $J_1$。
 
@@ -352,7 +352,7 @@ WMLE 和 LSE 使用与主方法相同的 48,000 个 Monte Carlo 样本。WMLE �
 | LSE | $x_{0.95}$ | 0.0549 | 0.2133 | 0.1418 | 0.4158 | 0.000% |
 | LSE | $x_{0.99}$ | 0.1144 | 0.3815 | 0.2506 | 0.7330 | 0.000% |
 
-![可靠度寿命误差](figures/supplementary/supp_fig_quantile_rmse_v111.png)
+![可靠度寿命误差](figures/word/supplementary/supp_fig_quantile_rmse_v111.png)
 
 **图 E2  可靠度寿命误差。** 五种方法在 $x_{0.90}$、$x_{0.95}$ 和 $x_{0.99}$ 上的相对 RMSE。均值归一化 MLP 的点为主 seed 42，误差线表示三个随机种子的取值范围。
 
@@ -408,7 +408,7 @@ $$
 
 分母为当前确认集的 Default–L6 均方损失差 $0.152045$。沿 Default、论文 MLP、同域当前结构、灵活参照、L6 的顺序，四段占比分别为 34.96%、11.09%、4.61% 和 49.34%，合计为 100%。这些数值表示同一风险差距的构成；正文主结果的 7.27% 则以 Default 的 $J_1$ 为分母，报告联合误差降幅。最后一段同时包含进一步的模型/数据改进空间和事后完全信息差，现有实验无法将两者分开。
 
-![不同决策条件的确认风险](figures/supplementary/supp_fig_decision_conditions.png)
+![不同决策条件的确认风险](figures/word/supplementary/supp_fig_decision_conditions.png)
 
 **图 F1  不同决策条件下的确认风险。** **a，** 同一参数单元内 L6 事后偏移量的多样性；**b，** 五种决策条件在确认集上的均方损失 $\mathcal R=J_1^2$。
 
@@ -425,7 +425,7 @@ $$
 
 曲线，不训练新模型。单元内 $\nabla_X(0)$ 与 L6 偏移量的 Spearman 相关中位数为 0.652（四分位区间 0.549—0.779），19/20 个单元为正。固定 $\delta=0.1$ 时的 $\hat\gamma_{0.1}/\eta$ 与 L6 偏移量的相关中位数为 $-0.765$（四分位区间 $[-0.803,-0.609]$），20/20 个单元为负。按 $\hat\gamma_{0.1}/\eta$ 的单元内三分位分组后，平均超额损失曲线的最低点依次为 0.10、0.04 和 0.02。L6 的 $\hat\gamma=0$ 边界解占 7.1%，固定偏移量下的边界解占 5.75%。这些结果支持样本曲线和交点变化与事后选点相关。逐样本指标、单元内相关和条件曲线见 `artifacts/formal/E11_profile_mechanism/`。
 
-![参数空间中的改善分布](figures/supplementary/supp_fig_parameter_landscape_v111.png)
+![参数空间中的改善分布](figures/word/supplementary/supp_fig_parameter_landscape_v111.png)
 
 **图 F2  参数条件下的效果分布。** 四个样本量下各 $(\beta,\gamma/\eta)$ 单元相对 Default 的 $J_1$ 降幅。勾边表示误差增加的单元，共 35 个；其余 125 个单元改善。
 
@@ -433,13 +433,13 @@ $$
 
 在固定候选规则及确认集后，逐步增加各参数条件的拟合重复数。由 160 增至 200 次时，均方损失 $\mathcal R$ 降低 0.43%（以 160 次时的 $\mathcal R$ 为分母），说明当前数据规模下增加训练样本仍可缓慢降低风险。
 
-![Z-only 经验参照的数据量诊断](figures/supplementary/supp_fig_z_only_learning_curve_v111.png)
+![Z-only 经验参照的数据量诊断](figures/word/supplementary/supp_fig_z_only_learning_curve_v111.png)
 
 **图 F3  $Z$-only 经验参照的数据量诊断。** 各样本量模型在固定确认集上的均方损失随训练样本数的变化；每个参数条件的拟合重复数依次为 40、80、120、160 和 200。
 
 
 ### F.5 样本分组与偏移量选择
 
-![样本位置分组的损失及组合内相关](figures/supplementary/supp_fig_sample_groups_v110.png)
+![样本位置分组的损失及组合内相关](figures/word/supplementary/supp_fig_sample_groups_v110.png)
 
 **图 F4  固定位置估计与低风险偏移量的关系。** **a，** 2,000 个确认样本按各参数单元内的固定偏移量位置估计分为低、中、高三组后的平均超额损失，圆点标出各组最低点；**b，** 20 个单元内固定位置估计与 L6 偏移量的 Spearman 相关，横线为各样本量下的中位数。超额损失以逐样本 L6 损失为基准。

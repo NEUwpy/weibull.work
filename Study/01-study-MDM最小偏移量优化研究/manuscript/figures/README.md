@@ -1,8 +1,11 @@
+<!-- 当前图件入口：Word 与中文 Markdown 共用 figures/word/assembly-manifest.json 中的 PNG；原目录为历史来源。 -->
 # Study01 论文图表
+
+**Word 图件（2026-09-07）**：[word/README.md](word/README.md)。四份手稿中的 Study01 正文与附录已使用该目录的 17 张重绘图；生成代码、PNG、可编辑 SVG 和装配清单一并保留。正文与附录 Markdown 已同步引用同一套 `word/` 图件；下文原目录说明保留为历史资产记录。
 
 当前正文 v1.12 使用七张图，附录 v1.10 使用十张图；另有两张复核图。当前稿件图号与稳定资产文件名的对应以 [figure-index.md](figure-index.md) 和 `figure_sources.json` 为准。`main/` 与 `supplementary/` 是资产存储位置，不单独决定稿件归属。
 
-当前图表已经过技术规范检查，但作者对改后视觉效果不满意；视觉修订和验收尚未完成。v1.10 只改正文论述，沿用当前图件，后续以原图为参照逐图处理。
+原目录图表曾通过技术规范检查，之后作者要求改善 Word 中的字号和清晰度；该项修订现已落入 `word/`。Markdown 正文和附录已于 2026-09-07 同步引用 `word/` 下的最新版 PNG。
 
 ## 当前图像
 

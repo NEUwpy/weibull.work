@@ -1,4 +1,7 @@
-> 当前图1已根据用户反馈再次重画：神经元与全连接网络、P/Q/QCP监督路径、梯度回传及验证选点示意。当前生成器为 `structure-drawio/build_neural.py`；此前分类框版已归档，不再使用。
+<!-- 当前图件入口：Word 与中文 Markdown 共用 figures/word/assembly-manifest.json 中的 PNG；原目录为历史来源。 -->
+> **Word 图件（2026-09-07）**：[word/README.md](word/README.md)。正文与附录已使用该目录的 10 张重绘图，生成代码、PNG、可编辑 SVG 和装配清单一并保留。正文与附录 Markdown 已同步引用同一套 `word/` 图件；以下原目录说明保留为历史资产记录。
+
+> Markdown 图1已根据用户反馈再次重画：神经元与全连接网络、P/Q/QCP监督路径、梯度回传及验证选点示意。对应生成器为 `structure-drawio/build_neural.py`；此前分类框版已归档。
 
 > 图1已按用户要求改为draw.io可编辑结构图：中文 `structure-drawio/study02-framework-zh.drawio`，英文 `structure-drawio/study02-framework-en.drawio`，同目录PNG/SVG/PDF。正文Markdown已引用新图；下表旧fig1文件仅保留为此前输出，其余图不变。
 
