@@ -124,7 +124,7 @@ $$
 
 - Study01 P3 配置：`../../Study/01-study-MDM最小偏移量优化研究/code/p3_config.py`
 - Study01 P4 配置：`../../Study/01-study-MDM最小偏移量优化研究/code/p4_config.py`
-- Study01 P4 封存产物：`../../Study/01-study-MDM最小偏移量优化研究/artifacts/formal/p4_formal_compare/`
+- Study01 旧 P4 产物已按作者要求于 2026-09-07 删除；结果摘要、清理前 Git 标签和恢复方式见[Study01 认识清单](../../Study/01-study-MDM最小偏移量优化研究/07-认识清单与研究快照-20260907.md)。本研究现有独立实验保持原位。
 - Study02 前置研究 A：`../../Study/02-study-NN参数估计与分位点目标研究/06-A-前置研究报告.md`
 
 不同材料只有在数据、输入、目标、切分、指标和随机性口径一致时才能比较；当前入口不把它们合并成一个统一排行榜。

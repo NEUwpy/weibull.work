@@ -1,6 +1,6 @@
 # Study01 代码索引
 
-`code/` 同时保留当前论文入口和历史复现代码。为保护既有导入、manifest 和运行记录，不按新叙事批量改名；以本索引区分职责。
+`code/` 保留当前论文入口及其导入依赖。2026-09-07 已清理退出主线的生成数据，见[认识清单](../07-认识清单与研究快照-20260907.md)。旧实验代码即使暂留，也不是活动任务；运行前须恢复相应旧数据或重新生成。
 
 ## 当前论文核心
 
@@ -10,8 +10,8 @@
 | `prepare_mean_normalized_main_evidence.py` | 将 E5 均值归一化折外结果重定位为 E8 正式主方法证据 |
 | `analyze_e8_main_uncertainty.py` | 基于 seed 42 与 Default 的配对损失量化 Monte Carlo 不确定性和设计单元异质性 |
 | `derive_e8_seed42_primary.py` | 派生固定 seed 42 的论文主报告数值 |
-| `run_E8_scale_equivariance.py` | 检查“选择器→选定 $\delta$→生产 MDM”的端到端尺度等变 |
-| `analyze_E1_E2_crossfit.py` | L1–L5 选点/评价分离 |
+| `check_mean_normalized_e2e_scale.py` | 检查“选择器→选定 $\delta$→生产 MDM”的端到端尺度等变 |
+| `prepare_mean_normalized_main_evidence.py` 及 E6 已保留层级表 | 当前 160 单元 L1–L5 选点/评价分离；旧 `analyze_E1_E2_crossfit.py` 使用已退役的旧 shared_data，不作为当前默认入口 |
 | `analyze_E10_z_only_benchmark.py` | 区分参数条件平均、可观测样本决策和 L6 事后信息的机制诊断 |
 | `analyze_E11_profile_mechanism.py` | 用确认样本连接 MDM 经验梯度曲线、默认位置估计和事后低风险偏移量 |
 | `analyze_E12_delta_upper_boundary.py` | 仅对原网格上界仍下降的样本延伸 $\delta$ 至 1.00，诊断 L6 离散参照的右截断（候选证据） |
@@ -39,4 +39,4 @@
 - `run_quantile_derivation.py`：旧特征路线工程分位点；
 - `generate_g5_figures.py` 和旧 `plot_fig*`：旧 G5 图表，不是当前终稿绘图入口。
 
-不要仅为目录整洁删除或重命名这些文件；它们仍与已封存产物相互引用。
+旧 P2/P3/P4/E3/E4 复现不再是 Study01 的默认维护义务；试错认识及恢复版本已记录。只保留当前脚本实际需要的导入，避免为删历史代码而重构现有算法。
