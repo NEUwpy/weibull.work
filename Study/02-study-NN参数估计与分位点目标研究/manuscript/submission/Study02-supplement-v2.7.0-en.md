@@ -2,10 +2,12 @@
 
 Companion to the [v2.7.0 English manuscript](Study02-manuscript-v2.7.0-en.md). Appendices A–B mainly concern the common 600/60 maximum training budget. The mathematics in Appendix C applies to the stated objectives; its M95 ablation and Appendix D use the earlier 300/20 budget. Appendix E identifies reproduction files, and Appendix F reports supplementary controls. These evidence sets are kept separate.
 
+<a id="appendix-a"></a>
 ## Appendix A Experimental design, training, and paired inference
 
 ### A.1 Data and comparisons
 
+<a id="table-a1"></a>
 **Table A1. Design overview.**
 
 | Item | Specification |
@@ -30,6 +32,7 @@ There were 48,000 independent lifetime samples, each used once for testing acros
 
 #### A.2.1 Chronology and threshold selection
 
+<a id="table-a2"></a>
 **Table A2. Order of evidence generation.**
 
 | Stage | Role and test-information boundary |
@@ -49,6 +52,7 @@ The later P/Q common-budget extension followed inspection of earlier test result
 
 #### A.2.2 Recorded resources
 
+<a id="table-a3"></a>
 **Table A3. Training resources under the common maximum budget.**
 
 | Procedure | Median selected epoch | 90th percentile selected epoch | Fits reaching 600 epochs | Sum of training times / h | Median time / s |
@@ -69,12 +73,14 @@ $$
 
 Fold indices are resampled within sample-size strata and seed indices globally, retaining method pairing, for 200,000 replicates. Overlapping fold training sets and ten seeds limit the resulting intervals to design-level empirical approximations. Sample-size-specific intervals are descriptive and unadjusted for multiplicity. QCP contrasts use the same aggregation and resampling rules.
 
+<a id="appendix-b"></a>
 ## Appendix B Full results and stratified analyses
 
 ### B.1 Target error and paired directions
 
 RMSRE is the square root of mean squared relative life-point error. Legacy `rRMSE` fields in analysis files use this same formula.
 
+<a id="table-b1"></a>
 **Table B1. Target error, parameter loss, and compensation.**
 
 | Procedure | Pooled RMSRE | Mean parameter loss | Compensation index |
@@ -83,6 +89,7 @@ RMSRE is the square root of mean squared relative life-point error. Legacy `rRMS
 | Q | 16.092% | 71.71416 | 0.91455 |
 | QCP | 15.841% | 0.05522 | 0.34532 |
 
+<a id="table-b2"></a>
 **Table B2. Paired target effects and directions.**
 
 | Contrast | RMSRE improvement | 95% CI | Favorable model units | Favorable seeds |
@@ -101,6 +108,7 @@ All 200 selected QCP checkpoints satisfied validation-average parameter constrai
 
 The stored parameter predictions from 200 paired units were substituted into the same Weibull formula, without retraining. Positive improvement favors the first procedure named in a contrast.
 
+<a id="table-b3"></a>
 **Table B3. Pooled errors and improvements across life points.**
 
 | Life point | P RMSRE | Q RMSRE | QCP RMSRE | Q vs P | QCP vs Q | QCP vs P | Truth cells favoring QCP over P |
@@ -109,6 +117,7 @@ The stored parameter predictions from 200 paired units were substituted into the
 | $x_{0.95}$ | 16.432% | 16.092% | 15.841% | 2.069% | 1.562% | 3.599% | 76/160 |
 | $x_{0.99}$ | 21.960% | 35.820% | 20.647% | −63.114% | 42.360% | 5.981% | 77/160 |
 
+<a id="table-b4"></a>
 **Table B4. Paired 95% empirical intervals for relative improvement.**
 
 | Life point | Q vs P | QCP vs Q | QCP vs P |
@@ -137,6 +146,7 @@ $$
 n_{\mathrm{eff},m}(n)=n\left[E_P(n)/E_m(n)\right]^{1/b}.\tag{B.2}
 $$
 
+<a id="table-b5"></a>
 **Table B5. Sample size and equivalent additional observations.**
 
 | n | P RMSRE | Q RMSRE | QCP RMSRE | Additional n for Q (95% CI) | Additional n for QCP (95% CI) |
@@ -156,6 +166,7 @@ This is a post hoc descriptive conversion conditional on the empirical P curve. 
 
 True target life varies by about 6.5-fold across the grid (238.05–1552.09). Relative-error bias and variance were therefore calculated within each fixed truth cell before equal-weight aggregation across the 160 cells. For $b_c=\operatorname{mean}(e_c)$ and $v_c=\operatorname{mean}[(e_c-b_c)^2]$, the components are $\sqrt{\operatorname{mean}_c b_c^2}$ and $\sqrt{\operatorname{mean}_c v_c}$.
 
+<a id="table-b6"></a>
 **Table B6. Cell bias and within-cell variation.**
 
 | Procedure | Signed relative bias | RMS cell bias | Within-cell SD component | RMSRE |
@@ -170,6 +181,7 @@ The identity between squared RMSRE and the sum of squared components held with r
 
 These quantiles summarize the design-domain output distribution using 480,000 saved parameter predictions per procedure.
 
+<a id="table-b7"></a>
 **Table B7. Median predicted parameters and interquartile ranges.**
 
 | Parameter | P | Q | QCP |
@@ -184,6 +196,7 @@ True shape ranged from 1.5 to 5, scale was 1000, and location ranged from 100 to
 
 For $\Delta_c=\mathrm{MSE}_{P,c}-\mathrm{MSE}_{QCP,c}$, the mean over all cells was 0.001909. Figure 4B accumulates cells in descending $\Delta_c$ and divides by the total net improvement. The leading five and ten cells contributed 102.6% and 132.8%, respectively. Values above 100% indicate that deteriorating cells offset part of the positive gains.
 
+<a id="table-b8"></a>
 **Table B8. Gains by quartile of P cell RMSRE.**
 
 | P baseline-error group | Cells | Mean $\Delta_c$ |
@@ -195,6 +208,7 @@ For $\Delta_c=\mathrm{MSE}_{P,c}-\mathrm{MSE}_{QCP,c}$, the mean over all cells 
 
 Grouping and gains both use the same test results and are mathematically coupled. This table localizes observed gains without establishing a causal relation between difficulty and improvement or a deployment rule. Shared trained networks also preclude treating cell directions as independent Bernoulli trials.
 
+<a id="table-b9"></a>
 **Table B9. Five truth cells contributing most to net target gains.**
 
 | Rank | n | $\beta$ | $\gamma/\eta$ | P RMSRE | QCP RMSRE | $\Delta$MSE |
@@ -219,6 +233,7 @@ Grouping and gains both use the same test results and are mathematically coupled
 
 QP used the same three-output network, training on $L_Q+L_P$ and selecting by validation $L_Q$. Weight 1.0 came from earlier validation screening and was held fixed in the common-budget stage. P, Q, and QP were trained at 600/60 and paired with the original 200 QCP models on data and initialization. All three life points were derived from the same parameter predictions.
 
+<a id="table-b10"></a>
 **Table B10. Fixed weighting versus parameter constraints.**
 
 | Life point | QP RMSRE | QCP RMSRE | QCP-vs-QP improvement | 95% empirical interval |
@@ -231,6 +246,7 @@ The target interval retains the frozen original resampling; non-target intervals
 
 Mean parameter losses were 0.055208 and 0.055218 for QP and QCP, and compensation indices were 0.345584 and 0.345324. Recorded median fit times were 36.3 s and 87.2 s; summed times were 2.17 h and 5.58 h, excluding preliminary selection. QCP checks feasibility separately for each selected model; QP does not enforce that condition.
 
+<a id="appendix-c"></a>
 ## Appendix C Sensitivity and exact compensation
 
 ### C.1 Exact symmetric parameter contributions
@@ -285,6 +301,7 @@ $$
 e^2=\ell^2+2\ell r+r^2.\tag{C.5}
 $$
 
+<a id="table-c1"></a>
 **Table C1. Equal-weight model-unit M95-minus-P decomposition.**
 
 | Component | M95 minus P |
@@ -300,10 +317,12 @@ The maximum row-level identity residual was $9.1\times10^{-13}$. The local term 
 
 *Figure C1. A: P and Q gradients in output-error space. B: P/M95/Q RMSRE across 24 matched model units. C: the local approximation and omitted terms. B–C use the earlier 300/20 budget.*
 
+<a id="appendix-d"></a>
 ## Appendix D Exploratory errors under the historical budget
 
 This section uses the earlier 300/20 P/Q fits, separately from the common-budget analysis. The same 200 paired model units yielded 480,000 held-out predictions per route. Relative error is $e=(\hat x_{0.95}-x_{0.95})/x_{0.95}$.
 
+<a id="table-d1"></a>
 **Table D1. Historical-budget absolute and one-sided errors.**
 
 | Metric | P | Q | Q relative to P |
@@ -327,6 +346,7 @@ Q had lower absolute error in 46.64% of paired prediction rows. The equal-weight
 
 Reductions in >10% and >20% overestimation were 1.26 and 0.89 percentage points, corresponding to relative reductions of 8.72% and 12.86% from unrounded values. Upper-10% tail means improved in 198/200 model units and all ten seeds. Overestimation MSE decreased in 189/200 units and all seeds, while underestimation MSE increased in 169/200 units. The 5.91% MSE reduction corresponds to a 3.00% RMSRE reduction after taking square roots.
 
+<a id="appendix-e"></a>
 ## Appendix E Reproducibility index
 
 Paths below are relative to the Study02 root in the local bundle. Retained legacy field names do not change the definitions used in the paper.
@@ -350,6 +370,7 @@ Paths below are relative to the Study02 root in the local bundle. Retained legac
 
 Figure 2A is an analytic slice, B uses actual validation-average constraints, and C–D use exact decompositions of saved predictions. Figures 3–4 retain the original paired effects and truth-cell analysis. Historical analysis outputs are preserved separately. Continuous-domain and direct-scalar-output exploratory routes are not used in this paper. Complete commands, dependency information, included-file scope, and checksums are supplied with the local reproducibility bundle. No public accession is currently assigned.
 
+<a id="appendix-f"></a>
 ## Appendix F Supplementary controls
 
 ### F.1 Controls and completeness
@@ -366,6 +387,7 @@ These controls were specified after earlier test results were known and reused t
 
 ### F.2 Full results
 
+<a id="table-f1"></a>
 **Table F1. Pooled RMSRE and parameter loss for supplementary controls.**
 
 | Procedure | x0.90 RMSRE | x0.95 RMSRE | x0.99 RMSRE | Mean parameter loss |
@@ -377,6 +399,7 @@ These controls were specified after earlier test results were known and reused t
 | QCP | 13.3355% | 15.8406% | 20.6468% | 0.055218 |
 | QMULTI | 14.0130% | 16.0977% | 20.8491% | 0.301916 |
 
+<a id="table-f2"></a>
 **Table F2. Paired relative RMSRE improvements.**
 
 | Reliability R | Contrast (first vs second) | Improvement | 95% empirical interval | Favorable model units | Favorable seeds |

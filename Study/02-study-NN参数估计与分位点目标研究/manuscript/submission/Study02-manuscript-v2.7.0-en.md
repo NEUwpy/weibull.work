@@ -18,6 +18,7 @@ Single-point supervision introduces a structural freedom. Three parameters deter
 
 We address three questions: whether a target-oriented procedure Q improves on a parameter-oriented procedure P at $x_{0.95}$; whether single-point supervision is accompanied by parameter compensation and deterioration at other life points; and whether retaining the Q objective within a parameter-loss constraint, QCP, repairs that deterioration. The contribution is a quantitative account of task-alignment benefits, costs, and repair within a controlled simulation design. A fixed-weight parameter penalty, QP, provides a simpler reference for assessing the need for constrained optimization (Appendix B.9). The P-to-Q-to-QCP sequence represents the development of the research question; the procedures are trained separately.
 
+<a id="methods"></a>
 ## 2 Methods
 
 ### 2.1 Lifetime model, data, and evaluation domain
@@ -173,10 +174,12 @@ The bias component prevents cancellation between positive and negative regional 
 
 ## 3 Results
 
+<a id="main-3-1"></a>
 ### 3.1 Benefits and costs of aligning with one life point
 
 Under the common maximum budget, Q reduced target RMSRE from 16.43% to 16.09%, a relative improvement of 2.07% (95% empirical CI: 1.28% to 2.81%). The same parameter predictions increased RMSRE at $x_{0.90}$ and $x_{0.99}$ by 36.41% and 63.11% relative to P (Table 1). The modest target benefit was accompanied by considerably larger costs at the unsupervised life points.
 
+<a id="table-1"></a>
 **Table 1. Pooled RMSRE at three reliability life points.**
 
 | Life point | P | Q | QCP | Q vs P improvement (95% CI) | QCP vs Q improvement | QCP vs P improvement (95% CI) |
@@ -193,6 +196,7 @@ Target accuracy did not ensure parameter recovery. Average $L_P$ was 71.7 for Q 
 
 *Figure 2. Loss geometry and parameter compensation. A: output slice at $\gamma=100$ and truth $(\beta,\eta)=(1.5,1000)$; the dashed curve preserves the target life point, and gray contours show absolute relative error. B: validation-average parameter loss and target error for 200 selected QCP checkpoints; the boundary is $L_P/\tau_j=1$. C: exact symmetric parameter contributions; markers, thick lines, and thin lines denote medians, interquartile ranges, and 5th–95th percentile ranges. D: model-unit means of within-prediction contribution magnitudes and absolute summed error. The dashed line denotes no cancellation; the equal-aspect inset enlarges P/QCP.*
 
+<a id="main-3-2"></a>
 ### 3.2 Parameter constraints preserve target gains and repair cross-point performance
 
 QCP further reduced target RMSRE by 1.56% relative to Q (95% CI: 1.24% to 1.90%), and reduced error at the other two life points by 28.42% and 42.36%. All three pooled RMSRE values were slightly lower than P (Table 1). In this comparison, the main role of the constraint was to repair cross-point deterioration while preserving the target benefit.
@@ -203,10 +207,12 @@ All 200 selected QCP checkpoints satisfied validation-average feasibility (Figur
 
 *Figure 3. Errors and paired effects at three prespecified life points. A: pooled RMSRE. B: relative RMSRE improvements for Q vs P, QCP vs Q, and QCP vs P, with paired crossed-bootstrap 95% intervals; positive values denote improvement. Comparisons include 200 paired model units. The inset enlarges target-point effects.*
 
+<a id="main-3-3"></a>
 ### 3.3 Pooled gains and regional heterogeneity
 
 QCP improved on Q in 155, 119, and 146 of the 160 truth cells at the three life points. Relative to P, however, only 74, 76, and 77 cells improved, and each median cell effect slightly favored P (Table 2). Q improved on P in only 42 target-point cells. Lower pooled RMSRE therefore did not imply improvement in most regions; it depended on the magnitudes of changes in squared error.
 
+<a id="table-2"></a>
 **Table 2. Truth-cell directions and median effects.**
 
 | Life point | Q better than P | QCP better than Q | QCP better than P | Median QCP-vs-P improvement |
@@ -225,10 +231,12 @@ Let $\Delta_c=\mathrm{MSE}_{P,c}-\mathrm{MSE}_{\mathrm{QCP},c}$. At the target, 
 
 Increasing the number of observations had a larger and shared effect: from $n=7$ to $n=20$, target RMSRE fell from 20.74% to 12.00% for P and from 19.92% to 11.69% for QCP. Appendix B.4 reports sample-size strata and a descriptive equivalent-sample-size calculation conditional on the empirical P curve.
 
+<a id="main-3-4"></a>
 ### 3.4 Error shape, variation, and training cost
 
 Relative to Q, QCP reduced target RMSRE, mean and median absolute error, and the 95th percentile of absolute error, while increasing the proportion within ±10%. Its signed bias was also closer to zero. Relative to P, QCP had lower RMSRE and a lower 95th-percentile error, but P retained better mean and median absolute error and a larger proportion within ±10% (Table 3).
 
+<a id="table-3"></a>
 **Table 3. Target-point errors and resources under the common budget.**
 
 | Metric | P | Q | QCP |
@@ -251,6 +259,7 @@ The within-cell standard-deviation components were 14.82%, 14.49%, and 14.21% fo
 
 All 200 models per procedure entered the analysis; all saved predictions were finite and satisfied parameter support. Three QCP fits reached the 600-epoch limit. The remaining QCP fits and all P/Q fits ended earlier. Equal maximum budgets supplied equal epoch opportunities, while constrained optimization and reference training added computational cost.
 
+<a id="main-3-5"></a>
 ### 3.5 Common validation and alternative repairs
 
 Supplementary controls added 600 training trajectories, with 200 model units per trajectory type (Appendix F). P_QSELECT retained parameter-loss training but used the same validation target loss as Q for checkpoint selection and early stopping. Its target RMSRE was 16.3077%, a 0.757% improvement over P (95% empirical interval: 0.477%–1.029%). Q retained a 1.322% improvement over P_QSELECT (0.631%–1.957%). Common validation reduced the original P/Q gap without eliminating Q's target advantage.
