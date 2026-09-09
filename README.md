@@ -35,7 +35,7 @@
 
 **Study/02 当前态**：当前中英文正文与附录为[v2.7.0](Study/02-study-NN参数估计与分位点目标研究/manuscript/Study02论文初稿-v2.7.0.md)，主线为P → Q → QCP：任务对齐的目标收益、参数补偿代价与修复。QP与QCP精度接近，共同验证下Q仍有1.322%目标改善；协议25复用旧样本，不是新数据独立确认。2026-09-08按正文整理为[S02-01—S02-07](Study/02-study-NN参数估计与分位点目标研究/02-实验配置.md)，建立[证据索引](Study/02-study-NN参数估计与分位点目标研究/01-证据索引.md)，将退役展开数据移至外部待删除目录供用户自行删除，未释放磁盘空间。认识、去留及恢复见[研究快照](Study/02-study-NN参数估计与分位点目标研究/07-认识清单与研究快照-20260908.md)。先明确参数解释与寿命点使用要求，再决定最小新样本确认；未投稿。
 
-**Study/01 当前态**：2026-09-08转向自适应MDM完整估计器（AMDM，暂名）的论文规划，见[审核入口](Study/01-study-MDM最小偏移量优化研究/README.md)。六章骨架、图表去向、已有/待做实验与数据需求已整理，等待作者审核后再统一执行。现有[正文v1.12](Study/01-study-MDM最小偏移量优化研究/manuscript/Study01论文初稿-v1.12.md)与附录v1.10未改；离散折外J1仍为0.6304→0.5846，125/160单元改善，寿命收益有限，冻结后新确认未做。[S01-01—08配置](Study/01-study-MDM最小偏移量优化研究/02-实验配置.md)保留真实实验身份；[清理快照](Study/01-study-MDM最小偏移量优化研究/07-认识清单与研究快照-20260907.md)保留恢复信息。
+**Study/01 当前态**：研究进展、当前稿件和证据边界由[Study01 当前研究现状](Study/01-study-MDM最小偏移量优化研究/00-当前研究现状.md)维护；规划、实验与证据入口见[Study01](Study/01-study-MDM最小偏移量优化研究/README.md)。
 
 **Study / Research 层级**：[`Study/README.md`](Study/README.md) 是 Study 层唯一入口，当前登记 Study01、Study02 两个具有独立小论文义务的项目；[`Research/README.md`](Research/README.md) 保存有界验证、支撑研究、独立研究和孵化方向，并定义升级为 Study 的门槛。原 Study015 已作为 `COMPLETE + SUPPORTING` 的“NN 输入表征与样本量机制”迁入 Research；旧 `docs/research` 与 Study01 内部 Research 已按 [`RELOCATION.json`](Research/RELOCATION.json) 原字节归位，不删除负面或被取代结果。
 

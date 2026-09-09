@@ -17,7 +17,7 @@
 ## 当前入口
 
 - Study01 指标调研：`Study01-J1决策/01-调研报告.md`
-- Study01 当前实验协议：`../../Study/01-study-MDM最小偏移量优化研究/02-实验协议.md`
+- Study01 当前实验配置：[实验配置](../../Study/01-study-MDM最小偏移量优化研究/02-实验配置.md)
 - Study01 当前证据索引：`../../Study/01-study-MDM最小偏移量优化研究/01-证据索引.md`
 
 旧路径与新路径的完整映射见 `../RELOCATION.json`。
