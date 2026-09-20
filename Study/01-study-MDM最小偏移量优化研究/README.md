@@ -13,6 +13,8 @@
 
 ## 独立保留
 
-[作者规划1-整理版](作者规划1-整理版.md)与[原稿](作者规划1-原稿.md)保留原样，不计入工作文档。
+[作者规划1-整理版](作者规划1-整理版.md)与[原稿](archive/作者规划1-原稿.md)保留原样，不计入工作文档。
 
-[旧稿文件夹](manuscript/旧稿/README.md)集中保存原正文、附录、Word、历次版本与修订材料。[共享图件](manuscript/figures/figure-index.md)、[代码](code/README.md)和[证据产物](artifacts/README.md)保持原位；[清理快照](archive/07-认识清单与研究快照-20260907.md)保存更早试错与恢复路径。
+[旧稿文件夹](manuscript/旧稿/README.md)集中保存原正文、附录、Word、历次版本与修订材料。[按新稿F01—F06编排的共享图件索引](manuscript/figures/figure-index.md)、[代码](code/README.md)和[证据产物](artifacts/README.md)保持原位；[清理快照](archive/07-认识清单与研究快照-20260907.md)保存更早试错与恢复路径。
+
+2026-09-20维护：修复作者规划原稿链接，清理被替换图件并更新新稿图表映射；实验数据、模型与研究结果未改。数据的Git保存范围见[证据目录说明](artifacts/README.md#git-and-data)。
