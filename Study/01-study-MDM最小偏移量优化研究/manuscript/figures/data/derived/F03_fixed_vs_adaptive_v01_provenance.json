@@ -1,0 +1,85 @@
+{
+  "purpose": "Illustrate fixed versus sample-adaptive selection, not prove per-sample optimality",
+  "conceptual_source": "Xie et al. 2025, doi:10.12068/j.issn.1005-3026.2025.20240194, Fig. 5",
+  "design": {
+    "beta": 2.0,
+    "eta": 1000.0,
+    "gamma": 1000.0,
+    "gamma_over_eta": 1.0,
+    "n": 7
+  },
+  "repeat_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29
+  ],
+  "selection_rule": "First 30 repeat IDs, independent of outcomes; not the original paper's exact samples",
+  "seed_namespace": "study01_nrmc_v1",
+  "model_seed": 42,
+  "prediction_identity": "E5 Normalized-RAW / Mean-Normalized-MLP, held-out predictions",
+  "boundary_rule": "Triangle at actual gradient(0); never force a boundary solution onto delta",
+  "checks": "60 reproduced estimates match frozen scan; 30 adaptive losses match saved predictions",
+  "inputs": [
+    {
+      "path": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/specialist/raw_specialist_results.csv",
+      "sha256": "b67578fe3a6e02c606ce0ba0bf224f4ce8a7acbf48de1fd87ef1739e368ad7db"
+    },
+    {
+      "path": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0036_meta.json",
+      "sha256": "c5ec18d34f3f31058dd80df59435530cca4f3577ff919a146db42f48f23ff746"
+    },
+    {
+      "path": "Study/01-study-MDM最小偏移量优化研究/artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0036_mdm.csv",
+      "sha256": "082774722527f698af7e610edabbb16ac02044e0cdfebb8079adfe1ab6ee3cf0"
+    },
+    {
+      "path": "python/methods/mdm.py",
+      "sha256": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed"
+    },
+    {
+      "path": "python/studies/common/sample.py",
+      "sha256": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48"
+    }
+  ],
+  "derived": [
+    {
+      "file": "F03_fixed_vs_adaptive_v01_curves.csv",
+      "sha256": "459870a6911d5d49b3807b940304a0854f38333da39f4580734a2e6567d953d5"
+    },
+    {
+      "file": "F03_fixed_vs_adaptive_v01_points.csv",
+      "sha256": "d92b3f4f96376f9cae4ccaeb74b8bffc74b6be64f7c4a120bfb926a47e5166ce"
+    },
+    {
+      "file": "F03_fixed_vs_adaptive_v01_samples.csv",
+      "sha256": "667548d336dedbca6a2cc055aba84725fcdd0a81fa358288d68eda94a92da43e"
+    }
+  ]
+}

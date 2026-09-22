@@ -12,6 +12,7 @@
 | [S01-03](../02-实验配置.md#s01-03) | [run_E6b_dimensional_raw_specialist.py](run_E6b_dimensional_raw_specialist.py) 的 run_crossfit_layers | 调用 [run_crossfit](analyze_E1_E2_crossfit.py) 处理当前数据；不要运行旧 crossfit main，也无需启动整个 E6 训练 |
 | [S01-04](../02-实验配置.md#s01-04) | [prepare_mean_normalized_main_evidence.py](prepare_mean_normalized_main_evidence.py)、[derive_e8_seed42_primary.py](derive_e8_seed42_primary.py) | 已有源结果整理与固定 seed42 派生；不训练 |
 | S01-04 不确定性 | [analyze_e8_main_uncertainty.py](analyze_e8_main_uncertainty.py) | 配对损失重采样，不训练 |
+| S01-04 选错诊断（探索） | [analyze_selector_errors_v1.py](analyze_selector_errors_v1.py) | 复用48,000样本三seed预测，核选点、分组错误及后处理；不训练，结果见[报告](../artifacts/exploratory/selector_error_diagnosis_20260922/README.md) |
 | S01-04 表示与训练复现 | [run_E7_scale_invariant_input_screen.py](run_E7_scale_invariant_input_screen.py) | 均值/SD/RMS 表示训练实现；完整 main 会筛多个表示，不作为日常任务 |
 | [S01-05](../02-实验配置.md#s01-05) | [analyze_E11_profile_mechanism.py](analyze_E11_profile_mechanism.py)、[analyze_E10_z_only_benchmark.py](analyze_E10_z_only_benchmark.py) | 前者重建轨迹；后者拟合/选模/重拟合后确认 |
 | [S01-06a](../02-实验配置.md#s01-06a) | [run_b1_mean_normalized_unseen_beta.py](run_b1_mean_normalized_unseen_beta.py) | 归一化模型的 β 留出训练；run_b1_unseen_beta.py 只作为其依赖 |
@@ -20,6 +21,7 @@
 | [S01-06d](../02-实验配置.md#s01-06d) | [check_mean_normalized_e2e_scale.py](check_mean_normalized_e2e_scale.py) | 历史最终模型的12次端到端尺度检查 |
 | [S01-07](../02-实验配置.md#s01-07) | [run_pg_selector.py](run_pg_selector.py) | --full 为全量已完成路线；--repackage 派生；pilot 不是新任务 |
 | [S01-08](../02-实验配置.md#s01-08) | [analyze_E12_delta_upper_boundary.py](analyze_E12_delta_upper_boundary.py) | 仅选定样本的候选上界补算 |
+| [S01-09](../02-实验配置.md#s01-09) | [verify_selector_new_samples_v1.py](verify_selector_new_samples_v1.py) | 读取Git冻结最终权重，160单元×100新样本，固定/自适应/大δ回退配对比较；不训练 |
 
 ## 当前环境与使用方式
 

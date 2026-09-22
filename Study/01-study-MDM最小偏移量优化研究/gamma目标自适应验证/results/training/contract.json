@@ -1,0 +1,43 @@
+{
+  "seed": 42,
+  "objectives": [
+    "joint",
+    "gamma"
+  ],
+  "n_values": [
+    7,
+    10,
+    15,
+    20
+  ],
+  "folds": 5,
+  "split": "Original 160-cell index modulo 5; within n, hold out a full gamma/eta layer",
+  "train_per_fold": 9600,
+  "test_per_fold": 2400,
+  "repeated_samples": 48000,
+  "representation": "sort(X)/mean(X), with training-only per-position StandardScaler",
+  "targets": "26 candidate loss values; joint is sum of three normalized squared errors; gamma is squared error normalized by eta",
+  "layers": [
+    256,
+    128,
+    64
+  ],
+  "max_iter": 300,
+  "alpha": 0.0001,
+  "learning_rate": 0.001,
+  "batch_size": 256,
+  "early_stopping": true,
+  "validation_fraction": 0.15,
+  "n_iter_no_change": 20,
+  "target_scaling": "training-only StandardScaler, independently fitted for each objective",
+  "selection": "Clip predicted candidate losses at zero then argmin, first/lower delta on ties, same as existing learned pipeline",
+  "scope": "Single-seed paired development test, old samples; no tuning, no independent confirmation",
+  "dependencies": {
+    "Study/01-study-MDM最小偏移量优化研究/gamma目标自适应验证/train_target_comparison.py": "205628e758dc193b06a368204bfa8dd679cee6f7998e89a464bc11d01a5940a7",
+    "Study/01-study-MDM最小偏移量优化研究/code/run_E6b_dimensional_raw_specialist.py": "9ec5b97f4749ca55fe41770f91fc37cbd65276e0af2fde5e29a1f9f27238012e",
+    "Study/01-study-MDM最小偏移量优化研究/code/dim_raw_config.py": "33baacb643da791c1658fc27d024207ecf3d0615f6cac38f76406895e67e4b14",
+    "Study/01-study-MDM最小偏移量优化研究/code/run_E7_scale_invariant_input_screen.py": "249b459e734e35d92f87c7281afc9781ebad292ef81c1f1de43bfbf81c76cde2",
+    "python/studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48"
+  },
+  "source_receipt_sha256": "4bcf3e85d186f62669999abb61c482e5344e71176d5f1679870032788ccc81e4"
+}

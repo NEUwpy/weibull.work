@@ -1,6 +1,6 @@
 # 新稿 v2.0 图表索引
 
-更新：2026-09-20。按[新稿](../Study01论文新稿-v2.0.md)的章节与论证用途编排。F01—F06 是新稿规划图位，不表示六张成图已经完成；当前正文仍嵌入六张旧图素材，标题中的旧图号暂保留为来源标识，定稿时再统一连续编号。
+更新：2026-09-22。按[新稿](../Study01论文新稿-v2.0.md)的章节与论证用途编排。F01—F06 是新稿规划图位，不表示六张成图已经完成；当前正文嵌入六张旧图素材及一张新增F03工作图，标题中的旧图号暂保留为来源标识，定稿时再统一连续编号。
 
 ## 正文图位
 
@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | F01 · [2.2 方法流程](../Study01论文新稿-v2.0.md#sec-2-2) | 样本输入、损失预测、选偏移与MDM求解 | [旧图1](word/main/fig1_adaptive_selection_drawio_v111.png)；[S01-04](../../02-实验配置.md#s01-04) | 已有流程图；需统一AMDM名称、核定模型身份后修订 | [可编辑源](drawio/fig1_adaptive_selection_v111/fig1_adaptive_selection.drawio) |
 | F02 · [4.1 固定偏移](../Study01论文新稿-v2.0.md#sec-4-1) | 风险分解及参数域变化 | [旧图2](word/main/fig2_offset_risk_decomposition_v112.png)、[旧图3](word/main/fig3_beta_domain_restored_3d.png)；[S01-01](../../02-实验配置.md#s01-01)、[S01-02](../../02-实验配置.md#s01-02) | 两张素材均已有，尚未合并或重排 | [风险图程序](scripts/plot_offset_revision_v112.py)、[三维图来源](provenance/restored-3d-figures.json) |
-| F03 · [4.2 实际选点](../Study01论文新稿-v2.0.md#sec-4-2) | 同条件样本路径、固定点与实际AMDM点 | [旧图7](word/main/fig7_sample_columns_v112.png)；[S01-05a](../../02-实验配置.md#s01-05a) | 部分已有：现图只有固定点与L6；缺折外AMDM点和样本匹配诊断，不能把L6当AMDM | [现图程序](scripts/plot_fig7_sample_columns.py)、[P01](../../04-后续实验计划.md#p01) |
+| F03 · [4.2 实际选点](../Study01论文新稿-v2.0.md#sec-4-2) | 同条件样本路径、固定点与实际AMDM点 | [新增双图v0.1](main/F03_fixed_vs_adaptive_v01.png)；[旧图7](word/main/fig7_sample_columns_v112.png)；[S01-04](../../02-实验配置.md#s01-04)、[S01-05a](../../02-实验配置.md#s01-05a) | 双图已完成：同条件30样本、真实折外AMDM点；仅机制展示，样本匹配收益诊断仍缺；旧图7的L6不等于AMDM | [双图程序](scripts/plot_F03_fixed_vs_adaptive.py)、[来源校验](data/derived/F03_fixed_vs_adaptive_v01_provenance.json)、[P01](../../04-后续实验计划.md#p01) |
 | F04 · [4.3 方法比较](../Study01论文新稿-v2.0.md#sec-4-3) | AMDM与基准的总体及分n表现 | [旧图6](word/main/fig6_per_n_J1.png)、[旧附图E1](word/supplementary/supp_fig_traditional_per_n.png)；[S01-04](../../02-实验配置.md#s01-04)、[S01-06b](../../02-实验配置.md#s01-06b) | 旧共同样本结果已有；冻结后的共同独立确认尚缺，素材尚未合并 | [旧结果绘图程序](scripts/make_submission_figures.py)、[P03](../../04-后续实验计划.md#p03) |
 | F05 · [4.4 精度与稳定性](../Study01论文新稿-v2.0.md#sec-4-4) | AMDM单元内Bias、SD、RMSE与尾部 | 尚无符合本图目的的成图；既有[参数汇总表](tables/table4_parameter_metrics.csv)只供对照 | 待分析、待绘；混合设计SD不能替代单元内SD，也不能以固定偏移分解代替AMDM分析；可并入T03 | [P02](../../04-后续实验计划.md#p02) |
 | F06 · [4.5 范围与退化](../Study01论文新稿-v2.0.md#sec-4-5) | 单元异质性、β留出及适用范围 | [旧附图D1](word/supplementary/supp_fig_unseen_beta_v111.png)、[旧附图F2](word/supplementary/supp_fig_parameter_landscape_v111.png)；[S01-04](../../02-实验配置.md#s01-04)、[S01-06a](../../02-实验配置.md#s01-06a) | 旧离散设计素材已有，尚未嵌入本节；新确认及获准的范围扩展未完成 | [现图修订程序](scripts/clean_annotations_v111.py)、[扩展取舍](../../04-后续实验计划.md#p04) |
@@ -39,8 +39,8 @@
 
 ## 资产与复现
 
-共保留17个图主题的排版PNG/SVG及已有基础导出；其中8个主题为正文规划素材、9个供附录或讨论调用。实际新稿目前插入6张图片，不以保留数量冒充完成数量。
+共保留17个图主题的排版PNG/SVG及已有基础导出；其中8个主题为正文规划素材、9个供附录或讨论调用。2026-09-22新增F03双图工作版，实际新稿目前插入7张图片，不以保留数量冒充完成数量。
 
-`word/` 是稿件引用图；`main/`、`supplementary/` 保存这些主题的基础导出；`drawio/` 保留可编辑源及必要依赖；`data/`、`tables/` 和历史CSV保持不变。本轮只清理旧图与更新映射，没有重绘或重跑实验。
+`word/` 是稿件引用图；`main/`、`supplementary/` 保存这些主题的基础导出；`drawio/` 保留可编辑源及必要依赖；`data/`、`tables/` 和历史CSV保持不变。2026-09-20完成旧图清理；2026-09-22新增F03于`main/`，复用现有折外预测重建30个样本轨迹，无新增训练。
 
 [figure_sources.json](figure_sources.json)的 `current_manuscript` 记录新稿映射；旧字段供原生成器和来源追溯使用，不是新稿图序。[清理记录](provenance/figure-cleanup-20260920.md)说明移除范围和Git恢复版本。生成器各有职责，不能假定任一旧脚本能一次恢复所有当前修订。

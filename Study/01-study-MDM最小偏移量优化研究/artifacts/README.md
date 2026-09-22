@@ -15,6 +15,8 @@
 | `formal/pg_selector/` | [S01-07](../02-实验配置.md#s01-07) | 初估查表的完整负结果 |
 | `candidate/E12_delta_upper_boundary/` | [S01-08](../02-实验配置.md#s01-08) | 附录的选择性上界诊断 |
 | `candidate/E7_scale_invariant_input_screen/` | [S01-04](../02-实验配置.md#s01-04) | 表示选择来历，不是独立主确证 |
+| `exploratory/selector_error_diagnosis_20260922/` | S01-04已有预测再分析 | [选错分组与后处理探针](exploratory/selector_error_diagnosis_20260922/README.md)，不替换正式方法或主结果 |
+| `exploratory/selector_new_sample_confirmation_20260922/` | [S01-09](../02-实验配置.md#s01-09) | [冻结最终模型新样本确认](exploratory/selector_new_sample_confirmation_20260922/README.md)；与原折模型身份分开，行级文件本地保留，汇总含哈希 |
 
 其余保留的小型旧 E1/E2/figures 包仅供历史追溯，不能代替当前 160 单元结果。旧 shared_data 与当前 E5/shared_data 是不同设计。
 

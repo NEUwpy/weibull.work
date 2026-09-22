@@ -35,7 +35,7 @@
 
 **Study/02 当前态**：当前中英文正文与附录为[v2.7.0](Study/02-study-NN参数估计与分位点目标研究/manuscript/Study02论文初稿-v2.7.0.md)，主线为P → Q → QCP：任务对齐的目标收益、参数补偿代价与修复。QP与QCP精度接近，共同验证下Q仍有1.322%目标改善；协议25复用旧样本，不是新数据独立确认。2026-09-08按正文整理为[S02-01—S02-07](Study/02-study-NN参数估计与分位点目标研究/02-实验配置.md)，建立[证据索引](Study/02-study-NN参数估计与分位点目标研究/01-证据索引.md)，将退役展开数据移至外部待删除目录供用户自行删除，未释放磁盘空间。认识、去留及恢复见[研究快照](Study/02-study-NN参数估计与分位点目标研究/07-认识清单与研究快照-20260908.md)。先明确参数解释与寿命点使用要求，再决定最小新样本确认；未投稿。
 
-**Study/01 当前态**：研究进展、当前稿件和证据边界由[Study01 当前研究现状](Study/01-study-MDM最小偏移量优化研究/00-当前研究现状.md)维护；规划、实验与证据入口见[Study01](Study/01-study-MDM最小偏移量优化研究/README.md)。
+**Study/01 当前态**：新工作入口为[Study 01 New](<Study/Study 01 New/README.md>)，已确认“面向三参数 Weibull 小样本估计的样本自适应最小差异法”定位；先讨论研究内容与章节，再匹配旧成果。[旧Study01](Study/01-study-MDM最小偏移量优化研究/README.md)自2026-09-22起按当前工作区状态冻结，保留实验、稿件、图件与复现来源。
 
 **Study / Research 层级**：[`Study/README.md`](Study/README.md) 是 Study 层唯一入口，当前登记 Study01、Study02 两个具有独立小论文义务的项目；[`Research/README.md`](Research/README.md) 保存有界验证、支撑研究、独立研究和孵化方向，并定义升级为 Study 的门槛。原 Study015 已作为 `COMPLETE + SUPPORTING` 的“NN 输入表征与样本量机制”迁入 Research；旧 `docs/research` 与 Study01 内部 Research 已按 [`RELOCATION.json`](Research/RELOCATION.json) 原字节归位，不删除负面或被取代结果。
 
