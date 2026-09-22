@@ -1,0 +1,64 @@
+{
+  "figure": "F01",
+  "description": "MDM principle, recomputed from equations",
+  "sources_doi": [
+    "10.1142/S0219455423500852",
+    "10.12068/j.issn.1005-3026.2025.20240194"
+  ],
+  "source_relation": "2023 approximate median ranks; 2025 notation and gamma-first conditional search",
+  "sample_type": "deterministic ideal rank quantiles; not random observations or a performance experiment",
+  "true_parameters": {
+    "beta": 2.0,
+    "eta": 1000.0,
+    "gamma": 1000.0
+  },
+  "n": 7,
+  "rank_formula": "(i-0.3)/(n+0.4)",
+  "ranks": [
+    0.09459459459459459,
+    0.22972972972972971,
+    0.36486486486486486,
+    0.5,
+    0.6351351351351351,
+    0.7702702702702703,
+    0.9054054054054054
+  ],
+  "sample": [
+    1315.2339985046087,
+    1510.8951216929163,
+    1673.7339916421845,
+    1832.5546111576978,
+    2004.1056852741353,
+    2212.7867698602067,
+    2535.6285176268566
+  ],
+  "beta_grid": {
+    "start": 0.6,
+    "stop": 6.0,
+    "step": 0.005
+  },
+  "gamma_grid": {
+    "start": 400.0,
+    "stop": 1250.0,
+    "step": 2.0
+  },
+  "std_ddof": 1,
+  "estimates_beta_eta_gamma": [
+    2.0,
+    1000.0,
+    1000.0
+  ],
+  "checks": {
+    "ideal_sample_recovers_parameters": true,
+    "text_inside_canvas": true
+  },
+  "size_mm": [
+    183,
+    86
+  ],
+  "font": "Microsoft YaHei",
+  "numpy": "2.1.1",
+  "matplotlib": "3.11.0",
+  "script_sha256": "e97ca95d6e6f60cfa57fb0503645139db2e7041ed8f0bdff688027bad0b28ef9",
+  "data_sha256": "35d2eeeed9cac1c7b564aac3f9adf4bf45bbedc9bfe304c98795a6daba9fddfb"
+}
