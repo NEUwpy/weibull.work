@@ -1,10 +1,12 @@
 # Replace editable text formula components with true MathType OLE equations.
 # Requires installed PowerPoint and MathType 7 (64-bit MathPage API).
 param([string]$Candidate = 'D:\weibull\tmp\f01-ppt-v18\candidate.pptx',
-      [string]$Output = 'D:\weibull\tmp\f01-ppt-v18\mathtype-candidate.pptx')
+      [string]$Output = 'D:\weibull\tmp\f01-ppt-v18\mathtype-candidate.pptx',
+      [string]$SpecPath = '')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
-$specs=Get-Content -Raw -LiteralPath (Join-Path $root '数据\F01_MathType公式.json') | ConvertFrom-Json
+if(-not $SpecPath){$SpecPath=Join-Path $root '数据\F01_MathType公式.json'}
+$specs=Get-Content -Raw -LiteralPath $SpecPath | ConvertFrom-Json
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
@@ -80,7 +82,9 @@ try {
   }
  }
  $deck.SaveAs($Output,24)
- $slide.Export((Join-Path (Split-Path $Output) 'mathtype-preview.png'),'PNG',3510,1935)
+ $previewWidth=[int]($deck.PageSetup.SlideWidth*2)
+ $previewHeight=[int]($deck.PageSetup.SlideHeight*2)
+ $slide.Export((Join-Path (Split-Path $Output) 'mathtype-preview.png'),'PNG',$previewWidth,$previewHeight)
  [Runtime.InteropServices.Marshal]::FinalReleaseComObject($slide)|Out-Null
  $deck.Close()
  [Runtime.InteropServices.Marshal]::FinalReleaseComObject($deck)|Out-Null
