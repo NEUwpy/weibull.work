@@ -11,15 +11,15 @@ const SKILL='C:/Users/36089/.codex/plugins/cache/openai-primary-runtime/presenta
 const {finalizePresentation}=await import(pathToFileURL(path.join(SKILL,'container_tools/artifact_tool_utils.mjs')));
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const REPO=path.resolve(ROOT,'../../..');
-const BUILD=path.join(REPO,'tmp','f01-ppt-v16');
+const BUILD=path.join(REPO,'tmp','f01-ppt-v18');
 await fs.mkdir(BUILD,{recursive:true});
 if(process.argv.includes('--finalize')){
- const final=path.join(ROOT,'F01_MDM单样本流程-v16.pptx');
+ const final=path.join(ROOT,'F01_MDM流程与重复抽样-v18.pptx');
  await finalizePresentation({workspaceDir:REPO,candidatePath:path.join(BUILD,'mathtype-candidate.pptx'),finalPath:final,
  pythonExecutable:'C:/Users/36089/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',
  integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),
  layoutValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_layout_geometry.py'),
- layoutArgs:['--expected-slide-size-emu',2340*9525+','+650*9525,'--validate-heading-fit'],
+ layoutArgs:['--expected-slide-size-emu',2340*9525+','+1290*9525,'--validate-heading-fit'],
  explicitTotalSlideCount:1,fontPolicy:{basis:'design',families:['Microsoft YaHei','Cambria Math']},
  verifyArtifactToolImport:true,receiptPath:path.join(BUILD,'validation.json')});
  console.log('FINAL',final);
@@ -30,7 +30,7 @@ const M=JSON.parse(await fs.readFile(path.join(ROOT,'数据/F01_MDM原理联图.
 const csv=(await fs.readFile(path.join(ROOT,'数据/F01_MDM原理联图.csv'),'utf8')).trim().split(/\r?\n/);
 const keys=csv.shift().split(',');
 const rows=csv.map(line=>Object.fromEntries(line.split(',').map((v,i)=>[keys[i],['x','y','beta','gamma'].includes(keys[i])?Number(v):v])));
-const P=Presentation.create({slideSize:{width:2340,height:650}});
+const P=Presentation.create({slideSize:{width:2340,height:1290}});
 const S=P.slides.add(); S.background.fill='#FFFFFF';
 const INK='#263238', BLUE='#147AAA', GRAY='#82878C', EDGE='#73869A', FONT='Microsoft YaHei';
 let id=0;
@@ -183,7 +183,77 @@ arrow('flow.beta-eta',1782,339,66);
 downArrow('flow.eta-output',2085,362,26);
 txt('output.title','输出三参数估计',1884,404,400,36,24,INK,true);
 math('output.result','(β̂, η̂, γ̂) = (2.471, 819.2, 974.4)',1878,456,414,60,28);
-S.speakerNotes.textFrame.setText('图1。单样本MDM求解流程，零梯度判据。依据MDM原理重绘；来源 DOI 10.1142/S0219455423500852、10.12068/j.issn.1005-3026.2025.20240194。数据：public/case-studies/mdm/verification-182-046/data.csv中的Sample-1-3，7个排序观测。曲线为既有F01 CSV的真实轨迹，无新模拟。秩概率(i−0.3)/(n+0.4)，标准差ddof=1。公式底稿为文本，随后由F01_嵌入MathType.ps1替换为MathType OLE对象；曲线为可编辑自由曲线。');
+// Repeated sampling branches from the sample/criterion block.
+downArrow('flow.criterion-repeat',290,609,87);
+txt('repeat.branch-label','同一总体下重复抽样',322,631,300,34,24,INK,true,'left');
+region('repeat','同一总体，30组随机样本',40,715,500,520);
+math('repeat.truth','W(β = 2, η = 1000, γ = 1000)',60,794,460,45,27);
+txt('repeat.n','每组 n = 7',64,854,450,34,23);
+for(let j=0;j<3;j++){
+ const name=M.ensemble.sample_ids[j];
+ const vals=rows.filter(r=>r.panel==='input_ensemble'&&r.series===name).map(r=>r.y);
+ txt('repeat.sample-label'+j,'样本 '+(j+1),69,925+j*58,100,32,22);
+ vals.forEach((t,i)=>dot('repeat.sample-'+j+'-'+i,186+t/4200*306,941+j*58,7,GRAY,true));
+}
+txt('repeat.ellipsis','⋮',70,1103,438,28,27);
+txt('repeat.rebuild','每组样本重新构造梯度曲线',60,1181,460,33,23);
+arrow('flow.repeat-curves',552,969,62);
+region('ensemble','c  30条样本梯度曲线',630,715,500,520);
+txt('ensemble.explain','每条曲线对应一组随机样本',647,784,466,32,23,GRAY);
+const ea=axis('ensemble',744,857,324,246,[-45,1800],[-.035,.34],[0,500,1000,1500],[0,.1,.2,.3],'位置参数 γⱼ','梯度 ∇(γⱼ)');
+for(const name of M.ensemble.sample_ids){
+ curve('ensemble.curve-'+name,rows.filter(r=>r.panel==='cd'&&r.series===name).map(r=>[r.x,r.y]),ea,'#AEB6BC',1.05);
+}
+for(const delta of ['0','0.1']){
+ const color=delta==='0'?GRAY:BLUE;
+ line('ensemble.rule'+delta,[[ea.px(-45),ea.py(+delta)],[ea.px(1800),ea.py(+delta)]],color,1.8,true);
+ for(const [name,all] of Object.entries(M.ensemble.estimates)){
+  const e=all[delta];
+  if(!e.boundary)dot('ensemble.root-'+delta+'-'+name,ea.px(e.gamma),ea.py(+delta),6,color,delta!=='0',delta!=='0');
+ }
+}
+txt('ensemble.delta0','δ = 0',752,1050,105,27,23);
+txt('ensemble.delta01','δ = 0.1',752,984,105,27,23);
+txt('ensemble.note','按两种判据分别求解位置参数',648,1190,464,29,21,GRAY);
+arrow('flow.curves-comparison',1150,969,70);
+region('comparison','d  两种判据下的位置估计：集中程度与真值偏差',1240,715,1060,520);
+const cx=v=>1408+(v+55)/1870*812;
+const trueX=cx(1000);
+line('comparison.truth',[[trueX,820],[trueX,1026]],'#C5803D',1.8,true);
+txt('comparison.truth-word','真值',trueX-145,778,60,30,22,'#A46A2E');
+txt('comparison.truth-label','真值 γ = 1000',trueX-105,775,210,32,23,'#A46A2E');
+const stats={};
+for(const [idx,delta] of ['0','0.1'].entries()){
+ const color=delta==='0'?GRAY:BLUE,yy=idx===0?867:965;
+ math('comparison.label'+idx,'δ = '+delta,1260,yy-22,118,42,28);
+ line('comparison.row'+idx,[[cx(0),yy],[cx(1750),yy]],'#DCE1E4',1,true);
+ const vals=Object.values(M.ensemble.estimates).map(v=>v[delta].gamma).sort((a,b)=>a-b);
+ const levels=[0];for(let j=1;j<18;j++)levels.push(j*9,-j*9);
+ const placed=[];
+ for(let i=0;i<vals.length;i++){
+  const px=cx(vals[i]);const dy=levels.find(v=>placed.every(p=>Math.abs(p[0]-px)>10||Math.abs(p[1]-v)>=9));
+  placed.push([px,dy]);dot('comparison.estimate-'+idx+'-'+i,px,yy+dy,8,color,idx===1,idx===1);
+ }
+ const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+ stats[delta]={n:vals.length,mean,bias:mean-1000,sd:Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/(vals.length-1)),rmse:Math.sqrt(vals.reduce((a,b)=>a+(b-1000)**2,0)/vals.length)};
+}
+line('comparison.axis',[[cx(0),1026],[cx(1750),1026]],INK,1.3);
+for(const v of [0,500,1000,1500]){
+ line('comparison.tick'+v,[[cx(v),1026],[cx(v),1032]],INK,1);
+ txt('comparison.tick-label'+v,String(v),cx(v)-36,1035,72,28,20);
+}
+txt('comparison.axislabel','位置参数估计 γ̂',1800,1066,400,29,22);
+const headers=['判据','离散程度 SD','平均偏差 Bias','总体误差 RMSE'];
+const xs=[1260,1430,1725,2020],ws=[140,260,260,260];
+headers.forEach((h,i)=>txt('comparison.table-header'+i,h,xs[i],1103,ws[i],29,22,INK,true));
+for(const [idx,delta] of ['0','0.1'].entries()){
+ const color=idx===0?GRAY:BLUE,st=stats[delta],yy=1145+idx*40;
+ const values=['δ = '+delta,st.sd.toFixed(1),(st.bias>0?'+':'−')+Math.abs(st.bias).toFixed(1),st.rmse.toFixed(1)];
+ values.forEach((v,i)=>txt('comparison.table-'+idx+'-'+i,v,xs[i],yy,ws[i],28,23,color));
+}
+txt('comparison.note','每种判据均保留30个估计（含δ=0的10个下界估计）；点的竖向错开仅为避免重叠。',1240,1250,1060,27,19,GRAY);
+await fs.writeFile(path.join(ROOT,'数据/F01_位置估计对比.json'),JSON.stringify({source:'F01_MDM原理联图.json / ensemble.estimates',trueGamma:1000,sdDof:1,metrics:stats},null,2)+'\n');
+S.speakerNotes.textFrame.setText('图1。上方单样本MDM求解流程，零梯度判据；从样本准则框向下引出同一总体参数下30组随机样本，c叠加全部30条梯度曲线及0和0.1判据，d保留两种判据各30个位置估计并比较SD、Bias和RMSE。依据MDM原理重绘；来源 DOI 10.1142/S0219455423500852、10.12068/j.issn.1005-3026.2025.20240194。数据：public/case-studies/mdm/verification-182-046/data.csv中的Sample-1-3，7个排序观测；重复抽样来自同一文件全部30行，零梯度下10个边界估计不伪画成交点。曲线为既有F01 CSV的真实轨迹，无新模拟。秩概率(i−0.3)/(n+0.4)，标准差ddof=1。公式底稿为文本，随后由F01_嵌入MathType.ps1替换为MathType OLE对象；曲线为可编辑自由曲线。');
 const candidate=path.join(BUILD,'candidate.pptx');
 await (await PresentationFile.exportPptx(P)).save(candidate);
 const preview=await P.export({slide:S,format:'png',scale:1.5});

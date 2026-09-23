@@ -1,7 +1,7 @@
 # Replace editable text formula components with true MathType OLE equations.
 # Requires installed PowerPoint and MathType 7 (64-bit MathPage API).
-param([string]$Candidate = 'D:\weibull\tmp\f01-ppt-v16\candidate.pptx',
-      [string]$Output = 'D:\weibull\tmp\f01-ppt-v16\mathtype-candidate.pptx')
+param([string]$Candidate = 'D:\weibull\tmp\f01-ppt-v18\candidate.pptx',
+      [string]$Output = 'D:\weibull\tmp\f01-ppt-v18\mathtype-candidate.pptx')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 $specs=Get-Content -Raw -LiteralPath (Join-Path $root '数据\F01_MathType公式.json') | ConvertFrom-Json
@@ -80,7 +80,7 @@ try {
   }
  }
  $deck.SaveAs($Output,24)
- $slide.Export((Join-Path (Split-Path $Output) 'mathtype-preview.png'),'PNG',3510,975)
+ $slide.Export((Join-Path (Split-Path $Output) 'mathtype-preview.png'),'PNG',3510,1935)
  [Runtime.InteropServices.Marshal]::FinalReleaseComObject($slide)|Out-Null
  $deck.Close()
  [Runtime.InteropServices.Marshal]::FinalReleaseComObject($deck)|Out-Null
