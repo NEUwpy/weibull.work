@@ -4,8 +4,8 @@
 
 | 图件 | 整图 | 内部图 | 代码与数据 |
 |---|---|---|---|
-| F01 / 图1 | [可编辑PPT v50](F01_MDM流程与圆周误差-v21.pptx) · [PNG](F01_MDM流程与圆周误差-v21.png) | [A位置求解](子图/F01a_位置求解.png) · [B形状回代](子图/F01b_形状回代.png) · [C重复抽样梯度](子图/F01c_重复抽样梯度.png) · [D圆周误差与RMSE](子图/F01d_圆周误差与三参数RMSE.png) | `绘图程序/F01*` · `数据/F01*` |
-| F02 / 图2 | [可编辑PPT v5](F02_AMDM估计器流程-v5.pptx) · [PNG](F02_AMDM估计器流程-v5.png) | [A观测样本](子图/F02a_观测样本.png) · [B偏移选择](子图/F02b_偏移选择.png) · [C MDM完整求解](子图/F02c_MDM估计.png) | [绘图程序](绘图程序/F02_绘制PPT.mjs) · [流程数据](数据/F02_AMDM训练与估计流程.json) · [公式](数据/F02_MathType公式.json) |
+| F01 / 图1 | [可编辑PPT v60](F01_MDM流程与圆周误差-v21.pptx) · [PNG](F01_MDM流程与圆周误差-v21.png) | [A位置求解](子图/F01a_位置求解.png) · [B形状回代](子图/F01b_形状回代.png) · [C重复抽样梯度](子图/F01c_重复抽样梯度.png) · [D圆周误差与RMSE](子图/F01d_圆周误差与三参数RMSE.png) | `绘图程序/F01*` · `数据/F01*` |
+| F02 / 图2 | [可编辑PPT v6](F02_AMDM估计器流程-v6.pptx) · [PNG](F02_AMDM估计器流程-v6.png) | [MDM主流程](子图/F02a_MDM主流程.png) · [样本驱动调节](子图/F02b_样本驱动调节.png) | [绘图程序](绘图程序/F02_绘制PPT.mjs) · [流程数据](数据/F02_AMDM训练与估计流程.json) · [公式](数据/F02_MathType公式.json) |
 
 ## 图1的数据和含义
 
@@ -37,15 +37,15 @@ node "Study/Study 01 New/图片/绘图程序/F01d_圆周误差图.mjs" --finaliz
 
 ## 图2口径
 
-图2服务于2.5节的估计器定义，只呈现在线估计：样本信息→偏移选择→MDM完整求解（三参数估计结果在框内）。保留原始样本直接传入MDM的旁路；训练定义仍在2.4节说明。数据JSON保存节点、连线、示例样本与来源，版面坐标由绘图程序定义。
+图2服务于2.5节的估计器定义，只呈现在线估计：从观测开始的MDM求解主流程，以及作用于位置求解判据的样本驱动调节支路。观测样本直接进入MDM主流程，同时向调节支路提供样本信息；训练定义仍在2.4节说明。数据JSON保存节点、连线、示例样本与来源，版面坐标由绘图程序定义。
 
-图2沿用图1的分区配色、虚线边框、字体和箭头样式。仅保留输入、偏移和输出的3处MathType符号；网络仅示意映射关系，不代表实际层宽。样本散点复用图1的Sample-1-3，仅说明输入形式，不构成新的实验结果。观测样本、偏移选择、MDM完整求解三个内部图直接从整图导出；三参数结果属于MDM完整求解框，不设独立输出模块。
+图2沿用图1的分区配色、虚线边框、字体和箭头样式。输入、偏移、逐步参数估计与最终结果共6处符号使用MathType；网络仅示意映射关系，不代表实际层宽。样本散点复用图1的Sample-1-3，仅说明输入形式，不构成新的实验结果。MDM主流程与样本驱动调节两个内部图直接从整图导出；整图显示支路接入位置求解的对应关系。三参数结果保留在主流程内部。
 
 ## 图2复现
 
 ```powershell
 node "Study/Study 01 New/图片/绘图程序/F02_绘制PPT.mjs"
-& "Study/Study 01 New/图片/绘图程序/F01_嵌入MathType.ps1" -Candidate "D:/weibull/tmp/f02-v5/candidate.pptx" -Output "D:/weibull/tmp/f02-v5/mathtype-candidate.pptx" -SpecPath "D:/weibull/Study/Study 01 New/图片/数据/F02_MathType公式.json"
+& "Study/Study 01 New/图片/绘图程序/F01_嵌入MathType.ps1" -Candidate "D:/weibull/tmp/f02-v6/candidate.pptx" -Output "D:/weibull/tmp/f02-v6/mathtype-candidate.pptx" -SpecPath "D:/weibull/Study/Study 01 New/图片/数据/F02_MathType公式.json"
 node "Study/Study 01 New/图片/绘图程序/F02_绘制PPT.mjs" --finalize
 & "Study/Study 01 New/图片/绘图程序/F02_导出整图与子图.ps1"
 ```

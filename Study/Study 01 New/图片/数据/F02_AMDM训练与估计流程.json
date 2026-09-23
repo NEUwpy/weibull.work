@@ -1,17 +1,40 @@
 {
   "figure": "F02",
-  "revision": 5,
+  "revision": 6,
   "type": "AMDM estimator definition",
   "quantitative_data": false,
   "nodes": {
-    "sample": "当前寿命观测",
-    "representation": "排序、归一化与标准化",
-    "predict": "已训练模型评价候选损失",
-    "select": "选择预测损失最低的偏移",
-    "mdm": "原始样本与所选偏移共同进入MDM",
-    "output": "MDM内部得到的AMDM三参数估计结果"
+    "sample": "原始观测样本",
+    "criterion": "构造样本最小差异求解准则",
+    "gamma": "所选偏移下位置求解",
+    "beta": "位置回代求条件最小差异",
+    "eta": "伪尺度均值",
+    "output": "同一MDM流程内的AMDM三参数估计",
+    "representation": "样本表征",
+    "predict": "候选偏移评价",
+    "select": "选择预测误差最低的偏移"
   },
   "edges": [
+    {
+      "from": "sample",
+      "to": "criterion"
+    },
+    {
+      "from": "criterion",
+      "to": "gamma"
+    },
+    {
+      "from": "gamma",
+      "to": "beta"
+    },
+    {
+      "from": "beta",
+      "to": "eta"
+    },
+    {
+      "from": "eta",
+      "to": "output"
+    },
     {
       "from": "sample",
       "to": "representation"
@@ -26,15 +49,7 @@
     },
     {
       "from": "select",
-      "to": "mdm"
-    },
-    {
-      "from": "sample",
-      "to": "mdm"
-    },
-    {
-      "from": "mdm",
-      "to": "output"
+      "to": "gamma"
     }
   ],
   "sources": [
@@ -62,18 +77,25 @@
   },
   "canvas_px": [
     2340,
-    600
+    850
   ],
   "style_reference": "F01_MDM流程与圆周误差-v21.pptx",
   "layout_note": "Information-flow nodes and edges; editable geometry is defined in F02_绘制PPT.mjs. Network drawing is schematic, not the fitted layer widths.",
-  "visual_focus": "Sample-driven offset selection feeds the complete MDM solve. All three parameters and the final estimate are inside MDM; no external output module.",
+  "visual_focus": "Continuous MDM estimation from observations to all three parameters; a sample-driven control branch targets location solving.",
   "overall_heading": false,
   "groups": {
     "mdm": [
-      "location_solve",
-      "shape_backsubstitution",
-      "scale_mean",
+      "sample",
+      "criterion",
+      "gamma",
+      "beta",
+      "eta",
       "output"
+    ],
+    "adaptation": [
+      "representation",
+      "predict",
+      "select"
     ]
   }
 }
