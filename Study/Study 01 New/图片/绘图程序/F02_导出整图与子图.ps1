@@ -1,7 +1,7 @@
 param([string]$PptPath='')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
-if(-not $PptPath){$PptPath=Join-Path $root 'F02_AMDM训练与估计流程-v2.pptx'}
+if(-not $PptPath){$PptPath=Join-Path $root 'F02_AMDM估计器流程-v3.pptx'}
 $out=Join-Path $root '子图'
 New-Item -ItemType Directory -Path $out -Force|Out-Null
 $app=New-Object -ComObject PowerPoint.Application
@@ -9,7 +9,7 @@ try {
  $deck=$app.Presentations.Open($PptPath,-1,0,0)
  try {
   $slide=$deck.Slides.Item(1)
-  $slide.Export((Join-Path $root 'F02_AMDM训练与估计流程-v2.png'),'PNG',4680,2900)
+  $slide.Export((Join-Path $root 'F02_AMDM估计器流程-v3.png'),'PNG',4680,1340)
   $eqCount=0
   for($i=1;$i -le $slide.Shapes.Count;$i++){
    $sh=$slide.Shapes.Item($i)
@@ -18,28 +18,30 @@ try {
     $eqCount++
    }
   }
-  if($eqCount -ne 20){throw "Expected 20 MathType objects, got $eqCount"}
+  if($eqCount -ne 3){throw "Expected 3 MathType objects, got $eqCount"}
   Write-Output "Verified $eqCount MathType OLE equations"
  } finally {$deck.Close();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($deck)|Out-Null}
- foreach($p in @(@{Name='F02a_离线学习';Prefix='a.';Y=0;H=640},@{Name='F02b_实际估计';Prefix='b.';Y=650;H=750})){
+ foreach($p in @(@{Name='F02a_观测样本';Prefix='sample.';X=40;Y=108;W=390;H=418},@{Name='F02b_偏移选择';Prefix='select.';X=520;Y=108;W=760;H=418},@{Name='F02c_MDM估计';Prefix='mdm.';X=1370;Y=108;W=460;H=418},@{Name='F02d_参数输出';Prefix='output.';X=1920;Y=108;W=380;H=418})){
   $deck=$app.Presentations.Open($PptPath,-1,0,0)
   try {
    $slide=$deck.Slides.Item(1)
-   $names=[object[]]@($slide.Shapes | Where-Object {$_.Name.StartsWith($p.Prefix) -or $_.Name.StartsWith('MathType.'+$p.Prefix)} | ForEach-Object {$_.Name})
-   # Resizing a populated slide rescales its contents. Copy into an empty canvas instead.
-   $panel=$app.Presentations.Add(0)
-   try {
-    $panel.PageSetup.SlideWidth=2300*.75;$panel.PageSetup.SlideHeight=$p.H*.75
-    $panelSlide=$panel.Slides.Add(1,12)
-    $range=$slide.Shapes.Range($names);$pasted=$null
-    for($attempt=0;$attempt -lt 8;$attempt++){
-     $range.Copy();Start-Sleep -Milliseconds 250
-     try {$pasted=$panelSlide.Shapes.Paste();break} catch {Start-Sleep -Milliseconds 250}
-    }
-    if(-not $pasted){throw 'Cannot paste F02 panel'}
-    foreach($copy in $pasted){$original=$slide.Shapes.Item($copy.Name);$copy.Left=$original.Left-20*.75;$copy.Top=$original.Top-$p.Y*.75}
-    $panelSlide.Export((Join-Path $out ($p.Name+'.png')),'PNG',4600,($p.H*2))
-   } finally {$panel.Close();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($panel)|Out-Null}
+   $geometry=@{}
+   for($i=$slide.Shapes.Count;$i -ge 1;$i--){
+    $sh=$slide.Shapes.Item($i)
+    $keep=$sh.Name.StartsWith($p.Prefix) -or $sh.Name.StartsWith('MathType.'+$p.Prefix)
+    if(-not $keep){$sh.Delete();continue}
+    $font=$null
+    if($sh.HasTextFrame -eq -1 -and $sh.TextFrame.HasText -eq -1){$font=$sh.TextFrame.TextRange.Font.Size}
+    $geometry[$sh.Name]=@{X=$sh.Left;Y=$sh.Top;W=$sh.Width;H=$sh.Height;Font=$font}
+   }
+   $deck.PageSetup.SlideWidth=$p.W*.75;$deck.PageSetup.SlideHeight=$p.H*.75
+   foreach($sh in $slide.Shapes){
+    $g=$geometry[$sh.Name]
+    $sh.LockAspectRatio=0;$sh.Width=$g.W;$sh.Height=$g.H
+    $sh.Left=$g.X-$p.X*.75;$sh.Top=$g.Y-$p.Y*.75
+    if($null -ne $g.Font){$sh.TextFrame.TextRange.Font.Size=$g.Font}
+   }
+   $slide.Export((Join-Path $out ($p.Name+'.png')),'PNG',($p.W*3),($p.H*3))
   } finally {$deck.Close();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($deck)|Out-Null}
  }
 } finally {$app.Quit();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($app)|Out-Null}

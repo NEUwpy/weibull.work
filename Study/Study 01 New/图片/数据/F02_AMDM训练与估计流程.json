@@ -1,98 +1,40 @@
 {
   "figure": "F02",
-  "revision": 2,
-  "type": "method information-flow diagram",
+  "revision": 3,
+  "type": "AMDM estimator definition",
   "quantitative_data": false,
   "nodes": {
-    "truth": "模拟真参数\n$(\\beta,\\eta,\\gamma)$",
-    "sim": "模拟样本\n$\\boldsymbol{t}_n$",
-    "scan": "MDM候选求解\n$\\delta_1,\\ldots,\\delta_{26}$",
-    "target": "联合损失向量\n$\\boldsymbol{\\ell}$",
-    "train_input": "排序 · 均值归一化\n输入标准化",
-    "fit": "多输出回归训练\n按样本量分别拟合",
-    "model": "模型与变换参数\n训练后保存",
-    "obs": "当前观测样本\n$\\boldsymbol{t}_n$",
-    "input": "排序 · 均值归一化\n输入标准化",
-    "predict": "预测候选损失\n逆标准化 · 非负截断",
-    "select": "选择预测损失最低的候选\n$\\hat{\\delta}(\\boldsymbol{t}_n)$",
-    "mdm": "MDM三参数求解\n使用所选偏移",
-    "output": "AMDM估计结果\n$(\\hat{\\beta},\\hat{\\eta},\\hat{\\gamma})$"
+    "sample": "当前寿命观测",
+    "representation": "排序、归一化与标准化",
+    "predict": "已训练模型评价候选损失",
+    "select": "选择预测损失最低的偏移",
+    "mdm": "原始样本与所选偏移共同进入MDM",
+    "output": "形状、尺度与位置参数估计"
   },
   "edges": [
     {
-      "from": "truth",
-      "to": "sim",
-      "style": "solid"
+      "from": "sample",
+      "to": "representation"
     },
     {
-      "from": "sim",
-      "to": "scan",
-      "style": "solid"
-    },
-    {
-      "from": "scan",
-      "to": "target",
-      "style": "solid"
-    },
-    {
-      "from": "truth",
-      "to": "target",
-      "style": "solid"
-    },
-    {
-      "from": "sim",
-      "to": "train_input",
-      "style": "solid"
-    },
-    {
-      "from": "train_input",
-      "to": "fit",
-      "style": "solid"
-    },
-    {
-      "from": "target",
-      "to": "fit",
-      "style": "solid"
-    },
-    {
-      "from": "fit",
-      "to": "model",
-      "style": "solid"
-    },
-    {
-      "from": "model",
-      "to": "predict",
-      "style": "dashed"
-    },
-    {
-      "from": "obs",
-      "to": "input",
-      "style": "solid"
-    },
-    {
-      "from": "input",
-      "to": "predict",
-      "style": "solid"
+      "from": "representation",
+      "to": "predict"
     },
     {
       "from": "predict",
-      "to": "select",
-      "style": "solid"
+      "to": "select"
     },
     {
       "from": "select",
-      "to": "mdm",
-      "style": "solid"
+      "to": "mdm"
     },
     {
-      "from": "obs",
-      "to": "mdm",
-      "style": "solid"
+      "from": "sample",
+      "to": "mdm"
     },
     {
       "from": "mdm",
-      "to": "output",
-      "style": "solid"
+      "to": "output"
     }
   ],
   "sources": [
@@ -101,10 +43,9 @@
     "Study/01-study-MDM最小偏移量优化研究/code/run_E6b_dimensional_raw_specialist.py:train_specialist"
   ],
   "checks": {
-    "text_inside_canvas": true,
-    "training_and_inference_separated": true,
+    "online_estimator_only": true,
     "raw_sample_goes_to_MDM": true,
-    "truth_used_only_in_training": true
+    "no_training_or_performance_panels": true
   },
   "sample_example": {
     "values": [
@@ -121,7 +62,7 @@
   },
   "canvas_px": [
     2340,
-    1450
+    670
   ],
   "style_reference": "F01_MDM流程与圆周误差-v20.pptx",
   "layout_note": "Information-flow nodes and edges; editable geometry is defined in F02_绘制PPT.mjs. Network drawing is schematic, not the fitted layer widths."
