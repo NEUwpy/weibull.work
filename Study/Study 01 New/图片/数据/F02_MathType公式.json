@@ -4,48 +4,108 @@
     "remove": [
       "main.sample-vector"
     ],
-    "tex": "\\boldsymbol t_n",
-    "x": 95,
-    "y": 253,
-    "w": 180,
-    "h": 55,
+    "tex": "\\boldsymbol t_n=(t_{(1)},\\ldots,t_{(n)})^{\\mathsf T}",
+    "x": 65,
+    "y": 232,
+    "w": 325,
+    "h": 58,
+    "font": 27
+  },
+  {
+    "id": "main.rank",
+    "remove": [
+      "main.rank"
+    ],
+    "tex": "\\hat F(t_{(i)})=\\frac{i-0.3}{n+0.4}",
+    "x": 70,
+    "y": 406,
+    "w": 315,
+    "h": 89,
+    "font": 31
+  },
+  {
+    "id": "main.pseudo",
+    "remove": [
+      "main.pseudo"
+    ],
+    "tex": "\\hat\\eta_i(\\gamma_j,\\beta_k)=\\frac{t_{(i)}-\\gamma_j}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\beta_k}}",
+    "x": 482,
+    "y": 145,
+    "w": 606,
+    "h": 100,
+    "font": 32
+  },
+  {
+    "id": "main.sd",
+    "remove": [
+      "main.sd"
+    ],
+    "tex": "\\sigma_\\eta(\\gamma_j,\\beta_k)=\\mathrm{SD}(\\hat\\eta_1,\\ldots,\\hat\\eta_n)",
+    "x": 484,
+    "y": 307,
+    "w": 602,
+    "h": 62,
+    "font": 31
+  },
+  {
+    "id": "main.profile",
+    "remove": [
+      "main.profile"
+    ],
+    "tex": "\\sigma_{\\eta,\\min}(\\gamma_j)=\\min_{\\beta_k}\\sigma_\\eta(\\gamma_j,\\beta_k)",
+    "x": 484,
+    "y": 442,
+    "w": 602,
+    "h": 76,
+    "font": 32
+  },
+  {
+    "id": "main.gradient",
+    "remove": [
+      "main.gradient"
+    ],
+    "tex": "\\nabla(\\gamma)=\\frac{\\mathrm d\\sigma_{\\eta,\\min}(\\gamma)}{\\mathrm d\\gamma}",
+    "x": 1182,
+    "y": 149,
+    "w": 416,
+    "h": 114,
     "font": 33
   },
   {
-    "id": "main.gamma",
+    "id": "main.root",
     "remove": [
-      "main.gamma"
+      "main.root"
     ],
-    "tex": "\\hat\\gamma",
-    "x": 928,
-    "y": 292,
-    "w": 144,
-    "h": 65,
-    "font": 35
+    "tex": "\\nabla(\\hat\\gamma)=\\hat\\delta(\\boldsymbol t_n)",
+    "x": 1193,
+    "y": 358,
+    "w": 394,
+    "h": 66,
+    "font": 33
   },
   {
     "id": "main.beta",
     "remove": [
       "main.beta"
     ],
-    "tex": "\\hat\\beta",
-    "x": 1328,
-    "y": 292,
-    "w": 144,
-    "h": 65,
-    "font": 35
+    "tex": "\\hat\\beta=\\mathop{\\mathrm{arg\\,min}}\\limits_{\\beta_k}\\sigma_\\eta(\\hat\\gamma,\\beta_k)",
+    "x": 1698,
+    "y": 145,
+    "w": 574,
+    "h": 90,
+    "font": 33
   },
   {
     "id": "main.eta",
     "remove": [
       "main.eta"
     ],
-    "tex": "\\hat\\eta",
+    "tex": "\\hat\\eta=\\frac1n\\sum_{i=1}^{n}\\hat\\eta_i(\\hat\\gamma,\\hat\\beta)",
     "x": 1698,
-    "y": 292,
-    "w": 144,
-    "h": 65,
-    "font": 35
+    "y": 304,
+    "w": 574,
+    "h": 93,
+    "font": 33
   },
   {
     "id": "main.parameters",
@@ -53,22 +113,46 @@
       "main.parameters"
     ],
     "tex": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma)",
-    "x": 2028,
-    "y": 222,
-    "w": 234,
-    "h": 80,
-    "font": 34
+    "x": 1810,
+    "y": 512,
+    "w": 350,
+    "h": 45,
+    "font": 32
+  },
+  {
+    "id": "adapt.prediction",
+    "remove": [
+      "adapt.prediction"
+    ],
+    "tex": "\\widehat{\\boldsymbol\\ell}(\\boldsymbol t_n)",
+    "x": 568,
+    "y": 847,
+    "w": 254,
+    "h": 52,
+    "font": 31
+  },
+  {
+    "id": "adapt.argmin",
+    "remove": [
+      "adapt.argmin"
+    ],
+    "tex": "m^\\star=\\mathop{\\mathrm{arg\\,min}}\\limits_m\\widehat\\ell_m(\\boldsymbol t_n)",
+    "x": 912,
+    "y": 809,
+    "w": 395,
+    "h": 84,
+    "font": 29
   },
   {
     "id": "adapt.delta",
     "remove": [
       "adapt.delta"
     ],
-    "tex": "\\hat\\delta(\\boldsymbol t_n)",
-    "x": 1030,
-    "y": 701,
-    "w": 194,
-    "h": 48,
-    "font": 31
+    "tex": "\\hat\\delta(\\boldsymbol t_n)=\\delta_{m^\\star}",
+    "x": 1325,
+    "y": 832,
+    "w": 252,
+    "h": 60,
+    "font": 29
   }
 ]

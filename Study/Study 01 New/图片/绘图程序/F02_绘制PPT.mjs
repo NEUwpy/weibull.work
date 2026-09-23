@@ -7,16 +7,16 @@ const RUNTIME=process.env.RUNTIME_NODE_MODULES||'C:/Users/36089/.cache/codex-run
 process.env.RUNTIME_NODE_MODULES=RUNTIME;
 const {Presentation,PresentationFile}=await import(pathToFileURL(path.join(RUNTIME,'@oai/artifact-tool/dist/artifact_tool.mjs')));
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),REPO=path.resolve(ROOT,'../../..');
-const BUILD=path.join(REPO,'tmp/f02-v6');
+const BUILD=path.join(REPO,'tmp/f02-v7');
 const SKILL='C:/Users/36089/.codex/plugins/cache/openai-primary-runtime/presentations/26.905.11957/skills/presentations';
 await fs.mkdir(BUILD,{recursive:true});
 if(process.argv.includes('--finalize')){
  const {finalizePresentation}=await import(pathToFileURL(path.join(SKILL,'container_tools/artifact_tool_utils.mjs')));
- await finalizePresentation({workspaceDir:REPO,candidatePath:path.join(BUILD,'mathtype-candidate.pptx'),finalPath:path.join(ROOT,'F02_AMDM估计器流程-v6.pptx'),pythonExecutable:'C:/Users/36089/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),layoutValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_layout_geometry.py'),layoutArgs:['--expected-slide-size-emu',2340*9525+','+850*9525,'--validate-heading-fit'],explicitTotalSlideCount:1,verifyArtifactToolImport:true,receiptPath:path.join(BUILD,'validation.json')});
+ await finalizePresentation({workspaceDir:REPO,candidatePath:path.join(BUILD,'mathtype-candidate.pptx'),finalPath:path.join(ROOT,'F02_AMDM估计器流程-v7.pptx'),pythonExecutable:'C:/Users/36089/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),layoutValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_layout_geometry.py'),layoutArgs:['--expected-slide-size-emu',2340*9525+','+960*9525,'--validate-heading-fit'],explicitTotalSlideCount:1,verifyArtifactToolImport:true,receiptPath:path.join(BUILD,'validation.json')});
  process.exit(0);
 }
 const D=JSON.parse(await fs.readFile(path.join(ROOT,'数据/F02_AMDM训练与估计流程.json'),'utf8'));
-const P=Presentation.create({slideSize:{width:2340,height:850}}),S=P.slides.add();S.background.fill='#FFFFFF';
+const P=Presentation.create({slideSize:{width:2340,height:960}}),S=P.slides.add();S.background.fill='#FFFFFF';
 const INK='#263238',BLUE='#147AAA',GRAY='#82878C',FONT='Microsoft YaHei';
 function rect(name,x,y,w,h,fill='none',stroke='none',dash=false){return S.shapes.add({name,geometry:'rect',position:{left:x,top:y,width:w,height:h},fill,line:{fill:stroke,width:1.3,style:dash?'dashed':'solid'}});}
 function txt(name,text,x,y,w,h,size=24,color=INK,bold=false,align='center'){
@@ -34,68 +34,55 @@ function network(prefix,x,y,w,h){const layers=[3,4,4,3],xx=layers.map((_,i)=>x+i
 
 
 
-// One continuous estimator: the observation is the first step of the MDM lane.
-rect('main.boundary',30,30,2280,430,'#FCFDF9','#9FBAA5',true);
-function step(name,label,x,w,kind='green'){
- const fill={blue:'#A8C0E5',green:'#EAF1D8',peach:'#FAEAD9'}[kind];
- rect(name+'.body',x,70,w,330,'#FFFFFF');
- rect(name+'.header',x,70,w,42,fill);
- txt(name+'.title',label,x+5,72,w-10,38,24,INK,true);
+
+// The method is expressed through its calculation relations, not placeholder boxes.
+rect('main.boundary',30,30,2280,570,'#FFFFFF','#9FBAA5',true);
+function heading(name,label,x,w,kind='green'){
+ rect(name+'.header',x,55,w,42,kind==='blue'?'#A8C0E5':'#EAF1D8');
+ txt(name+'.title',label,x+5,57,w-10,38,24,INK,true);
 }
-step('main.sample','观测样本',60,250,'blue');
-sample('main.sample',84,214,202);
-eq('main.sample-vector','\\boldsymbol t_n',95,253,180,55,33);
-txt('main.sample-note','原始寿命观测',76,343,218,34,23);
-arrow('main.sample-to-criterion',329,250,52);
+heading('main.sample','观测样本',55,345,'blue');
+sample('main.sample',88,194,279);
+eq('main.sample-vector','\\boldsymbol t_n=(t_{(1)},\\ldots,t_{(n)})^{\\mathsf T}',65,232,325,58,27);
+txt('main.rank-label','中位秩概率',65,346,325,35,23);
+eq('main.rank','\\hat F(t_{(i)})=\\frac{i-0.3}{n+0.4}',70,406,315,89,31);
+arrow('main.sample-to-criterion',414,307,38);
 
-step('main.criterion','构造求解准则',400,330);
-txt('main.criterion-line1','由当前样本构造',420,191,290,38,25);
-txt('main.criterion-line2','最小差异准则',420,244,290,38,25,INK,true);
-txt('main.criterion-line3','形成位置参数搜索过程',411,343,308,34,23);
-arrow('main.criterion-to-location',762,250,56);
+heading('main.criterion','由样本构造最小差异准则',465,640);
+eq('main.pseudo','\\hat\\eta_i(\\gamma_j,\\beta_k)=\\frac{t_{(i)}-\\gamma_j}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\beta_k}}',482,145,606,100,32);
+edge('main.pseudo-to-sd',[[785,263],[785,288]],GRAY);
+eq('main.sd','\\sigma_\\eta(\\gamma_j,\\beta_k)=\\mathrm{SD}(\\hat\\eta_1,\\ldots,\\hat\\eta_n)',484,307,602,62,31);
+edge('main.sd-to-profile',[[785,394],[785,419]],GRAY);
+eq('main.profile','\\sigma_{\\eta,\\min}(\\gamma_j)=\\min_{\\beta_k}\\sigma_\\eta(\\gamma_j,\\beta_k)',484,442,602,76,32);
+arrow('main.criterion-to-location',1120,307,38);
 
-step('main.location','位置参数求解',850,300,'peach');
-rect('main.location-focus',850,70,300,330,'none','#D5AA85');
-txt('main.location-description','按所选偏移确定',865,177,270,36,25);
-txt('main.location-description2','位置求解落点',865,223,270,36,25);
-eq('main.gamma','\\hat\\gamma',928,292,144,65,35);
-arrow('main.location-to-shape',1182,250,56);
+heading('main.location','位置参数求解',1170,440);
+eq('main.gradient','\\nabla(\\gamma)=\\frac{\\mathrm d\\sigma_{\\eta,\\min}(\\gamma)}{\\mathrm d\\gamma}',1182,149,416,114,33);
+edge('main.gradient-to-root',[[1390,288],[1390,319]],GRAY);
+rect('main.root-highlight',1182,342,416,98,'#FAEAD9','#D5AA85');
+eq('main.root','\\nabla(\\hat\\gamma)=\\hat\\delta(\\boldsymbol t_n)',1193,358,394,66,33);
+arrow('main.location-to-backsolve',1625,307,39);
 
-step('main.shape','形状参数回代',1270,260);
-txt('main.shape-description','代入位置估计',1282,183,236,36,24);
-txt('main.shape-description2','求条件最小差异',1282,229,236,36,24);
-eq('main.beta','\\hat\\beta',1328,292,144,65,35);
-arrow('main.shape-to-scale',1548,250,53);
+heading('main.solve','形状、尺度回代与估计结果',1680,610);
+eq('main.beta','\\hat\\beta=\\mathop{\\mathrm{arg\\,min}}\\limits_{\\beta_k}\\sigma_\\eta(\\hat\\gamma,\\beta_k)',1698,145,574,90,33);
+edge('main.beta-to-eta',[[1985,257],[1985,283]],GRAY);
+eq('main.eta','\\hat\\eta=\\frac1n\\sum_{i=1}^{n}\\hat\\eta_i(\\hat\\gamma,\\hat\\beta)',1698,304,574,93,33);
+edge('main.eta-to-result',[[1985,420],[1985,445]],GRAY);
+rect('main.result-bg',1755,465,460,102,'#FAEAD9');
+txt('main.result-label','AMDM估计结果',1770,470,430,32,23,INK,true);
+eq('main.parameters','(\\hat\\beta,\\hat\\eta,\\hat\\gamma)',1810,512,350,45,32);
 
-step('main.scale','尺度参数计算',1620,300);
-txt('main.scale-description','代入位置与形状估计',1630,183,280,36,23);
-txt('main.scale-description2','伪尺度取均值',1630,229,280,36,24);
-eq('main.eta','\\hat\\eta',1698,292,144,65,35);
-arrow('main.scale-to-result',1940,250,57);
-rect('main.result-bg',2020,70,250,330,'#FAEAD9');
-txt('main.result-label','AMDM估计结果',2025,85,240,39,24,INK,true);
-eq('main.parameters','(\\hat\\beta,\\hat\\eta,\\hat\\gamma)',2028,222,234,80,34);
-txt('main.result-meaning','形状 · 尺度 · 位置',2028,344,234,34,22);
-
-region('adapt','样本驱动的估计调节',400,570,1150,240,'blue');
-rect('adapt.representation',433,649,193,102,'#F2F5F9');
-txt('adapt.representation-title','样本表征',438,657,183,36,24,INK,true);
-txt('adapt.representation-note','排序 · 归一化',438,704,183,31,22);
-arrow('adapt.to-evaluation',649,698,44);
-network('adapt.network',724,648,198,98);
-txt('adapt.network-label','候选偏移评价',712,763,222,30,22);
-arrow('adapt.to-choice',945,698,43);
-rect('adapt.choice',1010,645,234,112,'#FAEAD9');
-txt('adapt.choice-label','选择预测误差最低的偏移',1018,651,218,43,18);
-eq('adapt.delta','\\hat\\delta(\\boldsymbol t_n)',1030,701,194,48,31);
-line('adapt.chosen-delta',[[1244,698],[1425,698],[1425,570]],BLUE,1.6);
-txt('adapt.output-label','样本自适应偏移',1268,756,250,32,22,BLUE);
-edge('flow.sample-information',[[185,400],[185,698],[400,698]],BLUE);
-txt('flow.sample-information-label','样本信息',220,655,150,32,23,BLUE);
-edge('flow.adjust',[[1425,570],[1425,505],[1000,505],[1000,400]],BLUE);
-rect('flow.adjust-label-bg',1050,483,323,42,'#FFFFFF');
-txt('flow.adjust-label','调节位置参数求解判据',1054,485,315,38,24,BLUE);
-S.speakerNotes.textFrame.setText('图2定义AMDM估计方法。上方完整MDM主流程从原始观测开始，构造样本求解准则，再依次求位置、形状和尺度参数，最终估计结果仍在同一流程内。下方支路利用同一观测进行样本表征与候选偏移评价，所选偏移明确进入位置参数求解步骤；不是预先处理完偏移再将观测传入一个独立MDM黑箱。网络只是已训练模型示意，不展开训练、梯度曲线或性能结果。输入散点来自图1既有样本；符号用MathType对象。');
+region('adapt','当前样本给出位置求解所用的偏移',550,750,1050,170,'blue');
+txt('adapt.prediction-label','候选损失预测',565,806,260,32,23);
+eq('adapt.prediction','\\widehat{\\boldsymbol\\ell}(\\boldsymbol t_n)',568,847,254,52,31);
+arrow('adapt.predict-to-select',845,853,45);
+eq('adapt.argmin','m^\\star=\\mathop{\\mathrm{arg\\,min}}\\limits_m\\widehat\\ell_m(\\boldsymbol t_n)',912,809,395,84,29);
+eq('adapt.delta','\\hat\\delta(\\boldsymbol t_n)=\\delta_{m^\\star}',1325,832,252,60,29);
+edge('flow.sample-information',[[227,580],[227,853],[550,853]],BLUE);
+txt('flow.sample-label','同一观测样本',255,810,250,32,23,BLUE);
+edge('flow.offset',[[1600,862],[1640,862],[1640,660],[1390,660],[1390,440]],BLUE);
+txt('flow.offset-label','样本自适应偏移',1440,618,240,34,23,BLUE);
+S.speakerNotes.textFrame.setText('AMDM计算机制图，符号与稿件2.2–2.5一致。排序观测与中位秩概率给出伪尺度，标准差及对形状参数的条件最小值形成位置求解准则。位置求解判据中的偏移由当前样本的候选损失预测自适应确定，然后回代形状与尺度参数，输出完整三参数估计。位置约束与边界处理沿用2.3。下方仅给出预测与选择关系，不展开网络训练。各式为MathType对象。散点复用F01既有样本；无新模拟、梯度曲线或性能证据。');
 await fs.writeFile(path.join(ROOT,'数据/F02_MathType公式.json'),JSON.stringify(specs,null,2)+'\n');
 await (await PresentationFile.exportPptx(P)).save(path.join(BUILD,'candidate.pptx'));
-console.log('Built F02 v6: 2340 x 850; '+specs.length+' MathType equations.');
+console.log('Built F02 v7: 2340 x 960; '+specs.length+' MathType equations.');

@@ -1,7 +1,7 @@
 param([string]$PptPath='')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
-if(-not $PptPath){$PptPath=Join-Path $root 'F02_AMDM估计器流程-v6.pptx'}
+if(-not $PptPath){$PptPath=Join-Path $root 'F02_AMDM估计器流程-v7.pptx'}
 $out=Join-Path $root '子图'
 New-Item -ItemType Directory -Path $out -Force|Out-Null
 $app=New-Object -ComObject PowerPoint.Application
@@ -9,7 +9,7 @@ try {
  $deck=$app.Presentations.Open($PptPath,-1,0,0)
  try {
   $slide=$deck.Slides.Item(1)
-  $slide.Export((Join-Path $root 'F02_AMDM估计器流程-v6.png'),'PNG',4680,1700)
+  $slide.Export((Join-Path $root 'F02_AMDM估计器流程-v7.png'),'PNG',4680,1920)
   $eqCount=0
   for($i=1;$i -le $slide.Shapes.Count;$i++){
    $sh=$slide.Shapes.Item($i)
@@ -18,10 +18,10 @@ try {
     $eqCount++
    }
   }
-  if($eqCount -ne 6){throw "Expected 6 MathType objects, got $eqCount"}
+  if($eqCount -ne 13){throw "Expected 13 MathType objects, got $eqCount"}
   Write-Output "Verified $eqCount MathType OLE equations"
  } finally {$deck.Close();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($deck)|Out-Null}
- foreach($p in @(@{Name='F02a_MDM主流程';Prefix='main.';X=30;Y=30;W=2280;H=430},@{Name='F02b_样本驱动调节';Prefix='adapt.';X=400;Y=570;W=1150;H=240})){
+ foreach($p in @(@{Name='F02a_MDM主流程';Prefix='main.';X=30;Y=30;W=2280;H=570},@{Name='F02b_样本驱动调节';Prefix='adapt.';X=550;Y=750;W=1050;H=170})){
   $deck=$app.Presentations.Open($PptPath,-1,0,0)
   try {
    $slide=$deck.Slides.Item(1)

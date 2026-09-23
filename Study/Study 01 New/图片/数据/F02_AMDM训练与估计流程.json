@@ -1,6 +1,6 @@
 {
   "figure": "F02",
-  "revision": 6,
+  "revision": 7,
   "type": "AMDM estimator definition",
   "quantitative_data": false,
   "nodes": {
@@ -10,9 +10,7 @@
     "beta": "位置回代求条件最小差异",
     "eta": "伪尺度均值",
     "output": "同一MDM流程内的AMDM三参数估计",
-    "representation": "样本表征",
-    "predict": "候选偏移评价",
-    "select": "选择预测误差最低的偏移"
+    "sample_adaptive_offset": "候选损失预测与argmin选择给出偏移"
   },
   "edges": [
     {
@@ -37,18 +35,10 @@
     },
     {
       "from": "sample",
-      "to": "representation"
+      "to": "sample_adaptive_offset"
     },
     {
-      "from": "representation",
-      "to": "predict"
-    },
-    {
-      "from": "predict",
-      "to": "select"
-    },
-    {
-      "from": "select",
+      "from": "sample_adaptive_offset",
       "to": "gamma"
     }
   ],
@@ -77,11 +67,11 @@
   },
   "canvas_px": [
     2340,
-    850
+    960
   ],
   "style_reference": "F01_MDM流程与圆周误差-v21.pptx",
   "layout_note": "Information-flow nodes and edges; editable geometry is defined in F02_绘制PPT.mjs. Network drawing is schematic, not the fitted layer widths.",
-  "visual_focus": "Continuous MDM estimation from observations to all three parameters; a sample-driven control branch targets location solving.",
+  "visual_focus": "Formula-based estimation chain: observations -> pseudo scales -> discrepancy profile -> sample-adaptive location criterion -> beta and eta backsubstitution -> parameter estimates.",
   "overall_heading": false,
   "groups": {
     "mdm": [
@@ -93,9 +83,7 @@
       "output"
     ],
     "adaptation": [
-      "representation",
-      "predict",
-      "select"
+      "sample_adaptive_offset"
     ]
   }
 }
