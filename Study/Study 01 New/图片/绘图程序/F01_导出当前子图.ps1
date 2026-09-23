@@ -17,13 +17,23 @@ try {
   $deck=$app.Presentations.Open($PptPath,-1,0,0)
   try {
    $slide=$deck.Slides.Item(1)
-   for($i=$slide.Shapes.Count;$i -ge 1;$i--){
-    $sh=$slide.Shapes.Item($i);$name=$sh.Name
-    $keep=$name.StartsWith($p.Prefix) -or (($p.Name -like 'F01d_*') -and $name.StartsWith('rmse.')) -or ($name.StartsWith('MathType.') -and $name.Substring(9) -in $p.Equations)
-    if(-not $keep){$sh.Delete()}else{$sh.Left-=$p.X*.75;$sh.Top-=$p.Y*.75}
-   }
-   $deck.PageSetup.SlideWidth=$p.W*.75;$deck.PageSetup.SlideHeight=$p.H*.75
-   $slide.Export((Join-Path $out ($p.Name+'.png')),'PNG',($p.W*3),($p.H*3))
+   $names=[object[]]@($slide.Shapes | Where-Object {
+    $name=$_.Name
+    $name.StartsWith($p.Prefix) -or (($p.Name -like 'F01d_*') -and $name.StartsWith('rmse.')) -or ($name.StartsWith('MathType.') -and $name.Substring(9) -in $p.Equations)
+   } | ForEach-Object {$_.Name})
+   $panel=$app.Presentations.Add(0)
+   try {
+    $panel.PageSetup.SlideWidth=$p.W*.75;$panel.PageSetup.SlideHeight=$p.H*.75
+    $panelSlide=$panel.Slides.Add(1,12)
+    $range=$slide.Shapes.Range($names);$pasted=$null
+    for($attempt=0;$attempt -lt 8;$attempt++){
+     $range.Copy();Start-Sleep -Milliseconds 250
+     try {$pasted=$panelSlide.Shapes.Paste();break} catch {Start-Sleep -Milliseconds 250}
+    }
+    if(-not $pasted){throw 'Cannot paste F01 panel'}
+    foreach($copy in $pasted){$original=$slide.Shapes.Item($copy.Name);$copy.Left=$original.Left-$p.X*.75;$copy.Top=$original.Top-$p.Y*.75}
+    $panelSlide.Export((Join-Path $out ($p.Name+'.png')),'PNG',($p.W*3),($p.H*3))
+   } finally {$panel.Close();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($panel)|Out-Null}
   } finally {$deck.Close();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($deck)|Out-Null}
  }
 } finally {$app.Quit();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($app)|Out-Null}

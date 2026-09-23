@@ -1,391 +1,128 @@
 {
   "figure": "F02",
-  "revision": 1,
+  "revision": 2,
   "type": "method information-flow diagram",
-  "size_mm": [
-    183,
-    128
-  ],
   "quantitative_data": false,
   "nodes": {
-    "truth": [
-      2,
-      77,
-      17,
-      11,
-      "模拟真参数\n$(\\beta,\\eta,\\gamma)$",
-      "grey"
-    ],
-    "sim": [
-      26,
-      77,
-      17,
-      11,
-      "模拟样本\n$\\boldsymbol{t}_n$",
-      "grey"
-    ],
-    "scan": [
-      50,
-      77,
-      18,
-      11,
-      "MDM候选求解\n$\\delta_1,\\ldots,\\delta_{26}$",
-      "grey"
-    ],
-    "target": [
-      76,
-      77,
-      22,
-      11,
-      "联合损失向量\n$\\boldsymbol{\\ell}$",
-      "orange"
-    ],
-    "train_input": [
-      26,
-      55,
-      17,
-      11,
-      "排序 · 均值归一化\n输入标准化",
-      "blue"
-    ],
-    "fit": [
-      50,
-      55,
-      18,
-      11,
-      "多输出回归训练\n按样本量分别拟合",
-      "blue"
-    ],
-    "model": [
-      76,
-      55,
-      22,
-      11,
-      "模型与变换参数\n训练后保存",
-      "blue"
-    ],
-    "obs": [
-      2,
-      22,
-      17,
-      12,
-      "当前观测样本\n$\\boldsymbol{t}_n$",
-      "grey"
-    ],
-    "input": [
-      26,
-      22,
-      17,
-      12,
-      "排序 · 均值归一化\n输入标准化",
-      "blue"
-    ],
-    "predict": [
-      50,
-      22,
-      18,
-      12,
-      "预测候选损失\n逆标准化 · 非负截断",
-      "blue"
-    ],
-    "select": [
-      76,
-      22,
-      22,
-      12,
-      "选择预测损失最低的候选\n$\\hat{\\delta}(\\boldsymbol{t}_n)$",
-      "orange"
-    ],
-    "mdm": [
-      50,
-      1,
-      18,
-      12,
-      "MDM三参数求解\n使用所选偏移",
-      "grey"
-    ],
-    "output": [
-      76,
-      1,
-      22,
-      12,
-      "AMDM估计结果\n$(\\hat{\\beta},\\hat{\\eta},\\hat{\\gamma})$",
-      "grey"
-    ]
+    "truth": "模拟真参数\n$(\\beta,\\eta,\\gamma)$",
+    "sim": "模拟样本\n$\\boldsymbol{t}_n$",
+    "scan": "MDM候选求解\n$\\delta_1,\\ldots,\\delta_{26}$",
+    "target": "联合损失向量\n$\\boldsymbol{\\ell}$",
+    "train_input": "排序 · 均值归一化\n输入标准化",
+    "fit": "多输出回归训练\n按样本量分别拟合",
+    "model": "模型与变换参数\n训练后保存",
+    "obs": "当前观测样本\n$\\boldsymbol{t}_n$",
+    "input": "排序 · 均值归一化\n输入标准化",
+    "predict": "预测候选损失\n逆标准化 · 非负截断",
+    "select": "选择预测损失最低的候选\n$\\hat{\\delta}(\\boldsymbol{t}_n)$",
+    "mdm": "MDM三参数求解\n使用所选偏移",
+    "output": "AMDM估计结果\n$(\\hat{\\beta},\\hat{\\eta},\\hat{\\gamma})$"
   },
   "edges": [
-    [
-      "truth",
-      "sim",
-      [
-        [
-          19,
-          82.5
-        ],
-        [
-          26,
-          82.5
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "sim",
-      "scan",
-      [
-        [
-          43,
-          82.5
-        ],
-        [
-          50,
-          82.5
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "scan",
-      "target",
-      [
-        [
-          68,
-          82.5
-        ],
-        [
-          76,
-          82.5
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "truth",
-      "target",
-      [
-        [
-          10.5,
-          88
-        ],
-        [
-          10.5,
-          92
-        ],
-        [
-          87,
-          92
-        ],
-        [
-          87,
-          88
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "sim",
-      "train_input",
-      [
-        [
-          34.5,
-          77
-        ],
-        [
-          34.5,
-          66
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "train_input",
-      "fit",
-      [
-        [
-          43,
-          60.5
-        ],
-        [
-          50,
-          60.5
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "target",
-      "fit",
-      [
-        [
-          87,
-          77
-        ],
-        [
-          87,
-          71
-        ],
-        [
-          59,
-          71
-        ],
-        [
-          59,
-          66
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "fit",
-      "model",
-      [
-        [
-          68,
-          60.5
-        ],
-        [
-          76,
-          60.5
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "model",
-      "predict",
-      [
-        [
-          87,
-          55
-        ],
-        [
-          87,
-          45
-        ],
-        [
-          59,
-          45
-        ],
-        [
-          59,
-          34
-        ]
-      ],
-      "dashed"
-    ],
-    [
-      "obs",
-      "input",
-      [
-        [
-          19,
-          28
-        ],
-        [
-          26,
-          28
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "input",
-      "predict",
-      [
-        [
-          43,
-          28
-        ],
-        [
-          50,
-          28
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "predict",
-      "select",
-      [
-        [
-          68,
-          28
-        ],
-        [
-          76,
-          28
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "select",
-      "mdm",
-      [
-        [
-          87,
-          22
-        ],
-        [
-          87,
-          17
-        ],
-        [
-          59,
-          17
-        ],
-        [
-          59,
-          13
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "obs",
-      "mdm",
-      [
-        [
-          10.5,
-          22
-        ],
-        [
-          10.5,
-          7
-        ],
-        [
-          50,
-          7
-        ]
-      ],
-      "solid"
-    ],
-    [
-      "mdm",
-      "output",
-      [
-        [
-          68,
-          7
-        ],
-        [
-          76,
-          7
-        ]
-      ],
-      "solid"
-    ]
+    {
+      "from": "truth",
+      "to": "sim",
+      "style": "solid"
+    },
+    {
+      "from": "sim",
+      "to": "scan",
+      "style": "solid"
+    },
+    {
+      "from": "scan",
+      "to": "target",
+      "style": "solid"
+    },
+    {
+      "from": "truth",
+      "to": "target",
+      "style": "solid"
+    },
+    {
+      "from": "sim",
+      "to": "train_input",
+      "style": "solid"
+    },
+    {
+      "from": "train_input",
+      "to": "fit",
+      "style": "solid"
+    },
+    {
+      "from": "target",
+      "to": "fit",
+      "style": "solid"
+    },
+    {
+      "from": "fit",
+      "to": "model",
+      "style": "solid"
+    },
+    {
+      "from": "model",
+      "to": "predict",
+      "style": "dashed"
+    },
+    {
+      "from": "obs",
+      "to": "input",
+      "style": "solid"
+    },
+    {
+      "from": "input",
+      "to": "predict",
+      "style": "solid"
+    },
+    {
+      "from": "predict",
+      "to": "select",
+      "style": "solid"
+    },
+    {
+      "from": "select",
+      "to": "mdm",
+      "style": "solid"
+    },
+    {
+      "from": "obs",
+      "to": "mdm",
+      "style": "solid"
+    },
+    {
+      "from": "mdm",
+      "to": "output",
+      "style": "solid"
+    }
   ],
   "sources": [
     "Study/Study 01 New/Study01论文初稿-v0.1.md sections 2.4-2.5",
     "Study/01-study-MDM最小偏移量优化研究/code/check_mean_normalized_e2e_scale.py:predict_curve",
     "Study/01-study-MDM最小偏移量优化研究/code/run_E6b_dimensional_raw_specialist.py:train_specialist"
   ],
-  "script_sha256": "f746e434e9a2f73e3f4b558b6983a9fa327eeaa2ff879e5d7fbf38f87a1db7f3",
   "checks": {
     "text_inside_canvas": true,
     "training_and_inference_separated": true,
     "raw_sample_goes_to_MDM": true,
     "truth_used_only_in_training": true
-  }
+  },
+  "sample_example": {
+    "values": [
+      1327.031945,
+      1349.386993,
+      1614.327472,
+      1699.266217,
+      1734.944708,
+      1915.966836,
+      2255.595818
+    ],
+    "source": "F01_MDM原理联图.json / Sample-1-3",
+    "role": "input illustration only"
+  },
+  "canvas_px": [
+    2340,
+    1450
+  ],
+  "style_reference": "F01_MDM流程与圆周误差-v20.pptx",
+  "layout_note": "Information-flow nodes and edges; editable geometry is defined in F02_绘制PPT.mjs. Network drawing is schematic, not the fitted layer widths."
 }

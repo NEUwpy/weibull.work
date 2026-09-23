@@ -5,7 +5,7 @@
 | 图件 | 整图 | 内部图 | 代码与数据 |
 |---|---|---|---|
 | F01 / 图1 | [可编辑PPT v20](F01_MDM流程与圆周误差-v20.pptx) · [PNG](F01_MDM流程与圆周误差-v20.png) | [A位置求解](子图/F01a_位置求解.png) · [B形状回代](子图/F01b_形状回代.png) · [C重复抽样梯度](子图/F01c_重复抽样梯度.png) · [D圆周误差与RMSE](子图/F01d_圆周误差与三参数RMSE.png) | `绘图程序/F01*` · `数据/F01*` |
-| F02 / 图2 | [PNG](F02_AMDM训练与估计流程.png) · [SVG](F02_AMDM训练与估计流程.svg) · [PDF](F02_AMDM训练与估计流程.pdf) | 训练与推断两部分见整图 | [程序](绘图程序/F02_AMDM训练与估计流程.py) · [数据](数据/F02_AMDM训练与估计流程.json) |
+| F02 / 图2 | [可编辑PPT v2](F02_AMDM训练与估计流程-v2.pptx) · [PNG](F02_AMDM训练与估计流程-v2.png) | [A离线学习](子图/F02a_离线学习.png) · [B实际估计](子图/F02b_实际估计.png) | [绘图程序](绘图程序/F02_绘制PPT.mjs) · [流程数据](数据/F02_AMDM训练与估计流程.json) · [公式](数据/F02_MathType公式.json) |
 
 ## 图1的数据和含义
 
@@ -31,8 +31,21 @@ node "Study/Study 01 New/图片/绘图程序/F01d_圆周误差图.mjs" --finaliz
 
 所有中间稿写入项目tmp；合成不再依赖已删除的旧PPT。发布文件存在时，先在程序中指定新版本名。整图PNG由最终PPT用PowerPoint导出。子图从当前整图直接导出，公式保存在整图的MathType对象中。
 
-`F01_MDM原理联图.py`用于重新计算曲线数据，同时为F02 Python程序提供字体样式；诊断图写入tmp/f01-data-check，不在当前图片目录生成旧版。其余F01程序负责当前PPT布局、MathType和D图。
+`F01_MDM原理联图.py`用于重新计算曲线数据；诊断图写入tmp/f01-data-check，不在当前图片目录生成旧版。其余F01程序负责当前PPT布局、MathType和D图。
 
 ## 图2口径
 
-训练阶段区分观测样本输入与真参数构造的监督目标；推断阶段只使用观测样本预测候选损失并选择偏移，再将原始样本和偏移交给MDM。真参数不进入实际估计。数据JSON保存节点、连线和源代码位置。
+训练阶段区分观测样本输入与真参数构造的监督目标；推断阶段只使用观测样本预测候选损失并选择偏移，再将原始样本和偏移交给MDM。真参数不进入实际估计。数据JSON保存节点、连线、示例样本与来源，版面坐标由绘图程序定义。
+
+图2沿用图1的分区配色、虚线边框、字体和箭头样式。20处公式为可编辑MathType对象；网络仅示意映射关系，不代表实际层宽。样本散点复用图1的Sample-1-3，仅说明输入形式，不构成新的实验结果。A、B子图直接从整图导出。
+
+## 图2复现
+
+```powershell
+node "Study/Study 01 New/图片/绘图程序/F02_绘制PPT.mjs"
+& "Study/Study 01 New/图片/绘图程序/F01_嵌入MathType.ps1" -Candidate "D:/weibull/tmp/f02-v2/candidate.pptx" -Output "D:/weibull/tmp/f02-v2/mathtype-candidate.pptx" -SpecPath "D:/weibull/Study/Study 01 New/图片/数据/F02_MathType公式.json"
+node "Study/Study 01 New/图片/绘图程序/F02_绘制PPT.mjs" --finalize
+& "Study/Study 01 New/图片/绘图程序/F02_导出整图与子图.ps1"
+```
+
+发布文件已存在时指定新版本名后再运行finalize。旧图2及旧Python绘图程序可从`03be98ab`恢复。
