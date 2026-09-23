@@ -1,19 +1,30 @@
 {
   "figure": "F01",
-  "description": "MDM principle, recomputed from equations",
+  "revision": 12,
   "sources_doi": [
     "10.1142/S0219455423500852",
     "10.12068/j.issn.1005-3026.2025.20240194"
   ],
-  "source_relation": "2023 approximate median ranks; 2025 notation and gamma-first conditional search",
-  "sample_type": "deterministic ideal rank quantiles; not random observations or a performance experiment",
+  "source_relation": "Recomputed from MDM principles and 2025 Figures 1/3/4/5. Panels a-b: one saved example using delta=0 only; c/d: the same full set of 30 saved random samples, no selection by outcome and no ideal samples.",
+  "sample_source": "public/case-studies/mdm/verification-182-046/data.csv",
+  "sample_id": "Sample-1-3",
+  "selection": "Retains previous random sample A. A complete estimation example, not performance evidence or an exact reproduction of the original paper observations.",
   "true_parameters": {
-    "beta": 2.0,
-    "eta": 1000.0,
-    "gamma": 1000.0
+    "beta": 2,
+    "eta": 1000,
+    "gamma": 1000
   },
   "n": 7,
-  "rank_formula": "(i-0.3)/(n+0.4)",
+  "samples_sorted": [
+    1327.031945,
+    1349.386993,
+    1614.327472,
+    1699.266217,
+    1734.944708,
+    1915.966836,
+    2255.595818
+  ],
+  "rank_formula": "(i-0.3)/(n+0.4), manuscript Eq. (3); not 2025 exact median ranks",
   "ranks": [
     0.09459459459459459,
     0.22972972972972971,
@@ -23,42 +34,578 @@
     0.7702702702702703,
     0.9054054054054054
   ],
-  "sample": [
-    1315.2339985046087,
-    1510.8951216929163,
-    1673.7339916421845,
-    1832.5546111576978,
-    2004.1056852741353,
-    2212.7867698602067,
-    2535.6285176268566
-  ],
-  "beta_grid": {
-    "start": 0.6,
-    "stop": 6.0,
-    "step": 0.005
-  },
-  "gamma_grid": {
-    "start": 400.0,
-    "stop": 1250.0,
-    "step": 2.0
-  },
   "std_ddof": 1,
-  "estimates_beta_eta_gamma": [
-    2.0,
-    1000.0,
-    1000.0
+  "solver": "python/methods/mdm.py:MDM.run",
+  "rank_method": "bernard",
+  "trace_steps": 1800,
+  "beta_search_bounds": [
+    0.1,
+    15
   ],
-  "checks": {
-    "ideal_sample_recovers_parameters": true,
-    "text_inside_canvas": true
+  "beta_plot_range": [
+    1.5,
+    4
+  ],
+  "gamma_plot_range": [
+    700,
+    1250
+  ],
+  "gradient": "Unmodified production finite differences. Full traces in CSV; displayed neighborhood includes both selected roots and the gamma=800 conditional slice.",
+  "estimates": {
+    "0": {
+      "beta": 2.470682907300304,
+      "eta": 819.1767765661946,
+      "gamma": 974.3957969702593
+    },
+    "0.1": {
+      "beta": 1.7163880460701915,
+      "eta": 619.4309960733526,
+      "gamma": 1155.3310244815862
+    }
   },
-  "size_mm": [
-    183,
-    86
-  ],
+  "composition_source": "F01_MDM原理联图.drawio",
   "font": "Microsoft YaHei",
-  "numpy": "2.1.1",
-  "matplotlib": "3.11.0",
-  "script_sha256": "e97ca95d6e6f60cfa57fb0503645139db2e7041ed8f0bdff688027bad0b28ef9",
-  "data_sha256": "35d2eeeed9cac1c7b564aac3f9adf4bf45bbedc9bfe304c98795a6daba9fddfb"
+  "ensemble": {
+    "sample_ids": [
+      "Sample-1-1",
+      "Sample-1-2",
+      "Sample-1-3",
+      "Sample-1-4",
+      "Sample-1-5",
+      "Sample-2-1",
+      "Sample-2-2",
+      "Sample-2-3",
+      "Sample-2-4",
+      "Sample-2-5",
+      "Sample-3-1",
+      "Sample-3-2",
+      "Sample-3-3",
+      "Sample-3-4",
+      "Sample-3-5",
+      "Sample-4-1",
+      "Sample-4-2",
+      "Sample-4-3",
+      "Sample-4-4",
+      "Sample-4-5",
+      "Sample-5-1",
+      "Sample-5-2",
+      "Sample-5-3",
+      "Sample-5-4",
+      "Sample-5-5",
+      "Sample-6-1",
+      "Sample-6-2",
+      "Sample-6-3",
+      "Sample-6-4",
+      "Sample-6-5"
+    ],
+    "trace_steps": 600,
+    "selection": "All rows of source CSV, in original order; no new simulation.",
+    "estimates": {
+      "Sample-1-1": {
+        "0": {
+          "beta": 1.2991849905077253,
+          "eta": 676.533362721627,
+          "gamma": 1277.9303784828812,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.2252947049361895,
+          "eta": 656.0339823842183,
+          "gamma": 1295.2531172730498,
+          "boundary": false
+        }
+      },
+      "Sample-1-2": {
+        "0": {
+          "beta": 1.2064815493345935,
+          "eta": 773.4441671461175,
+          "gamma": 1106.5786798754561,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.159250969553231,
+          "eta": 757.4305541936803,
+          "gamma": 1119.5697398102877,
+          "boundary": false
+        }
+      },
+      "Sample-1-3": {
+        "0": {
+          "beta": 2.470682907300304,
+          "eta": 819.1767765661946,
+          "gamma": 974.3957969702593,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.7163880460701915,
+          "eta": 619.4309960733526,
+          "gamma": 1155.3310244815862,
+          "boundary": false
+        }
+      },
+      "Sample-1-4": {
+        "0": {
+          "beta": 2.1113461678726497,
+          "eta": 877.2951098967752,
+          "gamma": 1038.7013686399262,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.8126807973608186,
+          "eta": 789.9228787664446,
+          "gamma": 1119.6234253089808,
+          "boundary": false
+        }
+      },
+      "Sample-1-5": {
+        "0": {
+          "beta": 1.6160477363633343,
+          "eta": 635.9940692882273,
+          "gamma": 1274.937914126608,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.4906396168550826,
+          "eta": 602.541196895947,
+          "gamma": 1303.7364984013486,
+          "boundary": false
+        }
+      },
+      "Sample-2-1": {
+        "0": {
+          "beta": 8.756950710448638,
+          "eta": 2317.293031945178,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 2.2034648007358504,
+          "eta": 739.1514273959485,
+          "gamma": 1557.8274232128358,
+          "boundary": false
+        }
+      },
+      "Sample-2-2": {
+        "0": {
+          "beta": 1.7130045239448892,
+          "eta": 1205.0429796926862,
+          "gamma": 797.9165126485008,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.5485445877739357,
+          "eta": 1131.3421362796942,
+          "gamma": 864.309517302947,
+          "boundary": false
+        }
+      },
+      "Sample-2-3": {
+        "0": {
+          "beta": 1.5026371442276052,
+          "eta": 891.2677252715912,
+          "gamma": 1095.4246620456947,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.3360294881815986,
+          "eta": 820.5112803617805,
+          "gamma": 1151.69540514316,
+          "boundary": false
+        }
+      },
+      "Sample-2-4": {
+        "0": {
+          "beta": 3.8884940368237495,
+          "eta": 2016.978378401728,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 2.518979914369315,
+          "eta": 1423.0658177168114,
+          "gamma": 573.1970092079516,
+          "boundary": false
+        }
+      },
+      "Sample-2-5": {
+        "0": {
+          "beta": 1.2089714706723922,
+          "eta": 550.9159783112336,
+          "gamma": 1560.5994698793506,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.133387204712073,
+          "eta": 532.6269628840473,
+          "gamma": 1575.271183544434,
+          "boundary": false
+        }
+      },
+      "Sample-3-1": {
+        "0": {
+          "beta": 3.18763768168194,
+          "eta": 1839.4151711081263,
+          "gamma": 387.04585761918327,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 2.3216294886901983,
+          "eta": 1438.5967516531196,
+          "gamma": 771.4552084115141,
+          "boundary": false
+        }
+      },
+      "Sample-3-2": {
+        "0": {
+          "beta": 5.7886892381126485,
+          "eta": 2325.0900445277425,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 0.9821919845272434,
+          "eta": 575.0161285075608,
+          "gamma": 1628.9910775414776,
+          "boundary": false
+        }
+      },
+      "Sample-3-3": {
+        "0": {
+          "beta": 1.3723916021662153,
+          "eta": 1028.3699052147892,
+          "gamma": 1133.91347549511,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.2924663456281622,
+          "eta": 984.3854787843403,
+          "gamma": 1167.515321522815,
+          "boundary": false
+        }
+      },
+      "Sample-3-4": {
+        "0": {
+          "beta": 0.9056791579425612,
+          "eta": 311.1475165360161,
+          "gamma": 1137.0012101511406,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 0.8789662727190385,
+          "eta": 307.9008393442643,
+          "gamma": 1139.497132631208,
+          "boundary": false
+        }
+      },
+      "Sample-3-5": {
+        "0": {
+          "beta": 4.888998726584046,
+          "eta": 2007.6007650183476,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 3.388147620316138,
+          "eta": 1481.0902026215804,
+          "gamma": 517.543526424964,
+          "boundary": false
+        }
+      },
+      "Sample-4-1": {
+        "0": {
+          "beta": 2.758476644140664,
+          "eta": 735.6297177520244,
+          "gamma": 993.5347583094577,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 2.0055460899558923,
+          "eta": 582.1718550663436,
+          "gamma": 1138.994727770808,
+          "boundary": false
+        }
+      },
+      "Sample-4-2": {
+        "0": {
+          "beta": 4.962265001981966,
+          "eta": 1939.7970776006537,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 2.881259119892301,
+          "eta": 1202.2664265050541,
+          "gamma": 715.5521852135694,
+          "boundary": false
+        }
+      },
+      "Sample-4-3": {
+        "0": {
+          "beta": 8.607811836261611,
+          "eta": 1929.1283664853017,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 3.9403594832239626,
+          "eta": 900.7053813021879,
+          "gamma": 1009.3081607589212,
+          "boundary": false
+        }
+      },
+      "Sample-4-4": {
+        "0": {
+          "beta": 2.1728498409185333,
+          "eta": 1226.4460793079584,
+          "gamma": 709.0963474560095,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.500408726776871,
+          "eta": 970.0995537426188,
+          "gamma": 946.5940417407911,
+          "boundary": false
+        }
+      },
+      "Sample-4-5": {
+        "0": {
+          "beta": 1.89710918542607,
+          "eta": 472.6938354027799,
+          "gamma": 1301.0307096540225,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.5912474021438021,
+          "eta": 414.04005297477653,
+          "gamma": 1351.670567296592,
+          "boundary": false
+        }
+      },
+      "Sample-5-1": {
+        "0": {
+          "beta": 5.331985360488526,
+          "eta": 2211.232534072767,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 1.7195780941660366,
+          "eta": 897.732006831546,
+          "gamma": 1266.4311385759956,
+          "boundary": false
+        }
+      },
+      "Sample-5-2": {
+        "0": {
+          "beta": 4.406464748506802,
+          "eta": 2016.587931916421,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 2.429976241306143,
+          "eta": 1283.8622412268398,
+          "gamma": 718.3708692887177,
+          "boundary": false
+        }
+      },
+      "Sample-5-3": {
+        "0": {
+          "beta": 0.6206422745056108,
+          "eta": 317.5687575562866,
+          "gamma": 1557.2803378536282,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 0.6137792698284941,
+          "eta": 316.17713308329155,
+          "gamma": 1557.7300099554093,
+          "boundary": false
+        }
+      },
+      "Sample-5-4": {
+        "0": {
+          "beta": 3.880984278054498,
+          "eta": 1927.8136779368654,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 1.5754644303890477,
+          "eta": 902.1165749535978,
+          "gamma": 945.3342599983648,
+          "boundary": false
+        }
+      },
+      "Sample-5-5": {
+        "0": {
+          "beta": 5.119895499082881,
+          "eta": 1966.5680221886048,
+          "gamma": 0,
+          "boundary": true
+        },
+        "0.1": {
+          "beta": 2.091327430595028,
+          "eta": 943.6820654759459,
+          "gamma": 990.1297413396455,
+          "boundary": false
+        }
+      },
+      "Sample-6-1": {
+        "0": {
+          "beta": 1.2990354730305542,
+          "eta": 698.9461955453254,
+          "gamma": 1289.5519956780963,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.2563476151315696,
+          "eta": 682.6906783533808,
+          "gamma": 1301.8247793704443,
+          "boundary": false
+        }
+      },
+      "Sample-6-2": {
+        "0": {
+          "beta": 1.0485485557393555,
+          "eta": 509.7014337531413,
+          "gamma": 1561.3820579641645,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 0.9928864466195201,
+          "eta": 499.08718251244994,
+          "gamma": 1570.3486879239222,
+          "boundary": false
+        }
+      },
+      "Sample-6-3": {
+        "0": {
+          "beta": 0.6335820894156186,
+          "eta": 314.09901618545547,
+          "gamma": 1422.4108299970585,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 0.6316863993600268,
+          "eta": 313.74922469653177,
+          "gamma": 1422.5490044101161,
+          "boundary": false
+        }
+      },
+      "Sample-6-4": {
+        "0": {
+          "beta": 3.5632163303406155,
+          "eta": 1159.4348535380836,
+          "gamma": 584.3426740450835,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.8658057830484147,
+          "eta": 713.7219402483191,
+          "gamma": 1010.9295538390045,
+          "boundary": false
+        }
+      },
+      "Sample-6-5": {
+        "0": {
+          "beta": 2.1096396089343403,
+          "eta": 1326.7300813990007,
+          "gamma": 1188.4171943425258,
+          "boundary": false
+        },
+        "0.1": {
+          "beta": 1.8262429885789007,
+          "eta": 1197.7217121873232,
+          "gamma": 1307.1207489356182,
+          "boundary": false
+        }
+      }
+    },
+    "location_summary": {
+      "0": {
+        "count": 30,
+        "mean": 746.3830743744719,
+        "sd": 595.5256507316437,
+        "min": 0,
+        "max": 1561.3820579641645,
+        "rmse": 638.0835778227756,
+        "boundary_count": 10
+      },
+      "0.1": {
+        "count": 30,
+        "mean": 1139.7901695545493,
+        "sd": 300.5995352995725,
+        "min": 517.543526424964,
+        "max": 1628.9910775414776,
+        "rmse": 326.9393971961745,
+        "boundary_count": 0
+      }
+    },
+    "std_ddof": 1,
+    "gamma_plot_range": [
+      -45,
+      1800
+    ],
+    "gradient_plot_range": [
+      -0.035,
+      0.34
+    ],
+    "display": "Peaks outside gradient view clipped; full traces in CSV. All estimates shown below each rule panel on identical axes, including boundary estimates. Boundary estimates are not plotted as intersections. Deterministic vertical stacking separates nearby dots without changing x coordinates."
+  },
+  "diagram": {
+    "type": "integrated process diagram",
+    "flow": [
+      "ordered sample and ranks",
+      "conditional beta minimization at each trial gamma and profile gradient",
+      "a: gamma solution with embedded gradient curve",
+      "b: beta solution with embedded conditional curve",
+      "mean pseudo-scale eta",
+      "parameter tuple"
+    ],
+    "layout": "Colored native stage headers; real sample marks; embedded curves along left-to-right estimation flow; paired-rule branching below.",
+    "expansion": "Same truth, different samples, repeat estimator; c/d compare delta=0/0.1.",
+    "sample_glyphs": "Top: seven actual sorted observations; bottom: first three source rows on a common lifetime scale. All 30 rows remain in comparison panels."
+  },
+  "panel_linkage": "Panel a selects gamma, passed directly to panel b for beta minimization, followed by eta and output nodes. c/d compare 30 paired estimates.",
+  "versions": {
+    "numpy": "2.1.1",
+    "scipy": "1.14.1",
+    "matplotlib": "3.11.0"
+  },
+  "checks": {
+    "profile_matches_equation": true,
+    "root_residual_below_1e_6": true,
+    "conditional_beta_matches_estimate": true,
+    "pseudo_scale_mean_matches_eta": true,
+    "all_gradients_finite": true,
+    "standalone_panels": 4
+  },
+  "sha256": {
+    "sample_source": "7d1149f70203e6370dad1ed7d4cf0d045ce6bf0316f438bbf3000a83b12fe372",
+    "script": "517ed614f8313a52603496320266bd384715df0e0ab5553922610a89efaa10fe",
+    "solver": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "data": "3c640123ec354721b3cb69f239f9c2364410cf72ac441d79c674b62da0a3fa99",
+    "composition": "336a09255a439256e29c43954ad103709c1c054227725298b52a569d927c93d7",
+    "F01_组装drawio.py": "04eae4c1ecd46738ae04d5ea126c493b4c4eabe47005e3354422422810e8900a",
+    "F01_导出drawio.cjs": "2479b9bd03962338f89e43b54308951c447f2492c7bf6d24a053184e0f73a162",
+    "F01_MDM原理联图.drawio": "336a09255a439256e29c43954ad103709c1c054227725298b52a569d927c93d7",
+    "绘图程序/F01_组装drawio.py": "646296ef84cb74f79fb03a0bb59bfa05cc184ffa836ec77827a370e4e3258f0d",
+    "绘图程序/F01_导出drawio.cjs": "b2da7bb92dd4c21fef82f5db7a680022f5da8fcd8888f4d3accda51215895cff"
+  },
+  "export": {
+    "source": "F01_MDM原理联图.drawio",
+    "renderer": "diagrams.net embedded editor; PDF from exported SVG via Chromium",
+    "pdf_size_mm": [
+      183,
+      156.85714285714286
+    ],
+    "png_pixels": [
+      4536,
+      3888
+    ],
+    "editable": "Native stage regions, labels, sample marks and arrows; four embedded scientific SVG panels",
+    "visual_review": "Three rendered views: overall PNG, workflow SVG crop, scaled full SVG; no clipping or arrow collisions; one static formula-height warning reviewed.",
+    "static_validation": "drawio OK; visual 0 FAIL, 1 reviewed WARN"
+  }
 }
