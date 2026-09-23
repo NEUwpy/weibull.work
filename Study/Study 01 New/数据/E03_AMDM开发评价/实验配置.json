@@ -1,0 +1,60 @@
+{
+  "experiment_id": "E03",
+  "name": "AMDM开发评价",
+  "status": "existing results copied; no new run",
+  "original_ids": "S01-04、S01-06a / E8、E5 predictions",
+  "purpose": "AMDM开发阶段性能、训练重复与参数条件留出",
+  "suggested_manuscript_section": "4.1、4.3",
+  "design": {
+    "beta": [
+      1.5,
+      2,
+      2.5,
+      3,
+      3.5,
+      4,
+      4.5,
+      5
+    ],
+    "eta": 1000,
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "cells": 160,
+    "repeats_per_cell": 300,
+    "samples": 48000,
+    "delta_grid": {
+      "start": 0,
+      "stop": 0.5,
+      "step": 0.02,
+      "count": 26
+    },
+    "seeds": [
+      42,
+      2026,
+      3407
+    ],
+    "split": "leave one gamma/eta level out within n; beta leave-out summary separate"
+  },
+  "reuse_assessment": "预测数据齐全，可连接E01重算逐参数；曾参与表示选择，不作为新方案最终测试",
+  "source_programs": [
+    "Study/01-study-MDM最小偏移量优化研究/code/run_E7_scale_invariant_input_screen.py",
+    "Study/01-study-MDM最小偏移量优化研究/code/derive_e8_seed42_primary.py",
+    "Study/01-study-MDM最小偏移量优化研究/code/analyze_e8_main_uncertainty.py",
+    "Study/01-study-MDM最小偏移量优化研究/code/run_b1_mean_normalized_unseen_beta.py"
+  ],
+  "program_policy": "Source entrypoints only, not approved commands. Inspect dependencies and write rerun outputs in new study; never run old mains against frozen outputs.",
+  "copied_file_count": 10,
+  "copied_bytes": 14683031,
+  "provenance_manifest": "../来源清单.json"
+}

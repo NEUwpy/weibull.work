@@ -1,0 +1,279 @@
+{
+  "status": "FORMAL_SUPPORTING_MECHANISM_EVIDENCE",
+  "contract": "E11_profile_mechanism_v1",
+  "question": "Within fixed beta-gamma_over_eta-n cells, does random sample geometry move the MDM profile gradient and the realised low-risk offset together?",
+  "design": {
+    "parameter_pairs": [
+      [
+        1.5,
+        0.1
+      ],
+      [
+        1.5,
+        1.0
+      ],
+      [
+        3.0,
+        0.5
+      ],
+      [
+        5.0,
+        0.1
+      ],
+      [
+        5.0,
+        1.0
+      ]
+    ],
+    "n_values": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "confirmation_repeats": [
+      200,
+      299
+    ],
+    "cells": 20,
+    "samples": 2000,
+    "delta_grid": [
+      0.0,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.12,
+      0.14,
+      0.16,
+      0.18,
+      0.2,
+      0.22,
+      0.24,
+      0.26,
+      0.28,
+      0.3,
+      0.32,
+      0.34,
+      0.36,
+      0.38,
+      0.4,
+      0.42,
+      0.44,
+      0.46,
+      0.48,
+      0.5
+    ],
+    "seed_namespace": "study01_nrmc_v1",
+    "selection_rule": "four parameter-domain corners plus centre, crossed with all four n values"
+  },
+  "primary_result": {
+    "median_within_cell_spearman_g0_vs_l6_delta": 0.6515246409346497,
+    "q1": 0.5493429762104294,
+    "q3": 0.7792697119293563,
+    "min": -0.037940002501158275,
+    "max": 0.8445005538466522,
+    "positive_cell_fraction": 0.95,
+    "median_within_cell_spearman_default_gamma_vs_l6_delta": -0.7653155735051713,
+    "default_gamma_vs_l6_delta_q1": -0.8033695533654233,
+    "default_gamma_vs_l6_delta_q3": -0.6092929660290234,
+    "negative_default_gamma_association_cell_fraction": 1.0,
+    "median_within_cell_spearman_g0_vs_default_gamma": -0.6324599320516238,
+    "conditional_curve_minima": {
+      "default_gamma_hat": {
+        "high": {
+          "delta": 0.02,
+          "mean_excess_over_l6": 0.07134247844966986,
+          "R_mean_loss": 0.6142416784402543,
+          "J1": 0.7837357197679932
+        },
+        "low": {
+          "delta": 0.1,
+          "mean_excess_over_l6": 0.15079618173521245,
+          "R_mean_loss": 0.22573910812193523,
+          "J1": 0.4751200986297414
+        },
+        "middle": {
+          "delta": 0.04,
+          "mean_excess_over_l6": 0.1161522403798872,
+          "R_mean_loss": 0.24084897694838744,
+          "J1": 0.4907636671030033
+        }
+      },
+      "gradient_at_zero": {
+        "high": {
+          "delta": 0.1,
+          "mean_excess_over_l6": 0.1620913579231982,
+          "R_mean_loss": 0.2515165125316365,
+          "J1": 0.5015142196704262
+        },
+        "low": {
+          "delta": 0.02,
+          "mean_excess_over_l6": 0.05003197805567511,
+          "R_mean_loss": 0.45246140696893583,
+          "J1": 0.6726525157679378
+        },
+        "middle": {
+          "delta": 0.02,
+          "mean_excess_over_l6": 0.10007471635136989,
+          "R_mean_loss": 0.3645006335143314,
+          "J1": 0.6037388785843855
+        }
+      }
+    },
+    "l6_boundary_rate": 0.071,
+    "default_boundary_rate": 0.0575
+  },
+  "interpretation": "Random samples from the same true-parameter cell shift the empirical MDM profile-gradient curve.  g(0) is a compact trace marker: when it moves, the low-risk region of the realised 26-point loss curve also moves.  The gamma=0 constraint is a special case, not assumed to be the dominant mechanism.",
+  "limitations": [
+    "The analysis uses 20 predeclared cells, not all 160 design cells.",
+    "L6 remains a 26-point hindsight reference and is not a deployable decision rule.",
+    "Associations diagnose a numerical mechanism; they do not prove a closed-form causal decomposition."
+  ],
+  "chunk_receipts": [
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0000_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0000_mdm.csv",
+      "meta_sha256_lf": "b25afec8d7bb63a3b2dcac88fc0c962ac3d366a40895e5acaf3e0ad991c025e4",
+      "data_sha256_lf": "5b1dd83c3c5ad94ec33562fb516d864993396b4f22475117116776d02e907169",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0001_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0001_mdm.csv",
+      "meta_sha256_lf": "6d7b31de834ea7eea1c76d60269134262985355bd56d196c929054874887f2b8",
+      "data_sha256_lf": "4a926b350669366ca1b4603b6f9cd025024d4d04a54da045ecf6bfba44b12fdf",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0002_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0002_mdm.csv",
+      "meta_sha256_lf": "d8636722b4299fded440094b80082cf2e73fb9901fcb7482813e71d143b23295",
+      "data_sha256_lf": "789ed434e962ad02f98bcbef2d62afaf357e927ea46f5197a1e736022c75a04f",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0003_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0003_mdm.csv",
+      "meta_sha256_lf": "f25ef6af41b43965b47fea5f68e4d96e102e365398a7145c261aae639db280d3",
+      "data_sha256_lf": "1ab7a7d250dccf4a328b588640397dd4e80059340e0c1b0b1fb95372ee27f97b",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0016_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0016_mdm.csv",
+      "meta_sha256_lf": "e471267b8e7d15589eb9bfc9625886c4e97dd27346dad380dde7b9e087c4e3b9",
+      "data_sha256_lf": "93a52cddb389aa15bd9e9a0a7053e0e61a10faba19087e21cd10772114d4d88a",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0017_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0017_mdm.csv",
+      "meta_sha256_lf": "e4641fa70e2edbc57e7df1365b1556c862246bb0d2b7930517314f9032db7a3a",
+      "data_sha256_lf": "77609419caea02596aa8b5c13aa1c5be60bc0ce1cfe5e7c7dfd1bd148ed212f4",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0018_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0018_mdm.csv",
+      "meta_sha256_lf": "9204c4b10be2d3495ebe8dc47074979565118ad6a39c4adb17de72c39b60a555",
+      "data_sha256_lf": "e89bdf2c87a38cfef8a2ddbc77a26e68b80195ae20f61d23db3317216679888a",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0019_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0019_mdm.csv",
+      "meta_sha256_lf": "2129f762aca39860a50e734d5ea840435c91b64b95601a7eac47820fde585041",
+      "data_sha256_lf": "fdb58d324af35e941658af0a4e479895ffb63a4f1217f4ee7344a60b936aab01",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0068_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0068_mdm.csv",
+      "meta_sha256_lf": "4dcd6c2b362f05bfaaf64e16696d334ce871b11b5c424fad118add3f9214f3cf",
+      "data_sha256_lf": "9ec9758b63c5ee2101a4d8554e917c0064f6a22dae5f5b48d8b7870d4b661fb1",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0069_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0069_mdm.csv",
+      "meta_sha256_lf": "be20c0c16bd22a866dd4040feb91621d5a6d2e92b65951573190338366242245",
+      "data_sha256_lf": "e1795d28b038904c2ff4a7d644a62249f958b6a336495d8c75493b6117c5f866",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0070_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0070_mdm.csv",
+      "meta_sha256_lf": "3950d75679bb094e6e6690bbb877c2f8a1798df7ed16d10d440157976cb81097",
+      "data_sha256_lf": "700960af9a8aa0a0d9fa347bb4e24072d4f612e93dc7fd0c5a8b2d20fa87e76c",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0071_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0071_mdm.csv",
+      "meta_sha256_lf": "2813032ec2795ec5d91a4fdfbba5439d0bc3a24efa7c2a6ad4966b257bd937cc",
+      "data_sha256_lf": "f3d1056b19d56b19de535296c69f08f9b00e447e7ae3ffe8f16bb17d14e317b2",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0140_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0140_mdm.csv",
+      "meta_sha256_lf": "d8666ad6f2a9a53140a7a3ae5fd0b7596e5565f846f30369ea97eff521c92f2b",
+      "data_sha256_lf": "d1fdd35cfbc0fcd3d229af1d51bafe63f05362f2d408b93d12756e8f7b5729cd",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0141_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0141_mdm.csv",
+      "meta_sha256_lf": "ef8d5a992863e76c32a4e9e20a7296835c673a9aa5cf6d2d64525240941ac3ee",
+      "data_sha256_lf": "dd2d6ce3af8b771ed2989ba8055a89a209ebca9a20838287a125a85b1bb19e09",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0142_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0142_mdm.csv",
+      "meta_sha256_lf": "e99a12ff80fdb8ed3460be60054fe8205721ae3ab93515bd1e6c5817b4a4d724",
+      "data_sha256_lf": "ccbcd1362b1859687efde5be4f6b8bf3845ab59809f0cc1738e0f5a5871f79c2",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0143_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0143_mdm.csv",
+      "meta_sha256_lf": "e36706ddc3786c3e099af5273c44fcab13a98d9ace693bd7c8309b7aa964f821",
+      "data_sha256_lf": "b28e117069af577df656cf5c19730e104cafca038c1d0aba30fb577698646172",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0156_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0156_mdm.csv",
+      "meta_sha256_lf": "0795b3125213a0e0869c052be80efa6a8e408dd020ed637cfc46abc5a9fa578b",
+      "data_sha256_lf": "5f719ef9c9b32ea23bb1f35093934488913069e034a7f84361de7eae24a75b95",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0157_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0157_mdm.csv",
+      "meta_sha256_lf": "378573b1b3273f47c12f8ffac37474217f4635ca4e47942592e98740b9ce2b54",
+      "data_sha256_lf": "6000f9952b5b5ac06e741f9e5b725019f4a084546c1b80cbf9148e2ec26ef687",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0158_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0158_mdm.csv",
+      "meta_sha256_lf": "14f3984dd50ca842c2fcb8818a344b5aec855c1c9d1b8e0c12555562a4610171",
+      "data_sha256_lf": "566efa9d98b34e9cc67e337ca279ff5b82adbac4f709a23d21b698402df68902",
+      "seed_namespace": "study01_nrmc_v1"
+    },
+    {
+      "meta": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0159_meta.json",
+      "data": "artifacts/formal/E5_normalized_raw/shared_data/chunks/chunk_0159_mdm.csv",
+      "meta_sha256_lf": "a7318343fd9604605e76193463dc0b606957109ab74c7750e06970c061a2588a",
+      "data_sha256_lf": "7e296d1c9e997b8e01a8fe615766c448968e3ff3c18ca30e8b2f05a19b7480a8",
+      "seed_namespace": "study01_nrmc_v1"
+    }
+  ],
+  "runtime_seconds": 151.27022290229797,
+  "runtime_head_commit": "cc1921a46d5758d585a40a84635f5d3e65e5fb6b",
+  "script_sha256_lf": "bd3d21cb61898faf01f7a071237ebb9fe3e11d4befab2bc34b0da0e1a2dbe025"
+}

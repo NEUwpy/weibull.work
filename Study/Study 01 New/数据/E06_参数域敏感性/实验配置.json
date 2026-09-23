@@ -1,0 +1,37 @@
+{
+  "experiment_id": "E06",
+  "name": "参数域敏感性",
+  "status": "existing results copied; no new run",
+  "original_ids": "S01-02 / E13",
+  "purpose": "形状参数域改变时固定偏移表现是否变化",
+  "suggested_manuscript_section": "5.1或补充",
+  "design": {
+    "beta_start": 1.5,
+    "beta_stop": 5,
+    "beta_step": 0.25,
+    "eta": 1000,
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "repeats_per_cell": 100,
+    "unique_samples": 30000
+  },
+  "reuse_assessment": "复用汇总支持解释，不是加密参数下完整AMDM比较",
+  "source_programs": [
+    "Study/01-study-MDM最小偏移量优化研究/code/analyze_E13_beta_domain_sensitivity.py"
+  ],
+  "program_policy": "Source entrypoints only, not approved commands. Inspect dependencies and write rerun outputs in new study; never run old mains against frozen outputs.",
+  "copied_file_count": 4,
+  "copied_bytes": 58909,
+  "provenance_manifest": "../来源清单.json"
+}

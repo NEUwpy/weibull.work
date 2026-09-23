@@ -1,0 +1,51 @@
+{
+  "experiment_id": "E04",
+  "name": "常用方法比较",
+  "status": "existing results copied; no new run",
+  "original_ids": "S01-06b / B2 traditional_ref",
+  "purpose": "WMLE与LSE的共同样本比较",
+  "suggested_manuscript_section": "4.2",
+  "design": {
+    "beta": [
+      1.5,
+      2,
+      2.5,
+      3,
+      3.5,
+      4,
+      4.5,
+      5
+    ],
+    "eta": 1000,
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "cells": 160,
+    "repeats_per_cell": 300,
+    "samples": 48000,
+    "delta_grid": {
+      "start": 0,
+      "stop": 0.5,
+      "step": 0.02,
+      "count": 26
+    }
+  },
+  "reuse_assessment": "已存汇总可用，estimation.csv原路径缺失；核定实现并找回或重算行级结果",
+  "source_programs": [
+    "Study/01-study-MDM最小偏移量优化研究/code/run_b2_traditional_ref.py"
+  ],
+  "program_policy": "Source entrypoints only, not approved commands. Inspect dependencies and write rerun outputs in new study; never run old mains against frozen outputs.",
+  "copied_file_count": 5,
+  "copied_bytes": 8043,
+  "provenance_manifest": "../来源清单.json"
+}

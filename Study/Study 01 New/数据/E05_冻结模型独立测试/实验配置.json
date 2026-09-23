@@ -1,0 +1,59 @@
+{
+  "experiment_id": "E05",
+  "name": "冻结模型独立测试",
+  "status": "existing results copied; no new run",
+  "original_ids": "S01-09 / confirmation 20260922",
+  "purpose": "冻结最终模型的新样本表现",
+  "suggested_manuscript_section": "4.1、4.3",
+  "design": {
+    "beta": [
+      1.5,
+      2,
+      2.5,
+      3,
+      3.5,
+      4,
+      4.5,
+      5
+    ],
+    "eta": 1000,
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "cells": 160,
+    "repeats_per_cell": 100,
+    "samples": 16000,
+    "delta_grid": {
+      "start": 0,
+      "stop": 0.5,
+      "step": 0.02,
+      "count": 26
+    },
+    "model_seed": 1,
+    "model_commit": "ddc75754",
+    "policies": [
+      "fixed_010",
+      "frozen_final_seed1",
+      "large_delta_fallback"
+    ]
+  },
+  "reuse_assessment": "原模型独立测试可保留；缺零偏移、优化固定、WMLE、LSE，同名AMDM改训后不可混用",
+  "source_programs": [
+    "Study/01-study-MDM最小偏移量优化研究/code/verify_selector_new_samples_v1.py",
+    "Study/01-study-MDM最小偏移量优化研究/code/check_mean_normalized_e2e_scale.py"
+  ],
+  "program_policy": "Source entrypoints only, not approved commands. Inspect dependencies and write rerun outputs in new study; never run old mains against frozen outputs.",
+  "copied_file_count": 166,
+  "copied_bytes": 9631557,
+  "provenance_manifest": "../来源清单.json"
+}

@@ -1,0 +1,53 @@
+{
+  "experiment_id": "E02",
+  "name": "优化固定偏移与信息参照",
+  "status": "existing results copied; no new run",
+  "original_ids": "S01-03 / E6 crossfit layers",
+  "purpose": "按样本量优化固定偏移的计算依据",
+  "suggested_manuscript_section": "4.1",
+  "design": {
+    "beta": [
+      1.5,
+      2,
+      2.5,
+      3,
+      3.5,
+      4,
+      4.5,
+      5
+    ],
+    "eta": 1000,
+    "gamma_over_eta": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "cells": 160,
+    "repeats_per_cell": 300,
+    "samples": 48000,
+    "delta_grid": {
+      "start": 0,
+      "stop": 0.5,
+      "step": 0.02,
+      "count": 26
+    },
+    "split": "repeat_id mod 5"
+  },
+  "reuse_assessment": "已有L2汇总，重算候选来自E01；与E03划分不同，新公平比较待统一协议",
+  "source_programs": [
+    "Study/01-study-MDM最小偏移量优化研究/code/analyze_E1_E2_crossfit.py",
+    "Study/01-study-MDM最小偏移量优化研究/code/run_E6b_dimensional_raw_specialist.py"
+  ],
+  "program_policy": "Source entrypoints only, not approved commands. Inspect dependencies and write rerun outputs in new study; never run old mains against frozen outputs.",
+  "copied_file_count": 1,
+  "copied_bytes": 786,
+  "provenance_manifest": "../来源清单.json"
+}

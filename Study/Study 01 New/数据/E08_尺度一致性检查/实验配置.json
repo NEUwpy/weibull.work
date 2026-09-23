@@ -1,0 +1,26 @@
+{
+  "experiment_id": "E08",
+  "name": "尺度一致性检查",
+  "status": "existing results copied; no new run",
+  "original_ids": "S01-06d / scale_equivariance",
+  "purpose": "输入单位同比变化时实现是否一致",
+  "suggested_manuscript_section": "附录或复现检查",
+  "design": {
+    "sample_probes": 4,
+    "scale_multipliers": [
+      0.001,
+      1,
+      1000
+    ],
+    "runs": 12,
+    "model_commit": "ddc75754"
+  },
+  "reuse_assessment": "已有实现检查；不作为大规模域外精度证据",
+  "source_programs": [
+    "Study/01-study-MDM最小偏移量优化研究/code/check_mean_normalized_e2e_scale.py"
+  ],
+  "program_policy": "Source entrypoints only, not approved commands. Inspect dependencies and write rerun outputs in new study; never run old mains against frozen outputs.",
+  "copied_file_count": 1,
+  "copied_bytes": 750,
+  "provenance_manifest": "../来源清单.json"
+}

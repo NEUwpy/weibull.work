@@ -1,0 +1,53 @@
+{
+  "experiment_id": "E07",
+  "name": "样本路径机制",
+  "status": "existing results copied; no new run",
+  "original_ids": "S01-05a / E11",
+  "purpose": "相同总体下样本路径和候选损失的关联",
+  "suggested_manuscript_section": "4.1或5.1",
+  "design": {
+    "beta_gamma_ratio_pairs": [
+      [
+        1.5,
+        0.1
+      ],
+      [
+        1.5,
+        1
+      ],
+      [
+        5,
+        0.1
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        3,
+        0.5
+      ]
+    ],
+    "n": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "cells": 20,
+    "repeats_per_cell": 100,
+    "repeat_ids": [
+      200,
+      299
+    ],
+    "samples": 2000
+  },
+  "reuse_assessment": "保留机制分析，事后参照不能当作实际AMDM收益",
+  "source_programs": [
+    "Study/01-study-MDM最小偏移量优化研究/code/analyze_E11_profile_mechanism.py"
+  ],
+  "program_policy": "Source entrypoints only, not approved commands. Inspect dependencies and write rerun outputs in new study; never run old mains against frozen outputs.",
+  "copied_file_count": 5,
+  "copied_bytes": 579288,
+  "provenance_manifest": "../来源清单.json"
+}
