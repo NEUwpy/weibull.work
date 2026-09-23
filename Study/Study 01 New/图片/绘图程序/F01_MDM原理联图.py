@@ -169,7 +169,7 @@ def style():
 def draw(values):
     """Export independent scientific panels; draw.io owns the composition."""
     _, betas, slices, curves, roots, ensemble, summary, _ = values
-    out = ROOT / "子图"
+    out = REPO / "tmp" / "f01-data-check"
     out.mkdir(exist_ok=True)
     plt.rcParams.update({"font.size": 11, "axes.labelsize": 11, "xtick.labelsize": 10,
                          "ytick.labelsize": 10, "svg.fonttype": "path"})

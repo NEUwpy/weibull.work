@@ -1,7 +1,7 @@
 # Replace editable text formula components with true MathType OLE equations.
 # Requires installed PowerPoint and MathType 7 (64-bit MathPage API).
-param([string]$Candidate = 'D:\weibull\tmp\f01-ppt-v18\candidate.pptx',
-      [string]$Output = 'D:\weibull\tmp\f01-ppt-v18\mathtype-candidate.pptx',
+param([string]$Candidate = 'D:\weibull\tmp\f01-base\candidate.pptx',
+      [string]$Output = 'D:\weibull\tmp\f01-base\mathtype-candidate.pptx',
       [string]$SpecPath = '')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
