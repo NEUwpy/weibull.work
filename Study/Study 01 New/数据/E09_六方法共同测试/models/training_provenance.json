@@ -1,0 +1,103 @@
+{
+  "run_id": "E5_normalized_raw_specialist_v1",
+  "design": {
+    "name": "formal",
+    "beta_grid": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0
+    ],
+    "eta_grid": [
+      1000.0
+    ],
+    "gamma_over_eta_grid": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "n_grid": [
+      7,
+      10,
+      15,
+      20
+    ],
+    "repeats": 300,
+    "seed_namespace": "study01_nrmc_v1",
+    "combos_total": 160
+  },
+  "method": {
+    "representation": "Z_n = ascending-sorted sample / sample mean (scale-free, full normalized sample)",
+    "input_dim_per_n": {
+      "7": 7,
+      "10": 10,
+      "15": 15,
+      "20": 20
+    },
+    "no_hand_crafted_stats": true,
+    "no_padding": true,
+    "no_mask": true,
+    "no_explicit_n": true,
+    "no_true_parameters": true,
+    "no_combo_id": true,
+    "no_repeat_id": true,
+    "per_n_independent_network": true,
+    "banned_fields_excluded": [
+      "beta",
+      "combo_id",
+      "delta",
+      "eta",
+      "gamma",
+      "gamma_over_eta",
+      "n",
+      "repeat_id",
+      "seed"
+    ],
+    "input_standardizer": "per-position StandardScaler on Z_n, fit on train fold of that n only"
+  },
+  "label_contract": {
+    "target": "26-dim per-sample L6 loss curve (loss_filled)",
+    "loss": "((beta_hat-beta)/beta)^2 + ((eta_hat-eta)/eta)^2 + ((gamma_hat-gamma)/eta)^2",
+    "failure_penalty": "p99(valid training loss) from FULL train fold (all n)",
+    "target_scaling": "StandardScaler 26-dim, train fold of that n only",
+    "J1": "sqrt(mean_i(true_loss_i(delta_hat_i)))"
+  },
+  "training_contract": {
+    "models_total_fold": 60,
+    "seeds": [
+      42,
+      2026,
+      3407
+    ],
+    "mlp": {
+      "hidden_layer_sizes": [
+        256,
+        128,
+        64
+      ],
+      "activation": "relu",
+      "solver": "adam",
+      "alpha": 0.0001,
+      "learning_rate_init": 0.001,
+      "max_iter": 300,
+      "early_stopping": true,
+      "validation_fraction": 0.15,
+      "n_iter_no_change": 20,
+      "batch_size": 256
+    },
+    "final_models": {
+      "role": "deployment model per n, trained on full dev set",
+      "seed": 1,
+      "seed_fixed_before_results": true
+    },
+    "checkpoint_resume": "per (n, fold, seed) JSON+CSV checkpoint"
+  },
+  "source_commit": "ddc75754",
+  "role": "Training provenance only; manuscript test results come from E09."
+}

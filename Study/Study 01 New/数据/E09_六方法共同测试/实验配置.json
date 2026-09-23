@@ -1,0 +1,57 @@
+{
+  "experiment_id": "E09",
+  "name": "E05冻结样本上的六方法共同测试补齐",
+  "status": "completed; integrated into main workspace",
+  "design_status": "adopted for current manuscript on 2026-09-23",
+  "beta": [
+    1.5,
+    2,
+    3,
+    5
+  ],
+  "eta": 1000,
+  "gamma_over_eta": [
+    0.1,
+    0.5,
+    1
+  ],
+  "n": [
+    7,
+    10,
+    15,
+    20
+  ],
+  "cells": 48,
+  "repeats_per_cell": 100,
+  "test_samples": 4800,
+  "test_source": "../E05_冻结模型独立测试/cells/cell_*.csv",
+  "test_seed_namespace": "study01_selector_confirmation_20260922_v1",
+  "model": "E05 frozen_final_seed1, model_commit ddc75754; see E05 contract.json for four exact model hashes",
+  "validation_source": "../E01_固定偏移作用/候选扫描/mc_scan_raw.csv; same 48-cell subset, 300 repeats per cell, independent seed namespace study01_nrmc_v1",
+  "fixed_delta_by_n": {
+    "7": 0.08,
+    "10": 0.1,
+    "15": 0.1,
+    "20": 0.08
+  },
+  "methods": [
+    "MDM-0",
+    "MDM-0.1",
+    "MDM-opt-n",
+    "AMDM",
+    "WMLE",
+    "LSE"
+  ],
+  "failure_score": "joint squared standardized loss 3, failure rate separately; parameter metrics on valid rows",
+  "unit_conversion": "WMLE and LSE inputs divided by fixed 1000 unit, estimates multiplied back; no true-parameter information used",
+  "execution": "python run_e09.py; python paired_uncertainty.py; python summarize_e09.py; python verify_e09.py",
+  "uncertainty": "python paired_uncertainty.py; 2000 paired repeat bootstrap draws within each fixed cell",
+  "claim_limit": "Reuses existing E05 test outcomes and final model; no new unseen test, no new model training, no parameter-domain extrapolation",
+  "version": "v0.3-260923",
+  "wmle_protocol": "Cousineau weighted equations with gamma>=0 and shape<9.99; production multistart followed by sample-only profile/root recovery; squared residual <=1e-8",
+  "wmle_failures": 234,
+  "wmle_recovered": 172,
+  "model_files": "models/n{7,10,15,20}_final.json",
+  "training_provenance": "models/training_provenance.json",
+  "validation_role": "Development calibration, independent of E09 test; not independent of AMDM training"
+}

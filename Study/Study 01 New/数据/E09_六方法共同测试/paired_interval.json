@@ -1,0 +1,36 @@
+{
+  "bootstrap": "paired repeat resampling within each of the 48 fixed cells",
+  "draws": 2000,
+  "seed": 20260923,
+  "methods": [
+    "AMDM",
+    "MDM-0.1",
+    "MDM-opt-n"
+  ],
+  "comparisons": {
+    "MDM-0.1": {
+      "J1_absolute_reduction": 0.05199739307891815,
+      "J1_absolute_reduction_CI95": [
+        0.04568957653415734,
+        0.05845120300440933
+      ],
+      "J1_relative_reduction": 0.08453851405863011,
+      "J1_relative_reduction_CI95": [
+        0.07468817813606018,
+        0.09436020785220148
+      ]
+    },
+    "MDM-opt-n": {
+      "J1_absolute_reduction": 0.05133298586112589,
+      "J1_absolute_reduction_CI95": [
+        0.04556450432431628,
+        0.05697575479495674
+      ],
+      "J1_relative_reduction": 0.08354855589579735,
+      "J1_relative_reduction_CI95": [
+        0.07440112476546654,
+        0.09228655208515073
+      ]
+    }
+  }
+}
