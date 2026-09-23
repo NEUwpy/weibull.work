@@ -7,12 +7,12 @@ const RUNTIME=process.env.RUNTIME_NODE_MODULES||'C:/Users/36089/.cache/codex-run
 process.env.RUNTIME_NODE_MODULES=RUNTIME;
 const {Presentation,PresentationFile}=await import(pathToFileURL(path.join(RUNTIME,'@oai/artifact-tool/dist/artifact_tool.mjs')));
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),REPO=path.resolve(ROOT,'../../..');
-const BUILD=path.join(REPO,'tmp/f02-v4');
+const BUILD=path.join(REPO,'tmp/f02-v5');
 const SKILL='C:/Users/36089/.codex/plugins/cache/openai-primary-runtime/presentations/26.905.11957/skills/presentations';
 await fs.mkdir(BUILD,{recursive:true});
 if(process.argv.includes('--finalize')){
  const {finalizePresentation}=await import(pathToFileURL(path.join(SKILL,'container_tools/artifact_tool_utils.mjs')));
- await finalizePresentation({workspaceDir:REPO,candidatePath:path.join(BUILD,'mathtype-candidate.pptx'),finalPath:path.join(ROOT,'F02_AMDM估计器流程-v4.pptx'),pythonExecutable:'C:/Users/36089/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),layoutValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_layout_geometry.py'),layoutArgs:['--expected-slide-size-emu',2340*9525+','+600*9525,'--validate-heading-fit'],explicitTotalSlideCount:1,verifyArtifactToolImport:true,receiptPath:path.join(BUILD,'validation.json')});
+ await finalizePresentation({workspaceDir:REPO,candidatePath:path.join(BUILD,'mathtype-candidate.pptx'),finalPath:path.join(ROOT,'F02_AMDM估计器流程-v5.pptx'),pythonExecutable:'C:/Users/36089/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),layoutValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_layout_geometry.py'),layoutArgs:['--expected-slide-size-emu',2340*9525+','+600*9525,'--validate-heading-fit'],explicitTotalSlideCount:1,verifyArtifactToolImport:true,receiptPath:path.join(BUILD,'validation.json')});
  process.exit(0);
 }
 const D=JSON.parse(await fs.readFile(path.join(ROOT,'数据/F02_AMDM训练与估计流程.json'),'utf8'));
@@ -56,7 +56,7 @@ txt('select.rule','根据预测误差选择偏移',570,451,660,37,24);
 arrow('flow.select-to-mdm',1299,316,52);
 txt('flow.delta-label','所选偏移',1281,265,87,30,19,GRAY);
 
-region('mdm','MDM估计',1370,108,460,418);
+region('mdm','MDM完整求解流程',1370,108,930,418);
 rect('mdm.location-bg',1420,204,360,66,'#F3F7EB');
 txt('mdm.location','按所选偏移求解位置参数',1430,216,340,40,25,INK,true);
 edge('mdm.to-beta',[[1600,279],[1600,304]],GRAY);
@@ -65,19 +65,20 @@ txt('mdm.beta','回代求解形状参数',1430,326,340,38,25);
 edge('mdm.to-eta',[[1600,382],[1600,407]],GRAY);
 rect('mdm.eta-bg',1420,418,360,64,'#F3F7EB');
 txt('mdm.eta','伪尺度取均值，得到尺度参数',1428,431,344,38,23);
-arrow('flow.mdm-to-output',1849,316,52);
 
-region('output','参数输出',1920,108,380,418,'peach');
-txt('output.label','AMDM三参数估计',1935,224,350,42,25,INK,true);
-eq('output.parameters','(\\hat\\beta,\\hat\\eta,\\hat\\gamma)',1942,303,336,81,39);
-txt('output.meaning','形状 · 尺度 · 位置',1942,431,336,38,24);
+// The three-parameter result belongs to the MDM solve, not an external module.
+edge('mdm.to-result',[[1780,450],[1855,450],[1855,343],[1918,343]],GRAY);
+rect('mdm.result-bg',1920,212,345,266,'#FAEAD9');
+txt('mdm.result-label','AMDM三参数估计',1930,231,325,42,25,INK,true);
+eq('mdm.parameters','(\\hat\\beta,\\hat\\eta,\\hat\\gamma)',1935,299,315,81,39);
+txt('mdm.result-meaning','形状 · 尺度 · 位置',1932,416,321,38,24);
 edge('flow.raw-sample',[[235,526],[235,590],[1600,590],[1600,526]],BLUE);
 rect('flow.raw-label-bg',801,568,240,43,'#FFFFFF');
 txt('flow.raw-label','原始寿命样本',803,570,236,39,25,BLUE);
-S.speakerNotes.textFrame.setText('图2用于2.5定义AMDM估计器。沿用v2下半部的观测样本、网络示意、偏移选择、MDM回代与输出组件，删除离线训练细节并合并候选预测和偏移选择。网络只代表已训练的候选损失评价模型，节点数量不代表实际结构。散点复用F01 Sample-1-3，不是新增实验。输入表征及损失反变换等细节见2.4。原始样本与所选偏移共同进入MDM。MathType仅保留输入、所选偏移和输出符号。');
+S.speakerNotes.textFrame.setText('图2用于2.5定义AMDM估计器。沿用v2下半部的观测样本、网络示意、偏移选择、MDM回代与输出组件，删除离线训练细节并合并候选预测和偏移选择。网络只代表已训练的候选损失评价模型，节点数量不代表实际结构。散点复用F01 Sample-1-3，不是新增实验。输入表征及损失反变换等细节见2.4。原始样本与所选偏移共同进入MDM；三参数估计结果位于MDM完整求解流程内部，不存在独立输出模块。MathType仅保留输入、所选偏移和输出符号。');
 // Remove the slide-style heading and close the vacated top margin.
 for(const sh of S.shapes.items){const p=sh.position;sh.position={left:p.left,top:p.top-70,width:p.width,height:p.height,rotation:p.rotation||0};}
 for(const spec of specs)spec.y-=70;
 await fs.writeFile(path.join(ROOT,'数据/F02_MathType公式.json'),JSON.stringify(specs,null,2)+'\n');
 await (await PresentationFile.exportPptx(P)).save(path.join(BUILD,'candidate.pptx'));
-console.log('Built F02 v4: 2340 x 600; '+specs.length+' MathType equations.');
+console.log('Built F02 v5: 2340 x 600; '+specs.length+' MathType equations.');

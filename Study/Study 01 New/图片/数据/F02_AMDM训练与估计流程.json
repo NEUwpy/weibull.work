@@ -1,6 +1,6 @@
 {
   "figure": "F02",
-  "revision": 4,
+  "revision": 5,
   "type": "AMDM estimator definition",
   "quantitative_data": false,
   "nodes": {
@@ -9,7 +9,7 @@
     "predict": "已训练模型评价候选损失",
     "select": "选择预测损失最低的偏移",
     "mdm": "原始样本与所选偏移共同进入MDM",
-    "output": "形状、尺度与位置参数估计"
+    "output": "MDM内部得到的AMDM三参数估计结果"
   },
   "edges": [
     {
@@ -66,6 +66,14 @@
   ],
   "style_reference": "F01_MDM流程与圆周误差-v21.pptx",
   "layout_note": "Information-flow nodes and edges; editable geometry is defined in F02_绘制PPT.mjs. Network drawing is schematic, not the fitted layer widths.",
-  "visual_focus": "Online estimator: sample information -> adaptive offset selection -> MDM estimation -> parameter output. Original observations also enter MDM directly.",
-  "overall_heading": false
+  "visual_focus": "Sample-driven offset selection feeds the complete MDM solve. All three parameters and the final estimate are inside MDM; no external output module.",
+  "overall_heading": false,
+  "groups": {
+    "mdm": [
+      "location_solve",
+      "shape_backsubstitution",
+      "scale_mean",
+      "output"
+    ]
+  }
 }

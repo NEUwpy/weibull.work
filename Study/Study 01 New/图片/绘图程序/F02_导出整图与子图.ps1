@@ -1,7 +1,7 @@
 param([string]$PptPath='')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
-if(-not $PptPath){$PptPath=Join-Path $root 'F02_AMDM估计器流程-v4.pptx'}
+if(-not $PptPath){$PptPath=Join-Path $root 'F02_AMDM估计器流程-v5.pptx'}
 $out=Join-Path $root '子图'
 New-Item -ItemType Directory -Path $out -Force|Out-Null
 $app=New-Object -ComObject PowerPoint.Application
@@ -9,7 +9,7 @@ try {
  $deck=$app.Presentations.Open($PptPath,-1,0,0)
  try {
   $slide=$deck.Slides.Item(1)
-  $slide.Export((Join-Path $root 'F02_AMDM估计器流程-v4.png'),'PNG',4680,1200)
+  $slide.Export((Join-Path $root 'F02_AMDM估计器流程-v5.png'),'PNG',4680,1200)
   $eqCount=0
   for($i=1;$i -le $slide.Shapes.Count;$i++){
    $sh=$slide.Shapes.Item($i)
@@ -21,7 +21,7 @@ try {
   if($eqCount -ne 3){throw "Expected 3 MathType objects, got $eqCount"}
   Write-Output "Verified $eqCount MathType OLE equations"
  } finally {$deck.Close();[Runtime.InteropServices.Marshal]::FinalReleaseComObject($deck)|Out-Null}
- foreach($p in @(@{Name='F02a_观测样本';Prefix='sample.';X=40;Y=38;W=390;H=418},@{Name='F02b_偏移选择';Prefix='select.';X=520;Y=38;W=760;H=418},@{Name='F02c_MDM估计';Prefix='mdm.';X=1370;Y=38;W=460;H=418},@{Name='F02d_参数输出';Prefix='output.';X=1920;Y=38;W=380;H=418})){
+ foreach($p in @(@{Name='F02a_观测样本';Prefix='sample.';X=40;Y=38;W=390;H=418},@{Name='F02b_偏移选择';Prefix='select.';X=520;Y=38;W=760;H=418},@{Name='F02c_MDM估计';Prefix='mdm.';X=1370;Y=38;W=930;H=418})){
   $deck=$app.Presentations.Open($PptPath,-1,0,0)
   try {
    $slide=$deck.Slides.Item(1)
