@@ -7,16 +7,16 @@ const RUNTIME=process.env.RUNTIME_NODE_MODULES||'C:/Users/36089/.cache/codex-run
 process.env.RUNTIME_NODE_MODULES=RUNTIME;
 const {Presentation,PresentationFile}=await import(pathToFileURL(path.join(RUNTIME,'@oai/artifact-tool/dist/artifact_tool.mjs')));
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),REPO=path.resolve(ROOT,'../../..');
-const BUILD=path.join(REPO,'tmp/f02-v7');
+const BUILD=path.join(REPO,'tmp/f02-v8');
 const SKILL='C:/Users/36089/.codex/plugins/cache/openai-primary-runtime/presentations/26.905.11957/skills/presentations';
 await fs.mkdir(BUILD,{recursive:true});
 if(process.argv.includes('--finalize')){
  const {finalizePresentation}=await import(pathToFileURL(path.join(SKILL,'container_tools/artifact_tool_utils.mjs')));
- await finalizePresentation({workspaceDir:REPO,candidatePath:path.join(BUILD,'mathtype-candidate.pptx'),finalPath:path.join(ROOT,'F02_AMDM估计器流程-v7.pptx'),pythonExecutable:'C:/Users/36089/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),layoutValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_layout_geometry.py'),layoutArgs:['--expected-slide-size-emu',2340*9525+','+960*9525,'--validate-heading-fit'],explicitTotalSlideCount:1,verifyArtifactToolImport:true,receiptPath:path.join(BUILD,'validation.json')});
+ await finalizePresentation({workspaceDir:REPO,candidatePath:path.join(BUILD,'mathtype-candidate.pptx'),finalPath:path.join(ROOT,'F02_AMDM估计器流程-v8.pptx'),pythonExecutable:'C:/Users/36089/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),layoutValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_layout_geometry.py'),layoutArgs:['--expected-slide-size-emu',2340*9525+','+800*9525,'--validate-heading-fit'],explicitTotalSlideCount:1,verifyArtifactToolImport:true,receiptPath:path.join(BUILD,'validation.json')});
  process.exit(0);
 }
 const D=JSON.parse(await fs.readFile(path.join(ROOT,'数据/F02_AMDM训练与估计流程.json'),'utf8'));
-const P=Presentation.create({slideSize:{width:2340,height:960}}),S=P.slides.add();S.background.fill='#FFFFFF';
+const P=Presentation.create({slideSize:{width:2340,height:800}}),S=P.slides.add();S.background.fill='#FFFFFF';
 const INK='#263238',BLUE='#147AAA',GRAY='#82878C',FONT='Microsoft YaHei';
 function rect(name,x,y,w,h,fill='none',stroke='none',dash=false){return S.shapes.add({name,geometry:'rect',position:{left:x,top:y,width:w,height:h},fill,line:{fill:stroke,width:1.3,style:dash?'dashed':'solid'}});}
 function txt(name,text,x,y,w,h,size=24,color=INK,bold=false,align='center'){
@@ -30,59 +30,48 @@ function region(name,title,x,y,w,h,kind='green'){const fill={blue:'#A8C0E5',gree
 const specs=[];
 function eq(id,tex,x,y,w,h,font=29){specs.push({id,remove:[id],tex,x,y,w,h,font});}
 function sample(prefix,x,y,w){line(prefix+'.axis',[[x,y],[x+w,y]],'#B5BEC5',1);const a=D.sample_example.values,lo=Math.min(...a),hi=Math.max(...a);a.forEach((v,i)=>{const xx=x+15+(v-lo)/(hi-lo)*(w-30);line(prefix+'.stem'+i,[[xx,y],[xx,y-22]],BLUE,1.1);circle(prefix+'.dot'+i,xx,y-22,4.5);});}
-function network(prefix,x,y,w,h){const layers=[3,4,4,3],xx=layers.map((_,i)=>x+i*w/3),ys=layers.map(n=>Array.from({length:n},(_,i)=>y+(i+.5)*h/n));for(let k=0;k<3;k++)for(let i=0;i<layers[k];i++)for(let j=0;j<layers[k+1];j++)line(prefix+'.weight'+k+'-'+i+'-'+j,[[xx[k],ys[k][i]],[xx[k+1],ys[k+1][j]]],'#C7D5DD',1);for(let k=0;k<4;k++)for(let i=0;i<layers[k];i++)circle(prefix+'.unit'+k+'-'+i,xx[k],ys[k][i],10,k===0?'#147AAA':k===3?'#D19B66':'#9FBAA5');}
+// Four-stage estimator definition; original observations also enter MDM directly.
+region('input','当前寿命样本',30,150,330,600,'blue');
+sample('input.sample',66,343,258);
+eq('input.sample-vector','\\boldsymbol t_n=(t_{(1)},\\ldots,t_{(n)})^{\\mathsf T}',45,400,300,64,29);
+txt('input.description','排序后的寿命观测',48,500,294,38,24);
+arrow('flow.sample-to-adapt',380,450,42);
 
+region('adapt','样本自适应偏移选择',440,150,570,600,'blue');
+txt('adapt.feature-label','样本特征构造',470,222,510,36,25,INK,true);
+txt('adapt.preprocessing','排序、均值归一化',470,267,510,34,24);
+eq('adapt.normalized','\\boldsymbol z_n=\\boldsymbol t_n/\\bar t',520,308,410,49,29);
+edge('adapt.feature-to-model',[[725,370],[725,405]],GRAY);
+txt('adapt.standardize','标准化',753,367,145,30,21,GRAY);
+rect('adapt.model-box',505,418,440,123,'#EEF4FB','#8FAED0');
+txt('adapt.model-label','偏移选择模型',520,427,410,32,25,INK,true);
+eq('adapt.model','\\boldsymbol f_{\\boldsymbol w_n}(\\boldsymbol u_n)',610,461,230,45,29);
+txt('adapt.prediction','预测候选偏移损失',520,510,410,28,22);
+edge('adapt.model-to-delta',[[725,553],[725,583]],GRAY);
+txt('adapt.selection','选择预测损失最低的偏移',470,594,510,35,24);
+eq('adapt.delta','\\hat\\delta(\\boldsymbol t_n)',580,651,290,55,33);
 
+region('main','MDM参数求解',1110,150,690,600,'green');
+rect('main.location-box',1150,245,610,128,'#FAEAD9','#CFA582');
+txt('main.location-label','位置参数求解',1170,257,570,34,25,INK,true);
+eq('main.gamma','\\hat\\gamma',1335,306,240,52,33);
+edge('main.gamma-to-beta',[[1455,385],[1455,423]],GRAY);
+txt('main.beta-label','形状参数求解',1190,443,530,35,25,INK,true);
+eq('main.beta','\\hat\\beta',1335,495,240,53,33);
+edge('main.beta-to-eta',[[1455,560],[1455,598]],GRAY);
+txt('main.eta-label','尺度参数计算',1190,617,530,35,25,INK,true);
+eq('main.eta','\\hat\\eta',1335,670,240,53,33);
 
+region('output','AMDM估计结果',1900,150,410,600,'peach');
+eq('output.parameters','(\\hat\\beta_{\\mathrm{AMDM}},\\hat\\eta_{\\mathrm{AMDM}},\\hat\\gamma_{\\mathrm{AMDM}})',1918,400,374,83,29);
 
-// The method is expressed through its calculation relations, not placeholder boxes.
-rect('main.boundary',30,30,2280,570,'#FFFFFF','#9FBAA5',true);
-function heading(name,label,x,w,kind='green'){
- rect(name+'.header',x,55,w,42,kind==='blue'?'#A8C0E5':'#EAF1D8');
- txt(name+'.title',label,x+5,57,w-10,38,24,INK,true);
-}
-heading('main.sample','观测样本',55,345,'blue');
-sample('main.sample',88,194,279);
-eq('main.sample-vector','\\boldsymbol t_n=(t_{(1)},\\ldots,t_{(n)})^{\\mathsf T}',65,232,325,58,27);
-txt('main.rank-label','中位秩概率',65,346,325,35,23);
-eq('main.rank','\\hat F(t_{(i)})=\\frac{i-0.3}{n+0.4}',70,406,315,89,31);
-arrow('main.sample-to-criterion',414,307,38);
-
-heading('main.criterion','由样本构造最小差异准则',465,640);
-eq('main.pseudo','\\hat\\eta_i(\\gamma_j,\\beta_k)=\\frac{t_{(i)}-\\gamma_j}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\beta_k}}',482,145,606,100,32);
-edge('main.pseudo-to-sd',[[785,263],[785,288]],GRAY);
-eq('main.sd','\\sigma_\\eta(\\gamma_j,\\beta_k)=\\mathrm{SD}(\\hat\\eta_1,\\ldots,\\hat\\eta_n)',484,307,602,62,31);
-edge('main.sd-to-profile',[[785,394],[785,419]],GRAY);
-eq('main.profile','\\sigma_{\\eta,\\min}(\\gamma_j)=\\min_{\\beta_k}\\sigma_\\eta(\\gamma_j,\\beta_k)',484,442,602,76,32);
-arrow('main.criterion-to-location',1120,307,38);
-
-heading('main.location','位置参数求解',1170,440);
-eq('main.gradient','\\nabla(\\gamma)=\\frac{\\mathrm d\\sigma_{\\eta,\\min}(\\gamma)}{\\mathrm d\\gamma}',1182,149,416,114,33);
-edge('main.gradient-to-root',[[1390,288],[1390,319]],GRAY);
-rect('main.root-highlight',1182,342,416,98,'#FAEAD9','#D5AA85');
-eq('main.root','\\nabla(\\hat\\gamma)=\\hat\\delta(\\boldsymbol t_n)',1193,358,394,66,33);
-arrow('main.location-to-backsolve',1625,307,39);
-
-heading('main.solve','形状、尺度回代与估计结果',1680,610);
-eq('main.beta','\\hat\\beta=\\mathop{\\mathrm{arg\\,min}}\\limits_{\\beta_k}\\sigma_\\eta(\\hat\\gamma,\\beta_k)',1698,145,574,90,33);
-edge('main.beta-to-eta',[[1985,257],[1985,283]],GRAY);
-eq('main.eta','\\hat\\eta=\\frac1n\\sum_{i=1}^{n}\\hat\\eta_i(\\hat\\gamma,\\hat\\beta)',1698,304,574,93,33);
-edge('main.eta-to-result',[[1985,420],[1985,445]],GRAY);
-rect('main.result-bg',1755,465,460,102,'#FAEAD9');
-txt('main.result-label','AMDM估计结果',1770,470,430,32,23,INK,true);
-eq('main.parameters','(\\hat\\beta,\\hat\\eta,\\hat\\gamma)',1810,512,350,45,32);
-
-region('adapt','当前样本给出位置求解所用的偏移',550,750,1050,170,'blue');
-txt('adapt.prediction-label','候选损失预测',565,806,260,32,23);
-eq('adapt.prediction','\\widehat{\\boldsymbol\\ell}(\\boldsymbol t_n)',568,847,254,52,31);
-arrow('adapt.predict-to-select',845,853,45);
-eq('adapt.argmin','m^\\star=\\mathop{\\mathrm{arg\\,min}}\\limits_m\\widehat\\ell_m(\\boldsymbol t_n)',912,809,395,84,29);
-eq('adapt.delta','\\hat\\delta(\\boldsymbol t_n)=\\delta_{m^\\star}',1325,832,252,60,29);
-edge('flow.sample-information',[[227,580],[227,853],[550,853]],BLUE);
-txt('flow.sample-label','同一观测样本',255,810,250,32,23,BLUE);
-edge('flow.offset',[[1600,862],[1640,862],[1640,660],[1390,660],[1390,440]],BLUE);
-txt('flow.offset-label','样本自适应偏移',1440,618,240,34,23,BLUE);
-S.speakerNotes.textFrame.setText('AMDM计算机制图，符号与稿件2.2–2.5一致。排序观测与中位秩概率给出伪尺度，标准差及对形状参数的条件最小值形成位置求解准则。位置求解判据中的偏移由当前样本的候选损失预测自适应确定，然后回代形状与尺度参数，输出完整三参数估计。位置约束与边界处理沿用2.3。下方仅给出预测与选择关系，不展开网络训练。各式为MathType对象。散点复用F01既有样本；无新模拟、梯度曲线或性能证据。');
+// Dedicated routing lanes keep the adaptive input separate from raw observations.
+edge('flow.raw-sample',[[195,150],[195,75],[1455,75],[1455,150]],GRAY);
+txt('flow.raw-label','原始寿命样本进入MDM求解',600,28,520,36,23,GRAY);
+edge('flow.adaptive-offset',[[1010,680],[1060,680],[1060,310],[1150,310]],BLUE);
+txt('flow.offset-label','自适应偏移',1025,210,160,30,21,BLUE);
+edge('flow.result',[[1800,695],[1847,695],[1847,450],[1900,450]],GRAY);
+S.speakerNotes.textFrame.setText('图2定义AMDM的在线估计流程。当前排序寿命样本经均值归一化和已保存的标准化变换，输入对应样本量的偏移选择模型，按逆变换后的预测候选损失选择偏移。所选偏移进入MDM位置求解，随后按原结构完成形状和尺度估计，输出三参数结果。原始寿命样本沿上方连线同时提供给MDM，归一化仅用于偏移选择。符号与正文2.4–2.5一致，图不展开MDM推导、训练结构或性能结果。输入散点复用F01 Sample-1-3。全部数学表达为MathType对象。');
 await fs.writeFile(path.join(ROOT,'数据/F02_MathType公式.json'),JSON.stringify(specs,null,2)+'\n');
 await (await PresentationFile.exportPptx(P)).save(path.join(BUILD,'candidate.pptx'));
-console.log('Built F02 v7: 2340 x 960; '+specs.length+' MathType equations.');
+console.log('Built F02 v8: 2340 x 800; '+specs.length+' MathType equations.');

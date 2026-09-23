@@ -1,25 +1,39 @@
 {
   "figure": "F02",
-  "revision": 7,
+  "revision": 8,
   "type": "AMDM estimator definition",
   "quantitative_data": false,
   "nodes": {
-    "sample": "原始观测样本",
-    "criterion": "构造样本最小差异求解准则",
+    "sample": "当前排序寿命样本",
+    "features": "均值归一化与保存的标准化",
+    "model": "按样本量调用偏移选择模型，预测候选偏移损失",
+    "sample_adaptive_offset": "选择预测损失最低的偏移",
     "gamma": "所选偏移下位置求解",
-    "beta": "位置回代求条件最小差异",
-    "eta": "伪尺度均值",
-    "output": "同一MDM流程内的AMDM三参数估计",
-    "sample_adaptive_offset": "候选损失预测与argmin选择给出偏移"
+    "beta": "形状参数求解",
+    "eta": "尺度参数计算",
+    "output": "AMDM三参数估计"
   },
   "edges": [
     {
       "from": "sample",
-      "to": "criterion"
+      "to": "features"
     },
     {
-      "from": "criterion",
+      "from": "features",
+      "to": "model"
+    },
+    {
+      "from": "model",
+      "to": "sample_adaptive_offset"
+    },
+    {
+      "from": "sample_adaptive_offset",
       "to": "gamma"
+    },
+    {
+      "to": "gamma",
+      "role": "原始寿命尺度的观测直接用于MDM",
+      "from": "sample"
     },
     {
       "from": "gamma",
@@ -32,14 +46,6 @@
     {
       "from": "eta",
       "to": "output"
-    },
-    {
-      "from": "sample",
-      "to": "sample_adaptive_offset"
-    },
-    {
-      "from": "sample_adaptive_offset",
-      "to": "gamma"
     }
   ],
   "sources": [
@@ -67,23 +73,28 @@
   },
   "canvas_px": [
     2340,
-    960
+    800
   ],
   "style_reference": "F01_MDM流程与圆周误差-v21.pptx",
-  "layout_note": "Information-flow nodes and edges; editable geometry is defined in F02_绘制PPT.mjs. Network drawing is schematic, not the fitted layer widths.",
-  "visual_focus": "Formula-based estimation chain: observations -> pseudo scales -> discrepancy profile -> sample-adaptive location criterion -> beta and eta backsubstitution -> parameter estimates.",
+  "layout_note": "Four horizontal modules. The adaptive offset enters the location solve; raw observations enter MDM via a separate upper connection. No network architecture or MDM derivation.",
+  "visual_focus": "Sample-driven offset selection is highlighted while the three core MDM solving steps remain visible.",
   "overall_heading": false,
   "groups": {
-    "mdm": [
-      "sample",
-      "criterion",
-      "gamma",
-      "beta",
-      "eta",
-      "output"
+    "input": [
+      "sample"
     ],
     "adaptation": [
+      "features",
+      "model",
       "sample_adaptive_offset"
+    ],
+    "mdm": [
+      "gamma",
+      "beta",
+      "eta"
+    ],
+    "output": [
+      "output"
     ]
   }
 }

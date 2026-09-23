@@ -5,7 +5,7 @@
 | 图件 | 整图 | 内部图 | 代码与数据 |
 |---|---|---|---|
 | F01 / 图1 | [可编辑PPT v21](F01_MDM流程与圆周误差-v21.pptx) · [PNG](F01_MDM流程与圆周误差-v21.png) | [A位置求解](子图/F01a_位置求解.png) · [B形状回代](子图/F01b_形状回代.png) · [C重复抽样梯度](子图/F01c_重复抽样梯度.png) · [D圆周误差与RMSE](子图/F01d_圆周误差与三参数RMSE.png) | `绘图程序/F01*` · `数据/F01*` |
-| F02 / 图2 | [可编辑PPT v7](F02_AMDM估计器流程-v7.pptx) · [PNG](F02_AMDM估计器流程-v7.png) | [MDM主流程](子图/F02a_MDM主流程.png) · [样本驱动调节](子图/F02b_样本驱动调节.png) | [绘图程序](绘图程序/F02_绘制PPT.mjs) · [流程数据](数据/F02_AMDM训练与估计流程.json) · [公式](数据/F02_MathType公式.json) |
+| F02 / 图2 | [可编辑PPT v8](F02_AMDM估计器流程-v8.pptx) · [PNG](F02_AMDM估计器流程-v8.png) | [MDM主流程](子图/F02a_MDM主流程.png) · [样本驱动调节](子图/F02b_样本驱动调节.png) | [绘图程序](绘图程序/F02_绘制PPT.mjs) · [流程数据](数据/F02_AMDM训练与估计流程.json) · [公式](数据/F02_MathType公式.json) |
 
 ## 图1的数据和含义
 
@@ -37,15 +37,15 @@ node "Study/Study 01 New/图片/绘图程序/F01d_圆周误差图.mjs" --finaliz
 
 ## 图2口径
 
-图2服务于2.5节的估计器定义，只呈现在线估计：从观测开始的MDM求解流程，在位置求解步骤直接标示样本自适应偏移。观测样本直接进入MDM主流程，同时向调节支路提供样本信息；训练定义仍在2.4节说明。数据JSON保存节点、连线、示例样本与来源，版面坐标由绘图程序定义。
+图2服务于2.5节的估计器定义，横向呈现当前样本、样本自适应偏移选择、MDM参数求解与AMDM估计结果。偏移选择位于主流程中，其输出明确接入位置求解；上方连线另行传递原始寿命观测。训练定义仍在2.4节说明。数据JSON保存节点、连线、示例样本与来源，版面坐标由绘图程序定义。
 
-图2沿用图1的分区配色、虚线边框、字体和箭头样式。图内13处公式均为MathType对象：由观测和秩概率构造伪尺度、差异与条件最小差异，通过含自适应偏移的位置判据求解，再回代形状与尺度。下方保留候选损失预测和偏移选择关系；训练及网络细节留在2.4。样本散点复用图1的Sample-1-3，仅说明输入形式，不构成新的实验结果。MDM计算主流程与偏移选择关系分别从整图导出；位置求解框内直接标示所用偏移。三参数结果保留在主流程内部。
+图2沿用图1的分区配色、虚线边框、字体和箭头样式。图内8处数学表达均为MathType对象，保留样本、归一化、选择模型、所选偏移及三参数估计符号。MDM只展开位置、形状和尺度三个核心步骤；伪尺度、秩概率和梯度推导留在2.2—2.3，训练细节留在2.4。样本散点复用图1的Sample-1-3，仅说明输入形式，不构成新的实验结果。MDM求解模块与偏移选择模块分别从整图导出；完整连线及输出关系保留在整图中。
 
 ## 图2复现
 
 ```powershell
 node "Study/Study 01 New/图片/绘图程序/F02_绘制PPT.mjs"
-& "Study/Study 01 New/图片/绘图程序/F01_嵌入MathType.ps1" -Candidate "D:/weibull/tmp/f02-v7/candidate.pptx" -Output "D:/weibull/tmp/f02-v7/mathtype-candidate.pptx" -SpecPath "D:/weibull/Study/Study 01 New/图片/数据/F02_MathType公式.json"
+& "Study/Study 01 New/图片/绘图程序/F01_嵌入MathType.ps1" -Candidate "D:/weibull/tmp/f02-v8/candidate.pptx" -Output "D:/weibull/tmp/f02-v8/mathtype-candidate.pptx" -SpecPath "D:/weibull/Study/Study 01 New/图片/数据/F02_MathType公式.json"
 node "Study/Study 01 New/图片/绘图程序/F02_绘制PPT.mjs" --finalize
 & "Study/Study 01 New/图片/绘图程序/F02_导出整图与子图.ps1"
 ```
