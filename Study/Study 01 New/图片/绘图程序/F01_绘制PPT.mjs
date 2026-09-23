@@ -107,7 +107,6 @@ function curve(prefix,data,a,color=INK,width=2){
 }
 function eqBox(name,plain,x,y,w,h){return math(name,plain,x,y,w,h,28);}
 
-txt('title.main','单样本 MDM：由最小差异准则确定三个参数',40,22,2260,48,31,INK,true,'left');
 region('criterion','样本如何形成求解准则',40,96,500,500);
 // Actual sample marks, not an icon standing in for data.
 rect('criterion.input-region',53,144,474,137,'#F5F5F5');
