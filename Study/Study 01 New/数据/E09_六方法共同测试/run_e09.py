@@ -141,6 +141,11 @@ def collect() -> None:
     assert len(additions) == 48 * 100 * 4
     df = pd.concat([source[cols], additions[cols]], ignore_index=True)
     assert len(df) == 48 * 100 * 6
+    extension = HERE / 'additional_methods.csv.gz'
+    if extension.exists():
+        extra = pd.read_csv(extension)
+        assert len(extra) == 14400 and set(extra.method) == {'LRE', 'MM', 'MLE'}
+        df = pd.concat([df, extra[cols]], ignore_index=True)
     assert not df.duplicated(["cell_id", "repeat_id", "method"]).any()
     assert df.groupby(["cell_id", "repeat_id"]).sample_sha256.nunique().eq(1).all()
     df["valid"] = df.valid.astype(str).str.lower().eq("true")

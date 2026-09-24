@@ -1,0 +1,95 @@
+{
+  "source": "数据\\E09_六方法共同测试\\per_sample.csv.gz",
+  "source_sha256": "9c73c98fb59b28e8de937351e95bf9c563ffab7513ea8ca8c3c50f7e7e2c20cf",
+  "sample_sizes": [
+    7,
+    10,
+    15,
+    20
+  ],
+  "groups": [
+    {
+      "n": 7,
+      "population_samples": 1200,
+      "common_valid_samples": 577,
+      "failures": {
+        "AMDM": 0,
+        "MDM-0.1": 0,
+        "WMLE": 55,
+        "LSE": 0,
+        "LRE": 0,
+        "MLE": 570
+      }
+    },
+    {
+      "n": 10,
+      "population_samples": 1200,
+      "common_valid_samples": 733,
+      "failures": {
+        "AMDM": 0,
+        "MDM-0.1": 0,
+        "WMLE": 59,
+        "LSE": 0,
+        "LRE": 0,
+        "MLE": 411
+      }
+    },
+    {
+      "n": 15,
+      "population_samples": 1200,
+      "common_valid_samples": 886,
+      "failures": {
+        "AMDM": 0,
+        "MDM-0.1": 0,
+        "WMLE": 64,
+        "LSE": 0,
+        "LRE": 0,
+        "MLE": 252
+      }
+    },
+    {
+      "n": 20,
+      "population_samples": 1200,
+      "common_valid_samples": 1009,
+      "failures": {
+        "AMDM": 0,
+        "MDM-0.1": 0,
+        "WMLE": 56,
+        "LSE": 0,
+        "LRE": 0,
+        "MLE": 135
+      }
+    }
+  ],
+  "displayed_methods": [
+    "AMDM",
+    "MDM-0.1",
+    "WMLE",
+    "LSE",
+    "LRE",
+    "MLE"
+  ],
+  "omitted_method": {
+    "method": "MM",
+    "reason": "Outside the current six-method manuscript comparison; retained in original E09 experiment archive."
+  },
+  "metric": "sqrt(mean(standardized error squared)); six-method shared valid samples within each n",
+  "normalization": {
+    "beta": "true beta",
+    "eta": "true eta",
+    "gamma": "true eta"
+  },
+  "geometry": "Equal-width polar bars; radius=RMSE, linear zero origin; identical scale in all four panels. Labels show original RMSE; area is not RMSE.",
+  "common_radial_extent": 1.4000000000000001,
+  "common_ticks": [
+    0.2,
+    0.4,
+    0.6,
+    0.8,
+    1.0,
+    1.2,
+    1.4
+  ],
+  "conclusion": "Compare parameter accuracy of six estimators separately at n=7,10,15,20.",
+  "uncertainty": "Point estimates; no uncertainty intervals. Success-conditioned populations can differ across sample sizes."
+}

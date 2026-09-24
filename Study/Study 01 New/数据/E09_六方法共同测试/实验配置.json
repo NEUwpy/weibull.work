@@ -1,7 +1,7 @@
 {
   "experiment_id": "E09",
-  "name": "E05冻结样本上的六方法共同测试补齐",
-  "status": "completed; integrated into main workspace",
+  "name": "E05冻结样本上的共同测试（九方法存档，六方法正文）",
+  "status": "completed and verified; 43200 rows, nine archived methods, six manuscript methods",
   "design_status": "adopted for current manuscript on 2026-09-23",
   "beta": [
     1.5,
@@ -40,18 +40,39 @@
     "MDM-opt-n",
     "AMDM",
     "WMLE",
-    "LSE"
+    "LSE",
+    "LRE",
+    "MM",
+    "MLE"
   ],
   "failure_score": "joint squared standardized loss 3, failure rate separately; parameter metrics on valid rows",
-  "unit_conversion": "WMLE and LSE inputs divided by fixed 1000 unit, estimates multiplied back; no true-parameter information used",
-  "execution": "python run_e09.py; python paired_uncertainty.py; python summarize_e09.py; python verify_e09.py",
+  "unit_conversion": "All conventional estimators use observations divided by fixed 1000; scale/location estimates converted back; no true parameters passed to solvers.",
+  "execution": "python run_e09.py; python extend_conventional.py; python paired_uncertainty.py; python verify_e09.py; python summarize_e09.py",
   "uncertainty": "python paired_uncertainty.py; 2000 paired repeat bootstrap draws within each fixed cell",
   "claim_limit": "Reuses existing E05 test outcomes and final model; no new unseen test, no new model training, no parameter-domain extrapolation",
-  "version": "v0.3-260923",
+  "version": "v0.4-260924",
   "wmle_protocol": "Cousineau weighted equations with gamma>=0 and shape<9.99; production multistart followed by sample-only profile/root recovery; squared residual <=1e-8",
   "wmle_failures": 234,
   "wmle_recovered": 172,
   "model_files": "models/n{7,10,15,20}_final.json",
   "training_provenance": "models/training_provenance.json",
-  "validation_role": "Development calibration, independent of E09 test; not independent of AMDM training"
+  "validation_role": "Development calibration, independent of E09 test; not independent of AMDM training",
+  "manuscript_methods": [
+    "AMDM",
+    "MDM-0.1",
+    "WMLE",
+    "LSE",
+    "LRE",
+    "MLE"
+  ],
+  "extension_protocol": {
+    "LRE": "Production median-rank correlation-maximizing location with OLS shape/scale (Li/Park-inspired implementation).",
+    "MM": "Production Cran 1988 Weibull moments with admissibility and location correction.",
+    "MLE": "Production five-start Nelder-Mead; best converged finite candidate with beta>=1; unbounded/optimizer_failed returned as failures."
+  },
+  "archived_only_methods": [
+    "MDM-0",
+    "MDM-opt-n",
+    "MM"
+  ]
 }

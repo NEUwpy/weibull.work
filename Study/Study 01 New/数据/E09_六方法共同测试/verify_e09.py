@@ -16,9 +16,11 @@ from methods.wmle import get_weight_j1,get_weight_j2,get_weight_j3
 
 def main():
     data=pd.read_csv(HERE/'per_sample.csv.gz')
-    assert len(data)==28800 and data.cell_id.nunique()==48
+    expected_methods=set(json.loads((HERE/'实验配置.json').read_text(encoding='utf8'))['methods'])
+    assert set(data.method)==expected_methods
+    assert len(data)==4800*len(expected_methods) and data.cell_id.nunique()==48
     assert not data.duplicated(['cell_id','repeat_id','method']).any()
-    assert data.groupby('sample_sha256').method.nunique().eq(6).all()
+    assert data.groupby('sample_sha256').method.nunique().eq(len(expected_methods)).all()
     samples={}
     for row in data.drop_duplicates('sample_sha256').itertuples():
         x=generate_sample(row.beta,row.eta,row.gamma,row.n,row.repeat_id,
@@ -55,7 +57,21 @@ def main():
             assert fit['converged']
             assert np.allclose([fit[k+'_hat'] for k in ['beta','eta','gamma']],
                                [row.beta_hat,row.eta_hat,row.gamma_hat],rtol=1e-9,atol=1e-8)
+    extension_checks=0
+    for method in ['LRE','MM','MLE']:
+        group=data[data.method.eq(method)]
+        if group.empty: continue
+        for row in group.groupby('n').head(2).itertuples():
+            fit=run_method(method.lower(),samples[row.sample_sha256]/1000.)
+            if row.valid:
+                assert fit['converged']
+                assert np.allclose([fit['beta_hat'],fit['eta_hat']*1000,fit['gamma_hat']*1000],
+                                   [row.beta_hat,row.eta_hat,row.gamma_hat],rtol=1e-8,atol=1e-8)
+            else:
+                assert not fit['converged']
+            extension_checks+=1
     report={'rows':len(data),'paired_samples':len(samples),'cells':48,
+            'production_extension_spot_checks':extension_checks,
             'sample_hashes_checked':len(samples),'model_decisions_checked':4800,
             'AMDM_solver_spot_checks':8,'WMLE_valid_equations_checked':int((data.method.eq('WMLE')&data.valid).sum()),
             'WMLE_max_squared_residual':float(maxres),'status':'passed'}

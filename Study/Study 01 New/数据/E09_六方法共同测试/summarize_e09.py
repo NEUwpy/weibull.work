@@ -10,6 +10,34 @@ HERE=Path(__file__).resolve().parent
 
 def main():
     data=pd.read_csv(HERE/'per_sample.csv.gz')
+    pooled=[]; params=[]; by_n=[]
+    for method,g in data.groupby('method'):
+        valid=g[g.valid]
+        row={'method':method,'samples':len(g),'failures':int((~g.valid).sum()),
+             'failure_rate':float((~g.valid).mean()),
+             'J1_complete_case':float(np.sqrt(valid.squared_loss.mean())),
+             'J1_failure3':float(np.sqrt(g.score.mean()))}
+        pooled.append(row)
+        entry={'method':method,'valid_samples':len(valid)}
+        for p in ['beta','eta','gamma']:
+            e=valid['err_'+p]
+            entry.update({f'bias_{p}':e.mean(),f'sd_{p}':e.std(ddof=1),
+                          f'rmse_{p}':np.sqrt((e**2).mean()),f'mae_{p}':e.abs().mean()})
+        params.append(entry)
+        for n,gn in g.groupby('n'):
+            vn=gn[gn.valid]
+            entry={'method':method,'n':n,'samples':len(gn),'failures':int((~gn.valid).sum()),
+                   'failure_rate':float((~gn.valid).mean()),
+                   'J1_complete_case':float(np.sqrt(vn.squared_loss.mean())),
+                   'J1_failure3':float(np.sqrt(gn.score.mean()))}
+            for p in ['beta','eta','gamma']:
+                e=vn['err_'+p]
+                entry.update({f'bias_{p}':e.mean(),f'sd_{p}':e.std(ddof=1),
+                              f'rmse_{p}':np.sqrt((e**2).mean()),f'mae_{p}':e.abs().mean()})
+            by_n.append(entry)
+    pd.DataFrame(pooled).to_csv(HERE/'pooled.csv',index=False)
+    pd.DataFrame(params).to_csv(HERE/'pooled_parameter_metrics.csv',index=False)
+    pd.DataFrame(by_n).to_csv(HERE/'by_n.csv',index=False)
     rows=[]
     for keys,d in data.groupby(['method','cell_id','n','beta','gamma_over_eta']):
         out=dict(zip(['method','cell_id','n','beta','gamma_over_eta'],keys))
@@ -54,13 +82,28 @@ def main():
         out.append(row)
     pd.DataFrame(out).to_csv(HERE/'paired_valid_and_failure_sensitivity.csv',index=False)
     manifest=json.loads((HERE/'manifest.json').read_text(encoding='utf8'))
+    manifest['methods']=sorted(data.method.unique())
+    manifest['rows']=len(data)
+    config=json.loads((HERE/'实验配置.json').read_text(encoding='utf8'))
+    manifest['version']=config['version']
+    manifest['manuscript_methods']=config['manuscript_methods']
+    manifest['source_hashes'][str((HERE/'run_e09.py').relative_to(HERE.parents[3]))]=hashlib.sha256((HERE/'run_e09.py').read_bytes()).hexdigest()
+    for name in ['per_sample.csv.gz','pooled.csv','pooled_parameter_metrics.csv','by_n.csv',
+                 'additional_methods.csv.gz','extension_manifest.json']:
+        if (HERE/name).exists():
+            manifest['output_hashes'][name]=hashlib.sha256((HERE/name).read_bytes()).hexdigest()
     for name in ['by_cell.csv','within_cell_stability.csv','by_beta.csv','by_gamma_over_eta.csv',
                  'paired_valid_and_failure_sensitivity.csv','paired_interval.json','wmle_recovery.csv',
                  'wmle_failure_audit.csv','wmle_audit_summary.json','verification.json']:
         manifest['output_hashes'][name]=hashlib.sha256((HERE/name).read_bytes()).hexdigest()
-    for name in ['summarize_e09.py','paired_uncertainty.py','audit_wmle.py','repair_wmle_rows.py','verify_e09.py']:
+    for name in ['summarize_e09.py','paired_uncertainty.py','audit_wmle.py','repair_wmle_rows.py','verify_e09.py',
+                 'extend_conventional.py','实验配置.json']:
         relative=(HERE/name).relative_to(HERE.parents[3])
         manifest['source_hashes'][str(relative)]=hashlib.sha256((HERE/name).read_bytes()).hexdigest()
+    extension=json.loads((HERE/'extension_manifest.json').read_text(encoding='utf8'))
+    for relative,digest in extension['source_hashes'].items():
+        if relative!='extension_driver':
+            manifest['source_hashes'][str(Path(relative))]=digest
     manifest['model_hashes']={p.name:hashlib.sha256(p.read_bytes()).hexdigest()
                              for p in sorted((HERE/'models').glob('n*_final.json'))}
     (HERE/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
