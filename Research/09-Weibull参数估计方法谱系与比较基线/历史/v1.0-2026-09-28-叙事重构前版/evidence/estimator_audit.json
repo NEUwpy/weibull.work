@@ -1,0 +1,1637 @@
+{
+  "python": "3.11.15 (main, Jun 11 2026, 04:59:07) [MSC v.1944 64 bit (AMD64)]",
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "head": "01188d8662ac008f41aa9ae528244fe2f5f7f5ed",
+  "source_hashes": {
+    "lse": {
+      "sha256": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+      "copied_code_same": true
+    },
+    "lre": {
+      "sha256": "730e86750f5ac1b31dd1cee9f3a73a8932e501661dfbf1e82c056de44f9a663f",
+      "copied_code_same": true
+    },
+    "wmle": {
+      "sha256": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+      "copied_code_same": true
+    },
+    "mle": {
+      "sha256": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+      "copied_code_same": true
+    }
+  },
+  "recorded_revision_comparison": {
+    "e25c0fde99222c86661e1fda35d3197c70e9e15d": {
+      "lse": true,
+      "lre": false,
+      "wmle": false,
+      "mle": false
+    },
+    "931ac7d281f66ebe97b8c5ab274ef6f674d6a3b5": {
+      "lse": true,
+      "lre": true,
+      "wmle": true,
+      "mle": true
+    },
+    "7df56c4ea509fff6f42edd628165c80b1b32de9e": {
+      "lse": true,
+      "lre": true,
+      "wmle": true,
+      "mle": true
+    }
+  },
+  "stored_status_counts": {
+    "7": {
+      "LS": {
+        "ok": 50
+      },
+      "LRE": {
+        "ok": 50
+      },
+      "WMLM": {
+        "ok": 47,
+        "equation_residual": 3
+      },
+      "MLM": {
+        "unbounded": 30,
+        "ok": 20
+      }
+    },
+    "15": {
+      "LS": {
+        "ok": 50
+      },
+      "LRE": {
+        "ok": 50
+      },
+      "WMLM": {
+        "ok": 50
+      },
+      "MLM": {
+        "ok": 38,
+        "unbounded": 12
+      }
+    },
+    "30": {
+      "LS": {
+        "ok": 50
+      },
+      "LRE": {
+        "ok": 50
+      },
+      "WMLM": {
+        "ok": 50
+      },
+      "MLM": {
+        "ok": 49,
+        "unbounded": 1
+      }
+    }
+  },
+  "replays": [
+    {
+      "n": 7,
+      "sample_id": 1,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 0.5963354555513114,
+        "eta_hat": 515.1910598329749,
+        "gamma_hat": 1194.3590241449429,
+        "r_squared": 0.9255025003936952,
+        "converged": true,
+        "time": 0.007817699981387705,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 16.294340791974143,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 1194.3590241449429,
+            "optimal_shape": 0.5963354555513114
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 0.5963354555513114,
+        "scale_hat": 515.1910598329749,
+        "location_hat": 1194.3590241449429,
+        "r_squared": 0.9255025003936952,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 1,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 0.5501717294538109,
+        "eta_hat": 512.54973744395,
+        "gamma_hat": 1192.83329513996,
+        "r_squared": 0.944711305470846,
+        "converged": true,
+        "time": 0.01022300001932308,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9447113054708465,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 0.5501717294538109,
+        "scale_hat": 512.54973744395,
+        "location_hat": 1192.83329513996,
+        "r_squared": 0.944711305470846,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 1,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 0.8252601655598866,
+        "eta_hat": 522.7829303716474,
+        "gamma_hat": 1169.0698833627705,
+        "r_squared": 0.907639390809231,
+        "converged": true,
+        "time": 0.0369347000378184,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 1.977236471586679e-24,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 3,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 0.8252601655598866,
+        "scale_hat": 522.7829303716474,
+        "location_hat": 1169.0698833627705,
+        "r_squared": 0.907639390809231,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 1,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": null,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": null,
+        "eta_hat": null,
+        "gamma_hat": null,
+        "r_squared": null,
+        "converged": false,
+        "time": 0.8128128000535071,
+        "extra": {
+          "raw_status": "unbounded"
+        }
+      },
+      "stored_result": {
+        "shape_hat": null,
+        "scale_hat": null,
+        "location_hat": null,
+        "r_squared": null,
+        "converged": false,
+        "status": "unbounded",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 25,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 3.0260930616890036,
+        "eta_hat": 1093.490261842237,
+        "gamma_hat": 884.4803320148906,
+        "r_squared": 0.9196700021982791,
+        "converged": true,
+        "time": 0.003090500016696751,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 13.065464702609658,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 884.4803320148906,
+            "optimal_shape": 3.0260930616890036
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 3.0260930616890036,
+        "scale_hat": 1093.490261842237,
+        "location_hat": 884.4803320148906,
+        "r_squared": 0.9196700021982791,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 25,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 3.109968046325088,
+        "eta_hat": 1232.7937399406549,
+        "gamma_hat": 749.1041352908269,
+        "r_squared": 0.9411001404331423,
+        "converged": true,
+        "time": 0.008183599973563105,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9411001404331426,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 3.109968046325088,
+        "scale_hat": 1232.7937399406549,
+        "location_hat": 749.1041352908269,
+        "r_squared": 0.9411001404331423,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 25,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 1.46689126201125,
+        "eta_hat": 621.5614958251593,
+        "gamma_hat": 1289.6662117608926,
+        "r_squared": 0.8893028340998633,
+        "converged": true,
+        "time": 0.03368769999360666,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 5.569436876950865e-26,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 0,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.46689126201125,
+        "scale_hat": 621.5614958251593,
+        "location_hat": 1289.6662117608926,
+        "r_squared": 0.8893028340998633,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 25,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": null,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": null,
+        "eta_hat": null,
+        "gamma_hat": null,
+        "r_squared": null,
+        "converged": false,
+        "time": 0.8132435000152327,
+        "extra": {
+          "raw_status": "unbounded"
+        }
+      },
+      "stored_result": {
+        "shape_hat": null,
+        "scale_hat": null,
+        "location_hat": null,
+        "r_squared": null,
+        "converged": false,
+        "status": "unbounded",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 29,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 0.6779193999032299,
+        "eta_hat": 423.89359880460125,
+        "gamma_hat": 1431.8095273830681,
+        "r_squared": 0.9730716567084661,
+        "converged": true,
+        "time": 0.003517800010740757,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 55.220957947956386,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 1431.8095273830681,
+            "optimal_shape": 0.6779193999032299
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 0.6779193999032299,
+        "scale_hat": 423.89359880460125,
+        "location_hat": 1431.8095273830681,
+        "r_squared": 0.9730716567084661,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 29,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 0.6469597352076699,
+        "eta_hat": 409.36924009793177,
+        "gamma_hat": 1430.1284191998072,
+        "r_squared": 0.9843539719401134,
+        "converged": true,
+        "time": 0.007818099984433502,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9843539719401131,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 0.6469597352076699,
+        "scale_hat": 409.36924009793177,
+        "location_hat": 1430.1284191998072,
+        "r_squared": 0.9843539719401134,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 29,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": null,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": null,
+        "eta_hat": null,
+        "gamma_hat": null,
+        "r_squared": null,
+        "converged": false,
+        "time": 0.034070199995767325,
+        "extra": {
+          "raw_status": "equation_residual",
+          "solution_info": {
+            "status": "equation_residual",
+            "objective": 0.0012834068487511865,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 1
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": null,
+        "scale_hat": null,
+        "location_hat": null,
+        "r_squared": null,
+        "converged": false,
+        "status": "equation_residual",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 29,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": null,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": null,
+        "eta_hat": null,
+        "gamma_hat": null,
+        "r_squared": null,
+        "converged": false,
+        "time": 0.8462150999694131,
+        "extra": {
+          "raw_status": "unbounded"
+        }
+      },
+      "stored_result": {
+        "shape_hat": null,
+        "scale_hat": null,
+        "location_hat": null,
+        "r_squared": null,
+        "converged": false,
+        "status": "unbounded",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 50,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 2.6438181266069507,
+        "eta_hat": 1173.973068889366,
+        "gamma_hat": 882.6489501995401,
+        "r_squared": 0.959707260332716,
+        "converged": true,
+        "time": 0.0031077999738045037,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 32.56494507166808,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 882.6489501995401,
+            "optimal_shape": 2.6438181266069507
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 2.6438181266069507,
+        "scale_hat": 1173.973068889366,
+        "location_hat": 882.6489501995401,
+        "r_squared": 0.959707260332716,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 50,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 2.6603521571331887,
+        "eta_hat": 1245.4587364433933,
+        "gamma_hat": 803.9243541701534,
+        "r_squared": 0.9729214549801678,
+        "converged": true,
+        "time": 0.00806890003150329,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9729214549801681,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 2.6603521571331887,
+        "scale_hat": 1245.4587364433933,
+        "location_hat": 803.9243541701534,
+        "r_squared": 0.9729214549801678,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 50,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 1.828627858631056,
+        "eta_hat": 851.6387388175611,
+        "gamma_hat": 1145.3413963987955,
+        "r_squared": 0.9234585457816783,
+        "converged": true,
+        "time": 0.03245709999464452,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 1.3239896306583428e-26,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 3,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.828627858631056,
+        "scale_hat": 851.6387388175611,
+        "location_hat": 1145.3413963987955,
+        "r_squared": 0.9234585457816783,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 7,
+      "sample_id": 50,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": 2.1193164049684263,
+        "eta_hat": 849.742230865098,
+        "gamma_hat": 1147.7591629316498,
+        "r_squared": 0.8076883678142321,
+        "converged": true,
+        "time": 0.024631100008264184,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "deterministic_multistart_likelihood",
+            "start_count": 5,
+            "selected_start": 0,
+            "log_likelihood": -51.198665035278495,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 2.1193164049684263,
+        "scale_hat": 849.742230865098,
+        "location_hat": 1147.7591629316498,
+        "r_squared": 0.8076883678142321,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 1,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 1.544359730242403,
+        "eta_hat": 982.4935694146795,
+        "gamma_hat": 1065.4322402600458,
+        "r_squared": 0.9734145820531801,
+        "converged": true,
+        "time": 0.008890199998859316,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 45.31258028598809,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 1065.4322402600458,
+            "optimal_shape": 1.544359730242403
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.544359730242403,
+        "scale_hat": 982.4935694146795,
+        "location_hat": 1065.4322402600458,
+        "r_squared": 0.9734145820531801,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 1,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 1.5344700422978577,
+        "eta_hat": 1007.6554061104646,
+        "gamma_hat": 1040.3470737267546,
+        "r_squared": 0.9795314044320647,
+        "converged": true,
+        "time": 0.008414999989327043,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.979531404432065,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.5344700422978577,
+        "scale_hat": 1007.6554061104646,
+        "location_hat": 1040.3470737267546,
+        "r_squared": 0.9795314044320647,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 1,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 1.4646898114820053,
+        "eta_hat": 919.3411523391168,
+        "gamma_hat": 1095.679005410458,
+        "r_squared": 0.9670357547725787,
+        "converged": true,
+        "time": 0.026972799969371408,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 1.248027255866217e-25,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 3,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.4646898114820053,
+        "scale_hat": 919.3411523391168,
+        "location_hat": 1095.679005410458,
+        "r_squared": 0.9670357547725787,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 1,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": 1.3702308729481758,
+        "eta_hat": 838.8671024121004,
+        "gamma_hat": 1152.194717409018,
+        "r_squared": 0.8571426650403553,
+        "converged": true,
+        "time": 0.025229800026863813,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "deterministic_multistart_likelihood",
+            "start_count": 5,
+            "selected_start": 0,
+            "log_likelihood": -113.75098646687144,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.3702308729481758,
+        "scale_hat": 838.8671024121004,
+        "location_hat": 1152.194717409018,
+        "r_squared": 0.8571426650403553,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 25,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 1.6578825090805474,
+        "eta_hat": 797.5945300222523,
+        "gamma_hat": 1087.605224866682,
+        "r_squared": 0.967498669901271,
+        "converged": true,
+        "time": 0.0034094000002369285,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 35.88743305043057,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 1087.605224866682,
+            "optimal_shape": 1.6578825090805474
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.6578825090805474,
+        "scale_hat": 797.5945300222523,
+        "location_hat": 1087.605224866682,
+        "r_squared": 0.967498669901271,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 25,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 1.6463805808287926,
+        "eta_hat": 823.1517540430244,
+        "gamma_hat": 1063.794896823081,
+        "r_squared": 0.9743828345631362,
+        "converged": true,
+        "time": 0.01052820001496002,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9743828345631365,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.6463805808287926,
+        "scale_hat": 823.1517540430244,
+        "location_hat": 1063.794896823081,
+        "r_squared": 0.9743828345631362,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 25,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 1.63205196338544,
+        "eta_hat": 758.210827743309,
+        "gamma_hat": 1105.1585110418544,
+        "r_squared": 0.9601218684266295,
+        "converged": true,
+        "time": 0.027311199984978884,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 8.111067827482443e-26,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 0,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.63205196338544,
+        "scale_hat": 758.210827743309,
+        "location_hat": 1105.1585110418544,
+        "r_squared": 0.9601218684266295,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 25,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": 1.5423985045883462,
+        "eta_hat": 694.6987300824399,
+        "gamma_hat": 1153.9585119000928,
+        "r_squared": 0.8797734444067704,
+        "converged": true,
+        "time": 0.02215620002243668,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "deterministic_multistart_likelihood",
+            "start_count": 5,
+            "selected_start": 4,
+            "log_likelihood": -109.90625584452634,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.5423985045883462,
+        "scale_hat": 694.6987300824399,
+        "location_hat": 1153.9585119000928,
+        "r_squared": 0.8797734444067704,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 50,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 3.4141445141996436,
+        "eta_hat": 1675.401783279481,
+        "gamma_hat": 497.50945175967723,
+        "r_squared": 0.9494160732640875,
+        "converged": true,
+        "time": 0.0038317000144161284,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 21.307792972545627,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 497.50945175967723,
+            "optimal_shape": 3.4141445141996436
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 3.4141445141996436,
+        "scale_hat": 1675.401783279481,
+        "location_hat": 497.50945175967723,
+        "r_squared": 0.9494160732640875,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 50,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 3.4912159978903903,
+        "eta_hat": 1824.853984314192,
+        "gamma_hat": 355.8537995754505,
+        "r_squared": 0.9589422489871807,
+        "converged": true,
+        "time": 0.00877420004690066,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9589422489871808,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 3.4912159978903903,
+        "scale_hat": 1824.853984314192,
+        "location_hat": 355.8537995754505,
+        "r_squared": 0.9589422489871807,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 50,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 2.5577037090741666,
+        "eta_hat": 1302.070589309574,
+        "gamma_hat": 835.8071945224671,
+        "r_squared": 0.9276901839211987,
+        "converged": true,
+        "time": 0.028376399946864694,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 7.32062920045099e-28,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 1,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 2.5577037090741666,
+        "scale_hat": 1302.070589309574,
+        "location_hat": 835.8071945224671,
+        "r_squared": 0.9276901839211987,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 15,
+      "sample_id": 50,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": 3.130144682030254,
+        "eta_hat": 1454.8141966086264,
+        "gamma_hat": 695.5378217564372,
+        "r_squared": 0.9143930436974084,
+        "converged": true,
+        "time": 0.025383200030773878,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "deterministic_multistart_likelihood",
+            "start_count": 5,
+            "selected_start": 0,
+            "log_likelihood": -113.25707314047281,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 3.130144682030254,
+        "scale_hat": 1454.8141966086264,
+        "location_hat": 695.5378217564372,
+        "r_squared": 0.9143930436974084,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 1,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 1.6154230791780742,
+        "eta_hat": 939.0396888778936,
+        "gamma_hat": 1040.4270176012644,
+        "r_squared": 0.9874863947250992,
+        "converged": true,
+        "time": 0.014205899962689728,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 93.20191742902482,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 1040.4270176012644,
+            "optimal_shape": 1.6154230791780742
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.6154230791780742,
+        "scale_hat": 939.0396888778936,
+        "location_hat": 1040.4270176012644,
+        "r_squared": 0.9874863947250992,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 1,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 1.6250580206393657,
+        "eta_hat": 958.2094500180908,
+        "gamma_hat": 1022.4127109332304,
+        "r_squared": 0.9900350281385809,
+        "converged": true,
+        "time": 0.007774700003210455,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9900350281385815,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.6250580206393657,
+        "scale_hat": 958.2094500180908,
+        "location_hat": 1022.4127109332304,
+        "r_squared": 0.9900350281385809,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 1,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 1.7051024340780039,
+        "eta_hat": 934.6626336695658,
+        "gamma_hat": 1032.9916115200774,
+        "r_squared": 0.9835750485406926,
+        "converged": true,
+        "time": 0.029225199948996305,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 5.850981334024245e-26,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 3,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.7051024340780039,
+        "scale_hat": 934.6626336695658,
+        "location_hat": 1032.9916115200774,
+        "r_squared": 0.9835750485406926,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 1,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": 1.6221433927613529,
+        "eta_hat": 880.3749002276887,
+        "gamma_hat": 1075.3738373599635,
+        "r_squared": 0.9534210769094085,
+        "converged": true,
+        "time": 0.021574299957137555,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "deterministic_multistart_likelihood",
+            "start_count": 5,
+            "selected_start": 1,
+            "log_likelihood": -225.9017871723491,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.6221433927613529,
+        "scale_hat": 880.3749002276887,
+        "location_hat": 1075.3738373599635,
+        "r_squared": 0.9534210769094085,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 25,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 1.3484221266247909,
+        "eta_hat": 634.3297711639497,
+        "gamma_hat": 1238.9572837717171,
+        "r_squared": 0.9742188605053402,
+        "converged": true,
+        "time": 0.003648800018709153,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 42.28358755006601,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 1238.9572837717171,
+            "optimal_shape": 1.3484221266247909
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.3484221266247909,
+        "scale_hat": 634.3297711639497,
+        "location_hat": 1238.9572837717171,
+        "r_squared": 0.9742188605053402,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 25,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 1.3320705364462477,
+        "eta_hat": 646.9617925386187,
+        "gamma_hat": 1230.4760025557405,
+        "r_squared": 0.9779578169950768,
+        "converged": true,
+        "time": 0.009230799973011017,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9779578169950766,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.3320705364462477,
+        "scale_hat": 646.9617925386187,
+        "location_hat": 1230.4760025557405,
+        "r_squared": 0.9779578169950768,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 25,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 1.3922888201808068,
+        "eta_hat": 627.0271912052849,
+        "gamma_hat": 1237.217720043656,
+        "r_squared": 0.9713249795445431,
+        "converged": true,
+        "time": 0.03361189999850467,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 5.425519065554607e-25,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 3,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.3922888201808068,
+        "scale_hat": 627.0271912052849,
+        "location_hat": 1237.217720043656,
+        "r_squared": 0.9713249795445431,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 25,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": 1.2683503825328257,
+        "eta_hat": 576.9763506211725,
+        "gamma_hat": 1269.0324861772333,
+        "r_squared": 0.8941824003890688,
+        "converged": true,
+        "time": 0.025592899997718632,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "deterministic_multistart_likelihood",
+            "start_count": 5,
+            "selected_start": 4,
+            "log_likelihood": -217.53928094163405,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.2683503825328257,
+        "scale_hat": 576.9763506211725,
+        "location_hat": 1269.0324861772333,
+        "r_squared": 0.8941824003890688,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 50,
+      "method": "LS",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lse",
+        "method_variant": "lse",
+        "beta_hat": 2.2842672431113327,
+        "eta_hat": 979.3881840121184,
+        "gamma_hat": 867.5906542265227,
+        "r_squared": 0.9344672274262599,
+        "converged": true,
+        "time": 0.0034183000097982585,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "profile_f_max",
+            "constraint": "gamma >= 0",
+            "f_max": 17.053581817178394,
+            "mu_grid_points": 200,
+            "refined": true,
+            "location_at_zero_boundary": false,
+            "optimal_mu": 867.5906542265227,
+            "optimal_shape": 2.2842672431113327
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 2.2842672431113327,
+        "scale_hat": 979.3881840121184,
+        "location_hat": 867.5906542265227,
+        "r_squared": 0.9344672274262599,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 50,
+      "method": "LRE",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "lre",
+        "method_variant": "lre",
+        "beta_hat": 2.1545246059573957,
+        "eta_hat": 1008.524463083462,
+        "gamma_hat": 851.0582368158343,
+        "r_squared": 0.9432652471680738,
+        "converged": true,
+        "time": 0.007947800040710717,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "rho_squared_maximization",
+            "constraint": "0 <= gamma < t[0]",
+            "gamma_grid_points": 400,
+            "refined": true,
+            "rho_squared": 0.9432652471680743,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 2.1545246059573957,
+        "scale_hat": 1008.524463083462,
+        "location_hat": 851.0582368158343,
+        "r_squared": 0.9432652471680738,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 50,
+      "method": "WMLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "wmle",
+        "method_variant": "wmle",
+        "beta_hat": 1.706361475673043,
+        "eta_hat": 857.6982434963112,
+        "gamma_hat": 973.7984931939732,
+        "r_squared": 0.9157484099687351,
+        "converged": true,
+        "time": 0.030073000001721084,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "objective": 8.237776638231305e-25,
+            "strategy": "deterministic_multistart_equation_minimization",
+            "start_count": 5,
+            "selected_start": 0,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.706361475673043,
+        "scale_hat": 857.6982434963112,
+        "location_hat": 973.7984931939732,
+        "r_squared": 0.9157484099687351,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    },
+    {
+      "n": 30,
+      "sample_id": 50,
+      "method": "MLM",
+      "status_matches": true,
+      "max_abs_parameter_difference": 0.0,
+      "new_result": {
+        "method_id": "mle",
+        "method_variant": "mle",
+        "beta_hat": 1.6909292874413158,
+        "eta_hat": 831.8475386436236,
+        "gamma_hat": 994.4058436751191,
+        "r_squared": 0.880884289393985,
+        "converged": true,
+        "time": 0.022203799977432936,
+        "extra": {
+          "solution_info": {
+            "status": "ok",
+            "strategy": "deterministic_multistart_likelihood",
+            "start_count": 5,
+            "selected_start": 0,
+            "log_likelihood": -222.89228100463254,
+            "location_at_zero_boundary": false
+          }
+        }
+      },
+      "stored_result": {
+        "shape_hat": 1.6909292874413158,
+        "scale_hat": 831.8475386436236,
+        "location_hat": 994.4058436751191,
+        "r_squared": 0.880884289393985,
+        "converged": true,
+        "status": "ok",
+        "root_solver": null,
+        "gradient_at_zero": null
+      }
+    }
+  ],
+  "single_sample_variants": {
+    "case": "W(2,1000,1000)",
+    "n": 7,
+    "sample_id": 2,
+    "variants": [
+      {
+        "score": "expected_order_stat",
+        "direction": "logtime_on_score",
+        "shape": 4.128878130851159,
+        "scale": 1714.3273525603909,
+        "location": 256.8453497883811,
+        "rho_squared": 0.924919557905241
+      },
+      {
+        "score": "expected_order_stat",
+        "direction": "score_on_logtime",
+        "shape": 3.8188801354314714,
+        "scale": 1733.8927749826587,
+        "location": 256.8453497883811,
+        "rho_squared": 0.924919557905241
+      },
+      {
+        "score": "bernard",
+        "direction": "logtime_on_score",
+        "shape": 4.580524261472719,
+        "scale": 1961.4317999565997,
+        "location": 0.0,
+        "rho_squared": 0.9304684693770991
+      },
+      {
+        "score": "bernard",
+        "direction": "score_on_logtime",
+        "shape": 4.262033398517189,
+        "scale": 1977.7572039099114,
+        "location": 0.0,
+        "rho_squared": 0.9304684693770991
+      }
+    ]
+  },
+  "replay_summary": {
+    "count": 40,
+    "status_mismatches": 0,
+    "max_abs_parameter_difference": 0
+  }
+}
