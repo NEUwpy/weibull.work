@@ -57,7 +57,7 @@
 
 - **Li（1994），182-107：** 第2节式(2-4)支持 Weibull 线性化关系；第4节式(4-1a)采用有限差分等构造推导位置近似，第5节讨论联立曲线求解。当前直接优化相关系数的代码不能据此称为其第4节公式的直接实现。测试文件名含 `li1994` 也不能替代算法对应证明。
 - **Park（2018），182-106：** 已有全文讨论 Weibull 图相关系数的位置估计，但式(4)的绘图位置是 n≤10 时(i−3/8)/(n+1/4)、n≥11时(i−1/2)/n，和当前 Bernard 公式不同。
-- **Park（2017）：** 原始论文已于2026-09-27入库为[182-115](<D:/博士阶段/100科研文献管理/100科研文献管理/180_AI辅助参数估计/182_传统参数估计方法/182-115-pdf原文.md>)，PDF、正文和笔记齐全；完整算法对应仍待逐步核查。本轮不能断言“Park全方法一定在后一步使用2P MLE”。作者的 R 工具将相关法位置估计、概率图回归和MLE作为可辨认的功能提供；这说明必须分别注明步骤组合，不能混成一个唯一版本。[作者包的 threshold 文档](https://search.r-project.org/CRAN/refmans/weibullness/html/weibull.threshold.html)、[概率图回归文档](https://search.r-project.org/CRAN/refmans/weibullness/html/weibull.wp.html)、[MLE 文档](https://search.r-project.org/CRAN/refmans/weibullness/html/weibull.mle.html)。检索到的这组页面标注包版本1.24.1，不将其当作当前最新版本。
+- **Park（2017），182-115：** 已核§2、§5和表1。n≤10用(i−3/8)/(n+1/4)，n≥11用(i−1/2)/n；在[0,min(t))最大化相关系数。原文明确列出 **Proposed+Plot**（z对x回归）及 **Proposed+MLE2**（固定位置后做二参数MLE）两种恢复方案。当前LRE与前者回归方向相同，但分数及有限搜索细节不同。表1的24个寿命复算得到γ=9.197683；Plot的β=1.363761、η=15.116027；MLE2的β=1.358983、η=15.076296。MLE2吻合原表三位小数；Plot原表β=1.363与通常四舍五入不符，尚未解释。
 
 因此论文可将现版命名为：**“Bernard绘图位置的相关系数–OLS估计（项目LRE实现，γ≥0）”**，把 Li 作为变换背景、Park 作为相关系数路线来源，并提供自己的实现设置。
 
@@ -217,10 +217,47 @@ WMLE三条原失败为 `equation_residual`，本轮均恢复；MLE的30、12、1
 
 工作簿检查使用同一脚本的 `--workbook` 模式，需要安装openpyxl的Python；本次用Codex bundled Python。脚本仅写本Research的证据文件，不运行原工作簿生成器。
 
+## 10. 新补方法的实现边界
+
+### DMMLE：采用哪个版本，怎样判断成功
+
+采用[作者公开代码的固定提交](https://github.com/FSQuintino/dmmle_Weibull/tree/e733f90ee86351915037130deefa9d39e7e7506c)中DM2的观测信息矩阵版本作为复现对象。它估计的是原文(μ,α,σ)，与项目(γ,β,η)的映射为γ=μ、β=α、η=σ^(1/α)。**直接把作者返回的scale_est当作η会造成错误比较。**
+
+令μ̂=min(x)，仅删除一个最小观测，余下yᵢ=xᵢ−μ̂，m=n−1。修改对数似然为
+
+\[
+\ell_M=m\log\alpha-m\log\sigma+(\alpha-1)\sum\log y_i-\sigma^{-1}\sum y_i^\alpha.
+\]
+
+代码用I=−∂²ℓM/∂φ∂φᵀ，φ=(α,σ)，构造U*ⱼ=∂ℓM/∂φⱼ+½tr(I⁻¹∂I/∂φⱼ)，并迭代φ←φ+I⁻¹U*。默认初值(1,1)，相对更新量绝对值之和低于10⁻⁸或达到20次即停止。代码达到次数上限也可能返回数值，因此正式比较还必须记录残差及停止原因；“返回了参数”不能直接算收敛。
+
+| 作者示例 | n | 独立转写α | 独立转写σ | 换算η | γ |
+|---|---:|---:|---:|---:|---:|
+| invest | 132 | 0.5653818623 | 1.4984826352 | 2.0449279687 | 5.012 |
+| gauge | 69 | 2.3422596662 | 1.7144741223 | 1.2588078053 | 1.312 |
+
+两个示例均10次停止，调整得分最大绝对残差分别小于5×10⁻¹⁰和3×10⁻¹⁰，与作者Notebook存储点估计吻合。信息矩阵对参数的解析导数经中心差分检查，最大绝对差小于6×10⁻⁷。此处只验证独立转写与两个点估计示例，未验证置信区间、偏差阶数或极小样本性能。
+
+该方法定义允许γ̂=min(x)。不得沿用其他方法的严格γ<min(x)检查而把所有结果判失败，也不得擅自减去ε后仍称原版DMMLE。重复最小值时，删除一个观测后仍有y=0，当前公式不可直接计算；核验样本[1,1,2,3]已明确记为该输入情形，而非伪装成收敛。正式比较需分别声明模型支持、估计准则允许的边界和数值接受条件。
+
+### MPS、变换估计与删失方法
+
+MPS令Dᵢ=F(x₍ᵢ₎)−F(x₍ᵢ₋₁₎)，补F(x₍₀₎)=0、F(x₍ₙ₊₁₎)=1，最大化Σlog(Dᵢ)/(n+1)。不能漏掉端点间距。对于严格递增观测，令zᵢ=((xᵢ−γ)/η)^β，可用log(−expm1(−z₁))、−zᵢ₋₁+log(−expm1(−(zᵢ−zᵢ₋₁)))及−zₙ稳定计算各项。重复观测使普通间距为0；舍入或分组数据须另定有来源的扩展，不能默默加随机扰动。平台MPS仍未实现，本段是原始准则与实现要求。
+
+Nagatsuka方法先以标准化次序统计量W的似然估β；随后令η̃=[mean((x−xmin)^β̂)]^(1/β̂)，γ̂=xmin−n^(−1/β̂)η̃Γ(1+1/β̂)，η̂=[mean((x−γ̂)^β̂)]^(1/β̂)。其形状步骤涉及积分似然，尚未数值复现。位置可为负；若裁为0，便是另一个约束版本。Nassar 2024属于二参数删失模型，适用性判断见附录A，不列作完整三参数算法。
+
+### 新增核验的复查入口
+
+[核验脚本](scripts/audit_new_original_methods.py)与[结果、数据及作者代码哈希](evidence/new_original_methods_audit.json)共同保留复查依据。脚本读取指定Notebook为数据，不执行其中R代码；下载固定提交的`weibull_fit.ipynb`后运行：
+
+```powershell
+& python/.venv/Scripts/python.exe 'Research/09-Weibull参数估计方法谱系与比较基线/scripts/audit_new_original_methods.py' '<本地weibull_fit.ipynb路径>'
+```
+
 ## 原始来源与引用建议
 
 - LS：Soman, K. P., & Misra, K. B. (1992). *A Least Square Estimation of Three Parameters of a Weibull Distribution*. Microelectronics Reliability, 32(3), 303–305. [DOI](https://doi.org/10.1016/0026-2714(92)90057-R)，本地[182-104正文](../../src/content/182-104-pdf原文.md)。引用具体分支，不笼统声称实现整篇论文。
 - LRE变换背景：Li, Y.-M. (1994). *A General Linear-Regression Analysis Applied to the 3-Parameter Weibull Distribution*. IEEE Transactions on Reliability, 43(2), 255–263. [DOI](https://doi.org/10.1109/24.295002)，本地[182-107正文](../../src/content/182-107-pdf原文.md)。
-- 相关系数路线：Park, C. (2018). *A Note on the Existence of the Location Parameter Estimate of the Three-Parameter Weibull Model Using the Weibull Plot*. Mathematical Problems in Engineering, 2018, 6056975. [DOI](https://doi.org/10.1155/2018/6056975)，本地[182-106正文](../../src/content/182-106-pdf原文.md)。2017构造来源仍待完整核查。
+- 相关系数路线：Park, C. (2018). *A Note on the Existence of the Location Parameter Estimate of the Three-Parameter Weibull Model Using the Weibull Plot*. Mathematical Problems in Engineering, 2018, 6056975. [DOI](https://doi.org/10.1155/2018/6056975)，本地[182-106正文](../../src/content/182-106-pdf原文.md)。2017构造来源的两种组合及数值例已核查，见第3节。
 - WMLE：Cousineau, D. (2009). *Nearly unbiased estimators for the three-parameter Weibull distribution with greater efficiency than the iterative likelihood method*. British Journal of Mathematical and Statistical Psychology, 62(1), 167–191. [DOI](https://doi.org/10.1348/000711007X270843)，库内182-088。
 - MLE理论与比较依据：Hirose, H. (1996). *Maximum likelihood estimation in the 3-parameter Weibull distribution. A look through the generalized extreme-value distribution*. IEEE Transactions on Dielectrics and Electrical Insulation, 3(1), 43–55，库内182-105；当前多起点实现需作为项目计算选择另行说明。
