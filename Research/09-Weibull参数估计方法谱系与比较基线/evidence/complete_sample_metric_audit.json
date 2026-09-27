@@ -1,0 +1,786 @@
+{
+  "scope": "普通三参数完整样本；不限n；按子实验取证",
+  "counting": "正向已确认，不把未编码当没有；编号来源非独立团队；S含自身评价不必跨方法；拟合/优化RMSE不计参数RMSE",
+  "records": [
+    {
+      "id": "182-004",
+      "modes": [
+        "R",
+        "U"
+      ],
+      "opponents": "MMPDS、傅氏法",
+      "design": "330个实测值取不同n子集；最小25，重复3次",
+      "reported_metrics": "相关系数、估计限均值/SD",
+      "interpretation": "实测拟合与子抽样稳定性；无参数真值",
+      "failure_handling": "AD筛样；非独立批次",
+      "locator": "OCR L179、242、275",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-004-pdf原文.md",
+      "source_sha256": "a83083391aac7a2e8ca85f7306083f1591ea1f123f097286245a0d1657665db7",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-024",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "原WMLE、MR/MH修正",
+      "design": "n=3—15构造；n=4、5各1000次验证；真实n=10",
+      "reported_metrics": "形状Mean、Bias、RMSE",
+      "interpretation": "仅形状精度；实测2.01为前人参考估计",
+      "failure_handling": "未核清统一失败分母",
+      "locator": "§3—5、表7/9/10",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-024-pdf原文.md",
+      "source_sha256": "ea06754d34eeae47706a219aeb2c0bdabcae15f97b6d1c7a097977f428eea84b",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_mean_bias"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-025",
+      "modes": [
+        "S"
+      ],
+      "opponents": "CCM、LS、MDM",
+      "design": "n=15、30、50、100、200，每条件1000次",
+      "reported_metrics": "形状Bias、RMSE",
+      "interpretation": "仅形状参数风险",
+      "failure_handling": "未核清统一失败分母",
+      "locator": "模拟节、式12/13；OCR L145–159",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-025-pdf原文.md",
+      "source_sha256": "8354be4c1885ee9dbb73abb6afe320c7ea1356ac0e17ff0953d185d761a7addf",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_mean_bias"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-030",
+      "modes": [
+        "S"
+      ],
+      "opponents": "ML、概率图相关LS",
+      "design": "共65组生成样本；含n=15的30组和n=30的15组",
+      "reported_metrics": "参数Mean、SD、范围；低尾CDF、保守性",
+      "interpretation": "参数波动与低尾分布表现",
+      "failure_handling": "30组中MLE6组失败；图中零为标记；部分CDF排除失败",
+      "locator": "§3.3—4、图5—8；OCR L184、227",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-030-pdf原文.md",
+      "source_sha256": "8a6c4f8f0180da0e4577e1ece781041cf884366cd114be0691e5a4944d49882f",
+      "positive_metric_tags": [
+        "parameter_sd"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-046",
+      "modes": [
+        "S",
+        "G"
+      ],
+      "opponents": "零偏移与正偏移MD、ML、LS",
+      "design": "n=7的30组随机样本；120案例确定偏移，近千例仅概述",
+      "reported_metrics": "参数范围、尺度伪估计量差异",
+      "interpretation": "内部准则与估计分散性；不将优化目标当RMSE",
+      "failure_handling": "未核清",
+      "locator": "方法正文及结论；不依据frontmatter摘要",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-046-pdf原文.md",
+      "source_sha256": "e6ee1d08c07011bf188b4664a5d1752d3ea6e7f1e98f98c1d8932134bf6c6947",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-047",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "相关系数法",
+      "design": "n=10、15、20、25、30，各1000次；真实20与11点",
+      "reported_metrics": "参数及99%可靠度寿命Bias、RMSE；实测K-S/CDF",
+      "interpretation": "参数及目标寿命误差；实测拟合",
+      "failure_handling": "未核清统一失败分母",
+      "locator": "§3.2、§4",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-047-pdf原文.md",
+      "source_sha256": "be6efe0e1ca86e2d859b41fa3794d338cc3d1b76c6033b8f0f8d999ef132ef25",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_mean_bias",
+        "life_error"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-050",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "w-MLE、BL、LSPF及自身分支",
+      "design": "n=10、20、30，每条件100000次；实测案例",
+      "reported_metrics": "参数Bias、RMSE、Joint；实测logL",
+      "interpretation": "参数联合/边际误差；实测例证",
+      "failure_handling": "variance/RMSE公式疑点待PDF校核；不能照抄公式",
+      "locator": "§4、应用节；OCR L230–268、288、319",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-050-pdf原文.md",
+      "source_sha256": "188c18174d2e5a4e2ba0e1433f5cd924eadc030678f3c539e6b87d6a25ca092c",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_mean_bias"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-054",
+      "modes": [
+        "S"
+      ],
+      "opponents": "ML、LS；零偏移/0.1偏移",
+      "design": "n=7或15，共120组生成数据",
+      "reported_metrics": "参数及分位数、分散程度",
+      "interpretation": "参数/分布表现，未统一编码为RMSE",
+      "failure_handling": "未核清统一失败分母",
+      "locator": "§3.3—4、表1—11",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-054-pdf原文.md",
+      "source_sha256": "5d7d6d17472a834bf28b66e782e0629f21b6499c6edc785eef3c7fbffc5129d4",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-064",
+      "modes": [
+        "S"
+      ],
+      "opponents": "单应力作者均值误差法",
+      "design": "形状0.5；n=5、15、30，各1000次；只计完整单应力",
+      "reported_metrics": "平均估计及其距真值误差",
+      "interpretation": "偏差类汇总，不是逐次RMSE",
+      "failure_handling": "约束见式37；多应力另列",
+      "locator": "§4.1、式37、表1",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-064-pdf原文.md",
+      "source_sha256": "3bbbbb2bee08ed89e155d9e852573df9f5c14b58bec5ec6fe8fea2630973cb4a",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-085",
+      "modes": [
+        "R"
+      ],
+      "opponents": "高镇同各分支、两项历史修改MLE",
+      "design": "三组恒应力试验，逐应力数据；原始观测完整性待进一步核清",
+      "reported_metrics": "Q绝对拟合差和、R²、logL",
+      "interpretation": "拟合比较；暂不进已确认完整实测分母",
+      "failure_handling": "未知",
+      "locator": "§4例3；OCR L319–335",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-085-pdf原文.md",
+      "source_sha256": "80dfedd68ffcacf72821beacdf66cbedbec6f7472aa64e61acd8dce439a9189b",
+      "positive_metric_tags": [],
+      "count_eligible": false
+    },
+    {
+      "id": "182-088",
+      "modes": [
+        "S"
+      ],
+      "opponents": "迭代MLE、两步MLE、权重分支",
+      "design": "n=8、16、32，每条件1024次",
+      "reported_metrics": "中位偏差、三参数相对距离中位数、SD",
+      "interpretation": "非通常均值Bias/RMSE；联合距离",
+      "failure_handling": "失败分母未完整核清",
+      "locator": "§6—8、表5—8",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-088-pdf原文.md",
+      "source_sha256": "808599ea738424056d2b11b9a9b61919a88e6f8d8dcbd68f8b1368614b8264ee",
+      "positive_metric_tags": [
+        "parameter_sd"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-091",
+      "modes": [
+        "S"
+      ],
+      "opponents": "MLE、MMLE I–V、ME、MME I–III",
+      "design": "n=100每条件100；部分n=25为200、n=10为10",
+      "reported_metrics": "参数Mean、Bias、SD；失败次数、CPU",
+      "interpretation": "精度/波动与可解性；实用例实为生成例",
+      "failure_handling": "MLE形状1.01—15、其余0.1—15；位置限制；50次求解限制",
+      "locator": "§7—9、表II/III；OCR L517–556",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-091-pdf原文.md",
+      "source_sha256": "2849b2c3ccaeabbc1fbcc3f0858c2f1a031ec7205ac2a8623544c9d0bdccbfcc",
+      "positive_metric_tags": [
+        "parameter_mean_bias",
+        "parameter_sd"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-094",
+      "modes": [
+        "G"
+      ],
+      "opponents": "Sinha求解程序；另二/三参数模型",
+      "design": "生成W(30,100,3)；另n=50生成模型比较",
+      "reported_metrics": "收敛步数13对>50、参数、百分位、CDF",
+      "interpretation": "求解与模型比较；非跨估计器重复风险",
+      "failure_handling": "披露容差和搜索范围；无总体失败率",
+      "locator": "§4—5；OCR L333–375",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-094-pdf原文.md",
+      "source_sha256": "1392d021993fdda7480c58a05e23beb0937f01b4f13576bc7b1d2436e508d909",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-095",
+      "modes": [
+        "R"
+      ],
+      "opponents": "三种绘图位置、历史LS",
+      "design": "14个清洁带失效时间",
+      "reported_metrics": "EIVSS、拟合图",
+      "interpretation": "自身目标与拟合；非参数真值误差",
+      "failure_handling": "未知",
+      "locator": "§3、表1—2",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-095-pdf原文.md",
+      "source_sha256": "e632e8bf9da8a4371583245f87bd30260de816d1be087a4cfc07f53e70756f5c",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-096",
+      "modes": [
+        "S"
+      ],
+      "opponents": "MLE、LM、MMLE1/2、MoE、MMoE1、MPS",
+      "design": "n=10、20、50、100，各5000次",
+      "reported_metrics": "参数Bias、RMSE",
+      "interpretation": "筛选后样本的参数风险",
+      "failure_handling": "ML收敛且L偏度≥−0.1699；形状<1省略MLE",
+      "locator": "§4.1；OCR L377–390",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-096-pdf原文.md",
+      "source_sha256": "e0fd00288627ed80e0d97c9d3e316cdbbc39fdc32ce2db15f7154c92ce93963c",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_mean_bias"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-101",
+      "modes": [
+        "S"
+      ],
+      "opponents": "MLE、MPS、WMLE、矩及混合估计",
+      "design": "n=8、16、32、64，多形状",
+      "reported_metrics": "Bias、SD、RMSE、参数向量距离",
+      "interpretation": "参数及联合风险；同WMLE作者",
+      "failure_handling": "剔除形状估计>5",
+      "locator": "§3；OCR L194、223、266",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-101-pdf原文.md",
+      "source_sha256": "c382e1df49c6ae0a87244e75f13b880acf3f61642a587082201bc520a4788eb3",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_mean_bias",
+        "parameter_sd"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-102",
+      "modes": [
+        "S",
+        "G"
+      ],
+      "opponents": "重复模拟主要自身；生成例比ML/矩",
+      "design": "每条件1000次；生成案例另列二/三参数",
+      "reported_metrics": "Mean、Bias、SD",
+      "interpretation": "自身风险不等于统一跨方法比较",
+      "failure_handling": "非负位置可接受性另述；分母待核",
+      "locator": "Properties、Examples、Appendix",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-102-pdf原文.md",
+      "source_sha256": "67b87e484a4f18f2951ed0e438c530c7c834f8ee71f3865f1fb81ccf04d01f61",
+      "positive_metric_tags": [
+        "parameter_mean_bias",
+        "parameter_sd"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-104",
+      "modes": [
+        "G"
+      ],
+      "opponents": "White扩展与失效率分支",
+      "design": "n=20表3；前两个n=30为生成例",
+      "reported_metrics": "参数估计及真值对照、迭代",
+      "interpretation": "例证，未确认重复风险",
+      "failure_handling": "未知",
+      "locator": "§2、表1—3",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-104-pdf原文.md",
+      "source_sha256": "e999857168059f2d0f8b4d5dd828891a08778e2c412ebd54af65e1e9dd04aa58",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-111",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "MMLE、CMLE",
+      "design": "n=50、100、500、1000，各1000次；碳纤维n=69等",
+      "reported_metrics": "参数相对Bias、RMSE、覆盖率；实测SE、logL、AIC/BIC、KS/CVM",
+      "interpretation": "模拟风险/区间；实测拟合，另有二参数模型比较",
+      "failure_handling": "未核清全失败分母；尺度参数化不同",
+      "locator": "§4图4—7、§5—6",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-111-pdf原文.md",
+      "source_sha256": "bb94df8e08bcdfd22f57a8dc6e021a632eaacebf61a16827c6ceea529fdefddb",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_mean_bias",
+        "coverage"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-113",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "BL、w-ML；实测另MM",
+      "design": "n=10、20、50、100、500，各1000次；真实10与4点",
+      "reported_metrics": "参数及Joint Bias/RMSE、CPU；实测参数与变换似然",
+      "interpretation": "参数风险、效率、应用",
+      "failure_handling": "4点MM/BL不收敛；不等于模拟全失败统计",
+      "locator": "§3表1—6、§4表7—9",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-113-pdf原文.md",
+      "source_sha256": "3cc6b1dc222c21c17166b6dc054afc42b13e93950b8d1d43855646584abf1c4d",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_mean_bias"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "182-115",
+      "modes": [
+        "R"
+      ],
+      "opponents": "MLE3、Sirvanci–Yang、Gumbel及组合",
+      "design": "真实24点；检验临界值模拟不计参数性能S",
+      "reported_metrics": "R、p、AD",
+      "interpretation": "真实拟合；临界值仿真非参数风险",
+      "failure_handling": "未知",
+      "locator": "§3、§5表1",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-115-pdf原文.md",
+      "source_sha256": "fa39b66e283074359c5e0efa87efef6410c0d11897ae3a68366bfbffca73eb20",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-116",
+      "modes": [
+        "R"
+      ],
+      "opponents": "ML",
+      "design": "20洪水、20污染",
+      "reported_metrics": "参数、剖面目标、失败例",
+      "interpretation": "理论/应用与失效说明；无确认重复风险",
+      "failure_handling": "讨论ML失效和重复值处理",
+      "locator": "§2、§4—5",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-116-pdf原文.md",
+      "source_sha256": "edb768d806ab22079141264baa5743ac74ae155db66cf13eb46da273ec1260f1",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-117",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "小n:LSE/MLE/PWM；大n:ARS/LSE/PWM/PSO/CE/DE/ABC",
+      "design": "n=5及100—2500，10000次；真实35与4点",
+      "reported_metrics": "自身Bias/MSE/STD；跨法汇总E²；零位置比例；真实K-S、时间",
+      "interpretation": "自身逐次风险与跨法汇总误差分开",
+      "failure_handling": "接近零/负位置归零；表12短横线含义未定",
+      "locator": "§4表1—9、§5.1表10—14、§6",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-117-pdf原文.md",
+      "source_sha256": "a56d302e881d3ebda882269049e409a2a8a9c4a015ca7be0507ce85860184e8a",
+      "positive_metric_tags": [
+        "parameter_mse",
+        "parameter_mean_bias",
+        "parameter_sd"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "183-020",
+      "modes": [
+        "S",
+        "G"
+      ],
+      "opponents": "Johnson矩、Cran矩、SA-MLE",
+      "design": "n=100、1000、2500、10000，各10000次",
+      "reported_metrics": "参数Mean、SD、MSE、区间；耗时",
+      "interpretation": "大样本参数风险；所列区间不自动记覆盖率",
+      "failure_handling": "未知",
+      "locator": "§5—6、表1—4",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\183_机器学习参数估计\\183-020-pdf原文.md",
+      "source_sha256": "4527c9ee944b9f5b73ab88f3e3715668240f075dae34bcc4daf87f6d77f3a8cc",
+      "positive_metric_tags": [
+        "parameter_mse",
+        "parameter_sd"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "184-009",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "CCM、MDM",
+      "design": "n=5、10、15、20，每条件1000组；真实15点",
+      "reported_metrics": "参数及1%分位点SD、RMSE；真实K-S、p、CDF",
+      "interpretation": "参数/寿命风险；同数据拟合",
+      "failure_handling": "失败分母未完整确认",
+      "locator": "§4、§5表3",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\184_深度学习参数估计\\184-009-pdf原文.md",
+      "source_sha256": "b9f053d3b4af03218e4a0f7bd02c3a2843d38ae4d432b5703edc3fa1d1a4b0f5",
+      "positive_metric_tags": [
+        "parameter_rmse",
+        "parameter_sd",
+        "life_error"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "184-010",
+      "modes": [
+        "G"
+      ],
+      "opponents": "ML、灰色、RRM；带宽/核函数分支",
+      "design": "新法与RRM n=500；ML/灰色表列n=1000",
+      "reported_metrics": "参数、相对误差；曲线RMSE",
+      "interpretation": "曲线RMSE不计参数RMSE；对手n不同",
+      "failure_handling": "未确认重复次数；出版元数据冲突",
+      "locator": "§3.1、§4表2—4",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\184_深度学习参数估计\\184-010-pdf原文.md",
+      "source_sha256": "4c556c4c892ae7cde6e9ef0dbfe7d94cb80dcc3815ccc821580237027320a1ae",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "185-005",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "MLE、CCWP、PWM；实测历史Bayes/LSPF等",
+      "design": "n=5、10、15、20，各10000次；真实10与4点",
+      "reported_metrics": "参数MAD/MSD；MTTF及1%分位点MAD；真实K-S、CDF误差",
+      "interpretation": "MSD=三个参数SD的均值；实测含历史结果",
+      "failure_handling": "未核清完整失败分母",
+      "locator": "§3式40/41、寿命式44/45、§4",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\185_小样本问题方法\\185-005-pdf原文.md",
+      "source_sha256": "ddc593ab440dfd44a86fe3bc94a98de05b2441dd20d309b6fec59edd4905ffe1",
+      "positive_metric_tags": [
+        "parameter_sd",
+        "parameter_mad",
+        "life_error"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "187-001",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "Newton、PSO、CCLSE",
+      "design": "无噪n=10、20、50、100，1000组；真实发动机案例",
+      "reported_metrics": "参数误差、RMSE/RAAE、logL、CPU",
+      "interpretation": "抽样风险与求解质量；加噪不并入完整纯净层",
+      "failure_handling": "自适应搜索域影响归因；失败分母待核",
+      "locator": "§4.1—4.3、§5",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-001-pdf原文.md",
+      "source_sha256": "873e82366a08e8876847bb5c7ba72529ac2d9d56d7e1f0f1c485400cbc70dfea",
+      "positive_metric_tags": [
+        "parameter_rmse"
+      ],
+      "count_eligible": true
+    },
+    {
+      "id": "187-002",
+      "modes": [
+        "G"
+      ],
+      "opponents": "GA、PSO",
+      "design": "生成n=200、500、1000；二/三参数需进一步拆表",
+      "reported_metrics": "fitness差；mean差与logL差表述冲突",
+      "interpretation": "暂不进入确认指标频次；真实风速表仅二参数",
+      "failure_handling": "OCR/定义冲突，暂不合并为MLE风险",
+      "locator": "§1.3表10；OCR L443–462",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-002-pdf原文.md",
+      "source_sha256": "54a88d6e0350566cd30aebd2ef4f02ac2bdcc757a7f12634af70b17b8f137f4c",
+      "positive_metric_tags": [],
+      "count_eligible": false
+    },
+    {
+      "id": "187-004",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "自身设置；实测GA、PSO、SA，玻璃另LR/WLR",
+      "design": "模拟与真实35陶瓷/18玻璃",
+      "reported_metrics": "似然、时间、CDF误差",
+      "interpretation": "模拟自身评价与实测求解比较；混有二参数对手",
+      "failure_handling": "搜索区间敏感；无统一失败分母",
+      "locator": "§4.1—4.3表1—6",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-004-pdf原文.md",
+      "source_sha256": "87db2d52d8188062ca1c7784e449dbb5905b1370005be1ce8737a05c9549de7e",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "187-005",
+      "modes": [
+        "G"
+      ],
+      "opponents": "DE变体及历史SA",
+      "design": "n=100、500、1000、2500，全部人工数据",
+      "reported_metrics": "目标、时间、参数",
+      "interpretation": "求解例证；历史CPU不可直接比较",
+      "failure_handling": "作者说明处理器不同时间比较无效",
+      "locator": "§4—5",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-005-pdf原文.md",
+      "source_sha256": "7850c9c1ae7e1a4182921f170dd00ef86245f7c7ef6486b9f23820011bd0d2fa",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "187-006",
+      "modes": [
+        "G",
+        "R"
+      ],
+      "opponents": "实测LS、生成例PWM",
+      "design": "12减振器、生成例、闸片真实例",
+      "reported_metrics": "logL、K-S、CDF",
+      "interpretation": "似然优化与拟合；不证明参数误差更小",
+      "failure_handling": "未知",
+      "locator": "§3.1—3.3表1—4",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-006-pdf原文.md",
+      "source_sha256": "cfac5d461a1d073816c17dd979a6f5093af5cbced47a40c17be5081b554c1df6",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "187-008",
+      "modes": [
+        "R"
+      ],
+      "opponents": "GA求解MLE算例",
+      "design": "齿轮断裂实测",
+      "reported_metrics": "目标值、参数、收敛曲线",
+      "interpretation": "应用及优化演示；未确认统一多法风险",
+      "failure_handling": "固定形状/尺度/位置搜索区间",
+      "locator": "§4式5—8",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-008-pdf原文.md",
+      "source_sha256": "d5545ff2992848546494d697486adebc0c5479bc1c8297a5f5dbba433cf2ec5b",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "187-010",
+      "modes": [
+        "G",
+        "R",
+        "O"
+      ],
+      "opponents": "双线性初值与PSO-MLE",
+      "design": "生成例；真实电子/航空例，各6次求解",
+      "reported_metrics": "参数及运行均值、迭代曲线",
+      "interpretation": "同数据优化波动不是重新抽取寿命样本",
+      "failure_handling": "未知",
+      "locator": "仿真及表1—5",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-010-pdf原文.md",
+      "source_sha256": "addda887199b536495fb70df2642373e2e0b4ca5540f449aaaf579b850daa7bc",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "187-012",
+      "modes": [
+        "G",
+        "O"
+      ],
+      "opponents": "PSO变体、历史SA/DE",
+      "design": "500次实验；是否每次重抽数据未核清",
+      "reported_metrics": "均值、直方图、似然、收敛",
+      "interpretation": "不计确认独立抽样S；历史最佳值与新法均值不匹配",
+      "failure_handling": "未知",
+      "locator": "§3—4，500 independent experiments段",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-012-pdf原文.md",
+      "source_sha256": "2b7ef5877b2ce48e77b5e4ca9c485894e43ccee8bba9214705f79a607c3dffe3",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "187-013",
+      "modes": [
+        "G"
+      ],
+      "opponents": "GA、PSO、SAPSO",
+      "design": "三组生成例；n含100、20",
+      "reported_metrics": "MAPE、R、AD、迭代、时间",
+      "interpretation": "生成例拟合/求解；非确认重复参数风险",
+      "failure_handling": "未知",
+      "locator": "§4.2—4.3表8、12—14",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-013-pdf原文.md",
+      "source_sha256": "2cad9a1d3fb91b732f4d05c8429e495f18c471d7082ad1754af5a2c0c3668d81",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-084",
+      "modes": [
+        "R",
+        "B"
+      ],
+      "opponents": "六种范数准则",
+      "design": "轴承/直升机/疲劳；重抽参数信息向量",
+      "reported_metrics": "区间、可靠性曲线与经验值",
+      "interpretation": "区间构造示例，不是覆盖率验证；不是原始寿命Bootstrap",
+      "failure_handling": "不同准则估计不是独立总体观测",
+      "locator": "摘要、参数向量及重抽步骤；OCR L231–241",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-084-pdf原文.md",
+      "source_sha256": "ca7331bb9521141b0b1f21262384cc0fea438ecd9d34faa0310211679ecb9ff5",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-006",
+      "modes": [
+        "R",
+        "P"
+      ],
+      "opponents": "Gibbs与Monte Carlo数值积分",
+      "design": "完整10点子例；链2000步丢100步",
+      "reported_metrics": "后验均值/SD/分位数、可靠度/失效率后验",
+      "interpretation": "P为后验采样；不是独立数据性能模拟；积分是计算参照",
+      "failure_handling": "监测链均值收敛；非跨样本成功率",
+      "locator": "§4；OCR L167–205",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-006-pdf原文.md",
+      "source_sha256": "e646ccf7fa1c9ee1cc66e1f9c613a1d199aef9357acf74f4471ab2a9f98b1eca",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-067",
+      "modes": [
+        "T"
+      ],
+      "opponents": "理论LS等价构造",
+      "design": "完整样本点/区间理论；非完全样本另节",
+      "reported_metrics": "卡方/平方和准则、理论区间",
+      "interpretation": "未确认数值性能比较；准则不是外部评价指标",
+      "failure_handling": "小n正态假定影响区间的作者说明",
+      "locator": "§1—6；OCR L7、100、230、251",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-067-pdf原文.md",
+      "source_sha256": "547e5fda5b63c20c4ba9941cdab7b1692bef27792d17d88463b7cef7b1f48e97",
+      "positive_metric_tags": [],
+      "count_eligible": false
+    },
+    {
+      "id": "182-090",
+      "modes": [
+        "T"
+      ],
+      "opponents": "非正则MLE与替代估计理论",
+      "design": "存在性、一致性、渐近分布及检验",
+      "reported_metrics": "理论方差/效率与区间",
+      "interpretation": "理论来源；不计经验指标采用次数",
+      "failure_handling": "证明条件与数值失败不同",
+      "locator": "§2—7",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-090-pdf原文.md",
+      "source_sha256": "2dc99183ff52f6ad90d52b74d91f906e7034869ef0e870e97e0fa926d3914352",
+      "positive_metric_tags": [],
+      "count_eligible": false
+    },
+    {
+      "id": "182-093",
+      "modes": [
+        "R"
+      ],
+      "opponents": "三绘图位置与历史概率图结果",
+      "design": "14个复印机清洁带失效",
+      "reported_metrics": "平方和SS、拟合CDF",
+      "interpretation": "存在性证明加真实拟合；不证明真值风险",
+      "failure_handling": "初值及LM求解，未确认全失败统计",
+      "locator": "§3表1—3；OCR L87、130–134",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-093-pdf原文.md",
+      "source_sha256": "268b1bb01f274e26b8dacaaff8d3e8b4c8c6acb0944dbb2d10296a200a32b92d",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-105",
+      "modes": [
+        "S",
+        "R"
+      ],
+      "opponents": "GEV-MLE与WBE",
+      "design": "真实5批各20；合并100；模拟n=20/50/100各1000次",
+      "reported_metrics": "变换参数和分位点Bias/RMSE；分位点90%区间覆盖率",
+      "interpretation": "模型允许GEV非Weibull分支，单列邻近评价设计，不进主频次；实测合并估计非真值",
+      "failure_handling": "剔除k=1边界例并报数量；实测参数发散而分位点有限",
+      "locator": "§2—4、表4—10；OCR L69、105、126–152",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-105-pdf原文.md",
+      "source_sha256": "71013a5ff5d4a48c3cd90bc6c14fcb85819d818d25afe90f83f9755ac724dcfb",
+      "positive_metric_tags": [],
+      "count_eligible": false
+    },
+    {
+      "id": "182-106",
+      "modes": [
+        "R"
+      ],
+      "opponents": "受限MLE、最小SSE",
+      "design": "车辆行驶失效数据",
+      "reported_metrics": "相关系数、Weibullness p、logL",
+      "interpretation": "存在性加真实拟合比较",
+      "failure_handling": "支持位置搜索界；未确认模拟失败率",
+      "locator": "§4表1；OCR L324–328",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-106-pdf原文.md",
+      "source_sha256": "33ccc57bd959b9594070d3cfd741050425cc5f46252bfe98c15439a750c8576f",
+      "positive_metric_tags": [],
+      "count_eligible": true
+    },
+    {
+      "id": "182-107",
+      "modes": [
+        "T"
+      ],
+      "opponents": "图解、近似与精确GLRA等",
+      "design": "变换推导，旧/新分布分列；后附其他文章排除",
+      "reported_metrics": "平方和构造、驻点和搜索界",
+      "interpretation": "方法分析；未确认完整样本重复风险比较",
+      "failure_handling": "讨论删失退化情形，不能算完整样本失败比例",
+      "locator": "§2—7，本文止于AUTHOR前后",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-107-pdf原文.md",
+      "source_sha256": "8edbdf2f017f6e3d73073c36ba0031f2094003dad3f99333405174faa897538c",
+      "positive_metric_tags": [],
+      "count_eligible": false
+    }
+  ],
+  "remaining_candidates": []
+}

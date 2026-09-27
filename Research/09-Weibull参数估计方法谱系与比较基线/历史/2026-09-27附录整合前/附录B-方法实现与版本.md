@@ -14,7 +14,7 @@
 | 9月7日 W3 案例 | W(3,1000,γ)，γ=500、1000、3000；n=7、15，各50组 | `931ac7d281f66ebe97b8c5ab274ef6f674d6a3b5` | 四个方法文件与当前一致 |
 | 9月21日最新 W2 案例 | W(2,1000,1000)，n=7、15、30，各50组 | `7df56c4ea509fff6f42edd628165c80b1b32de9e` | 四个方法文件与当前一致 |
 
-核查时（2026-09-26）仓库 HEAD 为 `01188d8662ac008f41aa9ae528244fe2f5f7f5ed`。四方法当前生产文件和临时任务“01-Python代码”副本逐字节一致；历史 Git 对照忽略了 CRLF/LF 差异。哈希及逐文件匹配结果见[核查证据](evidence/estimator_audit.json)。这些版本号是产物记录和源码核对结果，不代表原作者发布的软件版本。
+本次仓库 HEAD 为 `01188d8662ac008f41aa9ae528244fe2f5f7f5ed`。四方法当前生产文件和临时任务“01-Python代码”副本逐字节一致；历史 Git 对照忽略了 CRLF/LF 差异。哈希及逐文件匹配结果见[核查证据](evidence/estimator_audit.json)。这些版本号是产物记录和源码核对结果，不代表原作者发布的软件版本。
 
 9月21日工作簿中三种 δ 面板只改变 MDM 设置，四个传统方法结果在面板中重复展示；它们不构成三批独立重复实验。
 
@@ -195,7 +195,29 @@ WMLE三条原失败为 `equation_residual`，本轮均恢复；MLE的30、12、1
 
 该R²很接近LRE本身优化的目标，不能作为独立证明LRE参数估计优于其他方法的标准。参数误差与寿命目标的评价定义见主报告。
 
-## 9. 新补方法的实现边界
+## 9. 验证与复查入口
+
+| 检查 | 本轮结果 | 能支持什么 |
+|---|---|---|
+| 最新工作簿与存档payload逐格比对 | 9350个样本/结果单元格，0处不一致；工作簿哈希未变 | 交付表和存档数据对应 |
+| 抽样复算四方法 | 40次拟合，成功/失败一致，成功参数最大绝对差0 | 抽中的样本可由当前方法重现，不代表全部案例逐一复算 |
+| 四方法现有测试 | 41项通过，3.50秒 | 现有测试契约通过，不证明文献归属、最优性或全域无解 |
+| WMLE三条失败诊断 | 3/3找到域内方程根，独立代入通过 | 这三条原记录是数值漏根 |
+| 双因素回归诊断 | 固定一组样本，分开改变分数与方向 | 解释LS/LRE差异，不用于性能排名 |
+
+证据：[工作簿检查](evidence/workbook_audit.json)、[方法与版本检查](evidence/estimator_audit.json)、[WMLE恢复检查](evidence/wmle_case_recovery.json)。使用Python3.11.15、NumPy2.4.6、SciPy1.17.1复算方法；Excel使用只读openpyxl核对。没有修改原始样本、工作簿、生产方法或Study结论。
+
+从仓库根目录复查，以下命令分别用于估计器、WMLE恢复和现有测试：
+
+```powershell
+& './python/.venv/Scripts/python.exe' './Research/09-Weibull参数估计方法谱系与比较基线/scripts/audit_existing_estimators.py'
+& './python/.venv/Scripts/python.exe' './Research/09-Weibull参数估计方法谱系与比较基线/scripts/audit_existing_estimators.py' --recovery
+& './python/.venv/Scripts/python.exe' -m pytest python/tests/test_lse_soman1992.py python/tests/test_lre_li1994.py python/tests/test_wmle_cousineau2009.py python/tests/test_mle_hirose1996.py -q
+```
+
+工作簿检查使用同一脚本的 `--workbook` 模式，需要安装openpyxl的Python；本次用Codex bundled Python。脚本仅写本Research的证据文件，不运行原工作簿生成器。
+
+## 10. 新补方法的实现边界
 
 ### DMMLE：采用哪个版本，怎样判断成功
 
@@ -220,7 +242,7 @@ WMLE三条原失败为 `equation_residual`，本轮均恢复；MLE的30、12、1
 
 ### MPS、变换估计与删失方法
 
-MPS令Dᵢ=F(x₍ᵢ₎)−F(x₍ᵢ₋₁₎)，补F(x₍₀₎)=0、F(x₍ₙ₊₁₎)=1，最大化Σlog(Dᵢ)/(n+1)。不能漏掉端点间距。对于严格递增观测，令zᵢ=((xᵢ−γ)/η)^β，可用log(−expm1(−z₁))、−zᵢ₋₁+log(−expm1(−(zᵢ−zᵢ₋₁)))及−zₙ稳定计算各项。重复观测使普通间距为0；舍入或分组数据须另定有来源的扩展，不能默默加随机扰动。平台MPS仍未实现；独立研究实现与核验见文末复核资料及整合前技术附录第12节，本段保留原始准则和要求。
+MPS令Dᵢ=F(x₍ᵢ₎)−F(x₍ᵢ₋₁₎)，补F(x₍₀₎)=0、F(x₍ₙ₊₁₎)=1，最大化Σlog(Dᵢ)/(n+1)。不能漏掉端点间距。对于严格递增观测，令zᵢ=((xᵢ−γ)/η)^β，可用log(−expm1(−z₁))、−zᵢ₋₁+log(−expm1(−(zᵢ−zᵢ₋₁)))及−zₙ稳定计算各项。重复观测使普通间距为0；舍入或分组数据须另定有来源的扩展，不能默默加随机扰动。平台MPS仍未实现；独立研究实现与核验已补入第12节，本段保留原始准则和要求。
 
 Nagatsuka方法先以标准化次序统计量W的似然估β；随后令η̃=[mean((x−xmin)^β̂)]^(1/β̂)，γ̂=xmin−n^(−1/β̂)η̃Γ(1+1/β̂)，η̂=[mean((x−γ̂)^β̂)]^(1/β̂)。其形状步骤涉及积分似然，尚未数值复现。位置可为负；若裁为0，便是另一个约束版本。Nassar 2024属于二参数删失模型，适用性判断见附录A，不列作完整三参数算法。
 
@@ -232,7 +254,7 @@ Nagatsuka方法先以标准化次序统计量W的似然估β；随后令η̃=[me
 & python/.venv/Scripts/python.exe 'Research/09-Weibull参数估计方法谱系与比较基线/scripts/audit_new_original_methods.py' '<本地weibull_fit.ipynb路径>'
 ```
 
-## 10. SAM与BPNN的原文级版本核查
+## 11. SAM与BPNN的原文级版本核查
 
 ### SAM（2023）：公式、示例和边界重试
 
@@ -256,7 +278,7 @@ Nagatsuka方法先以标准化次序统计量W的似然估β；随后令η̃=[me
 
 另作固定种子20260927的数值诊断：β∈{0.5,1.5,3}、n∈{5,10,20}、η=2、γ=1，每格100组，共900组；只检查运行与停止，不比较精度优劣。在**只调整初始尺度、后续越域即记录失败**的解释下，绝对增量版846组通过局部残差检查，54组位置更新越出(0,min(t))。带符号停止版846组通过、48组越域、6组虽停止却未通过残差检查。后者说明负增量可能提前触发原文停止式。β=0.5属原文仿真形状域外，但异常并不只出现在该条件。
 
-这里的54组不是“理论无解”的证据：图1在非正位置时回到“调整初始尺度”框，但尚未明确后期越域时是否重置整条迭代、怎样保留形状，以及重试预算。原版与补救版须分别命名。当前状态为**两个原文示例复现，作者边界重试仍待澄清；整合前技术附录第13节记录可审计的初值调整分支**。完整异常样本和停止结果保存在[核验记录](evidence/sam_audit.json)，复查用[独立脚本](scripts/audit_sam.py)。
+这里的54组不是“理论无解”的证据：图1在非正位置时回到“调整初始尺度”框，但尚未明确后期越域时是否重置整条迭代、怎样保留形状，以及重试预算。原版与补救版须分别命名。当前状态为**两个原文示例复现，作者边界重试仍待澄清；第13节冻结可审计的初值调整分支**。完整异常样本和停止结果保存在[核验记录](evidence/sam_audit.json)，复查用[独立脚本](scripts/audit_sam.py)。
 
 ### BPNN（2025）：可确定的网络与仍缺失的配置
 
@@ -274,6 +296,48 @@ Nagatsuka方法先以标准化次序统计量W的似然估β；随后令η̃=[me
 
 原文声明数据可按请求提供。本轮按两篇DOI检索未取得可执行作者代码或BPNN权重；这只描述本次检索结果，不证明代码不存在。需要补的优先材料已从“再下载论文”转为：**作者训练/预测脚本或已训练网络、特征与归一化定义、完整训练划分及优化配置**。在取得前，BPNN保持有科学纳入理由的候选，不能用现有另一网络代替它后宣称战胜原文方法。出版入口：[BPNN](https://www.sciencedirect.com/science/article/pii/S0266892025001006)、[SAM](https://doi.org/10.1007/s12206-023-1019-z)。
 
+## 12. MPS与L矩的独立实现核验
+
+新增[独立研究脚本](scripts/audit_mps_lm.py)，不改变平台的未实现入口。MPS按含左右端点的平均对数间距求解，拒绝重复观测，不加扰动。为明确数值版本，先除以样本中位数，搜索β∈[0.05,50]、η/median(t)∈[exp(−8),exp(8)]、γ/median(t)∈[0,min(t/median(t))×(1−10⁻¹⁰)]；六个固定初值，Nelder–Mead至多2500次，参数/目标容差10⁻⁹/10⁻¹¹。只从收敛候选中选间距目标最优者，接近人工搜索边界另作标记。多起点一致不等于证明全局最优；这些设置是研究版本，不冒称原作者代码。
+
+L矩采用182-096式(6)—(12)的无偏样本概率加权矩：bᵣ=n⁻¹Σ C(i−1,r)/C(n−1,r)t₍ᵢ₎，ℓ₁=b₀、ℓ₂=2b₁−b₀、ℓ₃=6b₂−6b₁+b₀。以k=1/β求解
+
+\[
+\ell_3/\ell_2=3-2\frac{1-3^{-k}}{1-2^{-k}},\quad
+\hat\eta=\frac{\ell_2}{\Gamma(1+k)(1-2^{-k})},\quad
+\hat\gamma=\ell_1-\hat\eta\Gamma(1+k).
+\]
+
+有限正形状要求3−2ln(3)/ln(2)<ℓ₃/ℓ₂<1；下界约−0.169925。样本[1,10,11]的L偏度为−0.8，**这一组确实没有该L矩方程的有限正形状解**，不是优化器未收敛。即使方程有解，位置也可能为负或高于最小观测；脚本保留原始解并标记，不裁剪成另一个方法。高于最小观测不等于矩方程无解或分布参数本身无效；第13节因预先要求全部观测位于估计支持域而不接受该输出，采用不同应用口径时须另报。
+
+182-096表10的原版PDF第20页已核对。第一例复算MPS为(β,η,γ)=(0.795344,37.112748,88.441024)，LM为(0.948364,37.959342,85.339986)，均符合原表两位小数，MPS六个初值得到同一目标值。第二例含两个68.64，普通MPS目标为负无穷，不能在未说明重复值扩展的情况下直接复现表中的有限估计。LM按式(6)—(12)复算为(1.388141,58.122463,19.178295)，不符原表(1.44,60.13,17.65)，且位置高于最小观测17.88；该差异未解释，不修改样本或公式迎合表格。
+
+独立总体分位数积分检查β=0.5、1、2、5、9的L矩反解，最大参数差小于4.3×10⁻⁸；MPS稳定对数式与直接CDF间距计算一致；第一例将时间乘1000后还原单位，LM参数差小于4×10⁻¹³，MPS小于10⁻⁶。完整结果见[核验记录](evidence/mps_lm_audit.json)。
+
+## 13. 共同样本接入核验与冻结口径
+
+复用已交付W(2,1000,1000)的n=7、15、30各50组，共150组；四种既有方法读取原存档，新增方法使用本附录的研究实现。保留原时间单位，不重新抽样、不裁剪参数、不加扰动。WMLE补救版只替换原先三个失败样本，使用已独立验证残差的同方程根；其余输出不变。本轮不是独立新样本性能验证。
+
+| 版本 | n=7有效/50 | n=15有效/50 | n=30有效/50 | 解释 |
+|---|---:|---:|---:|---|
+| LS、LRE现存档 | 50 | 50 | 50 | 历史版本参照 |
+| WMLE现存档 | 47 | 50 | 50 | 已知三次数值漏根 |
+| WMLE＋已核求根补救 | 50 | 50 | 50 | 正式比较应避免继续使用已知漏根作为劣势 |
+| MLE现存档 | 20 | 38 | 49 | 当前有限候选筛选规则；不是逐样本理论无解证明 |
+| MPS-R09 | 50 | 50 | 50 | 六起点有界搜索版本；仅本批数据结果 |
+| LM原方程＋域检查 | 37 | 43 | 43 | n=7有5组L偏度无有限解，另外8/7/7组有估计但不满足声明的域 |
+| SAM初值调整＋绝对增量停止 | 48 | 49 | 50 | 2/1/0组后续位置更新越域；不添加未经说明的重启 |
+| DMMLE作者初值、20次上限 | 0 | 0 | 0 | 返回数值但未通过收敛及残差检查 |
+| 同DMMLE、200次上限 | 37 | 27 | 31 | 只增加预算便恢复95组；其余55组仍未核实收敛 |
+
+DMMLE的200次版本是在20次全部未通过后追加的求解诊断，保持原单位、初值(α,σ)=(1,1)、调整得分方程与停止精度，不根据真参数或估计误差选结果。95组恢复说明默认预算不能当作方法理论能力；未恢复55组也不能直接称为无解。两个作者数值例仍由原默认20次版本复现。
+
+对每个方法均保存与LRE的共同有效编号、同集合两方逐参数标准化Bias/RMSE及q₀.₀₁相对RMSE。选择LRE作核验参照是因其在存档全部有效，不是把它定为最强方法。没有将各自不同成功集合的RMSE排列成总榜，也没有按真值筛除极端合法输出。完整150组样本、各版本输出、异常、源码哈希与统计见[共同样本记录](evidence/common_sample_audit.json)；入口为[核验脚本](scripts/audit_common_samples.py)。
+
+本节提供版本与接入证据，不单独决定主对照名单。对照层次以主报告第3.5节为准：经典参照加SAM构成建议起点，DMMLE、BPNN、LM等根据论文创新点与任务补充。DMMLE默认及扩展预算须分别披露；BPNN缺配置、Nagatsuka与Tsukada尚有核查工作，并不等于这些方法性能较弱。
+
+这里冻结的是**可审计比较版本**，不是声明任何版本数值最优。SAM重启、DMMLE求解、MPS搜索边界等若继续改进，必须换版本并重算共同样本，不能混接旧输出。生产程序、注册入口与Excel未被这些研究脚本修改。
+
 ## 原始来源与引用建议
 
 - LS：Soman, K. P., & Misra, K. B. (1992). *A Least Square Estimation of Three Parameters of a Weibull Distribution*. Microelectronics Reliability, 32(3), 303–305. [DOI](https://doi.org/10.1016/0026-2714(92)90057-R)，本地[182-104正文](../../src/content/182-104-pdf原文.md)。引用具体分支，不笼统声称实现整篇论文。
@@ -281,8 +345,3 @@ Nagatsuka方法先以标准化次序统计量W的似然估β；随后令η̃=[me
 - 相关系数路线：Park, C. (2018). *A Note on the Existence of the Location Parameter Estimate of the Three-Parameter Weibull Model Using the Weibull Plot*. Mathematical Problems in Engineering, 2018, 6056975. [DOI](https://doi.org/10.1155/2018/6056975)，本地[182-106正文](../../src/content/182-106-pdf原文.md)。2017构造来源的两种组合及数值例已核查，见第3节。
 - WMLE：Cousineau, D. (2009). *Nearly unbiased estimators for the three-parameter Weibull distribution with greater efficiency than the iterative likelihood method*. British Journal of Mathematical and Statistical Psychology, 62(1), 167–191. [DOI](https://doi.org/10.1348/000711007X270843)，库内182-088。
 - MLE理论与比较依据：Hirose, H. (1996). *Maximum likelihood estimation in the 3-parameter Weibull distribution. A look through the generalized extreme-value distribution*. IEEE Transactions on Dielectrics and Electrical Insulation, 3(1), 43–55，库内182-105；当前多起点实现需作为项目计算选择另行说明。
-
-
-## 复核资料
-
-本文中的程序和数值状态均为原核查快照，不自动代表之后源码。版本、工作簿和失败复核证据分别见[estimator_audit](evidence/estimator_audit.json)、[workbook_audit](evidence/workbook_audit.json)、[wmle_case_recovery](evidence/wmle_case_recovery.json)。MPS/L矩及共同样本接入结果保存在[mps_lm_audit](evidence/mps_lm_audit.json)和[common_sample_audit](evidence/common_sample_audit.json)。详细执行过程见[整合前技术附录](历史/2026-09-27附录整合前/附录B-方法实现与版本.md)，不作为新方法性能排名。
