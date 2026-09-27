@@ -47,13 +47,13 @@ def dm_quantities(p, y):
     return adjusted, info, [ia,iss]
 
 
-def dmmle(x):
+def dmmle(x, maxiter=20):
     g = min(x)
     y = np.delete(x,np.argmin(x))-g
     if np.any(y<=0):
         return {'status':'nonpositive_shift_after_removing_one_minimum'}
     p = np.ones(2)
-    for iteration in range(1,21):
+    for iteration in range(1,maxiter+1):
         if np.any(p<=0):
             return {'status':'nonpositive_iterate','iterations':iteration}
         u,info,_ = dm_quantities(p,y)
