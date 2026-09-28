@@ -67,7 +67,7 @@ references:
 # 当前实现与论文的关系
 implementation:
   status: "Park（2017）Proposed+Plot 参数估计分支复现"
-  summary: "绘图位置、非负位置域、相关系数定位目标、OLS 回归方向及参数恢复均按 Park（2017）第2、5节实现。Plot 本身就是 Weibull 概率图上的线性回归。"
+  summary: "按 Park（2017）Proposed+Plot 实现绘图位置、相关系数定位与 OLS，已核验论文算例；原表形状参数有末位差异。范围限于该估计分支，不含 MLE2 和拟合检验。"
   differences:
     - "这里的复现范围是完整样本 Proposed+Plot 参数估计，不包含另一 Proposed+MLE2 分支、Weibullness 假设检验、p值或临界值 Monte Carlo 模拟，也不是 Li（1994）算法复现。"
     - "原文允许相关系数最大化或式(3)定根。本实现用无量纲对数间隔网格及局部精化求解同一最大化目标；开端点由浮点可表示边界处理，不再设置固定寿命间隔。"

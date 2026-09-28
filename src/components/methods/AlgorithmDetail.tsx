@@ -149,35 +149,6 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
         </div>
       )}
 
-      {/* Implementation provenance is separate from method construction status. */}
-      {frontmatter?.implementation && (
-        <section aria-label="当前实现与论文的关系" className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            <h3 className="font-bold text-slate-900">当前实现与论文的关系</h3>
-            <span className="text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-full px-3 py-1">
-              {frontmatter.implementation.status}
-            </span>
-          </div>
-          <p className="text-sm text-slate-700 leading-relaxed">{frontmatter.implementation.summary}</p>
-          {frontmatter.implementation.differences?.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-semibold text-slate-900">实现差异与未覆盖范围</h4>
-              <ul className="mt-2 space-y-2 list-disc pl-5 text-sm text-slate-600 leading-relaxed">
-                {frontmatter.implementation.differences.map((difference: string, index: number) => (
-                  <li key={index}>{difference}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {frontmatter.implementation.validation && (
-            <div className="mt-4 pt-4 border-t border-slate-200">
-              <h4 className="text-sm font-semibold text-slate-900">核验范围</h4>
-              <p className="mt-1 text-sm text-slate-600 leading-relaxed">{frontmatter.implementation.validation}</p>
-            </div>
-          )}
-        </section>
-      )}
-
       {/* Core Formula */}
       {frontmatter?.formula && (
         <div className="bg-slate-900 rounded-2xl p-6 shadow-inner overflow-x-auto border border-slate-800">
@@ -264,6 +235,12 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
                 <span className="text-sm text-slate-700">大样本</span>
               </div>
             </div>
+            {frontmatter?.implementation?.summary && (
+              <section aria-label="当前实现与论文的关系" className="mt-5 border-t border-slate-100 pt-4">
+                <h3 className="text-sm font-semibold text-slate-900 mb-2">当前实现与论文的关系</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{frontmatter.implementation.summary}</p>
+              </section>
+            )}
           </div>
         )}
 
@@ -274,9 +251,6 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
               <BookOpen className="text-amber-500" size={18} />
               <h3 className="font-bold text-slate-900">相关文献及其作用</h3>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed mb-4">
-              文献链接提供方法依据、比较或背景资料；是否完整复现，以当前实现说明和核验范围为准。
-            </p>
             <div className="space-y-3">
               {frontmatter.references.map((ref: any, index: number) => (
                 <Link
