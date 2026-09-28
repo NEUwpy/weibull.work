@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([switch]$InstallShortcut)
 
 $ErrorActionPreference = 'Stop'
 
@@ -44,3 +44,15 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $outputPath)) {
 $artifact = Get-Item -LiteralPath $outputPath
 Write-Host "已生成：$($artifact.FullName)"
 Write-Host "大小：$([math]::Round($artifact.Length / 1KB, 1)) KB"
+
+if ($InstallShortcut) {
+    $desktopDirectory = [Environment]::GetFolderPath('Desktop')
+    $shortcutPath = Join-Path $desktopDirectory 'Weibull调试.lnk'
+    $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $artifact.FullName
+    $shortcut.WorkingDirectory = $projectRoot.Path
+    $shortcut.Description = '自动启动 Weibull 前后端开发环境，打开应用与 API 调试页面'
+    $shortcut.IconLocation = "$($artifact.FullName),0"
+    $shortcut.Save()
+    Write-Host "已创建桌面快捷方式：$shortcutPath"
+}

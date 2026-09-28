@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -11,17 +12,24 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("启动本地 Weibull 前后端并打开默认浏览器")]
 [assembly: AssemblyCompany("weibull.work")]
 [assembly: AssemblyProduct("Weibull Local Launcher")]
-[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
 
 internal static class WeibullLocalLauncher
 {
-    private const string FrontendUrl = "http://localhost:3000";
+    private const string FrontendUrl = "http://127.0.0.1:3000";
+    private const string BackendDocsUrl = "http://127.0.0.1:8001/docs";
     private const string BackendProbeUrl = "http://127.0.0.1:8001/openapi.json";
-    private const int StartupTimeoutSeconds = 120;
+    private const int StartupTimeoutSeconds = 180;
+    private static Form progressWindow;
+    private static Label progressLabel;
+    private static string launcherLog;
+    private static bool quiet;
 
     [STAThread]
     private static void Main(string[] args)
     {
+        quiet = HasArgument(args, "--no-browser");
+        Application.EnableVisualStyles();
         bool createdNew;
         using (var mutex = new Mutex(true, "Local\\WeibullLocalLauncher", out createdNew))
         {
@@ -45,12 +53,15 @@ internal static class WeibullLocalLauncher
 
                 string logDirectory = Path.Combine(projectRoot, "logs");
                 Directory.CreateDirectory(logDirectory);
+                launcherLog = Path.Combine(logDirectory, "local-launcher.log");
+                SetStatus("正在检查本地调试环境…");
 
                 bool backendReady = IsBackendReady();
                 bool frontendReady = IsFrontendReady();
 
                 if (!backendReady)
                 {
+                    RequireFreePort(8001);
                     ToolCommand python = ResolvePython(projectRoot);
                     if (python == null)
                     {
@@ -58,15 +69,17 @@ internal static class WeibullLocalLauncher
                         return;
                     }
 
+                    SetStatus("正在启动 Python 后端（自动重载）…");
                     StartHiddenCommand(
                         python.Executable,
-                        JoinArguments(python.ArgumentPrefix, "main.py"),
+                        JoinArguments(python.ArgumentPrefix, "-m uvicorn main:app --host 127.0.0.1 --port 8001 --reload"),
                         Path.Combine(projectRoot, "python"),
                         Path.Combine(logDirectory, "local-launcher-backend.log"));
                 }
 
                 if (!frontendReady)
                 {
+                    RequireFreePort(3000);
                     string npm = ResolveNpm();
                     if (npm == null)
                     {
@@ -74,9 +87,14 @@ internal static class WeibullLocalLauncher
                         return;
                     }
 
+                    if (!File.Exists(Path.Combine(projectRoot, "node_modules", "next", "dist", "bin", "next")))
+                    {
+                        throw new InvalidOperationException("项目缺少前端依赖，请先在项目目录执行一次 npm install。");
+                    }
+                    SetStatus("正在启动 Next.js 开发服务…首次编译可能需要一些时间。");
                     StartHiddenCommand(
                         npm,
-                        "run dev",
+                        "run dev -- --hostname 127.0.0.1 --port 3000",
                         projectRoot,
                         Path.Combine(logDirectory, "local-launcher-frontend.log"));
                 }
@@ -84,13 +102,18 @@ internal static class WeibullLocalLauncher
                 DateTime deadline = DateTime.UtcNow.AddSeconds(StartupTimeoutSeconds);
                 while (DateTime.UtcNow < deadline)
                 {
-                    backendReady = backendReady || IsBackendReady();
-                    frontendReady = frontendReady || IsFrontendReady();
+                    backendReady = IsBackendReady();
+                    frontendReady = IsFrontendReady();
+                    SetStatus("后端：" + (backendReady ? "已就绪" : "启动中") +
+                        "    前端：" + (frontendReady ? "已就绪" : "启动 / 编译中") +
+                        "\n就绪后自动打开应用与 API 调试页面。");
                     if (backendReady && frontendReady)
                     {
-                        if (!HasArgument(args, "--no-browser"))
+                        SetStatus("调试环境已就绪。");
+                        if (!quiet)
                         {
                             Process.Start(new ProcessStartInfo(FrontendUrl) { UseShellExecute = true });
+                            Process.Start(new ProcessStartInfo(BackendDocsUrl) { UseShellExecute = true });
                         }
                         return;
                     }
@@ -109,13 +132,44 @@ internal static class WeibullLocalLauncher
                 }
 
                 ShowError(
-                    "本地环境在 120 秒内未完全启动：\n" + missing +
+                    "本地环境在 180 秒内未完全启动：\n" + missing +
                     "\n请查看日志目录：\n" + logDirectory);
             }
             catch (Exception exception)
             {
                 ShowError("启动失败：\n" + exception.Message);
             }
+            finally
+            {
+                if (progressWindow != null) progressWindow.Dispose();
+            }
+        }
+    }
+
+    private static void SetStatus(string message)
+    {
+        if (launcherLog != null)
+            File.AppendAllText(launcherLog, DateTime.Now.ToString("s") + " " + message.Replace("\n", " ") + Environment.NewLine, Encoding.UTF8);
+        if (quiet) return;
+        if (progressWindow == null)
+        {
+            progressWindow = new Form { Text = "Weibull 调试启动器", Width = 530, Height = 150,
+                StartPosition = FormStartPosition.CenterScreen, FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false, MinimizeBox = true, ControlBox = false };
+            progressLabel = new Label { Dock = DockStyle.Fill, Padding = new Padding(20), AutoSize = false };
+            progressWindow.Controls.Add(progressLabel);
+            progressWindow.Show();
+        }
+        progressLabel.Text = message;
+        Application.DoEvents();
+    }
+
+    private static void RequireFreePort(int port)
+    {
+        foreach (var endpoint in IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners())
+        {
+            if (endpoint.Port == port)
+                throw new InvalidOperationException("端口 " + port + " 已被其他或尚未就绪的服务占用。请检查该服务后重试；启动器不会结束其他程序。");
         }
     }
 
@@ -188,9 +242,9 @@ internal static class WeibullLocalLauncher
     {
         string[] localCandidates =
         {
+            Path.Combine(projectRoot, "python", ".venv", "Scripts", "python.exe"),
             Path.Combine(projectRoot, ".venv", "Scripts", "python.exe"),
             Path.Combine(projectRoot, "venv", "Scripts", "python.exe"),
-            Path.Combine(projectRoot, "python", ".venv", "Scripts", "python.exe"),
             Path.Combine(projectRoot, "python", "venv", "Scripts", "python.exe")
         };
 
@@ -297,6 +351,13 @@ internal static class WeibullLocalLauncher
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden
         };
+        startInfo.EnvironmentVariables["PYTHONUTF8"] = "1";
+        startInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
+        startInfo.EnvironmentVariables["BACKEND_API_URL"] = "http://127.0.0.1:8001";
+        startInfo.EnvironmentVariables["NODE_ENV"] = "development";
+        // Explorer's PATH can predate a Node installation. npm.cmd needs its sibling node.exe.
+        startInfo.EnvironmentVariables["PATH"] = Path.GetDirectoryName(executable) + ";" +
+            (Environment.GetEnvironmentVariable("PATH") ?? string.Empty);
 
         Process process = Process.Start(startInfo);
         if (process == null)
@@ -324,7 +385,9 @@ internal static class WeibullLocalLauncher
 
     private static void ShowError(string message)
     {
-        MessageBox.Show(message, "Weibull 本地启动器", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        Environment.ExitCode = 1;
+        if (launcherLog != null) File.AppendAllText(launcherLog, message + Environment.NewLine, Encoding.UTF8);
+        if (!quiet) MessageBox.Show(message, "Weibull 调试启动器", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
     private sealed class ToolCommand
