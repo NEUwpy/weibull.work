@@ -4,7 +4,7 @@
 
 ## 通用建议与历史实现的分工
 
-当前建议见[报告v2.5第3—6章](研究报告.md)。原v3.0固定四／五基准及具体网格已撤回，保存于[历史稿](历史/2026-09-28-v3.0撤回稿/资料/通用比较方案核查.md)。方法是否入选由任务、实际比较及条件性能证据决定；数值实现细节须附属于相应文献方法，不能把Local-ML另立为新的文献估计器。
+当前建议见[报告v2.5第3—6章](研究报告.md)。原v3.0固定四／五基准及具体网格已撤回，保存于Git存档`e29ead91`中的同名历史稿。方法是否入选由任务、实际比较及条件性能证据决定；数值实现细节须附属于相应文献方法，不能把Local-ML另立为新的文献估计器。
 
 以下保存旧项目程序、公式及案例核查，不作为本次通用选型的预设。W2/W3属于模拟案例；既有位置约束、权重表、运行结果不能直接外推为一般方法定义。报告v2.5正文仅保留与候选池有关的方法区别；概率图与MDM原理、文献版本对照移入本附录第11节，MPS原理图归入第9节。WMLE配套方程沿用第5节，避免重复。
 
@@ -350,4 +350,4 @@ $$
 
 ## 复核资料
 
-本文中的程序和数值状态均为原核查快照，不自动代表之后源码。版本、工作簿和失败复核证据分别见[estimator_audit](evidence/estimator_audit.json)、[workbook_audit](evidence/workbook_audit.json)、[wmle_case_recovery](evidence/wmle_case_recovery.json)。MPS/L矩及共同样本接入结果保存在[mps_lm_audit](evidence/mps_lm_audit.json)和[common_sample_audit](evidence/common_sample_audit.json)。详细执行过程见[整合前技术附录](历史/2026-09-27附录整合前/附录B-方法实现与版本.md)，不作为新方法性能排名。
+本文中的程序和数值状态均为原核查快照，不自动代表之后源码。版本、工作簿和失败复核证据分别见[estimator_audit](evidence/estimator_audit.json)、[workbook_audit](evidence/workbook_audit.json)、[wmle_case_recovery](evidence/wmle_case_recovery.json)。MPS/L矩及共同样本接入结果保存在[mps_lm_audit](evidence/mps_lm_audit.json)和[common_sample_audit](evidence/common_sample_audit.json)。详细执行过程见Git存档`e29ead91`中的整合前技术附录，不作为新方法性能排名。
