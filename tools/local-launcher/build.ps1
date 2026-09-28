@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 $launcherDirectory = Split-Path -Parent $PSCommandPath
 $projectRoot = Resolve-Path (Join-Path $launcherDirectory '..\..')
 $sourcePath = Join-Path $launcherDirectory 'WeibullLocalLauncher.cs'
+$iconPath = Join-Path $launcherDirectory 'weibull-debug.ico'
 $outputPath = Join-Path $projectRoot 'Weibull本地启动器.exe'
 
 $windowsDirectory = [Environment]::GetFolderPath([Environment+SpecialFolder]::Windows)
@@ -34,6 +35,7 @@ if (Test-Path -LiteralPath $outputPath) {
     /reference:System.dll `
     /reference:System.Core.dll `
     /reference:System.Windows.Forms.dll `
+    "/win32icon:$iconPath" `
     "/out:$outputPath" `
     $sourcePath
 
@@ -52,7 +54,7 @@ if ($InstallShortcut) {
     $shortcut.TargetPath = $artifact.FullName
     $shortcut.WorkingDirectory = $projectRoot.Path
     $shortcut.Description = '自动启动 Weibull 前后端开发环境，打开应用与 API 调试页面'
-    $shortcut.IconLocation = "$($artifact.FullName),0"
+    $shortcut.IconLocation = "$iconPath,0"
     $shortcut.Save()
     Write-Host "已创建桌面快捷方式：$shortcutPath"
 }
