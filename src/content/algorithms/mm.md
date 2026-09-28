@@ -53,13 +53,13 @@ applicability:
 # 相关文献
 references:
   - id: "182-102"
-    relation: "直接依据：Weibull矩定义、样本矩、显式解及位置修正建议；需同时说明本项目输出处理。"
+    relation: "直接依据：Weibull矩定义、样本矩、显式解及位置修正建议。"
     title: "Moment Estimators for the 3-Parameter Weibull Distribution"
     author: "Cran, G. W."
     year: "1988"
     publication: "IEEE Transactions on Reliability"
   - id: "182-096"
-    relation: "矩估计谱系与比较背景，不表示当前程序复现了该比较论文的全部实验。"
+    relation: "矩估计谱系与比较背景。"
     title: "Comparison of Estimators of the Weibull Distribution"
     author: "Akram, M., Hayat, A."
     year: "2014"

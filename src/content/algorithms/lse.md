@@ -6,7 +6,7 @@ category: "极小化适配法"
 
 # 核心信息
 formula: '\log(t_i - \mu) = \alpha + \beta X_i, \quad X_i = E[W_{(i:n)}], \quad \hat{\mu} = \arg\max_{\mu} F(\mu)'
-description: "最小二乘估计（Least Squares Estimation, LSE）将威布尔分布线性化后用最小二乘回归求参数。本实现采用 White (1969) 的对数威布尔顺序统计量期望作为回归自变量，并按 Soman & Misra (1992) 的三参数扩展：对位置参数 μ 做一维搜索，以 Fisher F 比最大的 μ 为估计值。论文主要讨论形状参数0–3；不表示该范围内MLE一概失效。"
+description: "最小二乘估计（Least Squares Estimation, LSE）将威布尔分布线性化后用最小二乘回归求参数。本实现采用 White (1969) 的对数威布尔顺序统计量期望作为回归自变量，并按 Soman & Misra (1992) 的三参数扩展：对位置参数 μ 做一维搜索，以 Fisher F 比最大的 μ 为估计值。"
 
 # 变量说明
 variables:
@@ -55,7 +55,7 @@ references:
     year: "1992"
     publication: "Microelectronics Reliability"
   - id: "182-096"
-    relation: "估计方法谱系和比较背景，不能代替原方法的构造与复现证据。"
+    relation: "估计方法谱系和比较背景。"
     title: "Comparison of Estimators of the Weibull Distribution"
     author: "Akram, M., Hayat, A."
     year: "2014"
