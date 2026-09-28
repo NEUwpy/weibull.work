@@ -229,7 +229,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
   const handleDataSave = (newData: DataPoint[]) => {
     const currentGamma = result?.gamma || 0
-    const points = calculateMedianRanks(newData, currentGamma)
+    const points = calculateMedianRanks(newData, currentGamma, method.id)
     const res = calculateWeibullParameters(points, currentGamma)
     setData(newData)
     setResult(res)
@@ -243,7 +243,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
     const firstSource = sources[0]
     const firstGamma = 0
-    const points = calculateMedianRanks(firstSource.data, firstGamma)
+    const points = calculateMedianRanks(firstSource.data, firstGamma, method.id)
     const res = calculateWeibullParameters(points, firstGamma)
 
     const dataSourcesWithResults: DataSource[] = sources.map((source, index) => ({
@@ -309,7 +309,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
   const handleDataChange = (newData: DataPoint[]) => {
     const currentGamma = result?.gamma || 0
-    const points = calculateMedianRanks(newData, currentGamma)
+    const points = calculateMedianRanks(newData, currentGamma, method.id)
     setData(newData)
     setResult(prev => prev ? { ...prev, points } : undefined)
     setFitMode('fit')
@@ -320,7 +320,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     const newResult = { ...baseResult, ...updates }
     let newPoints = result?.points || []
     if (updates.gamma !== undefined && !updates.points && data) {
-      newPoints = calculateMedianRanks(data, updates.gamma)
+      newPoints = calculateMedianRanks(data, updates.gamma, method.id)
     } else if (updates.points !== undefined) {
       newPoints = updates.points
     }
@@ -439,7 +439,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     if (!nextIs3P) {
       updates = { gamma: 0 }
       if (data) {
-        newPoints = calculateMedianRanks(data, 0)
+        newPoints = calculateMedianRanks(data, 0, method.id)
       }
     }
     setResult(prev => prev ? { ...prev, ...updates, points: newPoints } : undefined)

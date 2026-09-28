@@ -62,32 +62,36 @@ export const MULTI_CURVE_COLORS = [
 ]
 
 /**
- * Calculates Median Ranks using Benard's approximation: (i - 0.3) / (N + 0.4)
+ * Calculates plotting positions: Park (2017) for LRE, Benard otherwise.
  * Applies Weibull transformation with Gamma parameter.
  * X = ln(t - gamma)
  * Y = ln(-ln(1 - F(t)))
  * 
  * @param data Raw data points
  * @param gamma Location parameter (default 0). Points where value <= gamma are excluded.
+ * @param methodId LRE uses the same piecewise plotting positions as its estimator.
  */
-export function calculateMedianRanks(data: DataPoint[], gamma: number = 0): PlotPoint[] {
+export function calculateMedianRanks(data: DataPoint[], gamma: number = 0, methodId?: string): PlotPoint[] {
   // Filter for failures only
   // Also filter out invalid points where t <= gamma
   const failures = data
     .filter(d => d.status === 'F' && d.value > gamma)
     .sort((a, b) => a.value - b.value)
   
-  const N = data.length 
+  const isPark = methodId?.toLowerCase() === 'lre'
+  // /calculate receives failure observations only; match that sample size for LRE.
+  const N = isPark ? data.filter(d => d.status === 'F').length : data.length
   
   return failures.map((point, index) => {
     const rank = index + 1
-    // Benard's approximation
-    const medianRank = (rank - 0.3) / (N + 0.4)
+    const medianRank = isPark
+      ? (N <= 10 ? (rank - 3 / 8) / (N + 1 / 4) : (rank - 1 / 2) / N)
+      : (rank - 0.3) / (N + 0.4)
     
     // Weibull Transformation (3-Parameter)
     const t_adjusted = point.value - gamma
     const x = Math.log(t_adjusted)
-    const y = Math.log(-Math.log(1 - medianRank))
+    const y = Math.log(-Math.log1p(-medianRank))
 
     return {
       x,

@@ -96,8 +96,8 @@
         "shortName": "LRE",
         "slug": "lre",
         "hasDetail": true,
-        "description": "通过最大化相关系数 R 来寻找最佳 γ，基于 Li (1994) 变换与 Park (2017) Weibull 图思想，OLS 一次给出全部三参数。",
-        "formula": "\\hat{\\gamma} = \\arg\\max \\rho^2(\\gamma), \\ Y = \\ln(-\\ln R), \\ X = \\ln(t-\\gamma)"
+        "description": "按 Park（2017）Proposed+Plot：原文分段绘图位置、非负位置相关系数最大化，再用概率图 OLS 求形状与尺度。",
+        "formula": "\\hat{\\gamma} = \\arg\\max_{0\\leq\\gamma<t_{(1)}} \\rho(\\gamma), \\ Y = \\ln(-\\ln(1-p)), \\ X = \\ln(t-\\gamma)"
       },
       {
         "id": "blre",

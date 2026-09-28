@@ -3,7 +3,8 @@
 Linear Regression Estimation
 
 算法文档: ../../src/content/algorithms/lre.md
-描述: 最基础的工程方法。对威布尔公式进行线性化变换，通过最小二乘法拟合直线。
+依据: Park (2017), §2、§5 Proposed+Plot，doi:10.23055/ijietap.2017.24.4.2848。
+描述: 原文分段绘图位置 + 非负位置相关系数最大化 + 概率图 OLS。
 公式: ln(-ln(1-F)) = beta * ln(t-gamma) - beta * ln(eta)
 """
 
@@ -20,7 +21,7 @@ class LRE(WeibullBase):
         LRE 参数估计
         策略：
         1. 先检查原始样本是否存在有意义的信息（退化检测在优化前）。
-        2. 优化 γ 使相关系数平方 ρ² 最大。
+        2. 使用 Park 分段绘图位置，优化 γ 使相关系数 ρ 最大。
         3. 固定 γ 后 OLS 回归解 β 和 η。
         """
         # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
@@ -38,76 +39,82 @@ class LRE(WeibullBase):
         # 进入优化前检查原始样本退化性：全等值或近全等值样本无信息。
         # 使用尺度相关容差，不依赖优化后的对数变换精度。
         t_range = float(np.ptp(t))
-        t_scale = max(1.0, float(np.mean(t)), float(np.max(t)))
+        t_scale = float(np.max(t))
         if t_range <= t_scale * 1e-12:
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        # @step: 2 | 计算中位秩变换 | 使用 Bernard 近似计算经验生存函数并经双对数变换得到回归因变量
-        # @formula: F(t_i) = \frac{i - 0.3}{n + 0.4}, \quad y_i = \ln(-\ln(1 - F(t_i)))
+        # @step: 2 | Park 绘图位置变换 | n≤10 用 Blom，n≥11 用 (i−1/2)/n
+        # @formula: p_i=\begin{cases}(i-3/8)/(n+1/4),&n\leq10\\(i-1/2)/n,&n\geq11\end{cases},\quad y_i=\ln(-\ln(1-p_i))
         # @symbols: F(t_i)|F(t_i)|第i个样本的经验累积概率, y_i|y_i|变换后的因变量
         # @inputs: n|n|样本数量
         # @outputs: y|y_i|双对数变换的因变量数组
-        F = self._median_ranks()
-        y = np.log(-np.log(1 - F))
+        # 此估计器的绘图位置由论文固定，不消费基础类的 Bernard/exact 开关。
+        ranks = np.arange(1, n + 1, dtype=float)
+        F = (ranks - 3 / 8) / (n + 1 / 4) if n <= 10 else (ranks - 1 / 2) / n
+        y = np.log(-np.log1p(-F))
+        y_centered = y - np.mean(y)
+        y_ss = float(np.dot(y_centered, y_centered))
 
         y_var = float(np.var(y))
         if y_var <= 0:
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        # @step: 3 | 优化位置参数 | 以相关系数平方 ρ² 为目标函数在有界区间内搜索最优 γ
-        # @formula: \hat{\gamma} = \arg\max_{\gamma \in [0, 0.999 t_{(1)})} \rho^{2}(\gamma),
+        # @step: 3 | 优化位置参数 | 按 Park 式(2)在 [0,t_(1)) 内最大化相关系数
+        # @formula: \hat{\gamma} = \arg\max_{\gamma \in [0,t_{(1)})} \rho(\gamma),
         #   \rho = \mathrm{corr}(\ln(t-\gamma), y)
         # @symbols: \gamma|\gamma|位置参数候选值, \rho|\rho|Pearson 相关系数
         # @inputs: t|t|失效时间数组, y|y_i|变换因变量
         # @outputs: gamma_hat|\hat{\gamma}|最优位置参数
-        # @loop: 尺度无关的粗网格搜索 + 最优邻域有界精化
-        def negative_r_squared(gamma_val):
-            if gamma_val >= t[0] - 1e-5:
-                return 1e10
-            try:
-                x_vals = np.log(t - gamma_val)
-            except Exception:
-                return 1e10
-            corr = np.corrcoef(x_vals, y)[0, 1]
-            if not np.isfinite(corr):
-                return 1e10
-            return -(corr ** 2)
-
+        # @loop: 无量纲位置网格 + 各峰邻域有界精化，包含 γ=0
         t_min = float(t[0])
-        min_gap = max(abs(t_min) * 1e-9, 1e-10)
-        upper = t_min - min_gap
-        linear_grid = np.linspace(0.0, upper, 201)
-        geometric_grid = t_min - np.geomspace(min_gap, t_min, 201)
-        gamma_grid = np.unique(np.clip(np.concatenate([linear_grid, geometric_grid]), 0.0, upper))
-        objective_grid = np.array([negative_r_squared(float(gamma)) for gamma in gamma_grid])
+        upper = float(np.nextafter(t_min, 0.0))
+        # s=log((t_min-γ)/t_min)。用对数间隔覆盖开区间的近端点；
+        # x 减去常数 log(t_min) 不改变相关系数或 OLS 斜率。
+        s_min = math.log((t_min - upper) / t_min)
+        relative_excess = (t - t_min) / t_min
 
-        finite = np.isfinite(objective_grid) & (objective_grid < 1e9)
+        def negative_correlation(s):
+            x = np.log(relative_excess + np.exp(s))
+            centered = x - np.mean(x)
+            x_ss = float(np.dot(centered, centered))
+            if x_ss <= 0 or not np.isfinite(x_ss):
+                return np.inf
+            return -float(np.dot(centered, y_centered) / np.sqrt(x_ss * y_ss))
+
+        search_grid = np.unique(np.concatenate([
+            np.linspace(s_min, 0.0, 201),
+            np.log1p(-np.linspace(0.0, 0.99, 201)),
+        ]))
+        objective_grid = np.array([negative_correlation(s) for s in search_grid])
+
+        finite = np.isfinite(objective_grid)
         if not np.any(finite):
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
         best_idx = int(np.argmin(np.where(finite, objective_grid, np.inf)))
-        gamma_hat = float(gamma_grid[best_idx])
+        best_s = float(search_grid[best_idx])
         best_objective = float(objective_grid[best_idx])
         refined = False
-        lo = float(gamma_grid[max(best_idx - 1, 0)])
-        hi = float(gamma_grid[min(best_idx + 1, len(gamma_grid) - 1)])
-        if hi > lo:
+        # 精化所有被网格夹住的峰，保留端点候选，不假定单峰。
+        peaks = [i for i in range(1, len(search_grid) - 1)
+                 if objective_grid[i] <= objective_grid[i - 1]
+                 and objective_grid[i] <= objective_grid[i + 1]]
+        for i in peaks:
             result = minimize_scalar(
-                negative_r_squared,
-                bounds=(lo, hi),
+                negative_correlation,
+                bounds=(float(search_grid[i - 1]), float(search_grid[i + 1])),
                 method="bounded",
-                options={"xatol": max(t_min * 1e-11, 1e-10)},
+                options={"xatol": 1e-12},
             )
             if result.success and np.isfinite(result.fun) and float(result.fun) <= best_objective:
-                gamma_hat = float(result.x)
+                best_s = float(result.x)
                 best_objective = float(result.fun)
                 refined = True
 
-        if gamma_hat < max(t_min * 1e-12, 1e-10):
-            gamma_hat = 0.0
+        gamma_hat = min(upper, float(-t_min * np.expm1(best_s)))
 
         if not np.isfinite(gamma_hat) or gamma_hat >= t[0] or gamma_hat < 0:
             self.last_solution_info = {"status": "degenerate_sample"}
@@ -119,16 +126,14 @@ class LRE(WeibullBase):
         # @symbols: \hat{\beta}|\hat{\beta}|形状参数（回归斜率）, \hat{\eta}|\hat{\eta}|尺度参数（截距反解）
         # @inputs: gamma_hat|\hat{\gamma}|最优γ, t|t|失效时间数组, y|y_i|变换因变量
         # @outputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数
-        x_vals = np.log(t - gamma_hat)
+        x_vals = np.log((t - gamma_hat) / t_min)
         x_mean = float(np.mean(x_vals))
         y_mean = float(np.mean(y))
 
         numerator = float(np.sum((x_vals - x_mean) * (y - y_mean)))
         denominator = float(np.sum((x_vals - x_mean) ** 2))
 
-        # 尺度相关容差：全等值样本的优化后分母在浮点噪声级（~1e-28）
-        x_scale = max(1.0, abs(float(x_vals[0])))
-        if denominator <= x_scale * 1e-12:
+        if not np.isfinite(denominator) or denominator <= 0:
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
@@ -143,26 +148,29 @@ class LRE(WeibullBase):
             return [0, 0, 0, 0, "degenerate_sample"]
 
         intercept = y_mean - beta_hat * x_mean
-        eta_hat = math.exp(-intercept / beta_hat)
+        eta_hat = t_min * math.exp(-intercept / beta_hat)
 
         if not np.isfinite(eta_hat) or eta_hat <= 0:
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        # @step: 6 | 计算拟合优度 R² | 评估模型与数据的拟合程度
-        # @formula: R^2 = 1 - \frac{\sum(F_i - \hat{F}_i)^2}{\sum(F_i - \bar{F})^2}
-        # @symbols: R^2|R^2|决定系数, F_i|F_i|经验累积概率, \hat{F}_i|\hat{F}_i|模型预测概率
+        # @step: 6 | 计算概率图 R² | 与位置搜索采用同一组 Park 绘图位置
+        # @formula: R^2 = 1-\frac{\sum(y_i-\hat{y}_i)^2}{\sum(y_i-\bar{y})^2}=\rho^2
+        # @symbols: R^2|R^2|概率图决定系数, y_i|y_i|变换后的绘图分数
         # @inputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数, gamma_hat|\hat{\gamma}|位置参数
         # @outputs: r2|R^2|拟合优度
-        r2 = self._calculate_r2(beta_hat, eta_hat, gamma_hat)
+        residual = y - (beta_hat * x_vals + intercept)
+        r2 = 1.0 - float(np.dot(residual, residual)) / y_ss
 
         self.last_solution_info = {
             "status": "ok",
-            "strategy": "rho_squared_maximization",
+            "implementation": "park2017_proposed_plot",
+            "plotting_positions": "blom" if n <= 10 else "(i-0.5)/n",
+            "strategy": "correlation_maximization",
             "constraint": "0 <= gamma < t[0]",
-            "gamma_grid_points": int(len(gamma_grid)),
+            "gamma_grid_points": int(len(search_grid)),
             "refined": bool(refined),
-            "rho_squared": float(-best_objective),
+            "rho_squared": float(r2),
             "location_at_zero_boundary": bool(gamma_hat == 0.0),
         }
 

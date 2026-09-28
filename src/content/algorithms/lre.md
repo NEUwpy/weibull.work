@@ -5,8 +5,8 @@ short_name: "LRE"
 category: "线性回归法"
 
 # 核心信息
-formula: '\hat{\gamma} = \arg\max_\gamma \rho^2(\gamma), \quad \rho = \mathrm{corr}(\ln(t-\gamma), \ln(-\ln(1-\hat{F})))'
-description: "本项目 LRE 与 Park（2017）的 Proposed+Plot 采用相同的估计结构：相关系数定位，再在 Weibull 概率图坐标上用 OLS 回归恢复形状和尺度。当前使用 Bernard 绘图位置，与 Park 原文不同；另有项目自己的数值搜索设置。"
+formula: '\hat{\gamma} = \arg\max_{0\leq\gamma<t_{(1)}} \rho(\gamma), \quad \rho = \mathrm{corr}(\ln(t-\gamma), \ln(-\ln(1-\hat{F})))'
+description: "按 Park（2017）Proposed+Plot 实现完整样本参数估计：采用原文分段绘图位置，在非负位置区间最大化相关系数，再以概率图 OLS 恢复形状和尺度。"
 
 # 变量说明
 variables:
@@ -17,20 +17,20 @@ variables:
     description: "尺度参数"
     range: "η > 0"
   - symbol: "γ"
-    description: "位置参数（平台工程约束 γ ≥ 0）"
+    description: "位置参数（Park 原文非负搜索范围）"
     range: "0 ≤ γ < t_(1)"
   - symbol: "ρ"
-    description: "Pearson 相关系数（平方值作为目标函数）"
+    description: "Pearson 相关系数（位置搜索目标）"
     range: "ρ ∈ [-1, 1]"
   - symbol: "F̂"
-    description: "中位秩估计（默认 Bernard 近似）"
+    description: "Park 分段绘图位置（n≤10 与 n≥11）"
     range: "(0, 1)"
 
 # 计算流程图（Mermaid语法）
 flowchart: |
   flowchart LR
-    A[输入数据 t] --> B[计算中位秩 v=ln-ln 1-F]
-    B --> C[优化 γ 使相关系数平方最大]
+    A[输入数据 t] --> B[Park 分段绘图位置与双对数变换]
+    B --> C[优化 γ 使相关系数最大]
     C --> D[OLS 回归<br/>v 对 ln t-γ]
     D --> E["β = 斜率, η = e^{-截距/β}"]
     E --> F[输出 β, η, γ, R²]
@@ -46,7 +46,7 @@ applicability:
 references:
   - id: "182-115"
     url: "https://doi.org/10.23055/ijietap.2017.24.4.2848"
-    relation: "估计结构的对应文献：第5节 Proposed+Plot 使用相关系数定位加概率图线性回归；当前采用相同回归方向，但替换了绘图位置。另一个 Proposed+MLE2 分支未用于本 LRE。"
+    relation: "直接算法依据：复现第2节绘图位置与第5节 Proposed+Plot 参数估计分支；表1用于算例核验。Proposed+MLE2、Weibullness 检验及临界值模拟不属于本 LRE。"
     title: "Weibullness Test and Parameter Estimation of the Three-Parameter Weibull Model Using the Sample Correlation Coefficient"
     author: "Park, C."
     year: "2017"
@@ -66,58 +66,88 @@ references:
 
 # 当前实现与论文的关系
 implementation:
-  status: "相关系数定位与OLS的项目实现"
-  summary: "估计结构对应 Park（2017）的 Proposed+Plot：相关系数定位加概率图上的线性回归。当前主要统计设置差异是采用 Bernard 绘图位置，另有数值搜索与容差差异；Li 仅作线性化背景引用。"
+  status: "Park（2017）Proposed+Plot 参数估计分支复现"
+  summary: "绘图位置、非负位置域、相关系数定位目标、OLS 回归方向及参数恢复均按 Park（2017）第2、5节实现。Plot 本身就是 Weibull 概率图上的线性回归。"
   differences:
-    - "未实现 Li（1994）第4节的位置近似构造或第5节联立迭代算法，不能称为 Li 原方法复现。"
-    - "Park（2017）同时给出 Proposed+Plot 与 Proposed+MLE2；当前回归方向与 Plot 相同，但 Bernard 绘图位置不同。Park（2018）使用的分段绘图位置也与当前不同。"
-    - "Park（2017）与本实现均采用非负位置范围；本项目的线性及几何网格、局部精化和绝对数值容差是具体数值设置，不应把非负位置本身列为二者差异。"
-  validation: "已有当前相关目标、OLS回代、退化样本和接口身份测试；测试文件名含 li1994 并不证明实现了 Li 算法。"
+    - "这里的复现范围是完整样本 Proposed+Plot 参数估计，不包含另一 Proposed+MLE2 分支、Weibullness 假设检验、p值或临界值 Monte Carlo 模拟，也不是 Li（1994）算法复现。"
+    - "原文允许相关系数最大化或式(3)定根。本实现用无量纲对数间隔网格及局部精化求解同一最大化目标；开端点由浮点可表示边界处理，不再设置固定寿命间隔。"
+    - "表1的形状值为1.363，按所列样本与公式复算为1.363761（常规舍入为1.364），末位差异尚未解释；位置、尺度及相关系数符合表中精度。"
+  validation: "Park 表1的24个寿命算例、独立式(3)定根与OLS核验、n=10/11分段切换、零位置边界、单位换算、退化样本及统一接口测试。历史 Bernard 版本的研究结果未重算，不作为本版验证结果。"
 ---
 
 # 线性回归估计 (LRE)
 
-## 1. 线性化变换
+## 1. 当前采用的论文方法
 
-三参数威布尔 CDF 经双对数变换（Li 1994 式(2-4)，或称 Weibull 图坐标）：
+本页 LRE 对应 **Park（2017）第5节 Proposed+Plot**。它先确定位置参数，再对平移后的完整寿命样本做 Weibull 概率图线性回归。“Plot”指回归所在的概率图坐标，不是只凭肉眼画图。
+
+直接来源为 Park, C. (2017), *Weibullness Test and Parameter Estimation of the Three-Parameter Weibull Model Using the Sample Correlation Coefficient*, International Journal of Industrial Engineering: Theory, Applications and Practice, 24(4):376–391，[出版链接](https://doi.org/10.23055/ijietap.2017.24.4.2848)。核对范围为原文第2节、第5节及表1；原文编号182-115。Li（1994）只作为线性化背景，Park（2018）作为位置估计存在性的理论补充。
+
+## 2. 绘图位置、位置估计及回归
+
+将完整失效时间排序为 $t_{(1)}\leq\cdots\leq t_{(n)}$。按 Park 第2节取：
 
 $$
-Y = \ln(-\ln(1 - \hat{F})), \qquad X = \ln(t - \gamma)
+p_i=\begin{cases}
+\dfrac{i-3/8}{n+1/4}, & n\leq10,\\
+\dfrac{i-1/2}{n}, & n\geq11.
+\end{cases}
+\qquad Y_i=\ln[-\ln(1-p_i)].
 $$
 
-有直线关系 $Y = \beta X - \beta \ln \eta$。因此：
-- $\hat{\beta} = \mathrm{slope}(Y \sim X)$
-- $\hat{\eta} = \exp(-\mathrm{intercept}/\hat{\beta})$
+定义 $X_i(\gamma)=\ln(t_{(i)}-\gamma)$，按第5节式(2)求：
 
-## 2. γ 确定：相关系数最大化
+$$
+\hat\gamma=\arg\max_{0\leq\gamma<t_{(1)}}
+\mathrm{corr}(X(\gamma),Y).
+$$
 
-$\gamma$ 未知时，搜索使 $Y$ 与 $\ln(t-\gamma)$ 的 Pearson 相关系数平方 $\rho^2$ 最大的位置。该路线与 Park (2018) 讨论的 Weibull 图相关系数估计相关，但绘图位置和位置约束须单独核对；不能把原文的存在性结论直接套用于任意工程约束。
+然后固定 $\hat\gamma$，用带截距普通最小二乘拟合 **$Y=a+bX$**，得到：
 
-当前代码合并201点线性网格和201点几何网格，在最佳点邻域做有界标量精化，然后回归 $Y$ 对 $X$。候选位置非负；目标函数拒绝 $\gamma\geq t_{(1)}-10^{-5}$，网格另有相对最小间隔保护。这里的绝对容差依赖数据单位，不能描述为完全尺度无关。旧版 L-BFGS-B 已不代表当前实现。
+$$
+\hat\beta=b=\frac{\sum_i(X_i-\bar X)(Y_i-\bar Y)}{\sum_i(X_i-\bar X)^2},
+\qquad a=\bar Y-b\bar X,
+\qquad \hat\eta=\exp(-a/b).
+$$
 
-默认绘图位置为 $\hat F_i=(i-0.3)/(n+0.4)$。Park (2018) 式(4)对 n≤10 使用 $(i-3/8)/(n+1/4)$，对 n≥11 使用 $(i-1/2)/n$，与本项目默认值不同。
+回归方向与论文一致；交换两轴后再取斜率倒数通常会改变估计结果。
 
-## 3. 与其他方法的关系
+## 3. 数值求解和核验
 
-**Plot 与 LRE 并不矛盾。** Plot 指 Weibull 概率图坐标；Park 的 Proposed+Plot 在这些坐标上做普通线性回归，由斜率和截距恢复形状与尺度。因此它属于概率图线性回归路线，不是仅凭肉眼画图，也不是与回归无关的另一种算法。
+原文允许直接最大化相关系数，或对其导数等价方程(3)定根。本实现采用前者：以 $s=\ln[(t_{(1)}-\gamma)/t_{(1)}]$ 为搜索变量，合并201点对数间隔网格和201点常规位置网格，精化网格识别的各局部峰后比较目标值，并保留 $\gamma=0$。有界精化在无量纲变量上使用 `xatol=1e-12`；接近 $t_{(1)}$ 的最大候选由 `nextafter(t_(1), 0)` 决定。归一化只用于数值计算，不改变相关系数、回归方向或估计定义。
 
-以 Park 原版为复现目标时，当前使用 Bernard 公式属于**绘图位置不一致**，应恢复原文设置后再核验。Bernard 本身是一种可用的绘图位置公式；保留它则须注明这是变体，不能把它称为 Park 原版，也不能据此认定它优于或劣于原版。
+不再使用旧版的 $t_{(1)}-10^{-5}$ 固定截断。基础类的 Bernard/exact 秩选项不参与本方法，避免不经声明改变论文绘图位置。
 
-| 方法 | γ 确定 | β, η 确定 |
+表1的24个寿命算例复算如下：
+
+| 数量 | 当前公式复算 | Park 表1 Proposed+Plot |
+|---|---:|---:|
+| 位置 $\gamma$ | 9.197683 | 9.198 |
+| 形状 $\beta$ | 1.363761 | 1.363 |
+| 尺度 $\eta$ | 15.116027 | 15.116 |
+| 相关系数 $R$ | 约0.9902 | 0.9902 |
+
+形状值的末位差异尚未解释，不能声称所有表值逐位一致，也不通过修改公式或特设舍入去凑表值。测试另以原文式(3)独立定根，再用独立线性代数求解 OLS 核对结果，覆盖小样本分段及寿命单位换算。
+
+代码与可重跑验证分别为 `python/methods/lre.py`、`python/tests/test_lre_park2017.py`。
+
+## 4. 与其他方法及历史版本的关系
+
+| 方法 | 位置确定 | 形状、尺度确定 |
 |---|---|---|
-| **本 LRE** | Bernard分数下优化 $\rho^2$ | $Y$ 对 $X$ 的OLS |
+| **当前 LRE：Park Proposed+Plot** | 原文分段分数下最大化相关系数 | $Y$ 对 $X$ 的OLS |
+| Park Proposed+MLE2（本页未实现） | 同上 | 固定位置后求二参数MLE |
 | 本项目LS（Soman–Misra分支） | 次序统计量期望分数下最大化F比 | $X$ 对分数的OLS，斜率取倒数 |
-| 相关法位置＋2P MLE组合 | 指定分数和可行域的相关系数法 | 固定位置后求2P MLE；是另一组合 |
-| Li (1994) §4、§5 | 位置近似构造或联立曲线求解 | 应按对应原文算法实现，不能与本LRE等同 |
+| Li（1994）§4、§5（本页未实现） | 位置近似构造或联立曲线求解 | 须按对应原文算法实现 |
 
-Li (1994) 式(2-4)支持线性化关系，但其第4节采用有限差分等构造推导位置近似，不是当前相关系数优化器的直接来源。Park (2017) 原文182-115的§2、§5和表1已核对：明确给出相关系数选位置后的Proposed+Plot与Proposed+MLE2两种组合。当前实现与Plot的回归方向相同，但使用不同绘图位置；后续2P MLE不是原文唯一版本。数值核验及原表细微差异见Research09附录B。
+**版本切换日期为2026-09-29。** 之前的 LRE 使用 Bernard 绘图位置 $(i-0.3)/(n+0.4)$，属于相关系数定位加 OLS 的项目变体。Bernard 本身不是错误公式，但不符合此次 Park 原版复现目标。已生成的工作簿、研究数据和结论保持原版本身份；本次没有重跑这些实验，后续比较必须记录实际代码版本。历史代码可由 Git 提交 `80d08ca8` 及此前版本恢复。
 
-对于相同分数和位置，带截距OLS的F比与 $\rho^2$ 单调对应；当前LS与LRE的主要差别是分数及回归方向。版本证据、公式推导和实际样本诊断见[四方法实现核查](../../../Research/09-Weibull参数估计方法谱系与比较基线/附录B-方法实现与版本.md)。
+历史四方法核查与原算例见[Research09附录B](../../../Research/09-Weibull参数估计方法谱系与比较基线/附录B-方法实现与版本.md)，其中历史数值不应读作本版输出。
 
-## 4. 边界与失败语义
+## 5. 适用边界与输出
 
-- $\gamma \geq 0$（平台工程约束）。
-- 全等或近退化样本返回 `degenerate_sample`，不将形状1作为有效估计返回。
-- n < 3 返回 `insufficient_sample`。
-- 本类只接收完整样本，没有实现删失观测的秩调整或似然扩展。
-- 返回的R²由基础类在双对数变换后的概率图上计算，不是原始CDF残差的R²，也不是参数估计误差。
+- 完整、有限、正寿命样本；不含删失数据扩展。
+- 位置域为原文的 $0\leq\gamma<t_{(1)}$。
+- $n<3$ 返回 `insufficient_sample`；全等或相对极差不超过 $10^{-12}$ 的近退化样本显式失败，不返回虚构估计。
+- 返回的 $R^2$ 是同一组 Park 分数上的概率图 OLS 决定系数，等于相关系数平方；表1报告的是 $R$。它不是参数误差，也不等于 Weibullness 检验的p值。
+- 本页完成所选参数估计分支的实现和核验，不宣称复现整篇论文的全部检验与模拟。

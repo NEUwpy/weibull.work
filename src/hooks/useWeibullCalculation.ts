@@ -70,7 +70,7 @@ export async function calculateWeibull(options: CalculateOptions): Promise<Calcu
   }
 
   const gamma = res.gamma || 0
-  const points = calculateMedianRanks(data, gamma)
+  const points = calculateMedianRanks(data, gamma, requestedMethod)
 
   return {
     result: {

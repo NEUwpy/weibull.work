@@ -154,8 +154,8 @@ export default function AnalysisCard({
     }
     if (result) return result
     const fallbackData = dataSources?.[activeSourceIndex]?.data || data || []
-    return createManualParameterResult(fallbackData, is3P, calculateMedianRanks)
-  }, [dataSources, activeSourceIndex, result, data, is3P])
+    return createManualParameterResult(fallbackData, is3P, (points, gamma) => calculateMedianRanks(points, gamma, methodId))
+  }, [dataSources, activeSourceIndex, result, data, is3P, methodId])
 
   const menuRef = useRef<HTMLDivElement>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
@@ -383,7 +383,7 @@ export default function AnalysisCard({
 
   const handleResetToDefault = () => {
     const defaults = getDefaultParameters(is3P)
-    const newPoints = data ? calculateMedianRanks(data, defaults.gamma) : []
+    const newPoints = data ? calculateMedianRanks(data, defaults.gamma, methodId) : []
     onParamsUpdate?.({
       ...defaults,
       points: newPoints,

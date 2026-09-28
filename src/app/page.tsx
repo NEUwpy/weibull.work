@@ -60,7 +60,7 @@ function preserveParametersForData(card: CardData, nextData: DataPoint[]): CardD
   const result = card.result || createManualParameterResult(
     nextData,
     card.is3P !== false,
-    calculateMedianRanks,
+    (points, gamma) => calculateMedianRanks(points, gamma, card.methodId),
   )
   const failureCount = nextData.filter(point => point.status === 'F').length
   const mdmOffsetMode = card.mdmOffsetMode === 'ai' && !isMdmAiSampleSizeSupported(failureCount)
@@ -71,7 +71,7 @@ function preserveParametersForData(card: CardData, nextData: DataPoint[]): CardD
     data: nextData,
     result: {
       ...result,
-      points: calculateMedianRanks(nextData, result.gamma),
+      points: calculateMedianRanks(nextData, result.gamma, card.methodId),
     },
     fitMode: 'manual',
     mdmOffsetMode,
@@ -161,7 +161,7 @@ function CalculatorContent() {
 
       const initialResult: WeibullResult = createDefaultParameterResult(
         initialData,
-        calculateMedianRanks,
+        (points, gamma) => calculateMedianRanks(points, gamma, selectedMethodId),
       )
 
       const requestedMdmOffsetMode = parseMdmOffsetMode(searchParams.get('mdmOffsetMode'))
@@ -243,7 +243,7 @@ function CalculatorContent() {
     }
 
     if (!newResult) {
-      newResult = createManualParameterResult(newData || [], newIs3P, calculateMedianRanks)
+      newResult = createManualParameterResult(newData || [], newIs3P, (points, gamma) => calculateMedianRanks(points, gamma, newMethodId))
       newFitMode = 'manual'
     }
 
@@ -340,7 +340,26 @@ function CalculatorContent() {
         const updated = prev.map(card => {
           if (card.id === activeCardId) {
             console.log('[handleMethodSelect] updating card:', card.id, 'old methodId:', card.methodId, 'new methodId:', methodId)
-            return { ...card, methodId }
+            if (card.methodId === methodId) return card
+            const redraw = (data: DataPoint[] = [], result?: WeibullResult): WeibullResult | undefined => (
+              result ? {
+                ...result,
+                points: calculateMedianRanks(data, result.gamma, methodId),
+                rSquared: null,
+              } : undefined
+            )
+            return {
+              ...card,
+              methodId,
+              result: redraw(card.data, card.result),
+              dataSources: card.dataSources?.map(source => ({
+                ...source,
+                result: redraw(source.data, source.result),
+                traceData: undefined,
+              })),
+              fitMode: 'manual' as const,
+              mdmOptimization: undefined,
+            }
           }
           return card
         })
@@ -470,13 +489,13 @@ function CalculatorContent() {
         const baseResult = card.result || createManualParameterResult(
           card.data || [],
           card.is3P !== false,
-          calculateMedianRanks,
+          (points, gamma) => calculateMedianRanks(points, gamma, card.methodId),
         )
         const newResult = { ...baseResult, ...updates }
         let newPoints = card.result?.points || []
         // Only recalculate points if gamma changed AND points not already provided in updates
         if (updates.gamma !== undefined && !updates.points && card.data) {
-           newPoints = calculateMedianRanks(card.data, updates.gamma)
+           newPoints = calculateMedianRanks(card.data, updates.gamma, card.methodId)
         } else if (updates.points !== undefined) {
           newPoints = updates.points
         }
@@ -584,7 +603,7 @@ function CalculatorContent() {
         const result = card.result || createManualParameterResult(
           card.data || [],
           card.is3P !== false,
-          calculateMedianRanks,
+          (points, gamma) => calculateMedianRanks(points, gamma, card.methodId),
         )
         const mode = toggleParameterMode({
           is3P: card.is3P !== false,
@@ -599,7 +618,7 @@ function CalculatorContent() {
           result: {
             ...result,
             gamma: mode.gamma,
-            points: calculateMedianRanks(card.data || [], mode.gamma),
+            points: calculateMedianRanks(card.data || [], mode.gamma, card.methodId),
           },
         }
       }
