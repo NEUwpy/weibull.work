@@ -281,7 +281,7 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
               {frontmatter.references.map((ref: any, index: number) => (
                 <Link
                   key={index}
-                  href={`/library/${ref.id}`}
+                  href={ref.url || `/library/${ref.id}`}
                   className="block px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-xl transition-all border border-emerald-100"
                 >
                   <div className="font-semibold text-sm">{ref.title}</div>
