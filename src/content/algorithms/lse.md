@@ -6,7 +6,7 @@ category: "极小化适配法"
 
 # 核心信息
 formula: '\log(t_i - \mu) = \alpha + \beta X_i, \quad X_i = E[W_{(i:n)}], \quad \hat{\mu} = \arg\max_{\mu} F(\mu)'
-description: "最小二乘估计（Least Squares Estimation, LSE）将威布尔分布线性化后用最小二乘回归求参数。本实现采用 White (1969) 的对数威布尔顺序统计量期望作为回归自变量，并按 Soman & Misra (1992) 的三参数扩展：对位置参数 μ 做一维搜索，以 Fisher F 比最大的 μ 为估计值。适用于形状参数 0~3 等 MLE 失效的场合。"
+description: "最小二乘估计（Least Squares Estimation, LSE）将威布尔分布线性化后用最小二乘回归求参数。本实现采用 White (1969) 的对数威布尔顺序统计量期望作为回归自变量，并按 Soman & Misra (1992) 的三参数扩展：对位置参数 μ 做一维搜索，以 Fisher F 比最大的 μ 为估计值。论文主要讨论形状参数0–3；不表示该范围内MLE一概失效。"
 
 # 变量说明
 variables:
@@ -49,15 +49,26 @@ applicability:
 # 相关文献
 references:
   - id: "182-104"
+    relation: "直接依据：White 回归的三参数扩展及 F 比定位；仅实现该主分支。"
     title: "A Least Square Estimation of Three Parameters of a Weibull Distribution"
     author: "Soman, K. P., Misra, K. B."
     year: "1992"
     publication: "Microelectronics Reliability"
   - id: "182-096"
+    relation: "估计方法谱系和比较背景，不能代替原方法的构造与复现证据。"
     title: "Comparison of Estimators of the Weibull Distribution"
     author: "Akram, M., Hayat, A."
     year: "2014"
     publication: "Journal of Statistical Theory and Practice"
+
+# 当前实现与论文的关系
+implementation:
+  status: "论文主分支实现，求解方式改写"
+  summary: "采用 White（1969）的对数 Weibull 顺序统计量期望回归，以及 Soman 与 Misra（1992）的三参数 F 比定位分支。"
+  differences:
+    - "用数值积分计算顺序统计量期望，替代原数表或近似展开；几何网格加局部连续精化替代论文离散搜索，最优位置及参数可能与原表不同。"
+    - "位置限定非负；未实现论文针对形状3–6的另外两种近似程序及删失扩展。较大形状下仍运行同一分支。"
+  validation: "已有论文两例、指定位置回归和F比排序核验；支持所选分支的公式与数值对应，不代表整篇论文所有分支完整复现。"
 ---
 
 # 最小二乘估计 (LSE)
@@ -78,7 +89,7 @@ $$
 \hat{b} = e^{\hat{\alpha}}, \qquad \hat{c} = 1/\hat{\beta}
 $$
 
-本实现用数值积分精确计算 $E[W_{(i:n)}]$（对数密度域积分，避免大样本二项式交替求和的数值抵消），不依赖外部数表。
+本实现用数值积分计算 $E[W_{(i:n)}]$（对数密度域积分，避免大样本二项式交替求和的数值抵消），不依赖外部数表。
 
 ## 2. 三参数扩展（Soman & Misra 1992）
 

@@ -44,24 +44,34 @@ variables:
 # 适用场景
 applicability:
   complete_sample: true
-  censored_sample: true
+  censored_sample: false
   small_sample: true
   large_sample: true
 
 # 相关文献
 references:
   - id: "182-088"
+    relation: "直接构造依据：加权方程、尺度公式与权重定义；当前约束、表格及求解细节见实现说明。"
     title: "Nearly unbiased estimators for the three-parameter Weibull distribution"
     author: "Cousineau, D."
     year: 2009
     publication: "British Journal of Mathematical and Statistical Psychology"
+
+# 当前实现与论文的关系
+implementation:
+  status: "核心方程实现，含工程约束"
+  summary: "采用 Cousineau（2009）的两条加权方程及尺度闭式解，使用中位数权重 J1、J2、J3；实现与论文核心估计结构对应。"
+  differences:
+    - "位置限定非负，形状搜索上界为10；五个确定性初值优化同一方程，残差平方和大于1e-8时返回失败，边界点不会自动视为有效根。"
+    - "J3采用作者实现来源的0.1步长表及插值，查询形状截在0.1–5；样本量超过100时使用表外规则，其中形状≤1时J3回退为2，不能视为论文在任意参数域的原样实现。"
+  validation: "已有权重、论文数值例、方程残差和失败路径核验；未复现论文全部 Monte Carlo 表，数值例也受权重表分辨率影响。"
 ---
 
 # 算法原理
 
 加权极大似然估计（Weighted Maximum Likelihood Estimation, WMLE）是对传统极大似然估计（MLE）的改进方法。MLE 在小样本情况下会产生显著偏差，WMLE 通过引入三个权重（W₁、W₂、W₃）来修正这种偏差。
 
-**核心思想**：在 MLE 方程中引入权重项，使估计参数的偏差显著减小。蒙特卡洛模拟表明，与迭代 MLE 技术相比，偏差减少了 7 倍（无论样本量大小），对于非常小的样本量，参数估计的变异性也减少了 7 倍。
+**核心思想**：在似然方程中引入权重修正小样本偏差。原论文在其模拟条件下报告了偏差和变异性的改善；这些结果不等于本项目在所有样本量、参数域或数据条件下的性能保证。
 
 **两步法策略**：
 1. **搜索阶段**：通过数值搜索同时估计形状参数 β 和位置参数 γ
@@ -200,6 +210,6 @@ W₃ 同时依赖于样本量 n 和形状参数 β，下表展示关键值（完
 
 ## 边界与失败语义
 
-- 论文允许位置参数 γ 取任意小于 min(X) 的实数；本平台面向寿命数据，采用工程约束 **0 ≤ γ < min(X)**。当加权方程组的根落在 γ < 0 区域时，搜索会停在 γ = 0 边界（与平台 MDM/MLE 的负位置截断约定一致），求解诊断中记录 `location_at_zero_boundary`。
+- 论文允许负位置；本实现限制 0≤γ<min(X)。负位置根不能直接采用，边界候选仍须通过方程残差检查；残差平方和大于1e-8时返回失败，并非一律截断后成功。
 - 形状参数搜索区间为 (0, 10]。若最优解压在上界（数据无法由该范围内的威布尔形状描述，如退化样本），方法显式返回失败状态 `shape_at_bound`，不输出伪结果。
 - 数值优化本身失败时（未收敛），方法显式返回失败，不返回任何默认参数。

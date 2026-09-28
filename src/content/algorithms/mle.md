@@ -6,7 +6,7 @@ category: "极大化适配法"
 
 # 核心信息
 formula: '\ln L = n \ln\beta - n\beta\ln\eta + (\beta-1)\sum_{i=1}^{n}\ln(x_i-\gamma) - \sum_{i=1}^{n}\left(\frac{x_i-\gamma}{\eta}\right)^\beta'
-description: "极大似然估计（Maximum Likelihood Estimation, MLE）是统计推断中最基础且最重要的方法。通过最大化样本观测值的联合概率密度（似然函数）来估计参数。在大样本下具有渐近正态性、一致性和有效性，但在小样本下存在显著偏差。"
+description: "本项目对完整失效样本的三参数 Weibull 对数似然进行多初值数值优化。经典 MLE 的渐近性质依赖正则条件，三参数模型的非正则区间与发散边界需单独处理。"
 
 # 变量说明
 variables:
@@ -38,27 +38,39 @@ flowchart: |
 # 适用场景
 applicability:
   complete_sample: true
-  censored_sample: true
+  censored_sample: false
   small_sample: false
   large_sample: true
 
 # 相关文献
 references:
   - id: "182-105"
+    relation: "数值基准与发散问题来源；未采用其完整 GEV 求解和置信区间流程。"
     title: "Maximum Likelihood Estimation in the 3-parameter Weibull Distribution: A Look through the Generalized Extreme-value Distribution"
     author: "Hirose, H."
     year: "1996"
     publication: "IEEE Transactions on Dielectrics and Electrical Insulation"
   - id: "182-090"
+    relation: "非正则似然及边界性质的理论背景，不是本项目数值求解器的逐步实现来源。"
     title: "Maximum likelihood estimation in a class of nonregular cases"
     author: "Smith, R. L."
     year: "1985"
     publication: "Biometrika"
   - id: "182-101"
+    relation: "方法综述与比较背景，不是当前 MLE 程序的独立复现依据。"
     title: "Fitting the Three-Parameter Weibull Distribution: Review and Evaluation of Existing and New Methods"
     author: "Cousineau, D."
     year: "2009"
     publication: "IEEE Transactions on Dielectrics and Electrical Insulation"
+
+# 当前实现与论文的关系
+implementation:
+  status: "标准似然的工程实现"
+  summary: "采用标准三参数 Weibull 对数似然，以多初值 Nelder–Mead 搜索有限候选解。Hirose（1996）用于数值基准，不代表其 GEV 算法已完整实现。"
+  differences:
+    - "位置限定为 0≤γ<最小观测值；论文中的负位置、参数发散及 GEV 重参数化流程未实现。"
+    - "仅接受形状不小于1的成功候选；多初值搜索未证明全局最优。未实现该论文的百分位点置信区间，当前接口仅处理完整失效样本。"
+  validation: "已有 Hirose 论文数值基准与边界测试；相同样本上的数值吻合不能证明求解流程、参数域及整篇实验均已复现。"
 ---
 
 # 极大似然估计 (MLE)
@@ -113,10 +125,10 @@ $$
 
 原因：当 $\gamma \to \min(x_i)$ 时，$x_{\min} - \gamma \to 0$，若 $\beta < 1$，则 $(x_{\min} - \gamma)^{\beta - 1} \to \infty$，导致似然函数无界。
 
-Smith (1985) 给出非正则性的完整分类：$\beta > 2$ 时经典渐近理论成立；$1 < \beta \leq 2$ 时 MLE 存在但不渐近正态；$\beta \leq 1$ 时局部极大意义下的 MLE 可能不存在。因此本实现在优化结果 $\hat{\beta} < 1$ 时显式返回"无解"（`unbounded`），不输出伪结果，需改用 WMLE、MDM 等方法。
+Smith (1985) 给出非正则性的完整分类：$\beta > 2$ 时经典渐近理论成立；$1 < \beta \leq 2$ 时 MLE 存在但不渐近正态；$\beta \leq 1$ 时局部极大意义下的 MLE 可能不存在。当前多初值程序会排除形状估计小于1的候选，仍可接受其他形状不小于1的成功候选；只有没有合格候选且曾遇到形状小于1的候选时才返回 `unbounded`，否则返回 `optimizer_failed`。这些标记描述当前求解结果，不构成理论无解或全局最优性的证明。
 
 ## 5. 参数发散问题与平台约束
 
 Hirose (1996) 指出：对高度负偏的样本，三参数 MLE 会出现"参数发散"（$\hat{\beta} \to \infty$、$\hat{\gamma} \to -\infty$，而对数似然收敛于 Gumbel 极限）。
 
-本平台面向寿命数据，采用工程约束 $0 \leq \gamma < \min(x_i)$：对此类发散样本，估计将收敛到 $\gamma = 0$ 边界，即两参数威布尔（W2P）的 MLE 解（与 Hirose 1996 第 5.3 节的 W2P 基准一致）。
+本平台面向寿命数据，采用工程约束 $0 \leq \gamma < \min(x_i)$：在已核验的相关论文样本上，估计收敛到 $\gamma = 0$ 边界，即两参数威布尔（W2P）的 MLE 解（与 Hirose 1996 第 5.3 节的 W2P 基准一致）。

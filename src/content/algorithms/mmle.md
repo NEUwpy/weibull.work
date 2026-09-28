@@ -4,7 +4,7 @@ method_name: 修正极大似然估计
 short_name: MMLE
 category: 极大化适配法
 formula: \hat{\theta} = \frac{1}{n}\sum_{i=1}^{n}(x_i - \gamma)^{\hat{\delta}}, \quad -\ln\frac{n}{n+1} = \frac{(x_1 - \gamma)^{\delta}}{\theta}
-description: 修正极大似然估计 (Modified Maximum Likelihood Estimation, MMLE) 是对传统极大似然估计的改进方法。当形状参数 δ < 2 时，三参数威布尔分布的 MLE 不满足正则条件，可能产生不一致估计或根本不存在。MMLE 通过用替代约束条件替换似然方程 ∂ln L/∂γ = 0，提供了更稳健的估计。研究表明，MMLE 在偏差、方差和计算简便性方面常优于传统 MLE。
+description: 当前代码实现标为MMLE-I的替代约束估计，尚待独立论文核验。下文其他变体用于理论介绍，不代表平台均已实现或已经验证其性能。
 variables:
   - symbol: x_i
     description: 第 i 个样本值
@@ -31,10 +31,20 @@ applicability:
   large_sample: true
 references:
   - id: 182-091
+    relation: "MMLE与修正矩估计的原始方法论文；当前仅有标为MMLE-I的待核验实现。"
     title: Modified maximum likelihood and modified moment estimators for the three-parameter Weibull distribution
     author: A. Clifford Cohen, Betty Whitten
     year: 1982
     publication: Communications in Statistics - Theory and Methods
+
+# 当前实现与论文的关系
+implementation:
+  status: "已有代码，论文对应核验未完成"
+  summary: "现有代码标为 Cohen 与 Whitten（1982）的 MMLE-I，保留形状似然方程，以最小顺序统计量累积概率约束替换位置方程。原文已收录，但当前程序尚未完成独立论文级核验。"
+  differences:
+    - "只实现标为I的分支，页面介绍的II–V不代表均已实现。位置采用50个离散候选，内层用Brent求形状，没有外层插值求根。"
+    - "现有程序在约束残差较大甚至无合格候选时仍可能返回成功，尚不适合作为已验真的比较基线；计算器保持未开放。"
+  validation: "尚无针对MMLE的独立论文数值断言；文献链接、理论公式和已有代码均不足以确认完整复现。"
 ---
 
 # 算法原理
@@ -85,7 +95,7 @@ $$
 
 其中 $\Gamma_k = \Gamma(1 + k/\delta)$，$\Gamma(\cdot)$ 为伽马函数。
 
-## 3. 五种 MMLE 变体
+## 3. 五种 MMLE 变体（理论介绍，当前仅有I的代码）
 
 ### 3.1 MMLE-I（基于第一顺序统计量的累积分布）
 
@@ -157,38 +167,10 @@ $$
 -\ln\frac{n}{n+1} = \frac{(x_1 - \gamma)^{\delta}}{\theta}
 $$
 
-### 4.1 计算流程
+### 4.1 当前代码流程
 
-1. **选择 $\gamma$ 的初始值**：$\gamma_1 < x_1$
-2. **固定 $\gamma$，求解方程 (A)**：得到 $\delta_1$
-3. **计算 $\theta_1$**：从方程 (B) 得出
-4. **检验约束条件**：将 $\gamma_1, \delta_1, \theta_1$ 代入方程 (C)
-5. **迭代搜索**：若不满足，调整 $\gamma$ 值，重复步骤 2-4
-6. **线性插值**：找到 $\gamma_i, \gamma_j$ 使得 $|\gamma_i - \gamma_j|$ 足够小且约束条件在两点间跨越目标值
+在位置区间 [max(0, x₁−10·std(x)), 0.99x₁] 取50个候选；每个候选内在形状区间[0.2,10]用Brent求解方程(A)，再计算(B)与(C)的残差，保留绝对残差最小者。残差足够小时提前退出，没有外层线性插值求根。当前成功标记尚未严格反映约束是否满足，因此不能仅凭返回参数认定估计有效。
 
-### 4.2 约束条件
+## 5. 文献结果与本项目验证的区别
 
-- 必须满足 $\hat{\gamma} < x_1$
-- $\hat{\delta}$ 限制在区间 $(0.1, 15.0)$ 内
-- $\hat{\gamma}$ 的搜索范围：从低于样本均值十个标准差到 $x_1 - 10^{-4}$
-
-## 5. 与传统 MLE 的比较
-
-| 特性 | MLE | MMLE-I/II |
-|------|-----|-----------|
-| $\delta < 2$ 时的正则性 | 不满足 | 适用 |
-| 计算复杂度 | 高 | 中等 |
-| 小样本偏差 | 显著 | 较小 |
-| $\delta < 1$ 时的存在性 | 可能不存在 | 存在 |
-| 渐近方差有效性 | 有效（当 $\delta > 2$） | 近似有效 |
-
-## 6. Monte Carlo 研究结论
-
-根据 [文献 182-091](/library/182-091) 的模拟研究：
-
-1. **当 $\delta \geq 2.2156$（$\alpha_3 < 0.5$）时**：MLE 在偏差和方差方面表现良好
-2. **当 $\delta \leq 2.2156$ 时**：MMLE-I 和 MMLE-II 是首选的估计量
-3. **计算时间方面**：MMLE 约为 MLE 的 1/3 到 1/2
-4. **建议**：
-   - 计算时间不是关键因素时，推荐 MMLE-I 或 MMLE-II
-   - 计算时间昂贵时，推荐 MME-I（修正矩估计）
+原论文讨论不同修正估计量的偏差、方差与计算量。具体优劣受其模拟条件和方法变体限制；当前程序尚未复现这些比较实验，不能把论文结论直接作为本实现的性能结论。原文见[文献182-091](/library/182-091)。

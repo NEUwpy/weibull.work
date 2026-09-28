@@ -53,15 +53,26 @@ applicability:
 # 相关文献
 references:
   - id: "182-102"
+    relation: "直接依据：Weibull矩定义、样本矩、显式解及位置修正建议；需同时说明本项目输出处理。"
     title: "Moment Estimators for the 3-Parameter Weibull Distribution"
     author: "Cran, G. W."
     year: "1988"
     publication: "IEEE Transactions on Reliability"
   - id: "182-096"
+    relation: "矩估计谱系与比较背景，不表示当前程序复现了该比较论文的全部实验。"
     title: "Comparison of Estimators of the Weibull Distribution"
     author: "Akram, M., Hayat, A."
     year: "2014"
     publication: "Journal of Statistical Theory and Practice"
+
+# 当前实现与论文的关系
+implementation:
+  status: "核心公式直接实现，含边界处理"
+  summary: "采用 Cran（1988）的 Weibull 矩：计算1、2、4阶样本矩，再按显式公式恢复三参数；并非普通均值、方差、偏度矩估计。"
+  differences:
+    - "实现论文的不可采纳矩判断、负位置置零及超界位置替代式；位置调整后按矩关系重算尺度，并对替代位置再作非负限制，需与未经调整的原始矩估计区分。"
+    - "同时计算二参数矩估计供对照，未自动执行二参数与三参数模型选择；论文模拟保留不可采纳位置的统计口径不等同于当前输出口径。"
+  validation: "已有总体矩恒等、手算样本矩、等变性和边界处理核验；原论文两例的完整样本未用于现有测试，整篇模拟表未复现。"
 ---
 
 # 矩估计 (MM)

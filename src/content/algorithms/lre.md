@@ -32,7 +32,7 @@ flowchart: |
     A[输入数据 t] --> B[计算中位秩 v=ln-ln 1-F]
     B --> C[优化 γ 使相关系数平方最大]
     C --> D[OLS 回归<br/>v 对 ln t-γ]
-    D --> E[β = 斜率, η = e^{-截距/β}]
+    D --> E["β = 斜率, η = e^{-截距/β}"]
     E --> F[输出 β, η, γ, R²]
 
 # 适用场景
@@ -45,15 +45,27 @@ applicability:
 # 相关文献
 references:
   - id: "182-107"
+    relation: "双对数线性化与回归背景；未实现其具体近似解析法或联立迭代法。"
     title: "A General Linear-Regression Analysis Applied to the 3-Parameter Weibull Distribution"
     author: "Li, Y.-M."
     year: "1994"
     publication: "IEEE Transactions on Reliability"
   - id: "182-106"
+    relation: "相关系数定位及有界区间存在性的理论依据；绘图位置与实现范围存在差异，不是完整复现声明。"
     title: "A Note on the Existence of the Location Parameter Estimate of the Three-Parameter Weibull Model Using the Weibull Plot"
     author: "Park, C."
     year: "2018"
     publication: "Mathematical Problems in Engineering"
+
+# 当前实现与论文的关系
+implementation:
+  status: "相关系数定位与OLS的项目实现"
+  summary: "采用 Bernard 绘图位置，最大化 Weibull 图相关系数平方定位，再以概率分数对对数寿命做 OLS。与 Park 的相关系数路线有关，Li 主要提供线性化背景。"
+  differences:
+    - "未实现 Li（1994）第4节的位置近似构造或第5节联立迭代算法，不能称为 Li 原方法复现。"
+    - "Park（2017）同时给出 Proposed+Plot 与 Proposed+MLE2；当前回归方向与 Plot 相同，但 Bernard 绘图位置不同。Park（2018）使用的分段绘图位置也与当前不同。"
+    - "位置限定非负，采用线性及几何网格加局部精化；存在绝对数值容差，不能直接套用原文所有理论或数值结论。"
+  validation: "已有当前相关目标、OLS回代、退化样本和接口身份测试；测试文件名含 li1994 并不证明实现了 Li 算法。"
 ---
 
 # 线性回归估计 (LRE)

@@ -30,20 +30,31 @@ variables:
     description: 梯度偏移值
 applicability:
   complete_sample: true
-  censored_sample: true
+  censored_sample: false
   small_sample: true
   large_sample: true
 references:
   - id: 182-030
+    relation: "最小差异方法的早期研究背景；本页现行偏移判据主要对照2025年论文。"
     title: 威布尔分布参数估计的最小差异法
     author: Liyang Xie, et al.
     year: 2022
     publication: International Journal of Structural Stability and Dynamics
   - id: 182-046
+    relation: "当前核心依据：伪尺度、最小差异与梯度偏移；默认秩和数值搜索存在项目改写。"
     title: 基于统计最小差异原理的Weibull分布参数估计方法
     author: 谢里阳, 朱文慧, 吴宁祥, 杨小玉
     year: 2025
     publication: 东北大学学报（自然科学版）
+
+# 当前实现与论文的关系
+implementation:
+  status: "核心结构实现，默认求解经过改写"
+  summary: "采用谢里阳等（2025）的伪尺度、最小差异、梯度偏移判据及均值尺度公式；当前程序是这一结构的工程实现。"
+  differences:
+    - "默认绘图位置为 Bernard 近似；可选精确中位秩与论文式(3)对应，使用默认配置时不可称为精确秩版本。"
+    - "以连续形状优化、梯度探测、Brent定根及右端拟合处理位置求解，替代论文离散搜索；形状范围0.1–15，位置非负，负半轴交点按项目规则截断至零。"
+  validation: "已有精确中位秩公式、理想样本、尺度回代与偏移方向测试；论文未给出完整数值的样本A/B不能据此声称已逐样本复现。"
 ---
 
 # 算法原理

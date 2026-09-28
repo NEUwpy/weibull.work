@@ -8,6 +8,14 @@ category: "类别名称"
 formula: "核心公式LaTeX代码"
 description: "算法简短描述，1-2句话说明核心特点和用途"
 
+# 当前实现说明：按实际代码填写，不能用论文链接或建设完成替代复现证明
+implementation:
+  status: "待核验"
+  summary: "说明采用了哪篇论文的哪些公式或分支"
+  differences:
+    - "说明参数域、求解器、权重、边界处理与未覆盖内容"
+  validation: "说明已完成的公式或数值核验及尚未复现的范围"
+
 # 变量说明
 variables:
   - symbol: "β"
@@ -39,6 +47,7 @@ applicability:
 # 相关文献
 references:
   - id: "000-000"
+    relation: "说明该文献是直接依据、数值基准、比较还是背景"
     title: "文献标题"
     author: "作者姓名"
     year: "年份"
