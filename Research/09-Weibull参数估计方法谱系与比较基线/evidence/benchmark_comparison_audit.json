@@ -1,0 +1,3507 @@
+{
+  "schema_version": 1,
+  "audit_date": "2026-09-28",
+  "scope": "44 prior evaluation records screened plus PITE targeted check; primary subset is verified ordinary complete three-parameter repeated Monte Carlo comparisons with all-parameter or joint risk. Not complete systematic world literature.",
+  "counting_rules": [
+    "Each paper-family at most once; proposed method and its new branches excluded. Existing same-author methods count but author overlap marked.",
+    "Comparative study182-096 has participants rather than new-method benchmarks; sensitivity excluding it supplied.",
+    "Only displayed repeated-risk participants count;182-096 considered-but-omitted methods kept separately.",
+    "shape-only/location-only/extended model/internal new control/unpublished-related record/canonical identity uncertain separately retained.",
+    "year strata >=2006 and >=2016; n<=30 means at least one such cell, not all cells; these are this review operational definitions.",
+    "MMLE variants share family label but are not equivalent; CC and LS separate; LS/CC may only be merged for display.",
+    "No zero for unreviewed real-data comparisons; no denominator inferred from missing fields."
+  ],
+  "source_set_hash": "96866ca92a548dd216c739ec60b150051359621206c91997aa2551bd922a0ea0",
+  "ledger_coverage": {
+    "rows": 204,
+    "ordinary_candidates_outside44": [],
+    "meaning": "ledger screen only; supplements or full-text discoveries may expand set"
+  },
+  "records": [
+    {
+      "id": "182-004",
+      "title": "三参数威布尔分布的参数估计及置信限计算方法\\*PARAMETER ESTIMATION AND CONFIDENCE LIMIT CALCULATIONMETHOD OF THREE-PARAMETER WEIBULL DISTRIBUTION",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-004-pdf原文.md",
+      "source_sha256": "a83083391aac7a2e8ca85f7306083f1591ea1f123f097286245a0d1657665db7",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R",
+        "U"
+      ],
+      "prior_opponents": "MMPDS、傅氏法",
+      "prior_design": "330个实测值取不同n子集；最小25，重复3次",
+      "prior_metrics": "相关系数、估计限均值/SD",
+      "prior_failure_handling": "AD筛样；非独立批次",
+      "prior_locator": "OCR L179、242、275",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-024",
+      "title": "Weibull形状参数加权极大似然估计的偏差修正",
+      "year": 2024,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-024-pdf原文.md",
+      "source_sha256": "ea06754d34eeae47706a219aeb2c0bdabcae15f97b6d1c7a097977f428eea84b",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "原WMLE、MR/MH修正",
+      "prior_design": "n=3—15构造；n=4、5各1000次验证；真实n=10",
+      "prior_metrics": "形状Mean、Bias、RMSE",
+      "prior_failure_handling": "未核清统一失败分母",
+      "prior_locator": "§3—5、表7/9/10",
+      "reason": "shape_only; supplementary stratum, not primary denominator",
+      "sim_benchmarks": [
+        {
+          "family": "WMLE",
+          "version": "uncorrected Cousineau WMLE",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 264,
+          "text": "Table 7 Mean， bias and RMSE before and after shapeparameter correction with sample size of4 for W（3，10，10）"
+        },
+        {
+          "line": 281,
+          "text": "Table 9 Mean， bias and RMSE before and after shape parameter correction with sample size of 5 for W（4，1，2）"
+        },
+        {
+          "line": 291,
+          "text": "设文献［14］使用的最小二乘法以及最大相关系数法估计的形状参数2.01为真实值，使用加权极大似然方法和本文提出的两种修正方法估计出的形状参数 $\\beta _ { \\scriptscriptstyle - } \\mathrm { W M L E } , \\beta _ { \\scriptscriptstyle - } \\mathrm { M R }$ 和 β\\_MH列于表 10。从表 10 可得，使用两种偏差修正方法后估计的形状参数更接近真实值，通过实例计算说明偏差修正方法具有实用性。"
+        }
+      ],
+      "study_type": "shape_only",
+      "proposed": "WMLE MR/MH correction",
+      "n": [
+        4,
+        5
+      ],
+      "replications": "n=3—15构造；n=4、5各1000次验证；真实n=10",
+      "true_parameters": "see body evidence / prior design; not fully normalized",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams"
+    },
+    {
+      "id": "182-025",
+      "title": "三参数威布尔形状参数估计方法的比较与推荐取值*",
+      "year": 2024,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-025-pdf原文.md",
+      "source_sha256": "8354be4c1885ee9dbb73abb6afe320c7ea1356ac0e17ff0953d185d761a7addf",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S"
+      ],
+      "prior_opponents": "CCM、LS、MDM",
+      "prior_design": "n=15、30、50、100、200，每条件1000次",
+      "prior_metrics": "形状Bias、RMSE",
+      "prior_failure_handling": "未核清统一失败分母",
+      "prior_locator": "模拟节、式12/13；OCR L145–159",
+      "reason": "shape_only_comparative; supplementary stratum, not primary denominator",
+      "sim_benchmarks": [
+        {
+          "family": "CC",
+          "version": "correlation coefficient",
+          "role": "existing comparator"
+        },
+        {
+          "family": "LS",
+          "version": "least squares",
+          "role": "existing comparator"
+        },
+        {
+          "family": "MDM",
+          "version": "minimum discrepancy",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 145,
+          "text": "通过对不同威布尔模型  $\\mathrm{W}(2,1000,1000),\\mathrm{W}(3,1000,1000)$  进行MonteCarlo抽样，样本量选"
+        },
+        {
+          "line": 159,
+          "text": "对  $\\mathrm{W}(2,1000,1000)$ ,  $\\mathrm{W}(3,1000,1000)$ , 进行大量仿真和参数估计后, 根据图 3 和图 4 可得到以下结论。"
+        }
+      ],
+      "study_type": "shape_only_comparative",
+      "proposed": null,
+      "n": [
+        15,
+        30,
+        50,
+        100,
+        200
+      ],
+      "replications": "n=15、30、50、100、200，每条件1000次",
+      "true_parameters": "see body evidence / prior design; not fully normalized",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams"
+    },
+    {
+      "id": "182-030",
+      "title": "A Minimum Discrepancy Method for Weibull Distribution Parameter Estimation",
+      "year": 2023,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-030-pdf原文.md",
+      "source_sha256": "8a6c4f8f0180da0e4577e1ece781041cf884366cd114be0691e5a4944d49882f",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S"
+      ],
+      "prior_opponents": "ML、概率图相关LS",
+      "prior_design": "共65组生成样本；含n=15的30组和n=30的15组",
+      "prior_metrics": "参数Mean、SD、范围；低尾CDF、保守性",
+      "prior_failure_handling": "30组中MLE6组失败；图中零为标记；部分CDF排除失败",
+      "prior_locator": "§3.3—4、图5—8；OCR L184、227",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "conventional ML; solver version not fully specified",
+          "role": "existing comparator"
+        },
+        {
+          "family": "CC",
+          "version": "Weibull plot correlation coefficient based LS",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 184,
+          "text": "To compare the MD method with the conventional methods (maximum likelihood method and Weibull plot correlation coefficient-based least squares method, denoted by ML method and LS method, respectively), 45 samples are used. Shown in Fig. 5 are the parameter estimation results of 30 samples of size 15, generated by Monte Carol sampling from  $W$  (2.0, 1000, 1000), where MDE, MLE and LSE stand for the estimates of the MD method, ML method and LS method, respectively. Among the 30 samples, there are six cases where ML method fails to get solution. These cases are marked with zero parameter values in Fig. 5."
+        },
+        {
+          "line": 245,
+          "text": "Shown in Fig. 7 are the parameter estimates of 15 samples of size 30, generated by Monte Carol sampling from  $W$  (2.0, 1000, 1000). For the larger sample situations, the three parameters estimated by the three methods (i.e. MD method, ML method and LS method) are very close to each other. The robustness of MD method is slightly better than the two conventional methods, though the differences are not very significant. Shown in Table 3 are the ranges, the mathematical expectations and the standard deviations of the Weibull parameters estimated by the different methods with the 15 samples of size 30."
+        },
+        {
+          "line": 263,
+          "text": "Shown in Fig. 8 are the parameter estimates of 10 samples of size 15, randomly generated from  $W$  (3.0, 1000, 1000). The results demonstrate that MDE method"
+        },
+        {
+          "line": 297,
+          "text": "Shown in Fig. 9 are the parameter estimates of 10 samples of size 30, randomly generated from  $W$  (3.0, 1000, 1000). The results demonstrate that MD method is superior to the two conventional methods for most of the samples. Shown in Table 5 are the ranges, the mathematical expectations and the standard deviations of the Weibull parameters estimated by the different methods with the 10 samples."
+        },
+        {
+          "line": 303,
+          "text": "Sixty-five randomly generated samples are used to verify the new parameter estimation method. For the 45 samples from  $W$  (2.0, 1000, 1000), MDE (the estimate of the new method) outperforms MLE (the maximum likelihood estimate) and LSE (the least squares estimate). For the 20 samples from  $W$  (3.0, 1000, 1000), MDE is much better than MLE and LSE. Overall, the new method has advantages in robustness, conservatism, accuracy, and simplicity in the situations of relatively small size of samples ( $n = 15 - 30$ )."
+        },
+        {
+          "line": 245,
+          "text": "Shown in Fig. 7 are the parameter estimates of 15 samples of size 30, generated by Monte Carol sampling from  $W$  (2.0, 1000, 1000). For the larger sample situations, the three parameters estimated by the three methods (i.e. MD method, ML method and LS method) are very close to each other. The robustness of MD method is slightly better than the two conventional methods, though the differences are not very significant. Shown in Table 3 are the ranges, the mathematical expectations and the standard deviations of the Weibull parameters estimated by the different methods with the 15 samples of size 30."
+        },
+        {
+          "line": 297,
+          "text": "Shown in Fig. 9 are the parameter estimates of 10 samples of size 30, randomly generated from  $W$  (3.0, 1000, 1000). The results demonstrate that MD method is superior to the two conventional methods for most of the samples. Shown in Table 5 are the ranges, the mathematical expectations and the standard deviations of the Weibull parameters estimated by the different methods with the 10 samples."
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "MDM",
+      "n": [
+        15,
+        30
+      ],
+      "replications": "30+15 samples beta=2;10+10 samples beta=3",
+      "true_parameters": "beta=2,3; eta=1000; gamma=1000",
+      "selection_reason": {
+        "status": "explicit",
+        "text": "ML and probability-plot LS explicitly called conventional methods; L184"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams",
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_mean",
+          "parameter_SD",
+          "parameter_range"
+        ],
+        "locator": [
+          "L245",
+          "L297"
+        ],
+        "note": "all three parameters"
+      },
+      "online_year": 2022
+    },
+    {
+      "id": "182-046",
+      "title": "基于统计最小差异原理的Weibull分布参数估计方法",
+      "year": 2025,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-046-pdf原文.md",
+      "source_sha256": "e6ee1d08c07011bf188b4664a5d1752d3ea6e7f1e98f98c1d8932134bf6c6947",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "G"
+      ],
+      "prior_opponents": "零偏移与正偏移MD、ML、LS",
+      "prior_design": "n=7的30组随机样本；120案例确定偏移，近千例仅概述",
+      "prior_metrics": "参数范围、尺度伪估计量差异",
+      "prior_failure_handling": "未核清",
+      "prior_locator": "方法正文及结论；不依据frontmatter摘要",
+      "reason": "location_only; supplementary stratum, not primary denominator",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "traditional ML",
+          "role": "existing comparator"
+        },
+        {
+          "family": "LS",
+          "version": "traditional LS; exact version not specified",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 164,
+          "text": "从总体上看，在最小值判据中使用1个大于零（例如0.1)的偏移值，对于提高参数估计方法（即本文采用的最小差异法)的精度和稳健性效果显著.本文偏移值0.1是根据120个参数估计案例得到的经验值，更适当的偏移值的取法需要进一步研究.由于样本存在不确定性，需要对极值判据进行偏置，而上文中所述参数估计方法依据的\"最小差异原理\"也具有统计不确定性，因而应称之为\"统计最小差异原理\".下面采用更多的随机样本分析该参数估计方法的误差特性，研究减小误差的途径."
+        },
+        {
+          "line": 166,
+          "text": "图5为基于Weibull分布  $W(2.0,1000,1000)$  的30个随机样本（样本量为7）分别进行参数估计的过程中产生的30条尺度参数估计值标准差梯度曲线，即  $\\nabla \\gamma^{\\prime} - \\gamma^{\\prime}$  曲线。通过这些曲线可以清楚地看到，直接应用最小值判据，基于不同样本估计出的位置参数差异很大（这是目前所有参数估计方法共同存在的问题），范围在  $0\\sim 1475$  之间（位置参数的真实值为1000），尽管这些样本都是从同一个Weibull分布母体中随机选出的。若适当地采用1个偏移值来修正最小值判据，例如使用1个大小等于0.1的偏移值，那么不同样本估计出的位置参数之间的差异则显著减小，范围仅为  $463\\sim 1506$  。对于这30个样本，传统的极大似然估计法得到的位置参数范围为  $0\\sim 1691$  ，最小二乘估计法的位置参数范围为  $0\\sim 1686$  ，与本文方法直接用于最小值判据的结果  $0\\sim 1475$  相当。"
+        },
+        {
+          "line": 174,
+          "text": "Weibull分布的近千个样本（其总体概率分布的形状参数值在2~5之间），表明补偿值取0.1对提高参数估计的精度和稳健性的效果很好。"
+        }
+      ],
+      "study_type": "location_only",
+      "proposed": "offset MDM",
+      "n": [
+        7
+      ],
+      "replications": "n=7的30组随机样本；120案例确定偏移，近千例仅概述",
+      "true_parameters": "see body evidence / prior design; not fully normalized",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams"
+    },
+    {
+      "id": "182-047",
+      "title": "基于最小二乘迭代威布尔分布的三参数估计",
+      "year": 2023,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-047-pdf原文.md",
+      "source_sha256": "be6efe0e1ca86e2d859b41fa3794d338cc3d1b76c6033b8f0f8d999ef132ef25",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "相关系数法",
+      "prior_design": "n=10、15、20、25、30，各1000次；真实20与11点",
+      "prior_metrics": "参数及99%可靠度寿命Bias、RMSE；实测K-S/CDF",
+      "prior_failure_handling": "未核清统一失败分母",
+      "prior_locator": "§3.2、§4",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "CC",
+          "version": "Yan et al correlation coefficient method; ref12",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "confirmed_present": true,
+        "comparators_verified_this_audit": true,
+        "n": [
+          20,
+          11
+        ],
+        "families": [
+          "CC"
+        ],
+        "locator": "L203,237,260",
+        "role": "parameter estimates, KS and low-tail life; smaller prediction is conservatism, not accuracy proof"
+      },
+      "new_body_evidence": [
+        {
+          "line": 118,
+          "text": "# 3.2 与相关系数法进行比较"
+        },
+        {
+          "line": 126,
+          "text": "通过对不同威布尔模型  $W(2,1000,1000)$  、  $W(2,1000,2000)$  进行MonteCarlo抽样，中小样本量选用  $n = 10,15,20,25,30$ ，重复抽取1000次，使用本文提出的迭代方法与相关系数法进行参数估计并进行对比。比较的两个标准是偏差(Bias)  $B$  和均方差根(RMSE)  $R$ ，分别由以下两个公式定义："
+        },
+        {
+          "line": 278,
+          "text": "本文基于最小二乘法提出一种迭代方法对三参数威布尔分布进行参数估计，通过仿真验证此迭代方法具有收敛性。在不同的威布尔模型和不同中小样本量(10~30个样本量)下，将此方法与相关系数法进行比较，基于最小二乘法迭代方法估计的形状参数、尺度参数、位置参数和  $99\\%$  可靠度寿命的绝对偏差Bias和均方差根RMSE均比相关系数法小，参数估计结果更加准确、更加有效。两个实例分析表明迭代方法可行、有效，与相关系数法相比，其估计结果更加保守，更适用于工程应用。"
+        },
+        {
+          "line": 203,
+          "text": "汽轮机轴承转子的20个样品的全寿命失效数据[14]按顺序排列分别为87，98，110，128，210，244，275，295，303，320，346，465，513，598，661，760，860，891，1080，1290h。分别使用文中提出的迭代方法和相关系数法进行参数估计，估计结果包括形状参数、尺度参数、位置参数、可靠度为  $99\\%$  的寿命及Kolmogorov-Smirnov检验(K-S检验)的  $p$  值。使用迭代方法计算的各个参数的迭代图如图7所示。计算结果如表2所示。"
+        },
+        {
+          "line": 126,
+          "text": "通过对不同威布尔模型  $W(2,1000,1000)$  、  $W(2,1000,2000)$  进行MonteCarlo抽样，中小样本量选用  $n = 10,15,20,25,30$ ，重复抽取1000次，使用本文提出的迭代方法与相关系数法进行参数估计并进行对比。比较的两个标准是偏差(Bias)  $B$  和均方差根(RMSE)  $R$ ，分别由以下两个公式定义："
+        },
+        {
+          "line": 129,
+          "text": "B (\\hat {\\alpha}) = \\frac {1}{m} \\sum_ {i = 1} ^ {m} \\left(\\hat {\\alpha} _ {j} - \\alpha\\right) \\tag {10}"
+        },
+        {
+          "line": 133,
+          "text": "R (\\hat {\\alpha}) = \\sqrt {\\frac {1}{m} \\sum_ {i = 1} ^ {m} \\left(\\hat {\\alpha} _ {j} - \\alpha\\right) ^ {2}} \\tag {11}"
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "least squares iteration",
+      "n": [
+        10,
+        15,
+        20,
+        25,
+        30
+      ],
+      "replications": 1000,
+      "true_parameters": "W(beta,eta,gamma)=(2,1000,1000),(2,1000,2000)",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams",
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_Bias",
+          "parameter_RMSE"
+        ],
+        "locator": [
+          "L126",
+          "L129",
+          "L133"
+        ],
+        "note": "all three parameters; life also reported"
+      }
+    },
+    {
+      "id": "182-050",
+      "title": "Parameter estimation of the initial failure period for a three-parameter Weibull distribution in a small sample",
+      "year": 2025,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-050-pdf原文.md",
+      "source_sha256": "188c18174d2e5a4e2ba0e1433f5cd924eadc030678f3c539e6b87d6a25ca092c",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "w-MLE、BL、LSPF及自身分支",
+      "prior_design": "n=10、20、30，每条件100000次；实测案例",
+      "prior_metrics": "参数Bias、RMSE、Joint；实测logL",
+      "prior_failure_handling": "variance/RMSE公式疑点待PDF校核；不能照抄公式",
+      "prior_locator": "§4、应用节；OCR L230–268、288、319",
+      "reason": "identity_disputed; supplementary stratum, not primary denominator",
+      "sim_benchmarks": [
+        {
+          "family": "wMLE_star",
+          "version": "weighted data log likelihood, not Cousineau weighted score",
+          "role": "existing comparator"
+        },
+        {
+          "family": "BL_star",
+          "version": "prior+log-likelihood expression differs Hall-Wang",
+          "role": "existing comparator"
+        },
+        {
+          "family": "LSPF_star",
+          "version": "regression initialized MLE; not Nagatsuka invariant likelihood",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 230,
+          "text": "In this section, we show the parameter estimation performance through numerical simulations. In our simulation study involving  $M = 100,000$  repetitions, the accuracy of estimation using each method was assessed by calculating the estimator's bias, variance, and RMSE. While bias assesses systematic deviation, and variance quantifies the estimator's variability, RMSE is prioritized in our evaluation as it jointly reflects both accuracy aspects. Therefore, methods with smaller RMSE values are considered superior, even if their bias or variance is not the smallest individually."
+        },
+        {
+          "line": 234,
+          "text": "To investigate accuracy, we compare our results with those of the w-MLE, BL, and LSPF-MLE methods."
+        },
+        {
+          "line": 239,
+          "text": "\\ell_ {w} (\\eta , m, \\gamma) = \\sum_ {i = 1} ^ {n} w _ {i} \\left[ \\log \\left(\\frac {m}{\\eta}\\right) + (m - 1) \\log (x _ {i} - \\gamma) - \\left(\\frac {x _ {i} - \\gamma}{\\eta}\\right) ^ {m} \\right],"
+        },
+        {
+          "line": 247,
+          "text": "\\ell_ {B L} (\\eta , m, \\gamma) = \\frac {1}{1 + c} \\ell (\\eta , m, \\gamma) + \\frac {1}{1 + c} \\pi (\\eta , m, \\gamma),"
+        },
+        {
+          "line": 252,
+          "text": "The LSPF-MLE method first performs a rough initial estimation using a least squares-based probability function, after which it performs maximum likelihood estimation to obtain a highly accurate estimate. The cdf is linearized as follows:"
+        },
+        {
+          "line": 258,
+          "text": "The empirical cumulative probability  $F(x_{i})$  is calculated using ordinal statistics (e.g.  $i / (n + 1)$ ).  $\\gamma$  is set to a candidate value slightly smaller than the minimum value of the data, such that  $(x_{i} - \\gamma) > 0$ . The regression line for  $Y_{i}$  and  $\\log (x_{i} - \\gamma)$  is fitted, and  $m$  and  $\\eta$  are estimated. Using these estimated values as initial values, accurate maximum likelihood estimation is performed using numerical optimization (See [5])."
+        },
+        {
+          "line": 260,
+          "text": "The simulations were set up with the scale parameter  $\\eta = 1.0$ , location parameter  $\\gamma = 3.0$ , and shape parameter  $m$  set to 0.2, 0.5, 0.8, 1.0, 2.0, and 3.0. The sample size  $n$  was set to 10, 20, and 30."
+        },
+        {
+          "line": 268,
+          "text": "Tables 1 to 6 show the bias and RMSE results for the three existing estimators and our proposed estimator. The bias column in 'Joint' columns represents the sum of the absolute values of bias for the three estimators (shape, scale, and location parameters), i.e.  $|E[\\tilde{m}] - m| + |E[\\tilde{\\eta}] - \\eta| + |E[\\tilde{\\gamma}] - \\gamma|$ , where  $\\tilde{\\theta}$  denotes the estimator for the parameter  $\\theta$ , and the RMSE column in 'Joint' columns represents the root of the trace of the mean squared error (MSE) matrix of the three estimators. These are used to evaluate the marginal performance based on the bias and RMSE of the three estimators. Some values in the table have superscripts in the top right-hand corner (e.g.  $1.234^5$  represents  $1.234 \\times 10^5$ ). These simulation results show the following:"
+        }
+      ],
+      "study_type": "identity_disputed",
+      "proposed": "MVLUE based initial-failure estimator",
+      "n": [
+        10,
+        20,
+        30
+      ],
+      "replications": "n=10、20、30，每条件100000次；实测案例",
+      "true_parameters": "see body evidence / prior design; not fully normalized",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      },
+      "critical_warning": "all three named comparator identities, not only w-MLE, require resolution; keep nominal labels separate from canonical methods"
+    },
+    {
+      "id": "182-054",
+      "title": "An uncertainty insensitive criterion and robust parameter estimation method for Weibull distribution",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-054-pdf原文.md",
+      "source_sha256": "5d7d6d17472a834bf28b66e782e0629f21b6499c6edc785eef3c7fbffc5129d4",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S"
+      ],
+      "prior_opponents": "ML、LS；零偏移/0.1偏移",
+      "prior_design": "n=7或15，共120组生成数据",
+      "prior_metrics": "参数及分位数、分散程度",
+      "prior_failure_handling": "未核清统一失败分母",
+      "prior_locator": "§3.3—4、表1—11",
+      "reason": "publication_or_overlap_pending; supplementary stratum, not primary denominator",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "ML",
+          "role": "existing comparator"
+        },
+        {
+          "family": "LS",
+          "version": "LS",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 116,
+          "text": "To identify where  $\\sigma_{\\eta, \\min}(\\gamma')$  gets minimum, it seems natural to use the zero-gradient criterion. Nevertheless, owing to the random nature of the sample values, such a criterion will directly transmit sample uncertainty to parameter estimate. Shown in Fig.4 are the  $\\nu(\\gamma') - \\gamma'$  plots of thirty parameter estimation cases. The thirty samples of size seven are randomly drawn from the Weibull distribution W(2.0,1000,1000). It illustrates that, according to the conventional minimum value criterion, i.e., the function gets minimum where its gradient equals zero, the location parameter estimates present large dispersion due to sample uncertainty. The statistics feature of the estimates are listed in Tab"
+        },
+        {
+          "line": 165,
+          "text": "# 4 Comparison of different parameter estimation methods"
+        },
+        {
+          "line": 217,
+          "text": "Weibull distribution W(3.0,1000,1000). Shown in Fig.9 are the parameter estimates obtained by the minimum diversity method, the maximum likelihood method and the least squares method, respectively. Shown in Fig.10 are the quantiles estimated by the different methods, respectively. Comparisons are summarized in Tab.5-7."
+        },
+        {
+          "line": 252,
+          "text": "The following are the parameter estimation results of the different methods for thirty samples of size seven of the Weibull distribution W(5.0,1000,1000). Shown in Fig.11 are the parameter estimates. Comparisons are summarized in Tab.8 and Tab.9."
+        },
+        {
+          "line": 274,
+          "text": "The following are the parameter estimation results of the different methods for thirty samples of size fifteen of the Weibull distribution W(2.0,1000,1000). Shown in Fig.12 and Fig.13 are the parameter estimates and the quantile estimates. Comparisons are summarized in Tab.10 and Tab.11."
+        }
+      ],
+      "study_type": "publication_or_overlap_pending",
+      "proposed": "offset MDM",
+      "n": [
+        7,
+        15
+      ],
+      "replications": "n=7或15，共120组生成数据",
+      "true_parameters": "see body evidence / prior design; not fully normalized",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      }
+    },
+    {
+      "id": "182-064",
+      "title": "加速寿命试验三参数威布尔分布的极小变异-极大似然估计",
+      "year": 2025,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-064-pdf原文.md",
+      "source_sha256": "3bbbbb2bee08ed89e155d9e852573df9f5c14b58bec5ec6fe8fea2630973cb4a",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S"
+      ],
+      "prior_opponents": "单应力作者均值误差法",
+      "prior_design": "形状0.5；n=5、15、30，各1000次；只计完整单应力",
+      "prior_metrics": "平均估计及其距真值误差",
+      "prior_failure_handling": "约束见式37；多应力另列",
+      "prior_locator": "§4.1、式37、表1",
+      "reason": "new_internal_control; supplementary stratum, not primary denominator",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 329,
+          "text": "当形状参数  $m < 1$  时，无法直接应用极大似然方法估计三参数威布尔分布中的参数。为了验证所提方法的合理性和有效性，在此提出一种以均值误差最小为优化目标的对照方法用于仿真结果的对比分析，其原理为："
+        },
+        {
+          "line": 332,
+          "text": "\\begin{array}{l} \\min  \\quad G ^ {\\prime} (m, \\gamma , \\eta) = | \\mu - \\hat {\\mu} | \\\\ \\text {s . t .} \\left\\{ \\begin{array}{c} C (m, \\gamma) = 0 \\\\ C ^ {\\prime} (m, \\gamma , \\eta) = 0 \\\\ m, \\eta > 0, t _ {(1)} \\geq \\gamma > 0 \\end{array} \\right. \\tag {37} \\\\ \\end{array}"
+        },
+        {
+          "line": 353,
+          "text": "式中：  $\\gamma = 10$  ；  $m = 0.5$  ；  $\\eta = 20$  ；  $n = (5,15,30)$  ，即设置3组不同样本量的仿真模型。"
+        },
+        {
+          "line": 355,
+          "text": "在不同的样本量下各进行1000次仿真，取平均值作为参数估计的结果，具体见表1。"
+        },
+        {
+          "line": 362,
+          "text": "<table><tr><td>方法</td><td>样本量n</td><td>m</td><td>γ</td><td>η</td></tr><tr><td>MV-MLE</td><td rowspan=\"2\">5</td><td>0.863 5</td><td>17.829 3</td><td>26.979 5</td></tr><tr><td>对照方法</td><td>1.202 3</td><td>17.154 9</td><td>29.057 6</td></tr><tr><td>MV-MLE</td><td rowspan=\"2\">15</td><td>0.708 4</td><td>10.613 3</td><td>25.736 0</td></tr><tr><td>对照方法</td><td>0.775 5</td><td>12.479 8</td><td>28.143 5</td></tr><tr><td>MV-MLE</td><td rowspan=\"2\">30</td><td>0.614 8</td><td>9.813 2</td><td>24.194 7</td></tr><tr><td>对照方法</td><td>0.713 1</td><td>8.060 4</td><td>26.467 5</td></tr></table>"
+        }
+      ],
+      "study_type": "new_internal_control",
+      "proposed": "MV-MLE",
+      "n": [
+        5,
+        15,
+        30
+      ],
+      "replications": "形状0.5；n=5、15、30，各1000次；只计完整单应力",
+      "true_parameters": "see body evidence / prior design; not fully normalized",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      },
+      "internal_control": {
+        "version": "author-created mean-error minimum under eq37",
+        "reason_explicit": "shape<1 prevents direct MLE; introduce control for validation",
+        "counts_as_existing_benchmark": false
+      }
+    },
+    {
+      "id": "182-085",
+      "title": "Weibull分布的三参数的估计和高镇同法",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-085-pdf原文.md",
+      "source_sha256": "80dfedd68ffcacf72821beacdf66cbedbec6f7472aa64e61acd8dce439a9189b",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R"
+      ],
+      "prior_opponents": "高镇同各分支、两项历史修改MLE",
+      "prior_design": "三组恒应力试验，逐应力数据；原始观测完整性待进一步核清",
+      "prior_metrics": "Q绝对拟合差和、R²、logL",
+      "prior_failure_handling": "未知",
+      "prior_locator": "§4例3；OCR L319–335",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-088",
+      "title": "Nearly unbiased estimators for the three-parameter Weibull distribution with greater efficiency than the iterative likelihood method",
+      "year": 2009,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-088-pdf原文.md",
+      "source_sha256": "808599ea738424056d2b11b9a9b61919a88e6f8d8dcbd68f8b1368614b8264ee",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S"
+      ],
+      "prior_opponents": "迭代MLE、两步MLE、权重分支",
+      "prior_design": "n=8、16、32，每条件1024次",
+      "prior_metrics": "中位偏差、三参数相对距离中位数、SD",
+      "prior_failure_handling": "失败分母未完整核清",
+      "prior_locator": "§6—8、表5—8",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "iterative MLE and unweighted two-step MLE",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 15,
+          "text": "The most commonly used technique to estimate the parameters of a data set assuming the Weibull distribution is the maximum likelihood estimation technique (henceforth called the iterative MLE). The problem with this technique is that it returns biased estimators. The exact amount of bias is unknown and depends on the sample size. As a consequence, it is not possible to compare the parameter values obtained from samples of different sizes. As an example, for a very small sample (eight observations), the shape and scale parameters can be underestimated by more than  $40\\%$  and  $30\\%$ , respectively (these figures were approximated using Monte Carlo simulations described later). Overall, if the three parameters are seen as a vector, the length of the estimated vector is wrong by over  $50\\%$ . For medium-sized samples  $(n = 32)$ , the vector is still wrong by over  $10\\%$ . Averaging the parameters across multiple participants (assuming they have identical reponse-time distributions) can be used to reduce the variability of the estimates, but this cannot eliminate the biases. Because experiments in psychology rarely have the same sample sizes, this is a major obstacle for cross-experiment comparisons, an obstacle that we wish to eliminate in the present paper."
+        },
+        {
+          "line": 19,
+          "text": "In the following, we extend the MLE technique by incorporating three weights into the solutions to the maximum likelihood equations. Exact expressions for these weights are given, but being based on the (unknown) population parameters, we instead examine their expected values. In doing so, we will need to move from an iterative MLE technique to a two-step method in which two of the parameters are estimated iteratively and the last one is estimated algebraically. Finally, Monte Carlo simulations will examine the performance of the iterative versus the two-step MLEs, and within the two-step methods, the impact of the weights on the bias of the parameters."
+        },
+        {
+          "line": 197,
+          "text": "This was confirmed by simulations. Across simulations, we varied the sample size  $n$  (8, 16, 32) and the population shape  $\\gamma$  (0.5, 1.0, 1.5, 2.0, 2.5). The scale and shift parameters, being scaling parameters (see Rouder et al., 2005, footnote 3, for a definition), were held constant at  $\\{\\beta = 100, \\alpha = 300\\}$ . The shape parameters were chosen such that there are two for which the regular MLE should be both efficient and normally distributed  $(\\gamma \\geq 2)$ , two for which the regular MLE should work but where the distributions of the estimates are not normal  $(1 \\leq \\gamma < 2)$ , and the last case  $(\\gamma < 1)$  corresponds to a situation for which there should be no consistent estimators (Smith, 1985)."
+        },
+        {
+          "line": 199,
+          "text": "For each simulation, a random sample of size  $n$  was generated and the best-fitting scale parameter  $\\hat{\\beta}$  was estimated using equation (3) with three different weights: the expected value of  $W_{1}$  ( $E_{1}$ , which is always 1); its median value ( $J_{1}$ ) and its geometric mean value ( $G_{1}$ ). For each combination of  $n \\times \\gamma$ ,  $2^{10}$  such simulations were run and the median estimated  $\\hat{\\beta}$  was computed."
+        },
+        {
+          "line": 226,
+          "text": "ran another series of simulations estimating the parameters  $\\gamma$  and  $\\alpha$ . We followed the exact same procedure as in the previous section."
+        },
+        {
+          "line": 247,
+          "text": "Some of the results are presented in Table 7. The median bias is shown for each parameter individually. We also report a three-dimensional bias which is the median bias in the three-dimensional parameter space, measured as the median length of the vector separating the true parameters from the estimated parameters relative to the parameter vector length - in symbols,"
+        },
+        {
+          "line": 263,
+          "text": "We measured efficiency using the standard deviation of the estimates. Table 8 shows the results. As can be seen, the iterative MLE technique has the lowest efficiency for all the sample sizes. However, the difference diminishes as sample size increases. This was to be"
+        },
+        {
+          "line": 273,
+          "text": "Table 8. Efficiency of the estimates (measured by the standard deviation) using the iterative MLE technique, the two-step MLE technique and the two-step weighted MLE technique with weights  $J_{1}, J_{2}$ , and  $J_{3}$  "
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "Cousineau WMLE",
+      "n": [
+        8,
+        16,
+        32
+      ],
+      "replications": 1024,
+      "true_parameters": "shape=.5,1,1.5,2,2.5; scale=100; location=300",
+      "selection_reason": {
+        "status": "explicit",
+        "text": "MLE is commonly used and its bias is the target of the correction; introduction and study aims"
+      },
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_median_bias",
+          "parameter_SD",
+          "joint_median_distance"
+        ],
+        "locator": [
+          "L247",
+          "L263",
+          "L273"
+        ],
+        "note": "all three parameters; median bias is distinct from expectation bias"
+      }
+    },
+    {
+      "id": "182-091",
+      "title": "MODIFIED MAXIMUM LIKELIHOOD AND MODIFIED MOMENT ESTIMATORS FOR THE THREE-PARAMETER WEIBULL DISTRIBUTION",
+      "year": 1982,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-091-pdf原文.md",
+      "source_sha256": "2849b2c3ccaeabbc1fbcc3f0858c2f1a031ec7205ac2a8623544c9d0bdccbfcc",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S"
+      ],
+      "prior_opponents": "MLE、MMLE I–V、ME、MME I–III",
+      "prior_design": "n=100每条件100；部分n=25为200、n=10为10",
+      "prior_metrics": "参数Mean、Bias、SD；失败次数、CPU",
+      "prior_failure_handling": "MLE形状1.01—15、其余0.1—15；位置限制；50次求解限制",
+      "prior_locator": "§7—9、表II/III；OCR L517–556",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "Cohen-Whitten iterative solver; shape restricted (1.01,15)",
+          "role": "existing comparator"
+        },
+        {
+          "family": "MM",
+          "version": "traditional moments ME",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 540,
+          "text": "Additional restrictions were imposed on estimates of  $\\delta$ . For the MLE, it is required that  $\\hat{\\delta}$  fall in the interval (1.01, 15.0) while for all other estimators it is required that  $\\hat{\\delta}$  fall in the interval (0.1, 15.0). The upper limit is somewhat arbitrary and can easily be adjusted to fit the needs of the user. For users whose data are fitted by distributions that are positively skewed, an upper limit of 3.6 might be considered since when  $\\hat{\\delta} = 3.6$  the third standard moment is approximately 0. When restrictions on  $\\hat{\\gamma}$  and/or  $\\hat{\\delta}$  are violated, calculations are terminated, and an appropriate message is printed for the user. The necessity for restrictions such as those imposed here has also been noted by Zanakis (1977)."
+        },
+        {
+          "line": 548,
+          "text": "A Monte Carlo study was undertaken in order to compare estimators with respect to their sampling behavior. One hundred random samples consisting of one hundred observations each were generated from Weibull populations for which  $\\delta = 4.5$ , 2.2156, 1.5639, 1.2111, 1.0, and 0.8632. (These values correspond to  $\\alpha_{3} = -0.1784$ , 0.5, 1.0, 1.5, 2.0 and 2.5, respectively.) In addition 200 random samples consisting of 25 observations each were generated from populations in which  $\\delta = 1.0$  and 0.8632. Ten samples of ten observations each were generated from a popu"
+        },
+        {
+          "line": 550,
+          "text": "lation in which  $\\delta = 0.5$ . The terminus  $\\gamma$  was set equal to 0, and the scale parameter  $\\beta$  was set equal to 1, but in calculating estimates all three parameters were assumed to be unknown. Note that four of the populations sampled are bell-shaped ( $\\delta > 1$ ) while three are reverse J-shaped ( $\\delta < 1$ )."
+        },
+        {
+          "line": 556,
+          "text": "The software package described in Section 7 was employed in an effort to calculate applicable estimates from each sample generated. Because of the previously described restrictions in the computer programs, some samples failed to produce estimates from some estimators. The means and standard deviations of estimates from each sequence of samples, together with counts of samples for which no estimates were found are entered in Tables II and III. All computations were performed at the University of Georgia Computer Center on a Cyber 70/74 computer."
+        },
+        {
+          "line": 556,
+          "text": "The software package described in Section 7 was employed in an effort to calculate applicable estimates from each sample generated. Because of the previously described restrictions in the computer programs, some samples failed to produce estimates from some estimators. The means and standard deviations of estimates from each sequence of samples, together with counts of samples for which no estimates were found are entered in Tables II and III. All computations were performed at the University of Georgia Computer Center on a Cyber 70/74 computer."
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "Cohen-Whitten MMLE I-V and MME I-III",
+      "n": [
+        10,
+        25,
+        100
+      ],
+      "replications": "n100:100;n25:200;n10:10",
+      "true_parameters": "location=0;scale=1;shape=.5,.8632,1,1.2111,1.5639,2.2156,4.5",
+      "selection_reason": {
+        "status": "inferred",
+        "text": "traditional parents isolate effect of authors modifications; not an explicit comprehensive benchmark selection rationale"
+      },
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_mean",
+          "parameter_SD",
+          "failure_count"
+        ],
+        "locator": [
+          "L556"
+        ],
+        "note": "all three parameters; means do not imply explicitly reported Bias"
+      }
+    },
+    {
+      "id": "182-094",
+      "title": "Estimation of the three parameter Weibull probability distribution",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-094-pdf原文.md",
+      "source_sha256": "1392d021993fdda7480c58a05e23beb0937f01b4f13576bc7b1d2436e508d909",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G"
+      ],
+      "prior_opponents": "Sinha求解程序；另二/三参数模型",
+      "prior_design": "生成W(30,100,3)；另n=50生成模型比较",
+      "prior_metrics": "收敛步数13对>50、参数、百分位、CDF",
+      "prior_failure_handling": "披露容差和搜索范围；无总体失败率",
+      "prior_locator": "§4—5；OCR L333–375",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-095",
+      "title": "On nonlinear weighted errors-in-variables parameter estimation problem in the three-parameter Weibull model",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-095-pdf原文.md",
+      "source_sha256": "e632e8bf9da8a4371583245f87bd30260de816d1be087a4cfc07f53e70756f5c",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R"
+      ],
+      "prior_opponents": "三种绘图位置、历史LS",
+      "prior_design": "14个清洁带失效时间",
+      "prior_metrics": "EIVSS、拟合图",
+      "prior_failure_handling": "未知",
+      "prior_locator": "§3、表1—2",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-096",
+      "title": "Comparison of Estimators of the Weibull Distribution",
+      "year": 2014,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-096-pdf原文.md",
+      "source_sha256": "e0fd00288627ed80e0d97c9d3e316cdbbc39fdc32ce2db15f7154c92ce93963c",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S"
+      ],
+      "prior_opponents": "MLE、LM、MMLE1/2、MoE、MMoE1、MPS",
+      "prior_design": "n=10、20、50、100，各5000次",
+      "prior_metrics": "参数Bias、RMSE",
+      "prior_failure_handling": "ML收敛且L偏度≥−0.1699；形状<1省略MLE",
+      "prior_locator": "§4.1；OCR L377–390",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "restricted location; MOM starts; beta<1 omitted",
+          "role": "comparison participant"
+        },
+        {
+          "family": "LM",
+          "version": "L-moments",
+          "role": "comparison participant"
+        },
+        {
+          "family": "MMLE",
+          "version": "Cohen-Whitten MMLE1 and MMLE2",
+          "role": "comparison participant"
+        },
+        {
+          "family": "MM",
+          "version": "MoE",
+          "role": "comparison participant"
+        },
+        {
+          "family": "MMoE",
+          "version": "MMoE1",
+          "role": "comparison participant"
+        },
+        {
+          "family": "MPS",
+          "version": "maximum product spacings; ML/MoE starts",
+          "role": "comparison participant"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "confirmed_present": true,
+        "comparators_verified_this_audit": true,
+        "n": [
+          10,
+          23
+        ],
+        "families": [
+          "MLE",
+          "LM",
+          "MMLE",
+          "MM",
+          "MMoE",
+          "MPS"
+        ],
+        "locator": "L459-477 table10",
+        "role": "real-case estimates and simulation-informed choice; unknown truths",
+        "count_note": "corrects missing R mode in old audit"
+      },
+      "new_body_evidence": [
+        {
+          "line": 29,
+          "text": "Now we have a stream of estimation methods available for the three-parameter Weibull distribution, methods that are well researched on the theoretical aspect of the estimation method individually. However, the small sample comparison in terms of bias and root mean squared error (RMSE) of L-moment estimator vis-à-vis other popular estimators is not documented in the literature. We attempt to fill this gap up by comparing the LM estimation method with other methods, namely, MLE, MMLE, LSE, MoE, MMoE, and the MPS. Thereby the main aim of the article becomes developing a guideline of choosing the best estimation method for the three-parameter Weilbull distribution, which we think would be of deep interest to applied statisticians."
+        },
+        {
+          "line": 367,
+          "text": "To establish the small sample performance of various estimators, we conducted a simulation study. We chose parameter values that were consistent with most of the applications in various fields, including quality control, engineering, actuarial sciences, and finance. The parameter values used in simulations are reported in the simulation design of Table 1. The effect of various shape parameter values on the distribution is depicted in Figure 1. We opted for eight values of the shape parameter, $\\beta = 0 . 5$ , 0.75, 1.0, 1.5, 3, 4, 6, and 9, to cover the cases where the distribution is positively skewed (for $\\beta \\leq 3$ , generally in both the engineering and finance cases, see, e.g., Corrado 1996; Corrado and Su 1996; Corrado and Su 1997), and negatively skewed for $\\beta \\geq 4$ ."
+        },
+        {
+          "line": 369,
+          "text": "We considered $\\nu = 9 0$ and kept the scale parameter $\\eta$ constant at 100, for consistency. The sample sizes $( n )$ considered are 10, 20, 50, and 100, in order to cover the small, medium, and large sample sizes encountered in real-life data."
+        },
+        {
+          "line": 371,
+          "text": "In MLE, there is no guarantee that the location parameter, ν, will remain nonnegative (see, e.g., Green et al. 1994; Smith and Naylor 1987). Green et al. (1994) examined profile of the log-likelihood function to investigate why ML yields negative estimates of ν. Smith and Naylor (1987) imposed the constraint of $0 < \\nu \\leq X _ { 1 : n }$ in their estimation procedure. We imposed the same constraint on $\\nu$ for MLE and also for other estimation methods for comparison purposes. We used MoE estimates as starting values for the ML method, and used MLE estimates as starting values for the modified versions of the ML method. For the MPS method we used both MLE and MoE estimates as starting values; the results did not depend on the choice of starting values."
+        },
+        {
+          "line": 377,
+          "text": "Note. For each of the preceding parameter combinations, we computed the bias and root mean squared errors (RMSE) for sample sizes of ${ \\mathrm { ~ n ~ } } = 1 0$ , 20, 50, and 100. The results are based on 5000 simulations."
+        },
+        {
+          "line": 386,
+          "text": "In simulations, we considered only those cases where ML converged and the sample L-skewness was $\\geq - 0 . 1 6 9 9$ . This effectively limits the computations to samples for which all of the competing estimation methods can be used, and provides a fair comparison of the small sample performance of the various estimators."
+        },
+        {
+          "line": 390,
+          "text": "We initially considered 12 methods of estimation. Of all the methods, LSE, MMoE2, MMoE3, and MMLE3 showed the worst small-sample performance. Thus, we removed these methods from our presentation. The methods (along with the simulation results) reported in Tables 2–9 are MLE, LM, MMLE1, MMLE2, MoE, MMoE1, and MPS. Good estimators have small bias and RMSE. The choice of the estimator in the finite sample largely depends on estimating the shape parameter (β) accurately and precisely (jointly measured by the RMSE). When the RMSE of two methods is close, we preferred the method that had lower bias. Keeping this in view, we analyzed the results. Also, for $\\beta < ~ 1$ , we omitted the simulation of the MLE altogether, since the method can not give reliable results in these cases for the reason given in section 3.2. The key findings are as follows:"
+        },
+        {
+          "line": 461,
+          "text": "In this section we apply MLE, LM, MoE, MMLE1, MMLE2, MMoE1, and the MPS estimators to the following two examples. The data are taken from published works."
+        },
+        {
+          "line": 475,
+          "text": "The attempt is made to use our findings of section 4.2 to get the best estimator of $\\beta$ ： (or the true value of $\\beta$ ) from real data in Table 10. The competition boils down to just two, MLE and MPS, as others can easily be ruled out due to $\\beta$ being expected to be not greater than 2 in these examples. In Example 1, we believe that $\\beta$ is less than or equal to 1 and the MPS is the right estimator to use here. The reason is when $\\beta \\leq 1$ (see Tables 2–4), the LM, MoE, and MMoE1 have overestimated $\\beta$ and MLE and MMLE2 underestimated $\\beta$ , and MMLE1 estimate is far off true $\\beta$ on average. The same pattern follows in this sample (Example 1) if we believe true $\\beta$ is less than or equal to 1. Nevertheless, MLE is not the ideal choice when $\\beta \\leq 1$ as the estimator is inconsistent and inefficient and MLE fails to converge. We can get an idea of it from the $\\nu$ estimate, which fails to converge and is replaced by first data observation. Thus, we believe MPS is the right estimation method and that its estimates are more reliable than any others."
+        },
+        {
+          "line": 377,
+          "text": "Note. For each of the preceding parameter combinations, we computed the bias and root mean squared errors (RMSE) for sample sizes of ${ \\mathrm { ~ n ~ } } = 1 0$ , 20, 50, and 100. The results are based on 5000 simulations."
+        },
+        {
+          "line": 384,
+          "text": "For each sample size $( n )$ and the specified values of the parameters (see Table 1), 5000 data sets are generated from the Weibull distribution, as per Eq. (1). From each data set, the estimates of the parameters $( \\beta , \\eta , \\nu )$ are obtained by the methods listed in section 3. For comparing the small sample performance of the estimators, as discussed earlier, we considered bias and the RMSE. We compute the bias of an estimator as the difference between an estimator’s expectation and the true value of the parameter being estimated. Since the bias is the difference between the estimated and true values of the parameter, it does not take the variation in estimates into account, which is measured by the standard deviation of an estimator. If an estimator is biased, then the minimum variance of an estimator does not make it the best estimator. Thus, in such a situation, the RMSE is used to compare the different estimators, rather than using the unbiasedness and minimum variance. The RMSE of an estimator is one way of quantifying the difference between an estimator and the true value of the quantity being estimated. We take the RMSE as the square root of the sum of the variance and the squared bias of an estimator, that is, $\\mathrm { R M S E } = \\sqrt { \\mathrm { V a r } + \\mathrm { B i a s } ^ { 2 } }$ , and thus assesses the quality of an estimator in terms of its variation and unbiasedness together. This incorporates both the variance of an estimator and its bias. For an unbiased estimator, the RMSE is simply its standard deviation. The RMSE will only be small when both the variance and the bias of an estimator are small."
+        },
+        {
+          "line": 386,
+          "text": "In simulations, we considered only those cases where ML converged and the sample L-skewness was $\\geq - 0 . 1 6 9 9$ . This effectively limits the computations to samples for which all of the competing estimation methods can be used, and provides a fair comparison of the small sample performance of the various estimators."
+        }
+      ],
+      "study_type": "comparative_study",
+      "proposed": null,
+      "n": [
+        10,
+        20,
+        50,
+        100
+      ],
+      "replications": 5000,
+      "true_parameters": "shape=.5,.75,1,1.5,3,4,6,9;scale=100;location=90; supplemental location=0,10",
+      "selection_reason": {
+        "status": "explicit",
+        "text": "fill gap on small-sample LM comparison against other popular estimators; L29"
+      },
+      "considered_but_omitted_from_results": [
+        "LSE",
+        "MMoE2",
+        "MMoE3",
+        "MMLE3"
+      ],
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_Bias",
+          "parameter_RMSE"
+        ],
+        "locator": [
+          "L377",
+          "L384",
+          "L386"
+        ],
+        "note": "all parameters, conditional on selected valid samples"
+      }
+    },
+    {
+      "id": "182-101",
+      "title": "Fitting the Three-Parameter Weibull Distribution: Review and Evaluation of Existing and New Methods",
+      "year": 2009,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-101-pdf原文.md",
+      "source_sha256": "c382e1df49c6ae0a87244e75f13b880acf3f61642a587082201bc520a4788eb3",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S"
+      ],
+      "prior_opponents": "MLE、MPS、WMLE、矩及混合估计",
+      "prior_design": "n=8、16、32、64，多形状",
+      "prior_metrics": "Bias、SD、RMSE、参数向量距离",
+      "prior_failure_handling": "剔除形状估计>5",
+      "prior_locator": "§3；OCR L194、223、266",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "iterative likelihood",
+          "role": "existing comparator"
+        },
+        {
+          "family": "MPS",
+          "version": "Cheng-Amin spacings",
+          "role": "existing comparator"
+        },
+        {
+          "family": "WMLE",
+          "version": "Cousineau weighted likelihood; same author prior method",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 192,
+          "text": "In this section, we concentrate only on methods to estimate the shape parameters. We identified in the previous section four methods that can be used: MLE (equation 6), MPS (equation 7), w-MLE (equation 8) and MoM using skew (equation 9). These methods were tested using Monte Carlo simulations (methodology described in the appendix) varying the sample size <sup>n</sup> {8, 16, 32, 64} from very small to moderately large sample size and the true shape parameter $\\gamma _ { T }$ {0.5, 1.0, 1.5, 2.0, 2.5} from regions with inconsistent solutions to regions satisfying the weak regularity conditions."
+        },
+        {
+          "line": 221,
+          "text": "We chose to examine three maximum-adequacy methods (namely MLE, (equation 6), MPS (equation 7), and w-MLE, (equation 8)) and three mixed methods. In all three mixed methods, $\\beta$ and  are estimated using the mean and the expected minimum (equations 11 and 12). They differ on the origin of $\\hat { \\gamma }$ : it was taken from the previous three methods (the estimates are thus noted Mixed( Å MLE), Mixed( $\\gamma \\ \\gets$ MPS), and Mixed( $_ { \\gamma } \\gets \\mathrm { w } \\mathrm { M L E } ) ,$ . In light of the results in the previous section, we expect MLE to provide poor estimates but it is nonetheless provided as a baseline and because it is still the most commonly used method."
+        },
+        {
+          "line": 259,
+          "text": "In all the Monte Carlo simulations reported in the text, we used the following method. In one simulation, a random sample of size <sup>n</sup> was obtained from a population following a Weibull distribution with true parameters $\\{ \\gamma , \\beta = 1 0 0 , \\alpha =$ 300}. Because  and $\\beta$ are scaling parameters, it is not necessary to vary them systematically. The sample was then analysed using the methods described in the text and the resulting estimates were saved. This simulation process was repeated a thousand times for a given condition of <sup>n</sup> and $\\gamma$ ."
+        },
+        {
+          "line": 266,
+          "text": "Across simulations, we varied the sample size <sup>n</sup> , with values {8, 16, 32, 64}. These numbers represent a very small, small, moderate and moderate to large sample sizes which are commonly found in empirical papers. We did not explore larger sample sizes as the problem of parameter estimation is much less acute for $n ~ \\geq ~ 1 0 0$ . We also varied the shape parameter $\\gamma ,$ with values $\\{ 0 . 5 , 1 . 0 , 1 . 5 , 2 . 0 , 2 . 5 \\}$ . We chose one value for each scenario $\\{ \\gamma = 0 . 5$ implies the presence of inconsistent estimates; $\\gamma = 1 . 5$ implies non normal estimates; $\\gamma \\ = \\ 2 . 5$ implies normal and asymptotically most efficient estimates) as well as the boundaries between the scenarios $( \\gamma$ = 1.0 and $\\gamma \\ = \\ 2 . 0 )$ . In total, we had 20 conditions each containing 1000 simulations."
+        },
+        {
+          "line": 221,
+          "text": "We chose to examine three maximum-adequacy methods (namely MLE, (equation 6), MPS (equation 7), and w-MLE, (equation 8)) and three mixed methods. In all three mixed methods, $\\beta$ and  are estimated using the mean and the expected minimum (equations 11 and 12). They differ on the origin of $\\hat { \\gamma }$ : it was taken from the previous three methods (the estimates are thus noted Mixed( Å MLE), Mixed( $\\gamma \\ \\gets$ MPS), and Mixed( $_ { \\gamma } \\gets \\mathrm { w } \\mathrm { M L E } ) ,$ . In light of the results in the previous section, we expect MLE to provide poor estimates but it is nonetheless provided as a baseline and because it is still the most commonly used method."
+        },
+        {
+          "line": 229,
+          "text": "Table 2. Mean estimated RMSE and Bias on the parameter vector across sample sizes as a function of the true parameter J for the six methods of estimation explored in the text."
+        },
+        {
+          "line": 262,
+          "text": "Figure 3. Bias, efficiency and RMSE for the estimated parameters in the same format as Figure 2."
+        }
+      ],
+      "study_type": "new_and_comparative",
+      "proposed": "three Mixed(shape-source) branches",
+      "n": [
+        8,
+        16,
+        32,
+        64
+      ],
+      "replications": 1000,
+      "true_parameters": "shape=.5,1,1.5,2,2.5;scale=100;location=300",
+      "selection_reason": {
+        "status": "explicit",
+        "text": "MLE retained as baseline despite anticipated weak risk because still most commonly used; L221"
+      },
+      "author_overlap": "Cousineau also originates WMLE182-088; its WMLE adoption is not independent cross-author confirmation",
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_Bias",
+          "parameter_RMSE",
+          "joint_Bias",
+          "joint_RMSE"
+        ],
+        "locator": [
+          "L221",
+          "L229",
+          "L262"
+        ],
+        "note": "all parameters and joint vector; efficiency definition not separately recoded here"
+      }
+    },
+    {
+      "id": "182-102",
+      "title": "Moment Estimators for the 3-Parameter Weibull Distribution",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-102-pdf原文.md",
+      "source_sha256": "67b87e484a4f18f2951ed0e438c530c7c834f8ee71f3865f1fb81ccf04d01f61",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "S",
+        "G"
+      ],
+      "prior_opponents": "重复模拟主要自身；生成例比ML/矩",
+      "prior_design": "每条件1000次；生成案例另列二/三参数",
+      "prior_metrics": "Mean、Bias、SD",
+      "prior_failure_handling": "非负位置可接受性另述；分母待核",
+      "prior_locator": "Properties、Examples、Appendix",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-104",
+      "title": "A LEAST SQUARE ESTIMATION OF THREE PARAMETERS OF A WEIBULL DISTRIBUTION",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-104-pdf原文.md",
+      "source_sha256": "e999857168059f2d0f8b4d5dd828891a08778e2c412ebd54af65e1e9dd04aa58",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G"
+      ],
+      "prior_opponents": "White扩展与失效率分支",
+      "prior_design": "n=20表3；前两个n=30为生成例",
+      "prior_metrics": "参数估计及真值对照、迭代",
+      "prior_failure_handling": "未知",
+      "prior_locator": "§2、表1—3",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-111",
+      "title": "Bias Reduction of Modified Maximum Likelihood Estimates for a Three-Parameter Weibull Distribution",
+      "year": 2025,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-111-pdf原文.md",
+      "source_sha256": "bb94df8e08bcdfd22f57a8dc6e021a632eaacebf61a16827c6ceea529fdefddb",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "MMLE、CMLE",
+      "prior_design": "n=50、100、500、1000，各1000次；碳纤维n=69等",
+      "prior_metrics": "参数相对Bias、RMSE、覆盖率；实测SE、logL、AIC/BIC、KS/CVM",
+      "prior_failure_handling": "未核清全失败分母；尺度参数化不同",
+      "prior_locator": "§4图4—7、§5—6",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MMLE",
+          "version": "modified likelihood ref10; not all MMLE definitions identical",
+          "role": "existing comparator"
+        },
+        {
+          "family": "CMLE",
+          "version": "corrected MLE ref2",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "confirmed_present": true,
+        "comparators_verified_this_audit": true,
+        "n": [
+          69
+        ],
+        "families": [
+          "MMLE",
+          "CMLE"
+        ],
+        "locator": "L254-265 table1",
+        "role": "carbon fiber fit, AIC/BIC; MLE2p is a different model and excluded"
+      },
+      "new_body_evidence": [
+        {
+          "line": 218,
+          "text": "• true population’s parameters $( \\mu , \\alpha , \\sigma ) \\in \\{ ( 1 , 1 , 1 ) , ( 1 , 0 . 5 , 2 ) , ( 1 , 1 . 5 , 2 ) \\}$"
+        },
+        {
+          "line": 220,
+          "text": "$M = 1 0 0 0$ Monte Carlo replications of samples $\\{ X _ { 1 } , \\cdots , X _ { n } \\}$ directly sampled from true distributions since the parameters are known;"
+        },
+        {
+          "line": 222,
+          "text": "sample size $n \\in \\{ 5 0 , 1 0 0 , 5 0 0 , 1 0 0 0 \\}$ };"
+        },
+        {
+          "line": 224,
+          "text": "Aiming to study the Monte Carlo to evaluate the DMMLEs, we compute the relative bias (RB) and root mean squared errors (RMSE) of each estimated value compared to their true population’s values. The results were compared with the modified MLE (MMLE) and corrected MLE (CMLE), which were proposed by [10] and [2], respectively."
+        },
+        {
+          "line": 254,
+          "text": "Table 1. Estimated parameters (standard error), maximum log-likelihood, AIC, and BIC of the strength of 20 mm gauge carbon fibers."
+        },
+        {
+          "line": 265,
+          "text": "Figure 8. The Weibull model fit via ECDF (left) and histogram (right) of the resistance of 20 mm gauge carbon fibers. The theoretical CDF and PDF are plotted based on the parameters presented in Table 1 for the DMMLE (gray lines), MMLE (blue lines), and CMLE (red lines) methods. Additionally, the Weibull case with two parameters (MLE2p) is plotted using green lines."
+        },
+        {
+          "line": 254,
+          "text": "Table 1. Estimated parameters (standard error), maximum log-likelihood, AIC, and BIC of the strength of 20 mm gauge carbon fibers."
+        },
+        {
+          "line": 224,
+          "text": "Aiming to study the Monte Carlo to evaluate the DMMLEs, we compute the relative bias (RB) and root mean squared errors (RMSE) of each estimated value compared to their true population’s values. The results were compared with the modified MLE (MMLE) and corrected MLE (CMLE), which were proposed by [10] and [2], respectively."
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "DMMLE",
+      "n": [
+        50,
+        100,
+        500,
+        1000
+      ],
+      "replications": 1000,
+      "true_parameters": "source(mu,alpha,sigma)=(1,1,1),(1,.5,2),(1,1.5,2)",
+      "selection_reason": {
+        "status": "inferred",
+        "text": "MMLE and corrected MLE are nearest likelihood modifications; L224 identifies sources but not a general selection rule"
+      },
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_relative_bias",
+          "parameter_RMSE"
+        ],
+        "locator": [
+          "L224"
+        ],
+        "note": "all parameters"
+      }
+    },
+    {
+      "id": "182-113",
+      "title": "A consistent method of estimation for the three-parameter Weibull distribution",
+      "year": 2013,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-113-pdf原文.md",
+      "source_sha256": "3cc6b1dc222c21c17166b6dc054afc42b13e93950b8d1d43855646584abf1c4d",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "BL、w-ML；实测另MM",
+      "prior_design": "n=10、20、50、100、500，各1000次；真实10与4点",
+      "prior_metrics": "参数及Joint Bias/RMSE、CPU；实测参数与变换似然",
+      "prior_failure_handling": "4点MM/BL不收敛；不等于模拟全失败统计",
+      "prior_locator": "§3表1—6、§4表7—9",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "BL",
+          "version": "Hall-Wang2005 Bayesian likelihood",
+          "role": "existing comparator"
+        },
+        {
+          "family": "WMLE",
+          "version": "median weights; Ng2011 plug-in W3; 10000 weight simulations",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "confirmed_present": true,
+        "comparators_verified_this_audit": true,
+        "n": [
+          10,
+          4
+        ],
+        "families": [
+          "MM",
+          "BL",
+          "WMLE"
+        ],
+        "locator": "L258-303 tables8-9",
+        "role": "existence/solver challenge examples; no MLE solution and MM/BL failure retained"
+      },
+      "new_body_evidence": [
+        {
+          "line": 173,
+          "text": "We carry out a Monte Carlo simulation study to evaluate the performance of the proposed estimators. The proposed estimators, termed LSPFs, which is the abbreviation for location and scale parameters free maximum likelihood estimators, are compared with the BL estimators (BLEs) proposed by Hall and Wang (2005), and the weighted maximum likelihood estimators (w-MLEs) proposed by Cousineau (2009b). Hall and Wang (2005) concluded from their simulation study that the BL method in general outperforms the MPS method and the CL method, while (Cousineau, 2009a) reported from an empirical study that the w-ML method in general outperforms the ML and MPS methods as well as the method of moments and therefore the comparison of the proposed LSPFs with BLEs and w-MLEs seems appropriate and adequate."
+        },
+        {
+          "line": 175,
+          "text": "In the simulation study, the values ofthe shape parameter $\\beta$ are selected as 0.5, 1.0, 2.0, 3.0, 4.0 and 5.0. For the location and scale parameters. we take $\\gamma = 0$ and $\\alpha = 1$ . The sample size is taken to be 10, 20, 50, 100 and 500. Thus, we have 30 possible configurations in total. As a matter of fact, we have considered various other configurations for which we do not report the results here for the sake of brevity. These results, however, lead to very similar conclusions."
+        },
+        {
+          "line": 179,
+          "text": "For computing the estimates of the w-ML method, we follow the same manner in Ng et al. (2011). The estimates of the w-ML method are obtained as solutions of the following simultaneous equations:"
+        },
+        {
+          "line": 193,
+          "text": "where $W _ { 1 } , W _ { 2 }$ and $W _ { 3 }$ are random variables and they are replaced by the medians of the 10,000 samples from their distributions by using Monte Carlo simulations, in which $W _ { 3 }$ depends on $\\beta ,$ , and $\\beta$ for $W _ { 3 }$ is estimated as the ML estimate o $\\beta$ for the two-parameter Weibull distribution based on $X _ { ( i ) } - X _ { ( 1 ) } , i = 2 , \\dots , n$ (see Ng et al., 2011 for details). For solving (10) and (11) simultaneously, we adopt the Cohen and Whitten algorithm for solving equations for the usual MLE, introduced in Cohen and Whitten (1982). In solving Eq. (10) with respect to β for fixed γ in the algorithm, we use a numerical function imsl\\_d\\_zeros\\_fcn() from the IMSL C Numerical Library Version 7.0 (2008), with initial value of $\\beta$ given as the ML estimate of β for the two-parameter Weibull distribution based on $X _ { ( i ) } - X _ { ( 1 ) } , i = 2 , \\dots , n$ , initial lower bound as 0.1 and initial upper bound as 50.0. In solving Eq. (11) with respect to γ for fixed $\\beta$ in the algorithm, the bisection method, with the same initial bounds as those in the Fortran 77 program for obtaining the usual ML estimates in Appendix of Cohen and Whitten (1988). is used."
+        },
+        {
+          "line": 291,
+          "text": "The estimates by the MM, BL and w-ML methods are all presented in Table 8."
+        },
+        {
+          "line": 196,
+          "text": "Bias, RMSE and computational time of BL, w-ML and LSPF based on 1000 simulations with $\\beta = 0 . 5 .$"
+        },
+        {
+          "line": 198,
+          "text": "<table><tr><td rowspan=\"2\">β</td><td rowspan=\"2\">n</td><td rowspan=\"2\">Method</td><td colspan=\"2\">Shape</td><td colspan=\"2\">Location</td><td colspan=\"2\">Scale</td><td colspan=\"2\">Joint</td><td rowspan=\"2\">Comp. T. (s)</td></tr><tr><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td><td>Bias</td><td>RMSE</td></tr><tr><td rowspan=\"3\">0.5</td><td rowspan=\"3\">10</td><td>BL</td><td>0.102</td><td>0.253</td><td>-0.002</td><td>0.077</td><td>0.132</td><td>0.781</td><td>0.236</td><td>0.824</td><td>0.001920</td></tr><tr><td>w-ML</td><td>0.081</td><td>0.240</td><td>-0.014</td><td>0.077</td><td>0.110</td><td>0.783</td><td>0.205</td><td>0.823</td><td>0.081751</td></tr><tr><td>LSPF</td><td>0.083</td><td>0.284</td><td>-0.023</td><td>0.085</td><td>0.133</td><td>0.790</td><td>0.239</td><td>0.844</td><td>0.434547</td></tr><tr><td rowspan=\"3\"></td><td rowspan=\"3\">20</td><td>BL</td><td>0.040</td><td>0.109</td><td>0.002</td><td>0.011</td><td>0.049</td><td>0.488</td><td>0.091</td><td>0.500</td><td>0.003133</td></tr><tr><td>w-ML</td><td>0.026</td><td>0.112</td><td>0.000</td><td>0.013</td><td>0.027</td><td>0.488</td><td>0.053</td><td>0.501</td><td>0.157335</td></tr><tr><td>LSPF</td><td>0.028</td><td>0.111</td><td>-0.003</td><td>0.014</td><td>0.042</td><td>0.491</td><td>0.073</td><td>0.504</td><td>1.086685</td></tr><tr><td rowspan=\"3\"></td><td rowspan=\"3\">50</td><td>BL</td><td>0.018</td><td>0.058</td><td>0.000</td><td>0.002</td><td>0.034</td><td>0.295</td><td>0.052</td><td>0.301</td><td>0.006525</td></tr><tr><td>w-ML</td><td>0.010</td><td>0.061</td><td>0.000</td><td>0.002</td><td>0.019</td><td>0.297</td><td>0.029</td><td>0.303</td><td>0.379359</td></tr><tr><td>LSPF</td><td>0.010</td><td>0.060</td><td>-0.000</td><td>0.002</td><td>0.021</td><td>0.297</td><td>0.031</td><td>0.303</td><td>6.155124</td></tr><tr><td rowspan=\"3\"></td><td rowspan=\"3\">100</td><td>BL</td><td>0.015</td><td>0.039</td><td>0.000</td><td>0.000</td><td>0.033</td><td>0.203</td><td>0.049</td><td>0.207</td><td>0.010650</td></tr><tr><td>w-ML</td><td>0.004</td><td>0.041</td><td>0.000</td><td>0.000</td><td>0.011</td><td>0.203</td><td>0.015</td><td>0.207</td><td>0.753422</td></tr><tr><td>LSPF</td><td>0.004</td><td>0.040</td><td>-0.000</td><td>0.000</td><td>0.012</td><td>0.203</td><td>0.016</td><td>0.207</td><td>17.911121</td></tr><tr><td rowspan=\"3\"></td><td rowspan=\"3\">500</td><td>BL</td><td>0.017</td><td>0.024</td><td>0.000</td><td>0.000</td><td>0.036</td><td>0.101</td><td>0.054</td><td>0.104</td><td>0.019864</td></tr><tr><td>w-ML</td><td>0.001</td><td>0.018</td><td>0.000</td><td>0.000</td><td>0.005</td><td>0.094</td><td>0.006</td><td>0.096</td><td>3.480196</td></tr><tr><td>LSPF</td><td>0.001</td><td>0.018</td><td>-0.000</td><td>0.000</td><td>0.005</td><td>0.094</td><td>0.006</td><td>0.096</td><td>88.005481</td></tr></table>"
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "LSPF",
+      "n": [
+        10,
+        20,
+        50,
+        100,
+        500
+      ],
+      "replications": 1000,
+      "true_parameters": "shape=.5,1,2,3,4,5;scale=1;location=0",
+      "selection_reason": {
+        "status": "explicit",
+        "text": "BL and w-ML chosen because earlier studies report them superior to MPS/CL and ML/MPS/moments; L173"
+      },
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_Bias",
+          "parameter_RMSE",
+          "joint_Bias",
+          "joint_RMSE",
+          "computational_time"
+        ],
+        "locator": [
+          "L196",
+          "L198"
+        ],
+        "note": "all parameters and joint; table columns verified"
+      }
+    },
+    {
+      "id": "182-115",
+      "title": "Weibullness Test and Parameter Estimation of the Three-Parameter Weibull Model Using the Sample Correlation Coeficient",
+      "year": 2017,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-115-pdf原文.md",
+      "source_sha256": "fa39b66e283074359c5e0efa87efef6410c0d11897ae3a68366bfbffca73eb20",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R"
+      ],
+      "prior_opponents": "MLE3、Sirvanci–Yang、Gumbel及组合",
+      "prior_design": "真实24点；检验临界值模拟不计参数性能S",
+      "prior_metrics": "R、p、AD",
+      "prior_failure_handling": "未知",
+      "prior_locator": "§3、§5表1",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      },
+      "year_evidence": "作者维护CRAN weibullness引用文档，24(4):376–391；https://search.r-project.org/CRAN/refmans/weibullness/html/wp.test.html"
+    },
+    {
+      "id": "182-116",
+      "title": "Estimating Parameters in Continuous Univariate Distributions with a Shifted Origin",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-116-pdf原文.md",
+      "source_sha256": "edb768d806ab22079141264baa5743ac74ae155db66cf13eb46da273ec1260f1",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R"
+      ],
+      "prior_opponents": "ML",
+      "prior_design": "20洪水、20污染",
+      "prior_metrics": "参数、剖面目标、失败例",
+      "prior_failure_handling": "讨论ML失效和重复值处理",
+      "prior_locator": "§2、§4—5",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-117",
+      "title": "Evaluating the lifetime distribution parameters and reliability of products using successive approximation method",
+      "year": 2024,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-117-pdf原文.md",
+      "source_sha256": "a56d302e881d3ebda882269049e409a2a8a9c4a015ca7be0507ce85860184e8a",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "小n:LSE/MLE/PWM；大n:ARS/LSE/PWM/PSO/CE/DE/ABC",
+      "prior_design": "n=5及100—2500，10000次；真实35与4点",
+      "prior_metrics": "自身Bias/MSE/STD；跨法汇总E²；零位置比例；真实K-S、时间",
+      "prior_failure_handling": "接近零/负位置归零；表12短横线含义未定",
+      "prior_locator": "§4表1—9、§5.1表10—14、§6",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "traditional three-parameter MLE",
+          "role": "existing comparator"
+        },
+        {
+          "family": "LS",
+          "version": "LSE in section5.1",
+          "role": "existing comparator"
+        },
+        {
+          "family": "PWM",
+          "version": "probability weighted moments",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 524,
+          "text": "For reliability testing ofhigh-quality products, very limited failure data are available. Thus, the application ofthe proposed method is studied in this subsection when the data set is too small. The minimum sample size was set to 5, which is consistent with existing studies for small samples.<sup>32</sup> The settings of the Weibull parameter and convergence parameter are the same as the numerical study. Given that the results of the three examples are similar, only the histograms and the box plots $( \\gamma = 2 , \\beta = 2 , \\eta = 2 )$ are shown in Figures 12 and 13."
+        },
+        {
+          "line": 541,
+          "text": "On the other hand, the proposed method avoids the problem of poor solution and non-unique solutions for parameter estimation ofvery few failure data, and improves the applicability of reliability assessment. For further details, we select 15 data sets from the three examples, as shown in Table 11. These data were randomly generated from the Weibull parameters (� = 2, � = 2, � = 2), (� = 4, � = 3, � = 2), and (� = 5, � = 2, � = 3), respectively. Using the traditional method and the proposed method to estimate the Weibull parameters of the data, the Weibull parameter estimation results are shown in Table 12. The location parameter obtained is very close to 0 or less than 0, which is considered as the estimation result of the location parameter is 0. The location parameter obtained from the proposed method is greater than 0 and close to its true value. The cases where the estimation result of the location parameter is 0 occur in the traditional methods Therefore, the proposed method has better applicability for reliability assessment with small samples."
+        },
+        {
+          "line": 543,
+          "text": "To further clarify this conclusion, we take 10,000 samples with a sample size of 5 under each parameter combination. Using the traditional method and the proposed method to estimate the Weibull parameters of the samples, the probability that the location parameter estimates are very close to 0 or less than 0 is tabulated, as shown in Table 13. It can be found that the proposed method always provides a unique estimate of the location parameter, while the LSE has a higher probability that a location parameter of 0 was obtained. Similarly, the Weibull parameter estimation results are shown in Table 14. The proposed method presented a better performance for the Weibull parameters when compared to the other methods, especially for the location parameter. It is important to estimate the location parameters exactly for the reliabilit of high-quality products, such as aircraft parts, satellite parts, hard drives, and so forth. Additionally, the shape parameter estimation yields a large bias in all methods, which may be a common problem when the sample size is small. In response to this problem, some engineers improve the estimation accuracy of the Weibull parameters by using prior information to determine the shape parameter.<sup>33–35</sup> As a result, the superiority of the proposed method is obvious for estimating the location and scale parameters when the available data set is too small. These results demonstrate the better applicabilit of the proposed method for parameter estimation in small samples."
+        },
+        {
+          "line": 543,
+          "text": "To further clarify this conclusion, we take 10,000 samples with a sample size of 5 under each parameter combination. Using the traditional method and the proposed method to estimate the Weibull parameters of the samples, the probability that the location parameter estimates are very close to 0 or less than 0 is tabulated, as shown in Table 13. It can be found that the proposed method always provides a unique estimate of the location parameter, while the LSE has a higher probability that a location parameter of 0 was obtained. Similarly, the Weibull parameter estimation results are shown in Table 14. The proposed method presented a better performance for the Weibull parameters when compared to the other methods, especially for the location parameter. It is important to estimate the location parameters exactly for the reliabilit of high-quality products, such as aircraft parts, satellite parts, hard drives, and so forth. Additionally, the shape parameter estimation yields a large bias in all methods, which may be a common problem when the sample size is small. In response to this problem, some engineers improve the estimation accuracy of the Weibull parameters by using prior information to determine the shape parameter.<sup>33–35</sup> As a result, the superiority of the proposed method is obvious for estimating the location and scale parameters when the available data set is too small. These results demonstrate the better applicabilit of the proposed method for parameter estimation in small samples."
+        },
+        {
+          "line": 565,
+          "text": "TA B L E 1 4 The comparison results of the proposed method with the existing methods."
+        },
+        {
+          "line": 567,
+          "text": "<table><tr><td rowspan=\"2\">Methods</td><td colspan=\"4\"> $(\\gamma, \\eta, \\beta) = (2, 2, 2)$ </td><td colspan=\"4\"> $(\\gamma, \\eta, \\beta) = (4, 3, 2)$ </td><td colspan=\"4\"> $(\\gamma, \\eta, \\beta) = (5, 2, 3)$ </td></tr><tr><td> $\\hat{\\gamma}$ </td><td> $\\hat{\\eta}$ </td><td> $\\hat{\\beta}$ </td><td> $E^{2}$ </td><td> $\\hat{\\gamma}$ </td><td> $\\hat{\\eta}$ </td><td> $\\hat{\\beta}$ </td><td> $E^{2}$ </td><td> $\\hat{\\gamma}$ </td><td> $\\hat{\\eta}$ </td><td> $\\hat{\\beta}$ </td><td> $E^{2}$ </td></tr><tr><td>Proposed</td><td>1.794</td><td>2.11</td><td>2.595</td><td>0.408</td><td>3.786</td><td>2.908</td><td>2.609</td><td>0.425</td><td>4.728</td><td>2.105</td><td>3.606</td><td>0.452</td></tr><tr><td>MLE</td><td>2.440</td><td>1.249</td><td>1.658</td><td>0.874</td><td>4.507</td><td>2.060</td><td>1.880</td><td>1.156</td><td>5.504</td><td>1.310</td><td>2.494</td><td>0.987</td></tr><tr><td>PWM</td><td>1.552</td><td>2.227</td><td>2.596</td><td>0.607</td><td>3.299</td><td>3.569</td><td>2.748</td><td>1.374</td><td>3.715</td><td>3.262</td><td>4.025</td><td>4.295</td></tr><tr><td>LSE</td><td>3.326</td><td>0.633</td><td>1.288</td><td>4.134</td><td>4.382</td><td>2.568</td><td>2.648</td><td>0.753</td><td>5.546</td><td>1.438</td><td>1.253</td><td>3.667</td></tr></table>"
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "PM successive approximation",
+      "n": [
+        5
+      ],
+      "replications": 10000,
+      "true_parameters": "source(gamma,eta,beta)=(2,2,2),(4,3,2),(5,2,3)",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      },
+      "other_comparison": {
+        "methods": [
+          "ARS",
+          "LSE",
+          "PWM",
+          "PSO",
+          "CE",
+          "DE",
+          "ABC"
+        ],
+        "locator": "section4.1 tables2,4,6",
+        "classification": "large-n estimated values / prior literature comparison",
+        "excluded_from_repeated_frequency": "only section5.1 n5 independently resampled opponent risk counted"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams",
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_estimates",
+          "joint_E2",
+          "location_boundary_frequency"
+        ],
+        "locator": [
+          "L543",
+          "L565",
+          "L567"
+        ],
+        "note": "table14 E2 is squared distance of displayed estimates; not automatically mean per-replicate squared error; own-method table10 Bias/MSE/SD not counted as cross-method metrics"
+      }
+    },
+    {
+      "id": "183-020",
+      "title": "Estimating parameters of the three-parameter Weibull distribution using a neural network",
+      "year": 2008,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\183_机器学习参数估计\\183-020-pdf原文.md",
+      "source_sha256": "4527c9ee944b9f5b73ab88f3e3715668240f075dae34bcc4daf87f6d77f3a8cc",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "G"
+      ],
+      "prior_opponents": "Johnson矩、Cran矩、SA-MLE",
+      "prior_design": "n=100、1000、2500、10000，各10000次",
+      "prior_metrics": "参数Mean、SD、MSE、区间；耗时",
+      "prior_failure_handling": "未知",
+      "prior_locator": "§5—6、表1—4",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MM",
+          "version": "Johnson1994 eq3-5 and Cran1988 eq6-8",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 178,
+          "text": "A simulation study was used for the different parameters of the Weibull distribution which allowed us to analyse the performance of our developed ANN. For each distribution, based on different sample sizes, i.e., 100, 1000, 2500 and 10 000, we generated 10 000 samples to estimate the input variables. For each distribution we use two moment based methods and proposed (ANN based) method to estimate Weibull parameters. Shown in Table 1 for each of applied method are the:"
+        },
+        {
+          "line": 180,
+          "text": "• mean and standard deviation of each estimated parameter, for 10 000 replications"
+        },
+        {
+          "line": 184,
+          "text": "Also the location parameters estimated from a minimum of the data are shown in Table 1. In using Johnson et al. (1994) method (Equations (3) to (5)) we used Newton-Raphson method to solve Equation (3). After solving Equation (3), Equations (4) and (5) were applied to estimate  and . For another applied moment based method (Cran, 1988) we directly used Equations (6) to (8)."
+        },
+        {
+          "line": 198,
+          "text": "Table 1 Results of simulation study for Weibull distribution for 10 000 replications"
+        },
+        {
+          "line": 213,
+          "text": "A comparison between the new approach and a Simulated Annealing (SA) based method introduced by Abbasi et al. (2006) is carried out in this section. The results of this comparison are summarised in Tables 2 to 4. The results verify the well performance of the ANN based method. Although SA based method has presented acceptable results, but it is more difficult to deploy rather than ANN based method. Also Tables 2 to 4 pointed out the ANN based method is faster than SA based method. All the coding was done in Matlab 7, and run on a P4 processor with a RAM of 128 KBs."
+        },
+        {
+          "line": 178,
+          "text": "A simulation study was used for the different parameters of the Weibull distribution which allowed us to analyse the performance of our developed ANN. For each distribution, based on different sample sizes, i.e., 100, 1000, 2500 and 10 000, we generated 10 000 samples to estimate the input variables. For each distribution we use two moment based methods and proposed (ANN based) method to estimate Weibull parameters. Shown in Table 1 for each of applied method are the:"
+        },
+        {
+          "line": 180,
+          "text": "• mean and standard deviation of each estimated parameter, for 10 000 replications"
+        },
+        {
+          "line": 182,
+          "text": "● mean square error and a 95% confidence interval for each estimated parameter."
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "ANN",
+      "n": [
+        100,
+        1000,
+        2500,
+        10000
+      ],
+      "replications": 10000,
+      "true_parameters": "Table1: parameter values in OCR merged cells; do not infer full grid",
+      "selection_reason": {
+        "status": "explicit",
+        "text": "moment methods directly estimate parameters; authors discuss ease of use versus numerical solving; L99/184/192"
+      },
+      "other_comparison": {
+        "method": "SA-MLE",
+        "locator": "section6 Tables2-4 L211-225",
+        "classification": "generated examples/historical estimate comparison; fresh repeated sampling not confirmed",
+        "excluded_from_repeated_frequency": true
+      },
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_mean",
+          "parameter_SD",
+          "parameter_MSE"
+        ],
+        "locator": [
+          "L178",
+          "L180",
+          "L182"
+        ],
+        "note": "all parameters"
+      }
+    },
+    {
+      "id": "184-009",
+      "title": "Estimation of Weibull distribution using the back-propagation neural network for fatigue failure data",
+      "year": 2025,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\184_深度学习参数估计\\184-009-pdf原文.md",
+      "source_sha256": "b9f053d3b4af03218e4a0f7bd02c3a2843d38ae4d432b5703edc3fa1d1a4b0f5",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "CCM、MDM",
+      "prior_design": "n=5、10、15、20，每条件1000组；真实15点",
+      "prior_metrics": "参数及1%分位点SD、RMSE；真实K-S、p、CDF",
+      "prior_failure_handling": "失败分母未完整确认",
+      "prior_locator": "§4、§5表3",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "CC",
+          "version": "CCM ref26",
+          "role": "existing comparator"
+        },
+        {
+          "family": "MDM",
+          "version": "Xie2022/23 ref25",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "confirmed_present": true,
+        "comparators_verified_this_audit": true,
+        "n": [
+          15
+        ],
+        "families": [
+          "CC",
+          "MDM"
+        ],
+        "locator": "L364-370 table3",
+        "role": "fatigue application, KS and empirical CDF fit"
+      },
+      "new_body_evidence": [
+        {
+          "line": 43,
+          "text": "The estimation methods mentioned above depend on large sample sizes. However, when large samples are unavailable, traditional estimation methods often result in substantial and unstable errors [22]. To address this issue, Sugiyama et al. [23] obtained an unbiased estimate of the location parameter based on the order statistics with a sample size of 5. Yang et al. [24] developed a theoretical model and proposed an iterative method while keeping the shape parameter fixed. In an alternative approach, the standard deviation of the estimated scale parameters across all samples is minimized to derive the  $\\beta$  and  $\\gamma$  estimates, with the  $\\eta$  parameters ultimately averaged. This technique, known as the minimum discrepancy method [25], is especially effective for small sample sizes."
+        },
+        {
+          "line": 284,
+          "text": "This section contains the comparisons between the proposed parameter estimation method based on the BP neural network (BPNN), the correlation coefficient method (CCM) [26] described in Section 2.1, and the minimum discrepancy method(MDM) [25] as follows."
+        },
+        {
+          "line": 298,
+          "text": "The comparison is performed with small sample sizes, i.e.,  $n = 5$ ,  $n = 10$ ,  $n = 15$  and  $n = 20$ , considering several parameter combinations. For the given parameter values, 1000 data sets are randomly selected from the three-parameter Weibull distribution. In engineering applications, it is not sufficient to estimate only these three parameters; it is also necessary to predict the high reliability life. Thus, the  $99\\%$  reliability life (i.e., the  $1\\%$  quantile) is used as a benchmark. Two criteria are employed to evaluate the statistical performance of the estimators: the standard deviation (Std) and the root mean squared error (RMSE). The simulated Std and RMSE values are presented for sample sizes of 5,10,15 and 20. The parameter estimation results of the three methods under different distribution scenarios, i.e., W (2,5,4), W (2,5,5), W (2,5,6), W (3,5,4), W (3,5,5), and W (3,5,6) are given in Fig. 10, Fig. 11, Fig. 12, Fig. 13, Fig. 14, Fig. 15. In the above figures, 'life' refers to the  $99\\%$  reliability life."
+        },
+        {
+          "line": 354,
+          "text": "As shown in Fig. 10 for W (2, 5, 4), the estimates obtained by the three methods are compared when the sample sizes are 5, 10, 15 and"
+        },
+        {
+          "line": 370,
+          "text": "Based on the KS test, the three-parameter Weibull distribution models estimated by all three methods are statistically significant. There is a comparison of the empirical CDF curve and the CDF curves of the estimated models in Fig. 16, which closely match for the failure life data of 6A02 aluminum alloy. This comparison verifies the effectiveness of the proposed BPNN-based method."
+        },
+        {
+          "line": 370,
+          "text": "Based on the KS test, the three-parameter Weibull distribution models estimated by all three methods are statistically significant. There is a comparison of the empirical CDF curve and the CDF curves of the estimated models in Fig. 16, which closely match for the failure life data of 6A02 aluminum alloy. This comparison verifies the effectiveness of the proposed BPNN-based method."
+        },
+        {
+          "line": 298,
+          "text": "The comparison is performed with small sample sizes, i.e.,  $n = 5$ ,  $n = 10$ ,  $n = 15$  and  $n = 20$ , considering several parameter combinations. For the given parameter values, 1000 data sets are randomly selected from the three-parameter Weibull distribution. In engineering applications, it is not sufficient to estimate only these three parameters; it is also necessary to predict the high reliability life. Thus, the  $99\\%$  reliability life (i.e., the  $1\\%$  quantile) is used as a benchmark. Two criteria are employed to evaluate the statistical performance of the estimators: the standard deviation (Std) and the root mean squared error (RMSE). The simulated Std and RMSE values are presented for sample sizes of 5,10,15 and 20. The parameter estimation results of the three methods under different distribution scenarios, i.e., W (2,5,4), W (2,5,5), W (2,5,6), W (3,5,4), W (3,5,5), and W (3,5,6) are given in Fig. 10, Fig. 11, Fig. 12, Fig. 13, Fig. 14, Fig. 15. In the above figures, 'life' refers to the  $99\\%$  reliability life."
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "BPNN",
+      "n": [
+        5,
+        10,
+        15,
+        20
+      ],
+      "replications": 1000,
+      "true_parameters": "W(beta,eta,gamma)=(2,5,4),(2,5,5),(2,5,6),(3,5,4),(3,5,5),(3,5,6)",
+      "selection_reason": {
+        "status": "inferred",
+        "text": "CCM already used to obtain fatigue shape ranges; MDM described as small-sample method; no formal opponent selection rule"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams",
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_SD",
+          "parameter_RMSE"
+        ],
+        "locator": [
+          "L298"
+        ],
+        "note": "all parameters and 1 percent quantile"
+      },
+      "year_evidence": "Crossref出版商题录，PEM82，2025-10；DOI10.1016/j.probengmech.2025.103828"
+    },
+    {
+      "id": "184-010",
+      "title": "Kernel density estimation of three-parameter Weibull distribution with neural network and genetic algorithm",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\184_深度学习参数估计\\184-010-pdf原文.md",
+      "source_sha256": "4c556c4c892ae7cde6e9ef0dbfe7d94cb80dcc3815ccc821580237027320a1ae",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G"
+      ],
+      "prior_opponents": "ML、灰色、RRM；带宽/核函数分支",
+      "prior_design": "新法与RRM n=500；ML/灰色表列n=1000",
+      "prior_metrics": "参数、相对误差；曲线RMSE",
+      "prior_failure_handling": "未确认重复次数；出版元数据冲突",
+      "prior_locator": "§3.1、§4表2—4",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "185-005",
+      "title": " © The Korean Society of Mechanical Engineers and Springer-Verlag GmbH Germany, part of Springer Nature 2023   5797",
+      "year": 2023,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\185_小样本问题方法\\185-005-pdf原文.md",
+      "source_sha256": "ddc593ab440dfd44a86fe3bc94a98de05b2441dd20d309b6fec59edd4905ffe1",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "MLE、CCWP、PWM；实测历史Bayes/LSPF等",
+      "prior_design": "n=5、10、15、20，各10000次；真实10与4点",
+      "prior_metrics": "参数MAD/MSD；MTTF及1%分位点MAD；真实K-S、CDF误差",
+      "prior_failure_handling": "未核清完整失败分母",
+      "prior_locator": "§3式40/41、寿命式44/45、§4",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "MLE equations",
+          "role": "existing comparator"
+        },
+        {
+          "family": "CC",
+          "version": "Park CCWP; correlation-based location",
+          "role": "existing comparator"
+        },
+        {
+          "family": "PWM",
+          "version": "Greenwood PWM; Toasa Caiza explicit implementation",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 17,
+          "text": "For these problems, some optimization methods have been proposed to solve the likelihood equation of MLE, such as particle swarm optimization [8, 9], differential evolution [10], and the EM algorithm [11]. In addition, Nagatsuka et al. [12] proposed an efficient method for parameter and quantile estimation based on statistics invariant to unknown location parameter, which solved the problems of No. (i) and No. (ii). Toasa Caiza et al. [13] estimated the Weibull parameters based on the probability weighted moments estimation (PWM), and presented explicit forms of the parameters. Park and Chan-seok [14] also proposed a method using the sample correlation coefficient from the Weibull plot (CCWP), which provides explicit forms of these estimators. However, the estimation performance of these algorithms for small samples has not been further investigated. Bayesian estimation is also a method to estimate the Weibull parameters, which yielded to integrating the available prior information and field data [15, 16]. Therefore, this method requires prior information."
+        },
+        {
+          "line": 147,
+          "text": "2.1.3 Probability weighted moments (PWM)  "
+        },
+        {
+          "line": 148,
+          "text": "The PWM method was proposed by Greenwood [25]. Its advantage is that the calculation process is simple in implementation. The probability weighted moments function of the Weibull distribution is expressed as [13]  "
+        },
+        {
+          "line": 381,
+          "text": "In this section, some Monte-Carlo simulations are performed to show the performance of the proposed method (PM). We also compare its performance with the existing methods, such as MLE, CCWP, and PWM. In this study, the location parameter is considered to be 1, and the shape parameter is taken as $\\beta = 1.5$, $2.0$, and $2.5$.  "
+        },
+        {
+          "line": 386,
+          "text": "The relationships between variation coefficient and scale parameter are shown in Fig. 3. It is obvious that the coefficient of variation tends to stabilize when the scale parameter $\\eta > 4$. Therefore, the scale parameter is taken as $0.2$, $0.4$, $0.6$, $0.8$, $1.0$, $2.0$, $3.0$, and $4.0$. The sample size is considered to be $5$, $10$, $15$, and $20$. The adjustment factor is considered to be $0.99$, and the convergence precision is set as $\\varepsilon = 10^{-5}$. Each simulation structure is repeated $10000$ times. All the simulations in this paper were performed in MATLAB 2021 on a PC equipped with a Windows 10 system 64-bit, 3.6 GHz CPU, and 6 GB of RAM.  "
+        },
+        {
+          "line": 766,
+          "text": "The proposed method is compared with existing methods in terms of precision and robustness, such as MLE, CCWP, and PWM. Specifically, the estimation performance of the proposed method with a small sample ($n = 5, 10, 15, 20$) is investigated in terms of parameter estimation and reliability estimation. After the comparison, the precision and robustness of the proposed method are proven to be superior for parameter estimation and reliability analysis with small samples. Therefore, the proposed method can be an effective and efficient estimator to perform parameter estimation and reliability analysis of the Weibull distribution in the case of small samples. At the end of the study, two life data obtained from practical engineering are used to show the applicability of the method.  "
+        },
+        {
+          "line": 390,
+          "text": "To investigate the performance of the proposed method, several statistical parameters are defined to compare the precision and robustness of different methods. For precision, the mean absolute deviation (MAD) (e.g., Ref. [2]) of three parameters of Weibull distribution is considered as the statistical parameter, which can be expressed as  "
+        },
+        {
+          "line": 394,
+          "text": "where $MAD(\\gamma)$, $MAD(\\eta)$, and $MAD(\\beta)$ represent the mean absolute deviation between the true value and the estimations of $\\gamma$, $\\eta$, and $\\beta$, respectively. For robustness, the mean standard deviation (MSD) of three parameters is used to compare the performance of different methods, which is  "
+        },
+        {
+          "line": 398,
+          "text": "where $std(\\gamma)$, $std(\\eta)$, and $std(\\beta)$ represent the standard deviation of the parameter estimation of $\\gamma$, $\\eta$, and $\\beta$ from each simulation structure, respectively.  "
+        }
+      ],
+      "study_type": "new_estimator",
+      "proposed": "SAM",
+      "n": [
+        5,
+        10,
+        15,
+        20
+      ],
+      "replications": 10000,
+      "true_parameters": "beta=1.5,2,2.5;eta=.2,.4,.6,.8,1,2,3,4;gamma=1",
+      "selection_reason": {
+        "status": "inferred",
+        "text": "intro motivates MLE limitations, CCWP and PWM practicality; not explicit proof of exhaustive set"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams",
+      "verified_cross_method_metrics": {
+        "tags": [
+          "mean_across_parameters_MAE",
+          "mean_across_parameters_SD"
+        ],
+        "locator": [
+          "L390",
+          "L394",
+          "L398"
+        ],
+        "note": "MAD and MSD aggregate three parameters; retain distinct from per-parameter curves"
+      }
+    },
+    {
+      "id": "187-001",
+      "title": "An improved adaptive gradient-based optimization algorithm for estimating the parameters of three-parameter Weibull distribution: an application of aero-engine reliability assessment",
+      "year": 2026,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-001-pdf原文.md",
+      "source_sha256": "873e82366a08e8876847bb5c7ba72529ac2d9d56d7e1f0f1c485400cbc70dfea",
+      "prior_hash_matches": true,
+      "primary_included": true,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "Newton、PSO、CCLSE",
+      "prior_design": "无噪n=10、20、50、100，1000组；真实发动机案例",
+      "prior_metrics": "参数误差、RMSE/RAAE、logL、CPU",
+      "prior_failure_handling": "自适应搜索域影响归因；失败分母待核",
+      "prior_locator": "§4.1—4.3、§5",
+      "reason": "ordinary complete three-parameter repeated Monte Carlo with reported risk for all parameters; 182-101 joint risk also eligible",
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "Newton and PSO solve likelihood; one family count",
+          "role": "existing comparator"
+        },
+        {
+          "family": "CC",
+          "version": "CCLSE",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "confirmed_present": true,
+        "comparators_verified_this_audit": true,
+        "n": [],
+        "families": [
+          "MLE"
+        ],
+        "locator": "L636-648",
+        "role": "PSO/Newton maximize likelihood; not independent estimator accuracy; other distribution models separate"
+      },
+      "new_body_evidence": [
+        {
+          "line": 445,
+          "text": "were configured as WD(2,2,2), WD(4,3,2), and WD(5,2,3), respectively. To evaluate the performance of different sample sizes, the sample sizes were sequentially set to 10, 20, 50, and 100. In addition, for the parameters of the ADGBO algorithm, the particle dimension is 3, the hyperparameter pr was denoted as 0.5, and the hyperparameters $\\vartheta _ { \\mathrm { m i n } }$ and $\\vartheta _ { \\mathrm { m a x } }$ were taken as 0.2 and 1.2, respectively. Each parameter combination was executed 1000 times. The failure data were generated based on the Monte Carlo method, and reliability assessment was performed. The solution equations for estimating parameters by the CCLSE method are all single-variable equations. The estimation of the location parameters terminates when the convergence of the correlation coefficients satisfies an accuracy of $1 0 ^ { - 5 }$ . Likewise, Newton’s method, PSO, and ADGBO converge with an accuracy of $1 0 ^ { - 5 }$ . Moreover, referring to the classical parameter settings of metaheuristic algorithms in the existing literature, the maximum number of iterations for the PSO algorithm and ADGBO algorithm were set to 200, and the number of particles was considered to 100. The algorithm terminates when either the maximum number of iterations or the convergence accuracy is satisfied, yielding the final value of the Weibull parameter."
+        },
+        {
+          "line": 456,
+          "text": "Each parameter scheme was simulated 1000 times, resulting in 1000 sets of Weibull parameter estimates $( \\widehat { \\gamma } , \\widehat { \\eta } , \\widehat { \\beta } )$ . To facilitate observation, the absolute deviations of the Weibull parameter estimates corresponding to each parameter combination were calculated separately. Taking the location parameter as an example, the scatterplots of the absolute deviations for the location parameters estimated under three Weibull parameter cases using the proposed method are displayed in Fig. 6. The scatter points within the circles indicate the absolute deviations of the 1000 sets of location parameter estimates relative to the true value. The coordinate axes within the circle represent the sequence numbers of the location parameters. The distance from the scattered points to the center represents the absolute deviation of the location parameters from the true value, corresponding to the vertical axis outside the circles. The blue, green, and orange scatter points from left to right in Fig. 6 represent the three Weibull parameter combinations of WD(2,2,2), WD(4,3,2), and WD(5,2,3), respectively."
+        },
+        {
+          "line": 495,
+          "text": "each parameter combination. The boxplots are utilized to depict the fluctuating trends of the location parameter, scale parameter, and shape parameter for 1000 sets of Weibull distributions estimated under each data distribution according to four algorithms, including CCLSE, Newton, PSO, and the proposed ADGBO, as exhibited in Figs. 9-11. The gray dashed lines in the figures represent the true values of the Weibull distribution parameters for each dataset. The greater the height of the box, the greater the dispersion of the estimates within this region. The black solid line inside the box identifies the average of the estimates and serves as an indicator of the overall trend of the estimates."
+        },
+        {
+          "line": 558,
+          "text": "cases. Nevertheless, for the Weibull parameter cases WD(2,2,2) and WD (4,3,2) with the sample sizes of 50 and 100, the log-likelihood values calculated by ADGBO and PSO are identical. It should be emphasized that the proposed ADGBO offers a more pronounced advantage in searching for the global optimum of Weibull parameters under a smaller sample size."
+        },
+        {
+          "line": 592,
+          "text": "To evaluate the performance of the proposed ADGBO algorithm under smaller dataset containing noisy environments and to compare it with other algorithms, we performed the analysis with the parameter setting of WD(2,2,2) and sample sizes of 10, 20, and 50, respectively. Various degrees of Gaussian noise are incorporated into the simulated failure data generated by the Monte Carlo method. The distribution parameters of the failure data are subsequently estimated. For a given failure data $t _ { i }$ , noisy datasets with various noise levels can be generated according to the following:"
+        },
+        {
+          "line": 648,
+          "text": "The Weibull parameters of the failure data are estimated using the ADGBO algorithm, traditional PSO algorithm, and Newton method. The differences in estimation accuracy and log-likelihood function values among the three methods are compared. Further analysis of the loglikelihood values associated with the Weibull parameter estimates obtained through the Newton, PSO, and ADGBO reveals that the proposed ADGBO method yields the highest log-likelihood value. Consequently, the ADGBO proposed in this study can effectively find the global optimal solution to the log-likelihood equation for aero-engine failure data, achieving the optimal estimation of Weibull parameters under the maximum likelihood theory."
+        },
+        {
+          "line": 501,
+          "text": "According to the above analysis, it can be proved that the Weibull parameters estimated using the ADGBO method are characterized by the narrowest distribution interval and the closest mean to the true value. To further elucidate, the Relative Average Absolute Error (RAAE) and the Root Mean Square Error (RMSE) are employed to evaluate the Weibull parameter estimates under various schemes."
+        },
+        {
+          "line": 539,
+          "text": "Figs. 12 and 13 intuitively present the RMSE and RAAE of Weibull parameter estimates obtained from four methods under various distribution parameter configurations. Particularly, the color intensity corresponds to the magnitude of the RMSE and RAAE associated with the Weibull parameter estimates. The variation in color intensity is represented by the color scale on the right side. Obviously, it is evident from the heatmaps that the RAAE and RMSE of Weibull parameters calculated with the ADGBO and PSO methods are minimal in most cases, while the RAAE and RMSE of Newton are comparatively higher. Furthermore, compared to the parameter estimates from the traditional PSO method, the ADGBO method exhibits the smallest RMSE and RAAE. Notably, when the sample size is 10 and 20, the proposed ADGBO method significantly outperforms the PSO. This observation confirms that the"
+        }
+      ],
+      "study_type": "solver",
+      "proposed": "ADGBO maximizes likelihood",
+      "n": [
+        10,
+        20,
+        50,
+        100
+      ],
+      "replications": 1000,
+      "true_parameters": "source(gamma,eta,beta)=(2,2,2),(4,3,2),(5,2,3)",
+      "selection_reason": {
+        "status": "inferred",
+        "text": "Newton and PSO separate solver behavior under same objective; CCLSE supplies other estimation route"
+      },
+      "author_overlap": "Northeastern/Xie-related author network overlaps; publication counts are not independent teams",
+      "verified_cross_method_metrics": {
+        "tags": [
+          "parameter_RMSE",
+          "parameter_relative_MAE"
+        ],
+        "locator": [
+          "L501",
+          "L539"
+        ],
+        "note": "all parameters; noisy subexperiment excluded"
+      },
+      "year_evidence": "出版商ScienceDirect及Crossref，RESS265，2026-01；https://www.sciencedirect.com/science/article/abs/pii/S0951832025008105"
+    },
+    {
+      "id": "187-002",
+      "title": "Penaksiran Parameter Distribusi Weibull Mengmunakan Algorithma Genetika dan Particle Swarm Optimization",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-002-pdf原文.md",
+      "source_sha256": "54a88d6e0350566cd30aebd2ef4f02ac2bdcc757a7f12634af70b17b8f137f4c",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G"
+      ],
+      "prior_opponents": "GA、PSO",
+      "prior_design": "生成n=200、500、1000；二/三参数需进一步拆表",
+      "prior_metrics": "fitness差；mean差与logL差表述冲突",
+      "prior_failure_handling": "OCR/定义冲突，暂不合并为MLE风险",
+      "prior_locator": "§1.3表10；OCR L443–462",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "187-004",
+      "title": "Research Article",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-004-pdf原文.md",
+      "source_sha256": "87db2d52d8188062ca1c7784e449dbb5905b1370005be1ce8737a05c9549de7e",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "自身设置；实测GA、PSO、SA，玻璃另LR/WLR",
+      "prior_design": "模拟与真实35陶瓷/18玻璃",
+      "prior_metrics": "似然、时间、CDF误差",
+      "prior_failure_handling": "搜索区间敏感；无统一失败分母",
+      "prior_locator": "§4.1—4.3表1—6",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "187-005",
+      "title": "Estimating the parameters of 3-p Weibull distribution through differential evolution",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-005-pdf原文.md",
+      "source_sha256": "7850c9c1ae7e1a4182921f170dd00ef86245f7c7ef6486b9f23820011bd0d2fa",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G"
+      ],
+      "prior_opponents": "DE变体及历史SA",
+      "prior_design": "n=100、500、1000、2500，全部人工数据",
+      "prior_metrics": "目标、时间、参数",
+      "prior_failure_handling": "作者说明处理器不同时间比较无效",
+      "prior_locator": "§4—5",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "187-006",
+      "title": "基于改进人工蜂群算法的机车车辆关键零部件可靠性研究",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-006-pdf原文.md",
+      "source_sha256": "cfac5d461a1d073816c17dd979a6f5093af5cbced47a40c17be5081b554c1df6",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G",
+        "R"
+      ],
+      "prior_opponents": "实测LS、生成例PWM",
+      "prior_design": "12减振器、生成例、闸片真实例",
+      "prior_metrics": "logL、K-S、CDF",
+      "prior_failure_handling": "未知",
+      "prior_locator": "§3.1—3.3表1—4",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "187-008",
+      "title": "基于遗传算法的最大似然参数优化估计OPTIMIZATION METHOD OF MAXIMUM LIKELIHOOD ESTIMATIONPARAMETER ESTIMATION BASED ON GENETIC ALGORITHMS",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-008-pdf原文.md",
+      "source_sha256": "d5545ff2992848546494d697486adebc0c5479bc1c8297a5f5dbba433cf2ec5b",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R"
+      ],
+      "prior_opponents": "GA求解MLE算例",
+      "prior_design": "齿轮断裂实测",
+      "prior_metrics": "目标值、参数、收敛曲线",
+      "prior_failure_handling": "固定形状/尺度/位置搜索区间",
+      "prior_locator": "§4式5—8",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "187-010",
+      "title": "基于 PSO 的三参数威布尔分布参数的联合估计方法*",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-010-pdf原文.md",
+      "source_sha256": "addda887199b536495fb70df2642373e2e0b4ca5540f449aaaf579b850daa7bc",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G",
+        "R",
+        "O"
+      ],
+      "prior_opponents": "双线性初值与PSO-MLE",
+      "prior_design": "生成例；真实电子/航空例，各6次求解",
+      "prior_metrics": "参数及运行均值、迭代曲线",
+      "prior_failure_handling": "未知",
+      "prior_locator": "仿真及表1—5",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "187-012",
+      "title": "Estimating the parameters of  $3 - p$  Weibull distribution using particle swarm optimization: A comprehensive experimental comparison",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-012-pdf原文.md",
+      "source_sha256": "2b7ef5877b2ce48e77b5e4ca9c485894e43ccee8bba9214705f79a607c3dffe3",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G",
+        "O"
+      ],
+      "prior_opponents": "PSO变体、历史SA/DE",
+      "prior_design": "500次实验；是否每次重抽数据未核清",
+      "prior_metrics": "均值、直方图、似然、收敛",
+      "prior_failure_handling": "未知",
+      "prior_locator": "§3—4，500 independent experiments段",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "187-013",
+      "title": "A Novel Three-parameter Weibull Distribution Parameter Estimation Using Chaos Simulated Annealing Particle Swarm Optimization in Civil Aircraft Risk Assessment",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\187_智能优化算法\\187-013-pdf原文.md",
+      "source_sha256": "2cad9a1d3fb91b732f4d05c8429e495f18c471d7082ad1754af5a2c0c3668d81",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "G"
+      ],
+      "prior_opponents": "GA、PSO、SAPSO",
+      "prior_design": "三组生成例；n含100、20",
+      "prior_metrics": "MAPE、R、AD、迭代、时间",
+      "prior_failure_handling": "未知",
+      "prior_locator": "§4.2—4.3表8、12—14",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-084",
+      "title": "用自助加权范数法评估三参数威布尔分布可靠性最优置信区间",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-084-pdf原文.md",
+      "source_sha256": "ca7331bb9521141b0b1f21262384cc0fea438ecd9d34faa0310211679ecb9ff5",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R",
+        "B"
+      ],
+      "prior_opponents": "六种范数准则",
+      "prior_design": "轴承/直升机/疲劳；重抽参数信息向量",
+      "prior_metrics": "区间、可靠性曲线与经验值",
+      "prior_failure_handling": "不同准则估计不是独立总体观测",
+      "prior_locator": "摘要、参数向量及重抽步骤；OCR L231–241",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-006",
+      "title": "基于 Gibbs 抽样算法的三参数威布尔分布 Bayes 估计 BAYESIAN ANALYSIS OF THREE-PARAMETER WEIBULL DISTRIBUTION BASED ON GIBBS SAMPLING ALGORITHM",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-006-pdf原文.md",
+      "source_sha256": "e646ccf7fa1c9ee1cc66e1f9c613a1d199aef9357acf74f4471ab2a9f98b1eca",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R",
+        "P"
+      ],
+      "prior_opponents": "Gibbs与Monte Carlo数值积分",
+      "prior_design": "完整10点子例；链2000步丢100步",
+      "prior_metrics": "后验均值/SD/分位数、可靠度/失效率后验",
+      "prior_failure_handling": "监测链均值收敛；非跨样本成功率",
+      "prior_locator": "§4；OCR L167–205",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-067",
+      "title": "三参数威布尔分布的一种参数估计方法",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-067-pdf原文.md",
+      "source_sha256": "547e5fda5b63c20c4ba9941cdab7b1692bef27792d17d88463b7cef7b1f48e97",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "T"
+      ],
+      "prior_opponents": "理论LS等价构造",
+      "prior_design": "完整样本点/区间理论；非完全样本另节",
+      "prior_metrics": "卡方/平方和准则、理论区间",
+      "prior_failure_handling": "小n正态假定影响区间的作者说明",
+      "prior_locator": "§1—6；OCR L7、100、230、251",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-090",
+      "title": "Maximum likelihood estimation in a class of nonregular cases",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-090-pdf原文.md",
+      "source_sha256": "2dc99183ff52f6ad90d52b74d91f906e7034869ef0e870e97e0fa926d3914352",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "T"
+      ],
+      "prior_opponents": "非正则MLE与替代估计理论",
+      "prior_design": "存在性、一致性、渐近分布及检验",
+      "prior_metrics": "理论方差/效率与区间",
+      "prior_failure_handling": "证明条件与数值失败不同",
+      "prior_locator": "§2—7",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-093",
+      "title": "On the existence of the nonlinear weighted least squares estimate for a three-parameter Weibull distribution✩",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-093-pdf原文.md",
+      "source_sha256": "268b1bb01f274e26b8dacaaff8d3e8b4c8c6acb0944dbb2d10296a200a32b92d",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R"
+      ],
+      "prior_opponents": "三绘图位置与历史概率图结果",
+      "prior_design": "14个复印机清洁带失效",
+      "prior_metrics": "平方和SS、拟合CDF",
+      "prior_failure_handling": "初值及LM求解，未确认全失败统计",
+      "prior_locator": "§3表1—3；OCR L87、130–134",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-105",
+      "title": "Maximum Likelihood Estimation in the 3-parameter Weibull Distribution A Look through the Generalized Extreme-value Distribution",
+      "year": 1996,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-105-pdf原文.md",
+      "source_sha256": "71013a5ff5d4a48c3cd90bc6c14fcb85819d818d25afe90f83f9755ac724dcfb",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "relevant body sections reread",
+      "prior_modes": [
+        "S",
+        "R"
+      ],
+      "prior_opponents": "GEV-MLE与WBE",
+      "prior_design": "真实5批各20；合并100；模拟n=20/50/100各1000次",
+      "prior_metrics": "变换参数和分位点Bias/RMSE；分位点90%区间覆盖率",
+      "prior_failure_handling": "剔除k=1边界例并报数量；实测参数发散而分位点有限",
+      "prior_locator": "§2—4、表4—10；OCR L69、105、126–152",
+      "reason": "extended_model; supplementary stratum, not primary denominator",
+      "sim_benchmarks": [
+        {
+          "family": "WBE",
+          "version": "closed-form Weibull based estimates",
+          "role": "existing comparator"
+        }
+      ],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [
+        {
+          "line": 126,
+          "text": "The conditions of the Monte Carlo simulation are as follows. The numbers of sample size n = 100, 50 and 20. The Weibull shape parameter $\\beta = 2, 3, 5, 8$ and 100 with the corresponding GEV shape parameter k = 0.5, 0.333, 0.2, 0.125 and 0.01. The Weibull scale and location parameters are $\\beta$ and $-\\beta$ , e.g. $\\sigma = 1$ and $\\mu = 0$ , respectively. In each case, the number of trials is 1000. The percentile points investigated are $x_{0.01}, x_{0.05}, x_{0.1}, x_{0.5}, x_{0.9}, x_{0.95}$ , and $x_{0.99}$ ."
+        },
+        {
+          "line": 140,
+          "text": "the frequency distributions of the estimates of shape parameter $\\widehat{k}$ as a typical example (n = 50 and $\\beta = 100$ ). From the Figure, we can see that almost half of the simulation cases are treated as from the Fréchet model in using the MLE and that all the cases are treated as from the Weibull model in using the WBE. Table 6 shows the comparison of the RMSE of the parameter estimates."
+        },
+        {
+          "line": 152,
+          "text": "The MLE method can compute the approximate standard deviation as well as the approximate confidence interval for the percentile point estimate by using the delta method, when the sample size is large. Table 10 shows the coverage ratios of 90% confidence intervals for percentile point $x_{p}$ ; short coverage ratios are seen in general from the Table, especially for the low percentile points and for the small Weibull shape parameters. However, we can confirm that the asymptotic normality approximately holds for relatively large samples (e.g. 100)."
+        }
+      ],
+      "study_type": "extended_model",
+      "proposed": "GEV MLE vs WBE",
+      "n": [
+        20,
+        50,
+        100
+      ],
+      "replications": "真实5批各20；合并100；模拟n=20/50/100各1000次",
+      "true_parameters": "see body evidence / prior design; not fully normalized",
+      "selection_reason": {
+        "status": "not_stated",
+        "text": "no explicit opponent-selection rationale located in the reviewed comparison passage"
+      }
+    },
+    {
+      "id": "182-106",
+      "title": "A Note on the Existence of the Location Parameter Estimate of the Three-Parameter Weibull Model Using the Weibull Plot",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-106-pdf原文.md",
+      "source_sha256": "33ccc57bd959b9594070d3cfd741050425cc5f46252bfe98c15439a750c8576f",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "R"
+      ],
+      "prior_opponents": "受限MLE、最小SSE",
+      "prior_design": "车辆行驶失效数据",
+      "prior_metrics": "相关系数、Weibullness p、logL",
+      "prior_failure_handling": "支持位置搜索界；未确认模拟失败率",
+      "prior_locator": "§4表1；OCR L324–328",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": true,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-107",
+      "title": "A General Linear-Regression Analysis Applied to the 3-Parameter Weibull Distribution",
+      "year": null,
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null",
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-107-pdf原文.md",
+      "source_sha256": "8edbdf2f017f6e3d73073c36ba0031f2094003dad3f99333405174faa897538c",
+      "prior_hash_matches": true,
+      "primary_included": false,
+      "audit_depth": "prior-record screening; not newly full-text verified",
+      "prior_modes": [
+        "T"
+      ],
+      "prior_opponents": "图解、近似与精确GLRA等",
+      "prior_design": "变换推导，旧/新分布分列；后附其他文章排除",
+      "prior_metrics": "平方和构造、驻点和搜索界",
+      "prior_failure_handling": "讨论删失退化情形，不能算完整样本失败比例",
+      "prior_locator": "§2—7，本文止于AUTHOR前后",
+      "reason": "no qualifying repeated full-parameter cross-method comparison confirmed in this audit",
+      "sim_benchmarks": [],
+      "real_data": {
+        "present_in_prior_record": false,
+        "comparators_verified_this_audit": false,
+        "scope_note": "do not copy simulation opponents into real-data count"
+      },
+      "new_body_evidence": [],
+      "selection_reason": {
+        "status": "not_checked",
+        "text": "screening only"
+      }
+    },
+    {
+      "id": "182-003",
+      "title": "Robust estimation of the three parameter Weibull distribution for addressing outliers in reliability analysis",
+      "year": 2025,
+      "source_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-003-pdf原文.md",
+      "source_sha256": "59956b9660ef20c0aec6c4e320df84b2936fa0c7abf679aa98c52581e44d03b1",
+      "primary_included": false,
+      "study_type": "contaminated_complete",
+      "reason": "main repeated Monte Carlo epsilon=2,4,6,8 percent; no epsilon0 condition in L298/342; ARE study not counted as ordinary parameter-risk comparison",
+      "n": [
+        50,
+        100,
+        500
+      ],
+      "replications": 5000,
+      "sim_benchmarks": [
+        {
+          "family": "MLE",
+          "version": "ForestFit implementation (version unresolved)",
+          "role": "existing comparator"
+        },
+        {
+          "family": "WMLE",
+          "version": "ForestFit implementation (version unresolved)",
+          "role": "existing comparator"
+        },
+        {
+          "family": "MPS",
+          "version": "ForestFit implementation (version unresolved)",
+          "role": "existing comparator"
+        },
+        {
+          "family": "MM",
+          "version": "ForestFit implementation (version unresolved)",
+          "role": "existing comparator"
+        }
+      ],
+      "new_body_evidence": [
+        {
+          "line": 290,
+          "text": "This section presents an assessment of PITE with ρ =0.32, 0.42, 0.68, 1.00, compared to MLE, WMLE, MPSE, and MOM through a Monte Carlo simulation. The simulations are executed using R statistical software version 4.4.131. Note that the R commands for the other estimators used in this study are accessible in the ForestFit package32."
+        },
+        {
+          "line": 296,
+          "text": "Step 1. Generate random samples from a Weibull distribution with sample sizes of n = 50, 100, and 500. The shape parameter θ varies among 2, 4, or 6, with the scale parameter β and the location parameter γ are fixed at 3 and at 1, respectively, throughout the simulation study."
+        },
+        {
+          "line": 298,
+          "text": "Step 2. Introduce outliers by replacing some random observations. These outliers are generated from another Weibull distribution with the same shape and location parameters but with the scale parameter adjusted by a factor ω = 5 for outliers. The outliers are added in fixed proportions ε = 2%, 4%, 6%, 8%."
+        },
+        {
+          "line": 300,
+          "text": "Step 3. Estimate the parameters θ, β, and γ using PITE (ρ = 0.32, 0.42, 0.68, 1.00), MLE, WMLE, MPSE, and MOM."
+        },
+        {
+          "line": 302,
+          "text": "Step 4. Repeat steps 1–3 for a total of 5,000 iterations."
+        },
+        {
+          "line": 342,
+          "text": "Fig. 4. RMSE values for different estimation methods under varying levels of contamination. The figure presents (a) RMSE of the shape parameter ˆθ, (b) RMSE of the scale parameter ${ \\hat { \\beta } } ,$ , (c) RMSE of the location parameter $\\hat { \\gamma } ,$ , and (d) the overall deficiency measure $D e f \\left( { \\hat { \\theta } } , { \\hat { \\beta } } , { \\hat { \\gamma } } \\right)$ ). Results are shown for three shape parameters $( \\theta = 2 , 4 , 6 ) ;$ , with fixed scale $( \\beta = 3 )$ and location $( \\gamma = 1 )$ parameters, across different sample sizes $\\left( n = 5 0 , 1 0 0 , 5 0 0 \\right)$ and contamination levels (and $\\varepsilon = 2 \\%$ , 4%, 6%, 8%)."
+        }
+      ],
+      "audit_depth": "simulation body reread",
+      "year_rule": "正式卷期年优先；在线年另记不重复；未明保留null"
+    }
+  ],
+  "summary": {
+    "all": {
+      "denominator": 13,
+      "ids": [
+        "182-030",
+        "182-047",
+        "182-088",
+        "182-091",
+        "182-096",
+        "182-101",
+        "182-111",
+        "182-113",
+        "182-117",
+        "183-020",
+        "184-009",
+        "185-005",
+        "187-001"
+      ],
+      "families": {
+        "MLE": {
+          "count": 8,
+          "ids": [
+            "182-030",
+            "182-088",
+            "182-091",
+            "182-096",
+            "182-101",
+            "182-117",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "CC": {
+          "count": 5,
+          "ids": [
+            "182-030",
+            "182-047",
+            "184-009",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "MM": {
+          "count": 3,
+          "ids": [
+            "182-091",
+            "182-096",
+            "183-020"
+          ]
+        },
+        "MMLE": {
+          "count": 2,
+          "ids": [
+            "182-096",
+            "182-111"
+          ]
+        },
+        "MPS": {
+          "count": 2,
+          "ids": [
+            "182-096",
+            "182-101"
+          ]
+        },
+        "PWM": {
+          "count": 2,
+          "ids": [
+            "182-117",
+            "185-005"
+          ]
+        },
+        "WMLE": {
+          "count": 2,
+          "ids": [
+            "182-101",
+            "182-113"
+          ]
+        },
+        "BL": {
+          "count": 1,
+          "ids": [
+            "182-113"
+          ]
+        },
+        "CMLE": {
+          "count": 1,
+          "ids": [
+            "182-111"
+          ]
+        },
+        "LM": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        },
+        "LS": {
+          "count": 1,
+          "ids": [
+            "182-117"
+          ]
+        },
+        "MDM": {
+          "count": 1,
+          "ids": [
+            "184-009"
+          ]
+        },
+        "MMoE": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        }
+      }
+    },
+    "since2006": {
+      "denominator": 12,
+      "ids": [
+        "182-030",
+        "182-047",
+        "182-088",
+        "182-096",
+        "182-101",
+        "182-111",
+        "182-113",
+        "182-117",
+        "183-020",
+        "184-009",
+        "185-005",
+        "187-001"
+      ],
+      "families": {
+        "MLE": {
+          "count": 7,
+          "ids": [
+            "182-030",
+            "182-088",
+            "182-096",
+            "182-101",
+            "182-117",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "CC": {
+          "count": 5,
+          "ids": [
+            "182-030",
+            "182-047",
+            "184-009",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "MM": {
+          "count": 2,
+          "ids": [
+            "182-096",
+            "183-020"
+          ]
+        },
+        "MMLE": {
+          "count": 2,
+          "ids": [
+            "182-096",
+            "182-111"
+          ]
+        },
+        "MPS": {
+          "count": 2,
+          "ids": [
+            "182-096",
+            "182-101"
+          ]
+        },
+        "PWM": {
+          "count": 2,
+          "ids": [
+            "182-117",
+            "185-005"
+          ]
+        },
+        "WMLE": {
+          "count": 2,
+          "ids": [
+            "182-101",
+            "182-113"
+          ]
+        },
+        "BL": {
+          "count": 1,
+          "ids": [
+            "182-113"
+          ]
+        },
+        "CMLE": {
+          "count": 1,
+          "ids": [
+            "182-111"
+          ]
+        },
+        "LM": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        },
+        "LS": {
+          "count": 1,
+          "ids": [
+            "182-117"
+          ]
+        },
+        "MDM": {
+          "count": 1,
+          "ids": [
+            "184-009"
+          ]
+        },
+        "MMoE": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        }
+      }
+    },
+    "since2016": {
+      "denominator": 7,
+      "ids": [
+        "182-030",
+        "182-047",
+        "182-111",
+        "182-117",
+        "184-009",
+        "185-005",
+        "187-001"
+      ],
+      "families": {
+        "CC": {
+          "count": 5,
+          "ids": [
+            "182-030",
+            "182-047",
+            "184-009",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "MLE": {
+          "count": 4,
+          "ids": [
+            "182-030",
+            "182-117",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "PWM": {
+          "count": 2,
+          "ids": [
+            "182-117",
+            "185-005"
+          ]
+        },
+        "CMLE": {
+          "count": 1,
+          "ids": [
+            "182-111"
+          ]
+        },
+        "LS": {
+          "count": 1,
+          "ids": [
+            "182-117"
+          ]
+        },
+        "MDM": {
+          "count": 1,
+          "ids": [
+            "184-009"
+          ]
+        },
+        "MMLE": {
+          "count": 1,
+          "ids": [
+            "182-111"
+          ]
+        }
+      }
+    },
+    "contains_n_le30": {
+      "denominator": 11,
+      "ids": [
+        "182-030",
+        "182-047",
+        "182-088",
+        "182-091",
+        "182-096",
+        "182-101",
+        "182-113",
+        "182-117",
+        "184-009",
+        "185-005",
+        "187-001"
+      ],
+      "families": {
+        "MLE": {
+          "count": 8,
+          "ids": [
+            "182-030",
+            "182-088",
+            "182-091",
+            "182-096",
+            "182-101",
+            "182-117",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "CC": {
+          "count": 5,
+          "ids": [
+            "182-030",
+            "182-047",
+            "184-009",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "MM": {
+          "count": 2,
+          "ids": [
+            "182-091",
+            "182-096"
+          ]
+        },
+        "MPS": {
+          "count": 2,
+          "ids": [
+            "182-096",
+            "182-101"
+          ]
+        },
+        "PWM": {
+          "count": 2,
+          "ids": [
+            "182-117",
+            "185-005"
+          ]
+        },
+        "WMLE": {
+          "count": 2,
+          "ids": [
+            "182-101",
+            "182-113"
+          ]
+        },
+        "BL": {
+          "count": 1,
+          "ids": [
+            "182-113"
+          ]
+        },
+        "LM": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        },
+        "LS": {
+          "count": 1,
+          "ids": [
+            "182-117"
+          ]
+        },
+        "MDM": {
+          "count": 1,
+          "ids": [
+            "184-009"
+          ]
+        },
+        "MMLE": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        },
+        "MMoE": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        }
+      }
+    },
+    "new_method_or_solver_only": {
+      "denominator": 12,
+      "ids": [
+        "182-030",
+        "182-047",
+        "182-088",
+        "182-091",
+        "182-101",
+        "182-111",
+        "182-113",
+        "182-117",
+        "183-020",
+        "184-009",
+        "185-005",
+        "187-001"
+      ],
+      "families": {
+        "MLE": {
+          "count": 7,
+          "ids": [
+            "182-030",
+            "182-088",
+            "182-091",
+            "182-101",
+            "182-117",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "CC": {
+          "count": 5,
+          "ids": [
+            "182-030",
+            "182-047",
+            "184-009",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "MM": {
+          "count": 2,
+          "ids": [
+            "182-091",
+            "183-020"
+          ]
+        },
+        "PWM": {
+          "count": 2,
+          "ids": [
+            "182-117",
+            "185-005"
+          ]
+        },
+        "WMLE": {
+          "count": 2,
+          "ids": [
+            "182-101",
+            "182-113"
+          ]
+        },
+        "BL": {
+          "count": 1,
+          "ids": [
+            "182-113"
+          ]
+        },
+        "CMLE": {
+          "count": 1,
+          "ids": [
+            "182-111"
+          ]
+        },
+        "LS": {
+          "count": 1,
+          "ids": [
+            "182-117"
+          ]
+        },
+        "MDM": {
+          "count": 1,
+          "ids": [
+            "184-009"
+          ]
+        },
+        "MMLE": {
+          "count": 1,
+          "ids": [
+            "182-111"
+          ]
+        },
+        "MPS": {
+          "count": 1,
+          "ids": [
+            "182-101"
+          ]
+        }
+      }
+    },
+    "including_partial_parameter_risk": {
+      "denominator": 16,
+      "ids": [
+        "182-024",
+        "182-025",
+        "182-030",
+        "182-046",
+        "182-047",
+        "182-088",
+        "182-091",
+        "182-096",
+        "182-101",
+        "182-111",
+        "182-113",
+        "182-117",
+        "183-020",
+        "184-009",
+        "185-005",
+        "187-001"
+      ],
+      "families": {
+        "WMLE": {
+          "count": 3,
+          "ids": [
+            "182-024",
+            "182-101",
+            "182-113"
+          ]
+        },
+        "CC": {
+          "count": 6,
+          "ids": [
+            "182-025",
+            "182-030",
+            "182-047",
+            "184-009",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "LS": {
+          "count": 3,
+          "ids": [
+            "182-025",
+            "182-046",
+            "182-117"
+          ]
+        },
+        "MDM": {
+          "count": 2,
+          "ids": [
+            "182-025",
+            "184-009"
+          ]
+        },
+        "MLE": {
+          "count": 9,
+          "ids": [
+            "182-030",
+            "182-046",
+            "182-088",
+            "182-091",
+            "182-096",
+            "182-101",
+            "182-117",
+            "185-005",
+            "187-001"
+          ]
+        },
+        "MM": {
+          "count": 3,
+          "ids": [
+            "182-091",
+            "182-096",
+            "183-020"
+          ]
+        },
+        "MMoE": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        },
+        "MMLE": {
+          "count": 2,
+          "ids": [
+            "182-096",
+            "182-111"
+          ]
+        },
+        "LM": {
+          "count": 1,
+          "ids": [
+            "182-096"
+          ]
+        },
+        "MPS": {
+          "count": 2,
+          "ids": [
+            "182-096",
+            "182-101"
+          ]
+        },
+        "CMLE": {
+          "count": 1,
+          "ids": [
+            "182-111"
+          ]
+        },
+        "BL": {
+          "count": 1,
+          "ids": [
+            "182-113"
+          ]
+        },
+        "PWM": {
+          "count": 2,
+          "ids": [
+            "182-117",
+            "185-005"
+          ]
+        }
+      }
+    }
+  },
+  "cooccurrence": {
+    "CC + MLE": {
+      "count": 3,
+      "ids": [
+        "182-030",
+        "185-005",
+        "187-001"
+      ]
+    },
+    "MLE + MM": {
+      "count": 2,
+      "ids": [
+        "182-091",
+        "182-096"
+      ]
+    },
+    "MLE + MPS": {
+      "count": 2,
+      "ids": [
+        "182-096",
+        "182-101"
+      ]
+    },
+    "MLE + PWM": {
+      "count": 2,
+      "ids": [
+        "182-117",
+        "185-005"
+      ]
+    }
+  },
+  "cross_author_adoption": [
+    {
+      "family": "WMLE",
+      "source": "182-088 Cousineau",
+      "adopter": "182-113 Nagatsuka/Kamakura/Balakrishnan",
+      "evidence": "L173/179/193 actual comparison and Ng plug-in version; author lists differ",
+      "limit": "modified W3 implementation; not identical replication or proof of superiority"
+    },
+    {
+      "family": "MDM",
+      "source": "182-030",
+      "adopter": "184-009",
+      "evidence": "L284/298",
+      "limit": "Xie/Yang author overlap; cannot call independent adoption"
+    },
+    {
+      "family": "CC (Park)",
+      "source": "182-115/106",
+      "adopter": "185-005",
+      "evidence": "CCWP section2.1.2, simulation L381",
+      "limit": "authors differ; old public data may be reused for applications"
+    }
+  ],
+  "unresolved": [
+    "182-050 BL and LSPF identities additionally inconsistent with canonical definitions; do not count as canonical adoption",
+    "newly identified HGLM2024 and AIMGC-PSO2026 not in this local44 subset; full text required before adding comparisons",
+    "187-012 solver500 runs not confirmed independent resampling; 182-054 publication/overlap unresolved",
+    "real-data full comparable-method census not completed; old38 empirical purpose denominator not this13 primary denominator",
+    "some primary true parameter grids/version constraints/failure denominators remain partially specified; primary count says method was compared, not study was methodologically flawless"
+  ],
+  "real_data_verified_subset": {
+    "denominator": 6,
+    "ids": [
+      "182-047",
+      "182-096",
+      "182-111",
+      "182-113",
+      "184-009",
+      "187-001"
+    ],
+    "meaning": "convenience subset reread for task separation, not exhaustive real-data frequency census"
+  },
+  "metric_summary": {
+    "denominator": 13,
+    "meaning": "positive explicitly verified cross-method reporting; missing tag means not positively coded, not demonstrated absence; non-equivalent metrics stay separate",
+    "tags": {
+      "parameter_RMSE": {
+        "count": 7,
+        "ids": [
+          "182-047",
+          "182-096",
+          "182-101",
+          "182-111",
+          "182-113",
+          "184-009",
+          "187-001"
+        ]
+      },
+      "parameter_SD": {
+        "count": 5,
+        "ids": [
+          "182-030",
+          "182-088",
+          "182-091",
+          "183-020",
+          "184-009"
+        ]
+      },
+      "parameter_Bias": {
+        "count": 4,
+        "ids": [
+          "182-047",
+          "182-096",
+          "182-101",
+          "182-113"
+        ]
+      },
+      "parameter_mean": {
+        "count": 3,
+        "ids": [
+          "182-030",
+          "182-091",
+          "183-020"
+        ]
+      },
+      "joint_Bias": {
+        "count": 2,
+        "ids": [
+          "182-101",
+          "182-113"
+        ]
+      },
+      "joint_RMSE": {
+        "count": 2,
+        "ids": [
+          "182-101",
+          "182-113"
+        ]
+      },
+      "parameter_range": {
+        "count": 1,
+        "ids": [
+          "182-030"
+        ]
+      },
+      "parameter_median_bias": {
+        "count": 1,
+        "ids": [
+          "182-088"
+        ]
+      },
+      "joint_median_distance": {
+        "count": 1,
+        "ids": [
+          "182-088"
+        ]
+      },
+      "failure_count": {
+        "count": 1,
+        "ids": [
+          "182-091"
+        ]
+      },
+      "parameter_relative_bias": {
+        "count": 1,
+        "ids": [
+          "182-111"
+        ]
+      },
+      "computational_time": {
+        "count": 1,
+        "ids": [
+          "182-113"
+        ]
+      },
+      "parameter_estimates": {
+        "count": 1,
+        "ids": [
+          "182-117"
+        ]
+      },
+      "joint_E2": {
+        "count": 1,
+        "ids": [
+          "182-117"
+        ]
+      },
+      "location_boundary_frequency": {
+        "count": 1,
+        "ids": [
+          "182-117"
+        ]
+      },
+      "parameter_MSE": {
+        "count": 1,
+        "ids": [
+          "183-020"
+        ]
+      },
+      "mean_across_parameters_MAE": {
+        "count": 1,
+        "ids": [
+          "185-005"
+        ]
+      },
+      "mean_across_parameters_SD": {
+        "count": 1,
+        "ids": [
+          "185-005"
+        ]
+      },
+      "parameter_relative_MAE": {
+        "count": 1,
+        "ids": [
+          "187-001"
+        ]
+      }
+    }
+  }
+}
