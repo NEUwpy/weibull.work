@@ -28,6 +28,7 @@ Research 是验证层，Study 是论文责任层。Research 只有同时满足�
 
 | Research | 核心问题 | 成熟度 | 关系角色 | 当前用途 |
 |---|---|---|---|---|
+| [00-方法对比](00-方法对比/README.md) | 历史三参数 Weibull 案例的样本、估计结果及梯度过程如何对应 | `NEEDS_REVIEW` | `HISTORICAL` | 汇集 8 个参数组合及补充批次，原字节复制并保留来源哈希；不重算、不跨历史实现混排 |
 | `01-参数估计评价指标/` | 三参数 Weibull 估计结果应从哪些互不混淆的视角评价 | `NEEDS_REVIEW` | `SUPPORTING` | 保存早期指标研究，并索引 Study01 当前 J1 决策；旧文献统计不冒充系统综述 |
 | `02-MDM根存在条件与稳健求解/` | MDM 偏移方程何时有根、无解来自哪里、怎样稳健求解 | `COMPLETE` | `SUPPORTING` | 支撑当前 MDM 实现，并保留理论与数值来源 |
 | `03-NN输入表征与样本量机制/` | 在 Study01 风险曲线任务中，F13/F12/RAW 与跨样本量训练有什么差异 | `COMPLETE` | `SUPPORTING` | 原 Study015；解释 Study01 输入和训练组织的适用边界，不进入其 formal 证据链 |
