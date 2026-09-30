@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = ROOT / '结果' / '中间数据' / 'manifest.json'
+MANIFEST = ROOT / '结果' / '中间数据' / '封存清单.json'
 
 
 def digest(path):
@@ -50,7 +50,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--verify', action='store_true')
     args = parser.parse_args()
-    saved = json.loads(MANIFEST.read_text(encoding='utf-8'))
+    if args.verify and not MANIFEST.exists():
+        raise SystemExit('No current seal exists; run sealing after final review.')
+    saved = json.loads(MANIFEST.read_text(encoding='utf-8')) if MANIFEST.exists() else {
+        'task': 'Consolidated beta compensation research',
+        'original_snapshot_commit': 'c94d9dae06d83e46bbc56ad43a4e3b857a0207fb',
+        'note': 'New seal after consolidation; original versions remain in Git.',
+    }
     actual = inventories()
     if args.verify:
         errors = []
