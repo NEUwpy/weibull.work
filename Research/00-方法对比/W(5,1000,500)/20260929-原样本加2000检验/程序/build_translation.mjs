@@ -3,9 +3,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Workbook, SpreadsheetFile } from '@oai/artifact-tool';
 
-const here=path.dirname(fileURLToPath(import.meta.url));
+const here=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../结果/复算输出');
 const data=JSON.parse(await fs.readFile(path.join(here,'translation_data.json'),'utf8'));
-const output='D:/weibull/docs/临时任务/临时任务-W2-1000-3000-MDM偏移量估计-20260825/260906-W5参数估计案例/W(5,1000,500)/原样本加2000_估计结果对照.xlsx';
+const output=path.join(here,'原样本加2000_估计结果对照.xlsx');
 try {await fs.access(output);throw new Error('Output exists; refusing to overwrite.');}catch(e){if(e.code!=='ENOENT')throw e;}
 const wb=Workbook.create();
 function base(s,lastCol,lastRow,title,source){

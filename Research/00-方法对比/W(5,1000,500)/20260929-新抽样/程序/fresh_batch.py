@@ -2,19 +2,21 @@
 import csv, hashlib, json, sys
 from pathlib import Path
 import numpy as np
-ROOT=Path('D:/weibull')
+PROGRAM_DIR=Path(__file__).resolve().parent
+ROOT=PROGRAM_DIR/'依赖快照'
+BETA, ETA, GAMMA = 5.0, 1000.0, 500.0
 sys.path.insert(0,str(ROOT/'python'))
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 
 sizes=[30] if '--n30' in sys.argv else [7,15]
-OUT=ROOT/('docs/临时任务/工作输出/20260929-W5新样本-n30' if sizes==[30] else 'docs/临时任务/工作输出/20260929-W5新样本')
-OUT.mkdir(exist_ok=False)
+OUT=PROGRAM_DIR.parent/'结果'/'复算输出'/('n30' if sizes==[30] else 'n7-n15')
+OUT.mkdir(parents=True,exist_ok=False)
 seed=2026092903
 samples=[];results=[]
 for n in sizes:
     for sid in range(1,51):
-        x=generate_sample(5.0,1000.0,500.0,n,sid-1,seed=seed)
+        x=generate_sample(BETA,ETA,GAMMA,n,sid-1,seed=seed)
         seedtext=f'{seed}|5.0|1000.0|500.0|{n}|{sid-1}'
         rng=np.random.default_rng(int.from_bytes(hashlib.sha256(seedtext.encode()).digest()[:4],'big'))
         u=rng.uniform(size=n)

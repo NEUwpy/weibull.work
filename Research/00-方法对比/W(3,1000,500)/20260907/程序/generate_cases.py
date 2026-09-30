@@ -12,9 +12,10 @@ from matplotlib.ticker import MultipleLocator
 import numpy as np
 
 
-WORK_DIR = Path(__file__).resolve().parent
-REPO_ROOT = WORK_DIR.parents[1]
-PYTHON_DIR = REPO_ROOT / "python"
+PROGRAM_DIR = Path(__file__).resolve().parent
+WORK_DIR = PROGRAM_DIR.parent / "结果" / "复算输出"
+REPO_ROOT = next(p for p in PROGRAM_DIR.parents if (p / "python" / "methods").is_dir())
+PYTHON_DIR = PROGRAM_DIR / "依赖快照" / "python"
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
@@ -24,7 +25,7 @@ from studies.common.sample import generate_sample  # noqa: E402
 
 SHAPE = 3.0
 SCALE = 1000.0
-LOCATIONS = (500.0, 1000.0, 3000.0)
+LOCATIONS = (500.0,)
 SAMPLE_SIZES = (7, 15)
 REPEATS = 50
 OFFSETS = (0.10, 0.15, 0.20)
@@ -234,6 +235,7 @@ def run_case(location: float) -> dict:
 
 
 def main() -> None:
+    WORK_DIR.mkdir(parents=True, exist_ok=False)
     payload = {
         "protocol": {
             "seed_namespace": SEED_NAMESPACE,

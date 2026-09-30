@@ -10,6 +10,7 @@ import csv
 import json
 import math
 import os
+import tempfile
 import subprocess
 import sys
 from collections import Counter
@@ -19,7 +20,8 @@ from typing import Any
 import numpy as np
 
 
-WORK_DIR = Path(__file__).resolve().parent
+PROGRAM_DIR = Path(__file__).resolve().parent
+WORK_DIR = PROGRAM_DIR.parent / "结果" / "复算输出"
 
 
 def find_repo_root(start: Path) -> Path:
@@ -29,21 +31,21 @@ def find_repo_root(start: Path) -> Path:
     raise RuntimeError("Unable to locate repository root")
 
 
-REPO_ROOT = find_repo_root(WORK_DIR)
+REPO_ROOT = find_repo_root(PROGRAM_DIR)
 TASK_ROOT = (
     REPO_ROOT
     / "docs"
     / "临时任务"
     / "临时任务-W2-1000-3000-MDM偏移量估计-20260825"
 )
-DELIVERY_ROOT = TASK_ROOT / "260906-W5参数估计案例"
-os.environ.setdefault("MPLCONFIGDIR", str(WORK_DIR / "mplconfig"))
+DELIVERY_ROOT = WORK_DIR
+os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "research00-matplotlib"))
 
 import matplotlib as mpl  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.ticker import MultipleLocator  # noqa: E402
 
-sys.path.insert(0, str(REPO_ROOT / "python"))
+sys.path.insert(0, str(PROGRAM_DIR / "依赖快照" / "python"))
 
 from studies.common.runner import run_method  # noqa: E402
 from studies.common.sample import generate_sample  # noqa: E402
@@ -70,15 +72,6 @@ CASES = (
         "distribution": "W(5,1000,500)",
         "delivery_name": "W(5,1000,500)",
         "x_range": (0.0, 1500.0),
-        "x_major_step": 500.0,
-        "x_minor_step": 100.0,
-    },
-    {
-        "slug": "W5-1000-3000",
-        "gamma": 3000.0,
-        "distribution": "W(5,1000,3000)",
-        "delivery_name": "W(5,1000,3000)",
-        "x_range": (0.0, 4000.0),
         "x_major_step": 500.0,
         "x_minor_step": 100.0,
     },
@@ -494,8 +487,8 @@ def run_case(case: dict[str, Any]) -> None:
 
 
 def main() -> None:
-    WORK_DIR.mkdir(parents=True, exist_ok=True)
-    DELIVERY_ROOT.mkdir(parents=True, exist_ok=True)
+    WORK_DIR.mkdir(parents=True, exist_ok=False)
+    assert DELIVERY_ROOT == WORK_DIR
     for case in CASES:
         run_case(case)
     print(f"delivery={DELIVERY_ROOT}", flush=True)

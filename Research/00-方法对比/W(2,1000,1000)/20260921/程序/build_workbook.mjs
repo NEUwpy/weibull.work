@@ -3,10 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 
-const workDir = path.dirname(fileURLToPath(import.meta.url));
+const programDir = path.dirname(fileURLToPath(import.meta.url));
+const workDir = path.resolve(programDir, "../结果/复算输出");
 const payload = JSON.parse(await fs.readFile(path.join(workDir, "payload.json"), "utf8"));
-const templatePath = "D:/weibull/docs/临时任务/临时任务-W2-1000-3000-MDM偏移量估计-20260921-template.xlsx";
-const fallbackTemplate = "D:/weibull/docs/临时任务/临时任务-W2-1000-3000-MDM偏移量估计-20260825/260907-W3参数估计案例/W(3,1000,500)/3,1000,500.xlsx";
+const templatePath = path.resolve(programDir, "../结果/2,1000,1000.xlsx");
+const fallbackTemplate = templatePath;
 const qaDir = path.join(workDir, "qa");
 await fs.mkdir(qaDir, { recursive: true });
 
@@ -27,8 +28,8 @@ for (const caseData of payload.cases) {
   const sample15 = workbook.worksheets.getItemAt(1);
   const result7 = workbook.worksheets.getItemAt(2);
   const result15 = workbook.worksheets.getItemAt(3);
-  const sample30 = workbook.worksheets.add("生成样本_n30");
-  const result30 = workbook.worksheets.add("估计结果_n30");
+  const sample30 = workbook.worksheets.getItem("生成样本_n30");
+  const result30 = workbook.worksheets.getItem("估计结果_n30");
   copySheetFormat(sample15, sample30, "A1:P51");
   for (let col = 16; col < 31; col++) copySheetFormat(sample15, sample30, "P1:P51", `${colName(col)}1:${colName(col)}51`);
   copySheetFormat(result15, result30, "A1:P174");

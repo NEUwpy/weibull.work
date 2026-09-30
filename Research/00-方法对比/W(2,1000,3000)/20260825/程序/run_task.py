@@ -19,9 +19,10 @@ from matplotlib.ticker import MultipleLocator
 import numpy as np
 
 
-TASK_DIR = Path(__file__).resolve().parent
-REPO_ROOT = TASK_DIR.parents[1]
-sys.path.insert(0, str(REPO_ROOT / "python"))
+PROGRAM_DIR = Path(__file__).resolve().parent
+TASK_DIR = PROGRAM_DIR.parent / '结果' / '复算输出'
+REPO_ROOT = next(p for p in PROGRAM_DIR.parents if (p / 'python' / 'methods').is_dir())
+sys.path.insert(0, str(PROGRAM_DIR / "依赖快照" / "python"))
 
 from studies.common.metrics import aggregate_standard_metrics  # noqa: E402
 from studies.common.runner import run_method  # noqa: E402
@@ -275,6 +276,7 @@ def validate(
 
 
 def main() -> None:
+    TASK_DIR.mkdir(parents=True, exist_ok=False)
     sample_rows, estimate_rows, curve_rows = generate_and_estimate()
     summary_rows, full_summaries = build_summary(estimate_rows)
     validate(sample_rows, estimate_rows, curve_rows, summary_rows)

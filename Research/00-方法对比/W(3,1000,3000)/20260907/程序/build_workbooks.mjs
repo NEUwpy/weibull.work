@@ -4,9 +4,11 @@ import { fileURLToPath } from "node:url";
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 
 
-const workDir = path.dirname(fileURLToPath(import.meta.url));
+const programDir = path.dirname(fileURLToPath(import.meta.url));
+const workDir = path.resolve(programDir, "../结果/复算输出");
 const payload = JSON.parse(await fs.readFile(path.join(workDir, "payload.json"), "utf8"));
-const templatePath = "D:/weibull/docs/临时任务/临时任务-W2-1000-3000-MDM偏移量估计-20260825/260906-W5参数估计案例/W(5,1000,500)/5,1000,500.xlsx";
+const templatePath = path.resolve(programDir, "../结果/3,1000,3000.xlsx");
+if (payload.cases.length !== 1 || payload.cases[0].shape !== 3 || payload.cases[0].scale !== 1000 || payload.cases[0].location !== 3000) throw new Error("Wrong batch payload");
 const qaDir = path.join(workDir, "qa");
 await fs.mkdir(qaDir, { recursive: true });
 

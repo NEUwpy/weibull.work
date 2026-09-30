@@ -4,14 +4,8 @@ import { fileURLToPath } from "node:url";
 import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
 
 
-const workDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(workDir, "..", "..");
-const deliveryDir = path.join(
-  repoRoot,
-  "docs",
-  "临时任务-W2-1000-3000-MDM偏移量估计-20260825",
-  "260826位置参数500",
-);
+const workDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../结果/复算输出");
+const deliveryDir = path.join(workDir, "交付");
 const outputPath = path.join(workDir, "估计结果表.xlsx");
 const deliveryPath = path.join(deliveryDir, "估计结果表.xlsx");
 const payload = JSON.parse(await fs.readFile(path.join(workDir, "workbook_data.json"), "utf8"));

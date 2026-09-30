@@ -8,12 +8,15 @@ from pathlib import Path
 import numpy as np
 from scipy.optimize import brentq
 
-ROOT = Path('D:/weibull')
+PROGRAM_DIR = Path(__file__).resolve().parent
+ROOT = PROGRAM_DIR / '依赖快照'
+OUT = PROGRAM_DIR.parent / '结果' / '复算输出'
+OUT.mkdir(parents=True, exist_ok=False)
 sys.path.insert(0, str(ROOT / 'python'))
 from methods.mdm import MDM
 from methods.wmle import WMLE, get_weight_j1, get_weight_j2, get_weight_j3
 
-src = ROOT / 'docs/临时任务/工作输出/20260906-W5-parameters/W5-1000-500'
+src = PROGRAM_DIR.parent / '结果' / '原样本与原估计'
 paths = [src / name for name in ['samples.csv', 'mdm_estimates.csv', 'other_method_estimates.csv']]
 hashes = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
 samples, mdm, other = [list(csv.DictReader(p.open(encoding='utf-8-sig'))) for p in paths]
@@ -83,6 +86,6 @@ for n in [7,15]:
         print('COMPLETED',n,delta,flush=True)
 assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in hashes.items())
 payload = {'shift':2000,'rows':result,'samples':samples,'source_hashes':hashes}
-out = Path(__file__).with_name('translation_data.json')
+out = OUT / 'translation_data.json'
 out.write_text(json.dumps(payload,ensure_ascii=False,allow_nan=False),encoding='utf-8')
 print('SAVED',out,flush=True)

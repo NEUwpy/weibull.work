@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
 
 
-const taskDir = path.dirname(fileURLToPath(import.meta.url));
+const taskDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../结果/复算输出");
 const finalDir = path.join(taskDir, "最终交付");
 const qaDir = path.join(os.tmpdir(), "weibull-simple-workbook-qa-20260825");
 

@@ -6,6 +6,7 @@ import csv
 import json
 import math
 import os
+import tempfile
 import shutil
 import subprocess
 import sys
@@ -16,21 +17,22 @@ from typing import Any
 import numpy as np
 
 
-WORK_DIR = Path(__file__).resolve().parent
-REPO_ROOT = WORK_DIR.parents[1]
+PROGRAM_DIR = Path(__file__).resolve().parent
+WORK_DIR = PROGRAM_DIR.parent / '结果' / '复算输出'
+REPO_ROOT = next(p for p in PROGRAM_DIR.parents if (p / 'python' / 'methods').is_dir())
 TASK_ROOT = (
     REPO_ROOT
     / "docs"
     / "临时任务-W2-1000-3000-MDM偏移量估计-20260825"
 )
-DELIVERY_DIR = TASK_ROOT / "260826位置参数500"
-os.environ.setdefault("MPLCONFIGDIR", str(WORK_DIR / "mplconfig"))
+DELIVERY_DIR = WORK_DIR / "交付"
+os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "research00-matplotlib"))
 
 import matplotlib as mpl  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.ticker import MultipleLocator  # noqa: E402
 
-sys.path.insert(0, str(REPO_ROOT / "python"))
+sys.path.insert(0, str(PROGRAM_DIR / "依赖快照" / "python"))
 
 from studies.common.runner import run_method  # noqa: E402
 from studies.common.sample import generate_sample  # noqa: E402
@@ -379,7 +381,7 @@ def validate_results(
 
 
 def main() -> None:
-    WORK_DIR.mkdir(parents=True, exist_ok=True)
+    WORK_DIR.mkdir(parents=True, exist_ok=False)
     sample_rows, mdm_rows, other_rows, curve_rows = generate_results()
     validation = validate_results(sample_rows, mdm_rows, other_rows, curve_rows)
     figures = save_figures(curve_rows)

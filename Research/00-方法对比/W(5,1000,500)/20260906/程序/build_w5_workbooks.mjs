@@ -4,19 +4,10 @@ import { fileURLToPath } from "node:url";
 import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
 
 
-const workDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(workDir, "..", "..", "..", "..");
-const taskRoot = path.join(
-  repoRoot,
-  "docs",
-  "临时任务",
-  "临时任务-W2-1000-3000-MDM偏移量估计-20260825",
-);
-const deliveryRoot = path.join(taskRoot, "260906-W5参数估计案例");
-const cases = [
-  { slug: "W5-1000-500", deliveryName: "W(5,1000,500)" },
-  { slug: "W5-1000-3000", deliveryName: "W(5,1000,3000)" },
-];
+const programDir = path.dirname(fileURLToPath(import.meta.url));
+const workDir = path.resolve(programDir, "../结果/复算输出");
+const deliveryRoot = workDir;
+const cases = [{ slug: "W5-1000-500", deliveryName: "W(5,1000,500)" }];
 
 const COLORS = {
   title: "#173F5F",

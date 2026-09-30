@@ -9,9 +9,10 @@ from pathlib import Path
 import numpy as np
 
 
-WORK_DIR = Path(__file__).resolve().parent
-REPO_ROOT = WORK_DIR.parents[1]
-sys.path.insert(0, str(REPO_ROOT / "python"))
+PROGRAM_DIR = Path(__file__).resolve().parent
+WORK_DIR = PROGRAM_DIR.parent / '结果' / '复算输出'
+REPO_ROOT = next(p for p in PROGRAM_DIR.parents if (p / 'python' / 'methods').is_dir())
+sys.path.insert(0, str(PROGRAM_DIR / "依赖快照" / "python"))
 
 from studies.common.sample import generate_sample  # noqa: E402
 
@@ -24,6 +25,7 @@ REPEATS = 200
 SEED_NAMESPACE = 20260826
 
 
+WORK_DIR.mkdir(parents=True, exist_ok=False)
 rows: list[list[float | int]] = []
 for repeat_id in range(REPEATS):
     sample = generate_sample(

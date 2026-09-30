@@ -11,9 +11,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import numpy as np
 
-WORK_DIR = Path(__file__).resolve().parent
-REPO_ROOT = WORK_DIR.parents[1]
-PYTHON_DIR = REPO_ROOT / "python"
+PROGRAM_DIR = Path(__file__).resolve().parent
+WORK_DIR = PROGRAM_DIR.parent / '结果' / '复算输出'
+REPO_ROOT = next(p for p in PROGRAM_DIR.parents if (p / 'python' / 'methods').is_dir())
+PYTHON_DIR = PROGRAM_DIR / "依赖快照" / "python"
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
@@ -115,6 +116,7 @@ def run_case() -> dict:
     return {"label": label, "shape": SHAPE, "scale": SCALE, "location": LOCATION, "samples": samples, "results": results, "diagnostics": diagnostics}
 
 
+WORK_DIR.mkdir(parents=True, exist_ok=False)
 payload = {"protocol": {"seed_namespace": SEED_NAMESPACE, "sample_sizes": list(SAMPLE_SIZES), "repeats": REPEATS, "offsets": list(OFFSETS), "gamma_steps": GAMMA_STEPS, "code_version": git_version()}, "cases": [run_case()]}
 (WORK_DIR / "payload.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 print("payload complete", flush=True)

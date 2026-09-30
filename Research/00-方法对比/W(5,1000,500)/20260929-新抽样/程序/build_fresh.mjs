@@ -1,15 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {Workbook,SpreadsheetFile} from '@oai/artifact-tool';
-const root='D:/weibull';
+const programDir=path.dirname(fileURLToPath(import.meta.url));
 const isN30=process.argv.includes('--n30');
 const sizes=isN30?[30]:[7,15];
-const work=root+'/docs/临时任务/工作输出/20260929-W5新样本'+(isN30?'-n30':'');
+const work=path.resolve(programDir,'../结果/复算输出',isN30?'n30':'n7-n15');
 const data=JSON.parse(await fs.readFile(work+'/results.json','utf8'));
-const dest=root+'/docs/临时任务/临时任务-W2-1000-3000-MDM偏移量估计-20260825/260906-W5参数估计案例/260929-W5-1000-500新样本';
+const dest=path.join(work,'交付');
 const wb=Workbook.create();
 // Reuse only the established pure formatting functions, not the old runner or paths.
-const source=await fs.readFile(root+'/docs/临时任务/工作输出/20260906-W5-parameters/build_w5_workbooks.mjs','utf8');
+const source=await fs.readFile(path.join(programDir,'表格样式模板.mjs'),'utf8');
 const start=source.indexOf('const COLORS =');
 const end=source.indexOf('async function buildCase(');
 const template=source.slice(start,end).replace('n === 7 ? "H" : "P"','n === 7 ? "H" : n === 30 ? "AE" : "P"');

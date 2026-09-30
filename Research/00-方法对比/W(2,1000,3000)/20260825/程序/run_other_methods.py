@@ -14,8 +14,9 @@ from collections import defaultdict
 from pathlib import Path
 
 
-TASK_DIR = Path(__file__).resolve().parent
-ROOT = TASK_DIR.parents[1]
+PROGRAM_DIR = Path(__file__).resolve().parent
+TASK_DIR = PROGRAM_DIR.parent / '结果' / '复算输出'
+ROOT = PROGRAM_DIR / '依赖快照'
 PYTHON_DIR = ROOT / "python"
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
