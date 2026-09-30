@@ -1,0 +1,124 @@
+{
+  "task": "original beta2/beta5 parameter mapping and criterion diagnostics",
+  "truth": [
+    [
+      2,
+      1000,
+      500
+    ],
+    [
+      5,
+      1000,
+      500
+    ]
+  ],
+  "n": [
+    7,
+    15
+  ],
+  "groups_per_cell": 50,
+  "seeds": {
+    "2": 20260826,
+    "5": 20260906
+  },
+  "methods": {
+    "mdm": "MDM δ=0.10",
+    "lse": "LSE",
+    "lre": "LRE Bernard",
+    "lre_park": "LRE Park",
+    "wmle": "WMLE",
+    "mle": "MLE"
+  },
+  "offset": 0.1,
+  "new_sampling": false,
+  "conditional_fit": "gamma fixed at true500; WMLE solves only T1, not full two-equation estimator",
+  "runtime": {
+    "python": "3.11.15",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "matplotlib": "3.11.0",
+    "python_executable": "D:\\weibull\\python\\.venv\\Scripts\\python.exe",
+    "matplotlib_location": "C:\\Users\\36089\\AppData\\Local\\hermes\\hermes-agent\\venv\\Lib\\site-packages\\matplotlib\\__init__.py"
+  },
+  "code_hashes": {
+    "程序/封存核验.py": "624f22e98515bf31891a27434dacef7b0e11e261a364d8a0d52c151503ab0ec1",
+    "程序/独立剖面复核.py": "6e57f2c92fc5da633a25b637069548b99334f012e8e8b88f4b7207654c893750",
+    "程序/生成核验表.mjs": "3439eca70ecafa3efc5d95a3031dec0f27c864a76bf36523f51225dae18be760",
+    "程序/验证位置尺度补偿.py": "ba3d841b3acdb0b063dd66cbdf03f79c267d84c46b6c40061fca26ab527c33d9",
+    "程序/依赖快照/python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+    "程序/依赖快照/python/methods/__init__.py": "b49ac5fca78ef0572f0b99e5b067526ec2bca881dfd748b40d92de7e56145fc6",
+    "程序/依赖快照/python/methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "程序/依赖快照/python/methods/lre.py": "730e86750f5ac1b31dd1cee9f3a73a8932e501661dfbf1e82c056de44f9a663f",
+    "程序/依赖快照/python/methods/lre_park.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
+    "程序/依赖快照/python/methods/lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "程序/依赖快照/python/methods/mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "程序/依赖快照/python/methods/mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "程序/依赖快照/python/methods/registry.py": "87a1f414eb29292297ceebf11d002a23603c0ae820e9ec873c7e11f320273066",
+    "程序/依赖快照/python/methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "程序/依赖快照/python/studies/__init__.py": "b49ac5fca78ef0572f0b99e5b067526ec2bca881dfd748b40d92de7e56145fc6",
+    "程序/依赖快照/python/studies/common/__init__.py": "b49ac5fca78ef0572f0b99e5b067526ec2bca881dfd748b40d92de7e56145fc6",
+    "程序/依赖快照/python/studies/common/metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3",
+    "程序/依赖快照/python/studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "程序/依赖快照/python/studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48"
+  },
+  "input_hashes": {
+    "程序/输入快照/昨晚MDM诊断.json": "146dac9bbc2732f6e595b047ad696710a75affebb0bb0a7d2fb0ccad8f893033",
+    "程序/输入快照/beta2/gradient_curves.csv": "41aa1ece796309ee947adb8f00134ecdc502851fe25336ea05ef1949b57f11b3",
+    "程序/输入快照/beta2/mdm_estimates.csv": "88890b6c348a4dcc228109f1be120ed9b694c187770a1801b49b8e0d65700d60",
+    "程序/输入快照/beta2/other_method_estimates.csv": "83f6470a1b114a40bd6d1cbd977a1b323b92b1c04ebdbf5efe3f545aaa24cc01",
+    "程序/输入快照/beta2/samples.csv": "f1752b7319ca13dd651bdc1709bbdbe22343bfcb70a9c9ec699737f8012046ce",
+    "程序/输入快照/beta2/原估计表.xlsx": "118dba14875c1d0103a53398e0ad726564c5f48b8d8799b1b7bb5396b6a21d41",
+    "程序/输入快照/beta5/gradient_curves.csv": "be7bf3fcc5aa7b28a6474fdaee5b33b04f165adccc1d36d3914b5c8a83a4aeb6",
+    "程序/输入快照/beta5/mdm_estimates.csv": "55278cad5c6e13c755ffa1d23cd62ee1b6d27f84d45f50a7ae5628c351e078b9",
+    "程序/输入快照/beta5/other_method_estimates.csv": "a95a714b673a269d923dd63f2076d9ecf5736ce3470192418898eeb9859a6c68",
+    "程序/输入快照/beta5/samples.csv": "3f5aa1ffb75731209ddfb66fb5afb9e39ce67993a34b9e216cb7693a816b52fe",
+    "程序/输入快照/beta5/原估计表.xlsx": "fba35282fc3964515e6863fb74d4c7751ff70ecab7bfc1f1ed383c35b7ba38dc"
+  },
+  "output_hashes": {
+    "结果/参数映射与位置尺度补偿核验.xlsx": "16854aba588804c9a9c843cb0b76957e6fa6ec3914a89c8b2d6c83aa9ce811fd",
+    "结果/参数映射与位置尺度补偿核验.xlsx.inspect.ndjson": "7da3298d0d8a83262b95f03532fc6a28e102b537e536db4dd9bb3ea22cad678e",
+    "结果/参数补偿.pdf": "982aa773bba9004114cb18ce5c2ed3036fb4a11300b55e4d0bb4ed3bb9741913",
+    "结果/参数补偿.png": "f3036a359f74a9b19a9550ea3e4e55d4cbdd809d6eda7ddaf88aa19740756896",
+    "结果/样本下尾信息.pdf": "72aa04d68c334a82259ade38f380213c525d5cd233e7f0fdb8c4929ae25057df",
+    "结果/样本下尾信息.png": "ae38f3239d87fb3894d96e2dec40401511168897da026d880841f2fa0715f038",
+    "结果/过程_lre.pdf": "744c67257a607f8480012944d0b8e8c1b858c80240edcc6a171e89cbc6f8cd3c",
+    "结果/过程_lre.png": "402d4e60e2d196378b43238121fd2efc9a4fab457867bc205008691c42b8a08d",
+    "结果/过程_lre_park.pdf": "d5b22d60307d9eb18f9d894486e58e8569ce5871b5ccce67c880d6a23f75fdf8",
+    "结果/过程_lre_park.png": "e605a51f1c9e78ad76b51e5bb76ac03ac67249149cec7e27c7649d1759bd2951",
+    "结果/过程_lse.pdf": "bdf7b1de94b62907d2e379126a1619251d7fe7c2cf4c42f4ea42a9c0686284c3",
+    "结果/过程_lse.png": "e1ef5d7fe4f6fcade8d92ca83bbcba5fb2b7143eea3f9326c10c86867eadcef4",
+    "结果/过程_mdm.pdf": "da3301e4afb2b89c89b8c75a602c18cbe0e72f81af3a07c9b141c7a6bcbdbbf7",
+    "结果/过程_mdm.png": "5e23c691689d4d8600168502b6effea054c574a5e64636c044fd0fbefd370ae8",
+    "结果/过程_mle.pdf": "129374089605845e468d9810fa8ca348b4320d662233ef6fc671f78b2ff1ffa5",
+    "结果/过程_mle.png": "b3c00af7ca6c633a4dc62cddeceb3ef0d8d85e1ac000e6dcb8d4f4b28db2a2e2",
+    "结果/过程_wmle.pdf": "931c7d35643a348e130745d3d41773a773be9effa1e02780ae26403af49d55a2",
+    "结果/过程_wmle.png": "2e521aba90f3360ce4c7d3e508e4a618cf197ae764afe658a4e085f478448692",
+    "结果/验证说明.md": "ab4ad219f1a11f10b3722cb48ef668a3994258dbc1ac7bac1eb608f97f24cbd0",
+    "结果/中间数据/复算核验.json": "c9fad1f4decc1a01c9f7ae43df05ccbd4af80a7de42032c550b492ee08fae0a7",
+    "结果/中间数据/实际估计.json": "90a95d4ac5cd460c165e62be3201775b6918b792112d0b48561108008b7a83f9",
+    "结果/中间数据/汇总.csv": "9b0e4bf7ea43e5caf4913275cb472595e2fb3546a13b75485ac05e3b354475f2",
+    "结果/中间数据/汇总.json": "d54038c0df830c6c45733802ce9b01d35895ec97417fb419be2fccf812ca0dff",
+    "结果/中间数据/独立剖面复核.json": "8a00304a88792df48a34592d6edfe356d254fab0a87758325efd9db5de0443fe",
+    "结果/中间数据/输入核验.json": "1caf546ab26dfe082b4831268474bc067acf349781d5ef4940d9f3e028fd1cfb",
+    "结果/中间数据/过程曲线.csv": "202dd00acb75119cebc7f199a78402a49bb1187ab763a2fc82de76be6b1c2207",
+    "结果/中间数据/表格预览/公式检查.ndjson": "acc0111e19cf44d2753fc9ecd164bf1b27fbd65597463a25cf48bd1c65e90146",
+    "结果/中间数据/表格预览/样本与核验.ndjson": "1763f2139faba1acd7e53202ca6c837690eb912bfc435f23ac4d6a677fbe2b24",
+    "结果/中间数据/表格预览/样本与核验.png": "ba200b0531db10c12d417641afcd5440db429866a49bd7b325220126cee811a8",
+    "结果/中间数据/表格预览/漏解复核.ndjson": "039ec014e1b866149012302820ce6aa4bad6ca948dcbd8e59a910ad7a4ce0535",
+    "结果/中间数据/表格预览/漏解复核.png": "1c68163afe453868d5f726b84a366022f6067d184db9661f212d60596272f8a1",
+    "结果/中间数据/表格预览/结果汇总.ndjson": "68ede2de0ccb3e600f71f1721d7e353d0214fd3449af5b00c69be342f1dfb302",
+    "结果/中间数据/表格预览/结果汇总.png": "4a44572b8e6fd2ff7c15f7c20d6197d6d44957328ae9f90e1024bb4e94663541",
+    "结果/中间数据/表格预览/过程复核.ndjson": "d5d2fd3544fe52b2a3082b4a99abc454dbcfd0d24ce26818f0a0535b62c59e52",
+    "结果/中间数据/表格预览/过程复核.png": "bc48aeec7c3139159b839c51e23a96a48cf6cdb45dc14b32a1d32443722768e7",
+    "结果/中间数据/表格预览/逐组估计.ndjson": "db9e3d51b16cf1c7e8041e25f036d75512c892ac323b98ff7728c7fde6cab5c0",
+    "结果/中间数据/表格预览/逐组估计.png": "7fb61e778825f5ec9b55092a2687594fb920e67ddf10405e693aa8cfbe6ec267"
+  },
+  "historical_fit_recomputations": 1000,
+  "historical_mismatches": 0,
+  "profile_range_notes": "LSE/LRE lower better loss; WMLE beta<10 and J3 clamped above5; MLE beta>1 finite branch; displayed WMLE/MLE/MDM axes zoomed, full CSV retained",
+  "document_hashes": {
+    "README.md": "f11a78854455f01477a29bb44547accfa24c1bbcf21d568e4a1996b5a3cac294"
+  },
+  "sealed_at_utc": "2026-09-30T08:56:06.642220+00:00",
+  "seal_scope": "All batch code, frozen inputs, outputs and README; excluding runtime, caches and manifest itself."
+}

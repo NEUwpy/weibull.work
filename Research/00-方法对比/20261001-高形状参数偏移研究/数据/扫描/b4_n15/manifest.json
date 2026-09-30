@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-09-30T17:00:12+00:00",
+  "code_version": "Research00 frozen 20260930 estimator snapshot",
+  "run_label": "beta-continuation-20261001",
+  "methods": [
+    {
+      "method_id": "mdm",
+      "variant": "mdm",
+      "kwargs": {
+        "offset": 0.1,
+        "gamma_steps": 240
+      }
+    },
+    {
+      "method_id": "lse",
+      "variant": "lse",
+      "kwargs": {}
+    },
+    {
+      "method_id": "lre_park",
+      "variant": "lre_park",
+      "kwargs": {}
+    },
+    {
+      "method_id": "wmle",
+      "variant": "wmle",
+      "kwargs": {}
+    },
+    {
+      "method_id": "mle",
+      "variant": "mle",
+      "kwargs": {}
+    }
+  ],
+  "param_grid": [
+    [
+      4.0,
+      1000.0,
+      500.0
+    ]
+  ],
+  "n_values": [
+    15
+  ],
+  "n_repeats": 100,
+  "seed_namespace": 2026100101,
+  "metrics": {
+    "primary": [
+      "bias",
+      "sd",
+      "rmse",
+      "mae"
+    ],
+    "R_levels": [
+      0.95,
+      0.99
+    ],
+    "diagnostics": [
+      "mdape",
+      "med_rel",
+      "p95_abs"
+    ],
+    "diagnostic_R_levels": [
+      0.5,
+      0.9,
+      0.95,
+      0.99,
+      0.999
+    ]
+  },
+  "total_rows": 500,
+  "output_files": [
+    "results.csv",
+    "summary.json",
+    "manifest.json"
+  ]
+}
