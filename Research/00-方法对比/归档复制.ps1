@@ -20,7 +20,7 @@ function CopyTree([string]$source, [string]$destination, [string]$exclude = '') 
     $src = Join-Path $repo $source
     foreach ($item in Get-ChildItem -LiteralPath $src -Force) {
         $rel = "$source/$($item.Name)"
-        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $item.Name -match '^(node_modules|__pycache__|qa|_qa_workbook)$' -or $item.Name -match '\.inspect\.|inspection|preview|contact.sheet|\.log$|\.tiff?$' -or ($exclude -and $item.Name -match $exclude)) {
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $item.Name -match '^(node_modules|__pycache__|mplconfig|qa|_qa_workbook)$' -or $item.Name -match '\.inspect\.|inspection|preview|contact.sheet|\.log$|\.tiff?$' -or ($exclude -and $item.Name -match $exclude)) {
             $skipped.Add([pscustomobject]@{source=$rel; reason='不复制缓存、检查预览、重复导出或另行归类的材料；原件保留'})
             continue
         }
