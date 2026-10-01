@@ -15,7 +15,7 @@ NAMES = dict(mdm='MDM', lse='LSE', lre='LRE', wmle='WMLE', mle='MLE')
 COLORS = dict(mdm='#345D7E', lse='#589CA3', lre='#8A7398', wmle='#B27448', mle='#5F6570')
 STYLES = ['-', '--', '-.', (0, (5, 2, 1, 2)), ':']
 BLUE, RETURN = '#345D7E', '#B55E3E'
-CONDITIONS = [(2, 7), (5, 7), (5, 15)]
+CONDITIONS = [(2, 7), (5, 7), (2, 15), (5, 15)]
 TITLES = dict(mdm='MDM：在哪里达到固定梯度阈值？', lse='LSE：在哪里得到最小回归损失？',
               lre='LRE：在哪里得到最高直线相关性？', wmle='WMLE：加权位置方程在哪里满足？',
               mle='MLE：有限似然分支在哪里停止上升？')

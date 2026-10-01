@@ -123,7 +123,7 @@ def plot_and_save():
     assert cdf([500], TRUTH)[0] == 0
     assert cdf([1000], SWAPPED)[0] == 0
 
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.35),
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.7),
                             gridspec_kw={'width_ratios': [1.23, 1.0]})
     left, right = axes
     left.axvspan(observations.min(), observations.max(), color='#DDE4E8',
@@ -137,14 +137,6 @@ def plot_and_save():
              xlabel='寿命 t', ylabel='累积失效概率 F(t)')
     left.set_xticks([500, 1000, 1500, 2000])
     left.set_yticks([0, .25, .5, .75, 1.0])
-    left.set_title('实际偏移估计仍可贴近样本中部', loc='left', pad=12)
-    left.text(.02, .965, 'W 的顺序：形状 β、尺度 η、位置 γ',
-              transform=left.transAxes, fontsize=6, va='top')
-    left.text(.02, .885, '真值：5，1000，500\nMDM：1.95，512，1015',
-              transform=left.transAxes, fontsize=6, va='top',
-              bbox={'facecolor': 'white', 'alpha': .7, 'edgecolor': 'none', 'pad': 2})
-    left.text(.49, .035, '灰带：本组7个观测的范围',
-              transform=left.transAxes, fontsize=6, color='#5E6670')
 
     for row, (a, b, difference) in enumerate(zip(true_q, fit_q, errors)):
         central = row == 2
@@ -152,18 +144,10 @@ def plot_and_save():
                    lw=2 if central else 1.4, zorder=1)
         right.scatter(a, row, s=24, color=GREY, zorder=3)
         right.scatter(b, row, s=24, color=BLUE, zorder=3)
-        right.text(max(a, b) + 22, row, f'+{difference:.0f}',
-                   va='center', fontsize=7, color=BLUE,
-                   weight='bold' if central else 'normal')
     right.set(xlim=(800, 2030), ylim=(3.6, -.6), xlabel='分位寿命 Q(p)')
     right.set_xticks([900, 1200, 1500, 1800])
     right.set_yticks(range(4), ['1%', '10%', '63.2%', '90%'])
     right.set_ylabel('累积失效概率 p')
-    right.set_title('中部接近，尾部仍可能偏离', loc='left', pad=12)
-    right.text(.015, .965, '标注 = 实际估计 − 真值',
-               transform=right.transAxes, fontsize=6, va='top')
-    right.text(.015, .04, '1%低于本组最低绘图位置9.46%',
-               transform=right.transAxes, fontsize=6, color='#5E6670')
     for ax, tag in zip(axes, ('a', 'b')):
         ax.text(-.12, 1.11, tag, transform=ax.transAxes,
                 fontsize=8, weight='bold')
@@ -175,10 +159,9 @@ def plot_and_save():
         Line2D([], [], ls='', marker='o', markerfacecolor='white',
                markeredgecolor='#23282D', ms=4),
     ], [
-        '真实 W(5,1000,500)', '实际 MDM 估计',
-        '交换后 W(5,500,1000)', '样本的 Bernard 绘图位置',
-    ], ncol=2, loc='lower center', bbox_to_anchor=(.5, .01), columnspacing=2.8)
-    fig.subplots_adjust(left=.09, right=.985, top=.84, bottom=.28, wspace=.47)
+        '真分布', 'MDM估计', '参数交换', '样本',
+    ], ncol=4, loc='upper center', bbox_to_anchor=(.5, .997), columnspacing=1.8)
+    fig.subplots_adjust(left=.09, right=.985, top=.84, bottom=.19, wspace=.47)
     for ext in ('png', 'pdf', 'svg'):
         target = OUT / f'{FIGURE_NAME}.{ext}'
         fig.savefig(target, dpi=450, facecolor='white')
@@ -202,7 +185,9 @@ def plot_and_save():
         'true_quantiles': true_q.tolist(),
         'fit_quantiles': fit_q.tolist(),
         'quantile_errors': errors.tolist(),
-        'figure_dimensions_mm': [182.88, 85.09],
+        'figure_dimensions_mm': [182.88, 68.58],
+        'png_dimensions': [3240, 1215],
+        'notes_location': 'report text and figure caption',
         'export': 'PNG 450 dpi; PDF embedded editable TrueType; SVG live text.',
         'cdf_quantile_identity_max_error': float(max(
             np.max(np.abs(cdf(true_q, TRUTH) - p)),

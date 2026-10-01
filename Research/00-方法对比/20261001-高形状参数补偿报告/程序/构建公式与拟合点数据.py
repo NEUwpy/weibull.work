@@ -30,20 +30,14 @@ def wmle_residuals(x, beta, gamma):
     return float(t1), float(t2)
 
 
-def main():
-    process_path = DATA / '逐法过程曲线.json'
-    audit_path = INPUT / '原案例核验.json'
-    source = json.loads(process_path.read_text(encoding='utf-8'))
-    audit = json.loads(audit_path.read_text(encoding='utf-8'))
-    original = {r['method']: r for r in source['curves'] if r['source'] == 'original'}
+def make_case(source, audit, beta):
+    original = {r['method']: r for r in source['curves'] if r['source'] == 'original' and r['beta'] == beta}
     samples = {(r['beta_true'], r['n'], r['sample_id']): r['observations'] for r in audit['samples']}
-    result = dict(regressions={}, evaluation_points={}, wmle={},
-        input_hashes={'结果/中间数据/逐法过程曲线.json': digest(process_path),
-                      '程序/输入快照/原案例核验.json': digest(audit_path)},
+    result = dict(beta=beta, regressions={}, evaluation_points={}, wmle={},
         new_samples=0, new_three_parameter_estimates=0)
     for method in ('lse', 'lre'):
         r = original[method]
-        x = np.array(samples[5, 7, r['sample_id']])
+        x = np.array(samples[beta, 7, r['sample_id']])
         n = len(x)
         reference = (mother.log_weibull_order_stat_means(n) if method == 'lse' else
                      np.log(-np.log1p(-(np.arange(1, n+1)-.3)/(n+.4))))
@@ -72,9 +66,9 @@ def main():
             true_gamma_point_id=truth['id'], returned_gamma_point_id=returned['id'],
             meaning='G indexes candidate-gamma formula evaluations, not observed lifetimes')
     r = original['wmle']
-    x = np.array(samples[5, 7, r['sample_id']])
+    x = np.array(samples[beta, 7, r['sample_id']])
     gg = np.unique(np.r_[np.linspace(0, x[0] - 1e-4, 220), 500., r['fit']['gamma_hat']])
-    bb = np.unique(np.r_[np.linspace(.3, 9.98, 180), 5., r['fit']['beta_hat']])
+    bb = np.unique(np.r_[np.linspace(.3, 9.98, 180), float(beta), 5., r['fit']['beta_hat']])
     ld = np.log(x[None, :] - gg[:, None])
     powers = bb[:, None, None] * ld[None, :, :]
     log_s = logsumexp(powers, axis=2)
@@ -91,11 +85,24 @@ def main():
         gamma_grid=gg.tolist(), beta_grid=bb.tolist(), t1=t1.tolist(), t2=t2.tolist(),
         returned_beta=actual_b, returned_gamma=actual_g, returned_t1=actual_t1, returned_t2=actual_t2,
         returned_objective=actual_t1**2+actual_t2**2,
-        truth_beta=5., truth_gamma=500., truth_residuals=list(wmle_residuals(x, 5., 500.)),
+        truth_beta=float(beta), truth_gamma=500., truth_residuals=list(wmle_residuals(x, float(beta), 500.)),
         grid_points=int(t1.size))
+    return result
+
+
+def main():
+    process_path = DATA / '逐法过程曲线.json'
+    audit_path = INPUT / '原案例核验.json'
+    source = json.loads(process_path.read_text(encoding='utf-8'))
+    audit = json.loads(audit_path.read_text(encoding='utf-8'))
+    result = dict(cases_by_beta={str(beta): make_case(source, audit, beta) for beta in (2,5)},
+        input_hashes={'结果/中间数据/逐法过程曲线.json': digest(process_path),
+                     '程序/输入快照/原案例核验.json': digest(audit_path)},
+        new_samples=0, new_three_parameter_estimates=0)
     (DATA / '单组绘图点与方程.json').write_text(json.dumps(result, ensure_ascii=False, separators=(',', ':'), allow_nan=False), encoding='utf-8')
-    print(json.dumps(dict(regression_observations_per_method=7, wmle_formula_grid_points=int(t1.size),
-        wmle_actual_return_residuals=[actual_t1, actual_t2], new_three_parameter_estimates=0), ensure_ascii=False))
+    print(json.dumps({beta: dict(samples={m:c['sample_id'] for m,c in case['regressions'].items()},
+        wmle_grid_points=case['wmle']['grid_points'],wmle_residuals=[case['wmle']['returned_t1'],case['wmle']['returned_t2']])
+        for beta,case in result['cases_by_beta'].items()},ensure_ascii=False))
 
 
 if __name__ == '__main__':

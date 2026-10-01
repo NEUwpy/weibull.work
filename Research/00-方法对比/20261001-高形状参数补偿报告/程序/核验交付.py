@@ -42,15 +42,19 @@ def main():
     assert len(fits) == 4200 and len(samples) == 700
     process = json.loads((DATA / '逐法过程曲线.json').read_text(encoding='utf-8'))
     figure_checks = json.loads((DATA / '逐法图核验.json').read_text(encoding='utf-8'))
-    assert len(process['curves']) == 755
+    assert len(process['curves']) == 1010
+    for fig in figure_checks['process_figures']:
+        assert [(p['beta'], p['n'], p['curves']) for p in fig['panels']] == [(2,7,50),(5,7,50),(2,15,50),(5,15,50)]
+        assert [p['beta'] for p in fig['original_panels']] == [2,5]
+        assert not fig['formula_printed_on_figure'] and fig['formula_documented_in_report']
     curve_points = sum(len(r['points']) for r in process['curves'])
-    assert curve_points == 110213
+    assert curve_points == 147550
     for name, expected in process['provenance']['input_hashes'].items():
         assert digest(ROOT / name) == expected
     fit_index = {(r['beta'], r['n'], r['sample_id'], r['method']): r for r in fits}
     original_fits = json.loads((INPUT / '原案例估计.json').read_text(encoding='utf-8'))
     for method in ('mdm', 'lse', 'lre', 'wmle', 'mle'):
-        for beta, n in ((2, 7), (5, 7), (5, 15)):
+        for beta, n in ((2, 7), (5, 7), (2, 15), (5, 15)):
             rr = [r for r in process['curves'] if r['source'] == 'paired' and r['method'] == method and r['beta'] == beta and r['n'] == n]
             assert len(rr) == 50 and {r['sample_id'] for r in rr} == set(range(1, 51))
             for r in rr:
@@ -58,9 +62,10 @@ def main():
                 assert all(0 <= p[0] < r['sample_min'] for p in r['points'])
                 if r['fit']['converged']:
                     assert r['returned'][0] == r['fit']['gamma_hat']
-        case = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == method)
-        actual = next(r for r in original_fits if r['beta'] == 5 and r['n'] == 7 and r['method'] == method and r['sample_id'] == case['sample_id'])
-        assert actual == case['fit']
+        for beta in (2, 5):
+            case = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == method and r['beta'] == beta)
+            actual = next(r for r in original_fits if r['beta'] == beta and r['n'] == 7 and r['method'] == method and r['sample_id'] == case['sample_id'])
+            assert actual == case['fit']
     violin_data = json.loads((DATA / '图1小提琴数据与核验.json').read_text(encoding='utf-8'))
     assert digest(ROOT / violin_data['input_path']) == violin_data['input_sha256']
     assert len(figure_checks['violin']) == len(violin_data['panels']) == 30
@@ -90,40 +95,47 @@ def main():
     for name, expected in point_data['input_hashes'].items():
         assert digest(ROOT / name) == expected
     original_samples = json.loads((INPUT / '原案例核验.json').read_text(encoding='utf-8'))['samples']
-    for method, case in point_data['regressions'].items():
-        source_sample = next(r for r in original_samples if r['beta_true'] == 5 and r['n'] == 7 and r['sample_id'] == case['sample_id'])
-        assert case['observations'] == source_sample['observations']
-        for ds in case['datasets']:
-            assert [p['id'] for p in ds['points']] == list(range(1, 8))
-            assert [p['observation'] for p in ds['points']] == source_sample['observations']
-            xx = np.array([p['x'] for p in ds['points']]); yy = np.array([p['y'] for p in ds['points']])
-            residual = yy - (ds['intercept'] + ds['slope']*xx)
-            assert abs(residual.sum()) < 1e-10 and abs(xx @ residual) < 1e-10
-            assert abs(ds['loss'] - (1-np.corrcoef(xx, yy)[0,1]**2)) < 1e-12
-            actual_ld = np.log(np.array(case['observations']) - ds['gamma'])
-            assert np.max(abs(actual_ld - (yy if method == 'lse' else xx))) < 1e-12
-    for method, case in point_data['evaluation_points'].items():
-        curve = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == method)
-        assert len(case['points']) == len(curve['points'])
-        for i, (p, saved) in enumerate(zip(case['points'], curve['points'])):
-            assert p['id'] == f'G{i+1}' and p['gamma'] == saved[0]
-            expected = saved[1] if method == 'mdm' else saved[5]-curve['truth'][5] if saved[5] is not None else None
-            assert p['value'] == expected
-        assert next(p for p in case['points'] if p['id'] == case['true_gamma_point_id'])['gamma'] == 500
-        assert next(p for p in case['points'] if p['id'] == case['returned_gamma_point_id'])['gamma'] == curve['fit']['gamma_hat']
-    from 构建公式与拟合点数据 import wmle_residuals
-    w = point_data['wmle']
-    original_wmle = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == 'wmle')
-    assert [w['returned_beta'], w['returned_gamma']] == [original_wmle['fit']['beta_hat'], original_wmle['fit']['gamma_hat']]
-    gamma_grid, beta_grid = w['gamma_grid'], w['beta_grid']
-    grid_checks = [(0, 0), (len(beta_grid)//2, len(gamma_grid)//2),
-                   (beta_grid.index(5.), gamma_grid.index(500.)),
-                   (beta_grid.index(w['returned_beta']), gamma_grid.index(w['returned_gamma'])),
-                   (len(beta_grid)-1, len(gamma_grid)-1)]
-    for bi, gi in grid_checks:
-        t1, t2 = wmle_residuals(np.array(w['observations']), beta_grid[bi], gamma_grid[gi])
-        assert np.allclose([w['t1'][bi][gi], w['t2'][bi][gi]], [t1, t2], rtol=1e-11, atol=1e-11)
-    assert w['returned_objective'] < 1e-20 and w['grid_points'] == 40404
+    assert set(point_data['cases_by_beta']) == {'2', '5'}
+    wmle_grid_points = wmle_scalar_checks = 0
+    for beta in (2, 5):
+        beta_case = point_data['cases_by_beta'][str(beta)]
+        for method, case in beta_case['regressions'].items():
+            source_sample = next(r for r in original_samples if r['beta_true'] == beta and r['n'] == 7 and r['sample_id'] == case['sample_id'])
+            assert case['observations'] == source_sample['observations']
+            for ds in case['datasets']:
+                assert [p['id'] for p in ds['points']] == list(range(1, 8))
+                assert [p['observation'] for p in ds['points']] == source_sample['observations']
+                xx = np.array([p['x'] for p in ds['points']]); yy = np.array([p['y'] for p in ds['points']])
+                residual = yy - (ds['intercept'] + ds['slope']*xx)
+                assert abs(residual.sum()) < 1e-10 and abs(xx @ residual) < 1e-10
+                assert abs(ds['loss'] - (1-np.corrcoef(xx, yy)[0,1]**2)) < 1e-12
+                actual_ld = np.log(np.array(case['observations']) - ds['gamma'])
+                assert np.max(abs(actual_ld - (yy if method == 'lse' else xx))) < 1e-12
+        for method, case in beta_case['evaluation_points'].items():
+            curve = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == method and r['beta'] == beta)
+            assert len(case['points']) == len(curve['points'])
+            for i, (p, saved) in enumerate(zip(case['points'], curve['points'])):
+                assert p['id'] == f'G{i+1}' and p['gamma'] == saved[0]
+                expected = saved[1] if method == 'mdm' else saved[5]-curve['truth'][5] if saved[5] is not None else None
+                assert p['value'] == expected
+            assert next(p for p in case['points'] if p['id'] == case['true_gamma_point_id'])['gamma'] == 500
+            assert next(p for p in case['points'] if p['id'] == case['returned_gamma_point_id'])['gamma'] == curve['fit']['gamma_hat']
+        from 构建公式与拟合点数据 import wmle_residuals
+        w = beta_case['wmle']
+        original_wmle = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == 'wmle' and r['beta'] == beta)
+        assert [w['returned_beta'], w['returned_gamma']] == [original_wmle['fit']['beta_hat'], original_wmle['fit']['gamma_hat']]
+        gamma_grid, beta_grid = w['gamma_grid'], w['beta_grid']
+        grid_checks = [(0, 0), (len(beta_grid)//2, len(gamma_grid)//2),
+                       (beta_grid.index(float(beta)), gamma_grid.index(500.)),
+                       (beta_grid.index(w['returned_beta']), gamma_grid.index(w['returned_gamma'])),
+                       (len(beta_grid)-1, len(gamma_grid)-1)]
+        for bi, gi in grid_checks:
+            t1, t2 = wmle_residuals(np.array(w['observations']), beta_grid[bi], gamma_grid[gi])
+            assert np.allclose([w['t1'][bi][gi], w['t2'][bi][gi]], [t1, t2], rtol=1e-11, atol=1e-11)
+        assert w['returned_objective'] < 1e-20
+        wmle_grid_points += w['grid_points']
+        wmle_scalar_checks += len(grid_checks)
+    assert wmle_grid_points == 81030 and wmle_scalar_checks == 10
     new_figure_names = ['图1_原案例参数分布'] + [r['file'] for r in figure_checks['process_figures']]
     for name in new_figure_names:
         figure = ROOT / '结果' / name
@@ -192,7 +204,7 @@ def main():
     figure = ROOT / '结果' / '图7_不同参数的寿命曲线与分位点'
     with Image.open(figure.with_suffix('.png')) as png:
         dimensions = list(png.size)
-        assert dimensions == [3240, 1507]
+        assert dimensions == provenance['png_dimensions']
         assert all(abs(v - 450) < .1 for v in png.info['dpi'])
     svg_text = len(ET.parse(figure.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text'))
     assert svg_text > 20
@@ -204,15 +216,16 @@ def main():
         'complete_original_violin_panels_checked': 6, 'violin_method_distributions_checked': 30,
         'violin_raw_points_quartiles_zero_counts_checked': True,
         'violin_points_aligned_on_method_axis': True,
-        'method_process_figures_checked': 5, 'all_condition_curves': 750,
-        'original_process_cases': 5, 'process_candidate_points': curve_points,
+        'method_process_figures_checked': 5, 'six_panel_layout_checked': True, 'all_condition_curves': 1000,
+        'original_process_cases': 10, 'process_candidate_points': curve_points,
         'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,
         'regression_affine_invariance_checked': True, 'mdm_envelope_bound_checked': True,
-        'numbered_regression_observations_checked': 14,
+        'numbered_regression_observations_checked': 28,
         'regression_transforms_and_ols_normal_equations_checked': True,
         'candidate_point_ids_and_values_checked': True,
-        'wmle_joint_formula_grid_points': w['grid_points'],
-        'wmle_scalar_grid_checks': len(grid_checks), 'formulas_printed_on_method_figures': 5,
+        'wmle_joint_formula_grid_points': wmle_grid_points,
+        'wmle_scalar_grid_checks': wmle_scalar_checks,
+        'method_formulas_documented_in_report': sum(r['formula_documented_in_report'] for r in figure_checks['process_figures']),
         'independent_samples': 1400, 'independent_fit_records': rows,
         'independent_source_files_preserved_bytewise': unchanged_scan_files,
         'frozen_scan_dependency_hashes_checked': dependencies,

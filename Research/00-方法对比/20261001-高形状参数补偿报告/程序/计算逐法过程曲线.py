@@ -1,4 +1,4 @@
-"""Diagnose all saved fits in three conditions; no sampling or estimator reruns.
+"""Diagnose saved fits in the full 2x2 design; no sampling or estimator reruns.
 
 Every curve uses the frozen criterion in 剖面母体.py. The returned fit is
 unchanged. Conditional WMLE equations and finite MLE scores are diagnostics,
@@ -17,7 +17,7 @@ HERE = Path(__file__).resolve().parent
 DATA = HERE.parent / '结果' / '中间数据'
 INPUT = HERE / '输入快照'
 METHODS = ('mdm', 'lse', 'lre', 'wmle', 'mle')
-CONDITIONS = ((2, 7), (5, 7), (5, 15))
+CONDITIONS = ((2, 7), (5, 7), (2, 15), (5, 15))
 spec = importlib.util.spec_from_file_location('frozen_profile', HERE / '剖面母体.py')
 mother = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mother)
@@ -29,6 +29,17 @@ def load(path):
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def original_example(old, audit, beta, method):
+    successful = [r for r in old if r['beta'] == beta and r['n'] == 7 and r['method'] == method and r['converged']]
+    median = float(np.median([r['gamma_hat'] for r in successful]))
+    for fit in sorted(successful, key=lambda r: (abs(r['gamma_hat']-median), r['sample_id'])):
+        sample = next(s for s in audit['samples'] if s['beta_true'] == beta and s['n'] == 7 and s['sample_id'] == fit['sample_id'])
+        x = np.array(sample['observations'])
+        if mother.profile(x, method, 500.) is not None and mother.profile(x, method, float(fit['gamma_hat'])) is not None:
+            return fit, sample
+    raise ValueError(f'No defined single-case profile: beta={beta}, method={method}')
 
 
 def curve(task):
@@ -72,12 +83,10 @@ def main():
             for s in ss:
                 fit = fit_index[beta, n, s['sample_id'], method]
                 tasks.append(('paired', beta, n, s['sample_id'], method, s['observations'], fit))
-    for method in METHODS:
-        successful = [r for r in old if r['beta'] == 5 and r['n'] == 7 and r['method'] == method and r['converged']]
-        median = float(np.median([r['gamma_hat'] for r in successful]))
-        fit = min(successful, key=lambda r: (abs(r['gamma_hat'] - median), r['sample_id']))
-        s = next(s for s in audit['samples'] if s['beta_true'] == 5 and s['n'] == 7 and s['sample_id'] == fit['sample_id'])
-        tasks.append(('original', 5, 7, fit['sample_id'], method, s['observations'], fit))
+    for beta in (2, 5):
+        for method in METHODS:
+            fit, s = original_example(old, audit, beta, method)
+            tasks.append(('original', beta, 7, fit['sample_id'], method, s['observations'], fit))
     target = DATA / '逐法过程曲线.json'
     if target.exists():
         cached = load(target)
@@ -138,7 +147,7 @@ def main():
         conditions=[dict(beta=b, n=n, groups=50) for b, n in CONDITIONS],
         provenance=dict(input_hashes=hashes, new_samples=0, new_fits=0,
             across_beta='Same n and sample id share E; n7 and n15 use separate latent families.',
-            original_selection='Original beta5 n7 successful gamma closest to method median; tie by id',
+            original_selection='For each beta=2/5,n7, successful gamma closest to method median with defined truth and return profiles; tie by id; original batches use different seeds.',
             diagnostic_scope='Actual frozen conditional criteria; not optimizer iteration trajectories.'),
         summaries=summaries, regression_truth_invariance=invariance, mdm_envelope=mdm_envelope, curves=curves)
     target.write_text(json.dumps(output, ensure_ascii=False, separators=(',', ':'), allow_nan=False), encoding='utf-8')
