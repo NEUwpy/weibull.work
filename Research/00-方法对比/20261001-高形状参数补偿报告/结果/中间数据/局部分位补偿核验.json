@@ -1,0 +1,88 @@
+{
+  "script": "程序/核验局部分位补偿.py",
+  "purpose": "Exact local identities and a constructed illustration, not an estimator comparison.",
+  "formula": "Q(z)=gamma+eta*exp(z/beta); Q(0)=gamma+eta; Q_prime(0)=eta/beta",
+  "approximation_scope": "First-order expansion near z=0; tail quantiles use the exact expression.",
+  "new_samples": 0,
+  "new_fits": 0,
+  "cases": [
+    {
+      "name": "generating_distribution",
+      "parameters_beta_eta_gamma": [
+        5.0,
+        1000.0,
+        500.0
+      ],
+      "central_quantile": 1500.0,
+      "central_slope": 200.0,
+      "central_curvature": 40.0,
+      "finite_difference_slope_error": 1.2323653209023178e-08,
+      "quantiles": [
+        {
+          "p": 0.01,
+          "z": -4.60014922677658,
+          "quantile": 898.5071473196206
+        },
+        {
+          "p": 0.1,
+          "z": -2.2503673273124454,
+          "quantile": 1137.5813096953711
+        },
+        {
+          "p": 0.5,
+          "z": -0.36651292058166435,
+          "quantile": 1429.3195901316053
+        },
+        {
+          "p": 0.6321205588285577,
+          "z": 0.0,
+          "quantile": 1500.0
+        },
+        {
+          "p": 0.9,
+          "z": 0.834032445247956,
+          "quantile": 1681.5256050421783
+        }
+      ]
+    },
+    {
+      "name": "constructed_local_match",
+      "parameters_beta_eta_gamma": [
+        2.5,
+        500.0,
+        1000.0
+      ],
+      "central_quantile": 1500.0,
+      "central_slope": 200.0,
+      "central_curvature": 80.0,
+      "finite_difference_slope_error": 5.325091478880495e-08,
+      "quantiles": [
+        {
+          "p": 0.01,
+          "z": -4.60014922677658,
+          "quantile": 1079.4039732324109
+        },
+        {
+          "p": 0.1,
+          "z": -2.2503673273124454,
+          "quantile": 1203.2549632364326
+        },
+        {
+          "p": 0.5,
+          "z": -0.36651292058166435,
+          "quantile": 1431.8174503011874
+        },
+        {
+          "p": 0.6321205588285577,
+          "z": 0.0,
+          "quantile": 1500.0
+        },
+        {
+          "p": 0.9,
+          "z": 0.834032445247956,
+          "quantile": 1698.0013776851429
+        }
+      ]
+    }
+  ]
+}
