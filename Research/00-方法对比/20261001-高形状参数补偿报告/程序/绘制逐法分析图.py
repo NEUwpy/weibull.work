@@ -1,4 +1,4 @@
-"""ECDF and shared plotting helpers; current method figures use 绘制公式与拟合点图.py."""
+"""Shared plotting helpers; Figure 1 uses 绘制图1小提琴.py, methods use 绘制公式与拟合点图.py."""
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -28,7 +28,6 @@ plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Microsoft
     'pdf.fonttype': 42, 'svg.fonttype': 'none', 'legend.frameon': False})
 source = json.loads((DATA / '逐法过程曲线.json').read_text(encoding='utf-8'))
 old = json.loads((HERE / '输入快照' / '原案例估计.json').read_text(encoding='utf-8'))
-qa = dict(ecdf=[], process_figures=[])
 
 
 def save(fig, name):
@@ -45,46 +44,6 @@ def tag(ax, label):
     ax.text(-.13, 1.10, label, transform=ax.transAxes, fontsize=8, weight='bold')
 
 
-def distributions():
-    fig, axes = plt.subplots(2, 3, figsize=(7.2, 5.0))
-    params = [('beta_hat', 5, '形状估计 β', True), ('eta_hat', 1000, '尺度估计 η', True),
-              ('gamma_hat', 500, '位置估计 γ', False)]
-    for col, (param, truth, label, logarithmic) in enumerate(params):
-        all_values = np.array([r[param] for r in old if r['beta'] == 5 and r['method'] in METHODS and r['converged']])
-        limits = (float(all_values.min() * .86), float(all_values.max() * 1.16)) if logarithmic else (-30., float(all_values.max() * 1.045))
-        for row, n in enumerate((7, 15)):
-            ax = axes[row, col]
-            if logarithmic:
-                ax.set_xscale('log')
-            for method, style in zip(METHODS, STYLES):
-                rr = [r for r in old if r['beta'] == 5 and r['n'] == n and r['method'] == method]
-                values = np.sort([r[param] for r in rr if r['converged']])
-                # Duplicate values (including gamma=0) form a true vertical ECDF jump.
-                xx = np.r_[limits[0], values, limits[1]]
-                yy = np.r_[0., np.arange(1, len(values) + 1) / len(values), 1.]
-                ax.step(xx, yy, where='post', color=COLORS[method], ls=style, lw=1.15)
-                assert len(values) == sum(r['converged'] for r in rr)
-                assert limits[0] <= values[0] <= values[-1] <= limits[1]
-                qa['ecdf'].append(dict(n=n, method=method, parameter=param, success=len(values), failure=50-len(values),
-                    minimum=float(values[0]), maximum=float(values[-1]), x_limits=list(limits), all_successful_values_included=True))
-            ax.axvline(truth, ls='--', color='black', lw=.8)
-            ax.axhline(.5, color='.75', ls=':', lw=.6)
-            ax.set_ylim(-.025, 1.035); ax.set_xlim(limits); ax.set_xlabel(label + ('（对数轴）' if logarithmic else ''))
-            ax.set_yticks([0, .25, .5, .75, 1.], ['0', '25%', '50%', '75%', '100%'])
-            if col == 0:
-                ax.set_ylabel('不超过横坐标的成功估计比例')
-                ax.set_title(f'n={n}，每方法50组', loc='left', pad=10)
-            else:
-                ax.set_yticklabels([])
-            ax.text(truth, 1.008, f'真值 {truth}', ha='center', va='bottom', fontsize=6.2)
-            tag(ax, chr(97 + row * 3 + col))
-    handles = [Line2D([], [], color=COLORS[m], ls=s, lw=1.2) for m, s in zip(METHODS, STYLES)]
-    for n, y in [(7, .972), (15, .501)]:
-        labels = [f'{NAMES[m]} 成功{sum(r["converged"] for r in old if r["beta"] == 5 and r["n"] == n and r["method"] == m)} / 失败{sum(not r["converged"] for r in old if r["beta"] == 5 and r["n"] == n and r["method"] == m)}' for m in METHODS]
-        fig.legend(handles, labels, ncol=5, loc='upper center', bbox_to_anchor=(.52, y), fontsize=5.7,
-                   handlelength=2.1, columnspacing=.9)
-    fig.subplots_adjust(left=.095, right=.982, top=.848, bottom=.09, hspace=.69, wspace=.18)
-    save(fig, '图1_原案例参数分布')
 
 
 def format_axis(ax, method, xmax, original=False):
@@ -138,12 +97,8 @@ def draw_curve(ax, r, color, alpha, lw, method):
 
 
 def main():
-    distributions()
-    target = DATA / '逐法图核验.json'
-    checks = json.loads(target.read_text(encoding='utf-8')) if target.exists() else {}
-    checks['ecdf'] = qa['ecdf']
-    target.write_text(json.dumps(checks, ensure_ascii=False, indent=2), encoding='utf-8')
-    print('EXPORTED complete ECDF; method figures have a separate current entry')
+    from 绘制图1小提琴 import main as draw_violin
+    draw_violin()
 
 
 if __name__ == '__main__':

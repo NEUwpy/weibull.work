@@ -61,11 +61,24 @@ def main():
         case = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == method)
         actual = next(r for r in original_fits if r['beta'] == 5 and r['n'] == 7 and r['method'] == method and r['sample_id'] == case['sample_id'])
         assert actual == case['fit']
-    for r in figure_checks['ecdf']:
-        values = [f[r['parameter']] for f in original_fits if f['beta'] == 5 and f['n'] == r['n'] and f['method'] == r['method'] and f['converged']]
+    violin_data = json.loads((DATA / '图1小提琴数据与核验.json').read_text(encoding='utf-8'))
+    assert digest(ROOT / violin_data['input_path']) == violin_data['input_sha256']
+    assert len(figure_checks['violin']) == len(violin_data['panels']) == 30
+    for r, check in zip(violin_data['panels'], figure_checks['violin']):
+        assert all(r[k] == v for k, v in check.items())
+        successful = sorted((f for f in original_fits if f['beta'] == 5 and f['n'] == r['n'] and f['method'] == r['method'] and f['converged']), key=lambda f: f['sample_id'])
+        values = [f[r['parameter']] for f in successful]
+        assert r['values'] == values and r['sample_ids'] == [f['sample_id'] for f in successful]
         assert len(values) == r['success'] and r['failure'] == 50 - len(values)
         assert r['x_limits'][0] <= min(values) == r['minimum']
         assert r['maximum'] == max(values) <= r['x_limits'][1]
+        assert np.allclose(r['quartiles'], np.quantile(values, [.25, .5, .75]), rtol=0, atol=1e-12)
+        zeros = values.count(0) if r['parameter'] == 'gamma_hat' else 0
+        assert r['zero_count'] == zeros and r['kde_count'] == len(values)-zeros
+        assert len(r['displayed_y']) == len(values)
+        assert min(r['kde_density']) >= 0 and len(r['kde_density']) == 256
+        expected_grid_limits = np.log10([min(values), max(values)]) if r['kde_coordinate'] == 'log10' else [min(v for v in values if v > 0), max(values)]
+        assert np.allclose([r['kde_coordinate_grid'][0], r['kde_coordinate_grid'][-1]], expected_grid_limits, atol=1e-12)
     for r in process['regression_truth_invariance'].values():
         assert r['paired_groups'] == 50 and r['maximum_absolute_loss_difference'] < 1e-12
     for r in process['mdm_envelope']:
@@ -113,7 +126,7 @@ def main():
     for name in new_figure_names:
         figure = ROOT / '结果' / name
         with Image.open(figure.with_suffix('.png')) as png:
-            dimensions = [3240, 2250] if name == new_figure_names[0] else next(r['png_dimensions'] for r in figure_checks['process_figures'] if r['file'] == name)
+            dimensions = figure_checks['distribution_figure']['png_dimensions'] if name == new_figure_names[0] else next(r['png_dimensions'] for r in figure_checks['process_figures'] if r['file'] == name)
             assert list(png.size) == dimensions
             assert all(abs(v-450) < .1 for v in png.info['dpi'])
         assert len(ET.parse(figure.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text')) > 25
@@ -186,7 +199,8 @@ def main():
         'local_links_checked': len(links), 'missing_links': 0,
         'report_matches_latest_generator': True, 'three_chapters': True,
         'paired_samples': len(samples), 'paired_fit_records': len(fits),
-        'complete_original_ecdf_panels_checked': 6,
+        'complete_original_violin_panels_checked': 6, 'violin_method_distributions_checked': 30,
+        'violin_raw_points_quartiles_zero_counts_checked': True,
         'method_process_figures_checked': 5, 'all_condition_curves': 750,
         'original_process_cases': 5, 'process_candidate_points': curve_points,
         'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,
