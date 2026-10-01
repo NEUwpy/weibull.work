@@ -40,7 +40,9 @@ def inventories():
             else:
                 group = 'code_hashes'
             groups[group][relative.as_posix()] = digest(path)
-    groups['document_hashes']['README.md'] = digest(ROOT / 'README.md')
+    for path in sorted(ROOT.glob('*.md')):
+        groups['document_hashes'][path.name] = digest(path)
+    groups['document_hashes']['../README.md'] = digest(ROOT.parent / 'README.md')
     report = ROOT.parent / '高形状参数下的位置与尺度补偿报告.md'
     groups['document_hashes']['../高形状参数下的位置与尺度补偿报告.md'] = digest(report)
     return groups
@@ -70,7 +72,7 @@ def main():
     else:
         saved.update(actual)
         saved['sealed_at_utc'] = datetime.now(timezone.utc).isoformat()
-        saved['seal_scope'] = 'All batch code, frozen inputs, outputs and README; excluding runtime, caches and manifest itself.'
+        saved['seal_scope'] = 'All batch code, frozen inputs, outputs, batch Markdown, Research00 README and report; excluding runtime, caches and manifest itself.'
         MANIFEST.write_text(json.dumps(saved, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'mode': 'verify' if args.verify else 'seal',
                       'files': {group: len(items) for group, items in actual.items()},

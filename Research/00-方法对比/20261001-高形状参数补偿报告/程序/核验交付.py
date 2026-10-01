@@ -39,6 +39,45 @@ def main():
     fits = json.loads((DATA / '实际估计.json').read_text(encoding='utf-8'))
     samples = json.loads((DATA / '样本.json').read_text(encoding='utf-8'))
     assert len(fits) == 4200 and len(samples) == 700
+    process = json.loads((DATA / '逐法过程曲线.json').read_text(encoding='utf-8'))
+    figure_checks = json.loads((DATA / '逐法图核验.json').read_text(encoding='utf-8'))
+    assert len(process['curves']) == 755
+    curve_points = sum(len(r['points']) for r in process['curves'])
+    assert curve_points == 110213
+    for name, expected in process['provenance']['input_hashes'].items():
+        assert digest(ROOT / name) == expected
+    fit_index = {(r['beta'], r['n'], r['sample_id'], r['method']): r for r in fits}
+    original_fits = json.loads((INPUT / '原案例估计.json').read_text(encoding='utf-8'))
+    for method in ('mdm', 'lse', 'lre', 'wmle', 'mle'):
+        for beta, n in ((2, 7), (5, 7), (5, 15)):
+            rr = [r for r in process['curves'] if r['source'] == 'paired' and r['method'] == method and r['beta'] == beta and r['n'] == n]
+            assert len(rr) == 50 and {r['sample_id'] for r in rr} == set(range(1, 51))
+            for r in rr:
+                assert r['fit'] == fit_index[beta, n, r['sample_id'], method]
+                assert all(0 <= p[0] < r['sample_min'] for p in r['points'])
+                if r['fit']['converged']:
+                    assert r['returned'][0] == r['fit']['gamma_hat']
+        case = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == method)
+        actual = next(r for r in original_fits if r['beta'] == 5 and r['n'] == 7 and r['method'] == method and r['sample_id'] == case['sample_id'])
+        assert actual == case['fit']
+    for r in figure_checks['ecdf']:
+        values = [f[r['parameter']] for f in original_fits if f['beta'] == 5 and f['n'] == r['n'] and f['method'] == r['method'] and f['converged']]
+        assert len(values) == r['success'] and r['failure'] == 50 - len(values)
+        assert r['x_limits'][0] <= min(values) == r['minimum']
+        assert r['maximum'] == max(values) <= r['x_limits'][1]
+    for r in process['regression_truth_invariance'].values():
+        assert r['paired_groups'] == 50 and r['maximum_absolute_loss_difference'] < 1e-12
+    for r in process['mdm_envelope']:
+        assert r['groups'] == 50 and r['maximum_gradient_difference'] < 5e-5
+        assert all(abs(c['envelope_gradient']) <= c['weight_sd'] + 1e-12 for c in r['checks'])
+    new_figure_names = ['图1_原案例参数分布'] + [r['file'] for r in figure_checks['process_figures']]
+    for name in new_figure_names:
+        figure = ROOT / '结果' / name
+        with Image.open(figure.with_suffix('.png')) as png:
+            assert png.size == (3240, 2250 if name == new_figure_names[0] else 2407)
+            assert all(abs(v-450) < .1 for v in png.info['dpi'])
+        assert len(ET.parse(figure.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text')) > 25
+        assert b'/FontFile2' in figure.with_suffix('.pdf').read_bytes()
 
     provenance = json.loads((DATA / '图7样本来源与核验.json').read_text(encoding='utf-8'))
     archived = json.loads((INPUT / '原案例估计.json').read_text(encoding='utf-8'))
@@ -107,6 +146,11 @@ def main():
         'local_links_checked': len(links), 'missing_links': 0,
         'report_matches_latest_generator': True, 'three_chapters': True,
         'paired_samples': len(samples), 'paired_fit_records': len(fits),
+        'complete_original_ecdf_panels_checked': 6,
+        'method_process_figures_checked': 5, 'all_condition_curves': 750,
+        'original_process_cases': 5, 'process_candidate_points': curve_points,
+        'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,
+        'regression_affine_invariance_checked': True, 'mdm_envelope_bound_checked': True,
         'independent_samples': 1400, 'independent_fit_records': rows,
         'independent_source_files_preserved_bytewise': unchanged_scan_files,
         'frozen_scan_dependency_hashes_checked': dependencies,
