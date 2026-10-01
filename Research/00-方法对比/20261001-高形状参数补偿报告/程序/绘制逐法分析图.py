@@ -1,4 +1,4 @@
-"""Complete empirical distributions and one computed process figure per method."""
+"""ECDF and shared plotting helpers; current method figures use 绘制公式与拟合点图.py."""
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -132,71 +132,18 @@ def draw_curve(ax, r, color, alpha, lw, method):
                 transform=ax.get_xaxis_transform(), clip_on=True, zorder=5)
 
 
-def method_figure(method):
-    fig, axes = plt.subplots(2, 2, figsize=(7.2, 5.35))
-    rr = [r for r in source['curves'] if r['method'] == method]
-    xmax = 1400.
-    panel_records = []
-    for index, (beta, n) in enumerate(CONDITIONS):
-        ax = axes.flat[index]
-        rows = [r for r in rr if r['source'] == 'paired' and r['beta'] == beta and r['n'] == n]
-        assert len(rows) == 50
-        stat = next(s for s in source['summaries'] if s['method'] == method and s['beta'] == beta and s['n'] == n)
-        format_axis(ax, method, xmax)
-        for r in rows:
-            draw_curve(ax, r, BLUE, .18, .65, method)
-        text = f'γ中位数 {stat["gamma_median"]:.0f}；γ>500：{stat["gamma_above_truth"]}/{stat["success"]}\nγ=0：{stat["gamma_at_zero"]}；失败：{50-stat["success"]}/50'
-        if method == 'mdm':
-            q = stat['truth_criterion_quartiles']
-            text += f'\ng(500)中位数 {q[1]:.3f}；IQR {q[2]-q[0]:.3f}'
-        if method == 'wmle' and stat['truth_criterion_count'] < 50:
-            text += f'\n真γ处条件方程有定义：{stat["truth_criterion_count"]}/50'
-        ax.text(.025, .955, text, transform=ax.transAxes, ha='left', va='top', fontsize=6.2,
-                bbox=dict(facecolor='white', edgecolor='none', alpha=.93, pad=2.4), zorder=8)
-        ax.set_title(f'β={beta}，n={n}：全部50组', loc='left', pad=9)
-        tag(ax, chr(97+index))
-        panel_records.append(dict(beta=beta, n=n, curves=len(rows), successful_returns=stat['success'],
-            all_returns_marked_as_rug=True, x_limits=list(ax.get_xlim()), criterion_y_limits=list(ax.get_ylim())))
-    ax = axes.flat[3]
-    chosen = next(r for r in rr if r['source'] == 'original')
-    format_axis(ax, method, xmax, original=True)
-    draw_curve(ax, chosen, BLUE, 1., 1.4, method)
-    gamma = chosen['fit']['gamma_hat']
-    ax.axvline(gamma, color=RETURN, ls='--', lw=.8)
-    ax.text(gamma, 1.012, f'返回 γ={gamma:.0f}', transform=ax.get_xaxis_transform(), color=RETURN, ha='center', fontsize=6)
-    truth_value, returned_value = chosen['truth'][1], chosen['returned'][1]
-    if method == 'mdm':
-        text = f'真γ处 g={truth_value:.3f}<0.10\n向右至γ={gamma:.0f}，g=0.10'
-    elif method in ('lse', 'lre'):
-        text = f'真γ处损失 {truth_value:.4f}\n返回处损失 {returned_value:.4f}，更低'
-    elif method == 'wmle':
-        text = f'真γ处残差 {truth_value:.3f}\n返回处残差接近0'
-    else:
-        increase = chosen['returned'][5] - chosen['truth'][5]
-        text = f'真γ处分数 {truth_value:.3f}>0\n返回处正转负；对数似然提高{increase:.3f}'
-    ax.text(.025, .955, text, transform=ax.transAxes, ha='left', va='top', fontsize=6.2,
-            bbox=dict(facecolor='white', edgecolor='none', alpha=.94, pad=2.4), zorder=8)
-    ax.set_title(f'原β=5，n=7，组#{chosen["sample_id"]}：实际高估单例', loc='left', pad=9)
-    tag(ax, 'd')
-    fig.suptitle(TITLES[method], x=.095, y=.993, ha='left', fontsize=9, weight='bold')
-    fig.legend([Line2D([], [], color=BLUE, lw=1), Line2D([], [], color=RETURN, marker='x', lw=0, ms=4),
-                Line2D([], [], color='black', ls=':', lw=.9)],
-               ['准则曲线；蓝点为真γ处', '实际返回γ；底部短线保留全部成功返回', '真γ=500'],
-               ncol=3, loc='upper center', bbox_to_anchor=(.54, .955), fontsize=6.1, columnspacing=1.2)
-    fig.text(.095, .012, 'a→b：同组潜在样本，仅改变β；b→c：样本量条件对照；d：另一批原案例单例。', fontsize=6.3)
-    fig.subplots_adjust(left=.105, right=.985, top=.84, bottom=.095, hspace=.56, wspace=.31)
-    save(fig, FILES[method])
-    qa['process_figures'].append(dict(method=method, file=FILES[method], panels=panel_records,
-        original_sample_id=chosen['sample_id'], original_gamma=gamma, original_truth_value=truth_value,
-        original_returned_value=returned_value, conditional_not_optimizer_iterations=method in ('wmle', 'mle')))
+
+
+
 
 
 def main():
     distributions()
-    for method in METHODS:
-        method_figure(method)
-    (DATA / '逐法图核验.json').write_text(json.dumps(qa, ensure_ascii=False, indent=2), encoding='utf-8')
-    print('EXPORTED full ECDF and 5 process figures (PNG/PDF/SVG)', flush=True)
+    target = DATA / '逐法图核验.json'
+    checks = json.loads(target.read_text(encoding='utf-8')) if target.exists() else {}
+    checks['ecdf'] = qa['ecdf']
+    target.write_text(json.dumps(checks, ensure_ascii=False, indent=2), encoding='utf-8')
+    print('EXPORTED complete ECDF; method figures have a separate current entry')
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / '结果' / '中间数据'
@@ -70,11 +71,50 @@ def main():
     for r in process['mdm_envelope']:
         assert r['groups'] == 50 and r['maximum_gradient_difference'] < 5e-5
         assert all(abs(c['envelope_gradient']) <= c['weight_sd'] + 1e-12 for c in r['checks'])
+    point_data = json.loads((DATA / '单组绘图点与方程.json').read_text(encoding='utf-8'))
+    for name, expected in point_data['input_hashes'].items():
+        assert digest(ROOT / name) == expected
+    original_samples = json.loads((INPUT / '原案例核验.json').read_text(encoding='utf-8'))['samples']
+    for method, case in point_data['regressions'].items():
+        source_sample = next(r for r in original_samples if r['beta_true'] == 5 and r['n'] == 7 and r['sample_id'] == case['sample_id'])
+        assert case['observations'] == source_sample['observations']
+        for ds in case['datasets']:
+            assert [p['id'] for p in ds['points']] == list(range(1, 8))
+            assert [p['observation'] for p in ds['points']] == source_sample['observations']
+            xx = np.array([p['x'] for p in ds['points']]); yy = np.array([p['y'] for p in ds['points']])
+            residual = yy - (ds['intercept'] + ds['slope']*xx)
+            assert abs(residual.sum()) < 1e-10 and abs(xx @ residual) < 1e-10
+            assert abs(ds['loss'] - (1-np.corrcoef(xx, yy)[0,1]**2)) < 1e-12
+            actual_ld = np.log(np.array(case['observations']) - ds['gamma'])
+            assert np.max(abs(actual_ld - (yy if method == 'lse' else xx))) < 1e-12
+    for method, case in point_data['evaluation_points'].items():
+        curve = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == method)
+        assert len(case['points']) == len(curve['points'])
+        for i, (p, saved) in enumerate(zip(case['points'], curve['points'])):
+            assert p['id'] == f'G{i+1}' and p['gamma'] == saved[0]
+            expected = saved[1] if method == 'mdm' else saved[5]-curve['truth'][5] if saved[5] is not None else None
+            assert p['value'] == expected
+        assert next(p for p in case['points'] if p['id'] == case['true_gamma_point_id'])['gamma'] == 500
+        assert next(p for p in case['points'] if p['id'] == case['returned_gamma_point_id'])['gamma'] == curve['fit']['gamma_hat']
+    from 构建公式与拟合点数据 import wmle_residuals
+    w = point_data['wmle']
+    original_wmle = next(r for r in process['curves'] if r['source'] == 'original' and r['method'] == 'wmle')
+    assert [w['returned_beta'], w['returned_gamma']] == [original_wmle['fit']['beta_hat'], original_wmle['fit']['gamma_hat']]
+    gamma_grid, beta_grid = w['gamma_grid'], w['beta_grid']
+    grid_checks = [(0, 0), (len(beta_grid)//2, len(gamma_grid)//2),
+                   (beta_grid.index(5.), gamma_grid.index(500.)),
+                   (beta_grid.index(w['returned_beta']), gamma_grid.index(w['returned_gamma'])),
+                   (len(beta_grid)-1, len(gamma_grid)-1)]
+    for bi, gi in grid_checks:
+        t1, t2 = wmle_residuals(np.array(w['observations']), beta_grid[bi], gamma_grid[gi])
+        assert np.allclose([w['t1'][bi][gi], w['t2'][bi][gi]], [t1, t2], rtol=1e-11, atol=1e-11)
+    assert w['returned_objective'] < 1e-20 and w['grid_points'] == 40404
     new_figure_names = ['图1_原案例参数分布'] + [r['file'] for r in figure_checks['process_figures']]
     for name in new_figure_names:
         figure = ROOT / '结果' / name
         with Image.open(figure.with_suffix('.png')) as png:
-            assert png.size == (3240, 2250 if name == new_figure_names[0] else 2407)
+            dimensions = [3240, 2250] if name == new_figure_names[0] else next(r['png_dimensions'] for r in figure_checks['process_figures'] if r['file'] == name)
+            assert list(png.size) == dimensions
             assert all(abs(v-450) < .1 for v in png.info['dpi'])
         assert len(ET.parse(figure.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text')) > 25
         assert b'/FontFile2' in figure.with_suffix('.pdf').read_bytes()
@@ -151,6 +191,11 @@ def main():
         'original_process_cases': 5, 'process_candidate_points': curve_points,
         'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,
         'regression_affine_invariance_checked': True, 'mdm_envelope_bound_checked': True,
+        'numbered_regression_observations_checked': 14,
+        'regression_transforms_and_ols_normal_equations_checked': True,
+        'candidate_point_ids_and_values_checked': True,
+        'wmle_joint_formula_grid_points': w['grid_points'],
+        'wmle_scalar_grid_checks': len(grid_checks), 'formulas_printed_on_method_figures': 5,
         'independent_samples': 1400, 'independent_fit_records': rows,
         'independent_source_files_preserved_bytewise': unchanged_scan_files,
         'frozen_scan_dependency_hashes_checked': dependencies,
