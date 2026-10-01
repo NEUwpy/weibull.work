@@ -76,6 +76,8 @@ def main():
         zeros = values.count(0) if r['parameter'] == 'gamma_hat' else 0
         assert r['zero_count'] == zeros and r['kde_count'] == len(values)-zeros
         assert len(r['displayed_y']) == len(values)
+        method_position = ('mdm', 'lse', 'lre', 'wmle', 'mle').index(r['method'])
+        assert set(r['displayed_y']) == {float(method_position)}
         assert min(r['kde_density']) >= 0 and len(r['kde_density']) == 256
         expected_grid_limits = np.log10([min(values), max(values)]) if r['kde_coordinate'] == 'log10' else [min(v for v in values if v > 0), max(values)]
         assert np.allclose([r['kde_coordinate_grid'][0], r['kde_coordinate_grid'][-1]], expected_grid_limits, atol=1e-12)
@@ -201,6 +203,7 @@ def main():
         'paired_samples': len(samples), 'paired_fit_records': len(fits),
         'complete_original_violin_panels_checked': 6, 'violin_method_distributions_checked': 30,
         'violin_raw_points_quartiles_zero_counts_checked': True,
+        'violin_points_aligned_on_method_axis': True,
         'method_process_figures_checked': 5, 'all_condition_curves': 750,
         'original_process_cases': 5, 'process_candidate_points': curve_points,
         'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,

@@ -2,7 +2,7 @@
 
 KDE uses log10 coordinates for positive beta/eta, linear coordinates for gamma.
 Gamma's exact zero mass is shown separately and excluded from the positive KDE.
-Only display positions are jittered deterministically; estimates are unchanged.
+All points lie on their method's centerline; estimates are unchanged.
 """
 import hashlib
 import json
@@ -46,15 +46,14 @@ def main():
                 displayed_grid = 10**grid if logarithmic else grid
                 ax.fill_between(displayed_grid, pos-width, pos+width, facecolor=color,
                                 edgecolor=color, alpha=.22, linewidth=.65, zorder=2)
-                # Vertical offsets reveal duplicate values without shifting any estimate.
-                offsets = (((ids*.6180339887498949) % 1)*2-1)*.14
-                ax.scatter(values, pos+offsets, s=4.5, color=color, alpha=.65,
-                           linewidths=0, zorder=3)
+                point_y = np.full(len(values), float(pos))
+                ax.scatter(values, point_y, s=3.0, color=color, alpha=.65,
+                           linewidths=0, zorder=4)
                 q25, median, q75 = np.quantile(values, [.25, .5, .75])
-                ax.plot([q25, q75], [pos, pos], color='#262626', lw=1.65,
-                        solid_capstyle='round', zorder=4)
-                ax.scatter(median, pos, marker='D', s=15, facecolor='white',
-                           edgecolor='#262626', linewidth=.75, zorder=5)
+                ax.plot([q25, q75], [pos, pos], color='#48515A', lw=.55,
+                        solid_capstyle='round', zorder=3)
+                ax.scatter(median, pos, marker='D', s=10, facecolor='white',
+                           edgecolor='#48515A', linewidth=.55, zorder=5)
                 if zeros:
                     ax.annotate(f'0：{zeros}个', (0, pos), xytext=(-5, 0),
                                 textcoords='offset points', fontsize=5.4, color=color, ha='right', va='center',
@@ -62,7 +61,7 @@ def main():
                 tick_labels.append(f'{base.NAMES[method]}  {len(values)}/{50-len(values)}')
                 records.append(dict(n=n, method=method, parameter=param, truth=truth,
                     success=len(values), failure=50-len(values), sample_ids=ids.tolist(),
-                    values=values.tolist(), displayed_y=(pos+offsets).tolist(),
+                    values=values.tolist(), displayed_y=point_y.tolist(),
                     minimum=float(values.min()), maximum=float(values.max()),
                     quartiles=[float(q25), float(median), float(q75)], x_limits=limits,
                     zero_count=zeros, kde_count=len(kde_values),
@@ -82,9 +81,9 @@ def main():
                     fontsize=8, weight='bold', ha='right')
     fig.suptitle('原β=5：位置偏高与尺度偏低同时出现', x=.02, y=.986,
                  ha='left', fontsize=9, weight='bold')
-    fig.legend([Line2D([], [], marker='o', color='.45', ls='', ms=2.4),
-                Line2D([], [], marker='D', markerfacecolor='white', color='#262626', ls='', ms=3.5),
-                Line2D([], [], color='#262626', lw=1.65), Line2D([], [], color='black', ls='--', lw=.85)],
+    fig.legend([Line2D([], [], marker='o', color='.45', ls='', ms=1.8),
+                Line2D([], [], marker='D', markerfacecolor='white', color='#48515A', ls='', ms=3.0, markeredgewidth=.55),
+                Line2D([], [], color='#48515A', lw=.55), Line2D([], [], color='black', ls='--', lw=.85)],
                ['每个成功估计', '中位数', '第25–75百分位', '真值'], ncol=4,
                loc='upper center', bbox_to_anchor=(.55, .939), fontsize=6.4, columnspacing=1.8)
     fig.text(.02, .017, '左侧数字为成功/失败；宽度表示平滑密度（每把独立归一）；γ=0单列个数，失败不补值。', fontsize=6)
@@ -98,7 +97,8 @@ def main():
         dimensions_inches=[7.2, 5.2], formats=['PNG 450dpi', 'PDF embedded TrueType', 'SVG live text']),
         input_path=source_path.relative_to(base.HERE.parent).as_posix(),
         input_sha256=hashlib.sha256(source_path.read_bytes()).hexdigest(),
-        description='All successful archived estimates; deterministic vertical jitter only. No new fits.',
+        description='All successful archived estimates aligned on their method centerline. No new fits.',
+        point_layout='centerline_without_jitter', iqr_linewidth_points=.55,
         density='Gaussian KDE with Scott bandwidth, restricted to observed range. log10 beta/eta; linear positive gamma; zero gamma excluded from KDE and counted separately.',
         width='Each violin independently normalized to maximum half-width 0.34; width is not a success count.',
         png_dimensions=[3240, 2340], panels=records)
