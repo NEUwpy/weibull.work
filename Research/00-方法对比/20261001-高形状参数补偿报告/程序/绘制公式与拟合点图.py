@@ -21,12 +21,22 @@ def profile_values(r, method):
     return [p[1] if p[1] is not None else np.nan for p in r['points']]
 
 
-def mle_axis(ax, original=False):
+def mle_axis(ax):
     ax.set_xlim(-25, 1400); ax.set_xticks([0, 500, 1000]); ax.set_xlabel('γ')
     ax.set_ylabel(r'$\Delta\ell(\gamma)$')
     ax.axvline(500, color='black', ls=':', lw=.8)
     ax.axhline(0, color='.55', lw=.6)
-    ax.set_ylim((-.10, .067) if original else (-1., 2.65))
+    ax.set_ylim(-1., 2.65)
+
+
+def axis_state(ax):
+    """Capture the actual axis settings after rendering, including tick labels."""
+    return dict(x_limits=list(ax.get_xlim()), y_limits=list(ax.get_ylim()),
+                x_scale=ax.get_xscale(), y_scale=ax.get_yscale(),
+                x_ticks=[float(t) for t in ax.get_xticks()],
+                y_ticks=[float(t) for t in ax.get_yticks()],
+                x_tick_labels=[t.get_text() for t in ax.get_xticklabels()],
+                y_tick_labels=[t.get_text() for t in ax.get_yticklabels()])
 
 
 def mle_curve(ax, r, alpha=.18, lw=.65):
@@ -109,7 +119,7 @@ def wmle_panel(ax, beta):
 
 
 def method_figure(method):
-    fig, axes = plt.subplots(3, 2, figsize=(7.2, 7.2))
+    fig, axes = plt.subplots(3, 2, figsize=(7.2, 7.2), sharex=True, sharey=True)
     rr = [r for r in base.source['curves'] if r['method'] == method]
     selection = next(item for item in PAIRS['methods'] if item['method']==method)
     pair = [next(r for r in rr if r['source']=='paired' and r['n']==7
@@ -134,32 +144,16 @@ def method_figure(method):
         panels.append(dict(beta=beta, n=n, curves=50, successful_returns=stat['success'],
             all_returns_marked_as_rug=True, x_limits=list(ax.get_xlim()), criterion_y_limits=list(ax.get_ylim())))
     singles = []
-    # Both single panels use the same criterion as a/b and the same y limits.
-    if method in ('lse','lre'):
-        lower=min(p[1] for r in pair for p in r['points'] if p[1] is not None)
-        upper=max(r['truth'][1] for r in pair)
-        span=max(upper-lower,upper*.001)
-        limits=(max(1e-8,lower-span*.25),upper+span*.65)
-    elif method=='mdm':
-        limits=(min(-.04,min(r['truth'][1] for r in pair)-.025),
-                max(.23,max(r['truth'][1] for r in pair)+.025))
-    elif method=='wmle':
-        limits=(min(-.13,min(r['truth'][1] for r in pair)*1.15),.13)
-    else:
-        limits=(-.10,max(.067,max(r['returned'][5]-r['truth'][5] for r in pair)*1.25))
+    # Singles inherit precisely the same axes as the multi-sample panels.
     for index, chosen in enumerate(pair,4):
         beta=chosen['beta']
         ax = axes.flat[index]
         if method=='mle':
-            mle_axis(ax,original=True)
+            mle_axis(ax)
             mle_curve(ax,chosen,alpha=1.,lw=1.4)
         else:
-            base.format_axis(ax,method,1400,original=True)
+            base.format_axis(ax,method,1400)
             base.draw_curve(ax,chosen,base.BLUE,1.,1.4,method)
-        if method in ('lse','lre'):
-            ax.set_yscale('linear')
-            ax.ticklabel_format(axis='y',style='sci',scilimits=(-2,2),useOffset=False)
-        ax.set_ylim(*limits)
         detail = calculation_points(ax, chosen, method)
         gamma = chosen['fit']['gamma_hat']; ax.axvline(gamma, color=base.RETURN, ls='--', lw=.8)
         ax.set_title(f'β={beta}，n=7', loc='left', pad=9)
@@ -168,9 +162,24 @@ def method_figure(method):
                             sample_id=chosen['sample_id'], gamma=chosen['fit']['gamma_hat'],
                             criterion_y_limits=list(ax.get_ylim()), detail=detail))
     fig.subplots_adjust(left=.105, right=.985, top=.945, bottom=.075, hspace=.64, wspace=.32)
+    y_ticks = dict(mdm=[-.4,-.2,0,.2,.4,.6,.8,1.],
+                   lse=[.001,.01,.1,1.], lre=[.001,.01,.1,1.],
+                   wmle=[-.1,-.05,0,.05,.1],
+                   mle=[-1.,-.5,0,.5,1.,1.5,2.,2.5])[method]
+    for ax in axes.flat:
+        ax.set_xticks([0,500,1000]); ax.set_yticks(y_ticks)
+        ax.tick_params(axis='both', labelbottom=True, labelleft=True)
+    fig.canvas.draw()
+    states = [axis_state(ax) for ax in axes.flat]
+    assert all(state == states[0] for state in states), 'Six-panel axes differ.'
+    for panel, state in zip([*panels,*singles],states):
+        panel['x_limits']=state['x_limits']
+        panel['criterion_y_limits']=state['y_limits']
+        panel['axis_settings']=state
     base.save(fig, base.FILES[method])
     return dict(method=method, file=base.FILES[method], panels=panels, single_panels=singles,
         png_dimensions=[3240, 3240],
+        six_panel_axes_identical=True, single_panel_zoom=False,
         profile_meaning='finite conditional loglik increment' if method == 'mle' else 'saved original criterion',
         formula_printed_on_figure=False, formula_documented_in_report=True,
         notes_location='report text and figure caption')

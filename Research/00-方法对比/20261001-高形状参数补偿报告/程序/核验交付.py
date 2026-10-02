@@ -50,6 +50,14 @@ def main():
         assert all(p['source'] == 'paired' and p['n'] == 7 for p in fig['single_panels'])
         assert fig['single_panels'][0]['sample_id'] == fig['single_panels'][1]['sample_id']
         assert fig['single_panels'][0]['criterion_y_limits'] == fig['single_panels'][1]['criterion_y_limits']
+        assert fig['six_panel_axes_identical'] and not fig['single_panel_zoom']
+        panels = [*fig['panels'],*fig['single_panels']]
+        assert len(panels) == 6
+        assert all(p['axis_settings'] == panels[0]['axis_settings'] for p in panels)
+        assert all(p['x_limits'] == panels[0]['x_limits'] and
+                   p['criterion_y_limits'] == panels[0]['criterion_y_limits'] for p in panels)
+        assert panels[0]['axis_settings']['x_scale'] == 'linear'
+        assert panels[0]['axis_settings']['y_scale'] == ('log' if fig['method'] in ('lse','lre') else 'linear')
         assert not fig['formula_printed_on_figure'] and fig['formula_documented_in_report']
     curve_points = sum(len(r['points']) for r in process['curves'])
     assert curve_points == 147550
@@ -310,6 +318,8 @@ def main():
         'violin_raw_points_quartiles_zero_counts_checked': True,
         'violin_points_aligned_on_method_axis': True,
         'method_process_figures_checked': 5, 'six_panel_layout_checked': True, 'all_condition_curves': 1000,
+        'all_six_panel_axis_limits_scales_ticks_and_labels_identical': True,
+        'single_panel_zoom_removed': True,
         'paired_single_panels_copied_from_a_b': 10,
         'paired_single_evaluation_points_checked': paired_evaluation_points,
         'single_panel_criterion_matches_multi_sample_panel': True,

@@ -31,7 +31,8 @@ RENAMES = {
 }
 INPUTS = [
     DATA / name for name in ('实际估计.json', '样本.json', '汇总.json',
-                            '逐法过程曲线.json', '单组绘图点与方程.json')
+                            '逐法过程曲线.json', '单组绘图点与方程.json',
+                            '配对单例与推导核验.json')
 ] + [ROOT / '程序' / '输入快照' / name
      for name in ('原案例估计.json', '原案例核验.json')]
 
@@ -41,14 +42,7 @@ def hashes():
             for p in INPUTS}
 
 
-def main():
-    before = hashes()
-    methods.main()
-    supplements.lower_tail()
-    supplements.continuous_estimates()
-    supplements.compensation()
-    supplements.supplement()
-    lifetime.main()
+def audit_figures(before, task='2026-10-02: paired criterion figures and concise supplementary plots'):
     assert hashes() == before, 'Saved scientific inputs changed during plotting.'
     figures = []
     for name in [*RENAMES.values(),'补充图6_原案例回归与方程']:
@@ -73,7 +67,7 @@ def main():
             if detail['type'] == 'observed_regression_points':
                 assert detail['all_observation_ids_labelled']
     record = {
-        'task': '2026-10-02: paired criterion figures and concise supplementary plots',
+        'task': task,
         'generated_at_utc': datetime.now(timezone.utc).isoformat(),
         'new_samples': 0, 'new_fits': 0,
         'scientific_input_hashes': before, 'scientific_inputs_unchanged': True,
@@ -87,6 +81,17 @@ def main():
         json.dumps(record, ensure_ascii=False, indent=2) + '\n',
         encoding='utf-8', newline='\n')
     print('EXPORTED and checked 12 figures; saved scientific inputs unchanged.')
+
+
+def main():
+    before = hashes()
+    methods.main()
+    supplements.lower_tail()
+    supplements.continuous_estimates()
+    supplements.compensation()
+    supplements.supplement()
+    lifetime.main()
+    audit_figures(before)
 
 
 if __name__ == '__main__':
