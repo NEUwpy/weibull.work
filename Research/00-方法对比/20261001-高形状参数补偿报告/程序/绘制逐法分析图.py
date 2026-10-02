@@ -50,7 +50,7 @@ def format_axis(ax, method, xmax, original=False):
     ax.set_xticks([0, 500, 1000])
     if method in ('lse', 'lre'):
         ax.set_yscale('log'); ax.set_ylim(.001, 1.)
-        ax.set_ylabel(r'$D(\gamma)$')
+        ax.set_ylabel(r'$1-R^2(\gamma)$')
     elif method == 'mdm':
         ax.set_ylim((-.04, .23) if original else (-.46, 1.10))
         ax.axhline(.1, color='black', ls='--', lw=.85)
