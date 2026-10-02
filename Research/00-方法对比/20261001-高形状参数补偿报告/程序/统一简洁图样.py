@@ -1,6 +1,6 @@
 """2026-10-02 figure revision from saved results; no sampling or estimation.
 
-Rebuild Figures 2–7 and the five supplements with short coordinate labels.
+Rebuild Figures 2–7 and the six supplements with short coordinate labels.
 Keep all curves, observations and necessary fitting-point identifiers.
 """
 from datetime import datetime, timezone
@@ -51,7 +51,7 @@ def main():
     lifetime.main()
     assert hashes() == before, 'Saved scientific inputs changed during plotting.'
     figures = []
-    for name in RENAMES.values():
+    for name in [*RENAMES.values(),'补充图6_原案例回归与方程']:
         texts = [''.join(element.itertext()).strip() for element in ET.parse(
             OUT / f'{name}.svg').findall('.//{http://www.w3.org/2000/svg}text')]
         assert texts
@@ -65,7 +65,7 @@ def main():
                         'notes_on_figure': False})
     qa = json.loads((DATA / '逐法图核验.json').read_text(encoding='utf-8'))
     for figure in qa['process_figures']:
-        for panel in figure['original_panels']:
+        for panel in figure['single_panels']:
             detail = panel['detail']
             if detail['type'] == 'numbered_formula_evaluations':
                 assert detail['labelled_point_ids'] == [detail['true_gamma_point_id'],
@@ -73,7 +73,7 @@ def main():
             if detail['type'] == 'observed_regression_points':
                 assert detail['all_observation_ids_labelled']
     record = {
-        'task': '2026-10-02: simplify all remaining report figures',
+        'task': '2026-10-02: paired criterion figures and concise supplementary plots',
         'generated_at_utc': datetime.now(timezone.utc).isoformat(),
         'new_samples': 0, 'new_fits': 0,
         'scientific_input_hashes': before, 'scientific_inputs_unchanged': True,
@@ -86,7 +86,7 @@ def main():
     (DATA / '简洁图样核验.json').write_text(
         json.dumps(record, ensure_ascii=False, indent=2) + '\n',
         encoding='utf-8', newline='\n')
-    print('EXPORTED and checked 11 figures; saved scientific inputs unchanged.')
+    print('EXPORTED and checked 12 figures; saved scientific inputs unchanged.')
 
 
 if __name__ == '__main__':

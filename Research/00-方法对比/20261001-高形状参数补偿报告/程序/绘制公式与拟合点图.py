@@ -1,4 +1,4 @@
-"""Method-specific diagnostics: regression observations, equations and likelihood.
+"""Paired gamma criteria, with original regression/equation supplements.
 
 Reuses existing curve data and plotting helpers. Every displayed point is either
 an actual transformed observation or an explicitly numbered formula evaluation.
@@ -12,6 +12,7 @@ from matplotlib.lines import Line2D
 
 DATA, OUT = base.DATA, base.OUT
 POINTS = json.loads((DATA / '单组绘图点与方程.json').read_text(encoding='utf-8'))
+PAIRS = json.loads((DATA / '配对单例与推导核验.json').read_text(encoding='utf-8'))
 
 
 def profile_values(r, method):
@@ -38,7 +39,11 @@ def mle_curve(ax, r, alpha=.18, lw=.65):
 
 
 def calculation_points(ax, r, method):
-    pts = POINTS['cases_by_beta'][str(r['beta'])]['evaluation_points'][method]
+    case = next(c for item in PAIRS['methods'] if item['method']==method
+                for c in item['cases'] if c['beta']==r['beta'])
+    assert case['sample_id']==r['sample_id'] and r['source']=='paired'
+    pts = dict(points=case['evaluation_points'],true_gamma_point_id=case['true_gamma_point_id'],
+               returned_gamma_point_id=case['returned_gamma_point_id'])
     defined = [p for p in pts['points'] if p['value'] is not None]
     ax.scatter([p['gamma'] for p in defined], [p['value'] for p in defined], s=5,
                facecolor='white', edgecolor=base.BLUE, linewidth=.45, alpha=.75, zorder=3)
@@ -49,6 +54,10 @@ def calculation_points(ax, r, method):
             text, offset = pid, (10, -22 if method == 'mle' else 18)
         elif pid == pts['returned_gamma_point_id']:
             text, offset = pid, (-24, -17 if method == 'mle' else 12)
+        if method == 'wmle':
+            offset = (-25, 18) if pid == pts['true_gamma_point_id'] else (10, 12)
+        if pid == pts['returned_gamma_point_id'] and p['gamma'] == 0:
+            offset = (10, 12)
         ax.annotate(text, (p['gamma'], p['value']), xytext=offset, textcoords='offset points',
                     fontsize=5.8, color=base.RETURN if pid == pts['returned_gamma_point_id'] else base.BLUE,
                     bbox=dict(facecolor='white', edgecolor='none', alpha=.86, pad=.4), zorder=6)
@@ -102,6 +111,9 @@ def wmle_panel(ax, beta):
 def method_figure(method):
     fig, axes = plt.subplots(3, 2, figsize=(7.2, 7.2))
     rr = [r for r in base.source['curves'] if r['method'] == method]
+    selection = next(item for item in PAIRS['methods'] if item['method']==method)
+    pair = [next(r for r in rr if r['source']=='paired' and r['n']==7
+                 and r['beta']==beta and r['sample_id']==selection['sample_id']) for beta in (2,5)]
     panels = []
     for index, (beta, n) in enumerate(base.CONDITIONS):
         ax = axes.flat[index]
@@ -114,49 +126,80 @@ def method_figure(method):
         else:
             base.format_axis(ax, method, 1400)
             for r in rows: base.draw_curve(ax, r, base.BLUE, .18, .65, method)
+        if n==7:
+            highlight=pair[0 if beta==2 else 1]
+            if method=='mle': mle_curve(ax,highlight,alpha=.8,lw=1.1)
+            else: base.draw_curve(ax,highlight,base.BLUE,.8,1.1,method)
         ax.set_title(f'β={beta}，n={n}', loc='left', pad=9); base.tag(ax, chr(97+index))
         panels.append(dict(beta=beta, n=n, curves=50, successful_returns=stat['success'],
             all_returns_marked_as_rug=True, x_limits=list(ax.get_xlim()), criterion_y_limits=list(ax.get_ylim())))
     singles = []
-    for index, beta in enumerate((2,5),4):
+    # Both single panels use the same criterion as a/b and the same y limits.
+    if method in ('lse','lre'):
+        lower=min(p[1] for r in pair for p in r['points'] if p[1] is not None)
+        upper=max(r['truth'][1] for r in pair)
+        span=max(upper-lower,upper*.001)
+        limits=(max(1e-8,lower-span*.25),upper+span*.65)
+    elif method=='mdm':
+        limits=(min(-.04,min(r['truth'][1] for r in pair)-.025),
+                max(.23,max(r['truth'][1] for r in pair)+.025))
+    elif method=='wmle':
+        limits=(min(-.13,min(r['truth'][1] for r in pair)*1.15),.13)
+    else:
+        limits=(-.10,max(.067,max(r['returned'][5]-r['truth'][5] for r in pair)*1.25))
+    for index, chosen in enumerate(pair,4):
+        beta=chosen['beta']
         ax = axes.flat[index]
-        chosen = next(r for r in rr if r['source'] == 'original' and r['beta'] == beta)
-        if method in ('lse', 'lre'):
-            detail = regression_panel(ax, method, beta)
-        elif method == 'wmle':
-            detail = wmle_panel(ax, beta)
+        if method=='mle':
+            mle_axis(ax,original=True)
+            mle_curve(ax,chosen,alpha=1.,lw=1.4)
         else:
-            if method == 'mle':
-                mle_axis(ax, original=True)
-                peak = chosen['returned'][5]-chosen['truth'][5]
-                ax.set_ylim(-.10, max(.067, peak*1.25))
-                mle_curve(ax, chosen, alpha=1., lw=1.4)
-            else:
-                base.format_axis(ax, method, 1400, original=True)
-                v = chosen['truth'][1]
-                ax.set_ylim(min(-.04, v-.04), max(.23, v+.04))
-                base.draw_curve(ax, chosen, base.BLUE, 1., 1.4, method)
-            detail = calculation_points(ax, chosen, method)
-            gamma = chosen['fit']['gamma_hat']; ax.axvline(gamma, color=base.RETURN, ls='--', lw=.8)
+            base.format_axis(ax,method,1400,original=True)
+            base.draw_curve(ax,chosen,base.BLUE,1.,1.4,method)
+        if method in ('lse','lre'):
+            ax.set_yscale('linear')
+            ax.ticklabel_format(axis='y',style='sci',scilimits=(-2,2),useOffset=False)
+        ax.set_ylim(*limits)
+        detail = calculation_points(ax, chosen, method)
+        gamma = chosen['fit']['gamma_hat']; ax.axvline(gamma, color=base.RETURN, ls='--', lw=.8)
         ax.set_title(f'β={beta}，n=7', loc='left', pad=9)
         base.tag(ax, chr(97+index))
-        singles.append(dict(beta=beta, sample_id=chosen['sample_id'], gamma=chosen['fit']['gamma_hat'],
+        singles.append(dict(beta=beta,n=7,source='paired',expanded_from_panel='a' if beta==2 else 'b',
+                            sample_id=chosen['sample_id'], gamma=chosen['fit']['gamma_hat'],
                             criterion_y_limits=list(ax.get_ylim()), detail=detail))
     fig.subplots_adjust(left=.105, right=.985, top=.945, bottom=.075, hspace=.64, wspace=.32)
     base.save(fig, base.FILES[method])
-    return dict(method=method, file=base.FILES[method], panels=panels, original_panels=singles,
+    return dict(method=method, file=base.FILES[method], panels=panels, single_panels=singles,
         png_dimensions=[3240, 3240],
         profile_meaning='finite conditional loglik increment' if method == 'mle' else 'saved original criterion',
         formula_printed_on_figure=False, formula_documented_in_report=True,
         notes_location='report text and figure caption')
 
 
+def auxiliary_figure():
+    fig,axes=plt.subplots(3,2,figsize=(7.2,7.2))
+    panels=[]
+    for row,method in enumerate(('lse','lre','wmle')):
+        for col,beta in enumerate((2,5)):
+            ax=axes[row,col]
+            detail=regression_panel(ax,method,beta) if method!='wmle' else wmle_panel(ax,beta)
+            ax.set_title(f'{base.NAMES[method]}，β={beta}',loc='left',pad=9)
+            base.tag(ax,chr(97+row*2+col))
+            panels.append(dict(method=method,beta=beta,source='original',detail=detail))
+    fig.subplots_adjust(left=.105,right=.985,top=.945,bottom=.075,hspace=.64,wspace=.32)
+    name='补充图6_原案例回归与方程'
+    base.save(fig,name)
+    return dict(file=name,panels=panels,png_dimensions=[3240,3240],
+                observations_numbered=True,notes_location='report supplementary caption')
+
+
 def main():
     target = DATA / '逐法图核验.json'
     qa = json.loads(target.read_text(encoding='utf-8'))
     qa['process_figures'] = [method_figure(method) for method in base.METHODS]
+    qa['auxiliary_figure']=auxiliary_figure()
     target.write_text(json.dumps(qa, ensure_ascii=False, indent=2), encoding='utf-8')
-    print('EXPORTED 5 method-specific formula/point figures, PNG/PDF/SVG', flush=True)
+    print('EXPORTED 5 paired six-panel criterion figures and 1 original-case supplement.', flush=True)
 
 
 if __name__ == '__main__':

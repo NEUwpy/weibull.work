@@ -45,7 +45,11 @@ def main():
     assert len(process['curves']) == 1010
     for fig in figure_checks['process_figures']:
         assert [(p['beta'], p['n'], p['curves']) for p in fig['panels']] == [(2,7,50),(5,7,50),(2,15,50),(5,15,50)]
-        assert [p['beta'] for p in fig['original_panels']] == [2,5]
+        assert [p['beta'] for p in fig['single_panels']] == [2,5]
+        assert [p['expanded_from_panel'] for p in fig['single_panels']] == ['a','b']
+        assert all(p['source'] == 'paired' and p['n'] == 7 for p in fig['single_panels'])
+        assert fig['single_panels'][0]['sample_id'] == fig['single_panels'][1]['sample_id']
+        assert fig['single_panels'][0]['criterion_y_limits'] == fig['single_panels'][1]['criterion_y_limits']
         assert not fig['formula_printed_on_figure'] and fig['formula_documented_in_report']
     curve_points = sum(len(r['points']) for r in process['curves'])
     assert curve_points == 147550
@@ -53,6 +57,48 @@ def main():
         assert digest(ROOT / name) == expected
     fit_index = {(r['beta'], r['n'], r['sample_id'], r['method']): r for r in fits}
     original_fits = json.loads((INPUT / '原案例估计.json').read_text(encoding='utf-8'))
+    pairs = json.loads((DATA / '配对单例与推导核验.json').read_text(encoding='utf-8'))
+    assert pairs['new_samples'] == pairs['new_three_parameter_estimates'] == 0
+    assert pairs['single_curves_copied_from_multi_sample_data']
+    for name, expected in pairs['input_hashes'].items():
+        assert digest(ROOT / name) == expected
+    sample_index = {(r['beta'],r['n'],r['sample_id']):r for r in samples}
+    latent_index = {(r['n'],r['sample_id']):r['exponential_order_stats'] for r in
+                    json.loads((DATA / '共同随机分位点.json').read_text(encoding='utf-8'))}
+    from 推导判据与统一单例 import select_pair, verify_formula
+    paired_evaluation_points = derivation_checks = 0
+    for selection in pairs['methods']:
+        method = selection['method']
+        rows, center, eligible = select_pair(process, method)
+        assert selection['beta5_success_median_gamma'] == center
+        assert selection['eligible_ids'] == eligible
+        assert selection['sample_id'] == rows[0]['sample_id'] == rows[1]['sample_id']
+        panels = next(fig['single_panels'] for fig in figure_checks['process_figures']
+                      if fig['method'] == method)
+        for case, row, panel in zip(selection['cases'], rows, panels):
+            assert case['source'] == row['source'] == panel['source'] == 'paired'
+            assert case['sample_id'] == row['sample_id'] == panel['sample_id']
+            assert case['expanded_from_panel'] == panel['expanded_from_panel']
+            assert case['fit'] == row['fit'] == fit_index[case['beta'],7,case['sample_id'],method]
+            assert case['observations'] == sample_index[case['beta'],7,case['sample_id']]['observations']
+            assert case['latent_E'] == latent_index[7,case['sample_id']]
+            assert np.allclose(case['observations'], 500+1000*np.array(case['latent_E'])**(1/case['beta']), rtol=0, atol=1e-10)
+            assert len(case['evaluation_points']) == len(row['points'])
+            for i, (point, saved) in enumerate(zip(case['evaluation_points'],row['points'])):
+                expected = (saved[5]-row['truth'][5] if saved[5] is not None else None) if method == 'mle' else saved[1]
+                assert point == dict(id=f'G{i+1}',gamma=saved[0],value=expected)
+            detail = panel['detail']
+            assert detail['type'] == 'numbered_formula_evaluations'
+            assert detail['total_points'] == len(case['evaluation_points'])
+            assert detail['plotted_defined_points'] == sum(p['value'] is not None for p in case['evaluation_points'])
+            assert detail['labelled_point_ids'] == [case['true_gamma_point_id'],case['returned_gamma_point_id']]
+            for key, gamma in (('true_gamma_point_id',500.),('returned_gamma_point_id',case['fit']['gamma_hat'])):
+                assert next(p['gamma'] for p in case['evaluation_points'] if p['id'] == case[key]) == gamma
+            checks = verify_formula(np.array(case['observations']), row)
+            assert checks == case['derivation_checks']
+            derivation_checks += len(checks)
+            paired_evaluation_points += len(case['evaluation_points'])
+        assert selection['cases'][0]['latent_E'] == selection['cases'][1]['latent_E']
     for method in ('mdm', 'lse', 'lre', 'wmle', 'mle'):
         for beta, n in ((2, 7), (5, 7), (2, 15), (5, 15)):
             rr = [r for r in process['curves'] if r['source'] == 'paired' and r['method'] == method and r['beta'] == beta and r['n'] == n]
@@ -136,11 +182,25 @@ def main():
         wmle_grid_points += w['grid_points']
         wmle_scalar_checks += len(grid_checks)
     assert wmle_grid_points == 81030 and wmle_scalar_checks == 10
-    new_figure_names = ['图1_原案例参数分布'] + [r['file'] for r in figure_checks['process_figures']]
+    auxiliary = figure_checks['auxiliary_figure']
+    assert [(p['method'],p['beta'],p['source']) for p in auxiliary['panels']] == [
+        (m,b,'original') for m in ('lse','lre','wmle') for b in (2,5)]
+    for panel in auxiliary['panels']:
+        detail = panel['detail']
+        beta_case = point_data['cases_by_beta'][str(panel['beta'])]
+        if panel['method'] in ('lse','lre'):
+            case = beta_case['regressions'][panel['method']]
+            assert detail['sample_id'] == case['sample_id']
+            assert detail['observations'] == 7 and detail['transformed_points'] == 14
+            assert detail['all_observation_ids_labelled']
+        else:
+            assert detail['sample_id'] == beta_case['wmle']['sample_id']
+            assert detail['formula_grid_points'] == beta_case['wmle']['grid_points']
+    new_figure_names = ['图1_原案例参数分布'] + [r['file'] for r in figure_checks['process_figures']] + [auxiliary['file']]
     for name in new_figure_names:
         figure = ROOT / '结果' / name
         with Image.open(figure.with_suffix('.png')) as png:
-            dimensions = figure_checks['distribution_figure']['png_dimensions'] if name == new_figure_names[0] else next(r['png_dimensions'] for r in figure_checks['process_figures'] if r['file'] == name)
+            dimensions = figure_checks['distribution_figure']['png_dimensions'] if name == new_figure_names[0] else next(r['png_dimensions'] for r in [*figure_checks['process_figures'],auxiliary] if r['file'] == name)
             assert list(png.size) == dimensions
             assert all(abs(v-450) < .1 for v in png.info['dpi'])
         assert len(ET.parse(figure.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text')) > 25
@@ -168,6 +228,18 @@ def main():
         assert abs(float(row['fit_minus_true']) -
                    (float(row['actual_mdm_fit_quantile']) - float(row['true_quantile']))) < 1e-10
     assert abs(float(quantiles[2]['p']) - (1 - math.exp(-1))) < 1e-15
+    local = json.loads((DATA / '局部分位补偿核验.json').read_text(encoding='utf-8'))
+    assert local['new_samples'] == local['new_fits'] == 0
+    assert [c['name'] for c in local['cases']] == ['generating_distribution','constructed_local_match']
+    for case in local['cases']:
+        beta, eta, gamma = case['parameters_beta_eta_gamma']
+        assert case['central_quantile'] == gamma+eta == 1500
+        assert case['central_slope'] == eta/beta == 200
+        assert case['central_curvature'] == eta/beta**2
+        for row in case['quantiles']:
+            expected = gamma+eta*(-math.log1p(-row['p']))**(1/beta)
+            assert abs(row['quantile']-expected) < 1e-10
+    assert local['cases'][0]['central_curvature'] != local['cases'][1]['central_curvature']
 
     record = json.loads((DATA / '整理记录.json').read_text(encoding='utf-8'))
     unchanged_scan_files = 0
@@ -213,7 +285,11 @@ def main():
     assert clean_style['new_samples'] == 0 and clean_style['new_fits'] == 0
     for name, expected in clean_style['scientific_input_hashes'].items():
         assert digest(ROOT / name) == expected
-    assert len(clean_style['figures']) == 11
+    assert len(clean_style['figures']) == 12
+    export_names = {item['file'] for item in clean_style['figures']} | {'图1_原案例参数分布'}
+    assert len(export_names) == 13
+    for extension in ('png','pdf','svg'):
+        assert {p.stem for p in (ROOT / '结果').glob(f'*.{extension}')} == export_names
     for item in clean_style['figures']:
         base = ROOT / '结果' / item['file']
         with Image.open(base.with_suffix('.png')) as png:
@@ -234,6 +310,14 @@ def main():
         'violin_raw_points_quartiles_zero_counts_checked': True,
         'violin_points_aligned_on_method_axis': True,
         'method_process_figures_checked': 5, 'six_panel_layout_checked': True, 'all_condition_curves': 1000,
+        'paired_single_panels_copied_from_a_b': 10,
+        'paired_single_evaluation_points_checked': paired_evaluation_points,
+        'single_panel_criterion_matches_multi_sample_panel': True,
+        'single_beta_pairs_share_latent_sample': True,
+        'single_pair_selection_rule_checked': True,
+        'principle_derivation_checks_at_true_and_returned_gamma': derivation_checks,
+        'original_case_auxiliary_panels_checked': 6,
+        'current_figures': 13, 'current_export_files': 39,
         'original_process_cases': 10, 'process_candidate_points': curve_points,
         'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,
         'regression_affine_invariance_checked': True, 'mdm_envelope_bound_checked': True,
@@ -250,9 +334,12 @@ def main():
         'removed_directory_and_old_report_checks': True,
         'svg_live_text_count': svg_text, 'png_dimensions': dimensions,
         'new_samples': 0, 'new_fits': 0,
-        'remaining_figures_simplified_and_checked': 11,
+        'remaining_figures_simplified_and_checked': 12,
         'simplified_svg_text_matches_saved_inventory': True,
         'superseded_figure_exports_removed': 33,
+        'local_compensation_example_is_constructed': True,
+        'local_compensation_centers_checked': 2,
+        'local_compensation_slopes_checked': 2,
     }
     print(json.dumps(summary, ensure_ascii=False))
 
