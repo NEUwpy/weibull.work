@@ -16,11 +16,8 @@ COLORS = dict(mdm='#345D7E', lse='#589CA3', lre='#8A7398', wmle='#B27448', mle='
 STYLES = ['-', '--', '-.', (0, (5, 2, 1, 2)), ':']
 BLUE, RETURN = '#345D7E', '#B55E3E'
 CONDITIONS = [(2, 7), (5, 7), (2, 15), (5, 15)]
-TITLES = dict(mdm='MDM：在哪里达到固定梯度阈值？', lse='LSE：在哪里得到最小回归损失？',
-              lre='LRE：在哪里得到最高直线相关性？', wmle='WMLE：加权位置方程在哪里满足？',
-              mle='MLE：有限似然分支在哪里停止上升？')
-FILES = dict(mdm='图2_MDM位置选择过程', lse='图3_LSE位置选择过程', lre='图4_LRE位置选择过程',
-             wmle='图5_WMLE位置选择过程', mle='图6_MLE位置选择过程')
+FILES = dict(mdm='图2_MDM六格机制', lse='图3_LSE六格机制', lre='图4_LRE六格机制',
+             wmle='图5_WMLE六格机制', mle='图6_MLE六格机制')
 plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Microsoft YaHei', 'Arial', 'DejaVu Sans'],
     'font.size': 7, 'axes.titlesize': 7.2, 'axes.labelsize': 7, 'xtick.labelsize': 6.5,
     'ytick.labelsize': 6.5, 'legend.fontsize': 6.5, 'axes.linewidth': .7,
@@ -48,24 +45,23 @@ def tag(ax, label):
 
 def format_axis(ax, method, xmax, original=False):
     ax.set_xlim(-25, xmax)
-    ax.set_xlabel('候选位置 γ')
+    ax.set_xlabel('γ')
     ax.axvline(500, color='black', ls=':', lw=.9, zorder=3)
     ax.set_xticks([0, 500, 1000])
     if method in ('lse', 'lre'):
         ax.set_yscale('log'); ax.set_ylim(.001, 1.)
-        ax.set_ylabel(r'回归损失 $1-\rho^2$（越低越好）')
+        ax.set_ylabel(r'$D(\gamma)$')
     elif method == 'mdm':
         ax.set_ylim((-.04, .23) if original else (-.46, 1.10))
         ax.axhline(.1, color='black', ls='--', lw=.85)
-        ax.set_ylabel(r'标准差剖面梯度 $g(\gamma)$')
-        ax.text(.99, .1, '阈值 0.10', transform=ax.get_yaxis_transform(), ha='right', va='bottom', fontsize=6)
+        ax.set_ylabel(r'$g(\gamma)$')
     else:
         ax.axhline(0, color='black', ls='--', lw=.85)
         if method == 'wmle':
             ax.set_ylim((-.32, .13) if original else (-.13, .13))
         else:
             ax.set_ylim((-.05, .035) if original else (-.25, .27))
-        ax.set_ylabel(r'条件位置残差 $T_2(\gamma)$' if method == 'wmle' else r'有限分支分数 $1000\,U_\gamma/n$')
+        ax.set_ylabel(r'$T_2(\gamma)$' if method == 'wmle' else r'$1000\,U_\gamma/n$')
 
 
 def draw_curve(ax, r, color, alpha, lw, method):

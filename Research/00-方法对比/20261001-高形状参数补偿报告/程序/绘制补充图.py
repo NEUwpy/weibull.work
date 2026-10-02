@@ -57,18 +57,18 @@ def lower_tail():
         axes[0].plot(BETAS, [s['theoretical_mean_minimum'] for s in rr], color=color, ls=':', lw=1)
         axes[1].plot(BETAS, [s['theoretical_probability_minimum_above_1000'] for s in rr], marker=marker, ms=3, color=color, lw=1.2, label=f'n={n}')
     axes[0].axhline(500, ls='--', color='black', lw=.8)
-    axes[0].set_ylabel(r'最小观测值 $t_{(1)}$'); axes[0].set_ylim(440, 1290)
-    axes[1].set_ylabel(r'全部观测大于1000的概率'); axes[1].set_ylim(0, 1)
+    axes[0].set_ylabel(r'$t_{(1)}$'); axes[0].set_ylim(440, 1290)
+    axes[1].set_ylabel(r'$P(t_{(1)}>1000)$'); axes[1].set_ylim(0, 1)
     for i, ax in enumerate(axes):
-        ax.set_xlabel('真实形状参数 β'); ax.set_xticks(BETAS); tag(ax, chr(97+i))
+        ax.set_xlabel('β'); ax.set_xticks(BETAS); tag(ax, chr(97+i))
     axes[1].legend(loc='upper left')
     fig.subplots_adjust(left=.09, right=.985, bottom=.20, top=.84, wspace=.32)
-    save(fig, '补充图3_形状与下尾信息')
+    save(fig, '补充图3_下尾观测对照')
 
 
 def continuous_estimates():
     fig, axes = plt.subplots(2, 3, figsize=(7.2, 4.7))
-    params = [('beta_hat', None, '形状估计中位数'), ('eta_hat', 1000, '尺度估计中位数'), ('gamma_hat', 500, '位置估计中位数')]
+    params = [('beta_hat', None, 'β中位数'), ('eta_hat', 1000, 'η中位数'), ('gamma_hat', 500, 'γ中位数')]
     for row, n in enumerate(NS):
         for col, (param, truth, ylabel) in enumerate(params):
             ax = axes[row, col]
@@ -79,12 +79,12 @@ def continuous_estimates():
             else:
                 ax.axhline(truth, ls='--', color='black', lw=.8)
             ax.set_ylabel(ylabel); ax.set_xticks([2,3,4,5])
-            if row == 1: ax.set_xlabel('真实形状参数 β')
+            if row == 1: ax.set_xlabel('β')
             if col == 0: ax.set_title(f'n = {n}', loc='left', pad=8, weight='bold')
             tag(ax, chr(97+row*3+col))
     legend_methods(fig)
     fig.subplots_adjust(left=.09, right=.98, top=.86, bottom=.10, wspace=.42, hspace=.50)
-    save(fig, '补充图4_连续形状估计变化')
+    save(fig, '补充图4_连续形状对照')
 
 
 
@@ -100,7 +100,7 @@ def compensation():
     ax.plot([-500,1000],[500,-1000],ls='--',color='black',lw=.9)
     ax.axvline(0,color='.75',lw=.5);ax.axhline(0,color='.75',lw=.5)
     ax.set_xlim(-520,1050);ax.set_ylim(-1100,800)
-    ax.set_xlabel(r'位置误差 $\hat{\gamma}-500$');ax.set_ylabel(r'尺度误差 $\hat{\eta}-1000$')
+    ax.set_xlabel(r'$\Delta\gamma$');ax.set_ylabel(r'$\Delta\eta$')
     ax.set_title('β=5，n=7',loc='left',pad=9)
     for i,method in enumerate(PRIMARY):
         s=get(5.,7,method)
@@ -109,10 +109,10 @@ def compensation():
         right.scatter([a],[i],color=COLORS[method],s=24,marker='o')
         right.scatter([b],[i],facecolor='white',edgecolor=COLORS[method],s=24,marker='o',zorder=3)
     right.set_yticks(range(5),[NAMES[m] for m in PRIMARY]);right.set_ylim(4.6,-.6)
-    right.set_xlabel('尺度绝对误差中位数');right.set_xlim(0,750)
+    right.set_xlabel('η绝对误差中位数');right.set_xlim(0,750)
     tag(ax,'a');tag(right,'b');legend_methods(fig)
     fig.subplots_adjust(left=.10,right=.985,bottom=.25,top=.79,wspace=.36)
-    save(fig,'补充图5_参数补偿与固定位置')
+    save(fig,'补充图5_位置尺度补偿')
 
 
 def supplement():
@@ -120,20 +120,20 @@ def supplement():
     for ax,n in zip(axes,NS):
         for m in PRIMARY:
             ax.plot(BETAS,[get(b,n,m)['success']/50 for b in BETAS],color=COLORS[m],marker='o',ms=3,label=NAMES[m])
-        ax.set_ylim(0,1.05);ax.set_xticks(BETAS);ax.set_xlabel('真实形状参数 β');ax.set_title(f'n={n}',loc='left')
-    axes[0].set_ylabel('成功估计比例');tag(axes[0],'a');tag(axes[1],'b');legend_methods(fig)
+        ax.set_ylim(0,1.05);ax.set_xticks(BETAS);ax.set_xlabel('β');ax.set_title(f'n={n}',loc='left')
+    axes[0].set_ylabel('成功率');tag(axes[0],'a');tag(axes[1],'b');legend_methods(fig)
     fig.subplots_adjust(left=.10,right=.98,top=.78,bottom=.20,wspace=.25)
-    save(fig,'补充图1_成功比例')
+    save(fig,'补充图1_估计成功率')
     fig, axes=plt.subplots(1,2,figsize=(7.2,2.8))
     for ax,n in zip(axes,NS):
         for m,label,color in [('lre','LRE','#8A7398'),('lre_park','LRE Park','#345D7E')]:
             qq=np.array([get(b,n,m)['gamma_hat_q'] for b in BETAS])
             ax.fill_between(BETAS,qq[:,1],qq[:,3],color=color,alpha=.12)
             ax.plot(BETAS,qq[:,2],color=color,marker='o',ms=3,label=label)
-        ax.axhline(500,color='black',ls='--',lw=.8);ax.set_xticks(BETAS);ax.set_xlabel('真实形状参数 β');ax.set_title(f'n={n}',loc='left')
-    axes[0].set_ylabel('位置估计中位数');axes[1].legend();tag(axes[0],'a');tag(axes[1],'b')
+        ax.axhline(500,color='black',ls='--',lw=.8);ax.set_xticks(BETAS);ax.set_xlabel('β');ax.set_title(f'n={n}',loc='left')
+    axes[0].set_ylabel('γ中位数');axes[1].legend();tag(axes[0],'a');tag(axes[1],'b')
     fig.subplots_adjust(left=.10,right=.98,top=.84,bottom=.20,wspace=.26)
-    save(fig,'补充图2_LRE版本')
+    save(fig,'补充图2_LRE绘图位置对照')
 
 
 

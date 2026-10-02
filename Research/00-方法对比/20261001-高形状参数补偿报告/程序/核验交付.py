@@ -201,7 +201,7 @@ def main():
     assert not (ROOT.parent / '20261001-高形状参数偏移研究').exists()
     assert not (ROOT.parent / '高形状参数下的位置与尺度补偿报告-v2.md').exists()
 
-    figure = ROOT / '结果' / '图7_不同参数的寿命曲线与分位点'
+    figure = ROOT / '结果' / '图7_寿命分布与分位点'
     with Image.open(figure.with_suffix('.png')) as png:
         dimensions = list(png.size)
         assert dimensions == provenance['png_dimensions']
@@ -209,6 +209,23 @@ def main():
     svg_text = len(ET.parse(figure.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text'))
     assert svg_text > 20
     assert b'/FontFile2' in figure.with_suffix('.pdf').read_bytes()
+    clean_style = json.loads((DATA / '简洁图样核验.json').read_text(encoding='utf-8'))
+    assert clean_style['new_samples'] == 0 and clean_style['new_fits'] == 0
+    for name, expected in clean_style['scientific_input_hashes'].items():
+        assert digest(ROOT / name) == expected
+    assert len(clean_style['figures']) == 11
+    for item in clean_style['figures']:
+        base = ROOT / '结果' / item['file']
+        with Image.open(base.with_suffix('.png')) as png:
+            assert png.width == 3240 and all(abs(v-450) < .1 for v in png.info['dpi'])
+        texts = [''.join(element.itertext()).strip() for element in ET.parse(
+            base.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text')]
+        assert texts == item['svg_text_labels']
+        assert b'/FontFile2' in base.with_suffix('.pdf').read_bytes()
+    for old, current in clean_style['file_renames'].items():
+        for extension in ('png', 'pdf', 'svg'):
+            assert not (ROOT / '结果' / f'{old}.{extension}').exists()
+            assert (ROOT / '结果' / f'{current}.{extension}').exists()
     summary = {
         'local_links_checked': len(links), 'missing_links': 0,
         'report_matches_latest_generator': True, 'three_chapters': True,
@@ -233,6 +250,9 @@ def main():
         'removed_directory_and_old_report_checks': True,
         'svg_live_text_count': svg_text, 'png_dimensions': dimensions,
         'new_samples': 0, 'new_fits': 0,
+        'remaining_figures_simplified_and_checked': 11,
+        'simplified_svg_text_matches_saved_inventory': True,
+        'superseded_figure_exports_removed': 33,
     }
     print(json.dumps(summary, ensure_ascii=False))
 

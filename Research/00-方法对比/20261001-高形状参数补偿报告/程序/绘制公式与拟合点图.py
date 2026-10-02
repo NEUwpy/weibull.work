@@ -21,8 +21,8 @@ def profile_values(r, method):
 
 
 def mle_axis(ax, original=False):
-    ax.set_xlim(-25, 1400); ax.set_xticks([0, 500, 1000]); ax.set_xlabel('候选位置 γ')
-    ax.set_ylabel(r'条件对数似然增量 $\Delta\ell(\gamma)$')
+    ax.set_xlim(-25, 1400); ax.set_xticks([0, 500, 1000]); ax.set_xlabel('γ')
+    ax.set_ylabel(r'$\Delta\ell(\gamma)$')
     ax.axvline(500, color='black', ls=':', lw=.8)
     ax.axhline(0, color='.55', lw=.6)
     ax.set_ylim((-.10, .067) if original else (-1., 2.65))
@@ -43,19 +43,12 @@ def calculation_points(ax, r, method):
     ax.scatter([p['gamma'] for p in defined], [p['value'] for p in defined], s=5,
                facecolor='white', edgecolor=base.BLUE, linewidth=.45, alpha=.75, zorder=3)
     selected = [pts['true_gamma_point_id'], pts['returned_gamma_point_id']]
-    for target in (0, 250, 750):
-        p = min(defined, key=lambda p: abs(p['gamma']-target))
-        critical = [q for q in defined if q['id'] in selected[:2]]
-        if p['id'] not in selected and all(abs(p['gamma']-q['gamma']) > 180 for q in critical):
-            selected.append(p['id'])
     for pid in selected:
         p = next(p for p in defined if p['id'] == pid)
         if pid == pts['true_gamma_point_id']:
             text, offset = pid, (10, -22 if method == 'mle' else 18)
         elif pid == pts['returned_gamma_point_id']:
             text, offset = pid, (-24, -17 if method == 'mle' else 12)
-        else:
-            text, offset = pid, (4, -13 if method == 'mle' else 7)
         ax.annotate(text, (p['gamma'], p['value']), xytext=offset, textcoords='offset points',
                     fontsize=5.8, color=base.RETURN if pid == pts['returned_gamma_point_id'] else base.BLUE,
                     bbox=dict(facecolor='white', edgecolor='none', alpha=.86, pad=.4), zorder=6)
@@ -77,8 +70,8 @@ def regression_panel(ax, method, beta):
             offset = (-10, 5) if index == 0 else (5, -11)
             ax.annotate(str(p['id']), (p['x'], p['y']), xytext=offset, textcoords='offset points',
                         color=color, fontsize=5.8, zorder=5)
-    ax.set_xlabel(r'理论对数顺序统计量期望 $z_i$' if method == 'lse' else r'变换后观测 $\ln(t_i-\gamma)$')
-    ax.set_ylabel(r'变换后观测 $\ln(t_i-\gamma)$' if method == 'lse' else r'绘图位置变换 $\ln[-\ln(1-p_i)]$')
+    ax.set_xlabel(r'$z_i$' if method == 'lse' else r'$X_i(\gamma)$')
+    ax.set_ylabel(r'$y_i(\gamma)$' if method == 'lse' else r'$Y_i$')
     ds0, ds1 = case['datasets']
     ax.legend([Line2D([], [], color=base.BLUE, ls='--', marker='o', ms=3),
                Line2D([], [], color=base.RETURN, ls='-', marker='s', ms=3)],
@@ -98,7 +91,7 @@ def wmle_panel(ax, beta):
     ax.scatter(w['returned_gamma'], w['returned_beta'], s=34, color=base.RETURN, marker='x', linewidth=1.2, zorder=6)
     ax.axhline(5, color='.75', ls=':', lw=.6)
     ax.set_xlim(-25, 1140); ax.set_ylim(.3, 10); ax.set_xticks([0, 500, 1000])
-    ax.set_xlabel('候选位置 γ'); ax.set_ylabel('候选形状 β')
+    ax.set_xlabel('γ'); ax.set_ylabel('β')
     ax.legend([Line2D([], [], color=base.BLUE, lw=1.3), Line2D([], [], color='#4B8B86', lw=1.3, ls='--')],
               [r'$T_1=0$', r'$T_2=0$'], loc='upper right', fontsize=6)
     return dict(type='joint_residual_zero_contours', sample_id=w['sample_id'], formula_grid_points=w['grid_points'],

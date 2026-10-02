@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 INPUT = ROOT / '程序' / '输入快照'
 OUT = ROOT / '结果'
 DATA = OUT / '中间数据'
-FIGURE_NAME = '图7_不同参数的寿命曲线与分位点'
+FIGURE_NAME = '图7_寿命分布与分位点'
 TRUTH = (5.0, 1000.0, 500.0)
 SWAPPED = (5.0, 500.0, 1000.0)
 BLUE = '#345D7E'
@@ -134,7 +134,7 @@ def plot_and_save():
     left.scatter(observations, positions, facecolor='white', edgecolor='#23282D',
                  s=17, linewidth=.75, zorder=4)
     left.set(xlim=(450, 2050), ylim=(-.015, 1.025),
-             xlabel='寿命 t', ylabel='累积失效概率 F(t)')
+             xlabel='t', ylabel='F(t)')
     left.set_xticks([500, 1000, 1500, 2000])
     left.set_yticks([0, .25, .5, .75, 1.0])
 
@@ -144,10 +144,10 @@ def plot_and_save():
                    lw=2 if central else 1.4, zorder=1)
         right.scatter(a, row, s=24, color=GREY, zorder=3)
         right.scatter(b, row, s=24, color=BLUE, zorder=3)
-    right.set(xlim=(800, 2030), ylim=(3.6, -.6), xlabel='分位寿命 Q(p)')
+    right.set(xlim=(800, 2030), ylim=(3.6, -.6), xlabel='Q(p)')
     right.set_xticks([900, 1200, 1500, 1800])
     right.set_yticks(range(4), ['1%', '10%', '63.2%', '90%'])
-    right.set_ylabel('累积失效概率 p')
+    right.set_ylabel('p')
     for ax, tag in zip(axes, ('a', 'b')):
         ax.text(-.12, 1.11, tag, transform=ax.transAxes,
                 fontsize=8, weight='bold')
