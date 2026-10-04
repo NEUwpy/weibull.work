@@ -32,7 +32,8 @@ def run(*,verify_only=False):
     cases=sorted((ROOT/'程序').glob('W(*)'))
     assert len(cases)==8
     allowed={'估计分布_小提琴图.png','绘图核验.json'}
-    protected={p:digest(p) for case in cases for p in (ROOT/'结果'/case.name).rglob('*')
+    protected={p:digest(p) for case in cases for folder in (ROOT/'结果'/case.name,case/'中间数据')
+               for p in folder.rglob('*')
                if p.is_file() and p.name not in allowed}
     sealed=json.loads((ROOT/'程序/封存清单.json').read_text(encoding='utf-8'))['files']
     assert all(sha==sealed[p.relative_to(ROOT).as_posix()]['sha256'] for p,sha in protected.items())
@@ -48,9 +49,8 @@ def run(*,verify_only=False):
     ticks_by_background={}
     for case in cases:
         records.append(one_case(case,False))
-        output=ROOT/'结果'/case.name
-        qa=json.loads((output/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
-        data=json.loads((output/'中间数据/results.json').read_text(encoding='utf-8'))
+        qa=json.loads((case/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
+        data=json.loads((case/'中间数据/results.json').read_text(encoding='utf-8'))
         parameters={}
         for key in PARAMETERS:
             panels=[p for p in qa['violin']['records'] if p['parameter']==key]

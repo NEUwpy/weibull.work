@@ -44,12 +44,13 @@ def display_specification(parameter, eta, gamma):
 def draw(program, *, violin_only=False):
     program=Path(program)
     output=program.parents[1]/'结果'/program.name
-    source=output/'中间数据/results.json'
+    output.mkdir(parents=True,exist_ok=True)
+    source=program/'中间数据/results.json'
     data=json.loads(source.read_text(encoding='utf-8'))
     beta,eta,gamma=data['truth']
     gradient_metadata=[]
     if violin_only:
-        prior=json.loads((output/"中间数据/绘图核验.json").read_text(encoding="utf-8"))
+        prior=json.loads((program/"中间数据/绘图核验.json").read_text(encoding="utf-8"))
         assert prior["source_sha256"]==hashlib.sha256(source.read_bytes()).hexdigest()
         gradient_metadata=prior["gradient_figures"]
     xmax=1500 if eta==1000 else 700
@@ -130,5 +131,5 @@ def draw(program, *, violin_only=False):
                             density_source='displayed successful estimates',summary_source='all successful estimates',
                             zero_gamma_excluded_from_density=True,all_successful_values_preserved_in_source=True,iqr_linewidth=.5),
                 formats=['png 450dpi'],notes_on_figures=False)
-    (output/'中间数据/绘图核验.json').write_text(json.dumps(record,ensure_ascii=False)+'\n',encoding='utf-8',newline='\n')
+    (program/'中间数据/绘图核验.json').write_text(json.dumps(record,ensure_ascii=False)+'\n',encoding='utf-8',newline='\n')
     print('PLOTTED',data['distribution'],'1 violin grid.' if violin_only else '3 MDM plots and 1 violin grid.',flush=True)

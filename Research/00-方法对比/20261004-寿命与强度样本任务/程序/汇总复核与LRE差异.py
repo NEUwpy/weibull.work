@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT/'结果/复核与LRE对比'
+OUT = ROOT/'程序/复核与LRE对比'
 PARAMETERS = [('beta_hat','β'),('eta_hat','η'),('gamma_hat','γ')]
 
 
@@ -25,7 +25,7 @@ def main():
     method_counts=Counter()
     for audit in audits:
         name=audit['distribution']
-        raw=json.loads((ROOT/'结果'/name/'中间数据/results.json').read_text(encoding='utf-8'))
+        raw=json.loads((ROOT/'程序'/name/'中间数据/results.json').read_text(encoding='utf-8'))
         beta,eta,gamma=raw['truth']
         samples={(s['n'],s['id']):s for s in raw['samples']}
         for r in raw['results']:
@@ -96,7 +96,7 @@ def main():
              for qi,p in enumerate((.01,.1,.5,.9))}
     mdm_gradients=[]
     for audit in audits:
-        raw=json.loads((ROOT/'结果'/audit['distribution']/'中间数据/results.json').read_text(encoding='utf-8'))
+        raw=json.loads((ROOT/'程序'/audit['distribution']/'中间数据/results.json').read_text(encoding='utf-8'))
         samples={(s['n'],s['id']):np.asarray(s['values']) for s in raw['samples']}
         for r in raw['results']:
             if r['method_id']!='mdm':continue
@@ -124,7 +124,7 @@ def main():
         diagnostic=json.loads(source.read_text(encoding='utf-8'))
         for record in (diagnostic if isinstance(diagnostic,list) else [diagnostic]):
             if kind=='finite_difference_sensitivity' and record['status']!='success':continue
-            raw=json.loads((ROOT/'结果'/record['distribution']/'中间数据/results.json').read_text(encoding='utf-8'))
+            raw=json.loads((ROOT/'程序'/record['distribution']/'中间数据/results.json').read_text(encoding='utf-8'))
             method='mle' if kind=='likelihood_suboptimal' else 'mdm'
             fit=next(r for r in raw['results'] if (r['n'],r['id'],r['method_id'])==(record['n'],record['id'],method))
             minimum=next(s['values'][0] for s in raw['samples'] if (s['n'],s['id'])==(record['n'],record['id']))

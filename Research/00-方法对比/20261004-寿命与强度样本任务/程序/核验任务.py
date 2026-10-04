@@ -21,14 +21,17 @@ def check_layout():
     programs={p.name for p in (ROOT/'程序').glob('W(*)') if p.is_dir()}
     outputs={p.name for p in (ROOT/'结果').glob('W(*)') if p.is_dir()}
     assert programs==outputs and len(programs)==8
+    assert {p.name for p in (ROOT/'结果').iterdir()}==outputs
     for name in programs:
         output=ROOT/'结果'/name
         expected={
-            f'{name}.xlsx','估计分布_小提琴图.png','中间数据',
+            f'{name}.xlsx','估计分布_小提琴图.png',
             *[f'样本量{n}_偏移量0.20.png' for n in (7,15,30)]}
         assert {p.name for p in output.iterdir()}==expected
+        assert all(p.is_file() for p in output.iterdir())
+        assert (ROOT/'程序'/name/'中间数据/results.json').is_file()
     return dict(top_level_folders=['程序','结果'],parameter_pairs=8,image_format='PNG',
-                preview_figures=0)
+                preview_figures=0,delivery_files_per_parameter=5,intermediate_data_location='程序')
 
 
 def read_workbook(path):
@@ -71,7 +74,7 @@ def same(actual,expected):
 def one_case(case,rerun):
     output=ROOT/'结果'/case.name
     config=json.loads((case/'配置.json').read_text(encoding='utf-8'))
-    source=output/'中间数据/results.json'
+    source=case/'中间数据/results.json'
     data=json.loads(source.read_text(encoding='utf-8'))
     b,e,g=data['truth']
     assert data['truth']==config['truth'] and case.name==data['distribution']
@@ -97,7 +100,7 @@ def one_case(case,rerun):
     for r in data['results']:
         if r['converged']:
             assert r['beta_hat']>0 and r['eta_hat']>0 and 0<=r['gamma_hat']<samples[r['n'],r['id']]['values'][0]
-    with (output/'中间数据/results.csv').open(encoding='utf-8',newline='') as stream:
+    with (case/'中间数据/results.csv').open(encoding='utf-8',newline='') as stream:
         records=list(csv.DictReader(stream))
     assert len(records)==750
     for row in records:
@@ -126,7 +129,7 @@ def one_case(case,rerun):
                 same(cells[f'A{sid+1}'],sid)
                 for i,value in enumerate(samples[n,sid]['values'],2):
                     same(cells[f'{column(i)}{sid+1}'],value)
-    qa=json.loads((output/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
+    qa=json.loads((case/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
     assert qa['source_sha256']==hashlib.sha256(source.read_bytes()).hexdigest()
     assert qa['violin']['beta_eta_coordinate']==qa['violin']['gamma_coordinate']=='linear'
     assert qa['violin']['display_rule']=='fixed engineering windows' and not qa['violin']['tail_extension']
@@ -191,13 +194,13 @@ def one_case(case,rerun):
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='--case':
         result=one_case(Path(sys.argv[2]),True)
-        (ROOT/'结果'/Path(sys.argv[2]).name/'中间数据/复核.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+        (Path(sys.argv[2])/'中间数据/复核.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     else:
         layout=check_layout()
         records=[]
         for case in sorted((ROOT/'程序').glob('W(*)')):
             subprocess.run([sys.executable,'-B',str(Path(__file__).resolve()),'--case',str(case)],check=True)
-            records.append(json.loads((ROOT/'结果'/case.name/'中间数据/复核.json').read_text(encoding='utf-8')))
+            records.append(json.loads((case/'中间数据/复核.json').read_text(encoding='utf-8')))
         record=dict(combinations=8,samples=1200,observations=20800,method_records=6000,independent_fit_reruns=120,
                     workbooks=8,scientific_figures=32,figure_exports=32,layout=layout,records=records)
         (ROOT/'程序/核验结果.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')

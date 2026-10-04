@@ -5,7 +5,9 @@ import {buildSampleSheet, buildResultBlock} from './表格样式.mjs';
 
 export async function buildCase(programDir) {
   const caseDir=path.join(path.dirname(path.dirname(programDir)),'结果',path.basename(programDir));
-  const data=JSON.parse(await fs.readFile(path.join(caseDir,'中间数据/results.json'),'utf8'));
+  const dataDir=path.join(programDir,'中间数据');
+  const data=JSON.parse(await fs.readFile(path.join(dataDir,'results.json'),'utf8'));
+  await fs.mkdir(caseDir,{recursive:true});
   const wb=Workbook.create();
   const names={mdm:'MDM',lse:'LS',lre:'LRE',wmle:'WMLM',mle:'MLM'};
   const mdm=new Map(), other=new Map();
@@ -51,7 +53,7 @@ export async function buildCase(programDir) {
   }
   const errorScan=await wb.inspect({kind:'match',searchTerm:'#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!|#SPILL!|#CALC!',options:{useRegex:true,maxResults:20},maxChars:2000});
   if(/"(?:value|text)"\s*:\s*"#[A-Z]/.test(errorScan.ndjson)) throw new Error(errorScan.ndjson);
-  const previewDir=path.join(caseDir,'中间数据/表格预览');
+  const previewDir=path.join(dataDir,'表格预览');
   await fs.mkdir(previewDir,{recursive:true});
   for(const name of [...data.n.map(n=>`估计结果_n${n}`),...data.n.map(n=>`生成样本_n${n}`)]) {
     const last=name.startsWith('估计结果')?'P':name.endsWith('n7')?'H':name.endsWith('n15')?'P':'AE';
@@ -63,9 +65,9 @@ export async function buildCase(programDir) {
   const output=path.join(caseDir,`${data.distribution}.xlsx`);
   const xlsx=await SpreadsheetFile.exportXlsx(wb); await xlsx.save(output);
   try {
-    await fs.copyFile(`${output}.inspect.ndjson`,path.join(caseDir,'中间数据/表格检查.ndjson'));
+    await fs.copyFile(`${output}.inspect.ndjson`,path.join(dataDir,'表格检查.ndjson'));
     await fs.unlink(`${output}.inspect.ndjson`);
   } catch (error) { if(error.code!=='ENOENT') throw error; }
-  await fs.writeFile(path.join(caseDir,'中间数据/表格核验.json'),JSON.stringify({distribution:data.distribution,sheets:6,sample_rows_checked:150,result_rows_checked:150,parameter_values_checked:2250,full_precision_preserved:true,notes:0,comments:0,previews},null,2)+'\n');
+  await fs.writeFile(path.join(dataDir,'表格核验.json'),JSON.stringify({distribution:data.distribution,sheets:6,sample_rows_checked:150,result_rows_checked:150,parameter_values_checked:2250,full_precision_preserved:true,notes:0,comments:0,previews},null,2)+'\n');
   console.log('SAVED',data.distribution,'6 sheets; 150 sample rows and 2250 parameter values verified.');
 }

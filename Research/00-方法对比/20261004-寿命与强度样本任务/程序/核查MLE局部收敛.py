@@ -5,9 +5,9 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'结果/复核与LRE对比'
+OUT=ROOT/'程序/复核与LRE对比'
 case='W(5,1000,500)';n=7;sid=31
-data=json.loads((ROOT/'结果'/case/'中间数据/results.json').read_text(encoding='utf-8'))
+data=json.loads((ROOT/'程序'/case/'中间数据/results.json').read_text(encoding='utf-8'))
 row=next(r for r in data['results'] if (r['n'],r['id'],r['method_id'])==(n,sid,'mle'))
 t=np.asarray(next(s for s in data['samples'] if (s['n'],s['id'])==(n,sid))['values'])
 def loglik(b,e,g):

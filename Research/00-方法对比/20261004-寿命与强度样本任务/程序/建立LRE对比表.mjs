@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {Workbook, SpreadsheetFile} from '@oai/artifact-tool';
 
 const program=path.dirname(fileURLToPath(import.meta.url));
-const output=path.join(program,'../结果/复核与LRE对比');
+const output=path.join(program,'复核与LRE对比');
 const preview=path.join(program,'检查预览/复核对比');
 const tables=JSON.parse(await fs.readFile(path.join(output,'比较表数据.json'),'utf8'));
 const wb=Workbook.create();

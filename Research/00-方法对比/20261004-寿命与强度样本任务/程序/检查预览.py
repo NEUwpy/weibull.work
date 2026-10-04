@@ -45,7 +45,7 @@ def grid(items, destination, columns, tile_width):
 
 
 for case in sorted((ROOT/'结果').glob('W(*)')):
-    previews=case/'中间数据/表格预览'
+    previews=ROOT/'程序'/case.name/'中间数据/表格预览'
     for prefix in ('估计结果','生成样本'):
         stack([(f'{case.name} {prefix} n={n}',previews/f'{prefix}_n{n}.png') for n in (7,15,30)],OUT/f'{case.name}_{prefix}.png')
 for eta in (100,1000):

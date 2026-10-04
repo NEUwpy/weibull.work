@@ -4,10 +4,10 @@ from pathlib import Path
 import numpy as np
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'结果/复核与LRE对比'
+OUT=ROOT/'程序/复核与LRE对比'
 J1={7:.953,15:.978,30:.989}
 records=[]
-for case in sorted((ROOT/'结果').glob('W(*)')):
+for case in sorted((ROOT/'程序').glob('W(*)')):
     data=json.loads((case/'中间数据/results.json').read_text(encoding='utf-8'))
     samples={(s['n'],s['id']):np.asarray(s['values']) for s in data['samples']}
     for r in data['results']:

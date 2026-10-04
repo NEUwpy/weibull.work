@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'结果/复核与LRE对比'
+OUT=ROOT/'程序/复核与LRE对比'
 files=sorted(OUT.glob('W(*).json'))
 pairs=[r for file in files for r in json.loads(file.read_text(encoding='utf-8'))['lre_pairs']]
 assert len(pairs)==1200

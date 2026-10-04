@@ -29,7 +29,7 @@ def dump(path, value):
 def calculate(program, output=None):
     program = Path(program)
     config = json.loads((program / '配置.json').read_text(encoding='utf-8'))
-    target = Path(output) if output else program.parents[1] / '结果' / program.name / '中间数据'
+    target = Path(output) if output else program / '中间数据'
     if (target / 'results.json').exists():
         raise SystemExit('Saved results already exist. Use --output for an independent rerun.')
     target.mkdir(parents=True, exist_ok=True)

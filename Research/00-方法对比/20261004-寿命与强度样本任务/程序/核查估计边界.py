@@ -66,7 +66,7 @@ def audit(case):
 
 
 if __name__=='__main__':
-    cases=[audit(case) for case in sorted((ROOT/'结果').glob('W(*)'))]
+    cases=[audit(case) for case in sorted((ROOT/'程序').glob('W(*)'))]
     totals={m:sum(c['gamma_zero_by_method'][m] for c in cases) for m in METHODS}
     record=dict(combinations=8,distributions=360,gamma_zero_by_method=totals,
                 repeated_nonzero_values=sum(len(r['repeated_nonzero_values']) for c in cases for r in c['records']),

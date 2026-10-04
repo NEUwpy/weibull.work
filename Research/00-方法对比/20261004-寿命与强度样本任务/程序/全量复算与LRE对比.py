@@ -14,7 +14,7 @@ import time
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / '结果/复核与LRE对比'
+OUT = ROOT / '程序/复核与LRE对比'
 PROGRAM = ROOT / '程序'
 METHODS = ['mdm', 'lse', 'lre', 'wmle', 'mle']
 KEYS = ['beta_hat', 'eta_hat', 'gamma_hat', 'r_squared']
@@ -73,19 +73,18 @@ def formula_checks(x, row):
 def one_case(name):
     start = time.perf_counter()
     case = PROGRAM / name
-    output = ROOT / '结果' / name
     sys.path.insert(0, str(case / '依赖快照/python'))
     from studies.common.runner import run_method
     from studies.common.metrics import check_status, aggregate_standard_metrics
     from methods import registry
     from 核验任务 import one_case as validate_saved
     validation = validate_saved(case, False)
-    source = output / '中间数据/results.json'
+    source = case / '中间数据/results.json'
     data = json.loads(source.read_text(encoding='utf-8'))
     b, e, g = data['truth']
     samples = {(s['n'], s['id']): np.asarray(s['values']) for s in data['samples']}
     curves = {(c['n'], c['id']): c['points'] for c in data['gradient_curves']}
-    saved_summary = json.loads((output/'中间数据/summary.json').read_text(encoding='utf-8'))
+    saved_summary = json.loads((case/'中间数据/summary.json').read_text(encoding='utf-8'))
     current_class = registry.IMPLEMENTED['lre']
     legacy_class = load_class(PROGRAM/'LRE_旧版Bernard.py', 'legacy_lre_audit')
     ablation_class = load_class(PROGRAM/'LRE_新版搜索与Bernard位置.py', 'ablation_lre_audit')

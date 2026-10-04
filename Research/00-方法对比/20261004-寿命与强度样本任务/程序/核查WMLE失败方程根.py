@@ -8,7 +8,7 @@ from scipy.optimize import brentq
 from scipy.special import logsumexp
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'结果/复核与LRE对比'
+OUT=ROOT/'程序/复核与LRE对比'
 sys.path.insert(0,str(ROOT/'程序/W(5,1000,500)/依赖快照/python'))
 from methods.wmle import get_weight_j1,get_weight_j2,get_weight_j3
 
@@ -49,7 +49,7 @@ def diagnose(t,n):
 
 if __name__=='__main__':
     records=[]
-    for case in sorted((ROOT/'结果').glob('W(*)')):
+    for case in sorted((ROOT/'程序').glob('W(*)')):
         raw=json.loads((case/'中间数据/results.json').read_text(encoding='utf-8'))
         samples={(s['n'],s['id']):np.asarray(s['values']) for s in raw['samples']}
         for r in raw['results']:

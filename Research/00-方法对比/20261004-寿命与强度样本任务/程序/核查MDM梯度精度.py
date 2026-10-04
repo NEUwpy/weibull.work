@@ -6,11 +6,11 @@ import numpy as np
 from scipy.optimize import minimize_scalar, brentq
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'结果/复核与LRE对比'
+OUT=ROOT/'程序/复核与LRE对比'
 
 
 def one(row):
-    data=json.loads((ROOT/'结果'/row['distribution']/'中间数据/results.json').read_text(encoding='utf-8'))
+    data=json.loads((ROOT/'程序'/row['distribution']/'中间数据/results.json').read_text(encoding='utf-8'))
     sample=next(s for s in data['samples'] if (s['n'],s['id'])==(row['n'],row['id']))
     fit=next(s for s in data['results'] if (s['n'],s['id'],s['method_id'])==(row['n'],row['id'],'mdm'))
     t=np.asarray(sample['values'])

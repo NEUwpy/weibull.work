@@ -8,7 +8,7 @@ import subprocess
 from 核验任务 import check_layout,read_workbook,column
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'结果/复核与LRE对比'
+OUT=ROOT/'程序/复核与LRE对比'
 layout=check_layout()
 audit=json.loads((OUT/'全量复算核验.json').read_text(encoding='utf-8'))
 assert audit['full_fit_recalculations']==6000 and audit['legacy_lre_recalculations']==1200
@@ -40,7 +40,7 @@ for table,(name,cells) in zip(tables,sheets):
 wmle=json.loads((OUT/'WMLE失败根核查.json').read_text(encoding='utf-8'))
 assert len(wmle['records'])==62 and sum(bool(r['admissible_roots']) for r in wmle['records'])==58
 for r in wmle['records']:
-    raw=json.loads((ROOT/'结果'/r['distribution']/'中间数据/results.json').read_text(encoding='utf-8'))
+    raw=json.loads((ROOT/'程序'/r['distribution']/'中间数据/results.json').read_text(encoding='utf-8'))
     minimum=next(s['values'][0] for s in raw['samples'] if (s['n'],s['id'])==(r['n'],r['id']))
     for root in r['admissible_roots']:
         assert 0<root['beta']<9.99 and root['eta']>0 and 0<=root['gamma']<minimum-1e-6

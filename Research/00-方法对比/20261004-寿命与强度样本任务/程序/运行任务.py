@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def run(case):
-    target = ROOT / '结果' / case.name / '中间数据' / 'results.json'
+    target = case / '中间数据' / 'results.json'
     if target.exists():
         print('REUSE', case.name, flush=True)
         return
