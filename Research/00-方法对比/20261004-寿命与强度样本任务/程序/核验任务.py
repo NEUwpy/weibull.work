@@ -26,11 +26,9 @@ def check_layout():
         expected={
             f'{name}.xlsx','估计分布_小提琴图.png','中间数据',
             *[f'样本量{n}_偏移量0.20.png' for n in (7,15,30)]}
-        if (output/'估计分布_线性坐标试画.png').is_file():
-            expected.add('估计分布_线性坐标试画.png')
         assert {p.name for p in output.iterdir()}==expected
     return dict(top_level_folders=['程序','结果'],parameter_pairs=8,image_format='PNG',
-                preview_figures=len(list((ROOT/'结果').glob('W(*)/估计分布_线性坐标试画.png'))))
+                preview_figures=0)
 
 
 def read_workbook(path):
@@ -130,17 +128,29 @@ def one_case(case,rerun):
                     same(cells[f'{column(i)}{sid+1}'],value)
     qa=json.loads((output/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
     assert qa['source_sha256']==hashlib.sha256(source.read_bytes()).hexdigest()
+    assert qa['violin']['beta_eta_coordinate']==qa['violin']['gamma_coordinate']=='linear'
+    assert not qa['violin']['tail_extension'] and qa['violin']['shared_ticks_within_parameter']
+    ranges={}
     for panel in qa['violin']['records']:
+        expected_ids=sorted(r['id'] for r in data['results'] if r['n']==panel['n'] and r['method_id']==panel['method'] and r['converged'])
+        assert panel['sample_ids']==expected_ids
         rr=[fits[panel['n'],sid,panel['method']] for sid in panel['sample_ids']]
         assert panel['values']==[r[panel['parameter']] for r in rr]
         assert panel['success']+panel['failure']==50 and panel['points_on_centerline']
         assert np.allclose(panel['quartiles'],np.quantile(panel['values'],[.25,.5,.75]))
+        assert panel['axis_scale']=='linear' and panel['density_coordinate']=='original'
+        assert all(panel['x_limits'][0]<=v<=panel['x_limits'][1] for v in panel['values'])
+        density=[v for v in panel['values'] if v>0 or panel['parameter']!='gamma_hat']
+        assert panel['density_limits']==([min(density),max(density)] if density else None)
+        key=panel['parameter']
+        assert key not in ranges or ranges[key]==panel['x_limits']
+        ranges[key]=panel['x_limits']
     for n in data['n']:
         assert len([c for c in data['gradient_curves'] if c['n']==n])==50
         assert {c['id'] for c in data['gradient_curves'] if c['n']==n}==set(range(1,51))
         for c in [c for c in data['gradient_curves'] if c['n']==n]:
             assert all(not p.get('virtual',False) and 0<=p['gamma']<samples[n,c['id']]['values'][0] for p in c['points'])
-    assert len(list(output.glob('*.png')))==4+int((output/'估计分布_线性坐标试画.png').is_file())
+    assert len(list(output.glob('*.png')))==4
     assert not list(output.glob('*.pdf'))
     assert not list(output.glob('*.svg'))
     assert qa['formats']==['png 450dpi']
