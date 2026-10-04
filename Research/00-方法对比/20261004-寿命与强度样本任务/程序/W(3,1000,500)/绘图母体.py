@@ -1,4 +1,4 @@
-"""Real MDM traces and complete successful-estimate violin distributions."""
+"""Real MDM traces and successful-estimate violin display windows."""
 import hashlib
 import json
 import sys
@@ -14,13 +14,14 @@ except ModuleNotFoundError:
     import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator, NullLocator
+from matplotlib.ticker import NullLocator
 from scipy.stats import gaussian_kde
 
 METHODS=['mdm','lse','lre','wmle','mle']
 NAMES=['MDM','LSE','LRE','WMLE','MLE']
 COLORS=['#345D7E','#589CA3','#8A7398','#B27448','#5F6570']
-DISPLAY_QUANTILE=.99
+BETA_DISPLAY_MAX=10.0
+ETA_DISPLAY_MULTIPLIER=2.0
 plt.rcParams.update({'font.family':'sans-serif','font.sans-serif':['Microsoft YaHei','Arial','DejaVu Sans'],
                      'font.size':8,'axes.linewidth':.7,'axes.spines.top':False,'axes.spines.right':False,
                      'axes.unicode_minus':False})
@@ -31,16 +32,29 @@ def save(fig, output, name):
     plt.close(fig)
 
 
-def draw(program):
+def display_specification(parameter, eta, gamma):
+    if parameter=='beta_hat':
+        return [0.,BETA_DISPLAY_MAX],[0.,2.,4.,6.,8.,10.]
+    if parameter=='eta_hat':
+        return [0.,ETA_DISPLAY_MULTIPLIER*eta],[0.,.5*eta,eta,1.5*eta,2.*eta]
+    upper=gamma+eta
+    return [0.,upper],np.linspace(0.,upper,4).tolist()
+
+
+def draw(program, *, violin_only=False):
     program=Path(program)
     output=program.parents[1]/'结果'/program.name
     source=output/'中间数据/results.json'
     data=json.loads(source.read_text(encoding='utf-8'))
     beta,eta,gamma=data['truth']
     gradient_metadata=[]
+    if violin_only:
+        prior=json.loads((output/"中间数据/绘图核验.json").read_text(encoding="utf-8"))
+        assert prior["source_sha256"]==hashlib.sha256(source.read_bytes()).hexdigest()
+        gradient_metadata=prior["gradient_figures"]
     xmax=1500 if eta==1000 else 700
     xticks=[0,500,1000,1500] if eta==1000 else [0,100,200,300,400,500,600,700]
-    for n in data['n']:
+    for n in ([] if violin_only else data['n']):
         fig,ax=plt.subplots(figsize=(5.12,3.62))
         rows=[r for r in data['gradient_curves'] if r['n']==n]
         for row in rows:
@@ -60,21 +74,19 @@ def draw(program):
     panel_records=[]
     for col,(key,truth,label) in enumerate([
             ('beta_hat',beta,'β'),('eta_hat',eta,'η'),('gamma_hat',gamma,'γ')]):
-        pooled=np.array([r[key] for r in data['results'] if r['converged'] and r[key] is not None])
-        display_upper=max(float(np.quantile(pooled,DISPLAY_QUANTILE)),truth)
-        maximum=display_upper
-        limits=[-.06*maximum,1.06*maximum] if key=='gamma_hat' else [0,1.06*maximum]
+        limits,ticks=display_specification(key,eta,gamma)
+        display_lower,display_upper=limits
         for row,n in enumerate(data['n']):
             ax=axes[row,col]
             ax.set_xscale('linear')
             ax.set_xlim(limits); ax.set_ylim(4.6,-.6)
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=4,steps=[1,2,2.5,5,10],min_n_ticks=3))
+            ax.set_xticks(ticks)
             ax.xaxis.set_minor_locator(NullLocator())
             ax.axvline(truth,color='black',ls='--',lw=.75,zorder=1)
             for pos,method in enumerate(METHODS):
                 rr=sorted([r for r in data['results'] if r['n']==n and r['method_id']==method and r['converged']],key=lambda r:r['id'])
                 values=np.array([r[key] for r in rr])
-                displayed=values<=display_upper
+                displayed=(values>=display_lower)&(values<=display_upper)
                 shown_values=values[displayed]
                 density_values=shown_values[shown_values>0] if key=='gamma_hat' else shown_values
                 coords=density_values
@@ -93,7 +105,8 @@ def draw(program):
                                           success=len(values),failure=50-len(values),x_limits=limits,points_on_centerline=True,
                                           axis_scale=ax.get_xscale(),density_coordinate='original',
                                           density_limits=[float(coords.min()),float(coords.max())] if len(coords) else None,
-                                          display_upper=display_upper,display_values=shown_values.tolist(),
+                                          display_lower=display_lower,display_upper=display_upper,x_ticks=ticks,
+                                          display_values=shown_values.tolist(),
                                           display_sample_ids=[r['id'] for r,keep in zip(rr,displayed) if keep],
                                           omitted_values=values[~displayed].tolist(),
                                           omitted_sample_ids=[r['id'] for r,keep in zip(rr,displayed) if not keep],
@@ -111,9 +124,11 @@ def draw(program):
     record=dict(source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),gradient_figures=gradient_metadata,
                 violin=dict(panels=9,records=panel_records,bandwidth='Scott',beta_eta_coordinate='linear',gamma_coordinate='linear',
                             density_endpoints='observed minimum and maximum',tail_extension=False,shared_ticks_within_parameter=True,
-                            display_upper_quantile=DISPLAY_QUANTILE,quantile_pool='all successful estimates across methods and n for each parameter',
+                            display_rule='fixed engineering windows',
+                            display_ranges={key:display_specification(key,eta,gamma)[0] for key in ('beta_hat','eta_hat','gamma_hat')},
+                            shared_ticks_across_shape_values_within_background=True,
                             density_source='displayed successful estimates',summary_source='all successful estimates',
                             zero_gamma_excluded_from_density=True,all_successful_values_preserved_in_source=True,iqr_linewidth=.5),
                 formats=['png 450dpi'],notes_on_figures=False)
     (output/'中间数据/绘图核验.json').write_text(json.dumps(record,ensure_ascii=False)+'\n',encoding='utf-8',newline='\n')
-    print('PLOTTED',data['distribution'],'3 MDM plots and 1 violin grid.',flush=True)
+    print('PLOTTED',data['distribution'],'1 violin grid.' if violin_only else '3 MDM plots and 1 violin grid.',flush=True)

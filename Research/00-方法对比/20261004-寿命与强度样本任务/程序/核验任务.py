@@ -129,7 +129,7 @@ def one_case(case,rerun):
     qa=json.loads((output/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
     assert qa['source_sha256']==hashlib.sha256(source.read_bytes()).hexdigest()
     assert qa['violin']['beta_eta_coordinate']==qa['violin']['gamma_coordinate']=='linear'
-    assert qa['violin']['display_upper_quantile']==.99 and not qa['violin']['tail_extension']
+    assert qa['violin']['display_rule']=='fixed engineering windows' and not qa['violin']['tail_extension']
     assert qa['violin']['summary_source']=='all successful estimates'
     ranges={}
     for panel in qa['violin']['records']:
@@ -139,14 +139,13 @@ def one_case(case,rerun):
         assert panel['values']==[r[panel['parameter']] for r in rr]
         assert panel['success']+panel['failure']==50 and panel['points_on_centerline']
         assert np.allclose(panel['quartiles'],np.quantile(panel['values'],[.25,.5,.75]))
-        pooled=[r[panel['parameter']] for r in data['results'] if r['converged']]
-        truth=panel['truth']
-        upper=max(float(np.quantile(pooled,.99)),truth)
-        limits=([0,upper*1.06] if panel['parameter']!='gamma_hat' else [-.06*upper,upper*1.06])
-        assert panel['x_limits']==limits
-        shown=[r for r in rr if r[panel['parameter']]<=upper]
-        hidden=[r for r in rr if r[panel['parameter']]>upper]
-        assert panel['display_upper']==upper
+        limits={'beta_hat':[0.,10.], 'eta_hat':[0.,2.*e], 'gamma_hat':[0.,g+e]}[panel['parameter']]
+        ticks={'beta_hat':[0.,2.,4.,6.,8.,10.], 'eta_hat':[0.,.5*e,e,1.5*e,2.*e],
+               'gamma_hat':np.linspace(0.,g+e,4).tolist()}[panel['parameter']]
+        assert panel['x_limits']==limits and panel['x_ticks']==ticks
+        shown=[r for r in rr if limits[0]<=r[panel['parameter']]<=limits[1]]
+        hidden=[r for r in rr if not limits[0]<=r[panel['parameter']]<=limits[1]]
+        assert panel['display_lower']==limits[0] and panel['display_upper']==limits[1]
         assert panel['display_sample_ids']==[r['id'] for r in shown]
         assert panel['display_values']==[r[panel['parameter']] for r in shown]
         assert panel['omitted_sample_ids']==[r['id'] for r in hidden]
