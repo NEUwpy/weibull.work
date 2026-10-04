@@ -128,8 +128,7 @@ def one_case(case,rerun):
                     same(cells[f'{column(i)}{sid+1}'],value)
     qa=json.loads((output/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
     assert qa['source_sha256']==hashlib.sha256(source.read_bytes()).hexdigest()
-    assert qa['violin']['beta_eta_coordinate']==qa['violin']['gamma_coordinate']=='linear'
-    assert not qa['violin']['tail_extension'] and qa['violin']['shared_ticks_within_parameter']
+    assert qa['violin']['beta_eta_coordinate']=='log10' and qa['violin']['gamma_coordinate']=='linear'
     ranges={}
     for panel in qa['violin']['records']:
         expected_ids=sorted(r['id'] for r in data['results'] if r['n']==panel['n'] and r['method_id']==panel['method'] and r['converged'])
@@ -138,10 +137,12 @@ def one_case(case,rerun):
         assert panel['values']==[r[panel['parameter']] for r in rr]
         assert panel['success']+panel['failure']==50 and panel['points_on_centerline']
         assert np.allclose(panel['quartiles'],np.quantile(panel['values'],[.25,.5,.75]))
-        assert panel['axis_scale']=='linear' and panel['density_coordinate']=='original'
         assert all(panel['x_limits'][0]<=v<=panel['x_limits'][1] for v in panel['values'])
-        density=[v for v in panel['values'] if v>0 or panel['parameter']!='gamma_hat']
-        assert panel['density_limits']==([min(density),max(density)] if density else None)
+        pooled=[r[panel['parameter']] for r in data['results'] if r['converged']]
+        truth=panel['truth']
+        limits=([min(min(pooled),truth)*.78,max(max(pooled),truth)*1.2] if panel['parameter']!='gamma_hat'
+                else [-.06*max(max(pooled),truth),max(max(pooled),truth)*1.06])
+        assert panel['x_limits']==limits
         key=panel['parameter']
         assert key not in ranges or ranges[key]==panel['x_limits']
         ranges[key]=panel['x_limits']
