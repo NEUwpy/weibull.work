@@ -23,10 +23,14 @@ def check_layout():
     assert programs==outputs and len(programs)==8
     for name in programs:
         output=ROOT/'结果'/name
-        assert {p.name for p in output.iterdir()}=={
+        expected={
             f'{name}.xlsx','估计分布_小提琴图.png','中间数据',
             *[f'样本量{n}_偏移量0.20.png' for n in (7,15,30)]}
-    return dict(top_level_folders=['程序','结果'],parameter_pairs=8,image_format='PNG')
+        if (output/'估计分布_线性坐标试画.png').is_file():
+            expected.add('估计分布_线性坐标试画.png')
+        assert {p.name for p in output.iterdir()}==expected
+    return dict(top_level_folders=['程序','结果'],parameter_pairs=8,image_format='PNG',
+                preview_figures=len(list((ROOT/'结果').glob('W(*)/估计分布_线性坐标试画.png'))))
 
 
 def read_workbook(path):
@@ -136,7 +140,7 @@ def one_case(case,rerun):
         assert {c['id'] for c in data['gradient_curves'] if c['n']==n}==set(range(1,51))
         for c in [c for c in data['gradient_curves'] if c['n']==n]:
             assert all(not p.get('virtual',False) and 0<=p['gamma']<samples[n,c['id']]['values'][0] for p in c['points'])
-    assert len(list(output.glob('*.png')))==4
+    assert len(list(output.glob('*.png')))==4+int((output/'估计分布_线性坐标试画.png').is_file())
     assert not list(output.glob('*.pdf'))
     assert not list(output.glob('*.svg'))
     assert qa['formats']==['png 450dpi']
