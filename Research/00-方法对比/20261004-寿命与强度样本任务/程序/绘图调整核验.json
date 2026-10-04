@@ -124,43 +124,207 @@
     }
   ],
   "coordinate": {
-    "beta": "log10",
-    "eta": "log10",
+    "beta": "linear",
+    "eta": "linear",
     "gamma": "linear"
   },
-  "original_version": "0b7b5877",
-  "restored_files_byte_identical": [
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/W(1.5,100,500)/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(1.5,100,500)/估计分布_小提琴图.png",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(1.5,100,500)/中间数据/绘图核验.json",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/W(1.5,1000,500)/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(1.5,1000,500)/估计分布_小提琴图.png",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(1.5,1000,500)/中间数据/绘图核验.json",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/W(2,100,500)/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(2,100,500)/估计分布_小提琴图.png",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(2,100,500)/中间数据/绘图核验.json",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/W(2,1000,500)/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(2,1000,500)/估计分布_小提琴图.png",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(2,1000,500)/中间数据/绘图核验.json",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/W(3,100,500)/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(3,100,500)/估计分布_小提琴图.png",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(3,100,500)/中间数据/绘图核验.json",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/W(3,1000,500)/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(3,1000,500)/估计分布_小提琴图.png",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(3,1000,500)/中间数据/绘图核验.json",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/W(5,100,500)/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(5,100,500)/估计分布_小提琴图.png",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(5,100,500)/中间数据/绘图核验.json",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/程序/W(5,1000,500)/绘图母体.py",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(5,1000,500)/估计分布_小提琴图.png",
-    "Research/00-方法对比/20261004-寿命与强度样本任务/结果/W(5,1000,500)/中间数据/绘图核验.json"
-  ],
-  "restored_pngs": 8,
-  "restored_plot_scripts": 9,
+  "upper_display_quantile": 0.99,
+  "quantile_scope": "all successful estimates pooled within each parameter combination and parameter",
+  "figures": 8,
   "distributions_verified": 360,
+  "omissions": [
+    {
+      "distribution": "W(1.5,100,500)",
+      "parameters": {
+        "beta_hat": {
+          "total": 672,
+          "omitted": 7,
+          "upper": 16.572201176096115,
+          "full_maximum": 29.158455026869365
+        },
+        "eta_hat": {
+          "total": 672,
+          "omitted": 7,
+          "upper": 600.13527054061,
+          "full_maximum": 644.2985470843389
+        },
+        "gamma_hat": {
+          "total": 672,
+          "omitted": 7,
+          "upper": 562.8874984124134,
+          "full_maximum": 581.6324210622814
+        }
+      }
+    },
+    {
+      "distribution": "W(1.5,1000,500)",
+      "parameters": {
+        "beta_hat": {
+          "total": 674,
+          "omitted": 7,
+          "upper": 3.966724350450697,
+          "full_maximum": 7.668167902689531
+        },
+        "eta_hat": {
+          "total": 674,
+          "omitted": 7,
+          "upper": 1753.6886093466856,
+          "full_maximum": 1951.217537292826
+        },
+        "gamma_hat": {
+          "total": 674,
+          "omitted": 7,
+          "upper": 1128.7526309137354,
+          "full_maximum": 1316.324179907542
+        }
+      }
+    },
+    {
+      "distribution": "W(2,100,500)",
+      "parameters": {
+        "beta_hat": {
+          "total": 704,
+          "omitted": 8,
+          "upper": 21.697191686017344,
+          "full_maximum": 39.648558176345674
+        },
+        "eta_hat": {
+          "total": 704,
+          "omitted": 8,
+          "upper": 609.330459154685,
+          "full_maximum": 631.8543250945243
+        },
+        "gamma_hat": {
+          "total": 704,
+          "omitted": 8,
+          "upper": 567.7814869408984,
+          "full_maximum": 585.7219522496582
+        }
+      }
+    },
+    {
+      "distribution": "W(2,1000,500)",
+      "parameters": {
+        "beta_hat": {
+          "total": 705,
+          "omitted": 8,
+          "upper": 5.389279847359197,
+          "full_maximum": 10.223454640648148
+        },
+        "eta_hat": {
+          "total": 705,
+          "omitted": 8,
+          "upper": 1679.6035097063234,
+          "full_maximum": 1823.775289432532
+        },
+        "gamma_hat": {
+          "total": 705,
+          "omitted": 8,
+          "upper": 1201.9210356420433,
+          "full_maximum": 1357.8603987716629
+        }
+      }
+    },
+    {
+      "distribution": "W(3,100,500)",
+      "parameters": {
+        "beta_hat": {
+          "total": 719,
+          "omitted": 8,
+          "upper": 30.85401392634537,
+          "full_maximum": 60.41086478891548
+        },
+        "eta_hat": {
+          "total": 719,
+          "omitted": 8,
+          "upper": 611.4223747404093,
+          "full_maximum": 620.405752579519
+        },
+        "gamma_hat": {
+          "total": 719,
+          "omitted": 8,
+          "upper": 576.9679164439619,
+          "full_maximum": 590.1100401235408
+        }
+      }
+    },
+    {
+      "distribution": "W(3,1000,500)",
+      "parameters": {
+        "beta_hat": {
+          "total": 719,
+          "omitted": 8,
+          "upper": 7.110160926964649,
+          "full_maximum": 15.341448217769786
+        },
+        "eta_hat": {
+          "total": 719,
+          "omitted": 8,
+          "upper": 1673.3478546818228,
+          "full_maximum": 1706.899992756852
+        },
+        "gamma_hat": {
+          "total": 719,
+          "omitted": 8,
+          "upper": 1270.38457148733,
+          "full_maximum": 1401.1003807617328
+        }
+      }
+    },
+    {
+      "distribution": "W(5,100,500)",
+      "parameters": {
+        "beta_hat": {
+          "total": 728,
+          "omitted": 8,
+          "upper": 48.07224007810511,
+          "full_maximum": 101.63840614609765
+        },
+        "eta_hat": {
+          "total": 728,
+          "omitted": 8,
+          "upper": 606.807544137901,
+          "full_maximum": 611.8789110028824
+        },
+        "gamma_hat": {
+          "total": 728,
+          "omitted": 8,
+          "upper": 585.3149502686621,
+          "full_maximum": 593.869043788957
+        }
+      }
+    },
+    {
+      "distribution": "W(5,1000,500)",
+      "parameters": {
+        "beta_hat": {
+          "total": 732,
+          "omitted": 8,
+          "upper": 11.650072957445817,
+          "full_maximum": 25.58703052396583
+        },
+        "eta_hat": {
+          "total": 732,
+          "omitted": 8,
+          "upper": 1601.2746620571363,
+          "full_maximum": 1619.7976117414407
+        },
+        "gamma_hat": {
+          "total": 732,
+          "omitted": 8,
+          "upper": 1362.132604570598,
+          "full_maximum": 1439.3120268446223
+        }
+      }
+    }
+  ],
+  "density_source": "displayed successful estimates",
+  "median_iqr_source": "all successful estimates",
   "density_tails_extended": false,
-  "all_successful_points_preserved": true,
-  "unchanged_data_mdm_and_dependency_files": 192,
-  "method_refits_this_revision": 0
+  "all_zero_gamma_points_preserved": true,
+  "all_raw_estimate_values_preserved": true,
+  "unchanged_data_mdm_and_dependency_files": 200,
+  "method_refits_this_revision": 0,
+  "visual_panels_inspected": 72,
+  "omitted_estimate_values": 186
 }

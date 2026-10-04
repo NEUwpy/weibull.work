@@ -128,7 +128,9 @@ def one_case(case,rerun):
                     same(cells[f'{column(i)}{sid+1}'],value)
     qa=json.loads((output/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
     assert qa['source_sha256']==hashlib.sha256(source.read_bytes()).hexdigest()
-    assert qa['violin']['beta_eta_coordinate']=='log10' and qa['violin']['gamma_coordinate']=='linear'
+    assert qa['violin']['beta_eta_coordinate']==qa['violin']['gamma_coordinate']=='linear'
+    assert qa['violin']['display_upper_quantile']==.99 and not qa['violin']['tail_extension']
+    assert qa['violin']['summary_source']=='all successful estimates'
     ranges={}
     for panel in qa['violin']['records']:
         expected_ids=sorted(r['id'] for r in data['results'] if r['n']==panel['n'] and r['method_id']==panel['method'] and r['converged'])
@@ -137,12 +139,24 @@ def one_case(case,rerun):
         assert panel['values']==[r[panel['parameter']] for r in rr]
         assert panel['success']+panel['failure']==50 and panel['points_on_centerline']
         assert np.allclose(panel['quartiles'],np.quantile(panel['values'],[.25,.5,.75]))
-        assert all(panel['x_limits'][0]<=v<=panel['x_limits'][1] for v in panel['values'])
         pooled=[r[panel['parameter']] for r in data['results'] if r['converged']]
         truth=panel['truth']
-        limits=([min(min(pooled),truth)*.78,max(max(pooled),truth)*1.2] if panel['parameter']!='gamma_hat'
-                else [-.06*max(max(pooled),truth),max(max(pooled),truth)*1.06])
+        upper=max(float(np.quantile(pooled,.99)),truth)
+        limits=([0,upper*1.06] if panel['parameter']!='gamma_hat' else [-.06*upper,upper*1.06])
         assert panel['x_limits']==limits
+        shown=[r for r in rr if r[panel['parameter']]<=upper]
+        hidden=[r for r in rr if r[panel['parameter']]>upper]
+        assert panel['display_upper']==upper
+        assert panel['display_sample_ids']==[r['id'] for r in shown]
+        assert panel['display_values']==[r[panel['parameter']] for r in shown]
+        assert panel['omitted_sample_ids']==[r['id'] for r in hidden]
+        assert panel['omitted_values']==[r[panel['parameter']] for r in hidden]
+        assert panel['omitted_count']==len(hidden) and len(shown)+len(hidden)==len(rr)
+        assert panel['axis_scale']=='linear' and panel['density_coordinate']=='original'
+        assert all(panel['x_limits'][0]<=r[panel['parameter']]<=panel['x_limits'][1] for r in shown)
+        density=[r[panel['parameter']] for r in shown if r[panel['parameter']]>0 or panel['parameter']!='gamma_hat']
+        assert panel['density_limits']==([min(density),max(density)] if density else None)
+        assert all(r[panel['parameter']]>0 for r in hidden)
         key=panel['parameter']
         assert key not in ranges or ranges[key]==panel['x_limits']
         ranges[key]=panel['x_limits']
