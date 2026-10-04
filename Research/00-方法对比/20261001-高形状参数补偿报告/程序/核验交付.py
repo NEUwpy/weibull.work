@@ -129,17 +129,36 @@ def main():
         values = [f[r['parameter']] for f in successful]
         assert r['values'] == values and r['sample_ids'] == [f['sample_id'] for f in successful]
         assert len(values) == r['success'] and r['failure'] == 50 - len(values)
-        assert r['x_limits'][0] <= min(values) == r['minimum']
-        assert r['maximum'] == max(values) <= r['x_limits'][1]
+        assert min(values) == r['minimum'] and r['maximum'] == max(values)
+        limits={'beta_hat':[0.,10.], 'eta_hat':[0.,2000.], 'gamma_hat':[0.,1500.]}[r['parameter']]
+        ticks={'beta_hat':[0.,2.,4.,6.,8.,10.], 'eta_hat':[0.,500.,1000.,1500.,2000.],
+               'gamma_hat':[0.,500.,1000.,1500.]}[r['parameter']]
+        assert r['x_limits']==limits and r['x_ticks']==ticks and r['axis_scale']=='linear'
+        shown=[f for f in successful if limits[0]<=f[r['parameter']]<=limits[1]]
+        hidden=[f for f in successful if not limits[0]<=f[r['parameter']]<=limits[1]]
+        shown_values=[f[r['parameter']] for f in shown]
+        assert r['display_values']==shown_values
+        assert r['display_sample_ids']==[f['sample_id'] for f in shown]
+        assert r['omitted_values']==[f[r['parameter']] for f in hidden]
+        assert r['omitted_sample_ids']==[f['sample_id'] for f in hidden]
+        assert r['omitted_count']==len(hidden) and len(shown)+len(hidden)==len(values)
         assert np.allclose(r['quartiles'], np.quantile(values, [.25, .5, .75]), rtol=0, atol=1e-12)
         zeros = values.count(0) if r['parameter'] == 'gamma_hat' else 0
-        assert r['zero_count'] == zeros and r['kde_count'] == len(values)-zeros
-        assert len(r['displayed_y']) == len(values)
+        density_values=[v for v in shown_values if v>0 or r['parameter']!='gamma_hat']
+        assert r['zero_count'] == zeros and r['kde_count'] == len(density_values)
+        assert len(r['displayed_y']) == len(shown_values)
         method_position = ('mdm', 'lse', 'lre', 'wmle', 'mle').index(r['method'])
         assert set(r['displayed_y']) == {float(method_position)}
         assert min(r['kde_density']) >= 0 and len(r['kde_density']) == 256
-        expected_grid_limits = np.log10([min(values), max(values)]) if r['kde_coordinate'] == 'log10' else [min(v for v in values if v > 0), max(values)]
+        assert r['kde_coordinate']=='linear'
+        expected_grid_limits = [min(density_values),max(density_values)]
         assert np.allclose([r['kde_coordinate_grid'][0], r['kde_coordinate_grid'][-1]], expected_grid_limits, atol=1e-12)
+        assert r['density_limits']==expected_grid_limits
+        from scipy.stats import gaussian_kde
+        assert np.allclose(r['kde_density'],gaussian_kde(density_values,bw_method='scott')(r['kde_coordinate_grid']),rtol=1e-12,atol=1e-12)
+    assert violin_data['summary_source']=='all successful estimates'
+    assert violin_data['density_source']=='displayed successful estimates' and not violin_data['tail_extension']
+    assert violin_data['figure_contract']['formats']==['PNG 450dpi']
     for r in process['regression_truth_invariance'].values():
         assert r['paired_groups'] == 50 and r['maximum_absolute_loss_difference'] < 1e-12
     for r in process['mdm_envelope']:
@@ -211,8 +230,11 @@ def main():
             dimensions = figure_checks['distribution_figure']['png_dimensions'] if name == new_figure_names[0] else next(r['png_dimensions'] for r in [*figure_checks['process_figures'],auxiliary] if r['file'] == name)
             assert list(png.size) == dimensions
             assert all(abs(v-450) < .1 for v in png.info['dpi'])
-        assert len(ET.parse(figure.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text')) > 25
-        assert b'/FontFile2' in figure.with_suffix('.pdf').read_bytes()
+        if name != new_figure_names[0]:
+            assert len(ET.parse(figure.with_suffix('.svg')).findall('.//{http://www.w3.org/2000/svg}text')) > 25
+            assert b'/FontFile2' in figure.with_suffix('.pdf').read_bytes()
+        else:
+            assert not figure.with_suffix('.svg').exists() and not figure.with_suffix('.pdf').exists()
 
     provenance = json.loads((DATA / '图7样本来源与核验.json').read_text(encoding='utf-8'))
     archived = json.loads((INPUT / '原案例估计.json').read_text(encoding='utf-8'))
@@ -297,7 +319,8 @@ def main():
     export_names = {item['file'] for item in clean_style['figures']} | {'图1_原案例参数分布'}
     assert len(export_names) == 13
     for extension in ('png','pdf','svg'):
-        assert {p.stem for p in (ROOT / '结果').glob(f'*.{extension}')} == export_names
+        expected_exports=export_names if extension=='png' else export_names-{'图1_原案例参数分布'}
+        assert {p.stem for p in (ROOT / '结果').glob(f'*.{extension}')} == expected_exports
     for item in clean_style['figures']:
         base = ROOT / '结果' / item['file']
         with Image.open(base.with_suffix('.png')) as png:
@@ -317,6 +340,9 @@ def main():
         'complete_original_violin_panels_checked': 6, 'violin_method_distributions_checked': 30,
         'violin_raw_points_quartiles_zero_counts_checked': True,
         'violin_points_aligned_on_method_axis': True,
+        'violin_axes_all_linear_with_shared_limits_and_ticks': True,
+        'violin_display_omissions_checked': sum(r['omitted_count'] for r in violin_data['panels']),
+        'violin_full_estimates_and_summaries_preserved': True,
         'method_process_figures_checked': 5, 'six_panel_layout_checked': True, 'all_condition_curves': 1000,
         'all_six_panel_axis_limits_scales_ticks_and_labels_identical': True,
         'single_panel_zoom_removed': True,
@@ -327,7 +353,7 @@ def main():
         'single_pair_selection_rule_checked': True,
         'principle_derivation_checks_at_true_and_returned_gamma': derivation_checks,
         'original_case_auxiliary_panels_checked': 6,
-        'current_figures': 13, 'current_export_files': 39,
+        'current_figures': 13, 'current_export_files': 37,
         'original_process_cases': 10, 'process_candidate_points': curve_points,
         'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,
         'regression_affine_invariance_checked': True, 'mdm_envelope_bound_checked': True,

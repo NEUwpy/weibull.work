@@ -27,8 +27,8 @@ source = json.loads((DATA / '逐法过程曲线.json').read_text(encoding='utf-8
 old = json.loads((HERE / '输入快照' / '原案例估计.json').read_text(encoding='utf-8'))
 
 
-def save(fig, name):
-    for ext in ('png', 'pdf', 'svg'):
+def save(fig, name, formats=('png', 'pdf', 'svg')):
+    for ext in formats:
         path = OUT / f'{name}.{ext}'
         fig.savefig(path, dpi=450, facecolor='white')
         if ext == 'svg':
