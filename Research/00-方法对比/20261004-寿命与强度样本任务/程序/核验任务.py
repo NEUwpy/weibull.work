@@ -16,6 +16,19 @@ NS={'s':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 METHODS=['mdm','lse','lre','wmle','mle']
 
 
+def check_layout():
+    assert {p.name for p in ROOT.iterdir()}=={'程序','结果'}
+    programs={p.name for p in (ROOT/'程序').glob('W(*)') if p.is_dir()}
+    outputs={p.name for p in (ROOT/'结果').glob('W(*)') if p.is_dir()}
+    assert programs==outputs and len(programs)==8
+    for name in programs:
+        output=ROOT/'结果'/name
+        assert {p.name for p in output.iterdir()}=={
+            f'{name}.xlsx','估计分布_小提琴图.png','中间数据',
+            *[f'样本量{n}_偏移量0.20.png' for n in (7,15,30)]}
+    return dict(top_level_folders=['程序','结果'],parameter_pairs=8,image_format='PNG')
+
+
 def read_workbook(path):
     with ZipFile(path) as book:
         shared=[]
@@ -54,13 +67,14 @@ def same(actual,expected):
 
 
 def one_case(case,rerun):
-    config=json.loads((case/'程序/配置.json').read_text(encoding='utf-8'))
-    source=case/'结果/中间数据/results.json'
+    output=ROOT/'结果'/case.name
+    config=json.loads((case/'配置.json').read_text(encoding='utf-8'))
+    source=output/'中间数据/results.json'
     data=json.loads(source.read_text(encoding='utf-8'))
     b,e,g=data['truth']
     assert data['truth']==config['truth'] and case.name==data['distribution']
     assert len(data['samples'])==150 and len(data['results'])==750 and len(data['gradient_curves'])==150
-    snapshot=case/'程序/依赖快照/python'
+    snapshot=case/'依赖快照/python'
     sys.path.insert(0,str(snapshot))
     from studies.common.sample import generate_sample
     from studies.common.runner import run_method
@@ -77,11 +91,11 @@ def one_case(case,rerun):
         independent=np.sort(-np.log(1-np.random.default_rng(seed).uniform(size=n)))
         assert np.array_equal(independent,latent)
     for name,digest in data['code_sha256'].items():
-        assert hashlib.sha256((case/'程序'/name).read_bytes()).hexdigest()==digest
+        assert hashlib.sha256((case/name).read_bytes()).hexdigest()==digest
     for r in data['results']:
         if r['converged']:
             assert r['beta_hat']>0 and r['eta_hat']>0 and 0<=r['gamma_hat']<samples[r['n'],r['id']]['values'][0]
-    with (case/'结果/中间数据/results.csv').open(encoding='utf-8',newline='') as stream:
+    with (output/'中间数据/results.csv').open(encoding='utf-8',newline='') as stream:
         records=list(csv.DictReader(stream))
     assert len(records)==750
     for row in records:
@@ -90,7 +104,7 @@ def one_case(case,rerun):
             if r[key] is None: assert row[key]==''
             else: same(float(row[key]),r[key])
         assert row['status']==r['status'] and (row['converged']=='True')==r['converged']
-    workbook=read_workbook(case/'结果'/f'{case.name}.xlsx')
+    workbook=read_workbook(output/f'{case.name}.xlsx')
     assert [name for name,_ in workbook]==[f'估计结果_n{n}' for n in data['n']]+[f'生成样本_n{n}' for n in data['n']]
     numbers=0
     for name,cells in workbook:
@@ -110,7 +124,7 @@ def one_case(case,rerun):
                 same(cells[f'A{sid+1}'],sid)
                 for i,value in enumerate(samples[n,sid]['values'],2):
                     same(cells[f'{column(i)}{sid+1}'],value)
-    qa=json.loads((case/'结果/中间数据/绘图核验.json').read_text(encoding='utf-8'))
+    qa=json.loads((output/'中间数据/绘图核验.json').read_text(encoding='utf-8'))
     assert qa['source_sha256']==hashlib.sha256(source.read_bytes()).hexdigest()
     for panel in qa['violin']['records']:
         rr=[fits[panel['n'],sid,panel['method']] for sid in panel['sample_ids']]
@@ -122,9 +136,10 @@ def one_case(case,rerun):
         assert {c['id'] for c in data['gradient_curves'] if c['n']==n}==set(range(1,51))
         for c in [c for c in data['gradient_curves'] if c['n']==n]:
             assert all(not p.get('virtual',False) and 0<=p['gamma']<samples[n,c['id']]['values'][0] for p in c['points'])
-    assert len(list((case/'结果').glob('*.png')))==4
-    assert len(list((case/'结果').glob('*.pdf')))==4
-    assert len(list((case/'结果').glob('*.svg')))==4
+    assert len(list(output.glob('*.png')))==4
+    assert not list(output.glob('*.pdf'))
+    assert not list(output.glob('*.svg'))
+    assert qa['formats']==['png 450dpi']
     checked=0
     if rerun:
         for n in data['n']:
@@ -148,13 +163,14 @@ def one_case(case,rerun):
 if __name__=='__main__':
     if len(sys.argv)>1 and sys.argv[1]=='--case':
         result=one_case(Path(sys.argv[2]),True)
-        (Path(sys.argv[2])/'结果/中间数据/复核.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+        (ROOT/'结果'/Path(sys.argv[2]).name/'中间数据/复核.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     else:
+        layout=check_layout()
         records=[]
-        for case in sorted(ROOT.glob('W(*)')):
+        for case in sorted((ROOT/'程序').glob('W(*)')):
             subprocess.run([sys.executable,'-B',str(Path(__file__).resolve()),'--case',str(case)],check=True)
-            records.append(json.loads((case/'结果/中间数据/复核.json').read_text(encoding='utf-8')))
+            records.append(json.loads((ROOT/'结果'/case.name/'中间数据/复核.json').read_text(encoding='utf-8')))
         record=dict(combinations=8,samples=1200,observations=20800,method_records=6000,independent_fit_reruns=120,
-                    workbooks=8,scientific_figures=32,figure_exports=96,records=records)
-        (ROOT/'核验结果.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                    workbooks=8,scientific_figures=32,figure_exports=32,layout=layout,records=records)
+        (ROOT/'程序/核验结果.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         print('VERIFIED 8 workbooks, all samples and values, 120 independent method reruns.',flush=True)

@@ -44,16 +44,16 @@ def grid(items, destination, columns, tile_width):
     canvas.save(destination)
 
 
-for case in sorted(ROOT.glob('W(*)')):
-    previews=case/'结果/中间数据/表格预览'
+for case in sorted((ROOT/'结果').glob('W(*)')):
+    previews=case/'中间数据/表格预览'
     for prefix in ('估计结果','生成样本'):
         stack([(f'{case.name} {prefix} n={n}',previews/f'{prefix}_n{n}.png') for n in (7,15,30)],OUT/f'{case.name}_{prefix}.png')
 for eta in (100,1000):
     items=[]
     for beta in ('1.5','2','3','5'):
-        case=ROOT/f'W({beta},{eta},500)'
-        items.extend([(f'{case.name} n={n}',case/f'结果/样本量{n}_偏移量0.20.png') for n in (7,15,30)])
+        case=ROOT/'结果'/f'W({beta},{eta},500)'
+        items.extend([(f'{case.name} n={n}',case/f'样本量{n}_偏移量0.20.png') for n in (7,15,30)])
     grid(items,OUT/f'MDM_{eta}.png',3,800)
 for beta in ('1.5','2','3','5'):
-    grid([(f'W({beta},{eta},500)',ROOT/f'W({beta},{eta},500)/结果/估计分布_小提琴图.png') for eta in (100,1000)],OUT/f'小提琴_{beta}.png',2,1300)
+    grid([(f'W({beta},{eta},500)',ROOT/f'结果/W({beta},{eta},500)/估计分布_小提琴图.png') for eta in (100,1000)],OUT/f'小提琴_{beta}.png',2,1300)
 print('QA previews composed for all 48 sheets and 32 figures.')
