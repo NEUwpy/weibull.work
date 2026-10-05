@@ -16,8 +16,8 @@ COLORS = dict(mdm='#345D7E', lse='#589CA3', lre='#8A7398', wmle='#B27448', mle='
 STYLES = ['-', '--', '-.', (0, (5, 2, 1, 2)), ':']
 BLUE, RETURN = '#345D7E', '#B55E3E'
 CONDITIONS = [(2, 7), (5, 7), (2, 15), (5, 15)]
-FILES = dict(mdm='图2_MDM六格机制', lse='图3_LSE六格机制', lre='图4_LRE六格机制',
-             wmle='图5_WMLE六格机制', mle='图6_MLE六格机制')
+FILES = dict(mdm='图3_MDM六格机制', lse='图4_LSE六格机制', lre='图5_LRE六格机制',
+             wmle='图6_WMLE六格机制', mle='图7_MLE六格机制')
 plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Microsoft YaHei', 'Arial', 'DejaVu Sans'],
     'font.size': 7, 'axes.titlesize': 7.2, 'axes.labelsize': 7, 'xtick.labelsize': 6.5,
     'ytick.labelsize': 6.5, 'legend.fontsize': 6.5, 'axes.linewidth': .7,

@@ -236,7 +236,7 @@ def main():
         else:
             assert not figure.with_suffix('.svg').exists() and not figure.with_suffix('.pdf').exists()
 
-    provenance = json.loads((DATA / '图7样本来源与核验.json').read_text(encoding='utf-8'))
+    provenance = json.loads((DATA / '图8样本来源与核验.json').read_text(encoding='utf-8'))
     archived = json.loads((INPUT / '原案例估计.json').read_text(encoding='utf-8'))
     actual = next(r for r in archived if r['method'] == 'mdm' and r['beta'] == 5
                   and r['n'] == 7 and r['sample_id'] == provenance['sample_id'])
@@ -303,7 +303,7 @@ def main():
     assert not (ROOT.parent / '20261001-高形状参数偏移研究').exists()
     assert not (ROOT.parent / '高形状参数下的位置与尺度补偿报告-v2.md').exists()
 
-    figure = ROOT / '结果' / '图7_寿命分布与分位点'
+    figure = ROOT / '结果' / '图8_寿命分布与分位点'
     with Image.open(figure.with_suffix('.png')) as png:
         dimensions = list(png.size)
         assert dimensions == provenance['png_dimensions']
@@ -316,10 +316,29 @@ def main():
     for name, expected in clean_style['scientific_input_hashes'].items():
         assert digest(ROOT / name) == expected
     assert len(clean_style['figures']) == 12
-    export_names = {item['file'] for item in clean_style['figures']} | {'图1_原案例参数分布'}
-    assert len(export_names) == 13
+    from 绘制起点观测对比 import source_data
+    lower_tail = json.loads((ROOT / '程序' / '起点观测绘图数据.json').read_text(encoding='utf-8'))
+    density_curves, minimum_rows = source_data()
+    assert digest(ROOT / lower_tail['source_path']) == lower_tail['source_sha256']
+    assert lower_tail['density_curves'] == density_curves
+    assert lower_tail['sample_minimum_rows'] == minimum_rows
+    assert lower_tail['samples'] == 200 and lower_tail['omitted_sample_minima'] == 0
+    assert lower_tail['new_samples'] == lower_tail['new_fits'] == 0
+    assert lower_tail['formats'] == ['png']
+    assert lower_tail['axis_settings'][0] == lower_tail['axis_settings'][1]
+    assert lower_tail['axis_settings'][0]['x_scale'] == 'linear'
+    for item in lower_tail['existing_exports_renumbered_without_redrawing']:
+        assert digest(ROOT / item['to']) == item['sha256']
+        assert not (ROOT / item['from']).exists()
+    with Image.open(ROOT / lower_tail['figure']) as png:
+        assert list(png.size) == lower_tail['png_dimensions']
+        assert all(abs(value - 450) < .1 for value in png.info['dpi'])
+    numbers = [int(value) for value in re.findall(r'^!\[图(\d+)', report.read_text(encoding='utf-8'), re.M)]
+    assert numbers == list(range(1, 9)), numbers
+    export_names = {item['file'] for item in clean_style['figures']} | {'图1_原案例参数分布', '图2_起点附近观测'}
+    assert len(export_names) == 14
     for extension in ('png','pdf','svg'):
-        expected_exports=export_names if extension=='png' else export_names-{'图1_原案例参数分布'}
+        expected_exports=export_names if extension=='png' else export_names-{'图1_原案例参数分布', '图2_起点附近观测'}
         assert {p.stem for p in (ROOT / '结果').glob(f'*.{extension}')} == expected_exports
     for item in clean_style['figures']:
         base = ROOT / '结果' / item['file']
@@ -353,7 +372,11 @@ def main():
         'single_pair_selection_rule_checked': True,
         'principle_derivation_checks_at_true_and_returned_gamma': derivation_checks,
         'original_case_auxiliary_panels_checked': 6,
-        'current_figures': 13, 'current_export_files': 37,
+        'current_figures': 14, 'current_export_files': 38,
+        'lower_tail_figure_sample_minima_checked': 200,
+        'lower_tail_theoretical_curves_checked': 2,
+        'lower_tail_shared_linear_axes_checked': True,
+        'main_figure_numbers_in_reading_order': numbers,
         'original_process_cases': 10, 'process_candidate_points': curve_points,
         'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,
         'regression_affine_invariance_checked': True, 'mdm_envelope_bound_checked': True,
@@ -366,7 +389,7 @@ def main():
         'independent_samples': 1400, 'independent_fit_records': rows,
         'independent_source_files_preserved_bytewise': unchanged_scan_files,
         'frozen_scan_dependency_hashes_checked': dependencies,
-        'figure7_sample_id': provenance['sample_id'], 'quantile_rows_checked': len(quantiles),
+        'figure8_sample_id': provenance['sample_id'], 'quantile_rows_checked': len(quantiles),
         'removed_directory_and_old_report_checks': True,
         'svg_live_text_count': svg_text, 'png_dimensions': dimensions,
         'new_samples': 0, 'new_fits': 0,

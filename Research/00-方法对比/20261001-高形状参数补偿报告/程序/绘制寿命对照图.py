@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 INPUT = ROOT / '程序' / '输入快照'
 OUT = ROOT / '结果'
 DATA = OUT / '中间数据'
-FIGURE_NAME = '图7_寿命分布与分位点'
+FIGURE_NAME = '图8_寿命分布与分位点'
 TRUTH = (5.0, 1000.0, 500.0)
 SWAPPED = (5.0, 500.0, 1000.0)
 BLUE = '#345D7E'
@@ -193,7 +193,7 @@ def plot_and_save():
             np.max(np.abs(cdf(true_q, TRUTH) - p)),
             np.max(np.abs(cdf(fit_q, fitted) - p)))),
     })
-    (DATA / '图7样本来源与核验.json').write_text(
+    (DATA / '图8样本来源与核验.json').write_text(
         json.dumps(provenance, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return provenance
 

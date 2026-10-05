@@ -1,6 +1,6 @@
 """2026-10-02 figure revision from saved results; no sampling or estimation.
 
-Rebuild Figures 2–7 and the six supplements with short coordinate labels.
+Rebuild Figures 3–8 and the six supplements with short coordinate labels.
 Keep all curves, observations and necessary fitting-point identifiers.
 """
 from datetime import datetime, timezone
@@ -17,12 +17,12 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / '结果'
 DATA = OUT / '中间数据'
 RENAMES = {
-    '图2_MDM位置选择过程': '图2_MDM六格机制',
-    '图3_LSE位置选择过程': '图3_LSE六格机制',
-    '图4_LRE位置选择过程': '图4_LRE六格机制',
-    '图5_WMLE位置选择过程': '图5_WMLE六格机制',
-    '图6_MLE位置选择过程': '图6_MLE六格机制',
-    '图7_不同参数的寿命曲线与分位点': '图7_寿命分布与分位点',
+    '图2_MDM位置选择过程': '图3_MDM六格机制',
+    '图3_LSE位置选择过程': '图4_LSE六格机制',
+    '图4_LRE位置选择过程': '图5_LRE六格机制',
+    '图5_WMLE位置选择过程': '图6_WMLE六格机制',
+    '图6_MLE位置选择过程': '图7_MLE六格机制',
+    '图7_不同参数的寿命曲线与分位点': '图8_寿命分布与分位点',
     '补充图1_成功比例': '补充图1_估计成功率',
     '补充图2_LRE版本': '补充图2_LRE绘图位置对照',
     '补充图3_形状与下尾信息': '补充图3_下尾观测对照',
