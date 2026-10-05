@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
-RESULTS = HERE.parent / '结果'
+RESULTS = HERE.parent / '数据'
 
 def main():
     sample = pd.read_csv(RESULTS / '样本.csv', float_precision='round_trip')

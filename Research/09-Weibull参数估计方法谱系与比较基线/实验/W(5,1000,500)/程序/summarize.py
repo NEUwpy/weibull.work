@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.special import logsumexp
-HERE=Path(__file__).resolve().parent;BATCH=HERE.parent;OUT=BATCH/'结果';REPO=HERE/'source_snapshot'
+HERE=Path(__file__).resolve().parent;BATCH=HERE.parent;OUT=BATCH/'数据';REPO=HERE/'source_snapshot'
 sys.path.insert(0,str(REPO/'python'))
 from studies.common.metrics import check_status,summarize_standard_errors
 METHODS=['MLE','K-R MMLE','WMLE'];NS=[7,10,15,20,50];PARAMS=['beta','eta','gamma'];TRUTH=json.loads((HERE/'config.json').read_text(encoding='utf-8'))['truth']

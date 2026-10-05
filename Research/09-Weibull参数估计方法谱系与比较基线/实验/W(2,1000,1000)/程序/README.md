@@ -1,10 +1,10 @@
 # W(2,1000,1000)
 
-真值β=2、η=1000、γ=1000；n=7/10/15/20/50各1200组。上层只有程序、结果两个文件夹。结果保存三PNG、11个配对工作表的Excel和三CSV，均从原批次复制。
+真值β=2、η=1000、γ=1000；n=7/10/15/20/50各1200组。上层只有程序、结果两个文件夹。结果目录只放交付件（三PNG、11个配对工作表的Excel）；三个明细CSV放在相邻数据目录，均从原批次复制。
 
 ## 运行
 
-程序相对本文件定位相邻结果目录，数据从三CSV读取，不依赖旧批次路径。Python环境为D:\weibull\python\.venv\Scripts\python.exe；Excel使用本机捆绑Node和@oai/artifact-tool。版本见环境.json。Excel入口运行时为捆绑依赖创建node_modules链接，不复制依赖文件。
+程序相对本文件定位相邻结果目录，数据从相邻数据目录的三CSV读取，不依赖旧批次路径。Python环境为D:\weibull\python\.venv\Scripts\python.exe；Excel使用本机捆绑Node和@oai/artifact-tool。版本见环境.json。Excel入口运行时为捆绑依赖创建node_modules链接，不复制依赖文件。
 
 重新导出当前精简Excel：
 
@@ -24,7 +24,7 @@
 & 'D:\weibull\python\.venv\Scripts\python.exe' '.\draw.py'
 ```
 
-draw.py可用--output另存目录；默认写相邻结果目录，运行校验写该输出目录的.运行记录。prepare_tables.py读取三CSV；lean_workbook.mjs导出相同11个配对工作表；verify_workbook.py逐项核对188610个数据单元格。所有表第一行列名、第二行数据，无标题或备注，失败留空。
+draw.py可用--output另存目录；默认写相邻结果目录，运行校验写该输出目录的.运行记录。prepare_tables.py读取相邻数据目录的三CSV；lean_workbook.mjs导出相同11个配对工作表；verify_workbook.py逐项核对188610个数据单元格。所有表第一行列名、第二行数据，无标题或备注，失败留空。
 
 重新计算MMLE必须指定一个尚不存在的目录：
 
@@ -32,7 +32,7 @@ draw.py可用--output另存目录；默认写相邻结果目录，运行校验�
 & 'D:\weibull\python\.venv\Scripts\python.exe' '.\reproduce.py' --output 'D:\weibull\临时复算\W(2,1000,1000)' --workers 6
 ```
 
-此入口复制程序和相邻结果CSV到新目录，bootstrap_saved_data.py用样本CSV恢复运行时NPZ并校验6000个原始SHA，MLE/WMLE仍从估计明细CSV复用。compute.py重新求6000组原版MMLE；summarize.py按全部成功估计汇总；export_details.py输出表；draw.py出图。随后在新目录运行export_workbook.ps1导出Excel。该流程不会覆盖本目录。程序文件夹交付时不含大数据缓存；这些缓存仅在用户运行复算时生成。本次整理没有调用参数拟合。
+此入口复制程序和相邻数据CSV到新目录，bootstrap_saved_data.py用样本CSV恢复运行时NPZ并校验6000个原始SHA，MLE/WMLE仍从估计明细CSV复用。compute.py重新求6000组原版MMLE；summarize.py按全部成功估计汇总；export_details.py输出表；draw.py出图。随后在新目录运行export_workbook.ps1导出Excel。该流程不会覆盖本目录。程序文件夹交付时不含大数据缓存；这些缓存仅在用户运行复算时生成。本次整理没有调用参数拟合。
 
 ## 种子、方法与指标
 

@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
-RESULTS = HERE.parent / '结果'
+RESULTS = HERE.parent / '数据'
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

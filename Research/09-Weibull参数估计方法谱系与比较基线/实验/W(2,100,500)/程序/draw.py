@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.ticker import PercentFormatter,NullLocator
 from scipy.stats import gaussian_kde
-HERE=Path(__file__).resolve().parent;SOURCE=HERE.parent/'结果';OUT=SOURCE;AUDIT=HERE
+HERE=Path(__file__).resolve().parent;SOURCE=HERE.parent/'数据';OUT=HERE.parent/'结果';AUDIT=HERE
 METHODS=['MLE','MMLE','WMLE'];NS=[7,10,15,20,50];COLORS=['#5F6570','#345D7E','#B27448']
 PARAMS=['beta','eta','gamma'];LABELS=['β','η','γ'];TRUTH=json.loads((HERE/'config.json').read_text(encoding='utf-8'))['truth']
 def setting_title(suffix=''):

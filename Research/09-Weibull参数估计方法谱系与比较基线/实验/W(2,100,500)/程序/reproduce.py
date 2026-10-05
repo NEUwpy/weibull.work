@@ -16,8 +16,10 @@ def main():
     assert not target.exists(), 'Choose a fresh directory; existing results are never overwritten.'
     program = target / '程序'
     results = target / '结果'
+    data = target / '数据'
     program.mkdir(parents=True)
     results.mkdir()
+    data.mkdir()
     for p in HERE.iterdir():
         if p.is_file() and p.suffix in ['.py', '.mjs', '.ps1', '.json', '.md']:
             shutil.copy2(p, program / p.name)

@@ -3,7 +3,7 @@ import csv,hashlib,json,shutil
 from pathlib import Path
 import numpy as np
 import pandas as pd
-HERE=Path(__file__).resolve().parent;OUT=HERE.parent/'结果'
+HERE=Path(__file__).resolve().parent;OUT=HERE.parent/'数据'
 NS=[7,10,15,20,50];METHODS=['MLE','MMLE','WMLE']
 def native(value):return None if pd.isna(value) else value.item() if isinstance(value,np.generic) else value
 def save(name,columns,rows):

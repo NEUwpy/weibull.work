@@ -6,7 +6,7 @@
 
 ## 结果与指标
 
-结果文件位于相邻结果文件夹：三张PNG、W(2,1000,500).xlsx和样本/估计明细/汇总三CSV。Excel共11个工作表，按n依次配对生成样本、估计结果，汇总最后。第一行列名，第二行数据，无标题或备注；每组一行，只留组号与三方法β/η/γ，估计失败留空。
+结果文件夹只放交付件：三张PNG与W(2,1000,500).xlsx；三个明细CSV（样本/估计明细/三方法汇总）放在相邻数据文件夹。Excel共11个工作表，按n依次配对生成样本、估计结果，汇总最后。第一行列名，第二行数据，无标题或备注；每组一行，只留组号与三方法β/η/γ，估计失败留空。
 
 Bias=mean(估计−真值)，SD=std(估计−真值,ddof=0)，RMSE=sqrt(mean((估计−真值)^2))。精度用各方法全部成功估计，失败不计入精度，有解率分母1200，不按绘图范围裁剪。MLE有解数390/620/911/1050/1200；MMLE、WMLE每个n均1200。逐参数完整汇总及与γ=1000的对照见[本批说明](方法与结果说明.md)。
 
@@ -18,13 +18,13 @@ Bias=mean(估计−真值)，SD=std(估计−真值,ddof=0)，RMSE=sqrt(mean((�
 
 Python环境：D:\weibull\python\.venv\Scripts\python.exe。版本在环境.json。Excel使用本机捆绑Node与@oai/artifact-tool，入口会建立外部依赖链接，数据路径相对本程序目录。
 
-从相邻CSV重新导出当前Excel，不拟合：
+从相邻数据文件夹的CSV重新导出当前Excel，不拟合：
 
 ```powershell
 & '.\export_workbook.ps1'
 ```
 
-从相邻CSV重新出三张图，不拟合：
+从相邻数据文件夹的CSV重新出三张图，不拟合：
 
 ```powershell
 & 'D:\weibull\python\.venv\Scripts\python.exe' '.\draw.py'
@@ -36,7 +36,7 @@ Python环境：D:\weibull\python\.venv\Scripts\python.exe。版本在环境.json
 & 'D:\weibull\python\.venv\Scripts\python.exe' '.\reproduce.py' --output 'D:\weibull\临时复算\W(2,1000,500)' --workers 6
 ```
 
-该入口复制当前程序和冻结源码，运行共享Monte Carlo生成/方法调用/指标流水线，计算三方法，随后汇总、导出三CSV并出图；最后在新目录运行export_workbook.ps1导出Excel。所有源数据缓存只在新复算目录中生成。当前程序文件夹只保留轻量脚本、配置、源码和说明，大体积本次执行记录留在邮箱任务档案。
+该入口复制当前程序和冻结源码，运行共享Monte Carlo生成/方法调用/指标流水线，计算三方法，随后汇总、导出三明细CSV并出图；最后在新目录运行export_workbook.ps1导出Excel。所有源数据缓存只在新复算目录中生成。当前程序文件夹只保留轻量脚本、配置、源码和说明，大体积本次执行记录留在邮箱任务档案。
 
 ## 原版方法与种子
 
