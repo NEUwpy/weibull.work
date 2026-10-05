@@ -12,6 +12,16 @@ from scipy.stats import gaussian_kde
 HERE=Path(__file__).resolve().parent;SOURCE=HERE.parent/'结果';OUT=SOURCE;AUDIT=HERE
 METHODS=['MLE','MMLE','WMLE'];NS=[7,10,15,20,50];COLORS=['#5F6570','#345D7E','#B27448']
 PARAMS=['beta','eta','gamma'];LABELS=['β','η','γ'];TRUTH=json.loads((HERE/'config.json').read_text(encoding='utf-8'))['truth']
+def setting_title(suffix=''):
+    try:
+        _c=json.loads((HERE/'config.json').read_text(encoding='utf-8'))
+        _t=_c.get('truth',TRUTH);_b=_c.get('blocks');_r=_c.get('repeats')
+        _extra='，每 n %d×%d=%d 组'%(_b,_r,_b*_r) if _b and _r else ''
+    except Exception:
+        _t=TRUTH;_extra=''
+    _f=lambda v:('%g'%v)
+    _h='三参数 Weibull 抽样估计 ｜ 真值 β=%s、η=%s、γ=%s%s'%(_f(_t[0]),_f(_t[1]),_f(_t[2]),_extra)
+    return _h+(' ｜ '+suffix if suffix else '')
 plt.rcParams.update({'font.family':'sans-serif','font.sans-serif':['Microsoft YaHei','Arial','DejaVu Sans'],
  'font.size':8,'axes.linewidth':.7,'axes.spines.top':False,'axes.spines.right':False,'axes.unicode_minus':False})
 def save(fig,name):
@@ -55,8 +65,9 @@ def main():
         assert all(np.array_equal(axes[row,0].get_xticks(),axes[row,c].get_xticks()) for c in range(1,5))
     violin_legend=[Line2D([],[],color='#E78AB5',marker='o',ls='',ms=5,label='中位数'),
                    Line2D([],[],color='#D62728',marker='o',ls='',ms=4,label='均值')]
-    fig.legend(handles=violin_legend,loc='upper center',ncol=2,frameon=False,bbox_to_anchor=(.53,.997))
-    fig.subplots_adjust(left=.085,right=.982,bottom=.08,top=.89,wspace=.23,hspace=.43)
+    fig.legend(handles=violin_legend,loc='upper center',ncol=2,frameon=False,bbox_to_anchor=(.53,.952))
+    fig.suptitle(setting_title('估计值分布'),fontsize=10,y=.988)
+    fig.subplots_adjust(left=.085,right=.982,bottom=.08,top=.872,wspace=.23,hspace=.43)
     save(fig,'01_估计分布小提琴.png')
     fig,ax=plt.subplots(figsize=(5.9,3.6))
     for i,m in enumerate(METHODS):
@@ -65,7 +76,8 @@ def main():
                 marker='s' if i==2 else 'o',ms=5 if i==2 else 3.4,mfc='none' if i==2 else COLORS[i],label=m)
         points.extend(dict(figure='solution_rate',method=m,n=n,value=float(v)) for n,v in zip(NS,y))
     common(ax);ax.set_ylim(0,1.03);ax.set_yticks([0,.2,.4,.6,.8,1]);ax.yaxis.set_major_formatter(PercentFormatter(1))
-    ax.set_ylabel('有效解比例');ax.legend(frameon=False,loc='lower right');fig.subplots_adjust(left=.14,right=.98,bottom=.17,top=.95)
+    ax.set_ylabel('有效解比例');ax.legend(frameon=False,loc='lower right')
+    fig.suptitle(setting_title('有效解比例'),fontsize=9,y=.985);fig.subplots_adjust(left=.14,right=.98,bottom=.17,top=.855)
     save(fig,'02_有解率.png')
     metric_limits={'rmse':[(0,3),(0,900),(0,900)],'bias':[(-.5,1.5),(-400,400),(-400,400)],'sd':[(0,2.5),(0,900),(0,900)]}
     metric_ticks={'rmse':[[0,.5,1,1.5,2,2.5,3],[0,200,400,600,800],[0,200,400,600,800]],
@@ -82,8 +94,9 @@ def main():
             common(ax)
             if metric=='bias':ax.axhline(0,color='.75',lw=.55,zorder=0)
             ax.set_ylim(limits);ax.set_yticks(ticks);ax.set_ylabel(label+' '+{'rmse':'RMSE','bias':'Bias','sd':'SD'}[metric])
-    fig.legend(*axes[0,0].get_legend_handles_labels(),loc='upper center',ncol=3,frameon=False,bbox_to_anchor=(.51,.999))
-    fig.subplots_adjust(left=.08,right=.984,bottom=.065,top=.94,wspace=.28,hspace=.39);save(fig,'03_RMSE_Bias_SD九格.png')
+    fig.legend(*axes[0,0].get_legend_handles_labels(),loc='upper center',ncol=3,frameon=False,bbox_to_anchor=(.51,.955))
+    fig.suptitle(setting_title('RMSE / Bias / SD'),fontsize=10.5,y=.988)
+    fig.subplots_adjust(left=.08,right=.984,bottom=.065,top=.912,wspace=.28,hspace=.39);save(fig,'03_RMSE_Bias_SD九格.png')
     pd.DataFrame(points).to_csv(AUDIT/'图点.csv',index=False)
     assert len(points)==150
     (AUDIT/'绘图核验.json').write_text(json.dumps(dict(source_sha256=hashlib.sha256(raw.read_bytes()).hexdigest(),
