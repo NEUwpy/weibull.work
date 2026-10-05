@@ -1,0 +1,94 @@
+{
+  "contract": {
+    "experiment_id": "research09-mmle-vs-wmle-001",
+    "beta": [
+      1.5,
+      2.0,
+      3.0,
+      5.0
+    ],
+    "eta": 1000.0,
+    "gamma_over_eta": [
+      0.1,
+      0.5,
+      1.0
+    ],
+    "n_values": [
+      7,
+      10,
+      15,
+      20,
+      50
+    ],
+    "repeats": 100,
+    "seed_namespace": "study01_selector_confirmation_20260922_v1",
+    "design_source": "Study/Study 01 New/数据/E09_六方法共同测试/实验配置.json",
+    "n50": "extension of the same deterministic generator and namespace; new samples",
+    "unit_divisor": 1000.0,
+    "methods": [
+      "cw_i_nonnegative",
+      "wmle_checked",
+      "cw_i_paper_domain"
+    ],
+    "cw_i_nonnegative": {
+      "shape_bounds": [
+        0.1,
+        9.99
+      ],
+      "location_lower": 0,
+      "raw_min_gap": 0.0001
+    },
+    "cw_i_paper_domain": {
+      "shape_bounds": [
+        0.1,
+        15.0
+      ],
+      "location_lower": "mean - 10 sample SD",
+      "raw_min_gap": 0.0001
+    },
+    "cw_solver": "profile shape equation + log-gap sign scan (97 points) + Brent root; first root from sample minimum; explicit residual check; not original Fortran",
+    "wmle_protocol": "existing production five-start solver; only on rejection reuse E09 profile_recover (513 points); unchanged weights and acceptance constraints",
+    "metrics": "shared standard metrics; normalized beta/true beta, eta/true eta, gamma/true eta; joint J1=root mean sum squared normalized errors; failures receive joint squared score 3 as E09, reported separately",
+    "scope": "complete independent samples, positive lifetime observations; no censoring, contamination, other MMLE variants or Kundu-Raqab MMLE"
+  },
+  "total_samples": 6000,
+  "total_rows": 18000,
+  "cells": 60,
+  "source_sha256": {
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MMLEI与WMLE比较/run.py": "c151d32cca7f87c88c9e2df260ac7d561051a960d9928fc534096f9cac77b7ae",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MMLEI与WMLE比较/config.json": "7202391c7bf3ae97e0063b981b89b01c7012cdb7cd93713b042ee4baf02d8362",
+    "python/methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "python/methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "Study/Study 01 New/数据/E09_六方法共同测试/wmle_solver.py": "668e97636998c64fde5e9469af292902e3e3617b27d732b0f5cd0b8b3e0710c3",
+    "python/studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "python/studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "python/studies/common/experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+    "python/studies/common/metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3"
+  },
+  "code_version": "0fc0a8d411ec5cfec2b67d5480b8b185a9ef1234",
+  "reused_E09_samples_verified": 4800,
+  "new_n50_samples": 1200,
+  "paired_common_counts": {
+    "7": 335,
+    "10": 475,
+    "15": 611,
+    "20": 714,
+    "50": 910
+  },
+  "failure_policy": "separate failure counts; valid-row metrics; sensitivity fixed joint squared loss3",
+  "analysis_sha256": {
+    "summarize.py": "f390651f54c1facdc7c17f9f9bed1fb7027f00bf5a2b06a6d698feb68067cb26",
+    "verify.py": "aac9ce78fc8fae6a2932c48449d4a5f459fa992a0bf2751e8b032bf0480e5a5e",
+    "plot.py": "36ecdd928638bf97f8528b4af3ecbb52ad3a5f099d5600027b3d9420dd924ca6",
+    "audit_boundaries.py": "2944e9f9e662cba3e3f5cf63f8d2a17404a758542fae8d59aad53b13077aaed0",
+    "audit_wmle.py": "7cd8f4d564d708fc10da1fcfbbded25ceffad6add0d323decce98d5349ede0a3"
+  },
+  "environment": {
+    "executable": "D:\\weibull\\python\\.venv\\Scripts\\python.exe",
+    "python": "3.11.15",
+    "numpy": "2.4.6",
+    "pandas": "3.0.3",
+    "scipy": "1.17.1",
+    "matplotlib": "3.11.2"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "extension": "E10 n=100 only",
+  "n": 100,
+  "eta": 1000,
+  "development": {
+    "beta": [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
+    "gamma_over_eta": [0.1, 0.25, 0.5, 0.75, 1],
+    "conditions": 40,
+    "repeats_per_condition": 300,
+    "seed_namespace": "study01_e10_dev_20260924_v1"
+  },
+  "test": {
+    "beta": [1.5, 2, 3, 5],
+    "gamma_over_eta": [0.1, 0.5, 1],
+    "conditions": 12,
+    "repeats_per_condition": 100,
+    "seed_namespace": "study01_e10_test_20260924_v1"
+  },
+  "candidate_delta": "0:0.02:0.50 inclusive",
+  "model": "One n=100 seed=1 model, sorted sample divided by its mean, per-position and per-target StandardScaler, MLPRegressor (256,128,64) ReLU Adam alpha=0.0001 lr=0.001 batch=256 max_iter=300 early_stopping=15% validation n_iter_no_change=20",
+  "failure_label": "p99 of valid candidate losses in this n=100 full development set; only used if a candidate fails",
+  "methods": ["AMDM", "MDM-0.1", "WMLE", "MLE"],
+  "primary_for_curve": "Per-parameter standardized RMSE relative to MLE on four-method jointly valid samples; 2000 paired within-cell resamples; conditions weighted by retained samples",
+  "secondary": "AMDM relative J1 gain versus fixed delta=0.1 MDM on their pairwise valid samples; 2000 paired within-cell resamples",
+  "boundaries": "No n>100; old n=30/50 models, samples, estimates, and intervals remain frozen; no manuscript or figure edit"
+}

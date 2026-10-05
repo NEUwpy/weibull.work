@@ -1,0 +1,115 @@
+{
+  "calculation_contract": {
+    "task_id": "research09-three-methods-003",
+    "truth": [
+      2.0,
+      1000.0,
+      1000.0
+    ],
+    "n_values": [
+      7,
+      10,
+      15,
+      20,
+      50
+    ],
+    "blocks": 12,
+    "repeats_per_block": 100,
+    "samples_per_n": 1200,
+    "base_seed_namespace": "study01_selector_confirmation_20260922_v1",
+    "unit_divisor": 1000.0,
+    "methods": [
+      "MLE",
+      "MMLE",
+      "WMLE"
+    ],
+    "mmle_identity": "Cohen-Whitten 1982 MMLE-I, r=1; Akram-Hayat182-096 section3.4.1 MMLE1 equation16",
+    "wmle_policy": "Production solver first call, existing five starts; no E09 recovery",
+    "success_denominator": "all1200 samples per n"
+  },
+  "analysis_policy": {
+    "primary_precision": "Each method own successful samples; all estimates, without display-range filtering",
+    "diagnostic_precision": "Three-method common cohort and pairwise common cohorts against WMLE",
+    "reason": "Only9 three-method common successes at n7; do not replace full success-conditional results with that selective cohort.",
+    "success_rate_denominator": "All1200 samples per n",
+    "parameter_metrics": [
+      "Bias",
+      "SD(ddof0)",
+      "RMSE"
+    ],
+    "identity": "RMSE^2=Bias^2+SD(ddof0)^2",
+    "sd_computation": "Shared sample SD(ddof1) converted by sqrt((k-1)/k); shared metric code unchanged",
+    "joint_rmse": "sqrt(MSE_beta_raw+MSE_eta_raw+MSE_gamma_raw)",
+    "joint_units": "Fixed original numerical units, eta/gamma dominate; not unit-invariant",
+    "figure": "Research00 violin:3 parameter rows x5 n columns; PNG only; linear common parameter limits and ticks",
+    "figure_ranges": {
+      "beta": [
+        0,
+        10
+      ],
+      "eta": [
+        0,
+        2000
+      ],
+      "gamma": [
+        0,
+        2000
+      ]
+    },
+    "figure_density": "Only in-range successful values; Scott; actual extrema; gamma0 scatter kept but omitted from positive KDE",
+    "figure_symbols": "Centerline scatter without jitter, IQR0.5pt, white-diamond median, thin black dashed truth",
+    "update_applied": "1791174635732681300-b18f438c.md"
+  },
+  "rows": 18000,
+  "total_samples": 6000,
+  "new_samples": 0,
+  "common_success_counts": {
+    "7": 9,
+    "10": 217,
+    "15": 646,
+    "20": 907,
+    "50": 1199
+  },
+  "source_sha256": {
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE-WMLE三方法/three_methods.py": "58558117cae4a5ec28e1ae2b6a361aa905fcf043c0146d1155b8812ee99dcb46",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE-WMLE三方法/config.json": "15e040fe51116044c37ced39f4ddd01d2d7e2bca4560e50547da5bb3105eda59",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE全版本固定真值比较/per_sample.csv.gz": "8ec775160ce3de08545af645ba8e4de7e86f6a73336376751b462f9fcd047822",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE全版本固定真值比较/manifest.json": "e439664789c0a069c532d20a3872600f0cee81b4803c62fa1f63164540bfea22",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE全版本固定真值比较/experiment.py": "3fcb9e5f71ce8eb02bfe3544ec9774fc5ec3b1638668c727885a06767891a6db",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MMLEI与WMLE比较/run.py": "c151d32cca7f87c88c9e2df260ac7d561051a960d9928fc534096f9cac77b7ae",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MMLEI与WMLE比较/config.json": "7202391c7bf3ae97e0063b981b89b01c7012cdb7cd93713b042ee4baf02d8362",
+    "python/methods/mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "python/methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "python/methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "python/studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "python/studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "python/studies/common/experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+    "python/studies/common/metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3"
+  },
+  "output_script_sha256": "0c746d6c22774b80b07668e2b771ac5efb4d848df072528c2163541168612ae3",
+  "analysis_script_sha256": {
+    "make_outputs.py": "0c746d6c22774b80b07668e2b771ac5efb4d848df072528c2163541168612ae3",
+    "summarize_metrics.py": "9e308b18249ce164bed9680eae96f76657306c3da728c0fd3ebe4f1c14599446",
+    "violin.py": "983964d382e1f50c14277f3982defd3f55e5a1f3d7d7474dd0e75864a5619969",
+    "style_snapshot/绘图母体.py": "299f01e84a7fc29fe3b380693e1ec4596d2e1b1f3be22f0514d5d76b660caf47",
+    "style_snapshot/绘制图1小提琴.py": "e7889faca68dd4a3e7789ffcb6fb3a7cc8c8e76bc93abf2c302c7f1b7c3ad73b"
+  },
+  "output_sha256": {
+    "per_sample.csv.gz": "9d822f8e08365a57db44dee35473b08d4330aa6ca72a6ed696e07b633850a22c",
+    "汇总表.csv": "994e98e84415848e4000a6f0980ee4e5b50abcca605571909a13b0741a6f3834",
+    "汇总表.md": "33cd268623282016d10d2b2f086fed08452bf4f1cb744ec9c73077745efe6769",
+    "估计分布小提琴.png": "afb350edd74d6ab92857e16c35d1ad1ccbc2bb94f34547b1b794da4cc8a7c987",
+    "by_n_own_valid.csv": "876cfc162cef8af9200e95f250ea4375fb10b523ee13677149dd03a00268f2d9",
+    "by_n_common.csv": "de267f376961881708c732f30d71b66656afa848d56aa4a337811ba028cbbd3d",
+    "paired_vs_wmle.csv": "62d308ae3ee075cc1f39b8602e6cd35e597ac20719486bb2df3759da020c3dd3",
+    "failure_reasons.csv": "412d897c8e0378299258847821efd159cdeb2b1c633156e52cb6405104ac5338",
+    "verification.json": "83722f449a23800a36658d02fbf68da843d3a2f29d4ee84d81cf952d6a71e6e8",
+    "metrics_verification.json": "4dc63831f4e8bd8c4adc52ec55acb1bf475408ec0def7d808769f43faeab7288",
+    "绘图记录.json": "a0613fa324082430aca72e61d91c83f527935d3768516517f7442045fb30b8e2"
+  },
+  "analysis_policy_sha256": "076a10828d105dcd7301984dc9612a2c972adeb47405567643eea33ed50e0303",
+  "python": "D:\\weibull\\python\\.venv\\Scripts\\python.exe",
+  "numpy": "2.4.6",
+  "pandas": "3.0.3",
+  "matplotlib": "3.11.2"
+}

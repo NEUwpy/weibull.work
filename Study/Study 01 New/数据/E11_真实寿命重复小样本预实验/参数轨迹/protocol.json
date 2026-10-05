@@ -1,0 +1,58 @@
+{
+  "ns": [
+    7,
+    10,
+    15,
+    20,
+    30,
+    50,
+    80,
+    100,
+    101
+  ],
+  "methods": [
+    "AMDM",
+    "MDM-0.1",
+    "WMLE",
+    "MLE",
+    "LSE",
+    "LRE"
+  ],
+  "amdm_supported_n": [
+    7,
+    10,
+    15,
+    20,
+    30,
+    50,
+    100
+  ],
+  "repeats": "500 per n<=80; all 101 distinct leave-one-out subsets at n=100; full sample once at n=101",
+  "seed": "SeedSequence([20260925,n])",
+  "sampling": "Shared subsets across methods; independently drawn across n; trajectories summarize repeated subsets, not a single nested sample path",
+  "center": "median of valid fits; mean and common-valid checks also saved",
+  "band": "interquartile range; detailed panels additionally show 2.5-97.5 percentiles; conditional subsample spread, not confidence interval",
+  "full101": "One finite data set; no within-subset band. Not known truth, not a convergence proof",
+  "amdm_note": "Frozen n-specific models; n80 and n101 unsupported, no retraining or interpolation of model weights",
+  "source_hashes": {
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E11_真实寿命重复小样本预实验\\observations.csv": "a6f94de9e09f1cf9705dfdd2aab468d75ac9afb6781be16e88e26a0e48e965fe",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E11_真实寿命重复小样本预实验\\per_subsample.csv": "7ce72b5d23739a3105347ebd230888fd575ed54f9df35596450a0d1b428ddb28",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E11_真实寿命重复小样本预实验\\扩展诊断\\per_sample.csv.gz": "063e4a4ff87c9d1a80c8ba0c0e758bfb6973d914916feda413a7617a67dde940",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E11_真实寿命重复小样本预实验\\run_pilot.py": "fc12cf7e50cb8eb8fd15eac3a84e2477b4c123dadb8ec9fc295125bebb79ff01",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E10_样本量扩展\\run_e10.py": "792080d9204c3076d346de4ab6f711c71c29b41e27c48e27a46a715071d5718f",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E09_六方法共同测试\\wmle_solver.py": "668e97636998c64fde5e9469af292902e3e3617b27d732b0f5cd0b8b3e0710c3",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E11_真实寿命重复小样本预实验\\run_trajectories.py": "10310ac6d3b5447941e9066ab34f3fad8fb5e9051ea65895010c8baa3ee3dbcd",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E09_六方法共同测试\\models\\n7_final.json": "2fbf16feb1a6ff03fbc5b19f5fd23f7f2a7e6eff9025a9049f64a3f088aa7353",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E09_六方法共同测试\\models\\n10_final.json": "3659911977677461251b4e38ddbdf8de879a4a5bfd0cb6b926d3c17612cc4a52",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E09_六方法共同测试\\models\\n15_final.json": "0a635bfebf0297103aea342b9d8371ce21478932c6bd993464d99091261e4cb0",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E09_六方法共同测试\\models\\n20_final.json": "cb914dd84b3100515e4e4d57a286a67ed6be2c566105d7237efac59ce019b314",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E10_样本量扩展\\models\\n30_final.json": "abd95593700b33c04ab50f7e6be7ceea04a987ac6147e2ce38774e0f03d26ccb",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E10_样本量扩展\\models\\n50_final.json": "fc5c4ee7c308c329e0fe4e4725e20161eee6ab0d1baa0f24012b8db8864b87b2",
+    "D:\\weibull\\Study\\Study 01 New\\数据\\E10_样本量扩展\\models\\n100_final.json": "a5730a0131b82eebbe078c14aa9898d4ea34f31026817648c46ce4dceb7b483a",
+    "D:\\weibull\\python\\methods\\mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "D:\\weibull\\python\\methods\\mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "D:\\weibull\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\python\\methods\\lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "D:\\weibull\\python\\methods\\lre.py": "730e86750f5ac1b31dd1cee9f3a73a8932e501661dfbf1e82c056de44f9a663f"
+  }
+}

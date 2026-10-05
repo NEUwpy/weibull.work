@@ -1,0 +1,72 @@
+{
+  "condition": {
+    "beta": 2,
+    "eta": 1000,
+    "gamma": 1000,
+    "n": 7
+  },
+  "samples": 100,
+  "delta_grid": [
+    0.0,
+    0.02,
+    0.04,
+    0.06,
+    0.08,
+    0.1,
+    0.12,
+    0.14,
+    0.16,
+    0.18,
+    0.2,
+    0.22,
+    0.24,
+    0.26,
+    0.28,
+    0.3,
+    0.32,
+    0.34,
+    0.36,
+    0.38,
+    0.4,
+    0.42,
+    0.44,
+    0.46,
+    0.48,
+    0.5
+  ],
+  "criterion": "Sum of squared errors standardized by beta, eta, eta; candidate oracle uses true parameters.",
+  "ties": "Smallest delta breaks numerical argmin ties; exact and 1% near-optimal multiplicities saved.",
+  "reuse": "Same E09 test samples; not a new independent confirmation. Condition chosen before scanning.",
+  "source_sha256": "9c73c98fb59b28e8de937351e95bf9c563ffab7513ea8ca8c3c50f7e7e2c20cf",
+  "metrics": {
+    "fixed": {
+      "mean_loss": 0.5020893497414719,
+      "J1": 0.7085826343775805
+    },
+    "oracle": {
+      "mean_loss": 0.2868748842581946,
+      "J1": 0.5356070240934062
+    },
+    "AMDM": {
+      "mean_loss": 0.42652929501768183,
+      "J1": 0.6530921030128001
+    }
+  },
+  "oracle_range": [
+    0.0,
+    0.5
+  ],
+  "occupied_bins": 21,
+  "boundary_minima": 52,
+  "exact_tied_samples": 0,
+  "median_near_optimal_count": 1.0,
+  "median_fixed_loss_excess": 0.029571464769054277,
+  "oracle_J1_gain": 0.24411494424516367,
+  "AMDM_J1_gain": 0.07831201143325128,
+  "verification": "All 100 hashes checked; fixed and AMDM scan results match E09; all 2600 candidates valid.",
+  "code_hashes": {
+    "python/methods/mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "python/studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "python/studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5"
+  }
+}

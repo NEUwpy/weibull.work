@@ -1,0 +1,33 @@
+{
+  "experiment_id": "E10",
+  "question": "Does AMDM's extra J1 gain over fixed delta=0.1 MDM weaken at n=30 and n=50?",
+  "n": [30, 50],
+  "eta": 1000,
+  "development": {
+    "beta": [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
+    "gamma_over_eta": [0.1, 0.25, 0.5, 0.75, 1],
+    "repeats_per_cell": 300,
+    "seed_namespace": "study01_e10_dev_20260924_v1"
+  },
+  "test": {
+    "beta": [1.5, 2, 3, 5],
+    "gamma_over_eta": [0.1, 0.5, 1],
+    "repeats_per_cell": 100,
+    "seed_namespace": "study01_e10_test_20260924_v1"
+  },
+  "selector": {
+    "delta_grid": "0:0.02:0.50 inclusive",
+    "per_n_model": true,
+    "input": "sorted(sample)/sample mean; no padding, masks or parameters",
+    "target": "26 joint squared standardized parameter losses; invalid candidate filled by p99 valid loss from both n development sets",
+    "scaling": "per-position input and per-delta target StandardScaler fitted on full development set of each n",
+    "mlp": "scikit-learn MLPRegressor (256,128,64), ReLU, Adam, alpha=1e-4, learning_rate_init=1e-3, batch_size=256, max_iter=300, early_stopping=true, validation_fraction=.15, n_iter_no_change=20",
+    "final_model_seed": 1,
+    "selection": "inverse target scaling; clip predicted losses below zero; argmin, first delta on ties"
+  },
+  "estimators": ["AMDM", "MDM-0.1", "WMLE", "MLE"],
+  "method_protocol": "MDM uses production offset root with gamma>=0, gamma_steps=60. WMLE uses E09 repaired profile recovery and same constraints. MLE uses production finite-solution rule. WMLE/MLE receive sample/1000 and estimated eta/gamma are multiplied by 1000. No true parameter enters inference.",
+  "primary": "1 - J1(AMDM)/J1(MDM-0.1), both valid paired observations; 2000 paired resamples within each test cell",
+  "secondary": "Beta/eta/gamma Bias, SD, RMSE and failure rates; MLE-relative parameter RMSE on four-method jointly valid observations",
+  "bounds": "No n=100, MM, new fixed-offset search, manuscript edits, or claim threshold"
+}

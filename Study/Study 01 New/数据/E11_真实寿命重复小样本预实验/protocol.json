@@ -1,0 +1,50 @@
+{
+  "status": "pilot; not manuscript evidence yet",
+  "source_url": "https://www.itl.nist.gov/div898/handbook/datasets/BIRNSAUN.DAT",
+  "source_context": "https://www.itl.nist.gov/div898/handbook/eda/section4/eda4291.htm",
+  "source_model_comparison": "https://www.itl.nist.gov/div898/handbook/eda/section4/eda4292.htm",
+  "source_note": "NIST considers three-parameter Weibull plausible; its AIC/BIC comparison favors Gaussian. Do not claim known Weibull truth.",
+  "observations": 101,
+  "reference": 101,
+  "pool": 101,
+  "seed": 20260925,
+  "repeats": 100,
+  "sample_sizes": [
+    7,
+    10,
+    15,
+    20
+  ],
+  "methods": [
+    "AMDM",
+    "MDM-0.1",
+    "WMLE",
+    "MLE",
+    "LSE",
+    "LRE"
+  ],
+  "split": "No split: full 101-observation empirical distribution is the finite-data reference and sampling population, per user instruction",
+  "sampling": "without replacement within each subset; reuse across replicates; same subset for all methods",
+  "normalization": "Original unit is thousand cycles. MDM uses original unit; traditional solvers use life/1000 and outputs are converted back, matching E09 fixed conversion.",
+  "primary": "Normalized integral (F_method-F_reference_ECDF)^2 over [0,max(reference)], numerical trapezoid with 4001 fixed points; lower better.",
+  "secondary": "Mean CRPS on all 101 reference observations (overlap with subsample; not independent prediction), divided by reference IQR; lower better; covers predictive tails.",
+  "comparisons": "AMDM paired with each comparator on jointly valid subsets; failures reported separately; all-six-valid plot for comparable distributions.",
+  "reference_parameters": "MLE fitted to all 101 observations, descriptive reference only, not true parameters; compare reported NIST fit as a numerical check.",
+  "uncertainty": "Quantiles of repeated-subset scores describe variability conditional on this finite pool and reference, not population confidence intervals.",
+  "source_capture": "Numeric lines transcribed in source order from NIST text via web retrieval; direct Python HTTP download returned 403. Hash describes saved transcription, not remote bytes.",
+  "source_sha256": "35b83d0ffbd481062bb22e067f0bd10340c487b736b2e3365df554eafebf5645",
+  "models": {
+    "7": "2fbf16feb1a6ff03fbc5b19f5fd23f7f2a7e6eff9025a9049f64a3f088aa7353",
+    "10": "3659911977677461251b4e38ddbdf8de879a4a5bfd0cb6b926d3c17612cc4a52",
+    "15": "0a635bfebf0297103aea342b9d8371ce21478932c6bd993464d99091261e4cb0",
+    "20": "cb914dd84b3100515e4e4d57a286a67ed6be2c566105d7237efac59ce019b314"
+  },
+  "solver_hashes": {
+    "mdm": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "mle": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "lse": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "lre": "730e86750f5ac1b31dd1cee9f3a73a8932e501661dfbf1e82c056de44f9a663f",
+    "wmle": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989"
+  },
+  "wmle_wrapper_sha256": "668e97636998c64fde5e9469af292902e3e3617b27d732b0f5cd0b8b3e0710c3"
+}

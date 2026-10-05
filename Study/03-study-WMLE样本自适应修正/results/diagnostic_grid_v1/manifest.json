@@ -1,0 +1,73 @@
+{
+  "study": "Study03",
+  "protocol": "diagnostic_grid_v1",
+  "purpose": "initial motivation and controlled WMLE heterogeneity analysis",
+  "seed_namespace": 20260922,
+  "repeats_per_cell": 100,
+  "sample_sizes": [
+    7,
+    15,
+    30
+  ],
+  "conditions": [
+    {
+      "condition_id": "baseline",
+      "axis": "baseline",
+      "level": "baseline",
+      "beta": 2.0,
+      "eta": 1000.0,
+      "gamma": 1000.0
+    },
+    {
+      "condition_id": "beta_3",
+      "axis": "beta",
+      "level": 3.0,
+      "beta": 3.0,
+      "eta": 1000.0,
+      "gamma": 1000.0
+    },
+    {
+      "condition_id": "beta_5",
+      "axis": "beta",
+      "level": 5.0,
+      "beta": 5.0,
+      "eta": 1000.0,
+      "gamma": 1000.0
+    },
+    {
+      "condition_id": "eta_500",
+      "axis": "eta",
+      "level": 500.0,
+      "beta": 2.0,
+      "eta": 500.0,
+      "gamma": 1000.0
+    },
+    {
+      "condition_id": "eta_2000",
+      "axis": "eta",
+      "level": 2000.0,
+      "beta": 2.0,
+      "eta": 2000.0,
+      "gamma": 1000.0
+    },
+    {
+      "condition_id": "gamma_500",
+      "axis": "gamma",
+      "level": 500.0,
+      "beta": 2.0,
+      "eta": 1000.0,
+      "gamma": 500.0
+    },
+    {
+      "condition_id": "gamma_3000",
+      "axis": "gamma",
+      "level": 3000.0,
+      "beta": 2.0,
+      "eta": 1000.0,
+      "gamma": 3000.0
+    }
+  ],
+  "method": "production wmle via studies.common.runner.run_method",
+  "code_version": "7df56c4ea509fff6f42edd628165c80b1b32de9e",
+  "note": "One-factor-at-a-time diagnostic grid; not yet the adaptive-weight training protocol."
+}

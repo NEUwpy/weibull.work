@@ -1,0 +1,43 @@
+{
+  "id": "S03-J3-01",
+  "version": 1,
+  "grid": [
+    0.7,
+    0.8,
+    0.85,
+    0.9,
+    0.92,
+    0.94,
+    0.96,
+    0.98,
+    1.0,
+    1.02,
+    1.04,
+    1.06,
+    1.08,
+    1.1,
+    1.15,
+    1.2,
+    1.3,
+    1.5
+  ],
+  "intervention": "J3_star(n,beta)=c*J3(n,beta); c fixed during each fit",
+  "source": "results\\analysis_v1\\all_case_rows.csv",
+  "source_sha256": "b6143e51a101eb63bb5de0d79ac4af80f594c68347479c4a9320be5c5ccab575",
+  "runtime_sha256": {
+    "wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+    "sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48"
+  },
+  "baseline": "c=1 refit every sample and check existing estimates/status",
+  "primary": "failure_or_E_ge_0.5; failure counted in denominator",
+  "E": "max(abs((bhat-b)/b),abs((ehat-e)/e),abs((ghat-g)/e))",
+  "fixed_selection": "minimum bad-event rate, then mean capped E (cap 2, failure 2), then failure rate, then closest c to 1",
+  "oracle_selection": "valid minimum E; ties prefer closest c to 1; all-failed fallback c=1",
+  "cohorts": "historical_complete (1200) and controlled_20260922 (3300) analyzed separately",
+  "selection_scope": "descriptive same-data best fixed and known-truth per-sample oracle; not deployed NN",
+  "crossfit": "five repeat_id modulo 5 folds within each cohort/cell for supplemental fixed and n-fixed selection",
+  "frozen_before_scan": true,
+  "protocol_hash": "d2749297aa8d7a547d8089b5af9853ee3f8c748e84d303e3969edcbbe95f42c2"
+}

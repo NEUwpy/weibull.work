@@ -1,0 +1,83 @@
+{
+  "contract": {
+    "task_id": "research09-mmle-versions-002",
+    "truth": [
+      2.0,
+      1000.0,
+      1000.0
+    ],
+    "n_values": [
+      7,
+      10,
+      15,
+      20,
+      50
+    ],
+    "blocks": 12,
+    "repeats_per_block": 100,
+    "samples_per_n": 1200,
+    "base_seed_namespace": "study01_selector_confirmation_20260922_v1",
+    "new_block_namespace": "base_seed_namespace + :research09-versions:blockNN",
+    "unit_divisor": 1000.0,
+    "nonnegative_domain": "MMLE shape (0.1,9.99), gamma [0,xmin-1e-4 raw]; MME shape (0.1,15), gamma>=0 and gamma<xmin",
+    "paper_domain": "MMLE shape (0.1,15), gamma [mean-10 sample SD,xmin-1e-4 raw]",
+    "scope": "MLE project finite-local likelihood version; CW MMLE I-V, MME I-III; Cousineau WMLE with E09 recovery; five additional paper-domain MMLE sensitivity rows",
+    "replicate_decision": "Fixed truth collapses old 12 truth cells; preserve requested 1200 per n as 12 repetition blocks of100. Block0 reuses old100 per n; 1100 per n newly generated, not12 truth cells.",
+    "metrics": "shared parameter Bias/SD/RMSE/MAE in raw and normalized units; J1=joint RMSE; separate success rate; E09 failure-squared-loss3 sensitivity"
+  },
+  "methods": {
+    "mle_local": "MLE（有限局部解）",
+    "wmle_checked": "WMLE（含漏解复核）",
+    "mmle_i": "MMLE-I（非负位置）",
+    "mmle_ii": "MMLE-II（非负位置）",
+    "mmle_iii": "MMLE-III（非负位置）",
+    "mmle_iv": "MMLE-IV（非负位置）",
+    "mmle_v": "MMLE-V（非负位置）",
+    "mmle_i_paper": "MMLE-I（原文参数域）",
+    "mmle_ii_paper": "MMLE-II（原文参数域）",
+    "mmle_iii_paper": "MMLE-III（原文参数域）",
+    "mmle_iv_paper": "MMLE-IV（原文参数域）",
+    "mmle_v_paper": "MMLE-V（原文参数域）",
+    "mme_i": "MME-I（有效支持域）",
+    "mme_ii": "MME-II（有效支持域）",
+    "mme_iii": "MME-III（有效支持域）"
+  },
+  "total_samples": 6000,
+  "total_rows": 90000,
+  "blocks": 60,
+  "source_sha256": {
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE全版本固定真值比较/experiment.py": "3fcb9e5f71ce8eb02bfe3544ec9774fc5ec3b1638668c727885a06767891a6db",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE全版本固定真值比较/config.json": "bcdfb9002b31f1fa6d32306cd30e5386f095b7ee8599bad273aeeb13c17a3f03",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MMLEI与WMLE比较/run.py": "c151d32cca7f87c88c9e2df260ac7d561051a960d9928fc534096f9cac77b7ae",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MMLEI与WMLE比较/config.json": "7202391c7bf3ae97e0063b981b89b01c7012cdb7cd93713b042ee4baf02d8362",
+    "python/methods/mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "python/methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "python/methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "python/studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "python/studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "python/studies/common/experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+    "python/studies/common/metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3",
+    "Study/Study 01 New/数据/E09_六方法共同测试/wmle_solver.py": "668e97636998c64fde5e9469af292902e3e3617b27d732b0f5cd0b8b3e0710c3"
+  },
+  "code_version": "0fc0a8d411ec5cfec2b67d5480b8b185a9ef1234",
+  "analysis_source_sha256": {
+    "summarize.py": "09bbc593071112426deb26c6e89b68cfb3df30f32ffb653aae5bc25f905b3bc2",
+    "verify.py": "4ef715d2f74a35eec721c1379735dbf636de49ab6eb7d1b0a440561cda8d07e9",
+    "verify_results.py": "cc6ef3a3749265593f489929fd43f460534fa11a5289aa977629d6b452161f83",
+    "plot.py": "5f78dc78ab754a26e32352dc6c01289c316a7ee17b023b368c17e78c996db73f",
+    "refine.py": "a19c0ddbda39b75c1afc845568474283db5d66c19437342dbf60332dd7fc1d7f",
+    "verify_refinement.py": "51a10714fa90b9ecb6f641f87bfe100170c3590a701c253545a5e1e964cea79c"
+  },
+  "root_refinement": {
+    "initial_rows_retained": 90000,
+    "refined_method_rows": 66000,
+    "changed_rows": 50,
+    "refinement_sha256": "a19c0ddbda39b75c1afc845568474283db5d66c19437342dbf60332dd7fc1d7f",
+    "strategy": "bounded local extrema; explicit MMLE-III beta1 root"
+  },
+  "reused_samples_verified": 500,
+  "reused_method_rows_verified": 1500,
+  "new_samples": 5500,
+  "precision_policy": "own successful samples; pairwise common-success supplement",
+  "J1_definition": "sqrt(mean((beta_error/2)^2+(eta_error/1000)^2+(gamma_error/1000)^2))"
+}

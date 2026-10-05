@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "candidate_rows": 81000,
+  "valid_candidates": 60445,
+  "baseline_refits": 4500,
+  "policies": 7,
+  "selected_rows": 31500,
+  "max_recomputed_residual": 8.839648327732855e-09,
+  "max_relative_scale_delta": 1.3877787807814457e-14,
+  "production_wmle_unchanged": true,
+  "oracle_no_harm": true,
+  "limits": "Finite grid, same simulation domain; no trained NN or unseen-parameter validation.",
+  "scripts": [
+    {
+      "path": "scripts\\analyze_j3_scan.py",
+      "sha256": "600973aaaa1fe1e19361d2301eab5a93a97eef64a2828bcff426c6fad1c8b13d"
+    },
+    {
+      "path": "scripts\\plot_j3_controlled_axes.py",
+      "sha256": "e4f910d47e552adeced6254ab5084a3ddc845be8de4d5b209bf79f98470ec679"
+    },
+    {
+      "path": "scripts\\run_j3_scan.py",
+      "sha256": "dc7bfa51691fef2f40c453c0edfc13d48a05230349769f6d103d6b176274f742"
+    },
+    {
+      "path": "scripts\\verify_j3_scan.py",
+      "sha256": "885b09a8f53c983ac0a5a15433e03297072c809d4e7f70852f5d65b024875a95"
+    }
+  ],
+  "document_links_checked": 45,
+  "figures_visually_reviewed": [
+    "opportunity_by_n.png",
+    "controlled_three_axes.png",
+    "fixed_coefficient_curves.png",
+    "sample_and_oracle_choices.png"
+  ]
+}

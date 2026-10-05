@@ -1,0 +1,17 @@
+{
+  "backend": "Python/matplotlib",
+  "purpose": "Inspect approach to a shared region; no consensus assumed",
+  "overview_center": "median among each method valid fits",
+  "overview_band": "25th-75th percentiles of successful subset estimates",
+  "detail_band": "inner25th-75th; outer2.5th-97.5th percentiles; individual y-scales per panel",
+  "full101": "Stars: one fit of all observations. No band or confidence interval inferred from repeated identical full data.",
+  "AMDM": "Frozen models at n7,10,15,20,30,50,100 only; dashed50-100 guides the eye over missing n80, no fitted model at n80 or n101. n100 errorbar is IQR.",
+  "WMLE": "n101 star is disconnected because existing solver switches J2/J3 to asymptotic weights above n100; closeness to MLE is not independent convergence evidence.",
+  "sampling": "500 per n<=80; n100 exhausts all101 leave-one-out subsets. Different n are not nested sample paths.",
+  "source": "trajectory_summary.csv; fit_coverage.csv; per_subsample.csv.gz",
+  "formats": [
+    "PNG400dpi",
+    "SVG editable text",
+    "PDF embedded fonts"
+  ]
+}

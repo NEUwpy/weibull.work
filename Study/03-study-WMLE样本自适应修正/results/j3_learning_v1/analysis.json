@@ -1,0 +1,51 @@
+{
+  "status": "complete",
+  "primary": "mlp32_ensemble",
+  "gate": 0.05,
+  "test_samples": 1650,
+  "test_candidates": 29700,
+  "policies": 10,
+  "oracle_risk_recovery": 0.4373522458628842,
+  "comparisons": [
+    {
+      "primary": "mlp32_ensemble",
+      "reference": "original",
+      "risk_reduction": 0.11212121212121212,
+      "ci_low": 0.09695454545454546,
+      "ci_high": 0.1296969696969697,
+      "resamples": 1000
+    },
+    {
+      "primary": "mlp32_ensemble",
+      "reference": "fixed_fallback",
+      "risk_reduction": 0.07696969696969697,
+      "ci_low": 0.06181818181818182,
+      "ci_high": 0.09333333333333334,
+      "resamples": 1000
+    },
+    {
+      "primary": "mlp32_ensemble",
+      "reference": "n_fixed_fallback",
+      "risk_reduction": 0.07212121212121213,
+      "ci_low": 0.056363636363636366,
+      "ci_high": 0.08789393939393937,
+      "resamples": 1000
+    },
+    {
+      "primary": "mlp32_ensemble",
+      "reference": "tree4",
+      "risk_reduction": 0.03939393939393939,
+      "ci_low": 0.025454545454545455,
+      "ci_high": 0.05334848484848484,
+      "resamples": 1000
+    },
+    {
+      "primary": "mlp32_ensemble",
+      "reference": "ridge",
+      "risk_reduction": 0.029696969696969697,
+      "ci_low": 0.015151515151515152,
+      "ci_high": 0.04424242424242424,
+      "resamples": 1000
+    }
+  ]
+}

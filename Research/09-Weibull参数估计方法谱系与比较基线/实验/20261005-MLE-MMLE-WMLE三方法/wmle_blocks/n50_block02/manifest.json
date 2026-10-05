@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-10-05T04:26:33+00:00",
+  "code_version": "0fc0a8d411ec5cfec2b67d5480b8b185a9ef1234",
+  "run_label": "research09-three-methods-003:n50:block2",
+  "methods": [
+    {
+      "method_id": "wmle_first",
+      "variant": "wmle_first",
+      "kwargs": {}
+    }
+  ],
+  "param_grid": [
+    [
+      2.0,
+      1000.0,
+      1000.0
+    ]
+  ],
+  "n_values": [
+    50
+  ],
+  "n_repeats": 100,
+  "seed_namespace": "study01_selector_confirmation_20260922_v1:research09-versions:block02",
+  "metrics": {
+    "primary": [
+      "bias",
+      "sd",
+      "rmse",
+      "mae"
+    ],
+    "R_levels": [
+      0.95,
+      0.99
+    ],
+    "diagnostics": [
+      "mdape",
+      "med_rel",
+      "p95_abs"
+    ],
+    "diagnostic_R_levels": [
+      0.5,
+      0.9,
+      0.95,
+      0.99,
+      0.999
+    ]
+  },
+  "total_rows": 100,
+  "output_files": [
+    "results.csv",
+    "summary.json",
+    "manifest.json"
+  ],
+  "block": 2,
+  "source_sha256": {
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE-WMLE三方法/three_methods.py": "58558117cae4a5ec28e1ae2b6a361aa905fcf043c0146d1155b8812ee99dcb46",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE-WMLE三方法/config.json": "15e040fe51116044c37ced39f4ddd01d2d7e2bca4560e50547da5bb3105eda59",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE全版本固定真值比较/per_sample.csv.gz": "8ec775160ce3de08545af645ba8e4de7e86f6a73336376751b462f9fcd047822",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE全版本固定真值比较/manifest.json": "e439664789c0a069c532d20a3872600f0cee81b4803c62fa1f63164540bfea22",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MLE-MMLE全版本固定真值比较/experiment.py": "3fcb9e5f71ce8eb02bfe3544ec9774fc5ec3b1638668c727885a06767891a6db",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MMLEI与WMLE比较/run.py": "c151d32cca7f87c88c9e2df260ac7d561051a960d9928fc534096f9cac77b7ae",
+    "Research/09-Weibull参数估计方法谱系与比较基线/实验/20261005-MMLEI与WMLE比较/config.json": "7202391c7bf3ae97e0063b981b89b01c7012cdb7cd93713b042ee4baf02d8362",
+    "python/methods/mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "python/methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "python/methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "python/studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "python/studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "python/studies/common/experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+    "python/studies/common/metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3"
+  },
+  "profile_recovery_used": false
+}

@@ -1,0 +1,774 @@
+{
+  "source": "数据\\E09_六方法共同测试\\per_sample.csv.gz",
+  "source_sha256": "9c73c98fb59b28e8de937351e95bf9c563ffab7513ea8ca8c3c50f7e7e2c20cf",
+  "extension_source": "数据\\E10_样本量扩展\\per_sample.csv.gz",
+  "extension_sha256": "6cf94c0d1f988ae267b0fe90670e0edc49804c880d7f86e41a5f08d813e08815",
+  "baseline": "MLE",
+  "methods": [
+    "AMDM",
+    "WMLE",
+    "MDM-0.1",
+    "MLE"
+  ],
+  "groups": [
+    {
+      "n": 7,
+      "total_samples": 1200,
+      "common_valid_samples": 577,
+      "valid_per_cell": {
+        "0": 18,
+        "8": 29,
+        "16": 36,
+        "20": 33,
+        "28": 56,
+        "36": 42,
+        "60": 52,
+        "68": 48,
+        "76": 61,
+        "140": 67,
+        "148": 66,
+        "156": 69
+      },
+      "failures": {
+        "AMDM": 0,
+        "WMLE": 55,
+        "MDM-0.1": 0,
+        "MLE": 570
+      }
+    },
+    {
+      "n": 10,
+      "total_samples": 1200,
+      "common_valid_samples": 733,
+      "valid_per_cell": {
+        "1": 31,
+        "9": 36,
+        "17": 48,
+        "21": 38,
+        "29": 55,
+        "37": 59,
+        "61": 66,
+        "69": 73,
+        "77": 77,
+        "141": 80,
+        "149": 88,
+        "157": 82
+      },
+      "failures": {
+        "AMDM": 0,
+        "WMLE": 59,
+        "MDM-0.1": 0,
+        "MLE": 411
+      }
+    },
+    {
+      "n": 15,
+      "total_samples": 1200,
+      "common_valid_samples": 886,
+      "valid_per_cell": {
+        "2": 42,
+        "10": 54,
+        "18": 43,
+        "22": 59,
+        "30": 70,
+        "38": 78,
+        "62": 71,
+        "70": 97,
+        "78": 88,
+        "142": 92,
+        "150": 94,
+        "158": 98
+      },
+      "failures": {
+        "AMDM": 0,
+        "WMLE": 64,
+        "MDM-0.1": 0,
+        "MLE": 252
+      }
+    },
+    {
+      "n": 20,
+      "total_samples": 1200,
+      "common_valid_samples": 1009,
+      "valid_per_cell": {
+        "3": 64,
+        "11": 70,
+        "19": 73,
+        "23": 77,
+        "31": 85,
+        "39": 89,
+        "63": 75,
+        "71": 93,
+        "79": 95,
+        "143": 90,
+        "151": 99,
+        "159": 99
+      },
+      "failures": {
+        "AMDM": 0,
+        "WMLE": 56,
+        "MDM-0.1": 0,
+        "MLE": 135
+      }
+    },
+    {
+      "n": 30,
+      "total_samples": 1200,
+      "common_valid_samples": 1098,
+      "valid_per_cell": {
+        "n30_cell00": 78,
+        "n30_cell01": 83,
+        "n30_cell02": 91,
+        "n30_cell03": 83,
+        "n30_cell04": 98,
+        "n30_cell05": 99,
+        "n30_cell06": 78,
+        "n30_cell07": 98,
+        "n30_cell08": 100,
+        "n30_cell09": 90,
+        "n30_cell10": 100,
+        "n30_cell11": 100
+      },
+      "failures": {
+        "AMDM": 0,
+        "WMLE": 63,
+        "MDM-0.1": 0,
+        "MLE": 39
+      }
+    },
+    {
+      "n": 50,
+      "total_samples": 1200,
+      "common_valid_samples": 1149,
+      "valid_per_cell": {
+        "n50_cell00": 94,
+        "n50_cell01": 98,
+        "n50_cell02": 98,
+        "n50_cell03": 87,
+        "n50_cell04": 100,
+        "n50_cell05": 100,
+        "n50_cell06": 79,
+        "n50_cell07": 99,
+        "n50_cell08": 100,
+        "n50_cell09": 94,
+        "n50_cell10": 100,
+        "n50_cell11": 100
+      },
+      "failures": {
+        "AMDM": 0,
+        "WMLE": 46,
+        "MDM-0.1": 0,
+        "MLE": 5
+      }
+    }
+  ],
+  "draws": 2000,
+  "seed": 20260924,
+  "metric": "100 * (1 - method standardized parameter RMSE / MLE standardized parameter RMSE)",
+  "normalization": {
+    "beta": "true beta",
+    "eta": "true eta",
+    "gamma": "true eta"
+  },
+  "aggregation": "Pool shared-valid samples within n; cell weights proportional to retained sample counts, matching F03.",
+  "resampling": "Resample shared-valid sample pairs within each cell, retaining that cell count; same indices across all methods and parameters.",
+  "interval": "Pointwise percentile 95% intervals conditional on common validity, fixed design and frozen models; not simultaneous bands.",
+  "scope": "E09 n=7/10/15/20 and E10 n=30/50 use independent development/test namespaces and separately trained models. Validity subsets and cell weights differ across n; descriptive trends only. No training variation included. n=100 retained in the supplemental shape-stratified analysis.",
+  "geometry": "Three panels, shared y-axis including all intervals; linear n-axis with true sample-size spacing; ordinary constant-size markers; no smoothing.",
+  "summary": [
+    {
+      "n": 7,
+      "method": "AMDM",
+      "parameter": "beta",
+      "rmse": 0.37445997403735315,
+      "MLE_rmse": 1.3338835178052655,
+      "gain_percent": 71.9270859082599,
+      "ci95_low": 69.2924385655277,
+      "ci95_high": 74.27971069292686,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 7,
+      "method": "AMDM",
+      "parameter": "eta",
+      "rmse": 0.30770633214071746,
+      "MLE_rmse": 0.5820334136664601,
+      "gain_percent": 47.132531412182544,
+      "ci95_low": 43.674130047522674,
+      "ci95_high": 50.51707292002037,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 7,
+      "method": "AMDM",
+      "parameter": "gamma",
+      "rmse": 0.25634878568614544,
+      "MLE_rmse": 0.5366533162358025,
+      "gain_percent": 52.231957218818856,
+      "ci95_low": 49.358646124078746,
+      "ci95_high": 55.02435607973876,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 7,
+      "method": "WMLE",
+      "parameter": "beta",
+      "rmse": 0.4809463620042512,
+      "MLE_rmse": 1.3338835178052655,
+      "gain_percent": 63.943900979031,
+      "ci95_low": 60.24459087269134,
+      "ci95_high": 67.59892598906363,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 7,
+      "method": "WMLE",
+      "parameter": "eta",
+      "rmse": 0.405434183575237,
+      "MLE_rmse": 0.5820334136664601,
+      "gain_percent": 30.34176834947573,
+      "ci95_low": 26.819753965105505,
+      "ci95_high": 33.95865908233467,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 7,
+      "method": "WMLE",
+      "parameter": "gamma",
+      "rmse": 0.35739815705085193,
+      "MLE_rmse": 0.5366533162358025,
+      "gain_percent": 33.40241339460703,
+      "ci95_low": 29.869770709264646,
+      "ci95_high": 36.85283071695146,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 7,
+      "method": "MDM-0.1",
+      "parameter": "beta",
+      "rmse": 0.4506431195558762,
+      "MLE_rmse": 1.3338835178052655,
+      "gain_percent": 66.21570672847419,
+      "ci95_low": 62.13884462194793,
+      "ci95_high": 69.8952519954305,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 7,
+      "method": "MDM-0.1",
+      "parameter": "eta",
+      "rmse": 0.39977585115020603,
+      "MLE_rmse": 0.5820334136664601,
+      "gain_percent": 31.313934601819703,
+      "ci95_low": 27.053287724747342,
+      "ci95_high": 35.58780672503513,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 7,
+      "method": "MDM-0.1",
+      "parameter": "gamma",
+      "rmse": 0.33293564734907594,
+      "MLE_rmse": 0.5366533162358025,
+      "gain_percent": 37.96075841208706,
+      "ci95_low": 34.58297319637279,
+      "ci95_high": 41.225129108195084,
+      "common_valid_samples": 577
+    },
+    {
+      "n": 10,
+      "method": "AMDM",
+      "parameter": "beta",
+      "rmse": 0.38180298349150477,
+      "MLE_rmse": 0.9413254532239357,
+      "gain_percent": 59.43985343391367,
+      "ci95_low": 55.332510870662354,
+      "ci95_high": 62.98535709205494,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 10,
+      "method": "AMDM",
+      "parameter": "eta",
+      "rmse": 0.2975514072490994,
+      "MLE_rmse": 0.49828845563413027,
+      "gain_percent": 40.28530986726745,
+      "ci95_low": 37.40155836588227,
+      "ci95_high": 43.233931239400015,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 10,
+      "method": "AMDM",
+      "parameter": "gamma",
+      "rmse": 0.26457556383665437,
+      "MLE_rmse": 0.4642497754237221,
+      "gain_percent": 43.01008253688965,
+      "ci95_low": 40.12152595103781,
+      "ci95_high": 45.967222834261214,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 10,
+      "method": "WMLE",
+      "parameter": "beta",
+      "rmse": 0.4426923465400075,
+      "MLE_rmse": 0.9413254532239357,
+      "gain_percent": 52.971382530469654,
+      "ci95_low": 49.01181575885466,
+      "ci95_high": 56.405128029946795,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 10,
+      "method": "WMLE",
+      "parameter": "eta",
+      "rmse": 0.36407038713851325,
+      "MLE_rmse": 0.49828845563413027,
+      "gain_percent": 26.935817392118555,
+      "ci95_low": 23.844303253435644,
+      "ci95_high": 30.16023721975931,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 10,
+      "method": "WMLE",
+      "parameter": "gamma",
+      "rmse": 0.32804826475428006,
+      "MLE_rmse": 0.4642497754237221,
+      "gain_percent": 29.3379809489688,
+      "ci95_low": 26.054585270462056,
+      "ci95_high": 32.80339316254207,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 10,
+      "method": "MDM-0.1",
+      "parameter": "beta",
+      "rmse": 0.4056002091208843,
+      "MLE_rmse": 0.9413254532239357,
+      "gain_percent": 56.9117983868652,
+      "ci95_low": 52.729646221013425,
+      "ci95_high": 60.56843941228681,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 10,
+      "method": "MDM-0.1",
+      "parameter": "eta",
+      "rmse": 0.3433411678235246,
+      "MLE_rmse": 0.49828845563413027,
+      "gain_percent": 31.09590159246558,
+      "ci95_low": 28.025642951006223,
+      "ci95_high": 34.249783988420894,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 10,
+      "method": "MDM-0.1",
+      "parameter": "gamma",
+      "rmse": 0.306948073110135,
+      "MLE_rmse": 0.4642497754237221,
+      "gain_percent": 33.88298942525441,
+      "ci95_low": 30.789230330268595,
+      "ci95_high": 37.057811330317605,
+      "common_valid_samples": 733
+    },
+    {
+      "n": 15,
+      "method": "AMDM",
+      "parameter": "beta",
+      "rmse": 0.3225597938240942,
+      "MLE_rmse": 0.5988850967017056,
+      "gain_percent": 46.1399531228015,
+      "ci95_low": 41.15299762029079,
+      "ci95_high": 50.02288577279178,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 15,
+      "method": "AMDM",
+      "parameter": "eta",
+      "rmse": 0.27330097278397325,
+      "MLE_rmse": 0.41559286367918796,
+      "gain_percent": 34.23829024288908,
+      "ci95_low": 30.976668248550745,
+      "ci95_high": 37.454967262696044,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 15,
+      "method": "AMDM",
+      "parameter": "gamma",
+      "rmse": 0.2403864608234204,
+      "MLE_rmse": 0.3805535761510678,
+      "gain_percent": 36.832426263156556,
+      "ci95_low": 33.322118239366446,
+      "ci95_high": 40.15067913064691,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 15,
+      "method": "WMLE",
+      "parameter": "beta",
+      "rmse": 0.350675370329172,
+      "MLE_rmse": 0.5988850967017056,
+      "gain_percent": 41.44530023196798,
+      "ci95_low": 36.471521664261545,
+      "ci95_high": 45.43778495238507,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 15,
+      "method": "WMLE",
+      "parameter": "eta",
+      "rmse": 0.3168679069245604,
+      "MLE_rmse": 0.41559286367918796,
+      "gain_percent": 23.755209817759805,
+      "ci95_low": 20.084284561882818,
+      "ci95_high": 27.07566642690834,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 15,
+      "method": "WMLE",
+      "parameter": "gamma",
+      "rmse": 0.28188425915364806,
+      "MLE_rmse": 0.3805535761510678,
+      "gain_percent": 25.927838596437493,
+      "ci95_low": 21.92675151444492,
+      "ci95_high": 29.545263181396937,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 15,
+      "method": "MDM-0.1",
+      "parameter": "beta",
+      "rmse": 0.3459351397068478,
+      "MLE_rmse": 0.5988850967017056,
+      "gain_percent": 42.23680942938005,
+      "ci95_low": 36.5415864625255,
+      "ci95_high": 46.73752733287139,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 15,
+      "method": "MDM-0.1",
+      "parameter": "eta",
+      "rmse": 0.3066555280134167,
+      "MLE_rmse": 0.41559286367918796,
+      "gain_percent": 26.212513540623295,
+      "ci95_low": 22.4620933177865,
+      "ci95_high": 29.778637625500963,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 15,
+      "method": "MDM-0.1",
+      "parameter": "gamma",
+      "rmse": 0.27212631513216373,
+      "MLE_rmse": 0.3805535761510678,
+      "gain_percent": 28.49198320918205,
+      "ci95_low": 24.508869208113012,
+      "ci95_high": 32.08417487509293,
+      "common_valid_samples": 886
+    },
+    {
+      "n": 20,
+      "method": "AMDM",
+      "parameter": "beta",
+      "rmse": 0.29293982360317433,
+      "MLE_rmse": 0.4904571898795507,
+      "gain_percent": 40.27209109216726,
+      "ci95_low": 35.90520084253058,
+      "ci95_high": 44.25630127792764,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 20,
+      "method": "AMDM",
+      "parameter": "eta",
+      "rmse": 0.2524978403535857,
+      "MLE_rmse": 0.3696467998281125,
+      "gain_percent": 31.69213409368121,
+      "ci95_low": 28.550844813268213,
+      "ci95_high": 34.80557533933554,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 20,
+      "method": "AMDM",
+      "parameter": "gamma",
+      "rmse": 0.22501056436285322,
+      "MLE_rmse": 0.33989467563948533,
+      "gain_percent": 33.79991494732497,
+      "ci95_low": 30.365780167958857,
+      "ci95_high": 37.260823309467966,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 20,
+      "method": "WMLE",
+      "parameter": "beta",
+      "rmse": 0.329169303100803,
+      "MLE_rmse": 0.4904571898795507,
+      "gain_percent": 32.88521202398067,
+      "ci95_low": 28.942744492903575,
+      "ci95_high": 36.75832765214436,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 20,
+      "method": "WMLE",
+      "parameter": "eta",
+      "rmse": 0.28827912845282216,
+      "MLE_rmse": 0.3696467998281125,
+      "gain_percent": 22.012275343145582,
+      "ci95_low": 18.809072698553617,
+      "ci95_high": 25.236046961669082,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 20,
+      "method": "WMLE",
+      "parameter": "gamma",
+      "rmse": 0.25809539831996414,
+      "MLE_rmse": 0.33989467563948533,
+      "gain_percent": 24.066066102866202,
+      "ci95_low": 20.400083737504467,
+      "ci95_high": 27.776453539041707,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 20,
+      "method": "MDM-0.1",
+      "parameter": "beta",
+      "rmse": 0.315046941696154,
+      "MLE_rmse": 0.4904571898795507,
+      "gain_percent": 35.76463997326148,
+      "ci95_low": 31.103190743895265,
+      "ci95_high": 40.07649008600954,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 20,
+      "method": "MDM-0.1",
+      "parameter": "eta",
+      "rmse": 0.2736893500694104,
+      "MLE_rmse": 0.3696467998281125,
+      "gain_percent": 25.95922643001989,
+      "ci95_low": 22.597907918984824,
+      "ci95_high": 29.407653493566112,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 20,
+      "method": "MDM-0.1",
+      "parameter": "gamma",
+      "rmse": 0.24550901174376352,
+      "MLE_rmse": 0.33989467563948533,
+      "gain_percent": 27.769091621733278,
+      "ci95_low": 23.987265288317126,
+      "ci95_high": 31.550592423524947,
+      "common_valid_samples": 1009
+    },
+    {
+      "n": 30,
+      "method": "AMDM",
+      "parameter": "beta",
+      "rmse": 0.25843516115294485,
+      "MLE_rmse": 0.3860259482732133,
+      "gain_percent": 33.052386164974834,
+      "ci95_low": 27.90952059419381,
+      "ci95_high": 37.78281010120757,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 30,
+      "method": "AMDM",
+      "parameter": "eta",
+      "rmse": 0.2230116817010466,
+      "MLE_rmse": 0.3073790047101518,
+      "gain_percent": 27.447327799327336,
+      "ci95_low": 23.582852332502004,
+      "ci95_high": 31.083000249859772,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 30,
+      "method": "AMDM",
+      "parameter": "gamma",
+      "rmse": 0.19408899892855225,
+      "MLE_rmse": 0.2790539849458206,
+      "gain_percent": 30.447508582887515,
+      "ci95_low": 26.143153040633486,
+      "ci95_high": 34.49867517668295,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 30,
+      "method": "WMLE",
+      "parameter": "beta",
+      "rmse": 0.26596988051926407,
+      "MLE_rmse": 0.3860259482732133,
+      "gain_percent": 31.1005175405925,
+      "ci95_low": 26.208633631266707,
+      "ci95_high": 35.73447100984387,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 30,
+      "method": "WMLE",
+      "parameter": "eta",
+      "rmse": 0.2416787736101865,
+      "MLE_rmse": 0.3073790047101518,
+      "gain_percent": 21.37433920118208,
+      "ci95_low": 17.501090094001675,
+      "ci95_high": 24.99490045755119,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 30,
+      "method": "WMLE",
+      "parameter": "gamma",
+      "rmse": 0.21137418235043867,
+      "MLE_rmse": 0.2790539849458206,
+      "gain_percent": 24.253300883168627,
+      "ci95_low": 19.857121221792248,
+      "ci95_high": 28.392977995617112,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 30,
+      "method": "MDM-0.1",
+      "parameter": "beta",
+      "rmse": 0.27589432801683744,
+      "MLE_rmse": 0.3860259482732133,
+      "gain_percent": 28.529589979383772,
+      "ci95_low": 22.89784190884698,
+      "ci95_high": 33.62472800434511,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 30,
+      "method": "MDM-0.1",
+      "parameter": "eta",
+      "rmse": 0.24032312627062855,
+      "MLE_rmse": 0.3073790047101518,
+      "gain_percent": 21.815373663127936,
+      "ci95_low": 17.695449823644406,
+      "ci95_high": 25.56143105692152,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 30,
+      "method": "MDM-0.1",
+      "parameter": "gamma",
+      "rmse": 0.21082862946386907,
+      "MLE_rmse": 0.2790539849458206,
+      "gain_percent": 24.448801723866353,
+      "ci95_low": 19.712658403120432,
+      "ci95_high": 28.690771406612182,
+      "common_valid_samples": 1098
+    },
+    {
+      "n": 50,
+      "method": "AMDM",
+      "parameter": "beta",
+      "rmse": 0.2194171440322139,
+      "MLE_rmse": 0.3031200447985814,
+      "gain_percent": 27.613779491879786,
+      "ci95_low": 22.182351993651604,
+      "ci95_high": 32.602537267587586,
+      "common_valid_samples": 1149
+    },
+    {
+      "n": 50,
+      "method": "AMDM",
+      "parameter": "eta",
+      "rmse": 0.17514620528667388,
+      "MLE_rmse": 0.24500915781763064,
+      "gain_percent": 28.514424992619393,
+      "ci95_low": 24.188201615629215,
+      "ci95_high": 32.7580760377907,
+      "common_valid_samples": 1149
+    },
+    {
+      "n": 50,
+      "method": "AMDM",
+      "parameter": "gamma",
+      "rmse": 0.15185010354507356,
+      "MLE_rmse": 0.2243550552477698,
+      "gain_percent": 32.317057274517104,
+      "ci95_low": 27.44111016681551,
+      "ci95_high": 37.11910794593235,
+      "common_valid_samples": 1149
+    },
+    {
+      "n": 50,
+      "method": "WMLE",
+      "parameter": "beta",
+      "rmse": 0.2204898894656521,
+      "MLE_rmse": 0.3031200447985814,
+      "gain_percent": 27.25987830591533,
+      "ci95_low": 22.210108699070407,
+      "ci95_high": 32.23964853180902,
+      "common_valid_samples": 1149
+    },
+    {
+      "n": 50,
+      "method": "WMLE",
+      "parameter": "eta",
+      "rmse": 0.1868514639671764,
+      "MLE_rmse": 0.24500915781763064,
+      "gain_percent": 23.736946964955152,
+      "ci95_low": 19.161021233393637,
+      "ci95_high": 28.261699159255915,
+      "common_valid_samples": 1149
+    },
+    {
+      "n": 50,
+      "method": "WMLE",
+      "parameter": "gamma",
+      "rmse": 0.16333104903603635,
+      "MLE_rmse": 0.2243550552477698,
+      "gain_percent": 27.199746466305697,
+      "ci95_low": 22.01096262831786,
+      "ci95_high": 32.1559722883519,
+      "common_valid_samples": 1149
+    },
+    {
+      "n": 50,
+      "method": "MDM-0.1",
+      "parameter": "beta",
+      "rmse": 0.23679103072304108,
+      "MLE_rmse": 0.3031200447985814,
+      "gain_percent": 21.882094310066137,
+      "ci95_low": 15.872998849358504,
+      "ci95_high": 27.34690848033278,
+      "common_valid_samples": 1149
+    },
+    {
+      "n": 50,
+      "method": "MDM-0.1",
+      "parameter": "eta",
+      "rmse": 0.19031193987207182,
+      "MLE_rmse": 0.24500915781763064,
+      "gain_percent": 22.324560613473878,
+      "ci95_low": 17.36889187912265,
+      "ci95_high": 27.08638366630585,
+      "common_valid_samples": 1149
+    },
+    {
+      "n": 50,
+      "method": "MDM-0.1",
+      "parameter": "gamma",
+      "rmse": 0.16725748683567643,
+      "MLE_rmse": 0.2243550552477698,
+      "gain_percent": 25.44964647622352,
+      "ci95_low": 19.801226690740016,
+      "ci95_high": 30.643410039405783,
+      "common_valid_samples": 1149
+    }
+  ]
+}

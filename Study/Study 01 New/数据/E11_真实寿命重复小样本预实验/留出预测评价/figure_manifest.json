@@ -1,0 +1,29 @@
+{
+  "archetype": "quantitative grid",
+  "backend": "Python matplotlib",
+  "purpose": "Compare holdout predictive scores and conditional subsampling spread; no assumed winner",
+  "size_mm": [
+    200,
+    150
+  ],
+  "files": [
+    "P11_留出预测误差.png",
+    "P11_留出预测误差.svg",
+    "P11_留出预测误差.pdf"
+  ],
+  "data_sha256": "dea18f2e8db227d90ef1d01a030d71374a55438d5ffaffa5f978cf9b5718a60f",
+  "script_sha256": "237d32002d675150c2eb8db47d7ae35f0c88c7f5a88f5625bc4735773f97c422",
+  "center": "white circle median, hollow diamond mean, numeric means under method labels",
+  "spread": "Scott-bandwidth KDE plus IQR",
+  "ordering": "fixed original method order and colors",
+  "focus_ylim": [
+    215,
+    260
+  ],
+  "overview_ylim": [
+    200.0,
+    410.0
+  ],
+  "all_observations_included": true,
+  "scope": "all-six-successful subsets; separate success rates and paired sensitivity"
+}

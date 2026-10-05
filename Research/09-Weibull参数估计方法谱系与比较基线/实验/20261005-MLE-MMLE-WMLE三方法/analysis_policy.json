@@ -1,0 +1,33 @@
+{
+  "primary_precision": "Each method own successful samples; all estimates, without display-range filtering",
+  "diagnostic_precision": "Three-method common cohort and pairwise common cohorts against WMLE",
+  "reason": "Only9 three-method common successes at n7; do not replace full success-conditional results with that selective cohort.",
+  "success_rate_denominator": "All1200 samples per n",
+  "parameter_metrics": [
+    "Bias",
+    "SD(ddof0)",
+    "RMSE"
+  ],
+  "identity": "RMSE^2=Bias^2+SD(ddof0)^2",
+  "sd_computation": "Shared sample SD(ddof1) converted by sqrt((k-1)/k); shared metric code unchanged",
+  "joint_rmse": "sqrt(MSE_beta_raw+MSE_eta_raw+MSE_gamma_raw)",
+  "joint_units": "Fixed original numerical units, eta/gamma dominate; not unit-invariant",
+  "figure": "Research00 violin:3 parameter rows x5 n columns; PNG only; linear common parameter limits and ticks",
+  "figure_ranges": {
+    "beta": [
+      0,
+      10
+    ],
+    "eta": [
+      0,
+      2000
+    ],
+    "gamma": [
+      0,
+      2000
+    ]
+  },
+  "figure_density": "Only in-range successful values; Scott; actual extrema; gamma0 scatter kept but omitted from positive KDE",
+  "figure_symbols": "Centerline scatter without jitter, IQR0.5pt, white-diamond median, thin black dashed truth",
+  "update_applied": "1791174635732681300-b18f438c.md"
+}

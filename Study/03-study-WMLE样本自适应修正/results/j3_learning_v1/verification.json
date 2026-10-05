@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "dev_samples": 3300,
+  "test_samples": 1650,
+  "candidate_rows": 29700,
+  "valid_candidates": 22195,
+  "sample_hash_overlap": 0,
+  "observed_only_predictions_reproduced": 4950,
+  "online_inference_cases": 12,
+  "maximum_equation_residual": 6.662216246319338e-09,
+  "models_frozen_hash_verified": true,
+  "packages": {
+    "numpy": "2.1.1",
+    "scipy": "1.14.1",
+    "pandas": "2.2.3",
+    "scikit-learn": "1.9.0",
+    "joblib": "1.5.3"
+  },
+  "scripts": [
+    {
+      "path": "scripts\\run_j3_learning.py",
+      "sha256": "446b806db9b108f01a9fe04d42e39feff095fa5bb11a7d82281e3f72c9f8d14b"
+    },
+    {
+      "path": "scripts\\analyze_j3_learning.py",
+      "sha256": "c02d1bec52333ce6ec67bb78ee4fe487694338d4e32b08fc314ecabdd0cd8c8f"
+    },
+    {
+      "path": "scripts\\predict_j3_sample.py",
+      "sha256": "a14e830f1e79dbc64f4cd37a631756aace7d588ce773abe88c170436bef594ce"
+    },
+    {
+      "path": "scripts\\verify_j3_learning.py",
+      "sha256": "3d22813242dca3025d6af379f74a8865357da5897eb78c197f2682d113aa5068"
+    }
+  ],
+  "limitation": "Independent seed at seen parameter grid; exploratory pilot; no training-seed uncertainty interval.",
+  "document_links_checked": 76,
+  "figure_visually_reviewed": "fresh_test_comparison.png"
+}

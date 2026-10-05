@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-10-05T06:16:29+00:00",
+  "code_version": "research-wrapper-006",
+  "run_label": "research09-mmle-domain-fix-006",
+  "methods": [
+    {
+      "method_id": "cw_engineering",
+      "variant": "cw_engineering",
+      "kwargs": {}
+    },
+    {
+      "method_id": "cw_paper",
+      "variant": "cw_paper",
+      "kwargs": {}
+    }
+  ],
+  "param_grid": [
+    [
+      2.0,
+      1000.0,
+      1000.0
+    ]
+  ],
+  "n_values": [
+    20
+  ],
+  "n_repeats": 100,
+  "seed_namespace": "study01_selector_confirmation_20260922_v1:research09-versions:block10",
+  "metrics": {
+    "primary": [
+      "bias",
+      "sd",
+      "rmse",
+      "mae"
+    ],
+    "R_levels": [
+      0.95,
+      0.99
+    ],
+    "diagnostics": [
+      "mdape",
+      "med_rel",
+      "p95_abs"
+    ],
+    "diagnostic_R_levels": [
+      0.5,
+      0.9,
+      0.95,
+      0.99,
+      0.999
+    ]
+  },
+  "total_rows": 200,
+  "output_files": [
+    "results.csv",
+    "summary.json",
+    "manifest.json"
+  ],
+  "source_sha256": {
+    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\run_domains.py": "83fb98df0ec38b0ec28434df5adb90171e969f8198e653a02f44e12fe5d0a3ae",
+    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\domain_solver.py": "8d911447bd50e52867e5b7039632ea7d0faa6016aeb27139dc5fba92bc78f368",
+    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\config.json": "9d3a2a17d6103755d706bd5775850d95476d1f3b8bb6df7ba1d3fe52418d28b7",
+    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MLE-MMLE-WMLE三方法\\per_sample.csv.gz": "9d822f8e08365a57db44dee35473b08d4330aa6ca72a6ed696e07b633850a22c",
+    "D:\\weibull\\python\\studies\\common\\sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "D:\\weibull\\python\\studies\\common\\runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "D:\\weibull\\python\\studies\\common\\experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+    "D:\\weibull\\python\\studies\\common\\metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3"
+  },
+  "block": 10
+}
