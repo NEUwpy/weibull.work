@@ -15,12 +15,11 @@ PARAMS=['beta','eta','gamma'];LABELS=['β','η','γ'];TRUTH=json.loads((HERE/'co
 def setting_title(suffix=''):
     try:
         _c=json.loads((HERE/'config.json').read_text(encoding='utf-8'))
-        _t=_c.get('truth',TRUTH);_b=_c.get('blocks');_r=_c.get('repeats')
-        _extra='，每 n %d×%d=%d 组'%(_b,_r,_b*_r) if _b and _r else ''
+        _t=_c.get('truth',TRUTH)
     except Exception:
-        _t=TRUTH;_extra=''
+        _t=TRUTH
     _f=lambda v:('%g'%v)
-    _h='三参数 Weibull 抽样估计 ｜ 真值 β=%s、η=%s、γ=%s%s'%(_f(_t[0]),_f(_t[1]),_f(_t[2]),_extra)
+    _h='三参数 Weibull 抽样估计 ｜ 真值 β=%s、η=%s、γ=%s'%(_f(_t[0]),_f(_t[1]),_f(_t[2]))
     return _h+(' ｜ '+suffix if suffix else '')
 plt.rcParams.update({'font.family':'sans-serif','font.sans-serif':['Microsoft YaHei','Arial','DejaVu Sans'],
  'font.size':8,'axes.linewidth':.7,'axes.spines.top':False,'axes.spines.right':False,'axes.unicode_minus':False})
