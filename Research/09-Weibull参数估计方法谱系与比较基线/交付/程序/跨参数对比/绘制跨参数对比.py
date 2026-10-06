@@ -175,7 +175,7 @@ def draw_scan(data, out, points):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source',type=Path,default=ROOT/'实验/跨组合汇总/跨组合汇总.csv')
-    parser.add_argument('--output',type=Path,default=ROOT/'交付/结果/跨参数对比')
+    parser.add_argument('--output',type=Path,default=ROOT/'交付/结果')
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     fontpath=Path('C:/Windows/Fonts/msyh.ttc')
     assert fontpath.exists()
