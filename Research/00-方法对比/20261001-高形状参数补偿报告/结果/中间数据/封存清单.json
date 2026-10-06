@@ -9,15 +9,16 @@
     "程序/推导判据与统一单例.py": "b4c9602a114e7ccc0a53ae6a243440833b695030d8ca834936513334c2beb66f",
     "程序/整合目录.py": "b4c28dba31570e3552f6fdf8072031c77fd1ff57821673c57f3e9e72a76a7068",
     "程序/构建公式与拟合点数据.py": "3ac19a58a2774025c37e05efa4c7210b4f10c62ebba362106b592a1c5ac273ed",
-    "程序/核验交付.py": "988e78588eb4eadffcbdd1b2bfacb52669c6a260cf574d323af2f2dc4390111f",
+    "程序/样本相容绘图数据.json": "40eeca058ff33494b03390b0a2d2d20ac86a3e4469835c9dc3bcd2b93ffb4eaf",
+    "程序/核验交付.py": "f7eb2417188edc66671f2bdc94becdafb99c0b8159826efeba2000837a6839f9",
     "程序/核验局部分位补偿.py": "b7d9d79f775b8fb8827d781296eef21aefdb2695ca26c9931e0650b9c2303896",
-    "程序/生成报告.py": "5213ff5b83b586729661eb68cf6457ca8de79efd9223c56a429744443b1d57c9",
+    "程序/生成报告.py": "92efbcfdec3bc91cd95116b8f0c3d068c162fd8565daa9da4a01b3f1ad1f08c4",
     "程序/生成统计表.mjs": "ca33270c8180cbb09aca73f6831e7af0ab7acefd168a6d5668d5e2bf2a9fb794",
     "程序/绘制公式与拟合点图.py": "ccca74253196498c5a994fd7f86a027042fad4d8ddf9640a77fb869e302d9168",
     "程序/绘制图1小提琴.py": "e7889faca68dd4a3e7789ffcb6fb3a7cc8c8e76bc93abf2c302c7f1b7c3ad73b",
     "程序/绘制寿命对照图.py": "a8020da83b3040ebbd2e9e33ddab8fe30fbfeac808ab67382292aa8ff6cfba83",
+    "程序/绘制样本相容分布.py": "92cd7d84e00a5447f0d42b365a0653c5997207ecd693946e890b31f108c2f096",
     "程序/绘制补充图.py": "9709ecf74d2c98e0dbd3f784417ae60a1f0dfe2c843544a97f1f39aa95554bf0",
-    "程序/绘制起点观测对比.py": "3cd5c9b418cfc1480c9d0fd1970ded485337b59fece23a8ad10a1101c318e411",
     "程序/绘制逐法分析图.py": "1cd00b1ef6e362af9072c59d95aa7c84e4a034b48272b0bcb64ccee759525f4e",
     "程序/统一六格坐标.py": "2a1cb27a76d2c361636feac95936e3b49c8730d36840ba65dfe0848fd5bd4c22",
     "程序/统一报告小提琴.py": "6f6e3a06807ca8b3d1b30b107e47a66d1704863fab57858016335e4d2763caa8",
@@ -25,7 +26,6 @@
     "程序/补齐六格过程数据.py": "e1495e77e387118b3189e790dd383fefe027f17f78cfb6171e5aca2d9b7c88fc",
     "程序/规范公式符号.py": "fa37eaec4eedcc0650f0b6995b6bfdd3b6365e6a9387ea99bb73827fa16a6941",
     "程序/计算逐法过程曲线.py": "cdb270d2b1511cd45c0496fc862b3f6cf42970147308f9a105f70ae6a764fc0d",
-    "程序/起点观测绘图数据.json": "8d76718f579c0c0d5deea9bb32fb2f772ad966cea172b41b0e9075a0e9dca615",
     "程序/连续形状实验.py": "81485e09265e8acb902d44ea82960089be75a03328c133bfbf1e0c7c9ad6fd07",
     "程序/连续形状扫描.py": "dff0722bef12cb280047ffc4649f3f567262d966ec6683b593bab129d4b80426",
     "程序/依赖快照/python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
@@ -53,7 +53,7 @@
   },
   "output_hashes": {
     "结果/图1_原案例参数分布.png": "d7d09c802a995682edd96c2f33696ff9fc952b80e120619b72d1cc79abc99c47",
-    "结果/图2_起点附近观测.png": "54b72f4a96703a57966d72135a2641443acf1720b159eca63bc27dbf4031a01b",
+    "结果/图2_样本与分布相容.png": "00330cf4a364a4b87d3c3cb2476bdd7493aba7814a9d8412ad7411164c8eddde",
     "结果/图3_MDM六格机制.pdf": "88104ed340f1e38d884a5bfb1a936b2235e79e6fb88d9b93b8d9ef26c55cbab4",
     "结果/图3_MDM六格机制.png": "0f507a606596a8fa8db292f5248febe22f7f6340c2d61de00f50b232adc8c763",
     "结果/图3_MDM六格机制.svg": "dc7d37e1bceffac3df37f02acbae613aaa141b76304d741ee541b95ed655ee1c",
@@ -94,7 +94,7 @@
     "结果/中间数据/CDF对照.csv": "fc25fdc4ba1db98df1d2726289f5a3dc2b7f79d3ccbf7da296a831413591977a",
     "结果/中间数据/WMLE近似解诊断.json": "0cb5be1d233db2759e0e955209d29555cea58dfecca8ead5c97dcd7134a50011",
     "结果/中间数据/manifest.json": "22c9f04800035621f989977fad4703cc699de22e681d1c2ec71a1f8ce6763037",
-    "结果/中间数据/交付复核.json": "110607567b9675a94c759a090d94e149dfb49545fb33981c9e38691107e70c13",
+    "结果/中间数据/交付复核.json": "46487533e278baf1c7e570289536c4783449cba06d1639e40ec765acfd0a7442",
     "结果/中间数据/代表样本曲线.csv": "2a46790a48c6ce87a893d21bbcf5528b42dc86eed64fb1735073448fdfe4baea",
     "结果/中间数据/代表样本曲线.json": "13630fd1255d004d2129bf013065b6a0141828e15241a18bd23da430864457cf",
     "结果/中间数据/代表样本绘图位置.csv": "10cb88ea0df9cbff40c09ec8c570ba8acb34058c6c90ecf09a4330ef1a2adaaf",
@@ -161,11 +161,11 @@
     "结果/独立种子扫描/b5_n7/summary.json": "fae2406d561f0e603723441aac7da16cc9e14b62618be90b8b5a5bedeac27b05"
   },
   "document_hashes": {
-    "README.md": "18782f11368f418b6d7f388dd871c087ff38ee7e181cec075847d31280f74b47",
+    "README.md": "ded7ece9bf8702c487578da3b4be8ebf9aad32e3325850d9675309d8303c77be",
     "本轮修改意见.md": "646a50a538d43b3923234c0c8aef48fe5a6d8daa01297c0647fe10088652aa51",
     "../README.md": "722be482b43fe12fb45954b781548c1156485a61eba7bd1e9bc2784764670cca",
-    "../高形状参数下的位置与尺度补偿报告.md": "0b5eebbb2360a0f655a0e71a7eea054cf477f891c242d037b3f44bf8bd277028"
+    "../高形状参数下的位置与尺度补偿报告.md": "8503a09e12c1562bc4d609cfb15531364de068d7d55a8f57eef1956e34e110fa"
   },
-  "sealed_at_utc": "2026-10-05T19:16:19.764238+00:00",
+  "sealed_at_utc": "2026-10-06T00:21:14.557178+00:00",
   "seal_scope": "All batch code, frozen inputs, outputs, batch Markdown, Research00 README and report; excluding runtime, caches and manifest itself."
 }

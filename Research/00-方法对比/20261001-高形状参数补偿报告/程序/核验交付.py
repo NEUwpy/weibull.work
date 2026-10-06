@@ -316,29 +316,37 @@ def main():
     for name, expected in clean_style['scientific_input_hashes'].items():
         assert digest(ROOT / name) == expected
     assert len(clean_style['figures']) == 12
-    from 绘制起点观测对比 import source_data
-    lower_tail = json.loads((ROOT / '程序' / '起点观测绘图数据.json').read_text(encoding='utf-8'))
-    density_curves, minimum_rows = source_data()
-    assert digest(ROOT / lower_tail['source_path']) == lower_tail['source_sha256']
-    assert lower_tail['density_curves'] == density_curves
-    assert lower_tail['sample_minimum_rows'] == minimum_rows
-    assert lower_tail['samples'] == 200 and lower_tail['omitted_sample_minima'] == 0
-    assert lower_tail['new_samples'] == lower_tail['new_fits'] == 0
-    assert lower_tail['formats'] == ['png']
-    assert lower_tail['axis_settings'][0] == lower_tail['axis_settings'][1]
-    assert lower_tail['axis_settings'][0]['x_scale'] == 'linear'
-    for item in lower_tail['existing_exports_renumbered_without_redrawing']:
+    from 绘制样本相容分布 import source_data
+    compatibility = json.loads((ROOT / '程序' / '样本相容绘图数据.json').read_text(encoding='utf-8'))
+    for key, expected in source_data().items():
+        assert compatibility[key] == expected, key
+    for name, expected in compatibility['source_hashes'].items():
+        assert digest(ROOT / name) == expected
+    assert compatibility['sample_id'] == provenance['sample_id'] == 31
+    assert compatibility['n'] == 7
+    assert compatibility['observations'] == provenance['observations']
+    assert compatibility['plotting_positions'] == provenance['plotting_positions']
+    assert compatibility['actual_fit_parameters_beta_eta_gamma'] == provenance['fit_parameters_beta_eta_gamma']
+    assert [curve['parameters_beta_eta_gamma'] for curve in compatibility['curves']] == [
+        [5., 1000., 500.], [2., 500., 1000.]]
+    assert compatibility['new_samples'] == compatibility['new_fits'] == 0
+    assert compatibility['formats'] == ['png']
+    assert compatibility['axis_settings']['x_scale'] == compatibility['axis_settings']['y_scale'] == 'linear'
+    assert compatibility['plotted_curve_count'] == 2
+    assert compatibility['plotted_sample_point_count'] == 7
+    assert compatibility['extra_annotation_count'] == 0
+    for item in compatibility['existing_exports_renumbered_without_redrawing']:
         assert digest(ROOT / item['to']) == item['sha256']
         assert not (ROOT / item['from']).exists()
-    with Image.open(ROOT / lower_tail['figure']) as png:
-        assert list(png.size) == lower_tail['png_dimensions']
+    with Image.open(ROOT / compatibility['figure']) as png:
+        assert list(png.size) == compatibility['png_dimensions']
         assert all(abs(value - 450) < .1 for value in png.info['dpi'])
     numbers = [int(value) for value in re.findall(r'^!\[图(\d+)', report.read_text(encoding='utf-8'), re.M)]
     assert numbers == list(range(1, 9)), numbers
-    export_names = {item['file'] for item in clean_style['figures']} | {'图1_原案例参数分布', '图2_起点附近观测'}
+    export_names = {item['file'] for item in clean_style['figures']} | {'图1_原案例参数分布', '图2_样本与分布相容'}
     assert len(export_names) == 14
     for extension in ('png','pdf','svg'):
-        expected_exports=export_names if extension=='png' else export_names-{'图1_原案例参数分布', '图2_起点附近观测'}
+        expected_exports=export_names if extension=='png' else export_names-{'图1_原案例参数分布', '图2_样本与分布相容'}
         assert {p.stem for p in (ROOT / '结果').glob(f'*.{extension}')} == expected_exports
     for item in clean_style['figures']:
         base = ROOT / '结果' / item['file']
@@ -373,9 +381,11 @@ def main():
         'principle_derivation_checks_at_true_and_returned_gamma': derivation_checks,
         'original_case_auxiliary_panels_checked': 6,
         'current_figures': 14, 'current_export_files': 38,
-        'lower_tail_figure_sample_minima_checked': 200,
-        'lower_tail_theoretical_curves_checked': 2,
-        'lower_tail_shared_linear_axes_checked': True,
+        'sample_compatibility_curves_checked': 2,
+        'sample_compatibility_observations_checked': 7,
+        'sample_compatibility_reuses_figure8_sample': True,
+        'sample_compatibility_scipy_cdf_check': True,
+        'sample_compatibility_axes_linear': True,
         'main_figure_numbers_in_reading_order': numbers,
         'original_process_cases': 10, 'process_candidate_points': curve_points,
         'process_inputs_hash_checked': True, 'saved_fits_and_failures_unchanged': True,
