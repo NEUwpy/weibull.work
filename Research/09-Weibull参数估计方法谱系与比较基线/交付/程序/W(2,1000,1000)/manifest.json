@@ -4,38 +4,44 @@
     1000.0,
     1000.0
   ],
-  "n": [
-    7,
-    10,
-    15,
-    20,
-    50
-  ],
-  "groups_per_n": 1200,
-  "source_batch": "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法",
-  "latest_task": "research09-package-012",
+  "latest_task": "research09-delivery-fix-022",
+  "file_base": "实验/W(2,1000,1000)",
+  "delivery_mapping": {
+    "程序": "交付/程序/W(2,1000,1000)",
+    "结果": "交付/结果/W(2,1000,1000)",
+    "数据": "实验/W(2,1000,1000)/数据"
+  },
   "verification": {
-    "result_files_identical": 7,
+    "sample_groups": 6000,
+    "estimate_rows": 18000,
+    "valid_rows": 16344,
+    "failed_rows": 1656,
+    "summary_rows": 15,
     "workbook_cells_verified": 188610,
-    "original_sample_sha_verified": 6000,
-    "graph_points_verified": 150,
-    "scientific_files_unchanged": 270,
-    "other_batch_files_unchanged": 3882,
-    "estimation_reruns": 0,
-    "drawing_entry": "passed in new folder",
-    "workbook_entry": "passed in new folder",
-    "compute_import": "--help passed; not fitted"
+    "reason_columns_all_dash": true,
+    "other_19_columns_unchanged": true,
+    "no_refit_in_delivery_fix": true
   },
   "files": [
     {
-      "path": "程序/bootstrap_saved_data.py",
-      "bytes": 2115,
-      "sha256": "9a31d5abec7a8ceb7ecce8b547b15eb1ec55f4cbc3f27c5811e41fcfef2a35c6"
+      "path": "数据/三方法汇总.csv",
+      "bytes": 3147,
+      "sha256": "17b3102ac4e639a493deaef6b302d4e885e0bba5490963226bb5dd714a67b282"
+    },
+    {
+      "path": "数据/估计明细.csv",
+      "bytes": 4212881,
+      "sha256": "64007126b3866877108c8578a2b62f53588b43eeafca1e395ea84b044f22432b"
+    },
+    {
+      "path": "数据/样本.csv",
+      "bytes": 3389939,
+      "sha256": "de619f78d1ca861b7d8a4eb22166280dc67f69959e1b7010596134d17b361f40"
     },
     {
       "path": "程序/compute.py",
-      "bytes": 6365,
-      "sha256": "b16e2790359d3459380120673fd4b78c4d99946a1b7e687ff865a6464f72f252"
+      "bytes": 6971,
+      "sha256": "9b9d1cc19c53cedec15f94426a7258af9e0f0ff6c2c4e65840a0c7a00c214dfc"
     },
     {
       "path": "程序/config.json",
@@ -44,23 +50,23 @@
     },
     {
       "path": "程序/draw.py",
-      "bytes": 8458,
-      "sha256": "dfb3985775eb13b4cad349a624328ba7d9b7c3879396e15f6a501094c950b8c3"
+      "bytes": 9047,
+      "sha256": "582fec1446570336016e38c9e4ebb564fa134138621f4128d25d3b53e07093d2"
     },
     {
       "path": "程序/export_details.py",
-      "bytes": 4450,
-      "sha256": "33c3f7256f4b2ca048e30a8ada128c99b0b5e13e83b2c90188de902aeadb9a25"
+      "bytes": 4102,
+      "sha256": "a2a8b102b30f8ac285efa2d411865269f211ce83c6a325253a757272d4dcc153"
     },
     {
       "path": "程序/export_workbook.ps1",
-      "bytes": 1612,
-      "sha256": "b342e135c1f2e520d4a661ce3fe40b335c34c01fa4fb34dd8a2b9275b6166846"
+      "bytes": 2058,
+      "sha256": "e206cba9be4f747252e65839179599c1555d1675dfec8584fab29af7061a8b68"
     },
     {
       "path": "程序/lean_workbook.mjs",
-      "bytes": 4571,
-      "sha256": "5954d8e5103d97db14f87b7dee9e989a05d3148819246c6159b35096915f30d8"
+      "bytes": 4864,
+      "sha256": "51affbb73c55ad48e9f24ceca71e4a176cc7375a913a823a10a64982c6abb2ca"
     },
     {
       "path": "程序/prepare_tables.py",
@@ -69,18 +75,13 @@
     },
     {
       "path": "程序/README.md",
-      "bytes": 3598,
-      "sha256": "b86511f33678dc31cf4561d164cfcfceed565e3ce5f34ad2ed7bc5638f2535b0"
+      "bytes": 5007,
+      "sha256": "8e8bf5ee4158e03e6d4aba68375a162f7076e5ea739f93abdd54e592f44466cf"
     },
     {
       "path": "程序/reproduce.py",
-      "bytes": 1558,
-      "sha256": "fec3fbd1e5a15e18efa7866543058e91955bf3624a8fb67dcb9d87e4a4cb3694"
-    },
-    {
-      "path": "程序/source_snapshot/paper_solver.py",
-      "bytes": 6085,
-      "sha256": "23996579482b6a2f0415aec5ea39d729f586a4c87cdcf15de08344f4da152147"
+      "bytes": 1538,
+      "sha256": "3438142f9354ed3d7d7eb30d63d82aa6441726db6eb9d0afef8d598a35055104"
     },
     {
       "path": "程序/source_snapshot/python/base.py",
@@ -198,11 +199,6 @@
       "sha256": "1c019d834537544c1755ddbaa8ce170ea1523fdb09525e680a2e9ec807d699c5"
     },
     {
-      "path": "程序/source_snapshot/执行时compute.py",
-      "bytes": 6315,
-      "sha256": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c"
-    },
-    {
       "path": "程序/summarize.py",
       "bytes": 5614,
       "sha256": "6ff39dff9d277dee246494a4c4371531044bd1cd207b5c7b52e68e0307a72e7c"
@@ -213,14 +209,59 @@
       "sha256": "1be0be66226b965355c742182d0d239a9710970d7a890823ee55c1622888147e"
     },
     {
+      "path": "程序/估计明细数据.json",
+      "bytes": 4844835,
+      "sha256": "cb8abd45c2adcb7c8aacbf824c3346233d92158debeb0aef353d0e59d08e3847"
+    },
+    {
+      "path": "程序/共同成功统计.csv",
+      "bytes": 3126,
+      "sha256": "fceb305f6bc14e42557d64060d9f0dfde24723a4072e0d7ba8d57ebf0f8ba52c"
+    },
+    {
+      "path": "程序/历史来源/paper_solver.py",
+      "bytes": 6085,
+      "sha256": "23996579482b6a2f0415aec5ea39d729f586a4c87cdcf15de08344f4da152147"
+    },
+    {
+      "path": "程序/历史来源/README.md",
+      "bytes": 318,
+      "sha256": "bfd7183796e5cef41c41e22e91ad01ad02b6241501e4769e1be841424cf4c2bc"
+    },
+    {
+      "path": "程序/历史来源/执行时compute.py",
+      "bytes": 6315,
+      "sha256": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c"
+    },
+    {
+      "path": "程序/原版固定点结果核验.csv.gz",
+      "bytes": 142409,
+      "sha256": "2c248b0a8818fefc9c38e273b94e5c514ad8cdac5454d577066964b6666aafd2"
+    },
+    {
+      "path": "程序/失败逐样本.csv.gz",
+      "bytes": 107759,
+      "sha256": "038fe5e28109d4ae62e9cf44d3c96e17a5907b12a00277e38d85d39ce3fc3aaa"
+    },
+    {
       "path": "程序/方法与结果说明.md",
-      "bytes": 6053,
-      "sha256": "2b1dd4ef97a031fa43050f7972182db84b4d6e964281e4679a9c60a9b3c049f9"
+      "bytes": 4671,
+      "sha256": "ada64ef34785e738e58ef7debbbdbde333a063ab10b262bc11327daf305d5442"
     },
     {
       "path": "程序/来源与版本.json",
-      "bytes": 2325,
-      "sha256": "72d5cd36de5aa885c5354d9615be7169157418aa3af1d97fda732b3fc68585bd"
+      "bytes": 4088,
+      "sha256": "79558b407e7561cd4632fa13746f109c8292c1206854e7bed29aa58fe2a7ee4c"
+    },
+    {
+      "path": "程序/样本数据.json",
+      "bytes": 4484529,
+      "sha256": "ccc1d8f0dd41ff9fcceeec33a9eef663346ea1e775b702678fcdbf8d99e221cc"
+    },
+    {
+      "path": "程序/汇总表数据.json",
+      "bytes": 5202,
+      "sha256": "f266753d8e896e183437ccadf3d6452760d693e7a637d27aff6c88369196cdcb"
     },
     {
       "path": "程序/环境.json",
@@ -228,39 +269,39 @@
       "sha256": "ff4eed6ea81aaf29b0b156824d8b2a1e9b2e05f11d444b616edc4f5db25aa50c"
     },
     {
+      "path": "程序/统计恒等式核验.csv",
+      "bytes": 2401,
+      "sha256": "d348d8b2e0c98faffc8f33a0af32cbdbf37fda0142c4ab80b5011326887e6c5b"
+    },
+    {
+      "path": "程序/统计核验.json",
+      "bytes": 604,
+      "sha256": "04e6026995e5cb6bc10f14b75ed27e0d4349c9b2dda02372024bb815811d17a4"
+    },
+    {
+      "path": "程序/运行核验.json",
+      "bytes": 3442,
+      "sha256": "5819bd2a1aca6c7dbe5c89627a2b3f7f003025f6ccc611ef49d64f043bd610ed"
+    },
+    {
       "path": "结果/01_估计分布小提琴.png",
-      "bytes": 853023,
-      "sha256": "422bc054b694e73c9287b168fab1cdb857656f558d4a23c0186913196f0da603"
+      "bytes": 856372,
+      "sha256": "cfff362453497ebdc4dde34af8d4e0b9d9f0f88d256a622ae0f03604e1fff111"
     },
     {
       "path": "结果/02_有解率.png",
-      "bytes": 125547,
-      "sha256": "005853875663a609f273fd8db4e36d000cb60a68589fdc66627d2361abae7ccb"
+      "bytes": 129165,
+      "sha256": "b845f5c74ed23d60abedcb58cd035edf56086a539c2a81965d8995343d4e7759"
     },
     {
       "path": "结果/03_RMSE_Bias_SD九格.png",
-      "bytes": 602980,
-      "sha256": "82c7ee7d7a0702fffcdd44af5c0fc2a717af254ff9ab17813316bba6e3953b4b"
+      "bytes": 601515,
+      "sha256": "baf344b54891c0610e6cc5409253b5231b165a6fbed7e135f575be3aab243a0e"
     },
     {
       "path": "结果/W(2,1000,1000).xlsx",
-      "bytes": 2386998,
-      "sha256": "49e1e3382a987a43d8a7f9be4f88c26e989562688bcf7c7737a63935aa6742cd"
-    },
-    {
-      "path": "数据/三方法汇总.csv",
-      "bytes": 3064,
-      "sha256": "b38581d1be4cc45fb5ec1b83c635e2fae69d51b146fb98aa5d9abe994870a31a"
-    },
-    {
-      "path": "数据/估计明细.csv",
-      "bytes": 4314109,
-      "sha256": "3811c997c5cb7b71589fcd96371b17285ec174c934b0ae47e316f44e9d17f142"
-    },
-    {
-      "path": "数据/样本.csv",
-      "bytes": 3389939,
-      "sha256": "de619f78d1ca861b7d8a4eb22166280dc67f69959e1b7010596134d17b361f40"
+      "bytes": 2387389,
+      "sha256": "c3d34d70a751770515e3a40fe833477cd1e67d1a64bdd66afe2eda6a6b25eaa7"
     }
   ]
 }

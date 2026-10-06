@@ -4,39 +4,44 @@
     1000.0,
     500.0
   ],
-  "latest_task": "research09-kundu-mmle-gamma500-013",
-  "verification": {
-    "truth": [
-      2.0,
-      1000.0,
-      500.0
-    ],
-    "sample_groups": 6000,
-    "observations": 122400,
-    "estimate_rows": 18000,
-    "valid_rows": 16171,
-    "failed_rows": 1829,
-    "summary_rows": 15,
-    "statistic_identities": 45,
-    "curve_points": 150,
-    "workbook_cells_verified": 188610,
-    "previous_parameter_files_unchanged": 48,
-    "KR_implementation_identical": true,
-    "frozen_method_and_shared_code_identical": true,
-    "only_scientific_configuration_change": "gamma",
-    "all_three_methods_freshly_estimated": true
+  "latest_task": "research09-delivery-fix-022",
+  "file_base": "实验/W(2,1000,500)",
+  "delivery_mapping": {
+    "程序": "交付/程序/W(2,1000,500)",
+    "结果": "交付/结果/W(2,1000,500)",
+    "数据": "实验/W(2,1000,500)/数据"
   },
-  "raw_execution_record": "D:/Hermes Email/执行完毕/research09-kundu-mmle-gamma500-013/运行记录",
+  "verification": {
+    "sample_groups": 6000,
+    "estimate_rows": 18000,
+    "valid_rows": 16201,
+    "failed_rows": 1799,
+    "summary_rows": 15,
+    "workbook_cells_verified": 188610,
+    "reason_columns_all_dash": true,
+    "other_19_columns_unchanged": true,
+    "no_refit_in_delivery_fix": true
+  },
   "files": [
     {
-      "path": "程序/bootstrap_saved_data.py",
-      "bytes": 2115,
-      "sha256": "9a31d5abec7a8ceb7ecce8b547b15eb1ec55f4cbc3f27c5811e41fcfef2a35c6"
+      "path": "数据/三方法汇总.csv",
+      "bytes": 3087,
+      "sha256": "7ac553c2e225442186fa226533ba62385723d67f887127b238c1148fd2390cdd"
+    },
+    {
+      "path": "数据/估计明细.csv",
+      "bytes": 4148041,
+      "sha256": "e4da27e13cbe05d92711d27013068ff7fcdbae48a0a3134f8f39eee5fcee3f19"
+    },
+    {
+      "path": "数据/样本.csv",
+      "bytes": 3373934,
+      "sha256": "215f8a025f5fc91393994b666207dc6c3877e9a740c94773c0758b36758eb28d"
     },
     {
       "path": "程序/compute.py",
-      "bytes": 7139,
-      "sha256": "f1ecd0005d0a9aa753985feb5446561ce1fb4452fa62f7f7a779b4b0b0a96c37"
+      "bytes": 7219,
+      "sha256": "65aa5a9fae80302bf632e4353fa212500bae9f22e8ab1153cba815aaf7c41ece"
     },
     {
       "path": "程序/config.json",
@@ -45,23 +50,23 @@
     },
     {
       "path": "程序/draw.py",
-      "bytes": 8514,
-      "sha256": "9d8d33baabfd9030773e572f2178bcda3cec016be2fc836501ff856cb9f78334"
+      "bytes": 9103,
+      "sha256": "ce596ae5ae072e207edfa53debb738e59df7dbf283d765a391695ab374424d7d"
     },
     {
       "path": "程序/export_details.py",
-      "bytes": 4217,
-      "sha256": "5ad73983a2e05e5ff322f16b113dc87b7fa3ad2c5b3dc71d31ba750837c4c684"
+      "bytes": 3864,
+      "sha256": "d8eb7817829c7e04b47295e237eb5bb679ef4eb735ddd6b87b82a0319270f459"
     },
     {
       "path": "程序/export_workbook.ps1",
-      "bytes": 1631,
-      "sha256": "3d4c97da78cd1e0f2c41b0a22a342835e76a56896be3e223c81bc1815699b866"
+      "bytes": 2056,
+      "sha256": "930052ee53513e18f0d2d0bf064289a3e1bdda3d44d7413f2a6ea74e05cc3766"
     },
     {
       "path": "程序/lean_workbook.mjs",
-      "bytes": 4570,
-      "sha256": "baf6daa7cef9c05537659b20c64b26a83b98df4a698e6b1551d746638b4a6dca"
+      "bytes": 4863,
+      "sha256": "cbed023a06b3bf0b4efe1492466a27df9fe922323dbdc258efc87e96e8648a05"
     },
     {
       "path": "程序/prepare_tables.py",
@@ -70,8 +75,8 @@
     },
     {
       "path": "程序/README.md",
-      "bytes": 4554,
-      "sha256": "2b49eaeadbc99e374235f9a4f7ae62733ba73a4baf9d3f4e30e3f9fbb0b657bc"
+      "bytes": 5002,
+      "sha256": "ead21359b74217391fedab64ecebc8a40a6c81b2ff2ad5fe5206063aa7d72cfa"
     },
     {
       "path": "程序/reproduce.py",
@@ -79,14 +84,59 @@
       "sha256": "4b366b52695d1ade18552aee3fbf846a3aeda7ea1e3a663e806c3cde13fd4b22"
     },
     {
-      "path": "程序/source_snapshot/paper_solver.py",
-      "bytes": 6085,
-      "sha256": "23996579482b6a2f0415aec5ea39d729f586a4c87cdcf15de08344f4da152147"
+      "path": "程序/source_snapshot/python/__pycache__/base.cpython-311.pyc",
+      "bytes": 6495,
+      "sha256": "3cc769dbb90fde4d1ccfaa8b3f956b47ad26e39f0f355137b706ef141d50f5a2"
     },
     {
       "path": "程序/source_snapshot/python/base.py",
       "bytes": 3674,
       "sha256": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/lre.cpython-311.pyc",
+      "bytes": 8566,
+      "sha256": "bf086919ff5408f9d48fdace5cedbcd5d6925481a7808e9770596f3861347fb5"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/lse.cpython-311.pyc",
+      "bytes": 11765,
+      "sha256": "a748c32a8fd3854ddb9f70b1845f20d05ae4dec2eb5392fb8329e236906beeab"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/mdm.cpython-311.pyc",
+      "bytes": 18561,
+      "sha256": "a96d0cf2f92817ab5b36a3e4faa7f0f247a446ff4eca6963f45b37627c416e7a"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/mle.cpython-311.pyc",
+      "bytes": 6947,
+      "sha256": "fac6a7c79cda04700f7685ff45bc96aabb7aec6fb25b95fb6ebd54963de7f573"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/mm.cpython-311.pyc",
+      "bytes": 6461,
+      "sha256": "5094722cd29919fab7a15410395d12dbed0d64098e683a8bdc3fb85f87dbe951"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/mmle.cpython-311.pyc",
+      "bytes": 7203,
+      "sha256": "a7fd1a845b8b2d7b2416a81e2aff451ccf04015f4a8861dee10fda20343f370f"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/mps.cpython-311.pyc",
+      "bytes": 679,
+      "sha256": "2d9744bef28ccce34e4e5d7f0f5e9c9ff477dbc6546fb5bd9a9fd1595f3c5be4"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/registry.cpython-311.pyc",
+      "bytes": 2201,
+      "sha256": "a73a27c0018cfdb07502ae321b4ecf5f452ee2ee1ed84cf8eab3721e3480f6f3"
+    },
+    {
+      "path": "程序/source_snapshot/python/methods/__pycache__/wmle.cpython-311.pyc",
+      "bytes": 23318,
+      "sha256": "6a20923e276327667b2261f0a56eacb7fa6efbdbad6dbbc87628226f4e1fb07c"
     },
     {
       "path": "程序/source_snapshot/python/methods/_template.py",
@@ -164,6 +214,21 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
+      "path": "程序/source_snapshot/python/studies/common/__pycache__/__init__.cpython-311.pyc",
+      "bytes": 259,
+      "sha256": "b9ba797e415002ccf88efc136e0932e1aedbb385ef8914da12b77bbb9551428a"
+    },
+    {
+      "path": "程序/source_snapshot/python/studies/common/__pycache__/runner.cpython-311.pyc",
+      "bytes": 7685,
+      "sha256": "e623e98cf826855060bc0a368308deaa1b67e83fe3174ffe8fbd13c728d884af"
+    },
+    {
+      "path": "程序/source_snapshot/python/studies/common/__pycache__/sample.cpython-311.pyc",
+      "bytes": 2791,
+      "sha256": "655113e7b1f9b32fc591e439a440305c8ffa6d42b8ae670484f9d2efed470c9e"
+    },
+    {
       "path": "程序/source_snapshot/python/studies/common/experiment.py",
       "bytes": 9305,
       "sha256": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b"
@@ -199,11 +264,6 @@
       "sha256": "1c019d834537544c1755ddbaa8ce170ea1523fdb09525e680a2e9ec807d699c5"
     },
     {
-      "path": "程序/source_snapshot/执行时compute.py",
-      "bytes": 6315,
-      "sha256": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c"
-    },
-    {
       "path": "程序/summarize.py",
       "bytes": 5667,
       "sha256": "cfdae61dfacc710812eac6509178c2bba287e514e6d8825939498dd63977f605"
@@ -214,14 +274,59 @@
       "sha256": "1be0be66226b965355c742182d0d239a9710970d7a890823ee55c1622888147e"
     },
     {
+      "path": "程序/估计明细数据.json",
+      "bytes": 4781711,
+      "sha256": "67e0bd972e540ebc287fb304d12e7d781dd9b06725e8490517348d34b8af0c49"
+    },
+    {
+      "path": "程序/共同成功统计.csv",
+      "bytes": 3142,
+      "sha256": "d9bef422b783edd7bb941ed33e750fd3b35c1ba35dce0d78ed3fcf1c29acce56"
+    },
+    {
+      "path": "程序/历史来源/paper_solver.py",
+      "bytes": 6085,
+      "sha256": "23996579482b6a2f0415aec5ea39d729f586a4c87cdcf15de08344f4da152147"
+    },
+    {
+      "path": "程序/历史来源/README.md",
+      "bytes": 318,
+      "sha256": "bfd7183796e5cef41c41e22e91ad01ad02b6241501e4769e1be841424cf4c2bc"
+    },
+    {
+      "path": "程序/历史来源/执行时compute.py",
+      "bytes": 6315,
+      "sha256": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c"
+    },
+    {
+      "path": "程序/原版固定点结果核验.csv.gz",
+      "bytes": 141022,
+      "sha256": "616b3d8e4c99978706ab17562acdcc269356b2aab4e3d1ef2a395bc795bd68be"
+    },
+    {
+      "path": "程序/失败逐样本.csv.gz",
+      "bytes": 118433,
+      "sha256": "12b44891bae4e4aa229a41958ee316310bf0f5ed27117c75f3f171af6360b5db"
+    },
+    {
       "path": "程序/方法与结果说明.md",
-      "bytes": 4804,
-      "sha256": "1fd318bd50396c6fbdaddaf3503c997d726a2506fd8455300d59da0aca770314"
+      "bytes": 5399,
+      "sha256": "49450974ada21ef57f88a37198a1eaf687d43034167694fc70f6111ef36312c3"
     },
     {
       "path": "程序/来源与版本.json",
-      "bytes": 5490,
-      "sha256": "484d17a73c1fd2b68040e841d765874476fd8c7c049d7cd53bcd501213f4229d"
+      "bytes": 7405,
+      "sha256": "bb29c6f2a4df19034f3ede880dda67f4bf002d056a595e96a20d092ba79ed3c8"
+    },
+    {
+      "path": "程序/样本数据.json",
+      "bytes": 4468524,
+      "sha256": "b092b123ce4ec63fad05e3ac79dbe21969ae7eaa862110a9c47c8b9cd8894182"
+    },
+    {
+      "path": "程序/汇总表数据.json",
+      "bytes": 5142,
+      "sha256": "afd6ccb2a000d8bfa04e8e9308222f1d23dec2b6df0c232dc4b940bf965c008a"
     },
     {
       "path": "程序/环境.json",
@@ -229,39 +334,39 @@
       "sha256": "ff4eed6ea81aaf29b0b156824d8b2a1e9b2e05f11d444b616edc4f5db25aa50c"
     },
     {
+      "path": "程序/统计恒等式核验.csv",
+      "bytes": 2411,
+      "sha256": "47a7c6c74059985af6ff9992ab551b1f1176553d3828c6b7114a8e2d9c9bbb62"
+    },
+    {
+      "path": "程序/统计核验.json",
+      "bytes": 605,
+      "sha256": "bb7529af0672ffa43d5b938c70b05a83fef3af5750218e74b63c0c41f1ac3b6f"
+    },
+    {
+      "path": "程序/运行核验.json",
+      "bytes": 3420,
+      "sha256": "5e78d250be0d4b97edf4f8720c8dfef174c2a07b91ab2a4ed4bcecc648f28b6e"
+    },
+    {
       "path": "结果/01_估计分布小提琴.png",
-      "bytes": 831910,
-      "sha256": "23f40e947a737fbd775035c0192d1bdaa1ade11a7f3bb22da96e9b6a382172cc"
+      "bytes": 820068,
+      "sha256": "65e43ba12ef6b8e57a004ca0bc4fbd8761201ef443c46b4147383e3158828bbf"
     },
     {
       "path": "结果/02_有解率.png",
-      "bytes": 125140,
-      "sha256": "517786a8446cc9eefb7e4e1705620b6727d4a2d2778854f21012c2454ca26ab0"
+      "bytes": 130330,
+      "sha256": "e6d5bcafa5d125886a9c932bf18afe2c71a2edad3940c0fe10654f3f20b5609d"
     },
     {
       "path": "结果/03_RMSE_Bias_SD九格.png",
-      "bytes": 605115,
-      "sha256": "66cef5c3af5148dccd44d835fd1c6a439f7fef4cd84f600487655f9e62633d35"
+      "bytes": 629569,
+      "sha256": "5e8fbb7338d99f19cafeedba5b6980107b59f2d86afdc1365392612b94a6f491"
     },
     {
       "path": "结果/W(2,1000,500).xlsx",
-      "bytes": 2396938,
-      "sha256": "19f06f6f5773430fd6cbdac3643bef2b603cfc8f5af762dd725ed9e5d7b7db62"
-    },
-    {
-      "path": "数据/三方法汇总.csv",
-      "bytes": 3038,
-      "sha256": "560596e62a3e8ef17733bd893ab74ea9ddd7693d39077c8590b938a64b15cffb"
-    },
-    {
-      "path": "数据/估计明细.csv",
-      "bytes": 4260051,
-      "sha256": "b7b5aefc939560c3ebc3460c60229e0eba240c22bd3450201af650db5deb7e38"
-    },
-    {
-      "path": "数据/样本.csv",
-      "bytes": 3373934,
-      "sha256": "215f8a025f5fc91393994b666207dc6c3877e9a740c94773c0758b36758eb28d"
+      "bytes": 2393423,
+      "sha256": "5a3502cad04f67a51ba89dfa5c2a8a14bb4d5590f9a5480cba459a973754764d"
     }
   ]
 }

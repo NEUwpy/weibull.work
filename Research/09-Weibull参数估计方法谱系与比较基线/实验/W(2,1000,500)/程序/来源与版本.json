@@ -1,58 +1,86 @@
 {
-  "KR_original": "https://home.iitk.ac.in/~kundu/paper154.pdf",
-  "KR_original_pages": "1840 Eq4; 1841 Eq6 and Eq9-11",
-  "single_sample_source": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-111-pdf原文.md",
-  "single_sample_source_sha256": "fb6c5653bde5af56fe0d4248a45801a95cb04339eb14a225e34eaba8aed56ed0",
-  "single_sample_equation": "182-111 section 2 equation 4; Firth section 3 not used",
-  "previous_method_sources": {
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\compute.py": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\config.json": "f66483de5c30e5a771157d7963d05e0f8901354b1307c258116c9f89fab20f72",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\三方法原文口径\\per_sample.csv.gz": "6584d361a5c1538615e1d3e94e294ca156f82f513f165c6fbfc1b8968b27b3f7",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\输入样本.npz": "bce20be7ee7efb785090cb2a43cd20465949f37853fe9df399853be81a268f30",
-    "D:\\weibull\\python\\base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
-    "D:\\weibull\\python\\methods\\registry.py": "e3be9c99eba93d636f4ebd15a063c02fe35c757578eeb4b85b3980d3b2cf213e",
-    "D:\\weibull\\python\\studies\\common\\sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
-    "D:\\weibull\\python\\studies\\common\\runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
-    "D:\\weibull\\python\\studies\\common\\experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
-    "D:\\weibull\\python\\studies\\common\\metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3"
+  "current_version": "2026-10-06 registry classic MLE/WMLE; delivery repaired by research09-delivery-fix-022",
+  "current_entrypoint": "compute.py",
+  "method_sources": {
+    "MLE": "source_snapshot/python/methods/mle.py",
+    "WMLE": "source_snapshot/python/methods/wmle.py",
+    "MMLE": "compute.py:KROriginal"
   },
-  "truth": [
-    2.0,
-    1000.0,
-    500.0
-  ],
-  "all_estimates_fresh": {
-    "MLE": 6000,
-    "MMLE": 6000,
-    "WMLE": 6000
-  },
-  "source_hashes": {
-    "compute.py": "f1ecd0005d0a9aa753985feb5446561ce1fb4452fa62f7f7a779b4b0b0a96c37",
+  "current_source_sha256": {
+    "compute.py": "65aa5a9fae80302bf632e4353fa212500bae9f22e8ab1153cba815aaf7c41ece",
     "config.json": "54ae81c283fc3ab66be7bc7d73986f73b2dd7f6be37e80bbaa08dc19c0724401",
-    "source_snapshot\\paper_solver.py": "23996579482b6a2f0415aec5ea39d729f586a4c87cdcf15de08344f4da152147",
-    "source_snapshot\\作者wbl3.R": "7cc66406fee6c7a4f315c92d97fa6904313d74276fbef1fb6e69c278b1e7fb0c",
-    "source_snapshot\\作者代码核验.json": "1c019d834537544c1755ddbaa8ce170ea1523fdb09525e680a2e9ec807d699c5",
-    "source_snapshot\\执行时compute.py": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c",
-    "source_snapshot\\python\\base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
-    "source_snapshot\\python\\methods\\bayesian.py": "164cd945a72a60441ce16ede8313797a4802399cdd7f8bbf054454db77decc52",
-    "source_snapshot\\python\\methods\\grey_gm11.py": "9b0a4fba2b99e55d7985d8853e7edf84b978b0ebb1d1eb0ca630260b280b6ab5",
-    "source_snapshot\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
-    "source_snapshot\\python\\methods\\lre.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
-    "source_snapshot\\python\\methods\\lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
-    "source_snapshot\\python\\methods\\mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
-    "source_snapshot\\python\\methods\\mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
-    "source_snapshot\\python\\methods\\mm.py": "6804ccf1183b8506594ae3eb362be683af1a5523fe6a54d57ea5b41896c588d1",
-    "source_snapshot\\python\\methods\\mmle.py": "e0e3f919fb8aba6d235f7b55a494ca9e4f6f88fcb8b5c1a1d3142f0f34e1de3a",
-    "source_snapshot\\python\\methods\\mps.py": "3c6e15318d759357c535893fe810df073b345b9ffe34a7ff132ce309206b7ecb",
-    "source_snapshot\\python\\methods\\pwm.py": "273d6c416f5bbe0299e75821490c9a4c39e4f49054bce678491a45c4bc55c6c1",
-    "source_snapshot\\python\\methods\\registry.py": "e3be9c99eba93d636f4ebd15a063c02fe35c757578eeb4b85b3980d3b2cf213e",
-    "source_snapshot\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
-    "source_snapshot\\python\\methods\\_template.py": "01e1a938d095a2a428df10d60c91403373facef329d2f035e3a8f36fc31b4303",
-    "source_snapshot\\python\\studies\\common\\experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
-    "source_snapshot\\python\\studies\\common\\metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3",
-    "source_snapshot\\python\\studies\\common\\runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
-    "source_snapshot\\python\\studies\\common\\sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
-    "source_snapshot\\python\\studies\\common\\simulation.py": "cc1775b63d659dfaf88b288b97d010924eb5a45b013e3ef8fe0109847cf82e08",
-    "source_snapshot\\python\\studies\\common\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-  }
+    "source_snapshot/python/methods/mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "source_snapshot/python/methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "source_snapshot/python/methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1"
+  },
+  "data_sha256": {
+    "三方法汇总.csv": "7ac553c2e225442186fa226533ba62385723d67f887127b238c1148fd2390cdd",
+    "估计明细.csv": "e4da27e13cbe05d92711d27013068ff7fcdbae48a0a3134f8f39eee5fcee3f19",
+    "样本.csv": "215f8a025f5fc91393994b666207dc6c3877e9a740c94773c0758b36758eb28d"
+  },
+  "reason_display": "失败原因和失败原因代码所有行均为-；状态列判定成功失败；raw_status仅存档参考",
+  "archived_failure_sha256": "12b44891bae4e4aa229a41958ee316310bf0f5ed27117c75f3f171af6360b5db",
+  "history_only": {
+    "version": "回退前来源，原记录保留，不代表当前调用链",
+    "record": {
+      "KR_original": "https://home.iitk.ac.in/~kundu/paper154.pdf",
+      "KR_original_pages": "1840 Eq4; 1841 Eq6 and Eq9-11",
+      "single_sample_source": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-111-pdf原文.md",
+      "single_sample_source_sha256": "fb6c5653bde5af56fe0d4248a45801a95cb04339eb14a225e34eaba8aed56ed0",
+      "single_sample_equation": "182-111 section 2 equation 4; Firth section 3 not used",
+      "previous_method_sources": {
+        "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\compute.py": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c",
+        "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\config.json": "f66483de5c30e5a771157d7963d05e0f8901354b1307c258116c9f89fab20f72",
+        "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\三方法原文口径\\per_sample.csv.gz": "6584d361a5c1538615e1d3e94e294ca156f82f513f165c6fbfc1b8968b27b3f7",
+        "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\输入样本.npz": "bce20be7ee7efb785090cb2a43cd20465949f37853fe9df399853be81a268f30",
+        "D:\\weibull\\python\\base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "D:\\weibull\\python\\methods\\registry.py": "e3be9c99eba93d636f4ebd15a063c02fe35c757578eeb4b85b3980d3b2cf213e",
+        "D:\\weibull\\python\\studies\\common\\sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+        "D:\\weibull\\python\\studies\\common\\runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+        "D:\\weibull\\python\\studies\\common\\experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+        "D:\\weibull\\python\\studies\\common\\metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3"
+      },
+      "truth": [
+        2.0,
+        1000.0,
+        500.0
+      ],
+      "all_estimates_fresh": {
+        "MLE": 6000,
+        "MMLE": 6000,
+        "WMLE": 6000
+      },
+      "source_hashes": {
+        "compute.py": "f1ecd0005d0a9aa753985feb5446561ce1fb4452fa62f7f7a779b4b0b0a96c37",
+        "config.json": "54ae81c283fc3ab66be7bc7d73986f73b2dd7f6be37e80bbaa08dc19c0724401",
+        "source_snapshot\\paper_solver.py": "23996579482b6a2f0415aec5ea39d729f586a4c87cdcf15de08344f4da152147",
+        "source_snapshot\\作者wbl3.R": "7cc66406fee6c7a4f315c92d97fa6904313d74276fbef1fb6e69c278b1e7fb0c",
+        "source_snapshot\\作者代码核验.json": "1c019d834537544c1755ddbaa8ce170ea1523fdb09525e680a2e9ec807d699c5",
+        "source_snapshot\\执行时compute.py": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c",
+        "source_snapshot\\python\\base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "source_snapshot\\python\\methods\\bayesian.py": "164cd945a72a60441ce16ede8313797a4802399cdd7f8bbf054454db77decc52",
+        "source_snapshot\\python\\methods\\grey_gm11.py": "9b0a4fba2b99e55d7985d8853e7edf84b978b0ebb1d1eb0ca630260b280b6ab5",
+        "source_snapshot\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+        "source_snapshot\\python\\methods\\lre.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
+        "source_snapshot\\python\\methods\\lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+        "source_snapshot\\python\\methods\\mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+        "source_snapshot\\python\\methods\\mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+        "source_snapshot\\python\\methods\\mm.py": "6804ccf1183b8506594ae3eb362be683af1a5523fe6a54d57ea5b41896c588d1",
+        "source_snapshot\\python\\methods\\mmle.py": "e0e3f919fb8aba6d235f7b55a494ca9e4f6f88fcb8b5c1a1d3142f0f34e1de3a",
+        "source_snapshot\\python\\methods\\mps.py": "3c6e15318d759357c535893fe810df073b345b9ffe34a7ff132ce309206b7ecb",
+        "source_snapshot\\python\\methods\\pwm.py": "273d6c416f5bbe0299e75821490c9a4c39e4f49054bce678491a45c4bc55c6c1",
+        "source_snapshot\\python\\methods\\registry.py": "e3be9c99eba93d636f4ebd15a063c02fe35c757578eeb4b85b3980d3b2cf213e",
+        "source_snapshot\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+        "source_snapshot\\python\\methods\\_template.py": "01e1a938d095a2a428df10d60c91403373facef329d2f035e3a8f36fc31b4303",
+        "source_snapshot\\python\\studies\\common\\experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+        "source_snapshot\\python\\studies\\common\\metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3",
+        "source_snapshot\\python\\studies\\common\\runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+        "source_snapshot\\python\\studies\\common\\sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+        "source_snapshot\\python\\studies\\common\\simulation.py": "cc1775b63d659dfaf88b288b97d010924eb5a45b013e3ef8fe0109847cf82e08",
+        "source_snapshot\\python\\studies\\common\\__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "relocated_sources": "历史来源/：原paper_solver.py及执行时compute.py，不参与当前流程"
+  },
+  "delivery_fix_no_refit": true
 }

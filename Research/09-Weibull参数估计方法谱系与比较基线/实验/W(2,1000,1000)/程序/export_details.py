@@ -22,18 +22,11 @@ def main():
     save('样本',sample_columns,groups)
     raw['display_method']=raw.method_variant.replace({'K-R MMLE':'MMLE'});raw['order']=raw.display_method.map({m:i for i,m in enumerate(METHODS)})
     raw=raw.sort_values(['n','block','repeat_id','order']);estimates=[]
-    reason_names={'equation_residual':'方程残差未达阈值（优化停在非根点）',
-                  'unbounded':'似然沿边界无界，未接受候选',
-                  'optimizer_failed':'各起点优化均失败',
-                  'shape_at_bound':'形状触及实现上界',
-                  'no_stationary_root_in_paper_location_domain':'原文位置域内未找到驻点根',
-                  'no_likelihood_maximum_root':'驻点候选中没有似然局部极大根',
-                  'all_stationary_roots_outside_shape_domain':'驻点根形状超原文域',
-                  'fixed_point_not_converged':'固定点未收敛'}
     for row in raw.itertuples():
         group,x,digest=mapping[(row.n,int(row.block),int(row.repeat_id))];assert digest==row.sample_sha256
-        info=json.loads(row.extra).get('solution_info',{});ok=row.status=='success'
-        code='' if ok else info.get('status','unknown_failure');reason='' if ok else reason_names.get(code,code)
+        ok=row.status=='success'
+        # Display only success/failure; original diagnostics remain in the archived raw results.
+        reason=code='-'
         minimum=float(x[1] if row.display_method=='MMLE' else x[0])
         estimates.append([row.n,group,int(row.block)*100+int(row.repeat_id)+1,int(row.block),int(row.repeat_id),row.display_method,
             2.,1000.,1000.,native(row.beta_hat),native(row.eta_hat),native(row.gamma_hat),bool(row.converged),

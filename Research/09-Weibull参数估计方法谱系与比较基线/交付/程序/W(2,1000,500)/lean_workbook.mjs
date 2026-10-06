@@ -50,5 +50,7 @@ const preview=await workbook.render({sheetName:'汇总',range:'A1:N16',format:'p
 await fs.writeFile(path.join(cache,'精简预览_汇总.png'),new Uint8Array(await preview.arrayBuffer()));
 const inspect=await workbook.inspect({kind:'workbook,sheet',maxChars:5500,tableMaxRows:4,tableMaxCols:5});
 await fs.writeFile(path.join(cache,'精简工作簿检查.ndjson'),inspect.ndjson);
+const errorCheck=await workbook.inspect({kind:'match',searchTerm:'#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!|#SPILL!|#CALC!',options:{useRegex:true,maxResults:30},summary:'final formula error scan'});
+await fs.writeFile(path.join(cache,'formula-error-scan.ndjson'),errorCheck.ndjson);
 const xlsx=await SpreadsheetFile.exportXlsx(workbook);await xlsx.save(path.join(out,'W(2,1000,500).xlsx'));
 console.log('Workbook exported: 11 paired sheets, first row headers, no remarks or merged cells.');

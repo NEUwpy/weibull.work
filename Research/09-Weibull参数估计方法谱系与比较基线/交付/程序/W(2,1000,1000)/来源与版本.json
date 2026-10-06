@@ -1,20 +1,48 @@
 {
-  "KR_original": "https://home.iitk.ac.in/~kundu/paper154.pdf",
-  "KR_original_pages": "1840 Eq4; 1841 Eq6 and Eq9-11",
-  "single_sample_source": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-111-pdf原文.md",
-  "single_sample_source_sha256": "fb6c5653bde5af56fe0d4248a45801a95cb04339eb14a225e34eaba8aed56ed0",
-  "single_sample_equation": "182-111 section 2 equation 4; Firth section 3 not used",
-  "reused_results": "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\三方法原文口径\\per_sample.csv.gz",
-  "used_source_sha256": {
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\compute.py": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\config.json": "f66483de5c30e5a771157d7963d05e0f8901354b1307c258116c9f89fab20f72",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\三方法原文口径\\per_sample.csv.gz": "6584d361a5c1538615e1d3e94e294ca156f82f513f165c6fbfc1b8968b27b3f7",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\输入样本.npz": "bce20be7ee7efb785090cb2a43cd20465949f37853fe9df399853be81a268f30",
-    "D:\\weibull\\python\\base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
-    "D:\\weibull\\python\\methods\\registry.py": "e3be9c99eba93d636f4ebd15a063c02fe35c757578eeb4b85b3980d3b2cf213e",
-    "D:\\weibull\\python\\studies\\common\\sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
-    "D:\\weibull\\python\\studies\\common\\runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
-    "D:\\weibull\\python\\studies\\common\\experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
-    "D:\\weibull\\python\\studies\\common\\metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3"
-  }
+  "current_version": "2026-10-06 registry classic MLE/WMLE; delivery repaired by research09-delivery-fix-022",
+  "current_entrypoint": "compute.py",
+  "method_sources": {
+    "MLE": "source_snapshot/python/methods/mle.py",
+    "WMLE": "source_snapshot/python/methods/wmle.py",
+    "MMLE": "compute.py:KROriginal"
+  },
+  "current_source_sha256": {
+    "compute.py": "9b9d1cc19c53cedec15f94426a7258af9e0f0ff6c2c4e65840a0c7a00c214dfc",
+    "config.json": "f66483de5c30e5a771157d7963d05e0f8901354b1307c258116c9f89fab20f72",
+    "source_snapshot/python/methods/mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "source_snapshot/python/methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "source_snapshot/python/methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1"
+  },
+  "data_sha256": {
+    "三方法汇总.csv": "17b3102ac4e639a493deaef6b302d4e885e0bba5490963226bb5dd714a67b282",
+    "估计明细.csv": "64007126b3866877108c8578a2b62f53588b43eeafca1e395ea84b044f22432b",
+    "样本.csv": "de619f78d1ca861b7d8a4eb22166280dc67f69959e1b7010596134d17b361f40"
+  },
+  "reason_display": "失败原因和失败原因代码所有行均为-；状态列判定成功失败；raw_status仅存档参考",
+  "archived_failure_sha256": "038fe5e28109d4ae62e9cf44d3c96e17a5907b12a00277e38d85d39ce3fc3aaa",
+  "history_only": {
+    "version": "回退前来源，原记录保留，不代表当前调用链",
+    "record": {
+      "KR_original": "https://home.iitk.ac.in/~kundu/paper154.pdf",
+      "KR_original_pages": "1840 Eq4; 1841 Eq6 and Eq9-11",
+      "single_sample_source": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-111-pdf原文.md",
+      "single_sample_source_sha256": "fb6c5653bde5af56fe0d4248a45801a95cb04339eb14a225e34eaba8aed56ed0",
+      "single_sample_equation": "182-111 section 2 equation 4; Firth section 3 not used",
+      "reused_results": "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\三方法原文口径\\per_sample.csv.gz",
+      "used_source_sha256": {
+        "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\compute.py": "1bc63371f2db104af10e83de75ee285a4f0c8b01ef99e15acd4ce1d75107593c",
+        "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\config.json": "f66483de5c30e5a771157d7963d05e0f8901354b1307c258116c9f89fab20f72",
+        "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-MMLEI参数域与求解复核\\三方法原文口径\\per_sample.csv.gz": "6584d361a5c1538615e1d3e94e294ca156f82f513f165c6fbfc1b8968b27b3f7",
+        "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\20261005-KunduRaqab原版MMLE三方法\\程序\\输入样本.npz": "bce20be7ee7efb785090cb2a43cd20465949f37853fe9df399853be81a268f30",
+        "D:\\weibull\\python\\base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "D:\\weibull\\python\\methods\\registry.py": "e3be9c99eba93d636f4ebd15a063c02fe35c757578eeb4b85b3980d3b2cf213e",
+        "D:\\weibull\\python\\studies\\common\\sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+        "D:\\weibull\\python\\studies\\common\\runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+        "D:\\weibull\\python\\studies\\common\\experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+        "D:\\weibull\\python\\studies\\common\\metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3"
+      }
+    },
+    "relocated_sources": "历史来源/：原paper_solver.py及执行时compute.py，不参与当前流程"
+  },
+  "delivery_fix_no_refit": true
 }

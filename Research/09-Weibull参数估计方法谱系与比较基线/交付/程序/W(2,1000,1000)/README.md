@@ -1,55 +1,46 @@
-# W(2,1000,1000)
+# W(2,1000,1000)：MLE、MMLE、WMLE
 
-真值β=2、η=1000、γ=1000；n=7/10/15/20/50各1200组。上层只有程序、结果两个文件夹。结果目录只放交付件（三PNG、11个配对工作表的Excel）；三个明细CSV放在相邻数据目录，均从原批次复制。
+当前口径：2026-10-06注册表经典实现。真值β=2、η=1000、γ=1000；n=7/10/15/20/50各1200组，共6000组样本、18000行估计。此前回退批次已在同一批样本上重算三方法；邮件022只修复交付，不新增抽样或估计。
 
-## 运行
+## 当前结果
 
-程序相对本文件定位相邻结果目录，数据从相邻数据目录的三CSV读取，不依赖旧批次路径。Python环境为D:\weibull\python\.venv\Scripts\python.exe；Excel使用本机捆绑Node和@oai/artifact-tool。版本见环境.json。Excel入口运行时为捆绑依赖创建node_modules链接，不复制依赖文件。
+有解数按n=7/10/15/20/50排列：MLE 523/722/965/1087/1199；WMLE 1097/1166/1189/1196/1200；MMLE每个n均1200。总失败1656行。
 
-重新导出当前精简Excel：
+[三方法汇总](../数据/三方法汇总.csv)、[样本](../数据/样本.csv)、[估计明细](../数据/估计明细.csv)保留完整数据。[Excel](<../结果/W(2,1000,1000).xlsx>)含11表，五个n的生成样本与估计结果成对排列，汇总最后。第一行列名，失败参数留空；不添加原因列或表内备注。
+
+估计明细的“失败原因”和“失败原因代码”两列按用户决定全部填半角`-`，包含成功行。是否失败以“状态”列为准，收敛及支持检查字段保留。`失败逐样本.csv.gz`原样存档，其中raw_status仅存档参考，当前交付不再导出原因。
+
+## 方法与指标
+
+MLE、WMLE使用注册表经典实现，与Research00指定生产快照逐字节一致。MLE使用五个位置初值的Nelder–Mead优化，接受形状β̂≥1、η̂>0、0≤γ̂<x₁及优化成功的有限候选；这不保证无限制三参数似然的全局最大值。WMLE使用J₁/J₂/J₃加权方程的五起点Nelder–Mead求解，要求优化成功、残差平方和≤1e-8，并拒绝β̂≥9.99的上界候选；接受域为0<β̂<9.99、0≤γ̂<x₁（目标函数另有x₁−1e-6间隔保护）。两者都有非负位置约束，不使用此前的0.1–15剖面求根口径。
+
+MMLE采用Kundu–Raqab原始单组样本构造：γ̂=x₁，删除一个最小观测，在剩余n−1个观测上由β₀=1开始固定点迭代；绝对步长容差1e-8、上限10000次，无Firth、额外上界、重试或备用求解器。原文：[Kundu & Raqab (2009)](https://home.iitk.ac.in/~kundu/paper154.pdf)，印刷页1840式(4)、页1841式(6)、(9)–(11)；本批采用单组形式，未复现双组stress–strength实验。
+
+外层成功判定要求收敛、参数有限、β̂>0、η̂>0和严格支持条件。MLE/WMLE检查γ̂<x₁，MMLE检查γ̂<x₂，boundary_tol=0。每个方法的精度只使用自身全部成功估计，有解率分母1200。Bias=mean(估计−真值)，SD使用ddof=0，RMSE=sqrt(mean((估计−真值)²))。各方法成功子集可能不同，表中精度是成功条件下的表现。
+
+## 图表
+
+[小提琴图](../结果/01_估计分布小提琴.png)使用固定显示窗口，粉点是中位数、红点是均值、虚线是真值。窗口外散点不显示，但全部成功值仍进入均值、中位数及统计。密度采用显示范围内的Scott估计，无散点抖动。
+
+[有解率图](../结果/02_有解率.png)使用实际成功数；[九格图](../结果/03_RMSE_Bias_SD九格.png)行依次为RMSE/Bias/SD、列为β/η/γ。九格量程按本批所有统计量自适应，MaxNLocator取整、不裁剪，Bias关于0对称。邮件022保留三张PNG原字节。
+
+## 从现有CSV重新导出
+
+必须在`实验/W(2,1000,1000)/程序`目录运行。`交付/程序/W(2,1000,1000)`是程序副本，其旁没有数据目录；需要导出时回到上述实验目录。
 
 ```powershell
-& '.\export_workbook.ps1'
+& 'D:\weibull\python\.venv\Scripts\python.exe' -B .\draw.py --output ..\结果
+.\export_workbook.ps1
 ```
 
-若要另存而不覆盖当前Excel：
+绘图必须显式传`--output ../结果`；现有draw.py未传参数时会写数据目录。Excel脚本以UTF-8 BOM保存，默认写真正的相邻“结果”目录，也支持绝对`-OutputDirectory`；脚本自行设置捆绑Node依赖路径，临时预览/表数据放系统临时目录或R09_ARTIFACT_CACHE，不在项目创建node_modules。
 
-```powershell
-& '.\export_workbook.ps1' -OutputDirectory 'D:\weibull\临时导出\W(2,1000,1000)'
-```
+若另行需要重算，`reproduce.py --output <尚不存在的新目录> --workers 6`调用compute.py计算三方法；本轮未运行它。当前入口不调用bootstrap、不复用早期MLE/WMLE估计。
 
-重新出三张图，不拟合参数：
+## 种子与溯源
 
-```powershell
-& 'D:\weibull\python\.venv\Scripts\python.exe' '.\draw.py'
-```
+block0命名空间为study01_selector_confirmation_20260922_v1，block1…11追加:research09-versions:blockNN，每块100组。共享种子包含真值β/η/γ、n和重复编号，各组合不是同一组样本的平移或缩放。跨批差异是不同样本下的描述，不能直接解释为真值变化的因果效果。
 
-draw.py可用--output另存目录；默认写相邻结果目录，运行校验写该输出目录的.运行记录。prepare_tables.py读取相邻数据目录的三CSV；lean_workbook.mjs导出相同11个配对工作表；verify_workbook.py逐项核对188610个数据单元格。所有表第一行列名、第二行数据，无标题或备注，失败留空。
+口径已于2026-10-06回退为注册表经典实现。此前paper_solver及“执行时compute.py”原字节移入[历史来源](历史来源/README.md)，仅作回退前溯源，不参与当前执行。现行源码在source_snapshot/python，实际入口为compute.py。来源与版本.json明确当前文件及历史来源；manifest.json列当前交付文件SHA。
 
-重新计算三方法必须指定一个尚不存在的目录：
-
-```powershell
-& 'D:\weibull\python\.venv\Scripts\python.exe' '.\reproduce.py' --output 'D:\weibull\临时复算\W(2,1000,1000)' --workers 6
-```
-
-此入口复制程序和相邻数据CSV到新目录，compute.py 用同一套种子重算 MLE/MMLE/WMLE 三方法（MLE 与 WMLE 为注册表经典实现，MMLE 为原版 K-R 固定点；不再复用早期批次的估计值，也没有 bootstrap 步骤）；summarize.py按全部成功估计汇总；export_details.py输出表；draw.py出图。随后在新目录运行export_workbook.ps1导出Excel。该流程不会覆盖本目录。程序文件夹交付时不含大数据缓存；这些缓存仅在用户运行复算时生成。
-
-## 种子、方法与指标
-
-config.json固定真值、n、12个block和每块100组。block0的命名空间为study01_selector_confirmation_20260922_v1；block1…11追加:research09-versions:blockNN。三方法共用6000组输入；源CSV保留逐组种子和SHA。
-
-MMLE采用Kundu & Raqab (2009) §2页1840式(4)、页1841式(6)、(9)–(11)的单组样本构造：γ等于原始最小值，删除这一个观测，按原固定点迭代估计β和η。原文：https://home.iitk.ac.in/~kundu/paper154.pdf 。这不是原文双组stress–strength实验的完整复现。初值β=1，绝对步长容差1e-8，上限10000次，无Firth、额外域裁剪、重试或备用求解器。
-
-MLE 与 WMLE 改用注册表经典实现（`methods/mle.py`、`methods/wmle.py`，与 Research00 生产程序逐字节相同）：MLE 为五位置初值的 Nelder–Mead 有限驻点局部极大解（接受要求形状≥1）；WMLE 为作者 J₁/J₂/J₃ 加权方程的 Nelder–Mead 求解（接受要求残差平方和≤1e-8、0<β̂<10、0≤γ̂<x₁）。两者都不再用 paper_solver 求根，也不再复用早期批次估计。冻结方法和共享 Monte Carlo 源码在 source_snapshot；入口用本目录 compute.py 或 reproduce.py。详细依据和本批比较见方法与结果说明.md。
-
-Bias=mean(估计−真值)，SD使用ddof=0，RMSE=sqrt(mean((估计−真值)^2))。精度使用全部成功估计，失败排除，有解率分母1200。MMLE的支持检查为γ<x₂，MLE/WMLE为γ<x₁；原方法和已有状态没有改变。
-
-manifest.json记录交付文件的相对路径、字节数和SHA；完整文件清单和目录大小写在邮件012结果记录中。原批次20261005-KunduRaqab原版MMLE三方法保留，过程数据和历史展示仍在那里。
-
-## 2026-10-06 口径回退
-
-按用户 2026-10-06 决定，本批 MLE 与 WMLE 从 paper_solver 剖面求根口径**回退为注册表经典实现**（`methods/mle.py`、`methods/wmle.py`，与 Research00 生产程序逐字节相同），三方法全部重新计算；
-样本不变（6000 组，逐组 SHA256 与回退前一致）；
-
-- 新有解数：MLE 523/722/965/1087/1199；WMLE 1097/1166/1189/1196/1200；MMLE 每个 n 均 1200。
-- 九格图量程改为按本批数据自适应；三张图与 Excel 已按新结果重出。
+邮件022核验：原因列外19列逐格保持；原失败档案、样本、估计值、统计及PNG保持；工作簿从当前CSV重导，逐本188610格核验。没有新拟合、没有提交或推送。
