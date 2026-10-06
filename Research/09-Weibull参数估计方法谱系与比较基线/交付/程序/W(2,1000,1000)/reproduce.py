@@ -1,4 +1,4 @@
-"""Recompute original MMLE in a fresh directory; preserve MLE/WMLE from CSV."""
+"""Recompute all three methods (MLE/MMLE/WMLE) in a fresh directory with the frozen pipeline."""
 import argparse
 import shutil
 import subprocess
@@ -26,10 +26,10 @@ def main():
     shutil.copytree(HERE / 'source_snapshot', program / 'source_snapshot')
     for p in (HERE.parent / '结果').glob('*.csv'):
         shutil.copy2(p, results / p.name)
-    for script, options in [('bootstrap_saved_data.py', []), ('compute.py', ['--workers', str(args.workers)]),
+    for script, options in [('compute.py', ['--workers', str(args.workers)]),
                             ('summarize.py', []), ('export_details.py', []), ('draw.py', [])]:
         subprocess.run([sys.executable, str(program / script), *options], check=True)
-    print('MMLE recomputed with frozen code; MLE/WMLE reused. Output:', target)
+    print('MLE/MMLE/WMLE all recomputed with frozen code. Output:', target)
     print('For the current paired-sheet Excel, run the new directory 程序/export_workbook.ps1.')
 
 if __name__ == '__main__':

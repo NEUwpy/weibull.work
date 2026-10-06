@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib.ticker import PercentFormatter,NullLocator
+from matplotlib.ticker import PercentFormatter,NullLocator,MaxNLocator
 from scipy.stats import gaussian_kde
 HERE=Path(__file__).resolve().parent;SOURCE=HERE.parent/'数据';OUT=HERE.parent/'结果';AUDIT=HERE
 METHODS=['MLE','MMLE','WMLE'];NS=[7,10,15,20,50];COLORS=['#5F6570','#345D7E','#B27448']
@@ -78,10 +78,20 @@ def main():
     ax.set_ylabel('有效解比例');ax.legend(frameon=False,loc='lower right')
     fig.suptitle(setting_title('有效解比例'),fontsize=9,y=.985);fig.subplots_adjust(left=.14,right=.98,bottom=.17,top=.855)
     save(fig,'02_有解率.png')
-    metric_limits={'rmse':[(0,3),(0,900),(0,900)],'bias':[(-.5,1.5),(-400,400),(-400,400)],'sd':[(0,2.5),(0,900),(0,900)]}
-    metric_ticks={'rmse':[[0,.5,1,1.5,2,2.5,3],[0,200,400,600,800],[0,200,400,600,800]],
-                  'bias':[[-.5,0,.5,1,1.5],[-400,-200,0,200,400],[-400,-200,0,200,400]],
-                  'sd':[[0,.5,1,1.5,2,2.5],[0,200,400,600,800],[0,200,400,600,800]]}
+    metric_limits={};metric_ticks={}
+    # 量程按本批三方法全部成功估计的统计量自适应：不裁剪、含 0 基线，刻度用 MaxNLocator。
+    for metric in ['rmse','bias','sd']:
+        metric_limits[metric]=[];metric_ticks[metric]=[]
+        for param in PARAMS:
+            values=stats[param+'_'+metric].to_numpy(dtype=float)
+            if metric=='bias':
+                span=max(abs(float(values.min())),abs(float(values.max())),1e-9)*1.08
+                ticks=MaxNLocator(nbins=5).tick_values(-span,span).tolist()
+            else:
+                ticks=MaxNLocator(nbins=5).tick_values(0.,float(values.max())*1.08).tolist()
+            assert float(values.min())>=ticks[0] and float(values.max())<=ticks[-1]
+            metric_limits[metric].append([ticks[0],ticks[-1]])
+            metric_ticks[metric].append(ticks)
     fig,axes=plt.subplots(3,3,figsize=(10.8,8.4))
     for row,metric in enumerate(['rmse','bias','sd']):
         for ax,p,label,limits,ticks in zip(axes[row],PARAMS,LABELS,metric_limits[metric],metric_ticks[metric]):
@@ -101,7 +111,7 @@ def main():
     (AUDIT/'绘图核验.json').write_text(json.dumps(dict(source_sha256=hashlib.sha256(raw.read_bytes()).hexdigest(),
       panels=15,records=records,curve_points=150,linear_axes=True,PNG_only=True,
       nine_panel_layout='rows RMSE/Bias/SD; columns beta/eta/gamma; no joint RMSE',
-      RMSE_limits={'beta':[0,3],'eta':[0,900],'gamma':[0,900]},
+      RMSE_limits=dict(zip(PARAMS,metric_limits['rmse'])),
       Bias_limits=dict(zip(PARAMS,metric_limits['bias'])),SD_limits=dict(zip(PARAMS,metric_limits['sd'])),
       solution_rate_limits=[0,1.03],statistics_untrimmed=True,notes_in_figure=False),ensure_ascii=False),encoding='utf-8')
     print('3 PNG written; median/mean circles, 45 violin groups and 150 curve points verified; no joint RMSE')

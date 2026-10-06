@@ -79,15 +79,17 @@ def main():
     fig.suptitle(setting_title('有效解比例'),fontsize=9,y=.985);fig.subplots_adjust(left=.14,right=.98,bottom=.17,top=.855)
     save(fig,'02_有解率.png')
     metric_limits={};metric_ticks={}
+    # 量程按本批三方法全部成功估计的统计量自适应：不裁剪、含 0 基线，刻度用 MaxNLocator。
     for metric in ['rmse','bias','sd']:
         metric_limits[metric]=[];metric_ticks[metric]=[]
         for param in PARAMS:
-            values=stats[param+'_'+metric].to_numpy()
-            unit=1 if param=='beta' else TRUTH[1]/1000
-            base=(-.5,1.5) if param=='beta' and metric=='bias' else (-400*unit,400*unit) if metric=='bias' else (0,(3 if metric=='rmse' else 2.5)) if param=='beta' else (0,900*unit)
-            low=min(base[0],float(values.min())*1.08) if metric=='bias' else 0
-            high=max(base[1],float(values.max())*1.08)
-            ticks=MaxNLocator(nbins=5).tick_values(low,high).tolist()
+            values=stats[param+'_'+metric].to_numpy(dtype=float)
+            if metric=='bias':
+                span=max(abs(float(values.min())),abs(float(values.max())),1e-9)*1.08
+                ticks=MaxNLocator(nbins=5).tick_values(-span,span).tolist()
+            else:
+                ticks=MaxNLocator(nbins=5).tick_values(0.,float(values.max())*1.08).tolist()
+            assert float(values.min())>=ticks[0] and float(values.max())<=ticks[-1]
             metric_limits[metric].append([ticks[0],ticks[-1]])
             metric_ticks[metric].append(ticks)
     fig,axes=plt.subplots(3,3,figsize=(10.8,8.4))

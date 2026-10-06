@@ -98,8 +98,11 @@ def draw_heat(data, out, points):
     bar = fig.colorbar(im, cax=fig.add_axes([.94, .155, .013, .655]), ticks=[0,.25,.5,.75,1])
     bar.ax.yaxis.set_major_formatter(PercentFormatter(1, decimals=0))
     bar.set_label('有效解比例', labelpad=10)
-    assert data.loc[data['方法'].isin(['MMLE','WMLE']), '有解率'].eq(1).all()
-    fig.text(.5, .054, 'MMLE 与 WMLE 在各自全部 40 个条件下均为 100%', ha='center', fontsize=12)
+    rates = data.groupby('方法')['有解率'].agg(['min', 'max'])
+    assert set(rates.index) == set(METHODS)
+    summary = '；'.join('%s %.1f%%–%.1f%%' % (m, 100 * rates.loc[m, 'min'], 100 * rates.loc[m, 'max'])
+                        for m in METHODS)
+    fig.text(.5, .054, '每个条件下 1200 组，有解率区间：%s' % summary, ha='center', fontsize=12)
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
     for artist, ax, i, j in text_artists:

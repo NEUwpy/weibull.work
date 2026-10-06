@@ -15,20 +15,15 @@ from methods.registry import IMPLEMENTED
 from studies.common.sample import generate_sample
 from studies.common.experiment import run_experiment
 from studies.common.metrics import check_status, param_absolute_errors, param_relative_errors, aggregate_standard_metrics
-from paper_solver import solve
 CFG=json.loads((HERE/'config.json').read_text(encoding='utf-8'))
+# WMLE 口径回退（2026-10-06）：WMLE 由 methods/wmle.py 经典实现计算，与 Research00 生产程序逐字节相同。
+CODE_VERSION='same-frozen-methods-gamma500-013+classic-mle-wmle-20261006'
 
-class PaperMLE(WeibullBase):
-    method='MLE'
-    def run(self):
-        record=solve(self.data,self.method)
-        self.last_solution_info=record
-        fit=record['estimate']
-        if fit is None:return [None,None,None,0.,False]
-        return [fit['beta'],fit['eta'],fit['gamma'],0.,True]
+# MLE 与 WMLE 均改用注册表里的经典实现（methods/mle.py、methods/wmle.py），
+# 与 Research00 生产程序逐字节相同，口径与旧批一致；不再使用 paper_solver 求根。
 
-class PaperWMLE(PaperMLE):
-    method='WMLE'
+# WMLE 不再用 paper_solver 求根，改用注册表里的经典实现 methods/wmle.py
+# （与 Research00 生产程序逐字节相同），口径与旧批一致。
 
 class KROriginal(WeibullBase):
     def run(self):
@@ -66,12 +61,10 @@ def block(job):
     if marker.exists():
         assert json.loads(marker.read_text(encoding='utf-8'))['source_sha256']==hashes
         return n,b,'existing'
-    IMPLEMENTED['paper_mle']=PaperMLE
     IMPLEMENTED['kr_original']=KROriginal
-    IMPLEMENTED['paper_wmle']=PaperWMLE
-    run_experiment([('paper_mle',dict(variant='MLE')),('kr_original',dict(variant='K-R MMLE')),
-                    ('paper_wmle',dict(variant='WMLE'))], [tuple(CFG['truth'])],[n],100,str(dest),
-                   seed_namespace=namespace(b),code_version='same-frozen-methods-gamma500-013',run_label=CFG['task_id'])
+    run_experiment([('mle',dict(variant='MLE')),('kr_original',dict(variant='K-R MMLE')),
+                    ('wmle',dict(variant='WMLE'))], [tuple(CFG['truth'])],[n],100,str(dest),
+                   seed_namespace=namespace(b),code_version=CODE_VERSION,run_label=CFG['task_id'])
     rows=pd.read_csv(dest/'results.csv')
     rows['block']=b
     rows['pipeline_initial_status']=rows.status

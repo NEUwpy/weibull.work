@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib.ticker import PercentFormatter,NullLocator
+from matplotlib.ticker import PercentFormatter,NullLocator,MaxNLocator
 from scipy.stats import gaussian_kde
 HERE=Path(__file__).resolve().parent;SOURCE=HERE.parent/'数据';OUT=HERE.parent/'结果';AUDIT=HERE
 METHODS=['MLE','MMLE','WMLE'];NS=[7,10,15,20,50];COLORS=['#5F6570','#345D7E','#B27448']
@@ -79,10 +79,20 @@ def main():
     ax.set_ylabel('有效解比例');ax.legend(frameon=False,loc='lower right')
     fig.suptitle(setting_title('有效解比例'),fontsize=9,y=.985);fig.subplots_adjust(left=.14,right=.98,bottom=.17,top=.855)
     save(fig,'02_有解率.png')
-    metric_limits={'rmse':[(0,3),(0,90),(0,90)],'bias':[(-.5,1.5),(-40,40),(-40,40)],'sd':[(0,2.5),(0,90),(0,90)]}
-    metric_ticks={'rmse':[[0,.5,1,1.5,2,2.5,3],[0,20,40,60,80],[0,20,40,60,80]],
-                  'bias':[[-.5,0,.5,1,1.5],[-40,-20,0,20,40],[-40,-20,0,20,40]],
-                  'sd':[[0,.5,1,1.5,2,2.5],[0,20,40,60,80],[0,20,40,60,80]]}
+    metric_limits={};metric_ticks={}
+    # 量程按本批三方法全部成功估计的统计量自适应：不裁剪、含 0 基线，刻度用 MaxNLocator。
+    for metric in ['rmse','bias','sd']:
+        metric_limits[metric]=[];metric_ticks[metric]=[]
+        for param in PARAMS:
+            values=stats[param+'_'+metric].to_numpy(dtype=float)
+            if metric=='bias':
+                span=max(abs(float(values.min())),abs(float(values.max())),1e-9)*1.08
+                ticks=MaxNLocator(nbins=5).tick_values(-span,span).tolist()
+            else:
+                ticks=MaxNLocator(nbins=5).tick_values(0.,float(values.max())*1.08).tolist()
+            assert float(values.min())>=ticks[0] and float(values.max())<=ticks[-1]
+            metric_limits[metric].append([ticks[0],ticks[-1]])
+            metric_ticks[metric].append(ticks)
     fig,axes=plt.subplots(3,3,figsize=(10.8,8.4))
     for row,metric in enumerate(['rmse','bias','sd']):
         for ax,p,label,limits,ticks in zip(axes[row],PARAMS,LABELS,metric_limits[metric],metric_ticks[metric]):

@@ -22,7 +22,11 @@ def main():
     save('样本',sample_columns,groups)
     raw['display_method']=raw.method_variant.replace({'K-R MMLE':'MMLE'});raw['order']=raw.display_method.map({m:i for i,m in enumerate(METHODS)})
     raw=raw.sort_values(['n','block','repeat_id','order']);estimates=[]
-    reason_names={'no_stationary_root_in_paper_location_domain':'原文位置域内未找到驻点根',
+    reason_names={'equation_residual':'方程残差未达阈值（优化停在非根点）',
+                  'unbounded':'似然沿边界无界，未接受候选',
+                  'optimizer_failed':'各起点优化均失败',
+                  'shape_at_bound':'形状触及实现上界',
+                  'no_stationary_root_in_paper_location_domain':'原文位置域内未找到驻点根',
                   'no_likelihood_maximum_root':'驻点候选中没有似然局部极大根',
                   'all_stationary_roots_outside_shape_domain':'驻点根形状超原文域',
                   'fixed_point_not_converged':'固定点未收敛'}
