@@ -4,7 +4,7 @@
 
 ## 1. 核心工作流
 
-目前的架构中，许多算法文件（如 `mle.py`, `bayesian.py`）仅包含占位符。要激活它们，请遵循以下步骤：
+已有实现先复用；仅对实际占位方法（如 `mps.py`）按以下步骤补齐：
 
 1. **选择文件**: 打开对应的 `.py` 文件。
 2. **移除占位**: 删除 `raise NotImplementedError`。
@@ -22,10 +22,10 @@
 - 样本量通过 `self.n` 获取。
 
 ### 输出 (Output)
-`run()` 方法**必须**返回一个包含 4 个浮点数的列表或元组：
+`run()` 通常返回参数、拟合量和成功标记；统一调用器也兼容历史4元组及 `MethodResult`：
 
 ```python
-return [beta, eta, gamma, r_squared]
+return [beta, eta, gamma, r_squared, converged]
 ```
 
 | 参数 | 符号 | 描述 | 备注 |
@@ -34,6 +34,7 @@ return [beta, eta, gamma, r_squared]
 | **eta** | $\eta$ | 尺度参数 (Scale) | 特征寿命，必须 > 0 |
 | **gamma** | $\gamma$ | 位置参数 (Location) | 失效阈值，通常 >= 0 |
 | **r_squared** | $R^2$ | 拟合优度 | 0.0 - 1.0 之间 |
+| **converged** | — | 方法成功标记 | 失败不补入默认参数 |
 
 ---
 
@@ -73,7 +74,7 @@ class MyNewMethod(WeibullBase):
         r2 = self._calculate_r2(beta, eta, gamma)
         
         # 4. 返回标准结果
-        return [beta, eta, gamma, r2]
+        return [beta, eta, gamma, r2, True]
 ```
 
 ## 5. 调试建议
@@ -86,3 +87,14 @@ if __name__ == "__main__":
     result = MyNewMethod(test_data).run()
     print(f"Beta: {result[0]}, Eta: {result[1]}, Gamma: {result[2]}, R2: {result[3]}")
 ```
+
+## 6. 两版MMLE的注册口径（2026-10-07）
+
+- `mmle` → `methods.mmle.MMLE`：Kundu–Raqab构造的单样本形式，与Research09实际 `KROriginal` 一致。令γ̂为原样本最小值，删除这一个观测，对其余观测使用 `y=x[1:]-γ̂`，再按固定点迭代估计β和η。来源为Kundu & Raqab（2009），*Statistics & Probability Letters* 79(17):1839–1846，印刷1840页式(4)、1841页式(6)(9)–(11)，DOI `10.1016/j.spl.2009.05.026`。原文研究两样本应力–强度问题；这里实现其删最小值和剖面迭代的单样本化简。
+- `mmle_ch` → `methods.mmle_ch.MMLE`：原Cohen–Whitten（1982）MMLE-I工程实现，原文件字节完整保留。它以第一顺序统计量的累计概率约束替代位置似然方程，采用50个位置候选；其既有边界、近似处理和成功标记未修复，不与K-R混称。
+
+K-R默认模块常量为 `INITIAL_SHAPE=1.0`、`SHAPE_ABSOLUTE_STEP_TOLERANCE=1e-8`、`MAX_ITERATIONS=10000`；`run()`可用同名小写参数覆盖。它不加Firth修正、额外形状或位置上界，不重试，不换求解器。失败返回 `[None,None,None,0.0,False]`，`last_solution_info`保存迭代次数、最终步长、删除数和支持边界。R²沿用R09的0占位，不解释为拟合优度为零。
+
+支持检查须使用保留观测的最小值 `x[1]`，因为γ̂等于已删除的原最小值 `x[0]`。通用全样本支持检查仍拒绝γ̂≥x[0]；本次不改变runner或metrics，实验接入时须显式说明删最小值的支持口径。`run_method('mmle_ch', sample)`可调用旧版，现有冻结批次不会因注册语义变化而重算。
+
+正式对拍复用R00的W(2,1000,500)与W(2,1000,3000)各100组样本，n=7/15各50组：200组均与R09实际类成功状态相同，三个参数及原有诊断逐项一致，最大绝对差为0；不重抽、不向R00写结果。另用R09存档W(2,1000,500)的6000组样本CSV作额外核对：成功/失败集合相同，与实际类的参数及原有诊断逐项一致；CSV参数最大绝对差为2.2737367544323206e-13。独立剖面得分定根、预算失败、重复最小值、形状大于10及两版分派见 `tests/test_mmle_kundu_raqab2009.py`。这一核验不等于完整复现原文两样本实验。

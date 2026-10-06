@@ -8,6 +8,7 @@ from fastapi import HTTPException
 
 from methods.mle import MLE
 from methods.mmle import MMLE
+from methods.mmle_ch import MMLE as MMLE_CH
 from methods.lre import LRE
 from methods.lse import LSE
 from methods.mps import MPS
@@ -19,7 +20,7 @@ from methods.mdm import MDM
 # 有独立实现的方法
 # ============================================================
 IMPLEMENTED = {
-    "mle": MLE, "mmle": MMLE, "mps": MPS, "wmle": WMLE,
+    "mle": MLE, "mmle": MMLE, "mmle_ch": MMLE_CH, "mps": MPS, "wmle": WMLE,
     "lse": LSE, "mdm": MDM, "lre": LRE,
     "mm": MM,
 }
