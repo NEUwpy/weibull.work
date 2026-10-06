@@ -6,7 +6,7 @@ import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 const programDir = path.dirname(fileURLToPath(import.meta.url));
 const workDir = path.resolve(programDir, "../结果/复算输出");
 const payload = JSON.parse(await fs.readFile(path.join(workDir, "payload.json"), "utf8"));
-const templatePath = path.resolve(programDir, "../结果/2,1000,1000.xlsx");
+const templatePath = path.resolve(programDir, "../结果/W2,1000,1000.xlsx");
 const fallbackTemplate = templatePath;
 const qaDir = path.join(workDir, "qa");
 await fs.mkdir(qaDir, { recursive: true });
@@ -75,6 +75,6 @@ for (const caseData of payload.cases) {
   const caseDir = path.join(workDir, "outputs", caseData.label);
   await fs.mkdir(caseDir, { recursive: true });
   const output = await SpreadsheetFile.exportXlsx(workbook);
-  await output.save(path.join(caseDir, "2,1000,1000.xlsx"));
+  await output.save(path.join(caseDir, "W2,1000,1000.xlsx"));
   console.log(`workbook complete: ${caseData.label}`);
 }

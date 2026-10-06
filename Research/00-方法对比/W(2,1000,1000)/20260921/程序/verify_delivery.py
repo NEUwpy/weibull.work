@@ -10,7 +10,7 @@ from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 d=json.loads((WORK/'payload.json').read_text(encoding='utf-8'))['cases'][0]
 folder=WORK/'outputs'/d['label']
-wb=load_workbook(folder/'2,1000,1000.xlsx',data_only=True)
+wb=load_workbook(folder/'W2,1000,1000.xlsx',data_only=True)
 cells=0
 for n in (7,15,30):
  for i,s in enumerate(d['samples'][str(n)]):

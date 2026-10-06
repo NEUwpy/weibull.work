@@ -7,7 +7,7 @@ import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 const programDir = path.dirname(fileURLToPath(import.meta.url));
 const workDir = path.resolve(programDir, "../结果/复算输出");
 const payload = JSON.parse(await fs.readFile(path.join(workDir, "payload.json"), "utf8"));
-const templatePath = path.resolve(programDir, "../结果/3,1000,3000.xlsx");
+const templatePath = path.resolve(programDir, "../结果/W3,1000,3000.xlsx");
 if (payload.cases.length !== 1 || payload.cases[0].shape !== 3 || payload.cases[0].scale !== 1000 || payload.cases[0].location !== 3000) throw new Error("Wrong batch payload");
 const qaDir = path.join(workDir, "qa");
 await fs.mkdir(qaDir, { recursive: true });
@@ -110,6 +110,6 @@ for (const caseData of payload.cases) {
   const caseDir = path.join(workDir, "outputs", caseData.label);
   await fs.mkdir(caseDir, { recursive: true });
   const output = await SpreadsheetFile.exportXlsx(workbook);
-  await output.save(path.join(caseDir, `${caseData.shape},${caseData.scale},${caseData.location}.xlsx`.replaceAll(".0", "")));
+  await output.save(path.join(caseDir, `W${caseData.shape},${caseData.scale},${caseData.location}.xlsx`.replaceAll(".0", "")));
   console.log(`workbook complete: ${caseData.label}`);
 }
