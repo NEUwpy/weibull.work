@@ -21,8 +21,8 @@
         "shortName": "MMLE",
         "slug": "mmle",
         "hasDetail": true,
-        "description": "Cohen & Whitten 于 1982 年提出，通过替换似然方程来修正 MLE 在小样本下的偏差。当 δ<2 时 MLE 不满足正则条件，MMLE 提供了更稳健的估计。",
-        "formula": "-\\ln\\frac{n}{n+1} = \\frac{(x_1 - \\gamma)^{\\delta}}{\\theta}"
+        "description": "采用 Kundu–Raqab（2009）构造的单样本形式：位置取样本最小值，删除一个最小观测后，对平移样本的剖面形状方程作不动点迭代，再求尺度。",
+        "formula": "\\hat\\gamma=x_{(1)},\\quad y_i=x_{(i)}-\\hat\\gamma\\ (i=2,\\ldots,n),\\quad \\beta_{k+1}=\\frac{n-1+\\beta_k\\sum_{i=2}^{n}\\ln y_i}{(n-1)\\sum_{i=2}^{n}w_i(\\beta_k)\\ln y_i},\\quad w_i(\\beta)=\\frac{y_i^{\\beta}}{\\sum_{j=2}^{n}y_j^{\\beta}}"
       },
       {
         "id": "mps",

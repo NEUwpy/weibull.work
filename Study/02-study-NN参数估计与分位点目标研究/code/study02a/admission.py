@@ -14,7 +14,8 @@ DECLARED_DOMAINS: dict[str, dict[str, Any]] = {
     "wmle": {"sample_min": "positive", "gamma": "nonnegative_below_sample_min"},
     "mdm": {"sample_min": "positive", "gamma": "nonnegative_below_sample_min", "kwargs": {"offset": 0.1}},
     "lre": {"sample_min": "positive", "gamma": "nonnegative_below_sample_min"},
-    "mmle": {"sample_min": "positive", "gamma": "nonnegative_below_sample_min"},
+    # Kundu–Raqab deletes exactly one minimum; support is checked on retained observations.
+    "mmle": {"sample_min": "positive", "gamma": "nonnegative_below_retained_sample_min"},
     "lse": {"sample_min": "positive", "gamma": "implementation_pending"},
     "mm": {"sample_min": "positive", "gamma": "implementation_pending"},
     "pwm": {"sample_min": "positive", "gamma": "implementation_pending"},
@@ -30,15 +31,26 @@ class AdmissionResult:
     residuals: dict[str, float] = field(default_factory=dict)
 
 
-def _valid_result(result: Mapping, sample: Sequence[float]) -> bool:
+def _valid_result(
+    result: Mapping, sample: Sequence[float], *, method_id: str | None = None,
+) -> bool:
     estimates = [result.get("beta_hat"), result.get("eta_hat"), result.get("gamma_hat")]
-    return bool(
+    if not (
         all(value is not None and np.isfinite(value) for value in estimates)
         and float(estimates[0]) > 0
         and float(estimates[1]) > 0
-        and float(estimates[2]) < float(np.min(sample))
         and result.get("converged", True)
-    )
+    ):
+        return False
+    gamma = float(estimates[2])
+    if method_id == "mmle":
+        values = np.asarray(sample, dtype=float).reshape(-1)
+        if values.size < 2 or not np.isfinite(values).all() or np.any(values <= 0):
+            return False
+        # Sorting and slicing remove one observation, including when the minimum repeats.
+        retained_min = float(np.sort(values)[1])
+        return bool(0 <= gamma < retained_min)
+    return bool(gamma < float(np.min(sample)))
 
 
 def audit_method(
@@ -66,7 +78,7 @@ def audit_method(
             continue
         try:
             result = runner(method_id, case["sample"], **kwargs)
-            if _valid_result(result, case["sample"]):
+            if _valid_result(result, case["sample"], method_id=method_id):
                 statuses[case_id] = "contract_pass"
                 messages[case_id] = "finite, converged, and support-legal estimate"
             else:
@@ -107,6 +119,8 @@ def audit_method_contracts(
     The transformations stay inside the positive-sample domain declared for the
     current method.  Residuals are normalized componentwise so beta, eta and
     gamma can be judged by one frozen dimensionless tolerance.
+    MMLE checks location against the retained minimum after deleting one observation;
+    its repeated and transformed results must also satisfy that support contract.
     """
 
     contract_ids = (
@@ -142,7 +156,7 @@ def audit_method_contracts(
             messages[identifier] = "core estimate failed"
         return AdmissionResult(method_id, False, statuses, messages, residuals)
 
-    if not _valid_result(base, values):
+    if not _valid_result(base, values, method_id=method_id):
         statuses["core"] = "contract_failure"
         messages["core"] = "invalid, unconverged, or support-illegal estimate"
         for identifier in contract_ids[1:]:
@@ -154,10 +168,13 @@ def audit_method_contracts(
     messages["core"] = "finite, converged, and support-legal estimate"
     base_vector = _parameter_vector(base)
 
-    checks: list[tuple[str, np.ndarray, np.ndarray, float]] = []
+    checks: list[tuple[str, np.ndarray, np.ndarray, float, bool]] = []
     try:
         repeated = runner(method_id, values.tolist(), **kwargs)
-        checks.append(("determinism", _parameter_vector(repeated), base_vector, deterministic_rtol))
+        checks.append((
+            "determinism", _parameter_vector(repeated), base_vector, deterministic_rtol,
+            method_id != "mmle" or _valid_result(repeated, values, method_id=method_id),
+        ))
 
         scaled_sample = values * float(scale_factor)
         scaled = runner(method_id, scaled_sample.tolist(), **kwargs)
@@ -166,6 +183,7 @@ def audit_method_contracts(
             _parameter_vector(scaled),
             base_vector * np.asarray([1.0, scale_factor, scale_factor]),
             equivariance_rtol,
+            method_id != "mmle" or _valid_result(scaled, scaled_sample, method_id=method_id),
         ))
 
         shift = max(1.0, float(values.min()) / 2.0)
@@ -176,6 +194,7 @@ def audit_method_contracts(
             _parameter_vector(translated),
             base_vector + np.asarray([0.0, 0.0, shift]),
             equivariance_rtol,
+            method_id != "mmle" or _valid_result(translated, translated_sample, method_id=method_id),
         ))
     except Exception as error:
         missing = contract_ids[1:4]
@@ -184,8 +203,11 @@ def audit_method_contracts(
                 statuses[identifier] = "contract_failure"
                 messages[identifier] = f"{type(error).__name__}: {error}"
 
-    for identifier, observed, expected, tolerance in checks:
-        residual = _relative_residual(observed, expected) if np.isfinite(observed).all() else float("inf")
+    for identifier, observed, expected, tolerance, support_valid in checks:
+        residual = (
+            _relative_residual(observed, expected)
+            if support_valid and np.isfinite(observed).all() else float("inf")
+        )
         residuals[identifier] = residual
         if residual <= tolerance:
             statuses[identifier] = "contract_pass"
@@ -197,7 +219,7 @@ def audit_method_contracts(
     try:
         degenerate = np.full(values.size, float(values.mean()))
         failure_result = runner(method_id, degenerate.tolist(), **kwargs)
-        if _valid_result(failure_result, degenerate):
+        if _valid_result(failure_result, degenerate, method_id=method_id):
             statuses["failure_propagation"] = "contract_failure"
             messages["failure_propagation"] = "degenerate sample silently returned a valid estimate"
         else:

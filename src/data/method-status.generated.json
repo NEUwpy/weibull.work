@@ -86,15 +86,19 @@
       "level": "layer1_in_progress",
       "calculatorEnabled": false,
       "missingLayer1": [
-        "paper",
-        "tests"
+        "paper"
       ],
       "paper": {
         "status": "blocked",
+        "title": "Estimation of R = P(Y < X) for three-parameter Weibull distribution",
+        "publication": "Statistics & Probability Letters 79(17), 1839–1846",
+        "year": 2009,
+        "stable_id": "doi:10.1016/j.spl.2009.05.026",
         "evidence": [
-          "src/content/182-091-pdf原文.md"
+          "src/content/algorithms/mmle.md",
+          "python/tests/test_mmle_kundu_raqab2009.py"
         ],
-        "reason": "原文 182-091 已收录；现有 MMLE-I 代码与原文的对应核验、独立数值基准尚未完成，暂不认定专项论文验真完成。"
+        "reason": "2026-10-08已同步Kundu–Raqab（2009）单样本删最小值与剖面不动点构造及Study/02保留观测准入；R00两批200组对拍一致。原文待入库（191_inbox），计算器专项验收待完成，保持关闭。"
       },
       "layer1": {
         "backend": {
@@ -104,9 +108,11 @@
           ]
         },
         "tests": {
-          "status": "todo",
-          "evidence": [],
-          "note": "尚无针对 MMLE 的独立测试断言"
+          "status": "done",
+          "evidence": [
+            "python/tests/test_mmle_kundu_raqab2009.py"
+          ],
+          "note": "K-R单样本剖面得分、配置与失败规则已核；旧CH实现独立保留，不据此认定其有效性"
         },
         "calculator": {
           "status": "done",

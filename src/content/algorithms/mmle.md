@@ -28,7 +28,7 @@ applicability:
 references:
   - id: kundu-raqab-2009
     url: https://doi.org/10.1016/j.spl.2009.05.026
-    relation: "直接构造依据：1840页式(4)及1841页式(6)(9)–(11)；原文两样本问题在此化简为单样本。"
+    relation: "直接构造依据：1840页式(4)及1841页式(6)(9)–(11)的单样本化简；原文待入库（191_inbox）。"
     title: Estimation of R = P(Y < X) for three-parameter Weibull distribution
     author: Debasis Kundu, Mohammad Z. Raqab
     year: 2009
@@ -40,10 +40,10 @@ references:
     year: 1982
     publication: Communications in Statistics - Theory and Methods
 implementation:
-  status: "已核单样本公式及R09既有结果；本轮未开放计算器"
-  summary: "mmle采用最小值位置估计、删除一个观测、对平移距离按原固定点规则估计形状和尺度；mmle_ch原字节保留旧实现。"
+  status: "已核单样本公式及R09既有结果；计算器未开放"
+  summary: "采用 Kundu–Raqab（2009）两样本构造的单样本形式：取最小值定位，删去一个最小观测后按剖面不动点规则估计形状与尺度；旧 Cohen–Whitten 版保留为 mmle_ch。"
   differences:
-    - "原文研究共享形状与位置的两样本应力–强度问题；本项目实现其单样本删最小值与剖面迭代构造，不宣称完整复现该两样本实验。"
+    - "原文研究共享形状与位置的两样本应力–强度问题；本项目实现其单样本删最小值与剖面迭代构造。"
     - "初始形状1、绝对形状步长容差1e-8、最多10000次；这些数值设置沿用R09。无Firth、额外参数上界、重试或备用求解器。"
     - "支持检查使用保留观测的最小值；R²为R09的0占位，不使用包含零距离的全样本对数回归。"
   validation: "正式对拍使用R00两批各100组存档样本，200组成功/失败集合、参数与原有诊断均与R09实际KROriginal一致，最大绝对差0。R09原批6000组CSV额外核对无不一致，最大绝对差2.2737367544323206e-13。另有独立剖面得分定根等方法测试。"
@@ -92,7 +92,9 @@ w_i(\beta)=\frac{y_i^\beta}{\sum_{j=2}^n y_j^\beta}.$$
 
 返回 `[β̂,η̂,γ̂,0.0,True]`；迭代失败返回 `[None,None,None,0.0,False]`。第四项沿用R09的R²占位，不能解释为拟合优度为零。`last_solution_info`记录迭代次数、最终步长、删除数、保留观测最小值及求解规则。
 
-γ̂等于已删除的原最小值，而小于其余保留观测。通用全样本支持检查仍要求γ̂<x₍₁₎，不能直接套到该修改构造；实验接入须使用保留观测最小值。此次不改runner、metrics或已有研究数据，计算器仍未开放。
+γ̂等于已删除的原最小值，而小于其余保留观测。Study/02准入对样本排序并剔除一个最小观测后，检查非负位置γ̂<x₍₂₎；重复最小值会留下零距离，按迭代失败处理。通用全样本支持检查仍要求γ̂<x₍₁₎，其他研究入口接入时需采用保留观测口径。计算器仍未开放。
+
+论文出处：Kundu–Raqab（2009），Statistics & Probability Letters 79(17), 1839–1846，DOI [10.1016/j.spl.2009.05.026](https://doi.org/10.1016/j.spl.2009.05.026)。原文尚未正式入库，当前位于 `D:/博士阶段/100科研文献管理/100科研文献管理/190_待处理与日志/191_inbox/Kundu-Raqab-2009-SPL-Estimation of R for three-parameter Weibull.pdf` 待处理；已核原文及单样本化简的公式。
 
 ## 4. 旧Cohen–Whitten实现
 
