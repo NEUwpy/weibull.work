@@ -1,0 +1,94 @@
+{
+  "task_id": "research00-figs-stats-028",
+  "goal_version": "g2",
+  "artifact_version": "rates-v1",
+  "sources": [
+    {
+      "combination": "W(2,1000,500)",
+      "path": "W(2,1000,500)/20260826",
+      "workbook_sha256": "96e27d0a138f95aa65701be5fb54322453292d37b688f1969f722e0726aeff50",
+      "matrix_sha256": "5f4df193f6b6c2bcc6da74fada9de75f8db342571e271ced94d9983a8f0a896b"
+    },
+    {
+      "combination": "W(2,1000,1000)",
+      "path": "W(2,1000,1000)/20260921",
+      "workbook_sha256": "397d756e501fe3e15d701f3e25502ae0e9cf401fb75ba51ab0cc72b65f1417cf",
+      "matrix_sha256": "12eda817af02f61c468b90f97edac9fec3e6e671f64ed10ee00bed1813cd3d9b"
+    },
+    {
+      "combination": "W(2,1000,3000)",
+      "path": "W(2,1000,3000)/20260825",
+      "workbook_sha256": "e3ce9e37a49838a4d45bfff36222dda400780b29fb0e7b3e45fc421dfb6cd0db",
+      "matrix_sha256": "ce365c14e046294b0714be166137eb43846c2f3d192ca40d046244cc5b451c27"
+    },
+    {
+      "combination": "W(3,1000,500)",
+      "path": "W(3,1000,500)/20260907",
+      "workbook_sha256": "9b31b78f7198ab3a3f04e6e41d82a71e68783a76a12d933ee89b614051c71960",
+      "matrix_sha256": "ebbed77173e118f774bdbefc7fd7b0e1502e99122c901b749ce6d35a878cd304"
+    },
+    {
+      "combination": "W(3,1000,1000)",
+      "path": "W(3,1000,1000)/20260907",
+      "workbook_sha256": "1a22ad76d1305bf59536b6a05b7c1d2e5a434469e4fb9b7f349bd40ac8e71ac9",
+      "matrix_sha256": "94a0dfbce2b396f4f309545cb2ad674c4eb01a7c563b7686fb8be5cb2a56b88a"
+    },
+    {
+      "combination": "W(3,1000,3000)",
+      "path": "W(3,1000,3000)/20260907",
+      "workbook_sha256": "b866f3d61f685a3afcb278fd6eb82f6bf148bca17fcdb5af329ec33b31f557d7",
+      "matrix_sha256": "0faf92249b737ecce6c68f06737438f2899c9a27c91ebe93f0c95e2ba192de21"
+    },
+    {
+      "combination": "W(5,1000,500)",
+      "path": "W(5,1000,500)/20260929-新抽样",
+      "workbook_sha256": "3293f785f97dc113029bb05542758fa2694ec32903ad45e2c094daef7437beeb",
+      "matrix_sha256": "50fb5ea69a2ef7e9adcb5697fbbc417735845d029c079430f14b2fa78a412c15"
+    },
+    {
+      "combination": "W(5,1000,3000)",
+      "path": "W(5,1000,3000)/20260906",
+      "workbook_sha256": "71a21bbbee8752133bd2b440b9e9a24339d9c67c656fd61f62ee891eb2ae6584",
+      "matrix_sha256": "9da5f659e990650fe1bc7d67a2b1de9c6125f34aec71397f6c8b1202498a5400"
+    }
+  ],
+  "scripts": {
+    "aggregate.py": "69c89a00f726cd190b5db03b4a4d94b91f45b14b71a4827f9d289355c9cccbd9",
+    "draw.py": "e564cf2578774e9e121062c947b81d0910c7e97dd30314f2760d82c4d17bcacb",
+    "read_excel.py": "a6d6363ae705c6956edfff8a1a866c9fed1ff2f60a95ca7a0f8619e489b24b5c"
+  },
+  "outputs": [
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\跨组合汇总\\R00_统计汇总.csv",
+      "sha256": "b7d0e1632af9ce5d941414b561273f16f443c9a530c2700bf7c949cfae43bf92",
+      "bytes": 8444
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\跨组合汇总\\R00_跨参数统计.csv",
+      "sha256": "ec3d86fc06adab137cee2af21a9eb3544d1c535b5f63b624185a210f21b95025",
+      "bytes": 4966
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\跨组合汇总\\跨参数对比_有解率热图.png",
+      "sha256": "ffee657265f8513567d1e0b0703641451a6ffb544caca7a1e424747e4566588d",
+      "bytes": 1297596
+    }
+  ],
+  "runtime": {
+    "python": "3.11.15",
+    "numpy": "2.4.6"
+  },
+  "entry_sha256": "5fe228624d62d3801a2d7730495c0c85190eee5bda3809577d1d397e6a660dd5",
+  "combinations_sha256": "1355c970e2179cf627228c9515cd1eb0c33ee34f95e5fc99910f20d6c12b8bf7",
+  "style_sources": [
+    {
+      "path": "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\交付\\程序\\W(2,1000,500)\\draw.py",
+      "sha256": "ce596ae5ae072e207edfa53debb738e59df7dbf283d765a391695ab374424d7d"
+    },
+    {
+      "path": "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\交付\\程序\\跨参数对比\\绘制跨参数对比.py",
+      "sha256": "099347bb321fb4bff8549cf988f2347a4c9eba10c8b784416ea0c5e09da3e604"
+    }
+  ],
+  "range_verification_sha256": "910fc32af1043ab9a36afdda3f16b7e54b3128a89ababfd800b40a545f964bab"
+}

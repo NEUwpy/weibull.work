@@ -1,0 +1,244 @@
+{
+  "task_id": "research00-add-stash-5combos-032",
+  "goal_version": "g1",
+  "artifact_version": "five-combos-v1",
+  "combination": "W(3,100,500)",
+  "truth": [
+    3.0,
+    100.0,
+    500.0
+  ],
+  "sample_sizes": [
+    7,
+    15,
+    30
+  ],
+  "groups_per_n": 50,
+  "sample_sheet_prefix": "生成样本",
+  "result_sheet_prefix": "估计结果",
+  "workbook": "W3,100,500.xlsx",
+  "seed_namespace_original": 20261004,
+  "input_mode": "stored_samples_only",
+  "source_program": "D:\\weibull\\Research\\00-方法对比\\20261004-寿命与强度样本任务\\程序\\W(3,100,500)",
+  "source_files": {
+    "results.json": "8e482845d9ed42d61936ae29b7e3cef4e2daec7a7dd35ced9bf3bddb1038425a",
+    "results.csv": "9c9966b38faa524609b1dbe633dc43d21d4f3e7244bbb8b3ca6cd5f6c3de4446"
+  },
+  "dependency_hashes": {
+    "base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+    "methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "methods/lre.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
+    "methods/lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "methods/mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "methods/mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "methods/mm.py": "6804ccf1183b8506594ae3eb362be683af1a5523fe6a54d57ea5b41896c588d1",
+    "methods/mmle.py": "afe5318c04373254ad6acffc47e9cf7ff7ba80efa667865102ce8fc49edb85f9",
+    "methods/mps.py": "3c6e15318d759357c535893fe810df073b345b9ffe34a7ff132ce309206b7ecb",
+    "methods/registry.py": "e3be9c99eba93d636f4ebd15a063c02fe35c757578eeb4b85b3980d3b2cf213e",
+    "methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "studies/common/experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+    "studies/common/metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3",
+    "studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "studies/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "new_methods": [
+    {
+      "method": "mdm",
+      "delta": 0.1
+    },
+    {
+      "method": "mdm",
+      "delta": 0.15
+    },
+    {
+      "method": "mmle",
+      "delta": null
+    }
+  ],
+  "success_rule": "excel_converged_and_three_finite_parameters",
+  "mmle": "Kundu–Raqab shared original; support reference x2; no changes to shared library",
+  "sampling_rule": "same n/id share latent exponentials across beta and eta within task20261004; no shared sample with old eight batches",
+  "figure_contract": {
+    "archetype": "quantitative grid",
+    "backend": "python",
+    "export": "PNG only",
+    "violin": "Show eight-method estimate distributions for beta/eta/gamma at n=7/15/30; no accuracy-ranking claim.",
+    "heatmap": "Show raw finite converged output rate, 50 groups per method/n; do not equate output with accuracy.",
+    "mdm": "Stored real profile-gradient grid against gamma; intersection with requested offset defines location candidate.",
+    "violin_dimensions": [
+      11.4,
+      9.6
+    ],
+    "rate_dimensions": [
+      6.5,
+      4.2
+    ],
+    "mdm_dimensions_mm": [
+      130,
+      92
+    ],
+    "display_limits": {
+      "beta": [
+        0,
+        10
+      ],
+      "eta": [
+        0,
+        200.0
+      ],
+      "gamma": [
+        0,
+        600.0
+      ]
+    },
+    "display_ticks": {
+      "beta": [
+        0,
+        2,
+        4,
+        6,
+        8,
+        10
+      ],
+      "eta": [
+        0,
+        50.0,
+        100.0,
+        150.0,
+        200.0
+      ],
+      "gamma": [
+        0,
+        200,
+        400,
+        600
+      ]
+    },
+    "mdm_x_range": [
+      0,
+      700
+    ],
+    "mdm_y_range": [
+      -0.8,
+      1.6
+    ],
+    "png_dpi": 450,
+    "text": "Short axes, method labels, shared median/mean legend and essential threshold only; no prose boxes."
+  },
+  "methods": [
+    {
+      "label": "MDM δ=0.10",
+      "excel_label": "MDM δ=0.10",
+      "method_id": "mdm",
+      "delta": 0.1,
+      "color": "#4C756B",
+      "linestyle": "-",
+      "marker": "o"
+    },
+    {
+      "label": "MDM δ=0.15",
+      "excel_label": "MDM δ=0.15",
+      "method_id": "mdm",
+      "delta": 0.15,
+      "color": "#6A8D76",
+      "linestyle": "--",
+      "marker": "^"
+    },
+    {
+      "label": "MDM δ=0.20",
+      "excel_label": "MDM δ=0.20",
+      "method_id": "mdm",
+      "delta": 0.2,
+      "color": "#91A18A",
+      "linestyle": ":",
+      "marker": "v"
+    },
+    {
+      "label": "LSE",
+      "excel_label": "LS",
+      "method_id": "lse",
+      "delta": null,
+      "color": "#7B6E91",
+      "linestyle": "-",
+      "marker": "P"
+    },
+    {
+      "label": "LRE",
+      "excel_label": "LRE",
+      "method_id": "lre",
+      "delta": null,
+      "color": "#6F98A5",
+      "linestyle": "-",
+      "marker": "X"
+    },
+    {
+      "label": "MLE",
+      "excel_label": "MLM",
+      "method_id": "mle",
+      "delta": null,
+      "color": "#5F6570",
+      "linestyle": "-",
+      "marker": "o"
+    },
+    {
+      "label": "WMLE",
+      "excel_label": "WMLM",
+      "method_id": "wmle",
+      "delta": null,
+      "color": "#B27448",
+      "linestyle": "--",
+      "marker": "s"
+    },
+    {
+      "label": "MMLE",
+      "excel_label": "MMLE",
+      "method_id": "mmle",
+      "delta": null,
+      "color": "#345D7E",
+      "linestyle": "-",
+      "marker": "D"
+    }
+  ],
+  "boundary_note": "",
+  "acknowledged_boundary_keys": [],
+  "display_limits": {
+    "beta": [
+      0,
+      10
+    ],
+    "eta": [
+      0,
+      200.0
+    ],
+    "gamma": [
+      0,
+      600.0
+    ]
+  },
+  "display_ticks": {
+    "beta": [
+      0,
+      2,
+      4,
+      6,
+      8,
+      10
+    ],
+    "eta": [
+      0,
+      50.0,
+      100.0,
+      150.0,
+      200.0
+    ],
+    "gamma": [
+      0,
+      200,
+      400,
+      600
+    ]
+  },
+  "png_dpi": 450,
+  "crosscheck_matrix": "程序/中间数据/matrix.json"
+}

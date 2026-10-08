@@ -4,6 +4,8 @@
 
 > **2026-09-29 版本提示：** 生产 LRE 已改为 Park（2017）Proposed+Plot 的原文分段绘图位置、非负相关系数定位及 OLS；移除固定寿命间隔，并补论文算例验证。下文的“当前”、代码一致性和 Bernard 算例均指2026-09-26核查时版本（可从 Git `80d08ca8` 恢复），作为历史记录保留，不再描述最新生产 LRE。新实现与验证见[方法页](../../src/content/algorithms/lre.md)及[测试](../../python/tests/test_lre_park2017.py)，历史研究结果未重算。
 
+> **2026-10-07版本补充：** 共享MMLE已由CH改为Kundu–Raqab；R00指定批次的LRE换版及十三组合实际版本边界见第12节。第1—11节的“当前”仍按原核查日期理解，不将冻结历史记录改写成新程序状态。
+
 ## 通用建议与历史实现的分工
 
 当前建议见[报告v2.5第3—6章](研究报告.md)。原v3.0固定四／五基准及具体网格已撤回，保存于Git存档`e29ead91`中的同名历史稿。方法是否入选由任务、实际比较及条件性能证据决定；数值实现细节须附属于相应文献方法，不能把Local-ML另立为新的文献估计器。
@@ -358,6 +360,56 @@ $$
 
 调整形状与位置，使这些伪估计的差异减小。它与概率图都利用样本及概率的关系，但分别比较尺度伪估计的一致性、拟合变换后的直线。带偏移修正的方程与原始差异最小化须按具体版本区分，不能只用“MDM”标签替代概率与偏移设置。
 
+## 12. 2026-10-06/07 口径变更与R00接入
+
+### 12.1 MMLE：共享注册名由CH改为Kundu–Raqab构造
+
+工单025将共享[mmle.py](../../python/methods/mmle.py)改为Kundu–Raqab（2009）构造的单组样本形式，注册名仍为`mmle`。原Cohen–Whitten（1982）工程实现原字节保留在[mmle_ch.py](../../python/methods/mmle_ch.py)，以`mmle_ch`注册；[registry.py](../../python/methods/registry.py)分别分派两个类。
+
+新构造取位置估计为原样本最小值γ̂=x₍₁₎，只删除一个最小观测，在剩余距离x₍ᵢ₎−x₍₁₎（i=2,…,n）上估计形状与尺度。形状由初值1作固定点迭代，绝对步长容差10⁻⁸、上限10000次；未收敛记`fixed_point_not_converged`并返回失败。没有Firth修正、额外参数上界、重试或备用求解器，R²保留参考实现的0占位。它承接原文印刷页1840式(4)、1841式(6)、(9)–(11)的构造，不表示复现了原文双样本应力–强度实验。
+
+| 文件 | 当前注册或用途 | 工作区SHA256 |
+|---|---|---|
+| `python/methods/mmle.py` | `mmle`，Kundu–Raqab单样本构造 | `afe5318c04373254ad6acffc47e9cf7ff7ba80efa667865102ce8fc49edb85f9` |
+| `python/methods/mmle_ch.py` | `mmle_ch`，原CH工程实现 | `e0e3f919fb8aba6d235f7b55a494ca9e4f6f88fcb8b5c1a1d3142f0f34e1de3a` |
+| `python/methods/registry.py` | 两个注册名分别分派 | `49dd3d536670ae6759afabe4e842e0054f0bd146deffcf51563ace95a1c0643f` |
+
+旧`mmle.py`与现`mmle_ch.py`工作区字节SHA完全相同。对拍复用存档样本，参考类取自R09 [compute.py](实验/W(2,1000,500)/程序/compute.py)中的实际`KROriginal`，不重抽样：
+
+| 核对对象 | 样本组数 | 不一致数 | 最大参数绝对差 |
+|---|---:|---:|---:|
+| R00两批原样本：新MMLE与实际参考类 | 200 | 0 | 0 |
+| R09原批样本：新MMLE与实际参考类 | 6000 | 0 | 0 |
+| 同6000组与存档估计CSV | 6000 | 0 | 2.2737367544323206×10⁻¹³ |
+
+成功／失败集合及原有诊断一致；CSV存在末位浮点差异，不能将该项最大差写成严格0。原始对拍与输入哈希见[025正式证据](<D:/Hermes Email/执行完毕/research00-mmle-method-program-025/pilot-r00-result.json>)、[6000组证据](<D:/Hermes Email/执行完毕/research00-mmle-method-program-025/pilot-result.json>)及[025结果](<D:/Hermes Email/执行完毕/research00-mmle-method-program-025/result.md>)。
+
+影响范围为共享类直接导入、`mmle`注册分派及后续使用该注册名的调用；冻结历史快照和旧结果不会自动换版。026在R00原八组合补入1200条MMLE，032在五组合原样本上补入750条。两个调用点均按删除后的保留观测检查γ̂<x₍₂₎；不能沿用其它方法的γ̂<x₍₁₎规则将这种构造全部判失败。共享`check_status`默认语义、Study程序和既有历史结果未在本次文档同步中改动。
+
+### 12.2 LRE：026换版只作用于指定批次
+
+026将R00 [W(5,1000,500)/20260929-新抽样](../00-方法对比/W(5,1000,500)/20260929-新抽样/README.md)的150条LRE从Park（2017）Proposed+Plot改回历史Bernard相关系数–OLS实现。三档n=7、15、30各50组样本不变，换版前后各150条收敛，150组参数均变化；此记录不判断哪版更优。
+
+| 本批文件 | 版本 | SHA256 |
+|---|---|---|
+| `程序/完整矩阵/历史LRE/lre_park2017.py` | 换版前Park原件 | `6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae` |
+| `程序/依赖快照/python/methods/lre.py` | 当前Bernard | `730e86750f5ac1b31dd1cee9f3a73a8932e501661dfbf1e82c056de44f9a663f` |
+
+逐组前后参数见[差值记录](../00-方法对比/W(5,1000,500)/20260929-新抽样/程序/完整矩阵/数据/lre_change.json)，实施范围与哈希见[本批manifest](../00-方法对比/W(5,1000,500)/20260929-新抽样/程序/完整矩阵/manifest.json)及[026结果](<D:/Hermes Email/执行完毕/research00-fill-full-matrix-026/result.md>)。β、η、γ的绝对差中位数分别为0.224984、19.767471、15.875777，最大绝对差分别为2.348267、295.924348、292.225037。
+
+原Park结果JSON和旧独立n30工作簿仍作历史证据保留；当前主表为`W5,1000,500.xlsx`，不能用旧Park表解释当前Bernard结果。
+
+**十三组合的版本边界：** 原八组合当前完整矩阵的LRE均为Bernard；032五组合W1.5,100,500、W1.5,1000,500、W2,100,500、W3,100,500、W5,100,500复用20261004存档的Park LRE，未重算该方法。共享`python/methods/lre.py`也仍为Park，SHA为上述`6daa…`完整值。因而026的换版不代表共享LRE回退，也不代表十三组合采用同一LRE版本。各批冻结程序、取数记录与[032结果](<D:/Hermes Email/执行完毕/research00-add-stash-5combos-032/result-attempt-1.md>)共同限定适用范围。
+
+### 12.3 当前交付与有解率
+
+R00十三组合均为n=7、15、30各50组，八方法为MDM δ=0.10/0.15/0.20、LSE、LRE、MLE、WMLE、MMLE。每组合主表含六个配对工作表，正式图像为小提琴、有解率及九张MDM图，共11张PNG。当前发送目录为`../00-方法对比/交付/13 组参数结果`，程序在`交付/程序`；历史统计CSV不放入发送结果。
+
+有解率按主Excel展示规则统计：三参数均显示有限数值即计为有解，每个组合／n／方法的分母为50，不因图中省略极端值而改变。原八组合六条、后五组合八条MDM记录虽显示参数，但标准支撑边界检查记失败；这些差异保留注记，不补解、不改值、不替换统计规则。MMLE的γ̂=x₍₁₎是其构造的一部分，按保留观测检查，不与上述MDM边界差异混为一类。
+
+五组合共用种子20261004，同一n与组号跨β、η共用潜在指数变量，与原八组合不共用样本。跨图312格均按各组合单独取数，不合并不同抽样协议，也不将跨批差异解释成只改变真参数的配对因果比较。十三组合交付和批次索引见[R00 README](../00-方法对比/README.md)；本节仅同步版本与产物说明，没有修改R00/R09的数值、程序、表图或压缩包。
+
+
 ## 原始来源与引用建议
 
 - LS：Soman, K. P., & Misra, K. B. (1992). *A Least Square Estimation of Three Parameters of a Weibull Distribution*. Microelectronics Reliability, 32(3), 303–305. [DOI](https://doi.org/10.1016/0026-2714(92)90057-R)，本地[182-104正文](../../src/content/182-104-pdf原文.md)。引用具体分支，不笼统声称实现整篇论文。
@@ -369,4 +421,4 @@ $$
 
 ## 复核资料
 
-本文中的程序和数值状态均为原核查快照，不自动代表之后源码。版本、工作簿和失败复核证据分别见[estimator_audit](evidence/estimator_audit.json)、[workbook_audit](evidence/workbook_audit.json)、[wmle_case_recovery](evidence/wmle_case_recovery.json)。MPS/L矩及共同样本接入结果保存在[mps_lm_audit](evidence/mps_lm_audit.json)和[common_sample_audit](evidence/common_sample_audit.json)。详细执行过程见Git存档`e29ead91`中的整合前技术附录，不作为新方法性能排名。
+第1—11节中的程序和数值状态为原核查快照，不自动代表之后源码；第12节另记录2026-10-06/07的换版及R00接入证据。版本、工作簿和失败复核证据分别见[estimator_audit](evidence/estimator_audit.json)、[workbook_audit](evidence/workbook_audit.json)、[wmle_case_recovery](evidence/wmle_case_recovery.json)。MPS/L矩及共同样本接入结果保存在[mps_lm_audit](evidence/mps_lm_audit.json)和[common_sample_audit](evidence/common_sample_audit.json)。详细执行过程见Git存档`e29ead91`中的整合前技术附录，不作为新方法性能排名。

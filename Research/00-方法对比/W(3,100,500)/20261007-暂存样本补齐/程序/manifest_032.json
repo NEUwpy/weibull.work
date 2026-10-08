@@ -1,0 +1,164 @@
+{
+  "task_id": "research00-add-stash-5combos-032",
+  "goal_version": "g1",
+  "artifact_version": "five-combos-v1",
+  "combination": "W(3,100,500)",
+  "samples": 150,
+  "reused_estimates": 750,
+  "new_estimates": 450,
+  "mmle_support": {
+    "reference": "x2: second smallest retained observation",
+    "records": 150,
+    "converged": 150,
+    "status_success": 150,
+    "gamma_equals_x1": 150,
+    "gamma_below_x2": 150
+  },
+  "source_json_sha256": "8e482845d9ed42d61936ae29b7e3cef4e2daec7a7dd35ced9bf3bddb1038425a",
+  "source_csv_sha256": "9c9966b38faa524609b1dbe633dc43d21d4f3e7244bbb8b3ca6cd5f6c3de4446",
+  "program_files": {
+    "config.json": "b1a42b3310916f1e0f7248302bcdcc3d301aace67f17c46f8a04ce2cdaa21751",
+    "Excel提取.json": "ac55e10342047f4d599af477433bb1cfc6015c290ebbc742aebfe4fd19fa35ea",
+    "manifest.json": "3849415aea542ab351192765158413771841891e4cf4b62cb10e70b8b482596b",
+    "MDM绘图核验.json": "64fc1d8c839083439499521145398dcdc8fcfd2544aebf1a7bd35f5855b611b3",
+    "README.md": "9aa2602a0af787a8908704ca9b24b64aab5d07d661b9ed9e79e5a4a8e46e590c",
+    "建表母体.mjs": "7d1779d1cfba13c7695eb639c6537a43179b08d7bfac1737a2936a1d3dfc9765",
+    "有解率.json": "d7d8432dc4a34a80a568f08ca3b6e95172ed9c4e98a221d7c20df68f44139b0b",
+    "本次MDM图.py": "75b57c4c8ef22f68bb40475fb0f4253baac27103e8fed843cdaecf1346a5502d",
+    "本次分布图.py": "b0bfcdaa356e1a5730ce46ef003ffea74dca7247b335fa93187579b4d5311ecf",
+    "本次建表.mjs": "747df0b5fe13211458070792097aa5717d76d850aab19f20a060d228ee91e2c9",
+    "本次补算.py": "9b0416cb12c7a83ead1e21e4295572bdfcad149c33744b46b8a13dea01b972f9",
+    "核对本次表.py": "031ac2e6341d1b7c93ece3f8a198c534b54be8509d6a57218d55ec79a56ee4a8",
+    "绘图核验.json": "1c9a18c4e1afba2b893fee2d5494afeaa1fd2b6cf09b168a334dc9c3ddbf7ef2",
+    "绘图母体.py": "e564cf2578774e9e121062c947b81d0910c7e97dd30314f2760d82c4d17bcacb",
+    "运行本组.ps1": "527e1fb7acd74e7fba0f2df1703f988d2f33ba0a2cc1616dae79c0dbcb232f61",
+    "中间数据/matrix.json": "b8ddd50deb5c3481e9dd0ea8454c6e779f4378c177b6f1583a42b10cfbf6e22c",
+    "中间数据/MDM曲线.json": "ae0ca79f37433cbe8c3431394f6d3ce827760e9a9557d0e2ab07271461ddc7e8",
+    "中间数据/新增估计.jsonl": "17edab90d2e545372b997f780256361b0afcd5de12fd864b7488d1202baa7a7c",
+    "中间数据/补算核验.json": "0acb63b3e79da739d028bf118af808f440ac509da0239d4b6e9f844b8c31f7b5",
+    "复核/excel-inspection.ndjson": "db689ce0f51e7a36cb01ef91f72aa327c523be2185651ecd29b18c067c7560ed",
+    "复核/Excel一致性.json": "dbe131dec334fb32ceba7503c9759cead22def64c50f36d2e611d48c5cf79f8d",
+    "复核/n15_样本.png": "078fdbbc8ab29fcb85dd940b4acb6986380b3c0cfabf87e6a33c22c913a6f3ac",
+    "复核/n15_结果.png": "3ba1d0198d51aea14f010ea4c9a4d5754a632fefe63a555736cafbeff4a677b3",
+    "复核/n30_样本.png": "a3afe807375fe0a29f62fb567f99305115e3a0f81bda1a1e67b268abacbd3cb7",
+    "复核/n30_结果.png": "b9e277406132d304a810338802472c8cbec30c0c65e2b936207b88286af98a19",
+    "复核/n7_样本.png": "b27b196346dd8ecc30214dee9fb679677459f15ba0f052b282535192fa3273ca",
+    "复核/n7_结果.png": "beb590b90ceb38ea661d2222c715c562cfd192d3b910a06a6bc689a4ad9de3a9",
+    "复核/九张MDM总览.png": "0e423b8863672e368ddc8ceefb0987cc4c47e3b3a2b8543d07eebc6ed5b76503",
+    "复核/六表总览.png": "c4b293fcd0e7e2234db971f3be97cdc2b038dbe42dc680a2e9da2cd17505d956",
+    "复核/图表目视核验.json": "ea811140dcb390b386a6a04fc8debe5e135224afac24990b42c00e5343189ff5",
+    "复核/导出.xlsx.inspect.ndjson": "0e42ecc3e3d4916ddc39912090b46b0de963f4dc9bce7b3ca90bdb46cfb3cebb",
+    "复核/小提琴预览.png": "f157be651f8a276bc1cf60a9d22be05dea479ae37acb8d914429bc57daea473d",
+    "复核/有解率预览.png": "8023dc7a3e7de8dc69cfacdfb24b7751390c0e0bb24570c6769da63d39499f5a",
+    "输入原件/results.csv": "9c9966b38faa524609b1dbe633dc43d21d4f3e7244bbb8b3ca6cd5f6c3de4446",
+    "输入原件/results.json": "8e482845d9ed42d61936ae29b7e3cef4e2daec7a7dd35ced9bf3bddb1038425a",
+    "依赖快照/python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+    "依赖快照/python/methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "依赖快照/python/methods/lre.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
+    "依赖快照/python/methods/lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "依赖快照/python/methods/mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "依赖快照/python/methods/mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "依赖快照/python/methods/mm.py": "6804ccf1183b8506594ae3eb362be683af1a5523fe6a54d57ea5b41896c588d1",
+    "依赖快照/python/methods/mmle.py": "afe5318c04373254ad6acffc47e9cf7ff7ba80efa667865102ce8fc49edb85f9",
+    "依赖快照/python/methods/mps.py": "3c6e15318d759357c535893fe810df073b345b9ffe34a7ff132ce309206b7ecb",
+    "依赖快照/python/methods/registry.py": "e3be9c99eba93d636f4ebd15a063c02fe35c757578eeb4b85b3980d3b2cf213e",
+    "依赖快照/python/methods/wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "依赖快照/python/studies/common/experiment.py": "15dbeb0b6eda477d12e0bc0b6b124243c0c1bb5801d54917eb25285be127c84b",
+    "依赖快照/python/studies/common/metrics.py": "4e455de8d36f4a9d7459609a425013bf7f5e2b5c89d7ce5ee2761f19798f7cf3",
+    "依赖快照/python/studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "依赖快照/python/studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48",
+    "依赖快照/python/studies/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "outputs": [
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\01_估计分布小提琴.png",
+      "name": "01_估计分布小提琴.png",
+      "sha256": "d61ca13ccf6cd688c94e46bd5b691afac099394f06b46083f852459b65cc46b2",
+      "bytes": 1027315
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\02_有解率.png",
+      "name": "02_有解率.png",
+      "sha256": "adc1cbe51b5187366c6f63b267741f7318736c17d397c5fb9eef8f9f5c7f5e27",
+      "bytes": 166718
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\W3,100,500.xlsx",
+      "name": "W3,100,500.xlsx",
+      "sha256": "c74569577986d7723bb621d3c4fc919c6e2b344d5eff315ec44a3757b8f5951c",
+      "bytes": 91952
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量15_偏移量0.10.png",
+      "name": "样本量15_偏移量0.10.png",
+      "sha256": "8126de2c141b4eb6e3e480ab84e47c0243f63422d32fb67c33a0c1e1ccbfdf76",
+      "bytes": 305716
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量15_偏移量0.15.png",
+      "name": "样本量15_偏移量0.15.png",
+      "sha256": "5e368da98439ee43892543a2133ef73f01dff46d1bdfab912b27404e1c7d9825",
+      "bytes": 305822
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量15_偏移量0.20.png",
+      "name": "样本量15_偏移量0.20.png",
+      "sha256": "8403c31cf2cf10bd5fa141bac86eecce1bddec861bdbf321235f5f2520c17eee",
+      "bytes": 305767
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量30_偏移量0.10.png",
+      "name": "样本量30_偏移量0.10.png",
+      "sha256": "da98c9aecbe86a7c668c062401d38f9333ed7934dea09c910cb3b476861c3d80",
+      "bytes": 266720
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量30_偏移量0.15.png",
+      "name": "样本量30_偏移量0.15.png",
+      "sha256": "c500c4320b14c81920ecfc152b4c2af0f5c82ffe401fb0c2a6f47d89c272a61a",
+      "bytes": 267076
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量30_偏移量0.20.png",
+      "name": "样本量30_偏移量0.20.png",
+      "sha256": "fb273bf3c12915f861758c22b9bd1eb613fa60b014c7eeb0408f687b64eccafb",
+      "bytes": 267370
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量7_偏移量0.10.png",
+      "name": "样本量7_偏移量0.10.png",
+      "sha256": "a028de8486e17c5527b0e726d62b9d0531f247f65907dcc46a9405f3610c7dff",
+      "bytes": 354217
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量7_偏移量0.15.png",
+      "name": "样本量7_偏移量0.15.png",
+      "sha256": "807690a14d8d9f32aa5e4589d7dc13771bb2e6c66a5ccdbe704994bbb28753ee",
+      "bytes": 354451
+    },
+    {
+      "path": "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\结果\\样本量7_偏移量0.20.png",
+      "name": "样本量7_偏移量0.20.png",
+      "sha256": "1095ff4b752f3995eb7804ebf57c137e892c0df07ebadb8d806b39ac9f679ccc",
+      "bytes": 354568
+    }
+  ],
+  "sheet_names": [
+    "生成样本_n7",
+    "估计结果_n7",
+    "生成样本_n15",
+    "估计结果_n15",
+    "生成样本_n30",
+    "估计结果_n30"
+  ],
+  "method_blocks": [
+    "MDM δ=0.10",
+    "MDM δ=0.15",
+    "MDM δ=0.20",
+    "LS",
+    "LRE",
+    "WMLM",
+    "MLM",
+    "MMLE"
+  ]
+}

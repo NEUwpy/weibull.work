@@ -1,0 +1,180 @@
+{
+  "task": "W(2,1000,500) six MDM gradient plots and estimation table",
+  "code_version": {
+    "head": "e25c0fde99222c86661e1fda35d3197c70e9e15d",
+    "dirty_worktree": true
+  },
+  "parameters": {
+    "distribution": "W(2,1000,500)",
+    "beta": 2.0,
+    "eta": 1000.0,
+    "gamma": 500.0,
+    "sample_sizes": [
+      7,
+      15
+    ],
+    "samples_per_size": 50,
+    "offsets": [
+      0.1,
+      0.15,
+      0.2
+    ],
+    "seed_namespace": 20260826
+  },
+  "gamma_steps": 240,
+  "figure_contract": {
+    "x_range": [
+      0.0,
+      1500.0
+    ],
+    "x_major_step": 500,
+    "x_minor_step": 100,
+    "y_range": [
+      -0.8,
+      1.6
+    ],
+    "y_major_step": 0.4,
+    "y_minor_step": 0.1,
+    "curves_per_figure": 50,
+    "criterion_line": "one red dash-dot line at the figure-specific offset"
+  },
+  "method_mapping": {
+    "MDM": "MDM",
+    "LS": "LSE",
+    "LRE": "LRE",
+    "WMLM": "WMLE",
+    "MLM": "MLE"
+  },
+  "validation": {
+    "n7_MDM_delta0.10": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 2,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n7_MDM_delta0.15": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 0,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n7_MDM_delta0.20": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 0,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n7_LS": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 13,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n7_LRE": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 14,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n7_WMLM": {
+      "total": 50,
+      "converged": 44,
+      "gamma_zero": 0,
+      "statuses": {
+        "equation_residual": 6,
+        "ok": 44
+      }
+    },
+    "n7_MLM": {
+      "total": 50,
+      "converged": 25,
+      "gamma_zero": 11,
+      "statuses": {
+        "unbounded": 25,
+        "ok": 25
+      }
+    },
+    "n15_MDM_delta0.10": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 0,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n15_MDM_delta0.15": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 0,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n15_MDM_delta0.20": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 0,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n15_LS": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 8,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n15_LRE": {
+      "total": 50,
+      "converged": 50,
+      "gamma_zero": 10,
+      "statuses": {
+        "ok": 50
+      }
+    },
+    "n15_WMLM": {
+      "total": 50,
+      "converged": 48,
+      "gamma_zero": 0,
+      "statuses": {
+        "ok": 48,
+        "equation_residual": 2
+      }
+    },
+    "n15_MLM": {
+      "total": 50,
+      "converged": 38,
+      "gamma_zero": 7,
+      "statuses": {
+        "ok": 38,
+        "unbounded": 12
+      }
+    },
+    "gradient_curves": {
+      "curve_count": 100,
+      "finite_points": 23998,
+      "expected_grid_points": 24000,
+      "curves_with_one_filtered_nonfinite_endpoint": 2
+    }
+  },
+  "figures": [
+    "样本量7_偏移量0.10.png",
+    "样本量7_偏移量0.15.png",
+    "样本量7_偏移量0.20.png",
+    "样本量15_偏移量0.10.png",
+    "样本量15_偏移量0.15.png",
+    "样本量15_偏移量0.20.png"
+  ]
+}
