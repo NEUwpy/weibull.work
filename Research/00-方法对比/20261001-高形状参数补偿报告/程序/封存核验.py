@@ -43,8 +43,8 @@ def inventories():
     for path in sorted(ROOT.glob('*.md')):
         groups['document_hashes'][path.name] = digest(path)
     groups['document_hashes']['../README.md'] = digest(ROOT.parent / 'README.md')
-    report = ROOT.parent / '高形状参数下的位置与尺度补偿报告.md'
-    groups['document_hashes']['../高形状参数下的位置与尺度补偿报告.md'] = digest(report)
+    report = ROOT.parent / '报告1：高形状参数下的估计偏移.md'
+    groups['document_hashes']['../报告1：高形状参数下的估计偏移.md'] = digest(report)
     return groups
 
 

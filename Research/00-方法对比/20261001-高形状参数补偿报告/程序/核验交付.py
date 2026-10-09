@@ -23,7 +23,7 @@ def digest(path):
 
 
 def main():
-    report = ROOT.parent / '高形状参数下的位置与尺度补偿报告.md'
+    report = ROOT.parent / '报告1：高形状参数下的估计偏移.md'
     links = []
     for document in (report, ROOT / 'README.md'):
         for link in re.findall(r'\]\(([^)\n]+)\)', document.read_text(encoding='utf-8')):

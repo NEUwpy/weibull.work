@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = Path(__file__).resolve().parents[1] / '结果' / '中间数据'
-REPORT_TEXT = r"""# 高形状参数下的位置高估与尺度补偿
+REPORT_TEXT = r"""# 报告1：高形状参数下的估计偏移
 
 > 研究报告 · 2026-10-02
 
@@ -287,7 +287,7 @@ def main():
     samples = json.loads((DATA / '样本.json').read_text(encoding='utf-8'))
     process = json.loads((DATA / '逐法过程曲线.json').read_text(encoding='utf-8'))
     assert len(estimates) == 4200 and len(samples) == 700 and len(process['curves']) == 1010
-    target = ROOT / '高形状参数下的位置与尺度补偿报告.md'
+    target = ROOT / '报告1：高形状参数下的估计偏移.md'
     target.write_text(REPORT_TEXT, encoding='utf-8', newline='\n')
     print(str(target))
 
