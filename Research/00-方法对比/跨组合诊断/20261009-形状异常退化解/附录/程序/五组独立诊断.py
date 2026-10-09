@@ -1,5 +1,5 @@
 import sys
-if len(sys.argv)!=2:raise SystemExit('需提供独立输出目录；仅复算保存的五组样本。')
+if len(sys.argv)!=2:raise SystemExit('需提供独立输出目录；仅复算保存的三组R00样本。')
 from pathlib import Path
 import sys,json,csv,math,collections
 import numpy as np
@@ -46,7 +46,7 @@ def regression(x,g,kind):
  else:
   p=(np.arange(1,n+1)-.5)/n if n>=11 else (np.arange(1,n+1)-3/8)/(n+1/4);z=np.log(-np.log1p(-p));b=np.dot(z-z.mean(),y-y.mean())/np.dot(y-y.mean(),y-y.mean());e=np.exp(y.mean()-z.mean()/b)
  rho=float(np.corrcoef(y,z)[0,1]);return np.array([b,e,g]),1-rho*rho
-cases=[('R00','W(2,100,500)',15,36),('R00','W(2,100,500)',15,27),('R09','W(2,100,500)',15,25),('R09','W(2,100,500)',15,100),('R00','W(5,100,500)',15,36)]
+cases=[('R00','W(2,100,500)',15,36),('R00','W(2,100,500)',15,27),('R00','W(5,100,500)',15,36)]
 summary=[];curves=[];fixedcurves=[];origcompare=[];optimizations=[];direction=[]
 for project,comb,n,sid in cases:
  key=f'{project}|{comb}|{n}|{sid}';x=np.array(samples[key]);truth=np.array([float(v) for v in comb[2:-1].split(',')]);smin=x.min();rr=[r for r in records if (r['project'],r['combination'],int(r['n']),int(r['group']))==(project,comb,n,sid)]
@@ -96,6 +96,6 @@ for project,comb,n,sid in cases:
  print(key,'stored',stored,'independent',best,'delta_ll',bestll-storedll,'score',score,'gumbel',gll,'delta',delta,flush=True)
  for k,v in regbest.items():print(' ',k,plain(v),flush=True)
 def write(name,rows):
- with (O/name).open('w',encoding='utf-8-sig',newline='') as f:w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(plain(rows))
+ with (O/name).open('w',encoding='utf8',newline='') as f:w=csv.DictWriter(f,fieldnames=list(rows[0]),lineterminator='\n');w.writeheader();w.writerows(plain(rows))
 for name,rows in [('profiles.csv',curves),('fixed_gamma_shape.csv',fixedcurves),('original_likelihoods.csv',origcompare),('independent_optimizations.csv',optimizations),('boundary_directions.csv',direction)]:write(name,rows)
 (O/'diagnostics.json').write_text(json.dumps(plain(summary),ensure_ascii=False,indent=2,allow_nan=False),encoding='utf8')

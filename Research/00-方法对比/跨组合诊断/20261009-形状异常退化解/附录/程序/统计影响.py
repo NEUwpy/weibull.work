@@ -13,7 +13,7 @@ for r in rows:
  for k in ['flag','converged','excel_success']:r[k]=r[k]=='True'
  groups[r['project'],r['combination'],r['n'],r['method']].append(r)
 def write(name,data):
- with (O/name).open('w',encoding='utf-8-sig',newline='') as f:w=csv.DictWriter(f,fieldnames=list(data[0]));w.writeheader();w.writerows(data)
+ with (O/name).open('w',encoding='utf8',newline='') as f:w=csv.DictWriter(f,fieldnames=list(data[0]),lineterminator='\n');w.writeheader();w.writerows(data)
 metrics=[]
 for key,rr in sorted(groups.items()):
  ok=[r for r in rr if r['excel_success']];keep=[r for r in ok if not r['flag']];flag=[r for r in ok if r['flag']]
@@ -29,7 +29,7 @@ for key in sorted(groups):
    comp.append(dict(combination=key[1],method=key[3],parameter=p,n15_success=a['success'],n30_success=b['success'],n15_flagged=a['flagged_success'],n30_flagged=b['flagged_success'],n15_rmse=a['rmse'],n30_rmse=b['rmse'],raw_n30_worse=b['rmse']>a['rmse'],sensitivity_n15_rmse=a['sensitivity_rmse'],sensitivity_n30_rmse=b['sensitivity_rmse'],sensitivity_n30_worse=b['sensitivity_rmse']>a['sensitivity_rmse']))
 write('n30_vs_n15.csv',comp)
 locator=[]
-for project,comb,n,g in [('R00','W(2,100,500)',15,36),('R00','W(2,100,500)',15,27),('R09','W(2,100,500)',15,25),('R09','W(2,100,500)',15,100),('R09','W(2,100,500)',15,702),('R09','W(2,100,500)',15,494),('R09','W(2,100,500)',15,525)]:locator.extend(r for r in rows if (r['project'],r['combination'],r['n'],r['group'])==(project,comb,n,g))
+for project,comb,n,g in [('R00','W(2,100,500)',15,36),('R00','W(2,100,500)',15,27),('R00','W(5,100,500)',15,36)]:locator.extend(r for r in rows if (r['project'],r['combination'],r['n'],r['group'])==(project,comb,n,g))
 write('location_verified.csv',locator)
 maxima=[]
 for key,rr in sorted(groups.items()):
@@ -38,8 +38,8 @@ for key,rr in sorted(groups.items()):
 write('n15_shape_maxima.csv',maxima)
 summary=dict(flagged_by_project_method={str(k):sum(r['flag'] for r in rr) for k,rr in collections.defaultdict(list).items()})
 c=collections.Counter((r['project'],r['method']) for r in rows if r['flag']);print('FLAGS',c)
-for project in ['R00','R09']:
- for n in [15,30] if project=='R00' else [15,50]:
+for project in ['R00']:
+ for n in [15,30]:
   for meth in ['LSE','LRE','MLE']:
    a=[m for m in metrics if m['project']==project and m['combination']=='W(2,100,500)' and m['n']==n and m['method']==meth and m['parameter']=='beta']
    if a:print(a[0])

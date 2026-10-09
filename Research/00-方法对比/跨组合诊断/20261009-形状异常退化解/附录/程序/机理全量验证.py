@@ -26,8 +26,8 @@ def read_csv(p):
     with p.open(encoding='utf-8-sig',newline='') as f:return list(csv.DictReader(f))
 def write(name,rows):
     keys=list(dict.fromkeys(k for r in rows for k in r))
-    with (OUT/name).open('w',encoding='utf-8-sig',newline='') as f:
-        w=csv.DictWriter(f,keys);w.writeheader();w.writerows(rows)
+    with (OUT/name).open('w',encoding='utf8',newline='') as f:
+        w=csv.DictWriter(f,keys,lineterminator='\n');w.writeheader();w.writerows(rows)
 def ok(r):return all(v is not None and math.isfinite(v) for v in [r['beta_hat'],r['eta_hat'],r['gamma_hat']]) and r['beta_hat']>0 and r['eta_hat']>0
 def flagged(r):return ok(r) and (r['beta_hat']>=10 or r['beta_hat']>=5*r['beta_truth']) and (abs(r['gamma_hat'])<=1e-6*r['sample_min'] or r['eta_hat']>=5*r['eta_truth'])
 samples={}; records=[]
@@ -39,20 +39,12 @@ for s in read_json(inventory)['sources']:
     for r in m['results']:
         k=('R00',s['combination'],int(r['n']),int(r['id'])); meth=f"MDM δ={r['delta']:.2f}" if r['method_id']=='mdm' else r['method_id'].upper()
         records.append(dict(project=k[0],combination=k[1],n=k[2],group=k[3],method=meth,lre_version=version,beta_truth=truth[0],eta_truth=truth[1],gamma_truth=truth[2],beta_hat=r['beta_hat'],eta_hat=r['eta_hat'],gamma_hat=r['gamma_hat'],sample_min=float(samples[k][0]),success=bool(r['converged'])))
-for p in sorted((ROOT/'Research/09-Weibull参数估计方法谱系与比较基线/实验').glob('W(*)')):
-    truth=read_json(p/'程序/config.json')['truth']
-    for sm in read_csv(p/'数据/样本.csv'):
-        k=('R09',p.name,int(sm['n']),int(sm['组号']));samples[k]=np.array([float(sm[f'x({i})']) for i in range(1,k[2]+1)])
-    for r in read_csv(p/'数据/估计明细.csv'):
-        k=('R09',p.name,int(r['n']),int(r['组号']))
-        b,e,g=[float(r[q]) if r[q] else None for q in ['β估计','η估计','γ估计']]
-        records.append(dict(project=k[0],combination=k[1],n=k[2],group=k[3],method=r['方法'],lre_version='',beta_truth=truth[0],eta_truth=truth[1],gamma_truth=truth[2],beta_hat=b,eta_hat=e,gamma_hat=g,sample_min=float(samples[k][0]),success=r['状态']=='成功'))
-assert len(samples)==49950 and len(records)==159600
+assert len(samples)==1950 and len(records)==15600
 for r in records:r['flag']=flagged(r)
 flags=[r for r in records if r['flag']]
 old=read_csv(REPORT/'附录/逐条标记记录.csv')
 key=lambda r:(r['project'],r['combination'],int(r['n']),int(r['group']),r['method'])
-assert len(flags)==1700 and {key(r) for r in flags}=={key(r) for r in old}
+assert len(flags)==365 and {key(r) for r in flags}=={key(r) for r in old}
 for r in flags:
     q=next(q for q in old if key(q)==key(r))
     assert all(math.isclose(r[k],float(q[k]),rel_tol=5e-15,abs_tol=1e-12) for k in ['beta_hat','eta_hat','gamma_hat'])
@@ -103,6 +95,10 @@ write('全部标记与分层对照.csv',diag)
 write('未通过局部条件的标记.csv',fail if fail else [dict(note='none')])
 write('解析导数交叉检查.csv',checks)
 freq=read_csv(REPORT/'附录/全条件筛查计数.csv')
+assert len(freq)==312 and all(r['project']=='R00' for r in freq)
+for r in freq:
+    rr=[q for q in records if (q['project'],q['combination'],q['n'],q['method'])==(r['project'],r['combination'],int(r['n']),r['method'])]
+    assert len(rr)==int(r['total'])==50 and sum(q['flag'] for q in rr)==int(r['flagged'])
 freq=[dict(r,beta_truth=float(r['combination'][2:-1].split(',')[0]),eta_gamma_ratio=float(r['combination'][2:-1].split(',')[1])/float(r['combination'][2:-1].split(',')[2]),rate=int(r['flagged'])/int(r['total'])) for r in freq if r['method'] in ['MLE','LSE','LRE']]
 write('标记频率与参数条件.csv',freq)
 metrics=[]
@@ -165,11 +161,11 @@ for cut in [8.,10.,12.]:
     f=[d for d in diag if d['flag']];u=[d for d in diag if not d['flag']]
     warning_sensitivity.append(dict(shape_threshold=cut,flagged=len(f),hits=sum(d['warning_score']>=cut for d in f),hit_rate=sum(d['warning_score']>=cut for d in f)/len(f),controls=len(u),false_positives=sum(d['warning_score']>=cut for d in u),false_positive_rate=sum(d['warning_score']>=cut for d in u)/len(u)))
 write('预警阈值敏感性.csv',warning_sensitivity)
-summary=dict(flagged=len(flags),controls=len(controls),diagnosed=len(diag),strata=len(cells),control_selection='最多30条/来源×组合×n×方法；在有解未标记的排序组号中等距取索引，无新抽样',tolerances=dict(parameter_log=TOL_PARAM,normalized_gradient=TOL_GRAD,strict_sign=SIGN_TOL),counts=counts,metrics=metrics,warning_counts=warning_counts,all_flagged_original_success=all(r['success'] for r in flags),mle_shape_derivative_negative=all(d['conditional_beta_derivative']<0 for d in diag if d['method']=='MLE'),mle_scale_derivative_negative=all(d['conditional_logeta_derivative']<0 for d in diag if d['method']=='MLE'),source_sha256=source_hash,program_sha256=sha(Path(__file__)))
+summary=dict(project='R00',sample_count=len(samples),record_count=len(records),flagged=len(flags),controls=len(controls),diagnosed=len(diag),strata=len(cells),control_selection='最多30条/来源×组合×n×方法；在有解未标记的排序组号中等距取索引，无新抽样',tolerances=dict(parameter_log=TOL_PARAM,normalized_gradient=TOL_GRAD,strict_sign=SIGN_TOL),counts=counts,metrics=metrics,warning_counts=warning_counts,all_flagged_original_success=all(r['success'] for r in flags),mle_shape_derivative_negative=all(d['conditional_beta_derivative']<0 for d in diag if d['method']=='MLE'),mle_scale_derivative_negative=all(d['conditional_logeta_derivative']<0 for d in diag if d['method']=='MLE'),source_sha256=source_hash,program_sha256=sha(Path(__file__)))
 summary['exceptions']=dict(total=len(exceptions),clear_local_improvement=sum(e['nearby_gain_vs_stored']>1e-9 for e in exceptions),near_boundary_equivalent=sum(e['interpretation'].startswith('与下界') for e in exceptions),other=sum(e['interpretation'].startswith('方向不满足') for e in exceptions))
 summary['warning_sensitivity']=warning_sensitivity
-summary['potential_warning']=dict(hits=sum(d['potential_high_shape'] for d in diag if d['flag']),flagged=1700,false_positives=sum(d['potential_high_shape'] for d in diag if not d['flag']),controls=len(controls))
+summary['potential_warning']=dict(hits=sum(d['potential_high_shape'] for d in diag if d['flag']),flagged=len(flags),false_positives=sum(d['potential_high_shape'] for d in diag if not d['flag']),controls=len(controls))
 summary['criteria_program_sha256']=sha(Path(__file__).with_name('准则关系.py'))
 for p,h in source_hash.items():assert sha(Path(p))==h,p
-(OUT/'汇总.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf8')
+(OUT/'汇总.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf8',newline='\n')
 print(json.dumps({k:summary[k] for k in ['flagged','controls','diagnosed','strata','exceptions','potential_warning']},ensure_ascii=False,indent=2),flush=True)

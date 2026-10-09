@@ -1,8 +1,11 @@
 {
-  "flagged": 1700,
-  "controls": 4574,
-  "diagnosed": 6274,
-  "strata": 157,
+  "project": "R00",
+  "sample_count": 1950,
+  "record_count": 15600,
+  "flagged": 365,
+  "controls": 3374,
+  "diagnosed": 3739,
+  "strata": 117,
   "control_selection": "最多30条/来源×组合×n×方法；在有解未标记的排序组号中等距取索引，无新抽样",
   "tolerances": {
     "parameter_log": 2e-05,
@@ -87,32 +90,6 @@
       "A0_pass": 97,
       "beta_left_monotonic": 1034,
       "eta_left_monotonic": 1034
-    },
-    {
-      "project": "R09",
-      "method": "MLE",
-      "flagged": true,
-      "total": 1335,
-      "exact_zero": 1270,
-      "boundary_local": 1269,
-      "interior_local": 25,
-      "not_confirmed": 41,
-      "A0_pass": 1270,
-      "beta_left_monotonic": 1335,
-      "eta_left_monotonic": 1335
-    },
-    {
-      "project": "R09",
-      "method": "MLE",
-      "flagged": false,
-      "total": 1200,
-      "exact_zero": 126,
-      "boundary_local": 126,
-      "interior_local": 1073,
-      "not_confirmed": 1,
-      "A0_pass": 126,
-      "beta_left_monotonic": 1200,
-      "eta_left_monotonic": 1200
     }
   ],
   "metrics": [
@@ -241,48 +218,6 @@
       "low_cv_threshold": null,
       "flag_hit_rate": null,
       "control_positive_rate": null
-    },
-    {
-      "project": "R09",
-      "method": "MLE",
-      "indicator": "cv_zero",
-      "flagged": 1335,
-      "controls": 1200,
-      "flagged_median": 0.0911123574215231,
-      "control_median": 0.16334722904097013,
-      "pooled_auc": 0.7964538077403246,
-      "within_cell_auc": 0.7147066167290886,
-      "low_cv_threshold": 0.1,
-      "flag_hit_rate": 0.5940074906367041,
-      "control_positive_rate": 0.2575
-    },
-    {
-      "project": "R09",
-      "method": "MLE",
-      "indicator": "cv_candidate",
-      "flagged": 1335,
-      "controls": 1200,
-      "flagged_median": 0.09131999580961926,
-      "control_median": 0.501077823166966,
-      "pooled_auc": 0.9966242197253433,
-      "within_cell_auc": 0.9887640449438202,
-      "low_cv_threshold": 0.1,
-      "flag_hit_rate": 0.5917602996254682,
-      "control_positive_rate": 0.0025
-    },
-    {
-      "project": "R09",
-      "method": "MLE",
-      "indicator": "min_gap_over_eta",
-      "flagged": 1335,
-      "controls": 1200,
-      "flagged_median": 0.399821594419921,
-      "control_median": 0.20941649674785878,
-      "pooled_auc": 0.6893976279650437,
-      "within_cell_auc": 0.5570287141073658,
-      "low_cv_threshold": null,
-      "flag_hit_rate": null,
-      "control_positive_rate": null
     }
   ],
   "warning_counts": [
@@ -318,17 +253,6 @@
       "controls": 1034,
       "false_positive": 0,
       "false_positive_rate": 0.0
-    },
-    {
-      "project": "R09",
-      "method": "MLE",
-      "flagged": 1335,
-      "hit": 1258,
-      "miss": 77,
-      "hit_rate": 0.9423220973782771,
-      "controls": 1200,
-      "false_positive": 0,
-      "false_positive_rate": 0.0
     }
   ],
   "all_flagged_original_success": true,
@@ -349,74 +273,50 @@
     "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "fe6295225fe8279731619ebc891c6bed6681549166e4a5a14ebbee9a16881050",
     "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "b8ddd50deb5c3481e9dd0ea8454c6e779f4378c177b6f1583a42b10cfbf6e22c",
     "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "4acf7790c6a49ef4f5270240c09f8ab847fa4f2139d04e2ba24ed5dbbd71085b",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(1.5,100,500)\\程序\\config.json": "95cc7936abc4ba290128a722bdfaf145527e36b4c467689d5236659ec7b66612",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(1.5,100,500)\\数据\\样本.csv": "d6d2720ff0db59e7bd679d43b885652971f08c231255b0571264dc9d6d472640",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(1.5,100,500)\\数据\\估计明细.csv": "4ffd92b0ea389288c43eea8455c0e12d6263280ef94fd6b38d5689ec8dc4cfe0",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(1.5,1000,500)\\程序\\config.json": "bdbfaa4bf7080c7026b92f6174bf6df36b6141f47b965912050a1357319906dd",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(1.5,1000,500)\\数据\\样本.csv": "4b8718f877e1fed558f7eae86625eeec32cc231e94032b851d61c85e77fec7e2",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(1.5,1000,500)\\数据\\估计明细.csv": "b767bfd2f9068f779ea6c0504126beca7973742c500c50c493f3161626d65eca",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,100,500)\\程序\\config.json": "2a211acc3d0725ae3cf05435e3882b5c97b5e4c335f9e40949591f8280981a2d",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,100,500)\\数据\\样本.csv": "86ba77d0f89a41154516af0ee314264508f01a613f82c33d9170619817af52b2",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,100,500)\\数据\\估计明细.csv": "8ba2cffdfd2550ab35f00ddd8bf55411536eaa1c6f27dd7370b81b61f232bf89",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,1000)\\程序\\config.json": "f66483de5c30e5a771157d7963d05e0f8901354b1307c258116c9f89fab20f72",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,1000)\\数据\\样本.csv": "de619f78d1ca861b7d8a4eb22166280dc67f69959e1b7010596134d17b361f40",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,1000)\\数据\\估计明细.csv": "64007126b3866877108c8578a2b62f53588b43eeafca1e395ea84b044f22432b",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,3000)\\程序\\config.json": "81c2b7e115c6dca773cc26707078515576d5e9585a5ab85efda7ce1533d05f23",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,3000)\\数据\\样本.csv": "13023f9ace9935f315cf7b97b4efc18e3c46be2c4cdf698b21c25312a754abec",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,3000)\\数据\\估计明细.csv": "537251eef4d16ff2753f6c5f5c325f26b691bed14b7083f6bb18a773e6a2789c",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,500)\\程序\\config.json": "54ae81c283fc3ab66be7bc7d73986f73b2dd7f6be37e80bbaa08dc19c0724401",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,500)\\数据\\样本.csv": "215f8a025f5fc91393994b666207dc6c3877e9a740c94773c0758b36758eb28d",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(2,1000,500)\\数据\\估计明细.csv": "e4da27e13cbe05d92711d27013068ff7fcdbae48a0a3134f8f39eee5fcee3f19",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(3,1000,500)\\程序\\config.json": "fe37b343842646fd2c9f44ce8c3a9e7aba58563613743718bdf50222dd05399d",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(3,1000,500)\\数据\\样本.csv": "36b415162612477cddd22a3c9595ef68e01b8342233a0acfeb71c808ea98e33b",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(3,1000,500)\\数据\\估计明细.csv": "33eaa25da9b72f8e35d617753978efa330bae031f290788a7c3d36d857776ba0",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(5,1000,500)\\程序\\config.json": "c7a0f6083e68f829ffb3066abe8830f2ca893193ff302619c349224a5274dc34",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(5,1000,500)\\数据\\样本.csv": "22864ab980a36d3ac20cefcd08b761a99779874d248fa46dd0aa92ff73770cfa",
-    "D:\\weibull\\Research\\09-Weibull参数估计方法谱系与比较基线\\实验\\W(5,1000,500)\\数据\\估计明细.csv": "bbf12c2372d3fd97511351198bb76c4a89b51e33b8d9fa17dcaac9653bf93ebe",
-    "D:\\weibull\\Research\\00-方法对比\\跨组合诊断\\20261009-形状异常退化解\\附录\\逐条标记记录.csv": "204c342b19a1ebd45ea45b66c799d26c449328cbfec2ab831eb18e7cfe77912f",
-    "D:\\weibull\\Research\\00-方法对比\\跨组合诊断\\20261009-形状异常退化解\\附录\\全条件筛查计数.csv": "9f311d71f81a6264a6cb8e60ff33d911ddf7209b236bef93264a74f8179945f2"
+    "D:\\weibull\\Research\\00-方法对比\\跨组合诊断\\20261009-形状异常退化解\\附录\\逐条标记记录.csv": "66a9ecaf0b8841e66723edce333e06db1cb3c463ac7b1baf9596b8f6cdd9ecca",
+    "D:\\weibull\\Research\\00-方法对比\\跨组合诊断\\20261009-形状异常退化解\\附录\\全条件筛查计数.csv": "4039c768680a51bb49c087d86384b2ddbfde7946fe3339cd08ac3332f2324945"
   },
-  "program_sha256": "7e00fdaa580d74957c58088cdf570a33fc7979626e9e58bd089214fd3a484699",
+  "program_sha256": "0cfef8c86112e9b5a78ddd72dcc3fbbb6d1542a0037d0e22f6d968896c1720c6",
   "exceptions": {
-    "total": 55,
-    "clear_local_improvement": 52,
-    "near_boundary_equivalent": 3,
+    "total": 14,
+    "clear_local_improvement": 12,
+    "near_boundary_equivalent": 2,
     "other": 0
   },
   "warning_sensitivity": [
     {
       "shape_threshold": 8.0,
-      "flagged": 1700,
-      "hits": 1610,
-      "hit_rate": 0.9470588235294117,
-      "controls": 4574,
-      "false_positives": 86,
-      "false_positive_rate": 0.01880192391779624
+      "flagged": 365,
+      "hits": 345,
+      "hit_rate": 0.9452054794520548,
+      "controls": 3374,
+      "false_positives": 51,
+      "false_positive_rate": 0.015115589804386485
     },
     {
       "shape_threshold": 10.0,
-      "flagged": 1700,
-      "hits": 1603,
-      "hit_rate": 0.9429411764705883,
-      "controls": 4574,
+      "flagged": 365,
+      "hits": 345,
+      "hit_rate": 0.9452054794520548,
+      "controls": 3374,
       "false_positives": 0,
       "false_positive_rate": 0.0
     },
     {
       "shape_threshold": 12.0,
-      "flagged": 1700,
-      "hits": 1195,
-      "hit_rate": 0.7029411764705882,
-      "controls": 4574,
+      "flagged": 365,
+      "hits": 321,
+      "hit_rate": 0.8794520547945206,
+      "controls": 3374,
       "false_positives": 0,
       "false_positive_rate": 0.0
     }
   ],
   "potential_warning": {
-    "hits": 1687,
-    "flagged": 1700,
-    "false_positives": 1977,
-    "controls": 4574
+    "hits": 364,
+    "flagged": 365,
+    "false_positives": 1646,
+    "controls": 3374
   },
   "criteria_program_sha256": "aa3c15a2b16bb53213598df6b2a495599da0336d97cec8058ddd87e826db8006"
 }

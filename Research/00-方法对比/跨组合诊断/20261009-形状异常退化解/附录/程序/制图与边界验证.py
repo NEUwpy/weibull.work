@@ -15,8 +15,8 @@ def read_csv(name):
  names={'profiles.csv':'位置剖面.csv','boundary_directions.csv':'扩展参数域边界方向.csv'}
  with (APP/names.get(name,name)).open(encoding='utf-8-sig',newline='') as f:return list(csv.DictReader(f))
 def csv_write(path,rows):
- with path.open('w',encoding='utf-8-sig',newline='') as f:
-  w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
+ with path.open('w',encoding='utf8',newline='') as f:
+  w=csv.DictWriter(f,fieldnames=list(rows[0]),lineterminator='\n');w.writeheader();w.writerows(rows)
 proof = []
 embedded = []
 fixed_dense = []
@@ -111,7 +111,7 @@ for ax,column,truth,ylabel,limits in [(axes[1],'beta',2,r'$\hat\beta(\gamma)$',(
 fig.savefig(FIG/'图2_位置左移与参数补偿.png');plt.close(fig)
 
 # Figure 3: distinguish finite maximum, unbounded endpoint and finite embedding.
-case=diagnostics[2]['case'];item=diagnostics[2]
+case=diagnostics[0]['case'];item=diagnostics[0]
 fig,axes=plt.subplots(1,3,figsize=(12,3.6),layout='constrained')
 rows=[row for row in fixed_dense if row['case']==case]
 axes[0].plot([row['beta'] for row in rows],[row['ll']-item['stored_ll'] for row in rows],color=blue)

@@ -4,10 +4,10 @@ import sys
 from pathlib import Path
 import json,csv,math,collections
 import openpyxl
-O=Path(sys.argv[1]); O.mkdir(parents=True, exist_ok=True);R=Path(r'D:\weibull\Research');R00=R/'00-方法对比';R09=R/'09-Weibull参数估计方法谱系与比较基线'
+O=Path(sys.argv[1]); O.mkdir(parents=True, exist_ok=True);R=Path(r'D:\weibull\Research');R00=R/'00-方法对比'
 def write(p,rows):
- with p.open('w',encoding='utf-8-sig',newline='') as f:
-  w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
+ with p.open('w',encoding='utf8',newline='') as f:
+  w=csv.DictWriter(f,fieldnames=list(rows[0]),lineterminator='\n');w.writeheader();w.writerows(rows)
 def finite(x):return isinstance(x,(int,float)) and not isinstance(x,bool) and math.isfinite(x)
 def method(r):return f"MDM δ={r['delta']:.2f}" if r['method_id']=='mdm' else r['method_id'].upper()
 allrows=[];samples={};audit=[];meta=[]
@@ -35,26 +35,7 @@ for s in sources:
     allrows.append(dict(project='R00',combination=s['combination'],n=n,group=sid,method=method(r),lre_version='Park Proposed+Plot' if s['protocol']!='historical-eight' else 'Bernard',beta_truth=truth[0],eta_truth=truth[1],gamma_truth=truth[2],beta_hat=r['beta_hat'],eta_hat=r['eta_hat'],gamma_hat=r['gamma_hat'],sample_min=x[0],converged=bool(r['converged']),status=r['status'],excel_success=ok,workbook=str(xlsx),sheet=f'估计结果_n{n}',range=f'{openpyxl.utils.get_column_letter(pos+1)}{sid+2}:{openpyxl.utils.get_column_letter(pos+3)}{sid+2}'))
  wb.close();audit.append(dict(project='R00',combination=s['combination'],parameter_cells=nc,sample_cells=samplecells,records=1200,unexpected=errors,status_differences=boundary))
  meta.append(dict(s,xlsx=str(xlsx),matrix=str(mat)));print('R00 PASS',s['combination'],flush=True)
-for b in sorted((R09/'实验').glob('W(*)')):
- truth=json.loads((b/'程序/config.json').read_text(encoding='utf8'))['truth']
- with (b/'数据/样本.csv').open(encoding='utf-8-sig',newline='') as f:sm=list(csv.DictReader(f))
- si={(int(s['n']),int(s['组号'])):[float(s[f'x({i})']) for i in range(1,int(s['n'])+1)] for s in sm}
- with (b/'数据/估计明细.csv').open(encoding='utf-8-sig',newline='') as f:details=list(csv.DictReader(f))
- idx={(int(r['n']),int(r['组号']),r['方法']):r for r in details};assert len(idx)==18000
- xlsx=b/'结果'/(b.name+'.xlsx');wb=openpyxl.load_workbook(xlsx,read_only=True,data_only=True);nc=0;sc=0
- for n in [7,10,15,20,50]:
-  xs=list(wb[f'生成样本_n{n}'].iter_rows(values_only=True));rr=list(wb[f'估计结果_n{n}'].iter_rows(values_only=True));assert len(rr)==1201
-  for sid in range(1,1201):
-   x=si[n,sid];samples[f'R09|{b.name}|{n}|{sid}']=x
-   for a,c in zip(xs[sid][1:n+1],x):assert math.isclose(a,c,rel_tol=5e-15,abs_tol=1e-12);sc+=1
-   for pos,meth in zip([1,4,7],['MLE','MMLE','WMLE']):
-    r=idx[n,sid,meth];vals=rr[sid][pos:pos+3];ok=all(finite(v) for v in vals);expected=r['状态']=='成功';assert ok==expected
-    estimates=[float(r[k]) if r[k] else None for k in ['β估计','η估计','γ估计']]
-    if ok:
-     for a,c in zip(vals,estimates):assert math.isclose(a,c,rel_tol=5e-15,abs_tol=1e-12);nc+=1
-    allrows.append(dict(project='R09',combination=b.name,n=n,group=sid,method=meth,lre_version='',beta_truth=truth[0],eta_truth=truth[1],gamma_truth=truth[2],beta_hat=estimates[0],eta_hat=estimates[1],gamma_hat=estimates[2],sample_min=x[0],converged=r['收敛']=='True',status=r['状态'],excel_success=ok,workbook=str(xlsx),sheet=f'估计结果_n{n}',range=f'{openpyxl.utils.get_column_letter(pos+1)}{sid+1}:{openpyxl.utils.get_column_letter(pos+3)}{sid+1}'))
- wb.close();audit.append(dict(project='R09',combination=b.name,parameter_cells=nc,sample_cells=sc,records=18000,unexpected=[]));print('R09 PASS',b.name,flush=True)
-assert len(allrows)==159600 and len(samples)==49950
+assert len(allrows)==15600 and len(samples)==1950
 for r in allrows:
  valid=all(finite(r[k]) for k in ['beta_hat','eta_hat','gamma_hat']) and r['beta_hat']>0 and r['eta_hat']>0
  r['high_absolute']=bool(valid and r['beta_hat']>=10)
