@@ -354,8 +354,16 @@ def main():
     assert compatibility['plotted_curve_count'] == 2
     assert compatibility['plotted_sample_point_count'] == 7
     assert compatibility['extra_annotation_count'] == 0
+    mdm_revision = json.loads((ROOT / '程序/20261010-MDM原文表达修订.json').read_text(encoding='utf-8'))
+    assert mdm_revision['plotted_numerical_curve_data_unchanged']
+    assert mdm_revision['six_panel_axes_unchanged']
+    assert mdm_revision['new_samples'] == mdm_revision['new_estimates'] == 0
     for item in compatibility['existing_exports_renumbered_without_redrawing']:
-        assert digest(ROOT / item['to']) == item['sha256']
+        if item['to'] == mdm_revision['figure']:
+            assert item['sha256'] == mdm_revision['previous_figure_sha256']
+            assert digest(ROOT / item['to']) == mdm_revision['figure_sha256']
+        else:
+            assert digest(ROOT / item['to']) == item['sha256']
         assert not (ROOT / item['from']).exists()
     with Image.open(ROOT / compatibility['figure']) as png:
         assert list(png.size) == compatibility['png_dimensions']

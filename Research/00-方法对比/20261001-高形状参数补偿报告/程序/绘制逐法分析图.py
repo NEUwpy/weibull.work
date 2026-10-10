@@ -27,7 +27,7 @@ source = json.loads((DATA / '逐法过程曲线.json').read_text(encoding='utf-8
 old = json.loads((HERE / '输入快照' / '原案例估计.json').read_text(encoding='utf-8'))
 
 
-def save(fig, name, formats=('png', 'pdf', 'svg')):
+def save(fig, name, formats=('png',)):
     for ext in formats:
         path = OUT / f'{name}.{ext}'
         fig.savefig(path, dpi=450, facecolor='white')
@@ -54,7 +54,7 @@ def format_axis(ax, method, xmax, original=False):
     elif method == 'mdm':
         ax.set_ylim((-.04, .23) if original else (-.46, 1.10))
         ax.axhline(.1, color='black', ls='--', lw=.85)
-        ax.set_ylabel(r'$g(\gamma)$')
+        ax.set_ylabel(r'$\nabla(\gamma)$')
     else:
         ax.axhline(0, color='black', ls='--', lw=.85)
         if method == 'wmle':
