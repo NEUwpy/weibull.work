@@ -33,7 +33,8 @@ def sync_density_derivation():
         '$$f_{t_1}(t)=n[1-F(t)]^{n-1}f(t).$$\n\n'
         '其中，fₜ₁(t)为最小观测的概率密度。图2下方据此叠加n=7、15、30的理论分布。\n\n'
     )
-    if addition not in text:
+    # The reviewed report may keep this derivation in supplementary material.
+    if '$$f_{t_1}(t)=n[1-F(t)]^{n-1}f(t).$$' not in text:
         assert text.count(anchor) == 1
         text = text.replace(anchor, addition + anchor)
         report.write_text(text, encoding='utf-8', newline='\n')

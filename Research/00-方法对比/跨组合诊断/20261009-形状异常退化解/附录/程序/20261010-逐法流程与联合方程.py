@@ -179,7 +179,7 @@ def main():
     document_checks=dict(
         report_sha256=helper.digest(report),
         chapter1_unchanged=hashlib.sha256(first.encode()).hexdigest()=="97b9989c15030908053b7ef70859a191df224b05220ecdbdcf325e4d04ec76e5",
-        figure_order=re.findall(r"\*\*图(\d+)｜",text)==["1","2","3","4","5"],
+        figure_order=re.findall(r"\*\*图(\d+)｜",text)==list(map(str,range(1,10))),
         causal_split_removed="固定γ，区分异常的作用环节" not in body and "退出异常组" not in body and "948条" not in body,
         prose_has_no_defensive_clauses=all(s not in body for s in ["不能","并不","不代表","不等于","仅用于","而不是","不意味着"]),
         chapter2_has_two_sections=re.findall(r"^### (2\.\d+)　(.+)$",body,re.M)==[
