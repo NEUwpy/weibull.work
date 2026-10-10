@@ -9,6 +9,7 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import numpy as np
+from scipy.stats import weibull_min
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / '结果' / '中间数据'
@@ -122,10 +123,28 @@ def main():
             assert actual == case['fit']
     violin_data = json.loads((DATA / '图1小提琴数据与核验.json').read_text(encoding='utf-8'))
     assert digest(ROOT / violin_data['input_path']) == violin_data['input_sha256']
-    assert len(figure_checks['violin']) == len(violin_data['panels']) == 30
+    supplement_path = ROOT / violin_data['supplementary_input_path']
+    assert digest(supplement_path) == violin_data['supplementary_input_sha256']
+    supplement = json.loads(supplement_path.read_text(encoding='utf-8'))
+    matrix_path = Path(supplement['source_matrix'])
+    assert digest(matrix_path) == supplement['source_matrix_sha256']
+    assert digest(Path(supplement['source_workbook'])) == supplement['source_workbook_sha256']
+    matrix = json.loads(matrix_path.read_text(encoding='utf-8'))
+    assert matrix['config']['truth'] == supplement['truth'] == [5., 1000., 500.]
+    assert matrix['config']['seed_namespace_original'] == supplement['seed_namespace'] == 2026092903
+    assert supplement['independent_of_original_n7_n15'] and violin_data['n30_is_independent_later_batch']
+    source_rows = [r for r in matrix['results'] if r['n'] == 30 and r['method_id'] in ('mdm', 'lse', 'lre', 'wmle', 'mle')
+                   and (r['method_id'] != 'mdm' or r['delta'] == .1)]
+    expected_records = [dict(beta=5, eta=1000., gamma=500., n=30, method=r['method_id'], sample_id=r['id'],
+                             beta_hat=r['beta_hat'], eta_hat=r['eta_hat'], gamma_hat=r['gamma_hat'],
+                             converged=r['converged'], status=r['status']) for r in source_rows]
+    assert supplement['records'] == expected_records and len(expected_records) == 250
+    violin_fits = original_fits + expected_records
+    assert violin_data['sample_sizes'] == [7, 15, 30]
+    assert len(figure_checks['violin']) == len(violin_data['panels']) == 45
     for r, check in zip(violin_data['panels'], figure_checks['violin']):
         assert all(r[k] == v for k, v in check.items())
-        successful = sorted((f for f in original_fits if f['beta'] == 5 and f['n'] == r['n'] and f['method'] == r['method'] and f['converged']), key=lambda f: f['sample_id'])
+        successful = sorted((f for f in violin_fits if f['beta'] == 5 and f['n'] == r['n'] and f['method'] == r['method'] and f['converged']), key=lambda f: f['sample_id'])
         values = [f[r['parameter']] for f in successful]
         assert r['values'] == values and r['sample_ids'] == [f['sample_id'] for f in successful]
         assert len(values) == r['success'] and r['failure'] == 50 - len(values)
@@ -342,14 +361,91 @@ def main():
         assert list(png.size) == compatibility['png_dimensions']
         assert all(abs(value - 450) < .1 for value in png.info['dpi'])
     numbers = [int(value) for value in re.findall(r'^!\[图(\d+)', report.read_text(encoding='utf-8'), re.M)]
-    assert numbers == list(range(1, 9)), numbers
-    export_names = {item['file'] for item in clean_style['figures']} | {'图1_原案例参数分布', '图2_样本与分布相容'}
+    assert numbers == list(range(1, 10)), numbers
+    intro = json.loads((ROOT / '程序' / '20261010-图2最小值密度曲线.json').read_text(encoding='utf-8'))
+    previous_intro = json.loads((ROOT / intro['previous_observation_record']).read_text(encoding='utf-8'))
+    assert digest(ROOT / intro['previous_observation_record']) == intro['previous_observation_record_sha256']
+    assert intro['panels'] == previous_intro['panels'] and intro['six_observation_panels_unchanged']
+    assert intro['total_panel_count'] == 8 and intro['revision_new_samples'] == 0
+    assert digest(ROOT / intro['figure']) == intro['figure_sha256']
+    assert digest(ROOT / intro['source']) == intro['source_sha256']
+    assert intro['new_samples'] == 50 and intro['new_random_draws'] == intro['new_fits'] == 0
+    assert intro['sample_groups'] == 300 and intro['observations_shown'] == 5200
+    assert intro['formats'] == ['png'] and intro['no_omitted_observations']
+    source_index = {(s['beta'], s['n'], s['sample_id']): s for s in samples}
+    n30 = intro['n30_provenance']
+    assert digest(ROOT / n30['snapshot']) == n30['snapshot_sha256']
+    assert digest(ROOT / n30['source_matrix']) == n30['source_sha256']
+    added = json.loads((ROOT / n30['snapshot']).read_text(encoding='utf-8'))
+    matrix = json.loads((ROOT / n30['source_matrix']).read_text(encoding='utf-8'))
+    assert matrix['config']['truth'] == [5.,1000.,500.]
+    originals = {r['id']: r['values'] for r in matrix['samples'] if r['n'] == 30}
+    assert len(added['samples']) == 100 and len(originals) == 50
+    assert added['new_random_draws'] == added['new_fits'] == 0
+    for row in added['samples']:
+        x5 = np.array(originals[row['sample_id']])
+        expected = x5 if row['beta'] == 5. else 500. + 1000.*(((x5-500.)/1000.)**5.)**.5
+        assert np.array_equal(row['observations'], expected)
+        source_index[row['beta'],row['n'],row['sample_id']] = row
+    assert [(p['beta'], p['n']) for p in intro['panels']] == [(2.,7),(5.,7),(2.,15),(5.,15),(2.,30),(5.,30)]
+    axis_settings = []
+    for panel in intro['panels']:
+        assert panel['groups'] == len(panel['rows']) == 50
+        assert panel['observations_shown'] == 50 * panel['n']
+        for row in panel['rows']:
+            source_row = source_index[panel['beta'], panel['n'], row['sample_id']]
+            assert row['observations'] == source_row['observations']
+            assert row['minimum'] == source_row['observations'][0]
+        axis_settings.append({k: panel[k] for k in ('x_limits','y_limits','x_ticks','y_ticks','x_scale','y_scale')})
+    assert all(a == axis_settings[0] for a in axis_settings)
+    assert axis_settings[0]['x_scale'] == axis_settings[0]['y_scale'] == 'linear'
+    for n in (7,15,30):
+        pair = [p for p in intro['panels'] if p['n'] == n]
+        assert [r['sample_id'] for r in pair[0]['rows']] == [r['sample_id'] for r in pair[1]['rows']]
+    distributions = intro['minimum_distribution_panels']
+    assert [(p['beta'],p['label']) for p in distributions] == [(2.,'g'),(5.,'h')]
+    minimum_count = 0
+    distribution_axes = []
+    for panel in distributions:
+        assert panel['no_omitted_minima'] and not panel['smoothing']
+        assert panel['source_kind'] == 'analytic_minimum_distribution'
+        assert panel['bin_edges'] is None and panel['bin_width'] is None
+        assert panel['curve_formula'] == 'n*(1-F(t))**(n-1)*f(t)'
+        assert [s['n'] for s in panel['series']] == [7,15,30]
+        for series in panel['series']:
+            assert series['groups'] == 50 and series['sample_ids'] == list(range(1,51))
+            raw = [source_index[panel['beta'],series['n'],sid]['observations'][0] for sid in series['sample_ids']]
+            assert series['minima'] == raw
+            grid, density = np.array(series['grid']), np.array(series['density'])
+            theory = weibull_min(panel['beta'], loc=500., scale=1000.*series['n']**(-1./panel['beta']))
+            assert np.allclose(density, theory.pdf(grid), rtol=1e-12, atol=1e-15)
+            assert abs(series['theoretical_median']-theory.median()) < 1e-10
+            assert np.all(density >= 0.) and np.all(density[grid <= 500.] == 0.)
+            assert series['median_minimum'] == float(np.median(raw))
+            minimum_count += len(raw)
+        distribution_axes.append({k: panel[k] for k in ('x_limits','y_limits','x_ticks','y_ticks','x_scale','y_scale')})
+    assert distribution_axes[0] == distribution_axes[1]
+    assert distribution_axes[0]['x_scale'] == distribution_axes[0]['y_scale'] == 'linear'
+    assert minimum_count == intro['minimum_values_reused'] == 300
+    for retired in intro['retired_figures']:
+        assert not (ROOT / retired['original']).exists()
+        assert digest(ROOT / retired['archive']) == retired['sha256']
+    old_name = '补充图3_下尾观测对照'
+    archive = ROOT / '程序' / '历史图' / '20261010-原下尾统计图'
+    def legacy_base(name):
+        return (archive if name == old_name else ROOT / '结果') / name
+    export_names = ({item['file'] for item in clean_style['figures']} - {old_name}) | {
+        '图1_原案例参数分布', '图2_样本与分布相容', '图2_样本与真实起点'}
     assert len(export_names) == 14
+    png_only = {'图1_原案例参数分布', '图2_样本与分布相容', '图2_样本与真实起点'}
     for extension in ('png','pdf','svg'):
-        expected_exports=export_names if extension=='png' else export_names-{'图1_原案例参数分布', '图2_样本与分布相容'}
+        expected_exports = export_names if extension == 'png' else export_names - png_only
         assert {p.stem for p in (ROOT / '结果').glob(f'*.{extension}')} == expected_exports
+    with Image.open(ROOT / intro['figure']) as png:
+        assert list(png.size) == intro['png_dimensions'] == [3240,4275]
+        assert all(abs(v-450) < .1 for v in png.info['dpi'])
     for item in clean_style['figures']:
-        base = ROOT / '结果' / item['file']
+        base = legacy_base(item['file'])
         with Image.open(base.with_suffix('.png')) as png:
             assert png.width == 3240 and all(abs(v-450) < .1 for v in png.info['dpi'])
         texts = [''.join(element.itertext()).strip() for element in ET.parse(
@@ -359,12 +455,16 @@ def main():
     for old, current in clean_style['file_renames'].items():
         for extension in ('png', 'pdf', 'svg'):
             assert not (ROOT / '结果' / f'{old}.{extension}').exists()
-            assert (ROOT / '结果' / f'{current}.{extension}').exists()
+            assert legacy_base(current).with_suffix('.'+extension).exists()
     summary = {
         'local_links_checked': len(links), 'missing_links': 0,
+        'intro_total_panels_checked': 8, 'intro_minimum_distribution_panels_checked': 2,
+        'intro_minimum_values_checked': minimum_count, 'intro_six_observation_panels_preserved': True,
+        'intro_theoretical_density_curves_checked': 6,
         'report_matches_latest_generator': True, 'three_chapters': True,
         'paired_samples': len(samples), 'paired_fit_records': len(fits),
-        'complete_original_violin_panels_checked': 6, 'violin_method_distributions_checked': 30,
+        'estimate_distribution_panels_checked': 9, 'violin_method_distributions_checked': 45,
+        'n30_source_estimates_checked': 250, 'n30_independent_batch_recorded': True,
         'violin_raw_points_quartiles_zero_counts_checked': True,
         'violin_points_aligned_on_method_axis': True,
         'violin_axes_all_linear_with_shared_limits_and_ticks': True,
@@ -380,7 +480,12 @@ def main():
         'single_pair_selection_rule_checked': True,
         'principle_derivation_checks_at_true_and_returned_gamma': derivation_checks,
         'original_case_auxiliary_panels_checked': 6,
-        'current_figures': 14, 'current_export_files': 38,
+        'current_figures': 14, 'current_export_files': 36,
+        'intro_sample_groups_checked': 300, 'intro_observations_checked': 5200,
+        'intro_n30_archived_beta5_groups_checked': 50, 'intro_n30_mapped_beta2_groups_checked': 50,
+        'intro_new_random_draws': 0,
+        'intro_observation_axes_all_linear_and_shared': True,
+        'intro_distribution_axes_all_linear_and_shared': True, 'intro_old_exports_archived': 3,
         'sample_compatibility_curves_checked': 2,
         'sample_compatibility_observations_checked': 7,
         'sample_compatibility_reuses_figure8_sample': True,
@@ -402,8 +507,8 @@ def main():
         'figure8_sample_id': provenance['sample_id'], 'quantile_rows_checked': len(quantiles),
         'removed_directory_and_old_report_checks': True,
         'svg_live_text_count': svg_text, 'png_dimensions': dimensions,
-        'new_samples': 0, 'new_fits': 0,
-        'remaining_figures_simplified_and_checked': 12,
+        'new_samples': 50, 'new_random_draws': 0, 'new_fits': 0,
+        'remaining_figures_simplified_and_checked': 11, 'archived_figure_checked': 1,
         'simplified_svg_text_matches_saved_inventory': True,
         'superseded_figure_exports_removed': 33,
         'local_compensation_example_is_constructed': True,

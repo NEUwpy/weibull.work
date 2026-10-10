@@ -1,0 +1,81 @@
+{
+  "task": "2026-10-10: sample constraints, compensation, criterion selection",
+  "report_sha256": "5d2f08c625f0513ddb3ff52fc5e327ccb2384fc2ae8056c59facb4bf327c237a",
+  "generator_sha256": "1dd0ff94511cf104e5d95a13bc9f75958462e05a6efa718ae416fe42cd3ee31d",
+  "chapter1_unchanged": true,
+  "scientific_and_figure_files_unchanged": 125,
+  "main_figure_order": [
+    {
+      "number": 1,
+      "file": "图1_原案例参数分布.png"
+    },
+    {
+      "number": 2,
+      "file": "图2_样本与真实起点.png"
+    },
+    {
+      "number": 3,
+      "file": "图2_样本与分布相容.png"
+    },
+    {
+      "number": 4,
+      "file": "图3_MDM六格机制.png"
+    },
+    {
+      "number": 5,
+      "file": "图4_LSE六格机制.png"
+    },
+    {
+      "number": 6,
+      "file": "图5_LRE六格机制.png"
+    },
+    {
+      "number": 7,
+      "file": "图6_WMLE六格机制.png"
+    },
+    {
+      "number": 8,
+      "file": "图7_MLE六格机制.png"
+    },
+    {
+      "number": 9,
+      "file": "图8_寿命分布与分位点.png"
+    }
+  ],
+  "regression_expansion": {
+    "samples": 200,
+    "affine_correlation_max_error": 6.661338147750939e-16,
+    "log_series_remainder_checks": 356
+  },
+  "wmle_conditional_shape": {
+    "paired_checks": 95,
+    "proportional_relative_error": 1.8064438833675922e-12,
+    "example_id": 29,
+    "traces": [
+      {
+        "generating_beta": 2,
+        "conditional_beta": 3.5170861546785295,
+        "product_at_true_gamma": 1.3071153731296763,
+        "calibration_target": 1.3246663101427891,
+        "residual_at_true_gamma": -0.017550937013112833,
+        "returned_gamma": 632.470562068741
+      },
+      {
+        "generating_beta": 5,
+        "conditional_beta": 8.792715386696186,
+        "product_at_true_gamma": 1.101231938770575,
+        "calibration_target": 1.209715968910233,
+        "residual_at_true_gamma": -0.10848403013965813,
+        "returned_gamma": 978.6460727523554
+      }
+    ]
+  },
+  "new_random_draws": 0,
+  "new_estimates": 0,
+  "redrawn_figures": 0,
+  "bounds": [
+    "Quantile and log-distance expansions are local approximations.",
+    "Compensation does not prescribe a common bias direction.",
+    "WMLE table-endpoint and calibration contributions are not separated."
+  ]
+}

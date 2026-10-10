@@ -1,0 +1,70 @@
+{
+  "criterion": "beta_hat >= 3*beta_true or beta_hat <= beta_true/3",
+  "methods": [
+    "MDM δ=0.20",
+    "LSE",
+    "LRE",
+    "MLE",
+    "WMLE",
+    "MMLE"
+  ],
+  "directions": {
+    "over": {
+      "count": 449,
+      "gamma_below_truth": 444,
+      "gamma_above_truth": 5,
+      "eta_below_truth": 5,
+      "eta_above_truth": 444,
+      "gamma_zero": 342,
+      "by_method": {
+        "MDM δ=0.20": 1,
+        "LSE": 133,
+        "LRE": 139,
+        "MLE": 170,
+        "WMLE": 2,
+        "MMLE": 4
+      }
+    },
+    "under": {
+      "count": 514,
+      "gamma_below_truth": 0,
+      "gamma_above_truth": 514,
+      "eta_below_truth": 514,
+      "eta_above_truth": 0,
+      "gamma_zero": 0,
+      "by_method": {
+        "MDM δ=0.20": 99,
+        "LSE": 110,
+        "LRE": 116,
+        "MLE": 27,
+        "WMLE": 82,
+        "MMLE": 80
+      }
+    }
+  },
+  "minimum_probability_example": {
+    "n": 15,
+    "normalized_gap": 0.5,
+    "probability_min_within_gap": {
+      "2": 0.9764822541439909,
+      "5": 0.37421599039540887
+    },
+    "formula": "P(min(X) > gamma + a*eta) = exp(-n*a**beta)"
+  },
+  "source_sha256": {
+    "D:\\weibull\\Research\\00-方法对比\\W(2,1000,500)\\20260826\\程序\\完整矩阵\\数据\\matrix.json": "5f4df193f6b6c2bcc6da74fada9de75f8db342571e271ced94d9983a8f0a896b",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,1000,1000)\\20260921\\程序\\完整矩阵\\数据\\matrix.json": "12eda817af02f61c468b90f97edac9fec3e6e671f64ed10ee00bed1813cd3d9b",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,1000,3000)\\20260825\\程序\\完整矩阵\\数据\\matrix.json": "ce365c14e046294b0714be166137eb43846c2f3d192ca40d046244cc5b451c27",
+    "D:\\weibull\\Research\\00-方法对比\\W(3,1000,500)\\20260907\\程序\\完整矩阵\\数据\\matrix.json": "ebbed77173e118f774bdbefc7fd7b0e1502e99122c901b749ce6d35a878cd304",
+    "D:\\weibull\\Research\\00-方法对比\\W(3,1000,1000)\\20260907\\程序\\完整矩阵\\数据\\matrix.json": "94a0dfbce2b396f4f309545cb2ad674c4eb01a7c563b7686fb8be5cb2a56b88a",
+    "D:\\weibull\\Research\\00-方法对比\\W(3,1000,3000)\\20260907\\程序\\完整矩阵\\数据\\matrix.json": "0faf92249b737ecce6c68f06737438f2899c9a27c91ebe93f0c95e2ba192de21",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,1000,500)\\20260929-新抽样\\程序\\完整矩阵\\数据\\matrix.json": "50fb5ea69a2ef7e9adcb5697fbbc417735845d029c079430f14b2fa78a412c15",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,1000,3000)\\20260906\\程序\\完整矩阵\\数据\\matrix.json": "9da5f659e990650fe1bc7d67a2b1de9c6125f34aec71397f6c8b1202498a5400",
+    "D:\\weibull\\Research\\00-方法对比\\W(1.5,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "ffb12a26eae55bdde7407775afd6986910a62a963d91560577549d3e131e68f9",
+    "D:\\weibull\\Research\\00-方法对比\\W(1.5,1000,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "e0b6b5f976f46f9d85870c26e4ceda485afc0cd48489915e98885df181ad9de6",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "fe6295225fe8279731619ebc891c6bed6681549166e4a5a14ebbee9a16881050",
+    "D:\\weibull\\Research\\00-方法对比\\W(3,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "b8ddd50deb5c3481e9dd0ea8454c6e779f4378c177b6f1583a42b10cfbf6e22c",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "4acf7790c6a49ef4f5270240c09f8ab847fa4f2139d04e2ba24ed5dbbd71085b"
+  },
+  "source_unchanged": true
+}

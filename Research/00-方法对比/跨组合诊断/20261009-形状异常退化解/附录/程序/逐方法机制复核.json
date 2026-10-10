@@ -1,0 +1,1141 @@
+{
+  "scope": "two archived illustrative pairs; no formal re-estimation or frequency change",
+  "control_selection": "same combination and n; nearest group id with all three relevant methods finite, converged and within (beta/3, 3*beta); lower id breaks ties",
+  "samples": {
+    "high": {
+      "combination": "W(2,100,500)",
+      "n": 15,
+      "group": 36,
+      "truth": [
+        2.0,
+        100.0,
+        500.0
+      ],
+      "values": [
+        524.669646157362,
+        551.7371054755434,
+        554.2073538387656,
+        573.4139515139026,
+        585.0152975137753,
+        588.7114180572878,
+        591.8662613890391,
+        595.6107011527722,
+        609.0485899404268,
+        610.3030922584553,
+        611.6860900999153,
+        617.5410070024863,
+        625.8035095608981,
+        633.6056346184617,
+        640.0228803492257
+      ],
+      "sample_min": 524.669646157362,
+      "methods": {
+        "LSE": {
+          "archived": {
+            "n": 15,
+            "id": 36,
+            "method_id": "lse",
+            "delta": null,
+            "beta_hat": 21.704052830874808,
+            "eta_hat": 609.3599601385439,
+            "gamma_hat": 0.0,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 15,
+              "id": 36,
+              "delta": null,
+              "method_id": "lse",
+              "method_variant": "lse",
+              "beta_hat": 21.704052830874808,
+              "eta_hat": 609.3599601385439,
+              "gamma_hat": 0.0,
+              "r_squared": 0.9841975061718123,
+              "converged": true,
+              "time": 0.004004399990662932,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "strategy": "profile_f_max",
+                  "constraint": "gamma >= 0",
+                  "f_max": 82.37696832490305,
+                  "mu_grid_points": 200,
+                  "refined": false,
+                  "location_at_zero_boundary": true,
+                  "optimal_mu": 0.0,
+                  "optimal_shape": 21.704052830874808
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 524.669646157362,
+            "sample_min_support": 524.669646157362
+          },
+          "at_true_location": {
+            "beta": 2.7073064561481104,
+            "eta": 107.74522804507879,
+            "r2": 0.9411031101196993,
+            "relative_residual": 0.05889688988030073,
+            "fisher_ratio": 15.766052001363969
+          },
+          "at_selected_location": {
+            "beta": 21.704052830874808,
+            "eta": 609.3599601385439,
+            "r2": 0.988727778559305,
+            "relative_residual": 0.011272221440694952,
+            "fisher_ratio": 82.37696832490371
+          },
+          "at_zero_location": {
+            "beta": 21.704052830874808,
+            "eta": 609.3599601385439,
+            "r2": 0.988727778559305,
+            "relative_residual": 0.011272221440694952,
+            "fisher_ratio": 82.37696832490371
+          },
+          "zero_minus_true_r2": 0.04762466843960578,
+          "version": "White"
+        },
+        "LRE": {
+          "archived": {
+            "n": 15,
+            "id": 36,
+            "method_id": "lre",
+            "delta": null,
+            "beta_hat": 18.797445447427535,
+            "eta_hat": 522.8050231975735,
+            "gamma_hat": 85.72818560862346,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 15,
+              "id": 36,
+              "delta": null,
+              "method_id": "lre",
+              "method_variant": "lre",
+              "beta_hat": 18.797445447427535,
+              "eta_hat": 522.8050231975735,
+              "gamma_hat": 85.72818560862346,
+              "r_squared": 0.9878139907600397,
+              "converged": true,
+              "time": 0.0026279999874532223,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "implementation": "park2017_proposed_plot",
+                  "plotting_positions": "(i-0.5)/n",
+                  "strategy": "correlation_maximization",
+                  "constraint": "0 <= gamma < t[0]",
+                  "gamma_grid_points": 401,
+                  "refined": true,
+                  "rho_squared": 0.9878139907600397,
+                  "location_at_zero_boundary": false
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 524.669646157362,
+            "sample_min_support": 524.669646157362
+          },
+          "at_true_location": {
+            "beta": 2.6234930637613387,
+            "eta": 107.72299953127805,
+            "r2": 0.9443865014881042,
+            "relative_residual": 0.05561349851189579,
+            "fisher_ratio": 16.69687132473434
+          },
+          "at_selected_location": {
+            "beta": 18.797445447427535,
+            "eta": 522.8050231975731,
+            "r2": 0.9878139907600398,
+            "relative_residual": 0.01218600923996016,
+            "fisher_ratio": 76.19979685609235
+          },
+          "at_zero_location": {
+            "beta": 22.04755814061701,
+            "eta": 608.5990979983229,
+            "r2": 0.9877898474577425,
+            "relative_residual": 0.012210152542257546,
+            "fisher_ratio": 76.04912595135721
+          },
+          "zero_minus_true_r2": 0.04340334596963824,
+          "version": "Park Proposed+Plot"
+        },
+        "MLE": {
+          "archived": {
+            "n": 15,
+            "id": 36,
+            "method_id": "mle",
+            "delta": null,
+            "beta_hat": 23.535148669401465,
+            "eta_hat": 608.3531240355387,
+            "gamma_hat": 0.0,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 15,
+              "id": 36,
+              "delta": null,
+              "method_id": "mle",
+              "method_variant": "mle",
+              "beta_hat": 23.535148669401465,
+              "eta_hat": 608.3531240355387,
+              "gamma_hat": 0.0,
+              "r_squared": 0.9656947699116183,
+              "converged": true,
+              "time": 0.027101999963633716,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "strategy": "deterministic_multistart_likelihood",
+                  "start_count": 5,
+                  "selected_start": 0,
+                  "log_likelihood": -72.21470659404596,
+                  "location_at_zero_boundary": true
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 524.669646157362,
+            "sample_min_support": 524.669646157362
+          },
+          "at_true_location": {
+            "beta": 3.5045258901014886,
+            "eta": 104.72091943639435,
+            "ll": -72.89879939583275,
+            "location_score": -0.024838550331596626,
+            "shape_score": -7.049916206369744e-15
+          },
+          "at_selected_location": {
+            "beta": 23.535148399648975,
+            "eta": 608.353124173474,
+            "ll": -72.21470659404584,
+            "location_score": -9.456416428556269e-06,
+            "shape_score": -2.0192181260370035e-15
+          },
+          "at_zero_location": {
+            "beta": 23.535148399648975,
+            "eta": 608.353124173474,
+            "ll": -72.21470659404584,
+            "location_score": -9.456416428556269e-06,
+            "shape_score": -2.0192181260370035e-15
+          },
+          "zero_minus_true_ll": 0.6840928017869174
+        }
+      },
+      "archived_all_six": {
+        "MDM": {
+          "beta_hat": 2.912141886047095,
+          "eta_hat": 110.06742156460867,
+          "gamma_hat": 496.42356422915,
+          "converged": true,
+          "status": "success"
+        },
+        "LSE": {
+          "beta_hat": 21.704052830874808,
+          "eta_hat": 609.3599601385439,
+          "gamma_hat": 0.0,
+          "converged": true,
+          "status": "success"
+        },
+        "LRE": {
+          "beta_hat": 18.797445447427535,
+          "eta_hat": 522.8050231975735,
+          "gamma_hat": 85.72818560862346,
+          "converged": true,
+          "status": "success"
+        },
+        "WMLE": {
+          "beta_hat": 5.009555554045709,
+          "eta_hat": 149.31404107973916,
+          "gamma_hat": 456.8895966125601,
+          "converged": true,
+          "status": "success"
+        },
+        "MLE": {
+          "beta_hat": 23.535148669401465,
+          "eta_hat": 608.3531240355387,
+          "gamma_hat": 0.0,
+          "converged": true,
+          "status": "success"
+        },
+        "MMLE": {
+          "beta_hat": 3.2604629377640024,
+          "eta_hat": 83.27005745456609,
+          "gamma_hat": 524.669646157362,
+          "converged": true,
+          "status": "success"
+        }
+      }
+    },
+    "high_control": {
+      "combination": "W(2,100,500)",
+      "n": 15,
+      "group": 35,
+      "truth": [
+        2.0,
+        100.0,
+        500.0
+      ],
+      "values": [
+        524.9851218688918,
+        532.9569952585294,
+        537.5145376605681,
+        546.826882970011,
+        549.1510040779816,
+        554.5487127339052,
+        559.285296092502,
+        582.7746868095287,
+        595.6345723854068,
+        597.5960145241289,
+        598.0431334054128,
+        618.5832485462668,
+        625.4719794210354,
+        631.0075248594925,
+        639.0503814900219
+      ],
+      "sample_min": 524.9851218688918,
+      "methods": {
+        "LSE": {
+          "archived": {
+            "n": 15,
+            "id": 35,
+            "method_id": "lse",
+            "delta": null,
+            "beta_hat": 1.4241995640194707,
+            "eta_hat": 70.42315498596491,
+            "gamma_hat": 518.2016236055432,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 15,
+              "id": 35,
+              "delta": null,
+              "method_id": "lse",
+              "method_variant": "lse",
+              "beta_hat": 1.4241995640194707,
+              "eta_hat": 70.42315498596491,
+              "gamma_hat": 518.2016236055432,
+              "r_squared": 0.9690946349513201,
+              "converged": true,
+              "time": 0.003512699971906841,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "strategy": "profile_f_max",
+                  "constraint": "gamma >= 0",
+                  "f_max": 39.6822767131699,
+                  "mu_grid_points": 200,
+                  "refined": true,
+                  "location_at_zero_boundary": false,
+                  "optimal_mu": 518.2016236055432,
+                  "optimal_shape": 1.4241995640194707
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 524.9851218688918,
+            "sample_min_support": 524.9851218688918
+          },
+          "at_true_location": {
+            "beta": 2.2350840463785406,
+            "eta": 90.5920527619046,
+            "r2": 0.9575669616656389,
+            "relative_residual": 0.04243303833436107,
+            "fisher_ratio": 21.88321800702868
+          },
+          "at_selected_location": {
+            "beta": 1.4241995640194707,
+            "eta": 70.42315498596491,
+            "r2": 0.9765998449311942,
+            "relative_residual": 0.023400155068805772,
+            "fisher_ratio": 39.682276713169585
+          },
+          "at_zero_location": {
+            "beta": 19.17500918234364,
+            "eta": 596.0500357594475,
+            "r2": 0.8946105093811807,
+            "relative_residual": 0.1053894906188193,
+            "fisher_ratio": 8.810854128994286
+          },
+          "zero_minus_true_r2": -0.06295645228445823,
+          "version": "White"
+        },
+        "LRE": {
+          "archived": {
+            "n": 15,
+            "id": 35,
+            "method_id": "lre",
+            "delta": null,
+            "beta_hat": 1.391797730976737,
+            "eta_hat": 68.6953791596502,
+            "gamma_hat": 518.8492646188771,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 15,
+              "id": 35,
+              "delta": null,
+              "method_id": "lre",
+              "method_variant": "lre",
+              "beta_hat": 1.391797730976737,
+              "eta_hat": 68.6953791596502,
+              "gamma_hat": 518.8492646188771,
+              "r_squared": 0.9747834202742384,
+              "converged": true,
+              "time": 0.0026227000053040683,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "implementation": "park2017_proposed_plot",
+                  "plotting_positions": "(i-0.5)/n",
+                  "strategy": "correlation_maximization",
+                  "constraint": "0 <= gamma < t[0]",
+                  "gamma_grid_points": 401,
+                  "refined": true,
+                  "rho_squared": 0.9747834202742384,
+                  "location_at_zero_boundary": false
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 524.9851218688918,
+            "sample_min_support": 524.9851218688918
+          },
+          "at_true_location": {
+            "beta": 2.1945578826054093,
+            "eta": 90.26467798756296,
+            "r2": 0.9528821382642181,
+            "relative_residual": 0.04711786173578192,
+            "fisher_ratio": 19.70741868080697
+          },
+          "at_selected_location": {
+            "beta": 1.391797730976737,
+            "eta": 68.69537915965013,
+            "r2": 0.9747834202742383,
+            "relative_residual": 0.025216579725761745,
+            "fisher_ratio": 36.823845210965786
+          },
+          "at_zero_location": {
+            "beta": 17.575204924659328,
+            "eta": 597.0597454057641,
+            "r2": 0.8887868389329134,
+            "relative_residual": 0.11121316106708656,
+            "fisher_ratio": 8.349474285793306
+          },
+          "zero_minus_true_r2": -0.06409529933130464,
+          "version": "Park Proposed+Plot"
+        },
+        "MLE": {
+          "archived": {
+            "n": 15,
+            "id": 35,
+            "method_id": "mle",
+            "delta": null,
+            "beta_hat": 1.4907441233908552,
+            "eta_hat": 64.26766710416581,
+            "gamma_hat": 521.169061775429,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 15,
+              "id": 35,
+              "delta": null,
+              "method_id": "mle",
+              "method_variant": "mle",
+              "beta_hat": 1.4907441233908552,
+              "eta_hat": 64.26766710416581,
+              "gamma_hat": 521.169061775429,
+              "r_squared": 0.8793371212836144,
+              "converged": true,
+              "time": 0.04195059998892248,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "strategy": "deterministic_multistart_likelihood",
+                  "start_count": 5,
+                  "selected_start": 0,
+                  "log_likelihood": -74.5562860895885,
+                  "location_at_zero_boundary": false
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 524.9851218688918,
+            "sample_min_support": 524.9851218688918
+          },
+          "at_true_location": {
+            "beta": 2.330965878429815,
+            "eta": 90.15174728168084,
+            "ll": -74.88677957303064,
+            "location_score": 0.014281451801156295,
+            "shape_score": 1.6653345369377348e-16
+          },
+          "at_selected_location": {
+            "beta": 1.4907440868024366,
+            "eta": 64.26766703851962,
+            "ll": -74.5562860895885,
+            "location_score": -7.823238255127984e-09,
+            "shape_score": -2.5646151868841116e-13
+          },
+          "at_zero_location": {
+            "beta": 17.313023281576587,
+            "eta": 597.1907534624428,
+            "ll": -75.94545396931977,
+            "location_score": 0.00032868398222833314,
+            "shape_score": 3.0253577421035516e-15
+          },
+          "zero_minus_true_ll": -1.0586743962891347
+        }
+      },
+      "archived_all_six": {
+        "MDM": {
+          "beta_hat": 1.4045520328697152,
+          "eta_hat": 71.39853558702944,
+          "gamma_hat": 517.2522662845403,
+          "converged": true,
+          "status": "success"
+        },
+        "LSE": {
+          "beta_hat": 1.4241995640194707,
+          "eta_hat": 70.42315498596491,
+          "gamma_hat": 518.2016236055432,
+          "converged": true,
+          "status": "success"
+        },
+        "LRE": {
+          "beta_hat": 1.391797730976737,
+          "eta_hat": 68.6953791596502,
+          "gamma_hat": 518.8492646188771,
+          "converged": true,
+          "status": "success"
+        },
+        "WMLE": {
+          "beta_hat": 1.6304774797255028,
+          "eta_hat": 71.63246957562181,
+          "gamma_hat": 515.5998577477126,
+          "converged": true,
+          "status": "success"
+        },
+        "MLE": {
+          "beta_hat": 1.4907441233908552,
+          "eta_hat": 64.26766710416581,
+          "gamma_hat": 521.169061775429,
+          "converged": true,
+          "status": "success"
+        },
+        "MMLE": {
+          "beta_hat": 1.6416784336462638,
+          "eta_hat": 65.23605018830055,
+          "gamma_hat": 524.9851218688918,
+          "converged": true,
+          "status": "success"
+        }
+      }
+    },
+    "low": {
+      "combination": "W(5,100,500)",
+      "n": 7,
+      "group": 11,
+      "truth": [
+        5.0,
+        100.0,
+        500.0
+      ],
+      "values": [
+        575.9496851909273,
+        585.2919229591362,
+        585.8181544468414,
+        586.0379899875235,
+        606.4053586899499,
+        616.3084019246584,
+        629.8913866083325
+      ],
+      "sample_min": 575.9496851909273,
+      "methods": {
+        "MDM": {
+          "archived": {
+            "n": 7,
+            "id": 11,
+            "method_id": "mdm",
+            "delta": 0.2,
+            "beta_hat": 1.3542172554553285,
+            "eta_hat": 30.399709285319034,
+            "gamma_hat": 570.9817237798452,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 7,
+              "id": 11,
+              "delta": 0.2,
+              "method_id": "mdm",
+              "method_variant": "mdm",
+              "beta_hat": 1.3542172554553285,
+              "eta_hat": 30.399709285319034,
+              "gamma_hat": 570.9817237798452,
+              "r_squared": 0.9189077518218696,
+              "converged": true,
+              "time": 0.212946199986618,
+              "extra": {
+                "solution_info": {
+                  "target_offset": 0.2,
+                  "search_strategy": "geometric_from_tmin",
+                  "solution_strategy": "brent_root",
+                  "constraint": "gamma >= 0",
+                  "probe_gradient_at_zero": -0.07230485816319457,
+                  "root_bracket": {
+                    "left": {
+                      "gamma": 0.0,
+                      "gradient": -0.07230485816319457,
+                      "diff": -0.2723048581631946
+                    },
+                    "right": {
+                      "gamma": 575.3737355057364,
+                      "gradient": 1.7375206937790835,
+                      "diff": 1.5375206937790835
+                    }
+                  },
+                  "root_solver": "brent",
+                  "right_anchor_gamma": 575.3737355057364,
+                  "right_anchor_gradient": 1.7375206937790835,
+                  "root_solver_iterations": 16,
+                  "legacy_grid_crossing": true,
+                  "right_edge_extrapolation": null,
+                  "gamma_steps": 240,
+                  "optimal_gamma": 570.9817237798452,
+                  "optimal_beta": 1.3542172554553285
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 575.9496851909273,
+            "sample_min_support": 575.9496851909273
+          },
+          "delta": 0.2,
+          "at_true_location": {
+            "beta": 6.00178904066686,
+            "eta": 105.07569322366605,
+            "sigma": 7.701693067907259,
+            "gradient": -0.007293801098453183,
+            "gradient_bound": 0.2053199249508477,
+            "finite_gradient": -0.007293919798644838
+          },
+          "at_selected_location": {
+            "beta": 1.3542172554555807,
+            "eta": 30.399709285317012,
+            "sigma": 6.3531051047681695,
+            "gradient": 0.19999808086565435,
+            "gradient_bound": 1.7302979070286812,
+            "finite_gradient": 0.20000000000015306
+          }
+        },
+        "WMLE": {
+          "archived": {
+            "n": 7,
+            "id": 11,
+            "method_id": "wmle",
+            "delta": null,
+            "beta_hat": 1.1037852537772115,
+            "eta_hat": 26.30045754375348,
+            "gamma_hat": 573.5073972827431,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 7,
+              "id": 11,
+              "delta": null,
+              "method_id": "wmle",
+              "method_variant": "wmle",
+              "beta_hat": 1.1037852537772115,
+              "eta_hat": 26.30045754375348,
+              "gamma_hat": 573.5073972827431,
+              "r_squared": 0.914710241419117,
+              "converged": true,
+              "time": 0.05788469995604828,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "objective": 8.855757967123477e-22,
+                  "strategy": "deterministic_multistart_equation_minimization",
+                  "start_count": 5,
+                  "selected_start": 3,
+                  "location_at_zero_boundary": false
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 575.9496851909273,
+            "sample_min_support": 575.9496851909273
+          },
+          "at_true_location": {
+            "beta": 4.955556329006356,
+            "eta": 105.70677593607856,
+            "t1": 0.0,
+            "t2": -0.035500666535930314,
+            "inverse_distance_product": 1.1764479392701988,
+            "j1": 0.953,
+            "j2": 0.792,
+            "j3": 1.211948605806129
+          },
+          "at_selected_location": {
+            "beta": 1.1037852538074842,
+            "eta": 26.300457543940638,
+            "t1": -1.4387380176117404e-12,
+            "t2": 1.1713474634689192e-10,
+            "inverse_distance_product": 2.7152823913927846,
+            "j1": 0.953,
+            "j2": 0.792,
+            "j3": 2.71528239127565
+          }
+        },
+        "MMLE": {
+          "archived": {
+            "n": 7,
+            "id": 11,
+            "method_id": "mmle",
+            "delta": null,
+            "beta_hat": 1.5393643774863484,
+            "eta_hat": 28.694815248741584,
+            "gamma_hat": 575.9496851909273,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "new_estimate",
+            "original_record": {
+              "n": 7,
+              "id": 11,
+              "delta": null,
+              "method_id": "mmle",
+              "method_variant": "mmle",
+              "beta_hat": 1.5393643774863484,
+              "eta_hat": 28.694815248741584,
+              "gamma_hat": 575.9496851909273,
+              "r_squared": 0.0,
+              "converged": true,
+              "time": 0.0013731999788433313,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "iterations": 52,
+                  "initial_shape": 1.0,
+                  "final_shape_step": 8.190112810169126e-09,
+                  "deleted_observations": 1,
+                  "gamma_is_original_sample_minimum": true,
+                  "effective_sample_min": 585.2919229591362,
+                  "first_iterations": [
+                    {
+                      "iteration": 1,
+                      "shape_before": 1.0,
+                      "shape_after": 1.1484078204889898
+                    },
+                    {
+                      "iteration": 2,
+                      "shape_before": 1.1484078204889898,
+                      "shape_after": 1.2569250176769506
+                    },
+                    {
+                      "iteration": 3,
+                      "shape_before": 1.2569250176769506,
+                      "shape_after": 1.3356439553833714
+                    }
+                  ],
+                  "no_firth": true,
+                  "no_domain_caps": true,
+                  "no_fallback": true,
+                  "shape_absolute_step_tolerance": 1e-08,
+                  "max_iterations": 10000
+                }
+              },
+              "status": "success",
+              "sample_min_original": 575.9496851909273,
+              "sample_min_support": 585.2919229591362,
+              "trace_grid_check": null
+            },
+            "sample_min_original": 575.9496851909273,
+            "sample_min_support": 585.2919229591362
+          },
+          "minimum_gap": 75.94968519092731,
+          "at_true_location_same_retained_sample": {
+            "beta": 6.312332781994206,
+            "eta": 109.13887480178549,
+            "ll": -25.822881988410582,
+            "location_score": 0.003125636704533627,
+            "shape_score": -2.7755575615628914e-17
+          },
+          "at_selected_location": {
+            "beta": 1.5393643985633665,
+            "eta": 28.694815359711114,
+            "ll": -24.740326679345355,
+            "location_score": 0.07833455007225175,
+            "shape_score": -1.2434497875801753e-14
+          }
+        }
+      },
+      "archived_all_six": {
+        "MDM": {
+          "beta_hat": 1.3542172554553285,
+          "eta_hat": 30.399709285319034,
+          "gamma_hat": 570.9817237798452,
+          "converged": true,
+          "status": "success"
+        },
+        "LSE": {
+          "beta_hat": 1.1886059160516247,
+          "eta_hat": 28.732423462371607,
+          "gamma_hat": 572.8757034272378,
+          "converged": true,
+          "status": "success"
+        },
+        "LRE": {
+          "beta_hat": 1.113592340057765,
+          "eta_hat": 28.80851814799005,
+          "gamma_hat": 572.6164437312825,
+          "converged": true,
+          "status": "success"
+        },
+        "WMLE": {
+          "beta_hat": 1.1037852537772115,
+          "eta_hat": 26.30045754375348,
+          "gamma_hat": 573.5073972827431,
+          "converged": true,
+          "status": "success"
+        },
+        "MLE": {
+          "beta_hat": null,
+          "eta_hat": null,
+          "gamma_hat": null,
+          "converged": false,
+          "status": "failure"
+        },
+        "MMLE": {
+          "beta_hat": 1.5393643774863484,
+          "eta_hat": 28.694815248741584,
+          "gamma_hat": 575.9496851909273,
+          "converged": true,
+          "status": "success"
+        }
+      }
+    },
+    "low_control": {
+      "combination": "W(5,100,500)",
+      "n": 7,
+      "group": 10,
+      "truth": [
+        5.0,
+        100.0,
+        500.0
+      ],
+      "values": [
+        543.8704794500704,
+        569.3506659678317,
+        590.9029525971503,
+        591.1542599061594,
+        596.7879396907007,
+        614.920943903074,
+        629.1302873707212
+      ],
+      "sample_min": 543.8704794500704,
+      "methods": {
+        "MDM": {
+          "archived": {
+            "n": 7,
+            "id": 10,
+            "method_id": "mdm",
+            "delta": 0.2,
+            "beta_hat": 2.4546182787386948,
+            "eta_hat": 83.27323381451167,
+            "gamma_hat": 517.7147541819213,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 7,
+              "id": 10,
+              "delta": 0.2,
+              "method_id": "mdm",
+              "method_variant": "mdm",
+              "beta_hat": 2.4546182787386948,
+              "eta_hat": 83.27323381451167,
+              "gamma_hat": 517.7147541819213,
+              "r_squared": 0.9168446567123324,
+              "converged": true,
+              "time": 0.16318380000302568,
+              "extra": {
+                "solution_info": {
+                  "target_offset": 0.2,
+                  "search_strategy": "geometric_from_tmin",
+                  "solution_strategy": "brent_root",
+                  "constraint": "gamma >= 0",
+                  "probe_gradient_at_zero": -0.07198007817445742,
+                  "root_bracket": {
+                    "left": {
+                      "gamma": 0.0,
+                      "gradient": -0.07198007817445742,
+                      "diff": -0.27198007817445746
+                    },
+                    "right": {
+                      "gamma": 543.3266089706203,
+                      "gradient": 0.6130257298405174,
+                      "diff": 0.4130257298405174
+                    }
+                  },
+                  "root_solver": "brent",
+                  "right_anchor_gamma": 543.3266089706203,
+                  "right_anchor_gradient": 0.6130257298405174,
+                  "root_solver_iterations": 13,
+                  "legacy_grid_crossing": true,
+                  "right_edge_extrapolation": null,
+                  "gamma_steps": 240,
+                  "optimal_gamma": 517.7147541819213,
+                  "optimal_beta": 2.4546182787386948
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 543.8704794500704,
+            "sample_min_support": 543.8704794500704
+          },
+          "delta": 0.2,
+          "at_true_location": {
+            "beta": 3.164910549969637,
+            "eta": 101.82313111940782,
+            "sigma": 8.11161309652755,
+            "gradient": 0.08887352836022323,
+            "gradient_bound": 0.4485587904676863,
+            "finite_gradient": 0.0888728556823681
+          },
+          "at_selected_location": {
+            "beta": 2.4546182787385793,
+            "eta": 83.27323381451245,
+            "sigma": 10.487039805675996,
+            "gradient": 0.19999922646171375,
+            "gradient_bound": 0.6368472221902586,
+            "finite_gradient": 0.19999999999974277
+          }
+        },
+        "WMLE": {
+          "archived": {
+            "n": 7,
+            "id": 10,
+            "method_id": "wmle",
+            "delta": null,
+            "beta_hat": 2.7772570849382934,
+            "eta_hat": 82.68370424156706,
+            "gamma_hat": 516.8142221299108,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "original_estimate_reused",
+            "original_record": {
+              "n": 7,
+              "id": 10,
+              "delta": null,
+              "method_id": "wmle",
+              "method_variant": "wmle",
+              "beta_hat": 2.7772570849382934,
+              "eta_hat": 82.68370424156706,
+              "gamma_hat": 516.8142221299108,
+              "r_squared": 0.8715788362018,
+              "converged": true,
+              "time": 0.051382900041062385,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "objective": 2.0563710532939247e-25,
+                  "strategy": "deterministic_multistart_equation_minimization",
+                  "start_count": 5,
+                  "selected_start": 3,
+                  "location_at_zero_boundary": false
+                }
+              },
+              "status": "success"
+            },
+            "sample_min_original": 543.8704794500704,
+            "sample_min_support": 543.8704794500704
+          },
+          "at_true_location": {
+            "beta": 3.510880122513447,
+            "eta": 100.31364634599417,
+            "t1": -1.8318679906315083e-15,
+            "t2": -0.01974033034098377,
+            "inverse_distance_product": 1.3055814832242687,
+            "j1": 0.953,
+            "j2": 0.792,
+            "j3": 1.3253218135652525
+          },
+          "at_selected_location": {
+            "beta": 2.7772570849384377,
+            "eta": 82.68370424156751,
+            "t1": 5.551115123125783e-17,
+            "t2": 4.969358258222201e-13,
+            "inverse_distance_product": 1.4428063044429449,
+            "j1": 0.953,
+            "j2": 0.792,
+            "j3": 1.442806304442448
+          }
+        },
+        "MMLE": {
+          "archived": {
+            "n": 7,
+            "id": 10,
+            "method_id": "mmle",
+            "delta": null,
+            "beta_hat": 3.1926428567506377,
+            "eta_hat": 61.366849527691755,
+            "gamma_hat": 543.8704794500704,
+            "converged": true,
+            "status": "success",
+            "displayed_success": true,
+            "action": "new_estimate",
+            "original_record": {
+              "n": 7,
+              "id": 10,
+              "delta": null,
+              "method_id": "mmle",
+              "method_variant": "mmle",
+              "beta_hat": 3.1926428567506377,
+              "eta_hat": 61.366849527691755,
+              "gamma_hat": 543.8704794500704,
+              "r_squared": 0.0,
+              "converged": true,
+              "time": 0.0028812000527977943,
+              "extra": {
+                "solution_info": {
+                  "status": "ok",
+                  "iterations": 138,
+                  "initial_shape": 1.0,
+                  "final_shape_step": 9.882555662699133e-09,
+                  "deleted_observations": 1,
+                  "gamma_is_original_sample_minimum": true,
+                  "effective_sample_min": 569.3506659678317,
+                  "first_iterations": [
+                    {
+                      "iteration": 1,
+                      "shape_before": 1.0,
+                      "shape_after": 1.214146040058935
+                    },
+                    {
+                      "iteration": 2,
+                      "shape_before": 1.214146040058935,
+                      "shape_after": 1.4132968393573717
+                    },
+                    {
+                      "iteration": 3,
+                      "shape_before": 1.4132968393573717,
+                      "shape_after": 1.5969350178309796
+                    }
+                  ],
+                  "no_firth": true,
+                  "no_domain_caps": true,
+                  "no_fallback": true,
+                  "shape_absolute_step_tolerance": 1e-08,
+                  "max_iterations": 10000
+                }
+              },
+              "status": "success",
+              "sample_min_original": 543.8704794500704,
+              "sample_min_support": 569.3506659678317,
+              "trace_grid_check": null
+            },
+            "sample_min_original": 543.8704794500704,
+            "sample_min_support": 569.3506659678317
+          },
+          "minimum_gap": 43.870479450070434,
+          "at_true_location_same_retained_sample": {
+            "beta": 5.734573902614286,
+            "eta": 106.63108381669836,
+            "ll": -26.269682543716876,
+            "location_score": 0.0025852829075873884,
+            "shape_score": -1.2204126598192033e-13
+          },
+          "at_selected_location": {
+            "beta": 3.1926429303859805,
+            "eta": 61.36684971660482,
+            "ll": -26.100856817893796,
+            "location_score": 0.005246484082165256,
+            "shape_score": -5.551115123125783e-17
+          }
+        }
+      },
+      "archived_all_six": {
+        "MDM": {
+          "beta_hat": 2.4546182787386948,
+          "eta_hat": 83.27323381451167,
+          "gamma_hat": 517.7147541819213,
+          "converged": true,
+          "status": "success"
+        },
+        "LSE": {
+          "beta_hat": 11.502398814964117,
+          "eta_hat": 299.35451611683845,
+          "gamma_hat": 304.9492731435811,
+          "converged": true,
+          "status": "success"
+        },
+        "LRE": {
+          "beta_hat": 14.156727259041258,
+          "eta_hat": 379.09199750365167,
+          "gamma_hat": 224.4670349522072,
+          "converged": true,
+          "status": "success"
+        },
+        "WMLE": {
+          "beta_hat": 2.7772570849382934,
+          "eta_hat": 82.68370424156706,
+          "gamma_hat": 516.8142221299108,
+          "converged": true,
+          "status": "success"
+        },
+        "MLE": {
+          "beta_hat": 6.10468070387868,
+          "eta_hat": 144.29512146541722,
+          "gamma_hat": 457.10964801773594,
+          "converged": true,
+          "status": "success"
+        },
+        "MMLE": {
+          "beta_hat": 3.1926428567506377,
+          "eta_hat": 61.366849527691755,
+          "gamma_hat": 543.8704794500704,
+          "converged": true,
+          "status": "success"
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "fe6295225fe8279731619ebc891c6bed6681549166e4a5a14ebbee9a16881050",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\lre.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\mmle.py": "afe5318c04373254ad6acffc47e9cf7ff7ba80efa667865102ce8fc49edb85f9",
+    "D:\\weibull\\Research\\00-方法对比\\W(2,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\中间数据\\matrix.json": "4acf7790c6a49ef4f5270240c09f8ab847fa4f2139d04e2ba24ed5dbbd71085b",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\lre.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\mle.py": "8b26963db59baf8d155f30f526dffac94227b2f839425ec7a5c00c6d4d05c780",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\mmle.py": "afe5318c04373254ad6acffc47e9cf7ff7ba80efa667865102ce8fc49edb85f9",
+    "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1"
+  },
+  "sources_unchanged": true
+}

@@ -13,14 +13,28 @@ from matplotlib.ticker import NullLocator
 from scipy.stats import gaussian_kde
 
 
+def load_figure_records():
+    records = list(base.old)
+    supplement_path = base.HERE / '图1n30补充.json'
+    if supplement_path.exists():
+        supplement = json.loads(supplement_path.read_text(encoding='utf-8'))
+        assert supplement['truth'] == [5., 1000., 500.]
+        assert len(supplement['records']) == 250
+        records.extend(supplement['records'])
+    return records
+
+
 def main():
-    fig, axes = plt.subplots(2, 3, figsize=(7.2, 4.4), sharex='col', sharey=True)
+    estimates = load_figure_records()
+    sample_sizes = sorted({r['n'] for r in estimates if r['beta'] == 5})
+    height = 2.2 * len(sample_sizes)
+    fig, axes = plt.subplots(len(sample_sizes), 3, figsize=(7.2, height), sharex='col', sharey=True)
     params = [('beta_hat', 5, 'β', [0., 10.], [0., 2., 4., 6., 8., 10.]),
               ('eta_hat', 1000, 'η', [0., 2000.], [0., 500., 1000., 1500., 2000.]),
               ('gamma_hat', 500, 'γ', [0., 1500.], [0., 500., 1000., 1500.])]
     records = []
     for col, (param, truth, label, limits, ticks) in enumerate(params):
-        for row, n in enumerate((7, 15)):
+        for row, n in enumerate(sample_sizes):
             ax = axes[row, col]
             ax.set_xlim(limits); ax.set_ylim(4.65, -.65)
             ax.set_xscale('linear'); ax.set_xticks(ticks)
@@ -28,7 +42,7 @@ def main():
             ax.axvline(truth, ls='--', color='black', lw=.75, zorder=1)
             tick_labels = []
             for pos, method in enumerate(base.METHODS):
-                rows = [r for r in base.old if r['beta'] == 5 and r['n'] == n and r['method'] == method]
+                rows = [r for r in estimates if r['beta'] == 5 and r['n'] == n and r['method'] == method]
                 successful = sorted((r for r in rows if r['converged']), key=lambda r: r['sample_id'])
                 values = np.array([r[param] for r in successful])
                 ids = np.array([r['sample_id'] for r in successful])
@@ -78,26 +92,32 @@ def main():
                     fontsize=8, weight='bold', ha='right')
     fig.subplots_adjust(left=.105, right=.985, top=.945, bottom=.12, hspace=.58, wspace=.20)
     for col in range(3):
-        assert np.array_equal(axes[0,col].get_xticks(),axes[1,col].get_xticks())
+        assert all(np.array_equal(axes[0,col].get_xticks(), axes[row,col].get_xticks())
+                   for row in range(len(sample_sizes)))
     base.save(fig, '图1_原案例参数分布', formats=('png',))
     source_path = base.HERE/'输入快照'/'原案例估计.json'
     provenance = dict(figure_contract=dict(
         conclusion='原β=5小样本中位置偏高、尺度偏低，并伴随方法间不同的分布和零边界。',
         archetype='quantitative grid', backend='python',
-        panels='n=7/15两行，形状/尺度/位置三列，各五方法；仅描述既有估计分布。',
-        dimensions_inches=[7.2, 4.4], formats=['PNG 450dpi']),
+        panels='n='+('/'.join(map(str, sample_sizes)))+'各一行，形状/尺度/位置三列，各五方法；仅描述既有估计分布。',
+        dimensions_inches=[7.2, height], formats=['PNG 450dpi']),
         input_path=source_path.relative_to(base.HERE.parent).as_posix(),
         input_sha256=hashlib.sha256(source_path.read_bytes()).hexdigest(),
         description='Fixed linear display windows; complete saved estimates and summaries retained. No new fits.',
         point_layout='centerline_without_jitter', iqr_linewidth_points=.5,
-        annotations='Panel letters, method names, parameter axes and n only; statistics and marker definitions are in the report caption.',
+        annotations='Panel letters, method names, parameter axes and n only; full conventions are in the program record and batch README.',
         density='Gaussian KDE with Scott bandwidth on displayed original-coordinate values, restricted to their observed range; zero gamma excluded from KDE.',
         summary_source='all successful estimates', density_source='displayed successful estimates',
         tail_extension=False, shared_ticks_within_parameter=True,
         width='Each violin independently normalized to maximum half-width 0.32; width is not a success count.',
-        png_dimensions=[3240, 1980], panels=records)
+        sample_sizes=sample_sizes, png_dimensions=[3240, int(round(height*450))], panels=records)
+    supplement_path = base.HERE / '图1n30补充.json'
+    if supplement_path.exists():
+        provenance['supplementary_input_path'] = supplement_path.relative_to(base.HERE.parent).as_posix()
+        provenance['supplementary_input_sha256'] = hashlib.sha256(supplement_path.read_bytes()).hexdigest()
+        provenance['n30_is_independent_later_batch'] = True
     target = base.DATA/'图1小提琴数据与核验.json'
-    target.write_text(json.dumps(provenance, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    target.write_text(json.dumps(provenance, ensure_ascii=False, indent=2)+'\n', encoding='utf-8', newline='\n')
     qa_path = base.DATA/'逐法图核验.json'
     checks = json.loads(qa_path.read_text(encoding='utf-8'))
     checks.pop('ecdf', None)
@@ -107,7 +127,7 @@ def main():
     checks['distribution_figure'] = dict(type='violin_with_fixed_linear_windows', png_dimensions=provenance['png_dimensions'],
                                       source_data_file=target.name)
     qa_path.write_text(json.dumps(checks, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-    print('EXPORTED Figure 1: 6 linear panels, 30 method distributions, PNG only; full estimates retained.')
+    print(f'EXPORTED Figure 1: {len(sample_sizes)*3} linear panels, {len(records)} method distributions, PNG only; full estimates retained.')
 
 
 if __name__ == '__main__':
