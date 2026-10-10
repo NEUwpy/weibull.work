@@ -65,7 +65,7 @@ for(const n of [7,15,30]){
 }
 verification.push((await wb.inspect({kind:'match',searchTerm:'#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!',options:{useRegex:true,maxResults:50}})).ndjson);
 await fs.writeFile(path.join(qa,'excel-inspection.ndjson'),verification.join('\n'),'utf8');
-const outputDir=path.basename(directory)==='程序'?path.resolve(directory,'../结果'):path.resolve(directory,'../../结果',path.basename(directory));
+const outputDir=path.resolve(process.env.R00_OUTPUT_DIR || path.resolve(directory,'../../结果'),path.basename(directory));
 const target=path.join(outputDir,cfg.workbook);
 const output=await SpreadsheetFile.exportXlsx(wb);
 const staged=path.join(qa,'导出.xlsx');

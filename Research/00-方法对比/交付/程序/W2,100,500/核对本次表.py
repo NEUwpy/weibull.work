@@ -1,4 +1,5 @@
 """Independent read-only workbook-to-record verification; no estimation calls."""
+from 共用 import RESULT
 import hashlib,json,math
 from pathlib import Path
 import openpyxl
@@ -13,7 +14,7 @@ def main():
     old={(r['n'],r['id'],r['method_id'],r['delta']):r for r in original['results']}
     rows={(r['n'],r['id'],r['method_id'],r['delta']):r for r in matrix['results']}
     for key,r in old.items():assert rows[key]['original_record']==r
-    out=HERE.parent/'结果' if HERE.name=='程序' else HERE.parent.parent/'结果'/HERE.name
+    out=RESULT/HERE.name
     book=out/cfg['workbook'];wb=openpyxl.load_workbook(book,read_only=True,data_only=True)
     expected=[f'{prefix}_n{n}' for n in [7,15,30] for prefix in ['生成样本','估计结果']]
     assert wb.sheetnames==expected;records=[];sample_cells=parameter_cells=0;boundary=[]

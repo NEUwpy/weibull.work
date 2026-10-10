@@ -3,6 +3,7 @@
 Uses each batch's frozen sampler and runner/registry. Existing estimates are
 read only; new method calls are logged per row for interrupted-run continuation.
 """
+from 共用 import RESULT
 import ast
 from collections import defaultdict
 import copy
@@ -142,7 +143,7 @@ def plot_curves(directory, cfg, curves, replace=False):
             # Existing figure bytes are reused; there is no reason to rerun those traces.
             continue
         for _, delta in METHODS[:3]:
-            target = directory.parent.parent / '结果' / f'样本量{n}_偏移量{delta:.2f}.png'
+            target = RESULT / directory.parent.name / f'样本量{n}_偏移量{delta:.2f}.png'
             if target.exists() and not replace:
                 artifacts.append({'path': str(target), 'sha256': sha(target), 'action': 'original_bytes_reused'})
                 continue
@@ -173,7 +174,7 @@ def plot_curves(directory, cfg, curves, replace=False):
 
 def main(directory):
     directory = Path(directory)
-    batch = directory.parent.parent
+    batch = directory.parent / '输入原件'
     cfg = json.loads((directory / 'config.json').read_text(encoding='utf-8'))
     snapshot = directory.parent / '依赖快照/python'
     sys.path.insert(0, str(snapshot))
@@ -259,6 +260,12 @@ def main(directory):
                            'action': action, 'sample_min_original': x[0], 'sample_min_support': reference_min, 'status': status})
     assert len(matrix) == 1200 and len(samples) == 150
     output = {'config': cfg, 'samples': [{'n': n, 'id': sid, 'values': x} for (n, sid), x in sorted(samples.items())], 'results': matrix}
+    # Preserve archived metadata when rebuilding the identical stored matrix.
+    saved = data_dir / 'matrix.json'
+    if saved.exists():
+        archived = json.loads(saved.read_text(encoding='utf-8'))
+        assert archived['samples'] == output['samples'] and archived['results'] == output['results']
+        output['config'] = archived['config']
     write_json(data_dir / 'matrix.json', output)
     checkpoint(f"{cfg['combination']}补算完成：matrix SHA={sha(data_dir / 'matrix.json')}；新算={len(computed)}，复用={reused}，程序SHA={sha(directory / 'fill_matrix.py')}。下一步表图。")
     curves = {(row['n'], row['id']): row['criterion_curve'] for row in computed.values() if 'criterion_curve' in row}
@@ -286,11 +293,21 @@ def main(directory):
         curve = function(mdm_module.MDM(samples[reference['n'], reference['id']]), offset=.1, gamma_steps=240)
         diagnostic_match = sorted(curve, key=lambda p:p['gamma']) == sorted(reference['criterion_curve'], key=lambda p:p['gamma'])
         assert diagnostic_match
+    # Missing historical gradient figures can be rebuilt from the frozen
+    # criterion prefix, without calling the estimator or replacing any fit.
+    needed = [n for n in (7, 15, 30) if any(
+        not (RESULT / directory.parent.name / f'样本量{n}_偏移量{delta:.2f}.png').exists()
+        for _, delta in METHODS[:3])]
+    if needed:
+        evaluate = criterion_only_function(mdm_module)
+        for (n, sid), x in sorted(samples.items()):
+            if n in needed and (n, sid) not in curves:
+                curves[n, sid] = evaluate(mdm_module.MDM(x), offset=.1, gamma_steps=240)
     figures = plot_curves(directory, cfg, curves)
     all_figures = []
     for n in (7, 15, 30):
         for _, delta in METHODS[:3]:
-            target = batch / '结果' / f'样本量{n}_偏移量{delta:.2f}.png'
+            target = RESULT / directory.parent.name / f'样本量{n}_偏移量{delta:.2f}.png'
             assert target.exists(), target
             all_figures.append({'path': str(target), 'sha256': sha(target)})
     mmle = [r for r in matrix if r['method_id'] == 'mmle']
@@ -319,13 +336,4 @@ def main(directory):
         'LRE_before_sha256':cfg['lre_before_sha256'], 'LRE_after_sha256':cfg['lre_after_sha256']}
     write_json(directory / 'manifest.json', manifest)
     checkpoint(f"{cfg['combination']}数据与九图已齐：manifest={directory / 'manifest.json'} SHA={sha(directory / 'manifest.json')}；MMLE支撑={manifest['mmle_support']}。下一步建表及交付核验。")
-    namespace = cfg['seed_namespace_n30'] or str(cfg['seed_namespace_original'])
-    sample_note = (f"新n30命名空间：`{namespace}`（以seed字符串传入，共用生成器按repr编码）；新样本独立保存在数据目录，已有文件不覆盖。"
-                   if cfg['new_n30'] else f"三档样本全部复用，原种子命名空间为`{cfg['seed_namespace_original']}`；本轮未生成新样本。")
-    (directory / 'README.md').write_text(f"# {cfg['combination']}完整矩阵\n\nn=7、15、30各50组，八方法1200条估计；既有估计复用{reused}条，新增或换版{len(computed)}条。\n\n"
-        f"入口：`run_20261007.py`；配置：`config.json`；母体：`fill_matrix.py`；建表：`build_matrix.mjs`。运行Python入口后，以Node执行建表脚本（需要可用的`@oai/artifact-tool`模块）。所有方法从本批`../依赖快照/python`经runner/registry分派。\n\n"
-        f"原样本及估计来源、SHA见config和manifest。{sample_note}\n\n"
-        'MMLE支撑检查在本调用点传sample_min=x₂，其余方法使用x₁；共享metrics默认语义未改。失败记录保留，不补入其它求解器的解。\n\n'
-        '图为原形式的MDM梯度—γ曲线，每图50组及一条δ参考线；九张PNG按(n,δ)命名。已有PNG复用原字节。诊断补图使用本批MDM实际trace或其函数AST在求解位置参数前的计算片段，不重算已有参数估计。\n\n'
-        + (f"LRE口径变更：Park（2017）Proposed+Plot改回历史Bernard秩回归；前SHA `{cfg['lre_before_sha256']}`，后SHA `{cfg['lre_after_sha256']}`。本批150条LRE已重算，旧实现与旧结果源文件保留；差值记录位于数据/lre_change.json。\n" if cfg['replace_lre'] else 'LRE继续使用本批历史Bernard实现，未换版。\n'), encoding='utf-8')
     print('COMPLETE', cfg['combination'], json.dumps({k:manifest[k] for k in ('samples','estimates','new_estimates','reused_estimates','mmle_support')}, ensure_ascii=False), flush=True)

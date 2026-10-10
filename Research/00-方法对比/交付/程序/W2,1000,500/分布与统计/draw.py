@@ -1,4 +1,5 @@
 """Task028 g2: plot saved Excel values only; violin plus method-by-n rate heatmap."""
+from 共用 import RESULT
 import hashlib, json, platform
 from pathlib import Path
 import numpy as np
@@ -43,10 +44,10 @@ def verify_cell_text(fig,ax,texts):
 
 def main():
     cfg=json.loads((HERE/'config.json').read_text(encoding='utf-8'))
-    batch=HERE.parent.parent; out=batch/'结果'
+    batch=HERE.parent; out=RESULT/batch.name
     payload=json.loads((HERE/'Excel提取.json').read_text(encoding='utf-8')); source=payload['source']
     assert source['comparison_passed'] and not source['errors']
-    assert sha(batch/cfg['workbook'])==source['workbook_sha256']
+    assert sha(out/(batch.name+".xlsx"))==source['workbook_sha256']
     assert sha(batch/cfg['crosscheck_matrix'])==source['matrix_sha256']
     records=payload['records']; assert len(records)==1200
     methods=cfg['methods']; ns=cfg['sample_sizes']; truth=cfg['truth']
@@ -124,7 +125,7 @@ def main():
     dump('manifest.json',dict(task_id=cfg['task_id'],goal_version='g2',artifact_version=cfg['artifact_version'],
         workbook_sha256=source['workbook_sha256'],matrix_sha256=source['matrix_sha256'],
         scripts={p.name:sha(p) for p in HERE.glob('*.py')},config_sha256=sha(HERE/'config.json'),
-        entry_sha256=sha(HERE/'run_20261007.ps1'),
+        entry_sha256=sha(HERE.parent/'运行本组.ps1'),
         outputs=[dict(path=str(p),sha256=sha(p),bytes=p.stat().st_size) for p in outputs],
         runtime=dict(python=platform.python_version(),numpy=np.__version__,scipy=scipy.__version__,matplotlib=matplotlib.__version__)))
     print(cfg['combination'],'READY: 2 PNG; 24 rate cells; 72 violin groups',flush=True)

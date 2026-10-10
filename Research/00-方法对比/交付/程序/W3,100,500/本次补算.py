@@ -69,6 +69,11 @@ def main():
     assert len(rows)==1200 and reused==750
     assert all(r['original_record']==old[r['n'],r['id'],r['method_id'],r['delta']] for r in rows if r['action']=='original_estimate_reused')
     matrix=dict(config=cfg,samples=original['samples'],results=rows)
+    saved = HERE/'中间数据/matrix.json'
+    if saved.exists():
+        archived = json.loads(saved.read_text(encoding='utf-8'))
+        assert archived['samples'] == matrix['samples'] and archived['results'] == matrix['results']
+        matrix['config'] = archived['config']
     dump(HERE/'中间数据/matrix.json',matrix)
     dump(HERE/'中间数据/MDM曲线.json',original['gradient_curves'])
     mmle=[r for r in rows if r['method_id']=='mmle']

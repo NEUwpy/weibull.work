@@ -1,4 +1,5 @@
 """Reproduce the 13 conditional rate panels from frozen source values; no fitting."""
+from 共用 import RESULT
 import hashlib,json
 from pathlib import Path
 import numpy as np
@@ -38,7 +39,7 @@ def main():
                 figure_cells.append(dict(combination=paths[i][0],method=methods[method]['label'],n=ns[n],value=float(value),label=label))
     cax=fig.add_axes([.949,.07,.012,.84]);cb=fig.colorbar(im,cax=cax);cb.set_ticks([0,.25,.5,.75,1]);cb.ax.yaxis.set_major_formatter(PercentFormatter(1));cb.set_label('有解率',labelpad=2,fontsize=8);cb.outline.set_visible(False);cb.ax.tick_params(length=0)
     fig.canvas.draw();assert len(figure_cells)==312
-    output=HERE/'跨参数对比_有解率热图.png';fig.savefig(output,dpi=450,facecolor='white');plt.close(fig)
+    output=RESULT/'跨参数对比_有解率热图.png';fig.savefig(output,dpi=450,facecolor='white');plt.close(fig)
     record=dict(task_id='research00-add-stash-5combos-032',goal_version='g1',artifact_version='five-combos-v2',
       sources=sources,rows=312,panels=13,heatmap_cells=len(figure_cells),figure_cells=figure_cells,
       frozen_source_sha256=sha(HERE/'13组合取数.json'),output=str(output),output_sha256=sha(output),

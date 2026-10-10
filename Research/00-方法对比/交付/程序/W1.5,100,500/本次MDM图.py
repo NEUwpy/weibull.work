@@ -1,4 +1,5 @@
 """Stored real profile-gradient grids; change the threshold without re-estimating δ=.20."""
+from 共用 import RESULT
 import hashlib,json
 from pathlib import Path
 import numpy as np
@@ -31,7 +32,7 @@ def main():
             ax.tick_params(which='major',direction='in',length=4.2,pad=3);ax.tick_params(which='minor',direction='in',length=2.4)
             ax.set_ylabel('Std gradient',labelpad=8);fig.text(.56,.055,'Location parameter value adopted',ha='center',va='center')
             fig.subplots_adjust(left=.14,right=.96,bottom=.18,top=.975)
-            out=HERE.parent/'结果' if HERE.name=='程序' else HERE.parent.parent/'结果'/HERE.name
+            out=RESULT/HERE.name
             output=out/f'样本量{n}_偏移量{delta:.2f}.png';fig.savefig(output,dpi=600,facecolor='white');plt.close(fig)
             meta.append(dict(file=str(output),n=n,delta=delta,curves=50,points=point_count,x_limits=contract['mdm_x_range'],y_limits=contract['mdm_y_range'],
               source='stored task20261004 trace_grid; same gamma profile grid across thresholds; no virtual root/probe points',

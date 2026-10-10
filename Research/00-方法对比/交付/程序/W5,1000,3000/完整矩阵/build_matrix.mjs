@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {Workbook, SpreadsheetFile} from '@oai/artifact-tool';
 const directory=path.dirname(fileURLToPath(import.meta.url));
 const matrix=JSON.parse(await fs.readFile(path.join(directory,'数据','matrix.json'),'utf8'));
-const cfg=matrix.config;
+const cfg=JSON.parse(await fs.readFile(path.join(directory,'config.json'),'utf8'));
 const wb=Workbook.create();
 const groups=[['MDM δ=0.10','mdm',.10],['MDM δ=0.15','mdm',.15],['MDM δ=0.20','mdm',.20],
               ['LS','lse',null],['LRE','lre',null],['WMLM','wmle',null],['MLM','mle',null],['MMLE','mmle',null]];
@@ -65,7 +65,7 @@ for(const n of [7,15,30]){
 }
 verification.push((await wb.inspect({kind:'match',searchTerm:'#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!',options:{useRegex:true,maxResults:50}})).ndjson);
 await fs.writeFile(path.join(qa,'excel-inspection.ndjson'),verification.join('\n'),'utf8');
-const target=path.resolve(directory,'../../结果',cfg.workbook);
+const target=path.resolve(process.env.R00_OUTPUT_DIR || path.resolve(directory,'../../../结果'),path.basename(path.dirname(directory)),cfg.workbook);
 const output=await SpreadsheetFile.exportXlsx(wb);
 const staged=path.join(qa,'导出.xlsx');
 await output.save(staged);

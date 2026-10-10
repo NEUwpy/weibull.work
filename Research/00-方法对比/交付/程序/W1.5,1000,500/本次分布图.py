@@ -1,4 +1,5 @@
 """Task028 g2: plot saved Excel values only; violin plus method-by-n rate heatmap."""
+from 共用 import RESULT
 import hashlib, json, platform
 from pathlib import Path
 import numpy as np
@@ -43,7 +44,7 @@ def verify_cell_text(fig,ax,texts):
 
 def main():
     cfg=json.loads((HERE/'config.json').read_text(encoding='utf-8'))
-    batch=HERE.parent; out=HERE.parent/'结果' if HERE.name=='程序' else HERE.parent.parent/'结果'/HERE.name
+    batch=HERE.parent; out=RESULT/HERE.name
     payload=json.loads((HERE/'Excel提取.json').read_text(encoding='utf-8')); source=payload['source']
     assert source['comparison_passed'] and not source['errors']
     assert sha(out/cfg['workbook'])==source['workbook_sha256']

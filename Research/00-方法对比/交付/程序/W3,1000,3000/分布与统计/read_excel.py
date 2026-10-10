@@ -1,4 +1,5 @@
 """Extract saved Excel estimates and check them against the frozen matrix. No fitting."""
+from 共用 import RESULT
 import hashlib, json, math
 from pathlib import Path
 import openpyxl
@@ -13,8 +14,8 @@ def finite(value):
 
 def main():
     cfg = json.loads((HERE/'config.json').read_text(encoding='utf-8'))
-    batch = HERE.parent.parent
-    workbook = batch/cfg['workbook']; matrix_path = batch/cfg['crosscheck_matrix']
+    batch = HERE.parent
+    workbook = RESULT/batch.name/(batch.name+".xlsx"); matrix_path = batch/cfg['crosscheck_matrix']
     matrix = json.loads(matrix_path.read_text(encoding='utf-8'))
     indexed = {(r['n'],r['id'],r['method_id'],r['delta']):r for r in matrix['results']}
     sample_index = {(s['n'],s['id']):s['values'] for s in matrix['samples']}
