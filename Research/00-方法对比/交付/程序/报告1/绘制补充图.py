@@ -1,5 +1,5 @@
 """Supplementary figures from saved data; main figures use 绘制逐法分析图.py."""
-from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT
+from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT, save_png
 import json
 from pathlib import Path
 import numpy as np
@@ -22,12 +22,18 @@ plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Microsoft
     'pdf.fonttype': 42, 'svg.fonttype': 'none', 'legend.frameon': False})
 fits = json.loads((DATA / '实际估计.json').read_text(encoding='utf-8'))
 summary = json.loads((DATA / '汇总.json').read_text(encoding='utf-8'))
+mmle = json.loads((HERE / '20261011-MMLE估计与曲线.json').read_text(encoding='utf-8'))
+PRIMARY.append('mmle')
+NAMES['mmle'] = 'MMLE'
+COLORS['mmle'] = '#71896A'
+fits.extend(mmle['paired_records'])
+summary['summary'].extend(mmle['summary'])
 
 
 def save(fig, name):
     for ext in ('png',):
         path = OUT / f'{name}.{ext}'
-        fig.savefig(path, dpi=450, facecolor='white')
+        save_png(fig, path)
         if ext == 'svg':
             path.write_text('\n'.join(line.rstrip() for line in path.read_text(encoding='utf-8').splitlines()) + '\n', encoding='utf-8')
     plt.close(fig)
@@ -43,7 +49,7 @@ def get(beta, n, method):
 
 def legend_methods(fig, y=.99):
     fig.legend([Line2D([], [], color=COLORS[m], marker='o', ms=3, lw=1) for m in PRIMARY],
-        [NAMES[m] for m in PRIMARY], ncol=5, loc='upper center', bbox_to_anchor=(.5, y), columnspacing=1.7)
+        [NAMES[m] for m in PRIMARY], ncol=len(PRIMARY), loc='upper center', bbox_to_anchor=(.5, y), columnspacing=1.4)
 
 
 
@@ -80,6 +86,10 @@ def continuous_estimates():
             else:
                 ax.axhline(truth, ls='--', color='black', lw=.8)
             ax.set_ylabel(ylabel); ax.set_xticks([2,3,4,5])
+            limits, ticks = [((0,10), [0,2,4,6,8,10]),
+                             ((0,1600), [0,400,800,1200,1600]),
+                             ((0,1400), [0,350,700,1050,1400])][col]
+            ax.set_ylim(limits); ax.set_yticks(ticks)
             if row == 1: ax.set_xlabel('β')
             if col == 0: ax.set_title(f'n = {n}', loc='left', pad=8, weight='bold')
             tag(ax, chr(97+row*3+col))
@@ -109,14 +119,14 @@ def compensation():
         right.plot([a,b],[i,i],color=COLORS[method],lw=1.5)
         right.scatter([a],[i],color=COLORS[method],s=24,marker='o')
         right.scatter([b],[i],facecolor='white',edgecolor=COLORS[method],s=24,marker='o',zorder=3)
-    right.set_yticks(range(5),[NAMES[m] for m in PRIMARY]);right.set_ylim(4.6,-.6)
+    right.set_yticks(range(len(PRIMARY)),[NAMES[m] for m in PRIMARY]);right.set_ylim(len(PRIMARY)-.4,-.6)
     right.set_xlabel('η绝对误差中位数');right.set_xlim(0,750)
     tag(ax,'a');tag(right,'b');legend_methods(fig)
     fig.subplots_adjust(left=.10,right=.985,bottom=.25,top=.79,wspace=.36)
     save(fig,'补充图5_位置尺度补偿')
 
 
-def supplement():
+def supplement(include_lre=True):
     fig, axes=plt.subplots(1,2,figsize=(7.2,2.8))
     for ax,n in zip(axes,NS):
         for m in PRIMARY:
@@ -125,6 +135,8 @@ def supplement():
     axes[0].set_ylabel('成功率');tag(axes[0],'a');tag(axes[1],'b');legend_methods(fig)
     fig.subplots_adjust(left=.10,right=.98,top=.78,bottom=.20,wspace=.25)
     save(fig,'补充图1_估计成功率')
+    if not include_lre:
+        return
     fig, axes=plt.subplots(1,2,figsize=(7.2,2.8))
     for ax,n in zip(axes,NS):
         for m,label,color in [('lre','LRE','#8A7398'),('lre_park','LRE Park','#345D7E')]:
@@ -140,4 +152,4 @@ def supplement():
 
 if __name__ == "__main__":
     lower_tail(); continuous_estimates(); compensation(); supplement()
-    print("EXPORTED 5 supplementary figures, PNG/PDF/SVG")
+    print("EXPORTED 5 supplementary figures, PNG only")

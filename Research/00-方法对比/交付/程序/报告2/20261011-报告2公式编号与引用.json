@@ -1,0 +1,319 @@
+{
+  "report_before_sha256": "d56d9dbbb1c7d204c25d859a2e0ff6d5d017c9cec4ef1e71210cea45aec8cc4c",
+  "report_after_sha256": "e0f6df0b4aae74cf11407acd5011eb89f4ac7b9573c27cc7b8ac060d51170e90",
+  "script_sha256": "3ae3f944f4426df91439405306c25d950922c127786fc2286fa484d13d21e106",
+  "formula_bodies_before": [
+    "\\hat\\beta\\ge3\\beta\\quad\\text{或}\\quad\\hat\\beta\\le\\frac{\\beta}{3}.",
+    "\\ln(X-\\gamma)=\\ln\\eta+\\frac{Z}{\\beta}.",
+    "\\operatorname{E}[\\ln(X_{(i)}-\\gamma)]\n=\\ln\\eta+\\frac{z_i}{\\beta}.",
+    "\\hat\\beta(\\gamma)=\\frac1b,\n\\qquad\n\\hat\\eta(\\gamma)=e^a.",
+    "F(\\gamma)=\\frac{n-2}{(n-1)[1-R^2(\\gamma)]}.",
+    "\\hat\\gamma=\\underset{0\\le\\gamma<x_{(1)}}{\\arg\\min}\\,[1-R^2(\\gamma)].",
+    "\\ln[-\\ln(1-F(x))]\n=\\beta\\ln(x-\\gamma)-\\beta\\ln\\eta,",
+    "z_i=\\ln[-\\ln(1-p_i)]\n\\approx\\beta y_i-\\beta\\ln\\eta,\n\\qquad y_i=\\ln(x_{(i)}-\\gamma).",
+    "\\hat\\beta(\\gamma)=b,\n\\qquad\n\\hat\\eta(\\gamma)=e^{-a/b}.",
+    "\\hat\\gamma\n=\\underset{0\\le\\gamma<x_{(1)}}{\\arg\\max}\\,\\rho(\\gamma).",
+    "\\ell(\\beta,\\eta,\\gamma)\n=n\\ln\\beta-n\\beta\\ln\\eta+(\\beta-1)\\sum_i\\ln d_i\n-\\sum_i(d_i/\\eta)^\\beta.",
+    "\\frac{\\partial\\ell}{\\partial\\eta}\n=-\\frac{n\\beta}{\\eta}\n+\\frac{\\beta}{\\eta^{\\beta+1}}\\sum_i d_i^\\beta=0\n\\quad\\Longrightarrow\\quad\n\\hat\\eta(\\beta,\\gamma)\n=\\left[\\frac1n\\sum_i d_i^\\beta\\right]^{1/\\beta}.",
+    "U_\\beta(\\beta;\\gamma)=\\frac1\\beta+\\bar y\n-\\frac{\\sum_i d_i^\\beta y_i}{\\sum_i d_i^\\beta}=0.",
+    "\\ell_p(\\gamma)\n=\\ell[\\hat\\beta(\\gamma),\\hat\\eta(\\gamma),\\gamma].",
+    "\\hat F(t_{(i)})=\n\\frac{i}{i+(n+1-i)F_{2(n+1-i),\\,2i,\\,0.5}},\n\\qquad i=1,2,\\ldots,n.",
+    "\\hat\\eta_i=\n\\frac{t_{(i)}-\\gamma}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\beta}},\n\\qquad i=1,2,\\ldots,n.",
+    "\\sigma_{\\eta,\\min}(\\gamma)=\\min_\\beta\\sigma_\\eta(\\gamma,\\beta),\n\\qquad\n\\hat\\beta(\\gamma)=\\underset{\\beta}{\\arg\\min}\\,\\sigma_\\eta(\\gamma,\\beta).",
+    "\\nabla\\gamma=\n\\frac{\\sigma_{\\eta,\\min}(\\gamma+\\Delta\\gamma)\n-\\sigma_{\\eta,\\min}(\\gamma)}{\\Delta\\gamma}.",
+    "\\hat\\eta=\n\\sum_{i=1}^{n}\\left\\{\n\\frac{t_{(i)}-\\hat\\gamma}{[-\\ln(1-F(t_{(i)}))]^{1/\\hat\\beta}}\n\\right\\}/n.",
+    "\\hat\\eta(\\gamma)=\\frac1n\\sum_{i=1}^{n}\n\\frac{t_{(i)}-\\gamma}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\hat\\beta(\\gamma)}}.",
+    "T_1(\\beta,\\gamma)=\\frac{J_2(n)}\\beta+\\bar y\n-\\frac{\\sum_i d_i^\\beta y_i}{\\sum_i d_i^\\beta},",
+    "T_2(\\beta,\\gamma)\n=\\left(\\frac1n\\sum_i\\frac1{d_i}\\right)\n\\frac{\\sum_i d_i^\\beta}{\\sum_i d_i^{\\beta-1}}\n-J_3(n,\\beta).",
+    "T_1[\\hat\\beta(\\gamma),\\gamma]=0.",
+    "\\hat\\eta=\\left[\\frac{\\sum_i(x_{(i)}-\\hat\\gamma)^{\\hat\\beta}}{nJ_1(n)}\\right]^{1/\\hat\\beta}.",
+    "\\hat\\gamma=x_{(1)},\\qquad d_i=x_{(i)}-x_{(1)},\\quad i=2,\\ldots,n.",
+    "U_\\beta(\\beta;\\gamma)\n=\\frac1\\beta+\\frac1{n-1}\\sum_{i=2}^n\\ln d_i\n-\\frac{\\sum_{i=2}^n d_i^\\beta\\ln d_i}{\\sum_{i=2}^n d_i^\\beta}=0.",
+    "\\hat\\eta=\\left[\\frac1{n-1}\\sum_{i=2}^n d_i^{\\hat\\beta}\\right]^{1/\\hat\\beta}.",
+    "\\Pr\\{X_{(1)}>\\gamma+a\\eta\\}\n=[1-F_X(\\gamma+a\\eta)]^n\n=\\exp(-na^\\beta),\\qquad 0<a<1.",
+    "\\hat\\beta(\\gamma)\\ge\\frac1{\\max_i y_i-\\bar y}.",
+    "\\mathrm{CV}(X)=\\frac{\\mathrm{SD}(Z)}{\\gamma/\\eta+\\mathbb E[Z]}."
+  ],
+  "equation_mapping": [
+    {
+      "number": 1,
+      "section": "1　问题描述",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 2,
+      "section": "2.1.1　[LSE](../../src/content/algorithms/lse.md)",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 3,
+      "section": "2.1.1　[LSE](../../src/content/algorithms/lse.md)",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 4,
+      "section": "2.1.1　[LSE](../../src/content/algorithms/lse.md)",
+      "prose_reference_count": 7
+    },
+    {
+      "number": 5,
+      "section": "2.1.1　[LSE](../../src/content/algorithms/lse.md)",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 6,
+      "section": "2.1.1　[LSE](../../src/content/algorithms/lse.md)",
+      "prose_reference_count": 4
+    },
+    {
+      "number": 7,
+      "section": "2.1.2　[LRE](../../src/content/algorithms/lre.md)",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 8,
+      "section": "2.1.2　[LRE](../../src/content/algorithms/lre.md)",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 9,
+      "section": "2.1.2　[LRE](../../src/content/algorithms/lre.md)",
+      "prose_reference_count": 7
+    },
+    {
+      "number": 10,
+      "section": "2.1.2　[LRE](../../src/content/algorithms/lre.md)",
+      "prose_reference_count": 4
+    },
+    {
+      "number": 11,
+      "section": "2.1.3　[MLE](../../src/content/algorithms/mle.md)",
+      "prose_reference_count": 4
+    },
+    {
+      "number": 12,
+      "section": "2.1.3　[MLE](../../src/content/algorithms/mle.md)",
+      "prose_reference_count": 2
+    },
+    {
+      "number": 13,
+      "section": "2.1.3　[MLE](../../src/content/algorithms/mle.md)",
+      "prose_reference_count": 7
+    },
+    {
+      "number": 14,
+      "section": "2.1.3　[MLE](../../src/content/algorithms/mle.md)",
+      "prose_reference_count": 4
+    },
+    {
+      "number": 15,
+      "section": "2.1.4　[MDM](../../src/content/algorithms/mdm.md)",
+      "prose_reference_count": 3
+    },
+    {
+      "number": 16,
+      "section": "2.1.4　[MDM](../../src/content/algorithms/mdm.md)",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 17,
+      "section": "2.1.4　[MDM](../../src/content/algorithms/mdm.md)",
+      "prose_reference_count": 10
+    },
+    {
+      "number": 18,
+      "section": "2.1.4　[MDM](../../src/content/algorithms/mdm.md)",
+      "prose_reference_count": 5
+    },
+    {
+      "number": 19,
+      "section": "2.1.4　[MDM](../../src/content/algorithms/mdm.md)",
+      "prose_reference_count": 4
+    },
+    {
+      "number": 20,
+      "section": "2.1.4　[MDM](../../src/content/algorithms/mdm.md)",
+      "prose_reference_count": 4
+    },
+    {
+      "number": 21,
+      "section": "2.1.5　[WMLE](../../src/content/algorithms/wmle.md)",
+      "prose_reference_count": 8
+    },
+    {
+      "number": 22,
+      "section": "2.1.5　[WMLE](../../src/content/algorithms/wmle.md)",
+      "prose_reference_count": 7
+    },
+    {
+      "number": 23,
+      "section": "2.1.5　[WMLE](../../src/content/algorithms/wmle.md)",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 24,
+      "section": "2.1.5　[WMLE](../../src/content/algorithms/wmle.md)",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 25,
+      "section": "2.1.6　[MMLE](../../src/content/algorithms/mmle.md)",
+      "prose_reference_count": 3
+    },
+    {
+      "number": 26,
+      "section": "2.1.6　[MMLE](../../src/content/algorithms/mmle.md)",
+      "prose_reference_count": 6
+    },
+    {
+      "number": 27,
+      "section": "2.1.6　[MMLE](../../src/content/algorithms/mmle.md)",
+      "prose_reference_count": 2
+    },
+    {
+      "number": 28,
+      "section": "2.2　样本条件的影响",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 29,
+      "section": "2.2　样本条件的影响",
+      "prose_reference_count": 1
+    },
+    {
+      "number": 30,
+      "section": "2.2　样本条件的影响",
+      "prose_reference_count": 1
+    }
+  ],
+  "image_blocks_before": [
+    "![各参数组合和样本量下的明显异常估计频率](交付/结果/报告2/图1_明显异常估计频率.png)",
+    "**图1｜明显异常估计的发生频率随参数条件、样本量和方法而异。**",
+    "![LSE各类明显异常估计的发生次数](交付/结果/报告2/异常分类_LSE_三子图.png)",
+    "**图2｜LSE各类明显异常估计的发生次数。**",
+    "![LSE正常样本与两种左侧高估样本](交付/结果/报告2/配对情形_LSE_zero.png)",
+    "**图3｜两个异常样本均在左侧取得较好的线性匹配，同时得到较小斜率与形状高估。**",
+    "![LSE正常与异常样本对照](交付/结果/报告2/配对情形_LSE_right.png)",
+    "**图4｜第19组更靠近最小观测的最低点，对应更大的回归斜率和形状低估。**",
+    "![LRE各类明显异常估计的发生次数](交付/结果/报告2/异常分类_LRE_三子图.png)",
+    "**图5｜LRE各类明显异常估计的发生次数。**",
+    "![LRE正常样本与两种左侧高估样本](交付/结果/报告2/配对情形_LRE_zero.png)",
+    "**图6｜两个异常样本均通过左移提高概率图相关性，压缩的横向跨度使斜率和形状增大。**",
+    "![LRE正常与异常样本对照](交付/结果/报告2/配对情形_LRE_right.png)",
+    "**图7｜第19组的右侧相关性最高点，对应更平的拟合线和形状低估。**",
+    "![MLE各类明显异常估计的发生次数](交付/结果/报告2/异常分类_MLE_三子图.png)",
+    "**图8｜MLE各类明显异常估计的发生次数。**",
+    "![MLE正常与异常样本对照](交付/结果/报告2/配对情形_MLE_high.png)",
+    "**图9｜第36组的零位置候选具有较高似然，并对应形状高估。**",
+    "![MLE正常与异常样本对照](交付/结果/报告2/配对情形_MLE_low.png)",
+    "**图10｜第4组右侧较高似然候选对应形状低估，β=1分支仍有更高似然。**",
+    "![MLE正常与异常样本对照](交付/结果/报告2/配对情形_MLE_stop.png)",
+    "**图11｜第37组的近零返回点仍有提高似然的方向。**",
+    "![MDM（δ=0.20）各类明显异常估计的发生次数](交付/结果/报告2/异常分类_MDM_三子图.png)",
+    "**图12｜MDM（δ=0.20）各类明显异常估计的发生次数。**",
+    "![MDM正常与异常样本对照](交付/结果/报告2/配对情形_MDM_low.png)",
+    "**图13｜第11组的阈值交点更接近最小观测，随后得到较小形状和尺度。**",
+    "![MDM正常与异常样本对照](交付/结果/报告2/配对情形_MDM_edge.png)",
+    "**图14｜第5组的右端探测漏掉内部交点，回退位置随后对应形状高估。**",
+    "![WMLE各类明显异常估计的发生次数](交付/结果/报告2/异常分类_WMLE_三子图.png)",
+    "**图15｜WMLE各类明显异常估计的发生次数。**",
+    "![WMLE正常与异常样本对照](交付/结果/报告2/配对情形_WMLE_low.png)",
+    "**图16｜第11组更靠近最小值的联合交点，对应形状低估。**",
+    "![WMLE正常与异常样本对照](交付/结果/报告2/配对情形_WMLE_high.png)",
+    "**图17｜第9组原本偏大的条件形状，经左侧联合交点进一步增大。**",
+    "![MMLE各类明显异常估计的发生次数](交付/结果/报告2/异常分类_MMLE_三子图.png)",
+    "**图18｜MMLE保留距离分散与集中的两类明显异常估计。**",
+    "![MMLE正常与低估样本的实际保留距离和形状得分](交付/结果/报告2/配对情形_MMLE_low.png)",
+    "**图19｜第11组的保留距离相对分散，形状得分的零点落在低估范围。**",
+    "![MMLE正常与高估样本的实际保留距离和形状得分](交付/结果/报告2/配对情形_MMLE_high_deletion.png)",
+    "**图20｜第5组的保留距离集中，形状得分的零点移向较大β。**",
+    "![固定位置时对数距离集中对回归与似然形状的影响](交付/结果/报告2/固定位置的回归与形状得分.png)",
+    "**图21｜给定真位置后，第29组集中的对数距离仍支持较大形状。**"
+  ],
+  "sample_rows_before": [
+    "| 真值 | 2 | 100 | 500 |",
+    "| LSE | **21.70** | **609.36** | **0** |",
+    "| LRE | **18.80** | **522.81** | **85.73** |",
+    "| MLE | **23.54** | **608.35** | **0** |",
+    "| 正常·第35组 | W(2,100,500) | 15 | 518.20 | 1.42 | 70.42 | 524.99，532.96，537.51，546.83，549.15，554.55，559.29，582.77，595.63，597.60，598.04，618.58，625.47，631.01，639.05 |",
+    "| 零边界高估·第36组 | W(2,100,500) | 15 | 0.00 | 21.70 | 609.36 | 524.67，551.74，554.21，573.41，585.02，588.71，591.87，595.61，609.05，610.30，611.69，617.54，625.80，633.61，640.02 |",
+    "| 内部左侧高估·第1组 | W(2,1000,3000) | 7 | 1273.68 | 8.42 | 2717.62 | 3250.30，3676.83，3723.74，3827.75，3860.06，4191.49，4293.82 |",
+    "| 正常·第18组 | 603.11 | 0.91 | 542.97 | 634.38，750.70，764.00，978.92，1044.85，1698.88，1814.71 |",
+    "| 异常·第19组 | 774.35 | 0.58 | 399.58 | 779.38，799.04，885.47，1061.58，1197.68，1302.69，2480.21 |",
+    "| 正常·第4组 | W(2,1000,3000) | 7 | 2296.80 | 3.01 | 1743.63 | 3109.09，3388.63，3881.19，3927.27，3941.84，3990.51，4649.68 |",
+    "| 零边界高估·第5组 | W(2,1000,3000) | 7 | 0.00 | 13.78 | 3993.75 | 3301.70，3818.64，3840.65，3938.63，3979.78，4031.52，4091.30 |",
+    "| 内部左侧高估·第36组 | W(2,100,500) | 15 | 85.73 | 18.80 | 522.81 | 524.67，551.74，554.21，573.41，585.02，588.71，591.87，595.61，609.05，610.30，611.69，617.54，625.80，633.61，640.02 |",
+    "| 正常·第18组 | 598.12 | 0.86 | 538.49 | 634.38，750.70，764.00，978.92，1044.85，1698.88，1814.71 |",
+    "| 异常·第19组 | 773.02 | 0.56 | 384.30 | 779.38，799.04，885.47，1061.58，1197.68，1302.69，2480.21 |",
+    "| 正常·第35组 | 521.17 | 1.49 | 64.27 | 524.99，532.96，537.51，546.83，549.15，554.55，559.29，582.77，595.63，597.60，598.04，618.58，625.47，631.01，639.05 |",
+    "| 异常·第36组 | 0.00 | 23.54 | 608.35 | 524.67，551.74，554.21，573.41，585.02，588.71，591.87，595.61，609.05，610.30，611.69，617.54，625.80，633.61，640.02 |",
+    "| 正常·第3组 | 0.00 | 10.14 | 1462.26 | 1106.94，1120.24，1442.18，1459.87，1480.23，1480.87，1615.80 |",
+    "| 异常·第4组 | 1092.59 | 1.44 | 370.63 | 1121.42，1212.48，1385.65，1453.77，1469.10，1513.70，1865.14 |",
+    "| 正常·第38组 | 3283.98 | 1.52 | 705.64 | 3347.71，3616.97，3808.44，3846.60，3937.32，4165.27，4740.66 |",
+    "| 异常·第37组 | 0.0001 | 13.10 | 3786.32 | 3204.36，3330.72，3381.19，3675.75，3829.79，3956.29，4102.16 |",
+    "| 正常·第10组 | 517.71 | 2.45 | 83.27 | 543.87，569.35，590.90，591.15，596.79，614.92，629.13 |",
+    "| 异常·第11组 | 570.98 | 1.35 | 30.40 | 575.95，585.29，585.82，586.04，606.41，616.31，629.89 |",
+    "| 正常·第4组 | 2760.08 | 2.15 | 1239.05 | 3109.09，3388.63，3881.19，3927.27，3941.84，3990.51，4649.68 |",
+    "| 异常·第5组 | 3301.70 | 6.43 | 568.02 | 3301.70，3818.64，3840.65，3938.63，3979.78，4031.52，4091.30 |",
+    "| 正常·第10组 | 516.81 | 2.78 | 82.68 | 543.87，569.35，590.90，591.15，596.79，614.92，629.13 |",
+    "| 异常·第11组 | 573.51 | 1.10 | 26.30 | 575.95，585.29，585.82，586.04，606.41，616.31，629.89 |",
+    "| 正常·第10组 | 494.70 | 1.18 | 109.39 | 506.42，529.52，572.77，573.44，589.69，658.98，734.47 |",
+    "| 异常·第9组 | 475.49 | 5.31 | 163.08 | 551.95，606.91，635.06，639.45，642.43，648.24，659.99 |",
+    "| 正常·第10组 | 543.87 | 3.19 | 61.37 | 543.87，569.35，590.90，591.15，596.79，614.92，629.13 |",
+    "| 异常·第11组 | 575.95 | 1.54 | 28.69 | 575.95，585.29，585.82，586.04，606.41，616.31，629.89 |",
+    "| 正常·第4组 | 3109.09 | 2.48 | 962.71 | 3109.09，3388.63，3881.19，3927.27，3941.84，3990.51，4649.68 |",
+    "| 异常·第5组 | 3301.70 | 7.69 | 690.49 | 3301.70，3818.64，3840.65，3938.63，3979.78，4031.52，4091.30 |"
+  ],
+  "protected_files": {
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\图1_明显异常估计频率.png": "1bdca6f11876a85575ee02bd22a22652145be2c49b3eda989fcbd5902edafde0",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_LSE_三子图.png": "82ad9fa6d2753b95421fed6530b5a0f545ac77e0cf7b516df2f5a354bd911622",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LSE_zero.png": "c74868c00f546f96b63981416f7f78d68debb3407166b495b4b6164e7c75fdc7",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LSE_right.png": "7ad34bfd8b74c0e426ac3e950967282c303c6f76fdbc79000b146390af4ba844",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_LRE_三子图.png": "d739f8fe8f7f1e06026b29556b41d2e850d9ab727c2ea203086fbe2916d0543f",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LRE_zero.png": "e6a173c49ab891cca5baf5554eb3293ff9e8dc0a5d2b3916a5e8e7fee388f907",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LRE_right.png": "2db7bd7e9aa9928d8e9b83d9f2ac81799db2f8682dd9e8ee43b2debc051351fd",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_MLE_三子图.png": "847b62d34cbafc220727fcd12b9cfd6a7dd2b2ac5a0b168805808e3aed3b4e84",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MLE_high.png": "74c188812527e1b81e99310b5200cae669b8346d346f8f9b5ba8a4ac5d3a878b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MLE_low.png": "3b138f4e7e32f0cff11d162e8f30c44b6d12c96ae5a51d8827965e1e2617ab1c",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MLE_stop.png": "56e67296665330ac78c7cd7bc7743299bcee3b6daef31ac93c7d2b03585eae1a",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_MDM_三子图.png": "c8282e6125199af4e36a653f6bf280975f0644634156765276e44b1a8b306455",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MDM_low.png": "1c6f1742ae31fd004304169a620bfe37e920389dd966e87547c88dd1ffee16c8",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MDM_edge.png": "d31b7484fd8dc52c158ec61037e928ac895bd001f6a7c2082b81089eb88f4fe7",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_WMLE_三子图.png": "8074c1091d849f2861e3a4b69f9e7bab89195be5fb611817948c0627245ddc23",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_WMLE_low.png": "72869f310eb8440096b6e1b68859c6e6f79b1c79cf7ea84f67a4456042915da7",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_WMLE_high.png": "6a157aea9374ac82796bcf7c4be72058538a90d7b6680572d21df2d6041a9250",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_MMLE_三子图.png": "433f6f647b3c87db92b011fa3620a2cda1f9abda35f73783ec5ccb1c1e92cacf",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MMLE_low.png": "778f7dc75872e0cc026f376a0e781ab42d40e7f9f2b41061b14bfb44ddd38eb9",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MMLE_high_deletion.png": "7df20dd4f1d82cb819b0d677c02905a1d69ab499083660efa0aa9a2684230225",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\固定位置的回归与形状得分.png": "326b77e8a20a65e96869dc882c33341ced0b09c95ac8fdf4bf5a79bb68903501",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,500\\完整矩阵\\数据\\matrix.json": "5f4df193f6b6c2bcc6da74fada9de75f8db342571e271ced94d9983a8f0a896b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W2,1000,500\\W2,1000,500.xlsx": "96e27d0a138f95aa65701be5fb54322453292d37b688f1969f722e0726aeff50",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,1000\\完整矩阵\\数据\\matrix.json": "12eda817af02f61c468b90f97edac9fec3e6e671f64ed10ee00bed1813cd3d9b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W2,1000,1000\\W2,1000,1000.xlsx": "397d756e501fe3e15d701f3e25502ae0e9cf401fb75ba51ab0cc72b65f1417cf",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,3000\\完整矩阵\\数据\\matrix.json": "ce365c14e046294b0714be166137eb43846c2f3d192ca40d046244cc5b451c27",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W2,1000,3000\\W2,1000,3000.xlsx": "e3ce9e37a49838a4d45bfff36222dda400780b29fb0e7b3e45fc421dfb6cd0db",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,500\\完整矩阵\\数据\\matrix.json": "ebbed77173e118f774bdbefc7fd7b0e1502e99122c901b749ce6d35a878cd304",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W3,1000,500\\W3,1000,500.xlsx": "9b31b78f7198ab3a3f04e6e41d82a71e68783a76a12d933ee89b614051c71960",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,1000\\完整矩阵\\数据\\matrix.json": "94a0dfbce2b396f4f309545cb2ad674c4eb01a7c563b7686fb8be5cb2a56b88a",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W3,1000,1000\\W3,1000,1000.xlsx": "1a22ad76d1305bf59536b6a05b7c1d2e5a434469e4fb9b7f349bd40ac8e71ac9",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,3000\\完整矩阵\\数据\\matrix.json": "0faf92249b737ecce6c68f06737438f2899c9a27c91ebe93f0c95e2ba192de21",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W3,1000,3000\\W3,1000,3000.xlsx": "b866f3d61f685a3afcb278fd6eb82f6bf148bca17fcdb5af329ec33b31f557d7",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,500\\完整矩阵\\数据\\matrix.json": "50fb5ea69a2ef7e9adcb5697fbbc417735845d029c079430f14b2fa78a412c15",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W5,1000,500\\W5,1000,500.xlsx": "3293f785f97dc113029bb05542758fa2694ec32903ad45e2c094daef7437beeb",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,3000\\完整矩阵\\数据\\matrix.json": "9da5f659e990650fe1bc7d67a2b1de9c6125f34aec71397f6c8b1202498a5400",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W5,1000,3000\\W5,1000,3000.xlsx": "71a21bbbee8752133bd2b440b9e9a24339d9c67c656fd61f62ee891eb2ae6584",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,100,500\\中间数据\\matrix.json": "ffb12a26eae55bdde7407775afd6986910a62a963d91560577549d3e131e68f9",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W1.5,100,500\\W1.5,100,500.xlsx": "9469f781ee71554325144817a0fc3ee0c63b27460c2c87c897e5f786379e5cf0",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,1000,500\\中间数据\\matrix.json": "e0b6b5f976f46f9d85870c26e4ceda485afc0cd48489915e98885df181ad9de6",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W1.5,1000,500\\W1.5,1000,500.xlsx": "0c44f083c27f4e7d69dd70dbf86366c666938f45a908827c66a72e9731ff5b29",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,100,500\\中间数据\\matrix.json": "fe6295225fe8279731619ebc891c6bed6681549166e4a5a14ebbee9a16881050",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W2,100,500\\W2,100,500.xlsx": "998147ca94c5c2f92d6f98fb4ff7e3cdabc1a57cc896426b7af5d196822dc248",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,100,500\\中间数据\\matrix.json": "b8ddd50deb5c3481e9dd0ea8454c6e779f4378c177b6f1583a42b10cfbf6e22c",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W3,100,500\\W3,100,500.xlsx": "c74569577986d7723bb621d3c4fc919c6e2b344d5eff315ec44a3757b8f5951c",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,100,500\\中间数据\\matrix.json": "4acf7790c6a49ef4f5270240c09f8ab847fa4f2139d04e2ba24ed5dbbd71085b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W5,100,500\\W5,100,500.xlsx": "25f906859d2b10b9899bb2c31329b824db920d75ef32e86d7b2f0ecc6384a17f"
+  },
+  "new_samples": 0,
+  "new_estimates": 0,
+  "redrawn_figures": 0
+}

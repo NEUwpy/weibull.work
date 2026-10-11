@@ -75,7 +75,7 @@ def load_style():
     return module
 
 
-def render(label, pair, rows, previous, style):
+def render(label, pair, rows, previous, style, *, check_outer_columns=True):
     fig, axes = plt.subplots(2, 3, figsize=(9.6, 5.7))
     blue, brown, gray = style.BLUE, style.BROWN, style.GRAY
     old_axes = previous['axes']
@@ -85,7 +85,7 @@ def render(label, pair, rows, previous, style):
                ylim=meta['ylim'], yticks=meta['yticks'])
         ax.xaxis.set_major_formatter(StrMethodFormatter('{x:g}'))
     for ax in axes[:, 0]:
-        ax.set(xlabel=r'$\ln(d_i/\eta_0)$', ylabel=r'$z_i$')
+        ax.set(xlabel=r'$\ln[(x_{(i)}-\hat\gamma)/\eta_0]$', ylabel=r'$z_i$')
     for ax in axes[:, 1]:
         ax.set(xlabel=r'$\gamma/\gamma_0$', ylabel=r'$\rho(\gamma)$',
                ylim=(.75, 1), yticks=[.75, .8, .85, .9, .95, 1])
@@ -162,14 +162,16 @@ def render(label, pair, rows, previous, style):
     old_image = np.asarray(Image.open(path).convert('RGB'))
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
-        fig.savefig(path, dpi=400, facecolor='white')
+        from 共用 import save_png
+        save_png(fig, path, dpi=400)
     plt.close(fig)
     assert not any('Glyph' in str(w.message) for w in caught)
     image = np.asarray(Image.open(path).convert('RGB'))
     assert image.shape == old_image.shape == (2280, 3840, 3)
     # Fixed subplot positions let us compare the unaffected outer columns directly.
-    assert np.array_equal(image[:, :1280], old_image[:, :1280])
-    assert np.array_equal(image[:, 2630:], old_image[:, 2630:])
+    if check_outer_columns:
+        assert np.array_equal(image[:, :1280], old_image[:, :1280])
+        assert np.array_equal(image[:, 2630:], old_image[:, 2630:])
     return dict(path=str(path), sha256=digest(path), axes=metadata, panels=6,
                 correlations=correlations, fit_points=visible_points,
-                outer_columns_pixel_identical=True, all_labels_within_canvas=True), records
+                outer_columns_pixel_identical=check_outer_columns, all_labels_within_canvas=True), records

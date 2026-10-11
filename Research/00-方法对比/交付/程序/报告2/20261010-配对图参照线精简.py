@@ -197,7 +197,7 @@ def main(labels=None):
             reverse=c["method"]=="LRE"
             shared(0,(-6,2) if reverse else (-3.6,1.3),[-6,-4,-2,0,2] if reverse else [-3,-2,-1,0,1],
                    (-4.2,1.5) if reverse else (-6,2),[-4,-3,-2,-1,0,1] if reverse else [-6,-4,-2,0,2],
-                   r"$\ln(d_i/\eta_0)$" if reverse else r"$z_i$",r"$z_i$" if reverse else r"$\ln(d_i/\eta_0)$")
+                   r"$\ln[(x_{(i)}-\hat\gamma)/\eta_0]$" if reverse else r"$z_i$",r"$z_i$" if reverse else r"$\ln[(x_{(i)}-\hat\gamma)/\eta_0]$")
             for row,obj in enumerate(pair):
                 x=np.asarray(obj["values"]);ax=axes[row,0]
                 for gamma,color,stage in [(obj["gamma_hat"],BROWN,"estimated")]:
@@ -226,7 +226,7 @@ def main(labels=None):
             dmax=max(2.5,np.ceil(max((max(o["values"])-o["gamma_hat"])/eta for o in pair)*2)/2)
             dticks=MaxNLocator(nbins=5).tick_values(0,dmax);dticks=dticks[dticks<=dmax+1e-9]
             ranks=np.arange(1,c["n"]+1,2 if c["n"]>10 else 1)
-            shared(2,(.5,c["n"]+.5),ranks,(0,dmax),dticks,r"$i$",r"$d_i/\eta_0$")
+            shared(2,(.5,c["n"]+.5),ranks,(0,dmax),dticks,r"$i$",r"$(x_{(i)}-\hat\gamma)/\eta_0$")
             for row,obj in enumerate(pair):
                 x=np.asarray(obj["values"]);gs=gs_for(obj);p=[helper.mle_profile(x,float(g)) for g in gs]
                 axes[row,0].plot(gs/g0,[q["ll"]-obj["at_true"]["ll"] for q in p],color=BLUE,lw=1.15)
@@ -282,7 +282,7 @@ def main(labels=None):
         elif c["method"]=="WMLE":
             xmin=min(.9,min(o["gamma_hat"]/g0 for o in pair)-.03);xmax=max(1.17,max(o["gamma_hat"]/g0 for o in pair)+.02)
             bmax=min(wmle.SHAPE_UPPER, max(9,np.ceil(max(o["beta_hat"] for o in pair))))
-            shared(0,(.6,7.4),np.arange(1,8),(0,2.5),[0,.5,1,1.5,2,2.5],r"$i$",r"$d_i/\eta_0$")
+            shared(0,(.6,7.4),np.arange(1,8),(0,2.5),[0,.5,1,1.5,2,2.5],r"$i$",r"$(x_{(i)}-\hat\gamma)/\eta_0$")
             position(1,(xmin,xmax),r"$\beta$",(0,bmax),[0,3,6,9] if bmax==9 else MaxNLocator(nbins=4).tick_values(0,bmax))
             position(2,(xmin,xmax),r"$T_2[\hat\beta(\gamma),\gamma]$",(-.08,.08),[-.08,-.04,0,.04,.08])
             for row,obj in enumerate(pair):
@@ -305,9 +305,9 @@ def main(labels=None):
             legend=[Line2D([0],[0],color=BROWN,marker="o",ms=3,lw=1,label="样本距离"),fit_legend[2],
                     Line2D([0],[0],marker="D",mfc="white",mec=GRAY,ls="none",ms=4,label="真参数")]
         else:
-            shared(0,(.6,7.4),np.arange(1,8),(0,2),[0,.5,1,1.5,2],r"$i$",r"$d_i/\eta_0$")
+            shared(0,(.6,7.4),np.arange(1,8),(0,2),[0,.5,1,1.5,2],r"$i$",r"$(x_{(i)}-\gamma)/\eta_0$")
             shared(1,(0,16),[0,4,8,12,16],(-.3,.6),[-.3,0,.3,.6],r"$\beta$",r"$U_\beta(\beta;\gamma)$")
-            shared(2,(.6,7.4),np.arange(1,8),(-7,1.5),[-6,-4,-2,0,1],r"$i$",r"$\ln(d_i/\eta_0)$")
+            shared(2,(.6,7.4),np.arange(1,8),(-7,1.5),[-6,-4,-2,0,1],r"$i$",r"$\ln[(x_{(i)}-\gamma)/\eta_0]$")
             for row,obj in enumerate(pair):
                 x=np.asarray(obj["values"]);ranks=np.arange(1,8)
                 axes[row,0].plot(ranks,(x-g0)/eta,color=BLUE,lw=1,marker="o",ms=3.8)

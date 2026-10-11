@@ -145,6 +145,7 @@ def report1():
     module(folder / '绘制样本相容分布.py', 'r1_compatibility').main()
     charts = module(folder / '绘制公式与拟合点图.py', 'r1_methods')
     charts.main()
+    module(folder / '20261011-MMLE纳入报告1.py', 'r1_mmle').render_mechanism()
     module(folder / '绘制寿命对照图.py', 'r1_life').main()
     extra = module(folder / '绘制补充图.py', 'r1_supplement')
     extra.continuous_estimates()
@@ -181,7 +182,13 @@ def report2():
         lre.render(label, pairs['pairs'][label], rows, pairs['figures'][label], style)
     module(folder / '20261010-MDM条件尺度图.py', 'r2_mdm_eta').main()
     module(folder / '20261010-异常分流与条件形状.py', 'r2_fixed').fixed_figure()
-    print('报告2：24张当前图已由13组矩阵及保存的过程数据生成。')
+    module(folder / '20261011-合并高估与MMLE实际流程.py', 'r2_merged_actual').render()
+    module(folder / '20261011-WMLE迭代残差与尺度方程.py', 'r2_wmle_iteration_scale').render()
+    module(folder / '20261011-MDM图14横轴扩展.py', 'r2_mdm14_wide').render()
+    notation = module(folder / '20261011-展开观测位置差.py', 'r2_explicit_distance')
+    notation.revise()
+    notation.render()
+    print('报告2：21张当前图已由13组矩阵及保存的过程数据生成。')
 
 
 if __name__ == '__main__':

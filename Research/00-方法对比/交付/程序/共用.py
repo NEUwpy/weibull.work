@@ -40,3 +40,24 @@ def setup_runtime():
         if path.exists() and str(path) not in sys.path:
             sys.path.append(str(path))
     os.environ.setdefault('MPLCONFIGDIR', str(Path(os.environ.get('TEMP', '.')) / 'research00-figures'))
+
+
+def save_png(fig, path, dpi=450):
+    """Replace a PNG atomically, including when its previous copy is previewed."""
+    from io import BytesIO
+    path = Path(path)
+    buffer = BytesIO()
+    fig.savefig(buffer, format='png', dpi=dpi, facecolor='white')
+    write_atomic(path, buffer.getvalue())
+
+
+def write_atomic(path, data):
+    """Keep the previous artifact intact until its replacement is complete."""
+    path = Path(path)
+    temporary = path.with_name(path.name + '.tmp')
+    try:
+        temporary.write_bytes(data)
+        temporary.replace(path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()

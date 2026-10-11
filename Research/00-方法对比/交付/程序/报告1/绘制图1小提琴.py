@@ -4,7 +4,7 @@ KDE uses original coordinates and only estimates inside the display window.
 Gamma's exact zero mass is shown separately and excluded from the positive KDE.
 Full estimates and summary statistics are retained; estimates are unchanged.
 """
-from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT
+from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT, write_atomic, save_png
 import hashlib
 import json
 import numpy as np
@@ -12,6 +12,11 @@ import 绘制逐法分析图 as base
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullLocator
 from scipy.stats import gaussian_kde
+
+MMLE_CACHE = base.HERE / '20261011-MMLE估计与曲线.json'
+METHODS = base.METHODS + ['mmle']
+NAMES = {**base.NAMES, 'mmle': 'MMLE'}
+COLORS = {**base.COLORS, 'mmle': '#71896A'}
 
 
 def load_figure_records():
@@ -22,13 +27,14 @@ def load_figure_records():
         assert supplement['truth'] == [5., 1000., 500.]
         assert len(supplement['records']) == 250
         records.extend(supplement['records'])
+    records.extend(json.loads(MMLE_CACHE.read_text(encoding='utf-8'))['original_records'])
     return records
 
 
 def main():
     estimates = load_figure_records()
     sample_sizes = sorted({r['n'] for r in estimates if r['beta'] == 5})
-    height = 2.2 * len(sample_sizes)
+    height = 2.45 * len(sample_sizes)
     fig, axes = plt.subplots(len(sample_sizes), 3, figsize=(7.2, height), sharex='col', sharey=True)
     params = [('beta_hat', 5, 'β', [0., 10.], [0., 2., 4., 6., 8., 10.]),
               ('eta_hat', 1000, 'η', [0., 2000.], [0., 500., 1000., 1500., 2000.]),
@@ -37,18 +43,18 @@ def main():
     for col, (param, truth, label, limits, ticks) in enumerate(params):
         for row, n in enumerate(sample_sizes):
             ax = axes[row, col]
-            ax.set_xlim(limits); ax.set_ylim(4.65, -.65)
+            ax.set_xlim(limits); ax.set_ylim(len(METHODS)-.35, -.65)
             ax.set_xscale('linear'); ax.set_xticks(ticks)
             ax.xaxis.set_minor_locator(NullLocator())
             ax.axvline(truth, ls='--', color='black', lw=.75, zorder=1)
             tick_labels = []
-            for pos, method in enumerate(base.METHODS):
+            for pos, method in enumerate(METHODS):
                 rows = [r for r in estimates if r['beta'] == 5 and r['n'] == n and r['method'] == method]
                 successful = sorted((r for r in rows if r['converged']), key=lambda r: r['sample_id'])
                 values = np.array([r[param] for r in successful])
                 ids = np.array([r['sample_id'] for r in successful])
                 assert len(rows) == 50 and np.isfinite(values).all()
-                color = base.COLORS[method]
+                color = COLORS[method]
                 zeros = int(np.count_nonzero(values == 0)) if param == 'gamma_hat' else 0
                 displayed = (values >= limits[0]) & (values <= limits[1])
                 shown_values = values[displayed]
@@ -68,7 +74,7 @@ def main():
                         solid_capstyle='round', zorder=3)
                 ax.scatter(median, pos, marker='D', s=10, facecolor='white',
                            edgecolor='#48515A', linewidth=.5, zorder=5)
-                tick_labels.append(base.NAMES[method])
+                tick_labels.append(NAMES[method])
                 records.append(dict(n=n, method=method, parameter=param, truth=truth,
                     success=len(values), failure=50-len(values), sample_ids=ids.tolist(),
                     values=values.tolist(), displayed_y=point_y.tolist(),
@@ -82,7 +88,7 @@ def main():
                     kde_coordinate_grid=grid.tolist(), kde_density=density.tolist(),
                     all_successful_values_preserved_in_source=True,
                     density_limits=[float(kde_values.min()),float(kde_values.max())] if len(kde_values) else None))
-            ax.set_yticks(range(5), tick_labels)
+            ax.set_yticks(range(len(METHODS)), tick_labels)
             ax.tick_params(axis='y', length=0, pad=5, labelleft=col == 0)
             ax.tick_params(axis='x', labelbottom=True)
             ax.set_xlabel(label)
@@ -95,12 +101,12 @@ def main():
     for col in range(3):
         assert all(np.array_equal(axes[0,col].get_xticks(), axes[row,col].get_xticks())
                    for row in range(len(sample_sizes)))
-    base.save(fig, '图1_原案例参数分布', formats=('png',))
+    save_png(fig, RESULT / '报告1/图1_原案例参数分布.png', dpi=450)
     source_path = base.HERE/'输入快照'/'原案例估计.json'
     provenance = dict(figure_contract=dict(
         conclusion='原β=5小样本中位置偏高、尺度偏低，并伴随方法间不同的分布和零边界。',
         archetype='quantitative grid', backend='python',
-        panels='n='+('/'.join(map(str, sample_sizes)))+'各一行，形状/尺度/位置三列，各五方法；仅描述既有估计分布。',
+        panels='n='+('/'.join(map(str, sample_sizes)))+'各一行，形状/尺度/位置三列，各六方法；样本保持原批次。',
         dimensions_inches=[7.2, height], formats=['PNG 450dpi']),
         input_path=source_path.relative_to(base.HERE.parent).as_posix(),
         input_sha256=hashlib.sha256(source_path.read_bytes()).hexdigest(),
@@ -112,13 +118,15 @@ def main():
         tail_extension=False, shared_ticks_within_parameter=True,
         width='Each violin independently normalized to maximum half-width 0.32; width is not a success count.',
         sample_sizes=sample_sizes, png_dimensions=[3240, int(round(height*450))], panels=records)
+    provenance['mmle_input_path'] = MMLE_CACHE.relative_to(base.HERE.parent).as_posix()
+    provenance['mmle_input_sha256'] = hashlib.sha256(MMLE_CACHE.read_bytes()).hexdigest()
     supplement_path = base.HERE / '图1n30补充.json'
     if supplement_path.exists():
         provenance['supplementary_input_path'] = supplement_path.relative_to(base.HERE.parent).as_posix()
         provenance['supplementary_input_sha256'] = hashlib.sha256(supplement_path.read_bytes()).hexdigest()
         provenance['n30_is_independent_later_batch'] = True
     target = base.DATA/'图1小提琴数据与核验.json'
-    target.write_text(json.dumps(provenance, ensure_ascii=False, indent=2)+'\n', encoding='utf-8', newline='\n')
+    write_atomic(target, (json.dumps(provenance, ensure_ascii=False, indent=2)+'\n').encode('utf-8'))
     qa_path = base.DATA/'逐法图核验.json'
     checks = json.loads(qa_path.read_text(encoding='utf-8'))
     checks.pop('ecdf', None)
@@ -127,7 +135,7 @@ def main():
     checks['violin'] = [{k: v for k, v in r.items() if k not in detailed_fields} for r in records]
     checks['distribution_figure'] = dict(type='violin_with_fixed_linear_windows', png_dimensions=provenance['png_dimensions'],
                                       source_data_file=target.name)
-    qa_path.write_text(json.dumps(checks, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    write_atomic(qa_path, (json.dumps(checks, ensure_ascii=False, indent=2)+'\n').encode('utf-8'))
     print(f'EXPORTED Figure 1: {len(sample_sizes)*3} linear panels, {len(records)} method distributions, PNG only; full estimates retained.')
 
 

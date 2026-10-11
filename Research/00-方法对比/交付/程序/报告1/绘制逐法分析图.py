@@ -1,6 +1,6 @@
 """Shared plotting helpers; Figure 1 uses 绘制图1小提琴.py, methods use 绘制公式与拟合点图.py."""
 from __future__ import annotations
-from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT
+from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT, save_png
 import json
 from pathlib import Path
 import numpy as np
@@ -31,7 +31,10 @@ old = json.loads((HERE / '输入快照' / '原案例估计.json').read_text(enco
 def save(fig, name, formats=('png',)):
     for ext in formats:
         path = OUT / f'{name}.{ext}'
-        fig.savefig(path, dpi=450, facecolor='white')
+        if ext == 'png':
+            save_png(fig, path)
+        else:
+            fig.savefig(path, dpi=450, facecolor='white')
         if ext == 'svg':
             # XML attribute whitespace is immaterial; keep Git diffs clean.
             path.write_text('\n'.join(line.rstrip() for line in path.read_text(encoding='utf-8').splitlines()) + '\n', encoding='utf-8')

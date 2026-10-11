@@ -90,7 +90,7 @@ style = load(HERE / '20261010-配对图参照线精简.py', 'mdm_source_style')
 
 
 
-def render(label, pair, rows, old, conditional=None):
+def render(label, pair, rows, old, conditional=None, *, gradient_axis=None, target_path=None):
     fig, axes = plt.subplots(2, 3, figsize=(9.6, 5.7))
     blue, brown, gray = style.BLUE, style.BROWN, style.GRAY
     gamma_true = pair['normal']['gamma_true']
@@ -111,6 +111,9 @@ def render(label, pair, rows, old, conditional=None):
         for row in range(2):
             axes[row, 2].set(xlim=axes[row, 0].get_xlim(),
                              xticks=axes[row, 0].get_xticks())
+    if gradient_axis is not None:
+        for ax in axes[:, 0]:
+            ax.set(xlim=gradient_axis['xlim'], xticks=gradient_axis['xticks'])
     for ax in axes[:, 0]:
         ax.set(xlabel=r'$\gamma$', ylabel=r'$\nabla\gamma$')
         ax.axvline(gamma_true, color=gray, lw=.7, ls='--', zorder=0)
@@ -207,7 +210,7 @@ def render(label, pair, rows, old, conditional=None):
                   for k in ['xlim', 'ylim', 'xticks', 'yticks']} for ax in axes.ravel()]
     assert axes_meta[:3] == axes_meta[3:]
     assert max(coordinate_errors) < 1e-12
-    target = IMAGES / f'配对情形_{label}.png'
+    target = Path(target_path) if target_path is not None else IMAGES / f'配对情形_{label}.png'
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
         fig.savefig(target, dpi=400, facecolor='white')

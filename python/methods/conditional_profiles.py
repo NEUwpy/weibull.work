@@ -6,7 +6,7 @@ An explicit weight provider preserves the identity of an archived WMLE table.
 from __future__ import annotations
 
 import numpy as np
-from scipy.optimize import brentq
+from scipy.optimize import brentq, minimize_scalar
 from scipy.special import logsumexp
 
 
@@ -114,3 +114,55 @@ def wmle_profile(data, gamma, weights):
     return dict(beta=beta, eta=float(np.exp(log_eta)), t1=t1, t2=t2,
                 inverse_distance_product=t2 + j3, j1=float(j1), j2=float(j2), j3=j3,
                 j3_clamped=bool(beta < .1 or beta > 5))
+
+
+def wmle_objective_profile(data, gamma, weights, *, beta_grid=None, candidate_beta=None):
+    """Numerically minimize T1**2+T2**2 over shape at a fixed location.
+
+    Search a shape grid including the J3 table knots, refine every bracketed
+    local minimum, and compare all candidates. A T1 zero is an extra feasible
+    candidate, not a constraint. This diagnostic does not run or replace the
+    archived joint estimator. An endpoint result is a numerical boundary limit.
+    """
+    d = _distances(data, gamma)
+    upper = float(weights.SHAPE_UPPER)
+    if beta_grid is None:
+        beta_grid = np.unique(np.r_[
+            np.geomspace(1e-4, min(.1, upper * .5), 35),
+            np.linspace(.1, min(5., upper * (1 - 1e-10)), 197),
+            np.arange(.1, min(5., upper) + 1e-9, .1),
+            np.linspace(min(5., upper * .5), upper * (1 - 1e-10), 101),
+        ])
+    grid = np.asarray(beta_grid, float)
+    grid = np.unique(grid[(grid > 0) & (grid < upper)])
+    if grid.ndim != 1 or len(grid) < 3 or np.any(~np.isfinite(grid)):
+        raise ValueError("Expected at least three finite shape grid points inside the search range")
+
+    t1, t2 = wmle_residuals(data, grid, gamma, weights)
+    values = t1 * t1 + t2 * t2
+    candidates = [(float(grid[int(np.argmin(values))]), float(np.min(values)))]
+
+    def objective(beta):
+        a, b = wmle_residuals(data, float(beta), gamma, weights)
+        return float(a * a + b * b)
+
+    minima = np.flatnonzero((values[1:-1] <= values[:-2]) & (values[1:-1] <= values[2:])) + 1
+    for i in minima:
+        result = minimize_scalar(objective, bounds=(grid[i - 1], grid[i + 1]),
+                                 method='bounded', options={'xatol': 1e-11})
+        if result.success and np.isfinite(result.fun):
+            candidates.append((float(result.x), float(result.fun)))
+    root = _shape(np.log(d), weight=weights.get_weight_j2(len(d)), upper=upper)
+    if root is not None:
+        candidates.append((root[0], objective(root[0])))
+    if candidate_beta is not None and 0 < candidate_beta < upper:
+        candidates.append((float(candidate_beta), objective(candidate_beta)))
+    beta, value = min(candidates, key=lambda pair: pair[1])
+    a, b = wmle_residuals(data, beta, gamma, weights)
+    t = np.log(d)
+    log_eta = t.mean() + (logsumexp(beta * (t - t.mean()))
+                         - np.log(len(d) * weights.get_weight_j1(len(d)))) / beta
+    return dict(beta=beta, eta=float(np.exp(log_eta)), objective=value, t1=a, t2=b,
+                shape_at_upper_boundary=bool(beta >= upper - 1e-7),
+                j3_clamped=bool(beta < .1 or beta > 5),
+                bracketed_local_minima=int(len(minima)))

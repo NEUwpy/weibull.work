@@ -1,0 +1,188 @@
+{
+  "text": {
+    "before_sha256": "2e9f81fbc4dc391ca3c3de1833e474656793c3d3f6ff4262aad6ead457c2afd4",
+    "after_sha256": "26ed357b9e4a432ddc054773ea50ad69a9a03052522508b4421437fdffa82bc8",
+    "expanded_symbol": "d_i",
+    "numbered_equations": 30,
+    "sample_tables_unchanged": true,
+    "before_math": [
+      "$$\n\\hat\\beta\\ge3\\beta\\quad\\text{或}\\quad\\hat\\beta\\le\\frac{\\beta}{3}.\n\\tag{1}\n$$",
+      "$$\n\\ln(X-\\gamma)=\\ln\\eta+\\frac{Z}{\\beta}.\n\\tag{2}\n$$",
+      "$$\n\\operatorname{E}[\\ln(X_{(i)}-\\gamma)]\n=\\ln\\eta+\\frac{z_i}{\\beta}.\n\\tag{3}\n$$",
+      "$$\n\\hat\\beta(\\gamma)=\\frac1b,\n\\qquad\n\\hat\\eta(\\gamma)=e^a.\n\\tag{4}\n$$",
+      "$$\nF(\\gamma)=\\frac{n-2}{(n-1)[1-R^2(\\gamma)]}.\n\\tag{5}\n$$",
+      "$$\n\\hat\\gamma=\\underset{0\\le\\gamma<x_{(1)}}{\\arg\\min}\\,[1-R^2(\\gamma)].\n\\tag{6}\n$$",
+      "$$\n\\ln[-\\ln(1-F(x))]\n=\\beta\\ln(x-\\gamma)-\\beta\\ln\\eta,\n\\tag{7}\n$$",
+      "$$\nz_i=\\ln[-\\ln(1-p_i)]\n\\approx\\beta y_i-\\beta\\ln\\eta,\n\\qquad y_i=\\ln(x_{(i)}-\\gamma).\n\\tag{8}\n$$",
+      "$$\n\\hat\\beta(\\gamma)=b,\n\\qquad\n\\hat\\eta(\\gamma)=e^{-a/b}.\n\\tag{9}\n$$",
+      "$$\n\\hat\\gamma\n=\\underset{0\\le\\gamma<x_{(1)}}{\\arg\\max}\\,\\rho(\\gamma).\n\\tag{10}\n$$",
+      "$$\n\\ell(\\beta,\\eta,\\gamma)\n=n\\ln\\beta-n\\beta\\ln\\eta+(\\beta-1)\\sum_i\\ln d_i\n-\\sum_i(d_i/\\eta)^\\beta.\n\\tag{11}\n$$",
+      "$$\n\\frac{\\partial\\ell}{\\partial\\eta}\n=-\\frac{n\\beta}{\\eta}\n+\\frac{\\beta}{\\eta^{\\beta+1}}\\sum_i d_i^\\beta=0\n\\quad\\Longrightarrow\\quad\n\\hat\\eta(\\beta,\\gamma)\n=\\left[\\frac1n\\sum_i d_i^\\beta\\right]^{1/\\beta}.\n\\tag{12}\n$$",
+      "$$\nU_\\beta(\\beta;\\gamma)=\\frac1\\beta+\\bar y\n-\\frac{\\sum_i d_i^\\beta y_i}{\\sum_i d_i^\\beta}=0.\n\\tag{13}\n$$",
+      "$$\n\\ell_p(\\gamma)\n=\\ell[\\hat\\beta(\\gamma),\\hat\\eta(\\gamma),\\gamma].\n\\tag{14}\n$$",
+      "$$\n\\hat F(t_{(i)})=\n\\frac{i}{i+(n+1-i)F_{2(n+1-i),\\,2i,\\,0.5}},\n\\qquad i=1,2,\\ldots,n.\n\\tag{15}\n$$",
+      "$$\n\\hat\\eta_i=\n\\frac{t_{(i)}-\\gamma}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\beta}},\n\\qquad i=1,2,\\ldots,n.\n\\tag{16}\n$$",
+      "$$\n\\sigma_{\\eta,\\min}(\\gamma)=\\min_\\beta\\sigma_\\eta(\\gamma,\\beta),\n\\qquad\n\\hat\\beta(\\gamma)=\\underset{\\beta}{\\arg\\min}\\,\\sigma_\\eta(\\gamma,\\beta).\n\\tag{17}\n$$",
+      "$$\n\\nabla\\gamma=\n\\frac{\\sigma_{\\eta,\\min}(\\gamma+\\Delta\\gamma)\n-\\sigma_{\\eta,\\min}(\\gamma)}{\\Delta\\gamma}.\n\\tag{18}\n$$",
+      "$$\n\\hat\\eta=\n\\sum_{i=1}^{n}\\left\\{\n\\frac{t_{(i)}-\\hat\\gamma}{[-\\ln(1-F(t_{(i)}))]^{1/\\hat\\beta}}\n\\right\\}/n.\n\\tag{19}\n$$",
+      "$$\n\\hat\\eta(\\gamma)=\\frac1n\\sum_{i=1}^{n}\n\\frac{t_{(i)}-\\gamma}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\hat\\beta(\\gamma)}}.\n\\tag{20}\n$$",
+      "$$\nT_1(\\beta,\\gamma)=\\frac{J_2(n)}{\\beta}+\\frac1n\\sum_i\\ln d_i\n-\\frac{\\sum_i d_i^\\beta\\ln d_i}{\\sum_i d_i^\\beta}.\n\\tag{21}\n$$",
+      "$$\nT_2(\\beta,\\gamma)=\\left(\\frac1n\\sum_i\\frac1{d_i}\\right)\n\\frac{\\sum_i d_i^\\beta}{\\sum_i d_i^{\\beta-1}}-J_3(n,\\beta).\n\\tag{22}\n$$",
+      "$$\n(\\hat\\beta,\\hat\\gamma)=\\underset{\\beta,\\gamma}{\\arg\\min}\n\\left[T_1(\\beta,\\gamma)^2+T_2(\\beta,\\gamma)^2\\right].\n\\tag{23}\n$$",
+      "$$\n\\frac1n\\sum_i\\left(\\frac{x_{(i)}-\\hat\\gamma}{\\eta}\\right)^{\\hat\\beta}=J_1(n)\n\\quad\\Longrightarrow\\quad\n\\hat\\eta=\\left[\\frac{\\sum_i(x_{(i)}-\\hat\\gamma)^{\\hat\\beta}}{nJ_1(n)}\\right]^{1/\\hat\\beta}.\n\\tag{24}\n$$",
+      "$$\n\\hat\\gamma=x_{(1)},\\qquad d_i=x_{(i)}-x_{(1)},\\quad i=2,\\ldots,n.\n\\tag{25}\n$$",
+      "$$\nU_\\beta(\\beta;\\gamma)\n=\\frac1\\beta+\\frac1{n-1}\\sum_{i=2}^n\\ln d_i\n-\\frac{\\sum_{i=2}^n d_i^\\beta\\ln d_i}{\\sum_{i=2}^n d_i^\\beta}=0.\n\\tag{26}\n$$",
+      "$$\n\\hat\\eta=\\left[\\frac1{n-1}\\sum_{i=2}^n d_i^{\\hat\\beta}\\right]^{1/\\hat\\beta}.\n\\tag{27}\n$$",
+      "$$\n\\Pr\\{X_{(1)}>\\gamma+a\\eta\\}\n=[1-F_X(\\gamma+a\\eta)]^n\n=\\exp(-na^\\beta),\\qquad 0<a<1.\n\\tag{28}\n$$",
+      "$$\n\\hat\\beta(\\gamma)\\ge\\frac1{\\max_i y_i-\\bar y}.\n\\tag{29}\n$$",
+      "$$\n\\mathrm{CV}(X)=\\frac{\\mathrm{SD}(Z)}{\\gamma/\\eta+\\mathbb E[Z]}.\n\\tag{30}\n$$"
+    ],
+    "after_math": [
+      "$$\n\\hat\\beta\\ge3\\beta\\quad\\text{或}\\quad\\hat\\beta\\le\\frac{\\beta}{3}.\n\\tag{1}\n$$",
+      "$$\n\\ln(X-\\gamma)=\\ln\\eta+\\frac{Z}{\\beta}.\n\\tag{2}\n$$",
+      "$$\n\\operatorname{E}[\\ln(X_{(i)}-\\gamma)]\n=\\ln\\eta+\\frac{z_i}{\\beta}.\n\\tag{3}\n$$",
+      "$$\n\\hat\\beta(\\gamma)=\\frac1b,\n\\qquad\n\\hat\\eta(\\gamma)=e^a.\n\\tag{4}\n$$",
+      "$$\nF(\\gamma)=\\frac{n-2}{(n-1)[1-R^2(\\gamma)]}.\n\\tag{5}\n$$",
+      "$$\n\\hat\\gamma=\\underset{0\\le\\gamma<x_{(1)}}{\\arg\\min}\\,[1-R^2(\\gamma)].\n\\tag{6}\n$$",
+      "$$\n\\ln[-\\ln(1-F(x))]\n=\\beta\\ln(x-\\gamma)-\\beta\\ln\\eta,\n\\tag{7}\n$$",
+      "$$\nz_i=\\ln[-\\ln(1-p_i)]\n\\approx\\beta y_i-\\beta\\ln\\eta,\n\\qquad y_i=\\ln(x_{(i)}-\\gamma).\n\\tag{8}\n$$",
+      "$$\n\\hat\\beta(\\gamma)=b,\n\\qquad\n\\hat\\eta(\\gamma)=e^{-a/b}.\n\\tag{9}\n$$",
+      "$$\n\\hat\\gamma\n=\\underset{0\\le\\gamma<x_{(1)}}{\\arg\\max}\\,\\rho(\\gamma).\n\\tag{10}\n$$",
+      "$$\n\\ell(\\beta,\\eta,\\gamma)\n=n\\ln\\beta-n\\beta\\ln\\eta+(\\beta-1)\\sum_i\\ln (x_{(i)}-\\gamma)\n-\\sum_i((x_{(i)}-\\gamma)/\\eta)^\\beta.\n\\tag{11}\n$$",
+      "$$\n\\frac{\\partial\\ell}{\\partial\\eta}\n=-\\frac{n\\beta}{\\eta}\n+\\frac{\\beta}{\\eta^{\\beta+1}}\\sum_i (x_{(i)}-\\gamma)^\\beta=0\n\\quad\\Longrightarrow\\quad\n\\hat\\eta(\\beta,\\gamma)\n=\\left[\\frac1n\\sum_i (x_{(i)}-\\gamma)^\\beta\\right]^{1/\\beta}.\n\\tag{12}\n$$",
+      "$$\nU_\\beta(\\beta;\\gamma)=\\frac1\\beta+\\bar y\n-\\frac{\\sum_i (x_{(i)}-\\gamma)^\\beta y_i}{\\sum_i (x_{(i)}-\\gamma)^\\beta}=0.\n\\tag{13}\n$$",
+      "$$\n\\ell_p(\\gamma)\n=\\ell[\\hat\\beta(\\gamma),\\hat\\eta(\\gamma),\\gamma].\n\\tag{14}\n$$",
+      "$$\n\\hat F(t_{(i)})=\n\\frac{i}{i+(n+1-i)F_{2(n+1-i),\\,2i,\\,0.5}},\n\\qquad i=1,2,\\ldots,n.\n\\tag{15}\n$$",
+      "$$\n\\hat\\eta_i=\n\\frac{t_{(i)}-\\gamma}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\beta}},\n\\qquad i=1,2,\\ldots,n.\n\\tag{16}\n$$",
+      "$$\n\\sigma_{\\eta,\\min}(\\gamma)=\\min_\\beta\\sigma_\\eta(\\gamma,\\beta),\n\\qquad\n\\hat\\beta(\\gamma)=\\underset{\\beta}{\\arg\\min}\\,\\sigma_\\eta(\\gamma,\\beta).\n\\tag{17}\n$$",
+      "$$\n\\nabla\\gamma=\n\\frac{\\sigma_{\\eta,\\min}(\\gamma+\\Delta\\gamma)\n-\\sigma_{\\eta,\\min}(\\gamma)}{\\Delta\\gamma}.\n\\tag{18}\n$$",
+      "$$\n\\hat\\eta=\n\\sum_{i=1}^{n}\\left\\{\n\\frac{t_{(i)}-\\hat\\gamma}{[-\\ln(1-F(t_{(i)}))]^{1/\\hat\\beta}}\n\\right\\}/n.\n\\tag{19}\n$$",
+      "$$\n\\hat\\eta(\\gamma)=\\frac1n\\sum_{i=1}^{n}\n\\frac{t_{(i)}-\\gamma}{[-\\ln(1-\\hat F(t_{(i)}))]^{1/\\hat\\beta(\\gamma)}}.\n\\tag{20}\n$$",
+      "$$\nT_1(\\beta,\\gamma)=\\frac{J_2(n)}{\\beta}+\\frac1n\\sum_i\\ln (x_{(i)}-\\gamma)\n-\\frac{\\sum_i (x_{(i)}-\\gamma)^\\beta\\ln (x_{(i)}-\\gamma)}{\\sum_i (x_{(i)}-\\gamma)^\\beta}.\n\\tag{21}\n$$",
+      "$$\nT_2(\\beta,\\gamma)=\\left(\\frac1n\\sum_i\\frac1{(x_{(i)}-\\gamma)}\\right)\n\\frac{\\sum_i (x_{(i)}-\\gamma)^\\beta}{\\sum_i (x_{(i)}-\\gamma)^{\\beta-1}}-J_3(n,\\beta).\n\\tag{22}\n$$",
+      "$$\n(\\hat\\beta,\\hat\\gamma)=\\underset{\\beta,\\gamma}{\\arg\\min}\n\\left[T_1(\\beta,\\gamma)^2+T_2(\\beta,\\gamma)^2\\right].\n\\tag{23}\n$$",
+      "$$\n\\frac1n\\sum_i\\left(\\frac{x_{(i)}-\\hat\\gamma}{\\eta}\\right)^{\\hat\\beta}=J_1(n)\n\\quad\\Longrightarrow\\quad\n\\hat\\eta=\\left[\\frac{\\sum_i(x_{(i)}-\\hat\\gamma)^{\\hat\\beta}}{nJ_1(n)}\\right]^{1/\\hat\\beta}.\n\\tag{24}\n$$",
+      "$$\n\\hat\\gamma=x_{(1)}.\n\\tag{25}\n$$",
+      "$$\nU_\\beta(\\beta;\\gamma)\n=\\frac1\\beta+\\frac1{n-1}\\sum_{i=2}^n\\ln (x_{(i)}-\\hat\\gamma)\n-\\frac{\\sum_{i=2}^n (x_{(i)}-\\hat\\gamma)^\\beta\\ln (x_{(i)}-\\hat\\gamma)}{\\sum_{i=2}^n (x_{(i)}-\\hat\\gamma)^\\beta}=0.\n\\tag{26}\n$$",
+      "$$\n\\hat\\eta=\\left[\\frac1{n-1}\\sum_{i=2}^n (x_{(i)}-\\hat\\gamma)^{\\hat\\beta}\\right]^{1/\\hat\\beta}.\n\\tag{27}\n$$",
+      "$$\n\\Pr\\{X_{(1)}>\\gamma+a\\eta\\}\n=[1-F_X(\\gamma+a\\eta)]^n\n=\\exp(-na^\\beta),\\qquad 0<a<1.\n\\tag{28}\n$$",
+      "$$\n\\hat\\beta(\\gamma)\\ge\\frac1{\\max_i y_i-\\bar y}.\n\\tag{29}\n$$",
+      "$$\n\\mathrm{CV}(X)=\\frac{\\mathrm{SD}(Z)}{\\gamma/\\eta+\\mathbb E[Z]}.\n\\tag{30}\n$$"
+    ]
+  },
+  "protected_sha256": {
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-LRE相关系数曲线.csv": "4400b90a11a5ee80e653bb256ff3e45c9e0e6e6188b9544e73fdf00a7db84709",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-参照线精简WMLE网格.npz": "48a70d06724ccca421afc9eb7a21fbe48293a9facac4caedcbc168aa6ea70232",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-参照线精简图数据.csv": "2f1e0f828702c9678cfea040c5f6cb2064cc51452c6fa09289ab135e0b00fac3",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-各情形正常异常配对核验.json": "130c243574c7f2416fc90be3ce76e69625b92e0ef9d307019c0a936d3f576ea9",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-各类异常参数空间.csv": "570a60099145f3d391d02f6fcbc3bddd2ba8aaf1b541c5a66761fb5324c4e1c1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-异常分流图数据.csv": "164cad5f9f78aa832920b02ed3dbb2df8fbeec6deb1c0c3f5b878256bba16681",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-异常分流核验.json": "9dcbd86b58681f1813f4c78ec6f92447ef335f64dc19a4e450ab124f11bfdf37",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-异常分类三档热力表核验.json": "86cc630b4bfb99576e15c44aef93d89b3e16459d186aa18e42cf28878e95a555",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-异常各情形过程核验.json": "c2b05715304303dfb36297d873a761d631cfb61ad938ec1cbd957a99e6c892bf",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\20261010-配对图参照线精简核验.json": "6195b8b059ed2e84d7015977a89647c18fb3942acb2dd4c4c506ce2eaaa36928",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\全量流程定位.csv": "b1196be31527f9631c0472941765d64be6f2f875ea1377393a60986e76c38205",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\全量流程定位.json": "71abc9d4c24338eef8081b5d815d41f1d101374500674c65d90bac9bbcd05a5c",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\逐方法机制复核.json": "6e7e934a32a7e2a61727043bfc0d9cc49a9fb8d76a7b5518a8026b76ba2c6f1f",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\固定位置的回归与形状得分.png": "326b77e8a20a65e96869dc882c33341ced0b09c95ac8fdf4bf5a79bb68903501",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\图1_明显异常估计频率.png": "1bdca6f11876a85575ee02bd22a22652145be2c49b3eda989fcbd5902edafde0",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_LRE_三子图.png": "d739f8fe8f7f1e06026b29556b41d2e850d9ab727c2ea203086fbe2916d0543f",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_LSE_三子图.png": "82ad9fa6d2753b95421fed6530b5a0f545ac77e0cf7b516df2f5a354bd911622",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_MDM_三子图.png": "c8282e6125199af4e36a653f6bf280975f0644634156765276e44b1a8b306455",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_MLE_三子图.png": "847b62d34cbafc220727fcd12b9cfd6a7dd2b2ac5a0b168805808e3aed3b4e84",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_MMLE_三子图.png": "433f6f647b3c87db92b011fa3620a2cda1f9abda35f73783ec5ccb1c1e92cacf",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\异常分类_WMLE_三子图.png": "8074c1091d849f2861e3a4b69f9e7bab89195be5fb611817948c0627245ddc23",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MDM_edge.png": "981d62f7a0b705b63b50c83f61d147e6748d05eaad0082094f8fc28ccf08562f",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MDM_low.png": "1c6f1742ae31fd004304169a620bfe37e920389dd966e87547c88dd1ffee16c8",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,500\\完整矩阵\\数据\\matrix.json": "5f4df193f6b6c2bcc6da74fada9de75f8db342571e271ced94d9983a8f0a896b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W2,1000,500\\W2,1000,500.xlsx": "96e27d0a138f95aa65701be5fb54322453292d37b688f1969f722e0726aeff50",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,1000\\完整矩阵\\数据\\matrix.json": "12eda817af02f61c468b90f97edac9fec3e6e671f64ed10ee00bed1813cd3d9b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W2,1000,1000\\W2,1000,1000.xlsx": "397d756e501fe3e15d701f3e25502ae0e9cf401fb75ba51ab0cc72b65f1417cf",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,3000\\完整矩阵\\数据\\matrix.json": "ce365c14e046294b0714be166137eb43846c2f3d192ca40d046244cc5b451c27",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W2,1000,3000\\W2,1000,3000.xlsx": "e3ce9e37a49838a4d45bfff36222dda400780b29fb0e7b3e45fc421dfb6cd0db",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,500\\完整矩阵\\数据\\matrix.json": "ebbed77173e118f774bdbefc7fd7b0e1502e99122c901b749ce6d35a878cd304",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W3,1000,500\\W3,1000,500.xlsx": "9b31b78f7198ab3a3f04e6e41d82a71e68783a76a12d933ee89b614051c71960",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,1000\\完整矩阵\\数据\\matrix.json": "94a0dfbce2b396f4f309545cb2ad674c4eb01a7c563b7686fb8be5cb2a56b88a",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W3,1000,1000\\W3,1000,1000.xlsx": "1a22ad76d1305bf59536b6a05b7c1d2e5a434469e4fb9b7f349bd40ac8e71ac9",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,3000\\完整矩阵\\数据\\matrix.json": "0faf92249b737ecce6c68f06737438f2899c9a27c91ebe93f0c95e2ba192de21",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W3,1000,3000\\W3,1000,3000.xlsx": "b866f3d61f685a3afcb278fd6eb82f6bf148bca17fcdb5af329ec33b31f557d7",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,500\\完整矩阵\\数据\\matrix.json": "50fb5ea69a2ef7e9adcb5697fbbc417735845d029c079430f14b2fa78a412c15",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W5,1000,500\\W5,1000,500.xlsx": "3293f785f97dc113029bb05542758fa2694ec32903ad45e2c094daef7437beeb",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,3000\\完整矩阵\\数据\\matrix.json": "9da5f659e990650fe1bc7d67a2b1de9c6125f34aec71397f6c8b1202498a5400",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W5,1000,3000\\W5,1000,3000.xlsx": "71a21bbbee8752133bd2b440b9e9a24339d9c67c656fd61f62ee891eb2ae6584",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,100,500\\中间数据\\matrix.json": "ffb12a26eae55bdde7407775afd6986910a62a963d91560577549d3e131e68f9",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W1.5,100,500\\W1.5,100,500.xlsx": "9469f781ee71554325144817a0fc3ee0c63b27460c2c87c897e5f786379e5cf0",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,1000,500\\中间数据\\matrix.json": "e0b6b5f976f46f9d85870c26e4ceda485afc0cd48489915e98885df181ad9de6",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W1.5,1000,500\\W1.5,1000,500.xlsx": "0c44f083c27f4e7d69dd70dbf86366c666938f45a908827c66a72e9731ff5b29",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,100,500\\中间数据\\matrix.json": "fe6295225fe8279731619ebc891c6bed6681549166e4a5a14ebbee9a16881050",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W2,100,500\\W2,100,500.xlsx": "998147ca94c5c2f92d6f98fb4ff7e3cdabc1a57cc896426b7af5d196822dc248",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,100,500\\中间数据\\matrix.json": "b8ddd50deb5c3481e9dd0ea8454c6e779f4378c177b6f1583a42b10cfbf6e22c",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W3,100,500\\W3,100,500.xlsx": "c74569577986d7723bb621d3c4fc919c6e2b344d5eff315ec44a3757b8f5951c",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,100,500\\中间数据\\matrix.json": "4acf7790c6a49ef4f5270240c09f8ab847fa4f2139d04e2ba24ed5dbbd71085b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\W5,100,500\\W5,100,500.xlsx": "25f906859d2b10b9899bb2c31329b824db920d75ef32e86d7b2f0ecc6384a17f"
+  },
+  "script_sha256": "f4f5af61f28d12f4c13064f4f9a7a7ade0f8ade01d414cdfab884963e64a8dc0",
+  "figures": {
+    "LSE_zero": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LSE_zero.png",
+      "sha256": "c444a140da83bf9f994083998ac6a381203e4ca18710fa547aa0f8143efe99f2"
+    },
+    "LSE_right": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LSE_right.png",
+      "sha256": "29c7ad2147d8647bb70c9032148778ae3a2272e78452265a11e484e69536d6ea"
+    },
+    "LRE_zero": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LRE_zero.png",
+      "sha256": "d27efcee2daa981f09dcdb3824ee2bd9ddd5eeb7e1adff03e78da4bd4ec121a1"
+    },
+    "LRE_right": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LRE_right.png",
+      "sha256": "6da68ae1b8d14a466e447da676991e418e3ebffc337c2a408116529910984ff7"
+    },
+    "MLE_high": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MLE_high.png",
+      "sha256": "e5b53cd8f7ef8aa847cdf44c66ca0d3ae35e75b10399387007c7d88480dd43eb"
+    },
+    "MLE_low": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MLE_low.png",
+      "sha256": "22020edb65acf992833f2d80eec5be092af3e8e3ab06b06bf212be8dc791d0a3"
+    },
+    "MLE_stop": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MLE_stop.png",
+      "sha256": "2bd6f4792d1734d48b2ea85bebbab74fa9d7cb4bbe7367b6f9a5264e59fae9d2"
+    },
+    "WMLE_low": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_WMLE_low.png",
+      "sha256": "a4faa05e7ab16ad3ec6f7fc44b506b4789b816e9350fa128b00abaf3c6c94e13"
+    },
+    "WMLE_high": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_WMLE_high.png",
+      "sha256": "cc56fd2a86a1a845ac0f4c2406c657be4931f1ff97f3d5786c8f5b15a37dd8c0"
+    },
+    "MMLE_low": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MMLE_low.png",
+      "sha256": "d5872d5a721c4481c7955bedb250051f2ec11f34059555cf43e82933deffe9cd"
+    },
+    "MMLE_high_deletion": {
+      "path": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_MMLE_high_deletion.png",
+      "sha256": "2175a35405bf5d4225d15975f8b34907d56069ef32298e129f7461cff2571dad"
+    }
+  },
+  "estimates_recomputed": 0,
+  "samples_generated": 0,
+  "export": "PNG only",
+  "changed": "Axis labels expand the distance notation; same saved nodes, ranges, ticks, samples and criteria.",
+  "validation": {
+    "status": "passed",
+    "no_distance_alias": true,
+    "formula_numbers": 30,
+    "formula_substitution_equivalence": true,
+    "figures": 11,
+    "matrices_workbooks_saved_plot_nodes_unchanged": true
+  },
+  "visual_review": {
+    "actual_pngs_checked": 11,
+    "long_labels_inside_canvas": true,
+    "no_annotation_boxes_added": true
+  }
+}

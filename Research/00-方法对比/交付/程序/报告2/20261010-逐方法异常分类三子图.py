@@ -4,7 +4,7 @@ The 624 source counts and original estimates remain unchanged. Each method
 figure shares the thirteen parameter rows across n=7,15,30, with its own case
 columns. This task saves a dedicated script and hash-bound verification.
 """
-from 共用 import ROOT, PROGRAM, RESULT, matrix_path, snapshot_path
+from 共用 import ROOT, PROGRAM, RESULT, matrix_path, snapshot_path, save_png
 DATA_DIR = RESULT / "报告2" / "数据"
 from pathlib import Path
 import csv
@@ -95,7 +95,7 @@ def render(method, matrices, cases, combinations):
     output = IMAGES/filename(method)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
-        fig.savefig(output, dpi=400, facecolor='white')
+        save_png(fig, output, dpi=400)
     assert not any('Glyph' in str(w.message) for w in caught), 'Missing font glyph'
     plt.close(fig)
     with Image.open(output) as image:

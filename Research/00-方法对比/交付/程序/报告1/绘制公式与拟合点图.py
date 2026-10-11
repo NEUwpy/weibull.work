@@ -120,6 +120,18 @@ def wmle_panel(ax, beta):
 
 
 def method_figure(method):
+    if method == 'mdm':
+        from importlib import import_module
+        mechanism = import_module('20261011-MDM梯度与参数传递')
+        mechanism.build()
+        return mechanism.render()
+    if method == 'wmle':
+        from importlib import import_module
+        joint = import_module('20261011-WMLE单样本联合过程')
+        joint.build()
+        joint.render()
+        figure = json.loads(joint.QA.read_text(encoding='utf-8'))['figure']
+        return joint.figure_metadata(figure)
     fig, axes = plt.subplots(3, 2, figsize=(7.2, 7.2), sharex=True, sharey=True)
     rr = [r for r in base.source['curves'] if r['method'] == method]
     selection = next(item for item in PAIRS['methods'] if item['method']==method)
