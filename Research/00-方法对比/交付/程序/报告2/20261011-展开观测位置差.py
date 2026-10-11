@@ -204,14 +204,20 @@ def verify():
     text = REPORT.read_text(encoding='utf-8')
     assert 'd_i' not in text and 'dᵢ' not in text
     assert re.findall(r'\\tag\{(\d+)\}',text)==[str(i) for i in range(1,31)]
-    before, after = record['text']['before_math'], re.findall(r'\$\$.*?\$\$', text, re.S)
+    before = record['text']['before_math']
+    math_text = module('20261011-MMLE对数似然峰图').restore(text) if (HERE / '20261011-MMLE对数似然峰图-核验.json').exists() else text
+    after = {int(re.search(r'\\tag\{(\d+)\}', m)[1]): m for m in re.findall(r'\$\$.*?\$\$', math_text, re.S)}
+    order_record = HERE / '20261011-方法顺序统一-核验.json'
+    mapping = {int(k):v for k,v in load(order_record)['equation_map'].items()} if order_record.exists() else {}
     compact = lambda s: re.sub(r'\s+', '', s)
-    for index, (original, expanded) in enumerate(zip(before, after), 1):
+    body = lambda s: compact(re.sub(r'\\tag\{\d+\}', '', s))
+    for index, original in enumerate(before, 1):
+        expanded = after[mapping.get(index, index)]
         if index == 25:
-            assert compact(expanded) == compact('$$\\hat\\gamma=x_{(1)}.\\tag{25}$$')
+            assert body(expanded) == body('$$\\hat\\gamma=x_{(1)}.$$')
         else:
             replacement = r'(x_{(i)}-\hat\gamma)' if index in (26,27) else r'(x_{(i)}-\gamma)'
-            assert compact(original.replace('d_i',replacement)) == compact(expanded), index
+            assert body(original.replace('d_i',replacement)) == body(expanded), index
     for item in record['figures'].values():
         assert digest(item['path'])==item['sha256']
     record['validation']=dict(status='passed', no_distance_alias=True, formula_numbers=30,

@@ -261,7 +261,7 @@ def revise():
     text = REPORT.read_text(encoding='utf-8')
     original_text = text
     start = text.index('当各dᵢ相等时，式（22）中的乘积恰为1。')
-    end = text.index('### 2.5 ', start)
+    end = text.index('### 2.5　', start)
     section = r'''当各dᵢ相等时，式（22）中的乘积恰为1。高β样本的距离较集中，这一乘积可能接近1，但校准目标J₃由n和候选β决定。改变β会同时影响T₁、T₂；真实γ处即使使其中一项残差为零，也未必能使另一项为零。
 
 WMLE按两项残差的平方和联合选择β、γ。为比较不同γ下能够达到的拟合程度，在每个γ处优化β，得到：

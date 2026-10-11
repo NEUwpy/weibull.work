@@ -120,6 +120,26 @@ def wmle_panel(ax, beta):
 
 
 def method_figure(method):
+    if method == 'mmle':
+        from importlib import import_module
+        minimum = import_module('20261011-MMLE定位与形状尺度')
+        minimum.build()
+        return minimum.render()
+    if method == 'mle':
+        from importlib import import_module
+        likelihood = import_module('20261011-MLE曲线族与参数传递')
+        likelihood.build()
+        return likelihood.render()
+    if method == 'lre':
+        from importlib import import_module
+        bundles = import_module('20261011-LRE曲线族与参数传递')
+        bundles.build()
+        return bundles.render()
+    if method == 'lse':
+        from importlib import import_module
+        bundles = import_module('20261011-LSE代表样本传递')
+        bundles.build()
+        return bundles.render()
     if method == 'mdm':
         from importlib import import_module
         mechanism = import_module('20261011-MDM梯度与参数传递')
@@ -127,11 +147,9 @@ def method_figure(method):
         return mechanism.render()
     if method == 'wmle':
         from importlib import import_module
-        joint = import_module('20261011-WMLE单样本联合过程')
+        joint = import_module('20261011-WMLE曲线族与参数传递')
         joint.build()
-        joint.render()
-        figure = json.loads(joint.QA.read_text(encoding='utf-8'))['figure']
-        return joint.figure_metadata(figure)
+        return joint.render()
     fig, axes = plt.subplots(3, 2, figsize=(7.2, 7.2), sharex=True, sharey=True)
     rr = [r for r in base.source['curves'] if r['method'] == method]
     selection = next(item for item in PAIRS['methods'] if item['method']==method)

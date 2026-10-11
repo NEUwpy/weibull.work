@@ -258,6 +258,10 @@ def render():
 
 def revise():
     text = REPORT.read_text(encoding='utf-8')
+    current = re.search(r'^#### 2\.1\.\d+[^\n]*\[WMLE\].*?(?=^#### |^### |\Z)', text, re.M | re.S)
+    if current and '的a、d为原程序选中起点的实际迭代' in current[0] and 'T_1(\\beta,\\gamma)=' in current[0]:
+        print('WMLE already uses actual iterations, joint residual equations and scale recovery.')
+        return
     before, remainder = text.split('#### 2.1.5', 1)
     section, after = remainder.split('#### 2.1.6', 1)
     tables = re.findall(r'^\|.*$', section, re.M)
@@ -337,7 +341,7 @@ def verify():
         assert all(a['xscale'] == a['yscale'] == 'linear' for a in fig['axes'])
     text = REPORT.read_text(encoding='utf-8')
     assert re.findall(r'\\tag\{(\d+)\}', text) == [str(i) for i in range(1, 31)]
-    section = text.split('#### 2.1.5', 1)[1].split('#### 2.1.6', 1)[0]
+    section = re.search(r'^#### 2\.1\.\d+[^\n]*\[WMLE\].*?(?=^#### |^### |\Z)', text, re.M | re.S)[0]
     assert 'T_1(\\beta,\\gamma)=' in section and 'T_2(\\beta,\\gamma)=' in section
     assert '真位置γ₀展示样本距离' not in section
     qa['validation'] = dict(status='passed', cases=4, abnormal_residual_checks=84,

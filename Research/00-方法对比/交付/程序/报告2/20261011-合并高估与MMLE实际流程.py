@@ -193,57 +193,11 @@ def mmle_score(distances, beta):
 
 
 def mmle_figure(label, pairs, source_rows):
-    pair=pairs[label]
-    fig,axes=plt.subplots(2,3,figsize=(9.6,5.7))
-    for ax in axes[:,0]:
-        ax.set(xlim=(1.6,7.4),xticks=np.arange(2,8),ylim=(0,2),yticks=[0,.5,1,1.5,2],
-               xlabel=r'$i$',ylabel=r'$(x_{(i)}-x_{(1)})/\eta_0$')
-    for ax in axes[:,1]:
-        ax.set(xlim=(1.6,7.4),xticks=np.arange(2,8),ylim=(-3,1),yticks=[-3,-2,-1,0,1],
-               xlabel=r'$i$',ylabel=r'$\ln[(x_{(i)}-x_{(1)})/\eta_0]$')
-    for ax in axes[:,2]:
-        ax.set(xlim=(0,16),xticks=[0,4,8,12,16],ylim=(-.3,.6),yticks=[-.3,0,.3,.6],
-               xlabel=r'$\beta$',ylabel=r'$U_\beta(\beta;\hat\gamma)$')
-        ax.axhline(0,color=GRAY,lw=.7,ls=':')
-    verified=[]
-    for row,role,color in [(0,'normal',BLUE),(1,'abnormal',BROWN)]:
-        obj=pair[role]
-        x=np.array(obj['values']);distances=x[1:]-x[0]
-        assert obj['n']==7 and np.isclose(obj['gamma_hat'],x[0],atol=1e-8)
-        ranks=np.arange(2,8);raw=distances/obj['eta_true'];logs=np.log(raw)
-        axes[row,0].plot(ranks,raw,color=color,marker='o',ms=3.5,lw=1)
-        axes[row,1].plot(ranks,logs,color=color,marker='o',ms=3.5,lw=1)
-        beta=np.unique(np.r_[np.linspace(.3,16,540),obj['beta_hat']])
-        scores=np.array([mmle_score(distances,b) for b in beta])
-        axes[row,2].plot(beta,scores,color=color,lw=1.2)
-        axes[row,2].axvline(obj['beta_true'],color=GRAY,lw=.7,ls='--')
-        score_at_return=mmle_score(distances,obj['beta_hat'])
-        root=brentq(lambda b:mmle_score(distances,b),.05,100)
-        assert np.isclose(root,obj['beta_hat'],rtol=2e-5)
-        assert abs(score_at_return)<1e-6
-        eta=np.exp(np.log(np.mean((distances/obj['eta_true'])**obj['beta_hat']))/obj['beta_hat'])*obj['eta_true']
-        assert np.isclose(eta,obj['eta_hat'],rtol=2e-5)
-        star(axes[row,2],obj['beta_hat'],score_at_return,color)
-        axes[row,0].set_title(obj['role']+f'·第{obj["group"]}组',loc='left',pad=13,fontsize=9)
-        for i,d,y in zip(ranks,raw,logs):
-            source_rows.append(dict(figure=label,sample=obj['role'],combination=obj['combination'],
-                                    n=obj['n'],group=obj['group'],panel='retained_distance',rank=i,
-                                    distance_ratio=d,log_distance=y))
-        for b,s in zip(beta,scores):
-            source_rows.append(dict(figure=label,sample=obj['role'],combination=obj['combination'],
-                                    n=obj['n'],group=obj['group'],panel='actual_score',beta=b,score=s))
-        verified.append(dict(role=obj['role'],group=obj['group'],combination=obj['combination'],
-                             n=obj['n'],retained_n=len(distances),gamma=obj['gamma_hat'],
-                             beta=obj['beta_hat'],root=root,score_at_return=score_at_return,
-                             eta=obj['eta_hat'],recovered_eta=eta,log_range=float(np.ptp(logs)),
-                             log_sd=float(np.std(logs,ddof=1))))
-    legend=[Line2D([0],[0],color=BLUE,marker='o',ms=3,lw=1,label='正常'),
-            Line2D([0],[0],color=BROWN,marker='o',ms=3,lw=1,label='异常'),
-            Line2D([0],[0],marker='*',color='#555555',ls='none',ms=7,label='原估计')]
-    meta=finish(fig,axes,'配对情形_'+label+'.png',legend)
-    meta.update(samples=verified,actual_retained_sample_only=True,
-                conclusion='Actual retained log-distance dispersion determines the small or large shape root.')
-    return meta
+    # 当前MMLE图按三个参数的实际确定顺序绘制，共用本次独立入口。
+    spec = importlib.util.spec_from_file_location('r2_mmle_process', HERE / '20261011-MMLE三参数流程图.py')
+    current = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(current)
+    return current.render_pair(label, pairs, source_rows)
 
 
 def merged_counts():
@@ -336,14 +290,14 @@ def verify():
 
 
 def sample_table(samples, conditions=False):
-    head=('| 样本 | 参数组合 | n | 位置γ̂ | 形状β̂ | 尺度η̂ | 观测值（升序） |\n'
+    head=('| 样本 | 参数组合 | n | 形状β̂ | 尺度η̂ | 位置γ̂ | 观测值（升序） |\n'
           '| --- | --- | ---: | ---: | ---: | ---: | --- |\n' if conditions else
-          '| 样本 | 位置γ̂ | 形状β̂ | 尺度η̂ | 观测值（升序） |\n'
+          '| 样本 | 形状β̂ | 尺度η̂ | 位置γ̂ | 观测值（升序） |\n'
           '| --- | ---: | ---: | ---: | --- |\n')
     for name,obj in samples:
         condition=f' {obj["combination"]} | {obj["n"]} |' if conditions else ''
         values='，'.join(f'{x:.2f}' for x in obj['values'])
-        head+=f'| {name}·第{obj["group"]}组 |{condition} {obj["gamma_hat"]:.2f} | {obj["beta_hat"]:.2f} | {obj["eta_hat"]:.2f} | {values} |\n'
+        head+=f'| {name}·第{obj["group"]}组 |{condition} {obj["beta_hat"]:.2f} | {obj["eta_hat"]:.2f} | {obj["gamma_hat"]:.2f} | {values} |\n'
     return head
 
 

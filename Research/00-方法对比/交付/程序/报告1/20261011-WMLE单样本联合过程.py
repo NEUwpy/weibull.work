@@ -235,7 +235,7 @@ def render():
 def revise():
     text = base.REPORT.read_text(encoding='utf-8')
     start = text.index('其中，O为联合目标函数，Oₚ为固定γ下')
-    end = text.index('### 2.5 ', start)
+    end = text.index('### 2.5　', start)
     replacement = '''其中，O为联合目标函数，Oₚ为固定γ下残差平方和的下界，边界处按极限计算。图7a–d展示Oₚ；每个点都在该γ处重新优化β。图7e、f展开上方同一单样本，在β–γ平面展示式（24）的联合目标与实际搜索过程。
 
 ![图7　WMLE的联合判据与单样本搜索过程](交付/结果/报告1/图6_WMLE六格机制.png)

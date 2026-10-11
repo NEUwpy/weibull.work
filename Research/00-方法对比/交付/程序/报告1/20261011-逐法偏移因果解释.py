@@ -210,7 +210,7 @@ def main():
     assert len(images) == 9
     assert re.findall(r'!\[[^\]]*\]\(([^)]+)\)', after) == images
     assert formula_hash(before) == formula_hash(after)
-    for stage in ['## 第一章', '## 第三章']:
+    for stage in ['## 1', '## 3']:
         assert before.split(stage, 1)[1].split('## ', 1)[0] == after.split(stage, 1)[1].split('## ', 1)[0]
     readme_bytes = README.read_bytes()
     newline = '\r\n' if b'\r\n' in readme_bytes else '\n'

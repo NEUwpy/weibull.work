@@ -118,8 +118,8 @@ def verify():
     assert len(formulas) == record['display_formulas']
     assert hashlib.sha256('\n'.join(formulas).encode('utf-8')).hexdigest() == record['formulas_sha256']
     assert re.findall(r'!\[[^\]]*\]\(([^)]+)\)', text) == record['main_figure_paths']
-    assert '### 2.6 当前结果的分类与规律' not in text
-    assert '当前13组中' not in text.split('## 第二章', 1)[0]
+    assert '### 2.6　当前结果的分类与规律' not in text
+    assert '当前13组中' not in text.split('## 2', 1)[0]
     print(f"PASS：报告文字、原公式、{len(record['main_figure_paths'])}张主图链接及"
           f"{record['protected_inputs']['交付/结果']['files']}份结果文件保持本次记录一致。")
 
@@ -139,17 +139,17 @@ def main():
         assert after.count(old) == 1, old
         after = after.replace(old, new, 1)
     start = after.index('当前13组中，β=5、n=7')
-    end = after.index('## 第二章　机制分析与对照实验\n', start)
+    end = after.index('## 2　机制分析与对照实验\n', start)
     after = after[:start] + after[end:]
-    start = after.index('### 2.6 当前结果的分类与规律\n')
-    end = after.index('## 第三章　结论与研究启示\n', start)
+    start = after.index('### 2.6　当前结果的分类与规律\n')
+    end = after.index('## 3　结论与研究启示\n', start)
     after = after[:start] + after[end:]
     formulas = re.findall(r'\$\$.*?\$\$', before, re.S)
     images = re.findall(r'!\[[^\]]*\]\(([^)]+)\)', before)
     assert re.findall(r'\$\$.*?\$\$', after, re.S) == formulas
     assert re.findall(r'!\[[^\]]*\]\(([^)]+)\)', after) == images
     assert len(images) == 8
-    assert not re.findall(r'^\|.*\|$', after.split('## 第二章', 1)[0], re.M)
+    assert not re.findall(r'^\|.*\|$', after.split('## 2', 1)[0], re.M)
     readme_bytes = README.read_bytes()
     readme_newline = '\r\n' if b'\r\n' in readme_bytes else '\n'
     readme = readme_bytes.decode('utf-8').replace('\r\n', '\n')

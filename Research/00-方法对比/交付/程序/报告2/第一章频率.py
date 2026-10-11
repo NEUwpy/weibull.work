@@ -1,6 +1,6 @@
 """Count shape estimates outside [truth/3, truth*3], including both limits."""
-from 共用 import ROOT, PROGRAM, RESULT, matrix_path, snapshot_path
-DATA_DIR = RESULT / "报告2" / "数据"
+from 共用 import ROOT, PROGRAM, RESULT, matrix_path, snapshot_path, save_png
+DATA_DIR = PROGRAM / "报告2"
 from pathlib import Path
 import csv
 import hashlib
@@ -16,12 +16,52 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 OUT = RESULT / "报告2/图1_明显异常估计频率.png"
 FACTOR_THRESHOLD = 3.0
-METHODS = ['MDM δ=0.10', 'MDM δ=0.15', 'MDM δ=0.20', 'LSE', 'LRE', 'MLE', 'WMLE', 'MMLE']
-PLOT_METHODS = ['MDM δ=0.20', 'LSE', 'LRE', 'MLE', 'WMLE', 'MMLE']
+METHODS = ['MDM δ=0.10', 'MDM δ=0.15', 'MDM δ=0.20', 'LSE', 'LRE', 'WMLE', 'MLE', 'MMLE']
+PLOT_METHODS = ['MDM δ=0.20', 'LSE', 'LRE', 'WMLE', 'MLE', 'MMLE']
 
 
 def digest(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def render(table):
+    """从已保存的频率表制图；方法顺序与两份报告一致。"""
+    counts = {(r['combination'], int(r['n']), r['method']): int(r['abnormal']) for r in table}
+    totals = {(r['combination'], int(r['n']), r['method']): int(r['total']) for r in table}
+    plt.rcParams.update({'font.family':'sans-serif', 'font.sans-serif':['Microsoft YaHei','SimHei','DejaVu Sans'], 'font.size':10, 'axes.unicode_minus':False})
+    def combination_order(c):
+        beta, eta, gamma = (float(v) for v in c[2:-1].split(','))
+        return beta, eta, gamma
+
+    combos = sorted({c for c,n,m in totals}, key=combination_order)
+    boundaries = [i-.5 for i in range(1,len(combos))
+                  if combination_order(combos[i])[0] != combination_order(combos[i-1])[0]]
+    ns = [7,15,30]
+    matrices = {m: np.array([[100*counts[c,n,m]/totals[c,n,m] for n in ns] for c in combos]) for m in PLOT_METHODS}
+    vmax = max(10, 10 * math.ceil(max(values.max() for values in matrices.values()) / 10))
+    fig, axs = plt.subplots(2,3,figsize=(11,9),sharey=True,layout='constrained')
+    for panel, (ax, method) in enumerate(zip(axs.flat, PLOT_METHODS)):
+        values = matrices[method]
+        im = ax.imshow(values,cmap='YlOrRd',vmin=0,vmax=vmax,aspect='auto',interpolation='nearest')
+        ax.set(title=method,xticks=np.arange(3),xticklabels=ns,xlabel='样本量 n',yticks=np.arange(len(combos)),yticklabels=combos)
+        ax.spines[['top','right','left','bottom']].set_visible(False)
+        ax.tick_params(axis='both',length=0,labelsize=9)
+        ax.text(-0.02,1.045,'abcdef'[panel],transform=ax.transAxes,fontweight='bold',ha='left')
+        for boundary in boundaries:
+            ax.axhline(boundary, color='white', linewidth=1.2)
+        for i in range(len(combos)):
+            for j in range(3):
+                ax.text(j,i,f'{values[i,j]:.0f}%',ha='center',va='center',fontsize=9,color='white' if values[i,j]>=.65*vmax else '#333333')
+    for ax in axs[:,0]:
+        ax.set_ylabel('参数组合 W(β,η,γ)')
+    fig.colorbar(im,ax=list(axs.flat),shrink=.85,pad=.025,ticks=np.arange(0,vmax+1,10),label='明显异常估计频率（%）')
+    contract = dict(plot_methods=PLOT_METHODS, plot_row_order=combos, color_limits=[0,vmax],
+                    matrices={m:values.tolist() for m,values in matrices.items()},
+                    panel_titles=[ax.get_title() for ax in axs.flat],
+                    sample_sizes=ns, export='PNG only')
+    save_png(fig, OUT, dpi=400)
+    plt.close(fig)
+    return contract
 
 
 def main():
@@ -58,35 +98,8 @@ def main():
         writer = csv.DictWriter(stream, fieldnames=list(table[0]), lineterminator='\n')
         writer.writeheader()
         writer.writerows(table)
-    plt.rcParams.update({'font.family':'sans-serif', 'font.sans-serif':['Microsoft YaHei','SimHei','DejaVu Sans'], 'font.size':10, 'axes.unicode_minus':False})
-    def combination_order(c):
-        beta, eta, gamma = (float(v) for v in c[2:-1].split(','))
-        return beta, eta, gamma
-
-    combos = sorted({c for c,n,m in totals}, key=combination_order)
-    boundaries = [i-.5 for i in range(1,len(combos))
-                  if combination_order(combos[i])[0] != combination_order(combos[i-1])[0]]
-    ns = [7,15,30]
-    matrices = {m: np.array([[100*counts[c,n,m]/totals[c,n,m] for n in ns] for c in combos]) for m in PLOT_METHODS}
-    vmax = max(10, 10 * math.ceil(max(values.max() for values in matrices.values()) / 10))
-    fig, axs = plt.subplots(2,3,figsize=(11,9),sharey=True,layout='constrained')
-    for panel, (ax, method) in enumerate(zip(axs.flat, PLOT_METHODS)):
-        values = matrices[method]
-        im = ax.imshow(values,cmap='YlOrRd',vmin=0,vmax=vmax,aspect='auto',interpolation='nearest')
-        ax.set(title=method,xticks=np.arange(3),xticklabels=ns,xlabel='样本量 n',yticks=np.arange(len(combos)),yticklabels=combos)
-        ax.spines[['top','right','left','bottom']].set_visible(False)
-        ax.tick_params(axis='both',length=0,labelsize=9)
-        ax.text(-0.02,1.045,'abcdef'[panel],transform=ax.transAxes,fontweight='bold',ha='left')
-        for boundary in boundaries:
-            ax.axhline(boundary, color='white', linewidth=1.2)
-        for i in range(len(combos)):
-            for j in range(3):
-                ax.text(j,i,f'{values[i,j]:.0f}%',ha='center',va='center',fontsize=9,color='white' if values[i,j]>=.65*vmax else '#333333')
-    for ax in axs[:,0]:
-        ax.set_ylabel('参数组合 W(β,η,γ)')
-    fig.colorbar(im,ax=list(axs.flat),shrink=.85,pad=.025,ticks=np.arange(0,vmax+1,10),label='明显异常估计频率（%）')
-    fig.savefig(OUT,dpi=400)
-    plt.close(fig)
+    figure = render(table)
+    ns = figure['sample_sizes']
     assert all(digest(Path(p)) == value for p,value in source_hashes.items())
     summary = dict(criterion='successful positive finite estimate with beta_hat >= 3*beta_true or beta_hat <= beta_true/3',
                    parameter='beta', factor_threshold=FACTOR_THRESHOLD,
@@ -99,7 +112,7 @@ def main():
                    plot_abnormal=sum(v for (c,n,m),v in counts.items() if m in PLOT_METHODS),
                    plot_by_method={m:sum(v for (c,n,mm),v in counts.items() if mm==m) for m in PLOT_METHODS},
                    plot_by_n={n:sum(v for (c,nn,m),v in counts.items() if nn==n and m in PLOT_METHODS) for n in ns},
-                   plot_methods=PLOT_METHODS, plot_row_order=combos, color_limits=[0,vmax],
+                   plot_methods=PLOT_METHODS, plot_row_order=figure['plot_row_order'], color_limits=figure['color_limits'],
                    source_sha256=source_hashes, source_unchanged=True)
     (DATA_DIR / '第一章频率核对.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print('PASS all eight settings:',summary['by_method'],summary['by_n'],f"{summary['abnormal']}/{summary['total_records']}")
