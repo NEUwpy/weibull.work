@@ -145,7 +145,7 @@ def report1():
     module(folder / '绘制样本相容分布.py', 'r1_compatibility').main()
     charts = module(folder / '绘制公式与拟合点图.py', 'r1_methods')
     charts.main()
-    mmle = module(folder / '20261011-MMLE定位与形状尺度.py', 'r1_mmle')
+    mmle = module(folder / '20261011-MMLE似然与参数流程.py', 'r1_mmle')
     mmle.build()
     mmle.render()
     module(folder / '绘制寿命对照图.py', 'r1_life').main()

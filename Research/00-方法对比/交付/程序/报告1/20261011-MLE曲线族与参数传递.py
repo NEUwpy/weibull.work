@@ -35,7 +35,7 @@ REPORT2 = base.ROOT / '报告2：小样本情况下的明显异常估计.md'
 PROFILE_SOURCE = base.ROOT.parents[1] / 'python/methods/conditional_profiles.py'
 FAMILY_Y = [-1., 2.65]
 FAMILY_TICKS = [-1, 0, 1, 2]
-DEFINITIONS = [(5, r'$\Delta\ell(\gamma)$', [-.15, .12], [-.15, -.1, -.05, 0, .05, .1]),
+DEFINITIONS = [(5, '对数似然（相对真γ）', [-.15, .12], [-.15, -.1, -.05, 0, .05, .1]),
                (2, r'$\hat\beta(\gamma)$', [0, 10], [0, 2, 4, 6, 8, 10]),
                (3, r'$\hat\eta(\gamma)$', [0, 1600], [0, 500, 1000, 1500])]
 
@@ -182,47 +182,55 @@ def build():
     print(f"BUILT: 300条MLE曲线，第{chosen['selected_id']}组配对代表；原估计未替换。", flush=True)
 
 
-def ordinate(p, column, row):
-    return p[5] - row['truth'][5] if column == 5 else p[column]
+def ordinate(p, column, row, *, centered=True):
+    return p[5] - row['truth'][5] if column == 5 and centered else p[column]
 
 
-def return_ordinate(row, column):
-    return row['original_likelihood_gain'] if column == 5 else row['fit']['beta_hat' if column == 2 else 'eta_hat']
+def return_ordinate(row, column, *, centered=True):
+    if column == 5:
+        return row['original_log_likelihood'] - (row['truth'][5] if centered else 0.)
+    return row['fit']['beta_hat' if column == 2 else 'eta_hat']
 
 
-def draw_family(ax, rows):
+def draw_family(ax, rows, *, centered=True, limits=None):
+    limits = FAMILY_Y if limits is None else limits
     hidden_nodes = hidden_returns = 0
     for r in rows:
-        yy = [ordinate(p, 5, r) for p in r['points']]
+        yy = [ordinate(p, 5, r, centered=centered) for p in r['points']]
         ax.plot([p[0] for p in r['points']], yy, color=base.BLUE, alpha=.20, lw=.65)
-        hidden_nodes += sum(not (FAMILY_Y[0] <= y <= FAMILY_Y[1] and base.XLIM[0] <= p[0] <= base.XLIM[1])
+        hidden_nodes += sum(not (limits[0] <= y <= limits[1] and base.XLIM[0] <= p[0] <= base.XLIM[1])
                             for p, y in zip(r['points'], yy))
         if r['fit']['converged']:
-            g, gain = r['fit']['gamma_hat'], r['original_likelihood_gain']
-            ax.scatter(g, gain, color=base.RETURN, marker='x', s=10, alpha=.7, linewidths=.7, zorder=4)
+            g, value = r['fit']['gamma_hat'], return_ordinate(r, 5, centered=centered)
+            ax.scatter(g, value, color=base.RETURN, marker='x', s=10, alpha=.7, linewidths=.7, zorder=4)
             ax.plot(g, .018, marker='|', color=base.RETURN, ms=5, alpha=.55, transform=ax.get_xaxis_transform())
-            hidden_returns += int(not (FAMILY_Y[0] <= gain <= FAMILY_Y[1] and base.XLIM[0] <= g <= base.XLIM[1]))
+            hidden_returns += int(not (limits[0] <= value <= limits[1] and base.XLIM[0] <= g <= base.XLIM[1]))
     return dict(curves=len(rows), sample_ids=[r['sample_id'] for r in rows],
                 original_return_markers=sum(r['fit']['converged'] for r in rows),
                 hidden_curve_points=hidden_nodes, hidden_return_values=hidden_returns)
 
 
-def render():
+def render(*, expected_source_hashes=None, centered=True):
     data = base.read(DATA)
-    assert data['source_hashes'] == sources()
+    assert (data['source_hashes'] if expected_source_hashes is None else expected_source_hashes) == sources()
     sid = data['selection']['selected_id']
+    family_y = FAMILY_Y if centered else [-245., -30.]
+    family_ticks = FAMILY_TICKS if centered else [-240, -200, -160, -120, -80, -40]
+    label = '对数似然（相对真γ）' if centered else r'$\ell_p(\gamma)$'
+    definitions = DEFINITIONS if centered else [(5, label, [-50., -43.], [-50, -48, -46, -44])] + DEFINITIONS[1:]
     plt = base.style()
     fig, axes = plt.subplots(3, 2, figsize=(7.2, 7.2))
     panels, states = [], []
     for i, (beta, n) in enumerate(base.CONDITIONS):
         ax = axes.flat[i]
-        states.append(base.axis(ax, r'$\Delta\ell(\gamma)$', beta, n, FAMILY_Y, FAMILY_TICKS, chr(97 + i)))
-        ax.axhline(0, color='.6', lw=.6)
+        states.append(base.axis(ax, label, beta, n, family_y, family_ticks, chr(97 + i)))
+        if centered:
+            ax.axhline(0, color='.6', lw=.6)
         rows = sorted((r for r in data['curves'] if r['beta'] == beta and r['n'] == n), key=lambda r: r['sample_id'])
-        meta = draw_family(ax, rows)
+        meta = draw_family(ax, rows, centered=centered, limits=family_y)
         if n == 7:
             example = next(r for r in rows if r['sample_id'] == sid)
-            ax.plot([p[0] for p in example['points']], [ordinate(p, 5, example) for p in example['points']],
+            ax.plot([p[0] for p in example['points']], [ordinate(p, 5, example, centered=centered) for p in example['points']],
                     color=base.BLUE, lw=1.2, zorder=3)
         panels.append(dict(beta=beta, n=n, highlighted_sample_id=sid if n == 7 else None, **meta))
     assert all(s == states[0] for s in states)
@@ -235,33 +243,34 @@ def render():
 
     fig, axes = plt.subplots(3, 2, figsize=(7.2, 7.2))
     panels, states = [], []
-    for row, (column, label, limits, ticks) in enumerate(DEFINITIONS):
+    for row, (column, label, limits, ticks) in enumerate(definitions):
         for col, example in enumerate(data['examples']):
             beta, pp = example['beta'], example['points']
             ax = axes[row, col]
             states.append(base.axis(ax, label, beta, 7, limits, ticks, chr(97 + 2 * row + col)))
-            yy = [ordinate(p, column, example) for p in pp]
+            yy = [ordinate(p, column, example, centered=centered) for p in pp]
             ax.plot([p[0] for p in pp], yy, color=base.BLUE, lw=1.25)
             ax.scatter([p[0] for p in pp], yy, s=4.5, facecolors='white', edgecolors=base.BLUE,
                        linewidths=.4, zorder=3)
             truth, returned = example['truth'], example['returned']
             selected = example['fit']['gamma_hat']
             ax.axvline(selected, color=base.RETURN, ls='--', lw=.8)
-            ax.axhline(0 if column == 5 else beta if column == 2 else 1000, color='.55', ls='--', lw=.7)
-            ax.scatter(500, ordinate(truth, column, example), color=base.BLUE, s=16, linewidths=0, zorder=5)
-            ax.scatter(selected, return_ordinate(example, column), color=base.RETURN,
+            if column != 5 or centered:
+                ax.axhline(0 if column == 5 else beta if column == 2 else 1000, color='.55', ls='--', lw=.7)
+            ax.scatter(500, ordinate(truth, column, example, centered=centered), color=base.BLUE, s=16, linewidths=0, zorder=5)
+            ax.scatter(selected, return_ordinate(example, column, centered=centered), color=base.RETURN,
                        marker='x', s=27, linewidths=1, zorder=5)
             anchors = []
             for p, color, offset in [(truth, base.BLUE, (7, -14)), (returned, base.RETURN, (7, 9))]:
                 node_id = f"G{next(i for i, v in enumerate(pp, 1) if v[0] == p[0])}"
                 anchors.append(dict(node_id=node_id, conditional_point=p))
                 if column == 5:
-                    ax.annotate(node_id, (p[0], ordinate(p, column, example)), xytext=offset,
+                    ax.annotate(node_id, (p[0], ordinate(p, column, example, centered=centered)), xytext=offset,
                                 textcoords='offset points', fontsize=6, color=color)
             panels.append(dict(beta=beta, n=7, sample_id=sid, quantity=column, curves=1,
                                node_count=len(pp), all_actual_nodes_drawn=True,
                                points_identical_to_family=True, gamma_selected=selected, anchors=anchors,
-                               marker_value=return_ordinate(example, column),
+                               marker_value=return_ordinate(example, column, centered=centered),
                                marker_is_original_estimate=True,
                                hidden_nodes=sum(not (limits[0] <= y <= limits[1] and base.XLIM[0] <= p[0] <= base.XLIM[1])
                                                 for p, y in zip(pp, yy))))
@@ -272,7 +281,9 @@ def render():
     second = dict(file=TRANSFER.stem, panels=panels, axis_settings=states,
                   same_profiles_as_criterion=True, selection=data['selection'], png_dimensions=[3240, 3240])
     qa = base.read(QA) if QA.exists() else {}
-    qa.update(figures={'criterion': first, 'transfer': second}, figure_hashes={p.name: base.sha(p) for p in (FIGURE, TRANSFER)})
+    qa.update(figures={'criterion': first, 'transfer': second},
+              displayed_ordinate='profile log likelihood minus its value at true gamma' if centered else 'raw profile log likelihood; no additive shift',
+              figure_hashes={p.name: base.sha(p) for p in (FIGURE, TRANSFER)})
     base.write(QA, qa)
     shared = base.read(base.FIGURE_QA)
     shared['process_figures'] = [first if r['method'] == 'mle' else r for r in shared['process_figures']]
@@ -296,14 +307,7 @@ def common_principles(report2):
     return re.sub(r'\\tag\{(\d+)\}', lambda m: r'\tag{' + str(mapping[int(m[1])]) + '}', references(common, mapping))
 
 
-DISCUSSION = r'''式（36）给出剖面对数似然，即固定γ后，β、η能够达到的最大对数似然。它用于比较不同γ下的最优参数组合；程序仍联合搜索三参数。以真位置γ₀=500为基准，图12绘制：
-
-$$
-\Delta\ell(\gamma)=\ell_p(\gamma)-\ell_p(\gamma_0).
-\tag{37}
-$$
-
-Δℓ为对数似然增量。曲线越高，对应γ下的最优组合似然越大。橙叉按原程序返回的三个参数计算，单独标记实际返回位置及似然。
+DISCUSSION = r'''图12展示式（36）的剖面对数似然，最高点对应最优位置。图12、13均减去同一样本在真γ=500处的值，使曲线变化更清楚，最高点位置不变。橙叉按原程序返回的三个参数计算；程序仍联合搜索三参数。
 
 ![图12　MLE在不同形状与样本量下的似然判据](交付/结果/报告1/图7_MLE六格机制.png)
 
@@ -317,9 +321,9 @@ X&\approx\gamma+\eta+\frac{\eta}{\beta}Z,\\
 +\sum_i\left(z_i-\exp z_i\right),\qquad
 z_i=\frac{x_{(i)}-(\gamma+\eta)}{\eta/\beta}.
 \end{aligned}
-\tag{38}$$
+\tag{37}$$
 
-X为Weibull随机变量，Z为标准对数Weibull变量，zᵢ为一阶近似中的标准化观测。式（38）的近似似然主要取决于γ+η和η/β：γ升高时，η和β同步降低，仍可能保留相近的中部位置与分散程度。高β、小n下，观测不足以清楚区分这些组合，样本波动便可能使似然峰偏离真位置。图12按完整的式（33）计算；式（38）解释曲线较平的原因。
+X为Weibull随机变量，Z为标准对数Weibull变量，zᵢ为一阶近似中的标准化观测。式（37）的近似似然主要取决于γ+η和η/β：γ升高时，η和β同步降低，仍可能保留相近的中部位置与分散程度。高β、小n下，观测不足以清楚区分这些组合，样本波动便可能使似然峰偏离真位置。图12按完整的式（33）计算；式（37）解释曲线较平的原因。
 
 增大n后，本组估计的位置偏移总体减轻。MLE的似然峰既可能右移，也可能左移，不能将所有结果概括为γ高估。
 
@@ -336,7 +340,7 @@ X为Weibull随机变量，Z为标准对数Weibull变量，zᵢ为一阶近似中
 '''
 
 
-def revise():
+def revise(*, centered=True):
     report2 = REPORT2.read_text(encoding='utf-8')
     data = base.read(DATA)
     text = base.REPORT.read_text(encoding='utf-8')
@@ -344,7 +348,13 @@ def revise():
     before, after = text[:a], text[b:]
     existing = text[a:b]
     section = '### 2.5　[MLE](../../src/content/algorithms/mle.md)\n\n'
-    section += common_principles(report2) + DISCUSSION.replace('{sid}', str(data['selection']['selected_id']))
+    discussion = DISCUSSION.replace('{sid}', str(data['selection']['selected_id']))
+    if not centered:
+        discussion = discussion.replace('图12、13均减去同一样本在真γ=500处的值，使曲线变化更清楚，最高点位置不变。', '')
+    section += common_principles(report2) + discussion
+    if r'\Delta\ell(\gamma)' in existing:
+        after = re.sub(r'\\tag\{(\d+)\}', lambda m: r'\tag{' + str(int(m[1]) - 1) + '}', after)
+        after = references(after, {i: i - 1 for i in range(38, 46)})
     if '图13_MLE参数传递.png' not in existing:
         after = re.sub(r'\\tag\{(\d+)\}', lambda m: r'\tag{' + str(int(m[1]) + 4) + '}', after)
         after = references(after, {i: i + 4 for i in range(35, 40)})
@@ -365,13 +375,18 @@ def revise():
     readme = base.README.read_text(encoding='utf-8')
     marker = '报告1的MLE当前采用似然曲线族与同组参数联动'
     readme = readme.replace('报告1的MLE当前采用似然曲线族与同组参数传递', marker, 1)
-    note = (marker + '：图12按β=2/5、n=7/15/30比较β≥1的条件最优似然，'
+    display_note = '绘图减去同一样本在真γ处的基准值，仅平移曲线，不改变最高点。' if centered else '绘图直接显示原始对数似然。'
+    task_script = '20261012-MLE似然曲线显示恢复.py' if centered else '20261011-MLE原始对数似然图.py'
+    note = (marker + '：图12按β=2/5、n=7/15/30比较β≥1的剖面对数似然，'
             f"图13展开第{data['selection']['selected_id']}组配对样本，展示剖面对数似然及条件最优β、η的联动。"
+            + display_note +
             '原理、尺度和形状公式与报告2一致；γ剖面是联合准则的条件分析，不代表先估计γ的程序顺序。原返回标记采用原三个参数的似然，保留β=1分支，并区分数值收敛与全局最优。'
-            '[独立脚本](交付/程序/报告1/20261011-MLE曲线族与参数传递.py)提供`build`、`render`、`revise`、`verify`、`all`，已接入统一制图入口。'
+            '[母体程序](交付/程序/报告1/20261011-MLE曲线族与参数传递.py)保存原始计算；'
+            f'[当前独立入口](交付/程序/报告1/{task_script})提供`render`、`revise`、`verify`、`all`，已接入统一制图入口。'
             '代表样本从β=5、n=7位置高估且两种β均成功的组中选取，位置偏差最接近全部高估组的中位数。'
             '复用200条n=7/15曲线和50条β=5、n=30估计，仅对已映射的β=2、n=30样本增加50条估计；无新抽样、原结果不替换。'
-            '输入、曲线和核验留在程序目录，结果仅更新两张PNG。\n\n')
+            '输入、曲线和核验留在程序目录，结果仅更新两张PNG。'
+            '当前显示修订无新样本或估计。\n\n')
     if marker in readme:
         start = readme.index(marker)
         end = readme.find('\n\n', start)

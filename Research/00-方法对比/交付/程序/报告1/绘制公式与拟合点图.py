@@ -122,13 +122,12 @@ def wmle_panel(ax, beta):
 def method_figure(method):
     if method == 'mmle':
         from importlib import import_module
-        minimum = import_module('20261011-MMLE定位与形状尺度')
+        minimum = import_module('20261011-MMLE似然与参数流程')
         minimum.build()
         return minimum.render()
     if method == 'mle':
         from importlib import import_module
-        likelihood = import_module('20261011-MLE曲线族与参数传递')
-        likelihood.build()
+        likelihood = import_module('20261012-MLE似然曲线显示恢复')
         return likelihood.render()
     if method == 'lre':
         from importlib import import_module
