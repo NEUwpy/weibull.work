@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-11",
+  "source_commit": "3330be86",
+  "report_before_sha256": "08a07d59b2e89411759700385b3664f5532c63c85ba9dcae485f39bbac0c0c34",
+  "report_after_sha256": "dedbccf8adef2d00c79f3a1c10586aebd4fb23df3e877118d845b1a36119377b",
+  "revision_script_sha256": "0316957cdcd528bf7f8b8378f1633e6e5bc9db4984972824e703269b1a4e850d",
+  "changes": [
+    "首章集中呈现偏移及样本量趋势",
+    "衔接起点信息、参数补偿与逐法判据",
+    "权重近似与求解不足留在对应方法",
+    "删除重复分类表并收束研究启示",
+    "第一章移出13组合对照表及取数说明"
+  ],
+  "new_samples": 0,
+  "new_estimates": 0,
+  "redrawn_figures": 0,
+  "display_formulas": 26,
+  "formulas_sha256": "0b215982861f0886791852009ed03c6861ce829e1de1551ea9a5197e3bbfe0ad",
+  "main_figure_paths": [
+    "交付/结果/报告1/图1_原案例参数分布.png",
+    "交付/结果/报告1/图2_样本与真实起点.png",
+    "交付/结果/报告1/图2_样本与分布相容.png",
+    "交付/结果/报告1/图3_MDM六格机制.png",
+    "交付/结果/报告1/图4_LSE六格机制.png",
+    "交付/结果/报告1/图5_LRE六格机制.png",
+    "交付/结果/报告1/图6_WMLE六格机制.png",
+    "交付/结果/报告1/图7_MLE六格机制.png"
+  ],
+  "protected_inputs": {
+    "交付/结果": {
+      "files": 270,
+      "sha256": "e9c081d2008e6a0b3403439a5b790d7b08b9f223dbea4b5c575c5cd59355ea13"
+    },
+    "交付/程序/报告1": {
+      "files": 37,
+      "sha256": "d71ef21a2b0f0be70e052b2d0f5d0d3e441d4bc406e2f087f28322102ae8c24d"
+    },
+    "13组合取数": "ed610a7e2d21082d022193b80f3b1765e43dc43f9ff0dbd0fc46f722592becd9"
+  },
+  "patch_reproduction_verified": true,
+  "chapter1_table_removed": true,
+  "removed_chapter1_table": [
+    "| 组合 | MDM δ=0.10 | LSE | LRE | MLE | WMLE |",
+    "|---|---:|---:|---:|---:|---:|",
+    "| W(5,1000,500) | 0.442 | 0.324 | 0.282 | −0.067 | 0.493 |",
+    "| W(5,1000,3000) | 0.513 | 0.498 | 0.443 | −0.298 | 0.527 |",
+    "| W(5,100,500) | 0.491 | 0.278 | 0.210 | −0.779 | 0.501 |"
+  ],
+  "preserved_other_edits": [
+    "WMLE真位置条件解45组、超范围5组",
+    "MLE代表样本对数似然改善0.053"
+  ]
+}
