@@ -134,6 +134,9 @@ def generate(group=None):
 
 def report1():
     folder = PROGRAM / '报告1'
+    module(folder / '计算逐法过程曲线.py', 'r1_profiles').main()
+    module(folder / '推导判据与统一单例.py', 'r1_examples').main()
+    module(folder / '构建公式与拟合点数据.py', 'r1_formula_points').main()
     module(folder / '绘制图1小提琴.py', 'r1_violin').main()
     intro = module(folder / '20261010-导入样本起点图.py', 'r1_intro')
     cached = load_json(folder / '20261010-导入图n30样本.json')
@@ -153,6 +156,9 @@ def report1():
 def report2():
     folder = PROGRAM / '报告2'
     data = RESULT / '报告2/数据'
+    diagnostics = module(folder / '逐方法机制复核.py', 'r2_diagnostics')
+    diagnostics.refresh_saved_diagnostics()
+    diagnostics.audit_mle_case37()
     module(folder / '第一章频率.py', 'r2_frequency').main()
     heatmaps = module(folder / '20261010-逐方法异常分类三子图.py', 'r2_classes')
     qa = load_json(data / '20261010-异常分类三档热力表核验.json')
@@ -173,9 +179,7 @@ def report2():
     style = lre.load_style()
     for label in lre.LABELS:
         lre.render(label, pairs['pairs'][label], rows, pairs['figures'][label], style)
-    mdm = module(folder / '20261010-MDM公式逐项对应原文.py', 'r2_mdm')
-    for label in mdm.LABELS:
-        mdm.render(label, pairs['pairs'][label], rows, pairs['figures'][label])
+    module(folder / '20261010-MDM条件尺度图.py', 'r2_mdm_eta').main()
     module(folder / '20261010-异常分流与条件形状.py', 'r2_fixed').fixed_figure()
     print('报告2：24张当前图已由13组矩阵及保存的过程数据生成。')
 

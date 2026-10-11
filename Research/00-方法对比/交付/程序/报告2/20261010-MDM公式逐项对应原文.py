@@ -41,6 +41,8 @@ $$
 
 其中，n为样本量，t₍ᵢ₎为第i个排序观测，F̂(t₍ᵢ₎)为对应的累计概率估计；$F_{2(n+1-i),\,2i,\,0.5}$为自由度分别为2(n+1−i)和2i的F分布中位数。
 
+原文式（3）使用精确中位秩。本批存档程序及过程图采用Bernard近似$\hat F(t_{(i)})\approx(i-0.3)/(n+0.4)$；下述伪尺度、条件标准差与条件尺度均按该近似计算。
+
 给定位置参数γ和形状参数β，每个观测反算的尺度参数伪估计量为：
 
 $$
@@ -88,7 +90,7 @@ style = load(HERE / '20261010-配对图参照线精简.py', 'mdm_source_style')
 
 
 
-def render(label, pair, rows, old):
+def render(label, pair, rows, old, conditional=None):
     fig, axes = plt.subplots(2, 3, figsize=(9.6, 5.7))
     blue, brown, gray = style.BLUE, style.BROWN, style.GRAY
     gamma_true = pair['normal']['gamma_true']
@@ -105,13 +107,22 @@ def render(label, pair, rows, old):
                yticks=np.asarray(meta['yticks']) * yfactor)
         ax.xaxis.set_major_formatter(StrMethodFormatter('{x:g}'))
         ax.yaxis.set_major_formatter(StrMethodFormatter('{x:g}'))
+    if conditional is not None:
+        for row in range(2):
+            axes[row, 2].set(xlim=axes[row, 0].get_xlim(),
+                             xticks=axes[row, 0].get_xticks())
     for ax in axes[:, 0]:
         ax.set(xlabel=r'$\gamma$', ylabel=r'$\nabla\gamma$')
         ax.axvline(gamma_true, color=gray, lw=.7, ls='--', zorder=0)
     for ax in axes[:, 1]:
         ax.set(xlabel=r'$\beta$', ylabel=r'$\sigma_\eta(\hat\gamma,\beta)$')
     for ax in axes[:, 2]:
-        ax.set(xlabel=r'$i$', ylabel=r'$\hat\eta_i$')
+        if conditional is None:
+            ax.set(xlabel=r'$i$', ylabel=r'$\hat\eta_i$')
+        else:
+            ax.set(xlabel=r'$\gamma$', ylabel=r'$\hat\eta(\gamma)$')
+            ax.axvline(gamma_true, color=gray, lw=.7, ls='--', zorder=0)
+            ax.axhline(eta_true, color=gray, lw=.7, ls='--', zorder=0)
 
     def star(ax, xx, yy):
         ax.scatter([xx], [yy], marker='*', s=58, color=brown,
@@ -146,18 +157,31 @@ def render(label, pair, rows, old):
                           color=blue, lw=1.15)
         axes[row, 1].axvline(obj['beta_true'], color=gray, lw=.7, ls='--')
         star(axes[row, 1], obj['beta_hat'], obj['at_original']['sigma'])
-        for stage, color in [('true_beta', gray), ('estimated_beta', brown)]:
-            points = panel('pseudo_scale_' + stage)
-            assert len(points) == obj['n']
-            values = column(points, 'scale_ratio') * eta_true
-            axes[row, 2].plot(column(points, 'rank'), values, color=color,
-                              lw=1, marker='o', ms=3.8)
-            if stage == 'estimated_beta':
-                error = abs(float(np.mean(values)) - obj['eta_hat'])
-                assert error < 1e-8 * (1 + abs(obj['eta_hat']))
-                means.append(dict(role=role,mean=float(np.mean(values)),
-                                  stored_eta=obj['eta_hat'],absolute_error=error))
-        axes[row, 2].axhline(obj['eta_hat'], color=brown, ls='--', lw=.7)
+        if conditional is None:
+            for stage, color in [('true_beta', gray), ('estimated_beta', brown)]:
+                points = panel('pseudo_scale_' + stage)
+                assert len(points) == obj['n']
+                values = column(points, 'scale_ratio') * eta_true
+                axes[row, 2].plot(column(points, 'rank'), values, color=color,
+                                  lw=1, marker='o', ms=3.8)
+                if stage == 'estimated_beta':
+                    error = abs(float(np.mean(values)) - obj['eta_hat'])
+                    assert error < 1e-8 * (1 + abs(obj['eta_hat']))
+                    means.append(dict(role=role,mean=float(np.mean(values)),
+                                      stored_eta=obj['eta_hat'],absolute_error=error))
+            axes[row, 2].axhline(obj['eta_hat'], color=brown, ls='--', lw=.7)
+        else:
+            points = conditional[role]
+            values = column(points, 'eta')
+            axes[row, 2].plot(column(points, 'gamma'), values, color=blue, lw=1.15)
+            selected = next(p for p in points if p['gamma'] == obj['gamma_hat'])
+            error = abs(selected['eta'] - obj['eta_hat'])
+            assert error < 1e-8 * (1 + abs(obj['eta_hat']))
+            means.append(dict(role=role,mean=selected['eta'],
+                              stored_eta=obj['eta_hat'],absolute_error=error))
+            star(axes[row, 2], obj['gamma_hat'], obj['eta_hat'])
+            ylo, yhi = axes[row, 2].get_ylim()
+            assert np.all((values >= ylo) & (values <= yhi))
         axes[row, 0].set_title(obj['role'] + f" · 第{obj['group']}组", loc='left', pad=14, fontsize=9)
     for i, ax in enumerate(axes.ravel()):
         ax.text(-.16, 1.04, chr(97 + i), transform=ax.transAxes, fontweight='bold', fontsize=11)
@@ -165,6 +189,9 @@ def render(label, pair, rows, old):
               Line2D([0], [0], color=brown, marker='o', ms=3, lw=1, label='估计β的伪尺度'),
               Line2D([0], [0], color=brown, ls='--', lw=.7, label='伪尺度均值'),
               Line2D([0], [0], marker='*', color=brown, ls='none', ms=7, label='原估计')]
+    if conditional is not None:
+        legend = [Line2D([0], [0], color=gray, ls='--', lw=.7, label='真值'),
+                  Line2D([0], [0], marker='*', color=brown, ls='none', ms=7, label='原估计')]
     if label == 'MDM_edge':
         legend.extend([Line2D([0], [0], marker='o', mfc='white', mec=blue, ls='none', ms=4, label='梯度交点'),
                        Line2D([0], [0], marker='o', color='#444444', ls='none', ms=3, label='右端探测')])
@@ -188,4 +215,6 @@ def render(label, pair, rows, old):
     plt.close(fig)
     return dict(path=str(target),sha256=digest(target),axes=axes_meta,
                 inverse_coordinate_max_error=max(coordinate_errors),scale_means=means,
-                no_new_curve_nodes=True,all_labels_within_canvas=True)
+                gradient_and_shape_nodes_unchanged=True,
+                conditional_eta=conditional is not None,
+                all_labels_within_canvas=True)

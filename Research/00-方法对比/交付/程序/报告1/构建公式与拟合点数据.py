@@ -22,13 +22,7 @@ def digest(p):
 
 def wmle_residuals(x, beta, gamma):
     """Exact frozen T1,T2; accepts scalar parameters for independent QA."""
-    d = np.asarray(x) - gamma
-    ld = np.log(d)
-    weights = np.exp(beta*ld - logsumexp(beta*ld))
-    t1 = mother.get_weight_j2(len(x))/beta + ld.mean() - weights @ ld
-    ratio = np.exp(logsumexp(beta*ld) - logsumexp((beta-1)*ld))
-    t2 = np.mean(1/d)*ratio - mother.get_weight_j3(len(x), beta)
-    return float(t1), float(t2)
+    return mother.conditional_profiles.wmle_residuals(x, beta, gamma, mother.wmle_weights)
 
 
 def make_case(source, audit, beta):
@@ -70,14 +64,8 @@ def make_case(source, audit, beta):
     x = np.array(samples[beta, 7, r['sample_id']])
     gg = np.unique(np.r_[np.linspace(0, x[0] - 1e-4, 220), 500., r['fit']['gamma_hat']])
     bb = np.unique(np.r_[np.linspace(.3, 9.98, 180), float(beta), 5., r['fit']['beta_hat']])
-    ld = np.log(x[None, :] - gg[:, None])
-    powers = bb[:, None, None] * ld[None, :, :]
-    log_s = logsumexp(powers, axis=2)
-    weights = np.exp(powers-log_s[:,:,None])
-    t1 = mother.get_weight_j2(len(x))/bb[:,None] + ld.mean(axis=1)[None,:] - (weights*ld[None,:,:]).sum(axis=2)
-    ratio = np.exp(log_s-logsumexp((bb[:,None,None]-1)*ld[None,:,:], axis=2))
-    j3 = np.array([mother.get_weight_j3(len(x), float(b)) for b in bb])
-    t2 = np.mean(1/(x[None,:]-gg[:,None]), axis=1)[None,:]*ratio-j3[:,None]
+    t1, t2 = mother.conditional_profiles.wmle_residuals(
+        x, bb[:, None], gg[None, :], mother.wmle_weights)
     actual_b, actual_g = r['fit']['beta_hat'], r['fit']['gamma_hat']
     rb, rg = int(np.where(bb == actual_b)[0][0]), int(np.where(gg == actual_g)[0][0])
     actual_t1, actual_t2 = wmle_residuals(x, actual_b, actual_g)

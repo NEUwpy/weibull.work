@@ -2,6 +2,19 @@
 from pathlib import Path
 import os
 import sys
+import importlib.util
+
+
+def load_conditional_profiles():
+    """两报告调用方法系统的同一条件诊断函数，估计器仍走冻结快照。"""
+    name = "r00_shared_conditional_profiles"
+    if name not in sys.modules:
+        path = ROOT.parents[1] / "python/methods/conditional_profiles.py"
+        spec = importlib.util.spec_from_file_location(name, path)
+        obj = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(obj)
+        sys.modules[name] = obj
+    return sys.modules[name]
 
 PROGRAM = Path(__file__).resolve().parent
 DELIVERY = PROGRAM.parent

@@ -3,7 +3,7 @@
 Use saved samples, fits and profiles. Select one paired sample id per method;
 do not sample, rerun a three-parameter estimator, or overwrite the profile cache.
 """
-from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT
+from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT, matrix_path
 import hashlib
 import json
 from pathlib import Path
@@ -68,7 +68,8 @@ def verify_formula(x, row):
         else:
             weights = np.exp(beta*ld-logsumexp(beta*ld))
             shape = (mother.get_weight_j2(n) if method == 'wmle' else 1)/beta + ld.mean()-weights@ld
-            assert abs(shape) < 2e-10
+            assert (abs(shape) < 2e-10 if method == 'wmle' or beta > 1
+                    else shape <= 2e-10)
             ratio = float(np.exp(logsumexp(beta*ld)-logsumexp((beta-1)*ld)))
             if method == 'wmle':
                 position = float(np.mean(1/d)*ratio-mother.get_weight_j3(n,beta))
@@ -92,6 +93,28 @@ def verify_formula(x, row):
                              derivative_error=abs(numeric-score))
         checks.append(check)
     return checks
+
+
+
+def current_high_shape_summary():
+    catalog = json.loads((PROGRAM/'跨参数对比/13组合取数.json').read_text(encoding='utf-8'))['sources']
+    rows = []
+    for entry in catalog:
+        path = matrix_path(entry)
+        assert digest(path) == entry['matrix_sha256']
+        saved = json.loads(path.read_text(encoding='utf-8'))
+        beta, eta, gamma = saved['config']['truth']
+        if beta != 5: continue
+        for n in (7,15,30):
+            for method in METHODS:
+                good = [r for r in saved['results'] if r['n']==n and r['method_id']==method
+                        and (method!='mdm' or r['delta']==.1) and r['converged']]
+                medians = {k:float(np.median([r[k] for r in good])) for k in ('beta_hat','eta_hat','gamma_hat')}
+                rows.append(dict(combination=entry['combination'], n=n, method=method,
+                                 protocol=entry['protocol'], success=len(good), medians=medians,
+                                 median_location_error_over_eta=(medians['gamma_hat']-gamma)/eta,
+                                 matrix_sha256=digest(path)))
+    return rows
 
 
 def main():
@@ -126,7 +149,8 @@ def main():
     result=dict(task='2026-10-02: derived criteria and literal paired single-case expansions',
         selection_rule='Among n=7 sample ids with successful fits and defined truth/return criteria at both beta=2/5, minimize beta=5 returned gamma distance to the median of all beta=5 successful returns; tie by sample id. Each method uses the same id at both beta values.',
         input_hashes=before,new_samples=0,new_three_parameter_estimates=0,
-        single_curves_copied_from_multi_sample_data=True,methods=results)
+        single_curves_copied_from_multi_sample_data=True,methods=results,
+        current_13_group_high_shape_summary=current_high_shape_summary())
     (DATA/'配对单例与推导核验.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
     print(json.dumps({r['method']:dict(sample_id=r['sample_id'],gamma=[c['fit']['gamma_hat'] for c in r['cases']])
                       for r in results},ensure_ascii=False))

@@ -5,14 +5,14 @@ short_name: "WMLE"
 category: "极大化适配法"
 
 # 核心信息
-formula: "\\{\\hat{\\beta}, \\hat{\\gamma}\\}_W = \\arg \\min_{\\beta, \\gamma} \\left[ \\left( \\frac{W_2}{\\beta} + \\frac{1}{n}\\sum_{i=1}^{n}\\log(x_i - \\gamma) - \\frac{\\sum_{i=1}^{n}\\log(x_i - \\gamma)(x_i - \\gamma)^{\\beta}}{\\sum_{i=1}^{n}(x_i - \\gamma)^{\\beta}} \\right)^2 + \\left( \\frac{1}{n}\\sum_{i=1}^{n}\\frac{1}{x_i - \\gamma} \\times \\frac{\\sum_{i=1}^{n}(x_i - \\gamma)^{\\beta}}{\\sum_{i=1}^{n}(x_i - \\gamma)^{\\beta-1}} - W_3 \\right)^2 \\right]"
+formula: '\left\{\begin{aligned}T_1(\hat\beta,\hat\gamma)&=0\\T_2(\hat\beta,\hat\gamma)&=0\\\hat\eta&=\left[\frac{\sum_i(x_i-\hat\gamma)^{\hat\beta}}{nJ_1(n)}\right]^{1/\hat\beta}\end{aligned}\right.'
 description: "加权极大似然估计（Weighted Maximum Likelihood Estimation, WMLE）是对传统极大似然估计（MLE）的改进方法。MLE 在小样本情况下会产生显著偏差，WMLE 通过引入三个权重（W₁、W₂、W₃）来修正这种偏差。"
 
 # 变量说明
 variables:
   - symbol: "β"
     description: "形状参数，控制分布形状"
-    range: "β > 0"
+    range: "模型 β > 0；本批条件诊断 0 < β < 10"
   - symbol: "η"
     description: "尺度参数，也称特征寿命"
     range: "η > 0"
@@ -25,13 +25,13 @@ variables:
   - symbol: "n"
     description: "样本量"
     range: "n ≥ 3"
-  - symbol: "W₁"
+  - symbol: "J₁"
     description: "尺度参数权重，用于 η 的代数计算"
     range: "≈1"
-  - symbol: "W₂"
+  - symbol: "J₂"
     description: "形状参数权重，修正似然方程第一项"
     range: "≈1 - 1/n"
-  - symbol: "W₃"
+  - symbol: "J₃"
     description: "位置参数权重，修正似然方程第二项"
     range: "依赖于 n 和 β"
   - symbol: "F(x)"
@@ -63,11 +63,13 @@ implementation:
   summary: "实现 Cousineau（2009）的核心加权方程；权重查表、插值及参数约束含工程处理，未复现全部模拟实验。"
   differences:
     - "位置限定非负，形状搜索上界为10；五个确定性初值优化同一方程，残差平方和大于1e-8时返回失败，边界点不会自动视为有效根。"
-    - "J3采用作者实现来源的0.1步长表及插值，查询形状截在0.1–5；样本量超过100时使用表外规则，其中形状≤1时J3回退为2，不能视为论文在任意参数域的原样实现。"
+    - "J3采用作者实现来源的0.1步长表及插值，查询形状截在0.1–5；β>5沿用端点是本批工程近似，不能视为较大形状下的原文权重；样本量超过100时使用表外规则，其中形状≤1时J3回退为2，不能视为论文在任意参数域的原样实现。"
   validation: "已有权重、论文数值例、方程残差和失败路径核验；未复现论文全部 Monte Carlo 表，数值例也受权重表分辨率影响。"
 ---
 
 # 算法原理
+
+原文入口：[Cousineau（2009）](../182-088-pdf原文.md)。下文保留原文的权重构造，并明确本批查表近似、形状范围及方程求解规则。
 
 加权极大似然估计（Weighted Maximum Likelihood Estimation, WMLE）是对传统极大似然估计（MLE）的改进方法。MLE 在小样本情况下会产生显著偏差，WMLE 通过引入三个权重（W₁、W₂、W₃）来修正这种偏差。
 
@@ -93,10 +95,11 @@ $$
 
 ## 标准 MLE 方程
 
-搜索 β 和 γ：
+标准MLE极大化[标准对数似然](mle.md)。对尺度消元后，β>1的内部驻点满足以下两式；其中位置式除以β−1的变形不能用于β=1，也不能把最小残差候选等同于全局似然最大值：
 
 $$
-\{\hat{\beta}, \hat{\gamma}\}_{\mathrm{MLE}} = \arg \min_{\beta, \gamma} \left[ \left( \frac{1}{\beta} + \frac{1}{n}\sum_{i=1}^{n}\log(x_i - \gamma) - \frac{\sum_{i=1}^{n}\log(x_i - \gamma)(x_i - \gamma)^{\beta}}{\sum_{i=1}^{n}(x_i - \gamma)^{\beta}} \right)^2 + \left( \frac{1}{n}\sum_{i=1}^{n}\frac{1}{x_i - \gamma} \times \frac{\sum_{i=1}^{n}(x_i - \gamma)^{\beta}}{\sum_{i=1}^{n}(x_i - \gamma)^{\beta-1}} - \frac{\beta}{\beta-1} \right)^2 \right]
+\frac1\beta+\overline{\ln d}-\frac{\sum_i d_i^\beta\ln d_i}{\sum_i d_i^\beta}=0,\qquad
+\left(\frac1n\sum_i\frac1{d_i}\right)\frac{\sum_i d_i^\beta}{\sum_i d_i^{\beta-1}}=\frac\beta{\beta-1}.
 $$
 
 代数求解 η：
@@ -107,17 +110,26 @@ $$
 
 ## WMLE 加权方程
 
-搜索 β 和 γ：
+原文用校准后的两条方程共同确定β、γ。本文Wᵢ表示随机样本构造的权重，Jᵢ表示其有限样本校准中位数；本批程序和两报告采用同一J权重函数。令dᵢ=xᵢ−γ，定义：
 
 $$
-\{\hat{\beta}, \hat{\gamma}\}_{W} = \arg \min_{\beta, \gamma} \left[ \left( \frac{W_2}{\beta} + \frac{1}{n}\sum_{i=1}^{n}\log(x_i - \gamma) - \frac{\sum_{i=1}^{n}\log(x_i - \gamma)(x_i - \gamma)^{\beta}}{\sum_{i=1}^{n}(x_i - \gamma)^{\beta}} \right)^2 + \left( \frac{1}{n}\sum_{i=1}^{n}\frac{1}{x_i - \gamma} \times \frac{\sum_{i=1}^{n}(x_i - \gamma)^{\beta}}{\sum_{i=1}^{n}(x_i - \gamma)^{\beta-1}} - W_3 \right)^2 \right]
+T_1(\beta,\gamma)=\frac{J_2(n)}\beta+\overline{\ln d}
+-\frac{\sum_i d_i^\beta\ln d_i}{\sum_i d_i^\beta},
+$$
+$$
+T_2(\beta,\gamma)=\left(\frac1n\sum_i\frac1{d_i}\right)
+\frac{\sum_i d_i^\beta}{\sum_i d_i^{\beta-1}}-J_3(n,\beta).
 $$
 
-代数求解 η：
+以T₁=T₂=0为方法判据。程序最小化T₁²+T₂²寻找候选，并要求最终残差平方和≤1e−8；仅有优化器收敛或残差较小的候选不能自动当作方程解。尺度按原加权构造恢复：
 
 $$
-[\hat{\eta} | \hat{\beta}, \hat{\gamma}]_{W} = \sqrt[\hat{\beta}]{\frac{1}{n W_1}\sum_{i=1}^{n}(x_i - \hat{\gamma})^{\hat{\beta}}}
+\hat\eta=\left[\frac{\sum_i(x_i-\hat\gamma)^{\hat\beta}}{nJ_1(n)}\right]^{1/\hat\beta}.
 $$
+
+两报告调用[共享条件诊断](../../../python/methods/conditional_profiles.py)中的`wmle_profile()`和`wmle_residuals()`，权重提供者为该批[WMLE程序](../../../python/methods/wmle.py)或其冻结副本。固定γ时，只在0<β<10内求T₁零点，再沿该支线评价T₂；范围内没有T₁零点则标为无条件解，曲线在该段没有定义，不能把β截为10后冒充零点。无条件解只指该固定γ，不代表其他位置不存在联合解。曲线是条件诊断，不是联合优化器的迭代轨迹。
+
+J₃现有表只覆盖β=0.1—5，区间外沿用端点。本批在5<β<10下的曲线、交点和估计使用这项工程近似；若要恢复较大候选形状下的原文权重，须扩展、核验权重表并重算受影响结果。
 
 ## 权重定义与计算
 
@@ -211,5 +223,5 @@ W₃ 同时依赖于样本量 n 和形状参数 β，下表展示关键值（完
 ## 边界与失败语义
 
 - 论文允许负位置；本实现限制 0≤γ<min(X)。负位置根不能直接采用，边界候选仍须通过方程残差检查；残差平方和大于1e-8时返回失败，并非一律截断后成功。
-- 形状参数搜索区间为 (0, 10]。若最优解压在上界（数据无法由该范围内的威布尔形状描述，如退化样本），方法显式返回失败状态 `shape_at_bound`，不输出伪结果。
+- 形状参数搜索上界为10；条件诊断的T₁零点限定0<β<10。实际程序对β≥9.99的近上界候选也按`shape_at_bound`返回失败。若候选压在上界（数据无法由该范围内的威布尔形状描述，如退化样本），方法显式返回失败状态 `shape_at_bound`，不输出伪结果。
 - 数值优化本身失败时（未收敛），方法显式返回失败，不返回任何默认参数。

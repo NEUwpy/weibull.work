@@ -1,10 +1,10 @@
 """Reproduce the archived seeds and diagnose the actual estimators on the same samples.
 
 Run with the project's Python 3.11 environment. All method code and inputs are local.
-The independent profiles diagnose each estimator; they do not replace its returned fit.
+The shared conditional profiles diagnose each estimator; they do not replace its returned fit.
 """
 from __future__ import annotations
-from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT
+from 共用 import RESULT, PROGRAM, ROOT as RESEARCH_ROOT, load_conditional_profiles
 import csv
 import hashlib
 import json
@@ -39,7 +39,8 @@ sys.path.insert(0, str(HERE / '依赖快照' / 'python'))
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
 from studies.common.metrics import aggregate_standard_metrics
-from methods import registry
+from methods import registry, wmle as wmle_weights
+conditional_profiles = load_conditional_profiles()
 from methods.lre_park import LRE as ParkLRE
 from methods.lse import log_weibull_order_stat_means
 from methods.wmle import get_weight_j1, get_weight_j2, get_weight_j3, SHAPE_UPPER
@@ -68,16 +69,8 @@ def dump(path, value):
 def hash_file(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
-def shape_root(logd, weight, upper):
-    def equation(b):
-        w = np.exp(b*logd-logsumexp(b*logd))
-        return weight/b + float(logd.mean()) - float(w@logd)
-    if equation(upper) >= 0:
-        return None
-    return float(brentq(equation, .010001, upper, xtol=1e-11))
-
 def profile(x, method, g):
-    """Use the exact fit criterion/weighted equation of the saved implementation."""
+    """Shared MLE beta>=1 profile / bounded WMLE T1 branch, with frozen weights."""
     d = x-g
     if g < 0 or np.any(d <= 0): return None
     logd = np.log(d); n=len(x)
@@ -95,18 +88,13 @@ def profile(x, method, g):
         r=float(np.corrcoef(logd,z)[0,1])
         return {'b':float(b),'eta':eta,'value':max(1-r*r,1e-16),'ll':None,'clipped':False}
     if method in ('wmle','mle'):
-        b=shape_root(logd,get_weight_j2(n) if method=='wmle' else 1., SHAPE_UPPER if method=='wmle' else 1000.)
-        if b is None or (method=='mle' and b<=1.): return None
-        log_s=logsumexp(b*logd)
-        eta=float(np.exp((log_s-math.log(n*(get_weight_j1(n) if method=='wmle' else 1.)))/b))
-        ratio=float(np.exp(log_s-logsumexp((b-1)*logd)))
-        if method=='wmle':
-            value=float(np.mean(1/d)*ratio-get_weight_j3(n,b))
-            ll=None
-        else:
-            value=float(1000*(b/ratio-(b-1)*np.mean(1/d)))
-            ll=float(n*math.log(b)-n*b*math.log(eta)+(b-1)*logd.sum()-n)
-        return {'b':b,'eta':eta,'value':value,'ll':ll,'clipped':bool(method=='wmle' and b>5)}
+        p = (conditional_profiles.wmle_profile(x, g, wmle_weights) if method == 'wmle'
+             else conditional_profiles.mle_profile(x, g))
+        if p is None: return None
+        value = p['t2'] if method == 'wmle' else 1000*p['location_score']/n
+        return {'b':p['beta'], 'eta':p['eta'], 'value':value,
+                'll':None if method == 'wmle' else p['ll'],
+                'clipped':p.get('j3_clamped', False)}
     if method=='mdm':
         p=(np.arange(1,n+1)-.3)/(n+.4); z=-np.log1p(-p)
         def sigma(loc):

@@ -108,7 +108,7 @@ def fixed_figure():
         yc = y-y.mean()
         fits = {"LSE": helper.regression(x, 500., z_lse, "LSE"),
                 "LRE": helper.regression(x, 500., z_lre, "LRE"),
-                "MLE": helper.shape_profile(x, 500.)}
+                "MLE": helper.mle_profile(x, 500.)}
         for col, (name, z) in enumerate([("LSE", z_lse), ("LRE", z_lre)]):
             zc = z-z.mean()
             b = fits[name]["beta"]

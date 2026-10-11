@@ -71,7 +71,12 @@ def mdm_functions(x):
         return (profile(g+h)["sigma"]-profile(g-h)["sigma"])/(2*h)
     return profile,gradient,u
 
-def main():
+def main(labels=None):
+    selected_labels = set(LABELS if labels is None else labels)
+    if not selected_labels <= set(LABELS):
+        raise ValueError('Unknown paired figure label')
+    target = DATA_DIR/'20261010-配对图参照线精简核验.json'
+    current = json.loads(target.read_text(encoding='utf-8'))
     previous_path=DATA_DIR/'20261010-各情形正常异常配对核验.json'
     previous=json.loads(previous_path.read_text(encoding='utf-8'))
     unchanged_labels=[label for label in LABELS if label.startswith(('MDM_','MMLE_'))]
@@ -86,7 +91,13 @@ def main():
     sources=dict(process["source_sha256"])
     sources.update({str(p):helper.digest(p) for p in [process_path,flow_path,catalog_path,previous_path,Path(__file__)]})
     old_png={str(p):helper.digest(p) for p in IMAGES.glob("*.png") if not p.name.startswith("配对情形_")}
-    cache,pairs,rows,grids,figures={},{},[],{},{}
+    cache = {}
+    pairs = dict(current['pairs']) if labels is not None else {}
+    figures = dict(current['figures']) if labels is not None else {}
+    rows = ([r for r in csv.DictReader((DATA_DIR/'20261010-参照线精简图数据.csv').open(encoding='utf-8-sig'))
+             if r['example'] not in selected_labels] if labels is not None else [])
+    with np.load(DATA_DIR/'20261010-参照线精简WMLE网格.npz') as saved:
+        grids = {key:saved[key] for key in saved.files} if labels is not None else {}
 
     def source(combo):
         if combo not in cache:
@@ -125,7 +136,8 @@ def main():
             at_true=helper.wmle_profile(x,truth[2],wmle);at_original=helper.wmle_profile(x,g,wmle)
         else:
             retained=x[1:] if c["method"]=="MMLE" else x
-            at_true=helper.shape_profile(retained,truth[2]);at_original=helper.shape_profile(retained,g)
+            conditional = helper.mle_profile if c['method']=='MLE' else helper.shape_profile
+            at_true=conditional(retained,truth[2]);at_original=conditional(retained,g)
         assert abs(np.log(at_original["beta"]/beta))<2e-5,(c["method"],c["combination"],group,role,beta,at_original["beta"],r["conditional_beta_log_error"])
         assert abs(np.log(at_original["eta"]/float(r["eta_hat"])))<2e-5,(c["method"],group,role)
         for stage,gamma in [(at_true,float(truth[2])),(at_original,g)]:
@@ -141,6 +153,7 @@ def main():
         return obj,z,wmle
 
     for label,title in zip(LABELS,TITLES):
+        if label not in selected_labels: continue
         c=cases[label];method="MDM δ=0.20" if c["method"]=="MDM" else c["method"]
         pool=[r for r in flow if r["combination"]==c["combination"] and int(r["n"])==c["n"] and r["method"]==method and r["abnormal"]=="False"]
         selected=min(pool,key=lambda r:(abs(int(r["group"])-c["group"]),int(r["group"])))
@@ -215,7 +228,7 @@ def main():
             ranks=np.arange(1,c["n"]+1,2 if c["n"]>10 else 1)
             shared(2,(.5,c["n"]+.5),ranks,(0,dmax),dticks,r"$i$",r"$d_i/\eta_0$")
             for row,obj in enumerate(pair):
-                x=np.asarray(obj["values"]);gs=gs_for(obj);p=[helper.shape_profile(x,float(g)) for g in gs]
+                x=np.asarray(obj["values"]);gs=gs_for(obj);p=[helper.mle_profile(x,float(g)) for g in gs]
                 axes[row,0].plot(gs/g0,[q["ll"]-obj["at_true"]["ll"] for q in p],color=BLUE,lw=1.15)
                 axes[row,0].axhline(0,color=GRAY,lw=.7,ls="--")
                 star(axes[row,0],obj["gamma_hat"]/g0,obj["at_original"]["ll"]-obj["at_true"]["ll"])
@@ -268,7 +281,7 @@ def main():
             if label=="MDM_edge":legend += [Line2D([0],[0],marker="o",mfc="white",mec=BLUE,ls="none",ms=4,label="梯度交点"),Line2D([0],[0],marker="o",color="#444444",ls="none",ms=3,label="右端探测")]
         elif c["method"]=="WMLE":
             xmin=min(.9,min(o["gamma_hat"]/g0 for o in pair)-.03);xmax=max(1.17,max(o["gamma_hat"]/g0 for o in pair)+.02)
-            bmax=max(9,np.ceil(max(o["beta_hat"] for o in pair)))
+            bmax=min(wmle.SHAPE_UPPER, max(9,np.ceil(max(o["beta_hat"] for o in pair))))
             shared(0,(.6,7.4),np.arange(1,8),(0,2.5),[0,.5,1,1.5,2,2.5],r"$i$",r"$d_i/\eta_0$")
             position(1,(xmin,xmax),r"$\beta$",(0,bmax),[0,3,6,9] if bmax==9 else MaxNLocator(nbins=4).tick_values(0,bmax))
             position(2,(xmin,xmax),r"$T_2[\hat\beta(\gamma),\gamma]$",(-.08,.08),[-.08,-.04,0,.04,.08])
@@ -277,21 +290,17 @@ def main():
                 for gamma,color,stage in [(obj["gamma_hat"],BROWN,"estimated")]:
                     values=(x-gamma)/eta;axes[row,0].plot(np.arange(1,8),values,color=color,lw=1,marker="o",ms=3.8)
                     save_curve(obj,"distance_"+stage,rank=np.arange(1,8),distance_ratio=values)
-                logs=np.log(x[None,:]-gs[:,None]);centered=logs-logs.mean(axis=1)[:,None]
-                power=bs[None,:,None]*centered[:,None,:]
-                weights=np.exp(power-power.max(axis=2)[:,:,None]);weights/=weights.sum(axis=2)[:,:,None]
-                t1=wmle.get_weight_j2(len(x))/bs[None,:]-np.sum(weights*centered[:,None,:],axis=2)
-                logratio=logs.mean(axis=1)[:,None]+logsumexp(power,axis=2)-logsumexp((bs[None,:,None]-1)*centered[:,None,:],axis=2)
-                t2=np.mean(1/(x[None,:]-gs[:,None]),axis=1)[:,None]*np.exp(logratio)-np.array([wmle.get_weight_j3(len(x),float(b)) for b in bs])[None,:]
+                t1,t2 = helper.conditional_profiles.wmle_residuals(
+                    x, bs[None,:], gs[:,None], wmle)
                 axes[row,1].contour(gs/g0,bs,t1.T,levels=[0],colors=[BLUE],linewidths=1.2)
                 axes[row,1].contour(gs/g0,bs,t2.T,levels=[0],colors=[BROWN],linewidths=1.2)
                 axes[row,1].scatter([1],[obj["beta_true"]],marker="D",facecolors="white",edgecolors=GRAY,s=25,lw=.8,zorder=5)
                 star(axes[row,1],obj["gamma_hat"]/g0,obj["beta_hat"])
                 if row==0:axes[row,1].legend(handles=[Line2D([0],[0],color=BLUE,lw=1.2,label=r"$T_1=0$"),Line2D([0],[0],color=BROWN,lw=1.2,label=r"$T_2=0$")],loc="upper right",fontsize=7)
                 p=[helper.wmle_profile(x,float(g),wmle) for g in gs]
-                axes[row,2].plot(gs/g0,[q["t2"] for q in p],color="#444444",lw=1.15);axes[row,2].axhline(0,color=GRAY,lw=.7,ls=":")
+                axes[row,2].plot(gs/g0,[q["t2"] if q is not None else np.nan for q in p],color="#444444",lw=1.15);axes[row,2].axhline(0,color=GRAY,lw=.7,ls=":")
                 star(axes[row,2],obj["gamma_hat"]/g0,obj["at_original"]["t2"])
-                save_curve(obj,"shape_zero_branch",gamma=gs,gamma_ratio=gs/g0,beta=np.array([q["beta"] for q in p]),t2=np.array([q["t2"] for q in p]))
+                save_curve(obj,"shape_zero_branch",gamma=gs,gamma_ratio=gs/g0,beta=np.array([q["beta"] if q is not None else np.nan for q in p]),t2=np.array([q["t2"] if q is not None else np.nan for q in p]),conditional_defined=np.array([q is not None for q in p]))
                 for key,value in [("gamma",gs),("beta",bs),("T1",t1),("T2",t2)]:grids[label+"_"+obj["role"]+"_"+key]=value
             legend=[Line2D([0],[0],color=BROWN,marker="o",ms=3,lw=1,label="样本距离"),fit_legend[2],
                     Line2D([0],[0],marker="D",mfc="white",mec=GRAY,ls="none",ms=4,label="真参数")]
@@ -335,7 +344,10 @@ def main():
             point_series += [np.column_stack([line.get_xdata(),line.get_ydata()]) for line in ax.lines if line.get_marker() not in [None,"None","",' ']]
             for values in point_series:
                 assert np.all((values[:,0]>=xlo-1e-9)&(values[:,0]<=xhi+1e-9)&(values[:,1]>=ylo-1e-9)&(values[:,1]<=yhi+1e-9)),(label,ax.get_ylabel(),values.tolist())
-        path=IMAGES/("配对情形_"+label+".png");fig.savefig(path,dpi=400,facecolor="white");plt.close(fig)
+        path=IMAGES/("配对情形_"+label+".png")
+        temporary=path.with_suffix(".tmp.png")
+        fig.savefig(temporary,dpi=400,facecolor="white");plt.close(fig)
+        temporary.replace(path)
         figures[label]=dict(path=str(path),sha256=helper.digest(path),panels=6,axes=axes_meta,all_observation_points_visible=True,
             selected_fit_only=c['method'] in ('LSE','LRE'),
             distances_at_selected_position_only=c['method'] in ('MLE','WMLE'),
@@ -352,9 +364,20 @@ def main():
 
     if "--prepare" not in sys.argv:
         names=list(dict.fromkeys(k for row in rows for k in row))
-        with (DATA_DIR/"20261010-参照线精简图数据.csv").open("w",encoding="utf-8",newline="") as h:
+        curve_path = DATA_DIR/"20261010-参照线精简图数据.csv"
+        curve_temporary = curve_path.with_suffix(".tmp.csv")
+        with curve_temporary.open("w",encoding="utf-8",newline="") as h:
             writer=csv.DictWriter(h,fieldnames=names,lineterminator="\n");writer.writeheader();writer.writerows(rows)
-        np.savez_compressed(DATA_DIR/"20261010-参照线精简WMLE网格.npz",**grids)
-    print('Generated sixteen paired mechanism figures from archived samples and estimates')
+        curve_temporary.replace(curve_path)
+        if labels is None or any(label.startswith('WMLE_') for label in selected_labels):
+            np.savez_compressed(DATA_DIR/"20261010-参照线精简WMLE网格.npz",**grids)
+        current.update(pairs=pairs, figures=figures, source_sha256=sources,
+                       conditional_domains=dict(MLE='beta>=1, eta>0, 0<=gamma<min(X)',
+                                                WMLE='T1=T2=0, 0<beta<10; no T1 zero means undefined'),
+                       shared_profile_sha256=helper.digest(Path(helper.conditional_profiles.__file__)))
+        temporary = target.with_suffix('.tmp.json')
+        temporary.write_text(json.dumps(current,ensure_ascii=False,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+        temporary.replace(target)
+    print(f'Generated {len(selected_labels)} paired mechanism figures from archived samples and estimates')
 
 if __name__=="__main__":main()

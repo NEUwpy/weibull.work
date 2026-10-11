@@ -91,18 +91,21 @@
       "abnormal": 84,
       "over": 2,
       "under": 82,
-      "removed_at_true_location": 84,
+      "removed_at_true_location": 81,
       "persists_at_true_location": 0,
       "persists_same_direction": 0,
       "switches_abnormal_direction": 0,
       "removed_by_conditional_restore": 0,
-      "normal_becomes_abnormal_at_true": 1,
-      "all_fixed_true_abnormal": 1,
+      "normal_becomes_abnormal_at_true": 0,
+      "all_fixed_true_abnormal": 0,
       "parameter_mismatch_abnormal": 0,
       "max_conditional_beta_log_error": 4.4147130394825166e-11,
       "max_conditional_eta_log_error": 1.2754464151417385e-11,
       "zero_position_abnormal": 0,
-      "endpoint_abnormal": 0
+      "endpoint_abnormal": 0,
+      "fixed_true_conditional_defined": 1862,
+      "fixed_true_conditional_undefined": 9,
+      "abnormal_fixed_true_conditional_undefined": 3
     },
     "MMLE": {
       "attempts": 1950,
@@ -136,7 +139,7 @@
     "mdm_under_selected_location_right": 99,
     "mdm_under_max_finite_gradient_delta_error": 1.0778793263499509e-07,
     "wmle_max_squared_residual": 3.614266152826925e-21,
-    "wmle_direction_matches_equation_sign": 84,
+    "wmle_direction_matches_equation_sign": 81,
     "original_abnormal_remaining_at_true": 15,
     "remaining_all_n7": true,
     "remaining_all_fixed_true_over": true,
@@ -251,5 +254,323 @@
     "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\mmle.py": "afe5318c04373254ad6acffc47e9cf7ff7ba80efa667865102ce8fc49edb85f9",
     "D:\\weibull\\Research\\00-方法对比\\W(5,100,500)\\20261007-暂存样本补齐\\程序\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1"
   },
-  "sources_unchanged": true
+  "sources_unchanged": true,
+  "conditional_diagnostics": {
+    "MLE": "beta>=1; beta=1 boundary kept with recomputed eta",
+    "WMLE": "0<beta<10; no T1 zero means undefined, never a clamped shape",
+    "no_estimator_calls": true,
+    "archived_estimates_and_abnormal_flags_unchanged": true,
+    "wmle_undefined_at_true": [
+      {
+        "combination": "W(5,1000,500)",
+        "n": "7",
+        "group": "29",
+        "abnormal": "False",
+        "direction": "none"
+      },
+      {
+        "combination": "W(5,1000,500)",
+        "n": "15",
+        "group": "37",
+        "abnormal": "False",
+        "direction": "none"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "25",
+        "abnormal": "False",
+        "direction": "none"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "30",
+        "abnormal": "True",
+        "direction": "under"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "31",
+        "abnormal": "False",
+        "direction": "none"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "35",
+        "abnormal": "True",
+        "direction": "under"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "15",
+        "group": "9",
+        "abnormal": "False",
+        "direction": "none"
+      },
+      {
+        "combination": "W(5,100,500)",
+        "n": "7",
+        "group": "9",
+        "abnormal": "False",
+        "direction": "none"
+      },
+      {
+        "combination": "W(5,100,500)",
+        "n": "7",
+        "group": "12",
+        "abnormal": "True",
+        "direction": "under"
+      }
+    ],
+    "mle_abnormal_better_feasible_candidates": [
+      {
+        "combination": "W(2,1000,3000)",
+        "n": "7",
+        "group": "37",
+        "direction": "over",
+        "selected_minus_true": "-0.3842008727635573",
+        "boundary_probe_ll_gain": "0.7864622211158832"
+      },
+      {
+        "combination": "W(2,1000,3000)",
+        "n": "7",
+        "group": "46",
+        "direction": "over",
+        "selected_minus_true": "-0.2624622455400285",
+        "boundary_probe_ll_gain": "1.1500266089808235"
+      },
+      {
+        "combination": "W(2,1000,3000)",
+        "n": "7",
+        "group": "49",
+        "direction": "over",
+        "selected_minus_true": "0.04589077620911297",
+        "boundary_probe_ll_gain": "0.4084718378342913"
+      },
+      {
+        "combination": "W(3,1000,3000)",
+        "n": "7",
+        "group": "11",
+        "direction": "over",
+        "selected_minus_true": "0.004657280135305086",
+        "boundary_probe_ll_gain": "0.5984071961836008"
+      },
+      {
+        "combination": "W(3,1000,3000)",
+        "n": "7",
+        "group": "19",
+        "direction": "over",
+        "selected_minus_true": "-0.3192528468369247",
+        "boundary_probe_ll_gain": "2.472629276575404"
+      },
+      {
+        "combination": "W(3,1000,3000)",
+        "n": "7",
+        "group": "22",
+        "direction": "over",
+        "selected_minus_true": "-0.4629775237275453",
+        "boundary_probe_ll_gain": "1.066534028950521"
+      },
+      {
+        "combination": "W(3,1000,3000)",
+        "n": "7",
+        "group": "26",
+        "direction": "over",
+        "selected_minus_true": "-0.17742402425145087",
+        "boundary_probe_ll_gain": "1.190453459216144"
+      },
+      {
+        "combination": "W(3,1000,3000)",
+        "n": "7",
+        "group": "32",
+        "direction": "over",
+        "selected_minus_true": "-0.009676916030350924",
+        "boundary_probe_ll_gain": "0.7159025019269407"
+      },
+      {
+        "combination": "W(3,1000,3000)",
+        "n": "7",
+        "group": "48",
+        "direction": "over",
+        "selected_minus_true": "-0.1453242957113261",
+        "boundary_probe_ll_gain": "1.2853757074034817"
+      },
+      {
+        "combination": "W(3,1000,3000)",
+        "n": "15",
+        "group": "29",
+        "direction": "over",
+        "selected_minus_true": "-0.11075659328338361",
+        "boundary_probe_ll_gain": "1.7879637086010405"
+      },
+      {
+        "combination": "W(5,1000,500)",
+        "n": "7",
+        "group": "4",
+        "direction": "under",
+        "selected_minus_true": "0.710495081722101",
+        "boundary_probe_ll_gain": "0.04546979846205801"
+      },
+      {
+        "combination": "W(5,1000,500)",
+        "n": "7",
+        "group": "5",
+        "direction": "under",
+        "selected_minus_true": "0.48443614513889344",
+        "boundary_probe_ll_gain": "0.08364694464431466"
+      },
+      {
+        "combination": "W(5,1000,500)",
+        "n": "7",
+        "group": "12",
+        "direction": "under",
+        "selected_minus_true": "0.3575171510037336",
+        "boundary_probe_ll_gain": "0.09544106847211253"
+      },
+      {
+        "combination": "W(5,1000,500)",
+        "n": "7",
+        "group": "23",
+        "direction": "under",
+        "selected_minus_true": "0.7037589007439848",
+        "boundary_probe_ll_gain": "0.0014087592538061244"
+      },
+      {
+        "combination": "W(5,1000,500)",
+        "n": "15",
+        "group": "8",
+        "direction": "under",
+        "selected_minus_true": "1.7205644309510149",
+        "boundary_probe_ll_gain": "0.01868788019064027"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "23",
+        "direction": "under",
+        "selected_minus_true": "0.6634428181878533",
+        "boundary_probe_ll_gain": "0.06359558213645045"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "24",
+        "direction": "over",
+        "selected_minus_true": "-0.2625405462793893",
+        "boundary_probe_ll_gain": "2.043954942810828"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "29",
+        "direction": "under",
+        "selected_minus_true": "1.02511806771183",
+        "boundary_probe_ll_gain": "0.034901700029493554"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "43",
+        "direction": "over",
+        "selected_minus_true": "-0.18622720433502593",
+        "boundary_probe_ll_gain": "1.6397537772412605"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "44",
+        "direction": "over",
+        "selected_minus_true": "-0.2672339166406985",
+        "boundary_probe_ll_gain": "2.4350241802043797"
+      },
+      {
+        "combination": "W(5,1000,3000)",
+        "n": "7",
+        "group": "46",
+        "direction": "over",
+        "selected_minus_true": "-0.3436064091694817",
+        "boundary_probe_ll_gain": "1.4366523960527644"
+      },
+      {
+        "combination": "W(1.5,100,500)",
+        "n": "7",
+        "group": "40",
+        "direction": "over",
+        "selected_minus_true": "0.18178516661818378",
+        "boundary_probe_ll_gain": "0.14595353344024886"
+      },
+      {
+        "combination": "W(5,100,500)",
+        "n": "7",
+        "group": "23",
+        "direction": "over",
+        "selected_minus_true": "0.01078736585902007",
+        "boundary_probe_ll_gain": "0.06859125935835308"
+      },
+      {
+        "combination": "W(5,100,500)",
+        "n": "7",
+        "group": "28",
+        "direction": "under",
+        "selected_minus_true": "1.3151798834974429",
+        "boundary_probe_ll_gain": "0.026534285708144978"
+      },
+      {
+        "combination": "W(5,100,500)",
+        "n": "7",
+        "group": "49",
+        "direction": "under",
+        "selected_minus_true": "0.400359654333613",
+        "boundary_probe_ll_gain": "0.04201221144551326"
+      }
+    ],
+    "mle_probe": "Compare original likelihood against true-location conditional optimum and min(X)-max(1e-6,1e-7*min(X)). Gain >1e-5 is a witness; no witness is not a global optimality proof."
+  },
+  "current_diagnostic_source_sha256": {
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,500\\完整矩阵\\数据\\matrix.json": "5f4df193f6b6c2bcc6da74fada9de75f8db342571e271ced94d9983a8f0a896b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,500\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,500\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,1000\\完整矩阵\\数据\\matrix.json": "12eda817af02f61c468b90f97edac9fec3e6e671f64ed10ee00bed1813cd3d9b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,1000\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,1000\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,3000\\完整矩阵\\数据\\matrix.json": "ce365c14e046294b0714be166137eb43846c2f3d192ca40d046244cc5b451c27",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,3000\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,1000,3000\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,500\\完整矩阵\\数据\\matrix.json": "ebbed77173e118f774bdbefc7fd7b0e1502e99122c901b749ce6d35a878cd304",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,500\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,500\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,1000\\完整矩阵\\数据\\matrix.json": "94a0dfbce2b396f4f309545cb2ad674c4eb01a7c563b7686fb8be5cb2a56b88a",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,1000\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,1000\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,3000\\完整矩阵\\数据\\matrix.json": "0faf92249b737ecce6c68f06737438f2899c9a27c91ebe93f0c95e2ba192de21",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,3000\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,1000,3000\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,500\\完整矩阵\\数据\\matrix.json": "50fb5ea69a2ef7e9adcb5697fbbc417735845d029c079430f14b2fa78a412c15",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,500\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,500\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,3000\\完整矩阵\\数据\\matrix.json": "9da5f659e990650fe1bc7d67a2b1de9c6125f34aec71397f6c8b1202498a5400",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,3000\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,1000,3000\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,100,500\\中间数据\\matrix.json": "ffb12a26eae55bdde7407775afd6986910a62a963d91560577549d3e131e68f9",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,100,500\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,100,500\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,1000,500\\中间数据\\matrix.json": "e0b6b5f976f46f9d85870c26e4ceda485afc0cd48489915e98885df181ad9de6",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,1000,500\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W1.5,1000,500\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,100,500\\中间数据\\matrix.json": "fe6295225fe8279731619ebc891c6bed6681549166e4a5a14ebbee9a16881050",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,100,500\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W2,100,500\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,100,500\\中间数据\\matrix.json": "b8ddd50deb5c3481e9dd0ea8454c6e779f4378c177b6f1583a42b10cfbf6e22c",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,100,500\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W3,100,500\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,100,500\\中间数据\\matrix.json": "4acf7790c6a49ef4f5270240c09f8ab847fa4f2139d04e2ba24ed5dbbd71085b",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,100,500\\依赖快照\\python\\methods\\wmle.py": "8683edc4c2e2ebbb5cc37f7e389c30f460dfe2e76ddbc9961d9b0e61978b7989",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\W5,100,500\\依赖快照\\python\\methods\\j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\程序\\报告2\\逐方法机制复核.py": "480c181ecdcba42327ed59c53a2e20960562e55e41dfb395bd49f5ed70200223",
+    "D:\\weibull\\python\\methods\\conditional_profiles.py": "158cd64d4dc10529a8ac0c588c930094092776435dfc95186d86ce2d8b603869",
+    "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\数据\\全量流程定位.csv": "b1196be31527f9631c0472941765d64be6f2f875ea1377393a60986e76c38205"
+  }
 }

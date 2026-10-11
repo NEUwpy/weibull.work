@@ -91,9 +91,21 @@ def main():
     target = DATA / '逐法过程曲线.json'
     if target.exists():
         cached = load(target)
-        assert cached['provenance']['input_hashes'] == hashes, 'Inputs changed; use a separate reproduction directory.'
+        # Frozen sample/estimate hashes must match, even after a path relocation.
+        old_hashes = cached['provenance']['input_hashes']
+        assert all(value in old_hashes.values() for path, value in hashes.items()
+                   if path != str(paths[-1])), 'Saved sample/estimate inputs changed.'
         curves = cached['curves']
         assert len(curves) == len(tasks)
+        shared_hash = sha(Path(mother.conditional_profiles.__file__))
+        if cached['provenance'].get('shared_profile_sha256') != shared_hash:
+            # Refresh only these diagnostics; keep every archived fit and other method curve.
+            by_sample = {(s['beta'], s['n'], s['sample_id']): s['observations'] for s in samples}
+            by_original = {(s['beta_true'], s['n'], s['sample_id']): s['observations'] for s in audit['samples']}
+            curves = [curve((r['source'], r['beta'], r['n'], r['sample_id'], r['method'],
+                             (by_sample if r['source']=='paired' else by_original)[r['beta'],r['n'],r['sample_id']],
+                             r['fit'])) if r['method'] in ('mle','wmle') else r for r in curves]
+            print('Refreshed shared MLE/WMLE conditional curves; no estimator calls.', flush=True)
     else:
         curves = []
         with ProcessPoolExecutor(max_workers=3) as pool:
@@ -147,9 +159,11 @@ def main():
     output = dict(columns=['gamma', 'criterion', 'conditional_beta', 'conditional_eta', 'J3_clamped', 'profile_loglik'],
         conditions=[dict(beta=b, n=n, groups=50) for b, n in CONDITIONS],
         provenance=dict(input_hashes=hashes, new_samples=0, new_fits=0,
+            shared_profile_sha256=sha(Path(mother.conditional_profiles.__file__)),
+            conditional_domains=dict(mle='beta>=1; beta=1 boundary retained', wmle='0<beta<10; no T1 zero means undefined'),
             across_beta='Same n and sample id share E; n7 and n15 use separate latent families.',
             original_selection='For each beta=2/5,n7, successful gamma closest to method median with defined truth and return profiles; tie by id; original batches use different seeds.',
-            diagnostic_scope='Actual frozen conditional criteria; not optimizer iteration trajectories.'),
+            diagnostic_scope='Shared conditional MLE/WMLE diagnostics with frozen weights; not optimizer iteration trajectories.'),
         summaries=summaries, regression_truth_invariance=invariance, mdm_envelope=mdm_envelope, curves=curves)
     target.write_text(json.dumps(output, ensure_ascii=False, separators=(',', ':'), allow_nan=False), encoding='utf-8')
     print(json.dumps(dict(curves=len(curves), points=sum(len(r['points']) for r in curves),
