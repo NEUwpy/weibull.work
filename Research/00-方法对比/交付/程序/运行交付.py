@@ -153,6 +153,7 @@ def report1():
     extra.continuous_estimates()
     extra.compensation()
     extra.supplement()
+    module(folder / '20261012-报告1图题统一.py', 'r1_figure_titles').apply()
     print('报告1：当前主图及补充图已由保存的样本、估计和过程数据生成。')
 
 

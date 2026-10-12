@@ -69,10 +69,14 @@ def correct(text):
             continue
         assert text.count(before) == 1, before
         text = text.replace(before, after)
+    if (HERE / '20261012-典型形成过程表述-核验.json').exists():
+        text = base.module('20261012-典型形成过程表述').correct(text)
     return text
 
 
 def restore(text):
+    if (HERE / '20261012-典型形成过程表述-核验.json').exists():
+        text = base.module('20261012-典型形成过程表述').restore(text)
     for before, after in REPLACEMENTS.items():
         text = text.replace(after, before)
     return text
@@ -83,7 +87,10 @@ def approved_outside_hash(expected):
         return expected
     bounds = base.load(QA)['text']
     assert expected in (bounds['outside_before_sha256'], bounds['outside_after_sha256'])
-    return bounds['outside_after_sha256']
+    after = bounds['outside_after_sha256']
+    if (HERE / '20261012-典型形成过程表述-核验.json').exists():
+        after = base.module('20261012-典型形成过程表述').approved_outside_hash(after)
+    return after
 
 
 def build():
