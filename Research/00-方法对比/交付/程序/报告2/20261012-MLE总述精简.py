@@ -11,6 +11,7 @@ sys.modules[spec.name] = prior
 spec.loader.exec_module(prior)
 base = prior.base
 QA = HERE / (Path(__file__).stem + '-核验.json')
+REVISION_KEY = 'mle_summary_revision'
 BEFORE = '前两类的候选比真位置条件拟合具有更高似然，其中部分返回值仍可改善。'
 AFTER = '前两类候选的似然高于真位置下的条件拟合。'
 
@@ -35,11 +36,13 @@ def apply():
         base.write_json(QA, record)
         previous.update(after_text_sha256=record['after_text_sha256'],
                         outside_after_sha256=base.text_digest(pair.block(revised)[1]),
-                        replacements=prior.REPLACEMENTS, mle_summary_revision=QA.name)
+                        replacements=prior.REPLACEMENTS)
+        previous[REVISION_KEY] = QA.name
         base.write_json(prior.QA, previous)
         existing = base.load(pair.QA)
         assert existing['outside_block_sha256'] == record['previous_outside_sha256']
-        existing.update(outside_block_sha256=previous['outside_after_sha256'], mle_summary_revision=QA.name)
+        existing.update(outside_block_sha256=previous['outside_after_sha256'])
+        existing[REVISION_KEY] = QA.name
         base.write_json(pair.QA, existing)
     verify()
 

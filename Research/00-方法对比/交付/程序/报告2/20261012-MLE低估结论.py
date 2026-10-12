@@ -17,12 +17,16 @@ AFTER = ('右移使最小距离明显缩小，对数跨度扩大，式（23）�
 
 
 def restore(text):
+    if (HERE / '20261012-位置尺度比解释-核验.json').exists():
+        text = base.module('20261012-位置尺度比解释').restore(text)
     return text.replace(AFTER, BEFORE)
 
 
 def verify():
     record = base.load(QA)
     text = base.REPORT.read_text(encoding='utf-8')
+    if (HERE / '20261012-位置尺度比解释-核验.json').exists():
+        text = base.module('20261012-位置尺度比解释').restore(text)
     assert text.count(AFTER) == 1 and BEFORE not in text
     assert base.text_digest(text) == record['after_text_sha256']
     assert base.text_digest(restore(text)) == record['before_text_sha256']

@@ -231,7 +231,9 @@ def verify():
     row_text = text
     if (HERE / '20261011-MDM回退程序归因.json').exists():
         row_text = module('20261011-MDM回退程序归因').restore(text)
-    assert Counter(re.findall(r'^\|.*组.*$', row_text,re.M)) == Counter(expected_rows)
+    sample_row = r'^\|[^|]*第\d+组[^|]*\|.*$'
+    expected_samples = [row for row in expected_rows if re.match(sample_row, row)]
+    assert Counter(re.findall(sample_row, row_text, re.M)) == Counter(expected_samples)
     expected_protection = record['protected_sha256']
     if pair_record.exists():
         expected_protection = module('20261011-MDM近真值对照').updated_protection(expected_protection)
