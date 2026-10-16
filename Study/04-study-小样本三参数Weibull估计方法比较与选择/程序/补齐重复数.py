@@ -1,5 +1,7 @@
 """复用首轮计算入口，只为16个条件追加900次；保存为独立批次。"""
 import argparse
+import subprocess
+from 存储路径 import ARCHIVE, batch_path
 import importlib.util
 import json
 import shutil
@@ -13,7 +15,7 @@ PROGRAM = Path(__file__).resolve().parent
 STUDY = PROGRAM.parent
 CONFIG = PROGRAM / '补齐重复数配置.json'
 CFG = json.loads(CONFIG.read_text(encoding='utf-8'))
-BASELINE = STUDY / '结果' / CFG['baseline_run_id']
+BASELINE = batch_path(CFG['baseline_run_id'])
 
 spec = importlib.util.spec_from_file_location('study04_formal_comparison', PROGRAM / '运行正式比较.py')
 engine = importlib.util.module_from_spec(spec)
@@ -22,7 +24,7 @@ spec.loader.exec_module(engine)
 assert engine.CFG['methods'] == CFG['methods']
 engine.CFG = CFG
 engine.CONFIG_PATH = CONFIG
-engine.OUT = STUDY / '结果' / CFG['run_id']
+engine.OUT = ARCHIVE / CFG['run_id']
 engine.SOURCES += [str(Path(__file__).resolve().relative_to(engine.ROOT)), str(CONFIG.relative_to(engine.ROOT))]
 
 

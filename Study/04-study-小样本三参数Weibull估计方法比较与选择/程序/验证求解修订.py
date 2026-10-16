@@ -2,6 +2,7 @@
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from 存储路径 import ARCHIVE
 import hashlib
 import json
 import sys
@@ -156,7 +157,7 @@ def verify_old_successes():
                   source_hashes={p: digest(ROOT/p) for p in ['python/methods/mle.py', 'python/methods/wmle.py',
                        'python/methods/profile_solvers.py', 'python/methods/conditional_profiles.py', 'python/methods/j3_weights.tsv']},
                   summary=summary, records=records)
-    output = STUDY/'结果/旧成功结果对照-20261016.json'
+    output = ARCHIVE/'旧成功结果对照-20261016.json'
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(summary, ensure_ascii=False), flush=True)
 
@@ -234,7 +235,7 @@ def main():
                   source_hashes={p: digest(ROOT / p) for p in ['python/methods/mle.py', 'python/methods/wmle.py',
                       'python/methods/profile_solvers.py', 'python/methods/conditional_profiles.py', 'python/methods/lre.py', 'python/methods/j3_weights.tsv']},
                   compared_estimates=len(records), transitions=dict(counts), targeted_wmle_recoveries=len(recovered), records=records)
-    output = STUDY / '结果/求解修订验证-20261016.json'
+    output = ARCHIVE / '求解修订验证-20261016.json'
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps({k: report[k] for k in ['compared_estimates', 'transitions', 'targeted_wmle_recoveries']}, ensure_ascii=False), flush=True)
 

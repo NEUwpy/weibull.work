@@ -5,6 +5,7 @@ and replay a small, predetermined subset. No historical file is rewritten.
 """
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from 存储路径 import ARCHIVE
 import hashlib
 import json
 import subprocess
@@ -205,7 +206,7 @@ def main():
                 replays=sorted(replays,key=lambda r:(r['method'],r['beta'],r['n'],r['repeat_id'])),
                 sample_boundary='Observations rebuilt from byte-matched generator, original namespace and exact parameter types; historical sample values were not stored in R05 raw result table',
                 reuse_boundary='Use per-method masks and version checks, not the old failure-penalized selection score as parameter accuracy')
-    out=STUDY/'结果/300次补充结果核查-20261016.json'
+    out=ARCHIVE/'300次补充结果核查-20261016.json'
     out.write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps(dict(checks=counts,replays=replay_summary),ensure_ascii=False),flush=True)
 

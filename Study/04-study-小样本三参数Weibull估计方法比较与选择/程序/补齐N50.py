@@ -4,6 +4,8 @@ for key in ['OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'NUMEX
     os.environ[key] = '1'
 
 import argparse
+import subprocess
+from 存储路径 import ARCHIVE, batch_path
 import gzip
 import importlib.util
 import json
@@ -18,7 +20,7 @@ PROGRAM = Path(__file__).resolve().parent
 STUDY = PROGRAM.parent
 CONFIG = PROGRAM / '补齐N50配置.json'
 CFG = json.loads(CONFIG.read_text(encoding='utf-8'))
-BASELINE = STUDY / '结果' / CFG['baseline_run_id']
+BASELINE = batch_path(CFG['baseline_run_id'])
 
 
 def load_module(name, path):
@@ -34,10 +36,11 @@ summary_engine = load_module('study04_general_summary', PROGRAM / '比较批次�
 assert engine.CFG['methods'] == CFG['methods']
 engine.CFG = CFG
 engine.CONFIG_PATH = CONFIG
-engine.OUT = STUDY / '结果' / CFG['run_id']
+engine.OUT = ARCHIVE / CFG['run_id']
 baseline_prepared = json.loads((BASELINE / 'prepared.json').read_text(encoding='utf-8'))
 engine.SOURCES = list(dict.fromkeys(list(baseline_prepared['source_hashes']) +
-    [str(path.relative_to(engine.ROOT)) for path in [Path(__file__).resolve(), CONFIG, PROGRAM / '比较批次汇总.py']]))
+    [str(path.relative_to(engine.ROOT)) for path in [Path(__file__).resolve(), CONFIG,
+     PROGRAM / '比较批次汇总.py', PROGRAM / '存储路径.py']]))
 
 
 def prepare():
@@ -123,4 +126,4 @@ if __name__ == '__main__':
     elif args.run:
         engine.run()
     else:
-        finalize()
+        subprocess.run([sys.executable, str(PROGRAM / '核对正式汇总.py'), '--batch', CFG['run_id']], check=True)

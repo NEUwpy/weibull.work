@@ -18,13 +18,14 @@ sys.path.insert(0,str(ROOT/'python'))
 from methods.lse import log_weibull_order_stat_means
 
 
+from 存储路径 import batch_path, current_batch
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--batch',help='结果目录中的批次名；默认读取当前批次')
+    parser.add_argument('--batch',help='计算存档中的批次名；默认读取当前批次')
     args=parser.parse_args()
-    pointer=STUDY/'结果/当前批次.json'
-    run_id=args.batch or (json.loads(pointer.read_text(encoding='utf-8'))['run_id'] if pointer.exists() else '正式比较-20261016')
-    out=STUDY/'结果'/run_id
+    out=batch_path(args.batch) if args.batch else current_batch()
     manifest=json.loads((out/'manifest.json').read_text(encoding='utf-8'))
     config=manifest['config']
     assert manifest['status']=='complete'

@@ -10,11 +10,10 @@ from pathlib import Path
 
 import numpy as np
 
-STUDY = Path(__file__).resolve().parents[1]
-RESULTS = STUDY / '结果'
-CURRENT = RESULTS / '当前批次.json'
-BATCH = RESULTS / (json.loads(CURRENT.read_text(encoding='utf-8'))['run_id'] if CURRENT.exists() else '正式比较-20261016')
-REPORT = RESULTS / '样本结果独立对应核查.json'
+from 存储路径 import STUDY, RESULTS, ARCHIVE, current_batch, saved_path
+
+BATCH = current_batch()
+REPORT = ARCHIVE / '样本结果独立对应核查.json'
 FIELDS = [('beta_hat', '形状估计'), ('eta_hat', '尺度估计'), ('gamma_hat', '位置估计'), ('status', '状态')]
 
 
@@ -74,13 +73,13 @@ def main():
             original = package['samples']
         baseline = prepared.get('baseline_inputs', {}).get(cell['key'])
         if baseline:
-            baseline_path = STUDY.parents[1] / baseline['path']
+            baseline_path = saved_path(baseline['path'])
             require(sha(baseline_path) == baseline['sha256'], '补齐前样本包指纹变化', cell['key'])
             with np.load(baseline_path, allow_pickle=False) as package:
                 require(original[:baseline['repeats']].tobytes() == package['samples'].tobytes(), '原有样本被替换', cell['key'])
         ancestor = prepared.get('ancestor_inputs', {}).get(cell['key'])
         if ancestor:
-            ancestor_path = STUDY.parents[1] / ancestor['path']
+            ancestor_path = saved_path(ancestor['path'])
             require(sha(ancestor_path) == ancestor['sha256'], '早期样本包指纹变化', cell['key'])
             with np.load(ancestor_path, allow_pickle=False) as package:
                 require(original[:ancestor['repeats']].tobytes() == package['samples'].tobytes(), '早期样本被替换', cell['key'])

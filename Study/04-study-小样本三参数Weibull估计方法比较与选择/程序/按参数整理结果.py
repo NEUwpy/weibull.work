@@ -10,10 +10,9 @@ from pathlib import Path
 
 import numpy as np
 
-STUDY = Path(__file__).resolve().parents[1]
-RESULTS = STUDY / '结果'
-CURRENT = RESULTS / '当前批次.json'
-BATCH = RESULTS / (json.loads(CURRENT.read_text(encoding='utf-8'))['run_id'] if CURRENT.exists() else '正式比较-20261016')
+from 存储路径 import STUDY, RESULTS, ARCHIVE, METADATA, current_batch, parameter_file
+
+BATCH = current_batch()
 SAMPLE_DESCRIPTION = '- [原始样本](原始样本/)：各n一份CSV，每行一组升序观测；样本编号从0开始，与估计结果表逐行对应，数值保存17位有效数字。\n\n'
 RESULT_FIELDS = [('beta_hat', '形状估计'), ('eta_hat', '尺度估计'), ('gamma_hat', '位置估计'), ('status', '状态')]
 RESULT_DESCRIPTION = '- [估计结果](估计结果/)：各n一份CSV，每行一组样本；原始观测与7种方法的估计参数、状态在同一行，样本编号与原始样本表对应。\n'
@@ -25,6 +24,17 @@ def sha(path):
         for part in iter(lambda: f.read(1 << 20), b''):
             h.update(part)
     return h.hexdigest()
+
+
+def parameter_hashes(name):
+    files = {}
+    for folder in (RESULTS / name, METADATA / name):
+        for path in folder.rglob('*'):
+            if path.is_file() and path.name != 'manifest.json':
+                key = path.relative_to(folder).as_posix()
+                assert key not in files, ('重复参数文件', name, key)
+                files[key] = sha(path)
+    return files
 
 
 def load(path):
@@ -101,8 +111,8 @@ def result_tables():
     returned = {}
     for name in grid:
         folder = RESULTS / name
-        manifest = load(folder / 'manifest.json')
-        assert all(sha(folder / p) == value for p, value in manifest['file_sha256'].items())
+        manifest = load(parameter_file(name, 'manifest.json'))
+        assert all(sha(parameter_file(name, p)) == value for p, value in manifest['file_sha256'].items())
     with ExitStack() as stack:
         legacy = {}
         for name in grid:
@@ -143,7 +153,7 @@ def result_tables():
         if old.exists():
             assert old.resolve().is_relative_to(folder.resolve())
             old.unlink()
-        readme = folder / 'README.md'
+        readme = METADATA / name / 'README.md'
         text = readme.read_text(encoding='utf-8')
         old_line = '- [估计明细.csv.gz](估计明细.csv.gz)：逐次估计，完整保留失败、极端值及来源字段。\n'
         text = text.replace(old_line, RESULT_DESCRIPTION)
@@ -151,11 +161,11 @@ def result_tables():
         if RESULT_DESCRIPTION not in text:
             text = text.replace('- [summary.json]', RESULT_DESCRIPTION + '- [summary.json]')
         readme.write_text(text, encoding='utf-8')
-        manifest = load(folder / 'manifest.json')
-        manifest['file_sha256'] = {p.relative_to(folder).as_posix(): sha(p) for p in folder.rglob('*') if p.is_file() and p != folder / 'manifest.json'}
+        manifest = load(parameter_file(name, 'manifest.json'))
+        manifest['file_sha256'] = parameter_hashes(name)
         manifest['result_table_format'] = '每个n一份CSV；每行一组样本，观测与7种方法的参数、原状态横向排列；编号从0开始'
         manifest['transformation'] = '原记录按参数及n展开为样本对应表；保留原估计值、失败与极端值；不抽样、不拟合、不重算汇总'
-        dump(folder / 'manifest.json', manifest)
+        dump(METADATA / name / 'manifest.json', manifest)
     index = RESULTS / 'README.md'
     text = index.read_text(encoding='utf-8')
     if '估计结果也按n保存为CSV' not in text:
@@ -169,8 +179,8 @@ def samples_to_csv():
     old_description = '- [原始样本](原始样本/)：各n的原样本包，NPZ中的samples数组每行是一组观测。\n\n'
     for name, cells in groups().items():
         folder = RESULTS / name
-        manifest = load(folder / 'manifest.json')
-        assert all(sha(folder / p) == value for p, value in manifest['file_sha256'].items())
+        manifest = load(parameter_file(name, 'manifest.json'))
+        assert all(sha(parameter_file(name, p)) == value for p, value in manifest['file_sha256'].items())
         for cell in cells:
             write_sample_csv(folder / '原始样本' / f"n{cell['n']}.csv", cell)
             old_copy = folder / '原始样本' / f"n{cell['n']}.npz"
@@ -178,12 +188,12 @@ def samples_to_csv():
                 assert old_copy.resolve().is_relative_to((RESULTS / name).resolve())
                 assert sha(old_copy) == sha(BATCH / 'inputs' / cell['key'] / 'samples.npz')
                 old_copy.unlink()
-        readme = folder / 'README.md'
+        readme = METADATA / name / 'README.md'
         readme.write_text(readme.read_text(encoding='utf-8').replace(old_description, SAMPLE_DESCRIPTION), encoding='utf-8')
-        manifest['file_sha256'] = {p.relative_to(folder).as_posix(): sha(p) for p in folder.rglob('*') if p.is_file() and p != folder / 'manifest.json'}
+        manifest['file_sha256'] = parameter_hashes(name)
         manifest['transformation'] = '原记录按参数筛分；样本按17位有效数字转为CSV并逐值核对；不抽样、不拟合、不重算汇总'
         manifest['sample_format'] = 'CSV, UTF-8 BOM, .17g, 样本编号与repeat_id一致（从0开始）'
-        dump(folder / 'manifest.json', manifest)
+        dump(METADATA / name / 'manifest.json', manifest)
     index = RESULTS / 'README.md'
     text = index.read_text(encoding='utf-8')
     if '原始样本均为CSV' not in text:
@@ -214,7 +224,8 @@ def export():
     for name, cells in grid.items():
         folder = RESULTS / name
         selected = {k: v for k, v in source_summary.items() if group_name(v['beta'], v['eta'], v['gamma']) == name}
-        dump(folder / 'summary.json', selected)
+        (METADATA / name).mkdir(parents=True, exist_ok=True)
+        dump(METADATA / name / 'summary.json', selected)
         with (folder / '条件汇总.csv').open('w', encoding='utf-8-sig', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=summary_fields)
             writer.writeheader()
@@ -224,21 +235,24 @@ def export():
         attempts = sum(c['repeats'] * 7 for c in cells)
         ns = '、'.join(str(c['n']) for c in cells)
         repeats = cells[0]['repeats']
-        (folder / 'README.md').write_text(
+        readme_text = (
             f'# {name}\n\n形状β={cells[0]["beta"]:g}，尺度η=1000，位置γ=500；n={ns}，每条件{repeats}组样本，共{attempts}条方法尝试。\n\n'
             '- [条件汇总.csv](条件汇总.csv)：按样本量、方法列出成功/失败、误差与波动。\n'
             + RESULT_DESCRIPTION +
             '- [summary.json](summary.json)：原批次的详细指标，仅按参数分出，未重新计算。\n'
             + SAMPLE_DESCRIPTION +
             f'n=50仅作参照（若本组包含）；本组每条件{repeats}次，跨条件汇总按条件等权。\n\n'
-            f'数据来自[计算存档](../{BATCH.name}/计算结果概览.md)，程序版本、求解限制及指纹保存在原批次。\n', encoding='utf-8')
-        file_hashes = {str(p.relative_to(folder)).replace('\\', '/'): sha(p) for p in folder.rglob('*') if p.is_file()}
-        dump(folder / 'manifest.json', dict(parameters=[cells[0]['beta'], 1000, 500], cells=cells,
+            f'数据来自[计算存档](../../{BATCH.name}/计算结果概览.md)，程序版本、求解限制及指纹保存在原批次。\n')
+        for target in ['条件汇总.csv', '估计结果/', '原始样本/']:
+            readme_text = readme_text.replace(f']({target})', f'](../../../结果/{name}/{target})')
+        (METADATA / name / 'README.md').write_text(readme_text, encoding='utf-8')
+        file_hashes = parameter_hashes(name)
+        dump(METADATA / name / 'manifest.json', dict(parameters=[cells[0]['beta'], 1000, 500], cells=cells,
              attempts=attempts, source_batch=f'../{BATCH.name}', source_sha256=before, file_sha256=file_hashes,
              transformation='原记录按参数筛分；样本按17位有效数字转为CSV并逐值核对；不抽样、不拟合、不重算汇总',
              sample_format='CSV, UTF-8 BOM, .17g, 样本编号与repeat_id一致（从0开始）'))
         index.append(f'| [{name}]({name}/) | {ns} | {repeats} | {attempts} |')
-    index += ['', f'常用入口为上面的参数目录。[计算存档]({BATCH.name}/计算结果概览.md)保留续算片段、源码快照及原核验记录；核查过程JSON不属于新的实验数据。', '',
+    index += ['', f'常用入口为上面的参数目录。[计算存档](../计算存档/{BATCH.name}/计算结果概览.md)保留续算片段、源码快照及原核验记录；核查过程JSON不属于新的实验数据。', '',
               '所有数据仍位于Study04的Git忽略目录。目录整理入口为[按参数整理结果](../程序/按参数整理结果.py)，加`--verify`仅核对。', '']
     (RESULTS / 'README.md').write_text('\n'.join(index), encoding='utf-8')
     assert before == {name: sha(BATCH / name) for name in source_names}, '原批次被修改'
@@ -274,11 +288,11 @@ def verify():
     summary_groups = sample_files = sample_rows = sample_values = 0
     for name, cells in grid.items():
         folder = RESULTS / name
-        manifest = load(folder / 'manifest.json')
+        manifest = load(parameter_file(name, 'manifest.json'))
         assert all(sha(BATCH / p) == value for p, value in manifest['source_sha256'].items()), '原批次指纹变化'
-        assert all(sha(folder / p) == value for p, value in manifest['file_sha256'].items()), '参数目录文件变化'
+        assert all(sha(parameter_file(name, p)) == value for p, value in manifest['file_sha256'].items()), '参数目录文件变化'
         expected_summary = {k: v for k, v in source_summary.items() if group_name(v['beta'], v['eta'], v['gamma']) == name}
-        assert load(folder / 'summary.json') == expected_summary
+        assert load(parameter_file(name, 'summary.json')) == expected_summary
         with (BATCH / '条件汇总.csv').open(encoding='utf-8-sig', newline='') as f:
             expected_csv = [r for r in csv.DictReader(f) if group_name(r['beta'], r['eta'], r['gamma']) == name]
         with (folder / '条件汇总.csv').open(encoding='utf-8-sig', newline='') as f:
@@ -302,7 +316,7 @@ def verify():
                   summary_groups=summary_groups, sample_files=sample_files, sample_rows=sample_rows,
                   sample_values=sample_values, result_table_files=len(tables), rows_by_parameter=dict(counts),
                   checks=[f'{sum(counts.values())}条估计参数和状态原字符串一致且无遗漏重复', f'{sum(counts.values())}条估计对应的样本SHA256一致', '详细汇总和CSV一致', 'CSV样本转回浮点数组逐字节一致', '原批次指纹未变'])
-    dump(RESULTS / '按参数整理核验.json', result)
+    dump(ARCHIVE / '按参数整理核验.json', result)
     print(json.dumps(result, ensure_ascii=False))
     return result
 

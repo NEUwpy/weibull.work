@@ -1,7 +1,8 @@
 """Study04: fixed-sample, resumable 36-condition comparison via shared pipeline.
 
 Commands: --prepare; --pilot; --run; --verify. All numerical outputs are local
-under the Study04 ignored results directory. No historical file is modified.
+under the Study04 ignored calculation archive. --verify reads saved results;
+it does not finalize an existing batch again. No historical sample is modified.
 """
 import os
 for _key in ['OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS']:
@@ -12,6 +13,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 import argparse
+import subprocess
+from 存储路径 import ARCHIVE, saved_path
 import csv
 import gzip
 import hashlib
@@ -34,7 +37,7 @@ from studies.common.sample import generate_sample
 
 CONFIG_PATH=Path(__file__).with_name('正式比较配置.json')
 CFG=json.loads(CONFIG_PATH.read_text(encoding='utf-8'))
-OUT=STUDY/'结果'/CFG['run_id']
+OUT=ARCHIVE/CFG['run_id']
 METHODS=[(v[0],v[1]) for v in CFG['methods']]
 IDS=[m[0] for m in METHODS]
 VARIANTS={m[0]:m[1]['variant'] for m in METHODS}
@@ -45,7 +48,8 @@ SOURCES=['python/base.py','python/methods/registry.py','python/methods/mle.py',
  'python/methods/mmle.py','python/methods/lse.py','python/methods/lre.py','python/methods/mdm.py',
  'python/methods/mm.py','python/methods/j3_weights.tsv','python/studies/common/sample.py',
  'python/studies/common/runner.py','python/studies/common/metrics.py','python/studies/common/experiment.py',
- str(Path(__file__).relative_to(ROOT)),str(CONFIG_PATH.relative_to(ROOT))]
+ str(Path(__file__).relative_to(ROOT)),str(CONFIG_PATH.relative_to(ROOT)),
+ str(Path(__file__).with_name('存储路径.py').relative_to(ROOT))]
 
 
 def digest(path):
@@ -168,7 +172,7 @@ def prepare():
                     cache[f'{rid}|{method}']=cached_result(method,x[rid],values,'Research09',legacy,t)
             write_inputs(cell,x,old,available,success,cache,dict(batch=str(batch.relative_to(ROOT)),config=c))
             print(f"Prepared {cell['key']}: {len(cache)} verified estimates reused",flush=True)
-    audit_path=STUDY/'结果/300次补充结果核查-20261016.json'
+    audit_path=ARCHIVE/'300次补充结果核查-20261016.json'
     prior=json.loads(audit_path.read_text(encoding='utf-8'))
     for relative,sha in prior['original_files_verified'].items():
         p=ROOT/relative;assert digest(p)==sha;historical[relative]=sha
@@ -335,7 +339,7 @@ def finalize():
                 stats=group.get('param_standard',{}).get(p,{}).get('absolute',{})
                 record.update({f'{p}_{m}':stats.get(m) for m in ['bias','sd','rmse','mae']})
             writer.writerow(record)
-    for relative,sha in prepared['historical_files'].items():assert digest(ROOT/relative)==sha,relative
+    for relative,sha in prepared['historical_files'].items():assert digest(saved_path(relative))==sha,relative
     assert prepared['source_hashes']==fingerprints()
     manifest=dict(run_id=CFG['run_id'],status='complete',completed_at=datetime.now(timezone.utc).isoformat(),
         config=CFG,cells=prepared['cells'],source_hashes=prepared['source_hashes'],
@@ -356,4 +360,4 @@ if __name__=='__main__':
     if args.prepare:prepare()
     elif args.pilot:run(pilot=True)
     elif args.run:run()
-    else:finalize()
+    else:subprocess.run([sys.executable, str(Path(__file__).with_name('核对正式汇总.py')), '--batch', CFG['run_id']], check=True)

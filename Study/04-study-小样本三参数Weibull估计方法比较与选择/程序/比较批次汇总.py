@@ -2,6 +2,7 @@
 import csv
 import gzip
 import hashlib
+from 存储路径 import saved_path
 import json
 from collections import Counter
 from datetime import datetime, timezone
@@ -95,7 +96,7 @@ def finalize(engine):
                 stats=group.get('param_standard',{}).get(p,{}).get('absolute',{})
                 record.update({f'{p}_{m}':stats.get(m) for m in ['bias','sd','rmse','mae']})
             writer.writerow(record)
-    for relative,sha in prepared['historical_files'].items():assert digest(ROOT/relative)==sha,relative
+    for relative,sha in prepared['historical_files'].items():assert digest(saved_path(relative))==sha,relative
     assert prepared['source_hashes']==fingerprints()
     manifest=dict(run_id=CFG['run_id'],status='complete',completed_at=datetime.now(timezone.utc).isoformat(),
         config=CFG,cells=prepared['cells'],source_hashes=prepared['source_hashes'],
