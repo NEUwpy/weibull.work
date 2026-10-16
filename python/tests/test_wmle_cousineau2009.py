@@ -112,23 +112,21 @@ def test_wmle_differs_from_mle_identity():
     assert r_wmle["beta_hat"] < r_mle["beta_hat"] - 0.2
 
 
-def test_wmle_optimizer_failure_returns_explicit_failure(monkeypatch):
-    """优化器失败时显式失败，不再返回伪造的 [1, 100, 0, 0]。"""
+def test_wmle_solver_failure_returns_explicit_failure(monkeypatch):
+    """求解器失败时显式失败，不再返回伪造参数。"""
 
-    class _FailResult:
-        success = False
-        message = "forced failure"
-        x = np.array([2.0, 0.0])
-        fun = 1e9
+    def fail(*args, **kwargs):
+        raise RuntimeError("forced failure")
 
-    monkeypatch.setattr(wmle_module, "minimize", lambda *a, **k: _FailResult())
+    monkeypatch.setattr(wmle_module, "solve_wmle_profile", fail)
 
     r = run_method("wmle", COUSINEAU_X)
 
     assert r["converged"] is False
     # 不允许出现旧版伪结果 (beta=1, eta=100, gamma=0, converged=True)
     assert not (r["converged"] is True and r["beta_hat"] == 1.0 and r["eta_hat"] == 100.0)
-    assert r["extra"]["solution_info"]["status"] == "optimizer_failed"
+    assert r["extra"]["solution_info"]["status"] == "profile_solver_failed"
+    assert all(r[p + "_hat"] is None for p in ["beta", "eta", "gamma"])
 
 
 def test_wmle_degenerate_sample_is_rejected_by_shared_runner():
@@ -168,20 +166,47 @@ def test_wmle_gamma_estimate_stays_inside_support():
         assert np.isfinite(r["gamma_hat"])
 
 
-def test_wmle_large_location_multistart_reaches_weighted_equation_root():
+def test_wmle_large_location_reaches_weighted_equation_root():
     """大位置参数样本不得停在较差的单起点局部残差。"""
     sample = generate_sample(2.0, 1000.0, 3000.0, 15, 4, seed=20260825)
     r = run_method("wmle", sample)
     assert r["converged"] is True
     info = r["extra"]["solution_info"]
     assert info["objective"] < 1e-10
-    assert info["start_count"] > 1
+    terms = _weighted_equation_terms(r["beta_hat"], r["gamma_hat"], sample)
+    assert sum(v * v for v in terms) < 1e-10
 
 
-def test_wmle_rejects_nonroot_local_minimum():
-    """加权方程残差明显非零时必须显式失败，不能返回伪根。"""
+def test_wmle_recovers_root_missed_by_residual_minimization():
+    """原局部残差搜索失败的固定样本，以原方程验证新解。"""
     sample = generate_sample(2.0, 1000.0, 3000.0, 15, 0, seed=20260825)
     r = run_method("wmle", sample)
-    assert r["converged"] is False
-    assert r["extra"]["raw_status"] == "equation_residual"
-    assert r["extra"]["solution_info"]["objective"] > 1e-8
+    assert r["converged"] is True
+    terms = _weighted_equation_terms(r["beta_hat"], r["gamma_hat"], sample)
+    assert sum(v * v for v in terms) < 1e-10
+
+
+def test_wmle_preserves_paper_example_under_change_of_time_unit():
+    original = run_method("wmle", COUSINEAU_X)
+    for factor in [1e-6, 1e6]:
+        result = run_method("wmle", np.asarray(COUSINEAU_X) * factor)
+        assert result["converged"] is True
+        assert np.isclose(result["beta_hat"], original["beta_hat"], rtol=1e-8)
+        for p in ["eta", "gamma"]:
+            assert np.isclose(result[p + "_hat"] / factor, original[p + "_hat"], rtol=1e-8)
+
+
+def test_wmle_preserves_original_residual_tolerance_at_zero_boundary():
+    """保留旧容差内的零边界近似解，同时明确它不是精确方程交点。"""
+    sample = generate_sample(3, 1000, 500, 50, 58,
+                             seed='study01_selector_confirmation_20260922_v1:research09-versions:block06')
+    result = run_method('wmle', sample)
+    assert result['converged'] is True
+    info = result['extra']['solution_info']
+    assert result['gamma_hat'] == 0
+    assert info['approximate_boundary_root'] is True
+    expected = [4.740278267264717, 1606.7702491782788, 1.5402842280383925e-11]
+    estimate = [result[p + '_hat'] for p in ['beta', 'eta', 'gamma']]
+    assert np.allclose(estimate, expected, rtol=1e-6, atol=1e-5)
+    terms = _weighted_equation_terms(result['beta_hat'], result['gamma_hat'], sample)
+    assert 1e-10 < sum(v*v for v in terms) <= 1e-8

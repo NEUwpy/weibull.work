@@ -1,0 +1,33 @@
+{
+  "run_id": "正式比较-20261016",
+  "eta": 1000.0,
+  "gamma": 500.0,
+  "representative_beta": [1.5, 2.0, 3.0, 5.0],
+  "intermediate_beta": [2.5, 3.5, 4.0, 4.5],
+  "main_n": [7, 10, 15, 20],
+  "reference_n": 50,
+  "representative_repeats": 1200,
+  "intermediate_repeats": 300,
+  "methods": [
+    ["mle", {"variant": "MLE"}],
+    ["mmle", {"variant": "MMLE(KR)"}],
+    ["wmle", {"variant": "WMLE"}],
+    ["lse", {"variant": "LSE"}],
+    ["lre", {"variant": "LRE(Park)"}],
+    ["mdm", {"variant": "MDM-0.1", "offset": 0.1}],
+    ["mm", {"variant": "MM"}]
+  ],
+  "boundary_tol": 0.0,
+  "chunk_size": 100,
+  "workers": 12,
+  "expected_cells": 36,
+  "expected_samples": 28800,
+  "expected_rows": 201600,
+  "reuse": {
+    "Research09": ["verified MLE success", "verified WMLE success", "verified K-R MMLE"],
+    "Research05": ["verified MDM-0.1", "verified LSE"]
+  },
+  "parameter_metrics": ["bias", "sd", "rmse", "mae"],
+  "shape_anomaly": "beta_hat>=3*beta or beta_hat<=beta/3; only valid estimates",
+  "scope": "Fixed eta/gamma; no new parameter cells or methods; original samples only"
+}

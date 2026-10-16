@@ -8,11 +8,14 @@
 """
 
 import csv
+import hashlib
 import json
 import math
 import os
 from datetime import datetime, timezone
-from typing import List, Dict, Tuple, Any, Optional, Union
+from typing import List, Dict, Tuple, Any, Optional, Union, Callable
+
+import numpy as np
 
 from studies.common.sample import generate_sample
 from studies.common.runner import run_method
@@ -50,6 +53,9 @@ def run_experiment(
     seed_namespace: Optional[int] = None,
     code_version: str = "unknown",
     run_label: str = "",
+    sample_provider: Optional[Callable] = None,
+    precomputed_results: Optional[Dict[Tuple, Dict]] = None,
+    boundary_tol: float = 1e-10,
 ) -> Dict[str, Any]:
     """运行完整蒙特卡洛实验。
 
@@ -64,6 +70,10 @@ def run_experiment(
         seed_namespace: 传递给 generate_sample 的种子命名空间
         code_version: 写入 manifest 的代码版本标识（默认读取 git commit）
         run_label: 写入 manifest 的实验标签（如 pilot/full-v1）
+        sample_provider: 可选原样本提供器，接收(beta,eta,gamma,n,repeat_id)。
+        precomputed_results: 可选已核验结果，键为(beta,eta,gamma,n,repeat_id,variant)；
+            每条必须含与当前观测一致的sample_sha256和method_id。
+        boundary_tol: 传递给行状态与共享汇总的支持边界容差，默认保持原值。
 
     Returns:
         汇总字典，按 method_variant × (beta, eta, gamma) × n 分组
@@ -80,10 +90,27 @@ def run_experiment(
     for beta, eta, gamma in param_grid:
         for n in n_values:
             for rid in range(n_repeats):
-                sample = generate_sample(beta, eta, gamma, n, rid, seed=seed_namespace)
+                sample = (generate_sample(beta, eta, gamma, n, rid, seed=seed_namespace)
+                          if sample_provider is None else sample_provider(beta, eta, gamma, n, rid))
+                sample = np.asarray(sample, dtype=float)
+                if (sample.ndim != 1 or len(sample) != n or not np.isfinite(sample).all()
+                        or np.any(sample <= 0) or np.any(np.diff(sample) < 0)):
+                    raise ValueError("Experiment sample must contain n sorted finite positive observations")
+                sample_sha256 = hashlib.sha256(sample.tobytes()).hexdigest()
 
                 for method_id, kwargs, variant in parsed_methods:
-                    m_result = run_method(method_id, sample, variant=variant, **kwargs)
+                    cache_key = (beta, eta, gamma, n, rid, variant)
+                    cached = (precomputed_results or {}).get(cache_key)
+                    if cached is not None:
+                        if cached.get("sample_sha256") != sample_sha256 or cached.get("method_id") != method_id:
+                            raise ValueError("Precomputed result does not match the sample or method")
+                        m_result = dict(cached)
+                    else:
+                        m_result = run_method(method_id, sample, variant=variant, **kwargs)
+                    extra = dict(m_result.get("extra") or {})
+                    extra["experiment"] = dict(sample_sha256=sample_sha256,
+                        result_origin="precomputed" if cached is not None else "computed",
+                        boundary_tol=boundary_tol)
 
                     beta_hat = m_result["beta_hat"]
                     eta_hat = m_result["eta_hat"]
@@ -91,6 +118,14 @@ def run_experiment(
                     converged = m_result["converged"]
 
                     sample_min = float(min(sample))
+                    info = extra.get("solution_info") or {}
+                    if (method_id == "mmle" and gamma_hat is not None and info.get("deleted_observations") == 1
+                            and info.get("gamma_is_original_sample_minimum") is True):
+                        if (gamma_hat != float(sample[0]) or len(sample) < 2
+                                or info.get("effective_sample_min") != float(sample[1])):
+                            raise ValueError("MMLE retained-support metadata does not match observations")
+                        sample_min = float(sample[1])
+                    extra["experiment"]["support_min"] = sample_min
 
                     # 计算状态和逐行误差
                     if beta_hat is None or eta_hat is None or gamma_hat is None:
@@ -102,6 +137,7 @@ def run_experiment(
                             beta, eta, gamma,
                             converged=converged,
                             sample_min=sample_min,
+                            boundary_tol=boundary_tol,
                         )
                         rel_errors = param_relative_errors(
                             beta_hat, eta_hat, gamma_hat,
@@ -134,7 +170,7 @@ def run_experiment(
                         "beta_rel_error": rel_errors["beta"],
                         "eta_rel_error": rel_errors["eta"],
                         "gamma_rel_error": rel_errors["gamma"],
-                        "extra": json.dumps(m_result["extra"]) if m_result["extra"] is not None else None,
+                        "extra": json.dumps(extra),
                     }
                     csv_rows.append(row)
 
@@ -152,6 +188,7 @@ def run_experiment(
                         "time": m_result["time"],
                         "converged": converged,
                         "sample_min": sample_min,
+                        "boundary_tol": boundary_tol,
                     })
 
     # 写 CSV
@@ -197,6 +234,9 @@ def run_experiment(
         "n_values": list(n_values),
         "n_repeats": n_repeats,
         "seed_namespace": seed_namespace,
+        "sample_source": "provider" if sample_provider is not None else "generate_sample",
+        "precomputed_rows": sum(json.loads(row["extra"])["experiment"]["result_origin"] == "precomputed" for row in csv_rows),
+        "boundary_tol": boundary_tol,
         "metrics": {
             "primary": ["bias", "sd", "rmse", "mae"],
             "R_levels": list(R_levels),

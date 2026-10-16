@@ -1,0 +1,33 @@
+{
+  "run_id": "完整网格-1200次-20261016",
+  "baseline_run_id": "统一1200次-20261016",
+  "eta": 1000.0,
+  "gamma": 500.0,
+  "representative_beta": [1.5, 2.0, 3.0, 5.0],
+  "intermediate_beta": [2.5, 3.5, 4.0, 4.5],
+  "main_n": [7, 10, 15, 20],
+  "reference_n": 50,
+  "representative_repeats": 1200,
+  "intermediate_repeats": 1200,
+  "methods": [
+    ["mle", {"variant": "MLE"}],
+    ["mmle", {"variant": "MMLE(KR)"}],
+    ["wmle", {"variant": "WMLE"}],
+    ["lse", {"variant": "LSE"}],
+    ["lre", {"variant": "LRE(Park)"}],
+    ["mdm", {"variant": "MDM-0.1", "offset": 0.1}],
+    ["mm", {"variant": "MM"}]
+  ],
+  "boundary_tol": 0.0,
+  "chunk_size": 100,
+  "workers": 12,
+  "expected_cells": 40,
+  "expected_samples": 48000,
+  "expected_rows": 336000,
+  "additional_samples": 4800,
+  "additional_rows": 33600,
+  "extension_seed_namespace": "study01_nrmc_v1",
+  "parameter_metrics": ["bias", "sd", "rmse", "mae"],
+  "shape_anomaly": "beta_hat>=3*beta or beta_hat<=beta/3; only valid estimates",
+  "scope": "Add n=50 for beta=2.5,3.5,4,4.5; preserve all existing 36 cells and 302400 attempts; fixed eta/gamma and unchanged estimators"
+}

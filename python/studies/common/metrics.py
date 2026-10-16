@@ -239,6 +239,7 @@ def aggregate_param_metrics(
             row["gamma"],
             converged=row.get("converged", True),
             sample_min=row.get("sample_min"),
+            boundary_tol=row.get("boundary_tol", 1e-10),
         )
 
         if status == "failure":
@@ -345,6 +346,7 @@ def aggregate_standard_metrics(
             row["gamma"],
             converged=row.get("converged", True),
             sample_min=row.get("sample_min"),
+            boundary_tol=row.get("boundary_tol", 1e-10),
         )
 
         if status == "failure":

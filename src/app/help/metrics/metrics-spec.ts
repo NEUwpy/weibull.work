@@ -163,7 +163,7 @@ export const STATUS_DEFINITIONS: StatusDef[] = [
     label: 'failure',
     color: 'text-red-700',
     borderColor: 'border-red-200',
-    description: '不收敛、非有限值、beta/eta 非正，或 gamma 贴到样本最小值等边界病态。',
+    description: '不收敛、非有限值、beta/eta 非正，或 gamma 贴到样本最小值等边界病态。Python文件实验可显式记录支持边界容差，行状态和汇总使用同一值（默认1e−10）；K–R MMLE按删除最小值后的保留观测检查支持。',
   },
 ]
 

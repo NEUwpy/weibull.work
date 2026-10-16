@@ -60,14 +60,31 @@ MMLE保留距离较分散时，似然峰更容易偏向小形状。WMLE中的分
 
 
 def correct(text):
+    if (HERE / '20261012-删去图21-核验.json').exists():
+        later = base.module('20261012-删去图21')
+        before = later.restore(text)
+        if before != text:
+            return later.correct(correct(before))
+    if (HERE / '20261012-针对性改进任务-核验.json').exists():
+        later = base.module('20261012-针对性改进任务')
+        before = later.restore(text)
+        if before != text:
+            return later.correct(correct(before))
     record = base.load(QA)
-    if text == record['after_text']:
-        return text
-    assert text in (record['before_text'], record['previous_check_text']), 'Keep this approved revision scoped'
-    return record['after_text']
+    assert text in (record['after_text'], record['before_text'], record['previous_check_text']), 'Keep this approved revision scoped'
+    result = record['after_text']
+    if (HERE / '20261012-针对性改进任务-核验.json').exists():
+        result = base.module('20261012-针对性改进任务').correct(result)
+    if (HERE / '20261012-删去图21-核验.json').exists():
+        result = base.module('20261012-删去图21').correct(result)
+    return result
 
 
 def restore(text):
+    if (HERE / '20261012-删去图21-核验.json').exists():
+        text = base.module('20261012-删去图21').restore(text)
+    if (HERE / '20261012-针对性改进任务-核验.json').exists():
+        text = base.module('20261012-针对性改进任务').restore(text)
     if QA.exists():
         record = base.load(QA)
         if text == record['after_text']:
@@ -100,7 +117,7 @@ def revise(text):
     text = text.replace(wmle_anchor, wmle_anchor + '形状搜索上限为10。')
     text = TAG.sub(lambda m: r'\tag{' + str(NUMBERS.get(int(m[1]), int(m[1]))) + '}', text)
     text = REF.sub(lambda m: re.sub(r'\d+', lambda n: str(NUMBERS.get(int(n[0]), int(n[0]))), m[0]), text)
-    return text
+    return text.rstrip() + '\n'
 
 
 def apply():
@@ -142,7 +159,12 @@ def apply():
 def verify():
     record = base.load(QA)
     text = base.REPORT.read_text(encoding='utf-8')
-    assert correct(text) == text and base.text_digest(text) == record['after_text_sha256']
+    assert correct(text) == text
+    if (HERE / '20261012-删去图21-核验.json').exists():
+        text = base.module('20261012-删去图21').restore(text)
+    if (HERE / '20261012-针对性改进任务-核验.json').exists():
+        text = base.module('20261012-针对性改进任务').restore(text)
+    assert base.text_digest(text) == record['after_text_sha256']
     assert record['before_text_sha256'] == base.text_digest(record['before_text'])
     assert restore(text) == record['previous_check_text']
     bodies = lambda s: Counter(TAG.sub('', f) for f in re.findall(r'\$\$.*?\$\$', s, re.S))

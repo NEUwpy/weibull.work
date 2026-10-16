@@ -11,7 +11,7 @@ Distribution", IEEE TDEI（src/content/182-105-pdf原文.md）。
   平台以工程约束 0 <= gamma < t_(1) 收敛到 gamma=0 边界的 W2P 解。
 
 非正则边界：Smith (1985)（src/content/182-090-pdf原文.md）——
-beta < 1 时不存在（局部极大意义下的）MLE，实现必须显式报 "unbounded"。
+无约束模型的无界性与本实现未找到有限局部极大值分开记录。
 """
 
 import sys
@@ -93,15 +93,18 @@ def test_mle_diverging_case_converges_to_w2p_boundary():
     assert abs(ll_ours - (-27.770)) < 0.01
 
 
-def test_mle_rejects_beta_below_one_as_unbounded():
-    """Smith (1985)：beta < 1 时 MLE 不存在；实现必须报 unbounded 而非伪结果。"""
+def test_mle_reports_absence_of_finite_local_maximum():
+    """不把支持边界上的似然极限包装成有限参数解。"""
     rng = np.random.default_rng(0)
     data = (rng.weibull(0.6, 30) * 50.0).tolist()
 
     r = run_method("mle", data)
 
     assert r["converged"] is False
-    assert r["extra"] == {"raw_status": "unbounded"}
+    assert r["extra"]["raw_status"] == "no_finite_local_maximum"
+    info = r["extra"]["solution_info"]
+    assert info["support_boundary_limit"]["attained_in_open_support"] is False
+    assert info["support_boundary_limit"]["gamma"] == min(data)
     assert r["beta_hat"] is None
     assert r["eta_hat"] is None
     assert r["gamma_hat"] is None
@@ -130,12 +133,47 @@ def test_mle_identity_never_substituted():
     assert r["method_variant"] == "mle"
 
 
-def test_mle_large_location_multistart_avoids_inferior_zero_start_solution():
+def test_mle_large_location_avoids_inferior_zero_start_solution():
     """大位置参数样本存在有限局部极大时，不应被 γ=0 单一起点困住。"""
     sample = generate_sample(2.0, 1000.0, 3000.0, 15, 13, seed=20260825)
     r = run_method("mle", sample)
     assert r["converged"] is True
     assert r["gamma_hat"] > 1000.0
     info = r["extra"]["solution_info"]
-    assert info["start_count"] > 1
+    beta, eta, gamma = [r[p + "_hat"] for p in ["beta", "eta", "gamma"]]
+    peak = _log_likelihood(beta, eta, gamma, sample)
+    for delta in [-1., 1.]:
+        assert peak > _log_likelihood(beta, eta, gamma + delta, sample)
     assert info["location_at_zero_boundary"] is False
+
+
+def test_mle_preserves_estimates_under_change_of_time_unit():
+    original = run_method("mle", HIROSE_CASE2)
+    for factor in [1e-6, 1e6]:
+        result = run_method("mle", np.asarray(HIROSE_CASE2) * factor)
+        assert result["converged"] is True
+        assert np.isclose(result["beta_hat"], original["beta_hat"], rtol=1e-8)
+        for p in ["eta", "gamma"]:
+            assert np.isclose(result[p + "_hat"] / factor, original[p + "_hat"], rtol=1e-8)
+
+
+def test_mle_retains_narrow_finite_peaks_in_archived_successes():
+    """局部极大、极小相邻很近时，网格两端同号也不能漏掉有限峰。"""
+    # The historical seed key includes repr(truth); retain JSON numeric types.
+    cases = [((1.5, 1000, 500), 7, 0, 15, [1.190374820009655, 1089.0992466338992, 796.1819758206304]),
+             ((2.0, 1000.0, 500.0), 7, 6, 77, [1.1715430758926932, 505.7924957030876, 891.3554646963869]),
+             ((2.0, 1000.0, 500.0), 20, 5, 31, [1.0536860987394805, 656.466884853096, 759.8128427492527])]
+    namespace = 'study01_selector_confirmation_20260922_v1'
+    for truth, n, block, repeat, expected in cases:
+        seed = namespace if block == 0 else f'{namespace}:research09-versions:block{block:02d}'
+        sample = generate_sample(*truth, n, repeat, seed=seed)
+        result = run_method('mle', sample)
+        assert result['converged'] is True
+        estimate = [result[p + '_hat'] for p in ['beta', 'eta', 'gamma']]
+        assert np.allclose(estimate, expected, rtol=1e-6, atol=1e-5)
+        peak = _log_likelihood(*estimate, sample)
+        assert np.isclose(peak, _log_likelihood(*expected, sample), rtol=0, atol=1e-10)
+        for direction in [-1, 1]:
+            trial = estimate.copy()
+            trial[2] += direction * .01
+            assert _log_likelihood(*trial, sample) < peak

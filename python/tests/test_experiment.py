@@ -5,11 +5,37 @@ import json
 import os
 import sys
 import tempfile
+import hashlib
+import numpy as np
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from studies.common.experiment import run_experiment
 from studies.common.sample import generate_sample
+
+
+def test_archived_sample_and_result_reuse_requires_matching_fingerprint(tmp_path):
+    sample = np.array([6., 7., 8., 9., 11., 12., 14.])
+    cache = {(2., 100., 5., 7, 0, 'mle'): dict(method_id='mle', sample_sha256=hashlib.sha256(sample.tobytes()).hexdigest(),
+        beta_hat=2., eta_hat=5., gamma_hat=4., r_squared=.9, converged=True, time=0., extra={'source':'archive'})}
+    result = run_experiment(['mle'],[(2.,100.,5.)],[7],1,str(tmp_path),
+         sample_provider=lambda *args: sample, precomputed_results=cache)
+    assert next(iter(result.values()))['n_valid']==1
+    cache[(2.,100.,5.,7,0,'mle')]['sample_sha256']='incorrect'
+    with pytest.raises(ValueError,match='does not match'):
+        run_experiment(['mle'],[(2.,100.,5.)],[7],1,str(tmp_path),
+             sample_provider=lambda *args: sample, precomputed_results=cache)
+
+
+def test_mmle_uses_retained_observation_support_in_file_experiment(tmp_path):
+    sample = np.array([6., 7., 8., 9., 11., 12., 14.])
+    result = run_experiment(['mmle'],[(2.,100.,5.)],[7],1,str(tmp_path),
+         sample_provider=lambda *args: sample,boundary_tol=0.)
+    assert next(iter(result.values()))['n_valid']==1
+    row=next(csv.DictReader((tmp_path/'results.csv').open(encoding='utf-8')))
+    assert float(row['gamma_hat'])==sample[0]
+    assert json.loads(row['extra'])['experiment']['support_min']==sample[1]
 
 
 def test_end_to_end_creates_files():

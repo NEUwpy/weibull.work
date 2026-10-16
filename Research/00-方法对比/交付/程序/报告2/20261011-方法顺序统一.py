@@ -16,7 +16,7 @@ setup_runtime()
 
 ORDER = ['MDM', 'LSE', 'LRE', 'WMLE', 'MLE', 'MMLE']
 REPORT = ROOT / '报告2：小样本情况下的明显异常估计.md'
-REFERENCE = ROOT / '报告1：高形状参数下的估计偏移.md'
+REFERENCE = ROOT / '报告1：小样本情况下高形状参数的估计偏移.md'
 QA = HERE / (Path(__file__).stem + '-核验.json')
 FREQUENCY = HERE / '第一章频率.csv'
 FREQUENCY_QA = HERE / '第一章频率核对.json'
@@ -206,20 +206,26 @@ def refresh_checks():
 def verify():
     record = load(QA)
     text = REPORT.read_text(encoding='utf-8')
+    removed_figure = (HERE / '20261012-删去图21-核验.json').exists()
+    figure_numbers = list(range(1, 21 if removed_figure else 22))
     assert method_order(text) == ORDER
     assert re.findall(r'^### 2\.\d+\s+\[([A-Z]+)\]', REFERENCE.read_text(encoding='utf-8'), re.M) == ORDER
     assert TAG.findall(text) == [str(i) for i in range(1,31)]
-    assert re.findall(r'^\*\*图(\d+)｜', text, re.M) == [str(i) for i in range(1,22)]
+    assert re.findall(r'^\*\*图(\d+)｜', text, re.M) == [str(i) for i in figure_numbers]
     refs = [int(n) for m in FORMULA_REF.finditer(text) for n in re.findall(r'\d+',m[0])]
     assert set(refs) == set(range(1,31))
-    assert set(int(n) for m in FIGURE_REF.finditer(text) for n in re.findall(r'\d+',m[0])) == set(range(1,22))
+    assert set(int(n) for m in FIGURE_REF.finditer(text) for n in re.findall(r'\d+',m[0])) == set(figure_numbers)
     eq_map = {int(k):v for k,v in record['equation_map'].items()}
     math_text = module('20261011-MMLE对数似然峰图').restore(text) if (HERE / '20261011-MMLE对数似然峰图-核验.json').exists() else text
     formulas = {int(TAG.search(m)[1]): TAG.sub('',m) for m in DISPLAY.findall(math_text)}
     for m in record['before_math']:
         assert formulas[eq_map[int(TAG.search(m)[1])]] == TAG.sub('',m)
     paths = re.findall(r'!\[[^\]]*\]\((.*?)\)', text)
-    assert Counter(paths) == Counter(record['before_images'])
+    expected_images = record['before_images']
+    if removed_figure:
+        excluded = module('20261012-删去图21').IMAGE
+        expected_images = [p for p in expected_images if p != excluded]
+    assert Counter(paths) == Counter(expected_images)
     assert all((ROOT / p).is_file() for p in paths)
     table_record = HERE / '20261011-样本表参数顺序-核验.json'
     row_map = load(table_record)['row_map'] if table_record.exists() else {}
@@ -257,7 +263,7 @@ def verify():
     mmle = next(m[0] for m in SECTION.finditer(math_text) if m[1]=='MMLE')
     assert f'将式（25）的位置代入式（{eq_map[13]}）' in mmle
     record.update(after_report_sha256=digest(REPORT), script_sha256=digest(__file__),
-                  validation=dict(status='passed', methods=6, equations=30, figures=21,
+                  validation=dict(status='passed', methods=6, equations=30, figures=len(figure_numbers),
                                   formula_bodies_and_frequency_unchanged=True,
                                   sample_tables_and_figures_match_approved_revisions=True,
                                   thirteen_combination_results_unchanged=True))

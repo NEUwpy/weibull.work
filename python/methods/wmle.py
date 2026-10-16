@@ -4,7 +4,7 @@ Weighted Maximum Likelihood Estimation
 
 算法文档: ../../src/content/algorithms/wmle.md
 参考文献: Cousineau (2009), Paper 182-088
-描述: 通过引入三个权重 (J₁, J₂, J₃) 修正 MLE 在小样本下的偏差，偏差减少约 7 倍
+描述: 以 J₁、J₂、J₃ 校准加权方程；数值求根不构成精度改善保证
 
 权重数据来源: https://github.com/dcousin3/wMLE
 权重表已嵌入代码中，无需外部文件
@@ -13,18 +13,20 @@ Weighted Maximum Likelihood Estimation
   ┌─────────────┬──────────────┬──────────────┬─────────────┐
   │   参数      │   论文符号   │   系统符号   │  代码变量   │
   ├─────────────┼──────────────┼──────────────┼─────────────┤
-  │   形状参数  │     γ        │      β       │  gamma_hat  │
-  │   尺度参数  │     β        │      η       │  beta_hat   │
-  │   位置参数  │     α        │      γ       │  alpha_hat  │
+  │   形状参数  │     γ        │      β       │  beta       │
+  │   尺度参数  │     β        │      η       │  eta        │
+  │   位置参数  │     α        │      γ       │  gamma      │
   └─────────────┴──────────────┴──────────────┴─────────────┘
 
 注意: 本文件注释中的公式使用系统标准符号 (β=形状, η=尺度, γ=位置)
 """
 
+import sys
 import numpy as np
-from scipy.optimize import minimize
 from scipy.special import gammaincinv
 from base import WeibullBase
+from .profile_solvers import solve_wmle_profile
+from .conditional_profiles import wmle_residuals
 
 # 形状参数搜索上界（实现保护，超出视为无解，见 run() 中的显式失败分支）
 SHAPE_UPPER = 10.0
@@ -281,274 +283,41 @@ def get_weight_j3(n: int, gamma: float) -> float:
 
 
 class WMLE(WeibullBase):
-    """
-    Weighted Maximum Likelihood Estimation (WMLE)
-
-    Based on: Cousineau, D. (2009). Nearly unbiased estimators for the
-    three-parameter Weibull distribution.
-
-    Algorithm (two-step method):
-    1. Optimize gamma (shape) and alpha (location) to minimize:
-       term1^2 + term2^2
-       where:
-         term1 = J2/gamma + (1/n)*sum(log(x-alpha))
-                 - sum(log(x-alpha)*(x-alpha)^gamma) / sum((x-alpha)^gamma)
-         term2 = (1/n)*sum(1/(x-alpha)) * sum((x-alpha)^gamma) / sum((x-alpha)^(gamma-1))
-                 - J3(gamma)
-    2. Algebraically solve for beta (scale):
-         beta = (sum((x-alpha)^gamma) / (n * J1))^(1/gamma)
-    """
+    """Original weighted equations and weights, with profile root search."""
 
     def run(self, trace=False, generate_surface=False):
-        """
-        执行 WMLE 参数估计
-
-        参数:
-            trace: 是否记录追踪数据
-            generate_surface: 是否生成 3D 曲面网格数据（用于可视化，计算量较大）
-
-        返回: [beta_hat, eta_hat, gamma_hat, r2]
-        - beta_hat: 形状参数（论文中的 gamma）
-        - eta_hat: 尺度参数（论文中的 beta）
-        - gamma_hat: 位置参数（论文中的 alpha）
-        """
-        # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
-        # @formula: x_{(1)} \leq x_{(2)} \leq \cdots \leq x_{(n)}
-        # @symbols: x_{(i)}|x_{(i)}|第i小的失效时间, n|n|样本数量, x_{min}|x_{min}|最小失效时间
-        # @inputs: data|x_i|原始失效时间样本
-        # @outputs: arr|x|排序后数组, n|n|样本数量, x_min|x_{min}|最小值
-        n = self.n
-        arr = self.data
-        x_min = np.min(arr)
-
-        # @step: 2 | 计算静态权重 J₁, J₂ | 根据样本量 n 从权重表中查取两个静态修正权重
-        # @formula: J_1 = \mathrm{median}(W_1), \quad J_2 = \mathrm{median}(W_2)
-        # @symbols: J_1|J_1|尺度参数权重, J_2|J_2|形状参数权重
-        # @inputs: n|n|样本数量
-        # @outputs: J1|J_1|尺度权重, J2|J_2|形状权重
-        w1 = get_weight_j1(n)
-        w2 = get_weight_j2(n)
-
+        # @step: 1 | 校准权重 | 使用原有J1、J2、J3查表与插值规则
+        # @step: 2 | 联立方程求根 | 条件形状求根后扫描位置方程的交点
+        # @formula: T1(beta,gamma)=0, T2(beta,gamma)=0
+        # @step: 3 | 多根选择 | 沿用原启发式初值的距离规则，与真值无关
+        try:
+            selected, info = solve_wmle_profile(self.data, sys.modules[__name__])
+        except (ValueError, FloatingPointError, RuntimeError) as error:
+            self.last_solution_info = dict(status='profile_solver_failed', error=str(error))
+            return [None, None, None, 0., 'profile_solver_failed']
+        self.last_solution_info = info
         if trace:
-            self.log_step({"phase": "init", "w1": w1, "w2": w2, "n": n})
-
-        # @step: 3 | 初始化优化起点 | 为 Nelder-Mead 优化算法设置初始猜测值
-        # @formula: \beta^{(0)} = 2.0, \quad \gamma^{(0)} = 0.9 \times x_{\min}
-        # @symbols: \beta^{(0)}|\beta^{(0)}|形状参数初始值, \gamma^{(0)}|\gamma^{(0)}|位置参数初始值
-        # @inputs: x_min|x_{min}|最小失效时间
-        # @outputs: gamma_init|\beta^{(0)}|形状参数初始值, alpha_init|\gamma^{(0)}|位置参数初始值
-        gamma_init = 2.0  # Paper's heuristic
-        alpha_init = 0.9 * x_min  # Paper's heuristic
-
-        # @step: 4 | 定义 WMLE 目标函数 | 构造包含两个平方项的目标函数（论文公式4）
-        # @formula: O(\beta, \gamma) = T_1^2 + T_2^2
-        # @symbols: T_1|T_1|第一项：修正的形状参数似然方程, T_2|T_2|第二项：修正的位置参数似然方程, J_3|J_3|动态位置权重
-        # @inputs: J2|J_2|形状权重, arr|x|失效时间数组
-        # @outputs: O|O|目标函数值
-        def wmle_objective(params):
-            gamma = params[0]  # Shape (paper's gamma)
-            alpha = params[1]  # Location (paper's alpha)
-
-            # Constraints: gamma > 0, alpha < min(data)
-            if gamma <= 0 or gamma > SHAPE_UPPER or alpha >= x_min - 1e-6 or alpha < 0:
-                return 1e10
-
-            x_minus_alpha = arr - alpha
-            if np.any(x_minus_alpha <= 0):
-                return 1e10
-
-            log_x = np.log(x_minus_alpha)
-            x_gamma = x_minus_alpha ** gamma
-
-            sum_log = np.sum(log_x)
-            sum_log_x_gamma = np.sum(log_x * x_gamma)
-            sum_x_gamma = np.sum(x_gamma)
-
-            # Term 1: fctGamma in R code
-            term1 = w2 / gamma + sum_log / n - sum_log_x_gamma / sum_x_gamma
-
-            sum_inv = np.sum(1.0 / x_minus_alpha)
-            sum_x_gamma_minus1 = np.sum(x_minus_alpha ** (gamma - 1))
-
-            # Term 2: fctAlpha in R code
-            w3 = get_weight_j3(n, gamma)
-            term2 = (sum_inv / n) * (sum_x_gamma / sum_x_gamma_minus1) - w3
-
-            return term1 ** 2 + term2 ** 2
-
-        def callback(xk):
+            for candidate in info.get('candidates', []):
+                self.log_step(dict(phase='candidate', beta=candidate['beta'],
+                                   eta=candidate['eta'], gamma=candidate['gamma'],
+                                   objective=candidate['objective']))
+        if selected is None:
             if trace:
-                # 论文符号 -> 系统符号映射
-                # paper_gamma (形状) -> system_beta
-                # paper_alpha (位置) -> system_gamma
-                paper_gamma_curr, paper_alpha_curr = xk
-                system_beta_curr = paper_gamma_curr   # 形状参数
-                system_gamma_curr = paper_alpha_curr  # 位置参数
-                w3_curr = get_weight_j3(n, paper_gamma_curr)
-                val = wmle_objective(xk)
-                self.log_step({
-                    "phase": "iter",
-                    "beta": system_beta_curr,      # 系统符号：形状参数
-                    "gamma": system_gamma_curr,    # 系统符号：位置参数
-                    "w3": w3_curr,
-                    "obj_val": val if val < 1e5 else None
-                })
-
-        # @step: 5 | Nelder-Mead 优化 | 使用无导数单纯形优化算法搜索使目标函数最小的 β 和 γ
-        # @formula: \{\hat{\beta}, \hat{\gamma}\} = \arg\min_{\beta, \gamma} O(\beta, \gamma)
-        # @symbols: \hat{\beta}|\hat{\beta}|最优形状参数, \hat{\gamma}|\hat{\gamma}|最优位置参数
-        # @inputs: gamma_init|\beta^{(0)}|形状初始值, alpha_init|\gamma^{(0)}|位置初始值
-        # @outputs: gamma_hat|\hat{\beta}|最优形状参数, alpha_hat|\hat{\gamma}|最优位置参数
-        # @loop: 约 50-200 次迭代
-        # 单一起点在大位置参数尺度下可能停在非零残差的局部极小点。
-        # 保留论文启发式起点，并增加少量确定性起点；仍优化同一组加权方程。
-        starts = [
-            np.array([gamma_init, alpha_init]),
-            np.array([2.0, 0.5 * x_min]),
-            np.array([2.0, 0.1 * x_min]),
-            np.array([1.2, 0.9 * x_min]),
-            np.array([4.0, 0.9 * x_min]),
-        ]
-        candidates = []
-        for start_index, start in enumerate(starts):
-            result = minimize(
-                wmle_objective,
-                x0=start,
-                method='Nelder-Mead',
-                callback=callback if trace else None,
-                options={'maxiter': 1200, 'xatol': 1e-9, 'fatol': 1e-12},
-            )
-            shape_candidate, location_candidate = result.x
-            if (
-                result.success
-                and np.isfinite(result.fun)
-                and float(result.fun) < 1e9
-                and 0 < shape_candidate < SHAPE_UPPER
-                and 0 <= location_candidate < x_min
-            ):
-                candidates.append((result, start_index))
-
-        if not candidates:
-            # 优化失败必须显式报错，禁止返回伪造的默认参数
-            self.last_solution_info = {
-                "status": "optimizer_failed",
-                "message": "all deterministic starts failed",
-                "start_count": int(len(starts)),
-            }
-            if trace:
-                self.log_step({
-                    "phase": "failed",
-                    "reason": "optimizer_failed",
-                    "message": "all deterministic starts failed",
-                })
-            return [0, 0, 0, 0, False]
-
-        min_objective = min(float(item[0].fun) for item in candidates)
-        near_best = [
-            item for item in candidates
-            if float(item[0].fun) <= min_objective + 1e-12
-        ]
-        result, selected_start = min(
-            near_best,
-            key=lambda item: (
-                np.log(float(item[0].x[0]) / gamma_init) ** 2
-                + ((float(item[0].x[1]) - alpha_init) / max(float(x_min), 1.0)) ** 2
-            ),
-        )
-
-        gamma_hat = result.x[0]  # Shape (paper's gamma -> System's beta)
-        alpha_hat = result.x[1]  # Location (Paper's alpha -> System's gamma)
-
-        # 形状估计压在实现上界：加权方程组在支持范围内无根，视为无解
-        if gamma_hat >= SHAPE_UPPER - 0.01:
-            self.last_solution_info = {
-                "status": "shape_at_bound",
-                "shape_upper": SHAPE_UPPER,
-                "objective": float(result.fun),
-            }
-            if trace:
-                self.log_step({
-                    "phase": "failed",
-                    "reason": "shape_at_bound",
-                    "shape": float(gamma_hat),
-                    "objective": float(result.fun),
-                })
-            return [0, 0, 0, 0, "shape_at_bound"]
-
-        # WMLE 定义为求解两条加权方程；优化器“成功”但残差未接近零时，
-        # 不能把局部最小点伪装成方程根。
-        if float(result.fun) > 1e-8:
-            self.last_solution_info = {
-                "status": "equation_residual",
-                "objective": float(result.fun),
-                "strategy": "deterministic_multistart_equation_minimization",
-                "start_count": int(len(starts)),
-                "selected_start": int(selected_start),
-            }
-            return [0, 0, 0, 0, "equation_residual"]
-
-        # 求解诊断：目标函数残差（论文式(4) 应在根处为 0）与位置边界标记
-        self.last_solution_info = {
-            "status": "ok",
-            "objective": float(result.fun),
-            "strategy": "deterministic_multistart_equation_minimization",
-            "start_count": int(len(starts)),
-            "selected_start": int(selected_start),
-            "location_at_zero_boundary": bool(alpha_hat < 1e-6),
-        }
-
-        # @step: 6 | 代数计算尺度参数 η | 使用最优的 β̂ 和 γ̂，通过加权代数公式直接计算尺度参数
-        # @formula: \hat{\eta} = \left[ \frac{1}{n \cdot J_1} \sum_{i=1}^{n} (x_i - \hat{\gamma})^{\hat{\beta}} \right]^{1/\hat{\beta}}
-        # @symbols: \hat{\eta}|\hat{\eta}|尺度参数估计值, x_i - \hat{\gamma}|x_i-\hat{\gamma}|平移后的数据, J_1|J_1|尺度修正权重
-        # @inputs: gamma_hat|\hat{\beta}|最优形状参数, alpha_hat|\hat{\gamma}|最优位置参数, w1|J_1|尺度权重
-        # @outputs: beta_hat|\hat{\eta}|尺度参数估计值
-        x_adj = arr - alpha_hat
-        beta_hat = (np.sum(x_adj ** gamma_hat) / (n * w1)) ** (1 / gamma_hat)
-
-        # 符号映射：论文 -> 系统
-        # paper_gamma (形状) -> system_beta
-        # paper_alpha (位置) -> system_gamma
-        # paper_beta (尺度) -> system_eta
-        system_beta = gamma_hat   # 形状参数
-        system_gamma = alpha_hat  # 位置参数
-        system_eta = beta_hat     # 尺度参数
-
+                self.log_step(dict(phase='failed', reason=info['status']))
+            return [None, None, None, 0., info['status']]
+        beta, eta, gamma = (selected[p] for p in ['beta', 'eta', 'gamma'])
+        # @step: 4 | 尺度恢复 | 在对数域实现原J1加权幂均值公式
+        # @formula: eta=(sum((x-gamma)**beta)/(n*J1))**(1/beta)
         if trace:
-            self.log_step({
-                "phase": "final",
-                "beta": system_beta,
-                "eta": system_eta,
-                "gamma": system_gamma
-            })
-
-        # 只有在请求时才生成 3D 曲面网格数据（计算量较大）
+            self.log_step(dict(phase='final', beta=beta, eta=eta, gamma=gamma))
         if generate_surface:
-            beta_range = np.linspace(0.5, 5.0, 50)
-            gamma_range = np.linspace(0, x_min * 0.95, 50)
-
-            surface_data = []
-            for b in beta_range:
-                row = []
-                for g in gamma_range:
-                    val = wmle_objective([b, g])
-                    row.append(val if val < 1e5 else None)
-                surface_data.append(row)
-
-            self.trace_data.append({
-                "phase": "surface",
-                "betas": beta_range.tolist(),   # 形状参数 β (x轴)
-                "gammas": gamma_range.tolist(), # 位置参数 γ (y轴)
-                "values": surface_data,         # 目标函数值 O(β,γ) (z轴)
-                "optimal_beta": system_beta,
-                "optimal_gamma": system_gamma
-            })
-
-        # @step: 7 | 计算拟合优度 R² | 评估模型与数据的拟合程度
-        # @formula: R^2 = 1 - \frac{\sum(F_i - \hat{F}_i)^2}{\sum(F_i - \bar{F})^2}
-        # @symbols: R^2|R^2|决定系数, F_i|F_i|经验累积概率, \hat{F}_i|\hat{F}_i|模型预测概率
-        # @inputs: gamma_hat|\hat{\beta}|形状参数, beta_hat|\hat{\eta}|尺度参数, alpha_hat|\hat{\gamma}|位置参数
-        # @outputs: r2|R^2|拟合优度
-        r2 = self._calculate_r2(gamma_hat, beta_hat, alpha_hat)
-
-        # 返回: [形状参数, 尺度参数, 位置参数, R²]
-        return [gamma_hat, beta_hat, alpha_hat, r2]
+            betas = np.linspace(.5, 5., 50)
+            gammas = np.linspace(0., self.data[0] * .95, 50)
+            values = []
+            for b in betas:
+                a, c = wmle_residuals(self.data, b, gammas, sys.modules[__name__])
+                values.append([float(v) if np.isfinite(v) and v < 1e5 else None for v in a*a+c*c])
+            self.trace_data.append(dict(phase='surface', betas=betas.tolist(), gammas=gammas.tolist(),
+                                        values=values, optimal_beta=beta, optimal_gamma=gamma))
+        # @step: 5 | 拟合优度 | 保持统一概率图R平方的输出接口
+        return [beta, eta, gamma, self._calculate_r2(beta, eta, gamma), True]

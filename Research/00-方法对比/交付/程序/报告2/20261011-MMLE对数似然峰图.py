@@ -64,6 +64,11 @@ def profile(x, beta):
 
 
 def correct(text):
+    if (HERE / '20261012-方法响应直白表述-核验.json').exists():
+        later = base.module('20261012-方法响应直白表述')
+        prior = later.restore(text)
+        if prior != text:
+            return later.correct(correct(prior))
     for before, after in REPLACEMENTS.items():
         if text.count(after) == 1:
             continue
