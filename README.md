@@ -45,7 +45,7 @@
 
 **Study / Research 层级**：[`Study/README.md`](Study/README.md) 是 Study 层唯一入口，登记 Study01、Study02，并按用户于2026-09-22确认的安排建立 [Study03：WMLE 样本自适应修正](Study/03-study-WMLE样本自适应修正/README.md)（已完成基线、J3改善空间和首轮学习试验；新抽样上的网络加回退有阈值风险收益，但较严重尾部仍有代价，未形成全面改进结论）；[`Research/README.md`](Research/README.md) 保存有界验证、支撑研究、独立研究和孵化方向，并定义升级为 Study 的门槛。原 Study015 已作为 `COMPLETE + SUPPORTING` 的“NN 输入表征与样本量机制”迁入 Research；旧 `docs/research` 与 Study01 内部 Research 已按 [`RELOCATION.json`](Research/RELOCATION.json) 原字节归位，不删除负面或被取代结果。
 
-**Study04 当前态（2026-10-17）**：[Study04：小样本三参数Weibull参数估计方法的比较与选择](Study/04-study-小样本三参数Weibull估计方法比较与选择/README.md)已分别形成[报告上（方法分类）v0.1](Study/04-study-小样本三参数Weibull估计方法比较与选择/报告上（方法分类）-v0.1.md)与[报告下（方法对比）v0.1](Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v0.1.md)，独立保存两份讲稿及对应图表。固定η=1000、γ=500的8个β×5个n共40条件，每条件1200次、7种方法共336000条尝试；18张PNG、自身与共同有效比较、形状风险、尾部和边界已核对，数值数据由Git忽略。现有文献的关系梳理已完成，方法总图与具体选择规则待完善；范围与版本见[实验设置](Study/04-study-小样本三参数Weibull估计方法比较与选择/实验设置.md)。
+**Study04 当前态（2026-10-17）**：[Study04：小样本三参数Weibull参数估计方法的比较与选择](Study/04-study-小样本三参数Weibull估计方法比较与选择/README.md)已分别形成[报告上（方法分类）v0.1](Study/04-study-小样本三参数Weibull估计方法比较与选择/报告上（方法分类）-v0.1.md)与[报告下（方法对比）v0.2](Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v0.2.md)，独立保存两份讲稿及对应图表。固定η=1000、γ=500的8个β×5个n共40条件，每条件1200次、7种方法共336000条尝试；20张PNG、自身与共同有效比较、形状风险、尾部和边界已核对，数值数据由Git忽略。现有文献的关系梳理已完成，方法总图与具体选择规则待完善；范围与版本见[实验设置](Study/04-study-小样本三参数Weibull估计方法比较与选择/实验设置.md)。
 
 **Research/05 当前态**：传统方法风险地形 v1 已在 Study01 的 160 个设计单元、48,000 个共享样本上完成。primary candidate 为 MDM-0.1、WMLE、LSE；五折交叉评价的真参数 cell 选择相对最佳固定 MDM-0.1 将 pooled J1 从 0.630409 降至 0.592141，改善 6.07%，设计单元 bootstrap 95% 区间 [4.85%, 7.30%]。样本量单独没有选择收益，主要分界来自形状参数；该结果只证明存在机会空间，下一步进入可观测性 Research，尚不建立新 Study。详见 [`Research/05-传统估计方法横向比较/`](Research/05-传统估计方法横向比较)。
 
