@@ -1,0 +1,91 @@
+{
+  "beta": [
+    1.5,
+    2.0,
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0
+  ],
+  "eta": 1000.0,
+  "gamma": 500.0,
+  "n": [
+    7,
+    10,
+    15,
+    20,
+    50
+  ],
+  "repeats": 1200,
+  "methods": [
+    [
+      "mle",
+      {
+        "variant": "MLE"
+      }
+    ],
+    [
+      "mmle",
+      {
+        "variant": "MMLE(KR)"
+      }
+    ],
+    [
+      "wmle",
+      {
+        "variant": "WMLE"
+      }
+    ],
+    [
+      "lse",
+      {
+        "variant": "LSE"
+      }
+    ],
+    [
+      "lre",
+      {
+        "variant": "LRE(Park)"
+      }
+    ],
+    [
+      "mdm",
+      {
+        "variant": "MDM-0.1",
+        "offset": 0.1
+      }
+    ],
+    [
+      "mm",
+      {
+        "variant": "MM"
+      }
+    ]
+  ],
+  "boundary_tol": 0.0,
+  "solver_version": "2026-10-16-profile-v2",
+  "workers": 12,
+  "source_directory": "计算实现-20261016",
+  "source_sha256": {
+    "base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+    "methods/conditional_profiles.py": "e3ed44ef690069acdecb64c61edbebe1d6b0c6bb5536079a17313ea1067b2762",
+    "methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+    "methods/lre.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
+    "methods/lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+    "methods/mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+    "methods/mle.py": "6c87236e96226283ae4c9ef7d92224ce0b0c55471e4c89fa1ea8fdef6d94d688",
+    "methods/mm.py": "6804ccf1183b8506594ae3eb362be683af1a5523fe6a54d57ea5b41896c588d1",
+    "methods/mmle.py": "afe5318c04373254ad6acffc47e9cf7ff7ba80efa667865102ce8fc49edb85f9",
+    "methods/mmle_ch.py": "e0e3f919fb8aba6d235f7b55a494ca9e4f6f88fcb8b5c1a1d3142f0f34e1de3a",
+    "methods/mps.py": "3c6e15318d759357c535893fe810df073b345b9ffe34a7ff132ce309206b7ecb",
+    "methods/profile_solvers.py": "4e64e99019de33d60ca771184fcf2489bb90e6656c8d8acd39934714dacb3df0",
+    "methods/registry.py": "49dd3d536670ae6759afabe4e842e0054f0bd146deffcf51563ace95a1c0643f",
+    "methods/wmle.py": "1dcdb5b47c6d52498e5b5f0c5c310fa852b526f7250633f97d99f14f7f1ef310",
+    "studies/common/experiment.py": "28b4cd42b85674df68edab80f027fd7369b654f662065c2c8d9d0486eb88bad5",
+    "studies/common/metrics.py": "b3bfaaad22eb252a46b4861e2ddb89aeeb5372c52a5cadc519dc51705fa7a8fb",
+    "studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+    "studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48"
+  }
+}
