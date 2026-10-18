@@ -1,4 +1,4 @@
-"""复用已有结果，为下篇绘制偏差–SD图和误差容限曲线；不抽样、不拟合。"""
+"""复用已有结果绘制误差容限曲线；不抽样、不拟合。"""
 
 import hashlib
 import json
@@ -21,7 +21,6 @@ NS = [7, 50]
 PARAMETERS = [("beta", "β", "形状估计", BETA, 5.),
               ("eta", "η", "尺度估计", 1000., 1000.),
               ("gamma", "γ", "位置估计", 500., 1000.)]
-FOCUS = ["MDM-0.1", "LRE(Park)", "WMLE"]
 
 
 def digest(path):
@@ -73,37 +72,6 @@ def main():
         "axes.spines.top": False, "axes.spines.right": False})
     output = HERE / "图片"
     written = []
-
-    fig, axes = plt.subplots(2, 3, figsize=(15.2, 7.6))
-    for col, (param, symbol, _, _, _) in enumerate(PARAMETERS):
-        points = [records[(n, m, param)][1] for n in NS for m in FOCUS]
-        xs = [r[f"{param}_bias"] for r in points] + [0.]
-        ys = [r[f"{param}_sd"] for r in points]
-        span = max(xs)-min(xs)
-        xlim = (min(xs)-.09*span, max(xs)+.09*span)
-        ylim = (0, max(ys)*1.13)
-        for row_index, n in enumerate(NS):
-            ax = axes[row_index, col]
-            ax.axvline(0, color="#AAAAAA", lw=.85, zorder=0)
-            for method in methods:
-                if method["id"] not in FOCUS:
-                    continue
-                data = records[(n, method["id"], param)][1]
-                ax.scatter(data[f"{param}_bias"], data[f"{param}_sd"],
-                    color=method["color"], marker=method["marker"], s=85, zorder=3)
-            ax.set(xlim=xlim, ylim=ylim, xlabel=f"{symbol} Bias", ylabel=f"{symbol} SD")
-            ax.xaxis.set_major_locator(MaxNLocator(5))
-            ax.yaxis.set_major_locator(MaxNLocator(5))
-            ax.grid(color="#EEEEEE", lw=.6, zorder=0)
-            ax.text(.97, .94, f"n={n}", transform=ax.transAxes, ha="right", va="top")
-    handles = [Line2D([], [], color=m["color"], marker=m["marker"], linestyle="",
-                     markersize=8, label=m["label"]) for m in methods if m["id"] in FOCUS]
-    fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(.5, 1.0))
-    fig.subplots_adjust(left=.07, right=.985, bottom=.09, top=.90, wspace=.28, hspace=.35)
-    path = output / "12_偏差与稳定性_β5.png"
-    fig.savefig(path, dpi=config["dpi"], facecolor="white")
-    plt.close(fig)
-    written.append(path)
 
     fig, axes = plt.subplots(2, 3, figsize=(15.2, 7.8))
     for row_index, n in enumerate(NS):
