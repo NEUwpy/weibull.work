@@ -2,7 +2,7 @@
   "id": "study04-method-classification-v04-report",
   "title": "Study04 方法分类报告 v0.4 审阅",
   "document": true,
-  "revision": 5,
+  "revision": 7,
   "require_confirmation": true,
   "archive_plan": "审阅确认后，将最终意见落实到 Study/04-study-小样本三参数Weibull估计方法比较与选择/报告上（方法分类）-v0.4.md；必要时同步 Study04/README.md 与 方法分类/README.md 的当前入口；旧版继续保留在 其他/历史版本/；保留本任务 HTML、素材和批注记录，并在核验图示与链接后提交 Git。",
   "units": [
@@ -40,18 +40,7 @@
             {
               "id": "section-1-text-0",
               "kind": "text",
-              "html": "<p>三参数Weibull分布包含形状参数β、尺度参数η和位置参数γ。位置参数改变了分布的支撑边界，也使形状和尺度的估计不再像两参数情形那样直接。围绕这个问题，文献中出现了许多名称：有些名称说的是估计准则，有些说的是统计量，有些说的是推断框架，还有些只是求解工具或改进步骤。</p>\n<p>先把这些名称放在一起看，会发现它们并不处在同一个层级：</p>\n<table>\n<thead>\n<tr>\n<th>现有名称或常用称呼</th>\n<th>名称强调的内容</th>\n<th>容易混淆的地方</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>MLE、WMLE、MMLE、K–R、CMLE、DMMLE</td>\n<td>似然或似然方程的构造</td>\n<td>原始准则、方程加权、位置处理和偏差修正混在同一组名称里</td>\n</tr>\n<tr>\n<td>概率图、LSE、WLSE、LRE</td>\n<td>样本与理论分布的关系</td>\n<td>分数、位置定位、回归方向和参数恢复可能不同</td>\n</tr>\n<tr>\n<td>MPS、QMP、概率区间</td>\n<td>概率间距或分组概率</td>\n<td>同样使用概率量，区间构造与目标函数仍可能不同</td>\n</tr>\n<tr>\n<td>MDM、尺度一致性</td>\n<td>观测反推尺度后的差异</td>\n<td>差异判据与普通概率图残差不能混为同一估计器</td>\n</tr>\n<tr>\n<td>MM、PWM、L矩、TL矩、分位数、次序统计量</td>\n<td>样本统计量与总体关系</td>\n<td>统计量、权重、端部处理和参数恢复关系各不相同</td>\n</tr>\n<tr>\n<td>线性最小方差、MVLUE</td>\n<td>估计类与协方差权重</td>\n<td>已知条件下的性质不能直接移植到未知参数的迭代版本</td>\n</tr>\n<tr>\n<td>Bayes、MAP、后验均值、Gibbs、MH、Laplace</td>\n<td>推断框架、输出规则或计算方法</td>\n<td>后验模型、点估计规则和计算算法是不同环节</td>\n</tr>\n<tr>\n<td>ANN、BPNN、SVR、PSO、SA、DE</td>\n<td>学习映射、拟合工具或数值搜索</td>\n<td>工具作用于什么目标，决定它是否改变估计原理</td>\n</tr>\n</tbody>\n</table>\n<p>因此，问题不是简单地把方法名称再拆成更多小类，而是先看清：这些名称分别在说什么。下面先把分类前的混合视图放在一起：不同层次的概念被并列放置，方法之间有关系，但归属依据还没有统一说清。</p>\n"
-            },
-            {
-              "id": "section-1-image-1",
-              "kind": "image",
-              "src": "assets/00-分类前-旧版七条主干.svg",
-              "alt": "图1　分类前：旧版七条主干与主要关系"
-            },
-            {
-              "id": "section-1-text-2",
-              "kind": "text",
-              "html": "<p><strong>图1｜分类前的混合视图。</strong>\n这张图先让方法集合完整出现：其中既有估计准则，也有统计构造、推断框架和算法工具，不能把所有方框理解成同一层级的主干。</p>\n"
+              "html": "<p>三参数Weibull分布包含形状参数β、尺度参数η和位置参数γ。位置参数改变了分布的支撑边界，也使形状和尺度的估计不再像两参数情形那样直接。围绕这个问题，文献中陆续提出了不同方案。先按文献中的方法名称、作者和年份把它们列出来，可以看到研究对象很多，提出时间也分散在不同阶段。</p>\n<table>\n<thead>\n<tr>\n<th>作者／年份（当前已核对的代表文献）</th>\n<th>方案或方法名</th>\n<th>主要构造</th>\n<th>当前记录</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Smith（1985）</td>\n<td>三参数MLE及最小值替代构造</td>\n<td>原始似然；另讨论位置取最小观测、删除该观测后的估计</td>\n<td>代表性非正则分析；不据此宣称MLE最早提出者</td>\n</tr>\n<tr>\n<td>Cohen–Whitten（1982）</td>\n<td>MMLE-I—V、MME分支</td>\n<td>保留部分似然方程，用最小值、均值、方差或中位数关系替换位置或矩方程</td>\n<td>同一MMLE缩写下有多个具体版本</td>\n</tr>\n<tr>\n<td>Cheng–Amin（1983）；Ranneby（1984）</td>\n<td>MPS／最大概率间距</td>\n<td>用相邻CDF概率间距构造乘积或对数目标</td>\n<td>两条独立提出线索，当前关系按共同方法记录</td>\n</tr>\n<tr>\n<td>Cheng–Iles（1987）</td>\n<td>CMLE／修正似然</td>\n<td>用最小观测附近的区间概率替换密度项</td>\n<td>位置边界处理改变了似然项</td>\n</tr>\n<tr>\n<td>White（1969）</td>\n<td>概率图回归</td>\n<td>用次序统计量期望构造分数，再回归对数寿命</td>\n<td>两参数概率图基础</td>\n</tr>\n<tr>\n<td>Soman–Misra（1992）</td>\n<td>三参数LSE／White扩展</td>\n<td>平移样本、White分数、回归和位置评分</td>\n<td>未知位置被接入概率图流程</td>\n</tr>\n<tr>\n<td>Cran（1988）</td>\n<td>Weibull moments</td>\n<td>由生存函数幂次积分形成矩，再显式恢复三参数</td>\n<td>不需要多维迭代搜索</td>\n</tr>\n<tr>\n<td>Jacquelin（1993）→ Cousineau（2009）</td>\n<td>WMLE／加权MLE</td>\n<td>从二参数代数关系扩展到三参数，并把三个权重放进估计方程</td>\n<td>明确的扩展关系</td>\n</tr>\n<tr>\n<td>Kundu–Raqab（2009）</td>\n<td>K–R MMLE</td>\n<td>以共同最小值定位并删除该观测，再估计其余参数</td>\n<td>与Cohen–Whitten MMLE分支分开记录</td>\n</tr>\n<tr>\n<td>Hosking（1990）；Elamir–Seheult（2003）</td>\n<td>L矩／截尾L矩</td>\n<td>以次序统计量线性组合匹配理论统计关系，截尾L矩减少端部影响</td>\n<td>统计关系路线的重要来源</td>\n</tr>\n<tr>\n<td>Nagatsuka等（2013）</td>\n<td>LSPF</td>\n<td>用与位置、尺度无关的统计量估形状，再恢复其余参数</td>\n<td>位置尺度自由的联合构造</td>\n</tr>\n<tr>\n<td>Nagatsuka–Balakrishnan（2015）</td>\n<td>LPF</td>\n<td>只消除位置、保留尺度信息，再进行参数恢复</td>\n<td>对LSPF的构造改进</td>\n</tr>\n<tr>\n<td>Park（2017；2018）</td>\n<td>Proposed+Plot／Proposed+MLE2</td>\n<td>用概率图相关系数定位，再按回归或二参数MLE恢复</td>\n<td>2018补充条件下的存在性论证</td>\n</tr>\n<tr>\n<td>Yang等（2023）</td>\n<td>最小二乘迭代</td>\n<td>概率图回归与最小次序统计量位置修正交替进行</td>\n<td>位置修正与回归组合</td>\n</tr>\n<tr>\n<td>Bayes、ANN、BPNN、MDM等</td>\n<td>后验、学习映射、尺度差异判据</td>\n<td>分别使用先验与后验、训练映射或尺度伪估计差异</td>\n<td>作者和年份按具体论文继续核对</td>\n</tr>\n</tbody>\n</table>\n<p>表中的年份是当前已核对材料中的代表文献年份，不把“代表性分析”直接写成“最早提出”。同一缩写下存在多个构造时，后面按具体方程、统计量和参数恢复步骤继续拆开。</p>\n<p>这样呈现后，问题就比较清楚：方法名称很多，但名称有时说的是估计准则，有时说的是统计量，有时说的是推断框架，还有些只是求解工具或改进步骤。接下来需要给出一个统一的归纳依据。</p>\n"
             }
           ]
         }
@@ -310,5 +299,6 @@
       ]
     }
   ],
-  "last_applied_submission_id": "e19d078b-9dbf-4662-ba02-57760b00d0af"
+  "last_applied_submission_id": "152069ef-54a3-4e1b-b77c-b28ee9563c8a",
+  "review_complete": false
 }
