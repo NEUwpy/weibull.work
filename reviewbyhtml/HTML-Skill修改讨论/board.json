@@ -1,0 +1,127 @@
+{
+  "id": "review-html-structure-discussion",
+  "title": "HTML Skill修改讨论：整体问题怎样进入审阅",
+  "document": true,
+  "revision": 1,
+  "review_complete": false,
+  "units": [
+    {
+      "id": "purpose",
+      "title": "这一轮要解决什么",
+      "mode": "content",
+      "options": [
+        {
+          "id": "purpose-current",
+          "label": "当前建议",
+          "blocks": [
+            {
+              "id": "purpose-current-text",
+              "kind": "text",
+              "html": "<p>审阅细节时，可能发现几个部分的关系、整体结构，甚至原先的目标需要调整。<strong>已确定的结构应当允许重开讨论，HTML不能只接受现有段落内部的修改。</strong></p><p>下面是刚才建议中的两个实际取舍；其他建议直接批注。这一页先确定工作流改法，尚不修改Skill程序。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overall-entry",
+      "title": "整体意见放在哪里？",
+      "mode": "choices",
+      "inline": true,
+      "selected": null,
+      "context": "局部批注继续使用；需要决定的是跨章节、涉及全文的意见怎样提出。",
+      "options": [
+        {
+          "id": "entry-in-page",
+          "label": "页面增加“整体意见”（建议）",
+          "blocks": [
+            {
+              "id": "entry-in-page-text",
+              "kind": "text",
+              "html": "<p>在标题附近提供一个轻量入口，展开后写自由意见，<mark>不用挂在某段文字上，也不用先选择问题类别</mark>，与本轮其他反馈一起提交。</p><p>能让整体意见与局部批注留在同一份审阅记录里；页面多一个入口。</p>"
+            }
+          ]
+        },
+        {
+          "id": "entry-chat",
+          "label": "整体问题继续在聊天里说",
+          "blocks": [
+            {
+              "id": "entry-chat-text",
+              "kind": "text",
+              "html": "<p>HTML保留局部批注，<mark>跨部分、全文和目标层面的问题在聊天里讨论</mark>，由Agent整理出决定后更新页面。</p><p>页面保持现状；整体讨论与局部记录分在两个地方。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "structure-response",
+      "title": "发现结构问题后，先给什么？",
+      "mode": "choices",
+      "inline": true,
+      "selected": null,
+      "context": "Agent先识别影响范围：一句话的小修直接处理；牵动结构时按这里确定的方式推进。",
+      "options": [
+        {
+          "id": "response-outline",
+          "label": "先讨论简明骨架（建议）",
+          "blocks": [
+            {
+              "id": "response-outline-text",
+              "kind": "text",
+              "html": "<p>先说明<mark>哪里不顺 → 为什么要动 → 建议怎样组织</mark>，给一份短骨架和必要的改动对照；方向确定后，再调整正文和图。</p><p>适合结构方向尚未明确的时候，能先判断组织逻辑。</p>"
+            }
+          ]
+        },
+        {
+          "id": "response-rewrite",
+          "label": "直接给一版重组稿",
+          "blocks": [
+            {
+              "id": "response-rewrite-text",
+              "kind": "text",
+              "html": "<p>先按判断<mark>重组当前内容，直接展示完整改稿</mark>，同时说明重要结构变化，再根据反馈调整。</p><p>适合希望看完整效果再判断的时候；方向改变会带来更多返工。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preservation",
+      "title": "调整结构时，已有内容怎样处理",
+      "mode": "content",
+      "options": [
+        {
+          "id": "preservation-current",
+          "label": "当前建议",
+          "blocks": [
+            {
+              "id": "preservation-current-text",
+              "kind": "text",
+              "html": "<p>原先确认的结构是当前依据，后续发现问题可以重新讨论；不必把工作固定成只能向前走的阶段。</p><p>移动章节尽量复用原文字、图和批注。拆分、合并时说明对应关系；旧批注不能无声贴到已经改写的内容上。沿用同一任务目录，用Git保留修订。</p><p>你不需要先判断问题属于“目的、结构还是细节”。Agent应先说明影响范围，并遵从“先讨论”或“直接改”的具体要求。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result",
+      "title": "怎样形成最终改法",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-current",
+          "label": "当前建议",
+          "blocks": [
+            {
+              "id": "result-current-text",
+              "kind": "text",
+              "html": "<p>提交取舍和批注后，我把采纳的建议整理成<strong>一版连贯的工作流改法</strong>，将未确定之处留在对应位置继续讨论。</p><p>本页的“落地存档”表示接受并保存这份改法；功能实现随后再开展。两个任务各自保存：这份Skill讨论不会覆盖Study04上半部分的审阅内容。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
