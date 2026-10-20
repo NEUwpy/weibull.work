@@ -18,7 +18,7 @@ from scipy.stats import gaussian_kde
 
 HERE = Path(__file__).resolve().parent
 STUDY = HERE.parent.parent
-ROOT = HERE / '审阅'
+ROOT = STUDY / 'reviewbyhtml'
 ASSETS = ROOT / 'assets'
 METHODS = ['MDM-0.1', 'LSE', 'LRE(Park)', 'WMLE', 'MLE', 'MMLE(KR)', 'MM']
 LABELS = ['MDM', 'LSE', 'LRE', 'WMLE', 'MLE', 'K–R', 'MM']

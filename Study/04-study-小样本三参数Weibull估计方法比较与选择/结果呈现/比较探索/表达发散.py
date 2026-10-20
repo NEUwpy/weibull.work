@@ -7,8 +7,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 HERE=Path(__file__).resolve().parent
-ROOT=HERE/'审阅'
 STUDY=HERE.parent.parent
+ROOT=STUDY/'reviewbyhtml'
 SKILL=Path.home()/'.codex/skills/review-html'
 sys.path.insert(0,str(SKILL/'scripts'))
 from math_html import render_html_batch

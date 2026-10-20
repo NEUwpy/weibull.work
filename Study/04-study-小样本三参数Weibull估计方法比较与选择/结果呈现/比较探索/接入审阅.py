@@ -6,7 +6,7 @@ import runpy
 import shutil
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE / '审阅'
+ROOT = HERE.parent.parent / 'reviewbyhtml'
 
 def typeset_board(board):
     helper = Path.home() / '.codex/skills/review-html/scripts/math_html.py'
@@ -102,7 +102,7 @@ def main():
              'source_fingerprint': model['source_fingerprint'], 'content_fingerprint': model['content_fingerprint'],
              'units': units}
     target.write_text(json.dumps(typeset_board(board), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    (ROOT / '.gitignore').write_text('/session.json\n/server.log\n/draft.json\n/draft.previous.json\n/feedback.json\n/history.jsonl\n', encoding='utf-8')
+    (ROOT / '.gitignore').write_text('/session.json\n/server.log\n/draft.json\n/draft.previous.json\n*.tmp\n__pycache__/\n', encoding='utf-8')
     print(json.dumps({'root': str(ROOT), 'units': len(units),
                       'choice_units': sum(u['mode'] == 'choices' for u in units)}, ensure_ascii=False))
 
