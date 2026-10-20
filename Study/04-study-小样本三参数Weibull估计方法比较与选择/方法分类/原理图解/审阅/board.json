@@ -2,7 +2,7 @@
   "id": "study04-upper-expression",
   "title": "Study04上半部分：内容与表达探索",
   "document": true,
-  "revision": 4,
+  "revision": 7,
   "units": [
     {
       "id": "research-opening",
@@ -140,13 +140,13 @@
             {
               "id": "components-meaning",
               "kind": "text",
-              "html": "<p>保持上面的MLE原型流程，再逐处标出改动：Cohen–Whitten替换位置方向的关系；WMLE改变求解关系并校准尺度恢复；Smith／K–R先定位并删除最小观测，改变进入估计的数据。DMMLE再把数据修改与Firth型修正组合起来。</p>"
+              "html": "<p>保留共同似然骨架，分别展示删最小值、替换位置关系、嵌入权重三种改动。有限似然峰和WMLE方程交点嵌入对应环节，DMMLE在下方接回两种来源。</p>"
             },
             {
               "id": "components-figure",
               "kind": "image",
               "src": "assets/机制图/似然方法-原型与改动.svg",
-              "alt": "可编辑draw.io机制图：在同一MLE原型中直接展示删最小值、位置关系替换、权重嵌入和得分组合"
+              "alt": "同一似然骨架的三种构造改动：删点、替换位置关系、方程加权；关键节点内有有限似然峰和WMLE两条零值曲线的共同交点"
             },
             {
               "id": "likelihood-patch-provenance",
@@ -177,13 +177,13 @@
             {
               "id": "interval-meaning",
               "kind": "text",
-              "html": "<p>MLE用观测处的密度，MPS用相邻观测之间的CDF增量，QMP还保留分组计数，CMLE则只改最小观测处的一项。MPS含两端区间，约定首尾CDF边界为0与1；区间切分方式和计数条件满足时，才得到其作为QMP特例的关系。</p>"
+              "html": "<p>从观测处的密度转向区间概率。MPS用两组候选参数展示CDF间距和评分怎样改变；QMP保留组内计数，CMLE只改最小观测项。</p>"
             },
             {
               "id": "interval-figure",
               "kind": "image",
               "src": "assets/机制图/概率区间-MPS与分组.svg",
-              "alt": "概率区间机制图：点密度与区间概率的对照，MPS、QMP和CMLE分别改变哪些量"
+              "alt": "概率区间结构图：MPS候选参数改变间距与评分，QMP保留组计数，CMLE替换最小观测项"
             },
             {
               "id": "interval-figure-source",
@@ -220,7 +220,7 @@
     },
     {
       "id": "regression-form",
-      "title": "沿同一个概率图原型，定位、方向与更新怎样改变？",
+      "title": "沿同一骨架，对照概率图方法的不同构造",
       "mode": "content",
       "state": "modify",
       "selected": null,
@@ -232,18 +232,18 @@
             {
               "id": "sequence-meaning",
               "kind": "text",
-              "html": "<p>先呈现概率图共同骨架，再直接画出位置平移、两种残差方向与位置修正迭代。各分支的分数和参数恢复保留区别；这张图用于理解构造，不用一条箭头代替所有历史关系。</p>"
+              "html": "<p>把分数、回归、位置判据和参数恢复放在相同位置，直接对照Soman与Park的不同选择；曲线只解释关键判据。</p>"
             },
             {
               "id": "sequence-figure",
               "kind": "image",
               "src": "assets/机制图/概率图-原型与改动.svg",
-              "alt": "概率图机制图：位置改变点列、回归方向改变残差、Yang借用位置修正再迭代"
+              "alt": "Soman与Park并列结构图：参考分数、回归关系、定位判据、参数恢复；曲线嵌入关键节点"
             },
             {
               "id": "sequence-figure-source",
               "kind": "text",
-              "html": "<p><a href=\"assets/机制图/概率图-原型与改动.drawio\">可编辑的draw.io源图</a> · <a href=\"assets/机制图/概率图-原型与改动.pdf\">PDF图稿</a></p>"
+              "html": "<p><a href=\"assets/机制图/概率图-原型与改动.drawio\">draw.io源图</a> · <a href=\"assets/机制图/概率图-原型与改动.pdf\">PDF图稿</a></p>"
             }
           ]
         }
@@ -251,7 +251,7 @@
     },
     {
       "id": "mdm-content",
-      "title": "分布拟合中的另一种判据：MDM",
+      "title": "MDM：先按差异定形状，再按梯度定位置",
       "mode": "content",
       "selected": null,
       "options": [
@@ -262,13 +262,13 @@
             {
               "id": "mdm-meaning",
               "kind": "text",
-              "html": "<p>给定形状与位置，每个观测都能反推出尺度伪估计：<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mo>=</mo><mo stretchy=\"false\">(</mo><msub><mi>t</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo>−</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">/</mi><mo stretchy=\"false\">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy=\"false\">)</mo><msup><mo stretchy=\"false\">]</mo><mrow><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup></mrow></semantics></math></span>。MDM比较这一束尺度值的离散程度，而概率图回归比较直线拟合关系。</p><p>当前MDM-0.1先在固定γ下求条件形状，使伪尺度标准差最小，再按条件最小标准差曲线的梯度达到δ=0.1定位，尺度取伪估计均值。它与直接对β、γ联合最小化标准差不同。</p>"
+              "html": "<p>结构图保留三个关键节点：固定γ求条件最低点，改变γ形成差异曲线，再按梯度阈值定位。参数恢复用一条关系收束。</p>"
             },
             {
               "id": "mdm-mechanism",
               "kind": "image",
               "src": "assets/机制图/MDM-伪尺度与条件定位.svg",
-              "alt": "MDM机制图：同一分布关系反推尺度伪估计，条件求形状、按梯度定位置，再恢复尺度"
+              "alt": "MDM结构图：三个相连的判据节点嵌入标准差曲线、条件差异曲线和梯度阈值曲线；小框恢复参数"
             },
             {
               "id": "mdm-mechanism-source",
@@ -305,7 +305,7 @@
     },
     {
       "id": "statistics-form",
-      "title": "同一个匹配骨架：怎样汇总，又怎样改变统计关系？",
+      "title": "同一矩匹配骨架：哪些是汇总，哪些改变统计关系？",
       "mode": "content",
       "state": "modify",
       "selected": null,
@@ -317,13 +317,13 @@
             {
               "id": "operations-meaning",
               "kind": "text",
-              "html": "<p>先画样本统计量与理论关系匹配的原型，再看Cran的生存阶梯幂次、PWM到L矩的线性重组，以及TL矩对概念次序量的调整。</p>"
+              "html": "<p>Cran从生存阶梯面积得到样本矩，借理论矩差之比消去位置和尺度，再恢复形状；旁边对照PWM到L矩的线性重组、L矩到TL矩的概念次序量改变。</p>"
             },
             {
               "id": "operations-figure",
               "kind": "image",
               "src": "assets/机制图/矩方法-加权汇总与变体.svg",
-              "alt": "矩方法机制图：生存阶梯的幂次积分、PWM与L矩线性重组、TL矩内部次序量"
+              "alt": "矩方法结构对照：Cran阶梯面积与矩差消元、PWM到L矩的重组、TL矩概念样本的扩展"
             },
             {
               "id": "operations-figure-source",
@@ -348,13 +348,13 @@
             {
               "id": "invariance-meaning",
               "kind": "text",
-              "html": "<p>同一批寿命可以先去位置，再去尺度；得到的统计量还可以接到均值匹配或联合密度。LSPF到LPF的改动，具体体现在少除去一个尺度量；寿命间距与CDF概率间距也在图中分开。</p>"
+              "html": "<p>在同一坐标下比较原样本、平移和缩放：W保持不变，V保留尺度变化。接到估计准则后，共同统计量还会形成不同方法。</p>"
             },
             {
               "id": "invariance-figure",
               "kind": "image",
               "src": "assets/机制图/不变统计量-W与V.svg",
-              "alt": "不变统计量机制图：W消除位置和尺度，V保留尺度；共享变换与改变准则分别展示"
+              "alt": "W与V结构图：三行共用坐标，W在平移缩放后不变，V平移不变而随尺度放大；分别连接均值匹配与联合密度准则"
             },
             {
               "id": "invariance-figure-source",
@@ -379,13 +379,13 @@
             {
               "id": "linear-meaning",
               "kind": "text",
-              "html": "<p>先展示给定形状与尺度时的位置估计原型，再看条件位置估计如何接入交替恢复。MVLE-H估计的是倒数形状，另列分支；条件性质、取倒数后的性质与全部参数未知时的表现不能混用。</p>"
+              "html": "<p>条件位置估计先按理论期望校正次序统计量，再按协方差确定组合权重。原文权重算例嵌入该节点，旁边保留三参数迭代和倒数形状估计的分支。</p>"
             },
             {
               "id": "linear-figure",
               "kind": "image",
               "src": "assets/机制图/线性估计-条件权重与迭代.svg",
-              "alt": "线性估计机制图：理论期望构造候选、协方差确定权重、交替恢复及MVLE-H分支"
+              "alt": "条件线性估计的共同骨架与分支；关键权重节点内嵌原文n等于5且形状尺度已知时的权重图"
             },
             {
               "id": "linear-figure-source",

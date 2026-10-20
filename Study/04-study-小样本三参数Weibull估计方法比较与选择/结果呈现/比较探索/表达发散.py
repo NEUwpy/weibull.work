@@ -247,7 +247,10 @@ def write_markdown(board):
         for o in u['options']:
             if u['mode']=='choices':out.extend(['### '+o['label'],''])
             for b in o['blocks']:
-                out.extend([f'![{b.get("alt","")}]({(ROOT/b["src"]).as_posix()})' if b['kind']=='image' else b['html'],''])
+                if b['kind']=='gallery':
+                    for slide in b['images']:
+                        out.extend(['### '+slide.get('label',slide['id']),'',f'![{slide.get("alt","")}]({(ROOT/slide["src"]).as_posix()})',''])
+                else:out.extend([f'![{b.get("alt","")}]({(ROOT/b["src"]).as_posix()})' if b['kind']=='image' else b['html'],''])
     (HERE/'表达方式发散.md').write_text('\n'.join(out),encoding='utf-8')
 
 def reuse_research00():

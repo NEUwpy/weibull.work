@@ -110,28 +110,31 @@ def rose(model):
     return save(fig, '修订_七法玫瑰图_五档n'), r
 
 
-def distributions(model):
+def distributions(model, beta=5):
     windows = [(0,10), (0,2000), (0,1500)]
     ticks = [[0,2,4,6,8,10], [0,500,1000,1500,2000], [0,500,1000,1500]]
-    truths = [5,1000,500]
+    truths = [beta,1000,500]
+    j = BETAS.index(beta)
     audit = []
     fig, axes = plt.subplots(2, 3, figsize=(14.5, 7.3))
     fig.subplots_adjust(left=.085, right=.985, top=.86, bottom=.09, wspace=.16, hspace=.29)
     for row, n in enumerate([50,7]):
-        df = pd.read_csv(STUDY/f'结果/W5,1000,500/估计结果/n{n}.csv', float_precision='round_trip')
+        df = pd.read_csv(STUDY/f'结果/W{beta:g},1000,500/估计结果/n{n}.csv', float_precision='round_trip')
         for p, ax in enumerate(axes[row]):
             lo, hi = windows[p]
             ax.axvline(truths[p], color='#69757d', ls='--', lw=1, zorder=1)
             for m, method in enumerate(METHODS):
                 mask = df[method+'_状态'].eq('success')
                 values = df.loc[mask, method+'_'+['形状','尺度','位置'][p]+'估计'].to_numpy(float)
-                assert len(values) == model['counts'][NS.index(n)][7][m]
+                assert len(values) == model['counts'][NS.index(n)][j][m]
                 assert np.isfinite(values).all()
+                rmse = np.sqrt(np.mean((values-truths[p])**2))
+                assert np.isclose(rmse,model['stats']['own']['rmse'][p][NS.index(n)][j][m],rtol=2e-11)
                 # Preserve the original window-local density convention.
                 # Mean and quartiles still use every valid estimate.
                 visible = values[(values>=lo)&(values<=hi)]
-                grid = np.linspace(visible.min(), visible.max(), 500)
-                if np.ptp(visible) > 1e-9 and grid[-1] > grid[0]:
+                grid = np.linspace(visible.min(), visible.max(), 500) if len(visible) else np.array([])
+                if len(visible)>1 and np.ptp(visible) > 1e-9:
                     density = gaussian_kde(visible)(grid)
                     width = density / density.max() * .31
                     ax.fill_between(grid, m-width, m+width, color=COLORS[m],
@@ -141,7 +144,7 @@ def distributions(model):
                 mean = values.mean()
                 if lo <= mean <= hi:
                     ax.scatter(mean, m, s=24, color='#a31f32', edgecolor='white', lw=.7, zorder=4)
-                audit.append(dict(n=n, method=method, parameter=SYMBOLS[p], count=len(values),
+                audit.append(dict(beta=beta,n=n, method=method, parameter=SYMBOLS[p], count=len(values),rmse=float(rmse),
                                   outside=int(((values<lo)|(values>hi)).sum()), mean=float(mean)))
             ax.set_xlim(lo,hi); ax.set_xticks(ticks[p]); ax.set_ylim(6.65,-.65)
             ax.set_yticks(range(7), LABELS if p==0 else ['']*7)
@@ -155,7 +158,8 @@ def distributions(model):
                        Line2D([0],[0],color='#3e4b54',lw=2.3,label='25–75%')],
                loc='upper center', bbox_to_anchor=(.5,.965), ncol=3, frameon=False,
                columnspacing=3)
-    return save(fig, '修订_估计值分布_两档n'), audit
+    stem='修订_估计值分布_两档n' if beta==5 else f'估计值分布_β{beta:g}_两档n'
+    return save(fig, stem), audit
 
 
 def main():
@@ -282,7 +286,136 @@ def focus_six():
     print(json.dumps(result,ensure_ascii=False))
 
 
+def distribution_sequence():
+    """同布局、同范围的八个β，供HTML单槽位切换与顺序演示。"""
+    board_path=ROOT/'board.json'
+    board=json.loads(board_path.read_text(encoding='utf-8'))
+    assert board['revision']==9 and not board.get('processing')
+    before={u['id']:json.dumps(u,ensure_ascii=False,sort_keys=True) for u in board['units']}
+    model=json.loads((HERE.parent/'分析数据/比较论证-v0.4.json').read_text(encoding='utf-8'))
+    for rel,digest in model['sources'].items():
+        assert hashlib.sha256((STUDY/rel).read_bytes()).hexdigest()==digest
+    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':10,
+                         'axes.spines.top':False,'axes.spines.right':False})
+    images=[];audit=[]
+    for beta in BETAS:
+        path,records=distributions(model,beta)
+        images.append(dict(id=f'beta-{beta:g}',src='assets/'+path.name,label=f'β = {beta:g}',
+                           alt=f'β={beta:g}，n=50与7的七法三参数估计分布'))
+        audit.extend(records)
+        print(f'已生成 β={beta:g}',flush=True)
+    unit=next(u for u in board['units'] if u['id']=='figure-error')
+    unit['title']='偏移与波动：随β切换的估计值分布'
+    option=unit['options'][0]
+    for b in option['blocks']:
+        if b['id']=='preview':
+            b.clear();b.update(id='preview',kind='gallery',images=images,aspect_ratio=2715/1320)
+        elif b['id']=='scope':b['html']='<p>β按1.5、2、2.5、3、3.5、4、4.5、5依次切换。每张图均为n=50和7纵向、三参数横向、七法同序；三列显示范围分别固定为0—10、0—2000、0—1500。虚线随真实β移动，便于区分真值变化与估计偏移。</p>'
+        elif b['id']=='what':b['html']='<p><strong>能讲清：</strong>先在一张图中比较三参数与两档n，再顺序切换β，观察偏移方向和分布宽度是否改变。用于报告时可按同一顺序逐张播放。</p>'
+        elif b['id']=='tradeoff':b['html']='<p><strong>统计与显示：</strong>各法自身有效结果；密度只展示窗口内主体，均值及25%—75%区间用全部有效值，窗外结果未从统计删除。这里只比较两档n，中间三档仍在原数据中。</p>'
+    assert [u['id'] for u in board['units'] if json.dumps(u,ensure_ascii=False,sort_keys=True)!=before[u['id']]]==['figure-error']
+    # Recheck no submitted work arrived while rendering the plots.
+    latest=json.loads((ROOT/'feedback.json').read_text(encoding='utf-8'))
+    assert latest['board_revision']<board['revision'],'有新提交，先处理后接入图组'
+    board.update(revision=10,processing=True,review_complete=False)
+    board_path.write_text(json.dumps(board,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    runpy.run_path(str(HERE/'表达发散.py'))['write_markdown'](board)
+    (HERE.parent/'分析数据/β分布图组核验.json').write_text(json.dumps(dict(
+        revision=10,betas=BETAS,n=[50,7],methods=METHODS,metrics_verified=len(audit),
+        windows=[[0,10],[0,2000],[0,1500]],new_estimates=0,records=audit,
+        outputs={item['src']:hashlib.sha256((ROOT/item['src']).read_bytes()).hexdigest() for item in images}
+    ),ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    print(json.dumps(dict(revision=10,images=len(images),metrics_verified=len(audit),new_estimates=0),ensure_ascii=False))
+
+
+def rose_n_sequence():
+    """每张并列八个β，按n递减切换；全部面板保持同一线性半径。"""
+    board_path=ROOT/'board.json'
+    board=json.loads(board_path.read_text(encoding='utf-8'))
+    assert board['revision']==10 and not board.get('processing')
+    before={u['id']:json.dumps(u,ensure_ascii=False,sort_keys=True) for u in board['units']}
+    model=json.loads((HERE.parent/'分析数据/比较论证-v0.4.json').read_text(encoding='utf-8'))
+    for rel,digest in model['sources'].items():
+        assert hashlib.sha256((STUDY/rel).read_bytes()).hexdigest()==digest
+    raw=np.array(model['stats']['common']['rmse'])[:3]
+    # Recheck each parameter/method against the same seven-method intersection.
+    counts=[]
+    for i,n in enumerate(NS):
+        for j,beta in enumerate(BETAS):
+            df=pd.read_csv(STUDY/f'结果/W{beta:g},1000,500/估计结果/n{n}.csv',float_precision='round_trip')
+            assert df['样本编号'].tolist()==list(range(1200))
+            common=np.logical_and.reduce([df[m+'_状态'].eq('success').to_numpy() for m in METHODS])
+            assert int(common.sum())==model['common_counts'][i][j]
+            counts.append(dict(n=n,beta=beta,common=int(common.sum())))
+            for p,(suffix,truth) in enumerate(zip(['形状','尺度','位置'],[beta,1000,500])):
+                values=df.loc[common,[m+'_'+suffix+'估计' for m in METHODS]].to_numpy(float)
+                assert np.isfinite(values).all()
+                calculated=np.sqrt(np.mean((values-truth)**2,axis=0))
+                assert np.allclose(calculated,raw[p,i,j],rtol=2e-11,atol=1e-10)
+    denominators=np.array([BETAS,[1000]*len(BETAS),[1000]*len(BETAS)])
+    normalized=raw/denominators[:,None,:,None]
+    old=runpy.run_path(str(HERE.parent/'绘制RMSE玫瑰图.py'))
+    extent,ticks=old['radial_scale'](normalized[:,:,:,:6].max())
+    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':10})
+    images=[]
+    for i,n in enumerate(NS):
+        fig=plt.figure(figsize=(24,17),facecolor='white')
+        for j,beta in enumerate(BETAS):
+            row,col=divmod(j,4)
+            bottom=.60-.49*row
+            rows=[dict(method=METHODS[m],parameter=old['PARAMS'][p][0],
+                       normalized_rmse=float(normalized[p,i,j,m])) for p in range(3) for m in range(6)]
+            ax=fig.add_axes([.007+.25*col,bottom,.236,.32],projection='polar')
+            old['panel'](ax,pd.DataFrame(rows),old['METHODS'][:-1],extent,ticks,label_size=8)
+            fig.text(.125+.25*col,.955-.49*row,f'β = {beta:g}',ha='center',
+                     fontsize=18,weight='bold',color='#304c63')
+            for p,y in enumerate([.582,.556,.530]):
+                if col==0:
+                    fig.text(.012,y-.49*row,'MM '+SYMBOLS[p],ha='left',va='center',
+                             fontsize=12,weight='bold',color=old['COLORS'][p])
+                fig.text(.125+.25*col,y-.49*row,f'{normalized[p,i,j,6]:.3f}',ha='center',
+                         va='center',fontsize=14,color=old['COLORS'][p],weight='bold')
+        fig.legend(handles=[Patch(facecolor=c,label=s) for c,s in zip(old['COLORS'],SYMBOLS)],
+                   loc='center',bbox_to_anchor=(.5,.495),ncol=3,frameon=False,
+                   columnspacing=3,fontsize=13,title='Normalized RMSE · linear radius')
+        path=ASSETS/f'RMSE玫瑰图_n{n}_八档β.png'
+        # Fixed canvas keeps the slot and rose positions identical when switching n.
+        fig.savefig(path,dpi=190,facecolor='white')
+        plt.close(fig)
+        images.append(dict(id=f'n-{n}',label=f'n = {n}',src='assets/'+path.name,
+                           alt=f'n={n}，β=1.5至5的八组RMSE玫瑰图与MM数值'))
+        print(f'已生成 n={n}',flush=True)
+    unit=next(u for u in board['units'] if u['id']=='figure-change')
+    unit['title']='差距变化：按n切换，各β并列'
+    for block in unit['options'][0]['blocks']:
+        if block['id']=='preview':
+            block.clear();block.update(id='preview',kind='gallery',images=images,aspect_ratio=24/17)
+        elif block['id']=='scope':
+            block['html']='<p>按n=50→20→15→10→7切换。每张将β=1.5～5排为两行四列，六法玫瑰图与其下的MM数值一一对应。五张图、四十个面板共用0～'+f'{extent:g}'+'的线性半径；形状RMSE除以真实β，尺度与位置RMSE除以1000。</p>'
+        elif block['id']=='what':
+            block['html']='<p><strong>能讲清：</strong>同一n下先比较不同β的误差轮廓；再向右切换，让n逐档减小，观察各β下哪些方法的误差和方法间差距变化更明显。半径不随页面重设，变化可直接对照。</p>'
+        elif block['id']=='tradeoff':
+            block['html']='<p><strong>统计与显示：</strong>仍按每个条件的七法共同有效结果计算，MM完整数值单列。半径长度对应标准化RMSE，扇形面积不代表误差倍数；条件间共同有效的样本数可不同，异常与失败另图分析。</p>'
+    assert [u['id'] for u in board['units'] if json.dumps(u,ensure_ascii=False,sort_keys=True)!=before[u['id']]]==['figure-change']
+    latest=json.loads((ROOT/'feedback.json').read_text(encoding='utf-8'))
+    assert latest['board_revision']<board['revision'],'有新提交，先处理后接入图组'
+    board.update(revision=11,processing=True,review_complete=False)
+    board_path.write_text(json.dumps(board,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    runpy.run_path(str(HERE/'表达发散.py'))['write_markdown'](board)
+    (HERE.parent/'分析数据/n切换玫瑰图组核验.json').write_text(json.dumps(dict(
+        revision=11,sample_sizes=NS,betas=BETAS,source_files_verified=len(model['sources']),
+        metrics_verified=int(raw.size),common_counts=counts,new_estimates=0,
+        radius_extent=extent,radius_ticks=ticks,normalization=['true beta','1000','1000'],
+        normalized_rmse=normalized.tolist(),
+        outputs={item['src']:hashlib.sha256((ROOT/item['src']).read_bytes()).hexdigest() for item in images}
+    ),ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    print(json.dumps(dict(revision=11,images=len(images),metrics_verified=int(raw.size),
+                          radius_extent=extent,new_estimates=0),ensure_ascii=False))
+
+
 if __name__=='__main__':
     if sys.argv[1:]==['--focus-six']:focus_six()
+    elif sys.argv[1:]==['--distribution-sequence']:distribution_sequence()
+    elif sys.argv[1:]==['--rose-n-sequence']:rose_n_sequence()
     elif not sys.argv[1:]:main()
-    else:raise SystemExit('可选参数：--focus-six')
+    else:raise SystemExit('可选参数：--focus-six、--distribution-sequence 或 --rose-n-sequence')
