@@ -67,9 +67,10 @@ def main():
             for block in option['blocks']:
                 if block['kind'] == 'image':
                     image_blocks[Path(block['src']).name] = block
-    gallery_units = {'figure-change', 'figure-error'}
-    galleries = {key: copy.deepcopy(next(b for b in old_units[key]['options'][0]['blocks']
-                                         if b['kind'] == 'gallery')) for key in gallery_units}
+    galleries = {unit['id']: copy.deepcopy(block) for unit in board['units']
+                 for block in unit['options'][0]['blocks'] if block['kind'] == 'gallery'}
+    assert len(galleries) == sum(block['kind'] == 'gallery' for unit in board['units']
+                                 for block in unit['options'][0]['blocks']), '每部分只接入一个图组。'
     gallery_files = {Path(slide['src']).name: key for key, block in galleries.items()
                      for slide in block['images']}
     sections = {
@@ -160,7 +161,7 @@ def main():
     rendered_images = [Path(im['src']).name for u in units for o in u['options'] for b in o['blocks']
                        for im in (b['images'] if b['kind'] == 'gallery' else [b] if b['kind'] == 'image' else [])]
     assert Counter(rendered_images) == Counter(source_images)
-    assert len(source_images) == 21 and sorted(len(b['images']) for b in galleries.values()) == [5, 8]
+    assert len(rendered_images) == len(source_images) and gallery_seen == set(galleries)
     for unit in units:
         ids = [b['id'] for b in unit['options'][0]['blocks']]
         assert len(ids) == len(set(ids))

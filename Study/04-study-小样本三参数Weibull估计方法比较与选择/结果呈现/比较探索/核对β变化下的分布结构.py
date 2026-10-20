@@ -35,6 +35,8 @@ def main():
                            gamma_zero_rate=float(zero.mean()),
                            eta_median_gamma_zero=float(np.median(eta[zero])) if zero.any() else None,
                            eta_median_gamma_positive=float(np.median(eta[~zero])) if (~zero).any() else None,
+                           eta_quartiles_gamma_zero=np.quantile(eta[zero], [.25, .5, .75]).tolist() if zero.any() else None,
+                           eta_quartiles_gamma_positive=np.quantile(eta[~zero], [.25, .5, .75]).tolist() if (~zero).any() else None,
                            eta_gamma_correlation=float(np.corrcoef(eta, gamma)[0, 1]))
                 # 三种带宽仅核对图示双峰是否保持，不作为多峰显著性检验。
                 if method in ['LSE', 'LRE(Park)']:
@@ -55,6 +57,11 @@ def main():
             assert all(len(modes) == 2 for modes in high['eta_kde_modes'].values())
             assert high['gamma_zero_rate'] > low['gamma_zero_rate']
             assert high['eta_median_gamma_zero'] > high['eta_median_gamma_positive']
+            if n == 7:
+                low_iqr = np.diff(np.array(low['eta_quartiles_gamma_zero'])[[0, 2]])[0]
+                high_iqr = np.diff(np.array(high['eta_quartiles_gamma_zero'])[[0, 2]])[0]
+                assert high_iqr < low_iqr
+                assert high['eta_median_gamma_positive'] < low['eta_median_gamma_positive']
     TARGET.write_text(json.dumps(dict(sources=sources, records=records), ensure_ascii=False, indent=2) + '\n',
                       encoding='utf-8', newline='\n')
     print(json.dumps(dict(source_files=len(sources), records=len(records), output=TARGET.as_posix()), ensure_ascii=False))
