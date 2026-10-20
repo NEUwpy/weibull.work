@@ -55,7 +55,7 @@ def main():
     assert feedback['submission_id'] == board['last_applied_submission_id'], '先处理待提交意见。'
     history_before = (ROOT / 'history.jsonl').read_bytes()
     source_bytes = SOURCE.read_bytes()
-    source = source_bytes.decode('utf-8')
+    source = source_bytes.decode('utf-8').replace('\r\n', '\n')
     result = subprocess.run(['node', '--input-type=module', '-e', RENDER], cwd=REPO,
                             input=json.dumps(source, ensure_ascii=False), capture_output=True,
                             encoding='utf-8', check=True)
@@ -188,7 +188,7 @@ def main():
     mirror = re.sub(r'(\]\()([^\n)]+)\)', mirror_link, source)
     (HERE / '表达方式发散.md').write_text(
         '> 当前基于[正式报告v0.4](../../报告下（方法对比）-v0.4.md)审阅；'
-        '本文件为HTML正文镜像，修改尚待审阅落地。\n\n' + mirror, encoding='utf-8')
+        '本文件为HTML正文镜像，修改尚待审阅落地。\n\n' + mirror, encoding='utf-8', newline='\n')
     assert SOURCE.read_bytes() == source_bytes
     assert (ROOT / 'history.jsonl').read_bytes() == history_before
     print(json.dumps({'revision': board['revision'], 'units': len(units), 'images': len(source_images),
