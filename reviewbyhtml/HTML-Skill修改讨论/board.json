@@ -2,8 +2,8 @@
   "id": "review-html-structure-discussion",
   "title": "HTML Skill修改讨论：整体问题的处理方案",
   "document": true,
-  "revision": 6,
-  "review_complete": false,
+  "revision": 8,
+  "review_complete": true,
   "units": [
     {
       "id": "purpose",
@@ -82,23 +82,49 @@
     },
     {
       "id": "structure-response",
-      "title": "4　涉及结构时，先讨论简明骨架",
+      "title": "4　右侧层级栏也可以用来讨论结构",
       "mode": "content",
       "inline": true,
       "selected": "response-outline",
       "options": [
         {
           "id": "response-outline",
-          "label": "先讨论简明骨架（建议）",
+          "label": "右侧结构栏的共同设计",
           "blocks": [
             {
               "id": "response-outline-text",
               "kind": "text",
-              "html": "<p>Agent先判断意见影响的是局部表达、章节关系，还是整体目的。局部小修正常处理；牵动结构时，先给出：</p><ol><li><strong>问题：</strong>现有组织哪里不顺。</li><li><strong>建议：</strong>为什么要调整，新的短骨架怎样安排。</li><li><strong>影响：</strong>哪些内容需要移动、改写，哪些图文能继续使用。</li></ol><p>先在同一任务的审阅页讨论这个骨架，方向明确后再调整正文和图；不另起一套脱离当前内容的任务。</p>"
+              "html": "<p><strong>可行。右侧栏既帮助看清全文层级，也让结构意见有明确的落点。</strong>它从实际章节标题生成，折叠显示；点击标题定位正文，在节点旁对该部分或它包含的子部分提意见。全文目标、跨多个部分的意见仍可写进“整体意见”。</p><p>结构意见跟着章节ID走，而不是只记标题文字；改标题、调顺序后仍能知道原来指哪一部分。若意见牵动结构，Agent先说明问题、建议骨架和受影响的图文，再调整内容。</p>"
+            },
+            {
+              "id": "structure-sidebar-sketch",
+              "kind": "visual",
+              "html": "<figure style=\"margin:12px 0\"><figcaption style=\"font-size:13px;color:#6b7280;margin-bottom:8px\">侧栏示意：用报告的部分结构举例，当前仍在讨论功能</figcaption><div style=\"display:grid;grid-template-columns:1.1fr 1fr;border:1px solid #d5ddd9;border-radius:9px;overflow:hidden\"><div style=\"padding:18px\"><strong>正文</strong><h3 style=\"margin:16px 0 8px;font-size:17px\">方法之间的关系</h3><p style=\"margin:0;color:#68736c;font-size:14px\">阅读当前内容，细节照常选中文字批注。</p></div><div style=\"padding:18px;background:#f3f7f5;border-left:1px solid #d5ddd9\"><strong>结构</strong><div style=\"font-size:14px;line-height:1.9;margin-top:12px\">▾ 第一部分：方法<br>　方法分类<br><span style=\"color:#286252;font-weight:700\">　沿袭与关联　✎</span><br>　代表方法</div><div style=\"margin-top:9px;padding:9px;border-left:3px solid #43806b;background:white;font-size:13px\">结构意见：分类和沿袭放在一张总图里，会不会更清楚？</div></div></div></figure>"
             }
           ]
         }
       ],
+      "state": "open"
+    },
+    {
+      "id": "structure-sidebar-editing",
+      "title": "已确定：侧栏可编辑建议结构",
+      "mode": "content",
+      "inline": true,
+      "options": [
+        {
+          "id": "sidebar-proposed-outline",
+          "label": "可编辑的建议骨架",
+          "blocks": [
+            {
+              "id": "sidebar-proposed-outline-text",
+              "kind": "text",
+              "html": "<p><strong>侧栏编辑建议结构，正文的相应修改分情况处理：</strong></p><ul><li><strong>调整顺序或层级：</strong>章节绑定原正文，整节连同图表一起移动，可在页面预览。</li><li><strong>合并、拆分或改变章节职责：</strong>提交后由Agent结合新旧结构与现有正文重组内容，包括去重、补过渡、安排图表；改法不明确时先讨论内容归属。</li><li><strong>新增、删除章节：</strong>先记录为结构建议，不立即删除原正文；提交后再补写或处理相关内容。</li></ul><p>你可改标题、调顺序或层级、增删建议节点，并对节点加意见。原版保留，建议中的变化单独显示。预览回复列出改前、改后的结构及意见，你确认发送后再交给Agent。</p><p><strong>侧栏负责表达结构意图，Agent负责给出结构与正文一致的新一版。</strong>先用简洁的标题列表编辑，拖拽交互可后补。</p>"
+            }
+          ]
+        }
+      ],
+      "selected": "sidebar-proposed-outline",
       "state": "converged"
     },
     {
@@ -131,12 +157,15 @@
             {
               "id": "result-current-text",
               "kind": "text",
-              "html": "<p><strong>选择、批注与发散启发 → 预览回复 → 你审阅、编辑并确认发送 → Agent理解要求，必要时先讨论骨架 → 再调整内容。</strong></p><p>改后用“预览回复”进入发送前确认，“确认发送”才真正交给Agent；“落地存档”接受并保存当前呈现版本。就本任务而言，落地保存的是这份工作流改法，功能实现随后再开展。</p>"
+              "html": "<p><strong>选择、批注、结构意见与发散启发 → 预览回复 → 你审阅、编辑并确认发送 → Agent理解要求，必要时先讨论骨架 → 再调整内容。</strong></p><p>改后用“预览回复”进入发送前确认，“确认发送”才真正交给Agent；“落地存档”接受并保存当前呈现版本。就本任务而言，落地保存的是这份工作流改法，功能实现随后再开展。</p>"
             }
           ]
         }
       ]
     }
   ],
-  "last_applied_submission_id": "5bbbff57-7eda-4dba-9071-be4cd0370786"
+  "last_applied_submission_id": "8a605c8a-590b-4390-88ed-54180d63911a",
+  "processing": false,
+  "accepted_revision": 8,
+  "accepted_at": "2026-10-20T15:38:57.602599+00:00"
 }
