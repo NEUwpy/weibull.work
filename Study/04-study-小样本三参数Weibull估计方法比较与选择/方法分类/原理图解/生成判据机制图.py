@@ -1,7 +1,7 @@
 """用Research00存档样本解释判据选点；不重算或覆盖正式实验结果。
 
 运行：python/.venv/Scripts/python.exe <本文件>
-输出：审阅/assets/机制图中的draw.io原生矢量图和小型复核记录。
+输出：Study04/reviewbyhtml/方法分类/assets/机制图中的draw.io原生矢量图和小型复核记录。
 PNG、SVG、PDF由draw.io导出；XML保留曲线、坐标与公式。
 """
 
@@ -28,7 +28,7 @@ from methods.wmle import WMLE
 from methods import wmle as wmle_weights
 from methods.conditional_profiles import mle_profile, wmle_residuals
 
-OUT = HERE / "审阅" / "assets" / "机制图"
+OUT = HERE.parent.parent / "reviewbyhtml" / "方法分类" / "assets" / "机制图"
 SOURCE = REPO / "Research/00-方法对比/交付/结果/报告1/中间数据/样本.json"
 SAMPLES = json.loads(SOURCE.read_text(encoding="utf-8"))
 INK, BLUE, RED, GREEN, GRAY = "#263238", "#52788F", "#B44948", "#63835B", "#7D8790"
