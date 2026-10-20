@@ -1,0 +1,103 @@
+<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9" pages="1">
+  <diagram id="MDM-伪尺度与条件定位" name="同一分布关系：从拟合直线，转到收拢每个点反推的尺度">
+    <mxGraphModel page="1" pageWidth="1800" pageHeight="1120" grid="1" gridSize="8" math="1" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="同一分布关系：从拟合直线，转到收拢每个点反推的尺度" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=36;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="20" width="1736" height="54" />
+        </mxCell>
+        <mxCell id="legend" value="蓝灰：共同内核或保留部分　　珊瑚红：替换、增加或组合的位置" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="82" width="1736" height="34" />
+        </mxCell>
+        <mxCell id="core" value="(a) 内核：每个观测都可以反推出一个尺度伪估计" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="32" y="135" width="1736" height="270" />
+        </mxCell>
+        <mxCell id="core-input" value="排序寿命 t₍ᵢ₎&lt;br&gt;绘图概率 pᵢ" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=27;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="56" y="217" width="390" height="106" />
+        </mxCell>
+        <mxCell id="core-a" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="460" y="270" />
+            <mxPoint as="targetPoint" x="507" y="270" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="core-pseudo" value="$$\eta_i(\beta,\gamma)=\frac{t_{(i)}-\gamma}{[-\ln(1-p_i)]^{1/\beta}}$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=29;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="522" y="217" width="688" height="106" />
+        </mxCell>
+        <mxCell id="core-b" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1224" y="270" />
+            <mxPoint as="targetPoint" x="1267" y="270" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="core-criterion" value="同一个分布只有一个 η&lt;br&gt;比较这一束 ηᵢ 的离散" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=27;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1286" y="217" width="454" height="106" />
+        </mxCell>
+        <mxCell id="core-same-origin" value="概率图与MDM共享分布变换；这里的目标是伪尺度差异，不能只按图形相近认定直接历史继承。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="345" width="1680" height="40" />
+        </mxCell>
+        <mxCell id="bundle" value="(b) 给定 γ：选 β，使伪尺度更集中" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="32" y="438" width="550" height="550" />
+        </mxCell>
+        <mxCell id="bundle-eta-points" value="" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;shape=stencil(3Vhfc5swDP80fpzPlm1Zfkyy9PayD7BHmpDWVwI5YP2zTz8R05bQLVku7e3KC9iyBNIPSz9hYRbNbbbLBagy2+bCfBUAeZt92VWxbBue8MpDEjtl0/w2zcG5NM+aXb5qk/A+q2N2XeRppWnr6i5/iOu2t4nlbV7Htls1S2EWq6os2TZWJb9LCbhK4utsdXdTVz/L9VC6qeq8l+7n6emrqqhqVkv3/VsEGDTe0Sx58fKAoTsc1qtbWpqR6i7r1rrRtrrv4HlMmkYlxafeUI3silj+XRvguLoNcEKfB6+epXDeBvgeiMC/4uEOPA5OkmNYAoK3aMkcj9efZ31B9HNrg6UPjl4DSuesRoVoSBsFZ4V/0vxE/JtYFGd/+3dJn5FiXhRx1wwiRZTGeW2B0hUP4vYgXdAenfOewnNV6asOHdSc8RfsQv5MQGjwUg2AcIdIGJDGKiLUwasOjilDQV56Gu6KAyjQSnCcBEaDs0QWJwwFWJKHpYC6hCHSHcsarWyYcPRGBQmDlPAjhgWpvSWlkDWRYMpIYJABBjlhR/xgJTdhpJgcwDFF0oSxsEZJHGwKPdoWqKTnd3KW8P5RPpgPxOJI8/Ae3caF9KmJqwdZ7p6CN0RO44ShOEGgXDAlomduoaAtmg9Nkf+OxXEG1drKQKC4qwgeQdGUU+QthWqmFRXAWO6zedWAnXD4pzhUS/RcLI33Gh3aKe+EUyTK/YQJENAHr7nZNn7CWJwiUU2SM4NpA7ix4h9PfTkWVdme0R906k381T1if0tu+T9obbJtLJ5Y2g/2mt/jqq6aatOy/Ef2LY8jwzZ/bNMxVO/GEsVsIWZaLJ2YzwRd8Wpv9PJTPjqzMX3vnRXxpkyyVV62eZ3E9wP5Nq7Xz0dfnwWRxVLMvVhqMXdiBgdQ6BGf4GVA8GB8gseidPxolr8B);fillColor=none;strokeColor=#63758A;">
+          <mxGeometry as="geometry" x="56" y="530" width="504" height="255" />
+        </mxCell>
+        <mxCell id="bundle-legend-0" value="β = 2：同一γ下的候选" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="792" width="500" height="36" />
+        </mxCell>
+        <mxCell id="bundle-legend-1" value="β = 5：同一γ下的候选" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#B44948;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="834" width="500" height="36" />
+        </mxCell>
+        <mxCell id="bundle-conditional-shape" value="$$\beta^*(\gamma)=\arg\min_\beta s_\eta(\beta,\gamma)$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=26;fontColor=#B44948;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="885" width="500" height="70" />
+        </mxCell>
+        <mxCell id="profile" value="(c) 再选 γ：看条件最小差异的曲线" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="624" y="438" width="550" height="550" />
+        </mxCell>
+        <mxCell id="profile-sigma-profile" value="" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;shape=stencil(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);fillColor=none;strokeColor=#63758A;">
+          <mxGeometry as="geometry" x="648" y="530" width="504" height="255" />
+        </mxCell>
+        <mxCell id="profile-s-profile" value="$$s^*(\gamma)=s_\eta(\beta^*(\gamma),\gamma)$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=26;fontColor=#263238;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="648" y="790" width="500" height="57" />
+        </mxCell>
+        <mxCell id="profile-gradient" value="$$\frac{d s^*(\gamma)}{d\gamma}=\delta=0.1$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=28;fontColor=#B44948;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="648" y="856" width="500" height="62" />
+        </mxCell>
+        <mxCell id="profile-no-jointmin" value="按梯度定位，不是联合最小化 β、γ" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#B44948;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="648" y="931" width="500" height="36" />
+        </mxCell>
+        <mxCell id="recover" value="(d) 用选定的 β、γ 恢复尺度" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="1216" y="438" width="552" height="550" />
+        </mxCell>
+        <mxCell id="recover-location" value="γ̂：满足定位判据的位置" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=27;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1246" y="538" width="492" height="74" />
+        </mxCell>
+        <mxCell id="recover-next" value="" edge="1" parent="1" style="html=1;strokeColor=#B44948;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1492" y="622" />
+            <mxPoint as="targetPoint" x="1492" y="656" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="recover-shape" value="β̂ = β*(γ̂)" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=28;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1246" y="668" width="492" height="74" />
+        </mxCell>
+        <mxCell id="recover-next2" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1492" y="752" />
+            <mxPoint as="targetPoint" x="1492" y="786" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="recover-eta" value="$$\textstyle\widehat\eta=\frac{1}{n}\sum_i\eta_i(\widehat\beta,\widehat\gamma)$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=27;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1246" y="798" width="492" height="80" />
+        </mxCell>
+        <mxCell id="recover-scope" value="δ在当前实现中固定为0.1。&lt;br&gt;数值无交点等情况须单独记录。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="1242" y="908" width="500" height="58" />
+        </mxCell>
+        <mxCell id="sources" value="依据：182-030／046与当前python/methods/mdm.py。图形使用已有Research00样本，仅解释MDM-0.1的构造。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=18;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="1076" width="1736" height="30" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

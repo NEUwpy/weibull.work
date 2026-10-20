@@ -1,0 +1,107 @@
+<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9" pages="1">
+  <diagram id="线性估计-条件权重与迭代" name="线性最小方差：先明确估计对象与条件，再决定怎样组合">
+    <mxGraphModel page="1" pageWidth="1800" pageHeight="1080" grid="1" gridSize="8" math="1" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="线性最小方差：先明确估计对象与条件，再决定怎样组合" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=36;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="20" width="1736" height="54" />
+        </mxCell>
+        <mxCell id="legend" value="蓝灰：共同内核或保留部分　　珊瑚红：替换、增加或组合的位置" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="82" width="1736" height="34" />
+        </mxCell>
+        <mxCell id="core" value="(a) 内核：用期望关系构造候选，再按协方差组合" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="32" y="135" width="1736" height="270" />
+        </mxCell>
+        <mxCell id="core-order" value="次序统计量 t₍ᵢ₎&lt;br&gt;及其理论期望、协方差" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="56" y="223" width="394" height="94" />
+        </mxCell>
+        <mxCell id="core-e1" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="464" y="270" />
+            <mxPoint as="targetPoint" x="506" y="270" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="core-unbiased" value="$$T_i=t_{(i)}-\eta E(Z_{(i)}),\quad E(T_i)=\gamma$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=27;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="522" y="223" width="700" height="94" />
+        </mxCell>
+        <mxCell id="core-e2" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1238" y="270" />
+            <mxPoint as="targetPoint" x="1286" y="270" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="core-combine" value="γ̂ = ∑ aᵢTᵢ&lt;br&gt;约束 ∑ aᵢ = 1" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=27;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1302" y="223" width="438" height="94" />
+        </mxCell>
+        <mxCell id="core-condition" value="这里β、η已知，Z为标准Weibull次序统计量；三参数全未知时需额外恢复，不能直接搬用条件性质。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#B44948;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="345" width="1688" height="40" />
+        </mxCell>
+        <mxCell id="variance" value="(b) 权重依据：最小化组合方差" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="32" y="438" width="550" height="476" />
+        </mxCell>
+        <mxCell id="variance-var" value="$$\min_a a^T\Sigma a\quad\mathrm{s.t.}\ 1^Ta=1$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=28;fontColor=#263238;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="530" width="506" height="74" />
+        </mxCell>
+        <mxCell id="variance-weights" value="$$a=\frac{\Sigma^{-1}1}{1^T\Sigma^{-1}1}$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=32;fontColor=#B44948;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="654" width="506" height="88" />
+        </mxCell>
+        <mxCell id="variance-not-average" value="利用次序统计量间的相关性；&lt;br&gt;不是所有候选简单平均。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=25;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="794" width="506" height="80" />
+        </mxCell>
+        <mxCell id="iterate" value="(c) 改条件：接回三参数交替估计" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="624" y="438" width="550" height="476" />
+        </mxCell>
+        <mxCell id="iterate-conditional" value="给定临时β、η → 条件位置MVLUE" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=23;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="654" y="530" width="490" height="70" />
+        </mxCell>
+        <mxCell id="iterate-down" value="" edge="1" parent="1" style="html=1;strokeColor=#B44948;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="899" y="612" />
+            <mxPoint as="targetPoint" x="899" y="650" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iterate-refit" value="平移样本 → 二参数恢复 → 新β、η" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=23;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="654" y="664" width="490" height="78" />
+        </mxCell>
+        <mxCell id="iterate-feedback" value="" edge="1" parent="1" style="html=1;strokeColor=#B44948;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=1;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1152" y="702" />
+            <mxPoint as="targetPoint" x="1152" y="566" />
+            <Array as="points">
+              <mxPoint x="1160" y="702" />
+              <mxPoint x="1160" y="566" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iterate-lineage" value="2019条件位置估计&lt;br&gt;→ 2025初始失效期迭代&lt;br&gt;有明示承接，并新增恢复与迭代。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="650" y="784" width="500" height="90" />
+        </mxCell>
+        <mxCell id="hyper" value="(d) 另一分支：MVLE-H估倒数形状" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="1216" y="438" width="552" height="476" />
+        </mxCell>
+        <mxCell id="hyper-inverse" value="先构造 1/β 的线性估计&lt;br&gt;引入位置经验先验超参数c" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=25;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1246" y="530" width="492" height="78" />
+        </mxCell>
+        <mxCell id="hyper-next" value="" edge="1" parent="1" style="html=1;strokeColor=#B44948;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1492" y="620" />
+            <mxPoint as="targetPoint" x="1492" y="658" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hyper-new-c" value="2022：c依赖n与临时形状&lt;br&gt;局部借用WMLE临时形状策略" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=24;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1246" y="672" width="492" height="82" />
+        </mxCell>
+        <mxCell id="hyper-reciprocal" value="最后取倒数得到β。&lt;br&gt;1/β的条件无偏&lt;br&gt;不推出β本身无偏。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=24;fontColor=#B44948;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="1244" y="790" width="496" height="92" />
+        </mxCell>
+        <mxCell id="separate" value="位置MVLUE与MVLE-H估计对象不同；共享“线性最小方差”依据，不把它们缩成同一个公式或一条未经核实的继承链。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#263238;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="940" width="1736" height="64" />
+        </mxCell>
+        <mxCell id="sources" value="依据：182-140、182-050、182-125／126。数学式为相应可逆协方差条件下的线性组合原型。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=18;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="1036" width="1736" height="30" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

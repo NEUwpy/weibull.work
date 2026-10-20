@@ -1,0 +1,143 @@
+<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9" pages="1">
+  <diagram id="概率图-原型与改动" name="同一概率图关系，分数、定位与回归方向可以分别改变">
+    <mxGraphModel page="1" pageWidth="1800" pageHeight="1180" grid="1" gridSize="8" math="1" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="同一概率图关系，分数、定位与回归方向可以分别改变" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=36;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="20" width="1736" height="54" />
+        </mxCell>
+        <mxCell id="legend" value="蓝灰：共同内核或保留部分　　珊瑚红：替换、增加或组合的位置" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="82" width="1736" height="34" />
+        </mxCell>
+        <mxCell id="core" value="(a) 原型：把寿命与概率坐标配对，再用直线恢复参数" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="32" y="135" width="1736" height="290" />
+        </mxCell>
+        <mxCell id="core-stage-0" value="① 选取纵坐标分数" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=26;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="202" width="392" height="40" />
+        </mxCell>
+        <mxCell id="core-body-0" value="$$z_i=\ln[-\ln(1-p_i)]$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=25;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="56" y="265" width="392" height="100" />
+        </mxCell>
+        <mxCell id="core-flow-0" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="456" y="315" />
+            <mxPoint as="targetPoint" x="478" y="315" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="core-stage-1" value="② 给定位置并平移" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=26;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="486" y="202" width="392" height="40" />
+        </mxCell>
+        <mxCell id="core-body-1" value="$$u_i(\gamma)=\ln(t_{(i)}-\gamma)$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=25;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="486" y="265" width="392" height="100" />
+        </mxCell>
+        <mxCell id="core-flow-1" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="886" y="315" />
+            <mxPoint as="targetPoint" x="908" y="315" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="core-stage-2" value="③ 确定位置与直线" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=26;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="916" y="202" width="392" height="40" />
+        </mxCell>
+        <mxCell id="core-body-2" value="比较拟合关系&lt;br&gt;确定 γ，再恢复斜率与截距" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=25;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="916" y="265" width="392" height="100" />
+        </mxCell>
+        <mxCell id="core-flow-2" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1316" y="315" />
+            <mxPoint as="targetPoint" x="1338" y="315" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="core-stage-3" value="④ 恢复参数" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=26;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="1346" y="202" width="392" height="40" />
+        </mxCell>
+        <mxCell id="core-body-3" value="$$z=\beta u-\beta\ln\eta$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=25;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1346" y="265" width="392" height="100" />
+        </mxCell>
+        <mxCell id="core-scope" value="先看共同分布关系；White使用次序统计量期望分数，绘图概率只是另一种分数来源。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="377" width="1670" height="36" />
+        </mxCell>
+        <mxCell id="loc" value="(b) 改定位：同一批样本，改变 γ" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="32" y="458" width="550" height="550" />
+        </mxCell>
+        <mxCell id="loc-hint" value="位置变了，点列形状也会变化" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=24;fontColor=#B44948;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="52" y="524" width="506" height="40" />
+        </mxCell>
+        <mxCell id="loc-shift-chart" value="" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;shape=stencil(3ZnNbtswDMefJscJkkhK5LHrOuyyB9jRTZzGqGMHtvv59KOjpI2DrUP2JTTIIRJFyeYvEv9SNIPLflVsypm3TbEuZ/Bp5n2/qpbDh/mq6AatadNDspMNqb5KdY821Yt+U86HZLwvuqq4rsvU0g9de1s+VIth16dqVmVXbceFqxlcztum0b5V2/TqPvOfk/m6mN/edO1dszi0Ltuu3Fm39TT6vK3bTt3S9/YpMw8BIvFFeouXAQ5fR8N6fS1n4Mh1U4xtY2nd3o98HpMn7GJ+2nW0R/3qqvm5t7f0pjsK/sJfC69vlsKZEKrq+mQefwXgkWNZ19WmPySB3oAw+mCFiJ2dRuqiGAqMjIAMsOewm3nR2MnMe6lPAn9XOISNgvBMwTsmDFMaAAajkFLSokd/5jQ0SgNIFH0gH2P0R2tMI4w2xHE9iSiuc8fhyQCL/vBinefI09nBwXAIgoRIwjGc+1pBiEZJRBAHDM7DhEZgI6yP1HkzPti6c6eBZBAjgiYGp/PDTWiQNRKs1fximRye/UrBYCIgOC0E64Wm8slGm8hRIKfNJP+YxkdUAecTaLzR4XdoaOIYA3aiHwdOwWTV2Nw4QPMGoHOo2w6nm1VLWUU2Ow4SE5nBWxSJKJBXZLPjiCqjFr2NHIkwuqwam52G6A4sYBDVlKgHvRCyimxuHGjBiKBE1qRJqNkhp8rmp0EmSCBdCqD7L3Yhq8zSBV8QnYDjjQ6/g4Oc0XNKYCIV0ajZNKvK5qbhQzCgqQNY86i37LKKbG4aYJ1xzouQ1QOtDZJXZLPj0JNsDJpBdfM1Zgif9ySbHQey0QwJ0enuQzOEZBXZ7DSCN6yHFAqevSqto5wim58GaeaI4EWPsZpI8b+cZdtmOOGgPrr31fM4xPYrRcY/8FoW66p+UuuusPX8Ws27tm+Xg9q/FV/K6qjjUD4O6dIg+d+l9v0uhI/+TPf764e6ummSbV42Q9kl8/2BfV0tFvs7iXcS/PMkeBenQkJ/FroWji9T1JSuguDqOw==);fillColor=none;strokeColor=#63758A;">
+          <mxGeometry as="geometry" x="54" y="583" width="506" height="240" />
+        </mxCell>
+        <mxCell id="loc-g-0" value="γ = 100" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="60" y="824" width="160" height="35" />
+        </mxCell>
+        <mxCell id="loc-g-1" value="γ = 500" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#B44948;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="224" y="824" width="160" height="35" />
+        </mxCell>
+        <mxCell id="loc-g-2" value="γ = 800" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#5A8A55;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="388" y="824" width="160" height="35" />
+        </mxCell>
+        <mxCell id="loc-soman" value="Soman：White分数＋F评分选位置" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="876" width="504" height="46" />
+        </mxCell>
+        <mxCell id="loc-park" value="Park：绘图分数＋相关系数选位置" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#B44948;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="934" width="504" height="46" />
+        </mxCell>
+        <mxCell id="direction" value="(c) 改方向：水平与竖直残差不同" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="624" y="458" width="550" height="550" />
+        </mxCell>
+        <mxCell id="direction-hint" value="固定同一坐标，隔离方向的作用" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=24;fontColor=#B44948;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="644" y="524" width="510" height="40" />
+        </mxCell>
+        <mxCell id="direction-residual-chart" value="" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;shape=stencil(3VldV9swDP01fZyPbH1Zjxtj/yOUsOaQNT1pge3fTyWlNKG0lNOH0CdiW75YN7J0lU7wajkrFuUkwbz4U07w5ySltlxWtw9F/W06K9qVT/jqU7fEIN141o0TcTculotyuuomH4u2Km7qsltZrtrmvnyqblebPdV8VrbVMy5eT/Bq2sznvrdq5ks3n6Rf3fRNMb3/3TYP89vd2bumLTezz+MOfdrUTetm3d/n/zJJKKicv3en2ALsHsfdej1WDDgwXRTrtfXTn+ZxTdHfzhKhM/y32QiDfXU1f9/6mDkZHbH3h9eTde68dXA/Iz/I4fNHGUkf5IMgDH2UIOTks6lmAMPDLosNADiGJCYJ0EwtGtD5ODgtKj7KQQQLShKzZCXViLHPCGw5eocEThZMNBMgSKaog/3hC4bBUadPj5zRvfhPeP2JWBndy07ZAmZVYL+jyNs68JITiYO7mSyiUUSVg4QcA/PoZzCOKhko2svyeIPivOyghmwJzHIEgshyEtjoQgcpB1QgJHb6GfveRAzCClnUK2dKqoeL6yEs0+C3K2chz65ZZPRF5KzMRBc00RA0ayQAOg1sfFFjGCBHtUSZBMj67PiFY2MAiMrMfucOk3MEzPMNsq9nVqcw6egD56zkiAZHyOCxIcYmJ2GNT5ag+ImF3TG/V1liPxdLDsmEBAnX5GU6LFiOgGFQ8STNfuOMye1HL1/Oyk7U4ApOom/JaKyngY0vdISCVw5vQNZH9rTQT6IkISNkVGX1VKssR9qcg2icgnmuAfGrBWow+qRzbnY0YHKR5x2wA1o+DWyEsWNvGoNj3dAF9MGfcPvcne9dVdf7Xfb8nHD/mz55w74vSAPDsq6rxbJXWcNAhtl2ZvOBzRNo7wPbdtxz7ys5nTIH3e2FBrKW4rq5e21f0oXzgUTelrwr8j3cd3V5vnQ2XE/SrnLti032mvhWbF4sG15H3eEdNdaPDi+4siugLp4OgWA7CqMvCTCkniS4fDZ4WD7OVT38YfjDik91vwzh9X8=);fillColor=none;strokeColor=#63758A;">
+          <mxGeometry as="geometry" x="646" y="583" width="506" height="245" />
+        </mxCell>
+        <mxCell id="direction-vertical" value="红：z 对 u；竖直残差" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#B44948;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="648" y="838" width="505" height="42" />
+        </mxCell>
+        <mxCell id="direction-horizontal" value="蓝灰：u 对 z；水平残差" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#63758A;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="648" y="883" width="505" height="42" />
+        </mxCell>
+        <mxCell id="direction-beta-relation" value="$$\widehat\beta_{z|u}=r^2\widehat\beta_{u|z}$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=26;fontColor=#263238;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="648" y="928" width="505" height="64" />
+        </mxCell>
+        <mxCell id="borrow" value="(d) 改更新：借来位置修正再迭代" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="1216" y="458" width="552" height="550" />
+        </mxCell>
+        <mxCell id="borrow-fit" value="给定 γ → 概率图回归 → β、η" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=25;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1244" y="542" width="496" height="72" />
+        </mxCell>
+        <mxCell id="borrow-to-update" value="" edge="1" parent="1" style="html=1;strokeColor=#B44948;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1492" y="624" />
+            <mxPoint as="targetPoint" x="1492" y="666" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="borrow-update" value="$$\gamma_{new}=t_{(1)}-\eta n^{-1/\beta}\Gamma(1+1/\beta)$$" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=24;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1244" y="682" width="496" height="108" />
+        </mxCell>
+        <mxCell id="borrow-feedback" value="" edge="1" parent="1" style="html=1;strokeColor=#B44948;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=1;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1752" y="736" />
+            <mxPoint as="targetPoint" x="1748" y="578" />
+            <Array as="points">
+              <mxPoint x="1756" y="736" />
+              <mxPoint x="1756" y="578" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="borrow-yang" value="Yang迭代：回归与位置修正交替&lt;br&gt;不是相关系数最大化" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#B44948;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="1244" y="808" width="496" height="70" />
+        </mxCell>
+        <mxCell id="borrow-borrow-evidence" value="LSPF的位置修正 → Yang&lt;br&gt;局部借用，不继承全部LSPF" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="1244" y="899" width="496" height="74" />
+        </mxCell>
+        <mxCell id="relation-note" value="沿袭：White → Soman；Park 2017 → 2018理论补充。Soman与Park之间是构造对照，暂不画历史继承。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#263238;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="1030" width="1736" height="54" />
+        </mxCell>
+        <mxCell id="sources" value="依据：182-134、182-104、182-115／106、182-047／113。图中候选γ与残差为原理示例，不作总体性能结论。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=18;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="1136" width="1736" height="30" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

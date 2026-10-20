@@ -1,0 +1,139 @@
+<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9" pages="1">
+  <diagram id="工具与组合-作用位置" name="同样叫AI或组合，实际参与的环节可能完全不同">
+    <mxGraphModel page="1" pageWidth="1800" pageHeight="1180" grid="1" gridSize="8" math="1" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="同样叫AI或组合，实际参与的环节可能完全不同" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=36;fontColor=#263238;fontStyle=1;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="20" width="1736" height="54" />
+        </mxCell>
+        <mxCell id="legend" value="蓝灰：共同内核或保留部分　　珊瑚红：替换、增加或组合的位置" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="82" width="1736" height="34" />
+        </mxCell>
+        <mxCell id="optimize" value="(a) 优化器：保持估计目标，改变怎样搜索" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="32" y="135" width="1736" height="270" />
+        </mxCell>
+        <mxCell id="optimize-sample" value="当前样本 t" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=29;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="56" y="227" width="350" height="86" />
+        </mxCell>
+        <mxCell id="optimize-data" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="422" y="271" />
+            <mxPoint as="targetPoint" x="470" y="271" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="optimize-goal" value="既定目标：如负对数似然" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=27;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="486" y="227" width="500" height="86" />
+        </mxCell>
+        <mxCell id="optimize-search" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1002" y="271" />
+            <mxPoint as="targetPoint" x="1050" y="271" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="optimize-searcher" value="SA／PSO／CE等&lt;br&gt;提出与更新候选参数" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1066" y="227" width="420" height="86" />
+        </mxCell>
+        <mxCell id="optimize-out" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1502" y="271" />
+            <mxPoint as="targetPoint" x="1546" y="271" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="optimize-theta" value="θ̂" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=32;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1562" y="227" width="178" height="86" />
+        </mxCell>
+        <mxCell id="optimize-scope" value="算法可以改善搜索；若目标、参数域或停止规则变化，须分别说明，不能把搜索更换直接称为新估计准则。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="56" y="346" width="1690" height="38" />
+        </mxCell>
+        <mxCell id="svr" value="(b) 当前样本拟合：SVR在回归处" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="32" y="438" width="550" height="570" />
+        </mxCell>
+        <mxCell id="svr-gamma" value="灰色模型先估γ" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="58" y="526" width="498" height="72" />
+        </mxCell>
+        <mxCell id="svr-next1" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="307" y="610" />
+            <mxPoint as="targetPoint" x="307" y="649" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="svr-regression" value="平移与概率图变换&lt;br&gt;当前样本内拟合SVR" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="58" y="664" width="498" height="92" />
+        </mxCell>
+        <mxCell id="svr-next2" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="307" y="768" />
+            <mxPoint as="targetPoint" x="307" y="807" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="svr-recover" value="由拟合关系恢复β、η" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="58" y="822" width="498" height="72" />
+        </mxCell>
+        <mxCell id="svr-not-trained-direct" value="对象是这份样本的回归关系，&lt;br&gt;不是跨样本训练直接估计器。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="58" y="928" width="498" height="57" />
+        </mxCell>
+        <mxCell id="direct" value="(c) 直接学习：训练样本到参数映射" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="624" y="438" width="550" height="570" />
+        </mxCell>
+        <mxCell id="direct-training" value="许多模拟样本／特征&lt;br&gt;＋对应真参数" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="652" y="526" width="494" height="92" />
+        </mxCell>
+        <mxCell id="direct-train" value="" edge="1" parent="1" style="html=1;strokeColor=#B44948;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="899" y="630" />
+            <mxPoint as="targetPoint" x="899" y="668" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="direct-network" value="训练映射 gφ：样本特征 → θ" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="652" y="683" width="494" height="80" />
+        </mxCell>
+        <mxCell id="direct-infer" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="899" y="775" />
+            <mxPoint as="targetPoint" x="899" y="814" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="direct-new-sample" value="新样本 → gφ → 参数输出" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="652" y="829" width="494" height="72" />
+        </mxCell>
+        <mxCell id="direct-limits" value="训练域与目标会影响表现；&lt;br&gt;不能与优化单份似然混为一类。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=22;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="650" y="931" width="498" height="54" />
+        </mxCell>
+        <mxCell id="combination" value="(d) 组合：保留部件，重新连接" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=3;fillColor=none;strokeColor=#63758A;dashed=1;dashPattern=5 5;container=1;collapsible=0;align=left;verticalAlign=top;fontSize=29;fontStyle=1;spacingLeft=20;spacingTop=14;">
+          <mxGeometry as="geometry" x="1216" y="438" width="552" height="570" />
+        </mxCell>
+        <mxCell id="combination-shape" value="用MLE／MPS／WMLE&lt;br&gt;取得形状估计β̂" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1244" y="526" width="496" height="90" />
+        </mxCell>
+        <mxCell id="combination-next" value="" edge="1" parent="1" style="html=1;strokeColor=#B44948;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1492" y="628" />
+            <mxPoint as="targetPoint" x="1492" y="670" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="combination-moment-recovery" value="用均值与最小值期望关系&lt;br&gt;恢复η、γ" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#F1D7D4;strokeColor=#B44948;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1244" y="685" width="496" height="92" />
+        </mxCell>
+        <mxCell id="combination-last" value="" edge="1" parent="1" style="html=1;strokeColor=#263238;strokeWidth=2;endArrow=block;endFill=1;rounded=0;dashed=0;dashPattern=5 5;">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1492" y="789" />
+            <mxPoint as="targetPoint" x="1492" y="828" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="combination-mixed" value="Cousineau Mixed各版本" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=6;fillColor=#EAF0F6;strokeColor=#63758A;fontSize=26;align=center;verticalAlign=middle;spacing=8;">
+          <mxGeometry as="geometry" x="1244" y="843" width="496" height="70" />
+        </mxCell>
+        <mxCell id="combination-scope" value="形状来源不同，组合也不同。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=23;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="1242" y="934" width="500" height="48" />
+        </mxCell>
+        <mxCell id="relation" value="先明确输入、拟合对象与输出，再归类工具。局部替换、跨路线组合、直接学习三种关系分别保留。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=25;fontColor=#263238;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="1036" width="1736" height="68" />
+        </mxCell>
+        <mxCell id="sources" value="依据：工作稿5.1–5.4；183-021／022、184-010、182-101、SA／PSO／CE原文。示意图不构成算法性能结论。" vertex="1" parent="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;text;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;fontSize=18;fontColor=#63758A;fontStyle=0;spacing=0;">
+          <mxGeometry as="geometry" x="32" y="1136" width="1736" height="30" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
