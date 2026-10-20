@@ -237,7 +237,8 @@ def build():
         alternatives=sum(len(u['options']) for u in units if u['mode']=='choices')),ensure_ascii=False))
 
 def write_markdown(board):
-    out=['# '+board['title'],'','当前是表达形式讨论，正文稿v0.4保持原样；正式选择、批注与下一步以审阅页提交为准。','']
+    intro='本轮确认内容已整理为[报告下（方法对比）v0.4](../../报告下（方法对比）-v0.4.md)；本文件保留HTML审阅内容镜像。' if board.get('review_complete') else '当前是内容与图表表达的审阅镜像；正式选择、批注与下一步以审阅页提交为准。'
+    out=['# '+board['title'],'',intro,'']
     for u in board['units']:
         out.extend(['## '+u['title'],''])
         if u.get('context'):out.extend([u['context'],''])
