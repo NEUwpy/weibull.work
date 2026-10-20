@@ -1,0 +1,170 @@
+{
+  "id": "study04-method-classification-v04-report",
+  "title": "Study04 方法分类报告 v0.4 审阅",
+  "document": true,
+  "revision": 1,
+  "require_confirmation": true,
+  "archive_plan": "审阅确认后，将最终意见落实到 Study/04-study-小样本三参数Weibull估计方法比较与选择/报告上（方法分类）-v0.4.md；必要时同步 Study04/README.md 与 方法分类/README.md 的当前入口；旧版继续保留在 其他/历史版本/；保留本任务 HTML、素材和批注记录，并在核验链接后提交 Git。",
+  "units": [
+    {
+      "id": "opening",
+      "title": "报告说明",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "opening-current",
+          "label": "当前报告内容",
+          "blocks": [
+            {
+              "id": "opening-text",
+              "kind": "text",
+              "html": "<h1\nid=\"三参数weibull参数估计方法的分类与相互关系\">三参数Weibull参数估计方法的分类与相互关系</h1>\n<p><strong>报告上（方法分类）v0.4｜更新：2026-10-21</strong></p>\n<p>魏鹏宇｜东北大学机械工程与自动化学院</p>\n<p>分会场3：装备寿命与可靠性评估</p>\n<blockquote>\n<p>本版采用“三条经典统计路线＋两种扩展估计范式”的新工作骨架。旧版内容已归档；本版只保留新骨架、五类机制图和完整关系地图。机制图源文件全部使用\ndraw.io 格式。</p>\n</blockquote>\n<p>各位老师、各位同学，大家好！我是东北大学机械工程与自动化学院的在读博士生魏鹏宇。今天汇报的题目是《小样本三参数Weibull参数估计方法的比较与选择》。</p>\n<p>这次汇报分为两部分。首先回答现有方法为什么不同、又为什么彼此有关：先按样本信息利用和参数确定原则组织方法地图，再梳理方法之间的沿袭、借用、组合和数学联系。然后把代表方法放到统一条件下比较，分析这些构造差异怎样表现为小样本下的偏差、波动和异常风险。</p>\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-1",
+      "title": "1　先把每个方法的三个问题分开",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "section-1-current",
+          "label": "当前报告内容",
+          "blocks": [
+            {
+              "id": "section-1-text",
+              "kind": "text",
+              "html": "<p>一个估计方法至少要回答三个问题：</p>\n<ol type=\"1\">\n<li><strong>利用样本中的什么信息？</strong>\n例如观测密度、经验分布、概率间隔、矩、分位数、次序统计量、不变统计量或样本特征。</li>\n<li><strong>通过什么原则把这些信息转化为三个参数的估计值？</strong>\n例如最大化联合似然、匹配分布结构、最小化偏离、匹配理论统计关系、反演枢轴关系、更新后验或学习参数映射。</li>\n<li><strong>实现与改进发生在哪里？</strong>\n例如加权、偏差修正、位置处理、约束、数值优化、交替求解和混合估计。</li>\n</ol>\n<p>前两个问题决定方法在地图中的主要归属，第三个问题作为横向标签。一个方法可以和多个区域存在共享构造或组合关系，但要有一个主要入口；跨区域联系用关系线表达。</p>\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-2",
+      "title": "2　五簇工作骨架",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "section-2-current",
+          "label": "当前报告内容",
+          "blocks": [
+            {
+              "id": "section-2-text",
+              "kind": "text",
+              "html": "<p>当前报告用三条经典统计路线和两种扩展估计范式组织方法：</p>\n<pre class=\"text\"><code>三参数 Weibull 参数估计\n├─ 三条经典统计路线\n│  ├─ 似然估计\n│  ├─ 分布匹配\n│  └─ 统计关系反演\n├─ 两种扩展估计范式\n│  ├─ 后验推断\n│  └─ 学习映射\n└─ 横向关系：加权、偏差修正、位置处理、数值求解、组合与局部借用</code></pre>\n<p>这五簇是服务于短报告的方法地图，不宣称所有类别在统计学上完全平行，也不取代逐篇文献核对。</p>\n<h3 id=\"21-似然估计路线\">2.1 似然估计路线</h3>\n<p><strong>一句话原理：</strong>\n以样本在模型下的联合密度或由其得到的得分关系为依据，寻找能够解释观测数据的参数。</p>\n<p>样本信息是观测处的密度及其联合贡献；参数原则是最大化似然，或在似然得分方程上做有明确来源的修正。MLE、WMLE、Cohen–Whitten\nMMLE、K–R\nMMLE、CMLE、DMMLE和罚似然都要按具体构造区分。PSO、模拟退火和差分进化若只是搜索同一似然目标，属于求解标签。</p>\n<p><a\nhref=\"assets/01-似然估计路线-机制图.drawio\">机制图：似然估计路线</a></p>\n<h3 id=\"22-分布匹配路线\">2.2 分布匹配路线</h3>\n<p><strong>一句话原理：</strong>\n比较理论分布与样本呈现的分布形态、概率图关系或概率间隔，选择二者最一致的参数。</p>\n<p>概率图、LSE／WLSE、最小距离估计、MPS／QMP和MDM放在这条路线下。概率间距是分布匹配中的分支；MDM比较各观测反推尺度的一致性，不能与普通概率图回归混为同一具体估计器。</p>\n<p><a\nhref=\"assets/02-分布匹配路线-机制图.drawio\">机制图：分布匹配路线</a></p>\n<h3 id=\"23-统计关系反演路线\">2.3 统计关系反演路线</h3>\n<p><strong>一句话原理：</strong>\n建立样本矩、分位数、次序统计量或其他统计特征与总体参数之间的理论关系，再匹配或反解参数。</p>\n<p>MM、PWM、L矩、TL矩、分位数和次序统计量方法属于这里。LSPF／LPF等不变统计量方法需按其实际统计量和后续似然或恢复方程说明。线性最小方差估计作为条件性估计量构造放在这条路线下，必须保留其已知参数或代入条件。</p>\n<p><a\nhref=\"assets/03-统计关系反演路线-机制图.drawio\">机制图：统计关系反演路线</a></p>\n<h3 id=\"24-后验推断路线\">2.4 后验推断路线</h3>\n<p><strong>一句话原理：</strong>\n将样本信息与参数先验结合形成后验分布，再按后验规则给出估计。</p>\n<p>后验均值、后验中位数和MAP是不同输出规则；Gibbs、Laplace、MH等首先是后验计算方式。后验路线可以共享似然模型，但不等同于MLE。</p>\n<p><a\nhref=\"assets/04-后验推断路线-机制图.drawio\">机制图：后验推断路线</a></p>\n<h3 id=\"25-学习映射路线\">2.5 学习映射路线</h3>\n<p><strong>一句话原理：</strong>\n通过训练样本或模拟数据学习从样本特征到分布参数的估计函数。</p>\n<p>ANN、BPNN和直接学习参数映射属于这里。训练域、特征表示、损失函数、外推和校准都是方法边界的一部分。用于搜索既定统计目标的智能优化算法仍按其实际目标归属。</p>\n<p><a\nhref=\"assets/05-学习映射路线-机制图.drawio\">机制图：学习映射路线</a></p>\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-3",
+      "title": "3　完整机理地图：分类与方法关系",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "section-3-current",
+          "label": "当前报告内容",
+          "blocks": [
+            {
+              "id": "section-3-text",
+              "kind": "text",
+              "html": "<p>完整地图把五个工作簇、代表方法、沿袭关系、数学联系、局部借用、组合节点和求解工具放在同一张图中。连线含义分开标注：实线表示作者明示或构造对照支持的沿袭／扩展；虚线表示数学联系或共享构造；点划线表示局部借用或组合。</p>\n<p><a\nhref=\"assets/06-完整机理地图-五簇分类与方法关系.drawio\">完整机理地图：五簇分类与方法关系</a></p>\n<p>图中需要重点讲清的关系包括：</p>\n<ul>\n<li>Jacquelin二参数推导 → Cousineau WMLE → 形状偏差修正；</li>\n<li>Smith删最小值构造 → K–R场景适配；K–R与Firth修正共同形成DMMLE；</li>\n<li>White →\nSoman概率图分支；概率图评分与Park相关系数在特定条件下存在数学对应；</li>\n<li>MPS与QMP在特定分组设置下的特例关系；</li>\n<li>PWM与L矩的数学联系，以及TL矩对端部信息的处理；</li>\n<li>LSPF → LPF的构造改进，以及位置修正被其他组合方法局部借用；</li>\n<li>MLE与MAP共享似然模型，但后验还引入先验与后验决策规则；</li>\n<li>PSO、模拟退火等连接到它们实际搜索的目标，不单独形成新的估计原理。</li>\n</ul>\n<p>这些关系只在原文引用、公式、估计步骤或明确数学对照支持的范围内表达；同名、共同动机和相似算法名称不足以构成沿袭证据。</p>\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-4",
+      "title": "4　横向改进：方法为什么不断增加",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "section-4-current",
+          "label": "当前报告内容",
+          "blocks": [
+            {
+              "id": "section-4-text",
+              "kind": "text",
+              "html": "<p>五簇主干说明方法主要依据什么确定参数；横向标签说明研究者针对什么困难改动了哪个环节。</p>\n<table>\n<thead>\n<tr>\n<th>改进位置</th>\n<th>典型问题</th>\n<th>可能的改动</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>位置与支持边界</td>\n<td>未知位置改变样本支持区间，似然可能出现非正则行为</td>\n<td>替换位置关系、最小值定位、删点、消元、边界约束</td>\n</tr>\n<tr>\n<td>有限样本偏差</td>\n<td>形状或位置存在系统偏移</td>\n<td>方程加权、得分修正、估计后偏差修正</td>\n</tr>\n<tr>\n<td>信息保留与加权</td>\n<td>端部观测、次序统计量或尺度信息使用不平衡</td>\n<td>改变权重、矩构造、统计量和回归方向</td>\n</tr>\n<tr>\n<td>数值求解</td>\n<td>非线性方程、局部极值或搜索范围导致返回不稳定</td>\n<td>条件求解、初值、位置搜索、全局优化、失败回退</td>\n</tr>\n<tr>\n<td>跨路线组合</td>\n<td>单一构造不能同时处理所有参数</td>\n<td>先估形状再恢复位置尺度、似然与矩关系组合、后验或学习加入经典骨架</td>\n</tr>\n</tbody>\n</table>\n<p>这些改动不自动改变方法的主要归属。需要先判断它改变的是样本信息、参数确定原则，还是实现与求解过程。</p>\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-5",
+      "title": "5　本轮七种实现的主要归属",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "section-5-current",
+          "label": "当前报告内容",
+          "blocks": [
+            {
+              "id": "section-5-text",
+              "kind": "text",
+              "html": "<p>本轮统一比较的七种实现集中在三条经典统计路线，未覆盖后验推断和学习映射：</p>\n<table>\n<thead>\n<tr>\n<th>实现</th>\n<th>五簇主要归属</th>\n<th>具体构造定位</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>MLE</td>\n<td>似然估计</td>\n<td>原始观测密度联合似然；当前实现另记录局部候选、边界与失败。</td>\n</tr>\n<tr>\n<td>WMLE</td>\n<td>似然估计</td>\n<td>在估计方程中引入三个权重。</td>\n</tr>\n<tr>\n<td>MMLE（K–R单样本形式）</td>\n<td>似然估计</td>\n<td>以样本最小值定位并删除该观测后估计其余参数。</td>\n</tr>\n<tr>\n<td>LSE（Soman主分支）</td>\n<td>分布匹配</td>\n<td>White分数、位置评分和对数寿命对分数回归。</td>\n</tr>\n<tr>\n<td>LRE（Park Proposed+Plot）</td>\n<td>分布匹配</td>\n<td>相关系数定位、绘图概率分数和分数对对数寿命回归。</td>\n</tr>\n<tr>\n<td>MDM-0.1</td>\n<td>分布匹配</td>\n<td>条件尺度伪估计差异、梯度阈值定位和固定偏移。</td>\n</tr>\n<tr>\n<td>MM（Cran式）</td>\n<td>统计关系反演</td>\n<td>Weibull矩及矩差显式恢复参数。</td>\n</tr>\n</tbody>\n</table>\n<p>这七种实现是统一性能比较的代表样本，不代表五个工作簇都已完成同等规模的实验。性能排序由共同样本和评价口径决定，不能由分类图直接推出。</p>\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-6",
+      "title": "6　转入统一性能比较",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "section-6-current",
+          "label": "当前报告内容",
+          "blocks": [
+            {
+              "id": "section-6-text",
+              "kind": "text",
+              "html": "<p>不同方法从样本中提取的信息不同，确定参数的原则不同，改进和求解环节也不同。因此，它们在小样本下可能表现出不同的偏差、波动、异常输出和失败风险。</p>\n<p>第二部分将在固定的共同抽样条件下比较七种已核验实现，分析这些差异怎样随样本量与形状参数变化，并回到本地图中的具体构造解释典型表现。方法地图提供解释入口，统一实验负责检验性能。</p>\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "references",
+      "title": "文献与源文件",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "references-current",
+          "label": "当前报告内容",
+          "blocks": [
+            {
+              "id": "references-text",
+              "kind": "text",
+              "html": "<ul>\n<li><a\nhref=\"assets/source-method-workdraft.md\">方法分类工作稿</a>：逐篇维护信息利用、参数原则、实现改进、关系证据和边界。</li>\n<li><a\nhref=\"assets/source-yang-classification.md\">Yang综述的八类分类</a>：保留综述原始分类与名称辨析。</li>\n<li><a\nhref=\"assets/source-research09-routes.md\">Research09的四条路线</a>：保留已有路线归纳及其局限。</li>\n<li><a\nhref=\"assets/mechanism-map-index.md\">机制图-v0.4目录</a>：五类机制图、完整机理地图及生成源脚本。</li>\n<li><a\nhref=\"assets/source-experiment-settings.md\">实验设置</a>：统一比较对象、计算版本和数据合同。</li>\n</ul>\n"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
