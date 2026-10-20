@@ -6,7 +6,7 @@ import runpy
 import shutil
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent.parent / 'reviewbyhtml'
+ROOT = HERE.parent.parent / 'reviewbyhtml/方法对比'
 
 def typeset_board(board):
     helper = Path.home() / '.codex/skills/review-html/scripts/math_html.py'
@@ -18,7 +18,7 @@ def typeset_board(board):
 
 
 def main():
-    ROOT.mkdir(exist_ok=True)
+    ROOT.mkdir(parents=True, exist_ok=True)
     target = ROOT / 'board.json'
     if target.exists():
         print('已有审阅，请用review.py resume恢复：' + str(ROOT))

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 HERE=Path(__file__).resolve().parent
 STUDY=HERE.parent.parent
-ROOT=STUDY/'reviewbyhtml'
+ROOT=STUDY/'reviewbyhtml/方法对比'
 SKILL=Path.home()/'.codex/skills/review-html'
 sys.path.insert(0,str(SKILL/'scripts'))
 from math_html import render_html_batch
