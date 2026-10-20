@@ -2,7 +2,7 @@
   "id": "review-html-structure-discussion",
   "title": "HTML Skill修改讨论：整体问题的处理方案",
   "document": true,
-  "revision": 2,
+  "revision": 3,
   "review_complete": false,
   "units": [
     {
@@ -17,7 +17,7 @@
             {
               "id": "purpose-current-text",
               "kind": "text",
-              "html": "<p>在审阅细节时，允许重新讨论几个部分的关系、全文结构和原先的目标。<strong>已确认的结构是当前依据，发现问题仍可调整。</strong></p><p>本版按你刚才的选择整理：页面增加整体意见入口；发现结构问题，先讨论简明骨架。这是工作流的改法，功能尚未实施。</p>"
+              "html": "<p>在审阅细节时，允许重新讨论几个部分的关系、全文结构和原先的目标。<strong>已确认的结构是当前依据，发现问题仍可调整。</strong></p><p>当前改法包括：整体意见入口、发送前确认、结构问题先讨论骨架。本页只讨论方案，功能尚未实施。</p>"
             }
           ]
         }
@@ -45,8 +45,26 @@
       "state": "converged"
     },
     {
+      "id": "submission-confirmation",
+      "title": "2　先确认要交给Agent的回复，再真正提交",
+      "mode": "content",
+      "options": [
+        {
+          "id": "confirmation-current",
+          "label": "发送前确认方案",
+          "blocks": [
+            {
+              "id": "confirmation-text",
+              "kind": "text",
+              "html": "<p><strong>选择和批注是在帮助起草回复，最终交给Agent什么，应由你审阅决定。</strong></p><ol><li>点击“提交”后，先进入确认页，按本轮选择、整体意见和局部批注整理出一份完整回复；这一步只预览、保存草稿，不通知等待中的Agent。</li><li>确认页中的回复可以直接编辑；也能返回修改原来的选择和批注，已有输入保留。</li><li>点击“确认发送”，才把最终回复和对应原始记录一起交给Agent。</li></ol><p><strong>最终确认的文字决定执行意图。</strong>原始选择、批注和文字锚点用于定位与对照；若你在确认页改变了要求，Agent不能仍按旧选择自动删候选或改内容。</p><p>确认稿由本页已有选择和意见直接整理，不需要先让等待中的Agent接单。你编辑过的文字不能因返回页面或重新生成而被覆盖。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "structure-response",
-      "title": "2　涉及结构时，先讨论简明骨架",
+      "title": "3　涉及结构时，先讨论简明骨架",
       "mode": "content",
       "inline": true,
       "selected": "response-outline",
@@ -95,7 +113,7 @@
             {
               "id": "result-current-text",
               "kind": "text",
-              "html": "<p><strong>整体或局部意见 → 判断影响范围 → 必要时讨论骨架 → 确定后调整正文和图。</strong></p><p>“提交”继续讨论、修改；“落地存档”接受并保存当前这一版。就本任务而言，落地保存的是这份工作流改法，功能实现随后再开展。</p>"
+              "html": "<p><strong>选择与批注 → 整理拟发送回复 → 你审阅、编辑并确认发送 → Agent理解要求，必要时先讨论骨架 → 再调整内容。</strong></p><p>“提交”先进入发送前确认；“落地存档”接受并保存当前呈现版本。就本任务而言，落地保存的是这份工作流改法，功能实现随后再开展。</p>"
             }
           ]
         }
