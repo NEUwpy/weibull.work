@@ -1,14 +1,14 @@
 {
-  "submission_id": "636211f6-f0ba-4b88-9f91-b3eb13bcba2f",
+  "submission_id": "73a1780f-3bb9-46fb-b419-74e4609b6ed3",
   "board_id": "study04-comparison-v04",
-  "board_revision": 13,
-  "submitted_at": "2026-10-20T16:24:18.745126+00:00",
-  "intent": "archive",
-  "finish_review": true,
+  "board_revision": 18,
+  "submitted_at": "2026-10-20T17:48:31.764177+00:00",
+  "intent": "submit",
+  "finish_review": false,
   "units": [
     {
       "unit_id": "text-b002",
-      "unit_title": "当前表达：沿骨架继续审阅",
+      "unit_title": "报告下（方法对比）v0.4｜2026-10-21",
       "mode": "content",
       "target_option_id": "current",
       "selected_option_id": null,
@@ -22,21 +22,7 @@
     },
     {
       "unit_id": "evidence-base",
-      "unit_title": "共用素材与口径",
-      "mode": "content",
-      "target_option_id": "current",
-      "selected_option_id": null,
-      "selected_label": null,
-      "next_action": "defer",
-      "action_explicit": false,
-      "inspiration": "",
-      "notes": {},
-      "annotations": [],
-      "image_notes": []
-    },
-    {
-      "unit_id": "text-b003",
-      "unit_title": "1　整体差异在哪些地方值得看",
+      "unit_title": "1　比较对象与共同条件",
       "mode": "content",
       "target_option_id": "current",
       "selected_option_id": null,
@@ -50,7 +36,7 @@
     },
     {
       "unit_id": "figure-global",
-      "unit_title": "整体差距：直接读百分比",
+      "unit_title": "2　方法之间究竟相差多少",
       "mode": "content",
       "target_option_id": "A",
       "selected_option_id": null,
@@ -63,38 +49,10 @@
       "image_notes": []
     },
     {
-      "unit_id": "text-b013",
-      "unit_title": "2　差距怎样随n和β一起改变",
-      "mode": "content",
-      "target_option_id": "current",
-      "selected_option_id": null,
-      "selected_label": null,
-      "next_action": "defer",
-      "action_explicit": false,
-      "inspiration": "",
-      "notes": {},
-      "annotations": [],
-      "image_notes": []
-    },
-    {
       "unit_id": "figure-change",
-      "unit_title": "差距变化：按n切换，各β并列",
+      "unit_title": "3　差距怎样随n和β一起改变",
       "mode": "content",
       "target_option_id": "C",
-      "selected_option_id": null,
-      "selected_label": null,
-      "next_action": "defer",
-      "action_explicit": false,
-      "inspiration": "",
-      "notes": {},
-      "annotations": [],
-      "image_notes": []
-    },
-    {
-      "unit_id": "text-b023",
-      "unit_title": "3　差距体现为怎样的误差和代价",
-      "mode": "content",
-      "target_option_id": "current",
       "selected_option_id": null,
       "selected_label": null,
       "next_action": "defer",
@@ -106,21 +64,34 @@
     },
     {
       "unit_id": "figure-error",
-      "unit_title": "偏移与波动：随β切换的估计值分布",
+      "unit_title": "4　误差差距表现成什么样",
       "mode": "content",
       "target_option_id": "C",
       "selected_option_id": null,
       "selected_label": null,
-      "next_action": "defer",
+      "next_action": "modify",
       "action_explicit": false,
       "inspiration": "",
       "notes": {},
-      "annotations": [],
+      "annotations": [
+        {
+          "id": "df468e3c-6428-40b7-9e92-8fe10f570801",
+          "option_id": "C",
+          "block_id": "report-521def6b8c6a",
+          "block_hash": "99d6da1b6d464791d7649564d70bfa4065bb26fe0bfb79f4ee26755253bc8c83",
+          "quote": "β=5时，K–R的尺度和位置估计分布较窄，但整体偏离真值；LSE、LRE的分布较宽，中心更接近真值。分布较窄并不代表综合误差较小。\nn由50减至7时，MDM、WMLE的形状和尺度负偏差加大，位置正偏差加大；LSE、LRE的重复抽样波动增大。不同方法的误差增长来源有所不同。",
+          "start": 0,
+          "end": 136,
+          "prefix": "",
+          "suffix": "",
+          "comment": "在我看来，比较有趣的结论没说出来，反而说的就是一些没啥用的观察以及防御性语句。例如我从β=1.5切换图片看β增大，发现η估计出现分化，变成双峰的清晰，γ偏移的更严重，这些你也没有读出来啊"
+        }
+      ],
       "image_notes": []
     },
     {
       "unit_id": "figure-tail",
-      "unit_title": "异常与返回：全条件发生频率与有效率",
+      "unit_title": "4.2　明显异常与求解失败",
       "mode": "content",
       "target_option_id": "B",
       "selected_option_id": null,
@@ -133,22 +104,8 @@
       "image_notes": []
     },
     {
-      "unit_id": "text-b035",
-      "unit_title": "4　典型解释怎样接回方法构造",
-      "mode": "content",
-      "target_option_id": "current",
-      "selected_option_id": null,
-      "selected_label": null,
-      "next_action": "defer",
-      "action_explicit": false,
-      "inspiration": "",
-      "notes": {},
-      "annotations": [],
-      "image_notes": []
-    },
-    {
       "unit_id": "figure-mechanism",
-      "unit_title": "解释：共同背景与方法过程",
+      "unit_title": "5　偏移与异常怎样形成",
       "mode": "content",
       "target_option_id": "A",
       "selected_option_id": null,
@@ -161,22 +118,8 @@
       "image_notes": []
     },
     {
-      "unit_id": "text-b044",
-      "unit_title": "5　比较怎样转为选择启示",
-      "mode": "content",
-      "target_option_id": "current",
-      "selected_option_id": null,
-      "selected_label": null,
-      "next_action": "defer",
-      "action_explicit": false,
-      "inspiration": "",
-      "notes": {},
-      "annotations": [],
-      "image_notes": []
-    },
-    {
       "unit_id": "figure-life",
-      "unit_title": "选择启示：候选方法与差距的条件表",
+      "unit_title": "6　将差异转为条件性选择依据",
       "mode": "content",
       "target_option_id": "A",
       "selected_option_id": null,
@@ -190,7 +133,7 @@
     },
     {
       "unit_id": "closing-slot",
-      "unit_title": "收尾位置先保留",
+      "unit_title": "7　下一步：利用具体样本信息辅助选法",
       "mode": "content",
       "target_option_id": "current",
       "selected_option_id": null,
@@ -203,12 +146,14 @@
       "image_notes": []
     }
   ],
-  "changed_units": [],
+  "changed_units": [
+    "figure-error"
+  ],
   "confirmation": {
     "confirmed": true,
-    "intent": "archive",
-    "text": "将本轮确认后的“方法对比”内容落地为正式报告：\n1. 将审定文字、图表和必要说明整理保存至 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v0.4.md，作为当前下篇。\n2. 将现有 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v0.3.md 归档至 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v0.3.md，保留内容并修正归档后相对引用。\n3. 更新项目README及相关当前入口，使其指向新版v0.4；此前“其他/历史尝试”中的旧v0.4尝试继续保留，不覆盖。\n4. 保留 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/ 下的HTML、素材、内容源及批注记录；审阅镜像不替代正式报告。\n5. 核验报告内容、图片和链接，提交本次相关Git修改；草稿、会话和日志继续保存在本地。",
-    "generated_text": "将本轮确认后的“方法对比”内容落地为正式报告：\n1. 将审定文字、图表和必要说明整理保存至 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v0.4.md，作为当前下篇。\n2. 将现有 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v0.3.md 归档至 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v0.3.md，保留内容并修正归档后相对引用。\n3. 更新项目README及相关当前入口，使其指向新版v0.4；此前“其他/历史尝试”中的旧v0.4尝试继续保留，不覆盖。\n4. 保留 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/ 下的HTML、素材、内容源及批注记录；审阅镜像不替代正式报告。\n5. 核验报告内容、图片和链接，提交本次相关Git修改；草稿、会话和日志继续保存在本地。",
+    "intent": "submit",
+    "text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 18 轮）。\n\n【4　误差差距表现成什么样】\n原文：“β=5时，K–R的尺度和位置估计分布较窄，但整体偏离真值；LSE、LRE的分布较宽，中心更接近真值。分布较窄并不代表综合误差较小。\nn由50减至7时，MDM、WMLE的形状和尺度负偏差加大，位置正偏差加大；LSE、LRE的重复抽样波动增大。不同方法的误差增长来源有所不同。”\n意见：在我看来，比较有趣的结论没说出来，反而说的就是一些没啥用的观察以及防御性语句。例如我从β=1.5切换图片看β增大，发现η估计出现分化，变成双峰的清晰，γ偏移的更严重，这些你也没有读出来啊",
+    "generated_text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 18 轮）。\n\n【4　误差差距表现成什么样】\n原文：“β=5时，K–R的尺度和位置估计分布较窄，但整体偏离真值；LSE、LRE的分布较宽，中心更接近真值。分布较窄并不代表综合误差较小。\nn由50减至7时，MDM、WMLE的形状和尺度负偏差加大，位置正偏差加大；LSE、LRE的重复抽样波动增大。不同方法的误差增长来源有所不同。”\n意见：在我看来，比较有趣的结论没说出来，反而说的就是一些没啥用的观察以及防御性语句。例如我从β=1.5切换图片看β增大，发现η估计出现分化，变成双峰的清晰，γ偏移的更严重，这些你也没有读出来啊",
     "edited": false
   }
 }

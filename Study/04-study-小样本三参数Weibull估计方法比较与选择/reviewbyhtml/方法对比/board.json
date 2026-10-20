@@ -2,10 +2,10 @@
   "id": "study04-comparison-v04",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 18,
+  "revision": 19,
   "source": "../../报告下（方法对比）-v0.4.md",
-  "source_fingerprint": "b2a4540e51960d03e7c11495f2cfbaa9cfc9f03eef65b35af20811b8af6df62c",
-  "content_fingerprint": "cf59f15c887eb4cb2c430bb1ecdcd43dd64d8ceac4ce33bf31cf170337bf627e",
+  "source_fingerprint": "bed7f9fda3295b6fbff189c01c3979fd02978825ded96d0b99e7a8ff066b4033",
+  "content_fingerprint": "fe89d4e41b48654a3252af6cbe3bff761320a2a7e1996a0aae7ae1c202fd804a",
   "units": [
     {
       "id": "text-b002",
@@ -170,7 +170,7 @@
       "id": "figure-error",
       "title": "4　误差差距表现成什么样",
       "mode": "content",
-      "state": "open",
+      "state": "modify",
       "selected": "C",
       "options": [
         {
@@ -180,14 +180,8 @@
             {
               "id": "report-0b978bfbf3c5",
               "kind": "text",
-              "html": "<h3>4.1　分开看系统偏移与重复波动</h3>",
-              "markdown": "### 4.1　分开看系统偏移与重复波动"
-            },
-            {
-              "id": "report-e2010d609aec",
-              "kind": "text",
-              "html": "<p>RMSE同时反映系统偏差和重复抽样波动。结合估计分布，可以进一步区分误差主要来自偏差还是波动。</p>",
-              "markdown": "RMSE同时反映系统偏差和重复抽样波动。结合估计分布，可以进一步区分误差主要来自偏差还是波动。"
+              "html": "<h3>4.1　随β变化的分布分化与参数偏移</h3>",
+              "markdown": "### 4.1　随β变化的分布分化与参数偏移"
             },
             {
               "id": "report-d970bfb3ef64",
@@ -254,8 +248,8 @@
             {
               "id": "report-521def6b8c6a",
               "kind": "text",
-              "html": "<p>β=5时，K–R的尺度和位置估计分布较窄，但整体偏离真值；LSE、LRE的分布较宽，中心更接近真值。分布较窄并不代表综合误差较小。</p>\n<p>n由50减至7时，MDM、WMLE的形状和尺度负偏差加大，位置正偏差加大；LSE、LRE的重复抽样波动增大。不同方法的误差增长来源有所不同。</p>",
-              "markdown": "β=5时，K–R的尺度和位置估计分布较窄，但整体偏离真值；LSE、LRE的分布较宽，中心更接近真值。分布较窄并不代表综合误差较小。\n\nn由50减至7时，MDM、WMLE的形状和尺度负偏差加大，位置正偏差加大；LSE、LRE的重复抽样波动增大。不同方法的误差增长来源有所不同。"
+              "html": "<p>随β增大，LSE和LRE的尺度估计分布逐渐呈现双峰；n=7时，高β下两个峰的分离更明显。β改变的不只是误差幅度，还包括估计结果的分布形态。</p>\n<p>与此同时，MDM、WMLE和K–R的位置估计逐渐向偏大方向移动，尺度估计向偏小方向移动；小样本下这种偏移更突出。位置与尺度呈现出相反方向的变化。</p>\n<p>对LSE和LRE逐次结果配对核对发现，高尺度估计的一组包含大量位置估计落在零边界的结果；较低尺度估计的一组对应偏大的位置估计。尺度分布的双峰与位置参数的边界响应有关。</p>\n<p>β=5、n=50时，LSE和LRE的尺度估计均值仍接近真值，但两个峰已明显分离。两组结果的正负误差在平均时相互抵消，均值因而没有反映出分布的分化。</p>",
+              "markdown": "随β增大，LSE和LRE的尺度估计分布逐渐呈现双峰；n=7时，高β下两个峰的分离更明显。β改变的不只是误差幅度，还包括估计结果的分布形态。\n\n与此同时，MDM、WMLE和K–R的位置估计逐渐向偏大方向移动，尺度估计向偏小方向移动；小样本下这种偏移更突出。位置与尺度呈现出相反方向的变化。\n\n对LSE和LRE逐次结果配对核对发现，高尺度估计的一组包含大量位置估计落在零边界的结果；较低尺度估计的一组对应偏大的位置估计。尺度分布的双峰与位置参数的边界响应有关。\n\nβ=5、n=50时，LSE和LRE的尺度估计均值仍接近真值，但两个峰已明显分离。两组结果的正负误差在平均时相互抵消，均值因而没有反映出分布的分化。"
             }
           ]
         }
@@ -481,8 +475,7 @@
   ],
   "stage": "report-revision",
   "review_complete": false,
-  "last_applied_submission_id": "636211f6-f0ba-4b88-9f91-b3eb13bcba2f",
+  "last_applied_submission_id": "73a1780f-3bb9-46fb-b419-74e4609b6ed3",
   "require_confirmation": true,
-  "archive_plan": "将本轮确认的修改写回当前正式报告：\n1. 更新 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v0.4.md，沿用v0.4；此前内容通过Git保留。\n2. 已归档的v0.3及“其他/历史尝试”中的旧稿保留原处。\n3. 同步必要的README和引用，保留当前任务HTML、图片、批注及历史记录；审阅镜像不替代正式报告。\n4. 核验正文、图片与链接后提交本轮相关Git修改；草稿、会话和日志继续留在本地。",
-  "processing": false
+  "archive_plan": "将本轮确认的修改写回当前正式报告：\n1. 更新 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v0.4.md，沿用v0.4；此前内容通过Git保留。\n2. 已归档的v0.3及“其他/历史尝试”中的旧稿保留原处。\n3. 同步必要的README和引用，保留当前任务HTML、图片、批注及历史记录；审阅镜像不替代正式报告。\n4. 核验正文、图片与链接后提交本轮相关Git修改；草稿、会话和日志继续留在本地。"
 }
