@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 17,
+  "revision": 18,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.1.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v1.1.md",
@@ -178,52 +178,12 @@
               "kind": "text",
               "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p><p><small>相对差距按第2章口径核对，扩大或缩小指n=50与7两个端点的比较，不表示中间n单调变化。</small></p>",
               "markdown": "*图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。*"
-            }
-          ]
-        }
-      ],
-      "selected_ids": []
-    },
-    {
-      "id": "law-rmse-wording",
-      "title": "文字表述",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "content",
-      "state": "converged",
-      "selection_mode": "single",
-      "selected": "law-rmse-current-original",
-      "selected_ids": [
-        "law-rmse-current-original"
-      ],
-      "options": [
-        {
-          "id": "law-rmse-current-original",
-          "label": "A　原稿",
-          "blocks": [
+            },
             {
               "id": "report-481785e3f263",
               "kind": "text",
               "html": "<p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "law-rmse-gap-figure",
-      "title": "方法差距的轨迹与变化",
-      "mode": "content",
-      "inline": true,
-      "outline_level": 3,
-      "state": "converged",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "distance-joint",
-          "label": "联合图",
-          "blocks": [
+            },
             {
               "id": "distance-joint-image",
               "kind": "image",
@@ -234,10 +194,16 @@
               "id": "distance-joint-caption",
               "kind": "text",
               "html": "<p><em>图注：上两行分别为β=1.5和5下五档n的距离轨迹，每条线对应一对方法；下行为n=50到7的距离变化，覆盖八档β，红色表示扩大、蓝色表示缩小。三列依次为形状、尺度和位置参数。</em></p><p><em>距离为两种方法标准化RMSE之差的绝对值。六法共15对，仍使用七法共同有效样本；形状RMSE除以真β，尺度与位置RMSE除以真η。</em></p>"
+            },
+            {
+              "id": "distance-joint-phenomena",
+              "kind": "text",
+              "html": "<p>β=1.5时，方法间的RMSE差距随样本量减少而普遍扩大，但增幅并不一致。部分曲线在较小n下明显上扬，另一些变化较缓。</p><p>β=5时，差距扩大与缩小同时出现，部分曲线还先下降、后上升。比较n=50与7，LSE、LRE与WMLE的尺度和位置RMSE更接近，而它们与K–R的差距增大。下排热图进一步显示，同一方法对也可能在低β下拉开、在高β下接近。样本量减少对方法间关系的影响，随形状条件而改变。</p>"
             }
           ]
         }
-      ]
+      ],
+      "selected_ids": []
     },
     {
       "id": "law-distribution",
@@ -313,6 +279,11 @@
               "markdown": "*图注：行对应n=50、7，列对应形状、尺度、位置。虚线为真值，红点为均值，横线为四分位区间。密度显示主体分布，统计量使用全部有效值。*"
             },
             {
+              "id": "report-521def6b8c6a",
+              "kind": "text",
+              "html": "<p>从较小β到较大β，尺度和位置的估计分布逐渐偏离真值附近；在n=7下，这种变化比n=50更明显。误差的变化既体现在分布的宽窄，也体现在其位置和形态。</p><p>在这一共同变化下，方法之间呈现出不同表现。一类主要是分布整体偏移，表现为位置偏高、尺度偏低，MDM、WMLE和K–R较为明显；另一类是估计结果逐渐分成两组，LSE、LRE的尺度双峰尤为突出。前者即使分布较集中，仍可能明显偏离真值；后者即使均值接近真值，也不能反映两组结果的分离。</p>"
+            },
+            {
               "id": "wmle-bias-sd-evidence",
               "kind": "visual",
               "html": "<table><thead><tr><th>n</th><th>形状Bias</th><th>形状SD</th><th>形状RMSE</th></tr></thead><tbody><tr><td>10</td><td>-2.263</td><td>0.982</td><td>2.466</td></tr><tr><td>7</td><td>-2.614</td><td>0.713</td><td>2.710</td></tr></tbody></table>"
@@ -326,29 +297,6 @@
         }
       ],
       "selected_ids": []
-    },
-    {
-      "id": "law-distribution-wording",
-      "title": "文字表述",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "content",
-      "state": "modify",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "law-distribution-current",
-          "label": "当前正文",
-          "blocks": [
-            {
-              "id": "report-521def6b8c6a",
-              "kind": "text",
-              "html": "<p>从较小β到较大β，尺度和位置的估计分布逐渐偏离真值附近；在n=7下，这种变化比n=50更明显。误差的变化既体现在分布的宽窄，也体现在其位置和形态。</p><p>在这一共同变化下，方法之间呈现出不同表现。一类主要是分布整体偏移，表现为位置偏高、尺度偏低，MDM、WMLE和K–R较为明显；另一类是估计结果逐渐分成两组，LSE、LRE的尺度双峰尤为突出。前者即使分布较集中，仍可能明显偏离真值；后者即使均值接近真值，也不能反映两组结果的分离。</p>"
-            }
-          ]
-        }
-      ]
     },
     {
       "id": "law-synthesis",
@@ -695,8 +643,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "8bc90dcd-97a3-404c-a847-9f546fea4e63",
-  "last_rendered_submission_id": "8bc90dcd-97a3-404c-a847-9f546fea4e63",
+  "last_applied_submission_id": "dcb87511-b940-4d26-99cb-35bc2145ccb3",
+  "last_rendered_submission_id": "dcb87511-b940-4d26-99cb-35bc2145ccb3",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.7.0",

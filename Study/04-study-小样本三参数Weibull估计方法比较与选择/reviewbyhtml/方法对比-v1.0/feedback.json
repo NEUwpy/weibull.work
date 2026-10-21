@@ -1,8 +1,8 @@
 {
-  "submission_id": "8bc90dcd-97a3-404c-a847-9f546fea4e63",
+  "submission_id": "dcb87511-b940-4d26-99cb-35bc2145ccb3",
   "board_id": "study04-method-comparison-v1",
-  "board_revision": 16,
-  "submitted_at": "2026-10-21T11:07:37.666996+00:00",
+  "board_revision": 17,
+  "submitted_at": "2026-10-21T11:15:19.356559+00:00",
   "intent": "submit",
   "finish_review": false,
   "units": [
@@ -123,42 +123,42 @@
       "selected_option_ids": [],
       "selected_label": null,
       "selected_labels": [],
-      "next_action": "defer",
+      "next_action": "modify",
       "action_explicit": false,
       "inspiration": "",
       "notes": {},
-      "section_note": "",
+      "section_note": "这是正文ornot，为何是这种格式？",
       "block_notes": [],
       "annotations": [],
       "image_notes": []
     },
     {
       "unit_id": "law-rmse-gap-figure",
-      "unit_title": "差距变化的配图",
-      "mode": "choices",
-      "target_option_id": null,
+      "unit_title": "方法差距的轨迹与变化",
+      "mode": "content",
+      "target_option_id": "distance-joint",
       "target_option_ids": [
-        "distance-a",
-        "distance-b"
+        "distance-joint"
       ],
       "selected_option_id": null,
-      "selected_option_ids": [
-        "distance-a",
-        "distance-b"
-      ],
+      "selected_option_ids": [],
       "selected_label": null,
-      "selected_labels": [
-        "A　各方法对的距离轨迹",
-        "B　逐步减少样本时的距离变化"
-      ],
+      "selected_labels": [],
       "next_action": "modify",
       "action_explicit": false,
       "inspiration": "",
-      "notes": {
-        "distance-b": "就要一个50到7的就行，和A做个联合图。"
-      },
+      "notes": {},
       "section_note": "",
-      "block_notes": [],
+      "block_notes": [
+        {
+          "option_id": "distance-joint",
+          "block_id": "distance-joint-image",
+          "kind": "image",
+          "label": "各方法对的距离轨迹及n从50到7的距离变化联合图",
+          "src": "assets/方法差距变化_轨迹与50到7联合图.png",
+          "comment": "这个图应该也有描述现象"
+        }
+      ],
       "annotations": [],
       "image_notes": []
     },
@@ -395,13 +395,14 @@
     }
   ],
   "changed_units": [
+    "law-rmse-wording",
     "law-rmse-gap-figure"
   ],
   "confirmation": {
     "confirmed": true,
     "intent": "submit",
-    "text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 16 轮）。\n\n【差距变化的配图】\n选择：A　各方法对的距离轨迹、B　逐步减少样本时的距离变化\nA　各方法对的距离轨迹\n[图片：全部15对方法的距离轨迹，β=1.5和5，五档n]\n每条曲线对应图例中的一对方法，用颜色、线型和点形区分。两行分别为β=1.5与5，同一参数共用纵轴；横轴依次为五档离散样本量。\n曲线上升表示该对方法的RMSE差距扩大，下降表示缩小；不同曲线的增长幅度、转折及交叉均保留。\nB　逐步减少样本时的距离变化\n[图组：n = 50 → 20、n = 20 → 15、n = 15 → 10、n = 10 → 7、n = 50 → 7（全程）]\n每行对应一对方法，每列对应一个β。依次切换四次相邻样本量变化，最后保留n=50到7的全程对照。\n颜色直接表示这一步的距离增量：红色扩大，蓝色缩小，白色接近不变。同一参数在五张图中共用对称色标，便于比较各阶段的变化幅度。\n关于“B　逐步减少样本时的距离变化”：就要一个50到7的就行，和A做个联合图。",
-    "generated_text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 16 轮）。\n\n【差距变化的配图】\n选择：A　各方法对的距离轨迹、B　逐步减少样本时的距离变化\nA　各方法对的距离轨迹\n[图片：全部15对方法的距离轨迹，β=1.5和5，五档n]\n每条曲线对应图例中的一对方法，用颜色、线型和点形区分。两行分别为β=1.5与5，同一参数共用纵轴；横轴依次为五档离散样本量。\n曲线上升表示该对方法的RMSE差距扩大，下降表示缩小；不同曲线的增长幅度、转折及交叉均保留。\nB　逐步减少样本时的距离变化\n[图组：n = 50 → 20、n = 20 → 15、n = 15 → 10、n = 10 → 7、n = 50 → 7（全程）]\n每行对应一对方法，每列对应一个β。依次切换四次相邻样本量变化，最后保留n=50到7的全程对照。\n颜色直接表示这一步的距离增量：红色扩大，蓝色缩小，白色接近不变。同一参数在五张图中共用对称色标，便于比较各阶段的变化幅度。\n关于“B　逐步减少样本时的距离变化”：就要一个50到7的就行，和A做个联合图。",
+    "text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 17 轮）。\n\n【文字表述】\n本节备注：这是正文ornot，为何是这种格式？\n\n【方法差距的轨迹与变化】\n图表“各方法对的距离轨迹及n从50到7的距离变化联合图”：这个图应该也有描述现象",
+    "generated_text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 17 轮）。\n\n【文字表述】\n本节备注：这是正文ornot，为何是这种格式？\n\n【方法差距的轨迹与变化】\n图表“各方法对的距离轨迹及n从50到7的距离变化联合图”：这个图应该也有描述现象",
     "edited": false
   }
 }
