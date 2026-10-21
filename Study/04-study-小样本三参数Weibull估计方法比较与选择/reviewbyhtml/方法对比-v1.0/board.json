@@ -2,59 +2,662 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 2,
+  "revision": 3,
   "require_confirmation": true,
-  "archive_plan": "保存本次v1.0骨架审阅的结果：\n1. 将确认后的章节骨架更新到 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md；本阶段仅审阅骨架，正文与图表保持待填。\n2. 如骨架职责发生变化，同步更新总体README及结果呈现README的对应说明。\n3. 保留原v0.4及其HTML存档；保留本任务 reviewbyhtml/方法对比-v1.0/ 的HTML、内容源和已提交批注，沿用目录继续后续审阅，并以Git记录版本。\n4. 待用户明确允许填充后，再将v0.4可复用材料及新思路作为候选加入本页。骨架确认不自动授权填充。",
+  "archive_plan": "保存本次v1.0内容审阅的结果：\n1. 将审定文字、图表及局部选择写入 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md；未选择的候选不代选，尚未实施的研究思路不写成已得到的结论。\n2. 正文使用本任务assets中的PNG，核对图像、数据口径及引用；根据实际内容更新总体README和结果呈现README。\n3. 保留原v0.4及其HTML存档；沿用 reviewbyhtml/方法对比-v1.0/ 保存本任务HTML、内容源、素材、批注及历史，以Git记录版本，草稿和运行状态留在本地。\n4. 本次候选复用v0.4图表与已核对材料；尚待验证的机制研究，在用户明确决定开展后继续。",
   "source_document": "../../报告下（方法对比）-v1.0.md",
   "source_sha256": "b9b5d1e7dabfa139ff7a14eea12a58a895838209f495dc2064ed24395dd0f86c",
-  "review_phase": "outline",
-  "content_fill_authorized": false,
+  "review_phase": "content-candidates",
+  "content_fill_authorized": true,
   "units": [
     {
       "id": "manuscript-outline",
       "title": "报告下（方法对比）v1.0",
       "mode": "content",
-      "state": "modify",
+      "state": "open",
       "selected": null,
       "options": [
         {
-          "id": "outline-current",
-          "label": "当前骨架",
+          "id": "manuscript-outline-current",
+          "label": "当前内容",
           "blocks": [
             {
-              "id": "frontmatter",
+              "id": "report-f2c54054d842",
               "kind": "text",
-              "html": "<blockquote><p>骨架稿。研究内容与图表待后续讨论后填入。</p></blockquote>\n<p>魏鹏宇｜东北大学机械工程与自动化学院</p>\n<p>分会场3：装备寿命与可靠性评估</p>"
+              "html": "<p>魏鹏宇｜东北大学机械工程与自动化学院</p>",
+              "markdown": "魏鹏宇｜东北大学机械工程与自动化学院"
             },
             {
-              "id": "chapter-1",
+              "id": "report-69d8981026f6",
               "kind": "text",
-              "html": "<h2>1　实验设置</h2>\n<p><em>待填。</em></p>"
+              "html": "<p>分会场3：装备寿命与可靠性评估</p>",
+              "markdown": "分会场3：装备寿命与可靠性评估"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-1",
+      "title": "1　实验设置",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "chapter-1-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "report-4a927afb22ea",
+              "kind": "text",
+              "html": "<p>本轮比较七种方法在相同样本下的估计误差、重复抽样波动、明显异常和有效返回情况。</p>",
+              "markdown": "本轮比较七种方法在相同样本下的估计误差、重复抽样波动、明显异常和有效返回情况。"
             },
             {
-              "id": "chapter-2",
-              "kind": "text",
-              "html": "<h2>2　代表方法的性能差异</h2>\n<p><em>待填。</em></p>"
+              "id": "report-b9b445a8b97b",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>项目</th><th>本轮设置</th></tr></thead><tbody><tr><td>方法</td><td>MDM-0.1、LSE、LRE（Park）、WMLE、MLE、MMLE（K–R）、MM</td></tr><tr><td>参数</td><td>η=1000、γ=500；β=1.5、2、2.5、3、3.5、4、4.5、5</td></tr><tr><td>样本量</td><td>n=50、20、15、10、7</td></tr><tr><td>重复抽样</td><td>每个条件1200组；各方法使用相同样本</td></tr><tr><td>主要观察</td><td>参数RMSE、估计分布、明显异常与有效返回</td></tr></tbody></table>",
+              "markdown": "| 项目 | 本轮设置 |\r\n|---|---|\r\n| 方法 | MDM-0.1、LSE、LRE（Park）、WMLE、MLE、MMLE（K–R）、MM |\r\n| 参数 | η=1000、γ=500；β=1.5、2、2.5、3、3.5、4、4.5、5 |\r\n| 样本量 | n=50、20、15、10、7 |\r\n| 重复抽样 | 每个条件1200组；各方法使用相同样本 |\r\n| 主要观察 | 参数RMSE、估计分布、明显异常与有效返回 |"
             },
             {
-              "id": "chapter-3",
+              "id": "report-b109f0b05cd7",
               "kind": "text",
-              "html": "<h2>3　性能差异的条件变化规律</h2>\n<p><em>待填。</em></p>"
+              "html": "<p><em>统计口径：精度图使用七法均有效的共同样本；分布图使用各法自身有效结果。形状RMSE除以真β，尺度和位置RMSE除以1000。方法与求解约定见<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE.md\">实验设置</a>。</em></p>",
+              "markdown": "*统计口径：精度图使用七法均有效的共同样本；分布图使用各法自身有效结果。形状RMSE除以真β，尺度和位置RMSE除以1000。方法与求解约定见[实验设置](实验设置.md)。*"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-2",
+      "title": "2　代表方法的性能差异",
+      "mode": "choices",
+      "inline": true,
+      "state": "open",
+      "selected": null,
+      "context": "开场比较图的两种候选，均复用v0.4。",
+      "options": [
+        {
+          "id": "gap-overview",
+          "label": "A　各条件下的整体差距",
+          "blocks": [
+            {
+              "id": "preview",
+              "kind": "image",
+              "src": "assets/修订_整体差距百分比.png",
+              "alt": "主体差距：直接读多出百分之多少",
+              "markdown": "![主体差距：直接读多出百分之多少](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/修订_整体差距百分比.png)"
             },
             {
-              "id": "chapter-4",
+              "id": "global-insight",
               "kind": "text",
-              "html": "<h2>4　典型性能现象的机制解释</h2>\n<p><em>待填。</em></p>"
+              "markdown": "较大的相对差距主要出现在形状参数估计上，尺度与位置的相对差距通常较小。七种方法在三个参数上的表现并不一致。\n\n*相对差距缩小，不等于各方法的绝对误差减小。*",
+              "html": "<p>较大的相对差距主要出现在形状参数估计上，尺度与位置的相对差距通常较小。七种方法在三个参数上的表现并不一致。</p>\n<p><em>相对差距缩小，不等于各方法的绝对误差减小。</em></p>"
             },
             {
-              "id": "chapter-5",
+              "id": "report-7dd6a876cc3f",
               "kind": "text",
-              "html": "<h2>5　评价目标、估计风险与方法选择</h2>\n<p><em>待填。</em></p>"
+              "html": "<p><em>图注：每格为七法RMSE中位数高于该条件最小值的百分比；三列共用色标。</em></p>",
+              "markdown": "*图注：每格为七法RMSE中位数高于该条件最小值的百分比；三列共用色标。*"
+            }
+          ]
+        },
+        {
+          "id": "gap-methods",
+          "label": "B　同一样本量下的方法对照",
+          "blocks": [
+            {
+              "id": "rose-n50-opening",
+              "kind": "image",
+              "src": "assets/RMSE玫瑰图_n50_八档β.png",
+              "alt": "n=50，β=1.5至5的八组RMSE玫瑰图与MM数值"
             },
             {
-              "id": "chapter-6",
+              "id": "gap-methods-reading",
               "kind": "text",
-              "html": "<h2>6　后续研究与平台</h2>\n<p><em>待填。</em></p>"
+              "html": "<p>在n=50时，各方法已经表现出差异。低β下，形状误差较小的方法未必同时具有较小的位置误差；β增大后，三项参数的误差关系也随之改变。同一方法在不同参数上的优势并不一致。</p>"
+            },
+            {
+              "id": "gap-methods-caption",
+              "kind": "text",
+              "html": "<p><small>n=50，八档β。半径为标准化RMSE；六法共用线性量程，MM的数值另列。</small></p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-3",
+      "title": "3　性能差异的条件变化规律",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "chapter-3-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "law-opening",
+              "kind": "text",
+              "html": "<p>样本量减少时，各方法的误差总体增大，但增幅与相互关系并不一致。沿n和β观察，可以进一步区分这些变化发生在哪些条件下，以及误差以什么方式增加。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "law-rmse",
+      "title": "3.1　样本量变化与方法差距",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "law-rmse-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "preview",
+              "kind": "gallery",
+              "images": [
+                {
+                  "id": "n-50",
+                  "label": "n = 50",
+                  "src": "assets/RMSE玫瑰图_n50_八档β.png",
+                  "alt": "n=50，β=1.5至5的八组RMSE玫瑰图与MM数值"
+                },
+                {
+                  "id": "n-20",
+                  "label": "n = 20",
+                  "src": "assets/RMSE玫瑰图_n20_八档β.png",
+                  "alt": "n=20，β=1.5至5的八组RMSE玫瑰图与MM数值"
+                },
+                {
+                  "id": "n-15",
+                  "label": "n = 15",
+                  "src": "assets/RMSE玫瑰图_n15_八档β.png",
+                  "alt": "n=15，β=1.5至5的八组RMSE玫瑰图与MM数值"
+                },
+                {
+                  "id": "n-10",
+                  "label": "n = 10",
+                  "src": "assets/RMSE玫瑰图_n10_八档β.png",
+                  "alt": "n=10，β=1.5至5的八组RMSE玫瑰图与MM数值"
+                },
+                {
+                  "id": "n-7",
+                  "label": "n = 7",
+                  "src": "assets/RMSE玫瑰图_n7_八档β.png",
+                  "alt": "n=7，β=1.5至5的八组RMSE玫瑰图与MM数值"
+                }
+              ],
+              "aspect_ratio": 1.411764705882353,
+              "markdown": "#### n = 50\n\n![n=50，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n50_八档β.png)\n\n#### n = 20\n\n![n=20，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n20_八档β.png)\n\n#### n = 15\n\n![n=15，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n15_八档β.png)\n\n#### n = 10\n\n![n=10，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n10_八档β.png)\n\n#### n = 7\n\n![n=7，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n7_八档β.png)"
+            },
+            {
+              "id": "report-481785e3f263",
+              "kind": "text",
+              "markdown": "样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。\n\n样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。\n\nMM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。",
+              "html": "<p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p>"
+            },
+            {
+              "id": "report-96bac28ad30a",
+              "kind": "text",
+              "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p>",
+              "markdown": "*图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。*"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "law-distribution",
+      "title": "3.2　偏移、波动与分布分化",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "law-distribution-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "preview",
+              "kind": "gallery",
+              "images": [
+                {
+                  "id": "beta-1.5",
+                  "src": "assets/估计值分布_β1.5_两档n.png",
+                  "label": "β = 1.5",
+                  "alt": "β=1.5，n=50与7的七法三参数估计分布"
+                },
+                {
+                  "id": "beta-2",
+                  "src": "assets/估计值分布_β2_两档n.png",
+                  "label": "β = 2",
+                  "alt": "β=2，n=50与7的七法三参数估计分布"
+                },
+                {
+                  "id": "beta-2.5",
+                  "src": "assets/估计值分布_β2.5_两档n.png",
+                  "label": "β = 2.5",
+                  "alt": "β=2.5，n=50与7的七法三参数估计分布"
+                },
+                {
+                  "id": "beta-3",
+                  "src": "assets/估计值分布_β3_两档n.png",
+                  "label": "β = 3",
+                  "alt": "β=3，n=50与7的七法三参数估计分布"
+                },
+                {
+                  "id": "beta-3.5",
+                  "src": "assets/估计值分布_β3.5_两档n.png",
+                  "label": "β = 3.5",
+                  "alt": "β=3.5，n=50与7的七法三参数估计分布"
+                },
+                {
+                  "id": "beta-4",
+                  "src": "assets/估计值分布_β4_两档n.png",
+                  "label": "β = 4",
+                  "alt": "β=4，n=50与7的七法三参数估计分布"
+                },
+                {
+                  "id": "beta-4.5",
+                  "src": "assets/估计值分布_β4.5_两档n.png",
+                  "label": "β = 4.5",
+                  "alt": "β=4.5，n=50与7的七法三参数估计分布"
+                },
+                {
+                  "id": "beta-5",
+                  "src": "assets/修订_估计值分布_两档n.png",
+                  "label": "β = 5",
+                  "alt": "β=5，n=50与7的七法三参数估计分布"
+                }
+              ],
+              "aspect_ratio": 2.0568181818181817,
+              "markdown": "#### β = 1.5\n\n![β=1.5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β1.5_两档n.png)\n\n#### β = 2\n\n![β=2，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β2_两档n.png)\n\n#### β = 2.5\n\n![β=2.5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β2.5_两档n.png)\n\n#### β = 3\n\n![β=3，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β3_两档n.png)\n\n#### β = 3.5\n\n![β=3.5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β3.5_两档n.png)\n\n#### β = 4\n\n![β=4，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β4_两档n.png)\n\n#### β = 4.5\n\n![β=4.5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β4.5_两档n.png)\n\n#### β = 5\n\n![β=5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/修订_估计值分布_两档n.png)"
+            },
+            {
+              "id": "report-521def6b8c6a",
+              "kind": "text",
+              "markdown": "随β增大，LSE和LRE的尺度估计分布逐渐呈现双峰；n=7时，高β下两个峰的分离更明显。估计结果的变化既体现在误差幅度上，也体现在分布形态上。\n\n与此同时，MDM、WMLE和K–R的位置估计逐渐向偏大方向移动，尺度估计向偏小方向移动；小样本下这种偏移更突出。\n\nβ=5、n=50时，LSE和LRE的尺度估计均值仍接近真值，但两个峰已明显分离。均值没有呈现出两组估计结果的分化。",
+              "html": "<p>随β增大，LSE和LRE的尺度估计分布逐渐呈现双峰；n=7时，高β下两个峰的分离更明显。估计结果的变化既体现在误差幅度上，也体现在分布形态上。</p>\n<p>与此同时，MDM、WMLE和K–R的位置估计逐渐向偏大方向移动，尺度估计向偏小方向移动；小样本下这种偏移更突出。</p>\n<p>β=5、n=50时，LSE和LRE的尺度估计均值仍接近真值，但两个峰已明显分离。均值没有呈现出两组估计结果的分化。</p>"
+            },
+            {
+              "id": "report-d970bfb3ef64",
+              "kind": "text",
+              "html": "<p><em>图注：行对应n=50、7，列对应形状、尺度、位置。虚线为真值，红点为均值，横线为四分位区间。密度显示主体分布，统计量使用全部有效值。</em></p>",
+              "markdown": "*图注：行对应n=50、7，列对应形状、尺度、位置。虚线为真值，红点为均值，横线为四分位区间。密度显示主体分布，统计量使用全部有效值。*"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "law-synthesis",
+      "title": "3.3　主要规律",
+      "mode": "choices",
+      "inline": true,
+      "state": "open",
+      "selected": null,
+      "context": "两种归纳重点：条件关系，或误差表现。",
+      "options": [
+        {
+          "id": "synthesis-conditions",
+          "label": "A　围绕n与β的共同作用归纳",
+          "blocks": [
+            {
+              "id": "synthesis-conditions-body",
+              "kind": "text",
+              "html": "<p>样本量减少造成的误差增量取决于形状条件。高β下误差较大，并不意味着减少样本造成的增量一定更大；有些方法在n=50时已存在较明显的偏移。</p><p>随着n和β变化，方法之间的差距可以扩大、缩小，相对优势也可能改变。某一条件下的表现不能直接推广到整个小样本范围。</p>"
+            }
+          ]
+        },
+        {
+          "id": "synthesis-phenomena",
+          "label": "B　围绕误差增长的不同表现归纳",
+          "blocks": [
+            {
+              "id": "synthesis-phenomena-body",
+              "kind": "text",
+              "html": "<p>误差增长至少表现为三种不同情形：估计分布变宽、整体向偏离真值的方向移动，以及重复结果分化为不同的参数组合。</p><p>这些表现随n和β共同变化，也并非由所有方法同步出现。LSE、LRE的波动与分化，和MDM、WMLE、K–R的方向性偏移，需要结合各自构造进一步解释。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-4",
+      "title": "4　典型性能现象的机制解释",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "chapter-4-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "mechanism-opening",
+              "kind": "text",
+              "html": "<p>前面的差异与各方法处理未知位置、恢复形状和尺度的方式有关。以下结合原样本诊断与具体构造，解释其中的代表性现象。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mechanism-n",
+      "title": "4.1　位置估计参与形状波动的放大",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "mechanism-n-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "sample-effect-observation",
+              "kind": "text",
+              "markdown": "针对低β下LSE、LRE随样本减少而增大的形状波动，对原样本进行固定位置诊断：保留同一批观测、绘图分数和回归方向，仅将位置设为真实γ，比较形状估计的变化。",
+              "html": "<p>针对低β下LSE、LRE随样本减少而增大的形状波动，对原样本进行固定位置诊断：保留同一批观测、绘图分数和回归方向，仅将位置设为真实γ，比较形状估计的变化。</p>"
+            },
+            {
+              "id": "location-diagnostic",
+              "kind": "image",
+              "src": "assets/样本量变化_定位影响诊断_β1.5.png",
+              "alt": "β=1.5时五档样本量下LSE与LRE的定位影响诊断",
+              "markdown": "![五档n下的形状估计：原位置估计与固定真实位置诊断](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/样本量变化_定位影响诊断_β1.5.png)"
+            },
+            {
+              "id": "sample-effect-mechanism",
+              "kind": "text",
+              "markdown": "LSE和LRE都利用ln(t−γ)构造概率图。位置的改变对各观测的影响并不相同，靠近样本最小值的观测变化更大，因而会改变对数间距与回归斜率，进一步传递到形状估计。\n\n在同一批样本中固定真实位置后，形状估计分布有所收窄，样本量较小时差别更明显。固定位置后仍存在随n减小而增大的波动，说明原始抽样波动与位置估计带来的额外变化同时参与了误差增长。",
+              "html": "<p>LSE和LRE都利用ln(t−γ)构造概率图。位置的改变对各观测的影响并不相同，靠近样本最小值的观测变化更大，因而会改变对数间距与回归斜率，进一步传递到形状估计。</p>\n<p>在同一批样本中固定真实位置后，形状估计分布有所收窄，样本量较小时差别更明显。固定位置后仍存在随n减小而增大的波动，说明原始抽样波动与位置估计带来的额外变化同时参与了误差增长。</p>"
+            },
+            {
+              "id": "sample-effect-caption",
+              "kind": "text",
+              "markdown": "*图注：β=1.5，η=1000，γ=500。蓝色为原方法，橙色仅将位置固定为真实γ，使用同一批1200组样本。点和线为中位数及四分位区间；密度宽度分别归一化。显示窗口为β̂/β∈[0,4]，全部有效值仍参与统计。固定真位置仅用于诊断定位影响。*",
+              "html": "<p><em>图注：β=1.5，η=1000，γ=500。蓝色为原方法，橙色仅将位置固定为真实γ，使用同一批1200组样本。点和线为中位数及四分位区间；密度宽度分别归一化。显示窗口为β̂/β∈[0,4]，全部有效值仍参与统计。固定真位置仅用于诊断定位影响。</em></p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mechanism-high-beta",
+      "title": "4.2　高β下的分化与偏移",
+      "mode": "choices",
+      "inline": true,
+      "state": "open",
+      "selected": null,
+      "context": "重点解释的第二类现象：A、B已有证据，C为尚待验证的新研究方向。",
+      "options": [
+        {
+          "id": "mechanism-boundary",
+          "label": "A　LSE与LRE：共同定位准则与边界选解",
+          "blocks": [
+            {
+              "id": "boundary-objective",
+              "kind": "text",
+              "markdown": "LSE最大化F比，LRE最大化相关系数；两种定位准则在数学上均随概率图相关性增大而增大，因此都倾向选择使概率图接近线性的位置。对部分样本，非负位置范围内的最优解位于γ=0；其他样本选择内部位置，两类位置结果对应不同尺度区间。\n\n随β增大，零边界对应的高尺度结果更集中，内部解对应的尺度向低值移动，两组分离形成双峰。β较小时，两组分布仍有较多重叠，存在零边界结果也未必呈现双峰。",
+              "html": "<p>LSE最大化F比，LRE最大化相关系数；两种定位准则在数学上均随概率图相关性增大而增大，因此都倾向选择使概率图接近线性的位置。对部分样本，非负位置范围内的最优解位于γ=0；其他样本选择内部位置，两类位置结果对应不同尺度区间。</p>\n<p>随β增大，零边界对应的高尺度结果更集中，内部解对应的尺度向低值移动，两组分离形成双峰。β较小时，两组分布仍有较多重叠，存在零边界结果也未必呈现双峰。</p>"
+            },
+            {
+              "id": "boundary-profiles",
+              "kind": "gallery",
+              "aspect_ratio": 1.5,
+              "images": [
+                {
+                  "id": "n-50",
+                  "label": "β = 5，n = 50",
+                  "src": "assets/尺度双峰_边界与参数补偿_n50.png",
+                  "alt": "β=5、n=50，LSE与LRE的位置尺度配对及位置准则廓线"
+                },
+                {
+                  "id": "n-7",
+                  "label": "β = 5，n = 7",
+                  "src": "assets/尺度双峰_边界与参数补偿_n7.png",
+                  "alt": "β=5、n=7，LSE与LRE的位置尺度配对及位置准则廓线"
+                }
+              ],
+              "markdown": "#### β = 5，n = 50\n\n![LSE与LRE的位置尺度配对及位置准则廓线](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/尺度双峰_边界与参数补偿_n50.png)\n\n#### β = 5，n = 7\n\n![LSE与LRE的位置尺度配对及位置准则廓线](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/尺度双峰_边界与参数补偿_n7.png)"
+            },
+            {
+              "id": "boundary-caption",
+              "kind": "text",
+              "markdown": "*图注：上排为全部有效结果，橙色表示零位置边界；下排各选一组边界样本和内部样本，圆点为原估计。灰色区域为诊断用的负γ延伸，红虚线为真实γ。LSE用等价的ρ²展示定位准则。*",
+              "html": "<p><em>图注：上排为全部有效结果，橙色表示零位置边界；下排各选一组边界样本和内部样本，圆点为原估计。灰色区域为诊断用的负γ延伸，红虚线为真实γ。LSE用等价的ρ²展示定位准则。</em></p>"
+            },
+            {
+              "id": "boundary-verification",
+              "kind": "text",
+              "markdown": "在核对的边界样本中，加密位置搜索仍返回γ=0；向负γ方向延伸，相关性还会提高。这些样本的边界选择与估计准则和非负约束有关。",
+              "html": "<p>在核对的边界样本中，加密位置搜索仍返回γ=0；向负γ方向延伸，相关性还会提高。这些样本的边界选择与估计准则和非负约束有关。</p>"
+            },
+            {
+              "id": "local-combinations",
+              "kind": "text",
+              "markdown": "在分布中部作近似展开，高β时的寿命水平主要受γ+η控制，离散程度与η/β有关。不同的三参数组合可以保持相近的局部分布，位置、尺度与形状因而存在相互补偿。",
+              "html": "<p>在分布中部作近似展开，高β时的寿命水平主要受γ+η控制，离散程度与η/β有关。不同的三参数组合可以保持相近的局部分布，位置、尺度与形状因而存在相互补偿。</p>"
+            },
+            {
+              "id": "compensated-life",
+              "kind": "text",
+              "markdown": "上排的估计点主要沿η+γ近似不变的方向分布。γ取零的一组对应较大的η，γ偏大的一组对应较小的η，两类解保持了相近的寿命水平。η+γ恰好是63.2%失效分位寿命；在图示β=5、n=50和7条件下，该组合量的误差小于两个参数各自的误差。这也解释了参数估计分化与部分寿命指标相对稳定可以同时出现。",
+              "html": "<p>上排的估计点主要沿η+γ近似不变的方向分布。γ取零的一组对应较大的η，γ偏大的一组对应较小的η，两类解保持了相近的寿命水平。η+γ恰好是63.2%失效分位寿命；在图示β=5、n=50和7条件下，该组合量的误差小于两个参数各自的误差。这也解释了参数估计分化与部分寿命指标相对稳定可以同时出现。</p>"
+            }
+          ]
+        },
+        {
+          "id": "mechanism-minimum",
+          "label": "B　K–R：最小值定位带来的系统偏移",
+          "blocks": [
+            {
+              "id": "background-sample-origin",
+              "kind": "image",
+              "src": "assets/R00_图2_样本与真实起点.png",
+              "alt": "Research00报告1图2：样本与真实起点",
+              "markdown": "![Research00报告1图2：样本与真实起点](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/R00_图2_样本与真实起点.png)"
+            },
+            {
+              "id": "kr-minimum-theory",
+              "kind": "text",
+              "markdown": "K–R直接以样本最小值估计位置参数。样本最小值通常高于真实起点；在本轮β范围内，n减小或β增大，二者的期望距离增大，位置正偏差随之加重。本轮40个条件中，K–R的位置估计均等于样本最小值，经验偏差与最小值分布给出的理论趋势一致。",
+              "html": "<p>K–R直接以样本最小值估计位置参数。样本最小值通常高于真实起点；在本轮β范围内，n减小或β增大，二者的期望距离增大，位置正偏差随之加重。本轮40个条件中，K–R的位置估计均等于样本最小值，经验偏差与最小值分布给出的理论趋势一致。</p>"
+            },
+            {
+              "id": "kr-theoretical-bias",
+              "kind": "text",
+              "html": "<p>位置偏差的理论期望为</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>E</mi><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>−</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mi>η</mi><mtext> </mtext><mi mathvariant=\"normal\">Γ</mi><mo stretchy=\"false\">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi><mo stretchy=\"false\">)</mo><mtext> </mtext><msup><mi>n</mi><mrow><mo>−</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span>"
+            },
+            {
+              "id": "kr-bias-interpretation",
+              "kind": "text",
+              "markdown": "这个定位规则直接将样本最小值与真实起点之间的距离带入位置估计。β较大时，最小值靠近真实起点的速度较慢，因此即使增加样本，位置正偏差仍可能较明显。位置偏高又会改变用于恢复形状和尺度的剩余距离。\n\nLSE、LRE的双峰与K–R的系统偏差具有不同的形成路径：前者涉及样本间的边界与内部选解，后者由最小值定位直接带入。它们共同表明，参数估计的偏移和分化需要结合具体的位置处理规则理解。",
+              "html": "<p>这个定位规则直接将样本最小值与真实起点之间的距离带入位置估计。β较大时，最小值靠近真实起点的速度较慢，因此即使增加样本，位置正偏差仍可能较明显。位置偏高又会改变用于恢复形状和尺度的剩余距离。</p>"
+            },
+            {
+              "id": "kr-image-source",
+              "kind": "text",
+              "html": "<p><small>图为Research00的起点信息示意，参数条件与本轮统计分开；公式适用于独立完整Weibull样本，本轮40条件已核对定位规则及经验趋势。</small></p>"
+            }
+          ]
+        },
+        {
+          "id": "mechanism-proposed",
+          "label": "C　待补研究：MDM与WMLE的方向性偏移",
+          "blocks": [
+            {
+              "id": "proposed-status",
+              "kind": "text",
+              "html": "<p><strong>研究候选，尚未形成机制结论。</strong></p><p>高β、小n下，MDM与WMLE都出现位置偏高、尺度及形状偏低的表现。两者构造不同，需要分别核对偏移在哪个环节形成，不能直接套用LSE/LRE或K–R的解释。</p>"
+            },
+            {
+              "id": "proposed-mechanisms-table",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>对象</th><th>待核环节</th><th>需要辨别的问题</th></tr></thead><tbody><tr><td>MDM-0.1</td><td>差异判据、梯度阈值与候选位置</td><td>偏移来自判据本身，还是与阈值、选解设置共同有关？</td></tr><tr><td>WMLE</td><td>加权方程的解支、边界及候选选择</td><td>偏移对应哪些方程解，数值求解规则是否改变了结果分布？</td></tr></tbody></table>"
+            },
+            {
+              "id": "proposed-check",
+              "kind": "text",
+              "html": "<p>可以复用已有原样本，先检查偏移在参数恢复过程中的形成位置，再针对有关环节作对照。所需诊断及是否进入本次报告，待选择后讨论。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-5",
+      "title": "5　评价目标、估计风险与方法选择",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "chapter-5-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "evaluation-opening",
+              "kind": "text",
+              "html": "<p>这些差异也改变了方法的评价。误差来自整体偏移、重复波动还是少数极端结果，对使用判断的意义不同；参数误差与寿命指标误差也需要分别看。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "evaluation-risk",
+      "title": "5.1　极端结果与求解失败",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "evaluation-risk-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "report-7dedb0c7b8f8",
+              "kind": "text",
+              "markdown": "RMSE同时受到多数估计结果与少数极端值的影响。MM在部分条件下的形状RMSE尖峰由极少数极端输出主导，不能将其理解为每份样本都产生相同程度的误差。\n\n异常还可能具有明确方向。β=5、n=7时，MDM和WMLE所记录的形状异常均为低估，与前述系统偏移相联系。",
+              "html": "<p>RMSE同时受到多数估计结果与少数极端值的影响。MM在部分条件下的形状RMSE尖峰由极少数极端输出主导，不能将其理解为每份样本都产生相同程度的误差。</p>\n<p>异常还可能具有明确方向。β=5、n=7时，MDM和WMLE所记录的形状异常均为低估，与前述系统偏移相联系。</p>"
+            },
+            {
+              "id": "risk-map",
+              "kind": "image",
+              "src": "assets/07_形状异常频率.png",
+              "alt": "七法形状异常频率",
+              "markdown": "![七法形状异常频率](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/07_形状异常频率.png)"
+            },
+            {
+              "id": "anomaly-insight",
+              "kind": "text",
+              "markdown": "不同方法的异常风险区域并不相同。MDM、LSE、LRE和WMLE在小n、高β条件下较为突出，MLE在低β、小n条件下也出现较高异常率。异常的发生频率与其对平方误差的影响，需要分别观察。",
+              "html": "<p>不同方法的异常风险区域并不相同。MDM、LSE、LRE和WMLE在小n、高β条件下较为突出，MLE在低β、小n条件下也出现较高异常率。异常的发生频率与其对平方误差的影响，需要分别观察。</p>"
+            },
+            {
+              "id": "return-map",
+              "kind": "image",
+              "src": "assets/06_有效率.png",
+              "alt": "七法有效率",
+              "markdown": "![七法有效率](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/06_有效率.png)"
+            },
+            {
+              "id": "return-insight",
+              "kind": "text",
+              "markdown": "本轮中，MDM、LSE、LRE和K–R的全部尝试均返回有效估计。MLE的有效率随n减小而下降，低β时下降更明显；其误差统计对应的成功集合也随之改变。成功结果的精度与全部尝试的返回情况，共同影响实际使用时的判断。",
+              "html": "<p>本轮中，MDM、LSE、LRE和K–R的全部尝试均返回有效估计。MLE的有效率随n减小而下降，低β时下降更明显；其误差统计对应的成功集合也随之改变。成功结果的精度与全部尝试的返回情况，共同影响实际使用时的判断。</p>"
+            },
+            {
+              "id": "report-844fa01fd3b3",
+              "kind": "text",
+              "html": "<p><em>图注：形状异常为β̂≤β/3或β̂≥3β，分母为有效结果数；有效率的分母为全部尝试。返回状态按本轮实现与求解约定统计。</em></p>",
+              "markdown": "*图注：形状异常为β̂≤β/3或β̂≥3β，分母为有效结果数；有效率的分母为全部尝试。返回状态按本轮实现与求解约定统计。*"
+            },
+            {
+              "id": "extreme-case-short",
+              "kind": "text",
+              "html": "<p><small>极端记录示例：β=4.5、n=15的MM结果中，单条有效记录贡献了几乎全部形状平方误差，仍保留在原统计中。</small></p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "evaluation-target",
+      "title": "5.2　评价目标与已知条件",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "evaluation-target-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "report-141e74cc51cf",
+              "kind": "text",
+              "html": "<p>方法的评价取决于使用目标。参数估计与不同寿命指标下的方法排序可能不同。</p>",
+              "markdown": "方法的评价取决于使用目标。参数估计与不同寿命指标下的方法排序可能不同。"
+            },
+            {
+              "id": "preview",
+              "kind": "image",
+              "src": "assets/v04_06_寿命目标及候选差距.png",
+              "alt": "候选区域：同时看第二名差多少",
+              "markdown": "![候选区域：同时看第二名差多少](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/v04_06_寿命目标及候选差距.png)"
+            },
+            {
+              "id": "life-insight",
+              "kind": "text",
+              "markdown": "B10的最低RMSE方法随n和β变化，B1则在多数条件下由MDM取得最低RMSE。评价指标改变后，方法的相对表现也发生变化。\n\n部分条件下，第一与第二方法的RMSE接近，单一名次不足以反映差异幅度。方法选择还应结合稳定性与异常风险。",
+              "html": "<p>B10的最低RMSE方法随n和β变化，B1则在多数条件下由MDM取得最低RMSE。评价指标改变后，方法的相对表现也发生变化。</p>\n<p>部分条件下，第一与第二方法的RMSE接近，单一名次不足以反映差异幅度。方法选择还应结合稳定性与异常风险。</p>"
+            },
+            {
+              "id": "report-0b09dfed9e36",
+              "kind": "text",
+              "html": "<p><em>图注：格内为共同有效样本上RMSE最低的方法，下行为第二名高出的比例。B10、B1分别为10%、1%失效分位寿命。</em></p>",
+              "markdown": "*图注：格内为共同有效样本上RMSE最低的方法，下行为第二名高出的比例。B10、B1分别为10%、1%失效分位寿命。*"
+            },
+            {
+              "id": "report-4c485a61fc3c",
+              "kind": "text",
+              "html": "<p>模拟条件表以真实β为依据。实际使用时，β范围未知，需要在给定参考范围内综合评价；β范围可预估时，可以缩小候选区域。选择还取决于目标参数或寿命指标，以及对波动和异常风险的要求。利用未知样本进行方法选择的规则及其收益仍需验证。</p>",
+              "markdown": "模拟条件表以真实β为依据。实际使用时，β范围未知，需要在给定参考范围内综合评价；β范围可预估时，可以缩小候选区域。选择还取决于目标参数或寿命指标，以及对波动和异常风险的要求。利用未知样本进行方法选择的规则及其收益仍需验证。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-6",
+      "title": "6　后续研究与平台",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "chapter-6-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "report-4e32b99204ac",
+              "kind": "text",
+              "html": "<p>相同n和总体参数下，具体样本仍存在差异。后续考虑利用人工智能方法，根据样本可观测特征与使用目标选择估计方法，并优化方法内部的过程量和求解过程。选择规则的收益需要在新样本上验证。</p>",
+              "markdown": "相同n和总体参数下，具体样本仍存在差异。后续考虑利用人工智能方法，根据样本可观测特征与使用目标选择估计方法，并优化方法内部的过程量和求解过程。选择规则的收益需要在新样本上验证。"
+            },
+            {
+              "id": "report-bee2a0cf0e07",
+              "kind": "text",
+              "html": "<p>我们也在<a href=\"https://weibull.work\">weibull.work</a>整理方法实现与相关分析，目前已有部分方法可以在线调用。网站仍在建设，未来希望把样本分析、方法选择与求解优化结合起来，也欢迎大家试用并提出建议。</p>",
+              "markdown": "我们也在[weibull.work](https://weibull.work)整理方法实现与相关分析，目前已有部分方法可以在线调用。网站仍在建设，未来希望把样本分析、方法选择与求解优化结合起来，也欢迎大家试用并提出建议。"
             }
           ]
         }
@@ -62,6 +665,6 @@
     }
   ],
   "last_applied_submission_id": "4e12394d-05c3-4558-98dc-caa0484efb53",
-  "review_complete": false,
-  "last_rendered_submission_id": "4e12394d-05c3-4558-98dc-caa0484efb53"
+  "last_rendered_submission_id": "4e12394d-05c3-4558-98dc-caa0484efb53",
+  "outline_confirmed": true
 }
