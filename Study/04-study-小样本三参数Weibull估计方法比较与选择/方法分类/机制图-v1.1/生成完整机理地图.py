@@ -2,12 +2,13 @@
 from pathlib import Path
 import math
 import xml.etree.ElementTree as ET
+from 数学排版 import normalize_markup
 
 ROOT = Path(__file__).resolve().parent
 SOURCE = '../04-方法分类与沿袭关系工作稿.md'
 doc = ET.Element('mxfile', host='app.diagrams.net', version='26.0.9')
 diagram = ET.SubElement(doc, 'diagram', id='complete-method-map-v10', name='方法机理与方法间关系')
-model = ET.SubElement(diagram, 'mxGraphModel', page='1', pageWidth='3000', pageHeight='2550', background='#ffffff')
+model = ET.SubElement(diagram, 'mxGraphModel', math='1', page='1', pageWidth='3000', pageHeight='2550', background='#ffffff')
 root = ET.SubElement(model, 'root')
 ET.SubElement(root, 'mxCell', id='0')
 ET.SubElement(root, 'mxCell', id='1', parent='0')
@@ -16,11 +17,11 @@ relations = []
 colors = dict(like='#AB4D3D', dist='#286D99', stat='#26745A', post='#785499', learn='#A5621F')
 
 def node(key, text, x, y, w, h, color='#334155', fill='#ffffff', size=23, bold=False, role='method', current=False):
-    style = f'html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor={color};fillColor={fill};fontColor=#243449;fontFamily=Microsoft YaHei;fontSize={size};spacing=12;align=center;verticalAlign=middle;strokeWidth=2;'
+    style = f'html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor={color};fillColor={fill};fontColor=#243449;fontFamily=Times New Roman;fontSize={size};spacing=12;align=center;verticalAlign=middle;strokeWidth=2;'
     if role == 'label': style += 'strokeColor=none;fillColor=none;'
     if bold: style += 'fontStyle=1;'
     if current: style += 'strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;'
-    cell = ET.SubElement(root, 'mxCell', id=key, value=text, vertex='1', parent='1', style=style, renderRole=role)
+    cell = ET.SubElement(root, 'mxCell', id=key, value=normalize_markup(text), vertex='1', parent='1', style=style, renderRole=role)
     ET.SubElement(cell, 'mxGeometry', x=str(x), y=str(y), width=str(w), height=str(h), **{'as': 'geometry'})
     boxes[key] = (x, y, w, h)
     return cell
@@ -32,11 +33,11 @@ def port(key, side):
 def edge(key, src, dst, label, kind='inherit', color='#475569', start='right', end='left', via=(), at=None, evidence=''):
     pos={'left':(0,.5),'right':(1,.5),'top':(.5,0),'bottom':(.5,1)}
     sx,sy=pos[start];tx,ty=pos[end]
-    style=f'html=1;rounded=0;strokeWidth=3;strokeColor={color};fontColor={color};fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;exitX={sx};exitY={sy};entryX={tx};entryY={ty};exitPerimeter=0;entryPerimeter=0;'
+    style=f'html=1;rounded=0;strokeWidth=3;strokeColor={color};fontColor={color};fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;exitX={sx};exitY={sy};entryX={tx};entryY={ty};exitPerimeter=0;entryPerimeter=0;'
     style += 'endArrow=none;' if kind=='math' else 'endArrow=block;endFill=1;'
     if kind=='math':style+='dashed=1;dashPattern=7 5;'
     if kind=='borrow':style+='dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;'
-    cell=ET.SubElement(root,'mxCell',id=key,value=label,edge='1',parent='1',source=src,target=dst,style=style,relationKind=kind,evidence=f'{SOURCE}:{evidence}')
+    cell=ET.SubElement(root,'mxCell',id=key,value=normalize_markup(label),edge='1',parent='1',source=src,target=dst,style=style,relationKind=kind,evidence=f'{SOURCE}:{evidence}')
     geo=ET.SubElement(cell,'mxGeometry',relative='1',**{'as':'geometry'})
     path=[port(src,start),*via,port(dst,end)]
     if via:
@@ -61,12 +62,12 @@ def method(key,text,x,y,w=270,h=90,route='like',current=False):
     return node(key,text,x,y,w,h,color=colors[route],size=23,current=current)
 
 node('title','三参数 Weibull 方法地图｜估计依据、方法原型与具体改进',45,20,2910,64,size=39,bold=True,role='label')
-node('subtitle','同一寿命样本 D={x₁,…,xₙ}，经不同的统计对象与参数确定原则，得到 θ̂=(β̂,η̂,γ̂)。',45,91,2910,48,size=27,role='label')
+node('subtitle','同一寿命样本 \\(D=\\{x_1,\\ldots,x_n\\}\\)，经不同的统计对象与参数确定原则，得到 \\(\\hat{\\theta}=(\\hat{\\beta},\\hat{\\eta},\\hat{\\gamma})\\)。',45,91,2910,48,size=27,role='label')
 node('legend','实线箭头：扩展／修正　　虚线：数学联系　　点划线箭头：局部借用／组合　　金色节点：本次比较的七种实现',45,147,2910,42,size=23,role='label')
 
-panels=[('like',40,940,'① 似然估计','观测密度 → 联合似然 L(θ)=∏fθ(xᵢ)<br>最大化 L，或求解、修正似然得分方程','#FFF8F5'),
+panels=[('like',40,940,'① 似然估计','观测密度 → 联合似然 \\(L(\\theta)=\\prod_{i=1}^{n}f_{\\theta}(x_i)\\)<br>最大化 \\(L\\)，或求解、修正似然得分方程','#FFF8F5'),
         ('dist',1020,940,'② 分布匹配','经验分布／概率图／CDF 概率间距<br>选择残差、距离或尺度差异较小／间距评分较大的 θ','#F2F8FC'),
-        ('stat',2000,960,'③ 统计关系反演','样本统计量 T(D) ↔ 理论关系 T(θ)<br>匹配、消元、反演；或按条件协方差组合统计量<br>不变统计量还可接统计量似然','#F2F9F5')]
+        ('stat',2000,960,'③ 统计关系反演','样本统计量 \\(T(D)\\) ↔ 理论关系 \\(T(\\theta)\\)<br>匹配、消元、反演；或按条件协方差组合统计量<br>不变统计量还可接统计量似然','#F2F9F5')]
 for key,x,w,title,principle,fill in panels:
     node('bg-'+key,'',x,220,w,1535,color='#DFE6EB',fill=fill,role='background')
     node('heading-'+key,title,x+25,236,w-50,58,color=colors[key],size=32,bold=True,role='label')
@@ -105,7 +106,7 @@ method('gm','灰色位置估计<br>由 GM 得到 γ̂',1060,1410,250,route='dist
 method('gm-svr','GM–SVR（2021）<br>当前样本的 ε-SVR 拟合',1590,1410,310,route='dist')
 edge('e-white-soman','white','soman','White 构造接入未知位置','inherit',colors['dist'],at=(1450,535),evidence='106-107,114')
 edge('e-lipson-park','lipson','park','视觉比较 → 相关系数最大化','inherit',colors['dist'],at=(1450,759),evidence='116')
-edge('e-soman-park','soman','park','同分数、同 γ 时的方向关系<br>β̂Park方向 = r² β̂White方向<br>两文分数各异；分数与方向共同定估计','math',colors['dist'],'bottom','top',at=(1730,669),evidence='127-138')
+edge('e-soman-park','soman','park','同分数、同 \\(\\gamma\\) 时的方向关系<br>\\(\\hat{\\beta}_{\\mathrm{Park}}=r^2\\hat{\\beta}_{\\mathrm{White}}\\)<br>两文分数各异；分数与方向共同定估计','math',colors['dist'],'bottom','top',at=(1730,669),evidence='127-138')
 edge('e-mps-qmp','mps','qmp','次序统计量作分位数<br>且每组计数 1：MPS 特例','math',colors['dist'],at=(1450,985),evidence='78-80')
 edge('e-gm-svr','gm','gm-svr','GM 定位置，SVR 恢复 β、η','borrow',colors['dist'],at=(1450,1433),evidence='208')
 node('dist-note','残差、CDF 间距和尺度差异，各自定义不同的匹配判据。',1055,1600,875,94,size=24,role='label')
@@ -149,7 +150,7 @@ edge('e-mps-mixed','mps','mixed','MPS 形状','borrow','#B47744','bottom','top',
 # 后验与学习各有独立的决定原则，计算工具留在方法节点内。
 node('bg-post','',40,2140,1420,355,color='#E2DDEA',fill='#F7F3FA',role='background')
 node('post-heading','④ 后验推断',65,2150,350,55,size=31,bold=True,role='label')
-node('post-principle','L(θ|D) × π(θ) → p(θ|D)<br>按后验均值、中位数或 MAP 确定估计',75,2225,630,126,color=colors['post'],size=25,role='principle')
+node('post-principle','\\(L(\\theta\\mid D)\\,\\pi(\\theta)\\longrightarrow p(\\theta\\mid D)\\)<br>按后验均值、中位数或 MAP 确定估计',75,2225,630,126,color=colors['post'],size=25,role='principle')
 method('green','Green Bayes（1994）<br>先验＋Gibbs',785,2200,600,85,route='post')
 method('teimouri','Teimouri 后验方案<br>承接模型，位置更新改用 MH',785,2390,600,85,route='post')
 edge('e-green-teimouri','green','teimouri','模型承接＋位置抽样修改','inherit',colors['post'],'bottom','top',at=(1085,2340),evidence='222-224')
@@ -157,7 +158,7 @@ edge('e-mle-bayes','mle','green','共享样本似然；引入先验与后验决�
 node('post-note','样本贡献由似然提供，先验与后验决策共同确定输出。',75,2380,630,90,size=23,role='label')
 node('bg-learn','',1510,2140,1450,355,color='#E8DFD3',fill='#FCF7F0',role='background')
 node('learn-heading','⑤ 学习映射',1535,2150,350,55,size=31,bold=True,role='label')
-node('learn-principle','训练集 {(T(Dⱼ), θⱼ)} → 学习 hφ<br>新样本输入 T(D)，直接输出 θ̂=hφ(T(D))',1545,2225,650,126,color=colors['learn'],size=25,role='principle')
+node('learn-principle','训练集 \\(\\{(T(D_j),\\theta_j)\\}\\) → 学习 \\(h_{\\varphi}\\)<br>新样本输入 \\(T(D)\\)，直接输出 \\(\\hat{\\theta}=h_{\\varphi}(T(D))\\)',1545,2225,650,126,color=colors['learn'],size=25,role='principle')
 method('ann','ANN／BPNN<br>跨样本学习特征 → 三参数',2280,2225,600,126,route='learn')
 node('learn-note','训练样本定义映射的学习范围，特征和损失决定估计函数。',1545,2380,650,90,size=23,role='label')
 node('solver-note','PSO／SA／DE：搜索既定统计目标<br>GM–SVR：拟合当前样本的概率图关系',2280,2380,600,90,size=23,role='label')

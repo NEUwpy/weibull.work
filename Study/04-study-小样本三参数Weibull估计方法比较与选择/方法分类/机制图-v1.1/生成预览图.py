@@ -3,6 +3,12 @@ import xml.etree.ElementTree as ET
 import html
 import re
 import unicodedata
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+from 数学排版 import normalize_markup, unmarked_expressions
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / '预览'
@@ -61,35 +67,24 @@ def render(src, dst):
             parts.append(f'<marker id="arrow-{arrow}-{key}" markerWidth="15" markerHeight="14" refX="14" refY="7" markerUnits="userSpaceOnUse" orient="auto"><path d="{shape}" fill="{fill}" stroke="{color}" stroke-width="1.3"/></marker>')
     parts.append('</defs>')
 
+    def rich_label(key,value,x,y,w,h,size,color,bold=False,align='center',pad=8,role='method',edge=False):
+        value=normalize_markup(value)
+        py=0 if role=='label' else pad
+        edge_class=' edge-label' if edge else ''
+        attrs=f' data-edge="true" data-cx="{x+w/2}" data-cy="{y+h/2}"' if edge else ''
+        parts.append(f'<foreignObject x="{x}" y="{y}" width="{w}" height="{h}"{attrs}><div xmlns="http://www.w3.org/1999/xhtml" class="label-box{edge_class}" data-pad-x="{pad}" data-pad-y="{py}" style="font-size:{size}px;color:{color};font-weight:{700 if bold else 400};padding:{py}px {pad}px;text-align:{align}"><div class="label-content" data-cell-id="{escape(key)}" data-font-size="{size}" data-source="{escape(value)}"></div></div></foreignObject>')
+
     def vertex(item):
         cell, x, y, w, h, st = item
         fill = st.get('fillColor', '#ffffff'); stroke = st.get('strokeColor', '#83968a'); stroke_width = st.get('strokeWidth', '1.2')
         radius = '10' if st.get('rounded') == '1' else '0'; dash = ' stroke-dasharray="7 5"' if st.get('dashed') == '1' else ''
         parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="{radius}" fill="{escape(fill)}" stroke="{escape(stroke)}" stroke-width="{stroke_width}"{dash}/>')
-        text = clean(cell.get('value'))
+        text = cell.get('value','')
         if not text:
             return
         size = float(st.get('fontSize', '18')); color = st.get('fontColor', '#263238')
-        bold = ' font-weight="700"' if st.get('fontStyle') == '1' else ''
         spacing = float(st.get('spacing', '8'))
-        lines = [piece for line in text.split('\n') for piece in wrap(line, w - spacing * 2, size)]
-        line_height = size * 1.25
-        valign = st.get('verticalAlign', 'middle')
-        if valign == 'top':
-            start = y + spacing + size
-        elif valign == 'bottom':
-            start = y + h - spacing - (len(lines) - 1) * line_height
-        else:
-            start = y + (h - (len(lines) - 1) * line_height) / 2 + size * .35
-        align = st.get('align', 'center')
-        if align == 'left':
-            tx, anchor = x + spacing, 'start'
-        elif align == 'right':
-            tx, anchor = x + w - spacing, 'end'
-        else:
-            tx, anchor = x + w / 2, 'middle'
-        for index, line in enumerate(lines):
-            parts.append(f'<text x="{tx:.1f}" y="{start + index * line_height:.1f}" font-family="Microsoft YaHei,Segoe UI,sans-serif" font-size="{size:.1f}" fill="{escape(color)}" text-anchor="{anchor}"{bold}>{escape(line)}</text>')
+        rich_label(cell.get('id'),text,x,y,w,h,size,color,st.get('fontStyle')=='1',st.get('align','center'),spacing,cell.get('renderRole','method'))
 
     def background(item):
         cell, _, _, _, _, st = item
@@ -117,18 +112,58 @@ def render(src, dst):
         dash=f' stroke-dasharray="{st.get("dashPattern","7 5")}"' if st.get('dashed')=='1' else ''
         coords=' '.join(f'{x:.1f},{y:.1f}' for x,y in path)
         parts.append(f'<polyline points="{coords}" fill="none" stroke="{escape(color)}" stroke-width="{st.get("strokeWidth","1.5")}" stroke-linejoin="round"{dash}{marker}/>')
-        label=clean(cell.get('value'))
+        label=cell.get('value','')
         if label:labels.append((cell,st,label,(start[0]+end[0])/2,(start[1]+end[1])/2))
     for item in vertices:
         if not background(item):vertex(item)
     for cell,st,label,mx,my in labels:
         mx=float(cell.get('labelX',mx));my=float(cell.get('labelY',my));size=float(st.get('fontSize','17'))
-        lines=label.split('\n');start=my-(len(lines)-1)*size*.65+size*.3
-        for i,line in enumerate(lines):
-            parts.append(f'<text x="{mx:.1f}" y="{start+i*size*1.3:.1f}" font-family="Microsoft YaHei,Segoe UI,sans-serif" font-size="{size}" fill="{st.get("strokeColor","#475569")}" text-anchor="middle" paint-order="stroke" stroke="#fff" stroke-width="7" stroke-linejoin="round">{escape(line)}</text>')
+        rich_label(cell.get('id'),label,mx-700,my-100,1400,200,size,st.get('strokeColor','#475569'),pad=0,role='label',edge=True)
     parts.append('</svg>')
     dst.write_text(''.join(parts), encoding='utf-8')
 
-for drawio in sorted(ROOT.glob('*.drawio')):
-    render(drawio, OUT / (drawio.stem + '.svg'))
-print(f'rendered {len(list(ROOT.glob("*.drawio")))} drawio files')
+def main():
+    import fitz
+    sources=sorted(ROOT.glob('*.drawio'))
+    unmarked=[]
+    for source in sources:
+        for cell in ET.parse(source).findall('.//mxCell'):
+            value=cell.get('value','')
+            if value and unmarked_expressions(value):unmarked.append((source.name,cell.get('id'),value))
+    if unmarked:
+        raise ValueError('请将这些数学表达写成显式LaTeX：\n'+'\n'.join(f'{name}/{key}: {value}' for name,key,value in unmarked[:30]))
+    with tempfile.TemporaryDirectory(prefix='study04-typography-') as scratch:
+        temp=Path(scratch).resolve()
+        assert temp.is_relative_to(Path(tempfile.gettempdir()).resolve())
+        jobs=[]
+        for source in sources:
+            layout=temp/(source.stem+'.svg');render(source,layout)
+            model=ET.parse(source).find('.//mxGraphModel')
+            jobs.append(dict(name=source.name,input=str(layout),pdf=str(layout.with_suffix('.pdf')),width=int(model.get('pageWidth')),height=int(model.get('pageHeight'))))
+        jobfile=temp/'jobs.json';jobfile.write_text(json.dumps(jobs,ensure_ascii=False),encoding='utf-8')
+        resultfile=temp/'report.json'
+        env=os.environ.copy()
+        bundled=Path.home()/'.cache/codex-runtimes/codex-primary-runtime/dependencies/node'
+        env['NODE_PATH']=str(bundled/'node_modules')+os.pathsep+env.get('NODE_PATH','')
+        node=shutil.which('node') or str(bundled/'bin/node.exe')
+        subprocess.run([node,str(ROOT/'渲染数学标签.cjs'),str(jobfile),str(resultfile)],env=env,check=True)
+        report=json.loads(resultfile.read_text(encoding='utf-8'))
+        for job,item in zip(jobs,report['figures']):
+            pdf=fitz.open(job['pdf']);assert len(pdf)==1,job['name']
+            page=pdf[0]
+            item['fonts']=sorted({f[3].split('+')[-1] for f in page.get_fonts()})
+            item['small_labels']=[v for v in item.pop('labels') if v['size']<18 or v['size']<v['original']*.8]
+            svg=ET.fromstring(page.get_svg_image(text_as_path=True))
+            svg.set('width',str(job['width']));svg.set('height',str(job['height']))
+            svg.set('role','img');svg.set('aria-label',Path(job['name']).stem)
+            meta=ET.Element('{http://www.w3.org/2000/svg}metadata')
+            meta.text=json.dumps(dict(source=job['name'],math='LaTeX / KaTeX MathML',latin_font='Times New Roman',pdf_fonts=item['fonts']),ensure_ascii=False)
+            svg.insert(0,meta)
+            ET.register_namespace('','http://www.w3.org/2000/svg')
+            ET.ElementTree(svg).write(OUT/(Path(job['name']).stem+'.svg'),encoding='utf-8',xml_declaration=True)
+            pdf.close()
+        (OUT/'排版核验.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+        print(f'rendered {len(sources)} vector SVGs with standard math and Times New Roman')
+
+
+if __name__=='__main__':main()

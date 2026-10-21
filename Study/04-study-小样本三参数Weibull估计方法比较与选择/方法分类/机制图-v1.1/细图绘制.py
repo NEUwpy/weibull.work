@@ -2,6 +2,7 @@
 from pathlib import Path
 import math
 import xml.etree.ElementTree as ET
+from 数学排版 import normalize_markup
 
 
 class Diagram:
@@ -9,7 +10,7 @@ class Diagram:
         self.width, self.height, self.boxes = width, height, {}
         self.doc = ET.Element('mxfile', host='app.diagrams.net', version='26.0.9')
         diagram = ET.SubElement(self.doc, 'diagram', id=ident, name=title)
-        self.model = ET.SubElement(diagram, 'mxGraphModel', page='1', pageWidth=str(width), pageHeight=str(height), background='#ffffff')
+        self.model = ET.SubElement(diagram, 'mxGraphModel', page='1', pageWidth=str(width), pageHeight=str(height), background='#ffffff', math='1')
         self.root = ET.SubElement(self.model, 'root')
         ET.SubElement(self.root, 'mxCell', id='0')
         ET.SubElement(self.root, 'mxCell', id='1', parent='0')
@@ -17,10 +18,10 @@ class Diagram:
     def box(self, key, text, x, y, w, h, *, fill='#FFFFFF', color='#64748B', size=23, bold=False, role='method', align='center', extra=''):
         if key in self.boxes:
             raise ValueError(f'duplicate id: {key}')
-        style = f'html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor={color};fillColor={fill};fontColor=#243449;fontFamily=Microsoft YaHei;fontSize={size};spacing=12;align={align};verticalAlign=middle;strokeWidth=1.8;'
+        style = f'html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor={color};fillColor={fill};fontColor=#243449;fontFamily=Times New Roman;fontSize={size};spacing=12;align={align};verticalAlign=middle;strokeWidth=1.8;'
         if role == 'label':style += 'strokeColor=none;fillColor=none;'
         if bold:style += 'fontStyle=1;'
-        cell=ET.SubElement(self.root,'mxCell',id=key,value=text,vertex='1',parent='1',style=style+extra,renderRole=role)
+        cell=ET.SubElement(self.root,'mxCell',id=key,value=normalize_markup(text),vertex='1',parent='1',style=style+extra,renderRole=role)
         ET.SubElement(cell,'mxGeometry',x=str(x),y=str(y),width=str(w),height=str(h),**{'as':'geometry'})
         self.boxes[key]=(x,y,w,h)
         return key
@@ -38,9 +39,9 @@ class Diagram:
     def edge(self,key,src,dst,label='',*,color='#475569',kind='flow',start='right',end='left',via=(),at=None,width=2.5,arrow='block',evidence=''):
         positions={'left':(0,.5),'right':(1,.5),'top':(.5,0),'bottom':(.5,1)}
         sx,sy=positions[start];tx,ty=positions[end]
-        style=f'html=1;rounded=0;strokeWidth={width};strokeColor={color};fontColor={color};fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow={arrow};endFill=1;exitX={sx};exitY={sy};entryX={tx};entryY={ty};exitPerimeter=0;entryPerimeter=0;'
+        style=f'html=1;rounded=0;strokeWidth={width};strokeColor={color};fontColor={color};fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow={arrow};endFill=1;exitX={sx};exitY={sy};entryX={tx};entryY={ty};exitPerimeter=0;entryPerimeter=0;'
         if kind in {'math','borrow','feedback'}:style+='dashed=1;dashPattern='+('10 4 2 4;' if kind=='borrow' else '7 5;')
-        cell=ET.SubElement(self.root,'mxCell',id=key,value=label,edge='1',parent='1',source=src,target=dst,style=style,relationKind=kind,evidence=evidence)
+        cell=ET.SubElement(self.root,'mxCell',id=key,value=normalize_markup(label),edge='1',parent='1',source=src,target=dst,style=style,relationKind=kind,evidence=evidence)
         geo=ET.SubElement(cell,'mxGeometry',relative='1',**{'as':'geometry'})
         if via:
             points=ET.SubElement(geo,'Array',**{'as':'points'})

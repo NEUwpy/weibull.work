@@ -25,7 +25,7 @@ def step(key, number, title, x, y, fill):
 
 
 d.text('title', '似然估计｜固定观测，比较不同参数下整组样本的密度贡献', 45, 20, 1910, 65, size=36, bold=True)
-d.text('subtitle', '独立完整样本；θ=(β,η,γ)，β>0、η>0、γ<x₍₁₎。图中的曲线和参数截面均为原理示意。', 50, 100, 1900, 48, size=25)
+d.text('subtitle', r'独立完整样本；\(\theta=(\beta,\eta,\gamma)\)，\(\beta>0,\eta>0,\gamma<x_{(1)}\)。图中的曲线和参数截面均为原理示意。', 50, 100, 1900, 48, size=25)
 
 step('step1', '①', '固定样本，提出候选参数', 40, 180, '#F3F7FB')
 step('step2', '②', '在每个观测处读出候选密度', 1060, 180, '#FFF7F3')
@@ -36,22 +36,22 @@ step('step4', '④', '比较评分，确定参数候选', 1060, 825, '#F2F8F4')
 d.text('observed-label', '已经观测到的寿命', 80, 280, 810, 45, size=27, bold=True)
 d.line('data-axis', [(100, 435), (865, 435)], color=GRAY, width=2, arrow='block')
 obs = [2.1, 3.3, 5.6, 8.2]
-for i, (x, lab) in enumerate(zip(obs, ['x₍₁₎', 'x₍₂₎', 'x₍ᵢ₎', 'x₍ₙ₎'])):
+for i, (x, lab) in enumerate(zip(obs, [r'\(x_{(1)}\)', r'\(x_{(2)}\)', r'\(x_{(i)}\)', r'\(x_{(n)}\)'])):
     px = 125+x*76
     d.line(f'data-tick-{i}', [(px,422),(px,448)], color=BLUE, width=2)
     dot(f'data-point-{i}', px, 400, color=BLUE, radius=8)
     d.text(f'data-label-{i}', lab, px-52, 455, 104, 42, size=25, align='center')
-d.text('data-axis-label', '寿命 x', 777, 491, 130, 38, size=24)
-d.box('candidate-a', '候选 A<br>θA=(βA,ηA,γA)', 95, 565, 330, 95, color=RED, fill='#FFF1EB', size=26)
-d.box('candidate-b', '候选 B<br>θB=(βB,ηB,γB)', 550, 565, 330, 95, color=BLUE, fill='#EFF7FB', size=26)
+d.text('data-axis-label', r'寿命 \(x\)', 777, 491, 130, 38, size=24)
+d.box('candidate-a', r'候选 \(A\)<br>\(\theta_A=(\beta_A,\eta_A,\gamma_A)\)', 95, 565, 330, 95, color=RED, fill='#FFF1EB', size=26)
+d.box('candidate-b', r'候选 \(B\)<br>\(\theta_B=(\beta_B,\eta_B,\gamma_B)\)', 550, 565, 330, 95, color=BLUE, fill='#EFF7FB', size=26)
 d.text('data-fixed', '观测位置相同；候选模型可以不同', 95, 340, 780, 45, size=26)
 
 # ② 候选参数不同，对相同观测得到的贡献不同。虚线读取 A 曲线高度。
 px0, py0, xs, ys = 1135, 525, 61, 1200
 d.line('density-x', [(1117,py0),(1904,py0)], color=GRAY, arrow='block')
 d.line('density-y', [(px0,535),(px0,292)], color=GRAY, arrow='block')
-d.text('density-y-label', 'fθ(x)', 1145, 282, 135, 38, size=24)
-d.text('density-x-label', '寿命 x', 1795, 574, 130, 38, size=24)
+d.text('density-y-label', r'\(f_\theta(x)\)', 1145, 282, 135, 38, size=24)
+d.text('density-x-label', r'寿命 \(x\)', 1795, 574, 130, 38, size=24)
 
 def density(x, beta, eta, gamma):
     y=x-gamma
@@ -61,47 +61,47 @@ pars = [('a',2.25,4.5,.8,RED),('b',3.3,5.8,1.0,BLUE)]
 for name,beta,eta,gamma,color in pars:
     pts=[(px0+x*xs, py0-density(x,beta,eta,gamma)*ys) for x in [j*.08 for j in range(154)]]
     d.line('density-curve-'+name, pts, color=color, width=3.5)
-for i, (x,lab) in enumerate(zip(obs,['x₍₁₎','x₍₂₎','x₍ᵢ₎','x₍ₙ₎'])):
+for i, (x,lab) in enumerate(zip(obs,[r'\(x_{(1)}\)',r'\(x_{(2)}\)',r'\(x_{(i)}\)',r'\(x_{(n)}\)'])):
     px,py=px0+x*xs,py0-density(x,*pars[0][1:4])*ys
     d.line(f'height-{i}', [(px,py0),(px,py)], color=RED, width=2, dashed=True)
     dot(f'height-point-{i}',px,py,color=RED)
     d.text(f'height-label-{i}',lab,px-47,533,94,38,size=23,align='center')
 d.line('legend-a', [(1170,630),(1230,630)], color=RED, width=3.5)
-d.text('legend-a-text','候选 A',1240,610,230,42,size=25,color=RED)
+d.text('legend-a-text',r'候选 \(A\)',1240,610,230,42,size=25,color=RED)
 d.line('legend-b', [(1480,630),(1540,630)], color=BLUE, width=3.5)
-d.text('legend-b-text','候选 B',1550,610,230,42,size=25,color=BLUE)
-d.text('read-height', '同一观测 xᵢ，在不同 θ 下得到不同的 fθ(xᵢ)', 1100, 659, 820, 35, size=24, align='center')
+d.text('legend-b-text',r'候选 \(B\)',1550,610,230,42,size=25,color=BLUE)
+d.text('read-height', r'同一观测 \(x_i\)，在不同 \(\theta\) 下得到不同的 \(f_\theta(x_i)\)', 1100, 659, 820, 38, size=24, align='center')
 
 # ③ 单点贡献像拼块一样汇合；原理是联合密度，取对数只是等价改写。
-d.text('combine-heading', '对同一个候选 θ，把每个观测贡献都放进来', 80, 920, 820, 45, size=26)
-tiles=[('f1','fθ(x₍₁₎)',90),('f2','fθ(x₍₂₎)',290),('fi','fθ(x₍ᵢ₎)',490),('fn','fθ(x₍ₙ₎)',690)]
+d.text('combine-heading', r'对同一个候选 \(\theta\)，把每个观测贡献都放进来', 80, 920, 820, 45, size=26)
+tiles=[('f1',r'\(f_\theta(x_{(1)})\)',90),('f2',r'\(f_\theta(x_{(2)})\)',290),('fi',r'\(f_\theta(x_{(i)})\)',490),('fn',r'\(f_\theta(x_{(n)})\)',690)]
 for key,label,x in tiles:
     d.box(key,label,x,1005,160,100,color=RED,fill='#FFF0E8',size=28)
 for i,x in enumerate([251,451,651]):
-    d.text('multiply-'+str(i),'×',x,1032,36,45,size=31,bold=True,align='center')
+    d.text('multiply-'+str(i),r'\(\times\)',x-10,1032,56,45,size=31,bold=True,align='center')
 d.line('contribution-bracket',[(110,1133),(110,1150),(830,1150),(830,1133)],color=RED,width=2.5)
-d.box('joint-score','联合似然  L(θ)=∏ᵢ fθ(xᵢ)',185,1195,610,70,color=RED,fill='#FFFFFF',size=29,bold=True)
-d.line('combine-to-score',[(490,1150),(490,1195)],color=RED,width=2.5,arrow='block')
-d.text('log-score','也可相加：ℓ(θ)=ln L(θ)=Σᵢ ln fθ(xᵢ)',90,1280,790,50,size=26,align='center')
+d.box('joint-score',r'联合似然 \(L(\theta)=\prod_{i=1}^{n}f_\theta(x_i)\)',185,1190,610,90,color=RED,fill='#FFFFFF',size=29,bold=True)
+d.line('combine-to-score',[(490,1150),(490,1190)],color=RED,width=2.5,arrow='block')
+d.text('log-score',r'也可相加：\(\ell(\theta)=\ln L(\theta)=\sum_{i=1}^{n}\ln f_\theta(x_i)\)',90,1285,790,55,size=26,align='center')
 
 # ④ 多维参数搜索以一条示意截面呈现；峰是内点候选，不暗示普遍全局存在。
 sx0, sy0, sw, sh = 1140,1190,565,205
 d.line('score-x',[(sx0-18,sy0),(sx0+sw+28,sy0)],color=GRAY,arrow='block')
 d.line('score-y',[(sx0,sy0+8),(sx0,sy0-sh-18)],color=GRAY,arrow='block')
-d.text('score-y-label','ℓ(θ)',1148,956,100,40,size=25)
+d.text('score-y-label',r'\(\ell(\theta)\)',1148,956,100,40,size=25)
 def score_height(t):
     return .12 + .85*math.exp(-((t-.62)/.34)**2)
 d.line('likelihood-section',[(sx0+t*sw,sy0-score_height(t)*sh) for t in [i/100 for i in range(101)]],color=GREEN,width=4)
-for key,t,label in [('theta-a',.14,'θA'),('theta-b',.38,'θB'),('theta-peak',.62,'θ̂')]:
+for key,t,label in [('theta-a',.14,r'\(\theta_A\)'),('theta-b',.38,r'\(\theta_B\)'),('theta-peak',.62,r'\(\widehat\theta\)')]:
     xx,yy=sx0+t*sw,sy0-score_height(t)*sh
     d.line(key+'-guide',[(xx,sy0),(xx,yy)],color=GREEN,dashed=True)
     dot(key+'-point',xx,yy,color=GREEN,radius=6)
     d.text(key+'-label',label,xx-42,1198,84,40,size=25,align='center')
 d.text('local-peak','局部峰候选',1430,925,235,43,size=25,color=GREEN,align='center')
 d.text('score-axis-label','候选参数（示意截面）',1260,1235,390,38,size=24,align='center')
-d.box('estimate','θ̂<br>(β̂,η̂,γ̂)',1730,1005,200,140,color=GREEN,fill='#E6F3EB',size=27,bold=True)
+d.box('estimate',r'\(\widehat\theta\)<br>\((\widehat\beta,\widehat\eta,\widehat\gamma)\)',1730,1005,200,140,color=GREEN,fill='#E6F3EB',size=27,bold=True)
 d.line('peak-to-estimate',[(1490,995),(1710,995),(1710,1075),(1730,1075)],color=GREEN,width=2.5,arrow='block')
-d.text('implementation','数值实现：搜索评分，或解内点得分方程 U(θ)=0<br>再比较目标值与边界响应。',1100,1280,820,64,size=23)
+d.text('implementation',r'数值实现：搜索评分，或解内点得分方程 \(U(\theta)=0\)<br>再比较目标值与边界响应。',1100,1280,820,64,size=23)
 
 # 稳定步骤箭头把图像串成过程；数值循环与基本原理分开标示。
 d.line('step1-to-step2',[(952,440),(1048,440)],color=RED,width=4,arrow='block')

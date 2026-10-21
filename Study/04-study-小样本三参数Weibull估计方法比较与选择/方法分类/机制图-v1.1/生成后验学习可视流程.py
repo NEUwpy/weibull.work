@@ -55,9 +55,9 @@ def posterior():
         height=post[i]/maximum*220
         d.box('area-'+str(i),'',785+i*430/100,570-height,8,height,fill='#E9DDF3',color='none',role='background')
     curve(d,'posterior',post,785,340,430,230,PURPLE)
-    d.text('multiply','后验 ∝ 似然 × 先验',755,620,490,50,size=29,bold=True,align='center')
+    d.text('multiply','\\(p(\\theta\\mid D)\\propto L(\\theta\\mid D)\\,\\pi(\\theta)\\)',755,620,490,50,size=29,bold=True,align='center')
     d.text('uncertainty','曲线保留参数的不确定性',755,685,490,42,size=25,align='center')
-    chart(d,'risk',1460,340,430,230,'候选估计 a','后验平均损失')
+    chart(d,'risk',1460,340,430,230,'候选估计 \\(a\\)','后验平均损失')
     risks=[(v-mean)**2+variance for v in xx]
     curve(d,'average-risk',risks,1460,340,430,230,GREEN)
     px=1460+(mean-.03)/.97*430
@@ -84,7 +84,7 @@ def learning():
     for i,v in enumerate(vals):
         d.box('feature-'+str(i),'',125+i*39,570-v*205,21,v*205,color=BLUE,fill='#A9C9DD')
     d.text('feature-mapping','排序值、分位数或统计量',75,620,500,50,size=27,bold=True,align='center')
-    d.text('feature-consistency','各组样本沿用同一种表示 T(D)',75,685,500,42,size=24,align='center')
+    d.text('feature-consistency','各组样本沿用同一种表示 \\(T(D)\\)',75,685,500,42,size=24,align='center')
     layers=[[(795,340),(795,415),(795,490)],[(970,315),(970,380),(970,445),(970,510)],[(1145,340),(1145,415),(1145,490)]]
     for layer in range(2):
         for i,a in enumerate(layers[layer]):
@@ -106,12 +106,12 @@ def learning():
     values=[.78*math.exp(-i/25)+.1+.025*math.sin(i*.32) for i in range(101)]
     curve(d,'training-loss',values,1460,340,430,230,ORANGE)
     d.text('objective','使多组参数预测的规定损失更小',1415,620,520,50,size=26,bold=True,align='center')
-    d.text('loss-formula','φ* = argminφ 平均ⱼ损失(预测ⱼ,真值ⱼ)',1415,685,520,42,size=24,align='center')
+    d.text('loss-formula','\\(\\varphi^{*}=\\operatorname*{arg\\,min}_{\\varphi}\\frac{1}{m}\\sum_{j=1}^{m}\\ell(\\hat{\\theta}_j,\\theta_j)\\)',1415,685,520,42,size=24,align='center')
     d.edge('update-cycle','step-3','step-2','更新共享映射，再预测与比较',color=ORANGE,kind='feedback',start='bottom',end='bottom',via=[(1675,815),(1000,815)],at=(1350,815))
     d.text('schematic','网络、特征柱与训练曲线为原理示意；灰／橙柱用于说明逐参数误差的形成。',55,865,1890,40,size=23)
     for i,(x,text) in enumerate([(45,'① 特征与训练样本范围'),(720,'② 映射结构与过程量'),(1395,'③ 损失、训练与校准')]):
         d.box('change-'+str(i),text,x,935,560,70,color=ORANGE,fill='#FCF3E6',size=26)
-    d.text('deployment','训练结束后固定φ*：新样本的T(D)进入同一映射，得到参数估计。',55,1025,1890,42,size=24)
+    d.text('deployment','训练结束后固定 \\(\\varphi^{*}\\)：新样本的 \\(T(D)\\) 进入同一映射，得到参数估计。',55,1025,1890,42,size=24)
     d.save(ROOT/'11-学习映射路线-信息处理流程.drawio')
 
 
