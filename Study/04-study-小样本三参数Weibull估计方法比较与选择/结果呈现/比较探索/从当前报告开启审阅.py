@@ -15,7 +15,7 @@ HERE = Path(__file__).resolve().parent
 STUDY = HERE.parent.parent
 REPO = STUDY.parent.parent
 ROOT = STUDY / 'reviewbyhtml/方法对比'
-SOURCE = STUDY / '报告下（方法对比）-v0.4.md'
+SOURCE = STUDY / '其他/历史版本/报告下（方法对比）-v0.4.md'
 SKILL = Path.home() / '.codex/skills/review-html'
 
 RENDER = r'''

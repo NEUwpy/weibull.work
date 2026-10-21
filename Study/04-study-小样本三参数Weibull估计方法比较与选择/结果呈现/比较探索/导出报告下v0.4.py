@@ -8,7 +8,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 STUDY = HERE.parent.parent
 ROOT = STUDY / 'reviewbyhtml/方法对比'
-TARGET = STUDY / '报告下（方法对比）-v0.4.md'
+TARGET = STUDY / '其他/历史版本/报告下（方法对比）-v0.4.md'
 
 
 def export():
