@@ -1,117 +1,81 @@
-"""似然的统计构造、最大化原则与计算实现：横向四步可视流程。"""
+"""从三参数Weibull密度构造似然，并展示有限内点的剖面求解链。"""
 from pathlib import Path
-import math
 import xml.etree.ElementTree as ET
-
 from 细图绘制 import Diagram
 
 ROOT = Path(__file__).resolve().parent
 TARGET = ROOT / '07-似然估计路线-信息处理流程.drawio'
 RED, BLUE, GREEN, GRAY = '#AA5041', '#337695', '#357A63', '#6B7B8D'
-d = Diagram('likelihood-visual-flow-v11', '似然估计：模型、似然、最大化与计算实现', 2400, 1100)
+WIDTH, HEIGHT = 3400, 1320
+d = Diagram('likelihood-visual-flow-v11', '似然估计：构造函数、推导方程、剖面求解', WIDTH, HEIGHT)
 
+def card(key, number, title, x, w, fill):
+    d.panel(key, x, 190, w, 875, fill=fill)
+    d.text(key+'-title', f'{number} {title}', x+18, 207, w-36, 65, size=30, bold=True)
 
-def dot(key, x, y, *, color=RED, radius=6):
-    d.box(key, '', x-radius, y-radius, radius*2, radius*2,
-          color=color, fill=color, size=1, extra='ellipse;')
+def down(key, x, y1, y2, color=GRAY):
+    d.line(key, [(x,y1),(x,y2)], color=color, width=3, arrow='block')
 
+d.text('title', '似然估计｜由分布密度构造似然函数，再推导方程求参数', 45, 20, 3310, 70, size=40, bold=True)
+d.text('subtitle', r'独立同分布完整样本 \(D=(x_1,\ldots,x_n)\)，\(\theta=(\beta,\eta,\gamma)\)；以下以有限内点的剖面求解为例。', 50, 110, 3300, 48, size=28)
+card('step1','①','写出模型与样本',30,540,'#F3F7FB')
+card('step2','②','构造联合似然',630,590,'#FFF7F3')
+card('step3','③','转成可求解的目标',1280,620,'#F2F8F4')
+card('step4','④','内层：给定位置求形状、尺度',1960,730,'#F3F7FB')
+card('step5','⑤','外层：求位置并核验',2750,620,'#F3F4F6')
 
-def step(key, number, title, x, fill):
-    d.panel(key, x, 180, 540, 675, fill=fill)
-    d.text(key+'-title', f'{number} {title}', x+20, 198, 500, 55, size=28, bold=True)
+# ① 观测只代入模型，不比较候选曲线。
+d.text('data-heading', '一组观测寿命',65,305,470,45,size=27,bold=True)
+d.line('data-axis',[(85,420),(520,420)],color=BLUE,width=3,arrow='block')
+for i,(x,label) in enumerate([(115,r'\(x_{(1)}\)'),(210,r'\(x_{(2)}\)'),(355,r'\(x_{(i)}\)'),(465,r'\(x_{(n)}\)')]):
+    d.box('sample-'+str(i),'',x-6,414,12,12,color=BLUE,fill=BLUE,size=1,extra='ellipse;')
+    d.text('sample-label-'+str(i),label,x-46,445,92,44,size=26,align='center')
+d.box('shift',r'令 \(y_i=x_i-\gamma>0\)',70,515,460,85,color=BLUE,fill='#FFFFFF',size=29)
+d.text('density-heading','三参数 Weibull 密度',65,655,470,45,size=27,bold=True)
+d.box('density',r'\(f(x_i;\theta)=\frac{\beta}{\eta}\left(\frac{y_i}{\eta}\right)^{\beta-1}\)<br>\(\qquad\times\exp\!\left[-\left(\frac{y_i}{\eta}\right)^\beta\right]\)',65,720,470,185,color=BLUE,fill='#FFFFFF',size=29)
+d.text('support',r'\(\beta>0,\quad\eta>0,\quad\gamma<x_{(1)}\)',65,945,470,65,size=27,align='center')
 
+# ② 独立性把同一模型下的密度相乘，明确写出L本身。
+d.text('independence', '独立观测 → 密度相乘',665,305,520,50,size=29,bold=True,color=RED)
+for i,(x,label) in enumerate([(665,r'\(f(x_1;\theta)\)'),(880,r'\(\cdots\)'),(1035,r'\(f(x_n;\theta)\)')]):
+    d.box('factor-'+str(i),label,x,405,150 if i!=1 else 90,85,color=RED,fill='#FFF0E8',size=27)
+d.text('multiply-left',r'\(\times\)',815,425,65,45,size=29,align='center')
+d.text('multiply-right',r'\(\times\)',970,425,65,45,size=29,align='center')
+down('multiply-to-likelihood',925,510,570,RED)
+d.box('joint-likelihood',r'\(L(\theta;D)=\prod_{i=1}^{n}f(x_i;\theta)\)<br><br>\(=\frac{\beta^n}{\eta^{n\beta}}\prod_{i=1}^{n}y_i^{\beta-1}\)<br><br>\(\quad\times\exp\!\left[-\sum_{i=1}^{n}\left(\frac{y_i}{\eta}\right)^\beta\right]\)',660,590,530,300,color=RED,fill='#FFFFFF',size=29)
+d.text('likelihood-explanation',r'观测 \(x_i\) 已给定；<br>未知量 \(\beta,\eta,\gamma\) 留在函数中。',670,935,510,85,size=27,align='center')
 
-d.text('title', '似然估计｜构造固定样本的似然函数，以最大化原则确定参数', 45, 20, 2310, 65, size=36, bold=True)
-d.text('subtitle', r'独立同分布完整样本 \(D\)；\(\theta=(\beta,\eta,\gamma)\)，\(\beta>0,\eta>0,\gamma<x_{(1)}\)。曲线仅作原理示意。', 50, 100, 2300, 48, size=25)
-step('step1', '①', '给定分布模型与固定样本', 35, '#F3F7FB')
-step('step2', '②', '构造样本的似然函数', 635, '#FFF7F3')
-step('step3', '③', '最大化整组样本的似然', 1235, '#F2F8F4')
-step('step4', '④', '计算实现：求解与核验', 1835, '#F3F4F6')
+# ③ 从乘积到对数和，不用峰形图或候选分数代替推导。
+d.text('take-log','取对数：乘积变成求和',1310,305,560,50,size=29,bold=True,color=GREEN)
+d.box('log-likelihood',r'\(\ell(\theta;D)=\ln L(\theta;D)\)<br><br>\(=n\ln\beta-n\beta\ln\eta\)<br><br>\(\quad+(\beta-1)\sum_{i=1}^{n}\ln y_i\)<br><br>\(\quad-\sum_{i=1}^{n}\left(\frac{y_i}{\eta}\right)^\beta\)',1310,395,560,305,color=GREEN,fill='#FFFFFF',size=29)
+down('log-to-maximum',1590,720,770,GREEN)
+d.box('maximum-principle',r'最大值存在时<br>\(\widehat\theta\in\operatorname*{arg\,max}_{\theta\in\Theta}\ell(\theta;D)\)',1310,790,560,120,color=GREEN,fill='#E6F3EB',size=29,bold=True)
+d.text('derivative-intro',r'对参数求导，建立求解关系；<br>取对数不改变最大化解。',1315,945,550,80,size=27,align='center')
 
-# ① 相同观测位置与两条候选密度；下方的候选卡给曲线赋予参数含义。
-d.text('observed-label', r'三参数 Weibull 模型 \(f(x;\theta)\)', 75, 275, 460, 45, size=25, bold=True)
-obs = [2.1, 3.3, 5.6, 8.2]
-labels = [r'\(x_{(1)}\)', r'\(x_{(2)}\)', r'\(x_{(i)}\)', r'\(x_{(n)}\)']
-px0, py0, xs, ys = 85, 510, 43, 850
-d.line('density-x', [(75,py0),(535,py0)], color=GRAY, arrow='block')
-d.line('density-y', [(px0,520),(px0,323)], color=GRAY, arrow='block')
-d.text('density-y-label', r'\(f(x;\theta)\)', 90, 315, 145, 38, size=24)
-d.text('density-x-label', r'寿命 \(x\)', 420, 555, 130, 38, size=24)
+# ④ 展示消元和形状求根，不将求解留成一个黑箱。
+d.box('fix-location',r'先给定 \(\gamma<x_{(1)}\)，得到 \(y_i\)',1990,305,670,75,color=BLUE,fill='#EAF3F8',size=28,bold=True)
+down('location-to-scale',2325,395,435,BLUE)
+d.box('scale-elimination',r'\(\frac{\partial\ell}{\partial\eta}=0\) → 尺度可解析消去<br>\(\widehat\eta(\beta,\gamma)=\left[\frac1n\sum_{i=1}^{n}y_i^\beta\right]^{1/\beta}\)',1990,450,670,140,color=BLUE,fill='#FFFFFF',size=28)
+down('scale-to-shape',2325,605,645,BLUE)
+d.box('shape-equation',r'代回 \(\frac{\partial\ell}{\partial\beta}=0\)，数值求形状<br><br>\(\frac1\beta+\frac1n\sum_{i=1}^{n}\ln y_i\)<br>\(-\frac{\sum_{i=1}^{n}y_i^\beta\ln y_i}{\sum_{i=1}^{n}y_i^\beta}=0\)',1990,660,670,210,color=BLUE,fill='#FFFFFF',size=28)
+down('shape-to-conditional',2325,885,925,BLUE)
+d.box('conditional-estimates',r'得到 \(\widehat\beta(\gamma)\)，<br>再恢复 \(\widehat\eta(\gamma)\)',1990,940,670,90,color=BLUE,fill='#EAF3F8',size=28,bold=True)
 
+# ⑤ 剖面值进入外层位置搜索，虚线回到内层；最后进行域和边界核验。
+d.text('profile-heading', '把内层解代回对数似然',2780,305,560,50,size=28,bold=True,color=GRAY)
+d.box('profile-likelihood',r'\(\ell_p(\gamma)=\ell\bigl(\widehat\beta(\gamma),\widehat\eta(\gamma),\gamma;D\bigr)\)',2780,390,560,100,color=GRAY,fill='#FFFFFF',size=27)
+down('profile-to-location',3060,505,545)
+d.box('location-search',r'外层求 \(\gamma\)<br>按预先约定的参数域或局部极大规则，<br>搜索剖面对数似然；检查支持边界。',2780,560,560,150,color=GRAY,fill='#FFFFFF',size=27)
+down('location-to-result',3060,725,765)
+d.box('result',r'\((\widehat\beta,\widehat\eta,\widehat\gamma)\)<br>核验参数域、最大化要求和边界行为',2780,780,560,125,color=GREEN,fill='#E6F3EB',size=28,bold=True)
+d.text('no-root-guarantee','方程根不自动等于最大似然估计；<br>不能把无界情形当作有限全局解。',2780,945,560,85,size=26,align='center')
+d.line('location-loop',[(2780,635),(2720,635),(2720,1120),(1930,1120),(1930,342),(1990,342)],color=GRAY,width=3,arrow='block',dashed=True)
+d.text('location-loop-label',r'更新 \(\gamma\)，重算内层',2370,1080,330,40,size=24,color=GRAY,align='center')
 
-def density(x, beta, eta, gamma):
-    y=x-gamma
-    return beta/eta*(y/eta)**(beta-1)*math.exp(-(y/eta)**beta) if y>0 else 0.
-
-
-pars = [('a',2.25,4.5,.8,RED),('b',3.3,5.8,1.0,BLUE)]
-for name,beta,eta,gamma,color in pars:
-    pts=[(px0+x*xs,py0-density(x,beta,eta,gamma)*ys) for x in [j*.08 for j in range(121)]]
-    d.line('density-curve-'+name,pts,color=color,width=3.5)
-for i,(x,label) in enumerate(zip(obs,labels)):
-    px,py=px0+x*xs,py0-density(x,*pars[0][1:4])*ys
-    d.line(f'height-{i}',[(px,py0),(px,py)],color=RED,width=2,dashed=True)
-    dot(f'height-point-{i}',px,py,color=RED)
-    d.line(f'data-tick-{i}',[(px,py0-6),(px,py0+8)],color=BLUE,width=2)
-    dot(f'data-point-{i}',px,py0,color=BLUE,radius=5)
-    d.text(f'data-label-{i}',label,px-43,520,86,38,size=23,align='center')
-d.text('data-fixed', r'样本 \(D\) 固定；候选 \(\theta\) 改变密度曲线', 75, 600, 460, 45, size=24)
-d.line('legend-a',[(95,700),(135,700)],color=RED,width=3.5)
-d.text('legend-a-text',r'候选 \(A\)',145,680,125,42,size=24,color=RED)
-d.box('candidate-a',r'\(\theta_A=(\beta_A,\eta_A,\gamma_A)\)',270,665,255,70,color=RED,fill='#FFF1EB',size=24)
-d.line('legend-b',[(95,800),(135,800)],color=BLUE,width=3.5)
-d.text('legend-b-text',r'候选 \(B\)',145,780,125,42,size=24,color=BLUE)
-d.box('candidate-b',r'\(\theta_B=(\beta_B,\eta_B,\gamma_B)\)',270,765,255,70,color=BLUE,fill='#EFF7FB',size=24)
-
-# ② 独立观测的密度乘积成为固定 D 的参数函数。
-d.text('combine-heading', r'独立观测的密度相乘，<br>得到固定样本 \(D\) 的联合似然', 670, 280, 470, 65, size=25)
-tiles=[('f1',r'\(f(x_{(1)};\theta)\)',675,370),('f2',r'\(f(x_{(2)};\theta)\)',930,370),('fi',r'\(f(x_{(i)};\theta)\)',675,500),('fn',r'\(f(x_{(n)};\theta)\)',930,500)]
-for key,label,x,y in tiles:
-    d.box(key,label,x,y,180,80,color=RED,fill='#FFF0E8',size=28)
-for i,(x,y) in enumerate([(865,388),(865,455),(865,518)]):
-    d.text('multiply-'+str(i),r'\(\times\)',x,y,56,45,size=29,bold=True,align='center')
-d.line('contribution-bracket',[(685,600),(685,615),(1105,615),(1105,600)],color=RED,width=2.5)
-d.box('joint-score',r'似然函数<br>\(L(\theta;D)=\prod_{i=1}^{n} f(x_i;\theta)\)',680,640,450,105,color=RED,fill='#FFFFFF',size=28,bold=True)
-d.line('combine-to-score',[(905,615),(905,640)],color=RED,width=2.5,arrow='block')
-d.text('log-score',r'固定 \(D\)，将 \(L(\theta;D)\)<br>看作参数 \(\theta\) 的函数',665,760,480,75,size=25,align='center')
-
-# ③ 先给出统计原则，再用参数轴曲线示意最大化关系；不以驻点定义MLE。
-d.box('maximum',r'最大值存在时<br>\(\widehat\theta_{\mathrm{MLE}}\in\operatorname*{arg\,max}_{\theta\in\Theta}L(\theta;D)\)',1270,275,470,110,color=GREEN,fill='#E6F3EB',size=27,bold=True)
-sx0,sy0,sw,sh=1290,640,390,180
-d.line('score-x',[(sx0-18,sy0),(sx0+sw+28,sy0)],color=GRAY,arrow='block')
-d.line('score-y',[(sx0,sy0+8),(sx0,sy0-sh-18)],color=GRAY,arrow='block')
-d.text('score-y-label',r'\(L(\theta;D)\)',1298,400,180,40,size=25)
-
-
-def score_height(t):
-    return .12+.85*math.exp(-((t-.62)/.34)**2)
-
-
-d.line('likelihood-section',[(sx0+t*sw,sy0-score_height(t)*sh) for t in [i/100 for i in range(101)]],color=GREEN,width=4)
-for key,t,label in [('theta-a',.14,r'\(\theta_A\)'),('theta-b',.38,r'\(\theta_B\)'),('theta-peak',.62,r'\(\theta^{\star}\)')]:
-    xx,yy=sx0+t*sw,sy0-score_height(t)*sh
-    d.line(key+'-guide',[(xx,sy0),(xx,yy)],color=GREEN,dashed=True)
-    dot(key+'-point',xx,yy,color=GREEN,radius=6)
-    d.text(key+'-label',label,xx-42,650,84,40,size=25,align='center')
-d.text('local-peak','最大化关系示意',1480,410,235,43,size=25,color=GREEN,align='center')
-d.text('score-axis-label',r'候选参数 \(\theta\)（原理示意）',1285,695,420,38,size=24,align='center')
-d.box('estimate',r'\(\widehat\theta_{\mathrm{MLE}}=(\widehat\beta,\widehat\eta,\widehat\gamma)\)',1280,755,430,65,color=GREEN,fill='#E6F3EB',size=27,bold=True)
-d.line('peak-to-estimate',[(1531.8,465.4),(1735,465.4),(1735,787.5),(1710,787.5)],color=GREEN,width=2.5,arrow='block')
-
-# ④ 这一栏执行既定原则：等价改写、求候选、核验目标与边界。
-d.text('implementation', '对③确定的统计目标进行计算', 1870, 270, 470, 45, size=25, bold=True, color=GRAY)
-d.box('log-transform',r'取对数：保持最大化关系<br>\(\ell(\theta;D)=\ln L(\theta;D)\)<br>\(=\sum_{i=1}^{n}\ln f(x_i;\theta)\)',1870,340,470,135,color=GRAY,fill='#FFFFFF',size=25)
-d.box('score-equations',r'解析或数值计算候选<br>直接优化 \(\ell\)，或求解<br>\(U(\theta)=\nabla_\theta\ell(\theta;D)=0\)',1870,525,470,130,color=GRAY,fill='#FFFFFF',size=25)
-d.box('verification',r'核验候选<br>比较目标值、参数域 \(\Theta\) 与支持边界<br>MLE 须满足③的最大化原则',1870,705,470,120,color=GRAY,fill='#FFFFFF',size=24)
-d.edge('log-to-equations','log-transform','score-equations','选择计算路径',color=GRAY,start='bottom',end='top',at=(2105,500))
-d.edge('equations-to-verification','score-equations','verification','检查候选及边界响应',color=GRAY,start='bottom',end='top',at=(2105,680))
-
-# 只有一行步骤；统计构造与求解器变化在下方明确分开。
-d.line('step1-to-step2',[(587,535),(623,535)],color=RED,width=4,arrow='block')
-d.line('step2-to-step3',[(1187,535),(1223,535)],color=RED,width=4,arrow='block')
-d.line('step3-to-step4',[(1787,535),(1823,535)],color=GRAY,width=4,arrow='block')
-d.text('interfaces','统计构造改动：K–R改①数据／位置；CMLE改②似然项；罚似然改③目标；WMLE等另改估计方程。',65,905,2270,55,size=27,bold=True)
-d.text('method-locations','纯求解器变化：保持同一似然目标或同一估计方程，更换搜索或求根程序；对应④的计算实现层。',65,975,2270,55,size=24)
+for i,(x1,x2) in enumerate([(585,615),(1235,1265),(1915,1945),(2705,2735)]):
+    d.line('main-flow-'+str(i),[(x1,620),(x2,620)],color=RED if i<2 else BLUE,width=4,arrow='block')
+d.text('method-locations','后续方法的改动位置：①样本与位置处理；②似然项；③目标修正；④估计方程；④—⑤既定目标的求解程序。',55,1170,3290,55,size=28,bold=True)
+d.text('scope-note',r'本图展示原始 MLE 的构造与一种求解组织方式。无约束三参数似然可能无界；计算前需明确参数域或有限局部极大约定。',55,1240,3290,50,size=27)
 d.save(TARGET)
 
 cells=ET.parse(TARGET).findall('.//mxCell')
@@ -123,5 +87,5 @@ for cell in cells:
     if cell.get('vertex')=='1':
         geom=cell.find('mxGeometry')
         x,y,w,h=(float(geom.get(k,'0')) for k in ('x','y','width','height'))
-        assert 0<=x<=x+w<=2400 and 0<=y<=y+h<=1100,cell.get('id')
+        assert 0<=x<=x+w<=WIDTH and 0<=y<=y+h<=HEIGHT,cell.get('id')
 print(f'generated {TARGET.name}: {len(cells)} editable cells; XML, edge endpoints, and canvas bounds valid')
