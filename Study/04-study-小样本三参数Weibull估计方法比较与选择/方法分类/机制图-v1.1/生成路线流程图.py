@@ -1,151 +1,105 @@
-"""五条路线的信息处理流程，先于机制细图阅读。"""
+"""将样本处理对象、构造公式和参数选择准则展开为可编辑流程。"""
 from pathlib import Path
 from 细图绘制 import Diagram
+ROOT=Path(__file__).resolve().parent
+RED,BLUE,GREEN,PURPLE,ORANGE='#A94F40','#2D6D91','#347B68','#785499','#AE6C25'
 
-ROOT = Path(__file__).resolve().parent
-RED, BLUE, GREEN, PURPLE, ORANGE = '#A94F40', '#2D6D91', '#347B68', '#785499', '#AE6C25'
+def canvas(key,title,subtitle,height):
+ d=Diagram(key,title,2000,height)
+ d.text('title',title,45,20,1910,65,size=35,bold=True)
+ d.text('subtitle',subtitle,45,100,1910,65,size=25)
+ return d
 
-
-def canvas(key, title, subtitle, height):
-    d = Diagram(key, title, 1800, height)
-    d.text('title', title, 45, 20, 1710, 60, size=35, bold=True)
-    d.text('subtitle', subtitle, 45, 95, 1710, 55, size=25)
-    return d
-
+def chain(d,key,y,heading,parts,color,h=210):
+ d.text(key+'-heading',heading,50,y,1900,50,size=28,bold=True)
+ for i,(title,body) in enumerate(parts):
+  d.box(f'{key}-{i}',title+'<br>'+body,50+i*680,y+70,540,h,color=color,fill='#F7F9FC' if i<2 else '#EDF5EF',size=25,bold=False)
+  if i:d.edge(f'{key}-edge-{i}',f'{key}-{i-1}',f'{key}-{i}',color=color,width=3)
 
 def likelihood():
-    d = canvas('likelihood-information-flow', '似然估计｜固定样本，比较不同参数下的联合贡献',
-               '观测先变为密度贡献，再组成似然；确定参数的依据是似然目标或由其导出的方程。', 650)
-    items = [
-        ('data', '输入寿命样本 D\n保留各观测 xᵢ', 55, 270),
-        ('density', '给定候选 θ=(β,η,γ)\n计算观测处的 fθ(xᵢ)\n并落实模型支持域', 395, 300),
-        ('joint', '组合全部观测贡献\nL(θ)=∏ᵢ fθ(xᵢ)\n取对数得到 ℓ(θ)', 765, 300),
-        ('rule', '据似然确定参数\n最大化 ℓ(θ)\n或求解、修正得分方程', 1135, 300),
-        ('estimate', '输出估计\nβ̂、η̂、γ̂', 1505, 240),
-    ]
-    for key, text, x, w in items:
-        d.box(key, text.replace('\n', '<br>'), x, 225, w, 155,
-              color=RED, fill='#FFF7F3' if key != 'estimate' else '#F4E8E2', size=25, bold=key == 'estimate')
-    for a, b in zip(items, items[1:]):
-        d.edge(a[0]+'-'+b[0], a[0], b[0], color=RED, width=3)
-    d.edge('numeric-loop', 'rule', 'density', '需要数值求解时：更新候选参数，再计算相应贡献',
-           color=RED, kind='feedback', start='bottom', end='bottom',
-           via=[(1285, 490), (545, 490)], at=(915, 490))
-    d.text('meaning', '数据、密度项、目标或方程发生修改时，变化进入对应的计算环节。', 60, 560, 1680, 45, size=25)
-    d.save(ROOT / '07-似然估计路线-信息处理流程.drawio')
-
-
-def branched(key, title, subtitle, branch_rows, output, color, name, footer):
-    d = canvas(key, title, subtitle, 900)
-    d.box('data', '输入寿命样本 D<br>提取所需观测', 50, 380, 240, 150, color=color, size=25)
-    d.box('representation', '选取这类方法使用的<br>样本表示与理论关系', 360, 380, 260, 150,
-          color=color, fill='#F1F7FA', size=25)
-    d.edge('data-representation', 'data', 'representation', color=color, width=3)
-    for i, (y, info, rule) in enumerate(branch_rows):
-        d.box(f'info-{i}', info, 730, y, 300, 155, color=color, fill='#F6F9FB', size=24)
-        d.box(f'rule-{i}', rule, 1110, y, 330, 155, color=color, fill='#FFFFFF', size=24)
-        d.edge(f'branch-{i}', 'representation', f'info-{i}', color=color,
-               via=[(675, 455), (675, y+77.5)])
-        d.edge(f'rule-edge-{i}', f'info-{i}', f'rule-{i}', color=color, width=3)
-    d.box('estimate', output, 1520, 380, 230, 155, color=color, fill='#EAF4EE', size=25, bold=True)
-    for i, (y, _, _) in enumerate(branch_rows):
-        d.edge(f'recover-{i}', f'rule-{i}', 'estimate', color=color,
-               via=[(1480, y+77.5), (1480, 457.5)])
-    d.text('meaning', footer, 55, 795, 1690, 65, size=25)
-    d.save(ROOT / name)
-
+ d=canvas('likelihood-information-flow','似然估计｜从观测处的密度构造联合似然，再以整体贡献定参数','固定已经观测到的寿命；不同候选参数改变各观测处的密度，所有观测的贡献共同进入准则。',1060)
+ chain(d,'construction',190,'怎样构造似然函数？',[
+  ('① 将观测代入Weibull密度','yᵢ=xᵢ−γ>0<br>fθ(xᵢ)=(β/η)(yᵢ/η)^(β−1)<br>×exp[−(yᵢ/η)^β]<br>每个观测对应一个密度贡献'),
+  ('② 利用独立性组合观测贡献','L(θ)=fθ(x₁)×…×fθ(xₙ)<br>=∏ᵢ fθ(xᵢ)<br>把整组样本在候选θ下的<br>联合密度作为参数函数'),
+  ('③ 取对数，把乘积变成求和','ℓ(θ)=Σᵢ ln fθ(xᵢ)<br>=n lnβ−nβ lnη+(β−1)Σᵢ ln yᵢ<br>−Σᵢ(yᵢ/η)^β<br>取对数保持最大点不变'),
+ ],RED,h=235)
+ d.box('maximum','④ 原始MLE：选择联合贡献最大的候选<br>θ̂=argmaxθ ℓ(θ)<br>哪组参数使整组已观测寿命的联合密度最大，就选哪组',150,690,790,170,color=RED,fill='#FFF3ED',size=28,bold=True)
+ d.box('equations','由同一ℓ导出方程式构造<br>内点候选满足 ∂ℓ/∂β=∂ℓ/∂η=∂ℓ/∂γ=0<br>方程修正方法在这些关系中加权或替换部分方程，再联立求解',1060,690,790,170,color=RED,fill='#FFF8F4',size=26)
+ d.edge('to-max','construction-2','maximum',color=RED,start='bottom',end='top',via=[(1680,585),(545,585)])
+ d.edge('to-score','construction-2','equations',color=RED,start='bottom',end='top',via=[(1680,625),(1455,625)])
+ d.edge('candidate-loop','maximum','construction-0','数值搜索更新候选θ，重新计算密度贡献',color=RED,kind='feedback',start='bottom',end='left',via=[(545,940),(30,940),(30,377.5)],at=(380,940))
+ d.text('scope','最大化或求解均在所选模型支持域内进行；具体的数据修改、方程替换与最小值项处理见下方机制细图。',50,980,1900,50,size=24)
+ d.save(ROOT/'07-似然估计路线-信息处理流程.drawio')
 
 def distribution():
-    branched('distribution-information-flow', '分布匹配｜把样本写成分布关系，按对应的匹配规则求解',
-             '不同分支选取不同的比较对象；比较对象决定参数评分和恢复过程。', [
-        (200, '概率图表示<br>绘图分数 zᵢ<br>对数寿命 uᵢ(γ)',
-         '回归与位置定位<br>按残差、相关性或位置评分<br>确定位置、斜率与截距'),
-        (400, 'CDF 表示<br>经验概率与 Fθ(x₍ᵢ₎)<br>或相邻 CDF 概率间距',
-         '分布差异或间距评分<br>最小化相应分布差异<br>或最大化间距目标'),
-        (600, '伪尺度表示<br>各观测反推 ηᵢ(β,γ)<br>计算这些尺度的离散程度',
-         'MDM 分步确定参数<br>给定 γ，条件确定 β<br>按梯度阈值 δ 定位 γ<br>伪尺度均值恢复 η'),
-    ], '按相应关系恢复<br>β̂、η̂、γ̂', BLUE,
-             '08-分布匹配路线-信息处理流程.drawio',
-             '回归、分布距离、概率间距与伪尺度一致性，分别给出具体的匹配依据。')
-
+ d=canvas('distribution-information-flow','分布匹配｜先构造可比较的分布量，再建立评分并选择参数','各行展开一种实际构造：比较对象、评分的来源和参数判定原则连续相接。',1370)
+ chain(d,'plot',190,'概率图：把Weibull分布关系变成直线',[
+  ('构造变换后的坐标','uᵢ(γ)=ln(x₍ᵢ₎−γ)<br>Park：pᵢ→zᵢ=ln[−ln(1−pᵢ)]<br>White：取标准对数Weibull<br>次序统计量的期望'),
+  ('由分布关系形成回归残差','z≈βu−β lnη<br>选u对z或z对u回归<br>Q=Σ(观测坐标−拟合坐标)²'),
+  ('依据拟合程度与位置评分确定','回归使Q最小<br>Soman按F评分、Park按相关性定γ<br>再由斜率和截距反解β、η'),
+ ],BLUE)
+ chain(d,'cdf',560,'CDF差异／MPS：把观测位置换成累积概率，再比较整组评分',[
+  ('在候选θ下计算观测的CDF值','Fᵢ=Fθ(x₍ᵢ₎)<br>MPS另加F₀=0、Fₙ₊₁=1<br>候选θ改变各概率区间的长度'),
+  ('把概率偏离或间距合成目标','CDF差异：D(θ)=Σᵢwᵢ(Fᵢ−pᵢ)²<br>MPS间距：Dᵢ=Fᵢ−Fᵢ₋₁<br>间距评分：Q(θ)=Σᵢ₌₁ⁿ⁺¹ln Dᵢ'),
+  ('按所选目标比较候选参数','差异准则：θ̂=argminθ D(θ)<br>间距准则：θ̂=argmaxθ Q(θ)<br>比较的是整组概率关系的总评分'),
+ ],BLUE)
+ chain(d,'mdm',930,'MDM：同一分布模型应让各观测反推的尺度尽量一致',[
+  ('每个观测反推一个尺度','qᵢ=−ln(1−pᵢ)<br>ηᵢ(β,γ)=(x₍ᵢ₎−γ)/qᵢ^(1/β)<br>同一候选β、γ产生一组伪尺度'),
+  ('先形成条件最小离散曲线','s(β,γ)=stdᵢ[ηᵢ(β,γ)]<br>固定γ：β*(γ)=argminβ s(β,γ)<br>s*(γ)=s[β*(γ),γ]'),
+  ('再由梯度阈值和均值确定','g(γ)=ds*(γ)/dγ，按g(γ)=δ定位<br>约束γ≥0时：g(0)≥δ则γ̂=0<br>β̂=β*(γ̂)，η̂=meanᵢηᵢ(β̂,γ̂)'),
+ ],BLUE)
+ d.save(ROOT/'08-分布匹配路线-信息处理流程.drawio')
 
 def statistics():
-    branched('statistics-information-flow', '统计关系反演｜提取统计量，再由参数关系逐步确定未知量',
-             '先明确统计量保留哪些参数信息，再选择匹配、统计量似然或条件线性组合。', [
-        (200, '矩／分位数等统计量<br>接入总体参数关系<br>通过差值、比值等消元',
-         '反演统计关系<br>显式反解或解匹配方程<br>再用剩余关系恢复参数'),
-        (400, '不变统计量 W／V<br>W 消去位置与尺度<br>V 只消去位置',
-         '最大化统计量联合密度<br>W 定 β；V 初始定 η、β<br>保留 β，再恢复其余参数'),
-        (600, '条件位置统计量<br>给定 β、η 构造无偏量<br>未知时用临时参数代入',
-         '按条件协方差选权<br>线性组合得到 γ̂<br>代入时与参数恢复迭代'),
-    ], '结合已知、代入<br>及恢复的参数<br>组成三参数估计', GREEN,
-             '09-统计关系反演路线-信息处理流程.drawio',
-             '显式恢复直接给出结果；参数尚未知时，可把条件估计与其他参数的恢复步骤组合迭代。')
-
+ d=canvas('statistics-information-flow','统计关系反演｜写出统计量如何依赖参数，再用消元或条件关系定参数','各行给出具体的统计量、模型关系与确定原则，展示不同的反演路径。',1700)
+ chain(d,'moment',190,'常规矩：先用偏度消去位置与尺度',[
+  ('由观测计算样本矩','x̄=mean(xᵢ)<br>m₂=mean[(xᵢ−x̄)²]<br>m₃=mean[(xᵢ−x̄)³]<br>样本偏度ĝ=m₃/m₂^(3/2)'),
+  ('用模型消去γ、η','理论偏度g(β)只依赖β<br>理论方差=η²A₂(β)<br>A₂(β)=Γ(1+2/β)−Γ²(1+1/β)'),
+  ('令样本与理论关系相等','解g(β)=ĝ确定β<br>η̂=√[m₂/A₂(β̂)]<br>γ̂=x̄−η̂Γ(1+1/β̂)'),
+ ],GREEN)
+ chain(d,'cran',550,'Cran：改用生存曲线积分矩，以矩差比显式消元',[
+  ('对经验生存曲线求积分','μ̂ₖ=∫₀∞[1−Fₙ(x)]ᵏdx<br>取k=1、2、4<br>形成三个样本积分矩'),
+  ('理论矩差消去位置和尺度','γ≥0时：μₖ=γ+c·k^(−1/β)<br>c=ηΓ(1+1/β)<br>R=(μ₁−μ₂)/(μ₂−μ₄)=2^(1/β)'),
+  ('以样本矩差比反解参数','R̂=(μ̂₁−μ̂₂)/(μ̂₂−μ̂₄)<br>β̂=ln2/ln R̂<br>再由任意两条μₖ关系解γ、η'),
+ ],GREEN)
+ chain(d,'invariance',910,'W／V：先移除干扰参数，再评价剩余信息的联合密度',[
+  ('由次序观测构造差与比','Wᵢ=(X₍ᵢ₎−X₍₁₎)/(X₍ₙ₎−X₍₁₎)<br>Vᵢ=X₍ᵢ₎−X₍₁₎<br>差消γ；标准化比值再消η'),
+  ('写出变换统计量的联合密度','W内部非退化分量：fW(w;β)<br>V非退化分量：fV(v;η,β)<br>保留各分量之间的相关结构'),
+  ('以联合密度最大点确定','W：最大化fW估β，再恢复η、γ<br>V：先联合最大化fV估η、β<br>下一阶段保留β，再恢复η、γ'),
+ ],GREEN)
+ chain(d,'linear',1270,'条件位置估计：构造共同期望为γ的量，再以最小方差选权',[
+  ('给定真实β、η时消去理论偏移','Tᵢ=X₍ᵢ₎−ηEβ[Y₍ᵢ₎]<br>E(Tᵢ)=γ，S=Cov(T)<br>形成一组无偏位置量'),
+  ('把线性组合的方差写成目标','γ̂=cᵀT<br>在1ᵀc=1下最小化cᵀSc<br>约束保持无偏，目标压低方差'),
+  ('由协方差决定组合系数','c=S⁻¹1/(1ᵀS⁻¹1)<br>再计算γ̂=cᵀT<br>参数未知时另以临时估计代入<br>并可接入参数恢复迭代'),
+ ],GREEN)
+ d.save(ROOT/'09-统计关系反演路线-信息处理流程.drawio')
 
 def posterior():
-    d = canvas('posterior-information-flow', '后验推断｜样本与先验形成后验，再按所选规则给出估计',
-               '联合后验确定参数的不确定性；输出规则决定需要计算哪一个后验量。', 730)
-    items = [
-        ('sample', '输入观测 D<br>形成样本似然 L(θ|D)', 55, 285),
-        ('posterior', '结合参数先验与支持域<br>p(θ|D) ∝ L(θ|D)π(θ)', 420, 330),
-        ('decision', '选择后验输出规则<br>均值／逐参数中位数<br>或联合 MAP', 830, 285),
-        ('compute', '计算所选后验量<br>积分、抽样、近似<br>或密度峰优化', 1195, 285),
-        ('estimate', '得到参数估计<br>β̂、η̂、γ̂', 1560, 190),
-    ]
-    for key, text, x, w in items:
-        d.box(key, text, x, 240, w, 150, color=PURPLE,
-              fill='#F8F3FB' if key != 'estimate' else '#EEE2F6', size=25, bold=key == 'estimate')
-    for a, b in zip(items, items[1:]):
-        d.edge(a[0]+'-'+b[0], a[0], b[0], color=PURPLE, width=3)
-    d.box('prior', '已有信息与参数范围<br>先验 π(θ) 及允许域', 435, 500, 300, 105,
-          color=PURPLE, fill='#FFFFFF', size=25)
-    d.edge('prior-joint', 'prior', 'posterior', color=PURPLE, start='top', end='bottom')
-    d.text('rules', '后验均值取期望；逐参数中位数取边缘分位数；MAP取联合后验密度的峰。', 55, 650, 1690, 45, size=25)
-    d.save(ROOT / '10-后验推断路线-信息处理流程.drawio')
-
+ d=canvas('posterior-information-flow','后验推断｜用先验重加权似然，再以损失或密度峰决定估计','先构造完整的参数后验；所选后验规则随后决定需要计算的目标。',1110)
+ chain(d,'posterior-build',190,'后验怎样由观测和已有信息形成？',[
+  ('计算候选参数的样本支持','L(θ|D)=∏ᵢfθ(xᵢ)<br>π(θ)描述已有参数信息<br>同时限定模型与先验的允许域'),
+  ('将样本贡献与先验权重相乘','q(θ)=L(θ|D)π(θ)<br>观测和先验共同改变<br>不同候选参数的相对权重'),
+  ('积分归一化为参数后验','Z=∫q(θ)dθ<br>p(θ|D)=q(θ)/Z<br>积分在允许参数域内进行'),
+ ],PURPLE)
+ d.box('risk','后验损失最小化<br>R(a|D)=∫损失(a,θ)p(θ|D)dθ<br>选择a使后验平均损失最小<br>平方损失→后验均值；逐参数绝对损失→边缘中位数',95,700,1010,225,color=PURPLE,fill='#F6F0FB',size=27)
+ d.box('map','后验密度最大化（MAP）<br>θ̂MAP=argmaxθ p(θ|D)<br>=argmaxθ[lnL(θ|D)+lnπ(θ)]<br>选联合后验密度最高的候选',1215,700,690,225,color=PURPLE,fill='#F6F0FB',size=27)
+ d.edge('to-risk','posterior-build-2','risk',color=PURPLE,start='bottom',end='top',via=[(1680,580),(600,580)])
+ d.edge('to-map','posterior-build-2','map',color=PURPLE,start='bottom',end='top',via=[(1680,625),(1560,625)])
+ d.text('calculation','积分、Gibbs／MH抽样、Laplace近似或优化，是计算相应后验量的路径；参数选择依据来自上述规则。',50,1000,1900,60,size=25)
+ d.save(ROOT/'10-后验推断路线-信息处理流程.drawio')
 
 def learning():
-    d = canvas('learning-information-flow', '学习映射｜先用多组样本训练，再对新样本执行固定映射',
-               '训练时通过参数标签学习估计函数；使用时沿用相同特征表示与已训练权重。', 1090)
-    d.panel('train-panel', 35, 155, 1730, 445, fill='#FCF6EE')
-    d.text('train-title', '训练：样本和参数标签共同确定映射', 60, 170, 1670, 55, size=28, bold=True)
-    items = [
-        ('data', '多组训练样本 Dⱼ<br>及对应参数 θⱼ<br>来自模拟或标注', 55, 300),
-        ('features', '提取统一特征<br>T(Dⱼ)', 425, 250),
-        ('mapping', '用当前映射预测<br>θ̂ⱼ=hφ(T(Dⱼ))', 745, 280),
-        ('loss', '预测与真值对照<br>计算参数预测损失 ℒ(φ)', 1095, 290),
-        ('update', '按损失更新权重 φ<br>继续下一轮训练', 1455, 280),
-    ]
-    for key, text, x, w in items:
-        d.box(key, text, x, 285, w, 125, color=ORANGE, size=24)
-    for a, b in zip(items, items[1:]):
-        d.edge(a[0]+'-'+b[0], a[0], b[0], color=ORANGE, width=3)
-    d.edge('truth-to-loss', 'data', 'loss', '对应的参数标签 θⱼ', color=ORANGE,
-           start='bottom', end='bottom', via=[(205, 465), (1240, 465)], at=(640, 465))
-    d.edge('training-loop', 'update', 'mapping', '更新映射，再预测', color=ORANGE, kind='feedback',
-           start='top', end='top', via=[(1595, 250), (885, 250)], at=(1240, 250))
-    d.box('freeze', '训练结束，固定 φ*', 1405, 505, 330, 65, color=ORANGE, fill='#FFF0DA', size=25, bold=True)
-    d.edge('freeze-trained', 'update', 'freeze', color=ORANGE, start='bottom', end='top',
-           via=[(1595, 480), (1570, 480)])
-    d.panel('use-panel', 35, 700, 1730, 300, fill='#F0F8F3')
-    d.text('use-title', '使用：当前新样本只经过一次固定映射', 60, 715, 1670, 55, size=28, bold=True)
-    use = [('new-data', '输入新样本 D', 55, 300), ('new-feature', '沿用同一特征 T(D)', 445, 300),
-           ('fixed', '执行固定映射 hφ*', 835, 355), ('estimate', '输出 β̂、η̂、γ̂', 1280, 455)]
-    for key, text, x, w in use:
-        d.box(key, text, x, 825, w, 105, color=GREEN, fill='#FFFFFF', size=27, bold=key == 'estimate')
-    for a, b in zip(use, use[1:]):
-        d.edge(a[0]+'-'+b[0], a[0], b[0], color=GREEN, width=3)
-    d.edge('transfer', 'freeze', 'fixed', '带入已训练权重', color=ORANGE, start='bottom', end='top',
-           via=[(1570, 655), (1012.5, 655)], at=(1260, 655))
-    d.text('scope', '这里的映射直接输出参数；学习中间权重或修正量时，再接入相应统计估计器。', 55, 1020, 1690, 45, size=25)
-    d.save(ROOT / '11-学习映射路线-信息处理流程.drawio')
+ d=canvas('learning-information-flow','学习映射｜把多组参数预测误差写成训练目标，再选择估计函数','参数标签提供训练判据；要确定的是共享映射的权重φ，训练结束后再用于当前新样本。',1000)
+ chain(d,'learn',190,'训练目标怎样由样本及其真值形成？',[
+  ('把每组样本变成统一特征','tⱼ=T(Dⱼ)<br>如排序值、分位数或统计量<br>用当前映射预测θ̂ⱼ=hφ(tⱼ)'),
+  ('逐组对照参数真值，形成损失','将θ̂ⱼ与对应标签θⱼ比较<br>ℒ(φ)=(1/m)Σⱼℓ(θ̂ⱼ,θⱼ)<br>例：ℓ=Σₖ(θ̂ⱼₖ−θⱼₖ)²<br>多组预测误差合成一个训练目标'),
+  ('按预测误差选择映射权重','φ*=argminφ ℒ(φ)<br>按梯度等方法更新φ并重新预测<br>使训练样本上的规定损失更小'),
+ ],ORANGE,h=245)
+ d.edge('training-loop','learn-2','learn-0','更新φ→重算各组预测与损失→继续减小训练目标',color=ORANGE,kind='feedback',start='bottom',end='bottom',via=[(1680,580),(320,580)],at=(1000,580))
+ d.box('fixed','训练完成后固定φ*<br>新样本仍按同一T提取特征，再计算hφ*(T(D))<br>参数估计来自已经确定的映射',390,715,1220,170,color=GREEN,fill='#F0F8F3',size=28,bold=True)
+ d.edge('freeze','learn-2','fixed',color=ORANGE,start='right',end='right',via=[(1970,382.5),(1970,800)])
+ d.save(ROOT/'11-学习映射路线-信息处理流程.drawio')
 
-
-if __name__ == '__main__':
-    likelihood()
-    distribution()
-    statistics()
-    posterior()
-    learning()
-    print('generated five information-processing flowcharts')
+if __name__=='__main__':
+ likelihood();distribution();statistics();posterior();learning()
+ print('generated five construction-and-criterion flowcharts')

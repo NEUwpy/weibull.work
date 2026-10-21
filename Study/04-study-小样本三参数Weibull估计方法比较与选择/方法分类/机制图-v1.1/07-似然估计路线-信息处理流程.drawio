@@ -1,54 +1,68 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" version="26.0.9">
-  <diagram id="likelihood-information-flow" name="似然估计｜固定样本，比较不同参数下的联合贡献">
-    <mxGraphModel page="1" pageWidth="1800" pageHeight="650" background="#ffffff">
+  <diagram id="likelihood-information-flow" name="似然估计｜从观测处的密度构造联合似然，再以整体贡献定参数">
+    <mxGraphModel page="1" pageWidth="2000" pageHeight="1060" background="#ffffff">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="似然估计｜固定样本，比较不同参数下的联合贡献" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="45" y="20" width="1710" height="60" as="geometry" />
+        <mxCell id="title" value="似然估计｜从观测处的密度构造联合似然，再以整体贡献定参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="20" width="1910" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="观测先变为密度贡献，再组成似然；确定参数的依据是似然目标或由其导出的方程。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="45" y="95" width="1710" height="55" as="geometry" />
+        <mxCell id="subtitle" value="固定已经观测到的寿命；不同候选参数改变各观测处的密度，所有观测的贡献共同进入准则。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="45" y="100" width="1910" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="data" value="输入寿命样本 D&lt;br&gt;保留各观测 xᵢ" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFF7F3;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="55" y="225" width="270" height="155" as="geometry" />
+        <mxCell id="construction-heading" value="怎样构造似然函数？" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="50" y="190" width="1900" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="density" value="给定候选 θ=(β,η,γ)&lt;br&gt;计算观测处的 fθ(xᵢ)&lt;br&gt;并落实模型支持域" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFF7F3;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="395" y="225" width="300" height="155" as="geometry" />
+        <mxCell id="construction-0" value="① 将观测代入Weibull密度&lt;br&gt;yᵢ=xᵢ−γ&gt;0&lt;br&gt;fθ(xᵢ)=(β/η)(yᵢ/η)^(β−1)&lt;br&gt;×exp[−(yᵢ/η)^β]&lt;br&gt;每个观测对应一个密度贡献" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#F7F9FC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="50" y="260" width="540" height="235" as="geometry" />
         </mxCell>
-        <mxCell id="joint" value="组合全部观测贡献&lt;br&gt;L(θ)=∏ᵢ fθ(xᵢ)&lt;br&gt;取对数得到 ℓ(θ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFF7F3;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="765" y="225" width="300" height="155" as="geometry" />
+        <mxCell id="construction-1" value="② 利用独立性组合观测贡献&lt;br&gt;L(θ)=fθ(x₁)×…×fθ(xₙ)&lt;br&gt;=∏ᵢ fθ(xᵢ)&lt;br&gt;把整组样本在候选θ下的&lt;br&gt;联合密度作为参数函数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#F7F9FC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="730" y="260" width="540" height="235" as="geometry" />
         </mxCell>
-        <mxCell id="rule" value="据似然确定参数&lt;br&gt;最大化 ℓ(θ)&lt;br&gt;或求解、修正得分方程" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFF7F3;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="1135" y="225" width="300" height="155" as="geometry" />
-        </mxCell>
-        <mxCell id="estimate" value="输出估计&lt;br&gt;β̂、η̂、γ̂" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#F4E8E2;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
-          <mxGeometry x="1505" y="225" width="240" height="155" as="geometry" />
-        </mxCell>
-        <mxCell id="data-density" value="" edge="1" parent="1" source="data" target="density" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="construction-edge-1" value="" edge="1" parent="1" source="construction-0" target="construction-1" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="density-joint" value="" edge="1" parent="1" source="density" target="joint" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="construction-2" value="③ 取对数，把乘积变成求和&lt;br&gt;ℓ(θ)=Σᵢ ln fθ(xᵢ)&lt;br&gt;=n lnβ−nβ lnη+(β−1)Σᵢ ln yᵢ&lt;br&gt;−Σᵢ(yᵢ/η)^β&lt;br&gt;取对数保持最大点不变" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#EDF5EF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1410" y="260" width="540" height="235" as="geometry" />
+        </mxCell>
+        <mxCell id="construction-edge-2" value="" edge="1" parent="1" source="construction-1" target="construction-2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="joint-rule" value="" edge="1" parent="1" source="joint" target="rule" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="maximum" value="④ 原始MLE：选择联合贡献最大的候选&lt;br&gt;θ̂=argmaxθ ℓ(θ)&lt;br&gt;哪组参数使整组已观测寿命的联合密度最大，就选哪组" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFF3ED;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="150" y="690" width="790" height="170" as="geometry" />
         </mxCell>
-        <mxCell id="rule-estimate" value="" edge="1" parent="1" source="rule" target="estimate" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="equations" value="由同一ℓ导出方程式构造&lt;br&gt;内点候选满足 ∂ℓ/∂β=∂ℓ/∂η=∂ℓ/∂γ=0&lt;br&gt;方程修正方法在这些关系中加权或替换部分方程，再联立求解" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFF8F4;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1060" y="690" width="790" height="170" as="geometry" />
         </mxCell>
-        <mxCell id="numeric-loop" value="需要数值求解时：更新候选参数，再计算相应贡献" edge="1" parent="1" source="rule" target="density" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="feedback" evidence="" labelX="915" labelY="490">
-          <mxGeometry relative="1" as="geometry" x="0.0">
+        <mxCell id="to-max" value="" edge="1" parent="1" source="construction-2" target="maximum" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1285" y="490" />
-              <mxPoint x="545" y="490" />
+              <mxPoint x="1680" y="585" />
+              <mxPoint x="545" y="585" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="to-score" value="" edge="1" parent="1" source="construction-2" target="equations" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1680" y="625" />
+              <mxPoint x="1455" y="625" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="candidate-loop" value="数值搜索更新候选θ，重新计算密度贡献" edge="1" parent="1" source="maximum" target="construction-0" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="feedback" evidence="" labelX="380" labelY="940">
+          <mxGeometry relative="1" as="geometry" x="-0.583864118895966">
+            <Array as="points">
+              <mxPoint x="545" y="940" />
+              <mxPoint x="30" y="940" />
+              <mxPoint x="30" y="377.5" />
             </Array>
             <mxPoint x="0.0" y="0.0" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="meaning" value="数据、密度项、目标或方程发生修改时，变化进入对应的计算环节。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="60" y="560" width="1680" height="45" as="geometry" />
+        <mxCell id="scope" value="最大化或求解均在所选模型支持域内进行；具体的数据修改、方程替换与最小值项处理见下方机制细图。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="50" y="980" width="1900" height="50" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

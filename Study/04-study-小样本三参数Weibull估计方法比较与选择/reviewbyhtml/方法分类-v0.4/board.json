@@ -2,7 +2,7 @@
   "id": "study04-method-classification-v04-report",
   "title": "Study04 方法分类报告 v1.1 审阅",
   "document": true,
-  "revision": 15,
+  "revision": 16,
   "require_confirmation": true,
   "archive_plan": "将本轮审定修改写回 Study04/报告上（方法分类）-v1.1.md，同步方法分类/机制图-v1.1/的draw.io图源、生成程序与SVG预览；沿用现有v1.0及v0.4归档，更新必要入口；保留原HTML任务、素材与全部审阅记录，核验正文、公式、图片和链接后提交到laptop分支。若确认文字指定新版本，再按该版本归档旧版并更新引用。",
   "units": [
@@ -102,7 +102,7 @@
             {
               "id": "section-3-flow-07-caption",
               "kind": "text",
-              "html": "<p><strong>图3a｜似然估计的信息处理流程。</strong>\n固定观测，在候选参数下计算密度贡献，组合为联合似然，再按似然目标或其得分方程确定参数；数值求解时更新候选并重新计算相应贡献。</p>\n"
+              "html": "<p><strong>图3a｜似然怎样构造，参数凭什么确定。</strong>\n将观测代入Weibull密度，利用独立性把各密度贡献相乘，再取对数形成可比较的参数函数。原始MLE选择使整组观测联合密度最大的候选；从对数似然导出的得分关系则给出求解及方程修正的入口。</p>\n"
             },
             {
               "id": "section-3-image-1",
@@ -144,7 +144,7 @@
             {
               "id": "section-4-flow-08-caption",
               "kind": "text",
-              "html": "<p><strong>图4a｜分布匹配的信息处理流程。</strong>\n从同一组观测构造概率图坐标、CDF差异或间距、伪尺度等比较对象，按各自规则确定参数，再恢复三参数。MDM保留条件形状求解、梯度阈值定位与尺度均值恢复三个步骤。</p>\n"
+              "html": "<p><strong>图4a｜把分布关系写成实际评分。</strong>\n概率图把Weibull关系变为直线并构造回归残差；CDF方法汇总概率偏离，MPS汇总含两端点的对数概率间距；MDM先由伪尺度标准差形成条件最优曲线，再按梯度阈值定位。每条路径都标出相应极值、评分或阈值准则。</p>\n"
             },
             {
               "id": "section-4-image-1",
@@ -186,7 +186,7 @@
             {
               "id": "section-5-flow-09-caption",
               "kind": "text",
-              "html": "<p><strong>图5a｜统计关系反演的信息处理流程。</strong>\n先提取统计量并明确其参数依赖，再经匹配、消元、联合密度最大化或条件选权确定参数，接入相应恢复关系。给定参数时构造的条件无偏量，与未知参数下临时估计代入的组合，分别标出。</p>\n"
+              "html": "<p><strong>图5a｜从具体统计关系中解出未知量。</strong>\n常规矩用偏度消去位置和尺度，Cran用生存积分矩差比反解形状；W／V从消元后的联合密度确定参数；条件位置估计则把线性组合方差写成二次型，并在无偏约束下选择协方差权重。临时参数代入的组合另行标明。</p>\n"
             },
             {
               "id": "section-5-image-1",
@@ -228,7 +228,7 @@
             {
               "id": "section-6-flow-10-caption",
               "kind": "text",
-              "html": "<p><strong>图6a｜后验推断的信息处理流程。</strong>\n由样本形成似然，与先验及支持域共同组成后验，再选择输出规则，并用适合该后验量的积分、抽样、近似或优化方法求值。</p>\n"
+              "html": "<p><strong>图6a｜从似然和先验到后验判定准则。</strong>\n将似然乘以先验并积分归一化，形成完整后验；后验均值、中位数由相应后验平均损失最小化确定，MAP则选择联合后验密度峰。计算方法用于求取这些已指定的目标。</p>\n"
             },
             {
               "id": "section-6-image-1",
@@ -250,7 +250,7 @@
             {
               "id": "section-6-flow-11-caption",
               "kind": "text",
-              "html": "<p><strong>图7a｜学习映射的信息处理流程。</strong>\n多组带参数标签的样本进入特征表示和预测映射，预测损失反馈到权重更新；训练完成后固定映射，将新样本的相同特征转换为参数。</p>\n"
+              "html": "<p><strong>图7a｜从多组真值误差到估计函数。</strong>\n样本特征进入共享映射，预测与对应参数标签逐组比较，合成训练损失；训练按规定损失选择映射权重，更新后重新计算各组预测。新样本使用已经固定的映射。</p>\n"
             },
             {
               "id": "section-6-image-2",
@@ -359,7 +359,7 @@
       ]
     }
   ],
-  "last_applied_submission_id": "8c70d978-0e13-4060-9091-c942762ba2aa",
+  "last_applied_submission_id": "a663986b-d6cd-42ad-8b42-d8142b43de4e",
   "review_complete": false,
-  "last_rendered_submission_id": "8c70d978-0e13-4060-9091-c942762ba2aa"
+  "last_rendered_submission_id": "a663986b-d6cd-42ad-8b42-d8142b43de4e"
 }

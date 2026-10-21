@@ -1,116 +1,53 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" version="26.0.9">
-  <diagram id="learning-information-flow" name="学习映射｜先用多组样本训练，再对新样本执行固定映射">
-    <mxGraphModel page="1" pageWidth="1800" pageHeight="1090" background="#ffffff">
+  <diagram id="learning-information-flow" name="学习映射｜把多组参数预测误差写成训练目标，再选择估计函数">
+    <mxGraphModel page="1" pageWidth="2000" pageHeight="1000" background="#ffffff">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="学习映射｜先用多组样本训练，再对新样本执行固定映射" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="45" y="20" width="1710" height="60" as="geometry" />
+        <mxCell id="title" value="学习映射｜把多组参数预测误差写成训练目标，再选择估计函数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="20" width="1910" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="训练时通过参数标签学习估计函数；使用时沿用相同特征表示与已训练权重。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="45" y="95" width="1710" height="55" as="geometry" />
+        <mxCell id="subtitle" value="参数标签提供训练判据；要确定的是共享映射的权重φ，训练结束后再用于当前新样本。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="45" y="100" width="1910" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="train-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#FCF6EE;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
-          <mxGeometry x="35" y="155" width="1730" height="445" as="geometry" />
+        <mxCell id="learn-heading" value="训练目标怎样由样本及其真值形成？" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="50" y="190" width="1900" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="train-title" value="训练：样本和参数标签共同确定映射" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="60" y="170" width="1670" height="55" as="geometry" />
+        <mxCell id="learn-0" value="把每组样本变成统一特征&lt;br&gt;tⱼ=T(Dⱼ)&lt;br&gt;如排序值、分位数或统计量&lt;br&gt;用当前映射预测θ̂ⱼ=hφ(tⱼ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#F7F9FC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="50" y="260" width="540" height="245" as="geometry" />
         </mxCell>
-        <mxCell id="data" value="多组训练样本 Dⱼ&lt;br&gt;及对应参数 θⱼ&lt;br&gt;来自模拟或标注" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="55" y="285" width="300" height="125" as="geometry" />
+        <mxCell id="learn-1" value="逐组对照参数真值，形成损失&lt;br&gt;将θ̂ⱼ与对应标签θⱼ比较&lt;br&gt;ℒ(φ)=(1/m)Σⱼℓ(θ̂ⱼ,θⱼ)&lt;br&gt;例：ℓ=Σₖ(θ̂ⱼₖ−θⱼₖ)²&lt;br&gt;多组预测误差合成一个训练目标" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#F7F9FC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="730" y="260" width="540" height="245" as="geometry" />
         </mxCell>
-        <mxCell id="features" value="提取统一特征&lt;br&gt;T(Dⱼ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="425" y="285" width="250" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="mapping" value="用当前映射预测&lt;br&gt;θ̂ⱼ=hφ(T(Dⱼ))" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="745" y="285" width="280" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="loss" value="预测与真值对照&lt;br&gt;计算参数预测损失 ℒ(φ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="1095" y="285" width="290" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="update" value="按损失更新权重 φ&lt;br&gt;继续下一轮训练" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="1455" y="285" width="280" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="data-features" value="" edge="1" parent="1" source="data" target="features" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="learn-edge-1" value="" edge="1" parent="1" source="learn-0" target="learn-1" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="features-mapping" value="" edge="1" parent="1" source="features" target="mapping" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="learn-2" value="按预测误差选择映射权重&lt;br&gt;φ*=argminφ ℒ(φ)&lt;br&gt;按梯度等方法更新φ并重新预测&lt;br&gt;使训练样本上的规定损失更小" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#EDF5EF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1410" y="260" width="540" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="learn-edge-2" value="" edge="1" parent="1" source="learn-1" target="learn-2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="mapping-loss" value="" edge="1" parent="1" source="mapping" target="loss" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="loss-update" value="" edge="1" parent="1" source="loss" target="update" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="truth-to-loss" value="对应的参数标签 θⱼ" edge="1" parent="1" source="data" target="loss" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="640" labelY="465">
-          <mxGeometry relative="1" as="geometry" x="-0.14410480349344978">
-            <Array as="points">
-              <mxPoint x="205" y="465" />
-              <mxPoint x="1240" y="465" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="training-loop" value="更新映射，再预测" edge="1" parent="1" source="update" target="mapping" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=0;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="feedback" evidence="" labelX="1240" labelY="250">
+        <mxCell id="training-loop" value="更新φ→重算各组预测与损失→继续减小训练目标" edge="1" parent="1" source="learn-2" target="learn-0" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="feedback" evidence="" labelX="1000" labelY="580">
           <mxGeometry relative="1" as="geometry" x="0.0">
             <Array as="points">
-              <mxPoint x="1595" y="250" />
-              <mxPoint x="885" y="250" />
+              <mxPoint x="1680" y="580" />
+              <mxPoint x="320" y="580" />
             </Array>
             <mxPoint x="0.0" y="0.0" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="freeze" value="训练结束，固定 φ*" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFF0DA;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
-          <mxGeometry x="1405" y="505" width="330" height="65" as="geometry" />
+        <mxCell id="fixed" value="训练完成后固定φ*&lt;br&gt;新样本仍按同一T提取特征，再计算hφ*(T(D))&lt;br&gt;参数估计来自已经确定的映射" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#F0F8F3;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="390" y="715" width="1220" height="170" as="geometry" />
         </mxCell>
-        <mxCell id="freeze-trained" value="" edge="1" parent="1" source="update" target="freeze" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="freeze" value="" edge="1" parent="1" source="learn-2" target="fixed" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1595" y="480" />
-              <mxPoint x="1570" y="480" />
+              <mxPoint x="1970" y="382.5" />
+              <mxPoint x="1970" y="800" />
             </Array>
           </mxGeometry>
-        </mxCell>
-        <mxCell id="use-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F0F8F3;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
-          <mxGeometry x="35" y="700" width="1730" height="300" as="geometry" />
-        </mxCell>
-        <mxCell id="use-title" value="使用：当前新样本只经过一次固定映射" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="60" y="715" width="1670" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="new-data" value="输入新样本 D" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="55" y="825" width="300" height="105" as="geometry" />
-        </mxCell>
-        <mxCell id="new-feature" value="沿用同一特征 T(D)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="445" y="825" width="300" height="105" as="geometry" />
-        </mxCell>
-        <mxCell id="fixed" value="执行固定映射 hφ*" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="835" y="825" width="355" height="105" as="geometry" />
-        </mxCell>
-        <mxCell id="estimate" value="输出 β̂、η̂、γ̂" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
-          <mxGeometry x="1280" y="825" width="455" height="105" as="geometry" />
-        </mxCell>
-        <mxCell id="new-data-new-feature" value="" edge="1" parent="1" source="new-data" target="new-feature" style="html=1;rounded=0;strokeWidth=3;strokeColor=#347B68;fontColor=#347B68;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="new-feature-fixed" value="" edge="1" parent="1" source="new-feature" target="fixed" style="html=1;rounded=0;strokeWidth=3;strokeColor=#347B68;fontColor=#347B68;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="fixed-estimate" value="" edge="1" parent="1" source="fixed" target="estimate" style="html=1;rounded=0;strokeWidth=3;strokeColor=#347B68;fontColor=#347B68;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="transfer" value="带入已训练权重" edge="1" parent="1" source="freeze" target="fixed" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="1260" labelY="655">
-          <mxGeometry relative="1" as="geometry" x="-0.027692307692307683">
-            <Array as="points">
-              <mxPoint x="1570" y="655" />
-              <mxPoint x="1012.5" y="655" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="scope" value="这里的映射直接输出参数；学习中间权重或修正量时，再接入相应统计估计器。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="55" y="1020" width="1690" height="45" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
