@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 12,
+  "revision": 13,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.1.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v1.1.md",
@@ -177,8 +177,8 @@
               "id": "report-481785e3f263",
               "kind": "text",
               "markdown": "样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。\n\n样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。\n\nMM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px\"><div style=\"padding-right:16px;border-right:1px solid #dce3dd\"><p style=\"font-size:13px;color:#65736a\"><strong>修改前</strong></p><p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p></div><div><p style=\"font-size:13px;color:#286442\"><strong>修改后</strong></p><p>随着样本量减小，各方法的估计误差总体增大，但<mark>误差增长的趋势并不一致</mark>。在相同β下，<mark>不同方法的误差增幅不同</mark>；β改变后，<mark>同一种方法随样本量减少而产生的误差增幅也会改变</mark>。</p><p>方法之间的相对差距也随之变化：部分条件下差距扩大，另一些条件下差距缩小，最低RMSE对应的方法也可能改变。</p></div></div>",
-              "manuscript_html": "<p>随着样本量减小，各方法的估计误差总体增大，但误差增长的趋势并不一致。在相同β下，不同方法的误差增幅不同；β改变后，同一种方法随样本量减少而产生的误差增幅也会改变。</p><p>方法之间的相对差距也随之变化：部分条件下差距扩大，另一些条件下差距缩小，最低RMSE对应的方法也可能改变。</p>",
+              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px\"><div style=\"padding-right:16px;border-right:1px solid #dce3dd\"><p style=\"font-size:13px;color:#65736a\"><strong>修改前</strong></p><p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p></div><div><p style=\"font-size:13px;color:#286442\"><strong>修改后</strong></p><p><mark>固定β时</mark>，随着样本量减小，各方法的估计误差总体增大；<mark>固定n时</mark>，β变化也会改变误差水平，其中尺度和位置参数的误差在较大β下通常更高。</p><p><mark>不同方法的误差变化幅度并不相同</mark>。因此，条件改变既会改变误差水平，也会改变方法之间的差距：差距可能扩大，也可能缩小，最低RMSE对应的方法也可能改变。</p></div></div>",
+              "manuscript_html": "<p>固定β时，随着样本量减小，各方法的估计误差总体增大；固定n时，β变化也会改变误差水平，其中尺度和位置参数的误差在较大β下通常更高。</p><p>不同方法的误差变化幅度并不相同。因此，条件改变既会改变误差水平，也会改变方法之间的差距：差距可能扩大，也可能缩小，最低RMSE对应的方法也可能改变。</p>",
               "before_html": "<p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p>"
             },
             {
@@ -633,11 +633,11 @@
       ]
     }
   ],
-  "last_applied_submission_id": "eecc001e-c0e3-4a42-ab70-ab8608f29984",
-  "last_rendered_submission_id": "eecc001e-c0e3-4a42-ab70-ab8608f29984",
+  "last_applied_submission_id": "38218b95-c41b-416f-9fa7-477ded002169",
+  "last_rendered_submission_id": "38218b95-c41b-416f-9fa7-477ded002169",
   "outline_confirmed": true,
   "review_complete": false,
-  "review_runtime": "0.6.0",
+  "review_runtime": "0.6.1",
   "section_3_3_evidence": {
     "source": "结果呈现/分析数据/参数指标.csv",
     "sha256": "076fc9041bd86df9a43af27cc4f5b75d9381231a618079d8efa0cd6789c78d7b",
