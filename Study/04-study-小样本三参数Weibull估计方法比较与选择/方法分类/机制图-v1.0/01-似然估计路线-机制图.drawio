@@ -1,108 +1,414 @@
-<?xml version="1.0" encoding="utf-8"?>
-<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9">
-  <diagram id="likelihood-route-v10" name="机制图 01｜似然估计路线">
-    <mxGraphModel page="1" pageWidth="1800" pageHeight="1100" grid="1" gridSize="10" math="1" background="#ffffff">
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="26.0.9">
+  <diagram id="likelihood-mechanism-v10" name="似然估计：从密度贡献到方程与改动作用点">
+    <mxGraphModel page="1" pageWidth="1800" pageHeight="2110" background="#ffffff">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="机制图 01｜似然估计路线" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=32;fontColor=#263238;strokeWidth=0;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;spacing=0;fontStyle=1;">
-          <mxGeometry as="geometry" x="40" y="24" width="1720" height="48" />
+        <mxCell id="title" value="似然估计｜让全部观测的密度贡献共同确定参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=36;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="22" width="1710" height="58" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="核心问题：样本在候选参数下有多“可能”？" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=19;fontColor=#63758A;strokeWidth=0;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;spacing=0;">
-          <mxGeometry as="geometry" x="40" y="78" width="1720" height="32" />
+        <mxCell id="subtitle" value="完整独立寿命样本；θ=(β, η, γ)，β&gt;0、η&gt;0；原始连续密度的共同支撑为 γ&lt;x₍₁₎。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="50" y="88" width="1700" height="46" as="geometry" />
         </mxCell>
-        <mxCell id="legend" value="蓝灰：共同信息与主流程　珊瑚：本路线的决定性原则　绿色：参数输出　紫灰：实现、改进与边界" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#63758A;strokeWidth=0;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;spacing=0;">
-          <mxGeometry as="geometry" x="40" y="112" width="1720" height="28" />
+        <mxCell id="density-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#FFF8F5;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="40" y="150" width="1720" height="470" as="geometry" />
         </mxCell>
-        <mxCell id="sample" value="&lt;b&gt;① 样本 D&lt;/b&gt;&lt;br&gt;排序寿命样本&lt;br&gt;完整样本或指定观测条件" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=21;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F7F9FB;strokeColor=#63758A;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="40" y="170" width="360" height="170" />
+        <mxCell id="density-heading" value="① 固定观测，改变候选参数，观测处的密度随之改变" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="170" width="1660" height="48" as="geometry" />
         </mxCell>
-        <mxCell id="info" value="&lt;b&gt;② 信息利用&lt;/b&gt;&lt;br&gt;观测处密度 f(tᵢ;β,η,γ)；位置参数决定支持边界，联合密度同时携带三参数信息。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=20;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F7F9FB;strokeColor=#63758A;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="475" y="170" width="360" height="170" />
+        <mxCell id="sample" value="排序样本  x₍₁₎，x₍₂₎，…，x₍ₙ₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="80" y="228" width="560" height="42" as="geometry" />
         </mxCell>
-        <mxCell id="principle" value="&lt;b&gt;③ 参数确定原则&lt;/b&gt;&lt;br&gt;构造 L(θ|D) 或得分方程，最大化联合似然，或对其位置方程、权重和偏差项作明确修正。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=20;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="910" y="170" width="360" height="170" />
+        <mxCell id="plot-x-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="95" y="500" width="0" height="0" as="geometry" />
         </mxCell>
-        <mxCell id="output" value="&lt;b&gt;④ 三参数估计&lt;/b&gt;&lt;br&gt;β̂、η̂、γ̂&lt;br&gt;并伴随边界、局部极大、失败与求解诊断" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=20;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#EEF8F2;strokeColor=#548A74;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="1345" y="170" width="360" height="170" />
+        <mxCell id="plot-x-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="655" y="500" width="0" height="0" as="geometry" />
         </mxCell>
-        <mxCell id="flow-1" value="" parent="1" edge="1" source="sample" target="info" style="html=1;strokeColor=#263238;strokeWidth=2.4;endArrow=block;endFill=1;rounded=0;">
+        <mxCell id="plot-x" value="" edge="1" parent="1" source="plot-x-a" target="plot-x-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#66788B;fontColor=#66788B;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="flow-2" value="" parent="1" edge="1" source="info" target="principle" style="html=1;strokeColor=#263238;strokeWidth=2.4;endArrow=block;endFill=1;rounded=0;">
+        <mxCell id="plot-y-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="110" y="510" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="plot-y-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="110" y="285" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="plot-y" value="" edge="1" parent="1" source="plot-y-a" target="plot-y-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#66788B;fontColor=#66788B;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="flow-3" value="" parent="1" edge="1" source="principle" target="output" style="html=1;strokeColor=#263238;strokeWidth=2.4;endArrow=block;endFill=1;rounded=0;">
+        <mxCell id="plot-y-label" value="fθ(x)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="120" y="275" width="120" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="plot-x-label" value="寿命 x" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="572" y="509" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="plot-gamma" value="γ" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="91" y="509" width="45" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-density-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="110.0" y="500.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-density-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="620.0" y="496.7672807500198" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-density" value="" edge="1" parent="1" source="candidate-density-a" target="candidate-density-b" style="html=1;rounded=0;strokeWidth=4;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="115.1" y="495.75373834622377" />
+              <mxPoint x="120.2" y="489.9078624171515" />
+              <mxPoint x="125.3" y="483.26944575230897" />
+              <mxPoint x="130.4" y="476.0783636340898" />
+              <mxPoint x="135.5" y="468.4712679143481" />
+              <mxPoint x="140.6" y="460.5439924311771" />
+              <mxPoint x="145.7" y="452.371997476239" />
+              <mxPoint x="150.8" y="444.0191673185383" />
+              <mxPoint x="155.9" y="435.54219911596255" />
+              <mxPoint x="161.0" y="426.992995792043" />
+              <mxPoint x="166.1" y="418.42004005530987" />
+              <mxPoint x="171.20000000000002" y="409.8692013756672" />
+              <mxPoint x="176.3" y="401.38420627302906" />
+              <mxPoint x="181.4" y="393.0068987061526" />
+              <mxPoint x="186.5" y="384.7773648729477" />
+              <mxPoint x="191.60000000000002" y="376.7339683818554" />
+              <mxPoint x="196.7" y="368.9133256028078" />
+              <mxPoint x="201.8" y="361.35024138091546" />
+              <mxPoint x="206.9" y="354.0776193268664" />
+              <mxPoint x="212.0" y="347.12635705832554" />
+              <mxPoint x="217.10000000000002" y="340.5252342080935" />
+              <mxPoint x="222.2" y="334.3007992482665" />
+              <mxPoint x="227.3" y="328.477259913942" />
+              <mxPoint x="232.40000000000003" y="323.0763810670088" />
+              <mxPoint x="237.5" y="318.11739310883684" />
+              <mxPoint x="242.6" y="313.6169134592518" />
+              <mxPoint x="247.70000000000002" y="309.58888312228896" />
+              <mxPoint x="252.8" y="306.0445199271429" />
+              <mxPoint x="257.9" y="302.992289646205" />
+              <mxPoint x="263.0" y="300.437895838767" />
+              <mxPoint x="268.1" y="298.3842889411783" />
+              <mxPoint x="273.20000000000005" y="296.8316948174579" />
+              <mxPoint x="278.3" y="295.7776626962226" />
+              <mxPoint x="283.4" y="295.21713214939837" />
+              <mxPoint x="288.5" y="295.1425185156325" />
+              <mxPoint x="293.6" y="295.54381593733046" />
+              <mxPoint x="298.70000000000005" y="296.40871696590057" />
+              <mxPoint x="303.8" y="297.7227474963631" />
+              <mxPoint x="308.9" y="299.4694156212769" />
+              <mxPoint x="314.0" y="301.6303728461636" />
+              <mxPoint x="319.1" y="304.1855859853284" />
+              <mxPoint x="324.20000000000005" y="307.1135179589836" />
+              <mxPoint x="329.29999999999995" y="310.39131564043726" />
+              <mxPoint x="334.4" y="313.995002856004" />
+              <mxPoint x="339.5" y="317.899676620136" />
+              <mxPoint x="344.6" y="322.07970469358725" />
+              <mxPoint x="349.70000000000005" y="326.50892258241424" />
+              <mxPoint x="354.80000000000007" y="331.16082814915114" />
+              <mxPoint x="359.9" y="336.0087720831241" />
+              <mxPoint x="365.0" y="341.0261425728621" />
+              <mxPoint x="370.1" y="346.1865426379244" />
+              <mxPoint x="375.2" y="351.46395870798807" />
+              <mxPoint x="380.3" y="356.83291918134967" />
+              <mxPoint x="385.40000000000003" y="362.2686418505467" />
+              <mxPoint x="390.5" y="367.74716924701977" />
+              <mxPoint x="395.6" y="373.24549112692995" />
+              <mxPoint x="400.7" y="378.7416534937904" />
+              <mxPoint x="405.8" y="384.21485372785503" />
+              <mxPoint x="410.90000000000003" y="389.64552156471285" />
+              <mxPoint x="416.0" y="395.0153858338923" />
+              <mxPoint x="421.1" y="400.30752703024984" />
+              <mxPoint x="426.2" y="405.50641594449473" />
+              <mxPoint x="431.3" y="410.59793872257364" />
+              <mxPoint x="436.40000000000003" y="415.56940885525006" />
+              <mxPoint x="441.5" y="420.4095667177722" />
+              <mxPoint x="446.6" y="425.108567383991" />
+              <mxPoint x="451.7" y="429.6579575289183" />
+              <mxPoint x="456.8" y="434.050642308026" />
+              <mxPoint x="461.90000000000003" y="438.2808431603556" />
+              <mxPoint x="467.0" y="442.344047525796" />
+              <mxPoint x="472.1" y="446.23695149496234" />
+              <mxPoint x="477.2" y="449.95739642350026" />
+              <mxPoint x="482.3" y="453.50430054204514" />
+              <mxPoint x="487.40000000000003" y="456.8775865793864" />
+              <mxPoint x="492.5" y="460.0781063906579" />
+              <mxPoint x="497.6" y="463.1075635457686" />
+              <mxPoint x="502.7" y="465.96843478705676" />
+              <mxPoint x="507.8" y="468.6638912106389" />
+              <mxPoint x="512.9000000000001" y="471.19771996448054" />
+              <mxPoint x="518.0" y="473.57424718924415" />
+              <mxPoint x="523.0999999999999" y="475.79826285682157" />
+              <mxPoint x="528.2" y="477.87494808748255" />
+              <mxPoint x="533.3" y="479.8098054510396" />
+              <mxPoint x="538.4000000000001" y="481.6085926815537" />
+              <mxPoint x="543.5" y="483.2772601599971" />
+              <mxPoint x="548.5999999999999" y="484.8218924459691" />
+              <mxPoint x="553.7" y="486.2486540689292" />
+              <mxPoint x="558.8" y="487.56373972225316" />
+              <mxPoint x="563.9000000000001" y="488.7733289404009" />
+              <mxPoint x="569.0" y="489.883545281144" />
+              <mxPoint x="574.0999999999999" y="490.90041998155806" />
+              <mxPoint x="579.2" y="491.82986000864025" />
+              <mxPoint x="584.3" y="492.6776203831462" />
+              <mxPoint x="589.4000000000001" y="493.44928061863953" />
+              <mxPoint x="594.5" y="494.1502250867891" />
+              <mxPoint x="599.6000000000001" y="494.7856270945247" />
+              <mxPoint x="604.7" y="495.36043643859546" />
+              <mxPoint x="609.8" y="495.8793701881023" />
+              <mxPoint x="614.9000000000001" y="496.3469064353994" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="density-guide-1-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="166.1" y="500" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-1-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="166.1" y="418.42004005530987" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-1" value="" edge="1" parent="1" source="density-guide-1-a" target="density-guide-1-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="branches-panel" value="&lt;b&gt;主要构造与方法分支&lt;/b&gt;" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#63758A;align=left;verticalAlign=top;spacing=10;dashed=1;dashPattern=6 4;">
-          <mxGeometry as="geometry" x="40" y="385" width="1665" height="300" />
+        <mxCell id="density-dot-1" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#2D6D91;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="161.1" y="413.42004005530987" width="10" height="10" as="geometry" />
         </mxCell>
-        <mxCell id="branch-0" value="&lt;b&gt;原始 MLE&lt;/b&gt;&lt;br&gt;保留原始密度准则；区分局部候选、边界响应与全局存在性。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="70" y="445" width="500" height="82" />
+        <mxCell id="density-x-1" value="x₍₁₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=22;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="116.1" y="519" width="100" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="branch-edge-0" value="" parent="1" edge="1" source="principle" target="branch-0" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+        <mxCell id="density-guide-2-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="240.04999999999998" y="500" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-2-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="240.04999999999998" y="315.8089050715171" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-2" value="" edge="1" parent="1" source="density-guide-2-a" target="density-guide-2-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="branch-1" value="&lt;b&gt;WMLE&lt;/b&gt;&lt;br&gt;在估计方程中加入样本量相关权重，仍以似然方程为骨架。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="615" y="445" width="500" height="82" />
+        <mxCell id="density-dot-2" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#2D6D91;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="235.04999999999998" y="310.8089050715171" width="10" height="10" as="geometry" />
         </mxCell>
-        <mxCell id="branch-edge-1" value="" parent="1" edge="1" source="principle" target="branch-1" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+        <mxCell id="density-x-2" value="x₍₂₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=22;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="190.04999999999998" y="519" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-3-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="347.15" y="500" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-3-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="347.15" y="324.26481563760177" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-3" value="" edge="1" parent="1" source="density-guide-3-a" target="density-guide-3-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="branch-2" value="&lt;b&gt;MMLE 分支&lt;/b&gt;&lt;br&gt;以最小值、均值、方差或中位数关系替换部分位置方程；同名分支需分开。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="1160" y="445" width="500" height="82" />
+        <mxCell id="density-dot-3" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#2D6D91;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="342.15" y="319.26481563760177" width="10" height="10" as="geometry" />
         </mxCell>
-        <mxCell id="branch-edge-2" value="" parent="1" edge="1" source="principle" target="branch-2" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+        <mxCell id="density-x-3" value="x₍ᵢ₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=22;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="297.15" y="519" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-4-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="474.65000000000003" y="500" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-4-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="474.65000000000003" y="448.1188233579984" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-guide-4" value="" edge="1" parent="1" source="density-guide-4-a" target="density-guide-4-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="branch-3" value="&lt;b&gt;K–R／DMMLE&lt;/b&gt;&lt;br&gt;最小值定位、删点与偏差修正组合；来源和作用环节分别记录。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="70" y="550" width="500" height="82" />
+        <mxCell id="density-dot-4" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#2D6D91;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="469.65000000000003" y="443.1188233579984" width="10" height="10" as="geometry" />
         </mxCell>
-        <mxCell id="branch-edge-3" value="" parent="1" edge="1" source="principle" target="branch-3" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+        <mxCell id="density-x-4" value="x₍ₙ₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=22;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="424.65000000000003" y="519" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="density-height" value="竖线高度给出各观测的 fθ(xᵢ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="135" y="570" width="500" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="density-formula" value="yᵢ=xᵢ−γ&gt;0&lt;br&gt;fθ(xᵢ)=(β/η)(yᵢ/η)^(β−1) exp[−(yᵢ/η)^β]" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="700" y="232" width="1015" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="schematic-caption" value="左图为密度贡献的原理示意" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#66788B;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="705" y="357" width="1010" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="minimum-factor" value="fθ(x₍₁₎)&lt;br&gt;最小观测的贡献" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B07530;fillColor=#FFF3DC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="720" y="425" width="280" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="remaining-factors" value="×  ∏ᵢ₌₂ⁿ fθ(x₍ᵢ₎)&lt;br&gt;其余观测的贡献" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1040" y="425" width="390" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="joint" value="L(θ)&lt;br&gt;联合似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="1490" y="425" width="220" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="density-product" value="" edge="1" parent="1" source="remaining-factors" target="joint" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="branch-4" value="&lt;b&gt;CMLE／罚似然&lt;/b&gt;&lt;br&gt;替换边界处密度项或加入经验因子，改变边界处理而非简单换求解器。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="615" y="550" width="500" height="82" />
+        <mxCell id="equation-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F5F8FC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="40" y="655" width="1720" height="425" as="geometry" />
         </mxCell>
-        <mxCell id="branch-edge-4" value="" parent="1" edge="1" source="principle" target="branch-4" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+        <mxCell id="equation-heading" value="② 取对数，把密度乘积转成可求导的参数函数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="674" width="1660" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="loglik" value="ℓ(θ)=ln L(θ)=n lnβ − nβ lnη + (β−1) Σᵢ ln yᵢ − Σᵢ(yᵢ/η)^β" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="85" y="738" width="1630" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="score" value="得分向量  U(θ)=∇θ ℓ(θ)&lt;br&gt;内点驻点满足&lt;br&gt;Uβ=0，Uη=0，Uγ=0" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="85" y="884" width="465" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="profile" value="先由尺度方程消去 η&lt;br&gt;η̂(β,γ)=[Σᵢ(xᵢ−γ)^β/n]^(1/β)&lt;br&gt;再求 β、γ 或比较剖面 ℓ" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="640" y="884" width="570" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="estimate" value="候选参数 θ̂=(β̂,η̂,γ̂)&lt;br&gt;比较目标值，检查支撑、&lt;br&gt;局部峰及边界响应" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#EEF8F3;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1310" y="884" width="405" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="joint-to-log" value="取对数：乘积变为求和" edge="1" parent="1" source="joint" target="loglik" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="1485" labelY="640">
+          <mxGeometry relative="1" as="geometry" x="-1.0">
+            <Array as="points">
+              <mxPoint x="1742" y="533" />
+              <mxPoint x="1742" y="779" />
+            </Array>
+            <mxPoint x="-115.0" y="107" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="log-to-score" value="对参数求偏导" edge="1" parent="1" source="loglik" target="score" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="450" labelY="849">
+          <mxGeometry relative="1" as="geometry" x="0.4899446371853913">
+            <Array as="points">
+              <mxPoint x="900" y="852" />
+              <mxPoint x="317" y="852" />
+            </Array>
+            <mxPoint x="0.0" y="-3.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="score-eliminate" value="Uη=0" edge="1" parent="1" source="score" target="profile" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="595" labelY="953">
+          <mxGeometry relative="1" as="geometry" x="0.0">
+            <mxPoint x="0.0" y="-3.5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="profile-estimate" value="求解／比较" edge="1" parent="1" source="profile" target="estimate" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="1255" labelY="953">
+          <mxGeometry relative="1" as="geometry" x="-0.09999999999999998">
+            <mxPoint x="0.0" y="-3.5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="modification-heading" value="③ 后续构造改变的是哪一个计算对象？" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=29;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="55" y="1097" width="1680" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="data-patch" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#C6DDD2;fillColor=#F2F8F5;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="40" y="1180" width="535" height="790" as="geometry" />
+        </mxCell>
+        <mxCell id="equation-patch" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#CED8EA;fillColor=#F5F7FC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="605" y="1180" width="570" height="790" as="geometry" />
+        </mxCell>
+        <mxCell id="objective-patch" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#E3D3BC;fillColor=#FFF8F0;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1205" y="1180" width="555" height="790" as="geometry" />
+        </mxCell>
+        <mxCell id="data-patch-title" value="改数据与位置处理" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="62" y="1200" width="485" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="equation-patch-title" value="改求解方程" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="628" y="1200" width="520" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="objective-patch-title" value="改最小值项或目标函数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B07530;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1228" y="1200" width="505" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="kr-title" value="K–R：最小值定位、删除该点" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="1258" width="480" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="kr-minimum" value="x₍₁₎&lt;br&gt;用于 γ̂=x₍₁₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#E8F2ED;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="70" y="1320" width="190" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="kr-retained" value="x₍₂₎，…，x₍ₙ₎&lt;br&gt;保留并作平移" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="310" y="1320" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="kr-delete-mark-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="74" y="1339" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="kr-delete-mark-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="111" y="1376" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="kr-delete-mark" value="" edge="1" parent="1" source="kr-delete-mark-a" target="kr-delete-mark-b" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B07530;fontColor=#B07530;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="tags-panel" value="&lt;b&gt;实现与改进标签（横向，不另立一级类别）&lt;/b&gt;" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=23;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#7F6B93;align=left;verticalAlign=top;spacing=10;dashed=1;dashPattern=6 4;">
-          <mxGeometry as="geometry" x="40" y="725" width="1665" height="175" />
+        <mxCell id="kr-data" value="yᵢ*=x₍ᵢ₎−x₍₁₎&gt;0，i=2,…,n&lt;br&gt;有效样本数 q=n−1" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="70" y="1440" width="460" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="tag-0" value="方程加权" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="70" y="785" width="365" height="42" />
+        <mxCell id="kr-likelihood" value="修改数据目标&lt;br&gt;ℓKR(β,η)=Σᵢ₌₂ⁿ ln f₂(yᵢ*;β,η)&lt;br&gt;只对保留的正距离估 β、η" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="70" y="1555" width="460" height="130" as="geometry" />
         </mxCell>
-        <mxCell id="tag-edge-0" value="" parent="1" edge="1" source="info" target="tag-0" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+        <mxCell id="kr-shift" value="平移、删点后组成目标" edge="1" parent="1" source="kr-retained" target="kr-likelihood" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#347B68;fontColor=#347B68;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="302" labelY="1535">
+          <mxGeometry relative="1" as="geometry" x="0.9043478260869566">
+            <Array as="points">
+              <mxPoint x="550" y="1365" />
+              <mxPoint x="550" y="1535" />
+              <mxPoint x="300" y="1535" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dmmle" value="DMMLE：在修改数据得分上加修正&lt;br&gt;UKR=∂ℓKR/∂(β,η)&lt;br&gt;求解  UKR + AFirth = 0" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#347B68;fillColor=#EAF5EE;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="70" y="1760" width="460" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="kr-score-adjust" value="求导后加入偏差修正项" edge="1" parent="1" source="kr-likelihood" target="dmmle" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#347B68;fontColor=#347B68;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="300" labelY="1725">
+          <mxGeometry relative="1" as="geometry" x="0.06666666666666665">
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wmle-equations" value="WMLE：权重进入形状／位置方程&lt;br&gt;S(r)=Σᵢ yᵢʳ，H(r)=Σᵢ yᵢʳ ln yᵢ&lt;br&gt;J₂/β + 平均ln y − H(β)/S(β) = 0&lt;br&gt;平均(1/y) · S(β)/S(β−1) = J₃&lt;br&gt;η^β = S(β)/(nJ₁)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="635" y="1290" width="510" height="255" as="geometry" />
+        </mxCell>
+        <mxCell id="weights" value="J₁、J₂由 n 确定；J₃依赖 n 与 β&lt;br&gt;联立更新 β、γ，再恢复 η" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="642" y="1550" width="495" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="cw-replacement" value="Cohen–Whitten：保留 Uβ=0、Uη=0&lt;br&gt;把 Uγ=0 换成另一统计关系&lt;br&gt;例：MMLE-II 使用最小值期望" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="635" y="1690" width="510" height="118" as="geometry" />
+        </mxCell>
+        <mxCell id="cw-minimum-expectation" value="x₍₁₎ = γ + η n^(−1/β) Γ(1+1/β)&lt;br&gt;与保留的两条似然方程联立" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2D6D91;fillColor=#EEF2FA;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="635" y="1840" width="510" height="91" as="geometry" />
+        </mxCell>
+        <mxCell id="cw-substitute" value="" edge="1" parent="1" source="cw-replacement" target="cw-minimum-expectation" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="tag-1" value="位置／支持边界" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="475" y="785" width="365" height="42" />
+        <mxCell id="cmle-interval" value="CMLE：将最小值密度贡献改为区间概率&lt;br&gt;fθ(x₍₁₎)  →  Fθ(x₍₁₎+h)−Fθ(x₍₁₎)&lt;br&gt;其余观测仍贡献各自的密度" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B07530;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1235" y="1290" width="495" height="165" as="geometry" />
         </mxCell>
-        <mxCell id="tag-edge-1" value="" parent="1" edge="1" source="principle" target="tag-1" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="cmle-target" value="ℓCMLE = ln[Fθ(x₍₁₎+h)−Fθ(x₍₁₎)]&lt;br&gt;+ Σᵢ₌₂ⁿ ln fθ(x₍ᵢ₎)&lt;br&gt;区间宽度 h 参与边界处理" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B07530;fillColor=#FFF3E2;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1235" y="1495" width="495" height="142" as="geometry" />
         </mxCell>
-        <mxCell id="tag-2" value="偏差修正" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="880" y="785" width="365" height="42" />
+        <mxCell id="cmle-replace" value="替换后重组目标" edge="1" parent="1" source="cmle-interval" target="cmle-target" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#B07530;fontColor=#B07530;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="1482" labelY="1474">
+          <mxGeometry relative="1" as="geometry" x="-0.050000000000000044">
+            <mxPoint x="-0.5" y="0.0" as="offset" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="tag-edge-2" value="" parent="1" edge="1" source="info" target="tag-2" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="penalty" value="罚似然：给目标增加经验因子&lt;br&gt;ℓpen(θ)=ℓ(θ)+ln p(γ)&lt;br&gt;Hall–Wang：p(γ)=(x₍₁₎−γ)/(x₍₂₎−γ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B07530;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1235" y="1730" width="495" height="170" as="geometry" />
         </mxCell>
-        <mxCell id="tag-3" value="初值与搜索" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="1285" y="785" width="365" height="42" />
+        <mxCell id="penalty-result" value="重新比较带惩罚的参数目标" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1245" y="1910" width="475" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="tag-edge-3" value="" parent="1" edge="1" source="principle" target="tag-3" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="data-interface" value="" edge="1" parent="1" source="sample" target="kr-minimum" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#347B68;fontColor=#347B68;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=10 4 2 4;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:53,59,70">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="18" y="249" />
+              <mxPoint x="18" y="1365" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="tag-4" value="PSO／SA／DE求解既定目标" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="70" y="840" width="365" height="42" />
+        <mxCell id="score-interface" value="修改得分的代数方程" edge="1" parent="1" source="score" target="wmle-equations" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2D6D91;fontColor=#2D6D91;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=10 4 2 4;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:58,61,63" labelX="890" labelY="1154">
+          <mxGeometry relative="1" as="geometry" x="0.6738615997364577">
+            <Array as="points">
+              <mxPoint x="317" y="1100" />
+              <mxPoint x="890" y="1100" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="tag-edge-4" value="" parent="1" edge="1" source="info" target="tag-4" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="minimum-interface" value="替换最小观测项" edge="1" parent="1" source="minimum-factor" target="cmle-interval" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#B07530;fontColor=#B07530;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=10 4 2 4;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:60" labelX="1550" labelY="1154">
+          <mxGeometry relative="1" as="geometry" x="0.7021488739054313">
+            <Array as="points">
+              <mxPoint x="860" y="600" />
+              <mxPoint x="1782" y="600" />
+              <mxPoint x="1782" y="1372" />
+            </Array>
+            <mxPoint x="-232.0" y="0.0" as="offset" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="caution" value="&lt;b&gt;解释边界&lt;/b&gt;&lt;br&gt;采用智能优化器搜索同一似然目标时，仍属于似然路线；有限搜索不自动证明全局MLE存在。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6B5310;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFFBEA;strokeColor=#B18B2C;align=left;verticalAlign=middle;spacing=10;">
-          <mxGeometry as="geometry" x="40" y="945" width="1665" height="90" />
+        <mxCell id="source-note" value="公式依据：Cousineau（2009）式(2)–(3)；Cohen–Whitten（1982）MMLE-II；Cheng–Iles（1987）式(10)；Hall–Wang（2005）式(2.4)–(2.5)。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#66788B;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="55" y="2010" width="1690" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
