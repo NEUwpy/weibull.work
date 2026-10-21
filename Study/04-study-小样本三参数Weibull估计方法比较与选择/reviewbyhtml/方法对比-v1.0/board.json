@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 3,
+  "revision": 4,
   "require_confirmation": true,
   "archive_plan": "保存本次v1.0内容审阅的结果：\n1. 将审定文字、图表及局部选择写入 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md；未选择的候选不代选，尚未实施的研究思路不写成已得到的结论。\n2. 正文使用本任务assets中的PNG，核对图像、数据口径及引用；根据实际内容更新总体README和结果呈现README。\n3. 保留原v0.4及其HTML存档；沿用 reviewbyhtml/方法对比-v1.0/ 保存本任务HTML、内容源、素材、批注及历史，以Git记录版本，草稿和运行状态留在本地。\n4. 本次候选复用v0.4图表与已核对材料；尚待验证的机制研究，在用户明确决定开展后继续。",
   "source_document": "../../报告下（方法对比）-v1.0.md",
@@ -73,11 +73,9 @@
     {
       "id": "chapter-2",
       "title": "2　代表方法的性能差异",
-      "mode": "choices",
-      "inline": true,
-      "state": "open",
-      "selected": null,
-      "context": "开场比较图的两种候选，均复用v0.4。",
+      "mode": "content",
+      "state": "modify",
+      "selected": "gap-overview",
       "options": [
         {
           "id": "gap-overview",
@@ -101,28 +99,6 @@
               "kind": "text",
               "html": "<p><em>图注：每格为七法RMSE中位数高于该条件最小值的百分比；三列共用色标。</em></p>",
               "markdown": "*图注：每格为七法RMSE中位数高于该条件最小值的百分比；三列共用色标。*"
-            }
-          ]
-        },
-        {
-          "id": "gap-methods",
-          "label": "B　同一样本量下的方法对照",
-          "blocks": [
-            {
-              "id": "rose-n50-opening",
-              "kind": "image",
-              "src": "assets/RMSE玫瑰图_n50_八档β.png",
-              "alt": "n=50，β=1.5至5的八组RMSE玫瑰图与MM数值"
-            },
-            {
-              "id": "gap-methods-reading",
-              "kind": "text",
-              "html": "<p>在n=50时，各方法已经表现出差异。低β下，形状误差较小的方法未必同时具有较小的位置误差；β增大后，三项参数的误差关系也随之改变。同一方法在不同参数上的优势并不一致。</p>"
-            },
-            {
-              "id": "gap-methods-caption",
-              "kind": "text",
-              "html": "<p><small>n=50，八档β。半径为标准化RMSE；六法共用线性量程，MM的数值另列。</small></p>"
             }
           ]
         }
@@ -391,12 +367,54 @@
     },
     {
       "id": "mechanism-high-beta",
-      "title": "4.2　高β下的分化与偏移",
-      "mode": "choices",
-      "inline": true,
-      "state": "open",
-      "selected": null,
-      "context": "重点解释的第二类现象：A、B已有证据，C为尚待验证的新研究方向。",
+      "title": "4.2　样本最小值与K–R的位置偏移",
+      "mode": "content",
+      "state": "modify",
+      "selected": "mechanism-minimum",
+      "options": [
+        {
+          "id": "mechanism-minimum",
+          "label": "B　K–R：最小值定位带来的系统偏移",
+          "blocks": [
+            {
+              "id": "background-sample-origin",
+              "kind": "image",
+              "src": "assets/R00_图2_样本与真实起点.png",
+              "alt": "Research00报告1图2：样本与真实起点",
+              "markdown": "![Research00报告1图2：样本与真实起点](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/R00_图2_样本与真实起点.png)"
+            },
+            {
+              "id": "kr-minimum-theory",
+              "kind": "text",
+              "markdown": "K–R直接以样本最小值估计位置参数。样本最小值通常高于真实起点；在本轮β范围内，n减小或β增大，二者的期望距离增大，位置正偏差随之加重。本轮40个条件中，K–R的位置估计均等于样本最小值，经验偏差与最小值分布给出的理论趋势一致。",
+              "html": "<p>K–R直接以样本最小值估计位置参数。样本最小值通常高于真实起点；在本轮β范围内，n减小或β增大，二者的期望距离增大，位置正偏差随之加重。本轮40个条件中，K–R的位置估计均等于样本最小值，经验偏差与最小值分布给出的理论趋势一致。</p>"
+            },
+            {
+              "id": "kr-theoretical-bias",
+              "kind": "text",
+              "html": "<p>位置偏差的理论期望为</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>E</mi><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>−</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mi>η</mi><mtext> </mtext><mi mathvariant=\"normal\">Γ</mi><mo stretchy=\"false\">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi><mo stretchy=\"false\">)</mo><mtext> </mtext><msup><mi>n</mi><mrow><mo>−</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span>"
+            },
+            {
+              "id": "kr-bias-interpretation",
+              "kind": "text",
+              "markdown": "这个定位规则直接将样本最小值与真实起点之间的距离带入位置估计。β较大时，最小值靠近真实起点的速度较慢，因此即使增加样本，位置正偏差仍可能较明显。位置偏高又会改变用于恢复形状和尺度的剩余距离。\n\nLSE、LRE的双峰与K–R的系统偏差具有不同的形成路径：前者涉及样本间的边界与内部选解，后者由最小值定位直接带入。它们共同表明，参数估计的偏移和分化需要结合具体的位置处理规则理解。",
+              "html": "<p>这个定位规则直接将样本最小值与真实起点之间的距离带入位置估计。β较大时，最小值靠近真实起点的速度较慢，因此即使增加样本，位置正偏差仍可能较明显。位置偏高又会改变用于恢复形状和尺度的剩余距离。</p>"
+            },
+            {
+              "id": "kr-image-source",
+              "kind": "text",
+              "html": "<p><small>图为Research00的起点信息示意，参数条件与本轮统计分开；公式适用于独立完整Weibull样本，本轮40条件已核对定位规则及经验趋势。</small></p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mechanism-boundary",
+      "title": "4.3　LSE与LRE的边界选解及参数补偿",
+      "mode": "content",
+      "state": "converged",
+      "selected": "mechanism-boundary",
       "options": [
         {
           "id": "mechanism-boundary",
@@ -451,62 +469,6 @@
               "kind": "text",
               "markdown": "上排的估计点主要沿η+γ近似不变的方向分布。γ取零的一组对应较大的η，γ偏大的一组对应较小的η，两类解保持了相近的寿命水平。η+γ恰好是63.2%失效分位寿命；在图示β=5、n=50和7条件下，该组合量的误差小于两个参数各自的误差。这也解释了参数估计分化与部分寿命指标相对稳定可以同时出现。",
               "html": "<p>上排的估计点主要沿η+γ近似不变的方向分布。γ取零的一组对应较大的η，γ偏大的一组对应较小的η，两类解保持了相近的寿命水平。η+γ恰好是63.2%失效分位寿命；在图示β=5、n=50和7条件下，该组合量的误差小于两个参数各自的误差。这也解释了参数估计分化与部分寿命指标相对稳定可以同时出现。</p>"
-            }
-          ]
-        },
-        {
-          "id": "mechanism-minimum",
-          "label": "B　K–R：最小值定位带来的系统偏移",
-          "blocks": [
-            {
-              "id": "background-sample-origin",
-              "kind": "image",
-              "src": "assets/R00_图2_样本与真实起点.png",
-              "alt": "Research00报告1图2：样本与真实起点",
-              "markdown": "![Research00报告1图2：样本与真实起点](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/R00_图2_样本与真实起点.png)"
-            },
-            {
-              "id": "kr-minimum-theory",
-              "kind": "text",
-              "markdown": "K–R直接以样本最小值估计位置参数。样本最小值通常高于真实起点；在本轮β范围内，n减小或β增大，二者的期望距离增大，位置正偏差随之加重。本轮40个条件中，K–R的位置估计均等于样本最小值，经验偏差与最小值分布给出的理论趋势一致。",
-              "html": "<p>K–R直接以样本最小值估计位置参数。样本最小值通常高于真实起点；在本轮β范围内，n减小或β增大，二者的期望距离增大，位置正偏差随之加重。本轮40个条件中，K–R的位置估计均等于样本最小值，经验偏差与最小值分布给出的理论趋势一致。</p>"
-            },
-            {
-              "id": "kr-theoretical-bias",
-              "kind": "text",
-              "html": "<p>位置偏差的理论期望为</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>E</mi><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>−</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mi>η</mi><mtext> </mtext><mi mathvariant=\"normal\">Γ</mi><mo stretchy=\"false\">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi><mo stretchy=\"false\">)</mo><mtext> </mtext><msup><mi>n</mi><mrow><mo>−</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span>"
-            },
-            {
-              "id": "kr-bias-interpretation",
-              "kind": "text",
-              "markdown": "这个定位规则直接将样本最小值与真实起点之间的距离带入位置估计。β较大时，最小值靠近真实起点的速度较慢，因此即使增加样本，位置正偏差仍可能较明显。位置偏高又会改变用于恢复形状和尺度的剩余距离。\n\nLSE、LRE的双峰与K–R的系统偏差具有不同的形成路径：前者涉及样本间的边界与内部选解，后者由最小值定位直接带入。它们共同表明，参数估计的偏移和分化需要结合具体的位置处理规则理解。",
-              "html": "<p>这个定位规则直接将样本最小值与真实起点之间的距离带入位置估计。β较大时，最小值靠近真实起点的速度较慢，因此即使增加样本，位置正偏差仍可能较明显。位置偏高又会改变用于恢复形状和尺度的剩余距离。</p>"
-            },
-            {
-              "id": "kr-image-source",
-              "kind": "text",
-              "html": "<p><small>图为Research00的起点信息示意，参数条件与本轮统计分开；公式适用于独立完整Weibull样本，本轮40条件已核对定位规则及经验趋势。</small></p>"
-            }
-          ]
-        },
-        {
-          "id": "mechanism-proposed",
-          "label": "C　待补研究：MDM与WMLE的方向性偏移",
-          "blocks": [
-            {
-              "id": "proposed-status",
-              "kind": "text",
-              "html": "<p><strong>研究候选，尚未形成机制结论。</strong></p><p>高β、小n下，MDM与WMLE都出现位置偏高、尺度及形状偏低的表现。两者构造不同，需要分别核对偏移在哪个环节形成，不能直接套用LSE/LRE或K–R的解释。</p>"
-            },
-            {
-              "id": "proposed-mechanisms-table",
-              "kind": "visual",
-              "html": "<table><thead><tr><th>对象</th><th>待核环节</th><th>需要辨别的问题</th></tr></thead><tbody><tr><td>MDM-0.1</td><td>差异判据、梯度阈值与候选位置</td><td>偏移来自判据本身，还是与阈值、选解设置共同有关？</td></tr><tr><td>WMLE</td><td>加权方程的解支、边界及候选选择</td><td>偏移对应哪些方程解，数值求解规则是否改变了结果分布？</td></tr></tbody></table>"
-            },
-            {
-              "id": "proposed-check",
-              "kind": "text",
-              "html": "<p>可以复用已有原样本，先检查偏移在参数恢复过程中的形成位置，再针对有关环节作对照。所需诊断及是否进入本次报告，待选择后讨论。</p>"
             }
           ]
         }
@@ -664,7 +626,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "4e12394d-05c3-4558-98dc-caa0484efb53",
-  "last_rendered_submission_id": "4e12394d-05c3-4558-98dc-caa0484efb53",
-  "outline_confirmed": true
+  "last_applied_submission_id": "7379f6c4-e527-4815-b1b9-b24575f08c61",
+  "last_rendered_submission_id": "7379f6c4-e527-4815-b1b9-b24575f08c61",
+  "outline_confirmed": true,
+  "review_complete": false
 }
