@@ -8,7 +8,6 @@ import json
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import numpy as np
 
 STUDY = Path(__file__).resolve().parents[2]
@@ -50,13 +49,18 @@ def save(fig, name):
 
 
 def trajectories(distances):
-    fig, axes = plt.subplots(2, 3, figsize=(13, 7), sharex=True, sharey='col')
+    fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharex=True, sharey='col')
     x = np.arange(5)
+    colors = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#A97500']
+    styles = ['-', '--', ':']
+    markers = ['o', 's', 'D']
     for row, j in enumerate([0, 7]):
         for p, ax in enumerate(axes[row]):
-            for k in range(15):
-                ax.plot(x, distances[p, :, j, k], color='#9aaab7', lw=.8, alpha=.65)
-            ax.plot(x, np.median(distances[p, :, j], axis=-1), color='#0072B2', lw=2.4, marker='o', ms=4)
+            for k, (a, b) in enumerate(PAIRS):
+                group = k // 5
+                ax.plot(x, distances[p, :, j, k], color=colors[k % 5],
+                        ls=styles[group], marker=markers[group], lw=1.3, ms=3.2,
+                        alpha=.9, label=LABELS[a] + ' / ' + LABELS[b])
             ax.set_xticks(x, NS)
             ax.grid(axis='y', color='#e0e5e9', lw=.7)
             if row == 0:
@@ -67,63 +71,47 @@ def trajectories(distances):
                 ax.set_ylabel(f'β = {BETAS[j]:g}\nPairwise RMSE distance')
     for p in range(3):
         axes[0, p].set_ylim(0, distances[p, :, [0, 7]].max() * 1.08)
-    fig.legend(handles=[Line2D([], [], color='#9aaab7', lw=1, label='15 method pairs'),
-                        Line2D([], [], color='#0072B2', lw=2.4, marker='o', label='Median pair distance')],
-               loc='upper center', bbox_to_anchor=(.5, 1.02), ncol=2, frameon=False)
-    fig.tight_layout(rect=(0, 0, 1, .96), h_pad=2)
-    return save(fig, '方法差距变化_A_距离轨迹.png')
+    fig.legend(*axes[0, 0].get_legend_handles_labels(),
+               loc='upper center', bbox_to_anchor=(.5, 1.01), ncol=5,
+               frameon=False, fontsize=10)
+    fig.tight_layout(rect=(0, 0, 1, .88), h_pad=2)
+    return save(fig, '方法差距变化_A_逐对轨迹.png')
 
 
 def pair_change_maps(distances):
-    change = distances[:, -1] - distances[:, 0]
-    fig, axes = plt.subplots(1, 3, figsize=(14, 6.6))
+    stages = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)]
+    changes = [distances[:, end] - distances[:, start] for start, end in stages]
+    np.testing.assert_allclose(sum(changes[:4]), changes[4], atol=1e-14)
+    limits = np.max(np.abs(np.stack(changes)), axis=(0, 2, 3))
     labels = [LABELS[a] + ' / ' + LABELS[b] for a, b in PAIRS]
-    for p, ax in enumerate(axes):
-        vmax = float(abs(change[p]).max())
-        img = ax.imshow(change[p].T, cmap='RdBu_r', vmin=-vmax, vmax=vmax, aspect='auto')
-        ax.set_title(SYMBOLS[p], pad=12)
-        ax.set_xticks(range(8), [f'{x:g}' for x in BETAS])
-        ax.set_xlabel('β')
-        ax.set_yticks(range(15), labels if p == 0 else [])
-        ax.tick_params(length=0)
-        for spine in ax.spines.values():
-            spine.set_visible(False)
-        bar = fig.colorbar(img, ax=ax, fraction=.045, pad=.035)
-        bar.ax.set_ylabel('Distance(n=7) − Distance(n=50)')
-    fig.tight_layout(w_pad=2.4)
-    return save(fig, '方法差距变化_B_逐对变化.png')
-
-
-def change_maps(distances):
-    median = np.median(distances, axis=-1)
-    change = median[:, 1:] - median[:, :1]
-    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.4))
-    for p, ax in enumerate(axes):
-        vmax = float(abs(change[p]).max())
-        img = ax.imshow(change[p], cmap='RdBu_r', vmin=-vmax, vmax=vmax, aspect='auto')
-        ax.set_title(SYMBOLS[p], pad=12)
-        ax.set_xticks(range(8), [f'{x:g}' for x in BETAS])
-        ax.set_yticks(range(4), NS[1:])
-        ax.set_xlabel('β')
-        if p == 0:
-            ax.set_ylabel('n')
-        ax.tick_params(length=0)
-        for spine in ax.spines.values():
-            spine.set_visible(False)
-        bar = fig.colorbar(img, ax=ax, fraction=.045, pad=.035)
-        bar.ax.set_ylabel('Median distance(n) − Median distance(n=50)')
-    fig.tight_layout(w_pad=2.3)
-    return save(fig, '方法差距变化_C_距离变化全图.png')
+    outputs = []
+    for (start, end), change in zip(stages, changes):
+        fig, axes = plt.subplots(1, 3, figsize=(14, 6.6))
+        for p, ax in enumerate(axes):
+            img = ax.imshow(change[p].T, cmap='RdBu_r', vmin=-limits[p], vmax=limits[p], aspect='auto')
+            ax.set_title(SYMBOLS[p], pad=12)
+            ax.set_xticks(range(8), [f'{x:g}' for x in BETAS])
+            ax.set_xlabel('β')
+            ax.set_yticks(range(15), labels if p == 0 else [])
+            ax.tick_params(length=0)
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+            bar = fig.colorbar(img, ax=ax, fraction=.045, pad=.035)
+            bar.ax.set_ylabel(f'Distance(n={NS[end]}) − Distance(n={NS[start]})')
+        fig.tight_layout(w_pad=2.4)
+        outputs.append(save(fig, f'方法差距变化_B_n{NS[start]}到{NS[end]}.png'))
+    return outputs
 
 
 def main():
     plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 11,
                          'axes.titlesize': 15, 'axes.spines.top': False, 'axes.spines.right': False})
     distances = read_distances()
-    outputs = [trajectories(distances), pair_change_maps(distances), change_maps(distances)]
+    outputs = [trajectories(distances), *pair_change_maps(distances)]
     audit = dict(source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
                  subset='seven-method common valid; display six methods', n=NS, beta=BETAS,
                  distance='abs(normalized_RMSE_i - normalized_RMSE_j)',
+                 change_stages=[[50, 20], [20, 15], [15, 10], [10, 7], [50, 7]],
                  methods=METHODS, pairs=PAIRS, distances=distances.tolist(), outputs=outputs)
     (SOURCE.parent / '方法差距变化核验.json').write_text(
         json.dumps(audit, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
