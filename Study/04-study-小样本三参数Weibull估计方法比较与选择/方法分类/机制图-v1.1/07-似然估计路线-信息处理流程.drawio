@@ -1,68 +1,859 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" version="26.0.9">
-  <diagram id="likelihood-information-flow" name="似然估计｜从观测处的密度构造联合似然，再以整体贡献定参数">
-    <mxGraphModel page="1" pageWidth="2000" pageHeight="1060" background="#ffffff">
+  <diagram id="likelihood-visual-flow-v11" name="似然估计：四步可视信息处理流程">
+    <mxGraphModel page="1" pageWidth="2000" pageHeight="1530" background="#ffffff">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="似然估计｜从观测处的密度构造联合似然，再以整体贡献定参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+        <mxCell id="title" value="似然估计｜固定观测，比较不同参数下整组样本的密度贡献" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=36;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
           <mxGeometry x="45" y="20" width="1910" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="固定已经观测到的寿命；不同候选参数改变各观测处的密度，所有观测的贡献共同进入准则。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="45" y="100" width="1910" height="65" as="geometry" />
+        <mxCell id="subtitle" value="独立完整样本；θ=(β,η,γ)，β&gt;0、η&gt;0、γ&lt;x₍₁₎。图中的曲线和参数截面均为原理示意。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="50" y="100" width="1900" height="48" as="geometry" />
         </mxCell>
-        <mxCell id="construction-heading" value="怎样构造似然函数？" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="50" y="190" width="1900" height="50" as="geometry" />
+        <mxCell id="step1" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F3F7FB;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="40" y="180" width="900" height="520" as="geometry" />
         </mxCell>
-        <mxCell id="construction-0" value="① 将观测代入Weibull密度&lt;br&gt;yᵢ=xᵢ−γ&gt;0&lt;br&gt;fθ(xᵢ)=(β/η)(yᵢ/η)^(β−1)&lt;br&gt;×exp[−(yᵢ/η)^β]&lt;br&gt;每个观测对应一个密度贡献" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#F7F9FC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="50" y="260" width="540" height="235" as="geometry" />
+        <mxCell id="step1-title" value="① 固定样本，提出候选参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="198" width="850" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="construction-1" value="② 利用独立性组合观测贡献&lt;br&gt;L(θ)=fθ(x₁)×…×fθ(xₙ)&lt;br&gt;=∏ᵢ fθ(xᵢ)&lt;br&gt;把整组样本在候选θ下的&lt;br&gt;联合密度作为参数函数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#F7F9FC;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="730" y="260" width="540" height="235" as="geometry" />
+        <mxCell id="step2" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#FFF7F3;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1060" y="180" width="900" height="520" as="geometry" />
         </mxCell>
-        <mxCell id="construction-edge-1" value="" edge="1" parent="1" source="construction-0" target="construction-1" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="step2-title" value="② 在每个观测处读出候选密度" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1085" y="198" width="850" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#FFF8F0;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="40" y="825" width="900" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-title" value="③ 将全部密度贡献组成同一评分" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="843" width="850" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F2F8F4;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1060" y="825" width="900" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="step4-title" value="④ 比较评分，确定参数候选" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1085" y="843" width="850" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="observed-label" value="已经观测到的寿命" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=27;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="80" y="280" width="810" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="data-axis-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="100" y="435" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-axis-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="865" y="435" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-axis" value="" edge="1" parent="1" source="data-axis-a" target="data-axis-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#6B7B8D;fontColor=#6B7B8D;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="construction-2" value="③ 取对数，把乘积变成求和&lt;br&gt;ℓ(θ)=Σᵢ ln fθ(xᵢ)&lt;br&gt;=n lnβ−nβ lnη+(β−1)Σᵢ ln yᵢ&lt;br&gt;−Σᵢ(yᵢ/η)^β&lt;br&gt;取对数保持最大点不变" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#EDF5EF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="1410" y="260" width="540" height="235" as="geometry" />
+        <mxCell id="data-tick-0-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="284.6" y="422" width="0" height="0" as="geometry" />
         </mxCell>
-        <mxCell id="construction-edge-2" value="" edge="1" parent="1" source="construction-1" target="construction-2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="data-tick-0-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="284.6" y="448" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-0" value="" edge="1" parent="1" source="data-tick-0-a" target="data-tick-0-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#337695;fontColor=#337695;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="maximum" value="④ 原始MLE：选择联合贡献最大的候选&lt;br&gt;θ̂=argmaxθ ℓ(θ)&lt;br&gt;哪组参数使整组已观测寿命的联合密度最大，就选哪组" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFF3ED;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
-          <mxGeometry x="150" y="690" width="790" height="170" as="geometry" />
+        <mxCell id="data-point-0" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#337695;fillColor=#337695;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="276.6" y="392" width="16" height="16" as="geometry" />
         </mxCell>
-        <mxCell id="equations" value="由同一ℓ导出方程式构造&lt;br&gt;内点候选满足 ∂ℓ/∂β=∂ℓ/∂η=∂ℓ/∂γ=0&lt;br&gt;方程修正方法在这些关系中加权或替换部分方程，再联立求解" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A94F40;fillColor=#FFF8F4;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="1060" y="690" width="790" height="170" as="geometry" />
+        <mxCell id="data-label-0" value="x₍₁₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="232.60000000000002" y="455" width="104" height="42" as="geometry" />
         </mxCell>
-        <mxCell id="to-max" value="" edge="1" parent="1" source="construction-2" target="maximum" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="data-tick-1-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="375.79999999999995" y="422" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-1-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="375.79999999999995" y="448" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-1" value="" edge="1" parent="1" source="data-tick-1-a" target="data-tick-1-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#337695;fontColor=#337695;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="data-point-1" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#337695;fillColor=#337695;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="367.79999999999995" y="392" width="16" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="data-label-1" value="x₍₂₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="323.79999999999995" y="455" width="104" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-2-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="550.5999999999999" y="422" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-2-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="550.5999999999999" y="448" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-2" value="" edge="1" parent="1" source="data-tick-2-a" target="data-tick-2-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#337695;fontColor=#337695;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="data-point-2" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#337695;fillColor=#337695;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="542.5999999999999" y="392" width="16" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="data-label-2" value="x₍ᵢ₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="498.5999999999999" y="455" width="104" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-3-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="748.1999999999999" y="422" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-3-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="748.1999999999999" y="448" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="data-tick-3" value="" edge="1" parent="1" source="data-tick-3-a" target="data-tick-3-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#337695;fontColor=#337695;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="data-point-3" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#337695;fillColor=#337695;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="740.1999999999999" y="392" width="16" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="data-label-3" value="x₍ₙ₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="696.1999999999999" y="455" width="104" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="data-axis-label" value="寿命 x" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="777" y="491" width="130" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-a" value="候选 A&lt;br&gt;θA=(βA,ηA,γA)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#FFF1EB;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="95" y="565" width="330" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-b" value="候选 B&lt;br&gt;θB=(βB,ηB,γB)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#337695;fillColor=#EFF7FB;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="550" y="565" width="330" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="data-fixed" value="观测位置相同；候选模型可以不同" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=26;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="95" y="340" width="780" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="density-x-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1117" y="525" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-x-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1904" y="525" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-x" value="" edge="1" parent="1" source="density-x-a" target="density-x-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#6B7B8D;fontColor=#6B7B8D;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="density-y-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1135" y="535" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-y-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1135" y="292" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-y" value="" edge="1" parent="1" source="density-y-a" target="density-y-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#6B7B8D;fontColor=#6B7B8D;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="density-y-label" value="fθ(x)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1145" y="282" width="135" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="density-x-label" value="寿命 x" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1795" y="574" width="130" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="density-curve-a-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1135.0" y="525.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-curve-a-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1881.6399999999999" y="524.4498301453295" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-curve-a" value="" edge="1" parent="1" source="density-curve-a-a" target="density-curve-a-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1680" y="585" />
-              <mxPoint x="545" y="585" />
+              <mxPoint x="1139.88" y="525.0" />
+              <mxPoint x="1144.76" y="525.0" />
+              <mxPoint x="1149.64" y="525.0" />
+              <mxPoint x="1154.52" y="525.0" />
+              <mxPoint x="1159.4" y="525.0" />
+              <mxPoint x="1164.28" y="525.0" />
+              <mxPoint x="1169.16" y="525.0" />
+              <mxPoint x="1174.04" y="525.0" />
+              <mxPoint x="1178.92" y="525.0" />
+              <mxPoint x="1183.8" y="525.0" />
+              <mxPoint x="1188.68" y="521.1055335020384" />
+              <mxPoint x="1193.56" y="515.7413604764197" />
+              <mxPoint x="1198.44" y="509.6430132709536" />
+              <mxPoint x="1203.32" y="503.02448805349354" />
+              <mxPoint x="1208.2" y="496.00407713223007" />
+              <mxPoint x="1213.08" y="488.66181284897647" />
+              <mxPoint x="1217.96" y="481.0583877474824" />
+              <mxPoint x="1222.84" y="473.2433745204378" />
+              <mxPoint x="1227.72" y="465.25939356885" />
+              <mxPoint x="1232.6" y="457.1444452345919" />
+              <mxPoint x="1237.48" y="448.93330496543786" />
+              <mxPoint x="1242.36" y="440.6583965790458" />
+              <mxPoint x="1247.24" y="432.35035494198553" />
+              <mxPoint x="1252.12" y="424.0383939317143" />
+              <mxPoint x="1257.0" y="415.75054712202086" />
+              <mxPoint x="1261.88" y="407.51382243524756" />
+              <mxPoint x="1266.76" y="399.354297068808" />
+              <mxPoint x="1271.64" y="391.29717010574916" />
+              <mxPoint x="1276.52" y="383.3667847162681" />
+              <mxPoint x="1281.4" y="375.5866283416429" />
+              <mxPoint x="1286.28" y="367.979316940962" />
+              <mxPoint x="1291.16" y="360.56656782197433" />
+              <mxPoint x="1296.04" y="353.3691645002401" />
+              <mxPoint x="1300.92" y="346.4069162695065" />
+              <mxPoint x="1305.8" y="339.6986146161522" />
+              <mxPoint x="1310.68" y="333.2619882040591" />
+              <mxPoint x="1315.56" y="327.11365784889404" />
+              <mxPoint x="1320.44" y="321.26909266267967" />
+              <mxPoint x="1325.32" y="315.7425683603853" />
+              <mxPoint x="1330.2" y="310.5471285660713" />
+              <mxPoint x="1335.08" y="305.6945498270702" />
+              <mxPoint x="1339.96" y="301.19531093392357" />
+              <mxPoint x="1344.84" y="297.0585670464277" />
+              <mxPoint x="1349.72" y="293.2921290387321" />
+              <mxPoint x="1354.6" y="289.9024483965369" />
+              <mxPoint x="1359.48" y="286.89460792533635" />
+              <mxPoint x="1364.3600000000001" y="284.27231845917913" />
+              <mxPoint x="1369.24" y="282.0379216937583" />
+              <mxPoint x="1374.12" y="280.1923992053138" />
+              <mxPoint x="1379.0" y="278.7353876575247" />
+              <mxPoint x="1383.88" y="277.6652001421447" />
+              <mxPoint x="1388.76" y="276.9788535455844" />
+              <mxPoint x="1393.6399999999999" y="276.67210178299734" />
+              <mxPoint x="1398.52" y="276.7394746938209" />
+              <mxPoint x="1403.4" y="277.17432234827936" />
+              <mxPoint x="1408.28" y="277.9688644732596" />
+              <mxPoint x="1413.16" y="279.11424466837616" />
+              <mxPoint x="1418.04" y="280.60058904913524" />
+              <mxPoint x="1422.92" y="282.4170689240243" />
+              <mxPoint x="1427.8" y="284.55196708625897" />
+              <mxPoint x="1432.68" y="286.99274727889326" />
+              <mxPoint x="1437.56" y="289.7261263741615" />
+              <mxPoint x="1442.44" y="292.73814879429676" />
+              <mxPoint x="1447.32" y="296.0142626917037" />
+              <mxPoint x="1452.2" y="299.53939740121706" />
+              <mxPoint x="1457.08" y="303.29804167622507" />
+              <mxPoint x="1461.96" y="307.27432222356435" />
+              <mxPoint x="1466.8400000000001" y="311.45208205920414" />
+              <mxPoint x="1471.72" y="315.8149582176577" />
+              <mxPoint x="1476.6" y="320.34645836260745" />
+              <mxPoint x="1481.48" y="325.0300358641863" />
+              <mxPoint x="1486.3600000000001" y="329.84916292947844" />
+              <mxPoint x="1491.24" y="334.7874013968027" />
+              <mxPoint x="1496.12" y="339.8284708309517" />
+              <mxPoint x="1501.0" y="344.9563135854401" />
+              <mxPoint x="1505.88" y="350.15515652866486" />
+              <mxPoint x="1510.76" y="355.4095691633447" />
+              <mxPoint x="1515.6399999999999" y="360.70451790235256" />
+              <mxPoint x="1520.52" y="366.02541629873167" />
+              <mxPoint x="1525.4" y="371.3581710629454" />
+              <mxPoint x="1530.28" y="376.68922373592375" />
+              <mxPoint x="1535.16" y="382.0055879218805" />
+              <mxPoint x="1540.04" y="387.29488201988914" />
+              <mxPoint x="1544.92" y="392.5453574274917" />
+              <mxPoint x="1549.8" y="397.74592222289976" />
+              <mxPoint x="1554.68" y="402.8861603643537" />
+              <mxPoint x="1559.56" y="407.95634647569057" />
+              <mxPoint x="1564.44" y="412.9474563159083" />
+              <mxPoint x="1569.32" y="417.85117305731256" />
+              <mxPoint x="1574.2" y="422.6598895215152" />
+              <mxPoint x="1579.08" y="427.3667065449906" />
+              <mxPoint x="1583.96" y="431.9654276659612" />
+              <mxPoint x="1588.8400000000001" y="436.45055034200584" />
+              <mxPoint x="1593.72" y="440.81725392290093" />
+              <mxPoint x="1598.6" y="445.06138461578905" />
+              <mxPoint x="1603.48" y="449.1794376898211" />
+              <mxPoint x="1608.3600000000001" y="453.16853717496866" />
+              <mxPoint x="1613.24" y="457.0264133147873" />
+              <mxPoint x="1618.12" y="460.75137803562137" />
+              <mxPoint x="1623.0" y="464.34229869515184" />
+              <mxPoint x="1627.88" y="467.7985703714232" />
+              <mxPoint x="1632.76" y="471.12008694967244" />
+              <mxPoint x="1637.6399999999999" y="474.3072112585547" />
+              <mxPoint x="1642.52" y="477.36074449989076" />
+              <mxPoint x="1647.4" y="480.2818952069922" />
+              <mxPoint x="1652.28" y="483.0722479561468" />
+              <mxPoint x="1657.16" y="485.73373204412553" />
+              <mxPoint x="1662.04" y="488.2685903317998" />
+              <mxPoint x="1666.92" y="490.6793484403024" />
+              <mxPoint x="1671.8000000000002" y="492.9687844718111" />
+              <mxPoint x="1676.68" y="495.13989941216016" />
+              <mxPoint x="1681.56" y="497.1958883572478" />
+              <mxPoint x="1686.44" y="499.1401126897913" />
+              <mxPoint x="1691.3200000000002" y="500.9760733175201" />
+              <mxPoint x="1696.2" y="502.70738506854997" />
+              <mxPoint x="1701.08" y="504.33775232458146" />
+              <mxPoint x="1705.96" y="505.8709459578289" />
+              <mxPoint x="1710.84" y="507.3107816233355" />
+              <mxPoint x="1715.72" y="508.6610994446564" />
+              <mxPoint x="1720.6" y="509.92574511788257" />
+              <mxPoint x="1725.48" y="511.1085524467154" />
+              <mxPoint x="1730.3600000000001" y="512.2133273098277" />
+              <mxPoint x="1735.24" y="513.2438330511354" />
+              <mxPoint x="1740.12" y="514.2037772738645" />
+              <mxPoint x="1745.0" y="515.0968000104731" />
+              <mxPoint x="1749.88" y="515.9264632325851" />
+              <mxPoint x="1754.76" y="516.6962416581079" />
+              <mxPoint x="1759.6399999999999" y="517.4095148066409" />
+              <mxPoint x="1764.52" y="518.0695602491226" />
+              <mxPoint x="1769.4" y="518.6795479933633" />
+              <mxPoint x="1774.28" y="519.2425359436771" />
+              <mxPoint x="1779.16" y="519.7614663701805" />
+              <mxPoint x="1784.04" y="520.2391633214539" />
+              <mxPoint x="1788.92" y="520.6783309131026" />
+              <mxPoint x="1793.8000000000002" y="521.0815524242664" />
+              <mxPoint x="1798.68" y="521.4512901342421" />
+              <mxPoint x="1803.56" y="521.7898858320684" />
+              <mxPoint x="1808.44" y="522.0995619331002" />
+              <mxPoint x="1813.3200000000002" y="522.3824231382274" />
+              <mxPoint x="1818.2" y="522.6404585734106" />
+              <mxPoint x="1823.08" y="522.8755443495579" />
+              <mxPoint x="1827.96" y="523.0894464853994" />
+              <mxPoint x="1832.84" y="523.2838241388826" />
+              <mxPoint x="1837.72" y="523.4602330956553" />
+              <mxPoint x="1842.6" y="523.6201294663875" />
+              <mxPoint x="1847.48" y="523.7648735479527" />
+              <mxPoint x="1852.3600000000001" y="523.895733806821" />
+              <mxPoint x="1857.24" y="524.0138909463543" />
+              <mxPoint x="1862.12" y="524.1204420230223" />
+              <mxPoint x="1867.0" y="524.2164045798334" />
+              <mxPoint x="1871.88" y="524.3027207684839" />
+              <mxPoint x="1876.76" y="524.3802614348359" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="to-score" value="" edge="1" parent="1" source="construction-2" target="equations" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="density-curve-b-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1135.0" y="525.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-curve-b-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1881.6399999999999" y="524.5631272020412" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="density-curve-b" value="" edge="1" parent="1" source="density-curve-b-a" target="density-curve-b-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#337695;fontColor=#337695;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1680" y="625" />
-              <mxPoint x="1455" y="625" />
+              <mxPoint x="1139.88" y="525.0" />
+              <mxPoint x="1144.76" y="525.0" />
+              <mxPoint x="1149.64" y="525.0" />
+              <mxPoint x="1154.52" y="525.0" />
+              <mxPoint x="1159.4" y="525.0" />
+              <mxPoint x="1164.28" y="525.0" />
+              <mxPoint x="1169.16" y="525.0" />
+              <mxPoint x="1174.04" y="525.0" />
+              <mxPoint x="1178.92" y="525.0" />
+              <mxPoint x="1183.8" y="525.0" />
+              <mxPoint x="1188.68" y="525.0" />
+              <mxPoint x="1193.56" y="525.0" />
+              <mxPoint x="1198.44" y="524.992703396365" />
+              <mxPoint x="1203.32" y="524.9086941778329" />
+              <mxPoint x="1208.2" y="524.7043721718775" />
+              <mxPoint x="1213.08" y="524.3590463926117" />
+              <mxPoint x="1217.96" y="523.8575598720186" />
+              <mxPoint x="1222.84" y="523.187673287339" />
+              <mxPoint x="1227.72" y="522.3390378714349" />
+              <mxPoint x="1232.6" y="521.3026781719618" />
+              <mxPoint x="1237.48" y="520.0706984363769" />
+              <mxPoint x="1242.36" y="518.6361051786057" />
+              <mxPoint x="1247.24" y="516.9926972040549" />
+              <mxPoint x="1252.12" y="515.134998062921" />
+              <mxPoint x="1257.0" y="513.0582168506089" />
+              <mxPoint x="1261.88" y="510.7582288516676" />
+              <mxPoint x="1266.76" y="508.2315705818282" />
+              <mxPoint x="1271.64" y="505.47544555800937" />
+              <mxPoint x="1276.52" y="502.48773820397105" />
+              <mxPoint x="1281.4" y="499.26703397709775" />
+              <mxPoint x="1286.28" y="495.8126442397142" />
+              <mxPoint x="1291.16" y="492.12463468693295" />
+              <mxPoint x="1296.04" y="488.2038563357208" />
+              <mxPoint x="1300.92" y="484.05197820934916" />
+              <mxPoint x="1305.8" y="479.6715209383947" />
+              <mxPoint x="1310.68" y="475.06589055752085" />
+              <mxPoint x="1315.56" y="470.23941181554767" />
+              <mxPoint x="1320.44" y="465.1973603411558" />
+              <mxPoint x="1325.32" y="459.9459930225273" />
+              <mxPoint x="1330.2" y="454.4925759696826" />
+              <mxPoint x="1335.08" y="448.8454094357936" />
+              <mxPoint x="1339.96" y="443.0138490803856" />
+              <mxPoint x="1344.84" y="437.00832296472026" />
+              <mxPoint x="1349.72" y="430.84034367916286" />
+              <mxPoint x="1354.6" y="424.5225150151386" />
+              <mxPoint x="1359.48" y="418.06853261138315" />
+              <mxPoint x="1364.3600000000001" y="411.49317802646" />
+              <mxPoint x="1369.24" y="404.81230571770453" />
+              <mxPoint x="1374.12" y="398.04282244149994" />
+              <mxPoint x="1379.0" y="391.2026586316239" />
+              <mxPoint x="1383.88" y="384.3107313617427" />
+              <mxPoint x="1388.76" y="377.38689855527616" />
+              <mxPoint x="1393.6399999999999" y="370.45190417097274" />
+              <mxPoint x="1398.52" y="363.5273141656683" />
+              <mxPoint x="1403.4" y="356.6354431167473" />
+              <mxPoint x="1408.28" y="349.7992714755103" />
+              <mxPoint x="1413.16" y="343.0423535185761" />
+              <mxPoint x="1418.04" y="336.38871616700993" />
+              <mxPoint x="1422.92" y="329.8627489513144" />
+              <mxPoint x="1427.8" y="323.4890855138189" />
+              <mxPoint x="1432.68" y="317.2924771572426" />
+              <mxPoint x="1437.56" y="311.29765906800435" />
+              <mxPoint x="1442.44" y="305.5292099637762" />
+              <mxPoint x="1447.32" y="300.011406035213" />
+              <mxPoint x="1452.2" y="294.7680701700169" />
+              <mxPoint x="1457.08" y="289.8224175616473" />
+              <mxPoint x="1461.96" y="285.19689891311435" />
+              <mxPoint x="1466.8400000000001" y="280.9130425463727" />
+              <mxPoint x="1471.72" y="276.9912968178103" />
+              <mxPoint x="1476.6" y="273.4508743181316" />
+              <mxPoint x="1481.48" y="270.30959939854813" />
+              <mxPoint x="1486.3600000000001" y="267.5837606126678" />
+              <mxPoint x="1491.24" y="265.2879696929818" />
+              <mxPoint x="1496.12" y="263.4350286907403" />
+              <mxPoint x="1501.0" y="262.0358068968338" />
+              <mxPoint x="1505.88" y="261.09912912787115" />
+              <mxPoint x="1510.76" y="260.6316769050843" />
+              <mxPoint x="1515.6399999999999" y="260.63790397345406" />
+              <mxPoint x="1520.52" y="261.11996750437186" />
+              <mxPoint x="1525.4" y="262.07767619748364" />
+              <mxPoint x="1530.28" y="263.5084563467792" />
+              <mxPoint x="1535.16" y="265.4073367636259" />
+              <mxPoint x="1540.04" y="267.7669532569016" />
+              <mxPoint x="1544.92" y="270.57757315969354" />
+              <mxPoint x="1549.8" y="273.82714016570486" />
+              <mxPoint x="1554.68" y="277.5013394994663" />
+              <mxPoint x="1559.56" y="281.58368319599253" />
+              <mxPoint x="1564.44" y="286.0556150113042" />
+              <mxPoint x="1569.32" y="290.8966342292016" />
+              <mxPoint x="1574.2" y="296.08443737598043" />
+              <mxPoint x="1579.08" y="301.5950766077357" />
+              <mxPoint x="1583.96" y="307.40313329887454" />
+              <mxPoint x="1588.8400000000001" y="313.48190513980364" />
+              <mxPoint x="1593.72" y="319.8036048506809" />
+              <mxPoint x="1598.6" y="326.3395684406538" />
+              <mxPoint x="1603.48" y="333.0604707918286" />
+              <mxPoint x="1608.3600000000001" y="339.9365462276219" />
+              <mxPoint x="1613.24" y="346.9378116389492" />
+              <mxPoint x="1618.12" y="354.03428969112986" />
+              <mxPoint x="1623.0" y="361.1962296210178" />
+              <mxPoint x="1627.88" y="368.39432315862655" />
+              <mxPoint x="1632.76" y="375.5999131705403" />
+              <mxPoint x="1637.6399999999999" y="382.78519272310194" />
+              <mxPoint x="1642.52" y="389.9233924003943" />
+              <mxPoint x="1647.4" y="396.98895388323837" />
+              <mxPoint x="1652.28" y="403.957687998002" />
+              <mxPoint x="1657.16" y="410.8069156744265" />
+              <mxPoint x="1662.04" y="417.5155905058191" />
+              <mxPoint x="1666.92" y="424.0644018781957" />
+              <mxPoint x="1671.8000000000002" y="430.43585792225025" />
+              <mxPoint x="1676.68" y="436.6143478380021" />
+              <mxPoint x="1681.56" y="442.5861834411164" />
+              <mxPoint x="1686.44" y="448.3396200765968" />
+              <mxPoint x="1691.3200000000002" y="453.86485733430703" />
+              <mxPoint x="1696.2" y="459.154020276286" />
+              <mxPoint x="1701.08" y="464.20112214308705" />
+              <mxPoint x="1705.96" y="469.0020097408812" />
+              <mxPoint x="1710.84" y="473.5542929188329" />
+              <mxPoint x="1715.72" y="477.8572597239465" />
+              <mxPoint x="1720.6" y="481.91177896557633" />
+              <mxPoint x="1725.48" y="485.7201920322347" />
+              <mxPoint x="1730.3600000000001" y="489.2861958781649" />
+              <mxPoint x="1735.24" y="492.61471913612337" />
+              <mxPoint x="1740.12" y="495.71179331647795" />
+              <mxPoint x="1745.0" y="498.58442102239724" />
+              <mxPoint x="1749.88" y="501.2404430485819" />
+              <mxPoint x="1754.76" y="503.68840613933963" />
+              <mxPoint x="1759.6399999999999" y="505.93743306402337" />
+              <mxPoint x="1764.52" y="507.99709652759395" />
+              <mxPoint x="1769.4" y="509.8772982753254" />
+              <mxPoint x="1774.28" y="511.588154577656" />
+              <mxPoint x="1779.16" y="513.1398890982314" />
+              <mxPoint x="1784.04" y="514.5427339596074" />
+              <mxPoint x="1788.92" y="515.8068396310775" />
+              <mxPoint x="1793.8000000000002" y="516.9421940756567" />
+              <mxPoint x="1798.68" y="517.9585514120661" />
+              <mxPoint x="1803.56" y="518.86537017591" />
+              <mxPoint x="1808.44" y="519.6717611049819" />
+              <mxPoint x="1813.3200000000002" y="520.3864442291119" />
+              <mxPoint x="1818.2" y="521.0177149170441" />
+              <mxPoint x="1823.08" y="521.573418422779" />
+              <mxPoint x="1827.96" y="522.0609323824441" />
+              <mxPoint x="1832.84" y="522.4871566403128" />
+              <mxPoint x="1837.72" y="522.8585097288972" />
+              <mxPoint x="1842.6" y="523.1809312924319" />
+              <mxPoint x="1847.48" y="523.4598897245772" />
+              <mxPoint x="1852.3600000000001" y="523.7003942884251" />
+              <mxPoint x="1857.24" y="523.9070109983552" />
+              <mxPoint x="1862.12" y="524.0838815671792" />
+              <mxPoint x="1867.0" y="524.2347447564334" />
+              <mxPoint x="1871.88" y="524.3629595107275" />
+              <mxPoint x="1876.76" y="524.4715293067526" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="candidate-loop" value="数值搜索更新候选θ，重新计算密度贡献" edge="1" parent="1" source="maximum" target="construction-0" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A94F40;fontColor=#A94F40;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="feedback" evidence="" labelX="380" labelY="940">
-          <mxGeometry relative="1" as="geometry" x="-0.583864118895966">
+        <mxCell id="height-0-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1263.1" y="525" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="height-0-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1263.1" y="405.46570457336855" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="height-0" value="" edge="1" parent="1" source="height-0-a" target="height-0-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="height-point-0" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#AA5041;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="1257.1" y="399.46570457336855" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="height-label-0" value="x₍₁₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1216.1" y="533" width="94" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="height-1-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1336.3" y="525" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="height-1-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1336.3" y="304.5362340713174" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="height-1" value="" edge="1" parent="1" source="height-1-a" target="height-1-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="height-point-1" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#AA5041;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="1330.3" y="298.5362340713174" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="height-label-1" value="x₍₂₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1289.3" y="533" width="94" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="height-2-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1476.6" y="525" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="height-2-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1476.6" y="320.3464583626074" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="height-2" value="" edge="1" parent="1" source="height-2-a" target="height-2-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="height-point-2" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#AA5041;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="1470.6" y="314.3464583626074" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="height-label-2" value="x₍ᵢ₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1429.6" y="533" width="94" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="height-3-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1635.1999999999998" y="525" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="height-3-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1635.1999999999998" y="472.73040797501375" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="height-3" value="" edge="1" parent="1" source="height-3-a" target="height-3-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="height-point-3" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#AA5041;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="1629.1999999999998" y="466.73040797501375" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="height-label-3" value="x₍ₙ₎" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1588.1999999999998" y="533" width="94" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-a-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1170" y="630" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-a-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1230" y="630" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-a" value="" edge="1" parent="1" source="legend-a-a" target="legend-a-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-a-text" value="候选 A" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1240" y="610" width="230" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-b-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1480" y="630" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-b-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1540" y="630" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-b" value="" edge="1" parent="1" source="legend-b-a" target="legend-b-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#337695;fontColor=#337695;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-b-text" value="候选 B" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#337695;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1550" y="610" width="230" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="read-height" value="同一观测 xᵢ，在不同 θ 下得到不同的 fθ(xᵢ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1100" y="659" width="820" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="combine-heading" value="对同一个候选 θ，把每个观测贡献都放进来" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=26;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="80" y="920" width="820" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="f1" value="fθ(x₍₁₎)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#FFF0E8;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="90" y="1005" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" value="fθ(x₍₂₎)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#FFF0E8;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="290" y="1005" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fi" value="fθ(x₍ᵢ₎)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#FFF0E8;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="490" y="1005" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fn" value="fθ(x₍ₙ₎)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#FFF0E8;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="690" y="1005" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="multiply-0" value="×" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="251" y="1032" width="36" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="multiply-1" value="×" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="451" y="1032" width="36" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="multiply-2" value="×" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="651" y="1032" width="36" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="contribution-bracket-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="110" y="1133" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="contribution-bracket-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="830" y="1133" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="contribution-bracket" value="" edge="1" parent="1" source="contribution-bracket-a" target="contribution-bracket-b" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="545" y="940" />
-              <mxPoint x="30" y="940" />
-              <mxPoint x="30" y="377.5" />
+              <mxPoint x="110" y="1150" />
+              <mxPoint x="830" y="1150" />
             </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="scope" value="最大化或求解均在所选模型支持域内进行；具体的数据修改、方程替换与最小值项处理见下方机制细图。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="50" y="980" width="1900" height="50" as="geometry" />
+        <mxCell id="joint-score" value="联合似然  L(θ)=∏ᵢ fθ(xᵢ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="185" y="1195" width="610" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="combine-to-score-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="490" y="1150" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="combine-to-score-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="490" y="1195" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="combine-to-score" value="" edge="1" parent="1" source="combine-to-score-a" target="combine-to-score-b" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="log-score" value="也可相加：ℓ(θ)=ln L(θ)=Σᵢ ln fθ(xᵢ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="90" y="1280" width="790" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="score-x-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1122" y="1190" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="score-x-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1733" y="1190" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="score-x" value="" edge="1" parent="1" source="score-x-a" target="score-x-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#6B7B8D;fontColor=#6B7B8D;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="score-y-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1140" y="1198" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="score-y-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1140" y="967" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="score-y" value="" edge="1" parent="1" source="score-y-a" target="score-y-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#6B7B8D;fontColor=#6B7B8D;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="score-y-label" value="ℓ(θ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1148" y="956" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="likelihood-section-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1140.0" y="1159.1334150946147" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="likelihood-section-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1705.0" y="1115.4333340776716" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="likelihood-section" value="" edge="1" parent="1" source="likelihood-section-a" target="likelihood-section-b" style="html=1;rounded=0;strokeWidth=4;strokeColor=#357A63;fontColor=#357A63;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1145.65" y="1158.4298766760483" />
+              <mxPoint x="1151.3" y="1157.660754529412" />
+              <mxPoint x="1156.95" y="1156.8216175086993" />
+              <mxPoint x="1162.6" y="1155.9079325212176" />
+              <mxPoint x="1168.25" y="1154.9150864792025" />
+              <mxPoint x="1173.9" y="1153.8384113361044" />
+              <mxPoint x="1179.55" y="1152.6732122628227" />
+              <mxPoint x="1185.2" y="1151.4147989850776" />
+              <mxPoint x="1190.85" y="1150.0585202651582" />
+              <mxPoint x="1196.5" y="1148.599801469688" />
+              <mxPoint x="1202.15" y="1147.0341851200951" />
+              <mxPoint x="1207.8" y="1145.3573742746025" />
+              <mxPoint x="1213.45" y="1143.5652785402012" />
+              <mxPoint x="1219.1" y="1141.6540624608751" />
+              <mxPoint x="1224.75" y="1139.620195974939" />
+              <mxPoint x="1230.4" y="1137.4605065805154" />
+              <mxPoint x="1236.05" y="1135.1722327947275" />
+              <mxPoint x="1241.7" y="1132.753078440044" />
+              <mxPoint x="1247.35" y="1130.2012672413068" />
+              <mxPoint x="1253.0" y="1127.5155971703402" />
+              <mxPoint x="1258.65" y="1124.6954939326502" />
+              <mxPoint x="1264.3" y="1121.7410629536726" />
+              <mxPoint x="1269.95" y="1118.6531391912615" />
+              <mxPoint x="1275.6" y="1115.4333340776716" />
+              <mxPoint x="1281.25" y="1112.0840788790688" />
+              <mxPoint x="1286.9" y="1108.6086637544634" />
+              <mxPoint x="1292.55" y="1105.011271799649" />
+              <mxPoint x="1298.2" y="1101.297007375876" />
+              <mxPoint x="1303.85" y="1097.471918048064" />
+              <mxPoint x="1309.5" y="1093.543009493687" />
+              <mxPoint x="1315.15" y="1089.5182527912038" />
+              <mxPoint x="1320.8" y="1085.4065835559713" />
+              <mxPoint x="1326.45" y="1081.217892461727" />
+              <mxPoint x="1332.1" y="1076.9630067665105" />
+              <mxPoint x="1337.75" y="1072.6536625525748" />
+              <mxPoint x="1343.4" y="1068.302467489562" />
+              <mxPoint x="1349.05" y="1063.9228540378615" />
+              <mxPoint x="1354.7" y="1059.5290231233082" />
+              <mxPoint x="1360.35" y="1055.1358784337526" />
+              <mxPoint x="1366.0" y="1050.7589516108642" />
+              <mxPoint x="1371.65" y="1046.4143187350423" />
+              <mxPoint x="1377.3" y="1042.1185086255907" />
+              <mxPoint x="1382.95" y="1037.888403600387" />
+              <mxPoint x="1388.6" y="1033.7411334571266" />
+              <mxPoint x="1394.25" y="1029.6939635498077" />
+              <mxPoint x="1399.9" y="1025.7641779374533" />
+              <mxPoint x="1405.55" y="1021.9689586752262" />
+              <mxPoint x="1411.2" y="1018.3252623992541" />
+              <mxPoint x="1416.85" y="1014.8496954240054" />
+              <mxPoint x="1422.5" y="1011.5583886234542" />
+              <mxPoint x="1428.15" y="1008.4668734033155" />
+              <mxPoint x="1433.8" y="1005.5899600902926" />
+              <mxPoint x="1439.45" y="1002.9416200648807" />
+              <mxPoint x="1445.1" y="1000.534872946351" />
+              <mxPoint x="1450.75" y="998.381680102023" />
+              <mxPoint x="1456.4" y="996.4928456980182" />
+              <mxPoint x="1462.05" y="994.8779264359257" />
+              <mxPoint x="1467.7" y="993.5451510300419" />
+              <mxPoint x="1473.35" y="992.5013503742675" />
+              <mxPoint x="1479.0" y="991.751899227779" />
+              <mxPoint x="1484.65" y="991.3006701159866" />
+              <mxPoint x="1490.3" y="991.15" />
+              <mxPoint x="1495.95" y="991.3006701159866" />
+              <mxPoint x="1501.6" y="991.751899227779" />
+              <mxPoint x="1507.25" y="992.5013503742675" />
+              <mxPoint x="1512.9" y="993.5451510300419" />
+              <mxPoint x="1518.55" y="994.8779264359257" />
+              <mxPoint x="1524.2" y="996.4928456980182" />
+              <mxPoint x="1529.85" y="998.381680102023" />
+              <mxPoint x="1535.5" y="1000.534872946351" />
+              <mxPoint x="1541.15" y="1002.9416200648807" />
+              <mxPoint x="1546.8" y="1005.5899600902926" />
+              <mxPoint x="1552.45" y="1008.4668734033155" />
+              <mxPoint x="1558.1" y="1011.5583886234542" />
+              <mxPoint x="1563.75" y="1014.8496954240054" />
+              <mxPoint x="1569.4" y="1018.3252623992541" />
+              <mxPoint x="1575.05" y="1021.9689586752262" />
+              <mxPoint x="1580.7" y="1025.7641779374533" />
+              <mxPoint x="1586.35" y="1029.6939635498077" />
+              <mxPoint x="1592.0" y="1033.7411334571266" />
+              <mxPoint x="1597.65" y="1037.888403600387" />
+              <mxPoint x="1603.3" y="1042.1185086255907" />
+              <mxPoint x="1608.95" y="1046.4143187350423" />
+              <mxPoint x="1614.6" y="1050.7589516108642" />
+              <mxPoint x="1620.25" y="1055.1358784337526" />
+              <mxPoint x="1625.9" y="1059.5290231233082" />
+              <mxPoint x="1631.55" y="1063.9228540378615" />
+              <mxPoint x="1637.2" y="1068.302467489562" />
+              <mxPoint x="1642.85" y="1072.6536625525748" />
+              <mxPoint x="1648.5" y="1076.9630067665107" />
+              <mxPoint x="1654.15" y="1081.217892461727" />
+              <mxPoint x="1659.8000000000002" y="1085.4065835559713" />
+              <mxPoint x="1665.45" y="1089.5182527912038" />
+              <mxPoint x="1671.1" y="1093.5430094936867" />
+              <mxPoint x="1676.75" y="1097.471918048064" />
+              <mxPoint x="1682.4" y="1101.297007375876" />
+              <mxPoint x="1688.05" y="1105.011271799649" />
+              <mxPoint x="1693.7" y="1108.6086637544634" />
+              <mxPoint x="1699.35" y="1112.0840788790688" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="theta-a-guide-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1219.1" y="1190" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-a-guide-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1219.1" y="1141.6540624608751" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-a-guide" value="" edge="1" parent="1" source="theta-a-guide-a" target="theta-a-guide-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#357A63;fontColor=#357A63;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-a-point" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#357A63;fillColor=#357A63;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="1213.1" y="1135.6540624608751" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-a-label" value="θA" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1177.1" y="1198" width="84" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-b-guide-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1354.7" y="1190" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-b-guide-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1354.7" y="1059.5290231233082" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-b-guide" value="" edge="1" parent="1" source="theta-b-guide-a" target="theta-b-guide-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#357A63;fontColor=#357A63;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-b-point" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#357A63;fillColor=#357A63;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="1348.7" y="1053.5290231233082" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-b-label" value="θB" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1312.7" y="1198" width="84" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-peak-guide-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1490.3" y="1190" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-peak-guide-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1490.3" y="991.15" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-peak-guide" value="" edge="1" parent="1" source="theta-peak-guide-a" target="theta-peak-guide-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#357A63;fontColor=#357A63;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-peak-point" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#357A63;fillColor=#357A63;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;ellipse;" renderRole="method">
+          <mxGeometry x="1484.3" y="985.15" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="theta-peak-label" value="θ̂" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1448.3" y="1198" width="84" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="local-peak" value="局部峰候选" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#357A63;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1430" y="925" width="235" height="43" as="geometry" />
+        </mxCell>
+        <mxCell id="score-axis-label" value="候选参数（示意截面）" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1260" y="1235" width="390" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="estimate" value="θ̂&lt;br&gt;(β̂,η̂,γ̂)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#357A63;fillColor=#E6F3EB;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="1730" y="1005" width="200" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="peak-to-estimate-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1490" y="995" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="peak-to-estimate-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1730" y="1075" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="peak-to-estimate" value="" edge="1" parent="1" source="peak-to-estimate-a" target="peak-to-estimate-b" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#357A63;fontColor=#357A63;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1710" y="995" />
+              <mxPoint x="1710" y="1075" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="implementation" value="数值实现：搜索评分，或解内点得分方程 U(θ)=0&lt;br&gt;再比较目标值与边界响应。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1100" y="1280" width="820" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-to-step2-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="952" y="440" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-to-step2-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1048" y="440" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-to-step2" value="" edge="1" parent="1" source="step1-to-step2-a" target="step1-to-step2-b" style="html=1;rounded=0;strokeWidth=4;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step2-to-step3-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1510" y="715" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step2-to-step3-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="490" y="812" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step2-to-step3" value="" edge="1" parent="1" source="step2-to-step3-a" target="step2-to-step3-b" style="html=1;rounded=0;strokeWidth=4;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1510" y="755" />
+              <mxPoint x="490" y="755" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="all-contributions" value="把整组贡献送入评分" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AA5041;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="745" y="707" width="620" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-to-step4-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="952" y="1090" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-to-step4-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1048" y="1090" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-to-step4" value="" edge="1" parent="1" source="step3-to-step4-a" target="step3-to-step4-b" style="html=1;rounded=0;strokeWidth=4;strokeColor=#AA5041;fontColor=#AA5041;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="interfaces" value="方法差异的作用点：① 数据与位置处理　② 单点密度贡献　③ 联合目标　④ 得分方程与求解" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=27;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="1390" width="1870" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="method-locations" value="例如：K–R改①；CMLE改②；罚似然改③；WMLE、Cohen–Whitten与DMMLE在相应得分关系上改④。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="65" y="1450" width="1870" height="45" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
