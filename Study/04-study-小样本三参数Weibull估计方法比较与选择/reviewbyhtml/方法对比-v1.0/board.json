@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 4,
+  "revision": 5,
   "require_confirmation": true,
   "archive_plan": "保存本次v1.0内容审阅的结果：\n1. 将审定文字、图表及局部选择写入 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md；未选择的候选不代选，尚未实施的研究思路不写成已得到的结论。\n2. 正文使用本任务assets中的PNG，核对图像、数据口径及引用；根据实际内容更新总体README和结果呈现README。\n3. 保留原v0.4及其HTML存档；沿用 reviewbyhtml/方法对比-v1.0/ 保存本任务HTML、内容源、素材、批注及历史，以Git记录版本，草稿和运行状态留在本地。\n4. 本次候选复用v0.4图表与已核对材料；尚待验证的机制研究，在用户明确决定开展后继续。",
   "source_document": "../../报告下（方法对比）-v1.0.md",
@@ -275,23 +275,10 @@
     {
       "id": "law-synthesis",
       "title": "3.3　主要规律",
-      "mode": "choices",
-      "inline": true,
-      "state": "open",
-      "selected": null,
-      "context": "两种归纳重点：条件关系，或误差表现。",
+      "mode": "content",
+      "state": "converged",
+      "selected": "synthesis-phenomena",
       "options": [
-        {
-          "id": "synthesis-conditions",
-          "label": "A　围绕n与β的共同作用归纳",
-          "blocks": [
-            {
-              "id": "synthesis-conditions-body",
-              "kind": "text",
-              "html": "<p>样本量减少造成的误差增量取决于形状条件。高β下误差较大，并不意味着减少样本造成的增量一定更大；有些方法在n=50时已存在较明显的偏移。</p><p>随着n和β变化，方法之间的差距可以扩大、缩小，相对优势也可能改变。某一条件下的表现不能直接推广到整个小样本范围。</p>"
-            }
-          ]
-        },
         {
           "id": "synthesis-phenomena",
           "label": "B　围绕误差增长的不同表现归纳",
@@ -304,7 +291,10 @@
           ]
         }
       ],
-      "selection_mode": "multiple"
+      "selection_mode": "multiple",
+      "selected_ids": [
+        "synthesis-phenomena"
+      ]
     },
     {
       "id": "chapter-4",
@@ -627,8 +617,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "7379f6c4-e527-4815-b1b9-b24575f08c61",
-  "last_rendered_submission_id": "7379f6c4-e527-4815-b1b9-b24575f08c61",
+  "last_applied_submission_id": "097b2dae-870c-4a85-8f0e-753e40a4fe12",
+  "last_rendered_submission_id": "097b2dae-870c-4a85-8f0e-753e40a4fe12",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.3.0"
