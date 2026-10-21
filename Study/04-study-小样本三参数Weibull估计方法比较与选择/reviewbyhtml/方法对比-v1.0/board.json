@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 13,
+  "revision": 14,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.1.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v1.1.md",
@@ -128,7 +128,7 @@
       "id": "law-rmse",
       "title": "3.1　样本量变化与方法差距",
       "mode": "content",
-      "state": "modify",
+      "state": "open",
       "selected": null,
       "options": [
         {
@@ -174,18 +174,110 @@
               "markdown": "#### n = 50\n\n![n=50，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n50_八档β.png)\n\n#### n = 20\n\n![n=20，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n20_八档β.png)\n\n#### n = 15\n\n![n=15，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n15_八档β.png)\n\n#### n = 10\n\n![n=10，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n10_八档β.png)\n\n#### n = 7\n\n![n=7，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n7_八档β.png)"
             },
             {
-              "id": "report-481785e3f263",
-              "kind": "text",
-              "markdown": "样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。\n\n样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。\n\nMM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px\"><div style=\"padding-right:16px;border-right:1px solid #dce3dd\"><p style=\"font-size:13px;color:#65736a\"><strong>修改前</strong></p><p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p></div><div><p style=\"font-size:13px;color:#286442\"><strong>修改后</strong></p><p><mark>固定β时</mark>，随着样本量减小，各方法的估计误差总体增大；<mark>固定n时</mark>，β变化也会改变误差水平，其中尺度和位置参数的误差在较大β下通常更高。</p><p><mark>不同方法的误差变化幅度并不相同</mark>。因此，条件改变既会改变误差水平，也会改变方法之间的差距：差距可能扩大，也可能缩小，最低RMSE对应的方法也可能改变。</p></div></div>",
-              "manuscript_html": "<p>固定β时，随着样本量减小，各方法的估计误差总体增大；固定n时，β变化也会改变误差水平，其中尺度和位置参数的误差在较大β下通常更高。</p><p>不同方法的误差变化幅度并不相同。因此，条件改变既会改变误差水平，也会改变方法之间的差距：差距可能扩大，也可能缩小，最低RMSE对应的方法也可能改变。</p>",
-              "before_html": "<p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p>"
-            },
-            {
               "id": "report-96bac28ad30a",
               "kind": "text",
               "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p><p><small>相对差距按第2章口径核对，扩大或缩小指n=50与7两个端点的比较，不表示中间n单调变化。</small></p>",
               "markdown": "*图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。*"
+            }
+          ]
+        }
+      ],
+      "selected_ids": []
+    },
+    {
+      "id": "law-rmse-wording",
+      "title": "文字表述",
+      "inline": true,
+      "outline_level": 3,
+      "mode": "choices",
+      "state": "open",
+      "selection_mode": "single",
+      "selected": null,
+      "selected_ids": [],
+      "options": [
+        {
+          "id": "law-rmse-current-original",
+          "label": "A　原稿",
+          "blocks": [
+            {
+              "id": "report-481785e3f263",
+              "kind": "text",
+              "html": "<p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p>"
+            }
+          ]
+        },
+        {
+          "id": "law-rmse-current",
+          "label": "B　修订稿",
+          "blocks": [
+            {
+              "id": "report-481785e3f263",
+              "kind": "text",
+              "html": "<p>固定β时，随着样本量减小，各方法的估计误差总体增大；固定n时，β变化也会改变误差水平，其中尺度和位置参数的误差在较大β下通常更高。</p><p>不同方法的误差变化幅度并不相同。因此，条件改变既会改变误差水平，也会改变方法之间的差距：差距可能扩大，也可能缩小，最低RMSE对应的方法也可能改变。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "law-rmse-gap-figure",
+      "title": "差距变化的配图",
+      "mode": "choices",
+      "inline": true,
+      "outline_level": 3,
+      "state": "open",
+      "selection_mode": "multiple",
+      "selected": null,
+      "selected_ids": [],
+      "options": [
+        {
+          "id": "gap-a",
+          "label": "A　各方法的误差轨迹",
+          "blocks": [
+            {
+              "id": "gap-figure-a",
+              "kind": "image",
+              "src": "assets/误差与差距_A_方法轨迹.png",
+              "alt": "各方法的误差轨迹"
+            },
+            {
+              "id": "gap-caption-a",
+              "kind": "text",
+              "html": "<p>两行分别为β=1.5和5，三列为三个参数。同一参数共用纵轴，沿n观察曲线的增长及间距变化。</p><p><em>显示六法，沿用玫瑰图口径；指标仍按七法共同有效集合计算，MM的极端结果另节分析。横轴为五个离散样本量条件。</em></p>"
+            }
+          ]
+        },
+        {
+          "id": "gap-b",
+          "label": "B　误差水平与相对差距的联动",
+          "blocks": [
+            {
+              "id": "gap-figure-b",
+              "kind": "image",
+              "src": "assets/误差与差距_B_联动轨迹.png",
+              "alt": "误差水平与相对差距的联动"
+            },
+            {
+              "id": "gap-caption-b",
+              "kind": "text",
+              "html": "<p>横轴为七法标准化RMSE的中位数，纵轴为第2章定义的相对差距。每条轨迹固定β，按n=50、20、15、10、7连接；空心圆为n=50，方块为n=7。</p><p>向右表示整体误差水平上升，向上或向下分别表示相对差距扩大或缩小。可以直接区分“估计变差”与“方法间差距增大”。</p>"
+            }
+          ]
+        },
+        {
+          "id": "gap-c",
+          "label": "C　全部条件下的误差与差距",
+          "blocks": [
+            {
+              "id": "gap-figure-c",
+              "kind": "image",
+              "src": "assets/误差与差距_C_条件全图.png",
+              "alt": "全部条件下的误差与差距"
+            },
+            {
+              "id": "gap-caption-c",
+              "kind": "text",
+              "html": "<p>上排为七法标准化RMSE中位数，下排为相对差距；列对应三个参数，每格对应一个n–β条件。n纵向排列，β横向排列。</p><p><em>相对差距为100×（七法RMSE中位数/最小值−1），表示相对最低RMSE的距离；不等同于绝对误差差。各参数色标独立，比较时读取本图色标。</em></p>"
             }
           ]
         }
@@ -195,7 +287,7 @@
       "id": "law-distribution",
       "title": "3.2　偏移、波动与分布分化",
       "mode": "content",
-      "state": "modify",
+      "state": "open",
       "selected": null,
       "options": [
         {
@@ -259,14 +351,6 @@
               "markdown": "#### β = 1.5\n\n![β=1.5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β1.5_两档n.png)\n\n#### β = 2\n\n![β=2，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β2_两档n.png)\n\n#### β = 2.5\n\n![β=2.5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β2.5_两档n.png)\n\n#### β = 3\n\n![β=3，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β3_两档n.png)\n\n#### β = 3.5\n\n![β=3.5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β3.5_两档n.png)\n\n#### β = 4\n\n![β=4，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β4_两档n.png)\n\n#### β = 4.5\n\n![β=4.5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/估计值分布_β4.5_两档n.png)\n\n#### β = 5\n\n![β=5，n=50与7的七法三参数估计分布](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/修订_估计值分布_两档n.png)"
             },
             {
-              "id": "report-521def6b8c6a",
-              "kind": "text",
-              "markdown": "随β增大，LSE和LRE的尺度估计分布逐渐呈现双峰；n=7时，高β下两个峰的分离更明显。估计结果的变化既体现在误差幅度上，也体现在分布形态上。\n\n与此同时，MDM、WMLE和K–R的位置估计逐渐向偏大方向移动，尺度估计向偏小方向移动；小样本下这种偏移更突出。\n\nβ=5、n=50时，LSE和LRE的尺度估计均值仍接近真值，但两个峰已明显分离。均值没有呈现出两组估计结果的分化。",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px\"><div style=\"padding-right:16px;border-right:1px solid #dce3dd\"><p style=\"font-size:13px;color:#65736a\"><strong>修改前</strong></p><p>随β增大，LSE和LRE的尺度估计分布逐渐呈现双峰；n=7时，高β下两个峰的分离更明显。估计结果的变化既体现在误差幅度上，也体现在分布形态上。</p>\n<p>与此同时，MDM、WMLE和K–R的位置估计逐渐向偏大方向移动，尺度估计向偏小方向移动；小样本下这种偏移更突出。</p>\n<p>β=5、n=50时，LSE和LRE的尺度估计均值仍接近真值，但两个峰已明显分离。均值没有呈现出两组估计结果的分化。</p></div><div><p style=\"font-size:13px;color:#286442\"><strong>修改后</strong></p><p>低β下，LSE、LRE随样本减少主要表现为形状估计变散；随β增大，尺度估计逐渐分成两组，n=7时分离更加明显。与此同时，MDM、WMLE和K–R表现出位置偏高、尺度偏低的组合，并伴有形状低估。<mark>进入高β区域后，方法之间的差异进一步表现为不同的失准方式。</mark></p><p>其中，β=5、n=50时，LSE、LRE的尺度估计均值仍接近真值，但两个峰已经分离。均值没有反映出两组结果的差别。</p><p>WMLE呈现另一种变化：β=5、n从10减到7时，形状估计的SD下降，负偏差加重，RMSE继续上升。误差增长并非都由结果变散引起，系统偏移也可能加重。分布分化与系统偏移，使精度下降具有不同的表现。</p></div></div>",
-              "manuscript_html": "<p>低β下，LSE、LRE随样本减少主要表现为形状估计变散；随β增大，尺度估计逐渐分成两组，n=7时分离更加明显。与此同时，MDM、WMLE和K–R表现出位置偏高、尺度偏低的组合，并伴有形状低估。进入高β区域后，方法之间的差异进一步表现为不同的失准方式。</p><p>其中，β=5、n=50时，LSE、LRE的尺度估计均值仍接近真值，但两个峰已经分离。均值没有反映出两组结果的差别。</p><p>WMLE呈现另一种变化：β=5、n从10减到7时，形状估计的SD下降，负偏差加重，RMSE继续上升。误差增长并非都由结果变散引起，系统偏移也可能加重。分布分化与系统偏移，使精度下降具有不同的表现。</p>",
-              "before_html": "<p>随β增大，LSE和LRE的尺度估计分布逐渐呈现双峰；n=7时，高β下两个峰的分离更明显。估计结果的变化既体现在误差幅度上，也体现在分布形态上。</p>\n<p>与此同时，MDM、WMLE和K–R的位置估计逐渐向偏大方向移动，尺度估计向偏小方向移动；小样本下这种偏移更突出。</p>\n<p>β=5、n=50时，LSE和LRE的尺度估计均值仍接近真值，但两个峰已明显分离。均值没有呈现出两组估计结果的分化。</p>"
-            },
-            {
               "id": "report-d970bfb3ef64",
               "kind": "text",
               "html": "<p><em>图注：行对应n=50、7，列对应形状、尺度、位置。虚线为真值，红点为均值，横线为四分位区间。密度显示主体分布，统计量使用全部有效值。</em></p>",
@@ -284,33 +368,76 @@
             }
           ]
         }
+      ],
+      "selected_ids": []
+    },
+    {
+      "id": "law-distribution-wording",
+      "title": "文字表述",
+      "inline": true,
+      "outline_level": 3,
+      "mode": "choices",
+      "state": "open",
+      "selection_mode": "single",
+      "selected": null,
+      "selected_ids": [],
+      "options": [
+        {
+          "id": "law-distribution-current-original",
+          "label": "A　原稿",
+          "blocks": [
+            {
+              "id": "report-521def6b8c6a",
+              "kind": "text",
+              "html": "<p>随β增大，LSE和LRE的尺度估计分布逐渐呈现双峰；n=7时，高β下两个峰的分离更明显。估计结果的变化既体现在误差幅度上，也体现在分布形态上。</p>\n<p>与此同时，MDM、WMLE和K–R的位置估计逐渐向偏大方向移动，尺度估计向偏小方向移动；小样本下这种偏移更突出。</p>\n<p>β=5、n=50时，LSE和LRE的尺度估计均值仍接近真值，但两个峰已明显分离。均值没有呈现出两组估计结果的分化。</p>"
+            }
+          ]
+        },
+        {
+          "id": "law-distribution-current",
+          "label": "B　修订稿",
+          "blocks": [
+            {
+              "id": "report-521def6b8c6a",
+              "kind": "text",
+              "html": "<p>低β下，LSE、LRE随样本减少主要表现为形状估计变散；随β增大，尺度估计逐渐分成两组，n=7时分离更加明显。与此同时，MDM、WMLE和K–R表现出位置偏高、尺度偏低的组合，并伴有形状低估。进入高β区域后，方法之间的差异进一步表现为不同的失准方式。</p><p>其中，β=5、n=50时，LSE、LRE的尺度估计均值仍接近真值，但两个峰已经分离。均值没有反映出两组结果的差别。</p><p>WMLE呈现另一种变化：β=5、n从10减到7时，形状估计的SD下降，负偏差加重，RMSE继续上升。误差增长并非都由结果变散引起，系统偏移也可能加重。分布分化与系统偏移，使精度下降具有不同的表现。</p>"
+            }
+          ]
+        }
       ]
     },
     {
       "id": "law-synthesis",
       "title": "3.3　主要性能规律",
-      "mode": "content",
-      "state": "modify",
-      "selected": "synthesis-phenomena",
+      "mode": "choices",
+      "state": "open",
+      "selected": null,
       "options": [
         {
-          "id": "synthesis-phenomena",
-          "label": "B　围绕误差增长的不同表现归纳",
+          "id": "synthesis-phenomena-original",
+          "label": "A　原稿",
           "blocks": [
             {
               "id": "synthesis-phenomena-body",
               "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px\"><div style=\"padding-right:16px;border-right:1px solid #dce3dd\"><p style=\"font-size:13px;color:#65736a\"><strong>修改前</strong></p><ol>\n<li><p><strong>样本减少时，方法间相对差距的变化方向取决于形状区域。</strong>从n=50到7，β=1.5—3时，三个参数的整体相对差距均扩大；β=4.5、5时，三个参数的整体相对差距反而缩小。因此，样本减少对方法差距的影响具有条件性，扩大与收缩会出现在不同区域。</p></li>\n<li><p><strong>样本量减少时，RMSE最低的方法可能发生变化。</strong>β=3、3.5时，MDM在五档n下的三参数RMSE均为最低。β=4.5、5时，形状RMSE最低的方法则随n减少，由WMLE转为MDM，再转为K–R。</p></li>\n<li><p><strong>估计分布呈现波动扩大、结果分化和系统偏移。</strong>LSE、LRE在低β下随样本减少表现为形状波动扩大，在高β下表现为尺度结果分化；MDM、WMLE和K–R在高β下呈现位置偏高、尺度偏低的组合。</p></li>\n</ol></div><div><p style=\"font-size:13px;color:#286442\"><strong>修改后</strong></p><ol><li><p><strong><mark>样本减少引起的方法关系变化，随形状条件而不同。</mark></strong>本轮两个样本量端点的比较中，低β下整体相对差距扩大，高β下则缩小；部分条件下的最低RMSE方法也随样本量改变。</p></li><li><p><strong><mark>高β下，不同方法呈现不同的失准表现。</mark></strong>一些方法出现结果分化，另一些表现为系统偏移；均值接近真值或分布更集中，都可能掩盖估计结果的问题。</p></li></ol><p>此外，MM在部分条件下的形状RMSE由少数极端输出主导，其评价影响在后面的风险分析中展开。</p></div></div>",
-              "manuscript_html": "<ol><li><p><strong>样本减少引起的方法关系变化，随形状条件而不同。</strong>本轮两个样本量端点的比较中，低β下整体相对差距扩大，高β下则缩小；部分条件下的最低RMSE方法也随样本量改变。</p></li><li><p><strong>高β下，不同方法呈现不同的失准表现。</strong>一些方法出现结果分化，另一些表现为系统偏移；均值接近真值或分布更集中，都可能掩盖估计结果的问题。</p></li></ol><p>此外，MM在部分条件下的形状RMSE由少数极端输出主导，其评价影响在后面的风险分析中展开。</p>",
-              "before_html": "<ol>\n<li><p><strong>样本减少时，方法间相对差距的变化方向取决于形状区域。</strong>从n=50到7，β=1.5—3时，三个参数的整体相对差距均扩大；β=4.5、5时，三个参数的整体相对差距反而缩小。因此，样本减少对方法差距的影响具有条件性，扩大与收缩会出现在不同区域。</p></li>\n<li><p><strong>样本量减少时，RMSE最低的方法可能发生变化。</strong>β=3、3.5时，MDM在五档n下的三参数RMSE均为最低。β=4.5、5时，形状RMSE最低的方法则随n减少，由WMLE转为MDM，再转为K–R。</p></li>\n<li><p><strong>估计分布呈现波动扩大、结果分化和系统偏移。</strong>LSE、LRE在低β下随样本减少表现为形状波动扩大，在高β下表现为尺度结果分化；MDM、WMLE和K–R在高β下呈现位置偏高、尺度偏低的组合。</p></li>\n</ol>"
+              "html": "<ol>\n<li><p><strong>样本减少时，方法间相对差距的变化方向取决于形状区域。</strong>从n=50到7，β=1.5—3时，三个参数的整体相对差距均扩大；β=4.5、5时，三个参数的整体相对差距反而缩小。因此，样本减少对方法差距的影响具有条件性，扩大与收缩会出现在不同区域。</p></li>\n<li><p><strong>样本量减少时，RMSE最低的方法可能发生变化。</strong>β=3、3.5时，MDM在五档n下的三参数RMSE均为最低。β=4.5、5时，形状RMSE最低的方法则随n减少，由WMLE转为MDM，再转为K–R。</p></li>\n<li><p><strong>估计分布呈现波动扩大、结果分化和系统偏移。</strong>LSE、LRE在低β下随样本减少表现为形状波动扩大，在高β下表现为尺度结果分化；MDM、WMLE和K–R在高β下呈现位置偏高、尺度偏低的组合。</p></li>\n</ol>"
+            }
+          ]
+        },
+        {
+          "id": "synthesis-phenomena",
+          "label": "B　修订稿",
+          "blocks": [
+            {
+              "id": "synthesis-phenomena-body",
+              "kind": "text",
+              "html": "<ol><li><p><strong>样本减少引起的方法关系变化，随形状条件而不同。</strong>本轮两个样本量端点的比较中，低β下整体相对差距扩大，高β下则缩小；部分条件下的最低RMSE方法也随样本量改变。</p></li><li><p><strong>高β下，不同方法呈现不同的失准表现。</strong>一些方法出现结果分化，另一些表现为系统偏移；均值接近真值或分布更集中，都可能掩盖估计结果的问题。</p></li></ol><p>此外，MM在部分条件下的形状RMSE由少数极端输出主导，其评价影响在后面的风险分析中展开。</p>"
             }
           ]
         }
       ],
-      "selection_mode": "multiple",
-      "selected_ids": [
-        "synthesis-phenomena"
-      ]
+      "selection_mode": "single",
+      "selected_ids": []
     },
     {
       "id": "chapter-4",
@@ -633,11 +760,11 @@
       ]
     }
   ],
-  "last_applied_submission_id": "38218b95-c41b-416f-9fa7-477ded002169",
-  "last_rendered_submission_id": "38218b95-c41b-416f-9fa7-477ded002169",
+  "last_applied_submission_id": "22821d96-adf1-46c8-bc75-e075c5726570",
+  "last_rendered_submission_id": "22821d96-adf1-46c8-bc75-e075c5726570",
   "outline_confirmed": true,
   "review_complete": false,
-  "review_runtime": "0.6.1",
+  "review_runtime": "0.6.2",
   "section_3_3_evidence": {
     "source": "结果呈现/分析数据/参数指标.csv",
     "sha256": "076fc9041bd86df9a43af27cc4f5b75d9381231a618079d8efa0cd6789c78d7b",
@@ -710,16 +837,6 @@
         "gamma"
       ]
     }
-  },
-  "before_after_review": {
-    "base_commit": "28494a2d",
-    "base_revision": 9,
-    "changed_units": [
-      "law-rmse",
-      "law-distribution",
-      "law-synthesis"
-    ],
-    "review_focus": "条件变化怎样重组方法关系；高β下不同失准表现"
   },
   "chapter3_evidence": {
     "source": "结果呈现/分析数据/参数指标.csv",

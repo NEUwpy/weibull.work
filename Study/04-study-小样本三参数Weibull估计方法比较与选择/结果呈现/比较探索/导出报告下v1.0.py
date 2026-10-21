@@ -54,7 +54,7 @@ def markdown(node):
         return '  \n'
     if tag in ('p', 'div'):
         return '\n\n' + text + '\n\n'
-    if tag in ('root', 'span'):
+    if tag in ('root', 'span', 'mark'):
         return text
     raise ValueError(f'尚未处理的HTML节点：{tag}')
 
@@ -86,7 +86,7 @@ def main():
     for unit in board['units']:
         if unit.get('mode') != 'content':
             raise ValueError(f'仍有未审定候选：{unit["id"]}')
-        if unit['id'] != 'manuscript-outline':
+        if unit['id'] != 'manuscript-outline' and not unit.get('inline'):
             level = 3 if re.match(r'^\d+\.\d+', unit['title']) else 2
             lines.extend(['#' * level + ' ' + unit['title'], ''])
         for option in unit['options']:
@@ -99,7 +99,7 @@ def main():
                     lines.extend([image(block['src'], block.get('alt', '')), ''])
                     image_count += 1
                 else:
-                    lines.extend([html_to_markdown(block.get('manuscript_html', block['html'])), ''])
+                    lines.extend([html_to_markdown(block['html']), ''])
     target.write_text('\n'.join(lines).rstrip() + '\n', encoding='utf-8')
     print(json.dumps({'target': str(target), 'images': image_count,
                       'source_revision': board['revision']}, ensure_ascii=False))
