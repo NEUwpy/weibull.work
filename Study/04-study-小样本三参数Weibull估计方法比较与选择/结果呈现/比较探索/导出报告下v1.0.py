@@ -9,7 +9,6 @@ import xml.etree.ElementTree as ET
 
 STUDY = Path(__file__).resolve().parents[2]
 REVIEW = STUDY / 'reviewbyhtml/方法对比-v1.0'
-TARGET = STUDY / '报告下（方法对比）-v1.0.md'
 
 
 def local_link(value):
@@ -78,7 +77,11 @@ def main():
     board = json.loads((REVIEW / 'board.json').read_text(encoding='utf-8'))
     if not (board.get('archive_pending') or board.get('review_complete') or args.draft):
         raise SystemExit('请先在HTML中确认存档。')
-    lines = ['# ' + board['title'], '', '**报告下（方法对比）v1.0｜2026-10-21**', '']
+    target = (REVIEW / board.get('source_document', '../../报告下（方法对比）-v1.0.md')).resolve()
+    if not target.is_relative_to(STUDY):
+        raise ValueError('成果路径须位于Study04内。')
+    version = board.get('manuscript_version', '1.0')
+    lines = ['# ' + board['title'], '', f'**报告下（方法对比）v{version}｜2026-10-21**', '']
     image_count = 0
     for unit in board['units']:
         if unit.get('mode') != 'content':
@@ -97,8 +100,8 @@ def main():
                     image_count += 1
                 else:
                     lines.extend([html_to_markdown(block.get('manuscript_html', block['html'])), ''])
-    TARGET.write_text('\n'.join(lines).rstrip() + '\n', encoding='utf-8')
-    print(json.dumps({'target': str(TARGET), 'images': image_count,
+    target.write_text('\n'.join(lines).rstrip() + '\n', encoding='utf-8')
+    print(json.dumps({'target': str(target), 'images': image_count,
                       'source_revision': board['revision']}, ensure_ascii=False))
 
 
