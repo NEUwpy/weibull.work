@@ -1,8 +1,8 @@
 {
-  "submission_id": "22821d96-adf1-46c8-bc75-e075c5726570",
+  "submission_id": "aab93e3f-056a-4b44-adbb-c25de09799ee",
   "board_id": "study04-method-comparison-v1",
-  "board_revision": 13,
-  "submitted_at": "2026-10-21T07:36:07.786617+00:00",
+  "board_revision": 14,
+  "submitted_at": "2026-10-21T08:44:25.685277+00:00",
   "intent": "submit",
   "finish_review": false,
   "units": [
@@ -102,26 +102,57 @@
       "selected_option_ids": [],
       "selected_label": null,
       "selected_labels": [],
-      "next_action": "modify",
+      "next_action": "defer",
       "action_explicit": false,
       "inspiration": "",
       "notes": {},
       "section_note": "",
       "block_notes": [],
-      "annotations": [
-        {
-          "id": "fbb38ee5-691e-4d1c-bead-3330cbbe99fa",
-          "option_id": "law-rmse-current",
-          "block_id": "report-481785e3f263",
-          "block_hash": "68e9a82d38358bf68e4795681998ebf90da52235255483e41d2544627884fc31",
-          "quote": "条件改变既会改变误差水平，也会改变方法之间的差距：差距可能扩大，也可能缩小",
-          "start": 288,
-          "end": 325,
-          "prefix": "通常更高。不同方法的误差变化幅度并不相同。因此，",
-          "suffix": "，最低RMSE对应的方法也可能改变。",
-          "comment": "这里如果能配个图说明这个事情就好了，可以去配一下，给我3个方案让我选。"
-        }
+      "annotations": [],
+      "image_notes": []
+    },
+    {
+      "unit_id": "law-rmse-wording",
+      "unit_title": "文字表述",
+      "mode": "choices",
+      "target_option_id": "law-rmse-current-original",
+      "target_option_ids": [
+        "law-rmse-current-original"
       ],
+      "selected_option_id": "law-rmse-current-original",
+      "selected_option_ids": [
+        "law-rmse-current-original"
+      ],
+      "selected_label": "A　原稿",
+      "selected_labels": [
+        "A　原稿"
+      ],
+      "next_action": "converge",
+      "action_explicit": false,
+      "inspiration": "",
+      "notes": {},
+      "section_note": "",
+      "block_notes": [],
+      "annotations": [],
+      "image_notes": []
+    },
+    {
+      "unit_id": "law-rmse-gap-figure",
+      "unit_title": "差距变化的配图",
+      "mode": "choices",
+      "target_option_id": null,
+      "target_option_ids": [],
+      "selected_option_id": null,
+      "selected_option_ids": [],
+      "selected_label": null,
+      "selected_labels": [],
+      "next_action": "modify",
+      "action_explicit": false,
+      "inspiration": "",
+      "notes": {},
+      "section_note": "这里面图A比较清晰一些，图C比较好看一些。但是其实应该展示的是差距的变化。都没有展示出来。",
+      "block_notes": [],
+      "annotations": [],
       "image_notes": []
     },
     {
@@ -146,22 +177,45 @@
       "image_notes": []
     },
     {
-      "unit_id": "law-synthesis",
-      "unit_title": "3.3　主要性能规律",
-      "mode": "content",
-      "target_option_id": "synthesis-phenomena",
-      "target_option_ids": [
-        "synthesis-phenomena"
-      ],
+      "unit_id": "law-distribution-wording",
+      "unit_title": "文字表述",
+      "mode": "choices",
+      "target_option_id": null,
+      "target_option_ids": [],
       "selected_option_id": null,
       "selected_option_ids": [],
       "selected_label": null,
       "selected_labels": [],
-      "next_action": "defer",
+      "next_action": "modify",
       "action_explicit": false,
       "inspiration": "",
       "notes": {},
-      "section_note": "",
+      "section_note": "这两个写的都不太到位，就是我从 β 比较小到这个 β 比较大，这个过程。首先宏观上来看是这个都怎么怎么样。然后呢，其次再是这个从细微上看，就是虽然说从宏观上看都有怎么样，但细微上看还一直有些差异。把这两方面说清。清楚就够了，不是为了说把每一个方法都介绍一下，怎么变。也不是说这个就是跟方法无关，而是说要有这个宏观上的这个现象，有这个带有差异的这个现象。这两种这两类现象都是可以得到解释的。解释是在后面来解释",
+      "block_notes": [],
+      "annotations": [],
+      "image_notes": []
+    },
+    {
+      "unit_id": "law-synthesis",
+      "unit_title": "3.3　主要性能规律",
+      "mode": "choices",
+      "target_option_id": "synthesis-phenomena",
+      "target_option_ids": [
+        "synthesis-phenomena"
+      ],
+      "selected_option_id": "synthesis-phenomena",
+      "selected_option_ids": [
+        "synthesis-phenomena"
+      ],
+      "selected_label": "B　修订稿",
+      "selected_labels": [
+        "B　修订稿"
+      ],
+      "next_action": "modify",
+      "action_explicit": false,
+      "inspiration": "",
+      "notes": {},
+      "section_note": "b 相比 a 更好一点但 b 也不代表是很完美",
       "block_notes": [],
       "annotations": [],
       "image_notes": []
@@ -336,13 +390,16 @@
     }
   ],
   "changed_units": [
-    "law-rmse"
+    "law-rmse-wording",
+    "law-rmse-gap-figure",
+    "law-distribution-wording",
+    "law-synthesis"
   ],
   "confirmation": {
     "confirmed": true,
     "intent": "submit",
-    "text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 13 轮）。\n\n【3.1　样本量变化与方法差距】\n原文：“条件改变既会改变误差水平，也会改变方法之间的差距：差距可能扩大，也可能缩小”\n意见：这里如果能配个图说明这个事情就好了，可以去配一下，给我3个方案让我选。",
-    "generated_text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 13 轮）。\n\n【3.1　样本量变化与方法差距】\n原文：“条件改变既会改变误差水平，也会改变方法之间的差距：差距可能扩大，也可能缩小”\n意见：这里如果能配个图说明这个事情就好了，可以去配一下，给我3个方案让我选。",
+    "text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 14 轮）。\n\n【文字表述】\n选择：A　原稿\nA　原稿\n样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。\n\n样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。\n\nMM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。\n\n【差距变化的配图】\n本节备注：这里面图A比较清晰一些，图C比较好看一些。但是其实应该展示的是差距的变化。都没有展示出来。\n\n【文字表述】\n本节备注：这两个写的都不太到位，就是我从 β 比较小到这个 β 比较大，这个过程。首先宏观上来看是这个都怎么怎么样。然后呢，其次再是这个从细微上看，就是虽然说从宏观上看都有怎么样，但细微上看还一直有些差异。把这两方面说清。清楚就够了，不是为了说把每一个方法都介绍一下，怎么变。也不是说这个就是跟方法无关，而是说要有这个宏观上的这个现象，有这个带有差异的这个现象。这两种这两类现象都是可以得到解释的。解释是在后面来解释\n\n【3.3　主要性能规律】\n选择：B　修订稿\nB　修订稿\n样本减少引起的方法关系变化，随形状条件而不同。本轮两个样本量端点的比较中，低β下整体相对差距扩大，高β下则缩小；部分条件下的最低RMSE方法也随样本量改变。\n\n高β下，不同方法呈现不同的失准表现。一些方法出现结果分化，另一些表现为系统偏移；均值接近真值或分布更集中，都可能掩盖估计结果的问题。\n\n此外，MM在部分条件下的形状RMSE由少数极端输出主导，其评价影响在后面的风险分析中展开。\n本节备注：b 相比 a 更好一点但 b 也不代表是很完美",
+    "generated_text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 14 轮）。\n\n【文字表述】\n选择：A　原稿\nA　原稿\n样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。\n\n样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。\n\nMM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。\n\n【差距变化的配图】\n本节备注：这里面图A比较清晰一些，图C比较好看一些。但是其实应该展示的是差距的变化。都没有展示出来。\n\n【文字表述】\n本节备注：这两个写的都不太到位，就是我从 β 比较小到这个 β 比较大，这个过程。首先宏观上来看是这个都怎么怎么样。然后呢，其次再是这个从细微上看，就是虽然说从宏观上看都有怎么样，但细微上看还一直有些差异。把这两方面说清。清楚就够了，不是为了说把每一个方法都介绍一下，怎么变。也不是说这个就是跟方法无关，而是说要有这个宏观上的这个现象，有这个带有差异的这个现象。这两种这两类现象都是可以得到解释的。解释是在后面来解释\n\n【3.3　主要性能规律】\n选择：B　修订稿\nB　修订稿\n样本减少引起的方法关系变化，随形状条件而不同。本轮两个样本量端点的比较中，低β下整体相对差距扩大，高β下则缩小；部分条件下的最低RMSE方法也随样本量改变。\n\n高β下，不同方法呈现不同的失准表现。一些方法出现结果分化，另一些表现为系统偏移；均值接近真值或分布更集中，都可能掩盖估计结果的问题。\n\n此外，MM在部分条件下的形状RMSE由少数极端输出主导，其评价影响在后面的风险分析中展开。\n本节备注：b 相比 a 更好一点但 b 也不代表是很完美",
     "edited": false
   }
 }
