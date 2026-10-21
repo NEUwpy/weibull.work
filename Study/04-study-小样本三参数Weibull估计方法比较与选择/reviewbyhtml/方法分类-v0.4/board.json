@@ -2,7 +2,7 @@
   "id": "study04-method-classification-v04-report",
   "title": "Study04 方法分类报告 v1.1 审阅",
   "document": true,
-  "revision": 14,
+  "revision": 15,
   "require_confirmation": true,
   "archive_plan": "将本轮审定修改写回 Study04/报告上（方法分类）-v1.1.md，同步方法分类/机制图-v1.1/的draw.io图源、生成程序与SVG预览；沿用现有v1.0及v0.4归档，更新必要入口；保留原HTML任务、素材与全部审阅记录，核验正文、公式、图片和链接后提交到laptop分支。若确认文字指定新版本，再按该版本归档旧版并更新引用。",
   "units": [
@@ -94,15 +94,26 @@
               "html": "<p>这条路线使用观测处的密度及其联合贡献，把候选参数放进模型后比较样本的似然。参数由最大化联合似然或求解由似然导出的得分关系确定。后续方法通过调整权重、替换位置方程、处理边界项或引入偏差修正，形成不同的估计方案。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>观测处的密度、联合密度、删失或支持边界信息</td>\n<td>最大化联合似然，或求解似然得分方程</td>\n<td>方程加权、位置关系替换、边界约束、Firth型修正、局部候选与数值搜索</td>\n</tr>\n</tbody>\n</table>\n<p>MLE、WMLE、Cohen–Whitten MMLE、K–R\nMMLE、CMLE、DMMLE和罚似然的差别，集中在似然项、估计方程和位置处理上。PSO、模拟退火和差分进化用于搜索似然目标时，承担其中的数值求解环节。</p>\n"
             },
             {
+              "id": "section-3-flow-07-image",
+              "kind": "image",
+              "src": "assets/07-似然估计路线-信息处理流程.svg",
+              "alt": "图3a　似然估计路线的信息处理流程"
+            },
+            {
+              "id": "section-3-flow-07-caption",
+              "kind": "text",
+              "html": "<p><strong>图3a｜似然估计的信息处理流程。</strong>\n固定观测，在候选参数下计算密度贡献，组合为联合似然，再按似然目标或其得分方程确定参数；数值求解时更新候选并重新计算相应贡献。</p>\n"
+            },
+            {
               "id": "section-3-image-1",
               "kind": "image",
               "src": "assets/01-似然估计路线-机制图.svg",
-              "alt": "图3　似然估计路线机制图"
+              "alt": "图3b　似然估计路线机制图"
             },
             {
               "id": "section-3-text-2",
               "kind": "text",
-              "html": "<p><strong>图3｜从密度贡献到求解方程及其改动位置。</strong>\n上部展示各观测处的密度怎样相乘形成似然，再取对数、求导并由尺度方程消去η。下部在具体接口上展开：K–R平移和删除最小观测，DMMLE修正修改数据后的得分，WMLE给方程加权，Cohen–Whitten替换位置关系，CMLE替换最小值项，罚似然增加目标因子。</p>\n"
+              "html": "<p><strong>图3b｜从密度贡献到求解方程及其改动位置。</strong>\n上部展示各观测处的密度怎样相乘形成似然，再取对数、求导并由尺度方程消去η。下部在具体接口上展开：K–R平移和删除最小观测，DMMLE修正修改数据后的得分，WMLE给方程加权，Cohen–Whitten替换位置关系，CMLE替换最小值项，罚似然增加目标因子。</p>\n"
             }
           ]
         }
@@ -125,15 +136,26 @@
               "html": "<p>这条路线把理论分布与样本的分布形态、概率图关系、概率间距或反推尺度放在一起比较，依据匹配程度确定参数。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>经验CDF、概率图分数、相邻概率间距、各观测反推的尺度伪估计</td>\n<td>最小化分布差异、残差或距离；最大化概率间距评分；或让尺度伪估计更一致</td>\n<td>分数选择、位置定位、回归方向、分组方式、梯度阈值和固定偏移</td>\n</tr>\n</tbody>\n</table>\n<p>概率图、LSE／WLSE、最小距离估计、MPS／QMP和MDM属于这条路线。其中，概率图回归比较变换后的回归关系，最小距离估计比较分布差异，MPS／QMP利用概率间距评分，MDM比较各观测反推尺度的一致性。</p>\n"
             },
             {
+              "id": "section-4-flow-08-image",
+              "kind": "image",
+              "src": "assets/08-分布匹配路线-信息处理流程.svg",
+              "alt": "图4a　分布匹配路线的信息处理流程"
+            },
+            {
+              "id": "section-4-flow-08-caption",
+              "kind": "text",
+              "html": "<p><strong>图4a｜分布匹配的信息处理流程。</strong>\n从同一组观测构造概率图坐标、CDF差异或间距、伪尺度等比较对象，按各自规则确定参数，再恢复三参数。MDM保留条件形状求解、梯度阈值定位与尺度均值恢复三个步骤。</p>\n"
+            },
+            {
               "id": "section-4-image-1",
               "kind": "image",
               "src": "assets/02-分布匹配路线-机制图.svg",
-              "alt": "图4　分布匹配路线机制图"
+              "alt": "图4b　分布匹配路线机制图"
             },
             {
               "id": "section-4-text-2",
               "kind": "text",
-              "html": "<p><strong>图4｜同一分布关系形成不同的匹配过程。</strong>\n概率图部分把White／Soman的水平残差与Park的竖直残差并置，展示分数选择、位置评分和回归方向怎样共同决定参数。MPS比较CDF纵轴上的相邻概率间距；MDM先在给定位置下选择使尺度差异最小的形状，再沿该条件最优值曲线按梯度定位，最后以伪尺度均值恢复尺度。</p>\n"
+              "html": "<p><strong>图4b｜同一分布关系形成不同的匹配过程。</strong>\n概率图部分把White／Soman的水平残差与Park的竖直残差并置，展示分数选择、位置评分和回归方向怎样共同决定参数。MPS比较CDF纵轴上的相邻概率间距；MDM先在给定位置下选择使尺度差异最小的形状，再沿该条件最优值曲线按梯度定位，最后以伪尺度均值恢复尺度。</p>\n"
             }
           ]
         }
@@ -156,15 +178,26 @@
               "html": "<p>这条路线先选取样本矩、分位数、次序统计量、不变统计量或其他可计算特征，再建立它们与总体参数之间的理论关系，最后用匹配、消元或反解恢复参数。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>样本矩、概率加权矩、L矩、分位数、次序统计量、不变统计量</td>\n<td>匹配理论统计关系，或反演矩、枢轴关系和条件线性关系</td>\n<td>权重和端部处理、位置与尺度消元、条件协方差选权、显式恢复和迭代代入</td>\n</tr>\n</tbody>\n</table>\n<p>MM、PWM、L矩、TL矩、分位数和次序统计量方法属于这里。LSPF／LPF利用不变统计量及其联合密度和恢复方程确定参数；线性最小方差估计在给定参数或代入条件下，利用条件协方差确定组合权重。</p>\n"
             },
             {
+              "id": "section-5-flow-09-image",
+              "kind": "image",
+              "src": "assets/09-统计关系反演路线-信息处理流程.svg",
+              "alt": "图5a　统计关系反演路线的信息处理流程"
+            },
+            {
+              "id": "section-5-flow-09-caption",
+              "kind": "text",
+              "html": "<p><strong>图5a｜统计关系反演的信息处理流程。</strong>\n先提取统计量并明确其参数依赖，再经匹配、消元、联合密度最大化或条件选权确定参数，接入相应恢复关系。给定参数时构造的条件无偏量，与未知参数下临时估计代入的组合，分别标出。</p>\n"
+            },
+            {
               "id": "section-5-image-1",
               "kind": "image",
               "src": "assets/03-统计关系反演路线-机制图.svg",
-              "alt": "图5　统计关系反演路线机制图"
+              "alt": "图5b　统计关系反演路线机制图"
             },
             {
               "id": "section-5-text-2",
               "kind": "text",
-              "html": "<p><strong>图5｜从理论关系中逐步消去、恢复未知参数。</strong>\n常规矩法用偏度消去位置和尺度，再由方差、均值恢复；Cran改用生存曲线积分及矩差显式反解；PWM、L矩与TL矩改变统计量的样本权重。W统计量同时消去位置和尺度，V统计量只消去位置：LPF先联合估计尺度与形状，随后保留形状并按恢复方程重估其余参数。条件位置MVLUE则根据协方差选择线性组合权重。</p>\n"
+              "html": "<p><strong>图5b｜从理论关系中逐步消去、恢复未知参数。</strong>\n常规矩法用偏度消去位置和尺度，再由方差、均值恢复；Cran改用生存曲线积分及矩差显式反解；PWM、L矩与TL矩改变统计量的样本权重。W统计量同时消去位置和尺度，V统计量只消去位置：LPF先联合估计尺度与形状，随后保留形状并按恢复方程重估其余参数。条件位置MVLUE则根据协方差选择线性组合权重。</p>\n"
             }
           ]
         }
@@ -187,26 +220,48 @@
               "html": "<p>后验推断把样本似然和参数先验结合成后验分布，再按后验均值、中位数或MAP等规则给出估计。Gibbs、Laplace和MH用于计算或近似后验。</p>\n<p>学习映射通过训练样本或模拟数据学习从样本特征到分布参数的估计函数，代表方法包括ANN和BPNN。特征表示决定输入哪些样本信息，损失函数引导参数映射的学习，训练域与校准共同影响外推表现。</p>\n<table>\n<colgroup>\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n</colgroup>\n<thead>\n<tr>\n<th>扩展范式</th>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>后验推断</td>\n<td>样本似然信息＋参数先验</td>\n<td>后验规则，如均值、中位数或MAP</td>\n<td>后验计算、抽样、近似和先验敏感性</td>\n</tr>\n<tr>\n<td>学习映射</td>\n<td>训练样本、模拟样本和样本特征</td>\n<td>学习特征到三个参数的映射</td>\n<td>训练域、损失函数、校准和外推边界</td>\n</tr>\n</tbody>\n</table>\n"
             },
             {
+              "id": "section-6-flow-10-image",
+              "kind": "image",
+              "src": "assets/10-后验推断路线-信息处理流程.svg",
+              "alt": "图6a　后验推断路线的信息处理流程"
+            },
+            {
+              "id": "section-6-flow-10-caption",
+              "kind": "text",
+              "html": "<p><strong>图6a｜后验推断的信息处理流程。</strong>\n由样本形成似然，与先验及支持域共同组成后验，再选择输出规则，并用适合该后验量的积分、抽样、近似或优化方法求值。</p>\n"
+            },
+            {
               "id": "section-6-image-1",
               "kind": "image",
               "src": "assets/04-后验推断路线-机制图.svg",
-              "alt": "图6　后验推断路线机制图"
+              "alt": "图6b　后验推断路线机制图"
             },
             {
               "id": "section-6-figure-6-caption",
               "kind": "text",
-              "html": "<p><strong>图6｜联合后验、输出规则与计算过程。</strong>\n似然、先验和支持域共同确定联合后验；后验均值、中位数及MAP选择不同的输出量。条件抽样通过β、η、γ的循环更新形成后验样本，Laplace则通过后验峰附近的二次近似计算积分，两种路径服务于所选后验量。</p>\n"
+              "html": "<p><strong>图6b｜联合后验、输出规则与计算过程。</strong>\n似然、先验和支持域共同确定联合后验；后验均值、中位数及MAP选择不同的输出量。条件抽样通过β、η、γ的循环更新形成后验样本，Laplace则通过后验峰附近的二次近似计算积分，两种路径服务于所选后验量。</p>\n"
+            },
+            {
+              "id": "section-6-flow-11-image",
+              "kind": "image",
+              "src": "assets/11-学习映射路线-信息处理流程.svg",
+              "alt": "图7a　学习映射路线的信息处理流程"
+            },
+            {
+              "id": "section-6-flow-11-caption",
+              "kind": "text",
+              "html": "<p><strong>图7a｜学习映射的信息处理流程。</strong>\n多组带参数标签的样本进入特征表示和预测映射，预测损失反馈到权重更新；训练完成后固定映射，将新样本的相同特征转换为参数。</p>\n"
             },
             {
               "id": "section-6-image-2",
               "kind": "image",
               "src": "assets/05-学习映射路线-机制图.svg",
-              "alt": "图7　学习映射路线机制图"
+              "alt": "图7b　学习映射路线机制图"
             },
             {
               "id": "section-6-text-3",
               "kind": "text",
-              "html": "<p><strong>图7｜训练与使用分开看。</strong>\n训练阶段比较多组样本的参数预测和真值，按损失更新网络权重；使用阶段保持映射固定，将新样本的同类特征转成三个参数。图下部标出直接预测参数、学习统计估计器的中间量以及搜索当前样本目标的不同作用位置。</p>\n"
+              "html": "<p><strong>图7b｜训练与使用分开看。</strong>\n训练阶段比较多组样本的参数预测和真值，按损失更新网络权重；使用阶段保持映射固定，将新样本的同类特征转成三个参数。图下部标出直接预测参数、学习统计估计器的中间量以及搜索当前样本目标的不同作用位置。</p>\n"
             }
           ]
         }
@@ -304,7 +359,7 @@
       ]
     }
   ],
-  "last_applied_submission_id": "d676b785-439c-4cee-83dc-402098d83d07",
+  "last_applied_submission_id": "8c70d978-0e13-4060-9091-c942762ba2aa",
   "review_complete": false,
-  "last_rendered_submission_id": "d676b785-439c-4cee-83dc-402098d83d07"
+  "last_rendered_submission_id": "8c70d978-0e13-4060-9091-c942762ba2aa"
 }

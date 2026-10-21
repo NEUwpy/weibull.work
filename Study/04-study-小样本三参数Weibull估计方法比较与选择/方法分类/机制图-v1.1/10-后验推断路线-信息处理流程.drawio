@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="26.0.9">
+  <diagram id="posterior-information-flow" name="后验推断｜样本与先验形成后验，再按所选规则给出估计">
+    <mxGraphModel page="1" pageWidth="1800" pageHeight="730" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="后验推断｜样本与先验形成后验，再按所选规则给出估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="20" width="1710" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="联合后验确定参数的不确定性；输出规则决定需要计算哪一个后验量。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="45" y="95" width="1710" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="sample" value="输入观测 D&lt;br&gt;形成样本似然 L(θ|D)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F8F3FB;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="55" y="240" width="285" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="posterior" value="结合参数先验与支持域&lt;br&gt;p(θ|D) ∝ L(θ|D)π(θ)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F8F3FB;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="420" y="240" width="330" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="decision" value="选择后验输出规则&lt;br&gt;均值／逐参数中位数&lt;br&gt;或联合 MAP" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F8F3FB;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="830" y="240" width="285" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="compute" value="计算所选后验量&lt;br&gt;积分、抽样、近似&lt;br&gt;或密度峰优化" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F8F3FB;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1195" y="240" width="285" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="estimate" value="得到参数估计&lt;br&gt;β̂、η̂、γ̂" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#EEE2F6;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="1560" y="240" width="190" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-posterior" value="" edge="1" parent="1" source="sample" target="posterior" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="posterior-decision" value="" edge="1" parent="1" source="posterior" target="decision" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="decision-compute" value="" edge="1" parent="1" source="decision" target="compute" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="compute-estimate" value="" edge="1" parent="1" source="compute" target="estimate" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="prior" value="已有信息与参数范围&lt;br&gt;先验 π(θ) 及允许域" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="435" y="500" width="300" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="prior-joint" value="" edge="1" parent="1" source="prior" target="posterior" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Microsoft YaHei;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rules" value="后验均值取期望；逐参数中位数取边缘分位数；MAP取联合后验密度的峰。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Microsoft YaHei;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="55" y="650" width="1690" height="45" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

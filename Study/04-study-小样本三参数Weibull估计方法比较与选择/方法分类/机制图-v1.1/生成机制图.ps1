@@ -4,6 +4,7 @@ $Generators = @(
     '生成似然细图.py',
     '生成分布与统计细图.py',
     '生成后验与学习细图.py',
+    '生成路线流程图.py',
     '生成完整机理地图.py'
 )
 foreach ($Generator in $Generators) {
