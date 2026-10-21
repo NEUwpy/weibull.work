@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 18,
+  "revision": 19,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.1.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v1.1.md",
@@ -71,42 +71,8 @@
       ]
     },
     {
-      "id": "chapter-2",
-      "title": "2　代表方法的性能差异",
-      "mode": "content",
-      "state": "modify",
-      "selected": "gap-overview",
-      "options": [
-        {
-          "id": "gap-overview",
-          "label": "A　各条件下的整体差距",
-          "blocks": [
-            {
-              "id": "preview",
-              "kind": "image",
-              "src": "assets/修订_整体差距百分比.png",
-              "alt": "主体差距：直接读多出百分之多少",
-              "markdown": "![主体差距：直接读多出百分之多少](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/修订_整体差距百分比.png)"
-            },
-            {
-              "id": "global-insight",
-              "kind": "text",
-              "markdown": "较大的相对差距主要出现在形状参数估计上，尺度与位置的相对差距通常较小。七种方法在三个参数上的表现并不一致。\n\n*相对差距缩小，不等于各方法的绝对误差减小。*",
-              "html": "<p>较大的相对差距主要出现在形状参数估计上，尺度与位置的相对差距通常较小。七种方法在三个参数上的表现并不一致。</p>\n<p><em>相对差距缩小，不等于各方法的绝对误差减小。</em></p>"
-            },
-            {
-              "id": "report-7dd6a876cc3f",
-              "kind": "text",
-              "html": "<p><em>图注：每格为七法RMSE中位数高于该条件最小值的百分比；三列共用色标。</em></p>",
-              "markdown": "*图注：每格为七法RMSE中位数高于该条件最小值的百分比；三列共用色标。*"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "chapter-3",
-      "title": "3　性能差异的条件变化规律",
+      "title": "2　估计性能的差异与变化",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -126,7 +92,7 @@
     },
     {
       "id": "law-rmse",
-      "title": "3.1　样本量变化与方法差距",
+      "title": "2.1　样本量变化与方法差距",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -176,13 +142,13 @@
             {
               "id": "report-96bac28ad30a",
               "kind": "text",
-              "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p><p><small>相对差距按第2章口径核对，扩大或缩小指n=50与7两个端点的比较，不表示中间n单调变化。</small></p>",
+              "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p>",
               "markdown": "*图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。*"
             },
             {
               "id": "report-481785e3f263",
               "kind": "text",
-              "html": "<p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，方法间的相对差距却未必同步扩大。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p>"
+              "html": "<p>样本量减少时，主图六种方法的误差总体增大，但增幅并不相同。低β区域的形状误差差距更容易拉开；高β区域的尺度和位置误差也在增加，部分方法间的差距却可能缩小。</p>\n<p>样本量变化还会改变方法的相对表现。低β下的形状优势不能直接沿用到高β，同一β下的排序也可能随n改变。方法差距随条件重新形成，并非将原有差距按同一比例放大。</p>\n<p>MM在部分条件下的形状RMSE出现明显尖峰，其变化需要与极端输出的影响分开理解。</p>"
             },
             {
               "id": "distance-joint-image",
@@ -207,7 +173,7 @@
     },
     {
       "id": "law-distribution",
-      "title": "3.2　偏移、波动与分布分化",
+      "title": "2.2　偏移、波动与分布分化",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -300,7 +266,7 @@
     },
     {
       "id": "law-synthesis",
-      "title": "3.3　主要性能规律",
+      "title": "2.3　主要性能规律",
       "mode": "content",
       "state": "modify",
       "selected": "synthesis-phenomena",
@@ -312,7 +278,7 @@
             {
               "id": "synthesis-phenomena-body",
               "kind": "text",
-              "html": "<ol><li><p><strong>方法差距随n和β共同改变。</strong>样本减少时，各方法的误差增长幅度不同，原有差距并不按同一比例放大。在本轮n=50与7的比较中，七法整体相对差距在低β下扩大、在高β下缩小；部分条件下，最低RMSE对应的方法也发生变化。</p></li><li><p><strong>误差增长具有不同的分布表现。</strong>随β增大，尺度和位置估计逐渐偏离真值附近；其中既有分布整体偏移，也有结果分成两组。均值接近真值或分布较集中，都不足以单独说明估计效果。</p></li></ol><p>MM的少数极端输出还会明显改变RMSE，其影响在后面的风险分析中展开。</p>"
+              "html": "<ol><li><p><strong>方法差距随n和β共同改变。</strong>样本减少时，各方法的误差增长幅度不同，原有差距并不按同一比例放大。方法对之间既有进一步分离，也有相互接近，变化方向还会随形状条件改变；部分条件下，最低RMSE对应的方法也发生变化。</p></li><li><p><strong>误差增长具有不同的分布表现。</strong>随β增大，尺度和位置估计逐渐偏离真值附近；其中既有分布整体偏移，也有结果分成两组。均值接近真值或分布较集中，都不足以单独说明估计效果。</p></li></ol><p>MM的少数极端输出还会明显改变RMSE，其影响在后面的风险分析中展开。</p>"
             }
           ]
         }
@@ -324,7 +290,7 @@
     },
     {
       "id": "chapter-4",
-      "title": "4　典型性能现象的机制解释",
+      "title": "3　典型性能现象的机制解释",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -344,7 +310,7 @@
     },
     {
       "id": "mechanism-n",
-      "title": "4.1　位置估计参与形状波动的放大",
+      "title": "3.1　位置估计参与形状波动的放大",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -384,7 +350,7 @@
     },
     {
       "id": "mechanism-high-beta",
-      "title": "4.2　样本最小值与K–R的位置偏移",
+      "title": "3.2　样本最小值与K–R的位置偏移",
       "mode": "content",
       "state": "modify",
       "selected": "mechanism-minimum",
@@ -428,7 +394,7 @@
     },
     {
       "id": "mechanism-boundary",
-      "title": "4.3　LSE与LRE的边界选解及参数补偿",
+      "title": "3.3　LSE与LRE的边界选解及参数补偿",
       "mode": "content",
       "state": "converged",
       "selected": "mechanism-boundary",
@@ -493,7 +459,7 @@
     },
     {
       "id": "chapter-5",
-      "title": "5　评价目标、估计风险与方法选择",
+      "title": "4　评价目标、估计风险与方法选择",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -513,7 +479,7 @@
     },
     {
       "id": "evaluation-risk",
-      "title": "5.1　极端结果与求解失败",
+      "title": "4.1　极端结果与求解失败",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -571,7 +537,7 @@
     },
     {
       "id": "evaluation-target",
-      "title": "5.2　评价目标与已知条件",
+      "title": "4.2　评价目标与已知条件",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -617,7 +583,7 @@
     },
     {
       "id": "chapter-6",
-      "title": "6　后续研究与平台",
+      "title": "5　后续研究与平台",
       "mode": "content",
       "state": "open",
       "selected": null,
