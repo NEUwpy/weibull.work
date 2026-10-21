@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 7,
+  "revision": 8,
   "require_confirmation": true,
   "archive_plan": "保存本次v1.0内容审阅的结果：\n1. 将审定文字、图表及局部选择写入 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md；未选择的候选不代选，尚未实施的研究思路不写成已得到的结论。\n2. 正文使用本任务assets中的PNG，核对图像、数据口径及引用；根据实际内容更新总体README和结果呈现README。\n3. 保留原v0.4及其HTML存档；沿用 reviewbyhtml/方法对比-v1.0/ 保存本任务HTML、内容源、素材、批注及历史，以Git记录版本，草稿和运行状态留在本地。\n4. 本次候选复用v0.4图表与已核对材料；尚待验证的机制研究，在用户明确决定开展后继续。",
   "source_document": "../../报告下（方法对比）-v1.0.md",
@@ -286,7 +286,12 @@
             {
               "id": "synthesis-phenomena-body",
               "kind": "text",
-              "html": "<ol>\n<li><p><strong>样本减少时，误差增长可以主要表现为重复波动扩大。</strong>低β下，LSE和LRE的形状估计分布随n减小明显变宽，方法间的形状误差差距也更容易拉开。各方法的误差增幅并不相同，原有差距不会按相同比例传递到更小的样本量。</p></li>\n<li><p><strong>系统偏移也是小样本误差的重要表现，分布较集中不等于估计较准确。</strong>高β下，MDM、WMLE和K–R呈现位置偏高、尺度偏低的组合，小样本时更加突出。WMLE还存在形状波动减小、负偏差继续增大而RMSE上升的情形，说明误差增长并非总由波动扩大引起。</p></li>\n<li><p><strong>参数条件变化还会使重复估计结果发生分化。</strong>随β增大，LSE和LRE的尺度估计逐渐出现双峰，n=7时两组结果分离更明显。因此，估计分布的变化既包括宽度与中心的变化，也包括形态和分组结构的变化。</p></li>\n</ol>"
+              "html": "<ol>\n<li><p><strong>样本减少时，方法间相对差距的变化方向取决于形状区域。</strong>从n=50到7，β=1.5—3时，三个参数的整体相对差距均扩大；β=4.5、5时，三个参数的整体相对差距反而缩小。因此，样本减少对方法差距的影响具有条件性，扩大与收缩会出现在不同区域。</p></li>\n<li><p><strong>方法的优势既有持续保持的区域，也有随样本量转移的区域。</strong>β=3、3.5时，MDM在五档n下的三参数RMSE均为最低。β=4.5、5时，形状RMSE最低的方法则随n减少，由WMLE转为MDM，再转为K–R。这表明方法的相对优势是n与β共同作用下的区域性表现。</p></li>\n<li><p><strong>需要进一步解释的分布现象，各自具有明确的方法与条件范围。</strong>LSE、LRE在低β下随样本减少表现为形状波动扩大，在高β下表现为尺度结果分化；MDM、WMLE和K–R在高β下呈现位置偏高、尺度偏低的组合。这些现象分别提出了定位影响、边界选解与系统偏移的解释问题。</p></li>\n</ol>"
+            },
+            {
+              "id": "synthesis-scope",
+              "kind": "text",
+              "html": "<p><small>第1点的整体相对差距沿用第2章指标：七法RMSE中位数高于该条件最小值的比例，按共同有效结果比较n=50与7两个条件；第2点为本批RMSE点估计的先后关系，两种有效样本口径均支持上述区域表现。</small></p>"
             }
           ]
         }
@@ -294,41 +299,6 @@
       "selection_mode": "multiple",
       "selected_ids": [
         "synthesis-phenomena"
-      ]
-    },
-    {
-      "id": "law-synthesis-additions",
-      "title": "3.3　进一步认识",
-      "mode": "choices",
-      "selection_mode": "multiple",
-      "inline": true,
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "context": "补充结论候选，可多选。",
-      "options": [
-        {
-          "id": "summary-shared-construction",
-          "label": "A　相近构造呈现共同的性能变化模式",
-          "blocks": [
-            {
-              "id": "shared-construction-body",
-              "kind": "text",
-              "html": "<p><strong>LSE与LRE的性能变化具有共同模式。</strong></p><ul>\n<li>低β下，随n减小，两法的形状估计都表现为波动扩大。</li>\n<li>随β增大，两法的尺度估计都逐渐分化，小样本下分离更明显。</li>\n</ul><p>两法的相似性贯穿条件变化，体现为波动和分布形态的共同响应。这为进一步分析它们在概率图定位与参数恢复中的共同构造提供了线索。</p>"
-            }
-          ]
-        },
-        {
-          "id": "summary-cross-route",
-          "label": "B　不同构造出现相似的参数偏移模式",
-          "blocks": [
-            {
-              "id": "cross-route-body",
-              "kind": "text",
-              "html": "<p><strong>相似的偏移模式也出现在不同构造的方法之间。</strong></p><ul>\n<li>高β下，MDM、WMLE和K–R均呈现位置偏高、尺度偏低的组合。</li>\n<li>样本减少时，这种偏移更为突出；它们与LSE、LRE的分化表现形成对照。</li>\n</ul><p>比较由此得到两类值得解释的性能模式：一类是不同参数结果的方向性偏移，另一类是重复估计在不同参数组合之间分化。后续可以围绕位置的确定及其对参数恢复的影响，分别考察这些模式的形成路径。</p>"
-            }
-          ]
-        }
       ]
     },
     {
@@ -652,9 +622,82 @@
       ]
     }
   ],
-  "last_applied_submission_id": "ffc8d0a8-2837-4b33-b3af-8119d24e6445",
-  "last_rendered_submission_id": "ffc8d0a8-2837-4b33-b3af-8119d24e6445",
+  "last_applied_submission_id": "a9bf9585-8c60-4c4a-b46f-a585bec8ca6e",
+  "last_rendered_submission_id": "a9bf9585-8c60-4c4a-b46f-a585bec8ca6e",
   "outline_confirmed": true,
   "review_complete": false,
-  "review_runtime": "0.3.0"
+  "review_runtime": "0.3.0",
+  "section_3_3_evidence": {
+    "source": "结果呈现/分析数据/参数指标.csv",
+    "sha256": "076fc9041bd86df9a43af27cc4f5b75d9381231a618079d8efa0cd6789c78d7b",
+    "gap_metric": "median(RMSE)/min(RMSE)-1",
+    "gap_subset": "common",
+    "mdm_persistent_region": {
+      "beta": [
+        3,
+        3.5
+      ],
+      "n": [
+        50,
+        20,
+        15,
+        10,
+        7
+      ],
+      "parameters": [
+        "beta",
+        "eta",
+        "gamma"
+      ],
+      "subsets": [
+        "own",
+        "common"
+      ]
+    },
+    "shape_winner_transition": {
+      "beta": [
+        4.5,
+        5
+      ],
+      "n": [
+        50,
+        20,
+        15,
+        10,
+        7
+      ],
+      "winners": [
+        "WMLE",
+        "WMLE",
+        "WMLE",
+        "MDM-0.1",
+        "MMLE(KR)"
+      ],
+      "subsets": [
+        "own",
+        "common"
+      ]
+    },
+    "gap_checked_regions": {
+      "expanded_beta": [
+        1.5,
+        2,
+        2.5,
+        3
+      ],
+      "contracted_beta": [
+        4.5,
+        5
+      ],
+      "n": [
+        50,
+        7
+      ],
+      "parameters": [
+        "beta",
+        "eta",
+        "gamma"
+      ]
+    }
+  }
 }
