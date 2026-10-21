@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 5,
+  "revision": 6,
   "require_confirmation": true,
   "archive_plan": "保存本次v1.0内容审阅的结果：\n1. 将审定文字、图表及局部选择写入 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md；未选择的候选不代选，尚未实施的研究思路不写成已得到的结论。\n2. 正文使用本任务assets中的PNG，核对图像、数据口径及引用；根据实际内容更新总体README和结果呈现README。\n3. 保留原v0.4及其HTML存档；沿用 reviewbyhtml/方法对比-v1.0/ 保存本任务HTML、内容源、素材、批注及历史，以Git记录版本，草稿和运行状态留在本地。\n4. 本次候选复用v0.4图表与已核对材料；尚待验证的机制研究，在用户明确决定开展后继续。",
   "source_document": "../../报告下（方法对比）-v1.0.md",
@@ -276,7 +276,7 @@
       "id": "law-synthesis",
       "title": "3.3　主要规律",
       "mode": "content",
-      "state": "converged",
+      "state": "open",
       "selected": "synthesis-phenomena",
       "options": [
         {
@@ -286,7 +286,7 @@
             {
               "id": "synthesis-phenomena-body",
               "kind": "text",
-              "html": "<p>误差增长至少表现为三种不同情形：估计分布变宽、整体向偏离真值的方向移动，以及重复结果分化为不同的参数组合。</p><p>这些表现随n和β共同变化，也并非由所有方法同步出现。LSE、LRE的波动与分化，和MDM、WMLE、K–R的方向性偏移，需要结合各自构造进一步解释。</p>"
+              "html": "<ol>\n<li><p><strong>样本减少时，误差增长可以主要表现为重复波动扩大。</strong>低β下，LSE和LRE的形状估计分布随n减小明显变宽，方法间的形状误差差距也更容易拉开。各方法的误差增幅并不相同，原有差距不会按相同比例传递到更小的样本量。</p></li>\n<li><p><strong>系统偏移也是小样本误差的重要表现，分布较集中不等于估计较准确。</strong>高β下，MDM、WMLE和K–R呈现位置偏高、尺度偏低的组合，小样本时更加突出。WMLE还存在形状波动减小、负偏差继续增大而RMSE上升的情形，说明误差增长并非总由波动扩大引起。</p></li>\n<li><p><strong>参数条件变化还会使重复估计结果发生分化。</strong>随β增大，LSE和LRE的尺度估计逐渐出现双峰，n=7时两组结果分离更明显。因此，估计分布的变化既包括宽度与中心的变化，也包括形态和分组结构的变化。</p></li>\n</ol>"
             }
           ]
         }
@@ -294,6 +294,41 @@
       "selection_mode": "multiple",
       "selected_ids": [
         "synthesis-phenomena"
+      ]
+    },
+    {
+      "id": "law-synthesis-additions",
+      "title": "3.3　可补充的结论",
+      "mode": "choices",
+      "selection_mode": "multiple",
+      "inline": true,
+      "state": "open",
+      "selected": null,
+      "selected_ids": [],
+      "context": "是否再保留以下结论，可多选。",
+      "options": [
+        {
+          "id": "summary-mean",
+          "label": "A　均值可能掩盖分化",
+          "blocks": [
+            {
+              "id": "summary-mean-body",
+              "kind": "text",
+              "html": "<p><strong>均值接近真值，并不意味着多数重复估计都接近真值。</strong>高β下，LSE和LRE的尺度均值可以接近真值，而估计结果已分为两个明显分离的群体。评价需要同时观察中心、离散程度与分布形态。</p>"
+            }
+          ]
+        },
+        {
+          "id": "summary-sensitivity",
+          "label": "B　误差水平与样本量敏感程度需要区分",
+          "blocks": [
+            {
+              "id": "summary-sensitivity-body",
+              "kind": "text",
+              "html": "<p><strong>某个条件下误差较大，不代表减少样本造成的误差增量也更大。</strong>K–R在高β、n=50时已存在明显偏移，而低β下从50减到7的相对形状RMSE增量更大。性能水平和随n变化的增量共同决定方法的条件表现。</p><p><small>此处比较相对形状RMSE的增量；自身有效与共同有效口径均支持该方向。</small></p>"
+            }
+          ]
+        }
       ]
     },
     {
@@ -617,8 +652,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "097b2dae-870c-4a85-8f0e-753e40a4fe12",
-  "last_rendered_submission_id": "097b2dae-870c-4a85-8f0e-753e40a4fe12",
+  "last_applied_submission_id": "5bf3f42b-1cfc-4d82-9767-e79cc167d993",
+  "last_rendered_submission_id": "5bf3f42b-1cfc-4d82-9767-e79cc167d993",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.3.0"
