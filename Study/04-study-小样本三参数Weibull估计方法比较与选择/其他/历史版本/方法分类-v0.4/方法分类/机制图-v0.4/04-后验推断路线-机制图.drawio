@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mxfile host="app.diagrams.net" agent="Codex" version="26.0.9">
+  <diagram id="posterior-route-v04" name="机制图 04｜后验推断路线">
+    <mxGraphModel page="1" pageWidth="1800" pageHeight="1100" grid="1" gridSize="10" math="1" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="机制图 04｜后验推断路线" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=32;fontColor=#263238;strokeWidth=0;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;spacing=0;fontStyle=1;">
+          <mxGeometry as="geometry" x="40" y="24" width="1720" height="48" />
+        </mxCell>
+        <mxCell id="subtitle" value="核心问题：如何把样本证据与参数先验合成为估计？" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=19;fontColor=#63758A;strokeWidth=0;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;spacing=0;">
+          <mxGeometry as="geometry" x="40" y="78" width="1720" height="32" />
+        </mxCell>
+        <mxCell id="legend" value="蓝灰：共同信息与主流程　珊瑚：本路线的决定性原则　绿色：参数输出　紫灰：实现、改进与边界" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#63758A;strokeWidth=0;fillColor=none;strokeColor=none;align=left;verticalAlign=middle;spacing=0;">
+          <mxGeometry as="geometry" x="40" y="112" width="1720" height="28" />
+        </mxCell>
+        <mxCell id="sample" value="&lt;b&gt;① 样本 D&lt;/b&gt;&lt;br&gt;排序寿命样本&lt;br&gt;完整样本或指定观测条件" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=21;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F7F9FB;strokeColor=#63758A;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="40" y="170" width="360" height="170" />
+        </mxCell>
+        <mxCell id="info" value="&lt;b&gt;② 信息利用&lt;/b&gt;&lt;br&gt;样本似然 L(θ|D) 与先验 p(θ)，以及参数化、支持域和后验计算所需的条件分布。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=20;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F7F9FB;strokeColor=#63758A;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="475" y="170" width="360" height="170" />
+        </mxCell>
+        <mxCell id="principle" value="&lt;b&gt;③ 参数确定原则&lt;/b&gt;&lt;br&gt;形成 p(θ|D) ∝ L(θ|D)p(θ)，再按平方损失、绝对损失或其他规则取后验均值、众数或中位数。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=20;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="910" y="170" width="360" height="170" />
+        </mxCell>
+        <mxCell id="output" value="&lt;b&gt;④ 三参数估计&lt;/b&gt;&lt;br&gt;点估计或后验区间&lt;br&gt;并伴随先验敏感性、支持域与链混合诊断" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=20;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#EEF8F2;strokeColor=#548A74;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="1345" y="170" width="360" height="170" />
+        </mxCell>
+        <mxCell id="flow-1" value="" parent="1" edge="1" source="sample" target="info" style="html=1;strokeColor=#263238;strokeWidth=2.4;endArrow=block;endFill=1;rounded=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-2" value="" parent="1" edge="1" source="info" target="principle" style="html=1;strokeColor=#263238;strokeWidth=2.4;endArrow=block;endFill=1;rounded=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-3" value="" parent="1" edge="1" source="principle" target="output" style="html=1;strokeColor=#263238;strokeWidth=2.4;endArrow=block;endFill=1;rounded=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="branches-panel" value="&lt;b&gt;主要构造与方法分支&lt;/b&gt;" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#263238;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#63758A;align=left;verticalAlign=top;spacing=10;dashed=1;dashPattern=6 4;">
+          <mxGeometry as="geometry" x="40" y="385" width="1665" height="300" />
+        </mxCell>
+        <mxCell id="branch-0" value="&lt;b&gt;后验模型&lt;/b&gt;&lt;br&gt;先验、似然和参数支持域共同决定推断对象；贝叶斯与MLE可共享似然。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="70" y="445" width="500" height="82" />
+        </mxCell>
+        <mxCell id="branch-edge-0" value="" parent="1" edge="1" source="principle" target="branch-0" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-1" value="&lt;b&gt;点估计规则&lt;/b&gt;&lt;br&gt;后验均值、后验中位数、MAP等是不同输出规则，不能只按计算算法分类。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="615" y="445" width="500" height="82" />
+        </mxCell>
+        <mxCell id="branch-edge-1" value="" parent="1" edge="1" source="principle" target="branch-1" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-2" value="&lt;b&gt;后验计算&lt;/b&gt;&lt;br&gt;Gibbs、Laplace、MH、ARS等负责计算后验量，属于实现标签。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="1160" y="445" width="500" height="82" />
+        </mxCell>
+        <mxCell id="branch-edge-2" value="" parent="1" edge="1" source="principle" target="branch-2" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-3" value="&lt;b&gt;经验先验组合&lt;/b&gt;&lt;br&gt;灰色拟合、参数自助或外部知识可提供先验，但独立信息与同样本重抽样需区分。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="70" y="550" width="500" height="82" />
+        </mxCell>
+        <mxCell id="branch-edge-3" value="" parent="1" edge="1" source="principle" target="branch-3" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="branch-4" value="&lt;b&gt;关系线&lt;/b&gt;&lt;br&gt;MAP与似然最大化存在数学联系；先验、损失和支持域仍改变完整推断机制。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6F2F2B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFF5F2;strokeColor=#B44948;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="615" y="550" width="500" height="82" />
+        </mxCell>
+        <mxCell id="branch-edge-4" value="" parent="1" edge="1" source="principle" target="branch-4" style="html=1;strokeColor=#B44948;strokeWidth=1.4;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tags-panel" value="&lt;b&gt;实现与改进标签（横向，不另立一级类别）&lt;/b&gt;" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=23;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#7F6B93;align=left;verticalAlign=top;spacing=10;dashed=1;dashPattern=6 4;">
+          <mxGeometry as="geometry" x="40" y="725" width="1665" height="175" />
+        </mxCell>
+        <mxCell id="tag-0" value="先验支持域" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="70" y="785" width="365" height="42" />
+        </mxCell>
+        <mxCell id="tag-edge-0" value="" parent="1" edge="1" source="info" target="tag-0" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tag-1" value="参数化" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="475" y="785" width="365" height="42" />
+        </mxCell>
+        <mxCell id="tag-edge-1" value="" parent="1" edge="1" source="principle" target="tag-1" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tag-2" value="后验规则" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="880" y="785" width="365" height="42" />
+        </mxCell>
+        <mxCell id="tag-edge-2" value="" parent="1" edge="1" source="info" target="tag-2" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tag-3" value="Gibbs／MH／Laplace" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="1285" y="785" width="365" height="42" />
+        </mxCell>
+        <mxCell id="tag-edge-3" value="" parent="1" edge="1" source="principle" target="tag-3" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tag-4" value="先验敏感性" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="70" y="840" width="365" height="42" />
+        </mxCell>
+        <mxCell id="tag-edge-4" value="" parent="1" edge="1" source="info" target="tag-4" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tag-5" value="链混合" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#57436B;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#F4F0F8;strokeColor=#7F6B93;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="475" y="840" width="365" height="42" />
+        </mxCell>
+        <mxCell id="tag-edge-5" value="" parent="1" edge="1" source="principle" target="tag-5" style="html=1;strokeColor=#7F6B93;strokeWidth=1.2;endArrow=open;endFill=1;rounded=0;dashed=1;dashPattern=6 4;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="caution" value="&lt;b&gt;解释边界&lt;/b&gt;&lt;br&gt;共享似然不意味着后验推断等同于MLE；计算链运行成功也不自动证明先验和支持域设定合理。" parent="1" vertex="1" style="whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#6B5310;strokeWidth=1.6;rounded=1;arcSize=8;fillColor=#FFFBEA;strokeColor=#B18B2C;align=left;verticalAlign=middle;spacing=10;">
+          <mxGeometry as="geometry" x="40" y="945" width="1665" height="90" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,616 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="26.0.9">
+  <diagram id="visual-distribution-flow" name="分布关系匹配：分布表示、指定准则与参数确定">
+    <mxGraphModel page="1" pageWidth="2400" pageHeight="2040" background="#ffffff" math="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="分布关系匹配｜构造分布表示，指定匹配准则，再据此确定参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="20" width="2310" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="比较对象可以是累积概率点、概率图坐标、概率间距或反推尺度；不同对象须接到各自的确定准则。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="45" y="95" width="2310" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="empirical-bg" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DEE6EC;fillColor=#F1F7FB;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="50" y="410.0" width="530" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="empirical-heading" value="① 构造样本概率点" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="70" y="420.0" width="490" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-bg" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DEE6EC;fillColor=#F1F7FB;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="640" y="410.0" width="530" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-heading" value="② 放入候选分布" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="660" y="420.0" width="490" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="difference-bg" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DEE6EC;fillColor=#F8FAFC;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1230" y="410.0" width="530" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="difference-heading" value="③ 汇总逐点偏离" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1250" y="420.0" width="490" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="criterion-bg" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DEE6EC;fillColor=#F2F8F4;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1820" y="410.0" width="530" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="criterion-heading" value="④ 比较整组差异" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1840" y="420.0" width="490" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="step-1-2-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="590" y="730.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step-1-2-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="630" y="730.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step-1-2" value="" edge="1" parent="1" source="step-1-2-a" target="step-1-2-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step-2-3-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1180" y="730.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step-2-3-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1220" y="730.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step-2-3" value="" edge="1" parent="1" source="step-2-3-a" target="step-2-3-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step-3-4-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1770" y="730.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step-3-4-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1810" y="730.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="step-3-4" value="" edge="1" parent="1" source="step-3-4-a" target="step-3-4-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-probability-x-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="110" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-probability-x-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="510" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-probability-x" value="" edge="1" parent="1" source="sample-probability-x-a" target="sample-probability-x-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#718297;fontColor=#718297;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-probability-y-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="110" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-probability-y-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="110" y="555.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-probability-y" value="" edge="1" parent="1" source="sample-probability-y-a" target="sample-probability-y-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#718297;fontColor=#718297;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-probability-xl" value="寿命 \(x\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="400" y="779.0" width="145" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-probability-yl" value="概率" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="80" y="513.0" width="180" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-point-0" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="176.0" y="748.1891891891892" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-point-1" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="232.0" y="718.4594594594595" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-point-2" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="268.0" y="688.7297297297297" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-point-3" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="300.0" y="659.0" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-point-4" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="332.0" y="629.2702702702703" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-point-5" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="376.0" y="599.5405405405405" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-point-6" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="456.0" y="569.8108108108108" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sample-meaning" value="排序后，寿命越大，&lt;br&gt;对应的累积概率越高。&lt;br&gt;整组观测表示为一组概率点。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="80" y="830.0" width="470" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-ranks" value="\(x_{(i)}\longleftrightarrow p_i\)&lt;br&gt;此处用 \(p_i=\frac{i-0.3}{n+0.4}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="80" y="955.0" width="470" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-probability-x-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="700" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-probability-x-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1100" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-probability-x" value="" edge="1" parent="1" source="candidate-probability-x-a" target="candidate-probability-x-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#718297;fontColor=#718297;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-probability-y-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="700" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-probability-y-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="700" y="555.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-probability-y" value="" edge="1" parent="1" source="candidate-probability-y-a" target="candidate-probability-y-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#718297;fontColor=#718297;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-probability-xl" value="寿命 \(x\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="990" y="779.0" width="145" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-probability-yl" value="概率" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="670" y="513.0" width="180" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="cdf-a-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="700.0" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="cdf-a-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1100.0" y="602.2364579151733" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="cdf-a" value="" edge="1" parent="1" source="cdf-a-a" target="cdf-a-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="705.0" y="770.8096517192446" />
+              <mxPoint x="710.0" y="766.6991171599166" />
+              <mxPoint x="715.0" y="762.6668761070598" />
+              <mxPoint x="720.0" y="758.7114373013095" />
+              <mxPoint x="725.0" y="754.8313378873743" />
+              <mxPoint x="730.0" y="751.0251428730223" />
+              <mxPoint x="735.0" y="747.2914445983733" />
+              <mxPoint x="740.0" y="743.6288622152971" />
+              <mxPoint x="745.0" y="740.0360411767301" />
+              <mxPoint x="750.0" y="736.5116527357179" />
+              <mxPoint x="755.0" y="733.0543934539988" />
+              <mxPoint x="760.0" y="729.6629847199492" />
+              <mxPoint x="765.0" y="726.336172275709" />
+              <mxPoint x="770.0" y="723.0727257533149" />
+              <mxPoint x="775.0" y="719.8714382196681" />
+              <mxPoint x="780.0" y="716.7311257301706" />
+              <mxPoint x="785.0" y="713.6506268908613" />
+              <mxPoint x="790.0" y="710.6288024288936" />
+              <mxPoint x="795.0" y="707.6645347711939" />
+              <mxPoint x="800.0" y="704.7567276311447" />
+              <mxPoint x="805.0" y="701.9043056031414" />
+              <mxPoint x="810.0" y="699.1062137648702" />
+              <mxPoint x="815.0" y="696.361417287162" />
+              <mxPoint x="820.0" y="693.6689010512783" />
+              <mxPoint x="825.0" y="691.0276692734853" />
+              <mxPoint x="830.0" y="688.4367451367793" />
+              <mxPoint x="835.0" y="685.8951704296271" />
+              <mxPoint x="840.0" y="683.4020051915863" />
+              <mxPoint x="845.0" y="680.9563273656767" />
+              <mxPoint x="850.0" y="678.557232457372" />
+              <mxPoint x="855.0" y="676.2038332000873" />
+              <mxPoint x="860.0" y="673.8952592270375" />
+              <mxPoint x="865.0" y="671.6306567493467" />
+              <mxPoint x="870.0" y="669.4091882402876" />
+              <mxPoint x="875.0" y="667.2300321255361" />
+              <mxPoint x="880.0" y="665.0923824793254" />
+              <mxPoint x="885.0" y="662.9954487263867" />
+              <mxPoint x="890.0" y="660.9384553495685" />
+              <mxPoint x="895.0" y="658.9206416030232" />
+              <mxPoint x="900.0" y="656.9412612308586" />
+              <mxPoint x="905.0" y="654.999582191146" />
+              <mxPoint x="910.0" y="653.0948863851872" />
+              <mxPoint x="915.0" y="651.2264693919369" />
+              <mxPoint x="920.0" y="649.3936402074839" />
+              <mxPoint x="925.0" y="647.5957209894945" />
+              <mxPoint x="930.0" y="645.8320468065234" />
+              <mxPoint x="935.0" y="644.1019653920997" />
+              <mxPoint x="940.0" y="642.4048369034965" />
+              <mxPoint x="945.0" y="640.7400336850952" />
+              <mxPoint x="950.0" y="639.1069400362578" />
+              <mxPoint x="955.0" y="637.504951983619" />
+              <mxPoint x="960.0" y="635.9334770577173" />
+              <mxPoint x="965.0" y="634.3919340738793" />
+              <mxPoint x="970.0" y="632.8797529172778" />
+              <mxPoint x="975.0" y="631.3963743320843" />
+              <mxPoint x="980.0" y="629.941249714637" />
+              <mxPoint x="985.0" y="628.5138409105489" />
+              <mxPoint x="990.0" y="627.1136200156795" />
+              <mxPoint x="995.0" y="625.7400691808989" />
+              <mxPoint x="1000.0" y="624.3926804205685" />
+              <mxPoint x="1005.0" y="623.0709554246715" />
+              <mxPoint x="1010.0" y="621.7744053745208" />
+              <mxPoint x="1015.0" y="620.5025507619772" />
+              <mxPoint x="1020.0" y="619.2549212121112" />
+              <mxPoint x="1025.0" y="618.0310553092418" />
+              <mxPoint x="1030.0" y="616.8305004262905" />
+              <mxPoint x="1035.0" y="615.6528125573834" />
+              <mxPoint x="1040.0" y="614.4975561536435" />
+              <mxPoint x="1045.0" y="613.364303962109" />
+              <mxPoint x="1050.0" y="612.2526368677222" />
+              <mxPoint x="1055.0" y="611.1621437383251" />
+              <mxPoint x="1060.0" y="610.0924212726095" />
+              <mxPoint x="1065.0" y="609.0430738509624" />
+              <mxPoint x="1070.0" y="608.0137133891528" />
+              <mxPoint x="1075.0" y="607.0039591948042" />
+              <mxPoint x="1080.0" y="606.0134378266023" />
+              <mxPoint x="1085.0" y="605.0417829561836" />
+              <mxPoint x="1090.0" y="604.0886352326545" />
+              <mxPoint x="1095.0" y="603.1536421496919" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cdf-b-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="700.0" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="cdf-b-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1100.0" y="571.3163998950529" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="cdf-b" value="" edge="1" parent="1" source="cdf-b-a" target="cdf-b-b" style="html=1;rounded=0;strokeWidth=3.5;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="705.0" y="774.9105930941408" />
+              <mxPoint x="710.0" y="774.6425903246359" />
+              <mxPoint x="715.0" y="774.1966446504528" />
+              <mxPoint x="720.0" y="773.5738413907357" />
+              <mxPoint x="725.0" y="772.7756938236796" />
+              <mxPoint x="730.0" y="771.8041370599768" />
+              <mxPoint x="735.0" y="770.6615202255513" />
+              <mxPoint x="740.0" y="769.3505969977782" />
+              <mxPoint x="745.0" y="767.8745145485522" />
+              <mxPoint x="750.0" y="766.2368009563371" />
+              <mxPoint x="755.0" y="764.4413511576631" />
+              <mxPoint x="760.0" y="762.4924115163515" />
+              <mxPoint x="765.0" y="760.3945630960085" />
+              <mxPoint x="770.0" y="758.1527037279816" />
+              <mxPoint x="775.0" y="755.7720289729624" />
+              <mxPoint x="780.0" y="753.2580120797335" />
+              <mxPoint x="785.0" y="750.616383049135" />
+              <mxPoint x="790.0" y="747.8531069151646" />
+              <mxPoint x="795.0" y="744.9743613581917" />
+              <mxPoint x="800.0" y="741.9865137675538" />
+              <mxPoint x="805.0" y="738.8960978723029" />
+              <mxPoint x="810.0" y="735.7097900595817" />
+              <mxPoint x="815.0" y="732.4343855000437" />
+              <mxPoint x="820.0" y="729.0767741988896" />
+              <mxPoint x="825.0" y="725.6439170895117" />
+              <mxPoint x="830.0" y="722.1428222844186" />
+              <mxPoint x="835.0" y="718.5805215951103" />
+              <mxPoint x="840.0" y="714.9640474288958" />
+              <mxPoint x="845.0" y="711.3004101663581" />
+              <mxPoint x="850.0" y="707.5965761182974" />
+              <mxPoint x="855.0" y="703.8594461555804" />
+              <mxPoint x="860.0" y="700.095835099439" />
+              <mxPoint x="865.0" y="696.3124519534523" />
+              <mxPoint x="870.0" y="692.5158810517609" />
+              <mxPoint x="875.0" y="688.7125641910634" />
+              <mxPoint x="880.0" y="684.908783806695" />
+              <mxPoint x="885.0" y="681.1106472456304" />
+              <mxPoint x="890.0" y="677.3240721816654" />
+              <mxPoint x="895.0" y="673.5547732103639" />
+              <mxPoint x="900.0" y="669.8082496536562" />
+              <mxPoint x="905.0" y="666.0897745963229" />
+              <mxPoint x="910.0" y="662.4043851690227" />
+              <mxPoint x="915.0" y="658.756874085088" />
+              <mxPoint x="920.0" y="655.1517824310731" />
+              <mxPoint x="925.0" y="651.5933937040254" />
+              <mxPoint x="930.0" y="648.0857290817211" />
+              <mxPoint x="935.0" y="644.6325439056901" />
+              <mxPoint x="940.0" y="641.2373253507902" />
+              <mxPoint x="945.0" y="637.9032912494092" />
+              <mxPoint x="950.0" y="634.6333900331028" />
+              <mxPoint x="955.0" y="631.4303017496368" />
+              <mxPoint x="960.0" y="628.2964401090117" />
+              <mxPoint x="965.0" y="625.2339555081306" />
+              <mxPoint x="970.0" y="622.2447389803169" />
+              <mxPoint x="975.0" y="619.3304270129256" />
+              <mxPoint x="980.0" y="616.4924071738083" />
+              <mxPoint x="985.0" y="613.7318244853857" />
+              <mxPoint x="990.0" y="611.0495884835573" />
+              <mxPoint x="995.0" y="608.4463808976056" />
+              <mxPoint x="1000.0" y="605.9226638866519" />
+              <mxPoint x="1005.0" y="603.478688768036" />
+              <mxPoint x="1010.0" y="601.1145051732415" />
+              <mxPoint x="1015.0" y="598.8299705676267" />
+              <mxPoint x="1020.0" y="596.6247600712346" />
+              <mxPoint x="1025.0" y="594.4983765193222" />
+              <mxPoint x="1030.0" y="592.4501607029306" />
+              <mxPoint x="1035.0" y="590.4793017318013" />
+              <mxPoint x="1040.0" y="588.58484746419" />
+              <mxPoint x="1045.0" y="586.7657149506072" />
+              <mxPoint x="1050.0" y="585.0207008412094" />
+              <mxPoint x="1055.0" y="583.3484917094271" />
+              <mxPoint x="1060.0" y="581.747674247426" />
+              <mxPoint x="1065.0" y="580.2167452921315" />
+              <mxPoint x="1070.0" y="578.7541216437619" />
+              <mxPoint x="1075.0" y="577.358149642096" />
+              <mxPoint x="1080.0" y="576.027114469015" />
+              <mxPoint x="1085.0" y="574.759249149181" />
+              <mxPoint x="1090.0" y="573.5527432240217" />
+              <mxPoint x="1095.0" y="572.4057510774622" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="candidate-point-0" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="766.0" y="748.1891891891892" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-point-1" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="822.0" y="718.4594594594595" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-point-2" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="858.0" y="688.7297297297297" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-point-3" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="890.0" y="659.0" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-point-4" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="922.0" y="629.2702702702703" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-point-5" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="966.0" y="599.5405405405405" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-point-6" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#286D99;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;shape=ellipse;strokeWidth=2;" renderRole="point">
+          <mxGeometry x="1046.0" y="569.8108108108108" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-0-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="772.0" y="754.1891891891892" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-0-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="772.0" y="721.7848184722992" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-0" value="" edge="1" parent="1" source="candidate-residual-0-a" target="candidate-residual-0-b" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-3-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="896.0" y="665.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-3-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="896.0" y="658.5217144869318" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-3" value="" edge="1" parent="1" source="candidate-residual-3-a" target="candidate-residual-3-b" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-5-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="972.0" y="605.5405405405405" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-5-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="972.0" y="632.2829761328453" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate-residual-5" value="" edge="1" parent="1" source="candidate-residual-5-a" target="candidate-residual-5-b" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="math" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a-legend-line-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="675" y="850.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="a-legend-line-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="715" y="850.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="a-legend-line" value="" edge="1" parent="1" source="a-legend-line-a" target="a-legend-line-b" style="html=1;rounded=0;strokeWidth=4;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a-legend-label" value="候选 \(A\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="725" y="825.0" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="b-legend-line-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="915" y="850.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="b-legend-line-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="955" y="850.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="b-legend-line" value="" edge="1" parent="1" source="b-legend-line-a" target="b-legend-line-b" style="html=1;rounded=0;strokeWidth=4;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b-legend-label" value="候选 \(B\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="965" y="825.0" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="model-changes" value="改变 \(\beta\)、\(\eta\)、\(\gamma\)，&lt;br&gt;改变曲线的弯曲、伸展和位置。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="675" y="890.0" width="460" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="cdf-object" value="保持样本点固定，比较&lt;br&gt;\(F_\theta(x_{(i)})\) 与 \(p_i\) 的距离。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="675" y="980.0" width="460" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-axis-title" value="每个观测的概率偏离绝对值" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1260" y="495.0" width="470" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-zero-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1305" y="543.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-zero-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1305" y="800.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-zero" value="" edge="1" parent="1" source="residual-zero-a" target="residual-zero-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#718297;fontColor=#718297;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obs-0" value="\(1\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1250" y="540.0" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-a-0" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B47744;fillColor=#B47744;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="555.0" width="196.39012555690877" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-b-0" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#26745A;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="565.0" width="18.34910291103144" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="obs-1" value="\(2\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1250" y="575.0" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-a-1" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B47744;fillColor=#B47744;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="590.0" width="212.07466573810333" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-b-1" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#26745A;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="600.0" width="5.505821246738003" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="obs-2" value="\(3\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1250" y="610.0" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-a-2" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B47744;fillColor=#B47744;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="625.0" width="137.27048346382526" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-b-2" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#26745A;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="635.0" width="14.185834119581592" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="obs-3" value="\(4\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1250" y="645.0" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-a-3" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B47744;fillColor=#B47744;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="660.0" width="39.262336442837054" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-b-3" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#26745A;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="670.0" width="47.293784267030084" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="obs-4" value="\(5\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1250" y="680.0" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-a-4" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B47744;fillColor=#B47744;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="695.0" width="68.26168988580282" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-b-4" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#26745A;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="705.0" width="86.1344935673407" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="obs-5" value="\(6\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1250" y="715.0" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-a-5" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B47744;fillColor=#B47744;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="730.0" width="162.07536722608987" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-b-5" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#26745A;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="740.0" width="94.11758721917661" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="obs-6" value="\(7\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1250" y="750.0" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-a-6" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B47744;fillColor=#B47744;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="765.0" width="218.2006708364906" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-b-6" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#26745A;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1305" y="775.0" width="51.71119270878099" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-formula" value="逐点偏离：&lt;br&gt;\(e_i(\theta)=F_\theta(x_{(i)})-p_i\)&lt;br&gt;平方后相加：&lt;br&gt;\(D(\theta)=\sum_{i=1}^n e_i(\theta)^2\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1260" y="835.0" width="470" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="residual-purpose" value="把各观测的概率残差汇总为差异。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1260" y="1010.0" width="470" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="total-score-x-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1885" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="total-score-x-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="2285" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="total-score-x" value="" edge="1" parent="1" source="total-score-x-a" target="total-score-x-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#718297;fontColor=#718297;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="total-score-y-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1885" y="775.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="total-score-y-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="1885" y="555.0" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="total-score-y" value="" edge="1" parent="1" source="total-score-y-a" target="total-score-y-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#718297;fontColor=#718297;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="total-score-xl" value="候选" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="2175" y="779.0" width="145" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="total-score-yl" value="总平方差 \(D\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1855" y="513.0" width="180" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="score-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#B47744;fillColor=#B47744;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="1930.0" y="612.0370370370371" width="110" height="162.96296296296293" as="geometry" />
+        </mxCell>
+        <mxCell id="score-label-a" value="\(A\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1945.0" y="780.0" width="80" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="score-value-a" value="\(0.103\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1920.0" y="567.0370370370371" width="130" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="score-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#26745A;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="2096.6666666666665" y="755.5695025156814" width="110" height="19.430497484318607" as="geometry" />
+        </mxCell>
+        <mxCell id="score-label-b" value="\(B\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="2111.6666666666665" y="780.0" width="80" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="score-value-b" value="\(0.012\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="2086.6666666666665" y="710.5695025156814" width="130" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="selected-rule" value="这组示意候选中：&lt;br&gt;\(D(B)&lt;D(A)\)&lt;br&gt;\(B\) 与样本更一致。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1860" y="830.0" width="450" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="criterion-objective" value="最小化 \(D(\theta)\) 确定参数。&lt;br&gt;连续求解时据此更新候选。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="1860" y="970.0" width="450" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="demo-note" value="CDF平方差样例：7个玩具观测、两组候选参数；下列①—④只展开这一种准则，条长和差异由样例计算。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="55" y="350" width="2290" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="D1" value="D1 分布表示&lt;br&gt;样本转为概率点、变换坐标、间距或反推量" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#F3F7FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="50" y="175" width="700" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="D2" value="D2 指定准则&lt;br&gt;比较哪种偏离？由哪个拟合规则确定参数？" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#F3F7FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="850" y="175" width="700" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="D3" value="D3 据此定参&lt;br&gt;对当前样本求解；各参数可分阶段确定" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#F3F7FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="1650" y="175" width="700" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="D-mechanism-1" value="" edge="1" parent="1" source="D1" target="D2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="D-mechanism-2" value="" edge="1" parent="1" source="D2" target="D3" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="interface-divider-a" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="50" y="1100" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="interface-divider-b" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=none;fontColor=#243449;fontFamily=Times New Roman;fontSize=1;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="anchor">
+          <mxGeometry x="2350" y="1100" width="0" height="0" as="geometry" />
+        </mxCell>
+        <mxCell id="interface-divider" value="" edge="1" parent="1" source="interface-divider-a" target="interface-divider-b" style="html=1;rounded=0;strokeWidth=2;strokeColor=#DEE6EC;fontColor=#DEE6EC;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=none;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-plot-title" value="概率图：改变D1的坐标表示，并明确D2的回归与定位规则" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="55" y="1120" width="2290" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-plot-1" value="D1 概率图坐标&lt;br&gt;\(u_i(\gamma)=\ln(x_{(i)}-\gamma)\)&lt;br&gt;\(z_i=\ln[-\ln(1-p_i)]\)&lt;br&gt;White分数则取理论次序量期望。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="50" y="1180" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-plot-2" value="D2 线性关系拟合&lt;br&gt;\(z_i\approx\beta u_i-\beta\ln\eta\)&lt;br&gt;Soman回归\(u\)对\(z\)并作位置评分；&lt;br&gt;Park先最大化相关性定位。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="850" y="1180" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-plot-3" value="D3 按具体分支恢复&lt;br&gt;\(u=a+bz\)：\(\widehat\beta=1/b,\ \widehat\eta=e^a\)&lt;br&gt;\(z=a+bu\)：\(\widehat\beta=b,\ \widehat\eta=e^{-a/b}\)&lt;br&gt;Park也可转接二参数似然（路线一）。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1650" y="1180" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-plot-flow-1" value="" edge="1" parent="1" source="probability-plot-1" target="probability-plot-2" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-plot-flow-2" value="" edge="1" parent="1" source="probability-plot-2" target="probability-plot-3" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-spacing-title" value="MPS：D1保留相邻CDF概率间距，D2对整组间距构造目标" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="55" y="1410" width="2290" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-spacing-1" value="D1 概率间距&lt;br&gt;\(F_i=F_\theta(x_{(i)}),\ F_0=0,\ F_{n+1}=1\)&lt;br&gt;\(\Delta_i(\theta)=F_i-F_{i-1}\)&lt;br&gt;样本位置固定，参数改变每段概率长度。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="50" y="1470" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-spacing-2" value="D2 间距乘积准则&lt;br&gt;\(Q(\theta)=\sum_{i=1}^{n+1}\ln\Delta_i(\theta)\)&lt;br&gt;全部相邻区间共同进入目标；&lt;br&gt;不是原观测密度的乘积。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="850" y="1470" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-spacing-3" value="D3 在支持域内求最大值&lt;br&gt;\(\widehat\theta=\operatorname*{arg\,max}_\theta Q(\theta)\)&lt;br&gt;候选参数通过同一CDF改变所有间距，&lt;br&gt;再按整组间距目标进行选择。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1650" y="1470" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-spacing-flow-1" value="" edge="1" parent="1" source="probability-spacing-1" target="probability-spacing-2" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="probability-spacing-flow-2" value="" edge="1" parent="1" source="probability-spacing-2" target="probability-spacing-3" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pseudo-scale-title" value="MDM：D1反推尺度，D2条件压缩尺度离散，D3再按梯度规则定位" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="55" y="1700" width="2290" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pseudo-scale-1" value="D1 每个概率点反推尺度&lt;br&gt;\(q_i=-\ln(1-p_i)\)&lt;br&gt;\(\eta_i(\beta,\gamma)=\frac{x_{(i)}-\gamma}{q_i^{1/\beta}}\)&lt;br&gt;参数应使各点反推出的尺度尽量一致。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="50" y="1760" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="pseudo-scale-2" value="D2 条件最小离散&lt;br&gt;\(s_\eta=\operatorname{std}(\eta_1,\ldots,\eta_n)\)&lt;br&gt;\(\beta^*(\gamma)=\operatorname*{arg\,min}_\beta s_\eta\)&lt;br&gt;\(s^*(\gamma)=s_\eta[\beta^*(\gamma),\gamma]\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="850" y="1760" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="pseudo-scale-3" value="D3 梯度定位，再恢复&lt;br&gt;\(\frac{ds^*}{d\gamma}(\widehat\gamma)=\delta\)&lt;br&gt;\(\widehat\beta=\beta^*(\widehat\gamma),\quad\widehat\eta=\frac1n\sum_i\eta_i\)&lt;br&gt;MDM-0.1取\(\delta=0.1\)，保留非负位置边界规则。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1650" y="1760" width="700" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="pseudo-scale-flow-1" value="" edge="1" parent="1" source="pseudo-scale-1" target="pseudo-scale-2" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pseudo-scale-flow-2" value="" edge="1" parent="1" source="pseudo-scale-2" target="pseudo-scale-3" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="route-scope" value="以上按所用表示与准则接入同一路线；具体方法可另接其他机制，完整构造、边界与方法关系见细图及总图。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="55" y="1980" width="2290" height="45" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
