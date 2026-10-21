@@ -125,38 +125,71 @@ foreach($cat in $categories) {
     Save-Canvas $c $cat.File
 }
 
-# Complete map.
-$c = New-Canvas 'complete-method-map-v04' '完整机理地图｜五簇分类与方法关系' 2400 1600
-Text $c 'title' '完整机理地图｜五簇分类与方法关系' 40 24 2320 48 '#263238' 34 $true
-Text $c 'subtitle' '主要归属由样本信息利用＋参数确定原则决定；横向标签与关系线记录改进、组合和数学联系。' 40 78 2320 32 '#63758A' 20
-Text $c 'legend' '实线：沿袭／扩展　虚线：数学联系或共享构造　点划线：局部借鉴／组合　紫灰节点：工具与改进标签' 40 115 2320 30 '#63758A' 19
-Box $c 'g-like' '<b>① 似然估计路线</b>' 40 170 710 455 '#F7F9FB' '#63758A' '#263238' 25 $true $false 'left' 'top'
-Box $c 'g-dist' '<b>② 分布匹配路线</b>' 845 170 710 455 '#F7F9FB' '#4F7D9A' '#263238' 25 $true $false 'left' 'top'
-Box $c 'g-stat' '<b>③ 统计关系反演路线</b>' 1650 170 710 455 '#F7F9FB' '#548A74' '#263238' 25 $true $false 'left' 'top'
-Box $c 'g-post' '<b>④ 后验推断路线</b>' 400 720 710 350 '#F7F9FB' '#7F6B93' '#263238' 25 $true $false 'left' 'top'
-Box $c 'g-learn' '<b>⑤ 学习映射路线</b>' 1290 720 710 350 '#F7F9FB' '#B46A48' '#263238' 25 $true $false 'left' 'top'
+# Complete map: route lanes, internal progression, and explicit cross-route interactions.
+$c = New-Canvas 'complete-method-map-v04' '完整机理地图｜五簇路线与方法交互' 2600 1900
+Text $c 'title' '完整机理地图｜五簇路线与方法交互' 40 22 2520 48 '#263238' 34 $true
+Text $c 'subtitle' '从样本信息进入，经信息变换和决定性原则，沿路线内部推进到三参数输出；跨路线关系单独连出。' 40 74 2520 32 '#63758A' 20
+Text $c 'legend' '金色边框：本轮七种比较实现　实线：沿袭／扩展　虚线：数学联系　点划线：局部借用／组合' 40 112 2520 30 '#63758A' 18
+$stages = @(@('stage-info','样本信息',300),@('stage-transform','信息变换／压缩',620),@('stage-principle','决定性原则',950),@('stage-chain','路线内部的推进',1280),@('stage-output','三参数输出／诊断',1840))
+foreach($s in $stages) { Box $c $s[0] $s[1] $s[2] 132 250 44 '#F7F9FB' '#B7C1C9' '#455A64' 17 $false $true 'center' 'middle' }
 
-$nodes = @(
-    @('mle','MLE<br>观测密度联合似然',70,245,300,72,'#FFF5F2','#B44948'), @('wmle','WMLE<br>估计方程加权',410,245,300,72,'#FFF5F2','#B44948'), @('mmle','Cohen–Whitten MMLE<br>替换位置关系',70,350,300,72,'#FFF5F2','#B44948'), @('kr','K–R MMLE<br>最小值定位＋删点',410,350,300,72,'#FFF5F2','#B44948'), @('dmmle','DMMLE／罚似然<br>偏差修正或经验因子',240,475,350,72,'#FFF5F2','#B44948'),
-    @('plot','概率图分支<br>White／Soman／Park',875,245,300,72,'#EFF7FB','#4F7D9A'), @('mps','概率间距分支<br>MPS／QMP',1215,245,300,72,'#EFF7FB','#4F7D9A'), @('mdm','尺度一致性分支<br>MDM',875,350,300,72,'#EFF7FB','#4F7D9A'), @('cdf','CDF／密度／最小距离<br>拟合分支',1215,350,300,72,'#EFF7FB','#4F7D9A'),
-    @('mm','MM／Weibull moments<br>矩关系反解',1680,245,300,72,'#EEF8F2','#548A74'), @('pwm','PWM／L矩／TL矩<br>加权与端部处理',2020,245,300,72,'#EEF8F2','#548A74'), @('order','分位数／次序统计量<br>枢轴与不变统计量',1680,350,300,72,'#EEF8F2','#548A74'), @('mvle','条件线性最小方差<br>协方差选权重',2020,350,300,72,'#EEF8F2','#548A74'),
-    @('bayes','Bayes／MAP<br>后验均值或中位数',430,810,300,72,'#F4F0F8','#7F6B93'), @('posterior','后验计算<br>Gibbs／Laplace／MH',770,925,300,72,'#F4F0F8','#7F6B93'), @('ann','ANN／BPNN<br>直接学习参数映射',1320,810,300,72,'#FFF1EB','#B46A48'), @('learn','训练域、损失与校准<br>决定可用边界',1660,925,300,72,'#FFF1EB','#B46A48')
-)
-foreach($n in $nodes) { Box $c $n[0] $n[1] $n[2] $n[3] $n[4] $n[5] $n[6] $n[7] '#263238' 18 $false $false 'center' 'middle' }
+function MethodBox($Canvas,[string]$Id,[string]$Value,[double]$X,[double]$Y,[double]$W,[double]$H,[string]$RouteFill,[string]$RouteStroke,[bool]$Current=$false) {
+    if($Current) { Box $Canvas $Id $Value $X $Y $W $H '#FFFBEA' '#B18B2C' '#6B5310' 16 $false $true 'center' 'middle' }
+    else { Box $Canvas $Id $Value $X $Y $W $H $RouteFill $RouteStroke '#263238' 16 $false $false 'center' 'middle' }
+}
 
-$relations = @(
-    @('r1','mle','wmle','沿袭／方程加权','#B44948',$false), @('r2','mle','mmle','修正位置关系','#B44948',$true), @('r3','mmle','kr','不同来源／不合并','#B44948',$true), @('r4','kr','dmmle','基础＋Firth修正','#B44948',$false), @('r5','wmle','dmmle','偏差修正分支','#B44948',$true),
-    @('r6','plot','mps','共享CDF信息，准则不同','#4F7D9A',$true), @('r7','mps','plot','MPS是特定QMP特例','#4F7D9A',$true), @('r8','mm','pwm','总体关系／线性重组','#548A74',$true), @('r9','pwm','order','共享统计关系','#548A74',$true), @('r10','order','mvle','条件性权重构造','#548A74',$true),
-    @('r11','bayes','mle','共享似然模型','#7F6B93',$true), @('r12','posterior','bayes','计算后验量','#7F6B93',$false), @('r13','ann','learn','训练与校准边界','#B46A48',$false), @('r14','plot','order','局部借用／共享次序统计量','#7D8790',$true)
+$lanes = @(
+    @{ Key='like'; Y=190; Title='① 似然估计路线'; Desc='密度／联合贡献 → 似然或得分 → 方程变体'; Fill='#FFF8F5'; Stroke='#B44948'; Info='观测处密度、联合密度、支持边界'; Principle='最大化 L(θ|D) 或修正得分方程'; Output='β̂ η̂ γ̂<br>边界／局部极大／失败诊断'; Methods=@(@('m-mle','MLE', $true),@('m-wmle','WMLE',$true),@('m-kr','K–R<br>删最小值',$true),@('m-dmmle','DMMLE',$true)) },
+    @{ Key='dist'; Y=465; Title='② 分布匹配路线'; Desc='CDF／概率图／间距／伪尺度 → 匹配判据'; Fill='#EFF7FB'; Stroke='#4F7D9A'; Info='经验CDF、绘图分数、概率间距、伪尺度'; Principle='最小偏离、最大间距或尺度一致性'; Output='β̂ η̂ γ̂<br>评分／残差／一致性曲线'; Methods=@(@('p-white','White',$false),@('p-soman','Soman LSE',$true),@('p-park','Park LRE',$true),@('p-yang','Yang迭代',$false),@('p-mdm','MDM',$true)) },
+    @{ Key='stat'; Y=740; Title='③ 统计关系反演路线'; Desc='矩／分位数／次序统计量 → 理论关系 → 反解'; Fill='#EEF8F2'; Stroke='#548A74'; Info='矩、PWM／L矩、分位数、次序统计量、枢轴'; Principle='匹配、消元、枢轴反演或条件协方差选权'; Output='β̂ η̂ γ̂<br>矩差／枢轴／条件方差'; Methods=@(@('s-mm','MM<br>Cran',$true),@('s-pwm','PWM',$false),@('s-lmom','L矩→TL矩',$false),@('s-lspf','LSPF→LPF',$false),@('s-mvle','MVLUE',$false)) },
+    @{ Key='post'; Y=1015; Title='④ 后验推断路线'; Desc='似然＋先验 → 后验 → 决策规则'; Fill='#F4F0F8'; Stroke='#7F6B93'; Info='样本似然、先验、支持域、条件分布'; Principle='后验均值、MAP、中位数或区间'; Output='点估计／区间<br>先验敏感性／链诊断'; Methods=@(@('b-model','Bayes<br>模型',$false),@('b-map','MAP／后验均值',$false),@('b-compute','Gibbs／MH／Laplace',$false)) },
+    @{ Key='learn'; Y=1290; Title='⑤ 学习映射路线'; Desc='训练样本／特征 → 损失 → 参数映射'; Fill='#FFF1EB'; Stroke='#B46A48'; Info='模拟样本、特征、真参数、训练域'; Principle='学习 hφ(D) 或 hφ(features)'; Output='β̂ η̂ γ̂<br>外推／校准／回退边界'; Methods=@(@('l-ann','ANN／BPNN',$false),@('l-loss','损失／约束',$false),@('l-svr','SVR／混合学习',$false)) }
 )
-foreach($r in $relations) { Edge $c $r[0] $r[1] $r[2] $r[3] $r[4] $r[5] ($(if($r[5]){1.5}else{2.0})) ($(if($r[5]){'open'}else{'block'})) }
+foreach($lane in $lanes) {
+    $y=$lane.Y
+    Box $c "lane-$($lane.Key)" '' 40 $y 2520 220 $lane.Fill $lane.Stroke '#263238' 18 $true $false 'left' 'top'
+    Box $c "lane-label-$($lane.Key)" "<b>$($lane.Title)</b><br>$($lane.Desc)" 60 ($y+32) 205 150 $lane.Fill $lane.Stroke '#263238' 18 $false $true 'left' 'middle'
+    Box $c "info-$($lane.Key)" $lane.Info 300 ($y+55) 275 78 $lane.Fill $lane.Stroke '#263238' 17 $false $false 'center' 'middle'
+    Box $c "principle-$($lane.Key)" $lane.Principle 620 ($y+55) 285 78 $lane.Fill $lane.Stroke '#6F2F2B' 17 $false $true 'center' 'middle'
+    Box $c "chain-$($lane.Key)" '方法链：从共同材料到具体版本' 940 ($y+24) 805 165 '#FFFFFF' $lane.Stroke '#455A64' 16 $true $false 'left' 'top'
+    $count=$lane.Methods.Count; $w=([math]::Floor(730/$count))-8; $x=970
+    for($i=0;$i -lt $count;$i++) {
+        $m=$lane.Methods[$i]; MethodBox $c $m[0] $m[1] $x ($y+82) $w 58 $lane.Fill $lane.Stroke $m[2]
+        if($i -gt 0) { Edge $c "edge-$($lane.Key)-$i" $lane.Methods[$i-1][0] $m[0] '' $lane.Stroke $false 1.8 'block' }
+        $x += $w + 8
+    }
+    Box $c "output-$($lane.Key)" $lane.Output 1810 ($y+55) 450 78 '#EEF8F2' '#548A74' '#263238' 17 $false $false 'center' 'middle'
+    Edge $c "flow-info-$($lane.Key)" "info-$($lane.Key)" "principle-$($lane.Key)" '' $lane.Stroke $false 2.3 'block'
+    Edge $c "flow-principle-$($lane.Key)" "principle-$($lane.Key)" $lane.Methods[0][0] '' $lane.Stroke $false 2.3 'block'
+    Edge $c "flow-output-$($lane.Key)" $lane.Methods[$count-1][0] "output-$($lane.Key)" '' $lane.Stroke $false 2.3 'block'
+}
 
-Box $c 'cross' '<b>横向改进、组合与工具标签</b>' 40 1140 2320 330 '#FFFFFF' '#7F6B93' '#57436B' 25 $true $false 'left' 'top'
-$tagNodes = @(
-    @('tag-weight','加权：改变方程或统计量贡献',75,1210,350,52), @('tag-bias','偏差修正：改变得分或估计后输出',465,1210,350,52), @('tag-position','位置处理：最小值、消元、搜索、边界',855,1210,350,52), @('tag-solver','数值工具：PSO、SA、DE等搜索既定目标',1245,1210,350,52), @('tag-hybrid','混合估计：不同路线分阶段或共同恢复参数',1635,1210,350,52), @('tag-gray','灰色／SVR：按实际模型与拟合环节归属',2025,1210,350,52), @('hybrid-sam','SAM／PM／Cousineau Mixed<br>组合关系节点',260,1330,430,82), @('hybrid-tools','算法工具不自动形成新估计原理<br>先标记其搜索对象',980,1330,430,82), @('hybrid-check','主要归属规则<br>一个方法一个入口，跨类联系用线表达',1700,1330,500,82)
+# Cross-route interactions: these are the part that makes the map a relationship map rather than five isolated lists.
+Edge $c 'cross-like-post' 'm-mle' 'b-model' '共享似然模型' '#7F6B93' $true 2.0 'open'
+Edge $c 'cross-wmle-dmmle' 'm-wmle' 'm-dmmle' '方程加权→偏差修正' '#B44948' $true 1.7 'open'
+Edge $c 'cross-kr-dmmle' 'm-kr' 'm-dmmle' '最小值定位＋Firth' '#B44948' $false 1.9 'block'
+Edge $c 'cross-white-soman' 'p-white' 'p-soman' 'White扩展' '#4F7D9A' $false 1.9 'block'
+Edge $c 'cross-soman-park' 'p-soman' 'p-park' '不同定位／回归方向' '#4F7D9A' $true 1.6 'open'
+Edge $c 'cross-lspf-yang' 's-lspf' 'p-yang' '位置修正局部借用' '#7D8790' $true 1.8 'open'
+Edge $c 'cross-plot-order' 'p-soman' 's-mvle' '共享次序统计量／位置关系' '#7D8790' $true 1.6 'open'
+Edge $c 'cross-mps-qmp' 'p-white' 'p-yang' '概率关系组合' '#4F7D9A' $true 1.3 'open'
+Edge $c 'cross-mm-pwm' 's-mm' 's-pwm' '矩的线性重组' '#548A74' $true 1.7 'open'
+Edge $c 'cross-pwm-lmom' 's-pwm' 's-lmom' 'PWM↔L矩' '#548A74' $true 1.7 'open'
+Edge $c 'cross-lspflpf' 's-lspf' 's-lmom' '不变统计量改造' '#548A74' $false 1.8 'block'
+Edge $c 'cross-ann-svr' 'l-ann' 'l-svr' '当前样本拟合 vs 跨样本映射' '#B46A48' $true 1.6 'open'
+
+# Horizontal layer: modifications and tools act on particular nodes, not as new route boxes.
+Box $c 'interaction-panel' '<b>横向交互层：改进、组合与工具</b><br>这些节点连接到具体路线中的某一步；它们描述“改了哪里”，不抢占方法的主要归属。' 40 1570 2520 250 '#FFFFFF' '#7F6B93' '#57436B' 20 $true $false 'left' 'top'
+$interactions=@(
+    @('int-weight','加权：改变方程／统计量贡献',80,1650,360,60),
+    @('int-bias','偏差修正：改变得分或输出',480,1650,360,60),
+    @('int-position','位置处理：最小值／消元／搜索',880,1650,360,60),
+    @('int-solver','求解工具：PSO／SA／DE搜索既定目标',1280,1650,390,60),
+    @('int-hybrid','混合估计：跨路线分阶段恢复',1710,1650,360,60),
+    @('int-boundary','边界与可用域：支持域／训练域／先验',2110,1650,390,60)
 )
-foreach($t in $tagNodes) { $fill=if($t[0] -like 'tag-*'){'#F4F0F8'}else{'#FFFBEA'}; $stroke=if($t[0] -like 'tag-*'){'#7F6B93'}else{'#B18B2C'}; $font=if($t[0] -like 'tag-*'){'#57436B'}else{'#6B5310'}; Box $c $t[0] $t[1] $t[2] $t[3] $t[4] $t[5] $fill $stroke $font 17 $false $false 'center' 'middle' }
-Edge $c 'tag-link-weight' 'tag-weight' 'wmle' '' '#7F6B93' $true 1.2 'open'; Edge $c 'tag-link-bias' 'tag-bias' 'dmmle' '' '#7F6B93' $true 1.2 'open'; Edge $c 'tag-link-position' 'tag-position' 'kr' '' '#7F6B93' $true 1.2 'open'; Edge $c 'tag-link-solver' 'tag-solver' 'mle' '' '#7F6B93' $true 1.2 'open'; Edge $c 'tag-link-hybrid' 'tag-hybrid' 'hybrid-sam' '' '#7F6B93' $true 1.2 'open'; Edge $c 'tag-link-gray' 'tag-gray' 'cdf' '' '#7F6B93' $true 1.2 'open'
+foreach($i in $interactions) { Box $c $i[0] $i[1] $i[2] $i[3] $i[4] $i[5] '#F4F0F8' '#7F6B93' '#57436B' 16 $false $false 'center' 'middle' }
+Edge $c 'int-weight-link' 'int-weight' 'm-wmle' '作用于方程' '#7F6B93' $true 1.2 'open'; Edge $c 'int-bias-link' 'int-bias' 'm-dmmle' '作用于得分／输出' '#7F6B93' $true 1.2 'open'; Edge $c 'int-position-link' 'int-position' 'm-kr' '作用于位置' '#7F6B93' $true 1.2 'open'; Edge $c 'int-solver-link' 'int-solver' 'm-mle' '搜索既定目标' '#7F6B93' $true 1.2 'open'; Edge $c 'int-hybrid-link' 'int-hybrid' 'p-yang' '跨路线组合' '#7F6B93' $true 1.2 'open'; Edge $c 'int-boundary-link' 'int-boundary' 'output-learn' '可用边界' '#7F6B93' $true 1.2 'open'
 Save-Canvas $c '06-完整机理地图-五簇分类与方法关系.drawio'
 
 Write-Output "Generated v0.4 mechanism diagrams in $Out"
