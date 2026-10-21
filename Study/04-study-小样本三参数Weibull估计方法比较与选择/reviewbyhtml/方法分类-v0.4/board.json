@@ -2,7 +2,7 @@
   "id": "study04-method-classification-v04-report",
   "title": "Study04 方法分类报告 v1.1 审阅",
   "document": true,
-  "revision": 21,
+  "revision": 22,
   "require_confirmation": true,
   "archive_plan": "将本轮审定修改写回 Study04/报告上（方法分类）-v1.1.md，同步方法分类/机制图-v1.1/的draw.io图源、生成程序与SVG预览；沿用现有v1.0及v0.4归档，更新必要入口；保留原HTML任务、素材与全部审阅记录，核验正文、公式、图片和链接后提交到laptop分支。若确认文字指定新版本，再按该版本归档旧版并更新引用。",
   "units": [
@@ -85,8 +85,30 @@
       "selected": null,
       "options": [
         {
+          "id": "section-3-illustrated-solve",
+          "label": "新修订：示意图与构造、求解同步",
+          "blocks": [
+            {
+              "id": "section-3-illustrated-principle",
+              "kind": "text",
+              "html": "<p>似然路线以分布模型为起点：<mark>观测进入密度模型→相乘构造似然→取对数建立最大化问题→推导方程并求解参数</mark>。对独立同分布完整样本 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>D</mi><mo>=</mo><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mn>1</mn></msub><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><msub><mi>x</mi><mi>n</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，有</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><mspace width=\"2em\"/><mi>θ</mi><mo>=</mo><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p>当给定参数域 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Θ</mi></mrow></semantics></math></span> 内存在最大值时，最大似然估计满足</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mover accent=\"true\"><mi>θ</mi><mo stretchy=\"true\">^</mo></mover><mrow><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">L</mi><mi mathvariant=\"normal\">E</mi></mrow></msub><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg max</mi><mo>⁡</mo></mrow><mrow><mi>θ</mi><mo>∈</mo><mi mathvariant=\"normal\">Θ</mi></mrow></munder><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p>图中把三类示意图嵌入实际步骤：<mark>密度曲线解释观测如何进入模型，零点图解释方程怎样求根，剖面曲线解释位置怎样搜索</mark>。以有限内点的剖面求解为例，先给定γ、消去η并数值求β，再恢复η；外层更新γ并重算内层。取对数不改变最大化解，剖面链是同一统计目标的一种计算组织方式。</p><p>原始三参数似然在无约束参数域内可能无界；需先明确参数域或有限局部极大的取解约定。内点方程根需核验，边界解也不必满足内点方程。修改似然项或估计方程属于统计构造变化，更换既定目标的求解程序属于计算变化。</p>"
+            },
+            {
+              "id": "section-3-illustrated-image",
+              "kind": "image",
+              "src": "assets/07-似然估计路线-信息处理流程.svg",
+              "alt": "图3a　密度代入、函数构造、方程求根与位置搜索（修订）"
+            },
+            {
+              "id": "section-3-illustrated-caption",
+              "kind": "text",
+              "html": "<p><strong>图3a｜用图像串联似然的构造与求解。</strong> ①在单条密度模型曲线上标出观测进入密度的位置，②按独立性相乘并展开联合似然，③取对数建立最大化问题，④用形状方程与零线的交点解释给定γ后的数值求根，⑤沿位置剖面函数搜索有限局部峰并恢复参数。虚线表示更新γ后回到内层重算。密度图、求根图和剖面图嵌入对应的计算步骤；曲线取自同一模拟样本用于说明机制，不作性能比较。</p>"
+            }
+          ]
+        },
+        {
           "id": "section-3-construction-solve",
-          "label": "新修订：从密度构造到方程求解",
+          "label": "上一稿：公式构造与剖面求解（第21轮）",
           "blocks": [
             {
               "id": "section-3-construction-principle",
@@ -96,7 +118,7 @@
             {
               "id": "section-3-construction-image",
               "kind": "image",
-              "src": "assets/07-似然估计路线-信息处理流程.svg",
+              "src": "assets/07-似然估计路线-信息处理流程-第21轮.svg",
               "alt": "图3a　由密度构造似然，再推导方程求参数（新修订）"
             },
             {
@@ -105,55 +127,11 @@
               "html": "<p><strong>图3a｜由密度构造似然，再推导方程求参数。</strong> ①写出模型与观测样本，②按独立性将密度相乘并展开联合似然，③取对数写成最大化问题，④给定γ、解析消去η并数值求β，⑤外层处理γ、恢复参数并核验。虚线表示更新γ后重新计算内层。剖面求解用于展示怎样从似然函数得到估计值，不作为整类方法唯一的数值算法。</p>"
             }
           ]
-        },
-        {
-          "id": "section-3-revised",
-          "label": "上一稿：密度与似然曲线示意（第20轮）",
-          "blocks": [
-            {
-              "id": "section-3-principle-revised",
-              "kind": "text",
-              "html": "<p>最大似然估计先由分布模型与样本构造似然函数，再以<mark>最大化似然</mark>作为参数确定原则。对独立同分布的完整样本，固定已观测数据 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>D</mi><mo>=</mo><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mn>1</mn></msub><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><msub><mi>x</mi><mi>n</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，把联合密度视为参数 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>θ</mi><mo>=</mo><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span> 的函数：</p>\n<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>\n<p>当给定参数域 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Θ</mi></mrow></semantics></math></span> 内存在最大值时，最大似然估计满足</p>\n<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mover accent=\"true\"><mi>θ</mi><mo>^</mo></mover><mrow><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">L</mi><mi mathvariant=\"normal\">E</mi></mrow></msub><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg max</mi><mo>⁡</mo></mrow><mrow><mi>θ</mi><mo>∈</mo><mi mathvariant=\"normal\">Θ</mi></mrow></munder><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>\n<p><mark>构造似然函数与确定最大化准则</mark>说明估计依据；对数似然与似然具有相同的最大化解；解析推导、解内点得分方程或数值优化是计算路径。得分方程的根还要核验目标值和支持边界，不能仅凭驻点就认定得到最大似然估计。加权、替换方程或修正似然项可能改变统计构造，需要与更换求解器区分。</p>"
-            },
-            {
-              "id": "section-3-flow-07-image-revised",
-              "kind": "image",
-              "src": "assets/07-似然估计路线-信息处理流程-第20轮.svg",
-              "alt": "图3a　最大似然原理与求解分层（修订）"
-            },
-            {
-              "id": "section-3-flow-07-caption-revised",
-              "kind": "text",
-              "html": "<p><strong>图3a｜构造似然函数，再按最大化原则确定参数。</strong>①给定模型与固定样本，②构造以参数为自变量的样本似然，③明确最大化原则，④按所选算法求解并核验。密度曲线说明单点贡献的来源，参数轴上的似然曲线说明最大化的对象；求解过程单列为实现环节。曲线是最大值存在情形下的原理示意。</p>"
-            }
-          ]
-        },
-        {
-          "id": "section-3-current",
-          "label": "原稿：密度贡献与评分比较（保留对照）",
-          "blocks": [
-            {
-              "id": "section-3-text-0",
-              "kind": "text",
-              "html": "<p>这条路线使用观测处的密度及其联合贡献，把候选参数放进模型后比较样本的似然。参数由最大化联合似然或求解由似然导出的得分关系确定。后续方法通过调整权重、替换位置方程、处理边界项或引入偏差修正，形成不同的估计方案。</p>"
-            },
-            {
-              "id": "section-3-flow-07-image",
-              "kind": "image",
-              "src": "assets/07-似然估计路线-信息处理流程-原稿.svg",
-              "alt": "图3a　似然估计路线的信息处理流程"
-            },
-            {
-              "id": "section-3-flow-07-caption",
-              "kind": "text",
-              "html": "<p><strong>图3a｜沿观测点的密度贡献理解似然估计。</strong>\n同一组观测在不同候选密度曲线上得到不同高度，把全部观测的密度贡献相乘形成联合似然，再比较候选参数的整体贡献。步骤编号分别对应观测与位置处理、单点贡献、联合目标及参数求解，后续方法的差异可以落到相应环节。</p>\n"
-            }
-          ]
         }
       ],
       "selection_mode": "single",
       "selected_ids": [],
-      "context": "本轮改为直接展示“密度→似然→对数目标→方程→参数”的构造与求解链；保留前两稿供对照。"
+      "context": "本轮补回嵌在各步骤中的示意图，直接比较新修订与上一轮公式稿；更早稿件保留在Git历史中。"
     },
     {
       "id": "section-3-details",
@@ -427,7 +405,7 @@
       ]
     }
   ],
-  "last_applied_submission_id": "8a13dc43-d345-475b-8308-fe87d173c07f",
+  "last_applied_submission_id": "8c71ad21-962c-452f-b7ed-01958f1fd8c0",
   "review_complete": false,
-  "last_rendered_submission_id": "8a13dc43-d345-475b-8308-fe87d173c07f"
+  "last_rendered_submission_id": "8c71ad21-962c-452f-b7ed-01958f1fd8c0"
 }
