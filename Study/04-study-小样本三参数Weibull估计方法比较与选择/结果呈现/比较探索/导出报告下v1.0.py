@@ -1,6 +1,7 @@
 """将方法对比v1.0审定内容写回正式Markdown；复用任务中的PNG。"""
 from pathlib import Path
 from urllib.parse import unquote, urlparse
+import argparse
 import json
 import os
 import re
@@ -71,8 +72,11 @@ def image(path, alt):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--draft', action='store_true', help='输出已获修改授权、尚在审阅的修订稿')
+    args = parser.parse_args()
     board = json.loads((REVIEW / 'board.json').read_text(encoding='utf-8'))
-    if not (board.get('archive_pending') or board.get('review_complete')):
+    if not (board.get('archive_pending') or board.get('review_complete') or args.draft):
         raise SystemExit('请先在HTML中确认存档。')
     lines = ['# ' + board['title'], '', '**报告下（方法对比）v1.0｜2026-10-21**', '']
     image_count = 0
@@ -92,7 +96,7 @@ def main():
                     lines.extend([image(block['src'], block.get('alt', '')), ''])
                     image_count += 1
                 else:
-                    lines.extend([html_to_markdown(block['html']), ''])
+                    lines.extend([html_to_markdown(block.get('manuscript_html', block['html'])), ''])
     TARGET.write_text('\n'.join(lines).rstrip() + '\n', encoding='utf-8')
     print(json.dumps({'target': str(TARGET), 'images': image_count,
                       'source_revision': board['revision']}, ensure_ascii=False))
