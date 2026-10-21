@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 6,
+  "revision": 7,
   "require_confirmation": true,
   "archive_plan": "保存本次v1.0内容审阅的结果：\n1. 将审定文字、图表及局部选择写入 D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md；未选择的候选不代选，尚未实施的研究思路不写成已得到的结论。\n2. 正文使用本任务assets中的PNG，核对图像、数据口径及引用；根据实际内容更新总体README和结果呈现README。\n3. 保留原v0.4及其HTML存档；沿用 reviewbyhtml/方法对比-v1.0/ 保存本任务HTML、内容源、素材、批注及历史，以Git记录版本，草稿和运行状态留在本地。\n4. 本次候选复用v0.4图表与已核对材料；尚待验证的机制研究，在用户明确决定开展后继续。",
   "source_document": "../../报告下（方法对比）-v1.0.md",
@@ -298,34 +298,34 @@
     },
     {
       "id": "law-synthesis-additions",
-      "title": "3.3　可补充的结论",
+      "title": "3.3　进一步认识",
       "mode": "choices",
       "selection_mode": "multiple",
       "inline": true,
       "state": "open",
       "selected": null,
       "selected_ids": [],
-      "context": "是否再保留以下结论，可多选。",
+      "context": "补充结论候选，可多选。",
       "options": [
         {
-          "id": "summary-mean",
-          "label": "A　均值可能掩盖分化",
+          "id": "summary-shared-construction",
+          "label": "A　相近构造呈现共同的性能变化模式",
           "blocks": [
             {
-              "id": "summary-mean-body",
+              "id": "shared-construction-body",
               "kind": "text",
-              "html": "<p><strong>均值接近真值，并不意味着多数重复估计都接近真值。</strong>高β下，LSE和LRE的尺度均值可以接近真值，而估计结果已分为两个明显分离的群体。评价需要同时观察中心、离散程度与分布形态。</p>"
+              "html": "<p><strong>LSE与LRE的性能变化具有共同模式。</strong></p><ul>\n<li>低β下，随n减小，两法的形状估计都表现为波动扩大。</li>\n<li>随β增大，两法的尺度估计都逐渐分化，小样本下分离更明显。</li>\n</ul><p>两法的相似性贯穿条件变化，体现为波动和分布形态的共同响应。这为进一步分析它们在概率图定位与参数恢复中的共同构造提供了线索。</p>"
             }
           ]
         },
         {
-          "id": "summary-sensitivity",
-          "label": "B　误差水平与样本量敏感程度需要区分",
+          "id": "summary-cross-route",
+          "label": "B　不同构造出现相似的参数偏移模式",
           "blocks": [
             {
-              "id": "summary-sensitivity-body",
+              "id": "cross-route-body",
               "kind": "text",
-              "html": "<p><strong>某个条件下误差较大，不代表减少样本造成的误差增量也更大。</strong>K–R在高β、n=50时已存在明显偏移，而低β下从50减到7的相对形状RMSE增量更大。性能水平和随n变化的增量共同决定方法的条件表现。</p><p><small>此处比较相对形状RMSE的增量；自身有效与共同有效口径均支持该方向。</small></p>"
+              "html": "<p><strong>相似的偏移模式也出现在不同构造的方法之间。</strong></p><ul>\n<li>高β下，MDM、WMLE和K–R均呈现位置偏高、尺度偏低的组合。</li>\n<li>样本减少时，这种偏移更为突出；它们与LSE、LRE的分化表现形成对照。</li>\n</ul><p>比较由此得到两类值得解释的性能模式：一类是不同参数结果的方向性偏移，另一类是重复估计在不同参数组合之间分化。后续可以围绕位置的确定及其对参数恢复的影响，分别考察这些模式的形成路径。</p>"
             }
           ]
         }
@@ -652,8 +652,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "5bf3f42b-1cfc-4d82-9767-e79cc167d993",
-  "last_rendered_submission_id": "5bf3f42b-1cfc-4d82-9767-e79cc167d993",
+  "last_applied_submission_id": "ffc8d0a8-2837-4b33-b3af-8119d24e6445",
+  "last_rendered_submission_id": "ffc8d0a8-2837-4b33-b3af-8119d24e6445",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.3.0"
