@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="26.0.9">
+  <diagram id="learning-detail-v10" name="学习映射：训练闭环与新样本使用">
+    <mxGraphModel page="1" pageWidth="1800" pageHeight="1650" background="#ffffff" math="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="学习映射｜多组样本训练估计函数，新样本执行固定映射" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="20" width="1710" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="训练阶段学习网络权重 \(\phi\)；使用阶段把新样本的相同特征直接映射为分布参数。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="45" y="90" width="1710" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="training-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#FCF6EE;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="40" y="165" width="1720" height="625" as="geometry" />
+        </mxCell>
+        <mxCell id="training-title" value="训练阶段：同时看到样本与对应参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="185" width="1630" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="truth" value="参数标签 \(\theta_j\)&lt;br&gt;\(\beta_j,\eta_j,\gamma_j\)&lt;br&gt;与样本量 \(n_j\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="65" y="300" width="255" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="train-data" value="训练样本 \(D_j\)&lt;br&gt;来自模拟或标注&lt;br&gt;每组对应一组参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="395" y="300" width="255" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="features" value="统一的特征 \(T(D_j)\)&lt;br&gt;如排序值、分位数&lt;br&gt;或汇总统计量" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="725" y="300" width="255" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="network" value="参数映射 \(h_{\varphi}\)&lt;br&gt;网络把特征组合&lt;br&gt;转换为参数预测" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1055" y="300" width="255" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="prediction" value="训练样本的预测&lt;br&gt;\(\hat{\theta}_j=h_{\varphi}(T(D_j))\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1385" y="300" width="285" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="label-sample" value="" edge="1" parent="1" source="truth" target="train-data" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="extract" value="" edge="1" parent="1" source="train-data" target="features" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="predict" value="" edge="1" parent="1" source="features" target="network" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="network-pred" value="" edge="1" parent="1" source="network" target="prediction" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="loss" value="逐样本对照预测与真值&lt;br&gt;\(\mathcal{L}(\varphi)=\frac{1}{m}\sum_{j=1}^{m}\ell(\hat{\theta}_j,\theta_j)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFF0DA;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="1055" y="590" width="615" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="true-loss" value="对应的真参数标签" edge="1" parent="1" source="truth" target="loss" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="640" labelY="640">
+          <mxGeometry relative="1" as="geometry" x="0.21513002364066192">
+            <Array as="points">
+              <mxPoint x="192.5" y="640" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="prediction-loss" value="预测误差" edge="1" parent="1" source="prediction" target="loss" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="1530" labelY="530">
+          <mxGeometry relative="1" as="geometry" x="-0.4516129032258065">
+            <Array as="points">
+              <mxPoint x="1527.5" y="530" />
+              <mxPoint x="1362.5" y="530" />
+            </Array>
+            <mxPoint x="2.5" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="backprop" value="按损失更新 \(\phi\)" edge="1" parent="1" source="loss" target="network" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#C24F3E;fontColor=#C24F3E;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0;exitY=0.5;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="feedback" evidence="" labelX="1135" labelY="505">
+          <mxGeometry relative="1" as="geometry" x="0.4658385093167703">
+            <Array as="points">
+              <mxPoint x="1015" y="640" />
+              <mxPoint x="1015" y="505" />
+              <mxPoint x="1182.5" y="505" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="trained" value="训练结束，固定映射 \(h_{\varphi^{*}}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="385" y="705" width="635" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="finish-training" value="" edge="1" parent="1" source="loss" target="trained" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1362.5" y="735" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="use-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F0F8F3;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="40" y="875" width="1720" height="395" as="geometry" />
+        </mxCell>
+        <mxCell id="use-title" value="使用阶段：一组新样本走一次映射" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="895" width="1630" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="new-data" value="新寿命样本 \(D\)&lt;br&gt;当前观测值" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="70" y="1020" width="330" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="new-features" value="沿用相同特征定义&lt;br&gt;\(T(D)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="500" y="1020" width="330" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="fixed" value="固定的估计函数&lt;br&gt;\(h_{\varphi^{*}}(T(D))\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="930" y="1020" width="360" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="estimate" value="输出三个参数&lt;br&gt;\(\hat{\beta}\)、\(\hat{\eta}\)、\(\hat{\gamma}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#E7F3EB;fontColor=#243449;fontFamily=Times New Roman;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="1390" y="1020" width="310" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="new-extract" value="" edge="1" parent="1" source="new-data" target="new-features" style="html=1;rounded=0;strokeWidth=3.2;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="new-map" value="" edge="1" parent="1" source="new-features" target="fixed" style="html=1;rounded=0;strokeWidth=3.2;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="new-output" value="" edge="1" parent="1" source="fixed" target="estimate" style="html=1;rounded=0;strokeWidth=3.2;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="deploy" value="携带训练得到的固定权重" edge="1" parent="1" source="trained" target="fixed" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#AE6C25;fontColor=#AE6C25;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="1110" labelY="830">
+          <mxGeometry relative="1" as="geometry" x="0.42641509433962255">
+            <Array as="points">
+              <mxPoint x="702.5" y="830" />
+              <mxPoint x="1110" y="830" />
+            </Array>
+            <mxPoint x="0.0" y="0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="use-note" value="训练域给出所学映射的参数范围；特征与损失决定映射怎样利用信息、重视哪种误差。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="75" y="1195" width="1610" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="intervention-title" value="映射、辅助学习与数值搜索在估计中的作用位置" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="55" y="1345" width="1690" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="direct" value="直接参数映射&lt;br&gt;\(T(D)\longrightarrow h_{\varphi}\longrightarrow\hat{\theta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AE6C25;fillColor=#FCF6EE;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="65" y="1440" width="490" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="hybrid" value="学习中间量&lt;br&gt;\(T(D)\) → 权重／修正量&lt;br&gt;→ 统计估计器 → \(\hat{\theta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F7F2FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="655" y="1440" width="490" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="optimizer" value="当前样本的数值求解&lt;br&gt;固定 \(Q(\theta;D)\) → PSO／SA 搜索&lt;br&gt;→ \(\hat{\theta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#F4F7FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1245" y="1440" width="490" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="basis" value="构造依据：方法工作稿 §5.4 的直接ANN/BPNN、过程量学习与既定目标搜索的作用位置。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=21;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="55" y="1590" width="1690" height="36" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

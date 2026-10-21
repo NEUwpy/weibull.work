@@ -1,10 +1,10 @@
 {
   "id": "study04-method-classification-v04-report",
-  "title": "Study04 方法分类报告 v1.1 审阅",
+  "title": "Study04 参数估计方法路线图 v2.0 审阅",
   "document": true,
-  "revision": 23,
+  "revision": 24,
   "require_confirmation": true,
-  "archive_plan": "将本轮审定修改写回 Study04/报告上（方法分类）-v1.1.md，同步方法分类/机制图-v1.1/的draw.io图源、生成程序与SVG预览；沿用现有v1.0及v0.4归档，更新必要入口；保留原HTML任务、素材与全部审阅记录，核验正文、公式、图片和链接后提交到laptop分支。若确认文字指定新版本，再按该版本归档旧版并更新引用。",
+  "archive_plan": "将审定内容写回报告上（方法分类）-v2.0.md及机制图-v2.0图源与SVG；v1.1已完整归档到其他/历史版本/方法分类-v1.1，保留原HTML任务和历史；核验后在laptop分支保存并同步远端。",
   "units": [
     {
       "id": "opening",
@@ -15,12 +15,12 @@
       "options": [
         {
           "id": "opening-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "opening-text-0",
               "kind": "text",
-              "html": "<h1\nid=\"三参数weibull参数估计方法的分类与相互关系\">三参数Weibull参数估计方法的分类与相互关系</h1>\n<p><strong>报告上（方法分类）v1.1｜更新：2026-10-21</strong></p>\n<p>魏鹏宇｜东北大学机械工程与自动化学院</p>\n<p>分会场3：装备寿命与可靠性评估</p>\n<p>各位老师、各位同学，大家好！我是东北大学机械工程与自动化学院的在读博士生魏鹏宇。今天汇报的题目是《小样本三参数Weibull参数估计方法的比较与选择》。</p>\n<p>这次汇报分为两部分。第一部分梳理现有方法的估计原理，通过分类和方法间关系形成一张方法地图；第二部分在共同样本上比较代表方法，分析它们在小样本下的偏差、波动、异常输出和失败风险。</p>\n"
+              "html": "<h1 id=\"三参数weibull参数估计方法的路线图\">三参数Weibull参数估计方法的路线图</h1>\n<p><strong>报告上（方法路线图）v2.0｜更新：2026-10-22</strong></p>\n<p>魏鹏宇｜东北大学机械工程与自动化学院</p>\n<p>分会场3：装备寿命与可靠性评估</p>\n<p>各位老师、各位同学，大家好！我是东北大学机械工程与自动化学院的在读博士生魏鹏宇。今天汇报的题目是《小样本三参数Weibull参数估计方法的比较与选择》。</p>\n<p>这次汇报分为两部分。第一部分梳理现有方法的估计原理，通过五条路线及方法间关系形成一张参数估计方法的路线图；第二部分在共同样本上比较代表方法，分析它们在小样本下的偏差、波动、异常输出和失败风险。</p>\n"
             }
           ]
         }
@@ -35,12 +35,12 @@
       "options": [
         {
           "id": "section-1-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "section-1-text-0",
               "kind": "text",
-              "html": "<p>三参数Weibull分布包含形状参数β、尺度参数η和位置参数γ。位置参数决定分布的支撑边界，并与形状、尺度共同参与估计。围绕三个参数的确定，文献中陆续形成了多种方案：</p>\n<table>\n<colgroup>\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n</colgroup>\n<thead>\n<tr>\n<th>代表文献（作者／年份）</th>\n<th>方案或方法名</th>\n<th>主要构造</th>\n<th>构造特点</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Smith（1985）</td>\n<td>三参数MLE及最小值替代构造</td>\n<td>原始似然；另讨论位置取最小观测、删除该观测后的估计</td>\n<td>分析非正则似然与最小值替代构造</td>\n</tr>\n<tr>\n<td>Cohen–Whitten（1982）</td>\n<td>MMLE-I—V、MME分支</td>\n<td>保留部分似然方程，用最小值、均值、方差或中位数关系替换位置或矩方程</td>\n<td>同一MMLE缩写下有多个具体版本</td>\n</tr>\n<tr>\n<td>Cheng–Amin（1983）；Ranneby（1984）</td>\n<td>MPS／最大概率间距</td>\n<td>用相邻CDF概率间距构造乘积或对数目标</td>\n<td>两条独立提出线索</td>\n</tr>\n<tr>\n<td>Cheng–Iles（1987）</td>\n<td>CMLE／修正似然</td>\n<td>用最小观测附近的区间概率替换密度项</td>\n<td>位置边界处理改变了似然项</td>\n</tr>\n<tr>\n<td>White（1969）</td>\n<td>概率图回归</td>\n<td>用次序统计量期望构造分数，再回归对数寿命</td>\n<td>两参数概率图基础</td>\n</tr>\n<tr>\n<td>Soman–Misra（1992）</td>\n<td>三参数LSE／White扩展</td>\n<td>平移样本、White分数、回归和位置评分</td>\n<td>未知位置被接入概率图流程</td>\n</tr>\n<tr>\n<td>Cran（1988）</td>\n<td>Weibull moments</td>\n<td>由生存函数幂次积分形成矩，再显式恢复三参数</td>\n<td>通过矩差显式恢复</td>\n</tr>\n<tr>\n<td>Jacquelin（1993）→ Cousineau（2009）</td>\n<td>WMLE／加权MLE</td>\n<td>从二参数代数关系扩展到三参数，并把三个权重放进估计方程</td>\n<td>明确的扩展关系</td>\n</tr>\n<tr>\n<td>Kundu–Raqab（2009）</td>\n<td>K–R MMLE</td>\n<td>以共同最小值定位并删除该观测，再估计其余参数</td>\n<td>最小值定位与删样本结合</td>\n</tr>\n<tr>\n<td>Hosking（1990）；Elamir–Seheult（2003）</td>\n<td>L矩／截尾L矩</td>\n<td>以次序统计量线性组合匹配理论统计关系，截尾L矩减少端部影响</td>\n<td>统计关系路线的重要来源</td>\n</tr>\n<tr>\n<td>Nagatsuka等（2013）</td>\n<td>LSPF</td>\n<td>用与位置、尺度无关的统计量估形状，再恢复其余参数</td>\n<td>位置尺度自由的联合构造</td>\n</tr>\n<tr>\n<td>Nagatsuka–Balakrishnan（2015）</td>\n<td>LPF</td>\n<td>只消除位置、保留尺度信息，再进行参数恢复</td>\n<td>对LSPF的构造改进</td>\n</tr>\n<tr>\n<td>Park（2017；2018）</td>\n<td>Proposed+Plot／Proposed+MLE2</td>\n<td>用概率图相关系数定位，再按回归或二参数MLE恢复</td>\n<td>2018补充条件下的存在性论证</td>\n</tr>\n<tr>\n<td>Yang等（2023）</td>\n<td>最小二乘迭代</td>\n<td>概率图回归与最小次序统计量位置修正交替进行</td>\n<td>位置修正与回归组合</td>\n</tr>\n<tr>\n<td>代表文献待补</td>\n<td>Bayes、ANN／BPNN、MDM等</td>\n<td>分别使用先验与后验、训练映射或尺度伪估计差异</td>\n<td>对应后验推断、学习映射和尺度一致性判据</td>\n</tr>\n</tbody>\n</table>\n<p>这些名称分别强调估计准则、统计量、推断框架或改进步骤。例如，MLE强调似然，L矩强调统计量，Bayes强调后验推断，加权则描述对原有构造的调整。要把这些方法联系起来，需要回到它们怎样从样本得到参数。</p>\n"
+              "html": "<p>三参数Weibull分布包含形状参数β、尺度参数η和位置参数γ。位置参数决定分布的支撑边界，并与形状、尺度共同参与估计。围绕三个参数的确定，文献中陆续形成了多种方案：</p>\n<table>\n<colgroup>\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n</colgroup>\n<thead>\n<tr>\n<th>代表文献（作者／年份）</th>\n<th>方案或方法名</th>\n<th>主要构造</th>\n<th>构造特点</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Smith（1985）</td>\n<td>三参数MLE及最小值替代构造</td>\n<td>原始似然；另讨论位置取最小观测、删除该观测后的估计</td>\n<td>分析非正则似然与最小值替代构造</td>\n</tr>\n<tr>\n<td>Cohen–Whitten（1982）</td>\n<td>MMLE-I—V、MME分支</td>\n<td>保留部分似然方程，用最小值、均值、方差或中位数关系替换位置或矩方程</td>\n<td>同一MMLE缩写下有多个具体版本</td>\n</tr>\n<tr>\n<td>Cheng–Amin（1983）；Ranneby（1984）</td>\n<td>MPS／最大概率间距</td>\n<td>用相邻CDF概率间距构造乘积或对数目标</td>\n<td>两条独立提出线索</td>\n</tr>\n<tr>\n<td>Cheng–Iles（1987）</td>\n<td>CMLE／修正似然</td>\n<td>用最小观测附近的区间概率替换密度项</td>\n<td>位置边界处理改变了似然项</td>\n</tr>\n<tr>\n<td>White（1969）</td>\n<td>概率图回归</td>\n<td>用次序统计量期望构造分数，再回归对数寿命</td>\n<td>两参数概率图基础</td>\n</tr>\n<tr>\n<td>Soman–Misra（1992）</td>\n<td>三参数LSE／White扩展</td>\n<td>平移样本、White分数、回归和位置评分</td>\n<td>未知位置被接入概率图流程</td>\n</tr>\n<tr>\n<td>Cran（1988）</td>\n<td>Weibull moments</td>\n<td>由生存函数幂次积分形成矩，再显式恢复三参数</td>\n<td>通过矩差显式恢复</td>\n</tr>\n<tr>\n<td>Jacquelin（1993）→ Cousineau（2009）</td>\n<td>WMLE／加权MLE</td>\n<td>从二参数代数关系扩展到三参数，并把三个权重放进估计方程</td>\n<td>明确的扩展关系</td>\n</tr>\n<tr>\n<td>Kundu–Raqab（2009）</td>\n<td>K–R MMLE</td>\n<td>以共同最小值定位并删除该观测，再估计其余参数</td>\n<td>最小值定位与删样本结合</td>\n</tr>\n<tr>\n<td>Hosking（1990）；Elamir–Seheult（2003）</td>\n<td>L矩／截尾L矩</td>\n<td>以次序统计量线性组合匹配理论统计关系，截尾L矩减少端部影响</td>\n<td>统计关系路线的重要来源</td>\n</tr>\n<tr>\n<td>Nagatsuka等（2013）</td>\n<td>LSPF</td>\n<td>W变换消除位置、尺度，由W联合密度估形状，再恢复其余参数</td>\n<td>不变统计量似然与参数恢复相接</td>\n</tr>\n<tr>\n<td>Nagatsuka–Balakrishnan（2015）</td>\n<td>LPF</td>\n<td>V变换只消除位置，由V联合密度估形状与尺度，再按原文似然方程恢复</td>\n<td>对LSPF的构造改进</td>\n</tr>\n<tr>\n<td>Park（2017；2018）</td>\n<td>Proposed+Plot／Proposed+MLE2</td>\n<td>用概率图相关系数定位，再按回归或二参数MLE恢复</td>\n<td>2018补充条件下的存在性论证</td>\n</tr>\n<tr>\n<td>Yang等（2023）</td>\n<td>最小二乘迭代</td>\n<td>概率图回归与最小次序统计量位置修正交替进行</td>\n<td>位置修正与回归组合</td>\n</tr>\n<tr>\n<td>代表文献待补</td>\n<td>Bayes、ANN／BPNN、MDM等</td>\n<td>分别使用先验与后验、训练映射或尺度伪估计差异</td>\n<td>对应后验推断、学习映射和尺度一致性判据</td>\n</tr>\n</tbody>\n</table>\n<p>这些名称分别强调估计准则、统计量、推断框架或改进步骤。例如，MLE强调似然，L矩强调统计量，Bayes强调后验推断，加权则描述对原有构造的调整。要把这些方法联系起来，需要回到它们怎样从样本得到参数。</p>\n"
             }
           ]
         }
@@ -48,30 +48,30 @@
     },
     {
       "id": "section-2",
-      "title": "2　归纳后的分类依据与分类结果",
+      "title": "2　从估计机制建立五条路线",
       "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
           "id": "section-2-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "section-2-text-0",
               "kind": "text",
-              "html": "<p>现有名称之所以显得杂，是因为它们分别强调了不同内容：有的强调观测密度，有的强调概率图或概率间距，有的强调矩和次序统计量，有的强调先验和后验，有的强调训练映射；加权、偏差修正、位置处理和数值搜索又会横跨这些内容。</p>\n<p>因此，方法的主要归属按两个层面确定：</p>\n<ol type=\"1\">\n<li><strong>样本信息：</strong>\n从样本中提取什么，是观测处的密度、经验分布、概率间距、矩、分位数、次序统计量、不变统计量，还是训练样本中的特征。</li>\n<li><strong>参数确定原则：</strong>\n怎样把这些信息变成三个参数，是最大化似然、最小化分布偏离、匹配概率结构、反演理论统计关系、更新后验，还是学习样本到参数的映射。</li>\n</ol>\n<p>加权、偏差修正、位置处理、边界约束、数值求解和跨路线组合描述实现与改进发生的环节。地图按估计依据确定每个方法的主要归属，再用关系线表示它借用的统计量、步骤及其与其他方法的联系。</p>\n<p>据此可以归纳出五条路线：似然估计、分布匹配、统计关系反演、后验推断和学习映射。每条路线内部的方法差别，体现在具体方程、统计量和参数恢复步骤上。</p>\n<p>这五条路线的分歧，发生在把样本转成参数的关键一步：</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>路线</th>\n<th>从样本构造什么</th>\n<th>据此怎样确定参数</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>似然估计</td>\n<td>观测处的密度及联合似然 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><msub><mo>∏</mo><mi>i</mi></msub><msub><mi>f</mi><mi>θ</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span></td>\n<td>最大化联合似然，或求解、修正其得分方程</td>\n</tr>\n<tr>\n<td>分布匹配</td>\n<td>经验分布、概率图坐标、CDF间距或各观测反推的尺度</td>\n<td>按分布差异、回归残差、间距评分或尺度一致性选择参数</td>\n</tr>\n<tr>\n<td>统计关系反演</td>\n<td>矩、分位数、次序统计量等样本特征 <span\nclass=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>T</mi><mo stretchy=\"false\">(</mo><mi>D</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span></td>\n<td>将样本特征接到理论关系 <span\nclass=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>T</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>，通过匹配、消元、反演或条件线性组合恢复参数</td>\n</tr>\n<tr>\n<td>后验推断</td>\n<td>样本似然与先验形成的后验 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>p</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo>∣</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>∝</mo><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mi>π</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span></td>\n<td>按后验均值、中位数或MAP等决策规则给出估计</td>\n</tr>\n<tr>\n<td>学习映射</td>\n<td>多组训练样本的特征与对应参数</td>\n<td>从训练数据学习映射 <span\nclass=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>h</mi><mi>ϕ</mi></msub></mrow></semantics></math></span></span>，再将新样本特征输入映射得到参数</td>\n</tr>\n</tbody>\n</table>\n<p>例如，同一组排序寿命可以进入似然，也可以转成概率图坐标或矩。路线的区别在于：似然方法评价候选参数下的样本密度，分布匹配评价样本与理论分布的一致程度，统计关系反演则从可计算的样本特征恢复参数。后验推断进一步引入先验与后验决策，学习映射则借助多组训练样本形成估计函数。</p>\n<p>LSPF／LPF先构造不变统计量，再最大化其联合密度，因此同时联系统计量构造与似然准则；地图把它们放在统计量构造的主要位置，并将具体准则连回统计量似然。</p>\n"
+              "html": "<p>现有名称之所以显得杂，是因为它们分别强调了不同内容：有的强调观测密度，有的强调概率图或概率间距，有的强调矩和次序统计量，有的强调先验和后验，有的强调训练映射；加权、偏差修正、位置处理和数值搜索又会横跨这些内容。</p>\n<p>理解一种方法，先连续回答两个问题：</p>\n<ol type=\"1\">\n<li><strong>样本信息：</strong> 从样本中提取什么，是观测处的密度、经验分布、概率间距、矩、分位数、次序统计量、不变统计量，还是训练样本中的特征。</li>\n<li><strong>参数确定原则：</strong> 怎样把这些信息变成三个参数，是最大化似然、最小化分布偏离、匹配概率结构、反演理论统计关系、更新后验，还是学习样本到参数的映射。</li>\n</ol>\n<p>加权、偏差修正、位置处理、边界约束、数值求解和跨路线组合则说明变化发生在哪个环节。其中有些会改变统计构造，有些服务于既定准则的计算，需要按实际步骤区分。</p>\n<p>据此，可以从似然构造与优化、分布关系匹配、统计特征关系匹配与反演、贝叶斯后验推断以及学习型参数映射五条路线理解现有方法。路线体现不同的参数确定机制；具体方法可以完整采用一种机制，也可以通过统计量构造、参数消除、分阶段估计或组合准则连接多条路线。我们建立的是参数估计方法的路线图，目的是揭示估计原理、构造特征及其相互联系，不要求每个方法只能归入一个类别，也不以选出唯一主要归属作为进入地图的条件。</p>\n<p>五条路线各自回答：样本形成什么对象，哪一种机制据此确定参数？</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>路线</th>\n<th>从样本构造什么</th>\n<th>据此怎样确定参数</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>一：似然构造与优化</td>\n<td>样本或所选统计量在候选参数下的联合密度，形成似然函数</td>\n<td>最大化似然或相应的修正准则；方程修正按其实际构造说明</td>\n</tr>\n<tr>\n<td>二：分布关系匹配</td>\n<td>经验分布、绘图概率、概率间距或其他分布表示</td>\n<td>依据指定的拟合准则，在表示、残差、概率结构或一致性关系上确定参数</td>\n</tr>\n<tr>\n<td>三：统计特征关系匹配与反演</td>\n<td>矩、分位数、次序统计量等选定特征，以及它们与参数的理论关系</td>\n<td>通过匹配、消元、求解或反演识别参数，再恢复其余参数</td>\n</tr>\n<tr>\n<td>四：贝叶斯后验推断</td>\n<td>样本似然与先验结合形成的参数后验分布</td>\n<td>依据后验分布及相应的决策规则给出估计</td>\n</tr>\n<tr>\n<td>五：学习型参数映射</td>\n<td>多组具有已知参数标签的训练样本及其特征</td>\n<td>学习样本或特征到参数的映射，固定映射后用于新样本</td>\n</tr>\n</tbody>\n</table>\n<p>例如，同一组排序寿命可以用于构造似然，也可以转成概率图坐标或矩。分布关系匹配围绕样本的分布表示及其拟合准则展开；统计特征关系匹配与反演围绕选定特征与理论参数关系展开。贝叶斯推断使用似然，但最终估计还取决于先验和后验决策；学习型映射也可使用矩特征，但参数映射来自多组带标签样本的训练。所用材料相同，并不意味着参数确定机制相同。</p>\n<p>LSPF就是一个需要沿过程阅读的例子：先用W变换消除位置与尺度，再由内部W统计量的联合密度构造形状似然，最后依据位置修正和尺度恢复关系补齐参数。统计量构造、似然估计和统计关系恢复在同一方法中相接。后面先分别解释这些机制，再回到完整地图看它们如何连接。</p>\n"
             },
             {
               "id": "section-2-image-1",
               "kind": "image",
-              "src": "assets/06-完整机理地图-五簇分类与方法关系.svg",
-              "alt": "图2　分类后：五簇工作地图与方法关系"
+              "src": "assets/v2.0-06-完整机理地图-估计路线与方法关系.svg",
+              "alt": "图2　归纳后：五条估计路线与方法关系"
             },
             {
-              "id": "section-2-text-2",
+              "id": "section-2-text-1",
               "kind": "text",
-              "html": "<p><strong>图2｜方法的估计依据与具体关系。</strong>\n各区域入口给出统计对象和参数确定原则；区域内外的线连接具体方法，标明扩展、修正、数学联系或借用的参数步骤。金色节点对应本次比较的七种实现。</p>\n"
+              "html": "<p><strong>图2｜由估计机制组成路线骨架，再接入具体方法。</strong> 每条路线先给出统计对象及确定参数的机制，具体方法连接到采用或改变的环节。方法内部的跨路线步骤与方法之间的沿袭、修正、数学联系及局部借用分别表达；同一方法可以连接多条路线。金色节点对应本次比较的七种实现。</p>\n"
             }
           ]
         }
@@ -79,87 +79,41 @@
     },
     {
       "id": "section-3",
-      "title": "3　似然估计路线：构造似然函数，再求解参数",
-      "mode": "choices",
-      "state": "open",
-      "selected": null,
-      "options": [
-        {
-          "id": "section-3-unified-likelihood",
-          "label": "新修订：同一数据到联合似然的连续机制",
-          "blocks": [
-            {
-              "id": "section-3-unified-principle",
-              "kind": "text",
-              "html": "<p><mark>固定样本，把参数当作自变量；同一参数下各观测的密度相乘，就得到似然函数。</mark>对独立同分布完整样本 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>D</mi><mo>=</mo><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mn>1</mn></msub><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><msub><mi>x</mi><mi>n</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，每个观测对应参数函数 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>g</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，所有观测共用同一组待估参数 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>θ</mi><mo>=</mo><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>。</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>g</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p>这个逐点乘积定义了整个联合似然函数。最大似然估计就在该函数上求最大值；当给定参数域 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Θ</mi></mrow></semantics></math></span> 内存在最大值时，</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mover accent=\"true\"><mi>θ</mi><mo stretchy=\"true\">^</mo></mover><mrow><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">L</mi><mi mathvariant=\"normal\">E</mi></mrow></msub><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg max</mi><mo>⁡</mo></mrow><mrow><mi>θ</mi><mo>∈</mo><mi mathvariant=\"normal\">Θ</mi></mrow></munder><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p>图中用<mark>同一组数据、同一参数坐标、同参数取值与乘积点的连线</mark>把整个过程串起来。为便于绘制，固定η₀=3、γ₀=2，只画β截面；完整三参数MLE仍需在三维参数域处理同一个联合似然。取对数、得分方程、剖面或数值优化是实现最大化的计算途径，参数域、支持边界与有限解存在性仍须核验。</p>"
-            },
-            {
-              "id": "section-3-unified-image",
-              "kind": "image",
-              "src": "assets/07-似然估计路线-信息处理流程.svg",
-              "alt": "图3a　固定样本、参数函数、逐点乘积与联合最大化（修订）"
-            },
-            {
-              "id": "section-3-unified-caption",
-              "kind": "text",
-              "html": "<p><strong>图3a｜固定数据，把密度转为参数函数，再相乘并最大化。</strong> 左侧三个观测固定在寿命轴上；中间三条曲线分别是这三个观测对应的参数函数，横轴均为同一β范围；右侧似然曲线由三个函数在同一β处的值逐点相乘得到。蓝灰竖线及连线追踪同一个β₀如何从三个因子构成一个联合似然值，橙色箭头表示在这个联合函数上求最大值。本图峰点是固定η₀=3、γ₀=2时的条件形状估计；完整三参数MLE仍需在三维参数域内求解。</p>"
-            }
-          ]
-        },
-        {
-          "id": "section-3-illustrated-solve",
-          "label": "上一稿：密度、求根与剖面分步图（第22轮）",
-          "blocks": [
-            {
-              "id": "section-3-illustrated-principle",
-              "kind": "text",
-              "html": "<p>似然路线以分布模型为起点：<mark>观测进入密度模型→相乘构造似然→取对数建立最大化问题→推导方程并求解参数</mark>。对独立同分布完整样本 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>D</mi><mo>=</mo><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mn>1</mn></msub><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><msub><mi>x</mi><mi>n</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，有</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><mspace width=\"2em\"/><mi>θ</mi><mo>=</mo><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p>当给定参数域 <span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Θ</mi></mrow></semantics></math></span> 内存在最大值时，最大似然估计满足</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mover accent=\"true\"><mi>θ</mi><mo stretchy=\"true\">^</mo></mover><mrow><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">L</mi><mi mathvariant=\"normal\">E</mi></mrow></msub><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg max</mi><mo>⁡</mo></mrow><mrow><mi>θ</mi><mo>∈</mo><mi mathvariant=\"normal\">Θ</mi></mrow></munder><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p>图中把三类示意图嵌入实际步骤：<mark>密度曲线解释观测如何进入模型，零点图解释方程怎样求根，剖面曲线解释位置怎样搜索</mark>。以有限内点的剖面求解为例，先给定γ、消去η并数值求β，再恢复η；外层更新γ并重算内层。取对数不改变最大化解，剖面链是同一统计目标的一种计算组织方式。</p><p>原始三参数似然在无约束参数域内可能无界；需先明确参数域或有限局部极大的取解约定。内点方程根需核验，边界解也不必满足内点方程。修改似然项或估计方程属于统计构造变化，更换既定目标的求解程序属于计算变化。</p>"
-            },
-            {
-              "id": "section-3-illustrated-image",
-              "kind": "image",
-              "src": "assets/07-似然估计路线-信息处理流程-第22轮.svg",
-              "alt": "图3a　密度代入、函数构造、方程求根与位置搜索（修订）"
-            },
-            {
-              "id": "section-3-illustrated-caption",
-              "kind": "text",
-              "html": "<p><strong>图3a｜用图像串联似然的构造与求解。</strong> ①在单条密度模型曲线上标出观测进入密度的位置，②按独立性相乘并展开联合似然，③取对数建立最大化问题，④用形状方程与零线的交点解释给定γ后的数值求根，⑤沿位置剖面函数搜索有限局部峰并恢复参数。虚线表示更新γ后回到内层重算。密度图、求根图和剖面图嵌入对应的计算步骤；曲线取自同一模拟样本用于说明机制，不作性能比较。</p>"
-            }
-          ]
-        }
-      ],
-      "selection_mode": "single",
-      "selected_ids": [],
-      "context": "本轮只围绕似然自身的构造链重画：同一组观测→各参数函数→逐点乘积→联合最大化。"
-    },
-    {
-      "id": "section-3-details",
-      "title": "似然路线的代表方法与改动位置",
-      "outline_level": 3,
+      "title": "3　路线一：似然构造与优化",
       "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
-          "id": "section-3-details-current",
-          "label": "共用机制说明",
+          "id": "section-3-current",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
-              "id": "section-3-methods-common",
+              "id": "section-3-text-0",
               "kind": "text",
-              "html": "\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>观测处的密度、联合密度、删失或支持边界信息</td>\n<td>最大化联合似然，或求解似然得分方程</td>\n<td>方程加权、位置关系替换、边界约束、Firth型修正、局部候选与数值搜索</td>\n</tr>\n</tbody>\n</table>\n<p>MLE、WMLE、Cohen–Whitten MMLE、K–R\nMMLE、CMLE、DMMLE和罚似然的差别，集中在似然项、估计方程和位置处理上。PSO、模拟退火和差分进化用于搜索似然目标时，承担其中的数值求解环节。</p>\n"
+              "html": "<p>这条路线的核心机制是：构建样本在候选参数下的似然函数，并通过最大化似然或相应的修正准则来估计参数。先固定已经观测到的样本，把分布密度看作待估参数的函数。对独立同分布完整样本 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>D</mi><mo>=</mo><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mn>1</mn></msub><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><msub><mi>x</mi><mi>n</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>，每个观测对应一个参数函数 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>g</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>；所有观测共用同一组参数 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>θ</mi><mo>=</mo><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>。在同一个参数处将这些函数值相乘，就构成联合似然：</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>g</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>这个乘积对整个参数域定义了一个函数。最大似然估计在该联合函数上寻找最大值。当给定参数域 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Θ</mi></mrow></semantics></math></span></span> 内存在最大值时，</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mover accent=\"true\"><mi>θ</mi><mo stretchy=\"true\">^</mo></mover><mrow><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">L</mi><mi mathvariant=\"normal\">E</mi></mrow></msub><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg max</mi><mo>⁡</mo></mrow><mrow><mi>θ</mi><mo>∈</mo><mi mathvariant=\"normal\">Θ</mi></mrow></munder><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>图3a把这一个构造过程连成图像：固定观测、形成各参数函数、在相同参数处相乘、在乘积函数上求最大值。前三步解释似然如何构造（L1），最后一步解释估计由什么准则确定（L2）。为便于绘制，图中固定η和γ，只展示β截面；完整三参数MLE仍在三维参数域中处理同一个联合似然。取对数、得分方程、剖面求解或数值优化是实现最大化的计算途径，得分为零还须区分极大值、其他驻点及边界情况。原始三参数似然可能无界，参数域、支持边界与有限解存在性仍须核验。</p>\n<p>原始观测的密度乘积是这条路线的基本例子。若先变换为统计量，也可以由该统计量的联合密度构造似然；这时必须使用相应的分布，不能不加区分地把相关统计量的边缘密度相乘。LSPF的形状估计就是内部W统计量的联合似然最大化，统计量的选取没有取消其似然机制。</p>\n"
             },
             {
-              "id": "section-3-image-1",
+              "id": "section-3-unified-image",
               "kind": "image",
-              "src": "assets/01-似然估计路线-机制图.svg",
-              "alt": "图3b　似然估计路线机制图"
+              "src": "assets/v2.0-07-似然估计路线-信息处理流程.svg",
+              "alt": "图3a　似然构造与优化的连续机制"
+            },
+            {
+              "id": "section-3-text-1",
+              "kind": "text",
+              "html": "<p><strong>图3a｜固定数据，把密度转为参数函数，再相乘并最大化。</strong> 左侧三个观测固定在寿命轴上；中间三条曲线分别是这三个观测对应的参数函数，横轴均为同一β范围；右侧似然曲线由三个函数在同一β处的值逐点相乘得到。蓝灰竖线及连线追踪同一个β₀如何从三个因子构成一个联合似然值，橙色箭头表示在这个联合函数上求最大值。本图峰点是固定η₀=3、γ₀=2时的条件形状估计；完整三参数MLE仍需在三维参数域内求解。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>原始观测或选定统计量的联合密度，以及删失或支持边界信息</td>\n<td>最大化似然或修正准则；估计方程的求解与修正按具体构造解释</td>\n<td>似然项替换、方程加权、位置关系替换、边界约束、Firth型修正、局部候选与数值搜索</td>\n</tr>\n</tbody>\n</table>\n<p>由这个机制再看具体方法，改动位置就清楚了：CMLE替换最小值附近的似然贡献；罚似然引入额外目标因子；K–R先以最小值定位并删除该观测；Cohen–Whitten的不同MMLE分支保留部分方程、以特定统计关系替换其他方程；WMLE对估计方程加权，DMMLE在修改数据后进一步修正得分。修改似然项或估计方程属于统计构造变化，WMLE等不能仅凭名称就认定等同于某个未说明的似然最大化。PSO、模拟退火和差分进化直接搜索既定似然目标时，则承担数值求解环节。</p>\n"
+            },
+            {
+              "id": "section-3-image-01",
+              "kind": "image",
+              "src": "assets/v2.0-01-似然估计路线-机制图.svg",
+              "alt": "图3b　似然路线的具体构造及改动位置"
             },
             {
               "id": "section-3-text-2",
               "kind": "text",
-              "html": "<p><strong>图3b｜从密度贡献到求解方程及其改动位置。</strong>\n上部展示各观测处的密度怎样相乘形成似然，再取对数、求导并由尺度方程消去η。下部在具体接口上展开：K–R平移和删除最小观测，DMMLE修正修改数据后的得分，WMLE给方程加权，Cohen–Whitten替换位置关系，CMLE替换最小值项，罚似然增加目标因子。</p>\n"
+              "html": "<p><strong>图3b｜从密度贡献到求解方程及其改动位置。</strong> 上部展示各观测处的密度怎样相乘形成似然，再取对数、求导并由尺度方程消去η。下部在具体接口上展开：K–R平移和删除最小观测，DMMLE修正修改数据后的得分，WMLE给方程加权，Cohen–Whitten替换位置关系，CMLE替换最小值项，罚似然增加目标因子。</p>\n"
             }
           ]
         }
@@ -167,41 +121,41 @@
     },
     {
       "id": "section-4",
-      "title": "4　分布匹配路线：比较理论分布和样本呈现的分布关系",
+      "title": "4　路线二：分布关系匹配",
       "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
           "id": "section-4-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "section-4-text-0",
               "kind": "text",
-              "html": "<p>这条路线把理论分布与样本的分布形态、概率图关系、概率间距或反推尺度放在一起比较，依据匹配程度确定参数。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>经验CDF、概率图分数、相邻概率间距、各观测反推的尺度伪估计</td>\n<td>最小化分布差异、残差或距离；最大化概率间距评分；或让尺度伪估计更一致</td>\n<td>分数选择、位置定位、回归方向、分组方式、梯度阈值和固定偏移</td>\n</tr>\n</tbody>\n</table>\n<p>概率图、LSE／WLSE、最小距离估计、MPS／QMP和MDM属于这条路线。其中，概率图回归比较变换后的回归关系，最小距离估计比较分布差异，MPS／QMP利用概率间距评分，MDM比较各观测反推尺度的一致性。</p>\n"
+              "html": "<p>这条路线将样本转化为经验分布、绘图概率、概率间距或其他分布表示，再依据指定的拟合准则确定参数。它的机制包含相接的三个环节：构造用于比较的分布表示或概率结构（D1），指定残差、距离、间距或一致性准则（D2），再据此求得参数（D3）。需要同时交代比较对象和准则；“拟合得好”只有在这两者明确后才有具体含义。</p>\n<p>以CDF拟合为例，将排序观测 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub></mrow></semantics></math></span></span> 配以概率点 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub></mrow></semantics></math></span></span>，候选参数给出 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>F</mi><mi>θ</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>。各点的偏离先形成整组目标，再通过最小化确定参数：</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>Q</mi><mrow><mi mathvariant=\"normal\">C</mi><mi mathvariant=\"normal\">D</mi><mi mathvariant=\"normal\">F</mi></mrow></msub><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>w</mi><mi>i</mi></msub><msup><mrow><mo fence=\"true\">[</mo><msub><mi>F</mi><mi>θ</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo stretchy=\"false\">)</mo><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo fence=\"true\">]</mo></mrow><mn>2</mn></msup><mo separator=\"true\">,</mo><mspace width=\"2em\"/><mover accent=\"true\"><mi>θ</mi><mo stretchy=\"true\">^</mo></mover><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg min</mi><mo>⁡</mo></mrow><mrow><mi>θ</mi><mo>∈</mo><mi mathvariant=\"normal\">Θ</mi></mrow></munder><msub><mi>Q</mi><mrow><mi mathvariant=\"normal\">C</mi><mi mathvariant=\"normal\">D</mi><mi mathvariant=\"normal\">F</mi></mrow></msub><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>图4a下部沿同一组概率点和候选曲线说明这个过程。CDF平方差是共同机制的一个例子，其他方法需要回到各自实际使用的表示和准则。</p>\n"
             },
             {
               "id": "section-4-flow-08-image",
               "kind": "image",
-              "src": "assets/08-分布匹配路线-信息处理流程.svg",
-              "alt": "图4a　分布匹配路线的信息处理流程"
+              "src": "assets/v2.0-08-分布匹配路线-信息处理流程.svg",
+              "alt": "图4a　分布关系匹配的共同机制及CDF例子"
             },
             {
-              "id": "section-4-flow-08-caption",
+              "id": "section-4-text-1",
               "kind": "text",
-              "html": "<p><strong>图4a｜以CDF差异展示分布匹配的基本过程。</strong>\n从样本概率点看经验分布，将候选理论曲线叠加，逐点读出偏离，再合成整组差异并比较候选参数。概率图、MPS与MDM改变的是被比较的表示、评分或参数恢复步骤，具体关系在下方细图展开。</p>\n"
+              "html": "<p><strong>图4a｜先明确表示与准则，再读参数怎样确定。</strong> 上部以D1—D3概括共同机制；下部CDF例子将同一组样本概率点、候选曲线、逐点偏离和整组差异连起来。概率图改变比较坐标，MPS使用概率间距，MDM比较反推尺度；这些构造在对应机制环节展开，CDF平方差不替代它们各自的准则。</p>\n<p>概率图把分布关系变换为近似直线，Soman与Park分别通过其位置选择、分数和回归方向恢复参数；MPS则令 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>u</mi><mi>i</mi></msub><mo>=</mo><msub><mi>F</mi><mi>θ</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>，补上 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>u</mi><mn>0</mn></msub><mo>=</mo><mn>0</mn></mrow></semantics></math></span></span>、<span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>u</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><mn>1</mn></mrow></semantics></math></span></span>，最大化概率间距的乘积 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msubsup><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mo stretchy=\"false\">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>−</mo><msub><mi>u</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>。这些间距来自CDF概率轴，与LSPF／LPF的数据变换统计量联合似然不同。</p>\n<p>MDM又改变了比较对象：由同一Weibull分布关系反推每个观测的尺度伪估计</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mfrac><mrow><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo>−</mo><mi>γ</mi></mrow><mrow><mo stretchy=\"false\">[</mo><mo>−</mo><mi>log</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy=\"false\">)</mo><msup><mo stretchy=\"false\">]</mo><mrow><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup></mrow></mfrac><mo separator=\"true\">,</mo></mrow></semantics></math></span></span></p>\n<p>再利用这些伪估计的一致性确定参数。本轮MDM先在给定位置下选择使尺度差异最小的形状，再以固定梯度偏移值<span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.1</mn></mrow></semantics></math></span></span>对条件最优值曲线定位，最后取伪尺度均值；不能把整个流程简写为同时最小化一个CDF平方差目标。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>经验CDF、概率图分数、相邻概率间距、各观测反推的尺度伪估计</td>\n<td>最小化分布差异、残差或距离；最大化概率间距评分；或让尺度伪估计更一致</td>\n<td>分数选择、位置定位、回归方向、分组方式、梯度阈值和固定偏移</td>\n</tr>\n</tbody>\n</table>\n<p>因此，概率图、LSE／WLSE、最小距离估计、MPS／QMP和MDM可以通过这条机制链联系起来：它们分别改变了分布表示、确定准则或参数恢复环节。若某一方法再接入统计关系修正位置或条件似然恢复尺度，相应步骤继续连向其他路线。</p>\n"
             },
             {
               "id": "section-4-image-1",
               "kind": "image",
-              "src": "assets/02-分布匹配路线-机制图.svg",
-              "alt": "图4b　分布匹配路线机制图"
+              "src": "assets/v2.0-02-分布匹配路线-机制图.svg",
+              "alt": "图4b　分布关系匹配的具体构造"
             },
             {
               "id": "section-4-text-2",
               "kind": "text",
-              "html": "<p><strong>图4b｜同一分布关系形成不同的匹配过程。</strong>\n概率图部分把White／Soman的水平残差与Park的竖直残差并置，展示分数选择、位置评分和回归方向怎样共同决定参数。MPS比较CDF纵轴上的相邻概率间距；MDM先在给定位置下选择使尺度差异最小的形状，再沿该条件最优值曲线按梯度定位，最后以伪尺度均值恢复尺度。</p>\n"
+              "html": "<p><strong>图4b｜同一分布关系形成不同的匹配过程。</strong> 概率图部分把White／Soman的水平残差与Park的竖直残差并置，展示分数选择、位置评分和回归方向怎样共同决定参数。MPS比较CDF纵轴上的相邻概率间距；MDM先在给定位置下选择使尺度差异最小的形状，再沿该条件最优值曲线按梯度定位，最后以伪尺度均值恢复尺度。</p>\n"
             }
           ]
         }
@@ -209,41 +163,41 @@
     },
     {
       "id": "section-5",
-      "title": "5　统计关系反演路线：从理论统计关系恢复参数",
+      "title": "5　路线三：统计特征关系匹配与反演",
       "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
           "id": "section-5-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "section-5-text-0",
               "kind": "text",
-              "html": "<p>这条路线先选取样本矩、分位数、次序统计量、不变统计量或其他可计算特征，再建立它们与总体参数之间的理论关系，最后用匹配、消元或反解恢复参数。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>样本矩、概率加权矩、L矩、分位数、次序统计量、不变统计量</td>\n<td>匹配理论统计关系，或反演矩、枢轴关系和条件线性关系</td>\n<td>权重和端部处理、位置与尺度消元、条件协方差选权、显式恢复和迭代代入</td>\n</tr>\n</tbody>\n</table>\n<p>MM、PWM、L矩、TL矩、分位数和次序统计量方法属于这里。LSPF／LPF利用不变统计量及其联合密度和恢复方程确定参数；线性最小方差估计在给定参数或代入条件下，利用条件协方差确定组合权重。</p>\n"
+              "html": "<p>这条路线提取样本的统计特征，利用它们与分布参数之间的理论关系，通过匹配、消元、求解或反演得到参数。核心在于选定特征怎样识别参数：先从样本得到特征（S1），写出相应的理论参数关系（S2），再通过该关系确定参数（S3）。这里关注若干选定特征及其理论关系；前一条路线则围绕样本的分布表示或概率结构指定拟合准则。</p>\n<p>以常规矩法为例，样本均值、方差和偏度分别对应Weibull分布的理论矩。偏度中的位置与尺度被消去，留下关于形状的关系；解出形状后，再由方差和均值依次恢复尺度、位置。图5a下部追踪这组特征怎样接上理论曲线并得到参数。这是本例选择的识别次序，不要求所有统计关系方法都先消去位置和尺度、再估形状。</p>\n"
             },
             {
               "id": "section-5-flow-09-image",
               "kind": "image",
-              "src": "assets/09-统计关系反演路线-信息处理流程.svg",
-              "alt": "图5a　统计关系反演路线的信息处理流程"
+              "src": "assets/v2.0-09-统计关系反演路线-信息处理流程.svg",
+              "alt": "图5a　统计特征关系匹配与反演的共同机制及矩法例子"
             },
             {
-              "id": "section-5-flow-09-caption",
+              "id": "section-5-text-1",
               "kind": "text",
-              "html": "<p><strong>图5a｜以常规矩展示从分布特征到参数的反演。</strong>\n用样本分布形态识别可计算特征，通过平移和尺度消元保留形状信息，再把样本特征接到理论关系上确定形状，随后恢复尺度和位置。Cran、W／V与条件选权在统计表示、确定准则或恢复环节形成不同构造。</p>\n"
+              "html": "<p><strong>图5a｜选定特征，通过理论关系识别参数。</strong> 上部S1—S3给出共同机制；下部常规矩例子将样本矩、形状理论关系和参数恢复连成一条过程。偏度消元、先形状后尺度位置是这个例子的具体实现。Cran、PWM／L矩和条件线性估计分别改变特征、理论关系或识别方式；统计量似然另接似然机制。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>样本矩、概率加权矩、L矩、分位数、次序统计量等选定特征</td>\n<td>匹配理论统计关系，或反演矩、枢轴关系和条件线性关系</td>\n<td>特征选择、权重和端部处理、位置与尺度消元、条件协方差选权、显式恢复和迭代代入</td>\n</tr>\n</tbody>\n</table>\n<p>沿着这条机制看方法变化：Cran把常规幂矩改为生存函数幂次积分，用矩差及比值消元，再显式恢复参数；PWM、L矩和TL矩改变样本的秩权重与相应理论关系；分位数或枢轴方法选择其他特征及反演关系。条件位置MVLUE则由次序统计量的期望构造位置无偏估计，再利用理论协方差选择线性组合权重。其无偏、最小方差性质以形状、尺度已知并使用相应理论系数为条件，代入估计值后的三参数组合不能直接继承这些性质。</p>\n<p>仅仅使用统计量，还不能说明采用了这条确定参数的机制。LSPF与早期W均值匹配方法使用相同形式的标准化统计量</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>W</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>X</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo>−</mo><msub><mi>X</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub></mrow><mrow><msub><mi>X</mi><mrow><mo stretchy=\"false\">(</mo><mi>n</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo>−</mo><msub><mi>X</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub></mrow></mfrac><mo separator=\"true\">,</mo></mrow></semantics></math></span></span></p>\n<p>却接入不同准则：均值匹配方法用理论 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>E</mi><mi>β</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>W</mi><mo>ˉ</mo></mover><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span> 与样本值相等确定形状；LSPF由内部W统计量的联合密度构造似然，按</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mover accent=\"true\"><mi>β</mi><mo stretchy=\"true\">^</mo></mover><mi>W</mi></msub><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg max</mi><mo>⁡</mo></mrow><mrow><mi>β</mi><mo>&gt;</mo><mn>0</mn></mrow></munder><msub><mi>f</mi><mi>W</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>w</mi><mn>2</mn></msub><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><msub><mi>w</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub><mo separator=\"true\">;</mo><mi>β</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span></p>\n<p>估计形状。LSPF随后用初始尺度代入最小值期望关系修正位置，再在该位置与形状下恢复尺度。因而，W消元是构造策略，形状估计体现L1／L2似然机制，位置恢复接入统计特征与参数的理论关系。LPF改用 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>V</mi><mi>i</mi></msub><mo>=</mo><msub><mi>X</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo>−</mo><msub><mi>X</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub></mrow></semantics></math></span></span>，只消去位置、保留尺度信息，由V联合密度联合估计形状与尺度，随后保留形状，按原文似然方程(9)、(10)重估位置与尺度；该恢复仍体现似然方程机制，不能只因使用统计量或分阶段处理就认定属于路线三。图5b将这些阶段分别连接；W／V的数据间距联合密度不能与MPS的CDF概率间距乘积混同。</p>\n"
             },
             {
               "id": "section-5-image-1",
               "kind": "image",
-              "src": "assets/03-统计关系反演路线-机制图.svg",
-              "alt": "图5b　统计关系反演路线机制图"
+              "src": "assets/v2.0-03-统计关系反演路线-机制图.svg",
+              "alt": "图5b　统计关系构造与W／V估计过程"
             },
             {
               "id": "section-5-text-2",
               "kind": "text",
-              "html": "<p><strong>图5b｜从理论关系中逐步消去、恢复未知参数。</strong>\n常规矩法用偏度消去位置和尺度，再由方差、均值恢复；Cran改用生存曲线积分及矩差显式反解；PWM、L矩与TL矩改变统计量的样本权重。W统计量同时消去位置和尺度，V统计量只消去位置：LPF先联合估计尺度与形状，随后保留形状并按恢复方程重估其余参数。条件位置MVLUE则根据协方差选择线性组合权重。</p>\n"
+              "html": "<p><strong>图5b｜由特征与理论关系展开方法，再读跨路线阶段。</strong> 常规矩法用偏度消去位置和尺度，再由方差、均值恢复；Cran改用生存曲线积分及矩差显式反解；PWM、L矩与TL矩改变统计量的样本权重。W／V板块将构造策略、联合密度最大化及后续参数恢复分别标出：LSPF先由W估形状，再修正位置并恢复尺度；LPF先由V联合估计尺度与形状，随后保留形状并由原文似然方程重估其余参数。条件位置MVLUE根据理论期望及协方差构造、组合位置估计。</p>\n"
             }
           ]
         }
@@ -251,63 +205,63 @@
     },
     {
       "id": "section-6",
-      "title": "6　后验推断与学习映射",
+      "title": "6　路线四、五：贝叶斯后验推断与学习型参数映射",
       "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
           "id": "section-6-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "section-6-text-0",
               "kind": "text",
-              "html": "<p>后验推断把样本似然和参数先验结合成后验分布，再按后验均值、中位数或MAP等规则给出估计。Gibbs、Laplace和MH用于计算或近似后验。</p>\n<p>学习映射通过训练样本或模拟数据学习从样本特征到分布参数的估计函数，代表方法包括ANN和BPNN。特征表示决定输入哪些样本信息，损失函数引导参数映射的学习，训练域与校准共同影响外推表现。</p>\n<table>\n<colgroup>\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n</colgroup>\n<thead>\n<tr>\n<th>扩展范式</th>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>后验推断</td>\n<td>样本似然信息＋参数先验</td>\n<td>后验规则，如均值、中位数或MAP</td>\n<td>后验计算、抽样、近似和先验敏感性</td>\n</tr>\n<tr>\n<td>学习映射</td>\n<td>训练样本、模拟样本和样本特征</td>\n<td>学习特征到三个参数的映射</td>\n<td>训练域、损失函数、校准和外推边界</td>\n</tr>\n</tbody>\n</table>\n"
+              "html": "<p>贝叶斯后验推断将先验信息与样本似然结合，形成参数后验分布，再依据后验决策规则给出估计。对于给定数据，先以似然更新先验支持的参数区域；乘积经归一化得到联合后验（B1）：</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>p</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo>∣</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mfrac><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mi>π</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo></mrow><mrow><msub><mo>∫</mo><mi mathvariant=\"normal\">Θ</mi></msub><mi>L</mi><mo stretchy=\"false\">(</mo><mi>ϑ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mi>π</mi><mo stretchy=\"false\">(</mo><mi>ϑ</mi><mo stretchy=\"false\">)</mo><mtext> </mtext><mi>d</mi><mi>ϑ</mi></mrow></mfrac><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>再根据损失函数选择后验决策（B2）：平方损失对应后验均值，绝对损失对应后验中位数，MAP取后验密度的峰。这里最终估计依据的是后验分布及相应规则，似然是其中的组成部分。图6a将同一候选参数轴上的先验、似然、后验与决策连起来；图6b再展开联合后验及计算路径。先验选择、支持域和决策规则改变了推断构造，Gibbs、MH及Laplace则分别服务于后验抽样或近似计算。后验可积性及所选输出量的存在性仍须按具体模型条件核验。</p>\n"
             },
             {
               "id": "section-6-flow-10-image",
               "kind": "image",
-              "src": "assets/10-后验推断路线-信息处理流程.svg",
-              "alt": "图6a　后验推断路线的信息处理流程"
+              "src": "assets/v2.0-10-后验推断路线-信息处理流程.svg",
+              "alt": "图6a　贝叶斯后验构造与决策机制"
             },
             {
-              "id": "section-6-flow-10-caption",
+              "id": "section-6-text-1",
               "kind": "text",
-              "html": "<p><strong>图6a｜由支持曲线到后验，再按估计规则作判断。</strong>\n似然和先验分别支持不同的候选区域，乘积归一化后形成后验。图中以平方损失为例，用后验平均损失的最低点说明为何选择后验均值；中位数与MAP使用各自的规则。</p>\n"
+              "html": "<p><strong>图6a｜由支持曲线到后验，再按估计规则作判断。</strong> 似然和先验分别支持不同的候选区域，乘积归一化后形成后验。图中以平方损失为例，用后验平均损失的最低点说明为何选择后验均值；中位数与MAP使用各自的规则。</p>\n"
             },
             {
               "id": "section-6-image-1",
               "kind": "image",
-              "src": "assets/04-后验推断路线-机制图.svg",
-              "alt": "图6b　后验推断路线机制图"
+              "src": "assets/v2.0-04-后验推断路线-机制图.svg",
+              "alt": "图6b　贝叶斯后验推断的构造及计算位置"
             },
             {
-              "id": "section-6-figure-6-caption",
+              "id": "section-6-text-2",
               "kind": "text",
-              "html": "<p><strong>图6b｜联合后验、输出规则与计算过程。</strong>\n似然、先验和支持域共同确定联合后验；后验均值、中位数及MAP选择不同的输出量。条件抽样通过β、η、γ的循环更新形成后验样本，Laplace则通过后验峰附近的二次近似计算积分，两种路径服务于所选后验量。</p>\n"
+              "html": "<p><strong>图6b｜联合后验、输出规则与计算过程。</strong> 似然、先验和支持域共同确定联合后验；后验均值、中位数及MAP选择不同的输出量。条件抽样通过β、η、γ的循环更新形成后验样本，Laplace则通过后验峰附近的二次近似计算积分，两种路径服务于所选后验量。</p>\n<p>学习型参数映射的核心机制发生在两个阶段。训练时，使用多组具有已知参数标签的样本 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mo stretchy=\"false\">{</mo><mo stretchy=\"false\">(</mo><msub><mi>D</mi><mi>j</mi></msub><mo separator=\"true\">,</mo><msub><mi>θ</mi><mi>j</mi></msub><mo stretchy=\"false\">)</mo><msubsup><mo stretchy=\"false\">}</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>M</mi></msubsup></mrow></semantics></math></span></span>，将样本或特征 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>T</mi><mo stretchy=\"false\">(</mo><msub><mi>D</mi><mi>j</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span> 输入共享映射 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>h</mi><mi>ϕ</mi></msub></mrow></semantics></math></span></span>，比较预测与标签并更新同一组权重（N1）：</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mover accent=\"true\"><mi>ϕ</mi><mo stretchy=\"true\">^</mo></mover><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg min</mi><mo>⁡</mo></mrow><mi>ϕ</mi></munder><mfrac><mn>1</mn><mi>M</mi></mfrac><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>M</mi></munderover><mi mathvariant=\"script\">L</mi><mtext> ⁣</mtext><mrow><mo fence=\"true\">(</mo><msub><mi>h</mi><mi>ϕ</mi></msub><mo stretchy=\"false\">(</mo><mi>T</mi><mo stretchy=\"false\">(</mo><msub><mi>D</mi><mi>j</mi></msub><mo stretchy=\"false\">)</mo><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><msub><mi>θ</mi><mi>j</mi></msub><mo fence=\"true\">)</mo></mrow><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>训练完成后固定映射，将新样本输入并输出估计 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mover accent=\"true\"><mi>θ</mi><mo stretchy=\"true\">^</mo></mover><mo>=</mo><msub><mi>h</mi><mover accent=\"true\"><mi>ϕ</mi><mo stretchy=\"true\">^</mo></mover></msub><mo stretchy=\"false\">(</mo><mi>T</mi><mo stretchy=\"false\">(</mo><msub><mi>D</mi><mrow><mi mathvariant=\"normal\">n</mi><mi mathvariant=\"normal\">e</mi><mi mathvariant=\"normal\">w</mi></mrow></msub><mo stretchy=\"false\">)</mo><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>（N2）。图7a用多组样本、标签与共享权重的反馈表现训练，再接到新样本应用；图7b展开具体改动位置。ANN和BPNN可在特征、映射结构、损失或训练域上变化。即使用矩作输入，确定映射的机制仍是带标签训练；若网络只预测中间量，或PSO只搜索当前样本的目标，则需要连接到实际服务的估计环节，不能与直接参数映射合并。</p>\n<table>\n<colgroup>\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n<col style=\"width: 25%\" />\n</colgroup>\n<thead>\n<tr>\n<th>路线</th>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>贝叶斯后验推断</td>\n<td>样本似然信息＋参数先验</td>\n<td>后验规则，如均值、中位数或MAP</td>\n<td>先验、支持域、决策规则、后验抽样或近似</td>\n</tr>\n<tr>\n<td>学习型参数映射</td>\n<td>多组带参数标签的训练样本及其特征</td>\n<td>训练映射，再对新样本输出三个参数</td>\n<td>特征、映射结构、训练域、损失、校准和外推边界</td>\n</tr>\n</tbody>\n</table>\n"
             },
             {
               "id": "section-6-flow-11-image",
               "kind": "image",
-              "src": "assets/11-学习映射路线-信息处理流程.svg",
-              "alt": "图7a　学习映射路线的信息处理流程"
-            },
-            {
-              "id": "section-6-flow-11-caption",
-              "kind": "text",
-              "html": "<p><strong>图7a｜用特征、映射和误差反馈理解学习估计。</strong>\n统一表示的样本特征进入共享映射，参数预测与对应真值逐项比较，误差合成训练目标并反馈到权重更新。训练结束后固定映射，再用于新样本；步骤编号对应特征、映射和训练准则的不同改动。</p>\n"
-            },
-            {
-              "id": "section-6-image-2",
-              "kind": "image",
-              "src": "assets/05-学习映射路线-机制图.svg",
-              "alt": "图7b　学习映射路线机制图"
+              "src": "assets/v2.0-11-学习映射路线-信息处理流程.svg",
+              "alt": "图7a　学习型参数映射的训练与应用机制"
             },
             {
               "id": "section-6-text-3",
               "kind": "text",
-              "html": "<p><strong>图7b｜训练与使用分开看。</strong>\n训练阶段比较多组样本的参数预测和真值，按损失更新网络权重；使用阶段保持映射固定，将新样本的同类特征转成三个参数。图下部标出直接预测参数、学习统计估计器的中间量以及搜索当前样本目标的不同作用位置。</p>\n"
+              "html": "<p><strong>图7a｜多组带标签样本训练，同一固定映射用于新样本。</strong> 训练阶段（N1）中，多组样本的同类特征进入共享映射，参数预测与各自标签比较，整组误差反馈到同一组权重。应用阶段（N2）固定这些权重，将新样本转成三个参数估计；真实标签用于训练，应用时不需要提供新样本的真实参数。</p>\n"
+            },
+            {
+              "id": "section-6-image-2",
+              "kind": "image",
+              "src": "assets/v2.0-05-学习映射路线-机制图.svg",
+              "alt": "图7b　学习型参数映射的具体改动及辅助作用"
+            },
+            {
+              "id": "section-6-text-4",
+              "kind": "text",
+              "html": "<p><strong>图7b｜训练与使用分开看。</strong> 训练阶段比较多组样本的参数预测和真值，按损失更新网络权重；使用阶段保持映射固定，将新样本的同类特征转成三个参数。图下部标出直接预测参数、学习统计估计器的中间量以及搜索当前样本目标的不同作用位置。</p>\n"
             }
           ]
         }
@@ -315,30 +269,30 @@
     },
     {
       "id": "section-7",
-      "title": "7　完整机理地图：分类与方法间关系同时保留",
+      "title": "7　完整机理地图：方法怎样连接机制，方法之间怎样联系",
       "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
           "id": "section-7-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "section-7-text-0",
               "kind": "text",
-              "html": "<p>地图中的区域回答“方法依据什么估计”，方法节点之间的连线回答“前后两个构造改变了什么”。例如，Jacquelin二参数推导扩展为三参数WMLE，随后再引入形状偏差修正，构成一条连续改进链；K–R的数据修改构造与Firth得分修正共同进入DMMLE，构成两个来源汇合的组合。完整地图中的关系分为三种：</p>\n<ul>\n<li><strong>沿袭或扩展：</strong>\n原文明确沿用、扩展或修正前一构造时使用实线。</li>\n<li><strong>数学联系或共享构造：</strong>\n两种方法共享CDF、矩、似然或统计量时使用虚线。</li>\n<li><strong>局部借用或组合：</strong>\n一个方法只借用了另一条路线的位置处理、统计量或参数恢复步骤时使用点划线。</li>\n</ul>\n<p>沿着这些关系，可以看到Jacquelin二参数推导向Cousineau\nWMLE及后续形状修正的扩展；Smith删最小值构造在K–R中的场景适配；K–R与Firth型修正形成DMMLE；White向Soman三参数概率图的扩展；MPS与QMP在特定分组设置下的特例关系；PWM与L矩的数学联系；以及LSPF向LPF的构造改进。MLE与MAP通过似然模型相连，MAP进一步引入先验和后验决策；PSO、模拟退火等工具则连接到各自搜索的目标。</p>\n"
+              "html": "<p>分别理解五条路线后，再把具体方法接回地图。这里需要读两层联系。</p>\n<p>第一层是<strong>同一个方法内部的机制连接</strong>。先识别它构造了什么、用什么确定哪个参数、其余参数怎样恢复，再按阶段连接路线节点。例如，LSPF依次经过W消元、W联合密度最大化、最小值期望位置修正及尺度恢复；SAM连接最小值期望关系、概率图回归和条件似然尺度更新；PM连接最小值中位数关系与给定位置的似然方程；Park Proposed+MLE2先用概率图相关性定位，再接平移样本的二参数MLE。它们可以跨路线展开，这些连接说明估计过程本身。</p>\n<p>第二层是<strong>不同方法之间有依据的关系</strong>。例如，Jacquelin二参数推导扩展为三参数WMLE，随后再引入形状偏差修正，构成连续改进链；K–R的数据修改构造与Firth得分修正共同进入DMMLE，构成两个来源汇合的组合。方法之间的关系继续分为三种：</p>\n<ul>\n<li><strong>沿袭或扩展：</strong> 原文明确沿用、扩展或修正前一构造时使用实线。</li>\n<li><strong>数学联系或共享构造：</strong> 两种方法之间可核对的公式关系或共享构造使用虚线，并注明成立条件；同属一路线本身不构成历史沿袭证据。</li>\n<li><strong>局部借用或组合：</strong> 一个方法只借用了另一条路线的位置处理、统计量或参数恢复步骤时使用点划线。</li>\n</ul>\n<p>沿着这些关系，可以看到Jacquelin二参数推导向Cousineau WMLE及后续形状修正的扩展；Smith删最小值构造在K–R中的场景适配；K–R与Firth型修正形成DMMLE；White向Soman三参数概率图的扩展；MPS与QMP在特定分组设置下的特例关系；PWM与L矩的数学联系；以及LSPF向LPF的构造改进。MLE与MAP通过似然模型相连，MAP进一步引入先验和后验决策；PSO、模拟退火等工具则连接到各自搜索的目标。LSPF与早期W均值匹配方法共享标准化构造，但两者直接历史承接尚未确认；SAM与PM的相似框架，以及对LSPF／LPF的比较或实测数据引用，也不能直接画成父子沿袭。</p>\n"
             },
             {
               "id": "section-7-image-1",
               "kind": "image",
-              "src": "assets/06-完整机理地图-五簇分类与方法关系.svg",
-              "alt": "图8　完整机理地图：五簇分类与方法关系"
+              "src": "assets/v2.0-06-完整机理地图-估计路线与方法关系.svg",
+              "alt": "图8　完整机理地图：估计路线与方法关系"
             },
             {
-              "id": "section-7-text-2",
+              "id": "section-7-text-1",
               "kind": "text",
-              "html": "<p><strong>图8｜完整机理地图。</strong>\n沿Jacquelin→WMLE→形状修正、White→Soman、L矩→TL矩、LSPF→LPF等方法链，可以看到具体构造的延续；沿LSPF→Yang迭代、WMLE→MVLE-H扩展，以及Park定位→二参数MLE组合等连线，可以看到某个参数步骤怎样被另一方法借用。PWM与L矩、Cran矩与PWM、MPS与QMP的虚线记录数学联系，成立条件写在线旁。Soman与Park连线比较同分数、同位置时的回归方向关系，两文的实际分数选择各异。</p>\n"
+              "html": "<p><strong>图8｜先沿机制读方法，再沿证据读方法关系。</strong> 各路线的机制标识与前述原理图一致；跨路线过程线解释同一估计过程怎样接入不同机制。方法之间另用实线、虚线和点划线标注沿袭或扩展、数学联系及局部借用。沿Jacquelin→WMLE→形状修正、White→Soman、L矩→TL矩、LSPF→LPF等链，可见具体构造的延续；LSPF→Yang迭代、WMLE→MVLE-H扩展等记录局部步骤的借用。PWM与L矩、Cran矩与PWM、MPS与QMP的数学联系保留相应条件。Soman与Park的回归方向关系以同分数、同位置为前提，两文实际分数选择各异。</p>\n"
             }
           ]
         }
@@ -346,19 +300,19 @@
     },
     {
       "id": "section-8",
-      "title": "8　本轮七种实现落在哪些位置",
+      "title": "8　本轮七种实现采用了哪些机制",
       "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
           "id": "section-8-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "section-8-text-0",
               "kind": "text",
-              "html": "<p>本次统一比较选取七种实现，覆盖似然估计、分布匹配和统计关系反演三条路线。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>实现</th>\n<th>五簇主要归属</th>\n<th>具体构造定位</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>MLE</td>\n<td>似然估计</td>\n<td>原始观测密度联合似然；另记录局部候选、边界与失败</td>\n</tr>\n<tr>\n<td>WMLE</td>\n<td>似然估计</td>\n<td>在估计方程中引入三个权重</td>\n</tr>\n<tr>\n<td>MMLE（K–R单样本形式）</td>\n<td>似然估计</td>\n<td>以样本最小值定位并删除该观测后估计其余参数</td>\n</tr>\n<tr>\n<td>LSE（Soman主分支）</td>\n<td>分布匹配</td>\n<td>White分数、位置评分和对数寿命对分数回归</td>\n</tr>\n<tr>\n<td>LRE（Park Proposed+Plot）</td>\n<td>分布匹配</td>\n<td>相关系数定位、绘图概率分数和分数对对数寿命回归</td>\n</tr>\n<tr>\n<td>MDM-0.1</td>\n<td>分布匹配</td>\n<td>条件尺度伪估计差异、梯度阈值定位和固定偏移</td>\n</tr>\n<tr>\n<td>MM（Cran式）</td>\n<td>统计关系反演</td>\n<td>Weibull矩及矩差显式恢复参数</td>\n</tr>\n</tbody>\n</table>\n<p>这三组实现形成构造对照：MLE、WMLE和K–R对应似然、方程加权与最小值定位；LSE、LRE和MDM对应分布关系匹配的不同分支；MM对应统计关系的显式恢复。</p>\n"
+              "html": "<p>本次统一比较选取七种实现，重点对照似然构造与优化、分布关系匹配、统计特征关系匹配与反演中的具体构造。它们在完整地图中标为金色，比较范围不限制整个路线图的文献范围。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>实现</th>\n<th>采用的路线机制</th>\n<th>具体构造定位</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>MLE</td>\n<td>似然构造与优化</td>\n<td>原始观测密度联合似然；另记录局部候选、边界与失败</td>\n</tr>\n<tr>\n<td>WMLE</td>\n<td>似然得分方程的修正</td>\n<td>在估计方程中引入三个权重</td>\n</tr>\n<tr>\n<td>MMLE（K–R单样本形式）</td>\n<td>最小值定位、删样本后的似然估计</td>\n<td>以样本最小值定位，删除该观测后进行二参数估计</td>\n</tr>\n<tr>\n<td>LSE（Soman主分支）</td>\n<td>分布关系匹配</td>\n<td>White分数、位置评分和对数寿命对分数回归</td>\n</tr>\n<tr>\n<td>LRE（Park Proposed+Plot）</td>\n<td>分布关系匹配</td>\n<td>相关系数定位、绘图概率分数和分数对对数寿命回归</td>\n</tr>\n<tr>\n<td>MDM-0.1</td>\n<td>分布关系匹配、分阶段参数确定</td>\n<td>条件尺度伪估计差异、固定梯度偏移值下的位置定位</td>\n</tr>\n<tr>\n<td>MM（Cran式）</td>\n<td>统计特征关系匹配与反演</td>\n<td>Weibull矩及矩差显式恢复参数</td>\n</tr>\n</tbody>\n</table>\n<p>这些实现形成构造对照：MLE、WMLE和K–R对应原始似然、方程加权与最小值定位后估计；LSE、LRE和MDM对应分布关系匹配的不同分支；Cran MM对应选定统计关系的显式恢复。这里按实际机制说明差别，不将七种实现分配到互斥格子，也不把同名的其他版本混入比较。</p>\n"
             }
           ]
         }
@@ -373,12 +327,12 @@
       "options": [
         {
           "id": "section-9-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "section-9-text-0",
               "kind": "text",
-              "html": "<p>后续结果将回到这些具体构造：出现偏差时检查位置处理、统计量构造和参数恢复；出现波动或异常时检查信息保留和求解环节。</p>\n<p>第二部分将在共同抽样条件下比较这七种实现，分析性能差异怎样随样本量与形状参数变化，并结合地图中的具体构造解释典型表现。</p>\n<p>——转入<a\nhref=\"assets/source-comparison-report.md\">报告下（方法对比）v0.4</a>。</p>\n"
+              "html": "<p>后续结果将回到这些具体构造：出现偏差时检查位置处理、统计量构造和参数恢复；出现波动或异常时检查信息保留和求解环节。</p>\n<p>第二部分将在共同抽样条件下比较这七种实现，分析性能差异怎样随样本量与形状参数变化，并结合地图中的具体构造解释典型表现。</p>\n<p>——转入<a href=\"assets/v2.0-source-comparison-report.md\">报告下（方法对比）v0.4</a>。</p>\n"
             }
           ]
         }
@@ -393,12 +347,12 @@
       "options": [
         {
           "id": "references-current",
-          "label": "当前报告内容",
+          "label": "当前v2.0工作稿",
           "blocks": [
             {
               "id": "references-text-0",
               "kind": "text",
-              "html": "<ul>\n<li><a\nhref=\"assets/source-method-workdraft.md\">方法分类工作稿</a>：逐篇维护信息利用、参数原则、实现改进、关系证据和边界。</li>\n<li><a\nhref=\"assets/source-yang-classification.md\">Yang综述的八类分类</a>：保留综述原始分类与名称辨析。</li>\n<li><a\nhref=\"assets/source-research09-routes.md\">Research09的四条路线</a>：保留已有路线归纳及其局限。</li>\n<li><a\nhref=\"assets/mechanism-map-index.md\">机制图-v1.1目录</a>：五类机制图、完整机理地图、draw.io源文件和静态预览图；公式采用LaTeX标准排版，英文及数学变量使用Times New Roman，制图规则见该目录说明。</li>\n<li><a\nhref=\"assets/source-experiment-settings.md\">实验设置</a>：统一比较对象、计算版本和数据合同。</li>\n<li><a href=\"https://www.itl.nist.gov/div898/handbook/apr/section4/apr412.htm\">NIST最大似然说明</a>：核对似然函数、最大化原则与求解步骤。</li>\n</ul>\n"
+              "html": "<ul>\n<li><p><a href=\"assets/v2.0-source-method-workdraft.md\">方法分类工作稿</a>：逐篇维护信息利用、参数原则、实现改进、关系证据和边界。</p></li>\n<li><p><a href=\"assets/v2.0-source-yang-classification.md\">Yang综述的八类分类</a>：保留综述原始分类与名称辨析。</p></li>\n<li><p><a href=\"assets/v2.0-source-research09-routes.md\">Research09的四条路线</a>：保留已有路线归纳及其局限。</p></li>\n<li><p><a href=\"assets/v2.0-source-机制图-v2.0-README.md\">机制图-v2.0目录</a>：五条路线的原理图、方法细图、完整机理地图、draw.io源文件和静态预览图；图中公式采用LaTeX标准排版，英文及数学变量使用Times New Roman，制图规则见该目录说明。</p></li>\n<li><p><a href=\"assets/v2.0-source-position-feedback.md\">2026-10-22路线图定位修正意见</a>：保存本轮修改原话、原因与组织方向；v1.1正文及配图归档于<a href=\"assets/v2.0-source-方法分类-v1.1-README.md\">历史版本</a>。</p></li>\n<li><p><a href=\"assets/v2.0-source-experiment-settings.md\">实验设置</a>：统一比较对象、计算版本和数据合同。</p></li>\n<li><p><a href=\"https://www.itl.nist.gov/div898/handbook/apr/section4/apr412.htm\">NIST：最大似然估计及完整／删失样本的似然构造</a>：核对似然函数、最大化准则与求解步骤的区别。</p></li>\n</ul>\n"
             }
           ]
         }
@@ -407,5 +361,9 @@
   ],
   "last_applied_submission_id": "018eb7e6-8aa8-49b3-82ea-67fe7613200e",
   "review_complete": false,
-  "last_rendered_submission_id": "018eb7e6-8aa8-49b3-82ea-67fe7613200e"
+  "last_rendered_submission_id": "018eb7e6-8aa8-49b3-82ea-67fe7613200e",
+  "archive_targets": {
+    "output": "C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\报告上（方法分类）-v2.0.md",
+    "sync_remote": true
+  }
 }
