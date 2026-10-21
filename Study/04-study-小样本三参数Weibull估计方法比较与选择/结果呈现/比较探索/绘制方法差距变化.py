@@ -48,8 +48,7 @@ def save(fig, name):
     return {'file': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
-def trajectories(distances):
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharex=True, sharey='col')
+def draw_trajectories(axes, distances):
     x = np.arange(5)
     colors = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#A97500']
     styles = ['-', '--', ':']
@@ -70,48 +69,45 @@ def trajectories(distances):
             if p == 0:
                 ax.set_ylabel(f'β = {BETAS[j]:g}\nPairwise RMSE distance')
     for p in range(3):
-        axes[0, p].set_ylim(0, distances[p, :, [0, 7]].max() * 1.08)
-    fig.legend(*axes[0, 0].get_legend_handles_labels(),
-               loc='upper center', bbox_to_anchor=(.5, 1.01), ncol=5,
-               frameon=False, fontsize=10)
-    fig.tight_layout(rect=(0, 0, 1, .88), h_pad=2)
-    return save(fig, '方法差距变化_A_逐对轨迹.png')
+        for row in range(2):
+            axes[row, p].set_ylim(0, distances[p, :, [0, 7]].max() * 1.08)
 
 
-def pair_change_maps(distances):
-    stages = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)]
-    changes = [distances[:, end] - distances[:, start] for start, end in stages]
-    np.testing.assert_allclose(sum(changes[:4]), changes[4], atol=1e-14)
-    limits = np.max(np.abs(np.stack(changes)), axis=(0, 2, 3))
+def joint_figure(distances):
+    fig = plt.figure(figsize=(14, 13.2))
+    grid = fig.add_gridspec(3, 3, height_ratios=[1, 1, 1.45])
+    axes = np.array([[fig.add_subplot(grid[row, p]) for p in range(3)] for row in range(2)])
+    draw_trajectories(axes, distances)
+    change = distances[:, -1] - distances[:, 0]
+    limits = np.max(abs(change), axis=(1, 2))
     labels = [LABELS[a] + ' / ' + LABELS[b] for a, b in PAIRS]
-    outputs = []
-    for (start, end), change in zip(stages, changes):
-        fig, axes = plt.subplots(1, 3, figsize=(14, 6.6))
-        for p, ax in enumerate(axes):
-            img = ax.imshow(change[p].T, cmap='RdBu_r', vmin=-limits[p], vmax=limits[p], aspect='auto')
-            ax.set_title(SYMBOLS[p], pad=12)
-            ax.set_xticks(range(8), [f'{x:g}' for x in BETAS])
-            ax.set_xlabel('β')
-            ax.set_yticks(range(15), labels if p == 0 else [])
-            ax.tick_params(length=0)
-            for spine in ax.spines.values():
-                spine.set_visible(False)
-            bar = fig.colorbar(img, ax=ax, fraction=.045, pad=.035)
-            bar.ax.set_ylabel(f'Distance(n={NS[end]}) − Distance(n={NS[start]})')
-        fig.tight_layout(w_pad=2.4)
-        outputs.append(save(fig, f'方法差距变化_B_n{NS[start]}到{NS[end]}.png'))
-    return outputs
+    for p in range(3):
+        ax = fig.add_subplot(grid[2, p])
+        img = ax.imshow(change[p].T, cmap='RdBu_r', vmin=-limits[p], vmax=limits[p], aspect='auto')
+        ax.set_title(SYMBOLS[p], pad=12)
+        ax.set_xticks(range(8), [f'{x:g}' for x in BETAS])
+        ax.set_xlabel('β')
+        ax.set_yticks(range(15), labels if p == 0 else [])
+        ax.tick_params(length=0)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        bar = fig.colorbar(img, ax=ax, fraction=.045, pad=.035)
+        bar.ax.set_ylabel('Distance(n=7) − Distance(n=50)')
+    fig.legend(*axes[0, 0].get_legend_handles_labels(), loc='upper center',
+               bbox_to_anchor=(.53, 1), ncol=5, frameon=False, fontsize=10)
+    fig.tight_layout(rect=(0, 0, 1, .93), h_pad=3, w_pad=2.3)
+    return save(fig, '方法差距变化_轨迹与50到7联合图.png')
 
 
 def main():
     plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 11,
                          'axes.titlesize': 15, 'axes.spines.top': False, 'axes.spines.right': False})
     distances = read_distances()
-    outputs = [trajectories(distances), *pair_change_maps(distances)]
+    outputs = [joint_figure(distances)]
     audit = dict(source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
                  subset='seven-method common valid; display six methods', n=NS, beta=BETAS,
                  distance='abs(normalized_RMSE_i - normalized_RMSE_j)',
-                 change_stages=[[50, 20], [20, 15], [15, 10], [10, 7], [50, 7]],
+                 change_stages=[[50, 7]],
                  methods=METHODS, pairs=PAIRS, distances=distances.tolist(), outputs=outputs)
     (SOURCE.parent / '方法差距变化核验.json').write_text(
         json.dumps(audit, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

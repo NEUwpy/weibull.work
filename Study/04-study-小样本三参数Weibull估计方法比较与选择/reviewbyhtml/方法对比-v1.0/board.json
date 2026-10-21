@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 16,
+  "revision": 17,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.1.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.0.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v1.1.md",
@@ -212,82 +212,32 @@
     },
     {
       "id": "law-rmse-gap-figure",
-      "title": "差距变化的配图",
-      "mode": "choices",
+      "title": "方法差距的轨迹与变化",
+      "mode": "content",
       "inline": true,
       "outline_level": 3,
-      "state": "open",
-      "selection_mode": "multiple",
+      "state": "converged",
       "selected": null,
       "selected_ids": [],
       "options": [
         {
-          "id": "distance-a",
-          "label": "A　各方法对的距离轨迹",
+          "id": "distance-joint",
+          "label": "联合图",
           "blocks": [
             {
-              "id": "distance-figure-a",
+              "id": "distance-joint-image",
               "kind": "image",
-              "src": "assets/方法差距变化_A_逐对轨迹.png",
-              "alt": "全部15对方法的距离轨迹，β=1.5和5，五档n"
+              "src": "assets/方法差距变化_轨迹与50到7联合图.png",
+              "alt": "各方法对的距离轨迹及n从50到7的距离变化联合图"
             },
             {
-              "id": "distance-caption-a",
+              "id": "distance-joint-caption",
               "kind": "text",
-              "html": "<p>每条曲线对应图例中的一对方法，用颜色、线型和点形区分。两行分别为β=1.5与5，同一参数共用纵轴；横轴依次为五档离散样本量。</p><p>曲线上升表示该对方法的RMSE差距扩大，下降表示缩小；不同曲线的增长幅度、转折及交叉均保留。</p>"
-            }
-          ]
-        },
-        {
-          "id": "distance-b",
-          "label": "B　逐步减少样本时的距离变化",
-          "blocks": [
-            {
-              "id": "distance-figure-b",
-              "kind": "gallery",
-              "aspect_ratio": 2.1491499227202473,
-              "images": [
-                {
-                  "id": "n50-n20",
-                  "label": "n = 50 → 20",
-                  "src": "assets/方法差距变化_B_n50到20.png",
-                  "alt": "15对方法在n从50降至20时的距离变化，八档β"
-                },
-                {
-                  "id": "n20-n15",
-                  "label": "n = 20 → 15",
-                  "src": "assets/方法差距变化_B_n20到15.png",
-                  "alt": "15对方法在n从20降至15时的距离变化，八档β"
-                },
-                {
-                  "id": "n15-n10",
-                  "label": "n = 15 → 10",
-                  "src": "assets/方法差距变化_B_n15到10.png",
-                  "alt": "15对方法在n从15降至10时的距离变化，八档β"
-                },
-                {
-                  "id": "n10-n7",
-                  "label": "n = 10 → 7",
-                  "src": "assets/方法差距变化_B_n10到7.png",
-                  "alt": "15对方法在n从10降至7时的距离变化，八档β"
-                },
-                {
-                  "id": "n50-n7",
-                  "label": "n = 50 → 7（全程）",
-                  "src": "assets/方法差距变化_B_n50到7.png",
-                  "alt": "15对方法在n从50降至7时的距离变化，八档β"
-                }
-              ]
-            },
-            {
-              "id": "distance-caption-b",
-              "kind": "text",
-              "html": "<p>每行对应一对方法，每列对应一个β。依次切换四次相邻样本量变化，最后保留n=50到7的全程对照。</p><p>颜色直接表示这一步的距离增量：红色扩大，蓝色缩小，白色接近不变。同一参数在五张图中共用对称色标，便于比较各阶段的变化幅度。</p>"
+              "html": "<p><em>图注：上两行分别为β=1.5和5下五档n的距离轨迹，每条线对应一对方法；下行为n=50到7的距离变化，覆盖八档β，红色表示扩大、蓝色表示缩小。三列依次为形状、尺度和位置参数。</em></p><p><em>距离为两种方法标准化RMSE之差的绝对值。六法共15对，仍使用七法共同有效样本；形状RMSE除以真β，尺度与位置RMSE除以真η。</em></p>"
             }
           ]
         }
-      ],
-      "context": "六法共15对；距离为两种方法标准化RMSE之差的绝对值，仍按七法共同有效样本计算。"
+      ]
     },
     {
       "id": "law-distribution",
@@ -745,11 +695,11 @@
       ]
     }
   ],
-  "last_applied_submission_id": "360ce6cf-1bf8-45ec-a2a0-c3753f4b31cf",
-  "last_rendered_submission_id": "360ce6cf-1bf8-45ec-a2a0-c3753f4b31cf",
+  "last_applied_submission_id": "8bc90dcd-97a3-404c-a847-9f546fea4e63",
+  "last_rendered_submission_id": "8bc90dcd-97a3-404c-a847-9f546fea4e63",
   "outline_confirmed": true,
   "review_complete": false,
-  "review_runtime": "0.6.2",
+  "review_runtime": "0.7.0",
   "section_3_3_evidence": {
     "source": "结果呈现/分析数据/参数指标.csv",
     "sha256": "076fc9041bd86df9a43af27cc4f5b75d9381231a618079d8efa0cd6789c78d7b",
