@@ -77,6 +77,13 @@ def render(src, dst):
     def vertex(item):
         cell, x, y, w, h, st = item
         fill = st.get('fillColor', '#ffffff'); stroke = st.get('strokeColor', '#83968a'); stroke_width = st.get('strokeWidth', '1.2')
+        if cell.get('renderRole')=='polygon':
+            local=json.loads(cell.get('polygonPoints'))
+            coords=' '.join(f'{x+px/100*w:.4f},{y+py/100*h:.4f}' for px,py in local)
+            alpha=float(st.get('fillOpacity','100'))/100
+            stroke_alpha=float(st.get('strokeOpacity','100'))/100
+            parts.append(f'<polygon points="{coords}" fill="{escape(fill)}" fill-opacity="{alpha}" stroke="{escape(stroke)}" stroke-opacity="{stroke_alpha}" stroke-width="{stroke_width}"/>')
+            return
         radius = '10' if st.get('rounded') == '1' else '0'; dash = ' stroke-dasharray="7 5"' if st.get('dashed') == '1' else ''
         parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="{radius}" fill="{escape(fill)}" stroke="{escape(stroke)}" stroke-width="{stroke_width}"{dash}/>')
         text = cell.get('value','')
@@ -90,8 +97,10 @@ def render(src, dst):
         cell, _, _, _, _, st = item
         return cell.get('renderRole')=='background' or st.get('dashed')=='1' or cell.get('id','').endswith('-panel')
 
-    # 分组背景先画，关系线随后画，方法节点和关系文字最后画。
+    # 参数场网格保留源中的深度顺序；坐标、路径及标签置于其上。
     for item in sorted((v for v in vertices if background(v)),key=lambda v:-v[3]*v[4]):vertex(item)
+    for item in vertices:
+        if item[0].get('renderRole')=='polygon':vertex(item)
     labels=[]
     for cell,st in edges:
         source,target=cell.get('source'),cell.get('target')
@@ -115,7 +124,7 @@ def render(src, dst):
         label=cell.get('value','')
         if label:labels.append((cell,st,label,(start[0]+end[0])/2,(start[1]+end[1])/2))
     for item in vertices:
-        if not background(item):vertex(item)
+        if not background(item) and item[0].get('renderRole')!='polygon':vertex(item)
     for cell,st,label,mx,my in labels:
         mx=float(cell.get('labelX',mx));my=float(cell.get('labelY',my));size=float(st.get('fontSize','17'))
         rich_label(cell.get('id'),label,mx-700,my-100,1400,200,size,st.get('strokeColor','#475569'),pad=0,role='label',edge=True)

@@ -2,7 +2,7 @@
   "id": "study04-method-classification-v04-report",
   "title": "Study04 参数估计方法路线图 v2.0 审阅",
   "document": true,
-  "revision": 24,
+  "revision": 25,
   "require_confirmation": true,
   "archive_plan": "将审定内容写回报告上（方法分类）-v2.0.md及机制图-v2.0图源与SVG；v1.1已完整归档到其他/历史版本/方法分类-v1.1，保留原HTML任务和历史；核验后在laptop分支保存并同步远端。",
   "units": [
@@ -80,13 +80,35 @@
     {
       "id": "section-3",
       "title": "3　路线一：似然构造与优化",
-      "mode": "content",
+      "mode": "choices",
       "state": "open",
       "selected": null,
       "options": [
         {
+          "id": "section-3-joint-field",
+          "label": "修订稿：完整三参数联合似然场",
+          "blocks": [
+            {
+              "id": "section-3-field-principle",
+              "kind": "text",
+              "html": "<p>这条路线先由固定样本构造整体似然函数，再通过最大化似然或相应的修正准则估计参数。对独立同分布完整样本 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>D</mi><mo>=</mo><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mn>1</mn></msub><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><msub><mi>x</mi><mi>n</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>，三参数联合似然为</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>数据固定后，三个参数共同决定一个似然值：每个参数组合是三维参数空间中的一点，整个参数域上的似然值形成一个标量场。最大似然估计在这个整体函数上寻找最大值；当给定参数域 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Θ</mi></mrow></semantics></math></span></span> 内存在有限最大值时，</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mover accent=\"true\"><mi>θ</mi><mo stretchy=\"true\">^</mo></mover><mrow><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">L</mi><mi mathvariant=\"normal\">E</mi></mrow></msub><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg max</mi><mo>⁡</mo></mrow><mrow><mi>θ</mi><mo>∈</mo><mi mathvariant=\"normal\">Θ</mi></mrow></munder><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><mspace width=\"2em\"/><mi>θ</mi><mo>=</mo><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>图3a以β、η、γ作为三个坐标，用颜色和等值面表达似然大小，将“构造似然”（L1）与“联合最大化”（L2）连起来。为使数值范围便于观察，图中使用相对似然</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>R</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mi>exp</mi><mo>⁡</mo><mo stretchy=\"false\">{</mo><mi mathvariant=\"normal\">ℓ</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>−</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mo lspace=\"0em\" rspace=\"0em\">⋆</mo></msub><mo stretchy=\"false\">}</mo><mo separator=\"true\">,</mo><mspace width=\"2em\"/><mi mathvariant=\"normal\">ℓ</mi><mo>=</mo><mi>log</mi><mo>⁡</mo><mi>L</mi><mo separator=\"true\">,</mo></mrow></semantics></math></span></span></p>\n<p>其中<span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi mathvariant=\"normal\">ℓ</mi><mo lspace=\"0em\" rspace=\"0em\">⋆</mo></msub></mrow></semantics></math></span></span>为图示参数窗内数值极大点处的对数似然。这个正比例重标保持似然的高低关系和极值位置；等值面连接同一<span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>R</mi></mrow></semantics></math></span></span>值的参数组合。图中的轨迹是对同一个三参数目标的数值迭代，密度乘积只在入口交代函数怎样构成。</p>\n<p>图示采用明确的有限参数窗，数值极大点只对应该示例窗。原始三参数似然可能无界，支持边界及有限解存在性仍须核验。取对数、得分方程、剖面求解或数值优化属于实现最大化的途径，得分为零还须区分极大值、其他驻点及边界情况。</p>\n<p>原始观测的密度乘积是这条路线的基本例子。若先变换为统计量，也可以由该统计量的联合密度构造似然；这时必须使用相应的分布，不能不加区分地把相关统计量的边缘密度相乘。LSPF的形状估计就是内部W统计量的联合似然最大化，统计量的选取没有取消其似然机制。</p>\n"
+            },
+            {
+              "id": "section-3-field-image",
+              "kind": "image",
+              "src": "assets/v2.0-07-联合似然参数场.svg",
+              "alt": "图3a　三参数坐标、联合似然等值面与数值极大点"
+            },
+            {
+              "id": "section-3-field-caption",
+              "kind": "text",
+              "html": "<p><strong>图3a｜把三参数联合似然作为整体函数可视化。</strong> 固定同一组样本，三个坐标分别为β、η、γ，颜色和等值面表示相对联合似然R的大小。中央展示三个参数同时变化时的函数景观，数值迭代在同一个联合目标上推进，标记点为示例参数窗内找到的数值极大点。L1用样本与密度乘积构造函数，L2在参数空间中求最大值；示例窗及显示尺度不改变这条估计原则。</p>\n"
+            }
+          ]
+        },
+        {
           "id": "section-3-current",
-          "label": "当前v2.0工作稿",
+          "label": "原稿：密度因子与单参数截面",
           "blocks": [
             {
               "id": "section-3-text-0",
@@ -102,7 +124,31 @@
             {
               "id": "section-3-text-1",
               "kind": "text",
-              "html": "<p><strong>图3a｜固定数据，把密度转为参数函数，再相乘并最大化。</strong> 左侧三个观测固定在寿命轴上；中间三条曲线分别是这三个观测对应的参数函数，横轴均为同一β范围；右侧似然曲线由三个函数在同一β处的值逐点相乘得到。蓝灰竖线及连线追踪同一个β₀如何从三个因子构成一个联合似然值，橙色箭头表示在这个联合函数上求最大值。本图峰点是固定η₀=3、γ₀=2时的条件形状估计；完整三参数MLE仍需在三维参数域内求解。</p>\n<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>原始观测或选定统计量的联合密度，以及删失或支持边界信息</td>\n<td>最大化似然或修正准则；估计方程的求解与修正按具体构造解释</td>\n<td>似然项替换、方程加权、位置关系替换、边界约束、Firth型修正、局部候选与数值搜索</td>\n</tr>\n</tbody>\n</table>\n<p>由这个机制再看具体方法，改动位置就清楚了：CMLE替换最小值附近的似然贡献；罚似然引入额外目标因子；K–R先以最小值定位并删除该观测；Cohen–Whitten的不同MMLE分支保留部分方程、以特定统计关系替换其他方程；WMLE对估计方程加权，DMMLE在修改数据后进一步修正得分。修改似然项或估计方程属于统计构造变化，WMLE等不能仅凭名称就认定等同于某个未说明的似然最大化。PSO、模拟退火和差分进化直接搜索既定似然目标时，则承担数值求解环节。</p>\n"
+              "html": "<p><strong>图3a｜固定数据，把密度转为参数函数，再相乘并最大化。</strong> 左侧三个观测固定在寿命轴上；中间三条曲线分别是这三个观测对应的参数函数，横轴均为同一β范围；右侧似然曲线由三个函数在同一β处的值逐点相乘得到。蓝灰竖线及连线追踪同一个β₀如何从三个因子构成一个联合似然值，橙色箭头表示在这个联合函数上求最大值。本图峰点是固定η₀=3、γ₀=2时的条件形状估计；完整三参数MLE仍需在三维参数域内求解。</p>"
+            }
+          ]
+        }
+      ],
+      "selection_mode": "single",
+      "selected_ids": [],
+      "context": "按本轮意见，将整体联合似然场置于主图中央；原图保留供对照。"
+    },
+    {
+      "id": "section-3-constructions",
+      "title": "似然路线的具体方法及改动位置",
+      "outline_level": 3,
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "section-3-constructions-current",
+          "label": "共用方法说明",
+          "blocks": [
+            {
+              "id": "section-3-methods-common",
+              "kind": "text",
+              "html": "<table>\n<colgroup>\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n<col style=\"width: 33%\" />\n</colgroup>\n<thead>\n<tr>\n<th>样本信息</th>\n<th>参数确定原则</th>\n<th>实现与改进位置</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>原始观测或选定统计量的联合密度，以及删失或支持边界信息</td>\n<td>最大化似然或修正准则；估计方程的求解与修正按具体构造解释</td>\n<td>似然项替换、方程加权、位置关系替换、边界约束、Firth型修正、局部候选与数值搜索</td>\n</tr>\n</tbody>\n</table>\n<p>由这个机制再看具体方法，改动位置就清楚了：CMLE替换最小值附近的似然贡献；罚似然引入额外目标因子；K–R先以最小值定位并删除该观测；Cohen–Whitten的不同MMLE分支保留部分方程、以特定统计关系替换其他方程；WMLE对估计方程加权，DMMLE在修改数据后进一步修正得分。修改似然项或估计方程属于统计构造变化，WMLE等不能仅凭名称就认定等同于某个未说明的似然最大化。PSO、模拟退火和差分进化直接搜索既定似然目标时，则承担数值求解环节。</p>\n"
             },
             {
               "id": "section-3-image-01",
@@ -359,9 +405,9 @@
       ]
     }
   ],
-  "last_applied_submission_id": "018eb7e6-8aa8-49b3-82ea-67fe7613200e",
+  "last_applied_submission_id": "93495dd2-d590-4b31-934d-19edde279853",
   "review_complete": false,
-  "last_rendered_submission_id": "018eb7e6-8aa8-49b3-82ea-67fe7613200e",
+  "last_rendered_submission_id": "93495dd2-d590-4b31-934d-19edde279853",
   "archive_targets": {
     "output": "C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\报告上（方法分类）-v2.0.md",
     "sync_remote": true

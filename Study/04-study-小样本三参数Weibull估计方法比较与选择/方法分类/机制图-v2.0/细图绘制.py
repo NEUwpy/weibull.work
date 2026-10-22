@@ -1,6 +1,10 @@
 """五张原理细图共用的 draw.io 图元；总览图保持独立。"""
 from pathlib import Path
 import math
+import base64
+import json
+import zlib
+from urllib.parse import quote
 import xml.etree.ElementTree as ET
 from 数学排版 import normalize_markup
 
@@ -31,6 +35,24 @@ class Diagram:
 
     def panel(self,key,x,y,w,h,*,fill='#F7F9FC',color='#DFE6EB'):
         return self.box(key,'',x,y,w,h,fill=fill,color=color,role='background')
+
+    def polygon(self,key,points,*,fill,stroke='none',opacity=1.,width=0.7):
+        """Native inline stencil: editable vector mesh face, also understood by preview."""
+        if len(points)<3:raise ValueError('polygon needs at least three points')
+        xs,ys=zip(*points);x,y=min(xs),min(ys);w,h=max(xs)-x,max(ys)-y
+        if w<1e-7 or h<1e-7:return None
+        local=[((px-x)/w*100,(py-y)/h*100) for px,py in points]
+        shape=ET.Element('shape',name='mesh-face',w='100',h='100',aspect='variable',strokewidth='inherit')
+        foreground=ET.SubElement(shape,'foreground');path=ET.SubElement(foreground,'path')
+        for i,(px,py) in enumerate(local):ET.SubElement(path,'move' if i==0 else 'line',x=f'{px:.8f}',y=f'{py:.8f}')
+        ET.SubElement(path,'close');ET.SubElement(foreground,'fillstroke')
+        raw=quote(ET.tostring(shape,encoding='unicode'),safe="~()*!.'-").encode('utf-8')
+        compressor=zlib.compressobj(wbits=-15)
+        data=base64.b64encode(compressor.compress(raw)+compressor.flush()).decode('ascii')
+        ident=self.box(key,'',x,y,w,h,fill=fill,color=stroke,size=1,role='polygon',
+                       extra=f'shape=stencil({data});fillOpacity={opacity*100:.3f};strokeOpacity={opacity*100:.3f};strokeWidth={width};')
+        self.root[-1].set('polygonPoints',json.dumps(local,separators=(',',':')))
+        return ident
 
     def _port(self, key, side):
         x,y,w,h=self.boxes[key]
