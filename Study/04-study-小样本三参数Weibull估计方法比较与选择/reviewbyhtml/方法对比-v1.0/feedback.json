@@ -1,8 +1,8 @@
 {
-  "submission_id": "b4b1c7b0-4fff-425a-a479-b9ef0ec2c167",
+  "submission_id": "e8b60157-2837-494d-8199-7150beee7da3",
   "board_id": "study04-method-comparison-v1",
-  "board_revision": 25,
-  "submitted_at": "2026-10-22T09:06:33.281603+00:00",
+  "board_revision": 26,
+  "submitted_at": "2026-10-22T11:56:57.313856+00:00",
   "intent": "submit",
   "finish_review": false,
   "units": [
@@ -123,13 +123,38 @@
       "selected_option_ids": [],
       "selected_label": null,
       "selected_labels": [],
-      "next_action": "defer",
+      "next_action": "modify",
       "action_explicit": false,
       "inspiration": "",
       "notes": {},
       "section_note": "",
       "block_notes": [],
-      "annotations": [],
+      "annotations": [
+        {
+          "id": "837078e1-cc03-48f6-97fe-f9cba623b2ff",
+          "option_id": "synthesis-phenomena",
+          "block_id": "synthesis-phenomena-body",
+          "block_hash": "338887fd88c5cbbf3b8522e709f21353a563dcf64f40b87faa8eed6ddda980d7",
+          "quote": "样本减少对方法间差距的影响随形状条件改变。β=1.5时，误差上升伴随方法间差距普遍扩大；β=5时，差距扩大与缩小并存。样本减少不仅提高误差水平，也会改变方法间的精度关系，较大样本下的优劣关系不能直接沿用于小样本。",
+          "start": 77,
+          "end": 183,
+          "prefix": "而异。各方法的误差水平和相对表现随形状条件改变。",
+          "suffix": "估计分布出现结构变化。随着样本量和形状条件变化，",
+          "comment": "这个说的既不通顺，它也不能代表一个结论。样本量应该是样本量减小，它对这个精度有影响。然后并且呢，不同方法对于这个样本量减小的这个影响是不同的。有的是对样本量减小，它精度比较敏感。有的是没那么敏感。这些事得说清楚了。"
+        },
+        {
+          "id": "5368d818-d4fc-4d81-9497-06509fdb3118",
+          "option_id": "synthesis-phenomena",
+          "block_id": "synthesis-phenomena-body",
+          "block_hash": "338887fd88c5cbbf3b8522e709f21353a563dcf64f40b87faa8eed6ddda980d7",
+          "quote": "估计分布出现结构变化。随着样本量和形状条件变化，估计分布除离散程度改变外，还可能出现边界聚集、分布分化和参数联合偏移。LSE、LRE的部分结构变化在n=50下已经存在，并在部分小样本条件下更突出。",
+          "start": 183,
+          "end": 281,
+          "prefix": "关系，较大样本下的优劣关系不能直接沿用于小样本。",
+          "suffix": "MM的少数极端输出还会明显改变RMSE，其影响在",
+          "comment": "这个跟那个形状参数变化是一样的，因为这不都是，就是那个图，是这个不同的 n 和方法的估计，然后随着这个。贝塔变化，然后又出现那种分化呀，还有什么，就是那种系统性错误估计的现象。"
+        }
+      ],
       "image_notes": []
     },
     {
@@ -177,18 +202,16 @@
     {
       "unit_id": "mechanism-high-beta",
       "unit_title": "3.2　样本减少为何改变方法间的精度关系",
-      "mode": "content",
-      "target_option_id": "mechanism-minimum",
-      "target_option_ids": [
-        "mechanism-minimum"
-      ],
+      "mode": "choices",
+      "target_option_id": null,
+      "target_option_ids": [],
       "selected_option_id": null,
       "selected_option_ids": [],
       "selected_label": null,
       "selected_labels": [],
-      "next_action": "extend",
-      "action_explicit": true,
-      "inspiration": "这里面样本减少如何改变的精度关系？这解释的太不到位了，帮我发散发散。整 3 个版本。",
+      "next_action": "defer",
+      "action_explicit": false,
+      "inspiration": "",
       "notes": {},
       "section_note": "",
       "block_notes": [],
@@ -302,13 +325,13 @@
     }
   ],
   "changed_units": [
-    "mechanism-high-beta"
+    "law-synthesis"
   ],
   "confirmation": {
     "confirmed": true,
     "intent": "submit",
-    "text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 25 轮）。\n\n【3.2　样本减少为何改变方法间的精度关系】\n要求：继续发散。\n发散启发：这里面样本减少如何改变的精度关系？这解释的太不到位了，帮我发散发散。整 3 个版本。",
-    "generated_text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 25 轮）。\n\n【3.2　样本减少为何改变方法间的精度关系】\n要求：继续发散。\n发散启发：这里面样本减少如何改变的精度关系？这解释的太不到位了，帮我发散发散。整 3 个版本。",
+    "text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 26 轮）。\n\n【2.3　主要性能规律】\n原文：“样本减少对方法间差距的影响随形状条件改变。β=1.5时，误差上升伴随方法间差距普遍扩大；β=5时，差距扩大与缩小并存。样本减少不仅提高误差水平，也会改变方法间的精度关系，较大样本下的优劣关系不能直接沿用于小样本。”\n意见：这个说的既不通顺，它也不能代表一个结论。样本量应该是样本量减小，它对这个精度有影响。然后并且呢，不同方法对于这个样本量减小的这个影响是不同的。有的是对样本量减小，它精度比较敏感。有的是没那么敏感。这些事得说清楚了。\n原文：“估计分布出现结构变化。随着样本量和形状条件变化，估计分布除离散程度改变外，还可能出现边界聚集、分布分化和参数联合偏移。LSE、LRE的部分结构变化在n=50下已经存在，并在部分小样本条件下更突出。”\n意见：这个跟那个形状参数变化是一样的，因为这不都是，就是那个图，是这个不同的 n 和方法的估计，然后随着这个。贝塔变化，然后又出现那种分化呀，还有什么，就是那种系统性错误估计的现象。",
+    "generated_text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 26 轮）。\n\n【2.3　主要性能规律】\n原文：“样本减少对方法间差距的影响随形状条件改变。β=1.5时，误差上升伴随方法间差距普遍扩大；β=5时，差距扩大与缩小并存。样本减少不仅提高误差水平，也会改变方法间的精度关系，较大样本下的优劣关系不能直接沿用于小样本。”\n意见：这个说的既不通顺，它也不能代表一个结论。样本量应该是样本量减小，它对这个精度有影响。然后并且呢，不同方法对于这个样本量减小的这个影响是不同的。有的是对样本量减小，它精度比较敏感。有的是没那么敏感。这些事得说清楚了。\n原文：“估计分布出现结构变化。随着样本量和形状条件变化，估计分布除离散程度改变外，还可能出现边界聚集、分布分化和参数联合偏移。LSE、LRE的部分结构变化在n=50下已经存在，并在部分小样本条件下更突出。”\n意见：这个跟那个形状参数变化是一样的，因为这不都是，就是那个图，是这个不同的 n 和方法的估计，然后随着这个。贝塔变化，然后又出现那种分化呀，还有什么，就是那种系统性错误估计的现象。",
     "edited": false
   }
 }
