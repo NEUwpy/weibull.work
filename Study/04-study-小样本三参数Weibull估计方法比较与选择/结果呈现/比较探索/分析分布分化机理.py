@@ -13,6 +13,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize_scalar
+from scipy.stats import gaussian_kde
 
 HERE = Path(__file__).resolve().parent
 STUDY = HERE.parent.parent
@@ -161,6 +162,116 @@ def draw_mechanisms(cases):
     return paths
 
 
+def draw_phenomenon_explanations():
+    """只读取原始估计；解释n响应与混合分布，不调用估计器。"""
+    plt.rcParams.update({'font.family': 'sans-serif',
+                         'font.sans-serif': ['Microsoft YaHei', 'DejaVu Sans'],
+                         'font.size': 12, 'axes.spines.top': False,
+                         'axes.spines.right': False})
+    assets = STUDY / 'reviewbyhtml/方法对比-v1.0/assets'
+    ns = np.array([50, 20, 15, 10, 7])
+    evidence = {'sources': {}, 'kr_rmse': [], 'mixture': []}
+
+    def load(beta, n):
+        path = STUDY / f'结果/W{beta:g},1000,500/估计结果/n{n}.csv'
+        evidence['sources'][path.relative_to(STUDY).as_posix()] = sha(path)
+        frame = pd.read_csv(path, float_precision='round_trip')
+        assert frame['样本编号'].tolist() == list(range(1200))
+        return frame
+
+    colors = ['#0072B2', '#D55E00']
+    fig, ax = plt.subplots(figsize=(8.3, 4.7))
+    fig.subplots_adjust(left=.12, right=.97, bottom=.17, top=.82)
+    for beta, color in zip([1.5, 5.], colors):
+        empirical = []
+        theory = math.sqrt(math.gamma(1+2/beta)) * ns**(-1/beta)
+        for n, expected in zip(ns, theory):
+            frame = load(beta, n)
+            assert frame['MMLE(KR)_状态'].eq('success').all()
+            estimate = frame['MMLE(KR)_位置估计'].to_numpy(float)
+            minimum = frame.filter(regex=r'^观测值\d+$').min(axis=1).to_numpy(float)
+            assert np.allclose(estimate, minimum, rtol=0, atol=1e-9)
+            observed = float(np.sqrt(np.mean(((estimate-500)/1000)**2)))
+            empirical.append(observed)
+            evidence['kr_rmse'].append(dict(beta=beta, n=int(n), empirical=observed,
+                                            theoretical=float(expected)))
+        ax.plot(range(5), theory, color=color, lw=2, label=f'β = {beta:g}')
+        ax.scatter(range(5), empirical, color=color, s=54, marker='o',
+                   facecolors='white', linewidths=1.7, zorder=4)
+    ax.set(xticks=range(5), xticklabels=ns, xlabel='n', ylabel=r'位置 RMSE / $\eta$',
+           ylim=(0, .72), xlim=(-.15, 4.15))
+    ax.grid(axis='y', alpha=.15)
+    handles, labels = ax.get_legend_handles_labels()
+    handles += [Line2D([], [], color='#555555', lw=2, label='理论'),
+                Line2D([], [], color='#555555', marker='o', ls='',
+                       markerfacecolor='white', label='原1200次结果')]
+    fig.legend(handles=handles, loc='upper center', bbox_to_anchor=(.52, .99),
+               ncol=4, frameon=False)
+    fig.savefig(assets/'最小值定位_n响应_理论与原结果.png', dpi=200, facecolor='white')
+    plt.close(fig)
+
+    palette = {'boundary': '#D55E00', 'interior': '#0072B2', 'all': '#333333'}
+    grid = np.linspace(0, 3200, 1601)
+    for method in ['LSE', 'LRE(Park)']:
+        fig, axes = plt.subplots(2, 2, figsize=(11.5, 7.5), sharex=True, sharey=True)
+        fig.subplots_adjust(left=.10, right=.98, bottom=.12, top=.84,
+                            hspace=.27, wspace=.20)
+        for row, n in enumerate([50, 7]):
+            for col, beta in enumerate([1.5, 5.]):
+                frame = load(beta, n)
+                valid = frame[frame[method+'_状态'].eq('success')]
+                eta = valid[method+'_尺度估计'].to_numpy(float)
+                gamma = valid[method+'_位置估计'].to_numpy(float)
+                zero = np.isclose(gamma, 0, atol=1e-8, rtol=0)
+                # 所有组使用总体同一绝对带宽，组密度乘组权重后相加。
+                bandwidth = float(gaussian_kde(eta).factor * eta.std(ddof=1))
+                components = []
+                for mask, key in [(zero, 'boundary'), (~zero, 'interior')]:
+                    if mask.sum() < 2:
+                        assert mask.sum() == 0
+                        density = np.zeros_like(grid)
+                    else:
+                        values = eta[mask]
+                        kde = gaussian_kde(values, bw_method=bandwidth/values.std(ddof=1))
+                        density = kde(grid) * mask.mean()
+                    components.append(density)
+                    axes[row, col].fill_between(grid, density, color=palette[key], alpha=.24)
+                    axes[row, col].plot(grid, density, color=palette[key], lw=1.6)
+                total = gaussian_kde(eta, bw_method=bandwidth/eta.std(ddof=1))(grid)
+                assert np.allclose(sum(components), total, atol=1e-14, rtol=1e-9)
+                ax = axes[row, col]
+                ax.plot(grid, total, color=palette['all'], lw=1.5, ls='--')
+                ax.axvline(1000, color='#777777', lw=1, ls=':')
+                ax.set(xlim=(0, 3200), ylim=(0, .0045), xticks=[0, 1000, 2000, 3000])
+                ax.grid(axis='y', alpha=.12)
+                if row == 0:
+                    ax.set_title(f'β = {beta:g}', fontsize=14, pad=12)
+                if col == 0:
+                    ax.set_ylabel(f'n = {n}\n概率密度')
+                if row == 1:
+                    ax.set_xlabel(r'$\hat{\eta}$')
+                evidence['mixture'].append(dict(
+                    method=method, beta=beta, n=n, total=len(eta), boundary_count=int(zero.sum()),
+                    boundary_fraction=float(zero.mean()), bandwidth=bandwidth,
+                    visible_fraction=float(((eta>=grid[0]) & (eta<=grid[-1])).mean()),
+                    boundary_eta_median=float(np.median(eta[zero])) if zero.any() else None,
+                    interior_eta_median=float(np.median(eta[~zero])),
+                    component_identity_max_abs=float(np.max(np.abs(sum(components)-total)))))
+        fig.legend(handles=[Line2D([], [], color=palette['boundary'], lw=2, label=r'$\hat{\gamma}=0$：边界组'),
+                            Line2D([], [], color=palette['interior'], lw=2, label=r'$\hat{\gamma}>0$：内部组'),
+                            Line2D([], [], color=palette['all'], lw=1.5, ls='--', label='全部结果')],
+                   loc='upper center', bbox_to_anchor=(.54, .97), ncol=3, frameon=False)
+        fig.savefig(assets/f'尺度分布_边界内部混合_{method}.png', dpi=200, facecolor='white')
+        plt.close(fig)
+    for path, digest in evidence['sources'].items():
+        assert sha(STUDY/path) == digest
+    output = HERE.parent/'分析数据/现象解释补图核对.json'
+    output.write_text(json.dumps(evidence, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    print(json.dumps({'kr_conditions': len(evidence['kr_rmse']),
+                      'mixture_conditions': len(evidence['mixture']),
+                      'output': output.as_posix()}, ensure_ascii=False))
+
+
 def main():
     sys.path.insert(0, str(FROZEN))
     lse_module = runpy.run_path(str(FROZEN/'methods/lse.py'))
@@ -211,4 +322,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if '--phenomenon-explanations' in sys.argv:
+        draw_phenomenon_explanations()
+    else:
+        main()
