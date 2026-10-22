@@ -2,7 +2,7 @@
   "id": "study04-method-classification-v04-report",
   "title": "Study04 参数估计方法路线图 v2.0 审阅",
   "document": true,
-  "revision": 25,
+  "revision": 26,
   "require_confirmation": true,
   "archive_plan": "将审定内容写回报告上（方法分类）-v2.0.md及机制图-v2.0图源与SVG；v1.1已完整归档到其他/历史版本/方法分类-v1.1，保留原HTML任务和历史；核验后在laptop分支保存并同步远端。",
   "units": [
@@ -80,9 +80,9 @@
     {
       "id": "section-3",
       "title": "3　路线一：似然构造与优化",
-      "mode": "choices",
-      "state": "open",
-      "selected": null,
+      "mode": "content",
+      "state": "converged",
+      "selected": "section-3-joint-field",
       "options": [
         {
           "id": "section-3-joint-field",
@@ -105,33 +105,12 @@
               "html": "<p><strong>图3a｜把三参数联合似然作为整体函数可视化。</strong> 固定同一组样本，三个坐标分别为β、η、γ，颜色和等值面表示相对联合似然R的大小。中央展示三个参数同时变化时的函数景观，数值迭代在同一个联合目标上推进，标记点为示例参数窗内找到的数值极大点。L1用样本与密度乘积构造函数，L2在参数空间中求最大值；示例窗及显示尺度不改变这条估计原则。</p>\n"
             }
           ]
-        },
-        {
-          "id": "section-3-current",
-          "label": "原稿：密度因子与单参数截面",
-          "blocks": [
-            {
-              "id": "section-3-text-0",
-              "kind": "text",
-              "html": "<p>这条路线的核心机制是：构建样本在候选参数下的似然函数，并通过最大化似然或相应的修正准则来估计参数。先固定已经观测到的样本，把分布密度看作待估参数的函数。对独立同分布完整样本 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>D</mi><mo>=</mo><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mn>1</mn></msub><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><msub><mi>x</mi><mi>n</mi></msub><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>，每个观测对应一个参数函数 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>g</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>；所有观测共用同一组参数 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>θ</mi><mo>=</mo><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span></span>。在同一个参数处将这些函数值相乘，就构成联合似然：</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>g</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>f</mi><mo stretchy=\"false\">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator=\"true\">;</mo><mi>θ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>这个乘积对整个参数域定义了一个函数。最大似然估计在该联合函数上寻找最大值。当给定参数域 <span class=\"math inline\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Θ</mi></mrow></semantics></math></span></span> 内存在最大值时，</p>\n<p><span class=\"math display\"><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mover accent=\"true\"><mi>θ</mi><mo stretchy=\"true\">^</mo></mover><mrow><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">L</mi><mi mathvariant=\"normal\">E</mi></mrow></msub><mo>∈</mo><munder><mrow><mi mathvariant=\"normal\">arg max</mi><mo>⁡</mo></mrow><mrow><mi>θ</mi><mo>∈</mo><mi mathvariant=\"normal\">Θ</mi></mrow></munder><mi>L</mi><mo stretchy=\"false\">(</mo><mi>θ</mi><mo separator=\"true\">;</mo><mi>D</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></span></p>\n<p>图3a把这一个构造过程连成图像：固定观测、形成各参数函数、在相同参数处相乘、在乘积函数上求最大值。前三步解释似然如何构造（L1），最后一步解释估计由什么准则确定（L2）。为便于绘制，图中固定η和γ，只展示β截面；完整三参数MLE仍在三维参数域中处理同一个联合似然。取对数、得分方程、剖面求解或数值优化是实现最大化的计算途径，得分为零还须区分极大值、其他驻点及边界情况。原始三参数似然可能无界，参数域、支持边界与有限解存在性仍须核验。</p>\n<p>原始观测的密度乘积是这条路线的基本例子。若先变换为统计量，也可以由该统计量的联合密度构造似然；这时必须使用相应的分布，不能不加区分地把相关统计量的边缘密度相乘。LSPF的形状估计就是内部W统计量的联合似然最大化，统计量的选取没有取消其似然机制。</p>\n"
-            },
-            {
-              "id": "section-3-unified-image",
-              "kind": "image",
-              "src": "assets/v2.0-07-似然估计路线-信息处理流程.svg",
-              "alt": "图3a　似然构造与优化的连续机制"
-            },
-            {
-              "id": "section-3-text-1",
-              "kind": "text",
-              "html": "<p><strong>图3a｜固定数据，把密度转为参数函数，再相乘并最大化。</strong> 左侧三个观测固定在寿命轴上；中间三条曲线分别是这三个观测对应的参数函数，横轴均为同一β范围；右侧似然曲线由三个函数在同一β处的值逐点相乘得到。蓝灰竖线及连线追踪同一个β₀如何从三个因子构成一个联合似然值，橙色箭头表示在这个联合函数上求最大值。本图峰点是固定η₀=3、γ₀=2时的条件形状估计；完整三参数MLE仍需在三维参数域内求解。</p>"
-            }
-          ]
         }
       ],
       "selection_mode": "single",
-      "selected_ids": [],
-      "context": "按本轮意见，将整体联合似然场置于主图中央；原图保留供对照。"
+      "selected_ids": [
+        "section-3-joint-field"
+      ]
     },
     {
       "id": "section-3-constructions",
@@ -405,9 +384,9 @@
       ]
     }
   ],
-  "last_applied_submission_id": "93495dd2-d590-4b31-934d-19edde279853",
+  "last_applied_submission_id": "0ccd293b-ad58-4d1d-931f-db4310bb123b",
   "review_complete": false,
-  "last_rendered_submission_id": "93495dd2-d590-4b31-934d-19edde279853",
+  "last_rendered_submission_id": "0ccd293b-ad58-4d1d-931f-db4310bb123b",
   "archive_targets": {
     "output": "C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\报告上（方法分类）-v2.0.md",
     "sync_remote": true
