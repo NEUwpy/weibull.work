@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 25,
+  "revision": 26,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.3.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.2.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v1.2.md",
@@ -384,54 +384,142 @@
     {
       "id": "mechanism-high-beta",
       "title": "3.2　样本减少为何改变方法间的精度关系",
-      "mode": "content",
-      "state": "modify",
-      "selected": "mechanism-minimum",
+      "mode": "choices",
+      "state": "open",
+      "selected": null,
       "options": [
         {
           "id": "mechanism-minimum",
-          "label": "当前正文",
+          "label": "A｜偏差与波动增长不同",
           "blocks": [
             {
-              "id": "sample-structure-response",
+              "id": "a-opening",
               "kind": "text",
-              "html": "<p>样本减少会改变最小观测与起点之间的距离，也会加大样本间距的波动。不同估计规则把这些变化转化为不同程度的偏差与波动，因此误差不会按统一比例增加。</p>"
+              "html": "<p>样本减少后，方法之间的差距改变，首先表现为<mark>偏差与波动的增长方式不同</mark>。一种方法的误差主要受系统偏移影响，另一种方法主要受重复波动影响；两者随n变化的速度不同，即使总体误差都增加，相对精度仍可能接近或反转。</p>"
             },
             {
-              "id": "kr-minimum-theory",
+              "id": "a-identity",
               "kind": "text",
-              "html": "<p>K–R以样本最小值估计位置。由3.1的最小值分布，其位置RMSE满足精确关系</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mfrac><mrow><msub><mi>R</mi><mi>γ</mi></msub><mo stretchy=\"false\">(</mo><mi>n</mi><mo separator=\"true\">,</mo><mi>β</mi><mo stretchy=\"false\">)</mo></mrow><mi>η</mi></mfrac><mo>=</mo><msqrt><mrow><mi mathvariant=\"normal\">Γ</mi><mo stretchy=\"false\">(</mo><mn>1</mn><mo>+</mo><mn>2</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi><mo stretchy=\"false\">)</mo></mrow></msqrt><mtext> </mtext><msup><mi>n</mi><mrow><mo>−</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span><p>同一β下，两档样本量之间的误差比为</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mfrac><mrow><msub><mi>R</mi><mi>γ</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>n</mi><mn>2</mn></msub><mo separator=\"true\">,</mo><mi>β</mi><mo stretchy=\"false\">)</mo></mrow><mrow><msub><mi>R</mi><mi>γ</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>n</mi><mn>1</mn></msub><mo separator=\"true\">,</mo><mi>β</mi><mo stretchy=\"false\">)</mo></mrow></mfrac><mo>=</mo><msup><mrow><mo fence=\"true\">(</mo><mfrac><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub></mfrac><mo fence=\"true\">)</mo></mrow><mrow><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><mo separator=\"true\">,</mo><mspace width=\"2em\"/><msub><mi>n</mi><mn>2</mn></msub><mo>&lt;</mo><msub><mi>n</mi><mn>1</mn></msub><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span>"
+              "html": "<p>对同一统计集合，记<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>R</mi><mi>m</mi></msub></mrow></semantics></math></span>为RMSE、<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>b</mi><mi>m</mi></msub></mrow></semantics></math></span>为有符号偏差、<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>v</mi><mi>m</mi></msub></mrow></semantics></math></span>为误差的经验方差，则</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msubsup><mi>R</mi><mi>A</mi><mn>2</mn></msubsup><mo>−</mo><msubsup><mi>R</mi><mi>B</mi><mn>2</mn></msubsup><mo>=</mo><mo stretchy=\"false\">(</mo><msubsup><mi>b</mi><mi>A</mi><mn>2</mn></msubsup><mo>−</mo><msubsup><mi>b</mi><mi>B</mi><mn>2</mn></msubsup><mo stretchy=\"false\">)</mo><mo>+</mo><mo stretchy=\"false\">(</mo><msub><mi>v</mi><mi>A</mi></msub><mo>−</mo><msub><mi>v</mi><mi>B</mi></msub><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span><p>这个关系把“谁的误差增长更快”落实到偏差与波动两个来源；比较RMSE的先后次序等价于比较它们的平方。</p>"
             },
             {
-              "id": "kr-n-response",
+              "id": "a-composition",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>β=5的位置估计</th><th>n从50减至7的变化</th></tr></thead><tbody><tr><td>MDM</td><td>始终以偏移为主，正偏差和波动均加重。</td></tr><tr><td>WMLE</td><td>由偏差、波动共同影响转向偏差主导；偏差平方占MSE约46%→81%。</td></tr><tr><td>LSE、LRE、MLE</td><td>在两档n下均以重复波动为主，方差占MSE超过98%。</td></tr><tr><td>K–R</td><td>始终以最小值带来的正偏差为主，偏差平方占MSE约95%。</td></tr></tbody></table>"
+            },
+            {
+              "id": "a-comparison",
+              "kind": "text",
+              "html": "<p>例如，在β=5时，WMLE的位置误差从n=50时明显小于LSE，变为n=7时与其接近。WMLE的正偏差增长较快，LSE主要是波动扩大；不同的增长路径消耗了原有精度优势。这里不能把“误差都增大”理解为两种方法按同一比例变差。</p><p>共同有效集合上，两者还出现先后次序反转；各自有效集合上仍能看到差距缩小，但未出现反转。因此，这个例子中较稳妥的认识是优势明显收缩，名次反转还受到成功集合筛选的影响。</p>"
+            },
+            {
+              "id": "a-lower-mechanism",
+              "kind": "text",
+              "html": "<p>继续回到估计规则：K–R的位置误差可由最小值分布精确给出；MDM的固定阈值可引起方向性定位偏移；LSE、LRE的较平坦定位判据则容许更大的选解波动。偏差与方差的不同增长，是这些规则在有限样本中的统计表现。</p><p><em>证据范围：上表和比较均为β=5、n=50与7的位置估计，使用七法共同有效集合。误差分解解释相对精度变化的直接来源，尚不等同于对各估计规则的完整机制证明。</em></p>"
+            }
+          ]
+        },
+        {
+          "id": "sample-information-mixture",
+          "label": "B｜样本信息结构及其占比改变",
+          "blocks": [
+            {
+              "id": "b-opening",
+              "kind": "text",
+              "html": "<p>样本量减少不只是把同一类样本变得更少，还会改变样本携带信息的具体形态。<mark>起点附近缺少观测的样本更加常见，而不同方法对这类样本的精度关系并不相同。</mark>总体方法差距因此同时受到组内表现和样本结构占比的影响。</p>"
+            },
+            {
+              "id": "b-definition",
+              "kind": "text",
+              "html": "<p>沿用3.1的起点距离，把原样本按区间<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mo stretchy=\"false\">(</mo><mi>γ</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo>+</mo><mn>0.5</mn><mi>η</mi><mo stretchy=\"false\">]</mo></mrow></semantics></math></span>内是否存在观测分成两组。这个分界对所有方法、两档n保持一致，使用真参数作模拟诊断，不作为实际部署时的判别规则。</p>"
+            },
+            {
+              "id": "b-frequency",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>β=5</th><th>全部1200次：起点附近无观测</th><th>七法共同有效集合：对应占比</th></tr></thead><tbody><tr><td>n=50</td><td>242/1200，约20%</td><td>242/1182，约20%</td></tr><tr><td>n=7</td><td>961/1200，约80%</td><td>501/644，约78%</td></tr></tbody></table>"
+            },
+            {
+              "id": "b-stratified",
               "kind": "image",
-              "src": "assets/最小值定位_n响应_理论与原结果.png",
-              "alt": "K–R位置RMSE的理论变化与原1200次结果，β=1.5和5，n从50到7"
+              "src": "assets/n响应候选_起点信息分层.png",
+              "alt": "β=5，六种方法在有无起点附近观测两组中的条件位置RMSE，分别比较n=50和7"
             },
             {
-              "id": "kr-bias-interpretation",
+              "id": "b-figure-caption",
               "kind": "text",
-              "html": "<p>高β下的位置误差更大，但相同幅度的样本减少，误差的倍数增长反而较小。误差水平较高与对样本减少更敏感，是两个不同判断。图中原结果与理论曲线接近，说明这一路径可以由最小值定位规则直接解释。</p><p><em>曲线为理论总体RMSE，点为K–R自身1200次有效结果；不按其他方法是否成功筛选。</em></p>"
+              "html": "<p><em>图为β=5的条件位置RMSE，形状和尺度真值为5、1000，位置真值500；每个n内只用七法共同有效结果。六法完整列出，MM的极端风险另在4.1讨论。分界0.5η取自前述起点距离诊断，不经阈值择优搜索。</em></p>"
             },
             {
-              "id": "criterion-responses-mdm",
-              "kind": "image",
-              "src": "assets/R00_MDM_梯度阈值与参数条件.png",
-              "alt": "Research00：β=2和5、n=7、15、30下MDM梯度阈值交点"
-            },
-            {
-              "id": "criterion-response-interpretation",
+              "id": "b-interpretation",
               "kind": "text",
-              "html": "<p>MDM则不是直接采用最小值，而是寻找梯度达到固定阈值的位置。高β时，各伪尺度随位置变化接近同步，真位置附近的标准差梯度较小；阈值仍固定为0.10，交点因而偏向较高位置。Research00的对照显示，样本较少时这种右移更明显，增加样本后有所减轻。</p><p>这种变化会增加系统偏移，而不只是扩大随机波动。本轮β=5时，MDM随n从50减至7，位置正偏差与形状负偏差均加重。LSE、LRE在相同条件下则主要表现为位置估计波动扩大。两类方法的误差来源及其增幅不同，彼此距离因而可能接近，也可能拉开。</p><p>K–R给出了可直接量化的n响应，MDM的阈值诊断给出了方向性偏移随样本量变化的形成路径。这些解释对应第二章的方法响应分化；全部方法对的差距变化仍需结合各自的偏差、波动与选解规律分析。</p>"
+              "html": "<p>在n=7时，WMLE、MDM在起点附近有观测的组中仍具有较低的位置误差；进入缺少近起点观测的组后，其误差增长明显，原有优势减弱。LSE、LRE在两组之间的差别相对较小。WMLE与LSE的组内精度关系甚至不同：有近起点观测时WMLE更准，缺少这类观测时LSE更准。</p><p>当后面一类样本从少数变为多数，总体比较自然更受这一组表现的影响。因此，较大样本下获得的优势，不一定在样本减少后按原样保留。</p>"
             },
             {
-              "id": "criterion-source",
+              "id": "b-mixture-identity",
               "kind": "text",
-              "html": "<p><em>MDM图复用Research00报告1，β=2、5，n=7、15、30，η=1000、γ=500，δ=0.10；本轮偏差与波动判断使用Study04各法自身有效结果。历史图不并入第2章的统一比较统计。</em></p>"
+              "html": "<p>这一关系可直接分解为</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msubsup><mi>R</mi><mi>m</mi><mn>2</mn></msubsup><mo>=</mo><mo stretchy=\"false\">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy=\"false\">)</mo><msubsup><mi>R</mi><mrow><mi>m</mi><mo separator=\"true\">,</mo><mrow><mi mathvariant=\"normal\">n</mi><mi mathvariant=\"normal\">e</mi><mi mathvariant=\"normal\">a</mi><mi mathvariant=\"normal\">r</mi></mrow></mrow><mn>2</mn></msubsup><mo>+</mo><mi>p</mi><msubsup><mi>R</mi><mrow><mi>m</mi><mo separator=\"true\">,</mo><mrow><mi mathvariant=\"normal\">g</mi><mi mathvariant=\"normal\">a</mi><mi mathvariant=\"normal\">p</mi></mrow></mrow><mn>2</mn></msubsup><mo separator=\"true\">,</mo></mrow></semantics></math></span><p>其中p为缺少近起点观测的样本占比。n变化时，两组各自的误差和p都发生变化。</p>"
+            },
+            {
+              "id": "b-reweighting",
+              "kind": "text",
+              "html": "<p>把n=7的两组误差保持不变，只把组占比换成n=50共同有效集合的占比，WMLE与LSE的位置RMSE分别由约0.489、0.458变为0.321、0.421。改变组合权重就能改变两者的先后次序，说明总体相对精度确实受到样本信息结构的影响。</p><p><em>该重加权是已有结果的算术分解，不能解释为实际增加样本的收益，也没有隔离n的因果贡献。它支持一条具体形成路径：样本结构的出现比例改变，与各方法的条件性能共同改变总体差距。其他参数、其他分界及全部β下能否沿用，需要另行核对。</em></p>"
+            }
+          ]
+        },
+        {
+          "id": "criterion-sensitivity",
+          "label": "C｜判据放大与选解切换",
+          "blocks": [
+            {
+              "id": "c-opening",
+              "kind": "text",
+              "html": "<p>如果样本减少只是把各方法误差按相同比例放大，设<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>R</mi><mi>m</mi></msub><mo stretchy=\"false\">(</mo><mi>n</mi><mo separator=\"true\">,</mo><mi>β</mi><mo stretchy=\"false\">)</mo><mo>=</mo><msub><mi>c</mi><mi>m</mi></msub><mo stretchy=\"false\">(</mo><mi>β</mi><mo stretchy=\"false\">)</mo><mi>g</mi><mo stretchy=\"false\">(</mo><mi>n</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，那么固定β后，方法先后次序应保持不变，所有方法间距离也应按同一比例变化。<mark>β=5下同时出现接近与拉开，说明这一统一缩放解释不足。</mark></p>"
+            },
+            {
+              "id": "c-mechanism",
+              "kind": "text",
+              "html": "<p>需要追踪的是：样本变化经过估计判据后，为什么被放大成不同的参数变化。对内部、可微且局部唯一的定位方程<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>G</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mn>0</mn></mrow></semantics></math></span>，小扰动近似给出</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi mathvariant=\"normal\">Δ</mi><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>≈</mo><mo>−</mo><mfrac><mrow><mi mathvariant=\"normal\">Δ</mi><msub><mi>G</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo></mrow><mrow><msubsup><mi>G</mi><mi>n</mi><mo mathvariant=\"normal\" lspace=\"0em\" rspace=\"0em\">′</mo></msubsup><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo></mrow></mfrac><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span><p>分子代表样本变化对定位关系的扰动，分母代表交点附近的陡峭程度。相同量级的样本扰动，经过较平缓的定位关系时可产生更大的位置变化；若交点消失、切换分支或触及边界，局部线性近似也会失效，结果可能发生跳变。</p>"
+            },
+            {
+              "id": "c-criterion-examples",
+              "kind": "gallery",
+              "aspect_ratio": 1,
+              "images": [
+                {
+                  "id": "c-mdm",
+                  "label": "MDM：阈值交点",
+                  "src": "assets/R00_MDM_梯度阈值与参数条件.png",
+                  "alt": "Research00中MDM阈值曲线随β和n变化的诊断"
+                },
+                {
+                  "id": "c-lse",
+                  "label": "LSE：定位判据",
+                  "src": "assets/R00_LSE_判据与参数条件.png",
+                  "alt": "Research00中LSE位置判据随β和n变化的诊断"
+                }
+              ]
+            },
+            {
+              "id": "c-evidence",
+              "kind": "text",
+              "html": "<p>Research00中，高β的MDM在真位置附近梯度较小，而阈值保持不变，定位容易形成方向性右移。LSE则在较大的一段候选位置上保持接近的拟合质量，样本间距变化可能改变最佳候选。它们说明：弱起点信息经过不同定位规则后，既可能表现为偏移增长，也可能表现为选解波动。</p><p>样本减少使近起点观测和局部间距更不稳定；高β下的弱参数区分又使判据更难限制位置。两者通过具体估计规则相互作用，才可能形成不同的n响应，进而改变方法间相对精度。</p>"
+            },
+            {
+              "id": "c-needed-check",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>补充诊断</th><th>直接检验的问题</th></tr></thead><tbody><tr><td>对同一母样本逐步删样，得到50→20→15→10→7的嵌套样本</td><td>使对n的比较直接对应同一母样本，减少组间抽样差异的干扰。</td></tr><tr><td>同时记录定位关系、所选位置及参数恢复结果</td><td>误差增长是否伴随判据变平、交点迁移或边界／分支切换。</td></tr><tr><td>选取典型轨迹，比较原规则与固定定位步骤的诊断</td><td>干预所怀疑的环节后，原先的精度关系变化是否减弱。</td></tr></tbody></table>"
+            },
+            {
+              "id": "c-limit",
+              "kind": "text",
+              "html": "<p><em>这是一条待验证的机制主线。历史判据图支持其中的局部环节，但没有完成上述配对删样与干预诊断；当前不同n的结果尚未建立配对删样关系，不能直接当作同一样本随n减少的轨迹。只有补充验证后，才能把“判据敏感性导致相对精度改变”作为更强结论。</em></p>"
             }
           ]
         }
-      ]
+      ],
+      "selected_ids": [],
+      "selection_mode": "multiple",
+      "context": "三个解释版本，可分别批注，也可组合采用；不预选。"
     },
     {
       "id": "mechanism-boundary",
@@ -707,8 +795,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "fb9e9f4e-76f8-49dc-acaf-976cf6ea273e",
-  "last_rendered_submission_id": "fb9e9f4e-76f8-49dc-acaf-976cf6ea273e",
+  "last_applied_submission_id": "b4b1c7b0-4fff-425a-a479-b9ef0ec2c167",
+  "last_rendered_submission_id": "b4b1c7b0-4fff-425a-a479-b9ef0ec2c167",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.7.1",
@@ -801,7 +889,15 @@
       "assets/R00_MDM_位置形状尺度传递.png": "Research/00-方法对比/交付/结果/报告1/图4_MDM参数传递.png"
     },
     "explanation_limit": "K–R的n响应来自最小值分布的精确关系；MDM为历史受控诊断与本轮统计的对应解释；边界混合分解为本轮逐次结果的精确分组，边界来源核对限于已有8个廓线案例。尚未逐一量化全部方法对RMSE距离变化的机制贡献。",
-    "phenomenon_explanation_check": "结果呈现/分析数据/现象解释补图核对.json"
+    "phenomenon_explanation_check": "结果呈现/分析数据/现象解释补图核对.json",
+    "precision_relationship_options": {
+      "status": "候选，尚未选定",
+      "analysis": "结果呈现/分析数据/精度关系解释候选核对.json",
+      "scope": "4个n–β条件的24个方法条件，位置误差；六法用七法共同有效集合，MM风险在4.1讨论。",
+      "new_estimates": false,
+      "boundary": "A为误差组成解释；B为分层与重加权诊断；C的配对删样和干预尚未执行。",
+      "previous_version": "Git ba6052f2保留第25轮原3.2。"
+    }
   },
   "manuscript_version": "1.2",
   "archive_targets": {
@@ -810,7 +906,6 @@
     "archive": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.2.md",
     "sync_remote": true
   },
-  "processing": false,
   "accepted_revision": 19,
   "accepted_at": "2026-10-21T13:27:55.621265+00:00"
 }

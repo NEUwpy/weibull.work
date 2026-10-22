@@ -272,6 +272,81 @@ def draw_phenomenon_explanations():
                       'output': output.as_posix()}, ensure_ascii=False))
 
 
+def precision_relationship_options():
+    """比较解释候选：误差组成与共同样本的起点信息分层。"""
+    metrics_path = HERE.parent/'分析数据/参数指标.csv'
+    metrics = pd.read_csv(metrics_path, float_precision='round_trip')
+    methods = METHODS[:-1]
+    records, sources, composition = [], {metrics_path.relative_to(STUDY).as_posix(): sha(metrics_path)}, []
+    for beta in [1.5, 5.]:
+        for n in [50, 7]:
+            path = STUDY/f'结果/W{beta:g},1000,500/估计结果/n{n}.csv'
+            frame = pd.read_csv(path, float_precision='round_trip')
+            sources[path.relative_to(STUDY).as_posix()] = sha(path)
+            common = np.logical_and.reduce([frame[m+'_状态'].eq('success') for m in METHODS])
+            minimum = frame.filter(regex=r'^观测值\d+$').min(axis=1).to_numpy(float)
+            gap = minimum > 500 + .5*1000
+            cell = dict(beta=beta, n=n, total=len(frame), gap_all=int(gap.sum()),
+                        common_count=int(common.sum()), common_gap=int((common & gap).sum()),
+                        theoretical_gap_probability=float(math.exp(-n*.5**beta)), methods=[])
+            for method in methods:
+                values = frame[method+'_位置估计'].to_numpy(float)
+                error = (values[common]-500)/1000
+                mse, bias, variance = float(np.mean(error**2)), float(error.mean()), float(error.var())
+                row = metrics[(metrics.beta==beta)&(metrics.n==n)&metrics.method.eq(method)&metrics['subset'].eq('common')].iloc[0]
+                assert math.isclose(math.sqrt(mse), row.gamma_rmse/1000, rel_tol=1e-12)
+                assert math.isclose(bias, row.gamma_bias/1000, abs_tol=1e-12)
+                assert math.isclose(mse, bias**2+variance, abs_tol=1e-14)
+                group = []
+                for g in [False, True]:
+                    mask = common & (gap==g)
+                    group.append(float(np.mean(((values[mask]-500)/1000)**2)) if mask.any() else None)
+                if all(v is not None for v in group):
+                    p = cell['common_gap']/cell['common_count']
+                    assert math.isclose(mse, (1-p)*group[0]+p*group[1], abs_tol=1e-14)
+                cell['methods'].append(dict(method=method, mse=mse, bias=bias, variance=variance,
+                                            squared_bias_share=bias**2/mse,
+                                            near_mse=group[0], gap_mse=group[1]))
+                composition.append(dict(beta=beta, n=n, method=method, mse=mse, bias=bias,
+                                        variance=variance, squared_bias_share=bias**2/mse))
+            records.append(cell)
+    old, new = [next(r for r in records if r['beta']==5 and r['n']==n) for n in [50, 7]]
+    p_old = old['common_gap']/old['common_count']
+    standardized = []
+    for row in new['methods']:
+        standardized.append(dict(method=row['method'], actual_rmse=math.sqrt(row['mse']),
+                                  n50_mix_rmse=math.sqrt((1-p_old)*row['near_mse']+p_old*row['gap_mse'])))
+    plt.rcParams.update({'font.family':'sans-serif', 'font.sans-serif':['Microsoft YaHei','DejaVu Sans'],
+                         'font.size':12, 'axes.spines.top':False, 'axes.spines.right':False})
+    fig, axes = plt.subplots(1, 2, figsize=(11.8, 5.8), sharex=True, sharey=True)
+    fig.subplots_adjust(left=.13, right=.97, bottom=.14, top=.78, wspace=.20)
+    names = ['MDM-0.1','LSE','LRE (Park)','WMLE','MLE','K–R']
+    for ax, cell in zip(axes, [old, new]):
+        for j, row in enumerate(cell['methods']):
+            a, b = math.sqrt(row['near_mse']), math.sqrt(row['gap_mse'])
+            ax.plot([a,b],[j,j], color='#b9c1c9', lw=1.2)
+            ax.scatter(a,j,color='#0072B2',s=54,zorder=3)
+            ax.scatter(b,j,color='#D55E00',marker='s',s=48,zorder=3)
+        ax.set(yticks=range(6), yticklabels=names, xlim=(0,.72), ylim=(5.5,-.5),
+               xlabel=r'条件位置 RMSE / $\eta$')
+        ax.set_title(f'n = {cell["n"]}', pad=15)
+        ax.grid(axis='x',alpha=.14)
+    fig.legend(handles=[Line2D([],[],color='#0072B2',marker='o',ls='',label='起点附近有观测'),
+                        Line2D([],[],color='#D55E00',marker='s',ls='',label='起点附近无观测')],
+               loc='upper center',bbox_to_anchor=(.55,.98),ncol=2,frameon=False)
+    image_path = STUDY/'reviewbyhtml/方法对比-v1.0/assets/n响应候选_起点信息分层.png'
+    fig.savefig(image_path,dpi=200,facecolor='white')
+    plt.close(fig)
+    for path,digest in sources.items():
+        assert sha(STUDY/path)==digest
+    output = HERE.parent/'分析数据/精度关系解释候选核对.json'
+    output.write_text(json.dumps(dict(sources=sources,threshold_eta=.5,records=records,
+                                     composition=composition,n7_reweighted_to_n50_mix=standardized),
+                                 ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    print(json.dumps({'conditions':len(records),'method_conditions':len(composition),
+                      'output':output.as_posix(),'image':image_path.as_posix()},ensure_ascii=False))
+
+
 def main():
     sys.path.insert(0, str(FROZEN))
     lse_module = runpy.run_path(str(FROZEN/'methods/lse.py'))
@@ -324,5 +399,7 @@ def main():
 if __name__ == '__main__':
     if '--phenomenon-explanations' in sys.argv:
         draw_phenomenon_explanations()
+    elif '--precision-relationship-options' in sys.argv:
+        precision_relationship_options()
     else:
         main()
