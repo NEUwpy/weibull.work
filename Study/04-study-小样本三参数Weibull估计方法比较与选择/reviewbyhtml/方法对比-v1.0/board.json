@@ -2,17 +2,17 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 35,
+  "revision": 36,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.0.md",
   "source_sha256": "b4f3b61d9d2cfffbc502055bb2bf6384f2ed3141b8b32c1bca5774093f3d4a93",
-  "review_phase": "v2.0-revision",
+  "review_phase": "chapter3-mechanism-candidates",
   "content_fill_authorized": true,
   "units": [
     {
       "id": "manuscript-outline",
-      "title": "报告下（方法对比）v2.0",
+      "title": "报告下（方法对比）v2.1 待审",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -356,9 +356,9 @@
           "label": "当前内容",
           "blocks": [
             {
-              "id": "mechanism-opening",
+              "id": "mechanism-chapter-opening",
               "kind": "text",
-              "html": "<p>以下分别解释样本减少时的方法响应差异、较大β下的偏移与分布分化，以及明显异常估计的形成。</p>"
+              "html": "<p>以下分别解释三类现象：样本减少时方法的不同响应、高形状条件下的参数偏移与边界聚集，以及明显异常估计的形成。解释沿样本信息、选参判据和参数恢复展开。</p>"
             }
           ]
         }
@@ -367,128 +367,133 @@
     {
       "id": "mechanism-high-beta",
       "title": "3.1　样本减少与方法响应的差异",
-      "mode": "content",
-      "state": "modify",
-      "selected": "mechanism-minimum",
+      "mode": "choices",
+      "state": "expand",
+      "selected": null,
       "options": [
         {
-          "id": "mechanism-minimum",
-          "label": "当前内容",
+          "id": "n-criterion-paths",
+          "label": "A｜直接看三种定位规则怎样响应删点",
           "blocks": [
             {
-              "id": "same-sample-intro",
+              "id": "n-a-opening",
               "kind": "text",
-              "html": "<p>从同一组50个观测出发，依次保留20、15、10、7个，比较样本点减少后各方法的拟合变化。</p>"
+              "html": "<p>同样的观测减少，进入不同方法后，改变的估计环节并不相同。K–R的位置由最小值直接确定；MDM的位置由梯度与固定阈值的交点确定；LSE则在不同位置间比较线性匹配。</p>"
             },
             {
-              "id": "same-sample-fits",
+              "id": "n-a-criteria",
               "kind": "gallery",
-              "aspect_ratio": 2.5,
+              "aspect_ratio": 2.83,
               "images": [
                 {
-                  "id": "n50",
-                  "label": "n = 50",
-                  "src": "assets/嵌套样本拟合_n50.png",
-                  "alt": "相同删点路径在n=50时的样本点与MDM、WMLE、LSE、K–R拟合曲线"
+                  "id": "path1055",
+                  "label": "删点路径1055：最小值保留，另外两法的位置仍改变",
+                  "src": "assets/31A_固定形状定位判据_样本1055.png",
+                  "alt": "固定β=5，三种定位依据在n=50、20、7时的变化"
                 },
                 {
-                  "id": "n20",
-                  "label": "n = 20",
-                  "src": "assets/嵌套样本拟合_n20.png",
-                  "alt": "相同删点路径在n=20时的样本点与MDM、WMLE、LSE、K–R拟合曲线"
-                },
-                {
-                  "id": "n15",
-                  "label": "n = 15",
-                  "src": "assets/嵌套样本拟合_n15.png",
-                  "alt": "相同删点路径在n=15时的样本点与MDM、WMLE、LSE、K–R拟合曲线"
-                },
-                {
-                  "id": "n10",
-                  "label": "n = 10",
-                  "src": "assets/嵌套样本拟合_n10.png",
-                  "alt": "相同删点路径在n=10时的样本点与MDM、WMLE、LSE、K–R拟合曲线"
-                },
-                {
-                  "id": "n7",
-                  "label": "n = 7",
-                  "src": "assets/嵌套样本拟合_n7.png",
-                  "alt": "相同删点路径在n=7时的样本点与MDM、WMLE、LSE、K–R拟合曲线"
+                  "id": "path474",
+                  "label": "删点路径474：下端空缺增大，三法以不同依据定位",
+                  "src": "assets/31A_固定形状定位判据_样本474.png",
+                  "alt": "另一固定β=5删点路径中的最小值、阈值交点和线性匹配最低点"
                 }
               ]
             },
             {
-              "id": "same-sample-caption",
+              "id": "n-a-reading",
               "kind": "text",
-              "html": "<p><em>W(5,1000,500)。左右两例取自n=50存档样本1055、474；固定随机排列后保留前n个，避免按寿命大小删点。各图坐标与颜色一致，黑点为当前样本，底部刻线为实际观测，虚线为真实分布。四法使用本轮固定计算实现；这是两条补充删点路径，不并入1200次比较。</em></p>"
+              "html": "<p>第一条路径中，最小观测一直保留，K–R的位置因而不变；但删去其他点仍改变了MDM的梯度曲线和LSE的匹配曲线。MDM的交点左移，LSE的最佳位置则从内部转到零边界。第二条路径中，删点还增大了下端空缺，三种方法的位置均向右改变，但确定位置的依据与移动程度不同。</p><p>因此，样本量减少并不是给所有方法增加同一种误差。它先改变各法使用的统计关系，再由最小值、交点或最优位置传递到参数。哪种响应在小样本下更合适，要回到重复模拟中的偏差、波动与风险评价。</p>"
             },
             {
-              "id": "same-sample-reading",
+              "id": "n-a-source",
               "kind": "text",
-              "html": "<p>n=50时，两组样本覆盖的区间较完整，四种方法的拟合曲线相近。随着观测减少，点列中的局部间距变化更突出，各方法的曲线逐渐分离。左例从50点减到7点时，K–R曲线明显变陡；右例则在保留7点后出现更大的下端空缺，多种方法的拟合起点共同右移。两条路径说明，样本减少可以通过不同的点列变化影响拟合。</p><p>方法间的变化也并非同步。K–R直接随最小观测定位；MDM的阈值交点、WMLE的方程交点以及LSE的线性匹配，分别对改变后的间距作出响应。因此，同一次删点会改变各方法的拟合关系，中间阶段也不一定逐档扩大差距。这些过程示例解释样本变化怎样进入估计，发生频率和总体精度仍由第二章的重复模拟评价。</p>"
+              "html": "<p><em>固定W(5,1000,500)。复用本轮两条固定随机删点路径，n=50、20、7；未按表现筛选新路径。虚线为真位置，MDM横点线为δ=0.1，圆点为原返回位置；LSE越低越好。定位曲线的解释依据Research00报告1，本图重新计算这些样本的判据，不重写正式结果。个案说明传递环节，不给出方法总体名次。</em></p>"
             },
             {
-              "id": "n-rule-transfer",
+              "id": "n-a-value",
               "kind": "text",
-              "html": "<p>这种响应差异可以回到参数构造理解：直接以最小值定位时，下端空缺会直接转为位置高估；按固定梯度阈值定位时，样本间距会改变交点；按线性匹配定位时，同一间距变化则通过最佳拟合位置和回归斜率传递。相同的样本变化经过不同判据，可能更多表现为方向性偏移，也可能更多表现为重复波动。</p>"
+              "html": "<p><strong>采用理由：</strong>能直接把“相同样本变化、不同参数响应”连接到方法规则。适合讲具体过程；曲线较多，需要沿三列依次讲。</p>"
+            }
+          ]
+        },
+        {
+          "id": "n-fixed-position",
+          "label": "B｜固定真位置，查明偏差从哪一步传入（推荐）",
+          "blocks": [
+            {
+              "id": "n-b-opening",
+              "kind": "text",
+              "html": "<p>要判断形状偏移是否与位置估计有关，可以对同一批样本做一个诊断：先固定真实位置，只恢复形状；再与原方法同时估计位置和形状的结果比较。这样改变的是定位环节，样本本身保持相同。</p>"
             },
             {
-              "id": "c-criterion-examples",
-              "kind": "gallery",
-              "aspect_ratio": 1,
-              "images": [
-                {
-                  "id": "c-mdm",
-                  "label": "MDM：阈值交点",
-                  "src": "assets/R00_MDM_梯度阈值与参数条件.png",
-                  "alt": "Research00中MDM阈值曲线随β和n变化的诊断"
-                },
-                {
-                  "id": "c-lse",
-                  "label": "LSE：定位判据",
-                  "src": "assets/R00_LSE_判据与参数条件.png",
-                  "alt": "Research00中LSE位置判据随β和n变化的诊断"
-                }
-              ]
+              "id": "n-b-control",
+              "kind": "image",
+              "src": "assets/31B_固定真位置与原定位.png",
+              "alt": "β=5的MDM与LSE：固定真位置和按原规则定位时，形状均值随n的变化"
             },
             {
-              "id": "n-criterion-caption",
+              "id": "n-b-reading",
               "kind": "text",
-              "html": "<p><em>复用Research00报告1的MDM和LSE诊断：β=2、5，n=7、15、30，η=1000、γ=500。每条曲线对应一组历史样本，显示定位关系随样本条件的变化；不并入本轮1200次统计。</em></p>"
+              "html": "<p>MDM固定真位置后，形状均值在各档n下均接近真值；采用原梯度阈值定位后，形状均值向下偏移，且n越小，两个结果相隔越远。这说明本组条件下，明显的形状低估与定位环节的传递有关，不能只归因于形状恢复本身。</p><p>LSE也受到定位环节影响，但均值改变的幅度较小。这并不意味着LSE更稳定：n=7时，其原形状估计的波动明显大于MDM。因此，同样的定位不确定性，可以在一种方法中更多表现为方向性偏差，在另一种方法中更多表现为波动。</p>"
             },
             {
-              "id": "n-criterion-interpretation",
+              "id": "n-b-bias-sd",
+              "kind": "visual",
+              "html": "<table><tr><th>β=5，n=7</th><th>原形状偏差</th><th>原形状SD</th><th>固定真位置后的形状偏差</th></tr><tr><td>MDM</td><td>−2.62</td><td>1.14</td><td>+0.47</td></tr><tr><td>LSE</td><td>−0.58</td><td>3.54</td><td>+0.73</td></tr></table>"
+            },
+            {
+              "id": "n-b-source",
               "kind": "text",
-              "html": "<p>MDM通过同一阈值确定位置，曲线变化可以使交点产生有方向的移动；LSE在一段位置范围内的拟合质量可能十分接近，间距变化则容易改变所选位置。两种定位规则由此产生不同的偏差和波动变化。</p>"
+              "html": "<p><em>固定W(5,1000,500)，每档n使用本法全部1200个有效样本。原估计读取存档；MDM固定γ=500后仍用原伪尺度最小标准差和形状范围，LSE固定γ后仍用原顺序统计量期望和回归关系。表中SD按总体标准差计算。固定真位置是模拟诊断，实际应用不能获得这一条件；差值不是完整的因果贡献分解。</em></p>"
+            },
+            {
+              "id": "n-b-value",
+              "kind": "text",
+              "html": "<p><strong>推荐理由：</strong>用同样本的条件对照定位偏差形成环节，比再次展示“样本少、误差大”更进一步。若与A组合，可先用本图确认定位环节的重要性，再用交点和最低点说明怎样传入。</p>"
+            }
+          ]
+        },
+        {
+          "id": "n-rule-map",
+          "label": "C｜用一张机制关系图作精简讲解",
+          "blocks": [
+            {
+              "id": "n-c-route",
+              "kind": "image",
+              "src": "assets/31C_样本到定位的分路.png",
+              "alt": "样本量减少通过最小值、梯度交点及线性匹配三条路线进入参数估计"
+            },
+            {
+              "id": "n-c-reading",
+              "kind": "text",
+              "html": "<p>样本量减少后，少数点及局部间距对估计的作用更突出。K–R将下端空缺直接转为位置误差；MDM让间距变化先改变梯度交点；LSE则让它改变最佳匹配位置及回归斜率。各法使用的信息和确定位置的规则不同，偏差与波动便可能以不同方式改变。</p>"
             },
             {
               "id": "n-kr-exact",
               "kind": "text",
-              "html": "<p>对直接以最小值定位的K–R，可以进一步得到精确的样本量关系：</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><mi>η</mi><mtext> </mtext><msup><mi>n</mi><mrow><mo>−</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><msqrt><mrow><mi mathvariant=\"normal\">Γ</mi><mo stretchy=\"false\">(</mo><mn>1</mn><mo>+</mo><mn>2</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi><mo stretchy=\"false\">)</mo></mrow></msqrt><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span><p>即使只看这一种方法，误差对n的响应也取决于β。不同方法采用不同统计量和定位判据，不能预期它们都按同一速度随样本减少而变差。</p>"
+              "html": "<p>K–R直接用样本最小值定位，因此位置误差对样本量的响应可以精确写为：</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><mi>η</mi><mtext> </mtext><msup><mi>n</mi><mrow><mo>−</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><msqrt><mrow><mi mathvariant=\"normal\">Γ</mi><mo stretchy=\"false\">(</mo><mn>1</mn><mo>+</mo><mn>2</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi><mo stretchy=\"false\">)</mo></mrow></msqrt><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span><p>它说明：当位置由最小值直接确定时，下端空缺以明确的样本量关系进入误差。MDM和LSE采用不同定位判据，需要另看交点或最低点如何改变。</p>"
+            },
+            {
+              "id": "n-c-value",
+              "kind": "text",
+              "html": "<p><strong>适用方式：</strong>适合口头汇报时快速交代三条传递路径。关系图归纳Research00及本轮诊断，除K–R精确关系外，并不定量证明哪种方法更适应小样本；若要展开这一判断，宜保留A或B作为图证。</p>"
             }
           ]
         }
       ],
-      "selected_ids": [
-        "mechanism-minimum"
-      ]
+      "selected_ids": [],
+      "selection_mode": "multiple",
+      "context": "核心问题：固定β，样本减少为什么会经不同估计规则形成不同的偏差与波动？三个方案可组合。推荐B作主要证据、A解释具体步骤；C适合压缩讲解。"
     },
     {
-      "id": "mechanism-n",
-      "title": "3.2　形状条件下的偏移与分布分化",
+      "id": "mechanism-n-background",
+      "title": "3.2　形状条件下的偏移与边界聚集",
       "mode": "content",
-      "state": "modify",
-      "selected": "mechanism-n-current",
       "options": [
         {
-          "id": "mechanism-n-current",
-          "label": "当前内容",
+          "id": "shape-common",
+          "label": "共同内容",
           "blocks": [
-            {
-              "id": "high-beta-opening",
-              "kind": "text",
-              "html": "<h4>起点附近缺少观测</h4>"
-            },
             {
               "id": "origin-probability-figure",
               "kind": "image",
@@ -501,104 +506,121 @@
               "html": "<p>相同n下，β=5时的最小观测比β=2时更远离真实起点；样本量减小时，这段距离进一步增大。下排最小观测的分布也显示，较大β下，即使增加样本，最小观测仍可能与起点保持较大距离。观测集中于分布中部，起点附近缺少数据，位置参数需要从较远处外推。</p><p><em>复用Research00报告1图2：η=1000、γ=500，β=2、5，n=7、15、30。橙点为每组样本的最小观测，灰线为其到真实起点的距离；下排为最小观测的理论密度。历史样本仅用于解释，不并入本轮1200次统计。</em></p>"
             },
             {
-              "id": "compatible-heading",
-              "kind": "text",
-              "html": "<h4>参数可以联动，使中部分布保持接近</h4>"
-            },
-            {
-              "id": "compensation-controlled-figure",
+              "id": "shape-compatible",
               "kind": "image",
-              "src": "assets/机制_参数补偿与分布相容.png",
-              "alt": "固定γ+η及η/β的参数变化在β1.5与5条件下的分布对照"
+              "src": "assets/R00_图3_参数组合与样本相容.png",
+              "alt": "Research00报告1：W(5,1000,500)与W(2,500,1000)在样本覆盖区间内接近"
             },
             {
-              "id": "compatible-combinations-explanation",
+              "id": "shape-compatible-reading",
               "kind": "text",
-              "html": "<p>图中将位置分别向两侧移动，同时调整形状和尺度，保持γ+η和η/β不变。右图三条曲线在中部更接近：参数已有明显差别，但分布差别仍较小。这提供了一条产生联合偏移的可能路径；方法实际选中哪一组参数，还取决于其估计判据。</p><p><em>这是受控参数对照，不是新增拟合结果。灰区为各基准分布的10%—90%分位区间；两图采用相同位置改变量。构造依据复用Research00报告1的参数相容解释。</em></p>"
-            },
+              "html": "<p>最小观测远离起点时，有限样本主要覆盖分布中部。图中的两组参数虽然相差较大，在这些观测所在的区间内，分布曲线仍较接近。因此，样本可能容许不同的参数组合；还需要追踪方法判据为什么选中了其中某一组。</p><p><em>复用Research00报告1图3：β=5、n=7第31组样本；黑点累计概率由样本排序近似。两条曲线用于说明参数相容，不代表该样本必然被估成其中某一组参数。</em></p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mechanism-n",
+      "title": "偏移与边界：解释方案",
+      "mode": "choices",
+      "state": "expand",
+      "selected": null,
+      "options": [
+        {
+          "id": "shape-r00-process",
+          "label": "A｜沿Research00的估计流程解释（推荐）",
+          "blocks": [
             {
-              "id": "local-combinations",
+              "id": "shape-a-opening",
               "kind": "text",
-              "html": "<p>在高β的分布中部，写成<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>T</mi><mo>=</mo><mi>γ</mi><mo>+</mo><mi>η</mi><mi>exp</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mi>Z</mi><mi mathvariant=\"normal\">/</mi><mi>β</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，其中<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>Z</mi><mo>=</mo><mi>ln</mi><mo>⁡</mo><mi>E</mi></mrow></semantics></math></span>、<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>E</mi><mo>∼</mo><mrow><mi mathvariant=\"normal\">E</mi><mi mathvariant=\"normal\">x</mi><mi mathvariant=\"normal\">p</mi></mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，一阶近似给出</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>T</mi><mo>≈</mo><mo stretchy=\"false\">(</mo><mi>γ</mi><mo>+</mo><mi>η</mi><mo stretchy=\"false\">)</mo><mo>+</mo><mfrac><mi>η</mi><mi>β</mi></mfrac><mi>Z</mi><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span>"
+              "html": "<h4>先解释有方向的参数偏移</h4><p>MDM仍按同一个梯度阈值定位。高β时，各观测反算的伪尺度随位置变化更接近同步，标准差梯度较小，阈值交点可能出现在偏高位置。位置提高后，小观测到起点的距离缩短比例更大，需要更小的形状维持伪尺度的一致，再恢复出更小尺度。</p>"
             },
             {
-              "id": "combination-meaning",
-              "kind": "text",
-              "html": "<p>一阶近似中，γ+η控制寿命水平，η/β控制离散程度，解释了图中参数补偿的方向。</p>"
-            },
-            {
-              "id": "parameter-transfer-observation",
-              "kind": "text",
-              "html": "<h4>估计判据怎样选出偏移的参数</h4>"
-            },
-            {
-              "id": "mdm-parameter-transfer",
+              "id": "shape-a-mdm",
               "kind": "image",
               "src": "assets/R00_MDM_位置形状尺度传递.png",
-              "alt": "Research00：MDM的定位交点怎样传递为形状和尺度的偏移"
+              "alt": "Research00报告1：梯度阈值选中较高位置后，形状和尺度随之降低"
             },
             {
-              "id": "mdm-parameter-transfer-explanation",
+              "id": "shape-a-mdm-reading",
               "kind": "text",
-              "html": "<p>Research00的MDM示例给出了实际选择路径：固定真位置时，形状估计较接近真值；阈值交点选出较高位置后，形状和尺度随之降低。位置上移改变了观测到起点的距离比例，后续形状与尺度恢复也随之改变。这一图例把三个参数的偏移连接到同一个定位过程。</p>"
+              "html": "<p>图中先看梯度交点，再沿同一位置看形状与尺度。这样，位置偏高、形状偏低、尺度偏低对应的是同一估计过程的传递，三个参数的偏差有共同来源。</p><p><em>Research00报告1图5，δ=0.1；β=2、5，n=7第48组配对样本。用于说明传递路径，不据单例认定全部方法或全部样本均如此。</em></p><h4>再解释为什么会在零位置聚集</h4>"
             },
             {
-              "id": "mdm-transfer-source",
+              "id": "shape-a-lse-zero",
+              "kind": "image",
+              "src": "assets/R00_报告2_LSE零边界.png",
+              "alt": "Research00报告2：LSE左移位置改善线性匹配，最佳位置可落在零边界或内部"
+            },
+            {
+              "id": "shape-a-boundary-reading",
               "kind": "text",
-              "html": "<p><em>复用Research00报告1图5：β=2、5，n=7的第48组配对样本，MDM δ=0.10。蓝点为固定真位置的条件估计，橙叉为原返回结果。</em></p>"
+              "html": "<p>LSE移动位置是为了让对数距离与参考坐标更接近直线。左移位置会压缩下端对数间距；当这能改善点列匹配时，准则倾向于更低位置。图中橙色样本在允许范围内的最低点落到γ=0，紫色样本的最低点则留在内部。γ≥0的约束使不同样本都可能返回同一个零值，重复估计中便形成边界聚集。</p><p>选低位置也压缩了整体对数跨度，使LSE回归斜率减小，取倒数后形状升高。因此，边界位置和形状高估可以沿同一条恢复关系连接起来。</p><p><em>复用报告2图6：正常与零边界样本为W(2,100,500)、n=15第35、36组；内部左偏为W(2,1000,3000)、n=7第1组。这里借用其机制图，不将这些历史条件并入本轮β=5统计。当前条件的边界核对见B。</em></p>"
             },
             {
-              "id": "boundary-origin",
+              "id": "shape-a-value",
               "kind": "text",
-              "html": "<h4>估计判据怎样把结果推到边界</h4>"
+              "html": "<p><strong>推荐理由：</strong>按“判据怎样定位—位置怎样传递到其他参数”讲，分别回应规律性偏移和边界聚集；尽量复用报告1、报告2的现成证据。</p>"
+            }
+          ]
+        },
+        {
+          "id": "shape-current-profiles",
+          "label": "B｜用当前同一条件的两条判据直接对照",
+          "blocks": [
+            {
+              "id": "shape-b-profiles",
+              "kind": "image",
+              "src": "assets/32B_内部偏移与边界选择.png",
+              "alt": "当前β=5、n=7的LSE：一个内部偏移样本和一个零边界样本的位置准则"
             },
             {
-              "id": "boundary-profiles",
-              "kind": "gallery",
-              "aspect_ratio": 1.5,
-              "images": [
-                {
-                  "id": "n-50",
-                  "label": "β = 5，n = 50",
-                  "src": "assets/尺度双峰_边界与参数补偿_n50.png",
-                  "alt": "β=5、n=50，LSE与LRE的位置尺度配对及位置准则廓线"
-                },
-                {
-                  "id": "n-7",
-                  "label": "β = 5，n = 7",
-                  "src": "assets/尺度双峰_边界与参数补偿_n7.png",
-                  "alt": "β=5、n=7，LSE与LRE的位置尺度配对及位置准则廓线"
-                }
-              ],
-              "markdown": "#### β = 5，n = 50\n\n![LSE与LRE的位置尺度配对及位置准则廓线](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/尺度双峰_边界与参数补偿_n50.png)\n\n#### β = 5，n = 7\n\n![LSE与LRE的位置尺度配对及位置准则廓线](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/尺度双峰_边界与参数补偿_n7.png)"
-            },
-            {
-              "id": "boundary-caption",
+              "id": "shape-b-reading",
               "kind": "text",
-              "html": "<p><em>图注：上排为全部有效结果，橙色表示零位置边界；下排各选一组边界样本和内部样本，圆点为原估计。灰色区域为诊断用的负γ延伸，红虚线为真实γ。LSE用等价的ρ²展示定位准则。</em></p>"
+              "html": "<p>两图使用相同参数条件、相同方法。左例的准则最低点位于真位置右侧，方法因此选中较高位置；右例的准则向低位置方向持续改善，但允许范围从零开始，实际返回值停在γ=0。零边界并不是用零代替失败，而是当前准则与非负位置约束共同给出的结果。</p><p>位置选定后，形状继续由同一回归斜率恢复。右移位置会拉开下端对数距离，可能对应较小形状；左移则压缩跨度，可能对应较大形状。这条关系解释了为什么两种定位方向会伴随不同的形状偏移。</p><p><em>W(5,1000,500)、n=7、本轮LSE原样本。左例沿用第0组，右例为零边界组中向γ=−600延伸的准则改善量接近中位数的第214组；不是按最大异常程度选例。灰区为原方法不允许的负位置，仅作廓线诊断；两图纵轴范围不同，比较各自最低点位置，不比较曲线绝对高低。</em></p>"
             },
             {
-              "id": "boundary-verification",
+              "id": "shape-b-value",
               "kind": "text",
-              "html": "<p>上排中，位置与尺度沿相反方向变化；下排的边界样本中，准则向低位置方向仍在改善，但非负约束将返回值截在γ=0。加密搜索仍得到零位置，向负位置延伸则继续改善。这些例子支持“判据倾向与参数约束共同形成边界解”的解释。</p>"
+              "html": "<p><strong>采用理由：</strong>用较少子图说明当前结果里的两种位置选择。它直接核对定位准则，关于点列怎样变直及参数怎样恢复，可接A中的报告2原图。</p>"
+            }
+          ]
+        },
+        {
+          "id": "shape-two-routes",
+          "label": "C｜用偏移与边界两条路径归纳",
+          "blocks": [
+            {
+              "id": "shape-c-routes",
+              "kind": "image",
+              "src": "assets/32C_偏移与边界两条路径.png",
+              "alt": "从高β下的起点信息不足分别走向内部参数偏移和零边界聚集"
             },
             {
-              "id": "interior-mode-check",
+              "id": "shape-c-reading",
               "kind": "text",
-              "html": "<p>上述图解释了参数相容、方向性偏移和边界选择。现有非边界结果尚未验证出两个明显的估计群体，因此这里不将参数相容进一步解释为双峰的成因。</p>"
+              "html": "<p>前两图说明高β、小样本下，起点附近信息不足，不同参数组合在中部仍可能相容。随后存在两类选择路径：一类在内部选中偏移位置，并带动形状、尺度改变；另一类的判据倾向于更低位置，在非负约束下集中返回零边界。</p><p>这张图将两个现象放回同一估计过程，同时保留它们的区别。它是对机制证据的归纳；如果主讲只使用此图，A或B中的实际判据图应作为解释依据，而不是仅凭箭头作结论。</p>"
+            },
+            {
+              "id": "shape-c-value",
+              "kind": "text",
+              "html": "<p><strong>适用方式：</strong>用作主讲的压缩图或本节收束。优点是路径清楚，细节少；定量说服力来自A、B及Research00，不宜独自承担全部验证。</p>"
             }
           ]
         }
       ],
-      "selected_ids": [
-        "mechanism-n-current"
-      ]
+      "selected_ids": [],
+      "inline": true,
+      "outline_level": 4,
+      "selection_mode": "multiple",
+      "context": "共同的样本起点图与参数相容图只展示一次。下面选择怎样解释“判据为何选出偏移参数”及“为何返回零边界”。推荐A作完整叙述；B为当前结果的简洁核对，可与A组合；C用于压缩主讲。"
     },
     {
       "id": "mechanism-boundary",
       "title": "3.3　明显异常估计的形成",
       "mode": "content",
-      "state": "open",
+      "state": "modify",
       "selected": "mechanism-boundary",
       "options": [
         {
@@ -606,59 +628,44 @@
           "label": "当前内容",
           "blocks": [
             {
-              "id": "anomaly-mechanism-opening",
+              "id": "anomaly-opening",
               "kind": "text",
-              "html": "<p>明显异常估计需要区分两种来源：样本经估计准则得到偏离真值的参数，以及计算过程没有正确求得该准则要求的解。两者都能表现为参数异常，但形成环节和改进方向不同。</p><h4>样本结构怎样形成异常参数</h4><p>下端观测成簇、最小值孤立，或远端存在单个观测，都会改变观测距离的相对关系。少数观测在小样本中占比更高，这些结构对定位和参数恢复的影响也更突出。</p>"
+              "html": "<p>明显异常估计要追踪异常在哪个估计环节形成。Research00报告2区分了两种情况：当前方法的准则确实支持一组明显偏离真值的参数；或搜索、停止、候选接受没有正确落实预定规则。</p><h4>样本结构改变判据，异常参数仍可满足方法规则</h4>"
             },
             {
-              "id": "anomaly-statistical-cases",
+              "id": "anomaly-statistical",
               "kind": "gallery",
-              "aspect_ratio": 1.684,
+              "aspect_ratio": 1.68,
               "images": [
                 {
                   "id": "lse-right",
-                  "label": "改善线性匹配，但形状明显低估",
+                  "label": "LSE：改善线性匹配后，形状反而明显低估",
                   "src": "assets/R00_报告2_LSE_right.png",
-                  "alt": "Research00报告2：LSE正常与异常样本，所选位置与形状恢复的对照"
+                  "alt": "报告2图7：远端观测改变点列，位置右移改善匹配并使形状降低"
                 },
                 {
                   "id": "wmle-low",
-                  "label": "方程残差接近零，但参数明显偏离",
+                  "label": "WMLE：两条方程均满足，参数仍明显偏离真值",
                   "src": "assets/R00_报告2_WMLE_low.png",
-                  "alt": "Research00报告2：WMLE正常与异常样本的残差、共同交点和尺度恢复"
+                  "alt": "报告2图12：样本距离改变共同交点，残差趋零但形状与尺度仍低估"
                 }
               ]
             },
             {
-              "id": "anomaly-statistical-caption",
+              "id": "anomaly-lse-reading",
               "kind": "text",
-              "html": "<p><em>复用Research00报告2图7、图12。LSE例为W(2,1000,500)、n=7的第18、19组；WMLE例为W(5,100,500)、n=7的第3、11组。图中保留原批次实现与参数范围，仅说明形成路径。</em></p>"
+              "html": "<p>LSE的异常样本中，前几个观测相对集中，另有一个较远观测。真位置下的点列与参考坐标匹配较差，右移位置能拉开下端对数间距，使点列更接近直线。准则因此选中靠近最小观测的位置，但随之增大的回归斜率取倒数后，形状明显降低，尺度也由缩小的距离恢复为较低值。</p><p>WMLE的异常样本改变了下端距离、对数距离和幂加权距离，两条方程的共同交点移向较高位置、较低形状。将返回参数代回，残差仍接近零。这里不是方程没有解对，而是这些样本统计量本身支持了偏离真值的参数。</p><p><em>复用报告2图7、12。LSE为W(2,1000,500)、n=7第18、19组；WMLE为W(5,100,500)、n=7第3、11组。保留历史实现及参数条件，只解释形成路径。</em></p><h4>数值求解未落实规则，也能形成异常返回</h4>"
             },
             {
-              "id": "anomaly-statistical-explanation",
-              "kind": "text",
-              "html": "<p>LSE的异常样本有一个远端观测，点列在真位置下的线性匹配较差。将位置向最小观测移动，能改善匹配，但也拉开下端对数距离，使回归斜率增大。形状取斜率倒数后明显降低。异常参数由当前判据选出的较好拟合形成。</p><p>WMLE的例子中，异常样本的下端观测集中，两条加权方程的共同交点移向较高位置、较低形状。迭代残差已接近零，尺度恢复后仍明显偏低。方程得到满足，并不保证小样本估计接近真值。</p><p>两例说明，样本结构既能改变拟合判据，也能改变方程交点；随后经参数恢复，将局部间距差异转成较大的参数偏离。</p>"
-            },
-            {
-              "id": "anomaly-numerical-heading",
-              "kind": "text",
-              "html": "<h4>计算过程也可能制造异常</h4>"
-            },
-            {
-              "id": "anomaly-numerical-case",
+              "id": "anomaly-solver",
               "kind": "image",
               "src": "assets/R00_报告2_MLE_stop.png",
-              "alt": "Research00报告2：旧MLE的近零停点仍存在提高似然的方向"
+              "alt": "报告2图17：旧MLE近零停点仍存在提高似然的方向"
             },
             {
-              "id": "anomaly-numerical-caption",
+              "id": "anomaly-solver-reading",
               "kind": "text",
-              "html": "<p><em>复用Research00报告2图17：W(2,1000,3000)、n=7的第37、38组，采用旧MLE求解程序。本轮Study04已更新求解器，此图不表示新版仍保留同一问题。</em></p>"
-            },
-            {
-              "id": "anomaly-numerical-explanation",
-              "kind": "text",
-              "html": "<p>旧MLE的异常例子停在接近零的位置，优化器报告收敛，但沿位置方向仍能提高似然。其他起点返回的候选又被接受条件剔除，最后留下这个近零停点。位置偏低压缩了对数距离的跨度，进一步得到偏大的形状。</p><p>这里应检查搜索、停止和候选接受过程。相比之下，前面的LSE判据与WMLE方程确实支持其异常参数，仅改进搜索未必能消除偏离。区分这两类来源，才能判断应改求解过程，还是研究方法对样本结构的敏感性。</p>"
+              "html": "<p>旧MLE的第37组在近零位置停止，优化器标记收敛；其他起点的返回结果又因形状不满足接受条件被剔除，最终只剩这个候选。但图中向右仍可提高似然，说明搜索停止及候选接受没有实现预期的最优选择。近零位置进一步压缩对数跨度，形成较大的形状估计。</p><p><em>报告2图17，W(2,1000,3000)、n=7第37、38组，采用旧MLE。Study04已更新求解器，此例用于区分计算来源，不认定新版仍有同一缺陷。</em></p><p>前两例应研究估计准则对样本结构的响应；后一例应改进求解与候选检查。异常表现相近，形成环节不同，改进方向也不同。</p>"
             }
           ]
         }
@@ -912,9 +919,20 @@
     },
     "anomaly_reference_check": "结果呈现/分析数据/异常现象与素材复用核对.json",
     "anomaly_reference_scope": "280个方法条件的异常频率逐项与原始行对拍；2.3为Study04现象，3.3报告2图为历史机制示例，旧MLE停止问题不作为新版现状。",
-    "interior_modes": "结果呈现/分析数据/同样本拟合与内部峰核对.json；三带宽四条件非边界尺度密度均单峰，未支持独立于边界的双峰。"
+    "interior_modes": "结果呈现/分析数据/同样本拟合与内部峰核对.json；三带宽四条件非边界尺度密度均单峰，未支持独立于边界的双峰。",
+    "mechanism_candidates_sources": {
+      "R00_图3_参数组合与样本相容.png": {
+        "source": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告1\\图2_样本与分布相容.png",
+        "sha256": "00330cf4a364a4b87d3c3cb2476bdd7493aba7814a9d8412ad7411164c8eddde"
+      },
+      "R00_报告2_LSE零边界.png": {
+        "source": "D:\\weibull\\Research\\00-方法对比\\交付\\结果\\报告2\\配对情形_LSE_zero.png",
+        "sha256": "c444a140da83bf9f994083998ac6a381203e4ca18710fa547aa0f8143efe99f2"
+      }
+    },
+    "fixed_position_control": "结果呈现/分析数据/第三章固定真位置对照.csv"
   },
-  "manuscript_version": "2.0",
+  "manuscript_version": "2.1",
   "archive_targets": {
     "output": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md",
     "previous": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md",

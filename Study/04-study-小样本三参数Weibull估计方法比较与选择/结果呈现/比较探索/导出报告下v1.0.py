@@ -95,14 +95,20 @@ def main():
         raise ValueError('成果路径须位于Study04内。')
     version = board.get('manuscript_version', '1.0')
     lines = ['# ' + board['title'], '', f'**报告下（方法对比）v{version}｜{board.get("manuscript_date", "2026-10-21")}**', '']
+    if args.draft and any(u.get('mode') == 'choices' for u in board['units']):
+        lines.extend(['> 待审稿：第三章包含未选定的候选解释，正式基准稿v2.0保持原文。', ''])
     image_count = 0
     for unit in board['units']:
-        if unit.get('mode') != 'content':
+        if unit.get('mode') != 'content' and not (args.draft and unit.get('mode') == 'choices'):
             raise ValueError(f'仍有未审定候选：{unit["id"]}')
         if unit['id'] != 'manuscript-outline' and not unit.get('inline'):
             level = 3 if re.match(r'^\d+\.\d+', unit['title']) else 2
             lines.extend(['#' * level + ' ' + unit['title'], ''])
+        if unit.get('mode') == 'choices' and unit.get('context'):
+            lines.extend(['*' + unit['context'] + '*', ''])
         for option in unit['options']:
+            if unit.get('mode') == 'choices':
+                lines.extend(['#### ' + option['label'], ''])
             for block in option['blocks']:
                 if block['kind'] == 'gallery':
                     for slide in block['images']:
