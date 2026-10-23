@@ -67,7 +67,7 @@ def draw_trajectories(axes, distances):
             else:
                 ax.set_xlabel('n')
             if p == 0:
-                ax.set_ylabel(f'β = {BETAS[j]:g}\nPairwise RMSE distance')
+                ax.set_ylabel(f'β = {BETAS[j]:g}\nRMSE 差距（绝对值）')
     for p in range(3):
         for row in range(2):
             axes[row, p].set_ylim(0, distances[p, :, [0, 7]].max() * 1.08)
@@ -92,7 +92,7 @@ def joint_figure(distances):
         for spine in ax.spines.values():
             spine.set_visible(False)
         bar = fig.colorbar(img, ax=ax, fraction=.045, pad=.035)
-        bar.ax.set_ylabel('Distance(n=7) − Distance(n=50)')
+        bar.ax.set_ylabel('差距(n=7) − 差距(n=50)')
     fig.legend(*axes[0, 0].get_legend_handles_labels(), loc='upper center',
                bbox_to_anchor=(.53, 1), ncol=5, frameon=False, fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, .93), h_pad=3, w_pad=2.3)
@@ -100,7 +100,7 @@ def joint_figure(distances):
 
 
 def main():
-    plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 11,
+    plt.rcParams.update({'font.family': 'Microsoft YaHei', 'font.size': 11,
                          'axes.titlesize': 15, 'axes.spines.top': False, 'axes.spines.right': False})
     distances = read_distances()
     outputs = [joint_figure(distances)]

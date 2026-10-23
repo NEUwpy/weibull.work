@@ -1,14 +1,14 @@
 {
-  "submission_id": "aa1d57c1-5dfb-4203-8f9d-25b4797f346a",
+  "submission_id": "0584679d-c840-4fca-a278-3e579b750975",
   "board_id": "study04-method-comparison-v1",
-  "board_revision": 32,
-  "submitted_at": "2026-10-23T03:12:47.386556+00:00",
-  "intent": "archive",
-  "finish_review": true,
+  "board_revision": 33,
+  "submitted_at": "2026-10-23T03:36:21.497310+00:00",
+  "intent": "submit",
+  "finish_review": false,
   "units": [
     {
       "unit_id": "manuscript-outline",
-      "unit_title": "报告下（方法对比）v1.2",
+      "unit_title": "报告下（方法对比）v2.0",
       "mode": "content",
       "target_option_id": "manuscript-outline-current",
       "target_option_ids": [
@@ -81,12 +81,21 @@
       "selected_option_ids": [],
       "selected_label": null,
       "selected_labels": [],
-      "next_action": "defer",
+      "next_action": "modify",
       "action_explicit": false,
       "inspiration": "",
       "notes": {},
       "section_note": "",
-      "block_notes": [],
+      "block_notes": [
+        {
+          "option_id": "law-rmse-current",
+          "block_id": "distance-joint-image",
+          "kind": "image",
+          "label": "各方法对的距离轨迹及n从50到7的距离变化联合图",
+          "src": "assets/方法差距变化_轨迹与50到7联合图.png",
+          "comment": "这个图的第三行是什么意思，为什么是方法和方法比较？选择依据？"
+        }
+      ],
       "annotations": [],
       "image_notes": []
     },
@@ -190,17 +199,8 @@
       "action_explicit": false,
       "inspiration": "",
       "notes": {},
-      "section_note": "",
-      "block_notes": [
-        {
-          "option_id": "mechanism-minimum",
-          "block_id": "b-stratified",
-          "kind": "image",
-          "label": "β=5，六种方法在有无起点附近观测两组中的条件位置RMSE，分别比较n=50和7",
-          "src": "assets/n响应候选_起点信息分层.png",
-          "comment": "这图也看不出来要表达啥啊"
-        }
-      ],
+      "section_note": "不对，这个里头应该展现出来，就是样本点从多变少，然后这个估计的这个差异。你这个图的这个子图，第二个子图。看起来好像不太，也不太清晰，看不出来是啥。你可以先画这个样本量从大到小。然后这个左边这个子图它的这个差别。",
+      "block_notes": [],
       "annotations": [],
       "image_notes": []
     },
@@ -331,12 +331,15 @@
       "image_notes": []
     }
   ],
-  "changed_units": [],
+  "changed_units": [
+    "law-rmse",
+    "mechanism-high-beta"
+  ],
   "confirmation": {
     "confirmed": true,
-    "intent": "archive",
-    "text": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.2.md\n更新引用，保留审阅记录，提交Git并同步远端。",
-    "generated_text": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.3.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.2.md\n更新引用，保留审阅记录，提交Git并同步远端。",
-    "edited": true
+    "intent": "submit",
+    "text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 33 轮）。\n\n【2.1　样本量减小下的不同表现】\n图表“各方法对的距离轨迹及n从50到7的距离变化联合图”：这个图的第三行是什么意思，为什么是方法和方法比较？选择依据？\n\n【3.1　样本减少与方法响应的差异】\n本节备注：不对，这个里头应该展现出来，就是样本点从多变少，然后这个估计的这个差异。你这个图的这个子图，第二个子图。看起来好像不太，也不太清晰，看不出来是啥。你可以先画这个样本量从大到小。然后这个左边这个子图它的这个差别。",
+    "generated_text": "请根据以下意见继续处理《小样本三参数Weibull参数估计方法的比较与选择》（第 33 轮）。\n\n【2.1　样本量减小下的不同表现】\n图表“各方法对的距离轨迹及n从50到7的距离变化联合图”：这个图的第三行是什么意思，为什么是方法和方法比较？选择依据？\n\n【3.1　样本减少与方法响应的差异】\n本节备注：不对，这个里头应该展现出来，就是样本点从多变少，然后这个估计的这个差异。你这个图的这个子图，第二个子图。看起来好像不太，也不太清晰，看不出来是啥。你可以先画这个样本量从大到小。然后这个左边这个子图它的这个差别。",
+    "edited": false
   }
 }
