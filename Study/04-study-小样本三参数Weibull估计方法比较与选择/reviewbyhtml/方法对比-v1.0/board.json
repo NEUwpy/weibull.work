@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 29,
+  "revision": 30,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.3.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.2.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v1.2.md",
@@ -92,9 +92,9 @@
     },
     {
       "id": "law-rmse",
-      "title": "2.1　误差水平与方法响应",
+      "title": "2.1　样本量减小下的不同表现",
       "mode": "content",
-      "state": "open",
+      "state": "modify",
       "selected": null,
       "options": [
         {
@@ -170,6 +170,21 @@
               "id": "distance-joint-phenomena",
               "kind": "text",
               "html": "<p>β=1.5时，七种方法的RMSE均随样本减少而上升；联合图中六种方法的两两差距也普遍拉开。此时，各方法的变化方向较为一致，区别主要表现为上升幅度不同。</p><p>β=5时，RMSE仍多向上，但方法间距离的变化不再一致：一些方法对继续分离，另一些逐渐接近，部分距离曲线还出现转折。比较n=50与7，LSE、LRE与WMLE的尺度和位置RMSE更接近，而它们与K–R的差距增大。</p><p>形状条件改变后，样本减少对方法关系的影响，可从普遍拉开转为拉开与接近并存。误差上升的共同方向，并不意味着方法间的精度关系保持不变。</p>"
+            },
+            {
+              "id": "wmle-bias-sd-evidence",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>n</th><th>形状Bias</th><th>形状SD</th><th>形状RMSE</th></tr></thead><tbody><tr><td>10</td><td>-2.263</td><td>0.982</td><td>2.466</td></tr><tr><td>7</td><td>-2.614</td><td>0.713</td><td>2.710</td></tr></tbody></table>"
+            },
+            {
+              "id": "wmle-bias-sd-caption",
+              "kind": "text",
+              "html": "<p><em>表：WMLE，β=5；七法共同有效结果，Bias保留符号。自身有效结果也支持SD下降、负偏差加重和RMSE上升的方向。</em></p>"
+            },
+            {
+              "id": "wmle-bias-sd-interpretation",
+              "kind": "text",
+              "html": "<p>样本减少时，误差增大也不总表现为分布展宽。β=5的WMLE形状估计在n从10减至7时，SD下降，负偏差却加重，RMSE仍然上升。各方法不仅误差增幅不同，误差增长的表现也可能不同。</p>"
             }
           ]
         }
@@ -178,9 +193,9 @@
     },
     {
       "id": "law-distribution",
-      "title": "2.2　估计分布的结构变化",
+      "title": "2.2　形状参数增大时的估计分布变化",
       "mode": "content",
-      "state": "open",
+      "state": "modify",
       "selected": null,
       "options": [
         {
@@ -252,22 +267,7 @@
             {
               "id": "report-521def6b8c6a",
               "kind": "text",
-              "html": "<p>相同n下，β从1.5增至5时，MDM、WMLE和K–R的形状估计虽然也增大，但增幅落后于真值，形状低估逐渐加重。同时，尺度估计向低值偏移，位置估计向高值偏移。三个参数的变化具有共同的方向性。</p><p><strong>分布展宽。</strong>LSE、LRE的尺度和位置估计从n=50到n=7明显变得分散；即使n=50，β从1.5增至5时，两种参数的四分位区间也明显扩大。分布展宽并非只出现在极小样本条件。</p><p><strong>边界聚集。</strong>LSE、LRE的位置估计在γ=0处出现集中。β=5时，这一现象在n=50下已经存在，n=7下边界结果的比例进一步增加。这些零值是原始结果中成功返回的位置估计。</p><p><strong>多峰结构。</strong>较大β下，LSE、LRE的尺度估计逐渐分成两组，形成双峰。较小β下，即使已有零位置结果，尺度分布也未必出现双峰。边界聚集与分布多峰是两种不同现象。</p><p><strong>参数联合偏移。</strong>β=5的同次重复估计配对结果还显示，位置偏小伴随尺度偏大，位置偏大伴随尺度偏小。边际分布中的双峰反映结果分成不同群体，位置—尺度配对则反映两个参数的联合变化。</p>"
-            },
-            {
-              "id": "wmle-bias-sd-evidence",
-              "kind": "visual",
-              "html": "<table><thead><tr><th>n</th><th>形状Bias</th><th>形状SD</th><th>形状RMSE</th></tr></thead><tbody><tr><td>10</td><td>-2.263</td><td>0.982</td><td>2.466</td></tr><tr><td>7</td><td>-2.614</td><td>0.713</td><td>2.710</td></tr></tbody></table>"
-            },
-            {
-              "id": "wmle-bias-sd-caption",
-              "kind": "text",
-              "html": "<p><em>表：WMLE，β=5；七法共同有效结果，Bias保留符号。自身有效结果也支持SD下降、负偏差加重和RMSE上升的方向。</em></p>"
-            },
-            {
-              "id": "wmle-bias-sd-interpretation",
-              "kind": "text",
-              "html": "<p>WMLE还表明，误差增大并不总伴随分布展宽：在这一条件下，样本减少时形状估计的SD下降，负偏差却加重，RMSE仍然上升。分布宽度、偏移和结构需要分别观察。</p>"
+              "html": "<p>β=1.5时，两档n下多数方法的主体分布形态相近。n=7的估计范围通常更宽，LSE、LRE的位置估计还出现了零边界结果。</p><p>固定n，β从1.5增至5时，估计分布进一步变化。LSE、LRE的尺度和位置估计逐渐展宽，即使n=50，四分位区间也明显扩大。因此，分布展宽并不只出现在极小样本条件。</p><p>MDM、WMLE和K–R则表现出有规律的参数偏移：形状估计的增幅落后于真β，低估加重；尺度估计向低值偏移，位置估计向高值偏移。两档n下均能观察到这一方向，n=7时偏移更明显。</p><p>同时，LSE、LRE的位置估计进一步向γ=0聚集，较大β下尺度分布形成双峰。这些变化在n=50时已可见，在n=7时边界结果更多。较小β下已有部分零位置结果，却未形成同样清晰的尺度双峰，说明边界聚集与双峰并非始终同时出现。</p>"
             }
           ]
         }
@@ -833,8 +833,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "e8b60157-2837-494d-8199-7150beee7da3",
-  "last_rendered_submission_id": "e8b60157-2837-494d-8199-7150beee7da3",
+  "last_applied_submission_id": "11218743-5dd2-4c8c-a7a6-a396849d4743",
+  "last_rendered_submission_id": "11218743-5dd2-4c8c-a7a6-a396849d4743",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.7.1",
