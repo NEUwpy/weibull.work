@@ -1,0 +1,634 @@
+{
+  "mle": {
+    "abbreviation": "MLE",
+    "chinese_name": "极大似然估计",
+    "year": "待核",
+    "authors": [],
+    "year_basis": "通用估计原则；本稿未核定该原则或三参数Weibull朴素MLE的首提文献，不能用Smith（1985）的非正则性研究年份代替。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.0",
+      "../03-方法与文献对应清单.md 范围与读法、似然及其修正"
+    ]
+  },
+  "cmle": {
+    "abbreviation": "CMLE",
+    "chinese_name": "区间概率修正似然",
+    "year": "1987",
+    "authors": [
+      "Cheng",
+      "Iles"
+    ],
+    "year_basis": "对应Cheng与Iles（1987）的具体区间概率构造文献年；不作一般修正似然首提断言。",
+    "evidence": [
+      "../03-方法与文献对应清单.md 似然及其修正（182-131）",
+      "../04-方法分类与沿袭关系工作稿.md §2.1、§2.3"
+    ]
+  },
+  "firth": {
+    "abbreviation": "Firth",
+    "chinese_name": "得分偏差修正",
+    "year": "1993",
+    "authors": [
+      "Firth"
+    ],
+    "year_basis": "对应Firth（1993）的偏差缩减构造文献年；为DMMLE采用的修正来源，非独立的三参数Weibull完整估计器。",
+    "evidence": [
+      "../03-方法与文献对应清单.md 似然及其修正（182-120）",
+      "../04-方法分类与沿袭关系工作稿.md §2.2"
+    ]
+  },
+  "dmmle": {
+    "abbreviation": "DMMLE",
+    "chinese_name": "双重修正极大似然",
+    "year": "2025",
+    "authors": [
+      "da Silva",
+      "Quintino",
+      "Almeida",
+      "Aguiar"
+    ],
+    "year_basis": "对应da Silva等（2025）的数据修改与Firth得分修正组合构造文献年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.2",
+      "../03-方法与文献对应清单.md 似然及其修正（182-111）",
+      "本地文献库/182_传统参数估计方法/182-111-pdf原文.md：第5行作者；首页2025年出版及引用信息"
+    ]
+  },
+  "mle2": {
+    "abbreviation": "MLE2",
+    "chinese_name": "二参数极大似然",
+    "year": "待核",
+    "authors": [],
+    "year_basis": "通用条件估计部件；不把Park（2017）的组合应用年份当作二参数MLE提出年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §3.2",
+      "../03-方法与文献对应清单.md 范围与读法"
+    ]
+  },
+  "jacquelin": {
+    "abbreviation": "Jacquelin",
+    "chinese_name": "二参数加权代数构造",
+    "year": "1993",
+    "authors": [
+      "Jacquelin"
+    ],
+    "year_basis": "对应Jacquelin（1993）的二参数构造文献年；与Cousineau三参数WMLE分开。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.1、§2.2",
+      "../03-方法与文献对应清单.md 似然及其修正（182-132）",
+      "../../../../src/content/182-132-pdf原文.md：题录"
+    ]
+  },
+  "wmle": {
+    "abbreviation": "WMLE",
+    "chinese_name": "加权极大似然",
+    "year": "2009",
+    "authors": [
+      "Cousineau"
+    ],
+    "year_basis": "对应Cousineau（2009）的三参数三权重估计方程构造文献年；不把此前二参数构造并为同一版本。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.1、§2.2",
+      "../03-方法与文献对应清单.md 似然及其修正（182-088）",
+      "../../../../src/content/182-088-pdf原文.md：题录"
+    ]
+  },
+  "wmle-correct": {
+    "abbreviation": "WMLE",
+    "chinese_name": "形状偏差修正",
+    "year": "2024",
+    "authors": [
+      "杨小玉",
+      "谢里阳",
+      "杨奕凤",
+      "赵丙峰",
+      "李元"
+    ],
+    "year_basis": "对应杨小玉等（2024）的样本量相关形状偏差修正构造文献年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.2",
+      "../03-方法与文献对应清单.md 似然及其修正（182-024）",
+      "本地文献库/182_传统参数估计方法/182-024-pdf原文.md：第3行作者及首页2024年文章编号"
+    ]
+  },
+  "smith": {
+    "abbreviation": "Smith",
+    "chinese_name": "最小值定位删点",
+    "year": "1985",
+    "authors": [
+      "Smith"
+    ],
+    "year_basis": "对应Smith（1985）第5节给出的替代估计构造文献年；不作朴素MLE首提年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.1（Smith→Kundu–Raqab）",
+      "../03-方法与文献对应清单.md 似然及其修正（182-090）"
+    ]
+  },
+  "kr": {
+    "abbreviation": "MMLE",
+    "chinese_name": "删最小值修正似然",
+    "year": "2009",
+    "authors": [
+      "Kundu",
+      "Raqab"
+    ],
+    "year_basis": "对应Kundu与Raqab（2009）双样本应力—强度问题的共同最小值及删除构造文献年；Study04使用其单样本形式，年份不表示该构造的最早来源。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.1、§2.2",
+      "../03-方法与文献对应清单.md 似然及其修正（182-119）",
+      "本地文献库/182_传统参数估计方法/182-119-pdf原文.md：第15行作者与2009年出版信息"
+    ]
+  },
+  "white": {
+    "abbreviation": "White",
+    "chinese_name": "概率图分数回归",
+    "year": "1969",
+    "authors": [
+      "White"
+    ],
+    "year_basis": "对应White（1969）的次序统计量矩、分数及回归构造文献年；不是三参数LSE首提断言。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §3.2",
+      "../03-方法与文献对应清单.md 概率图与最小二乘（182-134）",
+      "../../../../src/content/182-134-pdf原文.md：题录"
+    ]
+  },
+  "soman": {
+    "abbreviation": "LSE",
+    "chinese_name": "位置评分最小二乘",
+    "year": "1992",
+    "authors": [
+      "Soman",
+      "Misra"
+    ],
+    "year_basis": "对应Soman与Misra（1992）的三参数位置评分与回归版本文献年；不代表所有LSE。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §3.2",
+      "../03-方法与文献对应清单.md 概率图与最小二乘（182-104）",
+      "../../../../src/content/182-104-pdf原文.md：题录"
+    ]
+  },
+  "lipson": {
+    "abbreviation": "Lipson–Sheth",
+    "chinese_name": "概率图相关性定位",
+    "year": "1973",
+    "authors": [
+      "Lipson",
+      "Sheth"
+    ],
+    "year_basis": "对应Park原文明确引用的Lipson与Sheth（1973）著作年份；承接声明及题录已核，原书全文未核，不称首次提出。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §3.3（Lipson–Sheth→Park）"
+    ]
+  },
+  "park": {
+    "abbreviation": "LRE",
+    "chinese_name": "相关定位与回归",
+    "year": "2017",
+    "authors": [
+      "Park"
+    ],
+    "year_basis": "对应Park（2017）的Proposed+Plot版本；2018文提供存在性论证，不将方法年份改成2018，也不认定相关定位思想由Park首提。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §3.2、§3.3",
+      "../03-方法与文献对应清单.md 概率图与最小二乘（182-115、182-106）",
+      "本地文献库/182_传统参数估计方法/182-115-pdf原文.md：第3行作者；§5 Proposed+Plot"
+    ]
+  },
+  "mdm": {
+    "abbreviation": "MDM",
+    "chinese_name": "最小差异估计",
+    "year": "2023",
+    "authors": [
+      "Xie",
+      "Wu",
+      "Yang"
+    ],
+    "year_basis": "对应基础方法论文正式卷期年2023（在线2022）；本字段不是当前δ=0.1实现的版本年。2025文讨论偏移判据，不据此把泛称MDM改标2025。",
+    "evidence": [
+      "../03-方法与文献对应清单.md 矩、间距与差异准则（182-030、182-046）",
+      "../04-方法分类与沿袭关系工作稿.md §3.5",
+      "../../../../src/content/182-030-pdf原文.md：作者；frontmatter的2022按03清单的在线年理解",
+      "../../../../src/content/182-046-pdf原文.md：2025偏移判据文献"
+    ]
+  },
+  "mps": {
+    "abbreviation": "MPS",
+    "chinese_name": "极大乘积间距",
+    "year": "1983",
+    "authors": [
+      "Cheng",
+      "Amin"
+    ],
+    "year_basis": "对应Cheng与Amin（1983）的移位原点构造文献年；Ranneby（1984）独立早期来源另存，不在此据发表顺序断言唯一首提。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.3",
+      "../03-方法与文献对应清单.md 矩、间距与差异准则（182-116）、待核线索（Ranneby）"
+    ]
+  },
+  "qmp": {
+    "abbreviation": "QMP",
+    "chinese_name": "分位数组概率估计",
+    "year": "2004",
+    "authors": [
+      "Heathcote",
+      "Brown",
+      "Cousineau"
+    ],
+    "year_basis": "对应QMPE（2004）中含移位Weibull、参数依赖下界的QMP构造；2002 QML为前驱，不将软件名QMPE另算一个估计器。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.2、§2.3",
+      "../03-方法与文献对应清单.md 似然及其修正（182-121、182-122）"
+    ]
+  },
+  "gm": {
+    "abbreviation": "GM",
+    "chinese_name": "灰色位置估计",
+    "year": "待核",
+    "authors": [],
+    "year_basis": "当前节点是GM确定位置的泛称部件，未绑定唯一原始构造；不能把GM–noise SVR（2021）的使用年或旧灰色线索年当作该泛称提出年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.2",
+      "../03-方法与文献对应清单.md 灰色估计、学习与密度组合"
+    ]
+  },
+  "gm-svr": {
+    "abbreviation": "GM–noise SVR",
+    "chinese_name": "灰色与噪声SVR估计",
+    "year": "2021",
+    "authors": [
+      "王贺",
+      "吴振博",
+      "徐添",
+      "王志强",
+      "刘超"
+    ],
+    "year_basis": "对应王贺等（2021）的GM定位与当前样本ε-SVR回归组合版本；不表示SVR工具或GM的提出年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.2",
+      "../03-方法与文献对应清单.md 学习与密度组合（183-022）",
+      "../../../../src/content/183-022-pdf原文.md：题录、作者与§2"
+    ]
+  },
+  "cran": {
+    "abbreviation": "MM",
+    "chinese_name": "威布尔矩显式估计",
+    "year": "1988",
+    "authors": [
+      "Cran"
+    ],
+    "year_basis": "对应Cran（1988）的Weibull moments生存积分与显式恢复构造文献年；不表示常规幂矩法提出年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.1",
+      "../03-方法与文献对应清单.md 矩、间距与差异准则（182-102）"
+    ]
+  },
+  "pwm": {
+    "abbreviation": "PWM",
+    "chinese_name": "概率加权矩估计",
+    "year": "1979",
+    "authors": [
+      "Greenwood",
+      "Landwehr",
+      "Matalas",
+      "Wallis"
+    ],
+    "year_basis": "对应Greenwood等（1979）的概率加权矩定义及分布参数关系文献年；本表统一称对应构造文献年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.1",
+      "../03-方法与文献对应清单.md 矩、间距与差异准则（182-133）",
+      "../../../../src/content/182-133-pdf原文.md：题录及首页作者"
+    ]
+  },
+  "lmom": {
+    "abbreviation": "LM",
+    "chinese_name": "L矩估计",
+    "year": "1990",
+    "authors": [
+      "Hosking"
+    ],
+    "year_basis": "对应Hosking（1990）的L矩整理与估计框架文献年；该文整合更早结果，不称所有相关思想均首提于1990。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.1",
+      "../03-方法与文献对应清单.md 矩、间距与差异准则（182-135）",
+      "../../../../src/content/182-135-pdf原文.md：题录"
+    ]
+  },
+  "tlmom": {
+    "abbreviation": "TLM",
+    "chinese_name": "截尾L矩估计",
+    "year": "2003",
+    "authors": [
+      "Elamir",
+      "Seheult"
+    ],
+    "year_basis": "对应Elamir与Seheult（2003）的Trimmed L-moments构造文献年；不以2013年Weibull应用比较文替代。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.1",
+      "../03-方法与文献对应清单.md 矩、间距与差异准则（182-138）",
+      "../../../../src/content/182-138-pdf原文.md：题录"
+    ]
+  },
+  "mvleh": {
+    "abbreviation": "MVLE-H",
+    "chinese_name": "倒数形状线性组合",
+    "year": "2020",
+    "authors": [
+      "Ogura",
+      "Sugiyama",
+      "Sugiura"
+    ],
+    "year_basis": "对应Ogura等（2020）的MVLE-H构造文献年；不把倒数形状条件无偏性直接传给取倒数后的形状估计。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.4",
+      "../03-方法与文献对应清单.md 统计量与交替组合（182-125）",
+      "../../../../src/content/182-125-pdf原文.md：题录"
+    ]
+  },
+  "w-mean": {
+    "abbreviation": "W均值匹配",
+    "chinese_name": "W均值匹配估计",
+    "year": "2003",
+    "authors": [
+      "Nagatsuka",
+      "Kamakura"
+    ],
+    "year_basis": "对应Nagatsuka与Kamakura（2003）的W均值关系构造文献年；不等同于2013年LSPF的W联合似然。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.2",
+      "../03-方法与文献对应清单.md 统计量与交替组合（182-123）",
+      "../../../../src/content/182-123-pdf原文.md：题录"
+    ]
+  },
+  "quantile": {
+    "abbreviation": "分位数／枢轴反演",
+    "chinese_name": "统计关系反演",
+    "year": "待核",
+    "authors": [],
+    "year_basis": "当前节点合并多个统计反演构造，尚未指定唯一估计器及相应年份；2004区间、2009位置点估计等具体分支不能任选一年来代表泛称。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.3",
+      "../03-方法与文献对应清单.md 统计量与交替组合（182-136、182-137）"
+    ]
+  },
+  "mvlue": {
+    "abbreviation": "MVLUE",
+    "chinese_name": "条件位置线性无偏估计",
+    "year": "2019",
+    "authors": [
+      "Sugiyama",
+      "Ogura",
+      "Sugiyama"
+    ],
+    "year_basis": "对应Sugiyama、Ogura、Sugiyama（2019）的条件位置构造文献年；两位Sugiyama为不同作者。形状和尺度已知是该节点的条件。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.4",
+      "../03-方法与文献对应清单.md 统计量与交替组合（182-140）",
+      "../../../../src/content/182-140-pdf原文.md：题录和首页作者"
+    ]
+  },
+  "cw": {
+    "abbreviation": "MMLE",
+    "chinese_name": "辅助关系修正似然",
+    "year": "1982",
+    "authors": [
+      "Cohen",
+      "Whitten"
+    ],
+    "year_basis": "对应Cohen与Whitten（1982）的MMLE-I至V构造族；01细图具体展示MMLE-II，仍用1982，不与同文修改矩法或Kundu–Raqab版本混并。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §2.1",
+      "../03-方法与文献对应清单.md 似然及其修正（182-091）"
+    ]
+  },
+  "park-mle2": {
+    "abbreviation": "Proposed+MLE2",
+    "chinese_name": "相关定位与条件似然",
+    "year": "2017",
+    "authors": [
+      "Park"
+    ],
+    "year_basis": "对应Park（2017）的Proposed+MLE2组合分支文献年；与Proposed+Plot分别标识。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §3.2",
+      "../03-方法与文献对应清单.md 概率图与最小二乘（182-115）",
+      "本地文献库/182_传统参数估计方法/182-115-pdf原文.md：§5 Proposed+MLE2"
+    ]
+  },
+  "yang": {
+    "abbreviation": "Yang迭代",
+    "chinese_name": "回归与位置修正迭代",
+    "year": "2023",
+    "authors": [
+      "杨小玉",
+      "宋佳昕",
+      "谢里阳",
+      "赵丙峰"
+    ],
+    "year_basis": "对应杨小玉等（2023）的回归与最小值期望位置修正迭代构造文献年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §3.2、§3.3",
+      "../03-方法与文献对应清单.md 概率图与最小二乘（182-047）",
+      "本地文献库/182_传统参数估计方法/182-047-pdf原文.md：第3行作者、首页2023年文章编号"
+    ]
+  },
+  "mixed": {
+    "abbreviation": "Mixed",
+    "chinese_name": "形状与统计关系组合",
+    "year": "2009",
+    "authors": [
+      "Cousineau"
+    ],
+    "year_basis": "对应Cousineau（2009）比较文中MLE、MPS、WMLE形状分别接均值及最小值期望恢复的三种Mixed版本文献年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.1",
+      "../03-方法与文献对应清单.md 综述与比较（182-101）"
+    ]
+  },
+  "early-iter": {
+    "abbreviation": "初始失效期迭代",
+    "chinese_name": "位置与二参数恢复迭代",
+    "year": "2025",
+    "authors": [
+      "Tsukada",
+      "Sugiyama",
+      "Ogura"
+    ],
+    "year_basis": "对应Tsukada等（2025）的条件位置MVLUE与二参数恢复迭代构造文献年；greg2与rank是恢复分支，不由停止条件改称全局MLE。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.4",
+      "../03-方法与文献对应清单.md 统计量与交替组合（182-050）"
+    ]
+  },
+  "mvleh-extended": {
+    "abbreviation": "MVLE-H",
+    "chinese_name": "临时形状与超参数扩展",
+    "year": "2022",
+    "authors": [
+      "Sugiyama",
+      "Ogura"
+    ],
+    "year_basis": "对应Sugiyama与Ogura（2022）的MVLE-H超参数确定扩展文献年；WMLE仅按底稿已核的临时形状策略借用记录。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.4",
+      "../03-方法与文献对应清单.md 统计量与交替组合（182-126）",
+      "../../../../src/content/182-126-pdf原文.md：题录"
+    ]
+  },
+  "lspf": {
+    "abbreviation": "LSPF",
+    "chinese_name": "去位置尺度统计量似然",
+    "year": "2013",
+    "authors": [
+      "Nagatsuka",
+      "Kamakura",
+      "Balakrishnan"
+    ],
+    "year_basis": "对应Nagatsuka等（2013）的W联合似然与位置修正构造文献年；不是2003年W均值匹配。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.2",
+      "../03-方法与文献对应清单.md 统计量与交替组合（182-113）"
+    ]
+  },
+  "lpf": {
+    "abbreviation": "LPF",
+    "chinese_name": "去位置统计量似然",
+    "year": "2015",
+    "authors": [
+      "Nagatsuka",
+      "Balakrishnan"
+    ],
+    "year_basis": "对应Nagatsuka与Balakrishnan（2015）的V统计量似然构造文献年；末阶段按原文似然方程(9)、(10)恢复。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.2及v2.0交叉核对补正",
+      "../03-方法与文献对应清单.md 统计量与交替组合（182-141）",
+      "../../../../src/content/182-141-pdf原文.md：题录"
+    ]
+  },
+  "green": {
+    "abbreviation": "Bayes",
+    "chinese_name": "联合后验与条件抽样",
+    "year": "1994",
+    "authors": [
+      "Green",
+      "Roesch",
+      "Smith",
+      "Strawderman"
+    ],
+    "year_basis": "对应Green等（1994）树径数据的三参数Weibull后验模型及条件抽样版本；不表示Bayes或Gibbs一般思想的提出年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.3",
+      "../03-方法与文献对应清单.md 贝叶斯（182-144）",
+      "../../../../src/content/182-144-pdf原文.md：题录及首页作者"
+    ]
+  },
+  "teimouri": {
+    "abbreviation": "Bayes",
+    "chinese_name": "位置MH更新后验估计",
+    "year": "2022",
+    "authors": [
+      "Teimouri"
+    ],
+    "year_basis": "统一采用正式对应构造文献年2022（在线2021）；已核全文为2020预印本，2020不在图示年份中并列。预印本与正式版的计算支持域是否一致仍未核，不能把本地预印本问题无条件归给正式版。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.3",
+      "../03-方法与文献对应清单.md 贝叶斯（182-129）",
+      "../../../../src/content/182-129-pdf原文.md：题录、§2.2"
+    ]
+  },
+  "ann": {
+    "abbreviation": "ANN",
+    "chinese_name": "神经网络直接估计",
+    "year": "2008",
+    "authors": [
+      "Abbasi",
+      "Rabelo",
+      "Hosseinkouchack"
+    ],
+    "year_basis": "对应Abbasi等（2008）的五统计特征到三参数直接映射版本；原06节点合写ANN/BPNN，本对照拆为ann和bpnn两条来源。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.4",
+      "../03-方法与文献对应清单.md 学习与密度组合（183-020）",
+      "本地文献库/183_机器学习参数估计/183-020-pdf原文.md：首页作者及Reference to this paper should be made as follows"
+    ]
+  },
+  "bpnn": {
+    "abbreviation": "BPNN",
+    "chinese_name": "反向传播网络直接估计",
+    "year": "2025",
+    "authors": [
+      "Yang",
+      "Xie",
+      "Chen",
+      "Zhao",
+      "Wang"
+    ],
+    "year_basis": "对应Yang等（2025）的疲劳失效数据BPNN版本；与2008年ANN构造分开，不把作者之间的背景引用当作架构完全继承。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.4",
+      "../03-方法与文献对应清单.md 学习与密度组合（184-009）",
+      "本地文献库/184_深度学习参数估计/184-009-pdf原文.md：第3行作者和DOI 10.1016/j.probengmech.2025.103828"
+    ]
+  },
+  "hall-wang": {
+    "abbreviation": "BL",
+    "chinese_name": "经验因子修正似然",
+    "year": "2005",
+    "authors": [
+      "Hall",
+      "Wang"
+    ],
+    "year_basis": "01细图罚似然框具体采用Hall与Wang（2005）的前两次序量经验因子；本年对应这一构造，不表示一般罚似然或MAP首提年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.3（Hall–Wang）",
+      "../03-方法与文献对应清单.md 贝叶斯（182-143）",
+      "../../../../src/content/182-143-pdf原文.md：题录、式(2.4)–(2.5)"
+    ]
+  },
+  "cdf-wlse": {
+    "abbreviation": "CDF-WLSE",
+    "chinese_name": "分布函数加权最小二乘",
+    "year": "待核",
+    "authors": [],
+    "year_basis": "02细图目前展示一般CDF加权平方差目标，未指定单一原始估计器。Jukić等（2008）可作已核构造及存在性来源，不等于该泛称准则首提年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §3.5",
+      "../03-方法与文献对应清单.md 概率图与最小二乘（182-093）",
+      "生成分布与统计细图.py：cdf-wlse节点"
+    ]
+  },
+  "mm": {
+    "abbreviation": "MM",
+    "chinese_name": "常规幂矩估计",
+    "year": "待核",
+    "authors": [],
+    "year_basis": "03细图的常规矩为通用幂矩或标准化矩匹配原型；Newby（1984）是已核三参数Weibull性质与构造来源，未据此断言一般MM首提。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §4.1",
+      "../03-方法与文献对应清单.md 范围与读法、矩、间距与差异准则（182-139）",
+      "生成分布与统计细图.py：moment-title及其方程"
+    ]
+  },
+  "bayes": {
+    "abbreviation": "Bayes",
+    "chinese_name": "贝叶斯后验估计",
+    "year": "待核",
+    "authors": [],
+    "year_basis": "04细图所示一般后验构造及决策原则；具体Green与Teimouri版本另列，不用其年份代表整个推断框架提出年。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.3",
+      "生成后验与学习细图.py：04图联合后验与决策"
+    ]
+  },
+  "map": {
+    "abbreviation": "MAP",
+    "chinese_name": "最大后验估计",
+    "year": "待核",
+    "authors": [],
+    "year_basis": "04细图的一般后验决策规则；本次未核定其历史首提，不以Green或Teimouri的应用文献年代替。",
+    "evidence": [
+      "../04-方法分类与沿袭关系工作稿.md §5.3",
+      "生成后验与学习细图.py：map及map-objective节点"
+    ]
+  }
+}

@@ -1,10 +1,10 @@
 {
-  "submission_id": "018eb7e6-8aa8-49b3-82ea-67fe7613200e",
+  "submission_id": "0c2943bc-35e3-4d09-abfb-ec81d046930e",
   "board_id": "study04-method-classification-v04-report",
-  "board_revision": 22,
-  "submitted_at": "2026-10-21T14:28:58.245780+00:00",
-  "intent": "submit",
-  "finish_review": false,
+  "board_revision": 30,
+  "submitted_at": "2026-10-23T05:22:19.354355+00:00",
+  "intent": "archive",
+  "finish_review": true,
   "units": [
     {
       "unit_id": "opening",
@@ -29,7 +29,7 @@
     },
     {
       "unit_id": "section-1",
-      "unit_title": "1　先看现有方法：名称很多，层次混在一起",
+      "unit_title": "1　路线与方法总览",
       "mode": "content",
       "target_option_id": "section-1-current",
       "target_option_ids": [
@@ -50,7 +50,7 @@
     },
     {
       "unit_id": "section-2",
-      "unit_title": "2　归纳后的分类依据与分类结果",
+      "unit_title": "2　归纳路线的依据",
       "mode": "content",
       "target_option_id": "section-2-current",
       "target_option_ids": [
@@ -71,43 +71,11 @@
     },
     {
       "unit_id": "section-3",
-      "unit_title": "3　似然估计路线：构造似然函数，再求解参数",
-      "mode": "choices",
-      "target_option_id": null,
-      "target_option_ids": [],
-      "selected_option_id": null,
-      "selected_option_ids": [],
-      "selected_label": null,
-      "selected_labels": [],
-      "next_action": "modify",
-      "action_explicit": false,
-      "inspiration": "",
-      "notes": {},
-      "section_note": "",
-      "block_notes": [],
-      "annotations": [
-        {
-          "id": "ecd5f930-65e7-4bae-9467-758cfc32cce7",
-          "option_id": "section-3-illustrated-solve",
-          "block_id": "section-3-illustrated-principle",
-          "block_hash": "9ec8012cbacde8d294530f6c609dce803583ac967111fff48da108b00f29f2cb",
-          "quote": "密度曲线解释观测如何进入模型，零点图解释方程怎样求根，剖面曲线解释位置怎样搜索。",
-          "start": 168,
-          "end": 208,
-          "prefix": "∈ΘL(θ;D).图中把三类示意图嵌入实际步骤：",
-          "suffix": "以有限内点的剖面求解为例，先给定γ、消去η并数值",
-          "comment": "这是把这些单独的原理给画出来，却不是似然的原理"
-        }
-      ],
-      "image_notes": []
-    },
-    {
-      "unit_id": "section-3-details",
-      "unit_title": "似然路线的代表方法与改动位置",
+      "unit_title": "3　路线一：似然构造与优化",
       "mode": "content",
-      "target_option_id": "section-3-details-current",
+      "target_option_id": "section-3-joint-field",
       "target_option_ids": [
-        "section-3-details-current"
+        "section-3-joint-field"
       ],
       "selected_option_id": null,
       "selected_option_ids": [],
@@ -124,7 +92,7 @@
     },
     {
       "unit_id": "section-4",
-      "unit_title": "4　分布匹配路线：比较理论分布和样本呈现的分布关系",
+      "unit_title": "4　路线二：分布关系匹配",
       "mode": "content",
       "target_option_id": "section-4-current",
       "target_option_ids": [
@@ -145,7 +113,7 @@
     },
     {
       "unit_id": "section-5",
-      "unit_title": "5　统计关系反演路线：从理论统计关系恢复参数",
+      "unit_title": "5　路线三：统计特征关系匹配与反演",
       "mode": "content",
       "target_option_id": "section-5-current",
       "target_option_ids": [
@@ -166,7 +134,7 @@
     },
     {
       "unit_id": "section-6",
-      "unit_title": "6　后验推断与学习映射",
+      "unit_title": "6　路线四：贝叶斯后验推断",
       "mode": "content",
       "target_option_id": "section-6-current",
       "target_option_ids": [
@@ -186,8 +154,29 @@
       "image_notes": []
     },
     {
+      "unit_id": "section-learning",
+      "unit_title": "7　路线五：学习型参数映射",
+      "mode": "content",
+      "target_option_id": "section-learning-current",
+      "target_option_ids": [
+        "section-learning-current"
+      ],
+      "selected_option_id": null,
+      "selected_option_ids": [],
+      "selected_label": null,
+      "selected_labels": [],
+      "next_action": "defer",
+      "action_explicit": false,
+      "inspiration": "",
+      "notes": {},
+      "section_note": "",
+      "block_notes": [],
+      "annotations": [],
+      "image_notes": []
+    },
+    {
       "unit_id": "section-7",
-      "unit_title": "7　完整机理地图：分类与方法间关系同时保留",
+      "unit_title": "8　方法之间的沿袭与组合关系",
       "mode": "content",
       "target_option_id": "section-7-current",
       "target_option_ids": [
@@ -208,7 +197,7 @@
     },
     {
       "unit_id": "section-8",
-      "unit_title": "8　本轮七种实现落在哪些位置",
+      "unit_title": "9　七种比较实现的机制位置",
       "mode": "content",
       "target_option_id": "section-8-current",
       "target_option_ids": [
@@ -229,7 +218,7 @@
     },
     {
       "unit_id": "section-9",
-      "unit_title": "9　转入统一性能比较",
+      "unit_title": "10　转入统一性能比较",
       "mode": "content",
       "target_option_id": "section-9-current",
       "target_option_ids": [
@@ -270,14 +259,12 @@
       "image_notes": []
     }
   ],
-  "changed_units": [
-    "section-3"
-  ],
+  "changed_units": [],
   "confirmation": {
     "confirmed": true,
-    "intent": "submit",
-    "text": "请根据以下意见继续处理《Study04 方法分类报告 v1.1 审阅》（第 22 轮）。\n\n【3　似然估计路线：构造似然函数，再求解参数】\n原文：“密度曲线解释观测如何进入模型，零点图解释方程怎样求根，剖面曲线解释位置怎样搜索。”\n意见：这是把这些单独的原理给画出来，却不是似然的原理",
-    "generated_text": "请根据以下意见继续处理《Study04 方法分类报告 v1.1 审阅》（第 22 轮）。\n\n【3　似然估计路线：构造似然函数，再求解参数】\n原文：“密度曲线解释观测如何进入模型，零点图解释方程怎样求根，剖面曲线解释位置怎样搜索。”\n意见：这是把这些单独的原理给画出来，却不是似然的原理",
+    "intent": "archive",
+    "text": "保存新版：C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\报告上（方法分类）-v2.2.md\n归档旧稿：C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\报告上（方法分类）-v2.1.md → C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\其他\\历史版本\\方法分类-v2.1\\报告上（方法分类）-v2.1.md\n更新引用，保留审阅记录，提交Git并同步远端。",
+    "generated_text": "保存新版：C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\报告上（方法分类）-v2.2.md\n归档旧稿：C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\报告上（方法分类）-v2.1.md → C:\\Web\\Weibull\\Study\\04-study-小样本三参数Weibull估计方法比较与选择\\其他\\历史版本\\方法分类-v2.1\\报告上（方法分类）-v2.1.md\n更新引用，保留审阅记录，提交Git并同步远端。",
     "edited": false
   }
 }
