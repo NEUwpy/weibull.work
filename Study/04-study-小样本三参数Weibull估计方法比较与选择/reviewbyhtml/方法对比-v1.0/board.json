@@ -2,12 +2,12 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 46,
+  "revision": 47,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n旧稿已归档，保留原文：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../其他/历史版本/报告下（方法对比）-v2.0.md",
   "source_sha256": "b4f3b61d9d2cfffbc502055bb2bf6384f2ed3141b8b32c1bca5774093f3d4a93",
-  "review_phase": "v2.1-chapter2-wording-comparison",
+  "review_phase": "v2.1-chapter2-converged",
   "content_fill_authorized": true,
   "units": [
     {
@@ -94,7 +94,7 @@
       "id": "law-rmse",
       "title": "2.1　样本量减小下的不同表现",
       "mode": "content",
-      "state": "modify",
+      "state": "open",
       "selected": null,
       "options": [
         {
@@ -147,61 +147,12 @@
               "id": "report-96bac28ad30a",
               "kind": "text",
               "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p>"
-            }
-          ]
-        }
-      ],
-      "selected_ids": []
-    },
-    {
-      "id": "n-error-growth-review",
-      "title": "误差增长的表述",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "choices",
-      "selection_mode": "single",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "n-error-growth-review-original",
-          "label": "修改前",
-          "blocks": [
+            },
             {
               "id": "report-481785e3f263",
               "kind": "text",
               "html": "<p>在本次考察范围内，样本量减少时估计误差总体增大，但增长幅度因方法而异。有的方法对样本量减少较敏感，误差上升较快；有的方法增幅相对较小。</p>"
-            }
-          ]
-        },
-        {
-          "id": "n-error-growth-review-revised",
-          "label": "修改后",
-          "blocks": [
-            {
-              "id": "n-error-growth-revised",
-              "kind": "text",
-              "html": "<p>在本次考察范围内，样本量减少时估计误差总体增大，但增长幅度因方法而异。</p><p><mark>例如，在同一形状条件（β=1.5）下，n从50减至7时，WMLE的形状RMSE约增至原来的3.27倍，MLE则约增至7.91倍（七法共同有效样本）。</mark></p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "n-method-gap-figure",
-      "title": "方法间差距",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "content",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "n-method-gap-figure-current",
-          "label": "当前内容",
-          "blocks": [
+            },
             {
               "id": "distance-joint-image",
               "kind": "image",
@@ -216,52 +167,18 @@
             {
               "id": "distance-joint-phenomena",
               "kind": "text",
-              "html": "<p>不同方法的误差增长并不同步，方法间的精度差距也随样本量改变：一些方法对的差距扩大，另一些逐渐接近，部分还出现转折。误差总体增大，并不意味着方法间的差距始终扩大。</p>"
+              "html": "<p>不同方法的误差增长并不同步，方法间的精度差距也随样本量改变：一些方法对的差距扩大，另一些逐渐接近，部分还出现转折。误差总体增大，并不意味着方法间的差距始终扩大。</p><p>这种方法间的性能差异及其随样本量变化的关系，也会随形状条件改变。各方法对样本量减少的敏感程度需要在固定形状条件下比较，并结合不同分层考察其共性与差异。</p>"
             }
           ]
         }
-      ]
-    },
-    {
-      "id": "n-method-gap-review",
-      "title": "不同形状条件下的差距变化",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "choices",
-      "selection_mode": "single",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "n-method-gap-review-original",
-          "label": "修改前",
-          "blocks": [
-            {
-              "id": "distance-joint-shape-before",
-              "kind": "text",
-              "html": "<p>这种方法间的性能差异及其随样本量变化的关系，也会随形状条件改变。各方法对样本量减少的敏感程度需要在固定形状条件下比较，并结合不同分层考察其共性与差异。</p>"
-            }
-          ]
-        },
-        {
-          "id": "n-method-gap-review-revised",
-          "label": "修改后",
-          "blocks": [
-            {
-              "id": "distance-joint-shape-revised",
-              "kind": "text",
-              "html": "<p><mark>以形状参数的MDM与WMLE为例，β=1.5时，两法的差距随n减小逐步扩大；β=5时，差距则先缩小后扩大。</mark>样本量减少时，方法间的差距变化还受到形状条件的影响。</p>"
-            }
-          ]
-        }
-      ]
+      ],
+      "selected_ids": []
     },
     {
       "id": "law-distribution",
       "title": "2.2　形状参数增大时的估计分布变化",
       "mode": "content",
-      "state": "modify",
+      "state": "open",
       "selected": null,
       "options": [
         {
@@ -329,6 +246,11 @@
               "kind": "text",
               "html": "<p><em>图注：行对应n=50、7，列对应形状、尺度、位置。虚线为真值，红点为均值，横线为四分位区间。密度显示主体分布，统计量使用全部有效值。</em></p>",
               "markdown": "*图注：行对应n=50、7，列对应形状、尺度、位置。虚线为真值，红点为均值，横线为四分位区间。密度显示主体分布，统计量使用全部有效值。*"
+            },
+            {
+              "id": "report-521def6b8c6a",
+              "kind": "text",
+              "html": "<p>β=1.5时，两档n下多数方法的主体分布形态相近。n=7的估计结果通常更分散，LSE、LRE的位置估计还出现了零边界结果。</p><p>固定n，β从1.5增至5时，估计分布进一步变化。LSE、LRE的尺度和位置估计逐渐展宽，即使n=50，四分位区间也明显扩大。因此，分布展宽并不只出现在极小样本条件。</p><p>MDM、WMLE和MMLE则表现出有规律的参数偏移：形状估计的增幅落后于真β，低估加重；尺度估计向低值偏移，位置估计向高值偏移。两档n下均能观察到这一方向，n=7时偏移更明显。</p><p>随着β增大，LSE、LRE的位置估计还进一步向γ=0聚集；n=50时已可见，n=7时边界结果更多。</p>"
             }
           ]
         }
@@ -336,145 +258,21 @@
       "selected_ids": []
     },
     {
-      "id": "distribution-reference-review",
-      "title": "分布对照的起点",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "choices",
-      "selection_mode": "single",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "distribution-reference-review-original",
-          "label": "修改前",
-          "blocks": [
-            {
-              "id": "report-521def6b8c6a",
-              "kind": "text",
-              "html": "<p>β=1.5时，两档n下多数方法的主体分布形态相近。<mark>n=7的估计范围通常更宽，LSE、LRE的位置估计还出现了零边界结果。</mark></p>"
-            }
-          ]
-        },
-        {
-          "id": "distribution-reference-review-revised",
-          "label": "修改后",
-          "blocks": [
-            {
-              "id": "distribution-reference-revised",
-              "kind": "text",
-              "html": "<p>β=1.5时，两档n下多数方法的主体分布形态相近。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "distribution-patterns",
-      "title": "分布展宽与方向性偏移",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "content",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "distribution-patterns-current",
-          "label": "当前内容",
-          "blocks": [
-            {
-              "id": "distribution-patterns-shared",
-              "kind": "text",
-              "html": "<p>固定n，β从1.5增至5时，估计分布进一步变化。LSE、LRE的尺度和位置估计逐渐展宽，即使n=50，四分位区间也明显扩大。因此，分布展宽并不只出现在极小样本条件。</p><p>MDM、WMLE和MMLE则表现出有规律的参数偏移：形状估计的增幅落后于真β，低估加重；尺度估计向低值偏移，位置估计向高值偏移。两档n下均能观察到这一方向，n=7时偏移更明显。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "distribution-boundary-review",
-      "title": "边界聚集的表述",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "choices",
-      "selection_mode": "single",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "distribution-boundary-review-original",
-          "label": "修改前",
-          "blocks": [
-            {
-              "id": "distribution-boundary-before",
-              "kind": "text",
-              "html": "<p>另外，LSE、LRE的位置估计进一步向γ=0聚集，这在n=50时已可见，n=7时边界结果更多。<mark>原尺度密度图也呈双峰外观；后续核对发现，剔除零位置结果后未保留两个明显峰，因此这里将边界聚集与非边界估计的偏移分别考察，不据原图认定存在“接近真值与偏移”的两个内部群体。</mark></p>"
-            }
-          ]
-        },
-        {
-          "id": "distribution-boundary-review-revised",
-          "label": "修改后",
-          "blocks": [
-            {
-              "id": "distribution-boundary-revised",
-              "kind": "text",
-              "html": "<p>随着β增大，LSE、LRE的位置估计还进一步向γ=0聚集；n=50时已可见，n=7时边界结果更多。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "law-anomalies",
       "title": "2.3　明显异常估计",
-      "mode": "choices",
+      "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
           "id": "anomaly-phenomena",
-          "label": "修改前",
+          "label": "当前内容",
           "blocks": [
             {
               "id": "anomaly-definition",
               "kind": "text",
               "html": "<p>估计分布中还存在明显偏离真值的结果。这里沿用Research00报告2的判据，将形状估计不超过真值的1/3，或达到真值的3倍，记为明显异常估计。</p>"
-            }
-          ]
-        },
-        {
-          "id": "law-anomalies-revised",
-          "label": "修改后",
-          "blocks": [
-            {
-              "id": "anomaly-definition-revised",
-              "kind": "text",
-              "html": "<p>估计分布中还存在明显偏离真值的结果。这里沿用Research00报告2的判据，将形状估计不超过真值的1/3，或达到真值的3倍，记为明显异常估计。<mark>这里的“异常”专指形状参数的极端偏离，求解失败另行统计。</mark></p>"
-            }
-          ]
-        }
-      ],
-      "selection_mode": "single",
-      "selected_ids": []
-    },
-    {
-      "id": "anomaly-evidence",
-      "title": "异常示例与频率",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "content",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "anomaly-evidence-current",
-          "label": "当前内容",
-          "blocks": [
+            },
             {
               "id": "anomaly-current-example",
               "kind": "visual",
@@ -499,73 +297,28 @@
             {
               "id": "anomaly-n-observation",
               "kind": "text",
-              "html": "<p>随着n减小，明显异常估计更常见。八档β下，七种方法在n=7时的异常频率都高于n=50。β=5时，异常频率在五档n上逐档上升。</p>"
+              "html": "<p>随着n减小，明显异常估计更常见。八档β下，七种方法在n=7时的异常频率都高于n=50。β=5时，异常频率在五档n上逐档上升。</p><p>异常增多的程度和方向存在方法差异：较大β、小n下，多种方法以形状低估为主；MLE在低β、小n下也有较高异常频率。它们不能由一种固定的异常模式概括。</p>"
             }
           ]
         }
-      ]
-    },
-    {
-      "id": "anomaly-direction-review",
-      "title": "异常方向的方法差异",
-      "inline": true,
-      "outline_level": 3,
-      "mode": "choices",
-      "selection_mode": "single",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "anomaly-direction-review-original",
-          "label": "修改前",
-          "blocks": [
-            {
-              "id": "anomaly-direction-before",
-              "kind": "text",
-              "html": "<p>异常增多的程度和方向存在方法差异：较大β、小n下，多种方法以形状低估为主；MLE在低β、小n下也有较高异常频率。它们不能由一种固定的异常模式概括。</p>"
-            }
-          ]
-        },
-        {
-          "id": "anomaly-direction-review-revised",
-          "label": "修改后",
-          "blocks": [
-            {
-              "id": "anomaly-direction-revised",
-              "kind": "text",
-              "html": "<p>异常频率的增幅及形状偏离方向因方法而异。<mark>例如，在β=5、n=7的有效结果中，WMLE的472次形状异常均为低估；MLE的100次形状异常中，低估58次，高估42次。</mark></p>"
-            }
-          ]
-        }
-      ]
+      ],
+      "selected_ids": []
     },
     {
       "id": "law-synthesis",
       "title": "2.4　主要现象",
-      "mode": "choices",
+      "mode": "content",
       "state": "open",
       "selected": null,
       "options": [
         {
           "id": "synthesis-phenomena",
-          "label": "修改前",
+          "label": "当前正文",
           "blocks": [
             {
               "id": "synthesis-phenomena-body",
               "kind": "text",
               "html": "<ol><li><p><strong>n减小时，估计误差总体增大，但各方法的增幅不同。</strong>固定β，部分方法对样本量减少更敏感，误差上升较快；部分方法增幅较小。因此，方法间的差距也随样本量改变，而非保持原有的精度关系。</p></li><li><p><strong>相同n下，β增大时，三个参数的估计呈现不同的偏移和分布变化。</strong>部分方法的形状低估加重，并伴随尺度偏小、位置偏大；另一些方法的尺度和位置估计更分散，还出现边界聚集。β变化的影响不仅体现在误差大小，也体现在参数偏移的方向和估计分布的形态。</p></li><li><p><strong>n减小时，明显异常估计更常见。</strong>这一变化在八档β、七种方法的n=50与7比较中均可见，但异常增多的程度及其偏移方向因方法和参数条件而异。</p></li></ol>"
-            }
-          ]
-        },
-        {
-          "id": "law-synthesis-revised",
-          "label": "修改后",
-          "blocks": [
-            {
-              "id": "synthesis-phenomena-revised",
-              "kind": "text",
-              "html": "<ol><li><p>n减少时，估计误差总体增大，<mark>各方法的误差增幅及方法间差距的变化并不相同。</mark></p></li><li><p>β增大时，部分方法呈现方向性偏移，另一些更突出分布展宽或边界聚集。</p></li><li><p>小样本下明显形状异常更常见，其增多程度与偏离方向依方法和条件而变。</p></li></ol>"
             }
           ]
         }
@@ -957,8 +710,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "d80e7b7e-0943-4068-a2fc-7fedb3825370",
-  "last_rendered_submission_id": "d80e7b7e-0943-4068-a2fc-7fedb3825370",
+  "last_applied_submission_id": "74d035cf-9ab8-47b7-8d91-5ec7b1241efd",
+  "last_rendered_submission_id": "74d035cf-9ab8-47b7-8d91-5ec7b1241efd",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.7.1",
