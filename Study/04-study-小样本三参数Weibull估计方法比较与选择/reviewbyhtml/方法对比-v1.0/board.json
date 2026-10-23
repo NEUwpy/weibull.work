@@ -2,12 +2,12 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 49,
+  "revision": 50,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.3.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.2.md\n更新引用，保留审阅记录，提交本地Git。",
   "source_document": "../../报告下（方法对比）-v2.2.md",
   "source_sha256": "65b72f52506927c7cdae879875f46c7ee27037d1dfd17967715c3257ad539e11",
-  "review_phase": "v2.3-review",
+  "review_phase": "v2.3-anomaly-flatness-comparison",
   "content_fill_authorized": true,
   "units": [
     {
@@ -564,13 +564,64 @@
             {
               "id": "anomaly-solver-reading",
               "kind": "text",
-              "html": "<p>旧MLE的第37组在近零位置停止，优化器标记收敛；其他起点的返回结果又因形状不满足接受条件被剔除，最终只剩这个候选。但图中向右仍可提高似然，说明搜索停止及候选接受没有实现预期的最优选择。近零位置进一步压缩对数跨度，形成较大的形状估计。</p><p><em>报告2图17，W(2,1000,3000)、n=7第37、38组，采用旧MLE。Study04已更新求解器，此例用于区分计算来源，不认定新版仍有同一缺陷。</em></p><p>前两例应研究估计准则对样本结构的响应；后一例应改进求解与候选检查。异常表现相近，形成环节不同，改进方向也不同。</p>"
+              "html": "<p>旧MLE的第37组在近零位置停止，优化器标记收敛；其他起点的返回结果又因形状不满足接受条件被剔除，最终只剩这个候选。但图中向右仍可提高似然，说明搜索停止及候选接受没有实现预期的最优选择。近零位置进一步压缩对数跨度，形成较大的形状估计。</p><p><em>报告2图17，W(2,1000,3000)、n=7第37、38组，采用旧MLE。Study04已更新求解器，此例用于区分计算来源，不认定新版仍有同一缺陷。</em></p>"
             }
           ]
         }
       ],
       "selected_ids": [
         "mechanism-boundary"
+      ]
+    },
+    {
+      "id": "anomaly-mechanism-summary-review",
+      "title": "3.3 机制总结：修改前与修改后",
+      "mode": "choices",
+      "inline": true,
+      "outline_level": 3,
+      "selection_mode": "single",
+      "state": "open",
+      "selected": null,
+      "selected_ids": [],
+      "options": [
+        {
+          "id": "anomaly-summary-original",
+          "label": "修改前",
+          "blocks": [
+            {
+              "id": "anomaly-summary-before",
+              "kind": "text",
+              "html": "<p>前两例应研究估计准则对样本结构的响应；后一例应改进求解与候选检查。异常表现相近，形成环节不同，改进方向也不同。</p>"
+            }
+          ]
+        },
+        {
+          "id": "anomaly-summary-revised",
+          "label": "修改后",
+          "blocks": [
+            {
+              "id": "anomaly-summary-after",
+              "kind": "text",
+              "html": "<p>明显异常估计需要从判据本身和数值求解两个环节理解。<mark>当样本难以区分相差较大的参数组合时，参数之间的补偿可能使判据沿某些方向形成宽缓区域；参数移动很大，判据值却只改变一点，所选解因而可能对样本变化较敏感。</mark></p><p><a href=\"https://doi.org/10.2307/2533217\">Green等（1994）</a>的位置剖面似然提供了文献参照：每固定一个位置，再优化形状与尺度，高似然区域仍在较宽的位置范围内延伸。<mark>这里的关键是判据对某些参数组合的区分较弱，不能仅用“判据失效”概括。</mark></p>"
+            },
+            {
+              "id": "green1994-profile",
+              "kind": "image",
+              "src": "assets/Green1994_位置剖面似然.png",
+              "alt": "Green等1994原图1：三组树径数据的位置剖面对数似然，负位置一侧存在宽缓的高似然区域"
+            },
+            {
+              "id": "green1994-profile-caption",
+              "kind": "text",
+              "html": "<p><em>Green等（1994）原图1。横轴μ为位置参数，对应本文γ；每个位置均重新优化另外两个参数，原文允许负位置。三组样本量为125、127、200，图中为实际树径数据的似然廓线。</em></p>"
+            },
+            {
+              "id": "anomaly-summary-scope",
+              "kind": "text",
+              "html": "<p>本节LSE、WMLE案例已表明，明显偏离真值的参数仍可满足方法准则。<mark>准则平坦是否进一步放大了这些案例的偏离，需要结合各自准则曲线或方程交点的稳定性判断。</mark>旧MLE案例则展示了另一来源：搜索过早停止、候选接受不充分，即使存在更好的合格参数，程序也可能返回异常结果。</p>"
+            }
+          ]
+        }
       ]
     },
     {
@@ -829,7 +880,15 @@
         "sha256": "c444a140da83bf9f994083998ac6a381203e4ca18710fa547aa0f8143efe99f2"
       }
     },
-    "fixed_position_control": "结果呈现/分析数据/第三章固定真位置对照.csv"
+    "fixed_position_control": "结果呈现/分析数据/第三章固定真位置对照.csv",
+    "green1994_profile": {
+      "source_note": "其他/参考价值高/文献学习-结论图与分析/文献学习.md §5",
+      "source_image": "其他/参考价值高/文献学习-结论图与分析/assets/182-144-图1-位置参数似然廓线.png",
+      "source_markdown": "D:/weibull/src/content/182-144-pdf原文.md §3",
+      "doi": "10.2307/2533217",
+      "asset_sha256": "5d9b2763d9ca3378f10b6eaeabd182cbda689dbf2f73f5f6d8fb5f3a0d149e0a",
+      "purpose": "文献中的宽缓廓线参照，尚未认定本轮所有异常均由平坦造成"
+    }
   },
   "manuscript_version": "2.3",
   "archive_targets": {
