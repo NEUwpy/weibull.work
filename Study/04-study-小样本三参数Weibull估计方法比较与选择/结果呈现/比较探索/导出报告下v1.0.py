@@ -25,11 +25,19 @@ def content(node):
 def markdown(node):
     tag = node.tag.rsplit('}', 1)[-1]
     if tag == 'math':
-        # This reviewed formula has no original TeX annotation in the static MathML.
-        expression = ''.join(node.itertext()).replace('\u2009', '')
-        if expression != 'E(γ^−γ)=ηΓ(1+1/β)n−1/β.':
+        expression = ''.join(node.itertext()).replace('\u2009', '').replace('\u2061', '')
+        formulas = {
+            'E(γ^−γ)=ηΓ(1+1/β)n−1/β.': r'\operatorname{E}(\hat{\gamma}-\gamma)=\eta\,\Gamma(1+1/\beta)\,n^{-1/\beta}.',
+            'RMSE(γ^)=ηn−1/βΓ(1+2/β).': r'\operatorname{RMSE}(\hat{\gamma})=\eta n^{-1/\beta}\sqrt{\Gamma(1+2/\beta)}.',
+            'T=γ+ηexp(Z/β)': r'T=\gamma+\eta\exp(Z/\beta)',
+            'Z=lnE': r'Z=\ln E',
+            'E∼Exp(1)': r'E\sim\operatorname{Exp}(1)',
+            'T≈(γ+η)+ηβZ.': r'T\approx(\gamma+\eta)+(\eta/\beta)Z.',
+        }
+        if expression not in formulas:
             raise ValueError(f'请核对新增公式的Markdown表达：{expression}')
-        return '\n\n$$\n' + r'\operatorname{E}(\hat{\gamma}-\gamma)=\eta\,\Gamma(1+1/\beta)\,n^{-1/\beta}.' + '\n$$\n\n'
+        tex = formulas[expression]
+        return ('\n\n$$\n' + tex + '\n$$\n\n') if node.get('display') == 'block' else '$' + tex + '$'
     if tag == 'table':
         rows = [[content(cell).strip().replace('|', r'\|') for cell in row]
                 for row in node.iter('tr')]
@@ -52,6 +60,10 @@ def markdown(node):
         return '[' + text + '](' + local_link(node.attrib['href']) + ')'
     if tag == 'br':
         return '  \n'
+    if tag in ('h3', 'h4', 'h5'):
+        return '\n\n' + '#' * int(tag[1]) + ' ' + text + '\n\n'
+    if tag in ('sup', 'sub'):
+        return '<' + tag + '>' + text + '</' + tag + '>'
     if tag in ('p', 'div'):
         return '\n\n' + text + '\n\n'
     if tag in ('root', 'span', 'mark'):
@@ -77,11 +89,12 @@ def main():
     board = json.loads((REVIEW / 'board.json').read_text(encoding='utf-8'))
     if not (board.get('archive_pending') or board.get('review_complete') or args.draft):
         raise SystemExit('请先在HTML中确认存档。')
-    target = (REVIEW / board.get('source_document', '../../报告下（方法对比）-v1.0.md')).resolve()
+    target_value = board.get('archive_targets', {}).get('output') or board.get('source_document', '../../报告下（方法对比）-v1.0.md')
+    target = (REVIEW / target_value).resolve()
     if not target.is_relative_to(STUDY):
         raise ValueError('成果路径须位于Study04内。')
     version = board.get('manuscript_version', '1.0')
-    lines = ['# ' + board['title'], '', f'**报告下（方法对比）v{version}｜2026-10-21**', '']
+    lines = ['# ' + board['title'], '', f'**报告下（方法对比）v{version}｜{board.get("manuscript_date", "2026-10-21")}**', '']
     image_count = 0
     for unit in board['units']:
         if unit.get('mode') != 'content':

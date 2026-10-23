@@ -5,14 +5,14 @@
   "revision": 32,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.3.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.2.md\n更新引用，保留审阅记录，提交Git并同步远端。",
-  "source_document": "../../报告下（方法对比）-v1.2.md",
-  "source_sha256": "33a6be6883663c18411d254d963d913ca036207748aed9ede44c3c9531ce1944",
+  "source_document": "../../其他/历史版本/报告下（方法对比）-v1.2.md",
+  "source_sha256": "d6e90876147eac00ec282f5277c8c0352037ea68f358376887624cf417eb28a4",
   "review_phase": "content-candidates",
   "content_fill_authorized": true,
   "units": [
     {
       "id": "manuscript-outline",
-      "title": "报告下（方法对比）v1.2",
+      "title": "报告下（方法对比）v2.0",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -410,27 +410,6 @@
               "html": "<p>两例中，多条拟合曲线在观测范围内较接近，但对应的参数明显不同。第二组样本的观测集中在较窄区间，各方法的拟合曲线也比真实分布更集中；少量观测难以完整体现总体分布的宽度与起点。</p><p>同样的七个点并不唯一指定一组参数。K–R直接把最小观测作为位置；MDM按伪尺度梯度阈值定位；WMLE要求加权方程同时满足；LSE选择线性匹配较好的位置。因此，一种方法可能通过提高位置、降低尺度来适应这些点，另一种方法则选择更低位置和更大尺度，形状也随之调整。</p><p>样本减少使局部间距和有限覆盖更容易影响估计。各方法的定位依据、校准和约束不同，传递到参数的偏差与波动也不同。是否更适应小样本，要看这种响应在重复样本上的表现，不能由一组拟合曲线决定。</p>"
             },
             {
-              "id": "n-gap-intro",
-              "kind": "text",
-              "html": "<p>先按起点附近是否有观测，将相同条件下的样本分组。β=5时，区间(γ,γ+0.5η]内没有观测的样本，随n减小由少数变为多数。</p>"
-            },
-            {
-              "id": "b-stratified",
-              "kind": "image",
-              "src": "assets/n响应候选_起点信息分层.png",
-              "alt": "β=5，六种方法在有无起点附近观测两组中的条件位置RMSE，分别比较n=50和7"
-            },
-            {
-              "id": "n-gap-caption",
-              "kind": "text",
-              "html": "<p><em>图为β=5的标准化位置RMSE，使用七法共同有效结果。两组按真参数界定，仅用于模拟诊断；全部1200次抽样中，近起点无观测的比例由n=50时约20%升至n=7时约80%。</em></p>"
-            },
-            {
-              "id": "n-conditional-response",
-              "kind": "text",
-              "html": "<p>图中，MDM和WMLE在近起点有观测的样本中位置误差较小，缺少这类观测时误差明显增大；LSE和LRE在两组间的变化相对较缓。样本减少既改变这两类样本的比例，也改变各组中的估计表现，两者共同影响总体方法差距。</p>"
-            },
-            {
               "id": "n-rule-transfer",
               "kind": "text",
               "html": "<p>这种响应差异可以回到参数构造理解：直接以最小值定位时，下端空缺会直接转为位置高估；按固定梯度阈值定位时，样本间距会改变交点；按线性匹配定位时，同一间距变化则通过最佳拟合位置和回归斜率传递。相同的样本变化经过不同判据，可能更多表现为方向性偏移，也可能更多表现为重复波动。</p>"
@@ -468,11 +447,6 @@
               "id": "n-kr-exact",
               "kind": "text",
               "html": "<p>对直接以最小值定位的K–R，可以进一步得到精确的样本量关系：</p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><mi>η</mi><mtext> </mtext><msup><mi>n</mi><mrow><mo>−</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><msqrt><mrow><mi mathvariant=\"normal\">Γ</mi><mo stretchy=\"false\">(</mo><mn>1</mn><mo>+</mo><mn>2</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi><mo stretchy=\"false\">)</mo></mrow></msqrt><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span><p>即使只看这一种方法，误差对n的响应也取决于β。不同方法采用不同统计量和定位判据，不能预期它们都按同一速度随样本减少而变差。</p>"
-            },
-            {
-              "id": "n-explanation-scope",
-              "kind": "text",
-              "html": "<p><em>分层结果给出信息结构与条件性能的对应，历史判据图解释部分传递环节；尚未分离全部方法间差距变化的定量贡献。</em></p>"
             }
           ]
         }
@@ -812,10 +786,10 @@
       ]
     }
   ],
-  "last_applied_submission_id": "e00442e3-e72d-4003-9302-c68ca61e718f",
-  "last_rendered_submission_id": "e00442e3-e72d-4003-9302-c68ca61e718f",
+  "last_applied_submission_id": "aa1d57c1-5dfb-4203-8f9d-25b4797f346a",
+  "last_rendered_submission_id": "aa1d57c1-5dfb-4203-8f9d-25b4797f346a",
   "outline_confirmed": true,
-  "review_complete": false,
+  "review_complete": true,
   "review_runtime": "0.7.1",
   "section_3_3_evidence": {
     "source": "结果呈现/分析数据/参数指标.csv",
@@ -922,13 +896,15 @@
     "anomaly_reference_scope": "280个方法条件的异常频率逐项与原始行对拍；2.3为Study04现象，3.3报告2图为历史机制示例，旧MLE停止问题不作为新版现状。",
     "interior_modes": "结果呈现/分析数据/同样本拟合与内部峰核对.json；三带宽四条件非边界尺度密度均单峰，未支持独立于边界的双峰。"
   },
-  "manuscript_version": "1.2",
+  "manuscript_version": "2.0",
   "archive_targets": {
-    "output": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.3.md",
+    "output": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md",
     "previous": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v1.2.md",
     "archive": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v1.2.md",
     "sync_remote": true
   },
-  "accepted_revision": 19,
-  "accepted_at": "2026-10-21T13:27:55.621265+00:00"
+  "accepted_revision": 32,
+  "accepted_at": "2026-10-23T03:14:33.418174+00:00",
+  "processing": false,
+  "manuscript_date": "2026-10-23"
 }
