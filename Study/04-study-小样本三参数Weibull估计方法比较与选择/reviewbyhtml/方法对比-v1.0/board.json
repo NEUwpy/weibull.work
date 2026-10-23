@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 44,
+  "revision": 45,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.0.md",
@@ -102,6 +102,11 @@
           "label": "当前内容",
           "blocks": [
             {
+              "id": "n-comparison-purpose",
+              "kind": "text",
+              "html": "<p><strong>展示目的：</strong>按 β 分层，在固定形状条件下考察样本量减少带来的误差变化；再比较这一现象在不同形状条件下的共性与差异。</p>"
+            },
+            {
               "id": "preview",
               "kind": "gallery",
               "images": [
@@ -136,55 +141,33 @@
                   "alt": "n=7，β=1.5至5的八组RMSE玫瑰图与MM数值"
                 }
               ],
-              "aspect_ratio": 1.411764705882353,
-              "markdown": "#### n = 50\n\n![n=50，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n50_八档β.png)\n\n#### n = 20\n\n![n=20，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n20_八档β.png)\n\n#### n = 15\n\n![n=15，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n15_八档β.png)\n\n#### n = 10\n\n![n=10，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n10_八档β.png)\n\n#### n = 7\n\n![n=7，β=1.5至5的八组RMSE玫瑰图与MM数值](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/RMSE玫瑰图_n7_八档β.png)"
+              "aspect_ratio": 1.411764705882353
             },
             {
               "id": "report-96bac28ad30a",
               "kind": "text",
-              "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p>",
-              "markdown": "*图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。*"
+              "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p>"
             },
             {
               "id": "report-481785e3f263",
               "kind": "text",
-              "html": "<p>固定β观察，样本量减少时，估计误差总体增大，但各方法的增幅不同。部分方法的误差上升较快，部分方法变化较缓，方法间的差距也随之改变。固定n观察，β增大时位置误差的增长较为一致，形状和尺度误差的变化则因方法而异。</p>"
-            },
-            {
-              "id": "rmse-condition-directions",
-              "kind": "visual",
-              "html": "<table><thead><tr><th>比较方向</th><th>观察到的变化</th><th>初步认识</th></tr></thead><tbody><tr><td>固定β，减小n</td><td>RMSE多数增大，各方法增幅不同</td><td>样本减少通常降低估计精度</td></tr><tr><td>固定n，增大β</td><td>位置误差普遍增大，形状和尺度误差的变化存在方法差异</td><td>形状条件对各参数的影响不同</td></tr><tr><td>交叉观察n与β</td><td>同一方法在不同β下的误差增幅不同</td><td>样本量的影响随形状条件改变</td></tr></tbody></table>"
+              "html": "<p>在本次考察范围内，样本量减少时估计误差总体增大，但增长幅度因方法而异。有的方法对样本量减少较敏感，误差上升较快；有的方法增幅相对较小。</p>"
             },
             {
               "id": "distance-joint-image",
               "kind": "image",
-              "src": "assets/方法差距变化_轨迹与50到7联合图.png",
-              "alt": "各方法对的距离轨迹及n从50到7的距离变化联合图"
+              "src": "assets/方法差距变化_按形状分层轨迹.png",
+              "alt": "按形状条件分层的六法两两RMSE差距随样本量减少的变化，两行三列"
             },
             {
               "id": "distance-joint-caption",
               "kind": "text",
-              "html": "<p><em>上两行：β=1.5和5下，两种方法的标准化RMSE差距随n变化。第三行：每行是一对方法，每列是一档β；颜色表示“n=7的差距减去n=50的差距”。红色为差距扩大，蓝色为差距缩小，白色附近为变化较小。三列子图分别对应形状、尺度和位置参数。</em></p><p>这里比较方法对，是为了观察方法之间的精度差距怎样变化。差距定义为两种方法标准化RMSE之差的绝对值，只表示相隔多远，不表示谁更好。图中列出MDM、LSE、LRE、WMLE、MLE、MMLE六法的全部15个配对，并未挑选部分方法对。MM因极端RMSE另列，不进入此图。</p><p><em>仍使用七法共同有效样本；形状RMSE除以真β，尺度和位置RMSE除以真η。差距扩大或缩小，与两种方法各自误差是否增加是不同问题。</em></p>"
+              "html": "<p><em>两行分别为β=1.5、5的固定形状条件，三列分别对应形状、尺度、位置参数。横轴按n=50→20→15→10→7排列；同一参数两行共用纵轴。图中展示MDM、LSE、LRE、WMLE、MLE、MMLE六法的全部15个方法对，MM在玫瑰图中另列。</em></p><p><em>差距为两种方法标准化RMSE之差的绝对值，表示相隔多远；各法误差水平结合前面的玫瑰图观察。仍使用七法共同有效样本；形状RMSE除以真β，尺度和位置RMSE除以真η。</em></p>"
             },
             {
               "id": "distance-joint-phenomena",
               "kind": "text",
-              "html": "<p>β=1.5时，七种方法的RMSE均随样本减少而上升；联合图中六种方法的两两差距也普遍拉开。此时，各方法的变化方向较为一致，区别主要表现为上升幅度不同。</p><p>β=5时，RMSE仍多向上，但方法间距离的变化不再一致：一些方法对继续分离，另一些逐渐接近，部分距离曲线还出现转折。比较n=50与7，LSE、LRE与WMLE的尺度和位置RMSE更接近，而它们与MMLE的差距增大。</p><p>形状条件改变后，样本减少对方法关系的影响，可从普遍拉开转为拉开与接近并存。误差上升的共同方向，并不意味着方法间的精度关系保持不变。</p>"
-            },
-            {
-              "id": "wmle-bias-sd-evidence",
-              "kind": "visual",
-              "html": "<table><thead><tr><th>n</th><th>形状Bias</th><th>形状SD</th><th>形状RMSE</th></tr></thead><tbody><tr><td>10</td><td>-2.263</td><td>0.982</td><td>2.466</td></tr><tr><td>7</td><td>-2.614</td><td>0.713</td><td>2.710</td></tr></tbody></table>"
-            },
-            {
-              "id": "wmle-bias-sd-caption",
-              "kind": "text",
-              "html": "<p><em>表：WMLE，β=5；七法共同有效结果，Bias保留符号。自身有效结果也支持SD下降、负偏差加重和RMSE上升的方向。</em></p>"
-            },
-            {
-              "id": "wmle-bias-sd-interpretation",
-              "kind": "text",
-              "html": "<p>样本减少时，误差增大也不总表现为分布展宽。β=5的WMLE形状估计在n从10减至7时，SD下降，负偏差却加重，RMSE仍然上升。各方法不仅误差增幅不同，误差增长的表现也可能不同。</p>"
+              "html": "<p>不同方法的误差增长并不同步，方法间的精度差距也随样本量改变：一些方法对的差距扩大，另一些逐渐接近，部分还出现转折。误差总体增大，并不意味着方法间的差距始终扩大。</p><p>这种方法间的性能差异及其随样本量变化的关系，也会随形状条件改变。各方法对样本量减少的敏感程度需要在固定形状条件下比较，并结合不同分层考察其共性与差异。</p>"
             }
           ]
         }

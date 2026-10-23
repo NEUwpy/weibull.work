@@ -73,41 +73,31 @@ def draw_trajectories(axes, distances):
             axes[row, p].set_ylim(0, distances[p, :, [0, 7]].max() * 1.08)
 
 
-def joint_figure(distances):
-    fig = plt.figure(figsize=(14, 13.2))
-    grid = fig.add_gridspec(3, 3, height_ratios=[1, 1, 1.45])
-    axes = np.array([[fig.add_subplot(grid[row, p]) for p in range(3)] for row in range(2)])
+def trajectory_figure(distances):
+    """按形状分层比较n响应；六个面板复用原联合图前两行的数据。"""
+    fig, axes = plt.subplots(2, 3, figsize=(14, 8.1))
     draw_trajectories(axes, distances)
-    change = distances[:, -1] - distances[:, 0]
-    limits = np.max(abs(change), axis=(1, 2))
-    labels = [LABELS[a] + ' / ' + LABELS[b] for a, b in PAIRS]
-    for p in range(3):
-        ax = fig.add_subplot(grid[2, p])
-        img = ax.imshow(change[p].T, cmap='RdBu_r', vmin=-limits[p], vmax=limits[p], aspect='auto')
-        ax.set_title(SYMBOLS[p], pad=12)
-        ax.set_xticks(range(8), [f'{x:g}' for x in BETAS])
-        ax.set_xlabel('β')
-        ax.set_yticks(range(15), labels if p == 0 else [])
-        ax.tick_params(length=0)
-        for spine in ax.spines.values():
-            spine.set_visible(False)
-        bar = fig.colorbar(img, ax=ax, fraction=.045, pad=.035)
-        bar.ax.set_ylabel('差距(n=7) − 差距(n=50)')
+    assert len(fig.axes) == 6
+    for row, j in enumerate([0, 7]):
+        for p, ax in enumerate(axes[row]):
+            for k, line in enumerate(ax.lines):
+                np.testing.assert_array_equal(line.get_ydata(), distances[p, :, j, k])
     fig.legend(*axes[0, 0].get_legend_handles_labels(), loc='upper center',
                bbox_to_anchor=(.53, 1), ncol=5, frameon=False, fontsize=10)
-    fig.tight_layout(rect=(0, 0, 1, .93), h_pad=3, w_pad=2.3)
-    return save(fig, '方法差距变化_轨迹与50到7联合图.png')
+    fig.tight_layout(rect=(0, 0, 1, .87), h_pad=3, w_pad=2.3)
+    return save(fig, '方法差距变化_按形状分层轨迹.png')
 
 
 def main():
     plt.rcParams.update({'font.family': 'Microsoft YaHei', 'font.size': 11,
                          'axes.titlesize': 15, 'axes.spines.top': False, 'axes.spines.right': False})
     distances = read_distances()
-    outputs = [joint_figure(distances)]
+    outputs = [trajectory_figure(distances)]
     audit = dict(source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
                  subset='seven-method common valid; display six methods', n=NS, beta=BETAS,
                  distance='abs(normalized_RMSE_i - normalized_RMSE_j)',
-                 change_stages=[[50, 7]],
+                 display_beta=[1.5, 5], display_rows=2,
+                 all_90_trajectories_checked=True,
                  methods=METHODS, pairs=PAIRS, distances=distances.tolist(), outputs=outputs)
     (SOURCE.parent / '方法差距变化核验.json').write_text(
         json.dumps(audit, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
