@@ -2,12 +2,12 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 51,
+  "revision": 52,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.3.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.2.md\n更新引用，保留审阅记录，提交本地Git。",
   "source_document": "../../报告下（方法对比）-v2.2.md",
   "source_sha256": "65b72f52506927c7cdae879875f46c7ee27037d1dfd17967715c3257ad539e11",
-  "review_phase": "v2.3-review",
+  "review_phase": "v2.3-anomaly-criterion-profile-review",
   "content_fill_authorized": true,
   "units": [
     {
@@ -564,13 +564,99 @@
             {
               "id": "anomaly-solver-reading",
               "kind": "text",
-              "html": "<p>旧MLE的第37组在近零位置停止，优化器标记收敛；其他起点的返回结果又因形状不满足接受条件被剔除，最终只剩这个候选。但图中向右仍可提高似然，说明搜索停止及候选接受没有实现预期的最优选择。近零位置进一步压缩对数跨度，形成较大的形状估计。</p><p><em>报告2图17，W(2,1000,3000)、n=7第37、38组，采用旧MLE。Study04已更新求解器，此例用于区分计算来源，不认定新版仍有同一缺陷。</em></p><p>前两例应研究估计准则对样本结构的响应；后一例应改进求解与候选检查。异常表现相近，形成环节不同，改进方向也不同。</p>"
+              "html": "<p>旧MLE的第37组在近零位置停止，优化器标记收敛；其他起点的返回结果又因形状不满足接受条件被剔除，最终只剩这个候选。但图中向右仍可提高似然，说明搜索停止及候选接受没有实现预期的最优选择。近零位置进一步压缩对数跨度，形成较大的形状估计。</p><p><em>报告2图17，W(2,1000,3000)、n=7第37、38组，采用旧MLE。Study04已更新求解器，此例用于区分计算来源，不认定新版仍有同一缺陷。</em></p>"
             }
           ]
         }
       ],
       "selected_ids": [
         "mechanism-boundary"
+      ]
+    },
+    {
+      "id": "anomaly-profile-explanation-review",
+      "title": "3.3 判据剖面解释：修改前与修改后",
+      "mode": "choices",
+      "inline": true,
+      "outline_level": 3,
+      "selection_mode": "single",
+      "state": "open",
+      "selected": null,
+      "selected_ids": [],
+      "options": [
+        {
+          "id": "profile-explanation-before",
+          "label": "修改前",
+          "blocks": [
+            {
+              "id": "profile-summary-original",
+              "kind": "text",
+              "html": "<p>前两例应研究估计准则对样本结构的响应；后一例应改进求解与候选检查。异常表现相近，形成环节不同，改进方向也不同。</p>"
+            }
+          ]
+        },
+        {
+          "id": "profile-explanation-after",
+          "label": "修改后",
+          "blocks": [
+            {
+              "id": "profile-summary-opening",
+              "kind": "text",
+              "html": "<p>沿这些方法的判据剖面看，异常参数与优选区的形状、位置及参数恢复关系相连。<mark>宽缓的优选区使不同参数组合难以区分，极值或交点的移动给出偏移方向，随后的位置、形状和尺度恢复关系把偏移继续传递。</mark></p>"
+            },
+            {
+              "id": "profile-method-comparison",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>方法</th><th>判据剖面显示什么</th><th>怎样形成异常参数</th></tr></thead><tbody><tr><td>LSE、LRE</td><td>左侧高估例中，LSE的低值区、LRE的高相关区向较低位置展开；LSE右侧低估例的最低点接近最小观测。</td><td>左移压缩对数距离跨度，形状升高；右移拉大跨度，形状降低，位置变化经斜率传到形状和尺度。</td></tr><tr><td>MDM</td><td>梯度达到δ的交点右移；所选位置下，伪尺度标准差的最低点对应小形状。</td><td>低估例的交点距最小观测仅3.91，条件形状由真位置下的1.68降至0.55，尺度随之降低。</td></tr><tr><td>WMLE</td><td>两条零残差曲线的共同交点向右下方移动。</td><td>图中正常例的交点约为γ=508.70、β=5.35；低估例移至γ=573.51、β=1.10，缩小后的距离进一步给出较小尺度。</td></tr><tr><td>MLE</td><td>高估例的最高点落在左端，附近是一段宽缓的高似然平台。</td><td>较低位置与较大形状、尺度相互配合；位置和条件形状变化很大，似然改善或损失很小。</td></tr><tr><td>MMLE</td><td>最小值定位后，保留距离集中的样本使形状似然峰向右移动，并在β坐标上展宽。</td><td>正常例峰值约2.48，高估例峰值约7.69；大形状由这组保留距离的似然支持，尺度再由对应幂均值恢复。</td></tr></tbody></table>"
+            },
+            {
+              "id": "profile-flat-numbers",
+              "kind": "text",
+              "html": "<p>在W(2,100,500)、n=15第36组中，候选位置从0移至约251：LSE的1−R²仅从0.01127升至0.01184，条件形状却从21.70降至12.33；MLE的对数似然仅下降约0.012，条件形状从23.54降至13.64。<mark>这两个剖面直接显示：准则值几乎不变，条件参数却可以大幅改变。</mark></p>"
+            },
+            {
+              "id": "profile-supplement-gallery",
+              "kind": "gallery",
+              "aspect_ratio": 1.68,
+              "images": [
+                {
+                  "id": "LRE_zero",
+                  "label": "LRE：宽缓相关性峰与两类左侧高估",
+                  "src": "assets/R00_异常剖面_LRE_zero.png",
+                  "alt": "LRE：宽缓相关性峰与两类左侧高估；上排正常样本，下排异常样本，复用Research00报告2判据过程图"
+                },
+                {
+                  "id": "MDM_low",
+                  "label": "MDM：梯度阈值交点移向右端",
+                  "src": "assets/R00_异常剖面_MDM_low.png",
+                  "alt": "MDM：梯度阈值交点移向右端；上排正常样本，下排异常样本，复用Research00报告2判据过程图"
+                },
+                {
+                  "id": "MLE_high",
+                  "label": "MLE：左侧高似然平台与形状高估",
+                  "src": "assets/R00_异常剖面_MLE_high.png",
+                  "alt": "MLE：左侧高似然平台与形状高估；上排正常样本，下排异常样本，复用Research00报告2判据过程图"
+                },
+                {
+                  "id": "MMLE_high_deletion",
+                  "label": "MMLE：形状似然峰右移并展宽",
+                  "src": "assets/R00_异常剖面_MMLE_high.png",
+                  "alt": "MMLE：形状似然峰右移并展宽；上排正常样本，下排异常样本，复用Research00报告2判据过程图"
+                }
+              ]
+            },
+            {
+              "id": "profile-source-caption",
+              "kind": "text",
+              "html": "<p><em>补充图复用Research00报告2的正常／异常样本剖面。LRE上排为W(2,1000,3000)、n=7第4组，下排并列同条件第5组与W(2,100,500)、n=15第36组；MDM为W(2,1000,3000)、n=7第47、35组，δ=0.20；MLE为W(2,100,500)、n=15第35、36组；MMLE为W(2,1000,3000)、n=7第4、5组。方法设置沿用原图，LSE和WMLE过程见本节前图。</em></p>"
+            },
+            {
+              "id": "profile-summary-ending",
+              "kind": "text",
+              "html": "<p>因此，<mark>这些例子的共同过程是：样本间距和离散结构改变判据的优选区，极值或交点发生偏移，再经参数恢复形成明显高估或低估；其中，宽缓的优选区削弱了参数区分，使很大的参数变化只对应很小的准则变化。</mark>旧MLE的近零停点还说明求解环节的影响：程序可在宽缓区域过早停止，而剖面上仍存在更高似然的合格参数。</p>"
+            }
+          ]
+        }
       ]
     },
     {
@@ -837,6 +923,21 @@
       "doi": "10.2307/2533217",
       "asset_sha256": "5d9b2763d9ca3378f10b6eaeabd182cbda689dbf2f73f5f6d8fb5f3a0d149e0a",
       "purpose": "文献中的宽缓廓线参照，尚未认定本轮所有异常均由平坦造成"
+    },
+    "anomaly_profiles": {
+      "analysis_script": "结果呈现/比较探索/分析异常判据剖面.py",
+      "audit_file": "结果呈现/分析数据/异常判据剖面核验.json",
+      "sources": {
+        "Research/00-方法对比/交付/结果/报告2/数据/20261010-参照线精简图数据.csv": "2f1e0f828702c9678cfea040c5f6cb2064cc51452c6fa09289ab135e0b00fac3",
+        "Research/00-方法对比/交付/结果/报告2/数据/20261010-配对图参照线精简核验.json": "6195b8b059ed2e84d7015977a89647c18fb3942acb2dd4c4c506ce2eaaa36928",
+        "Research/00-方法对比/交付/程序/报告2/20261011-WMLE联合求解与尺度恢复-数据.json": "a0f8fdbb0ac48434e39b3938a8a30195103a99c66edac12617e438f4da4919fb",
+        "Research/00-方法对比/交付/程序/报告2/20261011-MDM近真值对照.json": "099246d843daee99c072f08e3175f3344fac539d2237a17e5f96b688befba7b6",
+        "Research/00-方法对比/交付/程序/报告2/20261011-MMLE对数似然峰图.json": "7394e487a7bde1d10a9c91ef8eb469ff8a5417f99e39d540d0b425b063d975be",
+        "Research/00-方法对比/交付/结果/报告2/配对情形_LRE_zero.png": "d27efcee2daa981f09dcdb3824ee2bd9ddd5eeb7e1adff03e78da4bd4ec121a1",
+        "Research/00-方法对比/交付/结果/报告2/配对情形_MDM_low.png": "d3838968ce3de264eb7fcd0ff13c4bcd98a9a06733e48fcb9a42e3499aafa6f1",
+        "Research/00-方法对比/交付/结果/报告2/配对情形_MLE_high.png": "e5b53cd8f7ef8aa847cdf44c66ca0d3ae35e75b10399387007c7d88480dd43eb",
+        "Research/00-方法对比/交付/结果/报告2/配对情形_MMLE_high_deletion.png": "1bb4e8b15dd914819ae8298bdd2159e851e3b65e94909c9955b0819a1134da93"
+      }
     }
   },
   "manuscript_version": "2.3",
