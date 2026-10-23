@@ -347,6 +347,58 @@ def precision_relationship_options():
                       'output':output.as_posix(),'image':image_path.as_posix()},ensure_ascii=False))
 
 
+def anomaly_reference_check():
+    """对拍既有异常率与原始返回行；只读取，不重新抽样或估计。"""
+    risk_path = HERE.parent/'分析数据/风险统计.csv'
+    risk = pd.read_csv(risk_path, float_precision='round_trip')
+    risk = risk[risk['factor'].eq(3)]
+    sources = {risk_path.relative_to(STUDY).as_posix(): sha(risk_path)}
+    checked = []
+    for beta in np.arange(1.5, 5.1, .5):
+        for n in [50, 20, 15, 10, 7]:
+            path = STUDY/f'结果/W{beta:g},1000,500/估计结果/n{n}.csv'
+            sources[path.relative_to(STUDY).as_posix()] = sha(path)
+            frame = pd.read_csv(path, float_precision='round_trip')
+            assert frame['样本编号'].tolist() == list(range(1200))
+            for method in METHODS:
+                valid = frame[frame[method+'_状态'].eq('success')]
+                values = valid[method+'_形状估计'].to_numpy(float)
+                low, high = int(np.sum(values <= beta/3)), int(np.sum(values >= 3*beta))
+                row = risk[risk['beta'].eq(beta) & risk['n'].eq(n) & risk['method'].eq(method)]
+                assert len(row) == 1
+                row = row.iloc[0]
+                assert (len(valid), low, high) == (row['success'], row['anomaly_low'], row['anomaly_high'])
+                rate = (low+high)/len(valid)
+                assert abs(rate-row['anomaly_valid_rate']) < 1e-12
+                checked.append(dict(beta=float(beta), n=n, method=method,
+                                    success=len(valid), low=low, high=high, rate=rate))
+    endpoint_increases = sum(
+        next(r['rate'] for r in checked if r['beta']==beta and r['n']==7 and r['method']==method)
+        > next(r['rate'] for r in checked if r['beta']==beta and r['n']==50 and r['method']==method)
+        for beta in np.arange(1.5, 5.1, .5) for method in METHODS)
+    beta5_monotonic = all(
+        all(a <= b for a,b in zip(rates, rates[1:]))
+        for method in METHODS
+        for rates in [[next(r['rate'] for r in checked if r['beta']==5 and r['n']==n and r['method']==method)
+                       for n in [50,20,15,10,7]]])
+    frame = pd.read_csv(STUDY/'结果/W5,1000,500/估计结果/n7.csv', float_precision='round_trip')
+    cols = ['LSE_形状估计', 'LSE_尺度估计', 'LSE_位置估计']
+    abnormal = frame[frame[cols[0]].le(5/3) & frame['LSE_状态'].eq('success')].iloc[0]
+    near = frame[frame[cols[0]].between(4,6) & frame[cols[1]].between(800,1200)
+                 & frame[cols[2]].between(300,700) & frame['LSE_状态'].eq('success')].iloc[0]
+    examples = [dict(sample_id=int(r['样本编号']), beta=float(r[cols[0]]),
+                     eta=float(r[cols[1]]), gamma=float(r[cols[2]])) for r in [near,abnormal]]
+    for relative,digest in sources.items():
+        assert sha(STUDY/relative) == digest
+    output = HERE.parent/'分析数据/异常现象与素材复用核对.json'
+    output.write_text(json.dumps(dict(sources=sources, records=checked, examples=examples,
+        example_selection='按存档顺序，分别取形状/尺度/位置误差在预设范围内的首例与形状低估至真值1/3的首例；只作示例。',
+        n7_above_n50_cells=endpoint_increases, beta5_all_methods_n_decrease_monotonic=beta5_monotonic),
+        ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    print(json.dumps(dict(method_cells=len(checked),n7_above_n50_cells=endpoint_increases,
+                         beta5_monotonic=beta5_monotonic,examples=examples,output=output.as_posix()),ensure_ascii=False))
+
+
 def main():
     sys.path.insert(0, str(FROZEN))
     lse_module = runpy.run_path(str(FROZEN/'methods/lse.py'))
@@ -401,5 +453,7 @@ if __name__ == '__main__':
         draw_phenomenon_explanations()
     elif '--precision-relationship-options' in sys.argv:
         precision_relationship_options()
+    elif '--anomaly-reference-check' in sys.argv:
+        anomaly_reference_check()
     else:
         main()
